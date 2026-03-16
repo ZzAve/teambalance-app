@@ -1,0 +1,20 @@
+@import "tailwindcss";
+@import "../../../../design-tokens/tokens.css";
+
+@theme {
+  --font-display: 'Grandstander', cursive;
+  --font-body: 'DM Sans', sans-serif;
+  --color-background: #F8F6F0;
+  --color-card: #FEFDFB;
+  --color-blue: #225C9C;
+  --color-green: #249E6C;
+  --color-gold: #F4B400;
+}
+
+body {
+  font-family: var(--font-body);
+  background-color: var(--color-background);
+  color: var(--color-text-primary, #1E293B);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}

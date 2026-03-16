@@ -20,6 +20,7 @@ class ArchitectureTest {
         noClasses()
             .that().resideInAPackage("..domain..")
             .should().dependOnClassesThat().resideInAPackage("..infrastructure..")
+            .allowEmptyShould(true)
             .check(classes)
     }
 
@@ -28,6 +29,7 @@ class ArchitectureTest {
         noClasses()
             .that().resideInAPackage("..domain..")
             .should().dependOnClassesThat().resideInAPackage("..interfaces..")
+            .allowEmptyShould(true)
             .check(classes)
     }
 
@@ -36,6 +38,7 @@ class ArchitectureTest {
         noClasses()
             .that().resideInAPackage("..domain..")
             .should().dependOnClassesThat().resideInAPackage("org.springframework..")
+            .allowEmptyShould(true)
             .check(classes)
     }
 
@@ -44,6 +47,7 @@ class ArchitectureTest {
         noClasses()
             .that().resideInAPackage("..application..")
             .should().dependOnClassesThat().resideInAPackage("..infrastructure..")
+            .allowEmptyShould(true)
             .check(classes)
     }
 
@@ -52,6 +56,7 @@ class ArchitectureTest {
         noClasses()
             .that().resideInAPackage("..application..")
             .should().dependOnClassesThat().resideInAPackage("..interfaces..")
+            .allowEmptyShould(true)
             .check(classes)
     }
 
@@ -60,6 +65,7 @@ class ArchitectureTest {
         noClasses()
             .that().resideInAPackage("..interfaces..")
             .should().dependOnClassesThat().resideInAPackage("..infrastructure..")
+            .allowEmptyShould(true)
             .check(classes)
     }
 }

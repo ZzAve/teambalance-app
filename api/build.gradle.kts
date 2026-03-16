@@ -1,3 +1,6 @@
+import community.flock.wirespec.plugin.gradle.CompileWirespecTask
+import community.flock.wirespec.plugin.Language
+
 plugins {
     kotlin("jvm")
     kotlin("plugin.spring")
@@ -5,6 +8,7 @@ plugins {
     id("org.springframework.boot")
     id("io.spring.dependency-management")
     id("community.flock.wirespec.plugin.gradle")
+    id("dev.detekt")
 }
 
 java {
@@ -48,6 +52,7 @@ dependencies {
     testImplementation("org.springframework.boot:spring-boot-testcontainers")
     testImplementation("org.testcontainers:postgresql")
     testImplementation("com.tngtech.archunit:archunit-junit5:1.3.0")
+
 }
 
 kotlin {
@@ -60,4 +65,41 @@ tasks.withType<Test> {
     useJUnitPlatform()
 }
 
-// Wirespec code generation — configured fully in Task 9
+detekt {
+    buildUponDefaultConfig = true
+    config.setFrom(files("$projectDir/detekt.yml"))
+}
+
+// Wirespec code generation
+tasks.register<CompileWirespecTask>("wirespec-kotlin") {
+    description = "Compile Wirespec to Kotlin"
+    group = "wirespec"
+    input = layout.projectDirectory.dir("src/main/wirespec")
+    output = layout.buildDirectory.dir("generated/wirespec/kotlin")
+    packageName.set("app.teambalance.interfaces.generated")
+    languages.set(listOf(Language.Kotlin))
+    shared.set(true)
+    strict.set(true)
+}
+
+tasks.register<CompileWirespecTask>("wirespec-typescript") {
+    description = "Compile Wirespec to TypeScript"
+    group = "wirespec"
+    input = layout.projectDirectory.dir("src/main/wirespec")
+    output = rootProject.layout.projectDirectory.dir("app/src/shared/api/generated")
+    languages.set(listOf(Language.TypeScript))
+    shared.set(true)
+    strict.set(true)
+}
+
+sourceSets {
+    main {
+        kotlin {
+            srcDir(layout.buildDirectory.dir("generated/wirespec/kotlin"))
+        }
+    }
+}
+
+tasks.named("compileKotlin") {
+    dependsOn("wirespec-kotlin")
+}

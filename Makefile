@@ -3,7 +3,7 @@
 # The first command will be invoked with `make` only and should be `build`
 build: ## Build everything
 	./gradlew build
-	cd app && npm run build
+	cd app && npm i && npm run build
 
 #	 This outputs any command in the Makefile. With a short description taken from a ## prefixed command after the command (preferred) or the line above
 #	 ## build the project
@@ -83,11 +83,11 @@ wirespec: ## Generate code from Wirespec definitions
 
 yolo: ## Fast build, skip tests and linting
 	./gradlew build -x test -x detekt
-	cd app && npm run build
+	cd app && npm i && npm run yolo
 
 clean: ## Clean build artifacts
 	./gradlew clean
-	cd app && rm -rf dist node_modules/.vite
+	cd app && rm -rf dist node_modules
 
 update: ## Check for dependency updates
 	./gradlew dependencyUpdates

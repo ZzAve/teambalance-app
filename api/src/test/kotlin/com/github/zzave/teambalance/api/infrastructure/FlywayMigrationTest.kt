@@ -1,4 +1,4 @@
-package app.teambalance.infrastructure
+package com.github.zzave.teambalance.api.infrastructure
 
 import org.junit.jupiter.api.Test
 import org.springframework.boot.test.context.SpringBootTest

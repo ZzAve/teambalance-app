@@ -1,4 +1,4 @@
-package app.teambalance
+package com.github.zzave.teambalance.api
 
 import com.tngtech.archunit.core.importer.ClassFileImporter
 import com.tngtech.archunit.core.importer.ImportOption
@@ -11,7 +11,7 @@ class ArchitectureTest {
         private val classes by lazy {
             ClassFileImporter()
                 .withImportOption(ImportOption.DoNotIncludeTests())
-                .importPackages("app.teambalance")
+                .importPackages("com.github.zzave.teambalance.api")
         }
     }
 

@@ -1,4 +1,4 @@
-package app.teambalance.infrastructure.multitenancy
+package com.github.zzave.teambalance.api.infrastructure.multitenancy
 
 object TenantContext {
     private val current = InheritableThreadLocal<String>()

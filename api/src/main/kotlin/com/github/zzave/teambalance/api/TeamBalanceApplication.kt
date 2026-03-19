@@ -1,4 +1,4 @@
-package app.teambalance
+package com.github.zzave.teambalance.api
 
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.runApplication

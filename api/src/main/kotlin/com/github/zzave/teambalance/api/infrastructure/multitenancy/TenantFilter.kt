@@ -1,4 +1,4 @@
-package app.teambalance.infrastructure.multitenancy
+package com.github.zzave.teambalance.api.infrastructure.multitenancy
 
 import jakarta.servlet.FilterChain
 import jakarta.servlet.http.HttpServletRequest

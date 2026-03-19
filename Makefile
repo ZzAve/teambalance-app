@@ -5,8 +5,27 @@ build: ## Build everything
 	./gradlew build
 	cd app && npm run build
 
+#	 This outputs any command in the Makefile. With a short description taken from a ## prefixed command after the command (preferred) or the line above
+#	 ## build the project
+#	 build:
+#    	<build command>
+#
+#    yolo: ## quick build of the project - with as little validation as possible
+#    	<yolo command>
+#
 help: ## Show this help
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
+
+	@echo "Usage: make <command>"; \
+	echo ""; \
+	desc=""; \
+	while IFS= read -r line; do \
+		case "$$line" in \
+			'## '*)              desc="$${line#\#\# }" ;; \
+			[a-zA-Z_-]*:*'## '*) printf '\033[36m%-20s\033[0m %s\n' "$${line%%:*}" "$${line#*\#\# }"; desc="" ;; \
+			[a-zA-Z_-]*:*)       printf '\033[36m%-20s\033[0m %s\n' "$${line%%:*}" "$$desc"; desc="" ;; \
+			*)                   desc="" ;; \
+		esac; \
+	done < $(MAKEFILE_LIST) | sort
 
 # --- Infrastructure ---
 

@@ -1,6 +1,10 @@
 import community.flock.wirespec.plugin.gradle.CompileWirespecTask
 import community.flock.wirespec.plugin.Language
 
+val wirespecVersion: String by project
+val testcontainersVersion: String by project
+val archunitVersion: String by project
+
 plugins {
     kotlin("jvm")
     kotlin("plugin.spring")
@@ -45,16 +49,16 @@ dependencies {
     implementation("com.github.ben-manes.caffeine:caffeine")
 
     // Wirespec runtime
-    implementation("community.flock.wirespec.integration:spring-jvm:0.14.3")
+    implementation("community.flock.wirespec.integration:spring-jvm:$wirespecVersion")
 
     // Testing
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.springframework.boot:spring-boot-testcontainers")
-    testImplementation(platform("org.testcontainers:testcontainers-bom:1.20.4"))
+    testImplementation(platform("org.testcontainers:testcontainers-bom:$testcontainersVersion"))
     testImplementation("org.testcontainers:junit-jupiter")
     testImplementation("org.testcontainers:postgresql")
     testImplementation("org.springframework.boot:spring-boot-starter-webmvc-test")
-    testImplementation("com.tngtech.archunit:archunit-junit5:1.3.0")
+    testImplementation("com.tngtech.archunit:archunit-junit5:$archunitVersion")
     testImplementation(kotlin("test"))
 
 }
@@ -80,7 +84,7 @@ tasks.register<CompileWirespecTask>("wirespec-kotlin") {
     group = "wirespec"
     input = layout.projectDirectory.dir("src/main/wirespec")
     output = layout.buildDirectory.dir("generated/wirespec/kotlin")
-    packageName.set("app.teambalance.interfaces.generated")
+    packageName.set("com.github.zzave.teambalance.api.interfaces.generated")
     languages.set(listOf(Language.Kotlin))
     shared.set(true)
     strict.set(true)

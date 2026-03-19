@@ -1,4 +1,4 @@
-package app.teambalance.infrastructure.multitenancy
+package com.github.zzave.teambalance.api.infrastructure.multitenancy
 
 import org.flywaydb.core.Flyway
 import org.springframework.stereotype.Component

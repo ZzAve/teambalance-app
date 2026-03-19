@@ -1,21 +1,19 @@
-package app.teambalance.interfaces
+package com.github.zzave.teambalance.api.infrastructure.multitenancy
 
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
 import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.test.context.DynamicPropertyRegistry
 import org.springframework.test.context.DynamicPropertySource
-import org.springframework.test.web.servlet.MockMvc
-import org.springframework.test.web.servlet.get
 import org.testcontainers.containers.PostgreSQLContainer
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
+import kotlin.test.assertTrue
 
 @SpringBootTest
-@AutoConfigureMockMvc
 @Testcontainers
-class HealthControllerTest {
+class TenantSchemaManagerTest {
 
     companion object {
         @Container
@@ -35,14 +33,27 @@ class HealthControllerTest {
     }
 
     @Autowired
-    lateinit var mockMvc: MockMvc
+    lateinit var tenantSchemaManager: TenantSchemaManager
+
+    @Autowired
+    lateinit var jdbcTemplate: JdbcTemplate
 
     @Test
-    fun `GET api health returns 200`() {
-        mockMvc.get("/api/health")
-            .andExpect {
-                status { isOk() }
-                jsonPath("$.status") { value("UP") }
-            }
+    fun `provisioning a tenant creates schema with all tables`() {
+        tenantSchemaManager.provisionTenantSchema("team_test_team")
+
+        val tables = jdbcTemplate.queryForList(
+            """
+            SELECT table_name FROM information_schema.tables
+            WHERE table_schema = 'team_test_team'
+            ORDER BY table_name
+            """,
+            String::class.java,
+        )
+
+        assertTrue(tables.contains("events"), "Expected 'events' table in tenant schema")
+        assertTrue(tables.contains("attendances"), "Expected 'attendances' table in tenant schema")
+        assertTrue(tables.contains("transactions"), "Expected 'transactions' table in tenant schema")
+        assertTrue(tables.contains("event_types"), "Expected 'event_types' table in tenant schema")
     }
 }

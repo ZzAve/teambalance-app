@@ -13,5 +13,5 @@ spring:
 
 logging:
   level:
-    app.teambalance: DEBUG
+    com.github.zzave.teambalance.api: DEBUG
     org.hibernate.SQL: DEBUG

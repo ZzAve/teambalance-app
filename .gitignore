@@ -26,3 +26,5 @@ app/src/shared/api/generated/
 
 # Worktrees
 .worktrees/
+app/src/**/*.js
+*.tsbuildinfo

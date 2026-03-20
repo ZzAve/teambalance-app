@@ -30,13 +30,13 @@ help: ## Show this help
 # --- Infrastructure ---
 
 db: ## Start PostgreSQL only
-	docker compose up -d postgres
+	docker-compose up -d postgres
 
 infra: ## Start all local infrastructure (PostgreSQL + Redis)
-	docker compose up -d
+	docker-compose up -d
 
 infra-down: ## Stop local infrastructure
-	docker compose down
+	docker-compose down
 
 # --- Run ---
 
@@ -47,17 +47,17 @@ app: ## Run the frontend dev server
 	cd app && npm run dev
 
 run-local: infra ## Start infra + backend + frontend (backend in background)
-	$(MAKE) api &
-	$(MAKE) app
+	trap 'kill 0' EXIT; \
+	$(MAKE) api & \
+	$(MAKE) app & \
+	wait
 
 www: ## Open the landing page
 	open www/index.html
 
 # --- Test & Lint ---
 
-test: ## Run all tests
-	./gradlew :api:test
-	cd app && npm test
+test: test-api test-app ## Run all tests
 
 test-api: ## Run backend tests only
 	./gradlew :api:test

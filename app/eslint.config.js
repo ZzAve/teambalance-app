@@ -1,3 +1,4 @@
+// NOTE: eslint and @eslint/js are pinned to v9 because eslint-plugin-react-hooks@7 doesn't support eslint 10 yet.
 import js from '@eslint/js'
 import tseslint from 'typescript-eslint'
 import reactHooks from 'eslint-plugin-react-hooks'
@@ -29,23 +30,23 @@ export default tseslint.config(
     rules: {
       ...reactHooks.configs.recommended.rules,
       // FSD: layers can only import from same layer or layers below
-      'boundaries/element-types': [
+      'boundaries/dependencies': [
         'error',
         {
           default: 'disallow',
           rules: [
             // app can import from anything
-            { from: 'app', allow: ['app', 'pages', 'widgets', 'features', 'entities', 'shared'] },
+            { from: { type: 'app' }, allow: [{ to: { type: 'app' } }, { to: { type: 'pages' } }, { to: { type: 'widgets' } }, { to: { type: 'features' } }, { to: { type: 'entities' } }, { to: { type: 'shared' } }] },
             // pages can import from widgets, features, entities, shared
-            { from: 'pages', allow: ['pages', 'widgets', 'features', 'entities', 'shared'] },
+            { from: { type: 'pages' }, allow: [{ to: { type: 'pages' } }, { to: { type: 'widgets' } }, { to: { type: 'features' } }, { to: { type: 'entities' } }, { to: { type: 'shared' } }] },
             // widgets can import from features, entities, shared
-            { from: 'widgets', allow: ['widgets', 'features', 'entities', 'shared'] },
+            { from: { type: 'widgets' }, allow: [{ to: { type: 'widgets' } }, { to: { type: 'features' } }, { to: { type: 'entities' } }, { to: { type: 'shared' } }] },
             // features can import from entities, shared
-            { from: 'features', allow: ['features', 'entities', 'shared'] },
+            { from: { type: 'features' }, allow: [{ to: { type: 'features' } }, { to: { type: 'entities' } }, { to: { type: 'shared' } }] },
             // entities can import from shared only
-            { from: 'entities', allow: ['entities', 'shared'] },
+            { from: { type: 'entities' }, allow: [{ to: { type: 'entities' } }, { to: { type: 'shared' } }] },
             // shared can only import from shared
-            { from: 'shared', allow: ['shared'] },
+            { from: { type: 'shared' }, allow: [{ to: { type: 'shared' } }] },
           ],
         },
       ],

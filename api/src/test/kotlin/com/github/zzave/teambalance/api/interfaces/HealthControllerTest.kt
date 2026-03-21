@@ -8,6 +8,8 @@ import org.springframework.test.context.DynamicPropertyRegistry
 import org.springframework.test.context.DynamicPropertySource
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.get
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers
 import org.testcontainers.containers.PostgreSQLContainer
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
@@ -39,10 +41,12 @@ class HealthControllerTest {
 
     @Test
     fun `GET api health returns 200`() {
-        mockMvc.get("/api/health")
-            .andExpect {
-                status { isOk() }
-                jsonPath("$.status") { value("UP") }
-            }
+        val mvcResult = mockMvc.get("/api/health")
+            .andExpect { request { asyncStarted() } }
+            .andReturn()
+
+        mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(mvcResult))
+            .andExpect(MockMvcResultMatchers.status().isOk)
+            .andExpect(MockMvcResultMatchers.jsonPath("$.status").value("UP"))
     }
 }

@@ -4,7 +4,7 @@ import com.github.zzave.teambalance.api.infrastructure.persistence.entity.Attend
 import org.springframework.data.jpa.repository.JpaRepository
 import java.util.UUID
 
-interface SpringDataAttendanceRepository : JpaRepository<AttendanceJpaEntity, UUID> {
-    fun findByEventId(eventId: UUID): List<AttendanceJpaEntity>
-    fun findByEventIdAndUserId(eventId: UUID, userId: UUID): AttendanceJpaEntity?
+interface SpringDataAttendanceRepository : JpaRepository<AttendanceJpaEntity, Long> {
+    fun findByEventUuid(eventUuid: UUID): List<AttendanceJpaEntity>
+    fun findByEventUuidAndUserId(eventUuid: UUID, userId: UUID): AttendanceJpaEntity?
 }

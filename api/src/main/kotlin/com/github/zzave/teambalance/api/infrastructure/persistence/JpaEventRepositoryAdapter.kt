@@ -15,7 +15,7 @@ class JpaEventRepositoryAdapter(
 ) : EventRepository {
 
     override fun findById(id: UUID): Event? =
-        jpaRepository.findById(id).orElse(null)?.toDomain()
+        jpaRepository.findByUuid(id)?.toDomain()
 
     override fun findUpcoming(since: Instant): List<Event> =
         jpaRepository.findByStartTimeGreaterThanOrderByStartTimeAsc(since).map { it.toDomain() }
@@ -24,11 +24,14 @@ class JpaEventRepositoryAdapter(
         jpaRepository.findAllByOrderByStartTimeDesc().map { it.toDomain() }
 
     override fun save(event: Event): Event {
-        val eventTypeEntity = eventTypeJpaRepository.findById(event.eventType.id)
-            .orElseThrow { IllegalArgumentException("EventType not found: ${event.eventType.id}") }
+        val eventTypeEntity = eventTypeJpaRepository.findByUuid(event.eventType.id)
+            ?: throw IllegalArgumentException("EventType not found: ${event.eventType.id}")
         return jpaRepository.save(event.toJpaEntity(eventTypeEntity)).toDomain()
     }
 
-    override fun deleteById(id: UUID) =
-        jpaRepository.deleteById(id)
+    override fun deleteById(id: UUID) {
+        val entity = jpaRepository.findByUuid(id)
+            ?: throw IllegalArgumentException("Event not found: $id")
+        jpaRepository.delete(entity)
+    }
 }

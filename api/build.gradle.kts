@@ -94,7 +94,7 @@ tasks.register<CompileWirespecTask>("wirespec-kotlin") {
     input = layout.projectDirectory.dir("src/main/wirespec")
     output = layout.buildDirectory.dir("generated/wirespec/kotlin")
     packageName.set("com.github.zzave.teambalance.api.interfaces.generated")
-    languages.set(listOf(Language.Kotlin))
+    emitterClass.set(TeamBalanceSpringKotlinEmitter::class.java)
     shared.set(true)
     strict.set(true)
 }

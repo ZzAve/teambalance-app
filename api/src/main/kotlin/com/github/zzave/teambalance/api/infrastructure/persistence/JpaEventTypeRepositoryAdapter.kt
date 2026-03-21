@@ -15,5 +15,5 @@ class JpaEventTypeRepositoryAdapter(
         jpaRepository.findAll().map { it.toDomain() }
 
     override fun findById(id: UUID): EventType? =
-        jpaRepository.findById(id).orElse(null)?.toDomain()
+        jpaRepository.findByUuid(id)?.toDomain()
 }

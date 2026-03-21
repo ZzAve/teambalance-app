@@ -20,7 +20,11 @@ class UserFilter : OncePerRequestFilter() {
     ) {
         val userHeader = request.getHeader("X-User-Id")
         if (userHeader != null) {
-            UserContext.set(UUID.fromString(userHeader))
+            try {
+                UserContext.set(UUID.fromString(userHeader))
+            } catch (_: IllegalArgumentException) {
+                // Malformed UUID — proceed without setting user context
+            }
         }
         try {
             filterChain.doFilter(request, response)

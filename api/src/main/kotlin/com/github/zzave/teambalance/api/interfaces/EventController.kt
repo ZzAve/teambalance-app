@@ -4,6 +4,12 @@ import com.github.zzave.teambalance.api.application.AttendanceService
 import com.github.zzave.teambalance.api.application.EventService
 import com.github.zzave.teambalance.api.domain.model.AttendanceState
 import com.github.zzave.teambalance.api.domain.model.Event
+import com.github.zzave.teambalance.api.interfaces.dto.AttendanceEntryDto
+import com.github.zzave.teambalance.api.interfaces.dto.AttendanceSummaryDto
+import com.github.zzave.teambalance.api.interfaces.dto.EventDetailDto
+import com.github.zzave.teambalance.api.interfaces.dto.EventDto
+import com.github.zzave.teambalance.api.interfaces.dto.EventListDto
+import com.github.zzave.teambalance.api.interfaces.dto.EventTypeSummaryDto
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.DeleteMapping
@@ -13,30 +19,32 @@ import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.PutMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestHeader
+import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import java.time.Instant
 import java.util.UUID
 
 @RestController
+@RequestMapping("/api/events")
 class EventController(
     private val eventService: EventService,
     private val attendanceService: AttendanceService,
 ) {
-    @GetMapping("/api/events")
+    @GetMapping
     fun listEvents(
         @RequestParam(name = "include-past", defaultValue = "false") includePast: Boolean,
-    ): ResponseEntity<Map<String, Any?>> {
+    ): ResponseEntity<EventListDto> {
         val events = if (includePast) eventService.getAllEvents() else eventService.getUpcomingEvents()
         val eventDtos = events.map { it.toDto(attendanceService) }
-        return ResponseEntity.ok(mapOf("events" to eventDtos))
+        return ResponseEntity.ok(EventListDto(events = eventDtos))
     }
 
-    @PostMapping("/api/events")
+    @PostMapping
     fun createEvent(
         @RequestBody request: CreateEventRequest,
         @RequestHeader("X-User-Id") userId: String,
-    ): ResponseEntity<Map<String, Any?>> {
+    ): ResponseEntity<EventDto> {
         val teamId = UUID.fromString("a0000000-0000-0000-0000-000000000001")
         val event = eventService.createEvent(
             eventTypeId = UUID.fromString(request.eventTypeId),
@@ -51,8 +59,8 @@ class EventController(
         return ResponseEntity.status(HttpStatus.CREATED).body(event.toDto(attendanceService))
     }
 
-    @GetMapping("/api/events/{id}")
-    fun getEvent(@PathVariable id: UUID): ResponseEntity<Map<String, Any?>> {
+    @GetMapping("/{id}")
+    fun getEvent(@PathVariable id: UUID): ResponseEntity<EventDetailDto> {
         val event = eventService.getEvent(id) ?: return ResponseEntity.notFound().build()
         val attendances = attendanceService.getAttendancesWithNames(id)
         val summary = attendanceService.getAttendanceSummary(id)
@@ -61,11 +69,11 @@ class EventController(
         return ResponseEntity.ok(dto)
     }
 
-    @PutMapping("/api/events/{id}")
+    @PutMapping("/{id}")
     fun updateEvent(
         @PathVariable id: UUID,
         @RequestBody request: UpdateEventRequest,
-    ): ResponseEntity<Map<String, Any?>> {
+    ): ResponseEntity<EventDto> {
         val event = eventService.updateEvent(
             id = id,
             eventTypeId = UUID.fromString(request.eventTypeId),
@@ -78,7 +86,7 @@ class EventController(
         return ResponseEntity.ok(event.toDto(attendanceService))
     }
 
-    @DeleteMapping("/api/events/{id}")
+    @DeleteMapping("/{id}")
     fun deleteEvent(@PathVariable id: UUID): ResponseEntity<Unit> {
         return if (eventService.deleteEvent(id)) {
             ResponseEntity.noContent().build()
@@ -106,49 +114,46 @@ class EventController(
     )
 }
 
-private fun Event.toDto(attendanceService: AttendanceService): Map<String, Any?> {
+private fun Map<AttendanceState, Int>.toSummaryDto() = AttendanceSummaryDto(
+    attending = this[AttendanceState.ATTENDING] ?: 0,
+    maybe = this[AttendanceState.MAYBE] ?: 0,
+    absent = this[AttendanceState.ABSENT] ?: 0,
+    notResponded = this[AttendanceState.NOT_RESPONDED] ?: 0,
+)
+
+private fun Event.toDto(attendanceService: AttendanceService): EventDto {
     val summary = attendanceService.getAttendanceSummary(id)
-    return mapOf(
-        "id" to id.toString(),
-        "eventType" to mapOf("id" to eventType.id.toString(), "name" to eventType.name, "color" to eventType.color),
-        "title" to title,
-        "description" to description,
-        "startTime" to startTime.toString(),
-        "endTime" to endTime?.toString(),
-        "location" to location,
-        "attendanceSummary" to mapOf(
-            "attending" to (summary[AttendanceState.ATTENDING] ?: 0),
-            "maybe" to (summary[AttendanceState.MAYBE] ?: 0),
-            "absent" to (summary[AttendanceState.ABSENT] ?: 0),
-            "notResponded" to (summary[AttendanceState.NOT_RESPONDED] ?: 0),
-        ),
+    return EventDto(
+        id = id.toString(),
+        eventType = EventTypeSummaryDto(id = eventType.id.toString(), name = eventType.name, color = eventType.color),
+        title = title,
+        description = description,
+        startTime = startTime.toString(),
+        endTime = endTime?.toString(),
+        location = location,
+        attendanceSummary = summary.toSummaryDto(),
     )
 }
 
 private fun Event.toDetailDto(
     attendances: List<Pair<com.github.zzave.teambalance.api.domain.model.Attendance, String>>,
     summary: Map<AttendanceState, Int>,
-): Map<String, Any?> {
-    return mapOf(
-        "id" to id.toString(),
-        "eventType" to mapOf("id" to eventType.id.toString(), "name" to eventType.name, "color" to eventType.color),
-        "title" to title,
-        "description" to description,
-        "startTime" to startTime.toString(),
-        "endTime" to endTime?.toString(),
-        "location" to location,
-        "attendanceSummary" to mapOf(
-            "attending" to (summary[AttendanceState.ATTENDING] ?: 0),
-            "maybe" to (summary[AttendanceState.MAYBE] ?: 0),
-            "absent" to (summary[AttendanceState.ABSENT] ?: 0),
-            "notResponded" to (summary[AttendanceState.NOT_RESPONDED] ?: 0),
-        ),
-        "attendances" to attendances.map { (a, name) ->
-            mapOf(
-                "id" to a.id.toString(),
-                "userId" to a.userId.toString(),
-                "displayName" to name,
-                "state" to a.state.name,
+): EventDetailDto {
+    return EventDetailDto(
+        id = id.toString(),
+        eventType = EventTypeSummaryDto(id = eventType.id.toString(), name = eventType.name, color = eventType.color),
+        title = title,
+        description = description,
+        startTime = startTime.toString(),
+        endTime = endTime?.toString(),
+        location = location,
+        attendanceSummary = summary.toSummaryDto(),
+        attendances = attendances.map { (a, name) ->
+            AttendanceEntryDto(
+                id = a.id.toString(),
+                userId = a.userId.toString(),
+                displayName = name,
+                state = a.state.name,
             )
         },
     )

@@ -9,7 +9,7 @@ import org.springframework.test.context.DynamicPropertySource
 import org.testcontainers.containers.PostgreSQLContainer
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
-import kotlin.test.assertTrue
+import io.kotest.matchers.collections.shouldContain
 
 @SpringBootTest
 @Testcontainers
@@ -51,9 +51,9 @@ class TenantSchemaManagerTest {
             String::class.java,
         )
 
-        assertTrue(tables.contains("events"), "Expected 'events' table in tenant schema")
-        assertTrue(tables.contains("attendances"), "Expected 'attendances' table in tenant schema")
-        assertTrue(tables.contains("transactions"), "Expected 'transactions' table in tenant schema")
-        assertTrue(tables.contains("event_types"), "Expected 'event_types' table in tenant schema")
+        tables shouldContain "events"
+        tables shouldContain "attendances"
+        tables shouldContain "transactions"
+        tables shouldContain "event_types"
     }
 }

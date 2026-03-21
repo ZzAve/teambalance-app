@@ -48,4 +48,6 @@ class AttendanceService(
             attendances.count { it.state == state }
         }
     }
+
+    fun findDisplayName(userId: UUID): String? = teamMemberRepository.findDisplayName(userId)
 }

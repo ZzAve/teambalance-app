@@ -1,160 +1,135 @@
 package com.github.zzave.teambalance.api.interfaces
 
 import com.github.zzave.teambalance.api.application.AttendanceService
+import com.github.zzave.teambalance.api.application.CurrentUserProvider
 import com.github.zzave.teambalance.api.application.EventService
 import com.github.zzave.teambalance.api.domain.model.AttendanceState
-import com.github.zzave.teambalance.api.domain.model.Event
-import com.github.zzave.teambalance.api.interfaces.dto.AttendanceEntryDto
-import com.github.zzave.teambalance.api.interfaces.dto.AttendanceSummaryDto
-import com.github.zzave.teambalance.api.interfaces.dto.EventDetailDto
-import com.github.zzave.teambalance.api.interfaces.dto.EventDto
-import com.github.zzave.teambalance.api.interfaces.dto.EventListDto
-import com.github.zzave.teambalance.api.interfaces.dto.EventTypeSummaryDto
-import org.springframework.http.HttpStatus
-import org.springframework.http.ResponseEntity
-import org.springframework.web.bind.annotation.DeleteMapping
-import org.springframework.web.bind.annotation.GetMapping
-import org.springframework.web.bind.annotation.PathVariable
-import org.springframework.web.bind.annotation.PostMapping
-import org.springframework.web.bind.annotation.PutMapping
-import org.springframework.web.bind.annotation.RequestBody
-import org.springframework.web.bind.annotation.RequestHeader
-import org.springframework.web.bind.annotation.RequestMapping
-import org.springframework.web.bind.annotation.RequestParam
+import com.github.zzave.teambalance.api.interfaces.generated.AttendanceEntry
+import com.github.zzave.teambalance.api.interfaces.generated.AttendanceSummary
+import com.github.zzave.teambalance.api.interfaces.generated.CreateEventEndpoint
+import com.github.zzave.teambalance.api.interfaces.generated.DeleteEventEndpoint
+import com.github.zzave.teambalance.api.interfaces.generated.Event
+import com.github.zzave.teambalance.api.interfaces.generated.EventDetail
+import com.github.zzave.teambalance.api.interfaces.generated.EventList
+import com.github.zzave.teambalance.api.interfaces.generated.EventTypeSummary
+import com.github.zzave.teambalance.api.interfaces.generated.GetEventEndpoint
+import com.github.zzave.teambalance.api.interfaces.generated.ListEventsEndpoint
+import com.github.zzave.teambalance.api.interfaces.generated.UpdateEventEndpoint
 import org.springframework.web.bind.annotation.RestController
 import java.time.Instant
 import java.util.UUID
 
 @RestController
-@RequestMapping("/api/events")
 class EventController(
     private val eventService: EventService,
     private val attendanceService: AttendanceService,
-) {
-    @GetMapping
-    fun listEvents(
-        @RequestParam(name = "include-past", defaultValue = "false") includePast: Boolean,
-    ): ResponseEntity<EventListDto> {
-        val events = if (includePast) eventService.getAllEvents() else eventService.getUpcomingEvents()
-        val eventDtos = events.map { it.toDto(attendanceService) }
-        return ResponseEntity.ok(EventListDto(events = eventDtos))
+    private val currentUserProvider: CurrentUserProvider,
+) : ListEventsEndpoint.Handler,
+    CreateEventEndpoint.Handler,
+    GetEventEndpoint.Handler,
+    UpdateEventEndpoint.Handler,
+    DeleteEventEndpoint.Handler {
+
+    override suspend fun listEvents(request: ListEventsEndpoint.Request): ListEventsEndpoint.Response<*> {
+        val events = if (request.queries.includepast) eventService.getAllEvents() else eventService.getUpcomingEvents()
+        return ListEventsEndpoint.Response200(
+            EventList(events = events.map { it.toWirespec() })
+        )
     }
 
-    @PostMapping
-    fun createEvent(
-        @RequestBody request: CreateEventRequest,
-        @RequestHeader("X-User-Id") userId: String,
-    ): ResponseEntity<EventDto> {
-        val teamId = UUID.fromString("a0000000-0000-0000-0000-000000000001")
+    override suspend fun createEvent(request: CreateEventEndpoint.Request): CreateEventEndpoint.Response<*> {
+        val req = request.body
+        val teamId = UUID.fromString("a0000000-0000-0000-0000-000000000001") // TODO: resolve from tenant context
         val event = eventService.createEvent(
-            eventTypeId = UUID.fromString(request.eventTypeId),
-            title = request.title,
-            description = request.description,
-            startTime = Instant.parse(request.startTime),
-            endTime = request.endTime?.let { Instant.parse(it) },
-            location = request.location,
-            createdBy = UUID.fromString(userId),
+            eventTypeId = UUID.fromString(req.eventTypeId),
+            title = req.title,
+            description = req.description,
+            startTime = Instant.parse(req.startTime),
+            endTime = req.endTime?.let { Instant.parse(it) },
+            location = req.location,
+            createdBy = currentUserProvider.requireCurrentUserId(),
             teamId = teamId,
         )
-        return ResponseEntity.status(HttpStatus.CREATED).body(event.toDto(attendanceService))
+        return CreateEventEndpoint.Response201(event.toWirespec())
     }
 
-    @GetMapping("/{id}")
-    fun getEvent(@PathVariable id: UUID): ResponseEntity<EventDetailDto> {
-        val event = eventService.getEvent(id) ?: return ResponseEntity.notFound().build()
+    override suspend fun getEvent(request: GetEventEndpoint.Request): GetEventEndpoint.Response<*> {
+        val id = UUID.fromString(request.path.id)
+        val event = eventService.getEvent(id)
+            ?: return GetEventEndpoint.Response404(Unit)
+
         val attendances = attendanceService.getAttendancesWithNames(id)
         val summary = attendanceService.getAttendanceSummary(id)
 
-        val dto = event.toDetailDto(attendances, summary)
-        return ResponseEntity.ok(dto)
+        return GetEventEndpoint.Response200(
+            EventDetail(
+                id = event.id.toString(),
+                eventType = event.eventType.toSummary(),
+                title = event.title,
+                description = event.description,
+                startTime = event.startTime.toString(),
+                endTime = event.endTime?.toString(),
+                location = event.location,
+                attendanceSummary = summary.toWirespec(),
+                attendances = attendances.map { (a, name) ->
+                    AttendanceEntry(
+                        id = a.id.toString(),
+                        userId = a.userId.toString(),
+                        displayName = name,
+                        state = a.state.name,
+                    )
+                },
+            )
+        )
     }
 
-    @PutMapping("/{id}")
-    fun updateEvent(
-        @PathVariable id: UUID,
-        @RequestBody request: UpdateEventRequest,
-    ): ResponseEntity<EventDto> {
+    override suspend fun updateEvent(request: UpdateEventEndpoint.Request): UpdateEventEndpoint.Response<*> {
+        val id = UUID.fromString(request.path.id)
+        val req = request.body
         val event = eventService.updateEvent(
             id = id,
-            eventTypeId = UUID.fromString(request.eventTypeId),
-            title = request.title,
-            description = request.description,
-            startTime = Instant.parse(request.startTime),
-            endTime = request.endTime?.let { Instant.parse(it) },
-            location = request.location,
-        ) ?: return ResponseEntity.notFound().build()
-        return ResponseEntity.ok(event.toDto(attendanceService))
+            eventTypeId = UUID.fromString(req.eventTypeId),
+            title = req.title,
+            description = req.description,
+            startTime = Instant.parse(req.startTime),
+            endTime = req.endTime?.let { Instant.parse(it) },
+            location = req.location,
+        ) ?: return UpdateEventEndpoint.Response404(Unit)
+
+        return UpdateEventEndpoint.Response200(event.toWirespec())
     }
 
-    @DeleteMapping("/{id}")
-    fun deleteEvent(@PathVariable id: UUID): ResponseEntity<Unit> {
+    override suspend fun deleteEvent(request: DeleteEventEndpoint.Request): DeleteEventEndpoint.Response<*> {
+        val id = UUID.fromString(request.path.id)
         return if (eventService.deleteEvent(id)) {
-            ResponseEntity.noContent().build()
+            DeleteEventEndpoint.Response204(Unit)
         } else {
-            ResponseEntity.notFound().build()
+            DeleteEventEndpoint.Response404(Unit)
         }
     }
 
-    data class CreateEventRequest(
-        val eventTypeId: String,
-        val title: String,
-        val description: String?,
-        val startTime: String,
-        val endTime: String?,
-        val location: String?,
-    )
+    private fun com.github.zzave.teambalance.api.domain.model.Event.toWirespec(): Event {
+        val summary = attendanceService.getAttendanceSummary(id)
+        return Event(
+            id = id.toString(),
+            eventType = eventType.toSummary(),
+            title = title,
+            description = description,
+            startTime = startTime.toString(),
+            endTime = endTime?.toString(),
+            location = location,
+            attendanceSummary = summary.toWirespec(),
+        )
+    }
 
-    data class UpdateEventRequest(
-        val eventTypeId: String,
-        val title: String,
-        val description: String?,
-        val startTime: String,
-        val endTime: String?,
-        val location: String?,
-    )
-}
+    private fun com.github.zzave.teambalance.api.domain.model.EventType.toSummary() =
+        EventTypeSummary(id = id.toString(), name = name, color = color)
 
-private fun Map<AttendanceState, Int>.toSummaryDto() = AttendanceSummaryDto(
-    attending = this[AttendanceState.ATTENDING] ?: 0,
-    maybe = this[AttendanceState.MAYBE] ?: 0,
-    absent = this[AttendanceState.ABSENT] ?: 0,
-    notResponded = this[AttendanceState.NOT_RESPONDED] ?: 0,
-)
-
-private fun Event.toDto(attendanceService: AttendanceService): EventDto {
-    val summary = attendanceService.getAttendanceSummary(id)
-    return EventDto(
-        id = id.toString(),
-        eventType = EventTypeSummaryDto(id = eventType.id.toString(), name = eventType.name, color = eventType.color),
-        title = title,
-        description = description,
-        startTime = startTime.toString(),
-        endTime = endTime?.toString(),
-        location = location,
-        attendanceSummary = summary.toSummaryDto(),
-    )
-}
-
-private fun Event.toDetailDto(
-    attendances: List<Pair<com.github.zzave.teambalance.api.domain.model.Attendance, String>>,
-    summary: Map<AttendanceState, Int>,
-): EventDetailDto {
-    return EventDetailDto(
-        id = id.toString(),
-        eventType = EventTypeSummaryDto(id = eventType.id.toString(), name = eventType.name, color = eventType.color),
-        title = title,
-        description = description,
-        startTime = startTime.toString(),
-        endTime = endTime?.toString(),
-        location = location,
-        attendanceSummary = summary.toSummaryDto(),
-        attendances = attendances.map { (a, name) ->
-            AttendanceEntryDto(
-                id = a.id.toString(),
-                userId = a.userId.toString(),
-                displayName = name,
-                state = a.state.name,
-            )
-        },
-    )
+    private fun Map<AttendanceState, Int>.toWirespec() =
+        AttendanceSummary(
+            attending = (this[AttendanceState.ATTENDING] ?: 0).toLong(),
+            maybe = (this[AttendanceState.MAYBE] ?: 0).toLong(),
+            absent = (this[AttendanceState.ABSENT] ?: 0).toLong(),
+            notResponded = (this[AttendanceState.NOT_RESPONDED] ?: 0).toLong(),
+        )
 }

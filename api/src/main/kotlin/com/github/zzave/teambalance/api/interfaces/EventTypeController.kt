@@ -1,27 +1,24 @@
 package com.github.zzave.teambalance.api.interfaces
 
 import com.github.zzave.teambalance.api.application.EventTypeService
-import com.github.zzave.teambalance.api.interfaces.dto.EventTypeItemDto
-import com.github.zzave.teambalance.api.interfaces.dto.EventTypeListDto
-import org.springframework.http.ResponseEntity
-import org.springframework.web.bind.annotation.GetMapping
-import org.springframework.web.bind.annotation.RequestMapping
+import com.github.zzave.teambalance.api.interfaces.generated.EventTypeItem
+import com.github.zzave.teambalance.api.interfaces.generated.EventTypeList
+import com.github.zzave.teambalance.api.interfaces.generated.ListEventTypesEndpoint
 import org.springframework.web.bind.annotation.RestController
 
 @RestController
-@RequestMapping("/api/event-types")
 class EventTypeController(
     private val eventTypeService: EventTypeService,
-) {
-    @GetMapping
-    fun listEventTypes(): ResponseEntity<EventTypeListDto> {
+) : ListEventTypesEndpoint.Handler {
+
+    override suspend fun listEventTypes(request: ListEventTypesEndpoint.Request): ListEventTypesEndpoint.Response<*> {
         val types = eventTypeService.findAll().map { type ->
-            EventTypeItemDto(
+            EventTypeItem(
                 id = type.id.toString(),
                 name = type.name,
                 color = type.color,
             )
         }
-        return ResponseEntity.ok(EventTypeListDto(eventTypes = types))
+        return ListEventTypesEndpoint.Response200(EventTypeList(eventTypes = types))
     }
 }

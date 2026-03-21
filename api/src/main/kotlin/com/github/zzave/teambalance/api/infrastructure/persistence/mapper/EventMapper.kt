@@ -5,7 +5,7 @@ import com.github.zzave.teambalance.api.infrastructure.persistence.entity.EventJ
 import com.github.zzave.teambalance.api.infrastructure.persistence.entity.EventTypeJpaEntity
 
 fun EventJpaEntity.toDomain() = Event(
-    id = id,
+    id = uuid,
     eventType = eventType.toDomain(),
     title = title,
     description = description,
@@ -17,7 +17,7 @@ fun EventJpaEntity.toDomain() = Event(
 )
 
 fun Event.toJpaEntity(eventTypeEntity: EventTypeJpaEntity) = EventJpaEntity(
-    id = id,
+    uuid = id,
     eventType = eventTypeEntity,
     title = title,
     description = description,

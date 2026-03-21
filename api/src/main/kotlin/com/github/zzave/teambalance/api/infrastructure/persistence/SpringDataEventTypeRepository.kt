@@ -4,4 +4,6 @@ import com.github.zzave.teambalance.api.infrastructure.persistence.entity.EventT
 import org.springframework.data.jpa.repository.JpaRepository
 import java.util.UUID
 
-interface SpringDataEventTypeRepository : JpaRepository<EventTypeJpaEntity, UUID>
+interface SpringDataEventTypeRepository : JpaRepository<EventTypeJpaEntity, Long> {
+    fun findByUuid(uuid: UUID): EventTypeJpaEntity?
+}

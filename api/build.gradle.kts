@@ -51,15 +51,24 @@ dependencies {
     // Wirespec runtime
     implementation("community.flock.wirespec.integration:spring-jvm:$wirespecVersion")
 
-    // Testing
+    // Testing — Kotest
+    val kotestVersion: String by project
+    val kotestSpringExtensionVersion: String by project
+    testImplementation("io.kotest:kotest-runner-junit5:$kotestVersion")
+    testImplementation("io.kotest:kotest-assertions-core:$kotestVersion")
+    testImplementation("io.kotest.extensions:kotest-extensions-spring:$kotestSpringExtensionVersion")
+
+    // Testing — Spring + Testcontainers
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.springframework.boot:spring-boot-testcontainers")
     testImplementation(platform("org.testcontainers:testcontainers-bom:$testcontainersVersion"))
     testImplementation("org.testcontainers:junit-jupiter")
     testImplementation("org.testcontainers:postgresql")
+    testImplementation("org.testcontainers:testcontainers")
     testImplementation("org.springframework.boot:spring-boot-starter-webmvc-test")
+
+    // Testing — ArchUnit
     testImplementation("com.tngtech.archunit:archunit-junit5:$archunitVersion")
-    testImplementation(kotlin("test"))
 
 }
 

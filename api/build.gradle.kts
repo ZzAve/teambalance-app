@@ -1,3 +1,4 @@
+import community.flock.wirespec.integration.spring.kotlin.emit.SpringKotlinEmitter
 import community.flock.wirespec.plugin.gradle.CompileWirespecTask
 import community.flock.wirespec.plugin.Language
 
@@ -85,8 +86,8 @@ tasks.register<CompileWirespecTask>("wirespec-kotlin") {
     input = layout.projectDirectory.dir("src/main/wirespec")
     output = layout.buildDirectory.dir("generated/wirespec/kotlin")
     packageName.set("com.github.zzave.teambalance.api.interfaces.generated")
-    emitterClass.set(TeamBalanceSpringKotlinEmitter::class.java)
-    shared.set(true)
+    emitterClass.set(SpringKotlinEmitter::class.java)
+    shared.set(false)
     strict.set(true)
 }
 

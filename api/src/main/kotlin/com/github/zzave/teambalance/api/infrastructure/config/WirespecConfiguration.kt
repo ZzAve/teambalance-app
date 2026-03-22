@@ -4,6 +4,7 @@ import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import community.flock.wirespec.integration.spring.kotlin.configuration.WirespecWebMvcConfiguration
 import community.flock.wirespec.kotlin.Wirespec
 import community.flock.wirespec.kotlin.serde.DefaultParamSerialization
+import community.flock.wirespec.kotlin.serde.DefaultPathSerialization
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.context.annotation.Import
@@ -18,7 +19,7 @@ import kotlin.reflect.KType
 import kotlin.reflect.javaType
 
 /**
- * Wirespec Spring configuration bridging wirespec 0.14.x (Jackson 2.x) with Spring Boot 4 (Jackson 3.x).
+ * Wirespec Spring configuration bridging wirespec 0.17.x (Jackson 2.x) with Spring Boot 4 (Jackson 3.x).
  *
  * Uses a custom ResponseBodyAdvice that extracts the body from wirespec Response wrappers
  * and lets Spring Boot 4's native Jackson 3.x handle serialization.
@@ -28,18 +29,25 @@ import kotlin.reflect.javaType
 class WirespecConfiguration {
 
     @Bean
-    fun wirespecSerialization(): Wirespec.Serialization<String> {
+    fun wirespecSerialization(): Wirespec.Serialization {
         val objectMapper = jacksonObjectMapper()
-        return object : Wirespec.Serialization<String> {
+        return object : Wirespec.Serialization {
             private val paramSerialization = DefaultParamSerialization()
+            private val pathSerialization = DefaultPathSerialization()
 
             @OptIn(ExperimentalStdlibApi::class)
-            override fun <T> serialize(t: T, kType: KType): String =
-                objectMapper.writeValueAsString(t)
+            override fun <T> serializeBody(t: T, kType: KType): ByteArray =
+                objectMapper.writeValueAsBytes(t)
 
             @OptIn(ExperimentalStdlibApi::class)
-            override fun <T> deserialize(raw: String, kType: KType): T =
+            override fun <T> deserializeBody(raw: ByteArray, kType: KType): T =
                 objectMapper.readValue(raw, objectMapper.constructType(kType.javaType))
+
+            override fun <T> serializePath(value: T, kType: KType): String =
+                pathSerialization.serializePath(value, kType)
+
+            override fun <T> deserializePath(raw: String, kType: KType): T =
+                pathSerialization.deserializePath(raw, kType)
 
             override fun <T> serializeParam(value: T, kType: KType): List<String> =
                 paramSerialization.serializeParam(value, kType)

@@ -7,6 +7,7 @@ import com.github.zzave.teambalance.api.domain.port.EventRepository
 import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.time.Clock
 import java.time.Instant
 import java.util.UUID
 
@@ -16,13 +17,14 @@ class AttendanceService(
     private val attendanceRepository: AttendanceRepository,
     private val eventRepository: EventRepository,
     private val teamMemberRepository: TeamMemberRepository,
+    private val clock: Clock,
 ) {
     fun setAttendance(eventId: UUID, userId: UUID, state: AttendanceState): Attendance? {
         if (eventRepository.findById(eventId) == null) return null
 
         val existing = attendanceRepository.findByEventIdAndUserId(eventId, userId)
         return if (existing != null) {
-            attendanceRepository.save(existing.copy(state = state, updatedAt = Instant.now()))
+            attendanceRepository.save(existing.copy(state = state, updatedAt = Instant.now(clock)))
         } else {
             attendanceRepository.save(
                 Attendance(
@@ -30,7 +32,7 @@ class AttendanceService(
                     eventId = eventId,
                     userId = userId,
                     state = state,
-                    updatedAt = Instant.now(),
+                    updatedAt = Instant.now(clock),
                 ),
             )
         }

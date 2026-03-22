@@ -1,11 +1,11 @@
 package com.github.zzave.teambalance.api.interfaces
 
-import com.github.zzave.teambalance.api.interfaces.generated.HealthCheckEndpoint
-import com.github.zzave.teambalance.api.interfaces.generated.HealthStatus
+import com.github.zzave.teambalance.api.interfaces.generated.endpoint.HealthCheck
+import com.github.zzave.teambalance.api.interfaces.generated.model.HealthStatus
 import org.springframework.web.bind.annotation.RestController
 
 @RestController
-class HealthController : HealthCheckEndpoint.Handler {
-    override suspend fun healthCheck(request: HealthCheckEndpoint.Request): HealthCheckEndpoint.Response<*> =
-        HealthCheckEndpoint.Response200(HealthStatus(status = "UP"))
+class HealthController : HealthCheck.Handler {
+    override suspend fun healthCheck(request: HealthCheck.Request): HealthCheck.Response<*> =
+        HealthCheck.Response200(HealthStatus(status = "UP"))
 }

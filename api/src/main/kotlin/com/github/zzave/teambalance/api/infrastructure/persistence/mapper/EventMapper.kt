@@ -4,9 +4,9 @@ import com.github.zzave.teambalance.api.domain.model.Event
 import com.github.zzave.teambalance.api.infrastructure.persistence.entity.EventJpaEntity
 import com.github.zzave.teambalance.api.infrastructure.persistence.entity.EventTypeJpaEntity
 
-fun EventJpaEntity.toDomain() = Event(
+fun EventJpaEntity.internalize() = Event(
     id = uuid,
-    eventType = eventType.toDomain(),
+    eventType = eventType.internalize(),
     title = title,
     description = description,
     startTime = startTime,
@@ -16,7 +16,7 @@ fun EventJpaEntity.toDomain() = Event(
     createdAt = createdAt,
 )
 
-fun Event.toJpaEntity(eventTypeEntity: EventTypeJpaEntity) = EventJpaEntity(
+fun Event.externalize(eventTypeEntity: EventTypeJpaEntity) = EventJpaEntity(
     uuid = id,
     eventType = eventTypeEntity,
     title = title,

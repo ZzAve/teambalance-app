@@ -36,23 +36,23 @@ class WirespecConfiguration {
             private val pathSerialization = DefaultPathSerialization()
 
             @OptIn(ExperimentalStdlibApi::class)
-            override fun <T> serializeBody(t: T, kType: KType): ByteArray =
+            override fun <T : Any> serializeBody(t: T, kType: KType): ByteArray =
                 objectMapper.writeValueAsBytes(t)
 
             @OptIn(ExperimentalStdlibApi::class)
-            override fun <T> deserializeBody(raw: ByteArray, kType: KType): T =
+            override fun <T : Any> deserializeBody(raw: ByteArray, kType: KType): T =
                 objectMapper.readValue(raw, objectMapper.constructType(kType.javaType))
 
-            override fun <T> serializePath(value: T, kType: KType): String =
+            override fun <T : Any> serializePath(value: T, kType: KType): String =
                 pathSerialization.serializePath(value, kType)
 
-            override fun <T> deserializePath(raw: String, kType: KType): T =
+            override fun <T : Any> deserializePath(raw: String, kType: KType): T =
                 pathSerialization.deserializePath(raw, kType)
 
-            override fun <T> serializeParam(value: T, kType: KType): List<String> =
+            override fun <T : Any> serializeParam(value: T, kType: KType): List<String> =
                 paramSerialization.serializeParam(value, kType)
 
-            override fun <T> deserializeParam(values: List<String>, kType: KType): T =
+            override fun <T : Any> deserializeParam(values: List<String>, kType: KType): T =
                 paramSerialization.deserializeParam(values, kType)
         }
     }

@@ -2,7 +2,7 @@ package com.github.zzave.teambalance.api.infrastructure.persistence
 
 import com.github.zzave.teambalance.api.domain.model.EventType
 import com.github.zzave.teambalance.api.domain.port.EventTypeRepository
-import com.github.zzave.teambalance.api.infrastructure.persistence.mapper.toDomain
+import com.github.zzave.teambalance.api.infrastructure.persistence.mapper.internalize
 import org.springframework.stereotype.Repository
 import java.util.UUID
 
@@ -12,8 +12,8 @@ class JpaEventTypeRepositoryAdapter(
 ) : EventTypeRepository {
 
     override fun findAll(): List<EventType> =
-        jpaRepository.findAll().map { it.toDomain() }
+        jpaRepository.findAll().map { it.internalize() }
 
     override fun findById(id: UUID): EventType? =
-        jpaRepository.findByUuid(id)?.toDomain()
+        jpaRepository.findByUuid(id)?.internalize()
 }

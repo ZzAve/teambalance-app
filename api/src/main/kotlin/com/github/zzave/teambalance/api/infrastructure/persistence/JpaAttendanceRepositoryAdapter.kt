@@ -2,8 +2,8 @@ package com.github.zzave.teambalance.api.infrastructure.persistence
 
 import com.github.zzave.teambalance.api.domain.model.Attendance
 import com.github.zzave.teambalance.api.domain.port.AttendanceRepository
-import com.github.zzave.teambalance.api.infrastructure.persistence.mapper.toDomain
-import com.github.zzave.teambalance.api.infrastructure.persistence.mapper.toJpaEntity
+import com.github.zzave.teambalance.api.infrastructure.persistence.mapper.internalize
+import com.github.zzave.teambalance.api.infrastructure.persistence.mapper.externalize
 import org.springframework.stereotype.Repository
 import java.util.UUID
 
@@ -14,21 +14,21 @@ class JpaAttendanceRepositoryAdapter(
 ) : AttendanceRepository {
 
     override fun findByEventId(eventId: UUID): List<Attendance> =
-        jpaRepository.findByEventUuid(eventId).map { it.toDomain() }
+        jpaRepository.findByEventUuid(eventId).map { it.internalize() }
 
     override fun findByEventIdAndUserId(eventId: UUID, userId: UUID): Attendance? =
-        jpaRepository.findByEventUuidAndUserId(eventId, userId)?.toDomain()
+        jpaRepository.findByEventUuidAndUserId(eventId, userId)?.internalize()
 
     override fun save(attendance: Attendance): Attendance {
         val eventEntity = eventJpaRepository.findByUuid(attendance.eventId)
             ?: throw IllegalArgumentException("Event not found: ${attendance.eventId}")
-        return jpaRepository.save(attendance.toJpaEntity(eventEntity)).toDomain()
+        return jpaRepository.save(attendance.externalize(eventEntity)).internalize()
     }
 
     override fun saveAll(attendances: List<Attendance>): List<Attendance> {
         if (attendances.isEmpty()) return emptyList()
         val eventEntity = eventJpaRepository.findByUuid(attendances.first().eventId)
             ?: throw IllegalArgumentException("Event not found: ${attendances.first().eventId}")
-        return jpaRepository.saveAll(attendances.map { it.toJpaEntity(eventEntity) }).map { it.toDomain() }
+        return jpaRepository.saveAll(attendances.map { it.externalize(eventEntity) }).map { it.internalize() }
     }
 }

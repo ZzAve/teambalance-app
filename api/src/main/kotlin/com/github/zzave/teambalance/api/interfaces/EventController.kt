@@ -3,18 +3,19 @@ package com.github.zzave.teambalance.api.interfaces
 import com.github.zzave.teambalance.api.application.AttendanceService
 import com.github.zzave.teambalance.api.application.CurrentUserProvider
 import com.github.zzave.teambalance.api.application.EventService
+import com.github.zzave.teambalance.api.application.PotentialEvent
 import com.github.zzave.teambalance.api.domain.model.AttendanceState
-import com.github.zzave.teambalance.api.interfaces.generated.AttendanceEntry
-import com.github.zzave.teambalance.api.interfaces.generated.AttendanceSummary
-import com.github.zzave.teambalance.api.interfaces.generated.CreateEventEndpoint
-import com.github.zzave.teambalance.api.interfaces.generated.DeleteEventEndpoint
-import com.github.zzave.teambalance.api.interfaces.generated.Event
-import com.github.zzave.teambalance.api.interfaces.generated.EventDetail
-import com.github.zzave.teambalance.api.interfaces.generated.EventList
-import com.github.zzave.teambalance.api.interfaces.generated.EventTypeSummary
-import com.github.zzave.teambalance.api.interfaces.generated.GetEventEndpoint
-import com.github.zzave.teambalance.api.interfaces.generated.ListEventsEndpoint
-import com.github.zzave.teambalance.api.interfaces.generated.UpdateEventEndpoint
+import com.github.zzave.teambalance.api.interfaces.generated.endpoint.CreateEvent
+import com.github.zzave.teambalance.api.interfaces.generated.endpoint.DeleteEvent
+import com.github.zzave.teambalance.api.interfaces.generated.endpoint.GetEvent
+import com.github.zzave.teambalance.api.interfaces.generated.endpoint.ListEvents
+import com.github.zzave.teambalance.api.interfaces.generated.endpoint.UpdateEvent
+import com.github.zzave.teambalance.api.interfaces.generated.model.AttendanceEntry
+import com.github.zzave.teambalance.api.interfaces.generated.model.AttendanceSummary
+import com.github.zzave.teambalance.api.interfaces.generated.model.Event
+import com.github.zzave.teambalance.api.interfaces.generated.model.EventDetail
+import com.github.zzave.teambalance.api.interfaces.generated.model.EventList
+import com.github.zzave.teambalance.api.interfaces.generated.model.EventTypeSummary
 import org.springframework.web.bind.annotation.RestController
 import java.time.Instant
 import java.util.UUID
@@ -24,53 +25,47 @@ class EventController(
     private val eventService: EventService,
     private val attendanceService: AttendanceService,
     private val currentUserProvider: CurrentUserProvider,
-) : ListEventsEndpoint.Handler,
-    CreateEventEndpoint.Handler,
-    GetEventEndpoint.Handler,
-    UpdateEventEndpoint.Handler,
-    DeleteEventEndpoint.Handler {
+) : ListEvents.Handler,
+    CreateEvent.Handler,
+    GetEvent.Handler,
+    UpdateEvent.Handler,
+    DeleteEvent.Handler {
 
-    override suspend fun listEvents(request: ListEventsEndpoint.Request): ListEventsEndpoint.Response<*> {
+    override suspend fun listEvents(request: ListEvents.Request): ListEvents.Response<*> {
         val events = if (request.queries.includepast) eventService.getAllEvents() else eventService.getUpcomingEvents()
-        return ListEventsEndpoint.Response200(
-            EventList(events = events.map { it.toWirespec() })
+        return ListEvents.Response200(
+            EventList(events = events.map { it.produce(attendanceService) })
         )
     }
 
-    override suspend fun createEvent(request: CreateEventEndpoint.Request): CreateEventEndpoint.Response<*> {
-        val req = request.body
+    override suspend fun createEvent(request: CreateEvent.Request): CreateEvent.Response<*> {
         val teamId = UUID.fromString("a0000000-0000-0000-0000-000000000001") // TODO: resolve from tenant context
         val event = eventService.createEvent(
-            eventTypeId = UUID.fromString(req.eventTypeId),
-            title = req.title,
-            description = req.description,
-            startTime = Instant.parse(req.startTime),
-            endTime = req.endTime?.let { Instant.parse(it) },
-            location = req.location,
+            potential = request.body.consume(),
             createdBy = currentUserProvider.requireCurrentUserId(),
             teamId = teamId,
         )
-        return CreateEventEndpoint.Response201(event.toWirespec())
+        return CreateEvent.Response201(event.produce(attendanceService))
     }
 
-    override suspend fun getEvent(request: GetEventEndpoint.Request): GetEventEndpoint.Response<*> {
+    override suspend fun getEvent(request: GetEvent.Request): GetEvent.Response<*> {
         val id = UUID.fromString(request.path.id)
         val event = eventService.getEvent(id)
-            ?: return GetEventEndpoint.Response404(Unit)
+            ?: return GetEvent.Response404(Unit)
 
         val attendances = attendanceService.getAttendancesWithNames(id)
         val summary = attendanceService.getAttendanceSummary(id)
 
-        return GetEventEndpoint.Response200(
+        return GetEvent.Response200(
             EventDetail(
                 id = event.id.toString(),
-                eventType = event.eventType.toSummary(),
+                eventType = event.eventType.produce(),
                 title = event.title,
                 description = event.description,
                 startTime = event.startTime.toString(),
                 endTime = event.endTime?.toString(),
                 location = event.location,
-                attendanceSummary = summary.toWirespec(),
+                attendanceSummary = summary.produce(),
                 attendances = attendances.map { (a, name) ->
                     AttendanceEntry(
                         id = a.id.toString(),
@@ -83,7 +78,7 @@ class EventController(
         )
     }
 
-    override suspend fun updateEvent(request: UpdateEventEndpoint.Request): UpdateEventEndpoint.Response<*> {
+    override suspend fun updateEvent(request: UpdateEvent.Request): UpdateEvent.Response<*> {
         val id = UUID.fromString(request.path.id)
         val req = request.body
         val event = eventService.updateEvent(
@@ -94,42 +89,52 @@ class EventController(
             startTime = Instant.parse(req.startTime),
             endTime = req.endTime?.let { Instant.parse(it) },
             location = req.location,
-        ) ?: return UpdateEventEndpoint.Response404(Unit)
+        ) ?: return UpdateEvent.Response404(Unit)
 
-        return UpdateEventEndpoint.Response200(event.toWirespec())
+        return UpdateEvent.Response200(event.produce(attendanceService))
     }
 
-    override suspend fun deleteEvent(request: DeleteEventEndpoint.Request): DeleteEventEndpoint.Response<*> {
+    override suspend fun deleteEvent(request: DeleteEvent.Request): DeleteEvent.Response<*> {
         val id = UUID.fromString(request.path.id)
         return if (eventService.deleteEvent(id)) {
-            DeleteEventEndpoint.Response204(Unit)
+            DeleteEvent.Response204(Unit)
         } else {
-            DeleteEventEndpoint.Response404(Unit)
+            DeleteEvent.Response404(Unit)
         }
     }
-
-    private fun com.github.zzave.teambalance.api.domain.model.Event.toWirespec(): Event {
-        val summary = attendanceService.getAttendanceSummary(id)
-        return Event(
-            id = id.toString(),
-            eventType = eventType.toSummary(),
-            title = title,
-            description = description,
-            startTime = startTime.toString(),
-            endTime = endTime?.toString(),
-            location = location,
-            attendanceSummary = summary.toWirespec(),
-        )
-    }
-
-    private fun com.github.zzave.teambalance.api.domain.model.EventType.toSummary() =
-        EventTypeSummary(id = id.toString(), name = name, color = color)
-
-    private fun Map<AttendanceState, Int>.toWirespec() =
-        AttendanceSummary(
-            attending = (this[AttendanceState.ATTENDING] ?: 0).toLong(),
-            maybe = (this[AttendanceState.MAYBE] ?: 0).toLong(),
-            absent = (this[AttendanceState.ABSENT] ?: 0).toLong(),
-            notResponded = (this[AttendanceState.NOT_RESPONDED] ?: 0).toLong(),
-        )
 }
+
+private fun com.github.zzave.teambalance.api.interfaces.generated.model.CreateEventRequest.consume() =
+    PotentialEvent(
+        eventTypeId = UUID.fromString(eventTypeId),
+        title = title,
+        description = description,
+        startTime = Instant.parse(startTime),
+        endTime = endTime?.let { Instant.parse(it) },
+        location = location,
+    )
+
+private fun com.github.zzave.teambalance.api.domain.model.Event.produce(attendanceService: AttendanceService): Event {
+    val summary = attendanceService.getAttendanceSummary(id)
+    return Event(
+        id = id.toString(),
+        eventType = eventType.produce(),
+        title = title,
+        description = description,
+        startTime = startTime.toString(),
+        endTime = endTime?.toString(),
+        location = location,
+        attendanceSummary = summary.produce(),
+    )
+}
+
+private fun com.github.zzave.teambalance.api.domain.model.EventType.produce() =
+    EventTypeSummary(id = id.toString(), name = name, color = color)
+
+private fun Map<AttendanceState, Int>.produce() =
+    AttendanceSummary(
+        attending = (this[AttendanceState.ATTENDING] ?: 0).toLong(),
+        maybe = (this[AttendanceState.MAYBE] ?: 0).toLong(),
+        absent = (this[AttendanceState.ABSENT] ?: 0).toLong(),
+        notResponded = (this[AttendanceState.NOT_RESPONDED] ?: 0).toLong(),
+    )

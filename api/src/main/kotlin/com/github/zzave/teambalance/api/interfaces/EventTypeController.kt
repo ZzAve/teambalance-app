@@ -1,17 +1,17 @@
 package com.github.zzave.teambalance.api.interfaces
 
 import com.github.zzave.teambalance.api.application.EventTypeService
-import com.github.zzave.teambalance.api.interfaces.generated.EventTypeItem
-import com.github.zzave.teambalance.api.interfaces.generated.EventTypeList
-import com.github.zzave.teambalance.api.interfaces.generated.ListEventTypesEndpoint
+import com.github.zzave.teambalance.api.interfaces.generated.endpoint.ListEventTypes
+import com.github.zzave.teambalance.api.interfaces.generated.model.EventTypeItem
+import com.github.zzave.teambalance.api.interfaces.generated.model.EventTypeList
 import org.springframework.web.bind.annotation.RestController
 
 @RestController
 class EventTypeController(
     private val eventTypeService: EventTypeService,
-) : ListEventTypesEndpoint.Handler {
+) : ListEventTypes.Handler {
 
-    override suspend fun listEventTypes(request: ListEventTypesEndpoint.Request): ListEventTypesEndpoint.Response<*> {
+    override suspend fun listEventTypes(request: ListEventTypes.Request): ListEventTypes.Response<*> {
         val types = eventTypeService.findAll().map { type ->
             EventTypeItem(
                 id = type.id.toString(),
@@ -19,6 +19,6 @@ class EventTypeController(
                 color = type.color,
             )
         }
-        return ListEventTypesEndpoint.Response200(EventTypeList(eventTypes = types))
+        return ListEventTypes.Response200(EventTypeList(eventTypes = types))
     }
 }

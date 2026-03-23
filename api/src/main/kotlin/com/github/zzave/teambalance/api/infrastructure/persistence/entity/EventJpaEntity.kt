@@ -28,8 +28,8 @@ class EventJpaEntity(
     val description: String? = null,
     @Column(name = "start_time", nullable = false)
     val startTime: Instant = Instant.now(),
-    @Column(name = "end_time")
-    val endTime: Instant? = null,
+    @Column(name = "end_time", nullable = false)
+    val endTime: Instant = Instant.now(),
     val location: String? = null,
     @Column(name = "recurring_group")
     val recurringGroup: UUID? = null,

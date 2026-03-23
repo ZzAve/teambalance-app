@@ -77,7 +77,7 @@ class EventService(
         title: String,
         description: String?,
         startTime: Instant,
-        endTime: Instant?,
+        endTime: Instant,
         location: String?,
     ): Event? {
         val existing = eventRepository.findById(id) ?: return null

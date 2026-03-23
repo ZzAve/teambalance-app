@@ -9,7 +9,7 @@ data class Event(
     val title: String,
     val description: String?,
     val startTime: Instant,
-    val endTime: Instant?,
+    val endTime: Instant,
     val location: String?,
     val createdBy: UUID,
     val createdAt: Instant,

@@ -4,14 +4,16 @@ import com.github.zzave.teambalance.api.application.AttendanceService
 import com.github.zzave.teambalance.api.application.CurrentUserProvider
 import com.github.zzave.teambalance.api.application.EventService
 import com.github.zzave.teambalance.api.application.PotentialEvent
-import com.github.zzave.teambalance.api.domain.model.AttendanceState
+import com.github.zzave.teambalance.api.domain.model.AttendanceState as DomainAttendanceState
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.CreateEvent
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.DeleteEvent
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.GetEvent
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.ListEvents
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.UpdateEvent
 import com.github.zzave.teambalance.api.interfaces.generated.model.AttendanceEntry
+import com.github.zzave.teambalance.api.interfaces.generated.model.AttendanceState
 import com.github.zzave.teambalance.api.interfaces.generated.model.AttendanceSummary
+import com.github.zzave.teambalance.api.interfaces.generated.model.DateTimestampWithTimezone
 import com.github.zzave.teambalance.api.interfaces.generated.model.Event
 import com.github.zzave.teambalance.api.interfaces.generated.model.EventDetail
 import com.github.zzave.teambalance.api.interfaces.generated.model.EventList
@@ -62,8 +64,8 @@ class EventController(
                 eventType = event.eventType.produce(),
                 title = event.title,
                 description = event.description,
-                startTime = event.startTime.toString(),
-                endTime = event.endTime?.toString(),
+                startTime = DateTimestampWithTimezone(event.startTime.toString()),
+                endTime = DateTimestampWithTimezone(event.endTime.toString()),
                 location = event.location,
                 attendanceSummary = summary.produce(),
                 attendances = attendances.map { (a, name) ->
@@ -71,7 +73,7 @@ class EventController(
                         id = a.id.toString(),
                         userId = a.userId.toString(),
                         displayName = name,
-                        state = a.state.name,
+                        state = a.state.produce(),
                     )
                 },
             )
@@ -86,8 +88,8 @@ class EventController(
             eventTypeId = UUID.fromString(req.eventTypeId),
             title = req.title,
             description = req.description,
-            startTime = Instant.parse(req.startTime),
-            endTime = req.endTime?.let { Instant.parse(it) },
+            startTime = Instant.parse(req.startTime.value),
+            endTime = Instant.parse(req.endTime.value),
             location = req.location,
         ) ?: return UpdateEvent.Response404(Unit)
 
@@ -109,8 +111,8 @@ private fun com.github.zzave.teambalance.api.interfaces.generated.model.CreateEv
         eventTypeId = UUID.fromString(eventTypeId),
         title = title,
         description = description,
-        startTime = Instant.parse(startTime),
-        endTime = endTime?.let { Instant.parse(it) },
+        startTime = Instant.parse(startTime.value),
+        endTime = Instant.parse(endTime.value),
         location = location,
     )
 
@@ -121,8 +123,8 @@ private fun com.github.zzave.teambalance.api.domain.model.Event.produce(attendan
         eventType = eventType.produce(),
         title = title,
         description = description,
-        startTime = startTime.toString(),
-        endTime = endTime?.toString(),
+        startTime = DateTimestampWithTimezone(startTime.toString()),
+        endTime = DateTimestampWithTimezone(endTime.toString()),
         location = location,
         attendanceSummary = summary.produce(),
     )
@@ -131,10 +133,12 @@ private fun com.github.zzave.teambalance.api.domain.model.Event.produce(attendan
 private fun com.github.zzave.teambalance.api.domain.model.EventType.produce() =
     EventTypeSummary(id = id.toString(), name = name, color = color)
 
-private fun Map<AttendanceState, Int>.produce() =
+private fun Map<DomainAttendanceState, Int>.produce() =
     AttendanceSummary(
-        attending = (this[AttendanceState.ATTENDING] ?: 0).toLong(),
-        maybe = (this[AttendanceState.MAYBE] ?: 0).toLong(),
-        absent = (this[AttendanceState.ABSENT] ?: 0).toLong(),
-        notResponded = (this[AttendanceState.NOT_RESPONDED] ?: 0).toLong(),
+        attending = (this[DomainAttendanceState.ATTENDING] ?: 0).toLong(),
+        maybe = (this[DomainAttendanceState.MAYBE] ?: 0).toLong(),
+        absent = (this[DomainAttendanceState.ABSENT] ?: 0).toLong(),
+        notResponded = (this[DomainAttendanceState.NOT_RESPONDED] ?: 0).toLong(),
     )
+
+private fun DomainAttendanceState.produce() = AttendanceState.valueOf(name)

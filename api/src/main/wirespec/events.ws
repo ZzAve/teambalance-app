@@ -1,3 +1,12 @@
+type DateTimestampWithTimezone = String
+
+enum AttendanceState {
+    ATTENDING,
+    MAYBE,
+    ABSENT,
+    NOT_RESPONDED
+}
+
 type EventTypeSummary {
     id: String,
     name: String,
@@ -16,8 +25,8 @@ type Event {
     eventType: EventTypeSummary,
     title: String,
     description: String?,
-    startTime: String,
-    endTime: String?,
+    startTime: DateTimestampWithTimezone,
+    endTime: DateTimestampWithTimezone,
     location: String?,
     attendanceSummary: AttendanceSummary
 }
@@ -27,8 +36,8 @@ type EventDetail {
     eventType: EventTypeSummary,
     title: String,
     description: String?,
-    startTime: String,
-    endTime: String?,
+    startTime: DateTimestampWithTimezone,
+    endTime: DateTimestampWithTimezone,
     location: String?,
     attendanceSummary: AttendanceSummary,
     attendances: AttendanceEntry[]
@@ -38,7 +47,7 @@ type AttendanceEntry {
     id: String,
     userId: String,
     displayName: String,
-    state: String
+    state: AttendanceState
 }
 
 type EventList {
@@ -49,8 +58,8 @@ type CreateEventRequest {
     eventTypeId: String,
     title: String,
     description: String?,
-    startTime: String,
-    endTime: String?,
+    startTime: DateTimestampWithTimezone,
+    endTime: DateTimestampWithTimezone,
     location: String?
 }
 
@@ -58,8 +67,8 @@ type UpdateEventRequest {
     eventTypeId: String,
     title: String,
     description: String?,
-    startTime: String,
-    endTime: String?,
+    startTime: DateTimestampWithTimezone,
+    endTime: DateTimestampWithTimezone,
     location: String?
 }
 

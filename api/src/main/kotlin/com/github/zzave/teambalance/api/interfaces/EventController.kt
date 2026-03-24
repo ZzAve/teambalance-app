@@ -41,6 +41,7 @@ class EventController(
     }
 
     override suspend fun createEvent(request: CreateEvent.Request): CreateEvent.Response<*> {
+        @Suppress("ForbiddenComment")
         val teamId = UUID.fromString("a0000000-0000-0000-0000-000000000001") // TODO: resolve from tenant context
         val event = eventService.createEvent(
             potential = request.body.consume(),

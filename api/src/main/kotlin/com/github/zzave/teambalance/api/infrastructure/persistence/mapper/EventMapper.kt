@@ -24,6 +24,8 @@ fun Event.externalize(eventTypeEntity: EventTypeJpaEntity) = EventJpaEntity(
     startTime = startTime,
     endTime = endTime,
     location = location,
+    recurringGroup = null,
     createdBy = createdBy,
     createdAt = createdAt,
+    updatedAt = createdAt,
 )

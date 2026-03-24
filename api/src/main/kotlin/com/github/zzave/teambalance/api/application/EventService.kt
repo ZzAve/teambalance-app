@@ -1,5 +1,6 @@
 package com.github.zzave.teambalance.api.application
 
+import com.github.zzave.teambalance.api.domain.exception.EventTypeNotFoundException
 import com.github.zzave.teambalance.api.domain.model.Attendance
 import com.github.zzave.teambalance.api.domain.model.AttendanceState
 import com.github.zzave.teambalance.api.domain.model.Event
@@ -40,7 +41,7 @@ class EventService(
 
     fun createEvent(potential: PotentialEvent, createdBy: UUID, teamId: UUID): Event {
         val eventType = eventTypeRepository.findById(potential.eventTypeId)
-            ?: throw IllegalArgumentException("EventType not found: ${potential.eventTypeId}")
+            ?: throw EventTypeNotFoundException(potential.eventTypeId)
 
         val event = eventRepository.save(
             Event(
@@ -82,7 +83,7 @@ class EventService(
     ): Event? {
         val existing = eventRepository.findById(id) ?: return null
         val eventType = eventTypeRepository.findById(eventTypeId)
-            ?: throw IllegalArgumentException("EventType not found: $eventTypeId")
+            ?: throw EventTypeNotFoundException(eventTypeId)
 
         return eventRepository.save(
             existing.copy(

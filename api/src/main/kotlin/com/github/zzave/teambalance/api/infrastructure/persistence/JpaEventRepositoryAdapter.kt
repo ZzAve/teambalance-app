@@ -1,5 +1,7 @@
 package com.github.zzave.teambalance.api.infrastructure.persistence
 
+import com.github.zzave.teambalance.api.domain.exception.EventNotFoundException
+import com.github.zzave.teambalance.api.domain.exception.EventTypeNotFoundException
 import com.github.zzave.teambalance.api.domain.model.Event
 import com.github.zzave.teambalance.api.domain.port.EventRepository
 import com.github.zzave.teambalance.api.infrastructure.persistence.mapper.internalize
@@ -25,13 +27,13 @@ class JpaEventRepositoryAdapter(
 
     override fun save(event: Event): Event {
         val eventTypeEntity = eventTypeJpaRepository.findByUuid(event.eventType.id)
-            ?: throw IllegalArgumentException("EventType not found: ${event.eventType.id}")
+            ?: throw EventTypeNotFoundException(event.eventType.id)
         return jpaRepository.save(event.externalize(eventTypeEntity)).internalize()
     }
 
     override fun deleteById(id: UUID) {
         val entity = jpaRepository.findByUuid(id)
-            ?: throw IllegalArgumentException("Event not found: $id")
+            ?: throw EventNotFoundException(id)
         jpaRepository.delete(entity)
     }
 }

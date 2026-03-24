@@ -19,24 +19,24 @@ class EventJpaEntity(
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Long = 0,
     @Column(nullable = false, unique = true, updatable = false)
-    val uuid: UUID = UUID.randomUUID(),
+    val uuid: UUID,
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "event_type_id", nullable = false)
-    val eventType: EventTypeJpaEntity = EventTypeJpaEntity(),
+    val eventType: EventTypeJpaEntity,
     @Column(nullable = false)
-    val title: String = "",
-    val description: String? = null,
+    val title: String,
+    val description: String?,
     @Column(name = "start_time", nullable = false)
-    val startTime: Instant = Instant.now(),
+    val startTime: Instant,
     @Column(name = "end_time", nullable = false)
-    val endTime: Instant = Instant.now(),
-    val location: String? = null,
+    val endTime: Instant,
+    val location: String?,
     @Column(name = "recurring_group")
-    val recurringGroup: UUID? = null,
+    val recurringGroup: UUID?,
     @Column(name = "created_by", nullable = false)
-    val createdBy: UUID = UUID.randomUUID(),
+    val createdBy: UUID,
     @Column(name = "created_at", nullable = false)
-    val createdAt: Instant = Instant.now(),
+    val createdAt: Instant,
     @Column(name = "updated_at", nullable = false)
-    val updatedAt: Instant = Instant.now(),
+    val updatedAt: Instant,
 )

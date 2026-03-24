@@ -16,10 +16,10 @@ class EventTypeJpaEntity(
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Long = 0,
     @Column(nullable = false, unique = true, updatable = false)
-    val uuid: UUID = UUID.randomUUID(),
+    val uuid: UUID,
     @Column(nullable = false)
-    val name: String = "",
-    val color: String? = null,
+    val name: String,
+    val color: String?,
     @Column(name = "created_at", nullable = false)
-    val createdAt: Instant = Instant.now(),
+    val createdAt: Instant,
 )

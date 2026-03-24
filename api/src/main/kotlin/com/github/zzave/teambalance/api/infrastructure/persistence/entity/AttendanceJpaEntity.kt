@@ -19,14 +19,14 @@ class AttendanceJpaEntity(
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Long = 0,
     @Column(nullable = false, unique = true, updatable = false)
-    val uuid: UUID = UUID.randomUUID(),
+    val uuid: UUID,
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "event_id", nullable = false)
-    val event: EventJpaEntity = EventJpaEntity(),
+    val event: EventJpaEntity,
     @Column(name = "user_id", nullable = false)
-    val userId: UUID = UUID.randomUUID(),
+    val userId: UUID,
     @Column(nullable = false)
-    val state: String = "NOT_RESPONDED",
+    val state: String,
     @Column(name = "updated_at", nullable = false)
-    val updatedAt: Instant = Instant.now(),
+    val updatedAt: Instant,
 )

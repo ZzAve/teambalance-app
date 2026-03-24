@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository
 import java.util.UUID
 
 interface SpringDataAttendanceRepository : JpaRepository<AttendanceJpaEntity, Long> {
+    fun findByUuid(uuid: UUID): AttendanceJpaEntity?
     fun findByEventUuid(eventUuid: UUID): List<AttendanceJpaEntity>
     fun findByEventUuidAndUserId(eventUuid: UUID, userId: UUID): AttendanceJpaEntity?
 }

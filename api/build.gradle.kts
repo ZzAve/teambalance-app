@@ -69,7 +69,8 @@ dependencies {
 
 java {
     toolchain {
-        languageVersion = JavaLanguageVersion.of(21)
+        val javaVersion: String by project
+        languageVersion = JavaLanguageVersion.of(javaVersion)
     }
 }
 kotlin {

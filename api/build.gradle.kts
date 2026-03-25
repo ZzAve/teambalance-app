@@ -16,12 +16,6 @@ plugins {
     id("dev.detekt")
 }
 
-java {
-    toolchain {
-        languageVersion = JavaLanguageVersion.of(21)
-    }
-}
-
 dependencies {
     // Spring Boot
     implementation("org.springframework.boot:spring-boot-starter-web")
@@ -73,6 +67,12 @@ dependencies {
 
 }
 
+java {
+    toolchain {
+        val javaVersion: String by project
+        languageVersion = JavaLanguageVersion.of(javaVersion)
+    }
+}
 kotlin {
     compilerOptions {
         freeCompilerArgs.addAll("-Xjsr305=strict")

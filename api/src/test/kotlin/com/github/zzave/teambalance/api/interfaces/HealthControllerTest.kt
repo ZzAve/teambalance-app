@@ -5,6 +5,8 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.get
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers
 
 @AutoConfigureMockMvc
 class HealthControllerTest : TeamBalanceIT() {
@@ -14,11 +16,13 @@ class HealthControllerTest : TeamBalanceIT() {
 
     init {
         test("GET api/health returns 200") {
-            mockMvc.get("/api/health")
-                .andExpect {
-                    status { isOk() }
-                    jsonPath("$.status") { value("UP") }
-                }
+            val mvcResult = mockMvc.get("/api/health")
+                .andExpect { request { asyncStarted() } }
+                .andReturn()
+
+            mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(mvcResult))
+                .andExpect(MockMvcResultMatchers.status().isOk)
+                .andExpect(MockMvcResultMatchers.jsonPath("$.status").value("UP"))
         }
     }
 }

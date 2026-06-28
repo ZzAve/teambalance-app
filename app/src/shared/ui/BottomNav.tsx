@@ -1,8 +1,8 @@
 import { Link } from '@tanstack/react-router'
-import { Calendar, Wallet, Users } from 'lucide-react'
+import { Calendar, Wallet, Users, type LucideIcon } from 'lucide-react'
 
 interface TabConfig {
-  icon: React.ComponentType<{ size?: number; strokeWidth?: number }>
+  icon: LucideIcon
   label: string
   to: '/'
   active: boolean

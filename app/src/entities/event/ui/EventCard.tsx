@@ -5,37 +5,11 @@ import type { Event } from '@shared/api/events'
 import { EventTypeBadge } from './EventTypeBadge'
 import { EventTypeIcon } from './EventTypeIcon'
 
-function getRelativeTimeChip(date: Date): { label: string; className: string } | null {
-  const now = new Date()
-  const diffMs = date.getTime() - now.getTime()
-  const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24))
-
-  // Past events — no chip
-  if (diffMs < 0) return null
-
-  if (diffDays === 0) {
-    return { label: 'Today', className: 'bg-green/15 text-green font-semibold' }
-  }
-  if (diffDays === 1) {
-    return { label: 'Tomorrow', className: 'bg-blue/10 text-blue font-semibold' }
-  }
-  if (diffDays <= 7) {
-    return { label: `In ${diffDays} days`, className: 'bg-muted text-muted-foreground' }
-  }
-  if (diffDays <= 14) {
-    return { label: 'Next week', className: 'bg-muted text-muted-foreground' }
-  }
-  if (diffDays <= 31) {
-    const weeks = Math.round(diffDays / 7)
-    return { label: `In ${weeks} weeks`, className: 'bg-muted text-muted-foreground' }
-  }
-  return null
-}
 
 export function EventCard({ event, index = 0 }: { event: Event; index?: number }) {
   const date = new Date(event.startTime)
   const { attendanceSummary: s } = event
-  const relativeChip = getRelativeTimeChip(date)
+  // const relativeChip = getRelativeTimeChip(date)
 
   return (
     <Link

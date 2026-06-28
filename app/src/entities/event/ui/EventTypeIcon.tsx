@@ -1,8 +1,7 @@
-import { type ComponentType } from 'react'
-import { Dumbbell, Swords, Trophy, PartyPopper, Calendar } from 'lucide-react'
+import { Dumbbell, Swords, Trophy, PartyPopper, Calendar, type LucideIcon } from 'lucide-react'
 import type { EventType } from '@shared/api/events'
 
-const ICON_MAP: Record<string, ComponentType<{ size?: number; className?: string }>> = {
+const ICON_MAP: Record<string, LucideIcon> = {
   Training: Dumbbell,
   Match: Swords,
   Tournament: Trophy,

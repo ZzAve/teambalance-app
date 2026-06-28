@@ -56,7 +56,7 @@ class EventController(
         val event = eventService.getEvent(id)
             ?: return GetEvent.Response404(Unit)
 
-        val attendances = attendanceService.getAttendancesWithNames(id)
+        val attendances = attendanceService.getAttendancesWithMembers(id)
         val summary = attendanceService.getAttendanceSummary(id)
 
         return GetEvent.Response200(
@@ -69,11 +69,12 @@ class EventController(
                 endTime = DateTimestampWithTimezone(event.endTime.toString()),
                 location = event.location,
                 attendanceSummary = summary.produce(),
-                attendances = attendances.map { (a, name) ->
+                attendances = attendances.map { (a, member) ->
                     AttendanceEntry(
                         id = a.id.toString(),
                         userId = a.userId.toString(),
-                        displayName = name,
+                        displayName = member.displayName,
+                        role = member.teamRole ?: "",
                         state = a.state.produce(),
                     )
                 },

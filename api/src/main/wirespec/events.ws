@@ -47,6 +47,7 @@ type AttendanceEntry {
     id: String,
     userId: String,
     displayName: String,
+    role: String,
     state: AttendanceState
 }
 

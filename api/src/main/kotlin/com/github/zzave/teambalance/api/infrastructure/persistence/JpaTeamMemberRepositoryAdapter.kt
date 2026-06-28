@@ -22,4 +22,17 @@ class JpaTeamMemberRepositoryAdapter(
 
     override fun findDisplayName(userId: UUID): String? =
         jpaRepository.findDisplayNameByUserId(userId)
+
+    override fun findMembersByUserIds(userIds: Set<UUID>): Map<UUID, TeamMember> {
+        if (userIds.isEmpty()) return emptyMap()
+        return jpaRepository.findMemberSummariesByUserIds(userIds).associate { row ->
+            val uid = UUID.fromString(row.getUserId())
+            uid to TeamMember(
+                userId = uid,
+                displayName = row.getDisplayName(),
+                role = row.getPermissionRole(),
+                teamRole = row.getTeamRole(),
+            )
+        }
+    }
 }

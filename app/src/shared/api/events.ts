@@ -44,8 +44,10 @@ export function useEvent(id: string) {
 export function useCreateEvent() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (event: EventInput) =>
-      api.CreateEvent({ body: event as CreateEventRequest }),
+    mutationFn: async (event: EventInput) => {
+      const res = await api.CreateEvent({ body: event as CreateEventRequest })
+      return res.body
+    },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['events'] }),
   })
 }
@@ -53,8 +55,10 @@ export function useCreateEvent() {
 export function useUpdateEvent() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: ({ id, ...event }: EventInput & { id: string }) =>
-      api.UpdateEvent({ id, body: event as UpdateEventRequest }),
+    mutationFn: async ({ id, ...event }: EventInput & { id: string }) => {
+      const res = await api.UpdateEvent({ id, body: event as UpdateEventRequest })
+      return res.body
+    },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['events'] }),
   })
 }

@@ -98,6 +98,9 @@ function AttendeeRow({ attendance }: { attendance: AttendanceEntry }) {
       </div>
       <div className="min-w-0">
         <span className="block text-sm leading-tight">{attendance.displayName}</span>
+        {attendance.role && (
+          <span className="block text-xs text-muted-foreground">{attendance.role}</span>
+        )}
       </div>
     </div>
   )

@@ -1,0 +1,956 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TeamBalance — Grandstander</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300..800;1,9..40,300..800&family=Grandstander:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  :root {
+    /* Brand */
+    --primary: #225C9C;
+    --primary-light: #2d6fb5;
+    --primary-dark: #1a4a7e;
+    --primary-bg: rgba(34, 92, 156, 0.08);
+    --primary-bg-hover: rgba(34, 92, 156, 0.05);
+    --primary-glow: rgba(34, 92, 156, 0.15);
+
+    --accent-green: #249E6C;
+    --accent-green-light: #2ab87d;
+    --accent-green-bg: rgba(36, 158, 108, 0.10);
+
+    --warm-gold: #F4B400;
+    --warm-gold-light: #f7c948;
+    --warm-gold-bg: rgba(244, 180, 0, 0.12);
+
+    /* Neutrals — warmer */
+    --bg: #F8F6F0;
+    --bg-card: #FEFDFB;
+    --bg-sidebar: #F3F1EB;
+    --bg-bottombar: rgba(254, 253, 251, 0.88);
+
+    --text-primary: #1E2A3A;
+    --text-secondary: #5A6B7F;
+    --text-tertiary: #8A95A5;
+    --text-on-primary: #FFFFFF;
+
+    --border: rgba(30, 42, 58, 0.07);
+    --shadow-sm: 0 1px 3px rgba(62, 45, 30, 0.05), 0 1px 2px rgba(62, 45, 30, 0.03);
+    --shadow-md: 0 4px 12px rgba(62, 45, 30, 0.07), 0 2px 4px rgba(62, 45, 30, 0.04);
+    --shadow-lg: 0 8px 24px rgba(62, 45, 30, 0.09), 0 4px 8px rgba(62, 45, 30, 0.04);
+    --shadow-nav: 0 -1px 16px rgba(62, 45, 30, 0.06);
+
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --radius-pill: 24px;
+
+    --sidebar-width: 260px;
+    --topbar-height: 60px;
+    --bottombar-height: 72px;
+
+    --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+    --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+
+    /* Typography */
+    --font-display: 'Grandstander', cursive;
+    --font-body: 'DM Sans', system-ui, sans-serif;
+  }
+
+  html {
+    font-family: var(--font-body);
+    color: var(--text-primary);
+    background: var(--bg);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    line-height: 1.6;
+    letter-spacing: 0.01em;
+  }
+
+  body {
+    min-height: 100dvh;
+    overflow: hidden;
+  }
+
+  h1, h2, h3, h4 {
+    font-family: var(--font-body);
+    font-weight: 600;
+    color: var(--text-primary);
+    line-height: 1.2;
+  }
+
+  /* ── Top Bar ────────────────────────────────── */
+  .topbar {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: var(--topbar-height);
+    background: linear-gradient(180deg, rgba(254, 253, 251, 0.97) 0%, rgba(248, 246, 240, 0.95) 100%);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+    z-index: 100;
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+  }
+
+  .wordmark {
+    font-family: var(--font-display);
+    font-size: 21px;
+    user-select: none;
+    display: flex;
+    align-items: baseline;
+    gap: 1px;
+    letter-spacing: -0.01em;
+  }
+
+  .wordmark .wm-team {
+    font-weight: 400;
+    color: var(--text-primary);
+  }
+
+  .wordmark .wm-balance {
+    font-weight: 700;
+    color: var(--accent-green);
+  }
+
+  .team-indicator {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 14px;
+    border-radius: var(--radius-pill);
+    background: var(--primary-bg);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--primary);
+    cursor: default;
+    letter-spacing: 0.02em;
+  }
+
+  .team-indicator .dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--accent-green);
+  }
+
+  /* ── Sidebar (Desktop) ─────────────────────── */
+  .sidebar {
+    display: none;
+    position: fixed;
+    top: var(--topbar-height);
+    left: 0;
+    bottom: 0;
+    width: var(--sidebar-width);
+    background: var(--bg-sidebar);
+    border-right: 1px solid var(--border);
+    padding: 24px 16px;
+    z-index: 90;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .sidebar-label {
+    font-family: var(--font-body);
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--text-tertiary);
+    padding: 0 12px;
+    margin-bottom: 8px;
+  }
+
+  .sidebar-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    border-radius: var(--radius-md);
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s var(--ease-smooth);
+    position: relative;
+    user-select: none;
+    border: none;
+    background: none;
+    width: 100%;
+    text-align: left;
+    font-family: var(--font-body);
+    letter-spacing: 0.01em;
+  }
+
+  .sidebar-item svg {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+    transition: transform 0.25s var(--ease-spring);
+  }
+
+  .sidebar-item:hover {
+    background: var(--primary-bg-hover);
+    color: var(--text-primary);
+  }
+
+  .sidebar-item:hover svg {
+    transform: scale(1.08);
+  }
+
+  .sidebar-item.active {
+    background: var(--primary-bg);
+    color: var(--primary);
+    font-weight: 600;
+    box-shadow: inset 0 0 0 1px rgba(34, 92, 156, 0.06);
+  }
+
+  .sidebar-item.active svg {
+    color: var(--primary);
+  }
+
+  .sidebar-item .badge {
+    margin-left: auto;
+    background: var(--warm-gold);
+    color: var(--text-primary);
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 10px;
+    min-width: 22px;
+    text-align: center;
+    font-family: var(--font-body);
+  }
+
+  /* ── Bottom Bar (Mobile) ───────────────────── */
+  .bottombar {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    height: var(--bottombar-height);
+    background: var(--bg-bottombar);
+    backdrop-filter: blur(20px) saturate(1.4);
+    -webkit-backdrop-filter: blur(20px) saturate(1.4);
+    border-top: 1px solid rgba(30, 42, 58, 0.06);
+    box-shadow: var(--shadow-nav);
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    padding: 0 8px;
+    padding-bottom: env(safe-area-inset-bottom, 0);
+    z-index: 100;
+  }
+
+  .tab-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 8px 20px;
+    border-radius: var(--radius-pill);
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-family: var(--font-body);
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-tertiary);
+    transition: color 0.25s var(--ease-smooth);
+    position: relative;
+    -webkit-tap-highlight-color: transparent;
+    letter-spacing: 0.02em;
+  }
+
+  .tab-btn svg {
+    width: 22px;
+    height: 22px;
+    transition: transform 0.3s var(--ease-spring), color 0.2s, filter 0.3s;
+  }
+
+  .tab-btn .tab-pill {
+    position: absolute;
+    top: 2px;
+    left: 50%;
+    transform: translateX(-50%) scaleX(0);
+    width: 48px;
+    height: 30px;
+    border-radius: 15px;
+    background: var(--primary-bg);
+    transition: transform 0.35s var(--ease-spring);
+    z-index: -1;
+  }
+
+  .tab-btn.active {
+    color: var(--primary);
+    font-weight: 600;
+  }
+
+  .tab-btn.active svg {
+    transform: scale(1.1) translateY(-1px);
+    color: var(--primary);
+    filter: drop-shadow(0 0 4px var(--primary-glow));
+  }
+
+  .tab-btn.active .tab-pill {
+    transform: translateX(-50%) scaleX(1);
+    background: var(--primary-bg);
+    box-shadow: 0 0 12px var(--primary-glow);
+  }
+
+  .tab-btn .tab-badge {
+    position: absolute;
+    top: 0;
+    right: 12px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--warm-gold);
+    border: 2px solid var(--bg-card);
+  }
+
+  /* ── Content Area ──────────────────────────── */
+  .content-area {
+    position: fixed;
+    top: var(--topbar-height);
+    left: 0;
+    right: 0;
+    bottom: var(--bottombar-height);
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .tab-content {
+    display: none;
+    padding: 24px 20px 32px;
+    max-width: 640px;
+    margin: 0 auto;
+    animation: fadeSlideIn 0.35s var(--ease-smooth) both;
+  }
+
+  .tab-content.active {
+    display: block;
+  }
+
+  @keyframes fadeSlideIn {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .tab-header {
+    margin-bottom: 22px;
+  }
+
+  .tab-header h1 {
+    font-family: var(--font-display);
+    font-size: 30px;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    margin-bottom: 5px;
+    color: var(--text-primary);
+  }
+
+  .tab-header p {
+    font-size: 15px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    letter-spacing: 0.01em;
+  }
+
+  /* ── Cards ─────────────────────────────────── */
+  .card {
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    padding: 18px;
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border);
+    transition: box-shadow 0.2s, transform 0.2s var(--ease-spring);
+    cursor: default;
+  }
+
+  .card:hover {
+    box-shadow: var(--shadow-md);
+    transform: translateY(-1px);
+  }
+
+  .card + .card {
+    margin-top: 12px;
+  }
+
+  .card-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .card-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .card-icon svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  .card-icon.blue { background: var(--primary-bg); color: var(--primary); }
+  .card-icon.green { background: var(--accent-green-bg); color: var(--accent-green); }
+  .card-icon.gold { background: var(--warm-gold-bg); color: #c89200; }
+
+  .card-body { flex: 1; min-width: 0; }
+
+  .card-title {
+    font-family: var(--font-body);
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    letter-spacing: -0.01em;
+    color: var(--text-primary);
+  }
+
+  .card-sub {
+    font-size: 13px;
+    color: var(--text-secondary);
+    letter-spacing: 0.01em;
+    line-height: 1.5;
+  }
+
+  .card-right {
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+  .card-right .amount {
+    font-family: var(--font-body);
+    font-size: 16px;
+    font-weight: 700;
+    font-feature-settings: 'tnum' 1, 'lnum' 1;
+    letter-spacing: -0.01em;
+  }
+
+  .card-right .amount.positive { color: var(--accent-green); }
+  .card-right .amount.negative { color: #d35147; }
+
+  .card-right .meta {
+    font-size: 12px;
+    color: var(--text-tertiary);
+    font-feature-settings: 'tnum' 1;
+  }
+
+  /* Attendance chip */
+  .attendance {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 10px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    margin-top: 8px;
+    letter-spacing: 0.02em;
+  }
+
+  .attendance.going { background: var(--accent-green-bg); color: var(--accent-green); }
+  .attendance.pending { background: var(--warm-gold-bg); color: #a07600; }
+
+  .attendance .att-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+
+  /* ── Stat row ──────────────────────────────── */
+  .stats-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  .stat-card {
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    padding: 18px;
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border);
+  }
+
+  .stat-label {
+    font-family: var(--font-body);
+    font-size: 12px;
+    color: var(--text-tertiary);
+    margin-bottom: 6px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .stat-value {
+    font-family: var(--font-display);
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--text-primary);
+    letter-spacing: -0.02em;
+    font-feature-settings: 'tnum' 1, 'lnum' 1;
+  }
+
+  .stat-value.green { color: var(--accent-green); }
+
+  /* ── Members ───────────────────────────────── */
+  .member-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .member-row:last-child { border-bottom: none; }
+
+  .avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 14px;
+    color: white;
+    flex-shrink: 0;
+    font-family: var(--font-body);
+    letter-spacing: 0.02em;
+  }
+
+  .member-info { flex: 1; }
+
+  .member-name {
+    font-family: var(--font-body);
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+
+  .member-role {
+    font-size: 13px;
+    color: var(--text-secondary);
+    letter-spacing: 0.01em;
+  }
+
+  .member-balance {
+    font-family: var(--font-body);
+    font-weight: 700;
+    font-size: 15px;
+    font-feature-settings: 'tnum' 1, 'lnum' 1;
+    letter-spacing: -0.01em;
+  }
+
+  /* ── Section heading ───────────────────────── */
+  .section-heading {
+    font-family: var(--font-body);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 12px;
+    margin-top: 24px;
+  }
+
+  .section-heading:first-child { margin-top: 0; }
+
+  /* ── Desktop ───────────────────────────────── */
+  @media (min-width: 768px) {
+    .sidebar {
+      display: flex;
+    }
+
+    .bottombar {
+      display: none;
+    }
+
+    .topbar {
+      padding-left: calc(var(--sidebar-width) + 20px);
+    }
+
+    .content-area {
+      left: var(--sidebar-width);
+      bottom: 0;
+    }
+
+    .tab-content {
+      padding: 32px 40px 48px;
+      max-width: 720px;
+    }
+
+    .tab-header h1 {
+      font-size: 34px;
+    }
+
+    .card:hover {
+      transform: translateY(-2px);
+    }
+  }
+
+  /* ── Reduced motion ────────────────────────── */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+</style>
+</head>
+<body>
+
+<!-- Top Bar -->
+<header class="topbar">
+  <div class="wordmark"><span class="wm-team">Team</span><span class="wm-balance">Balance</span></div>
+  <div class="team-indicator">
+    <span class="dot"></span>
+    Heren 3
+  </div>
+</header>
+
+<!-- Sidebar (Desktop) -->
+<nav class="sidebar" role="navigation" aria-label="Main">
+  <div class="sidebar-label">Navigate</div>
+  <button class="sidebar-item active" data-tab="events" aria-current="page">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="3"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+    Events
+    <span class="badge">3</span>
+  </button>
+  <button class="sidebar-item" data-tab="money">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="14" rx="3"/><path d="M2 10h20"/><circle cx="15" cy="15" r="2"/></svg>
+    Money Pool
+  </button>
+  <button class="sidebar-item" data-tab="team">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/><path d="M21 21v-2a4 4 0 0 0-3-3.85"/></svg>
+    Team
+  </button>
+</nav>
+
+<!-- Bottom Bar (Mobile) -->
+<nav class="bottombar" role="navigation" aria-label="Main">
+  <button class="tab-btn active" data-tab="events">
+    <span class="tab-pill"></span>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="3"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+    Events
+    <span class="tab-badge"></span>
+  </button>
+  <button class="tab-btn" data-tab="money">
+    <span class="tab-pill"></span>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="14" rx="3"/><path d="M2 10h20"/><circle cx="15" cy="15" r="2"/></svg>
+    Money Pool
+  </button>
+  <button class="tab-btn" data-tab="team">
+    <span class="tab-pill"></span>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/><path d="M21 21v-2a4 4 0 0 0-3-3.85"/></svg>
+    Team
+  </button>
+</nav>
+
+<!-- Content -->
+<main class="content-area">
+
+  <!-- Events Tab -->
+  <div class="tab-content active" id="tab-events">
+    <div class="tab-header">
+      <h1>Upcoming Events</h1>
+      <p>3 events need your response</p>
+    </div>
+
+    <div class="section-heading">This Week</div>
+
+    <div class="card">
+      <div class="card-row">
+        <div class="card-icon blue">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        </div>
+        <div class="card-body">
+          <div class="card-title">Training</div>
+          <div class="card-sub">Tuesday, Mar 10 &middot; 20:30</div>
+        </div>
+        <div class="card-right">
+          <div class="meta">8/12</div>
+        </div>
+      </div>
+      <div class="attendance going"><span class="att-dot"></span>You&rsquo;re going</div>
+    </div>
+
+    <div class="card">
+      <div class="card-row">
+        <div class="card-icon green">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+        </div>
+        <div class="card-body">
+          <div class="card-title">Match vs. Apeliansen H2</div>
+          <div class="card-sub">Saturday, Mar 14 &middot; 14:30</div>
+        </div>
+        <div class="card-right">
+          <div class="meta">11/14</div>
+        </div>
+      </div>
+      <div class="attendance pending"><span class="att-dot"></span>Awaiting response</div>
+    </div>
+
+    <div class="card">
+      <div class="card-row">
+        <div class="card-icon blue">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        </div>
+        <div class="card-body">
+          <div class="card-title">Training</div>
+          <div class="card-sub">Thursday, Mar 12 &middot; 20:30</div>
+        </div>
+        <div class="card-right">
+          <div class="meta">6/12</div>
+        </div>
+      </div>
+      <div class="attendance going"><span class="att-dot"></span>You&rsquo;re going</div>
+    </div>
+
+    <div class="section-heading">Next Week</div>
+
+    <div class="card" style="opacity: 0.65;">
+      <div class="card-row">
+        <div class="card-icon blue">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        </div>
+        <div class="card-body">
+          <div class="card-title">Training</div>
+          <div class="card-sub">Tuesday, Mar 17 &middot; 20:30</div>
+        </div>
+        <div class="card-right">
+          <div class="meta">2/12</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Money Pool Tab -->
+  <div class="tab-content" id="tab-money">
+    <div class="tab-header">
+      <h1>Money Pool</h1>
+      <p>Shared team balance &amp; transactions</p>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-label">Pool Balance</div>
+        <div class="stat-value green">&euro;284.50</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Your Balance</div>
+        <div class="stat-value">&euro;12.00</div>
+      </div>
+    </div>
+
+    <div class="section-heading">Recent Transactions</div>
+
+    <div class="card">
+      <div class="card-row">
+        <div class="card-icon green">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+        </div>
+        <div class="card-body">
+          <div class="card-title">Contributions March</div>
+          <div class="card-sub">12 members &middot; Today</div>
+        </div>
+        <div class="card-right">
+          <div class="amount positive">+&euro;180.00</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-row">
+        <div class="card-icon gold">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+        </div>
+        <div class="card-body">
+          <div class="card-title">Field rental fee</div>
+          <div class="card-sub">Mar 7</div>
+        </div>
+        <div class="card-right">
+          <div class="amount negative">&minus;&euro;65.00</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-row">
+        <div class="card-icon blue">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+        </div>
+        <div class="card-body">
+          <div class="card-title">Drinks after match</div>
+          <div class="card-sub">Mar 1</div>
+        </div>
+        <div class="card-right">
+          <div class="amount negative">&minus;&euro;42.50</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-row">
+        <div class="card-icon green">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+        </div>
+        <div class="card-body">
+          <div class="card-title">Contributions February</div>
+          <div class="card-sub">14 members &middot; Feb 1</div>
+        </div>
+        <div class="card-right">
+          <div class="amount positive">+&euro;210.00</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Team Tab -->
+  <div class="tab-content" id="tab-team">
+    <div class="tab-header">
+      <h1>Team</h1>
+      <p>Heren 3 &middot; 14 members</p>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-label">Avg. Attendance</div>
+        <div class="stat-value">87%</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Season Record</div>
+        <div class="stat-value green">8W-3L</div>
+      </div>
+    </div>
+
+    <div class="section-heading">Members</div>
+
+    <div class="card" style="padding: 6px 18px;">
+      <div class="member-row">
+        <div class="avatar" style="background: #225C9C;">JD</div>
+        <div class="member-info">
+          <div class="member-name">Julius van Dis</div>
+          <div class="member-role">Captain</div>
+        </div>
+        <div class="member-balance" style="color: var(--accent-green);">&euro;12.00</div>
+      </div>
+      <div class="member-row">
+        <div class="avatar" style="background: #249E6C;">TB</div>
+        <div class="member-info">
+          <div class="member-name">Thomas Bakker</div>
+          <div class="member-role">Player</div>
+        </div>
+        <div class="member-balance" style="color: var(--accent-green);">&euro;8.50</div>
+      </div>
+      <div class="member-row">
+        <div class="avatar" style="background: #c89200;">LV</div>
+        <div class="member-info">
+          <div class="member-name">Lars Vermeer</div>
+          <div class="member-role">Treasurer</div>
+        </div>
+        <div class="member-balance" style="color: var(--accent-green);">&euro;15.00</div>
+      </div>
+      <div class="member-row">
+        <div class="avatar" style="background: #6C7A89;">PJ</div>
+        <div class="member-info">
+          <div class="member-name">Pieter de Jong</div>
+          <div class="member-role">Player</div>
+        </div>
+        <div class="member-balance" style="color: #d35147;">&minus;&euro;3.00</div>
+      </div>
+      <div class="member-row">
+        <div class="avatar" style="background: #225C9C;">MH</div>
+        <div class="member-info">
+          <div class="member-name">Maarten Hendriks</div>
+          <div class="member-role">Player</div>
+        </div>
+        <div class="member-balance" style="color: var(--accent-green);">&euro;15.00</div>
+      </div>
+      <div class="member-row">
+        <div class="avatar" style="background: #249E6C;">WS</div>
+        <div class="member-info">
+          <div class="member-name">Wouter Smit</div>
+          <div class="member-role">Player</div>
+        </div>
+        <div class="member-balance" style="color: var(--accent-green);">&euro;0.00</div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<script>
+  const tabs = ['events', 'money', 'team'];
+
+  function switchTab(tabName) {
+    // Update sidebar
+    document.querySelectorAll('.sidebar-item').forEach(el => {
+      const isActive = el.dataset.tab === tabName;
+      el.classList.toggle('active', isActive);
+      el.setAttribute('aria-current', isActive ? 'page' : 'false');
+    });
+
+    // Update bottom bar
+    document.querySelectorAll('.tab-btn').forEach(el => {
+      el.classList.toggle('active', el.dataset.tab === tabName);
+    });
+
+    // Update content - re-trigger animation by cloning
+    document.querySelectorAll('.tab-content').forEach(el => {
+      const isTarget = el.id === 'tab-' + tabName;
+      if (isTarget && !el.classList.contains('active')) {
+        el.classList.add('active');
+        // Re-trigger animation
+        el.style.animation = 'none';
+        el.offsetHeight; // force reflow
+        el.style.animation = '';
+      } else if (!isTarget) {
+        el.classList.remove('active');
+      }
+    });
+
+    // Scroll content to top
+    document.querySelector('.content-area').scrollTop = 0;
+  }
+
+  // Sidebar clicks
+  document.querySelectorAll('.sidebar-item').forEach(btn => {
+    btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+  });
+
+  // Bottom bar clicks
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+  });
+</script>
+
+</body>
+</html>

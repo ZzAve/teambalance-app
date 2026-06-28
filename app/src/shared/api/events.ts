@@ -29,6 +29,7 @@ export interface AttendanceEntry {
   id: string
   userId: string
   displayName: string
+  role: string
   state: string
 }
 

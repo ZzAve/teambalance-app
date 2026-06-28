@@ -1,0 +1,1462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>TeamBalance — Money Pool</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300..800;1,9..40,300..800&family=Grandstander:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  :root {
+    --primary: #225C9C;
+    --primary-light: #2d6fb5;
+    --primary-dark: #1a4a7e;
+    --primary-bg: rgba(34, 92, 156, 0.08);
+    --primary-bg-hover: rgba(34, 92, 156, 0.05);
+    --primary-glow: rgba(34, 92, 156, 0.15);
+
+    --accent-green: #249E6C;
+    --accent-green-light: #2ab87d;
+    --accent-green-bg: rgba(36, 158, 108, 0.10);
+
+    --warm-gold: #F4B400;
+    --warm-gold-light: #f7c948;
+    --warm-gold-bg: rgba(244, 180, 0, 0.12);
+
+    --warm-red: #E05252;
+    --warm-red-bg: rgba(224, 82, 82, 0.10);
+
+    --bg: #F8F6F0;
+    --bg-card: #FEFDFB;
+    --bg-sidebar: #F3F1EB;
+    --bg-bottombar: rgba(254, 253, 251, 0.88);
+
+    --text-primary: #1E2A3A;
+    --text-secondary: #5A6B7F;
+    --text-tertiary: #8A95A5;
+    --text-on-primary: #FFFFFF;
+
+    --border: rgba(30, 42, 58, 0.07);
+    --shadow-sm: 0 1px 3px rgba(62, 45, 30, 0.05), 0 1px 2px rgba(62, 45, 30, 0.03);
+    --shadow-md: 0 4px 12px rgba(62, 45, 30, 0.07), 0 2px 4px rgba(62, 45, 30, 0.04);
+    --shadow-lg: 0 8px 24px rgba(62, 45, 30, 0.09), 0 4px 8px rgba(62, 45, 30, 0.04);
+    --shadow-xl: 0 16px 48px rgba(62, 45, 30, 0.12), 0 8px 16px rgba(62, 45, 30, 0.06);
+
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --radius-pill: 24px;
+
+    --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+    --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+    --ease-out: cubic-bezier(0, 0, 0.2, 1);
+
+    --font-display: 'Grandstander', cursive;
+    --font-body: 'DM Sans', system-ui, sans-serif;
+
+    --topbar-height: 60px;
+    --bottombar-height: 72px;
+  }
+
+  html {
+    font-family: var(--font-body);
+    color: var(--text-primary);
+    background: var(--bg);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    line-height: 1.6;
+    letter-spacing: 0.01em;
+  }
+
+  body {
+    min-height: 100dvh;
+    overflow: hidden;
+  }
+
+  /* ── Top Bar ────────────────────────────────── */
+  .topbar {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: var(--topbar-height);
+    background: linear-gradient(180deg, rgba(254, 253, 251, 0.97) 0%, rgba(248, 246, 240, 0.95) 100%);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+    z-index: 100;
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+  }
+
+  .wordmark {
+    font-family: var(--font-display);
+    font-size: 21px;
+    user-select: none;
+    display: flex;
+    align-items: baseline;
+    gap: 1px;
+    letter-spacing: -0.01em;
+  }
+
+  .wordmark .wm-team { font-weight: 400; color: var(--text-primary); }
+  .wordmark .wm-balance { font-weight: 700; color: var(--accent-green); }
+
+  .team-indicator {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 14px;
+    border-radius: var(--radius-pill);
+    background: var(--primary-bg);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--primary);
+    letter-spacing: 0.02em;
+  }
+
+  .team-indicator .dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--accent-green);
+  }
+
+  /* ── Bottom Bar ─────────────────────────────── */
+  .bottombar {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    height: var(--bottombar-height);
+    background: var(--bg-bottombar);
+    backdrop-filter: blur(20px) saturate(1.4);
+    -webkit-backdrop-filter: blur(20px) saturate(1.4);
+    border-top: 1px solid rgba(30, 42, 58, 0.06);
+    box-shadow: 0 -1px 16px rgba(62, 45, 30, 0.06);
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    padding: 0 8px;
+    padding-bottom: env(safe-area-inset-bottom, 0);
+    z-index: 100;
+  }
+
+  .tab-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 8px 20px;
+    border-radius: var(--radius-pill);
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-family: var(--font-body);
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-tertiary);
+    transition: color 0.25s var(--ease-smooth);
+    position: relative;
+    -webkit-tap-highlight-color: transparent;
+    letter-spacing: 0.02em;
+  }
+
+  .tab-btn svg { width: 22px; height: 22px; transition: transform 0.3s var(--ease-spring), color 0.2s; }
+
+  .tab-btn .tab-pill {
+    position: absolute;
+    top: 2px; left: 50%;
+    transform: translateX(-50%) scaleX(0);
+    width: 48px; height: 30px;
+    border-radius: 15px;
+    background: var(--primary-bg);
+    transition: transform 0.35s var(--ease-spring);
+    z-index: -1;
+  }
+
+  .tab-btn.active { color: var(--primary); font-weight: 600; }
+  .tab-btn.active svg { transform: scale(1.1) translateY(-1px); color: var(--primary); filter: drop-shadow(0 0 4px var(--primary-glow)); }
+  .tab-btn.active .tab-pill { transform: translateX(-50%) scaleX(1); box-shadow: 0 0 12px var(--primary-glow); }
+
+  /* ── Content Area ──────────────────────────── */
+  .content-area {
+    position: fixed;
+    top: var(--topbar-height);
+    left: 0; right: 0;
+    bottom: var(--bottombar-height);
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .page-inner {
+    padding: 0 0 40px;
+    max-width: 540px;
+    margin: 0 auto;
+  }
+
+  /* ── Balance Hero ───────────────────────────── */
+  .hero {
+    background: var(--primary);
+    position: relative;
+    overflow: hidden;
+    padding: 28px 24px 32px;
+    margin-bottom: 0;
+  }
+
+  .hero-bg-circles {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+
+  .hero-circle {
+    position: absolute;
+    border-radius: 50%;
+    background: white;
+    opacity: 0.08;
+    animation: float linear infinite;
+  }
+
+  .hero-circle:nth-child(1) {
+    width: 160px; height: 160px;
+    top: -40px; right: -30px;
+    animation-duration: 8s;
+  }
+
+  .hero-circle:nth-child(2) {
+    width: 100px; height: 100px;
+    bottom: -20px; left: 10px;
+    animation-duration: 11s;
+    animation-delay: -3s;
+  }
+
+  .hero-circle:nth-child(3) {
+    width: 70px; height: 70px;
+    top: 50%; right: 80px;
+    animation-duration: 13s;
+    animation-delay: -6s;
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0px) rotate(0deg); }
+    33% { transform: translateY(-10px) rotate(5deg); }
+    66% { transform: translateY(6px) rotate(-3deg); }
+  }
+
+  .hero-label {
+    font-family: var(--font-body);
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: rgba(255, 255, 255, 0.65);
+    margin-bottom: 6px;
+  }
+
+  .hero-amount {
+    font-family: var(--font-display);
+    font-size: 46px;
+    font-weight: 700;
+    color: white;
+    letter-spacing: -0.03em;
+    line-height: 1;
+    margin-bottom: 6px;
+    font-feature-settings: 'tnum' 1, 'lnum' 1;
+  }
+
+  .hero-beer {
+    font-family: var(--font-body);
+    font-size: 20px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.80);
+    letter-spacing: -0.01em;
+    margin-bottom: 14px;
+    font-feature-settings: 'tnum' 1, 'lnum' 1;
+  }
+
+  .hero-chips {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .hero-chip-green {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 12px;
+    border-radius: var(--radius-pill);
+    background: rgba(36, 158, 108, 0.25);
+    border: 1px solid rgba(36, 158, 108, 0.4);
+    font-size: 13px;
+    font-weight: 600;
+    color: #6eefc4;
+    letter-spacing: 0.01em;
+  }
+
+  .hero-chip-green svg { width: 14px; height: 14px; flex-shrink: 0; }
+
+  .hero-topup-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 18px;
+    border-radius: var(--radius-pill);
+    background: white;
+    color: var(--primary);
+    border: none;
+    font-family: var(--font-body);
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    letter-spacing: 0.01em;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+    transition: transform 0.2s var(--ease-spring), box-shadow 0.2s;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .hero-topup-btn:hover { transform: scale(1.04); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18); }
+  .hero-topup-btn:active { transform: scale(0.97); }
+
+  /* ── Quick Stats ────────────────────────────── */
+  .stats-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px;
+    padding: 16px 16px 0;
+  }
+
+  .stat-card {
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    padding: 14px 14px 12px;
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border);
+    opacity: 0;
+    transform: translateY(12px);
+    transition: opacity 0.35s var(--ease-smooth), transform 0.4s var(--ease-spring);
+  }
+
+  .stat-card.visible { opacity: 1; transform: translateY(0); }
+  .stat-card:hover { box-shadow: var(--shadow-md); }
+
+  .stat-label {
+    font-family: var(--font-body);
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-tertiary);
+    margin-bottom: 5px;
+    line-height: 1.2;
+  }
+
+  .stat-value {
+    font-family: var(--font-display);
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text-primary);
+    letter-spacing: -0.02em;
+    font-feature-settings: 'tnum' 1, 'lnum' 1;
+    line-height: 1;
+  }
+
+  /* ── Section Heading ────────────────────────── */
+  .section-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 24px 16px 10px;
+  }
+
+  .section-title {
+    font-family: var(--font-display);
+    font-size: 20px;
+    font-weight: 500;
+    color: var(--text-primary);
+    letter-spacing: -0.01em;
+  }
+
+  .section-link {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--primary);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    letter-spacing: 0.01em;
+  }
+
+  /* ── Period Toggle ──────────────────────────── */
+  .period-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 16px 4px;
+  }
+
+  .period-toggle-track {
+    display: inline-flex;
+    background: var(--bg-sidebar);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-pill);
+    padding: 3px;
+    position: relative;
+    gap: 0;
+  }
+
+  .period-toggle-option {
+    position: relative;
+    z-index: 1;
+    padding: 6px 18px;
+    border-radius: var(--radius-pill);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    cursor: pointer;
+    border: none;
+    background: none;
+    font-family: var(--font-body);
+    letter-spacing: 0.01em;
+    transition: color 0.2s var(--ease-smooth);
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .period-toggle-option.active {
+    color: var(--primary);
+  }
+
+  .period-toggle-pill {
+    position: absolute;
+    top: 3px;
+    border-radius: var(--radius-pill);
+    background: var(--bg-card);
+    box-shadow: var(--shadow-sm);
+    height: calc(100% - 6px);
+    transition: left 0.35s var(--ease-spring), width 0.35s var(--ease-spring);
+    pointer-events: none;
+    border: 1px solid var(--border);
+  }
+
+  /* ── Leaderboard Columns ─────────────────────── */
+  .leaderboard-columns {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    padding: 8px 16px 0;
+  }
+
+  @media (max-width: 479px) {
+    .leaderboard-columns {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .leaderboard-col {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .leaderboard-col-header {
+    text-align: center;
+    font-family: var(--font-display);
+    font-size: 15px;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    padding-bottom: 8px;
+  }
+
+  .leaderboard-col-header.fame { color: var(--text-primary); }
+  .leaderboard-col-header.shame { color: #b84040; }
+
+  /* ── Hall of Fame ───────────────────────────── */
+  .podium {
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    gap: 8px;
+    padding: 16px;
+    padding-bottom: 0;
+  }
+
+  .podium-place {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    opacity: 0;
+    animation: bounceIn 0.6s var(--ease-spring) both;
+  }
+
+  .podium-place:nth-child(1) { animation-delay: 0.25s; order: 2; } /* 1st */
+  .podium-place:nth-child(2) { animation-delay: 0.1s; order: 1; } /* 2nd */
+  .podium-place:nth-child(3) { animation-delay: 0.4s; order: 3; } /* 3rd */
+
+  @keyframes bounceIn {
+    0% { opacity: 0; transform: translateY(30px) scale(0.8); }
+    60% { transform: translateY(-6px) scale(1.04); }
+    100% { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  .podium-crown {
+    font-size: 24px;
+    line-height: 1;
+    min-height: 28px;
+    display: flex;
+    align-items: flex-end;
+  }
+
+  .podium-avatar {
+    width: 52px; height: 52px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 16px;
+    color: white;
+    font-family: var(--font-body);
+    letter-spacing: 0.02em;
+    position: relative;
+  }
+
+  .podium-place:nth-child(1) .podium-avatar { width: 64px; height: 64px; font-size: 20px; }
+
+  .podium-badge {
+    position: absolute;
+    bottom: -3px; right: -3px;
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 700;
+    border: 2px solid var(--bg-card);
+    font-family: var(--font-body);
+  }
+
+  .podium-badge.gold { background: var(--warm-gold); color: #7a5800; }
+  .podium-badge.silver { background: #C0C0C0; color: #4a4a4a; }
+  .podium-badge.bronze { background: #CD7F32; color: white; }
+
+  .podium-name {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-primary);
+    text-align: center;
+    letter-spacing: -0.01em;
+    line-height: 1.2;
+  }
+
+  .podium-amount {
+    font-family: var(--font-display);
+    font-size: 14px;
+    font-weight: 700;
+    text-align: center;
+    letter-spacing: -0.01em;
+  }
+
+  .podium-amount.gold { color: #c89200; }
+  .podium-amount.silver { color: #888; }
+  .podium-amount.bronze { color: #a06030; }
+  .podium-amount.shame { color: #b84040; }
+  .podium-amount.shame2 { color: #c06030; }
+  .podium-amount.shame3 { color: #9a7040; }
+
+  .podium-base {
+    width: 100%;
+    border-radius: 8px 8px 0 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-display);
+    font-size: 18px;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.9);
+  }
+
+  .podium-place:nth-child(1) .podium-base { height: 64px; background: linear-gradient(160deg, var(--warm-gold) 0%, #c89200 100%); }
+  .podium-place:nth-child(2) .podium-base { height: 44px; background: linear-gradient(160deg, #C8C8C8 0%, #9a9a9a 100%); }
+  .podium-place:nth-child(3) .podium-base { height: 32px; background: linear-gradient(160deg, #CD9060 0%, #a06030 100%); }
+
+  /* Shame podium overrides — muted warm-red tones */
+  .shame-podium .podium-place:nth-child(1) .podium-base { height: 64px; background: linear-gradient(160deg, #e07070 0%, #b84040 100%); }
+  .shame-podium .podium-place:nth-child(2) .podium-base { height: 44px; background: linear-gradient(160deg, #e09060 0%, #c06030 100%); }
+  .shame-podium .podium-place:nth-child(3) .podium-base { height: 32px; background: linear-gradient(160deg, #c8b060 0%, #9a8030 100%); }
+
+  .shame-podium .podium-place:nth-child(1) .podium-avatar { background: linear-gradient(135deg, #e07070 0%, #b84040 100%); }
+  .shame-podium .podium-place:nth-child(2) .podium-avatar { background: linear-gradient(135deg, #e09060 0%, #c06030 100%); }
+  .shame-podium .podium-place:nth-child(3) .podium-avatar { background: linear-gradient(135deg, #c8b060 0%, #9a8030 100%); }
+
+  .podium-badge.shame1 { background: #e07070; color: #6b1f1f; }
+  .podium-badge.shame2 { background: #e09060; color: #5a2a10; }
+  .podium-badge.shame3 { background: #c8b060; color: #4a3a10; }
+
+  /* ── Transactions ───────────────────────────── */
+  .transactions {
+    padding: 0 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .tx-card {
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    padding: 16px;
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    opacity: 0;
+    transform: translateY(14px);
+    transition: opacity 0.35s var(--ease-smooth), transform 0.4s var(--ease-spring), box-shadow 0.2s;
+    cursor: default;
+  }
+
+  .tx-card + .tx-card { margin-top: 10px; }
+  .tx-card.visible { opacity: 1; transform: translateY(0); }
+  .tx-card:hover { box-shadow: var(--shadow-md); }
+
+  .tx-icon {
+    width: 40px; height: 40px;
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .tx-icon svg { width: 18px; height: 18px; }
+  .tx-icon.incoming { background: var(--accent-green-bg); color: var(--accent-green); }
+  .tx-icon.outgoing { background: var(--warm-red-bg); color: var(--warm-red); }
+
+  .tx-body { flex: 1; min-width: 0; }
+
+  .tx-name {
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--text-primary);
+    margin-bottom: 1px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .tx-desc {
+    font-size: 12px;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    letter-spacing: 0.01em;
+  }
+
+  .tx-right { text-align: right; flex-shrink: 0; }
+
+  .tx-amount {
+    font-family: var(--font-body);
+    font-size: 16px;
+    font-weight: 700;
+    font-feature-settings: 'tnum' 1, 'lnum' 1;
+    letter-spacing: -0.01em;
+  }
+
+  .tx-amount.positive { color: var(--accent-green); }
+  .tx-amount.negative { color: var(--warm-red); }
+
+  .tx-time {
+    font-size: 12px;
+    color: var(--text-tertiary);
+    font-feature-settings: 'tnum' 1;
+    margin-top: 1px;
+  }
+
+  /* ── Bottom Sheet ───────────────────────────── */
+  .sheet-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(30, 42, 58, 0.4);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    z-index: 200;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s var(--ease-smooth);
+  }
+
+  .sheet-backdrop.visible { opacity: 1; pointer-events: all; }
+
+  .bottom-sheet {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: var(--bg-card);
+    border-radius: 20px 20px 0 0;
+    z-index: 210;
+    padding: 12px 24px 40px;
+    transform: translateY(100%);
+    transition: transform 0.4s var(--ease-spring);
+    box-shadow: var(--shadow-xl);
+    max-width: 540px;
+    margin: 0 auto;
+  }
+
+  .bottom-sheet.visible { transform: translateY(0); }
+
+  .sheet-handle {
+    width: 36px; height: 4px;
+    border-radius: 2px;
+    background: var(--border);
+    margin: 0 auto 20px;
+  }
+
+  .sheet-title {
+    font-family: var(--font-display);
+    font-size: 22px;
+    font-weight: 500;
+    color: var(--text-primary);
+    margin-bottom: 20px;
+    letter-spacing: -0.01em;
+  }
+
+  /* ── Top Up Sheet — Amount Pills ────────────── */
+  .sheet-subtitle {
+    font-family: var(--font-body);
+    font-size: 14px;
+    color: var(--text-tertiary);
+    margin-top: -14px;
+    margin-bottom: 22px;
+    letter-spacing: 0.01em;
+  }
+
+  .amount-pills {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin-bottom: 0;
+  }
+
+  .amount-pill {
+    padding: 11px 6px;
+    border-radius: var(--radius-pill);
+    border: 1.5px solid var(--primary);
+    background: transparent;
+    color: var(--primary);
+    font-family: var(--font-body);
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    text-align: center;
+    letter-spacing: 0.01em;
+    transition: background 0.15s var(--ease-smooth), color 0.15s var(--ease-smooth),
+                transform 0.3s var(--ease-spring), box-shadow 0.2s;
+    -webkit-tap-highlight-color: transparent;
+    white-space: nowrap;
+  }
+
+  .amount-pill:active {
+    transform: scale(0.93);
+  }
+
+  .amount-pill.selected {
+    background: var(--primary);
+    color: white;
+    transform: scale(1.06);
+    box-shadow: 0 3px 10px var(--primary-glow);
+  }
+
+  /* ── Custom Amount Input ─────────────────────── */
+  .custom-amount-wrapper {
+    overflow: hidden;
+    max-height: 0;
+    opacity: 0;
+    transition: max-height 0.35s var(--ease-smooth), opacity 0.25s var(--ease-smooth),
+                margin-top 0.35s var(--ease-smooth);
+    margin-top: 0;
+  }
+
+  .custom-amount-wrapper.open {
+    max-height: 80px;
+    opacity: 1;
+    margin-top: 14px;
+  }
+
+  .custom-amount-input-row {
+    display: flex;
+    align-items: center;
+    background: var(--bg);
+    border: 1.5px solid var(--primary);
+    border-radius: var(--radius-lg);
+    padding: 0 18px;
+    gap: 6px;
+    box-shadow: 0 0 0 3px var(--primary-glow);
+  }
+
+  .custom-amount-prefix {
+    font-family: var(--font-display);
+    font-size: 26px;
+    font-weight: 500;
+    color: var(--primary);
+    line-height: 1;
+    user-select: none;
+  }
+
+  .custom-amount-input {
+    flex: 1;
+    border: none;
+    background: transparent;
+    font-family: var(--font-display);
+    font-size: 28px;
+    font-weight: 500;
+    color: var(--text-primary);
+    text-align: left;
+    padding: 14px 0;
+    outline: none;
+    letter-spacing: -0.01em;
+    font-feature-settings: 'tnum' 1, 'lnum' 1;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .custom-amount-input::placeholder {
+    color: var(--text-tertiary);
+  }
+
+  /* ── Open bunq CTA ───────────────────────────── */
+  .open-bunq-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    padding: 16px 20px;
+    margin-top: 20px;
+    border-radius: var(--radius-pill);
+    border: none;
+    background: var(--primary);
+    color: white;
+    font-family: var(--font-display);
+    font-size: 17px;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.25s var(--ease-spring), box-shadow 0.2s, opacity 0.2s;
+    box-shadow: 0 4px 16px var(--primary-glow);
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .open-bunq-btn:not(:disabled):hover {
+    background: var(--primary-light);
+    transform: scale(1.02);
+    box-shadow: 0 6px 20px rgba(34, 92, 156, 0.28);
+  }
+
+  .open-bunq-btn:not(:disabled):active {
+    transform: scale(0.97);
+  }
+
+  .open-bunq-btn:disabled {
+    background: var(--text-tertiary);
+    box-shadow: none;
+    cursor: default;
+    opacity: 0.55;
+  }
+
+  /* ── How it works one-liner ──────────────────── */
+  .how-it-works-note {
+    margin-top: 14px;
+    text-align: center;
+    font-family: var(--font-body);
+    font-size: 13px;
+    color: var(--text-tertiary);
+    line-height: 1.5;
+    letter-spacing: 0.01em;
+  }
+
+  /* ── Sheet Close Button ─────────────────────── */
+  .sheet-close-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    padding: 14px;
+    margin-top: 20px;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-lg);
+    background: var(--bg);
+    color: var(--text-secondary);
+    font-family: var(--font-body);
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+    -webkit-tap-highlight-color: transparent;
+    letter-spacing: 0.01em;
+  }
+
+  .sheet-close-btn:hover { background: var(--warm-red-bg); color: var(--warm-red); border-color: var(--warm-red); }
+
+  /* ── Toast ──────────────────────────────────── */
+  .toast {
+    position: fixed;
+    bottom: calc(var(--bottombar-height) + 20px);
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--text-primary);
+    color: white;
+    padding: 10px 20px;
+    border-radius: var(--radius-pill);
+    font-size: 14px;
+    font-weight: 600;
+    z-index: 500;
+    opacity: 0;
+    transition: opacity 0.25s, transform 0.3s var(--ease-spring);
+    pointer-events: none;
+    white-space: nowrap;
+    letter-spacing: 0.01em;
+    box-shadow: var(--shadow-lg);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .toast.visible {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  .toast svg { width: 16px; height: 16px; color: var(--accent-green); }
+</style>
+</head>
+<body>
+
+<!-- Top Bar -->
+<header class="topbar">
+  <div class="wordmark"><span class="wm-team">Team</span><span class="wm-balance">Balance</span></div>
+  <div class="team-indicator"><span class="dot"></span>Heren 3</div>
+</header>
+
+<!-- Bottom Bar -->
+<nav class="bottombar">
+  <button class="tab-btn">
+    <span class="tab-pill"></span>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="3"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+    Events
+  </button>
+  <button class="tab-btn active">
+    <span class="tab-pill"></span>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="14" rx="3"/><path d="M2 10h20"/><circle cx="15" cy="15" r="2"/></svg>
+    Money Pool
+  </button>
+  <button class="tab-btn">
+    <span class="tab-pill"></span>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/><path d="M21 21v-2a4 4 0 0 0-3-3.85"/></svg>
+    Team
+  </button>
+</nav>
+
+<!-- Content -->
+<main class="content-area">
+  <div class="page-inner">
+
+    <!-- Hero Balance Card -->
+    <div class="hero">
+      <div class="hero-bg-circles">
+        <div class="hero-circle"></div>
+        <div class="hero-circle"></div>
+        <div class="hero-circle"></div>
+      </div>
+      <div class="hero-label">Pool Balance</div>
+      <div class="hero-amount" id="balance-display">&euro; 0.00</div>
+      <div class="hero-beer" id="beer-display">(~ 0 🍺)</div>
+      <div class="hero-chips">
+        <div class="hero-chip-green">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
+          +&euro;&thinsp;32.00 this month
+        </div>
+        <button class="hero-topup-btn" onclick="openTopUp()">
+          Top Up +
+        </button>
+      </div>
+    </div>
+
+    <!-- Quick Stats -->
+    <div class="stats-row">
+      <div class="stat-card" id="stat-0">
+        <div class="stat-label">This Month</div>
+        <div class="stat-value" style="color: var(--accent-green);">&euro;&thinsp;87</div>
+      </div>
+      <div class="stat-card" id="stat-1">
+        <div class="stat-label">Members</div>
+        <div class="stat-value">9</div>
+      </div>
+      <div class="stat-card" id="stat-2">
+        <div class="stat-label">Last Top-up</div>
+        <div class="stat-value" style="font-size: 16px; padding-top: 3px;">Mar 6</div>
+      </div>
+    </div>
+
+    <!-- Hall of Fame + Shame -->
+    <div class="section-heading">
+      <div class="section-title">Leaderboard</div>
+    </div>
+
+    <!-- Period toggle -->
+    <div class="period-toggle">
+      <div class="period-toggle-track" id="period-track">
+        <div class="period-toggle-pill" id="period-pill"></div>
+        <button class="period-toggle-option active" id="period-30" onclick="setPeriod('30d')">30 days</button>
+        <button class="period-toggle-option" id="period-season" onclick="setPeriod('season')">Season</button>
+      </div>
+    </div>
+
+    <!-- Two columns -->
+    <div class="leaderboard-columns">
+      <!-- Hall of Fame -->
+      <div class="leaderboard-col">
+        <div class="leaderboard-col-header fame">Toppers 🏆</div>
+        <div class="podium" id="fame-podium">
+          <!-- 1st -->
+          <div class="podium-place" data-rank="1">
+            <div class="podium-crown">👑</div>
+            <div class="podium-avatar" style="background: linear-gradient(135deg, var(--warm-gold) 0%, #c89200 100%);">
+              <span class="podium-initials">JV</span>
+              <div class="podium-badge gold">1</div>
+            </div>
+            <div class="podium-name" id="fame-name-1">Julius</div>
+            <div class="podium-amount gold" id="fame-amt-1">&euro; 35</div>
+            <div class="podium-base">1</div>
+          </div>
+          <!-- 2nd -->
+          <div class="podium-place" data-rank="2">
+            <div class="podium-crown"></div>
+            <div class="podium-avatar" style="background: linear-gradient(135deg, #B0B0B0 0%, #808080 100%);">
+              <span class="podium-initials">KD</span>
+              <div class="podium-badge silver">2</div>
+            </div>
+            <div class="podium-name" id="fame-name-2">Koen</div>
+            <div class="podium-amount silver" id="fame-amt-2">&euro; 25</div>
+            <div class="podium-base">2</div>
+          </div>
+          <!-- 3rd -->
+          <div class="podium-place" data-rank="3">
+            <div class="podium-crown"></div>
+            <div class="podium-avatar" style="background: linear-gradient(135deg, #CD9060 0%, #a06030 100%);">
+              <span class="podium-initials">SB</span>
+              <div class="podium-badge bronze">3</div>
+            </div>
+            <div class="podium-name" id="fame-name-3">Sander</div>
+            <div class="podium-amount bronze" id="fame-amt-3">&euro; 20</div>
+            <div class="podium-base">3</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Hall of Shame -->
+      <div class="leaderboard-col">
+        <div class="leaderboard-col-header shame">Floppers 🐷</div>
+        <div class="podium shame-podium" id="shame-podium">
+          <!-- 1st shame (most behind) -->
+          <div class="podium-place" data-rank="1">
+            <div class="podium-crown">🐷</div>
+            <div class="podium-avatar">
+              <span class="podium-initials" id="shame-init-1">TH</span>
+              <div class="podium-badge shame1">1</div>
+            </div>
+            <div class="podium-name" id="shame-name-1">Thomas</div>
+            <div class="podium-amount shame" id="shame-amt-1">&euro; 0</div>
+            <div class="podium-base">🐽</div>
+          </div>
+          <!-- 2nd shame -->
+          <div class="podium-place" data-rank="2">
+            <div class="podium-crown"></div>
+            <div class="podium-avatar">
+              <span class="podium-initials" id="shame-init-2">FL</span>
+              <div class="podium-badge shame2">2</div>
+            </div>
+            <div class="podium-name" id="shame-name-2">Floris</div>
+            <div class="podium-amount shame2" id="shame-amt-2">&euro; 5</div>
+            <div class="podium-base">🐗</div>
+          </div>
+          <!-- 3rd shame -->
+          <div class="podium-place" data-rank="3">
+            <div class="podium-crown"></div>
+            <div class="podium-avatar">
+              <span class="podium-initials" id="shame-init-3">BR</span>
+              <div class="podium-badge shame3">3</div>
+            </div>
+            <div class="podium-name" id="shame-name-3">Bram</div>
+            <div class="podium-amount shame3" id="shame-amt-3">&euro; 7</div>
+            <div class="podium-base">🐖</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recent Transactions -->
+    <div class="section-heading">
+      <div class="section-title">Recent Transactions</div>
+      <span class="section-link">See all</span>
+    </div>
+
+    <div class="transactions">
+      <div class="tx-card" data-delay="0">
+        <div class="tx-icon incoming">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
+        </div>
+        <div class="tx-body">
+          <div class="tx-name">Koen de Vries</div>
+          <div class="tx-desc">Top-up via bunq.me</div>
+        </div>
+        <div class="tx-right">
+          <div class="tx-amount positive">+&euro;&thinsp;15.00</div>
+          <div class="tx-time">2 days ago</div>
+        </div>
+      </div>
+
+      <div class="tx-card" data-delay="1">
+        <div class="tx-icon incoming">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
+        </div>
+        <div class="tx-body">
+          <div class="tx-name">Bram Willemsen</div>
+          <div class="tx-desc">Top-up via bunq.me</div>
+        </div>
+        <div class="tx-right">
+          <div class="tx-amount positive">+&euro;&thinsp;10.00</div>
+          <div class="tx-time">3 days ago</div>
+        </div>
+      </div>
+
+      <div class="tx-card" data-delay="2">
+        <div class="tx-icon outgoing">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+        <div class="tx-body">
+          <div class="tx-name">Team expense</div>
+          <div class="tx-desc">Canteen tab &ndash; Sporthal Galgenwaard</div>
+        </div>
+        <div class="tx-right">
+          <div class="tx-amount negative">&minus;&euro;&thinsp;47.50</div>
+          <div class="tx-time">Last Tuesday</div>
+        </div>
+      </div>
+
+      <div class="tx-card" data-delay="3">
+        <div class="tx-icon incoming">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
+        </div>
+        <div class="tx-body">
+          <div class="tx-name">Thomas Bakker</div>
+          <div class="tx-desc">Top-up via bunq.me</div>
+        </div>
+        <div class="tx-right">
+          <div class="tx-amount positive">+&euro;&thinsp;7.00</div>
+          <div class="tx-time">Last week</div>
+        </div>
+      </div>
+
+      <div class="tx-card" data-delay="4">
+        <div class="tx-icon outgoing">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+        <div class="tx-body">
+          <div class="tx-name">Team expense</div>
+          <div class="tx-desc">Beers after training</div>
+        </div>
+        <div class="tx-right">
+          <div class="tx-amount negative">&minus;&euro;&thinsp;38.00</div>
+          <div class="tx-time">2 weeks ago</div>
+        </div>
+      </div>
+
+      <div class="tx-card" data-delay="5">
+        <div class="tx-icon outgoing">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+        <div class="tx-body">
+          <div class="tx-name">Team expense</div>
+          <div class="tx-desc">Tournament entry fee</div>
+        </div>
+        <div class="tx-right">
+          <div class="tx-amount negative">&minus;&euro;&thinsp;60.00</div>
+          <div class="tx-time">3 weeks ago</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="height: 20px;"></div>
+  </div>
+</main>
+
+<!-- Sheet Backdrop -->
+<div class="sheet-backdrop" id="sheet-backdrop" onclick="closeTopUp()"></div>
+
+<!-- Top Up Bottom Sheet -->
+<div class="bottom-sheet" id="topup-sheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-title">Top Up</div>
+  <div class="sheet-subtitle">Opens bunq to complete payment</div>
+
+  <!-- Amount pills -->
+  <div class="amount-pills">
+    <button class="amount-pill" data-value="10" onclick="selectAmount(this, 10)">€ 10</button>
+    <button class="amount-pill" data-value="20" onclick="selectAmount(this, 20)">€ 20</button>
+    <button class="amount-pill" data-value="50" onclick="selectAmount(this, 50)">€ 50</button>
+    <button class="amount-pill" data-value="other" onclick="selectAmount(this, 'other')">Other…</button>
+  </div>
+
+  <!-- Custom amount input (revealed when "Other" is tapped) -->
+  <div class="custom-amount-wrapper" id="custom-amount-wrapper">
+    <div class="custom-amount-input-row">
+      <span class="custom-amount-prefix">€</span>
+      <input
+        class="custom-amount-input"
+        id="custom-amount-input"
+        type="text"
+        inputmode="decimal"
+        placeholder="0.00"
+        oninput="onCustomAmountInput()"
+      >
+    </div>
+  </div>
+
+  <!-- CTA -->
+  <button class="open-bunq-btn" id="open-bunq-btn" disabled onclick="openBunq()">
+    Open bunq →
+  </button>
+
+  <!-- How it works note -->
+  <p class="how-it-works-note">You'll be redirected to bunq to complete the payment securely.</p>
+
+  <button class="sheet-close-btn" onclick="closeTopUp()">Close</button>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+  Copied!
+</div>
+
+<script>
+  // ── Balance count-up ──────────────────────────
+  const BEER_PRICE = 2.70;
+
+  function countUp(target, duration) {
+    const el = document.getElementById('balance-display');
+    const beerEl = document.getElementById('beer-display');
+    const start = 0;
+    const end = target;
+    const startTime = performance.now();
+
+    function update(now) {
+      const elapsed = now - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      // ease out cubic
+      const eased = 1 - Math.pow(1 - progress, 3);
+      const value = start + (end - start) * eased;
+      el.innerHTML = '&euro;&thinsp;' + value.toFixed(2);
+      const beerCount = Math.floor(value / BEER_PRICE);
+      beerEl.textContent = '(~ ' + beerCount + ' 🍺)';
+      if (progress < 1) requestAnimationFrame(update);
+    }
+
+    requestAnimationFrame(update);
+  }
+
+  // ── Stagger in stat cards ─────────────────────
+  function staggerStats() {
+    [0, 1, 2].forEach(i => {
+      setTimeout(() => {
+        const el = document.getElementById('stat-' + i);
+        if (el) el.classList.add('visible');
+      }, 200 + i * 100);
+    });
+  }
+
+  // ── Stagger in transactions ───────────────────
+  function staggerTransactions() {
+    document.querySelectorAll('.tx-card').forEach(el => {
+      const delay = parseInt(el.dataset.delay || '0');
+      setTimeout(() => el.classList.add('visible'), 400 + delay * 80);
+    });
+  }
+
+  // ── Top Up Sheet ──────────────────────────────
+  let selectedAmount = null; // number or null
+
+  function openTopUp() {
+    document.getElementById('sheet-backdrop').classList.add('visible');
+    document.getElementById('topup-sheet').classList.add('visible');
+  }
+
+  function closeTopUp() {
+    document.getElementById('sheet-backdrop').classList.remove('visible');
+    document.getElementById('topup-sheet').classList.remove('visible');
+    // reset state
+    selectedAmount = null;
+    document.querySelectorAll('.amount-pill').forEach(p => p.classList.remove('selected'));
+    document.getElementById('custom-amount-wrapper').classList.remove('open');
+    document.getElementById('custom-amount-input').value = '';
+    updateBunqBtn();
+  }
+
+  function selectAmount(btn, value) {
+    // deselect all
+    document.querySelectorAll('.amount-pill').forEach(p => p.classList.remove('selected'));
+    btn.classList.add('selected');
+
+    if (value === 'other') {
+      selectedAmount = null;
+      document.getElementById('custom-amount-wrapper').classList.add('open');
+      setTimeout(() => document.getElementById('custom-amount-input').focus(), 50);
+    } else {
+      selectedAmount = value;
+      document.getElementById('custom-amount-wrapper').classList.remove('open');
+      document.getElementById('custom-amount-input').value = '';
+    }
+    updateBunqBtn();
+  }
+
+  function onCustomAmountInput() {
+    const raw = document.getElementById('custom-amount-input').value;
+    const num = parseFloat(raw.replace(',', '.'));
+    selectedAmount = (!isNaN(num) && num > 0) ? num : null;
+    updateBunqBtn();
+  }
+
+  function updateBunqBtn() {
+    const btn = document.getElementById('open-bunq-btn');
+    if (selectedAmount && selectedAmount > 0) {
+      btn.disabled = false;
+      btn.textContent = `Open bunq — € ${Number.isInteger(selectedAmount) ? selectedAmount : selectedAmount.toFixed(2)} →`;
+    } else {
+      btn.disabled = true;
+      btn.textContent = 'Open bunq →';
+    }
+  }
+
+  function openBunq() {
+    if (!selectedAmount) return;
+    // Placeholder — in production this would be a real bunq.me URL
+    window.location.href = '#';
+  }
+
+  function showToast() {
+    const toast = document.getElementById('toast');
+    toast.classList.add('visible');
+    setTimeout(() => toast.classList.remove('visible'), 2200);
+  }
+
+  // ── Period Toggle ─────────────────────────────
+  const leaderboardData = {
+    '30d': {
+      fame: [
+        { name: 'Julius', initials: 'JV', amount: '€ 35' },
+        { name: 'Koen',   initials: 'KD', amount: '€ 25' },
+        { name: 'Sander', initials: 'SB', amount: '€ 20' },
+      ],
+      shame: [
+        { name: 'Thomas', initials: 'TH', amount: '€ 0' },
+        { name: 'Floris', initials: 'FL', amount: '€ 5' },
+        { name: 'Bram',   initials: 'BR', amount: '€ 7' },
+      ],
+    },
+    'season': {
+      fame: [
+        { name: 'Sander', initials: 'SB', amount: '€ 120' },
+        { name: 'Julius', initials: 'JV', amount: '€ 95'  },
+        { name: 'Thomas', initials: 'TH', amount: '€ 85'  },
+      ],
+      shame: [
+        { name: 'Floris', initials: 'FL', amount: '€ 15' },
+        { name: 'Koen',   initials: 'KD', amount: '€ 22' },
+        { name: 'Bram',   initials: 'BR', amount: '€ 30' },
+      ],
+    },
+  };
+
+  let currentPeriod = '30d';
+
+  function setPeriod(period) {
+    if (period === currentPeriod) return;
+    currentPeriod = period;
+
+    // Update toggle pill position
+    const btn30 = document.getElementById('period-30');
+    const btnSeason = document.getElementById('period-season');
+    const pill = document.getElementById('period-pill');
+
+    if (period === '30d') {
+      btn30.classList.add('active');
+      btnSeason.classList.remove('active');
+      pill.style.left = btn30.offsetLeft + 'px';
+      pill.style.width = btn30.offsetWidth + 'px';
+    } else {
+      btnSeason.classList.add('active');
+      btn30.classList.remove('active');
+      pill.style.left = btnSeason.offsetLeft + 'px';
+      pill.style.width = btnSeason.offsetWidth + 'px';
+    }
+
+    const data = leaderboardData[period];
+
+    // Fade and update fame podium
+    const famePodium = document.getElementById('fame-podium');
+    const shamePodium = document.getElementById('shame-podium');
+    [famePodium, shamePodium].forEach(p => {
+      p.style.transition = 'opacity 0.2s ease';
+      p.style.opacity = '0';
+    });
+
+    setTimeout(() => {
+      data.fame.forEach((d, i) => {
+        const n = i + 1;
+        document.getElementById('fame-name-' + n).textContent = d.name;
+        document.getElementById('fame-amt-' + n).textContent = d.amount;
+        const initEl = famePodium.querySelectorAll('.podium-initials')[i];
+        if (initEl) initEl.textContent = d.initials;
+      });
+      data.shame.forEach((d, i) => {
+        const n = i + 1;
+        document.getElementById('shame-name-' + n).textContent = d.name;
+        document.getElementById('shame-amt-' + n).textContent = d.amount;
+        document.getElementById('shame-init-' + n).textContent = d.initials;
+      });
+
+      [famePodium, shamePodium].forEach(p => {
+        p.style.opacity = '1';
+      });
+    }, 200);
+  }
+
+  function initTogglePill() {
+    const btn30 = document.getElementById('period-30');
+    const pill = document.getElementById('period-pill');
+    pill.style.left = btn30.offsetLeft + 'px';
+    pill.style.width = btn30.offsetWidth + 'px';
+  }
+
+  // ── Init ──────────────────────────────────────
+  window.addEventListener('load', () => {
+    setTimeout(() => countUp(142.50, 1200), 150);
+    staggerStats();
+    staggerTransactions();
+    initTogglePill();
+  });
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeTopUp();
+  });
+</script>
+</body>
+</html>

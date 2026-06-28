@@ -57,5 +57,8 @@ class AttendanceService(
         }
     }
 
+    fun findMember(userId: UUID): TeamMember? =
+        teamMemberRepository.findMembersByUserIds(setOf(userId)).values.firstOrNull()
+
     fun findDisplayName(userId: UUID): String? = teamMemberRepository.findDisplayName(userId)
 }

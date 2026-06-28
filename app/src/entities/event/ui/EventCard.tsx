@@ -1,40 +1,68 @@
 import { Link } from '@tanstack/react-router'
-import { Card, CardContent, CardHeader, CardTitle } from '@shared/ui/card'
+import { Calendar, MapPin } from 'lucide-react'
+import { Card } from '@shared/ui/card'
 import type { Event } from '@shared/api/events'
+import { EventTypeBadge } from './EventTypeBadge'
+import { EventTypeIcon } from './EventTypeIcon'
 
-export function EventCard({ event }: { event: Event }) {
+
+export function EventCard({ event, index = 0 }: { event: Event; index?: number }) {
   const date = new Date(event.startTime)
   const { attendanceSummary: s } = event
+  // const relativeChip = getRelativeTimeChip(date)
 
   return (
-    <Link to="/events/$eventId" params={{ eventId: event.id }}>
-      <Card className="transition-shadow hover:shadow-md">
-        <CardHeader className="pb-2">
-          <div className="flex items-center gap-2">
-            <span
-              className="h-3 w-3 rounded-full"
-              style={{ backgroundColor: event.type.color ?? '#888' }}
-            />
-            <span className="text-sm text-muted-foreground">{event.type.name}</span>
+    <Link
+      to="/events/$eventId"
+      params={{ eventId: event.id }}
+      style={{ animationDelay: `${index * 60}ms` }}
+      className="card-enter block"
+    >
+      <Card className="card-shadow p-4 transition-[box-shadow] hover:card-shadow-hover">
+        {/* Top: icon + badge/title */}
+        <div className="flex items-start gap-3.5">
+          <EventTypeIcon type={event.type} size="sm" />
+          <div className="min-w-0 flex-1">
+            <EventTypeBadge type={event.type} />
+            <p className="font-display mt-1 text-[17px] font-medium leading-tight">{event.title}</p>
           </div>
-          <CardTitle className="text-lg">{event.title}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground">
-            {date.toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short' })}
-            {' '}
-            {date.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })}
-          </p>
+        </div>
+
+        {/* Meta: date · time · location — indented to align with title */}
+        <div className="mt-2.5 flex flex-wrap items-center gap-1 pl-[50px] text-[13px] text-muted-foreground">
+          <Calendar size={13} className="shrink-0 text-muted-foreground/60" />
+          {date.toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'short' })}
+          {' · '}
+          {date.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })}
           {event.location && (
-            <p className="mt-1 text-sm text-muted-foreground">{event.location}</p>
+            <>
+              <span className="text-muted-foreground/40">·</span>
+              <MapPin size={13} className="shrink-0 text-muted-foreground/60" />
+              <a
+                href={`https://maps.google.com/?q=${encodeURIComponent(event.location)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                className="hover:text-blue hover:underline"
+              >
+                {event.location}
+              </a>
+            </>
           )}
-          <div className="mt-3 flex gap-3 text-sm">
-            <span className="text-green font-medium">{s.attending}</span>
-            <span className="text-gold font-medium">{s.maybe}</span>
-            <span className="text-red-500 font-medium">{s.absent}</span>
-            <span className="text-muted-foreground">{s.notResponded}?</span>
-          </div>
-        </CardContent>
+        </div>
+
+        {/* Bottom: status + attendance summary */}
+        <div className="mt-3 flex items-center justify-between border-t border-border/40 pt-3">
+          <span className="rounded-full bg-green/10 px-2.5 py-1 text-xs font-medium text-green">
+            ✓ {s.attending} going
+          </span>
+          <span className="text-xs text-muted-foreground">
+            of {s.attending + s.maybe + s.absent + s.notResponded}
+            {s.notResponded > 0 && (
+              <> · <span className="opacity-60">{s.notResponded} pending</span></>
+            )}
+          </span>
+        </div>
       </Card>
     </Link>
   )

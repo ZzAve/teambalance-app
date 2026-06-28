@@ -2588,3 +2588,129 @@ git commit -m "fix: smoke test fixes"
 - The `make build` target already runs linting + tests + compilation, so a single command suffices
 - Keep it simple: one job, one workflow. Split into matrix/parallel jobs only when build times warrant it
 - Consider adding a `make test` step with test result reporting via `dorny/test-reporter` or similar
+
+---
+
+## Frontend UI/UX Polish — Prototype Alignment
+
+Comparison of the current React implementation against the design prototype (`tmp/prototype-events.html`) revealed significant visual and UX gaps. Items are grouped by impact tier.
+
+### Tier 1: High Impact — Visual Identity & Core UX
+
+#### T1.1: Event card icon blocks
+
+**Current:** Tiny 12px colored dot next to event type name.
+**Prototype:** Large (~42px) rounded colored block with a white icon inside (e.g. dumbbell for training, swords for match).
+
+**What to do:**
+- Replace the dot in `EventCard.tsx` and `$eventId.tsx` with a ~40px rounded-lg div using the event type color as background.
+- Add Lucide icons mapped to event types: `Dumbbell` (Training), `Swords` (Match), `Trophy` (Tournament), `PartyPopper` (Social).
+- Create a shared `EventTypeIcon` component in `entities/event/ui/` that maps `type.name` → icon + color.
+
+#### T1.2: Grandstander font on headings and stats
+
+**Current:** Grandstander is declared in CSS but only applied to the wordmark in `__root.tsx`.
+**Prototype:** Grandstander used on page titles, event card titles, attendance stat numbers, and section headers.
+
+**What to do:**
+- Add `font-display` (Grandstander) class to: page `h1`/`h2` elements, `CardTitle` in `EventCard.tsx`, attendance count numbers.
+- Keep body text, labels, and form inputs in DM Sans.
+
+#### T1.3: Bottom tab bar (mobile navigation)
+
+**Current:** No bottom navigation. Header-only layout scrolls away.
+**Prototype:** Fixed bottom bar with 4 tabs (Home, Events, Money, Profile) using frosted glass (`backdrop-blur`).
+
+**What to do:**
+- Create `shared/ui/BottomNav.tsx` with fixed positioning at the bottom of the viewport.
+- 4 tabs with Lucide icons: `Home`, `Calendar`, `Wallet`, `User`. Only "Events" (`Calendar`) is active/functional for now.
+- Style: `bg-card/88 backdrop-blur-lg border-t border-border/40`, warm shadow upward.
+- Add to `__root.tsx` layout. Add `pb-20` to main content to prevent overlap.
+- Make the top header also fixed with `sticky top-0 z-nav backdrop-blur`.
+
+#### T1.4: Attendance UX — hero section + grouped attendee list
+
+**Current:** Every attendee row has Yes/Maybe/No toggle buttons, including other users' rows. Confusing — implies you can change others' attendance.
+**Prototype:** Top-level "Your Response" section with 3 large buttons, then a read-only attendee list grouped by status (Attending / Maybe / Not responded / Absent) with role labels and initials.
+
+**What to do in `$eventId.tsx`:**
+- Add a "Your Response" card at the top with 3 large styled buttons (checkmark/question/X icons + labels). Use the current user from `useUserStore`.
+- Below, show attendee list as read-only rows grouped under status headings ("Going (4)", "Maybe (1)", etc.).
+- Each row: colored status indicator + display name. No toggle buttons on other users.
+- Remove `AttendanceToggle` from individual rows; only the hero section triggers mutations.
+
+### Tier 2: Medium Impact — Polish & Refinement
+
+#### T2.1: Section headings and time grouping on event list
+
+**Current:** Flat list with a checkbox toggle for "Show past".
+**Prototype:** Events grouped under headings ("This Week", "Later") with segmented pill filter ("Upcoming / Past").
+
+**What to do in `index.tsx`:**
+- Replace the checkbox with a two-segment pill toggle (Upcoming / Past). Style: `rounded-full bg-muted` container, active segment `bg-card shadow-sm`.
+- Group events by time proximity: "This Week" (next 7 days), "Later" (beyond 7 days). Show group headers with `text-sm font-medium text-muted-foreground uppercase tracking-wide`.
+- When "Past" is selected, show past events in reverse chronological order.
+
+#### T2.2: Attendance summary on event cards — add icons
+
+**Current:** Bare colored numbers: `4 1 0 1?`.
+**Prototype:** Colored badges with small icons and labels.
+
+**What to do in `EventCard.tsx`:**
+- Add Lucide icons next to counts: `Check` (green/attending), `HelpCircle` (gold/maybe), `X` (red/absent).
+- Hide counts that are zero to reduce noise.
+- Consider pill-style badges: `bg-green/10 text-green rounded-full px-2 py-0.5 text-xs`.
+
+#### T2.3: Card entry animations (staggered reveal)
+
+**Current:** Cards appear instantly with no animation.
+**Prototype:** Cards fade/slide in with staggered delays on page load.
+
+**What to do:**
+- Add a CSS `@keyframes card-enter` animation: `from { opacity: 0; transform: translateY(8px); }`.
+- Apply to event cards with `animation: card-enter 0.3s ease-out both` and `animation-delay` based on index (e.g., `style={{ animationDelay: '${index * 60}ms' }}`).
+- Use the spring easing from design tokens for a natural feel.
+
+#### T2.4: Apply warm shadows from design tokens
+
+**Current:** Shadcn default neutral shadows on cards.
+**Prototype:** Warm brown-tinted shadows (`rgba(62, 45, 30, 0.05)`).
+
+**What to do:**
+- Override Shadcn card shadow in `global.css` or via a Tailwind utility to use `var(--shadow-card)` and `var(--shadow-card-hover)` from design tokens.
+- Ensure hover state uses the elevated `shadow-card-hover` token.
+
+#### T2.5: Sticky header with back navigation
+
+**Current:** Ghost button `← Back` floats loosely at top of detail page.
+**Prototype:** Fixed/sticky top bar with a proper back arrow integrated into the header.
+
+**What to do:**
+- On detail pages, replace the loose back button with a left-arrow icon in the sticky header (next to the title).
+- Consider showing the event title in the header on scroll (intersection observer or scroll listener).
+
+### Tier 3: Nice-to-Have — Future Enhancements
+
+#### T3.1: Screen transitions
+
+Animate route changes (fade, slide) using the View Transitions API or `framer-motion` `AnimatePresence`. List→detail could slide right, back could slide left.
+
+#### T3.2: Location linked to maps
+
+Make the location text in event detail a clickable link that opens Google Maps / Apple Maps with the location as a search query. Simple `href="https://maps.google.com/?q=${encodeURIComponent(location)}"`.
+
+#### T3.3: Event type filter pills on event list
+
+Add horizontal scrolling pill buttons above the event list to filter by type (Training, Match, Tournament, Social). Each pill uses the type's color. "All" selected by default.
+
+#### T3.4: Avatar circles with initials in attendee list
+
+Replace plain text names with a circle showing initials (first letter of first + last name) in the event type color or a hashed color, followed by the display name.
+
+#### T3.5: Relative time chips on event cards
+
+Show a contextual badge like "Tomorrow", "In 4 days", "Next week" on each card to give quick temporal context without reading the full date.
+
+#### T3.6: Create event dialog — richer UX
+
+Add event type color preview next to the selector, auto-suggest titles based on type (e.g. selecting "Training" pre-fills "Training"), and a visual date/time picker instead of native `datetime-local`.

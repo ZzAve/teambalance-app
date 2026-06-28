@@ -45,3 +45,131 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+
+/* ── Card shadows — warm tint from design tokens ── */
+.card-shadow {
+  box-shadow: var(--shadow-card);
+}
+.card-shadow-hover,
+.card-shadow:hover {
+  box-shadow: var(--shadow-card-hover);
+}
+
+/* Override Shadcn Card default shadow */
+[data-slot="card"] {
+  box-shadow: var(--shadow-card);
+  transition: box-shadow var(--duration-normal) var(--ease-spring);
+}
+[data-slot="card"]:hover {
+  box-shadow: var(--shadow-card-hover);
+}
+
+/* ── Staggered card entry animation ── */
+@keyframes card-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.card-enter {
+  animation: card-enter 0.3s var(--ease-spring) both;
+}
+
+/* ── T3.1: View Transitions API — route animations ── */
+@keyframes slide-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slide-out-left {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(-24px);
+  }
+}
+
+@keyframes slide-in-left {
+  from {
+    opacity: 0;
+    transform: translateX(-24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slide-out-right {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes fade-out {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+
+/* Default: cross-fade for all view transitions */
+::view-transition-old(root) {
+  animation: 220ms ease fade-out both;
+}
+::view-transition-new(root) {
+  animation: 220ms ease fade-in both;
+}
+
+/* Named "main-content" transition for page slides */
+::view-transition-old(main-content) {
+  animation: 260ms var(--ease-spring, cubic-bezier(0.34, 1.56, 0.64, 1)) slide-out-left both;
+}
+::view-transition-new(main-content) {
+  animation: 260ms var(--ease-spring, cubic-bezier(0.34, 1.56, 0.64, 1)) slide-in-right both;
+}
+
+.vt-slide-back::view-transition-old(main-content) {
+  animation: 260ms var(--ease-spring, cubic-bezier(0.34, 1.56, 0.64, 1)) slide-out-right both;
+}
+.vt-slide-back::view-transition-new(main-content) {
+  animation: 260ms var(--ease-spring, cubic-bezier(0.34, 1.56, 0.64, 1)) slide-in-left both;
+}
+
+/* Apply view-transition-name to main content area */
+main {
+  view-transition-name: main-content;
+}
+
+/* ── Attendance button bounce ── */
+@keyframes att-bounce {
+  0%   { transform: scale(0.92); }
+  50%  { transform: scale(1.06); }
+  100% { transform: scale(1); }
+}
+
+.att-bounce {
+  animation: att-bounce 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}

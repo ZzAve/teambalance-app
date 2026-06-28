@@ -7,7 +7,7 @@ export interface MockEvent {
   endTime: string | null
   location: string | null
   attendanceSummary: { attending: number; maybe: number; absent: number; notResponded: number }
-  attendances: { id: string; userId: string; displayName: string; state: string }[]
+  attendances: { id: string; userId: string; displayName: string; role: string; state: string }[]
 }
 
 export const EVENT_TYPES = [
@@ -17,13 +17,14 @@ export const EVENT_TYPES = [
   { id: 'et-004', name: 'Social', color: '#E87461' },
 ]
 
+// Each member has exactly one role (set back-office in v1) — see ADR-0009.
 export const MEMBERS = [
-  { userId: 'b0000000-0000-0000-0000-000000000001', displayName: 'Jan de Vries' },
-  { userId: 'b0000000-0000-0000-0000-000000000002', displayName: 'Lisa Bakker' },
-  { userId: 'b0000000-0000-0000-0000-000000000003', displayName: 'Tom Visser' },
-  { userId: 'b0000000-0000-0000-0000-000000000004', displayName: 'Emma Jansen' },
-  { userId: 'b0000000-0000-0000-0000-000000000005', displayName: 'Daan Mulder' },
-  { userId: 'b0000000-0000-0000-0000-000000000006', displayName: 'Sophie van Dijk' },
+  { userId: 'b0000000-0000-0000-0000-000000000001', displayName: 'Jan de Vries', role: 'Setter' },
+  { userId: 'b0000000-0000-0000-0000-000000000002', displayName: 'Lisa Bakker', role: 'Outside Hitter' },
+  { userId: 'b0000000-0000-0000-0000-000000000003', displayName: 'Tom Visser', role: 'Middle Blocker' },
+  { userId: 'b0000000-0000-0000-0000-000000000004', displayName: 'Emma Jansen', role: 'Libero' },
+  { userId: 'b0000000-0000-0000-0000-000000000005', displayName: 'Daan Mulder', role: 'Opposite' },
+  { userId: 'b0000000-0000-0000-0000-000000000006', displayName: 'Sophie van Dijk', role: 'Outside Hitter' },
 ]
 
 function daysFromNow(days: number): string {
@@ -38,6 +39,7 @@ function makeAttendances(states: string[]) {
     id: `att-${m.userId}`,
     userId: m.userId,
     displayName: m.displayName,
+    role: m.role,
     state: states[i] ?? 'NOT_RESPONDED',
   }))
 }

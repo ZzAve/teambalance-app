@@ -1,0 +1,1631 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>TeamBalance — Create Events</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300..800;1,9..40,300..800&family=Grandstander:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  :root {
+    --primary: #225C9C;
+    --primary-light: #2d6fb5;
+    --primary-dark: #1a4a7e;
+    --primary-bg: rgba(34, 92, 156, 0.08);
+    --primary-bg-hover: rgba(34, 92, 156, 0.05);
+    --primary-glow: rgba(34, 92, 156, 0.15);
+
+    --accent-green: #249E6C;
+    --accent-green-light: #2ab87d;
+    --accent-green-bg: rgba(36, 158, 108, 0.10);
+
+    --warm-gold: #F4B400;
+    --warm-gold-light: #f7c948;
+    --warm-gold-bg: rgba(244, 180, 0, 0.12);
+
+    --warm-red: #E05252;
+    --warm-red-bg: rgba(224, 82, 82, 0.10);
+
+    --bg: #F8F6F0;
+    --bg-card: #FEFDFB;
+    --bg-sidebar: #F3F1EB;
+    --bg-bottombar: rgba(254, 253, 251, 0.88);
+
+    --text-primary: #1E2A3A;
+    --text-secondary: #5A6B7F;
+    --text-tertiary: #8A95A5;
+    --text-on-primary: #FFFFFF;
+
+    --border: rgba(30, 42, 58, 0.07);
+    --shadow-sm: 0 1px 3px rgba(62, 45, 30, 0.05), 0 1px 2px rgba(62, 45, 30, 0.03);
+    --shadow-md: 0 4px 12px rgba(62, 45, 30, 0.07), 0 2px 4px rgba(62, 45, 30, 0.04);
+    --shadow-lg: 0 8px 24px rgba(62, 45, 30, 0.09), 0 4px 8px rgba(62, 45, 30, 0.04);
+    --shadow-xl: 0 16px 48px rgba(62, 45, 30, 0.12), 0 8px 16px rgba(62, 45, 30, 0.06);
+
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --radius-pill: 24px;
+
+    --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+    --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+    --ease-out: cubic-bezier(0, 0, 0.2, 1);
+
+    --font-display: 'Grandstander', cursive;
+    --font-body: 'DM Sans', system-ui, sans-serif;
+
+    --topbar-height: 60px;
+    --bottombar-height: 72px;
+  }
+
+  html {
+    font-family: var(--font-body);
+    color: var(--text-primary);
+    background: var(--bg);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    line-height: 1.6;
+    letter-spacing: 0.01em;
+  }
+
+  body {
+    min-height: 100dvh;
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* ── Top Bar ────────────────────────────────── */
+  .topbar {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: var(--topbar-height);
+    background: linear-gradient(180deg, rgba(254, 253, 251, 0.97) 0%, rgba(248, 246, 240, 0.95) 100%);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+    z-index: 100;
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+  }
+
+  .wordmark {
+    font-family: var(--font-display);
+    font-size: 21px;
+    user-select: none;
+    display: flex;
+    align-items: baseline;
+    gap: 1px;
+    letter-spacing: -0.01em;
+  }
+
+  .wordmark .wm-team { font-weight: 400; color: var(--text-primary); }
+  .wordmark .wm-balance { font-weight: 700; color: var(--accent-green); }
+
+  .team-indicator {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 14px;
+    border-radius: var(--radius-pill);
+    background: var(--primary-bg);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--primary);
+    cursor: default;
+    letter-spacing: 0.02em;
+  }
+
+  .team-indicator .dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--accent-green);
+  }
+
+  /* ── Bottom Bar ─────────────────────────────── */
+  .bottombar {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    height: var(--bottombar-height);
+    background: var(--bg-bottombar);
+    backdrop-filter: blur(20px) saturate(1.4);
+    -webkit-backdrop-filter: blur(20px) saturate(1.4);
+    border-top: 1px solid rgba(30, 42, 58, 0.06);
+    box-shadow: 0 -1px 16px rgba(62, 45, 30, 0.06);
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    padding: 0 8px;
+    padding-bottom: env(safe-area-inset-bottom, 0);
+    z-index: 100;
+  }
+
+  .tab-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 8px 20px;
+    border-radius: var(--radius-pill);
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-family: var(--font-body);
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-tertiary);
+    transition: color 0.25s var(--ease-smooth);
+    position: relative;
+    -webkit-tap-highlight-color: transparent;
+    letter-spacing: 0.02em;
+  }
+
+  .tab-btn svg { width: 22px; height: 22px; transition: transform 0.3s var(--ease-spring), color 0.2s; }
+
+  .tab-btn .tab-pill {
+    position: absolute;
+    top: 2px; left: 50%;
+    transform: translateX(-50%) scaleX(0);
+    width: 48px; height: 30px;
+    border-radius: 15px;
+    background: var(--primary-bg);
+    transition: transform 0.35s var(--ease-spring);
+    z-index: -1;
+  }
+
+  .tab-btn.active { color: var(--primary); font-weight: 600; }
+  .tab-btn.active svg { transform: scale(1.1) translateY(-1px); color: var(--primary); filter: drop-shadow(0 0 4px var(--primary-glow)); }
+  .tab-btn.active .tab-pill { transform: translateX(-50%) scaleX(1); box-shadow: 0 0 12px var(--primary-glow); }
+
+  /* ── Content Area ──────────────────────────── */
+  .content-area {
+    position: fixed;
+    top: var(--topbar-height);
+    left: 0; right: 0;
+    bottom: var(--bottombar-height);
+    overflow: hidden;
+  }
+
+  /* ── Screens ───────────────────────────────── */
+  .screen {
+    position: absolute;
+    inset: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    background: var(--bg);
+    transition: transform 0.4s var(--ease-smooth), opacity 0.3s var(--ease-smooth);
+    will-change: transform;
+  }
+
+  .screen.hidden {
+    transform: translateX(100%);
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .screen.slide-out-left {
+    transform: translateX(-30%);
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .screen-inner {
+    padding: 24px 20px 32px;
+    max-width: 540px;
+    margin: 0 auto;
+  }
+
+  /* ── Screen 1: Events List ─────────────────── */
+  .screen-header {
+    margin-bottom: 22px;
+  }
+
+  .screen-header h1 {
+    font-family: var(--font-display);
+    font-size: 30px;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    margin-bottom: 5px;
+    color: var(--text-primary);
+  }
+
+  .screen-header p {
+    font-size: 15px;
+    color: var(--text-secondary);
+  }
+
+  .section-heading {
+    font-family: var(--font-body);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 12px;
+    margin-top: 24px;
+  }
+
+  .section-heading:first-of-type { margin-top: 0; }
+
+  /* ── Cards ─────────────────────────────────── */
+  .card {
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    padding: 18px;
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border);
+    transition: box-shadow 0.2s, transform 0.2s var(--ease-spring);
+    cursor: default;
+    animation: cardIn 0.4s var(--ease-smooth) both;
+  }
+
+  .card:hover { box-shadow: var(--shadow-md); transform: translateY(-1px); }
+  .card + .card { margin-top: 12px; }
+
+  @keyframes cardIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .card:nth-child(1) { animation-delay: 0.05s; }
+  .card:nth-child(2) { animation-delay: 0.12s; }
+  .card:nth-child(3) { animation-delay: 0.19s; }
+
+  .card-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .card-icon {
+    width: 42px; height: 42px;
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .card-icon svg { width: 20px; height: 20px; }
+  .card-icon.blue { background: var(--primary-bg); color: var(--primary); }
+  .card-icon.green { background: var(--accent-green-bg); color: var(--accent-green); }
+  .card-icon.gold { background: var(--warm-gold-bg); color: #c89200; }
+
+  .card-body { flex: 1; min-width: 0; }
+
+  .card-title {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    letter-spacing: -0.01em;
+  }
+
+  .card-sub {
+    font-size: 13px;
+    color: var(--text-secondary);
+    letter-spacing: 0.01em;
+  }
+
+  .card-right { text-align: right; flex-shrink: 0; }
+  .card-right .meta { font-size: 12px; color: var(--text-tertiary); }
+
+  .attendance {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 10px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    margin-top: 8px;
+    letter-spacing: 0.02em;
+  }
+
+  .attendance.going { background: var(--accent-green-bg); color: var(--accent-green); }
+  .attendance.pending { background: var(--warm-gold-bg); color: #a07600; }
+
+  .attendance .att-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+
+  /* ── FAB ────────────────────────────────────── */
+  .fab {
+    position: fixed;
+    bottom: calc(var(--bottombar-height) + 20px);
+    right: 24px;
+    width: 56px; height: 56px;
+    border-radius: 50%;
+    background: var(--primary);
+    color: white;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 16px rgba(34, 92, 156, 0.4), 0 2px 6px rgba(34, 92, 156, 0.25);
+    z-index: 90;
+    transition: transform 0.25s var(--ease-spring), box-shadow 0.2s;
+    -webkit-tap-highlight-color: transparent;
+    animation: fabIn 0.5s var(--ease-spring) 0.3s both, fabPulse 3s ease-in-out 1.5s infinite;
+  }
+
+  .fab:hover {
+    transform: scale(1.08);
+    box-shadow: 0 6px 20px rgba(34, 92, 156, 0.45), 0 3px 8px rgba(34, 92, 156, 0.3);
+  }
+
+  .fab:active { transform: scale(0.95); }
+
+  .fab svg { width: 26px; height: 26px; transition: transform 0.3s var(--ease-spring); }
+  .fab.open svg { transform: rotate(45deg); }
+
+  @keyframes fabIn {
+    from { transform: scale(0) rotate(-90deg); opacity: 0; }
+    to { transform: scale(1) rotate(0deg); opacity: 1; }
+  }
+
+  @keyframes fabPulse {
+    0%, 100% { box-shadow: 0 4px 16px rgba(34, 92, 156, 0.4), 0 2px 6px rgba(34, 92, 156, 0.25), 0 0 0 0 rgba(34, 92, 156, 0.3); }
+    50% { box-shadow: 0 4px 16px rgba(34, 92, 156, 0.4), 0 2px 6px rgba(34, 92, 156, 0.25), 0 0 0 10px rgba(34, 92, 156, 0); }
+  }
+
+  /* ── Bottom Sheet ───────────────────────────── */
+  .sheet-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(30, 42, 58, 0.4);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    z-index: 200;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s var(--ease-smooth);
+  }
+
+  .sheet-backdrop.visible {
+    opacity: 1;
+    pointer-events: all;
+  }
+
+  .bottom-sheet {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: var(--bg-card);
+    border-radius: 20px 20px 0 0;
+    z-index: 210;
+    padding: 12px 24px 40px;
+    transform: translateY(100%);
+    transition: transform 0.4s var(--ease-spring);
+    box-shadow: var(--shadow-xl);
+    max-width: 540px;
+    margin: 0 auto;
+  }
+
+  .bottom-sheet.visible {
+    transform: translateY(0);
+  }
+
+  .sheet-handle {
+    width: 36px; height: 4px;
+    border-radius: 2px;
+    background: var(--border);
+    margin: 0 auto 20px;
+  }
+
+  .sheet-title {
+    font-family: var(--font-display);
+    font-size: 20px;
+    font-weight: 500;
+    color: var(--text-primary);
+    margin-bottom: 6px;
+    text-align: center;
+  }
+
+  .sheet-subtitle {
+    font-size: 14px;
+    color: var(--text-secondary);
+    text-align: center;
+    margin-bottom: 24px;
+  }
+
+  .sheet-options {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  .sheet-option {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    padding: 20px 16px;
+    border-radius: var(--radius-lg);
+    border: 1.5px solid var(--border);
+    background: var(--bg);
+    cursor: pointer;
+    transition: all 0.2s var(--ease-spring);
+    -webkit-tap-highlight-color: transparent;
+    font-family: var(--font-body);
+  }
+
+  .sheet-option:hover {
+    border-color: var(--primary);
+    background: var(--primary-bg);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+  }
+
+  .sheet-option:active { transform: scale(0.97); }
+
+  .sheet-option-icon {
+    width: 48px; height: 48px;
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .sheet-option-icon.blue { background: var(--primary-bg); color: var(--primary); }
+  .sheet-option-icon.green { background: var(--accent-green-bg); color: var(--accent-green); }
+  .sheet-option-icon svg { width: 24px; height: 24px; }
+
+  .sheet-option-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+    text-align: center;
+    letter-spacing: -0.01em;
+  }
+
+  .sheet-option-sub {
+    font-size: 12px;
+    color: var(--text-secondary);
+    text-align: center;
+    line-height: 1.4;
+  }
+
+  /* ── Form Screen ────────────────────────────── */
+  .form-topbar {
+    position: sticky;
+    top: 0;
+    background: linear-gradient(180deg, rgba(248, 246, 240, 0.97) 0%, rgba(248, 246, 240, 0.92) 100%);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 20px;
+    z-index: 10;
+    margin: 0 -20px;
+  }
+
+  .back-btn {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    border: none;
+    background: var(--bg-card);
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--text-primary);
+    -webkit-tap-highlight-color: transparent;
+    transition: transform 0.2s var(--ease-spring), box-shadow 0.2s;
+    flex-shrink: 0;
+  }
+
+  .back-btn:hover { transform: scale(1.05); box-shadow: var(--shadow-md); }
+  .back-btn svg { width: 18px; height: 18px; }
+
+  .form-title {
+    font-family: var(--font-display);
+    font-size: 22px;
+    font-weight: 500;
+    color: var(--text-primary);
+    letter-spacing: -0.01em;
+  }
+
+  /* ── Segmented Control ──────────────────────── */
+  .segment-control {
+    display: flex;
+    background: var(--bg);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-pill);
+    padding: 3px;
+    position: relative;
+    margin-bottom: 24px;
+  }
+
+  .segment-pill {
+    position: absolute;
+    top: 3px; bottom: 3px; left: 3px;
+    border-radius: var(--radius-pill);
+    background: var(--primary);
+    box-shadow: 0 2px 8px rgba(34, 92, 156, 0.3);
+    transition: left 0.35s var(--ease-spring), width 0.35s var(--ease-spring);
+    z-index: 0;
+  }
+
+  .segment-btn {
+    flex: 1;
+    padding: 8px 12px;
+    border: none;
+    background: none;
+    border-radius: var(--radius-pill);
+    font-family: var(--font-body);
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    cursor: pointer;
+    position: relative;
+    z-index: 1;
+    transition: color 0.25s var(--ease-smooth);
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .segment-btn.active { color: white; font-weight: 600; }
+
+  /* ── Form Fields ────────────────────────────── */
+  .form-section {
+    margin-bottom: 20px;
+  }
+
+  .form-section-title {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    color: var(--text-tertiary);
+    margin-bottom: 12px;
+  }
+
+  .field-group {
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border);
+    overflow: hidden;
+  }
+
+  .field-item {
+    position: relative;
+    border-bottom: 1px solid var(--border);
+    transition: background 0.15s;
+  }
+
+  .field-item:last-child { border-bottom: none; }
+  .field-item:focus-within { background: rgba(34, 92, 156, 0.02); }
+
+  .field-label {
+    position: absolute;
+    top: 16px; left: 16px;
+    font-size: 14px;
+    color: var(--text-tertiary);
+    transition: all 0.2s var(--ease-smooth);
+    pointer-events: none;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+  }
+
+  .field-label.floated {
+    top: 8px;
+    font-size: 11px;
+    color: var(--primary);
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  .field-input {
+    width: 100%;
+    padding: 24px 16px 8px;
+    border: none;
+    background: none;
+    font-family: var(--font-body);
+    font-size: 16px;
+    color: var(--text-primary);
+    outline: none;
+    letter-spacing: 0.01em;
+    -webkit-appearance: none;
+  }
+
+  .field-input::placeholder { color: transparent; }
+
+  .field-input-with-icon {
+    padding-right: 44px;
+  }
+
+  .field-icon {
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-tertiary);
+    pointer-events: none;
+  }
+
+  .field-icon svg { width: 18px; height: 18px; }
+
+  .field-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .field-row .field-item:first-child {
+    border-right: 1px solid var(--border);
+    border-bottom: none;
+  }
+
+  .field-textarea {
+    width: 100%;
+    padding: 24px 16px 12px;
+    border: none;
+    background: none;
+    font-family: var(--font-body);
+    font-size: 16px;
+    color: var(--text-primary);
+    outline: none;
+    resize: none;
+    min-height: 90px;
+    letter-spacing: 0.01em;
+    -webkit-appearance: none;
+  }
+
+  /* ── Opponent slide ─────────────────────────── */
+  .opponent-field {
+    overflow: hidden;
+    max-height: 0;
+    opacity: 0;
+    transition: max-height 0.35s var(--ease-smooth), opacity 0.25s var(--ease-smooth);
+  }
+
+  .opponent-field.visible {
+    max-height: 80px;
+    opacity: 1;
+  }
+
+  .opponent-field .field-item {
+    border-top: 1px solid var(--border);
+    border-bottom: none;
+  }
+
+  /* ── Recurrence Section ─────────────────────── */
+  .recurrence-toggle {
+    display: flex;
+    background: var(--bg);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-pill);
+    padding: 3px;
+    position: relative;
+    margin-bottom: 16px;
+  }
+
+  .recurrence-pill {
+    position: absolute;
+    top: 3px; bottom: 3px; left: 3px;
+    border-radius: var(--radius-pill);
+    background: var(--primary);
+    box-shadow: 0 2px 8px rgba(34, 92, 156, 0.25);
+    transition: left 0.3s var(--ease-spring), width 0.3s var(--ease-spring);
+    z-index: 0;
+  }
+
+  .recurrence-btn {
+    flex: 1;
+    padding: 8px 16px;
+    border: none;
+    background: none;
+    border-radius: var(--radius-pill);
+    font-family: var(--font-body);
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    cursor: pointer;
+    position: relative;
+    z-index: 1;
+    transition: color 0.25s var(--ease-smooth);
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .recurrence-btn.active { color: white; font-weight: 600; }
+
+  .day-pills {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+  }
+
+  .day-pill {
+    padding: 6px 12px;
+    border-radius: var(--radius-pill);
+    border: 1.5px solid var(--border);
+    background: var(--bg-card);
+    font-family: var(--font-body);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s var(--ease-spring);
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
+
+  .day-pill.selected {
+    border-color: var(--primary);
+    background: var(--primary);
+    color: white;
+    font-weight: 600;
+  }
+
+  .day-pill:hover:not(.selected) {
+    border-color: var(--primary);
+    color: var(--primary);
+  }
+
+  /* ── Preview Box ────────────────────────────── */
+  .preview-box {
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    border: 1.5px solid var(--primary-bg);
+    padding: 16px;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .preview-headline {
+    font-family: var(--font-display);
+    font-size: 18px;
+    font-weight: 500;
+    color: var(--primary);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .preview-headline svg { width: 20px; height: 20px; }
+
+  .preview-dates {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    max-height: 160px;
+    overflow-y: auto;
+  }
+
+  .preview-date {
+    font-size: 13px;
+    color: var(--text-secondary);
+    padding: 4px 8px;
+    border-radius: 6px;
+    background: var(--bg);
+    font-feature-settings: 'tnum' 1;
+    animation: dateIn 0.2s var(--ease-spring) both;
+  }
+
+  @keyframes dateIn {
+    from { opacity: 0; transform: translateX(-6px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  /* ── Primary Button ─────────────────────────── */
+  .btn-primary {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    padding: 16px;
+    border: none;
+    border-radius: var(--radius-lg);
+    background: var(--primary);
+    color: white;
+    font-family: var(--font-display);
+    font-size: 17px;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(34, 92, 156, 0.35);
+    transition: transform 0.2s var(--ease-spring), box-shadow 0.2s, background 0.2s;
+    -webkit-tap-highlight-color: transparent;
+    margin-top: 8px;
+  }
+
+  .btn-primary:hover {
+    background: var(--primary-light);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 18px rgba(34, 92, 156, 0.4);
+  }
+
+  .btn-primary:active { transform: scale(0.98) translateY(0); }
+
+  /* ── Success Screen ─────────────────────────── */
+  .success-screen {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: calc(100dvh - var(--topbar-height) - var(--bottombar-height));
+    padding: 40px 32px;
+    text-align: center;
+    animation: fadeSlideIn 0.4s var(--ease-smooth) both;
+  }
+
+  @keyframes fadeSlideIn {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .success-icon {
+    width: 100px; height: 100px;
+    margin-bottom: 28px;
+  }
+
+  .checkmark-circle {
+    fill: none;
+    stroke: var(--accent-green);
+    stroke-width: 3;
+    stroke-dasharray: 300;
+    stroke-dashoffset: 300;
+    animation: circleDraw 0.6s var(--ease-smooth) 0.1s forwards;
+  }
+
+  .checkmark-check {
+    fill: none;
+    stroke: var(--accent-green);
+    stroke-width: 4;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-dasharray: 60;
+    stroke-dashoffset: 60;
+    animation: checkDraw 0.4s var(--ease-spring) 0.65s forwards;
+  }
+
+  @keyframes circleDraw {
+    to { stroke-dashoffset: 0; }
+  }
+
+  @keyframes checkDraw {
+    to { stroke-dashoffset: 0; }
+  }
+
+  .success-title {
+    font-family: var(--font-display);
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 10px;
+    letter-spacing: -0.02em;
+    animation: fadeSlideIn 0.4s var(--ease-smooth) 0.7s both;
+  }
+
+  .success-sub {
+    font-size: 16px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    margin-bottom: 36px;
+    animation: fadeSlideIn 0.4s var(--ease-smooth) 0.85s both;
+  }
+
+  .success-btn {
+    animation: fadeSlideIn 0.4s var(--ease-smooth) 1s both;
+    width: 100%;
+    max-width: 280px;
+  }
+</style>
+</head>
+<body>
+
+<!-- Top Bar -->
+<header class="topbar">
+  <div class="wordmark"><span class="wm-team">Team</span><span class="wm-balance">Balance</span></div>
+  <div class="team-indicator"><span class="dot"></span>Heren 3</div>
+</header>
+
+<!-- Bottom Bar -->
+<nav class="bottombar">
+  <button class="tab-btn active">
+    <span class="tab-pill"></span>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="3"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+    Events
+  </button>
+  <button class="tab-btn">
+    <span class="tab-pill"></span>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="14" rx="3"/><path d="M2 10h20"/><circle cx="15" cy="15" r="2"/></svg>
+    Money Pool
+  </button>
+  <button class="tab-btn">
+    <span class="tab-pill"></span>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/><path d="M21 21v-2a4 4 0 0 0-3-3.85"/></svg>
+    Team
+  </button>
+</nav>
+
+<!-- Content Area -->
+<main class="content-area">
+
+  <!-- SCREEN 1: Events List -->
+  <div class="screen" id="screen-list">
+    <div class="screen-inner">
+      <div class="screen-header">
+        <h1>Upcoming Events</h1>
+        <p>3 events need your response</p>
+      </div>
+
+      <div class="section-heading">This Week</div>
+
+      <div class="card">
+        <div class="card-row">
+          <div class="card-icon blue">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          </div>
+          <div class="card-body">
+            <div class="card-title">Training</div>
+            <div class="card-sub">Tuesday, Mar 10 &middot; 20:30 &middot; Sporthal Galgenwaard</div>
+          </div>
+          <div class="card-right"><div class="meta">8/12</div></div>
+        </div>
+        <div class="attendance going"><span class="att-dot"></span>You&rsquo;re going</div>
+      </div>
+
+      <div class="card">
+        <div class="card-row">
+          <div class="card-icon green">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+          </div>
+          <div class="card-body">
+            <div class="card-title">Match vs. Apeliansen H2</div>
+            <div class="card-sub">Saturday, Mar 14 &middot; 14:30</div>
+          </div>
+          <div class="card-right"><div class="meta">11/14</div></div>
+        </div>
+        <div class="attendance pending"><span class="att-dot"></span>Awaiting response</div>
+      </div>
+
+      <div class="card">
+        <div class="card-row">
+          <div class="card-icon blue">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          </div>
+          <div class="card-body">
+            <div class="card-title">Training</div>
+            <div class="card-sub">Thursday, Mar 12 &middot; 20:30 &middot; Sporthal Galgenwaard</div>
+          </div>
+          <div class="card-right"><div class="meta">6/12</div></div>
+        </div>
+        <div class="attendance going"><span class="att-dot"></span>You&rsquo;re going</div>
+      </div>
+
+      <div class="section-heading">Next Week</div>
+
+      <div class="card" style="opacity: 0.65;">
+        <div class="card-row">
+          <div class="card-icon blue">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          </div>
+          <div class="card-body">
+            <div class="card-title">Training</div>
+            <div class="card-sub">Tuesday, Mar 17 &middot; 20:30</div>
+          </div>
+          <div class="card-right"><div class="meta">2/12</div></div>
+        </div>
+      </div>
+
+      <div style="height: 80px;"></div>
+    </div>
+  </div>
+
+  <!-- SCREEN 3: Single Event Form -->
+  <div class="screen hidden" id="screen-single">
+    <div class="screen-inner">
+      <div class="form-topbar">
+        <button class="back-btn" onclick="goBack()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <span class="form-title">New Event</span>
+      </div>
+
+      <div style="height: 20px;"></div>
+
+      <!-- Event type segmented control -->
+      <div class="form-section-title">Event Type</div>
+      <div class="segment-control" id="type-segment">
+        <div class="segment-pill" id="type-pill"></div>
+        <button class="segment-btn active" data-type="Training" onclick="selectType(this, 'Training')">Training</button>
+        <button class="segment-btn" data-type="Match" onclick="selectType(this, 'Match')">Match</button>
+        <button class="segment-btn" data-type="Misc" onclick="selectType(this, 'Misc')">Misc</button>
+      </div>
+
+      <!-- Event Details -->
+      <div class="form-section">
+        <div class="form-section-title">Details</div>
+        <div class="field-group">
+          <div class="field-item">
+            <label class="field-label" id="title-label">Title</label>
+            <input class="field-input" id="title-input" type="text" value="Training" autocomplete="off"
+              onfocus="floatLabel('title-label')"
+              onblur="unfloatLabel('title-label', 'title-input')"
+              oninput="syncTitle(this.value)">
+          </div>
+          <div class="field-row">
+            <div class="field-item">
+              <label class="field-label" id="date-label">Date</label>
+              <input class="field-input" id="date-input" type="date"
+                onfocus="floatLabel('date-label')"
+                onblur="unfloatLabel('date-label', 'date-input')">
+            </div>
+            <div class="field-item">
+              <label class="field-label" id="time-label">Time</label>
+              <input class="field-input" id="time-input" type="time" value="20:30"
+                onfocus="floatLabel('time-label')"
+                onblur="unfloatLabel('time-label', 'time-input')">
+            </div>
+          </div>
+          <div class="field-item">
+            <label class="field-label" id="location-label">Location</label>
+            <input class="field-input field-input-with-icon" id="location-input" type="text"
+              value="Sporthal Galgenwaard, Utrecht" autocomplete="off"
+              onfocus="floatLabel('location-label')"
+              onblur="unfloatLabel('location-label', 'location-input')">
+            <span class="field-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Opponent (Match only) -->
+      <div class="opponent-field" id="opponent-section">
+        <div class="form-section-title">Opponent</div>
+        <div class="field-group" style="margin-bottom: 20px;">
+          <div class="field-item">
+            <label class="field-label" id="opponent-label">Opponent team</label>
+            <input class="field-input" id="opponent-input" type="text" value="Apeliansen H2" autocomplete="off"
+              onfocus="floatLabel('opponent-label')"
+              onblur="unfloatLabel('opponent-label', 'opponent-input')">
+          </div>
+        </div>
+      </div>
+
+      <!-- Description -->
+      <div class="form-section">
+        <div class="form-section-title">Description <span style="color: var(--text-tertiary); font-weight: 400; text-transform: none; letter-spacing: 0;">— optional</span></div>
+        <div class="field-group">
+          <div class="field-item">
+            <label class="field-label" id="desc-label" style="top: 12px;">Description</label>
+            <textarea class="field-textarea" id="desc-input"
+              onfocus="floatLabel('desc-label')"
+              onblur="unfloatLabel('desc-label', 'desc-input')"
+              placeholder=" "></textarea>
+          </div>
+        </div>
+      </div>
+
+      <button class="btn-primary" onclick="createSingle()">Create Event</button>
+      <div style="height: 20px;"></div>
+    </div>
+  </div>
+
+  <!-- SCREEN 4: Recurring Event Form -->
+  <div class="screen hidden" id="screen-recurring">
+    <div class="screen-inner">
+      <div class="form-topbar">
+        <button class="back-btn" onclick="goBack()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <span class="form-title">Recurring Event</span>
+      </div>
+
+      <div style="height: 20px;"></div>
+
+      <!-- Event type segmented control -->
+      <div class="form-section-title">Event Type</div>
+      <div class="segment-control" id="rtype-segment">
+        <div class="segment-pill" id="rtype-pill"></div>
+        <button class="segment-btn active" data-type="Training" onclick="selectRType(this, 'Training')">Training</button>
+        <button class="segment-btn" data-type="Match" onclick="selectRType(this, 'Match')">Match</button>
+        <button class="segment-btn" data-type="Misc" onclick="selectRType(this, 'Misc')">Misc</button>
+      </div>
+
+      <!-- Event Details -->
+      <div class="form-section">
+        <div class="form-section-title">Details</div>
+        <div class="field-group">
+          <div class="field-item">
+            <label class="field-label" id="rtitle-label">Title</label>
+            <input class="field-input" id="rtitle-input" type="text" value="Training" autocomplete="off"
+              onfocus="floatLabel('rtitle-label')"
+              onblur="unfloatLabel('rtitle-label', 'rtitle-input')">
+          </div>
+          <div class="field-row">
+            <div class="field-item">
+              <label class="field-label" id="rtime-label">Time</label>
+              <input class="field-input" id="rtime-input" type="time" value="20:30"
+                onfocus="floatLabel('rtime-label')"
+                onblur="unfloatLabel('rtime-label', 'rtime-input')">
+            </div>
+            <div class="field-item">
+              <label class="field-label" id="rloc-label" style="font-size: 11px; top: 16px;">Location</label>
+              <input class="field-input" id="rloc-input" type="text" value="Sporthal Galgenwaard" autocomplete="off"
+                onfocus="floatLabel('rloc-label')"
+                onblur="unfloatLabel('rloc-label', 'rloc-input')">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recurrence -->
+      <div class="form-section">
+        <div class="form-section-title">Recurrence</div>
+
+        <div class="recurrence-toggle" id="freq-toggle">
+          <div class="recurrence-pill" id="freq-pill"></div>
+          <button class="recurrence-btn active" onclick="selectFreq(this, 1)">Every week</button>
+          <button class="recurrence-btn" onclick="selectFreq(this, 2)">Every 2 weeks</button>
+        </div>
+
+        <div class="form-section-title" style="margin-top: 0; margin-bottom: 8px;">Days</div>
+        <div class="day-pills">
+          <span class="day-pill" onclick="toggleDay(this, 'Mon')">Mon</span>
+          <span class="day-pill selected" onclick="toggleDay(this, 'Tue')">Tue</span>
+          <span class="day-pill" onclick="toggleDay(this, 'Wed')">Wed</span>
+          <span class="day-pill selected" onclick="toggleDay(this, 'Thu')">Thu</span>
+          <span class="day-pill" onclick="toggleDay(this, 'Fri')">Fri</span>
+          <span class="day-pill" onclick="toggleDay(this, 'Sat')">Sat</span>
+          <span class="day-pill" onclick="toggleDay(this, 'Sun')">Sun</span>
+        </div>
+
+        <div class="field-group" style="margin-bottom: 0;">
+          <div class="field-row" style="grid-template-columns: 1fr 1fr;">
+            <div class="field-item" style="border-bottom: none;">
+              <label class="field-label" id="rstart-label">Start date</label>
+              <input class="field-input" id="rstart-input" type="date"
+                onfocus="floatLabel('rstart-label')"
+                onblur="unfloatLabel('rstart-label', 'rstart-input')"
+                onchange="updatePreview()">
+            </div>
+            <div class="field-item" style="border-bottom: none; border-left: 1px solid var(--border);">
+              <label class="field-label" id="rend-label">End date</label>
+              <input class="field-input" id="rend-input" type="date"
+                onfocus="floatLabel('rend-label')"
+                onblur="unfloatLabel('rend-label', 'rend-input')"
+                onchange="updatePreview()">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Preview -->
+      <div class="form-section">
+        <div class="form-section-title">Preview</div>
+        <div class="preview-box">
+          <div class="preview-headline">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="3"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            <span id="preview-count">12 trainings will be created</span>
+          </div>
+          <div class="preview-dates" id="preview-dates"></div>
+        </div>
+      </div>
+
+      <button class="btn-primary" id="create-recurring-btn" onclick="createRecurring()">
+        Create 12 Trainings
+      </button>
+      <div style="height: 20px;"></div>
+    </div>
+  </div>
+
+  <!-- SCREEN 5: Success -->
+  <div class="screen hidden" id="screen-success">
+    <div class="success-screen">
+      <svg class="success-icon" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+        <circle class="checkmark-circle" cx="50" cy="50" r="46"/>
+        <polyline class="checkmark-check" points="28,52 43,67 72,36"/>
+      </svg>
+      <div class="success-title" id="success-title">Event created!</div>
+      <div class="success-sub" id="success-sub">Your event has been added to<br>the team calendar.</div>
+      <div class="success-btn">
+        <button class="btn-primary" onclick="goToList()">
+          View Events
+        </button>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<!-- FAB -->
+<button class="fab" id="fab" onclick="openSheet()" aria-label="Create event">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+</button>
+
+<!-- Bottom Sheet Backdrop -->
+<div class="sheet-backdrop" id="sheet-backdrop" onclick="closeSheet()"></div>
+
+<!-- Bottom Sheet -->
+<div class="bottom-sheet" id="bottom-sheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-title">Create Event</div>
+  <div class="sheet-subtitle">Choose how you want to add events</div>
+  <div class="sheet-options">
+    <button class="sheet-option" onclick="goToSingle()">
+      <div class="sheet-option-icon blue">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="3"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="12" y1="14" x2="12" y2="18"/><line x1="10" y1="16" x2="14" y2="16"/></svg>
+      </div>
+      <div class="sheet-option-label">Single Event</div>
+      <div class="sheet-option-sub">One training, match, or other event</div>
+    </button>
+    <button class="sheet-option" onclick="goToRecurring()">
+      <div class="sheet-option-icon green">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+      </div>
+      <div class="sheet-option-label">Recurring Events</div>
+      <div class="sheet-option-sub">Weekly trainings over a period</div>
+    </button>
+  </div>
+</div>
+
+<script>
+  // ── Screen Navigation ─────────────────────────
+  let screenStack = ['screen-list'];
+  let successType = 'single';
+  let successCount = 1;
+
+  function showScreen(id, fromBack = false) {
+    const screens = document.querySelectorAll('.screen');
+    const current = document.getElementById(screenStack[screenStack.length - 1]);
+    const next = document.getElementById(id);
+
+    if (!fromBack) {
+      current.classList.add('slide-out-left');
+      setTimeout(() => current.classList.add('hidden'), 350);
+    } else {
+      current.classList.add('hidden');
+    }
+
+    next.classList.remove('hidden', 'slide-out-left');
+    next.scrollTop = 0;
+
+    // Show/hide FAB
+    const fab = document.getElementById('fab');
+    if (id === 'screen-list') {
+      fab.style.display = '';
+    } else {
+      fab.style.display = 'none';
+    }
+  }
+
+  function goBack() {
+    if (screenStack.length <= 1) return;
+    const current = screenStack.pop();
+    const prev = screenStack[screenStack.length - 1];
+    const currentEl = document.getElementById(current);
+    const prevEl = document.getElementById(prev);
+
+    currentEl.style.transition = 'transform 0.35s var(--ease-smooth), opacity 0.3s';
+    currentEl.style.transform = 'translateX(100%)';
+    currentEl.style.opacity = '0';
+    setTimeout(() => {
+      currentEl.classList.add('hidden');
+      currentEl.style.transition = '';
+      currentEl.style.transform = '';
+      currentEl.style.opacity = '';
+    }, 360);
+
+    prevEl.classList.remove('hidden', 'slide-out-left');
+    prevEl.style.transition = 'none';
+    prevEl.scrollTop = 0;
+
+    if (prev === 'screen-list') document.getElementById('fab').style.display = '';
+  }
+
+  function navigateTo(id) {
+    closeSheet();
+    setTimeout(() => {
+      showScreen(id);
+      screenStack.push(id);
+    }, 50);
+  }
+
+  function goToList() {
+    // Reset all
+    screenStack = ['screen-list'];
+    document.querySelectorAll('.screen').forEach(s => {
+      s.classList.add('hidden');
+      s.style.transform = '';
+      s.style.opacity = '';
+    });
+    document.getElementById('screen-list').classList.remove('hidden');
+    document.getElementById('fab').style.display = '';
+  }
+
+  // ── Bottom Sheet ──────────────────────────────
+  function openSheet() {
+    document.getElementById('sheet-backdrop').classList.add('visible');
+    document.getElementById('bottom-sheet').classList.add('visible');
+    document.getElementById('fab').classList.add('open');
+  }
+
+  function closeSheet() {
+    document.getElementById('sheet-backdrop').classList.remove('visible');
+    document.getElementById('bottom-sheet').classList.remove('visible');
+    document.getElementById('fab').classList.remove('open');
+  }
+
+  function goToSingle() {
+    navigateTo('screen-single');
+    initSingleForm();
+  }
+
+  function goToRecurring() {
+    navigateTo('screen-recurring');
+    initRecurringForm();
+  }
+
+  // ── Single Form ───────────────────────────────
+  const typeDefaults = {
+    Training: 'Training',
+    Match: 'Match vs. Apeliansen H2',
+    Misc: 'Team Meeting'
+  };
+
+  let currentType = 'Training';
+
+  function initSingleForm() {
+    const today = new Date();
+    document.getElementById('date-input').value = today.toISOString().split('T')[0];
+    floatLabel('date-label');
+    floatLabel('time-label');
+    floatLabel('title-label');
+    floatLabel('location-label');
+    updateTypePill('type-segment', 'type-pill', 0);
+  }
+
+  function selectType(btn, type) {
+    document.querySelectorAll('#type-segment .segment-btn').forEach((b, i) => {
+      b.classList.toggle('active', b === btn);
+      if (b === btn) updateTypePill('type-segment', 'type-pill', i);
+    });
+    currentType = type;
+    document.getElementById('title-input').value = typeDefaults[type] || type;
+
+    const opponentSection = document.getElementById('opponent-section');
+    if (type === 'Match') {
+      opponentSection.classList.add('visible');
+      floatLabel('opponent-label');
+    } else {
+      opponentSection.classList.remove('visible');
+    }
+  }
+
+  function syncTitle(val) {
+    // keep manual override
+  }
+
+  function updateTypePill(segId, pillId, idx) {
+    const seg = document.getElementById(segId);
+    const pill = document.getElementById(pillId);
+    const btns = seg.querySelectorAll('.segment-btn');
+    if (!btns[idx]) return;
+    const btnRect = btns[idx].getBoundingClientRect();
+    const segRect = seg.getBoundingClientRect();
+    pill.style.left = (btnRect.left - segRect.left + 3) + 'px';
+    pill.style.width = (btnRect.width - 6) + 'px';
+  }
+
+  function createSingle() {
+    successType = 'single';
+    successCount = 1;
+    document.getElementById('success-title').textContent = 'Event created!';
+    document.getElementById('success-sub').textContent = 'Your event has been added to\nthe team calendar.';
+    document.getElementById('success-sub').innerHTML = 'Your event has been added to<br>the team calendar.';
+    showScreen('screen-success');
+    screenStack.push('screen-success');
+    resetSuccessAnimation();
+  }
+
+  // ── Recurring Form ────────────────────────────
+  let recurFreq = 1;
+  let selectedDays = ['Tue', 'Thu'];
+  const dayOrder = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  const dayNums = { Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6, Sun: 0 };
+
+  function initRecurringForm() {
+    const today = new Date();
+    const threeMonths = new Date(today);
+    threeMonths.setMonth(threeMonths.getMonth() + 3);
+
+    document.getElementById('rstart-input').value = today.toISOString().split('T')[0];
+    document.getElementById('rend-input').value = threeMonths.toISOString().split('T')[0];
+    floatLabel('rstart-label');
+    floatLabel('rend-label');
+    floatLabel('rtime-label');
+    floatLabel('rloc-label');
+    floatLabel('rtitle-label');
+    updateTypePill('rtype-segment', 'rtype-pill', 0);
+    updateFreqPill(0);
+    updatePreview();
+  }
+
+  function selectRType(btn, type) {
+    document.querySelectorAll('#rtype-segment .segment-btn').forEach((b, i) => {
+      b.classList.toggle('active', b === btn);
+      if (b === btn) updateTypePill('rtype-segment', 'rtype-pill', i);
+    });
+    document.getElementById('rtitle-input').value = typeDefaults[type] || type;
+    updatePreview();
+  }
+
+  function selectFreq(btn, weeks) {
+    recurFreq = weeks;
+    document.querySelectorAll('#freq-toggle .recurrence-btn').forEach((b, i) => {
+      b.classList.toggle('active', b === btn);
+      if (b === btn) updateFreqPill(i);
+    });
+    updatePreview();
+  }
+
+  function updateFreqPill(idx) {
+    const toggle = document.getElementById('freq-toggle');
+    const pill = document.getElementById('freq-pill');
+    const btns = toggle.querySelectorAll('.recurrence-btn');
+    if (!btns[idx]) return;
+    const btnRect = btns[idx].getBoundingClientRect();
+    const toggleRect = toggle.getBoundingClientRect();
+    pill.style.left = (btnRect.left - toggleRect.left + 3) + 'px';
+    pill.style.width = (btnRect.width - 6) + 'px';
+  }
+
+  function toggleDay(el, day) {
+    const idx = selectedDays.indexOf(day);
+    if (idx >= 0) {
+      if (selectedDays.length === 1) return; // keep at least one
+      selectedDays.splice(idx, 1);
+      el.classList.remove('selected');
+    } else {
+      selectedDays.push(day);
+      el.classList.add('selected');
+    }
+    updatePreview();
+  }
+
+  function updatePreview() {
+    const startVal = document.getElementById('rstart-input').value;
+    const endVal = document.getElementById('rend-input').value;
+    if (!startVal || !endVal) return;
+
+    const start = new Date(startVal + 'T00:00:00');
+    const end = new Date(endVal + 'T00:00:00');
+    if (start >= end) return;
+
+    const dates = [];
+    const selectedDayNums = selectedDays.map(d => dayNums[d]);
+
+    let cursor = new Date(start);
+    while (cursor <= end) {
+      if (selectedDayNums.includes(cursor.getDay())) {
+        dates.push(new Date(cursor));
+      }
+      cursor.setDate(cursor.getDate() + 1);
+    }
+
+    // Apply frequency filter
+    if (recurFreq === 2) {
+      // Group by day-of-week and keep every other occurrence
+      const filtered = [];
+      const dayCounters = {};
+      dates.forEach(d => {
+        const dn = d.getDay();
+        dayCounters[dn] = (dayCounters[dn] || 0) + 1;
+        if (dayCounters[dn] % 2 === 1) filtered.push(d);
+      });
+      dates.length = 0;
+      dates.push(...filtered);
+    }
+
+    const count = dates.length;
+    const typeName = document.getElementById('rtitle-input').value || 'training';
+    const label = typeName.toLowerCase() + (count === 1 ? '' : 's');
+
+    document.getElementById('preview-count').textContent = `${count} ${label} will be created`;
+    document.getElementById('create-recurring-btn').textContent = `Create ${count} ${typeName}${count === 1 ? '' : 's'}`;
+
+    const container = document.getElementById('preview-dates');
+    container.innerHTML = '';
+    const shown = dates.slice(0, 8);
+    shown.forEach((d, i) => {
+      const div = document.createElement('div');
+      div.className = 'preview-date';
+      div.style.animationDelay = (i * 0.04) + 's';
+      div.textContent = d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+      container.appendChild(div);
+    });
+    if (dates.length > 8) {
+      const more = document.createElement('div');
+      more.className = 'preview-date';
+      more.style.color = 'var(--text-tertiary)';
+      more.style.fontStyle = 'italic';
+      more.textContent = `+ ${dates.length - 8} more…`;
+      container.appendChild(more);
+    }
+  }
+
+  function createRecurring() {
+    const btn = document.getElementById('create-recurring-btn');
+    const text = btn.textContent;
+    const match = text.match(/(\d+)/);
+    const count = match ? parseInt(match[1]) : 12;
+    const typeName = document.getElementById('rtitle-input').value || 'Training';
+
+    document.getElementById('success-title').textContent = `${count} ${typeName}${count === 1 ? '' : 's'} created!`;
+    document.getElementById('success-sub').innerHTML = `All events have been added to<br>the team calendar.`;
+    showScreen('screen-success');
+    screenStack.push('screen-success');
+    resetSuccessAnimation();
+  }
+
+  function resetSuccessAnimation() {
+    const circle = document.querySelector('.checkmark-circle');
+    const check = document.querySelector('.checkmark-check');
+    circle.style.animation = 'none';
+    check.style.animation = 'none';
+    circle.offsetHeight; // reflow
+    circle.style.animation = '';
+    check.style.animation = '';
+  }
+
+  // ── Floating Labels ───────────────────────────
+  function floatLabel(id) {
+    document.getElementById(id).classList.add('floated');
+  }
+
+  function unfloatLabel(labelId, inputId) {
+    const el = document.getElementById(inputId);
+    const val = el.value || el.textContent;
+    if (!val || val.trim() === '') {
+      document.getElementById(labelId).classList.remove('floated');
+    }
+  }
+
+  // ── Init ──────────────────────────────────────
+  document.addEventListener('DOMContentLoaded', () => {
+    // Pre-float labels that have values
+    ['date-label', 'time-label', 'location-label'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.classList.add('floated');
+    });
+  });
+
+  // Segment pill on load (after layout)
+  window.addEventListener('load', () => {
+    setTimeout(() => {
+      updateTypePill('type-segment', 'type-pill', 0);
+      updateTypePill('rtype-segment', 'rtype-pill', 0);
+      updateFreqPill(0);
+    }, 50);
+  });
+
+  // Escape key closes sheet
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeSheet();
+  });
+</script>
+</body>
+</html>

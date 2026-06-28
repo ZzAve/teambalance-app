@@ -1,5 +1,5 @@
 import { http, HttpResponse, delay } from 'msw'
-import { EVENTS, EVENT_TYPES, type MockEvent } from './data'
+import { EVENTS, EVENT_TYPES, MEMBERS, type MockEvent } from './data'
 
 // Mutable copy so mutations persist during the session
 const events = structuredClone(EVENTS)
@@ -63,15 +63,14 @@ export const handlers = [
       startTime: body.startTime,
       endTime: body.endTime ?? null,
       location: body.location ?? null,
-      attendanceSummary: { attending: 0, maybe: 0, absent: 0, notResponded: 6 },
-      attendances: [
-        { id: 'att-1', userId: 'b0000000-0000-0000-0000-000000000001', displayName: 'Jan de Vries', state: 'NOT_RESPONDED' },
-        { id: 'att-2', userId: 'b0000000-0000-0000-0000-000000000002', displayName: 'Lisa Bakker', state: 'NOT_RESPONDED' },
-        { id: 'att-3', userId: 'b0000000-0000-0000-0000-000000000003', displayName: 'Tom Visser', state: 'NOT_RESPONDED' },
-        { id: 'att-4', userId: 'b0000000-0000-0000-0000-000000000004', displayName: 'Emma Jansen', state: 'NOT_RESPONDED' },
-        { id: 'att-5', userId: 'b0000000-0000-0000-0000-000000000005', displayName: 'Daan Mulder', state: 'NOT_RESPONDED' },
-        { id: 'att-6', userId: 'b0000000-0000-0000-0000-000000000006', displayName: 'Sophie van Dijk', state: 'NOT_RESPONDED' },
-      ],
+      attendanceSummary: { attending: 0, maybe: 0, absent: 0, notResponded: MEMBERS.length },
+      attendances: MEMBERS.map((m) => ({
+        id: `att-${m.userId}`,
+        userId: m.userId,
+        displayName: m.displayName,
+        role: m.role,
+        state: 'NOT_RESPONDED',
+      })),
     }
     events.unshift(newEvent)
 
@@ -112,6 +111,7 @@ export const handlers = [
       eventId: params.eventId,
       userId: attendance.userId,
       displayName: attendance.displayName,
+      role: attendance.role,
       state: attendance.state,
     })
   }),

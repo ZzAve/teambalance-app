@@ -1,66 +1,252 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { useEvent } from '@shared/api/events'
+import type { ComponentType, MouseEvent } from 'react'
+import { useState } from 'react'
+import { ArrowLeft, Check, HelpCircle, MapPin, Pencil, Trash2, X } from 'lucide-react'
+import { useEvent, type AttendanceEntry } from '@shared/api/events'
+import { useSetAttendance } from '@shared/api/attendances'
 import { useUserStore } from '@shared/stores/user-store'
-import { AttendanceToggle } from '@features/attendance-toggle/ui/AttendanceToggle'
-import { Card, CardContent } from '@shared/ui/card'
 import { Button } from '@shared/ui/button'
+import { EventTypeBadge } from '@entities/event/ui/EventTypeBadge'
+import { EventTypeIcon } from '@entities/event/ui/EventTypeIcon'
 
 export const Route = createFileRoute('/events/$eventId')({
   component: EventDetailPage,
 })
 
+type AttendanceState = 'ATTENDING' | 'MAYBE' | 'ABSENT' | 'NOT_RESPONDED'
+
+interface ResponseOption {
+  value: AttendanceState
+  label: string
+  icon: ComponentType<{ size?: number; className?: string }>
+  activeClass: string
+  inactiveClass: string
+}
+
+const RESPONSE_OPTIONS: ResponseOption[] = [
+  {
+    value: 'ATTENDING',
+    label: 'Going',
+    icon: Check,
+    activeClass: 'bg-green text-white border-green hover:bg-green/90',
+    inactiveClass: 'border-green/30 text-green hover:bg-green/10',
+  },
+  {
+    value: 'MAYBE',
+    label: 'Maybe',
+    icon: HelpCircle,
+    activeClass: 'bg-gold text-white border-gold hover:bg-gold/90',
+    inactiveClass: 'border-gold/30 text-gold hover:bg-gold/10',
+  },
+  {
+    value: 'ABSENT',
+    label: "Can't go",
+    icon: X,
+    activeClass: 'bg-red-500 text-white border-red-500 hover:bg-red-500/90',
+    inactiveClass: 'border-red-300 text-red-500 hover:bg-red-500/10',
+  },
+]
+
+const ATTENDEE_TABS: {
+  state: AttendanceState
+  label: string
+  barColor: string
+  badgeBg: string
+}[] = [
+  { state: 'ATTENDING', label: 'Going', barColor: 'bg-green', badgeBg: 'bg-green/10 text-green' },
+  { state: 'MAYBE', label: 'Maybe', barColor: 'bg-gold', badgeBg: 'bg-gold/10 text-gold' },
+  { state: 'ABSENT', label: 'Absent', barColor: 'bg-red-500', badgeBg: 'bg-red-500/10 text-red-500' },
+  { state: 'NOT_RESPONDED', label: '?', barColor: 'bg-muted-foreground', badgeBg: 'bg-muted text-muted-foreground' },
+]
+
+function getInitials(name: string): string {
+  return name
+    .split(' ')
+    .map((w) => w[0])
+    .slice(0, 2)
+    .join('')
+    .toUpperCase()
+}
+
+// Stable color derived from name — cycles through a palette
+const AVATAR_COLORS = [
+  '#225C9C', // blue
+  '#249E6C', // green
+  '#F4B400', // gold
+  '#E05252', // red
+  '#7B5EA7', // purple
+  '#E87C3E', // orange
+]
+
+function getAvatarColor(name: string): string {
+  let hash = 0
+  for (let i = 0; i < name.length; i++) {
+    hash = (hash * 31 + name.charCodeAt(i)) >>> 0
+  }
+  return AVATAR_COLORS[hash % AVATAR_COLORS.length]
+}
+
+function AttendeeRow({ attendance }: { attendance: AttendanceEntry }) {
+  const color = getAvatarColor(attendance.displayName)
+  return (
+    <div className="flex items-center gap-3 py-2 px-3">
+      <div
+        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white"
+        style={{ backgroundColor: color }}
+      >
+        {getInitials(attendance.displayName)}
+      </div>
+      <div className="min-w-0">
+        <span className="block text-sm leading-tight">{attendance.displayName}</span>
+        <span className="block text-xs text-muted-foreground">{attendance.role}</span>
+      </div>
+    </div>
+  )
+}
+
 function EventDetailPage() {
   const { eventId } = Route.useParams()
   const { data: event, isLoading } = useEvent(eventId)
   const currentUserId = useUserStore((s) => s.userId)
+  const { mutate, isPending } = useSetAttendance()
+  const [activeAttendeeTab, setActiveAttendeeTab] = useState<AttendanceState>('ATTENDING')
 
   if (isLoading) return <p className="text-muted-foreground">Loading...</p>
   if (!event) return <p>Event not found.</p>
 
   const date = new Date(event.startTime)
+  const myAttendance = event.attendances.find((a) => a.userId === currentUserId)
+  const myState: AttendanceState = (myAttendance?.state as AttendanceState) ?? 'NOT_RESPONDED'
+  const otherAttendances = event.attendances.filter((a) => a.userId !== currentUserId)
+
+  const filteredAttendees = otherAttendances.filter((a) => a.state === activeAttendeeTab)
 
   return (
     <div>
-      <Link to="/">
-        <Button variant="ghost" size="sm">&larr; Back</Button>
-      </Link>
-
-      <div className="mt-4">
-        <div className="flex items-center gap-2">
-          <span
-            className="h-3 w-3 rounded-full"
-            style={{ backgroundColor: event.type.color ?? '#888' }}
-          />
-          <span className="text-sm text-muted-foreground">{event.type.name}</span>
-        </div>
-        <h1 className="mt-1 text-2xl font-bold">{event.title}</h1>
-        <p className="mt-1 text-muted-foreground">
-          {date.toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
-          {' at '}
-          {date.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })}
-        </p>
-        {event.location && <p className="text-sm text-muted-foreground">{event.location}</p>}
-        {event.description && <p className="mt-2">{event.description}</p>}
+      {/* Sticky sub-header with back navigation — sits below the app header */}
+      <div className="sticky top-[57px] z-30 -mx-4 mb-2 flex items-center gap-2 border-b border-border/60 bg-background/95 px-4 py-2 backdrop-blur-sm">
+        <Link to="/" aria-label="Back to events">
+          <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
+            <ArrowLeft size={18} />
+          </Button>
+        </Link>
+        <h2 className="font-display truncate text-base font-semibold">{event.title}</h2>
       </div>
 
-      <div className="mt-6">
-        <h2 className="text-lg font-semibold">Attendance</h2>
-        <div className="mt-3 flex flex-col gap-2">
-          {event.attendances.map((a) => (
-            <Card key={a.userId}>
-              <CardContent className="flex items-center justify-between py-3">
-                <span className={a.userId === currentUserId ? 'font-semibold' : ''}>
-                  {a.displayName}
-                </span>
-                <AttendanceToggle
-                  eventId={eventId}
-                  userId={a.userId}
-                  currentState={a.state}
-                />
-              </CardContent>
-            </Card>
-          ))}
+      {/* Event header */}
+      <div className="mt-2 flex items-start gap-4">
+        <EventTypeIcon type={event.type} size="md" />
+        <div className="min-w-0">
+          <EventTypeBadge type={event.type} />
+          <h1 className="font-display text-2xl font-bold leading-tight">{event.title}</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {date.toLocaleDateString('nl-NL', {
+              weekday: 'long',
+              day: 'numeric',
+              month: 'long',
+              year: 'numeric',
+            })}
+            {' · '}
+            {date.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })}
+          </p>
+          {event.location && (
+            <a
+              href={`https://maps.google.com/?q=${encodeURIComponent(event.location)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-0.5 flex items-center gap-1 text-sm text-muted-foreground hover:text-blue hover:underline"
+            >
+              <MapPin size={13} className="shrink-0" />
+              {event.location}
+            </a>
+          )}
         </div>
+      </div>
+
+      {/* Your Response */}
+      {currentUserId && (
+        <div className="mt-6">
+          <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground">Your response</p>
+          <div className="flex gap-2.5">
+            {RESPONSE_OPTIONS.map(({ value, label, icon: Icon, activeClass, inactiveClass }) => {
+              const isActive = myState === value
+              const handleClick = (e: MouseEvent<HTMLButtonElement>) => {
+                e.preventDefault()
+                mutate({ eventId, userId: currentUserId, state: value })
+              }
+              return (
+                <button
+                  key={value}
+                  disabled={isPending}
+                  onClick={handleClick}
+                  className={[
+                    'flex flex-1 items-center justify-center gap-2 rounded-xl border-2 py-3.5 text-sm font-semibold transition-all active:scale-95',
+                    isActive ? activeClass : inactiveClass,
+                    isPending ? 'cursor-not-allowed opacity-60' : 'cursor-pointer',
+                  ].join(' ')}
+                >
+                  <Icon size={18} />
+                  {label}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Description */}
+      {event.description && (
+        <div className="mt-6 rounded-2xl border border-border/40 bg-card p-4 shadow-sm">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground">Description</p>
+          <p className="text-sm leading-relaxed text-muted-foreground">{event.description}</p>
+        </div>
+      )}
+
+      {/* Attendance list — tabbed */}
+      <div className="mt-6 overflow-hidden rounded-2xl border border-border/40 bg-card shadow-sm">
+        {/* Tab bar */}
+        <div className="flex border-b border-border/40">
+          {ATTENDEE_TABS.map((tab) => {
+            const isActive = activeAttendeeTab === tab.state
+            const count = otherAttendances.filter((a) => a.state === tab.state).length
+            return (
+              <button
+                key={tab.state}
+                onClick={() => setActiveAttendeeTab(tab.state)}
+                className={`relative flex flex-1 items-center justify-center gap-1.5 py-3 text-sm font-medium transition-colors ${isActive ? 'text-foreground' : 'text-muted-foreground'}`}
+              >
+                {tab.label}
+                <span className={`rounded-full px-1.5 py-0.5 text-xs font-semibold ${tab.badgeBg}`}>
+                  {count}
+                </span>
+                {isActive && (
+                  <span className={`absolute bottom-0 left-[10%] right-[10%] h-0.5 rounded-full ${tab.barColor}`} />
+                )}
+              </button>
+            )
+          })}
+        </div>
+        {/* Panel content */}
+        <div className="p-1">
+          {filteredAttendees.map((a) => (
+            <AttendeeRow key={a.userId} attendance={a} />
+          ))}
+          {filteredAttendees.length === 0 && (
+            <p className="py-6 text-center text-sm text-muted-foreground">No one</p>
+          )}
+        </div>
+      </div>
+
+      {/* Admin Actions */}
+      <div className="mt-6 flex gap-2.5 border-t border-border/40 pt-5">
+        <button className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-border/60 bg-transparent py-3 text-sm font-medium text-muted-foreground transition-all hover:bg-muted/50 active:scale-[0.97]">
+          <Pencil size={15} />
+          Edit event
+        </button>
+        <button className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-red-200 bg-transparent py-3 text-sm font-medium text-red-500 transition-all hover:bg-red-500/5 active:scale-[0.97]">
+          <Trash2 size={15} />
+          Delete
+        </button>
       </div>
     </div>
   )

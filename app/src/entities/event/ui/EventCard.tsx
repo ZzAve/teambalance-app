@@ -21,9 +21,9 @@ export function EventCard({ event, index = 0 }: { event: Event; index?: number }
       <Card className="card-shadow p-4 transition-[box-shadow] hover:card-shadow-hover">
         {/* Top: icon + badge/title */}
         <div className="flex items-start gap-3.5">
-          <EventTypeIcon type={event.type} size="sm" />
+          <EventTypeIcon type={event.eventType} size="sm" />
           <div className="min-w-0 flex-1">
-            <EventTypeBadge type={event.type} />
+            <EventTypeBadge type={event.eventType} />
             <p className="font-display mt-1 text-[17px] font-medium leading-tight">{event.title}</p>
           </div>
         </div>

@@ -1,6 +1,6 @@
-import type { EventType } from '@shared/api/events'
+import type { EventTypeSummary } from '@shared/api/events'
 
-export function EventTypeBadge({ type }: { type: EventType }) {
+export function EventTypeBadge({ type }: { type: EventTypeSummary }) {
   const color = type.color ?? '#888'
   return (
     <span

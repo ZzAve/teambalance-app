@@ -1,0 +1,38 @@
+# Progress Log — PRD #8: Role-aware attendance & at-a-glance overview
+
+## #12 — FE prefactor: migrate frontend onto the generated Wirespec client (+ Playwright)  ✅ DONE (2026-06-28)
+
+Branch: feat/12-wirespec-client-migration
+
+What changed:
+- Playwright e2e set up (app/playwright.config.ts, app/e2e/events.spec.ts). The test drives the
+  event LIST and event DETAIL pages and asserts rendered data — written first as the safety net,
+  now exercising the generated Wirespec client end-to-end against the MSW mocks. `npm test` /
+  `make test-app` runs it. Pinned @playwright/test 1.61.1.
+- Migrated the API layer onto the generated Wirespec client:
+  - New app/src/shared/api/wirespec-client.ts configures the generated client() with a Wirespec
+    serialization + a fetch handler carrying X-Team-Id/X-User-Id (replaces the old apiFetch).
+  - events.ts / attendances.ts / event-types.ts now call the generated client and re-export the
+    generated contract types (single source of truth). Deleted hand-written shared/api/client.ts.
+- Removed divergent types — the frontend now uses the generated contract shape:
+  - eventType (was `type`); consumers updated (EventCard, EventTypeBadge/Icon EventType ->
+    EventTypeSummary, routes/index, routes/events/$eventId).
+  - AttendanceEntry has NO `role` in the current contract, so the attendee role <span> was
+    removed. NOTE: this is intentional and temporary — #13 re-introduces role through the
+    contract (events.ws AttendanceEntry.role) and re-renders it.
+- MSW mocks (data.ts, handlers.ts) now serve the generated contract shape (eventType).
+- Build/typecheck plumbing to consume the generated client (it is gitignored & not committed and
+  trips the app's strict tsconfig):
+  - TS project references: app/tsconfig.generated.json (composite; relaxes
+    noUnusedLocals/noUnusedParameters/isolatedModules) referenced by app/tsconfig.json, so `src`
+    keeps strict checking while generated code is checked separately. typecheck -> `tsc -b`.
+  - api/build.gradle.kts: `build` now dependsOn `wirespec-typescript`, so CI (make build ->
+    ./gradlew build) regenerates the TS client before `npm run build`.
+  - app/.gitignore (.tsbuild, playwright outputs); eslint ignores .tsbuild.
+
+Verified green: `npm run typecheck` (tsc -b), `npm run lint` (FSD boundaries), `npm run build`
+(vite), and the Playwright e2e. `./gradlew :api:wirespec-typescript` regenerates cleanly and is in
+the :api:build graph. All #12 acceptance criteria met. (Create-event + attendance-toggle flows
+compile/build and use the migrated hooks; e2e is scoped to list+detail per the issue.)
+
+Next: #13 — Role per attendee on the event detail view (was blocked-by #12, now unblocked).

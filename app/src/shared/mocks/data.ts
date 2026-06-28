@@ -1,6 +1,6 @@
 export interface MockEvent {
   id: string
-  type: { id: string; name: string; color: string }
+  eventType: { id: string; name: string; color: string }
   title: string
   description: string | null
   startTime: string
@@ -47,7 +47,7 @@ function makeAttendances(states: string[]) {
 export const EVENTS: MockEvent[] = [
   {
     id: 'evt-001',
-    type: EVENT_TYPES[0],
+    eventType: EVENT_TYPES[0],
     title: 'Training',
     description: 'Regular Tuesday training session',
     startTime: daysFromNow(1),
@@ -58,7 +58,7 @@ export const EVENTS: MockEvent[] = [
   },
   {
     id: 'evt-002',
-    type: EVENT_TYPES[1],
+    eventType: EVENT_TYPES[1],
     title: 'League Match vs Smash United',
     description: 'Away game — carpool at 18:00 from parking lot',
     startTime: daysFromNow(4),
@@ -69,7 +69,7 @@ export const EVENTS: MockEvent[] = [
   },
   {
     id: 'evt-003',
-    type: EVENT_TYPES[0],
+    eventType: EVENT_TYPES[0],
     title: 'Training',
     description: null,
     startTime: daysFromNow(8),
@@ -80,7 +80,7 @@ export const EVENTS: MockEvent[] = [
   },
   {
     id: 'evt-004',
-    type: EVENT_TYPES[2],
+    eventType: EVENT_TYPES[2],
     title: 'Spring Tournament',
     description: 'Annual 4v4 beach tournament. Sign up by Wednesday!',
     startTime: daysFromNow(15),
@@ -91,7 +91,7 @@ export const EVENTS: MockEvent[] = [
   },
   {
     id: 'evt-005',
-    type: EVENT_TYPES[3],
+    eventType: EVENT_TYPES[3],
     title: 'Team BBQ',
     description: 'End-of-season celebration at Jan\'s place',
     startTime: daysFromNow(22),
@@ -102,7 +102,7 @@ export const EVENTS: MockEvent[] = [
   },
   {
     id: 'evt-past-001',
-    type: EVENT_TYPES[0],
+    eventType: EVENT_TYPES[0],
     title: 'Training (last week)',
     description: null,
     startTime: daysFromNow(-5),

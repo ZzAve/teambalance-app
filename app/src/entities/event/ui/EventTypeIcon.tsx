@@ -1,5 +1,5 @@
 import { Dumbbell, Swords, Trophy, PartyPopper, Calendar, type LucideIcon } from 'lucide-react'
-import type { EventType } from '@shared/api/events'
+import type { EventTypeSummary } from '@shared/api/events'
 
 const ICON_MAP: Record<string, LucideIcon> = {
   Training: Dumbbell,
@@ -9,7 +9,7 @@ const ICON_MAP: Record<string, LucideIcon> = {
 }
 
 interface EventTypeIconProps {
-  type: EventType
+  type: EventTypeSummary
   size?: 'sm' | 'md'
 }
 

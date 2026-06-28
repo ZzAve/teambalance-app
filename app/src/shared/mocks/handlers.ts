@@ -7,7 +7,7 @@ const events = structuredClone(EVENTS)
 function toSummary(event: MockEvent) {
   return {
     id: event.id,
-    type: event.type,
+    eventType: event.eventType,
     title: event.title,
     description: event.description,
     startTime: event.startTime,
@@ -57,7 +57,7 @@ export const handlers = [
     const eventType = EVENT_TYPES.find((t) => t.id === body.eventTypeId) ?? EVENT_TYPES[0]
     const newEvent = {
       id: `evt-${Date.now()}`,
-      type: eventType,
+      eventType: eventType,
       title: body.title,
       description: body.description ?? null,
       startTime: body.startTime,

@@ -6,11 +6,12 @@
   "scripts": {
     "dev": "vite",
     "build": "npx @tanstack/router-cli generate && tsc -b && vite build",
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "playwright test",
+    "test:e2e": "playwright test",
     "yolo": "vite build",
     "preview": "vite preview",
     "lint": "eslint .",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc -b"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.15",
@@ -29,6 +30,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.17.0",
+    "@playwright/test": "^1.61.1",
     "@tailwindcss/vite": "^4.2.2",
     "@tanstack/react-router-devtools": "^1.166.11",
     "@tanstack/router-cli": "^1.166.18",

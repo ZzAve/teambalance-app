@@ -36,3 +36,96 @@ the :api:build graph. All #12 acceptance criteria met. (Create-event + attendanc
 compile/build and use the migrated hooks; e2e is scoped to list+detail per the issue.)
 
 Next: #13 — Role per attendee on the event detail view (was blocked-by #12, now unblocked).
+
+## #13 — Role per attendee on the event detail view  ✅ DONE (2026-06-28)
+
+Branch: feat/12-wirespec-client-migration
+
+What changed:
+- Wirespec (events.ws): added `role: String` field to `AttendanceEntry`. Ran `make wirespec` to
+  regenerate Kotlin + TypeScript clients.
+- Backend — batch member lookup to replace N+1 `findDisplayName` calls:
+  - `SpringDataTeamMemberRepository`: native SQL query `findMemberSummariesByUserIds` with a JOIN
+    on `public.users`, returns `MemberSummaryProjection` interface (userId, displayName, teamRole,
+    permissionRole). Eliminates per-attendee queries.
+  - `TeamMemberRepository` port: added `findMembersByUserIds(Set<UUID>): Map<UUID, TeamMember>`.
+  - `JpaTeamMemberRepositoryAdapter`: implemented the port method, maps projection rows to
+    `TeamMember`.
+  - `AttendanceService`: replaced `getAttendancesWithNames` (N+1) with `getAttendancesWithMembers`
+    that does one batch lookup. Returns `List<Pair<Attendance, TeamMember>>`.
+  - `EventController.getEvent`: uses `getAttendancesWithMembers`; maps `member.teamRole ?: ""`
+    into `AttendanceEntry.role`.
+- Frontend:
+  - `AttendeeRow` in `app/src/routes/events/$eventId.tsx`: renders the role as a secondary line
+    beneath the attendee's name (shown only when non-empty).
+  - MSW mocks already served `role` from mock data — no handler changes needed.
+  - e2e: extended events.spec.ts to assert "Setter" is visible for Jan de Vries.
+- Test infrastructure:
+  - `TenantSchemaManager.provisionPlatformSchema()`: new method that runs platform Flyway
+    (classpath:db/migration) idempotently. Needed because Spring Boot's Flyway auto-configuration
+    does not appear to run in the test context.
+  - `provisionTenantSchema` now uses `baselineOnMigrate(true) / baselineVersion("0")` so it can
+    run against a non-empty public schema (which has platform tables after provisionPlatformSchema).
+  - `EventControllerTest` (new): integration test that provisions both schemas, inserts a user +
+    team member + event + attendance, calls `GET /api/events/{id}`, and asserts the response
+    contains `attendances[0].role = "Setter"`.
+
+All tests green: 10 backend tests, 1 Playwright e2e. Commit: 9d1b599.
+
+Next: #14 — Role on the attendance-response flow.
+
+## #14 — Role on the attendance-response flow  ✅ DONE (2026-06-28)
+
+Branch: feat/12-wirespec-client-migration
+
+What changed:
+- Wirespec (attendances.ws): added `role: String` to `Attendance`. Ran `make wirespec` to
+  regenerate Kotlin + TypeScript clients.
+- Backend:
+  - `AttendanceService`: added `findMember(userId)` using the existing `findMembersByUserIds`
+    batch lookup (single member retrieval, no new DB query added).
+  - `AttendanceController`: replaced `findDisplayName(userId)` with `findMember(userId)`;
+    populates `displayName` from `member?.displayName` and `role` from `member?.teamRole`.
+  - `AttendanceControllerTest` (new): integration test that provisions schemas, seeds user
+    + team member (role=Setter) + event, calls `PUT /api/events/{id}/attendances/{userId}`,
+    and asserts `$.role = "Setter"`.
+- Frontend: typecheck clean (new `role` field is additive; Playwright e2e still passes).
+
+All tests green: 11 backend tests (incl. new AttendanceControllerTest), 1 Playwright e2e.
+Commit: e34dd04.
+
+Next: #15 — Role breakdown in AttendanceSummary.
+
+## #15 — Role breakdown in AttendanceSummary  ✅ DONE (2026-06-29)
+
+Branch: feat/12-wirespec-client-migration
+
+What changed:
+- Wirespec (events.ws): added `RoleCount { role: String, attending: Integer }` type and
+  `roleBreakdown: RoleCount[]` to `AttendanceSummary`. Ran `make wirespec` to regenerate
+  Kotlin + TypeScript clients.
+- Backend:
+  - `AttendanceService`: new `getAttendingRoleBreakdown(eventId)` method — filters to
+    ATTENDING state, batch-fetches members, groups by teamRole, sorts by count desc then
+    role name asc.
+  - `EventController`: imported `RoleCount`; updated `Map<DomainAttendanceState,Int>.produce()`
+    to accept role breakdown and produce `roleBreakdown` list; both `getEvent` and
+    `Event.produce()` now call `getAttendingRoleBreakdown` and pass the result.
+  - `EventControllerTest`: new test case seeding 2 ATTENDING (Setter + Libero) and 1 MAYBE
+    (Middle) member; asserts `roleBreakdown` has exactly 2 entries in alphabetical order,
+    and the MAYBE member is excluded.
+- Frontend:
+  - `data.ts`: added `RoleCount` interface, added `roleBreakdown: RoleCount[]` to
+    `MockEvent.attendanceSummary`, replaced EVENTS array with `makeEvent()` helper that
+    computes the breakdown from attendances via `computeRoleBreakdown()`.
+  - `handlers.ts`: imports `computeRoleBreakdown`; PUT attendance handler recomputes
+    `roleBreakdown` on state change; new event POST initialises `roleBreakdown: []`.
+  - `EventCard.tsx`: renders role breakdown chips below the going/total row (shown when
+    roleBreakdown is non-empty).
+  - `$eventId.tsx`: shows green role-breakdown chips at the top of the "Going" tab panel.
+  - `e2e/events.spec.ts`: updated `getByText('Setter')` to `{ exact: true }` to avoid
+    ambiguity with the "1 Setter" breakdown chip now rendered on the same page.
+
+All tests green: 13 backend tests, 1 Playwright e2e.
+
+Next: #16 — Events list card role-breakdown (or as specified in the remaining PRD sub-issues).

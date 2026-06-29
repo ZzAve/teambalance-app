@@ -1,5 +1,5 @@
 import { http, HttpResponse, delay } from 'msw'
-import { EVENTS, EVENT_TYPES, MEMBERS, type MockEvent } from './data'
+import { EVENTS, EVENT_TYPES, MEMBERS, computeRoleBreakdown, type MockEvent } from './data'
 
 // Mutable copy so mutations persist during the session
 const events = structuredClone(EVENTS)
@@ -63,7 +63,7 @@ export const handlers = [
       startTime: body.startTime,
       endTime: body.endTime ?? null,
       location: body.location ?? null,
-      attendanceSummary: { attending: 0, maybe: 0, absent: 0, notResponded: MEMBERS.length },
+      attendanceSummary: { attending: 0, maybe: 0, absent: 0, notResponded: MEMBERS.length, roleBreakdown: [] },
       attendances: MEMBERS.map((m) => ({
         id: `att-${m.userId}`,
         userId: m.userId,
@@ -105,6 +105,7 @@ export const handlers = [
     }
     decrement(oldState)
     increment(body.state)
+    event.attendanceSummary.roleBreakdown = computeRoleBreakdown(event.attendances)
 
     return HttpResponse.json({
       id: attendance.id,

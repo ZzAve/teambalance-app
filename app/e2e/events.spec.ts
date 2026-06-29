@@ -22,6 +22,6 @@ test('user can browse the event list and open an event detail', async ({ page })
   // The detail page lists attendees who are going (default tab).
   await expect(page.getByText('Jan de Vries')).toBeVisible()
 
-  // Each attendee shows their volleyball role beneath their name.
-  await expect(page.getByText('Setter')).toBeVisible()
+  // Each attendee shows their volleyball role beneath their name (exact match avoids the role-breakdown chip).
+  await expect(page.getByText('Setter', { exact: true })).toBeVisible()
 })

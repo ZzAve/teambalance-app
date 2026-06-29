@@ -18,6 +18,7 @@ import com.github.zzave.teambalance.api.interfaces.generated.model.Event
 import com.github.zzave.teambalance.api.interfaces.generated.model.EventDetail
 import com.github.zzave.teambalance.api.interfaces.generated.model.EventList
 import com.github.zzave.teambalance.api.interfaces.generated.model.EventTypeSummary
+import com.github.zzave.teambalance.api.interfaces.generated.model.RoleCount
 import org.springframework.web.bind.annotation.RestController
 import java.time.Instant
 import java.util.UUID
@@ -58,6 +59,7 @@ class EventController(
 
         val attendances = attendanceService.getAttendancesWithMembers(id)
         val summary = attendanceService.getAttendanceSummary(id)
+        val roleBreakdown = attendanceService.getAttendingRoleBreakdown(id)
 
         return GetEvent.Response200(
             EventDetail(
@@ -68,7 +70,7 @@ class EventController(
                 startTime = DateTimestampWithTimezone(event.startTime.toString()),
                 endTime = DateTimestampWithTimezone(event.endTime.toString()),
                 location = event.location,
-                attendanceSummary = summary.produce(),
+                attendanceSummary = summary.produce(roleBreakdown),
                 attendances = attendances.map { (a, member) ->
                     AttendanceEntry(
                         id = a.id.toString(),
@@ -120,6 +122,7 @@ private fun com.github.zzave.teambalance.api.interfaces.generated.model.CreateEv
 
 private fun com.github.zzave.teambalance.api.domain.model.Event.produce(attendanceService: AttendanceService): Event {
     val summary = attendanceService.getAttendanceSummary(id)
+    val roleBreakdown = attendanceService.getAttendingRoleBreakdown(id)
     return Event(
         id = id.toString(),
         eventType = eventType.produce(),
@@ -128,19 +131,20 @@ private fun com.github.zzave.teambalance.api.domain.model.Event.produce(attendan
         startTime = DateTimestampWithTimezone(startTime.toString()),
         endTime = DateTimestampWithTimezone(endTime.toString()),
         location = location,
-        attendanceSummary = summary.produce(),
+        attendanceSummary = summary.produce(roleBreakdown),
     )
 }
 
 private fun com.github.zzave.teambalance.api.domain.model.EventType.produce() =
     EventTypeSummary(id = id.toString(), name = name, color = color)
 
-private fun Map<DomainAttendanceState, Int>.produce() =
+private fun Map<DomainAttendanceState, Int>.produce(roleBreakdown: List<Pair<String, Int>>) =
     AttendanceSummary(
         attending = (this[DomainAttendanceState.ATTENDING] ?: 0).toLong(),
         maybe = (this[DomainAttendanceState.MAYBE] ?: 0).toLong(),
         absent = (this[DomainAttendanceState.ABSENT] ?: 0).toLong(),
         notResponded = (this[DomainAttendanceState.NOT_RESPONDED] ?: 0).toLong(),
+        roleBreakdown = roleBreakdown.map { (role, count) -> RoleCount(role = role, attending = count.toLong()) },
     )
 
 private fun DomainAttendanceState.produce() = AttendanceState.valueOf(name)

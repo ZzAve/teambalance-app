@@ -52,16 +52,27 @@ export function EventCard({ event, index = 0 }: { event: Event; index?: number }
         </div>
 
         {/* Bottom: status + attendance summary */}
-        <div className="mt-3 flex items-center justify-between border-t border-border/40 pt-3">
-          <span className="rounded-full bg-green/10 px-2.5 py-1 text-xs font-medium text-green">
-            ✓ {s.attending} going
-          </span>
-          <span className="text-xs text-muted-foreground">
-            of {s.attending + s.maybe + s.absent + s.notResponded}
-            {s.notResponded > 0 && (
-              <> · <span className="opacity-60">{s.notResponded} pending</span></>
-            )}
-          </span>
+        <div className="mt-3 border-t border-border/40 pt-3">
+          <div className="flex items-center justify-between">
+            <span className="rounded-full bg-green/10 px-2.5 py-1 text-xs font-medium text-green">
+              ✓ {s.attending} going
+            </span>
+            <span className="text-xs text-muted-foreground">
+              of {s.attending + s.maybe + s.absent + s.notResponded}
+              {s.notResponded > 0 && (
+                <> · <span className="opacity-60">{s.notResponded} pending</span></>
+              )}
+            </span>
+          </div>
+          {s.roleBreakdown.length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-1">
+              {s.roleBreakdown.map(({ role, attending }) => (
+                <span key={role} className="rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">
+                  {attending} {role}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
       </Card>
     </Link>

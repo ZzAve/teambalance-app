@@ -57,6 +57,21 @@ class AttendanceService(
         }
     }
 
+    fun getAttendingRoleBreakdown(eventId: UUID): List<Pair<String, Int>> {
+        val attendances = attendanceRepository.findByEventId(eventId)
+        val attendingUserIds = attendances
+            .filter { it.state == AttendanceState.ATTENDING }
+            .map { it.userId }
+            .toSet()
+        if (attendingUserIds.isEmpty()) return emptyList()
+        val membersByUserId = teamMemberRepository.findMembersByUserIds(attendingUserIds)
+        return attendingUserIds
+            .groupBy { uid -> membersByUserId[uid]?.teamRole ?: "" }
+            .entries
+            .map { (role, uids) -> role to uids.size }
+            .sortedWith(compareByDescending<Pair<String, Int>> { it.second }.thenBy { it.first })
+    }
+
     fun findMember(userId: UUID): TeamMember? =
         teamMemberRepository.findMembersByUserIds(setOf(userId)).values.firstOrNull()
 

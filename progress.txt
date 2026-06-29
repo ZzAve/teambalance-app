@@ -129,3 +129,32 @@ What changed:
 All tests green: 13 backend tests, 1 Playwright e2e.
 
 Next: #16 — Events list card role-breakdown (or as specified in the remaining PRD sub-issues).
+
+## #16 — Role breakdown on the events list + card (tracer bullet)  ✅ DONE (2026-06-29)
+
+Branch: feat/12-wirespec-client-migration
+
+What changed:
+- `EventControllerTest`: new test "GET /api/events returns roleBreakdown per event in the list"
+  — seeds one event with one ATTENDING Setter, calls `GET /api/events?include-past=true`,
+  asserts `$.events[?(@.id=='...')].attendanceSummary.roleBreakdown[0].role = "Setter"` and
+  attending=1.
+- Key gotcha discovered: the Wirespec Spring adapter reads `queryString` directly from
+  `HttpServletRequest` (not the Spring param map), so MockMvc must pass query params via the
+  URI (`?include-past=true`) not `.param()`. This is now documented in the test.
+- Implementation was already complete from #15 — `Event.produce()` calls
+  `getAttendingRoleBreakdown(id)` for both list and detail. EventCard renders chips.
+- Chip layout uses `flex flex-wrap gap-1` (EventCard) / `flex flex-wrap gap-1.5` (detail
+  Going tab) — confirmed safe for mobile via code review. No overflow risk.
+- Frontend render test: no component test infra exists — manual check only.
+
+All tests green: 14 backend tests, 1 Playwright e2e. Commits: 6a87389.
+
+## PRD #8 — COMPLETE ✅ (2026-06-29)
+
+All sub-issues shipped on branch feat/12-wirespec-client-migration:
+- #12 Wirespec client migration (frontend)
+- #13 Role per attendee on event detail
+- #14 Role on attendance-response flow
+- #15 Role breakdown in AttendanceSummary
+- #16 Role breakdown on events list card

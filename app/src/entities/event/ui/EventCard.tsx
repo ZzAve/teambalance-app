@@ -53,7 +53,7 @@ export function EventCard({ event, index = 0 }: { event: Event; index?: number }
 
         {/* Bottom: status + attendance summary */}
         <div className="mt-3 border-t border-border/40 pt-3">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
             <span className="rounded-full bg-green/10 px-2.5 py-1 text-xs font-medium text-green">
               ✓ {s.attending} going
             </span>

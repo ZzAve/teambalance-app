@@ -83,6 +83,55 @@ class EventControllerTest : TeamBalanceIT() {
                 .andExpect(MockMvcResultMatchers.jsonPath("$.attendances[0].role").value("Setter"))
         }
 
+        test("GET /api/events returns roleBreakdown per event in the list") {
+            tenantSchemaManager.provisionPlatformSchema()
+            tenantSchemaManager.provisionTenantSchema("public")
+
+            jdbcTemplate.execute("""
+                INSERT INTO public.teams (id, name, slug, sport, schema_name)
+                VALUES ('$TEAM_ID'::uuid, 'Test Team', 'test-team', 'Volleyball', 'public')
+                ON CONFLICT DO NOTHING
+            """)
+            jdbcTemplate.execute("""
+                INSERT INTO public.users (id, email, display_name)
+                VALUES ('$JAN_USER_ID'::uuid, 'jan@test.com', 'Jan de Vries')
+                ON CONFLICT DO NOTHING
+            """)
+            jdbcTemplate.execute("""
+                INSERT INTO public.team_members (team_id, user_id, role, team_role)
+                VALUES ('$TEAM_ID'::uuid, '$JAN_USER_ID'::uuid, 'USER', 'Setter')
+                ON CONFLICT DO NOTHING
+            """)
+
+            val eventId = UUID.randomUUID()
+            jdbcTemplate.execute("""
+                INSERT INTO public.events (uuid, event_type_id, title, start_time, end_time, created_by, created_at, updated_at)
+                VALUES ('$eventId'::uuid,
+                    (SELECT id FROM public.event_types WHERE name = 'Training'),
+                    'List Breakdown Test', '2050-07-01 20:00:00+00', '2050-07-01 22:00:00+00',
+                    '$JAN_USER_ID'::uuid, now(), now())
+            """)
+            jdbcTemplate.execute("""
+                INSERT INTO public.attendances (uuid, event_id, user_id, state, updated_at)
+                VALUES (gen_random_uuid(),
+                    (SELECT id FROM public.events WHERE uuid = '$eventId'::uuid),
+                    '$JAN_USER_ID'::uuid, 'ATTENDING', now())
+            """)
+
+            val mvcResult = mockMvc.perform(
+                MockMvcRequestBuilders.get("/api/events?include-past=true")
+                    .header("X-Team-Id", "placeholder")
+                    .header("X-User-Id", JAN_USER_ID),
+            )
+                .andExpect(MockMvcResultMatchers.request().asyncStarted())
+                .andReturn()
+
+            mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(mvcResult))
+                .andExpect(MockMvcResultMatchers.status().isOk)
+                .andExpect(MockMvcResultMatchers.jsonPath("$.events[?(@.id=='$eventId')].attendanceSummary.roleBreakdown[0].role").value("Setter"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.events[?(@.id=='$eventId')].attendanceSummary.roleBreakdown[0].attending").value(1))
+        }
+
         test("GET /api/events/{id} attendanceSummary.roleBreakdown contains only ATTENDING members") {
             tenantSchemaManager.provisionPlatformSchema()
             tenantSchemaManager.provisionTenantSchema("public")

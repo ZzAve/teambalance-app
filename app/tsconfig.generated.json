@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "composite": true,
+    "declaration": true,
+    "outDir": "./.tsbuild/generated",
+    "rootDir": "./src/shared/api/generated",
+    "tsBuildInfoFile": "./.tsbuild/generated.tsbuildinfo",
+    "baseUrl": ".",
+    // The Wirespec emitter produces unused imports and barrel re-exports that trip the
+    // app's strict rules; the generated code is never hand-edited, so relax them here only.
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "isolatedModules": false
+  },
+  "include": ["src/shared/api/generated"]
+}

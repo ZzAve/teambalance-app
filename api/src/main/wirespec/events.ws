@@ -13,11 +13,17 @@ type EventTypeSummary {
     color: String?
 }
 
+type RoleCount {
+    role: String,
+    attending: Integer
+}
+
 type AttendanceSummary {
     attending: Integer,
     maybe: Integer,
     absent: Integer,
-    notResponded: Integer
+    notResponded: Integer,
+    roleBreakdown: RoleCount[]
 }
 
 type Event {
@@ -47,6 +53,7 @@ type AttendanceEntry {
     id: String,
     userId: String,
     displayName: String,
+    role: String,
     state: AttendanceState
 }
 

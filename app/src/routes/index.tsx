@@ -43,7 +43,7 @@ function EventListPage() {
     const filteredEvents = useMemo(() => {
         if (!events || !eventTypes) return events ?? []
         if (activeTypeIds.size === eventTypes.length) return events
-        return events.filter(e => activeTypeIds.has(e.type.id))
+        return events.filter(e => activeTypeIds.has(e.eventType.id))
     }, [events, activeTypeIds, eventTypes])
 
     const groups =

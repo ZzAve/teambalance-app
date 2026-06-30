@@ -98,7 +98,9 @@ function AttendeeRow({ attendance }: { attendance: AttendanceEntry }) {
       </div>
       <div className="min-w-0">
         <span className="block text-sm leading-tight">{attendance.displayName}</span>
-        <span className="block text-xs text-muted-foreground">{attendance.role}</span>
+        {attendance.role && (
+          <span className="block text-xs text-muted-foreground">{attendance.role}</span>
+        )}
       </div>
     </div>
   )
@@ -135,9 +137,9 @@ function EventDetailPage() {
 
       {/* Event header */}
       <div className="mt-2 flex items-start gap-4">
-        <EventTypeIcon type={event.type} size="md" />
+        <EventTypeIcon type={event.eventType} size="md" />
         <div className="min-w-0">
-          <EventTypeBadge type={event.type} />
+          <EventTypeBadge type={event.eventType} />
           <h1 className="font-display text-2xl font-bold leading-tight">{event.title}</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             {date.toLocaleDateString('nl-NL', {
@@ -228,6 +230,15 @@ function EventDetailPage() {
         </div>
         {/* Panel content */}
         <div className="p-1">
+          {activeAttendeeTab === 'ATTENDING' && event.attendanceSummary.roleBreakdown.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 px-3 py-2">
+              {event.attendanceSummary.roleBreakdown.map(({ role, attending }) => (
+                <span key={role} className="rounded-full bg-green/10 px-2.5 py-1 text-xs font-medium text-green">
+                  {attending} {role}
+                </span>
+              ))}
+            </div>
+          )}
           {filteredAttendees.map((a) => (
             <AttendeeRow key={a.userId} attendance={a} />
           ))}

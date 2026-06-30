@@ -7,6 +7,7 @@ type Attendance {
     eventId: String,
     userId: String,
     displayName: String,
+    role: String,
     state: String
 }
 

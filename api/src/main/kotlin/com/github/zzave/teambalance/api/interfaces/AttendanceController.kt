@@ -20,14 +20,15 @@ class AttendanceController(
         val attendance = attendanceService.setAttendance(eventId, userId, state)
             ?: return SetAttendance.Response404(Unit)
 
-        val displayName = attendanceService.findDisplayName(userId) ?: "Unknown"
+        val member = attendanceService.findMember(userId)
 
         return SetAttendance.Response200(
             Attendance(
                 id = attendance.id.toString(),
                 eventId = attendance.eventId.toString(),
                 userId = attendance.userId.toString(),
-                displayName = displayName,
+                displayName = member?.displayName ?: "Unknown",
+                role = member?.teamRole ?: "",
                 state = attendance.state.name,
             )
         )

@@ -26,5 +26,6 @@
     "baseUrl": "."
   },
   "include": ["src"],
-  "exclude": ["src/shared/api/generated"]
+  "exclude": ["src/shared/api/generated"],
+  "references": [{ "path": "./tsconfig.generated.json" }]
 }

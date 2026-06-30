@@ -2,6 +2,7 @@ package com.github.zzave.teambalance.api.application
 
 import com.github.zzave.teambalance.api.domain.model.Attendance
 import com.github.zzave.teambalance.api.domain.model.AttendanceState
+import com.github.zzave.teambalance.api.domain.model.TeamMember
 import com.github.zzave.teambalance.api.domain.port.AttendanceRepository
 import com.github.zzave.teambalance.api.domain.port.EventRepository
 import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
@@ -38,11 +39,16 @@ class AttendanceService(
         }
     }
 
-    fun getAttendancesWithNames(eventId: UUID): List<Pair<Attendance, String>> =
-        attendanceRepository.findByEventId(eventId).map { attendance ->
-            val name = teamMemberRepository.findDisplayName(attendance.userId) ?: "Unknown"
-            attendance to name
+    fun getAttendancesWithMembers(eventId: UUID): List<Pair<Attendance, TeamMember>> {
+        val attendances = attendanceRepository.findByEventId(eventId)
+        if (attendances.isEmpty()) return emptyList()
+        val membersByUserId = teamMemberRepository.findMembersByUserIds(attendances.map { it.userId }.toSet())
+        return attendances.map { attendance ->
+            val member = membersByUserId[attendance.userId]
+                ?: TeamMember(attendance.userId, "Unknown", "USER", null)
+            attendance to member
         }
+    }
 
     fun getAttendanceSummary(eventId: UUID): Map<AttendanceState, Int> {
         val attendances = attendanceRepository.findByEventId(eventId)
@@ -50,6 +56,24 @@ class AttendanceService(
             attendances.count { it.state == state }
         }
     }
+
+    fun getAttendingRoleBreakdown(eventId: UUID): List<Pair<String, Int>> {
+        val attendances = attendanceRepository.findByEventId(eventId)
+        val attendingUserIds = attendances
+            .filter { it.state == AttendanceState.ATTENDING }
+            .map { it.userId }
+            .toSet()
+        if (attendingUserIds.isEmpty()) return emptyList()
+        val membersByUserId = teamMemberRepository.findMembersByUserIds(attendingUserIds)
+        return attendingUserIds
+            .groupBy { uid -> membersByUserId[uid]?.teamRole ?: "" }
+            .entries
+            .map { (role, uids) -> role to uids.size }
+            .sortedWith(compareByDescending<Pair<String, Int>> { it.second }.thenBy { it.first })
+    }
+
+    fun findMember(userId: UUID): TeamMember? =
+        teamMemberRepository.findMembersByUserIds(setOf(userId)).values.firstOrNull()
 
     fun findDisplayName(userId: UUID): String? = teamMemberRepository.findDisplayName(userId)
 }

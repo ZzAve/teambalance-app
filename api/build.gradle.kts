@@ -120,3 +120,10 @@ sourceSets {
 tasks.named("compileKotlin") {
     dependsOn("wirespec-kotlin")
 }
+
+// Regenerate the TypeScript client as part of the build so the frontend (app/) always
+// compiles against the current contract — the generated sources are gitignored and not
+// committed, so CI must produce them before `npm run build`.
+tasks.named("build") {
+    dependsOn("wirespec-typescript")
+}

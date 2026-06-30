@@ -1,11 +1,23 @@
 {
   "version": 1,
   "skills": {
+    "demo-video": {
+      "source": "flock-community/flock-skills",
+      "sourceType": "github",
+      "skillPath": "skills/productivity/demo-video/SKILL.md",
+      "computedHash": "7788e307aab8ade3d12a87be8b6aa0a1857a94a7df544328c648afe7c95426b9"
+    },
     "grill-with-docs": {
       "source": "mattpocock/skills",
       "sourceType": "github",
       "skillPath": "skills/engineering/grill-with-docs/SKILL.md",
       "computedHash": "e7ef25bbee50cda2eb7b3a8ef541db0a0396dad7d369f7d14fb610671dd1864b"
+    },
+    "preflight": {
+      "source": "flock-community/flock-skills",
+      "sourceType": "github",
+      "skillPath": "skills/engineering/preflight/SKILL.md",
+      "computedHash": "0e064325d4a00829dfb585584d819c8fa194c070c0837b1455f9f596c55fcee5"
     },
     "prototype": {
       "source": "mattpocock/skills",

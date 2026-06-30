@@ -16,3 +16,18 @@ allprojects {
         mavenCentral()
     }
 }
+
+// Installs the committed git hooks (.githooks) into .git/hooks so the
+// pre-commit gate (`make format test e2e`) is enforced for every contributor.
+val installGitHooks by tasks.registering(Copy::class) {
+    description = "Installs git hooks from .githooks into .git/hooks"
+    group = "git hooks"
+    from(layout.projectDirectory.dir(".githooks"))
+    into(layout.projectDirectory.dir(".git/hooks"))
+    filePermissions { unix("0755") }
+}
+
+// Auto-install whenever anything is built, mirroring husky's `prepare` step.
+subprojects {
+    tasks.matching { it.name == "build" }.configureEach { dependsOn(installGitHooks) }
+}

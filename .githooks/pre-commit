@@ -1,0 +1,7 @@
+#!/bin/sh
+# TeamBalance pre-commit gate.
+# Auto-installed into .git/hooks by the `installGitHooks` Gradle task
+# (runs on every build) or via `make hooks`.
+#
+# Runs the full format + test + e2e suite before allowing a commit.
+exec make format test e2e

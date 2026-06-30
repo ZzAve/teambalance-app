@@ -1,9 +1,10 @@
 .PHONY: *
 
 # The first command will be invoked with `make` only and should be `build`
-build: ## Build everything
-	./gradlew build
-	cd app && npm i && npm run build
+build: ## Build everything (autoformat)
+	./gradlew :api:detekt --auto-correct || ./gradlew :api:detekt --auto-correct
+	./gradlew build -x test
+	cd app && npm i && npm run lint -- --fix && npm run build
 
 #	 This outputs any command in the Makefile. With a short description taken from a ## prefixed command after the command (preferred) or the line above
 #	 ## build the project
@@ -26,6 +27,10 @@ help: ## Show this help
 			*)                   desc="" ;; \
 		esac; \
 	done < $(MAKEFILE_LIST) | sort
+
+ci:  ## Run a build in CI
+	./gradlew build -x test
+	cd app && npm ci && npm run build
 
 # --- Infrastructure ---
 
@@ -65,12 +70,15 @@ test-api: ## Run backend tests only
 test-app: ## Run frontend tests only
 	cd app && npm test
 
+e2e: ## Run end-to-end tests
+	cd app && npm run e2e
+
 lint: ## Lint everything
 	./gradlew :api:detekt
 	cd app && npm run lint
 
 format: ## Auto-format code
-	./gradlew :api:detekt --auto-correct
+	./gradlew :api:detekt --auto-correct || ./gradlew :api:detekt --auto-correct
 	cd app && npm run lint -- --fix
 
 # --- Code generation ---
@@ -80,7 +88,6 @@ wirespec: ## Generate code from Wirespec definitions
 	./gradlew :api:wirespec-typescript
 
 # --- Shortcuts ---
-
 yolo: ## Fast build, skip tests and linting
 	./gradlew build -x test -x detekt
 	cd app && npm i && npm run yolo

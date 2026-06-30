@@ -6,8 +6,9 @@
   "scripts": {
     "dev": "vite",
     "build": "npx @tanstack/router-cli generate && tsc -b && vite build",
-    "test": "playwright test",
-    "test:e2e": "playwright test",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "e2e": "playwright test",
     "yolo": "vite build",
     "preview": "vite preview",
     "lint": "eslint .",
@@ -35,18 +36,24 @@
     "@tanstack/react-router-devtools": "^1.166.11",
     "@tanstack/router-cli": "^1.166.18",
     "@tanstack/router-plugin": "^1.167.4",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.1",
+    "@vitest/coverage-v8": "^4.1.9",
     "eslint": "^9.17.0",
     "eslint-plugin-boundaries": "^6.0.0",
     "eslint-plugin-react-hooks": "^7.0.1",
     "globals": "^17.4.0",
+    "jsdom": "^29.1.1",
     "msw": "^2.12.14",
     "tailwindcss": "^4.2.2",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.57.1",
-    "vite": "^8.0.1"
+    "vite": "^8.0.1",
+    "vitest": "^4.1.9"
   },
   "msw": {
     "workerDirectory": [

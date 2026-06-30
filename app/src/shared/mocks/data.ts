@@ -92,5 +92,7 @@ export const EVENTS: MockEvent[] = [
   makeEvent('evt-003', EVENT_TYPES[0], 'Training', null, daysFromNow(8), 'Sporthal De Boog', ['ATTENDING', 'NOT_RESPONDED', 'MAYBE', 'ATTENDING', 'NOT_RESPONDED', 'MAYBE']),
   makeEvent('evt-004', EVENT_TYPES[2], 'Spring Tournament', 'Annual 4v4 beach tournament. Sign up by Wednesday!', daysFromNow(15), 'Beach Arena Scheveningen', ['ATTENDING', 'MAYBE', 'ATTENDING', 'NOT_RESPONDED', 'MAYBE', 'ATTENDING']),
   makeEvent('evt-005', EVENT_TYPES[3], 'Team BBQ', "End-of-season celebration at Jan's place", daysFromNow(22), "Jan's backyard", ['ATTENDING', 'ATTENDING', 'ATTENDING', 'ATTENDING', 'ATTENDING', 'ATTENDING']),
+  // Nobody has responded yet — exercises the empty role-breakdown state (PRD user story 8).
+  makeEvent('evt-006', EVENT_TYPES[0], 'Friendly (date TBC)', 'Awaiting responses', daysFromNow(2), 'Sporthal De Boog', ['NOT_RESPONDED', 'NOT_RESPONDED', 'NOT_RESPONDED', 'NOT_RESPONDED', 'NOT_RESPONDED', 'NOT_RESPONDED']),
   makeEvent('evt-past-001', EVENT_TYPES[0], 'Training (last week)', null, daysFromNow(-5), 'Sporthal De Boog', ['ATTENDING', 'ATTENDING', 'ATTENDING', 'ABSENT', 'ATTENDING', 'ATTENDING']),
 ]

@@ -45,6 +45,9 @@ dependencies {
 
     // Wirespec runtime
     implementation("community.flock.wirespec.integration:spring-jvm:$wirespecVersion")
+    // Wirespec 0.19's Spring integration uses Jackson 3; Spring Boot ships Jackson 3
+    // databind but not its Kotlin module, which WirespecJackson3Configuration requires.
+    implementation("tools.jackson.module:jackson-module-kotlin")
 
     // Testing — Kotest
     val kotestVersion: String by project
@@ -69,7 +72,8 @@ dependencies {
 
 java {
     toolchain {
-        languageVersion = JavaLanguageVersion.of(21)
+        val javaVersion: String by project
+        languageVersion = JavaLanguageVersion.of(javaVersion)
     }
 }
 kotlin {

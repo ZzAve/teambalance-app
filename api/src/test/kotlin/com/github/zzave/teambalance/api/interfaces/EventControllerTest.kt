@@ -221,5 +221,120 @@ class EventControllerTest : TeamBalanceIT() {
                 .andExpect(MockMvcResultMatchers.jsonPath("$.attendanceSummary.roleBreakdown[1].role").value("Setter"))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.attendanceSummary.roleBreakdown[1].attending").value(1))
         }
+
+        test("GET /api/events/{id} attendanceSummary.roleBreakdown sums members sharing a role and orders by count desc") {
+            tenantSchemaManager.provisionPlatformSchema()
+            tenantSchemaManager.provisionTenantSchema("public")
+
+            // Member ids unique to this test: integration tests share DB state and seed with
+            // ON CONFLICT DO NOTHING, so reusing the shared ids would keep roles set by other tests.
+            val setterAId = "b0000000-0000-0000-0000-0000000000a1"
+            val setterBId = "b0000000-0000-0000-0000-0000000000a2"
+            val liberoId = "b0000000-0000-0000-0000-0000000000a3"
+
+            jdbcTemplate.execute("""
+                INSERT INTO public.teams (id, name, slug, sport, schema_name)
+                VALUES ('$TEAM_ID'::uuid, 'Test Team', 'test-team', 'Volleyball', 'public')
+                ON CONFLICT DO NOTHING
+            """)
+            // Two Setters (must be summed into one entry of 2) + one Libero (single).
+            listOf(
+                Triple(setterAId, "setter-a@test.com", "Setter"),
+                Triple(setterBId, "setter-b@test.com", "Setter"),
+                Triple(liberoId, "libero@test.com", "Libero"),
+            ).forEach { (userId, email, role) ->
+                jdbcTemplate.execute("""
+                    INSERT INTO public.users (id, email, display_name)
+                    VALUES ('$userId'::uuid, '$email', '$email')
+                    ON CONFLICT DO NOTHING
+                """)
+                jdbcTemplate.execute("""
+                    INSERT INTO public.team_members (team_id, user_id, role, team_role)
+                    VALUES ('$TEAM_ID'::uuid, '$userId'::uuid, 'USER', '$role')
+                    ON CONFLICT DO NOTHING
+                """)
+            }
+
+            val eventId = UUID.randomUUID()
+            jdbcTemplate.execute("""
+                INSERT INTO public.events (uuid, event_type_id, title, start_time, end_time, created_by, created_at, updated_at)
+                VALUES ('$eventId'::uuid,
+                    (SELECT id FROM public.event_types WHERE name = 'Training'),
+                    'Shared Role Test', '2026-07-01 20:00:00+00', '2026-07-01 22:00:00+00',
+                    '$setterAId'::uuid, now(), now())
+            """)
+            listOf(setterAId, setterBId, liberoId).forEach { userId ->
+                jdbcTemplate.execute("""
+                    INSERT INTO public.attendances (uuid, event_id, user_id, state, updated_at)
+                    VALUES (gen_random_uuid(),
+                        (SELECT id FROM public.events WHERE uuid = '$eventId'::uuid),
+                        '$userId'::uuid, 'ATTENDING', now())
+                """)
+            }
+
+            val mvcResult = mockMvc.perform(
+                MockMvcRequestBuilders.get("/api/events/$eventId")
+                    .header("X-Team-Id", "placeholder")
+                    .header("X-User-Id", setterAId),
+            )
+                .andExpect(MockMvcResultMatchers.request().asyncStarted())
+                .andReturn()
+
+            mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(mvcResult))
+                .andExpect(MockMvcResultMatchers.status().isOk)
+                .andExpect(MockMvcResultMatchers.jsonPath("$.attendanceSummary.roleBreakdown.length()").value(2))
+                // Two Setters summed into one entry of 2, ordered before the single Libero (count desc)
+                .andExpect(MockMvcResultMatchers.jsonPath("$.attendanceSummary.roleBreakdown[0].role").value("Setter"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.attendanceSummary.roleBreakdown[0].attending").value(2))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.attendanceSummary.roleBreakdown[1].role").value("Libero"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.attendanceSummary.roleBreakdown[1].attending").value(1))
+        }
+
+        test("GET /api/events/{id} with no attendances returns an empty roleBreakdown and zeroed counts") {
+            tenantSchemaManager.provisionPlatformSchema()
+            tenantSchemaManager.provisionTenantSchema("public")
+
+            jdbcTemplate.execute("""
+                INSERT INTO public.teams (id, name, slug, sport, schema_name)
+                VALUES ('$TEAM_ID'::uuid, 'Test Team', 'test-team', 'Volleyball', 'public')
+                ON CONFLICT DO NOTHING
+            """)
+            jdbcTemplate.execute("""
+                INSERT INTO public.users (id, email, display_name)
+                VALUES ('$JAN_USER_ID'::uuid, 'jan@test.com', 'Jan de Vries')
+                ON CONFLICT DO NOTHING
+            """)
+            jdbcTemplate.execute("""
+                INSERT INTO public.team_members (team_id, user_id, role, team_role)
+                VALUES ('$TEAM_ID'::uuid, '$JAN_USER_ID'::uuid, 'USER', 'Setter')
+                ON CONFLICT DO NOTHING
+            """)
+
+            // Event with NO attendances at all.
+            val eventId = UUID.randomUUID()
+            jdbcTemplate.execute("""
+                INSERT INTO public.events (uuid, event_type_id, title, start_time, end_time, created_by, created_at, updated_at)
+                VALUES ('$eventId'::uuid,
+                    (SELECT id FROM public.event_types WHERE name = 'Training'),
+                    'No Responses Test', '2026-07-01 20:00:00+00', '2026-07-01 22:00:00+00',
+                    '$JAN_USER_ID'::uuid, now(), now())
+            """)
+
+            val mvcResult = mockMvc.perform(
+                MockMvcRequestBuilders.get("/api/events/$eventId")
+                    .header("X-Team-Id", "placeholder")
+                    .header("X-User-Id", JAN_USER_ID),
+            )
+                .andExpect(MockMvcResultMatchers.request().asyncStarted())
+                .andReturn()
+
+            mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(mvcResult))
+                .andExpect(MockMvcResultMatchers.status().isOk)
+                .andExpect(MockMvcResultMatchers.jsonPath("$.attendanceSummary.roleBreakdown.length()").value(0))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.attendanceSummary.attending").value(0))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.attendanceSummary.maybe").value(0))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.attendanceSummary.absent").value(0))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.attendanceSummary.notResponded").value(0))
+        }
     }
 }

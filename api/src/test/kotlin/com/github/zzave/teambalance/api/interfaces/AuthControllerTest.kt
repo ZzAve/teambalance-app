@@ -3,7 +3,6 @@ package com.github.zzave.teambalance.api.interfaces
 import com.github.zzave.teambalance.api.TeamBalanceIT
 import com.github.zzave.teambalance.api.domain.port.EmailSender
 import com.github.zzave.teambalance.api.infrastructure.email.FakeEmailSender
-import com.github.zzave.teambalance.api.infrastructure.multitenancy.TenantSchemaManager
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.TestConfiguration
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
@@ -43,14 +42,10 @@ class AuthControllerTest : TeamBalanceIT() {
     lateinit var jdbcTemplate: JdbcTemplate
 
     @Autowired
-    lateinit var tenantSchemaManager: TenantSchemaManager
-
-    @Autowired
     lateinit var fakeEmailSender: FakeEmailSender
 
     init {
         test("request -> verify -> me -> logout -> me(401) full magic-link loop") {
-            tenantSchemaManager.provisionPlatformSchema()
             val email = "loop-${UUID.randomUUID()}@test.com"
 
             requestMagicLink(email)
@@ -69,7 +64,6 @@ class AuthControllerTest : TeamBalanceIT() {
         }
 
         test("verify rejects an already-used token and an expired token") {
-            tenantSchemaManager.provisionPlatformSchema()
             val email = "reject-${UUID.randomUUID()}@test.com"
 
             requestMagicLink(email)

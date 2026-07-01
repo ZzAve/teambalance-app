@@ -7,4 +7,5 @@ interface TeamMemberRepository {
     fun findByTeamId(teamId: UUID): List<TeamMember>
     fun findDisplayName(userId: UUID): String?
     fun findMembersByUserIds(userIds: Set<UUID>): Map<UUID, TeamMember>
+    fun findSchemaNameForUser(userId: UUID): String?
 }

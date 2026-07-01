@@ -5,5 +5,6 @@ object TenantContext {
 
     fun set(schemaName: String) = current.set(schemaName)
     fun get(): String = current.get() ?: "public"
+    fun isSet(): Boolean = current.get() != null
     fun clear() = current.remove()
 }

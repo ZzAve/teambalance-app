@@ -72,10 +72,10 @@ class EventControllerTest : TeamBalanceIT() {
             // Insert attendance for Jan de Vries (ATTENDING)
             jdbcTemplate.execute(
                 """
-                INSERT INTO public.attendances (uuid, event_id, user_id, state, updated_at)
+                INSERT INTO public.attendances (uuid, event_id, user_id, state, updated_at, changed_by)
                 VALUES (gen_random_uuid(),
                     (SELECT id FROM public.events WHERE uuid = '$eventId'::uuid),
-                    '$JAN_USER_ID'::uuid, 'ATTENDING', now())
+                    '$JAN_USER_ID'::uuid, 'ATTENDING', now(), '$JAN_USER_ID'::uuid)
             """
             )
 
@@ -131,10 +131,10 @@ class EventControllerTest : TeamBalanceIT() {
             )
             jdbcTemplate.execute(
                 """
-                INSERT INTO public.attendances (uuid, event_id, user_id, state, updated_at)
+                INSERT INTO public.attendances (uuid, event_id, user_id, state, updated_at, changed_by)
                 VALUES (gen_random_uuid(),
                     (SELECT id FROM public.events WHERE uuid = '$eventId'::uuid),
-                    '$JAN_USER_ID'::uuid, 'ATTENDING', now())
+                    '$JAN_USER_ID'::uuid, 'ATTENDING', now(), '$JAN_USER_ID'::uuid)
             """
             )
 
@@ -228,26 +228,26 @@ class EventControllerTest : TeamBalanceIT() {
 
             jdbcTemplate.execute(
                 """
-                INSERT INTO public.attendances (uuid, event_id, user_id, state, updated_at)
+                INSERT INTO public.attendances (uuid, event_id, user_id, state, updated_at, changed_by)
                 VALUES (gen_random_uuid(),
                     (SELECT id FROM public.events WHERE uuid = '$eventId'::uuid),
-                    '$JAN_USER_ID'::uuid, 'ATTENDING', now())
+                    '$JAN_USER_ID'::uuid, 'ATTENDING', now(), '$JAN_USER_ID'::uuid)
             """
             )
             jdbcTemplate.execute(
                 """
-                INSERT INTO public.attendances (uuid, event_id, user_id, state, updated_at)
+                INSERT INTO public.attendances (uuid, event_id, user_id, state, updated_at, changed_by)
                 VALUES (gen_random_uuid(),
                     (SELECT id FROM public.events WHERE uuid = '$eventId'::uuid),
-                    '$LISA_USER_ID'::uuid, 'ATTENDING', now())
+                    '$LISA_USER_ID'::uuid, 'ATTENDING', now(), '$LISA_USER_ID'::uuid)
             """
             )
             jdbcTemplate.execute(
                 """
-                INSERT INTO public.attendances (uuid, event_id, user_id, state, updated_at)
+                INSERT INTO public.attendances (uuid, event_id, user_id, state, updated_at, changed_by)
                 VALUES (gen_random_uuid(),
                     (SELECT id FROM public.events WHERE uuid = '$eventId'::uuid),
-                    '$TOM_USER_ID'::uuid, 'MAYBE', now())
+                    '$TOM_USER_ID'::uuid, 'MAYBE', now(), '$TOM_USER_ID'::uuid)
             """
             )
 
@@ -322,10 +322,10 @@ class EventControllerTest : TeamBalanceIT() {
             listOf(setterAId, setterBId, liberoId).forEach { userId ->
                 jdbcTemplate.execute(
                     """
-                    INSERT INTO public.attendances (uuid, event_id, user_id, state, updated_at)
+                    INSERT INTO public.attendances (uuid, event_id, user_id, state, updated_at, changed_by)
                     VALUES (gen_random_uuid(),
                         (SELECT id FROM public.events WHERE uuid = '$eventId'::uuid),
-                        '$userId'::uuid, 'ATTENDING', now())
+                        '$userId'::uuid, 'ATTENDING', now(), '$userId'::uuid)
                 """
                 )
             }

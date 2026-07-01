@@ -65,6 +65,7 @@ class EventService(
                 userId = member.userId,
                 state = AttendanceState.NOT_RESPONDED,
                 updatedAt = Instant.now(clock),
+                changedBy = createdBy,
             )
         }
         attendanceRepository.saveAll(attendances)

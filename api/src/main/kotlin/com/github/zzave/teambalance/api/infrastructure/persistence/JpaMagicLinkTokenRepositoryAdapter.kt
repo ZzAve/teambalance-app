@@ -13,4 +13,7 @@ class JpaMagicLinkTokenRepositoryAdapter(
 
     override fun save(token: MagicLinkToken): MagicLinkToken =
         jpaRepository.save(token.externalize()).internalize()
+
+    override fun findByTokenHash(tokenHash: String): MagicLinkToken? =
+        jpaRepository.findByTokenHash(tokenHash)?.internalize()
 }

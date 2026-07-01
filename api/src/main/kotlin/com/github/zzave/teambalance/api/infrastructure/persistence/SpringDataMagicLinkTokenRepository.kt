@@ -4,4 +4,6 @@ import com.github.zzave.teambalance.api.infrastructure.persistence.entity.MagicL
 import org.springframework.data.jpa.repository.JpaRepository
 import java.util.UUID
 
-interface SpringDataMagicLinkTokenRepository : JpaRepository<MagicLinkTokenJpaEntity, UUID>
+interface SpringDataMagicLinkTokenRepository : JpaRepository<MagicLinkTokenJpaEntity, UUID> {
+    fun findByTokenHash(tokenHash: String): MagicLinkTokenJpaEntity?
+}

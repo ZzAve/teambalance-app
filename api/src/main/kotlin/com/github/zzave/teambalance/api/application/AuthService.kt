@@ -1,8 +1,10 @@
 package com.github.zzave.teambalance.api.application
 
 import com.github.zzave.teambalance.api.domain.model.MagicLinkToken
+import com.github.zzave.teambalance.api.domain.model.User
 import com.github.zzave.teambalance.api.domain.port.EmailSender
 import com.github.zzave.teambalance.api.domain.port.MagicLinkTokenRepository
+import com.github.zzave.teambalance.api.domain.port.UserRepository
 import org.springframework.stereotype.Service
 import java.security.MessageDigest
 import java.security.SecureRandom
@@ -15,6 +17,7 @@ import java.util.UUID
 @Service
 class AuthService(
     private val magicLinkTokenRepository: MagicLinkTokenRepository,
+    private val userRepository: UserRepository,
     private val emailSender: EmailSender,
     private val clock: Clock,
 ) {
@@ -38,6 +41,24 @@ class AuthService(
             ),
         )
         emailSender.sendMagicLink(email, token)
+    }
+
+    fun verifyMagicLink(token: String): User? {
+        val now = Instant.now(clock)
+        val record = magicLinkTokenRepository.findByTokenHash(hash(token))
+            ?.takeIf { it.usedAt == null && it.expiresAt.isAfter(now) }
+            ?: return null
+        magicLinkTokenRepository.save(record.copy(usedAt = now))
+
+        return userRepository.findByEmail(record.email)
+            ?: userRepository.save(
+                User(
+                    id = UUID.randomUUID(),
+                    email = record.email,
+                    // No display name is collected at magic-link signup; derive a placeholder from the email.
+                    displayName = record.email.substringBefore("@"),
+                ),
+            )
     }
 
     private fun generateToken(): String {

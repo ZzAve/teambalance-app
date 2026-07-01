@@ -43,6 +43,8 @@ class AuthService(
         emailSender.sendMagicLink(email, token)
     }
 
+    fun findUserById(id: UUID): User? = userRepository.findById(id)
+
     fun verifyMagicLink(token: String): User? {
         val now = Instant.now(clock)
         val record = magicLinkTokenRepository.findByTokenHash(hash(token))

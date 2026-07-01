@@ -16,7 +16,8 @@ spring:
     locations: classpath:db/migration
   jackson:
     default-property-inclusion: non_null
-    
+  session:
+    store-type: redis
 
 server:
   port: 8080

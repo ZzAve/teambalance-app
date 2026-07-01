@@ -28,6 +28,10 @@ class SessionUserContextFilter : OncePerRequestFilter() {
                 }
             }
         }
-        filterChain.doFilter(request, response)
+        try {
+            filterChain.doFilter(request, response)
+        } finally {
+            UserContext.clear()
+        }
     }
 }

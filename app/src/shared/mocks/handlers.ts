@@ -122,4 +122,10 @@ export const handlers = [
     await delay(100)
     return HttpResponse.json({ eventTypes: EVENT_TYPES })
   }),
+
+  // POST /api/auth/request
+  http.post('/api/auth/request', async () => {
+    await delay(300)
+    return new HttpResponse(null, { status: 202 })
+  }),
 ]

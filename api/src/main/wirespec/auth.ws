@@ -12,11 +12,11 @@ type AuthenticatedUser {
     displayName: String
 }
 
-endpoint RequestMagicLink POST RequestMagicLinkRequest /api/auth/request -> {
+endpoint RequestMagicLink POST RequestMagicLinkRequest /api/auth/magic-link/request -> {
     202 -> Unit
 }
 
-endpoint VerifyMagicLink POST VerifyMagicLinkRequest /api/auth/verify -> {
+endpoint VerifyMagicLink POST VerifyMagicLinkRequest /api/auth/magic-link/verify -> {
     200 -> AuthenticatedUser
     401 -> Unit
 }

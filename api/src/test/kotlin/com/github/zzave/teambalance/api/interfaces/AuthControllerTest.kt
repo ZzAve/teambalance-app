@@ -88,7 +88,7 @@ class AuthControllerTest : TeamBalanceIT() {
 
     private fun requestMagicLink(email: String) {
         val (_, dispatched) = performAsync(
-            MockMvcRequestBuilders.post("/api/auth/request")
+            MockMvcRequestBuilders.post("/api/auth/magic-link/request")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""{"email":"$email"}"""),
         )
@@ -97,7 +97,7 @@ class AuthControllerTest : TeamBalanceIT() {
 
     private fun verify(token: String, expectOk: Boolean): MockHttpSession {
         val (started, dispatched) = performAsync(
-            MockMvcRequestBuilders.post("/api/auth/verify")
+            MockMvcRequestBuilders.post("/api/auth/magic-link/verify")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""{"token":"$token"}"""),
         )

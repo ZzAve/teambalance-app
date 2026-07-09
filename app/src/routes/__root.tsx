@@ -1,7 +1,10 @@
-import { createRootRoute, Outlet, Link, useRouterState } from '@tanstack/react-router'
+import { createRootRoute, Outlet, Link, useNavigate, useRouterState } from '@tanstack/react-router'
+import { useQueryClient } from '@tanstack/react-query'
 import { useEffect, useRef } from 'react'
 import { Providers } from '@app/providers'
 import { BottomNav } from '@shared/ui/BottomNav'
+import { useLogout } from '@shared/api/auth'
+import { useUserStore } from '@shared/stores/user-store'
 
 export const Route = createRootRoute({
   component: RootLayout,
@@ -28,6 +31,36 @@ function useViewTransitions() {
   }, [location.pathname])
 }
 
+function LogoutButton() {
+  const userId = useUserStore((s) => s.userId)
+  const setCurrentUser = useUserStore((s) => s.setCurrentUser)
+  const logout = useLogout()
+  const queryClient = useQueryClient()
+  const navigate = useNavigate()
+
+  if (!userId) return null
+
+  const handleLogout = () => {
+    logout.mutate(undefined, {
+      onSuccess: () => {
+        setCurrentUser(null)
+        queryClient.invalidateQueries({ queryKey: ['auth', 'me'] })
+        navigate({ to: '/login' })
+      },
+    })
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={handleLogout}
+      className="text-xs font-semibold text-muted-foreground hover:text-foreground"
+    >
+      Log out
+    </button>
+  )
+}
+
 function RootLayout() {
   useViewTransitions()
 
@@ -45,6 +78,7 @@ function RootLayout() {
                 Heren 3
               </div>
             </div>
+            <LogoutButton />
           </div>
         </header>
         <main className="mx-auto max-w-2xl px-4 py-6 pb-24">

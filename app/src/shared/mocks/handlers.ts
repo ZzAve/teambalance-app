@@ -144,4 +144,10 @@ export const handlers = [
     await delay(100)
     return new HttpResponse(null, { status: 401 })
   }),
+
+  // POST /api/auth/logout
+  http.post('/api/auth/logout', async () => {
+    await delay(100)
+    return new HttpResponse(null, { status: 204 })
+  }),
 ]

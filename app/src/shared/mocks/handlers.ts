@@ -138,4 +138,10 @@ export const handlers = [
     }
     return new HttpResponse(null, { status: 401 })
   }),
+
+  // GET /api/auth/me
+  http.get('/api/auth/me', async () => {
+    await delay(100)
+    return new HttpResponse(null, { status: 401 })
+  }),
 ]

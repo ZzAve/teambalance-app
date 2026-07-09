@@ -1,7 +1,6 @@
 import { createRootRoute, Outlet, Link, useRouterState } from '@tanstack/react-router'
 import { useEffect, useRef } from 'react'
 import { Providers } from '@app/providers'
-import { UserSelector } from '@shared/ui/UserSelector'
 import { BottomNav } from '@shared/ui/BottomNav'
 
 export const Route = createRootRoute({
@@ -46,7 +45,6 @@ function RootLayout() {
                 Heren 3
               </div>
             </div>
-            <UserSelector />
           </div>
         </header>
         <main className="mx-auto max-w-2xl px-4 py-6 pb-24">

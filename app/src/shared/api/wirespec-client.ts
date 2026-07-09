@@ -10,10 +10,10 @@ const serialization: Wirespec.Serialization = {
 }
 
 // Turns a Wirespec RawRequest into a fetch against the same-origin API, carrying the
-// team/user context headers. In dev the MSW worker intercepts these requests.
+// team context header and the session cookie (identity). In dev the MSW worker
+// intercepts these requests.
 const handler = async (req: Wirespec.RawRequest): Promise<Wirespec.RawResponse> => {
   const teamId = localStorage.getItem('teamId') ?? 'setpoint_vt'
-  const userId = localStorage.getItem('userId') ?? ''
   const query = new URLSearchParams(req.queries).toString()
   const url = `/${req.path.join('/')}${query ? `?${query}` : ''}`
 
@@ -22,7 +22,6 @@ const handler = async (req: Wirespec.RawRequest): Promise<Wirespec.RawResponse> 
     headers: {
       'Content-Type': 'application/json',
       'X-Team-Id': teamId,
-      'X-User-Id': userId,
       ...req.headers,
     },
     body: req.body,

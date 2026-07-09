@@ -128,4 +128,14 @@ export const handlers = [
     await delay(300)
     return new HttpResponse(null, { status: 202 })
   }),
+
+  // POST /api/auth/verify
+  http.post('/api/auth/verify', async ({ request }) => {
+    await delay(300)
+    const body = (await request.json()) as { token: string }
+    if (body.token === 'valid-token') {
+      return HttpResponse.json({ id: MEMBERS[0].userId, email: 'you@example.com', displayName: MEMBERS[0].displayName })
+    }
+    return new HttpResponse(null, { status: 401 })
+  }),
 ]

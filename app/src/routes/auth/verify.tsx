@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
+import { useQueryClient } from '@tanstack/react-query'
 import { useVerifyMagicLink } from '@shared/api/auth'
 
 export const Route = createFileRoute('/auth/verify')({
@@ -12,6 +13,7 @@ export const Route = createFileRoute('/auth/verify')({
 function VerifyPage() {
   const { token } = Route.useSearch()
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const verifyMagicLink = useVerifyMagicLink()
   const [error, setError] = useState<string | null>(null)
   const attempted = useRef(false)
@@ -22,7 +24,10 @@ function VerifyPage() {
 
     verifyMagicLink
       .mutateAsync(token)
-      .then(() => navigate({ to: '/', replace: true }))
+      .then((user) => {
+        queryClient.setQueryData(['auth', 'me'], user)
+        navigate({ to: '/', replace: true })
+      })
       .catch(() => setError('This link has expired or already been used. Request a new one.'))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token])

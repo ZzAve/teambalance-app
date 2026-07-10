@@ -1,8 +1,8 @@
 package com.github.zzave.teambalance.api.infrastructure.multitenancy
 
 import com.github.zzave.teambalance.api.TeamBalanceIT
-import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
-import com.github.zzave.teambalance.api.infrastructure.identity.SessionKeys
+import com.github.zzave.teambalance.api.infrastructure.identity.UserContext
+import com.github.zzave.teambalance.api.infrastructure.persistence.SpringDataTeamMemberRepository
 import io.kotest.matchers.shouldBe
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.jdbc.core.JdbcTemplate
@@ -13,7 +13,7 @@ import java.util.UUID
 class SessionTenantContextFilterTest : TeamBalanceIT() {
 
     @Autowired
-    lateinit var teamMemberRepository: TeamMemberRepository
+    lateinit var springDataTeamMemberRepository: SpringDataTeamMemberRepository
 
     @Autowired
     lateinit var jdbcTemplate: JdbcTemplate
@@ -22,7 +22,10 @@ class SessionTenantContextFilterTest : TeamBalanceIT() {
     lateinit var tenantSchemaManager: TenantSchemaManager
 
     init {
-        afterTest { TenantContext.clear() }
+        afterTest {
+            TenantContext.clear()
+            UserContext.clear()
+        }
 
         test("session user with a team_members row resolves to their tenant schema") {
             tenantSchemaManager.provisionPlatformSchema()
@@ -43,20 +46,12 @@ class SessionTenantContextFilterTest : TeamBalanceIT() {
                 teamId, userId,
             )
 
-            val filter = SessionTenantContextFilter(teamMemberRepository)
-            val request = MockHttpServletRequest()
-            request.getSession(true)!!.setAttribute(SessionKeys.USER_ID, userId.toString())
-            val response = MockHttpServletResponse()
+            // SessionUserContextFilter (order +2) would have set UserContext before this filter runs.
+            UserContext.set(userId)
+            val (schema, wasSet) = runFilter()
 
-            var resolvedDuringChain: String? = null
-            var wasSetDuringChain = false
-            filter.doFilter(request, response) { _, _ ->
-                resolvedDuringChain = TenantContext.get()
-                wasSetDuringChain = TenantContext.isSet()
-            }
-
-            wasSetDuringChain shouldBe true
-            resolvedDuringChain shouldBe schemaName
+            wasSet shouldBe true
+            schema shouldBe schemaName
             TenantContext.isSet() shouldBe false
         }
 
@@ -69,21 +64,23 @@ class SessionTenantContextFilterTest : TeamBalanceIT() {
                 userId, "teamless-$userId@test.com", "Teamless User",
             )
 
-            val filter = SessionTenantContextFilter(teamMemberRepository)
-            val request = MockHttpServletRequest()
-            request.getSession(true)!!.setAttribute(SessionKeys.USER_ID, userId.toString())
-            val response = MockHttpServletResponse()
+            UserContext.set(userId)
+            val (schema, wasSet) = runFilter()
 
-            var resolvedDuringChain: String? = null
-            var wasSetDuringChain = false
-            filter.doFilter(request, response) { _, _ ->
-                resolvedDuringChain = TenantContext.get()
-                wasSetDuringChain = TenantContext.isSet()
-            }
-
-            wasSetDuringChain shouldBe false
-            resolvedDuringChain shouldBe "public"
+            wasSet shouldBe false
+            schema shouldBe "public"
             TenantContext.isSet() shouldBe false
         }
+    }
+
+    private fun runFilter(): Pair<String?, Boolean> {
+        val filter = SessionTenantContextFilter(springDataTeamMemberRepository)
+        var schema: String? = null
+        var wasSet = false
+        filter.doFilter(MockHttpServletRequest(), MockHttpServletResponse()) { _, _ ->
+            schema = TenantContext.get()
+            wasSet = TenantContext.isSet()
+        }
+        return schema to wasSet
     }
 }

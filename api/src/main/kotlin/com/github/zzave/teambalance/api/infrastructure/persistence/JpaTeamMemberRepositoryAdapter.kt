@@ -35,7 +35,4 @@ class JpaTeamMemberRepositoryAdapter(
             )
         }
     }
-
-    override fun findSchemaNameForUser(userId: UUID): String? =
-        jpaRepository.findSchemaNameByUserId(userId)
 }

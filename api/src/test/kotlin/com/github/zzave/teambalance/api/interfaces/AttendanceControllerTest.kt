@@ -71,16 +71,7 @@ class AttendanceControllerTest : TeamBalanceIT() {
                 .andExpect(MockMvcResultMatchers.status().isOk)
                 .andExpect(MockMvcResultMatchers.jsonPath("$.role").value("Setter"))
 
-            val changedBy = jdbcTemplate.queryForObject(
-                """
-                SELECT changed_by FROM public.attendances
-                WHERE event_id = (SELECT id FROM public.events WHERE uuid = ?::uuid) AND user_id = ?::uuid
-                """.trimIndent(),
-                UUID::class.java,
-                eventId.toString(),
-                JAN_USER_ID,
-            )
-            changedBy shouldBe UUID.fromString(JAN_USER_ID)
+            queryChangedBy(eventId, JAN_USER_ID) shouldBe UUID.fromString(JAN_USER_ID)
         }
 
         test("PUT /api/events/{id}/attendances/{userId} records the editor, not the owner, as changedBy") {
@@ -132,16 +123,19 @@ class AttendanceControllerTest : TeamBalanceIT() {
                 .andExpect(MockMvcResultMatchers.status().isOk)
                 .andExpect(MockMvcResultMatchers.jsonPath("$.userId").value(ownerId))
 
-            val changedBy = jdbcTemplate.queryForObject(
-                """
-                SELECT changed_by FROM public.attendances
-                WHERE event_id = (SELECT id FROM public.events WHERE uuid = ?::uuid) AND user_id = ?::uuid
-                """.trimIndent(),
-                UUID::class.java,
-                eventId.toString(),
-                ownerId,
-            )
-            changedBy shouldBe UUID.fromString(editorId)
+            queryChangedBy(eventId, ownerId) shouldBe UUID.fromString(editorId)
         }
     }
+
+    private fun queryChangedBy(eventId: UUID, userId: String): UUID? =
+        jdbcTemplate.queryForObject(
+            """
+            SELECT changed_by FROM public.attendances
+            WHERE event_id = (SELECT id FROM public.events WHERE uuid = ?::uuid)
+            AND user_id = ?::uuid
+            """.trimIndent(),
+            UUID::class.java,
+            eventId.toString(),
+            userId,
+        )
 }

@@ -4,6 +4,7 @@ import {type Event, useEvents} from '@shared/api/events'
 import {useEventTypes} from '@shared/api/event-types'
 import {EventCard} from '@entities/event/ui/EventCard'
 import {CreateEventDialog} from '@features/create-event/ui/CreateEventDialog'
+import {toggleTypeSelection} from '@features/filter-event-types/model/toggleTypeSelection'
 
 export const Route = createFileRoute('/')({
     component: EventListPage,
@@ -91,16 +92,8 @@ function EventListPage() {
                             <button
                                 key={type.id}
                                 onClick={() => {
-                                    setActiveTypeIds(prev => {
-                                        const next = new Set(prev)
-                                        if (next.has(type.id)) {
-                                            if (next.size <= 1) return prev
-                                            next.delete(type.id)
-                                        } else {
-                                            next.add(type.id)
-                                        }
-                                        return next
-                                    })
+                                    setActiveTypeIds(prev =>
+                                        toggleTypeSelection(prev, eventTypes.map(t => t.id), type.id))
                                 }}
                                 style={isActive ? {
                                     backgroundColor: color,

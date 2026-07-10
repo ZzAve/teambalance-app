@@ -35,4 +35,7 @@ class JpaTeamMemberRepositoryAdapter(
             )
         }
     }
+
+    override fun findRole(teamId: UUID, userId: UUID): String? =
+        jpaRepository.findByTeamIdAndUserIdAndActiveTrue(teamId, userId)?.role
 }

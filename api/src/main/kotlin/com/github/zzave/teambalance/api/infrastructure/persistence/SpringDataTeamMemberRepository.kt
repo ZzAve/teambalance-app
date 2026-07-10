@@ -8,6 +8,7 @@ import java.util.UUID
 
 interface SpringDataTeamMemberRepository : JpaRepository<TeamMemberJpaEntity, UUID> {
     fun findByTeamIdAndActiveTrue(teamId: UUID): List<TeamMemberJpaEntity>
+    fun findByTeamIdAndUserIdAndActiveTrue(teamId: UUID, userId: UUID): TeamMemberJpaEntity?
 
     @Query("SELECT u.display_name FROM public.users u WHERE u.id = :userId", nativeQuery = true)
     fun findDisplayNameByUserId(userId: UUID): String?

@@ -1,5 +1,6 @@
 package com.github.zzave.teambalance.api.interfaces
 
+import com.github.zzave.teambalance.api.domain.exception.ForbiddenException
 import com.github.zzave.teambalance.api.domain.exception.NotFoundException
 import com.github.zzave.teambalance.api.domain.exception.TeambalanceException
 import org.springframework.http.HttpStatus
@@ -15,6 +16,11 @@ class GlobalExceptionHandler {
     fun handleNotFound(ex: NotFoundException): ResponseEntity<Map<String, String>> =
         ResponseEntity.status(HttpStatus.NOT_FOUND)
             .body(mapOf("error" to (ex.message ?: "Not found")))
+
+    @ExceptionHandler(ForbiddenException::class)
+    fun handleForbidden(ex: ForbiddenException): ResponseEntity<Map<String, String>> =
+        ResponseEntity.status(HttpStatus.FORBIDDEN)
+            .body(mapOf("error" to (ex.message ?: "Forbidden")))
 
     @ExceptionHandler(TeambalanceException::class)
     fun handleTeambalanceException(ex: TeambalanceException): ResponseEntity<Map<String, String>> =

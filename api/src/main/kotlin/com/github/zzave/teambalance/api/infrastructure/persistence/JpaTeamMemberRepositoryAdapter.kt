@@ -38,4 +38,7 @@ class JpaTeamMemberRepositoryAdapter(
 
     override fun findSchemaNameForUser(userId: UUID): String? =
         jpaRepository.findSchemaNameByUserId(userId)
+
+    override fun findRole(teamId: UUID, userId: UUID): String? =
+        jpaRepository.findByTeamIdAndUserIdAndActiveTrue(teamId, userId)?.role
 }

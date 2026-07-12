@@ -75,7 +75,7 @@ class EventControllerTest : TeamBalanceIT() {
             // Call the API — X-Team-Id is required by TenantFilter
             val mvcResult = mockMvc.perform(
                 MockMvcRequestBuilders.get("/api/events/$eventId")
-                    .header("X-Team-Id", "placeholder")
+                    .header("X-Team-Id", "public")
                     .header("X-User-Id", JAN_USER_ID),
             )
                 .andExpect(MockMvcResultMatchers.request().asyncStarted())
@@ -126,7 +126,7 @@ class EventControllerTest : TeamBalanceIT() {
 
             val mvcResult = mockMvc.perform(
                 MockMvcRequestBuilders.get("/api/events?include-past=true")
-                    .header("X-Team-Id", "placeholder")
+                    .header("X-Team-Id", "public")
                     .header("X-User-Id", JAN_USER_ID),
             )
                 .andExpect(MockMvcResultMatchers.request().asyncStarted())
@@ -218,7 +218,7 @@ class EventControllerTest : TeamBalanceIT() {
 
             val mvcResult = mockMvc.perform(
                 MockMvcRequestBuilders.get("/api/events/$eventId")
-                    .header("X-Team-Id", "placeholder")
+                    .header("X-Team-Id", "public")
                     .header("X-User-Id", JAN_USER_ID),
             )
                 .andExpect(MockMvcResultMatchers.request().asyncStarted())
@@ -290,7 +290,7 @@ class EventControllerTest : TeamBalanceIT() {
 
             val mvcResult = mockMvc.perform(
                 MockMvcRequestBuilders.get("/api/events/$eventId")
-                    .header("X-Team-Id", "placeholder")
+                    .header("X-Team-Id", "public")
                     .header("X-User-Id", setterAId),
             )
                 .andExpect(MockMvcResultMatchers.request().asyncStarted())
@@ -346,7 +346,7 @@ class EventControllerTest : TeamBalanceIT() {
 
             val mvcResult = mockMvc.perform(
                 MockMvcRequestBuilders.get("/api/events/$eventId")
-                    .header("X-Team-Id", "placeholder")
+                    .header("X-Team-Id", "public")
                     .header("X-User-Id", JAN_USER_ID),
             )
                 .andExpect(MockMvcResultMatchers.request().asyncStarted())

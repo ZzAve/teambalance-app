@@ -29,4 +29,6 @@ class AttendanceJpaEntity(
     val state: String,
     @Column(name = "updated_at", nullable = false)
     val updatedAt: Instant,
+    @Column(name = "changed_by", nullable = false)
+    val changedBy: UUID,
 )

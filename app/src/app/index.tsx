@@ -13,7 +13,7 @@ declare module '@tanstack/react-router' {
 }
 
 async function start() {
-  if (import.meta.env.DEV) {
+  if (import.meta.env.DEV && !import.meta.env.VITE_DISABLE_MSW) {
     const { worker } = await import('@shared/mocks/browser')
     await worker.start({ onUnhandledRequest: 'bypass' })
   }

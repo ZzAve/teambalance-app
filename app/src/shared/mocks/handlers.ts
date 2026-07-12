@@ -122,4 +122,32 @@ export const handlers = [
     await delay(100)
     return HttpResponse.json({ eventTypes: EVENT_TYPES })
   }),
+
+  // POST /api/auth/magic-link/request
+  http.post('/api/auth/magic-link/request', async () => {
+    await delay(300)
+    return new HttpResponse(null, { status: 202 })
+  }),
+
+  // POST /api/auth/magic-link/verify
+  http.post('/api/auth/magic-link/verify', async ({ request }) => {
+    await delay(300)
+    const body = (await request.json()) as { token: string }
+    if (body.token === 'valid-token') {
+      return HttpResponse.json({ id: MEMBERS[0].userId, email: 'you@example.com', displayName: MEMBERS[0].displayName })
+    }
+    return new HttpResponse(null, { status: 401 })
+  }),
+
+  // GET /api/auth/me
+  http.get('/api/auth/me', async () => {
+    await delay(100)
+    return new HttpResponse(null, { status: 401 })
+  }),
+
+  // POST /api/auth/logout
+  http.post('/api/auth/logout', async () => {
+    await delay(100)
+    return new HttpResponse(null, { status: 204 })
+  }),
 ]

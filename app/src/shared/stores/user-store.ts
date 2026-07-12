@@ -1,22 +1,21 @@
 import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
+import type { AuthenticatedUser } from '@shared/api/auth'
 
 interface UserState {
   userId: string | null
   displayName: string | null
-  setUser: (userId: string, displayName: string) => void
+  email: string | null
+  setCurrentUser: (user: AuthenticatedUser | null) => void
 }
 
-export const useUserStore = create<UserState>()(
-  persist(
-    (set) => ({
-      userId: null,
-      displayName: null,
-      setUser: (userId, displayName) => {
-        localStorage.setItem('userId', userId)
-        set({ userId, displayName })
-      },
+export const useUserStore = create<UserState>((set) => ({
+  userId: null,
+  displayName: null,
+  email: null,
+  setCurrentUser: (user) =>
+    set({
+      userId: user?.id ?? null,
+      displayName: user?.displayName ?? null,
+      email: user?.email ?? null,
     }),
-    { name: 'teambalance-user' },
-  ),
-)
+}))

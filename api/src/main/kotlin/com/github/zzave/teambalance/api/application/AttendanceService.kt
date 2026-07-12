@@ -20,12 +20,14 @@ class AttendanceService(
     private val teamMemberRepository: TeamMemberRepository,
     private val clock: Clock,
 ) {
-    fun setAttendance(eventId: UUID, userId: UUID, state: AttendanceState): Attendance? {
+    fun setAttendance(eventId: UUID, userId: UUID, state: AttendanceState, changedBy: UUID): Attendance? {
         if (eventRepository.findById(eventId) == null) return null
 
         val existing = attendanceRepository.findByEventIdAndUserId(eventId, userId)
         return if (existing != null) {
-            attendanceRepository.save(existing.copy(state = state, updatedAt = Instant.now(clock)))
+            attendanceRepository.save(
+                existing.copy(state = state, updatedAt = Instant.now(clock), changedBy = changedBy),
+            )
         } else {
             attendanceRepository.save(
                 Attendance(
@@ -34,6 +36,7 @@ class AttendanceService(
                     userId = userId,
                     state = state,
                     updatedAt = Instant.now(clock),
+                    changedBy = changedBy,
                 ),
             )
         }

@@ -11,6 +11,7 @@ fun AttendanceJpaEntity.internalize() = Attendance(
     userId = userId,
     state = AttendanceState.valueOf(state),
     updatedAt = updatedAt,
+    changedBy = changedBy,
 )
 
 fun Attendance.externalize(event: EventJpaEntity) = AttendanceJpaEntity(
@@ -19,4 +20,5 @@ fun Attendance.externalize(event: EventJpaEntity) = AttendanceJpaEntity(
     userId = userId,
     state = state.name,
     updatedAt = updatedAt,
+    changedBy = changedBy,
 )

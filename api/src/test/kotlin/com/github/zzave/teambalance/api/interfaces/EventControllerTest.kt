@@ -70,14 +70,7 @@ class EventControllerTest : TeamBalanceIT() {
             )
 
             // Insert attendance for Jan de Vries (ATTENDING)
-            jdbcTemplate.execute(
-                """
-                INSERT INTO public.attendances (uuid, event_id, user_id, state, updated_at)
-                VALUES (gen_random_uuid(),
-                    (SELECT id FROM public.events WHERE uuid = '$eventId'::uuid),
-                    '$JAN_USER_ID'::uuid, 'ATTENDING', now())
-            """
-            )
+            insertAttendance(eventId, JAN_USER_ID)
 
             // Call the API — X-Team-Id is required by TenantFilter
             val mvcResult = mockMvc.perform(
@@ -129,14 +122,7 @@ class EventControllerTest : TeamBalanceIT() {
                     '$JAN_USER_ID'::uuid, now(), now())
             """
             )
-            jdbcTemplate.execute(
-                """
-                INSERT INTO public.attendances (uuid, event_id, user_id, state, updated_at)
-                VALUES (gen_random_uuid(),
-                    (SELECT id FROM public.events WHERE uuid = '$eventId'::uuid),
-                    '$JAN_USER_ID'::uuid, 'ATTENDING', now())
-            """
-            )
+            insertAttendance(eventId, JAN_USER_ID)
 
             val mvcResult = mockMvc.perform(
                 MockMvcRequestBuilders.get("/api/events?include-past=true")
@@ -226,30 +212,9 @@ class EventControllerTest : TeamBalanceIT() {
             """
             )
 
-            jdbcTemplate.execute(
-                """
-                INSERT INTO public.attendances (uuid, event_id, user_id, state, updated_at)
-                VALUES (gen_random_uuid(),
-                    (SELECT id FROM public.events WHERE uuid = '$eventId'::uuid),
-                    '$JAN_USER_ID'::uuid, 'ATTENDING', now())
-            """
-            )
-            jdbcTemplate.execute(
-                """
-                INSERT INTO public.attendances (uuid, event_id, user_id, state, updated_at)
-                VALUES (gen_random_uuid(),
-                    (SELECT id FROM public.events WHERE uuid = '$eventId'::uuid),
-                    '$LISA_USER_ID'::uuid, 'ATTENDING', now())
-            """
-            )
-            jdbcTemplate.execute(
-                """
-                INSERT INTO public.attendances (uuid, event_id, user_id, state, updated_at)
-                VALUES (gen_random_uuid(),
-                    (SELECT id FROM public.events WHERE uuid = '$eventId'::uuid),
-                    '$TOM_USER_ID'::uuid, 'MAYBE', now())
-            """
-            )
+            insertAttendance(eventId, JAN_USER_ID)
+            insertAttendance(eventId, LISA_USER_ID)
+            insertAttendance(eventId, TOM_USER_ID, "MAYBE")
 
             val mvcResult = mockMvc.perform(
                 MockMvcRequestBuilders.get("/api/events/$eventId")
@@ -320,14 +285,7 @@ class EventControllerTest : TeamBalanceIT() {
             """
             )
             listOf(setterAId, setterBId, liberoId).forEach { userId ->
-                jdbcTemplate.execute(
-                    """
-                    INSERT INTO public.attendances (uuid, event_id, user_id, state, updated_at)
-                    VALUES (gen_random_uuid(),
-                        (SELECT id FROM public.events WHERE uuid = '$eventId'::uuid),
-                        '$userId'::uuid, 'ATTENDING', now())
-                """
-                )
+                insertAttendance(eventId, userId)
             }
 
             val mvcResult = mockMvc.perform(
@@ -402,5 +360,16 @@ class EventControllerTest : TeamBalanceIT() {
                 .andExpect(MockMvcResultMatchers.jsonPath("$.attendanceSummary.absent").value(0))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.attendanceSummary.notResponded").value(0))
         }
+    }
+
+    private fun insertAttendance(eventId: UUID, userId: String, state: String = "ATTENDING") {
+        jdbcTemplate.execute(
+            """
+            INSERT INTO public.attendances (uuid, event_id, user_id, state, updated_at, changed_by)
+            VALUES (gen_random_uuid(),
+                (SELECT id FROM public.events WHERE uuid = '$eventId'::uuid),
+                '$userId'::uuid, '$state', now(), '$userId'::uuid)
+        """
+        )
     }
 }

@@ -9,4 +9,5 @@ data class Attendance(
     val userId: UUID,
     val state: AttendanceState,
     val updatedAt: Instant,
+    val changedBy: UUID,
 )

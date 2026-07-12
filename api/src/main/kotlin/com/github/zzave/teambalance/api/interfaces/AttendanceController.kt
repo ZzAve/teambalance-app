@@ -1,6 +1,7 @@
 package com.github.zzave.teambalance.api.interfaces
 
 import com.github.zzave.teambalance.api.application.AttendanceService
+import com.github.zzave.teambalance.api.application.CurrentUserProvider
 import com.github.zzave.teambalance.api.domain.model.AttendanceState
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.SetAttendance
 import com.github.zzave.teambalance.api.interfaces.generated.model.Attendance
@@ -10,6 +11,7 @@ import java.util.UUID
 @RestController
 class AttendanceController(
     private val attendanceService: AttendanceService,
+    private val currentUserProvider: CurrentUserProvider,
 ) : SetAttendance.Handler {
 
     override suspend fun setAttendance(request: SetAttendance.Request): SetAttendance.Response<*> {
@@ -17,7 +19,7 @@ class AttendanceController(
         val userId = UUID.fromString(request.path.userId)
         val state = AttendanceState.valueOf(request.body.state)
 
-        val attendance = attendanceService.setAttendance(eventId, userId, state)
+        val attendance = attendanceService.setAttendance(eventId, userId, state, currentUserProvider.requireCurrentUserId())
             ?: return SetAttendance.Response404(Unit)
 
         val member = attendanceService.findMember(userId)

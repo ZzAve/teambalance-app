@@ -1,5 +1,6 @@
 package com.github.zzave.teambalance.api.domain.port
 
+import com.github.zzave.teambalance.api.domain.model.Role
 import com.github.zzave.teambalance.api.domain.model.TeamMember
 import java.util.UUID
 
@@ -7,5 +8,7 @@ interface TeamMemberRepository {
     fun findByTeamId(teamId: UUID): List<TeamMember>
     fun findDisplayName(userId: UUID): String?
     fun findMembersByUserIds(userIds: Set<UUID>): Map<UUID, TeamMember>
-    fun findRole(teamId: UUID, userId: UUID): String?
+
+    /** The user's role on the team, or null if they have no active membership there. */
+    fun findRole(teamId: UUID, userId: UUID): Role?
 }

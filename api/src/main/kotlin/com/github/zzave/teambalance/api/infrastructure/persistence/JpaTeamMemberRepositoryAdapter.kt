@@ -1,5 +1,6 @@
 package com.github.zzave.teambalance.api.infrastructure.persistence
 
+import com.github.zzave.teambalance.api.domain.model.Role
 import com.github.zzave.teambalance.api.domain.model.TeamMember
 import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
 import org.springframework.stereotype.Repository
@@ -36,6 +37,8 @@ class JpaTeamMemberRepositoryAdapter(
         }
     }
 
-    override fun findRole(teamId: UUID, userId: UUID): String? =
-        jpaRepository.findByTeamIdAndUserIdAndActiveTrue(teamId, userId)?.role
+    override fun findRole(teamId: UUID, userId: UUID): Role? =
+        jpaRepository.findByTeamIdAndUserIdAndActiveTrue(teamId, userId)
+            ?.role
+            ?.let { role -> Role.entries.firstOrNull { it.name == role } }
 }

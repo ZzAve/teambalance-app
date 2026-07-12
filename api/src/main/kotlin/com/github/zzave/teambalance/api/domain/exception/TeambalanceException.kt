@@ -12,3 +12,8 @@ class EventTypeNotFoundException(id: UUID) : NotFoundException("EventType not fo
 
 class AttendanceNotFoundException(eventId: UUID, userId: UUID) :
     NotFoundException("Attendance not found for event $eventId and user $userId")
+
+sealed class ForbiddenException(message: String) : TeambalanceException(message)
+
+class NotTeamAdminException(userId: UUID, teamId: UUID) :
+    ForbiddenException("User $userId is not an admin of team $teamId")

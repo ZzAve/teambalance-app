@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.mock.web.MockHttpServletRequest
 import org.springframework.mock.web.MockHttpServletResponse
+import org.springframework.mock.web.MockHttpSession
 import java.util.UUID
 
 class SessionTenantContextFilterTest : TeamBalanceIT() {
@@ -55,6 +56,43 @@ class SessionTenantContextFilterTest : TeamBalanceIT() {
             TenantContext.isSet() shouldBe false
         }
 
+        test("second request on the same session resolves from the cached schema without a DB lookup") {
+            tenantSchemaManager.provisionPlatformSchema()
+            val userId = UUID.randomUUID()
+            val teamId = UUID.randomUUID()
+            val schemaName = "team_${teamId.toString().replace("-", "")}"
+
+            jdbcTemplate.update(
+                "INSERT INTO public.users (id, email, display_name) VALUES (?, ?, ?)",
+                userId, "member-$userId@test.com", "Test Member",
+            )
+            jdbcTemplate.update(
+                "INSERT INTO public.teams (id, name, slug, sport, schema_name) VALUES (?, ?, ?, ?, ?)",
+                teamId, "Test Team", "test-team-$teamId", "Volleyball", schemaName,
+            )
+            jdbcTemplate.update(
+                "INSERT INTO public.team_members (team_id, user_id, role, team_role) VALUES (?, ?, 'USER', 'Setter')",
+                teamId, userId,
+            )
+
+            val session = MockHttpSession()
+
+            // First request resolves from the DB and memoizes the schema in the session.
+            UserContext.set(userId)
+            val (firstSchema, firstWasSet) = runFilter(session)
+            firstWasSet shouldBe true
+            firstSchema shouldBe schemaName
+
+            // Remove the backing row so a DB lookup would now resolve to nothing.
+            jdbcTemplate.update("DELETE FROM public.team_members WHERE user_id = ?", userId)
+
+            // Second request on the same session still resolves — only possible from the session cache.
+            UserContext.set(userId)
+            val (secondSchema, secondWasSet) = runFilter(session)
+            secondWasSet shouldBe true
+            secondSchema shouldBe schemaName
+        }
+
         test("session user with no team_members row falls through with no silent fallback") {
             tenantSchemaManager.provisionPlatformSchema()
             val userId = UUID.randomUUID()
@@ -73,11 +111,12 @@ class SessionTenantContextFilterTest : TeamBalanceIT() {
         }
     }
 
-    private fun runFilter(): Pair<String?, Boolean> {
+    private fun runFilter(session: MockHttpSession? = null): Pair<String?, Boolean> {
         val filter = SessionTenantContextFilter(springDataTeamMemberRepository)
+        val request = MockHttpServletRequest().apply { session?.let { setSession(it) } }
         var schema: String? = null
         var wasSet = false
-        filter.doFilter(MockHttpServletRequest(), MockHttpServletResponse()) { _, _ ->
+        filter.doFilter(request, MockHttpServletResponse()) { _, _ ->
             schema = TenantContext.get()
             wasSet = TenantContext.isSet()
         }

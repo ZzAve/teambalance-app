@@ -123,14 +123,14 @@ export const handlers = [
     return HttpResponse.json({ eventTypes: EVENT_TYPES })
   }),
 
-  // POST /api/auth/request
-  http.post('/api/auth/request', async () => {
+  // POST /api/auth/magic-link/request
+  http.post('/api/auth/magic-link/request', async () => {
     await delay(300)
     return new HttpResponse(null, { status: 202 })
   }),
 
-  // POST /api/auth/verify
-  http.post('/api/auth/verify', async ({ request }) => {
+  // POST /api/auth/magic-link/verify
+  http.post('/api/auth/magic-link/verify', async ({ request }) => {
     await delay(300)
     const body = (await request.json()) as { token: string }
     if (body.token === 'valid-token') {

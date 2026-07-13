@@ -134,7 +134,12 @@ export const handlers = [
     await delay(300)
     const body = (await request.json()) as { token: string }
     if (body.token === 'valid-token') {
-      return HttpResponse.json({ id: MEMBERS[0].userId, email: 'you@example.com', displayName: MEMBERS[0].displayName })
+      return HttpResponse.json({
+        id: MEMBERS[0].userId,
+        email: 'you@example.com',
+        displayName: MEMBERS[0].displayName,
+        role: 'ADMIN',
+      })
     }
     return new HttpResponse(null, { status: 401 })
   }),

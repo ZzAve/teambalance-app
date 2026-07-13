@@ -9,7 +9,8 @@ type VerifyMagicLinkRequest {
 type AuthenticatedUser {
     id: String,
     email: String,
-    displayName: String
+    displayName: String,
+    role: String?
 }
 
 endpoint RequestMagicLink POST RequestMagicLinkRequest /api/auth/magic-link/request -> {

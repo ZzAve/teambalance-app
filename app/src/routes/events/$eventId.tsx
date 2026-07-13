@@ -110,6 +110,7 @@ function EventDetailPage() {
   const { eventId } = Route.useParams()
   const { data: event, isLoading } = useEvent(eventId)
   const currentUserId = useUserStore((s) => s.userId)
+  const isAdmin = useUserStore((s) => s.role) === 'ADMIN'
   const { mutate, isPending } = useSetAttendance()
   const [activeAttendeeTab, setActiveAttendeeTab] = useState<AttendanceState>('ATTENDING')
 
@@ -249,16 +250,18 @@ function EventDetailPage() {
       </div>
 
       {/* Admin Actions */}
-      <div className="mt-6 flex gap-2.5 border-t border-border/40 pt-5">
-        <button className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-border/60 bg-transparent py-3 text-sm font-medium text-muted-foreground transition-all hover:bg-muted/50 active:scale-[0.97]">
-          <Pencil size={15} />
-          Edit event
-        </button>
-        <button className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-red-200 bg-transparent py-3 text-sm font-medium text-red-500 transition-all hover:bg-red-500/5 active:scale-[0.97]">
-          <Trash2 size={15} />
-          Delete
-        </button>
-      </div>
+      {isAdmin && (
+        <div className="mt-6 flex gap-2.5 border-t border-border/40 pt-5">
+          <button className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-border/60 bg-transparent py-3 text-sm font-medium text-muted-foreground transition-all hover:bg-muted/50 active:scale-[0.97]">
+            <Pencil size={15} />
+            Edit event
+          </button>
+          <button className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-red-200 bg-transparent py-3 text-sm font-medium text-red-500 transition-all hover:bg-red-500/5 active:scale-[0.97]">
+            <Trash2 size={15} />
+            Delete
+          </button>
+        </div>
+      )}
     </div>
   )
 }

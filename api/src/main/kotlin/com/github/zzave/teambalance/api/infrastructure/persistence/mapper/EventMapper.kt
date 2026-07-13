@@ -16,7 +16,8 @@ fun EventJpaEntity.internalize() = Event(
     createdAt = createdAt,
 )
 
-fun Event.externalize(eventTypeEntity: EventTypeJpaEntity) = EventJpaEntity(
+fun Event.externalize(eventTypeEntity: EventTypeJpaEntity, technicalId: Long = 0) = EventJpaEntity(
+    id = technicalId,
     uuid = id,
     eventType = eventTypeEntity,
     title = title,

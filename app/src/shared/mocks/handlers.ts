@@ -157,4 +157,16 @@ export const handlers = [
     await delay(100)
     return new HttpResponse(null, { status: 204 })
   }),
+
+  // POST /api/invitations
+  http.post('/api/invitations', async () => {
+    await delay(300)
+    return HttpResponse.json(
+      {
+        token: 'mock-invite-token',
+        expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
+      },
+      { status: 201 },
+    )
+  }),
 ]

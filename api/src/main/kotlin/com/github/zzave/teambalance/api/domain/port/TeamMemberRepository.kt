@@ -11,4 +11,7 @@ interface TeamMemberRepository {
 
     /** The user's role on the team, or null if they have no active membership there. */
     fun findRole(teamId: UUID, userId: UUID): Role?
+
+    /** The team the user actively belongs to, or null if they have no team (v1: one team per user). */
+    fun findTeamId(userId: UUID): UUID?
 }

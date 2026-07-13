@@ -22,7 +22,8 @@ class TenantFilter : OncePerRequestFilter() {
         val tenantHeader = request.getHeader("X-Team-Id")
         if (tenantHeader != null) {
             // Test-profile-only shim; prod resolves tenant from the session (SessionTenantContextFilter).
-            TenantContext.set("team_$tenantHeader")
+            // The header value IS the schema name (e.g. "public" or "team_test") — callers own provisioning it.
+            TenantContext.set(tenantHeader)
         }
         try {
             filterChain.doFilter(request, response)

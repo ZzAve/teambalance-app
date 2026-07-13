@@ -25,72 +25,52 @@ class SessionTenantContextFilterTest : TeamBalanceIT() {
     init {
         afterTest {
             TenantContext.clear()
+            CurrentTeamContext.clear()
             UserContext.clear()
         }
 
-        test("session user with a team_members row resolves to their tenant schema") {
+        test("session user with a team_members row resolves schema and team id from the same row") {
             tenantSchemaManager.provisionPlatformSchema()
             val userId = UUID.randomUUID()
             val teamId = UUID.randomUUID()
             val schemaName = "team_${teamId.toString().replace("-", "")}"
-
-            jdbcTemplate.update(
-                "INSERT INTO public.users (id, email, display_name) VALUES (?, ?, ?)",
-                userId, "member-$userId@test.com", "Test Member",
-            )
-            jdbcTemplate.update(
-                "INSERT INTO public.teams (id, name, slug, sport, schema_name) VALUES (?, ?, ?, ?, ?)",
-                teamId, "Test Team", "test-team-$teamId", "Volleyball", schemaName,
-            )
-            jdbcTemplate.update(
-                "INSERT INTO public.team_members (team_id, user_id, role, team_role) VALUES (?, ?, 'USER', 'Setter')",
-                teamId, userId,
-            )
+            seedMember(userId, teamId, schemaName)
 
             // SessionUserContextFilter (order +2) would have set UserContext before this filter runs.
             UserContext.set(userId)
-            val (schema, wasSet) = runFilter()
+            val resolved = runFilter()
 
-            wasSet shouldBe true
-            schema shouldBe schemaName
+            resolved.wasSet shouldBe true
+            resolved.schema shouldBe schemaName
+            resolved.teamId shouldBe teamId
             TenantContext.isSet() shouldBe false
         }
 
-        test("second request on the same session resolves from the cached schema without a DB lookup") {
+        test("second request on the same session resolves schema and team id from cache without a DB lookup") {
             tenantSchemaManager.provisionPlatformSchema()
             val userId = UUID.randomUUID()
             val teamId = UUID.randomUUID()
             val schemaName = "team_${teamId.toString().replace("-", "")}"
-
-            jdbcTemplate.update(
-                "INSERT INTO public.users (id, email, display_name) VALUES (?, ?, ?)",
-                userId, "member-$userId@test.com", "Test Member",
-            )
-            jdbcTemplate.update(
-                "INSERT INTO public.teams (id, name, slug, sport, schema_name) VALUES (?, ?, ?, ?, ?)",
-                teamId, "Test Team", "test-team-$teamId", "Volleyball", schemaName,
-            )
-            jdbcTemplate.update(
-                "INSERT INTO public.team_members (team_id, user_id, role, team_role) VALUES (?, ?, 'USER', 'Setter')",
-                teamId, userId,
-            )
+            seedMember(userId, teamId, schemaName)
 
             val session = MockHttpSession()
 
-            // First request resolves from the DB and memoizes the schema in the session.
+            // First request resolves from the DB and memoizes schema + team id on the session.
             UserContext.set(userId)
-            val (firstSchema, firstWasSet) = runFilter(session)
-            firstWasSet shouldBe true
-            firstSchema shouldBe schemaName
+            val first = runFilter(session)
+            first.wasSet shouldBe true
+            first.schema shouldBe schemaName
+            first.teamId shouldBe teamId
 
             // Remove the backing row so a DB lookup would now resolve to nothing.
             jdbcTemplate.update("DELETE FROM public.team_members WHERE user_id = ?", userId)
 
-            // Second request on the same session still resolves — only possible from the session cache.
+            // Second request on the same session still resolves both — only possible from the cache.
             UserContext.set(userId)
-            val (secondSchema, secondWasSet) = runFilter(session)
-            secondWasSet shouldBe true
-            secondSchema shouldBe schemaName
+            val second = runFilter(session)
+            second.wasSet shouldBe true
+            second.schema shouldBe schemaName
+            second.teamId shouldBe teamId
         }
 
         test("session user with no team_members row falls through with no silent fallback") {
@@ -103,23 +83,39 @@ class SessionTenantContextFilterTest : TeamBalanceIT() {
             )
 
             UserContext.set(userId)
-            val (schema, wasSet) = runFilter()
+            val resolved = runFilter()
 
-            wasSet shouldBe false
-            schema shouldBe "public"
+            resolved.wasSet shouldBe false
+            resolved.schema shouldBe "public"
+            resolved.teamId shouldBe null
             TenantContext.isSet() shouldBe false
         }
     }
 
-    private fun runFilter(session: MockHttpSession? = null): Pair<String?, Boolean> {
+    private fun seedMember(userId: UUID, teamId: UUID, schemaName: String) {
+        jdbcTemplate.update(
+            "INSERT INTO public.users (id, email, display_name) VALUES (?, ?, ?)",
+            userId, "member-$userId@test.com", "Test Member",
+        )
+        jdbcTemplate.update(
+            "INSERT INTO public.teams (id, name, slug, sport, schema_name) VALUES (?, ?, ?, ?, ?)",
+            teamId, "Test Team", "test-team-$teamId", "Volleyball", schemaName,
+        )
+        jdbcTemplate.update(
+            "INSERT INTO public.team_members (team_id, user_id, role, team_role) VALUES (?, ?, 'USER', 'Setter')",
+            teamId, userId,
+        )
+    }
+
+    private data class Resolved(val schema: String?, val teamId: UUID?, val wasSet: Boolean)
+
+    private fun runFilter(session: MockHttpSession? = null): Resolved {
         val filter = SessionTenantContextFilter(springDataTeamMemberRepository)
         val request = MockHttpServletRequest().apply { session?.let { setSession(it) } }
-        var schema: String? = null
-        var wasSet = false
+        var resolved = Resolved(null, null, false)
         filter.doFilter(request, MockHttpServletResponse()) { _, _ ->
-            schema = TenantContext.get()
-            wasSet = TenantContext.isSet()
+            resolved = Resolved(TenantContext.get(), CurrentTeamContext.get(), TenantContext.isSet())
         }
-        return schema to wasSet
+        return resolved
     }
 }

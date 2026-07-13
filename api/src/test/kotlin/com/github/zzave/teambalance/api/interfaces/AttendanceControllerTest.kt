@@ -61,7 +61,7 @@ class AttendanceControllerTest : TeamBalanceIT() {
                 MockMvcRequestBuilders.put("/api/events/$eventId/attendances/$JAN_USER_ID")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content("""{"state":"ATTENDING"}""")
-                    .header("X-Team-Id", "placeholder")
+                    .header("X-Team-Id", "public")
                     .header("X-User-Id", JAN_USER_ID),
             )
                 .andExpect(MockMvcResultMatchers.request().asyncStarted())
@@ -113,7 +113,7 @@ class AttendanceControllerTest : TeamBalanceIT() {
                 MockMvcRequestBuilders.put("/api/events/$eventId/attendances/$ownerId")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content("""{"state":"ATTENDING"}""")
-                    .header("X-Team-Id", "placeholder")
+                    .header("X-Team-Id", "public")
                     .header("X-User-Id", editorId),
             )
                 .andExpect(MockMvcResultMatchers.request().asyncStarted())

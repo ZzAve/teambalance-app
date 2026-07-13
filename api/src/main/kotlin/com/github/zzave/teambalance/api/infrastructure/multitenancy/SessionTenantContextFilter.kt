@@ -6,6 +6,7 @@ import com.github.zzave.teambalance.api.infrastructure.persistence.SpringDataTea
 import jakarta.servlet.FilterChain
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
+import jakarta.servlet.http.HttpSession
 import org.springframework.core.Ordered
 import org.springframework.core.annotation.Order
 import org.springframework.stereotype.Component
@@ -20,6 +21,8 @@ class SessionTenantContextFilter(
     private val teamMemberRepository: SpringDataTeamMemberRepository,
 ) : OncePerRequestFilter() {
 
+    private data class TenantRouting(val schemaName: String, val teamId: UUID)
+
     override fun doFilterInternal(
         request: HttpServletRequest,
         response: HttpServletResponse,
@@ -27,32 +30,48 @@ class SessionTenantContextFilter(
     ) {
         // SessionUserContextFilter (order +2) already resolved and parsed the session user —
         // read it directly rather than re-parsing the session to avoid duplicating that logic.
-        if (!TenantContext.isSet()) {
-            // No team_members row means the user hasn't joined a team yet — leave TenantContext
-            // unset rather than guessing, so callers see the neutral "public" default explicitly.
-            UserContext.get()?.let { userId ->
-                resolveSchemaName(request, userId)?.let { TenantContext.set(it) }
+        // Resolve schema and team id together (one row) so they can never diverge; a user with no
+        // team resolves to nothing (no silent "public" fallback for tenant-scoped work).
+        UserContext.get()?.let { userId ->
+            resolveRouting(request, userId)?.let { routing ->
+                // Respect a tenant already pinned upstream (the test-profile X-Team-Id shim).
+                if (!TenantContext.isSet()) TenantContext.set(routing.schemaName)
+                CurrentTeamContext.set(routing.teamId)
             }
         }
         try {
             filterChain.doFilter(request, response)
         } finally {
             TenantContext.clear()
+            CurrentTeamContext.clear()
         }
     }
 
     /**
-     * The tenant schema is immutable per session in v1 (one team per user, fixed for the session),
-     * so resolve it from the DB once and memoize it on the session. Subsequent requests read the
-     * cached value, avoiding a `team_members JOIN teams` round-trip on every authenticated call.
-     * On a cache miss (first request, or a surviving session after a restart) fall back to the DB.
-     * Multi-team support (post-v1) will invalidate this attribute on team-switch.
+     * The tenant routing is immutable per session in v1 (one team per user, fixed for the session),
+     * so resolve it from the DB once and memoize schema + team id *together* on the session; later
+     * requests read the cached pair, avoiding a `team_members JOIN teams` round-trip on every
+     * authenticated call. Both are cached as a unit so a cached schema can never be paired with a
+     * freshly-queried team id — the single-row guarantee holds across the cache too. On a miss
+     * (first request, or a session surviving a restart) fall back to the DB. Multi-team support
+     * (post-v1) will invalidate these attributes on team-switch.
      */
-    private fun resolveSchemaName(request: HttpServletRequest, userId: UUID): String? {
+    private fun resolveRouting(request: HttpServletRequest, userId: UUID): TenantRouting? {
         val session = request.getSession(false)
-        (session?.getAttribute(SessionKeys.TENANT_SCHEMA) as? String)?.let { return it }
-        return teamMemberRepository.findSchemaNameByUserId(userId)?.also { schemaName ->
-            session?.setAttribute(SessionKeys.TENANT_SCHEMA, schemaName)
+        cachedRouting(session)?.let { return it }
+        return teamMemberRepository.findTeamRoutingByUserId(userId)?.let { routing ->
+            TenantRouting(routing.schemaName, routing.teamId).also { cache(session, it) }
         }
+    }
+
+    private fun cachedRouting(session: HttpSession?): TenantRouting? {
+        val schema = session?.getAttribute(SessionKeys.TENANT_SCHEMA) as? String
+        val teamId = session?.getAttribute(SessionKeys.TENANT_TEAM_ID) as? String
+        return if (schema != null && teamId != null) TenantRouting(schema, UUID.fromString(teamId)) else null
+    }
+
+    private fun cache(session: HttpSession?, routing: TenantRouting) {
+        session?.setAttribute(SessionKeys.TENANT_SCHEMA, routing.schemaName)
+        session?.setAttribute(SessionKeys.TENANT_TEAM_ID, routing.teamId.toString())
     }
 }

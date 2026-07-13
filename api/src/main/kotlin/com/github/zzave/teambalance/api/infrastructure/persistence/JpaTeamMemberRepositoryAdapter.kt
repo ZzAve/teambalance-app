@@ -41,4 +41,7 @@ class JpaTeamMemberRepositoryAdapter(
         jpaRepository.findByTeamIdAndUserIdAndActiveTrue(teamId, userId)
             ?.role
             ?.let { role -> Role.entries.firstOrNull { it.name == role } }
+
+    override fun findTeamId(userId: UUID): UUID? =
+        jpaRepository.findTeamIdByUserId(userId)
 }

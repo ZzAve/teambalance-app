@@ -20,7 +20,7 @@ class GlobalExceptionHandler {
     @ExceptionHandler(ForbiddenException::class)
     fun handleForbidden(ex: ForbiddenException): ResponseEntity<Map<String, String>> =
         ResponseEntity.status(HttpStatus.FORBIDDEN)
-            .body(mapOf("error" to (ex.message ?: "Forbidden")))
+            .body(mapOf("error" to (ex.message ?: "Forbidden"), "code" to ex.code))
 
     @ExceptionHandler(TeambalanceException::class)
     fun handleTeambalanceException(ex: TeambalanceException): ResponseEntity<Map<String, String>> =

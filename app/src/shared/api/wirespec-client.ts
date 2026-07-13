@@ -1,5 +1,15 @@
 import { Wirespec } from './generated/Wirespec'
 import { client } from './generated/client'
+import { redirectToLogin, shouldRedirectToLogin } from './auth-redirect'
+
+// Best-effort read of the `code` discriminator from an error body (GlobalExceptionHandler).
+const errorCode = (body: string): string | undefined => {
+  try {
+    return JSON.parse(body)?.code
+  } catch {
+    return undefined
+  }
+}
 
 // Wirespec serialization: path/query primitives go through as-is, bodies as JSON.
 const serialization: Wirespec.Serialization = {
@@ -28,6 +38,13 @@ const handler = async (req: Wirespec.RawRequest): Promise<Wirespec.RawResponse> 
   })
 
   const text = res.status === 204 ? '' : await res.text()
+
+  // A teamless authenticated user (403 NO_TEAM_MEMBERSHIP) belongs on the login/onboarding path,
+  // not on a data screen — bounce them there rather than surfacing a raw error.
+  if (shouldRedirectToLogin({ status: res.status, code: errorCode(text), currentPath: window.location.pathname })) {
+    redirectToLogin()
+  }
+
   const headers: Record<string, string> = {}
   res.headers.forEach((value, key) => {
     headers[key] = value

@@ -1,6 +1,7 @@
 package com.github.zzave.teambalance.api.interfaces
 
 import com.github.zzave.teambalance.api.application.AttendanceService
+import com.github.zzave.teambalance.api.application.CurrentTeamProvider
 import com.github.zzave.teambalance.api.application.CurrentUserProvider
 import com.github.zzave.teambalance.api.application.EventService
 import com.github.zzave.teambalance.api.application.PotentialEvent
@@ -28,6 +29,7 @@ class EventController(
     private val eventService: EventService,
     private val attendanceService: AttendanceService,
     private val currentUserProvider: CurrentUserProvider,
+    private val currentTeamProvider: CurrentTeamProvider,
 ) : ListEvents.Handler,
     CreateEvent.Handler,
     GetEvent.Handler,
@@ -42,8 +44,7 @@ class EventController(
     }
 
     override suspend fun createEvent(request: CreateEvent.Request): CreateEvent.Response<*> {
-        @Suppress("ForbiddenComment")
-        val teamId = UUID.fromString("a0000000-0000-0000-0000-000000000001") // TODO: resolve from tenant context
+        val teamId = currentTeamProvider.requireCurrentTeamId()
         val event = eventService.createEvent(
             potential = request.body.consume(),
             createdBy = currentUserProvider.requireCurrentUserId(),

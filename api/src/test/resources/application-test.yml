@@ -1,0 +1,4 @@
+teambalance:
+  invitation:
+    # Hardcoded salt for the test profile — live environments supply INVITATION_TOKEN_SALT via env.
+    token-salt: test-invitation-salt

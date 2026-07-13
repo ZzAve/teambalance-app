@@ -11,6 +11,11 @@ spring:
       host: localhost
       port: 6379
 
+teambalance:
+  invitation:
+    # Dev-only salt (not a live environment) so bootRun works without INVITATION_TOKEN_SALT set.
+    token-salt: dev-invitation-salt
+
 logging:
   level:
     com.github.zzave.teambalance.api: DEBUG

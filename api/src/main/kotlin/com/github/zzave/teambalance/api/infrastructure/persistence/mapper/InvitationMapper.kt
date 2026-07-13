@@ -6,7 +6,7 @@ import com.github.zzave.teambalance.api.infrastructure.persistence.entity.Invita
 fun InvitationJpaEntity.internalize() = Invitation(
     id = id,
     teamId = teamId,
-    token = token,
+    tokenHash = tokenHash,
     createdBy = createdBy,
     expiresAt = expiresAt,
     createdAt = createdAt,
@@ -15,7 +15,7 @@ fun InvitationJpaEntity.internalize() = Invitation(
 fun Invitation.externalize() = InvitationJpaEntity(
     id = id,
     teamId = teamId,
-    token = token,
+    tokenHash = tokenHash,
     createdBy = createdBy,
     expiresAt = expiresAt,
     createdAt = createdAt,

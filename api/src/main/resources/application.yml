@@ -26,3 +26,10 @@ management:
       base-path: /internal/actuator
       exposure:
         include: health,info,metrics
+
+teambalance:
+  invitation:
+    # App-wide secret salt applied to stored invite-token hashes. Live environments MUST provide it
+    # via INVITATION_TOKEN_SALT (no default here → the app fails fast if it is unset). Dev and test
+    # override it with a hardcoded value in their profile config.
+    token-salt: ${INVITATION_TOKEN_SALT}

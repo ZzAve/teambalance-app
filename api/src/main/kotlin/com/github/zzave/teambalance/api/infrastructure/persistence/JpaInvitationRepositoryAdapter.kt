@@ -5,7 +5,6 @@ import com.github.zzave.teambalance.api.domain.port.InvitationRepository
 import com.github.zzave.teambalance.api.infrastructure.persistence.mapper.externalize
 import com.github.zzave.teambalance.api.infrastructure.persistence.mapper.internalize
 import org.springframework.stereotype.Repository
-import java.util.UUID
 
 @Repository
 class JpaInvitationRepositoryAdapter(
@@ -14,7 +13,4 @@ class JpaInvitationRepositoryAdapter(
 
     override fun save(invitation: Invitation): Invitation =
         jpaRepository.save(invitation.externalize()).internalize()
-
-    override fun findLatestByTeamId(teamId: UUID): Invitation? =
-        jpaRepository.findFirstByTeamIdOrderByCreatedAtDesc(teamId)?.internalize()
 }

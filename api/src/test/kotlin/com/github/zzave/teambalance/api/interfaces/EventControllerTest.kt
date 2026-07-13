@@ -478,6 +478,64 @@ class EventControllerTest : TeamBalanceIT() {
             mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(mvcResult))
                 .andExpect(MockMvcResultMatchers.status().isForbidden)
         }
+
+        test("POST /api/events by a non-admin team member is rejected with 403") {
+            tenantSchemaManager.provisionPlatformSchema()
+            tenantSchemaManager.provisionTenantSchema("public")
+
+            jdbcTemplate.execute(
+                """
+                INSERT INTO public.teams (id, name, slug, sport, schema_name)
+                VALUES ('$TEAM_ID'::uuid, 'Test Team', 'test-team', 'Volleyball', 'public')
+                ON CONFLICT DO NOTHING
+            """
+            )
+            // Lisa is a plain USER (non-admin) member of the team — seeded by other tests too,
+            // but re-asserting the role here keeps this test independent of ordering.
+            jdbcTemplate.execute(
+                """
+                INSERT INTO public.users (id, email, display_name)
+                VALUES ('$LISA_USER_ID'::uuid, 'lisa@test.com', 'Lisa Bakker')
+                ON CONFLICT DO NOTHING
+            """
+            )
+            jdbcTemplate.execute(
+                """
+                INSERT INTO public.team_members (team_id, user_id, role, team_role)
+                VALUES ('$TEAM_ID'::uuid, '$LISA_USER_ID'::uuid, 'USER', 'Libero')
+                ON CONFLICT DO NOTHING
+            """
+            )
+
+            val eventTypeId = jdbcTemplate.queryForObject(
+                "SELECT uuid FROM public.event_types WHERE name = 'Training'",
+                UUID::class.java,
+            )
+
+            val mvcResult = mockMvc.perform(
+                MockMvcRequestBuilders.post("/api/events")
+                    .header("X-Team-Id", "public")
+                    .header("X-User-Id", LISA_USER_ID)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(
+                        """
+                        {
+                          "eventTypeId": "$eventTypeId",
+                          "title": "Should not be created",
+                          "description": null,
+                          "startTime": "2026-08-01T20:00:00Z",
+                          "endTime": "2026-08-01T22:00:00Z",
+                          "location": null
+                        }
+                        """.trimIndent()
+                    ),
+            )
+                .andExpect(MockMvcResultMatchers.request().asyncStarted())
+                .andReturn()
+
+            mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(mvcResult))
+                .andExpect(MockMvcResultMatchers.status().isForbidden)
+        }
     }
 
     private fun insertAttendance(eventId: UUID, userId: String, state: String = "ATTENDING") {

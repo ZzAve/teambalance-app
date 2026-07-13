@@ -1,6 +1,7 @@
 package com.github.zzave.teambalance.api.interfaces
 
 import com.github.zzave.teambalance.api.application.AttendanceService
+import com.github.zzave.teambalance.api.application.AuthorizationService
 import com.github.zzave.teambalance.api.application.CurrentTeamProvider
 import com.github.zzave.teambalance.api.application.CurrentUserProvider
 import com.github.zzave.teambalance.api.application.EventService
@@ -30,6 +31,7 @@ class EventController(
     private val attendanceService: AttendanceService,
     private val currentUserProvider: CurrentUserProvider,
     private val currentTeamProvider: CurrentTeamProvider,
+    private val authorizationService: AuthorizationService,
 ) : ListEvents.Handler,
     CreateEvent.Handler,
     GetEvent.Handler,
@@ -45,9 +47,11 @@ class EventController(
 
     override suspend fun createEvent(request: CreateEvent.Request): CreateEvent.Response<*> {
         val teamId = currentTeamProvider.requireCurrentTeamId()
+        val userId = currentUserProvider.requireCurrentUserId()
+        authorizationService.requireAdmin(userId, teamId)
         val event = eventService.createEvent(
             potential = request.body.consume(),
-            createdBy = currentUserProvider.requireCurrentUserId(),
+            createdBy = userId,
             teamId = teamId,
         )
         return CreateEvent.Response201(event.produce(attendanceService))
@@ -86,6 +90,7 @@ class EventController(
     }
 
     override suspend fun updateEvent(request: UpdateEvent.Request): UpdateEvent.Response<*> {
+        authorizationService.requireAdmin(currentUserProvider.requireCurrentUserId(), currentTeamProvider.requireCurrentTeamId())
         val id = UUID.fromString(request.path.id)
         val req = request.body
         val event = eventService.updateEvent(
@@ -102,6 +107,7 @@ class EventController(
     }
 
     override suspend fun deleteEvent(request: DeleteEvent.Request): DeleteEvent.Response<*> {
+        authorizationService.requireAdmin(currentUserProvider.requireCurrentUserId(), currentTeamProvider.requireCurrentTeamId())
         val id = UUID.fromString(request.path.id)
         return if (eventService.deleteEvent(id)) {
             DeleteEvent.Response204(Unit)

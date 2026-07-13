@@ -7,6 +7,7 @@ import { useUserStore } from '@shared/stores/user-store'
 import { Button } from '@shared/ui/button'
 import { EventTypeBadge } from '@entities/event/ui/EventTypeBadge'
 import { EventTypeIcon } from '@entities/event/ui/EventTypeIcon'
+import { RoleBreakdown } from '@entities/event/ui/RoleBreakdown'
 import { AttendanceToggle, type AttendanceState } from '@features/attendance-toggle/ui/AttendanceToggle'
 
 export const Route = createFileRoute('/events/$eventId')({
@@ -178,14 +179,8 @@ function EventDetailPage() {
         </div>
         {/* Panel content */}
         <div className="p-1">
-          {activeAttendeeTab === 'ATTENDING' && event.attendanceSummary.roleBreakdown.length > 0 && (
-            <div className="flex flex-wrap gap-1.5 px-3 py-2">
-              {event.attendanceSummary.roleBreakdown.map(({ role, attending }) => (
-                <span key={role} className="rounded-full bg-green/10 px-2.5 py-1 text-xs font-medium text-green">
-                  {attending} {role}
-                </span>
-              ))}
-            </div>
+          {activeAttendeeTab === 'ATTENDING' && (
+            <RoleBreakdown breakdown={event.attendanceSummary.roleBreakdown} />
           )}
           {filteredAttendees.map((a) => (
             <AttendeeRow key={a.userId} attendance={a} />

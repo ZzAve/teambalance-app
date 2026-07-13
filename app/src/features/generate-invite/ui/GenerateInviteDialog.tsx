@@ -1,17 +1,23 @@
 import { useState } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@shared/ui/dialog'
 import { Button } from '@shared/ui/button'
-import { Input } from '@shared/ui/input'
 import { useCreateInvitation } from '@shared/api/invitations'
+import { GenerateInviteContent } from './GenerateInviteContent'
 
+/**
+ * Container for the team invite link: owns the dialog open/close state, the copied flag, and the
+ * create-invitation mutation, wiring them to the presentational GenerateInviteContent. Opening the
+ * dialog kicks off generation once; closing resets the copied flag. The Dialog wrapper stays here —
+ * Radix unmounts the content on close, so no extra reset is needed.
+ */
 export function GenerateInviteDialog() {
   const [open, setOpen] = useState(false)
   const [copied, setCopied] = useState(false)
   const createInvitation = useCreateInvitation()
 
-  const inviteUrl = createInvitation.data
+  const link = createInvitation.data
     ? `${window.location.origin}/invite/${createInvitation.data.token}`
-    : ''
+    : null
 
   const handleOpenChange = (next: boolean) => {
     setOpen(next)
@@ -24,7 +30,8 @@ export function GenerateInviteDialog() {
   }
 
   const handleCopy = async () => {
-    await navigator.clipboard.writeText(inviteUrl)
+    if (!link) return
+    await navigator.clipboard.writeText(link)
     setCopied(true)
   }
 
@@ -37,21 +44,13 @@ export function GenerateInviteDialog() {
         <DialogHeader>
           <DialogTitle>Team invite link</DialogTitle>
         </DialogHeader>
-        {createInvitation.isPending && <p className="text-muted-foreground">Generating...</p>}
-        {createInvitation.isError && <p className="text-destructive">Failed to generate invite link.</p>}
-        {createInvitation.data && (
-          <div className="flex flex-col gap-3">
-            <p className="text-sm text-muted-foreground">
-              Share this link with your team. Anyone with the link can join.
-            </p>
-            <div className="flex gap-2">
-              <Input readOnly value={inviteUrl} onFocus={(e) => e.currentTarget.select()} />
-              <Button type="button" onClick={handleCopy}>
-                {copied ? 'Copied!' : 'Copy'}
-              </Button>
-            </div>
-          </div>
-        )}
+        <GenerateInviteContent
+          isPending={createInvitation.isPending}
+          isError={createInvitation.isError}
+          link={link}
+          copied={copied}
+          onCopy={handleCopy}
+        />
       </DialogContent>
     </Dialog>
   )

@@ -4,6 +4,7 @@ import com.github.zzave.teambalance.api.TeamBalanceIT
 import com.github.zzave.teambalance.api.infrastructure.multitenancy.TenantSchemaManager
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
+import org.springframework.http.MediaType
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders
@@ -359,6 +360,123 @@ class EventControllerTest : TeamBalanceIT() {
                 .andExpect(MockMvcResultMatchers.jsonPath("$.attendanceSummary.maybe").value(0))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.attendanceSummary.absent").value(0))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.attendanceSummary.notResponded").value(0))
+        }
+
+        test("POST /api/events seeds attendance for the creator's real team, resolved from team_members") {
+            tenantSchemaManager.provisionPlatformSchema()
+            tenantSchemaManager.provisionTenantSchema("public")
+
+            // teams.schema_name is UNIQUE, so this suite's tests all share the single 'public'-schema
+            // team ($TEAM_ID) — inserts are idempotent (ON CONFLICT DO NOTHING) across tests.
+            jdbcTemplate.execute(
+                """
+                INSERT INTO public.teams (id, name, slug, sport, schema_name)
+                VALUES ('$TEAM_ID'::uuid, 'Test Team', 'test-team', 'Volleyball', 'public')
+                ON CONFLICT DO NOTHING
+            """
+            )
+            jdbcTemplate.execute(
+                """
+                INSERT INTO public.users (id, email, display_name)
+                VALUES ('$JAN_USER_ID'::uuid, 'jan@test.com', 'Jan de Vries')
+                ON CONFLICT DO NOTHING
+            """
+            )
+            jdbcTemplate.execute(
+                """
+                INSERT INTO public.team_members (team_id, user_id, role, team_role)
+                VALUES ('$TEAM_ID'::uuid, '$JAN_USER_ID'::uuid, 'ADMIN', 'Setter')
+                ON CONFLICT DO NOTHING
+            """
+            )
+            jdbcTemplate.execute(
+                """
+                INSERT INTO public.users (id, email, display_name)
+                VALUES ('$LISA_USER_ID'::uuid, 'lisa@test.com', 'Lisa Bakker')
+                ON CONFLICT DO NOTHING
+            """
+            )
+            jdbcTemplate.execute(
+                """
+                INSERT INTO public.team_members (team_id, user_id, role, team_role)
+                VALUES ('$TEAM_ID'::uuid, '$LISA_USER_ID'::uuid, 'USER', 'Libero')
+                ON CONFLICT DO NOTHING
+            """
+            )
+            val memberCount = jdbcTemplate.queryForObject(
+                "SELECT count(*) FROM public.team_members WHERE team_id = '$TEAM_ID'::uuid AND active = true",
+                Long::class.java,
+            )!!.toInt()
+
+            val eventTypeId = jdbcTemplate.queryForObject(
+                "SELECT uuid FROM public.event_types WHERE name = 'Training'",
+                UUID::class.java,
+            )
+
+            val mvcResult = mockMvc.perform(
+                MockMvcRequestBuilders.post("/api/events")
+                    .header("X-Team-Id", "public")
+                    .header("X-User-Id", JAN_USER_ID)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(
+                        """
+                        {
+                          "eventTypeId": "$eventTypeId",
+                          "title": "Created via API",
+                          "description": null,
+                          "startTime": "2026-08-01T20:00:00Z",
+                          "endTime": "2026-08-01T22:00:00Z",
+                          "location": null
+                        }
+                        """.trimIndent()
+                    ),
+            )
+                .andExpect(MockMvcResultMatchers.request().asyncStarted())
+                .andReturn()
+
+            mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(mvcResult))
+                .andExpect(MockMvcResultMatchers.status().isCreated)
+                // Every active member of the real team (resolved via team_members, not a hardcoded
+                // id) starts out NOT_RESPONDED on a freshly created event.
+                .andExpect(MockMvcResultMatchers.jsonPath("$.attendanceSummary.notResponded").value(memberCount))
+        }
+
+        test("POST /api/events by a user with no team membership is rejected, not silently defaulted") {
+            tenantSchemaManager.provisionPlatformSchema()
+            tenantSchemaManager.provisionTenantSchema("public")
+
+            val teamlessUserId = "b0000000-0000-0000-0000-0000000000ff"
+            jdbcTemplate.execute(
+                """
+                INSERT INTO public.users (id, email, display_name)
+                VALUES ('$teamlessUserId'::uuid, 'teamless@test.com', 'Teamless User')
+                ON CONFLICT DO NOTHING
+            """
+            )
+
+            val mvcResult = mockMvc.perform(
+                MockMvcRequestBuilders.post("/api/events")
+                    .header("X-Team-Id", "public")
+                    .header("X-User-Id", teamlessUserId)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(
+                        """
+                        {
+                          "eventTypeId": "00000000-0000-0000-0000-000000000000",
+                          "title": "Should not be created",
+                          "description": null,
+                          "startTime": "2026-08-01T20:00:00Z",
+                          "endTime": "2026-08-01T22:00:00Z",
+                          "location": null
+                        }
+                        """.trimIndent()
+                    ),
+            )
+                .andExpect(MockMvcResultMatchers.request().asyncStarted())
+                .andReturn()
+
+            mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(mvcResult))
+                .andExpect(MockMvcResultMatchers.status().isForbidden)
         }
     }
 

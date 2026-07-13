@@ -17,3 +17,6 @@ sealed class ForbiddenException(message: String) : TeambalanceException(message)
 
 class NotTeamAdminException(userId: UUID, teamId: UUID) :
     ForbiddenException("User $userId is not an admin of team $teamId")
+
+class NoTeamMembershipException(userId: UUID) :
+    ForbiddenException("User $userId has no active team membership")

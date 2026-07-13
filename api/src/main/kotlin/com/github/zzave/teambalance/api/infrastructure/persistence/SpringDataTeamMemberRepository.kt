@@ -41,6 +41,19 @@ interface SpringDataTeamMemberRepository : JpaRepository<TeamMemberJpaEntity, UU
         nativeQuery = true,
     )
     fun findSchemaNameByUserId(@Param("userId") userId: UUID): String?
+
+    // v1 assumes one team per user; LIMIT 1 picks a single row if that assumption is ever violated.
+    @Query(
+        value = """
+            SELECT tm.team_id
+            FROM   public.team_members tm
+            WHERE  tm.user_id = :userId
+            AND    tm.active = true
+            LIMIT  1
+        """,
+        nativeQuery = true,
+    )
+    fun findTeamIdByUserId(@Param("userId") userId: UUID): UUID?
 }
 
 interface MemberSummaryProjection {

@@ -14,6 +14,7 @@ private class FakeTeamMemberRepository(private val roles: Map<Pair<UUID, UUID>, 
     override fun findDisplayName(userId: UUID): String? = null
     override fun findMembersByUserIds(userIds: Set<UUID>) = emptyMap<UUID, TeamMember>()
     override fun findRole(teamId: UUID, userId: UUID): Role? = roles[teamId to userId]
+    override fun findTeamId(userId: UUID): UUID? = null
 }
 
 class AuthorizationServiceTest : FunSpec() {

@@ -2,6 +2,7 @@ import {createFileRoute} from '@tanstack/react-router'
 import {useEffect, useMemo, useState} from 'react'
 import {type Event, useEvents} from '@shared/api/events'
 import {useEventTypes} from '@shared/api/event-types'
+import {useUserStore} from '@shared/stores/user-store'
 import {EventCard} from '@entities/event/ui/EventCard'
 import {CreateEventDialog} from '@features/create-event/ui/CreateEventDialog'
 import {toggleTypeSelection} from '@features/filter-event-types/model/toggleTypeSelection'
@@ -33,6 +34,7 @@ function EventListPage() {
     const [activeTypeIds, setActiveTypeIds] = useState<Set<string>>(new Set())
     const {data: events, isLoading} = useEvents(tab === 'past')
     const {data: eventTypes} = useEventTypes()
+    const isAdmin = useUserStore((s) => s.role) === 'ADMIN'
 
     useEffect(() => {
         if (eventTypes && activeTypeIds.size === 0) {
@@ -58,7 +60,7 @@ function EventListPage() {
         <div>
             <div className="flex items-center justify-between">
                 <h2 className="font-display text-2xl font-bold">Events</h2>
-                <CreateEventDialog/>
+                {isAdmin && <CreateEventDialog/>}
             </div>
 
             {/* Segmented pill toggle */}

@@ -13,7 +13,9 @@
     "yolo": "vite build",
     "preview": "vite preview",
     "lint": "eslint .",
-    "typecheck": "tsc -b"
+    "typecheck": "tsc -b",
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.15",
@@ -33,6 +35,8 @@
   "devDependencies": {
     "@eslint/js": "^9.17.0",
     "@playwright/test": "^1.61.1",
+    "@storybook/addon-vitest": "10.5.0",
+    "@storybook/react-vite": "10.5.0",
     "@tailwindcss/vite": "^4.2.2",
     "@tanstack/react-router-devtools": "^1.166.11",
     "@tanstack/router-cli": "^1.166.18",
@@ -43,6 +47,8 @@
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.1",
+    "@vitest/browser": "4.1.9",
+    "@vitest/browser-playwright": "4.1.9",
     "@vitest/coverage-v8": "^4.1.9",
     "eslint": "^9.17.0",
     "eslint-plugin-boundaries": "^6.0.0",
@@ -50,6 +56,7 @@
     "globals": "^17.4.0",
     "jsdom": "^29.1.1",
     "msw": "^2.12.14",
+    "storybook": "10.5.0",
     "tailwindcss": "^4.2.2",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.57.1",

@@ -8,6 +8,7 @@ export type { Event } from './generated/model/Event'
 export type { EventDetail } from './generated/model/EventDetail'
 export type { AttendanceEntry } from './generated/model/AttendanceEntry'
 export type { AttendanceSummary } from './generated/model/AttendanceSummary'
+export type { RoleCount } from './generated/model/RoleCount'
 export type { EventTypeSummary } from './generated/model/EventTypeSummary'
 
 interface EventInput {

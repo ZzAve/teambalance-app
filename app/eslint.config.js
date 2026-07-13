@@ -6,7 +6,7 @@ import boundaries from 'eslint-plugin-boundaries'
 import globals from 'globals'
 
 export default tseslint.config(
-  { ignores: ['dist', '.tsbuild', 'public/mockServiceWorker.js', 'src/shared/api/generated'] },
+  { ignores: ['dist', 'storybook-static', '.tsbuild', 'public/mockServiceWorker.js', 'src/shared/api/generated'] },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: ['**/*.{ts,tsx}'],

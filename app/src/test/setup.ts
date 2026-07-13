@@ -1,3 +1,3 @@
 // Registers @testing-library/jest-dom matchers (toBeInTheDocument, etc.) on Vitest's
-// expect, and augments its types. Loaded via vite.config.ts test.setupFiles.
+// expect, and augments its types. Loaded via vitest.config.ts (unit project setupFiles).
 import '@testing-library/jest-dom/vitest'

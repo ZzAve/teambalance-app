@@ -54,11 +54,14 @@ jobs:
 
       - run: make ci
       - run: make lint
-      - run: make test
 
+      # Needed before `make test`: the Storybook stories run in a headless-chromium
+      # Vitest browser project, and the MSW + real e2e suites also drive Chromium.
       - name: Install Playwright browser
         run: npx playwright install --with-deps chromium
         working-directory: app
+
+      - run: make test
 
       - run: make e2e
 

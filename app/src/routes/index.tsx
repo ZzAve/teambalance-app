@@ -3,7 +3,7 @@ import {useEffect, useMemo, useState} from 'react'
 import {type Event, useEvents} from '@shared/api/events'
 import {useEventTypes} from '@shared/api/event-types'
 import {useUserStore} from '@shared/stores/user-store'
-import {EventCard} from '@entities/event/ui/EventCard'
+import {EventListView} from '@entities/event/ui/EventListView'
 import {CreateEventDialog} from '@features/create-event/ui/CreateEventDialog'
 import {GenerateInviteDialog} from '@features/generate-invite/ui/GenerateInviteDialog'
 import {toggleTypeSelection} from '@features/filter-event-types/model/toggleTypeSelection'
@@ -33,7 +33,7 @@ function groupUpcomingEvents(events: Event[]): { label: string; events: Event[] 
 function EventListPage() {
     const [tab, setTab] = useState<Tab>('upcoming')
     const [activeTypeIds, setActiveTypeIds] = useState<Set<string>>(new Set())
-    const {data: events, isLoading} = useEvents(tab === 'past')
+    const {data: events, isLoading, error} = useEvents(tab === 'past')
     const {data: eventTypes} = useEventTypes()
     const isAdmin = useUserStore((s) => s.role) === 'ADMIN'
 
@@ -120,28 +120,12 @@ function EventListPage() {
                 </div>
             )}
 
-            {isLoading && <p className="mt-4 text-muted-foreground">Loading...</p>}
-
-            {!isLoading && groups.length === 0 && (
-                <p className="mt-4 text-muted-foreground">
-                    {activeTypeIds.size < (eventTypes?.length ?? 0) ? 'No events for this type.' : 'No events yet.'}
-                </p>
-            )}
-
-            {groups.map((group, gi) => (
-                <div key={group.label || 'past'} className={gi === 0 ? 'mt-4' : 'mt-6'}>
-                    {group.label && (
-                        <h3 className="mb-3 text-sm font-medium uppercase tracking-wide text-muted-foreground">
-                            {group.label}
-                        </h3>
-                    )}
-                    <div className="flex flex-col gap-3">
-                        {group.events.map((event, idx) => (
-                            <EventCard key={event.id} event={event} index={idx}/>
-                        ))}
-                    </div>
-                </div>
-            ))}
+            <EventListView
+                groups={groups}
+                isLoading={isLoading}
+                error={error}
+                emptyMessage={activeTypeIds.size < (eventTypes?.length ?? 0) ? 'No events for this type.' : 'No events yet.'}
+            />
         </div>
     )
 }

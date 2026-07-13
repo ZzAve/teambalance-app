@@ -2,6 +2,7 @@ package com.github.zzave.teambalance.api.interfaces
 
 import com.github.zzave.teambalance.api.TeamBalanceIT
 import com.github.zzave.teambalance.api.infrastructure.multitenancy.TenantSchemaManager
+import io.kotest.matchers.shouldBe
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
 import org.springframework.http.MediaType
@@ -535,6 +536,129 @@ class EventControllerTest : TeamBalanceIT() {
 
             mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(mvcResult))
                 .andExpect(MockMvcResultMatchers.status().isForbidden)
+        }
+
+        test("PUT /api/events/{id} by an admin succeeds") {
+            tenantSchemaManager.provisionPlatformSchema()
+            tenantSchemaManager.provisionTenantSchema("public")
+
+            jdbcTemplate.execute(
+                """
+                INSERT INTO public.teams (id, name, slug, sport, schema_name)
+                VALUES ('$TEAM_ID'::uuid, 'Test Team', 'test-team', 'Volleyball', 'public')
+                ON CONFLICT DO NOTHING
+            """
+            )
+            jdbcTemplate.execute(
+                """
+                INSERT INTO public.users (id, email, display_name)
+                VALUES ('$JAN_USER_ID'::uuid, 'jan@test.com', 'Jan de Vries')
+                ON CONFLICT DO NOTHING
+            """
+            )
+            jdbcTemplate.execute(
+                """
+                INSERT INTO public.team_members (team_id, user_id, role, team_role)
+                VALUES ('$TEAM_ID'::uuid, '$JAN_USER_ID'::uuid, 'ADMIN', 'Setter')
+                ON CONFLICT DO NOTHING
+            """
+            )
+
+            val eventTypeId = jdbcTemplate.queryForObject(
+                "SELECT uuid FROM public.event_types WHERE name = 'Training'",
+                UUID::class.java,
+            )
+
+            val eventId = UUID.randomUUID()
+            jdbcTemplate.execute(
+                """
+                INSERT INTO public.events (uuid, event_type_id, title, start_time, end_time, created_by, created_at, updated_at)
+                VALUES ('$eventId'::uuid,
+                    (SELECT id FROM public.event_types WHERE name = 'Training'),
+                    'Original Title', '2026-07-01 20:00:00+00', '2026-07-01 22:00:00+00',
+                    '$JAN_USER_ID'::uuid, now(), now())
+            """
+            )
+
+            val mvcResult = mockMvc.perform(
+                MockMvcRequestBuilders.put("/api/events/$eventId")
+                    .header("X-Team-Id", "public")
+                    .header("X-User-Id", JAN_USER_ID)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(
+                        """
+                        {
+                          "eventTypeId": "$eventTypeId",
+                          "title": "Updated by admin",
+                          "description": null,
+                          "startTime": "2026-08-01T20:00:00Z",
+                          "endTime": "2026-08-01T22:00:00Z",
+                          "location": null
+                        }
+                        """.trimIndent()
+                    ),
+            )
+                .andExpect(MockMvcResultMatchers.request().asyncStarted())
+                .andReturn()
+
+            mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(mvcResult))
+                .andExpect(MockMvcResultMatchers.status().isOk)
+                .andExpect(MockMvcResultMatchers.jsonPath("$.title").value("Updated by admin"))
+        }
+
+        test("DELETE /api/events/{id} by an admin succeeds") {
+            tenantSchemaManager.provisionPlatformSchema()
+            tenantSchemaManager.provisionTenantSchema("public")
+
+            jdbcTemplate.execute(
+                """
+                INSERT INTO public.teams (id, name, slug, sport, schema_name)
+                VALUES ('$TEAM_ID'::uuid, 'Test Team', 'test-team', 'Volleyball', 'public')
+                ON CONFLICT DO NOTHING
+            """
+            )
+            jdbcTemplate.execute(
+                """
+                INSERT INTO public.users (id, email, display_name)
+                VALUES ('$JAN_USER_ID'::uuid, 'jan@test.com', 'Jan de Vries')
+                ON CONFLICT DO NOTHING
+            """
+            )
+            jdbcTemplate.execute(
+                """
+                INSERT INTO public.team_members (team_id, user_id, role, team_role)
+                VALUES ('$TEAM_ID'::uuid, '$JAN_USER_ID'::uuid, 'ADMIN', 'Setter')
+                ON CONFLICT DO NOTHING
+            """
+            )
+
+            val eventId = UUID.randomUUID()
+            jdbcTemplate.execute(
+                """
+                INSERT INTO public.events (uuid, event_type_id, title, start_time, end_time, created_by, created_at, updated_at)
+                VALUES ('$eventId'::uuid,
+                    (SELECT id FROM public.event_types WHERE name = 'Training'),
+                    'To Be Deleted', '2026-07-01 20:00:00+00', '2026-07-01 22:00:00+00',
+                    '$JAN_USER_ID'::uuid, now(), now())
+            """
+            )
+
+            val mvcResult = mockMvc.perform(
+                MockMvcRequestBuilders.delete("/api/events/$eventId")
+                    .header("X-Team-Id", "public")
+                    .header("X-User-Id", JAN_USER_ID),
+            )
+                .andExpect(MockMvcResultMatchers.request().asyncStarted())
+                .andReturn()
+
+            mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(mvcResult))
+                .andExpect(MockMvcResultMatchers.status().isNoContent)
+
+            val remaining = jdbcTemplate.queryForObject(
+                "SELECT count(*) FROM public.events WHERE uuid = '$eventId'::uuid",
+                Long::class.java,
+            )
+            remaining shouldBe 0L
         }
     }
 

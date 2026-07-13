@@ -83,6 +83,16 @@ Implementation plans live in `docs/plans/`. Each plan tracks its own status and 
 - Commit messages: `feat:`, `fix:`, `chore:`, `refactor:`, `test:`, `docs:`
 - Don't commit docs/plan files unless explicitly asked
 
+## Feedback loops
+
+Changes should follow a TDD process.
+
+Manual verification should always be done after every change, ensuring that the intent is met, the system remains stable and
+free of regressions. Self-verification is encouraged by spinning up the application locally and interacting with it,
+either through its endpoint, or through the UI. 
+
+Every change made must deliver proof that it delivers the intended value and does not introduce regression.
+
 ## Agent skills
 
 ### Issue tracker

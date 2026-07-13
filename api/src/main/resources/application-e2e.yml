@@ -14,3 +14,8 @@ spring:
     redis:
       host: localhost
       port: 6379
+
+teambalance:
+  invitation:
+    # Hardcoded salt for e2e runs (not a live environment); live supplies INVITATION_TOKEN_SALT.
+    token-salt: e2e-invitation-salt

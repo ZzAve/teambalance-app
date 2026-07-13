@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
 import org.springframework.http.MediaType
 import org.springframework.jdbc.core.JdbcTemplate
+import org.springframework.mock.web.MockHttpSession
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.MvcResult
@@ -46,6 +47,25 @@ class E2eSupportIT : TeamBalanceIT() {
             membershipCount shouldBe 1
         }
 
+        test("e2e profile seeds a future event with an attendance row for the e2e user") {
+            val eventCount = jdbcTemplate.queryForObject(
+                "SELECT count(*) FROM team_test.events WHERE title = 'E2E Training' AND start_time > now()",
+                Int::class.java,
+            )
+            eventCount shouldBe 1
+
+            val attendanceCount = jdbcTemplate.queryForObject(
+                """
+                SELECT count(*) FROM team_test.attendances a
+                JOIN team_test.events e ON e.id = a.event_id
+                JOIN public.users u ON u.id = a.user_id
+                WHERE e.title = 'E2E Training' AND u.email = 'e2e@example.com'
+                """,
+                Int::class.java,
+            )
+            attendanceCount shouldBe 1
+        }
+
         test("plaintext magic-link token is retrievable via the e2e endpoint and verifies") {
             val email = "e2e@example.com"
 
@@ -71,6 +91,40 @@ class E2eSupportIT : TeamBalanceIT() {
             )
             verified.andExpect(MockMvcResultMatchers.status().isOk)
                 .andExpect(MockMvcResultMatchers.jsonPath("$.email").value(email))
+        }
+
+        // Guards the seed ↔ domain-model contract: a fixture row the Event mapper can't
+        // internalize (e.g. NULL end_time) 500s here instead of only failing the slow e2e.
+        test("seeded tenant data is servable through the events API as the e2e user") {
+            val email = "e2e@example.com"
+
+            val (_, requested) = performAsync(
+                MockMvcRequestBuilders.post("/api/auth/magic-link/request")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"email":"$email"}"""),
+            )
+            requested.andExpect(MockMvcResultMatchers.status().isAccepted)
+
+            val tokenResult = mockMvc.perform(
+                MockMvcRequestBuilders.get("/internal/e2e/magic-link-token").param("email", email),
+            ).andReturn()
+            val token = ObjectMapper().readTree(tokenResult.response.contentAsString)["token"].asText()
+
+            val (started, verified) = performAsync(
+                MockMvcRequestBuilders.post("/api/auth/magic-link/verify")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"token":"$token"}"""),
+            )
+            verified.andExpect(MockMvcResultMatchers.status().isOk)
+            val session = started.request.session as MockHttpSession
+
+            // Query params must be in the URI: the Wirespec adapter parses the raw query string,
+            // which MockMvc's .param() does not populate.
+            val (_, events) = performAsync(
+                MockMvcRequestBuilders.get("/api/events?include-past=false").session(session),
+            )
+            events.andExpect(MockMvcResultMatchers.status().isOk)
+                .andExpect(MockMvcResultMatchers.jsonPath("$.events[?(@.title == 'E2E Training')]").exists())
         }
 
         test("e2e token endpoint returns 404 for an email without a requested token") {

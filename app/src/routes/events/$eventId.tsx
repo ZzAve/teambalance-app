@@ -1,51 +1,17 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
-import type { ComponentType, MouseEvent } from 'react'
 import { useState } from 'react'
-import { ArrowLeft, Check, HelpCircle, MapPin, Pencil, Trash2, X } from 'lucide-react'
+import { ArrowLeft, MapPin, Pencil, Trash2 } from 'lucide-react'
 import { useEvent, type AttendanceEntry } from '@shared/api/events'
 import { useSetAttendance } from '@shared/api/attendances'
 import { useUserStore } from '@shared/stores/user-store'
 import { Button } from '@shared/ui/button'
 import { EventTypeBadge } from '@entities/event/ui/EventTypeBadge'
 import { EventTypeIcon } from '@entities/event/ui/EventTypeIcon'
+import { AttendanceToggle, type AttendanceState } from '@features/attendance-toggle/ui/AttendanceToggle'
 
 export const Route = createFileRoute('/events/$eventId')({
   component: EventDetailPage,
 })
-
-type AttendanceState = 'ATTENDING' | 'MAYBE' | 'ABSENT' | 'NOT_RESPONDED'
-
-interface ResponseOption {
-  value: AttendanceState
-  label: string
-  icon: ComponentType<{ size?: number; className?: string }>
-  activeClass: string
-  inactiveClass: string
-}
-
-const RESPONSE_OPTIONS: ResponseOption[] = [
-  {
-    value: 'ATTENDING',
-    label: 'Going',
-    icon: Check,
-    activeClass: 'bg-green text-white border-green hover:bg-green/90',
-    inactiveClass: 'border-green/30 text-green hover:bg-green/10',
-  },
-  {
-    value: 'MAYBE',
-    label: 'Maybe',
-    icon: HelpCircle,
-    activeClass: 'bg-gold text-white border-gold hover:bg-gold/90',
-    inactiveClass: 'border-gold/30 text-gold hover:bg-gold/10',
-  },
-  {
-    value: 'ABSENT',
-    label: "Can't go",
-    icon: X,
-    activeClass: 'bg-red-500 text-white border-red-500 hover:bg-red-500/90',
-    inactiveClass: 'border-red-300 text-red-500 hover:bg-red-500/10',
-  },
-]
 
 const ATTENDEE_TABS: {
   state: AttendanceState
@@ -169,30 +135,11 @@ function EventDetailPage() {
       {currentUserId && (
         <div className="mt-6">
           <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground">Your response</p>
-          <div className="flex gap-2.5">
-            {RESPONSE_OPTIONS.map(({ value, label, icon: Icon, activeClass, inactiveClass }) => {
-              const isActive = myState === value
-              const handleClick = (e: MouseEvent<HTMLButtonElement>) => {
-                e.preventDefault()
-                mutate({ eventId, userId: currentUserId, state: value })
-              }
-              return (
-                <button
-                  key={value}
-                  disabled={isPending}
-                  onClick={handleClick}
-                  className={[
-                    'flex flex-1 items-center justify-center gap-2 rounded-xl border-2 py-3.5 text-sm font-semibold transition-all active:scale-95',
-                    isActive ? activeClass : inactiveClass,
-                    isPending ? 'cursor-not-allowed opacity-60' : 'cursor-pointer',
-                  ].join(' ')}
-                >
-                  <Icon size={18} />
-                  {label}
-                </button>
-              )
-            })}
-          </div>
+          <AttendanceToggle
+            value={myState}
+            disabled={isPending}
+            onToggle={(state) => mutate({ eventId, userId: currentUserId, state })}
+          />
         </div>
       )}
 

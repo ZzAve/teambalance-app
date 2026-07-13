@@ -9,6 +9,9 @@ import { test, expect } from '@playwright/test'
 const TEST_EMAIL = 'e2e@example.com'
 const BACKEND_URL = process.env.BACKEND_URL ?? 'http://localhost:8080'
 
+// This spec IS the login flow — start unauthenticated, overriding the project-wide storageState.
+test.use({ storageState: { cookies: [], origins: [] } })
+
 test('magic-link login: request → verify → lands on events', async ({ page, request }) => {
   // 1. Request a magic link from the login page
   await page.goto('/login')

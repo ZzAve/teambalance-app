@@ -139,10 +139,12 @@ export const handlers = [
     return new HttpResponse(null, { status: 401 })
   }),
 
-  // GET /api/auth/me
+  // GET /api/auth/me — mock an authenticated session so the app's main screens render under MSW.
+  // A distinct identity (not a roster member) so it doesn't get pulled out of any event's
+  // attendee list as the "current user".
   http.get('/api/auth/me', async () => {
     await delay(100)
-    return new HttpResponse(null, { status: 401 })
+    return HttpResponse.json({ id: '11111111-1111-1111-1111-111111111111', email: 'you@example.com', displayName: 'You' })
   }),
 
   // POST /api/auth/logout

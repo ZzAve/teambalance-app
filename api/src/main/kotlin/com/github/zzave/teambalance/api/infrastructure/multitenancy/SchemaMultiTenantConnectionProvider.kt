@@ -22,8 +22,13 @@ class SchemaMultiTenantConnectionProvider(
         dataSource.connection.also { it.schema = tenantIdentifier }
 
     override fun releaseConnection(tenantIdentifier: String, connection: Connection) {
-        connection.schema = "public"
-        connection.close()
+        // Reset the search_path before returning the connection to the pool, but always close it —
+        // if the reset throws (e.g. an aborted connection) skipping close() would leak it from the pool.
+        try {
+            connection.schema = TenantContext.PUBLIC_SCHEMA
+        } finally {
+            connection.close()
+        }
     }
 
     override fun supportsAggressiveRelease(): Boolean = false

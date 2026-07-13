@@ -3,6 +3,7 @@ package com.github.zzave.teambalance.api.infrastructure.multitenancy
 import com.github.zzave.teambalance.api.TeamBalanceIT
 import com.github.zzave.teambalance.api.infrastructure.persistence.SpringDataEventTypeRepository
 import com.github.zzave.teambalance.api.infrastructure.persistence.entity.EventTypeJpaEntity
+import io.kotest.assertions.throwables.shouldThrowAny
 import io.kotest.matchers.collections.shouldContain
 import io.kotest.matchers.collections.shouldNotContain
 import org.springframework.beans.factory.annotation.Autowired
@@ -37,6 +38,17 @@ class TenantSchemaRoutingTest : TeamBalanceIT() {
             withTenant("team_alpha") {
                 eventTypeRepository.findAll().map { it.name }
             } shouldContain alphaOnlyName
+        }
+
+        test("with no tenant resolved, tenant-table access fails closed instead of silently hitting public") {
+            // public also carries the tenant tables in tests (provisioned as a schema), so a silent
+            // fallback would succeed — this proves routing does NOT fall back to public when unset.
+            tenantSchemaManager.provisionPlatformSchema()
+            tenantSchemaManager.provisionTenantSchema(TenantContext.PUBLIC_SCHEMA)
+
+            TenantContext.clear()
+
+            shouldThrowAny { eventTypeRepository.findAll() }
         }
     }
 

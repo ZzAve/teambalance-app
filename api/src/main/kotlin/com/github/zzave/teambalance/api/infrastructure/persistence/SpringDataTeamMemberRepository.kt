@@ -28,27 +28,32 @@ interface SpringDataTeamMemberRepository : JpaRepository<TeamMemberJpaEntity, UU
     )
     fun findMemberSummariesByUserIds(@Param("userIds") userIds: Collection<UUID>): List<MemberSummaryProjection>
 
-    // v1 assumes one team per user; LIMIT 1 picks a single row if that assumption is ever violated.
+    // Resolves the tenant routing (team id + schema) for a user in ONE query, so the request's write
+    // schema and its authorized team id come from the same row and cannot diverge. v1 assumes one team
+    // per user; the deterministic ORDER BY makes the single picked row stable if that is ever violated.
     @Query(
         value = """
-            SELECT t.schema_name
+            SELECT tm.team_id     AS teamId,
+                   t.schema_name  AS schemaName
             FROM   public.team_members tm
             JOIN   public.teams t ON t.id = tm.team_id
             WHERE  tm.user_id = :userId
             AND    tm.active = true
+            ORDER  BY tm.team_id
             LIMIT  1
         """,
         nativeQuery = true,
     )
-    fun findSchemaNameByUserId(@Param("userId") userId: UUID): String?
+    fun findTeamRoutingByUserId(@Param("userId") userId: UUID): TeamRoutingProjection?
 
-    // v1 assumes one team per user; LIMIT 1 picks a single row if that assumption is ever violated.
+    // v1 assumes one team per user; the deterministic ORDER BY makes the single picked row stable.
     @Query(
         value = """
             SELECT tm.team_id
             FROM   public.team_members tm
             WHERE  tm.user_id = :userId
             AND    tm.active = true
+            ORDER  BY tm.team_id
             LIMIT  1
         """,
         nativeQuery = true,
@@ -61,4 +66,9 @@ interface MemberSummaryProjection {
     fun getDisplayName(): String
     fun getTeamRole(): String?
     fun getPermissionRole(): String
+}
+
+interface TeamRoutingProjection {
+    val teamId: UUID
+    val schemaName: String
 }

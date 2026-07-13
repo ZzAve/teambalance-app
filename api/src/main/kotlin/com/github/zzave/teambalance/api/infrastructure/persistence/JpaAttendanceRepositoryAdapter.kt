@@ -23,7 +23,10 @@ class JpaAttendanceRepositoryAdapter(
     override fun save(attendance: Attendance): Attendance {
         val eventEntity = eventJpaRepository.findByUuid(attendance.eventId)
             ?: throw EventNotFoundException(attendance.eventId)
-        return jpaRepository.save(attendance.externalize(eventEntity)).internalize()
+        // Carry the DB identity over when the row already exists: a fresh entity (id=0) makes
+        // Hibernate INSERT — violating the uuid unique constraint — instead of updating in place.
+        val existingDbId = jpaRepository.findByUuid(attendance.id)?.id ?: 0
+        return jpaRepository.save(attendance.externalize(eventEntity, existingDbId)).internalize()
     }
 
     override fun saveAll(attendances: List<Attendance>): List<Attendance> {

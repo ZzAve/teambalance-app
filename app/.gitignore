@@ -6,3 +6,6 @@
 /playwright-report/
 /blob-report/
 /playwright/.cache/
+
+# Real-e2e auth fixture (session cookie)
+/e2e-real/.auth/

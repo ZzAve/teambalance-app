@@ -17,7 +17,15 @@ export default defineConfig({
     baseURL: 'http://localhost:5173',
     trace: 'retain-on-failure',
   },
-  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
+  projects: [
+    // Logs in once via the API and saves storageState (see auth.setup.ts).
+    { name: 'setup', testMatch: /auth\.setup\.ts/ },
+    {
+      name: 'chromium',
+      use: { ...devices['Desktop Chrome'], storageState: 'e2e-real/.auth/user.json' },
+      dependencies: ['setup'],
+    },
+  ],
   webServer: {
     command: 'npm run dev',
     url: 'http://localhost:5173',

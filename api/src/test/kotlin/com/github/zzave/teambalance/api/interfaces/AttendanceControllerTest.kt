@@ -74,6 +74,53 @@ class AttendanceControllerTest : TeamBalanceIT() {
             queryChangedBy(eventId, JAN_USER_ID) shouldBe UUID.fromString(JAN_USER_ID)
         }
 
+        test("PUT twice updates the existing attendance row instead of duplicating it") {
+            tenantSchemaManager.provisionPlatformSchema()
+            tenantSchemaManager.provisionTenantSchema("public")
+
+            jdbcTemplate.execute("""
+                INSERT INTO public.teams (id, name, slug, sport, schema_name)
+                VALUES ('$TEAM_ID'::uuid, 'Test Team 2', 'test-team-2', 'Volleyball', 'public')
+                ON CONFLICT DO NOTHING
+            """)
+            jdbcTemplate.execute("""
+                INSERT INTO public.users (id, email, display_name)
+                VALUES ('$JAN_USER_ID'::uuid, 'jan2@test.com', 'Jan de Vries')
+                ON CONFLICT DO NOTHING
+            """)
+            jdbcTemplate.execute("""
+                INSERT INTO public.team_members (team_id, user_id, role, team_role)
+                VALUES ('$TEAM_ID'::uuid, '$JAN_USER_ID'::uuid, 'ADMIN', 'Setter')
+                ON CONFLICT DO NOTHING
+            """)
+
+            val eventId = UUID.randomUUID()
+            jdbcTemplate.execute("""
+                INSERT INTO public.events (uuid, event_type_id, title, start_time, end_time, created_by, created_at, updated_at)
+                VALUES ('$eventId'::uuid,
+                    (SELECT id FROM public.event_types WHERE name = 'Training'),
+                    'Toggle Twice', '2026-07-01 20:00:00+00', '2026-07-01 22:00:00+00',
+                    '$JAN_USER_ID'::uuid, now(), now())
+            """)
+
+            putAttendance(eventId, "ATTENDING")
+            putAttendance(eventId, "MAYBE")
+
+            val rows = jdbcTemplate.queryForObject(
+                "SELECT count(*) FROM public.attendances a JOIN public.events e ON e.id = a.event_id " +
+                    "WHERE e.uuid = '$eventId'::uuid AND a.user_id = '$JAN_USER_ID'::uuid",
+                Int::class.java,
+            )
+            rows shouldBe 1
+
+            val state = jdbcTemplate.queryForObject(
+                "SELECT a.state FROM public.attendances a JOIN public.events e ON e.id = a.event_id " +
+                    "WHERE e.uuid = '$eventId'::uuid AND a.user_id = '$JAN_USER_ID'::uuid",
+                String::class.java,
+            )
+            state shouldBe "MAYBE"
+        }
+
         test("PUT /api/events/{id}/attendances/{userId} records the editor, not the owner, as changedBy") {
             tenantSchemaManager.provisionPlatformSchema()
             tenantSchemaManager.provisionTenantSchema("public")
@@ -125,6 +172,20 @@ class AttendanceControllerTest : TeamBalanceIT() {
 
             queryChangedBy(eventId, ownerId) shouldBe UUID.fromString(editorId)
         }
+    }
+
+    private fun putAttendance(eventId: UUID, state: String) {
+        val started = mockMvc.perform(
+            MockMvcRequestBuilders.put("/api/events/$eventId/attendances/$JAN_USER_ID")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""{"state":"$state"}""")
+                .header("X-Team-Id", "public")
+                .header("X-User-Id", JAN_USER_ID),
+        )
+            .andExpect(MockMvcResultMatchers.request().asyncStarted())
+            .andReturn()
+        mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(started))
+            .andExpect(MockMvcResultMatchers.status().isOk)
     }
 
     private fun queryChangedBy(eventId: UUID, userId: String): UUID? =

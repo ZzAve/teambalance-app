@@ -1,5 +1,6 @@
 import { http, HttpResponse, delay } from 'msw'
 import { EVENTS, EVENT_TYPES, MEMBERS, computeRoleBreakdown, type MockEvent } from './data'
+import type { AuthenticatedUser } from '../api/auth'
 
 // Mutable copy so mutations persist during the session
 const events = structuredClone(EVENTS)
@@ -8,12 +9,13 @@ const events = structuredClone(EVENTS)
 // of any event's attendee list as the "current user". Starts authenticated so existing dev/e2e
 // flows that skip the login screen keep working; logout/verify flip it, letting the auth guard
 // actually be exercised under MSW.
-const DEFAULT_SESSION_USER = {
+const DEFAULT_SESSION_USER: AuthenticatedUser = {
   id: '11111111-1111-1111-1111-111111111111',
   email: 'you@example.com',
   displayName: 'You',
+  role: undefined,
 }
-let session: { id: string; email: string; displayName: string; role?: string } | null = DEFAULT_SESSION_USER
+let session: AuthenticatedUser | null = DEFAULT_SESSION_USER
 
 function toSummary(event: MockEvent) {
   return {

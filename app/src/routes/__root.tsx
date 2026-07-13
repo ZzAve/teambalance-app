@@ -44,7 +44,7 @@ function LogoutButton() {
     logout.mutate(undefined, {
       onSuccess: () => {
         setCurrentUser(null)
-        queryClient.invalidateQueries({ queryKey: ['auth', 'me'] })
+        queryClient.setQueryData(['auth', 'me'], null)
         navigate({ to: '/login' })
       },
     })

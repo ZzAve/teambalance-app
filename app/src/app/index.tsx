@@ -24,17 +24,8 @@ declare module '@tanstack/react-router' {
   }
 }
 
-async function start() {
-  if (import.meta.env.DEV && !import.meta.env.VITE_DISABLE_MSW) {
-    const { worker } = await import('@shared/mocks/browser')
-    await worker.start({ onUnhandledRequest: 'bypass' })
-  }
-
-  createRoot(document.getElementById('root')!).render(
-    <StrictMode>
-      <RouterProvider router={router} />
-    </StrictMode>,
-  )
-}
-
-start()
+createRoot(document.getElementById('root')!).render(
+  <StrictMode>
+    <RouterProvider router={router} />
+  </StrictMode>,
+)

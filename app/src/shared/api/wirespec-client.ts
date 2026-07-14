@@ -20,8 +20,8 @@ const serialization: Wirespec.Serialization = {
 }
 
 // Turns a Wirespec RawRequest into a fetch against the same-origin API, carrying the
-// team context header and the session cookie (identity). In dev the MSW worker
-// intercepts these requests.
+// team context header and the session cookie (identity). Dev talks to the real backend
+// (via the Vite proxy) — there is no mock runtime.
 const handler = async (req: Wirespec.RawRequest): Promise<Wirespec.RawResponse> => {
   const teamId = localStorage.getItem('teamId') ?? 'setpoint_vt'
   const query = new URLSearchParams(req.queries).toString()

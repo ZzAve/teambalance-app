@@ -5,8 +5,10 @@ import { createMemoryHistory, createRouter, RouterProvider } from '@tanstack/rea
 import { routeTree } from '../../routeTree.gen'
 import type { AuthenticatedUser } from '@shared/api/auth'
 
-// A stateful session, mirroring the browser MSW mock (shared/mocks/handlers.ts): verify
-// establishes it, /me reflects it. The verify response is deliberately delayed relative to
+// A stateful in-test session (msw/node): verify establishes it, /me reflects it. The auth
+// render-gate is a routing concern — not story-able, and its timing edge cases can't be forced
+// against the real backend — so it stays a jsdom test here; the happy verify path is also proven
+// end-to-end by the real e2e login flow. The verify response is deliberately delayed relative to
 // /me's so the guard's own mount-time /me fetch (started at the same time, on the un-verified
 // session) resolves first — matching real latency, where verify does token/session work and
 // /me is a cheap read. This proves the redirect guard trusts the direct cache write from
@@ -47,18 +49,21 @@ function renderAppAt(path: string) {
 }
 
 describe('magic-link verification', () => {
+  // Timeouts are generous because the assertion waits out a real chain — the 10ms verify delay,
+  // the direct cache write, the redirect, then the events route mounting — which a loaded CI
+  // runner walks through well past the 1000ms default (green locally, flaked in CI at 1000ms).
   it('establishes the session and lands on events, without the guard bouncing back to login', async () => {
     const router = renderAppAt('/auth/verify?token=valid-token')
 
-    await waitFor(() => expect(router.state.location.pathname).toBe('/'))
-    expect(await screen.findByRole('heading', { name: 'Events' })).toBeInTheDocument()
+    await waitFor(() => expect(router.state.location.pathname).toBe('/'), { timeout: 5000 })
+    expect(await screen.findByRole('heading', { name: 'Events' }, { timeout: 5000 })).toBeInTheDocument()
     expect(screen.queryByText(/link expired/i)).not.toBeInTheDocument()
   })
 
   it('rejects an invalid token and keeps the guard from ever granting access', async () => {
     const router = renderAppAt('/auth/verify?token=bogus-token')
 
-    expect(await screen.findByText(/link has expired or already been used/i)).toBeInTheDocument()
+    expect(await screen.findByText(/link has expired or already been used/i, undefined, { timeout: 5000 })).toBeInTheDocument()
     // Access was never granted: never navigated to the protected landing, events never rendered.
     expect(router.state.location.pathname).toBe('/auth/verify')
     expect(screen.queryByRole('heading', { name: 'Events' })).not.toBeInTheDocument()

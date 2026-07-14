@@ -3,7 +3,7 @@ import { expect, fn } from 'storybook/test'
 import { GenerateInviteContent } from './GenerateInviteContent'
 
 // GenerateInviteContent is the presentational body split out of the GenerateInviteDialog container
-// (the RTL+MSW render test it used to have is deleted — its coverage lives here). Each mutation
+// (the RTL render test it used to have is deleted — its coverage lives here). Each mutation
 // state is a plain render arg. The copied flag is a prop, so the "copied" label is its own story;
 // the click interaction just proves the callback fires (the container flips the flag in the app).
 const LINK = 'https://app.teambalance.app/invite/abc123'

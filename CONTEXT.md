@@ -60,10 +60,17 @@ any-team, self-service (see [ADR-0001](docs/adr/0001-product-ambition-hobby-tool
 - **Hall of Fame (Toppers 🏆)** / **Hall of Shame (Floppers 🐷)** — Side-by-side
   contributor rankings over a period (last 30 days or full season).
 
-### Identity & onboarding ([ADR-0008](docs/adr/0008-auth-magic-link-and-shareable-invite.md))
+### Identity & onboarding ([ADR-0008](docs/adr/0008-auth-magic-link-and-shareable-invite.md), [ADR-0011](docs/adr/0011-add-google-signin-verified-email-linking.md))
 
-- **Magic Link** — A one-time, passwordless login link sent to a member's email.
-  v1's authentication mechanism. Sessions are server-side (Spring Session + Redis).
+- **Magic Link** — A one-time, passwordless login link sent to a member's email. One of
+  two passwordless authentication methods (the other is **Google Sign-In**); both prove
+  control of an email. Sessions are server-side — in-memory `HttpSession` (`JSESSIONID`)
+  for 1.0; Redis-backed Spring Session is deferred ([ADR-0010](docs/adr/0010-defer-redis-sessions-to-post-1.0.md)).
+- **Google Sign-In** — Authenticating with a Google account. Treated as a second proof of
+  email control equivalent to a **Magic Link**: a Google login lands in the *same* account,
+  matched on verified email. There is no separate "Google account" in the model.
+  Deliberately **no passwords** — email control is the only proof v1 accepts.
+  _Avoid_: OAuth login, social login, password.
 - **Invite Link** — A single shareable link an admin generates to onboard members into
   an existing Team. Clicking it → enter email → Magic Link → joined. One link, many
   joiners; can expire/rotate.

@@ -13,4 +13,7 @@ class JpaInvitationRepositoryAdapter(
 
     override fun save(invitation: Invitation): Invitation =
         jpaRepository.save(invitation.externalize()).internalize()
+
+    override fun findByTokenHash(tokenHash: String): Invitation? =
+        jpaRepository.findByTokenHash(tokenHash)?.internalize()
 }

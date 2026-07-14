@@ -4,7 +4,9 @@ import com.github.zzave.teambalance.api.application.AuthorizationService
 import com.github.zzave.teambalance.api.application.CurrentTeamProvider
 import com.github.zzave.teambalance.api.application.CurrentUserProvider
 import com.github.zzave.teambalance.api.application.InvitationService
+import com.github.zzave.teambalance.api.interfaces.generated.endpoint.AcceptInvitation
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.CreateInvitation
+import com.github.zzave.teambalance.api.interfaces.generated.model.AcceptedInvitation
 import com.github.zzave.teambalance.api.interfaces.generated.model.Invitation
 import org.springframework.web.bind.annotation.RestController
 
@@ -14,7 +16,8 @@ class InvitationController(
     private val currentUserProvider: CurrentUserProvider,
     private val currentTeamProvider: CurrentTeamProvider,
     private val authorizationService: AuthorizationService,
-) : CreateInvitation.Handler {
+) : CreateInvitation.Handler,
+    AcceptInvitation.Handler {
 
     override suspend fun createInvitation(request: CreateInvitation.Request): CreateInvitation.Response<*> {
         val userId = currentUserProvider.requireCurrentUserId()
@@ -28,5 +31,12 @@ class InvitationController(
                 expiresAt = invitation.expiresAt.toString(),
             ),
         )
+    }
+
+    override suspend fun acceptInvitation(request: AcceptInvitation.Request): AcceptInvitation.Response<*> {
+        val userId = currentUserProvider.requireCurrentUserId()
+        val teamId = invitationService.acceptInvitation(request.path.token, userId)
+            ?: return AcceptInvitation.Response404(Unit)
+        return AcceptInvitation.Response200(AcceptedInvitation(teamId = teamId.toString()))
     }
 }

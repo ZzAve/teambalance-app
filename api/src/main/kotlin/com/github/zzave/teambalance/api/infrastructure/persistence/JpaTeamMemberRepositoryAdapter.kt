@@ -3,6 +3,7 @@ package com.github.zzave.teambalance.api.infrastructure.persistence
 import com.github.zzave.teambalance.api.domain.model.Role
 import com.github.zzave.teambalance.api.domain.model.TeamMember
 import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
+import com.github.zzave.teambalance.api.infrastructure.persistence.entity.TeamMemberJpaEntity
 import org.springframework.stereotype.Repository
 import java.util.UUID
 
@@ -44,4 +45,9 @@ class JpaTeamMemberRepositoryAdapter(
 
     override fun findTeamId(userId: UUID): UUID? =
         jpaRepository.findTeamIdByUserId(userId)
+
+    override fun addMember(teamId: UUID, userId: UUID) {
+        if (jpaRepository.findByTeamIdAndUserIdAndActiveTrue(teamId, userId) != null) return
+        jpaRepository.save(TeamMemberJpaEntity(teamId = teamId, userId = userId, role = Role.USER.name))
+    }
 }

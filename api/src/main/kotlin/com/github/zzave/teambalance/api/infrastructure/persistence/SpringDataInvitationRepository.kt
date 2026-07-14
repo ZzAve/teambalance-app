@@ -4,4 +4,6 @@ import com.github.zzave.teambalance.api.infrastructure.persistence.entity.Invita
 import org.springframework.data.jpa.repository.JpaRepository
 import java.util.UUID
 
-interface SpringDataInvitationRepository : JpaRepository<InvitationJpaEntity, UUID>
+interface SpringDataInvitationRepository : JpaRepository<InvitationJpaEntity, UUID> {
+    fun findByTokenHash(tokenHash: String): InvitationJpaEntity?
+}

@@ -27,6 +27,11 @@ function LoginPage() {
           If an account exists for <span className="font-medium text-foreground">{email}</span>, we've sent a magic
           link to sign in. Click it to continue.
         </p>
+        <div className="mt-6 hidden [@media(hover:none)_and_(pointer:coarse)]:block">
+          <Button asChild className="w-full">
+            <a href="mailto:">Open email app →</a>
+          </Button>
+        </div>
       </div>
     )
   }

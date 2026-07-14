@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from '@tanstack/react-query'
+import { queryOptions, useMutation, useQuery } from '@tanstack/react-query'
 import { api } from './wirespec-client'
 
 export type { AuthenticatedUser } from './generated/model/AuthenticatedUser'
@@ -29,13 +29,18 @@ export function useLogout() {
   })
 }
 
+// Shared so the root route's beforeLoad guard can prime this exact query (ensureQueryData) and
+// useAuthMe reads it back from cache — no duplicate fetch, no drifting query key. A 401 probe
+// resolves to null (unauthenticated); a non-401 error rejects and is treated as unconfirmed.
+export const authMeQueryOptions = queryOptions({
+  queryKey: ['auth', 'me'],
+  queryFn: async () => {
+    const res = await api.GetAuthMe()
+    if (res.status === 401) return null
+    return res.body
+  },
+})
+
 export function useAuthMe() {
-  return useQuery({
-    queryKey: ['auth', 'me'],
-    queryFn: async () => {
-      const res = await api.GetAuthMe()
-      if (res.status === 401) return null
-      return res.body
-    },
-  })
+  return useQuery(authMeQueryOptions)
 }

@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test'
+import { login } from './helpers'
 
 // Renders the EventCard (list) and event-detail role-breakdown chips through the
 // real generated Wirespec client against the MSW mocks, asserting both the
@@ -10,7 +11,7 @@ const POPULATED_CHIPS = ['2 Outside Hitter', '1 Libero', '1 Opposite', '1 Setter
 const ROLE_TEXT = /\d+\s+(Setter|Libero|Outside Hitter|Middle Blocker|Opposite)/
 
 test('event list card renders attending-by-role chips for an event with responses', async ({ page }) => {
-  await page.goto('/')
+  await login(page)
 
   // The card is no longer a single anchor (a nested maps <a> would be invalid HTML): the title is
   // the link, so scope to the whole card by the container that holds that link.
@@ -25,7 +26,7 @@ test('event list card renders attending-by-role chips for an event with response
 })
 
 test('event list card shows no role chips when nobody has responded yet', async ({ page }) => {
-  await page.goto('/')
+  await login(page)
 
   const emptyCard = page.locator('.card-enter').filter({
     has: page.locator('a[href$="/events/evt-006"]'),
@@ -38,6 +39,7 @@ test('event list card shows no role chips when nobody has responded yet', async 
 })
 
 test('event detail renders the grouped role breakdown for an event with responses', async ({ page }) => {
+  await login(page)
   await page.goto('/events/evt-002')
   await expect(
     page.getByRole('heading', { name: 'League Match vs Smash United', level: 1 }),
@@ -54,6 +56,7 @@ test('event detail renders the grouped role breakdown for an event with response
 })
 
 test('event detail shows an empty breakdown when nobody has responded yet', async ({ page }) => {
+  await login(page)
   await page.goto('/events/evt-006')
   await expect(
     page.getByRole('heading', { name: 'Friendly (date TBC)', level: 1 }),

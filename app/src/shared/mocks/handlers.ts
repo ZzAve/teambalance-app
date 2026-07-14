@@ -1,8 +1,32 @@
 import { http, HttpResponse, delay } from 'msw'
 import { EVENTS, EVENT_TYPES, MEMBERS, computeRoleBreakdown, type MockEvent } from './data'
+import type { AuthenticatedUser } from '../api/auth'
 
 // Mutable copy so mutations persist during the session
 const events = structuredClone(EVENTS)
+
+// The one mock identity a login establishes — a distinct identity (not a roster member) so it
+// doesn't get pulled out of any event's attendee list as the "current user"; ADMIN so admin-gated
+// UI is exercisable. Used by both verify and /me, so there's a single source of truth.
+const MOCK_USER: AuthenticatedUser = {
+  id: '11111111-1111-1111-1111-111111111111',
+  email: 'you@example.com',
+  displayName: 'You',
+  role: 'ADMIN',
+}
+
+// Session is persisted in sessionStorage so it survives page reloads (like a real session cookie),
+// letting e2e navigate with hard loads after logging in. It boots UNAUTHENTICATED — a fresh visit
+// hits the login screen, mirroring the real app — until verify establishes it. logout clears it.
+const SESSION_KEY = 'tb-mock-session'
+function readSession(): AuthenticatedUser | null {
+  const raw = sessionStorage.getItem(SESSION_KEY)
+  return raw ? (JSON.parse(raw) as AuthenticatedUser) : null
+}
+function writeSession(user: AuthenticatedUser | null): void {
+  if (user) sessionStorage.setItem(SESSION_KEY, JSON.stringify(user))
+  else sessionStorage.removeItem(SESSION_KEY)
+}
 
 function toSummary(event: MockEvent) {
   return {
@@ -134,27 +158,25 @@ export const handlers = [
     await delay(300)
     const body = (await request.json()) as { token: string }
     if (body.token === 'valid-token') {
-      return HttpResponse.json({
-        id: MEMBERS[0].userId,
-        email: 'you@example.com',
-        displayName: MEMBERS[0].displayName,
-        role: 'ADMIN',
-      })
+      writeSession(MOCK_USER)
+      return HttpResponse.json(MOCK_USER)
     }
     return new HttpResponse(null, { status: 401 })
   }),
 
-  // GET /api/auth/me — mock an authenticated session so the app's main screens render under MSW.
-  // A distinct identity (not a roster member) so it doesn't get pulled out of any event's
-  // attendee list as the "current user".
+  // GET /api/auth/me — reflects the persisted mock session so the auth guard (redirect when logged
+  // out, hydrate when logged in) is exercised under MSW, not just against the real backend.
   http.get('/api/auth/me', async () => {
     await delay(100)
-    return HttpResponse.json({ id: '11111111-1111-1111-1111-111111111111', email: 'you@example.com', displayName: 'You' })
+    const session = readSession()
+    if (!session) return new HttpResponse(null, { status: 401 })
+    return HttpResponse.json(session)
   }),
 
   // POST /api/auth/logout
   http.post('/api/auth/logout', async () => {
     await delay(100)
+    writeSession(null)
     return new HttpResponse(null, { status: 204 })
   }),
 

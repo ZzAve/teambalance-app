@@ -70,10 +70,7 @@ test-api: ## Run backend tests only
 test-app: ## Run frontend tests only
 	cd app && npm test
 
-e2e: ## Run end-to-end tests (MSW-mocked; being replaced by e2e-real)
-	cd app && npm run e2e
-
-e2e-real: ## Run real full-stack e2e (infra + backend e2e profile + Playwright)
+e2e: ## Run real full-stack e2e (infra + backend e2e profile + Playwright)
 	./scripts/e2e.sh
 
 lint: ## Lint everything

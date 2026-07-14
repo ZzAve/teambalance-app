@@ -56,19 +56,17 @@ jobs:
       - run: make lint
 
       # Needed before `make test`: the Storybook stories run in a headless-chromium
-      # Vitest browser project, and the MSW + real e2e suites also drive Chromium.
+      # Vitest browser project, and the real e2e suite also drives Chromium.
       - name: Install Playwright browser
         run: npx playwright install --with-deps chromium
         working-directory: app
 
       - run: make test
 
-      - run: make e2e
-
       # Real full-stack e2e last (slowest layer): backend via bootRun (e2e profile) against the
       # workflow's Postgres/Redis service containers, health-gated by scripts/e2e.sh.
       - name: Real full-stack e2e
-        run: make e2e-real
+        run: make e2e
 
       - name: Upload backend e2e log
         if: ${{ failure() }}

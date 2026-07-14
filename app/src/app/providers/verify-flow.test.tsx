@@ -5,8 +5,10 @@ import { createMemoryHistory, createRouter, RouterProvider } from '@tanstack/rea
 import { routeTree } from '../../routeTree.gen'
 import type { AuthenticatedUser } from '@shared/api/auth'
 
-// A stateful session, mirroring the browser MSW mock (shared/mocks/handlers.ts): verify
-// establishes it, /me reflects it. The verify response is deliberately delayed relative to
+// A stateful in-test session (msw/node): verify establishes it, /me reflects it. The auth
+// render-gate is a routing concern — not story-able, and its timing edge cases can't be forced
+// against the real backend — so it stays a jsdom test here; the happy verify path is also proven
+// end-to-end by the real e2e login flow. The verify response is deliberately delayed relative to
 // /me's so the guard's own mount-time /me fetch (started at the same time, on the un-verified
 // session) resolves first — matching real latency, where verify does token/session work and
 // /me is a cheap read. This proves the redirect guard trusts the direct cache write from

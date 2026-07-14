@@ -8,7 +8,6 @@
     "build": "npx @tanstack/router-cli generate && tsc -b && vite build",
     "test": "vitest run",
     "test:watch": "vitest",
-    "e2e": "playwright test",
     "e2e:real": "playwright test --config playwright.real.config.ts",
     "yolo": "vite build",
     "preview": "vite preview",
@@ -62,10 +61,5 @@
     "typescript-eslint": "^8.57.1",
     "vite": "^8.0.1",
     "vitest": "^4.1.9"
-  },
-  "msw": {
-    "workerDirectory": [
-      "public"
-    ]
   }
 }

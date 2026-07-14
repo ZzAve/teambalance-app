@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Orchestrates the real full-stack e2e suite (`make e2e-real`):
+# Orchestrates the real full-stack e2e suite (`make e2e`):
 #   infra (Postgres/Redis) → backend via bootRun under the `e2e` profile, health-gated → Playwright.
 #
 # Works both locally (brings docker-compose up if nothing listens on 5432) and in CI
@@ -7,7 +7,7 @@
 #
 # Isolation note: the seed fixture is idempotent, and the login flow issues a fresh token per
 # run, so re-runs against a warm DB are safe. For a truly fresh DB locally:
-#   docker-compose down -v && make e2e-real
+#   docker-compose down -v && make e2e
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
@@ -31,7 +31,7 @@ port_open 6379 || { echo "Redis did not come up on :6379" >&2; exit 1; }
 
 # --- Backend (e2e profile) ---
 if port_open 8080; then
-  echo "Something is already listening on :8080 — stop it first (make e2e-real owns the backend)" >&2
+  echo "Something is already listening on :8080 — stop it first (make e2e owns the backend)" >&2
   exit 1
 fi
 

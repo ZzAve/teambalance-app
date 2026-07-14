@@ -29,7 +29,7 @@ class AuthService(
 
     fun requestMagicLink(email: String) {
         val token = generateToken()
-        val now = Instant.now(clock)
+        val now = clock.instant()
         magicLinkTokenRepository.save(
             MagicLinkToken(
                 id = UUID.randomUUID(),
@@ -46,7 +46,7 @@ class AuthService(
     fun findUserById(id: UUID): User? = userRepository.findById(id)
 
     fun verifyMagicLink(token: String): User? {
-        val now = Instant.now(clock)
+        val now = clock.instant()
         val record = magicLinkTokenRepository.findByTokenHash(hash(token))
             ?.takeIf { it.usedAt == null && it.expiresAt.isAfter(now) }
             ?: return null

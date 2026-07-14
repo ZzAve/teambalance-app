@@ -41,7 +41,7 @@ class InvitationService(
      * rotate/expire to invalidate them.
      */
     fun generateInviteLink(teamId: UUID, createdBy: UUID): GeneratedInvitation {
-        val now = Instant.now(clock)
+        val now = clock.instant()
         val token = generateToken()
         invitationRepository.save(
             Invitation(
@@ -63,7 +63,7 @@ class InvitationService(
      * avoid leaking which is the case.
      */
     fun acceptInvitation(token: String, userId: UUID): UUID? {
-        val now = Instant.now(clock)
+        val now = clock.instant()
         val invitation = invitationRepository.findByTokenHash(hashToken(token))
             ?.takeIf { it.expiresAt.isAfter(now) }
             ?: return null

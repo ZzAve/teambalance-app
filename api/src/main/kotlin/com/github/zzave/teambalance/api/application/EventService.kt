@@ -29,7 +29,7 @@ class EventService(
     }
 
     fun getUpcomingEvents(): List<Event> {
-        val since = Instant.now(clock).minus(GRACE_PERIOD)
+        val since = clock.instant().minus(GRACE_PERIOD)
         return eventRepository.findUpcoming(since)
     }
 
@@ -53,7 +53,7 @@ class EventService(
                 endTime = potential.endTime,
                 location = potential.location,
                 createdBy = createdBy,
-                createdAt = Instant.now(clock),
+                createdAt = clock.instant(),
             ),
         )
 
@@ -64,7 +64,7 @@ class EventService(
                 eventId = event.id,
                 userId = member.userId,
                 state = AttendanceState.NOT_RESPONDED,
-                updatedAt = Instant.now(clock),
+                updatedAt = clock.instant(),
                 changedBy = createdBy,
             )
         }

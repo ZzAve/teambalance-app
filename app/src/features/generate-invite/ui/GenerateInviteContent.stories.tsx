@@ -11,7 +11,15 @@ const LINK = 'https://app.teambalance.app/invite/abc123'
 const meta = {
   title: 'features/generate-invite/GenerateInviteContent',
   component: GenerateInviteContent,
-  args: { onCopy: fn() },
+  args: {
+    expired: false,
+    isRotating: false,
+    isExpiring: false,
+    onCopy: fn(),
+    onRotate: fn(),
+    onExpire: fn(),
+    onGenerateNew: fn(),
+  },
 } satisfies Meta<typeof GenerateInviteContent>
 
 export default meta
@@ -54,5 +62,30 @@ export const Copied: Story = {
   args: { isPending: false, isError: false, link: LINK, copied: true },
   play: async ({ canvas }) => {
     await expect(canvas.getByRole('button', { name: 'Copied!' })).toBeInTheDocument()
+  },
+}
+
+export const Rotating: Story = {
+  args: { isPending: false, isError: false, link: LINK, copied: false, isRotating: true },
+  play: async ({ canvas }) => {
+    await expect(canvas.getByRole('button', { name: 'Rotating...' })).toBeInTheDocument()
+    await expect(canvas.getByRole('button', { name: 'Rotating...' })).toBeDisabled()
+  },
+}
+
+export const Expiring: Story = {
+  args: { isPending: false, isError: false, link: LINK, copied: false, isExpiring: true },
+  play: async ({ canvas }) => {
+    await expect(canvas.getByRole('button', { name: 'Expiring...' })).toBeInTheDocument()
+    await expect(canvas.getByRole('button', { name: 'Expiring...' })).toBeDisabled()
+  },
+}
+
+export const Expired: Story = {
+  args: { isPending: false, isError: false, link: LINK, copied: false, expired: true },
+  play: async ({ canvas, userEvent, args }) => {
+    await expect(canvas.getByText(/this link has expired/i)).toBeInTheDocument()
+    await userEvent.click(canvas.getByRole('button', { name: 'Generate new link' }))
+    await expect(args.onGenerateNew).toHaveBeenCalled()
   },
 }

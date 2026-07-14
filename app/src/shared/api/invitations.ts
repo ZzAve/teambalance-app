@@ -13,6 +13,23 @@ export function useCreateInvitation() {
   })
 }
 
+export function useRotateInvitation() {
+  return useMutation({
+    mutationFn: async () => {
+      const res = await api.RotateInvitation()
+      return res.body
+    },
+  })
+}
+
+export function useExpireInvitations() {
+  return useMutation({
+    mutationFn: async () => {
+      await api.ExpireInvitations()
+    },
+  })
+}
+
 export function useAcceptInvitation() {
   return useMutation({
     mutationFn: async (token: string) => {

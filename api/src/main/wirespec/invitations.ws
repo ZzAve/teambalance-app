@@ -13,5 +13,6 @@ endpoint CreateInvitation POST /api/invitations -> {
 
 endpoint AcceptInvitation POST /api/invitations/{token: String}/accept -> {
     200 -> AcceptedInvitation
+    401 -> Unit
     404 -> Unit
 }

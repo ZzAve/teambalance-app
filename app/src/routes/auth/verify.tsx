@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { useQueryClient } from '@tanstack/react-query'
 import { useVerifyMagicLink } from '@shared/api/auth'
-import { takePendingInviteToken, useAcceptInvitation } from '@shared/api/invitations'
+import { takePendingInviteTokenForEmail, useAcceptInvitation } from '@shared/api/invitations'
 
 export const Route = createFileRoute('/auth/verify')({
   component: VerifyPage,
@@ -27,19 +27,25 @@ function VerifyPage() {
     verifyMagicLink
       .mutateAsync(token)
       .then(async (user) => {
-        queryClient.setQueryData(['auth', 'me'], user)
-
-        const inviteToken = takePendingInviteToken()
+        const inviteToken = takePendingInviteTokenForEmail(user.email)
         if (inviteToken) {
           try {
             await acceptInvitation.mutateAsync(inviteToken)
+            // Only populate the auth cache after the accept succeeds — a failed accept must not
+            // leave the user "authenticated" but teamless.
+            queryClient.setQueryData(['auth', 'me'], user)
             // Role/team membership changed by accepting — refetch so the guard's /me and the
             // user store both reflect the newly-joined team, not the pre-join session snapshot.
             await queryClient.invalidateQueries({ queryKey: ['auth', 'me'] })
           } catch {
-            setError('This invite link is invalid or has expired.')
+            // DO NOT set auth cache — don't leave user authenticated but teamless.
+            setError(
+              'Your sign-in worked, but the invite link has expired or is no longer valid. Ask your team admin for a new invitation.',
+            )
             return
           }
+        } else {
+          queryClient.setQueryData(['auth', 'me'], user)
         }
 
         navigate({ to: '/', replace: true })

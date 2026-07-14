@@ -38,7 +38,7 @@ function InvitePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, token])
 
-  if (isLoadingSession || (user && !error)) {
+  if (isLoadingSession || (user && !error && !acceptInvitation.isError)) {
     return (
       <div className="mx-auto mt-16 max-w-sm text-center">
         <p className="text-sm text-muted-foreground">{user ? 'Joining the team...' : 'Loading...'}</p>
@@ -60,7 +60,7 @@ function InvitePage() {
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    savePendingInviteToken(token)
+    savePendingInviteToken(token, email)
     requestMagicLink.mutate(email, { onSuccess: () => setSent(true) })
   }
 

@@ -1,5 +1,6 @@
 package com.github.zzave.teambalance.api.infrastructure.identity
 
+import com.github.zzave.teambalance.api.domain.exception.UnauthenticatedException
 import java.util.UUID
 
 object UserContext {
@@ -7,6 +8,6 @@ object UserContext {
 
     fun set(userId: UUID) = current.set(userId)
     fun get(): UUID? = current.get()
-    fun require(): UUID = current.get() ?: throw IllegalStateException("No user in context")
+    fun require(): UUID = current.get() ?: throw UnauthenticatedException("No user in context")
     fun clear() = current.remove()
 }

@@ -7,10 +7,11 @@ import { authMeQueryOptions, useLogout } from '@shared/api/auth'
 import { queryClient } from '@shared/api/query-client'
 import { useUserStore } from '@shared/stores/user-store'
 
-// Only the sign-in routes render without a confirmed session. Exact `/auth/` prefix — not
+// Only the sign-in routes (and the invite landing page, reachable before a joiner has any
+// session) render without a confirmed session. Exact `/auth/` and `/invite/` prefixes — not
 // startsWith('/auth') — so a future route like `/authored` can't slip past the guard.
 function isAuthRoute(pathname: string): boolean {
-  return pathname === '/login' || pathname.startsWith('/auth/')
+  return pathname === '/login' || pathname.startsWith('/auth/') || pathname.startsWith('/invite/')
 }
 
 export const Route = createRootRoute({

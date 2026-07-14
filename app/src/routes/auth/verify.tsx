@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { useQueryClient } from '@tanstack/react-query'
 import { useVerifyMagicLink } from '@shared/api/auth'
+import { takePendingInviteToken, useAcceptInvitation } from '@shared/api/invitations'
 
 export const Route = createFileRoute('/auth/verify')({
   component: VerifyPage,
@@ -15,6 +16,7 @@ function VerifyPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const verifyMagicLink = useVerifyMagicLink()
+  const acceptInvitation = useAcceptInvitation()
   const [error, setError] = useState<string | null>(null)
   const attempted = useRef(false)
 
@@ -24,8 +26,22 @@ function VerifyPage() {
 
     verifyMagicLink
       .mutateAsync(token)
-      .then((user) => {
+      .then(async (user) => {
         queryClient.setQueryData(['auth', 'me'], user)
+
+        const inviteToken = takePendingInviteToken()
+        if (inviteToken) {
+          try {
+            await acceptInvitation.mutateAsync(inviteToken)
+            // Role/team membership changed by accepting — refetch so the guard's /me and the
+            // user store both reflect the newly-joined team, not the pre-join session snapshot.
+            await queryClient.invalidateQueries({ queryKey: ['auth', 'me'] })
+          } catch {
+            setError('This invite link is invalid or has expired.')
+            return
+          }
+        }
+
         navigate({ to: '/', replace: true })
       })
       .catch(() => setError('This link has expired or already been used. Request a new one.'))

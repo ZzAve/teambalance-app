@@ -191,4 +191,11 @@ export const handlers = [
       { status: 201 },
     )
   }),
+
+  // POST /api/invitations/:token/accept
+  http.post('/api/invitations/:token/accept', async ({ params }) => {
+    await delay(300)
+    if (params.token !== 'mock-invite-token') return new HttpResponse(null, { status: 404 })
+    return HttpResponse.json({ teamId: '11111111-2222-3333-4444-555555555555' })
+  }),
 ]

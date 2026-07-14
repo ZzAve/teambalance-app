@@ -3,6 +3,7 @@ package com.github.zzave.teambalance.api.interfaces
 import com.github.zzave.teambalance.api.domain.exception.ForbiddenException
 import com.github.zzave.teambalance.api.domain.exception.NotFoundException
 import com.github.zzave.teambalance.api.domain.exception.TeambalanceException
+import com.github.zzave.teambalance.api.domain.exception.UnauthenticatedException
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.ExceptionHandler
@@ -11,6 +12,11 @@ import java.time.format.DateTimeParseException
 
 @RestControllerAdvice
 class GlobalExceptionHandler {
+
+    @ExceptionHandler(UnauthenticatedException::class)
+    fun handleUnauthenticated(ex: UnauthenticatedException): ResponseEntity<Map<String, String>> =
+        ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+            .body(mapOf("error" to (ex.message ?: "Unauthorized")))
 
     @ExceptionHandler(NotFoundException::class)
     fun handleNotFound(ex: NotFoundException): ResponseEntity<Map<String, String>> =

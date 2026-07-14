@@ -14,4 +14,7 @@ interface TeamMemberRepository {
 
     /** The team the user actively belongs to, or null if they have no team (v1: one team per user). */
     fun findTeamId(userId: UUID): UUID?
+
+    /** Joins the user to the team as a USER. No-op if already an active member of this team. */
+    fun addMember(teamId: UUID, userId: UUID)
 }

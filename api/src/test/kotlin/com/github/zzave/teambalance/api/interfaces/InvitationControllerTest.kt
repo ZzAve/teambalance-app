@@ -15,6 +15,8 @@ import java.security.MessageDigest
 
 private const val JAN_USER_ID = "c0000000-0000-0000-0000-000000000001"
 private const val LISA_USER_ID = "c0000000-0000-0000-0000-000000000002"
+private const val JOINER_USER_ID = "c0000000-0000-0000-0000-000000000003"
+private const val EXPIRED_JOINER_USER_ID = "c0000000-0000-0000-0000-000000000004"
 private const val TEAM_ID = "a0000000-0000-0000-0000-000000000001"
 
 // Must match application-test.yml (teambalance.invitation.token-salt).
@@ -51,6 +53,21 @@ class InvitationControllerTest : TeamBalanceIT() {
         jdbcTemplate.execute(
             "INSERT INTO public.team_members (team_id, user_id, role, team_role) " +
                 "VALUES ('$TEAM_ID'::uuid, '$JAN_USER_ID'::uuid, 'ADMIN', 'Setter') ON CONFLICT DO NOTHING",
+        )
+    }
+
+    /** Inserts an invitation row directly (bypassing generateInviteLink) so tests control its expiry. */
+    private fun seedInvitation(plaintextToken: String, expiresAt: String = "2099-01-01T00:00:00Z") {
+        jdbcTemplate.execute(
+            "INSERT INTO public.invitations (team_id, token, created_by, expires_at) " +
+                "VALUES ('$TEAM_ID'::uuid, '${sha256Hex(TEST_SALT, plaintextToken)}', '$JAN_USER_ID'::uuid, '$expiresAt'::timestamptz)",
+        )
+    }
+
+    private fun seedJoiner(userId: String, email: String) {
+        jdbcTemplate.execute(
+            "INSERT INTO public.users (id, email, display_name) " +
+                "VALUES ('$userId'::uuid, '$email', 'New Joiner') ON CONFLICT DO NOTHING",
         )
     }
 
@@ -126,6 +143,71 @@ class InvitationControllerTest : TeamBalanceIT() {
 
             mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(mvcResult))
                 .andExpect(MockMvcResultMatchers.status().isForbidden)
+        }
+
+        test("POST /api/invitations/{token}/accept adds the authenticated user as a team_member") {
+            seedAdmin()
+            seedJoiner(JOINER_USER_ID, "joiner-accept@test.com")
+            seedInvitation("plaintext-accept-token")
+
+            val mvcResult = mockMvc.perform(
+                MockMvcRequestBuilders.post("/api/invitations/plaintext-accept-token/accept")
+                    .header("X-User-Id", JOINER_USER_ID),
+            )
+                .andExpect(MockMvcResultMatchers.request().asyncStarted())
+                .andReturn()
+
+            mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(mvcResult))
+                .andExpect(MockMvcResultMatchers.status().isOk)
+                .andExpect(MockMvcResultMatchers.jsonPath("$.teamId").value(TEAM_ID))
+
+            val memberRows = jdbcTemplate.queryForObject(
+                "SELECT count(*) FROM public.team_members " +
+                    "WHERE team_id = ?::uuid AND user_id = ?::uuid AND role = 'USER' AND active = true",
+                Long::class.java,
+                TEAM_ID,
+                JOINER_USER_ID,
+            )
+            memberRows shouldBe 1L
+        }
+
+        test("POST /api/invitations/{token}/accept with an unknown token is rejected with 404") {
+            seedAdmin()
+            seedJoiner(JOINER_USER_ID, "joiner-unknown@test.com")
+
+            val mvcResult = mockMvc.perform(
+                MockMvcRequestBuilders.post("/api/invitations/does-not-exist/accept")
+                    .header("X-User-Id", JOINER_USER_ID),
+            )
+                .andExpect(MockMvcResultMatchers.request().asyncStarted())
+                .andReturn()
+
+            mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(mvcResult))
+                .andExpect(MockMvcResultMatchers.status().isNotFound)
+        }
+
+        test("POST /api/invitations/{token}/accept with an expired token is rejected with 404") {
+            seedAdmin()
+            seedJoiner(EXPIRED_JOINER_USER_ID, "joiner-expired@test.com")
+            seedInvitation("plaintext-expired-token", expiresAt = "2000-01-01T00:00:00Z")
+
+            val mvcResult = mockMvc.perform(
+                MockMvcRequestBuilders.post("/api/invitations/plaintext-expired-token/accept")
+                    .header("X-User-Id", EXPIRED_JOINER_USER_ID),
+            )
+                .andExpect(MockMvcResultMatchers.request().asyncStarted())
+                .andReturn()
+
+            mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(mvcResult))
+                .andExpect(MockMvcResultMatchers.status().isNotFound)
+
+            val memberRows = jdbcTemplate.queryForObject(
+                "SELECT count(*) FROM public.team_members WHERE team_id = ?::uuid AND user_id = ?::uuid",
+                Long::class.java,
+                TEAM_ID,
+                EXPIRED_JOINER_USER_ID,
+            )
+            memberRows shouldBe 0L
         }
     }
 }

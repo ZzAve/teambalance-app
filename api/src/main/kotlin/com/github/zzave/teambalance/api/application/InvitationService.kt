@@ -2,6 +2,7 @@ package com.github.zzave.teambalance.api.application
 
 import com.github.zzave.teambalance.api.domain.model.Invitation
 import com.github.zzave.teambalance.api.domain.port.InvitationRepository
+import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import java.security.MessageDigest
@@ -18,6 +19,7 @@ data class GeneratedInvitation(val token: String, val expiresAt: Instant)
 @Service
 class InvitationService(
     private val invitationRepository: InvitationRepository,
+    private val teamMemberRepository: TeamMemberRepository,
     private val clock: Clock,
     // App-wide secret mixed into the token hash. Supplied via INVITATION_TOKEN_SALT in live
     // environments (see application.yml); dev and test use a hardcoded value.
@@ -52,6 +54,21 @@ class InvitationService(
             ),
         )
         return GeneratedInvitation(token = token, expiresAt = now.plus(INVITE_TTL))
+    }
+
+    /**
+     * Joins the presenting user to the invitation's team. Returns null for an unknown or expired
+     * token (rotated/revoked tokens will read the same way once #38 lands) so the controller can
+     * answer with a plain 404 — no distinction is made between "never existed" and "expired" to
+     * avoid leaking which is the case.
+     */
+    fun acceptInvitation(token: String, userId: UUID): UUID? {
+        val now = Instant.now(clock)
+        val invitation = invitationRepository.findByTokenHash(hashToken(token))
+            ?.takeIf { it.expiresAt.isAfter(now) }
+            ?: return null
+        teamMemberRepository.addMember(invitation.teamId, userId)
+        return invitation.teamId
     }
 
     private fun generateToken(): String {

@@ -40,3 +40,17 @@ export const NoResponses: Story = {
     ).not.toBeInTheDocument()
   },
 }
+
+export const WithLocation: Story = {
+  args: { event: makeEvent({ location: 'Sporthal De Boog' }) },
+  play: async ({ canvas, canvasElement }) => {
+    // The location renders as a real maps link that opens in a new tab...
+    const maps = canvas.getByRole('link', { name: 'Sporthal De Boog' })
+    await expect(maps).toHaveAttribute('href', expect.stringContaining('maps.google.com'))
+    await expect(maps).toHaveAttribute('target', '_blank')
+    // ...and it must NOT be nested inside the card's own <Link> anchor (invalid HTML — the
+    // "<a> cannot contain a nested <a>" warning this fix removes). The card link and the maps
+    // link are siblings; the card stays clickable via a stretched-link overlay.
+    await expect(canvasElement.querySelectorAll('a a')).toHaveLength(0)
+  },
+}

@@ -12,7 +12,11 @@ const ROLE_TEXT = /\d+\s+(Setter|Libero|Outside Hitter|Middle Blocker|Opposite)/
 test('event list card renders attending-by-role chips for an event with responses', async ({ page }) => {
   await page.goto('/')
 
-  const matchCard = page.locator('a[href$="/events/evt-002"]')
+  // The card is no longer a single anchor (a nested maps <a> would be invalid HTML): the title is
+  // the link, so scope to the whole card by the container that holds that link.
+  const matchCard = page.locator('.card-enter').filter({
+    has: page.locator('a[href$="/events/evt-002"]'),
+  })
   await expect(matchCard).toBeVisible()
 
   for (const chip of POPULATED_CHIPS) {
@@ -23,7 +27,9 @@ test('event list card renders attending-by-role chips for an event with response
 test('event list card shows no role chips when nobody has responded yet', async ({ page }) => {
   await page.goto('/')
 
-  const emptyCard = page.locator('a[href$="/events/evt-006"]')
+  const emptyCard = page.locator('.card-enter').filter({
+    has: page.locator('a[href$="/events/evt-006"]'),
+  })
   await expect(emptyCard).toBeVisible()
 
   // Summary still renders, but with zero going and no role chips.

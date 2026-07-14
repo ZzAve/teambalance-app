@@ -20,3 +20,7 @@ endpoint AcceptInvitation POST /api/invitations/{token: String}/accept -> {
 endpoint ExpireInvitations POST /api/invitations/expire -> {
     204 -> Unit
 }
+
+endpoint RotateInvitation POST /api/invitations/rotate -> {
+    201 -> Invitation
+}

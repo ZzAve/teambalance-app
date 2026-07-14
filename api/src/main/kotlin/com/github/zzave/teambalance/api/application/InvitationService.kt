@@ -76,6 +76,12 @@ class InvitationService(
         invitationRepository.expireActive(teamId, Instant.now(clock))
     }
 
+    /** Invalidates the team's active invite link(s) and mints a fresh one in its place. */
+    fun rotateInviteLink(teamId: UUID, createdBy: UUID): GeneratedInvitation {
+        expireActiveInvitations(teamId)
+        return generateInviteLink(teamId, createdBy)
+    }
+
     private fun generateToken(): String {
         val bytes = ByteArray(TOKEN_BYTE_LENGTH)
         secureRandom.nextBytes(bytes)

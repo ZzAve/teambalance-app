@@ -47,9 +47,10 @@ make infra          # Start all infra (Postgres + Redis)
 make api            # Run backend (port 8080)
 make app            # Run frontend dev server (port 5173)
 make run-local      # Start infra + backend + frontend
-make test           # Run all tests
+make test           # Fast inner loop: test-api + test-app (no full-stack e2e)
 make test-api       # Backend tests only
-make test-app       # Frontend tests only
+make test-app       # Frontend tests only (Vitest: units + Storybook stories)
+make e2e            # Real full-stack Playwright suite (requires infra + port 8080 free)
 make lint           # Lint everything (detekt + ESLint)
 make format         # Auto-format code
 make wirespec       # Regenerate API contracts from .wirespec files
@@ -92,6 +93,33 @@ free of regressions. Self-verification is encouraged by spinning up the applicat
 either through its endpoint, or through the UI. 
 
 Every change made must deliver proof that it delivers the intended value and does not introduce regression.
+
+## Testing
+
+Four honest layers — place each new test at the **lowest layer that proves it**:
+
+| Layer | Command | What it covers |
+|-------|---------|----------------|
+| Backend unit / IT | `make test-api` | Kotlin units + Testcontainers integration tests |
+| Frontend pure logic | `make test-app` | Vitest (jsdom): mappers, adapters, stores |
+| Component states | `make test-app` | Vitest + Storybook addon (headless): empty/loading/data/error stories |
+| Real e2e | `make e2e` | Full-stack Playwright: login flow + change-attendance flow |
+
+`make test` = `test-api` + `test-app` — the fast everyday inner loop. Full-stack e2e is excluded; run `make e2e` explicitly.
+
+### PR gate
+
+> **When adding or changing a feature, place its coverage at the lowest layer that proves it:**
+> - Component states (empty/loading/data/error) → a Storybook story.
+> - Pure logic (mappers, adapters, stores) → a Vitest unit.
+> - Backend behaviour → a Kotest unit or Testcontainers IT.
+> - **A new e2e is justified *only* if the change introduces a seam not already exercised by the login or attendance flows** (new auth path, new cross-tenant write, new external integration). If it does, add one flow. If it doesn't, say so in the PR.
+
+### Sanctioned MSW/RTL exception
+
+The two auth render-gate Vitest tests (`app/src/app/providers/auth-gate.test.tsx`, `verify-flow.test.tsx`) use `msw/node` to render the auth provider under controlled network conditions. They are the **single sanctioned exception** to the "Vitest owns only pure non-rendering logic" rule: the auth routing seam (fail-closed on error, verify-vs-/me race) cannot be forced into a meaningful failure state against a real backend, and it is not story-able. Do not remove them or use them as precedent for new RTL render tests.
+
+See [`docs/testing.md`](docs/testing.md) for command mechanics, the Vitest/Storybook bright line, and real-e2e gotchas.
 
 ## Agent skills
 

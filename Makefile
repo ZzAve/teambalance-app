@@ -79,7 +79,7 @@ lint: ## Lint everything
 
 format: ## Auto-format code
 	./gradlew :api:detekt --auto-correct || ./gradlew :api:detekt --auto-correct
-	cd app && npm run lint -- --fix
+	cd app && ./node_modules/.bin/eslint . --fix
 
 # --- Code generation ---
 

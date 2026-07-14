@@ -1,13 +1,33 @@
-import { createRootRoute, Outlet, Link, useNavigate, useRouterState } from '@tanstack/react-router'
+import { createRootRoute, redirect, Outlet, Link, useNavigate, useRouterState } from '@tanstack/react-router'
 import { useQueryClient } from '@tanstack/react-query'
 import { useEffect, useRef } from 'react'
 import { Providers } from '@app/providers'
 import { BottomNav } from '@shared/ui/BottomNav'
-import { useLogout } from '@shared/api/auth'
+import { authMeQueryOptions, useLogout } from '@shared/api/auth'
+import { queryClient } from '@shared/api/query-client'
 import { useUserStore } from '@shared/stores/user-store'
+
+// Only the sign-in routes render without a confirmed session. Exact `/auth/` prefix — not
+// startsWith('/auth') — so a future route like `/authored` can't slip past the guard.
+function isAuthRoute(pathname: string): boolean {
+  return pathname === '/login' || pathname.startsWith('/auth/')
+}
 
 export const Route = createRootRoute({
   component: RootLayout,
+  // A true gate: the session is probed before a protected route loads, so its component never
+  // mounts (and never fetches protected data) unless the session is confirmed. An unauthenticated
+  // 401 — or any /me error (fail closed) — redirects to login before render.
+  beforeLoad: async ({ location }) => {
+    if (isAuthRoute(location.pathname)) return
+    let user = null
+    try {
+      user = await queryClient.ensureQueryData(authMeQueryOptions)
+    } catch {
+      // Session could not be confirmed (network / 5xx) — fail closed.
+    }
+    if (!user) throw redirect({ to: '/login' })
+  },
 })
 
 function useViewTransitions() {

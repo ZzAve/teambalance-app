@@ -1,9 +1,10 @@
 import { test, expect } from '@playwright/test'
+import { login } from './helpers'
 
 // Isolate-first filter chips: from the all-active state a tap isolates that
 // type; from a subset a tap toggles it; deselecting the last chip restores all.
 test('event type chips isolate first, then toggle subsets, then restore all', async ({ page }) => {
-  await page.goto('/')
+  await login(page)
 
   const trainingChip = page.getByRole('button', { name: 'Training', exact: true })
   const matchChip = page.getByRole('button', { name: 'Match', exact: true })

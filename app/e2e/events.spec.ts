@@ -1,9 +1,10 @@
 import { test, expect } from '@playwright/test'
+import { login } from './helpers'
 
 // Drives the event list and event detail pages through real user interaction,
 // exercising the generated Wirespec client end-to-end against the MSW mocks.
 test('user can browse the event list and open an event detail', async ({ page }) => {
-  await page.goto('/')
+  await login(page)
 
   // The list page renders its heading and an upcoming event from the mocks.
   await expect(page.getByRole('heading', { name: 'Events' })).toBeVisible()

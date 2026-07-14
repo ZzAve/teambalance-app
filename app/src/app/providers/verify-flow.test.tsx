@@ -56,8 +56,11 @@ describe('magic-link verification', () => {
   })
 
   it('rejects an invalid token and keeps the guard from ever granting access', async () => {
-    renderAppAt('/auth/verify?token=bogus-token')
+    const router = renderAppAt('/auth/verify?token=bogus-token')
 
     expect(await screen.findByText(/link has expired or already been used/i)).toBeInTheDocument()
+    // Access was never granted: never navigated to the protected landing, events never rendered.
+    expect(router.state.location.pathname).toBe('/auth/verify')
+    expect(screen.queryByRole('heading', { name: 'Events' })).not.toBeInTheDocument()
   })
 })

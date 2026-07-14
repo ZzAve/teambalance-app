@@ -49,18 +49,21 @@ function renderAppAt(path: string) {
 }
 
 describe('magic-link verification', () => {
+  // Timeouts are generous because the assertion waits out a real chain — the 10ms verify delay,
+  // the direct cache write, the redirect, then the events route mounting — which a loaded CI
+  // runner walks through well past the 1000ms default (green locally, flaked in CI at 1000ms).
   it('establishes the session and lands on events, without the guard bouncing back to login', async () => {
     const router = renderAppAt('/auth/verify?token=valid-token')
 
-    await waitFor(() => expect(router.state.location.pathname).toBe('/'))
-    expect(await screen.findByRole('heading', { name: 'Events' })).toBeInTheDocument()
+    await waitFor(() => expect(router.state.location.pathname).toBe('/'), { timeout: 5000 })
+    expect(await screen.findByRole('heading', { name: 'Events' }, { timeout: 5000 })).toBeInTheDocument()
     expect(screen.queryByText(/link expired/i)).not.toBeInTheDocument()
   })
 
   it('rejects an invalid token and keeps the guard from ever granting access', async () => {
     const router = renderAppAt('/auth/verify?token=bogus-token')
 
-    expect(await screen.findByText(/link has expired or already been used/i)).toBeInTheDocument()
+    expect(await screen.findByText(/link has expired or already been used/i, undefined, { timeout: 5000 })).toBeInTheDocument()
     // Access was never granted: never navigated to the protected landing, events never rendered.
     expect(router.state.location.pathname).toBe('/auth/verify')
     expect(screen.queryByRole('heading', { name: 'Events' })).not.toBeInTheDocument()

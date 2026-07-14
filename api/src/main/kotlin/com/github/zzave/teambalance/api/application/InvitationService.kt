@@ -71,6 +71,11 @@ class InvitationService(
         return invitation.teamId
     }
 
+    /** Invalidates every currently-active invite link for the team; already-expired ones are untouched. */
+    fun expireActiveInvitations(teamId: UUID) {
+        invitationRepository.expireActive(teamId, Instant.now(clock))
+    }
+
     private fun generateToken(): String {
         val bytes = ByteArray(TOKEN_BYTE_LENGTH)
         secureRandom.nextBytes(bytes)

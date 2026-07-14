@@ -5,6 +5,9 @@ import com.github.zzave.teambalance.api.domain.port.InvitationRepository
 import com.github.zzave.teambalance.api.infrastructure.persistence.mapper.externalize
 import com.github.zzave.teambalance.api.infrastructure.persistence.mapper.internalize
 import org.springframework.stereotype.Repository
+import org.springframework.transaction.annotation.Transactional
+import java.time.Instant
+import java.util.UUID
 
 @Repository
 class JpaInvitationRepositoryAdapter(
@@ -16,4 +19,9 @@ class JpaInvitationRepositoryAdapter(
 
     override fun findByTokenHash(tokenHash: String): Invitation? =
         jpaRepository.findByTokenHash(tokenHash)?.internalize()
+
+    @Transactional
+    override fun expireActive(teamId: UUID, now: Instant) {
+        jpaRepository.expireActive(teamId, now)
+    }
 }

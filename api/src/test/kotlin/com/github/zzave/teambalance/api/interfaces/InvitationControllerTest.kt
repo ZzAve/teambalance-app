@@ -209,5 +209,120 @@ class InvitationControllerTest : TeamBalanceIT() {
             )
             memberRows shouldBe 0L
         }
+
+        test("POST /api/invitations/expire by an admin invalidates the team's active invitation") {
+            seedAdmin()
+            seedJoiner(JOINER_USER_ID, "joiner-expire@test.com")
+            seedInvitation("plaintext-expire-token")
+
+            val mvcResult = mockMvc.perform(
+                MockMvcRequestBuilders.post("/api/invitations/expire")
+                    .header("X-Team-Id", "public")
+                    .header("X-User-Id", JAN_USER_ID),
+            )
+                .andExpect(MockMvcResultMatchers.request().asyncStarted())
+                .andReturn()
+
+            mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(mvcResult))
+                .andExpect(MockMvcResultMatchers.status().isNoContent)
+
+            val acceptResult = mockMvc.perform(
+                MockMvcRequestBuilders.post("/api/invitations/plaintext-expire-token/accept")
+                    .header("X-User-Id", JOINER_USER_ID),
+            )
+                .andExpect(MockMvcResultMatchers.request().asyncStarted())
+                .andReturn()
+
+            mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(acceptResult))
+                .andExpect(MockMvcResultMatchers.status().isNotFound)
+        }
+
+        test("POST /api/invitations/rotate by an admin rejects the old token and accepts the new one") {
+            seedAdmin()
+            seedJoiner(JOINER_USER_ID, "joiner-rotate@test.com")
+            seedInvitation("plaintext-rotate-old-token")
+
+            val mvcResult = mockMvc.perform(
+                MockMvcRequestBuilders.post("/api/invitations/rotate")
+                    .header("X-Team-Id", "public")
+                    .header("X-User-Id", JAN_USER_ID),
+            )
+                .andExpect(MockMvcResultMatchers.request().asyncStarted())
+                .andReturn()
+
+            val newToken = objectMapper.readTree(
+                mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(mvcResult))
+                    .andExpect(MockMvcResultMatchers.status().isCreated)
+                    .andExpect(MockMvcResultMatchers.jsonPath("$.token").isNotEmpty)
+                    .andReturn()
+                    .response
+                    .contentAsString,
+            ).get("token").asText()
+
+            val oldTokenResult = mockMvc.perform(
+                MockMvcRequestBuilders.post("/api/invitations/plaintext-rotate-old-token/accept")
+                    .header("X-User-Id", JOINER_USER_ID),
+            )
+                .andExpect(MockMvcResultMatchers.request().asyncStarted())
+                .andReturn()
+            mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(oldTokenResult))
+                .andExpect(MockMvcResultMatchers.status().isNotFound)
+
+            val newTokenResult = mockMvc.perform(
+                MockMvcRequestBuilders.post("/api/invitations/$newToken/accept")
+                    .header("X-User-Id", JOINER_USER_ID),
+            )
+                .andExpect(MockMvcResultMatchers.request().asyncStarted())
+                .andReturn()
+            mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(newTokenResult))
+                .andExpect(MockMvcResultMatchers.status().isOk)
+                .andExpect(MockMvcResultMatchers.jsonPath("$.teamId").value(TEAM_ID))
+        }
+
+        test("POST /api/invitations/rotate by a non-admin team member is rejected with 403") {
+            seedAdmin()
+            jdbcTemplate.execute(
+                "INSERT INTO public.users (id, email, display_name) " +
+                    "VALUES ('$LISA_USER_ID'::uuid, 'lisa-rotate@test.com', 'Lisa Bakker') ON CONFLICT DO NOTHING",
+            )
+            jdbcTemplate.execute(
+                "INSERT INTO public.team_members (team_id, user_id, role, team_role) " +
+                    "VALUES ('$TEAM_ID'::uuid, '$LISA_USER_ID'::uuid, 'USER', 'Libero') ON CONFLICT DO NOTHING",
+            )
+
+            val mvcResult = mockMvc.perform(
+                MockMvcRequestBuilders.post("/api/invitations/rotate")
+                    .header("X-Team-Id", "public")
+                    .header("X-User-Id", LISA_USER_ID),
+            )
+                .andExpect(MockMvcResultMatchers.request().asyncStarted())
+                .andReturn()
+
+            mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(mvcResult))
+                .andExpect(MockMvcResultMatchers.status().isForbidden)
+        }
+
+        test("POST /api/invitations/expire by a non-admin team member is rejected with 403") {
+            seedAdmin()
+            jdbcTemplate.execute(
+                "INSERT INTO public.users (id, email, display_name) " +
+                    "VALUES ('$LISA_USER_ID'::uuid, 'lisa-expire@test.com', 'Lisa Bakker') ON CONFLICT DO NOTHING",
+            )
+            jdbcTemplate.execute(
+                "INSERT INTO public.team_members (team_id, user_id, role, team_role) " +
+                    "VALUES ('$TEAM_ID'::uuid, '$LISA_USER_ID'::uuid, 'USER', 'Libero') ON CONFLICT DO NOTHING",
+            )
+
+            val mvcResult = mockMvc.perform(
+                MockMvcRequestBuilders.post("/api/invitations/expire")
+                    .header("X-Team-Id", "public")
+                    .header("X-User-Id", LISA_USER_ID),
+            )
+                .andExpect(MockMvcResultMatchers.request().asyncStarted())
+                .andReturn()
+
+            mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(mvcResult))
+                .andExpect(MockMvcResultMatchers.status().isForbidden)
+        }
     }
 }

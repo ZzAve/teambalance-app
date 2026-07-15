@@ -15,6 +15,7 @@ const meta = {
     expired: false,
     isRotating: false,
     isExpiring: false,
+    actionError: false,
     onCopy: fn(),
     onRotate: fn(),
     onExpire: fn(),
@@ -87,5 +88,15 @@ export const Expired: Story = {
     await expect(canvas.getByText(/this link has expired/i)).toBeInTheDocument()
     await userEvent.click(canvas.getByRole('button', { name: 'Generate new link' }))
     await expect(args.onGenerateNew).toHaveBeenCalled()
+  },
+}
+
+// A failed rotate/expire surfaces inline while the active link stays shown — so the admin isn't
+// left believing a dead link is still valid.
+export const ActionError: Story = {
+  args: { isPending: false, isError: false, link: LINK, copied: false, actionError: true },
+  play: async ({ canvas }) => {
+    await expect(canvas.getByText(/something went wrong/i)).toBeInTheDocument()
+    await expect(canvas.getByRole('button', { name: 'Rotate link' })).toBeInTheDocument()
   },
 }

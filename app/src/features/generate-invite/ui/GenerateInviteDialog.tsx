@@ -21,13 +21,16 @@ export function GenerateInviteDialog() {
 
   const link = invitation ? `${window.location.origin}/invite/${invitation.token}` : null
 
+  // Both the initial generate and a rotate land on a fresh active link: adopt it, drop the
+  // expired/copied flags from whatever state we were in.
+  const adoptNewLink = (inv: Invitation) => {
+    setInvitation(inv)
+    setExpired(false)
+    setCopied(false)
+  }
+
   const generate = () => {
-    createInvitation.mutate(undefined, {
-      onSuccess: (inv) => {
-        setInvitation(inv)
-        setExpired(false)
-      },
-    })
+    createInvitation.mutate(undefined, { onSuccess: adoptNewLink })
   }
 
   const handleOpenChange = (next: boolean) => {
@@ -37,6 +40,12 @@ export function GenerateInviteDialog() {
     }
     if (!next) {
       setCopied(false)
+      // Drop a dead (expired) link on close so reopening mints a fresh one instead of showing the
+      // stale "expired" panel. A still-active link is kept and reused on reopen.
+      if (expired) {
+        setInvitation(null)
+        setExpired(false)
+      }
     }
   }
 
@@ -47,18 +56,15 @@ export function GenerateInviteDialog() {
   }
 
   const handleRotate = () => {
-    setCopied(false)
-    rotateInvitation.mutate(undefined, {
-      onSuccess: (inv) => {
-        setInvitation(inv)
-        setExpired(false)
-      },
-    })
+    rotateInvitation.mutate(undefined, { onSuccess: adoptNewLink })
   }
 
   const handleExpire = () => {
     expireInvitation.mutate(undefined, {
-      onSuccess: () => setExpired(true),
+      onSuccess: () => {
+        setExpired(true)
+        setCopied(false)
+      },
     })
   }
 
@@ -79,6 +85,7 @@ export function GenerateInviteDialog() {
           expired={expired}
           isRotating={rotateInvitation.isPending}
           isExpiring={expireInvitation.isPending}
+          actionError={rotateInvitation.isError || expireInvitation.isError}
           onCopy={handleCopy}
           onRotate={handleRotate}
           onExpire={handleExpire}

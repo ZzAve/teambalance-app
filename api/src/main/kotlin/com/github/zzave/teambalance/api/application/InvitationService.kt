@@ -5,6 +5,7 @@ import com.github.zzave.teambalance.api.domain.port.InvitationRepository
 import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 import java.security.MessageDigest
 import java.security.SecureRandom
 import java.time.Clock
@@ -76,7 +77,12 @@ class InvitationService(
         invitationRepository.expireActive(teamId, Instant.now(clock))
     }
 
-    /** Invalidates the team's active invite link(s) and mints a fresh one in its place. */
+    /**
+     * Invalidates the team's active invite link(s) and mints a fresh one in its place. Atomic: the
+     * expire and the mint share one transaction, so a failure to mint rolls the expire back rather
+     * than leaving the team with no usable link.
+     */
+    @Transactional
     fun rotateInviteLink(teamId: UUID, createdBy: UUID): GeneratedInvitation {
         expireActiveInvitations(teamId)
         return generateInviteLink(teamId, createdBy)

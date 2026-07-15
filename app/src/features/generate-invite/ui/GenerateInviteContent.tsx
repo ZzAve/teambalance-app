@@ -9,6 +9,7 @@ interface GenerateInviteContentProps {
   expired: boolean
   isRotating: boolean
   isExpiring: boolean
+  actionError: boolean
   onCopy: () => void
   onRotate: () => void
   onExpire: () => void
@@ -30,6 +31,7 @@ export function GenerateInviteContent({
   expired,
   isRotating,
   isExpiring,
+  actionError,
   onCopy,
   onRotate,
   onExpire,
@@ -71,6 +73,9 @@ export function GenerateInviteContent({
           {isExpiring ? 'Expiring...' : 'Expire link'}
         </Button>
       </div>
+      {actionError && (
+        <p className="text-sm text-destructive">Something went wrong. Please try again.</p>
+      )}
     </div>
   )
 }

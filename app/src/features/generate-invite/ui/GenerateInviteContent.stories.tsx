@@ -6,7 +6,7 @@ import { GenerateInviteContent } from './GenerateInviteContent'
 // (the RTL render test it used to have is deleted — its coverage lives here). Each mutation
 // state is a plain render arg. The copied flag is a prop, so the "copied" label is its own story;
 // the click interaction just proves the callback fires (the container flips the flag in the app).
-const LINK = 'https://app.teambalance.app/invite/abc123'
+const LINK = 'https://app.teambalance.nl/invite/abc123'
 
 const meta = {
   title: 'features/generate-invite/GenerateInviteContent',

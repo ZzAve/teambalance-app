@@ -10,8 +10,8 @@ Gradle 9.4 monorepo with four modules:
 | Module | Tech | Purpose |
 |--------|------|---------|
 | `api/` | Kotlin 2.3, Spring Boot 4, Hibernate/JPA, Flyway | Backend REST API (hexagonal DDD) |
-| `app/` | Vite 6, React 19, TypeScript 5, Tailwind 4, Shadcn | SPA at app.teambalance.app |
-| `www/` | Plain HTML + shared tokens | Landing page at teambalance.app |
+| `app/` | Vite 6, React 19, TypeScript 5, Tailwind 4, Shadcn | SPA at app.teambalance.nl |
+| `www/` | Plain HTML + shared tokens | Landing page at teambalance.nl |
 | `design-tokens/` | CSS custom properties + Tailwind preset | Shared visual identity |
 
 API contracts defined in Wirespec (`api/src/main/wirespec/`) — generates Kotlin + TypeScript.

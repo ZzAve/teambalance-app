@@ -15,6 +15,13 @@ spring:
     default-property-inclusion: non_null
   session:
     store-type: redis
+  http:
+    client:
+      # Global default for every RestClient built from the auto-configured builder. Today the only
+      # outbound client is the Scaleway TEM email adapter; a hung provider must not hang the login
+      # request. Any future outbound client inherits these — override per-client if it needs more.
+      connect-timeout: 5s
+      read-timeout: 10s
 
 server:
   port: 8080
@@ -28,8 +35,19 @@ management:
         include: health,info,metrics
 
 teambalance:
+  # Base URL of the SPA; used to build the clickable magic-link (…/auth/verify?token=…).
+  frontend-base-url: ${TEAMBALANCE_FRONTEND_BASE_URL:https://app.teambalance.nl}
   invitation:
     # App-wide secret salt applied to stored invite-token hashes. Live environments MUST provide it
     # via INVITATION_TOKEN_SALT (no default here → the app fails fast if it is unset). Dev and test
     # override it with a hardcoded value in their profile config.
     token-salt: ${INVITATION_TOKEN_SALT}
+  email:
+    # Scaleway Transactional Email (TEM). Consumed only by the prod-profile ScalewayTemEmailSender.
+    # api-key/project-id have no default → prod fails fast if the secrets are unset (dev/test/e2e
+    # use ConsoleEmailSender and never read these).
+    from-name: TeamBalance
+    from-address: login@teambalance.nl
+    region: ${SCALEWAY_TEM_REGION:fr-par}
+    api-key: ${SCALEWAY_TEM_API_KEY}
+    project-id: ${SCALEWAY_TEM_PROJECT_ID}

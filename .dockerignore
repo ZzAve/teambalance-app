@@ -1,0 +1,15 @@
+# Keep the build context lean — the API image only needs the Gradle build + api/design-tokens modules.
+.git
+.github
+.claude
+node_modules
+**/node_modules
+**/build
+**/dist
+**/.gradle
+app
+www
+docs
+test-results
+*.mp4
+*.log

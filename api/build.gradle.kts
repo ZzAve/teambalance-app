@@ -19,6 +19,9 @@ plugins {
 dependencies {
     // Spring Boot
     implementation("org.springframework.boot:spring-boot-starter-web")
+    // RestClient auto-configuration (the RestClient.Builder bean + spring.http.client.* timeouts).
+    // Boot 4 split this out of starter-web; the prod ScalewayTemEmailSender needs the builder bean.
+    implementation("org.springframework.boot:spring-boot-restclient")
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     implementation("org.springframework.boot:spring-boot-starter-validation")
     implementation("org.springframework.boot:spring-boot-starter-actuator")

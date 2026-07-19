@@ -19,16 +19,20 @@ const serialization: Wirespec.Serialization = {
     (raw === undefined || raw === '' ? undefined : JSON.parse(raw)) as T,
 }
 
-// Turns a Wirespec RawRequest into a fetch against the same-origin API, carrying the
-// team context header and the session cookie (identity). Dev talks to the real backend
-// (via the Vite proxy) — there is no mock runtime.
+// Turns a Wirespec RawRequest into a fetch against the API, carrying the team context header
+// and the session cookie (identity). Empty in dev/e2e → a relative URL the Vite proxy handles;
+// in the split-origin prod build VITE_API_URL is `https://api.teambalance.nl` while the SPA
+// lives on app.teambalance.nl. There is no mock runtime — dev talks to the real backend.
 const handler = async (req: Wirespec.RawRequest): Promise<Wirespec.RawResponse> => {
+  const baseUrl = import.meta.env.VITE_API_URL ?? ''
   const teamId = localStorage.getItem('teamId') ?? 'setpoint_vt'
   const query = new URLSearchParams(req.queries).toString()
-  const url = `/${req.path.join('/')}${query ? `?${query}` : ''}`
+  const url = `${baseUrl}/${req.path.join('/')}${query ? `?${query}` : ''}`
 
   const res = await fetch(url, {
     method: req.method,
+    // Send the cross-subdomain session cookie (backend prod CORS sets allowCredentials=true).
+    credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
       'X-Team-Id': teamId,

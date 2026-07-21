@@ -31,6 +31,14 @@ function headerOf(fetchMock: ReturnType<typeof stubFetch>, name: string): string
   return (init.headers as Record<string, string>)[name]
 }
 
+function urlOf(fetchMock: ReturnType<typeof stubFetch>): string {
+  return fetchMock.mock.calls[0][0] as string
+}
+
+function initOf(fetchMock: ReturnType<typeof stubFetch>): RequestInit {
+  return fetchMock.mock.calls[0][1] as RequestInit
+}
+
 describe('wirespec-client adapter', () => {
   beforeEach(() => {
     localStorage.clear()
@@ -38,6 +46,7 @@ describe('wirespec-client adapter', () => {
 
   afterEach(() => {
     vi.unstubAllGlobals()
+    vi.unstubAllEnvs()
     vi.restoreAllMocks()
   })
 
@@ -58,6 +67,41 @@ describe('wirespec-client adapter', () => {
       await api.ListEvents({ 'include-past': false })
 
       expect(headerOf(fetchMock, 'X-Team-Id')).toBe('setpoint_vt')
+    })
+  })
+
+  describe('split-origin base URL (VITE_API_URL)', () => {
+    it('keeps a relative URL (the Vite proxy path) when VITE_API_URL is unset in dev', async () => {
+      const fetchMock = stubFetch(fakeResponse({ status: 200, body: JSON.stringify({ events: [] }) }))
+
+      await api.ListEvents({ 'include-past': false })
+
+      const url = urlOf(fetchMock)
+      // Dev/e2e must stay same-origin so the Vite proxy (/api → :8080) keeps handling the call.
+      expect(url.startsWith('/')).toBe(true)
+      expect(url.startsWith('http')).toBe(false)
+    })
+
+    it('prefixes the request URL with VITE_API_URL for a split-origin prod build', async () => {
+      vi.stubEnv('VITE_API_URL', 'https://api.teambalance.nl')
+      const fetchMock = stubFetch(fakeResponse({ status: 200, body: JSON.stringify({ events: [] }) }))
+
+      await api.ListEvents({ 'include-past': false })
+
+      const url = urlOf(fetchMock)
+      expect(url.startsWith('https://api.teambalance.nl/')).toBe(true)
+      // No double slash where the base meets the path.
+      expect(url).not.toContain('teambalance.nl//')
+    })
+  })
+
+  describe('cross-subdomain session cookie', () => {
+    it('sends credentials so the cross-origin session cookie rides along', async () => {
+      const fetchMock = stubFetch(fakeResponse({ status: 200, body: JSON.stringify({ events: [] }) }))
+
+      await api.ListEvents({ 'include-past': false })
+
+      expect(initOf(fetchMock).credentials).toBe('include')
     })
   })
 

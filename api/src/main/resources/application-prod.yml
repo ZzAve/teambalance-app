@@ -1,0 +1,29 @@
+# Production profile — activated on the Scaleway Serverless Container (fr-par) via
+# SPRING_PROFILES_ACTIVE=prod. The datasource and all secrets (DB creds, INVITATION_TOKEN_SALT,
+# Scaleway TEM api-key/project-id, TEAMBALANCE_FRONTEND_BASE_URL) are supplied as container
+# environment variables via Spring relaxed binding — never committed here. This profile also
+# activates ScalewayTemEmailSender (@Profile("prod")) in place of ConsoleEmailSender.
+
+# Split-origin CORS (launch blocker #3): the SPA (app.teambalance.nl) and landing page
+# (teambalance.nl) call api.teambalance.nl cross-origin with the session cookie. See WebConfig.
+teambalance:
+  cors:
+    allowed-origins: https://app.teambalance.nl,https://teambalance.nl
+
+server:
+  servlet:
+    session:
+      cookie:
+        # Session cookie is HTTPS-only. app.teambalance.nl -> api.teambalance.nl is the same
+        # registrable site (teambalance.nl), so SameSite=Lax is sufficient for the cookie to ride
+        # the SPA's credentialed cross-origin requests.
+        secure: true
+        same-site: lax
+
+management:
+  health:
+    redis:
+      # Redis is on the classpath (Phase-5 infra) but unused in 1.0 — sessions are the servlet
+      # container's in-memory HttpSession (ADR-0010) — and it is not reachable from the prod
+      # container, so its health indicator would otherwise force /internal/actuator/health to DOWN.
+      enabled: false

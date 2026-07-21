@@ -13,8 +13,10 @@ spring:
     locations: classpath:db/migration
   jackson:
     default-property-inclusion: non_null
-  session:
-    store-type: redis
+  # No Spring Session store is configured: 1.0 uses the servlet container's in-memory HttpSession
+  # (JSESSIONID) per ADR-0010. spring-session-data-redis is on the classpath for a Phase-5 follow-up
+  # but is not auto-wired (Boot 4's session auto-configuration module is absent), so sessions do not
+  # require Redis. (The old `spring.session.store-type` property was removed in Spring Boot 4.)
   http:
     client:
       # Global default for every RestClient built from the auto-configured builder. Today the only

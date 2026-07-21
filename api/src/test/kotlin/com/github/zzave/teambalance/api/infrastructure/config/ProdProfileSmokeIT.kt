@@ -2,7 +2,9 @@ package com.github.zzave.teambalance.api.infrastructure.config
 
 import com.github.zzave.teambalance.api.TeamBalanceIT
 import com.github.zzave.teambalance.api.domain.port.EmailSender
+import com.github.zzave.teambalance.api.infrastructure.devdata.DemoDataSeeder
 import com.github.zzave.teambalance.api.infrastructure.email.ScalewayTemEmailSender
+import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.types.shouldBeInstanceOf
 import org.springframework.beans.factory.annotation.Autowired
@@ -54,6 +56,11 @@ class ProdProfileSmokeIT : TeamBalanceIT() {
 
         test("prod profile activates the Scaleway TEM email sender") {
             applicationContext.getBean(EmailSender::class.java).shouldBeInstanceOf<ScalewayTemEmailSender>()
+        }
+
+        test("prod profile does not load the dev demo-data seeder") {
+            // DemoDataSeeder is @Profile("dev"); prod must never auto-seed the demo team.
+            applicationContext.getBeanNamesForType(DemoDataSeeder::class.java).toList().shouldBeEmpty()
         }
 
         test("CORS allows the SPA origin with credentials (from application-prod.yml)") {

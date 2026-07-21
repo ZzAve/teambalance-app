@@ -89,6 +89,19 @@ class ProdProfileSmokeIT : TeamBalanceIT() {
             preflight(origin = "https://evil.example.com")
                 .andExpect(MockMvcResultMatchers.status().isForbidden)
         }
+
+        // Blocker #5 — proves InternalEndpointGuardFilter is registered and active in the prod
+        // profile. The guard's path-matching logic (alternate spellings, traversal) is proven at the
+        // unit layer in InternalEndpointGuardFilterTest; these two assertions cover the wiring seam.
+        test("the health probe stays publicly reachable in prod (Scaleway health check)") {
+            mockMvc.perform(MockMvcRequestBuilders.get("/internal/actuator/health"))
+                .andExpect(MockMvcResultMatchers.status().isOk)
+        }
+
+        test("everything else under /internal is blocked in prod") {
+            mockMvc.perform(MockMvcRequestBuilders.get("/internal/actuator/metrics"))
+                .andExpect(MockMvcResultMatchers.status().isForbidden)
+        }
     }
 
     private fun preflight(origin: String) = mockMvc.perform(

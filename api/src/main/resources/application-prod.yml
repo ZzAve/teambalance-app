@@ -21,6 +21,13 @@ server:
         same-site: lax
 
 management:
+  endpoints:
+    web:
+      exposure:
+        # Blocker #5: only expose the health probe in prod. info/metrics (exposed in the base config
+        # for local use) would otherwise be publicly reachable on api.teambalance.nl.
+        # InternalEndpointGuardFilter blocks them at the servlet layer too — this is defence in depth.
+        include: health
   health:
     redis:
       # Redis is on the classpath (Phase-5 infra) but unused in 1.0 — sessions are the servlet

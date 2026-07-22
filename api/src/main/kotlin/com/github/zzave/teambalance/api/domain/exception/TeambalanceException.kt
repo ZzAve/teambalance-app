@@ -22,3 +22,13 @@ class NotTeamAdminException(userId: UUID, teamId: UUID) :
 
 class NoTeamMembershipException(userId: UUID) :
     ForbiddenException("User $userId has no active team membership", "NO_TEAM_MEMBERSHIP")
+
+// `code` is the stable machine-readable discriminator for 409 conflicts (state clashes clients can act on),
+// mirroring ForbiddenException — e.g. "display name already used" vs "would remove the last admin".
+sealed class ConflictException(message: String, val code: String) : TeambalanceException(message)
+
+class NameTakenException(name: String) :
+    ConflictException("Display name '$name' is already taken in this team", "NAME_TAKEN")
+
+class LastAdminException(teamId: UUID) :
+    ConflictException("Team $teamId must keep at least one admin", "LAST_ADMIN")

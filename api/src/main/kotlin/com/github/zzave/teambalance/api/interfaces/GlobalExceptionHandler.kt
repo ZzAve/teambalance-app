@@ -1,5 +1,6 @@
 package com.github.zzave.teambalance.api.interfaces
 
+import com.github.zzave.teambalance.api.domain.exception.ConflictException
 import com.github.zzave.teambalance.api.domain.exception.ForbiddenException
 import com.github.zzave.teambalance.api.domain.exception.NotFoundException
 import com.github.zzave.teambalance.api.domain.exception.TeambalanceException
@@ -27,6 +28,11 @@ class GlobalExceptionHandler {
     fun handleForbidden(ex: ForbiddenException): ResponseEntity<Map<String, String>> =
         ResponseEntity.status(HttpStatus.FORBIDDEN)
             .body(mapOf("error" to (ex.message ?: "Forbidden"), "code" to ex.code))
+
+    @ExceptionHandler(ConflictException::class)
+    fun handleConflict(ex: ConflictException): ResponseEntity<Map<String, String>> =
+        ResponseEntity.status(HttpStatus.CONFLICT)
+            .body(mapOf("error" to (ex.message ?: "Conflict"), "code" to ex.code))
 
     @ExceptionHandler(TeambalanceException::class)
     fun handleTeambalanceException(ex: TeambalanceException): ResponseEntity<Map<String, String>> =

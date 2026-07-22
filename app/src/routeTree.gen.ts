@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProfileIndexRouteImport } from './routes/profile/index'
+import { Route as MembersIndexRouteImport } from './routes/members/index'
 import { Route as InviteTokenRouteImport } from './routes/invite/$token'
 import { Route as EventsEventIdRouteImport } from './routes/events/$eventId'
 import { Route as AuthVerifyRouteImport } from './routes/auth/verify'
@@ -29,6 +30,11 @@ const IndexRoute = IndexRouteImport.update({
 const ProfileIndexRoute = ProfileIndexRouteImport.update({
   id: '/profile/',
   path: '/profile/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MembersIndexRoute = MembersIndexRouteImport.update({
+  id: '/members/',
+  path: '/members/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const InviteTokenRoute = InviteTokenRouteImport.update({
@@ -53,6 +59,7 @@ export interface FileRoutesByFullPath {
   '/auth/verify': typeof AuthVerifyRoute
   '/events/$eventId': typeof EventsEventIdRoute
   '/invite/$token': typeof InviteTokenRoute
+  '/members/': typeof MembersIndexRoute
   '/profile/': typeof ProfileIndexRoute
 }
 export interface FileRoutesByTo {
@@ -61,6 +68,7 @@ export interface FileRoutesByTo {
   '/auth/verify': typeof AuthVerifyRoute
   '/events/$eventId': typeof EventsEventIdRoute
   '/invite/$token': typeof InviteTokenRoute
+  '/members': typeof MembersIndexRoute
   '/profile': typeof ProfileIndexRoute
 }
 export interface FileRoutesById {
@@ -70,6 +78,7 @@ export interface FileRoutesById {
   '/auth/verify': typeof AuthVerifyRoute
   '/events/$eventId': typeof EventsEventIdRoute
   '/invite/$token': typeof InviteTokenRoute
+  '/members/': typeof MembersIndexRoute
   '/profile/': typeof ProfileIndexRoute
 }
 export interface FileRouteTypes {
@@ -80,6 +89,7 @@ export interface FileRouteTypes {
     | '/auth/verify'
     | '/events/$eventId'
     | '/invite/$token'
+    | '/members/'
     | '/profile/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -88,6 +98,7 @@ export interface FileRouteTypes {
     | '/auth/verify'
     | '/events/$eventId'
     | '/invite/$token'
+    | '/members'
     | '/profile'
   id:
     | '__root__'
@@ -96,6 +107,7 @@ export interface FileRouteTypes {
     | '/auth/verify'
     | '/events/$eventId'
     | '/invite/$token'
+    | '/members/'
     | '/profile/'
   fileRoutesById: FileRoutesById
 }
@@ -105,6 +117,7 @@ export interface RootRouteChildren {
   AuthVerifyRoute: typeof AuthVerifyRoute
   EventsEventIdRoute: typeof EventsEventIdRoute
   InviteTokenRoute: typeof InviteTokenRoute
+  MembersIndexRoute: typeof MembersIndexRoute
   ProfileIndexRoute: typeof ProfileIndexRoute
 }
 
@@ -129,6 +142,13 @@ declare module '@tanstack/react-router' {
       path: '/profile'
       fullPath: '/profile/'
       preLoaderRoute: typeof ProfileIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/members/': {
+      id: '/members/'
+      path: '/members'
+      fullPath: '/members/'
+      preLoaderRoute: typeof MembersIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/invite/$token': {
@@ -161,6 +181,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthVerifyRoute: AuthVerifyRoute,
   EventsEventIdRoute: EventsEventIdRoute,
   InviteTokenRoute: InviteTokenRoute,
+  MembersIndexRoute: MembersIndexRoute,
   ProfileIndexRoute: ProfileIndexRoute,
 }
 export const routeTree = rootRouteImport

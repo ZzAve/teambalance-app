@@ -85,6 +85,7 @@ function LogoutButton() {
 
 function RootLayout() {
   useViewTransitions()
+  const isAdmin = useUserStore((s) => s.role) === 'ADMIN'
 
   return (
     <Providers>
@@ -101,6 +102,15 @@ function RootLayout() {
               </div>
             </div>
             <div className="flex items-center gap-4">
+              {isAdmin && (
+                <Link
+                  to="/members"
+                  className="text-xs font-semibold text-muted-foreground hover:text-foreground"
+                  activeProps={{ className: 'text-foreground' }}
+                >
+                  Members
+                </Link>
+              )}
               <Link
                 to="/profile"
                 className="text-xs font-semibold text-muted-foreground hover:text-foreground"

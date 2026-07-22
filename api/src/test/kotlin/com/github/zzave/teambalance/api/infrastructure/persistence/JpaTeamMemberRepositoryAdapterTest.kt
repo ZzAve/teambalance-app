@@ -7,6 +7,7 @@ import com.github.zzave.teambalance.api.infrastructure.multitenancy.TenantSchema
 import io.kotest.matchers.shouldBe
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.jdbc.core.JdbcTemplate
+import java.time.Instant
 import java.util.UUID
 
 class JpaTeamMemberRepositoryAdapterTest : TeamBalanceIT() {
@@ -51,6 +52,16 @@ class JpaTeamMemberRepositoryAdapterTest : TeamBalanceIT() {
             seedMemberOnTeam(teamId, role = "USER", active = true)
             seedMemberOnTeam(teamId, role = "ADMIN", active = false)
             teamMemberRepository.countAdmins(teamId) shouldBe 1
+        }
+
+        // A freshly-seeded member has onboarded_at NULL (onboarded=false); markOnboarded stamps it so the
+        // mapped onboarded flag flips to true. The NULL/NOT-NULL mapping lives in the query, so it can
+        // only be proven against a real database.
+        test("markOnboarded stamps onboarded_at so the member maps to onboarded=true") {
+            val (teamId, userId) = seedMember(role = "USER", active = true)
+            teamMemberRepository.findByTeamId(teamId).first { it.userId == userId }.onboarded shouldBe false
+            teamMemberRepository.markOnboarded(teamId, userId, Instant.parse("2026-07-22T10:00:00Z"))
+            teamMemberRepository.findByTeamId(teamId).first { it.userId == userId }.onboarded shouldBe true
         }
     }
 

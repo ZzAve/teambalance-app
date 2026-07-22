@@ -4,6 +4,7 @@ import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.Id
 import jakarta.persistence.Table
+import java.time.Instant
 import java.util.UUID
 
 @Entity
@@ -19,4 +20,6 @@ class TeamMemberJpaEntity(
     val role: String = "USER",
     @Column(nullable = false)
     val active: Boolean = true,
+    @Column(name = "onboarded_at")
+    val onboardedAt: Instant? = null,
 )

@@ -2,7 +2,8 @@ type Member {
     userId: String,
     displayName: String,
     role: String,
-    position: Position?
+    position: Position?,
+    onboarded: Boolean
 }
 
 type UpdateMemberRequest {
@@ -29,6 +30,12 @@ endpoint UpdateMember PUT UpdateMemberRequest /api/members/{userId: String} -> {
     200 -> Member
     403 -> Unit
     404 -> Unit
+    409 -> Unit
+}
+
+endpoint CompleteOnboarding PUT UpdateMemberRequest /api/members/me/onboarding -> {
+    200 -> Member
+    401 -> Unit
     409 -> Unit
 }
 

@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Modifying
 import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.query.Param
+import java.time.OffsetDateTime
 import java.util.UUID
 
 interface SpringDataTeamMemberRepository : JpaRepository<TeamMemberJpaEntity, UUID> {
@@ -40,6 +41,18 @@ interface SpringDataTeamMemberRepository : JpaRepository<TeamMemberJpaEntity, UU
 
     @Modifying
     @Query(
+        "UPDATE public.team_members SET onboarded_at = :at " +
+            "WHERE team_id = :teamId AND user_id = :userId AND active = true",
+        nativeQuery = true,
+    )
+    fun markOnboarded(
+        @Param("teamId") teamId: UUID,
+        @Param("userId") userId: UUID,
+        @Param("at") at: OffsetDateTime,
+    ): Int
+
+    @Modifying
+    @Query(
         "UPDATE public.team_members SET active = false WHERE team_id = :teamId AND user_id = :userId",
         nativeQuery = true,
     )
@@ -61,7 +74,8 @@ interface SpringDataTeamMemberRepository : JpaRepository<TeamMemberJpaEntity, UU
                    u.display_name       AS displayName,
                    tm.position_id::text AS positionId,
                    tp.label             AS position,
-                   tm.role              AS permissionRole
+                   tm.role              AS permissionRole,
+                   (tm.onboarded_at IS NOT NULL) AS onboarded
             FROM   public.team_members tm
             JOIN   public.users u ON u.id = tm.user_id
             LEFT   JOIN public.team_positions tp ON tp.id = tm.position_id
@@ -78,7 +92,8 @@ interface SpringDataTeamMemberRepository : JpaRepository<TeamMemberJpaEntity, UU
                    u.display_name       AS displayName,
                    tm.position_id::text AS positionId,
                    tp.label             AS position,
-                   tm.role              AS permissionRole
+                   tm.role              AS permissionRole,
+                   (tm.onboarded_at IS NOT NULL) AS onboarded
             FROM   public.team_members tm
             JOIN   public.users u ON u.id = tm.user_id
             LEFT   JOIN public.team_positions tp ON tp.id = tm.position_id
@@ -128,6 +143,7 @@ interface MemberSummaryProjection {
     fun getPositionId(): String?
     fun getPosition(): String?
     fun getPermissionRole(): String
+    fun getOnboarded(): Boolean
 }
 
 interface TeamRoutingProjection {

@@ -51,7 +51,7 @@ class AttendanceService(
         val membersByUserId = teamMemberRepository.findMembersByUserIds(attendances.map { it.userId }.toSet())
         return attendances.map { attendance ->
             val member = membersByUserId[attendance.userId]
-                ?: TeamMember(attendance.userId, "Unknown", "USER", null, null)
+                ?: TeamMember(attendance.userId, "Unknown", "USER", null, null, onboarded = true)
             attendance to member
         }
     }

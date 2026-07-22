@@ -6,6 +6,7 @@ import com.github.zzave.teambalance.api.application.CurrentUserProvider
 import com.github.zzave.teambalance.api.application.MemberService
 import com.github.zzave.teambalance.api.domain.model.Role
 import com.github.zzave.teambalance.api.domain.model.TeamMember
+import com.github.zzave.teambalance.api.interfaces.generated.endpoint.CompleteOnboarding
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.GetCurrentMember
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.ListMembers
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.RemoveMember
@@ -25,6 +26,7 @@ class MemberController(
 ) : GetCurrentMember.Handler,
     ListMembers.Handler,
     UpdateMember.Handler,
+    CompleteOnboarding.Handler,
     RemoveMember.Handler {
 
     override suspend fun getCurrentMember(request: GetCurrentMember.Request): GetCurrentMember.Response<*> {
@@ -55,6 +57,19 @@ class MemberController(
         return UpdateMember.Response200(updated.toDto())
     }
 
+    override suspend fun completeOnboarding(request: CompleteOnboarding.Request): CompleteOnboarding.Response<*> {
+        val userId = currentUserProvider.requireCurrentUserId()
+        val teamId = currentTeamProvider.requireCurrentTeamId()
+        // Onboarding is self-only and never changes role — the request's role field is ignored.
+        val updated = memberService.completeOnboarding(
+            userId = userId,
+            teamId = teamId,
+            rawName = request.body.displayName,
+            positionId = request.body.positionId?.let { UUID.fromString(it) },
+        )
+        return CompleteOnboarding.Response200(updated.toDto())
+    }
+
     override suspend fun removeMember(request: RemoveMember.Request): RemoveMember.Response<*> {
         val caller = currentUserProvider.requireCurrentUserId()
         val teamId = currentTeamProvider.requireCurrentTeamId()
@@ -68,4 +83,5 @@ private fun TeamMember.toDto() = Member(
     displayName = displayName,
     role = role,
     position = positionId?.let { Position(id = it.toString(), label = position ?: "") },
+    onboarded = onboarded,
 )

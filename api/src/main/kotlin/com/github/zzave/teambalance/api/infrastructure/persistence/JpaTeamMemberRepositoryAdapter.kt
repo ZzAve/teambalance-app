@@ -8,6 +8,8 @@ import org.slf4j.LoggerFactory
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.stereotype.Repository
 import org.springframework.transaction.annotation.Transactional
+import java.time.Instant
+import java.time.ZoneOffset
 import java.util.UUID
 
 @Repository
@@ -36,6 +38,7 @@ class JpaTeamMemberRepositoryAdapter(
         role = getPermissionRole(),
         positionId = getPositionId()?.let { UUID.fromString(it) },
         position = getPosition(),
+        onboarded = getOnboarded(),
     )
 
     override fun findRole(teamId: UUID, userId: UUID): Role? =
@@ -59,6 +62,11 @@ class JpaTeamMemberRepositoryAdapter(
     @Transactional
     override fun assignPosition(teamId: UUID, userId: UUID, positionId: UUID?) {
         jpaRepository.assignPosition(teamId, userId, positionId)
+    }
+
+    @Transactional
+    override fun markOnboarded(teamId: UUID, userId: UUID, at: Instant) {
+        jpaRepository.markOnboarded(teamId, userId, at.atOffset(ZoneOffset.UTC))
     }
 
     override fun countAdmins(teamId: UUID): Int = jpaRepository.countActiveAdmins(teamId)

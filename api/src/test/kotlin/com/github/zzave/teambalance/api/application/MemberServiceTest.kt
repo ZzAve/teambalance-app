@@ -35,7 +35,12 @@ private class FakeMembershipRepo(
     private val userRepo: FakeMemberUserRepo,
     seed: Map<UUID, List<Pair<UUID, Role>>>,
 ) : TeamMemberRepository {
-    private data class Membership(var role: Role, var active: Boolean, var positionId: UUID? = null)
+    private data class Membership(
+        var role: Role,
+        var active: Boolean,
+        var positionId: UUID? = null,
+        var onboarded: Boolean = false,
+    )
 
     private val store: MutableMap<Pair<UUID, UUID>, Membership> =
         seed.flatMap { (teamId, members) ->
@@ -53,6 +58,7 @@ private class FakeMembershipRepo(
                         role = membership.role.name,
                         positionId = membership.positionId,
                         position = null,
+                        onboarded = membership.onboarded,
                     )
                 }
             }
@@ -71,6 +77,9 @@ private class FakeMembershipRepo(
     }
     override fun assignPosition(teamId: UUID, userId: UUID, positionId: UUID?) {
         store[teamId to userId]?.positionId = positionId
+    }
+    override fun markOnboarded(teamId: UUID, userId: UUID, at: java.time.Instant) {
+        store[teamId to userId]?.onboarded = true
     }
     override fun countAdmins(teamId: UUID): Int =
         store.count { it.key.first == teamId && it.value.active && it.value.role == Role.ADMIN }
@@ -112,6 +121,8 @@ class MemberServiceTest : FunSpec() {
         val setterPositionId = UUID.randomUUID()
         val otherTeamPositionId = UUID.randomUUID()
 
+        val fixedClock = java.time.Clock.fixed(java.time.Instant.parse("2026-07-22T10:00:00Z"), java.time.ZoneOffset.UTC)
+
         // Jan is the admin, Lisa a regular user — the common admin-acts-on-member fixture.
         fun newService(
             janRole: Role = Role.ADMIN,
@@ -131,7 +142,7 @@ class MemberServiceTest : FunSpec() {
                 ),
             )
             return Triple(
-                MemberService(userRepo, memberRepo, positionRepo, AuthorizationService(memberRepo)),
+                MemberService(userRepo, memberRepo, positionRepo, AuthorizationService(memberRepo), fixedClock),
                 userRepo,
                 memberRepo,
             )
@@ -253,6 +264,29 @@ class MemberServiceTest : FunSpec() {
             shouldThrow<PositionNotFoundException> {
                 service.updateMember(janId, teamId, lisaId, "Lisa Bakker", Role.USER, otherTeamPositionId)
             }
+        }
+
+        test("completeOnboarding marks the member onboarded and applies name and position") {
+            val (service, userRepo, memberRepo) = newService()
+            val updated = service.completeOnboarding(lisaId, teamId, "Lisa Nova", setterPositionId)
+            updated.onboarded shouldBe true
+            updated.displayName shouldBe "Lisa Nova"
+            updated.positionId shouldBe setterPositionId
+            userRepo.findById(lisaId)?.displayName shouldBe "Lisa Nova"
+            memberRepo.findByTeamId(teamId).first { it.userId == lisaId }.onboarded shouldBe true
+        }
+
+        test("completeOnboarding is idempotent — a second call keeps onboarded true") {
+            val (service, _, _) = newService()
+            service.completeOnboarding(lisaId, teamId, "Lisa Nova", setterPositionId)
+            val again = service.completeOnboarding(lisaId, teamId, "Lisa Nova", setterPositionId)
+            again.onboarded shouldBe true
+        }
+
+        test("completeOnboarding does not change the member's role") {
+            val (service, _, memberRepo) = newService(lisaRole = Role.ADMIN)
+            service.completeOnboarding(lisaId, teamId, "Lisa Nova", null)
+            memberRepo.findRole(teamId, lisaId) shouldBe Role.ADMIN
         }
     }
 }

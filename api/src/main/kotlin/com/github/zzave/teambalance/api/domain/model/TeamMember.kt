@@ -9,4 +9,6 @@ data class TeamMember(
     val positionId: UUID?,
     // The label of the assigned position, resolved via a join for display; null when unassigned.
     val position: String?,
+    // True once the member has completed the one-time onboarding flow (onboarded_at is set).
+    val onboarded: Boolean,
 )

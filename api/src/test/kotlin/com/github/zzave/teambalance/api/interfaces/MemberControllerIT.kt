@@ -98,6 +98,25 @@ class MemberControllerIT : TeamBalanceIT() {
             .andReturn()
             .let { mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(it)) }
 
+    private fun completeOnboardingAs(userId: String, displayName: String, positionId: String) =
+        mockMvc.perform(
+            MockMvcRequestBuilders.put("/api/members/me/onboarding")
+                .header("X-User-Id", userId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""{"displayName":"$displayName","role":"USER","positionId":"$positionId"}"""),
+        )
+            .andExpect(MockMvcResultMatchers.request().asyncStarted())
+            .andReturn()
+            .let { mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(it)) }
+
+    private fun positionId(label: String): String =
+        jdbcTemplate.queryForObject(
+            "SELECT id::text FROM public.team_positions WHERE team_id = ?::uuid AND label = ?",
+            String::class.java,
+            TEAM_ID,
+            label,
+        )!!
+
     private fun getMeAs(userId: String) =
         mockMvc.perform(
             MockMvcRequestBuilders.get("/api/members/me").header("X-User-Id", userId),
@@ -200,6 +219,30 @@ class MemberControllerIT : TeamBalanceIT() {
             removeMemberAs(JAN_USER_ID, JAN_USER_ID)
                 .andExpect(MockMvcResultMatchers.status().isConflict)
                 .andExpect(MockMvcResultMatchers.jsonPath("$.code").value("LAST_ADMIN"))
+        }
+
+        test("a freshly-seeded member is not yet onboarded via GET /api/members/me") {
+            seedTeam()
+
+            getMeAs(JAN_USER_ID)
+                .andExpect(MockMvcResultMatchers.status().isOk)
+                .andExpect(MockMvcResultMatchers.jsonPath("$.onboarded").value(false))
+        }
+
+        test("PUT /api/members/me/onboarding applies name+position and marks the member onboarded") {
+            seedTeam(janRole = "USER") // Lisa (USER) onboards herself; a Setter position exists on the team
+
+            completeOnboardingAs(LISA_USER_ID, "Lisa Onboarded", positionId("Setter"))
+                .andExpect(MockMvcResultMatchers.status().isOk)
+                .andExpect(MockMvcResultMatchers.jsonPath("$.onboarded").value(true))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.displayName").value("Lisa Onboarded"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.position.label").value("Setter"))
+
+            getMeAs(LISA_USER_ID)
+                .andExpect(MockMvcResultMatchers.status().isOk)
+                .andExpect(MockMvcResultMatchers.jsonPath("$.onboarded").value(true))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.displayName").value("Lisa Onboarded"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.position.label").value("Setter"))
         }
 
         test("GET /api/members/me without an authenticated user returns 401") {

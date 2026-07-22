@@ -11,6 +11,8 @@ import com.github.zzave.teambalance.api.domain.port.PositionRepository
 import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
 import com.github.zzave.teambalance.api.domain.port.UserRepository
 import org.springframework.stereotype.Service
+import java.time.Clock
+import java.time.Instant
 import java.util.UUID
 
 private const val MAX_DISPLAY_NAME_LENGTH = 100
@@ -21,6 +23,7 @@ class MemberService(
     private val teamMemberRepository: TeamMemberRepository,
     private val positionRepository: PositionRepository,
     private val authorizationService: AuthorizationService,
+    private val clock: Clock,
 ) {
     fun getMember(teamId: UUID, userId: UUID): TeamMember =
         teamMemberRepository.findByTeamId(teamId).firstOrNull { it.userId == userId }
@@ -73,6 +76,20 @@ class MemberService(
         if (roleChanged) teamMemberRepository.updateRole(teamId, targetUserId, role)
         teamMemberRepository.assignPosition(teamId, targetUserId, positionId)
         return getMember(teamId, targetUserId)
+    }
+
+    /**
+     * Completes the caller's one-time onboarding: applies their own display name and position via the
+     * self-update path, then stamps onboarded_at. Role is left untouched — onboarding never changes it.
+     * Idempotent: re-running keeps the member onboarded and simply re-applies name/position. The
+     * controller enforces that [userId] is the authenticated principal (self-only).
+     */
+    fun completeOnboarding(userId: UUID, teamId: UUID, rawName: String, positionId: UUID?): TeamMember {
+        val currentRole = teamMemberRepository.findRole(teamId, userId)
+            ?: throw MemberNotFoundException(userId)
+        updateMember(userId, teamId, userId, rawName, currentRole, positionId)
+        teamMemberRepository.markOnboarded(teamId, userId, Instant.now(clock))
+        return getMember(teamId, userId)
     }
 
     /** Soft-removes a member. Admin-only, and refuses to remove the team's last remaining admin. */

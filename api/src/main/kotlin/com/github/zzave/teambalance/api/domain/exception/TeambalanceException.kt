@@ -25,6 +25,9 @@ class NotTeamAdminException(userId: UUID, teamId: UUID) :
 class NoTeamMembershipException(userId: UUID) :
     ForbiddenException("User $userId has no active team membership", "NO_TEAM_MEMBERSHIP")
 
+class CannotChangeOwnRoleException(userId: UUID) :
+    ForbiddenException("User $userId cannot elevate their own role", "CANNOT_SELF_PROMOTE")
+
 // `code` is the stable machine-readable discriminator for 409 conflicts (state clashes clients can act on),
 // mirroring ForbiddenException — e.g. "display name already used" vs "would remove the last admin".
 sealed class ConflictException(message: String, val code: String) : TeambalanceException(message)

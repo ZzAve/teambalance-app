@@ -1,7 +1,10 @@
 package com.github.zzave.teambalance.api.application
 
+import com.github.zzave.teambalance.api.domain.exception.CannotChangeOwnRoleException
+import com.github.zzave.teambalance.api.domain.exception.LastAdminException
 import com.github.zzave.teambalance.api.domain.exception.MemberNotFoundException
 import com.github.zzave.teambalance.api.domain.exception.NameTakenException
+import com.github.zzave.teambalance.api.domain.exception.NotTeamAdminException
 import com.github.zzave.teambalance.api.domain.model.Role
 import com.github.zzave.teambalance.api.domain.model.TeamMember
 import com.github.zzave.teambalance.api.domain.model.User
@@ -23,21 +26,42 @@ private class FakeMemberUserRepo(users: List<User>) : UserRepository {
 }
 
 // Reads display names from [userRepo] so a save() is reflected by a later findByTeamId — mirroring the
-// JPA adapter, which sources displayName from public.users rather than team_members.
+// JPA adapter, which sources displayName from public.users rather than team_members. Tracks role and
+// active state per (teamId, userId) so admin/role/deactivation rules can be exercised in-memory.
 private class FakeMembershipRepo(
     private val userRepo: FakeMemberUserRepo,
-    private val membersByTeam: Map<UUID, List<UUID>>,
+    seed: Map<UUID, List<Pair<UUID, Role>>>,
 ) : TeamMemberRepository {
+    private data class Membership(var role: Role, var active: Boolean)
+
+    private val store: MutableMap<Pair<UUID, UUID>, Membership> =
+        seed.flatMap { (teamId, members) ->
+            members.map { (uid, role) -> (teamId to uid) to Membership(role, active = true) }
+        }.toMap().toMutableMap()
+
     override fun findByTeamId(teamId: UUID): List<TeamMember> =
-        (membersByTeam[teamId] ?: emptyList()).mapNotNull { uid ->
-            userRepo.findById(uid)?.let { TeamMember(userId = it.id, displayName = it.displayName, role = "USER", teamRole = null) }
-        }
+        store.filterKeys { it.first == teamId }
+            .filterValues { it.active }
+            .mapNotNull { (key, membership) ->
+                userRepo.findById(key.second)?.let {
+                    TeamMember(userId = it.id, displayName = it.displayName, role = membership.role.name, teamRole = null)
+                }
+            }
 
     override fun findDisplayName(userId: UUID): String? = userRepo.findById(userId)?.displayName
     override fun findMembersByUserIds(userIds: Set<UUID>) = emptyMap<UUID, TeamMember>()
-    override fun findRole(teamId: UUID, userId: UUID): Role? = null
+    override fun findRole(teamId: UUID, userId: UUID): Role? =
+        store[teamId to userId]?.takeIf { it.active }?.role
     override fun findTeamId(userId: UUID): UUID? = null
     override fun addMember(teamId: UUID, userId: UUID) = Unit
+    override fun updateRole(teamId: UUID, userId: UUID, role: Role) {
+        store[teamId to userId]?.role = role
+    }
+    override fun deactivate(teamId: UUID, userId: UUID) {
+        store[teamId to userId]?.active = false
+    }
+    override fun countAdmins(teamId: UUID): Int =
+        store.count { it.key.first == teamId && it.value.active && it.value.role == Role.ADMIN }
 }
 
 class MemberServiceTest : FunSpec() {
@@ -47,58 +71,117 @@ class MemberServiceTest : FunSpec() {
         val janId = UUID.randomUUID()
         val lisaId = UUID.randomUUID()
 
-        fun newService(): Pair<MemberService, FakeMemberUserRepo> {
+        // Jan is the admin, Lisa a regular user — the common admin-acts-on-member fixture.
+        fun newService(
+            janRole: Role = Role.ADMIN,
+            lisaRole: Role = Role.USER,
+        ): Triple<MemberService, FakeMemberUserRepo, FakeMembershipRepo> {
             val userRepo = FakeMemberUserRepo(
                 listOf(
                     User(id = janId, email = "jan@test.com", displayName = "Jan de Vries"),
                     User(id = lisaId, email = "lisa@test.com", displayName = "Lisa Bakker"),
                 ),
             )
-            val memberRepo = FakeMembershipRepo(userRepo, mapOf(teamId to listOf(janId, lisaId)))
-            return MemberService(userRepo, memberRepo) to userRepo
+            val memberRepo = FakeMembershipRepo(userRepo, mapOf(teamId to listOf(janId to janRole, lisaId to lisaRole)))
+            return Triple(MemberService(userRepo, memberRepo, AuthorizationService(memberRepo)), userRepo, memberRepo)
         }
 
         test("getMember returns the team member for the user") {
-            val (service, _) = newService()
+            val (service, _, _) = newService()
             service.getMember(teamId, janId).displayName shouldBe "Jan de Vries"
         }
 
         test("getMember throws MemberNotFoundException for a user not on the team") {
-            val (service, _) = newService()
+            val (service, _, _) = newService()
             shouldThrow<MemberNotFoundException> { service.getMember(teamId, UUID.randomUUID()) }
         }
 
         test("updateOwnDisplayName trims surrounding whitespace") {
-            val (service, userRepo) = newService()
+            val (service, userRepo, _) = newService()
             service.updateOwnDisplayName(teamId, janId, "  Jan Janssen  ").displayName shouldBe "Jan Janssen"
             userRepo.findById(janId)?.displayName shouldBe "Jan Janssen"
         }
 
         test("updateOwnDisplayName rejects a blank name") {
-            val (service, _) = newService()
+            val (service, _, _) = newService()
             shouldThrow<IllegalArgumentException> { service.updateOwnDisplayName(teamId, janId, "   ") }
         }
 
         test("updateOwnDisplayName rejects a name longer than 100 characters") {
-            val (service, _) = newService()
+            val (service, _, _) = newService()
             shouldThrow<IllegalArgumentException> { service.updateOwnDisplayName(teamId, janId, "a".repeat(101)) }
         }
 
         test("updateOwnDisplayName rejects a name another member already uses (case-insensitive)") {
-            val (service, _) = newService()
+            val (service, _, _) = newService()
             shouldThrow<NameTakenException> { service.updateOwnDisplayName(teamId, janId, "lisa bakker") }
         }
 
         test("updateOwnDisplayName allows keeping the user's own current name") {
-            val (service, _) = newService()
+            val (service, _, _) = newService()
             service.updateOwnDisplayName(teamId, janId, "Jan de Vries").displayName shouldBe "Jan de Vries"
         }
 
-        test("updateOwnDisplayName persists the change via save") {
-            val (service, userRepo) = newService()
-            service.updateOwnDisplayName(teamId, janId, "Jan New")
-            userRepo.findById(janId)?.displayName shouldBe "Jan New"
-            service.getMember(teamId, janId).displayName shouldBe "Jan New"
+        test("listMembers returns the full team roster") {
+            val (service, _, _) = newService()
+            service.listMembers(teamId).map { it.displayName }.toSet() shouldBe setOf("Jan de Vries", "Lisa Bakker")
+        }
+
+        test("admin updateMember edits another member's name and role") {
+            val (service, userRepo, memberRepo) = newService()
+            val updated = service.updateMember(janId, teamId, lisaId, "Lisa Nova", Role.ADMIN)
+            updated.displayName shouldBe "Lisa Nova"
+            updated.role shouldBe "ADMIN"
+            userRepo.findById(lisaId)?.displayName shouldBe "Lisa Nova"
+            memberRepo.findRole(teamId, lisaId) shouldBe Role.ADMIN
+        }
+
+        test("admin promotes a USER to ADMIN") {
+            val (service, _, memberRepo) = newService()
+            service.updateMember(janId, teamId, lisaId, "Lisa Bakker", Role.ADMIN)
+            memberRepo.findRole(teamId, lisaId) shouldBe Role.ADMIN
+        }
+
+        test("admin demotes another ADMIN to USER when another admin remains") {
+            val (service, _, memberRepo) = newService(lisaRole = Role.ADMIN)
+            service.updateMember(janId, teamId, lisaId, "Lisa Bakker", Role.USER)
+            memberRepo.findRole(teamId, lisaId) shouldBe Role.USER
+        }
+
+        test("demoting the last remaining admin throws LastAdminException") {
+            val (service, _, _) = newService() // Jan is the only admin
+            shouldThrow<LastAdminException> { service.updateMember(janId, teamId, janId, "Jan de Vries", Role.USER) }
+        }
+
+        test("a USER cannot self-promote to ADMIN") {
+            val (service, _, _) = newService(janRole = Role.USER, lisaRole = Role.ADMIN)
+            shouldThrow<CannotChangeOwnRoleException> { service.updateMember(janId, teamId, janId, "Jan de Vries", Role.ADMIN) }
+        }
+
+        test("a non-admin cannot edit another member") {
+            val (service, _, _) = newService(janRole = Role.USER, lisaRole = Role.ADMIN)
+            shouldThrow<NotTeamAdminException> { service.updateMember(janId, teamId, lisaId, "Hijacked", Role.USER) }
+        }
+
+        test("updateMember rejects a name another member already uses, excluding the target") {
+            val (service, _, _) = newService()
+            shouldThrow<NameTakenException> { service.updateMember(janId, teamId, lisaId, "Jan de Vries", Role.USER) }
+        }
+
+        test("removeMember deactivates the target so the roster excludes them") {
+            val (service, _, _) = newService()
+            service.removeMember(janId, teamId, lisaId)
+            service.listMembers(teamId).map { it.displayName } shouldBe listOf("Jan de Vries")
+        }
+
+        test("removeMember by a non-admin is forbidden") {
+            val (service, _, _) = newService(janRole = Role.USER, lisaRole = Role.ADMIN)
+            shouldThrow<NotTeamAdminException> { service.removeMember(janId, teamId, lisaId) }
+        }
+
+        test("removeMember refuses to remove the last remaining admin") {
+            val (service, _, _) = newService() // Jan is the only admin
+            shouldThrow<LastAdminException> { service.removeMember(janId, teamId, janId) }
         }
     }
 }

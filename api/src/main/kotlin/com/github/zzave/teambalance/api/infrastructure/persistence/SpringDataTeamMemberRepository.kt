@@ -2,6 +2,7 @@ package com.github.zzave.teambalance.api.infrastructure.persistence
 
 import com.github.zzave.teambalance.api.infrastructure.persistence.entity.TeamMemberJpaEntity
 import org.springframework.data.jpa.repository.JpaRepository
+import org.springframework.data.jpa.repository.Modifying
 import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.query.Param
 import java.util.UUID
@@ -9,6 +10,28 @@ import java.util.UUID
 interface SpringDataTeamMemberRepository : JpaRepository<TeamMemberJpaEntity, UUID> {
     fun findByTeamIdAndActiveTrue(teamId: UUID): List<TeamMemberJpaEntity>
     fun findByTeamIdAndUserIdAndActiveTrue(teamId: UUID, userId: UUID): TeamMemberJpaEntity?
+
+    @Modifying
+    @Query(
+        "UPDATE public.team_members SET role = :role " +
+            "WHERE team_id = :teamId AND user_id = :userId AND active = true",
+        nativeQuery = true,
+    )
+    fun updateRole(@Param("teamId") teamId: UUID, @Param("userId") userId: UUID, @Param("role") role: String): Int
+
+    @Modifying
+    @Query(
+        "UPDATE public.team_members SET active = false WHERE team_id = :teamId AND user_id = :userId",
+        nativeQuery = true,
+    )
+    fun deactivate(@Param("teamId") teamId: UUID, @Param("userId") userId: UUID): Int
+
+    @Query(
+        "SELECT COUNT(*) FROM public.team_members " +
+            "WHERE team_id = :teamId AND role = 'ADMIN' AND active = true",
+        nativeQuery = true,
+    )
+    fun countActiveAdmins(@Param("teamId") teamId: UUID): Int
 
     @Query("SELECT u.display_name FROM public.users u WHERE u.id = :userId", nativeQuery = true)
     fun findDisplayNameByUserId(userId: UUID): String?

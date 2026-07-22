@@ -51,6 +51,18 @@ class JpaTeamMemberRepositoryAdapter(
         jpaRepository.findTeamIdByUserId(userId)
 
     @Transactional
+    override fun updateRole(teamId: UUID, userId: UUID, role: Role) {
+        jpaRepository.updateRole(teamId, userId, role.name)
+    }
+
+    @Transactional
+    override fun deactivate(teamId: UUID, userId: UUID) {
+        jpaRepository.deactivate(teamId, userId)
+    }
+
+    override fun countAdmins(teamId: UUID): Int = jpaRepository.countActiveAdmins(teamId)
+
+    @Transactional
     override fun addMember(teamId: UUID, userId: UUID) {
         if (jpaRepository.findByTeamIdAndUserIdAndActiveTrue(teamId, userId) != null) return
         try {

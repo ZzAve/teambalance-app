@@ -1,6 +1,6 @@
 # ADR-0009: Attendance model v1 — roles in, audience-subsets deferred
 
-- Status: Accepted
+- Status: Accepted (partially amended by [ADR-0013](0013-member-profile-position-role-management.md))
 - Date: 2026-06-23
 
 ## Context

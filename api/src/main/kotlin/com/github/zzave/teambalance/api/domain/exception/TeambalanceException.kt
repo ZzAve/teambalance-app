@@ -13,6 +13,8 @@ class EventTypeNotFoundException(id: UUID) : NotFoundException("EventType not fo
 class AttendanceNotFoundException(eventId: UUID, userId: UUID) :
     NotFoundException("Attendance not found for event $eventId and user $userId")
 
+class MemberNotFoundException(userId: UUID) : NotFoundException("Member not found: $userId")
+
 // `code` is a stable machine-readable discriminator (the message is human prose) so clients can tell
 // the forbidden reasons apart — e.g. "no team yet" (send to login/onboarding) vs "not an admin".
 sealed class ForbiddenException(message: String, val code: String) : TeambalanceException(message)

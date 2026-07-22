@@ -62,20 +62,36 @@ class MemberService(
         val currentRole = teamMemberRepository.findRole(teamId, targetUserId)
             ?: throw MemberNotFoundException(targetUserId)
         val roleChanged = role != currentRole
-        if (roleChanged) {
-            if (callerId == targetUserId && role == Role.ADMIN) throw CannotChangeOwnRoleException(callerId)
-            if (currentRole == Role.ADMIN && role == Role.USER && teamMemberRepository.countAdmins(teamId) <= 1) {
-                throw LastAdminException(teamId)
-            }
-        }
-        if (positionId != null && !positionRepository.existsInTeam(teamId, positionId)) {
-            throw PositionNotFoundException(positionId)
-        }
+        guardRoleChange(callerId, targetUserId, teamId, currentRole, role, roleChanged)
+        requirePositionInTeam(teamId, positionId)
 
         applyDisplayName(teamId, targetUserId, rawName)
         if (roleChanged) teamMemberRepository.updateRole(teamId, targetUserId, role)
         teamMemberRepository.assignPosition(teamId, targetUserId, positionId)
         return getMember(teamId, targetUserId)
+    }
+
+    // A role change may neither elevate the caller's own role nor remove the team's last admin.
+    private fun guardRoleChange(
+        callerId: UUID,
+        targetUserId: UUID,
+        teamId: UUID,
+        currentRole: Role,
+        newRole: Role,
+        roleChanged: Boolean,
+    ) {
+        if (!roleChanged) return
+        if (callerId == targetUserId && newRole == Role.ADMIN) throw CannotChangeOwnRoleException(callerId)
+        if (currentRole == Role.ADMIN && newRole == Role.USER && teamMemberRepository.countAdmins(teamId) <= 1) {
+            throw LastAdminException(teamId)
+        }
+    }
+
+    // A non-null position must belong to this team; null clears the assignment.
+    private fun requirePositionInTeam(teamId: UUID, positionId: UUID?) {
+        if (positionId != null && !positionRepository.existsInTeam(teamId, positionId)) {
+            throw PositionNotFoundException(positionId)
+        }
     }
 
     /**

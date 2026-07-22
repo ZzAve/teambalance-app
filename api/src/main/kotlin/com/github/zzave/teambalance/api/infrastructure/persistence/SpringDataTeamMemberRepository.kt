@@ -8,6 +8,9 @@ import org.springframework.data.repository.query.Param
 import java.time.OffsetDateTime
 import java.util.UUID
 
+// Cohesive data-access surface for team_members; grew past the default 11-function limit with the
+// member-management feature. Splitting it would be artificial.
+@Suppress("TooManyFunctions")
 interface SpringDataTeamMemberRepository : JpaRepository<TeamMemberJpaEntity, UUID> {
     fun findByTeamIdAndUserIdAndActiveTrue(teamId: UUID, userId: UUID): TeamMemberJpaEntity?
 

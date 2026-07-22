@@ -12,6 +12,9 @@ import java.time.Instant
 import java.time.ZoneOffset
 import java.util.UUID
 
+// Cohesive data-access surface for team_members; the member-management feature grew it past the
+// default 11-function limit. Splitting a single adapter/port would be artificial.
+@Suppress("TooManyFunctions")
 @Repository
 class JpaTeamMemberRepositoryAdapter(
     private val jpaRepository: SpringDataTeamMemberRepository,

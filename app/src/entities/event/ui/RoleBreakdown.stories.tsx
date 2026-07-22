@@ -35,3 +35,19 @@ export const Empty: Story = {
     await expect(canvasElement).toBeEmptyDOMElement()
   },
 }
+
+// The backend groups the attending summary by position and includes an "Unassigned" bucket for
+// members with no position; the component renders whatever the API returns, verbatim.
+export const WithUnassigned: Story = {
+  args: {
+    breakdown: [
+      { role: 'Setter', attending: 2 },
+      { role: 'Libero', attending: 1 },
+      { role: 'Unassigned', attending: 3 },
+    ],
+  },
+  play: async ({ canvas }) => {
+    await expect(canvas.getByText('2 Setter')).toBeInTheDocument()
+    await expect(canvas.getByText('3 Unassigned')).toBeInTheDocument()
+  },
+}

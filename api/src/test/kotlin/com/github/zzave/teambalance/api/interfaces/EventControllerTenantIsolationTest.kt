@@ -63,11 +63,7 @@ class EventControllerTenantIsolationTest : TeamBalanceIT() {
                 """
             )
             jdbcTemplate.execute(
-                """
-                INSERT INTO public.team_members (team_id, user_id, role, team_role)
-                VALUES ('$ALPHA_TEAM_ID'::uuid, '$ALPHA_USER_ID'::uuid, 'ADMIN', 'Setter')
-                ON CONFLICT DO NOTHING
-                """
+                "SELECT public.tb_add_member('$ALPHA_TEAM_ID'::uuid, '$ALPHA_USER_ID'::uuid, 'ADMIN', 'Setter')"
             )
             jdbcTemplate.execute(
                 """
@@ -77,11 +73,7 @@ class EventControllerTenantIsolationTest : TeamBalanceIT() {
                 """
             )
             jdbcTemplate.execute(
-                """
-                INSERT INTO public.team_members (team_id, user_id, role, team_role)
-                VALUES ('$BETA_TEAM_ID'::uuid, '$BETA_USER_ID'::uuid, 'ADMIN', 'Setter')
-                ON CONFLICT DO NOTHING
-                """
+                "SELECT public.tb_add_member('$BETA_TEAM_ID'::uuid, '$BETA_USER_ID'::uuid, 'ADMIN', 'Setter')"
             )
 
             // Event lives ONLY in team A's tenant schema.

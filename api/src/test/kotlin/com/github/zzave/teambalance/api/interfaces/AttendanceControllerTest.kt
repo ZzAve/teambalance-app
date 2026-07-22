@@ -12,7 +12,10 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers
 import java.util.UUID
 
-private const val JAN_USER_ID = "b0000000-0000-0000-0000-000000000002"
+// A dedicated id (NOT a demo-seed user) so this user belongs only to this spec's team — the member
+// lookup for attendance assumes one team per user, so reusing a demo user would resolve their position
+// ambiguously across two teams.
+private const val JAN_USER_ID = "b0000000-0000-0000-0000-0000000000b2"
 private const val TEAM_ID = "a0000000-0000-0000-0000-000000000002"
 
 @AutoConfigureMockMvc
@@ -42,11 +45,9 @@ class AttendanceControllerTest : TeamBalanceIT() {
                 VALUES ('$JAN_USER_ID'::uuid, 'jan2@test.com', 'Jan de Vries')
                 ON CONFLICT DO NOTHING
             """)
-            jdbcTemplate.execute("""
-                INSERT INTO public.team_members (team_id, user_id, role, team_role)
-                VALUES ('$TEAM_ID'::uuid, '$JAN_USER_ID'::uuid, 'ADMIN', 'Setter')
-                ON CONFLICT DO NOTHING
-            """)
+            jdbcTemplate.execute(
+                "SELECT public.tb_add_member('$TEAM_ID'::uuid, '$JAN_USER_ID'::uuid, 'ADMIN', 'Setter')",
+            )
 
             val eventId = UUID.randomUUID()
             jdbcTemplate.execute("""
@@ -88,11 +89,9 @@ class AttendanceControllerTest : TeamBalanceIT() {
                 VALUES ('$JAN_USER_ID'::uuid, 'jan2@test.com', 'Jan de Vries')
                 ON CONFLICT DO NOTHING
             """)
-            jdbcTemplate.execute("""
-                INSERT INTO public.team_members (team_id, user_id, role, team_role)
-                VALUES ('$TEAM_ID'::uuid, '$JAN_USER_ID'::uuid, 'ADMIN', 'Setter')
-                ON CONFLICT DO NOTHING
-            """)
+            jdbcTemplate.execute(
+                "SELECT public.tb_add_member('$TEAM_ID'::uuid, '$JAN_USER_ID'::uuid, 'ADMIN', 'Setter')",
+            )
 
             val eventId = UUID.randomUUID()
             jdbcTemplate.execute("""
@@ -140,12 +139,8 @@ class AttendanceControllerTest : TeamBalanceIT() {
                     ('$editorId'::uuid, 'editor-$editorId@test.com', 'Editor')
                 ON CONFLICT DO NOTHING
             """)
-            jdbcTemplate.execute("""
-                INSERT INTO public.team_members (team_id, user_id, role, team_role) VALUES
-                    ('$teamId'::uuid, '$ownerId'::uuid, 'USER', 'Setter'),
-                    ('$teamId'::uuid, '$editorId'::uuid, 'ADMIN', 'Libero')
-                ON CONFLICT DO NOTHING
-            """)
+            jdbcTemplate.execute("SELECT public.tb_add_member('$teamId'::uuid, '$ownerId'::uuid, 'USER', 'Setter')")
+            jdbcTemplate.execute("SELECT public.tb_add_member('$teamId'::uuid, '$editorId'::uuid, 'ADMIN', 'Libero')")
 
             val eventId = UUID.randomUUID()
             jdbcTemplate.execute("""

@@ -51,8 +51,7 @@ class InvitationControllerTest : TeamBalanceIT() {
                 "VALUES ('$JAN_USER_ID'::uuid, 'jan-invite@test.com', 'Jan de Vries') ON CONFLICT DO NOTHING",
         )
         jdbcTemplate.execute(
-            "INSERT INTO public.team_members (team_id, user_id, role, team_role) " +
-                "VALUES ('$TEAM_ID'::uuid, '$JAN_USER_ID'::uuid, 'ADMIN', 'Setter') ON CONFLICT DO NOTHING",
+            "SELECT public.tb_add_member('$TEAM_ID'::uuid, '$JAN_USER_ID'::uuid, 'ADMIN', 'Setter')",
         )
     }
 
@@ -129,8 +128,7 @@ class InvitationControllerTest : TeamBalanceIT() {
                     "VALUES ('$LISA_USER_ID'::uuid, 'lisa-invite@test.com', 'Lisa Bakker') ON CONFLICT DO NOTHING",
             )
             jdbcTemplate.execute(
-                "INSERT INTO public.team_members (team_id, user_id, role, team_role) " +
-                    "VALUES ('$TEAM_ID'::uuid, '$LISA_USER_ID'::uuid, 'USER', 'Libero') ON CONFLICT DO NOTHING",
+                "SELECT public.tb_add_member('$TEAM_ID'::uuid, '$LISA_USER_ID'::uuid, 'USER', 'Libero')",
             )
 
             val mvcResult = mockMvc.perform(
@@ -286,8 +284,7 @@ class InvitationControllerTest : TeamBalanceIT() {
                     "VALUES ('$LISA_USER_ID'::uuid, 'lisa-rotate@test.com', 'Lisa Bakker') ON CONFLICT DO NOTHING",
             )
             jdbcTemplate.execute(
-                "INSERT INTO public.team_members (team_id, user_id, role, team_role) " +
-                    "VALUES ('$TEAM_ID'::uuid, '$LISA_USER_ID'::uuid, 'USER', 'Libero') ON CONFLICT DO NOTHING",
+                "SELECT public.tb_add_member('$TEAM_ID'::uuid, '$LISA_USER_ID'::uuid, 'USER', 'Libero')",
             )
 
             val mvcResult = mockMvc.perform(
@@ -309,8 +306,7 @@ class InvitationControllerTest : TeamBalanceIT() {
                     "VALUES ('$LISA_USER_ID'::uuid, 'lisa-expire@test.com', 'Lisa Bakker') ON CONFLICT DO NOTHING",
             )
             jdbcTemplate.execute(
-                "INSERT INTO public.team_members (team_id, user_id, role, team_role) " +
-                    "VALUES ('$TEAM_ID'::uuid, '$LISA_USER_ID'::uuid, 'USER', 'Libero') ON CONFLICT DO NOTHING",
+                "SELECT public.tb_add_member('$TEAM_ID'::uuid, '$LISA_USER_ID'::uuid, 'USER', 'Libero')",
             )
 
             val mvcResult = mockMvc.perform(

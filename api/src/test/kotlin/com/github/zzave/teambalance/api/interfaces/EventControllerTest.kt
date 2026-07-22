@@ -51,11 +51,7 @@ class EventControllerTest : TeamBalanceIT() {
             """
             )
             jdbcTemplate.execute(
-                """
-                INSERT INTO public.team_members (team_id, user_id, role, team_role)
-                VALUES ('$TEAM_ID'::uuid, '$JAN_USER_ID'::uuid, 'ADMIN', 'Setter')
-                ON CONFLICT DO NOTHING
-            """
+                "SELECT public.tb_add_member('$TEAM_ID'::uuid, '$JAN_USER_ID'::uuid, 'ADMIN', 'Setter')"
             )
 
             val eventId = UUID.randomUUID()
@@ -107,11 +103,7 @@ class EventControllerTest : TeamBalanceIT() {
             """
             )
             jdbcTemplate.execute(
-                """
-                INSERT INTO public.team_members (team_id, user_id, role, team_role)
-                VALUES ('$TEAM_ID'::uuid, '$JAN_USER_ID'::uuid, 'USER', 'Setter')
-                ON CONFLICT DO NOTHING
-            """
+                "SELECT public.tb_add_member('$TEAM_ID'::uuid, '$JAN_USER_ID'::uuid, 'USER', 'Setter')"
             )
 
             val eventId = UUID.randomUUID()
@@ -166,11 +158,7 @@ class EventControllerTest : TeamBalanceIT() {
             """
             )
             jdbcTemplate.execute(
-                """
-                INSERT INTO public.team_members (team_id, user_id, role, team_role)
-                VALUES ('$TEAM_ID'::uuid, '$JAN_USER_ID'::uuid, 'USER', 'Setter')
-                ON CONFLICT DO NOTHING
-            """
+                "SELECT public.tb_add_member('$TEAM_ID'::uuid, '$JAN_USER_ID'::uuid, 'USER', 'Setter')"
             )
             // Lisa — Libero (as seeded by V002__seed_demo_data.sql), will ATTEND
             jdbcTemplate.execute(
@@ -181,11 +169,7 @@ class EventControllerTest : TeamBalanceIT() {
             """
             )
             jdbcTemplate.execute(
-                """
-                INSERT INTO public.team_members (team_id, user_id, role, team_role)
-                VALUES ('$TEAM_ID'::uuid, '$LISA_USER_ID'::uuid, 'USER', 'Libero')
-                ON CONFLICT DO NOTHING
-            """
+                "SELECT public.tb_add_member('$TEAM_ID'::uuid, '$LISA_USER_ID'::uuid, 'USER', 'Libero')"
             )
             // Tom — Middle (as seeded by V002__seed_demo_data.sql), will be MAYBE (excluded from role breakdown)
             jdbcTemplate.execute(
@@ -196,11 +180,7 @@ class EventControllerTest : TeamBalanceIT() {
             """
             )
             jdbcTemplate.execute(
-                """
-                INSERT INTO public.team_members (team_id, user_id, role, team_role)
-                VALUES ('$TEAM_ID'::uuid, '$TOM_USER_ID'::uuid, 'USER', 'Middle')
-                ON CONFLICT DO NOTHING
-            """
+                "SELECT public.tb_add_member('$TEAM_ID'::uuid, '$TOM_USER_ID'::uuid, 'USER', 'Middle')"
             )
 
             val eventId = java.util.UUID.randomUUID()
@@ -268,11 +248,7 @@ class EventControllerTest : TeamBalanceIT() {
                 """
                 )
                 jdbcTemplate.execute(
-                    """
-                    INSERT INTO public.team_members (team_id, user_id, role, team_role)
-                    VALUES ('$TEAM_ID'::uuid, '$userId'::uuid, 'USER', '$role')
-                    ON CONFLICT DO NOTHING
-                """
+                    "SELECT public.tb_add_member('$TEAM_ID'::uuid, '$userId'::uuid, 'USER', '$role')"
                 )
             }
 
@@ -327,11 +303,7 @@ class EventControllerTest : TeamBalanceIT() {
             """
             )
             jdbcTemplate.execute(
-                """
-                INSERT INTO public.team_members (team_id, user_id, role, team_role)
-                VALUES ('$TEAM_ID'::uuid, '$JAN_USER_ID'::uuid, 'USER', 'Setter')
-                ON CONFLICT DO NOTHING
-            """
+                "SELECT public.tb_add_member('$TEAM_ID'::uuid, '$JAN_USER_ID'::uuid, 'USER', 'Setter')"
             )
 
             // Event with NO attendances at all.
@@ -384,11 +356,7 @@ class EventControllerTest : TeamBalanceIT() {
             """
             )
             jdbcTemplate.execute(
-                """
-                INSERT INTO public.team_members (team_id, user_id, role, team_role)
-                VALUES ('$TEAM_ID'::uuid, '$JAN_USER_ID'::uuid, 'ADMIN', 'Setter')
-                ON CONFLICT DO NOTHING
-            """
+                "SELECT public.tb_add_member('$TEAM_ID'::uuid, '$JAN_USER_ID'::uuid, 'ADMIN', 'Setter')"
             )
             jdbcTemplate.execute(
                 """
@@ -398,11 +366,7 @@ class EventControllerTest : TeamBalanceIT() {
             """
             )
             jdbcTemplate.execute(
-                """
-                INSERT INTO public.team_members (team_id, user_id, role, team_role)
-                VALUES ('$TEAM_ID'::uuid, '$LISA_USER_ID'::uuid, 'USER', 'Libero')
-                ON CONFLICT DO NOTHING
-            """
+                "SELECT public.tb_add_member('$TEAM_ID'::uuid, '$LISA_USER_ID'::uuid, 'USER', 'Libero')"
             )
             val memberCount = jdbcTemplate.queryForObject(
                 "SELECT count(*) FROM public.team_members WHERE team_id = '$TEAM_ID'::uuid AND active = true",
@@ -501,11 +465,7 @@ class EventControllerTest : TeamBalanceIT() {
             """
             )
             jdbcTemplate.execute(
-                """
-                INSERT INTO public.team_members (team_id, user_id, role, team_role)
-                VALUES ('$TEAM_ID'::uuid, '$LISA_USER_ID'::uuid, 'USER', 'Libero')
-                ON CONFLICT DO NOTHING
-            """
+                "SELECT public.tb_add_member('$TEAM_ID'::uuid, '$LISA_USER_ID'::uuid, 'USER', 'Libero')"
             )
 
             val eventTypeId = jdbcTemplate.queryForObject(
@@ -557,11 +517,7 @@ class EventControllerTest : TeamBalanceIT() {
             """
             )
             jdbcTemplate.execute(
-                """
-                INSERT INTO public.team_members (team_id, user_id, role, team_role)
-                VALUES ('$TEAM_ID'::uuid, '$JAN_USER_ID'::uuid, 'ADMIN', 'Setter')
-                ON CONFLICT DO NOTHING
-            """
+                "SELECT public.tb_add_member('$TEAM_ID'::uuid, '$JAN_USER_ID'::uuid, 'ADMIN', 'Setter')"
             )
 
             val eventTypeId = jdbcTemplate.queryForObject(
@@ -625,11 +581,7 @@ class EventControllerTest : TeamBalanceIT() {
             """
             )
             jdbcTemplate.execute(
-                """
-                INSERT INTO public.team_members (team_id, user_id, role, team_role)
-                VALUES ('$TEAM_ID'::uuid, '$JAN_USER_ID'::uuid, 'ADMIN', 'Setter')
-                ON CONFLICT DO NOTHING
-            """
+                "SELECT public.tb_add_member('$TEAM_ID'::uuid, '$JAN_USER_ID'::uuid, 'ADMIN', 'Setter')"
             )
 
             val eventId = UUID.randomUUID()
@@ -659,6 +611,57 @@ class EventControllerTest : TeamBalanceIT() {
                 Long::class.java,
             )
             remaining shouldBe 0L
+        }
+
+        test("GET /api/events/{id} roleBreakdown groups a member with no position under 'Unassigned'") {
+            tenantSchemaManager.provisionPlatformSchema()
+            tenantSchemaManager.provisionTenantSchema("public")
+
+            // A member deliberately given NO position (null label) — should land in the Unassigned bucket.
+            val noPositionUserId = "b0000000-0000-0000-0000-0000000000c1"
+            jdbcTemplate.execute(
+                """
+                INSERT INTO public.teams (id, name, slug, sport, schema_name)
+                VALUES ('$TEAM_ID'::uuid, 'Test Team', 'test-team', 'Volleyball', 'public')
+                ON CONFLICT DO NOTHING
+            """
+            )
+            jdbcTemplate.execute(
+                """
+                INSERT INTO public.users (id, email, display_name)
+                VALUES ('$noPositionUserId'::uuid, 'nopos@test.com', 'No Position')
+                ON CONFLICT DO NOTHING
+            """
+            )
+            jdbcTemplate.execute(
+                "SELECT public.tb_add_member('$TEAM_ID'::uuid, '$noPositionUserId'::uuid, 'USER', NULL)"
+            )
+
+            val eventId = UUID.randomUUID()
+            jdbcTemplate.execute(
+                """
+                INSERT INTO public.events (uuid, event_type_id, title, start_time, end_time, created_by, created_at, updated_at)
+                VALUES ('$eventId'::uuid,
+                    (SELECT id FROM public.event_types WHERE name = 'Training'),
+                    'Unassigned Bucket Test', '2026-07-01 20:00:00+00', '2026-07-01 22:00:00+00',
+                    '$noPositionUserId'::uuid, now(), now())
+            """
+            )
+            insertAttendance(eventId, noPositionUserId)
+
+            val mvcResult = mockMvc.perform(
+                MockMvcRequestBuilders.get("/api/events/$eventId")
+                    .header("X-Team-Id", "public")
+                    .header("X-User-Id", noPositionUserId),
+            )
+                .andExpect(MockMvcResultMatchers.request().asyncStarted())
+                .andReturn()
+
+            mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(mvcResult))
+                .andExpect(MockMvcResultMatchers.status().isOk)
+                .andExpect(MockMvcResultMatchers.jsonPath("$.attendances[0].role").value("Unassigned"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.attendanceSummary.roleBreakdown[0].role").value("Unassigned"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.attendanceSummary.roleBreakdown[0].attending").value(1))
         }
     }
 

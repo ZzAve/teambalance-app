@@ -12,6 +12,9 @@ import java.time.Clock
 import java.time.Instant
 import java.util.UUID
 
+/** Bucket label for attendees who have no position assigned. */
+const val UNASSIGNED = "Unassigned"
+
 @Service
 @Transactional
 class AttendanceService(
@@ -48,7 +51,7 @@ class AttendanceService(
         val membersByUserId = teamMemberRepository.findMembersByUserIds(attendances.map { it.userId }.toSet())
         return attendances.map { attendance ->
             val member = membersByUserId[attendance.userId]
-                ?: TeamMember(attendance.userId, "Unknown", "USER", null)
+                ?: TeamMember(attendance.userId, "Unknown", "USER", null, null, onboarded = true)
             attendance to member
         }
     }
@@ -69,9 +72,9 @@ class AttendanceService(
         if (attendingUserIds.isEmpty()) return emptyList()
         val membersByUserId = teamMemberRepository.findMembersByUserIds(attendingUserIds)
         return attendingUserIds
-            .groupBy { uid -> membersByUserId[uid]?.teamRole ?: "" }
+            .groupBy { uid -> membersByUserId[uid]?.position ?: UNASSIGNED }
             .entries
-            .map { (role, uids) -> role to uids.size }
+            .map { (position, uids) -> position to uids.size }
             .sortedWith(compareByDescending<Pair<String, Int>> { it.second }.thenBy { it.first })
     }
 

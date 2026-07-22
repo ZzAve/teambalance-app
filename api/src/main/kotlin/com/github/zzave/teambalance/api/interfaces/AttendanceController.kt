@@ -2,6 +2,7 @@ package com.github.zzave.teambalance.api.interfaces
 
 import com.github.zzave.teambalance.api.application.AttendanceService
 import com.github.zzave.teambalance.api.application.CurrentUserProvider
+import com.github.zzave.teambalance.api.application.UNASSIGNED
 import com.github.zzave.teambalance.api.domain.model.AttendanceState
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.SetAttendance
 import com.github.zzave.teambalance.api.interfaces.generated.model.Attendance
@@ -30,7 +31,7 @@ class AttendanceController(
                 eventId = attendance.eventId.toString(),
                 userId = attendance.userId.toString(),
                 displayName = member?.displayName ?: "Unknown",
-                role = member?.teamRole ?: "",
+                role = member?.position ?: UNASSIGNED,
                 state = attendance.state.name,
             )
         )

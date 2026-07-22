@@ -16,6 +16,11 @@ private class FakeTeamMemberRepository(private val roles: Map<Pair<UUID, UUID>, 
     override fun findRole(teamId: UUID, userId: UUID): Role? = roles[teamId to userId]
     override fun findTeamId(userId: UUID): UUID? = null
     override fun addMember(teamId: UUID, userId: UUID) = Unit
+    override fun updateRole(teamId: UUID, userId: UUID, role: Role) = Unit
+    override fun deactivate(teamId: UUID, userId: UUID) = Unit
+    override fun assignPosition(teamId: UUID, userId: UUID, positionId: UUID?) = Unit
+    override fun markOnboarded(teamId: UUID, userId: UUID, at: java.time.Instant) = Unit
+    override fun countAdmins(teamId: UUID): Int = 0
 }
 
 class AuthorizationServiceTest : FunSpec() {

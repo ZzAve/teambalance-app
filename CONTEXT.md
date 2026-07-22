@@ -18,13 +18,21 @@ any-team, self-service (see [ADR-0001](docs/adr/0001-product-ambition-hobby-tool
 
 - **Team** — A group of people who play together and share events and a money pool.
   Private/invite-only. The unit of tenancy (one tenant schema per team).
-- **Member** — A person belonging to a Team. Has one or more **Roles**.
-- **Role** — A team-defined position (e.g. Setter, Libero, Outside Hitter, Trainer).
-  Sport-agnostic and configurable per team; drives the role-based attendee summary.
-  In v1 each member has **exactly one** role, set back-office (no management UI yet);
-  the summary partitions cleanly by it ([ADR-0009](docs/adr/0009-attendance-model-roles-in-audience-deferred.md)).
-- **Admin** — A Member with elevated permissions: CRUD events, manage members, manage
-  roles, configure integrations. Contrast with a plain **User**.
+- **Member** — A person belonging to a Team. Has exactly one **Role** and at most one
+  **Position**.
+- **Role** — A Member's permission tier within a Team: **Admin** or **User**. Every
+  member has exactly one. _Avoid_: permission level, access level — and don't confuse it
+  with **Position** (the DB column `role` holds this).
+- **Position** — A team-defined playing position (e.g. Setter, Libero, Outside Hitter,
+  Trainer). Sport-agnostic and configurable per team; drives the position-based attendee
+  summary. A member has **at most one**; a member without one appears as **Unassigned**.
+  Positions are managed per team by an Admin ([ADR-0013](docs/adr/0013-member-profile-position-role-management.md),
+  amending [ADR-0009](docs/adr/0009-attendance-model-roles-in-audience-deferred.md)).
+  _Avoid_: role, team_role.
+- **Unassigned** — The bucket in the attendance summary for Members with no **Position**.
+- **Admin** — A Member whose **Role** is Admin: CRUD events, manage members, manage
+  positions, promote/demote other members, configure integrations. Contrast with a plain
+  **User**.
 - **User** — A Member with baseline permissions: view events, manage attendance, view
   the money pool, top up. (Also: a platform-level account in the Identity context.)
 
@@ -80,7 +88,7 @@ any-team, self-service (see [ADR-0001](docs/adr/0001-product-ambition-hobby-tool
 ### Platform & integrations
 
 - **Tenant schema** — Per-team Postgres schema holding events, attendances,
-  transactions, roles, etc.
+  transactions, etc.
 - **Platform schema** (`public`) — Cross-team data: users, teams, team_members,
   invitations.
 - **Bunq** — The banking API backing the Money Pool. Abstracted behind a port so it

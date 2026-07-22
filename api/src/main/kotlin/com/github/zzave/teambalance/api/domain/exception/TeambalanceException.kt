@@ -13,6 +13,10 @@ class EventTypeNotFoundException(id: UUID) : NotFoundException("EventType not fo
 class AttendanceNotFoundException(eventId: UUID, userId: UUID) :
     NotFoundException("Attendance not found for event $eventId and user $userId")
 
+class MemberNotFoundException(userId: UUID) : NotFoundException("Member not found: $userId")
+
+class PositionNotFoundException(id: UUID) : NotFoundException("Position not found: $id")
+
 // `code` is a stable machine-readable discriminator (the message is human prose) so clients can tell
 // the forbidden reasons apart — e.g. "no team yet" (send to login/onboarding) vs "not an admin".
 sealed class ForbiddenException(message: String, val code: String) : TeambalanceException(message)
@@ -22,3 +26,19 @@ class NotTeamAdminException(userId: UUID, teamId: UUID) :
 
 class NoTeamMembershipException(userId: UUID) :
     ForbiddenException("User $userId has no active team membership", "NO_TEAM_MEMBERSHIP")
+
+class CannotChangeOwnRoleException(userId: UUID) :
+    ForbiddenException("User $userId cannot elevate their own role", "CANNOT_SELF_PROMOTE")
+
+// `code` is the stable machine-readable discriminator for 409 conflicts (state clashes clients can act on),
+// mirroring ForbiddenException — e.g. "display name already used" vs "would remove the last admin".
+sealed class ConflictException(message: String, val code: String) : TeambalanceException(message)
+
+class NameTakenException(name: String) :
+    ConflictException("Display name '$name' is already taken in this team", "NAME_TAKEN")
+
+class LastAdminException(teamId: UUID) :
+    ConflictException("Team $teamId must keep at least one admin", "LAST_ADMIN")
+
+class PositionLabelTakenException(label: String) :
+    ConflictException("Position '$label' already exists in this team", "POSITION_LABEL_TAKEN")

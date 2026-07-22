@@ -102,7 +102,7 @@ class SessionTenantContextFilterTest : TeamBalanceIT() {
             teamId, "Test Team", "test-team-$teamId", "Volleyball", schemaName,
         )
         jdbcTemplate.update(
-            "INSERT INTO public.team_members (team_id, user_id, role, team_role) VALUES (?, ?, 'USER', 'Setter')",
+            "INSERT INTO public.team_members (team_id, user_id, role) VALUES (?, ?, 'USER')",
             teamId, userId,
         )
     }

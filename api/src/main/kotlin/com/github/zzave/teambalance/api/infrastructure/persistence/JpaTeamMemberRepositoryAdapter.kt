@@ -8,8 +8,13 @@ import org.slf4j.LoggerFactory
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.stereotype.Repository
 import org.springframework.transaction.annotation.Transactional
+import java.time.Instant
+import java.time.ZoneOffset
 import java.util.UUID
 
+// Cohesive data-access surface for team_members; the member-management feature grew it past the
+// default 11-function limit. Splitting a single adapter/port would be artificial.
+@Suppress("TooManyFunctions")
 @Repository
 class JpaTeamMemberRepositoryAdapter(
     private val jpaRepository: SpringDataTeamMemberRepository,
@@ -17,14 +22,7 @@ class JpaTeamMemberRepositoryAdapter(
     private val logger = LoggerFactory.getLogger(JpaTeamMemberRepositoryAdapter::class.java)
 
     override fun findByTeamId(teamId: UUID): List<TeamMember> =
-        jpaRepository.findByTeamIdAndActiveTrue(teamId).map { entity ->
-            TeamMember(
-                userId = entity.userId,
-                displayName = jpaRepository.findDisplayNameByUserId(entity.userId) ?: "Unknown",
-                role = entity.role,
-                teamRole = entity.teamRole,
-            )
-        }
+        jpaRepository.findMemberSummariesByTeamId(teamId).map { it.toDomain() }
 
     override fun findDisplayName(userId: UUID): String? =
         jpaRepository.findDisplayNameByUserId(userId)
@@ -33,14 +31,18 @@ class JpaTeamMemberRepositoryAdapter(
         if (userIds.isEmpty()) return emptyMap()
         return jpaRepository.findMemberSummariesByUserIds(userIds).associate { row ->
             val uid = UUID.fromString(row.getUserId())
-            uid to TeamMember(
-                userId = uid,
-                displayName = row.getDisplayName(),
-                role = row.getPermissionRole(),
-                teamRole = row.getTeamRole(),
-            )
+            uid to row.toDomain()
         }
     }
+
+    private fun MemberSummaryProjection.toDomain() = TeamMember(
+        userId = UUID.fromString(getUserId()),
+        displayName = getDisplayName(),
+        role = getPermissionRole(),
+        positionId = getPositionId()?.let { UUID.fromString(it) },
+        position = getPosition(),
+        onboarded = getOnboarded(),
+    )
 
     override fun findRole(teamId: UUID, userId: UUID): Role? =
         jpaRepository.findByTeamIdAndUserIdAndActiveTrue(teamId, userId)
@@ -49,6 +51,28 @@ class JpaTeamMemberRepositoryAdapter(
 
     override fun findTeamId(userId: UUID): UUID? =
         jpaRepository.findTeamIdByUserId(userId)
+
+    @Transactional
+    override fun updateRole(teamId: UUID, userId: UUID, role: Role) {
+        jpaRepository.updateRole(teamId, userId, role.name)
+    }
+
+    @Transactional
+    override fun deactivate(teamId: UUID, userId: UUID) {
+        jpaRepository.deactivate(teamId, userId)
+    }
+
+    @Transactional
+    override fun assignPosition(teamId: UUID, userId: UUID, positionId: UUID?) {
+        jpaRepository.assignPosition(teamId, userId, positionId)
+    }
+
+    @Transactional
+    override fun markOnboarded(teamId: UUID, userId: UUID, at: Instant) {
+        jpaRepository.markOnboarded(teamId, userId, at.atOffset(ZoneOffset.UTC))
+    }
+
+    override fun countAdmins(teamId: UUID): Int = jpaRepository.countActiveAdmins(teamId)
 
     @Transactional
     override fun addMember(teamId: UUID, userId: UUID) {

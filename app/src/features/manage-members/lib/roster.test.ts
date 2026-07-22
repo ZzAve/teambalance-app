@@ -13,7 +13,7 @@ describe('toggleRole', () => {
 })
 
 describe('isLastAdmin', () => {
-  const m = (userId: string, role: string): Member => ({ userId, displayName: userId, role, position: undefined })
+  const m = (userId: string, role: string): Member => ({ userId, displayName: userId, role, position: undefined, onboarded: true })
 
   it('is true for the only admin', () => {
     const members = [m('a', 'ADMIN'), m('b', 'USER')]

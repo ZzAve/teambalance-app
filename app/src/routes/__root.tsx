@@ -4,6 +4,7 @@ import { useEffect, useRef } from 'react'
 import { Providers } from '@app/providers'
 import { BottomNav } from '@shared/ui/BottomNav'
 import { authMeQueryOptions, useLogout } from '@shared/api/auth'
+import { currentMemberQueryOptions } from '@shared/api/members'
 import { queryClient } from '@shared/api/query-client'
 import { useUserStore } from '@shared/stores/user-store'
 
@@ -29,6 +30,20 @@ export const Route = createRootRoute({
       // Session could not be confirmed (network / 5xx) — fail closed.
     }
     if (!user) throw redirect({ to: '/login' })
+
+    // Onboarding gate: a confirmed member who hasn't completed onboarding is routed to /welcome
+    // before any app screen mounts. /welcome itself is exempt (below) so the flow can render; the
+    // auth routes are already exempt (returned above). Read /members/me through the cache — race-
+    // free, same pattern as the /members admin gate. Fail OPEN if the state can't be determined:
+    // an onboarding-status blip shouldn't trap the user, and auth was already confirmed.
+    if (location.pathname === '/welcome' || location.pathname === '/welcome/') return
+    let member = null
+    try {
+      member = await queryClient.ensureQueryData(currentMemberQueryOptions)
+    } catch {
+      // Couldn't read onboarding state — don't trap the user.
+    }
+    if (member && !member.onboarded) throw redirect({ to: '/welcome' })
   },
 })
 

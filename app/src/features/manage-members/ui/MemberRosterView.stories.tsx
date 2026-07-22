@@ -13,10 +13,10 @@ const POSITIONS: Position[] = [
 ]
 
 const MEMBERS: Member[] = [
-  { userId: 'u1', displayName: 'Ada Lovelace', role: 'ADMIN', position: POSITIONS[0] },
-  { userId: 'u2', displayName: 'Grace Hopper', role: 'ADMIN', position: undefined },
-  { userId: 'u3', displayName: 'Alan Turing', role: 'USER', position: POSITIONS[1] },
-  { userId: 'u4', displayName: 'Katherine Johnson', role: 'USER', position: undefined },
+  { userId: 'u1', displayName: 'Ada Lovelace', role: 'ADMIN', position: POSITIONS[0], onboarded: true },
+  { userId: 'u2', displayName: 'Grace Hopper', role: 'ADMIN', position: undefined, onboarded: true },
+  { userId: 'u3', displayName: 'Alan Turing', role: 'USER', position: POSITIONS[1], onboarded: true },
+  { userId: 'u4', displayName: 'Katherine Johnson', role: 'USER', position: undefined, onboarded: true },
 ]
 
 const meta = {
@@ -81,8 +81,8 @@ export const RemoveConfirmOpen: Story = {
 export const LastAdminRefused: Story = {
   args: {
     members: [
-      { userId: 'u1', displayName: 'Ada Lovelace', role: 'ADMIN', position: undefined },
-      { userId: 'u3', displayName: 'Alan Turing', role: 'USER', position: undefined },
+      { userId: 'u1', displayName: 'Ada Lovelace', role: 'ADMIN', position: undefined, onboarded: true },
+      { userId: 'u3', displayName: 'Alan Turing', role: 'USER', position: undefined, onboarded: true },
     ],
     errorMessage: 'A team must keep at least one admin.',
   },

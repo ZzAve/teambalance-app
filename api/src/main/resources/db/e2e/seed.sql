@@ -10,14 +10,19 @@ INSERT INTO public.users (id, email, display_name)
 VALUES ('e2e00000-0000-0000-0000-000000000002', 'e2e@example.com', 'E2E Tester')
 ON CONFLICT DO NOTHING;
 
-INSERT INTO public.team_members (id, team_id, user_id, role)
+-- onboarded_at is stamped (not NULL) so the seeded admin skips the /welcome gate and lands on
+-- events — otherwise the login/attendance/auth-guard specs would all bounce to onboarding.
+-- Upsert (not DO NOTHING) on the PK so a warm local DB whose row predates this column still gets
+-- stamped — a plain insert would be skipped and leave onboarded_at NULL.
+INSERT INTO public.team_members (id, team_id, user_id, role, onboarded_at)
 VALUES (
     'e2e00000-0000-0000-0000-000000000003',
     'e2e00000-0000-0000-0000-000000000001',
     'e2e00000-0000-0000-0000-000000000002',
-    'ADMIN'
+    'ADMIN',
+    now()
 )
-ON CONFLICT DO NOTHING;
+ON CONFLICT (id) DO UPDATE SET onboarded_at = EXCLUDED.onboarded_at;
 
 -- Tenant data for the change-attendance flow (team_test is provisioned before this runs).
 -- Event types are seeded per-tenant by tenant-migration V002; resolve the FK by name.

@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { queryOptions, useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from './wirespec-client'
 
 // Re-export the generated contract type so the app has a single source of truth.
@@ -14,14 +14,19 @@ export class MemberUpdateError extends Error {
   }
 }
 
+// Shared so the router guards (root onboarding gate, /welcome) can prime this exact query
+// (ensureQueryData) and useCurrentMember reads it back from cache — no duplicate fetch, no drifting
+// key. Same pattern as authMeQueryOptions.
+export const currentMemberQueryOptions = queryOptions({
+  queryKey: ['members', 'me'],
+  queryFn: async () => {
+    const res = await api.GetCurrentMember()
+    return res.body
+  },
+})
+
 export function useCurrentMember() {
-  return useQuery({
-    queryKey: ['members', 'me'],
-    queryFn: async () => {
-      const res = await api.GetCurrentMember()
-      return res.body
-    },
-  })
+  return useQuery(currentMemberQueryOptions)
 }
 
 // The admin roster. Keyed ['members'] so a member mutation invalidating that prefix refreshes both
@@ -64,6 +69,29 @@ export function useUpdateMember() {
       return res.body
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['members'] }),
+  })
+}
+
+// Applies the member's own name + position and stamps them onboarded (PUT /members/me/onboarding).
+// The request carries a role, but the backend ignores it (onboarding never changes role); we send
+// the member's current role to satisfy the contract. A 409 is a name collision, mapped like
+// useUpdateMember so the /welcome form can surface it inline.
+export function useCompleteOnboarding() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ displayName, role, positionId }: { displayName: string; role: string; positionId: string | null }) => {
+      const res = await api.CompleteOnboarding({ body: { displayName, role, positionId: positionId ?? undefined } })
+      if (res.status === 409) throw new MemberUpdateError('NAME_TAKEN', 'That display name is already taken.')
+      return res.body
+    },
+    // Write the now-onboarded member straight into the cache before invalidating, so the root
+    // onboarding gate reads the fresh state on the very next navigation (ensureQueryData returns
+    // the cached value immediately, even while a background refetch runs) — otherwise it would see
+    // the stale onboarded=false and bounce back to /welcome.
+    onSuccess: (updated) => {
+      queryClient.setQueryData(currentMemberQueryOptions.queryKey, updated)
+      queryClient.invalidateQueries({ queryKey: ['members'] })
+    },
   })
 }
 

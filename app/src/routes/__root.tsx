@@ -100,7 +100,16 @@ function RootLayout() {
                 Heren 3
               </div>
             </div>
-            <LogoutButton />
+            <div className="flex items-center gap-4">
+              <Link
+                to="/profile"
+                className="text-xs font-semibold text-muted-foreground hover:text-foreground"
+                activeProps={{ className: 'text-foreground' }}
+              >
+                Profile
+              </Link>
+              <LogoutButton />
+            </div>
           </div>
         </header>
         <main className="mx-auto max-w-2xl px-4 py-6 pb-24">

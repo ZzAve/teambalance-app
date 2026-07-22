@@ -4,9 +4,11 @@ import com.github.zzave.teambalance.api.TeamBalanceIT
 import com.github.zzave.teambalance.api.domain.port.EmailSender
 import com.github.zzave.teambalance.api.infrastructure.devdata.DemoDataSeeder
 import com.github.zzave.teambalance.api.infrastructure.email.ScalewayTemEmailSender
+import com.zaxxer.hikari.HikariDataSource
 import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.types.shouldBeInstanceOf
+import javax.sql.DataSource
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.web.server.Cookie
 import org.springframework.boot.web.server.autoconfigure.ServerProperties
@@ -52,6 +54,13 @@ class ProdProfileSmokeIT : TeamBalanceIT() {
             val cookie = serverProperties.servlet.session.cookie
             cookie.secure shouldBe true
             cookie.sameSite shouldBe Cookie.SameSite.LAX
+        }
+
+        test("prod profile keeps no minimum idle DB pool (so the scale-to-zero DB can pause)") {
+            // application-prod.yml sets spring.datasource.hikari.minimum-idle=0 so Hikari does not
+            // proactively reopen connections to the Serverless SQL DB, which would keep waking it.
+            val dataSource = applicationContext.getBean(DataSource::class.java).shouldBeInstanceOf<HikariDataSource>()
+            dataSource.minimumIdle shouldBe 0
         }
 
         test("prod profile activates the Scaleway TEM email sender") {

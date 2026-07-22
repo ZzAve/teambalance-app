@@ -4,6 +4,16 @@
 # environment variables via Spring relaxed binding — never committed here. This profile also
 # activates ScalewayTemEmailSender (@Profile("prod")) in place of ConsoleEmailSender.
 
+spring:
+  datasource:
+    hikari:
+      # The prod Serverless SQL DB scales to zero after ~5 min idle. Keep NO minimum idle pool so
+      # Hikari lets connections drain to zero instead of proactively reopening them to maintain a
+      # minimum — otherwise that reopening traffic keeps waking the DB and defeats scale-to-zero.
+      # Connections are opened on demand; the DB resumes in <5s, well within the default 30s
+      # connectionTimeout. See docs/plans/2026-07-17-v1-production-launch-scaleway.md.
+      minimum-idle: 0
+
 # Split-origin CORS (launch blocker #3): the SPA (app.teambalance.nl) and landing page
 # (teambalance.nl) call api.teambalance.nl cross-origin with the session cookie. See WebConfig.
 teambalance:

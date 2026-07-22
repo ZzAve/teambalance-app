@@ -24,6 +24,9 @@ interface TeamMemberRepository {
     /** Soft-removes a member from the team by setting active=false. */
     fun deactivate(teamId: UUID, userId: UUID)
 
+    /** Assigns [positionId] to an active member, or clears the assignment when null. */
+    fun assignPosition(teamId: UUID, userId: UUID, positionId: UUID?)
+
     /** Number of active ADMIN members on the team. */
     fun countAdmins(teamId: UUID): Int
 }

@@ -12,6 +12,7 @@ import com.github.zzave.teambalance.api.interfaces.generated.endpoint.RemoveMemb
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.UpdateMember
 import com.github.zzave.teambalance.api.interfaces.generated.model.Member
 import com.github.zzave.teambalance.api.interfaces.generated.model.MemberList
+import com.github.zzave.teambalance.api.interfaces.generated.model.Position
 import org.springframework.web.bind.annotation.RestController
 import java.util.UUID
 
@@ -49,6 +50,7 @@ class MemberController(
             targetUserId = UUID.fromString(request.path.userId),
             rawName = request.body.displayName,
             role = Role.valueOf(request.body.role),
+            positionId = request.body.positionId?.let { UUID.fromString(it) },
         )
         return UpdateMember.Response200(updated.toDto())
     }
@@ -61,4 +63,9 @@ class MemberController(
     }
 }
 
-private fun TeamMember.toDto() = Member(userId = userId.toString(), displayName = displayName, role = role)
+private fun TeamMember.toDto() = Member(
+    userId = userId.toString(),
+    displayName = displayName,
+    role = role,
+    position = positionId?.let { Position(id = it.toString(), label = position ?: "") },
+)

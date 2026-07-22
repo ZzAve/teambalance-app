@@ -73,7 +73,7 @@ class JpaTeamMemberRepositoryAdapterTest : TeamBalanceIT() {
             userId, "member-$userId@test.com", "Test Member",
         )
         jdbcTemplate.update(
-            "INSERT INTO public.team_members (team_id, user_id, role, team_role, active) VALUES (?, ?, ?, 'Setter', ?)",
+            "INSERT INTO public.team_members (team_id, user_id, role, active) VALUES (?, ?, ?, ?)",
             teamId, userId, role, active,
         )
         return userId

@@ -53,12 +53,10 @@ class MemberControllerIT : TeamBalanceIT() {
                 "ON CONFLICT (id) DO UPDATE SET display_name = EXCLUDED.display_name",
         )
         jdbcTemplate.execute(
-            "INSERT INTO public.team_members (team_id, user_id, role, team_role) " +
-                "VALUES ('$TEAM_ID'::uuid, '$JAN_USER_ID'::uuid, '$janRole', 'Setter')",
+            "SELECT public.tb_add_member('$TEAM_ID'::uuid, '$JAN_USER_ID'::uuid, '$janRole', 'Setter')",
         )
         jdbcTemplate.execute(
-            "INSERT INTO public.team_members (team_id, user_id, role, team_role) " +
-                "VALUES ('$TEAM_ID'::uuid, '$LISA_USER_ID'::uuid, '$lisaRole', 'Libero')",
+            "SELECT public.tb_add_member('$TEAM_ID'::uuid, '$LISA_USER_ID'::uuid, '$lisaRole', 'Libero')",
         )
     }
 

@@ -17,14 +17,7 @@ class JpaTeamMemberRepositoryAdapter(
     private val logger = LoggerFactory.getLogger(JpaTeamMemberRepositoryAdapter::class.java)
 
     override fun findByTeamId(teamId: UUID): List<TeamMember> =
-        jpaRepository.findByTeamIdAndActiveTrue(teamId).map { entity ->
-            TeamMember(
-                userId = entity.userId,
-                displayName = jpaRepository.findDisplayNameByUserId(entity.userId) ?: "Unknown",
-                role = entity.role,
-                teamRole = entity.teamRole,
-            )
-        }
+        jpaRepository.findMemberSummariesByTeamId(teamId).map { it.toDomain() }
 
     override fun findDisplayName(userId: UUID): String? =
         jpaRepository.findDisplayNameByUserId(userId)
@@ -33,14 +26,17 @@ class JpaTeamMemberRepositoryAdapter(
         if (userIds.isEmpty()) return emptyMap()
         return jpaRepository.findMemberSummariesByUserIds(userIds).associate { row ->
             val uid = UUID.fromString(row.getUserId())
-            uid to TeamMember(
-                userId = uid,
-                displayName = row.getDisplayName(),
-                role = row.getPermissionRole(),
-                teamRole = row.getTeamRole(),
-            )
+            uid to row.toDomain()
         }
     }
+
+    private fun MemberSummaryProjection.toDomain() = TeamMember(
+        userId = UUID.fromString(getUserId()),
+        displayName = getDisplayName(),
+        role = getPermissionRole(),
+        positionId = getPositionId()?.let { UUID.fromString(it) },
+        position = getPosition(),
+    )
 
     override fun findRole(teamId: UUID, userId: UUID): Role? =
         jpaRepository.findByTeamIdAndUserIdAndActiveTrue(teamId, userId)
@@ -58,6 +54,11 @@ class JpaTeamMemberRepositoryAdapter(
     @Transactional
     override fun deactivate(teamId: UUID, userId: UUID) {
         jpaRepository.deactivate(teamId, userId)
+    }
+
+    @Transactional
+    override fun assignPosition(teamId: UUID, userId: UUID, positionId: UUID?) {
+        jpaRepository.assignPosition(teamId, userId, positionId)
     }
 
     override fun countAdmins(teamId: UUID): Int = jpaRepository.countActiveAdmins(teamId)

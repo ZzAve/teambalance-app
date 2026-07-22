@@ -15,6 +15,8 @@ class AttendanceNotFoundException(eventId: UUID, userId: UUID) :
 
 class MemberNotFoundException(userId: UUID) : NotFoundException("Member not found: $userId")
 
+class PositionNotFoundException(id: UUID) : NotFoundException("Position not found: $id")
+
 // `code` is a stable machine-readable discriminator (the message is human prose) so clients can tell
 // the forbidden reasons apart — e.g. "no team yet" (send to login/onboarding) vs "not an admin".
 sealed class ForbiddenException(message: String, val code: String) : TeambalanceException(message)
@@ -37,3 +39,6 @@ class NameTakenException(name: String) :
 
 class LastAdminException(teamId: UUID) :
     ConflictException("Team $teamId must keep at least one admin", "LAST_ADMIN")
+
+class PositionLabelTakenException(label: String) :
+    ConflictException("Position '$label' already exists in this team", "POSITION_LABEL_TAKEN")

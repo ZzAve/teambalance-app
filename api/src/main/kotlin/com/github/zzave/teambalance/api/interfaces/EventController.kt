@@ -2,6 +2,7 @@ package com.github.zzave.teambalance.api.interfaces
 
 import com.github.zzave.teambalance.api.application.AttendanceService
 import com.github.zzave.teambalance.api.application.AuthorizationService
+import com.github.zzave.teambalance.api.application.UNASSIGNED
 import com.github.zzave.teambalance.api.application.CurrentTeamProvider
 import com.github.zzave.teambalance.api.application.CurrentUserProvider
 import com.github.zzave.teambalance.api.application.EventService
@@ -81,7 +82,7 @@ class EventController(
                         id = a.id.toString(),
                         userId = a.userId.toString(),
                         displayName = member.displayName,
-                        role = member.teamRole ?: "",
+                        role = member.position ?: UNASSIGNED,
                         state = a.state.produce(),
                     )
                 },

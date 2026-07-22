@@ -4,8 +4,10 @@ import com.github.zzave.teambalance.api.domain.exception.CannotChangeOwnRoleExce
 import com.github.zzave.teambalance.api.domain.exception.LastAdminException
 import com.github.zzave.teambalance.api.domain.exception.MemberNotFoundException
 import com.github.zzave.teambalance.api.domain.exception.NameTakenException
+import com.github.zzave.teambalance.api.domain.exception.PositionNotFoundException
 import com.github.zzave.teambalance.api.domain.model.Role
 import com.github.zzave.teambalance.api.domain.model.TeamMember
+import com.github.zzave.teambalance.api.domain.port.PositionRepository
 import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
 import com.github.zzave.teambalance.api.domain.port.UserRepository
 import org.springframework.stereotype.Service
@@ -17,6 +19,7 @@ private const val MAX_DISPLAY_NAME_LENGTH = 100
 class MemberService(
     private val userRepository: UserRepository,
     private val teamMemberRepository: TeamMemberRepository,
+    private val positionRepository: PositionRepository,
     private val authorizationService: AuthorizationService,
 ) {
     fun getMember(teamId: UUID, userId: UUID): TeamMember =
@@ -39,8 +42,9 @@ class MemberService(
      * Edits a member's display name and role. Self-edits (caller == target) skip the admin check so a
      * member can still rename themselves; editing anyone else requires the caller to be a team admin.
      * Role changes are guarded: a caller may not elevate their own role, and the team must always keep
-     * at least one admin. All guards are checked before any write so a rejected role change leaves the
-     * name untouched.
+     * at least one admin. A non-null [positionId] must identify a position of this team; null clears the
+     * assignment (the backend is lenient — "required when positions exist" is a frontend concern). All
+     * guards are checked before any write so a rejected change leaves the name untouched.
      */
     fun updateMember(
         callerId: UUID,
@@ -48,6 +52,7 @@ class MemberService(
         targetUserId: UUID,
         rawName: String,
         role: Role,
+        positionId: UUID? = null,
     ): TeamMember {
         if (callerId != targetUserId) authorizationService.requireAdmin(callerId, teamId)
 
@@ -60,9 +65,13 @@ class MemberService(
                 throw LastAdminException(teamId)
             }
         }
+        if (positionId != null && !positionRepository.existsInTeam(teamId, positionId)) {
+            throw PositionNotFoundException(positionId)
+        }
 
         applyDisplayName(teamId, targetUserId, rawName)
         if (roleChanged) teamMemberRepository.updateRole(teamId, targetUserId, role)
+        teamMemberRepository.assignPosition(teamId, targetUserId, positionId)
         return getMember(teamId, targetUserId)
     }
 

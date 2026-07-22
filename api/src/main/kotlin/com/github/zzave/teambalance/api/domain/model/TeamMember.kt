@@ -6,5 +6,7 @@ data class TeamMember(
     val userId: UUID,
     val displayName: String,
     val role: String,
-    val teamRole: String?,
+    val positionId: UUID?,
+    // The label of the assigned position, resolved via a join for display; null when unassigned.
+    val position: String?,
 )

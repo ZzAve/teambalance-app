@@ -17,6 +17,9 @@ INSERT INTO users (id, email, display_name) VALUES
     ('b0000000-0000-0000-0000-000000000005', 'daan@example.com', 'Daan Mulder'),
     ('b0000000-0000-0000-0000-000000000006', 'sophie@example.com', 'Sophie van Dijk');
 
+-- NOTE: this migration runs at version 1.1, BEFORE V003 introduces team_positions and drops team_role,
+-- so it still seeds the legacy team_role column. V003's backfill then promotes these to positions —
+-- which conveniently exercises the migration on every test run (Setter/Libero/Middle/Outside survive).
 INSERT INTO team_members (team_id, user_id, role, team_role) VALUES
     ('a0000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000001', 'ADMIN', 'Setter'),
     ('a0000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000002', 'USER', 'Libero'),

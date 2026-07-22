@@ -7,16 +7,12 @@ import jakarta.persistence.Table
 import java.util.UUID
 
 @Entity
-@Table(name = "team_members", schema = "public")
-class TeamMemberJpaEntity(
+@Table(name = "team_positions", schema = "public")
+class TeamPositionJpaEntity(
     @Id
     val id: UUID = UUID.randomUUID(),
     @Column(name = "team_id", nullable = false)
     val teamId: UUID = UUID.randomUUID(),
-    @Column(name = "user_id", nullable = false)
-    val userId: UUID = UUID.randomUUID(),
     @Column(nullable = false)
-    val role: String = "USER",
-    @Column(nullable = false)
-    val active: Boolean = true,
+    var label: String = "",
 )

@@ -5,9 +5,12 @@ import com.github.zzave.teambalance.api.domain.exception.LastAdminException
 import com.github.zzave.teambalance.api.domain.exception.MemberNotFoundException
 import com.github.zzave.teambalance.api.domain.exception.NameTakenException
 import com.github.zzave.teambalance.api.domain.exception.NotTeamAdminException
+import com.github.zzave.teambalance.api.domain.exception.PositionNotFoundException
+import com.github.zzave.teambalance.api.domain.model.Position
 import com.github.zzave.teambalance.api.domain.model.Role
 import com.github.zzave.teambalance.api.domain.model.TeamMember
 import com.github.zzave.teambalance.api.domain.model.User
+import com.github.zzave.teambalance.api.domain.port.PositionRepository
 import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
 import com.github.zzave.teambalance.api.domain.port.UserRepository
 import io.kotest.assertions.throwables.shouldThrow
@@ -32,7 +35,7 @@ private class FakeMembershipRepo(
     private val userRepo: FakeMemberUserRepo,
     seed: Map<UUID, List<Pair<UUID, Role>>>,
 ) : TeamMemberRepository {
-    private data class Membership(var role: Role, var active: Boolean)
+    private data class Membership(var role: Role, var active: Boolean, var positionId: UUID? = null)
 
     private val store: MutableMap<Pair<UUID, UUID>, Membership> =
         seed.flatMap { (teamId, members) ->
@@ -44,7 +47,13 @@ private class FakeMembershipRepo(
             .filterValues { it.active }
             .mapNotNull { (key, membership) ->
                 userRepo.findById(key.second)?.let {
-                    TeamMember(userId = it.id, displayName = it.displayName, role = membership.role.name, teamRole = null)
+                    TeamMember(
+                        userId = it.id,
+                        displayName = it.displayName,
+                        role = membership.role.name,
+                        positionId = membership.positionId,
+                        position = null,
+                    )
                 }
             }
 
@@ -60,8 +69,36 @@ private class FakeMembershipRepo(
     override fun deactivate(teamId: UUID, userId: UUID) {
         store[teamId to userId]?.active = false
     }
+    override fun assignPosition(teamId: UUID, userId: UUID, positionId: UUID?) {
+        store[teamId to userId]?.positionId = positionId
+    }
     override fun countAdmins(teamId: UUID): Int =
         store.count { it.key.first == teamId && it.value.active && it.value.role == Role.ADMIN }
+}
+
+// Positions keyed by id, each tagged with the team it belongs to so existsInTeam can reject
+// a position id that exists but under a different team (the "other team" invalid case).
+private class MemberFakePositionRepo(seed: List<Triple<UUID, UUID, String>>) : PositionRepository {
+    private data class Row(val teamId: UUID, var label: String)
+
+    private val store: MutableMap<UUID, Row> =
+        seed.associate { (id, teamId, label) -> id to Row(teamId, label) }.toMutableMap()
+
+    override fun listByTeam(teamId: UUID): List<Position> =
+        store.filterValues { it.teamId == teamId }.map { Position(it.key, it.value.label) }.sortedBy { it.label }
+    override fun create(teamId: UUID, label: String): Position {
+        val id = UUID.randomUUID()
+        store[id] = Row(teamId, label)
+        return Position(id, label)
+    }
+    override fun rename(id: UUID, label: String): Position {
+        store.getValue(id).label = label
+        return Position(id, label)
+    }
+    override fun delete(id: UUID) { store.remove(id) }
+    override fun findById(id: UUID): Position? = store[id]?.let { Position(id, it.label) }
+    override fun existsInTeam(teamId: UUID, positionId: UUID): Boolean =
+        store[positionId]?.teamId == teamId
 }
 
 class MemberServiceTest : FunSpec() {
@@ -70,6 +107,10 @@ class MemberServiceTest : FunSpec() {
         val teamId = UUID.randomUUID()
         val janId = UUID.randomUUID()
         val lisaId = UUID.randomUUID()
+
+        // A "Setter" position on the team, plus one on a different team to test cross-team rejection.
+        val setterPositionId = UUID.randomUUID()
+        val otherTeamPositionId = UUID.randomUUID()
 
         // Jan is the admin, Lisa a regular user — the common admin-acts-on-member fixture.
         fun newService(
@@ -83,7 +124,17 @@ class MemberServiceTest : FunSpec() {
                 ),
             )
             val memberRepo = FakeMembershipRepo(userRepo, mapOf(teamId to listOf(janId to janRole, lisaId to lisaRole)))
-            return Triple(MemberService(userRepo, memberRepo, AuthorizationService(memberRepo)), userRepo, memberRepo)
+            val positionRepo = MemberFakePositionRepo(
+                listOf(
+                    Triple(setterPositionId, teamId, "Setter"),
+                    Triple(otherTeamPositionId, UUID.randomUUID(), "Libero"),
+                ),
+            )
+            return Triple(
+                MemberService(userRepo, memberRepo, positionRepo, AuthorizationService(memberRepo)),
+                userRepo,
+                memberRepo,
+            )
         }
 
         test("getMember returns the team member for the user") {
@@ -182,6 +233,26 @@ class MemberServiceTest : FunSpec() {
         test("removeMember refuses to remove the last remaining admin") {
             val (service, _, _) = newService() // Jan is the only admin
             shouldThrow<LastAdminException> { service.removeMember(janId, teamId, janId) }
+        }
+
+        test("admin updateMember assigns a position that belongs to the team") {
+            val (service, _, _) = newService()
+            val updated = service.updateMember(janId, teamId, lisaId, "Lisa Bakker", Role.USER, setterPositionId)
+            updated.positionId shouldBe setterPositionId
+        }
+
+        test("updateMember with a null positionId clears the assignment") {
+            val (service, _, _) = newService()
+            service.updateMember(janId, teamId, lisaId, "Lisa Bakker", Role.USER, setterPositionId)
+            val cleared = service.updateMember(janId, teamId, lisaId, "Lisa Bakker", Role.USER, null)
+            cleared.positionId shouldBe null
+        }
+
+        test("updateMember rejects a position from another team with PositionNotFoundException") {
+            val (service, _, _) = newService()
+            shouldThrow<PositionNotFoundException> {
+                service.updateMember(janId, teamId, lisaId, "Lisa Bakker", Role.USER, otherTeamPositionId)
+            }
         }
     }
 }

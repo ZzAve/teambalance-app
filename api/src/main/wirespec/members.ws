@@ -1,12 +1,14 @@
 type Member {
     userId: String,
     displayName: String,
-    role: String
+    role: String,
+    position: Position?
 }
 
 type UpdateMemberRequest {
     displayName: String,
-    role: String
+    role: String,
+    positionId: String?
 }
 
 type MemberList {

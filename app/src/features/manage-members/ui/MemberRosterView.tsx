@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import type { Member } from '@shared/api/members'
+import type { Position } from '@shared/api/positions'
+import { PositionPicker } from '@entities/position/ui/PositionPicker'
 import { Button } from '@shared/ui/button'
 import { Input } from '@shared/ui/input'
 import {
@@ -14,12 +16,15 @@ import { isLastAdmin } from '../lib/roster'
 
 interface MemberRosterViewProps {
   members: Member[]
+  /** The team's position vocabulary, offered per row so an admin can (re)assign a member. */
+  positions: Position[]
   /** userId currently mid-mutation — its row's actions show a pending/disabled state. */
   savingUserId?: string | null
   /** A refusal surfaced by the container (e.g. LAST_ADMIN); shown as an inline banner. */
   errorMessage?: string | null
   onRename: (userId: string, displayName: string) => void
   onToggleRole: (member: Member) => void
+  onChangePosition: (member: Member, positionId: string | null) => void
   onRemove: (member: Member) => void
 }
 
@@ -30,10 +35,12 @@ interface MemberRosterViewProps {
  */
 export function MemberRosterView({
   members,
+  positions,
   savingUserId,
   errorMessage,
   onRename,
   onToggleRole,
+  onChangePosition,
   onRemove,
 }: MemberRosterViewProps) {
   const [confirmTarget, setConfirmTarget] = useState<Member | null>(null)
@@ -51,10 +58,12 @@ export function MemberRosterView({
           <MemberRow
             key={member.userId}
             member={member}
+            positions={positions}
             lastAdmin={isLastAdmin(members, member.userId)}
             isSaving={savingUserId === member.userId}
             onRename={onRename}
             onToggleRole={onToggleRole}
+            onChangePosition={onChangePosition}
             onRequestRemove={setConfirmTarget}
           />
         ))}
@@ -90,14 +99,25 @@ export function MemberRosterView({
 
 interface MemberRowProps {
   member: Member
+  positions: Position[]
   lastAdmin: boolean
   isSaving: boolean
   onRename: (userId: string, displayName: string) => void
   onToggleRole: (member: Member) => void
+  onChangePosition: (member: Member, positionId: string | null) => void
   onRequestRemove: (member: Member) => void
 }
 
-function MemberRow({ member, lastAdmin, isSaving, onRename, onToggleRole, onRequestRemove }: MemberRowProps) {
+function MemberRow({
+  member,
+  positions,
+  lastAdmin,
+  isSaving,
+  onRename,
+  onToggleRole,
+  onChangePosition,
+  onRequestRemove,
+}: MemberRowProps) {
   const [name, setName] = useState(member.displayName)
   const isAdmin = member.role === 'ADMIN'
   const dirty = name.trim().length > 0 && name.trim() !== member.displayName
@@ -117,6 +137,21 @@ function MemberRow({ member, lastAdmin, isSaving, onRename, onToggleRole, onRequ
         <Button size="sm" disabled={isSaving} onClick={() => onRename(member.userId, name.trim())}>
           {isSaving ? 'Saving...' : 'Save'}
         </Button>
+      )}
+
+      {positions.length > 0 ? (
+        <div className="w-44">
+          <PositionPicker
+            aria-label={`Position for ${member.displayName}`}
+            positions={positions}
+            value={member.position?.id ?? null}
+            includeUnassigned
+            disabled={isSaving}
+            onChange={(positionId) => onChangePosition(member, positionId)}
+          />
+        </div>
+      ) : (
+        <span className="text-sm text-muted-foreground">{member.position?.label ?? 'Unassigned'}</span>
       )}
 
       <span

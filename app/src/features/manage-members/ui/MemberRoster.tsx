@@ -1,4 +1,5 @@
 import { MemberUpdateError, useMembers, useRemoveMember, useUpdateMember } from '@shared/api/members'
+import { usePositions } from '@shared/api/positions'
 import { toggleRole } from '../lib/roster'
 import { MemberRosterView } from './MemberRosterView'
 
@@ -9,6 +10,7 @@ import { MemberRosterView } from './MemberRosterView'
  */
 export function MemberRoster() {
   const { data: members, isLoading, error } = useMembers()
+  const { data: positions } = usePositions()
   const updateMember = useUpdateMember()
   const removeMember = useRemoveMember()
 
@@ -36,14 +38,24 @@ export function MemberRoster() {
         <div className="mt-4">
           <MemberRosterView
             members={members}
+            positions={positions ?? []}
             savingUserId={savingUserId}
             errorMessage={activeError?.message ?? null}
             onRename={(userId, displayName) => {
               const member = members.find((m) => m.userId === userId)
-              if (member) updateMember.mutate({ userId, displayName, role: member.role })
+              if (member)
+                updateMember.mutate({ userId, displayName, role: member.role, positionId: member.position?.id ?? null })
             }}
             onToggleRole={(member) =>
-              updateMember.mutate({ userId: member.userId, displayName: member.displayName, role: toggleRole(member.role) })
+              updateMember.mutate({
+                userId: member.userId,
+                displayName: member.displayName,
+                role: toggleRole(member.role),
+                positionId: member.position?.id ?? null,
+              })
+            }
+            onChangePosition={(member, positionId) =>
+              updateMember.mutate({ userId: member.userId, displayName: member.displayName, role: member.role, positionId })
             }
             onRemove={(member) => removeMember.mutate({ userId: member.userId })}
           />

@@ -2,6 +2,7 @@ import { createFileRoute, redirect } from '@tanstack/react-router'
 import { authMeQueryOptions } from '@shared/api/auth'
 import { queryClient } from '@shared/api/query-client'
 import { MemberRoster } from '@features/manage-members/ui/MemberRoster'
+import { ManagePositions } from '@features/manage-positions/ui/ManagePositions'
 
 export const Route = createFileRoute('/members/')({
   // Admin-only. Read the same /me query the root guard primed (from cache) and bounce non-admins
@@ -15,5 +16,15 @@ export const Route = createFileRoute('/members/')({
     }
     if (user?.role !== 'ADMIN') throw redirect({ to: '/' })
   },
-  component: MemberRoster,
+  component: MembersPage,
 })
+
+// Both the roster and the positions vocabulary are admin-only; they share the /members screen.
+function MembersPage() {
+  return (
+    <div className="flex flex-col gap-10">
+      <MemberRoster />
+      <ManagePositions />
+    </div>
+  )
+}

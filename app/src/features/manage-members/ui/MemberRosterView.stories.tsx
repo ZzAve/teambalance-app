@@ -1,22 +1,35 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { expect, fn, within } from 'storybook/test'
 import type { Member } from '@shared/api/members'
+import type { Position } from '@shared/api/positions'
 import { MemberRosterView } from './MemberRosterView'
 
 // MemberRosterView is the presentational admin roster behind the /members route container. It owns
-// only local view state (per-row name edits + the remove-confirm dialog); the members query and the
-// update/remove mutations stay in the container, so every state renders purely from props.
+// only local view state (per-row name edits + the remove-confirm dialog); the members/positions
+// queries and the update/remove mutations stay in the container, so every state renders from props.
+const POSITIONS: Position[] = [
+  { id: 'p1', label: 'Setter' },
+  { id: 'p2', label: 'Libero' },
+]
+
 const MEMBERS: Member[] = [
-  { userId: 'u1', displayName: 'Ada Lovelace', role: 'ADMIN' },
-  { userId: 'u2', displayName: 'Grace Hopper', role: 'ADMIN' },
-  { userId: 'u3', displayName: 'Alan Turing', role: 'USER' },
-  { userId: 'u4', displayName: 'Katherine Johnson', role: 'USER' },
+  { userId: 'u1', displayName: 'Ada Lovelace', role: 'ADMIN', position: POSITIONS[0] },
+  { userId: 'u2', displayName: 'Grace Hopper', role: 'ADMIN', position: undefined },
+  { userId: 'u3', displayName: 'Alan Turing', role: 'USER', position: POSITIONS[1] },
+  { userId: 'u4', displayName: 'Katherine Johnson', role: 'USER', position: undefined },
 ]
 
 const meta = {
   title: 'features/manage-members/MemberRosterView',
   component: MemberRosterView,
-  args: { members: MEMBERS, onRename: fn(), onToggleRole: fn(), onRemove: fn() },
+  args: {
+    members: MEMBERS,
+    positions: POSITIONS,
+    onRename: fn(),
+    onToggleRole: fn(),
+    onChangePosition: fn(),
+    onRemove: fn(),
+  },
 } satisfies Meta<typeof MemberRosterView>
 
 export default meta
@@ -29,6 +42,29 @@ export const Default: Story = {
     // Two admins can be demoted, two users can be promoted.
     await expect(canvas.getAllByRole('button', { name: 'Make member' })).toHaveLength(2)
     await expect(canvas.getAllByRole('button', { name: 'Make admin' })).toHaveLength(2)
+    // Each member row exposes a position picker showing their current position (or Unassigned).
+    await expect(within(canvas.getByLabelText('Position for Ada Lovelace')).getByText('Setter')).toBeInTheDocument()
+    await expect(
+      within(canvas.getByLabelText('Position for Grace Hopper')).getByText('Unassigned'),
+    ).toBeInTheDocument()
+  },
+}
+
+export const ChangePosition: Story = {
+  play: async ({ canvas, userEvent, args }) => {
+    await userEvent.click(canvas.getByLabelText('Position for Grace Hopper'))
+    const listbox = within(document.body)
+    await userEvent.click(await listbox.findByRole('option', { name: 'Libero' }))
+    await expect(args.onChangePosition).toHaveBeenCalledWith(MEMBERS[1], 'p2')
+  },
+}
+
+export const NoPositionsDefined: Story = {
+  args: { positions: [] },
+  play: async ({ canvas }) => {
+    // With no positions in the team, rows fall back to a plain Unassigned label (no picker).
+    await expect(canvas.queryByLabelText('Position for Ada Lovelace')).not.toBeInTheDocument()
+    await expect(canvas.getAllByText('Unassigned').length).toBeGreaterThan(0)
   },
 }
 
@@ -45,8 +81,8 @@ export const RemoveConfirmOpen: Story = {
 export const LastAdminRefused: Story = {
   args: {
     members: [
-      { userId: 'u1', displayName: 'Ada Lovelace', role: 'ADMIN' },
-      { userId: 'u3', displayName: 'Alan Turing', role: 'USER' },
+      { userId: 'u1', displayName: 'Ada Lovelace', role: 'ADMIN', position: undefined },
+      { userId: 'u3', displayName: 'Alan Turing', role: 'USER', position: undefined },
     ],
     errorMessage: 'A team must keep at least one admin.',
   },

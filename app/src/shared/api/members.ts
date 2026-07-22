@@ -41,13 +41,16 @@ export interface UpdateMemberInput {
   userId: string
   displayName: string
   role: string
+  /** The member's position, or null to leave them Unassigned. Callers pass the current value to
+   *  preserve it on a name/role-only change. */
+  positionId: string | null
 }
 
 export function useUpdateMember() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async ({ userId, displayName, role }: UpdateMemberInput) => {
-      const res = await api.UpdateMember({ userId, body: { displayName, role } })
+    mutationFn: async ({ userId, displayName, role, positionId }: UpdateMemberInput) => {
+      const res = await api.UpdateMember({ userId, body: { displayName, role, positionId: positionId ?? undefined } })
       // A 409 is either a name collision (rename) or the last-admin guard (demote). The contract
       // types the body as undefined, but the handler still sends a { code } discriminator we can
       // read at runtime to tell them apart.

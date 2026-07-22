@@ -1,5 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { useCurrentMember, useUpdateMember, MemberUpdateError } from '@shared/api/members'
+import { usePositions } from '@shared/api/positions'
 import { EditProfileForm } from '@features/edit-profile/ui/EditProfileForm'
 
 export const Route = createFileRoute('/profile/')({
@@ -12,6 +13,7 @@ export const Route = createFileRoute('/profile/')({
  */
 function ProfilePage() {
   const { data: member, isLoading, error } = useCurrentMember()
+  const { data: positions } = usePositions()
   const updateMember = useUpdateMember()
 
   const errorCode = updateMember.error instanceof MemberUpdateError ? updateMember.error.code : undefined
@@ -27,10 +29,12 @@ function ProfilePage() {
         <div className="mt-4">
           <EditProfileForm
             currentName={member.displayName}
+            positions={positions ?? []}
+            currentPositionId={member.position?.id ?? null}
             isSaving={updateMember.isPending}
             errorCode={errorCode}
-            onSubmit={(name) =>
-              updateMember.mutate({ userId: member.userId, displayName: name, role: member.role })
+            onSubmit={(name, positionId) =>
+              updateMember.mutate({ userId: member.userId, displayName: name, role: member.role, positionId })
             }
           />
         </div>

@@ -21,7 +21,12 @@ This is the enforced split: if it renders, it belongs in a story, not a Vitest u
 
 ### Sanctioned exception
 
-The two auth render-gate tests (`app/src/app/providers/auth-gate.test.tsx`, `verify-flow.test.tsx`) use `msw/node` to render the auth provider under controlled 500/204 network conditions. The auth routing seam — fail-closed on network error, race between verify and /me — cannot be forced into a meaningful failure state against a real backend, and it is not story-able (depends on React Router state and network interception beyond a story's reach). These are the **single sanctioned exception** to the no-RTL rule. Do not treat them as precedent.
+Three render-gate tests use `msw/node` to render under controlled network conditions. They are the **only sanctioned exceptions** to the no-RTL rule; do not treat them as precedent.
+
+- `app/src/app/providers/auth-gate.test.tsx`, `verify-flow.test.tsx` — the auth routing seam (fail-closed on network error, race between verify and /me) cannot be forced into a meaningful failure state against a real backend, and is not story-able (depends on React Router state and network interception beyond a story's reach).
+- `app/src/app/providers/invite-flow.test.tsx` — the invite-acceptance seam: the invite token is carried across two separate router mounts (`/invite/:token`, then `/auth/verify` on link-click) via `localStorage`, and the fail-closed accept ordering needs a valid magic-link token paired with a simultaneously-expired invite — unforceable against a real backend, and a single story can't mount two routes to assert the redirect. The pure email-match gate under the carry lives at the Vitest-unit layer (`shared/api/invitations.test.ts`); only the cross-mount seam stays as RTL.
+
+See CLAUDE.md for the full justification and the bar a fourth exception would have to clear.
 
 ## What is deliberately not tested
 

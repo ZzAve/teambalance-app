@@ -117,7 +117,12 @@ Four honest layers — place each new test at the **lowest layer that proves it*
 
 ### Sanctioned MSW/RTL exception
 
-The two auth render-gate Vitest tests (`app/src/app/providers/auth-gate.test.tsx`, `verify-flow.test.tsx`) use `msw/node` to render the auth provider under controlled network conditions. They are the **single sanctioned exception** to the "Vitest owns only pure non-rendering logic" rule: the auth routing seam (fail-closed on error, verify-vs-/me race) cannot be forced into a meaningful failure state against a real backend, and it is not story-able. Do not remove them or use them as precedent for new RTL render tests.
+Three render-gate Vitest tests (`app/src/app/providers/auth-gate.test.tsx`, `verify-flow.test.tsx`, `invite-flow.test.tsx`) use `msw/node` to render under controlled network conditions. They are the **only sanctioned exceptions** to the "Vitest owns only pure non-rendering logic" rule. Each guards a routing/network seam that cannot be forced into a meaningful failure state against a real backend and is not story-able:
+
+- **`auth-gate.test.tsx` / `verify-flow.test.tsx`** — the auth routing seam (fail-closed on error, verify-vs-/me race).
+- **`invite-flow.test.tsx`** — the invite-acceptance routing seam. The invite token is carried across **two separate router mounts** (`/invite/:token`, then `/auth/verify` when the emailed link is clicked — a real page reload) via `localStorage`, and the verify page's **fail-closed accept ordering** ("a failed accept must not leave the user authenticated but teamless") requires a valid magic-link token paired with a simultaneously-expired invite — a state a real backend won't produce on demand. A single Storybook story can't mount two routes and assert the redirect. The *pure* email-match gate under the carry (don't inherit someone else's invite) is pushed down to a Vitest unit (`shared/api/invitations.test.ts`); only the irreducible cross-mount seam stays here.
+
+Do not remove these or use them as precedent for new RTL render tests. A fourth would need the same bar: a genuine cross-mount/network seam with no story or real-backend path — not merely "it was easier to render."
 
 See [`docs/testing.md`](docs/testing.md) for command mechanics, the Vitest/Storybook bright line, and real-e2e gotchas.
 

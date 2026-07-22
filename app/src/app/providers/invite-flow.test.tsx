@@ -7,8 +7,15 @@ import { routeTree } from '../../routeTree.gen'
 import type { AuthenticatedUser } from '@shared/api/auth'
 import { queryClient } from '@shared/api/query-client'
 
-// Mirrors verify-flow.test.tsx's stateful-session approach, plus a stateful invitation so accept
-// can be proven idempotent/rejecting without touching the real backend.
+// SANCTIONED MSW/RTL exception #3 (see CLAUDE.md "Sanctioned MSW/RTL exception"). Mirrors
+// verify-flow.test.tsx's stateful-session approach, plus a stateful invitation so accept can be
+// proven rejecting without touching the real backend. What makes this irreducible to a
+// story/unit: the invite token is carried across TWO separate router mounts (/invite/:token then
+// /auth/verify — a real page reload when the emailed link is clicked) via localStorage, and the
+// verify page's fail-closed accept ordering ("a failed accept must not leave the user
+// authenticated but teamless") cannot be forced against a real backend, which won't hand you a
+// valid magic-link token paired with a simultaneously-expired invite. The pure email-match gate
+// underneath this carry is unit-tested separately in shared/api/invitations.test.ts.
 let session: AuthenticatedUser | null = null
 let accepted = false
 

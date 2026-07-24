@@ -34,7 +34,12 @@ management:
     web:
       base-path: /internal/actuator
       exposure:
-        include: health,info,metrics
+        # `startup` exports the BufferingApplicationStartup timing tree (the detailed per-step boot
+        # attribution) for local/dev use. The canonical cold-start metric remains the Spring
+        # `Started TeamBalanceApplication in X seconds` log line. In prod, application-prod.yml
+        # narrows exposure to `health` only and InternalEndpointGuardFilter 403s everything else
+        # under /internal/actuator, so /internal/actuator/startup is NOT reachable in prod.
+        include: health,info,metrics,startup
 
 teambalance:
   # Base URL of the SPA; used to build the clickable magic-link (…/auth/verify?token=…).

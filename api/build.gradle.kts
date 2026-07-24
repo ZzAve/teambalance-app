@@ -1,6 +1,8 @@
 import community.flock.wirespec.integration.spring.kotlin.emit.SpringKotlinEmitter
 import community.flock.wirespec.plugin.gradle.CompileWirespecTask
 import community.flock.wirespec.plugin.Language
+import org.springframework.boot.gradle.tasks.aot.ProcessAot
+import org.springframework.boot.gradle.tasks.run.BootRun
 
 val wirespecVersion: String by project
 val testcontainersVersion: String by project
@@ -11,6 +13,11 @@ plugins {
     kotlin("plugin.spring")
     kotlin("plugin.jpa")
     id("org.springframework.boot")
+    // Spring AOT on the JVM (NOT native image): registers the `aot` source set + `processAot`
+    // task and makes `bootJar` package the AOT-generated bean definitions. The artifact still
+    // runs with `java -jar`; AOT is switched on at runtime via `-Dspring.aot.enabled=true`
+    // (see api/Dockerfile). Startup-time optimization Phase 2.
+    id("org.springframework.boot.aot")
     id("io.spring.dependency-management")
     id("community.flock.wirespec.plugin.gradle")
     id("dev.detekt")
@@ -83,6 +90,33 @@ kotlin {
 
 tasks.withType<Test> {
     useJUnitPlatform()
+}
+
+// Spring AOT bean-definition generation must see the SAME bean set that prod runs with, because
+// AOT freezes the profile-conditional bean graph at build time. Prod activates the @Profile("prod")
+// `ScalewayTemEmailSender` (and drops the dev/test ConsoleEmailSender); without the prod profile
+// active here, that bean definition would simply not be generated and prod boot would have no
+// EmailSender. So we run `processAot` under `spring.profiles.active=prod`.
+//
+// This is safe without prod secrets or a live DB: AOT runs `refreshForAotProcessing`, which only
+// prepares/inspects bean *definitions* and evaluates auto-config conditions. It does NOT instantiate
+// singletons, so it never resolves the @Value secrets (INVITATION_TOKEN_SALT, SCALEWAY_TEM_*),
+// builds the RestClient, opens Hikari, or runs Flyway. `processAot` is a JavaExec task, so the
+// profile is passed as an ordinary system property.
+tasks.named<ProcessAot>("processAot") {
+    systemProperty("spring.profiles.active", "prod")
+}
+
+// Applying the AOT plugin puts the `aot` source-set output on the main runtime classpath, which
+// drags `processAot` (a prod-profile run) into `bootRun`'s task graph — so every local `make api`
+// would pay AOT processing even though bootRun launches the plain (non-AOT) main classes under the
+// dev profile. AOT is purely a packaging concern for us (bootJar → prod container), so strip the
+// AOT output from the dev-run classpath to keep the inner loop fast and unmistakably non-AOT.
+tasks.named<BootRun>("bootRun") {
+    // Rebuild the run classpath from just the plain main output + resolved runtime dependencies.
+    // (main.runtimeClasspath carries a task dependency on `processAot`, and FileCollection.minus
+    // would keep that `builtBy` edge — so we reconstruct instead of subtract.)
+    classpath = files(sourceSets.main.get().output, configurations.named("runtimeClasspath"))
 }
 
 detekt {

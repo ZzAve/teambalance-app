@@ -37,10 +37,9 @@ management:
         # Blocker #5: only expose the health probe in prod. info/metrics (exposed in the base config
         # for local use) would otherwise be publicly reachable on api.teambalance.nl.
         # InternalEndpointGuardFilter blocks them at the servlet layer too — this is defence in depth.
-        include: health
-  health:
-    redis:
-      # Redis is on the classpath (Phase-5 infra) but unused in 1.0 — sessions are the servlet
-      # container's in-memory HttpSession (ADR-0010) — and it is not reachable from the prod
-      # container, so its health indicator would otherwise force /internal/actuator/health to DOWN.
-      enabled: false
+        #
+        # TODO(#95): `startup` is exposed TEMPORARILY for the cold-start experiment (#92) so the
+        # BufferingApplicationStartup per-step timing tree can be read from the live 1-vCPU container
+        # (the `Started in X` log line only gives the total). InternalEndpointGuardFilter carries a
+        # matching temporary allowance. Revert to `health` only once the numbers are captured.
+        include: health,startup

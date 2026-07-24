@@ -34,6 +34,11 @@ class InternalEndpointGuardFilterTest : FunSpec({
         test("a public /api path") {
             run("/api/events").first shouldBe true
         }
+        // TODO(#95): temporary — the cold-start experiment (#92) exposes the startup timing tree in
+        // prod. Remove this case (and the filter's STARTUP_PATH allowance) once numbers are captured.
+        test("the startup timing endpoint while the cold-start experiment runs") {
+            run("/internal/actuator/startup").first shouldBe true
+        }
     }
 
     context("blocks with 403") {

@@ -24,6 +24,10 @@ import org.springframework.web.util.UrlPathHelper
  * `application-prod.yml` additionally narrows actuator exposure to `health`, so info/metrics are a
  * 404 there too — this filter is the defence-in-depth layer that also covers any future `/internal`.
  *
+ * TODO(#95): the `startup` timing endpoint is TEMPORARILY allowed through (alongside `health`) for the
+ * cold-start experiment (#92), matching the temporary `startup` exposure in application-prod.yml.
+ * Remove the STARTUP_PATH allowance once the boot-timing numbers are captured on a prod redeploy.
+ *
  * Prod-only (`@Profile("prod")`): dev keeps the full actuator, and e2e needs `/internal/e2e/...`.
  * Runs first (HIGHEST_PRECEDENCE) so it gates before any context-setup filter or handler.
  */
@@ -41,8 +45,11 @@ class InternalEndpointGuardFilter : OncePerRequestFilter() {
     ) {
         val path = StringUtils.cleanPath(urlPathHelper.getPathWithinApplication(request))
         val isInternal = path == INTERNAL_PREFIX || path.startsWith("$INTERNAL_PREFIX/")
-        val isHealth = path.removeSuffix("/") == HEALTH_PATH
-        if (isInternal && !isHealth) {
+        val normalized = path.removeSuffix("/")
+        val isHealth = normalized == HEALTH_PATH
+        // TODO(#95): temporary allowance for the cold-start experiment (#92) — remove with STARTUP_PATH.
+        val isStartupProbe = normalized == STARTUP_PATH
+        if (isInternal && !isHealth && !isStartupProbe) {
             response.sendError(HttpServletResponse.SC_FORBIDDEN)
             return
         }
@@ -54,5 +61,9 @@ class InternalEndpointGuardFilter : OncePerRequestFilter() {
         // management.endpoints.web.base-path) lives under it; a future admin surface would too.
         const val INTERNAL_PREFIX = "/internal"
         const val HEALTH_PATH = "/internal/actuator/health"
+
+        // TODO(#95): temporary — remove with the cold-start experiment (#92). Lets the buffered
+        // startup timing tree be read from the live prod container while the experiment runs.
+        const val STARTUP_PATH = "/internal/actuator/startup"
     }
 }

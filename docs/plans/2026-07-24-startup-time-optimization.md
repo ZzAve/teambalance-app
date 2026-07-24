@@ -5,7 +5,9 @@ from ~40s to **under 10s** on the production 1-vCPU Scaleway Serverless Containe
 ideally toward 5s — **on the JVM**, without a GraalVM native image. Native image and
 in-process→out-of-process Flyway decoupling are held as explicitly deferred escape hatches.
 
-**Status:** Phase 0 pending. No phases executed yet.
+**Status:** Phases 0, 1, and 3 implemented (code landed on `claude/startup-time-optimization-39nsfc`;
+prod before/after numbers pending a redeploy). Phase 2 (AOT + CDS) is owned by a parallel effort and
+untouched here. Phase 4 remains a deferred escape hatch.
 
 ---
 
@@ -46,6 +48,13 @@ Scaleway Serverless Container, 1 vCPU. Prod DB: Scaleway Serverless SQL (Postgre
 
 ## Phase 0 — Baseline & proof harness
 
+**Status: IMPLEMENTED** (code landed; prod baseline numbers pending a redeploy). `main()` now builds
+an explicit `SpringApplication` with `BufferingApplicationStartup(2048)`, and `startup` is exposed on
+the internal actuator base path in the base config. Note: `InternalEndpointGuardFilter` 403s
+everything under `/internal/` except `/internal/actuator/health` in prod, and `application-prod.yml`
+narrows exposure to `health` only — so `/internal/actuator/startup` is a local/dev tool; the
+canonical prod metric stays the `Started … in X seconds` log line.
+
 **Files:** `api/src/main/kotlin/.../TeamBalanceApplication.kt`, `application.yml`
 
 - Register `BufferingApplicationStartup` on the `SpringApplication` and expose
@@ -60,6 +69,12 @@ later phase is judged against.
 **Proof:** baseline table committed to this doc under "Results".
 
 ## Phase 1 — Classpath & config hygiene (low risk, no build change)
+
+**Status: IMPLEMENTED** (code landed; prod numbers pending a redeploy). Removed
+`spring-boot-starter-data-redis` + `spring-session-data-redis` and every dead Redis property
+(`management.health.redis` in prod, `spring.data.redis` in dev/e2e); added
+`spring.data.jpa.repositories.bootstrap-mode: deferred`; added `-XX:+UseSerialGC
+-XX:TieredStopAtLevel=1` to the Dockerfile ENTRYPOINT.
 
 **Files:** `api/build.gradle.kts`, `application.yml`, `application-prod.yml`, `api/Dockerfile`
 
@@ -99,6 +114,11 @@ are gone; full test suite (`make test`) green.
 
 ## Phase 3 — Parallel DB warm-up on boot (overlap, don't decouple)
 
+**Status: IMPLEMENTED** (code landed; cold-DB numbers pending a redeploy). `DatabaseWarmupListener`
+(new, registered on the `SpringApplication`) fires on `ApplicationEnvironmentPreparedEvent`, and —
+prod profile only — spawns a daemon `db-warmup` thread that opens/validates/closes one throwaway
+JDBC connection. Fire-and-forget: never blocks boot, swallows failures to a warning.
+
 **Files:** new `…/infrastructure/startup/DatabaseWarmupListener.kt` (or `spring.factories` listener)
 
 - On `ApplicationEnvironmentPreparedEvent` (fires ~10s before Hikari starts), read
@@ -133,4 +153,11 @@ _(populated as phases land — baseline first)_
 
 ## Deviations
 
-_(recorded here as they occur)_
+- **Phase 3 uses parallel warm-up, not Flyway decoupling.** The DB-resume cost is removed from the
+  critical path by *overlapping* the Serverless-SQL resume with the classload gap (a daemon warm-up
+  connection), not by moving migrations out-of-process (that stays a Phase-4 escape hatch). The
+  serving container still runs Flyway in-process.
+- **Prod before/after measurement must be done on redeploy.** Cold-start timing is inherently a
+  property of a fresh 1-vCPU Scaleway container hitting the scale-to-zero DB; it cannot be measured
+  from CI or a local dev box. The `Started … in X seconds` log line (N≥3 cold containers, warm-DB
+  and cold-DB separately) is captured after the next prod deploy and recorded under "Results".

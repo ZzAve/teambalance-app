@@ -52,19 +52,30 @@ FROM eclipse-temurin:25-jdk AS bake
 WORKDIR /app
 COPY --from=build /workspace/app.jar /app/app.jar
 
-# postgresql-16 auto-creates the Debian "main" cluster; the pg_ctlcluster wrapper drops privileges.
-RUN apt-get update \
- && apt-get install -y --no-install-recommends postgresql-16 \
- && rm -rf /var/lib/apt/lists/*
-
 # Keep the jar path identical to the runtime stage (/app/app.jar): the AOT cache validates the
-# classpath it was recorded against. `|| true` + the touch guard keep the build green even if the
-# training run fails — the runtime then boots without a cache (fail-safe), never broken.
-RUN set -eux; \
-    pg_ctlcluster 16 main start; \
-    su postgres -c "psql -v ON_ERROR_STOP=1 -c \"CREATE USER tb WITH PASSWORD 'tb' SUPERUSER;\""; \
-    su postgres -c "createdb -O tb teambalance"; \
-    ( SPRING_PROFILES_ACTIVE=prod \
+# classpath it was recorded against.
+#
+# Package name: the base image is Ubuntu, whose default archive ships an UNVERSIONED `postgresql`
+# meta-package (whichever major that release carries — e.g. 17 on "resolute"), NOT `postgresql-16`
+# (that needs the external PGDG repo). Any recent Postgres serves a one-off training refresh fine,
+# so we install the meta-package and derive the auto-created cluster's version dynamically.
+#
+# The ENTIRE bake is BEST-EFFORT: the whole block is wrapped so ANY failure (apt, cluster start,
+# training run) degrades to an empty /app/app.aot and the image build still SUCCEEDS. At runtime
+# -XX:AOTCache fails safe on a missing/empty/mismatched cache (warns, boots normally). So a broken
+# bake costs only the cache-layer speedup — never the deploy. The Spring AOT bean-definition speedup
+# is independent: it lives in the jar and is always active via -Dspring.aot.enabled, so it survives
+# even a failed bake.
+RUN set -x; \
+    ( set -e; \
+      apt-get update; \
+      apt-get install -y --no-install-recommends postgresql; \
+      rm -rf /var/lib/apt/lists/*; \
+      PGVER="$(pg_lsclusters -h | awk 'NR==1{print $1}')"; \
+      pg_ctlcluster "$PGVER" main start; \
+      su postgres -c "psql -v ON_ERROR_STOP=1 -c \"CREATE USER tb WITH PASSWORD 'tb' SUPERUSER;\""; \
+      su postgres -c "createdb -O tb teambalance"; \
+      SPRING_PROFILES_ACTIVE=prod \
       SPRING_DATASOURCE_URL=jdbc:postgresql://127.0.0.1:5432/teambalance \
       SPRING_DATASOURCE_USERNAME=tb \
       SPRING_DATASOURCE_PASSWORD=tb \
@@ -75,8 +86,9 @@ RUN set -eux; \
            -XX:AOTCacheOutput=/app/app.aot \
            -Dspring.aot.enabled=true \
            -Dspring.context.exit=onRefresh \
-           -jar /app/app.jar ) || echo "WARN: AOT-cache training run failed; runtime will boot without a cache"; \
-    pg_ctlcluster 16 main stop; \
+           -jar /app/app.jar; \
+      pg_ctlcluster "$PGVER" main stop; \
+    ) || echo "WARN: AOT-cache bake failed; runtime will boot without the cache (fail-safe)"; \
     touch /app/app.aot
 
 # ---- runtime stage -----------------------------------------------------------

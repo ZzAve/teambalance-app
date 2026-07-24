@@ -113,11 +113,15 @@ class ProdProfileSmokeIT : TeamBalanceIT() {
         }
 
         // TODO(#95): temporary — the cold-start experiment (#92) exposes the startup timing tree in
-        // prod (application-prod.yml exposure + guard allowance). Proves the end-to-end wiring: both
-        // the actuator exposure and the guard let it through. Remove with the experiment.
-        test("the startup timing endpoint is temporarily reachable in prod") {
+        // prod (application-prod.yml exposure + guard allowance). This asserts the guard lets it
+        // THROUGH: a blocked path would be 403 (like /metrics above). It is 404 here — not 200 —
+        // because the StartupEndpoint is @ConditionalOnBean(BufferingApplicationStartup), and that
+        // bean is only installed by the real main() (SpringApplication.setApplicationStartup), not in
+        // a @SpringBootTest context. On the live container the same path returns the timing tree.
+        // Remove with the experiment.
+        test("the startup timing endpoint is not blocked by the prod guard (reachable, unlike /metrics)") {
             mockMvc.perform(MockMvcRequestBuilders.get("/internal/actuator/startup"))
-                .andExpect(MockMvcResultMatchers.status().isOk)
+                .andExpect(MockMvcResultMatchers.status().isNotFound)
         }
     }
 

@@ -111,6 +111,14 @@ class ProdProfileSmokeIT : TeamBalanceIT() {
             mockMvc.perform(MockMvcRequestBuilders.get("/internal/actuator/metrics"))
                 .andExpect(MockMvcResultMatchers.status().isForbidden)
         }
+
+        // TODO(#95): temporary — the cold-start experiment (#92) exposes the startup timing tree in
+        // prod (application-prod.yml exposure + guard allowance). Proves the end-to-end wiring: both
+        // the actuator exposure and the guard let it through. Remove with the experiment.
+        test("the startup timing endpoint is temporarily reachable in prod") {
+            mockMvc.perform(MockMvcRequestBuilders.get("/internal/actuator/startup"))
+                .andExpect(MockMvcResultMatchers.status().isOk)
+        }
     }
 
     private fun preflight(origin: String) = mockMvc.perform(

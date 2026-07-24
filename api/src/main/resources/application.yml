@@ -42,10 +42,12 @@ management:
       base-path: /internal/actuator
       exposure:
         # `startup` exports the BufferingApplicationStartup timing tree (the detailed per-step boot
-        # attribution) for local/dev use. The canonical cold-start metric remains the Spring
-        # `Started TeamBalanceApplication in X seconds` log line. In prod, application-prod.yml
-        # narrows exposure to `health` only and InternalEndpointGuardFilter 403s everything else
-        # under /internal/actuator, so /internal/actuator/startup is NOT reachable in prod.
+        # attribution). The canonical cold-start metric remains the Spring
+        # `Started TeamBalanceApplication in X seconds` log line.
+        # TODO(#95): `startup` is TEMPORARILY reachable in prod too, for the cold-start experiment
+        # (#92) — application-prod.yml exposes it and InternalEndpointGuardFilter allows
+        # /internal/actuator/startup. Normally prod narrows exposure to `health` and the guard 403s
+        # everything else under /internal/actuator. Revert both once boot-timing numbers are captured.
         include: health,info,metrics,startup
 
 teambalance:

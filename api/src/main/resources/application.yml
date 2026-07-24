@@ -8,15 +8,22 @@ spring:
     open-in-view: false
     hibernate:
       ddl-auto: none
+  data:
+    jpa:
+      repositories:
+        # Initialize JPA repositories on a background thread instead of on the boot critical path.
+        # `deferred` (not `lazy`) still forces initialization to complete before the context is
+        # marked ready, so any repository wiring error still surfaces at startup.
+        bootstrap-mode: deferred
   flyway:
     enabled: true
     locations: classpath:db/migration
   jackson:
     default-property-inclusion: non_null
   # No Spring Session store is configured: 1.0 uses the servlet container's in-memory HttpSession
-  # (JSESSIONID) per ADR-0010. spring-session-data-redis is on the classpath for a Phase-5 follow-up
-  # but is not auto-wired (Boot 4's session auto-configuration module is absent), so sessions do not
-  # require Redis. (The old `spring.session.store-type` property was removed in Spring Boot 4.)
+  # (JSESSIONID) per ADR-0010. Spring Session + Redis were removed from the classpath (they had zero
+  # references in main and forced Spring Data "multiple-modules strict mode" onto the boot path); a
+  # future Phase-5 shared-session store re-adds them deliberately when it is actually needed.
   http:
     client:
       # Global default for every RestClient built from the auto-configured builder. Today the only

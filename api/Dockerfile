@@ -33,4 +33,8 @@ USER app
 COPY --from=build --chown=app:app /workspace/api/build/libs/*-SNAPSHOT.jar app.jar
 
 EXPOSE 8080
-ENTRYPOINT ["java", "-jar", "app.jar"]
+# Startup-tuned for a 1-vCPU Scaleway Serverless Container, where cold start is classload/bootstrap-
+# bound on one core: -XX:+UseSerialGC avoids spinning up multi-threaded GC on a single core, and
+# -XX:TieredStopAtLevel=1 keeps the JIT at C1-only (cheaper warmup, negligible peak-throughput loss
+# for this workload). See docs/plans/2026-07-24-startup-time-optimization.md.
+ENTRYPOINT ["java", "-XX:+UseSerialGC", "-XX:TieredStopAtLevel=1", "-jar", "app.jar"]

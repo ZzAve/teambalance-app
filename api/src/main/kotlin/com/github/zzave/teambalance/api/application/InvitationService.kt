@@ -42,7 +42,7 @@ class InvitationService(
      * rotate/expire to invalidate them.
      */
     fun generateInviteLink(teamId: UUID, createdBy: UUID): GeneratedInvitation {
-        val now = Instant.now(clock)
+        val now = clock.instant()
         val token = generateToken()
         invitationRepository.save(
             Invitation(

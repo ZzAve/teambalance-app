@@ -29,7 +29,7 @@ class AttendanceService(
         val existing = attendanceRepository.findByEventIdAndUserId(eventId, userId)
         return if (existing != null) {
             attendanceRepository.save(
-                existing.copy(state = state, updatedAt = Instant.now(clock), changedBy = changedBy),
+                existing.copy(state = state, updatedAt = clock.instant(), changedBy = changedBy),
             )
         } else {
             attendanceRepository.save(
@@ -38,7 +38,7 @@ class AttendanceService(
                     eventId = eventId,
                     userId = userId,
                     state = state,
-                    updatedAt = Instant.now(clock),
+                    updatedAt = clock.instant(),
                     changedBy = changedBy,
                 ),
             )

@@ -38,6 +38,19 @@ env:
   SCW_REGION: fr-par
   REGISTRY: rg.fr-par.scw.cloud/teambalance
   CONTAINER_ID: ec9dfda3-65ca-4901-a640-895fd2f9f5f3
+  # Serverless Container resource + sandbox config, asserted on every real deploy (config-as-code,
+  # so prod never drifts to a console-only value). Cold-start levers per Scaleway's guidance
+  # (docs/plans/2026-07-24-startup-time-optimization.md, Phase 4):
+  #   - CPU_LIMIT is mvCPU (2000 = 2 vCPU). Raised from 1 vCPU because the boot is CPU-bound and the
+  #     deferred Hibernate metamodel build (jpaMappingContext, ~7.5s) runs on a background thread —
+  #     it only overlaps main-thread boot work with >=2 cores. Bump to A/B (e.g. 4000) and re-read
+  #     the `Started … in X seconds` line; take the knee of the curve.
+  #   - MEMORY_LIMIT is MB. CPU/memory MUST be a valid Scaleway combination (see the Containers
+  #     limitations docs) or `scw container container update` rejects the call and the deploy fails.
+  #   - SANDBOX=v2 is the gVisor sandbox, which Scaleway recommends for faster cold starts.
+  CONTAINER_CPU_LIMIT: '2000'
+  CONTAINER_MEMORY_LIMIT: '2048'
+  CONTAINER_SANDBOX: v2
   # Object Storage buckets (fr-par) + Edge Services pipeline ids.
   S3_ENDPOINT: https://s3.fr-par.scw.cloud
   SPA_BUCKET: teambalance-spa
@@ -48,8 +61,8 @@ env:
 jobs:
   # ---------------------------------------------------------------------------
   # API: build linux/amd64 image -> push to Container Registry -> update the
-  # Serverless Container to the new tag (image-only update leaves env/secret
-  # maps untouched — see docs/ops/deploy.md).
+  # Serverless Container to the new tag AND assert its cpu/memory/sandbox config
+  # (see below). Env/secret maps are still left untouched — see docs/ops/deploy.md.
   # ---------------------------------------------------------------------------
   deploy-api:
     if: ${{ inputs.target == 'both' || inputs.target == 'api' }}
@@ -89,16 +102,27 @@ jobs:
           echo "${{ secrets.SCW_SECRET_KEY }}" | docker login "${REGISTRY%%/*}" -u nologin --password-stdin
           docker push "${{ steps.tag.outputs.image }}"
 
+      # One atomic update: new image + the codified resource/sandbox config. cpu-limit/memory-limit
+      # accelerate the CPU-bound cold start; sandbox=v2 (gVisor) cuts it further. Env/secret maps are
+      # not passed, so they stay as-is. If the cpu/memory pair is not a valid Scaleway tier, this
+      # call fails loudly (the image is already pushed, so just fix the values and re-run).
       - name: Update Serverless Container
         if: ${{ !inputs.dry_run }}
-        run: scw container container update "$CONTAINER_ID" image="${{ steps.tag.outputs.image }}" region="$SCW_REGION"
+        run: |
+          scw container container update "$CONTAINER_ID" \
+            image="${{ steps.tag.outputs.image }}" \
+            cpu-limit="$CONTAINER_CPU_LIMIT" \
+            memory-limit="$CONTAINER_MEMORY_LIMIT" \
+            sandbox="$CONTAINER_SANDBOX" \
+            region="$SCW_REGION"
 
       - name: Dry-run summary
         if: ${{ inputs.dry_run }}
         run: |
           echo "DRY RUN — image built but not pushed/deployed."
           echo "Would push:   ${{ steps.tag.outputs.image }}"
-          echo "Would update: container $CONTAINER_ID -> that image"
+          echo "Would update: container $CONTAINER_ID -> image ${{ steps.tag.outputs.image }}"
+          echo "              cpu-limit=$CONTAINER_CPU_LIMIT memory-limit=$CONTAINER_MEMORY_LIMIT sandbox=$CONTAINER_SANDBOX"
 
   # ---------------------------------------------------------------------------
   # Frontend: build the SPA (prod mode reads app/.env.production -> VITE_API_URL)

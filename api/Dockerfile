@@ -48,7 +48,13 @@ RUN ./gradlew --no-daemon --no-configuration-cache :api:bootJar \
 # metamodel init and repository bootstrap, not just the pre-DB classload gap. Secrets are build-time
 # dummies: AOT-processed prod boot instantiates ScalewayTemEmailSender (builds a RestClient) but
 # never sends mail, and the token salt is only read when a login is served.
-FROM eclipse-temurin:25-jdk AS bake
+#
+# BASE MUST MATCH THE RUNTIME STAGE (eclipse-temurin:25-jre). The AOT cache records the exact JVM
+# image it was built against; the runtime rejects a cache whose `lib/modules` differs. The JDK and
+# JRE images ship different module sets, so baking on `:25-jdk` while running on `:25-jre` produced
+# "[aot] This file is not the one used while building the shared archive file: .../lib/modules,
+# size has changed" → "Unable to map shared spaces", and the app fell back to no cache (fail-safe).
+FROM eclipse-temurin:25-jre AS bake
 WORKDIR /app
 COPY --from=build /workspace/app.jar /app/app.jar
 

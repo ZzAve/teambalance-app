@@ -8,6 +8,16 @@ spring:
     open-in-view: false
     hibernate:
       ddl-auto: none
+    properties:
+      hibernate:
+        # Startup: pin the dialect and skip Hibernate's boot-time JDBC metadata probe (the
+        # "Database version: 16.x / dialect: PostgreSQLDialect" round-trip seen in boot logs). The two
+        # go together — with the probe off Hibernate can't auto-detect the dialect, so it must be set.
+        # Every environment (prod + Testcontainers) is PostgreSQL, so this is safe app-wide.
+        # See docs/plans/2026-07-24-startup-time-optimization.md.
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        boot:
+          allow_jdbc_metadata_access: false
   data:
     jpa:
       repositories:

@@ -1,0 +1,2 @@
+org.springframework.boot.EnvironmentPostProcessor=\
+  com.github.zzave.teambalance.api.infrastructure.config.StartupActuatorExposureEnvironmentPostProcessor

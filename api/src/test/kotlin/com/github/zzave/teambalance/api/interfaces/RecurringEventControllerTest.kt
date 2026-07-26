@@ -34,7 +34,7 @@ class RecurringEventControllerTest : TeamBalanceIT() {
     lateinit var tenantSchemaManager: TenantSchemaManager
 
     init {
-        test("POST /api/recurring-events materializes N rows sharing one group, with attendance per occurrence") {
+        test("POST /api/recurring-events materializes N rows sharing one group, roster derived at read time") {
             seedTeam()
             val admin = seedAdmin()
             seedMember(LISA_USER_ID, "lisa-rec@test.com", "Lisa Bakker")
@@ -75,6 +75,10 @@ class RecurringEventControllerTest : TeamBalanceIT() {
                 .andExpect(MockMvcResultMatchers.jsonPath("$.recurringGroup").isNotEmpty)
                 .andExpect(MockMvcResultMatchers.jsonPath("$.events.length()").value(4))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.events[0].title").value("Weekly Training"))
+                // Attendance is derived from current membership at read time (#114): no rows are
+                // seeded, yet every occurrence reports the full roster as not-responded.
+                .andExpect(MockMvcResultMatchers.jsonPath("$.events[0].attendanceSummary.notResponded").value(memberCount))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.events[0].attendanceSummary.attending").value(0))
 
             // Exactly one shared group across all four rows.
             val groups = jdbcTemplate.queryForList(
@@ -91,7 +95,7 @@ class RecurringEventControllerTest : TeamBalanceIT() {
             )
             rowCount shouldBe 4L
 
-            // Every occurrence fanned out one NOT_RESPONDED row per active member.
+            // No attendance rows are materialized — the roster is derived at read time.
             val attendanceCount = jdbcTemplate.queryForObject(
                 """
                 SELECT count(*) FROM public.attendances a
@@ -101,18 +105,7 @@ class RecurringEventControllerTest : TeamBalanceIT() {
                 Long::class.java,
                 group,
             )
-            attendanceCount shouldBe (4L * memberCount)
-
-            val notRespondedCount = jdbcTemplate.queryForObject(
-                """
-                SELECT count(*) FROM public.attendances a
-                JOIN public.events e ON e.id = a.event_id
-                WHERE e.recurring_group = ? AND a.state = 'NOT_RESPONDED'
-                """.trimIndent(),
-                Long::class.java,
-                group,
-            )
-            notRespondedCount shouldBe (4L * memberCount)
+            attendanceCount shouldBe 0L
         }
 
         test("POST /api/recurring-events rejects the whole batch when any generated start falls outside the season") {

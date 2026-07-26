@@ -45,36 +45,44 @@ class AttendanceService(
         }
     }
 
-    fun getAttendancesWithMembers(eventId: UUID): List<Pair<Attendance, TeamMember>> {
-        val attendances = attendanceRepository.findByEventId(eventId)
-        if (attendances.isEmpty()) return emptyList()
-        val membersByUserId = teamMemberRepository.findMembersByUserIds(attendances.map { it.userId }.toSet())
-        return attendances.map { attendance ->
-            val member = membersByUserId[attendance.userId]
-                ?: TeamMember(attendance.userId, "Unknown", "USER", null, null, onboarded = true)
-            attendance to member
+    // The roster and summary are derived from *current team membership*, not from the attendance rows
+    // that existed when the event was made. So a member who joins after an event was created shows up
+    // as NOT_RESPONDED (no pre-created row needed), and a member who left the team drops out entirely —
+    // even if they had a stale response row. A member's state is their response row's state, or
+    // NOT_RESPONDED when they have no row.
+    fun getAttendancesWithMembers(eventId: UUID, teamId: UUID): List<Pair<Attendance, TeamMember>> {
+        val responseByUser = attendanceRepository.findByEventId(eventId).associateBy { it.userId }
+        return teamMemberRepository.findByTeamId(teamId).map { member ->
+            val response = responseByUser[member.userId]
+                ?: Attendance(
+                    id = member.userId,
+                    eventId = eventId,
+                    userId = member.userId,
+                    state = AttendanceState.NOT_RESPONDED,
+                    updatedAt = clock.instant(),
+                    changedBy = member.userId,
+                )
+            response to member
         }
     }
 
-    fun getAttendanceSummary(eventId: UUID): Map<AttendanceState, Int> {
-        val attendances = attendanceRepository.findByEventId(eventId)
+    fun getAttendanceSummary(eventId: UUID, teamId: UUID): Map<AttendanceState, Int> {
+        val responseByUser = attendanceRepository.findByEventId(eventId).associateBy { it.userId }
+        val members = teamMemberRepository.findByTeamId(teamId)
         return AttendanceState.entries.associateWith { state ->
-            attendances.count { it.state == state }
+            members.count { (responseByUser[it.userId]?.state ?: AttendanceState.NOT_RESPONDED) == state }
         }
     }
 
-    fun getAttendingRoleBreakdown(eventId: UUID): List<Pair<String, Int>> {
-        val attendances = attendanceRepository.findByEventId(eventId)
-        val attendingUserIds = attendances
+    fun getAttendingRoleBreakdown(eventId: UUID, teamId: UUID): List<Pair<String, Int>> {
+        val attendingUserIds = attendanceRepository.findByEventId(eventId)
             .filter { it.state == AttendanceState.ATTENDING }
             .map { it.userId }
             .toSet()
-        if (attendingUserIds.isEmpty()) return emptyList()
-        val membersByUserId = teamMemberRepository.findMembersByUserIds(attendingUserIds)
-        return attendingUserIds
-            .groupBy { uid -> membersByUserId[uid]?.position ?: UNASSIGNED }
-            .entries
-            .map { (position, uids) -> position to uids.size }
+        return teamMemberRepository.findByTeamId(teamId)
+            .filter { it.userId in attendingUserIds }
+            .groupBy { it.position ?: UNASSIGNED }
+            .map { (position, members) -> position to members.size }
             .sortedWith(compareByDescending<Pair<String, Int>> { it.second }.thenBy { it.first })
     }
 

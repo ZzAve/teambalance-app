@@ -81,7 +81,8 @@ class EventControllerTest : TeamBalanceIT() {
 
             mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(mvcResult))
                 .andExpect(MockMvcResultMatchers.status().isOk)
-                .andExpect(MockMvcResultMatchers.jsonPath("$.attendances[0].role").value("Setter"))
+                // The roster is the whole team, so match Jan by id rather than assuming position 0.
+                .andExpect(MockMvcResultMatchers.jsonPath("$.attendances[?(@.userId=='$JAN_USER_ID')].role").value("Setter"))
         }
 
         test("GET /api/events returns roleBreakdown per event in the list") {
@@ -284,7 +285,7 @@ class EventControllerTest : TeamBalanceIT() {
                 .andExpect(MockMvcResultMatchers.jsonPath("$.attendanceSummary.roleBreakdown[1].attending").value(1))
         }
 
-        test("GET /api/events/{id} with no attendances returns an empty roleBreakdown and zeroed counts") {
+        test("GET /api/events/{id} with no responses counts every current member as not-responded") {
             tenantSchemaManager.provisionPlatformSchema()
             tenantSchemaManager.provisionTenantSchema("public")
 
@@ -306,7 +307,7 @@ class EventControllerTest : TeamBalanceIT() {
                 "SELECT public.tb_add_member('$TEAM_ID'::uuid, '$JAN_USER_ID'::uuid, 'USER', 'Setter')"
             )
 
-            // Event with NO attendances at all.
+            // Event with NO attendance rows at all.
             val eventId = UUID.randomUUID()
             jdbcTemplate.execute(
                 """
@@ -317,6 +318,13 @@ class EventControllerTest : TeamBalanceIT() {
                     '$JAN_USER_ID'::uuid, now(), now())
             """
             )
+
+            // With no responses, every current member is not-responded — a count derived from team
+            // membership, not from pre-created rows (which is why a row-less event is not "0 of nobody").
+            val memberCount = jdbcTemplate.queryForObject(
+                "SELECT count(*) FROM public.team_members WHERE team_id = '$TEAM_ID'::uuid AND active = true",
+                Long::class.java,
+            )!!.toInt()
 
             val mvcResult = mockMvc.perform(
                 MockMvcRequestBuilders.get("/api/events/$eventId")
@@ -332,10 +340,10 @@ class EventControllerTest : TeamBalanceIT() {
                 .andExpect(MockMvcResultMatchers.jsonPath("$.attendanceSummary.attending").value(0))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.attendanceSummary.maybe").value(0))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.attendanceSummary.absent").value(0))
-                .andExpect(MockMvcResultMatchers.jsonPath("$.attendanceSummary.notResponded").value(0))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.attendanceSummary.notResponded").value(memberCount))
         }
 
-        test("POST /api/events seeds attendance for the creator's real team, resolved from team_members") {
+        test("POST /api/events creates no attendance rows yet reports every member as not-responded") {
             tenantSchemaManager.provisionPlatformSchema()
             tenantSchemaManager.provisionTenantSchema("public")
 
@@ -402,8 +410,15 @@ class EventControllerTest : TeamBalanceIT() {
             mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(mvcResult))
                 .andExpect(MockMvcResultMatchers.status().isCreated)
                 // Every active member of the real team (resolved via team_members, not a hardcoded
-                // id) starts out NOT_RESPONDED on a freshly created event.
+                // id) is reported NOT_RESPONDED on a freshly created event — derived from membership.
                 .andExpect(MockMvcResultMatchers.jsonPath("$.attendanceSummary.notResponded").value(memberCount))
+
+            // …and that count is derived, not seeded: creating the event writes no attendance rows.
+            val attendanceRows = jdbcTemplate.queryForObject(
+                "SELECT count(*) FROM public.attendances WHERE event_id IN (SELECT id FROM public.events WHERE title = 'Created via API')",
+                Long::class.java,
+            )
+            attendanceRows shouldBe 0L
         }
 
         test("POST /api/events by a user with no team membership is rejected, not silently defaulted") {
@@ -659,7 +674,7 @@ class EventControllerTest : TeamBalanceIT() {
 
             mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(mvcResult))
                 .andExpect(MockMvcResultMatchers.status().isOk)
-                .andExpect(MockMvcResultMatchers.jsonPath("$.attendances[0].role").value("Unassigned"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.attendances[?(@.userId=='$noPositionUserId')].role").value("Unassigned"))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.attendanceSummary.roleBreakdown[0].role").value("Unassigned"))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.attendanceSummary.roleBreakdown[0].attending").value(1))
         }

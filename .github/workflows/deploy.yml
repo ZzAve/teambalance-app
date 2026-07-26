@@ -50,11 +50,13 @@ env:
   #     is CPU-bound and the deferred Hibernate metamodel build (jpaMappingContext, ~7.5s) runs on a
   #     background thread — it only overlaps main-thread boot work with >=2 cores. Bump to A/B
   #     (e.g. 4000) and re-read the `Started … in X seconds` line; take the knee of the curve.
-  #   - MEMORY_LIMIT_BYTES is BYTES (2147483648 = 2048 MiB = 2 GiB). CPU/memory MUST be a valid
-  #     Scaleway pair (see the Containers limitations docs) or the update call is rejected.
+  #   - MEMORY_LIMIT: despite the arg being named `memory-limit-bytes`, the v2.58.3 CLI parses it as
+  #     a size STRING and requires a whole-GB unit — a raw byte count was rejected with "size must be
+  #     defined using the G or GB unit". So the value is `2GB` (not 2147483648). CPU/memory must be a
+  #     valid Scaleway pair (see the Containers limitations docs) or the update call is rejected.
   #   - SANDBOX=v2 is the gVisor sandbox, which Scaleway recommends for faster cold starts.
   CONTAINER_MVCPU_LIMIT: '2000'
-  CONTAINER_MEMORY_LIMIT_BYTES: '2147483648'
+  CONTAINER_MEMORY_LIMIT: '2GB'
   CONTAINER_SANDBOX: v2
   # Object Storage buckets (fr-par) + Edge Services pipeline ids.
   S3_ENDPOINT: https://s3.fr-par.scw.cloud
@@ -116,13 +118,13 @@ jobs:
       # Resource + sandbox config in a SEPARATE update. If mvcpu/memory isn't a valid Scaleway pair
       # this step fails, but the new image is already live (previous step), so it's a one-value fix +
       # re-run — never a half-deploy. Arg names are for scw CLI v2.58.3: `mvcpu-limit` (mvCPU) and
-      # `memory-limit-bytes` (BYTES).
+      # `memory-limit-bytes` (a whole-GB size string despite the name, e.g. 2GB).
       - name: Assert Serverless Container resources + sandbox
         if: ${{ !inputs.dry_run }}
         run: |
           scw container container update "$CONTAINER_ID" \
             mvcpu-limit="$CONTAINER_MVCPU_LIMIT" \
-            memory-limit-bytes="$CONTAINER_MEMORY_LIMIT_BYTES" \
+            memory-limit-bytes="$CONTAINER_MEMORY_LIMIT" \
             sandbox="$CONTAINER_SANDBOX" \
             region="$SCW_REGION"
 
@@ -132,7 +134,7 @@ jobs:
           echo "DRY RUN — image built but not pushed/deployed."
           echo "Would push:   ${{ steps.tag.outputs.image }}"
           echo "Would update: container $CONTAINER_ID -> image ${{ steps.tag.outputs.image }}"
-          echo "              mvcpu-limit=$CONTAINER_MVCPU_LIMIT memory-limit-bytes=$CONTAINER_MEMORY_LIMIT_BYTES sandbox=$CONTAINER_SANDBOX"
+          echo "              mvcpu-limit=$CONTAINER_MVCPU_LIMIT memory-limit-bytes=$CONTAINER_MEMORY_LIMIT sandbox=$CONTAINER_SANDBOX"
 
   # ---------------------------------------------------------------------------
   # Frontend: build the SPA (prod mode reads app/.env.production -> VITE_API_URL)

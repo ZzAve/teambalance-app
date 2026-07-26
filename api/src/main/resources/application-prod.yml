@@ -34,12 +34,11 @@ management:
   endpoints:
     web:
       exposure:
-        # Blocker #5: only expose the health probe in prod. info/metrics (exposed in the base config
-        # for local use) would otherwise be publicly reachable on api.teambalance.nl.
-        # InternalEndpointGuardFilter blocks them at the servlet layer too — this is defence in depth.
-        #
-        # The `startup` timing endpoint stays out of the prod include by default. For a perf-test
-        # window, set teambalance.startup-actuator.enabled=true (STARTUP_ACTUATOR_ENABLED): it appends
-        # `startup` here (StartupActuatorExposureEnvironmentPostProcessor) and opens the guard so the
-        # live container's BufferingApplicationStartup timing tree is readable, then unset it. See #95.
-        include: health
+        # Blocker #5: only expose the health probe (and the startup timing endpoint) in prod.
+        # info/metrics (exposed in the base config for local use) would otherwise be publicly
+        # reachable on api.teambalance.nl. InternalEndpointGuardFilter is the real boundary: it 403s
+        # everything under /internal/actuator except `health`, and `startup` only while the
+        # teambalance.startup.actuator.enabled flag is set. `startup` is kept exposed here so the
+        # endpoint is registered and ready; the flag toggles whether the guard lets it through for a
+        # perf-test window (TEAMBALANCE_STARTUP_ACTUATOR_ENABLED=true), then unset it. See #95.
+        include: health,startup

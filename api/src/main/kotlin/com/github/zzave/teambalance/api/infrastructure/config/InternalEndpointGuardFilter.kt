@@ -25,11 +25,12 @@ import org.springframework.web.util.UrlPathHelper
  * `application-prod.yml` additionally narrows actuator exposure to `health`, so info/metrics are a
  * 404 there too — this filter is the defence-in-depth layer that also covers any future `/internal`.
  *
- * The `startup` timing endpoint is a perf-testing tool, gated behind `teambalance.startup-actuator.enabled`
- * (STARTUP_ACTUATOR_ENABLED, default false). When the flag is set the guard lets `/internal/actuator/startup`
- * through — in lock-step with StartupActuatorExposureEnvironmentPostProcessor appending `startup` to the
- * actuator exposure list — so the live container's BufferingApplicationStartup boot-timing tree is readable
- * during a perf-test window; unsetting the flag closes both gates. Default: only `health` gets through. See #95.
+ * The `startup` timing endpoint is always registered/exposed (application.yml keeps it in the actuator
+ * include list), but this guard is what decides whether it is reachable in prod. It is a perf-testing
+ * tool gated behind `teambalance.startup.actuator.enabled` (default false): when the flag is set the guard
+ * lets `/internal/actuator/startup` through so the live container's BufferingApplicationStartup boot-timing
+ * tree is readable during a perf-test window; unsetting it closes the endpoint again. Spring relaxed binding
+ * maps the env var TEAMBALANCE_STARTUP_ACTUATOR_ENABLED to the flag. Default: only `health` gets through. See #95.
  *
  * Prod-only (`@Profile("prod")`): dev keeps the full actuator, and e2e needs `/internal/e2e/...`.
  * Runs first (HIGHEST_PRECEDENCE) so it gates before any context-setup filter or handler.
@@ -38,7 +39,7 @@ import org.springframework.web.util.UrlPathHelper
 @Profile("prod")
 @Order(Ordered.HIGHEST_PRECEDENCE)
 class InternalEndpointGuardFilter(
-    @Value("\${teambalance.startup-actuator.enabled:false}") private val startupActuatorEnabled: Boolean,
+    @Value("\${teambalance.startup.actuator.enabled:false}") private val startupActuatorEnabled: Boolean,
 ) : OncePerRequestFilter() {
 
     private val urlPathHelper = UrlPathHelper()
@@ -68,7 +69,7 @@ class InternalEndpointGuardFilter(
         const val HEALTH_PATH = "/internal/actuator/health"
 
         // The buffered startup timing tree, readable from the live prod container only while the
-        // teambalance.startup-actuator.enabled flag is set (perf-testing window). See #95.
+        // teambalance.startup.actuator.enabled flag is set (perf-testing window). See #95.
         const val STARTUP_PATH = "/internal/actuator/startup"
     }
 }

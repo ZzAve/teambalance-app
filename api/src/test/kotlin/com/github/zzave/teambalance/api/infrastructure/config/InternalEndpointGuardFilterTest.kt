@@ -55,7 +55,7 @@ class InternalEndpointGuardFilterTest : FunSpec({
         }
     }
 
-    // The startup timing endpoint is a perf-testing tool gated behind teambalance.startup-actuator.enabled.
+    // The startup timing endpoint is a perf-testing tool gated behind teambalance.startup.actuator.enabled.
     context("the startup timing endpoint") {
         test("is blocked with 403 by default (flag off)") {
             val (proceeded, status) = run(filter, "/internal/actuator/startup")

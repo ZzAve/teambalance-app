@@ -53,23 +53,22 @@ management:
       exposure:
         # `startup` exports the BufferingApplicationStartup timing tree (the detailed per-step boot
         # attribution). The canonical cold-start metric remains the Spring
-        # `Started TeamBalanceApplication in X seconds` log line. It is exposed here for local/dev use.
-        # In prod the include list narrows to `health` only (application-prod.yml) and
-        # InternalEndpointGuardFilter 403s everything else under /internal/actuator. To read the
-        # timing tree from a live prod container during a perf-test window, set
-        # teambalance.startup-actuator.enabled=true (STARTUP_ACTUATOR_ENABLED): it appends `startup` to
-        # this list (StartupActuatorExposureEnvironmentPostProcessor) and opens the guard. See #95.
+        # `Started TeamBalanceApplication in X seconds` log line. The endpoint is always exposed; prod
+        # narrows this list to `health,startup` (application-prod.yml) and InternalEndpointGuardFilter
+        # 403s everything under /internal/actuator except `health` — and `startup` only while the
+        # teambalance.startup.actuator.enabled flag is set (perf-test window). See #95.
         include: health,info,metrics,startup
 
 teambalance:
-  startup-actuator:
-    # Perf-testing toggle for the Spring `startup` actuator endpoint. Default false: prod exposes
-    # `health` only and InternalEndpointGuardFilter 403s /internal/actuator/startup. Set to true (via
-    # STARTUP_ACTUATOR_ENABLED on the container) to append `startup` to the actuator exposure list
-    # (StartupActuatorExposureEnvironmentPostProcessor) and open the guard, so the
-    # BufferingApplicationStartup boot-timing tree can be read from the live container — then unset it.
-    # See issue #95.
-    enabled: ${STARTUP_ACTUATOR_ENABLED:false}
+  startup:
+    actuator:
+      # Perf-testing toggle for the Spring `startup` actuator endpoint. The endpoint is always
+      # registered/exposed; this flag only controls whether InternalEndpointGuardFilter lets
+      # /internal/actuator/startup through in prod. Default false: the guard 403s it. Set to true to
+      # read the BufferingApplicationStartup boot-timing tree from the live container during a
+      # perf-test window, then unset it. Spring relaxed binding maps the env var
+      # TEAMBALANCE_STARTUP_ACTUATOR_ENABLED to this property. See issue #95.
+      enabled: false
   # Base URL of the SPA; used to build the clickable magic-link (…/auth/verify?token=…).
   frontend-base-url: ${TEAMBALANCE_FRONTEND_BASE_URL:https://app.teambalance.nl}
   invitation:

@@ -46,8 +46,16 @@ any-team, self-service (see [ADR-0001](docs/adr/0001-product-ambition-hobby-tool
   can see the event but aren't prompted. Powers the "Mine" filter. **Deferred in v1**:
   every event targets the whole team, so the summary denominator is the full roster
   ([ADR-0009](docs/adr/0009-attendance-model-roles-in-audience-deferred.md)).
-- **Recurring Event** — An event scheduled to repeat (e.g. weekly training for a
-  season), created in a batch.
+- **Recurring Event** — A batch of concrete Events sharing a `recurring_group`, generated
+  up front from a weekly/bi-weekly + weekday + date-range rule (the rule itself is **not**
+  stored — series identity is group membership). Each occurrence is an ordinary,
+  independently-editable Event; edits/deletes carry a *this / this-and-following / all*
+  scope, and partial edits **split** the series into independent groups
+  ([ADR-0014](docs/adr/0014-recurring-events-materialized-batch-split-season.md)).
+- **Season** — A per-team date window (`season_start`–`season_end`) an admin configures.
+  When set, Event writes with a start outside the window are rejected (unchanged starts
+  grandfathered); narrowing the window only warns about existing events. Supplies default
+  dates to recurring creation ([ADR-0014](docs/adr/0014-recurring-events-materialized-batch-split-season.md)).
 - **Attendance** — A Member's response to an Event. One of four **Attendance States**.
 - **Attendance State** — `Attending` (green), `Maybe` (gold), `Absent` (red),
   `Not Responded` (default, no response yet). The semantic colors are fixed brand

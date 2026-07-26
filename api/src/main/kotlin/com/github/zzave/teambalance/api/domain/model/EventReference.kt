@@ -39,12 +39,8 @@ data class EventReference(
             )
 
         private fun isHttpUrl(value: String): Boolean {
-            val uri = try {
-                URI(value)
-            } catch (_: Exception) {
-                return false
-            }
-            val scheme = uri.scheme?.lowercase() ?: return false
+            val uri = runCatching { URI(value) }.getOrNull() ?: return false
+            val scheme = uri.scheme?.lowercase()
             return (scheme == "http" || scheme == "https") && !uri.host.isNullOrBlank()
         }
     }

@@ -60,8 +60,26 @@ jobs:
 
       # Needed before `make test`: the Storybook stories run in a headless-chromium
       # Vitest browser project, and the real e2e suite also drives Chromium.
-      - name: Install Playwright browser
+      #
+      # The Chromium binary only changes when Playwright's version does, so cache
+      # ~/.cache/ms-playwright keyed on the lockfile. On a hit we skip the (slow)
+      # browser download and only re-run install-deps, which installs the apt
+      # system libraries that live outside the cached directory.
+      - name: Cache Playwright browsers
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('app/package-lock.json') }}
+
+      - name: Install Playwright browser (+ system deps)
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
         run: npx playwright install --with-deps chromium
+        working-directory: app
+
+      - name: Install Playwright system deps (cached browser)
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
         working-directory: app
 
       - run: make test

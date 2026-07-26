@@ -7,7 +7,6 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
 import org.springframework.http.MediaType
 import org.springframework.jdbc.core.JdbcTemplate
-import org.springframework.mock.web.MockHttpSession
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.MvcResult
@@ -110,18 +109,20 @@ class E2eSupportIT : TeamBalanceIT() {
             ).andReturn()
             val token = ObjectMapper().readTree(tokenResult.response.contentAsString)["token"].asText()
 
-            val (started, verified) = performAsync(
+            val (_, verified) = performAsync(
                 MockMvcRequestBuilders.post("/api/auth/magic-link/verify")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content("""{"token":"$token"}"""),
             )
             verified.andExpect(MockMvcResultMatchers.status().isOk)
-            val session = started.request.session as MockHttpSession
+            // Session identity is carried by the Spring Session cookie, not a heap-resident
+            // HttpSession, so thread the cookie into the follow-up request to stay authenticated.
+            val session = verified.andReturn().response.cookies.first()
 
             // Query params must be in the URI: the Wirespec adapter parses the raw query string,
             // which MockMvc's .param() does not populate.
             val (_, events) = performAsync(
-                MockMvcRequestBuilders.get("/api/events?include-past=false").session(session),
+                MockMvcRequestBuilders.get("/api/events?include-past=false").cookie(session),
             )
             events.andExpect(MockMvcResultMatchers.status().isOk)
                 .andExpect(MockMvcResultMatchers.jsonPath("$.events[?(@.title == 'E2E Training')]").exists())

@@ -72,8 +72,9 @@ any-team, self-service (see [ADR-0001](docs/adr/0001-product-ambition-hobby-tool
 
 - **Magic Link** — A one-time, passwordless login link sent to a member's email. One of
   two passwordless authentication methods (the other is **Google Sign-In**); both prove
-  control of an email. Sessions are server-side — in-memory `HttpSession` (`JSESSIONID`)
-  for 1.0; Redis-backed Spring Session is deferred ([ADR-0010](docs/adr/0010-defer-redis-sessions-to-post-1.0.md)).
+  control of an email. Sessions are server-side and stored in Postgres via Spring Session JDBC
+  (the `SESSION` cookie), so they survive a container restart / cold start / redeploy
+  ([ADR-0014](docs/adr/0014-jdbc-backed-shared-sessions-survive-restart.md), supersedes ADR-0010).
 - **Google Sign-In** — Authenticating with a Google account. Treated as a second proof of
   email control equivalent to a **Magic Link**: a Google login lands in the *same* account,
   matched on verified email. There is no separate "Google account" in the model.

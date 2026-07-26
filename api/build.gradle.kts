@@ -33,6 +33,13 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-validation")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
 
+    // Spring Session backed by JDBC (Postgres): keeps authenticated sessions out of the JVM heap so
+    // they survive a container restart / cold start / redeploy on Scaleway Serverless (min-instances=0).
+    // Boot 4 moved session auto-configuration out of spring-boot-autoconfigure into a dedicated module,
+    // so the raw spring-session-jdbc lib is NOT auto-wired — this starter pulls the lib *and* the
+    // spring-boot-session-jdbc auto-config that registers the session repository filter.
+    implementation("org.springframework.boot:spring-boot-starter-session-jdbc")
+
     // Flyway
     implementation("org.flywaydb:flyway-core")
     implementation("org.flywaydb:flyway-database-postgresql")

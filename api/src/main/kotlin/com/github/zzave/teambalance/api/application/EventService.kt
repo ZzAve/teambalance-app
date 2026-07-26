@@ -2,14 +2,10 @@ package com.github.zzave.teambalance.api.application
 
 import com.github.zzave.teambalance.api.domain.exception.EventOutsideSeasonException
 import com.github.zzave.teambalance.api.domain.exception.EventTypeNotFoundException
-import com.github.zzave.teambalance.api.domain.model.Attendance
-import com.github.zzave.teambalance.api.domain.model.AttendanceState
 import com.github.zzave.teambalance.api.domain.model.Event
-import com.github.zzave.teambalance.api.domain.port.AttendanceRepository
 import com.github.zzave.teambalance.api.domain.port.EventRepository
 import com.github.zzave.teambalance.api.domain.port.EventTypeRepository
 import com.github.zzave.teambalance.api.domain.port.SeasonRepository
-import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.Clock
@@ -22,8 +18,6 @@ import java.util.UUID
 class EventService(
     private val eventRepository: EventRepository,
     private val eventTypeRepository: EventTypeRepository,
-    private val attendanceRepository: AttendanceRepository,
-    private val teamMemberRepository: TeamMemberRepository,
     private val seasonRepository: SeasonRepository,
     private val clock: Clock,
 ) {
@@ -42,14 +36,17 @@ class EventService(
     fun getEvent(id: UUID): Event? =
         eventRepository.findById(id)
 
-    fun createEvent(potential: PotentialEvent, createdBy: UUID, teamId: UUID): Event {
+    // No attendance rows are seeded here: the summary and roster are derived from current team
+    // membership at read time (see AttendanceService), so a member's absence of a row simply reads
+    // as NOT_RESPONDED. A response then upserts their row (AttendanceService.setAttendance).
+    fun createEvent(potential: PotentialEvent, createdBy: UUID): Event {
         val eventType = eventTypeRepository.findById(potential.eventTypeId)
             ?: throw EventTypeNotFoundException(potential.eventTypeId)
 
         // ADR-0014: a created event's start must always fall within the configured season.
         requireWithinSeason(potential.startTime)
 
-        val event = eventRepository.save(
+        return eventRepository.save(
             Event(
                 id = UUID.randomUUID(),
                 eventType = eventType,
@@ -62,21 +59,6 @@ class EventService(
                 createdAt = clock.instant(),
             ),
         )
-
-        val members = teamMemberRepository.findByTeamId(teamId)
-        val attendances = members.map { member ->
-            Attendance(
-                id = UUID.randomUUID(),
-                eventId = event.id,
-                userId = member.userId,
-                state = AttendanceState.NOT_RESPONDED,
-                updatedAt = clock.instant(),
-                changedBy = createdBy,
-            )
-        }
-        attendanceRepository.saveAll(attendances)
-
-        return event
     }
 
     fun updateEvent(

@@ -40,10 +40,10 @@ class EventController(
     DeleteEvent.Handler {
 
     override suspend fun listEvents(request: ListEvents.Request): ListEvents.Response<*> {
-        val teamId = currentTeamProvider.requireCurrentTeamId()
+        val members = attendanceService.teamMembers(currentTeamProvider.requireCurrentTeamId())
         val events = if (request.queries.includepast) eventService.getAllEvents() else eventService.getUpcomingEvents()
         return ListEvents.Response200(
-            EventList(events = events.map { it.produce(attendanceService, teamId) })
+            EventList(events = events.map { it.produce(attendanceService, members) })
         )
     }
 
@@ -54,9 +54,8 @@ class EventController(
         val event = eventService.createEvent(
             potential = request.body.consume(),
             createdBy = userId,
-            teamId = teamId,
         )
-        return CreateEvent.Response201(event.produce(attendanceService, teamId))
+        return CreateEvent.Response201(event.produce(attendanceService, attendanceService.teamMembers(teamId)))
     }
 
     override suspend fun getEvent(request: GetEvent.Request): GetEvent.Response<*> {
@@ -64,10 +63,10 @@ class EventController(
         val event = eventService.getEvent(id)
             ?: return GetEvent.Response404(Unit)
 
-        val teamId = currentTeamProvider.requireCurrentTeamId()
-        val attendances = attendanceService.getAttendancesWithMembers(id, teamId)
-        val summary = attendanceService.getAttendanceSummary(id, teamId)
-        val roleBreakdown = attendanceService.getAttendingRoleBreakdown(id, teamId)
+        val members = attendanceService.teamMembers(currentTeamProvider.requireCurrentTeamId())
+        val attendances = attendanceService.getAttendancesWithMembers(id, members)
+        val summary = attendanceService.getAttendanceSummary(id, members)
+        val roleBreakdown = attendanceService.getAttendingRoleBreakdown(id, members)
 
         return GetEvent.Response200(
             EventDetail(
@@ -107,7 +106,7 @@ class EventController(
             location = req.location,
         ) ?: return UpdateEvent.Response404(Unit)
 
-        return UpdateEvent.Response200(event.produce(attendanceService, teamId))
+        return UpdateEvent.Response200(event.produce(attendanceService, attendanceService.teamMembers(teamId)))
     }
 
     override suspend fun deleteEvent(request: DeleteEvent.Request): DeleteEvent.Response<*> {
@@ -131,9 +130,12 @@ private fun com.github.zzave.teambalance.api.interfaces.generated.model.CreateEv
         location = location,
     )
 
-private fun com.github.zzave.teambalance.api.domain.model.Event.produce(attendanceService: AttendanceService, teamId: UUID): Event {
-    val summary = attendanceService.getAttendanceSummary(id, teamId)
-    val roleBreakdown = attendanceService.getAttendingRoleBreakdown(id, teamId)
+private fun com.github.zzave.teambalance.api.domain.model.Event.produce(
+    attendanceService: AttendanceService,
+    members: List<com.github.zzave.teambalance.api.domain.model.TeamMember>,
+): Event {
+    val summary = attendanceService.getAttendanceSummary(id, members)
+    val roleBreakdown = attendanceService.getAttendingRoleBreakdown(id, members)
     return Event(
         id = id.toString(),
         eventType = eventType.produce(),

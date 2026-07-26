@@ -343,7 +343,7 @@ class EventControllerTest : TeamBalanceIT() {
                 .andExpect(MockMvcResultMatchers.jsonPath("$.attendanceSummary.notResponded").value(memberCount))
         }
 
-        test("POST /api/events seeds attendance for the creator's real team, resolved from team_members") {
+        test("POST /api/events creates no attendance rows yet reports every member as not-responded") {
             tenantSchemaManager.provisionPlatformSchema()
             tenantSchemaManager.provisionTenantSchema("public")
 
@@ -410,8 +410,15 @@ class EventControllerTest : TeamBalanceIT() {
             mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(mvcResult))
                 .andExpect(MockMvcResultMatchers.status().isCreated)
                 // Every active member of the real team (resolved via team_members, not a hardcoded
-                // id) starts out NOT_RESPONDED on a freshly created event.
+                // id) is reported NOT_RESPONDED on a freshly created event — derived from membership.
                 .andExpect(MockMvcResultMatchers.jsonPath("$.attendanceSummary.notResponded").value(memberCount))
+
+            // …and that count is derived, not seeded: creating the event writes no attendance rows.
+            val attendanceRows = jdbcTemplate.queryForObject(
+                "SELECT count(*) FROM public.attendances WHERE event_id IN (SELECT id FROM public.events WHERE title = 'Created via API')",
+                Long::class.java,
+            )
+            attendanceRows shouldBe 0L
         }
 
         test("POST /api/events by a user with no team membership is rejected, not silently defaulted") {

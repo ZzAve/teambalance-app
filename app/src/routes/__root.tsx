@@ -126,6 +126,15 @@ function RootLayout() {
                   Members
                 </Link>
               )}
+              {isAdmin && (
+                <Link
+                  to="/team/settings"
+                  className="text-xs font-semibold text-muted-foreground hover:text-foreground"
+                  activeProps={{ className: 'text-foreground' }}
+                >
+                  Settings
+                </Link>
+              )}
               <Link
                 to="/profile"
                 className="text-xs font-semibold text-muted-foreground hover:text-foreground"

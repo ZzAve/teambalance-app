@@ -4,6 +4,7 @@ import com.github.zzave.teambalance.api.domain.exception.ConflictException
 import com.github.zzave.teambalance.api.domain.exception.ForbiddenException
 import com.github.zzave.teambalance.api.domain.exception.NotFoundException
 import com.github.zzave.teambalance.api.domain.exception.TeambalanceException
+import com.github.zzave.teambalance.api.domain.exception.UnprocessableEntityException
 import com.github.zzave.teambalance.api.domain.exception.UnauthenticatedException
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
@@ -33,6 +34,11 @@ class GlobalExceptionHandler {
     fun handleConflict(ex: ConflictException): ResponseEntity<Map<String, String>> =
         ResponseEntity.status(HttpStatus.CONFLICT)
             .body(mapOf("error" to (ex.message ?: "Conflict"), "code" to ex.code))
+
+    @ExceptionHandler(UnprocessableEntityException::class)
+    fun handleUnprocessableEntity(ex: UnprocessableEntityException): ResponseEntity<Map<String, String>> =
+        ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY)
+            .body(mapOf("error" to (ex.message ?: "Unprocessable"), "code" to ex.code))
 
     @ExceptionHandler(TeambalanceException::class)
     fun handleTeambalanceException(ex: TeambalanceException): ResponseEntity<Map<String, String>> =

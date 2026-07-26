@@ -14,9 +14,8 @@ import org.springframework.mock.web.MockHttpServletResponse
  * registered) is covered by ProdProfileSmokeIT.
  */
 class InternalEndpointGuardFilterTest : FunSpec({
-    val filter = InternalEndpointGuardFilter()
 
-    fun run(uri: String): Pair<Boolean, Int> {
+    fun run(filter: InternalEndpointGuardFilter, uri: String): Pair<Boolean, Int> {
         val request = MockHttpServletRequest("GET", uri)
         val response = MockHttpServletResponse()
         var proceeded = false
@@ -24,20 +23,17 @@ class InternalEndpointGuardFilterTest : FunSpec({
         return proceeded to response.status
     }
 
+    val filter = InternalEndpointGuardFilter(startupActuatorEnabled = false)
+
     context("lets through") {
         test("the exact health probe Scaleway uses") {
-            run("/internal/actuator/health").first shouldBe true
+            run(filter, "/internal/actuator/health").first shouldBe true
         }
         test("the health probe with a trailing slash") {
-            run("/internal/actuator/health/").first shouldBe true
+            run(filter, "/internal/actuator/health/").first shouldBe true
         }
         test("a public /api path") {
-            run("/api/events").first shouldBe true
-        }
-        // TODO(#95): temporary — the cold-start experiment (#92) exposes the startup timing tree in
-        // prod. Remove this case (and the filter's STARTUP_PATH allowance) once numbers are captured.
-        test("the startup timing endpoint while the cold-start experiment runs") {
-            run("/internal/actuator/startup").first shouldBe true
+            run(filter, "/api/events").first shouldBe true
         }
     }
 
@@ -52,10 +48,29 @@ class InternalEndpointGuardFilterTest : FunSpec({
             "a traversal out of the health path" to "/internal/actuator/health/../env",
         ).forEach { (name, uri) ->
             test("blocks $name") {
-                val (proceeded, status) = run(uri)
+                val (proceeded, status) = run(filter, uri)
                 proceeded shouldBe false
                 status shouldBe HttpServletResponse.SC_FORBIDDEN
             }
+        }
+    }
+
+    // The startup timing endpoint is a perf-testing tool gated behind teambalance.startup.actuator.enabled.
+    context("the startup timing endpoint") {
+        test("is blocked with 403 by default (flag off)") {
+            val (proceeded, status) = run(filter, "/internal/actuator/startup")
+            proceeded shouldBe false
+            status shouldBe HttpServletResponse.SC_FORBIDDEN
+        }
+        test("is let through when the flag is set (perf-test window)") {
+            val enabled = InternalEndpointGuardFilter(startupActuatorEnabled = true)
+            run(enabled, "/internal/actuator/startup").first shouldBe true
+        }
+        test("stays blocked even with the flag set once a traversal leaves the startup path") {
+            val enabled = InternalEndpointGuardFilter(startupActuatorEnabled = true)
+            val (proceeded, status) = run(enabled, "/internal/actuator/startup/../env")
+            proceeded shouldBe false
+            status shouldBe HttpServletResponse.SC_FORBIDDEN
         }
     }
 })

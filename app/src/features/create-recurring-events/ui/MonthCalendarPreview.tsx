@@ -17,7 +17,7 @@ interface MonthCalendarPreviewProps {
  * every cell flag is computed by buildCalendarPreview.
  */
 export function MonthCalendarPreview({ preview, accentColor }: MonthCalendarPreviewProps) {
-  const { months, count, overCap, outOfSeasonCount } = preview
+  const { months, count, overCap, outOfSeasonCount, truncated } = preview
 
   return (
     <div className="rounded-2xl border border-border/60 bg-card p-4 shadow-sm">
@@ -107,6 +107,11 @@ export function MonthCalendarPreview({ preview, accentColor }: MonthCalendarPrev
             </div>
           </div>
         ))}
+        {truncated && (
+          <p className="pt-1 text-center text-xs italic text-muted-foreground">
+            Preview shows the first {months.length} months — all {count} events will still be created.
+          </p>
+        )}
       </div>
     </div>
   )

@@ -113,7 +113,13 @@ export interface CalendarPreview {
   outOfSeasonCount: number
   firstDate: string | null
   lastDate: string | null
+  /** True when the rendered months don't cover the whole span (so the grid isn't silently cut). */
+  truncated: boolean
 }
+
+// The calendar renders at most this many months; a longer span is truncated with a visible note
+// rather than silently cut, and kept bounded so a pathological range can't render hundreds of grids.
+const MAX_PREVIEW_MONTHS = 18
 
 const MONTH_NAMES = [
   'January', 'February', 'March', 'April', 'May', 'June',
@@ -161,15 +167,22 @@ export function buildCalendarPreview(rule: RecurrenceInput, season: Season | und
   const occurrences = generateOccurrences(rule)
   const occ = new Set(occurrences)
 
-  // Span from the earliest of (season start, first occurrence) to the latest of (season end, last).
+  // Span from the earliest to the latest of the season bounds and the actual occurrences — NOT the
+  // raw rule dates, so a stray far-future endDate with no occurrences beyond it can't inflate the
+  // grid. With no occurrences yet, fall back to the rule/season dates so the empty calendar still
+  // shows the intended window.
   const anchors: string[] = []
   if (season?.start) anchors.push(season.start)
   if (season?.end) anchors.push(season.end)
-  if (rule.startDate) anchors.push(rule.startDate)
-  if (rule.endDate) anchors.push(rule.endDate)
-  occurrences.forEach((d) => anchors.push(d))
+  if (occurrences.length > 0) {
+    anchors.push(occurrences[0], occurrences[occurrences.length - 1])
+  } else {
+    if (rule.startDate) anchors.push(rule.startDate)
+    if (rule.endDate) anchors.push(rule.endDate)
+  }
 
   const months: MonthGrid[] = []
+  let truncated = false
   if (anchors.length > 0) {
     let minMk = Infinity
     let maxMk = -Infinity
@@ -178,9 +191,9 @@ export function buildCalendarPreview(rule: RecurrenceInput, season: Season | und
       if (mk < minMk) minMk = mk
       if (mk > maxMk) maxMk = mk
     })
-    // Guard against a runaway span (e.g. a stray far-future date) — cap the rendered months.
-    const cappedMax = Math.min(maxMk, minMk + 23)
-    for (let mk = minMk; mk <= cappedMax; mk++) {
+    const renderMax = Math.min(maxMk, minMk + MAX_PREVIEW_MONTHS - 1)
+    truncated = maxMk > renderMax
+    for (let mk = minMk; mk <= renderMax; mk++) {
       months.push(buildMonth(Math.floor(mk / 12), mk % 12, occ, season))
     }
   }
@@ -194,6 +207,7 @@ export function buildCalendarPreview(rule: RecurrenceInput, season: Season | und
     outOfSeasonCount,
     firstDate: occurrences[0] ?? null,
     lastDate: occurrences[occurrences.length - 1] ?? null,
+    truncated,
   }
 }
 

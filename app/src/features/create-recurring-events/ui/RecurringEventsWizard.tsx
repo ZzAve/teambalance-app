@@ -267,13 +267,20 @@ export function RecurringEventsWizard({
               <Repeat size={18} style={{ color: accentColor }} />
               {title || 'Untitled series'}
             </p>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {preview.count} {preview.count === 1 ? 'event' : 'events'}
+            <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-sm">
+              <SummaryRow label="Type" value={selectedType?.name ?? '—'} />
+              <SummaryRow label="When" value={`${timeOfDay} · ${durationMinutes} min`} />
+              <SummaryRow label="Repeats" value={`${frequencyLabel(frequency)} · ${summariseWeekdays(weekdays)}`} />
               {preview.firstDate && preview.lastDate && (
-                <> · {formatDate(preview.firstDate)} → {formatDate(preview.lastDate)}</>
+                <SummaryRow label="Dates" value={`${formatDate(preview.firstDate)} → ${formatDate(preview.lastDate)}`} />
               )}
-            </p>
-            {location && <p className="mt-0.5 text-sm text-muted-foreground">{location}</p>}
+              {location && <SummaryRow label="Location" value={location} />}
+              <SummaryRow
+                label="Total"
+                value={`${preview.count} ${preview.count === 1 ? 'event' : 'events'}`}
+                emphasise
+              />
+            </dl>
           </div>
 
           <MonthCalendarPreview preview={preview} accentColor={accentColor} />
@@ -342,6 +349,15 @@ function Stepper({ step }: { step: number }) {
         </div>
       ))}
     </div>
+  )
+}
+
+function SummaryRow({ label, value, emphasise = false }: { label: string; value: string; emphasise?: boolean }) {
+  return (
+    <>
+      <dt className="text-muted-foreground">{label}</dt>
+      <dd className={emphasise ? 'font-semibold text-foreground' : 'text-foreground'}>{value}</dd>
+    </>
   )
 }
 

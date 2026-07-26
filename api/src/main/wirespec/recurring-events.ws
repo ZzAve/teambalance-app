@@ -40,6 +40,7 @@ type RecurringEventSeries {
 
 endpoint CreateRecurringEvents POST CreateRecurringEventsRequest /api/recurring-events -> {
     201 -> RecurringEventSeries
+    400 -> Unit
     403 -> Unit
     422 -> Unit
 }

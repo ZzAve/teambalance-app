@@ -111,6 +111,34 @@ describe('buildCalendarPreview', () => {
     expect(sep01?.outOfSeason).toBe(false)
   })
 
+  it('does not truncate a normal in-season series', () => {
+    const preview = buildCalendarPreview(rule({ startDate: '2026-09-01', endDate: '2026-10-31' }), season)
+    expect(preview.truncated).toBe(false)
+    expect(preview.months.length).toBeLessThanOrEqual(18)
+  })
+
+  it('truncates the rendered months for a long span but keeps the full count', () => {
+    // ~2.5 years of weekly Mondays: ~130 events (under the cap) spanning 30 months.
+    const preview = buildCalendarPreview(
+      rule({ weekdays: ['MONDAY'], startDate: '2026-01-01', endDate: '2028-06-30' }),
+      undefined,
+    )
+    expect(preview.count).toBeGreaterThan(100)
+    expect(preview.count).toBeLessThanOrEqual(200)
+    expect(preview.truncated).toBe(true)
+    expect(preview.months.length).toBe(18)
+  })
+
+  it('does not let a far-future endDate with no occurrences beyond it inflate the grid', () => {
+    // Weekly Tue Sept only, but endDate stretches to December — months stop at the last occurrence.
+    const preview = buildCalendarPreview(
+      rule({ weekdays: ['TUESDAY'], startDate: '2026-09-01', endDate: '2026-09-30' }),
+      undefined,
+    )
+    expect(preview.truncated).toBe(false)
+    expect(preview.months.length).toBe(1) // September only — no empty trailing months
+  })
+
   it('signals over-cap when generation exceeds the maximum', () => {
     const preview = buildCalendarPreview(
       rule({ weekdays: ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY'], startDate: '2026-01-01', endDate: '2027-12-31' }),

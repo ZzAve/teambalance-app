@@ -80,6 +80,7 @@ class EventController(
                 endTime = DateTimestampWithTimezone(event.endTime.toString()),
                 location = event.location,
                 references = event.references.externalize(),
+                recurringGroup = event.recurringGroup?.toString(),
                 attendanceSummary = summary.produce(roleBreakdown),
                 attendances = attendances.map { (a, member) ->
                     AttendanceEntry(
@@ -144,7 +145,8 @@ private fun List<EventReference>?.internalize(): List<DomainEventReference> =
 private fun List<DomainEventReference>.externalize(): List<EventReference> =
     map { EventReference(title = it.title, url = it.url) }
 
-private fun com.github.zzave.teambalance.api.domain.model.Event.produce(
+// internal (not private) so RecurringEventController can reuse it for the batch-create response.
+internal fun com.github.zzave.teambalance.api.domain.model.Event.produce(
     attendanceService: AttendanceService,
     members: List<com.github.zzave.teambalance.api.domain.model.TeamMember>,
 ): Event {
@@ -159,6 +161,7 @@ private fun com.github.zzave.teambalance.api.domain.model.Event.produce(
         endTime = DateTimestampWithTimezone(endTime.toString()),
         location = location,
         references = references.externalize(),
+        recurringGroup = recurringGroup?.toString(),
         attendanceSummary = summary.produce(roleBreakdown),
     )
 }

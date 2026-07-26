@@ -12,6 +12,7 @@ data class Event(
     val endTime: Instant,
     val location: String?,
     val references: List<EventReference> = emptyList(),
+    val recurringGroup: UUID?,
     val createdBy: UUID,
     val createdAt: Instant,
 ) {

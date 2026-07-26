@@ -40,6 +40,7 @@ type Event {
     endTime: DateTimestampWithTimezone,
     location: String?,
     references: EventReference[],
+    recurringGroup: String?,
     attendanceSummary: AttendanceSummary
 }
 
@@ -52,6 +53,7 @@ type EventDetail {
     endTime: DateTimestampWithTimezone,
     location: String?,
     references: EventReference[],
+    recurringGroup: String?,
     attendanceSummary: AttendanceSummary,
     attendances: AttendanceEntry[]
 }

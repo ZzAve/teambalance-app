@@ -1,0 +1,82 @@
+package com.github.zzave.teambalance.api.interfaces
+
+import com.github.zzave.teambalance.api.application.AttendanceService
+import com.github.zzave.teambalance.api.application.AuthorizationService
+import com.github.zzave.teambalance.api.application.CurrentTeamProvider
+import com.github.zzave.teambalance.api.application.CurrentUserProvider
+import com.github.zzave.teambalance.api.application.EventService
+import com.github.zzave.teambalance.api.domain.model.Recurrence
+import com.github.zzave.teambalance.api.domain.model.RecurrenceFrequency as DomainRecurrenceFrequency
+import com.github.zzave.teambalance.api.interfaces.generated.endpoint.CreateRecurringEvents
+import com.github.zzave.teambalance.api.interfaces.generated.model.CreateRecurringEventsRequest
+import com.github.zzave.teambalance.api.interfaces.generated.model.RecurrenceFrequency
+import com.github.zzave.teambalance.api.interfaces.generated.model.RecurringEventSeries
+import com.github.zzave.teambalance.api.interfaces.generated.model.Weekday
+import org.springframework.web.bind.annotation.RestController
+import java.time.DayOfWeek
+import java.time.LocalDate
+import java.time.LocalTime
+import java.util.UUID
+
+@RestController
+class RecurringEventController(
+    private val eventService: EventService,
+    private val attendanceService: AttendanceService,
+    private val currentUserProvider: CurrentUserProvider,
+    private val currentTeamProvider: CurrentTeamProvider,
+    private val authorizationService: AuthorizationService,
+) : CreateRecurringEvents.Handler {
+
+    // Admin-only, mirroring single-event create. Season/cap/empty violations surface as 422 via the
+    // GlobalExceptionHandler; a non-admin surfaces as 403.
+    override suspend fun createRecurringEvents(request: CreateRecurringEvents.Request): CreateRecurringEvents.Response<*> {
+        val teamId = currentTeamProvider.requireCurrentTeamId()
+        val userId = currentUserProvider.requireCurrentUserId()
+        authorizationService.requireAdmin(userId, teamId)
+
+        val body = request.body
+        val series = eventService.createRecurringEvents(
+            eventTypeId = UUID.fromString(body.eventTypeId),
+            title = body.title,
+            description = body.description,
+            location = body.location,
+            timeOfDay = LocalTime.parse(body.timeOfDay),
+            durationMinutes = body.durationMinutes,
+            recurrence = body.recurrence.consume(),
+            createdBy = userId,
+        )
+
+        // Attendance is derived from current team membership at read time (#114), so the created
+        // occurrences carry the full NOT_RESPONDED roster without any seeded rows.
+        val members = attendanceService.teamMembers(teamId)
+        return CreateRecurringEvents.Response201(
+            RecurringEventSeries(
+                recurringGroup = series.recurringGroup.toString(),
+                events = series.events.map { it.produce(attendanceService, members) },
+            ),
+        )
+    }
+}
+
+private fun com.github.zzave.teambalance.api.interfaces.generated.model.RecurrenceRule.consume() =
+    Recurrence(
+        frequency = frequency.consume(),
+        weekdays = weekdays.map { it.consume() }.toSet(),
+        startDate = LocalDate.parse(startDate),
+        endDate = LocalDate.parse(endDate),
+    )
+
+private fun RecurrenceFrequency.consume() = when (this) {
+    RecurrenceFrequency.WEEKLY -> DomainRecurrenceFrequency.WEEKLY
+    RecurrenceFrequency.BIWEEKLY -> DomainRecurrenceFrequency.BIWEEKLY
+}
+
+private fun Weekday.consume() = when (this) {
+    Weekday.MONDAY -> DayOfWeek.MONDAY
+    Weekday.TUESDAY -> DayOfWeek.TUESDAY
+    Weekday.WEDNESDAY -> DayOfWeek.WEDNESDAY
+    Weekday.THURSDAY -> DayOfWeek.THURSDAY
+    Weekday.FRIDAY -> DayOfWeek.FRIDAY
+    Weekday.SATURDAY -> DayOfWeek.SATURDAY
+    Weekday.SUNDAY -> DayOfWeek.SUNDAY
+}

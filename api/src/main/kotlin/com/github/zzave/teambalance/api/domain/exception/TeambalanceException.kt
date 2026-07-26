@@ -30,6 +30,14 @@ class NoTeamMembershipException(userId: UUID) :
 class CannotChangeOwnRoleException(userId: UUID) :
     ForbiddenException("User $userId cannot elevate their own role", "CANNOT_SELF_PROMOTE")
 
+// `code` is the stable machine-readable discriminator for 422 rejections — a request that is
+// well-formed but violates a business rule (not a state clash, so not a 409). Mirrors the code
+// convention of ForbiddenException/ConflictException.
+sealed class UnprocessableEntityException(message: String, val code: String) : TeambalanceException(message)
+
+class EventOutsideSeasonException(start: java.time.LocalDate) :
+    UnprocessableEntityException("Event start $start falls outside the configured season", "EVENT_OUTSIDE_SEASON")
+
 // `code` is the stable machine-readable discriminator for 409 conflicts (state clashes clients can act on),
 // mirroring ForbiddenException — e.g. "display name already used" vs "would remove the last admin".
 sealed class ConflictException(message: String, val code: String) : TeambalanceException(message)

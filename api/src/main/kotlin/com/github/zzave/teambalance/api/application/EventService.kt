@@ -1,5 +1,6 @@
 package com.github.zzave.teambalance.api.application
 
+import com.github.zzave.teambalance.api.domain.exception.EventOutsideSeasonException
 import com.github.zzave.teambalance.api.domain.exception.EventTypeNotFoundException
 import com.github.zzave.teambalance.api.domain.model.Attendance
 import com.github.zzave.teambalance.api.domain.model.AttendanceState
@@ -7,6 +8,7 @@ import com.github.zzave.teambalance.api.domain.model.Event
 import com.github.zzave.teambalance.api.domain.port.AttendanceRepository
 import com.github.zzave.teambalance.api.domain.port.EventRepository
 import com.github.zzave.teambalance.api.domain.port.EventTypeRepository
+import com.github.zzave.teambalance.api.domain.port.SeasonRepository
 import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -22,6 +24,7 @@ class EventService(
     private val eventTypeRepository: EventTypeRepository,
     private val attendanceRepository: AttendanceRepository,
     private val teamMemberRepository: TeamMemberRepository,
+    private val seasonRepository: SeasonRepository,
     private val clock: Clock,
 ) {
     companion object {
@@ -42,6 +45,9 @@ class EventService(
     fun createEvent(potential: PotentialEvent, createdBy: UUID, teamId: UUID): Event {
         val eventType = eventTypeRepository.findById(potential.eventTypeId)
             ?: throw EventTypeNotFoundException(potential.eventTypeId)
+
+        // ADR-0014: a created event's start must always fall within the configured season.
+        requireWithinSeason(potential.startTime)
 
         val event = eventRepository.save(
             Event(
@@ -86,6 +92,10 @@ class EventService(
         val eventType = eventTypeRepository.findById(eventTypeId)
             ?: throw EventTypeNotFoundException(eventTypeId)
 
+        // ADR-0014: validate the season only when the start is being moved. An unchanged start is
+        // grandfathered, so an event already outside the window (e.g. after it was shrunk) stays editable.
+        if (existing.startTime != startTime) requireWithinSeason(startTime)
+
         return eventRepository.save(
             existing.copy(
                 eventType = eventType,
@@ -102,5 +112,13 @@ class EventService(
         if (eventRepository.findById(id) == null) return false
         eventRepository.deleteById(id)
         return true
+    }
+
+    // Rejects a start that falls outside the configured season. The instant is resolved to a calendar
+    // date in the team's civil zone (the clock's zone) so the comparison matches how humans read the
+    // date. An unconfigured season (both bounds null) allows everything.
+    private fun requireWithinSeason(startTime: Instant) {
+        val startDate = startTime.atZone(clock.zone).toLocalDate()
+        if (!seasonRepository.get().allows(startDate)) throw EventOutsideSeasonException(startDate)
     }
 }

@@ -3,6 +3,7 @@ package com.github.zzave.teambalance.api.application
 import com.github.zzave.teambalance.api.domain.exception.EventOutsideSeasonException
 import com.github.zzave.teambalance.api.domain.exception.EventTypeNotFoundException
 import com.github.zzave.teambalance.api.domain.model.Event
+import com.github.zzave.teambalance.api.domain.model.EventReference
 import com.github.zzave.teambalance.api.domain.port.EventRepository
 import com.github.zzave.teambalance.api.domain.port.EventTypeRepository
 import com.github.zzave.teambalance.api.domain.port.SeasonRepository
@@ -55,6 +56,7 @@ class EventService(
                 startTime = potential.startTime,
                 endTime = potential.endTime,
                 location = potential.location,
+                references = potential.references,
                 createdBy = createdBy,
                 createdAt = clock.instant(),
             ),
@@ -69,6 +71,7 @@ class EventService(
         startTime: Instant,
         endTime: Instant,
         location: String?,
+        references: List<EventReference> = emptyList(),
     ): Event? {
         val existing = eventRepository.findById(id) ?: return null
         val eventType = eventTypeRepository.findById(eventTypeId)
@@ -78,6 +81,7 @@ class EventService(
         // grandfathered, so an event already outside the window (e.g. after it was shrunk) stays editable.
         if (existing.startTime != startTime) requireWithinSeason(startTime)
 
+        // Replace-semantics (ADR-0016): the incoming list is the new full set of references.
         return eventRepository.save(
             existing.copy(
                 eventType = eventType,
@@ -86,6 +90,7 @@ class EventService(
                 startTime = startTime,
                 endTime = endTime,
                 location = location,
+                references = references,
             ),
         )
     }

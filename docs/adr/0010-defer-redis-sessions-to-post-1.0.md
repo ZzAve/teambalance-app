@@ -1,6 +1,6 @@
 # ADR-0010: Use in-memory servlet sessions for 1.0; defer Redis-backed sessions
 
-- Status: Accepted
+- Status: Superseded by ADR-0014 (JDBC-backed shared sessions on Scaleway scale-to-zero)
 - Date: 2026-07-01
 - Amends: ADR-0008 (which specified server-side sessions via Spring Session + Redis)
 

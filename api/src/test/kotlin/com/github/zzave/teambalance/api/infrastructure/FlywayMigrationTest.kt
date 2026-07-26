@@ -18,7 +18,10 @@ class FlywayMigrationTest : TeamBalanceIT() {
                 "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'",
                 String::class.java,
             )
-            tables shouldContainAll listOf("users", "teams", "team_members", "invitations", "magic_link_tokens")
+            tables shouldContainAll listOf(
+                "users", "teams", "team_members", "invitations", "magic_link_tokens",
+                "spring_session", "spring_session_attributes",
+            )
         }
     }
 }

@@ -30,10 +30,23 @@ spring:
     locations: classpath:db/migration
   jackson:
     default-property-inclusion: non_null
-  # No Spring Session store is configured: 1.0 uses the servlet container's in-memory HttpSession
-  # (JSESSIONID) per ADR-0010. Spring Session + Redis were removed from the classpath (they had zero
-  # references in main and forced Spring Data "multiple-modules strict mode" onto the boot path); a
-  # future Phase-5 shared-session store re-adds them deliberately when it is actually needed.
+  session:
+    # Sessions are stored in Postgres (public.SPRING_SESSION) instead of the servlet container's
+    # in-memory HttpSession. This is what lets a login survive a container restart / cold start /
+    # redeploy — on Scaleway Serverless with min-instances=0 every new pod boot would otherwise start
+    # with an empty heap-resident session table and silently log everyone out.
+    jdbc:
+      # Flyway owns the schema (db/migration/V005__spring_session.sql); never let Spring Session run DDL.
+      initialize-schema: never
+      # Schema-qualify so session queries always resolve to `public`, independent of the tenant
+      # search_path the multitenancy connection provider may have left on a pooled connection.
+      table-name: public.SPRING_SESSION
+    servlet:
+      # Spring Session's repository filter must wrap the request BEFORE SessionUserContextFilter
+      # (HIGHEST_PRECEDENCE+2) and SessionTenantContextFilter (+3) call request.getSession(); its
+      # default order (MIN_VALUE+50) would run after them, so they'd read the raw servlet session
+      # instead of the JDBC-backed one. Force it to the very front (Integer.MIN_VALUE).
+      filter-order: -2147483648
   http:
     client:
       # Global default for every RestClient built from the auto-configured builder. Today the only
@@ -45,6 +58,16 @@ spring:
 server:
   port: 8080
   shutdown: graceful
+  servlet:
+    session:
+      # Sliding idle window: a session stays valid as long as it is used at least once every 4 weeks
+      # (Spring Session refreshes the row's expiry on each request). Long by design — logging in is a
+      # magic-link round-trip, so we favour staying logged in (ADR-0015).
+      timeout: 28d
+      cookie:
+        # Persist the cookie across browser restarts (default is a session cookie cleared on close),
+        # up to the absolute lifetime cap so it never expires before the server-side session does.
+        max-age: 90d
 
 management:
   endpoints:
@@ -71,6 +94,11 @@ teambalance:
       enabled: false
   # Base URL of the SPA; used to build the clickable magic-link (…/auth/verify?token=…).
   frontend-base-url: ${TEAMBALANCE_FRONTEND_BASE_URL:https://app.teambalance.nl}
+  session:
+    # Absolute session lifetime, enforced by SessionUserContextFilter (Spring Session itself only does
+    # the sliding idle timeout above). A single login — even one kept continuously active — must
+    # re-authenticate after this, bounding how long a leaked cookie stays useful. See ADR-0015.
+    absolute-timeout: 90d
   invitation:
     # App-wide secret salt applied to stored invite-token hashes. Live environments MUST provide it
     # via INVITATION_TOKEN_SALT (no default here → the app fails fast if it is unset). Dev and test

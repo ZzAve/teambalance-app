@@ -13,6 +13,7 @@ export function makeEvent(overrides: Partial<Event> = {}): Event {
     startTime: '2026-07-01T18:00:00+02:00',
     endTime: '2026-07-01T20:00:00+02:00',
     location: undefined,
+    references: [],
     attendanceSummary: {
       attending: 5,
       maybe: 1,

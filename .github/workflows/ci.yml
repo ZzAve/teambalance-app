@@ -8,18 +8,12 @@ on:
 permissions:
   contents: read
 
-# Deploy-only config (the `build` job ignores it). Cold-start levers asserted on every deploy — see
-# docs/plans/2026-07-24-startup-time-optimization.md and docs/ops/deploy.md.
+# Deploy-only config (the `build` job ignores it). See docs/ops/deploy.md. The container's
+# cpu/memory/sandbox are managed manually in the Scaleway console, not here.
 env:
   SCW_REGION: fr-par
   REGISTRY: rg.fr-par.scw.cloud/teambalance
   CONTAINER_ID: ec9dfda3-65ca-4901-a640-895fd2f9f5f3
-  # scw CLI v2.58.3 arg names: mvcpu-limit (mvCPU; 2000 = 2 vCPU) and memory-limit-bytes (a whole-GB
-  # size STRING despite the name, e.g. 2GB). 2 vCPU speeds the CPU-bound cold start; sandbox v2
-  # (gVisor) cuts it further.
-  CONTAINER_MVCPU_LIMIT: '2000'
-  CONTAINER_MEMORY_LIMIT: '2GB'
-  CONTAINER_SANDBOX: v2
   S3_ENDPOINT: https://s3.fr-par.scw.cloud
   SPA_BUCKET: teambalance-spa
   WWW_BUCKET: teambalance-www
@@ -95,19 +89,8 @@ jobs:
             app/test-results/
           retention-days: 7
 
-  # ===========================================================================
-  # MANUAL deploy gate (replaces the old .github/workflows/deploy.yml).
-  #
-  # Runs ONLY on a push to `main` or a `deploy*` branch, ONLY after `build` is green, and each job
-  # PAUSES for a one-click manual approval via the `production` GitHub Environment. It deploys the
-  # exact commit CI just validated (image tag = commit SHA).
-  #
-  # ⚠️ REQUIRED ONE-TIME SETUP — the manual gate IS the environment protection, not the YAML:
-  #   Settings → Environments → New environment `production` → add a *Required reviewer*.
-  #   (Optionally restrict "Deployment branches" to `main` + `deploy*`.)
-  #   WITHOUT a required reviewer these jobs run immediately with NO gate — i.e. every push to main
-  #   would auto-deploy. Configure it before relying on this.
-  # ===========================================================================
+  # MANUAL deploy gate: runs only on push to `main`/`deploy*`, after `build`; each pauses for
+  # approval via the `production` environment. Deploys the exact commit CI validated (tag = SHA).
   deploy-api:
     needs: build
     if: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/deploy')) }}
@@ -146,22 +129,10 @@ jobs:
           echo "${{ secrets.SCW_SECRET_KEY }}" | docker login "${REGISTRY%%/*}" -u nologin --password-stdin
           docker push "${{ steps.tag.outputs.image }}"
 
-      # Image update FIRST and alone, so it can never be blocked by a bad resource value below.
-      # Env/secret maps are not passed, so they stay as-is.
+      # Image-only update: env/secret maps and the container's cpu/memory/sandbox config are left
+      # untouched — those are managed manually in the Scaleway console.
       - name: Update Serverless Container image
         run: scw container container update "$CONTAINER_ID" image="${{ steps.tag.outputs.image }}" region="$SCW_REGION"
-
-      # Resource + sandbox config in a SEPARATE update. If mvcpu/memory isn't a valid Scaleway pair
-      # this step fails, but the new image is already live (previous step), so it's a one-value fix +
-      # re-run. Arg names are for scw CLI v2.58.3: `mvcpu-limit` (mvCPU) and `memory-limit-bytes`
-      # (a whole-GB size string despite the name, e.g. 2GB).
-      - name: Assert Serverless Container resources + sandbox
-        run: |
-          scw container container update "$CONTAINER_ID" \
-            mvcpu-limit="$CONTAINER_MVCPU_LIMIT" \
-            memory-limit-bytes="$CONTAINER_MEMORY_LIMIT" \
-            sandbox="$CONTAINER_SANDBOX" \
-            region="$SCW_REGION"
 
   deploy-frontend:
     needs: build

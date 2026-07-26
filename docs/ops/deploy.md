@@ -32,11 +32,11 @@ tests everything and simply waits — nothing deploys until you approve.
 ## What each job does
 
 **`deploy-api`** — builds `api/Dockerfile` for **linux/amd64** (the Serverless Container
-rejects other arches), pushes to `rg.fr-par.scw.cloud/teambalance/api:<sha>`, updates
-Serverless Container `ec9dfda3-…` (fr-par) to that image, then asserts its cold-start
-config (`mvcpu-limit`, `memory-limit-bytes`, `sandbox=v2`) in a **separate** step so a bad
-tier value can't block the image update. The Gradle build runs *inside* the multi-stage
-image, so the runner needs no JDK/Gradle.
+rejects other arches), pushes to `rg.fr-par.scw.cloud/teambalance/api:<sha>`, and does an
+**image-only** update of Serverless Container `ec9dfda3-…` (fr-par). The container's
+cpu/memory/sandbox and its env/secret maps are left untouched — those are managed manually
+in the Scaleway console. The Gradle build runs *inside* the multi-stage image, so the
+runner needs no JDK/Gradle.
 
 **`deploy-frontend`** — builds the SPA (`vite build` auto-loads `app/.env.production` →
 `VITE_API_URL=https://api.teambalance.nl`), syncs `app/dist` → `s3://teambalance-spa`
@@ -44,13 +44,12 @@ image, so the runner needs no JDK/Gradle.
 → `s3://teambalance-www`, then purges both Edge Services pipelines. S3 uses the **dedicated
 Object Storage IAM key** (`SCW_S3_*`).
 
-## Container resource config (config-as-code)
+## Container resource config
 
-The `CONTAINER_*` env vars at the top of `ci.yml` are asserted on every deploy, so prod
-never drifts to a console-only value. To A/B the cold start, bump `CONTAINER_MVCPU_LIMIT`
-(e.g. `4000` for 4 vCPU) and re-read the `Started … in X seconds` line. Note the scw
-v2.58.3 quirks: CPU is `mvcpu-limit` (mvCPU, 1000 = 1 vCPU); memory is `memory-limit-bytes`
-but takes a **whole-GB size string** (e.g. `2GB`), not raw bytes.
+The container's **cpu / memory / sandbox** (2 vCPU, 2 GB, gVisor v2) are set **manually in
+the Scaleway console**, not by the deploy — the pipeline only updates the image. To A/B the
+cold start, change the vCPU in the console (e.g. 4 vCPU) and re-read the `Started … in X
+seconds` line. Console fields: CPU in vCPU, memory in MB, sandbox v1/v2.
 
 ## Required GitHub Actions secrets
 

@@ -30,6 +30,9 @@ class EventService(
 ) {
     companion object {
         val GRACE_PERIOD: Duration = Duration.ofHours(6)
+
+        // A single occurrence can't run longer than a day — guards against a bogus/huge duration.
+        const val MAX_DURATION_MINUTES: Long = 24 * 60
     }
 
     fun getUpcomingEvents(): List<Event> {
@@ -93,6 +96,9 @@ class EventService(
         recurrence: Recurrence,
         createdBy: UUID,
     ): RecurringEventSeries {
+        require(durationMinutes in 1..MAX_DURATION_MINUTES) {
+            "durationMinutes must be between 1 and $MAX_DURATION_MINUTES"
+        }
         val eventType = eventTypeRepository.findById(eventTypeId)
             ?: throw EventTypeNotFoundException(eventTypeId)
 
@@ -127,7 +133,7 @@ class EventService(
         val dates = recurrence.occurrences()
         if (dates.isEmpty()) throw EmptyRecurrenceException()
         if (dates.size > Recurrence.MAX_OCCURRENCES) {
-            throw RecurrenceExceedsCapException(dates.size, Recurrence.MAX_OCCURRENCES)
+            throw RecurrenceExceedsCapException(Recurrence.MAX_OCCURRENCES)
         }
         return dates
     }

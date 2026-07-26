@@ -8,7 +8,6 @@ import com.github.zzave.teambalance.api.application.EventService
 import com.github.zzave.teambalance.api.domain.model.Recurrence
 import com.github.zzave.teambalance.api.domain.model.RecurrenceFrequency as DomainRecurrenceFrequency
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.CreateRecurringEvents
-import com.github.zzave.teambalance.api.interfaces.generated.model.CreateRecurringEventsRequest
 import com.github.zzave.teambalance.api.interfaces.generated.model.RecurrenceFrequency
 import com.github.zzave.teambalance.api.interfaces.generated.model.RecurringEventSeries
 import com.github.zzave.teambalance.api.interfaces.generated.model.Weekday

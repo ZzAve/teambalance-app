@@ -9,13 +9,21 @@ export type { RecurrenceFrequency } from './generated/model/RecurrenceFrequency'
 export type { Weekday } from './generated/model/Weekday'
 export type { RecurringEventSeries } from './generated/model/RecurringEventSeries'
 
-// Distinct error the backend raises (422) when a generated start falls outside the team's season;
-// surfaced to the caller so the wizard can point at the season rather than a generic failure.
-export class OutsideSeasonError extends Error {
-  constructor() {
-    super('One or more dates fall outside the season window.')
-    this.name = 'OutsideSeasonError'
+// The distinct business-rule rejections the backend returns as 422, discriminated by the response
+// body's `code` so the wizard can show the right reason instead of a generic failure.
+export type RecurringCreateReason = 'outside-season' | 'over-cap' | 'empty' | 'unknown'
+
+export class RecurringCreateError extends Error {
+  constructor(public readonly reason: RecurringCreateReason) {
+    super(reason)
+    this.name = 'RecurringCreateError'
   }
+}
+
+const REASON_BY_CODE: Record<string, RecurringCreateReason> = {
+  EVENT_OUTSIDE_SEASON: 'outside-season',
+  RECURRENCE_EXCEEDS_CAP: 'over-cap',
+  EMPTY_RECURRENCE: 'empty',
 }
 
 export function useCreateRecurringEvents() {
@@ -23,9 +31,14 @@ export function useCreateRecurringEvents() {
   return useMutation({
     mutationFn: async (body: CreateRecurringEventsRequest) => {
       const res = await api.CreateRecurringEvents({ body })
-      if (res.status === 422) throw new OutsideSeasonError()
-      if (res.status !== 201) throw new Error('Could not create the recurring series.')
-      return res.body
+      if (res.status === 201) return res.body
+      if (res.status === 422) {
+        // The 422 body carries a machine-readable `code` (GlobalExceptionHandler); the three
+        // recurrence rejections must not be conflated into one message.
+        const code = (res.body as unknown as { code?: string } | undefined)?.code
+        throw new RecurringCreateError((code && REASON_BY_CODE[code]) || 'unknown')
+      }
+      throw new RecurringCreateError('unknown')
     },
     // A batch creates many events across upcoming + past buckets — refresh every events reader.
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['events'] }),

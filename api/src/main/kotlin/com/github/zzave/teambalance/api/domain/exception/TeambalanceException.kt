@@ -38,9 +38,9 @@ sealed class UnprocessableEntityException(message: String, val code: String) : T
 class EventOutsideSeasonException(start: java.time.LocalDate) :
     UnprocessableEntityException("Event start $start falls outside the configured season", "EVENT_OUTSIDE_SEASON")
 
-class RecurrenceExceedsCapException(requested: Int, cap: Int) :
+class RecurrenceExceedsCapException(cap: Int) :
     UnprocessableEntityException(
-        "Recurring series would create $requested events, over the cap of $cap — shorten the range or thin the schedule",
+        "Recurring series exceeds the cap of $cap events — shorten the range or thin the schedule",
         "RECURRENCE_EXCEEDS_CAP",
     )
 

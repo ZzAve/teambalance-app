@@ -32,6 +32,11 @@ data class Recurrence(
      * Tue/Thu one week, skips the next, and so on (matching the create prototype's preview).
      *
      * Pure and side-effect-free; the returned list may be empty when no in-range date matches.
+     *
+     * Generation short-circuits once it passes [MAX_OCCURRENCES] (returning exactly one over the
+     * cap): an unbounded date range must never force day-by-day iteration over millennia or build a
+     * multi-million-element list before the caller can reject it. Callers detect the over-cap case
+     * with `size > MAX_OCCURRENCES` all the same.
      */
     fun occurrences(): List<LocalDate> {
         val perWeekdayCount = mutableMapOf<DayOfWeek, Int>()
@@ -43,7 +48,10 @@ data class Recurrence(
                 val index = perWeekdayCount.getOrDefault(dayOfWeek, 0)
                 val keep = frequency == RecurrenceFrequency.WEEKLY || index % 2 == 0
                 perWeekdayCount[dayOfWeek] = index + 1
-                if (keep) result.add(cursor)
+                if (keep) {
+                    result.add(cursor)
+                    if (result.size > MAX_OCCURRENCES) break
+                }
             }
             cursor = cursor.plusDays(1)
         }

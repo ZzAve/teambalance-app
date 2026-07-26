@@ -5,7 +5,7 @@ import { Button } from '@shared/ui/button'
 import { useEventTypes } from '@shared/api/event-types'
 import { useSeason } from '@shared/api/season'
 import {
-  OutsideSeasonError,
+  RecurringCreateError,
   useCreateRecurringEvents,
   type CreateRecurringEventsRequest,
 } from '@shared/api/recurring-events'
@@ -30,8 +30,13 @@ export function CreateRecurringEventsDialog() {
 
   const errorMessage = !createSeries.error
     ? undefined
-    : createSeries.error instanceof OutsideSeasonError
-      ? 'Some dates fall outside the season window — adjust the range.'
+    : createSeries.error instanceof RecurringCreateError
+      ? {
+          'outside-season': 'Some dates fall outside the season window — adjust the range.',
+          'over-cap': 'That series is over the 200-event cap — shorten the range or thin the schedule.',
+          empty: 'No dates match — pick at least one weekday inside the range.',
+          unknown: 'Could not create the series. Please try again.',
+        }[createSeries.error.reason]
       : 'Could not create the series. Please try again.'
 
   return (

@@ -1,0 +1,2631 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>TeamBalance — Recurring Events (Guided)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300..800;1,9..40,300..800&family=Grandstander:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  :root {
+    --primary: #225C9C;
+    --primary-light: #2d6fb5;
+    --primary-dark: #1a4a7e;
+    --primary-bg: rgba(34, 92, 156, 0.08);
+    --primary-bg-hover: rgba(34, 92, 156, 0.05);
+    --primary-glow: rgba(34, 92, 156, 0.15);
+
+    --accent-green: #249E6C;
+    --accent-green-light: #2ab87d;
+    --accent-green-bg: rgba(36, 158, 108, 0.10);
+
+    --warm-gold: #F4B400;
+    --warm-gold-light: #f7c948;
+    --warm-gold-bg: rgba(244, 180, 0, 0.12);
+
+    --warm-red: #E05252;
+    --warm-red-dark: #D93025;
+    --warm-red-bg: rgba(224, 82, 82, 0.10);
+
+    --bg: #F8F6F0;
+    --bg-card: #FEFDFB;
+    --bg-sidebar: #F3F1EB;
+    --bg-bottombar: rgba(254, 253, 251, 0.88);
+
+    --text-primary: #1E2A3A;
+    --text-secondary: #5A6B7F;
+    --text-tertiary: #8A95A5;
+    --text-on-primary: #FFFFFF;
+
+    --border: rgba(30, 42, 58, 0.07);
+    --shadow-sm: 0 1px 3px rgba(62, 45, 30, 0.05), 0 1px 2px rgba(62, 45, 30, 0.03);
+    --shadow-md: 0 4px 12px rgba(62, 45, 30, 0.07), 0 2px 4px rgba(62, 45, 30, 0.04);
+    --shadow-lg: 0 8px 24px rgba(62, 45, 30, 0.09), 0 4px 8px rgba(62, 45, 30, 0.04);
+    --shadow-xl: 0 16px 48px rgba(62, 45, 30, 0.12), 0 8px 16px rgba(62, 45, 30, 0.06);
+
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --radius-pill: 24px;
+
+    --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+    --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+    --ease-out: cubic-bezier(0, 0, 0.2, 1);
+
+    --font-display: 'Grandstander', cursive;
+    --font-body: 'DM Sans', system-ui, sans-serif;
+
+    --topbar-height: 60px;
+    --bottombar-height: 72px;
+  }
+
+  html {
+    font-family: var(--font-body);
+    color: var(--text-primary);
+    background: var(--bg);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    line-height: 1.6;
+    letter-spacing: 0.01em;
+  }
+
+  body {
+    min-height: 100dvh;
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* ── Top Bar ────────────────────────────────── */
+  .topbar {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: var(--topbar-height);
+    background: linear-gradient(180deg, rgba(254, 253, 251, 0.97) 0%, rgba(248, 246, 240, 0.95) 100%);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+    z-index: 100;
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+  }
+
+  .wordmark {
+    font-family: var(--font-display);
+    font-size: 21px;
+    user-select: none;
+    display: flex;
+    align-items: baseline;
+    gap: 1px;
+    letter-spacing: -0.01em;
+  }
+
+  .wordmark .wm-team { font-weight: 400; color: var(--text-primary); }
+  .wordmark .wm-balance { font-weight: 700; color: var(--accent-green); }
+
+  .team-indicator {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 14px;
+    border-radius: var(--radius-pill);
+    background: var(--primary-bg);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--primary);
+    cursor: default;
+    letter-spacing: 0.02em;
+  }
+
+  .team-indicator .dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--accent-green);
+  }
+
+  /* ── Prototype ribbon ───────────────────────── */
+  .proto-ribbon {
+    position: fixed;
+    top: calc(var(--topbar-height) + 0px);
+    left: 50%;
+    transform: translateX(-50%) translateY(-50%);
+    z-index: 101;
+    background: var(--text-primary);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 3px 12px;
+    border-radius: var(--radius-pill);
+    box-shadow: var(--shadow-md);
+    opacity: 0.92;
+    pointer-events: none;
+  }
+
+  /* ── Bottom Bar ─────────────────────────────── */
+  .bottombar {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    height: var(--bottombar-height);
+    background: var(--bg-bottombar);
+    backdrop-filter: blur(20px) saturate(1.4);
+    -webkit-backdrop-filter: blur(20px) saturate(1.4);
+    border-top: 1px solid rgba(30, 42, 58, 0.06);
+    box-shadow: 0 -1px 16px rgba(62, 45, 30, 0.06);
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    padding: 0 8px;
+    padding-bottom: env(safe-area-inset-bottom, 0);
+    z-index: 100;
+  }
+
+  .tab-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 8px 20px;
+    border-radius: var(--radius-pill);
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-family: var(--font-body);
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-tertiary);
+    transition: color 0.25s var(--ease-smooth);
+    position: relative;
+    -webkit-tap-highlight-color: transparent;
+    letter-spacing: 0.02em;
+  }
+
+  .tab-btn svg { width: 22px; height: 22px; transition: transform 0.3s var(--ease-spring), color 0.2s; }
+
+  .tab-btn .tab-pill {
+    position: absolute;
+    top: 2px; left: 50%;
+    transform: translateX(-50%) scaleX(0);
+    width: 48px; height: 30px;
+    border-radius: 15px;
+    background: var(--primary-bg);
+    transition: transform 0.35s var(--ease-spring);
+    z-index: -1;
+  }
+
+  .tab-btn.active { color: var(--primary); font-weight: 600; }
+  .tab-btn.active svg { transform: scale(1.1) translateY(-1px); color: var(--primary); filter: drop-shadow(0 0 4px var(--primary-glow)); }
+  .tab-btn.active .tab-pill { transform: translateX(-50%) scaleX(1); box-shadow: 0 0 12px var(--primary-glow); }
+
+  /* ── Content Area ──────────────────────────── */
+  .content-area {
+    position: fixed;
+    top: var(--topbar-height);
+    left: 0; right: 0;
+    bottom: var(--bottombar-height);
+    overflow: hidden;
+  }
+
+  /* ── Screens ───────────────────────────────── */
+  .screen {
+    position: absolute;
+    inset: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    background: var(--bg);
+    transition: transform 0.4s var(--ease-smooth), opacity 0.3s var(--ease-smooth);
+    will-change: transform;
+  }
+
+  .screen.hidden {
+    transform: translateX(100%);
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .screen.slide-out-left {
+    transform: translateX(-30%);
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .screen-inner {
+    padding: 24px 20px 32px;
+    max-width: 540px;
+    margin: 0 auto;
+  }
+
+  /* ── Events List ───────────────────────────── */
+  .screen-header {
+    margin-bottom: 22px;
+  }
+
+  .screen-header h1 {
+    font-family: var(--font-display);
+    font-size: 30px;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    margin-bottom: 5px;
+    color: var(--text-primary);
+  }
+
+  .screen-header p {
+    font-size: 15px;
+    color: var(--text-secondary);
+  }
+
+  .section-heading {
+    font-family: var(--font-body);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 12px;
+    margin-top: 24px;
+  }
+
+  .section-heading:first-of-type { margin-top: 0; }
+
+  /* ── Cards ─────────────────────────────────── */
+  .card {
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    padding: 18px;
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border);
+    transition: box-shadow 0.2s, transform 0.2s var(--ease-spring);
+    cursor: pointer;
+    animation: cardIn 0.4s var(--ease-smooth) both;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .card:hover { box-shadow: var(--shadow-md); transform: translateY(-1px); }
+  .card:active { transform: scale(0.99); }
+  .card + .card { margin-top: 12px; }
+
+  @keyframes cardIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .card:nth-child(2) { animation-delay: 0.05s; }
+  .card:nth-child(3) { animation-delay: 0.12s; }
+  .card:nth-child(4) { animation-delay: 0.19s; }
+
+  .card-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .card-icon {
+    width: 42px; height: 42px;
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .card-icon svg { width: 20px; height: 20px; }
+  .card-icon.blue { background: var(--primary-bg); color: var(--primary); }
+  .card-icon.green { background: var(--accent-green-bg); color: var(--accent-green); }
+  .card-icon.gold { background: var(--warm-gold-bg); color: #c89200; }
+
+  .card-body { flex: 1; min-width: 0; }
+
+  .card-title {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 2px;
+    letter-spacing: -0.01em;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .card-title .title-text {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .series-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: var(--radius-pill);
+    background: var(--primary-bg);
+    color: var(--primary);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    flex-shrink: 0;
+  }
+  .series-badge svg { width: 11px; height: 11px; }
+
+  .card-sub {
+    font-size: 13px;
+    color: var(--text-secondary);
+    letter-spacing: 0.01em;
+  }
+
+  .card-right { text-align: right; flex-shrink: 0; display: flex; align-items: center; gap: 6px; }
+  .card-right .meta { font-size: 12px; color: var(--text-tertiary); }
+  .card-right .chev { color: var(--text-tertiary); display: flex; }
+  .card-right .chev svg { width: 18px; height: 18px; }
+
+  .attendance {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 10px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    margin-top: 8px;
+    letter-spacing: 0.02em;
+  }
+
+  .attendance.going { background: var(--accent-green-bg); color: var(--accent-green); }
+  .attendance.pending { background: var(--warm-gold-bg); color: #a07600; }
+
+  .attendance .att-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+
+  /* ── FAB ────────────────────────────────────── */
+  .fab {
+    position: fixed;
+    bottom: calc(var(--bottombar-height) + 20px);
+    right: 24px;
+    width: 56px; height: 56px;
+    border-radius: 50%;
+    background: var(--primary);
+    color: white;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 16px rgba(34, 92, 156, 0.4), 0 2px 6px rgba(34, 92, 156, 0.25);
+    z-index: 90;
+    transition: transform 0.25s var(--ease-spring), box-shadow 0.2s;
+    -webkit-tap-highlight-color: transparent;
+    animation: fabIn 0.5s var(--ease-spring) 0.3s both, fabPulse 3s ease-in-out 1.5s infinite;
+  }
+
+  .fab:hover {
+    transform: scale(1.08);
+    box-shadow: 0 6px 20px rgba(34, 92, 156, 0.45), 0 3px 8px rgba(34, 92, 156, 0.3);
+  }
+
+  .fab:active { transform: scale(0.95); }
+
+  .fab svg { width: 26px; height: 26px; transition: transform 0.3s var(--ease-spring); }
+  .fab.open svg { transform: rotate(45deg); }
+
+  @keyframes fabIn {
+    from { transform: scale(0) rotate(-90deg); opacity: 0; }
+    to { transform: scale(1) rotate(0deg); opacity: 1; }
+  }
+
+  @keyframes fabPulse {
+    0%, 100% { box-shadow: 0 4px 16px rgba(34, 92, 156, 0.4), 0 2px 6px rgba(34, 92, 156, 0.25), 0 0 0 0 rgba(34, 92, 156, 0.3); }
+    50% { box-shadow: 0 4px 16px rgba(34, 92, 156, 0.4), 0 2px 6px rgba(34, 92, 156, 0.25), 0 0 0 10px rgba(34, 92, 156, 0); }
+  }
+
+  /* ── Bottom Sheet ───────────────────────────── */
+  .sheet-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(30, 42, 58, 0.4);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    z-index: 200;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s var(--ease-smooth);
+  }
+
+  .sheet-backdrop.visible {
+    opacity: 1;
+    pointer-events: all;
+  }
+
+  .bottom-sheet {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: var(--bg-card);
+    border-radius: 20px 20px 0 0;
+    z-index: 210;
+    padding: 12px 24px 40px;
+    transform: translateY(100%);
+    transition: transform 0.4s var(--ease-spring);
+    box-shadow: var(--shadow-xl);
+    max-width: 540px;
+    margin: 0 auto;
+  }
+
+  .bottom-sheet.visible {
+    transform: translateY(0);
+  }
+
+  .sheet-handle {
+    width: 36px; height: 4px;
+    border-radius: 2px;
+    background: var(--border);
+    margin: 0 auto 20px;
+  }
+
+  .sheet-title {
+    font-family: var(--font-display);
+    font-size: 20px;
+    font-weight: 500;
+    color: var(--text-primary);
+    margin-bottom: 6px;
+    text-align: center;
+  }
+
+  .sheet-subtitle {
+    font-size: 14px;
+    color: var(--text-secondary);
+    text-align: center;
+    margin-bottom: 24px;
+  }
+
+  .sheet-options {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  .sheet-option {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    padding: 20px 16px;
+    border-radius: var(--radius-lg);
+    border: 1.5px solid var(--border);
+    background: var(--bg);
+    cursor: pointer;
+    transition: all 0.2s var(--ease-spring);
+    -webkit-tap-highlight-color: transparent;
+    font-family: var(--font-body);
+  }
+
+  .sheet-option:hover {
+    border-color: var(--primary);
+    background: var(--primary-bg);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+  }
+
+  .sheet-option:active { transform: scale(0.97); }
+
+  .sheet-option-icon {
+    width: 48px; height: 48px;
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .sheet-option-icon.blue { background: var(--primary-bg); color: var(--primary); }
+  .sheet-option-icon.green { background: var(--accent-green-bg); color: var(--accent-green); }
+  .sheet-option-icon svg { width: 24px; height: 24px; }
+
+  .sheet-option-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+    text-align: center;
+    letter-spacing: -0.01em;
+  }
+
+  .sheet-option-sub {
+    font-size: 12px;
+    color: var(--text-secondary);
+    text-align: center;
+    line-height: 1.4;
+  }
+
+  /* ── Scope prompt (vertical list options) ───── */
+  .scope-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .scope-option {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 16px 16px;
+    border-radius: var(--radius-lg);
+    border: 1.5px solid var(--border);
+    background: var(--bg);
+    cursor: pointer;
+    transition: all 0.2s var(--ease-spring);
+    -webkit-tap-highlight-color: transparent;
+    font-family: var(--font-body);
+    width: 100%;
+    text-align: left;
+  }
+
+  .scope-option:hover {
+    border-color: var(--primary);
+    background: var(--primary-bg);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-sm);
+  }
+  .scope-option:active { transform: scale(0.98); }
+
+  .scope-option.danger:hover { border-color: var(--warm-red); background: var(--warm-red-bg); }
+
+  .scope-icon {
+    width: 40px; height: 40px;
+    border-radius: var(--radius-md);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    background: var(--primary-bg); color: var(--primary);
+  }
+  .scope-option.danger .scope-icon { background: var(--warm-red-bg); color: var(--warm-red-dark); }
+  .scope-icon svg { width: 20px; height: 20px; }
+
+  .scope-body { flex: 1; min-width: 0; }
+  .scope-label { font-size: 15px; font-weight: 600; color: var(--text-primary); letter-spacing: -0.01em; }
+  .scope-sub { font-size: 12.5px; color: var(--text-secondary); line-height: 1.4; }
+  .scope-chev { color: var(--text-tertiary); flex-shrink: 0; display: flex; }
+  .scope-chev svg { width: 18px; height: 18px; }
+
+  /* ── Form Screen ────────────────────────────── */
+  .form-topbar {
+    position: sticky;
+    top: 0;
+    background: linear-gradient(180deg, rgba(248, 246, 240, 0.97) 0%, rgba(248, 246, 240, 0.92) 100%);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 20px;
+    z-index: 10;
+    margin: 0 -20px;
+  }
+
+  .back-btn {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    border: none;
+    background: var(--bg-card);
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--text-primary);
+    -webkit-tap-highlight-color: transparent;
+    transition: transform 0.2s var(--ease-spring), box-shadow 0.2s;
+    flex-shrink: 0;
+  }
+
+  .back-btn:hover { transform: scale(1.05); box-shadow: var(--shadow-md); }
+  .back-btn svg { width: 18px; height: 18px; }
+
+  .form-title {
+    font-family: var(--font-display);
+    font-size: 22px;
+    font-weight: 500;
+    color: var(--text-primary);
+    letter-spacing: -0.01em;
+  }
+
+  /* ── Stepper ────────────────────────────────── */
+  .stepper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    margin: 22px 0 4px;
+  }
+
+  .step-node {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    position: relative;
+  }
+
+  .step-circle {
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 700;
+    font-family: var(--font-body);
+    background: var(--bg-card);
+    border: 1.5px solid var(--border);
+    color: var(--text-tertiary);
+    transition: all 0.3s var(--ease-spring);
+    z-index: 1;
+  }
+  .step-circle svg { width: 15px; height: 15px; }
+
+  .step-node.active .step-circle {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: #fff;
+    box-shadow: 0 0 0 4px var(--primary-glow);
+    transform: scale(1.08);
+  }
+  .step-node.done .step-circle {
+    background: var(--accent-green);
+    border-color: var(--accent-green);
+    color: #fff;
+  }
+
+  .step-caption {
+    font-size: 10.5px;
+    font-weight: 600;
+    color: var(--text-tertiary);
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    transition: color 0.3s;
+  }
+  .step-node.active .step-caption { color: var(--primary); }
+  .step-node.done .step-caption { color: var(--accent-green); }
+
+  .step-line {
+    flex: 1;
+    height: 2px;
+    background: var(--border);
+    margin: 0 6px;
+    margin-bottom: 22px;
+    position: relative;
+    overflow: hidden;
+    border-radius: 1px;
+    min-width: 24px;
+  }
+  .step-line::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--accent-green);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.4s var(--ease-smooth);
+  }
+  .step-line.filled::after { transform: scaleX(1); }
+
+  /* ── Wizard step panels ─────────────────────── */
+  .wiz-panel { display: none; }
+  .wiz-panel.active {
+    display: block;
+    animation: panelIn 0.35s var(--ease-smooth) both;
+  }
+  @keyframes panelIn {
+    from { opacity: 0; transform: translateX(16px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  .wiz-heading {
+    font-family: var(--font-display);
+    font-size: 20px;
+    font-weight: 500;
+    color: var(--text-primary);
+    margin: 20px 0 4px;
+    letter-spacing: -0.01em;
+  }
+  .wiz-subheading {
+    font-size: 14px;
+    color: var(--text-secondary);
+    margin-bottom: 18px;
+  }
+
+  .wiz-footer {
+    display: flex;
+    gap: 12px;
+    margin-top: 20px;
+  }
+  .wiz-footer .btn-primary { margin-top: 0; }
+
+  /* ── Segmented Control ──────────────────────── */
+  .segment-control {
+    display: flex;
+    background: var(--bg);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-pill);
+    padding: 3px;
+    position: relative;
+    margin-bottom: 20px;
+  }
+
+  .segment-pill {
+    position: absolute;
+    top: 3px; bottom: 3px; left: 3px;
+    border-radius: var(--radius-pill);
+    background: var(--primary);
+    box-shadow: 0 2px 8px rgba(34, 92, 156, 0.3);
+    transition: left 0.35s var(--ease-spring), width 0.35s var(--ease-spring);
+    z-index: 0;
+  }
+
+  .segment-btn {
+    flex: 1;
+    padding: 8px 12px;
+    border: none;
+    background: none;
+    border-radius: var(--radius-pill);
+    font-family: var(--font-body);
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    cursor: pointer;
+    position: relative;
+    z-index: 1;
+    transition: color 0.25s var(--ease-smooth);
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .segment-btn.active { color: white; font-weight: 600; }
+
+  /* ── Form Fields ────────────────────────────── */
+  .form-section { margin-bottom: 20px; }
+
+  .form-section-title {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    color: var(--text-tertiary);
+    margin-bottom: 12px;
+  }
+
+  .field-group {
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border);
+    overflow: hidden;
+  }
+
+  .field-item {
+    position: relative;
+    border-bottom: 1px solid var(--border);
+    transition: background 0.15s;
+  }
+
+  .field-item:last-child { border-bottom: none; }
+  .field-item:focus-within { background: rgba(34, 92, 156, 0.02); }
+
+  .field-label {
+    position: absolute;
+    top: 16px; left: 16px;
+    font-size: 14px;
+    color: var(--text-tertiary);
+    transition: all 0.2s var(--ease-smooth);
+    pointer-events: none;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+  }
+
+  .field-label.floated {
+    top: 8px;
+    font-size: 11px;
+    color: var(--primary);
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  .field-input {
+    width: 100%;
+    padding: 24px 16px 8px;
+    border: none;
+    background: none;
+    font-family: var(--font-body);
+    font-size: 16px;
+    color: var(--text-primary);
+    outline: none;
+    letter-spacing: 0.01em;
+    -webkit-appearance: none;
+  }
+
+  .field-input::placeholder { color: transparent; }
+  .field-input-with-icon { padding-right: 44px; }
+
+  .field-icon {
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-tertiary);
+    pointer-events: none;
+  }
+  .field-icon svg { width: 18px; height: 18px; }
+
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; }
+  .field-row .field-item:first-child {
+    border-right: 1px solid var(--border);
+    border-bottom: none;
+  }
+
+  /* ── Recurrence Section ─────────────────────── */
+  .recurrence-toggle {
+    display: flex;
+    background: var(--bg);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-pill);
+    padding: 3px;
+    position: relative;
+    margin-bottom: 16px;
+  }
+
+  .recurrence-pill {
+    position: absolute;
+    top: 3px; bottom: 3px; left: 3px;
+    border-radius: var(--radius-pill);
+    background: var(--primary);
+    box-shadow: 0 2px 8px rgba(34, 92, 156, 0.25);
+    transition: left 0.3s var(--ease-spring), width 0.3s var(--ease-spring);
+    z-index: 0;
+  }
+
+  .recurrence-btn {
+    flex: 1;
+    padding: 8px 16px;
+    border: none;
+    background: none;
+    border-radius: var(--radius-pill);
+    font-family: var(--font-body);
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    cursor: pointer;
+    position: relative;
+    z-index: 1;
+    transition: color 0.25s var(--ease-smooth);
+    -webkit-tap-highlight-color: transparent;
+  }
+  .recurrence-btn.active { color: white; font-weight: 600; }
+
+  .day-pills {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 8px;
+  }
+
+  .day-pill {
+    padding: 6px 12px;
+    border-radius: var(--radius-pill);
+    border: 1.5px solid var(--border);
+    background: var(--bg-card);
+    font-family: var(--font-body);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s var(--ease-spring);
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
+
+  .day-pill.selected {
+    border-color: var(--primary);
+    background: var(--primary);
+    color: white;
+    font-weight: 600;
+  }
+
+  .day-pill:hover:not(.selected) {
+    border-color: var(--primary);
+    color: var(--primary);
+  }
+
+  .field-hint {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--text-tertiary);
+    margin-top: 10px;
+    letter-spacing: 0.01em;
+  }
+  .field-hint svg { width: 13px; height: 13px; flex-shrink: 0; }
+  .field-hint.ok { color: var(--accent-green); }
+
+  .inline-warning {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    background: var(--warm-gold-bg);
+    border: 1px solid rgba(244, 180, 0, 0.35);
+    color: #8a6d00;
+    border-radius: var(--radius-md);
+    padding: 10px 12px;
+    font-size: 12.5px;
+    margin-top: 12px;
+    line-height: 1.45;
+  }
+  .inline-warning svg { width: 16px; height: 16px; flex-shrink: 0; margin-top: 1px; color: #c89200; }
+
+  /* ── Preview Box ────────────────────────────── */
+  .preview-box {
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    border: 1.5px solid var(--primary-bg);
+    padding: 16px;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .preview-headline {
+    font-family: var(--font-display);
+    font-size: 19px;
+    font-weight: 500;
+    color: var(--primary);
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .preview-headline svg { width: 20px; height: 20px; flex-shrink: 0; }
+
+  .preview-dates {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    max-height: 260px;
+    overflow-y: auto;
+  }
+
+  .preview-date {
+    font-size: 13.5px;
+    color: var(--text-secondary);
+    padding: 7px 10px;
+    border-radius: 6px;
+    background: var(--bg);
+    font-feature-settings: 'tnum' 1;
+    animation: dateIn 0.2s var(--ease-spring) both;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .preview-date .pd-idx {
+    font-size: 11px;
+    color: var(--text-tertiary);
+    font-weight: 600;
+    min-width: 20px;
+  }
+
+  @keyframes dateIn {
+    from { opacity: 0; transform: translateX(-6px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  /* ── Primary / Secondary Buttons ────────────── */
+  .btn-primary {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    padding: 16px;
+    border: none;
+    border-radius: var(--radius-lg);
+    background: var(--primary);
+    color: white;
+    font-family: var(--font-display);
+    font-size: 17px;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(34, 92, 156, 0.35);
+    transition: transform 0.2s var(--ease-spring), box-shadow 0.2s, background 0.2s;
+    -webkit-tap-highlight-color: transparent;
+    margin-top: 8px;
+  }
+
+  .btn-primary:hover {
+    background: var(--primary-light);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 18px rgba(34, 92, 156, 0.4);
+  }
+  .btn-primary:active { transform: scale(0.98) translateY(0); }
+
+  .btn-primary.danger {
+    background: var(--warm-red-dark);
+    box-shadow: 0 4px 14px rgba(217, 48, 37, 0.32);
+  }
+  .btn-primary.danger:hover { background: var(--warm-red); box-shadow: 0 6px 18px rgba(217, 48, 37, 0.38); }
+
+  .btn-secondary {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 16px;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-lg);
+    background: var(--bg-card);
+    color: var(--text-secondary);
+    font-family: var(--font-body);
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.2s var(--ease-spring), border-color 0.2s, color 0.2s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .btn-secondary:hover { border-color: var(--primary); color: var(--primary); }
+  .btn-secondary:active { transform: scale(0.98); }
+
+  /* ── Event Detail ───────────────────────────── */
+  .detail-hero {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin: 22px 0 20px;
+  }
+  .detail-hero .card-icon { width: 54px; height: 54px; }
+  .detail-hero .card-icon svg { width: 26px; height: 26px; }
+  .detail-hero-title {
+    font-family: var(--font-display);
+    font-size: 26px;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    color: var(--text-primary);
+  }
+  .detail-hero-sub { font-size: 14px; color: var(--text-secondary); }
+
+  .detail-meta-group { margin-bottom: 20px; }
+  .detail-meta {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-sm);
+  }
+  .detail-meta:first-child { border-radius: var(--radius-lg) var(--radius-lg) 0 0; }
+  .detail-meta:last-child { border-radius: 0 0 var(--radius-lg) var(--radius-lg); border-top: none; }
+  .detail-meta svg { width: 18px; height: 18px; color: var(--text-tertiary); flex-shrink: 0; }
+  .detail-meta .dm-label { font-size: 12px; color: var(--text-tertiary); }
+  .detail-meta .dm-value { font-size: 15px; color: var(--text-primary); font-weight: 500; }
+
+  /* ── Series context block ───────────────────── */
+  .series-block {
+    background: linear-gradient(180deg, rgba(34,92,156,0.05), rgba(34,92,156,0.02));
+    border: 1.5px solid var(--primary-bg);
+    border-radius: var(--radius-lg);
+    padding: 16px;
+    margin-bottom: 22px;
+  }
+  .series-block-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+  .series-block-head .sb-ico {
+    width: 30px; height: 30px; border-radius: var(--radius-sm);
+    background: var(--primary-bg); color: var(--primary);
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .series-block-head .sb-ico svg { width: 16px; height: 16px; }
+  .series-block-head .sb-title { font-size: 14px; font-weight: 700; color: var(--text-primary); letter-spacing: -0.01em; }
+  .series-block-head .sb-sub { font-size: 12px; color: var(--text-secondary); }
+
+  .series-timeline { display: flex; flex-direction: column; gap: 8px; }
+  .series-occ {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13.5px;
+    color: var(--text-secondary);
+    font-feature-settings: 'tnum' 1;
+  }
+  .series-occ .so-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--primary); flex-shrink: 0; opacity: 0.5;
+  }
+  .series-occ.current { color: var(--text-primary); font-weight: 700; }
+  .series-occ.current .so-dot { opacity: 1; box-shadow: 0 0 0 4px var(--primary-glow); }
+  .series-occ .so-tag {
+    margin-left: auto;
+    font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;
+    color: var(--primary); background: var(--primary-bg);
+    padding: 2px 8px; border-radius: var(--radius-pill);
+  }
+
+  .series-more {
+    display: flex; align-items: center; gap: 10px;
+    font-size: 12px; color: var(--text-tertiary); font-style: italic;
+    padding: 2px 0;
+  }
+  .series-more::before, .series-more::after {
+    content: ''; flex: 1; height: 1px; background: var(--border);
+  }
+
+  .detail-actions { display: flex; gap: 12px; margin-top: 4px; }
+  .detail-actions .btn-secondary { flex: 1; }
+  .detail-actions .btn-secondary.danger { color: var(--warm-red-dark); }
+  .detail-actions .btn-secondary.danger:hover { border-color: var(--warm-red); color: var(--warm-red-dark); }
+
+  /* ── Scope banner (in edit/delete) ──────────── */
+  .scope-banner {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--primary-bg);
+    border: 1px solid rgba(34,92,156,0.15);
+    border-radius: var(--radius-lg);
+    padding: 12px 14px;
+    margin: 20px 0 18px;
+  }
+  .scope-banner.danger { background: var(--warm-red-bg); border-color: rgba(224,82,82,0.2); }
+  .scope-banner svg { width: 18px; height: 18px; color: var(--primary); flex-shrink: 0; }
+  .scope-banner.danger svg { color: var(--warm-red-dark); }
+  .scope-banner .sb-main { flex: 1; }
+  .scope-banner .sb-scope { font-size: 14px; font-weight: 700; color: var(--text-primary); }
+  .scope-banner .sb-count { font-size: 12.5px; color: var(--text-secondary); }
+  .scope-banner .sb-change {
+    background: var(--bg-card);
+    border: none;
+    color: var(--primary);
+    font-family: var(--font-body);
+    font-size: 12px; font-weight: 700;
+    padding: 5px 10px; border-radius: var(--radius-pill);
+    cursor: pointer; -webkit-tap-highlight-color: transparent;
+    box-shadow: var(--shadow-sm);
+  }
+  .scope-banner .sb-change:hover { color: var(--primary-dark); }
+
+  /* ── Split visual ───────────────────────────── */
+  .split-viz {
+    display: flex;
+    align-items: stretch;
+    gap: 6px;
+    margin: 4px 0 6px;
+  }
+  .split-seg {
+    flex: 1;
+    border-radius: var(--radius-md);
+    padding: 10px 8px;
+    text-align: center;
+    border: 1.5px dashed var(--border);
+    background: var(--bg-card);
+    transition: all 0.25s var(--ease-spring);
+  }
+  .split-seg .ss-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-tertiary); }
+  .split-seg .ss-count { font-size: 12px; color: var(--text-tertiary); margin-top: 2px; }
+  .split-seg.hot {
+    border-style: solid;
+    border-color: var(--primary);
+    background: var(--primary-bg);
+  }
+  .split-seg.hot .ss-label { color: var(--primary); }
+  .split-seg.hot .ss-count { color: var(--primary); font-weight: 600; }
+  .split-seg.this {
+    border-style: solid;
+    border-color: var(--accent-green);
+    background: var(--accent-green-bg);
+  }
+  .split-seg.this .ss-label { color: var(--accent-green); }
+  .split-seg.this .ss-count { color: var(--accent-green); font-weight: 600; }
+
+  .split-caption {
+    font-size: 12px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+    margin-top: 6px;
+  }
+
+  .note-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    background: var(--bg-card);
+    border: 1px dashed var(--border);
+    border-radius: var(--radius-md);
+    padding: 12px 14px;
+    font-size: 12.5px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+    margin-top: 4px;
+  }
+  .note-card svg { width: 16px; height: 16px; flex-shrink: 0; margin-top: 1px; color: var(--text-tertiary); }
+
+  .field-item.disabled { opacity: 0.5; pointer-events: none; }
+
+  /* ── Delete confirm ─────────────────────────── */
+  .confirm-illus {
+    width: 76px; height: 76px;
+    border-radius: 50%;
+    background: var(--warm-red-bg);
+    display: flex; align-items: center; justify-content: center;
+    margin: 12px auto 20px;
+  }
+  .confirm-illus svg { width: 34px; height: 34px; color: var(--warm-red-dark); }
+
+  .confirm-list {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    padding: 4px 4px;
+    margin: 16px 0;
+    max-height: 200px;
+    overflow-y: auto;
+  }
+  .confirm-list .cl-item {
+    font-size: 13px; color: var(--text-secondary);
+    padding: 8px 12px; border-radius: var(--radius-sm);
+    font-feature-settings: 'tnum' 1;
+  }
+  .confirm-list .cl-item + .cl-item { border-top: 1px solid var(--border); }
+
+  /* ── Success Screen ─────────────────────────── */
+  .success-screen {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: calc(100dvh - var(--topbar-height) - var(--bottombar-height));
+    padding: 40px 32px;
+    text-align: center;
+    animation: fadeSlideIn 0.4s var(--ease-smooth) both;
+  }
+
+  @keyframes fadeSlideIn {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .success-icon { width: 100px; height: 100px; margin-bottom: 28px; }
+
+  .checkmark-circle {
+    fill: none;
+    stroke: var(--accent-green);
+    stroke-width: 3;
+    stroke-dasharray: 300;
+    stroke-dashoffset: 300;
+    animation: circleDraw 0.6s var(--ease-smooth) 0.1s forwards;
+  }
+  .checkmark-circle.red { stroke: var(--warm-red-dark); }
+
+  .checkmark-check {
+    fill: none;
+    stroke: var(--accent-green);
+    stroke-width: 4;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-dasharray: 60;
+    stroke-dashoffset: 60;
+    animation: checkDraw 0.4s var(--ease-spring) 0.65s forwards;
+  }
+  .checkmark-check.red { stroke: var(--warm-red-dark); }
+
+  @keyframes circleDraw { to { stroke-dashoffset: 0; } }
+  @keyframes checkDraw { to { stroke-dashoffset: 0; } }
+
+  .success-title {
+    font-family: var(--font-display);
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 10px;
+    letter-spacing: -0.02em;
+    animation: fadeSlideIn 0.4s var(--ease-smooth) 0.7s both;
+  }
+
+  .success-sub {
+    font-size: 16px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    margin-bottom: 36px;
+    animation: fadeSlideIn 0.4s var(--ease-smooth) 0.85s both;
+  }
+
+  .success-btn {
+    animation: fadeSlideIn 0.4s var(--ease-smooth) 1s both;
+    width: 100%;
+    max-width: 280px;
+  }
+</style>
+</head>
+<body>
+
+<!-- Top Bar -->
+<header class="topbar">
+  <div class="wordmark"><span class="wm-team">Team</span><span class="wm-balance">Balance</span></div>
+  <div class="team-indicator"><span class="dot"></span>Heren 3</div>
+</header>
+<div class="proto-ribbon">Prototype A — Guided</div>
+
+<!-- Bottom Bar -->
+<nav class="bottombar">
+  <button class="tab-btn active">
+    <span class="tab-pill"></span>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="3"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+    Events
+  </button>
+  <button class="tab-btn">
+    <span class="tab-pill"></span>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="14" rx="3"/><path d="M2 10h20"/><circle cx="15" cy="15" r="2"/></svg>
+    Money Pool
+  </button>
+  <button class="tab-btn">
+    <span class="tab-pill"></span>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/><path d="M21 21v-2a4 4 0 0 0-3-3.85"/></svg>
+    Team
+  </button>
+</nav>
+
+<!-- Content Area -->
+<main class="content-area">
+
+  <!-- SCREEN: Events List -->
+  <div class="screen" id="screen-list">
+    <div class="screen-inner">
+      <div class="screen-header">
+        <h1>Upcoming Events</h1>
+        <p>Season 2026/27 &middot; Heren 3</p>
+      </div>
+
+      <div class="section-heading">This Week</div>
+
+      <div class="card" onclick="openSeriesDetail('tue')">
+        <div class="card-row">
+          <div class="card-icon blue">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          </div>
+          <div class="card-body">
+            <div class="card-title"><span class="title-text">Training</span>
+              <span class="series-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>Series</span>
+            </div>
+            <div class="card-sub">Tue 8 Sep &middot; 20:30 &middot; Sporthal Galgenwaard</div>
+          </div>
+          <div class="card-right"><div class="meta">8/12</div><span class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span></div>
+        </div>
+        <div class="attendance going"><span class="att-dot"></span>You&rsquo;re going</div>
+      </div>
+
+      <div class="card" onclick="openStandaloneDetail()">
+        <div class="card-row">
+          <div class="card-icon green">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+          </div>
+          <div class="card-body">
+            <div class="card-title"><span class="title-text">Match vs. Apeliansen H2</span></div>
+            <div class="card-sub">Sat 12 Sep &middot; 14:30 &middot; Sportcampus</div>
+          </div>
+          <div class="card-right"><div class="meta">11/14</div><span class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span></div>
+        </div>
+        <div class="attendance pending"><span class="att-dot"></span>Awaiting response</div>
+      </div>
+
+      <div class="card" onclick="openSeriesDetail('thu')">
+        <div class="card-row">
+          <div class="card-icon blue">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          </div>
+          <div class="card-body">
+            <div class="card-title"><span class="title-text">Training</span>
+              <span class="series-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>Series</span>
+            </div>
+            <div class="card-sub">Thu 10 Sep &middot; 20:30 &middot; Sporthal Galgenwaard</div>
+          </div>
+          <div class="card-right"><div class="meta">6/12</div><span class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span></div>
+        </div>
+        <div class="attendance going"><span class="att-dot"></span>You&rsquo;re going</div>
+      </div>
+
+      <div class="section-heading">Next Week</div>
+
+      <div class="card" style="opacity: 0.72;" onclick="openSeriesDetail('tue')">
+        <div class="card-row">
+          <div class="card-icon blue">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          </div>
+          <div class="card-body">
+            <div class="card-title"><span class="title-text">Training</span>
+              <span class="series-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>Series</span>
+            </div>
+            <div class="card-sub">Tue 15 Sep &middot; 20:30</div>
+          </div>
+          <div class="card-right"><div class="meta">2/12</div><span class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span></div>
+        </div>
+      </div>
+
+      <div style="height: 80px;"></div>
+    </div>
+  </div>
+
+  <!-- SCREEN: Single Event Form -->
+  <div class="screen hidden" id="screen-single">
+    <div class="screen-inner">
+      <div class="form-topbar">
+        <button class="back-btn" onclick="goBack()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <span class="form-title">New Event</span>
+      </div>
+
+      <div style="height: 20px;"></div>
+
+      <div class="form-section-title">Event Type</div>
+      <div class="segment-control" id="type-segment">
+        <div class="segment-pill" id="type-pill"></div>
+        <button class="segment-btn active" onclick="selectType(this, 'Training')">Training</button>
+        <button class="segment-btn" onclick="selectType(this, 'Match')">Match</button>
+        <button class="segment-btn" onclick="selectType(this, 'Misc')">Misc</button>
+      </div>
+
+      <div class="form-section">
+        <div class="form-section-title">Details</div>
+        <div class="field-group">
+          <div class="field-item">
+            <label class="field-label floated" id="s-title-label">Title</label>
+            <input class="field-input" id="s-title-input" type="text" value="Training" autocomplete="off"
+              onfocus="floatLabel('s-title-label')" onblur="unfloatLabel('s-title-label','s-title-input')">
+          </div>
+          <div class="field-row">
+            <div class="field-item">
+              <label class="field-label floated" id="s-date-label">Date</label>
+              <input class="field-input" id="s-date-input" type="date"
+                onfocus="floatLabel('s-date-label')" onblur="unfloatLabel('s-date-label','s-date-input')">
+            </div>
+            <div class="field-item">
+              <label class="field-label floated" id="s-time-label">Time</label>
+              <input class="field-input" id="s-time-input" type="time" value="20:30"
+                onfocus="floatLabel('s-time-label')" onblur="unfloatLabel('s-time-label','s-time-input')">
+            </div>
+          </div>
+          <div class="field-item">
+            <label class="field-label floated" id="s-loc-label">Location</label>
+            <input class="field-input field-input-with-icon" id="s-loc-input" type="text"
+              value="Sporthal Galgenwaard, Utrecht" autocomplete="off"
+              onfocus="floatLabel('s-loc-label')" onblur="unfloatLabel('s-loc-label','s-loc-input')">
+            <span class="field-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <button class="btn-primary" onclick="createSingle()">Create Event</button>
+      <div style="height: 20px;"></div>
+    </div>
+  </div>
+
+  <!-- SCREEN: Recurring Wizard -->
+  <div class="screen hidden" id="screen-recurring">
+    <div class="screen-inner">
+      <div class="form-topbar">
+        <button class="back-btn" onclick="wizardBack()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <span class="form-title">Recurring Events</span>
+      </div>
+
+      <!-- Stepper -->
+      <div class="stepper" id="stepper">
+        <div class="step-node active" id="step-node-1">
+          <div class="step-circle" id="step-circle-1">1</div>
+          <div class="step-caption">Details</div>
+        </div>
+        <div class="step-line" id="step-line-1"></div>
+        <div class="step-node" id="step-node-2">
+          <div class="step-circle" id="step-circle-2">2</div>
+          <div class="step-caption">Repeat</div>
+        </div>
+        <div class="step-line" id="step-line-2"></div>
+        <div class="step-node" id="step-node-3">
+          <div class="step-circle" id="step-circle-3">3</div>
+          <div class="step-caption">Confirm</div>
+        </div>
+      </div>
+
+      <!-- STEP 1 -->
+      <div class="wiz-panel active" id="wiz-1">
+        <div class="wiz-heading">What are you scheduling?</div>
+        <div class="wiz-subheading">Pick a type — we&rsquo;ll pre-fill the rest.</div>
+
+        <div class="form-section-title">Event Type</div>
+        <div class="segment-control" id="rtype-segment">
+          <div class="segment-pill" id="rtype-pill"></div>
+          <button class="segment-btn active" onclick="selectRType(this, 'Training')">Training</button>
+          <button class="segment-btn" onclick="selectRType(this, 'Match')">Match</button>
+          <button class="segment-btn" onclick="selectRType(this, 'Misc')">Misc</button>
+        </div>
+
+        <div class="form-section">
+          <div class="form-section-title">Details</div>
+          <div class="field-group">
+            <div class="field-item">
+              <label class="field-label floated" id="rtitle-label">Title</label>
+              <input class="field-input" id="rtitle-input" type="text" value="Training" autocomplete="off"
+                onfocus="floatLabel('rtitle-label')" onblur="unfloatLabel('rtitle-label','rtitle-input')">
+            </div>
+            <div class="field-item">
+              <label class="field-label floated" id="rtime-label">Time</label>
+              <input class="field-input" id="rtime-input" type="time" value="20:30"
+                onfocus="floatLabel('rtime-label')" onblur="unfloatLabel('rtime-label','rtime-input')">
+            </div>
+            <div class="field-item">
+              <label class="field-label floated" id="rloc-label">Location</label>
+              <input class="field-input field-input-with-icon" id="rloc-input" type="text" value="Sporthal Galgenwaard" autocomplete="off"
+                onfocus="floatLabel('rloc-label')" onblur="unfloatLabel('rloc-label','rloc-input')">
+              <span class="field-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div class="wiz-footer">
+          <button class="btn-primary" onclick="gotoStep(2)">
+            Continue
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- STEP 2 -->
+      <div class="wiz-panel" id="wiz-2">
+        <div class="wiz-heading">How often?</div>
+        <div class="wiz-subheading">Choose the cadence and the days it lands on.</div>
+
+        <div class="form-section-title">Frequency</div>
+        <div class="recurrence-toggle" id="freq-toggle">
+          <div class="recurrence-pill" id="freq-pill"></div>
+          <button class="recurrence-btn active" onclick="selectFreq(this, 1)">Every week</button>
+          <button class="recurrence-btn" onclick="selectFreq(this, 2)">Every 2 weeks</button>
+        </div>
+
+        <div class="form-section-title" style="margin-top: 4px;">Days</div>
+        <div class="day-pills" id="day-pills">
+          <span class="day-pill" onclick="toggleDay(this, 'Mon')">Mon</span>
+          <span class="day-pill selected" onclick="toggleDay(this, 'Tue')">Tue</span>
+          <span class="day-pill" onclick="toggleDay(this, 'Wed')">Wed</span>
+          <span class="day-pill selected" onclick="toggleDay(this, 'Thu')">Thu</span>
+          <span class="day-pill" onclick="toggleDay(this, 'Fri')">Fri</span>
+          <span class="day-pill" onclick="toggleDay(this, 'Sat')">Sat</span>
+          <span class="day-pill" onclick="toggleDay(this, 'Sun')">Sun</span>
+        </div>
+
+        <div class="form-section" style="margin-top: 16px;">
+          <div class="form-section-title">Period</div>
+          <div class="field-group">
+            <div class="field-row">
+              <div class="field-item" style="border-bottom: none;">
+                <label class="field-label floated" id="rstart-label">Start date</label>
+                <input class="field-input" id="rstart-input" type="date"
+                  onfocus="floatLabel('rstart-label')" onblur="unfloatLabel('rstart-label','rstart-input')"
+                  onchange="onDatesChanged()">
+              </div>
+              <div class="field-item" style="border-bottom: none; border-left: 1px solid var(--border);">
+                <label class="field-label floated" id="rend-label">End date</label>
+                <input class="field-input" id="rend-input" type="date"
+                  onfocus="floatLabel('rend-label')" onblur="unfloatLabel('rend-label','rend-input')"
+                  onchange="onDatesChanged()">
+              </div>
+            </div>
+          </div>
+          <div class="field-hint ok" id="season-hint">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+            Within season &middot; Sep 2026 – May 2027
+          </div>
+          <div class="inline-warning" id="season-warning" style="display:none;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            <span id="season-warning-text"></span>
+          </div>
+        </div>
+
+        <div class="wiz-footer">
+          <button class="btn-secondary" style="flex: 0 0 auto; padding-left: 20px; padding-right: 20px;" onclick="gotoStep(1)">Back</button>
+          <button class="btn-primary" style="flex: 1;" onclick="gotoStep(3)">
+            Preview
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- STEP 3 -->
+      <div class="wiz-panel" id="wiz-3">
+        <div class="wiz-heading">Ready to create</div>
+        <div class="wiz-subheading" id="wiz3-sub">Review the dates before you confirm.</div>
+
+        <div class="preview-box">
+          <div class="preview-headline">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="3"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            <span id="preview-count">12 trainings will be created</span>
+          </div>
+          <div class="preview-dates" id="preview-dates"></div>
+        </div>
+
+        <div class="inline-warning" id="cap-warning" style="display:none;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          <span>That&rsquo;s a lot of events. We&rsquo;ll cap this batch at 200 — trim the period or days to fit.</span>
+        </div>
+
+        <div class="wiz-footer">
+          <button class="btn-secondary" style="flex: 0 0 auto; padding-left: 20px; padding-right: 20px;" onclick="gotoStep(2)">Back</button>
+          <button class="btn-primary" style="flex: 1;" id="create-recurring-btn" onclick="createRecurring()">Create 12 Trainings</button>
+        </div>
+      </div>
+
+      <div style="height: 20px;"></div>
+    </div>
+  </div>
+
+  <!-- SCREEN: Event Detail -->
+  <div class="screen hidden" id="screen-detail">
+    <div class="screen-inner">
+      <div class="form-topbar">
+        <button class="back-btn" onclick="goBack()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <span class="form-title">Event</span>
+      </div>
+
+      <div class="detail-hero">
+        <div class="card-icon blue" id="detail-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        </div>
+        <div>
+          <div class="detail-hero-title" id="detail-title">Training</div>
+          <div class="detail-hero-sub" id="detail-hero-sub">Part of a weekly series</div>
+        </div>
+      </div>
+
+      <div class="detail-meta-group">
+        <div class="detail-meta">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="3"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          <div><div class="dm-label">Date</div><div class="dm-value" id="detail-date">Thu 10 Sep 2026</div></div>
+        </div>
+        <div class="detail-meta">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          <div><div class="dm-label">Time</div><div class="dm-value" id="detail-time">20:30</div></div>
+        </div>
+        <div class="detail-meta">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+          <div><div class="dm-label">Location</div><div class="dm-value" id="detail-loc">Sporthal Galgenwaard</div></div>
+        </div>
+      </div>
+
+      <!-- Series context (only for series events) -->
+      <div class="series-block" id="detail-series-block">
+        <div class="series-block-head">
+          <div class="sb-ico">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+          </div>
+          <div>
+            <div class="sb-title">Part of a series</div>
+            <div class="sb-sub" id="series-sub">Weekly Training · Tue & Thu</div>
+          </div>
+        </div>
+        <div class="series-timeline" id="series-timeline"></div>
+      </div>
+
+      <div class="detail-actions">
+        <button class="btn-secondary" onclick="onEditTapped()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:17px;height:17px"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          Edit
+        </button>
+        <button class="btn-secondary danger" onclick="onDeleteTapped()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:17px;height:17px"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+          Delete
+        </button>
+      </div>
+
+      <div style="height: 20px;"></div>
+    </div>
+  </div>
+
+  <!-- SCREEN: Edit Form -->
+  <div class="screen hidden" id="screen-edit">
+    <div class="screen-inner">
+      <div class="form-topbar">
+        <button class="back-btn" onclick="goBack()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <span class="form-title">Edit Event</span>
+      </div>
+
+      <!-- Scope banner -->
+      <div class="scope-banner" id="edit-scope-banner">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+        <div class="sb-main">
+          <div class="sb-scope" id="edit-scope-label">All events</div>
+          <div class="sb-count" id="edit-scope-count">Editing 78 occurrences</div>
+        </div>
+        <button class="sb-change" id="edit-scope-change" onclick="reopenScope('edit')">Change</button>
+      </div>
+
+      <!-- Split visual -->
+      <div class="form-section" id="split-section">
+        <div class="form-section-title">What this changes</div>
+        <div class="split-viz" id="split-viz">
+          <div class="split-seg" id="split-before"><div class="ss-label">Before</div><div class="ss-count">2</div></div>
+          <div class="split-seg this" id="split-this"><div class="ss-label">This one</div><div class="ss-count">1</div></div>
+          <div class="split-seg" id="split-after"><div class="ss-label">After</div><div class="ss-count">75</div></div>
+        </div>
+        <div class="split-caption" id="split-caption"></div>
+      </div>
+
+      <div class="form-section">
+        <div class="form-section-title">Details</div>
+        <div class="field-group">
+          <div class="field-item">
+            <label class="field-label floated" id="e-title-label">Title</label>
+            <input class="field-input" id="e-title-input" type="text" value="Training" autocomplete="off"
+              onfocus="floatLabel('e-title-label')" onblur="unfloatLabel('e-title-label','e-title-input')">
+          </div>
+          <div class="field-item" id="e-date-item">
+            <label class="field-label floated" id="e-date-label">Date</label>
+            <input class="field-input" id="e-date-input" type="date"
+              onfocus="floatLabel('e-date-label')" onblur="unfloatLabel('e-date-label','e-date-input')">
+          </div>
+          <div class="field-item">
+            <label class="field-label floated" id="e-time-label">Time</label>
+            <input class="field-input" id="e-time-input" type="time" value="20:30"
+              onfocus="floatLabel('e-time-label')" onblur="unfloatLabel('e-time-label','e-time-input')">
+          </div>
+          <div class="field-item">
+            <label class="field-label floated" id="e-loc-label">Location</label>
+            <input class="field-input field-input-with-icon" id="e-loc-input" type="text" value="Sporthal Galgenwaard" autocomplete="off"
+              onfocus="floatLabel('e-loc-label')" onblur="unfloatLabel('e-loc-label','e-loc-input')">
+            <span class="field-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            </span>
+          </div>
+        </div>
+        <div class="note-card" id="date-note" style="display:none; margin-top: 10px;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+          <span id="date-note-text">Time and details apply to all occurrences; each keeps its own date.</span>
+        </div>
+      </div>
+
+      <button class="btn-primary" id="edit-save-btn" onclick="saveEdit()">Save changes</button>
+      <div style="height: 20px;"></div>
+    </div>
+  </div>
+
+  <!-- SCREEN: Delete Confirm -->
+  <div class="screen hidden" id="screen-delete">
+    <div class="screen-inner">
+      <div class="form-topbar">
+        <button class="back-btn" onclick="goBack()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <span class="form-title">Delete Event</span>
+      </div>
+
+      <div class="confirm-illus">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+      </div>
+
+      <div style="text-align:center;">
+        <div style="font-family: var(--font-display); font-size: 22px; font-weight: 500; color: var(--text-primary); margin-bottom: 6px;" id="delete-heading">Delete 78 events?</div>
+        <div style="font-size: 14px; color: var(--text-secondary); line-height: 1.5;" id="delete-sub">This removes every Training in the series. Attendance responses will be lost.</div>
+      </div>
+
+      <div class="scope-banner danger" id="delete-scope-banner" style="margin-top: 20px;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+        <div class="sb-main">
+          <div class="sb-scope" id="delete-scope-label">All events</div>
+          <div class="sb-count" id="delete-scope-count">78 occurrences</div>
+        </div>
+        <button class="sb-change" id="delete-scope-change" onclick="reopenScope('delete')">Change</button>
+      </div>
+
+      <div class="form-section-title" style="margin-top: 20px;">Occurrences being removed</div>
+      <div class="confirm-list" id="delete-list"></div>
+
+      <button class="btn-primary danger" id="delete-confirm-btn" onclick="confirmDelete()">Delete 78 events</button>
+      <div style="height: 8px;"></div>
+      <button class="btn-secondary" style="width:100%;" onclick="goBack()">Keep events</button>
+      <div style="height: 20px;"></div>
+    </div>
+  </div>
+
+  <!-- SCREEN: Success -->
+  <div class="screen hidden" id="screen-success">
+    <div class="success-screen">
+      <svg class="success-icon" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+        <circle class="checkmark-circle" id="success-circle" cx="50" cy="50" r="46"/>
+        <polyline class="checkmark-check" id="success-check" points="28,52 43,67 72,36"/>
+      </svg>
+      <div class="success-title" id="success-title">Event created!</div>
+      <div class="success-sub" id="success-sub">Your event has been added to<br>the team calendar.</div>
+      <div class="success-btn">
+        <button class="btn-primary" onclick="goToList()">View Events</button>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<!-- FAB -->
+<button class="fab" id="fab" onclick="openSheet()" aria-label="Create event">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+</button>
+
+<!-- Sheet backdrop (shared) -->
+<div class="sheet-backdrop" id="sheet-backdrop" onclick="closeAllSheets()"></div>
+
+<!-- Create Sheet -->
+<div class="bottom-sheet" id="bottom-sheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-title">Create Event</div>
+  <div class="sheet-subtitle">Choose how you want to add events</div>
+  <div class="sheet-options">
+    <button class="sheet-option" onclick="goToSingle()">
+      <div class="sheet-option-icon blue">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="3"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="12" y1="14" x2="12" y2="18"/><line x1="10" y1="16" x2="14" y2="16"/></svg>
+      </div>
+      <div class="sheet-option-label">Single Event</div>
+      <div class="sheet-option-sub">One training, match, or other event</div>
+    </button>
+    <button class="sheet-option" onclick="goToRecurring()">
+      <div class="sheet-option-icon green">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+      </div>
+      <div class="sheet-option-label">Recurring Events</div>
+      <div class="sheet-option-sub">Weekly trainings over a period</div>
+    </button>
+  </div>
+</div>
+
+<!-- Scope Prompt Sheet -->
+<div class="bottom-sheet" id="scope-sheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-title" id="scope-sheet-title">Edit recurring event</div>
+  <div class="sheet-subtitle" id="scope-sheet-sub">This event is part of a series. What would you like to change?</div>
+  <div class="scope-list" id="scope-list">
+    <button class="scope-option" onclick="chooseScope('this')">
+      <div class="scope-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/></svg>
+      </div>
+      <div class="scope-body">
+        <div class="scope-label">This event</div>
+        <div class="scope-sub" id="scope-this-sub">Just this occurrence — splits it out of the series</div>
+      </div>
+      <span class="scope-chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span>
+    </button>
+    <button class="scope-option" onclick="chooseScope('following')">
+      <div class="scope-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+      </div>
+      <div class="scope-body">
+        <div class="scope-label">This and following</div>
+        <div class="scope-sub" id="scope-following-sub">This event and every one after it</div>
+      </div>
+      <span class="scope-chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span>
+    </button>
+    <button class="scope-option" onclick="chooseScope('all')">
+      <div class="scope-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+      </div>
+      <div class="scope-body">
+        <div class="scope-label">All events</div>
+        <div class="scope-sub" id="scope-all-sub">Every occurrence in the series</div>
+      </div>
+      <span class="scope-chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></span>
+    </button>
+  </div>
+</div>
+
+<script>
+  // ═══════════════════════════════════════════════
+  //  Deterministic demo constants
+  // ═══════════════════════════════════════════════
+  const TODAY = new Date('2026-09-08T00:00:00');       // fixed "today"
+  const SEASON_START = new Date('2026-09-01T00:00:00');
+  const SEASON_END   = new Date('2027-05-31T00:00:00');
+
+  const dayNums  = { Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6, Sun: 0 };
+  const fmtLong  = (d) => d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+  const fmtShort = (d) => d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+  const iso      = (d) => d.toISOString().split('T')[0];
+
+  // Generate materialized dates in [start,end] whose weekday ∈ days, honoring freqWeeks.
+  function generateDates(start, end, days, freqWeeks) {
+    const dates = [];
+    if (!start || !end || start > end) return dates;
+    const dayNumSet = days.map(d => dayNums[d]);
+    const cursor = new Date(start);
+    while (cursor <= end && dates.length <= 400) {
+      if (dayNumSet.includes(cursor.getDay())) dates.push(new Date(cursor));
+      cursor.setDate(cursor.getDate() + 1);
+    }
+    if (freqWeeks === 2) {
+      const counters = {};
+      return dates.filter(d => {
+        const dn = d.getDay();
+        counters[dn] = (counters[dn] || 0) + 1;
+        return counters[dn] % 2 === 1;
+      });
+    }
+    return dates;
+  }
+
+  // The existing sample series: weekly Training on Tue & Thu, full season.
+  const SERIES_DATES = generateDates(SEASON_START, SEASON_END, ['Tue', 'Thu'], 1);
+
+  // ═══════════════════════════════════════════════
+  //  Screen navigation
+  // ═══════════════════════════════════════════════
+  let screenStack = ['screen-list'];
+
+  function showScreen(id, fromBack = false) {
+    const current = document.getElementById(screenStack[screenStack.length - 1]);
+    const next = document.getElementById(id);
+    if (!fromBack) {
+      current.classList.add('slide-out-left');
+      setTimeout(() => current.classList.add('hidden'), 350);
+    } else {
+      current.classList.add('hidden');
+    }
+    next.classList.remove('hidden', 'slide-out-left');
+    next.scrollTop = 0;
+    document.getElementById('fab').style.display = (id === 'screen-list') ? '' : 'none';
+  }
+
+  function goBack() {
+    if (screenStack.length <= 1) return;
+    const current = screenStack.pop();
+    const prev = screenStack[screenStack.length - 1];
+    const currentEl = document.getElementById(current);
+    const prevEl = document.getElementById(prev);
+
+    currentEl.style.transition = 'transform 0.35s var(--ease-smooth), opacity 0.3s';
+    currentEl.style.transform = 'translateX(100%)';
+    currentEl.style.opacity = '0';
+    setTimeout(() => {
+      currentEl.classList.add('hidden');
+      currentEl.style.transition = '';
+      currentEl.style.transform = '';
+      currentEl.style.opacity = '';
+    }, 360);
+
+    prevEl.classList.remove('hidden', 'slide-out-left');
+    prevEl.style.transition = 'none';
+    prevEl.scrollTop = 0;
+    document.getElementById('fab').style.display = (prev === 'screen-list') ? '' : 'none';
+  }
+
+  function navigateTo(id) {
+    showScreen(id);
+    screenStack.push(id);
+  }
+
+  function goToList() {
+    screenStack = ['screen-list'];
+    document.querySelectorAll('.screen').forEach(s => {
+      s.classList.add('hidden');
+      s.style.transform = '';
+      s.style.opacity = '';
+    });
+    document.getElementById('screen-list').classList.remove('hidden');
+    document.getElementById('fab').style.display = '';
+  }
+
+  // ═══════════════════════════════════════════════
+  //  Sheets
+  // ═══════════════════════════════════════════════
+  function openSheet() {
+    document.getElementById('sheet-backdrop').classList.add('visible');
+    document.getElementById('bottom-sheet').classList.add('visible');
+    document.getElementById('fab').classList.add('open');
+  }
+  function closeAllSheets() {
+    document.getElementById('sheet-backdrop').classList.remove('visible');
+    document.getElementById('bottom-sheet').classList.remove('visible');
+    document.getElementById('scope-sheet').classList.remove('visible');
+    document.getElementById('fab').classList.remove('open');
+  }
+
+  function goToSingle() {
+    closeAllSheets();
+    setTimeout(() => { navigateTo('screen-single'); initSingleForm(); }, 120);
+  }
+  function goToRecurring() {
+    closeAllSheets();
+    setTimeout(() => { navigateTo('screen-recurring'); initRecurringWizard(); }, 120);
+  }
+
+  // ═══════════════════════════════════════════════
+  //  Single form
+  // ═══════════════════════════════════════════════
+  const typeDefaults = { Training: 'Training', Match: 'Match vs. Apeliansen H2', Misc: 'Team Meeting' };
+
+  function initSingleForm() {
+    document.getElementById('s-date-input').value = iso(TODAY);
+    updatePill('type-segment', 'type-pill', 0);
+  }
+  function selectType(btn, type) {
+    document.querySelectorAll('#type-segment .segment-btn').forEach((b, i) => {
+      b.classList.toggle('active', b === btn);
+      if (b === btn) updatePill('type-segment', 'type-pill', i);
+    });
+    document.getElementById('s-title-input').value = typeDefaults[type] || type;
+  }
+  function createSingle() {
+    showSuccess('Event created!', 'Your event has been added to<br>the team calendar.', false);
+  }
+
+  // ═══════════════════════════════════════════════
+  //  Recurring wizard
+  // ═══════════════════════════════════════════════
+  let wizardStep = 1;
+  let recurFreq = 1;
+  let selectedDays = ['Tue', 'Thu'];
+  let lastGenerated = [];
+
+  function initRecurringWizard() {
+    wizardStep = 1;
+    recurFreq = 1;
+    selectedDays = ['Tue', 'Thu'];
+    // reset day pills
+    document.querySelectorAll('#day-pills .day-pill').forEach(p => {
+      const d = p.textContent.trim();
+      p.classList.toggle('selected', selectedDays.includes(d));
+    });
+    // reset freq
+    document.querySelectorAll('#freq-toggle .recurrence-btn').forEach((b, i) => b.classList.toggle('active', i === 0));
+    // reset type
+    document.querySelectorAll('#rtype-segment .segment-btn').forEach((b, i) => b.classList.toggle('active', i === 0));
+    document.getElementById('rtitle-input').value = 'Training';
+    document.getElementById('rtime-input').value = '20:30';
+    document.getElementById('rloc-input').value = 'Sporthal Galgenwaard';
+
+    // season defaults
+    const start = TODAY > SEASON_START ? TODAY : SEASON_START;   // max(today, seasonStart)
+    document.getElementById('rstart-input').value = iso(start);
+    document.getElementById('rend-input').value = iso(SEASON_END);
+
+    setStep(1, true);
+    setTimeout(() => {
+      updatePill('rtype-segment', 'rtype-pill', 0);
+      updatePill('freq-toggle', 'freq-pill', 0);
+    }, 30);
+    onDatesChanged();
+  }
+
+  function setStep(n, silent) {
+    wizardStep = n;
+    for (let i = 1; i <= 3; i++) {
+      const node = document.getElementById('step-node-' + i);
+      node.classList.toggle('active', i === n);
+      node.classList.toggle('done', i < n);
+      document.getElementById('wiz-' + i).classList.toggle('active', i === n);
+      const circle = document.getElementById('step-circle-' + i);
+      circle.innerHTML = (i < n)
+        ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>'
+        : i;
+    }
+    document.getElementById('step-line-1').classList.toggle('filled', n >= 2);
+    document.getElementById('step-line-2').classList.toggle('filled', n >= 3);
+    // recompute pills after panel becomes visible
+    setTimeout(() => {
+      if (n === 1) updatePill('rtype-segment', 'rtype-pill', activeIndex('rtype-segment', '.segment-btn'));
+      if (n === 2) updatePill('freq-toggle', 'freq-pill', activeIndex('freq-toggle', '.recurrence-btn'));
+    }, 40);
+    document.getElementById('screen-recurring').scrollTop = 0;
+  }
+
+  function gotoStep(n) {
+    if (n === 3) buildPreview();
+    setStep(n);
+  }
+
+  function wizardBack() {
+    if (wizardStep > 1) setStep(wizardStep - 1);
+    else goBack();
+  }
+
+  function selectRType(btn, type) {
+    document.querySelectorAll('#rtype-segment .segment-btn').forEach((b, i) => {
+      b.classList.toggle('active', b === btn);
+      if (b === btn) updatePill('rtype-segment', 'rtype-pill', i);
+    });
+    document.getElementById('rtitle-input').value = typeDefaults[type] || type;
+  }
+
+  function selectFreq(btn, weeks) {
+    recurFreq = weeks;
+    document.querySelectorAll('#freq-toggle .recurrence-btn').forEach((b, i) => {
+      b.classList.toggle('active', b === btn);
+      if (b === btn) updatePill('freq-toggle', 'freq-pill', i);
+    });
+    onDatesChanged();
+  }
+
+  function toggleDay(el, day) {
+    const idx = selectedDays.indexOf(day);
+    if (idx >= 0) {
+      if (selectedDays.length === 1) return;
+      selectedDays.splice(idx, 1);
+      el.classList.remove('selected');
+    } else {
+      selectedDays.push(day);
+      el.classList.add('selected');
+    }
+    onDatesChanged();
+  }
+
+  function onDatesChanged() {
+    const startVal = document.getElementById('rstart-input').value;
+    const endVal = document.getElementById('rend-input').value;
+    const hint = document.getElementById('season-hint');
+    const warn = document.getElementById('season-warning');
+    const warnText = document.getElementById('season-warning-text');
+
+    if (!startVal || !endVal) return;
+    const start = new Date(startVal + 'T00:00:00');
+    const end = new Date(endVal + 'T00:00:00');
+
+    // Season window check
+    const problems = [];
+    if (start < SEASON_START) problems.push('starts before the season opens (1 Sep 2026)');
+    if (end > SEASON_END) problems.push('ends after the season closes (31 May 2027)');
+    if (start > end) problems.push('the end date is before the start date');
+
+    if (problems.length) {
+      hint.style.display = 'none';
+      warn.style.display = 'flex';
+      warnText.textContent = 'Heads up: this range ' + problems.join(' and ') + '. The real app only schedules within the season window.';
+    } else {
+      hint.style.display = 'flex';
+      warn.style.display = 'none';
+    }
+  }
+
+  function buildPreview() {
+    const start = new Date(document.getElementById('rstart-input').value + 'T00:00:00');
+    const end = new Date(document.getElementById('rend-input').value + 'T00:00:00');
+    let dates = generateDates(start, end, selectedDays, recurFreq);
+
+    const capped = dates.length > 200;
+    if (capped) dates = dates.slice(0, 200);
+    lastGenerated = dates;
+
+    const typeName = (document.getElementById('rtitle-input').value || 'Training').trim();
+    const count = dates.length;
+    const plural = count === 1 ? '' : 's';
+    const label = typeName.toLowerCase() + plural;
+
+    document.getElementById('preview-count').textContent = `${count} ${label} will be created`;
+    document.getElementById('create-recurring-btn').textContent = `Create ${count} ${typeName}${plural}`;
+    document.getElementById('cap-warning').style.display = capped ? 'flex' : 'none';
+    document.getElementById('wiz3-sub').textContent = capped
+      ? 'We hit the 200-event cap — showing the first 200 dates.'
+      : 'Review the dates before you confirm.';
+
+    const container = document.getElementById('preview-dates');
+    container.innerHTML = '';
+    const shown = dates.slice(0, 8);
+    shown.forEach((d, i) => {
+      const div = document.createElement('div');
+      div.className = 'preview-date';
+      div.style.animationDelay = (i * 0.04) + 's';
+      div.innerHTML = `<span class="pd-idx">${i + 1}</span><span>${fmtLong(d)}</span>`;
+      container.appendChild(div);
+    });
+    if (dates.length > 8) {
+      const more = document.createElement('div');
+      more.className = 'preview-date';
+      more.style.color = 'var(--text-tertiary)';
+      more.style.fontStyle = 'italic';
+      more.style.justifyContent = 'center';
+      more.textContent = `+ ${dates.length - 8} more…`;
+      container.appendChild(more);
+    }
+  }
+
+  function createRecurring() {
+    const typeName = (document.getElementById('rtitle-input').value || 'Training').trim();
+    const count = lastGenerated.length;
+    const plural = count === 1 ? '' : 's';
+    showSuccess(`${count} ${typeName}${plural} created!`,
+      `All occurrences have been added to<br>the season calendar.`, false);
+  }
+
+  // ═══════════════════════════════════════════════
+  //  Event detail  +  modify flow
+  // ═══════════════════════════════════════════════
+  // currentEvent describes the tapped occurrence
+  let currentEvent = null;
+  let pendingAction = null;   // 'edit' | 'delete'
+  let chosenScope = null;     // 'this' | 'following' | 'all'
+
+  function openSeriesDetail(which) {
+    // pick an index in SERIES_DATES near "today" for realistic before/after
+    // Tue 8 Sep and Thu 10 Sep are early-season occurrences
+    const targetIso = which === 'tue' ? '2026-09-08' : '2026-09-10';
+    let idx = SERIES_DATES.findIndex(d => iso(d) === targetIso);
+    if (idx < 0) idx = 3;
+    currentEvent = {
+      series: true,
+      idx,
+      total: SERIES_DATES.length,
+      title: 'Training',
+      time: '20:30',
+      loc: 'Sporthal Galgenwaard',
+      date: SERIES_DATES[idx],
+    };
+    renderDetail();
+    navigateTo('screen-detail');
+  }
+
+  function openStandaloneDetail() {
+    currentEvent = {
+      series: false,
+      idx: 0, total: 1,
+      title: 'Match vs. Apeliansen H2',
+      time: '14:30',
+      loc: 'Sportcampus, Den Haag',
+      date: new Date('2026-09-12T00:00:00'),
+    };
+    renderDetail();
+    navigateTo('screen-detail');
+  }
+
+  function renderDetail() {
+    const e = currentEvent;
+    document.getElementById('detail-title').textContent = e.title;
+    document.getElementById('detail-date').textContent = fmtLong(e.date);
+    document.getElementById('detail-time').textContent = e.time;
+    document.getElementById('detail-loc').textContent = e.loc;
+    document.getElementById('detail-hero-sub').textContent = e.series ? 'Part of a weekly series' : 'Standalone event';
+
+    const icon = document.getElementById('detail-icon');
+    if (e.series || e.title.startsWith('Training')) {
+      icon.className = 'card-icon blue';
+      icon.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>';
+    } else {
+      icon.className = 'card-icon green';
+      icon.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>';
+    }
+
+    const block = document.getElementById('detail-series-block');
+    block.style.display = e.series ? 'block' : 'none';
+    if (e.series) renderSeriesTimeline();
+  }
+
+  // first two + last two with a "+N more" divider, current occurrence highlighted
+  function renderSeriesTimeline() {
+    const t = document.getElementById('series-timeline');
+    const d = SERIES_DATES;
+    const total = d.length;
+    document.getElementById('series-sub').textContent = `Weekly Training · Tue & Thu · ${total} events`;
+
+    const occRow = (i) => {
+      const isCurrent = i === currentEvent.idx;
+      const tag = isCurrent ? '<span class="so-tag">This one</span>' : '';
+      return `<div class="series-occ ${isCurrent ? 'current' : ''}"><span class="so-dot"></span><span>${fmtLong(d[i])}</span>${tag}</div>`;
+    };
+
+    // Always show first two + last two, plus the current occurrence — dedupe & sort,
+    // then insert a "+N more" divider wherever consecutive shown indices have a gap.
+    const shownIdx = [...new Set([0, 1, currentEvent.idx, total - 2, total - 1])]
+      .filter(i => i >= 0 && i < total)
+      .sort((a, b) => a - b);
+
+    let html = '';
+    for (let k = 0; k < shownIdx.length; k++) {
+      if (k > 0) {
+        const gap = shownIdx[k] - shownIdx[k - 1] - 1;
+        if (gap > 0) html += `<div class="series-more">+ ${gap} more</div>`;
+      }
+      html += occRow(shownIdx[k]);
+    }
+    t.innerHTML = html;
+  }
+
+  // ── Edit / Delete taps ─────────────────────────
+  function onEditTapped() {
+    pendingAction = 'edit';
+    if (currentEvent.series) openScopeSheet('edit');
+    else { chosenScope = 'this'; enterEditForm(); }
+  }
+  function onDeleteTapped() {
+    pendingAction = 'delete';
+    if (currentEvent.series) openScopeSheet('delete');
+    else { chosenScope = 'this'; enterDeleteConfirm(); }
+  }
+
+  // ── Scope prompt ───────────────────────────────
+  function openScopeSheet(action) {
+    pendingAction = action;
+    const e = currentEvent;
+    const total = e.total;
+    const followingCount = total - e.idx;   // this + after
+    const beforeCount = e.idx;
+    const afterCount = total - e.idx - 1;
+
+    document.getElementById('scope-sheet-title').textContent =
+      action === 'edit' ? 'Edit recurring event' : 'Delete recurring event';
+    document.getElementById('scope-sheet-sub').textContent =
+      action === 'edit'
+        ? 'This event is part of a series. What would you like to change?'
+        : 'This event is part of a series. What would you like to delete?';
+
+    const verb = action === 'edit' ? 'Edits' : 'Deletes';
+    document.getElementById('scope-this-sub').textContent =
+      `Just this occurrence (${fmtShort(e.date)}) — splits it out of the series`;
+    document.getElementById('scope-following-sub').textContent =
+      `${verb.toLowerCase().replace('s','')}s this + ${afterCount} after (${followingCount} total)`;
+    document.getElementById('scope-all-sub').textContent =
+      `Every occurrence in the series (${total} total)`;
+
+    // danger styling for delete
+    document.querySelectorAll('#scope-list .scope-option').forEach(o => o.classList.toggle('danger', action === 'delete'));
+
+    document.getElementById('sheet-backdrop').classList.add('visible');
+    document.getElementById('scope-sheet').classList.add('visible');
+  }
+
+  function reopenScope(action) {
+    openScopeSheet(action);
+  }
+
+  function chooseScope(scope) {
+    chosenScope = scope;
+    closeAllSheets();
+    setTimeout(() => {
+      if (pendingAction === 'edit') enterEditForm();
+      else enterDeleteConfirm();
+    }, 260);
+  }
+
+  // ── Scope math helpers ─────────────────────────
+  function scopeCounts() {
+    const e = currentEvent;
+    const total = e.total;
+    const before = e.idx;
+    const after = total - e.idx - 1;
+    let affected;
+    if (chosenScope === 'this') affected = 1;
+    else if (chosenScope === 'following') affected = after + 1;
+    else affected = total;
+    return { total, before, after, affected };
+  }
+
+  function scopeLabel() {
+    return chosenScope === 'this' ? 'This event'
+      : chosenScope === 'following' ? 'This and following'
+      : 'All events';
+  }
+
+  // ── Edit form ──────────────────────────────────
+  function enterEditForm() {
+    const e = currentEvent;
+    const c = scopeCounts();
+
+    // pre-fill
+    document.getElementById('e-title-input').value = e.title;
+    document.getElementById('e-time-input').value = e.time;
+    document.getElementById('e-loc-input').value = e.loc;
+    document.getElementById('e-date-input').value = iso(e.date);
+
+    // scope banner
+    document.getElementById('edit-scope-label').textContent = scopeLabel();
+    document.getElementById('edit-scope-count').textContent =
+      e.series ? `Editing ${c.affected} occurrence${c.affected === 1 ? '' : 's'}` : 'Standalone event';
+    document.getElementById('edit-scope-change').style.display = e.series ? '' : 'none';
+    document.getElementById('edit-scope-banner').style.display = e.series ? '' : 'none';
+
+    // date editability rule
+    const singleDate = (chosenScope === 'this');
+    const dateItem = document.getElementById('e-date-item');
+    const dateNote = document.getElementById('date-note');
+    if (singleDate) {
+      dateItem.style.display = '';
+      dateItem.classList.remove('disabled');
+      dateNote.style.display = 'none';
+    } else {
+      dateItem.style.display = 'none';
+      dateNote.style.display = 'flex';
+      document.getElementById('date-note-text').textContent =
+        `Time and details apply to all ${c.affected} occurrences; each keeps its own date.`;
+    }
+
+    // split visual (only meaningful for series)
+    const splitSection = document.getElementById('split-section');
+    if (e.series && chosenScope !== 'all') {
+      splitSection.style.display = '';
+      renderSplitViz();
+    } else if (e.series && chosenScope === 'all') {
+      splitSection.style.display = '';
+      renderSplitVizAll();
+    } else {
+      splitSection.style.display = 'none';
+    }
+
+    document.getElementById('edit-save-btn').textContent =
+      e.series ? `Save ${c.affected} event${c.affected === 1 ? '' : 's'}` : 'Save changes';
+
+    navigateTo('screen-edit');
+  }
+
+  function renderSplitViz() {
+    const c = scopeCounts();
+    const before = document.getElementById('split-before');
+    const thisSeg = document.getElementById('split-this');
+    const after = document.getElementById('split-after');
+    const cap = document.getElementById('split-caption');
+
+    before.querySelector('.ss-count').textContent = c.before;
+    thisSeg.querySelector('.ss-count').textContent = 1;
+    after.querySelector('.ss-count').textContent = c.after;
+
+    // reset classes
+    before.className = 'split-seg';
+    thisSeg.className = 'split-seg';
+    after.className = 'split-seg';
+
+    if (chosenScope === 'this') {
+      thisSeg.classList.add('this');
+      cap.innerHTML = `Editing <b>this event</b> <b>splits the series</b>: the ${c.before} before and ${c.after} after stay as-is and become independent of this occurrence.`;
+    } else { // following
+      thisSeg.classList.add('hot');
+      after.classList.add('hot');
+      cap.innerHTML = `<b>This and following</b> splits the series into <b>before</b> (${c.before}, unchanged) and <b>this + after</b> (${c.after + 1}, updated together).`;
+    }
+  }
+
+  function renderSplitVizAll() {
+    const c = scopeCounts();
+    const before = document.getElementById('split-before');
+    const thisSeg = document.getElementById('split-this');
+    const after = document.getElementById('split-after');
+    const cap = document.getElementById('split-caption');
+    before.querySelector('.ss-count').textContent = c.before;
+    thisSeg.querySelector('.ss-count').textContent = 1;
+    after.querySelector('.ss-count').textContent = c.after;
+    before.className = 'split-seg hot';
+    thisSeg.className = 'split-seg hot';
+    after.className = 'split-seg hot';
+    cap.innerHTML = `<b>All events</b> updates every occurrence in the series together — no split. Each keeps its own date.`;
+  }
+
+  function saveEdit() {
+    const e = currentEvent;
+    const c = scopeCounts();
+    if (!e.series) {
+      showSuccess('Event updated!', 'Your changes have been saved.', false);
+      return;
+    }
+    let sub;
+    if (chosenScope === 'this') sub = `This occurrence was split out<br>and updated on its own.`;
+    else if (chosenScope === 'following') sub = `${c.affected} events from this date on<br>were updated together.`;
+    else sub = `All ${c.affected} events in the series<br>were updated.`;
+    showSuccess(`${c.affected} event${c.affected === 1 ? '' : 's'} updated!`, sub, false);
+  }
+
+  // ── Delete confirm ─────────────────────────────
+  function enterDeleteConfirm() {
+    const e = currentEvent;
+    const c = scopeCounts();
+    const n = e.series ? c.affected : 1;
+    const plural = n === 1 ? '' : 's';
+
+    document.getElementById('delete-heading').textContent = `Delete ${n} event${plural}?`;
+    let sub;
+    if (!e.series) sub = 'This removes the event. Attendance responses will be lost.';
+    else if (chosenScope === 'this') sub = 'This occurrence is split out of the series and removed. The rest stay.';
+    else if (chosenScope === 'following') sub = `This event and every one after it are removed. Earlier events stay.`;
+    else sub = 'This removes every Training in the series. Attendance responses will be lost.';
+    document.getElementById('delete-sub').textContent = sub;
+
+    document.getElementById('delete-scope-banner').style.display = e.series ? '' : 'none';
+    document.getElementById('delete-scope-label').textContent = scopeLabel();
+    document.getElementById('delete-scope-count').textContent = `${n} occurrence${plural}`;
+
+    // list dates being removed
+    let removed = [];
+    if (!e.series) removed = [e.date];
+    else if (chosenScope === 'this') removed = [e.date];
+    else if (chosenScope === 'following') removed = SERIES_DATES.slice(e.idx);
+    else removed = SERIES_DATES.slice();
+
+    const list = document.getElementById('delete-list');
+    list.innerHTML = '';
+    removed.slice(0, 6).forEach(d => {
+      const div = document.createElement('div');
+      div.className = 'cl-item';
+      div.textContent = fmtLong(d);
+      list.appendChild(div);
+    });
+    if (removed.length > 6) {
+      const div = document.createElement('div');
+      div.className = 'cl-item';
+      div.style.fontStyle = 'italic';
+      div.style.color = 'var(--text-tertiary)';
+      div.textContent = `+ ${removed.length - 6} more…`;
+      list.appendChild(div);
+    }
+
+    document.getElementById('delete-confirm-btn').textContent = `Delete ${n} event${plural}`;
+    navigateTo('screen-delete');
+  }
+
+  function confirmDelete() {
+    const e = currentEvent;
+    const c = scopeCounts();
+    const n = e.series ? c.affected : 1;
+    const plural = n === 1 ? '' : 's';
+    showSuccess(`${n} event${plural} deleted`, 'The team calendar has<br>been updated.', true);
+  }
+
+  // ═══════════════════════════════════════════════
+  //  Success
+  // ═══════════════════════════════════════════════
+  function showSuccess(title, subHtml, isRed) {
+    document.getElementById('success-title').textContent = title;
+    document.getElementById('success-sub').innerHTML = subHtml;
+    document.getElementById('success-circle').classList.toggle('red', isRed);
+    document.getElementById('success-check').classList.toggle('red', isRed);
+    navigateTo('screen-success');
+    // restart draw animation
+    const circle = document.getElementById('success-circle');
+    const check = document.getElementById('success-check');
+    circle.style.animation = 'none'; check.style.animation = 'none';
+    void circle.offsetHeight;
+    circle.style.animation = ''; check.style.animation = '';
+  }
+
+  // ═══════════════════════════════════════════════
+  //  Utilities
+  // ═══════════════════════════════════════════════
+  function activeIndex(containerId, sel) {
+    const items = document.querySelectorAll('#' + containerId + ' ' + sel);
+    let idx = 0;
+    items.forEach((b, i) => { if (b.classList.contains('active')) idx = i; });
+    return idx;
+  }
+
+  function updatePill(containerId, pillId, idx) {
+    const seg = document.getElementById(containerId);
+    const pill = document.getElementById(pillId);
+    const btns = seg.querySelectorAll('.segment-btn, .recurrence-btn');
+    if (!btns[idx]) return;
+    const btnRect = btns[idx].getBoundingClientRect();
+    const segRect = seg.getBoundingClientRect();
+    pill.style.left = (btnRect.left - segRect.left + 3) + 'px';
+    pill.style.width = (btnRect.width - 6) + 'px';
+  }
+
+  function floatLabel(id) { document.getElementById(id).classList.add('floated'); }
+  function unfloatLabel(labelId, inputId) {
+    const el = document.getElementById(inputId);
+    if (!el.value || el.value.trim() === '') document.getElementById(labelId).classList.remove('floated');
+  }
+
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeAllSheets(); });
+</script>
+</body>
+</html>

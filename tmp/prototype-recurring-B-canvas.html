@@ -1,0 +1,1679 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TeamBalance — Prototype B (Canvas)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300..800;1,9..40,300..800&family=Grandstander:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  :root {
+    --primary: #225C9C;
+    --primary-light: #2d6fb5;
+    --primary-dark: #1a4a7e;
+    --primary-bg: rgba(34, 92, 156, 0.08);
+    --primary-bg-hover: rgba(34, 92, 156, 0.05);
+    --primary-glow: rgba(34, 92, 156, 0.15);
+
+    --accent-green: #249E6C;
+    --accent-green-light: #2ab87d;
+    --accent-green-bg: rgba(36, 158, 108, 0.10);
+
+    --warm-gold: #F4B400;
+    --warm-gold-light: #f7c948;
+    --warm-gold-bg: rgba(244, 180, 0, 0.12);
+
+    --warm-red: #E05252;
+    --warm-red-strong: #D93025;
+    --warm-red-bg: rgba(224, 82, 82, 0.10);
+
+    --bg: #F8F6F0;
+    --bg-card: #FEFDFB;
+    --bg-sidebar: #F3F1EB;
+    --bg-bottombar: rgba(254, 253, 251, 0.88);
+
+    --text-primary: #1E2A3A;
+    --text-secondary: #5A6B7F;
+    --text-tertiary: #8A95A5;
+    --text-on-primary: #FFFFFF;
+
+    --border: rgba(30, 42, 58, 0.07);
+    --border-strong: rgba(30, 42, 58, 0.12);
+    --shadow-sm: 0 1px 3px rgba(62, 45, 30, 0.05), 0 1px 2px rgba(62, 45, 30, 0.03);
+    --shadow-md: 0 4px 12px rgba(62, 45, 30, 0.07), 0 2px 4px rgba(62, 45, 30, 0.04);
+    --shadow-lg: 0 8px 24px rgba(62, 45, 30, 0.09), 0 4px 8px rgba(62, 45, 30, 0.04);
+    --shadow-xl: 0 16px 48px rgba(62, 45, 30, 0.12), 0 8px 16px rgba(62, 45, 30, 0.06);
+
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --radius-pill: 24px;
+
+    --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+    --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+    --ease-out: cubic-bezier(0, 0, 0.2, 1);
+
+    --font-display: 'Grandstander', cursive;
+    --font-body: 'DM Sans', system-ui, sans-serif;
+
+    --topbar-height: 60px;
+
+    /* Live event-type color, swapped by JS */
+    --occ: var(--primary);
+    --occ-bg: var(--primary-bg);
+  }
+
+  html {
+    font-family: var(--font-body);
+    color: var(--text-primary);
+    background: var(--bg);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    line-height: 1.6;
+    letter-spacing: 0.01em;
+  }
+
+  body {
+    min-height: 100dvh;
+    position: relative;
+  }
+
+  /* ── Top Bar ────────────────────────────────── */
+  .topbar {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: var(--topbar-height);
+    background: linear-gradient(180deg, rgba(254, 253, 251, 0.97) 0%, rgba(248, 246, 240, 0.95) 100%);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+    z-index: 100;
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+  }
+
+  .topbar-left { display: flex; align-items: center; gap: 12px; }
+
+  .wordmark {
+    font-family: var(--font-display);
+    font-size: 21px;
+    user-select: none;
+    display: flex;
+    align-items: baseline;
+    gap: 1px;
+    letter-spacing: -0.01em;
+  }
+
+  .wordmark .wm-team { font-weight: 400; color: var(--text-primary); }
+  .wordmark .wm-balance { font-weight: 700; color: var(--accent-green); }
+
+  .proto-ribbon {
+    font-family: var(--font-body);
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.09em;
+    color: var(--warm-gold);
+    background: var(--warm-gold-bg);
+    padding: 3px 9px;
+    border-radius: var(--radius-pill);
+    border: 1px solid rgba(244, 180, 0, 0.25);
+    white-space: nowrap;
+  }
+
+  .team-indicator {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 14px;
+    border-radius: var(--radius-pill);
+    background: var(--primary-bg);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--primary);
+    cursor: default;
+    letter-spacing: 0.02em;
+  }
+
+  .team-indicator .dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--accent-green);
+  }
+
+  /* ── Content Area ──────────────────────────── */
+  .content-area {
+    position: fixed;
+    top: var(--topbar-height);
+    left: 0; right: 0;
+    bottom: 0;
+    overflow: hidden;
+  }
+
+  .screen {
+    position: absolute;
+    inset: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    background: var(--bg);
+    transition: transform 0.4s var(--ease-smooth), opacity 0.3s var(--ease-smooth);
+    will-change: transform;
+  }
+
+  .screen.hidden {
+    transform: translateX(100%);
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .screen.slide-out-left {
+    transform: translateX(-24%);
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .screen-inner {
+    padding: 24px 20px 60px;
+    max-width: 780px;
+    margin: 0 auto;
+  }
+
+  .screen-inner.wide { max-width: 920px; }
+
+  /* ── List screen ───────────────────────────── */
+  .screen-header {
+    margin-bottom: 22px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 16px;
+  }
+
+  .screen-header h1 {
+    font-family: var(--font-display);
+    font-size: 30px;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    margin-bottom: 5px;
+    color: var(--text-primary);
+  }
+
+  .screen-header p {
+    font-size: 15px;
+    color: var(--text-secondary);
+  }
+
+  .btn-new {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 11px 18px;
+    border: none;
+    border-radius: var(--radius-pill);
+    background: var(--primary);
+    color: white;
+    font-family: var(--font-body);
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(34, 92, 156, 0.32);
+    transition: transform 0.2s var(--ease-spring), box-shadow 0.2s, background 0.2s;
+    -webkit-tap-highlight-color: transparent;
+    flex-shrink: 0;
+  }
+  .btn-new:hover { background: var(--primary-light); transform: translateY(-1px); box-shadow: 0 6px 18px rgba(34, 92, 156, 0.4); }
+  .btn-new:active { transform: scale(0.97); }
+  .btn-new svg { width: 18px; height: 18px; }
+
+  .section-heading {
+    font-family: var(--font-body);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 12px;
+    margin-top: 24px;
+  }
+  .section-heading:first-of-type { margin-top: 0; }
+
+  .card {
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    padding: 18px;
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border);
+    transition: box-shadow 0.2s, transform 0.2s var(--ease-spring);
+    cursor: pointer;
+    animation: cardIn 0.4s var(--ease-smooth) both;
+  }
+  .card:hover { box-shadow: var(--shadow-md); transform: translateY(-1px); }
+  .card + .card { margin-top: 12px; }
+  @keyframes cardIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+  .card-row { display: flex; align-items: center; gap: 14px; }
+  .card-icon {
+    width: 42px; height: 42px;
+    border-radius: var(--radius-md);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .card-icon svg { width: 20px; height: 20px; }
+  .card-icon.blue { background: var(--primary-bg); color: var(--primary); }
+  .card-icon.green { background: var(--accent-green-bg); color: var(--accent-green); }
+  .card-icon.gold { background: var(--warm-gold-bg); color: #c89200; }
+  .card-body { flex: 1; min-width: 0; }
+  .card-title {
+    font-size: 16px; font-weight: 600; margin-bottom: 2px;
+    letter-spacing: -0.01em; display: flex; align-items: center; gap: 8px;
+  }
+  .card-sub { font-size: 13px; color: var(--text-secondary); letter-spacing: 0.01em; }
+  .card-right { flex-shrink: 0; color: var(--text-tertiary); }
+  .card-right svg { width: 20px; height: 20px; }
+
+  .series-badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 11px; font-weight: 600; letter-spacing: 0.02em;
+    padding: 2px 8px; border-radius: var(--radius-pill);
+    background: var(--primary-bg); color: var(--primary);
+  }
+  .series-badge svg { width: 12px; height: 12px; }
+
+  /* ── Form topbar (in-screen) ───────────────── */
+  .form-topbar {
+    position: sticky;
+    top: 0;
+    background: linear-gradient(180deg, rgba(248, 246, 240, 0.97) 0%, rgba(248, 246, 240, 0.92) 100%);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 20px;
+    z-index: 20;
+    margin: 0 -20px 4px;
+  }
+  .back-btn {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    background: var(--bg-card);
+    box-shadow: var(--shadow-sm);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; color: var(--text-primary);
+    -webkit-tap-highlight-color: transparent;
+    transition: transform 0.2s var(--ease-spring), box-shadow 0.2s;
+    flex-shrink: 0;
+  }
+  .back-btn:hover { transform: scale(1.05); box-shadow: var(--shadow-md); }
+  .back-btn svg { width: 18px; height: 18px; }
+  .form-title {
+    font-family: var(--font-display);
+    font-size: 22px; font-weight: 500;
+    color: var(--text-primary); letter-spacing: -0.01em;
+  }
+
+  /* ── Canvas layout ─────────────────────────── */
+  .canvas-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 22px;
+    margin-top: 18px;
+  }
+  @media (min-width: 720px) {
+    .canvas-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); align-items: start; }
+    .canvas-preview-col { position: sticky; top: 78px; }
+  }
+
+  .form-section { margin-bottom: 20px; }
+  .form-section-title {
+    font-size: 11px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 1.2px; color: var(--text-tertiary); margin-bottom: 12px;
+  }
+  .form-section-title .muted { color: var(--text-tertiary); font-weight: 400; text-transform: none; letter-spacing: 0; }
+
+  /* Segmented control */
+  .segment-control {
+    display: flex;
+    background: var(--bg);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-pill);
+    padding: 3px;
+    position: relative;
+    margin-bottom: 20px;
+  }
+  .segment-pill {
+    position: absolute;
+    top: 3px; bottom: 3px; left: 3px;
+    border-radius: var(--radius-pill);
+    background: var(--primary);
+    box-shadow: 0 2px 8px rgba(34, 92, 156, 0.3);
+    transition: left 0.35s var(--ease-spring), width 0.35s var(--ease-spring), background 0.3s;
+    z-index: 0;
+  }
+  .segment-pill.tint-green { background: var(--accent-green); box-shadow: 0 2px 8px rgba(36,158,108,0.3); }
+  .segment-pill.tint-gold  { background: var(--warm-gold);   box-shadow: 0 2px 8px rgba(244,180,0,0.3); }
+  .segment-btn {
+    flex: 1; padding: 8px 12px; border: none; background: none;
+    border-radius: var(--radius-pill);
+    font-family: var(--font-body); font-size: 14px; font-weight: 500;
+    color: var(--text-secondary); cursor: pointer; position: relative; z-index: 1;
+    transition: color 0.25s var(--ease-smooth);
+    -webkit-tap-highlight-color: transparent;
+  }
+  .segment-btn.active { color: white; font-weight: 600; }
+
+  /* Field groups */
+  .field-group {
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border);
+    overflow: hidden;
+  }
+  .field-item { position: relative; border-bottom: 1px solid var(--border); transition: background 0.15s; }
+  .field-item:last-child { border-bottom: none; }
+  .field-item:focus-within { background: rgba(34, 92, 156, 0.02); }
+  .field-label {
+    position: absolute; top: 16px; left: 16px;
+    font-size: 14px; color: var(--text-tertiary);
+    transition: all 0.2s var(--ease-smooth); pointer-events: none;
+    font-weight: 500; letter-spacing: 0.01em;
+  }
+  .field-label.floated {
+    top: 8px; font-size: 11px; color: var(--primary); font-weight: 600;
+    letter-spacing: 0.05em; text-transform: uppercase;
+  }
+  .field-input {
+    width: 100%; padding: 24px 16px 8px; border: none; background: none;
+    font-family: var(--font-body); font-size: 16px; color: var(--text-primary);
+    outline: none; letter-spacing: 0.01em; -webkit-appearance: none;
+  }
+  .field-input::placeholder { color: transparent; }
+  .field-input-with-icon { padding-right: 44px; }
+  .field-icon {
+    position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
+    color: var(--text-tertiary); pointer-events: none;
+  }
+  .field-icon svg { width: 18px; height: 18px; }
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; }
+  .field-row .field-item:first-child { border-right: 1px solid var(--border); border-bottom: none; }
+  .field-row .field-item:last-child { border-bottom: none; }
+
+  /* ── Repeats switch ────────────────────────── */
+  .switch-row {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 16px; padding: 16px 18px;
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: var(--radius-lg); box-shadow: var(--shadow-sm);
+  }
+  .switch-label { font-size: 15px; font-weight: 600; letter-spacing: -0.01em; }
+  .switch-sub { font-size: 12.5px; color: var(--text-secondary); margin-top: 1px; }
+  .switch {
+    position: relative; width: 52px; height: 30px; flex-shrink: 0;
+    border-radius: var(--radius-pill); border: none; cursor: pointer;
+    background: var(--border-strong);
+    transition: background 0.3s var(--ease-smooth);
+    -webkit-tap-highlight-color: transparent;
+  }
+  .switch.on { background: var(--primary); }
+  .switch .knob {
+    position: absolute; top: 3px; left: 3px;
+    width: 24px; height: 24px; border-radius: 50%; background: white;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    transition: left 0.32s var(--ease-spring);
+  }
+  .switch.on .knob { left: 25px; }
+
+  .recur-controls {
+    overflow: hidden; max-height: 0; opacity: 0;
+    transition: max-height 0.4s var(--ease-smooth), opacity 0.3s var(--ease-smooth);
+  }
+  .recur-controls.open { max-height: 620px; opacity: 1; margin-top: 16px; }
+
+  .mini-toggle {
+    display: flex; background: var(--bg); border: 1.5px solid var(--border);
+    border-radius: var(--radius-pill); padding: 3px; position: relative; margin-bottom: 16px;
+  }
+  .mini-pill {
+    position: absolute; top: 3px; bottom: 3px; left: 3px;
+    border-radius: var(--radius-pill); background: var(--primary);
+    box-shadow: 0 2px 8px rgba(34, 92, 156, 0.25);
+    transition: left 0.3s var(--ease-spring), width 0.3s var(--ease-spring);
+    z-index: 0;
+  }
+  .mini-btn {
+    flex: 1; padding: 8px 16px; border: none; background: none;
+    border-radius: var(--radius-pill); font-family: var(--font-body);
+    font-size: 14px; font-weight: 500; color: var(--text-secondary);
+    cursor: pointer; position: relative; z-index: 1;
+    transition: color 0.25s var(--ease-smooth);
+    -webkit-tap-highlight-color: transparent;
+  }
+  .mini-btn.active { color: white; font-weight: 600; }
+
+  .day-pills { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; }
+  .day-pill {
+    padding: 6px 13px; border-radius: var(--radius-pill);
+    border: 1.5px solid var(--border); background: var(--bg-card);
+    font-family: var(--font-body); font-size: 13px; font-weight: 500;
+    color: var(--text-secondary); cursor: pointer;
+    transition: all 0.2s var(--ease-spring);
+    -webkit-tap-highlight-color: transparent; user-select: none;
+  }
+  .day-pill.selected { border-color: var(--primary); background: var(--primary); color: white; font-weight: 600; }
+  .day-pill:hover:not(.selected) { border-color: var(--primary); color: var(--primary); }
+
+  /* ── Calendar preview ──────────────────────── */
+  .preview-panel {
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    border: 1.5px solid var(--occ-bg);
+    box-shadow: var(--shadow-md);
+    padding: 16px;
+    transition: border-color 0.3s;
+  }
+  .preview-head {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px; margin-bottom: 6px;
+  }
+  .preview-headline {
+    font-family: var(--font-display);
+    font-size: 18px; font-weight: 500; color: var(--occ);
+    display: flex; align-items: center; gap: 8px; transition: color 0.3s;
+  }
+  .preview-headline svg { width: 20px; height: 20px; }
+  .preview-count-chip {
+    font-size: 12px; font-weight: 700; color: var(--occ);
+    background: var(--occ-bg); padding: 4px 11px; border-radius: var(--radius-pill);
+    white-space: nowrap; transition: color 0.3s, background 0.3s;
+    font-feature-settings: 'tnum' 1;
+  }
+  .preview-range {
+    font-size: 12.5px; color: var(--text-secondary); margin-bottom: 12px;
+    font-feature-settings: 'tnum' 1;
+  }
+
+  .cal-legend {
+    display: flex; flex-wrap: wrap; gap: 12px 16px;
+    font-size: 11.5px; color: var(--text-secondary);
+    margin-bottom: 14px; padding-bottom: 12px; border-bottom: 1px solid var(--border);
+  }
+  .legend-item { display: flex; align-items: center; gap: 6px; }
+  .legend-swatch { width: 13px; height: 13px; border-radius: 4px; flex-shrink: 0; }
+  .legend-swatch.occ { background: var(--occ); }
+  .legend-swatch.season { background: rgba(36,158,108,0.12); border: 1px solid rgba(36,158,108,0.3); }
+  .legend-swatch.warn { background: var(--warm-red); }
+
+  .cal-scroll {
+    display: flex; gap: 14px; overflow-x: auto;
+    padding-bottom: 8px; scroll-snap-type: x proximity;
+    scrollbar-width: thin;
+  }
+  .cal-scroll::-webkit-scrollbar { height: 6px; }
+  .cal-scroll::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 3px; }
+
+  .month-card {
+    flex: 0 0 auto; width: 208px; scroll-snap-align: start;
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: var(--radius-md); padding: 12px 12px 14px;
+  }
+  .month-title {
+    font-family: var(--font-display); font-size: 15px; font-weight: 500;
+    color: var(--text-primary); margin-bottom: 8px; text-align: center;
+  }
+  .dow-row { display: grid; grid-template-columns: repeat(7, 1fr); margin-bottom: 4px; }
+  .dow { font-size: 10px; font-weight: 600; color: var(--text-tertiary); text-align: center; }
+  .day-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
+  .day-cell {
+    aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
+    font-size: 11px; border-radius: 7px; color: var(--text-secondary);
+    position: relative; font-feature-settings: 'tnum' 1;
+  }
+  .day-cell.blank { visibility: hidden; }
+  .day-cell.in-season { background: rgba(36,158,108,0.09); }
+  .day-cell.out-season { color: var(--text-tertiary); opacity: 0.5; }
+  .day-cell.occ {
+    background: var(--occ); color: #fff; font-weight: 700;
+    box-shadow: 0 2px 6px var(--occ-bg);
+    animation: occPop 0.28s var(--ease-spring);
+  }
+  .day-cell.occ-warn {
+    background: var(--warm-red); color: #fff; font-weight: 700;
+    animation: occPop 0.28s var(--ease-spring);
+  }
+  @keyframes occPop { from { transform: scale(0.4); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .day-cell.is-today::after {
+    content: ''; position: absolute; inset: -2px;
+    border: 2px solid var(--text-primary); border-radius: 8px; opacity: 0.55;
+  }
+  .day-cell.occ.is-today::after, .day-cell.occ-warn.is-today::after { border-color: #fff; opacity: 0.9; }
+
+  .cap-note {
+    margin-top: 12px; font-size: 12.5px; color: #a07600;
+    background: var(--warm-gold-bg); border-radius: var(--radius-sm);
+    padding: 8px 12px; display: none; gap: 8px; align-items: flex-start;
+  }
+  .cap-note.show { display: flex; }
+  .cap-note svg { width: 15px; height: 15px; flex-shrink: 0; margin-top: 2px; }
+
+  /* ── Primary button ────────────────────────── */
+  .btn-primary {
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    width: 100%; padding: 16px; border: none; border-radius: var(--radius-lg);
+    background: var(--primary); color: white;
+    font-family: var(--font-display); font-size: 17px; font-weight: 500;
+    letter-spacing: 0.01em; cursor: pointer;
+    box-shadow: 0 4px 14px rgba(34, 92, 156, 0.35);
+    transition: transform 0.2s var(--ease-spring), box-shadow 0.2s, background 0.2s;
+    -webkit-tap-highlight-color: transparent; margin-top: 18px;
+  }
+  .btn-primary:hover { background: var(--primary-light); transform: translateY(-1px); box-shadow: 0 6px 18px rgba(34, 92, 156, 0.4); }
+  .btn-primary:active { transform: scale(0.98) translateY(0); }
+  .btn-primary.danger { background: var(--warm-red-strong); box-shadow: 0 4px 14px rgba(217, 48, 37, 0.35); }
+  .btn-primary.danger:hover { background: #c22a20; box-shadow: 0 6px 18px rgba(217, 48, 37, 0.42); }
+
+  .btn-ghost {
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    width: 100%; padding: 14px; border: 1.5px solid var(--border-strong);
+    border-radius: var(--radius-lg); background: var(--bg-card); color: var(--text-secondary);
+    font-family: var(--font-body); font-size: 15px; font-weight: 600;
+    cursor: pointer; transition: all 0.2s var(--ease-spring);
+    -webkit-tap-highlight-color: transparent; margin-top: 12px;
+  }
+  .btn-ghost:hover { border-color: var(--text-tertiary); color: var(--text-primary); }
+  .btn-ghost.danger { color: var(--warm-red-strong); border-color: var(--warm-red-bg); }
+  .btn-ghost.danger:hover { border-color: var(--warm-red); background: var(--warm-red-bg); }
+  .btn-ghost svg { width: 18px; height: 18px; }
+
+  /* ── Detail: series block ──────────────────── */
+  .detail-hero {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: var(--radius-lg); box-shadow: var(--shadow-sm);
+    padding: 20px; margin-top: 18px; margin-bottom: 20px;
+  }
+  .detail-type {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em;
+    padding: 4px 10px; border-radius: var(--radius-pill);
+    background: var(--primary-bg); color: var(--primary); margin-bottom: 12px;
+  }
+  .detail-title { font-family: var(--font-display); font-size: 26px; font-weight: 500; letter-spacing: -0.01em; margin-bottom: 8px; }
+  .detail-meta { display: flex; flex-direction: column; gap: 6px; }
+  .detail-meta-row { display: flex; align-items: center; gap: 10px; font-size: 14px; color: var(--text-secondary); }
+  .detail-meta-row svg { width: 16px; height: 16px; color: var(--text-tertiary); flex-shrink: 0; }
+
+  .series-block {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: var(--radius-lg); box-shadow: var(--shadow-sm);
+    padding: 18px; margin-bottom: 20px;
+  }
+  .series-block-head {
+    display: flex; align-items: center; gap: 8px; margin-bottom: 14px;
+    font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em;
+    color: var(--primary);
+  }
+  .series-block-head svg { width: 16px; height: 16px; }
+  .occ-list { display: flex; flex-direction: column; gap: 8px; }
+  .occ-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 12px; border-radius: var(--radius-md);
+    background: var(--bg); font-size: 13.5px; font-feature-settings: 'tnum' 1;
+  }
+  .occ-item.current { background: var(--primary-bg); font-weight: 600; color: var(--primary); }
+  .occ-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--primary); flex-shrink: 0; opacity: 0.55; }
+  .occ-item.current .occ-dot { opacity: 1; }
+  .occ-item .occ-tag { margin-left: auto; font-size: 11px; font-weight: 700; color: var(--primary); text-transform: uppercase; letter-spacing: 0.05em; }
+  .occ-divider {
+    display: flex; align-items: center; gap: 10px; padding: 4px 2px;
+    font-size: 12px; color: var(--text-tertiary); font-weight: 600;
+  }
+  .occ-divider::before, .occ-divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+  .detail-actions { display: flex; gap: 12px; margin-top: 4px; }
+  .detail-actions .btn-ghost { margin-top: 0; }
+
+  /* ── Scope selector (inline) ───────────────── */
+  .scope-control {
+    display: flex; background: var(--bg); border: 1.5px solid var(--border);
+    border-radius: var(--radius-pill); padding: 3px; position: relative; margin-bottom: 6px;
+  }
+  .scope-pill {
+    position: absolute; top: 3px; bottom: 3px; left: 3px;
+    border-radius: var(--radius-pill); background: var(--primary);
+    box-shadow: 0 2px 8px rgba(34, 92, 156, 0.28);
+    transition: left 0.35s var(--ease-spring), width 0.35s var(--ease-spring), background 0.3s;
+    z-index: 0;
+  }
+  .scope-pill.danger { background: var(--warm-red-strong); box-shadow: 0 2px 8px rgba(217,48,37,0.3); }
+  .scope-btn {
+    flex: 1; padding: 9px 8px; border: none; background: none;
+    border-radius: var(--radius-pill); font-family: var(--font-body);
+    font-size: 13px; font-weight: 500; color: var(--text-secondary);
+    cursor: pointer; position: relative; z-index: 1; line-height: 1.2;
+    transition: color 0.25s var(--ease-smooth); -webkit-tap-highlight-color: transparent;
+  }
+  .scope-btn.active { color: white; font-weight: 600; }
+
+  .apply-to-label {
+    font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 1.2px;
+    color: var(--text-tertiary); margin-bottom: 10px;
+  }
+
+  /* Affected timeline */
+  .affect-panel {
+    background: var(--bg-card); border: 1.5px solid var(--occ-bg);
+    border-radius: var(--radius-lg); box-shadow: var(--shadow-sm);
+    padding: 16px; margin-top: 14px; margin-bottom: 6px;
+    transition: border-color 0.3s;
+  }
+  .affect-head {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px; margin-bottom: 10px;
+  }
+  .affect-count {
+    font-family: var(--font-display); font-size: 17px; font-weight: 500; color: var(--occ);
+    transition: color 0.3s;
+  }
+  .affect-legend { display: flex; gap: 12px; font-size: 11px; color: var(--text-secondary); }
+  .affect-legend .li { display: flex; align-items: center; gap: 5px; }
+  .affect-legend .sw { width: 10px; height: 10px; border-radius: 3px; }
+  .affect-legend .sw.hit { background: var(--occ); }
+  .affect-legend .sw.miss { background: var(--border-strong); }
+
+  .timeline {
+    display: flex; align-items: center; gap: 5px; overflow-x: auto;
+    padding: 10px 2px 6px; scrollbar-width: thin;
+  }
+  .timeline::-webkit-scrollbar { height: 5px; }
+  .timeline::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 3px; }
+  .tl-node {
+    width: 15px; height: 15px; border-radius: 50%; flex-shrink: 0;
+    background: var(--border-strong); position: relative;
+    transition: background 0.25s var(--ease-smooth), transform 0.25s var(--ease-spring);
+  }
+  .tl-node.hit { background: var(--occ); }
+  .tl-node.hit.danger { background: var(--warm-red-strong); }
+  .tl-node.current {
+    transform: scale(1.5); box-shadow: 0 0 0 3px var(--bg-card), 0 0 0 4px var(--occ);
+    z-index: 1;
+  }
+  .tl-node.current.danger { box-shadow: 0 0 0 3px var(--bg-card), 0 0 0 4px var(--warm-red-strong); }
+  .tl-split {
+    width: 2px; height: 22px; flex-shrink: 0; background: var(--text-tertiary);
+    border-radius: 1px; opacity: 0.6; margin: 0 2px;
+  }
+  .split-caption {
+    font-size: 12.5px; color: var(--text-secondary); line-height: 1.5;
+    margin-top: 10px; padding-top: 12px; border-top: 1px solid var(--border);
+    display: flex; gap: 8px; align-items: flex-start;
+  }
+  .split-caption svg { width: 15px; height: 15px; flex-shrink: 0; margin-top: 3px; color: var(--occ); transition: color 0.3s; }
+
+  .lock-note {
+    display: flex; gap: 8px; align-items: flex-start;
+    font-size: 12.5px; color: var(--text-secondary);
+    background: var(--bg); border-radius: var(--radius-sm);
+    padding: 10px 12px; margin-top: 4px;
+  }
+  .lock-note svg { width: 15px; height: 15px; flex-shrink: 0; margin-top: 2px; color: var(--text-tertiary); }
+
+  .date-field-wrap {
+    overflow: hidden; max-height: 0; opacity: 0;
+    transition: max-height 0.35s var(--ease-smooth), opacity 0.25s var(--ease-smooth);
+  }
+  .date-field-wrap.show { max-height: 120px; opacity: 1; }
+
+  /* ── Toast ─────────────────────────────────── */
+  .toast-wrap {
+    position: fixed; left: 0; right: 0; bottom: 28px;
+    display: flex; justify-content: center; z-index: 300; pointer-events: none;
+    padding: 0 20px;
+  }
+  .toast {
+    display: flex; align-items: center; gap: 12px;
+    background: var(--text-primary); color: #fff;
+    padding: 14px 20px; border-radius: var(--radius-pill);
+    box-shadow: var(--shadow-xl); font-size: 14.5px; font-weight: 500;
+    max-width: 460px; transform: translateY(140%); opacity: 0;
+    transition: transform 0.45s var(--ease-spring), opacity 0.3s;
+    pointer-events: all;
+  }
+  .toast.show { transform: translateY(0); opacity: 1; }
+  .toast .toast-icon {
+    width: 26px; height: 26px; border-radius: 50%; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--accent-green);
+  }
+  .toast .toast-icon svg { width: 15px; height: 15px; color: #fff; }
+  .toast.danger .toast-icon { background: var(--warm-red); }
+  .toast .toast-count { font-family: var(--font-display); font-weight: 700; }
+
+  .helper-line { font-size: 12.5px; color: var(--text-secondary); margin: 10px 2px 0; }
+</style>
+</head>
+<body>
+
+<!-- Top Bar -->
+<header class="topbar">
+  <div class="topbar-left">
+    <div class="wordmark"><span class="wm-team">Team</span><span class="wm-balance">Balance</span></div>
+    <span class="proto-ribbon">Prototype B — Canvas</span>
+  </div>
+  <div class="team-indicator"><span class="dot"></span>Heren 3</div>
+</header>
+
+<main class="content-area">
+
+  <!-- ═══ SCREEN 1: Events list ═══ -->
+  <div class="screen" id="screen-list">
+    <div class="screen-inner">
+      <div class="screen-header">
+        <div>
+          <h1>Events</h1>
+          <p>Season 2026 – 2027 · Heren 3</p>
+        </div>
+        <button class="btn-new" onclick="openNew()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          New event
+        </button>
+      </div>
+
+      <div class="section-heading">Upcoming</div>
+
+      <div class="card" onclick="openDetail()">
+        <div class="card-row">
+          <div class="card-icon blue">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          </div>
+          <div class="card-body">
+            <div class="card-title">Training
+              <span class="series-badge">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+                Series
+              </span>
+            </div>
+            <div class="card-sub">Tuesday, Sep 8 · 20:30 · Sporthal Galgenwaard</div>
+          </div>
+          <div class="card-right">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-row">
+          <div class="card-icon green">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+          </div>
+          <div class="card-body">
+            <div class="card-title">Match vs. Apeliansen H2</div>
+            <div class="card-sub">Saturday, Sep 12 · 14:30 · Sportcentrum Olympos</div>
+          </div>
+          <div class="card-right">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" onclick="openDetail()">
+        <div class="card-row">
+          <div class="card-icon blue">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          </div>
+          <div class="card-body">
+            <div class="card-title">Training
+              <span class="series-badge">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+                Series
+              </span>
+            </div>
+            <div class="card-sub">Tuesday, Sep 15 · 20:30 · Sporthal Galgenwaard</div>
+          </div>
+          <div class="card-right">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+          </div>
+        </div>
+      </div>
+
+      <div class="helper-line" style="margin-top:16px;">Tap a <strong>Series</strong> training to open the detail view and try scoped edits &amp; deletes.</div>
+    </div>
+  </div>
+
+  <!-- ═══ SCREEN 2: New event canvas ═══ -->
+  <div class="screen hidden" id="screen-new">
+    <div class="screen-inner wide">
+      <div class="form-topbar">
+        <button class="back-btn" onclick="goBack()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <span class="form-title">New event</span>
+      </div>
+
+      <div class="canvas-grid">
+        <!-- LEFT: controls -->
+        <div class="canvas-form-col">
+          <div class="form-section-title">Event type</div>
+          <div class="segment-control" id="type-segment">
+            <div class="segment-pill" id="type-pill"></div>
+            <button class="segment-btn active" data-type="Training" onclick="selectType(this,'Training')">Training</button>
+            <button class="segment-btn" data-type="Match" onclick="selectType(this,'Match')">Match</button>
+            <button class="segment-btn" data-type="Misc" onclick="selectType(this,'Misc')">Misc</button>
+          </div>
+
+          <div class="form-section">
+            <div class="form-section-title">Details</div>
+            <div class="field-group">
+              <div class="field-item">
+                <label class="field-label floated" id="title-label">Title</label>
+                <input class="field-input" id="title-input" type="text" value="Training" autocomplete="off"
+                  onfocus="floatLabel('title-label')" onblur="unfloatLabel('title-label','title-input')">
+              </div>
+              <div class="field-row">
+                <div class="field-item">
+                  <label class="field-label floated" id="time-label">Time</label>
+                  <input class="field-input" id="time-input" type="time" value="20:30"
+                    onfocus="floatLabel('time-label')" onblur="unfloatLabel('time-label','time-input')">
+                </div>
+                <div class="field-item">
+                  <label class="field-label floated" id="loc-label">Location</label>
+                  <input class="field-input" id="loc-input" type="text" value="Sporthal Galgenwaard" autocomplete="off"
+                    onfocus="floatLabel('loc-label')" onblur="unfloatLabel('loc-label','loc-input')">
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Repeats switch -->
+          <div class="form-section">
+            <div class="switch-row">
+              <div>
+                <div class="switch-label">Repeats</div>
+                <div class="switch-sub" id="repeats-sub">Weekly through the season</div>
+              </div>
+              <button class="switch on" id="repeats-switch" onclick="toggleRepeats()" aria-label="Toggle repeats">
+                <span class="knob"></span>
+              </button>
+            </div>
+
+            <!-- Single-date field (when Repeats OFF) -->
+            <div id="single-date-wrap" style="display:none; margin-top:16px;">
+              <div class="field-group">
+                <div class="field-item">
+                  <label class="field-label floated" id="sdate-label">Date</label>
+                  <input class="field-input" id="sdate-input" type="date" value="2026-09-08"
+                    onfocus="floatLabel('sdate-label')" onblur="unfloatLabel('sdate-label','sdate-input')"
+                    onchange="render()">
+                </div>
+              </div>
+            </div>
+
+            <!-- Recurrence controls (when Repeats ON) -->
+            <div class="recur-controls open" id="recur-controls">
+              <div class="form-section-title" style="margin-bottom:8px;">Frequency</div>
+              <div class="mini-toggle" id="freq-toggle">
+                <div class="mini-pill" id="freq-pill"></div>
+                <button class="mini-btn active" onclick="selectFreq(this,1)">Every week</button>
+                <button class="mini-btn" onclick="selectFreq(this,2)">Every 2 weeks</button>
+              </div>
+
+              <div class="form-section-title" style="margin-bottom:8px;">Days</div>
+              <div class="day-pills" id="day-pills">
+                <span class="day-pill" data-day="Mon" onclick="toggleDay(this,'Mon')">Mon</span>
+                <span class="day-pill selected" data-day="Tue" onclick="toggleDay(this,'Tue')">Tue</span>
+                <span class="day-pill" data-day="Wed" onclick="toggleDay(this,'Wed')">Wed</span>
+                <span class="day-pill selected" data-day="Thu" onclick="toggleDay(this,'Thu')">Thu</span>
+                <span class="day-pill" data-day="Fri" onclick="toggleDay(this,'Fri')">Fri</span>
+                <span class="day-pill" data-day="Sat" onclick="toggleDay(this,'Sat')">Sat</span>
+                <span class="day-pill" data-day="Sun" onclick="toggleDay(this,'Sun')">Sun</span>
+              </div>
+
+              <div class="field-group">
+                <div class="field-row">
+                  <div class="field-item" style="border-right:1px solid var(--border);">
+                    <label class="field-label floated" id="start-label">Start date</label>
+                    <input class="field-input" id="start-input" type="date" value="2026-09-08"
+                      onfocus="floatLabel('start-label')" onblur="unfloatLabel('start-label','start-input')"
+                      onchange="render()">
+                  </div>
+                  <div class="field-item">
+                    <label class="field-label floated" id="end-label">End date</label>
+                    <input class="field-input" id="end-input" type="date" value="2027-05-31"
+                      onfocus="floatLabel('end-label')" onblur="unfloatLabel('end-label','end-input')"
+                      onchange="render()">
+                  </div>
+                </div>
+              </div>
+              <div class="helper-line">Season runs <strong>Sep 1, 2026 → May 31, 2027</strong> (shaded band). Starts must fall inside it.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- RIGHT: calendar preview -->
+        <div class="canvas-preview-col">
+          <div class="preview-panel" id="preview-panel">
+            <div class="preview-head">
+              <div class="preview-headline">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="3"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                Preview
+              </div>
+              <div class="preview-count-chip" id="count-chip">— events</div>
+            </div>
+            <div class="preview-range" id="range-line"></div>
+
+            <div class="cal-legend">
+              <div class="legend-item"><span class="legend-swatch occ"></span>Occurrence</div>
+              <div class="legend-item"><span class="legend-swatch season"></span>Season window</div>
+              <div class="legend-item"><span class="legend-swatch warn"></span>Outside season</div>
+            </div>
+
+            <div class="cal-scroll" id="cal-scroll"></div>
+
+            <div class="cap-note" id="cap-note">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              <span id="cap-note-text"></span>
+            </div>
+          </div>
+
+          <button class="btn-primary" id="create-btn" onclick="createEvents()">Create events</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ SCREEN 3: Series detail ═══ -->
+  <div class="screen hidden" id="screen-detail">
+    <div class="screen-inner">
+      <div class="form-topbar">
+        <button class="back-btn" onclick="goBack()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <span class="form-title">Event</span>
+      </div>
+
+      <div class="detail-hero">
+        <span class="detail-type">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          Training
+        </span>
+        <div class="detail-title">Training</div>
+        <div class="detail-meta">
+          <div class="detail-meta-row">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="3"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            <span id="detail-date">Tuesday, Sep 8, 2026</span>
+          </div>
+          <div class="detail-meta-row">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            20:30
+          </div>
+          <div class="detail-meta-row">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            Sporthal Galgenwaard, Utrecht
+          </div>
+        </div>
+      </div>
+
+      <div class="series-block">
+        <div class="series-block-head">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+          <span id="series-head-label">Part of a weekly series</span>
+        </div>
+        <div class="occ-list" id="series-occ-list"></div>
+      </div>
+
+      <div class="detail-actions">
+        <button class="btn-ghost" onclick="openEdit()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          Edit
+        </button>
+        <button class="btn-ghost danger" onclick="openDelete()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+          Delete
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ SCREEN 4: Edit with inline scope ═══ -->
+  <div class="screen hidden" id="screen-edit">
+    <div class="screen-inner">
+      <div class="form-topbar">
+        <button class="back-btn" onclick="goBack()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <span class="form-title">Edit training</span>
+      </div>
+
+      <div style="height:18px;"></div>
+
+      <div class="apply-to-label">Apply to</div>
+      <div class="scope-control" id="edit-scope">
+        <div class="scope-pill" id="edit-scope-pill"></div>
+        <button class="scope-btn active" onclick="selectEditScope(this,'this')">This event</button>
+        <button class="scope-btn" onclick="selectEditScope(this,'following')">This &amp; following</button>
+        <button class="scope-btn" onclick="selectEditScope(this,'all')">All events</button>
+      </div>
+
+      <div class="affect-panel" id="edit-affect-panel">
+        <div class="affect-head">
+          <div class="affect-count" id="edit-affect-count">Affects 1 of 32 events</div>
+          <div class="affect-legend">
+            <div class="li"><span class="sw hit"></span>Changed</div>
+            <div class="li"><span class="sw miss"></span>Untouched</div>
+          </div>
+        </div>
+        <div class="timeline" id="edit-timeline"></div>
+        <div class="split-caption" id="edit-split-caption">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3v12"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/></svg>
+          <span id="edit-split-text"></span>
+        </div>
+      </div>
+
+      <div class="form-section" style="margin-top:20px;">
+        <div class="form-section-title">Details</div>
+        <div class="field-group">
+          <div class="field-item">
+            <label class="field-label floated" id="e-title-label">Title</label>
+            <input class="field-input" id="e-title-input" type="text" value="Training" autocomplete="off"
+              onfocus="floatLabel('e-title-label')" onblur="unfloatLabel('e-title-label','e-title-input')">
+          </div>
+          <div class="field-row">
+            <div class="field-item" style="border-right:1px solid var(--border);">
+              <label class="field-label floated" id="e-time-label">Time</label>
+              <input class="field-input" id="e-time-input" type="time" value="20:30"
+                onfocus="floatLabel('e-time-label')" onblur="unfloatLabel('e-time-label','e-time-input')">
+            </div>
+            <div class="field-item">
+              <label class="field-label floated" id="e-loc-label">Location</label>
+              <input class="field-input" id="e-loc-input" type="text" value="Sporthal Galgenwaard" autocomplete="off"
+                onfocus="floatLabel('e-loc-label')" onblur="unfloatLabel('e-loc-label','e-loc-input')">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Date field: only for "This event" -->
+      <div class="date-field-wrap show" id="edit-date-wrap">
+        <div class="form-section-title">Date <span class="muted">— move this one occurrence</span></div>
+        <div class="field-group">
+          <div class="field-item">
+            <label class="field-label floated" id="e-date-label">Date</label>
+            <input class="field-input" id="e-date-input" type="date" value="2026-11-03"
+              onfocus="floatLabel('e-date-label')" onblur="unfloatLabel('e-date-label','e-date-input')">
+          </div>
+        </div>
+      </div>
+      <div class="lock-note" id="edit-lock-note" style="display:none;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        <span>Each occurrence keeps its own date; time &amp; details apply to all affected events.</span>
+      </div>
+
+      <button class="btn-primary" id="edit-save-btn" onclick="saveEdit()">Save changes</button>
+    </div>
+  </div>
+
+  <!-- ═══ SCREEN 5: Delete with inline scope ═══ -->
+  <div class="screen hidden" id="screen-delete">
+    <div class="screen-inner">
+      <div class="form-topbar">
+        <button class="back-btn" onclick="goBack()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <span class="form-title">Delete training</span>
+      </div>
+
+      <div style="height:18px;"></div>
+
+      <div class="apply-to-label">Delete</div>
+      <div class="scope-control" id="del-scope">
+        <div class="scope-pill danger" id="del-scope-pill"></div>
+        <button class="scope-btn active" onclick="selectDelScope(this,'this')">This event</button>
+        <button class="scope-btn" onclick="selectDelScope(this,'following')">This &amp; following</button>
+        <button class="scope-btn" onclick="selectDelScope(this,'all')">All events</button>
+      </div>
+
+      <div class="affect-panel" id="del-affect-panel" style="border-color:var(--warm-red-bg);">
+        <div class="affect-head">
+          <div class="affect-count" id="del-affect-count" style="color:var(--warm-red-strong);">Removes 1 of 32 events</div>
+          <div class="affect-legend">
+            <div class="li"><span class="sw" style="background:var(--warm-red-strong);"></span>Removed</div>
+            <div class="li"><span class="sw miss"></span>Kept</div>
+          </div>
+        </div>
+        <div class="timeline" id="del-timeline"></div>
+        <div class="split-caption" id="del-split-caption">
+          <svg viewBox="0 0 24 24" fill="none" stroke="var(--warm-red-strong)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--warm-red-strong);"><path d="M6 3v12"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/></svg>
+          <span id="del-split-text"></span>
+        </div>
+      </div>
+
+      <button class="btn-primary danger" id="del-confirm-btn" onclick="confirmDelete()">Delete this event</button>
+      <button class="btn-ghost" onclick="goBack()">Cancel</button>
+    </div>
+  </div>
+
+</main>
+
+<!-- Toast -->
+<div class="toast-wrap">
+  <div class="toast" id="toast">
+    <span class="toast-icon" id="toast-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+    </span>
+    <span id="toast-text">Done</span>
+  </div>
+</div>
+
+<script>
+  /* ══════════ Deterministic demo constants ══════════ */
+  const TODAY        = new Date(2026, 8, 8);   // 2026-09-08 (fixed demo "today")
+  const SEASON_START = new Date(2026, 8, 1);   // 2026-09-01
+  const SEASON_END   = new Date(2027, 4, 31);  // 2027-05-31
+  const CAP = 200;
+
+  const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const DOW_LABELS = ['Mo','Tu','We','Th','Fr','Sa','Su'];
+  // JS getDay(): Sun0..Sat6
+  const DAY_TO_JS = { Mon:1, Tue:2, Wed:3, Thu:4, Fri:5, Sat:6, Sun:0 };
+
+  const TYPE_META = {
+    Training: { color: '#225C9C', bg: 'rgba(34,92,156,0.08)',  tint: '',          title: 'Training' },
+    Match:    { color: '#249E6C', bg: 'rgba(36,158,108,0.10)', tint: 'tint-green', title: 'Match vs. Apeliansen H2' },
+    Misc:     { color: '#F4B400', bg: 'rgba(244,180,0,0.12)',  tint: 'tint-gold',  title: 'Team Meeting' }
+  };
+
+  /* ══════════ Date helpers ══════════ */
+  const key = d => d.getFullYear()+'-'+d.getMonth()+'-'+d.getDate();
+  const sameOrBefore = (a,b) => a.getTime() <= b.getTime();
+  function monthKey(d){ return d.getFullYear()*12 + d.getMonth(); }
+  function fmtLong(d){ return d.toLocaleDateString('en-US',{weekday:'long',month:'short',day:'numeric',year:'numeric'}); }
+  function fmtShort(d){ return d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'}); }
+
+  /* ══════════ State ══════════ */
+  const state = {
+    type: 'Training',
+    repeats: true,
+    freq: 1,
+    days: ['Tue','Thu'],
+  };
+
+  /* ══════════ Screen navigation ══════════ */
+  let stack = ['screen-list'];
+
+  function showScreen(id){
+    const cur = document.getElementById(stack[stack.length-1]);
+    const next = document.getElementById(id);
+    cur.classList.add('slide-out-left');
+    setTimeout(()=>cur.classList.add('hidden'), 340);
+    next.classList.remove('hidden','slide-out-left');
+    next.scrollTop = 0;
+    stack.push(id);
+  }
+  function goBack(){
+    if (stack.length <= 1) return;
+    const cur = document.getElementById(stack.pop());
+    const prev = document.getElementById(stack[stack.length-1]);
+    cur.style.transition = 'transform 0.35s var(--ease-smooth), opacity 0.3s';
+    cur.style.transform = 'translateX(100%)';
+    cur.style.opacity = '0';
+    setTimeout(()=>{ cur.classList.add('hidden'); cur.style.transition=''; cur.style.transform=''; cur.style.opacity=''; }, 360);
+    prev.classList.remove('hidden','slide-out-left');
+    prev.style.transition = 'none';
+    prev.scrollTop = 0;
+  }
+  function goToList(){
+    stack = ['screen-list'];
+    document.querySelectorAll('.screen').forEach(s=>{ s.classList.add('hidden'); s.style.transform=''; s.style.opacity=''; });
+    const list = document.getElementById('screen-list');
+    list.classList.remove('hidden','slide-out-left');
+  }
+
+  /* ══════════ Floating labels ══════════ */
+  function floatLabel(id){ document.getElementById(id).classList.add('floated'); }
+  function unfloatLabel(labelId,inputId){
+    const el = document.getElementById(inputId);
+    if (!el.value || el.value.trim()==='') document.getElementById(labelId).classList.remove('floated');
+  }
+
+  /* ══════════ Pill positioning ══════════ */
+  function movePill(segId, pillId, idx){
+    const seg = document.getElementById(segId);
+    const pill = document.getElementById(pillId);
+    const btns = seg.querySelectorAll('.segment-btn, .mini-btn, .scope-btn');
+    if (!btns[idx]) return;
+    const b = btns[idx].getBoundingClientRect();
+    const s = seg.getBoundingClientRect();
+    pill.style.left = (b.left - s.left + 3) + 'px';
+    pill.style.width = (b.width - 6) + 'px';
+  }
+
+  /* ══════════ NEW EVENT canvas ══════════ */
+  function openNew(){
+    state.type = 'Training'; state.repeats = true; state.freq = 1; state.days = ['Tue','Thu'];
+    document.getElementById('title-input').value = 'Training';
+    // reset segments
+    document.querySelectorAll('#type-segment .segment-btn').forEach((b,i)=>b.classList.toggle('active', i===0));
+    document.querySelectorAll('#freq-toggle .mini-btn').forEach((b,i)=>b.classList.toggle('active', i===0));
+    document.querySelectorAll('#day-pills .day-pill').forEach(p=>p.classList.toggle('selected', state.days.includes(p.dataset.day)));
+    document.getElementById('repeats-switch').classList.add('on');
+    document.getElementById('single-date-wrap').style.display = 'none';
+    document.getElementById('recur-controls').classList.add('open');
+    showScreen('screen-new');
+    requestAnimationFrame(()=>{
+      movePill('type-segment','type-pill',0);
+      movePill('freq-toggle','freq-pill',0);
+      applyTypeColor();
+      render();
+    });
+  }
+
+  function applyTypeColor(){
+    const m = TYPE_META[state.type];
+    document.documentElement.style.setProperty('--occ', m.color);
+    document.documentElement.style.setProperty('--occ-bg', m.bg);
+    const pill = document.getElementById('type-pill');
+    pill.className = 'segment-pill ' + m.tint;
+  }
+
+  function selectType(btn, type){
+    state.type = type;
+    document.querySelectorAll('#type-segment .segment-btn').forEach((b,i)=>{
+      const on = b===btn; b.classList.toggle('active', on);
+      if (on) movePill('type-segment','type-pill', i);
+    });
+    // update default title if untouched-ish
+    const ti = document.getElementById('title-input');
+    if (['Training','Match vs. Apeliansen H2','Team Meeting'].includes(ti.value)) ti.value = TYPE_META[type].title;
+    applyTypeColor();
+    render();
+  }
+
+  function toggleRepeats(){
+    state.repeats = !state.repeats;
+    const sw = document.getElementById('repeats-switch');
+    sw.classList.toggle('on', state.repeats);
+    document.getElementById('recur-controls').classList.toggle('open', state.repeats);
+    document.getElementById('single-date-wrap').style.display = state.repeats ? 'none' : 'block';
+    document.getElementById('repeats-sub').textContent = state.repeats ? 'Weekly through the season' : 'A single one-off event';
+    if (state.repeats) requestAnimationFrame(()=>{ movePill('freq-toggle','freq-pill', state.freq===1?0:1); });
+    render();
+  }
+
+  function selectFreq(btn, weeks){
+    state.freq = weeks;
+    document.querySelectorAll('#freq-toggle .mini-btn').forEach((b,i)=>{
+      const on = b===btn; b.classList.toggle('active', on);
+      if (on) movePill('freq-toggle','freq-pill', i);
+    });
+    render();
+  }
+
+  function toggleDay(el, day){
+    const i = state.days.indexOf(day);
+    if (i>=0){ if (state.days.length===1) return; state.days.splice(i,1); el.classList.remove('selected'); }
+    else { state.days.push(day); el.classList.add('selected'); }
+    render();
+  }
+
+  /* ── Occurrence generation ── */
+  function generateOccurrences(){
+    if (!state.repeats){
+      const v = document.getElementById('sdate-input').value;
+      const d = v ? new Date(v+'T00:00:00') : new Date(TODAY);
+      return [{ date: d, inSeason: sameOrBefore(SEASON_START,d) && sameOrBefore(d,SEASON_END) }];
+    }
+    const sv = document.getElementById('start-input').value;
+    const ev = document.getElementById('end-input').value;
+    const start = sv ? new Date(sv+'T00:00:00') : new Date(SEASON_START);
+    const end   = ev ? new Date(ev+'T00:00:00') : new Date(SEASON_END);
+    const wanted = new Set(state.days.map(d=>DAY_TO_JS[d]));
+    const perDayIdx = {};
+    const out = [];
+    if (start > end) return out;
+    const cur = new Date(start);
+    let guard = 0;
+    while (sameOrBefore(cur, end) && guard < 2000){
+      guard++;
+      const jd = cur.getDay();
+      if (wanted.has(jd)){
+        perDayIdx[jd] = (perDayIdx[jd]||0);
+        const keep = state.freq === 1 || (perDayIdx[jd] % 2 === 0);
+        perDayIdx[jd]++;
+        if (keep){
+          out.push({ date: new Date(cur), inSeason: sameOrBefore(SEASON_START,cur) && sameOrBefore(cur,SEASON_END) });
+        }
+      }
+      cur.setDate(cur.getDate()+1);
+    }
+    return out;
+  }
+
+  /* ── Calendar render ── */
+  function render(){
+    const occ = generateOccurrences();
+    const capped = occ.slice(0, CAP);
+    const occSet = new Map();      // key -> inSeason
+    capped.forEach(o=>occSet.set(key(o.date), o.inSeason));
+
+    // month span: cover season + any chosen out-of-range occurrences
+    let minMk = monthKey(SEASON_START), maxMk = monthKey(SEASON_END);
+    capped.forEach(o=>{ minMk = Math.min(minMk, monthKey(o.date)); maxMk = Math.max(maxMk, monthKey(o.date)); });
+
+    const scroll = document.getElementById('cal-scroll');
+    scroll.innerHTML = '';
+    for (let mk = minMk; mk <= maxMk; mk++){
+      const y = Math.floor(mk/12), m = mk%12;
+      scroll.appendChild(buildMonth(y, m, occSet));
+    }
+
+    // counts + range
+    const count = capped.length;
+    const warnCount = capped.filter(o=>!o.inSeason).length;
+    const chip = document.getElementById('count-chip');
+    chip.textContent = count + (count===1?' event':' events');
+
+    const rangeLine = document.getElementById('range-line');
+    if (count > 0){
+      const first = capped[0].date, last = capped[count-1].date;
+      const span = MONTHS[first.getMonth()]+' '+first.getFullYear()+' – '+MONTHS[last.getMonth()]+' '+last.getFullYear();
+      rangeLine.textContent = count + (count===1?' event · ':' events · ') + span;
+    } else {
+      rangeLine.textContent = 'No dates match — pick at least one weekday inside the season.';
+    }
+
+    // create button
+    const typeName = document.getElementById('title-input').value || TYPE_META[state.type].title;
+    document.getElementById('create-btn').textContent = count===1 ? 'Create event' : ('Create ' + count + ' events');
+
+    // cap / warn note
+    const note = document.getElementById('cap-note');
+    const noteText = document.getElementById('cap-note-text');
+    if (occ.length > CAP){
+      note.classList.add('show');
+      noteText.textContent = 'That’s ' + occ.length + ' dates — capped at ' + CAP + '. Shorten the range or thin the schedule.';
+    } else if (warnCount > 0){
+      note.classList.add('show');
+      noteText.textContent = warnCount + (warnCount===1?' date falls':' dates fall') + ' outside the season window (shown in red). The app will reject out-of-window starts.';
+    } else {
+      note.classList.remove('show');
+    }
+  }
+
+  function buildMonth(y, m, occSet){
+    const card = document.createElement('div');
+    card.className = 'month-card';
+
+    const title = document.createElement('div');
+    title.className = 'month-title';
+    title.textContent = MONTHS[m] + ' ' + y;
+    card.appendChild(title);
+
+    const dowRow = document.createElement('div');
+    dowRow.className = 'dow-row';
+    DOW_LABELS.forEach(l=>{ const s=document.createElement('div'); s.className='dow'; s.textContent=l; dowRow.appendChild(s); });
+    card.appendChild(dowRow);
+
+    const grid = document.createElement('div');
+    grid.className = 'day-grid';
+    const first = new Date(y, m, 1);
+    const lead = (first.getDay()+6)%7;   // Monday-first
+    const days = new Date(y, m+1, 0).getDate();
+    for (let i=0;i<lead;i++){ const b=document.createElement('div'); b.className='day-cell blank'; grid.appendChild(b); }
+    for (let d=1; d<=days; d++){
+      const cell = document.createElement('div');
+      cell.className = 'day-cell';
+      cell.textContent = d;
+      const cur = new Date(y, m, d);
+      const inSeason = sameOrBefore(SEASON_START,cur) && sameOrBefore(cur,SEASON_END);
+      const k = key(cur);
+      if (occSet.has(k)){
+        cell.classList.add(occSet.get(k) ? 'occ' : 'occ-warn');
+      } else if (inSeason){
+        cell.classList.add('in-season');
+      } else {
+        cell.classList.add('out-season');
+      }
+      if (key(cur)===key(TODAY)) cell.classList.add('is-today');
+      grid.appendChild(cell);
+    }
+    card.appendChild(grid);
+    return card;
+  }
+
+  function createEvents(){
+    const count = generateOccurrences().slice(0,CAP).length;
+    const typeName = document.getElementById('title-input').value || TYPE_META[state.type].title;
+    goToList();
+    showToast(false, count===1
+      ? `“${typeName}” created and added to the calendar.`
+      : `<span class="toast-count">${count}</span> ${typeName.toLowerCase()} events created.`);
+  }
+
+  /* ══════════ SAMPLE SERIES (for detail / edit / delete) ══════════ */
+  // Weekly Tuesday trainings across the season.
+  const SERIES = (function(){
+    const arr = [];
+    const cur = new Date(SEASON_START);
+    while (cur.getDay() !== DAY_TO_JS.Tue) cur.setDate(cur.getDate()+1);
+    while (sameOrBefore(cur, SEASON_END)){ arr.push(new Date(cur)); cur.setDate(cur.getDate()+7); }
+    return arr;
+  })();
+  const SERIES_M = SERIES.length;
+  // "This event" = first upcoming occurrence after fixed today, else a mid-series one
+  let CURRENT_IDX = SERIES.findIndex(d => d.getTime() > TODAY.getTime());
+  if (CURRENT_IDX < 2) CURRENT_IDX = Math.floor(SERIES_M * 0.35);
+
+  function openDetail(){
+    document.getElementById('series-head-label').textContent =
+      'Part of a weekly series · ' + SERIES_M + ' trainings';
+    document.getElementById('detail-date').textContent = fmtLong(SERIES[CURRENT_IDX]);
+    // build first two + last two + divider
+    const list = document.getElementById('series-occ-list');
+    list.innerHTML = '';
+    const rows = [];
+    const mk = (idx, isCurrent) => ({ idx, isCurrent });
+    rows.push(mk(0), mk(1));
+    // divider
+    const midCount = SERIES_M - 4;
+    rows.push('divider');
+    rows.push(mk(SERIES_M-2), mk(SERIES_M-1));
+
+    rows.forEach(r=>{
+      if (r === 'divider'){
+        const div = document.createElement('div');
+        div.className = 'occ-divider';
+        div.textContent = '+ ' + midCount + ' more trainings';
+        list.appendChild(div);
+        return;
+      }
+      const item = document.createElement('div');
+      const isCurrent = r.idx === CURRENT_IDX;
+      item.className = 'occ-item' + (isCurrent ? ' current' : '');
+      const dot = document.createElement('span'); dot.className='occ-dot';
+      const label = document.createElement('span'); label.textContent = fmtLong(SERIES[r.idx]) + ' · 20:30';
+      item.appendChild(dot); item.appendChild(label);
+      if (isCurrent){ const tag=document.createElement('span'); tag.className='occ-tag'; tag.textContent='This event'; item.appendChild(tag); }
+      list.appendChild(item);
+    });
+    // make sure the current occurrence is reflected if it isn't in first/last two
+    if (CURRENT_IDX > 1 && CURRENT_IDX < SERIES_M-2){
+      // insert a highlighted current row right after the divider
+      const div = list.querySelector('.occ-divider');
+      const item = document.createElement('div');
+      item.className = 'occ-item current';
+      const dot=document.createElement('span'); dot.className='occ-dot';
+      const label=document.createElement('span'); label.textContent = fmtLong(SERIES[CURRENT_IDX]) + ' · 20:30';
+      const tag=document.createElement('span'); tag.className='occ-tag'; tag.textContent='This event';
+      item.appendChild(dot); item.appendChild(label); item.appendChild(tag);
+      div.after(item);
+    }
+    // detail view uses training/blue color
+    document.documentElement.style.setProperty('--occ', TYPE_META.Training.color);
+    document.documentElement.style.setProperty('--occ-bg', TYPE_META.Training.bg);
+    showScreen('screen-detail');
+  }
+
+  /* ── Affected timeline builder ── */
+  function affectedRange(scope){
+    // returns [startIdx, endIdx] inclusive of hit occurrences
+    if (scope === 'this') return [CURRENT_IDX, CURRENT_IDX];
+    if (scope === 'following') return [CURRENT_IDX, SERIES_M-1];
+    return [0, SERIES_M-1]; // all
+  }
+
+  function buildTimeline(containerId, scope, danger){
+    const c = document.getElementById(containerId);
+    c.innerHTML = '';
+    const [lo, hi] = affectedRange(scope);
+
+    // For "this event": show split markers before and after the single occurrence.
+    // For "following": show one split before the current occurrence.
+    for (let i=0; i<SERIES_M; i++){
+      if (scope === 'this' && i === CURRENT_IDX){
+        const s1 = document.createElement('div'); s1.className='tl-split'; c.appendChild(s1);
+      }
+      if (scope === 'following' && i === CURRENT_IDX){
+        const s1 = document.createElement('div'); s1.className='tl-split'; c.appendChild(s1);
+      }
+      const n = document.createElement('div');
+      n.className = 'tl-node';
+      const hit = i>=lo && i<=hi;
+      if (hit) n.classList.add('hit');
+      if (i === CURRENT_IDX) n.classList.add('current');
+      if (danger){ if (hit) n.classList.add('danger'); if (i===CURRENT_IDX) n.classList.add('danger'); }
+      n.title = fmtShort(SERIES[i]);
+      c.appendChild(n);
+
+      if (scope === 'this' && i === CURRENT_IDX){
+        const s2 = document.createElement('div'); s2.className='tl-split'; c.appendChild(s2);
+      }
+    }
+  }
+
+  /* ══════════ EDIT ══════════ */
+  let editScope = 'this';
+  function openEdit(){
+    editScope = 'this';
+    document.querySelectorAll('#edit-scope .scope-btn').forEach((b,i)=>b.classList.toggle('active', i===0));
+    document.getElementById('e-date-input').value = toInputDate(SERIES[CURRENT_IDX]);
+    document.documentElement.style.setProperty('--occ', TYPE_META.Training.color);
+    document.documentElement.style.setProperty('--occ-bg', TYPE_META.Training.bg);
+    showScreen('screen-edit');
+    requestAnimationFrame(()=>{ movePill('edit-scope','edit-scope-pill',0); refreshEdit(); });
+  }
+  function selectEditScope(btn, scope){
+    editScope = scope;
+    document.querySelectorAll('#edit-scope .scope-btn').forEach((b,i)=>{
+      const on=b===btn; b.classList.toggle('active', on); if(on) movePill('edit-scope','edit-scope-pill',i);
+    });
+    refreshEdit();
+  }
+  function refreshEdit(){
+    const [lo,hi] = affectedRange(editScope);
+    const n = hi-lo+1;
+    document.getElementById('edit-affect-count').textContent = 'Affects ' + n + ' of ' + SERIES_M + ' events';
+    buildTimeline('edit-timeline', editScope, false);
+
+    // date field visibility + lock note
+    const dateWrap = document.getElementById('edit-date-wrap');
+    const lock = document.getElementById('edit-lock-note');
+    if (editScope === 'this'){ dateWrap.classList.add('show'); lock.style.display='none'; }
+    else { dateWrap.classList.remove('show'); lock.style.display='flex'; }
+
+    // split semantics caption
+    const txt = document.getElementById('edit-split-text');
+    if (editScope === 'this'){
+      txt.innerHTML = '<strong>Splits the series into three:</strong> everything before, this one on its own (movable date), and everything after — each independent.';
+    } else if (editScope === 'following'){
+      txt.innerHTML = '<strong>Splits the series in two:</strong> occurrences before stay as-is; this one and all following become a new series with the edited details.';
+    } else {
+      txt.innerHTML = '<strong>No split:</strong> the edit applies to every occurrence in the single series.';
+    }
+    document.getElementById('edit-save-btn').textContent =
+      editScope==='this' ? 'Save this event' : (editScope==='following' ? 'Save this & following ('+n+')' : 'Save all events ('+n+')');
+  }
+  function saveEdit(){
+    const [lo,hi]=affectedRange(editScope); const n=hi-lo+1;
+    goToList();
+    const msg = editScope==='this' ? 'This training was updated.' :
+      `<span class="toast-count">${n}</span> trainings updated.`;
+    showToast(false, msg);
+  }
+
+  /* ══════════ DELETE ══════════ */
+  let delScope = 'this';
+  function openDelete(){
+    delScope = 'this';
+    document.querySelectorAll('#del-scope .scope-btn').forEach((b,i)=>b.classList.toggle('active', i===0));
+    showScreen('screen-delete');
+    requestAnimationFrame(()=>{ movePill('del-scope','del-scope-pill',0); refreshDelete(); });
+  }
+  function selectDelScope(btn, scope){
+    delScope = scope;
+    document.querySelectorAll('#del-scope .scope-btn').forEach((b,i)=>{
+      const on=b===btn; b.classList.toggle('active', on); if(on) movePill('del-scope','del-scope-pill',i);
+    });
+    refreshDelete();
+  }
+  function refreshDelete(){
+    const [lo,hi]=affectedRange(delScope); const n=hi-lo+1;
+    document.getElementById('del-affect-count').textContent = 'Removes ' + n + ' of ' + SERIES_M + ' events';
+    buildTimeline('del-timeline', delScope, true);
+    const txt = document.getElementById('del-split-text');
+    if (delScope==='this'){
+      txt.innerHTML = '<strong>Removes one occurrence.</strong> The series splits around it — everything before and after stays.';
+    } else if (delScope==='following'){
+      txt.innerHTML = '<strong>Removes this and every later occurrence.</strong> Earlier trainings are kept as a shortened series.';
+    } else {
+      txt.innerHTML = '<strong>Removes the entire series</strong> — all ' + SERIES_M + ' trainings.';
+    }
+    document.getElementById('del-confirm-btn').textContent =
+      delScope==='this' ? 'Delete this event' : (delScope==='following' ? 'Delete '+n+' events' : 'Delete all '+n+' events');
+  }
+  function confirmDelete(){
+    const [lo,hi]=affectedRange(delScope); const n=hi-lo+1;
+    goToList();
+    const msg = delScope==='this' ? 'This training was deleted.' :
+      `<span class="toast-count">${n}</span> trainings deleted.`;
+    showToast(true, msg);
+  }
+
+  /* ══════════ Toast ══════════ */
+  let toastTimer;
+  function showToast(danger, html){
+    const t = document.getElementById('toast');
+    const icon = document.getElementById('toast-icon');
+    t.classList.toggle('danger', !!danger);
+    icon.innerHTML = danger
+      ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>'
+      : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+    document.getElementById('toast-text').innerHTML = html;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(()=>t.classList.remove('show'), 3800);
+  }
+
+  function toInputDate(d){
+    return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  }
+
+  /* ══════════ Init ══════════ */
+  window.addEventListener('load', ()=>{
+    setTimeout(()=>{ movePill('type-segment','type-pill',0); movePill('freq-toggle','freq-pill',0); }, 60);
+  });
+  document.addEventListener('keydown', e=>{ if (e.key==='Escape' && stack.length>1) goBack(); });
+</script>
+</body>
+</html>

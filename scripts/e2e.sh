@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Orchestrates the real full-stack e2e suite (`make e2e`):
-#   infra (Postgres/Redis) → backend via bootRun under the `e2e` profile, health-gated → Playwright.
+#   infra (Postgres) → backend via bootRun under the `e2e` profile, health-gated → Playwright.
 #
 # Works both locally (brings docker-compose up if nothing listens on 5432) and in CI
-# (reuses the workflow's Postgres/Redis service containers already bound to localhost).
+# (reuses the workflow's Postgres service container already bound to localhost).
 #
 # Isolation note: the seed fixture is idempotent, and the login flow issues a fresh token per
 # run, so re-runs against a warm DB are safe. For a truly fresh DB locally:
@@ -23,11 +23,10 @@ if ! port_open 5432; then
   docker-compose up -d
 fi
 for _ in $(seq 1 30); do
-  port_open 5432 && port_open 6379 && break
+  port_open 5432 && break
   sleep 1
 done
 port_open 5432 || { echo "Postgres did not come up on :5432" >&2; exit 1; }
-port_open 6379 || { echo "Redis did not come up on :6379" >&2; exit 1; }
 
 # --- Backend (e2e profile) ---
 if port_open 8080; then

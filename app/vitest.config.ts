@@ -15,6 +15,7 @@ export default mergeConfig(
   viteConfig,
   defineConfig({
     test: {
+      maxWorkers: 2,
       projects: [
         {
           extends: true,

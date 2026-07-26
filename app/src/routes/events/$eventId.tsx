@@ -8,6 +8,7 @@ import { Button } from '@shared/ui/button'
 import { EventTypeBadge } from '@entities/event/ui/EventTypeBadge'
 import { EventTypeIcon } from '@entities/event/ui/EventTypeIcon'
 import { RoleBreakdown } from '@entities/event/ui/RoleBreakdown'
+import { buildAttendeePanel } from '@entities/event/lib/attendee-panel'
 import { AttendanceToggle, type AttendanceState } from '@features/attendance-toggle/ui/AttendanceToggle'
 
 export const Route = createFileRoute('/events/$eventId')({
@@ -87,9 +88,9 @@ function EventDetailPage() {
   const date = new Date(event.startTime)
   const myAttendance = event.attendances.find((a) => a.userId === currentUserId)
   const myState: AttendanceState = (myAttendance?.state as AttendanceState) ?? 'NOT_RESPONDED'
-  const otherAttendances = event.attendances.filter((a) => a.userId !== currentUserId)
 
-  const filteredAttendees = otherAttendances.filter((a) => a.state === activeAttendeeTab)
+  const attendeePanel = buildAttendeePanel(event)
+  const filteredAttendees = attendeePanel[activeAttendeeTab].attendees
 
   return (
     <div>
@@ -159,7 +160,7 @@ function EventDetailPage() {
         <div className="flex border-b border-border/40">
           {ATTENDEE_TABS.map((tab) => {
             const isActive = activeAttendeeTab === tab.state
-            const count = otherAttendances.filter((a) => a.state === tab.state).length
+            const count = attendeePanel[tab.state].count
             return (
               <button
                 key={tab.state}

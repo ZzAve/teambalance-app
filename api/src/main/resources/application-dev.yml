@@ -3,9 +3,6 @@ spring:
     url: jdbc:postgresql://localhost:5432/teambalance
     username: teambalance
     password: teambalance
-  flyway:
-    schemas:
-      - public
 
 teambalance:
   invitation:

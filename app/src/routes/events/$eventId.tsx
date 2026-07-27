@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { useState } from 'react'
-import { ArrowLeft, MapPin, Pencil, Trash2 } from 'lucide-react'
-import { useEvent, type AttendanceEntry } from '@shared/api/events'
+import { ArrowLeft, MapPin } from 'lucide-react'
+import { useEvent, useEvents, type AttendanceEntry } from '@shared/api/events'
 import { useSetAttendance } from '@shared/api/attendances'
 import { useUserStore } from '@shared/stores/user-store'
 import { Button } from '@shared/ui/button'
@@ -9,8 +9,12 @@ import { EventTypeBadge } from '@entities/event/ui/EventTypeBadge'
 import { EventTypeIcon } from '@entities/event/ui/EventTypeIcon'
 import { ReferenceChips } from '@entities/event/ui/ReferenceChips'
 import { RoleBreakdown } from '@entities/event/ui/RoleBreakdown'
+import { SeriesPeek } from '@entities/event/ui/SeriesPeek'
 import { buildAttendeePanel } from '@entities/event/lib/attendee-panel'
+import { buildSeriesPeek } from '@entities/event/lib/series-peek'
 import { AttendanceToggle, type AttendanceState } from '@features/attendance-toggle/ui/AttendanceToggle'
+import { EditEventDialog } from '@features/edit-event/ui/EditEventDialog'
+import { DeleteEventDialog } from '@features/edit-event/ui/DeleteEventDialog'
 
 export const Route = createFileRoute('/events/$eventId')({
   component: EventDetailPage,
@@ -82,6 +86,8 @@ function EventDetailPage() {
   const isAdmin = useUserStore((s) => s.role) === 'ADMIN'
   const { mutate, isPending } = useSetAttendance()
   const [activeAttendeeTab, setActiveAttendeeTab] = useState<AttendanceState>('ATTENDING')
+  // Only load the full list to find series siblings when this event actually belongs to a group.
+  const { data: allEvents } = useEvents(true, !!event?.recurringGroup)
 
   if (isLoading) return <p className="text-muted-foreground">Loading...</p>
   if (!event) return <p>Event not found.</p>
@@ -92,6 +98,12 @@ function EventDetailPage() {
 
   const attendeePanel = buildAttendeePanel(event)
   const filteredAttendees = attendeePanel[activeAttendeeTab].attendees
+
+  // "Part of a series" peek: siblings are every event sharing this occurrence's recurring group.
+  const siblings = event.recurringGroup
+    ? (allEvents ?? []).filter((e) => e.recurringGroup === event.recurringGroup)
+    : []
+  const seriesPeek = event.recurringGroup ? buildSeriesPeek(siblings, event.id) : null
 
   return (
     <div>
@@ -201,17 +213,14 @@ function EventDetailPage() {
         </div>
       </div>
 
-      {/* Admin Actions */}
+      {/* Part of a series peek */}
+      {seriesPeek && <SeriesPeek peek={seriesPeek} />}
+
+      {/* Admin Actions — single-event ("This event") edit/delete; bulk scopes are Phase 3 */}
       {isAdmin && (
         <div className="mt-6 flex gap-2.5 border-t border-border/40 pt-5">
-          <button className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-border/60 bg-transparent py-3 text-sm font-medium text-muted-foreground transition-all hover:bg-muted/50 active:scale-[0.97]">
-            <Pencil size={15} />
-            Edit event
-          </button>
-          <button className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-red-200 bg-transparent py-3 text-sm font-medium text-red-500 transition-all hover:bg-red-500/5 active:scale-[0.97]">
-            <Trash2 size={15} />
-            Delete
-          </button>
+          <EditEventDialog event={event} />
+          <DeleteEventDialog eventId={event.id} title={event.title} partOfSeries={!!event.recurringGroup} />
         </div>
       )}
     </div>

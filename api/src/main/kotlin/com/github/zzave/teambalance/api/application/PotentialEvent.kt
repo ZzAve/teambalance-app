@@ -12,4 +12,6 @@ data class PotentialEvent(
     val endTime: Instant,
     val location: String?,
     val references: List<EventReference> = emptyList(),
+    // A single event belongs to no series; a batch-created occurrence carries its shared group id.
+    val recurringGroup: UUID? = null,
 )

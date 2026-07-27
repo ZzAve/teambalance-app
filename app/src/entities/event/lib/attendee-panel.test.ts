@@ -20,6 +20,7 @@ const makeEventDetail = (overrides: Partial<EventDetail> = {}): EventDetail => (
   endTime: '2026-08-10T19:30:00Z',
   location: undefined,
   references: [],
+  recurringGroup: undefined,
   attendanceSummary: {
     attending: 0,
     maybe: 0,

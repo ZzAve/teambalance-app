@@ -14,6 +14,7 @@ export function makeEvent(overrides: Partial<Event> = {}): Event {
     endTime: '2026-07-01T20:00:00+02:00',
     location: undefined,
     references: [],
+    recurringGroup: undefined,
     attendanceSummary: {
       attending: 5,
       maybe: 1,

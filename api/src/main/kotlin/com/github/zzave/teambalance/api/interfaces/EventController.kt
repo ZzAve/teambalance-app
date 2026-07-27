@@ -80,6 +80,7 @@ class EventController(
                 endTime = DateTimestampWithTimezone(event.endTime.toString()),
                 location = event.location,
                 references = event.references.externalize(),
+                recurringGroup = event.recurringGroup?.toString(),
                 attendanceSummary = summary.produce(roleBreakdown),
                 attendances = attendances.map { (a, member) ->
                     AttendanceEntry(
@@ -138,13 +139,15 @@ private fun com.github.zzave.teambalance.api.interfaces.generated.model.CreateEv
 // The wire type carries an optional reference list; a null list is simply "no references". Each is
 // funnelled through EventReference.of so the http/https-only guard and length caps apply on the way
 // in (ADR-0016) — an invalid URL throws IllegalArgumentException, which the handler maps to 400.
-private fun List<EventReference>?.internalize(): List<DomainEventReference> =
+// internal (not private) so RecurringEventController can fan the same links out to every occurrence.
+internal fun List<EventReference>?.internalize(): List<DomainEventReference> =
     orEmpty().map { DomainEventReference.of(title = it.title, url = it.url) }
 
 private fun List<DomainEventReference>.externalize(): List<EventReference> =
     map { EventReference(title = it.title, url = it.url) }
 
-private fun com.github.zzave.teambalance.api.domain.model.Event.produce(
+// internal (not private) so RecurringEventController can reuse it for the batch-create response.
+internal fun com.github.zzave.teambalance.api.domain.model.Event.produce(
     attendanceService: AttendanceService,
     members: List<com.github.zzave.teambalance.api.domain.model.TeamMember>,
 ): Event {
@@ -159,6 +162,7 @@ private fun com.github.zzave.teambalance.api.domain.model.Event.produce(
         endTime = DateTimestampWithTimezone(endTime.toString()),
         location = location,
         references = references.externalize(),
+        recurringGroup = recurringGroup?.toString(),
         attendanceSummary = summary.produce(roleBreakdown),
     )
 }

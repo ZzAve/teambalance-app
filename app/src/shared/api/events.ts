@@ -24,7 +24,7 @@ export interface EventInput {
   references?: EventReference[]
 }
 
-export function useEvents(includePast = false) {
+export function useEvents(includePast = false, enabled = true) {
   return useQuery({
     queryKey: ['events', { includePast }],
     queryFn: async () => {
@@ -32,6 +32,7 @@ export function useEvents(includePast = false) {
       return res.body
     },
     select: (data) => data.events,
+    enabled,
   })
 }
 

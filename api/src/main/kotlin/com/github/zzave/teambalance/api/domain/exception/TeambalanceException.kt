@@ -38,6 +38,18 @@ sealed class UnprocessableEntityException(message: String, val code: String) : T
 class EventOutsideSeasonException(start: java.time.LocalDate) :
     UnprocessableEntityException("Event start $start falls outside the configured season", "EVENT_OUTSIDE_SEASON")
 
+class RecurrenceExceedsCapException(cap: Int) :
+    UnprocessableEntityException(
+        "Recurring series exceeds the cap of $cap events — shorten the range or thin the schedule",
+        "RECURRENCE_EXCEEDS_CAP",
+    )
+
+class EmptyRecurrenceException :
+    UnprocessableEntityException(
+        "Recurring series generated no dates — pick at least one weekday that falls inside the range",
+        "EMPTY_RECURRENCE",
+    )
+
 // `code` is the stable machine-readable discriminator for 409 conflicts (state clashes clients can act on),
 // mirroring ForbiddenException — e.g. "display name already used" vs "would remove the last admin".
 sealed class ConflictException(message: String, val code: String) : TeambalanceException(message)

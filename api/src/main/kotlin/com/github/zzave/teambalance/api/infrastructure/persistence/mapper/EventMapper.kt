@@ -15,6 +15,7 @@ fun EventJpaEntity.internalize() = Event(
     endTime = endTime,
     location = location,
     references = references.map { EventReference(title = it.title, url = it.url) },
+    recurringGroup = recurringGroup,
     createdBy = createdBy,
     createdAt = createdAt,
 )
@@ -29,7 +30,7 @@ fun Event.externalize(eventTypeEntity: EventTypeJpaEntity, technicalId: Long = 0
     endTime = endTime,
     location = location,
     references = references.map { EventReferenceEmbeddable(title = it.title, url = it.url) },
-    recurringGroup = null,
+    recurringGroup = recurringGroup,
     createdBy = createdBy,
     createdAt = createdAt,
     updatedAt = createdAt,

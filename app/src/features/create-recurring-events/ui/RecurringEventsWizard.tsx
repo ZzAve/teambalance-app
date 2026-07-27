@@ -27,6 +27,13 @@ interface RecurringEventsWizardProps {
 
 const STEPS = ['Details', 'Repeat', 'Confirm'] as const
 
+// Plain-language heading per step (prototype A), shown above the compact stepper labels.
+const STEP_HEADINGS = [
+  { title: 'What are you scheduling?', sub: "Pick a type — we'll pre-fill the rest." },
+  { title: 'How often?', sub: 'Choose the cadence and the days it lands on.' },
+  { title: 'Ready to create', sub: 'Review the dates before you confirm.' },
+] as const
+
 const FALLBACK_ACCENT = '#225C9C' // brand blue when a type has no colour
 
 /**
@@ -111,6 +118,12 @@ export function RecurringEventsWizard({
   return (
     <div className="flex flex-col gap-4">
       <Stepper step={step} />
+
+      {/* Friendly per-step heading (prototype A) — a plain-language question for the current step. */}
+      <div>
+        <p className="font-display text-lg font-semibold leading-tight">{STEP_HEADINGS[step].title}</p>
+        <p className="text-sm text-muted-foreground">{STEP_HEADINGS[step].sub}</p>
+      </div>
 
       {/* Persistent context block — the chosen summary + running count, carried across steps. */}
       {step > 0 && (

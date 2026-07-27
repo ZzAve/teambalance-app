@@ -1,5 +1,5 @@
 import { ExternalLink } from 'lucide-react'
-import type { Reference } from '@shared/api/events'
+import type { EventReference } from '@shared/api/events'
 import { referenceLabel } from '../lib/reference-label'
 
 /**
@@ -8,7 +8,7 @@ import { referenceLabel } from '../lib/reference-label'
  * `max` to show them all. Each chip is a real anchor — `relative z-10` lifts it above the card's
  * stretched-link overlay so it stays independently clickable.
  */
-export function ReferenceChips({ references, max = 2 }: { references: Reference[]; max?: number }) {
+export function ReferenceChips({ references, max = 2 }: { references: EventReference[]; max?: number }) {
   if (references.length === 0) return null
 
   const shown = references.slice(0, max)

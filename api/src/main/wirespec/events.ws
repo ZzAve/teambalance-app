@@ -13,7 +13,7 @@ type EventTypeSummary {
     color: String?
 }
 
-type Reference {
+type EventReference {
     title: String?,
     url: String
 }
@@ -39,7 +39,7 @@ type Event {
     startTime: DateTimestampWithTimezone,
     endTime: DateTimestampWithTimezone,
     location: String?,
-    references: Reference[],
+    references: EventReference[],
     attendanceSummary: AttendanceSummary
 }
 
@@ -51,7 +51,7 @@ type EventDetail {
     startTime: DateTimestampWithTimezone,
     endTime: DateTimestampWithTimezone,
     location: String?,
-    references: Reference[],
+    references: EventReference[],
     attendanceSummary: AttendanceSummary,
     attendances: AttendanceEntry[]
 }
@@ -75,7 +75,7 @@ type CreateEventRequest {
     startTime: DateTimestampWithTimezone,
     endTime: DateTimestampWithTimezone,
     location: String?,
-    references: Reference[]?
+    references: EventReference[]?
 }
 
 type UpdateEventRequest {
@@ -85,7 +85,7 @@ type UpdateEventRequest {
     startTime: DateTimestampWithTimezone,
     endTime: DateTimestampWithTimezone,
     location: String?,
-    references: Reference[]?
+    references: EventReference[]?
 }
 
 endpoint ListEvents GET /api/events ? {include-past: Boolean} -> {

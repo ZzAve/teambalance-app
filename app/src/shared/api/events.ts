@@ -10,9 +10,9 @@ export type { AttendanceEntry } from './generated/model/AttendanceEntry'
 export type { AttendanceSummary } from './generated/model/AttendanceSummary'
 export type { RoleCount } from './generated/model/RoleCount'
 export type { EventTypeSummary } from './generated/model/EventTypeSummary'
-export type { Reference } from './generated/model/Reference'
+export type { EventReference } from './generated/model/EventReference'
 
-import type { Reference } from './generated/model/Reference'
+import type { EventReference } from './generated/model/EventReference'
 
 export interface EventInput {
   eventTypeId: string
@@ -21,7 +21,7 @@ export interface EventInput {
   startTime: string
   endTime?: string
   location?: string
-  references?: Reference[]
+  references?: EventReference[]
 }
 
 export function useEvents(includePast = false) {

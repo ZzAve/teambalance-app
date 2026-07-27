@@ -41,6 +41,11 @@ any-team, self-service (see [ADR-0001](docs/adr/0001-product-ambition-hobby-tool
 - **Event** — A scheduled team occurrence (training, match, social, misc). Generic
   model with a configurable **Event Type** — not separate Training/Match classes.
 - **Event Type** — A configurable category of event. Drives icon/badge and filtering.
+- **Reference** — A labeled, outbound URL an admin curates on an Event, pointing to a
+  related external resource such as the Nevobo match page or the digital match form (DWF).
+  Plural per event. Distinct from the Event's own shareable link (the deep link you send
+  teammates) and from Magic/Invite Links. Surfaced to users as "Links" under an
+  "Additional info" grouping. _Avoid_: Event Link, Attachment, Bookmark.
 - **Audience** — The set of Members expected to respond to an Event. Defaults to the
   whole Team; an admin may select a subset (e.g. referee duty). Non-audience members
   can see the event but aren't prompted. Powers the "Mine" filter. **Deferred in v1**:

@@ -7,6 +7,7 @@ import { useUserStore } from '@shared/stores/user-store'
 import { Button } from '@shared/ui/button'
 import { EventTypeBadge } from '@entities/event/ui/EventTypeBadge'
 import { EventTypeIcon } from '@entities/event/ui/EventTypeIcon'
+import { ReferenceChips } from '@entities/event/ui/ReferenceChips'
 import { RoleBreakdown } from '@entities/event/ui/RoleBreakdown'
 import { buildAttendeePanel } from '@entities/event/lib/attendee-panel'
 import { AttendanceToggle, type AttendanceState } from '@features/attendance-toggle/ui/AttendanceToggle'
@@ -151,6 +152,14 @@ function EventDetailPage() {
         <div className="mt-6 rounded-2xl border border-border/40 bg-card p-4 shadow-sm">
           <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground">Description</p>
           <p className="text-sm leading-relaxed text-muted-foreground">{event.description}</p>
+        </div>
+      )}
+
+      {/* Additional info — the event's References (Nevobo, match form, …), shown in full */}
+      {event.references.length > 0 && (
+        <div className="mt-6 rounded-2xl border border-border/40 bg-card p-4 shadow-sm">
+          <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground">Additional info</p>
+          <ReferenceChips references={event.references} max={event.references.length} />
         </div>
       )}
 

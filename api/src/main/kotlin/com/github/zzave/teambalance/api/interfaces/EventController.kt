@@ -8,6 +8,7 @@ import com.github.zzave.teambalance.api.application.CurrentUserProvider
 import com.github.zzave.teambalance.api.application.EventService
 import com.github.zzave.teambalance.api.application.PotentialEvent
 import com.github.zzave.teambalance.api.domain.model.AttendanceState as DomainAttendanceState
+import com.github.zzave.teambalance.api.domain.model.EventReference as DomainEventReference
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.CreateEvent
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.DeleteEvent
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.GetEvent
@@ -21,6 +22,7 @@ import com.github.zzave.teambalance.api.interfaces.generated.model.Event
 import com.github.zzave.teambalance.api.interfaces.generated.model.EventDetail
 import com.github.zzave.teambalance.api.interfaces.generated.model.EventList
 import com.github.zzave.teambalance.api.interfaces.generated.model.EventTypeSummary
+import com.github.zzave.teambalance.api.interfaces.generated.model.EventReference
 import com.github.zzave.teambalance.api.interfaces.generated.model.RoleCount
 import org.springframework.web.bind.annotation.RestController
 import java.time.Instant
@@ -77,6 +79,7 @@ class EventController(
                 startTime = DateTimestampWithTimezone(event.startTime.toString()),
                 endTime = DateTimestampWithTimezone(event.endTime.toString()),
                 location = event.location,
+                references = event.references.externalize(),
                 attendanceSummary = summary.produce(roleBreakdown),
                 attendances = attendances.map { (a, member) ->
                     AttendanceEntry(
@@ -104,6 +107,7 @@ class EventController(
             startTime = Instant.parse(req.startTime.value),
             endTime = Instant.parse(req.endTime.value),
             location = req.location,
+            references = req.references.internalize(),
         ) ?: return UpdateEvent.Response404(Unit)
 
         return UpdateEvent.Response200(event.produce(attendanceService, attendanceService.teamMembers(teamId)))
@@ -128,7 +132,17 @@ private fun com.github.zzave.teambalance.api.interfaces.generated.model.CreateEv
         startTime = Instant.parse(startTime.value),
         endTime = Instant.parse(endTime.value),
         location = location,
+        references = references.internalize(),
     )
+
+// The wire type carries an optional reference list; a null list is simply "no references". Each is
+// funnelled through EventReference.of so the http/https-only guard and length caps apply on the way
+// in (ADR-0016) — an invalid URL throws IllegalArgumentException, which the handler maps to 400.
+private fun List<EventReference>?.internalize(): List<DomainEventReference> =
+    orEmpty().map { DomainEventReference.of(title = it.title, url = it.url) }
+
+private fun List<DomainEventReference>.externalize(): List<EventReference> =
+    map { EventReference(title = it.title, url = it.url) }
 
 private fun com.github.zzave.teambalance.api.domain.model.Event.produce(
     attendanceService: AttendanceService,
@@ -144,6 +158,7 @@ private fun com.github.zzave.teambalance.api.domain.model.Event.produce(
         startTime = DateTimestampWithTimezone(startTime.toString()),
         endTime = DateTimestampWithTimezone(endTime.toString()),
         location = location,
+        references = references.externalize(),
         attendanceSummary = summary.produce(roleBreakdown),
     )
 }

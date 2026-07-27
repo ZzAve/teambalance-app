@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
-import { expect, within } from 'storybook/test'
+import { expect, fn, within } from 'storybook/test'
 import type { EventTypeItem } from '@shared/api/event-types'
 import { CreateEventForm } from './CreateEventForm'
 
@@ -43,7 +43,8 @@ export const TypeSelected: Story = {
   args: { eventTypes: EVENT_TYPES, isPending: false },
   play: async ({ canvas, userEvent }) => {
     // Selecting a type auto-suggests the title (until the user edits it themselves).
-    await userEvent.click(canvas.getByRole('combobox'))
+    // Two comboboxes now (Type, Duration); Type is first in DOM order.
+    await userEvent.click(canvas.getAllByRole('combobox')[0])
     await userEvent.click(await within(document.body).findByRole('option', { name: /Match/ }))
     await expect(canvas.getByLabelText('Title')).toHaveValue('Match')
   },
@@ -55,5 +56,36 @@ export const NoEventTypes: Story = {
     // With no types loaded, the selector shows its placeholder and the form is still rendered.
     await expect(canvas.getByText('Select type')).toBeInTheDocument()
     await expect(canvas.getByRole('button', { name: 'Create Event' })).toBeInTheDocument()
+  },
+}
+
+export const CreateFailed: Story = {
+  args: { eventTypes: EVENT_TYPES, isPending: false, error: 'Could not create the event. Please try again.' },
+  play: async ({ canvas }) => {
+    // A failed create must surface feedback (regression: the dialog previously stayed open silently
+    // on a 500). The message is exposed as an alert so assistive tech announces it.
+    const alert = canvas.getByRole('alert')
+    await expect(alert).toHaveTextContent('Could not create the event. Please try again.')
+  },
+}
+
+export const DerivesEndTimeFromDuration: Story = {
+  args: { eventTypes: EVENT_TYPES, isPending: false, onSubmit: fn() },
+  play: async ({ args, canvas, userEvent }) => {
+    // endTime is required by the contract; the form derives it from startTime + the (default 2h)
+    // duration so a valid end is always sent — the fix for "create without endTime → 500".
+    await userEvent.click(canvas.getAllByRole('combobox')[0])
+    await userEvent.click(await within(document.body).findByRole('option', { name: /Match/ }))
+
+    await userEvent.type(canvas.getByLabelText('Start time'), '2026-08-01T20:00')
+    await userEvent.click(canvas.getByRole('button', { name: 'Create Event' }))
+
+    await expect(args.onSubmit).toHaveBeenCalledTimes(1)
+    const submitted = (args.onSubmit as ReturnType<typeof fn>).mock.calls[0][0]
+    // Default duration is 2h — assert the span rather than an absolute UTC value so the test is
+    // independent of the runner's timezone.
+    const spanMinutes =
+      (new Date(submitted.endTime).getTime() - new Date(submitted.startTime).getTime()) / 60_000
+    await expect(spanMinutes).toBe(120)
   },
 }

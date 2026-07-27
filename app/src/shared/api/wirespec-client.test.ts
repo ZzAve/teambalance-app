@@ -110,7 +110,7 @@ describe('wirespec-client adapter', () => {
       const response = fakeResponse({ status: 204 })
       stubFetch(response)
 
-      const res = await api.DeleteEvent({ id: 'evt-1' })
+      const res = await api.DeleteEvent({ id: 'evt-1', scope: undefined })
 
       expect(res.status).toBe(204)
       // The adapter must short-circuit on 204 rather than trying to read/parse an absent body.

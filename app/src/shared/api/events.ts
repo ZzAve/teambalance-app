@@ -11,8 +11,10 @@ export type { AttendanceSummary } from './generated/model/AttendanceSummary'
 export type { RoleCount } from './generated/model/RoleCount'
 export type { EventTypeSummary } from './generated/model/EventTypeSummary'
 export type { EventReference } from './generated/model/EventReference'
+export type { EventSeriesScope } from './generated/model/EventSeriesScope'
 
 import type { EventReference } from './generated/model/EventReference'
+import type { EventSeriesScope } from './generated/model/EventSeriesScope'
 
 export interface EventInput {
   eventTypeId: string
@@ -58,11 +60,13 @@ export function useCreateEvent() {
   })
 }
 
+// A scoped edit touches many rows (ADR-0014 Phase 3), so the response is an EventList of the
+// affected occurrences. `scope` defaults to THIS — a standalone event or a single-occurrence edit.
 export function useUpdateEvent() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async ({ id, ...event }: EventInput & { id: string }) => {
-      const res = await api.UpdateEvent({ id, body: event as UpdateEventRequest })
+    mutationFn: async ({ id, scope = 'THIS', ...event }: EventInput & { id: string; scope?: EventSeriesScope }) => {
+      const res = await api.UpdateEvent({ id, scope, body: event as UpdateEventRequest })
       return res.body
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['events'] }),
@@ -72,7 +76,8 @@ export function useUpdateEvent() {
 export function useDeleteEvent() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (id: string) => api.DeleteEvent({ id }),
+    mutationFn: ({ id, scope = 'THIS' }: { id: string; scope?: EventSeriesScope }) =>
+      api.DeleteEvent({ id, scope }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['events'] }),
   })
 }

@@ -577,7 +577,8 @@ class EventControllerTest : TeamBalanceIT() {
 
             mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(mvcResult))
                 .andExpect(MockMvcResultMatchers.status().isOk)
-                .andExpect(MockMvcResultMatchers.jsonPath("$.title").value("Updated by admin"))
+                // UpdateEvent now returns an EventList of affected occurrences (ADR-0014 Phase 3).
+                .andExpect(MockMvcResultMatchers.jsonPath("$.events[0].title").value("Updated by admin"))
         }
 
         test("DELETE /api/events/{id} by an admin succeeds") {

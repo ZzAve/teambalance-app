@@ -7,6 +7,8 @@ import { Label } from '@shared/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@shared/ui/select'
 import { useUpdateEvent, type EventDetail } from '@shared/api/events'
 import { useEventTypes } from '@shared/api/event-types'
+import { ReferenceRowsEditor } from '@entities/event/ui/ReferenceRowsEditor'
+import { cleanReferences, toReferenceRows, type ReferenceRow } from '@entities/event/lib/references'
 
 interface EditEventDialogProps {
   event: EventDetail
@@ -30,6 +32,9 @@ export function EditEventDialog({ event }: EditEventDialogProps) {
 
   const [typeId, setTypeId] = useState(event.eventType.id)
   const [title, setTitle] = useState(event.title)
+  // Seed the editor from the event's existing links — updateEvent has replace-semantics, so the
+  // full set must be sent back on every save or the links would be wiped.
+  const [references, setReferences] = useState<ReferenceRow[]>(toReferenceRows(event.references))
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -43,6 +48,7 @@ export function EditEventDialog({ event }: EditEventDialogProps) {
         startTime: new Date(form.get('startTime') as string).toISOString(),
         endTime: new Date(form.get('endTime') as string).toISOString(),
         location: (form.get('location') as string) || undefined,
+        references: cleanReferences(references),
       },
       { onSuccess: () => setOpen(false) },
     )
@@ -99,6 +105,7 @@ export function EditEventDialog({ event }: EditEventDialogProps) {
             <Label htmlFor="edit-description">Description (optional)</Label>
             <Input id="edit-description" name="description" defaultValue={event.description ?? ''} />
           </div>
+          <ReferenceRowsEditor rows={references} onChange={setReferences} />
           {updateEvent.isError && (
             <p className="rounded-lg border border-red-300 bg-red-500/10 px-3 py-2 text-sm text-red-500">
               Could not save changes. Please try again.

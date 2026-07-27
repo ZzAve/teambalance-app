@@ -31,7 +31,7 @@ const DEFAULT_DURATION_MINUTES = '120'
 /**
  * Presentational create-event form. Owns local form state (type selection + title auto-suggest)
  * and hands a fully-assembled EventInput up via onSubmit. Data fetching, the mutation, and the
- * dialog open/close state live in the CreateEventDialog container — so every form state (idle,
+ * sheet open/close state live in the CreateEventSheet widget — so every form state (idle,
  * type-selected, submitting, no-types) is renderable in isolation (see CreateEventForm.stories.tsx).
  */
 export function CreateEventForm({ eventTypes, isPending, onSubmit, error }: CreateEventFormProps) {

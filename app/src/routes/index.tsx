@@ -4,8 +4,7 @@ import {type Event, useEvents} from '@shared/api/events'
 import {useEventTypes} from '@shared/api/event-types'
 import {useUserStore} from '@shared/stores/user-store'
 import {EventListView} from '@entities/event/ui/EventListView'
-import {CreateEventDialog} from '@features/create-event/ui/CreateEventDialog'
-import {CreateRecurringEventsDialog} from '@features/create-recurring-events/ui/CreateRecurringEventsDialog'
+import {CreateEventSheet} from '@widgets/create-event/ui/CreateEventSheet'
 import {GenerateInviteDialog} from '@features/generate-invite/ui/GenerateInviteDialog'
 import {toggleTypeSelection} from '@features/filter-event-types/model/toggleTypeSelection'
 
@@ -65,8 +64,7 @@ function EventListPage() {
                 {isAdmin && (
                     <div className="flex items-center gap-2">
                         <GenerateInviteDialog/>
-                        <CreateRecurringEventsDialog/>
-                        <CreateEventDialog/>
+                        <CreateEventSheet/>
                     </div>
                 )}
             </div>

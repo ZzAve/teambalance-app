@@ -33,8 +33,8 @@ const FALLBACK_ACCENT = '#225C9C' // brand blue when a type has no colour
  * Guided 3-step wizard for creating a recurring series (prototype A + B): ① type & details →
  * ② recurrence with a live month-calendar preview → ③ confirm. A persistent context block carries
  * the chosen summary + running count across steps. Purely presentational — data, the mutation, and
- * the dialog open/close state live in the CreateRecurringEventsDialog container, so each step state
- * is renderable in isolation (see RecurringEventsWizard.stories.tsx).
+ * the sheet open/close state live in the CreateEventSheet widget, so each step state is renderable
+ * in isolation (see RecurringEventsWizard.stories.tsx).
  */
 export function RecurringEventsWizard({
   eventTypes,

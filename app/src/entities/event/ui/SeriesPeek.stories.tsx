@@ -20,30 +20,44 @@ const series = ['a', 'b', 'c', 'd', 'e'].map((id, i) =>
   makeEvent({ id, recurringGroup: 'g1', startTime: `2026-09-0${i + 1}T18:30:00Z` }),
 )
 
-// A long series: first-two + last-two with a "+N more" gap, current in the collapsed middle.
-export const LongSeries: Story = {
+// Collapsed by default — series membership is usually incidental, so only the header shows.
+export const CollapsedByDefault: Story = {
   args: { peek: buildSeriesPeek(series, 'c')! },
   play: async ({ canvas }) => {
     await expect(canvas.getByText('Part of a series')).toBeInTheDocument()
     await expect(canvas.getByText('Occurrence 3 of 5')).toBeInTheDocument()
+    // The occurrence list stays hidden until expanded.
+    await expect(canvas.queryByText(/\+1 more/)).not.toBeInTheDocument()
+    await expect(canvas.getByRole('button')).toHaveAttribute('aria-expanded', 'false')
+  },
+}
+
+// Expanding reveals first-two + last-two with a "+N more" gap for a long series.
+export const ExpandedLongSeries: Story = {
+  args: { peek: buildSeriesPeek(series, 'c')! },
+  play: async ({ canvas, userEvent }) => {
+    await userEvent.click(canvas.getByRole('button'))
+    await expect(canvas.getByRole('button')).toHaveAttribute('aria-expanded', 'true')
     await expect(canvas.getByText(/\+1 more/)).toBeInTheDocument()
   },
 }
 
-// Current occurrence visible in the head — highlighted with the "This one" tag.
+// Expanded with the current occurrence visible in the head — highlighted with the "This one" tag.
 export const CurrentInHead: Story = {
   args: { peek: buildSeriesPeek(series, 'a')! },
-  play: async ({ canvas }) => {
+  play: async ({ canvas, userEvent }) => {
     await expect(canvas.getByText('Occurrence 1 of 5')).toBeInTheDocument()
+    await userEvent.click(canvas.getByRole('button'))
     await expect(canvas.getByText('This one')).toBeInTheDocument()
   },
 }
 
-// A short series shows every occurrence inline with no gap.
+// A short series shows every occurrence inline with no gap once expanded.
 export const ShortSeries: Story = {
   args: { peek: buildSeriesPeek(series.slice(0, 3), 'b')! },
-  play: async ({ canvas }) => {
+  play: async ({ canvas, userEvent }) => {
     await expect(canvas.getByText('Occurrence 2 of 3')).toBeInTheDocument()
+    await userEvent.click(canvas.getByRole('button'))
     await expect(canvas.queryByText(/more/)).not.toBeInTheDocument()
   },
 }

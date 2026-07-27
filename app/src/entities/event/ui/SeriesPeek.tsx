@@ -1,5 +1,6 @@
+import { useState } from 'react'
 import { Link } from '@tanstack/react-router'
-import { Repeat } from 'lucide-react'
+import { ChevronDown, Repeat } from 'lucide-react'
 import type { SeriesPeek as SeriesPeekModel, SeriesPeekEntry } from '../lib/series-peek'
 
 interface SeriesPeekProps {
@@ -33,39 +34,54 @@ function Occurrence({ entry }: { entry: SeriesPeekEntry }) {
 }
 
 /**
- * A compact "part of a series" peek on the event-detail route (ADR-0014): first-two + last-two
- * occurrences with a "+N more" gap, the current one highlighted. Purely presentational — the
- * peek model is built by buildSeriesPeek from the occurrence's siblings.
+ * A "part of a series" disclosure on the event-detail route (ADR-0014). The membership line is
+ * usually incidental context, so the card is **collapsed by default** — showing only "Part of a
+ * series · Occurrence X of Y" — and expands on click to reveal the first-two + last-two occurrences
+ * (with a "+N more" gap) and the current one highlighted. Purely presentational; the peek model is
+ * built by buildSeriesPeek.
  */
 export function SeriesPeek({ peek }: SeriesPeekProps) {
+  const [open, setOpen] = useState(false)
+
   return (
     <div className="mt-6 rounded-2xl border border-blue/15 bg-blue/5 p-4">
-      <div className="mb-3 flex items-center gap-2">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        className="flex w-full items-center gap-2 text-left"
+      >
         <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-blue/10 text-blue">
           <Repeat size={15} />
         </span>
-        <div>
+        <div className="min-w-0">
           <p className="text-sm font-bold leading-tight">Part of a series</p>
           <p className="text-xs text-muted-foreground">
             Occurrence {peek.currentPosition} of {peek.total}
           </p>
         </div>
-      </div>
+        <ChevronDown
+          size={18}
+          className={`ml-auto shrink-0 text-muted-foreground transition-transform ${open ? 'rotate-180' : ''}`}
+        />
+      </button>
 
-      <div className="flex flex-col gap-1">
-        {peek.head.map((e) => (
-          <Occurrence key={e.id} entry={e} />
-        ))}
-        {peek.hiddenCount > 0 && (
-          <div className="flex items-center gap-2 px-2.5 py-1 text-xs italic text-muted-foreground">
-            <span className="h-px flex-1 bg-border" />+{peek.hiddenCount} more
-            <span className="h-px flex-1 bg-border" />
-          </div>
-        )}
-        {peek.tail.map((e) => (
-          <Occurrence key={e.id} entry={e} />
-        ))}
-      </div>
+      {open && (
+        <div className="mt-3 flex flex-col gap-1">
+          {peek.head.map((e) => (
+            <Occurrence key={e.id} entry={e} />
+          ))}
+          {peek.hiddenCount > 0 && (
+            <div className="flex items-center gap-2 px-2.5 py-1 text-xs italic text-muted-foreground">
+              <span className="h-px flex-1 bg-border" />+{peek.hiddenCount} more
+              <span className="h-px flex-1 bg-border" />
+            </div>
+          )}
+          {peek.tail.map((e) => (
+            <Occurrence key={e.id} entry={e} />
+          ))}
+        </div>
+      )}
     </div>
   )
 }

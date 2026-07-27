@@ -9,6 +9,8 @@ import com.github.zzave.teambalance.api.application.EventService
 import com.github.zzave.teambalance.api.application.PotentialEvent
 import com.github.zzave.teambalance.api.domain.model.AttendanceState as DomainAttendanceState
 import com.github.zzave.teambalance.api.domain.model.EventReference as DomainEventReference
+import com.github.zzave.teambalance.api.domain.model.EventSeriesScope as DomainEventSeriesScope
+import com.github.zzave.teambalance.api.interfaces.generated.model.EventSeriesScope as GeneratedEventSeriesScope
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.CreateEvent
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.DeleteEvent
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.GetEvent
@@ -95,13 +97,16 @@ class EventController(
         )
     }
 
+    // Scoped edit (ADR-0014, Phase 3): a bulk scope touches many rows, so the success type is an
+    // EventList of the affected occurrences. The scope query param defaults to THIS when absent.
     override suspend fun updateEvent(request: UpdateEvent.Request): UpdateEvent.Response<*> {
         val teamId = currentTeamProvider.requireCurrentTeamId()
         authorizationService.requireAdmin(currentUserProvider.requireCurrentUserId(), teamId)
         val id = UUID.fromString(request.path.id)
         val req = request.body
-        val event = eventService.updateEvent(
+        val events = eventService.updateEvent(
             id = id,
+            scope = request.queries.scope.consume(),
             eventTypeId = UUID.fromString(req.eventTypeId),
             title = req.title,
             description = req.description,
@@ -111,18 +116,26 @@ class EventController(
             references = req.references.internalize(),
         ) ?: return UpdateEvent.Response404(Unit)
 
-        return UpdateEvent.Response200(event.produce(attendanceService, attendanceService.teamMembers(teamId)))
+        val members = attendanceService.teamMembers(teamId)
+        return UpdateEvent.Response200(EventList(events = events.map { it.produce(attendanceService, members) }))
     }
 
     override suspend fun deleteEvent(request: DeleteEvent.Request): DeleteEvent.Response<*> {
         authorizationService.requireAdmin(currentUserProvider.requireCurrentUserId(), currentTeamProvider.requireCurrentTeamId())
         val id = UUID.fromString(request.path.id)
-        return if (eventService.deleteEvent(id)) {
+        return if (eventService.deleteEvent(id, request.queries.scope.consume())) {
             DeleteEvent.Response204(Unit)
         } else {
             DeleteEvent.Response404(Unit)
         }
     }
+}
+
+// A missing scope query param defaults to THIS (ADR-0014); otherwise it maps 1:1 to the domain enum.
+private fun GeneratedEventSeriesScope?.consume(): DomainEventSeriesScope = when (this) {
+    null, GeneratedEventSeriesScope.THIS -> DomainEventSeriesScope.THIS
+    GeneratedEventSeriesScope.THIS_AND_FOLLOWING -> DomainEventSeriesScope.THIS_AND_FOLLOWING
+    GeneratedEventSeriesScope.ALL -> DomainEventSeriesScope.ALL
 }
 
 private fun com.github.zzave.teambalance.api.interfaces.generated.model.CreateEventRequest.consume() =

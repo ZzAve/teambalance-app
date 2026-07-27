@@ -140,7 +140,8 @@ class SeasonControllerIT : TeamBalanceIT() {
                     ADMIN_USER_ID,
                 )
                     .andExpect(MockMvcResultMatchers.status().isOk)
-                    .andExpect(MockMvcResultMatchers.jsonPath("$.title").value("Renamed but same date"))
+                    // UpdateEvent now returns an EventList of affected occurrences (ADR-0014 Phase 3).
+                    .andExpect(MockMvcResultMatchers.jsonPath("$.events[0].title").value("Renamed but same date"))
             } finally {
                 resetSeason()
             }

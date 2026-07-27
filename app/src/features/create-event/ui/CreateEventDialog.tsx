@@ -32,6 +32,7 @@ export function CreateEventDialog() {
           eventTypes={eventTypes ?? []}
           isPending={createEvent.isPending}
           onSubmit={handleSubmit}
+          error={createEvent.isError ? 'Could not create the event. Please try again.' : null}
         />
       </DialogContent>
     </Dialog>

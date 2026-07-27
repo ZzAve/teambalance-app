@@ -10,6 +10,7 @@ import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RestControllerAdvice
+import tools.jackson.databind.exc.MismatchedInputException
 import java.time.format.DateTimeParseException
 
 @RestControllerAdvice
@@ -54,4 +55,13 @@ class GlobalExceptionHandler {
     fun handleDateTimeParse(ex: DateTimeParseException): ResponseEntity<Map<String, String>> =
         ResponseEntity.status(HttpStatus.BAD_REQUEST)
             .body(mapOf("error" to "Invalid date/time format: ${ex.parsedString}"))
+
+    // Wirespec deserializes request bodies directly, so a malformed body (missing required field,
+    // null for a non-null property, wrong type) throws a raw Jackson MismatchedInputException that
+    // would otherwise escape as a 500. It is a client error — map it to 400. MismatchedInputException
+    // is thrown only on the read/deserialization path, so this never mislabels a response-write failure.
+    @ExceptionHandler(MismatchedInputException::class)
+    fun handleMalformedRequestBody(): ResponseEntity<Map<String, String>> =
+        ResponseEntity.status(HttpStatus.BAD_REQUEST)
+            .body(mapOf("error" to "Malformed or invalid request body"))
 }

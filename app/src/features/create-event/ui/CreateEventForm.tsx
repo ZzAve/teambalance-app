@@ -12,7 +12,21 @@ interface CreateEventFormProps {
   eventTypes: EventTypeItem[]
   isPending: boolean
   onSubmit: (values: EventInput) => void
+  /** Message to surface when the last create attempt failed; null/undefined hides the alert. */
+  error?: string | null
 }
+
+// Events have a known length rather than an arbitrary end moment, so the form captures a duration
+// and derives endTime = startTime + duration on submit. endTime is required by the API contract, so
+// this guarantees one is always sent (default 2h — the common training/match length).
+const DURATION_OPTIONS = [
+  { minutes: 60, label: '1 hour' },
+  { minutes: 90, label: '1.5 hours' },
+  { minutes: 120, label: '2 hours' },
+  { minutes: 180, label: '3 hours' },
+] as const
+
+const DEFAULT_DURATION_MINUTES = '120'
 
 /**
  * Presentational create-event form. Owns local form state (type selection + title auto-suggest)
@@ -20,10 +34,11 @@ interface CreateEventFormProps {
  * dialog open/close state live in the CreateEventDialog container — so every form state (idle,
  * type-selected, submitting, no-types) is renderable in isolation (see CreateEventForm.stories.tsx).
  */
-export function CreateEventForm({ eventTypes, isPending, onSubmit }: CreateEventFormProps) {
+export function CreateEventForm({ eventTypes, isPending, onSubmit, error }: CreateEventFormProps) {
   const [selectedTypeId, setSelectedTypeId] = useState<string>('')
   const [title, setTitle] = useState('')
   const [titleTouched, setTitleTouched] = useState(false)
+  const [durationMinutes, setDurationMinutes] = useState(DEFAULT_DURATION_MINUTES)
   const [references, setReferences] = useState<{ title: string; url: string }[]>([])
 
   const selectedType = eventTypes.find((t) => t.id === selectedTypeId)
@@ -47,6 +62,8 @@ export function CreateEventForm({ eventTypes, isPending, onSubmit }: CreateEvent
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     const form = new FormData(e.currentTarget)
+    const start = new Date(form.get('startTime') as string)
+    const end = new Date(start.getTime() + Number(durationMinutes) * 60_000)
     // Drop blank rows, normalize each URL, and treat a blank label as absent (host fallback on render).
     const cleanedReferences = references
       .map((r) => ({ title: r.title.trim(), url: normalizeUrl(r.url) }))
@@ -56,8 +73,8 @@ export function CreateEventForm({ eventTypes, isPending, onSubmit }: CreateEvent
       eventTypeId: selectedTypeId,
       title: title,
       description: (form.get('description') as string) || undefined,
-      startTime: new Date(form.get('startTime') as string).toISOString(),
-      endTime: form.get('endTime') ? new Date(form.get('endTime') as string).toISOString() : undefined,
+      startTime: start.toISOString(),
+      endTime: end.toISOString(),
       location: (form.get('location') as string) || undefined,
       references: cleanedReferences,
     })
@@ -76,7 +93,7 @@ export function CreateEventForm({ eventTypes, isPending, onSubmit }: CreateEvent
             aria-hidden="true"
           />
           <Select name="eventTypeId" required value={selectedTypeId} onValueChange={handleTypeChange}>
-            <SelectTrigger className="flex-1">
+            <SelectTrigger id="eventTypeId" className="flex-1">
               <SelectValue placeholder="Select type" />
             </SelectTrigger>
             <SelectContent>
@@ -114,19 +131,30 @@ export function CreateEventForm({ eventTypes, isPending, onSubmit }: CreateEvent
 
       <div>
         <Label htmlFor="startTime">Start time</Label>
-        <Input name="startTime" type="datetime-local" required />
+        <Input id="startTime" name="startTime" type="datetime-local" required />
       </div>
       <div>
-        <Label htmlFor="endTime">End time (optional)</Label>
-        <Input name="endTime" type="datetime-local" />
+        <Label htmlFor="duration">Duration</Label>
+        <Select name="durationMinutes" value={durationMinutes} onValueChange={setDurationMinutes}>
+          <SelectTrigger id="duration">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {DURATION_OPTIONS.map((d) => (
+              <SelectItem key={d.minutes} value={String(d.minutes)}>
+                {d.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
       <div>
         <Label htmlFor="location">Location (optional)</Label>
-        <Input name="location" />
+        <Input id="location" name="location" />
       </div>
       <div>
         <Label htmlFor="description">Description (optional)</Label>
-        <Input name="description" />
+        <Input id="description" name="description" />
       </div>
 
       {/* Links (References) — repeatable label + url rows. Label optional; blank rows are dropped. */}
@@ -168,6 +196,11 @@ export function CreateEventForm({ eventTypes, isPending, onSubmit }: CreateEvent
         </Button>
       </div>
 
+      {error && (
+        <p role="alert" className="text-sm text-destructive">
+          {error}
+        </p>
+      )}
       <Button
         type="submit"
         disabled={isPending}

@@ -17,6 +17,9 @@ private const val LISA_USER_ID = "b0000000-0000-0000-0000-000000000002"
 private const val TOM_USER_ID = "b0000000-0000-0000-0000-000000000003"
 private const val TEAM_ID = "a0000000-0000-0000-0000-000000000001"
 
+// A Kotest FunSpec accumulates every `test { }` into the one class body, so this integration suite
+// trips the LargeClass heuristic as event scenarios grow. Splitting it is a separate concern.
+@Suppress("LargeClass")
 @AutoConfigureMockMvc
 class EventControllerTest : TeamBalanceIT() {
 
@@ -677,6 +680,64 @@ class EventControllerTest : TeamBalanceIT() {
                 .andExpect(MockMvcResultMatchers.jsonPath("$.attendances[?(@.userId=='$noPositionUserId')].role").value("Unassigned"))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.attendanceSummary.roleBreakdown[0].role").value("Unassigned"))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.attendanceSummary.roleBreakdown[0].attending").value(1))
+        }
+
+        test("POST /api/events with a missing required field returns 400, not a raw 500") {
+            tenantSchemaManager.provisionPlatformSchema()
+            tenantSchemaManager.provisionTenantSchema("public")
+
+            jdbcTemplate.execute(
+                """
+                INSERT INTO public.teams (id, name, slug, sport, schema_name)
+                VALUES ('$TEAM_ID'::uuid, 'Test Team', 'test-team', 'Volleyball', 'public')
+                ON CONFLICT DO NOTHING
+            """
+            )
+            jdbcTemplate.execute(
+                """
+                INSERT INTO public.users (id, email, display_name)
+                VALUES ('$JAN_USER_ID'::uuid, 'jan@test.com', 'Jan de Vries')
+                ON CONFLICT DO NOTHING
+            """
+            )
+            jdbcTemplate.execute(
+                "SELECT public.tb_add_member('$TEAM_ID'::uuid, '$JAN_USER_ID'::uuid, 'ADMIN', 'Setter')"
+            )
+
+            val eventTypeId = jdbcTemplate.queryForObject(
+                "SELECT uuid FROM public.event_types WHERE name = 'Training'",
+                UUID::class.java,
+            )
+
+            // endTime is required by the contract but omitted here — a malformed request must be a
+            // client error (400), never surface as an unhandled deserialization crash (500).
+            val mvcResult = mockMvc.perform(
+                MockMvcRequestBuilders.post("/api/events")
+                    .header("X-Team-Id", "public")
+                    .header("X-User-Id", JAN_USER_ID)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(
+                        """
+                        {
+                          "eventTypeId": "$eventTypeId",
+                          "title": "No end time",
+                          "description": null,
+                          "startTime": "2026-08-01T20:00:00Z",
+                          "location": null
+                        }
+                        """.trimIndent()
+                    ),
+            ).andReturn()
+
+            // The failure may surface synchronously (arg resolution) or via async dispatch depending
+            // on where Wirespec deserializes the body — handle both so the test asserts status, not timing.
+            val status = if (mvcResult.request.isAsyncStarted) {
+                mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(mvcResult)).andReturn().response.status
+            } else {
+                mvcResult.response.status
+            }
+
+            status shouldBe 400
         }
     }
 

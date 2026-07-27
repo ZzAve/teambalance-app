@@ -30,6 +30,7 @@ type CreateRecurringEventsRequest {
     location: String?,
     timeOfDay: String,
     durationMinutes: Integer,
+    references: EventReference[],
     recurrence: RecurrenceRule
 }
 

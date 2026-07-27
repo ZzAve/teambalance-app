@@ -41,6 +41,7 @@ class RecurringEventController(
             location = body.location,
             timeOfDay = LocalTime.parse(body.timeOfDay),
             durationMinutes = body.durationMinutes,
+            references = body.references.internalize(),
             recurrence = body.recurrence.consume(),
             createdBy = userId,
         )

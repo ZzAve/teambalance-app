@@ -18,8 +18,9 @@ private const val TEAM_ID = "a0000000-0000-0000-0000-000000000001"
 
 /**
  * Batch creation of a recurring series (ADR-0014, Phase 2). Proves N concrete rows share one
- * recurring_group, attendance fans out per occurrence, season bounds every generated start, and the
- * endpoint is admin-only — the seams that a pure generation unit test cannot reach.
+ * recurring_group, the shared links fan out to every occurrence, the roster is derived at read time
+ * (no seeded attendance), season bounds every generated start, and the endpoint is admin-only — the
+ * seams that a pure generation unit test cannot reach.
  */
 @AutoConfigureMockMvc
 class RecurringEventControllerTest : TeamBalanceIT() {
@@ -57,6 +58,7 @@ class RecurringEventControllerTest : TeamBalanceIT() {
                           "location": "Gym",
                           "timeOfDay": "20:30",
                           "durationMinutes": 90,
+                          "references": [{"title": "Nevobo", "url": "https://nevobo.nl"}],
                           "recurrence": {
                             "frequency": "WEEKLY",
                             "weekdays": ["TUESDAY", "THURSDAY"],
@@ -75,6 +77,9 @@ class RecurringEventControllerTest : TeamBalanceIT() {
                 .andExpect(MockMvcResultMatchers.jsonPath("$.recurringGroup").isNotEmpty)
                 .andExpect(MockMvcResultMatchers.jsonPath("$.events.length()").value(4))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.events[0].title").value("Weekly Training"))
+                // The one shared link fans out to every occurrence.
+                .andExpect(MockMvcResultMatchers.jsonPath("$.events[0].references[0].url").value("https://nevobo.nl"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.events[3].references[0].url").value("https://nevobo.nl"))
                 // Attendance is derived from current membership at read time (#114): no rows are
                 // seeded, yet every occurrence reports the full roster as not-responded.
                 .andExpect(MockMvcResultMatchers.jsonPath("$.events[0].attendanceSummary.notResponded").value(memberCount))
@@ -133,6 +138,7 @@ class RecurringEventControllerTest : TeamBalanceIT() {
                           "location": null,
                           "timeOfDay": "20:30",
                           "durationMinutes": 90,
+                          "references": [],
                           "recurrence": {
                             "frequency": "WEEKLY",
                             "weekdays": ["TUESDAY", "THURSDAY"],
@@ -180,6 +186,7 @@ class RecurringEventControllerTest : TeamBalanceIT() {
                           "location": null,
                           "timeOfDay": "20:30",
                           "durationMinutes": 90,
+                          "references": [],
                           "recurrence": {
                             "frequency": "WEEKLY",
                             "weekdays": ["TUESDAY"],

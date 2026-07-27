@@ -93,6 +93,7 @@ class EventService(
         location: String?,
         timeOfDay: LocalTime,
         durationMinutes: Long,
+        references: List<EventReference>,
         recurrence: Recurrence,
         createdBy: UUID,
     ): RecurringEventSeries {
@@ -118,6 +119,7 @@ class EventService(
                     startTime = startTime,
                     endTime = OccurrenceSchedule.endInstant(startTime, durationMinutes),
                     location = location,
+                    references = references,
                     recurringGroup = recurringGroup,
                     createdBy = createdBy,
                     createdAt = clock.instant(),

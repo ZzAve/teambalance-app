@@ -4,6 +4,8 @@ import { Button } from '@shared/ui/button'
 import { Input } from '@shared/ui/input'
 import { Label } from '@shared/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@shared/ui/select'
+import { ReferenceRowsEditor } from '@entities/event/ui/ReferenceRowsEditor'
+import { cleanReferences, type ReferenceRow } from '@entities/event/lib/references'
 import type { EventTypeItem } from '@shared/api/event-types'
 import type { Season } from '@shared/api/season'
 import type { CreateRecurringEventsRequest, RecurrenceFrequency, Weekday } from '@shared/api/recurring-events'
@@ -60,6 +62,8 @@ export function RecurringEventsWizard({
   const [durationMinutes, setDurationMinutes] = useState(90)
   const [location, setLocation] = useState('')
   const [description, setDescription] = useState('')
+  // One shared link set fanned out to every occurrence in the series (e.g. the Nevobo page).
+  const [references, setReferences] = useState<ReferenceRow[]>([])
 
   const [frequency, setFrequency] = useState<RecurrenceFrequency>('WEEKLY')
   const [weekdays, setWeekdays] = useState<Set<Weekday>>(new Set(['TUESDAY', 'THURSDAY']))
@@ -106,6 +110,7 @@ export function RecurringEventsWizard({
       location: location.trim() || undefined,
       timeOfDay,
       durationMinutes,
+      references: cleanReferences(references),
       recurrence: {
         frequency,
         weekdays: orderWeekdays(weekdays),
@@ -209,6 +214,7 @@ export function RecurringEventsWizard({
             <Label htmlFor="rec-description">Description (optional)</Label>
             <Input id="rec-description" value={description} onChange={(e) => setDescription(e.target.value)} />
           </div>
+          <ReferenceRowsEditor rows={references} onChange={setReferences} hint="Shared across every event in the series." />
         </div>
       )}
 

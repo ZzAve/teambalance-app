@@ -10,6 +10,11 @@ class TenantSchemaManager(private val dataSource: DataSource) {
     fun provisionPlatformSchema() {
         Flyway.configure()
             .dataSource(dataSource)
+            // Pin the platform schema explicitly. Without this, Flyway targets the connection's
+            // ambient search_path, which in prod defaulted to a tenant schema (left over from manual
+            // tenant provisioning) — so a new platform migration landed in that tenant schema instead
+            // of `public`. Pinning makes it deterministic, mirroring provisionTenantSchema's .schemas().
+            .schemas("public")
             .locations("classpath:db/migration")
             .baselineOnMigrate(true)
             .baselineVersion("0")

@@ -28,6 +28,12 @@ spring:
   flyway:
     enabled: true
     locations: classpath:db/migration
+    # Pin the platform migrations to `public` for ALL profiles. Without this, Boot's auto-Flyway
+    # targets the connection's ambient search_path; in prod that defaulted to a tenant schema (left
+    # over from manual tenant provisioning), so a platform migration landed in the tenant schema
+    # instead of `public`. Platform tables (users, teams, sessions, …) live in `public` by design.
+    schemas:
+      - public
   jackson:
     default-property-inclusion: non_null
   session:

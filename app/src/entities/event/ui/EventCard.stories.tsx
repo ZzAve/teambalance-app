@@ -41,6 +41,26 @@ export const NoResponses: Story = {
   },
 }
 
+export const WithReferences: Story = {
+  args: {
+    event: makeEvent({
+      references: [
+        { title: 'Nevobo', url: 'https://api.nevobo.nl/permalink/wedstrijd/2018133' },
+        { title: 'Match form', url: 'https://dwf.volleybal.nl/match/42' },
+        { title: 'Route', url: 'https://maps.example.com/hall' },
+      ],
+    }),
+  },
+  play: async ({ canvas, canvasElement }) => {
+    // Two chips visible on the card, the third collapsed into "+1".
+    await expect(canvas.getByRole('link', { name: /Nevobo/ })).toBeInTheDocument()
+    await expect(canvas.getByRole('link', { name: /Match form/ })).toBeInTheDocument()
+    await expect(canvas.getByText('+1')).toBeInTheDocument()
+    // Chips are siblings of (not nested in) the card's own <Link> anchor — no invalid <a> in <a>.
+    await expect(canvasElement.querySelectorAll('a a')).toHaveLength(0)
+  },
+}
+
 export const WithLocation: Story = {
   args: { event: makeEvent({ location: 'Sporthal De Boog' }) },
   play: async ({ canvas, canvasElement }) => {

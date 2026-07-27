@@ -57,3 +57,24 @@ export const NoEventTypes: Story = {
     await expect(canvas.getByRole('button', { name: 'Create Event' })).toBeInTheDocument()
   },
 }
+
+export const AddingLinks: Story = {
+  args: { eventTypes: EVENT_TYPES, isPending: false },
+  play: async ({ canvas, userEvent }) => {
+    // No link rows until "Add link" is clicked.
+    await expect(canvas.queryByLabelText('Link 1 URL')).not.toBeInTheDocument()
+
+    await userEvent.click(canvas.getByRole('button', { name: /Add link/ }))
+    await expect(canvas.getByLabelText('Link 1 URL')).toBeInTheDocument()
+    await expect(canvas.getByLabelText('Link 1 label')).toBeInTheDocument()
+
+    // A second row is independent.
+    await userEvent.click(canvas.getByRole('button', { name: /Add link/ }))
+    await expect(canvas.getByLabelText('Link 2 URL')).toBeInTheDocument()
+
+    // Removing the first row collapses the list back to one.
+    await userEvent.click(canvas.getByRole('button', { name: 'Remove link 1' }))
+    await expect(canvas.queryByLabelText('Link 2 URL')).not.toBeInTheDocument()
+    await expect(canvas.getByLabelText('Link 1 URL')).toBeInTheDocument()
+  },
+}

@@ -4,6 +4,7 @@ import { Card } from '@shared/ui/card'
 import type { Event } from '@shared/api/events'
 import { EventTypeBadge } from './EventTypeBadge'
 import { EventTypeIcon } from './EventTypeIcon'
+import { ReferenceChips } from './ReferenceChips'
 
 
 export function EventCard({ event, index = 0 }: { event: Event; index?: number }) {
@@ -56,6 +57,13 @@ export function EventCard({ event, index = 0 }: { event: Event; index?: number }
           </>
         )}
       </div>
+
+      {/* Reference chips — up to 2, then "+N"; indented to align with the meta row */}
+      {event.references.length > 0 && (
+        <div className="mt-2 pl-[50px]">
+          <ReferenceChips references={event.references} max={2} />
+        </div>
+      )}
 
       {/* Bottom: status + attendance summary */}
       <div className="mt-3 border-t border-border/40 pt-3">

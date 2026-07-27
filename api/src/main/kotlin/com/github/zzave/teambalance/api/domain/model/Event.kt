@@ -11,6 +11,17 @@ data class Event(
     val startTime: Instant,
     val endTime: Instant,
     val location: String?,
+    val references: List<EventReference> = emptyList(),
     val createdBy: UUID,
     val createdAt: Instant,
-)
+) {
+    init {
+        require(references.size <= MAX_REFERENCES) {
+            "An event may have at most $MAX_REFERENCES references"
+        }
+    }
+
+    companion object {
+        const val MAX_REFERENCES = 10
+    }
+}

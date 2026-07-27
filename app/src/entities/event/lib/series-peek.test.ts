@@ -10,6 +10,7 @@ const event = (id: string, startTime: string): Event => ({
   startTime,
   endTime: startTime,
   location: undefined,
+  references: [],
   recurringGroup: 'group-1',
   attendanceSummary: { attending: 0, maybe: 0, absent: 0, notResponded: 0, roleBreakdown: [] },
 })

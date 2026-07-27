@@ -8,6 +8,7 @@ interface EventRepository {
     fun findById(id: UUID): Event?
     fun findUpcoming(since: Instant): List<Event>
     fun findAll(): List<Event>
+    fun findByRecurringGroup(group: UUID): List<Event>
     fun save(event: Event): Event
     fun deleteById(id: UUID)
 }

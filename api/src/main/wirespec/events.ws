@@ -7,6 +7,13 @@ enum AttendanceState {
     NOT_RESPONDED
 }
 
+// Level-3 edit/delete scope (ADR-0014): row-reassignment + field updates over a recurring_group. Default THIS.
+enum EventSeriesScope {
+    THIS,
+    THIS_AND_FOLLOWING,
+    ALL
+}
+
 type EventTypeSummary {
     id: String,
     name: String,
@@ -103,12 +110,12 @@ endpoint GetEvent GET /api/events/{id: String} -> {
     404 -> Unit
 }
 
-endpoint UpdateEvent PUT UpdateEventRequest /api/events/{id: String} -> {
-    200 -> Event
+endpoint UpdateEvent PUT UpdateEventRequest /api/events/{id: String} ? {scope: EventSeriesScope?} -> {
+    200 -> EventList
     404 -> Unit
 }
 
-endpoint DeleteEvent DELETE /api/events/{id: String} -> {
+endpoint DeleteEvent DELETE /api/events/{id: String} ? {scope: EventSeriesScope?} -> {
     204 -> Unit
     404 -> Unit
 }

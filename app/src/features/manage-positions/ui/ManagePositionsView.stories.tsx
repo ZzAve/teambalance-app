@@ -6,6 +6,15 @@ import { ManagePositionsView } from './ManagePositionsView'
 // ManagePositionsView is the presentational positions-management UI behind the ManagePositions
 // container. It owns only local view state (new-label field, per-row edits, delete-confirm dialog);
 // the query + mutations stay in the container, so every state renders purely from props.
+//
+// This is the reference exemplar for two conventions (ADR-0017):
+//   1. All four data states are stories — Loading / ErrorState / Empty / WithItems — because the
+//      load+error shells were pushed down from the container into the View (props-driven), so they
+//      render with no network.
+//   2. Prop-contract spies — CreatePosition / RenamePosition / DeleteConfirm drive a real
+//      interaction and assert the callback fired with the right args (args.onCreate/onRename/
+//      onDelete are fn() spies). This proves the wiring survives a dependency bump; a getByText
+//      assertion alone would not.
 const POSITIONS: Position[] = [
   { id: 'p1', label: 'Setter' },
   { id: 'p2', label: 'Libero' },
@@ -20,6 +29,23 @@ const meta = {
 export default meta
 
 type Story = StoryObj<typeof meta>
+
+export const Loading: Story = {
+  args: { isLoading: true },
+  play: async ({ canvas }) => {
+    await expect(canvas.getByText('Loading…')).toBeInTheDocument()
+    // The form is suppressed while the query is in flight — no add control yet.
+    await expect(canvas.queryByRole('button', { name: 'Add' })).not.toBeInTheDocument()
+  },
+}
+
+export const ErrorState: Story = {
+  args: { isError: true },
+  play: async ({ canvas }) => {
+    await expect(canvas.getByText("Couldn't load positions. Please try again.")).toBeInTheDocument()
+    await expect(canvas.queryByRole('button', { name: 'Add' })).not.toBeInTheDocument()
+  },
+}
 
 export const Empty: Story = {
   args: { positions: [] },
@@ -44,6 +70,17 @@ export const CreatePosition: Story = {
     await userEvent.type(canvas.getByLabelText('New position label'), 'Middle Blocker')
     await userEvent.click(canvas.getByRole('button', { name: 'Add' }))
     await expect(args.onCreate).toHaveBeenCalledWith('Middle Blocker')
+  },
+}
+
+export const RenamePosition: Story = {
+  play: async ({ canvas, userEvent, args }) => {
+    // The per-row Save button only appears once the label is edited to a new, non-empty value.
+    const field = canvas.getByLabelText('Label for Setter')
+    await userEvent.clear(field)
+    await userEvent.type(field, 'Middle Blocker')
+    await userEvent.click(canvas.getByRole('button', { name: 'Save' }))
+    await expect(args.onRename).toHaveBeenCalledWith('p1', 'Middle Blocker')
   },
 }
 

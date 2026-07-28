@@ -1,0 +1,76 @@
+name: Chromatic
+
+# Visual-regression gate (ADR-0017). Publishes the Storybook build to Chromatic, which
+# renders every story on its own fixed infra and diffs against the accepted baseline.
+#
+# How this gates automerge (deliberately — see ADR-0017):
+#   - The job runs with exitZeroOnChanges, so a visual delta does NOT fail *this* job.
+#   - Instead, Chromatic posts a "UI Tests" commit status that stays pending/failed until a
+#     human accepts the diff in the Chromatic UI. Mark **UI Tests** as a required status
+#     check in branch protection — that is what blocks a Renovate automerge on any pixel
+#     change. There is no autoAcceptChanges on PR branches: a delta always needs a human.
+#   - On push to main the accepted PR snapshots are promoted to the baseline automatically
+#     by Chromatic's git integration; we do not auto-accept here.
+#
+# Requires the CHROMATIC_PROJECT_TOKEN repo secret (create the Chromatic project first).
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'app/**'
+      - 'design-tokens/**'
+  pull_request:
+    paths:
+      - 'app/**'
+      - 'design-tokens/**'
+
+permissions:
+  contents: read
+
+jobs:
+  chromatic:
+    # Fork PRs run without secrets, so the project token is absent — skip rather than fail red.
+    if: ${{ github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Chromatic needs full git history to find each commit's baseline and to run
+          # TurboSnap (onlyChanged) — a shallow clone breaks baseline detection.
+          fetch-depth: 0
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      # Stories transitively import the Wirespec-generated TS client (gitignored); generate it
+      # before the Storybook build, exactly like storybook.yml, or Vite fails on missing modules.
+      - name: Generate Wirespec TypeScript client
+        run: ./gradlew :api:wirespec-typescript
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: app
+
+      # Run the pinned `chromatic` CLI (devDependency) via the npm script, so the gate uses the
+      # exact version in package-lock.json rather than a separately-versioned marketplace action.
+      # The script carries --only-changed (TurboSnap) and --exit-zero-on-changes; the CLI reads the
+      # project token from CHROMATIC_PROJECT_TOKEN in the env. A visual delta does not fail this job
+      # — the required "UI Tests" status check owns the gate, so accepting the diff in the Chromatic
+      # UI is what turns the merge light green.
+      - name: Publish to Chromatic
+        run: npm run chromatic
+        working-directory: app
+        env:
+          CHROMATIC_PROJECT_TOKEN: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}

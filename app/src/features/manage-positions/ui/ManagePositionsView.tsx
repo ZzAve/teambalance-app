@@ -13,7 +13,11 @@ import {
 import { validatePositionLabel } from '../lib/validate-position-label'
 
 interface ManagePositionsViewProps {
-  positions: Position[]
+  positions?: Position[]
+  /** The positions query is in flight — render the loading shell instead of the form. */
+  isLoading?: boolean
+  /** The positions query failed — render the error shell instead of the form. */
+  isError?: boolean
   isSaving?: boolean
   /** Backend error discriminator from the container (e.g. POSITION_LABEL_TAKEN), shown inline. */
   errorCode?: string | null
@@ -23,13 +27,18 @@ interface ManagePositionsViewProps {
 }
 
 /**
- * Presentational positions-management UI. Owns only local view state (the new-label field, per-row
- * edits, the delete-confirm dialog target); the query and the create/rename/delete mutations live in
- * the ManagePositions container. Props-only, so every state (empty / with items / delete-confirm /
- * label-taken) renders as a story.
+ * Presentational positions-management UI — the complete section, heading and all. Owns only local
+ * view state (the new-label field, per-row edits, the delete-confirm dialog target); the query and
+ * the create/rename/delete mutations live in the ManagePositions container.
+ *
+ * The load/error/data shells are props-driven (isLoading / isError) rather than lived in the
+ * container, so every state — loading / error / empty / with items / delete-confirm / label-taken —
+ * renders purely from props as a story, with no network. See ADR-0017.
  */
 export function ManagePositionsView({
-  positions,
+  positions = [],
+  isLoading,
+  isError,
   isSaving,
   errorCode,
   onCreate,
@@ -48,70 +57,84 @@ export function ManagePositionsView({
   }
 
   return (
-    <div className="flex flex-col gap-3">
-      <div>
-        <div className="flex gap-2">
-          <Input
-            aria-label="New position label"
-            value={newLabel}
-            placeholder="e.g. Setter"
-            onChange={(e) => setNewLabel(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault()
-                handleCreate()
-              }
-            }}
-          />
-          <Button disabled={isSaving || !!newLabelError} onClick={handleCreate}>
-            Add
-          </Button>
-        </div>
-        {errorCode === 'POSITION_LABEL_TAKEN' && (
-          <p className="mt-1 text-sm text-red-500">That position already exists.</p>
-        )}
-      </div>
+    <div>
+      <h2 className="font-display text-2xl font-bold">Positions</h2>
 
-      {positions.length === 0 ? (
-        <p className="text-sm text-muted-foreground">No positions yet. Add one above.</p>
-      ) : (
-        <ul className="divide-y divide-border rounded-lg border border-border">
-          {positions.map((position) => (
-            <PositionRow
-              key={position.id}
-              position={position}
-              isSaving={isSaving}
-              onRename={onRename}
-              onRequestDelete={setConfirmTarget}
-            />
-          ))}
-        </ul>
+      {isLoading && <p className="mt-4 text-sm text-muted-foreground">Loading…</p>}
+      {isError && (
+        <p className="mt-4 text-sm text-red-500">Couldn't load positions. Please try again.</p>
       )}
 
-      <Dialog open={confirmTarget !== null} onOpenChange={(open) => { if (!open) setConfirmTarget(null) }}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Delete position</DialogTitle>
-            <DialogDescription>
-              Delete "{confirmTarget?.label}"? Members with this position will become Unassigned.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setConfirmTarget(null)}>
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={() => {
-                if (confirmTarget) onDelete(confirmTarget)
-                setConfirmTarget(null)
+      {!isLoading && !isError && (
+        <div className="mt-4 flex flex-col gap-3">
+          <div className="flex gap-2">
+            <Input
+              aria-label="New position label"
+              value={newLabel}
+              placeholder="e.g. Setter"
+              onChange={(e) => setNewLabel(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault()
+                  handleCreate()
+                }
               }}
-            >
-              Delete
+            />
+            <Button disabled={isSaving || !!newLabelError} onClick={handleCreate}>
+              Add
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </div>
+          {errorCode === 'POSITION_LABEL_TAKEN' && (
+            <p className="mt-1 text-sm text-red-500">That position already exists.</p>
+          )}
+
+          {positions.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No positions yet. Add one above.</p>
+          ) : (
+            <ul className="divide-y divide-border rounded-lg border border-border">
+              {positions.map((position) => (
+                <PositionRow
+                  key={position.id}
+                  position={position}
+                  isSaving={isSaving}
+                  onRename={onRename}
+                  onRequestDelete={setConfirmTarget}
+                />
+              ))}
+            </ul>
+          )}
+
+          <Dialog
+            open={confirmTarget !== null}
+            onOpenChange={(open) => {
+              if (!open) setConfirmTarget(null)
+            }}
+          >
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Delete position</DialogTitle>
+                <DialogDescription>
+                  Delete "{confirmTarget?.label}"? Members with this position will become Unassigned.
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setConfirmTarget(null)}>
+                  Cancel
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={() => {
+                    if (confirmTarget) onDelete(confirmTarget)
+                    setConfirmTarget(null)
+                  }}
+                >
+                  Delete
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
+      )}
     </div>
   )
 }

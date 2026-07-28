@@ -2,6 +2,7 @@ package com.github.zzave.teambalance.api.application
 
 import com.github.zzave.teambalance.api.domain.model.Attendance
 import com.github.zzave.teambalance.api.domain.model.AttendanceState
+import com.github.zzave.teambalance.api.domain.model.EventAttendance
 import com.github.zzave.teambalance.api.domain.model.TeamMember
 import com.github.zzave.teambalance.api.domain.port.AttendanceRepository
 import com.github.zzave.teambalance.api.domain.port.EventRepository
@@ -9,11 +10,7 @@ import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.Clock
-import java.time.Instant
 import java.util.UUID
-
-/** Bucket label for attendees who have no position assigned. */
-const val UNASSIGNED = "Unassigned"
 
 @Service
 @Transactional
@@ -45,47 +42,25 @@ class AttendanceService(
         }
     }
 
-    /** Current active roster of a team — fetch once per request and pass into the derivations below. */
+    /** Current active roster of a team — fetch once per request and pass into the projections below. */
     fun teamMembers(teamId: UUID): List<TeamMember> = teamMemberRepository.findByTeamId(teamId)
 
-    // The roster and summary are derived from *current team membership*, not from the attendance rows
-    // that existed when the event was made. So a member who joins after an event was created shows up
-    // as NOT_RESPONDED (no pre-created row needed), and a member who left the team drops out entirely —
-    // even if they had a stale response row. A member's state is their response row's state, or
-    // NOT_RESPONDED when they have no row. `members` is passed in so a listing resolves the team once.
-    fun getAttendancesWithMembers(eventId: UUID, members: List<TeamMember>): List<Pair<Attendance, TeamMember>> {
-        val responseByUser = attendanceRepository.findByEventId(eventId).associateBy { it.userId }
-        return members.map { member ->
-            val response = responseByUser[member.userId]
-                ?: Attendance(
-                    id = member.userId,
-                    eventId = eventId,
-                    userId = member.userId,
-                    state = AttendanceState.NOT_RESPONDED,
-                    updatedAt = clock.instant(),
-                    changedBy = member.userId,
-                )
-            response to member
-        }
-    }
+    // The attendance picture is derived from *current team membership*, not from the rows that existed
+    // when the event was made: a member who joined later shows as NOT_RESPONDED (no seeded row needed)
+    // and a member who left drops out even with a stale row (#103, #114). EventAttendance concentrates
+    // that rule; `members` is passed in so a listing resolves the roster once.
 
-    fun getAttendanceSummary(eventId: UUID, members: List<TeamMember>): Map<AttendanceState, Int> {
-        val responseByUser = attendanceRepository.findByEventId(eventId).associateBy { it.userId }
-        return AttendanceState.entries.associateWith { state ->
-            members.count { (responseByUser[it.userId]?.state ?: AttendanceState.NOT_RESPONDED) == state }
-        }
-    }
+    /** The resolved attendance picture for one event — its response rows fetched once. */
+    fun attendanceFor(eventId: UUID, members: List<TeamMember>): EventAttendance =
+        EventAttendance.resolve(members, attendanceRepository.findByEventId(eventId))
 
-    fun getAttendingRoleBreakdown(eventId: UUID, members: List<TeamMember>): List<Pair<String, Int>> {
-        val attendingUserIds = attendanceRepository.findByEventId(eventId)
-            .filter { it.state == AttendanceState.ATTENDING }
-            .map { it.userId }
-            .toSet()
-        return members
-            .filter { it.userId in attendingUserIds }
-            .groupBy { it.position ?: UNASSIGNED }
-            .map { (position, grouped) -> position to grouped.size }
-            .sortedWith(compareByDescending<Pair<String, Int>> { it.second }.thenBy { it.first })
+    /**
+     * The resolved picture for many events, keyed by event id, from a single response-row query —
+     * kills the per-event N+1 when producing a listing.
+     */
+    fun attendanceForAll(eventIds: List<UUID>, members: List<TeamMember>): Map<UUID, EventAttendance> {
+        val responsesByEvent = attendanceRepository.findByEventIds(eventIds).groupBy { it.eventId }
+        return eventIds.associateWith { EventAttendance.resolve(members, responsesByEvent[it] ?: emptyList()) }
     }
 
     fun findMember(userId: UUID): TeamMember? =

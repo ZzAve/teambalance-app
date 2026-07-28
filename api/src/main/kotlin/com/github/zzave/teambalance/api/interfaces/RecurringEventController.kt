@@ -47,12 +47,14 @@ class RecurringEventController(
         )
 
         // Attendance is derived from current team membership at read time (#114), so the created
-        // occurrences carry the full NOT_RESPONDED roster without any seeded rows.
+        // occurrences carry the full NOT_RESPONDED roster without any seeded rows. Resolve the whole
+        // batch in one query so the response doesn't fan out into a per-occurrence N+1.
         val members = attendanceService.teamMembers(teamId)
+        val attendance = attendanceService.attendanceForAll(series.events.map { it.id }, members)
         return CreateRecurringEvents.Response201(
             RecurringEventSeries(
                 recurringGroup = series.recurringGroup.toString(),
-                events = series.events.map { it.produce(attendanceService, members) },
+                events = series.events.map { it.produce(attendance.getValue(it.id)) },
             ),
         )
     }

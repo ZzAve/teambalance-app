@@ -2,8 +2,8 @@ package com.github.zzave.teambalance.api.interfaces
 
 import com.github.zzave.teambalance.api.application.AttendanceService
 import com.github.zzave.teambalance.api.application.CurrentUserProvider
-import com.github.zzave.teambalance.api.application.UNASSIGNED
 import com.github.zzave.teambalance.api.domain.model.AttendanceState
+import com.github.zzave.teambalance.api.domain.model.UNASSIGNED
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.SetAttendance
 import com.github.zzave.teambalance.api.interfaces.generated.model.Attendance
 import org.springframework.web.bind.annotation.RestController

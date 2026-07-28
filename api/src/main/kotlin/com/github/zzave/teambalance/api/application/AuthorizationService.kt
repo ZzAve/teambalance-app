@@ -1,5 +1,6 @@
 package com.github.zzave.teambalance.api.application
 
+import com.github.zzave.teambalance.api.domain.exception.NoTeamMembershipException
 import com.github.zzave.teambalance.api.domain.exception.NotTeamAdminException
 import com.github.zzave.teambalance.api.domain.model.Role
 import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
@@ -16,7 +17,7 @@ import java.util.UUID
  *   otherwise a user can probe or act on teams they don't belong to (IDOR).
  *
  * The check is fail-closed: a missing, inactive, or wrong-team membership yields no role and is
- * therefore not admin.
+ * therefore neither a member nor an admin.
  */
 @Service
 class AuthorizationService(
@@ -27,5 +28,18 @@ class AuthorizationService(
 
     fun requireAdmin(userId: UUID, teamId: UUID) {
         if (!isAdmin(userId, teamId)) throw NotTeamAdminException(userId, teamId)
+    }
+
+    /** True when [userId] is an active member of [teamId], regardless of role. */
+    fun isMember(userId: UUID, teamId: UUID): Boolean =
+        teamMemberRepository.findRole(teamId, userId) != null
+
+    /**
+     * Asserts [userId] is an active member of [teamId] — the gate for team-scoped writes that any
+     * member may perform (e.g. trust-based attendance editing, ADR-0003). Fail-closed: a non-member
+     * yields no role and is rejected. Same security contract as [requireAdmin] on its arguments.
+     */
+    fun requireMember(userId: UUID, teamId: UUID) {
+        if (!isMember(userId, teamId)) throw NoTeamMembershipException(userId)
     }
 }

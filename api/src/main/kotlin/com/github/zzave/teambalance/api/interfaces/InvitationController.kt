@@ -1,6 +1,5 @@
 package com.github.zzave.teambalance.api.interfaces
 
-import com.github.zzave.teambalance.api.application.AuthorizationService
 import com.github.zzave.teambalance.api.application.CurrentTeamProvider
 import com.github.zzave.teambalance.api.application.CurrentUserProvider
 import com.github.zzave.teambalance.api.application.InvitationService
@@ -17,7 +16,6 @@ class InvitationController(
     private val invitationService: InvitationService,
     private val currentUserProvider: CurrentUserProvider,
     private val currentTeamProvider: CurrentTeamProvider,
-    private val authorizationService: AuthorizationService,
 ) : CreateInvitation.Handler,
     AcceptInvitation.Handler,
     ExpireInvitations.Handler,
@@ -26,9 +24,8 @@ class InvitationController(
     override suspend fun createInvitation(request: CreateInvitation.Request): CreateInvitation.Response<*> {
         val userId = currentUserProvider.requireCurrentUserId()
         val teamId = currentTeamProvider.requireCurrentTeamId()
-        authorizationService.requireAdmin(userId, teamId)
 
-        val invitation = invitationService.generateInviteLink(teamId = teamId, createdBy = userId)
+        val invitation = invitationService.generateInviteLink(callerId = userId, teamId = teamId)
         return CreateInvitation.Response201(
             Invitation(
                 token = invitation.token,
@@ -47,18 +44,16 @@ class InvitationController(
     override suspend fun expireInvitations(request: ExpireInvitations.Request): ExpireInvitations.Response<*> {
         val userId = currentUserProvider.requireCurrentUserId()
         val teamId = currentTeamProvider.requireCurrentTeamId()
-        authorizationService.requireAdmin(userId, teamId)
 
-        invitationService.expireActiveInvitations(teamId)
+        invitationService.expireActiveInvitations(callerId = userId, teamId = teamId)
         return ExpireInvitations.Response204(Unit)
     }
 
     override suspend fun rotateInvitation(request: RotateInvitation.Request): RotateInvitation.Response<*> {
         val userId = currentUserProvider.requireCurrentUserId()
         val teamId = currentTeamProvider.requireCurrentTeamId()
-        authorizationService.requireAdmin(userId, teamId)
 
-        val invitation = invitationService.rotateInviteLink(teamId = teamId, createdBy = userId)
+        val invitation = invitationService.rotateInviteLink(callerId = userId, teamId = teamId)
         return RotateInvitation.Response201(
             Invitation(
                 token = invitation.token,

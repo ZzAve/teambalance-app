@@ -18,9 +18,24 @@ class AttendanceService(
     private val attendanceRepository: AttendanceRepository,
     private val eventRepository: EventRepository,
     private val teamMemberRepository: TeamMemberRepository,
+    private val authorizationService: AuthorizationService,
     private val clock: Clock,
 ) {
-    fun setAttendance(eventId: UUID, userId: UUID, state: AttendanceState, changedBy: UUID): Attendance? {
+    /**
+     * Records [userId]'s attendance for [eventId], attributed to [changedBy] (the authenticated
+     * caller). Editing is trust-based within a team (ADR-0003), so the gate is membership, not
+     * admin: the target [userId] must be an active member of [teamId] — the caller's server-resolved
+     * tenant. This closes the write path that previously trusted only schema routing and never
+     * checked the path [userId] against the caller's team. Returns null when the event is unknown.
+     */
+    fun setAttendance(
+        teamId: UUID,
+        eventId: UUID,
+        userId: UUID,
+        state: AttendanceState,
+        changedBy: UUID,
+    ): Attendance? {
+        authorizationService.requireMember(userId, teamId)
         if (eventRepository.findById(eventId) == null) return null
 
         val existing = attendanceRepository.findByEventIdAndUserId(eventId, userId)

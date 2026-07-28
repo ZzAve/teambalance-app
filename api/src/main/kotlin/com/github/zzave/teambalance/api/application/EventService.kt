@@ -1,7 +1,6 @@
 package com.github.zzave.teambalance.api.application
 
 import com.github.zzave.teambalance.api.domain.exception.EmptyRecurrenceException
-import com.github.zzave.teambalance.api.domain.exception.EventOutsideSeasonException
 import com.github.zzave.teambalance.api.domain.exception.EventTypeNotFoundException
 import com.github.zzave.teambalance.api.domain.exception.RecurrenceExceedsCapException
 import com.github.zzave.teambalance.api.domain.model.Event
@@ -10,6 +9,7 @@ import com.github.zzave.teambalance.api.domain.model.EventReference
 import com.github.zzave.teambalance.api.domain.model.EventSeriesScope
 import com.github.zzave.teambalance.api.domain.model.OccurrenceSchedule
 import com.github.zzave.teambalance.api.domain.model.Recurrence
+import com.github.zzave.teambalance.api.domain.model.SeasonPolicy
 import com.github.zzave.teambalance.api.domain.model.SeriesModification
 import com.github.zzave.teambalance.api.domain.port.EventRepository
 import com.github.zzave.teambalance.api.domain.port.EventTypeRepository
@@ -57,7 +57,7 @@ class EventService(
             ?: throw EventTypeNotFoundException(potential.eventTypeId)
 
         // ADR-0014: a created event's start must always fall within the configured season.
-        requireWithinSeason(potential.startTime)
+        seasonPolicy().requireCreatable(potential.startTime)
 
         return eventRepository.save(
             Event(
@@ -107,7 +107,7 @@ class EventService(
             ?: throw EventTypeNotFoundException(eventTypeId)
 
         val dates = generateBoundedDates(recurrence)
-        requireAllWithinSeason(dates)
+        seasonPolicy().requireAllCreatable(dates)
 
         val recurringGroup = UUID.randomUUID()
 
@@ -141,13 +141,6 @@ class EventService(
             throw RecurrenceExceedsCapException(Recurrence.MAX_OCCURRENCES)
         }
         return dates
-    }
-
-    // Rejects the whole batch up front if any generated start falls outside the configured season,
-    // so no row is written when even one occurrence is out of window.
-    private fun requireAllWithinSeason(dates: List<LocalDate>) {
-        val season = seasonRepository.get()
-        dates.firstOrNull { !season.allows(it) }?.let { throw EventOutsideSeasonException(it) }
     }
 
     /**
@@ -199,9 +192,7 @@ class EventService(
         )
 
         val originalStarts = series.associate { it.id to it.startTime }
-        plan.toPersist.forEach { updated ->
-            if (updated.startTime != originalStarts[updated.id]) requireWithinSeason(updated.startTime)
-        }
+        seasonPolicy().requireEditable(plan, originalStarts)
 
         plan.toPersist.forEach { eventRepository.save(it) }
         return plan.edited.sortedBy { it.startTime }
@@ -224,11 +215,8 @@ class EventService(
     private fun seriesOf(event: Event): List<Event> =
         event.recurringGroup?.let { eventRepository.findByRecurringGroup(it) } ?: listOf(event)
 
-    // Rejects a start that falls outside the configured season. The instant is resolved to a calendar
-    // date in the team's civil zone (the clock's zone) so the comparison matches how humans read the
-    // date. An unconfigured season (both bounds null) allows everything.
-    private fun requireWithinSeason(startTime: Instant) {
-        val startDate = startTime.atZone(clock.zone).toLocalDate()
-        if (!seasonRepository.get().allows(startDate)) throw EventOutsideSeasonException(startDate)
-    }
+    // The season rule for the current tenant, resolved for this write: which starts must fall within
+    // the window (and the grandfathering of unchanged ones) is SeasonPolicy's job — Season.allows is
+    // the predicate underneath, resolved against the team's civil zone (the clock's zone).
+    private fun seasonPolicy(): SeasonPolicy = SeasonPolicy(seasonRepository.get(), clock.zone)
 }

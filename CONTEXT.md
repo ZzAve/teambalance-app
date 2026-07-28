@@ -61,6 +61,13 @@ any-team, self-service (see [ADR-0001](docs/adr/0001-product-ambition-hobby-tool
   When set, Event writes with a start outside the window are rejected (unchanged starts
   grandfathered); narrowing the window only warns about existing events. Supplies default
   dates to recurring creation ([ADR-0014](docs/adr/0014-recurring-events-materialized-batch-split-season.md)).
+- **Season Policy** — The rule for *which* Event starts must fall inside the **Season** and
+  *when* it is enforced: a single create checks its new start; a recurring batch checks every
+  generated start and is rejected whole on the first offender (nothing is written); a scoped
+  edit checks only the occurrences whose start actually *moves*, **grandfathering** unchanged
+  starts — so a title-only *all* edit is never rejected and an occurrence already outside a
+  narrowed window stays editable. An unconfigured Season permits everything
+  ([ADR-0014](docs/adr/0014-recurring-events-materialized-batch-split-season.md)).
 - **Attendance** — A Member's response to an Event. One of four **Attendance States**.
 - **Attendance State** — `Attending` (green), `Maybe` (gold), `Absent` (red),
   `Not Responded` (default, no response yet). The semantic colors are fixed brand

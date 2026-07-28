@@ -1,12 +1,16 @@
 package com.github.zzave.teambalance.api.interfaces
 
 import com.github.zzave.teambalance.api.TeamBalanceIT
+import com.github.zzave.teambalance.api.domain.port.AttendanceRepository
 import com.github.zzave.teambalance.api.infrastructure.multitenancy.TenantSchemaManager
 import io.kotest.matchers.shouldBe
+import org.mockito.ArgumentMatchers
+import org.mockito.Mockito
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
 import org.springframework.http.MediaType
 import org.springframework.jdbc.core.JdbcTemplate
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers
@@ -31,6 +35,11 @@ class EventControllerTest : TeamBalanceIT() {
 
     @Autowired
     lateinit var tenantSchemaManager: TenantSchemaManager
+
+    // Spy the real adapter (it still delegates to Postgres) so we can count DB round trips and prove
+    // the listing resolves all events' attendance in one batched query instead of one query per event.
+    @MockitoSpyBean
+    lateinit var attendanceRepository: AttendanceRepository
 
     init {
         test("GET /api/events/{id} returns role for each attendee") {
@@ -739,6 +748,63 @@ class EventControllerTest : TeamBalanceIT() {
             }
 
             status shouldBe 400
+        }
+
+        test("GET /api/events resolves attendance for the whole list in one query (no N+1)") {
+            tenantSchemaManager.provisionPlatformSchema()
+            tenantSchemaManager.provisionTenantSchema("public")
+
+            jdbcTemplate.execute(
+                """
+                INSERT INTO public.teams (id, name, slug, sport, schema_name)
+                VALUES ('$TEAM_ID'::uuid, 'Test Team', 'test-team', 'Volleyball', 'public')
+                ON CONFLICT DO NOTHING
+            """
+            )
+            jdbcTemplate.execute(
+                """
+                INSERT INTO public.users (id, email, display_name)
+                VALUES ('$JAN_USER_ID'::uuid, 'jan@test.com', 'Jan de Vries')
+                ON CONFLICT DO NOTHING
+            """
+            )
+            jdbcTemplate.execute(
+                "SELECT public.tb_add_member('$TEAM_ID'::uuid, '$JAN_USER_ID'::uuid, 'USER', 'Setter')"
+            )
+
+            // Several events so a per-event fetch would show up as multiple round trips.
+            repeat(3) { i ->
+                val eventId = UUID.randomUUID()
+                jdbcTemplate.execute(
+                    """
+                    INSERT INTO public.events (uuid, event_type_id, title, start_time, end_time, created_by, created_at, updated_at)
+                    VALUES ('$eventId'::uuid,
+                        (SELECT id FROM public.event_types WHERE name = 'Training'),
+                        'N+1 Guard $i', '2050-07-0${i + 1} 20:00:00+00', '2050-07-0${i + 1} 22:00:00+00',
+                        '$JAN_USER_ID'::uuid, now(), now())
+                """
+                )
+                insertAttendance(eventId, JAN_USER_ID)
+            }
+
+            // Ignore attendance reads from the seeding/other tests sharing this context.
+            Mockito.clearInvocations(attendanceRepository)
+
+            val mvcResult = mockMvc.perform(
+                MockMvcRequestBuilders.get("/api/events?include-past=true")
+                    .header("X-Team-Id", "public")
+                    .header("X-User-Id", JAN_USER_ID),
+            )
+                .andExpect(MockMvcResultMatchers.request().asyncStarted())
+                .andReturn()
+
+            mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(mvcResult))
+                .andExpect(MockMvcResultMatchers.status().isOk)
+
+            // One batched query for every listed event and nothing else — no per-event fetch, which is
+            // exactly the N+1 this projection removes (reverting to findByEventId-per-event fails here).
+            Mockito.verify(attendanceRepository, Mockito.times(1)).findByEventIds(ArgumentMatchers.anyList())
+            Mockito.verifyNoMoreInteractions(attendanceRepository)
         }
     }
 

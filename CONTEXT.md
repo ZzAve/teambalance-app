@@ -65,6 +65,13 @@ any-team, self-service (see [ADR-0001](docs/adr/0001-product-ambition-hobby-tool
 - **Attendance State** — `Attending` (green), `Maybe` (gold), `Absent` (red),
   `Not Responded` (default, no response yet). The semantic colors are fixed brand
   identity.
+- **Event Attendance** — The resolved attendance picture of a single Event: every current
+  Member paired with their **Attendance State** for that Event (their response, or
+  **Not Responded** when they haven't answered). Derived from the *current* roster, so a
+  Member who joins after the Event appears as Not Responded and a departed Member drops out,
+  even if they once responded (per [ADR-0009](docs/adr/0009-attendance-model-roles-in-audience-deferred.md)).
+  The summary counts, the roster, and the attending-**Position** breakdown are all views of
+  this one picture. _Avoid_: attendance list, attendance snapshot.
 - **Attendance Toggle** — The core daily interaction: a Member sets their state on an
   event. Editable by others today (trust-based) — see
   [ADR-0003](docs/adr/0003-trust-based-attendance-editing.md).

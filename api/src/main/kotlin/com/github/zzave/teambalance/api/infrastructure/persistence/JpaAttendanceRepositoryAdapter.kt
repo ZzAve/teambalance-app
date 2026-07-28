@@ -17,6 +17,10 @@ class JpaAttendanceRepositoryAdapter(
     override fun findByEventId(eventId: UUID): List<Attendance> =
         jpaRepository.findByEventUuid(eventId).map { it.internalize() }
 
+    override fun findByEventIds(eventIds: List<UUID>): List<Attendance> =
+        if (eventIds.isEmpty()) emptyList()
+        else jpaRepository.findByEventUuidIn(eventIds).map { it.internalize() }
+
     override fun findByEventIdAndUserId(eventId: UUID, userId: UUID): Attendance? =
         jpaRepository.findByEventUuidAndUserId(eventId, userId)?.internalize()
 

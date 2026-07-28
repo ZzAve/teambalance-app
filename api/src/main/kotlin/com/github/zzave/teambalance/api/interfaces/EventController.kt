@@ -2,14 +2,16 @@ package com.github.zzave.teambalance.api.interfaces
 
 import com.github.zzave.teambalance.api.application.AttendanceService
 import com.github.zzave.teambalance.api.application.AuthorizationService
-import com.github.zzave.teambalance.api.application.UNASSIGNED
 import com.github.zzave.teambalance.api.application.CurrentTeamProvider
 import com.github.zzave.teambalance.api.application.CurrentUserProvider
 import com.github.zzave.teambalance.api.application.EventService
 import com.github.zzave.teambalance.api.application.PotentialEvent
 import com.github.zzave.teambalance.api.domain.model.AttendanceState as DomainAttendanceState
+import com.github.zzave.teambalance.api.domain.model.EventAttendance
 import com.github.zzave.teambalance.api.domain.model.EventReference as DomainEventReference
 import com.github.zzave.teambalance.api.domain.model.EventSeriesScope as DomainEventSeriesScope
+import com.github.zzave.teambalance.api.domain.model.MemberAttendance
+import com.github.zzave.teambalance.api.domain.model.UNASSIGNED
 import com.github.zzave.teambalance.api.interfaces.generated.model.EventSeriesScope as GeneratedEventSeriesScope
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.CreateEvent
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.DeleteEvent
@@ -46,8 +48,9 @@ class EventController(
     override suspend fun listEvents(request: ListEvents.Request): ListEvents.Response<*> {
         val members = attendanceService.teamMembers(currentTeamProvider.requireCurrentTeamId())
         val events = if (request.queries.includepast) eventService.getAllEvents() else eventService.getUpcomingEvents()
+        val attendance = attendanceService.attendanceForAll(events.map { it.id }, members)
         return ListEvents.Response200(
-            EventList(events = events.map { it.produce(attendanceService, members) })
+            EventList(events = events.map { it.produce(attendance.getValue(it.id)) })
         )
     }
 
@@ -59,7 +62,9 @@ class EventController(
             potential = request.body.consume(),
             createdBy = userId,
         )
-        return CreateEvent.Response201(event.produce(attendanceService, attendanceService.teamMembers(teamId)))
+        return CreateEvent.Response201(
+            event.produce(attendanceService.attendanceFor(event.id, attendanceService.teamMembers(teamId))),
+        )
     }
 
     override suspend fun getEvent(request: GetEvent.Request): GetEvent.Response<*> {
@@ -68,9 +73,7 @@ class EventController(
             ?: return GetEvent.Response404(Unit)
 
         val members = attendanceService.teamMembers(currentTeamProvider.requireCurrentTeamId())
-        val attendances = attendanceService.getAttendancesWithMembers(id, members)
-        val summary = attendanceService.getAttendanceSummary(id, members)
-        val roleBreakdown = attendanceService.getAttendingRoleBreakdown(id, members)
+        val attendance = attendanceService.attendanceFor(id, members)
 
         return GetEvent.Response200(
             EventDetail(
@@ -83,16 +86,8 @@ class EventController(
                 location = event.location,
                 references = event.references.externalize(),
                 recurringGroup = event.recurringGroup?.toString(),
-                attendanceSummary = summary.produce(roleBreakdown),
-                attendances = attendances.map { (a, member) ->
-                    AttendanceEntry(
-                        id = a.id.toString(),
-                        userId = a.userId.toString(),
-                        displayName = member.displayName,
-                        role = member.position ?: UNASSIGNED,
-                        state = a.state.produce(),
-                    )
-                },
+                attendanceSummary = attendance.summary().produce(attendance.attendingRoleBreakdown()),
+                attendances = attendance.entries.map { it.produce() },
             )
         )
     }
@@ -117,7 +112,8 @@ class EventController(
         ) ?: return UpdateEvent.Response404(Unit)
 
         val members = attendanceService.teamMembers(teamId)
-        return UpdateEvent.Response200(EventList(events = events.map { it.produce(attendanceService, members) }))
+        val attendance = attendanceService.attendanceForAll(events.map { it.id }, members)
+        return UpdateEvent.Response200(EventList(events = events.map { it.produce(attendance.getValue(it.id)) }))
     }
 
     override suspend fun deleteEvent(request: DeleteEvent.Request): DeleteEvent.Response<*> {
@@ -160,13 +156,9 @@ private fun List<DomainEventReference>.externalize(): List<EventReference> =
     map { EventReference(title = it.title, url = it.url) }
 
 // internal (not private) so RecurringEventController can reuse it for the batch-create response.
-internal fun com.github.zzave.teambalance.api.domain.model.Event.produce(
-    attendanceService: AttendanceService,
-    members: List<com.github.zzave.teambalance.api.domain.model.TeamMember>,
-): Event {
-    val summary = attendanceService.getAttendanceSummary(id, members)
-    val roleBreakdown = attendanceService.getAttendingRoleBreakdown(id, members)
-    return Event(
+// Takes the already-resolved projection so mapping stays free of data access (no per-event N+1).
+internal fun com.github.zzave.teambalance.api.domain.model.Event.produce(attendance: EventAttendance): Event =
+    Event(
         id = id.toString(),
         eventType = eventType.produce(),
         title = title,
@@ -176,9 +168,17 @@ internal fun com.github.zzave.teambalance.api.domain.model.Event.produce(
         location = location,
         references = references.externalize(),
         recurringGroup = recurringGroup?.toString(),
-        attendanceSummary = summary.produce(roleBreakdown),
+        attendanceSummary = attendance.summary().produce(attendance.attendingRoleBreakdown()),
     )
-}
+
+private fun MemberAttendance.produce() = AttendanceEntry(
+    // A responded member keys off their real row; a not-responded member falls back to their user id.
+    id = (responseId ?: member.userId).toString(),
+    userId = member.userId.toString(),
+    displayName = member.displayName,
+    role = member.position ?: UNASSIGNED,
+    state = state.produce(),
+)
 
 private fun com.github.zzave.teambalance.api.domain.model.EventType.produce() =
     EventTypeSummary(id = id.toString(), name = name, color = color)

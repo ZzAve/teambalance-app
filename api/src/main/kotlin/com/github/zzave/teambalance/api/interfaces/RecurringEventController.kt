@@ -1,7 +1,6 @@
 package com.github.zzave.teambalance.api.interfaces
 
 import com.github.zzave.teambalance.api.application.AttendanceService
-import com.github.zzave.teambalance.api.application.AuthorizationService
 import com.github.zzave.teambalance.api.application.CurrentTeamProvider
 import com.github.zzave.teambalance.api.application.CurrentUserProvider
 import com.github.zzave.teambalance.api.application.EventService
@@ -23,18 +22,18 @@ class RecurringEventController(
     private val attendanceService: AttendanceService,
     private val currentUserProvider: CurrentUserProvider,
     private val currentTeamProvider: CurrentTeamProvider,
-    private val authorizationService: AuthorizationService,
 ) : CreateRecurringEvents.Handler {
 
-    // Admin-only, mirroring single-event create. Season/cap/empty violations surface as 422 via the
-    // GlobalExceptionHandler; a non-admin surfaces as 403.
+    // Admin-only, mirroring single-event create — enforced in EventService.createRecurringEvents.
+    // Season/cap/empty violations surface as 422 via the GlobalExceptionHandler; a non-admin as 403.
     override suspend fun createRecurringEvents(request: CreateRecurringEvents.Request): CreateRecurringEvents.Response<*> {
         val teamId = currentTeamProvider.requireCurrentTeamId()
         val userId = currentUserProvider.requireCurrentUserId()
-        authorizationService.requireAdmin(userId, teamId)
 
         val body = request.body
         val series = eventService.createRecurringEvents(
+            callerId = userId,
+            teamId = teamId,
             eventTypeId = UUID.fromString(body.eventTypeId),
             title = body.title,
             description = body.description,
@@ -43,7 +42,6 @@ class RecurringEventController(
             durationMinutes = body.durationMinutes,
             references = body.references.internalize(),
             recurrence = body.recurrence.consume(),
-            createdBy = userId,
         )
 
         // Attendance is derived from current team membership at read time (#114), so the created

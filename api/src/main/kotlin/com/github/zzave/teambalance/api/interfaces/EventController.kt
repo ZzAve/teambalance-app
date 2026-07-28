@@ -1,7 +1,6 @@
 package com.github.zzave.teambalance.api.interfaces
 
 import com.github.zzave.teambalance.api.application.AttendanceService
-import com.github.zzave.teambalance.api.application.AuthorizationService
 import com.github.zzave.teambalance.api.application.CurrentTeamProvider
 import com.github.zzave.teambalance.api.application.CurrentUserProvider
 import com.github.zzave.teambalance.api.application.EventService
@@ -38,7 +37,6 @@ class EventController(
     private val attendanceService: AttendanceService,
     private val currentUserProvider: CurrentUserProvider,
     private val currentTeamProvider: CurrentTeamProvider,
-    private val authorizationService: AuthorizationService,
 ) : ListEvents.Handler,
     CreateEvent.Handler,
     GetEvent.Handler,
@@ -57,10 +55,10 @@ class EventController(
     override suspend fun createEvent(request: CreateEvent.Request): CreateEvent.Response<*> {
         val teamId = currentTeamProvider.requireCurrentTeamId()
         val userId = currentUserProvider.requireCurrentUserId()
-        authorizationService.requireAdmin(userId, teamId)
         val event = eventService.createEvent(
+            callerId = userId,
+            teamId = teamId,
             potential = request.body.consume(),
-            createdBy = userId,
         )
         return CreateEvent.Response201(
             event.produce(attendanceService.attendanceFor(event.id, attendanceService.teamMembers(teamId))),
@@ -96,10 +94,12 @@ class EventController(
     // EventList of the affected occurrences. The scope query param defaults to THIS when absent.
     override suspend fun updateEvent(request: UpdateEvent.Request): UpdateEvent.Response<*> {
         val teamId = currentTeamProvider.requireCurrentTeamId()
-        authorizationService.requireAdmin(currentUserProvider.requireCurrentUserId(), teamId)
+        val userId = currentUserProvider.requireCurrentUserId()
         val id = UUID.fromString(request.path.id)
         val req = request.body
         val events = eventService.updateEvent(
+            callerId = userId,
+            teamId = teamId,
             id = id,
             scope = request.queries.scope.consume(),
             eventTypeId = UUID.fromString(req.eventTypeId),
@@ -117,9 +117,10 @@ class EventController(
     }
 
     override suspend fun deleteEvent(request: DeleteEvent.Request): DeleteEvent.Response<*> {
-        authorizationService.requireAdmin(currentUserProvider.requireCurrentUserId(), currentTeamProvider.requireCurrentTeamId())
+        val teamId = currentTeamProvider.requireCurrentTeamId()
+        val userId = currentUserProvider.requireCurrentUserId()
         val id = UUID.fromString(request.path.id)
-        return if (eventService.deleteEvent(id, request.queries.scope.consume())) {
+        return if (eventService.deleteEvent(callerId = userId, teamId = teamId, id = id, scope = request.queries.scope.consume())) {
             DeleteEvent.Response204(Unit)
         } else {
             DeleteEvent.Response404(Unit)

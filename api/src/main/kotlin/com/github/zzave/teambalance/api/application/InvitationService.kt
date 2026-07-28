@@ -21,6 +21,7 @@ data class GeneratedInvitation(val token: String, val expiresAt: Instant)
 class InvitationService(
     private val invitationRepository: InvitationRepository,
     private val teamMemberRepository: TeamMemberRepository,
+    private val authorizationService: AuthorizationService,
     private val clock: Clock,
     // App-wide secret mixed into the token hash. Supplied via INVITATION_TOKEN_SALT in live
     // environments (see application.yml); dev and test use a hardcoded value.
@@ -40,8 +41,12 @@ class InvitationService(
      * a usable link. Because the hash is one-way, a repeat call can't re-show a previous link — each
      * call mints a new one; links already shared keep working until they expire. #38 adds explicit
      * rotate/expire to invalidate them.
+     *
+     * Admin-only: [callerId] must be an admin of [teamId] (the server-resolved tenant), and is also
+     * recorded as the invitation's creator.
      */
-    fun generateInviteLink(teamId: UUID, createdBy: UUID): GeneratedInvitation {
+    fun generateInviteLink(callerId: UUID, teamId: UUID): GeneratedInvitation {
+        authorizationService.requireAdmin(callerId, teamId)
         val now = clock.instant()
         val token = generateToken()
         invitationRepository.save(
@@ -49,7 +54,7 @@ class InvitationService(
                 id = UUID.randomUUID(),
                 teamId = teamId,
                 tokenHash = hashToken(token),
-                createdBy = createdBy,
+                createdBy = callerId,
                 expiresAt = now.plus(INVITE_TTL),
                 createdAt = now,
             ),
@@ -72,20 +77,24 @@ class InvitationService(
         return invitation.teamId
     }
 
-    /** Invalidates every currently-active invite link for the team; already-expired ones are untouched. */
-    fun expireActiveInvitations(teamId: UUID) {
+    /**
+     * Invalidates every currently-active invite link for the team; already-expired ones are untouched.
+     * Admin-only: [callerId] must be an admin of [teamId] (the server-resolved tenant).
+     */
+    fun expireActiveInvitations(callerId: UUID, teamId: UUID) {
+        authorizationService.requireAdmin(callerId, teamId)
         invitationRepository.expireActive(teamId, Instant.now(clock))
     }
 
     /**
      * Invalidates the team's active invite link(s) and mints a fresh one in its place. Atomic: the
      * expire and the mint share one transaction, so a failure to mint rolls the expire back rather
-     * than leaving the team with no usable link.
+     * than leaving the team with no usable link. Admin-only (the nested calls re-assert it).
      */
     @Transactional
-    fun rotateInviteLink(teamId: UUID, createdBy: UUID): GeneratedInvitation {
-        expireActiveInvitations(teamId)
-        return generateInviteLink(teamId, createdBy)
+    fun rotateInviteLink(callerId: UUID, teamId: UUID): GeneratedInvitation {
+        expireActiveInvitations(callerId, teamId)
+        return generateInviteLink(callerId, teamId)
     }
 
     private fun generateToken(): String {

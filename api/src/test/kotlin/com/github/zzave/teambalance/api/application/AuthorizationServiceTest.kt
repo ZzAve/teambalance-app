@@ -1,5 +1,6 @@
 package com.github.zzave.teambalance.api.application
 
+import com.github.zzave.teambalance.api.domain.exception.NoTeamMembershipException
 import com.github.zzave.teambalance.api.domain.exception.NotTeamAdminException
 import com.github.zzave.teambalance.api.domain.model.Role
 import com.github.zzave.teambalance.api.domain.model.TeamMember
@@ -64,6 +65,29 @@ class AuthorizationServiceTest : FunSpec() {
         test("requireAdmin throws NotTeamAdminException for a non-admin") {
             shouldThrow<NotTeamAdminException> {
                 service.requireAdmin(memberId, teamId)
+            }
+        }
+
+        test("isMember is true for any active member of that team, admin or not") {
+            service.isMember(adminId, teamId) shouldBe true
+            service.isMember(memberId, teamId) shouldBe true
+        }
+
+        test("isMember is false for a user with no membership on that team") {
+            service.isMember(strangerId, teamId) shouldBe false
+        }
+
+        test("isMember is false for a member of a different team (cross-team isolation)") {
+            service.isMember(memberId, otherTeamId) shouldBe false
+        }
+
+        test("requireMember passes through silently for a plain (non-admin) member") {
+            service.requireMember(memberId, teamId)
+        }
+
+        test("requireMember throws NoTeamMembershipException for a non-member") {
+            shouldThrow<NoTeamMembershipException> {
+                service.requireMember(strangerId, teamId)
             }
         }
     }

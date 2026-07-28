@@ -29,6 +29,7 @@ class EventService(
     private val eventRepository: EventRepository,
     private val eventTypeRepository: EventTypeRepository,
     private val seasonRepository: SeasonRepository,
+    private val authorizationService: AuthorizationService,
     private val clock: Clock,
 ) {
     companion object {
@@ -52,7 +53,10 @@ class EventService(
     // No attendance rows are seeded here: the summary and roster are derived from current team
     // membership at read time (see AttendanceService), so a member's absence of a row simply reads
     // as NOT_RESPONDED. A response then upserts their row (AttendanceService.setAttendance).
-    fun createEvent(potential: PotentialEvent, createdBy: UUID): Event {
+    // Admin-only: [callerId] must be an admin of [teamId] (the server-resolved tenant), and is
+    // recorded as the event's creator.
+    fun createEvent(callerId: UUID, teamId: UUID, potential: PotentialEvent): Event {
+        authorizationService.requireAdmin(callerId, teamId)
         val eventType = eventTypeRepository.findById(potential.eventTypeId)
             ?: throw EventTypeNotFoundException(potential.eventTypeId)
 
@@ -70,7 +74,7 @@ class EventService(
                 location = potential.location,
                 references = potential.references,
                 recurringGroup = potential.recurringGroup,
-                createdBy = createdBy,
+                createdBy = callerId,
                 createdAt = clock.instant(),
             ),
         )
@@ -88,8 +92,13 @@ class EventService(
      * season, and the batch is capped at [Recurrence.MAX_OCCURRENCES].
      *
      * Runs in a single transaction (the whole batch commits or nothing does).
+     *
+     * Admin-only: [callerId] must be an admin of [teamId] (the server-resolved tenant), and is
+     * recorded as the creator of every generated occurrence.
      */
     fun createRecurringEvents(
+        callerId: UUID,
+        teamId: UUID,
         eventTypeId: UUID,
         title: String,
         description: String?,
@@ -98,8 +107,8 @@ class EventService(
         durationMinutes: Long,
         references: List<EventReference>,
         recurrence: Recurrence,
-        createdBy: UUID,
     ): RecurringEventSeries {
+        authorizationService.requireAdmin(callerId, teamId)
         require(durationMinutes in 1..MAX_DURATION_MINUTES) {
             "durationMinutes must be between 1 and $MAX_DURATION_MINUTES"
         }
@@ -124,7 +133,7 @@ class EventService(
                     location = location,
                     references = references,
                     recurringGroup = recurringGroup,
-                    createdBy = createdBy,
+                    createdBy = callerId,
                     createdAt = clock.instant(),
                 ),
             )
@@ -156,8 +165,12 @@ class EventService(
      *
      * Returns the affected ("edited") occurrences ordered by start, or null when [id] is unknown.
      * Runs in one transaction — the whole reassignment commits or nothing does.
+     *
+     * Admin-only: [callerId] must be an admin of [teamId] (the server-resolved tenant).
      */
     fun updateEvent(
+        callerId: UUID,
+        teamId: UUID,
         id: UUID,
         scope: EventSeriesScope,
         eventTypeId: UUID,
@@ -168,6 +181,7 @@ class EventService(
         location: String?,
         references: List<EventReference> = emptyList(),
     ): List<Event>? {
+        authorizationService.requireAdmin(callerId, teamId)
         val target = eventRepository.findById(id) ?: return null
         val eventType = eventTypeRepository.findById(eventTypeId)
             ?: throw EventTypeNotFoundException(eventTypeId)
@@ -202,8 +216,11 @@ class EventService(
      * Deletes the occurrences in [scope] over the target's series (ADR-0014, Decision 4). A delete
      * **never splits** — survivors keep their group untouched. Returns false when [id] is unknown.
      * Runs in one transaction.
+     *
+     * Admin-only: [callerId] must be an admin of [teamId] (the server-resolved tenant).
      */
-    fun deleteEvent(id: UUID, scope: EventSeriesScope): Boolean {
+    fun deleteEvent(callerId: UUID, teamId: UUID, id: UUID, scope: EventSeriesScope): Boolean {
+        authorizationService.requireAdmin(callerId, teamId)
         val target = eventRepository.findById(id) ?: return false
         val toDelete = SeriesModification.planDelete(seriesOf(target), id, scope)
         toDelete.forEach { eventRepository.deleteById(it) }

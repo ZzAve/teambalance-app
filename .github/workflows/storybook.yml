@@ -1,0 +1,147 @@
+name: Storybook
+
+# Deploys the component catalog to GitHub Pages (branch-based, gh-pages):
+#   push to main             -> gh-pages root       -> https://storybook.teambalance.nl
+#   PR (own-repo, app diff)  -> gh-pages/pr-preview/pr-<n>/ + a comment on the PR
+#   PR closed                -> that preview dir is removed
+#
+# Kept separate from ci.yml on purpose: this needs `contents: write` (to push the
+# gh-pages branch), whereas ci.yml is deliberately read-only.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'app/**'
+      - 'design-tokens/**'
+  pull_request:
+    types: [opened, synchronize, reopened, closed]
+    paths:
+      - 'app/**'
+      - 'design-tokens/**'
+  workflow_dispatch:
+
+permissions:
+  contents: write        # push the built Storybook to the gh-pages branch
+  pull-requests: write   # pr-preview-action comments the preview URL on the PR
+
+jobs:
+  # Canonical Storybook for main -> served at storybook.teambalance.nl
+  deploy-main:
+    if: ${{ github.event_name == 'push' || github.event_name == 'workflow_dispatch' }}
+    runs-on: ubuntu-latest
+    concurrency:
+      group: storybook-main
+      cancel-in-progress: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      # Storybook stories transitively import the Wirespec-generated TS client
+      # (app/src/shared/api/generated, gitignored). Generate it before the build,
+      # exactly like the SPA build in ci.yml, or Vite fails on missing modules.
+      - name: Generate Wirespec TypeScript client
+        run: ./gradlew :api:wirespec-typescript
+
+      - name: Build Storybook
+        run: |
+          npm ci
+          npm run build-storybook
+        working-directory: app
+
+      # CNAME binds the custom domain on every publish (clean would drop it otherwise);
+      # robots.txt at the gh-pages root keeps the whole domain (previews included) out
+      # of search engines.
+      - name: Add CNAME + robots.txt
+        working-directory: app/storybook-static
+        run: |
+          echo 'storybook.teambalance.nl' > CNAME
+          printf 'User-agent: *\nDisallow: /\n' > robots.txt
+
+      - name: Publish to gh-pages root
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          folder: app/storybook-static
+          branch: gh-pages
+          clean: true
+          clean-exclude: pr-preview/   # never wipe live PR previews
+          commit-message: 'docs(storybook): deploy main ${{ github.sha }}'
+
+  # Per-PR preview. Own-repo branches only: fork PRs run without write access/secrets,
+  # so we skip them rather than reach for pull_request_target.
+  deploy-preview:
+    if: >-
+      github.event_name == 'pull_request' &&
+      github.event.action != 'closed' &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    concurrency:
+      group: storybook-preview-${{ github.event.pull_request.number }}
+      cancel-in-progress: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Generate Wirespec TypeScript client
+        run: ./gradlew :api:wirespec-typescript
+
+      - name: Build Storybook
+        run: |
+          npm ci
+          npm run build-storybook
+        working-directory: app
+
+      # Deploys to gh-pages/pr-preview/pr-<n>/, comments the URL, preserves the root
+      # site + other previews. Storybook's Vite build already uses relative asset
+      # paths (base: './'), so it serves correctly from the subpath.
+      - name: Deploy preview
+        uses: rossjrw/pr-preview-action@v1
+        with:
+          source-dir: app/storybook-static
+          preview-branch: gh-pages
+          umbrella-dir: pr-preview
+
+  # PR closed -> remove its preview dir (no build needed).
+  cleanup-preview:
+    if: >-
+      github.event_name == 'pull_request' &&
+      github.event.action == 'closed' &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    concurrency:
+      group: storybook-preview-${{ github.event.pull_request.number }}
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Remove preview
+        uses: rossjrw/pr-preview-action@v1
+        with:
+          source-dir: app/storybook-static
+          preview-branch: gh-pages
+          umbrella-dir: pr-preview
+          action: remove

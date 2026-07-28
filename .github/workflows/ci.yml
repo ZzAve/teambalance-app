@@ -23,6 +23,10 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
+    # Hard ceiling so a hung step fails fast instead of running to GitHub's 6-hour
+    # default. A healthy build (incl. e2e) finishes in well under 15 min; 30 is
+    # generous headroom while still turning a hang into quick, actionable feedback.
+    timeout-minutes: 30
 
     services:
       postgres:
@@ -82,7 +86,31 @@ jobs:
         run: npx playwright install-deps chromium
         working-directory: app
 
-      - run: make test
+      - run: make test-api
+
+      # Frontend tests (Vitest: jsdom units + headless-Chromium Storybook project).
+      #
+      # Vitest's browser-mode project intermittently fails to tear down its headless
+      # Chromium after an otherwise-passing run: every test reports ✓, but the browser
+      # (and its esbuild/provider handles) never close, so the Node process never exits
+      # and the step hangs until the job's hard limit. It's a shutdown race, not a test
+      # failure — the assertions have already passed when it wedges.
+      #
+      # Bound each attempt with a wall-clock timeout so a wedged run is killed in minutes
+      # instead of hours, and retry once so the intermittent teardown flake self-heals.
+      # A genuine test failure exits non-zero fast and fails both attempts, so this masks
+      # only the browser-close hang, not real breakage. A healthy run is ~2 min.
+      - name: Frontend tests (Vitest)
+        working-directory: app
+        run: |
+          for attempt in 1 2; do
+            if timeout --kill-after=30s --signal=TERM 10m npm test; then
+              exit 0
+            fi
+            echo "::warning::vitest did not exit cleanly (attempt ${attempt}/2) — likely the headless-browser teardown hang; retrying"
+          done
+          echo "::error::vitest failed on both attempts"
+          exit 1
 
       # Real full-stack e2e last (slowest layer): backend via bootRun (e2e profile) against the
       # workflow's Postgres service container, health-gated by scripts/e2e.sh.
@@ -113,6 +141,7 @@ jobs:
     needs: build
     if: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/deploy')) }}
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     environment: production
     concurrency:
       group: deploy-prod-api
@@ -156,6 +185,7 @@ jobs:
     needs: build
     if: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/deploy')) }}
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     environment: production
     concurrency:
       group: deploy-prod-frontend

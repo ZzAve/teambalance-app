@@ -4,6 +4,32 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>TeamBalance</title>
+    <!--
+      Cold-start wake-up. The prod backend scales to zero, so kick it awake as early as possible —
+      during HTML parse, before the JS bundle even downloads — so the container is already warming
+      by the time the session probe runs. Fire-and-forget against the cheap public /api/ping (204,
+      no DB, no auth). Vite substitutes %VITE_API_URL% at build; in dev it's left unsubstituted and
+      we fall back to a relative URL (same-origin via the Vite proxy). Prod is split-origin
+      (app.teambalance.nl → api.teambalance.nl), so we also warm DNS/TLS with a preconnect.
+    -->
+    <script>
+      (function () {
+        var api = '%VITE_API_URL%'
+        if (!api || api.charAt(0) === '%') api = ''
+        if (api) {
+          var link = document.createElement('link')
+          link.rel = 'preconnect'
+          link.href = api
+          link.crossOrigin = 'anonymous'
+          document.head.appendChild(link)
+        }
+        try {
+          fetch(api + '/api/ping', { credentials: 'omit', cache: 'no-store' }).catch(function () {})
+        } catch (e) {
+          /* wake ping is best-effort — never let it break boot */
+        }
+      })()
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Grandstander:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet" />

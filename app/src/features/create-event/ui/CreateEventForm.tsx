@@ -1,12 +1,12 @@
 import { useState } from 'react'
-import { Plus, X } from 'lucide-react'
 import { Button } from '@shared/ui/button'
 import { Input } from '@shared/ui/input'
 import { Label } from '@shared/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@shared/ui/select'
 import type { EventInput } from '@shared/api/events'
 import type { EventTypeItem } from '@shared/api/event-types'
-import { normalizeUrl } from '../lib/normalize-url'
+import { ReferenceRowsEditor } from '@entities/event/ui/ReferenceRowsEditor'
+import { cleanReferences, type ReferenceRow } from '@entities/event/lib/references'
 
 interface CreateEventFormProps {
   eventTypes: EventTypeItem[]
@@ -39,14 +39,9 @@ export function CreateEventForm({ eventTypes, isPending, onSubmit, error }: Crea
   const [title, setTitle] = useState('')
   const [titleTouched, setTitleTouched] = useState(false)
   const [durationMinutes, setDurationMinutes] = useState(DEFAULT_DURATION_MINUTES)
-  const [references, setReferences] = useState<{ title: string; url: string }[]>([])
+  const [references, setReferences] = useState<ReferenceRow[]>([])
 
   const selectedType = eventTypes.find((t) => t.id === selectedTypeId)
-
-  const updateReference = (index: number, field: 'title' | 'url', value: string) =>
-    setReferences((rows) => rows.map((r, i) => (i === index ? { ...r, [field]: value } : r)))
-  const addReference = () => setReferences((rows) => [...rows, { title: '', url: '' }])
-  const removeReference = (index: number) => setReferences((rows) => rows.filter((_, i) => i !== index))
 
   const handleTypeChange = (typeId: string) => {
     setSelectedTypeId(typeId)
@@ -64,11 +59,6 @@ export function CreateEventForm({ eventTypes, isPending, onSubmit, error }: Crea
     const form = new FormData(e.currentTarget)
     const start = new Date(form.get('startTime') as string)
     const end = new Date(start.getTime() + Number(durationMinutes) * 60_000)
-    // Drop blank rows, normalize each URL, and treat a blank label as absent (host fallback on render).
-    const cleanedReferences = references
-      .map((r) => ({ title: r.title.trim(), url: normalizeUrl(r.url) }))
-      .filter((r) => r.url !== '')
-      .map((r) => ({ title: r.title || undefined, url: r.url }))
     onSubmit({
       eventTypeId: selectedTypeId,
       title: title,
@@ -76,7 +66,7 @@ export function CreateEventForm({ eventTypes, isPending, onSubmit, error }: Crea
       startTime: start.toISOString(),
       endTime: end.toISOString(),
       location: (form.get('location') as string) || undefined,
-      references: cleanedReferences,
+      references: cleanReferences(references),
     })
   }
 
@@ -158,43 +148,7 @@ export function CreateEventForm({ eventTypes, isPending, onSubmit, error }: Crea
       </div>
 
       {/* Links (References) — repeatable label + url rows. Label optional; blank rows are dropped. */}
-      <div>
-        <Label>Links (optional)</Label>
-        <p className="mb-1 text-xs text-muted-foreground">Add the Nevobo page, match form, and more.</p>
-        <div className="flex flex-col gap-2">
-          {references.map((ref, i) => (
-            <div key={i} className="flex items-center gap-2">
-              <Input
-                aria-label={`Link ${i + 1} label`}
-                placeholder="Label (optional)"
-                value={ref.title}
-                onChange={(e) => updateReference(i, 'title', e.target.value)}
-                className="w-2/5"
-              />
-              <Input
-                aria-label={`Link ${i + 1} URL`}
-                placeholder="https://…"
-                value={ref.url}
-                onChange={(e) => updateReference(i, 'url', e.target.value)}
-                className="flex-1"
-              />
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                aria-label={`Remove link ${i + 1}`}
-                onClick={() => removeReference(i)}
-              >
-                <X size={16} />
-              </Button>
-            </div>
-          ))}
-        </div>
-        <Button type="button" variant="ghost" size="sm" className="mt-2 gap-1.5" onClick={addReference}>
-          <Plus size={15} />
-          Add link
-        </Button>
-      </div>
+      <ReferenceRowsEditor rows={references} onChange={setReferences} />
 
       {error && (
         <p role="alert" className="text-sm text-destructive">

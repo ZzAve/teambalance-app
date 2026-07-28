@@ -25,6 +25,9 @@ class JpaEventRepositoryAdapter(
     override fun findAll(): List<Event> =
         jpaRepository.findAllByOrderByStartTimeDesc().map { it.internalize() }
 
+    override fun findByRecurringGroup(group: UUID): List<Event> =
+        jpaRepository.findByRecurringGroupOrderByStartTimeAsc(group).map { it.internalize() }
+
     override fun save(event: Event): Event {
         val eventTypeEntity = eventTypeJpaRepository.findByUuid(event.eventType.id)
             ?: throw EventTypeNotFoundException(event.eventType.id)

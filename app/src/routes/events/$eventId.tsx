@@ -216,11 +216,11 @@ function EventDetailPage() {
       {/* Part of a series peek */}
       {seriesPeek && <SeriesPeek peek={seriesPeek} />}
 
-      {/* Admin Actions — single-event ("This event") edit/delete; bulk scopes are Phase 3 */}
+      {/* Admin Actions — scoped series edit/delete (ADR-0014 Phase 3); standalone events skip the prompt */}
       {isAdmin && (
         <div className="mt-6 flex gap-2.5 border-t border-border/40 pt-5">
-          <EditEventDialog event={event} />
-          <DeleteEventDialog eventId={event.id} title={event.title} partOfSeries={!!event.recurringGroup} />
+          <EditEventDialog event={event} siblings={siblings} />
+          <DeleteEventDialog eventId={event.id} title={event.title} siblings={siblings} />
         </div>
       )}
     </div>

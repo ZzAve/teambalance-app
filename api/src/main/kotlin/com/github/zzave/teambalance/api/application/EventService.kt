@@ -5,9 +5,12 @@ import com.github.zzave.teambalance.api.domain.exception.EventOutsideSeasonExcep
 import com.github.zzave.teambalance.api.domain.exception.EventTypeNotFoundException
 import com.github.zzave.teambalance.api.domain.exception.RecurrenceExceedsCapException
 import com.github.zzave.teambalance.api.domain.model.Event
+import com.github.zzave.teambalance.api.domain.model.EventEdit
 import com.github.zzave.teambalance.api.domain.model.EventReference
+import com.github.zzave.teambalance.api.domain.model.EventSeriesScope
 import com.github.zzave.teambalance.api.domain.model.OccurrenceSchedule
 import com.github.zzave.teambalance.api.domain.model.Recurrence
+import com.github.zzave.teambalance.api.domain.model.SeriesModification
 import com.github.zzave.teambalance.api.domain.port.EventRepository
 import com.github.zzave.teambalance.api.domain.port.EventTypeRepository
 import com.github.zzave.teambalance.api.domain.port.SeasonRepository
@@ -147,8 +150,23 @@ class EventService(
         dates.firstOrNull { !season.allows(it) }?.let { throw EventOutsideSeasonException(it) }
     }
 
+    /**
+     * Applies a scoped edit over a recurring series (ADR-0014, Decision 4). A group-less event is a
+     * one-occurrence series, so any scope simply edits that row; otherwise the whole group is loaded
+     * and [SeriesModification] computes the split/reassignment matrix (detach + new-group-after for
+     * THIS, before-kept + new-group-for-tail for FOLLOWING, whole-group for ALL). Bulk scopes
+     * propagate every field except each occurrence's own calendar date.
+     *
+     * Season validation still fires, and grandfathers unchanged starts: only occurrences whose start
+     * actually moves are checked, so an occurrence already outside a shrunk window stays editable
+     * (e.g. an ALL edit that changes only the title touches no start and is never rejected).
+     *
+     * Returns the affected ("edited") occurrences ordered by start, or null when [id] is unknown.
+     * Runs in one transaction — the whole reassignment commits or nothing does.
+     */
     fun updateEvent(
         id: UUID,
+        scope: EventSeriesScope,
         eventTypeId: UUID,
         title: String,
         description: String?,
@@ -156,34 +174,55 @@ class EventService(
         endTime: Instant,
         location: String?,
         references: List<EventReference> = emptyList(),
-    ): Event? {
-        val existing = eventRepository.findById(id) ?: return null
+    ): List<Event>? {
+        val target = eventRepository.findById(id) ?: return null
         val eventType = eventTypeRepository.findById(eventTypeId)
             ?: throw EventTypeNotFoundException(eventTypeId)
 
-        // ADR-0014: validate the season only when the start is being moved. An unchanged start is
-        // grandfathered, so an event already outside the window (e.g. after it was shrunk) stays editable.
-        if (existing.startTime != startTime) requireWithinSeason(startTime)
-
+        val series = seriesOf(target)
         // Replace-semantics (ADR-0016): the incoming list is the new full set of references.
-        return eventRepository.save(
-            existing.copy(
+        val plan = SeriesModification.planEdit(
+            series = series,
+            targetId = id,
+            scope = scope,
+            edit = EventEdit(
                 eventType = eventType,
                 title = title,
                 description = description,
-                startTime = startTime,
-                endTime = endTime,
                 location = location,
                 references = references,
+                startTime = startTime,
+                endTime = endTime,
             ),
+            newTailGroup = UUID.randomUUID(),
+            zone = clock.zone,
         )
+
+        val originalStarts = series.associate { it.id to it.startTime }
+        plan.toPersist.forEach { updated ->
+            if (updated.startTime != originalStarts[updated.id]) requireWithinSeason(updated.startTime)
+        }
+
+        plan.toPersist.forEach { eventRepository.save(it) }
+        return plan.edited.sortedBy { it.startTime }
     }
 
-    fun deleteEvent(id: UUID): Boolean {
-        if (eventRepository.findById(id) == null) return false
-        eventRepository.deleteById(id)
+    /**
+     * Deletes the occurrences in [scope] over the target's series (ADR-0014, Decision 4). A delete
+     * **never splits** — survivors keep their group untouched. Returns false when [id] is unknown.
+     * Runs in one transaction.
+     */
+    fun deleteEvent(id: UUID, scope: EventSeriesScope): Boolean {
+        val target = eventRepository.findById(id) ?: return false
+        val toDelete = SeriesModification.planDelete(seriesOf(target), id, scope)
+        toDelete.forEach { eventRepository.deleteById(it) }
         return true
     }
+
+    // A group-less event is a one-occurrence series (its own row); otherwise the whole group,
+    // start-time ordered — the "before/after" axis every scoped operation splits on.
+    private fun seriesOf(event: Event): List<Event> =
+        event.recurringGroup?.let { eventRepository.findByRecurringGroup(it) } ?: listOf(event)
 
     // Rejects a start that falls outside the configured season. The instant is resolved to a calendar
     // date in the team's civil zone (the clock's zone) so the comparison matches how humans read the

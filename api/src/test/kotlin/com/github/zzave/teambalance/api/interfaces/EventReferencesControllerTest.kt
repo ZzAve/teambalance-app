@@ -200,8 +200,9 @@ class EventReferencesControllerTest : TeamBalanceIT() {
 
             mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(mvcResult))
                 .andExpect(MockMvcResultMatchers.status().isOk)
-                .andExpect(MockMvcResultMatchers.jsonPath("$.references.length()").value(1))
-                .andExpect(MockMvcResultMatchers.jsonPath("$.references[0].title").value("New Only"))
+                // UpdateEvent now returns an EventList of affected occurrences (ADR-0014 Phase 3).
+                .andExpect(MockMvcResultMatchers.jsonPath("$.events[0].references.length()").value(1))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.events[0].references[0].title").value("New Only"))
 
             // The two old references are gone; only the new set remains (replace-semantics).
             val rows = jdbcTemplate.queryForList(

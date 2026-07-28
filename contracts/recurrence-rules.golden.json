@@ -1,0 +1,177 @@
+{
+  "_doc": [
+    "SINGLE SOURCE OF TRUTH for the two recurrence domain rules that exist in both Kotlin and",
+    "TypeScript and must stay in lockstep (ADR-0014):",
+    "  1. occurrence generation  — api Recurrence.occurrences()  ↔  app generateOccurrences()",
+    "  2. the edit/delete split  — api SeriesModification.planEdit/planDelete  ↔  app buildAffectedPreview()",
+    "Read by BOTH `make test-api` (RecurrenceContractTest.kt) and `make test-app`",
+    "(recurrence.contract.test.ts, series-affected.contract.test.ts). Any change to either",
+    "implementation that diverges from these vectors fails CI, so the wizard's instant local",
+    "preview can never silently drift from the backend it mimics. Change the rule in ONE place,",
+    "update these vectors, and both suites re-pin. Keep vectors small and deterministic: the shared",
+    "200 cap is pinned as the scalar `maxOccurrences` (not by aligning 200-element lists, whose",
+    "over-cap tails are allowed to differ). Weekday/frequency strings are the contract enum names."
+  ],
+  "maxOccurrences": 200,
+  "occurrences": [
+    {
+      "name": "weekly, single weekday, whole month",
+      "frequency": "WEEKLY",
+      "weekdays": ["TUESDAY"],
+      "startDate": "2026-09-01",
+      "endDate": "2026-09-30",
+      "expected": ["2026-09-01", "2026-09-08", "2026-09-15", "2026-09-22", "2026-09-29"]
+    },
+    {
+      "name": "weekly interleaves multiple weekdays chronologically",
+      "frequency": "WEEKLY",
+      "weekdays": ["TUESDAY", "THURSDAY"],
+      "startDate": "2026-09-07",
+      "endDate": "2026-09-20",
+      "expected": ["2026-09-08", "2026-09-10", "2026-09-15", "2026-09-17"]
+    },
+    {
+      "name": "biweekly keeps every OTHER occurrence per weekday (not every other row)",
+      "frequency": "BIWEEKLY",
+      "weekdays": ["TUESDAY", "THURSDAY"],
+      "startDate": "2026-09-07",
+      "endDate": "2026-10-04",
+      "expected": ["2026-09-08", "2026-09-10", "2026-09-22", "2026-09-24"]
+    },
+    {
+      "name": "biweekly on a single weekday alternates weeks",
+      "frequency": "BIWEEKLY",
+      "weekdays": ["TUESDAY"],
+      "startDate": "2026-09-01",
+      "endDate": "2026-09-30",
+      "expected": ["2026-09-01", "2026-09-15", "2026-09-29"]
+    },
+    {
+      "name": "both range boundaries are inclusive",
+      "frequency": "WEEKLY",
+      "weekdays": ["TUESDAY"],
+      "startDate": "2026-09-01",
+      "endDate": "2026-09-08",
+      "expected": ["2026-09-01", "2026-09-08"]
+    },
+    {
+      "name": "a range with no matching weekday yields nothing",
+      "frequency": "WEEKLY",
+      "weekdays": ["SUNDAY"],
+      "startDate": "2026-09-07",
+      "endDate": "2026-09-11",
+      "expected": []
+    },
+    {
+      "name": "a single-day range including the weekday yields exactly one",
+      "frequency": "WEEKLY",
+      "weekdays": ["TUESDAY"],
+      "startDate": "2026-09-01",
+      "endDate": "2026-09-01",
+      "expected": ["2026-09-01"]
+    },
+    {
+      "name": "weekly across the autumn DST fallback keeps exact 7-day calendar steps",
+      "frequency": "WEEKLY",
+      "weekdays": ["TUESDAY"],
+      "startDate": "2026-10-06",
+      "endDate": "2026-11-03",
+      "expected": ["2026-10-06", "2026-10-13", "2026-10-20", "2026-10-27", "2026-11-03"]
+    }
+  ],
+  "splits": [
+    {
+      "name": "THIS on a middle occurrence affects only it",
+      "series": [
+        { "id": "c", "startTime": "2026-09-15T18:30:00Z" },
+        { "id": "a", "startTime": "2026-09-01T18:30:00Z" },
+        { "id": "d", "startTime": "2026-09-22T18:30:00Z" },
+        { "id": "b", "startTime": "2026-09-08T18:30:00Z" }
+      ],
+      "currentId": "b",
+      "scope": "THIS",
+      "affectedIds": ["b"]
+    },
+    {
+      "name": "THIS_AND_FOLLOWING on a middle occurrence affects it and every later one",
+      "series": [
+        { "id": "c", "startTime": "2026-09-15T18:30:00Z" },
+        { "id": "a", "startTime": "2026-09-01T18:30:00Z" },
+        { "id": "d", "startTime": "2026-09-22T18:30:00Z" },
+        { "id": "b", "startTime": "2026-09-08T18:30:00Z" }
+      ],
+      "currentId": "b",
+      "scope": "THIS_AND_FOLLOWING",
+      "affectedIds": ["b", "c", "d"]
+    },
+    {
+      "name": "ALL affects every occurrence regardless of the current one",
+      "series": [
+        { "id": "c", "startTime": "2026-09-15T18:30:00Z" },
+        { "id": "a", "startTime": "2026-09-01T18:30:00Z" },
+        { "id": "d", "startTime": "2026-09-22T18:30:00Z" },
+        { "id": "b", "startTime": "2026-09-08T18:30:00Z" }
+      ],
+      "currentId": "b",
+      "scope": "ALL",
+      "affectedIds": ["a", "b", "c", "d"]
+    },
+    {
+      "name": "THIS on the first occurrence affects only the first",
+      "series": [
+        { "id": "c", "startTime": "2026-09-15T18:30:00Z" },
+        { "id": "a", "startTime": "2026-09-01T18:30:00Z" },
+        { "id": "d", "startTime": "2026-09-22T18:30:00Z" },
+        { "id": "b", "startTime": "2026-09-08T18:30:00Z" }
+      ],
+      "currentId": "a",
+      "scope": "THIS",
+      "affectedIds": ["a"]
+    },
+    {
+      "name": "THIS_AND_FOLLOWING on the last occurrence affects only the last",
+      "series": [
+        { "id": "c", "startTime": "2026-09-15T18:30:00Z" },
+        { "id": "a", "startTime": "2026-09-01T18:30:00Z" },
+        { "id": "d", "startTime": "2026-09-22T18:30:00Z" },
+        { "id": "b", "startTime": "2026-09-08T18:30:00Z" }
+      ],
+      "currentId": "d",
+      "scope": "THIS_AND_FOLLOWING",
+      "affectedIds": ["d"]
+    },
+    {
+      "name": "ALL from the last occurrence still affects every occurrence",
+      "series": [
+        { "id": "c", "startTime": "2026-09-15T18:30:00Z" },
+        { "id": "a", "startTime": "2026-09-01T18:30:00Z" },
+        { "id": "d", "startTime": "2026-09-22T18:30:00Z" },
+        { "id": "b", "startTime": "2026-09-08T18:30:00Z" }
+      ],
+      "currentId": "d",
+      "scope": "ALL",
+      "affectedIds": ["a", "b", "c", "d"]
+    },
+    {
+      "name": "a single-occurrence series is fully affected by THIS",
+      "series": [{ "id": "solo", "startTime": "2026-09-01T18:30:00Z" }],
+      "currentId": "solo",
+      "scope": "THIS",
+      "affectedIds": ["solo"]
+    },
+    {
+      "name": "a single-occurrence series is fully affected by THIS_AND_FOLLOWING",
+      "series": [{ "id": "solo", "startTime": "2026-09-01T18:30:00Z" }],
+      "currentId": "solo",
+      "scope": "THIS_AND_FOLLOWING",
+      "affectedIds": ["solo"]
+    },
+    {
+      "name": "a single-occurrence series is fully affected by ALL",
+      "series": [{ "id": "solo", "startTime": "2026-09-01T18:30:00Z" }],
+      "currentId": "solo",
+      "scope": "ALL",
+      "affectedIds": ["solo"]
+    }
+  ]
+}

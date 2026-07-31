@@ -1,14 +1,23 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["config:recommended"],
+  "extends": [
+    "config:recommended",
+    "docker:pinDigests",
+    "helpers:pinGitHubActionDigests",
+    ":configMigration",
+    ":pinAllExceptPeerDependencies",
+    "abandonments:recommended",
+    ":maintainLockFilesWeekly"
+  ],
   "minimumReleaseAge": "14 days",
+  "internalChecksFilter": "strict",
   "platformAutomerge": true,
   "dependencyDashboard": true,
   "semanticCommits": "enabled",
   "schedule": ["before 9am on wednesday"],
   "packageRules": [
     {
-      "description": "Automerge non-major updates. The full CI build + the required Chromatic 'UI Tests' status check are the gate: patch/minor bumps land unattended only when the app still builds, behaves, and looks pixel-identical. See ADR-0017.",
+      "description": "Automerge non-major updates. The full CI build + the required Chromatic 'UI Tests' status check are the gate: patch/minor bumps (and the digest/pin bumps that pinning generates) land unattended only when the app still builds, behaves, and looks pixel-identical. See ADR-0017.",
       "matchUpdateTypes": ["minor", "patch", "pin", "digest"],
       "automerge": true
     },

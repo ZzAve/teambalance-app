@@ -59,6 +59,24 @@ export const Generated: Story = {
   },
 }
 
+// Prop-contract: rotating the link fires onRotate — the container swaps in a fresh token.
+export const RotateLink: Story = {
+  args: { isPending: false, isError: false, link: LINK, copied: false },
+  play: async ({ canvas, userEvent, args }) => {
+    await userEvent.click(canvas.getByRole('button', { name: 'Rotate link' }))
+    await expect(args.onRotate).toHaveBeenCalled()
+  },
+}
+
+// Prop-contract: expiring the link fires onExpire — the container invalidates the token.
+export const ExpireLink: Story = {
+  args: { isPending: false, isError: false, link: LINK, copied: false },
+  play: async ({ canvas, userEvent, args }) => {
+    await userEvent.click(canvas.getByRole('button', { name: 'Expire link' }))
+    await expect(args.onExpire).toHaveBeenCalled()
+  },
+}
+
 export const Copied: Story = {
   args: { isPending: false, isError: false, link: LINK, copied: true },
   play: async ({ canvas }) => {

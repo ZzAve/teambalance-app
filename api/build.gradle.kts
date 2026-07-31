@@ -7,6 +7,7 @@ import org.springframework.boot.gradle.tasks.run.BootRun
 val wirespecVersion: String by project
 val testcontainersVersion: String by project
 val archunitVersion: String by project
+val flockDetektVersion: String by project
 
 plugins {
     kotlin("jvm")
@@ -81,6 +82,44 @@ dependencies {
     // Testing — ArchUnit
     testImplementation("com.tngtech.archunit:archunit-junit5:$archunitVersion")
 
+    // flock-detekt hexagonal-architecture rulesets (issue #18)
+    detektPlugins("community.flock:hexagonal-detekt-rules:$flockDetektVersion")
+}
+
+// ┌───────────────────────────────────────────────────────────────────────────┐
+// │ TEMPORARY alpha.1 bridge — remove as a unit when flock-detekt ships a build │
+// │ compiled against detekt 2.0.0-alpha.2+. See ADR-0018.                       │
+// │                                                                             │
+// │ flock-detekt 1.1.0 is compiled against detekt 2.0.0-alpha.1 and references  │
+// │ dev.detekt.api.RuleSet$Id, which alpha.2 removed — so on alpha.2 its rules  │
+// │ fail to load (NoClassDefFoundError). We therefore pin the detekt PLUGIN to  │
+// │ alpha.1 (root build.gradle.kts) and bridge the two resulting frictions:     │
+// │                                                                             │
+// │ 1. io.spring.dependency-management force-aligns every kotlin-* artifact —    │
+// │    including kotlin-compiler-embeddable on detekt's own isolated runtime     │
+// │    classpath — to the project's Kotlin 2.3.0, so detekt aborts with          │
+// │    "compiled with Kotlin 2.2.20 but currently running with 2.3.0". Pin       │
+// │    detekt's OWN classpath back to detekt's supported Kotlin; the project     │
+// │    itself stays on 2.3.0. (https://detekt.dev/docs/gettingstarted/gradle)    │
+// │ 2. detekt's pinned 2.2.20 compiler only accepts JVM targets up to 24, but    │
+// │    this module's toolchain is Java 25. detekt only parses sources, so cap    │
+// │    the analysis JVM target at the highest value it accepts.                  │
+// │                                                                             │
+// │ To migrate: bump the plugin to alpha.2 + flockDetektVersion to the new       │
+// │ release, then delete this whole block. detekt.yml stays unchanged.          │
+// └───────────────────────────────────────────────────────────────────────────┘
+configurations.matching { it.name == "detekt" }.all {
+    resolutionStrategy.eachDependency {
+        if (requested.group == "org.jetbrains.kotlin") {
+            useVersion(dev.detekt.gradle.plugin.getSupportedKotlinVersion())
+        }
+    }
+}
+tasks.withType<dev.detekt.gradle.Detekt>().configureEach {
+    jvmTarget = "24"
+}
+tasks.withType<dev.detekt.gradle.DetektCreateBaselineTask>().configureEach {
+    jvmTarget = "24"
 }
 
 java {
@@ -129,6 +168,21 @@ tasks.named<BootRun>("bootRun") {
 detekt {
     buildUponDefaultConfig = true
     config.setFrom(files("$projectDir/detekt.yml"))
+    // Existing hexagonal-rule violations are captured here so the build stays green while
+    // the refactor sub-issues (#19-#23) burn them down. New violations still fail the build.
+    baseline = file("$projectDir/detekt-baseline.xml")
+}
+
+// Enforce the hexagonal rules on production sources only. Test code legitimately wires
+// adapters across layers (this mirrors ArchUnit's DoNotIncludeTests), and the generated
+// Wirespec sources under build/ are contract code we never hand-edit — analysing either
+// would only produce noise. Applied to both the check and the baseline-creation tasks so
+// their file sets stay identical.
+tasks.withType<dev.detekt.gradle.Detekt>().configureEach {
+    setSource(files("src/main/kotlin"))
+}
+tasks.withType<dev.detekt.gradle.DetektCreateBaselineTask>().configureEach {
+    setSource(files("src/main/kotlin"))
 }
 
 // Wirespec code generation

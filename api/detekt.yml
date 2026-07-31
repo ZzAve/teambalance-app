@@ -1,7 +1,119 @@
 config:
   validation: true
-  warningsAsErrors: false
+  # flock hexagonal rules are enforced as build-breaking errors (ADR-0018).
+  warningsAsErrors: true
 
 style:
   MaxLineLength:
     maxLineLength: 140
+
+# ─── flock-detekt hexagonal rulesets (ADR-0018) ──────────────────────────────
+# Package-token mapping for this codebase. flock matches package *segments*
+# (bounded by dots), and everything here lives under
+# com.github.zzave.teambalance.api.*, so:
+#
+#   flock token   ->  our layer(s)
+#   ───────────       ──────────────────────────────────────────────
+#   domain        ->  domain + application  (both must be framework-free)
+#   port          ->  domain.port
+#   adapter       ->  infrastructure
+#   api (inbound) ->  interfaces
+#
+# CRITICAL: never use the literal token 'api' — our root package is
+# ...teambalance.api, so 'api' matches every file. The inbound layer is 'interfaces'.
+
+hexagonal-domain:
+  active: true
+  DomainNoPrimitiveObsession:
+    active: true
+    domainPackages: ['domain', 'application']
+    allowedPrimitives: []
+  DomainNoFrameworkImports:
+    active: true
+    domainPackages: ['domain', 'application']
+    forbiddenImports:
+      - 'org.springframework'
+      - 'io.ktor'
+      - 'jakarta'
+      - 'javax.servlet'
+      - 'io.micronaut'
+      - 'io.quarkus'
+      - 'org.hibernate'
+      - 'org.jooq'
+  # Opt-in strict allow-list; DomainNoFrameworkImports already covers the deny side.
+  DomainModelMustBeStandalone:
+    active: false
+    domainPackages: ['domain', 'application']
+  DomainMustBeImmutable:
+    active: true
+    domainPackages: ['domain', 'application']
+  ValueClassMustHaveJvmInline:
+    active: true
+    domainPackages: ['domain', 'application']
+    checkOnlyInDomain: false
+
+hexagonal-port:
+  active: true
+  PortMustBeInterface:
+    active: true
+    portPackages: ['port']
+    portSuffixes: ['Port', 'Repository', 'Gateway', 'Client']
+  PortNamingConvention:
+    active: true
+    portPackages: ['port']
+    allowedSuffixes: ['Port', 'Repository', 'Gateway', 'Client']
+  PortsInDomainOnly:
+    active: true
+    domainPackages: ['domain', 'application']
+    adapterPackages: ['infrastructure']
+    apiPackages: ['interfaces']
+    portSuffixes: ['Port', 'Repository', 'Gateway', 'Client']
+
+hexagonal-adapter:
+  active: true
+  AdapterMustImplementPort:
+    active: true
+    adapterPackages: ['infrastructure']
+    adapterPatterns: ['.*Adapter', '.*Impl']
+  AdapterNamingConvention:
+    active: true
+    adapterPackages: ['infrastructure']
+    allowedPatterns: ['.*Adapter', '.*Impl']
+    portSuffixes: ['Port', 'Repository', 'Gateway', 'Client']
+  AdapterCannotDependOnAdapter:
+    active: true
+    adapterPackages: ['infrastructure']
+
+hexagonal-dependency:
+  active: true
+  DomainCannotDependOnAdapters:
+    active: true
+    domainPackages: ['domain', 'application']
+    adapterPackages: ['infrastructure']
+  DomainCannotDependOnApi:
+    active: true
+    domainPackages: ['domain', 'application']
+    apiPackages: ['interfaces']
+  ApiCannotDependOnAdapters:
+    active: true
+    apiPackages: ['interfaces']
+    adapterPackages: ['infrastructure']
+  ApiCannotDependOnPorts:
+    active: true
+    apiPackages: ['interfaces']
+    portSuffixes: ['Port', 'Repository', 'Gateway', 'Client']
+    allowedPortTypes: []
+
+hexagonal-layering:
+  active: true
+  DtoOnlyInAdaptersOrApi:
+    active: true
+    domainPackages: ['domain', 'application']
+    adapterPackages: ['infrastructure']
+    apiPackages: ['interfaces']
+    dtoSuffixes: ['Dto', 'Request', 'Response']
+  NoServiceInApiOrAdapter:
+    active: true
+    apiPackages: ['interfaces']
+    adapterPackages: ['infrastructure']
+    serviceSuffixes: ['Service']

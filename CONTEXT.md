@@ -123,3 +123,32 @@ any-team, self-service (see [ADR-0001](docs/adr/0001-product-ambition-hobby-tool
   isn't load-bearing in the domain (per ADR-0001).
 - **Nevobo** — Dutch volleyball federation; source of external league standings
   (Competition context).
+
+### Architecture (hexagonal) ([ADR-0018](docs/adr/0018-enforce-hexagonal-architecture-with-flock-detekt.md))
+
+The backend is hexagonal (ports & adapters). These boundaries are enforced by the build
+(flock-detekt rulesets on `:api:detekt`), not just by convention. The four source layers under
+`com.github.zzave.teambalance.api` are **domain**, **application**, **infrastructure**, and
+**interfaces**.
+
+- **Domain** — Entities, value objects, and domain events. Framework-free: no Spring, JPA, or
+  other framework imports. The innermost layer; depends on nothing else here.
+- **Application** — Use cases (the `*Service` orchestrators) and the **port** interfaces they
+  need. Also framework-free (this is the stricter half of [ADR-0018](docs/adr/0018-enforce-hexagonal-architecture-with-flock-detekt.md)):
+  a service is a constructor-injected plain class, not a Spring `@Service`.
+- **Port** — An interface, owned by the domain/application side, describing something the
+  application needs from the outside world (`EventRepository`, `EmailSender`, `CurrentUserGateway`).
+  Named with a `Repository`, `Gateway`, `Port`, or `Client` suffix. The dependency-inversion seam:
+  the application depends on the port, never on the adapter. _Avoid_: interface, service interface.
+- **Adapter** — A concrete implementation of a **port** living in **infrastructure** (a JPA
+  repository, the Bunq client, an email sender). Named `*Adapter` or `*Impl`. Adapters talk to the
+  domain through ports, never directly to one another. _Avoid_: implementation, provider, gateway
+  (a gateway is the *port*, its adapter is the implementation).
+- **Value Object** — A domain type that replaces a raw primitive with a meaningful, type-safe one
+  — a Kotlin `@JvmInline value class` wrapping a single value (`EventId(UUID)`, `Email(String)`).
+  Converted to/from its primitive **only at the edges** (the JPA entity mapper and the Wirespec DTO
+  mapper); the Wirespec contract and DB schema are unchanged. _Avoid_: wrapper, id class.
+- **Composition Root** — The single Spring `@Configuration` in **infrastructure** that constructs
+  the framework-free application services from their ports. The **only** place autowiring happens
+  for those services; keeps the domain/application layers Spring-free. _Avoid_: DI config, wiring,
+  bean config (when specifically meaning this root).

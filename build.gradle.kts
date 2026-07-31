@@ -5,7 +5,10 @@ plugins {
     id("org.springframework.boot") version "4.0.4" apply false
     id("io.spring.dependency-management") version "1.1.7" apply false
     id("community.flock.wirespec.plugin.gradle") version "0.19.6" apply false
-    id("dev.detekt") version "2.0.0-alpha.2" apply false
+    // TEMPORARY: pinned to alpha.1 to load flock-detekt 1.1.0 (built against alpha.1).
+    // Bump back to 2.0.0-alpha.2 when flock ships an alpha.2 build. See ADR-0018 and the
+    // "TEMPORARY alpha.1 bridge" block in api/build.gradle.kts.
+    id("dev.detekt") version "2.0.0-alpha.1" apply false
 }
 
 allprojects {

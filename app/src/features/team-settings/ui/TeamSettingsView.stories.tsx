@@ -15,6 +15,23 @@ export default meta
 
 type Story = StoryObj<typeof meta>
 
+export const Loading: Story = {
+  args: { isLoading: true },
+  play: async ({ canvas }) => {
+    await expect(canvas.getByText('Loading…')).toBeInTheDocument()
+    // The form is suppressed while the query is in flight — no save control yet.
+    await expect(canvas.queryByRole('button', { name: 'Save season' })).not.toBeInTheDocument()
+  },
+}
+
+export const ErrorState: Story = {
+  args: { isError: true },
+  play: async ({ canvas }) => {
+    await expect(canvas.getByText("Couldn't load team settings. Please try again.")).toBeInTheDocument()
+    await expect(canvas.queryByRole('button', { name: 'Save season' })).not.toBeInTheDocument()
+  },
+}
+
 export const Unset: Story = {
   args: { season: {} },
   play: async ({ canvas }) => {

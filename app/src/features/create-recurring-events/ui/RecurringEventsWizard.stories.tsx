@@ -75,6 +75,20 @@ export const OverCap: Story = {
   },
 }
 
+// Prop-contract: walking the wizard to the end and confirming fires onSubmit with the assembled
+// request — the chosen type + auto-filled title carry through the three steps to the mutation.
+export const CreateSeries: Story = {
+  play: async ({ canvas, userEvent, args }) => {
+    await chooseTraining(canvas, userEvent)
+    await userEvent.click(canvas.getByRole('button', { name: /Next/ }))
+    await userEvent.click(canvas.getByRole('button', { name: /Next/ }))
+    await userEvent.click(canvas.getByRole('button', { name: /Create/ }))
+    await expect(args.onSubmit).toHaveBeenCalledWith(
+      expect.objectContaining({ eventTypeId: 'et-1', title: 'Training' }),
+    )
+  },
+}
+
 // Submitting — the confirm button reflects the pending mutation.
 export const Submitting: Story = {
   args: { isPending: true },

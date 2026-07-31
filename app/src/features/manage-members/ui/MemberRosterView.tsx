@@ -15,9 +15,13 @@ import {
 import { isLastAdmin } from '../lib/roster'
 
 interface MemberRosterViewProps {
-  members: Member[]
+  members?: Member[]
   /** The team's position vocabulary, offered per row so an admin can (re)assign a member. */
   positions: Position[]
+  /** The members query is in flight — render the loading shell instead of the roster. */
+  isLoading?: boolean
+  /** The members query failed — render the error shell instead of the roster. */
+  isError?: boolean
   /** userId currently mid-mutation — its row's actions show a pending/disabled state. */
   savingUserId?: string | null
   /** A refusal surfaced by the container (e.g. LAST_ADMIN); shown as an inline banner. */
@@ -29,13 +33,19 @@ interface MemberRosterViewProps {
 }
 
 /**
- * Presentational admin roster. Owns only local view state (per-row name edits + the remove-confirm
- * dialog target); the queries and mutations live in the MemberRoster container. Props-only, so
- * every state (roster, confirm dialog open, last-admin refusal) renders as a story.
+ * Presentational admin roster — the complete section, heading and all. Owns only local view state
+ * (per-row name edits + the remove-confirm dialog target); the queries and mutations live in the
+ * MemberRoster container.
+ *
+ * The load/error/data shells are props-driven (isLoading / isError) rather than lived in the
+ * container, so every state — loading / error / roster / confirm dialog open / last-admin refusal —
+ * renders purely from props as a story, with no network. See ADR-0017.
  */
 export function MemberRosterView({
-  members,
+  members = [],
   positions,
+  isLoading,
+  isError,
   savingUserId,
   errorMessage,
   onRename,
@@ -46,53 +56,64 @@ export function MemberRosterView({
   const [confirmTarget, setConfirmTarget] = useState<Member | null>(null)
 
   return (
-    <div className="flex flex-col gap-3">
-      {errorMessage && (
-        <p role="alert" className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-600">
-          {errorMessage}
-        </p>
+    <div>
+      <h2 className="font-display text-2xl font-bold">Members</h2>
+
+      {isLoading && <p className="mt-4 text-sm text-muted-foreground">Loading…</p>}
+      {isError && (
+        <p className="mt-4 text-sm text-red-500">Couldn't load members. Please try again.</p>
       )}
 
-      <ul className="divide-y divide-border rounded-lg border border-border">
-        {members.map((member) => (
-          <MemberRow
-            key={member.userId}
-            member={member}
-            positions={positions}
-            lastAdmin={isLastAdmin(members, member.userId)}
-            isSaving={savingUserId === member.userId}
-            onRename={onRename}
-            onToggleRole={onToggleRole}
-            onChangePosition={onChangePosition}
-            onRequestRemove={setConfirmTarget}
-          />
-        ))}
-      </ul>
+      {!isLoading && !isError && (
+        <div className="mt-4 flex flex-col gap-3">
+          {errorMessage && (
+            <p role="alert" className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-600">
+              {errorMessage}
+            </p>
+          )}
 
-      <Dialog open={confirmTarget !== null} onOpenChange={(open) => { if (!open) setConfirmTarget(null) }}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Remove member</DialogTitle>
-            <DialogDescription>
-              Remove {confirmTarget?.displayName} from the team? They will lose access until re-invited.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setConfirmTarget(null)}>
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={() => {
-                if (confirmTarget) onRemove(confirmTarget)
-                setConfirmTarget(null)
-              }}
-            >
-              Remove
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          <ul className="divide-y divide-border rounded-lg border border-border">
+            {members.map((member) => (
+              <MemberRow
+                key={member.userId}
+                member={member}
+                positions={positions}
+                lastAdmin={isLastAdmin(members, member.userId)}
+                isSaving={savingUserId === member.userId}
+                onRename={onRename}
+                onToggleRole={onToggleRole}
+                onChangePosition={onChangePosition}
+                onRequestRemove={setConfirmTarget}
+              />
+            ))}
+          </ul>
+
+          <Dialog open={confirmTarget !== null} onOpenChange={(open) => { if (!open) setConfirmTarget(null) }}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Remove member</DialogTitle>
+                <DialogDescription>
+                  Remove {confirmTarget?.displayName} from the team? They will lose access until re-invited.
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setConfirmTarget(null)}>
+                  Cancel
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={() => {
+                    if (confirmTarget) onRemove(confirmTarget)
+                    setConfirmTarget(null)
+                  }}
+                >
+                  Remove
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
+      )}
     </div>
   )
 }

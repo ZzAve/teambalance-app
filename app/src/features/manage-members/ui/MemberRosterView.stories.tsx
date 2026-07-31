@@ -36,6 +36,23 @@ export default meta
 
 type Story = StoryObj<typeof meta>
 
+export const Loading: Story = {
+  args: { isLoading: true },
+  play: async ({ canvas }) => {
+    await expect(canvas.getByText('Loading…')).toBeInTheDocument()
+    // The roster is suppressed while the query is in flight — no rows yet.
+    await expect(canvas.queryByRole('button', { name: 'Remove' })).not.toBeInTheDocument()
+  },
+}
+
+export const ErrorState: Story = {
+  args: { isError: true },
+  play: async ({ canvas }) => {
+    await expect(canvas.getByText("Couldn't load members. Please try again.")).toBeInTheDocument()
+    await expect(canvas.queryByRole('button', { name: 'Remove' })).not.toBeInTheDocument()
+  },
+}
+
 export const Default: Story = {
   play: async ({ canvas }) => {
     await expect(canvas.getByLabelText('Display name for Ada Lovelace')).toHaveValue('Ada Lovelace')
@@ -75,6 +92,40 @@ export const RemoveConfirmOpen: Story = {
     const dialog = within(document.body)
     await expect(await dialog.findByText(/Remove Alan Turing from the team/)).toBeInTheDocument()
     await expect(dialog.getByRole('button', { name: 'Cancel' })).toBeInTheDocument()
+  },
+}
+
+// Prop-contract: editing a row's name surfaces its Save button; clicking it fires onRename with the
+// member's id and the trimmed new name — proving the rename wiring survives a dependency bump.
+export const RenameMember: Story = {
+  play: async ({ canvas, userEvent, args }) => {
+    const field = canvas.getByLabelText('Display name for Grace Hopper')
+    await userEvent.clear(field)
+    await userEvent.type(field, 'Grace M. Hopper')
+    await userEvent.click(canvas.getByRole('button', { name: 'Save' }))
+    await expect(args.onRename).toHaveBeenCalledWith('u2', 'Grace M. Hopper')
+  },
+}
+
+// Prop-contract: promoting/demoting reuses the update mutation — the first "Make member" (the first
+// admin, Ada) fires onToggleRole with that member.
+export const ToggleRole: Story = {
+  play: async ({ canvas, userEvent, args }) => {
+    await userEvent.click(canvas.getAllByRole('button', { name: 'Make member' })[0])
+    await expect(args.onToggleRole).toHaveBeenCalledWith(MEMBERS[0])
+  },
+}
+
+// Prop-contract: a row Remove opens the confirm dialog (a portal); confirming there fires onRemove
+// with the member. The row buttons go aria-hidden while the modal is open, so the dialog's Remove is
+// unambiguous.
+export const RemoveMember: Story = {
+  play: async ({ canvas, userEvent, args }) => {
+    await userEvent.click(canvas.getAllByRole('button', { name: 'Remove' })[0])
+    const dialog = within(document.body)
+    await expect(await dialog.findByText(/Remove Ada Lovelace from the team/)).toBeInTheDocument()
+    await userEvent.click(dialog.getByRole('button', { name: 'Remove' }))
+    await expect(args.onRemove).toHaveBeenCalledWith(MEMBERS[0])
   },
 }
 

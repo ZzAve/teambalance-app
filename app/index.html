@@ -8,8 +8,8 @@
       Cold-start wake-up. The prod backend scales to zero, so kick it awake as early as possible —
       during HTML parse, before the JS bundle even downloads — so the container is already warming
       by the time the session probe runs. Fire-and-forget against the cheap public /api/ping (204,
-      no DB, no auth). Vite substitutes %VITE_API_URL% at build; in dev it's left unsubstituted and
-      we fall back to a relative URL (same-origin via the Vite proxy). Prod is split-origin
+      no DB, no auth). Vite substitutes %VITE_API_URL% at build; dev/e2e define it empty so it
+      resolves to a relative URL (same-origin via the Vite proxy). Prod is split-origin
       (app.teambalance.nl → api.teambalance.nl), so we also warm DNS/TLS with a preconnect.
     -->
     <script>

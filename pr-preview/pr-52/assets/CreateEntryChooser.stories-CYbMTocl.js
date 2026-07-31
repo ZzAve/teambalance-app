@@ -1,0 +1,16 @@
+import{i as e}from"./preload-helper-CT_b8DTk.js";import{t}from"./jsx-runtime-DqZldVDK.js";import{I as n,m as r,t as i}from"./lucide-react-CSKqdPow.js";function a({onSingle:e,onRecurring:t}){return(0,o.jsxs)(`div`,{className:`grid grid-cols-2 gap-3`,children:[(0,o.jsxs)(`button`,{type:`button`,onClick:e,className:`flex flex-col items-center gap-2.5 rounded-xl border border-border bg-card p-5 text-center transition-all hover:-translate-y-0.5 hover:border-blue hover:shadow-md active:scale-[0.97]`,children:[(0,o.jsx)(`span`,{className:`flex h-12 w-12 items-center justify-center rounded-lg bg-blue/10 text-blue`,children:(0,o.jsx)(n,{size:22})}),(0,o.jsx)(`span`,{className:`text-sm font-semibold`,children:`Single event`}),(0,o.jsx)(`span`,{className:`text-xs leading-snug text-muted-foreground`,children:`One training, match, or other event`})]}),(0,o.jsxs)(`button`,{type:`button`,onClick:t,className:`flex flex-col items-center gap-2.5 rounded-xl border border-border bg-card p-5 text-center transition-all hover:-translate-y-0.5 hover:border-green hover:shadow-md active:scale-[0.97]`,children:[(0,o.jsx)(`span`,{className:`flex h-12 w-12 items-center justify-center rounded-lg bg-green/10 text-green`,children:(0,o.jsx)(r,{size:22})}),(0,o.jsx)(`span`,{className:`text-sm font-semibold`,children:`Recurring series`}),(0,o.jsx)(`span`,{className:`text-xs leading-snug text-muted-foreground`,children:`Weekly trainings across a season`})]})]})}var o,s=e((()=>{i(),o=t(),a.__docgenInfo={description:`The "how do you want to add events?" chooser (prototype A's create-entry sheet): two option cards
+— a single one-off event, or a recurring series. Purely presentational; the parent sheet decides
+what each choice opens.`,methods:[],displayName:`CreateEntryChooser`,props:{onSingle:{required:!0,tsType:{name:`signature`,type:`function`,raw:`() => void`,signature:{arguments:[],return:{name:`void`}}},description:``},onRecurring:{required:!0,tsType:{name:`signature`,type:`function`,raw:`() => void`,signature:{arguments:[],return:{name:`void`}}},description:``}}}})),c,l,u,d,f;e((()=>{s(),{expect:c,fn:l}=__STORYBOOK_MODULE_TEST__,u={title:`widgets/create-event/CreateEntryChooser`,component:a,args:{onSingle:l(),onRecurring:l()}},d={play:async({canvas:e,userEvent:t,args:n})=>{await c(e.getByText(`Single event`)).toBeInTheDocument(),await c(e.getByText(`Recurring series`)).toBeInTheDocument(),await t.click(e.getByText(`Single event`)),await c(n.onSingle).toHaveBeenCalled(),await t.click(e.getByText(`Recurring series`)),await c(n.onRecurring).toHaveBeenCalled()}},d.parameters={...d.parameters,docs:{...d.parameters?.docs,source:{originalSource:`{
+  play: async ({
+    canvas,
+    userEvent,
+    args
+  }) => {
+    await expect(canvas.getByText('Single event')).toBeInTheDocument();
+    await expect(canvas.getByText('Recurring series')).toBeInTheDocument();
+    await userEvent.click(canvas.getByText('Single event'));
+    await expect(args.onSingle).toHaveBeenCalled();
+    await userEvent.click(canvas.getByText('Recurring series'));
+    await expect(args.onRecurring).toHaveBeenCalled();
+  }
+}`,...d.parameters?.docs?.source}}},f=[`Default`]}))();export{d as Default,f as __namedExportsOrder,u as default};

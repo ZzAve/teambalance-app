@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import { ArrowLeft, Plus } from 'lucide-react'
+import { Plus } from 'lucide-react'
 import { Button } from '@shared/ui/button'
-import { Sheet, SheetContent, SheetDescription, SheetTitle, SheetTrigger } from '@shared/ui/sheet'
+import { Sheet, SheetContent, SheetTrigger } from '@shared/ui/sheet'
 import { useEventTypes } from '@shared/api/event-types'
 import { useSeason } from '@shared/api/season'
 import { useCreateEvent, type EventInput } from '@shared/api/events'
@@ -10,28 +10,17 @@ import {
   useCreateRecurringEvents,
   type CreateRecurringEventsRequest,
 } from '@shared/api/recurring-events'
-import { CreateEventForm } from '@features/create-event/ui/CreateEventForm'
-import { RecurringEventsWizard } from '@features/create-recurring-events/ui/RecurringEventsWizard'
-import { CreateEntryChooser } from './CreateEntryChooser'
+import { CreateEventSheetView, type CreateEventMode } from './CreateEventSheetView'
 
-type Mode = 'closed' | 'chooser' | 'single' | 'recurring'
-
-const TITLES: Record<Exclude<Mode, 'closed'>, string> = {
-  chooser: 'Create event',
-  single: 'New event',
-  recurring: 'New recurring series',
-}
-const DESCRIPTIONS: Record<Exclude<Mode, 'closed'>, string> = {
-  chooser: 'Choose how you want to add events',
-  single: 'A one-off training, match, or other event',
-  recurring: 'A weekly or bi-weekly series across the season',
-}
+type Mode = 'closed' | CreateEventMode
 
 /**
  * The admin's single entry point for adding events, presented as a bottom sheet (prototype A):
- * "New Event" opens a Single / Recurring chooser, and the chosen flow (the presentational
- * CreateEventForm or RecurringEventsWizard) renders in the same sheet with a back step. A widget,
- * since it composes two feature slices; data + both mutations live here.
+ * "New Event" opens a Single / Recurring chooser, and the chosen flow renders in the same sheet with
+ * a back step. A widget, since it composes two feature slices; data + both mutations live here and
+ * are wired to the presentational CreateEventSheetView. Pure wiring — the mode-dependent body and
+ * its states live in the View (props-driven), so this seam is covered by e2e, not a story. The sheet
+ * chrome (trigger + open/close) stays here. See ADR-0017.
  */
 export function CreateEventSheet() {
   const [mode, setMode] = useState<Mode>('closed')
@@ -62,8 +51,6 @@ export function CreateEventSheet() {
         }[createSeries.error.reason]
       : 'Could not create the series. Please try again.'
 
-  const isForm = mode === 'single' || mode === 'recurring'
-
   return (
     <Sheet open={mode !== 'closed'} onOpenChange={(open) => (open ? setMode('chooser') : close())}>
       <SheetTrigger asChild>
@@ -73,40 +60,21 @@ export function CreateEventSheet() {
         </Button>
       </SheetTrigger>
       <SheetContent>
-        <div className="relative mb-1 flex items-center justify-center">
-          {isForm && (
-            <button
-              type="button"
-              onClick={() => setMode('chooser')}
-              aria-label="Back to event type"
-              className="absolute left-0 flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted"
-            >
-              <ArrowLeft size={18} />
-            </button>
-          )}
-          {mode !== 'closed' && <SheetTitle>{TITLES[mode]}</SheetTitle>}
-        </div>
-        {mode !== 'closed' && <SheetDescription className="mb-4">{DESCRIPTIONS[mode]}</SheetDescription>}
-
-        {mode === 'chooser' && (
-          <CreateEntryChooser onSingle={() => setMode('single')} onRecurring={() => setMode('recurring')} />
-        )}
-        {mode === 'single' && (
-          <CreateEventForm
-            eventTypes={eventTypes ?? []}
-            isPending={createEvent.isPending}
-            onSubmit={handleSingle}
-            error={createEvent.isError ? 'Could not create the event. Please try again.' : null}
-          />
-        )}
-        {mode === 'recurring' && (
-          <RecurringEventsWizard
-            eventTypes={eventTypes ?? []}
+        {mode !== 'closed' && (
+          <CreateEventSheetView
+            mode={mode}
+            eventTypes={eventTypes}
             season={season}
-            isPending={createSeries.isPending}
-            errorMessage={seriesError}
             today={today}
-            onSubmit={handleRecurring}
+            isCreatingSingle={createEvent.isPending}
+            isCreatingRecurring={createSeries.isPending}
+            singleError={createEvent.isError ? 'Could not create the event. Please try again.' : null}
+            recurringError={seriesError}
+            onBack={() => setMode('chooser')}
+            onChooseSingle={() => setMode('single')}
+            onChooseRecurring={() => setMode('recurring')}
+            onSubmitSingle={handleSingle}
+            onSubmitRecurring={handleRecurring}
           />
         )}
       </SheetContent>

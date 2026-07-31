@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { Meta, StoryObj } from '@storybook/react-vite'
-import { expect } from 'storybook/test'
+import { expect, fn } from 'storybook/test'
 import type { Event, EventSeriesScope } from '@shared/api/events'
 import { makeEvent } from '@shared/testing/event-fixtures'
 import { SeriesScopeField } from './SeriesScopeField'
@@ -15,11 +15,31 @@ const SIBLINGS: Event[] = [
 
 // Stateful harness: `scope` is owned by the parent dialog in production, so the story holds it to
 // make the segmented control interactive. The story's args drive the variant + starting scope.
-function Harness({ variant, initialScope }: { variant: 'edit' | 'delete'; initialScope: EventSeriesScope }) {
+// `onScopeChange` (default fn() spy from meta) is forwarded before the local state update so a story
+// can assert the prop-contract — that a scope button fires onScopeChange with the picked value —
+// while the live preview still reacts to the click.
+function Harness({
+  variant,
+  initialScope,
+  onScopeChange,
+}: {
+  variant: 'edit' | 'delete'
+  initialScope: EventSeriesScope
+  onScopeChange?: (scope: EventSeriesScope) => void
+}) {
   const [scope, setScope] = useState<EventSeriesScope>(initialScope)
   return (
     <div className="max-w-md">
-      <SeriesScopeField siblings={SIBLINGS} currentId="b" scope={scope} onScopeChange={setScope} variant={variant} />
+      <SeriesScopeField
+        siblings={SIBLINGS}
+        currentId="b"
+        scope={scope}
+        onScopeChange={(next) => {
+          onScopeChange?.(next)
+          setScope(next)
+        }}
+        variant={variant}
+      />
     </div>
   )
 }
@@ -27,6 +47,7 @@ function Harness({ variant, initialScope }: { variant: 'edit' | 'delete'; initia
 const meta = {
   title: 'features/edit-event/SeriesScopeField',
   component: Harness,
+  args: { onScopeChange: fn() },
 } satisfies Meta<typeof Harness>
 
 export default meta
@@ -46,8 +67,10 @@ export const EditThis: Story = {
 
 export const EditThisAndFollowing: Story = {
   args: { variant: 'edit', initialScope: 'THIS' },
-  play: async ({ canvas, userEvent }) => {
+  play: async ({ canvas, userEvent, args }) => {
     await userEvent.click(canvas.getByRole('button', { name: 'This & following' }))
+    // Prop-contract: picking a scope reports it up (the dialog persists it as the chosen scope).
+    await expect(args.onScopeChange).toHaveBeenCalledWith('THIS_AND_FOLLOWING')
     await expect(canvas.getByText('Affects 3 of 4 events')).toBeInTheDocument()
     await expect(canvas.getByRole('button', { name: 'This & following' })).toHaveAttribute('aria-pressed', 'true')
     await expect(canvas.getByText(/Splits the series in two/)).toBeInTheDocument()
@@ -78,8 +101,10 @@ export const DeleteThis: Story = {
 
 export const DeleteThisAndFollowing: Story = {
   args: { variant: 'delete', initialScope: 'THIS' },
-  play: async ({ canvas, userEvent }) => {
+  play: async ({ canvas, userEvent, args }) => {
     await userEvent.click(canvas.getByRole('button', { name: 'This & following' }))
+    // Same scope-report contract holds for the delete variant.
+    await expect(args.onScopeChange).toHaveBeenCalledWith('THIS_AND_FOLLOWING')
     await expect(canvas.getByText('Removes 3 of 4 events')).toBeInTheDocument()
     await expect(canvas.getByText(/every later one/)).toBeInTheDocument()
   },

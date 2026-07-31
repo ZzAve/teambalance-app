@@ -1,6 +1,18 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": [
-    "config:recommended"
+  "extends": ["config:recommended"],
+  "minimumReleaseAge": "14 days",
+  "platformAutomerge": true,
+  "packageRules": [
+    {
+      "description": "Automerge non-major updates. The full CI build + the required Chromatic 'UI Tests' status check are the gate: patch/minor bumps land unattended only when the app still builds, behaves, and looks pixel-identical. See ADR-0017.",
+      "matchUpdateTypes": ["minor", "patch", "pin", "digest"],
+      "automerge": true
+    },
+    {
+      "description": "Major updates always land by hand. A green gate proves 'still works and looks the same', which a major (React 19->20, Tailwind 4->5, a Radix major) can pass while changing API/behaviour semantics no pixel diff reveals.",
+      "matchUpdateTypes": ["major"],
+      "automerge": false
+    }
   ]
 }

@@ -10,6 +10,11 @@ Reference for the four-layer test pyramid. See `CLAUDE.md § Testing` for the PR
 | `make test-app` | Vitest: jsdom unit project **+ Storybook** (headless-chromium, via Vitest addon) | fast |
 | `make e2e` | Real full-stack Playwright: `make infra` → `bootRun` → seed → 2 flows | slow |
 | `make test` | `test-api` + `test-app` — everyday inner loop, **no full-stack e2e** | fast |
+| Chromatic | Visual-regression diff of every story (CI-only, `.github/workflows/chromatic.yml`) | CI |
+
+Chromatic is a **CI gate, not a local `make` target** — it renders every story on Chromatic's
+infra and diffs pixels against the accepted baseline. It runs on PRs and `main`; see the
+"Visual regression" section below and ADR-0017.
 
 ## Vitest / Storybook bright line
 
@@ -18,6 +23,53 @@ Reference for the four-layer test pyramid. See `CLAUDE.md § Testing` for the PR
 **Storybook owns everything that renders.** A component's states (empty/loading/data/error, disabled, variants) live as `.stories.tsx` files co-located with the component, and the Storybook Vitest addon runs them headlessly under `make test-app`.
 
 This is the enforced split: if it renders, it belongs in a story, not a Vitest unit.
+
+### Stories assert behaviour, not just render (prop-contract spies)
+
+A story must prove *what the component did*, not only *what's on screen*. For every interactive
+component, pass `fn()` spies (from `storybook/test`) as the callback props, drive the interaction
+in `play`, and assert the callback fired:
+
+```tsx
+args: { onCreate: fn(), onRename: fn(), onDelete: fn() },
+// …in play:
+await userEvent.click(canvas.getByRole('button', { name: 'Add' }))
+await expect(args.onCreate).toHaveBeenCalledWith('Middle Blocker')
+```
+
+This catches the "a Radix/Tailwind bump severed the wiring so the click no longer fires the
+handler" class — which a `getByText` assertion cannot. **Hold the network line:** a spy proves the
+component called its prop; it does *not* prove the request reached the server. Real API round-trips
+stay in the e2e flows — do not reach for MSW in a story to assert HTTP.
+
+`features/manage-positions/ui/ManagePositionsView.stories.tsx` is the reference exemplar.
+
+### Container/View split — state shells live in the View
+
+A `*View` is presentational and prop-only and **gets the story**; its container wires the query +
+mutations and is thin wiring **covered by e2e** (the same seam class as the query hooks below).
+Keep **loading/error shells in the View** as props-driven states (`isLoading` / `isError`), never
+in the container — otherwise those states render only against a live query and no story can see
+them. With the shells in the View, all four data states (loading / error / empty / data) are
+stories with zero network. This is a convention, not a CI-enforced gate. See ADR-0017.
+
+## Visual regression (Chromatic)
+
+Behavioural coverage (the `play`/`expect` above) does not look at pixels. **Chromatic** owns that
+layer: it renders every story on its own fixed infra and diffs against the accepted baseline, so a
+Tailwind/Radix/shadcn bump that shifts spacing, a token, or a layout is caught even though no
+`getByText` changed.
+
+- **A visual delta blocks the merge; it is never auto-accepted.** The job runs
+  `--exit-zero-on-changes`, so a diff does not fail the Actions job — instead Chromatic's
+  **"UI Tests"** commit status stays unresolved until a human accepts/rejects in the Chromatic UI.
+  That status, marked **required** in branch protection, is what gates Renovate automerge.
+- **TurboSnap** (`--only-changed`) re-shoots only stories whose dependencies changed.
+- **Setup lives outside this repo:** the Chromatic project, the `CHROMATIC_PROJECT_TOKEN` secret,
+  and the required-check branch-protection rule are one-time manual steps. Until "UI Tests" is a
+  required check, a visual delta will not actually block a merge.
+
+See ADR-0017 for the full rationale and the Renovate-automerge policy this gate exists to serve.
 
 ### Sanctioned exception
 

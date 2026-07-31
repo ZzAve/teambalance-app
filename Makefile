@@ -41,7 +41,7 @@ infra: ## Start all local infrastructure (PostgreSQL + Redis)
 	docker-compose up -d
 
 infra-down: ## Stop local infrastructure
-	docker-compose down
+	docker-compose down -v
 
 # --- Run ---
 
@@ -92,7 +92,7 @@ yolo: ## Fast build, skip tests and linting
 	./gradlew build -x test -x detekt
 	cd app && npm i && npm run yolo
 
-clean: ## Clean build artifacts
+clean: infra-down ## Clean build artifacts
 	./gradlew clean
 	cd app && rm -rf dist node_modules
 

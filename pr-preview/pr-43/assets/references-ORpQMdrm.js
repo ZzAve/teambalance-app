@@ -1,1 +1,0 @@
-import{i as e}from"./preload-helper-BdFrVu1K.js";function t(e){let t=e.trim();return t?/^[a-z][a-z0-9+.-]*:\/\//i.test(t)?t:`https://${t}`:``}function n(e){return e.map(e=>({title:e.title.trim(),url:t(e.url)})).filter(e=>e.url!==``).map(e=>({title:e.title||void 0,url:e.url}))}var r=e((()=>{}));export{r as n,n as t};

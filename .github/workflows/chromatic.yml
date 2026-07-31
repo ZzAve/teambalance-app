@@ -20,10 +20,12 @@ on:
     paths:
       - 'app/**'
       - 'design-tokens/**'
+  # No paths filter on PRs — the workflow must always run so the required "UI Tests" /
+  # "chromatic" checks always report. A path-skipped workflow emits no check-run at all, which
+  # a required status check reads as "waiting" forever, blocking backend-only and Renovate PRs
+  # (the exact automerge case ADR-0017 targets). TurboSnap (onlyChanged) keeps a no-app-change
+  # run at 0 snapshots — free and auto-green — so always running costs nothing when nothing moved.
   pull_request:
-    paths:
-      - 'app/**'
-      - 'design-tokens/**'
 
 permissions:
   contents: read

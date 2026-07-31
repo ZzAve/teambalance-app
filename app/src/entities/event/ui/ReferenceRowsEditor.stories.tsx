@@ -1,18 +1,36 @@
 import { useState } from 'react'
 import type { Meta, StoryObj } from '@storybook/react-vite'
-import { expect } from 'storybook/test'
+import { expect, fn } from 'storybook/test'
 import type { ReferenceRow } from '../lib/references'
 import { ReferenceRowsEditor } from './ReferenceRowsEditor'
 
 // Stateful wrapper — the editor is controlled, so the story owns the rows to exercise add/remove.
-function Harness({ initial = [] as ReferenceRow[] }) {
+// `onChange` (default fn() spy from meta) is forwarded before the local state update so a story can
+// assert the prop-contract — that an edit reports the next rows array up — while the controlled
+// editor still re-renders from the updated state.
+function Harness({
+  initial = [] as ReferenceRow[],
+  onChange,
+}: {
+  initial?: ReferenceRow[]
+  onChange?: (rows: ReferenceRow[]) => void
+}) {
   const [rows, setRows] = useState<ReferenceRow[]>(initial)
-  return <ReferenceRowsEditor rows={rows} onChange={setRows} />
+  return (
+    <ReferenceRowsEditor
+      rows={rows}
+      onChange={(next) => {
+        onChange?.(next)
+        setRows(next)
+      }}
+    />
+  )
 }
 
 const meta = {
   title: 'entities/event/ReferenceRowsEditor',
   component: Harness,
+  args: { onChange: fn() },
 } satisfies Meta<typeof Harness>
 
 export default meta
@@ -40,5 +58,18 @@ export const Prefilled: Story = {
   play: async ({ canvas }) => {
     await expect(canvas.getByLabelText('Link 1 label')).toHaveValue('Nevobo')
     await expect(canvas.getByLabelText('Link 1 URL')).toHaveValue('https://nevobo.nl')
+  },
+}
+
+// Prop-contract: adding a row and typing into it each report the next rows array up via onChange.
+// The stateful stories above assert the resulting DOM; this asserts the wiring — that the add and
+// update paths call onChange with the expected array, which a getByLabelText check can't prove.
+export const ReportsEdits: Story = {
+  play: async ({ canvas, userEvent, args }) => {
+    await userEvent.click(canvas.getByRole('button', { name: /Add link/ }))
+    await expect(args.onChange).toHaveBeenCalledWith([{ title: '', url: '' }])
+
+    await userEvent.type(canvas.getByLabelText('Link 1 URL'), 'https://nevobo.nl')
+    await expect(args.onChange).toHaveBeenLastCalledWith([{ title: '', url: 'https://nevobo.nl' }])
   },
 }

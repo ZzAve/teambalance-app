@@ -17,7 +17,7 @@ fun main(args: Array<String>) {
     // BufferingApplicationStartup records a per-step timing tree (component scan, condition eval,
     // bean init) that the `startup` actuator endpoint exports — the machine-readable scoreboard the
     // startup-time optimization plan is judged against. See docs/plans/2026-07-24-startup-time-optimization.md.
-    app.setApplicationStartup(BufferingApplicationStartup(STARTUP_EVENT_CAPACITY))
+    app.applicationStartup = BufferingApplicationStartup(STARTUP_EVENT_CAPACITY)
     // Kicks a throwaway JDBC connection on a daemon thread (prod only) to overlap the scale-to-zero
     // Serverless-SQL resume with the classload gap that runs anyway — Phase 3 of the plan.
     app.addListeners(DatabaseWarmupListener())

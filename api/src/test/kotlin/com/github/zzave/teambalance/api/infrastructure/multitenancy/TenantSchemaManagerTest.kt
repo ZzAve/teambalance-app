@@ -1,7 +1,7 @@
 package com.github.zzave.teambalance.api.infrastructure.multitenancy
 
 import com.github.zzave.teambalance.api.TeamBalanceIT
-import io.kotest.matchers.collections.shouldContain
+import io.kotest.matchers.collections.shouldContainExactlyInAnyOrder
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.jdbc.core.JdbcTemplate
 
@@ -26,10 +26,16 @@ class TenantSchemaManagerTest : TeamBalanceIT() {
                 String::class.java,
             )
 
-            tables shouldContain "events"
-            tables shouldContain "attendances"
-            tables shouldContain "transactions"
-            tables shouldContain "event_types"
+            tables.shouldContainExactlyInAnyOrder(
+                "attendances",
+                "event_audience",
+                "event_references",
+                "event_types",
+                "events",
+                "flyway_tenant_schema_history",
+                "team_settings",
+                "transactions",
+            )
         }
     }
 }

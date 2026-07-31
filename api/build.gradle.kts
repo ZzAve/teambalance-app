@@ -41,8 +41,8 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-session-jdbc")
 
     // Flyway
-    implementation("org.flywaydb:flyway-core")
-    implementation("org.flywaydb:flyway-database-postgresql")
+    api("org.flywaydb:flyway-core")
+    api("org.flywaydb:flyway-database-postgresql")
 
     // Database
     runtimeOnly("org.postgresql:postgresql")

@@ -63,14 +63,11 @@ jobs:
         run: npm ci
         working-directory: app
 
-      # Run the pinned `chromatic` CLI (devDependency) via the npm script, so the gate uses the
-      # exact version in package-lock.json rather than a separately-versioned marketplace action.
-      # The script carries --only-changed (TurboSnap) and --exit-zero-on-changes; the CLI reads the
-      # project token from CHROMATIC_PROJECT_TOKEN in the env. A visual delta does not fail this job
-      # — the required "UI Tests" status check owns the gate, so accepting the diff in the Chromatic
-      # UI is what turns the merge light green.
-      - name: Publish to Chromatic
-        run: npm run chromatic
-        working-directory: app
-        env:
-          CHROMATIC_PROJECT_TOKEN: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
+      - name: Run Chromatic
+        uses: chromaui/action@v18
+        with:
+          workingDir: app
+          onlyChanged: true
+          exitZeroOnChanges: true
+          exitOnceUploaded: true
+          projectToken: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}

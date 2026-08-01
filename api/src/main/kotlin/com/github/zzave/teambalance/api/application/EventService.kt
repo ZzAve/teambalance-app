@@ -14,8 +14,7 @@ import com.github.zzave.teambalance.api.domain.model.SeriesModification
 import com.github.zzave.teambalance.api.domain.port.EventRepository
 import com.github.zzave.teambalance.api.domain.port.EventTypeRepository
 import com.github.zzave.teambalance.api.domain.port.SeasonRepository
-import org.springframework.stereotype.Service
-import org.springframework.transaction.annotation.Transactional
+import com.github.zzave.teambalance.api.domain.port.TransactionRunnerPort
 import java.time.Clock
 import java.time.Duration
 import java.time.Instant
@@ -23,13 +22,24 @@ import java.time.LocalDate
 import java.time.LocalTime
 import java.util.UUID
 
-@Service
-@Transactional
+/**
+ * Framework-free (ADR-0018): a plain class constructed by the composition root from its ports, with
+ * the transactional boundary drawn explicitly via [TransactionRunnerPort] instead of `@Transactional`.
+ *
+ * EVERY use case runs inside [TransactionRunnerPort.inTransaction], reads included — the same span
+ * the class-level `@Transactional` used to cover. Reads happen to survive without it today, but only
+ * by accident: `open-in-view` is off and `EventJpaEntity.eventType` is declared LAZY, so the adapter's
+ * entity → domain mapping *should* need a live persistence context; it works because Kotlin JPA
+ * entities are final classes, which Hibernate cannot proxy, so it silently fetches them eagerly.
+ * Marking one entity `open` would turn that into a runtime failure. One unconditional rule keeps the
+ * boundary independent of that accident — and makes replicating this pattern mechanical.
+ */
 class EventService(
     private val eventRepository: EventRepository,
     private val eventTypeRepository: EventTypeRepository,
     private val seasonRepository: SeasonRepository,
     private val authorizationService: AuthorizationService,
+    private val transactionRunner: TransactionRunnerPort,
     private val clock: Clock,
 ) {
     companion object {
@@ -39,23 +49,25 @@ class EventService(
         const val MAX_DURATION_MINUTES: Long = 24 * 60
     }
 
-    fun getUpcomingEvents(): List<Event> {
+    fun getUpcomingEvents(): List<Event> = transactionRunner.inTransaction {
         val since = clock.instant().minus(GRACE_PERIOD)
-        return eventRepository.findUpcoming(since)
+        eventRepository.findUpcoming(since)
     }
 
-    fun getAllEvents(): List<Event> =
+    fun getAllEvents(): List<Event> = transactionRunner.inTransaction {
         eventRepository.findAll()
+    }
 
-    fun getEvent(id: UUID): Event? =
+    fun getEvent(id: UUID): Event? = transactionRunner.inTransaction {
         eventRepository.findById(id)
+    }
 
     // No attendance rows are seeded here: the summary and roster are derived from current team
     // membership at read time (see AttendanceService), so a member's absence of a row simply reads
     // as NOT_RESPONDED. A response then upserts their row (AttendanceService.setAttendance).
     // Admin-only: [callerId] must be an admin of [teamId] (the server-resolved tenant), and is
     // recorded as the event's creator.
-    fun createEvent(callerId: UUID, teamId: UUID, potential: PotentialEvent): Event {
+    fun createEvent(callerId: UUID, teamId: UUID, potential: PotentialEvent): Event = transactionRunner.inTransaction {
         authorizationService.requireAdmin(callerId, teamId)
         val eventType = eventTypeRepository.findById(potential.eventTypeId)
             ?: throw EventTypeNotFoundException(potential.eventTypeId)
@@ -63,7 +75,7 @@ class EventService(
         // ADR-0014: a created event's start must always fall within the configured season.
         seasonPolicy().requireCreatable(potential.startTime)
 
-        return eventRepository.save(
+        eventRepository.save(
             Event(
                 id = UUID.randomUUID(),
                 eventType = eventType,
@@ -107,7 +119,7 @@ class EventService(
         durationMinutes: Long,
         references: List<EventReference>,
         recurrence: Recurrence,
-    ): RecurringEventSeries {
+    ): RecurringEventSeries = transactionRunner.inTransaction {
         authorizationService.requireAdmin(callerId, teamId)
         require(durationMinutes in 1..MAX_DURATION_MINUTES) {
             "durationMinutes must be between 1 and $MAX_DURATION_MINUTES"
@@ -139,7 +151,7 @@ class EventService(
             )
         }
 
-        return RecurringEventSeries(recurringGroup = recurringGroup, events = events)
+        RecurringEventSeries(recurringGroup = recurringGroup, events = events)
     }
 
     // The generated occurrence dates, guarded against an empty result and the batch cap.
@@ -180,9 +192,9 @@ class EventService(
         endTime: Instant,
         location: String?,
         references: List<EventReference> = emptyList(),
-    ): List<Event>? {
+    ): List<Event>? = transactionRunner.inTransaction {
         authorizationService.requireAdmin(callerId, teamId)
-        val target = eventRepository.findById(id) ?: return null
+        val target = eventRepository.findById(id) ?: return@inTransaction null
         val eventType = eventTypeRepository.findById(eventTypeId)
             ?: throw EventTypeNotFoundException(eventTypeId)
 
@@ -209,7 +221,7 @@ class EventService(
         seasonPolicy().requireEditable(plan, originalStarts)
 
         plan.toPersist.forEach { eventRepository.save(it) }
-        return plan.edited.sortedBy { it.startTime }
+        plan.edited.sortedBy { it.startTime }
     }
 
     /**
@@ -219,13 +231,14 @@ class EventService(
      *
      * Admin-only: [callerId] must be an admin of [teamId] (the server-resolved tenant).
      */
-    fun deleteEvent(callerId: UUID, teamId: UUID, id: UUID, scope: EventSeriesScope): Boolean {
-        authorizationService.requireAdmin(callerId, teamId)
-        val target = eventRepository.findById(id) ?: return false
-        val toDelete = SeriesModification.planDelete(seriesOf(target), id, scope)
-        toDelete.forEach { eventRepository.deleteById(it) }
-        return true
-    }
+    fun deleteEvent(callerId: UUID, teamId: UUID, id: UUID, scope: EventSeriesScope): Boolean =
+        transactionRunner.inTransaction {
+            authorizationService.requireAdmin(callerId, teamId)
+            val target = eventRepository.findById(id) ?: return@inTransaction false
+            val toDelete = SeriesModification.planDelete(seriesOf(target), id, scope)
+            toDelete.forEach { eventRepository.deleteById(it) }
+            true
+        }
 
     // A group-less event is a one-occurrence series (its own row); otherwise the whole group,
     // start-time ordered — the "before/after" axis every scoped operation splits on.

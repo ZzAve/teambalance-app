@@ -17,8 +17,6 @@
     <ID>DomainNoFrameworkImports:AuthorizationService.kt:import org.springframework.stereotype.Service</ID>
     <ID>DomainNoFrameworkImports:E2eMagicLinkTokenRecorder.kt:import org.springframework.context.annotation.Profile</ID>
     <ID>DomainNoFrameworkImports:E2eMagicLinkTokenRecorder.kt:import org.springframework.stereotype.Component</ID>
-    <ID>DomainNoFrameworkImports:EventService.kt:import org.springframework.stereotype.Service</ID>
-    <ID>DomainNoFrameworkImports:EventService.kt:import org.springframework.transaction.annotation.Transactional</ID>
     <ID>DomainNoFrameworkImports:EventTypeService.kt:import org.springframework.stereotype.Service</ID>
     <ID>DomainNoFrameworkImports:InvitationService.kt:import org.springframework.beans.factory.annotation.Value</ID>
     <ID>DomainNoFrameworkImports:InvitationService.kt:import org.springframework.stereotype.Service</ID>

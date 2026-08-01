@@ -1,0 +1,41 @@
+name: Deploy audit page
+
+# Publishes the standalone UI/UX audit showcase (audit-site/) to the EXISTING
+# gh-pages site as a subfolder — served at https://storybook.teambalance.nl/audit/.
+#
+# Pages here is branch-based (gh-pages), owned by storybook.yml which deploys the
+# Storybook catalog to the site root. We reuse the same deploy action but with
+# clean:false, so this never touches the Storybook build. In return, storybook.yml's
+# main deploy (clean:true) lists `audit/` in clean-exclude so it never wipes this page.
+#
+# Because Pages is already enabled for this repo, a push here goes live with no
+# repo-settings change.
+
+on:
+  push:
+    branches: [main, claude/mobile-first-pwa-audit-41l4nd]
+    paths:
+      - 'audit-site/**'
+      - '.github/workflows/deploy-audit.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write        # push the page to the gh-pages branch
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    concurrency:
+      group: gh-pages-audit
+      cancel-in-progress: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Publish /audit to gh-pages
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          folder: audit-site
+          target-folder: audit
+          branch: gh-pages
+          clean: false          # leave the Storybook root + previews untouched
+          commit-message: 'docs(audit): deploy UI/UX audit ${{ github.sha }}'

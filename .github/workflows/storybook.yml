@@ -76,7 +76,9 @@ jobs:
           folder: app/storybook-static
           branch: gh-pages
           clean: true
-          clean-exclude: pr-preview/   # never wipe live PR previews
+          clean-exclude: |             # never wipe live PR previews or the audit page
+            pr-preview/
+            audit/
           commit-message: 'docs(storybook): deploy main ${{ github.sha }}'
 
   # Per-PR preview. Own-repo branches only: fork PRs run without write access/secrets,

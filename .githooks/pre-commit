@@ -3,5 +3,7 @@
 # Auto-installed into .git/hooks by the `installGitHooks` Gradle task
 # (runs on every build) or via `make hooks`.
 #
-# Runs the full format + test + e2e suite before allowing a commit.
-exec make format test e2e
+# Fast-builds and runs the unit/IT test suite before allowing a commit.
+# (e2e, lint and auto-format are left to CI / pre-push — they need a running
+# stack or mutate files, which makes a per-commit gate slow and flaky.)
+exec make yolo test

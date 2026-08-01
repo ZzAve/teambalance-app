@@ -7,6 +7,7 @@ import org.springframework.boot.gradle.tasks.run.BootRun
 val wirespecVersion: String by project
 val testcontainersVersion: String by project
 val archunitVersion: String by project
+val flockDetektVersion: String by project
 
 plugins {
     kotlin("jvm")
@@ -81,6 +82,21 @@ dependencies {
     // Testing — ArchUnit
     testImplementation("com.tngtech.archunit:archunit-junit5:$archunitVersion")
 
+    // Hexagonal-architecture rulesets for detekt (ADR-0018)
+    detektPlugins("community.flock:hexagonal-detekt-rules:$flockDetektVersion")
+}
+
+// detekt analyses sources with its OWN embedded Kotlin compiler and refuses to start on any
+// other version. io.spring.dependency-management force-aligns every kotlin-* artifact — including
+// the ones on detekt's isolated `detekt` configuration — to the project's Kotlin, so without this
+// the task dies with "detekt was compiled with Kotlin <x> but is currently running with <y>".
+// getSupportedKotlinVersion() is the engine's own answer, so this stays correct across upgrades.
+configurations.matching { it.name == "detekt" }.all {
+    resolutionStrategy.eachDependency {
+        if (requested.group == "org.jetbrains.kotlin") {
+            useVersion(dev.detekt.gradle.plugin.getSupportedKotlinVersion())
+        }
+    }
 }
 
 java {
@@ -129,6 +145,9 @@ tasks.named<BootRun>("bootRun") {
 detekt {
     buildUponDefaultConfig = true
     config.setFrom(files("$projectDir/detekt.yml"))
+    // Hexagonal violations that predate ADR-0018, so the build stays green while the refactor
+    // sub-issues burn them down. New violations are not in here and still fail the build.
+    baseline = file("$projectDir/detekt-baseline.xml")
 }
 
 // Wirespec code generation

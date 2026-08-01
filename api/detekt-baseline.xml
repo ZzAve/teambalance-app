@@ -1,0 +1,65 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>AdapterCannotDependOnAdapter:DemoDataSeeder.kt:import com.github.zzave.teambalance.api.infrastructure.multitenancy.TenantSchemaManager</ID>
+    <ID>AdapterCannotDependOnAdapter:E2eEnvironmentInitializer.kt:import com.github.zzave.teambalance.api.infrastructure.multitenancy.TenantSchemaManager</ID>
+    <ID>AdapterCannotDependOnAdapter:SessionTenantContextFilter.kt:import com.github.zzave.teambalance.api.infrastructure.identity.SessionKeys</ID>
+    <ID>AdapterCannotDependOnAdapter:SessionTenantContextFilter.kt:import com.github.zzave.teambalance.api.infrastructure.identity.UserContext</ID>
+    <ID>AdapterCannotDependOnAdapter:SessionTenantContextFilter.kt:import com.github.zzave.teambalance.api.infrastructure.persistence.SpringDataTeamMemberRepository</ID>
+    <ID>AdapterCannotDependOnAdapter:UserContextCurrentTeamProvider.kt:import com.github.zzave.teambalance.api.infrastructure.multitenancy.CurrentTeamContext</ID>
+    <ID>ApiCannotDependOnAdapters:AuthController.kt:import com.github.zzave.teambalance.api.infrastructure.identity.SessionKeys</ID>
+    <ID>ApiCannotDependOnPorts:AuthController.kt:AuthController$private val teamMemberRepository: TeamMemberRepository</ID>
+    <ID>DomainMustBeImmutable:Recurrence.kt:Recurrence$var cursor = startDate</ID>
+    <ID>DomainNoFrameworkImports:AttendanceService.kt:import org.springframework.stereotype.Service</ID>
+    <ID>DomainNoFrameworkImports:AttendanceService.kt:import org.springframework.transaction.annotation.Transactional</ID>
+    <ID>DomainNoFrameworkImports:AuthService.kt:import org.springframework.stereotype.Service</ID>
+    <ID>DomainNoFrameworkImports:AuthorizationService.kt:import org.springframework.stereotype.Service</ID>
+    <ID>DomainNoFrameworkImports:E2eMagicLinkTokenRecorder.kt:import org.springframework.context.annotation.Profile</ID>
+    <ID>DomainNoFrameworkImports:E2eMagicLinkTokenRecorder.kt:import org.springframework.stereotype.Component</ID>
+    <ID>DomainNoFrameworkImports:EventService.kt:import org.springframework.stereotype.Service</ID>
+    <ID>DomainNoFrameworkImports:EventService.kt:import org.springframework.transaction.annotation.Transactional</ID>
+    <ID>DomainNoFrameworkImports:EventTypeService.kt:import org.springframework.stereotype.Service</ID>
+    <ID>DomainNoFrameworkImports:InvitationService.kt:import org.springframework.beans.factory.annotation.Value</ID>
+    <ID>DomainNoFrameworkImports:InvitationService.kt:import org.springframework.stereotype.Service</ID>
+    <ID>DomainNoFrameworkImports:InvitationService.kt:import org.springframework.transaction.annotation.Transactional</ID>
+    <ID>DomainNoFrameworkImports:MemberService.kt:import org.springframework.stereotype.Service</ID>
+    <ID>DomainNoFrameworkImports:PositionService.kt:import org.springframework.stereotype.Service</ID>
+    <ID>DomainNoFrameworkImports:SeasonService.kt:import org.springframework.stereotype.Service</ID>
+    <ID>DomainNoFrameworkImports:SeasonService.kt:import org.springframework.transaction.annotation.Transactional</ID>
+    <ID>DomainNoPrimitiveObsession:Event.kt:Event$val description: String?</ID>
+    <ID>DomainNoPrimitiveObsession:Event.kt:Event$val location: String?</ID>
+    <ID>DomainNoPrimitiveObsession:Event.kt:Event$val title: String</ID>
+    <ID>DomainNoPrimitiveObsession:EventReference.kt:EventReference$val title: String?</ID>
+    <ID>DomainNoPrimitiveObsession:EventReference.kt:EventReference$val url: String</ID>
+    <ID>DomainNoPrimitiveObsession:EventType.kt:EventType$val color: String?</ID>
+    <ID>DomainNoPrimitiveObsession:EventType.kt:EventType$val name: String</ID>
+    <ID>DomainNoPrimitiveObsession:Invitation.kt:Invitation$/** Salted SHA-256 of the invite token — never the plaintext (which is shown to the admin once). */ val tokenHash: String</ID>
+    <ID>DomainNoPrimitiveObsession:InvitationService.kt:GeneratedInvitation$val token: String</ID>
+    <ID>DomainNoPrimitiveObsession:MagicLinkToken.kt:MagicLinkToken$val email: String</ID>
+    <ID>DomainNoPrimitiveObsession:MagicLinkToken.kt:MagicLinkToken$val tokenHash: String</ID>
+    <ID>DomainNoPrimitiveObsession:Position.kt:Position$val label: String</ID>
+    <ID>DomainNoPrimitiveObsession:PotentialEvent.kt:PotentialEvent$val description: String?</ID>
+    <ID>DomainNoPrimitiveObsession:PotentialEvent.kt:PotentialEvent$val location: String?</ID>
+    <ID>DomainNoPrimitiveObsession:PotentialEvent.kt:PotentialEvent$val title: String</ID>
+    <ID>DomainNoPrimitiveObsession:SeriesModification.kt:EventEdit$val description: String?</ID>
+    <ID>DomainNoPrimitiveObsession:SeriesModification.kt:EventEdit$val location: String?</ID>
+    <ID>DomainNoPrimitiveObsession:SeriesModification.kt:EventEdit$val title: String</ID>
+    <ID>DomainNoPrimitiveObsession:TeamMember.kt:TeamMember$val displayName: String</ID>
+    <ID>DomainNoPrimitiveObsession:TeamMember.kt:TeamMember$val onboarded: Boolean</ID>
+    <ID>DomainNoPrimitiveObsession:TeamMember.kt:TeamMember$val position: String?</ID>
+    <ID>DomainNoPrimitiveObsession:TeamMember.kt:TeamMember$val role: String</ID>
+    <ID>DomainNoPrimitiveObsession:User.kt:User$val displayName: String</ID>
+    <ID>DomainNoPrimitiveObsession:User.kt:User$val email: String</ID>
+    <ID>PortNamingConvention:EmailSender.kt:EmailSender</ID>
+    <ID>PortsInDomainOnly:SpringDataAttendanceRepository.kt:SpringDataAttendanceRepository : JpaRepository</ID>
+    <ID>PortsInDomainOnly:SpringDataEventRepository.kt:SpringDataEventRepository : JpaRepository</ID>
+    <ID>PortsInDomainOnly:SpringDataEventTypeRepository.kt:SpringDataEventTypeRepository : JpaRepository</ID>
+    <ID>PortsInDomainOnly:SpringDataInvitationRepository.kt:SpringDataInvitationRepository : JpaRepository</ID>
+    <ID>PortsInDomainOnly:SpringDataMagicLinkTokenRepository.kt:SpringDataMagicLinkTokenRepository : JpaRepository</ID>
+    <ID>PortsInDomainOnly:SpringDataTeamMemberRepository.kt:SpringDataTeamMemberRepository : JpaRepository</ID>
+    <ID>PortsInDomainOnly:SpringDataTeamPositionRepository.kt:SpringDataTeamPositionRepository : JpaRepository</ID>
+    <ID>PortsInDomainOnly:SpringDataTeamSettingsRepository.kt:SpringDataTeamSettingsRepository : JpaRepository</ID>
+    <ID>PortsInDomainOnly:SpringDataUserRepository.kt:SpringDataUserRepository : JpaRepository</ID>
+  </CurrentIssues>
+</SmellBaseline>

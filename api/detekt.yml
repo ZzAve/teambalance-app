@@ -5,3 +5,88 @@ config:
 style:
   MaxLineLength:
     maxLineLength: 140
+
+# ─── Hexagonal rulesets (flock-detekt) — see ADR-0018 ────────────────────────
+# Every rule is inactive until switched on here, so the `active: true` lines are
+# activation, not configuration. Rule PROPERTIES are deliberately left out: flock's
+# defaults already describe this codebase (port packages, port suffixes, adapter
+# packages/patterns, forbidden framework imports, DTO/service suffixes).
+#
+# Two package tokens do need overriding, because flock matches package SEGMENTS and
+# our layers are not named the way its defaults assume:
+#
+#   domainPackages: our `application` layer must be as framework-free as `domain`,
+#                   and we have no `core` package.
+#   apiPackages:    our inbound layer is `interfaces`. The default token `api` is
+#                   actively harmful here — the root package is
+#                   com.github.zzave.teambalance.api, so `api` matches every file.
+
+hexagonal-domain:
+  active: true
+  excludes: ['**/src/test/**']
+  DomainNoPrimitiveObsession:
+    active: true
+    domainPackages: ['domain', 'application']
+  DomainNoFrameworkImports:
+    active: true
+    domainPackages: ['domain', 'application']
+  # Opt-in allow-list, stricter than DomainNoFrameworkImports' deny-list. Left off
+  # (flock's own default) — the deny-list is the line this epic enforces.
+  DomainModelMustBeStandalone:
+    active: false
+  DomainMustBeImmutable:
+    active: true
+    domainPackages: ['domain', 'application']
+  ValueClassMustHaveJvmInline:
+    active: true
+    domainPackages: ['domain', 'application']
+
+hexagonal-port:
+  active: true
+  excludes: ['**/src/test/**']
+  PortMustBeInterface:
+    active: true
+  PortNamingConvention:
+    active: true
+  PortsInDomainOnly:
+    active: true
+    domainPackages: ['domain', 'application']
+    apiPackages: ['interfaces']
+
+hexagonal-adapter:
+  active: true
+  excludes: ['**/src/test/**']
+  AdapterMustImplementPort:
+    active: true
+  AdapterNamingConvention:
+    active: true
+  AdapterCannotDependOnAdapter:
+    active: true
+
+hexagonal-dependency:
+  active: true
+  excludes: ['**/src/test/**']
+  DomainCannotDependOnAdapters:
+    active: true
+    domainPackages: ['domain', 'application']
+  DomainCannotDependOnApi:
+    active: true
+    domainPackages: ['domain', 'application']
+    apiPackages: ['interfaces']
+  ApiCannotDependOnAdapters:
+    active: true
+    apiPackages: ['interfaces']
+  ApiCannotDependOnPorts:
+    active: true
+    apiPackages: ['interfaces']
+
+hexagonal-layering:
+  active: true
+  excludes: ['**/src/test/**']
+  DtoOnlyInAdaptersOrApi:
+    active: true
+    domainPackages: ['domain', 'application']
+    apiPackages: ['interfaces']
+  NoServiceInApiOrAdapter:
+    active: true
+    apiPackages: ['interfaces']

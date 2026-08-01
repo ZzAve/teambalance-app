@@ -1,7 +1,7 @@
 plugins {
-    kotlin("jvm") version "2.3.0" apply false
-    kotlin("plugin.spring") version "2.3.0" apply false
-    kotlin("plugin.jpa") version "2.3.0" apply false
+    kotlin("jvm") version "2.4.10" apply false
+    kotlin("plugin.spring") version "2.4.10" apply false
+    kotlin("plugin.jpa") version "2.4.10" apply false
     id("org.springframework.boot") version "4.0.4" apply false
     id("io.spring.dependency-management") version "1.1.7" apply false
     id("community.flock.wirespec.plugin.gradle") version "0.19.6" apply false

@@ -25,13 +25,14 @@ private const val HEALTHY_TITLE = "Healthy Series"
 /**
  * The transactional boundary around a multi-step Event write, proven through the REST boundary.
  *
- * `createRecurringEvents` materializes N occurrences with N separate adapter `save` calls. If no
- * transaction spans them, Spring Data's own per-call transaction commits each save individually and
- * a mid-batch failure leaves a half-written series behind — verified: without a boundary this test
- * finds 2 of 4 rows instead of none.
+ * `createRecurringEvents` materializes N occurrences and hands them to the repository as one batch.
+ * If no transaction spans that batch, Spring Data's own per-call transaction commits each row
+ * individually and a mid-batch failure leaves a half-written series behind — verified by deleting
+ * `@Transactional` from `JpaEventRepositoryAdapter.saveAll`, which makes the first case below find
+ * 2 of 4 rows instead of none.
  *
  * Safety net for #20 (framework-free EventService): it must hold identically whether the boundary
- * comes from `@Transactional` on the service or from the transaction-runner port.
+ * comes from `@Transactional` on the service or from the adapter that owns the batch.
  */
 @AutoConfigureMockMvc
 @Import(FaultInjectingEventRepositoryConfig::class)

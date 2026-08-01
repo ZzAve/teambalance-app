@@ -14,7 +14,6 @@ import com.github.zzave.teambalance.api.domain.model.SeriesModification
 import com.github.zzave.teambalance.api.domain.port.EventRepository
 import com.github.zzave.teambalance.api.domain.port.EventTypeRepository
 import com.github.zzave.teambalance.api.domain.port.SeasonRepository
-import com.github.zzave.teambalance.api.domain.port.TransactionRunnerPort
 import java.time.Clock
 import java.time.Duration
 import java.time.Instant
@@ -24,22 +23,25 @@ import java.util.UUID
 
 /**
  * Framework-free (ADR-0018): a plain class constructed by the composition root from its ports, with
- * the transactional boundary drawn explicitly via [TransactionRunnerPort] instead of `@Transactional`.
+ * no `@Service`, no `@Transactional`, and no notion of a transaction at all.
  *
- * EVERY use case runs inside [TransactionRunnerPort.inTransaction], reads included — the same span
- * the class-level `@Transactional` used to cover. Reads happen to survive without it today, but only
- * by accident: `open-in-view` is off and `EventJpaEntity.eventType` is declared LAZY, so the adapter's
- * entity → domain mapping *should* need a live persistence context; it works because Kotlin JPA
- * entities are final classes, which Hibernate cannot proxy, so it silently fetches them eagerly.
- * Marking one entity `open` would turn that into a runtime failure. One unconditional rule keeps the
- * boundary independent of that accident — and makes replicating this pattern mechanical.
+ * Transactionality belongs to the adapter: one call to a port method is one transaction. Where a use
+ * case must write several rows as a unit it makes ONE call carrying all of them
+ * ([EventRepository.saveAll], [EventRepository.deleteAllById]) — the batch is the unit of atomicity,
+ * and every multi-row write here touches a single port, so nothing needs a transaction spanning
+ * several calls.
+ *
+ * What that deliberately gives up versus the class-level `@Transactional` it replaces: a
+ * read-then-write use case ([updateEvent], [deleteEvent]) no longer reads and writes in one
+ * transaction. The write stays atomic; only the read is now a separate snapshot. Nothing here took a
+ * lock or carried an `@Version`, so a concurrent edit could already interleave between the SELECT and
+ * the UPDATE under Postgres' READ COMMITTED default — the guarantee is the same one we had.
  */
 class EventService(
     private val eventRepository: EventRepository,
     private val eventTypeRepository: EventTypeRepository,
     private val seasonRepository: SeasonRepository,
     private val authorizationService: AuthorizationService,
-    private val transactionRunner: TransactionRunnerPort,
     private val clock: Clock,
 ) {
     companion object {
@@ -49,25 +51,18 @@ class EventService(
         const val MAX_DURATION_MINUTES: Long = 24 * 60
     }
 
-    fun getUpcomingEvents(): List<Event> = transactionRunner.inTransaction {
-        val since = clock.instant().minus(GRACE_PERIOD)
-        eventRepository.findUpcoming(since)
-    }
+    fun getUpcomingEvents(): List<Event> = eventRepository.findUpcoming(clock.instant().minus(GRACE_PERIOD))
 
-    fun getAllEvents(): List<Event> = transactionRunner.inTransaction {
-        eventRepository.findAll()
-    }
+    fun getAllEvents(): List<Event> = eventRepository.findAll()
 
-    fun getEvent(id: UUID): Event? = transactionRunner.inTransaction {
-        eventRepository.findById(id)
-    }
+    fun getEvent(id: UUID): Event? = eventRepository.findById(id)
 
     // No attendance rows are seeded here: the summary and roster are derived from current team
     // membership at read time (see AttendanceService), so a member's absence of a row simply reads
     // as NOT_RESPONDED. A response then upserts their row (AttendanceService.setAttendance).
     // Admin-only: [callerId] must be an admin of [teamId] (the server-resolved tenant), and is
     // recorded as the event's creator.
-    fun createEvent(callerId: UUID, teamId: UUID, potential: PotentialEvent): Event = transactionRunner.inTransaction {
+    fun createEvent(callerId: UUID, teamId: UUID, potential: PotentialEvent): Event {
         authorizationService.requireAdmin(callerId, teamId)
         val eventType = eventTypeRepository.findById(potential.eventTypeId)
             ?: throw EventTypeNotFoundException(potential.eventTypeId)
@@ -75,7 +70,7 @@ class EventService(
         // ADR-0014: a created event's start must always fall within the configured season.
         seasonPolicy().requireCreatable(potential.startTime)
 
-        eventRepository.save(
+        return eventRepository.save(
             Event(
                 id = UUID.randomUUID(),
                 eventType = eventType,
@@ -103,7 +98,8 @@ class EventService(
      * is that start plus [durationMinutes]. Every generated start must fall within the configured
      * season, and the batch is capped at [Recurrence.MAX_OCCURRENCES].
      *
-     * Runs in a single transaction (the whole batch commits or nothing does).
+     * The occurrences are handed to the repository in one `saveAll`, so the whole batch commits or
+     * nothing does.
      *
      * Admin-only: [callerId] must be an admin of [teamId] (the server-resolved tenant), and is
      * recorded as the creator of every generated occurrence.
@@ -119,7 +115,7 @@ class EventService(
         durationMinutes: Long,
         references: List<EventReference>,
         recurrence: Recurrence,
-    ): RecurringEventSeries = transactionRunner.inTransaction {
+    ): RecurringEventSeries {
         authorizationService.requireAdmin(callerId, teamId)
         require(durationMinutes in 1..MAX_DURATION_MINUTES) {
             "durationMinutes must be between 1 and $MAX_DURATION_MINUTES"
@@ -151,7 +147,7 @@ class EventService(
             },
         )
 
-        RecurringEventSeries(recurringGroup = recurringGroup, events = events)
+        return RecurringEventSeries(recurringGroup = recurringGroup, events = events)
     }
 
     // The generated occurrence dates, guarded against an empty result and the batch cap.
@@ -176,7 +172,7 @@ class EventService(
      * (e.g. an ALL edit that changes only the title touches no start and is never rejected).
      *
      * Returns the affected ("edited") occurrences ordered by start, or null when [id] is unknown.
-     * Runs in one transaction — the whole reassignment commits or nothing does.
+     * The whole reassignment is persisted in one `saveAll`, so it commits or nothing does.
      *
      * Admin-only: [callerId] must be an admin of [teamId] (the server-resolved tenant).
      */
@@ -192,9 +188,9 @@ class EventService(
         endTime: Instant,
         location: String?,
         references: List<EventReference> = emptyList(),
-    ): List<Event>? = transactionRunner.inTransaction {
+    ): List<Event>? {
         authorizationService.requireAdmin(callerId, teamId)
-        val target = eventRepository.findById(id) ?: return@inTransaction null
+        val target = eventRepository.findById(id) ?: return null
         val eventType = eventTypeRepository.findById(eventTypeId)
             ?: throw EventTypeNotFoundException(eventTypeId)
 
@@ -221,23 +217,22 @@ class EventService(
         seasonPolicy().requireEditable(plan, originalStarts)
 
         eventRepository.saveAll(plan.toPersist)
-        plan.edited.sortedBy { it.startTime }
+        return plan.edited.sortedBy { it.startTime }
     }
 
     /**
      * Deletes the occurrences in [scope] over the target's series (ADR-0014, Decision 4). A delete
      * **never splits** — survivors keep their group untouched. Returns false when [id] is unknown.
-     * Runs in one transaction.
+     * The whole set is removed in one `deleteAllById`, so it commits or nothing does.
      *
      * Admin-only: [callerId] must be an admin of [teamId] (the server-resolved tenant).
      */
-    fun deleteEvent(callerId: UUID, teamId: UUID, id: UUID, scope: EventSeriesScope): Boolean =
-        transactionRunner.inTransaction {
-            authorizationService.requireAdmin(callerId, teamId)
-            val target = eventRepository.findById(id) ?: return@inTransaction false
-            eventRepository.deleteAllById(SeriesModification.planDelete(seriesOf(target), id, scope))
-            true
-        }
+    fun deleteEvent(callerId: UUID, teamId: UUID, id: UUID, scope: EventSeriesScope): Boolean {
+        authorizationService.requireAdmin(callerId, teamId)
+        val target = eventRepository.findById(id) ?: return false
+        eventRepository.deleteAllById(SeriesModification.planDelete(seriesOf(target), id, scope))
+        return true
+    }
 
     // A group-less event is a one-occurrence series (its own row); otherwise the whole group,
     // start-time ordered — the "before/after" axis every scoped operation splits on.

@@ -12,7 +12,6 @@ import com.github.zzave.teambalance.api.domain.port.EventRepository
 import com.github.zzave.teambalance.api.domain.port.EventTypeRepository
 import com.github.zzave.teambalance.api.domain.port.SeasonRepository
 import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
-import com.github.zzave.teambalance.api.domain.port.TransactionRunnerPort
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
 import java.time.Clock
@@ -47,12 +46,6 @@ private class ExplodingSeasonRepo : SeasonRepository {
     override fun save(season: com.github.zzave.teambalance.api.domain.model.Season) = error("unused")
 }
 
-// No transaction to run in a pure unit test — just run the block. That the boundary is real in
-// production is proven at the REST seam by EventTransactionBoundaryIT.
-private class DirectTransactionRunner : TransactionRunnerPort {
-    override fun <T> inTransaction(block: () -> T): T = block()
-}
-
 // USER for everyone except the seeded admins — models "a real member who simply isn't an admin".
 private class EventFakeMemberRepo(private val admins: Set<UUID>) : TeamMemberRepository {
     override fun findRole(teamId: UUID, userId: UUID): Role = if (userId in admins) Role.ADMIN else Role.USER
@@ -78,7 +71,6 @@ class EventServiceTest : FunSpec() {
             ExplodingEventTypeRepo(),
             ExplodingSeasonRepo(),
             AuthorizationService(EventFakeMemberRepo(admins = emptySet())),
-            DirectTransactionRunner(),
             Clock.fixed(Instant.EPOCH, ZoneOffset.UTC),
         )
 

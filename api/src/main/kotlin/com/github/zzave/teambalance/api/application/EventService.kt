@@ -132,9 +132,9 @@ class EventService(
 
         val recurringGroup = UUID.randomUUID()
 
-        val events = dates.map { date ->
-            val startTime = OccurrenceSchedule.startInstant(date, timeOfDay, clock.zone)
-            eventRepository.save(
+        val events = eventRepository.saveAll(
+            dates.map { date ->
+                val startTime = OccurrenceSchedule.startInstant(date, timeOfDay, clock.zone)
                 Event(
                     id = UUID.randomUUID(),
                     eventType = eventType,
@@ -147,9 +147,9 @@ class EventService(
                     recurringGroup = recurringGroup,
                     createdBy = callerId,
                     createdAt = clock.instant(),
-                ),
-            )
-        }
+                )
+            },
+        )
 
         RecurringEventSeries(recurringGroup = recurringGroup, events = events)
     }
@@ -220,7 +220,7 @@ class EventService(
         val originalStarts = series.associate { it.id to it.startTime }
         seasonPolicy().requireEditable(plan, originalStarts)
 
-        plan.toPersist.forEach { eventRepository.save(it) }
+        eventRepository.saveAll(plan.toPersist)
         plan.edited.sortedBy { it.startTime }
     }
 
@@ -235,8 +235,7 @@ class EventService(
         transactionRunner.inTransaction {
             authorizationService.requireAdmin(callerId, teamId)
             val target = eventRepository.findById(id) ?: return@inTransaction false
-            val toDelete = SeriesModification.planDelete(seriesOf(target), id, scope)
-            toDelete.forEach { eventRepository.deleteById(it) }
+            eventRepository.deleteAllById(SeriesModification.planDelete(seriesOf(target), id, scope))
             true
         }
 

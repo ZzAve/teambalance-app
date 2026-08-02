@@ -5,7 +5,6 @@ import com.github.zzave.teambalance.api.domain.port.InvitationRepository
 import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
-import org.springframework.transaction.annotation.Transactional
 import java.security.MessageDigest
 import java.security.SecureRandom
 import java.time.Clock
@@ -49,16 +48,7 @@ class InvitationService(
         authorizationService.requireAdmin(callerId, teamId)
         val now = clock.instant()
         val token = generateToken()
-        invitationRepository.save(
-            Invitation(
-                id = UUID.randomUUID(),
-                teamId = teamId,
-                tokenHash = hashToken(token),
-                createdBy = callerId,
-                expiresAt = now.plus(INVITE_TTL),
-                createdAt = now,
-            ),
-        )
+        invitationRepository.save(mint(token, callerId, teamId, now))
         return GeneratedInvitation(token = token, expiresAt = now.plus(INVITE_TTL))
     }
 
@@ -87,15 +77,29 @@ class InvitationService(
     }
 
     /**
-     * Invalidates the team's active invite link(s) and mints a fresh one in its place. Atomic: the
-     * expire and the mint share one transaction, so a failure to mint rolls the expire back rather
-     * than leaving the team with no usable link. Admin-only (the nested calls re-assert it).
+     * Invalidates the team's active invite link(s) and mints a fresh one in its place. Atomic: a
+     * failure to mint rolls the expire back rather than leaving the team with no usable link. That
+     * guarantee lives in [InvitationRepository.rotate] — the expire and the mint are handed over as a
+     * single port call, so this service states the intent without naming a transaction.
+     *
+     * Admin-only: [callerId] must be an admin of [teamId] (the server-resolved tenant).
      */
-    @Transactional
     fun rotateInviteLink(callerId: UUID, teamId: UUID): GeneratedInvitation {
-        expireActiveInvitations(callerId, teamId)
-        return generateInviteLink(callerId, teamId)
+        authorizationService.requireAdmin(callerId, teamId)
+        val now = clock.instant()
+        val token = generateToken()
+        invitationRepository.rotate(teamId, mint(token, callerId, teamId, now), now)
+        return GeneratedInvitation(token = token, expiresAt = now.plus(INVITE_TTL))
     }
+
+    private fun mint(token: String, callerId: UUID, teamId: UUID, now: Instant) = Invitation(
+        id = UUID.randomUUID(),
+        teamId = teamId,
+        tokenHash = hashToken(token),
+        createdBy = callerId,
+        expiresAt = now.plus(INVITE_TTL),
+        createdAt = now,
+    )
 
     private fun generateToken(): String {
         val bytes = ByteArray(TOKEN_BYTE_LENGTH)

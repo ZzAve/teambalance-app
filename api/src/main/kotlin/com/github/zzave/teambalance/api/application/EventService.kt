@@ -14,8 +14,6 @@ import com.github.zzave.teambalance.api.domain.model.SeriesModification
 import com.github.zzave.teambalance.api.domain.port.EventRepository
 import com.github.zzave.teambalance.api.domain.port.EventTypeRepository
 import com.github.zzave.teambalance.api.domain.port.SeasonRepository
-import org.springframework.stereotype.Service
-import org.springframework.transaction.annotation.Transactional
 import java.time.Clock
 import java.time.Duration
 import java.time.Instant
@@ -23,8 +21,22 @@ import java.time.LocalDate
 import java.time.LocalTime
 import java.util.UUID
 
-@Service
-@Transactional
+/**
+ * Framework-free (ADR-0018): a plain class constructed by the composition root from its ports, with
+ * no `@Service`, no `@Transactional`, and no notion of a transaction at all.
+ *
+ * Transactionality belongs to the adapter: one call to a port method is one transaction. Where a use
+ * case must write several rows as a unit it makes ONE call carrying all of them
+ * ([EventRepository.saveAll], [EventRepository.deleteAllById]) — the batch is the unit of atomicity,
+ * and every multi-row write here touches a single port, so nothing needs a transaction spanning
+ * several calls.
+ *
+ * What that deliberately gives up versus the class-level `@Transactional` it replaces: a
+ * read-then-write use case ([updateEvent], [deleteEvent]) no longer reads and writes in one
+ * transaction. The write stays atomic; only the read is now a separate snapshot. Nothing here took a
+ * lock or carried an `@Version`, so a concurrent edit could already interleave between the SELECT and
+ * the UPDATE under Postgres' READ COMMITTED default — the guarantee is the same one we had.
+ */
 class EventService(
     private val eventRepository: EventRepository,
     private val eventTypeRepository: EventTypeRepository,
@@ -39,16 +51,11 @@ class EventService(
         const val MAX_DURATION_MINUTES: Long = 24 * 60
     }
 
-    fun getUpcomingEvents(): List<Event> {
-        val since = clock.instant().minus(GRACE_PERIOD)
-        return eventRepository.findUpcoming(since)
-    }
+    fun getUpcomingEvents(): List<Event> = eventRepository.findUpcoming(clock.instant().minus(GRACE_PERIOD))
 
-    fun getAllEvents(): List<Event> =
-        eventRepository.findAll()
+    fun getAllEvents(): List<Event> = eventRepository.findAll()
 
-    fun getEvent(id: UUID): Event? =
-        eventRepository.findById(id)
+    fun getEvent(id: UUID): Event? = eventRepository.findById(id)
 
     // No attendance rows are seeded here: the summary and roster are derived from current team
     // membership at read time (see AttendanceService), so a member's absence of a row simply reads
@@ -91,7 +98,8 @@ class EventService(
      * is that start plus [durationMinutes]. Every generated start must fall within the configured
      * season, and the batch is capped at [Recurrence.MAX_OCCURRENCES].
      *
-     * Runs in a single transaction (the whole batch commits or nothing does).
+     * The occurrences are handed to the repository in one `saveAll`, so the whole batch commits or
+     * nothing does.
      *
      * Admin-only: [callerId] must be an admin of [teamId] (the server-resolved tenant), and is
      * recorded as the creator of every generated occurrence.
@@ -120,9 +128,9 @@ class EventService(
 
         val recurringGroup = UUID.randomUUID()
 
-        val events = dates.map { date ->
-            val startTime = OccurrenceSchedule.startInstant(date, timeOfDay, clock.zone)
-            eventRepository.save(
+        val events = eventRepository.saveAll(
+            dates.map { date ->
+                val startTime = OccurrenceSchedule.startInstant(date, timeOfDay, clock.zone)
                 Event(
                     id = UUID.randomUUID(),
                     eventType = eventType,
@@ -135,9 +143,9 @@ class EventService(
                     recurringGroup = recurringGroup,
                     createdBy = callerId,
                     createdAt = clock.instant(),
-                ),
-            )
-        }
+                )
+            },
+        )
 
         return RecurringEventSeries(recurringGroup = recurringGroup, events = events)
     }
@@ -164,7 +172,7 @@ class EventService(
      * (e.g. an ALL edit that changes only the title touches no start and is never rejected).
      *
      * Returns the affected ("edited") occurrences ordered by start, or null when [id] is unknown.
-     * Runs in one transaction — the whole reassignment commits or nothing does.
+     * The whole reassignment is persisted in one `saveAll`, so it commits or nothing does.
      *
      * Admin-only: [callerId] must be an admin of [teamId] (the server-resolved tenant).
      */
@@ -208,22 +216,21 @@ class EventService(
         val originalStarts = series.associate { it.id to it.startTime }
         seasonPolicy().requireEditable(plan, originalStarts)
 
-        plan.toPersist.forEach { eventRepository.save(it) }
+        eventRepository.saveAll(plan.toPersist)
         return plan.edited.sortedBy { it.startTime }
     }
 
     /**
      * Deletes the occurrences in [scope] over the target's series (ADR-0014, Decision 4). A delete
      * **never splits** — survivors keep their group untouched. Returns false when [id] is unknown.
-     * Runs in one transaction.
+     * The whole set is removed in one `deleteAllById`, so it commits or nothing does.
      *
      * Admin-only: [callerId] must be an admin of [teamId] (the server-resolved tenant).
      */
     fun deleteEvent(callerId: UUID, teamId: UUID, id: UUID, scope: EventSeriesScope): Boolean {
         authorizationService.requireAdmin(callerId, teamId)
         val target = eventRepository.findById(id) ?: return false
-        val toDelete = SeriesModification.planDelete(seriesOf(target), id, scope)
-        toDelete.forEach { eventRepository.deleteById(it) }
+        eventRepository.deleteAllById(SeriesModification.planDelete(seriesOf(target), id, scope))
         return true
     }
 

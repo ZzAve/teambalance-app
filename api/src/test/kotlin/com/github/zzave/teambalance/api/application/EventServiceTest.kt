@@ -31,7 +31,9 @@ private class ExplodingEventRepo : EventRepository {
     override fun findAll(): List<Event> = error("unused")
     override fun findByRecurringGroup(group: UUID): List<Event> = error("unused")
     override fun save(event: Event): Event = error("unused")
+    override fun saveAll(events: List<Event>): List<Event> = error("unused")
     override fun deleteById(id: UUID) = error("unused")
+    override fun deleteAllById(ids: List<UUID>) = error("unused")
 }
 
 private class ExplodingEventTypeRepo : EventTypeRepository {

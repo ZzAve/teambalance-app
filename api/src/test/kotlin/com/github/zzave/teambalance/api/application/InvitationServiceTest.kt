@@ -20,9 +20,14 @@ import java.util.UUID
 private class FakeInvitationRepo(private val live: Invitation) : InvitationRepository {
     val saved = mutableListOf<Invitation>()
     var expiredTeam: UUID? = null
+    val rotated = mutableListOf<Invitation>()
     override fun save(invitation: Invitation): Invitation { saved += invitation; return invitation }
     override fun findByTokenHash(tokenHash: String): Invitation = live
     override fun expireActive(teamId: UUID, now: Instant) { expiredTeam = teamId }
+    override fun rotate(teamId: UUID, replacement: Invitation, now: Instant): Invitation {
+        rotated += replacement
+        return replacement
+    }
 }
 
 // USER for everyone except the seeded admins; records joins so the open accept path can be asserted.
@@ -77,6 +82,19 @@ class InvitationServiceTest : FunSpec() {
         test("rotateInviteLink by a non-admin is forbidden") {
             val (service, _, _) = newService()
             shouldThrow<NotTeamAdminException> { service.rotateInviteLink(callerId = nonAdmin, teamId = teamId) }
+        }
+
+        // The expire and the mint must reach the port as ONE call: that single call is what the adapter
+        // makes atomic, so a failure to mint can't leave the team with no usable link. Two separate
+        // calls would be two transactions and would reintroduce that gap.
+        test("rotateInviteLink hands the expire and the mint over as a single port call") {
+            val (service, invitations, _) = newService()
+            val result = service.rotateInviteLink(callerId = adminId, teamId = teamId)
+
+            invitations.rotated.single().createdBy shouldBe adminId
+            invitations.saved.isEmpty() shouldBe true
+            invitations.expiredTeam shouldBe null
+            result.token.isNotBlank() shouldBe true
         }
 
         test("generateInviteLink by an admin mints a link attributed to the caller") {

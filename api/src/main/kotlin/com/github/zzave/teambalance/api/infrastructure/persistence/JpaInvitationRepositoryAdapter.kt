@@ -24,4 +24,10 @@ class JpaInvitationRepositoryAdapter(
     override fun expireActive(teamId: UUID, now: Instant) {
         jpaRepository.expireActive(teamId, now)
     }
+
+    @Transactional
+    override fun rotate(teamId: UUID, replacement: Invitation, now: Instant): Invitation {
+        jpaRepository.expireActive(teamId, now)
+        return jpaRepository.save(replacement.externalize()).internalize()
+    }
 }

@@ -1,8 +1,8 @@
-package com.github.zzave.teambalance.api.application
+package com.github.zzave.teambalance.api.domain.port
 
 import java.util.UUID
 
-interface CurrentTeamProvider {
+interface CurrentTeamGateway {
     /** The team resolved for the current request, or throws if the caller has no active team. */
     fun requireCurrentTeamId(): UUID
 }

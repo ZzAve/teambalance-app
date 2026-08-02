@@ -1,7 +1,7 @@
 package com.github.zzave.teambalance.api.infrastructure.identity
 
-import com.github.zzave.teambalance.api.application.CurrentTeamProvider
 import com.github.zzave.teambalance.api.domain.exception.NoTeamMembershipException
+import com.github.zzave.teambalance.api.domain.port.CurrentTeamGateway
 import com.github.zzave.teambalance.api.infrastructure.multitenancy.CurrentTeamContext
 import org.springframework.stereotype.Component
 import java.util.UUID
@@ -12,7 +12,7 @@ import java.util.UUID
  * agree, with no second round-trip.
  */
 @Component
-class UserContextCurrentTeamProvider : CurrentTeamProvider {
+class UserContextCurrentTeamAdapter : CurrentTeamGateway {
     override fun requireCurrentTeamId(): UUID =
         CurrentTeamContext.get() ?: throw NoTeamMembershipException(UserContext.require())
 }

@@ -1,9 +1,9 @@
 package com.github.zzave.teambalance.api.interfaces
 
-import com.github.zzave.teambalance.api.application.CurrentTeamProvider
-import com.github.zzave.teambalance.api.application.CurrentUserProvider
 import com.github.zzave.teambalance.api.application.SeasonService
 import com.github.zzave.teambalance.api.domain.model.Season as DomainSeason
+import com.github.zzave.teambalance.api.domain.port.CurrentTeamGateway
+import com.github.zzave.teambalance.api.domain.port.CurrentUserGateway
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.GetSeason
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.SetSeason
 import com.github.zzave.teambalance.api.interfaces.generated.model.Season
@@ -14,8 +14,8 @@ import java.time.LocalDate
 @RestController
 class SeasonController(
     private val seasonService: SeasonService,
-    private val currentUserProvider: CurrentUserProvider,
-    private val currentTeamProvider: CurrentTeamProvider,
+    private val currentUserGateway: CurrentUserGateway,
+    private val currentTeamGateway: CurrentTeamGateway,
 ) : GetSeason.Handler,
     SetSeason.Handler {
 
@@ -26,8 +26,8 @@ class SeasonController(
     // Admin-only (enforced in SeasonService.setSeason); a non-admin surfaces as 403 via the handler.
     override suspend fun setSeason(request: SetSeason.Request): SetSeason.Response<*> {
         val season = seasonService.setSeason(
-            callerId = currentUserProvider.requireCurrentUserId(),
-            teamId = currentTeamProvider.requireCurrentTeamId(),
+            callerId = currentUserGateway.requireCurrentUserId(),
+            teamId = currentTeamGateway.requireCurrentTeamId(),
             start = request.body.start?.toLocalDate(),
             end = request.body.end?.toLocalDate(),
         )

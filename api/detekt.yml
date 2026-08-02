@@ -79,6 +79,12 @@ hexagonal-dependency:
   ApiCannotDependOnPorts:
     active: true
     apiPackages: ['interfaces']
+    # The two identity gateways answer "who is calling, and for which team" — request context the
+    # inbound adapter owns, not data the application reaches out for. Controllers read them and pass
+    # the ids in as explicit arguments, which is what keeps the services pure functions of their
+    # parameters (see #19 / ADR-0018). Exempted by exact type name, so no other port slips through;
+    # AuthController's TeamMemberRepository dependency is a real breach and stays baselined.
+    allowedPortTypes: ['CurrentUserGateway', 'CurrentTeamGateway']
 
 hexagonal-layering:
   active: true

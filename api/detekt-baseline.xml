@@ -7,7 +7,7 @@
     <ID>AdapterCannotDependOnAdapter:SessionTenantContextFilter.kt:import com.github.zzave.teambalance.api.infrastructure.identity.SessionKeys</ID>
     <ID>AdapterCannotDependOnAdapter:SessionTenantContextFilter.kt:import com.github.zzave.teambalance.api.infrastructure.identity.UserContext</ID>
     <ID>AdapterCannotDependOnAdapter:SessionTenantContextFilter.kt:import com.github.zzave.teambalance.api.infrastructure.persistence.SpringDataTeamMemberRepository</ID>
-    <ID>AdapterCannotDependOnAdapter:UserContextCurrentTeamProvider.kt:import com.github.zzave.teambalance.api.infrastructure.multitenancy.CurrentTeamContext</ID>
+    <ID>AdapterCannotDependOnAdapter:UserContextCurrentTeamAdapter.kt:import com.github.zzave.teambalance.api.infrastructure.multitenancy.CurrentTeamContext</ID>
     <ID>ApiCannotDependOnAdapters:AuthController.kt:import com.github.zzave.teambalance.api.infrastructure.identity.SessionKeys</ID>
     <ID>ApiCannotDependOnPorts:AuthController.kt:AuthController$private val teamMemberRepository: TeamMemberRepository</ID>
     <ID>DomainMustBeImmutable:Recurrence.kt:Recurrence$var cursor = startDate</ID>

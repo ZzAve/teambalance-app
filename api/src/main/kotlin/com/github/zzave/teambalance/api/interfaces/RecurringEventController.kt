@@ -1,11 +1,11 @@
 package com.github.zzave.teambalance.api.interfaces
 
 import com.github.zzave.teambalance.api.application.AttendanceService
-import com.github.zzave.teambalance.api.application.CurrentTeamProvider
-import com.github.zzave.teambalance.api.application.CurrentUserProvider
 import com.github.zzave.teambalance.api.application.EventService
 import com.github.zzave.teambalance.api.domain.model.Recurrence
 import com.github.zzave.teambalance.api.domain.model.RecurrenceFrequency as DomainRecurrenceFrequency
+import com.github.zzave.teambalance.api.domain.port.CurrentTeamGateway
+import com.github.zzave.teambalance.api.domain.port.CurrentUserGateway
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.CreateRecurringEvents
 import com.github.zzave.teambalance.api.interfaces.generated.model.RecurrenceFrequency
 import com.github.zzave.teambalance.api.interfaces.generated.model.RecurringEventSeries
@@ -20,15 +20,15 @@ import java.util.UUID
 class RecurringEventController(
     private val eventService: EventService,
     private val attendanceService: AttendanceService,
-    private val currentUserProvider: CurrentUserProvider,
-    private val currentTeamProvider: CurrentTeamProvider,
+    private val currentUserGateway: CurrentUserGateway,
+    private val currentTeamGateway: CurrentTeamGateway,
 ) : CreateRecurringEvents.Handler {
 
     // Admin-only, mirroring single-event create — enforced in EventService.createRecurringEvents.
     // Season/cap/empty violations surface as 422 via the GlobalExceptionHandler; a non-admin as 403.
     override suspend fun createRecurringEvents(request: CreateRecurringEvents.Request): CreateRecurringEvents.Response<*> {
-        val teamId = currentTeamProvider.requireCurrentTeamId()
-        val userId = currentUserProvider.requireCurrentUserId()
+        val teamId = currentTeamGateway.requireCurrentTeamId()
+        val userId = currentUserGateway.requireCurrentUserId()
 
         val body = request.body
         val series = eventService.createRecurringEvents(

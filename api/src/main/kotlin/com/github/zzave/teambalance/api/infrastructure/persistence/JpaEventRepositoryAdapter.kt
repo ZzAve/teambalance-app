@@ -16,6 +16,14 @@ import java.util.UUID
  * transaction. A write method is `@Transactional` so its read-then-write (resolve the technical id,
  * then persist) commits as a unit, and so a batch commits or rolls back whole.
  *
+ * **Reads are transactional too, and must be.** `open-in-view` is off, so without one Spring Data's
+ * own per-query transaction ends before this adapter maps the result, leaving a detached entity —
+ * and `internalize()` then walks the LAZY `EventJpaEntity.eventType`. That throws
+ * `LazyInitializationException` unless Hibernate happened to fetch the association eagerly (which it
+ * does only because a final Kotlin entity can't be proxied). CI does not grant that accident: it
+ * failed 25 event tests. `readOnly = true` keeps the session open across query *and* mapping, which
+ * is the guarantee the class-level `@Transactional` used to provide.
+ *
  * The transaction is therefore opened deep inside the request, long after the per-request tenant
  * schema has been bound, so the connection it acquires always routes to the caller's tenant.
  */
@@ -25,15 +33,19 @@ class JpaEventRepositoryAdapter(
     private val eventTypeJpaRepository: SpringDataEventTypeRepository,
 ) : EventRepository {
 
+    @Transactional(readOnly = true)
     override fun findById(id: UUID): Event? =
         jpaRepository.findByUuid(id)?.internalize()
 
+    @Transactional(readOnly = true)
     override fun findUpcoming(since: Instant): List<Event> =
         jpaRepository.findByStartTimeGreaterThanOrderByStartTimeAsc(since).map { it.internalize() }
 
+    @Transactional(readOnly = true)
     override fun findAll(): List<Event> =
         jpaRepository.findAllByOrderByStartTimeDesc().map { it.internalize() }
 
+    @Transactional(readOnly = true)
     override fun findByRecurringGroup(group: UUID): List<Event> =
         jpaRepository.findByRecurringGroupOrderByStartTimeAsc(group).map { it.internalize() }
 

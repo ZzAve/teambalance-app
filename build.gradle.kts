@@ -21,14 +21,18 @@ allprojects {
 // so the pre-commit gate is enforced for every contributor. The destination is 
 // resolved via `git rev-parse --git-path hooks` rather than
 // hardcoded to `.git/hooks` to support worktrees
-val resolvedHooksDir: String = providers.exec {
-    isIgnoreExitValue = true
-    workingDir = layout.projectDirectory.asFile
-    commandLine("git", "rev-parse", "--git-path", "hooks")
-}.standardOutput.asText.get().trim()
+val resolvedHooksDir: String = runCatching {
+    providers.exec {
+        isIgnoreExitValue = true
+        workingDir = layout.projectDirectory.asFile
+        commandLine("git", "rev-parse", "--git-path", "hooks")
+    }.standardOutput.asText.get().trim()
+}.getOrDefault("")
 
-// Blank output means no git binary or not a git repo (e.g. a source archive
-// build): skip wiring the task entirely rather than fabricating a `.git` dir.
+// Blank output means not a git repo (git present, non-zero exit) or no git
+// binary at all (process fails to start → runCatching yields ""), e.g. the
+// Docker/source-archive build. Either way, skip wiring the task entirely
+// rather than fabricating a `.git` dir.
 if (resolvedHooksDir.isNotBlank()) {
     val installGitHooks by tasks.registering(Copy::class) {
         description = "Installs git hooks from .githooks into the git-resolved hooks dir"

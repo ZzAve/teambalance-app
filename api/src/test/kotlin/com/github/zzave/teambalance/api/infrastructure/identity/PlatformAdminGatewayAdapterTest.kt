@@ -18,7 +18,7 @@ private class FakeUsers(private val byId: Map<UUID, User>) : UserRepository {
     override fun save(user: User): User = user
 }
 
-class PlatformAdminGuardTest : FunSpec() {
+class PlatformAdminGatewayAdapterTest : FunSpec() {
     init {
         val adminId = UUID.randomUUID()
         val plainId = UUID.randomUUID()
@@ -26,7 +26,7 @@ class PlatformAdminGuardTest : FunSpec() {
         val plain = User(UserId(plainId), Email("someone@example.com"), "Someone")
         val users = FakeUsers(mapOf(adminId to admin, plainId to plain))
 
-        fun guard(allowlist: List<String>) = PlatformAdminGuard(users, PlatformAdmins(allowlist))
+        fun guard(allowlist: List<String>) = PlatformAdminGatewayAdapter(users, PlatformAdmins(allowlist))
 
         test("isPlatformAdmin is true for an allowlisted email, case-insensitively") {
             guard(listOf("Admin@TeamBalance.NL")).isPlatformAdmin(adminId) shouldBe true

@@ -28,6 +28,11 @@ class MemberNotFoundException(userId: UserId) : NotFoundException("Member not fo
 
 class PositionNotFoundException(id: PositionId) : NotFoundException("Position not found: $id")
 
+// The codes-admin CRUD (#154 Slice 4) targets a code that does not exist → 404. Distinct from the
+// opaque INVALID_CREATION_CODE 403 the redeem path returns: this is an authenticated platform admin
+// managing codes, not a founder probing them, so a plain not-found is appropriate.
+class CreationCodeNotFoundException(code: String) : NotFoundException("Creation code not found: $code")
+
 // `code` is a stable machine-readable discriminator (the message is human prose) so clients can tell
 // the forbidden reasons apart — e.g. "no team yet" (send to login/onboarding) vs "not an admin".
 sealed class ForbiddenException(message: String, val code: String) : TeambalanceException(message)
@@ -93,3 +98,8 @@ class AlreadyInTeamException(userId: UUID) :
 // caller picks a different name.
 class TeamSlugTakenException(slug: String) :
     ConflictException("A team with slug '$slug' already exists", "TEAM_SLUG_TAKEN")
+
+// Revoking (deleting) a code that has already been consumed is refused: a consumed code is the audit
+// record of a real team's creation, not a pending invite to withdraw. The admin can't un-consume it.
+class CreationCodeConsumedException(code: String) :
+    ConflictException("Creation code '$code' has already been consumed", "CREATION_CODE_CONSUMED")

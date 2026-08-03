@@ -1,5 +1,6 @@
 package com.github.zzave.teambalance.api.infrastructure.persistence
 
+import com.github.zzave.teambalance.api.domain.model.PositionId
 import com.github.zzave.teambalance.api.domain.model.Role
 import com.github.zzave.teambalance.api.domain.model.TeamMember
 import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
@@ -39,7 +40,7 @@ class JpaTeamMemberRepositoryAdapter(
         userId = UUID.fromString(getUserId()),
         displayName = getDisplayName(),
         role = getPermissionRole(),
-        positionId = getPositionId()?.let { UUID.fromString(it) },
+        positionId = getPositionId()?.let { PositionId(UUID.fromString(it)) },
         position = getPosition(),
         onboarded = getOnboarded(),
     )
@@ -63,8 +64,8 @@ class JpaTeamMemberRepositoryAdapter(
     }
 
     @Transactional
-    override fun assignPosition(teamId: UUID, userId: UUID, positionId: UUID?) {
-        jpaRepository.assignPosition(teamId, userId, positionId)
+    override fun assignPosition(teamId: UUID, userId: UUID, positionId: PositionId?) {
+        jpaRepository.assignPosition(teamId, userId, positionId?.value)
     }
 
     @Transactional

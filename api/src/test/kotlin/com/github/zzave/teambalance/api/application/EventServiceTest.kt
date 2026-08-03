@@ -5,6 +5,7 @@ import com.github.zzave.teambalance.api.domain.model.Event
 import com.github.zzave.teambalance.api.domain.model.EventSeriesScope
 import com.github.zzave.teambalance.api.domain.model.EventType
 import com.github.zzave.teambalance.api.domain.model.EventTypeId
+import com.github.zzave.teambalance.api.domain.model.PositionId
 import com.github.zzave.teambalance.api.domain.model.Recurrence
 import com.github.zzave.teambalance.api.domain.model.RecurrenceFrequency
 import com.github.zzave.teambalance.api.domain.model.Role
@@ -58,7 +59,7 @@ private class EventFakeMemberRepo(private val admins: Set<UUID>) : TeamMemberRep
     override fun addMember(teamId: UUID, userId: UUID) = Unit
     override fun updateRole(teamId: UUID, userId: UUID, role: Role) = Unit
     override fun deactivate(teamId: UUID, userId: UUID) = Unit
-    override fun assignPosition(teamId: UUID, userId: UUID, positionId: UUID?) = Unit
+    override fun assignPosition(teamId: UUID, userId: UUID, positionId: PositionId?) = Unit
     override fun markOnboarded(teamId: UUID, userId: UUID, at: Instant) = Unit
     override fun countAdmins(teamId: UUID): Int = admins.size
 }

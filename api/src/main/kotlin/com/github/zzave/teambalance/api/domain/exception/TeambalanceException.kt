@@ -2,6 +2,7 @@ package com.github.zzave.teambalance.api.domain.exception
 
 import com.github.zzave.teambalance.api.domain.model.EventId
 import com.github.zzave.teambalance.api.domain.model.EventTypeId
+import com.github.zzave.teambalance.api.domain.model.PositionId
 import java.util.UUID
 
 sealed class TeambalanceException(message: String) : RuntimeException(message)
@@ -17,7 +18,7 @@ class AttendanceNotFoundException(eventId: EventId, userId: UUID) :
 
 class MemberNotFoundException(userId: UUID) : NotFoundException("Member not found: $userId")
 
-class PositionNotFoundException(id: UUID) : NotFoundException("Position not found: $id")
+class PositionNotFoundException(id: PositionId) : NotFoundException("Position not found: $id")
 
 // `code` is a stable machine-readable discriminator (the message is human prose) so clients can tell
 // the forbidden reasons apart — e.g. "no team yet" (send to login/onboarding) vs "not an admin".

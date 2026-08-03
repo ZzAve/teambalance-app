@@ -5,6 +5,7 @@ import com.github.zzave.teambalance.api.domain.exception.LastAdminException
 import com.github.zzave.teambalance.api.domain.exception.MemberNotFoundException
 import com.github.zzave.teambalance.api.domain.exception.NameTakenException
 import com.github.zzave.teambalance.api.domain.exception.PositionNotFoundException
+import com.github.zzave.teambalance.api.domain.model.PositionId
 import com.github.zzave.teambalance.api.domain.model.Role
 import com.github.zzave.teambalance.api.domain.model.TeamMember
 import com.github.zzave.teambalance.api.domain.port.PositionRepository
@@ -55,7 +56,7 @@ class MemberService(
         targetUserId: UUID,
         rawName: String,
         role: Role,
-        positionId: UUID? = null,
+        positionId: PositionId? = null,
     ): TeamMember {
         if (callerId != targetUserId) authorizationService.requireAdmin(callerId, teamId)
 
@@ -88,7 +89,7 @@ class MemberService(
     }
 
     // A non-null position must belong to this team; null clears the assignment.
-    private fun requirePositionInTeam(teamId: UUID, positionId: UUID?) {
+    private fun requirePositionInTeam(teamId: UUID, positionId: PositionId?) {
         if (positionId != null && !positionRepository.existsInTeam(teamId, positionId)) {
             throw PositionNotFoundException(positionId)
         }
@@ -100,7 +101,7 @@ class MemberService(
      * Idempotent: re-running keeps the member onboarded and simply re-applies name/position. The
      * controller enforces that [userId] is the authenticated principal (self-only).
      */
-    fun completeOnboarding(userId: UUID, teamId: UUID, rawName: String, positionId: UUID?): TeamMember {
+    fun completeOnboarding(userId: UUID, teamId: UUID, rawName: String, positionId: PositionId?): TeamMember {
         val currentRole = teamMemberRepository.findRole(teamId, userId)
             ?: throw MemberNotFoundException(userId)
         updateMember(userId, teamId, userId, rawName, currentRole, positionId)

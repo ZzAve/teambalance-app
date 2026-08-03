@@ -2,6 +2,7 @@ package com.github.zzave.teambalance.api.interfaces
 
 import com.github.zzave.teambalance.api.application.PositionService
 import com.github.zzave.teambalance.api.domain.model.Position
+import com.github.zzave.teambalance.api.domain.model.PositionId
 import com.github.zzave.teambalance.api.domain.port.CurrentTeamGateway
 import com.github.zzave.teambalance.api.domain.port.CurrentUserGateway
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.CreatePosition
@@ -43,7 +44,7 @@ class PositionController(
         val renamed = positionService.renamePosition(
             callerId = caller,
             teamId = teamId,
-            id = UUID.fromString(request.path.id),
+            id = request.path.id.consumePositionId(),
             rawLabel = request.body.label,
         )
         return RenamePosition.Response200(renamed.toDto())
@@ -52,9 +53,16 @@ class PositionController(
     override suspend fun deletePosition(request: DeletePosition.Request): DeletePosition.Response<*> {
         val caller = currentUserGateway.requireCurrentUserId()
         val teamId = currentTeamGateway.requireCurrentTeamId()
-        positionService.deletePosition(caller, teamId, UUID.fromString(request.path.id))
+        positionService.deletePosition(caller, teamId, request.path.id.consumePositionId())
         return DeletePosition.Response204(Unit)
     }
 }
 
-private fun Position.toDto() = PositionDto(id = id.toString(), label = label)
+private fun Position.toDto() = PositionDto(id = id.produce(), label = label)
+
+// The Wirespec edge for a position's identity — the contract still carries a bare UUID string,
+// unchanged by PositionId (ADR-0018). internal so MemberController, which reads a position off
+// a member request, converts the same way.
+internal fun String.consumePositionId(): PositionId = PositionId(UUID.fromString(this))
+
+internal fun PositionId.produce(): String = value.toString()

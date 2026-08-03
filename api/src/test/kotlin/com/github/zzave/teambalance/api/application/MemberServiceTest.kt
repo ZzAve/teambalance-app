@@ -7,6 +7,7 @@ import com.github.zzave.teambalance.api.domain.exception.NameTakenException
 import com.github.zzave.teambalance.api.domain.exception.NotTeamAdminException
 import com.github.zzave.teambalance.api.domain.exception.PositionNotFoundException
 import com.github.zzave.teambalance.api.domain.model.Position
+import com.github.zzave.teambalance.api.domain.model.PositionId
 import com.github.zzave.teambalance.api.domain.model.Role
 import com.github.zzave.teambalance.api.domain.model.TeamMember
 import com.github.zzave.teambalance.api.domain.model.User
@@ -38,7 +39,7 @@ private class FakeMembershipRepo(
     private data class Membership(
         var role: Role,
         var active: Boolean,
-        var positionId: UUID? = null,
+        var positionId: PositionId? = null,
         var onboarded: Boolean = false,
     )
 
@@ -75,7 +76,7 @@ private class FakeMembershipRepo(
     override fun deactivate(teamId: UUID, userId: UUID) {
         store[teamId to userId]?.active = false
     }
-    override fun assignPosition(teamId: UUID, userId: UUID, positionId: UUID?) {
+    override fun assignPosition(teamId: UUID, userId: UUID, positionId: PositionId?) {
         store[teamId to userId]?.positionId = positionId
     }
     override fun markOnboarded(teamId: UUID, userId: UUID, at: java.time.Instant) {
@@ -87,26 +88,26 @@ private class FakeMembershipRepo(
 
 // Positions keyed by id, each tagged with the team it belongs to so existsInTeam can reject
 // a position id that exists but under a different team (the "other team" invalid case).
-private class MemberFakePositionRepo(seed: List<Triple<UUID, UUID, String>>) : PositionRepository {
+private class MemberFakePositionRepo(seed: List<Triple<PositionId, UUID, String>>) : PositionRepository {
     private data class Row(val teamId: UUID, var label: String)
 
-    private val store: MutableMap<UUID, Row> =
+    private val store: MutableMap<PositionId, Row> =
         seed.associate { (id, teamId, label) -> id to Row(teamId, label) }.toMutableMap()
 
     override fun listByTeam(teamId: UUID): List<Position> =
         store.filterValues { it.teamId == teamId }.map { Position(it.key, it.value.label) }.sortedBy { it.label }
     override fun create(teamId: UUID, label: String): Position {
-        val id = UUID.randomUUID()
+        val id = PositionId(UUID.randomUUID())
         store[id] = Row(teamId, label)
         return Position(id, label)
     }
-    override fun rename(id: UUID, label: String): Position {
+    override fun rename(id: PositionId, label: String): Position {
         store.getValue(id).label = label
         return Position(id, label)
     }
-    override fun delete(id: UUID) { store.remove(id) }
-    override fun findById(id: UUID): Position? = store[id]?.let { Position(id, it.label) }
-    override fun existsInTeam(teamId: UUID, positionId: UUID): Boolean =
+    override fun delete(id: PositionId) { store.remove(id) }
+    override fun findById(id: PositionId): Position? = store[id]?.let { Position(id, it.label) }
+    override fun existsInTeam(teamId: UUID, positionId: PositionId): Boolean =
         store[positionId]?.teamId == teamId
 }
 
@@ -118,8 +119,8 @@ class MemberServiceTest : FunSpec() {
         val lisaId = UUID.randomUUID()
 
         // A "Setter" position on the team, plus one on a different team to test cross-team rejection.
-        val setterPositionId = UUID.randomUUID()
-        val otherTeamPositionId = UUID.randomUUID()
+        val setterPositionId = PositionId(UUID.randomUUID())
+        val otherTeamPositionId = PositionId(UUID.randomUUID())
 
         val fixedClock = java.time.Clock.fixed(java.time.Instant.parse("2026-07-22T10:00:00Z"), java.time.ZoneOffset.UTC)
 

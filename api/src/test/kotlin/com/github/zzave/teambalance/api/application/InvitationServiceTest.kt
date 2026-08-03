@@ -2,6 +2,7 @@ package com.github.zzave.teambalance.api.application
 
 import com.github.zzave.teambalance.api.domain.exception.NotTeamAdminException
 import com.github.zzave.teambalance.api.domain.model.Invitation
+import com.github.zzave.teambalance.api.domain.model.PositionId
 import com.github.zzave.teambalance.api.domain.model.Role
 import com.github.zzave.teambalance.api.domain.model.TeamMember
 import com.github.zzave.teambalance.api.domain.port.InvitationRepository
@@ -41,7 +42,7 @@ private class InviteFakeMemberRepo(private val admins: Set<UUID>) : TeamMemberRe
     override fun findTeamId(userId: UUID): UUID? = null
     override fun updateRole(teamId: UUID, userId: UUID, role: Role) = Unit
     override fun deactivate(teamId: UUID, userId: UUID) = Unit
-    override fun assignPosition(teamId: UUID, userId: UUID, positionId: UUID?) = Unit
+    override fun assignPosition(teamId: UUID, userId: UUID, positionId: PositionId?) = Unit
     override fun markOnboarded(teamId: UUID, userId: UUID, at: Instant) = Unit
     override fun countAdmins(teamId: UUID): Int = admins.size
 }

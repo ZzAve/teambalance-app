@@ -1,5 +1,6 @@
 package com.github.zzave.teambalance.api.domain.port
 
+import com.github.zzave.teambalance.api.domain.model.PositionId
 import com.github.zzave.teambalance.api.domain.model.Role
 import com.github.zzave.teambalance.api.domain.model.TeamMember
 import java.time.Instant
@@ -26,7 +27,7 @@ interface TeamMemberRepository {
     fun deactivate(teamId: UUID, userId: UUID)
 
     /** Assigns [positionId] to an active member, or clears the assignment when null. */
-    fun assignPosition(teamId: UUID, userId: UUID, positionId: UUID?)
+    fun assignPosition(teamId: UUID, userId: UUID, positionId: PositionId?)
 
     /** Stamps onboarded_at=[at] for an active member, marking their one-time onboarding complete. */
     fun markOnboarded(teamId: UUID, userId: UUID, at: Instant)

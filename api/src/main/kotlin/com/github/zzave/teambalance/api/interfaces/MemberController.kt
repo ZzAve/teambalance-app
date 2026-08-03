@@ -52,7 +52,7 @@ class MemberController(
             targetUserId = UUID.fromString(request.path.userId),
             rawName = request.body.displayName,
             role = Role.valueOf(request.body.role),
-            positionId = request.body.positionId?.let { UUID.fromString(it) },
+            positionId = request.body.positionId?.let { it.consumePositionId() },
         )
         return UpdateMember.Response200(updated.toDto())
     }
@@ -65,7 +65,7 @@ class MemberController(
             userId = userId,
             teamId = teamId,
             rawName = request.body.displayName,
-            positionId = request.body.positionId?.let { UUID.fromString(it) },
+            positionId = request.body.positionId?.let { it.consumePositionId() },
         )
         return CompleteOnboarding.Response200(updated.toDto())
     }
@@ -82,6 +82,6 @@ private fun TeamMember.toDto() = Member(
     userId = userId.toString(),
     displayName = displayName,
     role = role,
-    position = positionId?.let { Position(id = it.toString(), label = position ?: "") },
+    position = positionId?.let { Position(id = it.produce(), label = position ?: "") },
     onboarded = onboarded,
 )

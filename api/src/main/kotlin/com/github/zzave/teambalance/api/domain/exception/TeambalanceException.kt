@@ -5,6 +5,12 @@ import java.util.UUID
 
 sealed class TeambalanceException(message: String) : RuntimeException(message)
 
+// Well-formed request that cannot yield a valid team name/slug/schema → 400 (base TeambalanceException
+// handler). Blank, too long, or with no slug-usable characters, or one whose derived tenant schema
+// exceeds Postgres' 63-byte identifier limit (rejected, never truncated — truncation would desync
+// schema_name from the real schema and break search_path routing).
+class InvalidTeamNameException(message: String) : TeambalanceException(message)
+
 sealed class NotFoundException(message: String) : TeambalanceException(message)
 
 class EventNotFoundException(id: EventId) : NotFoundException("Event not found: $id")
@@ -25,8 +31,18 @@ sealed class ForbiddenException(message: String, val code: String) : Teambalance
 class NotTeamAdminException(userId: UUID, teamId: UUID) :
     ForbiddenException("User $userId is not an admin of team $teamId", "NOT_TEAM_ADMIN")
 
+// Opaque by design: a creation code that is unknown, already consumed, or expired all surface the same
+// 403 with the same code/message, so a caller can't enumerate which codes exist or probe their state.
+class InvalidCreationCodeException :
+    ForbiddenException("Invalid creation code", "INVALID_CREATION_CODE")
+
 class NoTeamMembershipException(userId: UUID) :
     ForbiddenException("User $userId has no active team membership", "NO_TEAM_MEMBERSHIP")
+
+// Caller is not on the platform-admin allowlist (teambalance.platform-admins). Fail-closed: the empty
+// default forbids everyone. Gates the platform-admin surface (creation-codes CRUD, #154 Slice 4).
+class NotPlatformAdminException(userId: UUID) :
+    ForbiddenException("User $userId is not a platform admin", "NOT_PLATFORM_ADMIN")
 
 class CannotChangeOwnRoleException(userId: UUID) :
     ForbiddenException("User $userId cannot elevate their own role", "CANNOT_SELF_PROMOTE")
@@ -63,3 +79,13 @@ class LastAdminException(teamId: UUID) :
 
 class PositionLabelTakenException(label: String) :
     ConflictException("Position '$label' already exists in this team", "POSITION_LABEL_TAKEN")
+
+// The founder already belongs to a team. v1 is one-team-per-user (routing does ORDER BY … LIMIT 1);
+// multi-team membership + switcher is deferred to #143.
+class AlreadyInTeamException(userId: UUID) :
+    ConflictException("User $userId already belongs to a team", "ALREADY_IN_TEAM")
+
+// A team with this slug (and therefore this derived schema) already exists. No auto-suffixing — the
+// caller picks a different name.
+class TeamSlugTakenException(slug: String) :
+    ConflictException("A team with slug '$slug' already exists", "TEAM_SLUG_TAKEN")

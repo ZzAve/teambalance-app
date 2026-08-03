@@ -1,0 +1,185 @@
+package com.github.zzave.teambalance.api.application
+
+import com.github.zzave.teambalance.api.domain.exception.AlreadyInTeamException
+import com.github.zzave.teambalance.api.domain.exception.InvalidCreationCodeException
+import com.github.zzave.teambalance.api.domain.exception.InvalidTeamNameException
+import com.github.zzave.teambalance.api.domain.exception.TeamSlugTakenException
+import com.github.zzave.teambalance.api.domain.model.Role
+import com.github.zzave.teambalance.api.domain.model.TeamMember
+import com.github.zzave.teambalance.api.domain.model.User
+import com.github.zzave.teambalance.api.domain.port.TeamCreationCodeRepository
+import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
+import com.github.zzave.teambalance.api.domain.port.TeamNotifier
+import com.github.zzave.teambalance.api.domain.port.TeamRegistrar
+import com.github.zzave.teambalance.api.domain.port.TeamRepository
+import com.github.zzave.teambalance.api.domain.port.TenantProvisioner
+import com.github.zzave.teambalance.api.domain.port.UserRepository
+import io.kotest.assertions.throwables.shouldThrow
+import io.kotest.core.spec.style.FunSpec
+import io.kotest.matchers.collections.shouldContainExactly
+import io.kotest.matchers.shouldBe
+import java.time.Clock
+import java.time.Instant
+import java.time.ZoneOffset
+import java.util.UUID
+
+private class FakeMemberRepo(private val existingTeam: UUID?) : TeamMemberRepository {
+    override fun findTeamId(userId: UUID): UUID? = existingTeam
+    override fun findByTeamId(teamId: UUID): List<TeamMember> = emptyList()
+    override fun findDisplayName(userId: UUID): String? = null
+    override fun findMembersByUserIds(userIds: Set<UUID>): Map<UUID, TeamMember> = emptyMap()
+    override fun findRole(teamId: UUID, userId: UUID): Role? = null
+    override fun addMember(teamId: UUID, userId: UUID) = Unit
+    override fun updateRole(teamId: UUID, userId: UUID, role: Role) = Unit
+    override fun deactivate(teamId: UUID, userId: UUID) = Unit
+    override fun assignPosition(teamId: UUID, userId: UUID, positionId: UUID?) = Unit
+    override fun markOnboarded(teamId: UUID, userId: UUID, at: Instant) = Unit
+    override fun countAdmins(teamId: UUID): Int = 0
+}
+
+private class FakeTeamRepo(private val existingSlugs: Set<String> = emptySet()) : TeamRepository {
+    override fun findAllSchemaNames(): List<String> = emptyList()
+    override fun existsBySlug(slug: String): Boolean = slug in existingSlugs
+}
+
+private class FakeCodeRepo(private val redeemable: Boolean) : TeamCreationCodeRepository {
+    override fun isRedeemable(code: String, now: Instant): Boolean = redeemable
+}
+
+// Both the provisioner and the registrar append to one shared log so tests can assert ordering
+// (provision-first) as well as whether each step ran at all.
+private class RecordingProvisioner(private val calls: MutableList<String>, private val fail: Boolean = false) :
+    TenantProvisioner {
+    override fun provisionTenant(schemaName: String) {
+        if (fail) throw IllegalStateException("provision boom")
+        calls += "provision:$schemaName"
+    }
+}
+
+private class RecordingRegistrar(
+    private val calls: MutableList<String>,
+    private val teamId: UUID,
+) : TeamRegistrar {
+    override fun register(
+        creationCode: String,
+        founderId: UUID,
+        name: String,
+        slug: String,
+        schemaName: String,
+        now: Instant,
+    ): UUID {
+        calls += "register:$slug"
+        return teamId
+    }
+}
+
+private class FakeUserRepo(private val user: User?) : UserRepository {
+    override fun findById(id: UUID): User? = user
+    override fun findByEmail(email: String): User? = null
+    override fun save(user: User): User = user
+}
+
+private class RecordingNotifier(private val throwing: Boolean = false) : TeamNotifier {
+    val created = mutableListOf<Triple<String, String, String>>()
+    val audited = mutableListOf<Triple<String, String, String>>()
+    override fun teamCreated(founderEmail: String, teamName: String, teamSlug: String) {
+        if (throwing) throw IllegalStateException("mail boom")
+        created += Triple(founderEmail, teamName, teamSlug)
+    }
+    override fun creationCodeConsumed(teamName: String, teamSlug: String, founderEmail: String) {
+        if (throwing) throw IllegalStateException("mail boom")
+        audited += Triple(teamName, teamSlug, founderEmail)
+    }
+}
+
+class TeamServiceTest : FunSpec() {
+    init {
+        val clock = Clock.fixed(Instant.EPOCH, ZoneOffset.UTC)
+        val founder = UUID.randomUUID()
+        val newTeamId = UUID.randomUUID()
+        val founderUser = User(id = founder, email = "founder@example.com", displayName = "Founder")
+
+        fun service(
+            calls: MutableList<String> = mutableListOf(),
+            existingTeam: UUID? = null,
+            existingSlugs: Set<String> = emptySet(),
+            redeemable: Boolean = true,
+            provisionFails: Boolean = false,
+            user: User? = founderUser,
+            notifier: TeamNotifier = RecordingNotifier(),
+        ) = TeamService(
+            teamMemberRepository = FakeMemberRepo(existingTeam),
+            teamRepository = FakeTeamRepo(existingSlugs),
+            creationCodeRepository = FakeCodeRepo(redeemable),
+            tenantProvisioner = RecordingProvisioner(calls, provisionFails),
+            teamRegistrar = RecordingRegistrar(calls, newTeamId),
+            userRepository = FakeUserRepo(user),
+            teamNotifier = notifier,
+            clock = clock,
+        )
+
+        test("creates the team: provisions the schema, registers, and returns id/name/slug") {
+            val calls = mutableListOf<String>()
+            val created = service(calls).createTeam(founder, "Setpoint VT", "GOODCODE")
+
+            created.id shouldBe newTeamId
+            created.name shouldBe "Setpoint VT"
+            created.slug shouldBe "setpoint-vt"
+            // Provision-first: the schema is created before the atomic register commits.
+            calls shouldContainExactly listOf("provision:team_setpoint_vt", "register:setpoint-vt")
+        }
+
+        test("rejects a founder who already belongs to a team, without provisioning") {
+            val calls = mutableListOf<String>()
+            shouldThrow<AlreadyInTeamException> {
+                service(calls, existingTeam = UUID.randomUUID()).createTeam(founder, "New Team", "GOODCODE")
+            }
+            calls shouldBe emptyList()
+        }
+
+        test("rejects a blank / underivable name with 400 before any provisioning") {
+            val calls = mutableListOf<String>()
+            shouldThrow<InvalidTeamNameException> { service(calls).createTeam(founder, "   ", "GOODCODE") }
+            calls shouldBe emptyList()
+        }
+
+        test("rejects a taken slug with 409 before any provisioning") {
+            val calls = mutableListOf<String>()
+            shouldThrow<TeamSlugTakenException> {
+                service(calls, existingSlugs = setOf("setpoint-vt")).createTeam(founder, "Setpoint VT", "GOODCODE")
+            }
+            calls shouldBe emptyList()
+        }
+
+        test("rejects a non-redeemable code with opaque 403 and does NOT provision a schema") {
+            val calls = mutableListOf<String>()
+            shouldThrow<InvalidCreationCodeException> {
+                service(calls, redeemable = false).createTeam(founder, "Setpoint VT", "BADCODE")
+            }
+            // The peek gates provisioning — a bad code never leaves an orphan schema behind.
+            calls shouldBe emptyList()
+        }
+
+        test("a provisioning failure propagates and no registration happens") {
+            val calls = mutableListOf<String>()
+            shouldThrow<RuntimeException> {
+                service(calls, provisionFails = true).createTeam(founder, "Setpoint VT", "GOODCODE")
+            }
+            calls shouldBe emptyList() // provisioner threw before recording; register never reached
+        }
+
+        test("notifies the founder and audits the platform admins on success") {
+            val notifier = RecordingNotifier()
+            service(notifier = notifier).createTeam(founder, "Setpoint VT", "GOODCODE")
+
+            notifier.created shouldContainExactly listOf(Triple("founder@example.com", "Setpoint VT", "setpoint-vt"))
+            notifier.audited shouldContainExactly listOf(Triple("Setpoint VT", "setpoint-vt", "founder@example.com"))
+        }
+
+        test("a failing notifier never fails a committed creation (fire-and-forget)") {
+            val created = service(notifier = RecordingNotifier(throwing = true))
+                .createTeam(founder, "Setpoint VT", "GOODCODE")
+            created.id shouldBe newTeamId
+        }
+    }
+}

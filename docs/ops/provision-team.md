@@ -18,7 +18,7 @@
     Credentials are secrets (container env `SPRING_DATASOURCE_*` / Secret Manager). Never print them.
 - **Docker** (for Step 2 — the tenant migration runs via the Flyway CLI image; no local `flyway`/`psql` needed).
 - A local checkout of this repo (Step 2 mounts `api/src/main/resources/db/tenant-migration/`).
-- The team's: name, slug (URL-safe), sport.
+- The team's: name, slug (URL-safe).
 - The owner's email + display name. (Positions are optional up front — see Step 3.)
 
 ## Step 1 — Insert the Team + owner (one transaction)
@@ -35,8 +35,8 @@ intended key — misleading for a first insert).
 BEGIN;
 
 WITH t AS (
-    INSERT INTO public.teams (name, slug, sport, schema_name)
-    VALUES ('Setpoint VT', 'setpoint-vt', 'Volleyball', 'team_setpoint_vt')
+    INSERT INTO public.teams (name, slug, schema_name)
+    VALUES ('Setpoint VT', 'setpoint-vt', 'team_setpoint_vt')
     RETURNING id
 ),
 u AS (

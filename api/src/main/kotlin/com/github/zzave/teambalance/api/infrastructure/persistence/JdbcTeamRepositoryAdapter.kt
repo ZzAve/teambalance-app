@@ -17,4 +17,11 @@ class JdbcTeamRepositoryAdapter(
     override fun findAllSchemaNames(): List<String> =
         // schema_name is NOT NULL; filterNotNull only satisfies queryForList's nullable element type.
         jdbcTemplate.queryForList("SELECT schema_name FROM public.teams", String::class.java).filterNotNull()
+
+    override fun existsBySlug(slug: String): Boolean =
+        jdbcTemplate.queryForObject(
+            "SELECT EXISTS(SELECT 1 FROM public.teams WHERE slug = ?)",
+            Boolean::class.java,
+            slug,
+        ) ?: false
 }

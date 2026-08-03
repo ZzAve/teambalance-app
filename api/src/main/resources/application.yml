@@ -100,6 +100,10 @@ teambalance:
       enabled: false
   # Base URL of the SPA; used to build the clickable magic-link (…/auth/verify?token=…).
   frontend-base-url: ${TEAMBALANCE_FRONTEND_BASE_URL:https://app.teambalance.nl}
+  # Comma-separated platform-admin emails (PLATFORM_ADMIN_EMAILS). Empty default = fail-closed: nobody
+  # is a platform admin. Gates the creation-codes admin surface (#154 Slice 4) and receives the
+  # "code consumed → team created" audit notifications. See ADR-0015.
+  platform-admins: ${PLATFORM_ADMIN_EMAILS:}
   session:
     # Absolute session lifetime, enforced by SessionUserContextFilter (Spring Session itself only does
     # the sliding idle timeout above). A single login — even one kept continuously active — must

@@ -117,6 +117,19 @@ class CreateTeamControllerIT : TeamBalanceIT() {
                 founder,
             )
             routedSchema shouldBe schema
+
+            // The consumed code records the team it produced.
+            val createdTeamId = jdbcTemplate.queryForObject(
+                "SELECT created_team_id::text FROM public.team_creation_codes WHERE code = ?",
+                String::class.java,
+                "CT-HAPPY-${founder.take(8)}",
+            )
+            val teamId = jdbcTemplate.queryForObject(
+                "SELECT id::text FROM public.teams WHERE schema_name = ?",
+                String::class.java,
+                schema,
+            )
+            createdTeamId shouldBe teamId
         }
 
         test("a consumed code cannot be reused — second use returns opaque 403") {

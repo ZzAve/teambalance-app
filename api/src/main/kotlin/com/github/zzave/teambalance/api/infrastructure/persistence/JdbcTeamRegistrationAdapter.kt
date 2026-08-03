@@ -58,6 +58,14 @@ class JdbcTeamRegistrationAdapter(
 
         val teamId = insertTeam(name, slug, schemaName)
 
+        // Link the consumed code to the team it produced (same transaction), so the codes-admin
+        // surface can show which team a code was redeemed into.
+        jdbcTemplate.update(
+            "UPDATE public.team_creation_codes SET created_team_id = ? WHERE code = ?",
+            teamId,
+            creationCode,
+        )
+
         // Founding admin: ADMIN role, onboarding already complete (skips /welcome), no position yet.
         jdbcTemplate.update(
             "INSERT INTO public.team_members (team_id, user_id, role, onboarded_at) VALUES (?, ?, ?, ?)",

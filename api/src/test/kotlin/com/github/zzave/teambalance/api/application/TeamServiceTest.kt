@@ -7,6 +7,7 @@ import com.github.zzave.teambalance.api.domain.exception.TeamSlugTakenException
 import com.github.zzave.teambalance.api.domain.model.Email
 import com.github.zzave.teambalance.api.domain.model.PositionId
 import com.github.zzave.teambalance.api.domain.model.Role
+import com.github.zzave.teambalance.api.domain.model.TeamCreationCode
 import com.github.zzave.teambalance.api.domain.model.TeamId
 import com.github.zzave.teambalance.api.domain.model.TeamMember
 import com.github.zzave.teambalance.api.domain.model.User
@@ -56,6 +57,11 @@ private class FakeTeamRepo(private val existingSlugs: Set<String> = emptySet()) 
 
 private class FakeCodeRepo(private val redeemable: Boolean) : TeamCreationCodeRepository {
     override fun isRedeemable(code: String, now: Instant): Boolean = redeemable
+    override fun findAll(): List<TeamCreationCode> = emptyList()
+    override fun findByCode(code: String): TeamCreationCode? = null
+    override fun insert(code: String, createdAt: Instant, expiresAt: Instant?): TeamCreationCode =
+        TeamCreationCode(code, createdAt, expiresAt, null, null, null)
+    override fun delete(code: String) = Unit
 }
 
 // Both the provisioner and the registrar append to one shared log so tests can assert ordering

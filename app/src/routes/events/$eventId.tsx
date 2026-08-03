@@ -110,7 +110,7 @@ function EventDetailPage() {
       {/* Sticky sub-header with back navigation — sits below the app header */}
       <div className="sticky top-[57px] z-30 -mx-4 mb-2 flex items-center gap-2 border-b border-border/60 bg-background/95 px-4 py-2 backdrop-blur-sm">
         <Link to="/" aria-label="Back to events">
-          <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
+          <Button variant="ghost" size="icon" className="h-11 w-11 shrink-0">
             <ArrowLeft size={18} />
           </Button>
         </Link>

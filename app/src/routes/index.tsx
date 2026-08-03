@@ -78,7 +78,8 @@ function EventListPage() {
                             setTab(t)
                         }}
                         className={[
-                            'rounded-full px-4 py-1 text-sm font-medium capitalize transition-all',
+                            'relative rounded-full px-4 py-1 text-sm font-medium capitalize transition-all',
+                            "before:absolute before:inset-x-0 before:top-1/2 before:h-11 before:-translate-y-1/2 before:content-['']",
                             tab === t
                                 ? 'bg-card text-foreground shadow-sm'
                                 : 'text-muted-foreground hover:text-foreground',
@@ -92,7 +93,7 @@ function EventListPage() {
             {/* T3.3: Event type filter pills */}
             {eventTypes && eventTypes.length > 0 && (
                 <div
-                    className="-mx-4 mt-3 flex gap-2 overflow-x-auto px-4 pb-0.5 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+                    className="-mx-4 mt-3 flex min-h-[44px] items-center gap-2 overflow-x-auto px-4 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
                     {eventTypes.map((type) => {
                         const isActive = activeTypeIds.has(type.id)
                         const color = type.color ?? '#888'
@@ -109,7 +110,8 @@ function EventListPage() {
                                     color: '#fff'
                                 } : {borderColor: color + '66', color}}
                                 className={[
-                                    'shrink-0 rounded-full border px-3 py-1 text-xs font-medium transition-all',
+                                    'relative shrink-0 rounded-full border px-3 py-1 text-xs font-medium transition-all',
+                                    "before:absolute before:inset-x-0 before:top-1/2 before:h-11 before:-translate-y-1/2 before:content-['']",
                                     isActive ? '' : 'hover:opacity-80',
                                 ].join(' ')}
                             >

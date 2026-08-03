@@ -18,13 +18,9 @@ allprojects {
 }
 
 // Installs the committed git hooks (.githooks) into the repository's hooks dir
-// so the pre-commit gate (`make yolo test`) is enforced for every contributor.
-// The destination is resolved via `git rev-parse --git-path hooks` rather than
-// hardcoded to `.git/hooks`: in a linked worktree `.git` is a file pointing at
-// the shared common dir, so hooks live elsewhere. git's own answer is correct
-// for both a normal checkout and a worktree. Uses the config-cache-safe
-// providers.exec API; a missing git binary or non-repo build yields blank
-// output and the task skips instead of failing.
+// so the pre-commit gate is enforced for every contributor. The destination is 
+// resolved via `git rev-parse --git-path hooks` rather than
+// hardcoded to `.git/hooks` to support worktrees
 val resolvedHooksDir: String = providers.exec {
     isIgnoreExitValue = true
     workingDir = layout.projectDirectory.asFile

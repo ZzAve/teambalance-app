@@ -73,7 +73,7 @@ class EventService(
 
         return eventRepository.save(
             Event(
-                id = EventId(UUID.randomUUID()),
+                id = EventId.random(),
                 eventType = eventType,
                 title = potential.title,
                 description = potential.description,
@@ -133,7 +133,7 @@ class EventService(
             dates.map { date ->
                 val startTime = OccurrenceSchedule.startInstant(date, timeOfDay, clock.zone)
                 Event(
-                    id = EventId(UUID.randomUUID()),
+                    id = EventId.random(),
                     eventType = eventType,
                     title = title,
                     description = description,

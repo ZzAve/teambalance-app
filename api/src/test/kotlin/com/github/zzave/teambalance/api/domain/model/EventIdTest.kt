@@ -28,6 +28,10 @@ class EventIdTest : FunSpec({
         mapOf(EventId(raw) to "x").getValue(EventId(raw)) shouldBe "x"
     }
 
+    test("random mints a fresh identity, so an event that has no row yet can name itself") {
+        EventId.random() shouldNotBe EventId.random()
+    }
+
     /**
      * The wire edge converts explicitly (`value.toString()`), so this override is for diagnostics
      * only — an interpolated id in an exception message must read as a bare UUID rather than

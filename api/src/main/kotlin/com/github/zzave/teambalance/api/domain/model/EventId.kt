@@ -16,4 +16,13 @@ import java.util.UUID
 @JvmInline
 value class EventId(val value: UUID) {
     override fun toString(): String = value.toString()
+
+    companion object {
+        /**
+         * Mints an identity for an event that does not exist yet. The domain names its own events —
+         * the id is chosen before anything is persisted, so nothing downstream has to wait for a
+         * database-generated key.
+         */
+        fun random(): EventId = EventId(UUID.randomUUID())
+    }
 }

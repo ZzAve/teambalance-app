@@ -58,7 +58,7 @@ object SeriesModification {
      */
     fun planEdit(
         series: List<Event>,
-        targetId: UUID,
+        targetId: EventId,
         scope: EventSeriesScope,
         edit: EventEdit,
         newTailGroup: UUID,
@@ -103,9 +103,9 @@ object SeriesModification {
      */
     fun planDelete(
         series: List<Event>,
-        targetId: UUID,
+        targetId: EventId,
         scope: EventSeriesScope,
-    ): List<UUID> {
+    ): List<EventId> {
         val ordered = series.sortedBy { it.startTime }
         val idx = ordered.indexOfFirst { it.id == targetId }
         require(idx >= 0) { "target $targetId is not part of the series" }

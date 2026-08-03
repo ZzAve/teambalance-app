@@ -5,7 +5,7 @@ import java.util.UUID
 
 data class Attendance(
     val id: UUID,
-    val eventId: UUID,
+    val eventId: EventId,
     val userId: UUID,
     val state: AttendanceState,
     val updatedAt: Instant,

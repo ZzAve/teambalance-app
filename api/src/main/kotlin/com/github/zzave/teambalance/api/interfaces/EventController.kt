@@ -6,6 +6,7 @@ import com.github.zzave.teambalance.api.application.PotentialEvent
 import com.github.zzave.teambalance.api.domain.model.AttendanceState as DomainAttendanceState
 import com.github.zzave.teambalance.api.domain.model.EventAttendance
 import com.github.zzave.teambalance.api.domain.model.EventReference as DomainEventReference
+import com.github.zzave.teambalance.api.domain.model.EventId
 import com.github.zzave.teambalance.api.domain.model.EventSeriesScope as DomainEventSeriesScope
 import com.github.zzave.teambalance.api.domain.model.MemberAttendance
 import com.github.zzave.teambalance.api.domain.model.UNASSIGNED
@@ -66,7 +67,7 @@ class EventController(
     }
 
     override suspend fun getEvent(request: GetEvent.Request): GetEvent.Response<*> {
-        val id = UUID.fromString(request.path.id)
+        val id = request.path.id.consumeEventId()
         val event = eventService.getEvent(id)
             ?: return GetEvent.Response404(Unit)
 
@@ -75,7 +76,7 @@ class EventController(
 
         return GetEvent.Response200(
             EventDetail(
-                id = event.id.toString(),
+                id = event.id.produce(),
                 eventType = event.eventType.produce(),
                 title = event.title,
                 description = event.description,
@@ -95,7 +96,7 @@ class EventController(
     override suspend fun updateEvent(request: UpdateEvent.Request): UpdateEvent.Response<*> {
         val teamId = currentTeamGateway.requireCurrentTeamId()
         val userId = currentUserGateway.requireCurrentUserId()
-        val id = UUID.fromString(request.path.id)
+        val id = request.path.id.consumeEventId()
         val req = request.body
         val events = eventService.updateEvent(
             callerId = userId,
@@ -119,7 +120,7 @@ class EventController(
     override suspend fun deleteEvent(request: DeleteEvent.Request): DeleteEvent.Response<*> {
         val teamId = currentTeamGateway.requireCurrentTeamId()
         val userId = currentUserGateway.requireCurrentUserId()
-        val id = UUID.fromString(request.path.id)
+        val id = request.path.id.consumeEventId()
         return if (eventService.deleteEvent(callerId = userId, teamId = teamId, id = id, scope = request.queries.scope.consume())) {
             DeleteEvent.Response204(Unit)
         } else {
@@ -127,6 +128,14 @@ class EventController(
         }
     }
 }
+
+// The Wirespec edge for an event's identity. The contract carries an opaque UUID string and is
+// unchanged by EventId (ADR-0018) — these two functions are the only place in the inbound adapter
+// that wraps or unwraps it, so nothing between here and the JPA edge handles a bare UUID.
+// internal so AttendanceController and RecurringEventController convert the same way.
+internal fun String.consumeEventId(): EventId = EventId(UUID.fromString(this))
+
+internal fun EventId.produce(): String = value.toString()
 
 // A missing scope query param defaults to THIS (ADR-0014); otherwise it maps 1:1 to the domain enum.
 private fun GeneratedEventSeriesScope?.consume(): DomainEventSeriesScope = when (this) {
@@ -160,7 +169,7 @@ private fun List<DomainEventReference>.externalize(): List<EventReference> =
 // Takes the already-resolved projection so mapping stays free of data access (no per-event N+1).
 internal fun com.github.zzave.teambalance.api.domain.model.Event.produce(attendance: EventAttendance): Event =
     Event(
-        id = id.toString(),
+        id = id.produce(),
         eventType = eventType.produce(),
         title = title,
         description = description,

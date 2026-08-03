@@ -31,7 +31,7 @@ class SeriesModificationTest : FunSpec({
     fun occurrence(date: String, group: UUID? = originalGroup): Event {
         val start = LocalDate.parse(date).atTime(LocalTime.of(20, 30)).atZone(zone).toInstant()
         return Event(
-            id = UUID.nameUUIDFromBytes(date.toByteArray()),
+            id = EventId(UUID.nameUUIDFromBytes(date.toByteArray())),
             eventType = training,
             title = "Weekly Training",
             description = "old",
@@ -195,10 +195,10 @@ class SeriesModificationTest : FunSpec({
 
     test("an unknown target id is rejected") {
         shouldThrow<IllegalArgumentException> {
-            SeriesModification.planEdit(series, UUID.randomUUID(), EventSeriesScope.THIS, editOn(), tailGroup, zone)
+            SeriesModification.planEdit(series, EventId(UUID.randomUUID()), EventSeriesScope.THIS, editOn(), tailGroup, zone)
         }
         shouldThrow<IllegalArgumentException> {
-            SeriesModification.planDelete(series, UUID.randomUUID(), EventSeriesScope.ALL)
+            SeriesModification.planDelete(series, EventId(UUID.randomUUID()), EventSeriesScope.ALL)
         }
     }
 })

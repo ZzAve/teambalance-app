@@ -5,6 +5,7 @@ import com.github.zzave.teambalance.api.domain.exception.EventTypeNotFoundExcept
 import com.github.zzave.teambalance.api.domain.exception.RecurrenceExceedsCapException
 import com.github.zzave.teambalance.api.domain.model.Event
 import com.github.zzave.teambalance.api.domain.model.EventEdit
+import com.github.zzave.teambalance.api.domain.model.EventId
 import com.github.zzave.teambalance.api.domain.model.EventReference
 import com.github.zzave.teambalance.api.domain.model.EventSeriesScope
 import com.github.zzave.teambalance.api.domain.model.OccurrenceSchedule
@@ -55,7 +56,7 @@ class EventService(
 
     fun getAllEvents(): List<Event> = eventRepository.findAll()
 
-    fun getEvent(id: UUID): Event? = eventRepository.findById(id)
+    fun getEvent(id: EventId): Event? = eventRepository.findById(id)
 
     // No attendance rows are seeded here: the summary and roster are derived from current team
     // membership at read time (see AttendanceService), so a member's absence of a row simply reads
@@ -72,7 +73,7 @@ class EventService(
 
         return eventRepository.save(
             Event(
-                id = UUID.randomUUID(),
+                id = EventId.random(),
                 eventType = eventType,
                 title = potential.title,
                 description = potential.description,
@@ -132,7 +133,7 @@ class EventService(
             dates.map { date ->
                 val startTime = OccurrenceSchedule.startInstant(date, timeOfDay, clock.zone)
                 Event(
-                    id = UUID.randomUUID(),
+                    id = EventId.random(),
                     eventType = eventType,
                     title = title,
                     description = description,
@@ -179,7 +180,7 @@ class EventService(
     fun updateEvent(
         callerId: UUID,
         teamId: UUID,
-        id: UUID,
+        id: EventId,
         scope: EventSeriesScope,
         eventTypeId: UUID,
         title: String,
@@ -227,7 +228,7 @@ class EventService(
      *
      * Admin-only: [callerId] must be an admin of [teamId] (the server-resolved tenant).
      */
-    fun deleteEvent(callerId: UUID, teamId: UUID, id: UUID, scope: EventSeriesScope): Boolean {
+    fun deleteEvent(callerId: UUID, teamId: UUID, id: EventId, scope: EventSeriesScope): Boolean {
         authorizationService.requireAdmin(callerId, teamId)
         val target = eventRepository.findById(id) ?: return false
         eventRepository.deleteAllById(SeriesModification.planDelete(seriesOf(target), id, scope))

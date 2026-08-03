@@ -13,7 +13,7 @@ import java.util.UUID
  */
 class EventAttendanceTest : FunSpec({
 
-    val eventId = UUID.randomUUID()
+    val eventId = EventId(UUID.randomUUID())
 
     fun member(name: String, position: String? = null) = TeamMember(
         userId = UUID.randomUUID(),

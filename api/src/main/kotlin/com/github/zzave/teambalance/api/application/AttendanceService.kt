@@ -3,6 +3,7 @@ package com.github.zzave.teambalance.api.application
 import com.github.zzave.teambalance.api.domain.model.Attendance
 import com.github.zzave.teambalance.api.domain.model.AttendanceState
 import com.github.zzave.teambalance.api.domain.model.EventAttendance
+import com.github.zzave.teambalance.api.domain.model.EventId
 import com.github.zzave.teambalance.api.domain.model.TeamMember
 import com.github.zzave.teambalance.api.domain.port.AttendanceRepository
 import com.github.zzave.teambalance.api.domain.port.EventRepository
@@ -30,7 +31,7 @@ class AttendanceService(
      */
     fun setAttendance(
         teamId: UUID,
-        eventId: UUID,
+        eventId: EventId,
         userId: UUID,
         state: AttendanceState,
         changedBy: UUID,
@@ -66,14 +67,14 @@ class AttendanceService(
     // that rule; `members` is passed in so a listing resolves the roster once.
 
     /** The resolved attendance picture for one event — its response rows fetched once. */
-    fun attendanceFor(eventId: UUID, members: List<TeamMember>): EventAttendance =
+    fun attendanceFor(eventId: EventId, members: List<TeamMember>): EventAttendance =
         EventAttendance.resolve(members, attendanceRepository.findByEventId(eventId))
 
     /**
      * The resolved picture for many events, keyed by event id, from a single response-row query —
      * kills the per-event N+1 when producing a listing.
      */
-    fun attendanceForAll(eventIds: List<UUID>, members: List<TeamMember>): Map<UUID, EventAttendance> {
+    fun attendanceForAll(eventIds: List<EventId>, members: List<TeamMember>): Map<EventId, EventAttendance> {
         val responsesByEvent = attendanceRepository.findByEventIds(eventIds).groupBy { it.eventId }
         return eventIds.associateWith { EventAttendance.resolve(members, responsesByEvent[it] ?: emptyList()) }
     }

@@ -50,9 +50,9 @@ class RecurrenceContractTest : FunSpec({
             val scope = EventSeriesScope.valueOf(case["scope"].asText())
             // The fixture keys occurrences by stable string ids; map them to UUIDs deterministically
             // so the backend Event model can carry them, then translate results back for comparison.
-            val idByUuid = case["series"].associate { uuidOf(it["id"].asText()) to it["id"].asText() }
+            val idByUuid = case["series"].associate { eventIdOf(it["id"].asText()) to it["id"].asText() }
             val series = case["series"].map { event(it["id"].asText(), Instant.parse(it["startTime"].asText())) }
-            val currentId = uuidOf(case["currentId"].asText())
+            val currentId = eventIdOf(case["currentId"].asText())
             val expected = case["affectedIds"].map { it.asText() }
 
             // A scoped DELETE's affected set is exactly the ids it removes.
@@ -84,10 +84,10 @@ private val EDIT = EventEdit(
     endTime = Instant.parse("2026-01-01T19:30:00Z"),
 )
 
-private fun uuidOf(id: String): UUID = UUID.nameUUIDFromBytes(id.toByteArray())
+private fun eventIdOf(id: String): EventId = EventId(UUID.nameUUIDFromBytes(id.toByteArray()))
 
 private fun event(id: String, startTime: Instant): Event = Event(
-    id = uuidOf(id),
+    id = eventIdOf(id),
     eventType = EVENT_TYPE,
     title = "Training",
     description = null,

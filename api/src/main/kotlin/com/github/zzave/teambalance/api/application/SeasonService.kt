@@ -5,13 +5,6 @@ import com.github.zzave.teambalance.api.domain.port.SeasonRepository
 import java.time.LocalDate
 import java.util.UUID
 
-/**
- * Framework-free (ADR-0018): a plain class constructed by the composition root from its ports.
- *
- * The class-level `@Transactional` it replaces was ceremony — each use case makes a single port call,
- * and [SeasonRepository.save] upserts one row — so there is no boundary to move. Transactionality is
- * the adapter's, one port call at a time.
- */
 class SeasonService(
     private val seasonRepository: SeasonRepository,
     private val authorizationService: AuthorizationService,

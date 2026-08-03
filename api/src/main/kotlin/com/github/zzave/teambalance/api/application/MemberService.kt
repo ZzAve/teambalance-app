@@ -16,14 +16,6 @@ import java.util.UUID
 
 private const val MAX_DISPLAY_NAME_LENGTH = 100
 
-/**
- * Framework-free (ADR-0018): a plain class constructed by the composition root from its ports.
- *
- * It never carried a `@Transactional`, so nothing about its boundaries changes here. [updateMember]
- * and [completeOnboarding] write two to three rows across two ports and are therefore *not* atomic —
- * as they already were not. That pre-existing gap is deliberately left alone rather than quietly
- * closed under an architecture refactor.
- */
 class MemberService(
     private val userRepository: UserRepository,
     private val teamMemberRepository: TeamMemberRepository,

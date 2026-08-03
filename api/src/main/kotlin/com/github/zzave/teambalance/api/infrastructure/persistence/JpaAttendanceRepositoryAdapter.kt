@@ -11,20 +11,18 @@ import org.springframework.transaction.annotation.Transactional
 import java.util.UUID
 
 /**
- * The transactional boundary sits here, on the adapter: one call to a port method is one transaction
- * (ADR-0018). A write method is `@Transactional` so its read-then-write (resolve the event row and the
- * technical id, then persist) commits as a unit.
+ * The transactional boundary sits on the adapter (ADR-0018): one call to a port method is one
+ * transaction. Writes are `@Transactional` so their read-then-write — resolve the event row and its
+ * technical id, then persist — commits as a unit.
  *
- * **Reads are transactional too, and must be.** `open-in-view` is off, so without one Spring Data's
- * own per-query transaction ends before this adapter maps the result, leaving a detached entity — and
- * `internalize()` then walks the LAZY `AttendanceJpaEntity.event` to read its uuid. Dropping
- * `readOnly = true` from these three reads fails AttendanceControllerTest and AttendanceMembershipIT
- * with "Could not initialize proxy [EventJpaEntity] - no session" (measured, then restored). Keeping
- * the session open across query *and* mapping is the guarantee `AttendanceService`'s class-level
- * `@Transactional` used to provide.
+ * Reads are `@Transactional(readOnly = true)` because `open-in-view` is off: without a surrounding
+ * transaction Spring Data's per-query transaction ends before this adapter maps the result, and
+ * `internalize()` then walks the LAZY `AttendanceJpaEntity.event` to read its uuid on a detached
+ * entity — failing with "Could not initialize proxy [EventJpaEntity] - no session". The session must
+ * stay open across query *and* mapping.
  *
- * The transaction is therefore opened deep inside the request, long after the per-request tenant
- * schema has been bound, so the connection it acquires always routes to the caller's tenant.
+ * The transaction opens deep inside the request, after the per-request tenant schema has been bound,
+ * so the connection it acquires always routes to the caller's tenant.
  */
 @Repository
 class JpaAttendanceRepositoryAdapter(

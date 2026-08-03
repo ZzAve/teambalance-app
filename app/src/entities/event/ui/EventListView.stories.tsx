@@ -20,7 +20,7 @@ type Story = StoryObj<typeof meta>
 export const Loading: Story = {
   args: { groups: [], isLoading: true },
   play: async ({ canvas }) => {
-    await expect(canvas.getByText('Loading...')).toBeInTheDocument()
+    await expect(canvas.getByRole('status', { name: /loading events/i })).toBeInTheDocument()
   },
 }
 

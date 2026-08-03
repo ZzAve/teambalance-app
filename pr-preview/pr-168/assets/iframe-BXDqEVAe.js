@@ -1,1 +1,0 @@
-import{t as e}from"./iframe-swPMb15K.js";e();

@@ -10,7 +10,6 @@ import com.github.zzave.teambalance.api.domain.port.EmailSender
 import com.github.zzave.teambalance.api.domain.port.MagicLinkTokenRepository
 import com.github.zzave.teambalance.api.domain.port.TeamRepository
 import com.github.zzave.teambalance.api.domain.port.UserRepository
-import org.springframework.stereotype.Service
 import java.security.MessageDigest
 import java.security.SecureRandom
 import java.time.Clock
@@ -19,7 +18,6 @@ import java.time.Instant
 import java.util.Base64
 import java.util.UUID
 
-@Service
 class AuthService(
     private val magicLinkTokenRepository: MagicLinkTokenRepository,
     private val userRepository: UserRepository,

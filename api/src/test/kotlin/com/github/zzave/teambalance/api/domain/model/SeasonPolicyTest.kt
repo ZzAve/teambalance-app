@@ -22,7 +22,7 @@ import java.util.UUID
 class SeasonPolicyTest : FunSpec({
 
     val zone = ZoneId.of("Europe/Amsterdam")
-    val training = EventType(id = UUID.randomUUID(), name = "Training", color = "#123456")
+    val training = EventType(id = EventTypeId(UUID.randomUUID()), name = "Training", color = "#123456")
 
     // A configured autumn window: 2026-09-01 .. 2026-09-30 inclusive.
     val season = Season(start = LocalDate.of(2026, 9, 1), end = LocalDate.of(2026, 9, 30))

@@ -6,6 +6,7 @@ import com.github.zzave.teambalance.api.domain.exception.RecurrenceExceedsCapExc
 import com.github.zzave.teambalance.api.domain.model.Event
 import com.github.zzave.teambalance.api.domain.model.EventEdit
 import com.github.zzave.teambalance.api.domain.model.EventId
+import com.github.zzave.teambalance.api.domain.model.EventTypeId
 import com.github.zzave.teambalance.api.domain.model.EventReference
 import com.github.zzave.teambalance.api.domain.model.EventSeriesScope
 import com.github.zzave.teambalance.api.domain.model.OccurrenceSchedule
@@ -108,7 +109,7 @@ class EventService(
     fun createRecurringEvents(
         callerId: UUID,
         teamId: UUID,
-        eventTypeId: UUID,
+        eventTypeId: EventTypeId,
         title: String,
         description: String?,
         location: String?,
@@ -182,7 +183,7 @@ class EventService(
         teamId: UUID,
         id: EventId,
         scope: EventSeriesScope,
-        eventTypeId: UUID,
+        eventTypeId: EventTypeId,
         title: String,
         description: String?,
         startTime: Instant,

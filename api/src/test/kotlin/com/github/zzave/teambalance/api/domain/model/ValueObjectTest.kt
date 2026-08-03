@@ -21,6 +21,7 @@ class ValueObjectTest : FunSpec({
         val uuid = UUID.randomUUID()
 
         AttendanceId(uuid).toString() shouldBe uuid.toString()
+        EventTypeId(uuid).toString() shouldBe uuid.toString()
     }
 
     test("an identifier factory mints a fresh identity for a row that does not exist yet") {

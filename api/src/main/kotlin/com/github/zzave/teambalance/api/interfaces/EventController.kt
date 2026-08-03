@@ -103,7 +103,7 @@ class EventController(
             teamId = teamId,
             id = id,
             scope = request.queries.scope.consume(),
-            eventTypeId = UUID.fromString(req.eventTypeId),
+            eventTypeId = req.eventTypeId.consumeEventTypeId(),
             title = req.title,
             description = req.description,
             startTime = Instant.parse(req.startTime.value),
@@ -146,7 +146,7 @@ private fun GeneratedEventSeriesScope?.consume(): DomainEventSeriesScope = when 
 
 private fun com.github.zzave.teambalance.api.interfaces.generated.model.CreateEventRequest.consume() =
     PotentialEvent(
-        eventTypeId = UUID.fromString(eventTypeId),
+        eventTypeId = eventTypeId.consumeEventTypeId(),
         title = title,
         description = description,
         startTime = Instant.parse(startTime.value),
@@ -191,7 +191,7 @@ private fun MemberAttendance.produce() = AttendanceEntry(
 )
 
 private fun com.github.zzave.teambalance.api.domain.model.EventType.produce() =
-    EventTypeSummary(id = id.toString(), name = name, color = color)
+    EventTypeSummary(id = id.produce(), name = name, color = color)
 
 private fun Map<DomainAttendanceState, Int>.produce(roleBreakdown: List<Pair<String, Int>>) =
     AttendanceSummary(

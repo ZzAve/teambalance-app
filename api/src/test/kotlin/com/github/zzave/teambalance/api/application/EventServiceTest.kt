@@ -4,6 +4,7 @@ import com.github.zzave.teambalance.api.domain.exception.NotTeamAdminException
 import com.github.zzave.teambalance.api.domain.model.Event
 import com.github.zzave.teambalance.api.domain.model.EventSeriesScope
 import com.github.zzave.teambalance.api.domain.model.EventType
+import com.github.zzave.teambalance.api.domain.model.EventTypeId
 import com.github.zzave.teambalance.api.domain.model.Recurrence
 import com.github.zzave.teambalance.api.domain.model.RecurrenceFrequency
 import com.github.zzave.teambalance.api.domain.model.Role
@@ -39,7 +40,7 @@ private class ExplodingEventRepo : EventRepository {
 
 private class ExplodingEventTypeRepo : EventTypeRepository {
     override fun findAll(): List<EventType> = error("unused")
-    override fun findById(id: UUID): EventType? = error("repository must not be reached for an unauthorized caller")
+    override fun findById(id: EventTypeId): EventType? = error("repository must not be reached for an unauthorized caller")
 }
 
 private class ExplodingSeasonRepo : SeasonRepository {
@@ -76,7 +77,7 @@ class EventServiceTest : FunSpec() {
         )
 
         val potential = PotentialEvent(
-            eventTypeId = UUID.randomUUID(),
+            eventTypeId = EventTypeId(UUID.randomUUID()),
             title = "Match",
             description = null,
             startTime = Instant.parse("2026-08-01T20:00:00Z"),
@@ -95,7 +96,7 @@ class EventServiceTest : FunSpec() {
                     teamId = teamId,
                     id = EventId(UUID.randomUUID()),
                     scope = EventSeriesScope.THIS,
-                    eventTypeId = UUID.randomUUID(),
+                    eventTypeId = EventTypeId(UUID.randomUUID()),
                     title = "x",
                     description = null,
                     startTime = potential.startTime,
@@ -116,7 +117,7 @@ class EventServiceTest : FunSpec() {
                 service.createRecurringEvents(
                     callerId = nonAdmin,
                     teamId = teamId,
-                    eventTypeId = UUID.randomUUID(),
+                    eventTypeId = EventTypeId(UUID.randomUUID()),
                     title = "Training",
                     description = null,
                     location = null,

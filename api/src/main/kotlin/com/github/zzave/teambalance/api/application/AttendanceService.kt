@@ -8,13 +8,23 @@ import com.github.zzave.teambalance.api.domain.model.TeamMember
 import com.github.zzave.teambalance.api.domain.port.AttendanceRepository
 import com.github.zzave.teambalance.api.domain.port.EventRepository
 import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
-import org.springframework.stereotype.Service
-import org.springframework.transaction.annotation.Transactional
 import java.time.Clock
 import java.util.UUID
 
-@Service
-@Transactional
+/**
+ * Framework-free (ADR-0018): a plain class constructed by the composition root from its ports, with
+ * no `@Service`, no `@Transactional`, and no notion of a transaction at all.
+ *
+ * Transactionality belongs to the adapter: one call to a port method is one transaction. Every use
+ * case here writes at most one row, through a single port call, so nothing needs a transaction
+ * spanning several calls.
+ *
+ * What that deliberately gives up versus the class-level `@Transactional` it replaces: [setAttendance]
+ * no longer reads the existing response and writes the new one in one transaction. The write stays
+ * atomic; only the read is now a separate snapshot. Nothing here took a lock or carried an `@Version`,
+ * so two concurrent responses for the same member could already interleave between the SELECT and the
+ * UPDATE under Postgres' READ COMMITTED default — the guarantee is the same one we had.
+ */
 class AttendanceService(
     private val attendanceRepository: AttendanceRepository,
     private val eventRepository: EventRepository,

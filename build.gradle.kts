@@ -17,17 +17,33 @@ allprojects {
     }
 }
 
-// Installs the committed git hooks (.githooks) into .git/hooks so the
-// pre-commit gate (`make format test e2e`) is enforced for every contributor.
-val installGitHooks by tasks.registering(Copy::class) {
-    description = "Installs git hooks from .githooks into .git/hooks"
-    group = "git hooks"
-    from(layout.projectDirectory.dir(".githooks"))
-    into(layout.projectDirectory.dir(".git/hooks"))
-    filePermissions { unix("0755") }
-}
+// Installs the committed git hooks (.githooks) into the repository's hooks dir
+// so the pre-commit gate (`make yolo test`) is enforced for every contributor.
+// The destination is resolved via `git rev-parse --git-path hooks` rather than
+// hardcoded to `.git/hooks`: in a linked worktree `.git` is a file pointing at
+// the shared common dir, so hooks live elsewhere. git's own answer is correct
+// for both a normal checkout and a worktree. Uses the config-cache-safe
+// providers.exec API; a missing git binary or non-repo build yields blank
+// output and the task skips instead of failing.
+val resolvedHooksDir: String = providers.exec {
+    isIgnoreExitValue = true
+    workingDir = layout.projectDirectory.asFile
+    commandLine("git", "rev-parse", "--git-path", "hooks")
+}.standardOutput.asText.get().trim()
 
-// Auto-install whenever anything is built, mirroring husky's `prepare` step.
-subprojects {
-    tasks.matching { it.name == "build" }.configureEach { dependsOn(installGitHooks) }
+// Blank output means no git binary or not a git repo (e.g. a source archive
+// build): skip wiring the task entirely rather than fabricating a `.git` dir.
+if (resolvedHooksDir.isNotBlank()) {
+    val installGitHooks by tasks.registering(Copy::class) {
+        description = "Installs git hooks from .githooks into the git-resolved hooks dir"
+        group = "git hooks"
+        from(layout.projectDirectory.dir(".githooks"))
+        into(resolvedHooksDir)
+        filePermissions { unix("0755") }
+    }
+
+    // Auto-install whenever anything is built, mirroring husky's `prepare` step.
+    subprojects {
+        tasks.matching { it.name == "build" }.configureEach { dependsOn(installGitHooks) }
+    }
 }

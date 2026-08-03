@@ -117,8 +117,8 @@ class EventTransactionBoundaryIT : TeamBalanceIT() {
         tenantSchemaManager.provisionTenantSchema("public")
         jdbcTemplate.execute(
             """
-            INSERT INTO public.teams (id, name, slug, sport, schema_name)
-            VALUES ('$TEAM_ID'::uuid, 'Test Team', 'test-team', 'Volleyball', 'public')
+            INSERT INTO public.teams (id, name, slug, schema_name)
+            VALUES ('$TEAM_ID'::uuid, 'Test Team', 'test-team', 'public')
             ON CONFLICT DO NOTHING
             """,
         )

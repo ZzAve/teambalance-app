@@ -34,8 +34,8 @@ class PositionControllerIT : TeamBalanceIT() {
         tenantSchemaManager.provisionPlatformSchema()
         tenantSchemaManager.provisionTenantSchema(TEAM_SCHEMA)
         jdbcTemplate.execute(
-            "INSERT INTO public.teams (id, name, slug, sport, schema_name) " +
-                "VALUES ('$TEAM_ID'::uuid, 'Position IT Team', 'position-it-team', 'Volleyball', '$TEAM_SCHEMA') " +
+            "INSERT INTO public.teams (id, name, slug, schema_name) " +
+                "VALUES ('$TEAM_ID'::uuid, 'Position IT Team', 'position-it-team', '$TEAM_SCHEMA') " +
                 "ON CONFLICT DO NOTHING",
         )
         // Shared DB, no per-test rollback — reset this team's roster and positions to a known state.

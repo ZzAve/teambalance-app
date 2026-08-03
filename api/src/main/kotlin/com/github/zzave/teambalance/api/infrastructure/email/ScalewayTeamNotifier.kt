@@ -3,7 +3,6 @@ package com.github.zzave.teambalance.api.infrastructure.email
 import com.github.zzave.teambalance.api.domain.port.TeamNotifier
 import com.github.zzave.teambalance.api.infrastructure.config.PlatformAdmins
 import org.slf4j.LoggerFactory
-import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Primary
 import org.springframework.context.annotation.Profile
 import org.springframework.http.MediaType
@@ -20,17 +19,13 @@ import org.springframework.web.client.RestClient
 @Primary
 @Profile("prod")
 class ScalewayTeamNotifier(
-    @Value("\${teambalance.email.from-name}") private val fromName: String,
-    @Value("\${teambalance.email.from-address}") private val fromAddress: String,
-    @Value("\${teambalance.email.api-key}") private val apiKey: String,
-    @Value("\${teambalance.email.project-id}") private val projectId: String,
-    @Value("\${teambalance.email.region}") private val region: String,
+    private val email: EmailProperties,
     private val platformAdmins: PlatformAdmins,
     restClientBuilder: RestClient.Builder,
 ) : TeamNotifier {
     private val log = LoggerFactory.getLogger(ScalewayTeamNotifier::class.java)
     private val restClient = restClientBuilder.build()
-    private val from = TemAddress(email = fromAddress, name = fromName)
+    private val from = TemAddress(email = email.fromAddress, name = email.fromName)
 
     override fun teamCreated(founderEmail: String, teamName: String, teamSlug: String) {
         send(
@@ -59,11 +54,11 @@ class ScalewayTeamNotifier(
                 subject = rendered.subject,
                 text = rendered.text,
                 html = rendered.html,
-                projectId = projectId,
+                projectId = email.projectId,
             )
             restClient.post()
-                .uri("https://api.scaleway.com/transactional-email/v1alpha1/regions/{region}/emails", region)
-                .header("X-Auth-Token", apiKey)
+                .uri("https://api.scaleway.com/transactional-email/v1alpha1/regions/{region}/emails", email.region)
+                .header("X-Auth-Token", email.apiKey)
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(payload)
                 .retrieve()

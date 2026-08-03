@@ -36,8 +36,8 @@ class AttendanceControllerTest : TeamBalanceIT() {
             tenantSchemaManager.provisionTenantSchema("public")
 
             jdbcTemplate.execute("""
-                INSERT INTO public.teams (id, name, slug, sport, schema_name)
-                VALUES ('$TEAM_ID'::uuid, 'Test Team 2', 'test-team-2', 'Volleyball', 'public')
+                INSERT INTO public.teams (id, name, slug, schema_name)
+                VALUES ('$TEAM_ID'::uuid, 'Test Team 2', 'test-team-2', 'public')
                 ON CONFLICT DO NOTHING
             """)
             jdbcTemplate.execute("""
@@ -80,8 +80,8 @@ class AttendanceControllerTest : TeamBalanceIT() {
             tenantSchemaManager.provisionTenantSchema("public")
 
             jdbcTemplate.execute("""
-                INSERT INTO public.teams (id, name, slug, sport, schema_name)
-                VALUES ('$TEAM_ID'::uuid, 'Test Team 2', 'test-team-2', 'Volleyball', 'public')
+                INSERT INTO public.teams (id, name, slug, schema_name)
+                VALUES ('$TEAM_ID'::uuid, 'Test Team 2', 'test-team-2', 'public')
                 ON CONFLICT DO NOTHING
             """)
             jdbcTemplate.execute("""
@@ -129,8 +129,8 @@ class AttendanceControllerTest : TeamBalanceIT() {
             val editorId = UUID.randomUUID().toString()
 
             jdbcTemplate.execute("""
-                INSERT INTO public.teams (id, name, slug, sport, schema_name)
-                VALUES ('$teamId'::uuid, 'Cross Edit Team', 'cross-edit-team-$teamId', 'Volleyball', 'cross-edit-team-$teamId')
+                INSERT INTO public.teams (id, name, slug, schema_name)
+                VALUES ('$teamId'::uuid, 'Cross Edit Team', 'cross-edit-team-$teamId', 'cross-edit-team-$teamId')
                 ON CONFLICT DO NOTHING
             """)
             jdbcTemplate.execute("""

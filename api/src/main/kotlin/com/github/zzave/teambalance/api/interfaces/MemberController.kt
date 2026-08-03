@@ -15,7 +15,6 @@ import com.github.zzave.teambalance.api.interfaces.generated.model.Member
 import com.github.zzave.teambalance.api.interfaces.generated.model.MemberList
 import com.github.zzave.teambalance.api.interfaces.generated.model.Position
 import org.springframework.web.bind.annotation.RestController
-import java.util.UUID
 
 @RestController
 class MemberController(
@@ -49,7 +48,7 @@ class MemberController(
         val updated = memberService.updateMember(
             callerId = caller,
             teamId = teamId,
-            targetUserId = UUID.fromString(request.path.userId),
+            targetUserId = request.path.userId.consumeUserId(),
             rawName = request.body.displayName,
             role = Role.valueOf(request.body.role),
             positionId = request.body.positionId?.let { it.consumePositionId() },
@@ -73,13 +72,13 @@ class MemberController(
     override suspend fun removeMember(request: RemoveMember.Request): RemoveMember.Response<*> {
         val caller = currentUserGateway.requireCurrentUserId()
         val teamId = currentTeamGateway.requireCurrentTeamId()
-        memberService.removeMember(caller, teamId, UUID.fromString(request.path.userId))
+        memberService.removeMember(caller, teamId, request.path.userId.consumeUserId())
         return RemoveMember.Response204(Unit)
     }
 }
 
 private fun TeamMember.toDto() = Member(
-    userId = userId.toString(),
+    userId = userId.produce(),
     displayName = displayName,
     role = role,
     position = positionId?.let { Position(id = it.produce(), label = position ?: "") },

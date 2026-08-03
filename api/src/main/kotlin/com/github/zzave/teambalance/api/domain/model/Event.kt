@@ -13,7 +13,7 @@ data class Event(
     val location: String?,
     val references: List<EventReference> = emptyList(),
     val recurringGroup: UUID?,
-    val createdBy: UUID,
+    val createdBy: UserId,
     val createdAt: Instant,
 ) {
     init {

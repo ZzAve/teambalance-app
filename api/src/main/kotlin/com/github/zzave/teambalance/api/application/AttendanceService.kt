@@ -6,6 +6,7 @@ import com.github.zzave.teambalance.api.domain.model.AttendanceState
 import com.github.zzave.teambalance.api.domain.model.EventAttendance
 import com.github.zzave.teambalance.api.domain.model.EventId
 import com.github.zzave.teambalance.api.domain.model.TeamMember
+import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.port.AttendanceRepository
 import com.github.zzave.teambalance.api.domain.port.EventRepository
 import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
@@ -33,9 +34,9 @@ class AttendanceService(
     fun setAttendance(
         teamId: UUID,
         eventId: EventId,
-        userId: UUID,
+        userId: UserId,
         state: AttendanceState,
-        changedBy: UUID,
+        changedBy: UserId,
     ): Attendance? {
         authorizationService.requireMember(userId, teamId)
         if (eventRepository.findById(eventId) == null) return null
@@ -80,8 +81,8 @@ class AttendanceService(
         return eventIds.associateWith { EventAttendance.resolve(members, responsesByEvent[it] ?: emptyList()) }
     }
 
-    fun findMember(userId: UUID): TeamMember? =
+    fun findMember(userId: UserId): TeamMember? =
         teamMemberRepository.findMembersByUserIds(setOf(userId)).values.firstOrNull()
 
-    fun findDisplayName(userId: UUID): String? = teamMemberRepository.findDisplayName(userId)
+    fun findDisplayName(userId: UserId): String? = teamMemberRepository.findDisplayName(userId)
 }

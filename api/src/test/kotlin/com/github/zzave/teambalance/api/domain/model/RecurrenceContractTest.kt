@@ -100,7 +100,7 @@ private fun event(id: String, startTime: Instant): Event = Event(
     location = null,
     references = emptyList(),
     recurringGroup = UUID.fromString("00000000-0000-0000-0000-000000000001"),
-    createdBy = UUID.fromString("00000000-0000-0000-0000-000000000002"),
+    createdBy = UserId(UUID.fromString("00000000-0000-0000-0000-000000000002")),
     createdAt = Instant.parse("2026-01-01T00:00:00Z"),
 )
 

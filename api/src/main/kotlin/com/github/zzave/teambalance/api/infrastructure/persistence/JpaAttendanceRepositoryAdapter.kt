@@ -3,6 +3,7 @@ package com.github.zzave.teambalance.api.infrastructure.persistence
 import com.github.zzave.teambalance.api.domain.exception.EventNotFoundException
 import com.github.zzave.teambalance.api.domain.model.Attendance
 import com.github.zzave.teambalance.api.domain.model.EventId
+import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.port.AttendanceRepository
 import com.github.zzave.teambalance.api.infrastructure.persistence.mapper.internalize
 import com.github.zzave.teambalance.api.infrastructure.persistence.mapper.externalize
@@ -22,8 +23,8 @@ class JpaAttendanceRepositoryAdapter(
         if (eventIds.isEmpty()) emptyList()
         else jpaRepository.findByEventUuidIn(eventIds.map { it.value }).map { it.internalize() }
 
-    override fun findByEventIdAndUserId(eventId: EventId, userId: UUID): Attendance? =
-        jpaRepository.findByEventUuidAndUserId(eventId.value, userId)?.internalize()
+    override fun findByEventIdAndUserId(eventId: EventId, userId: UserId): Attendance? =
+        jpaRepository.findByEventUuidAndUserId(eventId.value, userId.value)?.internalize()
 
     override fun save(attendance: Attendance): Attendance {
         val eventEntity = eventJpaRepository.findByUuid(attendance.eventId.value)

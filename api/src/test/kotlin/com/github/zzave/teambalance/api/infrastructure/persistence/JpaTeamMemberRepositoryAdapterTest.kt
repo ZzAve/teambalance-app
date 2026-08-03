@@ -2,6 +2,7 @@ package com.github.zzave.teambalance.api.infrastructure.persistence
 
 import com.github.zzave.teambalance.api.TeamBalanceIT
 import com.github.zzave.teambalance.api.domain.model.Role
+import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
 import com.github.zzave.teambalance.api.infrastructure.multitenancy.TenantSchemaManager
 import io.kotest.matchers.shouldBe
@@ -65,7 +66,7 @@ class JpaTeamMemberRepositoryAdapterTest : TeamBalanceIT() {
         }
     }
 
-    private fun seedMember(role: String, active: Boolean): Pair<UUID, UUID> {
+    private fun seedMember(role: String, active: Boolean): Pair<UUID, UserId> {
         tenantSchemaManager.provisionPlatformSchema()
         val teamId = UUID.randomUUID()
         val schemaName = "team_${teamId.toString().replace("-", "")}"
@@ -77,15 +78,15 @@ class JpaTeamMemberRepositoryAdapterTest : TeamBalanceIT() {
         return teamId to userId
     }
 
-    private fun seedMemberOnTeam(teamId: UUID, role: String, active: Boolean): UUID {
-        val userId = UUID.randomUUID()
+    private fun seedMemberOnTeam(teamId: UUID, role: String, active: Boolean): UserId {
+        val userId = UserId.random()
         jdbcTemplate.update(
             "INSERT INTO public.users (id, email, display_name) VALUES (?, ?, ?)",
-            userId, "member-$userId@test.com", "Test Member",
+            userId.value, "member-$userId@test.com", "Test Member",
         )
         jdbcTemplate.update(
             "INSERT INTO public.team_members (team_id, user_id, role, active) VALUES (?, ?, ?, ?)",
-            teamId, userId, role, active,
+            teamId, userId.value, role, active,
         )
         return userId
     }

@@ -10,6 +10,7 @@ import com.github.zzave.teambalance.api.domain.model.Recurrence
 import com.github.zzave.teambalance.api.domain.model.RecurrenceFrequency
 import com.github.zzave.teambalance.api.domain.model.Role
 import com.github.zzave.teambalance.api.domain.model.TeamMember
+import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.port.EventRepository
 import com.github.zzave.teambalance.api.domain.port.EventTypeRepository
 import com.github.zzave.teambalance.api.domain.port.SeasonRepository
@@ -50,24 +51,24 @@ private class ExplodingSeasonRepo : SeasonRepository {
 }
 
 // USER for everyone except the seeded admins — models "a real member who simply isn't an admin".
-private class EventFakeMemberRepo(private val admins: Set<UUID>) : TeamMemberRepository {
-    override fun findRole(teamId: UUID, userId: UUID): Role = if (userId in admins) Role.ADMIN else Role.USER
+private class EventFakeMemberRepo(private val admins: Set<UserId>) : TeamMemberRepository {
+    override fun findRole(teamId: UUID, userId: UserId): Role = if (userId in admins) Role.ADMIN else Role.USER
     override fun findByTeamId(teamId: UUID): List<TeamMember> = emptyList()
-    override fun findDisplayName(userId: UUID): String? = null
-    override fun findMembersByUserIds(userIds: Set<UUID>): Map<UUID, TeamMember> = emptyMap()
-    override fun findTeamId(userId: UUID): UUID? = null
-    override fun addMember(teamId: UUID, userId: UUID) = Unit
-    override fun updateRole(teamId: UUID, userId: UUID, role: Role) = Unit
-    override fun deactivate(teamId: UUID, userId: UUID) = Unit
-    override fun assignPosition(teamId: UUID, userId: UUID, positionId: PositionId?) = Unit
-    override fun markOnboarded(teamId: UUID, userId: UUID, at: Instant) = Unit
+    override fun findDisplayName(userId: UserId): String? = null
+    override fun findMembersByUserIds(userIds: Set<UserId>): Map<UserId, TeamMember> = emptyMap()
+    override fun findTeamId(userId: UserId): UUID? = null
+    override fun addMember(teamId: UUID, userId: UserId) = Unit
+    override fun updateRole(teamId: UUID, userId: UserId, role: Role) = Unit
+    override fun deactivate(teamId: UUID, userId: UserId) = Unit
+    override fun assignPosition(teamId: UUID, userId: UserId, positionId: PositionId?) = Unit
+    override fun markOnboarded(teamId: UUID, userId: UserId, at: Instant) = Unit
     override fun countAdmins(teamId: UUID): Int = admins.size
 }
 
 class EventServiceTest : FunSpec() {
     init {
         val teamId = UUID.randomUUID()
-        val nonAdmin = UUID.randomUUID()
+        val nonAdmin = UserId.random()
 
         val service = EventService(
             ExplodingEventRepo(),

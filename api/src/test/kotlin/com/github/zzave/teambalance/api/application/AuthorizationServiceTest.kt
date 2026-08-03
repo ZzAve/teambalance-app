@@ -5,23 +5,24 @@ import com.github.zzave.teambalance.api.domain.exception.NotTeamAdminException
 import com.github.zzave.teambalance.api.domain.model.PositionId
 import com.github.zzave.teambalance.api.domain.model.Role
 import com.github.zzave.teambalance.api.domain.model.TeamMember
+import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import java.util.UUID
 
-private class FakeTeamMemberRepository(private val roles: Map<Pair<UUID, UUID>, Role>) : TeamMemberRepository {
+private class FakeTeamMemberRepository(private val roles: Map<Pair<UUID, UserId>, Role>) : TeamMemberRepository {
     override fun findByTeamId(teamId: UUID) = emptyList<TeamMember>()
-    override fun findDisplayName(userId: UUID): String? = null
-    override fun findMembersByUserIds(userIds: Set<UUID>) = emptyMap<UUID, TeamMember>()
-    override fun findRole(teamId: UUID, userId: UUID): Role? = roles[teamId to userId]
-    override fun findTeamId(userId: UUID): UUID? = null
-    override fun addMember(teamId: UUID, userId: UUID) = Unit
-    override fun updateRole(teamId: UUID, userId: UUID, role: Role) = Unit
-    override fun deactivate(teamId: UUID, userId: UUID) = Unit
-    override fun assignPosition(teamId: UUID, userId: UUID, positionId: PositionId?) = Unit
-    override fun markOnboarded(teamId: UUID, userId: UUID, at: java.time.Instant) = Unit
+    override fun findDisplayName(userId: UserId): String? = null
+    override fun findMembersByUserIds(userIds: Set<UserId>) = emptyMap<UserId, TeamMember>()
+    override fun findRole(teamId: UUID, userId: UserId): Role? = roles[teamId to userId]
+    override fun findTeamId(userId: UserId): UUID? = null
+    override fun addMember(teamId: UUID, userId: UserId) = Unit
+    override fun updateRole(teamId: UUID, userId: UserId, role: Role) = Unit
+    override fun deactivate(teamId: UUID, userId: UserId) = Unit
+    override fun assignPosition(teamId: UUID, userId: UserId, positionId: PositionId?) = Unit
+    override fun markOnboarded(teamId: UUID, userId: UserId, at: java.time.Instant) = Unit
     override fun countAdmins(teamId: UUID): Int = 0
 }
 
@@ -30,9 +31,9 @@ class AuthorizationServiceTest : FunSpec() {
     init {
         val teamId = UUID.randomUUID()
         val otherTeamId = UUID.randomUUID()
-        val adminId = UUID.randomUUID()
-        val memberId = UUID.randomUUID()
-        val strangerId = UUID.randomUUID()
+        val adminId = UserId.random()
+        val memberId = UserId.random()
+        val strangerId = UserId.random()
 
         val service = AuthorizationService(
             FakeTeamMemberRepository(

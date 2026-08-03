@@ -3,6 +3,7 @@ package com.github.zzave.teambalance.api.application
 import com.github.zzave.teambalance.api.domain.exception.NoTeamMembershipException
 import com.github.zzave.teambalance.api.domain.exception.NotTeamAdminException
 import com.github.zzave.teambalance.api.domain.model.Role
+import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
 import org.springframework.stereotype.Service
 import java.util.UUID
@@ -23,15 +24,15 @@ import java.util.UUID
 class AuthorizationService(
     private val teamMemberRepository: TeamMemberRepository,
 ) {
-    fun isAdmin(userId: UUID, teamId: UUID): Boolean =
+    fun isAdmin(userId: UserId, teamId: UUID): Boolean =
         teamMemberRepository.findRole(teamId, userId) == Role.ADMIN
 
-    fun requireAdmin(userId: UUID, teamId: UUID) {
+    fun requireAdmin(userId: UserId, teamId: UUID) {
         if (!isAdmin(userId, teamId)) throw NotTeamAdminException(userId, teamId)
     }
 
     /** True when [userId] is an active member of [teamId], regardless of role. */
-    fun isMember(userId: UUID, teamId: UUID): Boolean =
+    fun isMember(userId: UserId, teamId: UUID): Boolean =
         teamMemberRepository.findRole(teamId, userId) != null
 
     /**
@@ -39,7 +40,7 @@ class AuthorizationService(
      * member may perform (e.g. trust-based attendance editing, ADR-0003). Fail-closed: a non-member
      * yields no role and is rejected. Same security contract as [requireAdmin] on its arguments.
      */
-    fun requireMember(userId: UUID, teamId: UUID) {
+    fun requireMember(userId: UserId, teamId: UUID) {
         if (!isMember(userId, teamId)) throw NoTeamMembershipException(userId)
     }
 }

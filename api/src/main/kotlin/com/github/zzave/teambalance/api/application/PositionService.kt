@@ -4,6 +4,7 @@ import com.github.zzave.teambalance.api.domain.exception.PositionLabelTakenExcep
 import com.github.zzave.teambalance.api.domain.exception.PositionNotFoundException
 import com.github.zzave.teambalance.api.domain.model.Position
 import com.github.zzave.teambalance.api.domain.model.PositionId
+import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.port.PositionRepository
 import org.springframework.stereotype.Service
 import java.util.UUID
@@ -19,7 +20,7 @@ class PositionService(
     fun listPositions(teamId: UUID): List<Position> = positionRepository.listByTeam(teamId)
 
     /** Admin-only. Trims the label and enforces per-team case-insensitive uniqueness. */
-    fun createPosition(callerId: UUID, teamId: UUID, rawLabel: String): Position {
+    fun createPosition(callerId: UserId, teamId: UUID, rawLabel: String): Position {
         authorizationService.requireAdmin(callerId, teamId)
         val label = validLabel(rawLabel)
         requireUnique(teamId, label, excludingId = null)
@@ -27,7 +28,7 @@ class PositionService(
     }
 
     /** Admin-only. Renames a position of this team, keeping labels unique (excluding itself). */
-    fun renamePosition(callerId: UUID, teamId: UUID, id: PositionId, rawLabel: String): Position {
+    fun renamePosition(callerId: UserId, teamId: UUID, id: PositionId, rawLabel: String): Position {
         authorizationService.requireAdmin(callerId, teamId)
         if (!positionRepository.existsInTeam(teamId, id)) throw PositionNotFoundException(id)
         val label = validLabel(rawLabel)
@@ -36,7 +37,7 @@ class PositionService(
     }
 
     /** Admin-only. Deletes a position; members assigned to it are silently reset to unassigned. */
-    fun deletePosition(callerId: UUID, teamId: UUID, id: PositionId) {
+    fun deletePosition(callerId: UserId, teamId: UUID, id: PositionId) {
         authorizationService.requireAdmin(callerId, teamId)
         if (!positionRepository.existsInTeam(teamId, id)) throw PositionNotFoundException(id)
         positionRepository.delete(id)

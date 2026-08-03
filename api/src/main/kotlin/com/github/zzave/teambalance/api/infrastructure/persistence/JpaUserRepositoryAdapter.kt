@@ -1,19 +1,19 @@
 package com.github.zzave.teambalance.api.infrastructure.persistence
 
 import com.github.zzave.teambalance.api.domain.model.User
+import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.port.UserRepository
 import com.github.zzave.teambalance.api.infrastructure.persistence.mapper.externalize
 import com.github.zzave.teambalance.api.infrastructure.persistence.mapper.internalize
 import org.springframework.stereotype.Repository
-import java.util.UUID
 
 @Repository
 class JpaUserRepositoryAdapter(
     private val jpaRepository: SpringDataUserRepository,
 ) : UserRepository {
 
-    override fun findById(id: UUID): User? =
-        jpaRepository.findById(id).orElse(null)?.internalize()
+    override fun findById(id: UserId): User? =
+        jpaRepository.findById(id.value).orElse(null)?.internalize()
 
     override fun findByEmail(email: String): User? =
         jpaRepository.findByEmail(email)?.internalize()

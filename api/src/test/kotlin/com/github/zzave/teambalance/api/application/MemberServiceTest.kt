@@ -11,6 +11,7 @@ import com.github.zzave.teambalance.api.domain.model.PositionId
 import com.github.zzave.teambalance.api.domain.model.Role
 import com.github.zzave.teambalance.api.domain.model.TeamMember
 import com.github.zzave.teambalance.api.domain.model.User
+import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.port.PositionRepository
 import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
 import com.github.zzave.teambalance.api.domain.port.UserRepository
@@ -21,7 +22,7 @@ import java.util.UUID
 
 private class FakeMemberUserRepo(users: List<User>) : UserRepository {
     val store = users.associateBy { it.id }.toMutableMap()
-    override fun findById(id: UUID): User? = store[id]
+    override fun findById(id: UserId): User? = store[id]
     override fun findByEmail(email: String): User? = store.values.firstOrNull { it.email == email }
     override fun save(user: User): User {
         store[user.id] = user
@@ -34,7 +35,7 @@ private class FakeMemberUserRepo(users: List<User>) : UserRepository {
 // active state per (teamId, userId) so admin/role/deactivation rules can be exercised in-memory.
 private class FakeMembershipRepo(
     private val userRepo: FakeMemberUserRepo,
-    seed: Map<UUID, List<Pair<UUID, Role>>>,
+    seed: Map<UUID, List<Pair<UserId, Role>>>,
 ) : TeamMemberRepository {
     private data class Membership(
         var role: Role,
@@ -43,7 +44,7 @@ private class FakeMembershipRepo(
         var onboarded: Boolean = false,
     )
 
-    private val store: MutableMap<Pair<UUID, UUID>, Membership> =
+    private val store: MutableMap<Pair<UUID, UserId>, Membership> =
         seed.flatMap { (teamId, members) ->
             members.map { (uid, role) -> (teamId to uid) to Membership(role, active = true) }
         }.toMap().toMutableMap()
@@ -64,22 +65,22 @@ private class FakeMembershipRepo(
                 }
             }
 
-    override fun findDisplayName(userId: UUID): String? = userRepo.findById(userId)?.displayName
-    override fun findMembersByUserIds(userIds: Set<UUID>) = emptyMap<UUID, TeamMember>()
-    override fun findRole(teamId: UUID, userId: UUID): Role? =
+    override fun findDisplayName(userId: UserId): String? = userRepo.findById(userId)?.displayName
+    override fun findMembersByUserIds(userIds: Set<UserId>) = emptyMap<UserId, TeamMember>()
+    override fun findRole(teamId: UUID, userId: UserId): Role? =
         store[teamId to userId]?.takeIf { it.active }?.role
-    override fun findTeamId(userId: UUID): UUID? = null
-    override fun addMember(teamId: UUID, userId: UUID) = Unit
-    override fun updateRole(teamId: UUID, userId: UUID, role: Role) {
+    override fun findTeamId(userId: UserId): UUID? = null
+    override fun addMember(teamId: UUID, userId: UserId) = Unit
+    override fun updateRole(teamId: UUID, userId: UserId, role: Role) {
         store[teamId to userId]?.role = role
     }
-    override fun deactivate(teamId: UUID, userId: UUID) {
+    override fun deactivate(teamId: UUID, userId: UserId) {
         store[teamId to userId]?.active = false
     }
-    override fun assignPosition(teamId: UUID, userId: UUID, positionId: PositionId?) {
+    override fun assignPosition(teamId: UUID, userId: UserId, positionId: PositionId?) {
         store[teamId to userId]?.positionId = positionId
     }
-    override fun markOnboarded(teamId: UUID, userId: UUID, at: java.time.Instant) {
+    override fun markOnboarded(teamId: UUID, userId: UserId, at: java.time.Instant) {
         store[teamId to userId]?.onboarded = true
     }
     override fun countAdmins(teamId: UUID): Int =
@@ -115,8 +116,8 @@ class MemberServiceTest : FunSpec() {
 
     init {
         val teamId = UUID.randomUUID()
-        val janId = UUID.randomUUID()
-        val lisaId = UUID.randomUUID()
+        val janId = UserId.random()
+        val lisaId = UserId.random()
 
         // A "Setter" position on the team, plus one on a different team to test cross-team rejection.
         val setterPositionId = PositionId(UUID.randomUUID())
@@ -156,7 +157,7 @@ class MemberServiceTest : FunSpec() {
 
         test("getMember throws MemberNotFoundException for a user not on the team") {
             val (service, _, _) = newService()
-            shouldThrow<MemberNotFoundException> { service.getMember(teamId, UUID.randomUUID()) }
+            shouldThrow<MemberNotFoundException> { service.getMember(teamId, UserId.random()) }
         }
 
         test("updateOwnDisplayName trims surrounding whitespace") {

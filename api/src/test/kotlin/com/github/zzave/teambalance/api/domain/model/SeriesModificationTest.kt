@@ -40,7 +40,7 @@ class SeriesModificationTest : FunSpec({
             location = "Gym",
             references = emptyList(),
             recurringGroup = group,
-            createdBy = UUID.randomUUID(),
+            createdBy = UserId.random(),
             createdAt = Instant.parse("2026-01-01T00:00:00Z"),
         )
     }

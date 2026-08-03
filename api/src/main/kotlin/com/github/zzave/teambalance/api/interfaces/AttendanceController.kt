@@ -9,7 +9,6 @@ import com.github.zzave.teambalance.api.domain.port.CurrentUserGateway
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.SetAttendance
 import com.github.zzave.teambalance.api.interfaces.generated.model.Attendance
 import org.springframework.web.bind.annotation.RestController
-import java.util.UUID
 
 @RestController
 class AttendanceController(
@@ -21,7 +20,7 @@ class AttendanceController(
     override suspend fun setAttendance(request: SetAttendance.Request): SetAttendance.Response<*> {
         val teamId = currentTeamGateway.requireCurrentTeamId()
         val eventId = request.path.eventId.consumeEventId()
-        val userId = UUID.fromString(request.path.userId)
+        val userId = request.path.userId.consumeUserId()
         val state = AttendanceState.valueOf(request.body.state)
 
         val attendance = attendanceService.setAttendance(
@@ -38,7 +37,7 @@ class AttendanceController(
             Attendance(
                 id = attendance.id.produce(),
                 eventId = attendance.eventId.produce(),
-                userId = attendance.userId.toString(),
+                userId = attendance.userId.produce(),
                 displayName = member?.displayName ?: "Unknown",
                 role = member?.position ?: UNASSIGNED,
                 state = attendance.state.name,

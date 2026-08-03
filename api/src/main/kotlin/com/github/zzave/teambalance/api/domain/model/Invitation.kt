@@ -8,7 +8,7 @@ data class Invitation(
     val teamId: UUID,
     /** Salted SHA-256 of the invite token — never the plaintext (which is shown to the admin once). */
     val tokenHash: String,
-    val createdBy: UUID,
+    val createdBy: UserId,
     val expiresAt: Instant,
     val createdAt: Instant,
 )

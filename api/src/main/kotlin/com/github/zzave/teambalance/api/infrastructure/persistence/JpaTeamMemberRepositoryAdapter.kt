@@ -3,6 +3,7 @@ package com.github.zzave.teambalance.api.infrastructure.persistence
 import com.github.zzave.teambalance.api.domain.model.PositionId
 import com.github.zzave.teambalance.api.domain.model.Role
 import com.github.zzave.teambalance.api.domain.model.TeamMember
+import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
 import com.github.zzave.teambalance.api.infrastructure.persistence.entity.TeamMemberJpaEntity
 import org.slf4j.LoggerFactory
@@ -25,19 +26,19 @@ class JpaTeamMemberRepositoryAdapter(
     override fun findByTeamId(teamId: UUID): List<TeamMember> =
         jpaRepository.findMemberSummariesByTeamId(teamId).map { it.toDomain() }
 
-    override fun findDisplayName(userId: UUID): String? =
-        jpaRepository.findDisplayNameByUserId(userId)
+    override fun findDisplayName(userId: UserId): String? =
+        jpaRepository.findDisplayNameByUserId(userId.value)
 
-    override fun findMembersByUserIds(userIds: Set<UUID>): Map<UUID, TeamMember> {
+    override fun findMembersByUserIds(userIds: Set<UserId>): Map<UserId, TeamMember> {
         if (userIds.isEmpty()) return emptyMap()
-        return jpaRepository.findMemberSummariesByUserIds(userIds).associate { row ->
-            val uid = UUID.fromString(row.getUserId())
+        return jpaRepository.findMemberSummariesByUserIds(userIds.map { it.value }.toSet()).associate { row ->
+            val uid = UserId(UUID.fromString(row.getUserId()))
             uid to row.toDomain()
         }
     }
 
     private fun MemberSummaryProjection.toDomain() = TeamMember(
-        userId = UUID.fromString(getUserId()),
+        userId = UserId(UUID.fromString(getUserId())),
         displayName = getDisplayName(),
         role = getPermissionRole(),
         positionId = getPositionId()?.let { PositionId(UUID.fromString(it)) },
@@ -45,41 +46,41 @@ class JpaTeamMemberRepositoryAdapter(
         onboarded = getOnboarded(),
     )
 
-    override fun findRole(teamId: UUID, userId: UUID): Role? =
-        jpaRepository.findByTeamIdAndUserIdAndActiveTrue(teamId, userId)
+    override fun findRole(teamId: UUID, userId: UserId): Role? =
+        jpaRepository.findByTeamIdAndUserIdAndActiveTrue(teamId, userId.value)
             ?.role
             ?.let { role -> Role.entries.firstOrNull { it.name == role } }
 
-    override fun findTeamId(userId: UUID): UUID? =
-        jpaRepository.findTeamIdByUserId(userId)
+    override fun findTeamId(userId: UserId): UUID? =
+        jpaRepository.findTeamIdByUserId(userId.value)
 
     @Transactional
-    override fun updateRole(teamId: UUID, userId: UUID, role: Role) {
-        jpaRepository.updateRole(teamId, userId, role.name)
+    override fun updateRole(teamId: UUID, userId: UserId, role: Role) {
+        jpaRepository.updateRole(teamId, userId.value, role.name)
     }
 
     @Transactional
-    override fun deactivate(teamId: UUID, userId: UUID) {
-        jpaRepository.deactivate(teamId, userId)
+    override fun deactivate(teamId: UUID, userId: UserId) {
+        jpaRepository.deactivate(teamId, userId.value)
     }
 
     @Transactional
-    override fun assignPosition(teamId: UUID, userId: UUID, positionId: PositionId?) {
-        jpaRepository.assignPosition(teamId, userId, positionId?.value)
+    override fun assignPosition(teamId: UUID, userId: UserId, positionId: PositionId?) {
+        jpaRepository.assignPosition(teamId, userId.value, positionId?.value)
     }
 
     @Transactional
-    override fun markOnboarded(teamId: UUID, userId: UUID, at: Instant) {
-        jpaRepository.markOnboarded(teamId, userId, at.atOffset(ZoneOffset.UTC))
+    override fun markOnboarded(teamId: UUID, userId: UserId, at: Instant) {
+        jpaRepository.markOnboarded(teamId, userId.value, at.atOffset(ZoneOffset.UTC))
     }
 
     override fun countAdmins(teamId: UUID): Int = jpaRepository.countActiveAdmins(teamId)
 
     @Transactional
-    override fun addMember(teamId: UUID, userId: UUID) {
-        if (jpaRepository.findByTeamIdAndUserIdAndActiveTrue(teamId, userId) != null) return
+    override fun addMember(teamId: UUID, userId: UserId) {
+        if (jpaRepository.findByTeamIdAndUserIdAndActiveTrue(teamId, userId.value) != null) return
         try {
-            jpaRepository.save(TeamMemberJpaEntity(teamId = teamId, userId = userId, role = Role.USER.name))
+            jpaRepository.save(TeamMemberJpaEntity(teamId = teamId, userId = userId.value, role = Role.USER.name))
         } catch (e: DataIntegrityViolationException) {
             // Concurrent accept or inactive-member row conflict — already a member, no-op
             logger.info(

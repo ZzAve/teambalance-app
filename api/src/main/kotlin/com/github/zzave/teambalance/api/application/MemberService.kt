@@ -8,6 +8,7 @@ import com.github.zzave.teambalance.api.domain.exception.PositionNotFoundExcepti
 import com.github.zzave.teambalance.api.domain.model.PositionId
 import com.github.zzave.teambalance.api.domain.model.Role
 import com.github.zzave.teambalance.api.domain.model.TeamMember
+import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.port.PositionRepository
 import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
 import com.github.zzave.teambalance.api.domain.port.UserRepository
@@ -26,7 +27,7 @@ class MemberService(
     private val authorizationService: AuthorizationService,
     private val clock: Clock,
 ) {
-    fun getMember(teamId: UUID, userId: UUID): TeamMember =
+    fun getMember(teamId: UUID, userId: UserId): TeamMember =
         teamMemberRepository.findByTeamId(teamId).firstOrNull { it.userId == userId }
             ?: throw MemberNotFoundException(userId)
 
@@ -37,7 +38,7 @@ class MemberService(
      * authenticated principal. The name is trimmed and must stay unique within the team
      * (case-insensitive), ignoring the caller's own current name so a no-op rename is allowed.
      */
-    fun updateOwnDisplayName(teamId: UUID, userId: UUID, rawName: String): TeamMember {
+    fun updateOwnDisplayName(teamId: UUID, userId: UserId, rawName: String): TeamMember {
         applyDisplayName(teamId, userId, rawName)
         return getMember(teamId, userId)
     }
@@ -51,9 +52,9 @@ class MemberService(
      * guards are checked before any write so a rejected change leaves the name untouched.
      */
     fun updateMember(
-        callerId: UUID,
+        callerId: UserId,
         teamId: UUID,
-        targetUserId: UUID,
+        targetUserId: UserId,
         rawName: String,
         role: Role,
         positionId: PositionId? = null,
@@ -74,8 +75,8 @@ class MemberService(
 
     // A role change may neither elevate the caller's own role nor remove the team's last admin.
     private fun guardRoleChange(
-        callerId: UUID,
-        targetUserId: UUID,
+        callerId: UserId,
+        targetUserId: UserId,
         teamId: UUID,
         currentRole: Role,
         newRole: Role,
@@ -101,7 +102,7 @@ class MemberService(
      * Idempotent: re-running keeps the member onboarded and simply re-applies name/position. The
      * controller enforces that [userId] is the authenticated principal (self-only).
      */
-    fun completeOnboarding(userId: UUID, teamId: UUID, rawName: String, positionId: PositionId?): TeamMember {
+    fun completeOnboarding(userId: UserId, teamId: UUID, rawName: String, positionId: PositionId?): TeamMember {
         val currentRole = teamMemberRepository.findRole(teamId, userId)
             ?: throw MemberNotFoundException(userId)
         updateMember(userId, teamId, userId, rawName, currentRole, positionId)
@@ -110,7 +111,7 @@ class MemberService(
     }
 
     /** Soft-removes a member. Admin-only, and refuses to remove the team's last remaining admin. */
-    fun removeMember(callerId: UUID, teamId: UUID, targetUserId: UUID) {
+    fun removeMember(callerId: UserId, teamId: UUID, targetUserId: UserId) {
         authorizationService.requireAdmin(callerId, teamId)
         val targetRole = teamMemberRepository.findRole(teamId, targetUserId)
             ?: throw MemberNotFoundException(targetUserId)
@@ -122,7 +123,7 @@ class MemberService(
 
     // Trims, validates length, enforces per-team case-insensitive uniqueness (excluding the target so a
     // no-op rename is allowed), then persists the name on the user record.
-    private fun applyDisplayName(teamId: UUID, targetUserId: UUID, rawName: String) {
+    private fun applyDisplayName(teamId: UUID, targetUserId: UserId, rawName: String) {
         val name = rawName.trim()
         require(name.isNotBlank() && name.length <= MAX_DISPLAY_NAME_LENGTH) {
             "Display name must be 1..$MAX_DISPLAY_NAME_LENGTH characters"

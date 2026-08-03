@@ -2,6 +2,7 @@ package com.github.zzave.teambalance.api.application
 
 import com.github.zzave.teambalance.api.domain.model.MagicLinkToken
 import com.github.zzave.teambalance.api.domain.model.User
+import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.port.EmailSender
 import com.github.zzave.teambalance.api.domain.port.MagicLinkTokenRepository
 import com.github.zzave.teambalance.api.domain.port.UserRepository
@@ -43,7 +44,7 @@ class AuthService(
         emailSender.sendMagicLink(email, token)
     }
 
-    fun findUserById(id: UUID): User? = userRepository.findById(id)
+    fun findUserById(id: UserId): User? = userRepository.findById(id)
 
     fun verifyMagicLink(token: String): User? {
         val now = clock.instant()
@@ -55,7 +56,7 @@ class AuthService(
         return userRepository.findByEmail(record.email)
             ?: userRepository.save(
                 User(
-                    id = UUID.randomUUID(),
+                    id = UserId.random(),
                     email = record.email,
                     // No display name is collected at magic-link signup; derive a placeholder from the email.
                     displayName = record.email.substringBefore("@"),

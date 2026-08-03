@@ -183,8 +183,8 @@ internal fun com.github.zzave.teambalance.api.domain.model.Event.produce(attenda
 
 private fun MemberAttendance.produce() = AttendanceEntry(
     // A responded member keys off their real row; a not-responded member falls back to their user id.
-    id = responseId?.produce() ?: member.userId.toString(),
-    userId = member.userId.toString(),
+    id = responseId?.produce() ?: member.userId.produce(),
+    userId = member.userId.produce(),
     displayName = member.displayName,
     role = member.position ?: UNASSIGNED,
     state = state.produce(),

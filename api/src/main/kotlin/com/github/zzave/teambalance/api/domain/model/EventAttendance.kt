@@ -13,7 +13,7 @@ const val UNASSIGNED = "Unassigned"
 data class MemberAttendance(
     val member: TeamMember,
     val state: AttendanceState,
-    val responseId: UUID?,
+    val responseId: AttendanceId?,
 )
 
 /**

@@ -25,7 +25,7 @@ class EventAttendanceTest : FunSpec({
     )
 
     fun TeamMember.responded(state: AttendanceState) = Attendance(
-        id = UUID.randomUUID(),
+        id = AttendanceId.random(),
         eventId = eventId,
         userId = userId,
         state = state,

@@ -1,6 +1,7 @@
 package com.github.zzave.teambalance.api.interfaces
 
 import com.github.zzave.teambalance.api.application.AttendanceService
+import com.github.zzave.teambalance.api.domain.model.AttendanceId
 import com.github.zzave.teambalance.api.domain.model.AttendanceState
 import com.github.zzave.teambalance.api.domain.model.UNASSIGNED
 import com.github.zzave.teambalance.api.domain.port.CurrentTeamGateway
@@ -35,7 +36,7 @@ class AttendanceController(
 
         return SetAttendance.Response200(
             Attendance(
-                id = attendance.id.toString(),
+                id = attendance.id.produce(),
                 eventId = attendance.eventId.produce(),
                 userId = attendance.userId.toString(),
                 displayName = member?.displayName ?: "Unknown",
@@ -45,3 +46,7 @@ class AttendanceController(
         )
     }
 }
+
+// The Wirespec edge for a response row's identity — the contract still carries a bare UUID string.
+// internal so EventController's attendance entries convert the same way.
+internal fun AttendanceId.produce(): String = value.toString()

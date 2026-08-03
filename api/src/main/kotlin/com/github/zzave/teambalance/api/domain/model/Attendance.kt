@@ -4,7 +4,7 @@ import java.time.Instant
 import java.util.UUID
 
 data class Attendance(
-    val id: UUID,
+    val id: AttendanceId,
     val eventId: EventId,
     val userId: UUID,
     val state: AttendanceState,

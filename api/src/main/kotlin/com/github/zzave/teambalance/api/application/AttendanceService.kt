@@ -1,6 +1,7 @@
 package com.github.zzave.teambalance.api.application
 
 import com.github.zzave.teambalance.api.domain.model.Attendance
+import com.github.zzave.teambalance.api.domain.model.AttendanceId
 import com.github.zzave.teambalance.api.domain.model.AttendanceState
 import com.github.zzave.teambalance.api.domain.model.EventAttendance
 import com.github.zzave.teambalance.api.domain.model.EventId
@@ -47,7 +48,7 @@ class AttendanceService(
         } else {
             attendanceRepository.save(
                 Attendance(
-                    id = UUID.randomUUID(),
+                    id = AttendanceId.random(),
                     eventId = eventId,
                     userId = userId,
                     state = state,

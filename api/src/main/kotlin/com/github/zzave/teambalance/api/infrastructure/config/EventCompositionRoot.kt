@@ -2,6 +2,7 @@ package com.github.zzave.teambalance.api.infrastructure.config
 
 import com.github.zzave.teambalance.api.application.AuthorizationService
 import com.github.zzave.teambalance.api.application.EventService
+import com.github.zzave.teambalance.api.application.EventTypeService
 import com.github.zzave.teambalance.api.domain.port.EventRepository
 import com.github.zzave.teambalance.api.domain.port.EventTypeRepository
 import com.github.zzave.teambalance.api.domain.port.SeasonRepository
@@ -16,7 +17,7 @@ import java.time.Clock
  * here, in the adapter layer, where framework knowledge belongs.
  *
  * One root per bounded area rather than one for the whole application: each stays readable, and the
- * remaining services (#21, #80) arrive as sibling roots instead of growing a single god-configuration.
+ * remaining services (#80) arrive as sibling roots instead of growing a single god-configuration.
  * Services not yet converted are still `@Service`-annotated and are injected here as ordinary beans
  * until their own sub-issue lands.
  */
@@ -37,4 +38,8 @@ class EventCompositionRoot {
         authorizationService = authorizationService,
         clock = clock,
     )
+
+    // Event types are the events area's reference data — EventService resolves one on every write.
+    @Bean
+    fun eventTypeService(eventTypeRepository: EventTypeRepository) = EventTypeService(eventTypeRepository)
 }

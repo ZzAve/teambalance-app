@@ -4,12 +4,17 @@ import com.github.zzave.teambalance.api.domain.exception.PositionLabelTakenExcep
 import com.github.zzave.teambalance.api.domain.exception.PositionNotFoundException
 import com.github.zzave.teambalance.api.domain.model.Position
 import com.github.zzave.teambalance.api.domain.port.PositionRepository
-import org.springframework.stereotype.Service
 import java.util.UUID
 
 private const val MAX_LABEL_LENGTH = 50
 
-@Service
+/**
+ * Framework-free (ADR-0018): a plain class constructed by the composition root from its ports.
+ *
+ * It never carried a `@Transactional`. Each use case writes through a single port call, and the two
+ * that touch more than one row ([PositionRepository.rename], [PositionRepository.delete]) already own
+ * their transaction on the adapter.
+ */
 class PositionService(
     private val positionRepository: PositionRepository,
     private val authorizationService: AuthorizationService,

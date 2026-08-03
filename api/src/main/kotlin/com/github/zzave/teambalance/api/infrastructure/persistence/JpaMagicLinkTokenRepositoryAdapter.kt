@@ -1,6 +1,7 @@
 package com.github.zzave.teambalance.api.infrastructure.persistence
 
 import com.github.zzave.teambalance.api.domain.model.MagicLinkToken
+import com.github.zzave.teambalance.api.domain.model.TokenHash
 import com.github.zzave.teambalance.api.domain.port.MagicLinkTokenRepository
 import com.github.zzave.teambalance.api.infrastructure.persistence.mapper.externalize
 import com.github.zzave.teambalance.api.infrastructure.persistence.mapper.internalize
@@ -14,6 +15,6 @@ class JpaMagicLinkTokenRepositoryAdapter(
     override fun save(token: MagicLinkToken): MagicLinkToken =
         jpaRepository.save(token.externalize()).internalize()
 
-    override fun findByTokenHash(tokenHash: String): MagicLinkToken? =
-        jpaRepository.findByTokenHash(tokenHash)?.internalize()
+    override fun findByTokenHash(tokenHash: TokenHash): MagicLinkToken? =
+        jpaRepository.findByTokenHash(tokenHash.value)?.internalize()
 }

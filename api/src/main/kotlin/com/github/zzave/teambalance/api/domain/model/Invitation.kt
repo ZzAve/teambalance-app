@@ -6,8 +6,7 @@ import java.util.UUID
 data class Invitation(
     val id: UUID,
     val teamId: TeamId,
-    /** Salted SHA-256 of the invite token — never the plaintext (which is shown to the admin once). */
-    val tokenHash: String,
+    val tokenHash: TokenHash,
     val createdBy: UserId,
     val expiresAt: Instant,
     val createdAt: Instant,

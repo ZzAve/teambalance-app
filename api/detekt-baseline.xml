@@ -32,9 +32,7 @@
     <ID>DomainNoPrimitiveObsession:EventReference.kt:EventReference$val url: String</ID>
     <ID>DomainNoPrimitiveObsession:EventType.kt:EventType$val color: String?</ID>
     <ID>DomainNoPrimitiveObsession:EventType.kt:EventType$val name: String</ID>
-    <ID>DomainNoPrimitiveObsession:Invitation.kt:Invitation$/** Salted SHA-256 of the invite token — never the plaintext (which is shown to the admin once). */ val tokenHash: String</ID>
     <ID>DomainNoPrimitiveObsession:InvitationService.kt:GeneratedInvitation$val token: String</ID>
-    <ID>DomainNoPrimitiveObsession:MagicLinkToken.kt:MagicLinkToken$val tokenHash: String</ID>
     <ID>DomainNoPrimitiveObsession:Position.kt:Position$val label: String</ID>
     <ID>DomainNoPrimitiveObsession:PotentialEvent.kt:PotentialEvent$val description: String?</ID>
     <ID>DomainNoPrimitiveObsession:PotentialEvent.kt:PotentialEvent$val location: String?</ID>

@@ -6,6 +6,7 @@ import com.github.zzave.teambalance.api.domain.model.PositionId
 import com.github.zzave.teambalance.api.domain.model.Role
 import com.github.zzave.teambalance.api.domain.model.TeamId
 import com.github.zzave.teambalance.api.domain.model.TeamMember
+import com.github.zzave.teambalance.api.domain.model.TokenHash
 import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.port.InvitationRepository
 import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
@@ -25,7 +26,7 @@ private class FakeInvitationRepo(private val live: Invitation) : InvitationRepos
     var expiredTeam: TeamId? = null
     val rotated = mutableListOf<Invitation>()
     override fun save(invitation: Invitation): Invitation { saved += invitation; return invitation }
-    override fun findByTokenHash(tokenHash: String): Invitation = live
+    override fun findByTokenHash(tokenHash: TokenHash): Invitation = live
     override fun expireActive(teamId: TeamId, now: Instant) { expiredTeam = teamId }
     override fun rotate(teamId: TeamId, replacement: Invitation, now: Instant): Invitation {
         rotated += replacement
@@ -59,7 +60,7 @@ class InvitationServiceTest : FunSpec() {
         val liveInvitation = Invitation(
             id = UUID.randomUUID(),
             teamId = teamId,
-            tokenHash = "hash",
+            tokenHash = TokenHash("hash"),
             createdBy = adminId,
             expiresAt = Instant.EPOCH.plus(Duration.ofDays(1)),
             createdAt = Instant.EPOCH,

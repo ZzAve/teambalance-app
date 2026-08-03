@@ -26,6 +26,7 @@ class ValueObjectTest : FunSpec({
         UserId(uuid).toString() shouldBe uuid.toString()
         TeamId(uuid).toString() shouldBe uuid.toString()
         Email("speler@example.com").toString() shouldBe "speler@example.com"
+        TokenHash("deadbeef").toString() shouldBe "deadbeef"
     }
 
     test("an identifier factory mints a fresh identity for a row that does not exist yet") {

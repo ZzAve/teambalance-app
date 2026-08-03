@@ -2,6 +2,7 @@ package com.github.zzave.teambalance.api.infrastructure.persistence
 
 import com.github.zzave.teambalance.api.domain.model.Invitation
 import com.github.zzave.teambalance.api.domain.model.TeamId
+import com.github.zzave.teambalance.api.domain.model.TokenHash
 import com.github.zzave.teambalance.api.domain.port.InvitationRepository
 import com.github.zzave.teambalance.api.infrastructure.persistence.mapper.externalize
 import com.github.zzave.teambalance.api.infrastructure.persistence.mapper.internalize
@@ -18,8 +19,8 @@ class JpaInvitationRepositoryAdapter(
     override fun save(invitation: Invitation): Invitation =
         jpaRepository.save(invitation.externalize()).internalize()
 
-    override fun findByTokenHash(tokenHash: String): Invitation? =
-        jpaRepository.findByTokenHash(tokenHash)?.internalize()
+    override fun findByTokenHash(tokenHash: TokenHash): Invitation? =
+        jpaRepository.findByTokenHash(tokenHash.value)?.internalize()
 
     @Transactional
     override fun expireActive(teamId: TeamId, now: Instant) {

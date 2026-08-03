@@ -2,6 +2,7 @@ package com.github.zzave.teambalance.api.application
 
 import com.github.zzave.teambalance.api.domain.model.Invitation
 import com.github.zzave.teambalance.api.domain.model.TeamId
+import com.github.zzave.teambalance.api.domain.model.TokenHash
 import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.port.InvitationRepository
 import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
@@ -114,8 +115,10 @@ class InvitationService(
      * alone can't be brute-forced without it. The accept path (#37) will hash the presented token the
      * same way and match on the stored hash.
      */
-    private fun hashToken(token: String): String =
-        MessageDigest.getInstance("SHA-256")
-            .digest((tokenSalt + token).toByteArray())
-            .joinToString("") { "%02x".format(it) }
+    private fun hashToken(token: String): TokenHash =
+        TokenHash(
+            MessageDigest.getInstance("SHA-256")
+                .digest((tokenSalt + token).toByteArray())
+                .joinToString("") { "%02x".format(it) },
+        )
 }

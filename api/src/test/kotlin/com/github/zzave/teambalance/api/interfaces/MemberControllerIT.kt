@@ -170,10 +170,20 @@ class MemberControllerIT : TeamBalanceIT() {
                 .andExpect(MockMvcResultMatchers.jsonPath("$.members.length()").value(2))
         }
 
-        test("GET /api/members as a non-admin returns 403") {
+        test("GET /api/members as a non-admin returns the roster — any active member may read it") {
             seedTeam(janRole = "USER")
 
             listMembersAs(JAN_USER_ID)
+                .andExpect(MockMvcResultMatchers.status().isOk)
+                // Relative assertion: the shared Testcontainers DB accumulates membership across specs,
+                // so assert the caller is present rather than an absolute roster size.
+                .andExpect(MockMvcResultMatchers.jsonPath("$.members[?(@.userId == '$JAN_USER_ID')]").exists())
+        }
+
+        test("DELETE /api/members/{otherUserId} by a non-admin is rejected with 403") {
+            seedTeam(janRole = "USER")
+
+            removeMemberAs(JAN_USER_ID, LISA_USER_ID)
                 .andExpect(MockMvcResultMatchers.status().isForbidden)
         }
 

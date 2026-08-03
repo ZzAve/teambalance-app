@@ -37,7 +37,7 @@ class MemberController(
     override suspend fun listMembers(request: ListMembers.Request): ListMembers.Response<*> {
         val caller = currentUserGateway.requireCurrentUserId()
         val teamId = currentTeamGateway.requireCurrentTeamId()
-        authorizationService.requireAdmin(caller, teamId)
+        authorizationService.requireMember(caller, teamId)
         return ListMembers.Response200(MemberList(memberService.listMembers(teamId).map { it.toDto() }))
     }
 

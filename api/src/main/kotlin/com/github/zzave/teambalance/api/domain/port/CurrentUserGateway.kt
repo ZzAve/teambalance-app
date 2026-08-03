@@ -1,8 +1,8 @@
-package com.github.zzave.teambalance.api.application
+package com.github.zzave.teambalance.api.domain.port
 
 import java.util.UUID
 
-interface CurrentUserProvider {
+interface CurrentUserGateway {
     fun getCurrentUserId(): UUID?
     fun requireCurrentUserId(): UUID
 }

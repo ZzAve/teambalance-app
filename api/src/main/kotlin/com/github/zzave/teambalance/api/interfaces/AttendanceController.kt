@@ -1,10 +1,10 @@
 package com.github.zzave.teambalance.api.interfaces
 
 import com.github.zzave.teambalance.api.application.AttendanceService
-import com.github.zzave.teambalance.api.application.CurrentTeamProvider
-import com.github.zzave.teambalance.api.application.CurrentUserProvider
 import com.github.zzave.teambalance.api.domain.model.AttendanceState
 import com.github.zzave.teambalance.api.domain.model.UNASSIGNED
+import com.github.zzave.teambalance.api.domain.port.CurrentTeamGateway
+import com.github.zzave.teambalance.api.domain.port.CurrentUserGateway
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.SetAttendance
 import com.github.zzave.teambalance.api.interfaces.generated.model.Attendance
 import org.springframework.web.bind.annotation.RestController
@@ -13,12 +13,12 @@ import java.util.UUID
 @RestController
 class AttendanceController(
     private val attendanceService: AttendanceService,
-    private val currentUserProvider: CurrentUserProvider,
-    private val currentTeamProvider: CurrentTeamProvider,
+    private val currentUserGateway: CurrentUserGateway,
+    private val currentTeamGateway: CurrentTeamGateway,
 ) : SetAttendance.Handler {
 
     override suspend fun setAttendance(request: SetAttendance.Request): SetAttendance.Response<*> {
-        val teamId = currentTeamProvider.requireCurrentTeamId()
+        val teamId = currentTeamGateway.requireCurrentTeamId()
         val eventId = UUID.fromString(request.path.eventId)
         val userId = UUID.fromString(request.path.userId)
         val state = AttendanceState.valueOf(request.body.state)
@@ -28,7 +28,7 @@ class AttendanceController(
             eventId = eventId,
             userId = userId,
             state = state,
-            changedBy = currentUserProvider.requireCurrentUserId(),
+            changedBy = currentUserGateway.requireCurrentUserId(),
         ) ?: return SetAttendance.Response404(Unit)
 
         val member = attendanceService.findMember(userId)

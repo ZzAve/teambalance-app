@@ -1,9 +1,9 @@
 package com.github.zzave.teambalance.api.interfaces
 
-import com.github.zzave.teambalance.api.application.CurrentTeamProvider
-import com.github.zzave.teambalance.api.application.CurrentUserProvider
 import com.github.zzave.teambalance.api.application.PositionService
 import com.github.zzave.teambalance.api.domain.model.Position
+import com.github.zzave.teambalance.api.domain.port.CurrentTeamGateway
+import com.github.zzave.teambalance.api.domain.port.CurrentUserGateway
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.CreatePosition
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.DeletePosition
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.ListPositions
@@ -16,8 +16,8 @@ import com.github.zzave.teambalance.api.interfaces.generated.model.Position as P
 @RestController
 class PositionController(
     private val positionService: PositionService,
-    private val currentUserProvider: CurrentUserProvider,
-    private val currentTeamProvider: CurrentTeamProvider,
+    private val currentUserGateway: CurrentUserGateway,
+    private val currentTeamGateway: CurrentTeamGateway,
 ) : ListPositions.Handler,
     CreatePosition.Handler,
     RenamePosition.Handler,
@@ -25,21 +25,21 @@ class PositionController(
 
     override suspend fun listPositions(request: ListPositions.Request): ListPositions.Response<*> {
         // Any authenticated member may read the vocabulary; requireCurrentUserId fails closed with 401.
-        currentUserProvider.requireCurrentUserId()
-        val teamId = currentTeamProvider.requireCurrentTeamId()
+        currentUserGateway.requireCurrentUserId()
+        val teamId = currentTeamGateway.requireCurrentTeamId()
         return ListPositions.Response200(PositionList(positionService.listPositions(teamId).map { it.toDto() }))
     }
 
     override suspend fun createPosition(request: CreatePosition.Request): CreatePosition.Response<*> {
-        val caller = currentUserProvider.requireCurrentUserId()
-        val teamId = currentTeamProvider.requireCurrentTeamId()
+        val caller = currentUserGateway.requireCurrentUserId()
+        val teamId = currentTeamGateway.requireCurrentTeamId()
         val created = positionService.createPosition(caller, teamId, request.body.label)
         return CreatePosition.Response201(created.toDto())
     }
 
     override suspend fun renamePosition(request: RenamePosition.Request): RenamePosition.Response<*> {
-        val caller = currentUserProvider.requireCurrentUserId()
-        val teamId = currentTeamProvider.requireCurrentTeamId()
+        val caller = currentUserGateway.requireCurrentUserId()
+        val teamId = currentTeamGateway.requireCurrentTeamId()
         val renamed = positionService.renamePosition(
             callerId = caller,
             teamId = teamId,
@@ -50,8 +50,8 @@ class PositionController(
     }
 
     override suspend fun deletePosition(request: DeletePosition.Request): DeletePosition.Response<*> {
-        val caller = currentUserProvider.requireCurrentUserId()
-        val teamId = currentTeamProvider.requireCurrentTeamId()
+        val caller = currentUserGateway.requireCurrentUserId()
+        val teamId = currentTeamGateway.requireCurrentTeamId()
         positionService.deletePosition(caller, teamId, UUID.fromString(request.path.id))
         return DeletePosition.Response204(Unit)
     }

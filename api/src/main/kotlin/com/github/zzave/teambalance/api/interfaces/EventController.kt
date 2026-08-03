@@ -1,8 +1,6 @@
 package com.github.zzave.teambalance.api.interfaces
 
 import com.github.zzave.teambalance.api.application.AttendanceService
-import com.github.zzave.teambalance.api.application.CurrentTeamProvider
-import com.github.zzave.teambalance.api.application.CurrentUserProvider
 import com.github.zzave.teambalance.api.application.EventService
 import com.github.zzave.teambalance.api.application.PotentialEvent
 import com.github.zzave.teambalance.api.domain.model.AttendanceState as DomainAttendanceState
@@ -11,6 +9,8 @@ import com.github.zzave.teambalance.api.domain.model.EventReference as DomainEve
 import com.github.zzave.teambalance.api.domain.model.EventSeriesScope as DomainEventSeriesScope
 import com.github.zzave.teambalance.api.domain.model.MemberAttendance
 import com.github.zzave.teambalance.api.domain.model.UNASSIGNED
+import com.github.zzave.teambalance.api.domain.port.CurrentTeamGateway
+import com.github.zzave.teambalance.api.domain.port.CurrentUserGateway
 import com.github.zzave.teambalance.api.interfaces.generated.model.EventSeriesScope as GeneratedEventSeriesScope
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.CreateEvent
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.DeleteEvent
@@ -35,8 +35,8 @@ import java.util.UUID
 class EventController(
     private val eventService: EventService,
     private val attendanceService: AttendanceService,
-    private val currentUserProvider: CurrentUserProvider,
-    private val currentTeamProvider: CurrentTeamProvider,
+    private val currentUserGateway: CurrentUserGateway,
+    private val currentTeamGateway: CurrentTeamGateway,
 ) : ListEvents.Handler,
     CreateEvent.Handler,
     GetEvent.Handler,
@@ -44,7 +44,7 @@ class EventController(
     DeleteEvent.Handler {
 
     override suspend fun listEvents(request: ListEvents.Request): ListEvents.Response<*> {
-        val members = attendanceService.teamMembers(currentTeamProvider.requireCurrentTeamId())
+        val members = attendanceService.teamMembers(currentTeamGateway.requireCurrentTeamId())
         val events = if (request.queries.includepast) eventService.getAllEvents() else eventService.getUpcomingEvents()
         val attendance = attendanceService.attendanceForAll(events.map { it.id }, members)
         return ListEvents.Response200(
@@ -53,8 +53,8 @@ class EventController(
     }
 
     override suspend fun createEvent(request: CreateEvent.Request): CreateEvent.Response<*> {
-        val teamId = currentTeamProvider.requireCurrentTeamId()
-        val userId = currentUserProvider.requireCurrentUserId()
+        val teamId = currentTeamGateway.requireCurrentTeamId()
+        val userId = currentUserGateway.requireCurrentUserId()
         val event = eventService.createEvent(
             callerId = userId,
             teamId = teamId,
@@ -70,7 +70,7 @@ class EventController(
         val event = eventService.getEvent(id)
             ?: return GetEvent.Response404(Unit)
 
-        val members = attendanceService.teamMembers(currentTeamProvider.requireCurrentTeamId())
+        val members = attendanceService.teamMembers(currentTeamGateway.requireCurrentTeamId())
         val attendance = attendanceService.attendanceFor(id, members)
 
         return GetEvent.Response200(
@@ -93,8 +93,8 @@ class EventController(
     // Scoped edit (ADR-0014, Phase 3): a bulk scope touches many rows, so the success type is an
     // EventList of the affected occurrences. The scope query param defaults to THIS when absent.
     override suspend fun updateEvent(request: UpdateEvent.Request): UpdateEvent.Response<*> {
-        val teamId = currentTeamProvider.requireCurrentTeamId()
-        val userId = currentUserProvider.requireCurrentUserId()
+        val teamId = currentTeamGateway.requireCurrentTeamId()
+        val userId = currentUserGateway.requireCurrentUserId()
         val id = UUID.fromString(request.path.id)
         val req = request.body
         val events = eventService.updateEvent(
@@ -117,8 +117,8 @@ class EventController(
     }
 
     override suspend fun deleteEvent(request: DeleteEvent.Request): DeleteEvent.Response<*> {
-        val teamId = currentTeamProvider.requireCurrentTeamId()
-        val userId = currentUserProvider.requireCurrentUserId()
+        val teamId = currentTeamGateway.requireCurrentTeamId()
+        val userId = currentUserGateway.requireCurrentUserId()
         val id = UUID.fromString(request.path.id)
         return if (eventService.deleteEvent(callerId = userId, teamId = teamId, id = id, scope = request.queries.scope.consume())) {
             DeleteEvent.Response204(Unit)

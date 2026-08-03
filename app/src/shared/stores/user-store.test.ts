@@ -18,6 +18,7 @@ describe('user-store', () => {
       email: 'alice@example.com',
       displayName: 'Alice',
       role: 'ADMIN',
+      team: undefined,
     }
 
     useUserStore.getState().setCurrentUser(user)
@@ -36,6 +37,7 @@ describe('user-store', () => {
       email: 'bob@example.com',
       displayName: 'Bob',
       role: undefined,
+      team: undefined,
     })
 
     expect(useUserStore.getState().role).toBeNull()
@@ -47,6 +49,7 @@ describe('user-store', () => {
       email: 'alice@example.com',
       displayName: 'Alice',
       role: 'ADMIN',
+      team: undefined,
     })
 
     useUserStore.getState().setCurrentUser(null)

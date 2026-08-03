@@ -1,5 +1,6 @@
 package com.github.zzave.teambalance.api.interfaces
 
+import com.github.zzave.teambalance.api.domain.exception.BadRequestException
 import com.github.zzave.teambalance.api.domain.exception.ConflictException
 import com.github.zzave.teambalance.api.domain.exception.ForbiddenException
 import com.github.zzave.teambalance.api.domain.exception.NotFoundException
@@ -40,6 +41,13 @@ class GlobalExceptionHandler {
     fun handleUnprocessableEntity(ex: UnprocessableEntityException): ResponseEntity<Map<String, String>> =
         ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY)
             .body(mapOf("error" to (ex.message ?: "Unprocessable"), "code" to ex.code))
+
+    // More specific than the generic TeambalanceException handler below (Spring resolves the closest
+    // match), so a field-placeable 400 carries its `code` discriminator; codeless 400s fall through.
+    @ExceptionHandler(BadRequestException::class)
+    fun handleBadRequest(ex: BadRequestException): ResponseEntity<Map<String, String>> =
+        ResponseEntity.status(HttpStatus.BAD_REQUEST)
+            .body(mapOf("error" to (ex.message ?: "Invalid request"), "code" to ex.code))
 
     @ExceptionHandler(TeambalanceException::class)
     fun handleTeambalanceException(ex: TeambalanceException): ResponseEntity<Map<String, String>> =

@@ -25,7 +25,9 @@ class TeamController(
         val created = teamService.createTeam(
             founderId = founderId,
             rawName = request.body.name,
-            creationCode = request.body.creationCode,
+            rawSlug = request.body.slug,
+            // Sent verbatim but trimmed — the code format is the issuer's concern (Slice 4), not ours.
+            creationCode = request.body.creationCode.trim(),
         )
         return CreateTeam.Response201(created.toDto())
     }

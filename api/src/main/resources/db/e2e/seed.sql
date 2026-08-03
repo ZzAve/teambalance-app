@@ -24,6 +24,13 @@ VALUES (
 )
 ON CONFLICT (id) DO UPDATE SET onboarded_at = EXCLUDED.onboarded_at;
 
+-- A creation code for the self-service create-team e2e (#158). Reset to unconsumed on every backend
+-- boot (this seed runs once per `make e2e`), so a warm local DB can re-run the spec without a wipe —
+-- the spec pairs it with a per-run-unique founder email, keeping the flow idempotent across re-runs.
+INSERT INTO public.team_creation_codes (code, consumed_at, consumed_by_user_id)
+VALUES ('E2E-CREATE-TEAM', NULL, NULL)
+ON CONFLICT (code) DO UPDATE SET consumed_at = NULL, consumed_by_user_id = NULL;
+
 -- Tenant data for the change-attendance flow (team_test is provisioned before this runs).
 -- Event types are seeded per-tenant by tenant-migration V002; resolve the FK by name.
 -- start_time is relative so the event stays on the upcoming list; the uuid conflict keeps

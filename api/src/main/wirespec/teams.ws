@@ -1,5 +1,6 @@
 type CreateTeamRequest {
     name: String,
+    slug: String,
     creationCode: String
 }
 

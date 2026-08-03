@@ -2,11 +2,13 @@ package com.github.zzave.teambalance.api.application
 
 import com.github.zzave.teambalance.api.domain.model.Email
 import com.github.zzave.teambalance.api.domain.model.MagicLinkToken
+import com.github.zzave.teambalance.api.domain.model.TeamSummary
 import com.github.zzave.teambalance.api.domain.model.TokenHash
 import com.github.zzave.teambalance.api.domain.model.User
 import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.port.EmailSender
 import com.github.zzave.teambalance.api.domain.port.MagicLinkTokenRepository
+import com.github.zzave.teambalance.api.domain.port.TeamRepository
 import com.github.zzave.teambalance.api.domain.port.UserRepository
 import org.springframework.stereotype.Service
 import java.security.MessageDigest
@@ -21,6 +23,7 @@ import java.util.UUID
 class AuthService(
     private val magicLinkTokenRepository: MagicLinkTokenRepository,
     private val userRepository: UserRepository,
+    private val teamRepository: TeamRepository,
     private val emailSender: EmailSender,
     private val clock: Clock,
 ) {
@@ -47,6 +50,9 @@ class AuthService(
     }
 
     fun findUserById(id: UserId): User? = userRepository.findById(id)
+
+    /** The team the user belongs to, or null if teamless — the has-a-team gate signal on `/auth/me`. */
+    fun findTeamFor(userId: UserId): TeamSummary? = teamRepository.findByUserId(userId.value)
 
     fun verifyMagicLink(token: String): User? {
         val now = clock.instant()

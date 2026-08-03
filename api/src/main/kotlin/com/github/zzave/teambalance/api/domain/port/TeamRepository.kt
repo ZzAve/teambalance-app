@@ -1,8 +1,12 @@
 package com.github.zzave.teambalance.api.domain.port
 
+import com.github.zzave.teambalance.api.domain.model.TeamSummary
+import java.util.UUID
+
 /**
- * Read-side access to platform-level teams. Minimal by design: Slice 1 only needs the tenant schema
- * names to keep every team's schema migrated at boot; the full Team aggregate arrives with create-team.
+ * Read-side access to platform-level teams. Slice 1 needed only the tenant schema names to keep every
+ * team migrated at boot; create-team added the slug pre-check; #158 adds the per-user lookup that powers
+ * `/auth/me`'s has-a-team gate signal.
  */
 interface TeamRepository {
     /** Schema names of all teams — the source of truth for which tenant schemas must exist. */
@@ -14,4 +18,7 @@ interface TeamRepository {
      * the authoritative guard against a concurrent collision.
      */
     fun existsBySlug(slug: String): Boolean
+
+    /** The team the user actively belongs to, or null if teamless (v1: one team per user). */
+    fun findByUserId(userId: UUID): TeamSummary?
 }

@@ -9,11 +9,19 @@ import java.util.UUID
 
 sealed class TeambalanceException(message: String) : RuntimeException(message)
 
-// Well-formed request that cannot yield a valid team name/slug/schema → 400 (base TeambalanceException
-// handler). Blank, too long, or with no slug-usable characters, or one whose derived tenant schema
-// exceeds Postgres' 63-byte identifier limit (rejected, never truncated — truncation would desync
-// schema_name from the real schema and break search_path routing).
-class InvalidTeamNameException(message: String) : TeambalanceException(message)
+// `code` is the stable machine-readable discriminator for 400 rejections the frontend must place
+// against a specific field (slug vs name). Mirrors the code convention of ForbiddenException/
+// ConflictException; the generic 400 handlers (plain TeambalanceException / IllegalArgumentException)
+// stay codeless.
+sealed class BadRequestException(message: String, val code: String) : TeambalanceException(message)
+
+// Blank or too-long team name → 400 INVALID_NAME (placed on the name field).
+class InvalidTeamNameException(message: String) : BadRequestException(message, "INVALID_NAME")
+
+// A user-supplied slug that fails the format (`^[a-z0-9]+(-[a-z0-9]+)*$`) or the ≤58-char length cap
+// (which keeps `team_` + slug within Postgres' 63-byte identifier limit) → 400 INVALID_SLUG. The slug
+// is validated, not derived (#158): the caller owns the address, so a bad one is their error to fix.
+class InvalidSlugException(message: String) : BadRequestException(message, "INVALID_SLUG")
 
 sealed class NotFoundException(message: String) : TeambalanceException(message)
 

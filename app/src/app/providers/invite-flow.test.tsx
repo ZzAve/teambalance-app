@@ -19,11 +19,20 @@ import { queryClient } from '@shared/api/query-client'
 let session: AuthenticatedUser | null = null
 let accepted = false
 
+// Pre-join: a teamless newbie (no role, no team). Accepting the invite makes them a member — see the
+// accept handler, which flips the session to [MEMBER] so the has-a-team gate passes on the landing.
 const USER: AuthenticatedUser = {
   id: 'user-1',
   email: 'newbie@example.com',
   displayName: 'newbie',
   role: undefined,
+  team: undefined,
+}
+
+const MEMBER: AuthenticatedUser = {
+  ...USER,
+  role: 'USER',
+  team: { id: 'team-1', name: 'Setpoint VT', slug: 'setpoint-vt' },
 }
 
 const server = setupServer(
@@ -44,6 +53,9 @@ const server = setupServer(
   http.post('/api/invitations/:token/accept', ({ params }) => {
     if (params.token !== 'valid-invite-token') return new HttpResponse(null, { status: 404 })
     accepted = true
+    // Joining a team makes the caller a member — /auth/me now reports the team, so the has-a-team gate
+    // lets them land on events (the flow invalidates ['auth','me'] right after accept).
+    session = MEMBER
     return HttpResponse.json({ teamId: 'team-1' })
   }),
   http.get('/api/events', () => HttpResponse.json({ events: [] })),

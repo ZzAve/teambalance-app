@@ -10,6 +10,7 @@ import com.github.zzave.teambalance.api.interfaces.generated.endpoint.Logout
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.RequestMagicLink
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.VerifyMagicLink
 import com.github.zzave.teambalance.api.interfaces.generated.model.AuthenticatedUser
+import com.github.zzave.teambalance.api.interfaces.generated.model.TeamRef
 import jakarta.servlet.http.HttpServletRequest
 import org.springframework.web.bind.annotation.RestController
 import java.util.UUID
@@ -38,6 +39,7 @@ class AuthController(
                 email = user.email.produce(),
                 displayName = user.displayName,
                 role = resolveRole(user.id),
+                team = resolveTeam(user.id),
             ),
         )
     }
@@ -57,6 +59,7 @@ class AuthController(
                     email = it.email.produce(),
                     displayName = it.displayName,
                     role = resolveRole(it.id),
+                    team = resolveTeam(it.id),
                 ),
             )
         } ?: GetAuthMe.Response401(Unit)
@@ -64,6 +67,13 @@ class AuthController(
 
     private fun resolveRole(userId: UserId): String? =
         teamMemberRepository.findTeamId(userId)?.let { teamId -> teamMemberRepository.findRole(teamId, userId) }?.name
+
+    // The has-a-team gate signal (#158): a null team means the caller is teamless and belongs on
+    // /create-team. Resolved through the application service so this inbound layer keeps no port
+    // dependency of its own (ADR-0018). v1: one team per user.
+    private fun resolveTeam(userId: UserId): TeamRef? =
+        authService.findTeamFor(userId)
+            ?.let { TeamRef(id = it.id.toString(), name = it.name, slug = it.slug) }
 }
 
 // The Wirespec edge for a user's identity — the contract, and the session attribute the auth filter

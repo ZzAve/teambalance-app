@@ -20,6 +20,8 @@ const USER: AuthenticatedUser = {
   email: 'jan@example.com',
   displayName: 'Jan',
   role: 'USER',
+  // A member of a team, so the has-a-team gate passes and the flow lands on events (not /create-team).
+  team: { id: 'team-1', name: 'Setpoint VT', slug: 'setpoint-vt' },
 }
 
 const server = setupServer(

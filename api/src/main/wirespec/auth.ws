@@ -6,11 +6,18 @@ type VerifyMagicLinkRequest {
     token: String
 }
 
+type TeamRef {
+    id: String,
+    name: String,
+    slug: String
+}
+
 type AuthenticatedUser {
     id: String,
     email: String,
     displayName: String,
-    role: String?
+    role: String?,
+    team: TeamRef?
 }
 
 endpoint RequestMagicLink POST RequestMagicLinkRequest /api/auth/magic-link/request -> {

@@ -25,7 +25,9 @@ const serialization: Wirespec.Serialization = {
 // lives on app.teambalance.nl. There is no mock runtime — dev talks to the real backend.
 const handler = async (req: Wirespec.RawRequest): Promise<Wirespec.RawResponse> => {
   const baseUrl = import.meta.env.VITE_API_URL ?? ''
-  const teamId = localStorage.getItem('teamId') ?? 'setpoint_vt'
+  // The team context header (a test-profile shim; prod/e2e resolve tenant from the session). Omitted
+  // entirely when unset — a teamless user (pre-create-team) has no team, and there is no default team.
+  const teamId = localStorage.getItem('teamId')
   const query = new URLSearchParams(req.queries).toString()
   const url = `${baseUrl}/${req.path.join('/')}${query ? `?${query}` : ''}`
 
@@ -35,7 +37,7 @@ const handler = async (req: Wirespec.RawRequest): Promise<Wirespec.RawResponse> 
     credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
-      'X-Team-Id': teamId,
+      ...(teamId ? { 'X-Team-Id': teamId } : {}),
       ...req.headers,
     },
     body: req.body,

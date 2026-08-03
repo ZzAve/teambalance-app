@@ -1,0 +1,71 @@
+import { useMutation } from '@tanstack/react-query'
+import { api } from './wirespec-client'
+
+// Re-export the generated contract type so the app has a single source of truth.
+export type { Team } from './generated/model/Team'
+
+// Create-team can fail in ways the form must place differently: some inline on a specific field
+// (recoverable), some as a screen banner. The stable frontend code drives that placement + copy; it is
+// mapped from the backend's (status, discriminator) by toCreateTeamError so the mapping is unit-tested.
+export type CreateTeamErrorCode =
+  | 'INVALID_CREATION_CODE'
+  | 'SLUG_TAKEN'
+  | 'INVALID_SLUG'
+  | 'INVALID_NAME'
+  | 'ALREADY_IN_TEAM'
+  | 'GENERIC'
+
+export class CreateTeamError extends Error {
+  constructor(
+    public readonly code: CreateTeamErrorCode,
+    message: string,
+  ) {
+    super(message)
+    this.name = 'CreateTeamError'
+  }
+}
+
+/**
+ * Maps a failed create-team response to a typed [CreateTeamError]. Pure and exported so it can be
+ * unit-tested against the backend's contract (#158): 403 → invalid code; 409 → already-in-team (banner)
+ * vs slug-taken (inline); 400 → invalid name/slug (inline); anything else → a generic, retry-safe
+ * banner. The backend's 409 slug code is TEAM_SLUG_TAKEN; everything else on a 409 is a slug clash.
+ */
+export function toCreateTeamError(status: number, code: string | undefined): CreateTeamError {
+  if (status === 403) {
+    return new CreateTeamError('INVALID_CREATION_CODE', "That creation code isn't valid.")
+  }
+  if (status === 409) {
+    if (code === 'ALREADY_IN_TEAM') return new CreateTeamError('ALREADY_IN_TEAM', "You're already on a team.")
+    return new CreateTeamError('SLUG_TAKEN', 'That address is already taken — try another.')
+  }
+  if (status === 400) {
+    if (code === 'INVALID_NAME') return new CreateTeamError('INVALID_NAME', 'Enter a team name.')
+    if (code === 'INVALID_SLUG') {
+      return new CreateTeamError('INVALID_SLUG', 'Use lowercase letters, numbers, and hyphens.')
+    }
+  }
+  return new CreateTeamError('GENERIC', 'Something went wrong creating your team. Please try again.')
+}
+
+export interface CreateTeamInput {
+  name: string
+  slug: string
+  creationCode: string
+}
+
+// The success side-effects (localStorage teamId, invalidating ['auth','me'], navigation) live in the
+// route container per #158 — this hook only performs the request and normalises failures.
+export function useCreateTeam() {
+  return useMutation({
+    mutationFn: async ({ name, slug, creationCode }: CreateTeamInput) => {
+      const res = await api.CreateTeam({ body: { name, slug, creationCode } }).catch(() => {
+        // A fetch/network failure never reaches a status — surface it as a retry-safe banner.
+        throw new CreateTeamError('GENERIC', 'Something went wrong creating your team. Please try again.')
+      })
+      if (res.status === 201) return res.body
+      const code = (res.body as { code?: string } | undefined)?.code
+      throw toCreateTeamError(res.status, code)
+    },
+  })
+}

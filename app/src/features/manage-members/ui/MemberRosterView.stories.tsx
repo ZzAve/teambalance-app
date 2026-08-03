@@ -23,6 +23,7 @@ const meta = {
   title: 'features/manage-members/MemberRosterView',
   component: MemberRosterView,
   args: {
+    canManage: true,
     members: MEMBERS,
     positions: POSITIONS,
     onRename: fn(),
@@ -126,6 +127,28 @@ export const RemoveMember: Story = {
     await expect(await dialog.findByText(/Remove Ada Lovelace from the team/)).toBeInTheDocument()
     await userEvent.click(dialog.getByRole('button', { name: 'Remove' }))
     await expect(args.onRemove).toHaveBeenCalledWith(MEMBERS[0])
+  },
+}
+
+// The member-facing (canManage: false) roster: every authenticated member sees the roster read-only.
+// Names and positions render as plain text, the role/admin badge is shown to everyone, and none of
+// the admin controls (rename input, position picker, promote/demote, remove) are present.
+export const ReadOnly: Story = {
+  args: { canManage: false },
+  play: async ({ canvas }) => {
+    // Names and positions are plain text — no rename input, no position picker.
+    await expect(canvas.getByText('Ada Lovelace')).toBeInTheDocument()
+    await expect(canvas.getByText('Libero')).toBeInTheDocument()
+    await expect(canvas.queryByLabelText('Display name for Ada Lovelace')).not.toBeInTheDocument()
+    await expect(canvas.queryByLabelText('Position for Alan Turing')).not.toBeInTheDocument()
+    // The role/admin badge stays visible to everyone.
+    await expect(canvas.getAllByText('ADMIN')).toHaveLength(2)
+    await expect(canvas.getAllByText('USER')).toHaveLength(2)
+    // None of the admin actions render.
+    await expect(canvas.queryByRole('button', { name: 'Save' })).not.toBeInTheDocument()
+    await expect(canvas.queryByRole('button', { name: 'Make member' })).not.toBeInTheDocument()
+    await expect(canvas.queryByRole('button', { name: 'Make admin' })).not.toBeInTheDocument()
+    await expect(canvas.queryByRole('button', { name: 'Remove' })).not.toBeInTheDocument()
   },
 }
 

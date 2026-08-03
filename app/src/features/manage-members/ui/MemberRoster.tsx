@@ -1,15 +1,18 @@
 import { MemberUpdateError, useMembers, useRemoveMember, useUpdateMember } from '@shared/api/members'
 import { usePositions } from '@shared/api/positions'
+import { useUserStore } from '@shared/stores/user-store'
 import { toggleRole } from '../lib/roster'
 import { MemberRosterView } from './MemberRosterView'
 
 /**
- * Container for the admin roster: wires the members query and the update/remove mutations to the
+ * Container for the roster: wires the members query and the update/remove mutations to the
  * presentational MemberRosterView. Pure wiring — the load/error/data shells live in the View
- * (props-driven), so this seam is covered by e2e, not a story. Promote/demote reuses the update
- * mutation with the toggled role and the unchanged display name. See ADR-0017.
+ * (props-driven), so this seam is covered by e2e, not a story. Every authenticated member can read
+ * the roster; `canManage` (admin only) gates the per-row edit controls. Promote/demote reuses the
+ * update mutation with the toggled role and the unchanged display name. See ADR-0017.
  */
 export function MemberRoster() {
+  const isAdmin = useUserStore((s) => s.role) === 'ADMIN'
   const { data: members, isLoading, error } = useMembers()
   const { data: positions } = usePositions()
   const updateMember = useUpdateMember()
@@ -31,6 +34,7 @@ export function MemberRoster() {
   return (
     <MemberRosterView
       members={members}
+      canManage={isAdmin}
       positions={positions ?? []}
       isLoading={isLoading}
       isError={!!error}

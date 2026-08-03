@@ -2,6 +2,7 @@ import { createFileRoute, redirect } from '@tanstack/react-router'
 import { authMeQueryOptions } from '@shared/api/auth'
 import { queryClient } from '@shared/api/query-client'
 import { TeamSettings } from '@features/team-settings/ui/TeamSettings'
+import { ManagePositions } from '@features/manage-positions/ui/ManagePositions'
 
 export const Route = createFileRoute('/team/settings')({
   // Admin-only. Read the same /me query the root guard primed (from cache) and bounce non-admins
@@ -22,6 +23,7 @@ function TeamSettingsPage() {
   return (
     <div className="flex flex-col gap-10">
       <TeamSettings />
+      <ManagePositions />
     </div>
   )
 }

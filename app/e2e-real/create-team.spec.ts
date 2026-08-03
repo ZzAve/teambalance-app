@@ -49,8 +49,8 @@ test('create-team: a teamless founder enters code + name + slug and lands in the
   await page.getByLabel('Creation code').fill(CREATION_CODE)
 
   // 4. Create → provisions the tenant schema + Flyway migrate in-request (allow for cold start),
-  //    makes the founder ADMIN, and lands on /members inside the brand-new team.
+  //    makes the founder ADMIN, and lands on the team roster inside the brand-new team.
   await page.getByRole('button', { name: 'Create team' }).click()
-  await expect(page).toHaveURL(/\/members\/?$/, { timeout: 20_000 })
-  await expect(page.getByRole('heading', { name: 'Positions' })).toBeVisible()
+  await expect(page).toHaveURL(/\/team\/?$/, { timeout: 20_000 })
+  await expect(page.getByRole('heading', { name: 'Team' })).toBeVisible()
 })

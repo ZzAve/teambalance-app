@@ -7,12 +7,10 @@ import com.github.zzave.teambalance.api.domain.model.PositionId
 import com.github.zzave.teambalance.api.domain.model.TeamId
 import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.port.PositionRepository
-import org.springframework.stereotype.Service
 import java.util.UUID
 
 private const val MAX_LABEL_LENGTH = 50
 
-@Service
 class PositionService(
     private val positionRepository: PositionRepository,
     private val authorizationService: AuthorizationService,

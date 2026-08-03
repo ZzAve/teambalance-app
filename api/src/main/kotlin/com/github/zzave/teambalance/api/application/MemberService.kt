@@ -13,13 +13,11 @@ import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.port.PositionRepository
 import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
 import com.github.zzave.teambalance.api.domain.port.UserRepository
-import org.springframework.stereotype.Service
 import java.time.Clock
 import java.time.Instant
 
 private const val MAX_DISPLAY_NAME_LENGTH = 100
 
-@Service
 class MemberService(
     private val userRepository: UserRepository,
     private val teamMemberRepository: TeamMemberRepository,

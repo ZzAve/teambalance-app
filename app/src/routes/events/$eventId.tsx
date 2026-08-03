@@ -12,6 +12,7 @@ import { RoleBreakdown } from '@entities/event/ui/RoleBreakdown'
 import { SeriesPeek } from '@entities/event/ui/SeriesPeek'
 import { buildAttendeePanel } from '@entities/event/lib/attendee-panel'
 import { buildSeriesPeek } from '@entities/event/lib/series-peek'
+import { avatarColor, avatarInitials } from '@shared/lib/avatar'
 import { AttendanceToggle, type AttendanceState } from '@features/attendance-toggle/ui/AttendanceToggle'
 import { EditEventDialog } from '@features/edit-event/ui/EditEventDialog'
 import { DeleteEventDialog } from '@features/edit-event/ui/DeleteEventDialog'
@@ -32,42 +33,14 @@ const ATTENDEE_TABS: {
   { state: 'NOT_RESPONDED', label: '?', barColor: 'bg-muted-foreground', badgeBg: 'bg-muted text-muted-foreground' },
 ]
 
-function getInitials(name: string): string {
-  return name
-    .split(' ')
-    .map((w) => w[0])
-    .slice(0, 2)
-    .join('')
-    .toUpperCase()
-}
-
-// Stable color derived from name — cycles through a palette
-const AVATAR_COLORS = [
-  '#225C9C', // blue
-  '#249E6C', // green
-  '#F4B400', // gold
-  '#E05252', // red
-  '#7B5EA7', // purple
-  '#E87C3E', // orange
-]
-
-function getAvatarColor(name: string): string {
-  let hash = 0
-  for (let i = 0; i < name.length; i++) {
-    hash = (hash * 31 + name.charCodeAt(i)) >>> 0
-  }
-  return AVATAR_COLORS[hash % AVATAR_COLORS.length]
-}
-
 function AttendeeRow({ attendance }: { attendance: AttendanceEntry }) {
-  const color = getAvatarColor(attendance.displayName)
   return (
     <div className="flex items-center gap-3 py-2 px-3">
       <div
         className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white"
-        style={{ backgroundColor: color }}
+        style={{ backgroundColor: avatarColor(attendance.userId) }}
       >
-        {getInitials(attendance.displayName)}
+        {avatarInitials(attendance.displayName)}
       </div>
       <div className="min-w-0">
         <span className="block text-sm leading-tight">{attendance.displayName}</span>

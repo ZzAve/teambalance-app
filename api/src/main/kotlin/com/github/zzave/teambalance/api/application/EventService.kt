@@ -13,6 +13,7 @@ import com.github.zzave.teambalance.api.domain.model.OccurrenceSchedule
 import com.github.zzave.teambalance.api.domain.model.Recurrence
 import com.github.zzave.teambalance.api.domain.model.SeasonPolicy
 import com.github.zzave.teambalance.api.domain.model.SeriesModification
+import com.github.zzave.teambalance.api.domain.model.TeamId
 import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.port.EventRepository
 import com.github.zzave.teambalance.api.domain.port.EventTypeRepository
@@ -65,7 +66,7 @@ class EventService(
     // as NOT_RESPONDED. A response then upserts their row (AttendanceService.setAttendance).
     // Admin-only: [callerId] must be an admin of [teamId] (the server-resolved tenant), and is
     // recorded as the event's creator.
-    fun createEvent(callerId: UserId, teamId: UUID, potential: PotentialEvent): Event {
+    fun createEvent(callerId: UserId, teamId: TeamId, potential: PotentialEvent): Event {
         authorizationService.requireAdmin(callerId, teamId)
         val eventType = eventTypeRepository.findById(potential.eventTypeId)
             ?: throw EventTypeNotFoundException(potential.eventTypeId)
@@ -109,7 +110,7 @@ class EventService(
      */
     fun createRecurringEvents(
         callerId: UserId,
-        teamId: UUID,
+        teamId: TeamId,
         eventTypeId: EventTypeId,
         title: String,
         description: String?,
@@ -181,7 +182,7 @@ class EventService(
      */
     fun updateEvent(
         callerId: UserId,
-        teamId: UUID,
+        teamId: TeamId,
         id: EventId,
         scope: EventSeriesScope,
         eventTypeId: EventTypeId,
@@ -230,7 +231,7 @@ class EventService(
      *
      * Admin-only: [callerId] must be an admin of [teamId] (the server-resolved tenant).
      */
-    fun deleteEvent(callerId: UserId, teamId: UUID, id: EventId, scope: EventSeriesScope): Boolean {
+    fun deleteEvent(callerId: UserId, teamId: TeamId, id: EventId, scope: EventSeriesScope): Boolean {
         authorizationService.requireAdmin(callerId, teamId)
         val target = eventRepository.findById(id) ?: return false
         eventRepository.deleteAllById(SeriesModification.planDelete(seriesOf(target), id, scope))

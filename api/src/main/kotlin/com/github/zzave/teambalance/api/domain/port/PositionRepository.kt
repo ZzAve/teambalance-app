@@ -2,14 +2,15 @@ package com.github.zzave.teambalance.api.domain.port
 
 import com.github.zzave.teambalance.api.domain.model.Position
 import com.github.zzave.teambalance.api.domain.model.PositionId
+import com.github.zzave.teambalance.api.domain.model.TeamId
 import java.util.UUID
 
 interface PositionRepository {
     /** All positions of the team, ordered by label. */
-    fun listByTeam(teamId: UUID): List<Position>
+    fun listByTeam(teamId: TeamId): List<Position>
 
     /** Creates a new position for the team and returns it. */
-    fun create(teamId: UUID, label: String): Position
+    fun create(teamId: TeamId, label: String): Position
 
     /** Renames an existing position and returns the updated value. */
     fun rename(id: PositionId, label: String): Position
@@ -20,5 +21,5 @@ interface PositionRepository {
     fun findById(id: PositionId): Position?
 
     /** True if [positionId] identifies a position owned by [teamId]. */
-    fun existsInTeam(teamId: UUID, positionId: PositionId): Boolean
+    fun existsInTeam(teamId: TeamId, positionId: PositionId): Boolean
 }

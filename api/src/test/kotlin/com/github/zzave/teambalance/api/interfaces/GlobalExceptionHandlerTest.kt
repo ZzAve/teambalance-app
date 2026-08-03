@@ -2,6 +2,7 @@ package com.github.zzave.teambalance.api.interfaces
 
 import com.github.zzave.teambalance.api.domain.exception.LastAdminException
 import com.github.zzave.teambalance.api.domain.exception.NameTakenException
+import com.github.zzave.teambalance.api.domain.model.TeamId
 import io.kotest.core.spec.style.FunSpec
 import org.springframework.test.web.servlet.setup.MockMvcBuilders
 import org.springframework.web.bind.annotation.GetMapping
@@ -15,7 +16,7 @@ private class ThrowingController {
     fun nameTaken(): Nothing = throw NameTakenException("Ace")
 
     @GetMapping("/boom/last-admin")
-    fun lastAdmin(): Nothing = throw LastAdminException(UUID.randomUUID())
+    fun lastAdmin(): Nothing = throw LastAdminException(TeamId(UUID.randomUUID()))
 }
 
 class GlobalExceptionHandlerTest : FunSpec({

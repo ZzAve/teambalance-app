@@ -2,6 +2,7 @@ package com.github.zzave.teambalance.api.infrastructure.persistence
 
 import com.github.zzave.teambalance.api.TeamBalanceIT
 import com.github.zzave.teambalance.api.domain.model.Role
+import com.github.zzave.teambalance.api.domain.model.TeamId
 import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
 import com.github.zzave.teambalance.api.infrastructure.multitenancy.TenantSchemaManager
@@ -66,19 +67,19 @@ class JpaTeamMemberRepositoryAdapterTest : TeamBalanceIT() {
         }
     }
 
-    private fun seedMember(role: String, active: Boolean): Pair<UUID, UserId> {
+    private fun seedMember(role: String, active: Boolean): Pair<TeamId, UserId> {
         tenantSchemaManager.provisionPlatformSchema()
-        val teamId = UUID.randomUUID()
+        val teamId = TeamId(UUID.randomUUID())
         val schemaName = "team_${teamId.toString().replace("-", "")}"
         jdbcTemplate.update(
             "INSERT INTO public.teams (id, name, slug, sport, schema_name) VALUES (?, ?, ?, ?, ?)",
-            teamId, "Test Team", "test-team-$teamId", "Volleyball", schemaName,
+            teamId.value, "Test Team", "test-team-$teamId", "Volleyball", schemaName,
         )
         val userId = seedMemberOnTeam(teamId, role, active)
         return teamId to userId
     }
 
-    private fun seedMemberOnTeam(teamId: UUID, role: String, active: Boolean): UserId {
+    private fun seedMemberOnTeam(teamId: TeamId, role: String, active: Boolean): UserId {
         val userId = UserId.random()
         jdbcTemplate.update(
             "INSERT INTO public.users (id, email, display_name) VALUES (?, ?, ?)",
@@ -86,7 +87,7 @@ class JpaTeamMemberRepositoryAdapterTest : TeamBalanceIT() {
         )
         jdbcTemplate.update(
             "INSERT INTO public.team_members (team_id, user_id, role, active) VALUES (?, ?, ?, ?)",
-            teamId, userId.value, role, active,
+            teamId.value, userId.value, role, active,
         )
         return userId
     }

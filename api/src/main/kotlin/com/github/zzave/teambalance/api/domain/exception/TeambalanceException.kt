@@ -3,6 +3,7 @@ package com.github.zzave.teambalance.api.domain.exception
 import com.github.zzave.teambalance.api.domain.model.EventId
 import com.github.zzave.teambalance.api.domain.model.EventTypeId
 import com.github.zzave.teambalance.api.domain.model.PositionId
+import com.github.zzave.teambalance.api.domain.model.TeamId
 import com.github.zzave.teambalance.api.domain.model.UserId
 import java.util.UUID
 
@@ -25,7 +26,7 @@ class PositionNotFoundException(id: PositionId) : NotFoundException("Position no
 // the forbidden reasons apart — e.g. "no team yet" (send to login/onboarding) vs "not an admin".
 sealed class ForbiddenException(message: String, val code: String) : TeambalanceException(message)
 
-class NotTeamAdminException(userId: UserId, teamId: UUID) :
+class NotTeamAdminException(userId: UserId, teamId: TeamId) :
     ForbiddenException("User $userId is not an admin of team $teamId", "NOT_TEAM_ADMIN")
 
 class NoTeamMembershipException(userId: UserId) :
@@ -61,7 +62,7 @@ sealed class ConflictException(message: String, val code: String) : TeambalanceE
 class NameTakenException(name: String) :
     ConflictException("Display name '$name' is already taken in this team", "NAME_TAKEN")
 
-class LastAdminException(teamId: UUID) :
+class LastAdminException(teamId: TeamId) :
     ConflictException("Team $teamId must keep at least one admin", "LAST_ADMIN")
 
 class PositionLabelTakenException(label: String) :

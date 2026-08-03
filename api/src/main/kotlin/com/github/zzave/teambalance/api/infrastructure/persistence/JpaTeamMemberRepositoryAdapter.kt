@@ -2,6 +2,7 @@ package com.github.zzave.teambalance.api.infrastructure.persistence
 
 import com.github.zzave.teambalance.api.domain.model.PositionId
 import com.github.zzave.teambalance.api.domain.model.Role
+import com.github.zzave.teambalance.api.domain.model.TeamId
 import com.github.zzave.teambalance.api.domain.model.TeamMember
 import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
@@ -23,8 +24,8 @@ class JpaTeamMemberRepositoryAdapter(
 ) : TeamMemberRepository {
     private val logger = LoggerFactory.getLogger(JpaTeamMemberRepositoryAdapter::class.java)
 
-    override fun findByTeamId(teamId: UUID): List<TeamMember> =
-        jpaRepository.findMemberSummariesByTeamId(teamId).map { it.toDomain() }
+    override fun findByTeamId(teamId: TeamId): List<TeamMember> =
+        jpaRepository.findMemberSummariesByTeamId(teamId.value).map { it.toDomain() }
 
     override fun findDisplayName(userId: UserId): String? =
         jpaRepository.findDisplayNameByUserId(userId.value)
@@ -46,41 +47,43 @@ class JpaTeamMemberRepositoryAdapter(
         onboarded = getOnboarded(),
     )
 
-    override fun findRole(teamId: UUID, userId: UserId): Role? =
-        jpaRepository.findByTeamIdAndUserIdAndActiveTrue(teamId, userId.value)
+    override fun findRole(teamId: TeamId, userId: UserId): Role? =
+        jpaRepository.findByTeamIdAndUserIdAndActiveTrue(teamId.value, userId.value)
             ?.role
             ?.let { role -> Role.entries.firstOrNull { it.name == role } }
 
-    override fun findTeamId(userId: UserId): UUID? =
-        jpaRepository.findTeamIdByUserId(userId.value)
+    override fun findTeamId(userId: UserId): TeamId? =
+        jpaRepository.findTeamIdByUserId(userId.value)?.let(::TeamId)
 
     @Transactional
-    override fun updateRole(teamId: UUID, userId: UserId, role: Role) {
-        jpaRepository.updateRole(teamId, userId.value, role.name)
+    override fun updateRole(teamId: TeamId, userId: UserId, role: Role) {
+        jpaRepository.updateRole(teamId.value, userId.value, role.name)
     }
 
     @Transactional
-    override fun deactivate(teamId: UUID, userId: UserId) {
-        jpaRepository.deactivate(teamId, userId.value)
+    override fun deactivate(teamId: TeamId, userId: UserId) {
+        jpaRepository.deactivate(teamId.value, userId.value)
     }
 
     @Transactional
-    override fun assignPosition(teamId: UUID, userId: UserId, positionId: PositionId?) {
-        jpaRepository.assignPosition(teamId, userId.value, positionId?.value)
+    override fun assignPosition(teamId: TeamId, userId: UserId, positionId: PositionId?) {
+        jpaRepository.assignPosition(teamId.value, userId.value, positionId?.value)
     }
 
     @Transactional
-    override fun markOnboarded(teamId: UUID, userId: UserId, at: Instant) {
-        jpaRepository.markOnboarded(teamId, userId.value, at.atOffset(ZoneOffset.UTC))
+    override fun markOnboarded(teamId: TeamId, userId: UserId, at: Instant) {
+        jpaRepository.markOnboarded(teamId.value, userId.value, at.atOffset(ZoneOffset.UTC))
     }
 
-    override fun countAdmins(teamId: UUID): Int = jpaRepository.countActiveAdmins(teamId)
+    override fun countAdmins(teamId: TeamId): Int = jpaRepository.countActiveAdmins(teamId.value)
 
     @Transactional
-    override fun addMember(teamId: UUID, userId: UserId) {
-        if (jpaRepository.findByTeamIdAndUserIdAndActiveTrue(teamId, userId.value) != null) return
+    override fun addMember(teamId: TeamId, userId: UserId) {
+        if (jpaRepository.findByTeamIdAndUserIdAndActiveTrue(teamId.value, userId.value) != null) return
         try {
-            jpaRepository.save(TeamMemberJpaEntity(teamId = teamId, userId = userId.value, role = Role.USER.name))
+            jpaRepository.save(
+                TeamMemberJpaEntity(teamId = teamId.value, userId = userId.value, role = Role.USER.name),
+            )
         } catch (e: DataIntegrityViolationException) {
             // Concurrent accept or inactive-member row conflict — already a member, no-op
             logger.info(

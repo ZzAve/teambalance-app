@@ -6,6 +6,7 @@ import com.github.zzave.teambalance.api.domain.exception.PositionNotFoundExcepti
 import com.github.zzave.teambalance.api.domain.model.Position
 import com.github.zzave.teambalance.api.domain.model.PositionId
 import com.github.zzave.teambalance.api.domain.model.Role
+import com.github.zzave.teambalance.api.domain.model.TeamId
 import com.github.zzave.teambalance.api.domain.model.TeamMember
 import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.port.PositionRepository
@@ -18,13 +19,13 @@ import java.util.UUID
 // In-memory positions keyed by id, tagged with their owning team. Also tracks how many times delete
 // ran so the "delete clears then removes" contract can be checked without a real DB.
 private class PosFakePositionRepo : PositionRepository {
-    private data class Row(val teamId: UUID, var label: String)
+    private data class Row(val teamId: TeamId, var label: String)
 
     private val store: MutableMap<PositionId, Row> = mutableMapOf()
 
-    override fun listByTeam(teamId: UUID): List<Position> =
+    override fun listByTeam(teamId: TeamId): List<Position> =
         store.filterValues { it.teamId == teamId }.map { Position(it.key, it.value.label) }.sortedBy { it.label }
-    override fun create(teamId: UUID, label: String): Position {
+    override fun create(teamId: TeamId, label: String): Position {
         val id = PositionId(UUID.randomUUID())
         store[id] = Row(teamId, label)
         return Position(id, label)
@@ -35,27 +36,27 @@ private class PosFakePositionRepo : PositionRepository {
     }
     override fun delete(id: PositionId) { store.remove(id) }
     override fun findById(id: PositionId): Position? = store[id]?.let { Position(id, it.label) }
-    override fun existsInTeam(teamId: UUID, positionId: PositionId): Boolean = store[positionId]?.teamId == teamId
+    override fun existsInTeam(teamId: TeamId, positionId: PositionId): Boolean = store[positionId]?.teamId == teamId
 }
 
 // Reports whichever role was seeded for a (team, user); everyone else is a non-member (null).
 private class FakeAdminRepo(private val admins: Set<UserId>) : TeamMemberRepository {
-    override fun findRole(teamId: UUID, userId: UserId): Role? = if (userId in admins) Role.ADMIN else Role.USER
-    override fun findByTeamId(teamId: UUID): List<TeamMember> = emptyList()
+    override fun findRole(teamId: TeamId, userId: UserId): Role? = if (userId in admins) Role.ADMIN else Role.USER
+    override fun findByTeamId(teamId: TeamId): List<TeamMember> = emptyList()
     override fun findDisplayName(userId: UserId): String? = null
     override fun findMembersByUserIds(userIds: Set<UserId>): Map<UserId, TeamMember> = emptyMap()
-    override fun findTeamId(userId: UserId): UUID? = null
-    override fun addMember(teamId: UUID, userId: UserId) = Unit
-    override fun updateRole(teamId: UUID, userId: UserId, role: Role) = Unit
-    override fun deactivate(teamId: UUID, userId: UserId) = Unit
-    override fun assignPosition(teamId: UUID, userId: UserId, positionId: PositionId?) = Unit
-    override fun markOnboarded(teamId: UUID, userId: UserId, at: java.time.Instant) = Unit
-    override fun countAdmins(teamId: UUID): Int = admins.size
+    override fun findTeamId(userId: UserId): TeamId? = null
+    override fun addMember(teamId: TeamId, userId: UserId) = Unit
+    override fun updateRole(teamId: TeamId, userId: UserId, role: Role) = Unit
+    override fun deactivate(teamId: TeamId, userId: UserId) = Unit
+    override fun assignPosition(teamId: TeamId, userId: UserId, positionId: PositionId?) = Unit
+    override fun markOnboarded(teamId: TeamId, userId: UserId, at: java.time.Instant) = Unit
+    override fun countAdmins(teamId: TeamId): Int = admins.size
 }
 
 class PositionServiceTest : FunSpec() {
     init {
-        val teamId = UUID.randomUUID()
+        val teamId = TeamId(UUID.randomUUID())
         val adminId = UserId.random()
         val userId = UserId.random()
 

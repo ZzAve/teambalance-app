@@ -9,6 +9,7 @@ import com.github.zzave.teambalance.api.domain.exception.PositionNotFoundExcepti
 import com.github.zzave.teambalance.api.domain.model.Position
 import com.github.zzave.teambalance.api.domain.model.PositionId
 import com.github.zzave.teambalance.api.domain.model.Role
+import com.github.zzave.teambalance.api.domain.model.TeamId
 import com.github.zzave.teambalance.api.domain.model.TeamMember
 import com.github.zzave.teambalance.api.domain.model.User
 import com.github.zzave.teambalance.api.domain.model.UserId
@@ -35,7 +36,7 @@ private class FakeMemberUserRepo(users: List<User>) : UserRepository {
 // active state per (teamId, userId) so admin/role/deactivation rules can be exercised in-memory.
 private class FakeMembershipRepo(
     private val userRepo: FakeMemberUserRepo,
-    seed: Map<UUID, List<Pair<UserId, Role>>>,
+    seed: Map<TeamId, List<Pair<UserId, Role>>>,
 ) : TeamMemberRepository {
     private data class Membership(
         var role: Role,
@@ -44,12 +45,12 @@ private class FakeMembershipRepo(
         var onboarded: Boolean = false,
     )
 
-    private val store: MutableMap<Pair<UUID, UserId>, Membership> =
+    private val store: MutableMap<Pair<TeamId, UserId>, Membership> =
         seed.flatMap { (teamId, members) ->
             members.map { (uid, role) -> (teamId to uid) to Membership(role, active = true) }
         }.toMap().toMutableMap()
 
-    override fun findByTeamId(teamId: UUID): List<TeamMember> =
+    override fun findByTeamId(teamId: TeamId): List<TeamMember> =
         store.filterKeys { it.first == teamId }
             .filterValues { it.active }
             .mapNotNull { (key, membership) ->
@@ -67,37 +68,37 @@ private class FakeMembershipRepo(
 
     override fun findDisplayName(userId: UserId): String? = userRepo.findById(userId)?.displayName
     override fun findMembersByUserIds(userIds: Set<UserId>) = emptyMap<UserId, TeamMember>()
-    override fun findRole(teamId: UUID, userId: UserId): Role? =
+    override fun findRole(teamId: TeamId, userId: UserId): Role? =
         store[teamId to userId]?.takeIf { it.active }?.role
-    override fun findTeamId(userId: UserId): UUID? = null
-    override fun addMember(teamId: UUID, userId: UserId) = Unit
-    override fun updateRole(teamId: UUID, userId: UserId, role: Role) {
+    override fun findTeamId(userId: UserId): TeamId? = null
+    override fun addMember(teamId: TeamId, userId: UserId) = Unit
+    override fun updateRole(teamId: TeamId, userId: UserId, role: Role) {
         store[teamId to userId]?.role = role
     }
-    override fun deactivate(teamId: UUID, userId: UserId) {
+    override fun deactivate(teamId: TeamId, userId: UserId) {
         store[teamId to userId]?.active = false
     }
-    override fun assignPosition(teamId: UUID, userId: UserId, positionId: PositionId?) {
+    override fun assignPosition(teamId: TeamId, userId: UserId, positionId: PositionId?) {
         store[teamId to userId]?.positionId = positionId
     }
-    override fun markOnboarded(teamId: UUID, userId: UserId, at: java.time.Instant) {
+    override fun markOnboarded(teamId: TeamId, userId: UserId, at: java.time.Instant) {
         store[teamId to userId]?.onboarded = true
     }
-    override fun countAdmins(teamId: UUID): Int =
+    override fun countAdmins(teamId: TeamId): Int =
         store.count { it.key.first == teamId && it.value.active && it.value.role == Role.ADMIN }
 }
 
 // Positions keyed by id, each tagged with the team it belongs to so existsInTeam can reject
 // a position id that exists but under a different team (the "other team" invalid case).
-private class MemberFakePositionRepo(seed: List<Triple<PositionId, UUID, String>>) : PositionRepository {
-    private data class Row(val teamId: UUID, var label: String)
+private class MemberFakePositionRepo(seed: List<Triple<PositionId, TeamId, String>>) : PositionRepository {
+    private data class Row(val teamId: TeamId, var label: String)
 
     private val store: MutableMap<PositionId, Row> =
         seed.associate { (id, teamId, label) -> id to Row(teamId, label) }.toMutableMap()
 
-    override fun listByTeam(teamId: UUID): List<Position> =
+    override fun listByTeam(teamId: TeamId): List<Position> =
         store.filterValues { it.teamId == teamId }.map { Position(it.key, it.value.label) }.sortedBy { it.label }
-    override fun create(teamId: UUID, label: String): Position {
+    override fun create(teamId: TeamId, label: String): Position {
         val id = PositionId(UUID.randomUUID())
         store[id] = Row(teamId, label)
         return Position(id, label)
@@ -108,14 +109,14 @@ private class MemberFakePositionRepo(seed: List<Triple<PositionId, UUID, String>
     }
     override fun delete(id: PositionId) { store.remove(id) }
     override fun findById(id: PositionId): Position? = store[id]?.let { Position(id, it.label) }
-    override fun existsInTeam(teamId: UUID, positionId: PositionId): Boolean =
+    override fun existsInTeam(teamId: TeamId, positionId: PositionId): Boolean =
         store[positionId]?.teamId == teamId
 }
 
 class MemberServiceTest : FunSpec() {
 
     init {
-        val teamId = UUID.randomUUID()
+        val teamId = TeamId(UUID.randomUUID())
         val janId = UserId.random()
         val lisaId = UserId.random()
 
@@ -140,7 +141,7 @@ class MemberServiceTest : FunSpec() {
             val positionRepo = MemberFakePositionRepo(
                 listOf(
                     Triple(setterPositionId, teamId, "Setter"),
-                    Triple(otherTeamPositionId, UUID.randomUUID(), "Libero"),
+                    Triple(otherTeamPositionId, TeamId(UUID.randomUUID()), "Libero"),
                 ),
             )
             return Triple(

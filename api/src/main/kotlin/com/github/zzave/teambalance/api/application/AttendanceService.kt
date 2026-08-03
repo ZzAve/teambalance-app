@@ -5,6 +5,7 @@ import com.github.zzave.teambalance.api.domain.model.AttendanceId
 import com.github.zzave.teambalance.api.domain.model.AttendanceState
 import com.github.zzave.teambalance.api.domain.model.EventAttendance
 import com.github.zzave.teambalance.api.domain.model.EventId
+import com.github.zzave.teambalance.api.domain.model.TeamId
 import com.github.zzave.teambalance.api.domain.model.TeamMember
 import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.port.AttendanceRepository
@@ -32,7 +33,7 @@ class AttendanceService(
      * checked the path [userId] against the caller's team. Returns null when the event is unknown.
      */
     fun setAttendance(
-        teamId: UUID,
+        teamId: TeamId,
         eventId: EventId,
         userId: UserId,
         state: AttendanceState,
@@ -61,7 +62,7 @@ class AttendanceService(
     }
 
     /** Current active roster of a team — fetch once per request and pass into the projections below. */
-    fun teamMembers(teamId: UUID): List<TeamMember> = teamMemberRepository.findByTeamId(teamId)
+    fun teamMembers(teamId: TeamId): List<TeamMember> = teamMemberRepository.findByTeamId(teamId)
 
     // The attendance picture is derived from *current team membership*, not from the rows that existed
     // when the event was made: a member who joined later shows as NOT_RESPONDED (no seeded row needed)

@@ -1,6 +1,7 @@
 package com.github.zzave.teambalance.api.domain.port
 
 import com.github.zzave.teambalance.api.domain.model.Invitation
+import com.github.zzave.teambalance.api.domain.model.TeamId
 import java.time.Instant
 import java.util.UUID
 
@@ -9,7 +10,7 @@ interface InvitationRepository {
     fun findByTokenHash(tokenHash: String): Invitation?
 
     /** Marks every currently-active (unexpired) invitation for the team as expired as of [now]. */
-    fun expireActive(teamId: UUID, now: Instant)
+    fun expireActive(teamId: TeamId, now: Instant)
 
     /**
      * Expires the team's active invitations and mints [replacement] in their place, as ONE unit: if
@@ -19,5 +20,5 @@ interface InvitationRepository {
      * writes, so it is expressed as a single port call — the application states the intent and the
      * adapter makes it atomic, keeping "one port call is one transaction" intact.
      */
-    fun rotate(teamId: UUID, replacement: Invitation, now: Instant): Invitation
+    fun rotate(teamId: TeamId, replacement: Invitation, now: Instant): Invitation
 }

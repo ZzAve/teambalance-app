@@ -1,6 +1,7 @@
 package com.github.zzave.teambalance.api.application
 
 import com.github.zzave.teambalance.api.domain.model.Invitation
+import com.github.zzave.teambalance.api.domain.model.TeamId
 import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.port.InvitationRepository
 import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
@@ -45,7 +46,7 @@ class InvitationService(
      * Admin-only: [callerId] must be an admin of [teamId] (the server-resolved tenant), and is also
      * recorded as the invitation's creator.
      */
-    fun generateInviteLink(callerId: UserId, teamId: UUID): GeneratedInvitation {
+    fun generateInviteLink(callerId: UserId, teamId: TeamId): GeneratedInvitation {
         authorizationService.requireAdmin(callerId, teamId)
         val now = clock.instant()
         val token = generateToken()
@@ -59,7 +60,7 @@ class InvitationService(
      * answer with a plain 404 — no distinction is made between "never existed" and "expired" to
      * avoid leaking which is the case.
      */
-    fun acceptInvitation(token: String, userId: UserId): UUID? {
+    fun acceptInvitation(token: String, userId: UserId): TeamId? {
         val now = Instant.now(clock)
         val invitation = invitationRepository.findByTokenHash(hashToken(token))
             ?.takeIf { it.expiresAt.isAfter(now) }
@@ -72,7 +73,7 @@ class InvitationService(
      * Invalidates every currently-active invite link for the team; already-expired ones are untouched.
      * Admin-only: [callerId] must be an admin of [teamId] (the server-resolved tenant).
      */
-    fun expireActiveInvitations(callerId: UserId, teamId: UUID) {
+    fun expireActiveInvitations(callerId: UserId, teamId: TeamId) {
         authorizationService.requireAdmin(callerId, teamId)
         invitationRepository.expireActive(teamId, Instant.now(clock))
     }
@@ -85,7 +86,7 @@ class InvitationService(
      *
      * Admin-only: [callerId] must be an admin of [teamId] (the server-resolved tenant).
      */
-    fun rotateInviteLink(callerId: UserId, teamId: UUID): GeneratedInvitation {
+    fun rotateInviteLink(callerId: UserId, teamId: TeamId): GeneratedInvitation {
         authorizationService.requireAdmin(callerId, teamId)
         val now = clock.instant()
         val token = generateToken()
@@ -93,7 +94,7 @@ class InvitationService(
         return GeneratedInvitation(token = token, expiresAt = now.plus(INVITE_TTL))
     }
 
-    private fun mint(token: String, callerId: UserId, teamId: UUID, now: Instant) = Invitation(
+    private fun mint(token: String, callerId: UserId, teamId: TeamId, now: Instant) = Invitation(
         id = UUID.randomUUID(),
         teamId = teamId,
         tokenHash = hashToken(token),

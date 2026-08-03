@@ -1,6 +1,7 @@
 package com.github.zzave.teambalance.api.infrastructure.persistence
 
 import com.github.zzave.teambalance.api.domain.model.Invitation
+import com.github.zzave.teambalance.api.domain.model.TeamId
 import com.github.zzave.teambalance.api.domain.port.InvitationRepository
 import com.github.zzave.teambalance.api.infrastructure.persistence.mapper.externalize
 import com.github.zzave.teambalance.api.infrastructure.persistence.mapper.internalize
@@ -21,13 +22,13 @@ class JpaInvitationRepositoryAdapter(
         jpaRepository.findByTokenHash(tokenHash)?.internalize()
 
     @Transactional
-    override fun expireActive(teamId: UUID, now: Instant) {
-        jpaRepository.expireActive(teamId, now)
+    override fun expireActive(teamId: TeamId, now: Instant) {
+        jpaRepository.expireActive(teamId.value, now)
     }
 
     @Transactional
-    override fun rotate(teamId: UUID, replacement: Invitation, now: Instant): Invitation {
-        jpaRepository.expireActive(teamId, now)
+    override fun rotate(teamId: TeamId, replacement: Invitation, now: Instant): Invitation {
+        jpaRepository.expireActive(teamId.value, now)
         return jpaRepository.save(replacement.externalize()).internalize()
     }
 }

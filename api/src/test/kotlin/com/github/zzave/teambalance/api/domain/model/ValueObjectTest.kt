@@ -33,4 +33,14 @@ class ValueObjectTest : FunSpec({
         AttendanceId.random() shouldNotBe AttendanceId.random()
         UserId.random() shouldNotBe UserId.random()
     }
+
+    // InviteToken is the deliberate exception to the rule above: the plaintext invite token is a
+    // secret, so its toString MUST NOT render the value — a leaked log line or exception must not
+    // expose a usable link. The real token is reachable only through `value`, at the Wirespec edge.
+    test("InviteToken masks its plaintext in toString but still exposes it via value") {
+        val token = InviteToken("s3cr3t-plaintext-invite-token")
+
+        token.toString() shouldBe "InviteToken(****)"
+        token.value shouldBe "s3cr3t-plaintext-invite-token"
+    }
 })

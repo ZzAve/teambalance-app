@@ -106,13 +106,13 @@ class InvitationServiceTest : FunSpec() {
             invitations.rotated.single().createdBy shouldBe adminId
             invitations.saved.isEmpty() shouldBe true
             invitations.expiredTeam shouldBe null
-            result.token.isNotBlank() shouldBe true
+            result.token.value.isNotBlank() shouldBe true
         }
 
         test("generateInviteLink by an admin mints a link attributed to the caller") {
             val (service, invitations, _) = newService()
             val result = service.generateInviteLink(callerId = adminId, teamId = teamId)
-            result.token.isNotBlank() shouldBe true
+            result.token.value.isNotBlank() shouldBe true
             invitations.saved.single().createdBy shouldBe adminId
         }
 

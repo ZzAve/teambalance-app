@@ -1,6 +1,7 @@
 package com.github.zzave.teambalance.api.application
 
 import com.github.zzave.teambalance.api.domain.model.Invitation
+import com.github.zzave.teambalance.api.domain.model.InviteToken
 import com.github.zzave.teambalance.api.domain.model.TeamId
 import com.github.zzave.teambalance.api.domain.model.TokenHash
 import com.github.zzave.teambalance.api.domain.model.UserId
@@ -17,7 +18,7 @@ import java.util.Base64
 import java.util.UUID
 
 /** The plaintext invite token (shown to the admin once) plus its expiry. Never persisted. */
-data class GeneratedInvitation(val token: String, val expiresAt: Instant)
+data class GeneratedInvitation(val token: InviteToken, val expiresAt: Instant)
 
 @Service
 class InvitationService(
@@ -95,19 +96,19 @@ class InvitationService(
         return GeneratedInvitation(token = token, expiresAt = now.plus(INVITE_TTL))
     }
 
-    private fun mint(token: String, callerId: UserId, teamId: TeamId, now: Instant) = Invitation(
+    private fun mint(token: InviteToken, callerId: UserId, teamId: TeamId, now: Instant) = Invitation(
         id = UUID.randomUUID(),
         teamId = teamId,
-        tokenHash = hashToken(token),
+        tokenHash = hashToken(token.value),
         createdBy = callerId,
         expiresAt = now.plus(INVITE_TTL),
         createdAt = now,
     )
 
-    private fun generateToken(): String {
+    private fun generateToken(): InviteToken {
         val bytes = ByteArray(TOKEN_BYTE_LENGTH)
         secureRandom.nextBytes(bytes)
-        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes)
+        return InviteToken(Base64.getUrlEncoder().withoutPadding().encodeToString(bytes))
     }
 
     /**

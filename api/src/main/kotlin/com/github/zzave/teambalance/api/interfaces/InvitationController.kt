@@ -29,7 +29,7 @@ class InvitationController(
         val invitation = invitationService.generateInviteLink(callerId = userId, teamId = teamId)
         return CreateInvitation.Response201(
             Invitation(
-                token = invitation.token,
+                token = invitation.token.value,
                 expiresAt = invitation.expiresAt.toString(),
             ),
         )
@@ -57,7 +57,7 @@ class InvitationController(
         val invitation = invitationService.rotateInviteLink(callerId = userId, teamId = teamId)
         return RotateInvitation.Response201(
             Invitation(
-                token = invitation.token,
+                token = invitation.token.value,
                 expiresAt = invitation.expiresAt.toString(),
             ),
         )

@@ -81,6 +81,21 @@ private class FakeMembershipRepo(
     override fun markOnboarded(teamId: UUID, userId: UUID, at: java.time.Instant) {
         store[teamId to userId]?.onboarded = true
     }
+    override fun applyMemberEdit(
+        teamId: UUID,
+        userId: UUID,
+        displayName: String,
+        role: Role,
+        positionId: UUID?,
+        markOnboardedAt: java.time.Instant?,
+    ) {
+        userRepo.findById(userId)?.let { userRepo.save(it.copy(displayName = displayName)) }
+        store[teamId to userId]?.apply {
+            this.role = role
+            this.positionId = positionId
+            if (markOnboardedAt != null) onboarded = true
+        }
+    }
     override fun countAdmins(teamId: UUID): Int =
         store.count { it.key.first == teamId && it.value.active && it.value.role == Role.ADMIN }
 }

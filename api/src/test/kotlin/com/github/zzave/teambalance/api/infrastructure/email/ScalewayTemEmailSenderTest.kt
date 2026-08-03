@@ -19,11 +19,13 @@ class ScalewayTemEmailSenderTest : FunSpec() {
 
     private fun sender(builder: RestClient.Builder) = ScalewayTemEmailSender(
         frontendBaseUrl = "https://app.teambalance.nl",
-        fromName = "TeamBalance",
-        fromAddress = "login@teambalance.nl",
-        apiKey = "secret-key",
-        projectId = "project-42",
-        region = "fr-par",
+        emailProperties = EmailProperties(
+            fromName = "TeamBalance",
+            fromAddress = "login@teambalance.nl",
+            apiKey = "secret-key",
+            projectId = "project-42",
+            region = "fr-par",
+        ),
         restClientBuilder = builder,
     )
 

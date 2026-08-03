@@ -66,10 +66,9 @@ class StartupTenantMigrationRunnerIT : TeamBalanceIT() {
         val token = UUID.randomUUID().toString().replace("-", "").take(12)
         val schema = "team_s1_$token"
         jdbcTemplate.update(
-            "INSERT INTO public.teams (name, slug, sport, schema_name) VALUES (?, ?, ?, ?)",
+            "INSERT INTO public.teams (name, slug, schema_name) VALUES (?, ?, ?)",
             "Slice1 $token",
             "slice1-$token",
-            "Volleyball",
             schema,
         )
         return schema

@@ -3,8 +3,8 @@
 -- idempotent (ON CONFLICT DO NOTHING) so a dev restart against an existing DB is a no-op.
 -- The test-fixture equivalent is src/test/resources/db/migration/V1_1__seed_demo_data.sql.
 
-INSERT INTO teams (id, name, slug, sport, schema_name) VALUES
-    ('a0000000-0000-0000-0000-000000000001', 'Setpoint VT', 'setpoint-vt', 'Volleyball', 'team_setpoint_vt')
+INSERT INTO teams (id, name, slug, schema_name) VALUES
+    ('a0000000-0000-0000-0000-000000000001', 'Setpoint VT', 'setpoint-vt', 'team_setpoint_vt')
 ON CONFLICT DO NOTHING;
 
 INSERT INTO users (id, email, display_name) VALUES

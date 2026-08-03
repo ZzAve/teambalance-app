@@ -16,11 +16,7 @@ import org.springframework.web.client.RestClient
 @Profile("prod")
 class ScalewayTemEmailSender(
     @Value("\${teambalance.frontend-base-url}") private val frontendBaseUrl: String,
-    @Value("\${teambalance.email.from-name}") private val fromName: String,
-    @Value("\${teambalance.email.from-address}") private val fromAddress: String,
-    @Value("\${teambalance.email.api-key}") private val apiKey: String,
-    @Value("\${teambalance.email.project-id}") private val projectId: String,
-    @Value("\${teambalance.email.region}") private val region: String,
+    private val emailProperties: EmailProperties,
     restClientBuilder: RestClient.Builder,
 ) : EmailSender {
 
@@ -28,13 +24,16 @@ class ScalewayTemEmailSender(
 
     override fun sendMagicLink(email: String, token: String) {
         val payload = MagicLinkEmail.render(MagicLinkEmail.url(frontendBaseUrl, token)).externalize(
-            from = TemAddress(email = fromAddress, name = fromName),
+            from = TemAddress(email = emailProperties.fromAddress, name = emailProperties.fromName),
             to = TemAddress(email = email),
-            projectId = projectId,
+            projectId = emailProperties.projectId,
         )
         restClient.post()
-            .uri("https://api.scaleway.com/transactional-email/v1alpha1/regions/{region}/emails", region)
-            .header("X-Auth-Token", apiKey)
+            .uri(
+                "https://api.scaleway.com/transactional-email/v1alpha1/regions/{region}/emails",
+                emailProperties.region,
+            )
+            .header("X-Auth-Token", emailProperties.apiKey)
             .contentType(MediaType.APPLICATION_JSON)
             .body(payload)
             .retrieve()

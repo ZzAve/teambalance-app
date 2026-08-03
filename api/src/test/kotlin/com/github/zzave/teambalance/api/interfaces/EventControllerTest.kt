@@ -50,8 +50,8 @@ class EventControllerTest : TeamBalanceIT() {
             // Seed the minimal platform data this test needs.
             jdbcTemplate.execute(
                 """
-                INSERT INTO public.teams (id, name, slug, sport, schema_name)
-                VALUES ('$TEAM_ID'::uuid, 'Test Team', 'test-team', 'Volleyball', 'public')
+                INSERT INTO public.teams (id, name, slug, schema_name)
+                VALUES ('$TEAM_ID'::uuid, 'Test Team', 'test-team', 'public')
                 ON CONFLICT DO NOTHING
             """
             )
@@ -103,8 +103,8 @@ class EventControllerTest : TeamBalanceIT() {
 
             jdbcTemplate.execute(
                 """
-                INSERT INTO public.teams (id, name, slug, sport, schema_name)
-                VALUES ('$TEAM_ID'::uuid, 'Test Team', 'test-team', 'Volleyball', 'public')
+                INSERT INTO public.teams (id, name, slug, schema_name)
+                VALUES ('$TEAM_ID'::uuid, 'Test Team', 'test-team', 'public')
                 ON CONFLICT DO NOTHING
             """
             )
@@ -157,8 +157,8 @@ class EventControllerTest : TeamBalanceIT() {
 
             jdbcTemplate.execute(
                 """
-                INSERT INTO public.teams (id, name, slug, sport, schema_name)
-                VALUES ('$TEAM_ID'::uuid, 'Test Team', 'test-team', 'Volleyball', 'public')
+                INSERT INTO public.teams (id, name, slug, schema_name)
+                VALUES ('$TEAM_ID'::uuid, 'Test Team', 'test-team', 'public')
                 ON CONFLICT DO NOTHING
             """
             )
@@ -242,8 +242,8 @@ class EventControllerTest : TeamBalanceIT() {
 
             jdbcTemplate.execute(
                 """
-                INSERT INTO public.teams (id, name, slug, sport, schema_name)
-                VALUES ('$TEAM_ID'::uuid, 'Test Team', 'test-team', 'Volleyball', 'public')
+                INSERT INTO public.teams (id, name, slug, schema_name)
+                VALUES ('$TEAM_ID'::uuid, 'Test Team', 'test-team', 'public')
                 ON CONFLICT DO NOTHING
             """
             )
@@ -303,8 +303,8 @@ class EventControllerTest : TeamBalanceIT() {
 
             jdbcTemplate.execute(
                 """
-                INSERT INTO public.teams (id, name, slug, sport, schema_name)
-                VALUES ('$TEAM_ID'::uuid, 'Test Team', 'test-team', 'Volleyball', 'public')
+                INSERT INTO public.teams (id, name, slug, schema_name)
+                VALUES ('$TEAM_ID'::uuid, 'Test Team', 'test-team', 'public')
                 ON CONFLICT DO NOTHING
             """
             )
@@ -363,8 +363,8 @@ class EventControllerTest : TeamBalanceIT() {
             // team ($TEAM_ID) — inserts are idempotent (ON CONFLICT DO NOTHING) across tests.
             jdbcTemplate.execute(
                 """
-                INSERT INTO public.teams (id, name, slug, sport, schema_name)
-                VALUES ('$TEAM_ID'::uuid, 'Test Team', 'test-team', 'Volleyball', 'public')
+                INSERT INTO public.teams (id, name, slug, schema_name)
+                VALUES ('$TEAM_ID'::uuid, 'Test Team', 'test-team', 'public')
                 ON CONFLICT DO NOTHING
             """
             )
@@ -477,8 +477,8 @@ class EventControllerTest : TeamBalanceIT() {
 
             jdbcTemplate.execute(
                 """
-                INSERT INTO public.teams (id, name, slug, sport, schema_name)
-                VALUES ('$TEAM_ID'::uuid, 'Test Team', 'test-team', 'Volleyball', 'public')
+                INSERT INTO public.teams (id, name, slug, schema_name)
+                VALUES ('$TEAM_ID'::uuid, 'Test Team', 'test-team', 'public')
                 ON CONFLICT DO NOTHING
             """
             )
@@ -531,8 +531,8 @@ class EventControllerTest : TeamBalanceIT() {
 
             jdbcTemplate.execute(
                 """
-                INSERT INTO public.teams (id, name, slug, sport, schema_name)
-                VALUES ('$TEAM_ID'::uuid, 'Test Team', 'test-team', 'Volleyball', 'public')
+                INSERT INTO public.teams (id, name, slug, schema_name)
+                VALUES ('$TEAM_ID'::uuid, 'Test Team', 'test-team', 'public')
                 ON CONFLICT DO NOTHING
             """
             )
@@ -596,8 +596,8 @@ class EventControllerTest : TeamBalanceIT() {
 
             jdbcTemplate.execute(
                 """
-                INSERT INTO public.teams (id, name, slug, sport, schema_name)
-                VALUES ('$TEAM_ID'::uuid, 'Test Team', 'test-team', 'Volleyball', 'public')
+                INSERT INTO public.teams (id, name, slug, schema_name)
+                VALUES ('$TEAM_ID'::uuid, 'Test Team', 'test-team', 'public')
                 ON CONFLICT DO NOTHING
             """
             )
@@ -649,8 +649,8 @@ class EventControllerTest : TeamBalanceIT() {
             val noPositionUserId = "b0000000-0000-0000-0000-0000000000c1"
             jdbcTemplate.execute(
                 """
-                INSERT INTO public.teams (id, name, slug, sport, schema_name)
-                VALUES ('$TEAM_ID'::uuid, 'Test Team', 'test-team', 'Volleyball', 'public')
+                INSERT INTO public.teams (id, name, slug, schema_name)
+                VALUES ('$TEAM_ID'::uuid, 'Test Team', 'test-team', 'public')
                 ON CONFLICT DO NOTHING
             """
             )
@@ -698,8 +698,8 @@ class EventControllerTest : TeamBalanceIT() {
 
             jdbcTemplate.execute(
                 """
-                INSERT INTO public.teams (id, name, slug, sport, schema_name)
-                VALUES ('$TEAM_ID'::uuid, 'Test Team', 'test-team', 'Volleyball', 'public')
+                INSERT INTO public.teams (id, name, slug, schema_name)
+                VALUES ('$TEAM_ID'::uuid, 'Test Team', 'test-team', 'public')
                 ON CONFLICT DO NOTHING
             """
             )
@@ -756,8 +756,8 @@ class EventControllerTest : TeamBalanceIT() {
 
             jdbcTemplate.execute(
                 """
-                INSERT INTO public.teams (id, name, slug, sport, schema_name)
-                VALUES ('$TEAM_ID'::uuid, 'Test Team', 'test-team', 'Volleyball', 'public')
+                INSERT INTO public.teams (id, name, slug, schema_name)
+                VALUES ('$TEAM_ID'::uuid, 'Test Team', 'test-team', 'public')
                 ON CONFLICT DO NOTHING
             """
             )

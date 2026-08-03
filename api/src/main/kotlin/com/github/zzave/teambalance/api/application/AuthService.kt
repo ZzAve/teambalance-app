@@ -50,17 +50,14 @@ class AuthService(
         val record = magicLinkTokenRepository.findByTokenHash(hash(token))
             ?.takeIf { it.usedAt == null && it.expiresAt.isAfter(now) }
             ?: return null
-        magicLinkTokenRepository.save(record.copy(usedAt = now))
 
-        return userRepository.findByEmail(record.email)
-            ?: userRepository.save(
-                User(
-                    id = UUID.randomUUID(),
-                    email = record.email,
-                    // No display name is collected at magic-link signup; derive a placeholder from the email.
-                    displayName = record.email.substringBefore("@"),
-                ),
-            )
+        // Consuming the token and resolving (creating if absent) the user is one atomic unit: a
+        // failure to create the user must not burn the single-use token. No display name is collected
+        // at magic-link signup, so derive a placeholder from the email for a first-time sign-in.
+        return magicLinkTokenRepository.consumeAndResolveUser(
+            consumedToken = record.copy(usedAt = now),
+            displayName = record.email.substringBefore("@"),
+        )
     }
 
     private fun generateToken(): String {

@@ -18,6 +18,7 @@ import java.util.UUID
 @Repository
 class JpaTeamMemberRepositoryAdapter(
     private val jpaRepository: SpringDataTeamMemberRepository,
+    private val userJpaRepository: SpringDataUserRepository,
 ) : TeamMemberRepository {
     private val logger = LoggerFactory.getLogger(JpaTeamMemberRepositoryAdapter::class.java)
 
@@ -65,6 +66,23 @@ class JpaTeamMemberRepositoryAdapter(
     @Transactional
     override fun assignPosition(teamId: UUID, userId: UUID, positionId: UUID?) {
         jpaRepository.assignPosition(teamId, userId, positionId)
+    }
+
+    @Transactional
+    override fun applyMemberEdit(
+        teamId: UUID,
+        userId: UUID,
+        displayName: String,
+        role: Role,
+        positionId: UUID?,
+        markOnboardedAt: Instant?,
+    ) {
+        userJpaRepository.updateDisplayName(userId, displayName)
+        jpaRepository.updateRole(teamId, userId, role.name)
+        jpaRepository.assignPosition(teamId, userId, positionId)
+        if (markOnboardedAt != null) {
+            jpaRepository.markOnboarded(teamId, userId, markOnboardedAt.atOffset(ZoneOffset.UTC))
+        }
     }
 
     @Transactional

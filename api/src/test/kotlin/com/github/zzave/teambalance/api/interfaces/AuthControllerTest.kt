@@ -53,7 +53,7 @@ class AuthControllerTest : TeamBalanceIT() {
             val email = "loop-${UUID.randomUUID()}@test.com"
 
             requestMagicLink(email)
-            val token = fakeEmailSender.sentMagicLinks.last { it.first == email }.second
+            val token = fakeEmailSender.sentMagicLinks.last { it.first.value == email }.second
             val session = verify(token, expectOk = true)!!
 
             val (_, me) = performAsync(MockMvcRequestBuilders.get("/api/auth/me").cookie(session))
@@ -71,7 +71,7 @@ class AuthControllerTest : TeamBalanceIT() {
             val email = "persist-${UUID.randomUUID()}@test.com"
 
             requestMagicLink(email)
-            val token = fakeEmailSender.sentMagicLinks.last { it.first == email }.second
+            val token = fakeEmailSender.sentMagicLinks.last { it.first.value == email }.second
             val session = verify(token, expectOk = true)!!
 
             // The session cookie carries a Base64-encoded session id → the SESSION_ID column. Its
@@ -97,7 +97,7 @@ class AuthControllerTest : TeamBalanceIT() {
             val email = "reject-${UUID.randomUUID()}@test.com"
 
             requestMagicLink(email)
-            val token = fakeEmailSender.sentMagicLinks.last { it.first == email }.second
+            val token = fakeEmailSender.sentMagicLinks.last { it.first.value == email }.second
             verify(token, expectOk = true)
             verify(token, expectOk = false)
 

@@ -1,5 +1,6 @@
 package com.github.zzave.teambalance.api.infrastructure.email
 
+import com.github.zzave.teambalance.api.domain.model.Email
 import com.github.zzave.teambalance.api.domain.port.EmailSender
 import org.slf4j.LoggerFactory
 import org.springframework.context.annotation.Profile
@@ -15,7 +16,7 @@ import org.springframework.stereotype.Component
 class ConsoleEmailSender : EmailSender {
     private val log = LoggerFactory.getLogger(ConsoleEmailSender::class.java)
 
-    override fun sendMagicLink(email: String, token: String) {
+    override fun sendMagicLink(email: Email, token: String) {
         log.info("Magic link for {}: token={}", email, token)
     }
 }

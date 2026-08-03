@@ -1,11 +1,12 @@
 package com.github.zzave.teambalance.api.infrastructure.email
 
+import com.github.zzave.teambalance.api.domain.model.Email
 import com.github.zzave.teambalance.api.domain.port.EmailSender
 
 class FakeEmailSender : EmailSender {
-    val sentMagicLinks = mutableListOf<Pair<String, String>>()
+    val sentMagicLinks = mutableListOf<Pair<Email, String>>()
 
-    override fun sendMagicLink(email: String, token: String) {
+    override fun sendMagicLink(email: Email, token: String) {
         sentMagicLinks.add(email to token)
     }
 }

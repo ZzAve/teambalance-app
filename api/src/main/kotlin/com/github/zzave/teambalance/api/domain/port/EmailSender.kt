@@ -1,5 +1,7 @@
 package com.github.zzave.teambalance.api.domain.port
 
+import com.github.zzave.teambalance.api.domain.model.Email
+
 interface EmailSender {
-    fun sendMagicLink(email: String, token: String)
+    fun sendMagicLink(email: Email, token: String)
 }

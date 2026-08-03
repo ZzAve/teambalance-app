@@ -1,5 +1,6 @@
 package com.github.zzave.teambalance.api.infrastructure.persistence
 
+import com.github.zzave.teambalance.api.domain.model.Email
 import com.github.zzave.teambalance.api.domain.model.User
 import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.port.UserRepository
@@ -15,8 +16,8 @@ class JpaUserRepositoryAdapter(
     override fun findById(id: UserId): User? =
         jpaRepository.findById(id.value).orElse(null)?.internalize()
 
-    override fun findByEmail(email: String): User? =
-        jpaRepository.findByEmail(email)?.internalize()
+    override fun findByEmail(email: Email): User? =
+        jpaRepository.findByEmail(email.value)?.internalize()
 
     override fun save(user: User): User =
         jpaRepository.save(user.externalize()).internalize()

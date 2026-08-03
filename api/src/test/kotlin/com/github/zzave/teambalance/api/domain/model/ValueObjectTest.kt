@@ -23,9 +23,13 @@ class ValueObjectTest : FunSpec({
         AttendanceId(uuid).toString() shouldBe uuid.toString()
         EventTypeId(uuid).toString() shouldBe uuid.toString()
         PositionId(uuid).toString() shouldBe uuid.toString()
+        UserId(uuid).toString() shouldBe uuid.toString()
+        TeamId(uuid).toString() shouldBe uuid.toString()
+        Email("speler@example.com").toString() shouldBe "speler@example.com"
     }
 
     test("an identifier factory mints a fresh identity for a row that does not exist yet") {
         AttendanceId.random() shouldNotBe AttendanceId.random()
+        UserId.random() shouldNotBe UserId.random()
     }
 })

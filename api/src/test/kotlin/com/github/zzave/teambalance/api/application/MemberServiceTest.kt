@@ -6,6 +6,7 @@ import com.github.zzave.teambalance.api.domain.exception.MemberNotFoundException
 import com.github.zzave.teambalance.api.domain.exception.NameTakenException
 import com.github.zzave.teambalance.api.domain.exception.NotTeamAdminException
 import com.github.zzave.teambalance.api.domain.exception.PositionNotFoundException
+import com.github.zzave.teambalance.api.domain.model.Email
 import com.github.zzave.teambalance.api.domain.model.Position
 import com.github.zzave.teambalance.api.domain.model.PositionId
 import com.github.zzave.teambalance.api.domain.model.Role
@@ -24,7 +25,7 @@ import java.util.UUID
 private class FakeMemberUserRepo(users: List<User>) : UserRepository {
     val store = users.associateBy { it.id }.toMutableMap()
     override fun findById(id: UserId): User? = store[id]
-    override fun findByEmail(email: String): User? = store.values.firstOrNull { it.email == email }
+    override fun findByEmail(email: Email): User? = store.values.firstOrNull { it.email == email }
     override fun save(user: User): User {
         store[user.id] = user
         return user
@@ -133,8 +134,8 @@ class MemberServiceTest : FunSpec() {
         ): Triple<MemberService, FakeMemberUserRepo, FakeMembershipRepo> {
             val userRepo = FakeMemberUserRepo(
                 listOf(
-                    User(id = janId, email = "jan@test.com", displayName = "Jan de Vries"),
-                    User(id = lisaId, email = "lisa@test.com", displayName = "Lisa Bakker"),
+                    User(id = janId, email = Email("jan@test.com"), displayName = "Jan de Vries"),
+                    User(id = lisaId, email = Email("lisa@test.com"), displayName = "Lisa Bakker"),
                 ),
             )
             val memberRepo = FakeMembershipRepo(userRepo, mapOf(teamId to listOf(janId to janRole, lisaId to lisaRole)))

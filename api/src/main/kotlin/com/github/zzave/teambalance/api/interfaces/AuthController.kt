@@ -1,6 +1,7 @@
 package com.github.zzave.teambalance.api.interfaces
 
 import com.github.zzave.teambalance.api.application.AuthService
+import com.github.zzave.teambalance.api.domain.model.Email
 import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
 import com.github.zzave.teambalance.api.infrastructure.identity.SessionKeys
@@ -24,7 +25,7 @@ class AuthController(
     GetAuthMe.Handler {
 
     override suspend fun requestMagicLink(request: RequestMagicLink.Request): RequestMagicLink.Response<*> {
-        authService.requestMagicLink(request.body.email)
+        authService.requestMagicLink(request.body.email.consumeEmail())
         return RequestMagicLink.Response202(Unit)
     }
 
@@ -34,7 +35,7 @@ class AuthController(
         return VerifyMagicLink.Response200(
             AuthenticatedUser(
                 id = user.id.produce(),
-                email = user.email,
+                email = user.email.produce(),
                 displayName = user.displayName,
                 role = resolveRole(user.id),
             ),
@@ -53,7 +54,7 @@ class AuthController(
             GetAuthMe.Response200(
                 AuthenticatedUser(
                     id = it.id.produce(),
-                    email = it.email,
+                    email = it.email.produce(),
                     displayName = it.displayName,
                     role = resolveRole(it.id),
                 ),
@@ -71,3 +72,9 @@ class AuthController(
 internal fun String.consumeUserId(): UserId = UserId(UUID.fromString(this))
 
 internal fun UserId.produce(): String = value.toString()
+
+// The Wirespec edge for an email address — the contract carries it as a plain string, and this is
+// the only place a caller hands one in or reads one back.
+private fun String.consumeEmail(): Email = Email(this)
+
+private fun Email.produce(): String = value

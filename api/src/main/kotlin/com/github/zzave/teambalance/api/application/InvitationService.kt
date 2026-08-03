@@ -1,6 +1,10 @@
 package com.github.zzave.teambalance.api.application
 
 import com.github.zzave.teambalance.api.domain.model.Invitation
+import com.github.zzave.teambalance.api.domain.model.InviteToken
+import com.github.zzave.teambalance.api.domain.model.TeamId
+import com.github.zzave.teambalance.api.domain.model.TokenHash
+import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.port.InvitationRepository
 import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
 import org.springframework.beans.factory.annotation.Value
@@ -14,7 +18,7 @@ import java.util.Base64
 import java.util.UUID
 
 /** The plaintext invite token (shown to the admin once) plus its expiry. Never persisted. */
-data class GeneratedInvitation(val token: String, val expiresAt: Instant)
+data class GeneratedInvitation(val token: InviteToken, val expiresAt: Instant)
 
 @Service
 class InvitationService(
@@ -44,7 +48,7 @@ class InvitationService(
      * Admin-only: [callerId] must be an admin of [teamId] (the server-resolved tenant), and is also
      * recorded as the invitation's creator.
      */
-    fun generateInviteLink(callerId: UUID, teamId: UUID): GeneratedInvitation {
+    fun generateInviteLink(callerId: UserId, teamId: TeamId): GeneratedInvitation {
         authorizationService.requireAdmin(callerId, teamId)
         val now = clock.instant()
         val token = generateToken()
@@ -58,7 +62,7 @@ class InvitationService(
      * answer with a plain 404 — no distinction is made between "never existed" and "expired" to
      * avoid leaking which is the case.
      */
-    fun acceptInvitation(token: String, userId: UUID): UUID? {
+    fun acceptInvitation(token: String, userId: UserId): TeamId? {
         val now = Instant.now(clock)
         val invitation = invitationRepository.findByTokenHash(hashToken(token))
             ?.takeIf { it.expiresAt.isAfter(now) }
@@ -71,7 +75,7 @@ class InvitationService(
      * Invalidates every currently-active invite link for the team; already-expired ones are untouched.
      * Admin-only: [callerId] must be an admin of [teamId] (the server-resolved tenant).
      */
-    fun expireActiveInvitations(callerId: UUID, teamId: UUID) {
+    fun expireActiveInvitations(callerId: UserId, teamId: TeamId) {
         authorizationService.requireAdmin(callerId, teamId)
         invitationRepository.expireActive(teamId, Instant.now(clock))
     }
@@ -84,7 +88,7 @@ class InvitationService(
      *
      * Admin-only: [callerId] must be an admin of [teamId] (the server-resolved tenant).
      */
-    fun rotateInviteLink(callerId: UUID, teamId: UUID): GeneratedInvitation {
+    fun rotateInviteLink(callerId: UserId, teamId: TeamId): GeneratedInvitation {
         authorizationService.requireAdmin(callerId, teamId)
         val now = clock.instant()
         val token = generateToken()
@@ -92,19 +96,19 @@ class InvitationService(
         return GeneratedInvitation(token = token, expiresAt = now.plus(INVITE_TTL))
     }
 
-    private fun mint(token: String, callerId: UUID, teamId: UUID, now: Instant) = Invitation(
+    private fun mint(token: InviteToken, callerId: UserId, teamId: TeamId, now: Instant) = Invitation(
         id = UUID.randomUUID(),
         teamId = teamId,
-        tokenHash = hashToken(token),
+        tokenHash = hashToken(token.value),
         createdBy = callerId,
         expiresAt = now.plus(INVITE_TTL),
         createdAt = now,
     )
 
-    private fun generateToken(): String {
+    private fun generateToken(): InviteToken {
         val bytes = ByteArray(TOKEN_BYTE_LENGTH)
         secureRandom.nextBytes(bytes)
-        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes)
+        return InviteToken(Base64.getUrlEncoder().withoutPadding().encodeToString(bytes))
     }
 
     /**
@@ -112,8 +116,10 @@ class InvitationService(
      * alone can't be brute-forced without it. The accept path (#37) will hash the presented token the
      * same way and match on the stored hash.
      */
-    private fun hashToken(token: String): String =
-        MessageDigest.getInstance("SHA-256")
-            .digest((tokenSalt + token).toByteArray())
-            .joinToString("") { "%02x".format(it) }
+    private fun hashToken(token: String): TokenHash =
+        TokenHash(
+            MessageDigest.getInstance("SHA-256")
+                .digest((tokenSalt + token).toByteArray())
+                .joinToString("") { "%02x".format(it) },
+        )
 }

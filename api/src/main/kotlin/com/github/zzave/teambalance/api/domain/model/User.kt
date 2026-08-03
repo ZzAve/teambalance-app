@@ -1,9 +1,7 @@
 package com.github.zzave.teambalance.api.domain.model
 
-import java.util.UUID
-
 data class User(
-    val id: UUID,
-    val email: String,
+    val id: UserId,
+    val email: Email,
     val displayName: String,
 )

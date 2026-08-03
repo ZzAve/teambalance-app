@@ -1,7 +1,10 @@
 package com.github.zzave.teambalance.api.infrastructure.persistence
 
+import com.github.zzave.teambalance.api.domain.model.PositionId
 import com.github.zzave.teambalance.api.domain.model.Role
+import com.github.zzave.teambalance.api.domain.model.TeamId
 import com.github.zzave.teambalance.api.domain.model.TeamMember
+import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
 import com.github.zzave.teambalance.api.infrastructure.persistence.entity.TeamMemberJpaEntity
 import org.slf4j.LoggerFactory
@@ -22,81 +25,83 @@ class JpaTeamMemberRepositoryAdapter(
 ) : TeamMemberRepository {
     private val logger = LoggerFactory.getLogger(JpaTeamMemberRepositoryAdapter::class.java)
 
-    override fun findByTeamId(teamId: UUID): List<TeamMember> =
-        jpaRepository.findMemberSummariesByTeamId(teamId).map { it.toDomain() }
+    override fun findByTeamId(teamId: TeamId): List<TeamMember> =
+        jpaRepository.findMemberSummariesByTeamId(teamId.value).map { it.toDomain() }
 
-    override fun findDisplayName(userId: UUID): String? =
-        jpaRepository.findDisplayNameByUserId(userId)
+    override fun findDisplayName(userId: UserId): String? =
+        jpaRepository.findDisplayNameByUserId(userId.value)
 
-    override fun findMembersByUserIds(userIds: Set<UUID>): Map<UUID, TeamMember> {
+    override fun findMembersByUserIds(userIds: Set<UserId>): Map<UserId, TeamMember> {
         if (userIds.isEmpty()) return emptyMap()
-        return jpaRepository.findMemberSummariesByUserIds(userIds).associate { row ->
-            val uid = UUID.fromString(row.getUserId())
+        return jpaRepository.findMemberSummariesByUserIds(userIds.map { it.value }.toSet()).associate { row ->
+            val uid = UserId(UUID.fromString(row.getUserId()))
             uid to row.toDomain()
         }
     }
 
     private fun MemberSummaryProjection.toDomain() = TeamMember(
-        userId = UUID.fromString(getUserId()),
+        userId = UserId(UUID.fromString(getUserId())),
         displayName = getDisplayName(),
         role = getPermissionRole(),
-        positionId = getPositionId()?.let { UUID.fromString(it) },
+        positionId = getPositionId()?.let { PositionId(UUID.fromString(it)) },
         position = getPosition(),
         onboarded = getOnboarded(),
     )
 
-    override fun findRole(teamId: UUID, userId: UUID): Role? =
-        jpaRepository.findByTeamIdAndUserIdAndActiveTrue(teamId, userId)
+    override fun findRole(teamId: TeamId, userId: UserId): Role? =
+        jpaRepository.findByTeamIdAndUserIdAndActiveTrue(teamId.value, userId.value)
             ?.role
             ?.let { role -> Role.entries.firstOrNull { it.name == role } }
 
-    override fun findTeamId(userId: UUID): UUID? =
-        jpaRepository.findTeamIdByUserId(userId)
+    override fun findTeamId(userId: UserId): TeamId? =
+        jpaRepository.findTeamIdByUserId(userId.value)?.let(::TeamId)
 
     @Transactional
-    override fun updateRole(teamId: UUID, userId: UUID, role: Role) {
-        jpaRepository.updateRole(teamId, userId, role.name)
+    override fun updateRole(teamId: TeamId, userId: UserId, role: Role) {
+        jpaRepository.updateRole(teamId.value, userId.value, role.name)
     }
 
     @Transactional
-    override fun deactivate(teamId: UUID, userId: UUID) {
-        jpaRepository.deactivate(teamId, userId)
+    override fun deactivate(teamId: TeamId, userId: UserId) {
+        jpaRepository.deactivate(teamId.value, userId.value)
     }
 
     @Transactional
-    override fun assignPosition(teamId: UUID, userId: UUID, positionId: UUID?) {
-        jpaRepository.assignPosition(teamId, userId, positionId)
+    override fun assignPosition(teamId: TeamId, userId: UserId, positionId: PositionId?) {
+        jpaRepository.assignPosition(teamId.value, userId.value, positionId?.value)
     }
 
     @Transactional
     override fun applyMemberEdit(
-        teamId: UUID,
-        userId: UUID,
+        teamId: TeamId,
+        userId: UserId,
         displayName: String,
         role: Role,
-        positionId: UUID?,
+        positionId: PositionId?,
         markOnboardedAt: Instant?,
     ) {
-        userJpaRepository.updateDisplayName(userId, displayName)
-        jpaRepository.updateRole(teamId, userId, role.name)
-        jpaRepository.assignPosition(teamId, userId, positionId)
+        userJpaRepository.updateDisplayName(userId.value, displayName)
+        jpaRepository.updateRole(teamId.value, userId.value, role.name)
+        jpaRepository.assignPosition(teamId.value, userId.value, positionId?.value)
         if (markOnboardedAt != null) {
-            jpaRepository.markOnboarded(teamId, userId, markOnboardedAt.atOffset(ZoneOffset.UTC))
+            jpaRepository.markOnboarded(teamId.value, userId.value, markOnboardedAt.atOffset(ZoneOffset.UTC))
         }
     }
 
     @Transactional
-    override fun markOnboarded(teamId: UUID, userId: UUID, at: Instant) {
-        jpaRepository.markOnboarded(teamId, userId, at.atOffset(ZoneOffset.UTC))
+    override fun markOnboarded(teamId: TeamId, userId: UserId, at: Instant) {
+        jpaRepository.markOnboarded(teamId.value, userId.value, at.atOffset(ZoneOffset.UTC))
     }
 
-    override fun countAdmins(teamId: UUID): Int = jpaRepository.countActiveAdmins(teamId)
+    override fun countAdmins(teamId: TeamId): Int = jpaRepository.countActiveAdmins(teamId.value)
 
     @Transactional
-    override fun addMember(teamId: UUID, userId: UUID) {
-        if (jpaRepository.findByTeamIdAndUserIdAndActiveTrue(teamId, userId) != null) return
+    override fun addMember(teamId: TeamId, userId: UserId) {
+        if (jpaRepository.findByTeamIdAndUserIdAndActiveTrue(teamId.value, userId.value) != null) return
         try {
-            jpaRepository.save(TeamMemberJpaEntity(teamId = teamId, userId = userId, role = Role.USER.name))
+            jpaRepository.save(
+                TeamMemberJpaEntity(teamId = teamId.value, userId = userId.value, role = Role.USER.name),
+            )
         } catch (e: DataIntegrityViolationException) {
             // Concurrent accept or inactive-member row conflict — already a member, no-op
             logger.info(

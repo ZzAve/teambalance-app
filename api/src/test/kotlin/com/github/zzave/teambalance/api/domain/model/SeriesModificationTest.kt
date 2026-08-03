@@ -22,8 +22,8 @@ import java.util.UUID
 class SeriesModificationTest : FunSpec({
 
     val zone = ZoneId.of("Europe/Amsterdam")
-    val training = EventType(id = UUID.randomUUID(), name = "Training", color = "#123456")
-    val match = EventType(id = UUID.randomUUID(), name = "Match", color = "#abcdef")
+    val training = EventType(id = EventTypeId(UUID.randomUUID()), name = "Training", color = "#123456")
+    val match = EventType(id = EventTypeId(UUID.randomUUID()), name = "Match", color = "#abcdef")
     val originalGroup = UUID.randomUUID()
     val tailGroup = UUID.fromString("00000000-0000-0000-0000-0000000000aa")
 
@@ -40,7 +40,7 @@ class SeriesModificationTest : FunSpec({
             location = "Gym",
             references = emptyList(),
             recurringGroup = group,
-            createdBy = UUID.randomUUID(),
+            createdBy = UserId.random(),
             createdAt = Instant.parse("2026-01-01T00:00:00Z"),
         )
     }

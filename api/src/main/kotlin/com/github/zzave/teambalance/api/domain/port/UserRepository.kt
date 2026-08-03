@@ -1,10 +1,11 @@
 package com.github.zzave.teambalance.api.domain.port
 
+import com.github.zzave.teambalance.api.domain.model.Email
 import com.github.zzave.teambalance.api.domain.model.User
-import java.util.UUID
+import com.github.zzave.teambalance.api.domain.model.UserId
 
 interface UserRepository {
-    fun findById(id: UUID): User?
-    fun findByEmail(email: String): User?
+    fun findById(id: UserId): User?
+    fun findByEmail(email: Email): User?
     fun save(user: User): User
 }

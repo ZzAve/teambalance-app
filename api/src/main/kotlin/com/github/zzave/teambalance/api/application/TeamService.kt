@@ -4,6 +4,7 @@ import com.github.zzave.teambalance.api.domain.exception.AlreadyInTeamException
 import com.github.zzave.teambalance.api.domain.exception.InvalidCreationCodeException
 import com.github.zzave.teambalance.api.domain.exception.TeamSlugTakenException
 import com.github.zzave.teambalance.api.domain.model.TeamNaming
+import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.port.TeamCreationCodeRepository
 import com.github.zzave.teambalance.api.domain.port.TeamNotifier
 import com.github.zzave.teambalance.api.domain.port.TeamRegistrar
@@ -48,7 +49,7 @@ class TeamService(
 ) {
     private val log = LoggerFactory.getLogger(TeamService::class.java)
 
-    fun createTeam(founderId: UUID, rawName: String, creationCode: String): CreatedTeam {
+    fun createTeam(founderId: UserId, rawName: String, creationCode: String): CreatedTeam {
         requireTeamless(founderId)
         val names = TeamNaming.derive(rawName)
         requireSlugAvailable(names.slug)
@@ -62,7 +63,7 @@ class TeamService(
 
         val teamId = teamRegistrar.register(
             creationCode = creationCode,
-            founderId = founderId,
+            founderId = founderId.value,
             name = names.name,
             slug = names.slug,
             schemaName = names.schemaName,
@@ -74,8 +75,8 @@ class TeamService(
         return CreatedTeam(id = teamId, name = names.name, slug = names.slug)
     }
 
-    private fun requireTeamless(founderId: UUID) {
-        teamMemberRepository.findTeamId(founderId)?.let { throw AlreadyInTeamException(founderId) }
+    private fun requireTeamless(founderId: UserId) {
+        teamMemberRepository.findTeamId(founderId)?.let { throw AlreadyInTeamException(founderId.value) }
     }
 
     private fun requireSlugAvailable(slug: String) {
@@ -97,11 +98,11 @@ class TeamService(
      * a 500 — hence the deliberately broad catch.
      */
     @Suppress("TooGenericExceptionCaught")
-    private fun notifyBestEffort(founderId: UUID, teamName: String, teamSlug: String) {
+    private fun notifyBestEffort(founderId: UserId, teamName: String, teamSlug: String) {
         try {
             val founderEmail = userRepository.findById(founderId)?.email ?: return
-            teamNotifier.teamCreated(founderEmail, teamName, teamSlug)
-            teamNotifier.creationCodeConsumed(teamName, teamSlug, founderEmail)
+            teamNotifier.teamCreated(founderEmail.value, teamName, teamSlug)
+            teamNotifier.creationCodeConsumed(teamName, teamSlug, founderEmail.value)
         } catch (e: Exception) {
             log.warn("Post-create notifications failed for team '{}' (creation succeeded)", teamSlug, e)
         }

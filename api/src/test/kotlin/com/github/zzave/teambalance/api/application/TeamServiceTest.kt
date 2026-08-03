@@ -4,9 +4,13 @@ import com.github.zzave.teambalance.api.domain.exception.AlreadyInTeamException
 import com.github.zzave.teambalance.api.domain.exception.InvalidCreationCodeException
 import com.github.zzave.teambalance.api.domain.exception.InvalidTeamNameException
 import com.github.zzave.teambalance.api.domain.exception.TeamSlugTakenException
+import com.github.zzave.teambalance.api.domain.model.Email
+import com.github.zzave.teambalance.api.domain.model.PositionId
 import com.github.zzave.teambalance.api.domain.model.Role
+import com.github.zzave.teambalance.api.domain.model.TeamId
 import com.github.zzave.teambalance.api.domain.model.TeamMember
 import com.github.zzave.teambalance.api.domain.model.User
+import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.port.TeamCreationCodeRepository
 import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
 import com.github.zzave.teambalance.api.domain.port.TeamNotifier
@@ -23,26 +27,26 @@ import java.time.Instant
 import java.time.ZoneOffset
 import java.util.UUID
 
-private class FakeMemberRepo(private val existingTeam: UUID?) : TeamMemberRepository {
-    override fun findTeamId(userId: UUID): UUID? = existingTeam
-    override fun findByTeamId(teamId: UUID): List<TeamMember> = emptyList()
-    override fun findDisplayName(userId: UUID): String? = null
-    override fun findMembersByUserIds(userIds: Set<UUID>): Map<UUID, TeamMember> = emptyMap()
-    override fun findRole(teamId: UUID, userId: UUID): Role? = null
-    override fun addMember(teamId: UUID, userId: UUID) = Unit
-    override fun updateRole(teamId: UUID, userId: UUID, role: Role) = Unit
-    override fun deactivate(teamId: UUID, userId: UUID) = Unit
-    override fun assignPosition(teamId: UUID, userId: UUID, positionId: UUID?) = Unit
-    override fun markOnboarded(teamId: UUID, userId: UUID, at: Instant) = Unit
+private class FakeMemberRepo(private val existingTeam: TeamId?) : TeamMemberRepository {
+    override fun findTeamId(userId: UserId): TeamId? = existingTeam
+    override fun findByTeamId(teamId: TeamId): List<TeamMember> = emptyList()
+    override fun findDisplayName(userId: UserId): String? = null
+    override fun findMembersByUserIds(userIds: Set<UserId>): Map<UserId, TeamMember> = emptyMap()
+    override fun findRole(teamId: TeamId, userId: UserId): Role? = null
+    override fun addMember(teamId: TeamId, userId: UserId) = Unit
+    override fun updateRole(teamId: TeamId, userId: UserId, role: Role) = Unit
+    override fun deactivate(teamId: TeamId, userId: UserId) = Unit
+    override fun assignPosition(teamId: TeamId, userId: UserId, positionId: PositionId?) = Unit
+    override fun markOnboarded(teamId: TeamId, userId: UserId, at: Instant) = Unit
     override fun applyMemberEdit(
-        teamId: UUID,
-        userId: UUID,
+        teamId: TeamId,
+        userId: UserId,
         displayName: String,
         role: Role,
-        positionId: UUID?,
+        positionId: PositionId?,
         markOnboardedAt: Instant?,
     ) = Unit
-    override fun countAdmins(teamId: UUID): Int = 0
+    override fun countAdmins(teamId: TeamId): Int = 0
 }
 
 private class FakeTeamRepo(private val existingSlugs: Set<String> = emptySet()) : TeamRepository {
@@ -82,8 +86,8 @@ private class RecordingRegistrar(
 }
 
 private class FakeUserRepo(private val user: User?) : UserRepository {
-    override fun findById(id: UUID): User? = user
-    override fun findByEmail(email: String): User? = null
+    override fun findById(id: UserId): User? = user
+    override fun findByEmail(email: Email): User? = null
     override fun save(user: User): User = user
 }
 
@@ -103,13 +107,13 @@ private class RecordingNotifier(private val throwing: Boolean = false) : TeamNot
 class TeamServiceTest : FunSpec() {
     init {
         val clock = Clock.fixed(Instant.EPOCH, ZoneOffset.UTC)
-        val founder = UUID.randomUUID()
+        val founder = UserId.random()
         val newTeamId = UUID.randomUUID()
-        val founderUser = User(id = founder, email = "founder@example.com", displayName = "Founder")
+        val founderUser = User(id = founder, email = Email("founder@example.com"), displayName = "Founder")
 
         fun service(
             calls: MutableList<String> = mutableListOf(),
-            existingTeam: UUID? = null,
+            existingTeam: TeamId? = null,
             existingSlugs: Set<String> = emptySet(),
             redeemable: Boolean = true,
             provisionFails: Boolean = false,
@@ -140,7 +144,7 @@ class TeamServiceTest : FunSpec() {
         test("rejects a founder who already belongs to a team, without provisioning") {
             val calls = mutableListOf<String>()
             shouldThrow<AlreadyInTeamException> {
-                service(calls, existingTeam = UUID.randomUUID()).createTeam(founder, "New Team", "GOODCODE")
+                service(calls, existingTeam = TeamId(UUID.randomUUID())).createTeam(founder, "New Team", "GOODCODE")
             }
             calls shouldBe emptyList()
         }

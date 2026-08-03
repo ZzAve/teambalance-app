@@ -63,7 +63,7 @@ class JpaEventRepositoryAdapter(
     override fun deleteAllById(ids: List<EventId>) = ids.forEach { remove(it) }
 
     private fun persist(event: Event): Event {
-        val eventTypeEntity = eventTypeJpaRepository.findByUuid(event.eventType.id)
+        val eventTypeEntity = eventTypeJpaRepository.findByUuid(event.eventType.id.value)
             ?: throw EventTypeNotFoundException(event.eventType.id)
         val technicalId = jpaRepository.findByUuid(event.id.value)?.id ?: 0
         return jpaRepository.save(event.externalize(eventTypeEntity, technicalId)).internalize()

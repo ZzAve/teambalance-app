@@ -1,0 +1,46 @@
+package com.github.zzave.teambalance.api.domain.model
+
+import io.kotest.core.spec.style.FunSpec
+import io.kotest.matchers.shouldBe
+import io.kotest.matchers.shouldNotBe
+import java.util.UUID
+
+/**
+ * The contract shared by every value object rolled out in #23, following the one [EventIdTest] pins
+ * for the tracer. Wrapping, unwrapping and equality come free from `@JvmInline`; what does not is
+ * the [toString] override, which a future edit could delete without breaking compilation, and the
+ * `random()` factory. Both are pinned here once for all of them rather than in a spec per type.
+ *
+ * The edges themselves — request -> VO -> persistence -> VO -> response, with the wire format and
+ * the database column unchanged — are proven by the existing controller ITs, which this refactor
+ * leaves untouched.
+ */
+class ValueObjectTest : FunSpec({
+
+    test("a value object renders as its bare value, so interpolated diagnostics stay readable") {
+        val uuid = UUID.randomUUID()
+
+        AttendanceId(uuid).toString() shouldBe uuid.toString()
+        EventTypeId(uuid).toString() shouldBe uuid.toString()
+        PositionId(uuid).toString() shouldBe uuid.toString()
+        UserId(uuid).toString() shouldBe uuid.toString()
+        TeamId(uuid).toString() shouldBe uuid.toString()
+        Email("speler@example.com").toString() shouldBe "speler@example.com"
+        TokenHash("deadbeef").toString() shouldBe "deadbeef"
+    }
+
+    test("an identifier factory mints a fresh identity for a row that does not exist yet") {
+        AttendanceId.random() shouldNotBe AttendanceId.random()
+        UserId.random() shouldNotBe UserId.random()
+    }
+
+    // InviteToken is the deliberate exception to the rule above: the plaintext invite token is a
+    // secret, so its toString MUST NOT render the value — a leaked log line or exception must not
+    // expose a usable link. The real token is reachable only through `value`, at the Wirespec edge.
+    test("InviteToken masks its plaintext in toString but still exposes it via value") {
+        val token = InviteToken("s3cr3t-plaintext-invite-token")
+
+        token.toString() shouldBe "InviteToken(****)"
+        token.value shouldBe "s3cr3t-plaintext-invite-token"
+    }
+})

@@ -5,8 +5,8 @@ import java.util.UUID
 
 data class MagicLinkToken(
     val id: UUID,
-    val tokenHash: String,
-    val email: String,
+    val tokenHash: TokenHash,
+    val email: Email,
     val expiresAt: Instant,
     val usedAt: Instant?,
     val createdAt: Instant,

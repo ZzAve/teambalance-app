@@ -1,10 +1,13 @@
 package com.github.zzave.teambalance.api.application
 
 import com.github.zzave.teambalance.api.domain.model.Attendance
+import com.github.zzave.teambalance.api.domain.model.AttendanceId
 import com.github.zzave.teambalance.api.domain.model.AttendanceState
 import com.github.zzave.teambalance.api.domain.model.EventAttendance
 import com.github.zzave.teambalance.api.domain.model.EventId
+import com.github.zzave.teambalance.api.domain.model.TeamId
 import com.github.zzave.teambalance.api.domain.model.TeamMember
+import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.port.AttendanceRepository
 import com.github.zzave.teambalance.api.domain.port.EventRepository
 import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
@@ -26,11 +29,11 @@ class AttendanceService(
      * checked the path [userId] against the caller's team. Returns null when the event is unknown.
      */
     fun setAttendance(
-        teamId: UUID,
+        teamId: TeamId,
         eventId: EventId,
-        userId: UUID,
+        userId: UserId,
         state: AttendanceState,
-        changedBy: UUID,
+        changedBy: UserId,
     ): Attendance? {
         authorizationService.requireMember(userId, teamId)
         if (eventRepository.findById(eventId) == null) return null
@@ -43,7 +46,7 @@ class AttendanceService(
         } else {
             attendanceRepository.save(
                 Attendance(
-                    id = UUID.randomUUID(),
+                    id = AttendanceId.random(),
                     eventId = eventId,
                     userId = userId,
                     state = state,
@@ -55,7 +58,7 @@ class AttendanceService(
     }
 
     /** Current active roster of a team — fetch once per request and pass into the projections below. */
-    fun teamMembers(teamId: UUID): List<TeamMember> = teamMemberRepository.findByTeamId(teamId)
+    fun teamMembers(teamId: TeamId): List<TeamMember> = teamMemberRepository.findByTeamId(teamId)
 
     // The attendance picture is derived from *current team membership*, not from the rows that existed
     // when the event was made: a member who joined later shows as NOT_RESPONDED (no seeded row needed)
@@ -75,8 +78,8 @@ class AttendanceService(
         return eventIds.associateWith { EventAttendance.resolve(members, responsesByEvent[it] ?: emptyList()) }
     }
 
-    fun findMember(userId: UUID): TeamMember? =
+    fun findMember(userId: UserId): TeamMember? =
         teamMemberRepository.findMembersByUserIds(setOf(userId)).values.firstOrNull()
 
-    fun findDisplayName(userId: UUID): String? = teamMemberRepository.findDisplayName(userId)
+    fun findDisplayName(userId: UserId): String? = teamMemberRepository.findDisplayName(userId)
 }

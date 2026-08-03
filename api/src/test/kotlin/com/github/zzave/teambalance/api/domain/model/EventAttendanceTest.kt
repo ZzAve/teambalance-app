@@ -16,7 +16,7 @@ class EventAttendanceTest : FunSpec({
     val eventId = EventId(UUID.randomUUID())
 
     fun member(name: String, position: String? = null) = TeamMember(
-        userId = UUID.randomUUID(),
+        userId = UserId.random(),
         displayName = name,
         role = "USER",
         positionId = null,
@@ -25,7 +25,7 @@ class EventAttendanceTest : FunSpec({
     )
 
     fun TeamMember.responded(state: AttendanceState) = Attendance(
-        id = UUID.randomUUID(),
+        id = AttendanceId.random(),
         eventId = eventId,
         userId = userId,
         state = state,

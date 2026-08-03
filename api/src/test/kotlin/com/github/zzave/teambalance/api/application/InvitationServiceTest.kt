@@ -2,8 +2,12 @@ package com.github.zzave.teambalance.api.application
 
 import com.github.zzave.teambalance.api.domain.exception.NotTeamAdminException
 import com.github.zzave.teambalance.api.domain.model.Invitation
+import com.github.zzave.teambalance.api.domain.model.PositionId
 import com.github.zzave.teambalance.api.domain.model.Role
+import com.github.zzave.teambalance.api.domain.model.TeamId
 import com.github.zzave.teambalance.api.domain.model.TeamMember
+import com.github.zzave.teambalance.api.domain.model.TokenHash
+import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.port.InvitationRepository
 import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
 import io.kotest.assertions.throwables.shouldThrow
@@ -19,52 +23,52 @@ import java.util.UUID
 // subject here — authorization is).
 private class FakeInvitationRepo(private val live: Invitation) : InvitationRepository {
     val saved = mutableListOf<Invitation>()
-    var expiredTeam: UUID? = null
+    var expiredTeam: TeamId? = null
     val rotated = mutableListOf<Invitation>()
     override fun save(invitation: Invitation): Invitation { saved += invitation; return invitation }
-    override fun findByTokenHash(tokenHash: String): Invitation = live
-    override fun expireActive(teamId: UUID, now: Instant) { expiredTeam = teamId }
-    override fun rotate(teamId: UUID, replacement: Invitation, now: Instant): Invitation {
+    override fun findByTokenHash(tokenHash: TokenHash): Invitation = live
+    override fun expireActive(teamId: TeamId, now: Instant) { expiredTeam = teamId }
+    override fun rotate(teamId: TeamId, replacement: Invitation, now: Instant): Invitation {
         rotated += replacement
         return replacement
     }
 }
 
 // USER for everyone except the seeded admins; records joins so the open accept path can be asserted.
-private class InviteFakeMemberRepo(private val admins: Set<UUID>) : TeamMemberRepository {
-    val joined = mutableListOf<Pair<UUID, UUID>>()
-    override fun findRole(teamId: UUID, userId: UUID): Role = if (userId in admins) Role.ADMIN else Role.USER
-    override fun addMember(teamId: UUID, userId: UUID) { joined += teamId to userId }
-    override fun findByTeamId(teamId: UUID): List<TeamMember> = emptyList()
-    override fun findDisplayName(userId: UUID): String? = null
-    override fun findMembersByUserIds(userIds: Set<UUID>): Map<UUID, TeamMember> = emptyMap()
-    override fun findTeamId(userId: UUID): UUID? = null
-    override fun updateRole(teamId: UUID, userId: UUID, role: Role) = Unit
-    override fun deactivate(teamId: UUID, userId: UUID) = Unit
-    override fun assignPosition(teamId: UUID, userId: UUID, positionId: UUID?) = Unit
-    override fun markOnboarded(teamId: UUID, userId: UUID, at: Instant) = Unit
+private class InviteFakeMemberRepo(private val admins: Set<UserId>) : TeamMemberRepository {
+    val joined = mutableListOf<Pair<TeamId, UserId>>()
+    override fun findRole(teamId: TeamId, userId: UserId): Role = if (userId in admins) Role.ADMIN else Role.USER
+    override fun addMember(teamId: TeamId, userId: UserId) { joined += teamId to userId }
+    override fun findByTeamId(teamId: TeamId): List<TeamMember> = emptyList()
+    override fun findDisplayName(userId: UserId): String? = null
+    override fun findMembersByUserIds(userIds: Set<UserId>): Map<UserId, TeamMember> = emptyMap()
+    override fun findTeamId(userId: UserId): TeamId? = null
+    override fun updateRole(teamId: TeamId, userId: UserId, role: Role) = Unit
+    override fun deactivate(teamId: TeamId, userId: UserId) = Unit
+    override fun assignPosition(teamId: TeamId, userId: UserId, positionId: PositionId?) = Unit
     override fun applyMemberEdit(
-        teamId: UUID,
-        userId: UUID,
+        teamId: TeamId,
+        userId: UserId,
         displayName: String,
         role: Role,
-        positionId: UUID?,
+        positionId: PositionId?,
         markOnboardedAt: Instant?,
     ) = Unit
-    override fun countAdmins(teamId: UUID): Int = admins.size
+    override fun markOnboarded(teamId: TeamId, userId: UserId, at: Instant) = Unit
+    override fun countAdmins(teamId: TeamId): Int = admins.size
 }
 
 class InvitationServiceTest : FunSpec() {
     init {
         val clock = Clock.fixed(Instant.EPOCH, ZoneOffset.UTC)
-        val teamId = UUID.randomUUID()
-        val adminId = UUID.randomUUID()
-        val nonAdmin = UUID.randomUUID()
+        val teamId = TeamId(UUID.randomUUID())
+        val adminId = UserId.random()
+        val nonAdmin = UserId.random()
 
         val liveInvitation = Invitation(
             id = UUID.randomUUID(),
             teamId = teamId,
-            tokenHash = "hash",
+            tokenHash = TokenHash("hash"),
             createdBy = adminId,
             expiresAt = Instant.EPOCH.plus(Duration.ofDays(1)),
             createdAt = Instant.EPOCH,
@@ -102,13 +106,13 @@ class InvitationServiceTest : FunSpec() {
             invitations.rotated.single().createdBy shouldBe adminId
             invitations.saved.isEmpty() shouldBe true
             invitations.expiredTeam shouldBe null
-            result.token.isNotBlank() shouldBe true
+            result.token.value.isNotBlank() shouldBe true
         }
 
         test("generateInviteLink by an admin mints a link attributed to the caller") {
             val (service, invitations, _) = newService()
             val result = service.generateInviteLink(callerId = adminId, teamId = teamId)
-            result.token.isNotBlank() shouldBe true
+            result.token.value.isNotBlank() shouldBe true
             invitations.saved.single().createdBy shouldBe adminId
         }
 

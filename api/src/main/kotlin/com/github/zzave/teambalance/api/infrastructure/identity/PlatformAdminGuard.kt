@@ -1,6 +1,7 @@
 package com.github.zzave.teambalance.api.infrastructure.identity
 
 import com.github.zzave.teambalance.api.domain.exception.NotPlatformAdminException
+import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.port.UserRepository
 import com.github.zzave.teambalance.api.infrastructure.config.PlatformAdmins
 import org.springframework.stereotype.Component
@@ -28,7 +29,7 @@ class PlatformAdminGuard(
     }
 
     fun isPlatformAdmin(userId: UUID): Boolean {
-        val email = userRepository.findById(userId)?.email ?: return false
-        return platformAdmins.contains(email)
+        val email = userRepository.findById(UserId(userId))?.email ?: return false
+        return platformAdmins.contains(email.value)
     }
 }

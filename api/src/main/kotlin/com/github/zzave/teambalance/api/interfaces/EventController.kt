@@ -103,7 +103,7 @@ class EventController(
             teamId = teamId,
             id = id,
             scope = request.queries.scope.consume(),
-            eventTypeId = UUID.fromString(req.eventTypeId),
+            eventTypeId = req.eventTypeId.consumeEventTypeId(),
             title = req.title,
             description = req.description,
             startTime = Instant.parse(req.startTime.value),
@@ -146,7 +146,7 @@ private fun GeneratedEventSeriesScope?.consume(): DomainEventSeriesScope = when 
 
 private fun com.github.zzave.teambalance.api.interfaces.generated.model.CreateEventRequest.consume() =
     PotentialEvent(
-        eventTypeId = UUID.fromString(eventTypeId),
+        eventTypeId = eventTypeId.consumeEventTypeId(),
         title = title,
         description = description,
         startTime = Instant.parse(startTime.value),
@@ -163,7 +163,7 @@ internal fun List<EventReference>?.internalize(): List<DomainEventReference> =
     orEmpty().map { DomainEventReference.of(title = it.title, url = it.url) }
 
 private fun List<DomainEventReference>.externalize(): List<EventReference> =
-    map { EventReference(title = it.title, url = it.url) }
+    map { EventReference(title = it.title, url = it.url.value) }
 
 // internal (not private) so RecurringEventController can reuse it for the batch-create response.
 // Takes the already-resolved projection so mapping stays free of data access (no per-event N+1).
@@ -183,15 +183,15 @@ internal fun com.github.zzave.teambalance.api.domain.model.Event.produce(attenda
 
 private fun MemberAttendance.produce() = AttendanceEntry(
     // A responded member keys off their real row; a not-responded member falls back to their user id.
-    id = (responseId ?: member.userId).toString(),
-    userId = member.userId.toString(),
+    id = responseId?.produce() ?: member.userId.produce(),
+    userId = member.userId.produce(),
     displayName = member.displayName,
     role = member.position ?: UNASSIGNED,
     state = state.produce(),
 )
 
 private fun com.github.zzave.teambalance.api.domain.model.EventType.produce() =
-    EventTypeSummary(id = id.toString(), name = name, color = color)
+    EventTypeSummary(id = id.produce(), name = name, color = color)
 
 private fun Map<DomainAttendanceState, Int>.produce(roleBreakdown: List<Pair<String, Int>>) =
     AttendanceSummary(

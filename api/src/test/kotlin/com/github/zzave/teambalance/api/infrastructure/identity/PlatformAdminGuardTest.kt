@@ -1,7 +1,9 @@
 package com.github.zzave.teambalance.api.infrastructure.identity
 
 import com.github.zzave.teambalance.api.domain.exception.NotPlatformAdminException
+import com.github.zzave.teambalance.api.domain.model.Email
 import com.github.zzave.teambalance.api.domain.model.User
+import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.port.UserRepository
 import com.github.zzave.teambalance.api.infrastructure.config.PlatformAdmins
 import io.kotest.assertions.throwables.shouldNotThrowAny
@@ -11,8 +13,8 @@ import io.kotest.matchers.shouldBe
 import java.util.UUID
 
 private class FakeUsers(private val byId: Map<UUID, User>) : UserRepository {
-    override fun findById(id: UUID): User? = byId[id]
-    override fun findByEmail(email: String): User? = byId.values.firstOrNull { it.email == email }
+    override fun findById(id: UserId): User? = byId[id.value]
+    override fun findByEmail(email: Email): User? = byId.values.firstOrNull { it.email == email }
     override fun save(user: User): User = user
 }
 
@@ -20,8 +22,8 @@ class PlatformAdminGuardTest : FunSpec() {
     init {
         val adminId = UUID.randomUUID()
         val plainId = UUID.randomUUID()
-        val admin = User(adminId, "admin@teambalance.nl", "Admin")
-        val plain = User(plainId, "someone@example.com", "Someone")
+        val admin = User(UserId(adminId), Email("admin@teambalance.nl"), "Admin")
+        val plain = User(UserId(plainId), Email("someone@example.com"), "Someone")
         val users = FakeUsers(mapOf(adminId to admin, plainId to plain))
 
         fun guard(allowlist: List<String>) = PlatformAdminGuard(users, PlatformAdmins(allowlist))

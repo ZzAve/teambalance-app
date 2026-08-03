@@ -1,7 +1,10 @@
 package com.github.zzave.teambalance.api.application
 
+import com.github.zzave.teambalance.api.domain.model.Email
 import com.github.zzave.teambalance.api.domain.model.MagicLinkToken
+import com.github.zzave.teambalance.api.domain.model.TokenHash
 import com.github.zzave.teambalance.api.domain.model.User
+import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.port.EmailSender
 import com.github.zzave.teambalance.api.domain.port.MagicLinkTokenRepository
 import com.github.zzave.teambalance.api.domain.port.UserRepository
@@ -27,7 +30,7 @@ class AuthService(
         private val secureRandom = SecureRandom()
     }
 
-    fun requestMagicLink(email: String) {
+    fun requestMagicLink(email: Email) {
         val token = generateToken()
         val now = clock.instant()
         magicLinkTokenRepository.save(
@@ -43,7 +46,7 @@ class AuthService(
         emailSender.sendMagicLink(email, token)
     }
 
-    fun findUserById(id: UUID): User? = userRepository.findById(id)
+    fun findUserById(id: UserId): User? = userRepository.findById(id)
 
     fun verifyMagicLink(token: String): User? {
         val now = clock.instant()
@@ -56,7 +59,7 @@ class AuthService(
         // at magic-link signup, so derive a placeholder from the email for a first-time sign-in.
         return magicLinkTokenRepository.consumeAndResolveUser(
             consumedToken = record.copy(usedAt = now),
-            displayName = record.email.substringBefore("@"),
+            displayName = record.email.value.substringBefore("@"),
         )
     }
 
@@ -66,6 +69,6 @@ class AuthService(
         return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes)
     }
 
-    private fun hash(token: String): String =
-        MessageDigest.getInstance("SHA-256").digest(token.toByteArray()).joinToString("") { "%02x".format(it) }
+    private fun hash(token: String): TokenHash =
+        TokenHash(MessageDigest.getInstance("SHA-256").digest(token.toByteArray()).joinToString("") { "%02x".format(it) })
 }

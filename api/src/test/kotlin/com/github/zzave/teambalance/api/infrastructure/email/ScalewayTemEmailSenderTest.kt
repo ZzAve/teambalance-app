@@ -1,5 +1,6 @@
 package com.github.zzave.teambalance.api.infrastructure.email
 
+import com.github.zzave.teambalance.api.domain.model.Email
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
 import org.hamcrest.Matchers.containsString
@@ -43,7 +44,7 @@ class ScalewayTemEmailSenderTest : FunSpec() {
                 .andExpect(jsonPath("$.html").value(containsString("/auth/verify?token=tok-123")))
                 .andRespond(withSuccess("""{"message_id":"m-1"}""", MediaType.APPLICATION_JSON))
 
-            sender(builder).sendMagicLink("speler@example.com", "tok-123")
+            sender(builder).sendMagicLink(Email("speler@example.com"), "tok-123")
 
             server.verify()
         }
@@ -55,7 +56,7 @@ class ScalewayTemEmailSenderTest : FunSpec() {
                 .andRespond(withServerError())
 
             shouldThrow<RestClientResponseException> {
-                sender(builder).sendMagicLink("speler@example.com", "tok-123")
+                sender(builder).sendMagicLink(Email("speler@example.com"), "tok-123")
             }
 
             server.verify()

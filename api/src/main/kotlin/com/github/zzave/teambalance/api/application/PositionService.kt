@@ -3,6 +3,9 @@ package com.github.zzave.teambalance.api.application
 import com.github.zzave.teambalance.api.domain.exception.PositionLabelTakenException
 import com.github.zzave.teambalance.api.domain.exception.PositionNotFoundException
 import com.github.zzave.teambalance.api.domain.model.Position
+import com.github.zzave.teambalance.api.domain.model.PositionId
+import com.github.zzave.teambalance.api.domain.model.TeamId
+import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.port.PositionRepository
 import java.util.UUID
 
@@ -13,10 +16,10 @@ class PositionService(
     private val authorizationService: AuthorizationService,
 ) {
     /** The team's positions. Any active member may read them; no admin check. */
-    fun listPositions(teamId: UUID): List<Position> = positionRepository.listByTeam(teamId)
+    fun listPositions(teamId: TeamId): List<Position> = positionRepository.listByTeam(teamId)
 
     /** Admin-only. Trims the label and enforces per-team case-insensitive uniqueness. */
-    fun createPosition(callerId: UUID, teamId: UUID, rawLabel: String): Position {
+    fun createPosition(callerId: UserId, teamId: TeamId, rawLabel: String): Position {
         authorizationService.requireAdmin(callerId, teamId)
         val label = validLabel(rawLabel)
         requireUnique(teamId, label, excludingId = null)
@@ -24,7 +27,7 @@ class PositionService(
     }
 
     /** Admin-only. Renames a position of this team, keeping labels unique (excluding itself). */
-    fun renamePosition(callerId: UUID, teamId: UUID, id: UUID, rawLabel: String): Position {
+    fun renamePosition(callerId: UserId, teamId: TeamId, id: PositionId, rawLabel: String): Position {
         authorizationService.requireAdmin(callerId, teamId)
         if (!positionRepository.existsInTeam(teamId, id)) throw PositionNotFoundException(id)
         val label = validLabel(rawLabel)
@@ -33,7 +36,7 @@ class PositionService(
     }
 
     /** Admin-only. Deletes a position; members assigned to it are silently reset to unassigned. */
-    fun deletePosition(callerId: UUID, teamId: UUID, id: UUID) {
+    fun deletePosition(callerId: UserId, teamId: TeamId, id: PositionId) {
         authorizationService.requireAdmin(callerId, teamId)
         if (!positionRepository.existsInTeam(teamId, id)) throw PositionNotFoundException(id)
         positionRepository.delete(id)
@@ -47,7 +50,7 @@ class PositionService(
         return label
     }
 
-    private fun requireUnique(teamId: UUID, label: String, excludingId: UUID?) {
+    private fun requireUnique(teamId: TeamId, label: String, excludingId: PositionId?) {
         val taken = positionRepository.listByTeam(teamId)
             .any { it.id != excludingId && it.label.equals(label, ignoreCase = true) }
         if (taken) throw PositionLabelTakenException(label)

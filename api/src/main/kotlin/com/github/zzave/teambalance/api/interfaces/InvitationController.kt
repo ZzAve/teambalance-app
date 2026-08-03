@@ -1,6 +1,7 @@
 package com.github.zzave.teambalance.api.interfaces
 
 import com.github.zzave.teambalance.api.application.InvitationService
+import com.github.zzave.teambalance.api.domain.model.TeamId
 import com.github.zzave.teambalance.api.domain.port.CurrentTeamGateway
 import com.github.zzave.teambalance.api.domain.port.CurrentUserGateway
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.AcceptInvitation
@@ -28,7 +29,7 @@ class InvitationController(
         val invitation = invitationService.generateInviteLink(callerId = userId, teamId = teamId)
         return CreateInvitation.Response201(
             Invitation(
-                token = invitation.token,
+                token = invitation.token.value,
                 expiresAt = invitation.expiresAt.toString(),
             ),
         )
@@ -38,7 +39,7 @@ class InvitationController(
         val userId = currentUserGateway.requireCurrentUserId()
         val teamId = invitationService.acceptInvitation(request.path.token, userId)
             ?: return AcceptInvitation.Response404(Unit)
-        return AcceptInvitation.Response200(AcceptedInvitation(teamId = teamId.toString()))
+        return AcceptInvitation.Response200(AcceptedInvitation(teamId = teamId.produce()))
     }
 
     override suspend fun expireInvitations(request: ExpireInvitations.Request): ExpireInvitations.Response<*> {
@@ -56,9 +57,13 @@ class InvitationController(
         val invitation = invitationService.rotateInviteLink(callerId = userId, teamId = teamId)
         return RotateInvitation.Response201(
             Invitation(
-                token = invitation.token,
+                token = invitation.token.value,
                 expiresAt = invitation.expiresAt.toString(),
             ),
         )
     }
 }
+
+// The Wirespec edge for a team's identity — the contract still carries a bare UUID string. Accepting
+// an invite is the only response that names a team; everywhere else the tenant is server-resolved.
+private fun TeamId.produce(): String = value.toString()

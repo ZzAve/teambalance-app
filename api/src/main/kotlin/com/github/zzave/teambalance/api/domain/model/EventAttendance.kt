@@ -1,6 +1,5 @@
 package com.github.zzave.teambalance.api.domain.model
 
-import java.util.UUID
 
 /** Bucket label for attendees who have no position assigned. */
 const val UNASSIGNED = "Unassigned"
@@ -13,7 +12,7 @@ const val UNASSIGNED = "Unassigned"
 data class MemberAttendance(
     val member: TeamMember,
     val state: AttendanceState,
-    val responseId: UUID?,
+    val responseId: AttendanceId?,
 )
 
 /**

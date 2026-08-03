@@ -1,9 +1,9 @@
 package com.github.zzave.teambalance.api.domain.port
 
 import com.github.zzave.teambalance.api.domain.model.EventType
-import java.util.UUID
+import com.github.zzave.teambalance.api.domain.model.EventTypeId
 
 interface EventTypeRepository {
     fun findAll(): List<EventType>
-    fun findById(id: UUID): EventType?
+    fun findById(id: EventTypeId): EventType?
 }

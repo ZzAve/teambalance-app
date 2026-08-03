@@ -3,12 +3,12 @@ package com.github.zzave.teambalance.api.infrastructure.persistence
 import com.github.zzave.teambalance.api.domain.exception.EventNotFoundException
 import com.github.zzave.teambalance.api.domain.model.Attendance
 import com.github.zzave.teambalance.api.domain.model.EventId
+import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.port.AttendanceRepository
 import com.github.zzave.teambalance.api.infrastructure.persistence.mapper.internalize
 import com.github.zzave.teambalance.api.infrastructure.persistence.mapper.externalize
 import org.springframework.stereotype.Repository
 import org.springframework.transaction.annotation.Transactional
-import java.util.UUID
 
 /**
  * The transactional boundary sits on the adapter (ADR-0018): one call to a port method is one
@@ -40,8 +40,8 @@ class JpaAttendanceRepositoryAdapter(
         else jpaRepository.findByEventUuidIn(eventIds.map { it.value }).map { it.internalize() }
 
     @Transactional(readOnly = true)
-    override fun findByEventIdAndUserId(eventId: EventId, userId: UUID): Attendance? =
-        jpaRepository.findByEventUuidAndUserId(eventId.value, userId)?.internalize()
+    override fun findByEventIdAndUserId(eventId: EventId, userId: UserId): Attendance? =
+        jpaRepository.findByEventUuidAndUserId(eventId.value, userId.value)?.internalize()
 
     @Transactional
     override fun save(attendance: Attendance): Attendance {
@@ -49,7 +49,7 @@ class JpaAttendanceRepositoryAdapter(
             ?: throw EventNotFoundException(attendance.eventId)
         // Carry the DB identity over when the row already exists: a fresh entity (id=0) makes
         // Hibernate INSERT — violating the uuid unique constraint — instead of updating in place.
-        val existingDbId = jpaRepository.findByUuid(attendance.id)?.id ?: 0
+        val existingDbId = jpaRepository.findByUuid(attendance.id.value)?.id ?: 0
         return jpaRepository.save(attendance.externalize(eventEntity, existingDbId)).internalize()
     }
 

@@ -34,7 +34,7 @@ class RecurringEventController(
         val series = eventService.createRecurringEvents(
             callerId = userId,
             teamId = teamId,
-            eventTypeId = UUID.fromString(body.eventTypeId),
+            eventTypeId = body.eventTypeId.consumeEventTypeId(),
             title = body.title,
             description = body.description,
             location = body.location,

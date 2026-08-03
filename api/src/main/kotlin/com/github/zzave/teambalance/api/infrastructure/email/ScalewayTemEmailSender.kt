@@ -1,5 +1,6 @@
 package com.github.zzave.teambalance.api.infrastructure.email
 
+import com.github.zzave.teambalance.api.domain.model.Email
 import com.github.zzave.teambalance.api.domain.port.EmailSender
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Profile
@@ -22,10 +23,10 @@ class ScalewayTemEmailSender(
 
     private val restClient = restClientBuilder.build()
 
-    override fun sendMagicLink(email: String, token: String) {
+    override fun sendMagicLink(email: Email, token: String) {
         val payload = MagicLinkEmail.render(MagicLinkEmail.url(frontendBaseUrl, token)).externalize(
             from = TemAddress(email = emailProperties.fromAddress, name = emailProperties.fromName),
-            to = TemAddress(email = email),
+            to = TemAddress(email = email.value),
             projectId = emailProperties.projectId,
         )
         restClient.post()

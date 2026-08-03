@@ -1,11 +1,12 @@
 package com.github.zzave.teambalance.api.domain.port
 
 import com.github.zzave.teambalance.api.domain.model.MagicLinkToken
+import com.github.zzave.teambalance.api.domain.model.TokenHash
 import com.github.zzave.teambalance.api.domain.model.User
 
 interface MagicLinkTokenRepository {
     fun save(token: MagicLinkToken): MagicLinkToken
-    fun findByTokenHash(tokenHash: String): MagicLinkToken?
+    fun findByTokenHash(tokenHash: TokenHash): MagicLinkToken?
 
     /**
      * Persists [consumedToken] (its `usedAt` already stamped by the caller) and returns the user for

@@ -1,11 +1,15 @@
 package com.github.zzave.teambalance.api.infrastructure.multitenancy
 
+import com.github.zzave.teambalance.api.domain.port.TenantProvisioner
 import org.flywaydb.core.Flyway
 import org.springframework.stereotype.Component
 import javax.sql.DataSource
 
 @Component
-class TenantSchemaManager(private val dataSource: DataSource) {
+class TenantSchemaManager(private val dataSource: DataSource) : TenantProvisioner {
+
+    /** Port method for create-team; delegates to the existing idempotent provisioning primitive. */
+    override fun provisionTenant(schemaName: String) = provisionTenantSchema(schemaName)
 
     fun provisionPlatformSchema() {
         Flyway.configure()

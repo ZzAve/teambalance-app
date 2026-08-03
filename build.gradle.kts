@@ -17,17 +17,29 @@ allprojects {
     }
 }
 
-// Installs the committed git hooks (.githooks) into .git/hooks so the
-// pre-commit gate (`make format test e2e`) is enforced for every contributor.
-val installGitHooks by tasks.registering(Copy::class) {
-    description = "Installs git hooks from .githooks into .git/hooks"
-    group = "git hooks"
-    from(layout.projectDirectory.dir(".githooks"))
-    into(layout.projectDirectory.dir(".git/hooks"))
-    filePermissions { unix("0755") }
-}
+// Installs the committed git hooks (.githooks) into the repository's hooks dir
+// so the pre-commit gate is enforced for every contributor. The destination is 
+// resolved via `git rev-parse --git-path hooks` rather than
+// hardcoded to `.git/hooks` to support worktrees
+val resolvedHooksDir: String = providers.exec {
+    isIgnoreExitValue = true
+    workingDir = layout.projectDirectory.asFile
+    commandLine("git", "rev-parse", "--git-path", "hooks")
+}.standardOutput.asText.get().trim()
 
-// Auto-install whenever anything is built, mirroring husky's `prepare` step.
-subprojects {
-    tasks.matching { it.name == "build" }.configureEach { dependsOn(installGitHooks) }
+// Blank output means no git binary or not a git repo (e.g. a source archive
+// build): skip wiring the task entirely rather than fabricating a `.git` dir.
+if (resolvedHooksDir.isNotBlank()) {
+    val installGitHooks by tasks.registering(Copy::class) {
+        description = "Installs git hooks from .githooks into the git-resolved hooks dir"
+        group = "git hooks"
+        from(layout.projectDirectory.dir(".githooks"))
+        into(resolvedHooksDir)
+        filePermissions { unix("0755") }
+    }
+
+    // Auto-install whenever anything is built, mirroring husky's `prepare` step.
+    subprojects {
+        tasks.matching { it.name == "build" }.configureEach { dependsOn(installGitHooks) }
+    }
 }

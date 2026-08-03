@@ -46,6 +46,14 @@ private class InviteFakeMemberRepo(private val admins: Set<UserId>) : TeamMember
     override fun updateRole(teamId: TeamId, userId: UserId, role: Role) = Unit
     override fun deactivate(teamId: TeamId, userId: UserId) = Unit
     override fun assignPosition(teamId: TeamId, userId: UserId, positionId: PositionId?) = Unit
+    override fun applyMemberEdit(
+        teamId: TeamId,
+        userId: UserId,
+        displayName: String,
+        role: Role,
+        positionId: PositionId?,
+        markOnboardedAt: Instant?,
+    ) = Unit
     override fun markOnboarded(teamId: TeamId, userId: UserId, at: Instant) = Unit
     override fun countAdmins(teamId: TeamId): Int = admins.size
 }

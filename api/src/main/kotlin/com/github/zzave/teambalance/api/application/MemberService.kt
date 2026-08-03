@@ -16,7 +16,6 @@ import com.github.zzave.teambalance.api.domain.port.UserRepository
 import org.springframework.stereotype.Service
 import java.time.Clock
 import java.time.Instant
-import java.util.UUID
 
 private const val MAX_DISPLAY_NAME_LENGTH = 100
 
@@ -67,10 +66,9 @@ class MemberService(
         val roleChanged = role != currentRole
         guardRoleChange(callerId, targetUserId, teamId, currentRole, role, roleChanged)
         requirePositionInTeam(teamId, positionId)
+        val name = normalizeAndValidateName(teamId, targetUserId, rawName)
 
-        applyDisplayName(teamId, targetUserId, rawName)
-        if (roleChanged) teamMemberRepository.updateRole(teamId, targetUserId, role)
-        teamMemberRepository.assignPosition(teamId, targetUserId, positionId)
+        teamMemberRepository.applyMemberEdit(teamId, targetUserId, name, role, positionId)
         return getMember(teamId, targetUserId)
     }
 
@@ -98,16 +96,18 @@ class MemberService(
     }
 
     /**
-     * Completes the caller's one-time onboarding: applies their own display name and position via the
-     * self-update path, then stamps onboarded_at. Role is left untouched — onboarding never changes it.
+     * Completes the caller's one-time onboarding: applies the member's own display name and position
+     * and stamps onboarded_at, as one unit. Role is left untouched — onboarding never changes it.
      * Idempotent: re-running keeps the member onboarded and simply re-applies name/position. The
      * controller enforces that [userId] is the authenticated principal (self-only).
      */
     fun completeOnboarding(userId: UserId, teamId: TeamId, rawName: String, positionId: PositionId?): TeamMember {
         val currentRole = teamMemberRepository.findRole(teamId, userId)
             ?: throw MemberNotFoundException(userId)
-        updateMember(userId, teamId, userId, rawName, currentRole, positionId)
-        teamMemberRepository.markOnboarded(teamId, userId, Instant.now(clock))
+        requirePositionInTeam(teamId, positionId)
+        val name = normalizeAndValidateName(teamId, userId, rawName)
+
+        teamMemberRepository.applyMemberEdit(teamId, userId, name, currentRole, positionId, Instant.now(clock))
         return getMember(teamId, userId)
     }
 
@@ -122,9 +122,9 @@ class MemberService(
         teamMemberRepository.deactivate(teamId, targetUserId)
     }
 
-    // Trims, validates length, enforces per-team case-insensitive uniqueness (excluding the target so a
-    // no-op rename is allowed), then persists the name on the user record.
-    private fun applyDisplayName(teamId: TeamId, targetUserId: UserId, rawName: String) {
+    // Validates and normalizes a display name without writing: trims, checks length, and enforces
+    // per-team case-insensitive uniqueness (excluding the target so a no-op rename is allowed).
+    private fun normalizeAndValidateName(teamId: TeamId, targetUserId: UserId, rawName: String): String {
         val name = rawName.trim()
         require(name.isNotBlank() && name.length <= MAX_DISPLAY_NAME_LENGTH) {
             "Display name must be 1..$MAX_DISPLAY_NAME_LENGTH characters"
@@ -132,7 +132,13 @@ class MemberService(
         val taken = teamMemberRepository.findByTeamId(teamId)
             .any { it.userId != targetUserId && it.displayName.equals(name, ignoreCase = true) }
         if (taken) throw NameTakenException(name)
+        return name
+    }
 
+    // A single-aggregate write (users only), so it needs no cross-aggregate boundary — used by the
+    // self-rename path where role and position are untouched.
+    private fun applyDisplayName(teamId: TeamId, targetUserId: UserId, rawName: String) {
+        val name = normalizeAndValidateName(teamId, targetUserId, rawName)
         val user = userRepository.findById(targetUserId) ?: throw MemberNotFoundException(targetUserId)
         userRepository.save(user.copy(displayName = name))
     }

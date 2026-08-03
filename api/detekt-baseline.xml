@@ -4,6 +4,8 @@
   <CurrentIssues>
     <ID>AdapterCannotDependOnAdapter:DemoDataSeeder.kt:import com.github.zzave.teambalance.api.infrastructure.multitenancy.TenantSchemaManager</ID>
     <ID>AdapterCannotDependOnAdapter:E2eEnvironmentInitializer.kt:import com.github.zzave.teambalance.api.infrastructure.multitenancy.TenantSchemaManager</ID>
+    <ID>AdapterCannotDependOnAdapter:PlatformAdminGuard.kt:import com.github.zzave.teambalance.api.infrastructure.config.PlatformAdmins</ID>
+    <ID>AdapterCannotDependOnAdapter:ScalewayTeamNotifier.kt:import com.github.zzave.teambalance.api.infrastructure.config.PlatformAdmins</ID>
     <ID>AdapterCannotDependOnAdapter:SessionTenantContextFilter.kt:import com.github.zzave.teambalance.api.infrastructure.identity.SessionKeys</ID>
     <ID>AdapterCannotDependOnAdapter:SessionTenantContextFilter.kt:import com.github.zzave.teambalance.api.infrastructure.identity.UserContext</ID>
     <ID>AdapterCannotDependOnAdapter:SessionTenantContextFilter.kt:import com.github.zzave.teambalance.api.infrastructure.persistence.SpringDataTeamMemberRepository</ID>
@@ -25,6 +27,7 @@
     <ID>DomainNoFrameworkImports:PositionService.kt:import org.springframework.stereotype.Service</ID>
     <ID>DomainNoFrameworkImports:SeasonService.kt:import org.springframework.stereotype.Service</ID>
     <ID>DomainNoFrameworkImports:SeasonService.kt:import org.springframework.transaction.annotation.Transactional</ID>
+    <ID>DomainNoFrameworkImports:TeamService.kt:import org.springframework.stereotype.Service</ID>
     <ID>DomainNoPrimitiveObsession:Event.kt:Event$val description: String?</ID>
     <ID>DomainNoPrimitiveObsession:Event.kt:Event$val location: String?</ID>
     <ID>DomainNoPrimitiveObsession:Event.kt:Event$val title: String</ID>
@@ -44,8 +47,16 @@
     <ID>DomainNoPrimitiveObsession:TeamMember.kt:TeamMember$val onboarded: Boolean</ID>
     <ID>DomainNoPrimitiveObsession:TeamMember.kt:TeamMember$val position: String?</ID>
     <ID>DomainNoPrimitiveObsession:TeamMember.kt:TeamMember$val role: String</ID>
+    <ID>DomainNoPrimitiveObsession:TeamNaming.kt:TeamNames$val name: String</ID>
+    <ID>DomainNoPrimitiveObsession:TeamNaming.kt:TeamNames$val schemaName: String</ID>
+    <ID>DomainNoPrimitiveObsession:TeamNaming.kt:TeamNames$val slug: String</ID>
+    <ID>DomainNoPrimitiveObsession:TeamService.kt:CreatedTeam$val name: String</ID>
+    <ID>DomainNoPrimitiveObsession:TeamService.kt:CreatedTeam$val slug: String</ID>
     <ID>DomainNoPrimitiveObsession:User.kt:User$val displayName: String</ID>
     <ID>PortNamingConvention:EmailSender.kt:EmailSender</ID>
+    <ID>PortNamingConvention:TeamNotifier.kt:TeamNotifier</ID>
+    <ID>PortNamingConvention:TeamRegistrar.kt:TeamRegistrar</ID>
+    <ID>PortNamingConvention:TenantProvisioner.kt:TenantProvisioner</ID>
     <ID>PortsInDomainOnly:SpringDataAttendanceRepository.kt:SpringDataAttendanceRepository : JpaRepository</ID>
     <ID>PortsInDomainOnly:SpringDataEventRepository.kt:SpringDataEventRepository : JpaRepository</ID>
     <ID>PortsInDomainOnly:SpringDataEventTypeRepository.kt:SpringDataEventTypeRepository : JpaRepository</ID>

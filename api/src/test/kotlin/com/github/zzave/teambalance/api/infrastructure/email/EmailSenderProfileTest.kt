@@ -15,7 +15,13 @@ class EmailSenderProfileTest : FunSpec({
     fun runnerFor(profile: String) = ApplicationContextRunner()
         .withInitializer { it.environment.setActiveProfiles(profile) }
         .withBean(RestClient.Builder::class.java, { RestClient.builder() })
-        .withUserConfiguration(ScalewayTemEmailSender::class.java, ConsoleEmailSender::class.java)
+        // EmailConfiguration (@Profile("prod")) supplies the EmailProperties the Scaleway sender binds;
+        // it registers only under the prod run, exactly as in the real app.
+        .withUserConfiguration(
+            EmailConfiguration::class.java,
+            ScalewayTemEmailSender::class.java,
+            ConsoleEmailSender::class.java,
+        )
         .withPropertyValues(
             "teambalance.frontend-base-url=https://app.teambalance.nl",
             "teambalance.email.from-name=TeamBalance",

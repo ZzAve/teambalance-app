@@ -90,8 +90,8 @@ class AttendanceAuthorizationIT : TeamBalanceIT() {
     private fun newTeamMember(teamId: UUID, email: String, name: String): String {
         jdbcTemplate.execute(
             """
-            INSERT INTO public.teams (id, name, slug, sport, schema_name)
-            VALUES ('$teamId'::uuid, 'Team $teamId', 'authz-$teamId', 'Volleyball', 'authz-$teamId')
+            INSERT INTO public.teams (id, name, slug, schema_name)
+            VALUES ('$teamId'::uuid, 'Team $teamId', 'authz-$teamId', 'authz-$teamId')
             ON CONFLICT DO NOTHING
             """,
         )

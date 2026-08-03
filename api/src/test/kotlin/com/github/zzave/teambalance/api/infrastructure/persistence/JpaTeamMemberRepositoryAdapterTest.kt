@@ -72,8 +72,8 @@ class JpaTeamMemberRepositoryAdapterTest : TeamBalanceIT() {
         val teamId = TeamId(UUID.randomUUID())
         val schemaName = "team_${teamId.toString().replace("-", "")}"
         jdbcTemplate.update(
-            "INSERT INTO public.teams (id, name, slug, sport, schema_name) VALUES (?, ?, ?, ?, ?)",
-            teamId.value, "Test Team", "test-team-$teamId", "Volleyball", schemaName,
+            "INSERT INTO public.teams (id, name, slug, schema_name) VALUES (?, ?, ?, ?)",
+            teamId.value, "Test Team", "test-team-$teamId", schemaName,
         )
         val userId = seedMemberOnTeam(teamId, role, active)
         return teamId to userId

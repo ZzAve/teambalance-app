@@ -23,6 +23,14 @@ private class FakeTeamMemberRepository(private val roles: Map<Pair<TeamId, UserI
     override fun updateRole(teamId: TeamId, userId: UserId, role: Role) = Unit
     override fun deactivate(teamId: TeamId, userId: UserId) = Unit
     override fun assignPosition(teamId: TeamId, userId: UserId, positionId: PositionId?) = Unit
+    override fun applyMemberEdit(
+        teamId: TeamId,
+        userId: UserId,
+        displayName: String,
+        role: Role,
+        positionId: PositionId?,
+        markOnboardedAt: java.time.Instant?,
+    ) = Unit
     override fun markOnboarded(teamId: TeamId, userId: UserId, at: java.time.Instant) = Unit
     override fun countAdmins(teamId: TeamId): Int = 0
 }

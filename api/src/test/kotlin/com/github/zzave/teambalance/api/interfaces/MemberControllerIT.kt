@@ -35,8 +35,8 @@ class MemberControllerIT : TeamBalanceIT() {
         tenantSchemaManager.provisionPlatformSchema()
         tenantSchemaManager.provisionTenantSchema(TEAM_SCHEMA)
         jdbcTemplate.execute(
-            "INSERT INTO public.teams (id, name, slug, sport, schema_name) " +
-                "VALUES ('$TEAM_ID'::uuid, 'Member IT Team', 'member-it-team', 'Volleyball', '$TEAM_SCHEMA') " +
+            "INSERT INTO public.teams (id, name, slug, schema_name) " +
+                "VALUES ('$TEAM_ID'::uuid, 'Member IT Team', 'member-it-team', '$TEAM_SCHEMA') " +
                 "ON CONFLICT DO NOTHING",
         )
         // The Testcontainers DB is shared across all tests with no per-test rollback, so reset this

@@ -43,15 +43,15 @@ class EventControllerTenantIsolationTest : TeamBalanceIT() {
 
             jdbcTemplate.execute(
                 """
-                INSERT INTO public.teams (id, name, slug, sport, schema_name)
-                VALUES ('$ALPHA_TEAM_ID'::uuid, 'Team Alpha', 'team-alpha-iso', 'Volleyball', '$ALPHA_SCHEMA')
+                INSERT INTO public.teams (id, name, slug, schema_name)
+                VALUES ('$ALPHA_TEAM_ID'::uuid, 'Team Alpha', 'team-alpha-iso', '$ALPHA_SCHEMA')
                 ON CONFLICT DO NOTHING
                 """
             )
             jdbcTemplate.execute(
                 """
-                INSERT INTO public.teams (id, name, slug, sport, schema_name)
-                VALUES ('$BETA_TEAM_ID'::uuid, 'Team Beta', 'team-beta-iso', 'Volleyball', '$BETA_SCHEMA')
+                INSERT INTO public.teams (id, name, slug, schema_name)
+                VALUES ('$BETA_TEAM_ID'::uuid, 'Team Beta', 'team-beta-iso', '$BETA_SCHEMA')
                 ON CONFLICT DO NOTHING
                 """
             )

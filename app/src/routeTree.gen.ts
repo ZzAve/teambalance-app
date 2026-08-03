@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthVerifyRouteImport } from './routes/auth/verify'
+import { Route as CreateTeamIndexRouteImport } from './routes/create-team/index'
 import { Route as EventsEventIdRouteImport } from './routes/events/$eventId'
 import { Route as InviteTokenRouteImport } from './routes/invite/$token'
 import { Route as MembersIndexRouteImport } from './routes/members/index'
@@ -32,6 +33,11 @@ const LoginRoute = LoginRouteImport.update({
 const AuthVerifyRoute = AuthVerifyRouteImport.update({
   id: '/auth/verify',
   path: '/auth/verify',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CreateTeamIndexRoute = CreateTeamIndexRouteImport.update({
+  id: '/create-team/',
+  path: '/create-team/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const EventsEventIdRoute = EventsEventIdRouteImport.update({
@@ -72,6 +78,7 @@ export interface FileRoutesByFullPath {
   '/events/$eventId': typeof EventsEventIdRoute
   '/invite/$token': typeof InviteTokenRoute
   '/team/settings': typeof TeamSettingsRoute
+  '/create-team/': typeof CreateTeamIndexRoute
   '/members/': typeof MembersIndexRoute
   '/profile/': typeof ProfileIndexRoute
   '/welcome/': typeof WelcomeIndexRoute
@@ -83,6 +90,7 @@ export interface FileRoutesByTo {
   '/events/$eventId': typeof EventsEventIdRoute
   '/invite/$token': typeof InviteTokenRoute
   '/team/settings': typeof TeamSettingsRoute
+  '/create-team': typeof CreateTeamIndexRoute
   '/members': typeof MembersIndexRoute
   '/profile': typeof ProfileIndexRoute
   '/welcome': typeof WelcomeIndexRoute
@@ -95,6 +103,7 @@ export interface FileRoutesById {
   '/events/$eventId': typeof EventsEventIdRoute
   '/invite/$token': typeof InviteTokenRoute
   '/team/settings': typeof TeamSettingsRoute
+  '/create-team/': typeof CreateTeamIndexRoute
   '/members/': typeof MembersIndexRoute
   '/profile/': typeof ProfileIndexRoute
   '/welcome/': typeof WelcomeIndexRoute
@@ -108,6 +117,7 @@ export interface FileRouteTypes {
     | '/events/$eventId'
     | '/invite/$token'
     | '/team/settings'
+    | '/create-team/'
     | '/members/'
     | '/profile/'
     | '/welcome/'
@@ -119,6 +129,7 @@ export interface FileRouteTypes {
     | '/events/$eventId'
     | '/invite/$token'
     | '/team/settings'
+    | '/create-team'
     | '/members'
     | '/profile'
     | '/welcome'
@@ -130,6 +141,7 @@ export interface FileRouteTypes {
     | '/events/$eventId'
     | '/invite/$token'
     | '/team/settings'
+    | '/create-team/'
     | '/members/'
     | '/profile/'
     | '/welcome/'
@@ -142,6 +154,7 @@ export interface RootRouteChildren {
   EventsEventIdRoute: typeof EventsEventIdRoute
   InviteTokenRoute: typeof InviteTokenRoute
   TeamSettingsRoute: typeof TeamSettingsRoute
+  CreateTeamIndexRoute: typeof CreateTeamIndexRoute
   MembersIndexRoute: typeof MembersIndexRoute
   ProfileIndexRoute: typeof ProfileIndexRoute
   WelcomeIndexRoute: typeof WelcomeIndexRoute
@@ -168,6 +181,13 @@ declare module '@tanstack/react-router' {
       path: '/auth/verify'
       fullPath: '/auth/verify'
       preLoaderRoute: typeof AuthVerifyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/create-team/': {
+      id: '/create-team/'
+      path: '/create-team'
+      fullPath: '/create-team/'
+      preLoaderRoute: typeof CreateTeamIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/events/$eventId': {
@@ -222,6 +242,7 @@ const rootRouteChildren: RootRouteChildren = {
   EventsEventIdRoute: EventsEventIdRoute,
   InviteTokenRoute: InviteTokenRoute,
   TeamSettingsRoute: TeamSettingsRoute,
+  CreateTeamIndexRoute: CreateTeamIndexRoute,
   MembersIndexRoute: MembersIndexRoute,
   ProfileIndexRoute: ProfileIndexRoute,
   WelcomeIndexRoute: WelcomeIndexRoute,

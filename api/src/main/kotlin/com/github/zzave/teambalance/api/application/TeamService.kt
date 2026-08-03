@@ -27,7 +27,7 @@ data class CreatedTeam(val id: UUID, val name: String, val slug: String)
  *
  * Ordering is deliberately provision-first so a partial failure never strands a consumed code:
  *  1. reject if the caller already belongs to a team (v1 one-team-per-user, #143);
- *  2. derive + validate the slug / tenant schema name (bad name → 400);
+ *  2. validate the name + user-supplied slug and derive the tenant schema name (bad name/slug → 400);
  *  3. pre-check slug uniqueness and code redeemability (fast, clean 409 / opaque 403 before any writes);
  *  4. provision the tenant schema (idempotent, on its own connection — commits independently);
  *  5. atomically consume the code and insert the team + founding admin ([TeamRegistrar]).
@@ -49,9 +49,9 @@ class TeamService(
 ) {
     private val log = LoggerFactory.getLogger(TeamService::class.java)
 
-    fun createTeam(founderId: UserId, rawName: String, creationCode: String): CreatedTeam {
+    fun createTeam(founderId: UserId, rawName: String, rawSlug: String, creationCode: String): CreatedTeam {
         requireTeamless(founderId)
-        val names = TeamNaming.derive(rawName)
+        val names = TeamNaming.validate(rawName, rawSlug)
         requireSlugAvailable(names.slug)
 
         val now = clock.instant()

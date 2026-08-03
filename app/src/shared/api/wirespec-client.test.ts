@@ -61,12 +61,12 @@ describe('wirespec-client adapter', () => {
       expect(headerOf(fetchMock, 'X-Team-Id')).toBe('team_test')
     })
 
-    it('falls back to the default team id when none is stored', async () => {
+    it('omits the X-Team-Id header entirely when no team is stored (a teamless user has no default)', async () => {
       const fetchMock = stubFetch(fakeResponse({ status: 200, body: JSON.stringify({ events: [] }) }))
 
       await api.ListEvents({ 'include-past': false })
 
-      expect(headerOf(fetchMock, 'X-Team-Id')).toBe('setpoint_vt')
+      expect(headerOf(fetchMock, 'X-Team-Id')).toBeUndefined()
     })
   })
 

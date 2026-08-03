@@ -47,12 +47,12 @@ class CreateTeamControllerIT : TeamBalanceIT() {
         )
     }
 
-    private fun createTeam(userId: String, name: String, code: String) =
+    private fun createTeam(userId: String, name: String, slug: String, code: String) =
         mockMvc.perform(
             MockMvcRequestBuilders.post("/api/teams")
                 .header("X-User-Id", userId)
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("""{"name":"$name","creationCode":"$code"}"""),
+                .content("""{"name":"$name","slug":"$slug","creationCode":"$code"}"""),
         )
             .andExpect(MockMvcResultMatchers.request().asyncStarted())
             .andReturn()
@@ -76,7 +76,7 @@ class CreateTeamControllerIT : TeamBalanceIT() {
             seedUser(founder, "happy-${founder.take(8)}@test.com")
             seedCode("CT-HAPPY-${founder.take(8)}")
 
-            createTeam(founder, "Create IT Happy", "CT-HAPPY-${founder.take(8)}")
+            createTeam(founder, "Create IT Happy", "create-it-happy", "CT-HAPPY-${founder.take(8)}")
                 .andExpect(MockMvcResultMatchers.status().isCreated)
                 .andExpect(MockMvcResultMatchers.jsonPath("$.name").value("Create IT Happy"))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.slug").value("create-it-happy"))
@@ -126,11 +126,11 @@ class CreateTeamControllerIT : TeamBalanceIT() {
             seedUser(other, "reuse-b-${other.take(8)}@test.com")
             seedCode("CT-REUSE-${founder.take(8)}")
 
-            createTeam(founder, "Create IT Reuse", "CT-REUSE-${founder.take(8)}")
+            createTeam(founder, "Create IT Reuse", "create-it-reuse", "CT-REUSE-${founder.take(8)}")
                 .andExpect(MockMvcResultMatchers.status().isCreated)
 
             // A different (teamless) user tries the now-consumed code.
-            createTeam(other, "Create IT Reuse Two", "CT-REUSE-${founder.take(8)}")
+            createTeam(other, "Create IT Reuse Two", "create-it-reuse-two", "CT-REUSE-${founder.take(8)}")
                 .andExpect(MockMvcResultMatchers.status().isForbidden)
         }
 
@@ -138,7 +138,7 @@ class CreateTeamControllerIT : TeamBalanceIT() {
             val founder = UUID.randomUUID().toString()
             seedUser(founder, "unknown-${founder.take(8)}@test.com")
 
-            createTeam(founder, "Create IT Unknown", "NO-SUCH-CODE-${founder.take(8)}")
+            createTeam(founder, "Create IT Unknown", "create-it-unknown", "NO-SUCH-CODE-${founder.take(8)}")
                 .andExpect(MockMvcResultMatchers.status().isForbidden)
         }
 
@@ -147,7 +147,7 @@ class CreateTeamControllerIT : TeamBalanceIT() {
             seedUser(founder, "expired-${founder.take(8)}@test.com")
             seedCode("CT-EXPIRED-${founder.take(8)}", expiresSql = "now() - interval '1 day'")
 
-            createTeam(founder, "Create IT Expired", "CT-EXPIRED-${founder.take(8)}")
+            createTeam(founder, "Create IT Expired", "create-it-expired", "CT-EXPIRED-${founder.take(8)}")
                 .andExpect(MockMvcResultMatchers.status().isForbidden)
         }
 
@@ -157,10 +157,10 @@ class CreateTeamControllerIT : TeamBalanceIT() {
             seedCode("CT-FIRST-${founder.take(8)}")
             seedCode("CT-SECOND-${founder.take(8)}")
 
-            createTeam(founder, "Create IT First", "CT-FIRST-${founder.take(8)}")
+            createTeam(founder, "Create IT First", "create-it-first", "CT-FIRST-${founder.take(8)}")
                 .andExpect(MockMvcResultMatchers.status().isCreated)
 
-            createTeam(founder, "Create IT Second", "CT-SECOND-${founder.take(8)}")
+            createTeam(founder, "Create IT Second", "create-it-second", "CT-SECOND-${founder.take(8)}")
                 .andExpect(MockMvcResultMatchers.status().isConflict)
                 .andExpect(MockMvcResultMatchers.jsonPath("$.code").value("ALREADY_IN_TEAM"))
 
@@ -173,20 +173,31 @@ class CreateTeamControllerIT : TeamBalanceIT() {
             consumedAt shouldBe null
         }
 
-        test("a blank team name returns 400") {
+        test("a blank team name returns 400 INVALID_NAME") {
             val founder = UUID.randomUUID().toString()
             seedUser(founder, "blank-${founder.take(8)}@test.com")
             seedCode("CT-BLANK-${founder.take(8)}")
 
-            createTeam(founder, "   ", "CT-BLANK-${founder.take(8)}")
+            createTeam(founder, "   ", "valid-slug", "CT-BLANK-${founder.take(8)}")
                 .andExpect(MockMvcResultMatchers.status().isBadRequest)
+                .andExpect(MockMvcResultMatchers.jsonPath("$.code").value("INVALID_NAME"))
+        }
+
+        test("an invalid slug returns 400 INVALID_SLUG before provisioning") {
+            val founder = UUID.randomUUID().toString()
+            seedUser(founder, "badslug-${founder.take(8)}@test.com")
+            seedCode("CT-BADSLUG-${founder.take(8)}")
+
+            createTeam(founder, "Create IT Bad Slug", "Bad Slug", "CT-BADSLUG-${founder.take(8)}")
+                .andExpect(MockMvcResultMatchers.status().isBadRequest)
+                .andExpect(MockMvcResultMatchers.jsonPath("$.code").value("INVALID_SLUG"))
         }
 
         test("creating a team without an authenticated user returns 401") {
             mockMvc.perform(
                 MockMvcRequestBuilders.post("/api/teams")
                     .contentType(MediaType.APPLICATION_JSON)
-                    .content("""{"name":"Nope","creationCode":"whatever"}"""),
+                    .content("""{"name":"Nope","slug":"nope","creationCode":"whatever"}"""),
             )
                 .andExpect(MockMvcResultMatchers.request().asyncStarted())
                 .andReturn()

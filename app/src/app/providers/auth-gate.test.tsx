@@ -9,7 +9,15 @@ import type { AuthenticatedUser } from '@shared/api/auth'
 // fetch protected data) until the session is confirmed. An unconfirmed session — a 401 probe OR
 // any /me error — fails closed to the login screen.
 
-const USER: AuthenticatedUser = { id: 'user-1', email: 'jan@example.com', displayName: 'Jan', role: 'USER' }
+const USER: AuthenticatedUser = {
+  id: 'user-1',
+  email: 'jan@example.com',
+  displayName: 'Jan',
+  role: 'USER',
+  // A confirmed member of a team, so the has-a-team gate passes and this test stays focused on the
+  // auth-confirmation seam (401 vs 200), not team routing.
+  team: { id: 'team-1', name: 'Setpoint VT', slug: 'setpoint-vt' },
+}
 
 let meStatus = 401
 let eventsFetched = false

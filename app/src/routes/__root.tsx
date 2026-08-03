@@ -31,6 +31,14 @@ export const Route = createRootRoute({
     }
     if (!user) throw redirect({ to: '/login' })
 
+    // Has-a-team gate: an authenticated but teamless user is a first-class state — route them to
+    // /create-team, and do it BEFORE the onboarding gate's tenant-scoped /members/me probe (which
+    // would 403 NO_TEAM_MEMBERSHIP and bounce them to /login). /create-team is exempt so it can render
+    // (mirroring how /welcome is exempt from the onboarding gate below). Teamlessness is read from the
+    // explicit team field, not inferred from role == null (permission vs membership; see #26).
+    if (location.pathname === '/create-team' || location.pathname === '/create-team/') return
+    if (!user.team) throw redirect({ to: '/create-team' })
+
     // Onboarding gate: a confirmed member who hasn't completed onboarding is routed to /welcome
     // before any app screen mounts. /welcome itself is exempt (below) so the flow can render; the
     // auth routes are already exempt (returned above). Read /members/me through the cache — race-

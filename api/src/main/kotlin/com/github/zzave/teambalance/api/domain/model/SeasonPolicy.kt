@@ -4,7 +4,6 @@ import com.github.zzave.teambalance.api.domain.exception.EventOutsideSeasonExcep
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
-import java.util.UUID
 
 /**
  * Owns "what to check, and when" for the season bound (ADR-0014): every event write whose start
@@ -42,7 +41,7 @@ class SeasonPolicy(
      * pre-edit value in [originalStarts] are checked. An unchanged start is grandfathered (a row
      * absent from [originalStarts] counts as moved and is checked).
      */
-    fun requireEditable(plan: SeriesEditPlan, originalStarts: Map<UUID, Instant>) =
+    fun requireEditable(plan: SeriesEditPlan, originalStarts: Map<EventId, Instant>) =
         plan.toPersist
             .filter { it.startTime != originalStarts[it.id] }
             .forEach { requireWithinSeason(it.startTime.toSeasonDate()) }

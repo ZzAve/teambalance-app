@@ -19,7 +19,7 @@ class AttendanceController(
 
     override suspend fun setAttendance(request: SetAttendance.Request): SetAttendance.Response<*> {
         val teamId = currentTeamGateway.requireCurrentTeamId()
-        val eventId = UUID.fromString(request.path.eventId)
+        val eventId = request.path.eventId.consumeEventId()
         val userId = UUID.fromString(request.path.userId)
         val state = AttendanceState.valueOf(request.body.state)
 
@@ -36,7 +36,7 @@ class AttendanceController(
         return SetAttendance.Response200(
             Attendance(
                 id = attendance.id.toString(),
-                eventId = attendance.eventId.toString(),
+                eventId = attendance.eventId.produce(),
                 userId = attendance.userId.toString(),
                 displayName = member?.displayName ?: "Unknown",
                 role = member?.position ?: UNASSIGNED,

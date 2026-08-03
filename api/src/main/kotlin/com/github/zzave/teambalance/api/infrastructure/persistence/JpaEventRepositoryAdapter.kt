@@ -3,6 +3,7 @@ package com.github.zzave.teambalance.api.infrastructure.persistence
 import com.github.zzave.teambalance.api.domain.exception.EventNotFoundException
 import com.github.zzave.teambalance.api.domain.exception.EventTypeNotFoundException
 import com.github.zzave.teambalance.api.domain.model.Event
+import com.github.zzave.teambalance.api.domain.model.EventId
 import com.github.zzave.teambalance.api.domain.port.EventRepository
 import com.github.zzave.teambalance.api.infrastructure.persistence.mapper.internalize
 import com.github.zzave.teambalance.api.infrastructure.persistence.mapper.externalize
@@ -34,8 +35,8 @@ class JpaEventRepositoryAdapter(
 ) : EventRepository {
 
     @Transactional(readOnly = true)
-    override fun findById(id: UUID): Event? =
-        jpaRepository.findByUuid(id)?.internalize()
+    override fun findById(id: EventId): Event? =
+        jpaRepository.findByUuid(id.value)?.internalize()
 
     @Transactional(readOnly = true)
     override fun findUpcoming(since: Instant): List<Event> =
@@ -56,20 +57,20 @@ class JpaEventRepositoryAdapter(
     override fun saveAll(events: List<Event>): List<Event> = events.map { persist(it) }
 
     @Transactional
-    override fun deleteById(id: UUID) = remove(id)
+    override fun deleteById(id: EventId) = remove(id)
 
     @Transactional
-    override fun deleteAllById(ids: List<UUID>) = ids.forEach { remove(it) }
+    override fun deleteAllById(ids: List<EventId>) = ids.forEach { remove(it) }
 
     private fun persist(event: Event): Event {
         val eventTypeEntity = eventTypeJpaRepository.findByUuid(event.eventType.id)
             ?: throw EventTypeNotFoundException(event.eventType.id)
-        val technicalId = jpaRepository.findByUuid(event.id)?.id ?: 0
+        val technicalId = jpaRepository.findByUuid(event.id.value)?.id ?: 0
         return jpaRepository.save(event.externalize(eventTypeEntity, technicalId)).internalize()
     }
 
-    private fun remove(id: UUID) {
-        val entity = jpaRepository.findByUuid(id)
+    private fun remove(id: EventId) {
+        val entity = jpaRepository.findByUuid(id.value)
             ?: throw EventNotFoundException(id)
         jpaRepository.delete(entity)
     }

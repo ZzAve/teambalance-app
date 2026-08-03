@@ -20,20 +20,21 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneOffset
+import com.github.zzave.teambalance.api.domain.model.EventId
 import java.util.UUID
 
 // The write use cases are admin-guarded in the service now (uniform write-authorization seam), so a
 // non-admin caller must be rejected *before* any repository work — these fakes therefore fail loudly
 // if touched, proving the guard short-circuits rather than the call merely erroring downstream.
 private class ExplodingEventRepo : EventRepository {
-    override fun findById(id: UUID): Event? = error("repository must not be reached for an unauthorized caller")
+    override fun findById(id: EventId): Event? = error("repository must not be reached for an unauthorized caller")
     override fun findUpcoming(since: Instant): List<Event> = error("unused")
     override fun findAll(): List<Event> = error("unused")
     override fun findByRecurringGroup(group: UUID): List<Event> = error("unused")
     override fun save(event: Event): Event = error("unused")
     override fun saveAll(events: List<Event>): List<Event> = error("unused")
-    override fun deleteById(id: UUID) = error("unused")
-    override fun deleteAllById(ids: List<UUID>) = error("unused")
+    override fun deleteById(id: EventId) = error("unused")
+    override fun deleteAllById(ids: List<EventId>) = error("unused")
 }
 
 private class ExplodingEventTypeRepo : EventTypeRepository {
@@ -92,7 +93,7 @@ class EventServiceTest : FunSpec() {
                 service.updateEvent(
                     callerId = nonAdmin,
                     teamId = teamId,
-                    id = UUID.randomUUID(),
+                    id = EventId(UUID.randomUUID()),
                     scope = EventSeriesScope.THIS,
                     eventTypeId = UUID.randomUUID(),
                     title = "x",
@@ -106,7 +107,7 @@ class EventServiceTest : FunSpec() {
 
         test("deleteEvent by a non-admin is rejected before any repository access") {
             shouldThrow<NotTeamAdminException> {
-                service.deleteEvent(nonAdmin, teamId, UUID.randomUUID(), EventSeriesScope.THIS)
+                service.deleteEvent(nonAdmin, teamId, EventId(UUID.randomUUID()), EventSeriesScope.THIS)
             }
         }
 

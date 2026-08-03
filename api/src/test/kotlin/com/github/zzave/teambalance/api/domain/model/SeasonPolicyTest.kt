@@ -32,7 +32,7 @@ class SeasonPolicyTest : FunSpec({
     fun startOn(date: String): Instant =
         LocalDate.parse(date).atTime(LocalTime.of(20, 30)).atZone(zone).toInstant()
 
-    fun event(id: UUID, start: Instant, group: UUID? = null): Event =
+    fun event(id: EventId, start: Instant, group: UUID? = null): Event =
         Event(
             id = id,
             eventType = training,
@@ -80,8 +80,8 @@ class SeasonPolicyTest : FunSpec({
 
     test("requireEditable grandfathers an ALL title-only edit: no start moves, so nothing is checked") {
         // A whole series sitting OUTSIDE a shrunk window, edited without moving any start.
-        val out1 = event(UUID.randomUUID(), startOn("2026-10-06"))
-        val out2 = event(UUID.randomUUID(), startOn("2026-10-13"))
+        val out1 = event(EventId(UUID.randomUUID()), startOn("2026-10-06"))
+        val out2 = event(EventId(UUID.randomUUID()), startOn("2026-10-13"))
         val originalStarts = mapOf(out1.id to out1.startTime, out2.id to out2.startTime)
         // toPersist carries the same starts (only the title changed upstream) — grandfathered.
         val plan = SeriesEditPlan(edited = listOf(out1, out2), regrouped = emptyList())
@@ -90,7 +90,7 @@ class SeasonPolicyTest : FunSpec({
     }
 
     test("requireEditable rejects an occurrence whose start MOVED outside the window") {
-        val original = event(UUID.randomUUID(), startOn("2026-09-15"))
+        val original = event(EventId(UUID.randomUUID()), startOn("2026-09-15"))
         val originalStarts = mapOf(original.id to original.startTime)
         // The edit moved this occurrence's start out of the window.
         val moved = original.copy(startTime = startOn("2026-10-15"))
@@ -102,8 +102,8 @@ class SeasonPolicyTest : FunSpec({
 
     test("requireEditable checks moved starts but grandfathers unchanged ones in the same plan") {
         // One occurrence keeps its (out-of-window) start; another moves, but moves to INSIDE the window.
-        val kept = event(UUID.randomUUID(), startOn("2026-10-06"))
-        val original = event(UUID.randomUUID(), startOn("2026-09-01"))
+        val kept = event(EventId(UUID.randomUUID()), startOn("2026-10-06"))
+        val original = event(EventId(UUID.randomUUID()), startOn("2026-09-01"))
         val originalStarts = mapOf(kept.id to kept.startTime, original.id to original.startTime)
         val moved = original.copy(startTime = startOn("2026-09-20"))
         val plan = SeriesEditPlan(edited = listOf(kept, moved), regrouped = emptyList())
@@ -114,7 +114,7 @@ class SeasonPolicyTest : FunSpec({
 
     test("requireEditable checks the regrouped tail's moved starts too, not just edited ones") {
         // A regrouped tail row that was somehow moved out of window is still validated.
-        val original = event(UUID.randomUUID(), startOn("2026-09-15"))
+        val original = event(EventId(UUID.randomUUID()), startOn("2026-09-15"))
         val originalStarts = mapOf(original.id to original.startTime)
         val movedTail = original.copy(startTime = startOn("2026-10-20"), recurringGroup = UUID.randomUUID())
         val plan = SeriesEditPlan(edited = emptyList(), regrouped = listOf(movedTail))
@@ -127,7 +127,7 @@ class SeasonPolicyTest : FunSpec({
 
     test("an unconfigured season allows every create, batch, and moved edit") {
         val unset = SeasonPolicy(Season.UNSET, zone)
-        val original = event(UUID.randomUUID(), startOn("2026-09-15"))
+        val original = event(EventId(UUID.randomUUID()), startOn("2026-09-15"))
         val moved = original.copy(startTime = startOn("1999-01-01"))
 
         shouldNotThrowAny {

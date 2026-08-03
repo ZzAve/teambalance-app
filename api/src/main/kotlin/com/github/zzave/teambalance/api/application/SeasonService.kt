@@ -2,13 +2,9 @@ package com.github.zzave.teambalance.api.application
 
 import com.github.zzave.teambalance.api.domain.model.Season
 import com.github.zzave.teambalance.api.domain.port.SeasonRepository
-import org.springframework.stereotype.Service
-import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDate
 import java.util.UUID
 
-@Service
-@Transactional
 class SeasonService(
     private val seasonRepository: SeasonRepository,
     private val authorizationService: AuthorizationService,

@@ -8,23 +8,27 @@ import io.kotest.matchers.shouldBe
  * Pure validation for a Reference (ADR-0016). No Spring, no DB — the lowest layer that proves the
  * http/https-only guard, the length caps, and the blank-title normalization. This is the security
  * boundary: an un-constructible bad URL can never reach a rendered anchor.
+ *
+ * The guard lives in [EventReference.Url] itself — the type IS the guard — so the direct-construction
+ * tests below prove it holds regardless of which layer builds the value, and [EventReference.of] just
+ * inherits it.
  */
 class EventReferenceTest : FunSpec({
 
     test("accepts an https url with a title") {
         val ref = EventReference.of("Nevobo", "https://api.nevobo.nl/permalink/wedstrijd/2018133")
         ref.title shouldBe "Nevobo"
-        ref.url shouldBe "https://api.nevobo.nl/permalink/wedstrijd/2018133"
+        ref.url.value shouldBe "https://api.nevobo.nl/permalink/wedstrijd/2018133"
     }
 
     test("accepts a plain http url") {
-        EventReference.of(null, "http://example.com/x").url shouldBe "http://example.com/x"
+        EventReference.of(null, "http://example.com/x").url.value shouldBe "http://example.com/x"
     }
 
     test("of() trims fields and treats a blank title as absent") {
         val ref = EventReference.of("   ", "  https://example.com/x  ")
         ref.title shouldBe null
-        ref.url shouldBe "https://example.com/x"
+        ref.url.value shouldBe "https://example.com/x"
     }
 
     test("rejects a javascript: scheme") {
@@ -53,7 +57,7 @@ class EventReferenceTest : FunSpec({
     }
 
     test("rejects a url longer than the cap") {
-        val tooLong = "https://example.com/" + "a".repeat(EventReference.MAX_URL_LENGTH)
+        val tooLong = "https://example.com/" + "a".repeat(EventReference.Url.MAX_URL_LENGTH)
         shouldThrow<IllegalArgumentException> { EventReference.of(null, tooLong) }
     }
 
@@ -63,6 +67,21 @@ class EventReferenceTest : FunSpec({
     }
 
     test("is case-insensitive on the scheme") {
-        EventReference.of(null, "HTTPS://Example.com/X").url shouldBe "HTTPS://Example.com/X"
+        EventReference.of(null, "HTTPS://Example.com/X").url.value shouldBe "HTTPS://Example.com/X"
+    }
+
+    // The type owns the guard: constructing a Url directly (bypassing of()) must reject the same
+    // dangerous values, so no layer can smuggle an unsafe href in by building the value another way.
+    test("Url itself rejects a non-http scheme, a missing host, a blank value, and over-length") {
+        shouldThrow<IllegalArgumentException> { EventReference.Url("javascript:alert(1)") }
+        shouldThrow<IllegalArgumentException> { EventReference.Url("https://") }
+        shouldThrow<IllegalArgumentException> { EventReference.Url("   ") }
+        shouldThrow<IllegalArgumentException> {
+            EventReference.Url("https://example.com/" + "a".repeat(EventReference.Url.MAX_URL_LENGTH))
+        }
+    }
+
+    test("Url accepts a valid http(s) value and exposes it via value") {
+        EventReference.Url("https://example.com/x").value shouldBe "https://example.com/x"
     }
 })

@@ -25,7 +25,6 @@
     <ID>DomainNoPrimitiveObsession:Event.kt:Event$val location: String?</ID>
     <ID>DomainNoPrimitiveObsession:Event.kt:Event$val title: String</ID>
     <ID>DomainNoPrimitiveObsession:EventReference.kt:EventReference$val title: String?</ID>
-    <ID>DomainNoPrimitiveObsession:EventReference.kt:EventReference$val url: String</ID>
     <ID>DomainNoPrimitiveObsession:EventType.kt:EventType$val color: String?</ID>
     <ID>DomainNoPrimitiveObsession:EventType.kt:EventType$val name: String</ID>
     <ID>DomainNoPrimitiveObsession:InvitationService.kt:GeneratedInvitation$val token: String</ID>

@@ -22,7 +22,7 @@ import java.util.UUID
 data class CreatedTeam(val id: UUID, val name: String, val slug: String)
 
 /**
- * Self-service team creation (issue #154, ADR-0015). A logged-in, teamless user creates a team from a
+ * Self-service team creation (issue #154, ADR-0019). A logged-in, teamless user creates a team from a
  * name + a one-time creation code and becomes its founding admin.
  *
  * Ordering is deliberately provision-first so a partial failure never strands a consumed code:

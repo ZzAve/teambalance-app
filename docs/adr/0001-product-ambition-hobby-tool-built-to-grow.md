@@ -1,6 +1,6 @@
 # ADR-0001: Product ambition — hobby tool, built to grow
 
-- Status: Accepted
+- Status: Accepted (self-service onboarding amended by [ADR-0019](0019-self-service-team-onboarding.md))
 - Date: 2026-06-23
 
 ## Context

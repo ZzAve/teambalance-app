@@ -110,8 +110,10 @@ any-team, self-service (see [ADR-0001](docs/adr/0001-product-ambition-hobby-tool
 - **Invite Link** — A single shareable link an admin generates to onboard members into
   an existing Team. Clicking it → enter email → Magic Link → joined. One link, many
   joiners; can expire/rotate.
-- **Team creation** — Provisioning a new Team. In v1 this is a manual/back-office step
-  (DB/API); self-service team creation is deferred.
+- **Team creation** — Provisioning a new Team. Self-service: a logged-in, teamless user
+  creates their Team from a name + slug + one-time **creation code**, which provisions the
+  tenant schema inline (see [ADR-0019](docs/adr/0019-self-service-team-onboarding.md)).
+  Back-office onboarding is now just minting a creation code.
 
 ### Platform & integrations
 

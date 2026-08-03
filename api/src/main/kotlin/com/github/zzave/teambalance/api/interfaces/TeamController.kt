@@ -8,7 +8,7 @@ import com.github.zzave.teambalance.api.interfaces.generated.model.Team
 import org.springframework.web.bind.annotation.RestController
 
 /**
- * Self-service team creation (#154, ADR-0015). The caller is authenticated but, by definition, has no
+ * Self-service team creation (#154, ADR-0019). The caller is authenticated but, by definition, has no
  * team yet — so this only resolves the current *user* (never `requireCurrentTeamId`, which would
  * fail-closed with 403 for a teamless user). Error mapping (bad name → 400, invalid code → opaque 403,
  * already-in-team / slug clash → 409) is handled by the thrown domain exceptions via

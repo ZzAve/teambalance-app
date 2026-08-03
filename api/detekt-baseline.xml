@@ -21,8 +21,6 @@
     <ID>DomainNoFrameworkImports:InvitationService.kt:import org.springframework.transaction.annotation.Transactional</ID>
     <ID>DomainNoFrameworkImports:MemberService.kt:import org.springframework.stereotype.Service</ID>
     <ID>DomainNoFrameworkImports:PositionService.kt:import org.springframework.stereotype.Service</ID>
-    <ID>DomainNoFrameworkImports:SeasonService.kt:import org.springframework.stereotype.Service</ID>
-    <ID>DomainNoFrameworkImports:SeasonService.kt:import org.springframework.transaction.annotation.Transactional</ID>
     <ID>DomainNoPrimitiveObsession:Event.kt:Event$val description: String?</ID>
     <ID>DomainNoPrimitiveObsession:Event.kt:Event$val location: String?</ID>
     <ID>DomainNoPrimitiveObsession:Event.kt:Event$val title: String</ID>

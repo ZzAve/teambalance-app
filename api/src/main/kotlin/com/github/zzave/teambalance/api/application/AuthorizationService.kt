@@ -6,7 +6,6 @@ import com.github.zzave.teambalance.api.domain.model.Role
 import com.github.zzave.teambalance.api.domain.model.TeamId
 import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
-import org.springframework.stereotype.Service
 import java.util.UUID
 
 /**
@@ -21,7 +20,6 @@ import java.util.UUID
  * The check is fail-closed: a missing, inactive, or wrong-team membership yields no role and is
  * therefore neither a member nor an admin.
  */
-@Service
 class AuthorizationService(
     private val teamMemberRepository: TeamMemberRepository,
 ) {

@@ -7,8 +7,6 @@ import com.github.zzave.teambalance.api.domain.model.TokenHash
 import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.port.InvitationRepository
 import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
-import org.springframework.beans.factory.annotation.Value
-import org.springframework.stereotype.Service
 import java.security.MessageDigest
 import java.security.SecureRandom
 import java.time.Clock
@@ -20,15 +18,15 @@ import java.util.UUID
 /** The plaintext invite token (shown to the admin once) plus its expiry. Never persisted. */
 data class GeneratedInvitation(val token: InviteToken, val expiresAt: Instant)
 
-@Service
 class InvitationService(
     private val invitationRepository: InvitationRepository,
     private val teamMemberRepository: TeamMemberRepository,
     private val authorizationService: AuthorizationService,
     private val clock: Clock,
-    // App-wide secret mixed into the token hash. Supplied via INVITATION_TOKEN_SALT in live
-    // environments (see application.yml); dev and test use a hardcoded value.
-    @Value("\${teambalance.invitation.token-salt}") private val tokenSalt: String,
+    // App-wide secret mixed into the token hash. Read from teambalance.invitation.token-salt by the
+    // composition root — INVITATION_TOKEN_SALT in live environments (see application.yml), a
+    // hardcoded value in dev and test.
+    private val tokenSalt: String,
 ) {
     companion object {
         // Invite links don't expire on a timer by default in v1 — an admin rotates/expires

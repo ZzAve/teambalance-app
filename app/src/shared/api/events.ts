@@ -43,7 +43,9 @@ export function useEvent(id: string) {
     queryKey: ['events', id],
     queryFn: async () => {
       const res = await api.GetEvent({ id })
-      if (res.status === 404) throw new Error('Event not found')
+      // A missing event is a resolved-but-empty result, not a query error, so the detail page can
+      // tell "not found" apart from a real load failure (500/network) and render each distinctly.
+      if (res.status === 404) return null
       return res.body
     },
   })

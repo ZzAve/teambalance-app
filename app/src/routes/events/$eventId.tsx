@@ -7,6 +7,8 @@ import { useUserStore } from '@shared/stores/user-store'
 import { Button } from '@shared/ui/button'
 import { EventTypeBadge } from '@entities/event/ui/EventTypeBadge'
 import { EventTypeIcon } from '@entities/event/ui/EventTypeIcon'
+import { EventDetailSkeleton } from '@entities/event/ui/EventDetailSkeleton'
+import { QueryErrorState } from '@shared/ui/QueryErrorState'
 import { ReferenceChips } from '@entities/event/ui/ReferenceChips'
 import { RoleBreakdown } from '@entities/event/ui/RoleBreakdown'
 import { SeriesPeek } from '@entities/event/ui/SeriesPeek'
@@ -54,7 +56,7 @@ function AttendeeRow({ attendance }: { attendance: AttendanceEntry }) {
 
 function EventDetailPage() {
   const { eventId } = Route.useParams()
-  const { data: event, isLoading } = useEvent(eventId)
+  const { data: event, isLoading, isError, refetch } = useEvent(eventId)
   const currentUserId = useUserStore((s) => s.userId)
   const isAdmin = useUserStore((s) => s.role) === 'ADMIN'
   const { mutate, isPending } = useSetAttendance()
@@ -62,7 +64,19 @@ function EventDetailPage() {
   // Only load the full list to find series siblings when this event actually belongs to a group.
   const { data: allEvents } = useEvents(true, !!event?.recurringGroup)
 
-  if (isLoading) return <p className="text-muted-foreground">Loading...</p>
+  if (isLoading) return <EventDetailSkeleton />
+  if (isError)
+    return (
+      <QueryErrorState
+        title="Couldn't load this event"
+        description="Something went wrong on our end. Give it another try."
+        onRetry={() => refetch()}
+      >
+        <Button asChild variant="ghost">
+          <Link to="/">Back to events</Link>
+        </Button>
+      </QueryErrorState>
+    )
   if (!event) return <p>Event not found.</p>
 
   const date = new Date(event.startTime)

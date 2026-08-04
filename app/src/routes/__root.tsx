@@ -1,6 +1,7 @@
 import { createRootRoute, redirect, Outlet, Link, useNavigate, useRouterState } from '@tanstack/react-router'
 import { useQueryClient } from '@tanstack/react-query'
 import { useEffect, useRef } from 'react'
+import { Toaster } from 'sonner'
 import { Providers } from '@app/providers'
 import { BottomNav } from '@shared/ui/BottomNav'
 import { authMeQueryOptions, useLogout } from '@shared/api/auth'
@@ -159,6 +160,9 @@ function RootLayout() {
         </main>
         <BottomNav />
       </div>
+      {/* App-wide toast primitive. richColors gives the error toast a semantic red; the default
+          light theme matches the app surface (no dark-mode toggle is wired yet). */}
+      <Toaster position="top-center" richColors />
     </Providers>
   )
 }

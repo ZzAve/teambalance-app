@@ -6,7 +6,6 @@ import com.github.zzave.teambalance.api.domain.model.TeamCreationCode
 import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.port.PlatformAdminGateway
 import com.github.zzave.teambalance.api.domain.port.TeamCreationCodeRepository
-import org.springframework.stereotype.Service
 import java.security.SecureRandom
 import java.time.Clock
 import java.time.Instant
@@ -19,7 +18,6 @@ import java.time.Instant
  * SECURITY CONTRACT: [callerId] MUST be the authenticated principal (resolved from the session by the
  * controller), never a request-supplied id.
  */
-@Service
 class CreationCodeAdminService(
     private val creationCodeRepository: TeamCreationCodeRepository,
     private val platformAdminGateway: PlatformAdminGateway,

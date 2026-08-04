@@ -13,7 +13,6 @@ import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
 import com.github.zzave.teambalance.api.domain.port.TenantProvisioner
 import com.github.zzave.teambalance.api.domain.port.UserRepository
 import org.slf4j.LoggerFactory
-import org.springframework.stereotype.Service
 import java.time.Clock
 import java.time.Instant
 import java.util.UUID
@@ -36,7 +35,6 @@ data class CreatedTeam(val id: UUID, val name: String, val slug: String)
  * or slug collision) the only residue is a harmless empty orphan schema, self-healed by the startup
  * migration runner. Notifications are best-effort and can never fail a committed creation.
  */
-@Service
 class TeamService(
     private val teamMemberRepository: TeamMemberRepository,
     private val teamRepository: TeamRepository,

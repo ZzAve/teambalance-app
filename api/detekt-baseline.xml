@@ -13,10 +13,8 @@
     <ID>ApiCannotDependOnAdapters:AuthController.kt:import com.github.zzave.teambalance.api.infrastructure.identity.SessionKeys</ID>
     <ID>ApiCannotDependOnPorts:AuthController.kt:AuthController$private val teamMemberRepository: TeamMemberRepository</ID>
     <ID>DomainMustBeImmutable:Recurrence.kt:Recurrence$var cursor = startDate</ID>
-    <ID>DomainNoFrameworkImports:CreationCodeAdminService.kt:import org.springframework.stereotype.Service</ID>
     <ID>DomainNoFrameworkImports:E2eMagicLinkTokenRecorder.kt:import org.springframework.context.annotation.Profile</ID>
     <ID>DomainNoFrameworkImports:E2eMagicLinkTokenRecorder.kt:import org.springframework.stereotype.Component</ID>
-    <ID>DomainNoFrameworkImports:TeamService.kt:import org.springframework.stereotype.Service</ID>
     <ID>DomainNoPrimitiveObsession:Event.kt:Event$val description: String?</ID>
     <ID>DomainNoPrimitiveObsession:Event.kt:Event$val location: String?</ID>
     <ID>DomainNoPrimitiveObsession:Event.kt:Event$val title: String</ID>

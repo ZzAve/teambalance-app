@@ -1,84 +1,99 @@
-# Back-office: Provisioning a Team
+# Back-office: Onboarding a Team
 
-> **When to use this:** Self-service Team creation is deferred (ADR-0001, ADR-0008).
-> Until that is built, the owner provisions new Teams manually using this procedure.
+> **What changed (ADR-0019):** team creation is now **self-service**. A logged-in, teamless user
+> creates their team from a **name + slug + one-time creation code** via the create-team screen
+> (`POST /api/teams`), which provisions the tenant schema itself. Back-office onboarding is now just
+> **minting a creation code** and handing it over.
 >
-> **Prod reality check (read this first):** there is **no** provisioning API. Nothing in
-> prod triggers `TenantSchemaManager` — it's called only by `DemoDataSeeder` (`@Profile("dev")`)
-> and the e2e initializer. A `/internal/admin/.../provision` endpoint was never built and is
-> now blocked by the prod `/internal/*` lockdown (PR #86). So the tenant schema must be
-> migrated **directly against the database** (Step 2). Restarting the app migrates only the
-> `public` schema, never a tenant schema.
+> Two manual rituals from the old procedure are **retired**:
+> - **Per-team tenant migration by hand is gone.** The `StartupTenantMigrationRunner` brings *every*
+>   `public.teams` schema to head on every boot (idempotent), and create-team provisions a brand-new
+>   schema inline. You no longer run the Flyway docker CLI per team. See the emergency fallback below
+>   only if the app can't boot.
+> - **Inserting `teams` / `team_members` rows by hand is no longer the happy path** — the founder's
+>   self-service create does it, atomically, in the right order.
 
-## Prerequisites
+## Onboarding a new team (happy path)
 
-- Psql access to the database.
-  - Local: `make db` starts Postgres on `localhost:5432`.
-  - Prod: Scaleway Serverless SQL — database name `teambalance`, JDBC needs `?sslmode=require`.
-    Credentials are secrets (container env `SPRING_DATASOURCE_*` / Secret Manager). Never print them.
-- **Docker** (for Step 2 — the tenant migration runs via the Flyway CLI image; no local `flyway`/`psql` needed).
-- A local checkout of this repo (Step 2 mounts `api/src/main/resources/db/tenant-migration/`).
-- The team's: name, slug (URL-safe).
-- The owner's email + display name. (Positions are optional up front — see Step 3.)
+### Step 1 — Mint a creation code
 
-## Step 1 — Insert the Team + owner (one transaction)
+**Preferred: the codes-admin UI (ADR-0019 Slice 4).** A platform admin (an email in
+`PLATFORM_ADMIN_EMAILS` / `teambalance.platform-admins`) opens the creation-codes admin surface and
+mints a code (optionally with an expiry). List/revoke live there too.
 
-The schema name must be a valid Postgres identifier (lowercase, underscores, no spaces).
-Convention: `team_<slug_with_underscores>`, and it must be **unique** (can't reuse `public`).
-
-This one transaction creates the team, the owner's platform identity, an initial position,
-and the owner's admin membership — CTEs thread the generated ids so nothing is copy-pasted.
-No `ON CONFLICT` (its `DO NOTHING` silently no-ops on *any* constraint clash, not just the
-intended key — misleading for a first insert).
+**Fallback: back-office SQL** (if the UI isn't reachable). One row in `public.team_creation_codes`:
 
 ```sql
-BEGIN;
-
-WITH t AS (
-    INSERT INTO public.teams (name, slug, schema_name)
-    VALUES ('Setpoint VT', 'setpoint-vt', 'team_setpoint_vt')
-    RETURNING id
-),
-u AS (
-    INSERT INTO public.users (email, display_name)
-    VALUES ('owner@example.com', 'Jan de Vries')
-    RETURNING id
-),
-p AS (
-    -- Optional: seed one position so /welcome has something to pick (see Step 3).
-    INSERT INTO public.team_positions (team_id, label)
-    SELECT t.id, 'Setter' FROM t
-    RETURNING id
-)
-INSERT INTO public.team_members (team_id, user_id, role, position_id, onboarded_at)
-SELECT t.id, u.id, 'ADMIN', p.id, now()   -- see Step 3 for the /welcome alternative
-FROM t, u, p;
-
--- Eyeball before committing (ROLLBACK; instead if anything looks wrong):
-SELECT tm.role, tm.onboarded_at, u.email, u.display_name, tp.label AS position,
-       t.slug, t.schema_name
-FROM public.team_members tm
-JOIN public.users u  ON u.id = tm.user_id
-JOIN public.teams t  ON t.id = tm.team_id
-LEFT JOIN public.team_positions tp ON tp.id = tm.position_id
-WHERE t.slug = 'setpoint-vt';
-
-COMMIT;
+-- code: any unguessable string you hand to the founder. NULL expires_at = never expires;
+-- set a timestamptz to make it time-boxed. consumed_* stay NULL until the founder redeems it.
+INSERT INTO public.team_creation_codes (code, expires_at)
+VALUES ('choose-an-unguessable-code', NULL)   -- or now() + interval '7 days'
+RETURNING code, created_at, expires_at;
 ```
 
-Note the `schema_name` (`team_setpoint_vt`) — you need it in Step 2.
+Hand the `code` to the founder over a trusted channel. It is single-use: the create-team endpoint
+consumes it atomically (`consumed_at IS NULL AND (expires_at IS NULL OR expires_at > now())`), so it
+can be spent at most once.
 
-> **Schema shape (post-#90 / ADR-0013):** `team_members` has **no** `team_role` column.
-> Permission is `role` (CHECK `'USER' | 'ADMIN'`, default `'USER'`). Playing **position** is
-> `position_id` → FK `public.team_positions` (per-team vocabulary; labels unique
-> case-insensitively per team). `onboarded_at` (nullable) drives the `/welcome` flow.
+### Step 2 — The founder self-creates
 
-## Step 2 — Provision + migrate the tenant schema
+The founder logs in (magic link → their `users.email` is the identity key), and — while **teamless**
+— the has-a-team route gate (driven by `/auth/me`'s `team` field) lands them on the create-team
+screen. They enter:
 
-The tenant schema holds events, attendances, transactions, and event types for this Team.
-Run Flyway directly against the DB via the Flyway CLI docker image — this mirrors
-`TenantSchemaManager` exactly (creates the schema, applies `db/tenant-migration/`, and records
-a proper `flyway_schema_history`). Running raw DDL instead would leave the history table empty.
+- **Team name** — free text, ≤ 100 chars, **not** required to be unique.
+- **Slug** — the URL address, **user-editable and validated**: `^[a-z0-9]+(-[a-z0-9]+)*$`, ≤ 58 chars,
+  **unique**. `schema_name = "team_" + slug` (hyphens → underscores) is computed server-side and never
+  shown.
+- **Creation code** — from Step 1.
+
+`POST /api/teams` then, in order: rejects a caller who already has a team (`409 ALREADY_IN_TEAM`);
+validates name/slug (`400 INVALID_NAME` / `400 INVALID_SLUG`); rejects a taken slug
+(`409 TEAM_SLUG_TAKEN`) or a bad/expired/consumed code (opaque `403 INVALID_CREATION_CODE`);
+**provisions the tenant schema** (`db/tenant-migration`, recorded in `flyway_tenant_schema_history`);
+then **atomically** consumes the code and inserts the `teams` row + the founder's `team_members`
+row (ADMIN, `onboarded_at = now()`, `position_id NULL`). The founder lands straight in the new,
+empty team.
+
+The founder is now the team's admin. From there, onboarding the rest of the team is the ordinary
+in-app flow (unchanged, ADR-0008 / ADR-0013):
+
+1. At **`/members`**, add the team's real **positions** (Libero, Middenaanvaller, …) first — otherwise
+   invitees have nothing meaningful to pick.
+2. Share the **Invite Link**. Each joiner enters their email → magic link → joins as `role='USER'`,
+   `onboarded_at=NULL` → `/welcome` captures their name + position.
+3. Promote co-admins from the `/members` roster (symmetric promote/demote, last-admin floor).
+
+## Verification
+
+```sql
+-- The code was consumed and points at the new team:
+SELECT code, consumed_at, consumed_by_user_id, created_team_id
+FROM public.team_creation_codes WHERE code = 'choose-an-unguessable-code';
+
+-- Team row + founding admin (note: schema_name is server-derived from the slug; sport is gone, ADR-0019):
+SELECT t.name, t.slug, t.schema_name, u.email, tm.role, tm.onboarded_at
+FROM public.teams t
+JOIN public.team_members tm ON tm.team_id = t.id
+JOIN public.users u ON u.id = tm.user_id
+WHERE t.slug = '<slug>';
+
+-- Tenant schema exists and is migrated:
+SELECT schema_name FROM information_schema.schemata WHERE schema_name = 'team_<slug_underscored>';
+SELECT table_name FROM information_schema.tables
+WHERE table_schema = 'team_<slug_underscored>' ORDER BY table_name;   -- events, attendances, transactions, event_types, …
+```
+
+The real proof is the founder landing in the team with an empty events list and no error on the
+events view — confirming the tenant schema is wired correctly.
+
+## Emergency fallback — manual tenant provisioning
+
+You should not need this: the startup runner keeps existing schemas at head and create-team
+provisions new ones. Reach for it only if the app **can't boot** (so the runner never runs) and a
+tenant schema must be migrated out-of-band. It mirrors `TenantSchemaManager.provisionTenantSchema`
+exactly — creates the schema, applies `db/tenant-migration/`, and records
+`flyway_tenant_schema_history`. Running raw DDL instead would leave the history table empty.
 
 ```bash
 docker run --rm \
@@ -87,80 +102,29 @@ docker run --rm \
   flyway/flyway:11 \
   -url="jdbc:postgresql://<HOST>:5432/<DB>?sslmode=require" \
   -user="<DB_USER>" \
-  -schemas="team_setpoint_vt" \
-  -table="flyway_schema_history" \
+  -schemas="team_<slug_underscored>" \
+  -table="flyway_tenant_schema_history" \
   -baselineOnMigrate=true -baselineVersion=0 \
   migrate
 ```
 
-- Fill `<HOST>/<DB>/<DB_USER>` from your DB connection (prod `<DB>` is `teambalance`).
-- Pass the password via `FLYWAY_PASSWORD` to keep it out of shell history.
-- Flyway creates the schema itself (no separate `CREATE SCHEMA` needed) and applies the tenant
-  migrations (currently `V001__tenant_baseline`, `V002__seed_event_types`,
-  `V003__attendance_changed_by`). Expect *"Successfully applied N migrations"*.
+- Fill `<HOST>/<DB>/<DB_USER>` from your DB connection (prod `<DB>` is `teambalance`); pass the
+  password via `FLYWAY_PASSWORD` to keep it out of shell history.
+- Note `-table="flyway_tenant_schema_history"` — the **tenant** history table, kept separate from the
+  platform `flyway_schema_history` (ADR-0019 guardrail; regressing the split misplaced a migration in
+  prod once, PR #120).
 
-> This **must** run before the owner logs in — the app resolves the tenant from the team
-> context and queries `events` in the tenant schema; if the schema/tables don't exist yet, the
-> events view errors.
-
-## Step 3 — The owner's position & onboarding: two options
-
-`team_members.onboarded_at` gates the post-login `/welcome` flow (ADR-0013): a member with
-`onboarded_at IS NULL` is routed to `/welcome` to set their own display name + position.
-
-- **Option A — seed fully (used in Step 1 above):** set `position_id` and stamp
-  `onboarded_at = now()`. The owner skips `/welcome` and lands straight in the team. Use this
-  when the SPA isn't yet on the member-management build, or you just want them fully set up.
-- **Option B — let them self-onboard:** insert the membership with `position_id = NULL` and
-  `onboarded_at = NULL` (drop the `p` CTE and those two values in Step 1). On first login the
-  owner goes through `/welcome`. Note: `/welcome` only lets a member *pick* an existing
-  position — it can't create one, and if the team has **zero** positions the picker is hidden
-  (member stays unassigned). So seed at least one position first if you want them to choose.
-
-## Step 4 — Add the remaining Members
-
-Preferred path is **self-service via the Invite Link** (ADR-0008 / ADR-0013), not back-office SQL:
-
-1. As an admin, open **`/members`** and add the team's real **positions** first (Libero,
-   Middenaanvaller, etc.) — otherwise every invitee is forced to pick the single seeded one.
-2. Generate the **Invite Link** and share it. Each joiner enters their email → magic link →
-   joins as `role='USER'` with `onboarded_at=NULL` → `/welcome` captures their name + position.
-3. Promote any co-admins from the `/members` roster (symmetric promote/demote, last-admin floor).
-
-Back-office SQL for a member is still possible (same shape as Step 1's `users` + `team_members`
-inserts, `role='USER'`), but prefer the invite flow so people set their own name/position.
-
-## Verification
-
-```sql
--- Team row (exactly 1)
-SELECT name, slug, schema_name FROM public.teams WHERE slug = 'setpoint-vt';
-
--- Members: 1 Admin + N Users, with their positions
-SELECT u.email, u.display_name, tm.role, tp.label AS position, tm.onboarded_at
-FROM public.team_members tm
-JOIN public.users u ON u.id = tm.user_id
-JOIN public.teams t ON t.id = tm.team_id
-LEFT JOIN public.team_positions tp ON tp.id = tm.position_id
-WHERE t.slug = 'setpoint-vt'
-ORDER BY tm.role DESC, u.display_name;
-
--- Tenant schema exists and is migrated
-SELECT schema_name FROM information_schema.schemata WHERE schema_name = 'team_setpoint_vt';
-SELECT table_name FROM information_schema.tables
-WHERE table_schema = 'team_setpoint_vt' ORDER BY table_name;   -- events, attendances, transactions, event_types, ...
-SELECT name FROM team_setpoint_vt.event_types ORDER BY name;   -- Match, Other, Training (baseline seed)
-SELECT count(*) AS events FROM team_setpoint_vt.events;         -- 0 (fresh team)
-```
-
-**The real proof** is a login: the owner requests a magic link (their `users.email` is the
-identity key), clicks it, and lands in the team with an empty events list — no error on the
-events view confirms the tenant schema is wired correctly.
+> **Never** point platform Flyway (`db/migration`) at a tenant schema, and never unpin
+> `spring.flyway.schemas:[public]`. Platform migrations belong in `public` only.
 
 ## References
 
-- [ADR-0001](../adr/0001-product-ambition-hobby-tool-built-to-grow.md) — hobby tool, built to grow; team creation is back-office in v1
+- [ADR-0019](../adr/0019-self-service-team-onboarding.md) — self-service onboarding: startup migration
+  runner, code-gated create-team, `sport` dropped (amends ADR-0001)
+- [ADR-0001](../adr/0001-product-ambition-hobby-tool-built-to-grow.md) — hobby tool, built to grow (the
+  "team creation is back-office in v1" stance this reverses)
 - [ADR-0008](../adr/0008-auth-magic-link-and-shareable-invite.md) — magic-link auth, invite onboarding
-- [ADR-0009](../adr/0009-attendance-model-roles-in-audience-deferred.md) — roles/audience model in v1
-- [ADR-0013](../adr/0013-member-profile-position-role-management.md) — member profile, position vocabulary & role management (`/welcome`, `/members`); supersedes the "back-office only" parts of ADR-0009
+- [ADR-0013](../adr/0013-member-profile-position-role-management.md) — member profile, position
+  vocabulary & role management (`/welcome`, `/members`)
 - [CONTEXT.md](../../CONTEXT.md) — vocabulary: Team, Member, Role, Admin, User, Position
+</content>

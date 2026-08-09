@@ -4,7 +4,7 @@ import java.time.Instant
 import java.util.UUID
 
 /**
- * A platform-level one-time code that gates self-service team creation (#154, ADR-0015). The
+ * A platform-level one-time code that gates self-service team creation (#154, ADR-0019). The
  * read-side projection surfaced by the codes-admin CRUD (Slice 4); consumption itself is the atomic
  * UPDATE inside team registration, not modelled here.
  *

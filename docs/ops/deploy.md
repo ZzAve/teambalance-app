@@ -36,7 +36,19 @@ rejects other arches), pushes to `rg.fr-par.scw.cloud/teambalance/api:<sha>`, an
 **image-only** update of Serverless Container `ec9dfda3-…` (fr-par). The container's
 cpu/memory/sandbox and its env/secret maps are left untouched — those are managed manually
 in the Scaleway console. The Gradle build runs *inside* the multi-stage image, so the
-runner needs no JDK/Gradle.
+runner needs no JDK/Gradle. The build bakes the commit SHA into the image (`--build-arg
+GIT_SHA`), surfaced at runtime on `/internal/actuator/info` (`info.build.sha`).
+
+**Post-deploy verification (this is why a bad image now goes red).** `scw container update`
+only *registers* the new image and returns immediately — Scaleway rolls it out
+asynchronously, so a container that crashes on boot (e.g. a Flyway checksum-validation
+failure) would otherwise leave the job **green** while prod keeps serving the old revision.
+The final `deploy-api` step polls `https://api.teambalance.nl/internal/actuator/info` — gated
+by the internal API key, so the SHA is never public — until it reports the exact SHA just
+pushed, and **fails the job (red) if the new version isn't live within ~6 min**. This proves
+the new image is actually up regardless of *why* an unhealthy one would fail to boot. On a red
+verify: check **Scaleway Cockpit** container logs for the boot crash, fix forward or roll back
+(below).
 
 **`deploy-frontend`** — builds the SPA (`vite build` auto-loads `app/.env.production` →
 `VITE_API_URL=https://api.teambalance.nl`), syncs `app/dist` → `s3://teambalance-spa`
@@ -63,6 +75,14 @@ Settings → Secrets and variables → Actions (names only — never commit valu
 | `SCW_DEFAULT_ORGANIZATION_ID` | scw CLI default organization. |
 | `SCW_S3_ACCESS_KEY` | Object Storage sync — dedicated `teambalance-object-storage` IAM key. |
 | `SCW_S3_SECRET_KEY` | Object Storage sync — its secret. |
+| `INTERNAL_API_KEY` | Post-deploy verify — sent as `X-Internal-Api-Key` to read `/internal/actuator/info`. **Must equal the container's `INTERNAL_API_KEY` env** (see below). |
+
+> **`INTERNAL_API_KEY` must be set in two places with the same value:** as the GitHub Actions
+> secret above **and** as an env/secret on the Serverless Container (Scaleway console → the
+> container's env variables — same place the other runtime secrets live). Without it on the
+> container, the guard fail-closes and the verify step can never read `info` → the deploy goes
+> red. Generate one with e.g. `openssl rand -hex 32`. It gates the non-health `/internal`
+> actuator surface (`info`/`metrics`); health stays public for Scaleway's probe.
 
 ## Rollback
 

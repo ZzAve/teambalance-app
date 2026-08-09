@@ -15,15 +15,16 @@ import org.springframework.mock.web.MockHttpServletResponse
  */
 class InternalEndpointGuardFilterTest : FunSpec({
 
-    fun run(filter: InternalEndpointGuardFilter, uri: String): Pair<Boolean, Int> {
+    fun run(filter: InternalEndpointGuardFilter, uri: String, apiKeyHeader: String? = null): Pair<Boolean, Int> {
         val request = MockHttpServletRequest("GET", uri)
+        if (apiKeyHeader != null) request.addHeader("X-Internal-Api-Key", apiKeyHeader)
         val response = MockHttpServletResponse()
         var proceeded = false
         filter.doFilter(request, response) { _, _ -> proceeded = true }
         return proceeded to response.status
     }
 
-    val filter = InternalEndpointGuardFilter(startupActuatorEnabled = false)
+    val filter = InternalEndpointGuardFilter(startupActuatorEnabled = false, apiKey = "")
 
     context("lets through") {
         test("the exact health probe Scaleway uses") {
@@ -55,6 +56,34 @@ class InternalEndpointGuardFilterTest : FunSpec({
         }
     }
 
+    // Non-health actuator (info/metrics) is reachable from the internet only with the internal API key.
+    // CI reads /internal/actuator/info to confirm the deployed image's build SHA is actually serving.
+    context("the internal API key") {
+        val guarded = InternalEndpointGuardFilter(startupActuatorEnabled = false, apiKey = "s3cret-key")
+
+        test("lets the info endpoint through when the correct key is presented") {
+            run(guarded, "/internal/actuator/info", apiKeyHeader = "s3cret-key").first shouldBe true
+        }
+        test("blocks the info endpoint with 403 when no key is presented") {
+            val (proceeded, status) = run(guarded, "/internal/actuator/info")
+            proceeded shouldBe false
+            status shouldBe HttpServletResponse.SC_FORBIDDEN
+        }
+        test("blocks the info endpoint with 403 when a wrong key is presented") {
+            val (proceeded, status) = run(guarded, "/internal/actuator/info", apiKeyHeader = "wrong")
+            proceeded shouldBe false
+            status shouldBe HttpServletResponse.SC_FORBIDDEN
+        }
+        test("fails closed: a blank configured key never bypasses, even with a blank header") {
+            val (proceeded, status) = run(filter, "/internal/actuator/info", apiKeyHeader = "")
+            proceeded shouldBe false
+            status shouldBe HttpServletResponse.SC_FORBIDDEN
+        }
+        test("still lets the public health probe through without a key") {
+            run(guarded, "/internal/actuator/health").first shouldBe true
+        }
+    }
+
     // The startup timing endpoint is a perf-testing tool gated behind teambalance.startup.actuator.enabled.
     context("the startup timing endpoint") {
         test("is blocked with 403 by default (flag off)") {
@@ -63,11 +92,11 @@ class InternalEndpointGuardFilterTest : FunSpec({
             status shouldBe HttpServletResponse.SC_FORBIDDEN
         }
         test("is let through when the flag is set (perf-test window)") {
-            val enabled = InternalEndpointGuardFilter(startupActuatorEnabled = true)
+            val enabled = InternalEndpointGuardFilter(startupActuatorEnabled = true, apiKey = "")
             run(enabled, "/internal/actuator/startup").first shouldBe true
         }
         test("stays blocked even with the flag set once a traversal leaves the startup path") {
-            val enabled = InternalEndpointGuardFilter(startupActuatorEnabled = true)
+            val enabled = InternalEndpointGuardFilter(startupActuatorEnabled = true, apiKey = "")
             val (proceeded, status) = run(enabled, "/internal/actuator/startup/../env")
             proceeded shouldBe false
             status shouldBe HttpServletResponse.SC_FORBIDDEN

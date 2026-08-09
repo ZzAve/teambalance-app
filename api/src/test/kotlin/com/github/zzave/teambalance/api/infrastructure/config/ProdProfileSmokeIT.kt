@@ -36,6 +36,8 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers
         "teambalance.invitation.token-salt=prod-smoke-salt",
         "teambalance.email.api-key=prod-smoke-key",
         "teambalance.email.project-id=prod-smoke-project",
+        "teambalance.internal.api-key=prod-smoke-internal-key",
+        "info.build.sha=smoke-sha",
     ],
 )
 class ProdProfileSmokeIT : TeamBalanceIT() {
@@ -110,6 +112,25 @@ class ProdProfileSmokeIT : TeamBalanceIT() {
         test("everything else under /internal is blocked in prod") {
             mockMvc.perform(MockMvcRequestBuilders.get("/internal/actuator/metrics"))
                 .andExpect(MockMvcResultMatchers.status().isForbidden)
+        }
+
+        // Deploy-verification seam: the actuator `info` endpoint carries the running image's build SHA
+        // (info.build.sha) and is opened only to a caller presenting the internal API key. The deploy
+        // pipeline reads it to confirm the exact image it pushed is serving. Without the key it is a 403
+        // like the rest of /internal; with the key it returns the SHA. Proves the exposure list, the
+        // guard's key bypass, and the env info contributor are all wired together in the prod profile.
+        test("the info endpoint is blocked in prod without the internal API key") {
+            mockMvc.perform(MockMvcRequestBuilders.get("/internal/actuator/info"))
+                .andExpect(MockMvcResultMatchers.status().isForbidden)
+        }
+
+        test("the info endpoint reports the build SHA when the internal API key is presented") {
+            mockMvc.perform(
+                MockMvcRequestBuilders.get("/internal/actuator/info")
+                    .header("X-Internal-Api-Key", "prod-smoke-internal-key"),
+            )
+                .andExpect(MockMvcResultMatchers.status().isOk)
+                .andExpect(MockMvcResultMatchers.jsonPath("$.build.sha").value("smoke-sha"))
         }
 
         // The startup timing endpoint is exposed in prod (application-prod.yml) but a perf-testing

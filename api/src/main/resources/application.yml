@@ -87,6 +87,18 @@ management:
         # 403s everything under /internal/actuator except `health` — and `startup` only while the
         # teambalance.startup.actuator.enabled flag is set (perf-test window). See #95.
         include: health,info,metrics,startup
+  info:
+    # Surface the `info.*` properties below (the deployed image's build SHA) on /internal/actuator/info.
+    # Off by default in Spring Boot, so the deploy-verify probe would otherwise see an empty payload.
+    env:
+      enabled: true
+
+info:
+  build:
+    # The git SHA of the running image, injected at container-build time (Dockerfile ARG GIT_SHA →
+    # ENV TEAMBALANCE_BUILD_SHA). The deploy pipeline reads this back from the live container to prove
+    # the exact image it pushed is actually serving. `unknown` in local/dev where nothing bakes it.
+    sha: ${TEAMBALANCE_BUILD_SHA:unknown}
 
 teambalance:
   startup:
@@ -98,6 +110,12 @@ teambalance:
       # perf-test window, then unset it. Spring relaxed binding maps the env var
       # TEAMBALANCE_STARTUP_ACTUATOR_ENABLED to this property. See issue #95.
       enabled: false
+  internal:
+    # Shared secret that opens the non-health `/internal` surface (actuator info/metrics) to a caller
+    # presenting it as the X-Internal-Api-Key header. Only the deploy pipeline and the container's env
+    # hold it; unset here (empty default) → InternalEndpointGuardFilter stays fail-closed and info is a
+    # 403 from the internet. Live environments provide it via INTERNAL_API_KEY.
+    api-key: ${INTERNAL_API_KEY:}
   # Base URL of the SPA; used to build the clickable magic-link (…/auth/verify?token=…).
   frontend-base-url: ${TEAMBALANCE_FRONTEND_BASE_URL:https://app.teambalance.nl}
   # Comma-separated platform-admin emails (PLATFORM_ADMIN_EMAILS). Empty default = fail-closed: nobody

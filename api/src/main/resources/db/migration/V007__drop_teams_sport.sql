@@ -1,4 +1,4 @@
--- Self-service onboarding (ADR-0019) creates teams from a name + creation code only — no sport is
+-- Self-service onboarding (ADR-0015) creates teams from a name + creation code only — no sport is
 -- collected. The column was never surfaced in the API or UI and carried a single placeholder value,
 -- so drop it. Auto-pinned to `public` by spring.flyway.schemas (application.yml).
 --

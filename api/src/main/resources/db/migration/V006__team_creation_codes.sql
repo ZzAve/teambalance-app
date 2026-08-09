@@ -1,4 +1,4 @@
--- Platform-level one-time codes that gate self-service team creation (issue #154, ADR-0019).
+-- Platform-level one-time codes that gate self-service team creation (issue #154, ADR-0015).
 -- A code is redeemable while consumed_at IS NULL and (expires_at IS NULL OR expires_at > now());
 -- create-team consumes it atomically (single conditional UPDATE) so a code can be spent at most once.
 CREATE TABLE team_creation_codes (

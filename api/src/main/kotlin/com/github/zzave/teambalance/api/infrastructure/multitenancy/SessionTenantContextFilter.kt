@@ -3,9 +3,9 @@ package com.github.zzave.teambalance.api.infrastructure.multitenancy
 import com.github.zzave.teambalance.api.domain.model.TeamId
 import com.github.zzave.teambalance.api.domain.model.TenantRouting
 import com.github.zzave.teambalance.api.domain.model.UserId
+import com.github.zzave.teambalance.api.domain.port.CurrentUserGateway
 import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
 import com.github.zzave.teambalance.api.infrastructure.identity.SessionKeys
-import com.github.zzave.teambalance.api.infrastructure.identity.UserContext
 import jakarta.servlet.FilterChain
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
@@ -22,6 +22,7 @@ private const val FILTER_ORDER = Ordered.HIGHEST_PRECEDENCE + 3
 @Order(FILTER_ORDER)
 class SessionTenantContextFilter(
     private val teamMemberRepository: TeamMemberRepository,
+    private val currentUserGateway: CurrentUserGateway,
 ) : OncePerRequestFilter() {
 
     override fun doFilterInternal(
@@ -30,10 +31,10 @@ class SessionTenantContextFilter(
         filterChain: FilterChain,
     ) {
         // SessionUserContextFilter (order +2) already resolved and parsed the session user —
-        // read it directly rather than re-parsing the session to avoid duplicating that logic.
-        // Resolve schema and team id together (one row) so they can never diverge; a user with no
-        // team resolves to nothing (no silent "public" fallback for tenant-scoped work).
-        UserContext.get()?.let { userId ->
+        // read it back through the gateway rather than re-parsing the session, to avoid duplicating
+        // that logic. Resolve schema and team id together (one row) so they can never diverge; a user
+        // with no team resolves to nothing (no silent "public" fallback for tenant-scoped work).
+        currentUserGateway.getCurrentUserId()?.let { userId ->
             resolveRouting(request, userId)?.let { routing ->
                 // Respect a tenant already pinned upstream (the test-profile X-Team-Id shim).
                 if (!TenantContext.isSet()) TenantContext.set(routing.schemaName)
@@ -57,10 +58,10 @@ class SessionTenantContextFilter(
      * (first request, or a session surviving a restart) fall back to the DB. Multi-team support
      * (post-v1) will invalidate these attributes on team-switch.
      */
-    private fun resolveRouting(request: HttpServletRequest, userId: UUID): TenantRouting? {
+    private fun resolveRouting(request: HttpServletRequest, userId: UserId): TenantRouting? {
         val session = request.getSession(false)
         cachedRouting(session)?.let { return it }
-        return teamMemberRepository.findTenantRouting(UserId(userId))?.also { cache(session, it) }
+        return teamMemberRepository.findTenantRouting(userId)?.also { cache(session, it) }
     }
 
     private fun cachedRouting(session: HttpSession?): TenantRouting? {

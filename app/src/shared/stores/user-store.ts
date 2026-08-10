@@ -6,6 +6,7 @@ interface UserState {
   displayName: string | null
   email: string | null
   role: string | null
+  teamName: string | null
   setCurrentUser: (user: AuthenticatedUser | null) => void
 }
 
@@ -14,11 +15,13 @@ export const useUserStore = create<UserState>((set) => ({
   displayName: null,
   email: null,
   role: null,
+  teamName: null,
   setCurrentUser: (user) =>
     set({
       userId: user?.id ?? null,
       displayName: user?.displayName ?? null,
       email: user?.email ?? null,
       role: user?.role ?? null,
+      teamName: user?.team?.name ?? null,
     }),
 }))

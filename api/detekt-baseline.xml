@@ -2,8 +2,6 @@
 <SmellBaseline>
   <ManuallySuppressedIssues/>
   <CurrentIssues>
-    <ID>DomainNoFrameworkImports:E2eMagicLinkTokenRecorder.kt:import org.springframework.context.annotation.Profile</ID>
-    <ID>DomainNoFrameworkImports:E2eMagicLinkTokenRecorder.kt:import org.springframework.stereotype.Component</ID>
     <ID>DomainNoPrimitiveObsession:Event.kt:Event$val description: String?</ID>
     <ID>DomainNoPrimitiveObsession:Event.kt:Event$val location: String?</ID>
     <ID>DomainNoPrimitiveObsession:Event.kt:Event$val title: String</ID>

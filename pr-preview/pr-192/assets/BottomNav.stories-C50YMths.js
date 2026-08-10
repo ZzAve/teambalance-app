@@ -1,0 +1,18 @@
+import{n as e}from"./rolldown-runtime-DkW27tQK.js";import{i as t,n,r,t as i}from"./router-decorator-B16fJAsN.js";import{t as a}from"./jsx-runtime-DeHZSEgm.js";import{n as o,t as s}from"./createLucideIcon-CydMJuAd.js";import{n as c,t as l}from"./calendar-m73FILYC.js";var u,d;function f(){return(f=e((()=>{o(),u=[[`path`,{d:`M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2`,key:`1yyitq`}],[`path`,{d:`M16 3.128a4 4 0 0 1 0 7.744`,key:`16gr8j`}],[`path`,{d:`M22 21v-2a4 4 0 0 0-3-3.87`,key:`kshegd`}],[`circle`,{cx:`9`,cy:`7`,r:`4`,key:`nufk8`}]],d=s(`users`,u)})))()}var p,m;function h(){return(h=e((()=>{o(),p=[[`path`,{d:`M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1`,key:`18etb6`}],[`path`,{d:`M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4`,key:`xoc0q4`}]],m=s(`wallet`,p)})))()}function g(){return(0,_.jsx)(`nav`,{className:`fixed bottom-0 left-0 right-0 z-50 border-t border-border/40 bg-card/88 backdrop-blur-lg`,children:(0,_.jsx)(`div`,{className:`mx-auto flex max-w-2xl items-center justify-around px-2 py-1`,children:v.map(({icon:e,label:t,to:n,active:i,disabled:a})=>(0,_.jsxs)(r,{to:n,className:[`flex flex-col items-center gap-0.5 px-4 py-2 text-xs transition-colors`,a?`pointer-events-none select-none text-muted-foreground/40`:i?`text-blue`:`text-muted-foreground hover:text-foreground`].join(` `),"aria-current":i?`page`:void 0,children:[(0,_.jsxs)(`span`,{className:`relative flex items-center justify-center`,children:[(0,_.jsx)(`span`,{className:`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-7 w-11 rounded-full transition-transform duration-300 bg-blue/10 ${i?`scale-100`:`scale-0`}`,style:{transitionTimingFunction:`cubic-bezier(0.34, 1.56, 0.64, 1)`}}),(0,_.jsx)(e,{size:22,strokeWidth:i?2.5:1.75,className:`relative z-10`})]}),(0,_.jsx)(`span`,{className:i?`font-medium`:``,children:t})]},t))})})}var _,v;function y(){return(y=e((()=>{t(),c(),h(),f(),_=a(),v=[{icon:l,label:`Events`,to:`/`,active:!0,disabled:!1},{icon:m,label:`Money Pool`,to:`/`,active:!1,disabled:!0},{icon:d,label:`Team`,to:`/`,active:!1,disabled:!0}],g.__docgenInfo={description:``,methods:[],displayName:`BottomNav`}})))()}var b,x,S,C;function w(){return(w=e((()=>{i(),y(),{expect:b}=__STORYBOOK_MODULE_TEST__,x={title:`shared/ui/BottomNav`,component:g,decorators:[n]},S={play:async({canvas:e})=>{await b(e.getByRole(`link`,{name:`Events`})).toHaveClass(`text-blue`),await b(e.getByRole(`link`,{name:`Money Pool`})).toHaveClass(`pointer-events-none`),await b(e.getByRole(`link`,{name:`Team`})).toHaveClass(`pointer-events-none`)}},S.parameters={...S.parameters,docs:{...S.parameters?.docs,source:{originalSource:`{
+  play: async ({
+    canvas
+  }) => {
+    // Every tab points at "/" (the other sections don't exist yet), so the router marks them all
+    // aria-current — the active/disabled split lives in the styling instead: Events is the live
+    // blue tab; Money Pool and Team are rendered but non-interactive.
+    await expect(canvas.getByRole('link', {
+      name: 'Events'
+    })).toHaveClass('text-blue');
+    await expect(canvas.getByRole('link', {
+      name: 'Money Pool'
+    })).toHaveClass('pointer-events-none');
+    await expect(canvas.getByRole('link', {
+      name: 'Team'
+    })).toHaveClass('pointer-events-none');
+  }
+}`,...S.parameters?.docs?.source}}},C=[`Default`]})))()}w();export{S as Default,C as __namedExportsOrder,x as default};

@@ -131,12 +131,14 @@ class ConcurrentSessionTenantIT : TeamBalanceIT() {
         )
     }
 
+    // Seed into a dedicated tenant schema (not the shared `public` team) so this spec never collides
+    // with the other ITs on `teams.schema_name UNIQUE` in the shared Testcontainers database.
     private fun seedTeamAndAdmin() {
         tenantSchemaManager.provisionPlatformSchema()
-        tenantSchemaManager.provisionTenantSchema("public")
+        tenantSchemaManager.provisionTenantSchema(SCHEMA)
         jdbcTemplate.execute(
             "INSERT INTO public.teams (id, name, slug, schema_name) " +
-                "VALUES ('$TEAM_ID'::uuid, 'Concurrency Team', 'concurrency-team', 'public') ON CONFLICT DO NOTHING",
+                "VALUES ('$TEAM_ID'::uuid, 'Concurrency Team', 'concurrency-team', '$SCHEMA') ON CONFLICT DO NOTHING",
         )
         jdbcTemplate.execute(
             "INSERT INTO public.users (id, email, display_name) " +
@@ -152,5 +154,6 @@ class ConcurrentSessionTenantIT : TeamBalanceIT() {
         private const val ADMIN_USER_ID = "b0000000-0000-0000-0000-0000000000f1"
         private const val ADMIN_EMAIL = "concurrency-admin@test.com"
         private const val TEAM_ID = "a0000000-0000-0000-0000-0000000000f1"
+        private const val SCHEMA = "team_concurrency"
     }
 }

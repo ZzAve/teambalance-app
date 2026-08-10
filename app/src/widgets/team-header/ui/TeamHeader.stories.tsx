@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { expect } from 'storybook/test'
 import { withRouter } from '@shared/testing/router-decorator'
+import { Button } from '@shared/ui/button'
 import { TeamHeader } from './TeamHeader'
 
 // TeamHeader renders a TanStack Router <Link> for the admin gear, so it needs a router in context.
@@ -15,9 +16,12 @@ export default meta
 
 type Story = StoryObj<typeof meta>
 
-// A stand-in for the real GenerateInviteDialog trigger (a container that needs a QueryClient);
-// the story only needs to prove the slot renders in the admin actions area.
-const inviteAction = <button type="button">Invite Link</button>
+// A stand-in for the real GenerateInviteDialog trigger (a container that needs a QueryClient).
+// It mirrors the real trigger's markup exactly — `<Button variant="outline">Invite Link</Button>`
+// — so the Chromatic snapshot of the admin header is visually faithful (an actual button, not
+// bare text). The story only needs the slot to render; the dialog behaviour is covered by the
+// generate-invite feature's own stories.
+const inviteAction = <Button variant="outline">Invite Link</Button>
 
 export const Admin: Story = {
   args: { isAdmin: true, actions: inviteAction },

@@ -7,6 +7,7 @@ interface UserState {
   email: string | null
   role: string | null
   teamName: string | null
+  isPlatformAdmin: boolean
   setCurrentUser: (user: AuthenticatedUser | null) => void
 }
 
@@ -16,6 +17,7 @@ export const useUserStore = create<UserState>((set) => ({
   email: null,
   role: null,
   teamName: null,
+  isPlatformAdmin: false,
   setCurrentUser: (user) =>
     set({
       userId: user?.id ?? null,
@@ -23,5 +25,6 @@ export const useUserStore = create<UserState>((set) => ({
       email: user?.email ?? null,
       role: user?.role ?? null,
       teamName: user?.team?.name ?? null,
+      isPlatformAdmin: user?.isPlatformAdmin ?? false,
     }),
 }))

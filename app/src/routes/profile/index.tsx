@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { useQueryClient } from '@tanstack/react-query'
 import { useCurrentMember, useUpdateMember, MemberUpdateError } from '@shared/api/members'
 import { usePositions } from '@shared/api/positions'
@@ -52,6 +52,7 @@ function ProfilePage() {
   const { data: member, isLoading, error } = useCurrentMember()
   const { data: positions } = usePositions()
   const updateMember = useUpdateMember()
+  const isPlatformAdmin = useUserStore((s) => s.isPlatformAdmin)
 
   const errorCode = updateMember.error instanceof MemberUpdateError ? updateMember.error.code : undefined
 
@@ -74,6 +75,18 @@ function ProfilePage() {
               updateMember.mutate({ userId: member.userId, displayName: name, role: member.role, positionId })
             }
           />
+        </div>
+      )}
+
+      {isPlatformAdmin && (
+        <div className="mt-10 border-t border-border/40 pt-6">
+          <h3 className="text-sm font-semibold text-muted-foreground">Platform admin</h3>
+          <Link
+            to="/admin/creation-codes"
+            className="mt-2 inline-block text-sm font-semibold text-blue hover:underline"
+          >
+            Creation codes
+          </Link>
         </div>
       )}
 

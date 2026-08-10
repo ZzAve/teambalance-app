@@ -17,6 +17,7 @@ const USER: AuthenticatedUser = {
   // A confirmed member of a team, so the has-a-team gate passes and this test stays focused on the
   // auth-confirmation seam (401 vs 200), not team routing.
   team: { id: 'team-1', name: 'Setpoint VT', slug: 'setpoint-vt' },
+  isPlatformAdmin: false,
 }
 
 let meStatus = 401

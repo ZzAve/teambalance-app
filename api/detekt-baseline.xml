@@ -5,7 +5,6 @@
     <ID>AdapterCannotDependOnAdapter:SessionTenantContextFilter.kt:import com.github.zzave.teambalance.api.infrastructure.identity.SessionKeys</ID>
     <ID>AdapterCannotDependOnAdapter:SessionTenantContextFilter.kt:import com.github.zzave.teambalance.api.infrastructure.identity.UserContext</ID>
     <ID>AdapterCannotDependOnAdapter:SessionTenantContextFilter.kt:import com.github.zzave.teambalance.api.infrastructure.persistence.SpringDataTeamMemberRepository</ID>
-    <ID>AdapterCannotDependOnAdapter:UserContextCurrentTeamAdapter.kt:import com.github.zzave.teambalance.api.infrastructure.multitenancy.CurrentTeamContext</ID>
     <ID>DomainNoFrameworkImports:E2eMagicLinkTokenRecorder.kt:import org.springframework.context.annotation.Profile</ID>
     <ID>DomainNoFrameworkImports:E2eMagicLinkTokenRecorder.kt:import org.springframework.stereotype.Component</ID>
     <ID>DomainNoPrimitiveObsession:Event.kt:Event$val description: String?</ID>

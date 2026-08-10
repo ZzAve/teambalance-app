@@ -151,7 +151,7 @@ The backend is hexagonal (ports & adapters). These boundaries are enforced by th
   need. Also framework-free (this is the stricter half of [ADR-0018](docs/adr/0018-enforce-hexagonal-architecture-with-flock-detekt.md)):
   a service is a constructor-injected plain class, not a Spring `@Service`.
 - **Port** — An interface, owned by the domain/application side, describing something the
-  application needs from the outside world (`EventRepository`, `EmailSender`, `CurrentUserGateway`).
+  application needs from the outside world (`EventRepository`, `EmailGateway`, `CurrentUserGateway`).
   Named with a `Repository`, `Gateway`, `Port`, or `Client` suffix. The dependency-inversion seam:
   the application depends on the port, never on the adapter. _Avoid_: interface, service interface.
 - **Adapter** — A concrete implementation of a **port** living in **infrastructure** (a JPA

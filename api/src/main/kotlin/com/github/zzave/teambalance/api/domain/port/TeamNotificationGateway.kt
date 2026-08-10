@@ -4,7 +4,7 @@ package com.github.zzave.teambalance.api.domain.port
  * Fire-and-forget notifications emitted after a team is created. Implementations MUST swallow their own
  * failures (a bounced email must never fail team creation) — callers treat every method as best-effort.
  */
-interface TeamNotifier {
+interface TeamNotificationGateway {
     /** Tells the founder their new team is ready. */
     fun teamCreated(founderEmail: String, teamName: String, teamSlug: String)
 

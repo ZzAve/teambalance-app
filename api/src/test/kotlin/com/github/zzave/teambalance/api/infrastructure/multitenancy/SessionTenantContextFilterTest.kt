@@ -24,7 +24,7 @@ class SessionTenantContextFilterTest : TeamBalanceIT() {
     lateinit var jdbcTemplate: JdbcTemplate
 
     @Autowired
-    lateinit var tenantSchemaManager: TenantSchemaManager
+    lateinit var tenantSchemaAdapter: TenantSchemaAdapter
 
     init {
         afterTest {
@@ -34,7 +34,7 @@ class SessionTenantContextFilterTest : TeamBalanceIT() {
         }
 
         test("session user with a team_members row resolves schema and team id from the same row") {
-            tenantSchemaManager.provisionPlatformSchema()
+            tenantSchemaAdapter.provisionPlatformSchema()
             val userId = UUID.randomUUID()
             val teamId = UUID.randomUUID()
             val schemaName = "team_${teamId.toString().replace("-", "")}"
@@ -51,7 +51,7 @@ class SessionTenantContextFilterTest : TeamBalanceIT() {
         }
 
         test("second request on the same session resolves schema and team id from cache without a DB lookup") {
-            tenantSchemaManager.provisionPlatformSchema()
+            tenantSchemaAdapter.provisionPlatformSchema()
             val userId = UUID.randomUUID()
             val teamId = UUID.randomUUID()
             val schemaName = "team_${teamId.toString().replace("-", "")}"
@@ -78,7 +78,7 @@ class SessionTenantContextFilterTest : TeamBalanceIT() {
         }
 
         test("session user with no team_members row falls through with no silent fallback") {
-            tenantSchemaManager.provisionPlatformSchema()
+            tenantSchemaAdapter.provisionPlatformSchema()
             val userId = UUID.randomUUID()
 
             jdbcTemplate.update(

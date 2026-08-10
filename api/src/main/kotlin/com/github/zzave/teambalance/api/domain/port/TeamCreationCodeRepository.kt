@@ -6,15 +6,15 @@ import java.time.Instant
 /**
  * Access to the platform's one-time team-creation codes: the redeemability peek used by create-team,
  * plus the list/insert/delete used by the codes-admin CRUD (#154 Slice 4). Consumption is not here:
- * it must be atomic with the team/member inserts, so it lives in [TeamRegistrar.register] inside that
- * transaction.
+ * it must be atomic with the team/member inserts, so it lives in [TeamRegistrationGateway.register]
+ * inside that transaction.
  */
 interface TeamCreationCodeRepository {
     /**
      * True if [code] is currently redeemable at [now] — it exists, is unconsumed, and is unexpired.
      * A pre-provision peek only: it lets create-team reject an obviously-bad code with a 403 *before*
      * provisioning a schema, so bad-code spam can't accrete orphan schemas. The authoritative,
-     * race-free check is the conditional UPDATE in [TeamRegistrar.register].
+     * race-free check is the conditional UPDATE in [TeamRegistrationGateway.register].
      */
     fun isRedeemable(code: String, now: Instant): Boolean
 

@@ -1,7 +1,7 @@
 package com.github.zzave.teambalance.api.interfaces
 
 import com.github.zzave.teambalance.api.TeamBalanceIT
-import com.github.zzave.teambalance.api.infrastructure.multitenancy.TenantSchemaManager
+import com.github.zzave.teambalance.api.infrastructure.multitenancy.TenantSchemaAdapter
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
 import org.springframework.http.MediaType
@@ -27,13 +27,13 @@ class MemberControllerIT : TeamBalanceIT() {
     lateinit var jdbcTemplate: JdbcTemplate
 
     @Autowired
-    lateinit var tenantSchemaManager: TenantSchemaManager
+    lateinit var tenantSchemaAdapter: TenantSchemaAdapter
 
     // Jan defaults to ADMIN so the admin-management flows have an authorized caller; individual tests
     // override roles via [janRole]/[lisaRole] to exercise the non-admin and last-admin paths.
     private fun seedTeam(janRole: String = "ADMIN", lisaRole: String = "USER") {
-        tenantSchemaManager.provisionPlatformSchema()
-        tenantSchemaManager.provisionTenantSchema(TEAM_SCHEMA)
+        tenantSchemaAdapter.provisionPlatformSchema()
+        tenantSchemaAdapter.provisionTenantSchema(TEAM_SCHEMA)
         jdbcTemplate.execute(
             "INSERT INTO public.teams (id, name, slug, schema_name) " +
                 "VALUES ('$TEAM_ID'::uuid, 'Member IT Team', 'member-it-team', '$TEAM_SCHEMA') " +

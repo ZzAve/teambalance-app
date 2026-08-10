@@ -91,7 +91,7 @@ events view — confirming the tenant schema is wired correctly.
 
 You should not need this: the startup runner keeps existing schemas at head and create-team
 provisions new ones. Reach for it only if the app **can't boot** (so the runner never runs) and a
-tenant schema must be migrated out-of-band. It mirrors `TenantSchemaManager.provisionTenantSchema`
+tenant schema must be migrated out-of-band. It mirrors `TenantSchemaAdapter.provisionTenantSchema`
 exactly — creates the schema, applies `db/tenant-migration/`, and records
 `flyway_tenant_schema_history`. Running raw DDL instead would leave the history table empty.
 

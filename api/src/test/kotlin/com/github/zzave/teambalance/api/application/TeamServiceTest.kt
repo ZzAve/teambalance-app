@@ -17,10 +17,10 @@ import com.github.zzave.teambalance.api.domain.model.User
 import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.port.TeamCreationCodeRepository
 import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
-import com.github.zzave.teambalance.api.domain.port.TeamNotifier
-import com.github.zzave.teambalance.api.domain.port.TeamRegistrar
+import com.github.zzave.teambalance.api.domain.port.TeamNotificationGateway
+import com.github.zzave.teambalance.api.domain.port.TeamRegistrationGateway
 import com.github.zzave.teambalance.api.domain.port.TeamRepository
-import com.github.zzave.teambalance.api.domain.port.TenantProvisioner
+import com.github.zzave.teambalance.api.domain.port.TenantProvisioningGateway
 import com.github.zzave.teambalance.api.domain.port.UserRepository
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
@@ -72,7 +72,7 @@ private class FakeCodeRepo(private val redeemable: Boolean) : TeamCreationCodeRe
 // Both the provisioner and the registrar append to one shared log so tests can assert ordering
 // (provision-first) as well as whether each step ran at all.
 private class RecordingProvisioner(private val calls: MutableList<String>, private val fail: Boolean = false) :
-    TenantProvisioner {
+    TenantProvisioningGateway {
     override fun provisionTenant(schemaName: String) {
         if (fail) throw IllegalStateException("provision boom")
         calls += "provision:$schemaName"
@@ -82,7 +82,7 @@ private class RecordingProvisioner(private val calls: MutableList<String>, priva
 private class RecordingRegistrar(
     private val calls: MutableList<String>,
     private val teamId: UUID,
-) : TeamRegistrar {
+) : TeamRegistrationGateway {
     override fun register(
         creationCode: String,
         founderId: UUID,
@@ -102,7 +102,7 @@ private class FakeUserRepo(private val user: User?) : UserRepository {
     override fun save(user: User): User = user
 }
 
-private class RecordingNotifier(private val throwing: Boolean = false) : TeamNotifier {
+private class RecordingNotifier(private val throwing: Boolean = false) : TeamNotificationGateway {
     val created = mutableListOf<Triple<String, String, String>>()
     val audited = mutableListOf<Triple<String, String, String>>()
     override fun teamCreated(founderEmail: String, teamName: String, teamSlug: String) {
@@ -129,15 +129,15 @@ class TeamServiceTest : FunSpec() {
             redeemable: Boolean = true,
             provisionFails: Boolean = false,
             user: User? = founderUser,
-            notifier: TeamNotifier = RecordingNotifier(),
+            notifier: TeamNotificationGateway = RecordingNotifier(),
         ) = TeamService(
             teamMemberRepository = FakeMemberRepo(existingTeam),
             teamRepository = FakeTeamRepo(existingSlugs),
             creationCodeRepository = FakeCodeRepo(redeemable),
-            tenantProvisioner = RecordingProvisioner(calls, provisionFails),
-            teamRegistrar = RecordingRegistrar(calls, newTeamId),
+            tenantProvisioningGateway = RecordingProvisioner(calls, provisionFails),
+            teamRegistrationGateway = RecordingRegistrar(calls, newTeamId),
             userRepository = FakeUserRepo(user),
-            teamNotifier = notifier,
+            teamNotificationGateway = notifier,
             clock = clock,
         )
 

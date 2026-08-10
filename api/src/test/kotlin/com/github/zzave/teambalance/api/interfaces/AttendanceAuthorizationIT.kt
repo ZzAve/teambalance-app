@@ -1,7 +1,7 @@
 package com.github.zzave.teambalance.api.interfaces
 
 import com.github.zzave.teambalance.api.TeamBalanceIT
-import com.github.zzave.teambalance.api.infrastructure.multitenancy.TenantSchemaManager
+import com.github.zzave.teambalance.api.infrastructure.multitenancy.TenantSchemaAdapter
 import io.kotest.matchers.shouldBe
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
@@ -27,12 +27,12 @@ class AttendanceAuthorizationIT : TeamBalanceIT() {
 
     @Autowired lateinit var mockMvc: MockMvc
     @Autowired lateinit var jdbcTemplate: JdbcTemplate
-    @Autowired lateinit var tenantSchemaManager: TenantSchemaManager
+    @Autowired lateinit var tenantSchemaAdapter: TenantSchemaAdapter
 
     init {
         test("setAttendance for a user outside the caller's team is rejected with 403") {
-            tenantSchemaManager.provisionPlatformSchema()
-            tenantSchemaManager.provisionTenantSchema("public")
+            tenantSchemaAdapter.provisionPlatformSchema()
+            tenantSchemaAdapter.provisionTenantSchema("public")
 
             // The caller is an ordinary member of their own team.
             val callerTeamId = UUID.randomUUID()
@@ -62,8 +62,8 @@ class AttendanceAuthorizationIT : TeamBalanceIT() {
         }
 
         test("setAttendance for a fellow team member still succeeds (trust-based editing, ADR-0003)") {
-            tenantSchemaManager.provisionPlatformSchema()
-            tenantSchemaManager.provisionTenantSchema("public")
+            tenantSchemaAdapter.provisionPlatformSchema()
+            tenantSchemaAdapter.provisionTenantSchema("public")
 
             val teamId = UUID.randomUUID()
             val callerId = newTeamMember(teamId, "editor2@test.com", "Ed Editor")

@@ -2,7 +2,7 @@
 # SPRING_PROFILES_ACTIVE=prod. The datasource and all secrets (DB creds, INVITATION_TOKEN_SALT,
 # Scaleway TEM api-key/project-id, TEAMBALANCE_FRONTEND_BASE_URL) are supplied as container
 # environment variables via Spring relaxed binding — never committed here. This profile also
-# activates ScalewayTemEmailSender (@Profile("prod")) in place of ConsoleEmailSender.
+# activates ScalewayTemEmailAdapter (@Profile("prod")) in place of ConsoleEmailAdapter.
 
 spring:
   datasource:

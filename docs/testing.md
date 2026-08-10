@@ -112,7 +112,7 @@ make test                       # test-api + test-app
 2. Boots `bootRun --spring.profiles.active=e2e` and health-gates on `/internal/actuator/health`.
 3. Runs Playwright, then kills the backend by port (the bootRun JVM is a daemon child, not the gradlew pid).
 
-**`e2e` Spring profile:** `E2eEnvironmentInitializer` (ApplicationRunner, after Flyway) provisions the `team_test` tenant schema and runs a pure-INSERT idempotent `db/e2e/seed.sql` (one user: `e2e@example.com`). The `/internal/e2e/magic-link-token` endpoint returns the plaintext token recorded by `RecordingEmailSender` (@Primary @Profile("e2e")).
+**`e2e` Spring profile:** `E2eEnvironmentInitializer` (ApplicationRunner, after Flyway) provisions the `team_test` tenant schema and runs a pure-INSERT idempotent `db/e2e/seed.sql` (one user: `e2e@example.com`). The `/internal/e2e/magic-link-token` endpoint returns the plaintext token recorded by `RecordingEmailAdapter` (@Primary @Profile("e2e")).
 
 **Flows covered:** login (magic-link → verify → `/events`) + change-attendance (authed via `storageState` → open event → toggle → assert persisted transition). These two flows exercise browser→API→DB, auth handshake + session cookie, tenant-schema resolution, and a mutation round-trip.
 

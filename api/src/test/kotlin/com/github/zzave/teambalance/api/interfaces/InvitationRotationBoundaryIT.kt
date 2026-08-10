@@ -1,7 +1,7 @@
 package com.github.zzave.teambalance.api.interfaces
 
 import com.github.zzave.teambalance.api.TeamBalanceIT
-import com.github.zzave.teambalance.api.infrastructure.multitenancy.TenantSchemaManager
+import com.github.zzave.teambalance.api.infrastructure.multitenancy.TenantSchemaAdapter
 import com.github.zzave.teambalance.api.infrastructure.persistence.FaultInjectingInvitationRepositoryConfig
 import io.kotest.matchers.shouldBe
 import org.springframework.beans.factory.annotation.Autowired
@@ -41,7 +41,7 @@ class InvitationRotationBoundaryIT : TeamBalanceIT() {
     lateinit var jdbcTemplate: JdbcTemplate
 
     @Autowired
-    lateinit var tenantSchemaManager: TenantSchemaManager
+    lateinit var tenantSchemaAdapter: TenantSchemaAdapter
 
     init {
         test("a rotate whose mint fails leaves the existing invite link usable") {
@@ -100,8 +100,8 @@ class InvitationRotationBoundaryIT : TeamBalanceIT() {
     }
 
     private fun seedTeamAndAdmin() {
-        tenantSchemaManager.provisionPlatformSchema()
-        tenantSchemaManager.provisionTenantSchema("public")
+        tenantSchemaAdapter.provisionPlatformSchema()
+        tenantSchemaAdapter.provisionTenantSchema("public")
         jdbcTemplate.execute(
             """
             INSERT INTO public.teams (id, name, slug, schema_name)

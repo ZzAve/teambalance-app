@@ -8,7 +8,7 @@ import com.github.zzave.teambalance.api.domain.model.TokenHash
 import com.github.zzave.teambalance.api.domain.model.User
 import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.port.AuthSessionGateway
-import com.github.zzave.teambalance.api.domain.port.EmailSender
+import com.github.zzave.teambalance.api.domain.port.EmailGateway
 import com.github.zzave.teambalance.api.domain.port.MagicLinkTokenRepository
 import com.github.zzave.teambalance.api.domain.port.PlatformAdminGateway
 import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
@@ -28,7 +28,7 @@ class AuthService(
     private val userRepository: UserRepository,
     private val teamRepository: TeamRepository,
     private val teamMemberRepository: TeamMemberRepository,
-    private val emailSender: EmailSender,
+    private val emailGateway: EmailGateway,
     private val platformAdminGateway: PlatformAdminGateway,
     private val authSessionGateway: AuthSessionGateway,
     private val tenantRoutingGateway: TenantRoutingGateway,
@@ -53,7 +53,7 @@ class AuthService(
                 createdAt = now,
             ),
         )
-        emailSender.sendMagicLink(email, token)
+        emailGateway.sendMagicLink(email, token)
     }
 
     fun findUserById(id: UserId): User? = userRepository.findById(id)

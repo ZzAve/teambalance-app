@@ -1,7 +1,7 @@
 package com.github.zzave.teambalance.api.interfaces
 
 import com.github.zzave.teambalance.api.TeamBalanceIT
-import com.github.zzave.teambalance.api.infrastructure.multitenancy.TenantSchemaManager
+import com.github.zzave.teambalance.api.infrastructure.multitenancy.TenantSchemaAdapter
 import io.kotest.assertions.withClue
 import io.kotest.matchers.shouldBe
 import org.springframework.beans.factory.annotation.Autowired
@@ -49,7 +49,7 @@ class ConcurrentSessionTenantIT : TeamBalanceIT() {
 
     @Autowired lateinit var jdbcTemplate: JdbcTemplate
 
-    @Autowired lateinit var tenantSchemaManager: TenantSchemaManager
+    @Autowired lateinit var tenantSchemaAdapter: TenantSchemaAdapter
 
     init {
         test("a concurrent burst on a freshly-authenticated session never 500s") {
@@ -134,8 +134,8 @@ class ConcurrentSessionTenantIT : TeamBalanceIT() {
     // Seed into a dedicated tenant schema (not the shared `public` team) so this spec never collides
     // with the other ITs on `teams.schema_name UNIQUE` in the shared Testcontainers database.
     private fun seedTeamAndAdmin() {
-        tenantSchemaManager.provisionPlatformSchema()
-        tenantSchemaManager.provisionTenantSchema(SCHEMA)
+        tenantSchemaAdapter.provisionPlatformSchema()
+        tenantSchemaAdapter.provisionTenantSchema(SCHEMA)
         jdbcTemplate.execute(
             "INSERT INTO public.teams (id, name, slug, schema_name) " +
                 "VALUES ('$TEAM_ID'::uuid, 'Concurrency Team', 'concurrency-team', '$SCHEMA') ON CONFLICT DO NOTHING",

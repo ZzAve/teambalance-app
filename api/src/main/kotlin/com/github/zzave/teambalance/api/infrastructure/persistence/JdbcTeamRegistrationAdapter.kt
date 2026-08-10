@@ -3,7 +3,7 @@ package com.github.zzave.teambalance.api.infrastructure.persistence
 import com.github.zzave.teambalance.api.domain.exception.InvalidCreationCodeException
 import com.github.zzave.teambalance.api.domain.exception.TeamSlugTakenException
 import com.github.zzave.teambalance.api.domain.model.Role
-import com.github.zzave.teambalance.api.domain.port.TeamRegistrar
+import com.github.zzave.teambalance.api.domain.port.TeamRegistrationGateway
 import org.springframework.dao.DuplicateKeyException
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.stereotype.Repository
@@ -24,7 +24,7 @@ import java.util.UUID
 @Repository
 class JdbcTeamRegistrationAdapter(
     private val jdbcTemplate: JdbcTemplate,
-) : TeamRegistrar {
+) : TeamRegistrationGateway {
 
     @Transactional
     override fun register(

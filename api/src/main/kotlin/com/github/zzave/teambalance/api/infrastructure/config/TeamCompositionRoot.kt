@@ -5,10 +5,10 @@ import com.github.zzave.teambalance.api.application.TeamService
 import com.github.zzave.teambalance.api.domain.port.PlatformAdminGateway
 import com.github.zzave.teambalance.api.domain.port.TeamCreationCodeRepository
 import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
-import com.github.zzave.teambalance.api.domain.port.TeamNotifier
-import com.github.zzave.teambalance.api.domain.port.TeamRegistrar
+import com.github.zzave.teambalance.api.domain.port.TeamNotificationGateway
+import com.github.zzave.teambalance.api.domain.port.TeamRegistrationGateway
 import com.github.zzave.teambalance.api.domain.port.TeamRepository
-import com.github.zzave.teambalance.api.domain.port.TenantProvisioner
+import com.github.zzave.teambalance.api.domain.port.TenantProvisioningGateway
 import com.github.zzave.teambalance.api.domain.port.UserRepository
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
@@ -28,19 +28,19 @@ class TeamCompositionRoot {
         teamMemberRepository: TeamMemberRepository,
         teamRepository: TeamRepository,
         creationCodeRepository: TeamCreationCodeRepository,
-        tenantProvisioner: TenantProvisioner,
-        teamRegistrar: TeamRegistrar,
+        tenantProvisioningGateway: TenantProvisioningGateway,
+        teamRegistrationGateway: TeamRegistrationGateway,
         userRepository: UserRepository,
-        teamNotifier: TeamNotifier,
+        teamNotificationGateway: TeamNotificationGateway,
         clock: Clock,
     ) = TeamService(
         teamMemberRepository = teamMemberRepository,
         teamRepository = teamRepository,
         creationCodeRepository = creationCodeRepository,
-        tenantProvisioner = tenantProvisioner,
-        teamRegistrar = teamRegistrar,
+        tenantProvisioningGateway = tenantProvisioningGateway,
+        teamRegistrationGateway = teamRegistrationGateway,
         userRepository = userRepository,
-        teamNotifier = teamNotifier,
+        teamNotificationGateway = teamNotificationGateway,
         clock = clock,
     )
 

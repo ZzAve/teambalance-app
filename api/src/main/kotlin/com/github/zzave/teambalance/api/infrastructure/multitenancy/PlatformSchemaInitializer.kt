@@ -12,16 +12,16 @@ import org.springframework.stereotype.Component
  * pin is essential: without it Flyway targets the connection's ambient search_path, which in prod
  * defaulted to a tenant schema — and a platform migration then lands in the wrong schema (see the
  * incident that added the pin). This explicit hook also owns per-tenant provisioning via
- * [TenantSchemaManager]; it baselines so it runs cleanly against the already-populated schema.
+ * [TenantSchemaAdapter]; it baselines so it runs cleanly against the already-populated schema.
  */
 @Component
 class PlatformSchemaInitializer(
-    private val tenantSchemaManager: TenantSchemaManager,
+    private val tenantSchemaAdapter: TenantSchemaAdapter,
 ) : InitializingBean {
     private val log = LoggerFactory.getLogger(PlatformSchemaInitializer::class.java)
 
     override fun afterPropertiesSet() {
         log.info("Provisioning platform (public) schema")
-        tenantSchemaManager.provisionPlatformSchema()
+        tenantSchemaAdapter.provisionPlatformSchema()
     }
 }

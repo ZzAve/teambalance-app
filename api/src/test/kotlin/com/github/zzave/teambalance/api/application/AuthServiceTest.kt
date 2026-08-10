@@ -12,7 +12,7 @@ import com.github.zzave.teambalance.api.domain.model.TokenHash
 import com.github.zzave.teambalance.api.domain.model.User
 import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.port.AuthSessionGateway
-import com.github.zzave.teambalance.api.domain.port.EmailSender
+import com.github.zzave.teambalance.api.domain.port.EmailGateway
 import com.github.zzave.teambalance.api.domain.port.MagicLinkTokenRepository
 import com.github.zzave.teambalance.api.domain.port.PlatformAdminGateway
 import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
@@ -93,7 +93,7 @@ private class FakeTeamRepository : TeamRepository {
     override fun findByUserId(userId: UUID): TeamSummary? = null
 }
 
-private class FakeEmailSender : EmailSender {
+private class FakeEmailGateway : EmailGateway {
     override fun sendMagicLink(email: Email, token: String) = Unit
 }
 
@@ -128,7 +128,7 @@ class AuthServiceTest : FunSpec() {
             userRepository = FakeUserRepository(mapOf(userId to user)),
             teamRepository = FakeTeamRepository(),
             teamMemberRepository = FakeRoutingTeamMemberRepository(tenantRouting),
-            emailSender = FakeEmailSender(),
+            emailGateway = FakeEmailGateway(),
             platformAdminGateway = FakePlatformAdminGateway(),
             authSessionGateway = gateway,
             tenantRoutingGateway = routingGateway,

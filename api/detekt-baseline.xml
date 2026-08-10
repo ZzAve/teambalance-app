@@ -31,10 +31,6 @@
     <ID>DomainNoPrimitiveObsession:TeamSummary.kt:TeamSummary$val slug: String</ID>
     <ID>DomainNoPrimitiveObsession:TenantRouting.kt:TenantRouting$val schemaName: String</ID>
     <ID>DomainNoPrimitiveObsession:User.kt:User$val displayName: String</ID>
-    <ID>PortNamingConvention:EmailSender.kt:EmailSender</ID>
-    <ID>PortNamingConvention:TeamNotifier.kt:TeamNotifier</ID>
-    <ID>PortNamingConvention:TeamRegistrar.kt:TeamRegistrar</ID>
-    <ID>PortNamingConvention:TenantProvisioner.kt:TenantProvisioner</ID>
     <ID>PortsInDomainOnly:SpringDataAttendanceRepository.kt:SpringDataAttendanceRepository : JpaRepository</ID>
     <ID>PortsInDomainOnly:SpringDataEventRepository.kt:SpringDataEventRepository : JpaRepository</ID>
     <ID>PortsInDomainOnly:SpringDataEventTypeRepository.kt:SpringDataEventTypeRepository : JpaRepository</ID>

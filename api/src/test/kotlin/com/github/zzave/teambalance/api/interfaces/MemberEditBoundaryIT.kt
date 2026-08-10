@@ -1,7 +1,7 @@
 package com.github.zzave.teambalance.api.interfaces
 
 import com.github.zzave.teambalance.api.TeamBalanceIT
-import com.github.zzave.teambalance.api.infrastructure.multitenancy.TenantSchemaManager
+import com.github.zzave.teambalance.api.infrastructure.multitenancy.TenantSchemaAdapter
 import com.github.zzave.teambalance.api.infrastructure.persistence.FAULT_MEMBER_USER_ID
 import com.github.zzave.teambalance.api.infrastructure.persistence.FaultInjectingTeamMemberRepositoryConfig
 import io.kotest.matchers.shouldBe
@@ -44,7 +44,7 @@ class MemberEditBoundaryIT : TeamBalanceIT() {
     lateinit var jdbcTemplate: JdbcTemplate
 
     @Autowired
-    lateinit var tenantSchemaManager: TenantSchemaManager
+    lateinit var tenantSchemaAdapter: TenantSchemaAdapter
 
     init {
         test("an admin edit whose team-member write fails leaves the display name unchanged") {
@@ -125,8 +125,8 @@ class MemberEditBoundaryIT : TeamBalanceIT() {
     // The Testcontainers DB is shared across specs with no per-test rollback, so reset this team's
     // roster and its members' names/onboarding to a known baseline at the start of every test.
     private fun seedTeam() {
-        tenantSchemaManager.provisionPlatformSchema()
-        tenantSchemaManager.provisionTenantSchema(TEAM_SCHEMA)
+        tenantSchemaAdapter.provisionPlatformSchema()
+        tenantSchemaAdapter.provisionTenantSchema(TEAM_SCHEMA)
         jdbcTemplate.execute(
             "INSERT INTO public.teams (id, name, slug, schema_name) " +
                 "VALUES ('$TEAM_ID'::uuid, 'Boundary IT Team', 'boundary-it-team', '$TEAM_SCHEMA') " +

@@ -16,9 +16,9 @@ import org.springframework.test.web.client.response.MockRestResponseCreators.wit
 import org.springframework.web.client.RestClient
 import org.springframework.web.client.RestClientResponseException
 
-class ScalewayTemEmailSenderTest : FunSpec() {
+class ScalewayTemEmailAdapterTest : FunSpec() {
 
-    private fun sender(builder: RestClient.Builder) = ScalewayTemEmailSender(
+    private fun sender(builder: RestClient.Builder) = ScalewayTemEmailAdapter(
         frontendBaseUrl = "https://app.teambalance.nl",
         emailProperties = EmailProperties(
             fromName = "TeamBalance",

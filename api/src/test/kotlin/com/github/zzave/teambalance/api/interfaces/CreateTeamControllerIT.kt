@@ -1,7 +1,7 @@
 package com.github.zzave.teambalance.api.interfaces
 
 import com.github.zzave.teambalance.api.TeamBalanceIT
-import com.github.zzave.teambalance.api.infrastructure.multitenancy.TenantSchemaManager
+import com.github.zzave.teambalance.api.infrastructure.multitenancy.TenantSchemaAdapter
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
 import org.springframework.beans.factory.annotation.Autowired
@@ -26,10 +26,10 @@ class CreateTeamControllerIT : TeamBalanceIT() {
     lateinit var jdbcTemplate: JdbcTemplate
 
     @Autowired
-    lateinit var tenantSchemaManager: TenantSchemaManager
+    lateinit var tenantSchemaAdapter: TenantSchemaAdapter
 
     private fun seedUser(id: String, email: String) {
-        tenantSchemaManager.provisionPlatformSchema()
+        tenantSchemaAdapter.provisionPlatformSchema()
         jdbcTemplate.update(
             "INSERT INTO public.users (id, email, display_name) VALUES (?::uuid, ?, ?) " +
                 "ON CONFLICT (id) DO UPDATE SET email = EXCLUDED.email",

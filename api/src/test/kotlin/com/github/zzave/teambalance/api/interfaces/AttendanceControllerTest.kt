@@ -1,7 +1,7 @@
 package com.github.zzave.teambalance.api.interfaces
 
 import com.github.zzave.teambalance.api.TeamBalanceIT
-import com.github.zzave.teambalance.api.infrastructure.multitenancy.TenantSchemaManager
+import com.github.zzave.teambalance.api.infrastructure.multitenancy.TenantSchemaAdapter
 import io.kotest.matchers.shouldBe
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
@@ -28,12 +28,12 @@ class AttendanceControllerTest : TeamBalanceIT() {
     lateinit var jdbcTemplate: JdbcTemplate
 
     @Autowired
-    lateinit var tenantSchemaManager: TenantSchemaManager
+    lateinit var tenantSchemaAdapter: TenantSchemaAdapter
 
     init {
         test("PUT /api/events/{id}/attendances/{userId} returns role in response") {
-            tenantSchemaManager.provisionPlatformSchema()
-            tenantSchemaManager.provisionTenantSchema("public")
+            tenantSchemaAdapter.provisionPlatformSchema()
+            tenantSchemaAdapter.provisionTenantSchema("public")
 
             jdbcTemplate.execute("""
                 INSERT INTO public.teams (id, name, slug, schema_name)
@@ -76,8 +76,8 @@ class AttendanceControllerTest : TeamBalanceIT() {
         }
 
         test("PUT twice updates the existing attendance row instead of duplicating it") {
-            tenantSchemaManager.provisionPlatformSchema()
-            tenantSchemaManager.provisionTenantSchema("public")
+            tenantSchemaAdapter.provisionPlatformSchema()
+            tenantSchemaAdapter.provisionTenantSchema("public")
 
             jdbcTemplate.execute("""
                 INSERT INTO public.teams (id, name, slug, schema_name)
@@ -121,8 +121,8 @@ class AttendanceControllerTest : TeamBalanceIT() {
         }
 
         test("PUT /api/events/{id}/attendances/{userId} records the editor, not the owner, as changedBy") {
-            tenantSchemaManager.provisionPlatformSchema()
-            tenantSchemaManager.provisionTenantSchema("public")
+            tenantSchemaAdapter.provisionPlatformSchema()
+            tenantSchemaAdapter.provisionTenantSchema("public")
 
             val teamId = UUID.randomUUID().toString()
             val ownerId = UUID.randomUUID().toString()

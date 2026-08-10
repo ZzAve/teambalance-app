@@ -1,7 +1,7 @@
 package com.github.zzave.teambalance.api.infrastructure.email
 
 import com.github.zzave.teambalance.api.domain.model.Email
-import com.github.zzave.teambalance.api.domain.port.EmailSender
+import com.github.zzave.teambalance.api.domain.port.EmailGateway
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Profile
 import org.springframework.http.MediaType
@@ -9,17 +9,17 @@ import org.springframework.stereotype.Component
 import org.springframework.web.client.RestClient
 
 /**
- * Production [EmailSender]: sends the magic-link login email via the Scaleway
+ * Production [EmailGateway]: sends the magic-link login email via the Scaleway
  * Transactional Email (TEM) REST API. Blocking call on the request's (virtual) thread;
  * a non-2xx response propagates (RestClient's default), failing the login request.
  */
 @Component
 @Profile("prod")
-class ScalewayTemEmailSender(
+class ScalewayTemEmailAdapter(
     @Value("\${teambalance.frontend-base-url}") private val frontendBaseUrl: String,
     private val emailProperties: EmailProperties,
     restClientBuilder: RestClient.Builder,
-) : EmailSender {
+) : EmailGateway {
 
     private val restClient = restClientBuilder.build()
 

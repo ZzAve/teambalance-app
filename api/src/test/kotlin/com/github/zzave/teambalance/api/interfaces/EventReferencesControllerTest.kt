@@ -1,7 +1,7 @@
 package com.github.zzave.teambalance.api.interfaces
 
 import com.github.zzave.teambalance.api.TeamBalanceIT
-import com.github.zzave.teambalance.api.infrastructure.multitenancy.TenantSchemaManager
+import com.github.zzave.teambalance.api.infrastructure.multitenancy.TenantSchemaAdapter
 import io.kotest.matchers.shouldBe
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
@@ -30,11 +30,11 @@ class EventReferencesControllerTest : TeamBalanceIT() {
     lateinit var jdbcTemplate: JdbcTemplate
 
     @Autowired
-    lateinit var tenantSchemaManager: TenantSchemaManager
+    lateinit var tenantSchemaAdapter: TenantSchemaAdapter
 
     private fun seedAdminTeam() {
-        tenantSchemaManager.provisionPlatformSchema()
-        tenantSchemaManager.provisionTenantSchema("public")
+        tenantSchemaAdapter.provisionPlatformSchema()
+        tenantSchemaAdapter.provisionTenantSchema("public")
         jdbcTemplate.execute(
             """
             INSERT INTO public.teams (id, name, slug, schema_name)

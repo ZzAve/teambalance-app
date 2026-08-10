@@ -29,6 +29,10 @@ test.describe('logout', () => {
     await page.goto('/')
     await expect(page.getByRole('heading', { name: 'Events' })).toBeVisible()
 
+    // The header no longer carries nav — the tab bar is the primary nav and Log out lives on the
+    // Profile page. Route there via the Profile tab, then tear the session down.
+    await page.getByRole('link', { name: 'Profile' }).click()
+    await expect(page).toHaveURL('/profile')
     await page.getByRole('button', { name: 'Log out' }).click()
     await expect(page).toHaveURL('/login')
     await expect(page.getByRole('heading', { name: 'TeamBalance' })).toBeVisible()

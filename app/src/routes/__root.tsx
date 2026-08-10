@@ -1,10 +1,9 @@
-import { createRootRoute, redirect, Outlet, Link, useNavigate, useRouterState } from '@tanstack/react-router'
-import { useQueryClient } from '@tanstack/react-query'
+import { createRootRoute, redirect, Outlet, Link, useRouterState } from '@tanstack/react-router'
 import { useEffect, useRef } from 'react'
 import { Toaster } from 'sonner'
 import { Providers } from '@app/providers'
 import { BottomNav } from '@shared/ui/BottomNav'
-import { authMeQueryOptions, useLogout } from '@shared/api/auth'
+import { authMeQueryOptions } from '@shared/api/auth'
 import { currentMemberQueryOptions } from '@shared/api/members'
 import { queryClient } from '@shared/api/query-client'
 import { useUserStore } from '@shared/stores/user-store'
@@ -77,88 +76,37 @@ function useViewTransitions() {
   }, [location.pathname])
 }
 
-function LogoutButton() {
-  const userId = useUserStore((s) => s.userId)
-  const setCurrentUser = useUserStore((s) => s.setCurrentUser)
-  const logout = useLogout()
-  const queryClient = useQueryClient()
-  const navigate = useNavigate()
-
-  if (!userId) return null
-
-  const handleLogout = () => {
-    logout.mutate(undefined, {
-      onSuccess: () => {
-        setCurrentUser(null)
-        queryClient.setQueryData(['auth', 'me'], null)
-        navigate({ to: '/login' })
-      },
-    })
-  }
-
-  return (
-    <button
-      type="button"
-      onClick={handleLogout}
-      className="text-xs font-semibold text-muted-foreground hover:text-foreground"
-    >
-      Log out
-    </button>
-  )
-}
-
 function RootLayout() {
   useViewTransitions()
-  const isAdmin = useUserStore((s) => s.role) === 'ADMIN'
   const teamName = useUserStore((s) => s.teamName)
 
   return (
     <Providers>
-      <div className="min-h-screen bg-background">
-        <header className="sticky top-0 z-40 border-b border-border/40 bg-card/88 backdrop-blur-lg">
+      {/* min-h-dvh (not min-h-screen/100vh) so the layout measures the *visible* viewport on mobile —
+          the dynamic unit accounts for browser chrome and pairs with viewport-fit=cover. */}
+      <div className="min-h-dvh bg-background">
+        {/* The tab bar (BottomNav) is now the single primary nav — the header carries only identity
+            (wordmark + real team name, top-right), no nav links. Horizontal safe-area insets keep it
+            clear of a landscape notch now that viewport-fit=cover lets content into the inset region. */}
+        <header
+          className="sticky top-0 z-40 border-b border-border/40 bg-card/88 backdrop-blur-lg"
+          style={{ paddingLeft: 'env(safe-area-inset-left)', paddingRight: 'env(safe-area-inset-right)' }}
+        >
           <div className="flex items-center justify-between px-5 py-3">
-            <div className="flex items-center gap-3">
-              <Link to="/" className="font-display text-xl font-bold text-blue">
-                Team<span className="text-green">Balance</span>
-              </Link>
-            </div>
-            <div className="flex items-center gap-4">
-              {isAdmin && (
-                <Link
-                  to="/members"
-                  className="text-xs font-semibold text-muted-foreground hover:text-foreground"
-                  activeProps={{ className: 'text-foreground' }}
-                >
-                  Members
-                </Link>
-              )}
-              {isAdmin && (
-                <Link
-                  to="/team/settings"
-                  className="text-xs font-semibold text-muted-foreground hover:text-foreground"
-                  activeProps={{ className: 'text-foreground' }}
-                >
-                  Settings
-                </Link>
-              )}
-              <Link
-                to="/profile"
-                className="text-xs font-semibold text-muted-foreground hover:text-foreground"
-                activeProps={{ className: 'text-foreground' }}
-              >
-                Profile
-              </Link>
-              <LogoutButton />
-              {teamName && (
-                <div className="flex items-center gap-2 rounded-full bg-blue/8 px-3 py-1.5 text-xs font-semibold text-blue">
-                  <span className="h-1.5 w-1.5 rounded-full bg-green" />
-                  {teamName}
-                </div>
-              )}
-            </div>
+            <Link to="/" className="font-display text-xl font-bold text-blue">
+              Team<span className="text-green">Balance</span>
+            </Link>
+            {teamName && (
+              <div className="flex items-center gap-2 rounded-full bg-blue/8 px-3 py-1.5 text-xs font-semibold text-blue">
+                <span className="h-1.5 w-1.5 rounded-full bg-green" />
+                {teamName}
+              </div>
+            )}
           </div>
         </header>
-        <main className="mx-auto max-w-2xl px-4 py-6 pb-24">
+        {/* Bottom padding clears the fixed nav (~6rem) plus the home-indicator inset, so the last
+            row of content is never hidden behind the bar on notched devices. */}
+        <main className="mx-auto max-w-2xl px-4 py-6 pb-[calc(6rem+env(safe-area-inset-bottom))]">
           <Outlet />
         </main>
         <BottomNav />

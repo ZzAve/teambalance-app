@@ -1,10 +1,11 @@
 import { test, expect } from '@playwright/test'
 
 // Real e2e (#158): self-service create-team across the whole seam — browser → API → DB. A teamless,
-// authenticated user enters a creation code + name + slug, becomes founding ADMIN, and lands inside
-// their new team. This is the create-team seam #154 Slice 3 justified (cross-tenant provisioning + the
-// code gate — not covered by the login or attendance flows); it lives here because #158 replaces the
-// throwaway Slice-3 tracer, so the net e2e count is unchanged.
+// authenticated user lands on the /onboarding fork, clicks through to /create-team, enters a creation
+// code + name + slug, becomes founding ADMIN, and lands inside their new team. This is the create-team
+// seam #154 Slice 3 justified (cross-tenant provisioning + the code gate — not covered by the login or
+// attendance flows); it lives here because #158 replaces the throwaway Slice-3 tracer, so the net e2e
+// count is unchanged.
 //
 // Idempotent across warm-DB re-runs: a per-run-unique founder email is always freshly teamless (the
 // magic-link verify creates the user), and the seeded code is reset to unconsumed on every backend
@@ -39,9 +40,12 @@ test('create-team: a teamless founder enters code + name + slug and lands in the
   const { token } = await tokenResponse.json()
 
   // 2. Click the emailed link → session established. The has-a-team gate routes the teamless founder
-  //    to /create-team (proving they are NOT bounced to /login by the old teamless-user behaviour).
+  //    to /onboarding (proving they are NOT bounced to /login by the old teamless-user behaviour),
+  //    from where they click through to /create-team — the rare, code-gated path.
   await page.goto(`/auth/verify?token=${token}`)
-  await expect(page.getByRole('heading', { name: 'Create your team' })).toBeVisible({ timeout: 10_000 })
+  await expect(page.getByRole('heading', { name: /Welcome to TeamBalance/ })).toBeVisible({ timeout: 10_000 })
+  await page.getByRole('button', { name: 'Create a team' }).click()
+  await expect(page.getByRole('heading', { name: 'Create your team' })).toBeVisible()
 
   // 3. Fill the form — the slug auto-suggests from the name; the code is the seeded creation code.
   await page.getByLabel('Team name').fill(TEAM_NAME)

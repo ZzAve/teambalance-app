@@ -5,6 +5,7 @@ import com.github.zzave.teambalance.api.domain.model.Invitation
 import com.github.zzave.teambalance.api.domain.model.PositionId
 import com.github.zzave.teambalance.api.domain.model.Role
 import com.github.zzave.teambalance.api.domain.model.TeamId
+import com.github.zzave.teambalance.api.domain.model.TenantRouting
 import com.github.zzave.teambalance.api.domain.model.TeamMember
 import com.github.zzave.teambalance.api.domain.model.TokenHash
 import com.github.zzave.teambalance.api.domain.model.UserId
@@ -43,6 +44,7 @@ private class InviteFakeMemberRepo(private val admins: Set<UserId>) : TeamMember
     override fun findDisplayName(userId: UserId): String? = null
     override fun findMembersByUserIds(userIds: Set<UserId>): Map<UserId, TeamMember> = emptyMap()
     override fun findTeamId(userId: UserId): TeamId? = null
+    override fun findTenantRouting(userId: UserId): TenantRouting? = null
     override fun updateRole(teamId: TeamId, userId: UserId, role: Role) = Unit
     override fun deactivate(teamId: TeamId, userId: UserId) = Unit
     override fun assignPosition(teamId: TeamId, userId: UserId, positionId: PositionId?) = Unit

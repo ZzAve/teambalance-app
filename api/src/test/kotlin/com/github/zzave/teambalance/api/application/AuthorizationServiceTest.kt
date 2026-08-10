@@ -5,6 +5,7 @@ import com.github.zzave.teambalance.api.domain.exception.NotTeamAdminException
 import com.github.zzave.teambalance.api.domain.model.PositionId
 import com.github.zzave.teambalance.api.domain.model.Role
 import com.github.zzave.teambalance.api.domain.model.TeamId
+import com.github.zzave.teambalance.api.domain.model.TenantRouting
 import com.github.zzave.teambalance.api.domain.model.TeamMember
 import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
@@ -19,6 +20,7 @@ private class FakeTeamMemberRepository(private val roles: Map<Pair<TeamId, UserI
     override fun findMembersByUserIds(userIds: Set<UserId>) = emptyMap<UserId, TeamMember>()
     override fun findRole(teamId: TeamId, userId: UserId): Role? = roles[teamId to userId]
     override fun findTeamId(userId: UserId): TeamId? = null
+    override fun findTenantRouting(userId: UserId): TenantRouting? = null
     override fun addMember(teamId: TeamId, userId: UserId) = Unit
     override fun updateRole(teamId: TeamId, userId: UserId, role: Role) = Unit
     override fun deactivate(teamId: TeamId, userId: UserId) = Unit

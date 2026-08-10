@@ -4,6 +4,7 @@ import com.github.zzave.teambalance.api.domain.model.PositionId
 import com.github.zzave.teambalance.api.domain.model.Role
 import com.github.zzave.teambalance.api.domain.model.TeamId
 import com.github.zzave.teambalance.api.domain.model.TeamMember
+import com.github.zzave.teambalance.api.domain.model.TenantRouting
 import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
 import com.github.zzave.teambalance.api.infrastructure.persistence.entity.TeamMemberJpaEntity
@@ -55,6 +56,10 @@ class JpaTeamMemberRepositoryAdapter(
 
     override fun findTeamId(userId: UserId): TeamId? =
         jpaRepository.findTeamIdByUserId(userId.value)?.let(::TeamId)
+
+    override fun findTenantRouting(userId: UserId): TenantRouting? =
+        jpaRepository.findTeamRoutingByUserId(userId.value)
+            ?.let { TenantRouting(teamId = TeamId(it.teamId), schemaName = it.schemaName) }
 
     @Transactional
     override fun updateRole(teamId: TeamId, userId: UserId, role: Role) {

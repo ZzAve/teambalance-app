@@ -40,6 +40,7 @@
     <ID>DomainNoPrimitiveObsession:TeamService.kt:CreatedTeam$val slug: String</ID>
     <ID>DomainNoPrimitiveObsession:TeamSummary.kt:TeamSummary$val name: String</ID>
     <ID>DomainNoPrimitiveObsession:TeamSummary.kt:TeamSummary$val slug: String</ID>
+    <ID>DomainNoPrimitiveObsession:TenantRouting.kt:TenantRouting$val schemaName: String</ID>
     <ID>DomainNoPrimitiveObsession:User.kt:User$val displayName: String</ID>
     <ID>PortNamingConvention:EmailSender.kt:EmailSender</ID>
     <ID>PortNamingConvention:TeamNotifier.kt:TeamNotifier</ID>

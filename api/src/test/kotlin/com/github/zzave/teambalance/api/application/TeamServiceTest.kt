@@ -10,6 +10,7 @@ import com.github.zzave.teambalance.api.domain.model.PositionId
 import com.github.zzave.teambalance.api.domain.model.Role
 import com.github.zzave.teambalance.api.domain.model.TeamCreationCode
 import com.github.zzave.teambalance.api.domain.model.TeamId
+import com.github.zzave.teambalance.api.domain.model.TenantRouting
 import com.github.zzave.teambalance.api.domain.model.TeamMember
 import com.github.zzave.teambalance.api.domain.model.TeamSummary
 import com.github.zzave.teambalance.api.domain.model.User
@@ -32,6 +33,7 @@ import java.util.UUID
 
 private class FakeMemberRepo(private val existingTeam: TeamId?) : TeamMemberRepository {
     override fun findTeamId(userId: UserId): TeamId? = existingTeam
+    override fun findTenantRouting(userId: UserId): TenantRouting? = null
     override fun findByTeamId(teamId: TeamId): List<TeamMember> = emptyList()
     override fun findDisplayName(userId: UserId): String? = null
     override fun findMembersByUserIds(userIds: Set<UserId>): Map<UserId, TeamMember> = emptyMap()

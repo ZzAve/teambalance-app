@@ -11,6 +11,7 @@ import com.github.zzave.teambalance.api.domain.model.Position
 import com.github.zzave.teambalance.api.domain.model.PositionId
 import com.github.zzave.teambalance.api.domain.model.Role
 import com.github.zzave.teambalance.api.domain.model.TeamId
+import com.github.zzave.teambalance.api.domain.model.TenantRouting
 import com.github.zzave.teambalance.api.domain.model.TeamMember
 import com.github.zzave.teambalance.api.domain.model.User
 import com.github.zzave.teambalance.api.domain.model.UserId
@@ -72,6 +73,7 @@ private class FakeMembershipRepo(
     override fun findRole(teamId: TeamId, userId: UserId): Role? =
         store[teamId to userId]?.takeIf { it.active }?.role
     override fun findTeamId(userId: UserId): TeamId? = null
+    override fun findTenantRouting(userId: UserId): TenantRouting? = null
     override fun addMember(teamId: TeamId, userId: UserId) = Unit
     override fun updateRole(teamId: TeamId, userId: UserId, role: Role) {
         store[teamId to userId]?.role = role

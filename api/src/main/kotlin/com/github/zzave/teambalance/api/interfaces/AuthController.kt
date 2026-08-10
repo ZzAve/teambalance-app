@@ -32,7 +32,16 @@ class AuthController(
 
     override suspend fun verifyMagicLink(request: VerifyMagicLink.Request): VerifyMagicLink.Response<*> {
         val user = authService.verifyMagicLink(request.body.token) ?: return VerifyMagicLink.Response401(Unit)
-        httpServletRequest.session.setAttribute(SessionKeys.USER_ID, user.id.produce())
+        val session = httpServletRequest.session
+        session.setAttribute(SessionKeys.USER_ID, user.id.produce())
+        // Pin the tenant routing in the session attributes here, in this one uncontended request, so the
+        // SPA's first authenticated burst reads it back instead of several requests racing to memoize it
+        // (concurrent first-writes collide on SPRING_SESSION_ATTRIBUTES' primary key → 500). Schema + team
+        // id come from one row so they can't diverge; keys/format mirror SessionTenantContextFilter.cache().
+        teamMemberRepository.findTenantRouting(user.id)?.let { routing ->
+            session.setAttribute(SessionKeys.TENANT_SCHEMA, routing.schemaName)
+            session.setAttribute(SessionKeys.TENANT_TEAM_ID, routing.teamId.value.toString())
+        }
         return VerifyMagicLink.Response200(
             AuthenticatedUser(
                 id = user.id.produce(),

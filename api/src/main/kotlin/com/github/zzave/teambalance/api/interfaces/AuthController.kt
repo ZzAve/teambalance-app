@@ -3,7 +3,6 @@ package com.github.zzave.teambalance.api.interfaces
 import com.github.zzave.teambalance.api.application.AuthService
 import com.github.zzave.teambalance.api.domain.model.Email
 import com.github.zzave.teambalance.api.domain.model.UserId
-import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
 import com.github.zzave.teambalance.api.infrastructure.identity.SessionKeys
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.GetAuthMe
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.Logout
@@ -18,7 +17,6 @@ import java.util.UUID
 @RestController
 class AuthController(
     private val authService: AuthService,
-    private val teamMemberRepository: TeamMemberRepository,
     private val httpServletRequest: HttpServletRequest,
 ) : RequestMagicLink.Handler,
     VerifyMagicLink.Handler,
@@ -38,7 +36,7 @@ class AuthController(
         // SPA's first authenticated burst reads it back instead of several requests racing to memoize it
         // (concurrent first-writes collide on SPRING_SESSION_ATTRIBUTES' primary key → 500). Schema + team
         // id come from one row so they can't diverge; keys/format mirror SessionTenantContextFilter.cache().
-        teamMemberRepository.findTenantRouting(user.id)?.let { routing ->
+        authService.findTenantRoutingFor(user.id)?.let { routing ->
             session.setAttribute(SessionKeys.TENANT_SCHEMA, routing.schemaName)
             session.setAttribute(SessionKeys.TENANT_TEAM_ID, routing.teamId.value.toString())
         }
@@ -76,8 +74,7 @@ class AuthController(
         } ?: GetAuthMe.Response401(Unit)
     }
 
-    private fun resolveRole(userId: UserId): String? =
-        teamMemberRepository.findTeamId(userId)?.let { teamId -> teamMemberRepository.findRole(teamId, userId) }?.name
+    private fun resolveRole(userId: UserId): String? = authService.findRoleFor(userId)?.name
 
     // The has-a-team gate signal (#158): a null team means the caller is teamless and belongs on
     // /create-team. Resolved through the application service so this inbound layer keeps no port

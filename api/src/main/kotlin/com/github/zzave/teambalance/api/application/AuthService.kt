@@ -2,13 +2,16 @@ package com.github.zzave.teambalance.api.application
 
 import com.github.zzave.teambalance.api.domain.model.Email
 import com.github.zzave.teambalance.api.domain.model.MagicLinkToken
+import com.github.zzave.teambalance.api.domain.model.Role
 import com.github.zzave.teambalance.api.domain.model.TeamSummary
+import com.github.zzave.teambalance.api.domain.model.TenantRouting
 import com.github.zzave.teambalance.api.domain.model.TokenHash
 import com.github.zzave.teambalance.api.domain.model.User
 import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.port.EmailSender
 import com.github.zzave.teambalance.api.domain.port.MagicLinkTokenRepository
 import com.github.zzave.teambalance.api.domain.port.PlatformAdminGateway
+import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
 import com.github.zzave.teambalance.api.domain.port.TeamRepository
 import com.github.zzave.teambalance.api.domain.port.UserRepository
 import java.security.MessageDigest
@@ -23,6 +26,7 @@ class AuthService(
     private val magicLinkTokenRepository: MagicLinkTokenRepository,
     private val userRepository: UserRepository,
     private val teamRepository: TeamRepository,
+    private val teamMemberRepository: TeamMemberRepository,
     private val emailSender: EmailSender,
     private val platformAdminGateway: PlatformAdminGateway,
     private val clock: Clock,
@@ -53,6 +57,20 @@ class AuthService(
 
     /** The team the user belongs to, or null if teamless — the has-a-team gate signal on `/auth/me`. */
     fun findTeamFor(userId: UserId): TeamSummary? = teamRepository.findByUserId(userId.value)
+
+    /**
+     * The user's role on the team they belong to, or null when they are teamless or have no active
+     * membership — the `role` field of the authenticated-user payload. Identity-shaped ("who is this
+     * caller?"), unlike [AuthorizationService], which answers "may this caller do X on team Y?".
+     */
+    fun findRoleFor(userId: UserId): Role? =
+        teamMemberRepository.findTeamId(userId)?.let { teamId -> teamMemberRepository.findRole(teamId, userId) }
+
+    /**
+     * The user's tenant routing (team id + schema) from one row, or null if teamless — what the
+     * sign-in path pins onto the session so the tenant lookup can't diverge or race.
+     */
+    fun findTenantRoutingFor(userId: UserId): TenantRouting? = teamMemberRepository.findTenantRouting(userId)
 
     fun isPlatformAdmin(userId: UserId): Boolean = platformAdminGateway.isPlatformAdmin(userId.value)
 

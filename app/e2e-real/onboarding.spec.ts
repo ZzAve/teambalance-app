@@ -1,9 +1,9 @@
 import { test, expect, request as playwrightRequest } from '@playwright/test'
-import { STORAGE_STATE } from './helpers'
+import { STORAGE_STATE, postAsSharedAdmin } from './helpers'
 
 // Real e2e: a freshly-invited user completes onboarding — the seam this slice introduces.
 // Seam uniquely covered (vs login/attendance/invite): a member with onboarded=false is routed to
-// /welcome before any app screen, completes the one-time profile flow, is stamped onboarded, and
+// /get-started before any app screen, completes the one-time profile flow, is stamped onboarded, and
 // only then reaches the events home. Spans browser → API → DB across a brand-new identity.
 //
 // The seeded admin (STORAGE_STATE) sets up the invite + a team position over the API; the newbie
@@ -13,7 +13,7 @@ const BACKEND_URL = process.env.BACKEND_URL ?? 'http://localhost:8080'
 const BASE_URL = 'http://localhost:5173'
 // A unique run id keys BOTH the email and the display name so the flow always exercises a FRESH,
 // not-yet-onboarded user — otherwise a warm local DB carries a previous run's now-onboarded user
-// past the /welcome gate (email), or trips the per-team display-name uniqueness check (name).
+// past the /get-started gate (email), or trips the per-team display-name uniqueness check (name).
 const RUN_ID = Date.now()
 const NEWBIE_EMAIL = `newbie-${RUN_ID}@example.com`
 const NEWBIE_NAME = `Newbie ${RUN_ID}`
@@ -21,14 +21,14 @@ const NEWBIE_NAME = `Newbie ${RUN_ID}`
 // The newbie browser starts with no session — this spec IS the join+onboard flow.
 test.use({ storageState: { cookies: [], origins: [] } })
 
-test('an invited user is routed through /welcome and lands on events once onboarded', async ({ page }) => {
+test('an invited user is routed through /get-started and lands on events once onboarded', async ({ page }) => {
   // 1. As the seeded admin (separate API context, its own session): ensure the team has a position
   //    so the required-when-available picker has an option, then mint an invite link.
   const admin = await playwrightRequest.newContext({ baseURL: BASE_URL, storageState: STORAGE_STATE })
-  const positionRes = await admin.post('/api/positions', { data: { label: 'Setter' } })
+  const positionRes = await postAsSharedAdmin(admin, '/api/positions', { data: { label: 'Setter' } })
   // 201 on first run, 409 if a prior run already created it — both leave the team with a position.
   expect([201, 409]).toContain(positionRes.status())
-  const inviteRes = await admin.post('/api/invitations')
+  const inviteRes = await postAsSharedAdmin(admin, '/api/invitations')
   expect(inviteRes.status()).toBe(201)
   const { token: inviteToken } = await inviteRes.json()
   await admin.dispose()
@@ -47,7 +47,7 @@ test('an invited user is routed through /welcome and lands on events once onboar
   const { token } = await tokenResponse.json()
 
   // 4. Click the emailed link → verify creates the user, accepts the pending invite, then the app
-  //    tries home — but the onboarding gate bounces the not-yet-onboarded member to /welcome.
+  //    tries home — but the onboarding gate bounces the not-yet-onboarded member to /get-started.
   await page.goto(`/auth/verify?token=${token}`)
   await expect(page.getByRole('heading', { name: 'Welcome to TeamBalance' })).toBeVisible({ timeout: 10_000 })
 

@@ -27,3 +27,20 @@ export async function authenticateViaApi(request: APIRequestContext): Promise<vo
   const verified = await request.post('/api/auth/magic-link/verify', { data: { token } })
   expect(verified.ok()).toBeTruthy()
 }
+
+// Several specs open their OWN admin APIRequestContext on the shared STORAGE_STATE session (rather
+// than authenticating fresh) to act as the team's admin alongside a separately-authenticated actor.
+// The first tenant-scoped call on that session caches the resolved tenant schema as a session
+// attribute; Spring Session's JDBC store inserts (not upserts) that attribute, so two such contexts
+// racing their first tenant-scoped write on the exact same session id can collide with a transient
+// 500. One retry is sufficient: whichever request wins leaves the attribute in place, so the retry
+// (or any other concurrent request) becomes a plain update, not a colliding insert.
+export async function postAsSharedAdmin(
+  context: APIRequestContext,
+  url: string,
+  options?: Parameters<APIRequestContext['post']>[1],
+) {
+  const first = await context.post(url, options)
+  if (first.status() !== 500) return first
+  return context.post(url, options)
+}

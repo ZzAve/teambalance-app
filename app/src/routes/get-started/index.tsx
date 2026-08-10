@@ -4,7 +4,7 @@ import { usePositions } from '@shared/api/positions'
 import { queryClient } from '@shared/api/query-client'
 import { EditProfileForm } from '@features/edit-profile/ui/EditProfileForm'
 
-export const Route = createFileRoute('/welcome/')({
+export const Route = createFileRoute('/get-started/')({
   // A member who has already onboarded has no business here — bounce them home before render.
   // Reads the same cached /members/me the root gate primed (race-free, like the /members gate).
   beforeLoad: async () => {
@@ -12,11 +12,11 @@ export const Route = createFileRoute('/welcome/')({
     try {
       member = await queryClient.ensureQueryData(currentMemberQueryOptions)
     } catch {
-      // Session/member unconfirmed — let the root guard handle it; don't block the welcome screen.
+      // Session/member unconfirmed — let the root guard handle it; don't block this screen.
     }
     if (member?.onboarded) throw redirect({ to: '/' })
   },
-  component: WelcomePage,
+  component: GetStartedPage,
 })
 
 /**
@@ -25,7 +25,7 @@ export const Route = createFileRoute('/welcome/')({
  * useCompleteOnboarding. On success the member is stamped onboarded, so navigating home no longer
  * bounces back here.
  */
-function WelcomePage() {
+function GetStartedPage() {
   const navigate = useNavigate()
   const { data: member, isLoading, error } = useCurrentMember()
   const { data: positions } = usePositions()

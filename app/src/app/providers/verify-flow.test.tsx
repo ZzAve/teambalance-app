@@ -34,7 +34,7 @@ const server = setupServer(
     return HttpResponse.json(USER)
   }),
   http.get('/api/auth/me', () => (session ? HttpResponse.json(session) : new HttpResponse(null, { status: 401 }))),
-  // The root onboarding gate reads /members/me; an onboarded member skips /welcome and lands on
+  // The root onboarding gate reads /members/me; an onboarded member skips /get-started and lands on
   // events, keeping this test focused on the verify/auth-routing seam.
   http.get('/api/members/me', () =>
     HttpResponse.json({ userId: 'user-1', displayName: 'Jan', role: 'USER', onboarded: true }),

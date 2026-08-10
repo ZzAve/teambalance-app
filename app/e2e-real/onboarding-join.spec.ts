@@ -1,5 +1,5 @@
 import { test, expect, request as playwrightRequest } from '@playwright/test'
-import { STORAGE_STATE } from './helpers'
+import { STORAGE_STATE, postAsSharedAdmin } from './helpers'
 
 // Real e2e: the join-via-paste entry path introduced by the onboarding fork. Seam uniquely covered
 // (vs login/attendance/the existing magic-link invite flow): a teamless user lands on /onboarding,
@@ -20,7 +20,7 @@ test.use({ storageState: { cookies: [], origins: [] } })
 test('a teamless user joins by pasting an invite link on /onboarding/join', async ({ page, request }) => {
   // 1. As the seeded admin: mint a fresh invite link.
   const admin = await playwrightRequest.newContext({ baseURL: BASE_URL, storageState: STORAGE_STATE })
-  const inviteRes = await admin.post('/api/invitations')
+  const inviteRes = await postAsSharedAdmin(admin, '/api/invitations')
   expect(inviteRes.status()).toBe(201)
   const { token: inviteToken } = await inviteRes.json()
   await admin.dispose()

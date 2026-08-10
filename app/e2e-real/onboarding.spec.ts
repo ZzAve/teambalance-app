@@ -1,5 +1,5 @@
 import { test, expect, request as playwrightRequest } from '@playwright/test'
-import { STORAGE_STATE } from './helpers'
+import { STORAGE_STATE, postAsSharedAdmin } from './helpers'
 
 // Real e2e: a freshly-invited user completes onboarding — the seam this slice introduces.
 // Seam uniquely covered (vs login/attendance/invite): a member with onboarded=false is routed to
@@ -25,10 +25,10 @@ test('an invited user is routed through /get-started and lands on events once on
   // 1. As the seeded admin (separate API context, its own session): ensure the team has a position
   //    so the required-when-available picker has an option, then mint an invite link.
   const admin = await playwrightRequest.newContext({ baseURL: BASE_URL, storageState: STORAGE_STATE })
-  const positionRes = await admin.post('/api/positions', { data: { label: 'Setter' } })
+  const positionRes = await postAsSharedAdmin(admin, '/api/positions', { data: { label: 'Setter' } })
   // 201 on first run, 409 if a prior run already created it — both leave the team with a position.
   expect([201, 409]).toContain(positionRes.status())
-  const inviteRes = await admin.post('/api/invitations')
+  const inviteRes = await postAsSharedAdmin(admin, '/api/invitations')
   expect(inviteRes.status()).toBe(201)
   const { token: inviteToken } = await inviteRes.json()
   await admin.dispose()

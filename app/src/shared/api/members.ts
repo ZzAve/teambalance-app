@@ -14,7 +14,7 @@ export class MemberUpdateError extends Error {
   }
 }
 
-// Shared so the router guards (root onboarding gate, /welcome) can prime this exact query
+// Shared so the router guards (root onboarding gate, /get-started) can prime this exact query
 // (ensureQueryData) and useCurrentMember reads it back from cache — no duplicate fetch, no drifting
 // key. Same pattern as authMeQueryOptions.
 export const currentMemberQueryOptions = queryOptions({
@@ -75,7 +75,7 @@ export function useUpdateMember() {
 // Applies the member's own name + position and stamps them onboarded (PUT /members/me/onboarding).
 // The request carries a role, but the backend ignores it (onboarding never changes role); we send
 // the member's current role to satisfy the contract. A 409 is a name collision, mapped like
-// useUpdateMember so the /welcome form can surface it inline.
+// useUpdateMember so the /get-started form can surface it inline.
 export function useCompleteOnboarding() {
   const queryClient = useQueryClient()
   return useMutation({
@@ -87,7 +87,7 @@ export function useCompleteOnboarding() {
     // Write the now-onboarded member straight into the cache before invalidating, so the root
     // onboarding gate reads the fresh state on the very next navigation (ensureQueryData returns
     // the cached value immediately, even while a background refetch runs) — otherwise it would see
-    // the stale onboarded=false and bounce back to /welcome.
+    // the stale onboarded=false and bounce back to /get-started.
     onSuccess: (updated) => {
       queryClient.setQueryData(currentMemberQueryOptions.queryKey, updated)
       queryClient.invalidateQueries({ queryKey: ['members'] })

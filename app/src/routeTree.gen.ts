@@ -15,6 +15,7 @@ import { Route as AdminCreationCodesRouteImport } from './routes/admin/creation-
 import { Route as AuthVerifyRouteImport } from './routes/auth/verify'
 import { Route as CreateTeamIndexRouteImport } from './routes/create-team/index'
 import { Route as EventsEventIdRouteImport } from './routes/events/$eventId'
+import { Route as GetStartedIndexRouteImport } from './routes/get-started/index'
 import { Route as InviteTokenRouteImport } from './routes/invite/$token'
 import { Route as MembersIndexRouteImport } from './routes/members/index'
 import { Route as OnboardingIndexRouteImport } from './routes/onboarding/index'
@@ -22,7 +23,6 @@ import { Route as OnboardingJoinRouteImport } from './routes/onboarding/join'
 import { Route as ProfileIndexRouteImport } from './routes/profile/index'
 import { Route as TeamIndexRouteImport } from './routes/team/index'
 import { Route as TeamSettingsRouteImport } from './routes/team/settings'
-import { Route as WelcomeIndexRouteImport } from './routes/welcome/index'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -52,6 +52,11 @@ const CreateTeamIndexRoute = CreateTeamIndexRouteImport.update({
 const EventsEventIdRoute = EventsEventIdRouteImport.update({
   id: '/events/$eventId',
   path: '/events/$eventId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GetStartedIndexRoute = GetStartedIndexRouteImport.update({
+  id: '/get-started/',
+  path: '/get-started/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const InviteTokenRoute = InviteTokenRouteImport.update({
@@ -89,11 +94,6 @@ const TeamSettingsRoute = TeamSettingsRouteImport.update({
   path: '/team/settings',
   getParentRoute: () => rootRouteImport,
 } as any)
-const WelcomeIndexRoute = WelcomeIndexRouteImport.update({
-  id: '/welcome/',
-  path: '/welcome/',
-  getParentRoute: () => rootRouteImport,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -105,11 +105,11 @@ export interface FileRoutesByFullPath {
   '/onboarding/join': typeof OnboardingJoinRoute
   '/team/settings': typeof TeamSettingsRoute
   '/create-team/': typeof CreateTeamIndexRoute
+  '/get-started/': typeof GetStartedIndexRoute
   '/members/': typeof MembersIndexRoute
   '/onboarding/': typeof OnboardingIndexRoute
   '/profile/': typeof ProfileIndexRoute
   '/team/': typeof TeamIndexRoute
-  '/welcome/': typeof WelcomeIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -121,11 +121,11 @@ export interface FileRoutesByTo {
   '/onboarding/join': typeof OnboardingJoinRoute
   '/team/settings': typeof TeamSettingsRoute
   '/create-team': typeof CreateTeamIndexRoute
+  '/get-started': typeof GetStartedIndexRoute
   '/members': typeof MembersIndexRoute
   '/onboarding': typeof OnboardingIndexRoute
   '/profile': typeof ProfileIndexRoute
   '/team': typeof TeamIndexRoute
-  '/welcome': typeof WelcomeIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -138,11 +138,11 @@ export interface FileRoutesById {
   '/onboarding/join': typeof OnboardingJoinRoute
   '/team/settings': typeof TeamSettingsRoute
   '/create-team/': typeof CreateTeamIndexRoute
+  '/get-started/': typeof GetStartedIndexRoute
   '/members/': typeof MembersIndexRoute
   '/onboarding/': typeof OnboardingIndexRoute
   '/profile/': typeof ProfileIndexRoute
   '/team/': typeof TeamIndexRoute
-  '/welcome/': typeof WelcomeIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -156,11 +156,11 @@ export interface FileRouteTypes {
     | '/onboarding/join'
     | '/team/settings'
     | '/create-team/'
+    | '/get-started/'
     | '/members/'
     | '/onboarding/'
     | '/profile/'
     | '/team/'
-    | '/welcome/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -172,11 +172,11 @@ export interface FileRouteTypes {
     | '/onboarding/join'
     | '/team/settings'
     | '/create-team'
+    | '/get-started'
     | '/members'
     | '/onboarding'
     | '/profile'
     | '/team'
-    | '/welcome'
   id:
     | '__root__'
     | '/'
@@ -188,11 +188,11 @@ export interface FileRouteTypes {
     | '/onboarding/join'
     | '/team/settings'
     | '/create-team/'
+    | '/get-started/'
     | '/members/'
     | '/onboarding/'
     | '/profile/'
     | '/team/'
-    | '/welcome/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -205,11 +205,11 @@ export interface RootRouteChildren {
   OnboardingJoinRoute: typeof OnboardingJoinRoute
   TeamSettingsRoute: typeof TeamSettingsRoute
   CreateTeamIndexRoute: typeof CreateTeamIndexRoute
+  GetStartedIndexRoute: typeof GetStartedIndexRoute
   MembersIndexRoute: typeof MembersIndexRoute
   OnboardingIndexRoute: typeof OnboardingIndexRoute
   ProfileIndexRoute: typeof ProfileIndexRoute
   TeamIndexRoute: typeof TeamIndexRoute
-  WelcomeIndexRoute: typeof WelcomeIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -254,6 +254,13 @@ declare module '@tanstack/react-router' {
       path: '/events/$eventId'
       fullPath: '/events/$eventId'
       preLoaderRoute: typeof EventsEventIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/get-started/': {
+      id: '/get-started/'
+      path: '/get-started'
+      fullPath: '/get-started/'
+      preLoaderRoute: typeof GetStartedIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/invite/$token': {
@@ -305,13 +312,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TeamSettingsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/welcome/': {
-      id: '/welcome/'
-      path: '/welcome'
-      fullPath: '/welcome/'
-      preLoaderRoute: typeof WelcomeIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
   }
 }
 
@@ -325,11 +325,11 @@ const rootRouteChildren: RootRouteChildren = {
   OnboardingJoinRoute: OnboardingJoinRoute,
   TeamSettingsRoute: TeamSettingsRoute,
   CreateTeamIndexRoute: CreateTeamIndexRoute,
+  GetStartedIndexRoute: GetStartedIndexRoute,
   MembersIndexRoute: MembersIndexRoute,
   OnboardingIndexRoute: OnboardingIndexRoute,
   ProfileIndexRoute: ProfileIndexRoute,
   TeamIndexRoute: TeamIndexRoute,
-  WelcomeIndexRoute: WelcomeIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -32,26 +32,35 @@ export const Route = createRootRoute({
     if (!user) throw redirect({ to: '/login' })
 
     // Has-a-team gate: an authenticated but teamless user is a first-class state — route them to
-    // /create-team, and do it BEFORE the onboarding gate's tenant-scoped /members/me probe (which
-    // would 403 NO_TEAM_MEMBERSHIP and bounce them to /login). /create-team is exempt so it can render
-    // (mirroring how /welcome is exempt from the onboarding gate below). Teamlessness is read from the
+    // /onboarding (the join-vs-create fork), and do it BEFORE the onboarding gate's tenant-scoped
+    // /members/me probe (which would 403 NO_TEAM_MEMBERSHIP and bounce them to /login). /onboarding
+    // and its /onboarding/join and /create-team branches are exempt so the fork can render (mirroring
+    // how /get-started is exempt from the onboarding gate below). Teamlessness is read from the
     // explicit team field, not inferred from role == null (permission vs membership; see #26).
-    if (location.pathname === '/create-team' || location.pathname === '/create-team/') return
-    if (!user.team) throw redirect({ to: '/create-team' })
+    if (
+      location.pathname === '/onboarding' ||
+      location.pathname === '/onboarding/' ||
+      location.pathname === '/onboarding/join' ||
+      location.pathname === '/onboarding/join/' ||
+      location.pathname === '/create-team' ||
+      location.pathname === '/create-team/'
+    )
+      return
+    if (!user.team) throw redirect({ to: '/onboarding' })
 
-    // Onboarding gate: a confirmed member who hasn't completed onboarding is routed to /welcome
-    // before any app screen mounts. /welcome itself is exempt (below) so the flow can render; the
+    // Onboarding gate: a confirmed member who hasn't completed onboarding is routed to /get-started
+    // before any app screen mounts. /get-started itself is exempt (below) so the flow can render; the
     // auth routes are already exempt (returned above). Read /members/me through the cache — race-
     // free, same pattern as the /members admin gate. Fail OPEN if the state can't be determined:
     // an onboarding-status blip shouldn't trap the user, and auth was already confirmed.
-    if (location.pathname === '/welcome' || location.pathname === '/welcome/') return
+    if (location.pathname === '/get-started' || location.pathname === '/get-started/') return
     let member = null
     try {
       member = await queryClient.ensureQueryData(currentMemberQueryOptions)
     } catch {
       // Couldn't read onboarding state — don't trap the user.
     }
-    if (member && !member.onboarded) throw redirect({ to: '/welcome' })
+    if (member && !member.onboarded) throw redirect({ to: '/get-started' })
   },
 })
 

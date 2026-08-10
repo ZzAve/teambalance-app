@@ -40,9 +40,9 @@ function CreateTeamPage() {
                 localStorage.setItem('teamId', team.id)
                 // Refetch /auth/me so `team` is non-null before we navigate — both gates then pass.
                 await client.invalidateQueries({ queryKey: ['auth', 'me'] })
-                // A brand-new team is empty: /members is where the owner's first jobs live (curate
-                // positions, invite people), not the events home.
-                navigate({ to: '/members' })
+                // A brand-new team is empty: the team roster is where the owner starts (invite
+                // people, then curate positions under /team/settings), not the events home.
+                navigate({ to: '/team' })
               },
               onError: async (err) => {
                 // Already-in-team race: send the user into the team they already have.

@@ -14,7 +14,7 @@ import { RoleBreakdown } from '@entities/event/ui/RoleBreakdown'
 import { SeriesPeek } from '@entities/event/ui/SeriesPeek'
 import { buildAttendeePanel } from '@entities/event/lib/attendee-panel'
 import { buildSeriesPeek } from '@entities/event/lib/series-peek'
-import { avatarColor, avatarInitials } from '@shared/lib/avatar'
+import { Avatar } from '@shared/ui/avatar'
 import { AttendanceToggle, type AttendanceState } from '@features/attendance-toggle/ui/AttendanceToggle'
 import { EditEventDialog } from '@features/edit-event/ui/EditEventDialog'
 import { DeleteEventDialog } from '@features/edit-event/ui/DeleteEventDialog'
@@ -38,12 +38,7 @@ const ATTENDEE_TABS: {
 function AttendeeRow({ attendance }: { attendance: AttendanceEntry }) {
   return (
     <div className="flex items-center gap-3 py-2 px-3">
-      <div
-        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white"
-        style={{ backgroundColor: avatarColor(attendance.userId) }}
-      >
-        {avatarInitials(attendance.displayName)}
-      </div>
+      <Avatar userId={attendance.userId} name={attendance.displayName} />
       <div className="min-w-0">
         <span className="block text-sm leading-tight">{attendance.displayName}</span>
         {attendance.role && (

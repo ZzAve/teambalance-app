@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { Member } from '@shared/api/members'
 import type { Position } from '@shared/api/positions'
 import { PositionPicker } from '@entities/position/ui/PositionPicker'
+import { Avatar } from '@shared/ui/avatar'
 import { Button } from '@shared/ui/button'
 import { Input } from '@shared/ui/input'
 import {
@@ -16,6 +17,12 @@ import { isLastAdmin } from '../lib/roster'
 
 interface MemberRosterViewProps {
   members?: Member[]
+  /**
+   * Admin capability. `true` renders the full per-row controls (rename, role toggle, position
+   * picker, remove); `false` renders read-only rows — every authenticated member sees the roster,
+   * only admins can edit it.
+   */
+  canManage: boolean
   /** The team's position vocabulary, offered per row so an admin can (re)assign a member. */
   positions: Position[]
   /** The members query is in flight — render the loading shell instead of the roster. */
@@ -43,6 +50,7 @@ interface MemberRosterViewProps {
  */
 export function MemberRosterView({
   members = [],
+  canManage,
   positions,
   isLoading,
   isError,
@@ -77,6 +85,7 @@ export function MemberRosterView({
               <MemberRow
                 key={member.userId}
                 member={member}
+                canManage={canManage}
                 positions={positions}
                 lastAdmin={isLastAdmin(members, member.userId)}
                 isSaving={savingUserId === member.userId}
@@ -120,6 +129,7 @@ export function MemberRosterView({
 
 interface MemberRowProps {
   member: Member
+  canManage: boolean
   positions: Position[]
   lastAdmin: boolean
   isSaving: boolean
@@ -131,6 +141,7 @@ interface MemberRowProps {
 
 function MemberRow({
   member,
+  canManage,
   positions,
   lastAdmin,
   isSaving,
@@ -146,8 +157,34 @@ function MemberRow({
   // so the backend stays the source of truth.
   const lastAdminHint = lastAdmin ? 'This is the last admin — the team must keep at least one.' : undefined
 
+  // The role/admin badge is shown to everyone — the one control that survives into the read-only row.
+  const roleBadge = (
+    <span
+      className={[
+        'ml-auto rounded-full px-2 py-0.5 text-xs font-semibold',
+        isAdmin ? 'bg-blue/10 text-blue' : 'bg-muted text-muted-foreground',
+      ].join(' ')}
+    >
+      {member.role}
+    </span>
+  )
+
+  // Read-only row for non-admins: name + position as plain text + the role badge. Same layout as the
+  // admin row, minus every action control (rename input, position picker, promote/demote, remove).
+  if (!canManage) {
+    return (
+      <li className="flex flex-wrap items-center gap-2 p-3">
+        <Avatar userId={member.userId} name={member.displayName} />
+        <span className="w-40 font-medium">{member.displayName}</span>
+        <span className="text-sm text-muted-foreground">{member.position?.label ?? 'Unassigned'}</span>
+        {roleBadge}
+      </li>
+    )
+  }
+
   return (
     <li className="flex flex-wrap items-center gap-2 p-3">
+      <Avatar userId={member.userId} name={member.displayName} />
       <Input
         aria-label={`Display name for ${member.displayName}`}
         value={name}
@@ -175,14 +212,7 @@ function MemberRow({
         <span className="text-sm text-muted-foreground">{member.position?.label ?? 'Unassigned'}</span>
       )}
 
-      <span
-        className={[
-          'ml-auto rounded-full px-2 py-0.5 text-xs font-semibold',
-          isAdmin ? 'bg-blue/10 text-blue' : 'bg-muted text-muted-foreground',
-        ].join(' ')}
-      >
-        {member.role}
-      </span>
+      {roleBadge}
 
       <Button
         variant="outline"

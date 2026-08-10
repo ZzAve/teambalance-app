@@ -127,6 +127,23 @@ teambalance:
     # the sliding idle timeout above). A single login — even one kept continuously active — must
     # re-authenticate after this, bounding how long a leaked cookie stays useful. See ADR-0015.
     absolute-timeout: 90d
+  rate-limit:
+    # Defense-in-depth throttle (#200) on the pre-auth and token-accepting endpoints. In-memory
+    # per-instance token bucket (RateLimitFilter) — no Redis, keeping cold start lean on the
+    # scale-to-zero serverless container (ADR-0010 / ADR-0020). Not a live-vuln fix; caps abuse.
+    enabled: true
+    # Prod sits behind Scaleway's edge, which sets X-Forwarded-For; the socket remoteAddr there is the
+    # platform proxy. Set false anywhere the app is directly internet-facing (XFF is caller-spoofable).
+    trust-forwarded-for: true
+    magic-link-request:
+      capacity: 5
+      refill-period: 1m
+    magic-link-verify:
+      capacity: 10
+      refill-period: 1m
+    invitation-accept:
+      capacity: 10
+      refill-period: 1m
   invitation:
     # App-wide secret salt applied to stored invite-token hashes. Live environments MUST provide it
     # via INVITATION_TOKEN_SALT (no default here → the app fails fast if it is unset). Dev and test

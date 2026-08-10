@@ -127,6 +127,19 @@ class RecurrenceTest : FunSpec({
         (recurrence.occurrences().size > Recurrence.MAX_OCCURRENCES) shouldBe true
     }
 
+    test("generation short-circuits at exactly one over the cap instead of materializing the range") {
+        // An effectively unbounded range must not force day-by-day iteration over millennia nor build
+        // a multi-million-element list: the caller detects the over-cap case from `size > MAX`, so the
+        // rule stops the moment it has one more than the cap.
+        val recurrence = Recurrence(
+            frequency = RecurrenceFrequency.WEEKLY,
+            weekdays = setOf(DayOfWeek.MONDAY),
+            startDate = date("2026-01-01"),
+            endDate = date("4026-01-01"),
+        )
+        recurrence.occurrences().size shouldBe Recurrence.MAX_OCCURRENCES + 1
+    }
+
     test("an empty weekday set is rejected at construction") {
         shouldThrow<IllegalArgumentException> {
             Recurrence(RecurrenceFrequency.WEEKLY, emptySet(), date("2026-09-01"), date("2026-09-30"))

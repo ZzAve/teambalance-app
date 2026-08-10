@@ -1,6 +1,5 @@
 package com.github.zzave.teambalance.api.domain.port
 
-import com.github.zzave.teambalance.api.domain.model.TenantRouting
 import com.github.zzave.teambalance.api.domain.model.UserId
 
 /**
@@ -12,11 +11,10 @@ import com.github.zzave.teambalance.api.domain.model.UserId
 interface AuthSessionGateway {
 
     /**
-     * Starts an authenticated session for [userId], additionally pinning [routing] when the user has
-     * a team so the first authenticated burst reads the tenant back instead of several requests
-     * racing to memoize it (#205). A teamless user passes null and nothing is pinned.
+     * Starts an authenticated session for [userId]. Where that caller's work happens is a separate
+     * question, answered by [TenantRoutingGateway].
      */
-    fun startSession(userId: UserId, routing: TenantRouting?)
+    fun startSession(userId: UserId)
 
     /** The user the current session belongs to, or null when the caller has no session. */
     fun currentUserId(): UserId?

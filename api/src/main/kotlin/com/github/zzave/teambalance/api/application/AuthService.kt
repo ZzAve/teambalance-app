@@ -13,6 +13,7 @@ import com.github.zzave.teambalance.api.domain.port.MagicLinkTokenRepository
 import com.github.zzave.teambalance.api.domain.port.PlatformAdminGateway
 import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
 import com.github.zzave.teambalance.api.domain.port.TeamRepository
+import com.github.zzave.teambalance.api.domain.port.TenantRoutingGateway
 import com.github.zzave.teambalance.api.domain.port.UserRepository
 import java.security.MessageDigest
 import java.security.SecureRandom
@@ -30,6 +31,7 @@ class AuthService(
     private val emailSender: EmailSender,
     private val platformAdminGateway: PlatformAdminGateway,
     private val authSessionGateway: AuthSessionGateway,
+    private val tenantRoutingGateway: TenantRoutingGateway,
     private val clock: Clock,
 ) {
     companion object {
@@ -68,11 +70,13 @@ class AuthService(
         teamMemberRepository.findTeamId(userId)?.let { teamId -> teamMemberRepository.findRole(teamId, userId) }
 
     /**
-     * Signs [userId] in: opens their session and pins their tenant routing onto it (team id + schema
-     * from one row, so the tenant lookup can't diverge or race), or nothing to pin when teamless.
+     * Signs [userId] in: opens their session, then pins where their work happens (team id + schema
+     * from one row, so the tenant lookup can't diverge or race). A teamless user has nothing to pin.
      */
-    fun startSession(userId: UserId) =
-        authSessionGateway.startSession(userId, teamMemberRepository.findTenantRouting(userId))
+    fun startSession(userId: UserId) {
+        authSessionGateway.startSession(userId)
+        teamMemberRepository.findTenantRouting(userId)?.let(tenantRoutingGateway::pinRouting)
+    }
 
     /** The caller behind the current session, or null when unauthenticated — what `/auth/me` answers on. */
     fun currentUser(): User? = authSessionGateway.currentUserId()?.let(::findUserById)

@@ -8,6 +8,7 @@ import com.github.zzave.teambalance.api.domain.port.MagicLinkTokenRepository
 import com.github.zzave.teambalance.api.domain.port.PlatformAdminGateway
 import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
 import com.github.zzave.teambalance.api.domain.port.TeamRepository
+import com.github.zzave.teambalance.api.domain.port.TenantRoutingGateway
 import com.github.zzave.teambalance.api.domain.port.UserRepository
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
@@ -35,6 +36,7 @@ class AuthCompositionRoot {
         emailSender: EmailSender,
         platformAdminGateway: PlatformAdminGateway,
         authSessionGateway: AuthSessionGateway,
+        tenantRoutingGateway: TenantRoutingGateway,
         clock: Clock,
     ) = AuthService(
         magicLinkTokenRepository = magicLinkTokenRepository,
@@ -44,6 +46,7 @@ class AuthCompositionRoot {
         emailSender = emailSender,
         platformAdminGateway = platformAdminGateway,
         authSessionGateway = authSessionGateway,
+        tenantRoutingGateway = tenantRoutingGateway,
         clock = clock,
     )
 

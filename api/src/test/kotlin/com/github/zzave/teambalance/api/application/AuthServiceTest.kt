@@ -17,6 +17,7 @@ import com.github.zzave.teambalance.api.domain.port.MagicLinkTokenRepository
 import com.github.zzave.teambalance.api.domain.port.PlatformAdminGateway
 import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
 import com.github.zzave.teambalance.api.domain.port.TeamRepository
+import com.github.zzave.teambalance.api.domain.port.TenantRoutingGateway
 import com.github.zzave.teambalance.api.domain.port.UserRepository
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
@@ -27,12 +28,10 @@ import java.util.UUID
 
 private class FakeAuthSessionGateway(private var sessionUserId: UserId? = null) : AuthSessionGateway {
     var startedFor: UserId? = null
-    var pinnedRouting: TenantRouting? = null
     var ended = false
 
-    override fun startSession(userId: UserId, routing: TenantRouting?) {
+    override fun startSession(userId: UserId) {
         startedFor = userId
-        pinnedRouting = routing
         sessionUserId = userId
     }
 
@@ -41,6 +40,14 @@ private class FakeAuthSessionGateway(private var sessionUserId: UserId? = null) 
     override fun endSession() {
         ended = true
         sessionUserId = null
+    }
+}
+
+private class FakeTenantRoutingGateway : TenantRoutingGateway {
+    var pinnedRouting: TenantRouting? = null
+
+    override fun pinRouting(routing: TenantRouting) {
+        pinnedRouting = routing
     }
 }
 
@@ -112,7 +119,11 @@ class AuthServiceTest : FunSpec() {
         )
         val routing = TenantRouting(teamId = TeamId(UUID.randomUUID()), schemaName = "team_alpha")
 
-        fun serviceWith(gateway: AuthSessionGateway, tenantRouting: TenantRouting?) = AuthService(
+        fun serviceWith(
+            gateway: AuthSessionGateway,
+            tenantRouting: TenantRouting?,
+            routingGateway: TenantRoutingGateway = FakeTenantRoutingGateway(),
+        ) = AuthService(
             magicLinkTokenRepository = FakeMagicLinkTokenRepository(),
             userRepository = FakeUserRepository(mapOf(userId to user)),
             teamRepository = FakeTeamRepository(),
@@ -120,25 +131,28 @@ class AuthServiceTest : FunSpec() {
             emailSender = FakeEmailSender(),
             platformAdminGateway = FakePlatformAdminGateway(),
             authSessionGateway = gateway,
+            tenantRoutingGateway = routingGateway,
             clock = Clock.fixed(Instant.EPOCH, ZoneOffset.UTC),
         )
 
-        test("startSession pins the signed-in user's tenant routing onto the session") {
+        test("startSession pins the signed-in user's tenant routing") {
             val gateway = FakeAuthSessionGateway()
+            val routingGateway = FakeTenantRoutingGateway()
 
-            serviceWith(gateway, routing).startSession(userId)
+            serviceWith(gateway, routing, routingGateway).startSession(userId)
 
             gateway.startedFor shouldBe userId
-            gateway.pinnedRouting shouldBe routing
+            routingGateway.pinnedRouting shouldBe routing
         }
 
         test("startSession leaves the tenant unpinned for a teamless user") {
             val gateway = FakeAuthSessionGateway()
+            val routingGateway = FakeTenantRoutingGateway()
 
-            serviceWith(gateway, null).startSession(userId)
+            serviceWith(gateway, null, routingGateway).startSession(userId)
 
             gateway.startedFor shouldBe userId
-            gateway.pinnedRouting shouldBe null
+            routingGateway.pinnedRouting shouldBe null
         }
 
         test("currentUser resolves the user the session belongs to") {

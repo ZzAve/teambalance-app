@@ -1,20 +1,16 @@
 package com.github.zzave.teambalance.api.infrastructure.multitenancy
 
-import com.github.zzave.teambalance.api.domain.model.TeamId
 import com.github.zzave.teambalance.api.domain.model.TenantRouting
 import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.port.CurrentUserGateway
 import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
-import com.github.zzave.teambalance.api.infrastructure.identity.SessionKeys
 import jakarta.servlet.FilterChain
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
-import jakarta.servlet.http.HttpSession
 import org.springframework.core.Ordered
 import org.springframework.core.annotation.Order
 import org.springframework.stereotype.Component
 import org.springframework.web.filter.OncePerRequestFilter
-import java.util.UUID
 
 private const val FILTER_ORDER = Ordered.HIGHEST_PRECEDENCE + 3
 
@@ -57,25 +53,15 @@ class SessionTenantContextFilter(
      * freshly-queried team id — the single-row guarantee holds across the cache too. On a miss
      * (first request, or a session surviving a restart) fall back to the DB. Multi-team support
      * (post-v1) will invalidate these attributes on team-switch.
+     *
+     * The memo's attribute names and formats live in [TenantRoutingSession], shared with
+     * [TenantRoutingGatewayAdapter], which pins the same memo at sign-in. This filter reads the
+     * session off the request it is handed rather than through that adapter's port: it runs at
+     * `HIGHEST_PRECEDENCE + 3`, long before Spring binds the request-scoped proxy the adapter needs.
      */
     private fun resolveRouting(request: HttpServletRequest, userId: UserId): TenantRouting? {
         val session = request.getSession(false)
-        cachedRouting(session)?.let { return it }
-        return teamMemberRepository.findTenantRouting(userId)?.also { cache(session, it) }
-    }
-
-    private fun cachedRouting(session: HttpSession?): TenantRouting? {
-        val schema = session?.getAttribute(SessionKeys.TENANT_SCHEMA) as? String
-        val teamId = session?.getAttribute(SessionKeys.TENANT_TEAM_ID) as? String
-        return if (schema != null && teamId != null) {
-            TenantRouting(teamId = TeamId(UUID.fromString(teamId)), schemaName = schema)
-        } else {
-            null
-        }
-    }
-
-    private fun cache(session: HttpSession?, routing: TenantRouting) {
-        session?.setAttribute(SessionKeys.TENANT_SCHEMA, routing.schemaName)
-        session?.setAttribute(SessionKeys.TENANT_TEAM_ID, routing.teamId.value.toString())
+        TenantRoutingSession.read(session)?.let { return it }
+        return teamMemberRepository.findTenantRouting(userId)?.also { TenantRoutingSession.write(session, it) }
     }
 }

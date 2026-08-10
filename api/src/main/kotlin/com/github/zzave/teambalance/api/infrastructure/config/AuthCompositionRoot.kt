@@ -2,6 +2,7 @@ package com.github.zzave.teambalance.api.infrastructure.config
 
 import com.github.zzave.teambalance.api.application.AuthService
 import com.github.zzave.teambalance.api.application.AuthorizationService
+import com.github.zzave.teambalance.api.domain.port.AuthSessionGateway
 import com.github.zzave.teambalance.api.domain.port.EmailSender
 import com.github.zzave.teambalance.api.domain.port.MagicLinkTokenRepository
 import com.github.zzave.teambalance.api.domain.port.PlatformAdminGateway
@@ -33,6 +34,7 @@ class AuthCompositionRoot {
         teamMemberRepository: TeamMemberRepository,
         emailSender: EmailSender,
         platformAdminGateway: PlatformAdminGateway,
+        authSessionGateway: AuthSessionGateway,
         clock: Clock,
     ) = AuthService(
         magicLinkTokenRepository = magicLinkTokenRepository,
@@ -41,6 +43,7 @@ class AuthCompositionRoot {
         teamMemberRepository = teamMemberRepository,
         emailSender = emailSender,
         platformAdminGateway = platformAdminGateway,
+        authSessionGateway = authSessionGateway,
         clock = clock,
     )
 

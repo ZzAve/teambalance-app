@@ -4,10 +4,10 @@ import com.github.zzave.teambalance.api.domain.model.Email
 import com.github.zzave.teambalance.api.domain.model.MagicLinkToken
 import com.github.zzave.teambalance.api.domain.model.Role
 import com.github.zzave.teambalance.api.domain.model.TeamSummary
-import com.github.zzave.teambalance.api.domain.model.TenantRouting
 import com.github.zzave.teambalance.api.domain.model.TokenHash
 import com.github.zzave.teambalance.api.domain.model.User
 import com.github.zzave.teambalance.api.domain.model.UserId
+import com.github.zzave.teambalance.api.domain.port.AuthSessionGateway
 import com.github.zzave.teambalance.api.domain.port.EmailSender
 import com.github.zzave.teambalance.api.domain.port.MagicLinkTokenRepository
 import com.github.zzave.teambalance.api.domain.port.PlatformAdminGateway
@@ -29,6 +29,7 @@ class AuthService(
     private val teamMemberRepository: TeamMemberRepository,
     private val emailSender: EmailSender,
     private val platformAdminGateway: PlatformAdminGateway,
+    private val authSessionGateway: AuthSessionGateway,
     private val clock: Clock,
 ) {
     companion object {
@@ -67,10 +68,17 @@ class AuthService(
         teamMemberRepository.findTeamId(userId)?.let { teamId -> teamMemberRepository.findRole(teamId, userId) }
 
     /**
-     * The user's tenant routing (team id + schema) from one row, or null if teamless — what the
-     * sign-in path pins onto the session so the tenant lookup can't diverge or race.
+     * Signs [userId] in: opens their session and pins their tenant routing onto it (team id + schema
+     * from one row, so the tenant lookup can't diverge or race), or nothing to pin when teamless.
      */
-    fun findTenantRoutingFor(userId: UserId): TenantRouting? = teamMemberRepository.findTenantRouting(userId)
+    fun startSession(userId: UserId) =
+        authSessionGateway.startSession(userId, teamMemberRepository.findTenantRouting(userId))
+
+    /** The caller behind the current session, or null when unauthenticated — what `/auth/me` answers on. */
+    fun currentUser(): User? = authSessionGateway.currentUserId()?.let(::findUserById)
+
+    /** Signs the caller out by dropping their session. */
+    fun endSession() = authSessionGateway.endSession()
 
     fun isPlatformAdmin(userId: UserId): Boolean = platformAdminGateway.isPlatformAdmin(userId.value)
 

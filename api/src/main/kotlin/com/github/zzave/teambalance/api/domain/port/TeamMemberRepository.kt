@@ -4,6 +4,7 @@ import com.github.zzave.teambalance.api.domain.model.PositionId
 import com.github.zzave.teambalance.api.domain.model.Role
 import com.github.zzave.teambalance.api.domain.model.TeamId
 import com.github.zzave.teambalance.api.domain.model.TeamMember
+import com.github.zzave.teambalance.api.domain.model.TenantRouting
 import com.github.zzave.teambalance.api.domain.model.UserId
 import java.time.Instant
 import java.util.UUID
@@ -21,6 +22,13 @@ interface TeamMemberRepository {
 
     /** The team the user actively belongs to, or null if they have no team (v1: one team per user). */
     fun findTeamId(userId: UserId): TeamId?
+
+    /**
+     * The user's tenant routing (team id + schema) resolved from ONE row, or null if they have no
+     * active team. Lets the login path pin both onto the session together so authenticated requests
+     * read them back instead of racing to memoize them. Null-safe for a teamless user.
+     */
+    fun findTenantRouting(userId: UserId): TenantRouting?
 
     /** Joins the user to the team as a USER. No-op if already an active member of this team. */
     fun addMember(teamId: TeamId, userId: UserId)

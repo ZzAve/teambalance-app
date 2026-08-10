@@ -10,6 +10,7 @@ import com.github.zzave.teambalance.api.domain.model.Recurrence
 import com.github.zzave.teambalance.api.domain.model.RecurrenceFrequency
 import com.github.zzave.teambalance.api.domain.model.Role
 import com.github.zzave.teambalance.api.domain.model.TeamId
+import com.github.zzave.teambalance.api.domain.model.TenantRouting
 import com.github.zzave.teambalance.api.domain.model.TeamMember
 import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.port.EventRepository
@@ -58,6 +59,7 @@ private class EventFakeMemberRepo(private val admins: Set<UserId>) : TeamMemberR
     override fun findDisplayName(userId: UserId): String? = null
     override fun findMembersByUserIds(userIds: Set<UserId>): Map<UserId, TeamMember> = emptyMap()
     override fun findTeamId(userId: UserId): TeamId? = null
+    override fun findTenantRouting(userId: UserId): TenantRouting? = null
     override fun addMember(teamId: TeamId, userId: UserId) = Unit
     override fun updateRole(teamId: TeamId, userId: UserId, role: Role) = Unit
     override fun deactivate(teamId: TeamId, userId: UserId) = Unit

@@ -1,8 +1,8 @@
 package com.github.zzave.teambalance.api.infrastructure.multitenancy
 
 import com.github.zzave.teambalance.api.TeamBalanceIT
+import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
 import com.github.zzave.teambalance.api.infrastructure.identity.UserContext
-import com.github.zzave.teambalance.api.infrastructure.persistence.SpringDataTeamMemberRepository
 import io.kotest.matchers.shouldBe
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.jdbc.core.JdbcTemplate
@@ -14,7 +14,7 @@ import java.util.UUID
 class SessionTenantContextFilterTest : TeamBalanceIT() {
 
     @Autowired
-    lateinit var springDataTeamMemberRepository: SpringDataTeamMemberRepository
+    lateinit var teamMemberRepository: TeamMemberRepository
 
     @Autowired
     lateinit var jdbcTemplate: JdbcTemplate
@@ -110,7 +110,7 @@ class SessionTenantContextFilterTest : TeamBalanceIT() {
     private data class Resolved(val schema: String?, val teamId: UUID?, val wasSet: Boolean)
 
     private fun runFilter(session: MockHttpSession? = null): Resolved {
-        val filter = SessionTenantContextFilter(springDataTeamMemberRepository)
+        val filter = SessionTenantContextFilter(teamMemberRepository)
         val request = MockHttpServletRequest().apply { session?.let { setSession(it) } }
         var resolved = Resolved(null, null, false)
         filter.doFilter(request, MockHttpServletResponse()) { _, _ ->

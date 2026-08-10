@@ -1,8 +1,11 @@
 package com.github.zzave.teambalance.api.infrastructure.multitenancy
 
+import com.github.zzave.teambalance.api.domain.model.TeamId
+import com.github.zzave.teambalance.api.domain.model.TenantRouting
+import com.github.zzave.teambalance.api.domain.model.UserId
+import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
 import com.github.zzave.teambalance.api.infrastructure.identity.SessionKeys
 import com.github.zzave.teambalance.api.infrastructure.identity.UserContext
-import com.github.zzave.teambalance.api.infrastructure.persistence.SpringDataTeamMemberRepository
 import jakarta.servlet.FilterChain
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
@@ -18,10 +21,8 @@ private const val FILTER_ORDER = Ordered.HIGHEST_PRECEDENCE + 3
 @Component
 @Order(FILTER_ORDER)
 class SessionTenantContextFilter(
-    private val teamMemberRepository: SpringDataTeamMemberRepository,
+    private val teamMemberRepository: TeamMemberRepository,
 ) : OncePerRequestFilter() {
-
-    private data class TenantRouting(val schemaName: String, val teamId: UUID)
 
     override fun doFilterInternal(
         request: HttpServletRequest,
@@ -36,7 +37,7 @@ class SessionTenantContextFilter(
             resolveRouting(request, userId)?.let { routing ->
                 // Respect a tenant already pinned upstream (the test-profile X-Team-Id shim).
                 if (!TenantContext.isSet()) TenantContext.set(routing.schemaName)
-                CurrentTeamContext.set(routing.teamId)
+                CurrentTeamContext.set(routing.teamId.value)
             }
         }
         try {
@@ -59,19 +60,21 @@ class SessionTenantContextFilter(
     private fun resolveRouting(request: HttpServletRequest, userId: UUID): TenantRouting? {
         val session = request.getSession(false)
         cachedRouting(session)?.let { return it }
-        return teamMemberRepository.findTeamRoutingByUserId(userId)?.let { routing ->
-            TenantRouting(routing.schemaName, routing.teamId).also { cache(session, it) }
-        }
+        return teamMemberRepository.findTenantRouting(UserId(userId))?.also { cache(session, it) }
     }
 
     private fun cachedRouting(session: HttpSession?): TenantRouting? {
         val schema = session?.getAttribute(SessionKeys.TENANT_SCHEMA) as? String
         val teamId = session?.getAttribute(SessionKeys.TENANT_TEAM_ID) as? String
-        return if (schema != null && teamId != null) TenantRouting(schema, UUID.fromString(teamId)) else null
+        return if (schema != null && teamId != null) {
+            TenantRouting(teamId = TeamId(UUID.fromString(teamId)), schemaName = schema)
+        } else {
+            null
+        }
     }
 
     private fun cache(session: HttpSession?, routing: TenantRouting) {
         session?.setAttribute(SessionKeys.TENANT_SCHEMA, routing.schemaName)
-        session?.setAttribute(SessionKeys.TENANT_TEAM_ID, routing.teamId.toString())
+        session?.setAttribute(SessionKeys.TENANT_TEAM_ID, routing.teamId.value.toString())
     }
 }

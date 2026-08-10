@@ -5,7 +5,6 @@ import {useEventTypes} from '@shared/api/event-types'
 import {useUserStore} from '@shared/stores/user-store'
 import {EventListView} from '@entities/event/ui/EventListView'
 import {CreateEventSheet} from '@widgets/create-event/ui/CreateEventSheet'
-import {GenerateInviteDialog} from '@features/generate-invite/ui/GenerateInviteDialog'
 import {toggleTypeSelection} from '@features/filter-event-types/model/toggleTypeSelection'
 
 export const Route = createFileRoute('/')({
@@ -61,12 +60,9 @@ function EventListPage() {
         <div>
             <div className="flex items-center justify-between">
                 <h2 className="font-display text-2xl font-bold">Events</h2>
-                {isAdmin && (
-                    <div className="flex items-center gap-2">
-                        <GenerateInviteDialog/>
-                        <CreateEventSheet/>
-                    </div>
-                )}
+                {/* The invite link moved to the Team page (team-management action); Events keeps
+                    only event creation for admins. */}
+                {isAdmin && <CreateEventSheet/>}
             </div>
 
             {/* Segmented pill toggle */}

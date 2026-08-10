@@ -15,20 +15,28 @@ export default meta
 
 type Story = StoryObj<typeof meta>
 
+// A stand-in for the real GenerateInviteDialog trigger (a container that needs a QueryClient);
+// the story only needs to prove the slot renders in the admin actions area.
+const inviteAction = <button type="button">Invite Link</button>
+
 export const Admin: Story = {
-  args: { isAdmin: true },
+  args: { isAdmin: true, actions: inviteAction },
   play: async ({ canvas }) => {
     const gear = canvas.getByRole('link', { name: 'Team settings' })
     await expect(gear).toBeInTheDocument()
     await expect(gear).toHaveAttribute('href', '/team/settings')
+    // The admin actions slot (invite link) renders alongside the gear.
+    await expect(canvas.getByRole('button', { name: 'Invite Link' })).toBeInTheDocument()
   },
 }
 
 export const Member: Story = {
-  args: { isAdmin: false },
+  args: { isAdmin: false, actions: inviteAction },
   play: async ({ canvas }) => {
-    // Title still renders; the settings gear is the only admin-gated element and must be absent.
+    // Title still renders; the gear and the admin actions are the only admin-gated elements and
+    // must both be absent — a non-admin never sees the invite link even when one is passed.
     await expect(canvas.getByRole('heading', { name: 'Team' })).toBeInTheDocument()
     await expect(canvas.queryByRole('link', { name: 'Team settings' })).not.toBeInTheDocument()
+    await expect(canvas.queryByRole('button', { name: 'Invite Link' })).not.toBeInTheDocument()
   },
 }

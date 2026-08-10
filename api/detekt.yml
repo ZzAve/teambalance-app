@@ -52,6 +52,17 @@ hexagonal-port:
     active: true
     domainPackages: ['domain', 'application']
     apiPackages: ['interfaces']
+    # The rule flags any INTERFACE in an adapter package whose name ends in a port suffix, and
+    # `Repository` is one. Spring Data's query interfaces (`interface Foo : JpaRepository<..>`, no
+    # implementation of ours — Spring generates the proxy) are that shape by framework convention,
+    # so all nine trip a rule they cannot satisfy: they are not ports, and moving them to `domain`
+    # would drag JpaRepository + the JPA entities in with them, which is precisely what
+    # DomainNoFrameworkImports forbids. The real port is the hand-written `domain/port/*Repository`
+    # that `Jpa*RepositoryAdapter` implements by delegating to one of these.
+    # Excluded by exact file glob, not by dropping `Repository` from portSuffixes: every other
+    # port-suffixed interface under infrastructure/ is still a violation, and a new Spring Data
+    # interface has to be named into this pattern to be exempt (see #184 / ADR-0018).
+    excludes: ['**/infrastructure/persistence/SpringData*Repository.kt']
 
 hexagonal-adapter:
   active: true

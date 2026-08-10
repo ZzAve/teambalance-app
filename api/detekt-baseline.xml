@@ -31,14 +31,5 @@
     <ID>DomainNoPrimitiveObsession:TeamSummary.kt:TeamSummary$val slug: String</ID>
     <ID>DomainNoPrimitiveObsession:TenantRouting.kt:TenantRouting$val schemaName: String</ID>
     <ID>DomainNoPrimitiveObsession:User.kt:User$val displayName: String</ID>
-    <ID>PortsInDomainOnly:SpringDataAttendanceRepository.kt:SpringDataAttendanceRepository : JpaRepository</ID>
-    <ID>PortsInDomainOnly:SpringDataEventRepository.kt:SpringDataEventRepository : JpaRepository</ID>
-    <ID>PortsInDomainOnly:SpringDataEventTypeRepository.kt:SpringDataEventTypeRepository : JpaRepository</ID>
-    <ID>PortsInDomainOnly:SpringDataInvitationRepository.kt:SpringDataInvitationRepository : JpaRepository</ID>
-    <ID>PortsInDomainOnly:SpringDataMagicLinkTokenRepository.kt:SpringDataMagicLinkTokenRepository : JpaRepository</ID>
-    <ID>PortsInDomainOnly:SpringDataTeamMemberRepository.kt:SpringDataTeamMemberRepository : JpaRepository</ID>
-    <ID>PortsInDomainOnly:SpringDataTeamPositionRepository.kt:SpringDataTeamPositionRepository : JpaRepository</ID>
-    <ID>PortsInDomainOnly:SpringDataTeamSettingsRepository.kt:SpringDataTeamSettingsRepository : JpaRepository</ID>
-    <ID>PortsInDomainOnly:SpringDataUserRepository.kt:SpringDataUserRepository : JpaRepository</ID>
   </CurrentIssues>
 </SmellBaseline>

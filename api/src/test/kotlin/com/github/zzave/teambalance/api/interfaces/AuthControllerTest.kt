@@ -15,6 +15,7 @@ import org.springframework.context.annotation.Import
 import org.springframework.context.annotation.Primary
 import org.springframework.http.MediaType
 import org.springframework.jdbc.core.JdbcTemplate
+import org.springframework.test.context.TestPropertySource
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.MvcResult
 import org.springframework.test.web.servlet.ResultActions
@@ -30,6 +31,7 @@ import java.util.UUID
 
 @AutoConfigureMockMvc
 @Import(AuthControllerTest.TestConfig::class)
+@TestPropertySource(properties = ["teambalance.platform-admins=platform-admin@test.com"])
 class AuthControllerTest : TeamBalanceIT() {
 
     @TestConfiguration
@@ -59,6 +61,7 @@ class AuthControllerTest : TeamBalanceIT() {
             val (_, me) = performAsync(MockMvcRequestBuilders.get("/api/auth/me").cookie(session))
             me.andExpect(MockMvcResultMatchers.status().isOk)
                 .andExpect(MockMvcResultMatchers.jsonPath("$.email").value(email))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.isPlatformAdmin").value(false))
 
             val (_, logout) = performAsync(MockMvcRequestBuilders.post("/api/auth/logout").cookie(session))
             logout.andExpect(MockMvcResultMatchers.status().isNoContent)
@@ -91,6 +94,19 @@ class AuthControllerTest : TeamBalanceIT() {
                 primaryId,
             )
             attributeNames shouldContain SessionKeys.USER_ID
+        }
+
+        test("an allowlisted caller is a platform admin on /me") {
+            val email = "platform-admin@test.com"
+
+            requestMagicLink(email)
+            val token = fakeEmailSender.sentMagicLinks.last { it.first.value == email }.second
+            val session = verify(token, expectOk = true)!!
+
+            val (_, me) = performAsync(MockMvcRequestBuilders.get("/api/auth/me").cookie(session))
+            me.andExpect(MockMvcResultMatchers.status().isOk)
+                .andExpect(MockMvcResultMatchers.jsonPath("$.email").value(email))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.isPlatformAdmin").value(true))
         }
 
         test("verify rejects an already-used token and an expired token") {

@@ -27,6 +27,7 @@ const USER: AuthenticatedUser = {
   displayName: 'newbie',
   role: undefined,
   team: undefined,
+  isPlatformAdmin: false,
 }
 
 const MEMBER: AuthenticatedUser = {

@@ -5,7 +5,7 @@ import { useUserStore } from './user-store'
 // Pure store logic — the setCurrentUser mapping from AuthenticatedUser onto the flat store shape.
 // No rendering (that would be Storybook's job); this is the "stores" case the strategy assigns to
 // Vitest. Reset to the initial snapshot between tests so ordering can't leak state.
-const INITIAL = { userId: null, displayName: null, email: null, role: null, teamName: null }
+const INITIAL = { userId: null, displayName: null, email: null, role: null, teamName: null, isPlatformAdmin: false }
 
 describe('user-store', () => {
   beforeEach(() => {
@@ -19,6 +19,7 @@ describe('user-store', () => {
       displayName: 'Alice',
       role: 'ADMIN',
       team: { id: 't-1', name: 'Heren 3', slug: 'heren-3' },
+      isPlatformAdmin: true,
     }
 
     useUserStore.getState().setCurrentUser(user)
@@ -29,6 +30,7 @@ describe('user-store', () => {
       email: 'alice@example.com',
       role: 'ADMIN',
       teamName: 'Heren 3',
+      isPlatformAdmin: true,
     })
   })
 
@@ -39,6 +41,7 @@ describe('user-store', () => {
       displayName: 'Carol',
       role: undefined,
       team: undefined,
+      isPlatformAdmin: false,
     })
 
     expect(useUserStore.getState().teamName).toBeNull()
@@ -51,9 +54,23 @@ describe('user-store', () => {
       displayName: 'Bob',
       role: undefined,
       team: undefined,
+      isPlatformAdmin: false,
     })
 
     expect(useUserStore.getState().role).toBeNull()
+  })
+
+  it('defaults isPlatformAdmin to false when the field is absent', () => {
+    useUserStore.getState().setCurrentUser({
+      id: 'u-4',
+      email: 'dave@example.com',
+      displayName: 'Dave',
+      role: 'USER',
+      team: undefined,
+      isPlatformAdmin: false,
+    })
+
+    expect(useUserStore.getState().isPlatformAdmin).toBe(false)
   })
 
   it('resets every field to null on setCurrentUser(null)', () => {
@@ -63,6 +80,7 @@ describe('user-store', () => {
       displayName: 'Alice',
       role: 'ADMIN',
       team: undefined,
+      isPlatformAdmin: true,
     })
 
     useUserStore.getState().setCurrentUser(null)

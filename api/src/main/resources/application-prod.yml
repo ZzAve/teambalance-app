@@ -34,11 +34,10 @@ management:
   endpoints:
     web:
       exposure:
-        # Blocker #5: only expose the health probe (and the startup timing endpoint) in prod.
-        # info/metrics (exposed in the base config for local use) would otherwise be publicly
-        # reachable on api.teambalance.nl. InternalEndpointGuardFilter is the real boundary: it 403s
-        # everything under /internal/actuator except `health`, and `startup` only while the
-        # teambalance.startup.actuator.enabled flag is set. `startup` is kept exposed here so the
-        # endpoint is registered and ready; the flag toggles whether the guard lets it through for a
-        # perf-test window (TEAMBALANCE_STARTUP_ACTUATOR_ENABLED=true), then unset it. See #95.
-        include: health,startup
+        # Blocker #5: expose only the health probe, the startup timing endpoint, and `info` in prod.
+        # metrics (exposed in the base config for local use) stays off. InternalEndpointGuardFilter is
+        # the real boundary: it 403s everything under /internal/actuator except `health` — `startup`
+        # only while the teambalance.startup.actuator.enabled flag is set, and `info` only for a caller
+        # presenting the X-Internal-Api-Key. `info` is registered here so the guarded deploy-verify
+        # probe can read the running image's build SHA; without the key it is a 403 from the internet.
+        include: health,startup,info

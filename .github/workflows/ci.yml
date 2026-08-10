@@ -152,13 +152,19 @@ jobs:
       - name: Resolve image tag
         id: tag
         run: |
+          echo "sha=${GITHUB_SHA::12}" >> "$GITHUB_OUTPUT"
           echo "image=${REGISTRY}/api:${GITHUB_SHA::12}" >> "$GITHUB_OUTPUT"
           echo "Resolved image: ${REGISTRY}/api:${GITHUB_SHA::12}"
 
       # ubuntu-latest is amd64, so --platform=linux/amd64 is native (no emulation). The Gradle build
       # (buildSrc + Java 25 toolchain) runs INSIDE the multi-stage image, so the runner needs no setup.
+      # GIT_SHA is baked into the image (Dockerfile) and surfaced on /internal/actuator/info so the
+      # post-deploy step below can confirm this exact image is the one serving traffic.
       - name: Build API image (linux/amd64)
-        run: docker build --platform=linux/amd64 -f api/Dockerfile -t "${{ steps.tag.outputs.image }}" .
+        run: |
+          docker build --platform=linux/amd64 -f api/Dockerfile \
+            --build-arg GIT_SHA="${{ steps.tag.outputs.sha }}" \
+            -t "${{ steps.tag.outputs.image }}" .
 
       - name: Configure Scaleway CLI
         uses: scaleway/action-scw@v0
@@ -180,6 +186,36 @@ jobs:
       # untouched — those are managed manually in the Scaleway console.
       - name: Update Serverless Container image
         run: scw container container update "$CONTAINER_ID" image="${{ steps.tag.outputs.image }}" region="$SCW_REGION"
+
+      # `container update` only *registers* the new image and returns immediately — Scaleway rolls it
+      # out asynchronously. Without this gate a container that crashes on boot (e.g. a Flyway validation
+      # failure) leaves the deploy job green while prod keeps serving the old revision. Poll the live
+      # actuator `info` endpoint — gated by the internal API key, so the SHA is never public — until it
+      # reports the exact SHA we just pushed. Non-200 / mismatched SHA = the new image isn't serving yet
+      # (rollout in progress, or it crashed); we keep waiting and fail red if it never becomes live.
+      # This proves the new version is actually up regardless of *why* an unhealthy image would fail.
+      - name: Verify the new image is actually serving
+        env:
+          INTERNAL_API_KEY: ${{ secrets.INTERNAL_API_KEY }}
+          EXPECTED_SHA: ${{ steps.tag.outputs.sha }}
+        run: |
+          set -euo pipefail
+          url="https://api.teambalance.nl/internal/actuator/info"
+          deadline=$(( SECONDS + 360 ))
+          attempt=0
+          while [ "$SECONDS" -lt "$deadline" ]; do
+            attempt=$(( attempt + 1 ))
+            body="$(curl -fsS --max-time 10 -H "X-Internal-Api-Key: ${INTERNAL_API_KEY}" "$url" 2>/dev/null || true)"
+            live_sha="$(printf '%s' "$body" | jq -r '.build.sha // empty' 2>/dev/null || true)"
+            if [ "$live_sha" = "$EXPECTED_SHA" ]; then
+              echo "✓ Live build SHA ${live_sha} matches the deployed image (attempt ${attempt})."
+              exit 0
+            fi
+            echo "… awaiting rollout (attempt ${attempt}): live='${live_sha:-<none>}' expected='${EXPECTED_SHA}'"
+            sleep 10
+          done
+          echo "::error::Image ${EXPECTED_SHA} never became live within $(( 360 / 60 )) min — deployment NOT verified. The new container likely failed to boot; check Scaleway Cockpit logs for a crash (e.g. Flyway validation)."
+          exit 1
 
   deploy-frontend:
     needs: build

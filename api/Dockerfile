@@ -109,6 +109,13 @@ USER app
 COPY --from=build --chown=app:app /workspace/app.jar app.jar
 COPY --from=bake  --chown=app:app /app/app.aot app.aot
 
+# Build SHA of this image, surfaced at runtime on /internal/actuator/info (info.build.sha) so the deploy
+# pipeline can confirm the exact pushed image is serving. Declared last: it changes every commit, and
+# only the cheap EXPOSE/ENTRYPOINT metadata layers follow, so the expensive build/bake COPYs stay cached.
+# Defaults to `unknown` for a plain local `docker build` with no --build-arg.
+ARG GIT_SHA=unknown
+ENV TEAMBALANCE_BUILD_SHA=$GIT_SHA
+
 EXPOSE 8080
 # Runtime flags combine Phase 1 (1-vCPU startup tuning) and Phase 2 (Spring AOT + AOT cache):
 #   -XX:+UseSerialGC        — no multi-threaded GC to spin up on a single core.

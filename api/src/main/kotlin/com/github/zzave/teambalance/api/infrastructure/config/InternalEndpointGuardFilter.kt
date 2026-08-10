@@ -11,6 +11,7 @@ import org.springframework.stereotype.Component
 import org.springframework.util.StringUtils
 import org.springframework.web.filter.OncePerRequestFilter
 import org.springframework.web.util.UrlPathHelper
+import java.security.MessageDigest
 
 /**
  * Launch blocker #5: in prod the API is a public origin (api.teambalance.nl) and no Spring Security
@@ -32,6 +33,14 @@ import org.springframework.web.util.UrlPathHelper
  * tree is readable during a perf-test window; unsetting it closes the endpoint again. Spring relaxed binding
  * maps the env var TEAMBALANCE_STARTUP_ACTUATOR_ENABLED to the flag. Default: only `health` gets through. See #95.
  *
+ * The internal API key (`teambalance.internal.api-key`, env INTERNAL_API_KEY) opens the rest of the
+ * `/internal` surface — the actuator's `info`/`metrics` — to a caller that presents the matching
+ * `X-Internal-Api-Key` header. The deploy pipeline uses this to read `/internal/actuator/info` and confirm
+ * the freshly-pushed image's build SHA is actually serving before it calls the rollout a success. The key
+ * is a shared secret held only by CI and the container's env; without it (or when the key is unset) the
+ * guard stays fail-closed and info/metrics are a 403 from the internet. Health is always public — Scaleway's
+ * probe is unauthenticated. The compare is constant-time so a wrong key leaks nothing through timing.
+ *
  * Prod-only (`@Profile("prod")`): dev keeps the full actuator, and e2e needs `/internal/e2e/...`.
  * Runs first (HIGHEST_PRECEDENCE) so it gates before any context-setup filter or handler.
  */
@@ -40,6 +49,7 @@ import org.springframework.web.util.UrlPathHelper
 @Order(Ordered.HIGHEST_PRECEDENCE)
 class InternalEndpointGuardFilter(
     @Value("\${teambalance.startup.actuator.enabled:false}") private val startupActuatorEnabled: Boolean,
+    @Value("\${teambalance.internal.api-key:}") private val apiKey: String,
 ) : OncePerRequestFilter() {
 
     private val urlPathHelper = UrlPathHelper()
@@ -55,11 +65,19 @@ class InternalEndpointGuardFilter(
         val isHealth = normalized == HEALTH_PATH
         // Perf-testing allowance: only open the startup timing endpoint while the flag is set.
         val isStartupProbe = startupActuatorEnabled && normalized == STARTUP_PATH
-        if (isInternal && !isHealth && !isStartupProbe) {
+        val isAllowed = isHealth || isStartupProbe || hasValidApiKey(request)
+        if (isInternal && !isAllowed) {
             response.sendError(HttpServletResponse.SC_FORBIDDEN)
             return
         }
         filterChain.doFilter(request, response)
+    }
+
+    // Fail-closed: an unset key (blank) never matches, so it can't be unlocked by an empty header.
+    private fun hasValidApiKey(request: HttpServletRequest): Boolean {
+        val presented = request.getHeader(API_KEY_HEADER)
+        return apiKey.isNotEmpty() && presented != null &&
+            MessageDigest.isEqual(presented.toByteArray(), apiKey.toByteArray())
     }
 
     private companion object {
@@ -71,5 +89,8 @@ class InternalEndpointGuardFilter(
         // The buffered startup timing tree, readable from the live prod container only while the
         // teambalance.startup.actuator.enabled flag is set (perf-testing window). See #95.
         const val STARTUP_PATH = "/internal/actuator/startup"
+
+        // Shared secret carrying access to the non-health `/internal` surface (deploy-time info probe).
+        const val API_KEY_HEADER = "X-Internal-Api-Key"
     }
 }

@@ -6,4 +6,27 @@
 # Fast-builds and runs the unit/IT test suite before allowing a commit.
 # (e2e, lint and auto-format are left to CI / pre-push — they need a running
 # stack or mutate files, which makes a per-commit gate slow and flaky.)
-exec make yolo test
+#
+# Output is captured to a temp log to keep commits quiet: on success the log is
+# removed silently; on failure the last lines are printed inline and the full
+# log is kept for inspection.
+
+log="$(mktemp "${TMPDIR:-/tmp}/teambalance-precommit.XXXXXX")"
+
+printf 'pre-commit: running "make yolo test" (quiet — log: %s)\n' "$log"
+
+make yolo test >"$log" 2>&1
+status=$?
+
+if [ "$status" -eq 0 ]; then
+    rm -f "$log"
+    echo 'pre-commit: ✓ passed'
+else
+    echo 'pre-commit: ✗ FAILED — last 20 lines:' >&2
+    echo '----------------------------------------------------------------------' >&2
+    tail -n 20 "$log" >&2
+    echo '----------------------------------------------------------------------' >&2
+    printf 'pre-commit: full log kept at %s\n' "$log" >&2
+fi
+
+exit "$status"

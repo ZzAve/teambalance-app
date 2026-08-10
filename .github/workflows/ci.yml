@@ -135,6 +135,35 @@ jobs:
             app/test-results/
           retention-days: 7
 
+  # Editing an already-merged migration breaks its frozen Flyway checksum and fails validation on boot.
+  migration-guard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Migrations are append-only
+        run: |
+          set -euo pipefail
+          base="${{ github.event.pull_request.base.sha || github.event.before }}"
+          # No usable baseline (e.g. a branch's first push): nothing to diff against, so pass.
+          if [ -z "$base" ] || [ "$base" = "0000000000000000000000000000000000000000" ]; then
+            echo "No base commit to diff against — skipping append-only check."
+            exit 0
+          fi
+          changed="$(git diff --diff-filter=MDR --name-only "$base" HEAD -- \
+            'api/src/main/resources/db/migration' \
+            'api/src/main/resources/db/tenant-migration')"
+          if [ -n "$changed" ]; then
+            echo "::error::Applied Flyway migrations were modified/deleted/renamed — migrations are append-only."
+            echo "Offending files:"
+            echo "$changed" | sed 's/^/  - /'
+            echo "Fix: revert the change to these files. Correct docs in the ADR, and make schema changes in a NEW migration."
+            exit 1
+          fi
+          echo "✓ No already-merged migration files were modified."
+
   # MANUAL deploy gate: runs only on push to `main`/`deploy*`, after `build`; each pauses for
   # approval via the `production` environment. Deploys the exact commit CI validated (tag = SHA).
   deploy-api:

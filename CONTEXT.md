@@ -82,6 +82,18 @@ any-team, self-service (see [ADR-0001](docs/adr/0001-product-ambition-hobby-tool
 - **Attendance Toggle** — The core daily interaction: a Member sets their state on an
   event. Editable by others today (trust-based) — see
   [ADR-0003](docs/adr/0003-trust-based-attendance-editing.md).
+- **Bulk Attend** — The one-action shortcut where a Member sets their **Attendance State**
+  to **Attending** for every Event they're currently at **Not Responded** on. It is
+  deliberately narrow: **Attending-only** (never Maybe/Absent), **non-destructive** (only
+  ever *creates* response rows for blanks — it never overwrites an existing response, so it's
+  safe to re-tap as new events appear), **future-only** (past events are skipped), and scoped
+  to the events **currently shown** in the list (so the existing **Event Type** filter pills
+  double as the subset selector — e.g. filter to Training, then Bulk Attend only the trainings).
+  Self-in-practice (no UI to Bulk Attend for others, though the endpoint stays trust-based per
+  [ADR-0003](docs/adr/0003-trust-based-attendance-editing.md)) and **reversible** (an Undo
+  deletes exactly the rows it just created). Surfaced as an **"Attend N"** button that hides
+  when N is zero. Contrast with the per-event **Attendance Toggle**. _Avoid_: Accept All,
+  Attend All (overclaims — it's all *shown, unanswered, future*), Bulk RSVP.
 
 ### Money pool
 

@@ -1,3 +1,15 @@
+spring:
+  datasource:
+    hikari:
+      # The Kotest/Testcontainers suite caches many Spring contexts at once (each distinct
+      # @SpringBootTest config — MOCK ITs, the RANDOM_PORT ConcurrentSessionTenantIT, @Import-ed
+      # boundary ITs — is its own context with its own pool). Hikari's default `minimumIdle` equals
+      # `maximumPoolSize` (10), so every cached context would hold 10 idle connections and their sum
+      # blows past the CI Postgres `max_connections` (100) — a later context's Flyway then fails to
+      # connect. Hold no idle connections per context and cap the peak so the pools coexist.
+      minimum-idle: 0
+      maximum-pool-size: 8
+
 teambalance:
   invitation:
     # Hardcoded salt for the test profile — live environments supply INVITATION_TOKEN_SALT via env.

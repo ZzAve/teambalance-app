@@ -5,6 +5,7 @@ spring:
     password: teambalance
 
 teambalance:
+  platform-admins: admin@teambalance.nl
   invitation:
     # Dev-only salt (not a live environment) so bootRun works without INVITATION_TOKEN_SALT set.
     token-salt: dev-invitation-salt

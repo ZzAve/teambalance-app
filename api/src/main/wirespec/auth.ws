@@ -17,7 +17,8 @@ type AuthenticatedUser {
     email: String,
     displayName: String,
     role: String?,
-    team: TeamRef?
+    team: TeamRef?,
+    isPlatformAdmin: Boolean
 }
 
 endpoint RequestMagicLink POST RequestMagicLinkRequest /api/auth/magic-link/request -> {

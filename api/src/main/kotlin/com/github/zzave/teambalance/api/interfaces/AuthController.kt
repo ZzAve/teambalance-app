@@ -40,6 +40,7 @@ class AuthController(
                 displayName = user.displayName,
                 role = resolveRole(user.id),
                 team = resolveTeam(user.id),
+                isPlatformAdmin = authService.isPlatformAdmin(user.id),
             ),
         )
     }
@@ -60,6 +61,7 @@ class AuthController(
                     displayName = it.displayName,
                     role = resolveRole(it.id),
                     team = resolveTeam(it.id),
+                    isPlatformAdmin = authService.isPlatformAdmin(it.id),
                 ),
             )
         } ?: GetAuthMe.Response401(Unit)

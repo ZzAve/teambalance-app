@@ -8,6 +8,7 @@ import com.github.zzave.teambalance.api.domain.model.User
 import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.port.EmailSender
 import com.github.zzave.teambalance.api.domain.port.MagicLinkTokenRepository
+import com.github.zzave.teambalance.api.domain.port.PlatformAdminGateway
 import com.github.zzave.teambalance.api.domain.port.TeamRepository
 import com.github.zzave.teambalance.api.domain.port.UserRepository
 import java.security.MessageDigest
@@ -23,6 +24,7 @@ class AuthService(
     private val userRepository: UserRepository,
     private val teamRepository: TeamRepository,
     private val emailSender: EmailSender,
+    private val platformAdminGateway: PlatformAdminGateway,
     private val clock: Clock,
 ) {
     companion object {
@@ -51,6 +53,8 @@ class AuthService(
 
     /** The team the user belongs to, or null if teamless — the has-a-team gate signal on `/auth/me`. */
     fun findTeamFor(userId: UserId): TeamSummary? = teamRepository.findByUserId(userId.value)
+
+    fun isPlatformAdmin(userId: UserId): Boolean = platformAdminGateway.isPlatformAdmin(userId.value)
 
     fun verifyMagicLink(token: String): User? {
         val now = clock.instant()

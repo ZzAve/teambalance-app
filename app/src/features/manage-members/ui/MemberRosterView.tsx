@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { Member } from '@shared/api/members'
 import type { Position } from '@shared/api/positions'
 import { PositionPicker } from '@entities/position/ui/PositionPicker'
+import { Avatar } from '@shared/ui/avatar'
 import { Button } from '@shared/ui/button'
 import { Input } from '@shared/ui/input'
 import {
@@ -173,6 +174,7 @@ function MemberRow({
   if (!canManage) {
     return (
       <li className="flex flex-wrap items-center gap-2 p-3">
+        <Avatar userId={member.userId} name={member.displayName} />
         <span className="w-40 font-medium">{member.displayName}</span>
         <span className="text-sm text-muted-foreground">{member.position?.label ?? 'Unassigned'}</span>
         {roleBadge}
@@ -182,6 +184,7 @@ function MemberRow({
 
   return (
     <li className="flex flex-wrap items-center gap-2 p-3">
+      <Avatar userId={member.userId} name={member.displayName} />
       <Input
         aria-label={`Display name for ${member.displayName}`}
         value={name}

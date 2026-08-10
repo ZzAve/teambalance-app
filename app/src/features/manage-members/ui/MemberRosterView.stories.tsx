@@ -57,6 +57,8 @@ export const ErrorState: Story = {
 export const Default: Story = {
   play: async ({ canvas }) => {
     await expect(canvas.getByLabelText('Display name for Ada Lovelace')).toHaveValue('Ada Lovelace')
+    // Each row leads with the shared avatar (colour circle + initials), same as event details.
+    await expect(canvas.getByText('GH')).toBeInTheDocument()
     // Two admins can be demoted, two users can be promoted.
     await expect(canvas.getAllByRole('button', { name: 'Make member' })).toHaveLength(2)
     await expect(canvas.getAllByRole('button', { name: 'Make admin' })).toHaveLength(2)
@@ -136,6 +138,8 @@ export const RemoveMember: Story = {
 export const ReadOnly: Story = {
   args: { canManage: false },
   play: async ({ canvas }) => {
+    // The shared avatar (colour circle + initials) leads read-only rows too.
+    await expect(canvas.getByText('AL')).toBeInTheDocument()
     // Names and positions are plain text — no rename input, no position picker.
     await expect(canvas.getByText('Ada Lovelace')).toBeInTheDocument()
     await expect(canvas.getByText('Libero')).toBeInTheDocument()

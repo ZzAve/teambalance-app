@@ -2,8 +2,6 @@
 <SmellBaseline>
   <ManuallySuppressedIssues/>
   <CurrentIssues>
-    <ID>AdapterCannotDependOnAdapter:DemoDataSeeder.kt:import com.github.zzave.teambalance.api.infrastructure.multitenancy.TenantSchemaManager</ID>
-    <ID>AdapterCannotDependOnAdapter:E2eEnvironmentInitializer.kt:import com.github.zzave.teambalance.api.infrastructure.multitenancy.TenantSchemaManager</ID>
     <ID>AdapterCannotDependOnAdapter:SessionTenantContextFilter.kt:import com.github.zzave.teambalance.api.infrastructure.identity.SessionKeys</ID>
     <ID>AdapterCannotDependOnAdapter:SessionTenantContextFilter.kt:import com.github.zzave.teambalance.api.infrastructure.identity.UserContext</ID>
     <ID>AdapterCannotDependOnAdapter:SessionTenantContextFilter.kt:import com.github.zzave.teambalance.api.infrastructure.persistence.SpringDataTeamMemberRepository</ID>

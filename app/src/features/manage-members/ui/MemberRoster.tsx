@@ -1,18 +1,27 @@
 import { MemberUpdateError, useMembers, useRemoveMember, useUpdateMember } from '@shared/api/members'
 import { usePositions } from '@shared/api/positions'
-import { useUserStore } from '@shared/stores/user-store'
 import { toggleRole } from '../lib/roster'
 import { MemberRosterView } from './MemberRosterView'
+
+interface MemberRosterProps {
+  /**
+   * Whether this surface may edit the roster. The caller decides, not the user's role: `/team`
+   * renders it read-only for everyone (`false`, the default), `/team/settings` (already admin-gated)
+   * renders it manageable (`true`). Off by default so a bare `<MemberRoster />` is never accidentally
+   * editable.
+   */
+  canManage?: boolean
+}
 
 /**
  * Container for the roster: wires the members query and the update/remove mutations to the
  * presentational MemberRosterView. Pure wiring — the load/error/data shells live in the View
- * (props-driven), so this seam is covered by e2e, not a story. Every authenticated member can read
- * the roster; `canManage` (admin only) gates the per-row edit controls. Promote/demote reuses the
- * update mutation with the toggled role and the unchanged display name. See ADR-0017.
+ * (props-driven), so this seam is covered by e2e, not a story. Manage-capability is passed in by the
+ * route (`canManage`), not derived from the user's role here — view (`/team`) vs. manage
+ * (`/team/settings`). Promote/demote reuses the update mutation with the toggled role and the
+ * unchanged display name. See ADR-0017.
  */
-export function MemberRoster() {
-  const isAdmin = useUserStore((s) => s.role) === 'ADMIN'
+export function MemberRoster({ canManage = false }: MemberRosterProps) {
   const { data: members, isLoading, error } = useMembers()
   const { data: positions } = usePositions()
   const updateMember = useUpdateMember()
@@ -34,7 +43,7 @@ export function MemberRoster() {
   return (
     <MemberRosterView
       members={members}
-      canManage={isAdmin}
+      canManage={canManage}
       positions={positions ?? []}
       isLoading={isLoading}
       isError={!!error}

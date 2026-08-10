@@ -1,6 +1,7 @@
 import { createFileRoute, redirect } from '@tanstack/react-router'
 import { authMeQueryOptions } from '@shared/api/auth'
 import { queryClient } from '@shared/api/query-client'
+import { MemberRoster } from '@features/manage-members/ui/MemberRoster'
 import { TeamSettings } from '@features/team-settings/ui/TeamSettings'
 import { ManagePositions } from '@features/manage-positions/ui/ManagePositions'
 
@@ -20,10 +21,13 @@ export const Route = createFileRoute('/team/settings')({
 })
 
 function TeamSettingsPage() {
+  // Admin manage surface: member management (the editable roster), then positions, then team
+  // settings. The read-only view of the same roster lives on /team.
   return (
     <div className="flex flex-col gap-10">
-      <TeamSettings />
+      <MemberRoster canManage />
       <ManagePositions />
+      <TeamSettings />
     </div>
   )
 }

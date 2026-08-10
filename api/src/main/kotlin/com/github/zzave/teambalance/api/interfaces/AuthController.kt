@@ -34,14 +34,10 @@ class AuthController(
         val user = authService.verifyMagicLink(request.body.token) ?: return VerifyMagicLink.Response401(Unit)
         val session = httpServletRequest.session
         session.setAttribute(SessionKeys.USER_ID, user.id.produce())
-        // Pin the tenant routing onto the session now, in this single uncontended request, so the
-        // SPA's first authenticated burst reads it back (SessionTenantContextFilter cache hit) instead
-        // of several concurrent requests all memoizing it at once. Those concurrent first-writes each
-        // INSERT the same SPRING_SESSION_ATTRIBUTES row and all but one collide on the primary key —
-        // a DuplicateKeyException that escapes as an empty-body 500. Schema + team id are written
-        // together (one row) so they can never diverge; the filter keeps the lazy fallback for
-        // sessions that predate this (e.g. a user joining a team mid-session). Keys/format mirror
-        // SessionTenantContextFilter.cache().
+        // Pin the tenant routing in the session attributes here, in this one uncontended request, so the
+        // SPA's first authenticated burst reads it back instead of several requests racing to memoize it
+        // (concurrent first-writes collide on SPRING_SESSION_ATTRIBUTES' primary key → 500). Schema + team
+        // id come from one row so they can't diverge; keys/format mirror SessionTenantContextFilter.cache().
         teamMemberRepository.findTenantRouting(user.id)?.let { routing ->
             session.setAttribute(SessionKeys.TENANT_SCHEMA, routing.schemaName)
             session.setAttribute(SessionKeys.TENANT_TEAM_ID, routing.teamId.value.toString())

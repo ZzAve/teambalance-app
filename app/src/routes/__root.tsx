@@ -110,6 +110,7 @@ function LogoutButton() {
 function RootLayout() {
   useViewTransitions()
   const isAdmin = useUserStore((s) => s.role) === 'ADMIN'
+  const teamName = useUserStore((s) => s.teamName)
 
   return (
     <Providers>
@@ -120,10 +121,6 @@ function RootLayout() {
               <Link to="/" className="font-display text-xl font-bold text-blue">
                 Team<span className="text-green">Balance</span>
               </Link>
-              <div className="flex items-center gap-2 rounded-full bg-blue/8 px-3 py-1.5 text-xs font-semibold text-blue">
-                <span className="h-1.5 w-1.5 rounded-full bg-green" />
-                Heren 3
-              </div>
             </div>
             <div className="flex items-center gap-4">
               {isAdmin && (
@@ -152,6 +149,12 @@ function RootLayout() {
                 Profile
               </Link>
               <LogoutButton />
+              {teamName && (
+                <div className="flex items-center gap-2 rounded-full bg-blue/8 px-3 py-1.5 text-xs font-semibold text-blue">
+                  <span className="h-1.5 w-1.5 rounded-full bg-green" />
+                  {teamName}
+                </div>
+              )}
             </div>
           </div>
         </header>

@@ -5,7 +5,7 @@ import { useUserStore } from './user-store'
 // Pure store logic — the setCurrentUser mapping from AuthenticatedUser onto the flat store shape.
 // No rendering (that would be Storybook's job); this is the "stores" case the strategy assigns to
 // Vitest. Reset to the initial snapshot between tests so ordering can't leak state.
-const INITIAL = { userId: null, displayName: null, email: null, role: null }
+const INITIAL = { userId: null, displayName: null, email: null, role: null, teamName: null }
 
 describe('user-store', () => {
   beforeEach(() => {
@@ -18,7 +18,7 @@ describe('user-store', () => {
       email: 'alice@example.com',
       displayName: 'Alice',
       role: 'ADMIN',
-      team: undefined,
+      team: { id: 't-1', name: 'Heren 3', slug: 'heren-3' },
     }
 
     useUserStore.getState().setCurrentUser(user)
@@ -28,7 +28,20 @@ describe('user-store', () => {
       displayName: 'Alice',
       email: 'alice@example.com',
       role: 'ADMIN',
+      teamName: 'Heren 3',
     })
+  })
+
+  it('defaults teamName to null when the user has no team', () => {
+    useUserStore.getState().setCurrentUser({
+      id: 'u-3',
+      email: 'carol@example.com',
+      displayName: 'Carol',
+      role: undefined,
+      team: undefined,
+    })
+
+    expect(useUserStore.getState().teamName).toBeNull()
   })
 
   it('defaults role to null when the user has none', () => {

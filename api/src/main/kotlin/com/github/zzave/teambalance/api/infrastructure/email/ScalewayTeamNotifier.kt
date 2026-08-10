@@ -1,7 +1,7 @@
 package com.github.zzave.teambalance.api.infrastructure.email
 
+import com.github.zzave.teambalance.api.domain.model.PlatformAdminAllowlist
 import com.github.zzave.teambalance.api.domain.port.TeamNotifier
-import com.github.zzave.teambalance.api.infrastructure.config.PlatformAdmins
 import org.slf4j.LoggerFactory
 import org.springframework.context.annotation.Primary
 import org.springframework.context.annotation.Profile
@@ -12,15 +12,15 @@ import org.springframework.web.client.RestClient
 /**
  * Production [TeamNotifier]: sends the create-team notifications via the Scaleway TEM API, reusing the
  * same transport as [ScalewayTemEmailSender]. Fire-and-forget — every failure is caught and logged so a
- * mail hiccup can never fail a committed team creation. The audit mail goes to the [PlatformAdmins]
- * allowlist; with no admins configured it is silently skipped.
+ * mail hiccup can never fail a committed team creation. The audit mail goes to the
+ * [PlatformAdminAllowlist]; with no admins configured it is silently skipped.
  */
 @Component
 @Primary
 @Profile("prod")
 class ScalewayTeamNotifier(
     private val email: EmailProperties,
-    private val platformAdmins: PlatformAdmins,
+    private val platformAdmins: PlatformAdminAllowlist,
     restClientBuilder: RestClient.Builder,
 ) : TeamNotifier {
     private val log = LoggerFactory.getLogger(ScalewayTeamNotifier::class.java)

@@ -2,7 +2,7 @@ package com.github.zzave.teambalance.api.interfaces
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.github.zzave.teambalance.api.TeamBalanceIT
-import com.github.zzave.teambalance.api.infrastructure.multitenancy.TenantSchemaManager
+import com.github.zzave.teambalance.api.infrastructure.multitenancy.TenantSchemaAdapter
 import io.kotest.matchers.shouldBe
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
@@ -29,10 +29,10 @@ class CreationCodeAdminControllerIT : TeamBalanceIT() {
     lateinit var jdbcTemplate: JdbcTemplate
 
     @Autowired
-    lateinit var tenantSchemaManager: TenantSchemaManager
+    lateinit var tenantSchemaAdapter: TenantSchemaAdapter
 
     private fun seedUser(id: String, email: String) {
-        tenantSchemaManager.provisionPlatformSchema()
+        tenantSchemaAdapter.provisionPlatformSchema()
         jdbcTemplate.update(
             "INSERT INTO public.users (id, email, display_name) VALUES (?::uuid, ?, ?) " +
                 "ON CONFLICT (id) DO UPDATE SET email = EXCLUDED.email",
@@ -64,7 +64,7 @@ class CreationCodeAdminControllerIT : TeamBalanceIT() {
         dispatch(MockMvcRequestBuilders.delete("/api/admin/creation-codes/$code").header("X-User-Id", userId))
 
     private fun seedCode(code: String, consumedByUserId: String? = null) {
-        tenantSchemaManager.provisionPlatformSchema()
+        tenantSchemaAdapter.provisionPlatformSchema()
         jdbcTemplate.update(
             "INSERT INTO public.team_creation_codes (code, consumed_at, consumed_by_user_id) " +
                 "VALUES (?, ${if (consumedByUserId != null) "now()" else "NULL"}, ?::uuid) " +

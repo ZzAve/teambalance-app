@@ -2,7 +2,7 @@ package com.github.zzave.teambalance.api.interfaces
 
 import com.github.zzave.teambalance.api.TeamBalanceIT
 import com.github.zzave.teambalance.api.domain.port.AttendanceRepository
-import com.github.zzave.teambalance.api.infrastructure.multitenancy.TenantSchemaManager
+import com.github.zzave.teambalance.api.infrastructure.multitenancy.TenantSchemaAdapter
 import io.kotest.matchers.shouldBe
 import org.mockito.ArgumentMatchers
 import org.mockito.Mockito
@@ -34,7 +34,7 @@ class EventControllerTest : TeamBalanceIT() {
     lateinit var jdbcTemplate: JdbcTemplate
 
     @Autowired
-    lateinit var tenantSchemaManager: TenantSchemaManager
+    lateinit var tenantSchemaAdapter: TenantSchemaAdapter
 
     // Spy the real adapter (it still delegates to Postgres) so we can count DB round trips and prove
     // the listing resolves all events' attendance in one batched query instead of one query per event.
@@ -44,8 +44,8 @@ class EventControllerTest : TeamBalanceIT() {
     init {
         test("GET /api/events/{id} returns role for each attendee") {
             // Ensure platform schema (users, team_members) and tenant schema (events, attendances) exist.
-            tenantSchemaManager.provisionPlatformSchema()
-            tenantSchemaManager.provisionTenantSchema("public")
+            tenantSchemaAdapter.provisionPlatformSchema()
+            tenantSchemaAdapter.provisionTenantSchema("public")
 
             // Seed the minimal platform data this test needs.
             jdbcTemplate.execute(
@@ -98,8 +98,8 @@ class EventControllerTest : TeamBalanceIT() {
         }
 
         test("GET /api/events returns roleBreakdown per event in the list") {
-            tenantSchemaManager.provisionPlatformSchema()
-            tenantSchemaManager.provisionTenantSchema("public")
+            tenantSchemaAdapter.provisionPlatformSchema()
+            tenantSchemaAdapter.provisionTenantSchema("public")
 
             jdbcTemplate.execute(
                 """
@@ -152,8 +152,8 @@ class EventControllerTest : TeamBalanceIT() {
         }
 
         test("GET /api/events/{id} attendanceSummary.roleBreakdown contains only ATTENDING members") {
-            tenantSchemaManager.provisionPlatformSchema()
-            tenantSchemaManager.provisionTenantSchema("public")
+            tenantSchemaAdapter.provisionPlatformSchema()
+            tenantSchemaAdapter.provisionTenantSchema("public")
 
             jdbcTemplate.execute(
                 """
@@ -231,8 +231,8 @@ class EventControllerTest : TeamBalanceIT() {
         }
 
         test("GET /api/events/{id} attendanceSummary.roleBreakdown sums members sharing a role and orders by count desc") {
-            tenantSchemaManager.provisionPlatformSchema()
-            tenantSchemaManager.provisionTenantSchema("public")
+            tenantSchemaAdapter.provisionPlatformSchema()
+            tenantSchemaAdapter.provisionTenantSchema("public")
 
             // Member ids unique to this test: integration tests share DB state and seed with
             // ON CONFLICT DO NOTHING, so reusing the shared ids would keep roles set by other tests.
@@ -298,8 +298,8 @@ class EventControllerTest : TeamBalanceIT() {
         }
 
         test("GET /api/events/{id} with no responses counts every current member as not-responded") {
-            tenantSchemaManager.provisionPlatformSchema()
-            tenantSchemaManager.provisionTenantSchema("public")
+            tenantSchemaAdapter.provisionPlatformSchema()
+            tenantSchemaAdapter.provisionTenantSchema("public")
 
             jdbcTemplate.execute(
                 """
@@ -356,8 +356,8 @@ class EventControllerTest : TeamBalanceIT() {
         }
 
         test("POST /api/events creates no attendance rows yet reports every member as not-responded") {
-            tenantSchemaManager.provisionPlatformSchema()
-            tenantSchemaManager.provisionTenantSchema("public")
+            tenantSchemaAdapter.provisionPlatformSchema()
+            tenantSchemaAdapter.provisionTenantSchema("public")
 
             // teams.schema_name is UNIQUE, so this suite's tests all share the single 'public'-schema
             // team ($TEAM_ID) — inserts are idempotent (ON CONFLICT DO NOTHING) across tests.
@@ -434,8 +434,8 @@ class EventControllerTest : TeamBalanceIT() {
         }
 
         test("POST /api/events by a user with no team membership is rejected, not silently defaulted") {
-            tenantSchemaManager.provisionPlatformSchema()
-            tenantSchemaManager.provisionTenantSchema("public")
+            tenantSchemaAdapter.provisionPlatformSchema()
+            tenantSchemaAdapter.provisionTenantSchema("public")
 
             val teamlessUserId = "b0000000-0000-0000-0000-0000000000ff"
             jdbcTemplate.execute(
@@ -472,8 +472,8 @@ class EventControllerTest : TeamBalanceIT() {
         }
 
         test("POST /api/events by a non-admin team member is rejected with 403") {
-            tenantSchemaManager.provisionPlatformSchema()
-            tenantSchemaManager.provisionTenantSchema("public")
+            tenantSchemaAdapter.provisionPlatformSchema()
+            tenantSchemaAdapter.provisionTenantSchema("public")
 
             jdbcTemplate.execute(
                 """
@@ -526,8 +526,8 @@ class EventControllerTest : TeamBalanceIT() {
         }
 
         test("PUT /api/events/{id} by an admin succeeds") {
-            tenantSchemaManager.provisionPlatformSchema()
-            tenantSchemaManager.provisionTenantSchema("public")
+            tenantSchemaAdapter.provisionPlatformSchema()
+            tenantSchemaAdapter.provisionTenantSchema("public")
 
             jdbcTemplate.execute(
                 """
@@ -591,8 +591,8 @@ class EventControllerTest : TeamBalanceIT() {
         }
 
         test("DELETE /api/events/{id} by an admin succeeds") {
-            tenantSchemaManager.provisionPlatformSchema()
-            tenantSchemaManager.provisionTenantSchema("public")
+            tenantSchemaAdapter.provisionPlatformSchema()
+            tenantSchemaAdapter.provisionTenantSchema("public")
 
             jdbcTemplate.execute(
                 """
@@ -642,8 +642,8 @@ class EventControllerTest : TeamBalanceIT() {
         }
 
         test("GET /api/events/{id} roleBreakdown groups a member with no position under 'Unassigned'") {
-            tenantSchemaManager.provisionPlatformSchema()
-            tenantSchemaManager.provisionTenantSchema("public")
+            tenantSchemaAdapter.provisionPlatformSchema()
+            tenantSchemaAdapter.provisionTenantSchema("public")
 
             // A member deliberately given NO position (null label) — should land in the Unassigned bucket.
             val noPositionUserId = "b0000000-0000-0000-0000-0000000000c1"
@@ -693,8 +693,8 @@ class EventControllerTest : TeamBalanceIT() {
         }
 
         test("POST /api/events with a missing required field returns 400, not a raw 500") {
-            tenantSchemaManager.provisionPlatformSchema()
-            tenantSchemaManager.provisionTenantSchema("public")
+            tenantSchemaAdapter.provisionPlatformSchema()
+            tenantSchemaAdapter.provisionTenantSchema("public")
 
             jdbcTemplate.execute(
                 """
@@ -751,8 +751,8 @@ class EventControllerTest : TeamBalanceIT() {
         }
 
         test("GET /api/events resolves attendance for the whole list in one query (no N+1)") {
-            tenantSchemaManager.provisionPlatformSchema()
-            tenantSchemaManager.provisionTenantSchema("public")
+            tenantSchemaAdapter.provisionPlatformSchema()
+            tenantSchemaAdapter.provisionTenantSchema("public")
 
             jdbcTemplate.execute(
                 """

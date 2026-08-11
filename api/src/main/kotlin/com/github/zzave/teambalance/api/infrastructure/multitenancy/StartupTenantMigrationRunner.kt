@@ -18,12 +18,12 @@ import org.springframework.stereotype.Component
 @DependsOn("platformSchemaInitializer")
 class StartupTenantMigrationRunner(
     private val teamRepository: TeamRepository,
-    private val tenantSchemaManager: TenantSchemaManager,
+    private val tenantSchemaAdapter: TenantSchemaAdapter,
 ) : InitializingBean {
 
     override fun afterPropertiesSet() = migrateAllTenantSchemas()
 
     fun migrateAllTenantSchemas() {
-        teamRepository.findAllSchemaNames().forEach(tenantSchemaManager::provisionTenantSchema)
+        teamRepository.findAllSchemaNames().forEach(tenantSchemaAdapter::provisionTenantSchema)
     }
 }

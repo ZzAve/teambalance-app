@@ -17,7 +17,7 @@ import java.util.UUID
  *
  * This test owns only the runner's unique behavior: that it reaches into `public.teams` and brings
  * *each* team's schema to head. The "a provisioned schema has all the right tables" contract is owned
- * one layer down by [TenantSchemaManagerTest] (the runner delegates to the same provisioning path),
+ * one layer down by [TenantSchemaAdapterTest] (the runner delegates to the same provisioning path),
  * so we don't re-assert table structure here.
  *
  * The behavior is driven through the runner's public entry point (not full boot) so the same harness

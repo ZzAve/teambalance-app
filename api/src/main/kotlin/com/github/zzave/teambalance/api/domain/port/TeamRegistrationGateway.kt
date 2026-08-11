@@ -10,7 +10,7 @@ import java.util.UUID
  * this commits, so a failure here leaves at worst a harmless empty orphan schema (the startup runner
  * self-heals it) and never a consumed code without a team.
  */
-interface TeamRegistrar {
+interface TeamRegistrationGateway {
     /**
      * Atomically: consume [creationCode] (conditional on it still being redeemable at [now]), insert
      * the team ([name]/[slug]/[schemaName]), and insert [founderId] as its ADMIN with onboarding

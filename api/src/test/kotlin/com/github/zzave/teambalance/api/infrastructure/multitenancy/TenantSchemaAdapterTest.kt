@@ -5,17 +5,17 @@ import io.kotest.matchers.collections.shouldContainExactlyInAnyOrder
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.jdbc.core.JdbcTemplate
 
-class TenantSchemaManagerTest : TeamBalanceIT() {
+class TenantSchemaAdapterTest : TeamBalanceIT() {
 
     @Autowired
-    lateinit var tenantSchemaManager: TenantSchemaManager
+    lateinit var tenantSchemaAdapter: TenantSchemaAdapter
 
     @Autowired
     lateinit var jdbcTemplate: JdbcTemplate
 
     init {
         test("provisioning a tenant creates schema with all tables") {
-            tenantSchemaManager.provisionTenantSchema("team_test_team")
+            tenantSchemaAdapter.provisionTenantSchema("team_test_team")
 
             val tables = jdbcTemplate.queryForList(
                 """

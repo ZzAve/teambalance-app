@@ -2,10 +2,10 @@ package com.github.zzave.teambalance.api.infrastructure.identity
 
 import com.github.zzave.teambalance.api.domain.exception.NotPlatformAdminException
 import com.github.zzave.teambalance.api.domain.model.Email
+import com.github.zzave.teambalance.api.domain.model.PlatformAdminAllowlist
 import com.github.zzave.teambalance.api.domain.model.User
 import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.port.UserRepository
-import com.github.zzave.teambalance.api.infrastructure.config.PlatformAdmins
 import io.kotest.assertions.throwables.shouldNotThrowAny
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
@@ -26,7 +26,7 @@ class PlatformAdminGatewayAdapterTest : FunSpec() {
         val plain = User(UserId(plainId), Email("someone@example.com"), "Someone")
         val users = FakeUsers(mapOf(adminId to admin, plainId to plain))
 
-        fun guard(allowlist: List<String>) = PlatformAdminGatewayAdapter(users, PlatformAdmins(allowlist))
+        fun guard(allowlist: List<String>) = PlatformAdminGatewayAdapter(users, PlatformAdminAllowlist(allowlist))
 
         test("isPlatformAdmin is true for an allowlisted email, case-insensitively") {
             guard(listOf("Admin@TeamBalance.NL")).isPlatformAdmin(adminId) shouldBe true

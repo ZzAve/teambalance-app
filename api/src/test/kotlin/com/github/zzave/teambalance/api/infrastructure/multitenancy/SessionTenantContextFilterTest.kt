@@ -1,8 +1,9 @@
 package com.github.zzave.teambalance.api.infrastructure.multitenancy
 
 import com.github.zzave.teambalance.api.TeamBalanceIT
+import com.github.zzave.teambalance.api.domain.port.CurrentUserGateway
+import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
 import com.github.zzave.teambalance.api.infrastructure.identity.UserContext
-import com.github.zzave.teambalance.api.infrastructure.persistence.SpringDataTeamMemberRepository
 import io.kotest.matchers.shouldBe
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.jdbc.core.JdbcTemplate
@@ -14,13 +15,16 @@ import java.util.UUID
 class SessionTenantContextFilterTest : TeamBalanceIT() {
 
     @Autowired
-    lateinit var springDataTeamMemberRepository: SpringDataTeamMemberRepository
+    lateinit var teamMemberRepository: TeamMemberRepository
+
+    @Autowired
+    lateinit var currentUserGateway: CurrentUserGateway
 
     @Autowired
     lateinit var jdbcTemplate: JdbcTemplate
 
     @Autowired
-    lateinit var tenantSchemaManager: TenantSchemaManager
+    lateinit var tenantSchemaAdapter: TenantSchemaAdapter
 
     init {
         afterTest {
@@ -30,7 +34,7 @@ class SessionTenantContextFilterTest : TeamBalanceIT() {
         }
 
         test("session user with a team_members row resolves schema and team id from the same row") {
-            tenantSchemaManager.provisionPlatformSchema()
+            tenantSchemaAdapter.provisionPlatformSchema()
             val userId = UUID.randomUUID()
             val teamId = UUID.randomUUID()
             val schemaName = "team_${teamId.toString().replace("-", "")}"
@@ -47,7 +51,7 @@ class SessionTenantContextFilterTest : TeamBalanceIT() {
         }
 
         test("second request on the same session resolves schema and team id from cache without a DB lookup") {
-            tenantSchemaManager.provisionPlatformSchema()
+            tenantSchemaAdapter.provisionPlatformSchema()
             val userId = UUID.randomUUID()
             val teamId = UUID.randomUUID()
             val schemaName = "team_${teamId.toString().replace("-", "")}"
@@ -74,7 +78,7 @@ class SessionTenantContextFilterTest : TeamBalanceIT() {
         }
 
         test("session user with no team_members row falls through with no silent fallback") {
-            tenantSchemaManager.provisionPlatformSchema()
+            tenantSchemaAdapter.provisionPlatformSchema()
             val userId = UUID.randomUUID()
 
             jdbcTemplate.update(
@@ -110,7 +114,7 @@ class SessionTenantContextFilterTest : TeamBalanceIT() {
     private data class Resolved(val schema: String?, val teamId: UUID?, val wasSet: Boolean)
 
     private fun runFilter(session: MockHttpSession? = null): Resolved {
-        val filter = SessionTenantContextFilter(springDataTeamMemberRepository)
+        val filter = SessionTenantContextFilter(teamMemberRepository, currentUserGateway)
         val request = MockHttpServletRequest().apply { session?.let { setSession(it) } }
         var resolved = Resolved(null, null, false)
         filter.doFilter(request, MockHttpServletResponse()) { _, _ ->

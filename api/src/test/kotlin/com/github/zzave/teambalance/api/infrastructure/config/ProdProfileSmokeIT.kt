@@ -1,9 +1,9 @@
 package com.github.zzave.teambalance.api.infrastructure.config
 
 import com.github.zzave.teambalance.api.TeamBalanceIT
-import com.github.zzave.teambalance.api.domain.port.EmailSender
+import com.github.zzave.teambalance.api.domain.port.EmailGateway
 import com.github.zzave.teambalance.api.infrastructure.devdata.DemoDataSeeder
-import com.github.zzave.teambalance.api.infrastructure.email.ScalewayTemEmailSender
+import com.github.zzave.teambalance.api.infrastructure.email.ScalewayTemEmailAdapter
 import com.zaxxer.hikari.HikariDataSource
 import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.shouldBe
@@ -66,7 +66,7 @@ class ProdProfileSmokeIT : TeamBalanceIT() {
         }
 
         test("prod profile activates the Scaleway TEM email sender") {
-            applicationContext.getBean(EmailSender::class.java).shouldBeInstanceOf<ScalewayTemEmailSender>()
+            applicationContext.getBean(EmailGateway::class.java).shouldBeInstanceOf<ScalewayTemEmailAdapter>()
         }
 
         test("prod profile does not load the dev demo-data seeder") {

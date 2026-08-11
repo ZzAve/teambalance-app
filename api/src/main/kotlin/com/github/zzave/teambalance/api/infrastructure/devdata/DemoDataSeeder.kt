@@ -1,6 +1,6 @@
 package com.github.zzave.teambalance.api.infrastructure.devdata
 
-import com.github.zzave.teambalance.api.infrastructure.multitenancy.TenantSchemaManager
+import com.github.zzave.teambalance.api.domain.port.TenantProvisioningGateway
 import org.slf4j.LoggerFactory
 import org.springframework.boot.ApplicationArguments
 import org.springframework.boot.ApplicationRunner
@@ -14,7 +14,7 @@ import javax.sql.DataSource
  * Dev-profile-only demo data so `make api` shows a realistic team instead of an empty DB.
  *
  * Provisions the demo team's tenant schema through the real code path
- * ([TenantSchemaManager.provisionTenantSchema]) and applies the idempotent seed. Runs as an
+ * ([TenantProvisioningGateway.provisionTenant]) and applies the idempotent seed. Runs as an
  * [ApplicationRunner] so it executes after context initialization — i.e. after
  * PlatformSchemaInitializer has run the platform migrations. Ordering: Flyway → provision → seed.
  *
@@ -25,14 +25,14 @@ import javax.sql.DataSource
 @Component
 @Profile("dev")
 class DemoDataSeeder(
-    private val tenantSchemaManager: TenantSchemaManager,
+    private val tenantProvisioningGateway: TenantProvisioningGateway,
     private val dataSource: DataSource,
 ) : ApplicationRunner {
     private val log = LoggerFactory.getLogger(DemoDataSeeder::class.java)
 
     override fun run(args: ApplicationArguments) {
         log.info("Seeding demo team 'Setpoint VT' and its tenant schema")
-        tenantSchemaManager.provisionTenantSchema("team_setpoint_vt")
+        tenantProvisioningGateway.provisionTenant("team_setpoint_vt")
         ResourceDatabasePopulator(ClassPathResource("db/seed/demo_data.sql")).execute(dataSource)
     }
 }

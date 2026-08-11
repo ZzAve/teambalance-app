@@ -3,23 +3,18 @@ package com.github.zzave.teambalance.api.interfaces
 import com.github.zzave.teambalance.api.application.AuthService
 import com.github.zzave.teambalance.api.domain.model.Email
 import com.github.zzave.teambalance.api.domain.model.UserId
-import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
-import com.github.zzave.teambalance.api.infrastructure.identity.SessionKeys
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.GetAuthMe
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.Logout
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.RequestMagicLink
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.VerifyMagicLink
 import com.github.zzave.teambalance.api.interfaces.generated.model.AuthenticatedUser
 import com.github.zzave.teambalance.api.interfaces.generated.model.TeamRef
-import jakarta.servlet.http.HttpServletRequest
 import org.springframework.web.bind.annotation.RestController
 import java.util.UUID
 
 @RestController
 class AuthController(
     private val authService: AuthService,
-    private val teamMemberRepository: TeamMemberRepository,
-    private val httpServletRequest: HttpServletRequest,
 ) : RequestMagicLink.Handler,
     VerifyMagicLink.Handler,
     Logout.Handler,
@@ -32,16 +27,7 @@ class AuthController(
 
     override suspend fun verifyMagicLink(request: VerifyMagicLink.Request): VerifyMagicLink.Response<*> {
         val user = authService.verifyMagicLink(request.body.token) ?: return VerifyMagicLink.Response401(Unit)
-        val session = httpServletRequest.session
-        session.setAttribute(SessionKeys.USER_ID, user.id.produce())
-        // Pin the tenant routing in the session attributes here, in this one uncontended request, so the
-        // SPA's first authenticated burst reads it back instead of several requests racing to memoize it
-        // (concurrent first-writes collide on SPRING_SESSION_ATTRIBUTES' primary key → 500). Schema + team
-        // id come from one row so they can't diverge; keys/format mirror SessionTenantContextFilter.cache().
-        teamMemberRepository.findTenantRouting(user.id)?.let { routing ->
-            session.setAttribute(SessionKeys.TENANT_SCHEMA, routing.schemaName)
-            session.setAttribute(SessionKeys.TENANT_TEAM_ID, routing.teamId.value.toString())
-        }
+        authService.startSession(user.id)
         return VerifyMagicLink.Response200(
             AuthenticatedUser(
                 id = user.id.produce(),
@@ -55,14 +41,12 @@ class AuthController(
     }
 
     override suspend fun logout(request: Logout.Request): Logout.Response<*> {
-        httpServletRequest.getSession(false)?.invalidate()
+        authService.endSession()
         return Logout.Response204(Unit)
     }
 
-    override suspend fun getAuthMe(request: GetAuthMe.Request): GetAuthMe.Response<*> {
-        val user = (httpServletRequest.getSession(false)?.getAttribute(SessionKeys.USER_ID) as? String)
-            ?.let { authService.findUserById(it.consumeUserId()) }
-        return user?.let {
+    override suspend fun getAuthMe(request: GetAuthMe.Request): GetAuthMe.Response<*> =
+        authService.currentUser()?.let {
             GetAuthMe.Response200(
                 AuthenticatedUser(
                     id = it.id.produce(),
@@ -74,10 +58,8 @@ class AuthController(
                 ),
             )
         } ?: GetAuthMe.Response401(Unit)
-    }
 
-    private fun resolveRole(userId: UserId): String? =
-        teamMemberRepository.findTeamId(userId)?.let { teamId -> teamMemberRepository.findRole(teamId, userId) }?.name
+    private fun resolveRole(userId: UserId): String? = authService.findRoleFor(userId)?.name
 
     // The has-a-team gate signal (#158): a null team means the caller is teamless and belongs on
     // /create-team. Resolved through the application service so this inbound layer keeps no port

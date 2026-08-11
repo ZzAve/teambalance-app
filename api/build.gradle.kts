@@ -28,7 +28,7 @@ dependencies {
     // Spring Boot
     implementation("org.springframework.boot:spring-boot-starter-web")
     // RestClient auto-configuration (the RestClient.Builder bean + spring.http.client.* timeouts).
-    // Boot 4 split this out of starter-web; the prod ScalewayTemEmailSender needs the builder bean.
+    // Boot 4 split this out of starter-web; the prod ScalewayTemEmailAdapter needs the builder bean.
     implementation("org.springframework.boot:spring-boot-restclient")
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     implementation("org.springframework.boot:spring-boot-starter-validation")
@@ -117,9 +117,9 @@ tasks.withType<Test> {
 
 // Spring AOT bean-definition generation must see the SAME bean set that prod runs with, because
 // AOT freezes the profile-conditional bean graph at build time. Prod activates the @Profile("prod")
-// `ScalewayTemEmailSender` (and drops the dev/test ConsoleEmailSender); without the prod profile
+// `ScalewayTemEmailAdapter` (and drops the dev/test ConsoleEmailAdapter); without the prod profile
 // active here, that bean definition would simply not be generated and prod boot would have no
-// EmailSender. So we run `processAot` under `spring.profiles.active=prod`.
+// EmailGateway. So we run `processAot` under `spring.profiles.active=prod`.
 //
 // This is safe without prod secrets or a live DB: AOT runs `refreshForAotProcessing`, which only
 // prepares/inspects bean *definitions* and evaluates auto-config conditions. It does NOT instantiate

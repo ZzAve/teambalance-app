@@ -5,7 +5,7 @@ import com.github.zzave.teambalance.api.domain.model.Role
 import com.github.zzave.teambalance.api.domain.model.TeamId
 import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
-import com.github.zzave.teambalance.api.infrastructure.multitenancy.TenantSchemaManager
+import com.github.zzave.teambalance.api.infrastructure.multitenancy.TenantSchemaAdapter
 import io.kotest.matchers.shouldBe
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.jdbc.core.JdbcTemplate
@@ -21,7 +21,7 @@ class JpaTeamMemberRepositoryAdapterTest : TeamBalanceIT() {
     lateinit var jdbcTemplate: JdbcTemplate
 
     @Autowired
-    lateinit var tenantSchemaManager: TenantSchemaManager
+    lateinit var tenantSchemaAdapter: TenantSchemaAdapter
 
     init {
         test("findRole returns the mapped Role for an active member") {
@@ -68,7 +68,7 @@ class JpaTeamMemberRepositoryAdapterTest : TeamBalanceIT() {
     }
 
     private fun seedMember(role: String, active: Boolean): Pair<TeamId, UserId> {
-        tenantSchemaManager.provisionPlatformSchema()
+        tenantSchemaAdapter.provisionPlatformSchema()
         val teamId = TeamId(UUID.randomUUID())
         val schemaName = "team_${teamId.toString().replace("-", "")}"
         jdbcTemplate.update(

@@ -133,9 +133,9 @@ teambalance:
     # override it with a hardcoded value in their profile config.
     token-salt: ${INVITATION_TOKEN_SALT}
   email:
-    # Scaleway Transactional Email (TEM). Consumed only by the prod-profile ScalewayTemEmailSender.
+    # Scaleway Transactional Email (TEM). Consumed only by the prod-profile ScalewayTemEmailAdapter.
     # api-key/project-id have no default → prod fails fast if the secrets are unset (dev/test/e2e
-    # use ConsoleEmailSender and never read these).
+    # use ConsoleEmailAdapter and never read these).
     from-name: TeamBalance
     from-address: login@teambalance.nl
     region: ${SCALEWAY_TEM_REGION:fr-par}

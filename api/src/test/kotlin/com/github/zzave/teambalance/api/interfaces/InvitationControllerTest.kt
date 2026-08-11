@@ -2,7 +2,7 @@ package com.github.zzave.teambalance.api.interfaces
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.github.zzave.teambalance.api.TeamBalanceIT
-import com.github.zzave.teambalance.api.infrastructure.multitenancy.TenantSchemaManager
+import com.github.zzave.teambalance.api.infrastructure.multitenancy.TenantSchemaAdapter
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import org.springframework.beans.factory.annotation.Autowired
@@ -35,13 +35,13 @@ class InvitationControllerTest : TeamBalanceIT() {
     lateinit var jdbcTemplate: JdbcTemplate
 
     @Autowired
-    lateinit var tenantSchemaManager: TenantSchemaManager
+    lateinit var tenantSchemaAdapter: TenantSchemaAdapter
 
     private val objectMapper = ObjectMapper()
 
     private fun seedAdmin() {
-        tenantSchemaManager.provisionPlatformSchema()
-        tenantSchemaManager.provisionTenantSchema("public")
+        tenantSchemaAdapter.provisionPlatformSchema()
+        tenantSchemaAdapter.provisionTenantSchema("public")
         jdbcTemplate.execute(
             "INSERT INTO public.teams (id, name, slug, schema_name) " +
                 "VALUES ('$TEAM_ID'::uuid, 'Test Team', 'test-team', 'public') ON CONFLICT DO NOTHING",
@@ -116,8 +116,8 @@ class InvitationControllerTest : TeamBalanceIT() {
         }
 
         test("POST /api/invitations by a non-admin team member is rejected with 403") {
-            tenantSchemaManager.provisionPlatformSchema()
-            tenantSchemaManager.provisionTenantSchema("public")
+            tenantSchemaAdapter.provisionPlatformSchema()
+            tenantSchemaAdapter.provisionTenantSchema("public")
 
             jdbcTemplate.execute(
                 "INSERT INTO public.teams (id, name, slug, schema_name) " +

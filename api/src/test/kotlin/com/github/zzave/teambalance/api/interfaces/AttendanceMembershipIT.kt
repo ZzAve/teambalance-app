@@ -1,7 +1,7 @@
 package com.github.zzave.teambalance.api.interfaces
 
 import com.github.zzave.teambalance.api.TeamBalanceIT
-import com.github.zzave.teambalance.api.infrastructure.multitenancy.TenantSchemaManager
+import com.github.zzave.teambalance.api.infrastructure.multitenancy.TenantSchemaAdapter
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
 import org.springframework.jdbc.core.JdbcTemplate
@@ -24,14 +24,14 @@ class AttendanceMembershipIT : TeamBalanceIT() {
 
     @Autowired lateinit var mockMvc: MockMvc
     @Autowired lateinit var jdbcTemplate: JdbcTemplate
-    @Autowired lateinit var tenantSchemaManager: TenantSchemaManager
+    @Autowired lateinit var tenantSchemaAdapter: TenantSchemaAdapter
 
     private val teamId = "a0000000-0000-0000-0000-000000000001"
 
     init {
         test("a member who joins after an event exists is counted as not-responded and listed in the roster") {
-            tenantSchemaManager.provisionPlatformSchema()
-            tenantSchemaManager.provisionTenantSchema("public")
+            tenantSchemaAdapter.provisionPlatformSchema()
+            tenantSchemaAdapter.provisionTenantSchema("public")
             seedTeam()
             val admin = addMember("late-admin@test.com", "Late Admin", "ADMIN", "Setter")
 
@@ -58,8 +58,8 @@ class AttendanceMembershipIT : TeamBalanceIT() {
         }
 
         test("a removed member no longer counts toward attendance even if they had responded") {
-            tenantSchemaManager.provisionPlatformSchema()
-            tenantSchemaManager.provisionTenantSchema("public")
+            tenantSchemaAdapter.provisionPlatformSchema()
+            tenantSchemaAdapter.provisionTenantSchema("public")
             seedTeam()
             val admin = addMember("rm-admin@test.com", "Rm Admin", "ADMIN", "Setter")
             val leaver = addMember("leaver@test.com", "Ben Leaver", "USER", "Middle")

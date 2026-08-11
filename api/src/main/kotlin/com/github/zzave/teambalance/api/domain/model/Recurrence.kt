@@ -2,6 +2,7 @@ package com.github.zzave.teambalance.api.domain.model
 
 import java.time.DayOfWeek
 import java.time.LocalDate
+import java.time.temporal.TemporalAdjusters
 
 /** Materialization frequency for a recurring series (ADR-0014). No monthly / arbitrary interval. */
 enum class RecurrenceFrequency { WEEKLY, BIWEEKLY }
@@ -38,28 +39,29 @@ data class Recurrence(
      * multi-million-element list before the caller can reject it. Callers detect the over-cap case
      * with `size > MAX_OCCURRENCES` all the same.
      */
-    fun occurrences(): List<LocalDate> {
-        val perWeekdayCount = mutableMapOf<DayOfWeek, Int>()
-        val result = mutableListOf<LocalDate>()
-        var cursor = startDate
-        while (!cursor.isAfter(endDate)) {
-            val dayOfWeek = cursor.dayOfWeek
-            if (dayOfWeek in weekdays) {
-                val index = perWeekdayCount.getOrDefault(dayOfWeek, 0)
-                val keep = frequency == RecurrenceFrequency.WEEKLY || index % 2 == 0
-                perWeekdayCount[dayOfWeek] = index + 1
-                if (keep) {
-                    result.add(cursor)
-                    if (result.size > MAX_OCCURRENCES) break
-                }
-            }
-            cursor = cursor.plusDays(1)
-        }
-        return result
+    fun occurrences(): List<LocalDate> =
+        weekdays
+            .flatMap { weekday -> occurrencesOn(weekday).take(MAX_OCCURRENCES + 1).toList() }
+            .sorted()
+            .take(MAX_OCCURRENCES + 1)
+
+    /**
+     * The kept dates for one selected weekday, ascending and lazily produced: the first in-range hit,
+     * then every 7th day (weekly) or every 14th (bi-weekly — which is exactly "every other hit of this
+     * weekday"). Laziness is what bounds an open-ended range: the caller takes only [MAX_OCCURRENCES]
+     * + 1 per weekday, so at most 7 × 201 dates are ever constructed regardless of the range's width.
+     */
+    private fun occurrencesOn(weekday: DayOfWeek): Sequence<LocalDate> {
+        val stepDays = if (frequency == RecurrenceFrequency.BIWEEKLY) BIWEEKLY_STEP_DAYS else WEEKLY_STEP_DAYS
+        return generateSequence(startDate.with(TemporalAdjusters.nextOrSame(weekday))) { it.plusDays(stepDays) }
+            .takeWhile { !it.isAfter(endDate) }
     }
 
     companion object {
         /** A single batch may materialize at most this many occurrences (ADR-0014). */
         const val MAX_OCCURRENCES = 200
+
+        private const val WEEKLY_STEP_DAYS = 7L
+        private const val BIWEEKLY_STEP_DAYS = 14L
     }
 }

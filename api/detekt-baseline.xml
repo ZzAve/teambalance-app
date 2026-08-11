@@ -2,19 +2,6 @@
 <SmellBaseline>
   <ManuallySuppressedIssues/>
   <CurrentIssues>
-    <ID>AdapterCannotDependOnAdapter:DemoDataSeeder.kt:import com.github.zzave.teambalance.api.infrastructure.multitenancy.TenantSchemaManager</ID>
-    <ID>AdapterCannotDependOnAdapter:E2eEnvironmentInitializer.kt:import com.github.zzave.teambalance.api.infrastructure.multitenancy.TenantSchemaManager</ID>
-    <ID>AdapterCannotDependOnAdapter:PlatformAdminGatewayAdapter.kt:import com.github.zzave.teambalance.api.infrastructure.config.PlatformAdmins</ID>
-    <ID>AdapterCannotDependOnAdapter:ScalewayTeamNotifier.kt:import com.github.zzave.teambalance.api.infrastructure.config.PlatformAdmins</ID>
-    <ID>AdapterCannotDependOnAdapter:SessionTenantContextFilter.kt:import com.github.zzave.teambalance.api.infrastructure.identity.SessionKeys</ID>
-    <ID>AdapterCannotDependOnAdapter:SessionTenantContextFilter.kt:import com.github.zzave.teambalance.api.infrastructure.identity.UserContext</ID>
-    <ID>AdapterCannotDependOnAdapter:SessionTenantContextFilter.kt:import com.github.zzave.teambalance.api.infrastructure.persistence.SpringDataTeamMemberRepository</ID>
-    <ID>AdapterCannotDependOnAdapter:UserContextCurrentTeamAdapter.kt:import com.github.zzave.teambalance.api.infrastructure.multitenancy.CurrentTeamContext</ID>
-    <ID>ApiCannotDependOnAdapters:AuthController.kt:import com.github.zzave.teambalance.api.infrastructure.identity.SessionKeys</ID>
-    <ID>ApiCannotDependOnPorts:AuthController.kt:AuthController$private val teamMemberRepository: TeamMemberRepository</ID>
-    <ID>DomainMustBeImmutable:Recurrence.kt:Recurrence$var cursor = startDate</ID>
-    <ID>DomainNoFrameworkImports:E2eMagicLinkTokenRecorder.kt:import org.springframework.context.annotation.Profile</ID>
-    <ID>DomainNoFrameworkImports:E2eMagicLinkTokenRecorder.kt:import org.springframework.stereotype.Component</ID>
     <ID>DomainNoPrimitiveObsession:Event.kt:Event$val description: String?</ID>
     <ID>DomainNoPrimitiveObsession:Event.kt:Event$val location: String?</ID>
     <ID>DomainNoPrimitiveObsession:Event.kt:Event$val title: String</ID>
@@ -42,18 +29,5 @@
     <ID>DomainNoPrimitiveObsession:TeamSummary.kt:TeamSummary$val slug: String</ID>
     <ID>DomainNoPrimitiveObsession:TenantRouting.kt:TenantRouting$val schemaName: String</ID>
     <ID>DomainNoPrimitiveObsession:User.kt:User$val displayName: String</ID>
-    <ID>PortNamingConvention:EmailSender.kt:EmailSender</ID>
-    <ID>PortNamingConvention:TeamNotifier.kt:TeamNotifier</ID>
-    <ID>PortNamingConvention:TeamRegistrar.kt:TeamRegistrar</ID>
-    <ID>PortNamingConvention:TenantProvisioner.kt:TenantProvisioner</ID>
-    <ID>PortsInDomainOnly:SpringDataAttendanceRepository.kt:SpringDataAttendanceRepository : JpaRepository</ID>
-    <ID>PortsInDomainOnly:SpringDataEventRepository.kt:SpringDataEventRepository : JpaRepository</ID>
-    <ID>PortsInDomainOnly:SpringDataEventTypeRepository.kt:SpringDataEventTypeRepository : JpaRepository</ID>
-    <ID>PortsInDomainOnly:SpringDataInvitationRepository.kt:SpringDataInvitationRepository : JpaRepository</ID>
-    <ID>PortsInDomainOnly:SpringDataMagicLinkTokenRepository.kt:SpringDataMagicLinkTokenRepository : JpaRepository</ID>
-    <ID>PortsInDomainOnly:SpringDataTeamMemberRepository.kt:SpringDataTeamMemberRepository : JpaRepository</ID>
-    <ID>PortsInDomainOnly:SpringDataTeamPositionRepository.kt:SpringDataTeamPositionRepository : JpaRepository</ID>
-    <ID>PortsInDomainOnly:SpringDataTeamSettingsRepository.kt:SpringDataTeamSettingsRepository : JpaRepository</ID>
-    <ID>PortsInDomainOnly:SpringDataUserRepository.kt:SpringDataUserRepository : JpaRepository</ID>
   </CurrentIssues>
 </SmellBaseline>

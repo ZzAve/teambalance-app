@@ -6,11 +6,11 @@ import com.github.zzave.teambalance.api.domain.exception.TeamSlugTakenException
 import com.github.zzave.teambalance.api.domain.model.TeamNaming
 import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.port.TeamCreationCodeRepository
-import com.github.zzave.teambalance.api.domain.port.TeamNotifier
-import com.github.zzave.teambalance.api.domain.port.TeamRegistrar
+import com.github.zzave.teambalance.api.domain.port.TeamNotificationGateway
+import com.github.zzave.teambalance.api.domain.port.TeamRegistrationGateway
 import com.github.zzave.teambalance.api.domain.port.TeamRepository
 import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
-import com.github.zzave.teambalance.api.domain.port.TenantProvisioner
+import com.github.zzave.teambalance.api.domain.port.TenantProvisioningGateway
 import com.github.zzave.teambalance.api.domain.port.UserRepository
 import org.slf4j.LoggerFactory
 import java.time.Clock
@@ -29,7 +29,7 @@ data class CreatedTeam(val id: UUID, val name: String, val slug: String)
  *  2. validate the name + user-supplied slug and derive the tenant schema name (bad name/slug → 400);
  *  3. pre-check slug uniqueness and code redeemability (fast, clean 409 / opaque 403 before any writes);
  *  4. provision the tenant schema (idempotent, on its own connection — commits independently);
- *  5. atomically consume the code and insert the team + founding admin ([TeamRegistrar]).
+ *  5. atomically consume the code and insert the team + founding admin ([TeamRegistrationGateway]).
  *
  * If step 4 fails nothing is consumed and the user simply retries. If step 5 loses a race (code taken
  * or slug collision) the only residue is a harmless empty orphan schema, self-healed by the startup
@@ -39,10 +39,10 @@ class TeamService(
     private val teamMemberRepository: TeamMemberRepository,
     private val teamRepository: TeamRepository,
     private val creationCodeRepository: TeamCreationCodeRepository,
-    private val tenantProvisioner: TenantProvisioner,
-    private val teamRegistrar: TeamRegistrar,
+    private val tenantProvisioningGateway: TenantProvisioningGateway,
+    private val teamRegistrationGateway: TeamRegistrationGateway,
     private val userRepository: UserRepository,
-    private val teamNotifier: TeamNotifier,
+    private val teamNotificationGateway: TeamNotificationGateway,
     private val clock: Clock,
 ) {
     private val log = LoggerFactory.getLogger(TeamService::class.java)
@@ -57,9 +57,9 @@ class TeamService(
         // schema behind. The authoritative, race-free consume happens inside register().
         requireRedeemable(creationCode, now)
 
-        tenantProvisioner.provisionTenant(names.schemaName)
+        tenantProvisioningGateway.provisionTenant(names.schemaName)
 
-        val teamId = teamRegistrar.register(
+        val teamId = teamRegistrationGateway.register(
             creationCode = creationCode,
             founderId = founderId.value,
             name = names.name,
@@ -99,8 +99,8 @@ class TeamService(
     private fun notifyBestEffort(founderId: UserId, teamName: String, teamSlug: String) {
         try {
             val founderEmail = userRepository.findById(founderId)?.email ?: return
-            teamNotifier.teamCreated(founderEmail.value, teamName, teamSlug)
-            teamNotifier.creationCodeConsumed(teamName, teamSlug, founderEmail.value)
+            teamNotificationGateway.teamCreated(founderEmail.value, teamName, teamSlug)
+            teamNotificationGateway.creationCodeConsumed(teamName, teamSlug, founderEmail.value)
         } catch (e: Exception) {
             log.warn("Post-create notifications failed for team '{}' (creation succeeded)", teamSlug, e)
         }

@@ -30,6 +30,16 @@ hexagonal-domain:
   DomainNoFrameworkImports:
     active: true
     domainPackages: ['domain', 'application']
+    # The e2e magic-link recorder is test scaffolding that has to be a Spring bean: the database only
+    # stores the token hash, so `@Profile("e2e")` is what keeps this in-memory plaintext store out of
+    # every other context — dropping the annotations to satisfy the rule would remove that guarantee.
+    # It sits in `application` because both an infrastructure adapter (RecordingEmailAdapter) and an
+    # inbound controller (E2eSupportController) hold it; moving it under `infrastructure/e2e` next to
+    # E2eEnvironmentInitializer only trades these two findings for two others, since the controller
+    # would then breach ApiCannotDependOnAdapters and the email adapter AdapterCannotDependOnAdapter.
+    # Excluded by exact file glob, not by trimming `forbiddenImports`: every other file under
+    # domain/ and application/ is still held to a framework-free line (see #184 / ADR-0018).
+    excludes: ['**/application/E2eMagicLinkTokenRecorder.kt']
   # Opt-in allow-list, stricter than DomainNoFrameworkImports' deny-list. Left off
   # (flock's own default) — the deny-list is the line this epic enforces.
   DomainModelMustBeStandalone:
@@ -52,6 +62,17 @@ hexagonal-port:
     active: true
     domainPackages: ['domain', 'application']
     apiPackages: ['interfaces']
+    # The rule flags any INTERFACE in an adapter package whose name ends in a port suffix, and
+    # `Repository` is one. Spring Data's query interfaces (`interface Foo : JpaRepository<..>`, no
+    # implementation of ours — Spring generates the proxy) are that shape by framework convention,
+    # so all nine trip a rule they cannot satisfy: they are not ports, and moving them to `domain`
+    # would drag JpaRepository + the JPA entities in with them, which is precisely what
+    # DomainNoFrameworkImports forbids. The real port is the hand-written `domain/port/*Repository`
+    # that `Jpa*RepositoryAdapter` implements by delegating to one of these.
+    # Excluded by exact file glob, not by dropping `Repository` from portSuffixes: every other
+    # port-suffixed interface under infrastructure/ is still a violation, and a new Spring Data
+    # interface has to be named into this pattern to be exempt (see #184 / ADR-0018).
+    excludes: ['**/infrastructure/persistence/SpringData*Repository.kt']
 
 hexagonal-adapter:
   active: true

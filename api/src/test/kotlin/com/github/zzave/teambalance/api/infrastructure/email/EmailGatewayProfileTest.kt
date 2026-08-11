@@ -1,6 +1,6 @@
 package com.github.zzave.teambalance.api.infrastructure.email
 
-import com.github.zzave.teambalance.api.domain.port.EmailSender
+import com.github.zzave.teambalance.api.domain.port.EmailGateway
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.types.shouldBeInstanceOf
 import org.springframework.boot.test.context.runner.ApplicationContextRunner
@@ -10,7 +10,7 @@ import org.springframework.web.client.RestClient
  * Magic link is the entire login path, so the prod profile MUST select the real
  * Scaleway TEM sender and every other profile the console (no-send) sender.
  */
-class EmailSenderProfileTest : FunSpec({
+class EmailGatewayProfileTest : FunSpec({
 
     fun runnerFor(profile: String) = ApplicationContextRunner()
         .withInitializer { it.environment.setActiveProfiles(profile) }
@@ -19,8 +19,8 @@ class EmailSenderProfileTest : FunSpec({
         // it registers only under the prod run, exactly as in the real app.
         .withUserConfiguration(
             EmailConfiguration::class.java,
-            ScalewayTemEmailSender::class.java,
-            ConsoleEmailSender::class.java,
+            ScalewayTemEmailAdapter::class.java,
+            ConsoleEmailAdapter::class.java,
         )
         .withPropertyValues(
             "teambalance.frontend-base-url=https://app.teambalance.nl",
@@ -33,13 +33,13 @@ class EmailSenderProfileTest : FunSpec({
 
     test("prod profile selects the Scaleway TEM sender") {
         runnerFor("prod").run { ctx ->
-            ctx.getBean(EmailSender::class.java).shouldBeInstanceOf<ScalewayTemEmailSender>()
+            ctx.getBean(EmailGateway::class.java).shouldBeInstanceOf<ScalewayTemEmailAdapter>()
         }
     }
 
     test("dev profile selects the console sender") {
         runnerFor("dev").run { ctx ->
-            ctx.getBean(EmailSender::class.java).shouldBeInstanceOf<ConsoleEmailSender>()
+            ctx.getBean(EmailGateway::class.java).shouldBeInstanceOf<ConsoleEmailAdapter>()
         }
     }
 })

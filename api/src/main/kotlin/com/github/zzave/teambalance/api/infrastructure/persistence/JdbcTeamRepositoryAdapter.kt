@@ -2,6 +2,7 @@ package com.github.zzave.teambalance.api.infrastructure.persistence
 
 import com.github.zzave.teambalance.api.domain.model.SchemaName
 import com.github.zzave.teambalance.api.domain.model.Slug
+import com.github.zzave.teambalance.api.domain.model.TeamId
 import com.github.zzave.teambalance.api.domain.model.TeamName
 import com.github.zzave.teambalance.api.domain.model.TeamSummary
 import com.github.zzave.teambalance.api.domain.port.TeamRepository
@@ -39,7 +40,7 @@ class JdbcTeamRepositoryAdapter(
                 "WHERE tm.user_id = ? AND tm.active = true ORDER BY tm.team_id LIMIT 1",
             { rs, _ ->
                 TeamSummary(
-                    id = rs.getObject("id", UUID::class.java),
+                    id = TeamId(rs.getObject("id", UUID::class.java)),
                     name = TeamName(rs.getString("name")),
                     slug = Slug(rs.getString("slug")),
                 )

@@ -3,6 +3,7 @@ package com.github.zzave.teambalance.api.domain.port
 import com.github.zzave.teambalance.api.domain.model.CreationCode
 import com.github.zzave.teambalance.api.domain.model.SchemaName
 import com.github.zzave.teambalance.api.domain.model.Slug
+import com.github.zzave.teambalance.api.domain.model.TeamId
 import com.github.zzave.teambalance.api.domain.model.TeamName
 import java.time.Instant
 import java.util.UUID
@@ -32,5 +33,5 @@ interface TeamRegistrationGateway {
         slug: Slug,
         schemaName: SchemaName,
         now: Instant,
-    ): UUID
+    ): TeamId
 }

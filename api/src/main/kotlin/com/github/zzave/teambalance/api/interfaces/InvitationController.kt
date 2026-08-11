@@ -64,6 +64,7 @@ class InvitationController(
     }
 }
 
-// The Wirespec edge for a team's identity — the contract still carries a bare UUID string. Accepting
-// an invite is the only response that names a team; everywhere else the tenant is server-resolved.
-private fun TeamId.produce(): String = value.toString()
+// The Wirespec edge for a team's identity — the contract still carries a bare UUID string. internal so
+// the other two responses that name a team (create-team's 201, `/auth/me`'s team ref) convert the same
+// way; everywhere else the tenant is server-resolved and never spoken aloud.
+internal fun TeamId.produce(): String = value.toString()

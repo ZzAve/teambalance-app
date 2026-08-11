@@ -2,6 +2,7 @@ package com.github.zzave.teambalance.api.interfaces
 
 import com.github.zzave.teambalance.api.TeamBalanceIT
 import com.github.zzave.teambalance.api.domain.model.Slug
+import com.github.zzave.teambalance.api.domain.model.TeamId
 import com.github.zzave.teambalance.api.domain.model.TeamName
 import com.github.zzave.teambalance.api.domain.port.TeamRepository
 import com.github.zzave.teambalance.api.infrastructure.multitenancy.TenantSchemaAdapter
@@ -82,10 +83,12 @@ class CreateTeamControllerIT : TeamBalanceIT() {
             seedUser(founder, "happy-${founder.take(8)}@test.com")
             seedCode("CT-HAPPY-${founder.take(8)}")
 
-            createTeam(founder, "Create IT Happy", "create-it-happy", "CT-HAPPY-${founder.take(8)}")
+            val response = createTeam(founder, "Create IT Happy", "create-it-happy", "CT-HAPPY-${founder.take(8)}")
                 .andExpect(MockMvcResultMatchers.status().isCreated)
                 .andExpect(MockMvcResultMatchers.jsonPath("$.name").value("Create IT Happy"))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.slug").value("create-it-happy"))
+                // `$.id` is pinned to the real primary key further down, once the row exists to compare
+                // against — until then all we can say is that the DTO carries one.
                 .andExpect(MockMvcResultMatchers.jsonPath("$.id").isNotEmpty)
                 // schema_name is deliberately not exposed on the DTO.
                 .andExpect(MockMvcResultMatchers.jsonPath("$.schema_name").doesNotExist())
@@ -137,6 +140,10 @@ class CreateTeamControllerIT : TeamBalanceIT() {
             )
             createdTeamId shouldBe teamId
 
+            // The id the founder gets back IS the row's primary key — the only assertion tying the
+            // DTO's `$.id` to what the insert actually returned, rather than just "something is there".
+            response.andExpect(MockMvcResultMatchers.jsonPath("$.id").value(teamId))
+
             // The write edge: the DTO above says "Create IT Happy", this proves that is also what
             // landed in the raw public.teams.name column — i.e. the name reaches SQL as a bare string.
             // Same for the slug: `$.slug` is the DTO's word for it, this is the column's.
@@ -150,7 +157,7 @@ class CreateTeamControllerIT : TeamBalanceIT() {
             // The read edge, the other direction: the same row mapped back through the port that
             // powers /auth/me's has-a-team signal. Nothing asserted this mapping before.
             val summary = teamRepository.findByUserId(UUID.fromString(founder)).shouldNotBeNull()
-            summary.id shouldBe UUID.fromString(teamId!!)
+            summary.id shouldBe TeamId(UUID.fromString(teamId!!))
             summary.name shouldBe TeamName("Create IT Happy")
             summary.slug shouldBe Slug("create-it-happy")
         }

@@ -5,6 +5,7 @@ import com.github.zzave.teambalance.api.domain.exception.InvalidCreationCodeExce
 import com.github.zzave.teambalance.api.domain.exception.TeamSlugTakenException
 import com.github.zzave.teambalance.api.domain.model.CreationCode
 import com.github.zzave.teambalance.api.domain.model.Slug
+import com.github.zzave.teambalance.api.domain.model.TeamId
 import com.github.zzave.teambalance.api.domain.model.TeamName
 import com.github.zzave.teambalance.api.domain.model.TeamNaming
 import com.github.zzave.teambalance.api.domain.model.UserId
@@ -18,10 +19,9 @@ import com.github.zzave.teambalance.api.domain.port.UserRepository
 import org.slf4j.LoggerFactory
 import java.time.Clock
 import java.time.Instant
-import java.util.UUID
 
 /** The newly created team, as returned to the founder (schema_name is deliberately not exposed). */
-data class CreatedTeam(val id: UUID, val name: TeamName, val slug: Slug)
+data class CreatedTeam(val id: TeamId, val name: TeamName, val slug: Slug)
 
 /**
  * Self-service team creation (issue #154, ADR-0019). A logged-in, teamless user creates a team from a

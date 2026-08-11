@@ -86,7 +86,7 @@ private class RecordingProvisioner(private val calls: MutableList<String>, priva
 
 private class RecordingRegistrar(
     private val calls: MutableList<String>,
-    private val teamId: UUID,
+    private val teamId: TeamId,
 ) : TeamRegistrationGateway {
     override fun register(
         creationCode: CreationCode,
@@ -95,7 +95,7 @@ private class RecordingRegistrar(
         slug: Slug,
         schemaName: SchemaName,
         now: Instant,
-    ): UUID {
+    ): TeamId {
         calls += "register:$slug"
         return teamId
     }
@@ -124,7 +124,7 @@ class TeamServiceTest : FunSpec() {
     init {
         val clock = Clock.fixed(Instant.EPOCH, ZoneOffset.UTC)
         val founder = UserId.random()
-        val newTeamId = UUID.randomUUID()
+        val newTeamId = TeamId(UUID.randomUUID())
         val founderUser = User(id = founder, email = Email("founder@example.com"), displayName = DisplayName("Founder"))
 
         fun service(

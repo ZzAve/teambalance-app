@@ -10,5 +10,5 @@ import java.util.UUID
 data class TeamSummary(
     val id: UUID,
     val name: TeamName,
-    val slug: String,
+    val slug: Slug,
 )

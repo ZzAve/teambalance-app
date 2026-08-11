@@ -1,5 +1,6 @@
 package com.github.zzave.teambalance.api.infrastructure.persistence
 
+import com.github.zzave.teambalance.api.domain.model.Slug
 import com.github.zzave.teambalance.api.domain.model.TeamName
 import com.github.zzave.teambalance.api.domain.model.TeamSummary
 import com.github.zzave.teambalance.api.domain.port.TeamRepository
@@ -21,11 +22,11 @@ class JdbcTeamRepositoryAdapter(
         // schema_name is NOT NULL; filterNotNull only satisfies queryForList's nullable element type.
         jdbcTemplate.queryForList("SELECT schema_name FROM public.teams", String::class.java).filterNotNull()
 
-    override fun existsBySlug(slug: String): Boolean =
+    override fun existsBySlug(slug: Slug): Boolean =
         jdbcTemplate.queryForObject(
             "SELECT EXISTS(SELECT 1 FROM public.teams WHERE slug = ?)",
             Boolean::class.java,
-            slug,
+            slug.value,
         ) ?: false
 
     override fun findByUserId(userId: UUID): TeamSummary? =
@@ -37,7 +38,7 @@ class JdbcTeamRepositoryAdapter(
                 TeamSummary(
                     id = rs.getObject("id", UUID::class.java),
                     name = TeamName(rs.getString("name")),
-                    slug = rs.getString("slug"),
+                    slug = Slug(rs.getString("slug")),
                 )
             },
             userId,

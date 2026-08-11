@@ -1,6 +1,7 @@
 package com.github.zzave.teambalance.api.interfaces
 
 import com.github.zzave.teambalance.api.TeamBalanceIT
+import com.github.zzave.teambalance.api.domain.model.Slug
 import com.github.zzave.teambalance.api.domain.model.TeamName
 import com.github.zzave.teambalance.api.domain.port.TeamRepository
 import com.github.zzave.teambalance.api.infrastructure.multitenancy.TenantSchemaAdapter
@@ -138,18 +139,20 @@ class CreateTeamControllerIT : TeamBalanceIT() {
 
             // The write edge: the DTO above says "Create IT Happy", this proves that is also what
             // landed in the raw public.teams.name column — i.e. the name reaches SQL as a bare string.
-            jdbcTemplate.queryForObject(
-                "SELECT name FROM public.teams WHERE schema_name = ?",
-                String::class.java,
+            // Same for the slug: `$.slug` is the DTO's word for it, this is the column's.
+            val row = jdbcTemplate.queryForMap(
+                "SELECT name, slug FROM public.teams WHERE schema_name = ?",
                 schema,
-            ) shouldBe "Create IT Happy"
+            )
+            row["name"] shouldBe "Create IT Happy"
+            row["slug"] shouldBe "create-it-happy"
 
             // The read edge, the other direction: the same row mapped back through the port that
             // powers /auth/me's has-a-team signal. Nothing asserted this mapping before.
             val summary = teamRepository.findByUserId(UUID.fromString(founder)).shouldNotBeNull()
             summary.id shouldBe UUID.fromString(teamId!!)
             summary.name shouldBe TeamName("Create IT Happy")
-            summary.slug shouldBe "create-it-happy"
+            summary.slug shouldBe Slug("create-it-happy")
         }
 
         test("a consumed code cannot be reused — second use returns opaque 403") {
@@ -204,6 +207,32 @@ class CreateTeamControllerIT : TeamBalanceIT() {
                 "CT-SECOND-${founder.take(8)}",
             )
             consumedAt shouldBe null
+        }
+
+        // The only end-to-end exercise of TeamRepository.existsBySlug: every other test of the
+        // slug-taken rule runs against an in-memory fake, so nothing proved the pre-check's SQL
+        // actually matches a stored slug. It must trip *before* provisioning, hence the schema check.
+        test("a slug already taken returns 409 TEAM_SLUG_TAKEN and provisions nothing") {
+            val founder = UUID.randomUUID().toString()
+            val other = UUID.randomUUID().toString()
+            seedUser(founder, "slugtaken-a-${founder.take(8)}@test.com")
+            seedUser(other, "slugtaken-b-${other.take(8)}@test.com")
+            seedCode("CT-SLUGA-${founder.take(8)}")
+            seedCode("CT-SLUGB-${other.take(8)}")
+
+            createTeam(founder, "Create IT Slug One", "create-it-slug-taken", "CT-SLUGA-${founder.take(8)}")
+                .andExpect(MockMvcResultMatchers.status().isCreated)
+
+            createTeam(other, "Create IT Slug Two", "create-it-slug-taken", "CT-SLUGB-${other.take(8)}")
+                .andExpect(MockMvcResultMatchers.status().isConflict)
+                .andExpect(MockMvcResultMatchers.jsonPath("$.code").value("TEAM_SLUG_TAKEN"))
+
+            // The pre-check ran ahead of the writes: the loser's code is untouched.
+            jdbcTemplate.queryForObject(
+                "SELECT consumed_at FROM public.team_creation_codes WHERE code = ?",
+                java.sql.Timestamp::class.java,
+                "CT-SLUGB-${other.take(8)}",
+            ) shouldBe null
         }
 
         test("a blank team name returns 400 INVALID_NAME") {

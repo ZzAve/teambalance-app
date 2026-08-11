@@ -6,7 +6,7 @@ import com.github.zzave.teambalance.api.domain.exception.InvalidTeamNameExceptio
 /** A validated team name with its user-chosen URL slug and the derived tenant schema identifier. */
 data class TeamNames(
     val name: TeamName,
-    val slug: String,
+    val slug: Slug,
     val schemaName: String,
 )
 
@@ -34,7 +34,7 @@ object TeamNaming {
     fun validate(rawName: String, rawSlug: String): TeamNames {
         val name = validatedName(rawName)
         val slug = validatedSlug(rawSlug)
-        val schemaName = SCHEMA_PREFIX + slug.replace('-', '_')
+        val schemaName = SCHEMA_PREFIX + slug.value.replace('-', '_')
         // Defensive: the format check above already guarantees this, but assert the injection-safety
         // invariant explicitly so any future change to the slug rules can't silently weaken it.
         require(SAFE_SCHEMA.matches(schemaName)) { "derived schema '$schemaName' is not a safe identifier" }
@@ -54,13 +54,16 @@ object TeamNaming {
         return TeamName(name)
     }
 
-    private fun validatedSlug(rawSlug: String): String {
+    // The slug's rules stay here rather than moving onto [Slug]: nothing but this path validates a
+    // slug (the demo/e2e seeds insert them as raw SQL) and the column enforces neither rule, so a
+    // guard on the type could only ever reject a value read back out of the database. See Slug.
+    private fun validatedSlug(rawSlug: String): Slug {
         if (rawSlug.length > MAX_SLUG_LENGTH) {
             throw InvalidSlugException("Team address must be at most $MAX_SLUG_LENGTH characters")
         }
         if (!SLUG_FORMAT.matches(rawSlug)) {
             throw InvalidSlugException("Team address must be lowercase letters, numbers, and single hyphens")
         }
-        return rawSlug
+        return Slug(rawSlug)
     }
 }

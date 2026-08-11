@@ -5,6 +5,7 @@ import com.github.zzave.teambalance.api.domain.model.Email
 import com.github.zzave.teambalance.api.domain.model.MagicLinkToken
 import com.github.zzave.teambalance.api.domain.model.PositionId
 import com.github.zzave.teambalance.api.domain.model.Role
+import com.github.zzave.teambalance.api.domain.model.Slug
 import com.github.zzave.teambalance.api.domain.model.TeamId
 import com.github.zzave.teambalance.api.domain.model.TeamMember
 import com.github.zzave.teambalance.api.domain.model.TeamSummary
@@ -90,7 +91,7 @@ private class FakeMagicLinkTokenRepository : MagicLinkTokenRepository {
 
 private class FakeTeamRepository : TeamRepository {
     override fun findAllSchemaNames() = emptyList<String>()
-    override fun existsBySlug(slug: String) = false
+    override fun existsBySlug(slug: Slug) = false
     override fun findByUserId(userId: UUID): TeamSummary? = null
 }
 

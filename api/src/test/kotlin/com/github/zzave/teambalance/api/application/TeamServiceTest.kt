@@ -9,6 +9,7 @@ import com.github.zzave.teambalance.api.domain.model.DisplayName
 import com.github.zzave.teambalance.api.domain.model.Email
 import com.github.zzave.teambalance.api.domain.model.PositionId
 import com.github.zzave.teambalance.api.domain.model.Role
+import com.github.zzave.teambalance.api.domain.model.Slug
 import com.github.zzave.teambalance.api.domain.model.TeamCreationCode
 import com.github.zzave.teambalance.api.domain.model.TeamId
 import com.github.zzave.teambalance.api.domain.model.TeamName
@@ -56,9 +57,9 @@ private class FakeMemberRepo(private val existingTeam: TeamId?) : TeamMemberRepo
     override fun countAdmins(teamId: TeamId): Int = 0
 }
 
-private class FakeTeamRepo(private val existingSlugs: Set<String> = emptySet()) : TeamRepository {
+private class FakeTeamRepo(private val existingSlugs: Set<Slug> = emptySet()) : TeamRepository {
     override fun findAllSchemaNames(): List<String> = emptyList()
-    override fun existsBySlug(slug: String): Boolean = slug in existingSlugs
+    override fun existsBySlug(slug: Slug): Boolean = slug in existingSlugs
     override fun findByUserId(userId: UUID): TeamSummary? = null
 }
 
@@ -89,7 +90,7 @@ private class RecordingRegistrar(
         creationCode: String,
         founderId: UUID,
         name: TeamName,
-        slug: String,
+        slug: Slug,
         schemaName: String,
         now: Instant,
     ): UUID {
@@ -127,7 +128,7 @@ class TeamServiceTest : FunSpec() {
         fun service(
             calls: MutableList<String> = mutableListOf(),
             existingTeam: TeamId? = null,
-            existingSlugs: Set<String> = emptySet(),
+            existingSlugs: Set<Slug> = emptySet(),
             redeemable: Boolean = true,
             provisionFails: Boolean = false,
             user: User? = founderUser,
@@ -149,7 +150,7 @@ class TeamServiceTest : FunSpec() {
 
             created.id shouldBe newTeamId
             created.name shouldBe TeamName("Setpoint VT")
-            created.slug shouldBe "setpoint-vt"
+            created.slug shouldBe Slug("setpoint-vt")
             // Provision-first: the schema is created before the atomic register commits.
             calls shouldContainExactly listOf("provision:team_setpoint_vt", "register:setpoint-vt")
         }
@@ -178,7 +179,7 @@ class TeamServiceTest : FunSpec() {
         test("rejects a taken slug with 409 before any provisioning") {
             val calls = mutableListOf<String>()
             shouldThrow<TeamSlugTakenException> {
-                service(calls, existingSlugs = setOf("setpoint-vt")).createTeam(founder, "Setpoint VT", "setpoint-vt", "GOODCODE")
+                service(calls, existingSlugs = setOf(Slug("setpoint-vt"))).createTeam(founder, "Setpoint VT", "setpoint-vt", "GOODCODE")
             }
             calls shouldBe emptyList()
         }

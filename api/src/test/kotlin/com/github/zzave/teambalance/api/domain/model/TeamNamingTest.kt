@@ -17,7 +17,7 @@ class TeamNamingTest : FunSpec() {
         test("keeps the trimmed name and the verbatim slug, deriving only the team_ schema name") {
             val names = TeamNaming.validate("  Setpoint VT  ", "setpoint-vt")
             names.name shouldBe TeamName("Setpoint VT")
-            names.slug shouldBe "setpoint-vt"
+            names.slug shouldBe Slug("setpoint-vt")
             names.schemaName shouldBe "team_setpoint_vt"
         }
 

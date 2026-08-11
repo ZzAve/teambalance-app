@@ -172,7 +172,7 @@ internal fun List<EventReference>?.internalize(): List<DomainEventReference> =
     orEmpty().map { DomainEventReference.of(title = it.title, url = it.url) }
 
 private fun List<DomainEventReference>.externalize(): List<EventReference> =
-    map { EventReference(title = it.title, url = it.url.value) }
+    map { EventReference(title = it.title?.value, url = it.url.value) }
 
 // internal (not private) so RecurringEventController can reuse it for the batch-create response.
 // Takes the already-resolved projection so mapping stays free of data access (no per-event N+1).

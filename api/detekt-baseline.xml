@@ -2,7 +2,6 @@
 <SmellBaseline>
   <ManuallySuppressedIssues/>
   <CurrentIssues>
-    <ID>DomainNoPrimitiveObsession:EventReference.kt:EventReference$val title: String?</ID>
     <ID>DomainNoPrimitiveObsession:Position.kt:Position$val label: String</ID>
     <ID>DomainNoPrimitiveObsession:TeamCreationCode.kt:TeamCreationCode$val code: String</ID>
     <ID>DomainNoPrimitiveObsession:TeamMember.kt:TeamMember$val displayName: String</ID>

@@ -5,6 +5,7 @@ import com.github.zzave.teambalance.api.domain.model.EventDescription
 import com.github.zzave.teambalance.api.domain.model.EventId
 import com.github.zzave.teambalance.api.domain.model.EventLocation
 import com.github.zzave.teambalance.api.domain.model.EventReference
+import com.github.zzave.teambalance.api.domain.model.EventReferenceText
 import com.github.zzave.teambalance.api.domain.model.EventTitle
 import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.infrastructure.persistence.entity.EventJpaEntity
@@ -19,7 +20,9 @@ fun EventJpaEntity.internalize() = Event(
     startTime = startTime,
     endTime = endTime,
     location = location?.let(::EventLocation),
-    references = references.map { EventReference(title = it.title, url = EventReference.Url(it.url)) },
+    references = references.map {
+        EventReference(title = it.title?.let(::EventReferenceText), url = EventReference.Url(it.url))
+    },
     recurringGroup = recurringGroup,
     createdBy = UserId(createdBy),
     createdAt = createdAt,
@@ -34,7 +37,7 @@ fun Event.externalize(eventTypeEntity: EventTypeJpaEntity, technicalId: Long = 0
     startTime = startTime,
     endTime = endTime,
     location = location?.value,
-    references = references.map { EventReferenceEmbeddable(title = it.title, url = it.url.value) },
+    references = references.map { EventReferenceEmbeddable(title = it.title?.value, url = it.url.value) },
     recurringGroup = recurringGroup,
     createdBy = createdBy.value,
     createdAt = createdAt,

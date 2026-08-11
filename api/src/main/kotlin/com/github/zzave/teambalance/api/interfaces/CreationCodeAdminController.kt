@@ -51,6 +51,6 @@ private fun TeamCreationCode.toDto() = CreationCode(
     createdAt = createdAt.toString(),
     expiresAt = expiresAt?.toString(),
     consumedAt = consumedAt?.toString(),
-    consumedByUserId = consumedByUserId?.toString(),
-    createdTeamId = createdTeamId?.toString(),
+    consumedByUserId = consumedByUserId?.value?.toString(),
+    createdTeamId = createdTeamId?.value?.toString(),
 )

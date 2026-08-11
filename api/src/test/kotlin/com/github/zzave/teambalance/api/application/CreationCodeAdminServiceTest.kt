@@ -102,7 +102,7 @@ class CreationCodeAdminServiceTest : FunSpec() {
         }
 
         test("revoking a consumed code throws conflict and keeps it") {
-            val consumed = TeamCreationCode(CreationCode("USED"), now, null, now, UUID.randomUUID(), null)
+            val consumed = TeamCreationCode(CreationCode("USED"), now, null, now, UserId.random(), null)
             val codes = FakeCodes(listOf(consumed))
 
             shouldThrow<CreationCodeConsumedException> { service(codes).revoke(admin, CreationCode("USED")) }

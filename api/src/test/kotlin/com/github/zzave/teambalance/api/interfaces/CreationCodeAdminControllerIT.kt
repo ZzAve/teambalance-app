@@ -63,14 +63,28 @@ class CreationCodeAdminControllerIT : TeamBalanceIT() {
     private fun revokeAs(userId: String, code: String) =
         dispatch(MockMvcRequestBuilders.delete("/api/admin/creation-codes/$code").header("X-User-Id", userId))
 
-    private fun seedCode(code: String, consumedByUserId: String? = null) {
+    private fun seedCode(code: String, consumedByUserId: String? = null, createdTeamId: String? = null) {
         tenantSchemaAdapter.provisionPlatformSchema()
         jdbcTemplate.update(
-            "INSERT INTO public.team_creation_codes (code, consumed_at, consumed_by_user_id) " +
-                "VALUES (?, ${if (consumedByUserId != null) "now()" else "NULL"}, ?::uuid) " +
+            "INSERT INTO public.team_creation_codes (code, consumed_at, consumed_by_user_id, created_team_id) " +
+                "VALUES (?, ${if (consumedByUserId != null) "now()" else "NULL"}, ?::uuid, ?::uuid) " +
                 "ON CONFLICT (code) DO NOTHING",
             code,
             consumedByUserId,
+            createdTeamId,
+        )
+    }
+
+    /** A memberless `public.teams` row, only ever used as the `created_team_id` FK target. */
+    private fun seedTeam(id: String) {
+        tenantSchemaAdapter.provisionPlatformSchema()
+        jdbcTemplate.update(
+            "INSERT INTO public.teams (id, name, slug, schema_name) VALUES (?::uuid, ?, ?, ?) " +
+                "ON CONFLICT (id) DO NOTHING",
+            id,
+            "Codes IT Team",
+            "codes-it-team",
+            "team_codes_it",
         )
     }
 
@@ -156,6 +170,24 @@ class CreationCodeAdminControllerIT : TeamBalanceIT() {
                 code,
             )
             remaining shouldBe 1
+        }
+
+        // The two spent-code columns (who redeemed it, which team it produced) are read back through
+        // the row mapper and out through the DTO; nothing asserted either value end to end before.
+        test("a spent code reports its consumer and the team it produced") {
+            val teamId = "cc000000-0000-0000-0000-0000000000a1"
+            seedTeam(teamId)
+            val code = "SPENT-${UUID.randomUUID().toString().take(8)}"
+            seedCode(code, consumedByUserId = admin, createdTeamId = teamId)
+
+            listAs(admin)
+                .andExpect(MockMvcResultMatchers.status().isOk)
+                .andExpect(
+                    MockMvcResultMatchers.jsonPath("$.codes[?(@.code == '$code')].consumedByUserId").value(admin),
+                )
+                .andExpect(
+                    MockMvcResultMatchers.jsonPath("$.codes[?(@.code == '$code')].createdTeamId").value(teamId),
+                )
         }
 
         test("a non-admin cannot revoke a code") {

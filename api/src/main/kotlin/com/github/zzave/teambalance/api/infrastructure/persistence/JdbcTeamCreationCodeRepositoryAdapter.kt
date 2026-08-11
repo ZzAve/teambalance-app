@@ -2,6 +2,8 @@ package com.github.zzave.teambalance.api.infrastructure.persistence
 
 import com.github.zzave.teambalance.api.domain.model.CreationCode
 import com.github.zzave.teambalance.api.domain.model.TeamCreationCode
+import com.github.zzave.teambalance.api.domain.model.TeamId
+import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.port.TeamCreationCodeRepository
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.jdbc.core.RowMapper
@@ -85,8 +87,8 @@ class JdbcTeamCreationCodeRepositoryAdapter(
                 createdAt = rs.getTimestamp("created_at").toInstant(),
                 expiresAt = rs.getTimestamp("expires_at")?.toInstant(),
                 consumedAt = rs.getTimestamp("consumed_at")?.toInstant(),
-                consumedByUserId = rs.getObject("consumed_by_user_id", java.util.UUID::class.java),
-                createdTeamId = rs.getObject("created_team_id", java.util.UUID::class.java),
+                consumedByUserId = rs.getObject("consumed_by_user_id", java.util.UUID::class.java)?.let(::UserId),
+                createdTeamId = rs.getObject("created_team_id", java.util.UUID::class.java)?.let(::TeamId),
             )
         }
     }

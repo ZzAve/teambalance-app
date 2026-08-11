@@ -191,4 +191,4 @@ internal fun com.github.zzave.teambalance.api.domain.model.Event.produce(attenda
     )
 
 private fun com.github.zzave.teambalance.api.domain.model.EventType.produce() =
-    EventTypeSummary(id = id.produce(), name = name, color = color)
+    EventTypeSummary(id = id.produce(), name = name.value, color = color?.value)

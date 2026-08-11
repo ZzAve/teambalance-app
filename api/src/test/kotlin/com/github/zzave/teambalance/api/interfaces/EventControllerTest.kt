@@ -522,6 +522,11 @@ class EventControllerTest : TeamBalanceIT() {
                 .andExpect(MockMvcResultMatchers.status().isOk)
                 .andExpect(MockMvcResultMatchers.jsonPath("$.description").value("Bring your own ball"))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.location").value("Sporthal de Pijp"))
+                // The embedded event-type summary is the second Wirespec edge for an event type's
+                // name and colour (GET /api/event-types is the other, EventTypeControllerTest) —
+                // asserted here so the summary keeps carrying the seeded values verbatim.
+                .andExpect(MockMvcResultMatchers.jsonPath("$.eventType.name").value("Training"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.eventType.color").value("#249E6C"))
         }
 
         test("POST /api/events by a user with no team membership is rejected, not silently defaulted") {

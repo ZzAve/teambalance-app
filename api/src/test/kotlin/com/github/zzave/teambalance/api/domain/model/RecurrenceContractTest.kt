@@ -75,8 +75,8 @@ private val OBJECT_MAPPER = ObjectMapper()
 private val TAIL_GROUP: UUID = UUID.fromString("00000000-0000-0000-0000-0000000000aa")
 private val EVENT_TYPE = EventType(
     id = EventTypeId(UUID.fromString("00000000-0000-0000-0000-0000000000e7")),
-    name = "Training",
-    color = "#225C9C",
+    name = EventTypeName("Training"),
+    color = HexColor("#225C9C"),
 )
 private val EDIT = EventEdit(
     eventType = EVENT_TYPE,

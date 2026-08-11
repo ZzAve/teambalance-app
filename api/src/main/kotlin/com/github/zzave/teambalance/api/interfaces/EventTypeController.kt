@@ -17,8 +17,8 @@ class EventTypeController(
         val types = eventTypeService.findAll().map { type ->
             EventTypeItem(
                 id = type.id.produce(),
-                name = type.name,
-                color = type.color,
+                name = type.name.value,
+                color = type.color?.value,
             )
         }
         return ListEventTypes.Response200(EventTypeList(eventTypes = types))

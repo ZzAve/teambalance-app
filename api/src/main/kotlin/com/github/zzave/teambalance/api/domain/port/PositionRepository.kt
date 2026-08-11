@@ -2,6 +2,7 @@ package com.github.zzave.teambalance.api.domain.port
 
 import com.github.zzave.teambalance.api.domain.model.Position
 import com.github.zzave.teambalance.api.domain.model.PositionId
+import com.github.zzave.teambalance.api.domain.model.PositionLabel
 import com.github.zzave.teambalance.api.domain.model.TeamId
 import java.util.UUID
 
@@ -10,10 +11,10 @@ interface PositionRepository {
     fun listByTeam(teamId: TeamId): List<Position>
 
     /** Creates a new position for the team and returns it. */
-    fun create(teamId: TeamId, label: String): Position
+    fun create(teamId: TeamId, label: PositionLabel): Position
 
     /** Renames an existing position and returns the updated value. */
-    fun rename(id: PositionId, label: String): Position
+    fun rename(id: PositionId, label: PositionLabel): Position
 
     /** Deletes a position, first clearing it from any members assigned to it. */
     fun delete(id: PositionId)

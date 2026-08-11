@@ -2,6 +2,7 @@ package com.github.zzave.teambalance.api.infrastructure.persistence
 
 import com.github.zzave.teambalance.api.domain.model.Position
 import com.github.zzave.teambalance.api.domain.model.PositionId
+import com.github.zzave.teambalance.api.domain.model.PositionLabel
 import com.github.zzave.teambalance.api.domain.model.TeamId
 import com.github.zzave.teambalance.api.domain.port.PositionRepository
 import com.github.zzave.teambalance.api.infrastructure.persistence.entity.TeamPositionJpaEntity
@@ -17,15 +18,15 @@ class JpaPositionRepositoryAdapter(
     override fun listByTeam(teamId: TeamId): List<Position> =
         jpaRepository.findByTeamIdOrderByLabelAsc(teamId.value).map { it.toDomain() }
 
-    override fun create(teamId: TeamId, label: String): Position =
-        jpaRepository.save(TeamPositionJpaEntity(teamId = teamId.value, label = label)).toDomain()
+    override fun create(teamId: TeamId, label: PositionLabel): Position =
+        jpaRepository.save(TeamPositionJpaEntity(teamId = teamId.value, label = label.value)).toDomain()
 
     @Transactional
-    override fun rename(id: PositionId, label: String): Position {
+    override fun rename(id: PositionId, label: PositionLabel): Position {
         val entity = jpaRepository.findById(id.value).orElseThrow {
             IllegalStateException("Position $id disappeared during rename")
         }
-        entity.label = label
+        entity.label = label.value
         return jpaRepository.save(entity).toDomain()
     }
 
@@ -43,5 +44,5 @@ class JpaPositionRepositoryAdapter(
     override fun existsInTeam(teamId: TeamId, positionId: PositionId): Boolean =
         jpaRepository.findByIdAndTeamId(positionId.value, teamId.value) != null
 
-    private fun TeamPositionJpaEntity.toDomain() = Position(id = PositionId(id), label = label)
+    private fun TeamPositionJpaEntity.toDomain() = Position(id = PositionId(id), label = PositionLabel(label))
 }

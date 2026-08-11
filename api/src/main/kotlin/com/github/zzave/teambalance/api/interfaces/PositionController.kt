@@ -58,7 +58,7 @@ class PositionController(
     }
 }
 
-private fun Position.toDto() = PositionDto(id = id.produce(), label = label)
+private fun Position.toDto() = PositionDto(id = id.produce(), label = label.value)
 
 // The Wirespec edge for a position's identity — the contract still carries a bare UUID string,
 // unchanged by PositionId (ADR-0018). internal so MemberController, which reads a position off

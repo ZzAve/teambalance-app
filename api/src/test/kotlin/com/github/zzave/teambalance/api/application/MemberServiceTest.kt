@@ -9,6 +9,7 @@ import com.github.zzave.teambalance.api.domain.exception.PositionNotFoundExcepti
 import com.github.zzave.teambalance.api.domain.model.Email
 import com.github.zzave.teambalance.api.domain.model.Position
 import com.github.zzave.teambalance.api.domain.model.PositionId
+import com.github.zzave.teambalance.api.domain.model.PositionLabel
 import com.github.zzave.teambalance.api.domain.model.Role
 import com.github.zzave.teambalance.api.domain.model.TeamId
 import com.github.zzave.teambalance.api.domain.model.TenantRouting
@@ -109,19 +110,19 @@ private class FakeMembershipRepo(
 // Positions keyed by id, each tagged with the team it belongs to so existsInTeam can reject
 // a position id that exists but under a different team (the "other team" invalid case).
 private class MemberFakePositionRepo(seed: List<Triple<PositionId, TeamId, String>>) : PositionRepository {
-    private data class Row(val teamId: TeamId, var label: String)
+    private data class Row(val teamId: TeamId, var label: PositionLabel)
 
     private val store: MutableMap<PositionId, Row> =
-        seed.associate { (id, teamId, label) -> id to Row(teamId, label) }.toMutableMap()
+        seed.associate { (id, teamId, label) -> id to Row(teamId, PositionLabel(label)) }.toMutableMap()
 
     override fun listByTeam(teamId: TeamId): List<Position> =
-        store.filterValues { it.teamId == teamId }.map { Position(it.key, it.value.label) }.sortedBy { it.label }
-    override fun create(teamId: TeamId, label: String): Position {
+        store.filterValues { it.teamId == teamId }.map { Position(it.key, it.value.label) }.sortedBy { it.label.value }
+    override fun create(teamId: TeamId, label: PositionLabel): Position {
         val id = PositionId(UUID.randomUUID())
         store[id] = Row(teamId, label)
         return Position(id, label)
     }
-    override fun rename(id: PositionId, label: String): Position {
+    override fun rename(id: PositionId, label: PositionLabel): Position {
         store.getValue(id).label = label
         return Position(id, label)
     }

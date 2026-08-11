@@ -4,12 +4,11 @@ import com.github.zzave.teambalance.api.domain.exception.PositionLabelTakenExcep
 import com.github.zzave.teambalance.api.domain.exception.PositionNotFoundException
 import com.github.zzave.teambalance.api.domain.model.Position
 import com.github.zzave.teambalance.api.domain.model.PositionId
+import com.github.zzave.teambalance.api.domain.model.PositionLabel
 import com.github.zzave.teambalance.api.domain.model.TeamId
 import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.port.PositionRepository
 import java.util.UUID
-
-private const val MAX_LABEL_LENGTH = 50
 
 class PositionService(
     private val positionRepository: PositionRepository,
@@ -42,17 +41,17 @@ class PositionService(
         positionRepository.delete(id)
     }
 
-    private fun validLabel(rawLabel: String): String {
+    // Normalization + "not blank" stay here, on the write path; the length cap now lives on
+    // PositionLabel itself, so it also holds for labels the JPA mapper builds (see its KDoc).
+    private fun validLabel(rawLabel: String): PositionLabel {
         val label = rawLabel.trim()
-        require(label.isNotBlank() && label.length <= MAX_LABEL_LENGTH) {
-            "Position label must be 1..$MAX_LABEL_LENGTH characters"
-        }
-        return label
+        require(label.isNotBlank()) { "Position label must not be blank" }
+        return PositionLabel(label)
     }
 
-    private fun requireUnique(teamId: TeamId, label: String, excludingId: PositionId?) {
+    private fun requireUnique(teamId: TeamId, label: PositionLabel, excludingId: PositionId?) {
         val taken = positionRepository.listByTeam(teamId)
-            .any { it.id != excludingId && it.label.equals(label, ignoreCase = true) }
-        if (taken) throw PositionLabelTakenException(label)
+            .any { it.id != excludingId && it.label.value.equals(label.value, ignoreCase = true) }
+        if (taken) throw PositionLabelTakenException(label.value)
     }
 }

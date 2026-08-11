@@ -1,5 +1,6 @@
 package com.github.zzave.teambalance.api.infrastructure.e2e
 
+import com.github.zzave.teambalance.api.domain.model.SchemaName
 import com.github.zzave.teambalance.api.domain.port.TenantProvisioningGateway
 import org.slf4j.LoggerFactory
 import org.springframework.boot.ApplicationArguments
@@ -33,7 +34,7 @@ class E2eEnvironmentInitializer(
 
     override fun run(args: ApplicationArguments) {
         log.info("Provisioning e2e tenant schema 'team_test' and applying seed fixture")
-        tenantProvisioningGateway.provisionTenant("team_test")
+        tenantProvisioningGateway.provisionTenant(SchemaName("team_test"))
         ResourceDatabasePopulator(ClassPathResource("db/e2e/seed.sql")).execute(dataSource)
     }
 }

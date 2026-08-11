@@ -7,7 +7,7 @@ import com.github.zzave.teambalance.api.domain.exception.InvalidTeamNameExceptio
 data class TeamNames(
     val name: TeamName,
     val slug: Slug,
-    val schemaName: String,
+    val schemaName: SchemaName,
 )
 
 /**
@@ -36,9 +36,12 @@ object TeamNaming {
         val slug = validatedSlug(rawSlug)
         val schemaName = SCHEMA_PREFIX + slug.value.replace('-', '_')
         // Defensive: the format check above already guarantees this, but assert the injection-safety
-        // invariant explicitly so any future change to the slug rules can't silently weaken it.
+        // invariant explicitly so any future change to the slug rules can't silently weaken it. It
+        // stays here rather than moving onto [SchemaName] because it is a statement about the slug
+        // rules above, and only *derived* schema names obey it — the ones read back out of
+        // `public.teams.schema_name` need not (`public` is one). See SchemaName.
         require(SAFE_SCHEMA.matches(schemaName)) { "derived schema '$schemaName' is not a safe identifier" }
-        return TeamNames(name = name, slug = slug, schemaName = schemaName)
+        return TeamNames(name = name, slug = slug, schemaName = SchemaName(schemaName))
     }
 
     // The name's three clauses stay together here rather than moving onto [TeamName]: they are one

@@ -5,6 +5,7 @@ import com.github.zzave.teambalance.api.domain.model.Email
 import com.github.zzave.teambalance.api.domain.model.MagicLinkToken
 import com.github.zzave.teambalance.api.domain.model.PositionId
 import com.github.zzave.teambalance.api.domain.model.Role
+import com.github.zzave.teambalance.api.domain.model.SchemaName
 import com.github.zzave.teambalance.api.domain.model.Slug
 import com.github.zzave.teambalance.api.domain.model.TeamId
 import com.github.zzave.teambalance.api.domain.model.TeamMember
@@ -90,7 +91,7 @@ private class FakeMagicLinkTokenRepository : MagicLinkTokenRepository {
 }
 
 private class FakeTeamRepository : TeamRepository {
-    override fun findAllSchemaNames() = emptyList<String>()
+    override fun findAllSchemaNames() = emptyList<SchemaName>()
     override fun existsBySlug(slug: Slug) = false
     override fun findByUserId(userId: UUID): TeamSummary? = null
 }
@@ -119,7 +120,7 @@ class AuthServiceTest : FunSpec() {
             email = Email("session@test.com"),
             displayName = DisplayName("Session"),
         )
-        val routing = TenantRouting(teamId = TeamId(UUID.randomUUID()), schemaName = "team_alpha")
+        val routing = TenantRouting(teamId = TeamId(UUID.randomUUID()), schemaName = SchemaName("team_alpha"))
 
         fun serviceWith(
             gateway: AuthSessionGateway,

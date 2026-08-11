@@ -9,6 +9,7 @@ import com.github.zzave.teambalance.api.domain.model.DisplayName
 import com.github.zzave.teambalance.api.domain.model.Email
 import com.github.zzave.teambalance.api.domain.model.PositionId
 import com.github.zzave.teambalance.api.domain.model.Role
+import com.github.zzave.teambalance.api.domain.model.SchemaName
 import com.github.zzave.teambalance.api.domain.model.Slug
 import com.github.zzave.teambalance.api.domain.model.TeamCreationCode
 import com.github.zzave.teambalance.api.domain.model.TeamId
@@ -58,7 +59,7 @@ private class FakeMemberRepo(private val existingTeam: TeamId?) : TeamMemberRepo
 }
 
 private class FakeTeamRepo(private val existingSlugs: Set<Slug> = emptySet()) : TeamRepository {
-    override fun findAllSchemaNames(): List<String> = emptyList()
+    override fun findAllSchemaNames(): List<SchemaName> = emptyList()
     override fun existsBySlug(slug: Slug): Boolean = slug in existingSlugs
     override fun findByUserId(userId: UUID): TeamSummary? = null
 }
@@ -76,7 +77,7 @@ private class FakeCodeRepo(private val redeemable: Boolean) : TeamCreationCodeRe
 // (provision-first) as well as whether each step ran at all.
 private class RecordingProvisioner(private val calls: MutableList<String>, private val fail: Boolean = false) :
     TenantProvisioningGateway {
-    override fun provisionTenant(schemaName: String) {
+    override fun provisionTenant(schemaName: SchemaName) {
         if (fail) throw IllegalStateException("provision boom")
         calls += "provision:$schemaName"
     }
@@ -91,7 +92,7 @@ private class RecordingRegistrar(
         founderId: UUID,
         name: TeamName,
         slug: Slug,
-        schemaName: String,
+        schemaName: SchemaName,
         now: Instant,
     ): UUID {
         calls += "register:$slug"

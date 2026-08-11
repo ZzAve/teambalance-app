@@ -1,5 +1,6 @@
 package com.github.zzave.teambalance.api.domain.port
 
+import com.github.zzave.teambalance.api.domain.model.SchemaName
 import com.github.zzave.teambalance.api.domain.model.Slug
 import com.github.zzave.teambalance.api.domain.model.TeamSummary
 import java.util.UUID
@@ -11,7 +12,7 @@ import java.util.UUID
  */
 interface TeamRepository {
     /** Schema names of all teams — the source of truth for which tenant schemas must exist. */
-    fun findAllSchemaNames(): List<String>
+    fun findAllSchemaNames(): List<SchemaName>
 
     /**
      * True if a team with this [slug] already exists. A best-effort pre-check so create-team can reject

@@ -10,7 +10,7 @@ data class Event(
     val description: EventDescription?,
     val startTime: Instant,
     val endTime: Instant,
-    val location: String?,
+    val location: EventLocation?,
     val references: List<EventReference> = emptyList(),
     val recurringGroup: UUID?,
     val createdBy: UserId,

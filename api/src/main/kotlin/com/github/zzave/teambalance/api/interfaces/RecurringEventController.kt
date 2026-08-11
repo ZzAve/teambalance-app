@@ -3,6 +3,7 @@ package com.github.zzave.teambalance.api.interfaces
 import com.github.zzave.teambalance.api.application.AttendanceService
 import com.github.zzave.teambalance.api.application.EventService
 import com.github.zzave.teambalance.api.domain.model.EventDescription
+import com.github.zzave.teambalance.api.domain.model.EventLocation
 import com.github.zzave.teambalance.api.domain.model.Recurrence
 import com.github.zzave.teambalance.api.domain.model.RecurrenceFrequency as DomainRecurrenceFrequency
 import com.github.zzave.teambalance.api.domain.port.CurrentTeamGateway
@@ -38,7 +39,7 @@ class RecurringEventController(
             eventTypeId = body.eventTypeId.consumeEventTypeId(),
             title = body.title.consumeEventTitle(),
             description = body.description?.let(::EventDescription),
-            location = body.location,
+            location = body.location?.let(::EventLocation),
             timeOfDay = LocalTime.parse(body.timeOfDay),
             durationMinutes = body.durationMinutes,
             references = body.references.internalize(),

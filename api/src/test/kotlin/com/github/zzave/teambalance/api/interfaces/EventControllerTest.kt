@@ -433,11 +433,13 @@ class EventControllerTest : TeamBalanceIT() {
             attendanceRows shouldBe 0L
         }
 
-        // Every other event test posts "description": null, so the NON-null branch of the free-text
-        // round trip was never exercised end to end. It is the branch the EventDescription value
-        // class touches: wrapped at the Wirespec edge, unwrapped at the JPA edge, and unwrapped again
-        // on the way back out — three conversions a refactor could silently drop to null.
-        test("POST then GET /api/events round-trips a non-null description verbatim") {
+        // Every other event test posts "description": null and "location": null, so the NON-null
+        // branch of the optional free-text round trip was never exercised end to end. It is the
+        // branch the EventDescription and EventLocation value classes touch: wrapped at the Wirespec
+        // edge, unwrapped at the JPA edge, and unwrapped again on the way back out — three
+        // conversions apiece that a refactor could silently drop to null. Both are asserted in one
+        // test because they are the same shape through the same three edges.
+        test("POST then GET /api/events round-trips a non-null description and location verbatim") {
             tenantSchemaAdapter.provisionPlatformSchema()
             tenantSchemaAdapter.provisionTenantSchema("public")
 
@@ -477,7 +479,7 @@ class EventControllerTest : TeamBalanceIT() {
                           "description": "Bring your own ball",
                           "startTime": "2026-08-01T20:00:00Z",
                           "endTime": "2026-08-01T22:00:00Z",
-                          "location": null
+                          "location": "Sporthal de Pijp"
                         }
                         """.trimIndent()
                     ),
@@ -488,14 +490,21 @@ class EventControllerTest : TeamBalanceIT() {
             mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(mvcResult))
                 .andExpect(MockMvcResultMatchers.status().isCreated)
                 .andExpect(MockMvcResultMatchers.jsonPath("$.description").value("Bring your own ball"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.location").value("Sporthal de Pijp"))
 
-            // The column still holds the plain string — the value class is internal only, so the
+            // The columns still hold the plain strings — the value classes are internal only, so the
             // persisted representation is unchanged.
             val stored = jdbcTemplate.queryForObject(
                 "SELECT description FROM public.events WHERE title = 'Described event'",
                 String::class.java,
             )
             stored shouldBe "Bring your own ball"
+
+            val storedLocation = jdbcTemplate.queryForObject(
+                "SELECT location FROM public.events WHERE title = 'Described event'",
+                String::class.java,
+            )
+            storedLocation shouldBe "Sporthal de Pijp"
 
             val eventId = jdbcTemplate.queryForObject(
                 "SELECT uuid FROM public.events WHERE title = 'Described event'",
@@ -512,6 +521,7 @@ class EventControllerTest : TeamBalanceIT() {
             mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(getResult))
                 .andExpect(MockMvcResultMatchers.status().isOk)
                 .andExpect(MockMvcResultMatchers.jsonPath("$.description").value("Bring your own ball"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.location").value("Sporthal de Pijp"))
         }
 
         test("POST /api/events by a user with no team membership is rejected, not silently defaulted") {

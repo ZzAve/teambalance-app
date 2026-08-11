@@ -7,6 +7,7 @@ import com.github.zzave.teambalance.api.domain.model.EventAttendance
 import com.github.zzave.teambalance.api.domain.model.EventDescription
 import com.github.zzave.teambalance.api.domain.model.EventReference as DomainEventReference
 import com.github.zzave.teambalance.api.domain.model.EventId
+import com.github.zzave.teambalance.api.domain.model.EventLocation
 import com.github.zzave.teambalance.api.domain.model.EventSeriesScope as DomainEventSeriesScope
 import com.github.zzave.teambalance.api.domain.model.EventTitle
 import com.github.zzave.teambalance.api.domain.port.CurrentTeamGateway
@@ -77,7 +78,7 @@ class EventController(
                 description = event.description?.value,
                 startTime = DateTimestampWithTimezone(event.startTime.toString()),
                 endTime = DateTimestampWithTimezone(event.endTime.toString()),
-                location = event.location,
+                location = event.location?.value,
                 references = event.references.externalize(),
                 recurringGroup = event.recurringGroup?.toString(),
                 attendanceSummary = attendance.summary().produce(attendance.attendingRoleBreakdown()),
@@ -103,7 +104,7 @@ class EventController(
             description = req.description?.let(::EventDescription),
             startTime = Instant.parse(req.startTime.value),
             endTime = Instant.parse(req.endTime.value),
-            location = req.location,
+            location = req.location?.let(::EventLocation),
             references = req.references.internalize(),
         ) ?: return UpdateEvent.Response404(Unit)
 
@@ -139,10 +140,11 @@ internal fun String.consumeEventTitle(): EventTitle = EventTitle(this)
 
 internal fun EventTitle.produce(): String = value
 
-// EventDescription gets no such pair on purpose. Its conversion is a bare constructor reference with
-// nothing to centralise (`?.let(::EventDescription)` in, `?.value` out — the same way the JPA mapper
-// inlines it), and this file holds 10 top-level functions against detekt's stock TooManyFunctions
-// ceiling of 11, so a symmetric pair would push it to 12 and cost a suppression it does not earn.
+// EventDescription and EventLocation get no such pair on purpose. Each conversion is a bare
+// constructor reference with nothing to centralise (`?.let(::EventDescription)` in, `?.value` out —
+// the same way the JPA mapper inlines them), and this file holds 10 top-level functions against
+// detekt's stock TooManyFunctions ceiling of 11, so one symmetric pair would push it to 12 (and the
+// two pairs both optional free-text fields would want, to 14) for a suppression they do not earn.
 
 // A missing scope query param defaults to THIS (ADR-0014); otherwise it maps 1:1 to the domain enum.
 private fun GeneratedEventSeriesScope?.consume(): DomainEventSeriesScope = when (this) {
@@ -158,7 +160,7 @@ private fun com.github.zzave.teambalance.api.interfaces.generated.model.CreateEv
         description = description?.let(::EventDescription),
         startTime = Instant.parse(startTime.value),
         endTime = Instant.parse(endTime.value),
-        location = location,
+        location = location?.let(::EventLocation),
         references = references.internalize(),
     )
 
@@ -182,7 +184,7 @@ internal fun com.github.zzave.teambalance.api.domain.model.Event.produce(attenda
         description = description?.value,
         startTime = DateTimestampWithTimezone(startTime.toString()),
         endTime = DateTimestampWithTimezone(endTime.toString()),
-        location = location,
+        location = location?.value,
         references = references.externalize(),
         recurringGroup = recurringGroup?.toString(),
         attendanceSummary = attendance.summary().produce(attendance.attendingRoleBreakdown()),

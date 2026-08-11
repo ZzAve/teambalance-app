@@ -7,6 +7,7 @@ import com.github.zzave.teambalance.api.domain.model.Event
 import com.github.zzave.teambalance.api.domain.model.EventDescription
 import com.github.zzave.teambalance.api.domain.model.EventEdit
 import com.github.zzave.teambalance.api.domain.model.EventId
+import com.github.zzave.teambalance.api.domain.model.EventLocation
 import com.github.zzave.teambalance.api.domain.model.EventTitle
 import com.github.zzave.teambalance.api.domain.model.EventTypeId
 import com.github.zzave.teambalance.api.domain.model.EventReference
@@ -116,7 +117,7 @@ class EventService(
         eventTypeId: EventTypeId,
         title: EventTitle,
         description: EventDescription?,
-        location: String?,
+        location: EventLocation?,
         timeOfDay: LocalTime,
         durationMinutes: Long,
         references: List<EventReference>,
@@ -192,7 +193,7 @@ class EventService(
         description: EventDescription?,
         startTime: Instant,
         endTime: Instant,
-        location: String?,
+        location: EventLocation?,
         references: List<EventReference> = emptyList(),
     ): List<Event>? {
         authorizationService.requireAdmin(callerId, teamId)

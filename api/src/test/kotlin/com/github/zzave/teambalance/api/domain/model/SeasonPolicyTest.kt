@@ -40,7 +40,7 @@ class SeasonPolicyTest : FunSpec({
             description = null,
             startTime = start,
             endTime = start.plus(Duration.ofMinutes(90)),
-            location = "Gym",
+            location = EventLocation("Gym"),
             references = emptyList(),
             recurringGroup = group,
             createdBy = UserId.random(),

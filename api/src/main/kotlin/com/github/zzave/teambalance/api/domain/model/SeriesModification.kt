@@ -17,7 +17,7 @@ data class EventEdit(
     val eventType: EventType,
     val title: EventTitle,
     val description: EventDescription?,
-    val location: String?,
+    val location: EventLocation?,
     val references: List<EventReference>,
     val startTime: Instant,
     val endTime: Instant,

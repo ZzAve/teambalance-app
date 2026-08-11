@@ -5,7 +5,7 @@ import com.github.zzave.teambalance.api.domain.exception.InvalidTeamNameExceptio
 
 /** A validated team name with its user-chosen URL slug and the derived tenant schema identifier. */
 data class TeamNames(
-    val name: String,
+    val name: TeamName,
     val slug: String,
     val schemaName: String,
 )
@@ -41,7 +41,9 @@ object TeamNaming {
         return TeamNames(name = name, slug = slug, schemaName = schemaName)
     }
 
-    private fun validatedName(rawName: String): String {
+    // The name's three clauses stay together here rather than moving onto [TeamName]: they are one
+    // rule set (trim, then non-blank, then the column cap) raising one typed failure. See TeamName.
+    private fun validatedName(rawName: String): TeamName {
         val name = rawName.trim()
         if (name.isBlank()) {
             throw InvalidTeamNameException("Team name must not be blank")
@@ -49,7 +51,7 @@ object TeamNaming {
         if (name.length > MAX_NAME_LENGTH) {
             throw InvalidTeamNameException("Team name must be at most $MAX_NAME_LENGTH characters")
         }
-        return name
+        return TeamName(name)
     }
 
     private fun validatedSlug(rawSlug: String): String {

@@ -1,5 +1,6 @@
 package com.github.zzave.teambalance.api.infrastructure.persistence
 
+import com.github.zzave.teambalance.api.domain.model.TeamName
 import com.github.zzave.teambalance.api.domain.model.TeamSummary
 import com.github.zzave.teambalance.api.domain.port.TeamRepository
 import org.springframework.jdbc.core.JdbcTemplate
@@ -35,7 +36,7 @@ class JdbcTeamRepositoryAdapter(
             { rs, _ ->
                 TeamSummary(
                     id = rs.getObject("id", UUID::class.java),
-                    name = rs.getString("name"),
+                    name = TeamName(rs.getString("name")),
                     slug = rs.getString("slug"),
                 )
             },

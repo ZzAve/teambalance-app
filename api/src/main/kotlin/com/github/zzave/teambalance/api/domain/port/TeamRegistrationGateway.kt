@@ -1,5 +1,6 @@
 package com.github.zzave.teambalance.api.domain.port
 
+import com.github.zzave.teambalance.api.domain.model.TeamName
 import java.time.Instant
 import java.util.UUID
 
@@ -24,7 +25,7 @@ interface TeamRegistrationGateway {
     fun register(
         creationCode: String,
         founderId: UUID,
-        name: String,
+        name: TeamName,
         slug: String,
         schemaName: String,
         now: Instant,

@@ -11,6 +11,7 @@ import com.github.zzave.teambalance.api.domain.model.PositionId
 import com.github.zzave.teambalance.api.domain.model.Role
 import com.github.zzave.teambalance.api.domain.model.TeamCreationCode
 import com.github.zzave.teambalance.api.domain.model.TeamId
+import com.github.zzave.teambalance.api.domain.model.TeamName
 import com.github.zzave.teambalance.api.domain.model.TenantRouting
 import com.github.zzave.teambalance.api.domain.model.TeamMember
 import com.github.zzave.teambalance.api.domain.model.TeamSummary
@@ -87,7 +88,7 @@ private class RecordingRegistrar(
     override fun register(
         creationCode: String,
         founderId: UUID,
-        name: String,
+        name: TeamName,
         slug: String,
         schemaName: String,
         now: Instant,
@@ -147,7 +148,7 @@ class TeamServiceTest : FunSpec() {
             val created = service(calls).createTeam(founder, "Setpoint VT", "setpoint-vt", "GOODCODE")
 
             created.id shouldBe newTeamId
-            created.name shouldBe "Setpoint VT"
+            created.name shouldBe TeamName("Setpoint VT")
             created.slug shouldBe "setpoint-vt"
             // Provision-first: the schema is created before the atomic register commits.
             calls shouldContainExactly listOf("provision:team_setpoint_vt", "register:setpoint-vt")

@@ -3,6 +3,7 @@ package com.github.zzave.teambalance.api.infrastructure.persistence
 import com.github.zzave.teambalance.api.domain.exception.InvalidCreationCodeException
 import com.github.zzave.teambalance.api.domain.exception.TeamSlugTakenException
 import com.github.zzave.teambalance.api.domain.model.Role
+import com.github.zzave.teambalance.api.domain.model.TeamName
 import com.github.zzave.teambalance.api.domain.port.TeamRegistrationGateway
 import org.springframework.dao.DuplicateKeyException
 import org.springframework.jdbc.core.JdbcTemplate
@@ -30,7 +31,7 @@ class JdbcTeamRegistrationAdapter(
     override fun register(
         creationCode: String,
         founderId: UUID,
-        name: String,
+        name: TeamName,
         slug: String,
         schemaName: String,
         now: Instant,
@@ -82,12 +83,12 @@ class JdbcTeamRegistrationAdapter(
     // the slug / schema_name UNIQUE constraint tripped because a team was created under this name in
     // the window after the pre-check. The driver-level cause carries no caller-actionable detail.
     @Suppress("SwallowedException")
-    private fun insertTeam(name: String, slug: String, schemaName: String): UUID =
+    private fun insertTeam(name: TeamName, slug: String, schemaName: String): UUID =
         try {
             jdbcTemplate.queryForObject(
                 "INSERT INTO public.teams (name, slug, schema_name) VALUES (?, ?, ?) RETURNING id",
                 UUID::class.java,
-                name,
+                name.value,
                 slug,
                 schemaName,
             )!!

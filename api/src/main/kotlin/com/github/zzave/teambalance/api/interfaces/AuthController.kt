@@ -66,7 +66,7 @@ class AuthController(
     // dependency of its own (ADR-0018). v1: one team per user.
     private fun resolveTeam(userId: UserId): TeamRef? =
         authService.findTeamFor(userId)
-            ?.let { TeamRef(id = it.id.toString(), name = it.name, slug = it.slug) }
+            ?.let { TeamRef(id = it.id.toString(), name = it.name.value, slug = it.slug) }
 }
 
 // The Wirespec edge for a user's identity — the contract, and the session attribute the auth filter

@@ -1,6 +1,8 @@
 package com.github.zzave.teambalance.api.interfaces
 
 import com.github.zzave.teambalance.api.TeamBalanceIT
+import com.github.zzave.teambalance.api.domain.model.TeamName
+import com.github.zzave.teambalance.api.domain.port.TeamRepository
 import com.github.zzave.teambalance.api.infrastructure.multitenancy.TenantSchemaAdapter
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
@@ -27,6 +29,9 @@ class CreateTeamControllerIT : TeamBalanceIT() {
 
     @Autowired
     lateinit var tenantSchemaAdapter: TenantSchemaAdapter
+
+    @Autowired
+    lateinit var teamRepository: TeamRepository
 
     private fun seedUser(id: String, email: String) {
         tenantSchemaAdapter.provisionPlatformSchema()
@@ -130,6 +135,21 @@ class CreateTeamControllerIT : TeamBalanceIT() {
                 schema,
             )
             createdTeamId shouldBe teamId
+
+            // The write edge: the DTO above says "Create IT Happy", this proves that is also what
+            // landed in the raw public.teams.name column — i.e. the name reaches SQL as a bare string.
+            jdbcTemplate.queryForObject(
+                "SELECT name FROM public.teams WHERE schema_name = ?",
+                String::class.java,
+                schema,
+            ) shouldBe "Create IT Happy"
+
+            // The read edge, the other direction: the same row mapped back through the port that
+            // powers /auth/me's has-a-team signal. Nothing asserted this mapping before.
+            val summary = teamRepository.findByUserId(UUID.fromString(founder)).shouldNotBeNull()
+            summary.id shouldBe UUID.fromString(teamId!!)
+            summary.name shouldBe TeamName("Create IT Happy")
+            summary.slug shouldBe "create-it-happy"
         }
 
         test("a consumed code cannot be reused — second use returns opaque 403") {

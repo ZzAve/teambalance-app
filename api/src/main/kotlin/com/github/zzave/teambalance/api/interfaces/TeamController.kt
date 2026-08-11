@@ -35,6 +35,6 @@ class TeamController(
 
 private fun CreatedTeam.toDto() = Team(
     id = id.toString(),
-    name = name,
+    name = name.value,
     slug = slug,
 )

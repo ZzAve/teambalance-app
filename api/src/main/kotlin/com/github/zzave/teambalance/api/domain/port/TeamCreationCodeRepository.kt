@@ -1,5 +1,6 @@
 package com.github.zzave.teambalance.api.domain.port
 
+import com.github.zzave.teambalance.api.domain.model.CreationCode
 import com.github.zzave.teambalance.api.domain.model.TeamCreationCode
 import java.time.Instant
 
@@ -16,17 +17,17 @@ interface TeamCreationCodeRepository {
      * provisioning a schema, so bad-code spam can't accrete orphan schemas. The authoritative,
      * race-free check is the conditional UPDATE in [TeamRegistrationGateway.register].
      */
-    fun isRedeemable(code: String, now: Instant): Boolean
+    fun isRedeemable(code: CreationCode, now: Instant): Boolean
 
     /** Every code, newest-created first — the codes-admin list view. */
     fun findAll(): List<TeamCreationCode>
 
     /** The code with this value, or null if none exists. */
-    fun findByCode(code: String): TeamCreationCode?
+    fun findByCode(code: CreationCode): TeamCreationCode?
 
     /** Inserts a fresh, unconsumed code and returns it. [expiresAt] null = never expires. */
-    fun insert(code: String, createdAt: Instant, expiresAt: Instant?): TeamCreationCode
+    fun insert(code: CreationCode, createdAt: Instant, expiresAt: Instant?): TeamCreationCode
 
     /** Removes the code with this value. No-op if it does not exist. */
-    fun delete(code: String)
+    fun delete(code: CreationCode)
 }

@@ -2,6 +2,7 @@ package com.github.zzave.teambalance.api.infrastructure.persistence
 
 import com.github.zzave.teambalance.api.domain.exception.InvalidCreationCodeException
 import com.github.zzave.teambalance.api.domain.exception.TeamSlugTakenException
+import com.github.zzave.teambalance.api.domain.model.CreationCode
 import com.github.zzave.teambalance.api.domain.model.Role
 import com.github.zzave.teambalance.api.domain.model.SchemaName
 import com.github.zzave.teambalance.api.domain.model.Slug
@@ -31,7 +32,7 @@ class JdbcTeamRegistrationAdapter(
 
     @Transactional
     override fun register(
-        creationCode: String,
+        creationCode: CreationCode,
         founderId: UUID,
         name: TeamName,
         slug: Slug,
@@ -52,7 +53,7 @@ class JdbcTeamRegistrationAdapter(
             """.trimIndent(),
             at,
             founderId,
-            creationCode,
+            creationCode.value,
             at,
         )
         if (consumed != 1) {
@@ -66,7 +67,7 @@ class JdbcTeamRegistrationAdapter(
         jdbcTemplate.update(
             "UPDATE public.team_creation_codes SET created_team_id = ? WHERE code = ?",
             teamId,
-            creationCode,
+            creationCode.value,
         )
 
         // Founding admin: ADMIN role, onboarding already complete (skips /welcome), no position yet.

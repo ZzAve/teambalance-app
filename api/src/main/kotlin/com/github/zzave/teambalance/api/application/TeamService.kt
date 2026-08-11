@@ -3,6 +3,7 @@ package com.github.zzave.teambalance.api.application
 import com.github.zzave.teambalance.api.domain.exception.AlreadyInTeamException
 import com.github.zzave.teambalance.api.domain.exception.InvalidCreationCodeException
 import com.github.zzave.teambalance.api.domain.exception.TeamSlugTakenException
+import com.github.zzave.teambalance.api.domain.model.CreationCode
 import com.github.zzave.teambalance.api.domain.model.Slug
 import com.github.zzave.teambalance.api.domain.model.TeamName
 import com.github.zzave.teambalance.api.domain.model.TeamNaming
@@ -49,7 +50,7 @@ class TeamService(
 ) {
     private val log = LoggerFactory.getLogger(TeamService::class.java)
 
-    fun createTeam(founderId: UserId, rawName: String, rawSlug: String, creationCode: String): CreatedTeam {
+    fun createTeam(founderId: UserId, rawName: String, rawSlug: String, creationCode: CreationCode): CreatedTeam {
         requireTeamless(founderId)
         val names = TeamNaming.validate(rawName, rawSlug)
         requireSlugAvailable(names.slug)
@@ -87,7 +88,7 @@ class TeamService(
         }
     }
 
-    private fun requireRedeemable(creationCode: String, now: Instant) {
+    private fun requireRedeemable(creationCode: CreationCode, now: Instant) {
         if (!creationCodeRepository.isRedeemable(creationCode, now)) {
             throw InvalidCreationCodeException()
         }

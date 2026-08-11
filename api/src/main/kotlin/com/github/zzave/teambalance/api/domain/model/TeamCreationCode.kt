@@ -12,7 +12,7 @@ import java.util.UUID
  * [createdTeamId] records which team the code produced once redeemed (null until then).
  */
 data class TeamCreationCode(
-    val code: String,
+    val code: CreationCode,
     val createdAt: Instant,
     val expiresAt: Instant?,
     val consumedAt: Instant?,

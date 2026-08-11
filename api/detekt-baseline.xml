@@ -5,7 +5,6 @@
     <ID>DomainNoPrimitiveObsession:TeamCreationCode.kt:TeamCreationCode$val code: String</ID>
     <ID>DomainNoPrimitiveObsession:TeamMember.kt:TeamMember$val displayName: String</ID>
     <ID>DomainNoPrimitiveObsession:TeamMember.kt:TeamMember$val onboarded: Boolean</ID>
-    <ID>DomainNoPrimitiveObsession:TeamMember.kt:TeamMember$val position: String?</ID>
     <ID>DomainNoPrimitiveObsession:TeamMember.kt:TeamMember$val role: String</ID>
     <ID>DomainNoPrimitiveObsession:TeamNaming.kt:TeamNames$val name: String</ID>
     <ID>DomainNoPrimitiveObsession:TeamNaming.kt:TeamNames$val schemaName: String</ID>

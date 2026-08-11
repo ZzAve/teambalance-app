@@ -75,6 +75,51 @@ class AttendanceControllerTest : TeamBalanceIT() {
             queryChangedBy(eventId, JAN_USER_ID) shouldBe UUID.fromString(JAN_USER_ID)
         }
 
+        test("PUT /api/events/{id}/attendances/{userId} reports an unpositioned member as Unassigned") {
+            tenantSchemaAdapter.provisionPlatformSchema()
+            tenantSchemaAdapter.provisionTenantSchema("public")
+
+            // A member deliberately given NO position (null label) — the response falls back to the
+            // Unassigned bucket, the same one the event payloads use.
+            val noPositionUserId = "b0000000-0000-0000-0000-0000000000b3"
+            jdbcTemplate.execute("""
+                INSERT INTO public.teams (id, name, slug, schema_name)
+                VALUES ('$TEAM_ID'::uuid, 'Test Team 2', 'test-team-2', 'public')
+                ON CONFLICT DO NOTHING
+            """)
+            jdbcTemplate.execute("""
+                INSERT INTO public.users (id, email, display_name)
+                VALUES ('$noPositionUserId'::uuid, 'nopos2@test.com', 'No Position')
+                ON CONFLICT DO NOTHING
+            """)
+            jdbcTemplate.execute(
+                "SELECT public.tb_add_member('$TEAM_ID'::uuid, '$noPositionUserId'::uuid, 'USER', NULL)",
+            )
+
+            val eventId = UUID.randomUUID()
+            jdbcTemplate.execute("""
+                INSERT INTO public.events (uuid, event_type_id, title, start_time, end_time, created_by, created_at, updated_at)
+                VALUES ('$eventId'::uuid,
+                    (SELECT id FROM public.event_types WHERE name = 'Training'),
+                    'Unassigned Responder', '2026-07-01 20:00:00+00', '2026-07-01 22:00:00+00',
+                    '$noPositionUserId'::uuid, now(), now())
+            """)
+
+            val mvcResult = mockMvc.perform(
+                MockMvcRequestBuilders.put("/api/events/$eventId/attendances/$noPositionUserId")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"state":"ATTENDING"}""")
+                    .header("X-Team-Id", "public")
+                    .header("X-User-Id", noPositionUserId),
+            )
+                .andExpect(MockMvcResultMatchers.request().asyncStarted())
+                .andReturn()
+
+            mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(mvcResult))
+                .andExpect(MockMvcResultMatchers.status().isOk)
+                .andExpect(MockMvcResultMatchers.jsonPath("$.role").value("Unassigned"))
+        }
+
         test("PUT twice updates the existing attendance row instead of duplicating it") {
             tenantSchemaAdapter.provisionPlatformSchema()
             tenantSchemaAdapter.provisionTenantSchema("public")

@@ -20,7 +20,7 @@ class EventAttendanceTest : FunSpec({
         displayName = name,
         role = "USER",
         positionId = null,
-        position = position,
+        position = position?.let(::PositionLabel),
         onboarded = true,
     )
 
@@ -94,8 +94,8 @@ class EventAttendanceTest : FunSpec({
         )
 
         projection.attendingRoleBreakdown() shouldBe listOf(
-            "Setter" to 2,
-            "Libero" to 1,
+            PositionLabel("Setter") to 2,
+            PositionLabel("Libero") to 1,
             UNASSIGNED to 1,
         )
     }

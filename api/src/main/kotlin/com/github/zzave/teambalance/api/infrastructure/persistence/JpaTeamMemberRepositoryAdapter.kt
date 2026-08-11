@@ -1,6 +1,7 @@
 package com.github.zzave.teambalance.api.infrastructure.persistence
 
 import com.github.zzave.teambalance.api.domain.model.PositionId
+import com.github.zzave.teambalance.api.domain.model.PositionLabel
 import com.github.zzave.teambalance.api.domain.model.Role
 import com.github.zzave.teambalance.api.domain.model.TeamId
 import com.github.zzave.teambalance.api.domain.model.TeamMember
@@ -45,7 +46,7 @@ class JpaTeamMemberRepositoryAdapter(
         displayName = getDisplayName(),
         role = getPermissionRole(),
         positionId = getPositionId()?.let { PositionId(UUID.fromString(it)) },
-        position = getPosition(),
+        position = getPosition()?.let(::PositionLabel),
         onboarded = getOnboarded(),
     )
 

@@ -4,6 +4,7 @@ import com.github.zzave.teambalance.api.application.AttendanceService
 import com.github.zzave.teambalance.api.domain.model.AttendanceId
 import com.github.zzave.teambalance.api.domain.model.AttendanceState
 import com.github.zzave.teambalance.api.domain.model.MemberAttendance
+import com.github.zzave.teambalance.api.domain.model.PositionLabel
 import com.github.zzave.teambalance.api.domain.model.UNASSIGNED
 import com.github.zzave.teambalance.api.domain.port.CurrentTeamGateway
 import com.github.zzave.teambalance.api.domain.port.CurrentUserGateway
@@ -44,7 +45,7 @@ class AttendanceController(
                 eventId = attendance.eventId.produce(),
                 userId = attendance.userId.produce(),
                 displayName = member?.displayName ?: "Unknown",
-                role = member?.position ?: UNASSIGNED,
+                role = (member?.position ?: UNASSIGNED).value,
                 state = attendance.state.name,
             )
         )
@@ -63,17 +64,19 @@ internal fun MemberAttendance.produce() = AttendanceEntry(
     id = responseId?.produce() ?: member.userId.produce(),
     userId = member.userId.produce(),
     displayName = member.displayName,
-    role = member.position ?: UNASSIGNED,
+    role = (member.position ?: UNASSIGNED).value,
     state = state.produce(),
 )
 
-internal fun Map<AttendanceState, Int>.produce(roleBreakdown: List<Pair<String, Int>>) =
+internal fun Map<AttendanceState, Int>.produce(roleBreakdown: List<Pair<PositionLabel, Int>>) =
     AttendanceSummary(
         attending = (this[AttendanceState.ATTENDING] ?: 0).toLong(),
         maybe = (this[AttendanceState.MAYBE] ?: 0).toLong(),
         absent = (this[AttendanceState.ABSENT] ?: 0).toLong(),
         notResponded = (this[AttendanceState.NOT_RESPONDED] ?: 0).toLong(),
-        roleBreakdown = roleBreakdown.map { (role, count) -> RoleCount(role = role, attending = count.toLong()) },
+        roleBreakdown = roleBreakdown.map { (role, count) ->
+            RoleCount(role = role.value, attending = count.toLong())
+        },
     )
 
 internal fun AttendanceState.produce() = GeneratedAttendanceState.valueOf(name)

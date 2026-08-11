@@ -81,6 +81,6 @@ private fun TeamMember.toDto() = Member(
     userId = userId.produce(),
     displayName = displayName,
     role = role,
-    position = positionId?.let { Position(id = it.produce(), label = position ?: "") },
+    position = positionId?.let { Position(id = it.produce(), label = position?.value ?: "") },
     onboarded = onboarded,
 )

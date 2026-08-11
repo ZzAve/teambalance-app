@@ -2,7 +2,12 @@
 <SmellBaseline>
   <ManuallySuppressedIssues/>
   <CurrentIssues>
-    <ID>DomainNoPrimitiveObsession:TeamMember.kt:TeamMember$val onboarded: Boolean</ID>
+    <!-- TeamMember.role is the last entry. It is NOT a display string and NOT an
+         exemption: it is a closed set of values that becomes a Role enum in #26, so
+         wrapping it as a value class here would be work thrown away. Baselined (not
+         rule-configured) deliberately, because the baseline is per-property and
+         self-tightening: any NEW primitive added to TeamMember still fails the build.
+         Delete this entry — and the file — when #26 lands. See ADR-0018 / #207 / #24. -->
     <ID>DomainNoPrimitiveObsession:TeamMember.kt:TeamMember$val role: String</ID>
   </CurrentIssues>
 </SmellBaseline>

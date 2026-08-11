@@ -1,5 +1,6 @@
 package com.github.zzave.teambalance.api.application
 
+import com.github.zzave.teambalance.api.domain.model.EventDescription
 import com.github.zzave.teambalance.api.domain.model.EventReference
 import com.github.zzave.teambalance.api.domain.model.EventTitle
 import com.github.zzave.teambalance.api.domain.model.EventTypeId
@@ -9,7 +10,7 @@ import java.util.UUID
 data class PotentialEvent(
     val eventTypeId: EventTypeId,
     val title: EventTitle,
-    val description: String?,
+    val description: EventDescription?,
     val startTime: Instant,
     val endTime: Instant,
     val location: String?,

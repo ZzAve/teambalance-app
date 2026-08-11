@@ -4,6 +4,7 @@ import com.github.zzave.teambalance.api.application.AttendanceService
 import com.github.zzave.teambalance.api.application.EventService
 import com.github.zzave.teambalance.api.application.PotentialEvent
 import com.github.zzave.teambalance.api.domain.model.EventAttendance
+import com.github.zzave.teambalance.api.domain.model.EventDescription
 import com.github.zzave.teambalance.api.domain.model.EventReference as DomainEventReference
 import com.github.zzave.teambalance.api.domain.model.EventId
 import com.github.zzave.teambalance.api.domain.model.EventSeriesScope as DomainEventSeriesScope
@@ -73,7 +74,7 @@ class EventController(
                 id = event.id.produce(),
                 eventType = event.eventType.produce(),
                 title = event.title.produce(),
-                description = event.description,
+                description = event.description?.value,
                 startTime = DateTimestampWithTimezone(event.startTime.toString()),
                 endTime = DateTimestampWithTimezone(event.endTime.toString()),
                 location = event.location,
@@ -99,7 +100,7 @@ class EventController(
             scope = request.queries.scope.consume(),
             eventTypeId = req.eventTypeId.consumeEventTypeId(),
             title = req.title.consumeEventTitle(),
-            description = req.description,
+            description = req.description?.let(::EventDescription),
             startTime = Instant.parse(req.startTime.value),
             endTime = Instant.parse(req.endTime.value),
             location = req.location,
@@ -138,6 +139,11 @@ internal fun String.consumeEventTitle(): EventTitle = EventTitle(this)
 
 internal fun EventTitle.produce(): String = value
 
+// EventDescription gets no such pair on purpose. Its conversion is a bare constructor reference with
+// nothing to centralise (`?.let(::EventDescription)` in, `?.value` out — the same way the JPA mapper
+// inlines it), and this file holds 10 top-level functions against detekt's stock TooManyFunctions
+// ceiling of 11, so a symmetric pair would push it to 12 and cost a suppression it does not earn.
+
 // A missing scope query param defaults to THIS (ADR-0014); otherwise it maps 1:1 to the domain enum.
 private fun GeneratedEventSeriesScope?.consume(): DomainEventSeriesScope = when (this) {
     null, GeneratedEventSeriesScope.THIS -> DomainEventSeriesScope.THIS
@@ -149,7 +155,7 @@ private fun com.github.zzave.teambalance.api.interfaces.generated.model.CreateEv
     PotentialEvent(
         eventTypeId = eventTypeId.consumeEventTypeId(),
         title = title.consumeEventTitle(),
-        description = description,
+        description = description?.let(::EventDescription),
         startTime = Instant.parse(startTime.value),
         endTime = Instant.parse(endTime.value),
         location = location,
@@ -173,7 +179,7 @@ internal fun com.github.zzave.teambalance.api.domain.model.Event.produce(attenda
         id = id.produce(),
         eventType = eventType.produce(),
         title = title.produce(),
-        description = description,
+        description = description?.value,
         startTime = DateTimestampWithTimezone(startTime.toString()),
         endTime = DateTimestampWithTimezone(endTime.toString()),
         location = location,

@@ -4,6 +4,7 @@ import com.github.zzave.teambalance.api.domain.exception.EmptyRecurrenceExceptio
 import com.github.zzave.teambalance.api.domain.exception.EventTypeNotFoundException
 import com.github.zzave.teambalance.api.domain.exception.RecurrenceExceedsCapException
 import com.github.zzave.teambalance.api.domain.model.Event
+import com.github.zzave.teambalance.api.domain.model.EventDescription
 import com.github.zzave.teambalance.api.domain.model.EventEdit
 import com.github.zzave.teambalance.api.domain.model.EventId
 import com.github.zzave.teambalance.api.domain.model.EventTitle
@@ -114,7 +115,7 @@ class EventService(
         teamId: TeamId,
         eventTypeId: EventTypeId,
         title: EventTitle,
-        description: String?,
+        description: EventDescription?,
         location: String?,
         timeOfDay: LocalTime,
         durationMinutes: Long,
@@ -188,7 +189,7 @@ class EventService(
         scope: EventSeriesScope,
         eventTypeId: EventTypeId,
         title: EventTitle,
-        description: String?,
+        description: EventDescription?,
         startTime: Instant,
         endTime: Instant,
         location: String?,

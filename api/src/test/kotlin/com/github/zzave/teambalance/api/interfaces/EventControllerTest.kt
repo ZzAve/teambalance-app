@@ -433,6 +433,87 @@ class EventControllerTest : TeamBalanceIT() {
             attendanceRows shouldBe 0L
         }
 
+        // Every other event test posts "description": null, so the NON-null branch of the free-text
+        // round trip was never exercised end to end. It is the branch the EventDescription value
+        // class touches: wrapped at the Wirespec edge, unwrapped at the JPA edge, and unwrapped again
+        // on the way back out — three conversions a refactor could silently drop to null.
+        test("POST then GET /api/events round-trips a non-null description verbatim") {
+            tenantSchemaAdapter.provisionPlatformSchema()
+            tenantSchemaAdapter.provisionTenantSchema("public")
+
+            jdbcTemplate.execute(
+                """
+                INSERT INTO public.teams (id, name, slug, schema_name)
+                VALUES ('$TEAM_ID'::uuid, 'Test Team', 'test-team', 'public')
+                ON CONFLICT DO NOTHING
+            """
+            )
+            jdbcTemplate.execute(
+                """
+                INSERT INTO public.users (id, email, display_name)
+                VALUES ('$JAN_USER_ID'::uuid, 'jan@test.com', 'Jan de Vries')
+                ON CONFLICT DO NOTHING
+            """
+            )
+            jdbcTemplate.execute(
+                "SELECT public.tb_add_member('$TEAM_ID'::uuid, '$JAN_USER_ID'::uuid, 'ADMIN', 'Setter')"
+            )
+
+            val eventTypeId = jdbcTemplate.queryForObject(
+                "SELECT uuid FROM public.event_types WHERE name = 'Training'",
+                UUID::class.java,
+            )
+
+            val mvcResult = mockMvc.perform(
+                MockMvcRequestBuilders.post("/api/events")
+                    .header("X-Team-Id", "public")
+                    .header("X-User-Id", JAN_USER_ID)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(
+                        """
+                        {
+                          "eventTypeId": "$eventTypeId",
+                          "title": "Described event",
+                          "description": "Bring your own ball",
+                          "startTime": "2026-08-01T20:00:00Z",
+                          "endTime": "2026-08-01T22:00:00Z",
+                          "location": null
+                        }
+                        """.trimIndent()
+                    ),
+            )
+                .andExpect(MockMvcResultMatchers.request().asyncStarted())
+                .andReturn()
+
+            mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(mvcResult))
+                .andExpect(MockMvcResultMatchers.status().isCreated)
+                .andExpect(MockMvcResultMatchers.jsonPath("$.description").value("Bring your own ball"))
+
+            // The column still holds the plain string — the value class is internal only, so the
+            // persisted representation is unchanged.
+            val stored = jdbcTemplate.queryForObject(
+                "SELECT description FROM public.events WHERE title = 'Described event'",
+                String::class.java,
+            )
+            stored shouldBe "Bring your own ball"
+
+            val eventId = jdbcTemplate.queryForObject(
+                "SELECT uuid FROM public.events WHERE title = 'Described event'",
+                UUID::class.java,
+            )
+            val getResult = mockMvc.perform(
+                MockMvcRequestBuilders.get("/api/events/$eventId")
+                    .header("X-Team-Id", "public")
+                    .header("X-User-Id", JAN_USER_ID),
+            )
+                .andExpect(MockMvcResultMatchers.request().asyncStarted())
+                .andReturn()
+
+            mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(getResult))
+                .andExpect(MockMvcResultMatchers.status().isOk)
+                .andExpect(MockMvcResultMatchers.jsonPath("$.description").value("Bring your own ball"))
+        }
+
         test("POST /api/events by a user with no team membership is rejected, not silently defaulted") {
             tenantSchemaAdapter.provisionPlatformSchema()
             tenantSchemaAdapter.provisionTenantSchema("public")

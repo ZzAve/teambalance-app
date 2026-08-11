@@ -1,6 +1,7 @@
 package com.github.zzave.teambalance.api.infrastructure.persistence.mapper
 
 import com.github.zzave.teambalance.api.domain.model.Event
+import com.github.zzave.teambalance.api.domain.model.EventDescription
 import com.github.zzave.teambalance.api.domain.model.EventId
 import com.github.zzave.teambalance.api.domain.model.EventReference
 import com.github.zzave.teambalance.api.domain.model.EventTitle
@@ -13,7 +14,7 @@ fun EventJpaEntity.internalize() = Event(
     id = EventId(uuid),
     eventType = eventType.internalize(),
     title = EventTitle(title),
-    description = description,
+    description = description?.let(::EventDescription),
     startTime = startTime,
     endTime = endTime,
     location = location,
@@ -28,7 +29,7 @@ fun Event.externalize(eventTypeEntity: EventTypeJpaEntity, technicalId: Long = 0
     uuid = id.value,
     eventType = eventTypeEntity,
     title = title.value,
-    description = description,
+    description = description?.value,
     startTime = startTime,
     endTime = endTime,
     location = location,

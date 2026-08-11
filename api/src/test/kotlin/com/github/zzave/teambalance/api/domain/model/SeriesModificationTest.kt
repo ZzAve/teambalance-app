@@ -34,7 +34,7 @@ class SeriesModificationTest : FunSpec({
             id = EventId(UUID.nameUUIDFromBytes(date.toByteArray())),
             eventType = training,
             title = EventTitle("Weekly Training"),
-            description = "old",
+            description = EventDescription("old"),
             startTime = start,
             endTime = start.plus(Duration.ofMinutes(90)),
             location = "Gym",
@@ -59,7 +59,7 @@ class SeriesModificationTest : FunSpec({
         return EventEdit(
             eventType = match,
             title = EventTitle("Friendly Match"),
-            description = "new",
+            description = EventDescription("new"),
             location = "Sportcampus",
             references = emptyList(),
             startTime = start,

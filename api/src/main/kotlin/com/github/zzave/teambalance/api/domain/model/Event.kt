@@ -7,7 +7,7 @@ data class Event(
     val id: EventId,
     val eventType: EventType,
     val title: EventTitle,
-    val description: String?,
+    val description: EventDescription?,
     val startTime: Instant,
     val endTime: Instant,
     val location: String?,

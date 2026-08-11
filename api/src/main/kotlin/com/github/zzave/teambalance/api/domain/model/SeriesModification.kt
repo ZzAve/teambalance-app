@@ -16,7 +16,7 @@ import java.util.UUID
 data class EventEdit(
     val eventType: EventType,
     val title: EventTitle,
-    val description: String?,
+    val description: EventDescription?,
     val location: String?,
     val references: List<EventReference>,
     val startTime: Instant,

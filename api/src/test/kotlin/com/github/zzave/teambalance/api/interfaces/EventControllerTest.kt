@@ -95,6 +95,11 @@ class EventControllerTest : TeamBalanceIT() {
                 .andExpect(MockMvcResultMatchers.status().isOk)
                 // The roster is the whole team, so match Jan by id rather than assuming position 0.
                 .andExpect(MockMvcResultMatchers.jsonPath("$.attendances[?(@.userId=='$JAN_USER_ID')].role").value("Setter"))
+                // The member's name reaches the roster entry verbatim, straight from public.users.
+                .andExpect(
+                    MockMvcResultMatchers.jsonPath("$.attendances[?(@.userId=='$JAN_USER_ID')].displayName")
+                        .value("Jan de Vries"),
+                )
         }
 
         test("GET /api/events returns roleBreakdown per event in the list") {

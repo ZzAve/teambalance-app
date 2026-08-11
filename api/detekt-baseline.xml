@@ -3,7 +3,6 @@
   <ManuallySuppressedIssues/>
   <CurrentIssues>
     <ID>DomainNoPrimitiveObsession:TeamCreationCode.kt:TeamCreationCode$val code: String</ID>
-    <ID>DomainNoPrimitiveObsession:TeamMember.kt:TeamMember$val displayName: String</ID>
     <ID>DomainNoPrimitiveObsession:TeamMember.kt:TeamMember$val onboarded: Boolean</ID>
     <ID>DomainNoPrimitiveObsession:TeamMember.kt:TeamMember$val role: String</ID>
     <ID>DomainNoPrimitiveObsession:TeamNaming.kt:TeamNames$val name: String</ID>
@@ -14,6 +13,5 @@
     <ID>DomainNoPrimitiveObsession:TeamSummary.kt:TeamSummary$val name: String</ID>
     <ID>DomainNoPrimitiveObsession:TeamSummary.kt:TeamSummary$val slug: String</ID>
     <ID>DomainNoPrimitiveObsession:TenantRouting.kt:TenantRouting$val schemaName: String</ID>
-    <ID>DomainNoPrimitiveObsession:User.kt:User$val displayName: String</ID>
   </CurrentIssues>
 </SmellBaseline>

@@ -1,5 +1,6 @@
 package com.github.zzave.teambalance.api.domain.port
 
+import com.github.zzave.teambalance.api.domain.model.DisplayName
 import com.github.zzave.teambalance.api.domain.model.PositionId
 import com.github.zzave.teambalance.api.domain.model.Role
 import com.github.zzave.teambalance.api.domain.model.TeamId
@@ -14,7 +15,7 @@ import java.util.UUID
 @Suppress("TooManyFunctions")
 interface TeamMemberRepository {
     fun findByTeamId(teamId: TeamId): List<TeamMember>
-    fun findDisplayName(userId: UserId): String?
+    fun findDisplayName(userId: UserId): DisplayName?
     fun findMembersByUserIds(userIds: Set<UserId>): Map<UserId, TeamMember>
 
     /** The user's role on the team, or null if they have no active membership there. */
@@ -52,7 +53,7 @@ interface TeamMemberRepository {
     fun applyMemberEdit(
         teamId: TeamId,
         userId: UserId,
-        displayName: String,
+        displayName: DisplayName,
         role: Role,
         positionId: PositionId?,
         markOnboardedAt: Instant? = null,

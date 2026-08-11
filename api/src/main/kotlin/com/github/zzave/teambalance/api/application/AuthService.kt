@@ -1,5 +1,6 @@
 package com.github.zzave.teambalance.api.application
 
+import com.github.zzave.teambalance.api.domain.model.DisplayName
 import com.github.zzave.teambalance.api.domain.model.Email
 import com.github.zzave.teambalance.api.domain.model.MagicLinkToken
 import com.github.zzave.teambalance.api.domain.model.Role
@@ -97,7 +98,7 @@ class AuthService(
         // at magic-link signup, so derive a placeholder from the email for a first-time sign-in.
         return magicLinkTokenRepository.consumeAndResolveUser(
             consumedToken = record.copy(usedAt = now),
-            displayName = record.email.value.substringBefore("@"),
+            displayName = DisplayName(record.email.value.substringBefore("@")),
         )
     }
 

@@ -5,6 +5,7 @@ import com.github.zzave.teambalance.api.domain.exception.LastAdminException
 import com.github.zzave.teambalance.api.domain.exception.MemberNotFoundException
 import com.github.zzave.teambalance.api.domain.exception.NameTakenException
 import com.github.zzave.teambalance.api.domain.exception.PositionNotFoundException
+import com.github.zzave.teambalance.api.domain.model.DisplayName
 import com.github.zzave.teambalance.api.domain.model.PositionId
 import com.github.zzave.teambalance.api.domain.model.Role
 import com.github.zzave.teambalance.api.domain.model.TeamId
@@ -122,15 +123,15 @@ class MemberService(
 
     // Validates and normalizes a display name without writing: trims, checks length, and enforces
     // per-team case-insensitive uniqueness (excluding the target so a no-op rename is allowed).
-    private fun normalizeAndValidateName(teamId: TeamId, targetUserId: UserId, rawName: String): String {
+    private fun normalizeAndValidateName(teamId: TeamId, targetUserId: UserId, rawName: String): DisplayName {
         val name = rawName.trim()
         require(name.isNotBlank() && name.length <= MAX_DISPLAY_NAME_LENGTH) {
             "Display name must be 1..$MAX_DISPLAY_NAME_LENGTH characters"
         }
         val taken = teamMemberRepository.findByTeamId(teamId)
-            .any { it.userId != targetUserId && it.displayName.equals(name, ignoreCase = true) }
+            .any { it.userId != targetUserId && it.displayName.value.equals(name, ignoreCase = true) }
         if (taken) throw NameTakenException(name)
-        return name
+        return DisplayName(name)
     }
 
     // A single-aggregate write (users only), so it needs no cross-aggregate boundary — used by the

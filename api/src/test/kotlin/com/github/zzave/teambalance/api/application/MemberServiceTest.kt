@@ -6,6 +6,7 @@ import com.github.zzave.teambalance.api.domain.exception.MemberNotFoundException
 import com.github.zzave.teambalance.api.domain.exception.NameTakenException
 import com.github.zzave.teambalance.api.domain.exception.NotTeamAdminException
 import com.github.zzave.teambalance.api.domain.exception.PositionNotFoundException
+import com.github.zzave.teambalance.api.domain.model.DisplayName
 import com.github.zzave.teambalance.api.domain.model.Email
 import com.github.zzave.teambalance.api.domain.model.Position
 import com.github.zzave.teambalance.api.domain.model.PositionId
@@ -69,7 +70,7 @@ private class FakeMembershipRepo(
                 }
             }
 
-    override fun findDisplayName(userId: UserId): String? = userRepo.findById(userId)?.displayName
+    override fun findDisplayName(userId: UserId): DisplayName? = userRepo.findById(userId)?.displayName
     override fun findMembersByUserIds(userIds: Set<UserId>) = emptyMap<UserId, TeamMember>()
     override fun findRole(teamId: TeamId, userId: UserId): Role? =
         store[teamId to userId]?.takeIf { it.active }?.role
@@ -91,7 +92,7 @@ private class FakeMembershipRepo(
     override fun applyMemberEdit(
         teamId: TeamId,
         userId: UserId,
-        displayName: String,
+        displayName: DisplayName,
         role: Role,
         positionId: PositionId?,
         markOnboardedAt: java.time.Instant?,
@@ -152,8 +153,8 @@ class MemberServiceTest : FunSpec() {
         ): Triple<MemberService, FakeMemberUserRepo, FakeMembershipRepo> {
             val userRepo = FakeMemberUserRepo(
                 listOf(
-                    User(id = janId, email = Email("jan@test.com"), displayName = "Jan de Vries"),
-                    User(id = lisaId, email = Email("lisa@test.com"), displayName = "Lisa Bakker"),
+                    User(id = janId, email = Email("jan@test.com"), displayName = DisplayName("Jan de Vries")),
+                    User(id = lisaId, email = Email("lisa@test.com"), displayName = DisplayName("Lisa Bakker")),
                 ),
             )
             val memberRepo = FakeMembershipRepo(userRepo, mapOf(teamId to listOf(janId to janRole, lisaId to lisaRole)))
@@ -172,7 +173,7 @@ class MemberServiceTest : FunSpec() {
 
         test("getMember returns the team member for the user") {
             val (service, _, _) = newService()
-            service.getMember(teamId, janId).displayName shouldBe "Jan de Vries"
+            service.getMember(teamId, janId).displayName shouldBe DisplayName("Jan de Vries")
         }
 
         test("getMember throws MemberNotFoundException for a user not on the team") {
@@ -182,8 +183,8 @@ class MemberServiceTest : FunSpec() {
 
         test("updateOwnDisplayName trims surrounding whitespace") {
             val (service, userRepo, _) = newService()
-            service.updateOwnDisplayName(teamId, janId, "  Jan Janssen  ").displayName shouldBe "Jan Janssen"
-            userRepo.findById(janId)?.displayName shouldBe "Jan Janssen"
+            service.updateOwnDisplayName(teamId, janId, "  Jan Janssen  ").displayName shouldBe DisplayName("Jan Janssen")
+            userRepo.findById(janId)?.displayName shouldBe DisplayName("Jan Janssen")
         }
 
         test("updateOwnDisplayName rejects a blank name") {
@@ -203,20 +204,21 @@ class MemberServiceTest : FunSpec() {
 
         test("updateOwnDisplayName allows keeping the user's own current name") {
             val (service, _, _) = newService()
-            service.updateOwnDisplayName(teamId, janId, "Jan de Vries").displayName shouldBe "Jan de Vries"
+            service.updateOwnDisplayName(teamId, janId, "Jan de Vries").displayName shouldBe DisplayName("Jan de Vries")
         }
 
         test("listMembers returns the full team roster") {
             val (service, _, _) = newService()
-            service.listMembers(teamId).map { it.displayName }.toSet() shouldBe setOf("Jan de Vries", "Lisa Bakker")
+            service.listMembers(teamId).map { it.displayName }.toSet() shouldBe
+                setOf(DisplayName("Jan de Vries"), DisplayName("Lisa Bakker"))
         }
 
         test("admin updateMember edits another member's name and role") {
             val (service, userRepo, memberRepo) = newService()
             val updated = service.updateMember(janId, teamId, lisaId, "Lisa Nova", Role.ADMIN)
-            updated.displayName shouldBe "Lisa Nova"
+            updated.displayName shouldBe DisplayName("Lisa Nova")
             updated.role shouldBe "ADMIN"
-            userRepo.findById(lisaId)?.displayName shouldBe "Lisa Nova"
+            userRepo.findById(lisaId)?.displayName shouldBe DisplayName("Lisa Nova")
             memberRepo.findRole(teamId, lisaId) shouldBe Role.ADMIN
         }
 
@@ -255,7 +257,7 @@ class MemberServiceTest : FunSpec() {
         test("removeMember deactivates the target so the roster excludes them") {
             val (service, _, _) = newService()
             service.removeMember(janId, teamId, lisaId)
-            service.listMembers(teamId).map { it.displayName } shouldBe listOf("Jan de Vries")
+            service.listMembers(teamId).map { it.displayName } shouldBe listOf(DisplayName("Jan de Vries"))
         }
 
         test("removeMember by a non-admin is forbidden") {
@@ -292,9 +294,9 @@ class MemberServiceTest : FunSpec() {
             val (service, userRepo, memberRepo) = newService()
             val updated = service.completeOnboarding(lisaId, teamId, "Lisa Nova", setterPositionId)
             updated.onboarded shouldBe true
-            updated.displayName shouldBe "Lisa Nova"
+            updated.displayName shouldBe DisplayName("Lisa Nova")
             updated.positionId shouldBe setterPositionId
-            userRepo.findById(lisaId)?.displayName shouldBe "Lisa Nova"
+            userRepo.findById(lisaId)?.displayName shouldBe DisplayName("Lisa Nova")
             memberRepo.findByTeamId(teamId).first { it.userId == lisaId }.onboarded shouldBe true
         }
 

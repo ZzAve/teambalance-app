@@ -79,7 +79,7 @@ class MemberController(
 
 private fun TeamMember.toDto() = Member(
     userId = userId.produce(),
-    displayName = displayName,
+    displayName = displayName.value,
     role = role,
     position = positionId?.let { Position(id = it.produce(), label = position?.value ?: "") },
     onboarded = onboarded,

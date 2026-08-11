@@ -1,5 +1,6 @@
 package com.github.zzave.teambalance.api.infrastructure.persistence
 
+import com.github.zzave.teambalance.api.domain.model.DisplayName
 import com.github.zzave.teambalance.api.domain.model.MagicLinkToken
 import com.github.zzave.teambalance.api.domain.model.TokenHash
 import com.github.zzave.teambalance.api.domain.model.User
@@ -24,12 +25,16 @@ class JpaMagicLinkTokenRepositoryAdapter(
         jpaRepository.findByTokenHash(tokenHash.value)?.internalize()
 
     @Transactional
-    override fun consumeAndResolveUser(consumedToken: MagicLinkToken, displayName: String): User {
+    override fun consumeAndResolveUser(consumedToken: MagicLinkToken, displayName: DisplayName): User {
         jpaRepository.save(consumedToken.externalize())
         return (
             userJpaRepository.findByEmail(consumedToken.email.value)
                 ?: userJpaRepository.save(
-                    UserJpaEntity(id = UUID.randomUUID(), email = consumedToken.email.value, displayName = displayName),
+                    UserJpaEntity(
+                        id = UUID.randomUUID(),
+                        email = consumedToken.email.value,
+                        displayName = displayName.value,
+                    ),
                 )
             ).internalize()
     }

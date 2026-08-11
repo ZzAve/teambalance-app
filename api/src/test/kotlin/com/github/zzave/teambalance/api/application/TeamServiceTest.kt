@@ -5,6 +5,7 @@ import com.github.zzave.teambalance.api.domain.exception.InvalidCreationCodeExce
 import com.github.zzave.teambalance.api.domain.exception.InvalidSlugException
 import com.github.zzave.teambalance.api.domain.exception.InvalidTeamNameException
 import com.github.zzave.teambalance.api.domain.exception.TeamSlugTakenException
+import com.github.zzave.teambalance.api.domain.model.DisplayName
 import com.github.zzave.teambalance.api.domain.model.Email
 import com.github.zzave.teambalance.api.domain.model.PositionId
 import com.github.zzave.teambalance.api.domain.model.Role
@@ -35,7 +36,7 @@ private class FakeMemberRepo(private val existingTeam: TeamId?) : TeamMemberRepo
     override fun findTeamId(userId: UserId): TeamId? = existingTeam
     override fun findTenantRouting(userId: UserId): TenantRouting? = null
     override fun findByTeamId(teamId: TeamId): List<TeamMember> = emptyList()
-    override fun findDisplayName(userId: UserId): String? = null
+    override fun findDisplayName(userId: UserId): DisplayName? = null
     override fun findMembersByUserIds(userIds: Set<UserId>): Map<UserId, TeamMember> = emptyMap()
     override fun findRole(teamId: TeamId, userId: UserId): Role? = null
     override fun addMember(teamId: TeamId, userId: UserId) = Unit
@@ -46,7 +47,7 @@ private class FakeMemberRepo(private val existingTeam: TeamId?) : TeamMemberRepo
     override fun applyMemberEdit(
         teamId: TeamId,
         userId: UserId,
-        displayName: String,
+        displayName: DisplayName,
         role: Role,
         positionId: PositionId?,
         markOnboardedAt: Instant?,
@@ -120,7 +121,7 @@ class TeamServiceTest : FunSpec() {
         val clock = Clock.fixed(Instant.EPOCH, ZoneOffset.UTC)
         val founder = UserId.random()
         val newTeamId = UUID.randomUUID()
-        val founderUser = User(id = founder, email = Email("founder@example.com"), displayName = "Founder")
+        val founderUser = User(id = founder, email = Email("founder@example.com"), displayName = DisplayName("Founder"))
 
         fun service(
             calls: MutableList<String> = mutableListOf(),

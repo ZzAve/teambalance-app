@@ -3,7 +3,8 @@ package com.github.zzave.teambalance.api.domain.model
 
 data class TeamMember(
     val userId: UserId,
-    val displayName: String,
+    // The very same [DisplayName] the user carries — the member projection reads `u.display_name`.
+    val displayName: DisplayName,
     val role: String,
     val positionId: PositionId?,
     // The label of the assigned position, resolved via a join for display; null when unassigned.

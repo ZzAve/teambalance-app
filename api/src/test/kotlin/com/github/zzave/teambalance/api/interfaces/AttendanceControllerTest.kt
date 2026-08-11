@@ -71,6 +71,7 @@ class AttendanceControllerTest : TeamBalanceIT() {
             mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(mvcResult))
                 .andExpect(MockMvcResultMatchers.status().isOk)
                 .andExpect(MockMvcResultMatchers.jsonPath("$.role").value("Setter"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.displayName").value("Jan de Vries"))
 
             queryChangedBy(eventId, JAN_USER_ID) shouldBe UUID.fromString(JAN_USER_ID)
         }

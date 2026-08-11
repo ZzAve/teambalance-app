@@ -44,7 +44,7 @@ class AttendanceController(
                 id = attendance.id.produce(),
                 eventId = attendance.eventId.produce(),
                 userId = attendance.userId.produce(),
-                displayName = member?.displayName ?: "Unknown",
+                displayName = member?.displayName?.value ?: "Unknown",
                 role = (member?.position ?: UNASSIGNED).value,
                 state = attendance.state.name,
             )
@@ -63,7 +63,7 @@ internal fun MemberAttendance.produce() = AttendanceEntry(
     // A responded member keys off their real row; a not-responded member falls back to their user id.
     id = responseId?.produce() ?: member.userId.produce(),
     userId = member.userId.produce(),
-    displayName = member.displayName,
+    displayName = member.displayName.value,
     role = (member.position ?: UNASSIGNED).value,
     state = state.produce(),
 )

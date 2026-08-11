@@ -1,6 +1,7 @@
 package com.github.zzave.teambalance.api.infrastructure.identity
 
 import com.github.zzave.teambalance.api.domain.exception.NotPlatformAdminException
+import com.github.zzave.teambalance.api.domain.model.DisplayName
 import com.github.zzave.teambalance.api.domain.model.Email
 import com.github.zzave.teambalance.api.domain.model.PlatformAdminAllowlist
 import com.github.zzave.teambalance.api.domain.model.User
@@ -22,8 +23,8 @@ class PlatformAdminGatewayAdapterTest : FunSpec() {
     init {
         val adminId = UUID.randomUUID()
         val plainId = UUID.randomUUID()
-        val admin = User(UserId(adminId), Email("admin@teambalance.nl"), "Admin")
-        val plain = User(UserId(plainId), Email("someone@example.com"), "Someone")
+        val admin = User(UserId(adminId), Email("admin@teambalance.nl"), DisplayName("Admin"))
+        val plain = User(UserId(plainId), Email("someone@example.com"), DisplayName("Someone"))
         val users = FakeUsers(mapOf(adminId to admin, plainId to plain))
 
         fun guard(allowlist: List<String>) = PlatformAdminGatewayAdapter(users, PlatformAdminAllowlist(allowlist))

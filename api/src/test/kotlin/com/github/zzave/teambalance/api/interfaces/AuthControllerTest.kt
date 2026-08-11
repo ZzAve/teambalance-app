@@ -5,6 +5,7 @@ import com.github.zzave.teambalance.api.domain.port.EmailGateway
 import com.github.zzave.teambalance.api.infrastructure.email.FakeEmailGateway
 import com.github.zzave.teambalance.api.infrastructure.identity.SessionKeys
 import io.kotest.matchers.collections.shouldContain
+import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import jakarta.servlet.http.Cookie
 import org.springframework.beans.factory.annotation.Autowired
@@ -58,10 +59,21 @@ class AuthControllerTest : TeamBalanceIT() {
             val token = fakeEmailGateway.sentMagicLinks.last { it.first.value == email }.second
             val session = verify(token, expectOk = true)!!
 
+            // No name is collected at magic-link signup, so a first-time sign-in derives a placeholder
+            // from the email's local part. Pin it end to end: the derived name is what got stored in
+            // public.users and what /me reads back.
+            val expectedDisplayName = email.substringBefore("@")
             val (_, me) = performAsync(MockMvcRequestBuilders.get("/api/auth/me").cookie(session))
             me.andExpect(MockMvcResultMatchers.status().isOk)
                 .andExpect(MockMvcResultMatchers.jsonPath("$.email").value(email))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.displayName").value(expectedDisplayName))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.isPlatformAdmin").value(false))
+
+            jdbcTemplate.queryForObject(
+                "SELECT display_name FROM public.users WHERE email = ?",
+                String::class.java,
+                email,
+            ) shouldBe expectedDisplayName
 
             val (_, logout) = performAsync(MockMvcRequestBuilders.post("/api/auth/logout").cookie(session))
             logout.andExpect(MockMvcResultMatchers.status().isNoContent)

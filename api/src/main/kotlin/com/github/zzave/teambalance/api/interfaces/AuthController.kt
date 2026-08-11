@@ -32,7 +32,7 @@ class AuthController(
             AuthenticatedUser(
                 id = user.id.produce(),
                 email = user.email.produce(),
-                displayName = user.displayName,
+                displayName = user.displayName.value,
                 role = resolveRole(user.id),
                 team = resolveTeam(user.id),
                 isPlatformAdmin = authService.isPlatformAdmin(user.id),
@@ -51,7 +51,7 @@ class AuthController(
                 AuthenticatedUser(
                     id = it.id.produce(),
                     email = it.email.produce(),
-                    displayName = it.displayName,
+                    displayName = it.displayName.value,
                     role = resolveRole(it.id),
                     team = resolveTeam(it.id),
                     isPlatformAdmin = authService.isPlatformAdmin(it.id),

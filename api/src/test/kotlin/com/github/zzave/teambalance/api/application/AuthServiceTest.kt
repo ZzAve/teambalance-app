@@ -1,5 +1,6 @@
 package com.github.zzave.teambalance.api.application
 
+import com.github.zzave.teambalance.api.domain.model.DisplayName
 import com.github.zzave.teambalance.api.domain.model.Email
 import com.github.zzave.teambalance.api.domain.model.MagicLinkToken
 import com.github.zzave.teambalance.api.domain.model.PositionId
@@ -59,7 +60,7 @@ private class FakeUserRepository(private val users: Map<UserId, User>) : UserRep
 
 private class FakeRoutingTeamMemberRepository(private val routing: TenantRouting?) : TeamMemberRepository {
     override fun findByTeamId(teamId: TeamId) = emptyList<TeamMember>()
-    override fun findDisplayName(userId: UserId): String? = null
+    override fun findDisplayName(userId: UserId): DisplayName? = null
     override fun findMembersByUserIds(userIds: Set<UserId>) = emptyMap<UserId, TeamMember>()
     override fun findRole(teamId: TeamId, userId: UserId): Role? = Role.USER
     override fun findTeamId(userId: UserId): TeamId? = routing?.teamId
@@ -71,7 +72,7 @@ private class FakeRoutingTeamMemberRepository(private val routing: TenantRouting
     override fun applyMemberEdit(
         teamId: TeamId,
         userId: UserId,
-        displayName: String,
+        displayName: DisplayName,
         role: Role,
         positionId: PositionId?,
         markOnboardedAt: Instant?,
@@ -83,7 +84,7 @@ private class FakeRoutingTeamMemberRepository(private val routing: TenantRouting
 private class FakeMagicLinkTokenRepository : MagicLinkTokenRepository {
     override fun save(token: MagicLinkToken): MagicLinkToken = token
     override fun findByTokenHash(tokenHash: TokenHash): MagicLinkToken? = null
-    override fun consumeAndResolveUser(consumedToken: MagicLinkToken, displayName: String): User =
+    override fun consumeAndResolveUser(consumedToken: MagicLinkToken, displayName: DisplayName): User =
         error("not used in these tests")
 }
 
@@ -115,7 +116,7 @@ class AuthServiceTest : FunSpec() {
         val user = User(
             id = userId,
             email = Email("session@test.com"),
-            displayName = "Session",
+            displayName = DisplayName("Session"),
         )
         val routing = TenantRouting(teamId = TeamId(UUID.randomUUID()), schemaName = "team_alpha")
 

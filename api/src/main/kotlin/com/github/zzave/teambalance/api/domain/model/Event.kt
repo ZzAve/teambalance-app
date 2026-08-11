@@ -6,7 +6,7 @@ import java.util.UUID
 data class Event(
     val id: EventId,
     val eventType: EventType,
-    val title: String,
+    val title: EventTitle,
     val description: String?,
     val startTime: Instant,
     val endTime: Instant,

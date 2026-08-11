@@ -6,6 +6,7 @@ import com.github.zzave.teambalance.api.domain.exception.RecurrenceExceedsCapExc
 import com.github.zzave.teambalance.api.domain.model.Event
 import com.github.zzave.teambalance.api.domain.model.EventEdit
 import com.github.zzave.teambalance.api.domain.model.EventId
+import com.github.zzave.teambalance.api.domain.model.EventTitle
 import com.github.zzave.teambalance.api.domain.model.EventTypeId
 import com.github.zzave.teambalance.api.domain.model.EventReference
 import com.github.zzave.teambalance.api.domain.model.EventSeriesScope
@@ -112,7 +113,7 @@ class EventService(
         callerId: UserId,
         teamId: TeamId,
         eventTypeId: EventTypeId,
-        title: String,
+        title: EventTitle,
         description: String?,
         location: String?,
         timeOfDay: LocalTime,
@@ -186,7 +187,7 @@ class EventService(
         id: EventId,
         scope: EventSeriesScope,
         eventTypeId: EventTypeId,
-        title: String,
+        title: EventTitle,
         description: String?,
         startTime: Instant,
         endTime: Instant,

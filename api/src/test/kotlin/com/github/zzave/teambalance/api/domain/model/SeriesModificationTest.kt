@@ -33,7 +33,7 @@ class SeriesModificationTest : FunSpec({
         return Event(
             id = EventId(UUID.nameUUIDFromBytes(date.toByteArray())),
             eventType = training,
-            title = "Weekly Training",
+            title = EventTitle("Weekly Training"),
             description = "old",
             startTime = start,
             endTime = start.plus(Duration.ofMinutes(90)),
@@ -58,7 +58,7 @@ class SeriesModificationTest : FunSpec({
         val start = LocalDate.parse(date).atTime(time).atZone(zone).toInstant()
         return EventEdit(
             eventType = match,
-            title = "Friendly Match",
+            title = EventTitle("Friendly Match"),
             description = "new",
             location = "Sportcampus",
             references = emptyList(),
@@ -79,7 +79,7 @@ class SeriesModificationTest : FunSpec({
         plan.edited.map { it.id } shouldContainExactly listOf(d2.id)
         val editedD2 = plan.edited.single()
         editedD2.recurringGroup shouldBe null
-        editedD2.title shouldBe "Friendly Match"
+        editedD2.title shouldBe EventTitle("Friendly Match")
         editedD2.eventType shouldBe match
         // THIS may move the date/time verbatim — 2026-09-08 19:00.
         localDate(editedD2.startTime) shouldBe LocalDate.parse("2026-09-08")
@@ -89,7 +89,7 @@ class SeriesModificationTest : FunSpec({
         plan.regrouped.map { it.id } shouldContainExactly listOf(d3.id, d4.id)
         plan.regrouped.forEach {
             it.recurringGroup shouldBe tailGroup
-            it.title shouldBe "Weekly Training"
+            it.title shouldBe EventTitle("Weekly Training")
         }
         // d1 (before) is untouched — absent from the plan entirely.
         plan.toPersist.map { it.id } shouldContainExactly listOf(d2.id, d3.id, d4.id)
@@ -122,7 +122,7 @@ class SeriesModificationTest : FunSpec({
         plan.regrouped.shouldBeEmpty()
         plan.edited.forEach {
             it.recurringGroup shouldBe tailGroup
-            it.title shouldBe "Friendly Match"
+            it.title shouldBe EventTitle("Friendly Match")
             // Time-of-day propagates to every affected occurrence…
             timeOfDay(it.startTime) shouldBe LocalTime.of(19, 0)
         }
@@ -146,7 +146,7 @@ class SeriesModificationTest : FunSpec({
         plan.edited.forEach {
             // The group is unchanged — no split.
             it.recurringGroup shouldBe originalGroup
-            it.title shouldBe "Friendly Match"
+            it.title shouldBe EventTitle("Friendly Match")
             timeOfDay(it.startTime) shouldBe LocalTime.of(19, 0)
         }
         localDate(plan.edited[0].startTime) shouldBe LocalDate.parse("2026-09-01")

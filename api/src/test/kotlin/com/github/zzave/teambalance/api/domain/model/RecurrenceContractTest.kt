@@ -80,7 +80,7 @@ private val EVENT_TYPE = EventType(
 )
 private val EDIT = EventEdit(
     eventType = EVENT_TYPE,
-    title = "edited",
+    title = EventTitle("edited"),
     description = null,
     location = null,
     references = emptyList(),
@@ -93,7 +93,7 @@ private fun eventIdOf(id: String): EventId = EventId(UUID.nameUUIDFromBytes(id.t
 private fun event(id: String, startTime: Instant): Event = Event(
     id = eventIdOf(id),
     eventType = EVENT_TYPE,
-    title = "Training",
+    title = EventTitle("Training"),
     description = null,
     startTime = startTime,
     endTime = startTime,

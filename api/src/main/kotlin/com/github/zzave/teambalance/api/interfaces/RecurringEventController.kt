@@ -35,7 +35,7 @@ class RecurringEventController(
             callerId = userId,
             teamId = teamId,
             eventTypeId = body.eventTypeId.consumeEventTypeId(),
-            title = body.title,
+            title = body.title.consumeEventTitle(),
             description = body.description,
             location = body.location,
             timeOfDay = LocalTime.parse(body.timeOfDay),

@@ -3,6 +3,7 @@ package com.github.zzave.teambalance.api.application
 import com.github.zzave.teambalance.api.domain.exception.NotTeamAdminException
 import com.github.zzave.teambalance.api.domain.model.Event
 import com.github.zzave.teambalance.api.domain.model.EventSeriesScope
+import com.github.zzave.teambalance.api.domain.model.EventTitle
 import com.github.zzave.teambalance.api.domain.model.EventType
 import com.github.zzave.teambalance.api.domain.model.EventTypeId
 import com.github.zzave.teambalance.api.domain.model.PositionId
@@ -91,7 +92,7 @@ class EventServiceTest : FunSpec() {
 
         val potential = PotentialEvent(
             eventTypeId = EventTypeId(UUID.randomUUID()),
-            title = "Match",
+            title = EventTitle("Match"),
             description = null,
             startTime = Instant.parse("2026-08-01T20:00:00Z"),
             endTime = Instant.parse("2026-08-01T22:00:00Z"),
@@ -110,7 +111,7 @@ class EventServiceTest : FunSpec() {
                     id = EventId(UUID.randomUUID()),
                     scope = EventSeriesScope.THIS,
                     eventTypeId = EventTypeId(UUID.randomUUID()),
-                    title = "x",
+                    title = EventTitle("x"),
                     description = null,
                     startTime = potential.startTime,
                     endTime = potential.endTime,
@@ -131,7 +132,7 @@ class EventServiceTest : FunSpec() {
                     callerId = nonAdmin,
                     teamId = teamId,
                     eventTypeId = EventTypeId(UUID.randomUUID()),
-                    title = "Training",
+                    title = EventTitle("Training"),
                     description = null,
                     location = null,
                     timeOfDay = LocalTime.of(20, 0),

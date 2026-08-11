@@ -36,7 +36,7 @@ class SeasonPolicyTest : FunSpec({
         Event(
             id = id,
             eventType = training,
-            title = "Weekly Training",
+            title = EventTitle("Weekly Training"),
             description = null,
             startTime = start,
             endTime = start.plus(Duration.ofMinutes(90)),

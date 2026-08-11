@@ -4,17 +4,14 @@
   <CurrentIssues>
     <ID>DomainNoPrimitiveObsession:Event.kt:Event$val description: String?</ID>
     <ID>DomainNoPrimitiveObsession:Event.kt:Event$val location: String?</ID>
-    <ID>DomainNoPrimitiveObsession:Event.kt:Event$val title: String</ID>
     <ID>DomainNoPrimitiveObsession:EventReference.kt:EventReference$val title: String?</ID>
     <ID>DomainNoPrimitiveObsession:EventType.kt:EventType$val color: String?</ID>
     <ID>DomainNoPrimitiveObsession:EventType.kt:EventType$val name: String</ID>
     <ID>DomainNoPrimitiveObsession:Position.kt:Position$val label: String</ID>
     <ID>DomainNoPrimitiveObsession:PotentialEvent.kt:PotentialEvent$val description: String?</ID>
     <ID>DomainNoPrimitiveObsession:PotentialEvent.kt:PotentialEvent$val location: String?</ID>
-    <ID>DomainNoPrimitiveObsession:PotentialEvent.kt:PotentialEvent$val title: String</ID>
     <ID>DomainNoPrimitiveObsession:SeriesModification.kt:EventEdit$val description: String?</ID>
     <ID>DomainNoPrimitiveObsession:SeriesModification.kt:EventEdit$val location: String?</ID>
-    <ID>DomainNoPrimitiveObsession:SeriesModification.kt:EventEdit$val title: String</ID>
     <ID>DomainNoPrimitiveObsession:TeamCreationCode.kt:TeamCreationCode$val code: String</ID>
     <ID>DomainNoPrimitiveObsession:TeamMember.kt:TeamMember$val displayName: String</ID>
     <ID>DomainNoPrimitiveObsession:TeamMember.kt:TeamMember$val onboarded: Boolean</ID>

@@ -62,7 +62,7 @@ private class FakeMembershipRepo(
                     TeamMember(
                         userId = it.id,
                         displayName = it.displayName,
-                        role = membership.role.name,
+                        permission = membership.role.name,
                         positionId = membership.positionId,
                         position = null,
                         onboarded = membership.onboarded,

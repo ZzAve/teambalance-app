@@ -46,7 +46,7 @@ class JpaTeamMemberRepositoryAdapter(
     private fun MemberSummaryProjection.toDomain() = TeamMember(
         userId = UserId(UUID.fromString(getUserId())),
         displayName = DisplayName(getDisplayName()),
-        role = getPermissionRole(),
+        permission = getPermissionRole(),
         positionId = getPositionId()?.let { PositionId(UUID.fromString(it)) },
         position = getPosition()?.let(::PositionLabel),
         onboarded = getOnboarded(),

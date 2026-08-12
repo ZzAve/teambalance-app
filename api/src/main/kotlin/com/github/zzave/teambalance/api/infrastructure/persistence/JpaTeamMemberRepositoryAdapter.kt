@@ -1,7 +1,10 @@
 package com.github.zzave.teambalance.api.infrastructure.persistence
 
+import com.github.zzave.teambalance.api.domain.model.DisplayName
 import com.github.zzave.teambalance.api.domain.model.PositionId
+import com.github.zzave.teambalance.api.domain.model.PositionLabel
 import com.github.zzave.teambalance.api.domain.model.Role
+import com.github.zzave.teambalance.api.domain.model.SchemaName
 import com.github.zzave.teambalance.api.domain.model.TeamId
 import com.github.zzave.teambalance.api.domain.model.TeamMember
 import com.github.zzave.teambalance.api.domain.model.TenantRouting
@@ -29,8 +32,8 @@ class JpaTeamMemberRepositoryAdapter(
     override fun findByTeamId(teamId: TeamId): List<TeamMember> =
         jpaRepository.findMemberSummariesByTeamId(teamId.value).map { it.toDomain() }
 
-    override fun findDisplayName(userId: UserId): String? =
-        jpaRepository.findDisplayNameByUserId(userId.value)
+    override fun findDisplayName(userId: UserId): DisplayName? =
+        jpaRepository.findDisplayNameByUserId(userId.value)?.let(::DisplayName)
 
     override fun findMembersByUserIds(userIds: Set<UserId>): Map<UserId, TeamMember> {
         if (userIds.isEmpty()) return emptyMap()
@@ -42,10 +45,10 @@ class JpaTeamMemberRepositoryAdapter(
 
     private fun MemberSummaryProjection.toDomain() = TeamMember(
         userId = UserId(UUID.fromString(getUserId())),
-        displayName = getDisplayName(),
+        displayName = DisplayName(getDisplayName()),
         role = getPermissionRole(),
         positionId = getPositionId()?.let { PositionId(UUID.fromString(it)) },
-        position = getPosition(),
+        position = getPosition()?.let(::PositionLabel),
         onboarded = getOnboarded(),
     )
 
@@ -59,7 +62,7 @@ class JpaTeamMemberRepositoryAdapter(
 
     override fun findTenantRouting(userId: UserId): TenantRouting? =
         jpaRepository.findTeamRoutingByUserId(userId.value)
-            ?.let { TenantRouting(teamId = TeamId(it.teamId), schemaName = it.schemaName) }
+            ?.let { TenantRouting(teamId = TeamId(it.teamId), schemaName = SchemaName(it.schemaName)) }
 
     @Transactional
     override fun updateRole(teamId: TeamId, userId: UserId, role: Role) {
@@ -80,12 +83,12 @@ class JpaTeamMemberRepositoryAdapter(
     override fun applyMemberEdit(
         teamId: TeamId,
         userId: UserId,
-        displayName: String,
+        displayName: DisplayName,
         role: Role,
         positionId: PositionId?,
         markOnboardedAt: Instant?,
     ) {
-        userJpaRepository.updateDisplayName(userId.value, displayName)
+        userJpaRepository.updateDisplayName(userId.value, displayName.value)
         jpaRepository.updateRole(teamId.value, userId.value, role.name)
         jpaRepository.assignPosition(teamId.value, userId.value, positionId?.value)
         if (markOnboardedAt != null) {

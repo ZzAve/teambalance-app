@@ -1,6 +1,7 @@
 package com.github.zzave.teambalance.api.interfaces
 
 import com.github.zzave.teambalance.api.application.CreationCodeAdminService
+import com.github.zzave.teambalance.api.domain.model.CreationCode as DomainCreationCode
 import com.github.zzave.teambalance.api.domain.model.TeamCreationCode
 import com.github.zzave.teambalance.api.domain.port.CurrentUserGateway
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.CreateCreationCode
@@ -40,16 +41,16 @@ class CreationCodeAdminController(
 
     override suspend fun revokeCreationCode(request: RevokeCreationCode.Request): RevokeCreationCode.Response<*> {
         val callerId = currentUserGateway.requireCurrentUserId()
-        creationCodeAdminService.revoke(callerId, request.path.code)
+        creationCodeAdminService.revoke(callerId, DomainCreationCode(request.path.code))
         return RevokeCreationCode.Response204(Unit)
     }
 }
 
 private fun TeamCreationCode.toDto() = CreationCode(
-    code = code,
+    code = code.value,
     createdAt = createdAt.toString(),
     expiresAt = expiresAt?.toString(),
     consumedAt = consumedAt?.toString(),
-    consumedByUserId = consumedByUserId?.toString(),
-    createdTeamId = createdTeamId?.toString(),
+    consumedByUserId = consumedByUserId?.value?.toString(),
+    createdTeamId = createdTeamId?.value?.toString(),
 )

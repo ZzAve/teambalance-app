@@ -1,5 +1,6 @@
 package com.github.zzave.teambalance.api.domain.model
 
+import com.github.zzave.teambalance.api.domain.model.DisplayName
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import java.time.Instant
@@ -17,10 +18,10 @@ class EventAttendanceTest : FunSpec({
 
     fun member(name: String, position: String? = null) = TeamMember(
         userId = UserId.random(),
-        displayName = name,
+        displayName = DisplayName(name),
         role = "USER",
         positionId = null,
-        position = position,
+        position = position?.let(::PositionLabel),
         onboarded = true,
     )
 
@@ -94,8 +95,8 @@ class EventAttendanceTest : FunSpec({
         )
 
         projection.attendingRoleBreakdown() shouldBe listOf(
-            "Setter" to 2,
-            "Libero" to 1,
+            PositionLabel("Setter") to 2,
+            PositionLabel("Libero") to 1,
             UNASSIGNED to 1,
         )
     }

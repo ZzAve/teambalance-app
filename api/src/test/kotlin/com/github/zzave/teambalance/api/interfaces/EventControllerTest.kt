@@ -95,6 +95,11 @@ class EventControllerTest : TeamBalanceIT() {
                 .andExpect(MockMvcResultMatchers.status().isOk)
                 // The roster is the whole team, so match Jan by id rather than assuming position 0.
                 .andExpect(MockMvcResultMatchers.jsonPath("$.attendances[?(@.userId=='$JAN_USER_ID')].role").value("Setter"))
+                // The member's name reaches the roster entry verbatim, straight from public.users.
+                .andExpect(
+                    MockMvcResultMatchers.jsonPath("$.attendances[?(@.userId=='$JAN_USER_ID')].displayName")
+                        .value("Jan de Vries"),
+                )
         }
 
         test("GET /api/events returns roleBreakdown per event in the list") {
@@ -431,6 +436,102 @@ class EventControllerTest : TeamBalanceIT() {
                 Long::class.java,
             )
             attendanceRows shouldBe 0L
+        }
+
+        // Every other event test posts "description": null and "location": null, so the NON-null
+        // branch of the optional free-text round trip was never exercised end to end. It is the
+        // branch the EventDescription and EventLocation value classes touch: wrapped at the Wirespec
+        // edge, unwrapped at the JPA edge, and unwrapped again on the way back out — three
+        // conversions apiece that a refactor could silently drop to null. Both are asserted in one
+        // test because they are the same shape through the same three edges.
+        test("POST then GET /api/events round-trips a non-null description and location verbatim") {
+            tenantSchemaAdapter.provisionPlatformSchema()
+            tenantSchemaAdapter.provisionTenantSchema("public")
+
+            jdbcTemplate.execute(
+                """
+                INSERT INTO public.teams (id, name, slug, schema_name)
+                VALUES ('$TEAM_ID'::uuid, 'Test Team', 'test-team', 'public')
+                ON CONFLICT DO NOTHING
+            """
+            )
+            jdbcTemplate.execute(
+                """
+                INSERT INTO public.users (id, email, display_name)
+                VALUES ('$JAN_USER_ID'::uuid, 'jan@test.com', 'Jan de Vries')
+                ON CONFLICT DO NOTHING
+            """
+            )
+            jdbcTemplate.execute(
+                "SELECT public.tb_add_member('$TEAM_ID'::uuid, '$JAN_USER_ID'::uuid, 'ADMIN', 'Setter')"
+            )
+
+            val eventTypeId = jdbcTemplate.queryForObject(
+                "SELECT uuid FROM public.event_types WHERE name = 'Training'",
+                UUID::class.java,
+            )
+
+            val mvcResult = mockMvc.perform(
+                MockMvcRequestBuilders.post("/api/events")
+                    .header("X-Team-Id", "public")
+                    .header("X-User-Id", JAN_USER_ID)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(
+                        """
+                        {
+                          "eventTypeId": "$eventTypeId",
+                          "title": "Described event",
+                          "description": "Bring your own ball",
+                          "startTime": "2026-08-01T20:00:00Z",
+                          "endTime": "2026-08-01T22:00:00Z",
+                          "location": "Sporthal de Pijp"
+                        }
+                        """.trimIndent()
+                    ),
+            )
+                .andExpect(MockMvcResultMatchers.request().asyncStarted())
+                .andReturn()
+
+            mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(mvcResult))
+                .andExpect(MockMvcResultMatchers.status().isCreated)
+                .andExpect(MockMvcResultMatchers.jsonPath("$.description").value("Bring your own ball"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.location").value("Sporthal de Pijp"))
+
+            // The columns still hold the plain strings — the value classes are internal only, so the
+            // persisted representation is unchanged.
+            val stored = jdbcTemplate.queryForObject(
+                "SELECT description FROM public.events WHERE title = 'Described event'",
+                String::class.java,
+            )
+            stored shouldBe "Bring your own ball"
+
+            val storedLocation = jdbcTemplate.queryForObject(
+                "SELECT location FROM public.events WHERE title = 'Described event'",
+                String::class.java,
+            )
+            storedLocation shouldBe "Sporthal de Pijp"
+
+            val eventId = jdbcTemplate.queryForObject(
+                "SELECT uuid FROM public.events WHERE title = 'Described event'",
+                UUID::class.java,
+            )
+            val getResult = mockMvc.perform(
+                MockMvcRequestBuilders.get("/api/events/$eventId")
+                    .header("X-Team-Id", "public")
+                    .header("X-User-Id", JAN_USER_ID),
+            )
+                .andExpect(MockMvcResultMatchers.request().asyncStarted())
+                .andReturn()
+
+            mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(getResult))
+                .andExpect(MockMvcResultMatchers.status().isOk)
+                .andExpect(MockMvcResultMatchers.jsonPath("$.description").value("Bring your own ball"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.location").value("Sporthal de Pijp"))
+                // The embedded event-type summary is the second Wirespec edge for an event type's
+                // name and colour (GET /api/event-types is the other, EventTypeControllerTest) —
+                // asserted here so the summary keeps carrying the seeded values verbatim.
+                .andExpect(MockMvcResultMatchers.jsonPath("$.eventType.name").value("Training"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.eventType.color").value("#249E6C"))
         }
 
         test("POST /api/events by a user with no team membership is rejected, not silently defaulted") {

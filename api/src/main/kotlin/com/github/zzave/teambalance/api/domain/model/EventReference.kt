@@ -10,18 +10,13 @@ import java.net.URI
  * The [Url] value object is the single guard: only `http`/`https` URLs within the length cap are
  * constructible, which is what makes a rendered `<a href>` safe by construction rather than by
  * runtime sanitising. The type IS the guard — an un-constructible bad URL can never reach a
- * rendered anchor, whichever layer built it.
+ * rendered anchor, whichever layer built it. [EventReferenceText] carries the title's length cap
+ * for the same reason, which is why neither field is validated here any more.
  */
 data class EventReference(
-    val title: String?,
+    val title: EventReferenceText?,
     val url: Url,
 ) {
-    init {
-        require((title?.length ?: 0) <= MAX_TITLE_LENGTH) {
-            "Reference title must be at most $MAX_TITLE_LENGTH characters"
-        }
-    }
-
     /**
      * An outbound reference URL. Only a non-blank `http`/`https` URL with a host, no longer than
      * [MAX_URL_LENGTH], is constructible — the guard lives in `init`, so holding a [Url] is proof the
@@ -47,16 +42,15 @@ data class EventReference(
     }
 
     companion object {
-        const val MAX_TITLE_LENGTH = 100
-
         /**
          * Normalizing factory: trims both fields and treats a blank title as absent (the UI derives
          * a host label when the title is null — that is a render concern, not stored state). Throws
-         * [IllegalArgumentException] (→ 400) on an invalid URL via the [Url] guard.
+         * [IllegalArgumentException] (→ 400) on an invalid URL via the [Url] guard or on an
+         * over-length title via [EventReferenceText].
          */
         fun of(title: String?, url: String): EventReference =
             EventReference(
-                title = title?.trim()?.takeIf { it.isNotEmpty() },
+                title = title?.trim()?.takeIf { it.isNotEmpty() }?.let(::EventReferenceText),
                 url = Url(url.trim()),
             )
     }

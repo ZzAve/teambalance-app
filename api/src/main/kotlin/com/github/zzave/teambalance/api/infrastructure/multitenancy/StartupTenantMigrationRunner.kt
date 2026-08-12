@@ -24,6 +24,6 @@ class StartupTenantMigrationRunner(
     override fun afterPropertiesSet() = migrateAllTenantSchemas()
 
     fun migrateAllTenantSchemas() {
-        teamRepository.findAllSchemaNames().forEach(tenantSchemaAdapter::provisionTenantSchema)
+        teamRepository.findAllSchemaNames().forEach { tenantSchemaAdapter.provisionTenantSchema(it.value) }
     }
 }

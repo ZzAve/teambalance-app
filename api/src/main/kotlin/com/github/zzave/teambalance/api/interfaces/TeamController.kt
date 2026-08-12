@@ -2,6 +2,7 @@ package com.github.zzave.teambalance.api.interfaces
 
 import com.github.zzave.teambalance.api.application.CreatedTeam
 import com.github.zzave.teambalance.api.application.TeamService
+import com.github.zzave.teambalance.api.domain.model.CreationCode
 import com.github.zzave.teambalance.api.domain.port.CurrentUserGateway
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.CreateTeam
 import com.github.zzave.teambalance.api.interfaces.generated.model.Team
@@ -27,14 +28,14 @@ class TeamController(
             rawName = request.body.name,
             rawSlug = request.body.slug,
             // Sent verbatim but trimmed — the code format is the issuer's concern (Slice 4), not ours.
-            creationCode = request.body.creationCode.trim(),
+            creationCode = CreationCode(request.body.creationCode.trim()),
         )
         return CreateTeam.Response201(created.toDto())
     }
 }
 
 private fun CreatedTeam.toDto() = Team(
-    id = id.toString(),
-    name = name,
-    slug = slug,
+    id = id.produce(),
+    name = name.value,
+    slug = slug.value,
 )

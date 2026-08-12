@@ -8,5 +8,5 @@ package com.github.zzave.teambalance.api.domain.model
  */
 data class TenantRouting(
     val teamId: TeamId,
-    val schemaName: String,
+    val schemaName: SchemaName,
 )

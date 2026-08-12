@@ -1,6 +1,9 @@
 package com.github.zzave.teambalance.api.infrastructure.persistence
 
+import com.github.zzave.teambalance.api.domain.model.CreationCode
 import com.github.zzave.teambalance.api.domain.model.TeamCreationCode
+import com.github.zzave.teambalance.api.domain.model.TeamId
+import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.port.TeamCreationCodeRepository
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.jdbc.core.RowMapper
@@ -20,7 +23,7 @@ class JdbcTeamCreationCodeRepositoryAdapter(
     private val jdbcTemplate: JdbcTemplate,
 ) : TeamCreationCodeRepository {
 
-    override fun isRedeemable(code: String, now: Instant): Boolean =
+    override fun isRedeemable(code: CreationCode, now: Instant): Boolean =
         jdbcTemplate.queryForObject(
             """
             SELECT EXISTS(
@@ -31,7 +34,7 @@ class JdbcTeamCreationCodeRepositoryAdapter(
             )
             """.trimIndent(),
             Boolean::class.java,
-            code,
+            code.value,
             Timestamp.from(now),
         ) ?: false
 
@@ -45,7 +48,7 @@ class JdbcTeamCreationCodeRepositoryAdapter(
             ROW_MAPPER,
         )
 
-    override fun findByCode(code: String): TeamCreationCode? =
+    override fun findByCode(code: CreationCode): TeamCreationCode? =
         jdbcTemplate.query(
             """
             SELECT code, created_at, expires_at, consumed_at, consumed_by_user_id, created_team_id
@@ -53,13 +56,13 @@ class JdbcTeamCreationCodeRepositoryAdapter(
             WHERE code = ?
             """.trimIndent(),
             ROW_MAPPER,
-            code,
+            code.value,
         ).firstOrNull()
 
-    override fun insert(code: String, createdAt: Instant, expiresAt: Instant?): TeamCreationCode {
+    override fun insert(code: CreationCode, createdAt: Instant, expiresAt: Instant?): TeamCreationCode {
         jdbcTemplate.update(
             "INSERT INTO public.team_creation_codes (code, created_at, expires_at) VALUES (?, ?, ?)",
-            code,
+            code.value,
             Timestamp.from(createdAt),
             expiresAt?.let { Timestamp.from(it) },
         )
@@ -73,19 +76,19 @@ class JdbcTeamCreationCodeRepositoryAdapter(
         )
     }
 
-    override fun delete(code: String) {
-        jdbcTemplate.update("DELETE FROM public.team_creation_codes WHERE code = ?", code)
+    override fun delete(code: CreationCode) {
+        jdbcTemplate.update("DELETE FROM public.team_creation_codes WHERE code = ?", code.value)
     }
 
     private companion object {
         private val ROW_MAPPER = RowMapper { rs: ResultSet, _: Int ->
             TeamCreationCode(
-                code = rs.getString("code"),
+                code = CreationCode(rs.getString("code")),
                 createdAt = rs.getTimestamp("created_at").toInstant(),
                 expiresAt = rs.getTimestamp("expires_at")?.toInstant(),
                 consumedAt = rs.getTimestamp("consumed_at")?.toInstant(),
-                consumedByUserId = rs.getObject("consumed_by_user_id", java.util.UUID::class.java),
-                createdTeamId = rs.getObject("created_team_id", java.util.UUID::class.java),
+                consumedByUserId = rs.getObject("consumed_by_user_id", java.util.UUID::class.java)?.let(::UserId),
+                createdTeamId = rs.getObject("created_team_id", java.util.UUID::class.java)?.let(::TeamId),
             )
         }
     }

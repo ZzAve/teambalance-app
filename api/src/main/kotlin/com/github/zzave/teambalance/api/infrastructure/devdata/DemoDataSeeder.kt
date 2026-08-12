@@ -1,5 +1,6 @@
 package com.github.zzave.teambalance.api.infrastructure.devdata
 
+import com.github.zzave.teambalance.api.domain.model.SchemaName
 import com.github.zzave.teambalance.api.domain.port.TenantProvisioningGateway
 import org.slf4j.LoggerFactory
 import org.springframework.boot.ApplicationArguments
@@ -32,7 +33,7 @@ class DemoDataSeeder(
 
     override fun run(args: ApplicationArguments) {
         log.info("Seeding demo team 'Setpoint VT' and its tenant schema")
-        tenantProvisioningGateway.provisionTenant("team_setpoint_vt")
+        tenantProvisioningGateway.provisionTenant(SchemaName("team_setpoint_vt"))
         ResourceDatabasePopulator(ClassPathResource("db/seed/demo_data.sql")).execute(dataSource)
     }
 }

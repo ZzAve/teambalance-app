@@ -3,13 +3,13 @@ package com.github.zzave.teambalance.api.interfaces
 import com.github.zzave.teambalance.api.application.AttendanceService
 import com.github.zzave.teambalance.api.application.EventService
 import com.github.zzave.teambalance.api.application.PotentialEvent
-import com.github.zzave.teambalance.api.domain.model.AttendanceState as DomainAttendanceState
 import com.github.zzave.teambalance.api.domain.model.EventAttendance
+import com.github.zzave.teambalance.api.domain.model.EventDescription
 import com.github.zzave.teambalance.api.domain.model.EventReference as DomainEventReference
 import com.github.zzave.teambalance.api.domain.model.EventId
+import com.github.zzave.teambalance.api.domain.model.EventLocation
 import com.github.zzave.teambalance.api.domain.model.EventSeriesScope as DomainEventSeriesScope
-import com.github.zzave.teambalance.api.domain.model.MemberAttendance
-import com.github.zzave.teambalance.api.domain.model.UNASSIGNED
+import com.github.zzave.teambalance.api.domain.model.EventTitle
 import com.github.zzave.teambalance.api.domain.port.CurrentTeamGateway
 import com.github.zzave.teambalance.api.domain.port.CurrentUserGateway
 import com.github.zzave.teambalance.api.interfaces.generated.model.EventSeriesScope as GeneratedEventSeriesScope
@@ -18,16 +18,12 @@ import com.github.zzave.teambalance.api.interfaces.generated.endpoint.DeleteEven
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.GetEvent
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.ListEvents
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.UpdateEvent
-import com.github.zzave.teambalance.api.interfaces.generated.model.AttendanceEntry
-import com.github.zzave.teambalance.api.interfaces.generated.model.AttendanceState
-import com.github.zzave.teambalance.api.interfaces.generated.model.AttendanceSummary
 import com.github.zzave.teambalance.api.interfaces.generated.model.DateTimestampWithTimezone
 import com.github.zzave.teambalance.api.interfaces.generated.model.Event
 import com.github.zzave.teambalance.api.interfaces.generated.model.EventDetail
 import com.github.zzave.teambalance.api.interfaces.generated.model.EventList
 import com.github.zzave.teambalance.api.interfaces.generated.model.EventTypeSummary
 import com.github.zzave.teambalance.api.interfaces.generated.model.EventReference
-import com.github.zzave.teambalance.api.interfaces.generated.model.RoleCount
 import org.springframework.web.bind.annotation.RestController
 import java.time.Instant
 import java.util.UUID
@@ -78,11 +74,11 @@ class EventController(
             EventDetail(
                 id = event.id.produce(),
                 eventType = event.eventType.produce(),
-                title = event.title,
-                description = event.description,
+                title = event.title.produce(),
+                description = event.description?.value,
                 startTime = DateTimestampWithTimezone(event.startTime.toString()),
                 endTime = DateTimestampWithTimezone(event.endTime.toString()),
-                location = event.location,
+                location = event.location?.value,
                 references = event.references.externalize(),
                 recurringGroup = event.recurringGroup?.toString(),
                 attendanceSummary = attendance.summary().produce(attendance.attendingRoleBreakdown()),
@@ -104,11 +100,11 @@ class EventController(
             id = id,
             scope = request.queries.scope.consume(),
             eventTypeId = req.eventTypeId.consumeEventTypeId(),
-            title = req.title,
-            description = req.description,
+            title = req.title.consumeEventTitle(),
+            description = req.description?.let(::EventDescription),
             startTime = Instant.parse(req.startTime.value),
             endTime = Instant.parse(req.endTime.value),
-            location = req.location,
+            location = req.location?.let(::EventLocation),
             references = req.references.internalize(),
         ) ?: return UpdateEvent.Response404(Unit)
 
@@ -137,6 +133,19 @@ internal fun String.consumeEventId(): EventId = EventId(UUID.fromString(this))
 
 internal fun EventId.produce(): String = value.toString()
 
+// The Wirespec edge for an event's title. The contract carries a plain string and is unchanged by
+// EventTitle — these two functions are the only place in the inbound adapter that wraps or unwraps
+// it. internal so RecurringEventController converts the same way.
+internal fun String.consumeEventTitle(): EventTitle = EventTitle(this)
+
+internal fun EventTitle.produce(): String = value
+
+// EventDescription and EventLocation get no such pair on purpose. Each conversion is a bare
+// constructor reference with nothing to centralise (`?.let(::EventDescription)` in, `?.value` out —
+// the same way the JPA mapper inlines them), and this file holds 10 top-level functions against
+// detekt's stock TooManyFunctions ceiling of 11, so one symmetric pair would push it to 12 (and the
+// two pairs both optional free-text fields would want, to 14) for a suppression they do not earn.
+
 // A missing scope query param defaults to THIS (ADR-0014); otherwise it maps 1:1 to the domain enum.
 private fun GeneratedEventSeriesScope?.consume(): DomainEventSeriesScope = when (this) {
     null, GeneratedEventSeriesScope.THIS -> DomainEventSeriesScope.THIS
@@ -147,11 +156,11 @@ private fun GeneratedEventSeriesScope?.consume(): DomainEventSeriesScope = when 
 private fun com.github.zzave.teambalance.api.interfaces.generated.model.CreateEventRequest.consume() =
     PotentialEvent(
         eventTypeId = eventTypeId.consumeEventTypeId(),
-        title = title,
-        description = description,
+        title = title.consumeEventTitle(),
+        description = description?.let(::EventDescription),
         startTime = Instant.parse(startTime.value),
         endTime = Instant.parse(endTime.value),
-        location = location,
+        location = location?.let(::EventLocation),
         references = references.internalize(),
     )
 
@@ -163,7 +172,7 @@ internal fun List<EventReference>?.internalize(): List<DomainEventReference> =
     orEmpty().map { DomainEventReference.of(title = it.title, url = it.url) }
 
 private fun List<DomainEventReference>.externalize(): List<EventReference> =
-    map { EventReference(title = it.title, url = it.url.value) }
+    map { EventReference(title = it.title?.value, url = it.url.value) }
 
 // internal (not private) so RecurringEventController can reuse it for the batch-create response.
 // Takes the already-resolved projection so mapping stays free of data access (no per-event N+1).
@@ -171,35 +180,15 @@ internal fun com.github.zzave.teambalance.api.domain.model.Event.produce(attenda
     Event(
         id = id.produce(),
         eventType = eventType.produce(),
-        title = title,
-        description = description,
+        title = title.produce(),
+        description = description?.value,
         startTime = DateTimestampWithTimezone(startTime.toString()),
         endTime = DateTimestampWithTimezone(endTime.toString()),
-        location = location,
+        location = location?.value,
         references = references.externalize(),
         recurringGroup = recurringGroup?.toString(),
         attendanceSummary = attendance.summary().produce(attendance.attendingRoleBreakdown()),
     )
 
-private fun MemberAttendance.produce() = AttendanceEntry(
-    // A responded member keys off their real row; a not-responded member falls back to their user id.
-    id = responseId?.produce() ?: member.userId.produce(),
-    userId = member.userId.produce(),
-    displayName = member.displayName,
-    role = member.position ?: UNASSIGNED,
-    state = state.produce(),
-)
-
 private fun com.github.zzave.teambalance.api.domain.model.EventType.produce() =
-    EventTypeSummary(id = id.produce(), name = name, color = color)
-
-private fun Map<DomainAttendanceState, Int>.produce(roleBreakdown: List<Pair<String, Int>>) =
-    AttendanceSummary(
-        attending = (this[DomainAttendanceState.ATTENDING] ?: 0).toLong(),
-        maybe = (this[DomainAttendanceState.MAYBE] ?: 0).toLong(),
-        absent = (this[DomainAttendanceState.ABSENT] ?: 0).toLong(),
-        notResponded = (this[DomainAttendanceState.NOT_RESPONDED] ?: 0).toLong(),
-        roleBreakdown = roleBreakdown.map { (role, count) -> RoleCount(role = role, attending = count.toLong()) },
-    )
-
-private fun DomainAttendanceState.produce() = AttendanceState.valueOf(name)
+    EventTypeSummary(id = id.produce(), name = name.value, color = color?.value)

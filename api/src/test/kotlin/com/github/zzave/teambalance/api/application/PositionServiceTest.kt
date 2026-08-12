@@ -3,8 +3,10 @@ package com.github.zzave.teambalance.api.application
 import com.github.zzave.teambalance.api.domain.exception.NotTeamAdminException
 import com.github.zzave.teambalance.api.domain.exception.PositionLabelTakenException
 import com.github.zzave.teambalance.api.domain.exception.PositionNotFoundException
+import com.github.zzave.teambalance.api.domain.model.DisplayName
 import com.github.zzave.teambalance.api.domain.model.Position
 import com.github.zzave.teambalance.api.domain.model.PositionId
+import com.github.zzave.teambalance.api.domain.model.PositionLabel
 import com.github.zzave.teambalance.api.domain.model.Role
 import com.github.zzave.teambalance.api.domain.model.TeamId
 import com.github.zzave.teambalance.api.domain.model.TenantRouting
@@ -20,18 +22,18 @@ import java.util.UUID
 // In-memory positions keyed by id, tagged with their owning team. Also tracks how many times delete
 // ran so the "delete clears then removes" contract can be checked without a real DB.
 private class PosFakePositionRepo : PositionRepository {
-    private data class Row(val teamId: TeamId, var label: String)
+    private data class Row(val teamId: TeamId, var label: PositionLabel)
 
     private val store: MutableMap<PositionId, Row> = mutableMapOf()
 
     override fun listByTeam(teamId: TeamId): List<Position> =
-        store.filterValues { it.teamId == teamId }.map { Position(it.key, it.value.label) }.sortedBy { it.label }
-    override fun create(teamId: TeamId, label: String): Position {
+        store.filterValues { it.teamId == teamId }.map { Position(it.key, it.value.label) }.sortedBy { it.label.value }
+    override fun create(teamId: TeamId, label: PositionLabel): Position {
         val id = PositionId(UUID.randomUUID())
         store[id] = Row(teamId, label)
         return Position(id, label)
     }
-    override fun rename(id: PositionId, label: String): Position {
+    override fun rename(id: PositionId, label: PositionLabel): Position {
         store.getValue(id).label = label
         return Position(id, label)
     }
@@ -44,7 +46,7 @@ private class PosFakePositionRepo : PositionRepository {
 private class FakeAdminRepo(private val admins: Set<UserId>) : TeamMemberRepository {
     override fun findRole(teamId: TeamId, userId: UserId): Role? = if (userId in admins) Role.ADMIN else Role.USER
     override fun findByTeamId(teamId: TeamId): List<TeamMember> = emptyList()
-    override fun findDisplayName(userId: UserId): String? = null
+    override fun findDisplayName(userId: UserId): DisplayName? = null
     override fun findMembersByUserIds(userIds: Set<UserId>): Map<UserId, TeamMember> = emptyMap()
     override fun findTeamId(userId: UserId): TeamId? = null
     override fun findTenantRouting(userId: UserId): TenantRouting? = null
@@ -55,7 +57,7 @@ private class FakeAdminRepo(private val admins: Set<UserId>) : TeamMemberReposit
     override fun applyMemberEdit(
         teamId: TeamId,
         userId: UserId,
-        displayName: String,
+        displayName: DisplayName,
         role: Role,
         positionId: PositionId?,
         markOnboardedAt: java.time.Instant?,
@@ -78,14 +80,14 @@ class PositionServiceTest : FunSpec() {
 
         test("createPosition trims the label and stores it") {
             val (service, _) = newService()
-            service.createPosition(adminId, teamId, "  Setter  ").label shouldBe "Setter"
+            service.createPosition(adminId, teamId, "  Setter  ").label shouldBe PositionLabel("Setter")
         }
 
         test("listPositions returns the team's positions") {
             val (service, _) = newService()
             service.createPosition(adminId, teamId, "Setter")
             service.createPosition(adminId, teamId, "Libero")
-            service.listPositions(teamId).map { it.label } shouldBe listOf("Libero", "Setter")
+            service.listPositions(teamId).map { it.label.value } shouldBe listOf("Libero", "Setter")
         }
 
         test("createPosition rejects a duplicate label case-insensitively with 409") {
@@ -102,7 +104,7 @@ class PositionServiceTest : FunSpec() {
         test("renamePosition updates the label") {
             val (service, _) = newService()
             val created = service.createPosition(adminId, teamId, "Setter")
-            service.renamePosition(adminId, teamId, created.id, "Playmaker").label shouldBe "Playmaker"
+            service.renamePosition(adminId, teamId, created.id, "Playmaker").label shouldBe PositionLabel("Playmaker")
         }
 
         test("renamePosition to another existing label returns 409") {

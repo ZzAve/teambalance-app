@@ -16,21 +16,21 @@ class TeamNamingTest : FunSpec() {
     init {
         test("keeps the trimmed name and the verbatim slug, deriving only the team_ schema name") {
             val names = TeamNaming.validate("  Setpoint VT  ", "setpoint-vt")
-            names.name shouldBe "Setpoint VT"
-            names.slug shouldBe "setpoint-vt"
-            names.schemaName shouldBe "team_setpoint_vt"
+            names.name shouldBe TeamName("Setpoint VT")
+            names.slug shouldBe Slug("setpoint-vt")
+            names.schemaName shouldBe SchemaName("team_setpoint_vt")
         }
 
         test("a single-segment slug needs no substitution") {
-            TeamNaming.validate("Setpoint", "setpoint").schemaName shouldBe "team_setpoint"
+            TeamNaming.validate("Setpoint", "setpoint").schemaName shouldBe SchemaName("team_setpoint")
         }
 
         test("keeps digits and a purely numeric slug") {
-            TeamNaming.validate("2024 Squad", "2024").schemaName shouldBe "team_2024"
+            TeamNaming.validate("2024 Squad", "2024").schemaName shouldBe SchemaName("team_2024")
         }
 
         test("the derived schema always matches the injection-safe whitelist") {
-            Regex("^team_[a-z0-9_]+$").matches(TeamNaming.validate("A B C", "a-b-c").schemaName) shouldBe true
+            Regex("^team_[a-z0-9_]+$").matches(TeamNaming.validate("A B C", "a-b-c").schemaName.value) shouldBe true
         }
 
         test("rejects a blank name with INVALID_NAME") {
@@ -56,7 +56,7 @@ class TeamNamingTest : FunSpec() {
         }
 
         test("accepts a 58-char slug (schema exactly 63 bytes) but rejects 59") {
-            TeamNaming.validate("Team", "a".repeat(58)).schemaName.toByteArray().size shouldBe 63
+            TeamNaming.validate("Team", "a".repeat(58)).schemaName.value.toByteArray().size shouldBe 63
             shouldThrow<InvalidSlugException> { TeamNaming.validate("Team", "a".repeat(59)) }
         }
     }

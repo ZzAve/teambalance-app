@@ -1,5 +1,10 @@
 package com.github.zzave.teambalance.api.domain.port
 
+import com.github.zzave.teambalance.api.domain.model.CreationCode
+import com.github.zzave.teambalance.api.domain.model.SchemaName
+import com.github.zzave.teambalance.api.domain.model.Slug
+import com.github.zzave.teambalance.api.domain.model.TeamId
+import com.github.zzave.teambalance.api.domain.model.TeamName
 import java.time.Instant
 import java.util.UUID
 
@@ -22,11 +27,11 @@ interface TeamRegistrationGateway {
      *   if the slug / schema name collides with an existing team.
      */
     fun register(
-        creationCode: String,
+        creationCode: CreationCode,
         founderId: UUID,
-        name: String,
-        slug: String,
-        schemaName: String,
+        name: TeamName,
+        slug: Slug,
+        schemaName: SchemaName,
         now: Instant,
-    ): UUID
+    ): TeamId
 }

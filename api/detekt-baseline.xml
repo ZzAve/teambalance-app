@@ -2,32 +2,12 @@
 <SmellBaseline>
   <ManuallySuppressedIssues/>
   <CurrentIssues>
-    <ID>DomainNoPrimitiveObsession:Event.kt:Event$val description: String?</ID>
-    <ID>DomainNoPrimitiveObsession:Event.kt:Event$val location: String?</ID>
-    <ID>DomainNoPrimitiveObsession:Event.kt:Event$val title: String</ID>
-    <ID>DomainNoPrimitiveObsession:EventReference.kt:EventReference$val title: String?</ID>
-    <ID>DomainNoPrimitiveObsession:EventType.kt:EventType$val color: String?</ID>
-    <ID>DomainNoPrimitiveObsession:EventType.kt:EventType$val name: String</ID>
-    <ID>DomainNoPrimitiveObsession:Position.kt:Position$val label: String</ID>
-    <ID>DomainNoPrimitiveObsession:PotentialEvent.kt:PotentialEvent$val description: String?</ID>
-    <ID>DomainNoPrimitiveObsession:PotentialEvent.kt:PotentialEvent$val location: String?</ID>
-    <ID>DomainNoPrimitiveObsession:PotentialEvent.kt:PotentialEvent$val title: String</ID>
-    <ID>DomainNoPrimitiveObsession:SeriesModification.kt:EventEdit$val description: String?</ID>
-    <ID>DomainNoPrimitiveObsession:SeriesModification.kt:EventEdit$val location: String?</ID>
-    <ID>DomainNoPrimitiveObsession:SeriesModification.kt:EventEdit$val title: String</ID>
-    <ID>DomainNoPrimitiveObsession:TeamCreationCode.kt:TeamCreationCode$val code: String</ID>
-    <ID>DomainNoPrimitiveObsession:TeamMember.kt:TeamMember$val displayName: String</ID>
-    <ID>DomainNoPrimitiveObsession:TeamMember.kt:TeamMember$val onboarded: Boolean</ID>
-    <ID>DomainNoPrimitiveObsession:TeamMember.kt:TeamMember$val position: String?</ID>
+    <!-- TeamMember.role is the last entry. It is NOT a display string and NOT an
+         exemption: it is a closed set of values that becomes a Role enum in #26, so
+         wrapping it as a value class here would be work thrown away. Baselined (not
+         rule-configured) deliberately, because the baseline is per-property and
+         self-tightening: any NEW primitive added to TeamMember still fails the build.
+         Delete this entry — and the file — when #26 lands. See ADR-0018 / #207 / #24. -->
     <ID>DomainNoPrimitiveObsession:TeamMember.kt:TeamMember$val role: String</ID>
-    <ID>DomainNoPrimitiveObsession:TeamNaming.kt:TeamNames$val name: String</ID>
-    <ID>DomainNoPrimitiveObsession:TeamNaming.kt:TeamNames$val schemaName: String</ID>
-    <ID>DomainNoPrimitiveObsession:TeamNaming.kt:TeamNames$val slug: String</ID>
-    <ID>DomainNoPrimitiveObsession:TeamService.kt:CreatedTeam$val name: String</ID>
-    <ID>DomainNoPrimitiveObsession:TeamService.kt:CreatedTeam$val slug: String</ID>
-    <ID>DomainNoPrimitiveObsession:TeamSummary.kt:TeamSummary$val name: String</ID>
-    <ID>DomainNoPrimitiveObsession:TeamSummary.kt:TeamSummary$val slug: String</ID>
-    <ID>DomainNoPrimitiveObsession:TenantRouting.kt:TenantRouting$val schemaName: String</ID>
-    <ID>DomainNoPrimitiveObsession:User.kt:User$val displayName: String</ID>
   </CurrentIssues>
 </SmellBaseline>

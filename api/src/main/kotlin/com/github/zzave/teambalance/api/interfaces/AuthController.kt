@@ -32,7 +32,7 @@ class AuthController(
             AuthenticatedUser(
                 id = user.id.produce(),
                 email = user.email.produce(),
-                displayName = user.displayName,
+                displayName = user.displayName.value,
                 role = resolveRole(user.id),
                 team = resolveTeam(user.id),
                 isPlatformAdmin = authService.isPlatformAdmin(user.id),
@@ -51,7 +51,7 @@ class AuthController(
                 AuthenticatedUser(
                     id = it.id.produce(),
                     email = it.email.produce(),
-                    displayName = it.displayName,
+                    displayName = it.displayName.value,
                     role = resolveRole(it.id),
                     team = resolveTeam(it.id),
                     isPlatformAdmin = authService.isPlatformAdmin(it.id),
@@ -66,7 +66,7 @@ class AuthController(
     // dependency of its own (ADR-0018). v1: one team per user.
     private fun resolveTeam(userId: UserId): TeamRef? =
         authService.findTeamFor(userId)
-            ?.let { TeamRef(id = it.id.toString(), name = it.name, slug = it.slug) }
+            ?.let { TeamRef(id = it.id.produce(), name = it.name.value, slug = it.slug.value) }
 }
 
 // The Wirespec edge for a user's identity — the contract, and the session attribute the auth filter

@@ -97,11 +97,30 @@ class PositionControllerIT : TeamBalanceIT() {
             .let { Regex("\"id\":\"([^\"]+)\"").find(it)!!.groupValues[1] }
 
     init {
+        // Also pins the JPA edge: PositionLabel is an internal representation, so the column must
+        // still hold the bare string the response carries.
         test("POST /api/positions by an admin creates a position") {
             seedTeam()
-            createAs(ADMIN_USER_ID, "Setter")
+            val id = createAs(ADMIN_USER_ID, "Setter")
                 .andExpect(MockMvcResultMatchers.status().isCreated)
                 .andExpect(MockMvcResultMatchers.jsonPath("$.label").value("Setter"))
+                .andReturn().response.contentAsString
+                .let { Regex("\"id\":\"([^\"]+)\"").find(it)!!.groupValues[1] }
+
+            val stored = jdbcTemplate.queryForObject(
+                "SELECT label FROM public.team_positions WHERE id = ?::uuid", String::class.java, id,
+            )
+            stored shouldBe "Setter"
+        }
+
+        // The 50-character cap moved from PositionService onto PositionLabel; both the cap and the
+        // blank check must still surface as the same 400 they did before.
+        test("POST /api/positions with an over-long or blank label returns 400") {
+            seedTeam()
+            createAs(ADMIN_USER_ID, "a".repeat(51))
+                .andExpect(MockMvcResultMatchers.status().isBadRequest)
+            createAs(ADMIN_USER_ID, "   ")
+                .andExpect(MockMvcResultMatchers.status().isBadRequest)
         }
 
         test("GET /api/positions as a plain member returns the list") {

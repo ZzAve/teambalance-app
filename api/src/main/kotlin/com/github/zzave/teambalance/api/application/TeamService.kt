@@ -3,6 +3,10 @@ package com.github.zzave.teambalance.api.application
 import com.github.zzave.teambalance.api.domain.exception.AlreadyInTeamException
 import com.github.zzave.teambalance.api.domain.exception.InvalidCreationCodeException
 import com.github.zzave.teambalance.api.domain.exception.TeamSlugTakenException
+import com.github.zzave.teambalance.api.domain.model.CreationCode
+import com.github.zzave.teambalance.api.domain.model.Slug
+import com.github.zzave.teambalance.api.domain.model.TeamId
+import com.github.zzave.teambalance.api.domain.model.TeamName
 import com.github.zzave.teambalance.api.domain.model.TeamNaming
 import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.port.TeamCreationCodeRepository
@@ -15,10 +19,9 @@ import com.github.zzave.teambalance.api.domain.port.UserRepository
 import org.slf4j.LoggerFactory
 import java.time.Clock
 import java.time.Instant
-import java.util.UUID
 
 /** The newly created team, as returned to the founder (schema_name is deliberately not exposed). */
-data class CreatedTeam(val id: UUID, val name: String, val slug: String)
+data class CreatedTeam(val id: TeamId, val name: TeamName, val slug: Slug)
 
 /**
  * Self-service team creation (issue #154, ADR-0019). A logged-in, teamless user creates a team from a
@@ -47,7 +50,7 @@ class TeamService(
 ) {
     private val log = LoggerFactory.getLogger(TeamService::class.java)
 
-    fun createTeam(founderId: UserId, rawName: String, rawSlug: String, creationCode: String): CreatedTeam {
+    fun createTeam(founderId: UserId, rawName: String, rawSlug: String, creationCode: CreationCode): CreatedTeam {
         requireTeamless(founderId)
         val names = TeamNaming.validate(rawName, rawSlug)
         requireSlugAvailable(names.slug)
@@ -77,13 +80,15 @@ class TeamService(
         teamMemberRepository.findTeamId(founderId)?.let { throw AlreadyInTeamException(founderId.value) }
     }
 
-    private fun requireSlugAvailable(slug: String) {
+    private fun requireSlugAvailable(slug: Slug) {
         if (teamRepository.existsBySlug(slug)) {
-            throw TeamSlugTakenException(slug)
+            // The exception carries the slug for its message only, so it takes the primitive — the
+            // same treatment AlreadyInTeamException already gets from requireTeamless above.
+            throw TeamSlugTakenException(slug.value)
         }
     }
 
-    private fun requireRedeemable(creationCode: String, now: Instant) {
+    private fun requireRedeemable(creationCode: CreationCode, now: Instant) {
         if (!creationCodeRepository.isRedeemable(creationCode, now)) {
             throw InvalidCreationCodeException()
         }
@@ -96,11 +101,13 @@ class TeamService(
      * a 500 — hence the deliberately broad catch.
      */
     @Suppress("TooGenericExceptionCaught")
-    private fun notifyBestEffort(founderId: UserId, teamName: String, teamSlug: String) {
+    private fun notifyBestEffort(founderId: UserId, teamName: TeamName, teamSlug: Slug) {
         try {
             val founderEmail = userRepository.findById(founderId)?.email ?: return
-            teamNotificationGateway.teamCreated(founderEmail.value, teamName, teamSlug)
-            teamNotificationGateway.creationCodeConsumed(teamName, teamSlug, founderEmail.value)
+            // Notifications are plain text for humans, so the value objects unwrap here — the same
+            // treatment [Email] already gets at this port.
+            teamNotificationGateway.teamCreated(founderEmail.value, teamName.value, teamSlug.value)
+            teamNotificationGateway.creationCodeConsumed(teamName.value, teamSlug.value, founderEmail.value)
         } catch (e: Exception) {
             log.warn("Post-create notifications failed for team '{}' (creation succeeded)", teamSlug, e)
         }

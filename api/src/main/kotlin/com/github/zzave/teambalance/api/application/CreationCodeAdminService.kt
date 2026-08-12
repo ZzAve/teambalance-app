@@ -2,6 +2,7 @@ package com.github.zzave.teambalance.api.application
 
 import com.github.zzave.teambalance.api.domain.exception.CreationCodeConsumedException
 import com.github.zzave.teambalance.api.domain.exception.CreationCodeNotFoundException
+import com.github.zzave.teambalance.api.domain.model.CreationCode
 import com.github.zzave.teambalance.api.domain.model.TeamCreationCode
 import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.port.PlatformAdminGateway
@@ -37,18 +38,18 @@ class CreationCodeAdminService(
      * Revokes an unconsumed code by deleting it. A missing code is a 404; a consumed one is a 409 —
      * consuming is irreversible, so it can't be "revoked". Only unconsumed codes actually leave.
      */
-    fun revoke(callerId: UserId, code: String) {
+    fun revoke(callerId: UserId, code: CreationCode) {
         platformAdminGateway.requirePlatformAdmin(callerId.value)
-        val existing = creationCodeRepository.findByCode(code) ?: throw CreationCodeNotFoundException(code)
-        if (existing.consumedAt != null) throw CreationCodeConsumedException(code)
+        val existing = creationCodeRepository.findByCode(code) ?: throw CreationCodeNotFoundException(code.value)
+        if (existing.consumedAt != null) throw CreationCodeConsumedException(code.value)
         creationCodeRepository.delete(code)
     }
 
     // A short, human-typable, unguessable code: three dash-separated groups from an unambiguous
     // alphabet (no 0/O/1/I), e.g. "K7QM-9FX4-P2HR". ~60 bits of entropy — brute-forcing it is
     // hopeless, and the code gate is the last line anyway (the redeem UPDATE is atomic + one-shot).
-    private fun generateCode(): String =
-        (0 until GROUP_COUNT).joinToString("-") { randomGroup() }
+    private fun generateCode(): CreationCode =
+        CreationCode((0 until GROUP_COUNT).joinToString("-") { randomGroup() })
 
     private fun randomGroup(): String =
         buildString { repeat(GROUP_SIZE) { append(ALPHABET[random.nextInt(ALPHABET.length)]) } }

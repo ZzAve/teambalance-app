@@ -27,6 +27,17 @@ hexagonal-domain:
   DomainNoPrimitiveObsession:
     active: true
     domainPackages: ['domain', 'application']
+    # Booleans are not primitive obsession. The smell this rule names is a value whose
+    # *domain meaning* is wider than its representation — a String that is really a slug,
+    # an Int that is really a count of minutes — so wrapping it buys a name, a format and
+    # somewhere for the invariant to live. A Boolean already has exactly two values and no
+    # invariant to state: `TeamMember.onboarded` is the whole vocabulary, and an
+    # `Onboarded(value: Boolean)` wrapper would add a level of unwrapping at every edge
+    # while forbidding nothing. Excluded at rule level rather than wrapped or baselined
+    # (see #207 out-of-scope). This is the ONE primitive type retired here; String/Int/Long
+    # and the rest stay enforced across domain + application, and the 12 value classes this
+    # epic added are the proof that the rule is doing real work (see ADR-0018).
+    allowedPrimitives: ['Boolean']
   DomainNoFrameworkImports:
     active: true
     domainPackages: ['domain', 'application']

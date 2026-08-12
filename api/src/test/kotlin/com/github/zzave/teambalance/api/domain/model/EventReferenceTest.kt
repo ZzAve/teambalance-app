@@ -17,7 +17,7 @@ class EventReferenceTest : FunSpec({
 
     test("accepts an https url with a title") {
         val ref = EventReference.of("Nevobo", "https://api.nevobo.nl/permalink/wedstrijd/2018133")
-        ref.title shouldBe "Nevobo"
+        ref.title shouldBe EventReferenceText("Nevobo")
         ref.url.value shouldBe "https://api.nevobo.nl/permalink/wedstrijd/2018133"
     }
 
@@ -62,8 +62,18 @@ class EventReferenceTest : FunSpec({
     }
 
     test("rejects a title longer than the cap") {
-        val longTitle = "t".repeat(EventReference.MAX_TITLE_LENGTH + 1)
+        val longTitle = "t".repeat(EventReferenceText.MAX_LENGTH + 1)
         shouldThrow<IllegalArgumentException> { EventReference.of(longTitle, "https://example.com/x") }
+    }
+
+    // Same argument as Url below: the cap lives on the type, so it holds for a title built directly
+    // in the JPA mapper or a test fixture, not only for one that came through of().
+    test("EventReferenceText itself rejects an over-length title and accepts one at the cap") {
+        shouldThrow<IllegalArgumentException> {
+            EventReferenceText("t".repeat(EventReferenceText.MAX_LENGTH + 1))
+        }
+        EventReferenceText("t".repeat(EventReferenceText.MAX_LENGTH)).value.length shouldBe
+            EventReferenceText.MAX_LENGTH
     }
 
     test("is case-insensitive on the scheme") {

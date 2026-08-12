@@ -33,7 +33,7 @@ class SessionTenantContextFilter(
         currentUserGateway.getCurrentUserId()?.let { userId ->
             resolveRouting(request, userId)?.let { routing ->
                 // Respect a tenant already pinned upstream (the test-profile X-Team-Id shim).
-                if (!TenantContext.isSet()) TenantContext.set(routing.schemaName)
+                if (!TenantContext.isSet()) TenantContext.set(routing.schemaName.value)
                 CurrentTeamContext.set(routing.teamId.value)
             }
         }

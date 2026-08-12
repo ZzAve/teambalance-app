@@ -1,5 +1,6 @@
 package com.github.zzave.teambalance.api.domain.port
 
+import com.github.zzave.teambalance.api.domain.model.DisplayName
 import com.github.zzave.teambalance.api.domain.model.MagicLinkToken
 import com.github.zzave.teambalance.api.domain.model.TokenHash
 import com.github.zzave.teambalance.api.domain.model.User
@@ -18,5 +19,5 @@ interface MagicLinkTokenRepository {
      * and `users`); it is expressed as a single port call so the application states the intent and
      * the adapter makes it atomic, keeping "one port call is one transaction" intact.
      */
-    fun consumeAndResolveUser(consumedToken: MagicLinkToken, displayName: String): User
+    fun consumeAndResolveUser(consumedToken: MagicLinkToken, displayName: DisplayName): User
 }

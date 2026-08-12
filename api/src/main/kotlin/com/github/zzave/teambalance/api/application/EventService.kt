@@ -4,8 +4,11 @@ import com.github.zzave.teambalance.api.domain.exception.EmptyRecurrenceExceptio
 import com.github.zzave.teambalance.api.domain.exception.EventTypeNotFoundException
 import com.github.zzave.teambalance.api.domain.exception.RecurrenceExceedsCapException
 import com.github.zzave.teambalance.api.domain.model.Event
+import com.github.zzave.teambalance.api.domain.model.EventDescription
 import com.github.zzave.teambalance.api.domain.model.EventEdit
 import com.github.zzave.teambalance.api.domain.model.EventId
+import com.github.zzave.teambalance.api.domain.model.EventLocation
+import com.github.zzave.teambalance.api.domain.model.EventTitle
 import com.github.zzave.teambalance.api.domain.model.EventTypeId
 import com.github.zzave.teambalance.api.domain.model.EventReference
 import com.github.zzave.teambalance.api.domain.model.EventSeriesScope
@@ -112,9 +115,9 @@ class EventService(
         callerId: UserId,
         teamId: TeamId,
         eventTypeId: EventTypeId,
-        title: String,
-        description: String?,
-        location: String?,
+        title: EventTitle,
+        description: EventDescription?,
+        location: EventLocation?,
         timeOfDay: LocalTime,
         durationMinutes: Long,
         references: List<EventReference>,
@@ -186,11 +189,11 @@ class EventService(
         id: EventId,
         scope: EventSeriesScope,
         eventTypeId: EventTypeId,
-        title: String,
-        description: String?,
+        title: EventTitle,
+        description: EventDescription?,
         startTime: Instant,
         endTime: Instant,
-        location: String?,
+        location: EventLocation?,
         references: List<EventReference> = emptyList(),
     ): List<Event>? {
         authorizationService.requireAdmin(callerId, teamId)

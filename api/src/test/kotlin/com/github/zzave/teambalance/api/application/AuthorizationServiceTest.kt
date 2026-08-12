@@ -2,6 +2,7 @@ package com.github.zzave.teambalance.api.application
 
 import com.github.zzave.teambalance.api.domain.exception.NoTeamMembershipException
 import com.github.zzave.teambalance.api.domain.exception.NotTeamAdminException
+import com.github.zzave.teambalance.api.domain.model.DisplayName
 import com.github.zzave.teambalance.api.domain.model.PositionId
 import com.github.zzave.teambalance.api.domain.model.Role
 import com.github.zzave.teambalance.api.domain.model.TeamId
@@ -16,7 +17,7 @@ import java.util.UUID
 
 private class FakeTeamMemberRepository(private val roles: Map<Pair<TeamId, UserId>, Role>) : TeamMemberRepository {
     override fun findByTeamId(teamId: TeamId) = emptyList<TeamMember>()
-    override fun findDisplayName(userId: UserId): String? = null
+    override fun findDisplayName(userId: UserId): DisplayName? = null
     override fun findMembersByUserIds(userIds: Set<UserId>) = emptyMap<UserId, TeamMember>()
     override fun findRole(teamId: TeamId, userId: UserId): Role? = roles[teamId to userId]
     override fun findTeamId(userId: UserId): TeamId? = null
@@ -28,7 +29,7 @@ private class FakeTeamMemberRepository(private val roles: Map<Pair<TeamId, UserI
     override fun applyMemberEdit(
         teamId: TeamId,
         userId: UserId,
-        displayName: String,
+        displayName: DisplayName,
         role: Role,
         positionId: PositionId?,
         markOnboardedAt: java.time.Instant?,

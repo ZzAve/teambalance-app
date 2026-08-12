@@ -2,7 +2,12 @@ package com.github.zzave.teambalance.api.infrastructure.persistence
 
 import com.github.zzave.teambalance.api.domain.exception.InvalidCreationCodeException
 import com.github.zzave.teambalance.api.domain.exception.TeamSlugTakenException
+import com.github.zzave.teambalance.api.domain.model.CreationCode
 import com.github.zzave.teambalance.api.domain.model.Role
+import com.github.zzave.teambalance.api.domain.model.SchemaName
+import com.github.zzave.teambalance.api.domain.model.Slug
+import com.github.zzave.teambalance.api.domain.model.TeamId
+import com.github.zzave.teambalance.api.domain.model.TeamName
 import com.github.zzave.teambalance.api.domain.port.TeamRegistrationGateway
 import org.springframework.dao.DuplicateKeyException
 import org.springframework.jdbc.core.JdbcTemplate
@@ -28,13 +33,13 @@ class JdbcTeamRegistrationAdapter(
 
     @Transactional
     override fun register(
-        creationCode: String,
+        creationCode: CreationCode,
         founderId: UUID,
-        name: String,
-        slug: String,
-        schemaName: String,
+        name: TeamName,
+        slug: Slug,
+        schemaName: SchemaName,
         now: Instant,
-    ): UUID {
+    ): TeamId {
         val at = Timestamp.from(now)
 
         // Consume the code conditionally: exactly one row updates iff it is still redeemable. Zero rows
@@ -49,7 +54,7 @@ class JdbcTeamRegistrationAdapter(
             """.trimIndent(),
             at,
             founderId,
-            creationCode,
+            creationCode.value,
             at,
         )
         if (consumed != 1) {
@@ -59,17 +64,18 @@ class JdbcTeamRegistrationAdapter(
         val teamId = insertTeam(name, slug, schemaName)
 
         // Link the consumed code to the team it produced (same transaction), so the codes-admin
-        // surface can show which team a code was redeemed into.
+        // surface can show which team a code was redeemed into. The binds below are `vararg Any?`, so
+        // `.value` is what keeps the id reaching the driver as a UUID rather than a boxed [TeamId].
         jdbcTemplate.update(
             "UPDATE public.team_creation_codes SET created_team_id = ? WHERE code = ?",
-            teamId,
-            creationCode,
+            teamId.value,
+            creationCode.value,
         )
 
         // Founding admin: ADMIN role, onboarding already complete (skips /welcome), no position yet.
         jdbcTemplate.update(
             "INSERT INTO public.team_members (team_id, user_id, role, onboarded_at) VALUES (?, ?, ?, ?)",
-            teamId,
+            teamId.value,
             founderId,
             Role.ADMIN.name,
             at,
@@ -82,16 +88,18 @@ class JdbcTeamRegistrationAdapter(
     // the slug / schema_name UNIQUE constraint tripped because a team was created under this name in
     // the window after the pre-check. The driver-level cause carries no caller-actionable detail.
     @Suppress("SwallowedException")
-    private fun insertTeam(name: String, slug: String, schemaName: String): UUID =
+    private fun insertTeam(name: TeamName, slug: Slug, schemaName: SchemaName): TeamId =
         try {
-            jdbcTemplate.queryForObject(
-                "INSERT INTO public.teams (name, slug, schema_name) VALUES (?, ?, ?) RETURNING id",
-                UUID::class.java,
-                name,
-                slug,
-                schemaName,
-            )!!
+            TeamId(
+                jdbcTemplate.queryForObject(
+                    "INSERT INTO public.teams (name, slug, schema_name) VALUES (?, ?, ?) RETURNING id",
+                    UUID::class.java,
+                    name.value,
+                    slug.value,
+                    schemaName.value,
+                )!!,
+            )
         } catch (e: DuplicateKeyException) {
-            throw TeamSlugTakenException(slug)
+            throw TeamSlugTakenException(slug.value)
         }
 }

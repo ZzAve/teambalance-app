@@ -5,9 +5,9 @@ import com.github.zzave.teambalance.api.domain.exception.InvalidTeamNameExceptio
 
 /** A validated team name with its user-chosen URL slug and the derived tenant schema identifier. */
 data class TeamNames(
-    val name: String,
-    val slug: String,
-    val schemaName: String,
+    val name: TeamName,
+    val slug: Slug,
+    val schemaName: SchemaName,
 )
 
 /**
@@ -34,14 +34,19 @@ object TeamNaming {
     fun validate(rawName: String, rawSlug: String): TeamNames {
         val name = validatedName(rawName)
         val slug = validatedSlug(rawSlug)
-        val schemaName = SCHEMA_PREFIX + slug.replace('-', '_')
+        val schemaName = SCHEMA_PREFIX + slug.value.replace('-', '_')
         // Defensive: the format check above already guarantees this, but assert the injection-safety
-        // invariant explicitly so any future change to the slug rules can't silently weaken it.
+        // invariant explicitly so any future change to the slug rules can't silently weaken it. It
+        // stays here rather than moving onto [SchemaName] because it is a statement about the slug
+        // rules above, and only *derived* schema names obey it — the ones read back out of
+        // `public.teams.schema_name` need not (`public` is one). See SchemaName.
         require(SAFE_SCHEMA.matches(schemaName)) { "derived schema '$schemaName' is not a safe identifier" }
-        return TeamNames(name = name, slug = slug, schemaName = schemaName)
+        return TeamNames(name = name, slug = slug, schemaName = SchemaName(schemaName))
     }
 
-    private fun validatedName(rawName: String): String {
+    // The name's three clauses stay together here rather than moving onto [TeamName]: they are one
+    // rule set (trim, then non-blank, then the column cap) raising one typed failure. See TeamName.
+    private fun validatedName(rawName: String): TeamName {
         val name = rawName.trim()
         if (name.isBlank()) {
             throw InvalidTeamNameException("Team name must not be blank")
@@ -49,16 +54,19 @@ object TeamNaming {
         if (name.length > MAX_NAME_LENGTH) {
             throw InvalidTeamNameException("Team name must be at most $MAX_NAME_LENGTH characters")
         }
-        return name
+        return TeamName(name)
     }
 
-    private fun validatedSlug(rawSlug: String): String {
+    // The slug's rules stay here rather than moving onto [Slug]: nothing but this path validates a
+    // slug (the demo/e2e seeds insert them as raw SQL) and the column enforces neither rule, so a
+    // guard on the type could only ever reject a value read back out of the database. See Slug.
+    private fun validatedSlug(rawSlug: String): Slug {
         if (rawSlug.length > MAX_SLUG_LENGTH) {
             throw InvalidSlugException("Team address must be at most $MAX_SLUG_LENGTH characters")
         }
         if (!SLUG_FORMAT.matches(rawSlug)) {
             throw InvalidSlugException("Team address must be lowercase letters, numbers, and single hyphens")
         }
-        return rawSlug
+        return Slug(rawSlug)
     }
 }

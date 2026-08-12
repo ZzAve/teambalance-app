@@ -1,8 +1,12 @@
 package com.github.zzave.teambalance.api.domain.model
 
 
-/** Bucket label for attendees who have no position assigned. */
-const val UNASSIGNED = "Unassigned"
+/**
+ * Bucket label for attendees who have no position assigned. A [PositionLabel] like any other, so
+ * the breakdown is keyed by one type throughout — it is simply the one label no team curates.
+ * (A `val`, not a `const val`: a value class is not a compile-time constant.)
+ */
+val UNASSIGNED = PositionLabel("Unassigned")
 
 /**
  * One member's resolved attendance for an event: their response-row state, or NOT_RESPONDED when
@@ -33,12 +37,14 @@ class EventAttendance private constructor(
      * Attending members grouped by position (unpositioned in the [UNASSIGNED] bucket), ordered by
      * count descending then position label ascending.
      */
-    fun attendingRoleBreakdown(): List<Pair<String, Int>> =
+    fun attendingRoleBreakdown(): List<Pair<PositionLabel, Int>> =
         entries
             .filter { it.state == AttendanceState.ATTENDING }
             .groupBy { it.member.position ?: UNASSIGNED }
             .map { (position, grouped) -> position to grouped.size }
-            .sortedWith(compareByDescending<Pair<String, Int>> { it.second }.thenBy { it.first })
+            // A value class is not Comparable, so the alphabetical tie-break reads through to the
+            // wrapped text — same String ordering as before.
+            .sortedWith(compareByDescending<Pair<PositionLabel, Int>> { it.second }.thenBy { it.first.value })
 
     companion object {
         /**

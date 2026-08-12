@@ -1,8 +1,10 @@
 package com.github.zzave.teambalance.api.application
 
 import com.github.zzave.teambalance.api.domain.exception.NotTeamAdminException
+import com.github.zzave.teambalance.api.domain.model.DisplayName
 import com.github.zzave.teambalance.api.domain.model.Event
 import com.github.zzave.teambalance.api.domain.model.EventSeriesScope
+import com.github.zzave.teambalance.api.domain.model.EventTitle
 import com.github.zzave.teambalance.api.domain.model.EventType
 import com.github.zzave.teambalance.api.domain.model.EventTypeId
 import com.github.zzave.teambalance.api.domain.model.PositionId
@@ -56,7 +58,7 @@ private class ExplodingSeasonRepo : SeasonRepository {
 private class EventFakeMemberRepo(private val admins: Set<UserId>) : TeamMemberRepository {
     override fun findRole(teamId: TeamId, userId: UserId): Role = if (userId in admins) Role.ADMIN else Role.USER
     override fun findByTeamId(teamId: TeamId): List<TeamMember> = emptyList()
-    override fun findDisplayName(userId: UserId): String? = null
+    override fun findDisplayName(userId: UserId): DisplayName? = null
     override fun findMembersByUserIds(userIds: Set<UserId>): Map<UserId, TeamMember> = emptyMap()
     override fun findTeamId(userId: UserId): TeamId? = null
     override fun findTenantRouting(userId: UserId): TenantRouting? = null
@@ -67,7 +69,7 @@ private class EventFakeMemberRepo(private val admins: Set<UserId>) : TeamMemberR
     override fun applyMemberEdit(
         teamId: TeamId,
         userId: UserId,
-        displayName: String,
+        displayName: DisplayName,
         role: Role,
         positionId: PositionId?,
         markOnboardedAt: Instant?,
@@ -91,7 +93,7 @@ class EventServiceTest : FunSpec() {
 
         val potential = PotentialEvent(
             eventTypeId = EventTypeId(UUID.randomUUID()),
-            title = "Match",
+            title = EventTitle("Match"),
             description = null,
             startTime = Instant.parse("2026-08-01T20:00:00Z"),
             endTime = Instant.parse("2026-08-01T22:00:00Z"),
@@ -110,7 +112,7 @@ class EventServiceTest : FunSpec() {
                     id = EventId(UUID.randomUUID()),
                     scope = EventSeriesScope.THIS,
                     eventTypeId = EventTypeId(UUID.randomUUID()),
-                    title = "x",
+                    title = EventTitle("x"),
                     description = null,
                     startTime = potential.startTime,
                     endTime = potential.endTime,
@@ -131,7 +133,7 @@ class EventServiceTest : FunSpec() {
                     callerId = nonAdmin,
                     teamId = teamId,
                     eventTypeId = EventTypeId(UUID.randomUUID()),
-                    title = "Training",
+                    title = EventTitle("Training"),
                     description = null,
                     location = null,
                     timeOfDay = LocalTime.of(20, 0),

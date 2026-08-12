@@ -145,9 +145,6 @@ tasks.named<BootRun>("bootRun") {
 detekt {
     buildUponDefaultConfig = true
     config.setFrom(files("$projectDir/detekt.yml"))
-    // Hexagonal violations that predate ADR-0018, so the build stays green while the refactor
-    // sub-issues burn them down. New violations are not in here and still fail the build.
-    baseline = file("$projectDir/detekt-baseline.xml")
 }
 
 // Wirespec code generation

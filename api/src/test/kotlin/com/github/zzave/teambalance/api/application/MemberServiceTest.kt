@@ -62,7 +62,7 @@ private class FakeMembershipRepo(
                     TeamMember(
                         userId = it.id,
                         displayName = it.displayName,
-                        permission = membership.role.name,
+                        permission = membership.role,
                         positionId = membership.positionId,
                         position = null,
                         onboarded = membership.onboarded,
@@ -217,7 +217,7 @@ class MemberServiceTest : FunSpec() {
             val (service, userRepo, memberRepo) = newService()
             val updated = service.updateMember(janId, teamId, lisaId, "Lisa Nova", Role.ADMIN)
             updated.displayName shouldBe DisplayName("Lisa Nova")
-            updated.role shouldBe "ADMIN"
+            updated.permission shouldBe Role.ADMIN
             userRepo.findById(lisaId)?.displayName shouldBe DisplayName("Lisa Nova")
             memberRepo.findRole(teamId, lisaId) shouldBe Role.ADMIN
         }

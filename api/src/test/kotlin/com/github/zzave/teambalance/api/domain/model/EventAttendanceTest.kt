@@ -19,7 +19,7 @@ class EventAttendanceTest : FunSpec({
     fun member(name: String, position: String? = null) = TeamMember(
         userId = UserId.random(),
         displayName = DisplayName(name),
-        permission = "USER",
+        permission = Role.USER,
         positionId = null,
         position = position?.let(::PositionLabel),
         onboarded = true,

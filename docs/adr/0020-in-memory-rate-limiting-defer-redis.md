@@ -38,9 +38,10 @@ candidate — not a Redis-backed store.
   `magic-link/request` and `magic-link/verify` **per client IP**, and `invitations/{token}/accept`
   **per authenticated user** (falling back to IP). Rejections get `429` + `Retry-After` and the
   app's standard `{"error","code":"rate_limited"}` body.
-- Storage is a hand-rolled `TokenBucket` kept in a **Caffeine** cache (already a dependency),
-  bounded and self-evicting; the injected `Clock` is the single time source, so the algorithm is
-  deterministically unit-testable.
+- The token-bucket algorithm is **Bucket4j** (`bucket4j_jdk17-core`) — a small, pure-JVM library, no
+  external store — so we don't own the refill math. Buckets are held per key in a **Caffeine** cache
+  (already a dependency), bounded and self-evicting; the injected `Clock` is bridged to Bucket4j's
+  `TimeMeter`, so behaviour is deterministically unit-testable.
 - Limits live in `teambalance.rate-limit.*` (`RateLimitProperties`), tunable per environment, with
   a master `enabled` switch and a `trust-forwarded-for` flag (prod reads the client IP from
   `X-Forwarded-For`, set by Scaleway's edge).
@@ -55,6 +56,6 @@ candidate — not a Redis-backed store.
 - **Per-IP limits are coarse**: `X-Forwarded-For` is caller-spoofable, so IP throttling is a backstop;
   the per-user limit on `accept` is the sharper control. Behind Scaleway's edge the header is trustworthy.
 - **When to revisit:** if the app runs multiple concurrent instances *and* a genuinely enumerable or
-  guessable endpoint appears (reduced token entropy, a numeric id, etc.), swap the `RateLimiter`
-  internals for a shared store (bucket4j + the store of the day). The filter, properties, and tests
-  stay; only the bucket backing changes.
+  guessable endpoint appears (reduced token entropy, a numeric id, etc.), move the buckets to a shared
+  store — Bucket4j already supports this via its `ProxyManager` (Redis/Hazelcast/etc.), so only
+  `RateLimiter`'s bucket construction changes. The filter, properties, and tests stay.

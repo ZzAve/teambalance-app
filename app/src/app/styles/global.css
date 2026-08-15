@@ -54,6 +54,18 @@
   --color-sidebar-ring: hsl(217.2 91.2% 59.8%);
 }
 
+/* ── App shell metrics ──
+   The app header's height lives here and nowhere else: it *sets* the header's box height in
+   routes/__root.tsx (h-[var(--header-height)]) and *is* the offset every sticky PageHeader pins
+   itself to. Before this variable the sub-header carried a magic top-[57px] that silently drifted
+   whenever the header changed (F12, #159); now the two sides read the same number and cannot
+   disagree. Value = 1.75rem content line-height + 2 × 0.75rem vertical padding, border included
+   (the header is border-box). In rem so it scales with the root font size, exactly as its content
+   does. */
+:root {
+  --header-height: 3.25rem;
+}
+
 body {
   font-family: var(--font-body);
   background-color: var(--color-background);

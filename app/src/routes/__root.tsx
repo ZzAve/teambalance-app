@@ -96,12 +96,15 @@ function RootLayout() {
       <div className="min-h-dvh bg-background">
         {/* The tab bar (BottomNav) is now the single primary nav — the header carries only identity
             (wordmark + real team name, top-right), no nav links. Horizontal safe-area insets keep it
-            clear of a landscape notch now that viewport-fit=cover lets content into the inset region. */}
+            clear of a landscape notch now that viewport-fit=cover lets content into the inset region.
+            Its height is fixed to --header-height (global.css) rather than left to fall out of the
+            padding: that same variable is what every sticky PageHeader offsets by, so the sub-header
+            can no longer drift out of alignment when this header changes (F12, #159). */}
         <header
-          className="sticky top-0 z-40 border-b border-border/40 bg-card/88 backdrop-blur-lg"
+          className="sticky top-0 z-40 h-[var(--header-height)] border-b border-border/40 bg-card/88 backdrop-blur-lg"
           style={{ paddingLeft: 'env(safe-area-inset-left)', paddingRight: 'env(safe-area-inset-right)' }}
         >
-          <div className="flex items-center justify-between px-5 py-3">
+          <div className="flex h-full items-center justify-between px-5">
             <Link to="/" className="font-display text-xl font-bold text-blue">
               Team<span className="text-green">Balance</span>
             </Link>

@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { useState } from 'react'
-import { ArrowLeft, MapPin } from 'lucide-react'
+import { MapPin } from 'lucide-react'
 import { useEvent, useEvents, type AttendanceEntry } from '@shared/api/events'
 import { useSetAttendance } from '@shared/api/attendances'
 import { useUserStore } from '@shared/stores/user-store'
@@ -18,6 +18,7 @@ import { Avatar } from '@shared/ui/avatar'
 import { AttendanceToggle, type AttendanceState } from '@features/attendance-toggle/ui/AttendanceToggle'
 import { EditEventDialog } from '@features/edit-event/ui/EditEventDialog'
 import { DeleteEventDialog } from '@features/edit-event/ui/DeleteEventDialog'
+import { PageHeader } from '@widgets/page-header/ui/PageHeader'
 
 export const Route = createFileRoute('/events/$eventId')({
   component: EventDetailPage,
@@ -89,15 +90,8 @@ function EventDetailPage() {
 
   return (
     <div>
-      {/* Sticky sub-header with back navigation — sits below the app header */}
-      <div className="sticky top-[57px] z-30 -mx-4 mb-2 flex items-center gap-2 border-b border-border/60 bg-background/95 px-4 py-2 backdrop-blur-sm">
-        <Link to="/" aria-label="Back to events">
-          <Button variant="ghost" size="icon" className="h-11 w-11 shrink-0">
-            <ArrowLeft size={18} />
-          </Button>
-        </Link>
-        <h2 className="font-display truncate text-base font-semibold">{event.title}</h2>
-      </div>
+      {/* Sticky sub-header — offset comes from --header-height via PageHeader, not a magic pixel */}
+      <PageHeader title={event.title} backTo="/" backLabel="Back to events" />
 
       {/* Event header */}
       <div className="mt-2 flex items-start gap-4">

@@ -1,11 +1,27 @@
 @import "tailwindcss";
 @import "../../../../design-tokens/tokens.css";
 
+/* ── Self-hosted fonts (F13) ────────────────────────────────────────────────
+   Bundled by Vite from @fontsource-variable instead of the Google Fonts CDN: no
+   third-party request, and the woff2 files are content-hashed into /assets so the
+   service worker can precache them and the installed shell renders offline (F2).
+   Axis coverage matches what the CDN <link> used to request — Grandstander
+   ital,wght@100..900 and DM Sans ital,opsz,wght@9..40,100..1000 — so nothing shifts
+   visually. Imported here rather than in an entrypoint because global.css is the one
+   stylesheet both the app (src/app/index.tsx) and Storybook (.storybook/preview.ts)
+   load, which keeps Chromatic rendering the same fonts as production. */
+@import "@fontsource-variable/grandstander/wght.css";
+@import "@fontsource-variable/grandstander/wght-italic.css";
+@import "@fontsource-variable/dm-sans/opsz.css";
+@import "@fontsource-variable/dm-sans/opsz-italic.css";
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  --font-display: 'Grandstander', cursive;
-  --font-body: 'DM Sans', sans-serif;
+  /* Fontsource ships variable faces under a "… Variable" family name; the plain name is
+     kept as a fallback so the shared tokens stay valid for www/ (which still uses the CDN). */
+  --font-display: 'Grandstander Variable', 'Grandstander', cursive;
+  --font-body: 'DM Sans Variable', 'DM Sans', sans-serif;
   --color-background: #F8F6F0;
   --color-card: #FEFDFB;
   --color-blue: #225C9C;
@@ -36,6 +52,18 @@
   --color-sidebar-accent-foreground: hsl(240 5.9% 10%);
   --color-sidebar-border: hsl(220 13% 91%);
   --color-sidebar-ring: hsl(217.2 91.2% 59.8%);
+}
+
+/* ── App shell metrics ──
+   The app header's height lives here and nowhere else: it *sets* the header's box height in
+   routes/__root.tsx (h-[var(--header-height)]) and *is* the offset every sticky PageHeader pins
+   itself to. Before this variable the sub-header carried a magic top-[57px] that silently drifted
+   whenever the header changed (F12, #159); now the two sides read the same number and cannot
+   disagree. Value = 1.75rem content line-height + 2 × 0.75rem vertical padding, border included
+   (the header is border-box). In rem so it scales with the root font size, exactly as its content
+   does. */
+:root {
+  --header-height: 3.25rem;
 }
 
 body {

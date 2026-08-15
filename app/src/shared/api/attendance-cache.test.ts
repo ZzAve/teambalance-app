@@ -29,6 +29,8 @@ const makeEventDetail = (overrides: Partial<EventDetail> = {}): EventDetail => (
     roleBreakdown: [],
   },
   attendances: [],
+  // The viewer's own resolved response, mirroring the list payload.
+  myState: 'NOT_RESPONDED',
   ...overrides,
 })
 
@@ -78,5 +80,57 @@ describe('applyOptimisticAttendance', () => {
 
   it('returns null unchanged (nothing cached yet)', () => {
     expect(applyOptimisticAttendance(undefined, 'user-1', 'ABSENT')).toBeUndefined()
+  })
+
+  // The Next Up hero shows the response and the headcount on one line, so the summary has to move
+  // with the entry or it contradicts itself until the refetch lands.
+  it('moves the summary counters with the entry', () => {
+    const event = makeEventDetail({
+      attendanceSummary: {
+        attending: 10,
+        maybe: 1,
+        absent: 2,
+        notResponded: 3,
+        roleBreakdown: [{ role: 'Setter', attending: 2 }],
+      },
+      attendances: [attendee({ userId: 'user-1', state: 'NOT_RESPONDED' })],
+    })
+
+    const next = applyOptimisticAttendance(event, 'user-1', 'ATTENDING')
+    if (!next) throw new Error('expected a patched event')
+
+    expect(next.attendanceSummary.attending).toBe(11)
+    expect(next.attendanceSummary.notResponded).toBe(2)
+    expect(next.attendanceSummary.maybe).toBe(1)
+    expect(next.attendanceSummary.absent).toBe(2)
+    // roleBreakdown is the server's to recompute; the optimistic patch leaves it alone.
+    expect(next.attendanceSummary.roleBreakdown).toEqual(event.attendanceSummary.roleBreakdown)
+    // And the original summary is untouched, so a rollback still restores the real counts.
+    expect(event.attendanceSummary.attending).toBe(10)
+  })
+
+  it('leaves the counters alone when the state does not actually change', () => {
+    const event = makeEventDetail({
+      attendanceSummary: { attending: 4, maybe: 0, absent: 0, notResponded: 1, roleBreakdown: [] },
+      attendances: [attendee({ userId: 'user-1', state: 'ATTENDING' })],
+    })
+
+    const next = applyOptimisticAttendance(event, 'user-1', 'ATTENDING')
+    if (!next) throw new Error('expected a patched event')
+
+    expect(next.attendanceSummary.attending).toBe(4)
+  })
+
+  it('never drives a counter negative when the summary is already out of step', () => {
+    const event = makeEventDetail({
+      attendanceSummary: { attending: 0, maybe: 0, absent: 0, notResponded: 0, roleBreakdown: [] },
+      attendances: [attendee({ userId: 'user-1', state: 'ATTENDING' })],
+    })
+
+    const next = applyOptimisticAttendance(event, 'user-1', 'ABSENT')
+    if (!next) throw new Error('expected a patched event')
+
+    expect(next.attendanceSummary.attending).toBe(0)
+    expect(next.attendanceSummary.absent).toBe(1)
   })
 })

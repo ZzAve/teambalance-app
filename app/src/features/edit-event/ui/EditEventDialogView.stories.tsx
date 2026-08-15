@@ -27,6 +27,7 @@ const EVENT: EventDetail = {
   recurringGroup: undefined,
   attendanceSummary: { attending: 0, maybe: 0, absent: 0, notResponded: 0, roleBreakdown: [] },
   attendances: [],
+  myState: 'NOT_RESPONDED',
 }
 
 // A three-occurrence series; the middle one ('evt-1') is the one being edited.

@@ -1,40 +1,34 @@
-import {createFileRoute} from '@tanstack/react-router'
-import {useEffect, useMemo, useState} from 'react'
-import {type Event, useEvents} from '@shared/api/events'
-import {useEventTypes} from '@shared/api/event-types'
-import {useUserStore} from '@shared/stores/user-store'
-import {EventListView} from '@entities/event/ui/EventListView'
-import {CreateEventSheet} from '@widgets/create-event/ui/CreateEventSheet'
-import {toggleTypeSelection} from '@features/filter-event-types/model/toggleTypeSelection'
-import {BulkAttendButton} from '@features/bulk-attend/ui/BulkAttendButton'
-import {eligibleEventIds} from '@features/bulk-attend/lib/eligible-event-ids'
+import { createFileRoute } from '@tanstack/react-router'
+import { useEffect, useMemo, useState } from 'react'
+import { useEvents } from '@shared/api/events'
+import { useEventTypes } from '@shared/api/event-types'
+import { useUserStore } from '@shared/stores/user-store'
+import { useNow } from '@shared/lib/use-now'
+import { EventListView } from '@entities/event/ui/EventListView'
+import { selectHeroEvent } from '@entities/event/lib/next-event'
+import { NextEventHero } from '@widgets/next-event-hero/ui/NextEventHero'
+import { CreateEventSheet } from '@widgets/create-event/ui/CreateEventSheet'
+import { EventFiltersView } from '@features/filter-event-types/ui/EventFiltersView'
+import { toggleTypeSelection } from '@features/filter-event-types/model/toggleTypeSelection'
+import { BulkAttendButton } from '@features/bulk-attend/ui/BulkAttendButton'
+import { eligibleEventIds } from '@features/bulk-attend/lib/eligible-event-ids'
 
 export const Route = createFileRoute('/')({
     component: EventListPage,
 })
 
-type Tab = 'upcoming' | 'past'
-
-function groupUpcomingEvents(events: Event[]): { label: string; events: Event[] }[] {
-    const now = new Date()
-    const weekFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
-
-    const thisWeek = events.filter((e) => {
-        const d = new Date(e.startTime)
-        return d >= now && d <= weekFromNow
-    })
-    const later = events.filter((e) => new Date(e.startTime) > weekFromNow)
-
-    const groups: { label: string; events: Event[] }[] = []
-    if (thisWeek.length > 0) groups.push({label: 'This Week', events: thisWeek})
-    if (later.length > 0) groups.push({label: 'Later', events: later})
-    return groups
-}
-
+/**
+ * The events page. Composition, in order: a compact header with the filter trigger, the Next Up
+ * hero when (and only when) one is due, then one flat chronological list.
+ *
+ * All the deciding happens here so the views below stay prop-only: which events survive the type
+ * filter, whether there is a hero, and — because the hero must not appear twice — which event the
+ * list drops.
+ */
 function EventListPage() {
-    const [tab, setTab] = useState<Tab>('upcoming')
+    const [showPast, setShowPast] = useState(false)
     const [activeTypeIds, setActiveTypeIds] = useState<Set<string>>(new Set())
-    const {data: events, isLoading, error} = useEvents(tab === 'past')
+    const {data: events, isLoading, error} = useEvents(showPast)
     const {data: eventTypes} = useEventTypes()
     const isAdmin = useUserStore((s) => s.role) === 'ADMIN'
 
@@ -45,103 +39,94 @@ function EventListPage() {
         /* eslint-disable-next-line react-hooks/exhaustive-deps */
     }, [eventTypes])
 
+    // One ticking clock for the whole page, so the hero's countdown, the hero cut-off and every
+    // card's relative label are read off the same instant and can never disagree with each other —
+    // and so a screen left open overnight stops claiming "Tomorrow" about today.
+    const now = useNow()
+
     const filteredEvents = useMemo(() => {
         if (!events || !eventTypes) return events ?? []
         if (activeTypeIds.size === eventTypes.length) return events
         return events.filter(e => activeTypeIds.has(e.eventType.id))
     }, [events, activeTypeIds, eventTypes])
 
-    // Bulk Attend acts on exactly what the list shows (ADR-0020), so it reads the same filtered set
-    // the groups below are built from. Future-only is re-checked here rather than leaning on the tab:
-    // "upcoming" is fetched once, so an event can start while the page is open.
-    const bulkEventIds = useMemo(
-        () => eligibleEventIds(filteredEvents, activeTypeIds, new Date()),
-        [filteredEvents, activeTypeIds],
+    // The API returns upcoming ascending but "all" descending, so sort here: the list is flat now,
+    // and flat only reads if it is chronological.
+    const sortedEvents = useMemo(
+        () => [...filteredEvents].sort((a, b) => a.startTime.localeCompare(b.startTime)),
+        [filteredEvents],
     )
 
-    const groups =
-        tab === 'upcoming' && filteredEvents
-            ? groupUpcomingEvents(filteredEvents)
-            : filteredEvents
-                ? [{label: '', events: [...filteredEvents].reverse()}]
-                : []
+    const heroEvent = selectHeroEvent(sortedEvents, now)
+    const listEvents = heroEvent ? sortedEvents.filter(e => e.id !== heroEvent.id) : sortedEvents
+
+    const isTypeFiltered = activeTypeIds.size < (eventTypes?.length ?? 0)
+
+    // Bulk Attend acts on exactly what the page shows (ADR-0020), so it reads `sortedEvents` — the
+    // hero included, since pulling it out of the list does not stop it being on screen. Past events
+    // are excluded by the selector, not by the surrounding UI: with the tabs gone, `showPast` merely
+    // adds past events to the same list, so the future-only rule has to live in the selector.
+    // It reads the page's shared `now`, so the button and the cards can never disagree about which
+    // events have started.
+    const bulkEventIds = useMemo(
+        () => eligibleEventIds(sortedEvents, activeTypeIds, now),
+        [sortedEvents, activeTypeIds, now],
+    )
 
     return (
         <div>
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-2">
                 <h2 className="font-display text-2xl font-bold">Events</h2>
-                {/* The invite link moved to the Team page (team-management action); Events keeps
-                    only event creation for admins. */}
-                {isAdmin && <CreateEventSheet/>}
-            </div>
-
-            {/* Segmented pill toggle */}
-            <div className="mt-4 inline-flex rounded-full bg-muted p-1">
-                {(['upcoming', 'past'] as Tab[]).map((t) => (
-                    <button
-                        key={t}
-                        onClick={() => {
-                            setTab(t)
-                        }}
-                        className={[
-                            'relative rounded-full px-4 py-1 text-sm font-medium capitalize transition-all',
-                            "before:absolute before:inset-x-0 before:top-1/2 before:h-11 before:-translate-y-1/2 before:content-['']",
-                            tab === t
-                                ? 'bg-card text-foreground shadow-sm'
-                                : 'text-muted-foreground hover:text-foreground',
-                        ].join(' ')}
-                    >
-                        {t.charAt(0).toUpperCase() + t.slice(1)}
-                    </button>
-                ))}
-            </div>
-
-            {/* T3.3: Event type filter pills */}
-            {eventTypes && eventTypes.length > 0 && (
-                <div
-                    className="-mx-4 mt-3 flex min-h-[44px] items-center gap-2 overflow-x-auto px-4 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-                    {eventTypes.map((type) => {
-                        const isActive = activeTypeIds.has(type.id)
-                        const color = type.color ?? '#888'
-                        return (
-                            <button
-                                key={type.id}
-                                onClick={() => {
-                                    setActiveTypeIds(prev =>
-                                        toggleTypeSelection(prev, eventTypes.map(t => t.id), type.id))
-                                }}
-                                style={isActive ? {
-                                    backgroundColor: color,
-                                    borderColor: color,
-                                    color: '#fff'
-                                } : {borderColor: color + '66', color}}
-                                className={[
-                                    'relative shrink-0 rounded-full border px-3 py-1 text-xs font-medium transition-all',
-                                    "before:absolute before:inset-x-0 before:top-1/2 before:h-11 before:-translate-y-1/2 before:content-['']",
-                                    isActive ? '' : 'hover:opacity-80',
-                                ].join(' ')}
-                            >
-                                {type.name}
-                            </button>
-                        )
-                    })}
+                <div className="flex items-center gap-2">
+                    {/* The invite link moved to the Team page (team-management action); Events keeps
+                        only event creation for admins. */}
+                    {isAdmin && <CreateEventSheet/>}
+                    {/* Always mounted: the popover now owns the only route to past events, so it
+                        must not disappear with the event types it also happens to host. */}
+                    <EventFiltersView
+                        eventTypes={eventTypes ?? []}
+                        activeTypeIds={activeTypeIds}
+                        showPast={showPast}
+                        onToggleType={(typeId) =>
+                            setActiveTypeIds(prev =>
+                                toggleTypeSelection(prev, (eventTypes ?? []).map(t => t.id), typeId))
+                        }
+                        onToggleShowPast={setShowPast}
+                    />
                 </div>
-            )}
+            </div>
 
-            {/* Upcoming only — the action is future-only, and the past tab has nothing to fill.
-                Also gated on a non-empty set so an all-answered list reserves no blank row; the
-                button hides itself at zero regardless. */}
-            {tab === 'upcoming' && bulkEventIds.length > 0 && (
+            {/* No hero when nothing is within RELATIVE_WINDOW_DAYS — and no placeholder in its
+                place. The list carries the page. */}
+            {heroEvent && <NextEventHero event={heroEvent} now={now}/>}
+
+            {/* Gated on a non-empty set so a fully-answered page reserves no blank row; the button
+                hides itself at zero regardless. */}
+            {bulkEventIds.length > 0 && (
                 <div className="mt-3 flex justify-end">
                     <BulkAttendButton eligibleEventIds={bulkEventIds}/>
                 </div>
             )}
 
             <EventListView
-                groups={groups}
-                isLoading={isLoading}
-                error={error}
-                emptyMessage={activeTypeIds.size < (eventTypes?.length ?? 0) ? 'No events for this type.' : 'No events yet.'}
+                events={listEvents}
+                // A rendered hero IS loaded data — it was pulled out of this very list — so an empty
+                // list beneath it means "nothing else", never a failure. Withholding the flags keeps
+                // the list from painting a skeleton or an error over a page that is plainly fine.
+                isLoading={heroEvent ? false : isLoading}
+                error={heroEvent ? undefined : error}
+                now={now}
+                emptyMessage={
+                    // With a hero on screen the page is not empty — the list just has nothing left
+                    // after the hero was pulled out of it.
+                    heroEvent
+                        ? 'Nothing else coming up.'
+                        : isTypeFiltered
+                            ? 'No events for this type.'
+                            : showPast
+                                ? 'No events yet.'
+                                : 'No upcoming events.'
+                }
             />
         </div>
     )

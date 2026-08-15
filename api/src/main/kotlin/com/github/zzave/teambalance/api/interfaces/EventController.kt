@@ -71,6 +71,7 @@ class EventController(
 
         val members = attendanceService.teamMembers(currentTeamGateway.requireCurrentTeamId())
         val attendance = attendanceService.attendanceFor(id, members)
+        val viewerId = currentUserGateway.requireCurrentUserId()
 
         return GetEvent.Response200(
             EventDetail(
@@ -85,6 +86,7 @@ class EventController(
                 recurringGroup = event.recurringGroup?.toString(),
                 attendanceSummary = attendance.summary().produce(attendance.attendingRoleBreakdown()),
                 attendances = attendance.entries.map { it.produce() },
+                myState = attendance.stateOf(viewerId).produce(),
             )
         )
     }

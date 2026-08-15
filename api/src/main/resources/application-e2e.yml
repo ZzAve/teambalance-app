@@ -12,3 +12,14 @@ teambalance:
   invitation:
     # Hardcoded salt for e2e runs (not a live environment); live supplies INVITATION_TOKEN_SALT.
     token-salt: e2e-invitation-salt
+  rate-limit:
+    # Generous ceilings for the full-stack suite: every Playwright test logs in via the magic-link
+    # flow from the same CI IP, so the default per-IP limits (5–10/min) would throttle later tests and
+    # fail the run. The filter stays enabled (its wiring is still in the request path); the low-limit
+    # 429 behaviour itself is proven by RateLimitIT, not by the e2e suite.
+    magic-link-request:
+      capacity: 1000
+    magic-link-verify:
+      capacity: 1000
+    invitation-accept:
+      capacity: 1000

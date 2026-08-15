@@ -14,3 +14,13 @@ teambalance:
   invitation:
     # Hardcoded salt for the test profile — live environments supply INVITATION_TOKEN_SALT via env.
     token-salt: test-invitation-salt
+  rate-limit:
+    # Generous ceilings for the shared-context IT suite: every MockMvc request keys on the same
+    # 127.0.0.1 bucket, so real limits would couple unrelated tests. RateLimitIT proves the low-limit
+    # 429 behaviour in its own forked context with a unique client IP (see that test's @TestPropertySource).
+    magic-link-request:
+      capacity: 1000
+    magic-link-verify:
+      capacity: 1000
+    invitation-accept:
+      capacity: 1000

@@ -57,6 +57,11 @@ dependencies {
     // Caching
     implementation("com.github.ben-manes.caffeine:caffeine")
 
+    // Rate limiting — in-memory token-bucket algorithm (no external store). The jdk17 line is the
+    // maintained Bucket4j artifact; buckets are held per-key in the Caffeine cache above. See ADR-0020.
+    val bucket4jVersion: String by project
+    implementation("com.bucket4j:bucket4j_jdk17-core:$bucket4jVersion")
+
     // Wirespec runtime
     implementation("community.flock.wirespec.integration:spring-jvm:$wirespecVersion")
     // Wirespec 0.19's Spring integration uses Jackson 3; Spring Boot ships Jackson 3

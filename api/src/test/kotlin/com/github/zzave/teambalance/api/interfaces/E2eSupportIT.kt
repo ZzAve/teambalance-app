@@ -46,13 +46,19 @@ class E2eSupportIT : TeamBalanceIT() {
             membershipCount shouldBe 1
         }
 
-        test("e2e profile seeds a future event with an attendance row for the e2e user") {
+        test("e2e profile seeds a future event and NO attendance row for the e2e user") {
             val eventCount = jdbcTemplate.queryForObject(
                 "SELECT count(*) FROM team_test.events WHERE title = 'E2E Training' AND start_time > now()",
                 Int::class.java,
             )
             eventCount shouldBe 1
 
+            // The seeded user must start not-responded, and NOT_RESPONDED is the *absence* of a row
+            // (ADR-0009, ADR-0020) — it is resolved by outer-joining the roster, never stored. A
+            // materialized NOT_RESPONDED row would read as a blank while behaving as an answer, which
+            // silently breaks create-only writes: Bulk Attend would count this event as fillable but
+            // its guard would find a row and skip it, so the "Attend N" count could never reach zero.
+            // This assertion is the guard against that row coming back.
             val attendanceCount = jdbcTemplate.queryForObject(
                 """
                 SELECT count(*) FROM team_test.attendances a
@@ -62,7 +68,7 @@ class E2eSupportIT : TeamBalanceIT() {
                 """,
                 Int::class.java,
             )
-            attendanceCount shouldBe 1
+            attendanceCount shouldBe 0
         }
 
         test("plaintext magic-link token is retrievable via the e2e endpoint and verifies") {

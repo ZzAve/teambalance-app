@@ -36,9 +36,12 @@
   --color-absent: var(--color-red);
   --color-no-response: #94A3B8;
 
-  /* Typography */
-  --font-display: 'Grandstander', cursive;
-  --font-body: 'DM Sans', sans-serif;
+  /* Typography.
+     "… Variable" first: the app self-hosts both families as variable fonts via
+     @fontsource (see app/src/app/styles/global.css). The plain family name stays in the
+     chain for www/, which still loads Grandstander/DM Sans from the Google Fonts CDN. */
+  --font-display: 'Grandstander Variable', 'Grandstander', cursive;
+  --font-body: 'DM Sans Variable', 'DM Sans', sans-serif;
 
   --text-xs: 0.75rem;
   --text-sm: 0.875rem;

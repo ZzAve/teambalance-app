@@ -4,6 +4,21 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>TeamBalance</title>
+
+    <!-- PWA shell (F2). The manifest, the service worker and the registerSW.js link are injected
+         by vite-plugin-pwa at build time; the icons below are committed under public/ and
+         generated from public/tb-monogram.svg (see app/pwa-assets.config.ts). -->
+    <link rel="icon" href="/favicon.ico" sizes="48x48" />
+    <link rel="icon" href="/tb-monogram.svg" sizes="any" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon-180x180.png" />
+    <!-- iOS reads these instead of the manifest when the app is added to the home screen. -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="TeamBalance" />
+    <!-- Static light value (--color-background). F11 (dark mode) makes this follow the active
+         theme — it will need a matching dark value here and in src/app/pwa/manifest.ts. -->
+    <meta name="theme-color" content="#F8F6F0" />
     <!--
       Cold-start wake-up. The prod backend scales to zero, so kick it awake as early as possible —
       during HTML parse, before the JS bundle even downloads — so the container is already warming
@@ -30,9 +45,6 @@
         }
       })()
     </script>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Grandstander:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet" />
   </head>
   <body>
     <div id="root"></div>

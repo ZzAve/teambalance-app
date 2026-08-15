@@ -9,4 +9,5 @@ interface SpringDataAttendanceRepository : JpaRepository<AttendanceJpaEntity, Lo
     fun findByEventUuid(eventUuid: UUID): List<AttendanceJpaEntity>
     fun findByEventUuidIn(eventUuids: List<UUID>): List<AttendanceJpaEntity>
     fun findByEventUuidAndUserId(eventUuid: UUID, userId: UUID): AttendanceJpaEntity?
+    fun findByUserIdAndEventUuidIn(userId: UUID, eventUuids: List<UUID>): List<AttendanceJpaEntity>
 }

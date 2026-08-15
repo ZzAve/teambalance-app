@@ -7,6 +7,7 @@ import java.util.UUID
 
 interface SpringDataEventRepository : JpaRepository<EventJpaEntity, Long> {
     fun findByUuid(uuid: UUID): EventJpaEntity?
+    fun findByUuidIn(uuids: List<UUID>): List<EventJpaEntity>
     fun findByStartTimeGreaterThanOrderByStartTimeAsc(since: Instant): List<EventJpaEntity>
     fun findAllByOrderByStartTimeDesc(): List<EventJpaEntity>
     fun findByRecurringGroupOrderByStartTimeAsc(recurringGroup: UUID): List<EventJpaEntity>

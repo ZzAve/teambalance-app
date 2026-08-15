@@ -54,7 +54,7 @@ class RecurringEventController(
         return CreateRecurringEvents.Response201(
             RecurringEventSeries(
                 recurringGroup = series.recurringGroup.toString(),
-                events = series.events.map { it.produce(attendance.getValue(it.id)) },
+                events = series.events.map { it.produce(attendance.getValue(it.id), userId) },
             ),
         )
     }

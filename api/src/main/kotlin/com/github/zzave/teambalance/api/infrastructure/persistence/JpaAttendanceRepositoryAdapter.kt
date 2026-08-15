@@ -53,11 +53,35 @@ class JpaAttendanceRepositoryAdapter(
         return jpaRepository.save(attendance.externalize(eventEntity, existingDbId)).internalize()
     }
 
+    @Transactional(readOnly = true)
+    override fun findByUserIdAndEventIds(userId: UserId, eventIds: List<EventId>): List<Attendance> =
+        if (eventIds.isEmpty()) emptyList()
+        else jpaRepository.findByUserIdAndEventUuidIn(userId.value, eventIds.map { it.value })
+            .map { it.internalize() }
+
+    // Each row resolves its *own* event: a batch may span events (Bulk Attend, ADR-0020), so binding
+    // them all to the first row's event would silently file every response under one event. The
+    // events are fetched in one query and indexed, keeping that correctness off the N+1 path.
     @Transactional
     override fun saveAll(attendances: List<Attendance>): List<Attendance> {
         if (attendances.isEmpty()) return emptyList()
-        val eventEntity = eventJpaRepository.findByUuid(attendances.first().eventId.value)
-            ?: throw EventNotFoundException(attendances.first().eventId)
-        return jpaRepository.saveAll(attendances.map { it.externalize(eventEntity) }).map { it.internalize() }
+        val eventIds = attendances.map { it.eventId.value }.distinct()
+        val eventsByUuid = eventJpaRepository.findByUuidIn(eventIds).associateBy { it.uuid }
+        return jpaRepository.saveAll(
+            attendances.map {
+                val eventEntity = eventsByUuid[it.eventId.value] ?: throw EventNotFoundException(it.eventId)
+                it.externalize(eventEntity)
+            },
+        ).map { it.internalize() }
+    }
+
+    @Transactional
+    override fun deleteByUserIdAndEventIds(userId: UserId, eventIds: List<EventId>): List<EventId> {
+        if (eventIds.isEmpty()) return emptyList()
+        // Read the rows first so the return value names exactly what was deleted — the caller reports
+        // that back, and a repeat simply finds nothing (idempotent Undo).
+        val doomed = jpaRepository.findByUserIdAndEventUuidIn(userId.value, eventIds.map { it.value })
+        jpaRepository.deleteAll(doomed)
+        return doomed.map { EventId(it.event.uuid) }
     }
 }

@@ -34,6 +34,15 @@ class EventAttendance private constructor(
         AttendanceState.entries.associateWith { state -> entries.count { it.state == state } }
 
     /**
+     * One member's resolved state — NOT_RESPONDED when they have no row, and equally when they are
+     * not on the roster at all (a listing viewer who has since left the team reads as a blank rather
+     * than an error). Same rule as [resolve]; this is the single-member view of it, so a caller
+     * asking "what did *I* answer?" doesn't re-derive it from [entries].
+     */
+    fun stateOf(userId: UserId): AttendanceState =
+        entries.firstOrNull { it.member.userId == userId }?.state ?: AttendanceState.NOT_RESPONDED
+
+    /**
      * Attending members grouped by position (unpositioned in the [UNASSIGNED] bucket), ordered by
      * count descending then position label ascending.
      */

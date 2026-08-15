@@ -52,7 +52,9 @@ verify: check **Scaleway Cockpit** container logs for the boot crash, fix forwar
 
 **`deploy-frontend`** — builds the SPA (`vite build` auto-loads `app/.env.production` →
 `VITE_API_URL=https://api.teambalance.nl`), syncs `app/dist` → `s3://teambalance-spa`
-(hashed assets `immutable`, `index.html` `no-cache`) and the landing page + design tokens
+(hashed assets `immutable`, `index.html` `no-cache`, and the PWA shell: icons cached a day,
+`sw.js` / `registerSW.js` / `manifest.webmanifest` `no-cache` so an installed client is never
+pinned to a previous deploy's precache) and the landing page + design tokens
 → `s3://teambalance-www`, then purges both Edge Services pipelines. S3 uses the **dedicated
 Object Storage IAM key** (`SCW_S3_*`).
 

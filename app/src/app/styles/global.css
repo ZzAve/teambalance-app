@@ -1,11 +1,27 @@
 @import "tailwindcss";
 @import "../../../../design-tokens/tokens.css";
 
+/* ── Self-hosted fonts (F13) ────────────────────────────────────────────────
+   Bundled by Vite from @fontsource-variable instead of the Google Fonts CDN: no
+   third-party request, and the woff2 files are content-hashed into /assets so the
+   service worker can precache them and the installed shell renders offline (F2).
+   Axis coverage matches what the CDN <link> used to request — Grandstander
+   ital,wght@100..900 and DM Sans ital,opsz,wght@9..40,100..1000 — so nothing shifts
+   visually. Imported here rather than in an entrypoint because global.css is the one
+   stylesheet both the app (src/app/index.tsx) and Storybook (.storybook/preview.ts)
+   load, which keeps Chromatic rendering the same fonts as production. */
+@import "@fontsource-variable/grandstander/wght.css";
+@import "@fontsource-variable/grandstander/wght-italic.css";
+@import "@fontsource-variable/dm-sans/opsz.css";
+@import "@fontsource-variable/dm-sans/opsz-italic.css";
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  --font-display: 'Grandstander', cursive;
-  --font-body: 'DM Sans', sans-serif;
+  /* Fontsource ships variable faces under a "… Variable" family name; the plain name is
+     kept as a fallback so the shared tokens stay valid for www/ (which still uses the CDN). */
+  --font-display: 'Grandstander Variable', 'Grandstander', cursive;
+  --font-body: 'DM Sans Variable', 'DM Sans', sans-serif;
   --color-background: #F8F6F0;
   --color-card: #FEFDFB;
   --color-blue: #225C9C;

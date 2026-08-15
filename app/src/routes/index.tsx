@@ -6,6 +6,8 @@ import {useUserStore} from '@shared/stores/user-store'
 import {EventListView} from '@entities/event/ui/EventListView'
 import {CreateEventSheet} from '@widgets/create-event/ui/CreateEventSheet'
 import {toggleTypeSelection} from '@features/filter-event-types/model/toggleTypeSelection'
+import {BulkAttendButton} from '@features/bulk-attend/ui/BulkAttendButton'
+import {eligibleEventIds} from '@features/bulk-attend/lib/eligible-event-ids'
 
 export const Route = createFileRoute('/')({
     component: EventListPage,
@@ -48,6 +50,14 @@ function EventListPage() {
         if (activeTypeIds.size === eventTypes.length) return events
         return events.filter(e => activeTypeIds.has(e.eventType.id))
     }, [events, activeTypeIds, eventTypes])
+
+    // Bulk Attend acts on exactly what the list shows (ADR-0020), so it reads the same filtered set
+    // the groups below are built from. Future-only is re-checked here rather than leaning on the tab:
+    // "upcoming" is fetched once, so an event can start while the page is open.
+    const bulkEventIds = useMemo(
+        () => eligibleEventIds(filteredEvents, activeTypeIds, new Date()),
+        [filteredEvents, activeTypeIds],
+    )
 
     const groups =
         tab === 'upcoming' && filteredEvents
@@ -115,6 +125,15 @@ function EventListPage() {
                             </button>
                         )
                     })}
+                </div>
+            )}
+
+            {/* Upcoming only — the action is future-only, and the past tab has nothing to fill.
+                Also gated on a non-empty set so an all-answered list reserves no blank row; the
+                button hides itself at zero regardless. */}
+            {tab === 'upcoming' && bulkEventIds.length > 0 && (
+                <div className="mt-3 flex justify-end">
+                    <BulkAttendButton eligibleEventIds={bulkEventIds}/>
                 </div>
             )}
 

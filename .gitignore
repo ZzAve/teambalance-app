@@ -2,6 +2,8 @@
 .gradle/
 build/
 !gradle/wrapper/
+# Kotlin compiler daemon session files, written to the root on any Gradle build.
+.kotlin/
 
 # IDE
 .idea/

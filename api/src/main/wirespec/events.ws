@@ -38,6 +38,7 @@ type AttendanceSummary {
     roleBreakdown: RoleCount[]
 }
 
+// `myState` is the authenticated caller's own resolved attendance. The listing already resolves every member's state for the summary, so it costs no extra query; without it the list carries only aggregate counts and the client cannot tell which events it is Not Responded on (what Bulk Attend selects over, ADR-0020).
 type Event {
     id: String,
     eventType: EventTypeSummary,
@@ -48,7 +49,8 @@ type Event {
     location: String?,
     references: EventReference[],
     recurringGroup: String?,
-    attendanceSummary: AttendanceSummary
+    attendanceSummary: AttendanceSummary,
+    myState: AttendanceState
 }
 
 type EventDetail {

@@ -32,7 +32,7 @@ export function EventListView({
   // so a transient failure never blanks a list the user is already looking at.
   if (events.length === 0) {
     if (isLoading) return <EventListSkeleton />
-    if (error) return <p className="mt-4 text-sm text-red-500">Couldn&apos;t load events.</p>
+    if (error) return <p className="mt-4 text-sm text-red">Couldn&apos;t load events.</p>
     return <p className="mt-4 text-muted-foreground">{emptyMessage}</p>
   }
 

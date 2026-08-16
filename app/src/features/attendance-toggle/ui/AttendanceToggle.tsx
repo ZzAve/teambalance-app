@@ -30,8 +30,8 @@ const RESPONSE_OPTIONS: ResponseOption[] = [
     value: 'ABSENT',
     label: "Can't go",
     icon: X,
-    activeClass: 'bg-red-500 text-white border-red-500 hover:bg-red-500/90',
-    inactiveClass: 'border-red-300 text-red-500 hover:bg-red-500/10',
+    activeClass: 'bg-red text-white border-red hover:bg-red/90',
+    inactiveClass: 'border-red/30 text-red hover:bg-red/10',
   },
 ]
 

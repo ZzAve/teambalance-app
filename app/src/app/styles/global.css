@@ -27,6 +27,10 @@
   --color-blue: #225C9C;
   --color-green: #249E6C;
   --color-gold: #F4B400;
+  /* Brand red — the same value tokens.css binds --color-absent to. Exposed here so components can
+     say bg-red/text-red/border-red instead of reaching for Tailwind's own default red (#EF4444),
+     which is not ours (F9, #159). Keep in sync with design-tokens/tokens.css, like the three above. */
+  --color-red: #D93025;
   --radius: 0.625rem;
   --color-border: hsl(214.3 31.8% 91.4%);
   --color-input: hsl(214.3 31.8% 91.4%);
@@ -36,7 +40,11 @@
   --color-primary-foreground: hsl(210 40% 98%);
   --color-secondary: hsl(210 40% 96.1%);
   --color-secondary-foreground: hsl(222.2 47.4% 11.2%);
-  --color-destructive: hsl(0 84.2% 60.2%);
+  /* Shadcn's destructive semantic, bound to the same brand red rather than its stock
+     hsl(0 84.2% 60.2%) (#EF4444). Without this a delete dialog paints two different reds — a
+     token-red error panel stacked on a stock-red confirm button. Bonus: white-on-red goes from
+     3.76:1 to 4.78:1, over the AA floor it used to miss. */
+  --color-destructive: var(--color-red);
   --color-destructive-foreground: hsl(210 40% 98%);
   --color-muted: hsl(210 40% 96.1%);
   --color-muted-foreground: hsl(215.4 16.3% 46.9%);

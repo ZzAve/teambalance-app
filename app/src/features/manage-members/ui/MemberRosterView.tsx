@@ -69,13 +69,13 @@ export function MemberRosterView({
 
       {isLoading && <p className="mt-4 text-sm text-muted-foreground">Loading…</p>}
       {isError && (
-        <p className="mt-4 text-sm text-red-500">Couldn't load members. Please try again.</p>
+        <p className="mt-4 text-sm text-red">Couldn't load members. Please try again.</p>
       )}
 
       {!isLoading && !isError && (
         <div className="mt-4 flex flex-col gap-3">
           {errorMessage && (
-            <p role="alert" className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-600">
+            <p role="alert" className="rounded-md bg-red/10 px-3 py-2 text-sm text-red">
               {errorMessage}
             </p>
           )}

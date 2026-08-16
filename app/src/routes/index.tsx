@@ -11,7 +11,7 @@ import { CreateEventSheet } from '@widgets/create-event/ui/CreateEventSheet'
 import { EventFiltersView } from '@features/filter-event-types/ui/EventFiltersView'
 import { toggleTypeSelection } from '@features/filter-event-types/model/toggleTypeSelection'
 import { BulkAttendButton } from '@features/bulk-attend/ui/BulkAttendButton'
-import { eligibleEventIds } from '@features/bulk-attend/lib/eligible-event-ids'
+import { eligibleEvents } from '@features/bulk-attend/lib/eligible-event-ids'
 
 export const Route = createFileRoute('/')({
     component: EventListPage,
@@ -68,8 +68,8 @@ function EventListPage() {
     // adds past events to the same list, so the future-only rule has to live in the selector.
     // It reads the page's shared `now`, so the button and the cards can never disagree about which
     // events have started.
-    const bulkEventIds = useMemo(
-        () => eligibleEventIds(sortedEvents, activeTypeIds, now),
+    const bulkEvents = useMemo(
+        () => eligibleEvents(sortedEvents, activeTypeIds, now),
         [sortedEvents, activeTypeIds, now],
     )
 
@@ -102,9 +102,9 @@ function EventListPage() {
 
             {/* Gated on a non-empty set so a fully-answered page reserves no blank row; the button
                 hides itself at zero regardless. */}
-            {bulkEventIds.length > 0 && (
+            {bulkEvents.length > 0 && (
                 <div className="mt-3 flex justify-end">
-                    <BulkAttendButton eligibleEventIds={bulkEventIds}/>
+                    <BulkAttendButton events={bulkEvents}/>
                 </div>
             )}
 

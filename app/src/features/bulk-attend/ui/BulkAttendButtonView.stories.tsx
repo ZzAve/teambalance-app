@@ -24,15 +24,24 @@ export const Hidden: Story = {
 
 export const WithCount: Story = {
   play: async ({ canvas }) => {
-    await expect(canvas.getByRole('button', { name: /Attend 3/ })).toBeInTheDocument()
+    await expect(canvas.getByRole('button', { name: /Attend 3 events/ })).toBeInTheDocument()
   },
 }
 
-// The count is the pre-tap confirmation, so a single event must read "Attend 1", not "Attend 1 events".
+// The label is the pre-tap confirmation, so a single event must not read "Attend 1 events".
 export const SingleEvent: Story = {
   args: { count: 1 },
   play: async ({ canvas }) => {
-    await expect(canvas.getByRole('button', { name: /Attend 1/ })).toBeInTheDocument()
+    // Singular noun, so the label never reads "Attend 1 events".
+    await expect(canvas.getByRole('button', { name: 'Attend 1 event' })).toBeInTheDocument()
+  },
+}
+
+// Filtered to one type: the label names it, so the scope is legible before the tap.
+export const SingleType: Story = {
+  args: { count: 4, typeName: 'Training' },
+  play: async ({ canvas }) => {
+    await expect(canvas.getByRole('button', { name: 'Attend 4 trainings' })).toBeInTheDocument()
   },
 }
 
@@ -40,14 +49,14 @@ export const Pending: Story = {
   args: { isPending: true },
   play: async ({ canvas }) => {
     // Disabled while the batch is in flight, so a double-tap can't fire it twice.
-    await expect(canvas.getByRole('button', { name: /Attend 3/ })).toBeDisabled()
+    await expect(canvas.getByRole('button', { name: /Attend 3 events/ })).toBeDisabled()
   },
 }
 
 // Prop-contract spy: proves the tap actually reaches onAttend, not merely that the label renders.
 export const TapFiresOnAttend: Story = {
   play: async ({ canvas, args, userEvent }) => {
-    await userEvent.click(canvas.getByRole('button', { name: /Attend 3/ }))
+    await userEvent.click(canvas.getByRole('button', { name: /Attend 3 events/ }))
     await expect(args.onAttend).toHaveBeenCalled()
   },
 }

@@ -12,19 +12,26 @@ import type { Event } from '@shared/api/events'
  * `activeTypeIds` is the set of type pills currently on. An empty set means nothing is shown, which
  * is not the same as "no filter" — the caller passes the full set when every pill is on.
  */
+export function eligibleEvents(
+  events: Event[] | undefined,
+  activeTypeIds: Set<string>,
+  now: Date,
+): Event[] {
+  if (!events) return []
+  return events.filter(
+    (event) =>
+      activeTypeIds.has(event.eventType.id) &&
+      event.myState === 'NOT_RESPONDED' &&
+      // `>=` matches the server's guard; an event that started a moment ago is not fillable.
+      new Date(event.startTime) >= now,
+  )
+}
+
+/** Just the ids, for the batch request. See [eligibleEvents] for the rule. */
 export function eligibleEventIds(
   events: Event[] | undefined,
   activeTypeIds: Set<string>,
   now: Date,
 ): string[] {
-  if (!events) return []
-  return events
-    .filter(
-      (event) =>
-        activeTypeIds.has(event.eventType.id) &&
-        event.myState === 'NOT_RESPONDED' &&
-        // `>=` matches the server's guard; an event that started a moment ago is not fillable.
-        new Date(event.startTime) >= now,
-    )
-    .map((event) => event.id)
+  return eligibleEvents(events, activeTypeIds, now).map((event) => event.id)
 }

@@ -1,11 +1,13 @@
 import { toast } from 'sonner'
+import type { Event } from '@shared/api/events'
 import { useBulkAttend, useBulkUndo } from '@shared/api/attendances'
 import { useUserStore } from '@shared/stores/user-store'
+import { sharedTypeName } from '../lib/attend-label'
 import { BulkAttendButtonView } from './BulkAttendButtonView'
 
 interface BulkAttendButtonProps {
-  /** Ids of the shown, unanswered, future events — computed by the page from its filtered list. */
-  eligibleEventIds: string[]
+  /** The shown, unanswered, future events — computed by the page from its filtered list. */
+  events: Event[]
 }
 
 /**
@@ -16,7 +18,7 @@ interface BulkAttendButtonProps {
  * filled one since the list loaded, and undoing an id we did not create would delete someone's real
  * answer. That is the whole reason the endpoint returns them.
  */
-export function BulkAttendButton({ eligibleEventIds }: BulkAttendButtonProps) {
+export function BulkAttendButton({ events }: BulkAttendButtonProps) {
   const userId = useUserStore((s) => s.userId)
   const bulkAttend = useBulkAttend()
   const bulkUndo = useBulkUndo()
@@ -25,7 +27,7 @@ export function BulkAttendButton({ eligibleEventIds }: BulkAttendButtonProps) {
 
   const handleAttend = () => {
     bulkAttend.mutate(
-      { userId, eventIds: eligibleEventIds },
+      { userId, eventIds: events.map((event) => event.id) },
       {
         onSuccess: (createdEventIds) => {
           if (createdEventIds.length === 0) {
@@ -46,7 +48,8 @@ export function BulkAttendButton({ eligibleEventIds }: BulkAttendButtonProps) {
 
   return (
     <BulkAttendButtonView
-      count={eligibleEventIds.length}
+      count={events.length}
+      typeName={sharedTypeName(events)}
       onAttend={handleAttend}
       isPending={bulkAttend.isPending}
     />

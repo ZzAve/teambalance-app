@@ -7,6 +7,7 @@ import { authMeQueryOptions } from '@shared/api/auth'
 import { currentMemberQueryOptions } from '@shared/api/members'
 import { queryClient } from '@shared/api/query-client'
 import { useUserStore } from '@shared/stores/user-store'
+import { useThemeSync } from '@shared/theme/theme-store'
 
 // Only the sign-in routes (and the invite landing page, reachable before a joiner has any
 // session) render without a confirmed session. Exact `/auth/` prefix — not startsWith('/auth') —
@@ -87,6 +88,11 @@ function useViewTransitions() {
 
 function RootLayout() {
   useViewTransitions()
+  // Single owner of the theme's DOM effects (F11, #159): keeps the `.dark` class and the
+  // theme-color meta in step with the resolved theme, and re-resolves when the OS scheme flips
+  // while the preference is `system`. index.html applies the first frame; this owns every frame
+  // after it. The returned value is the resolved theme, which sonner needs as a prop.
+  const theme = useThemeSync()
   const teamName = useUserStore((s) => s.teamName)
 
   return (
@@ -123,9 +129,10 @@ function RootLayout() {
         </main>
         <BottomNav />
       </div>
-      {/* App-wide toast primitive. richColors gives the error toast a semantic red; the default
-          light theme matches the app surface (no dark-mode toggle is wired yet). */}
-      <Toaster position="top-center" richColors />
+      {/* App-wide toast primitive. richColors gives the error toast a semantic red; `theme` is the
+          resolved theme rather than sonner's own "system" so it follows the in-app preference —
+          a user on Light with a dark OS must not get dark toasts. */}
+      <Toaster position="top-center" richColors theme={theme} />
     </Providers>
   )
 }

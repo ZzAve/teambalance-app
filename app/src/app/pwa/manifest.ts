@@ -21,8 +21,12 @@ export const pwaManifest: Partial<ManifestOptions> = {
   scope: '/',
   display: 'standalone',
   background_color: BACKGROUND,
-  // Static light value for now. F11 (dark mode) makes `theme-color` follow the active theme —
-  // both here and in the <meta name="theme-color"> in index.html.
+  // Deliberately still the light value after F11 (dark mode), and not an oversight: the manifest is
+  // read once at install time, so `theme_color`/`background_color` cannot follow a runtime theme the
+  // way the <meta name="theme-color"> in index.html now does. The installed app therefore shows a
+  // light splash/launch background even for a dark-mode user — a single frame before the shell
+  // paints, at which point the meta tag takes over and the chrome goes dark. Chosen over a neutral
+  // mid-grey that would look wrong in both themes rather than briefly wrong in one.
   theme_color: BACKGROUND,
   icons: [
     { src: 'pwa-64x64.png', sizes: '64x64', type: 'image/png' },

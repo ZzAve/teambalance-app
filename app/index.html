@@ -16,9 +16,38 @@
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="TeamBalance" />
-    <!-- Static light value (--color-background). F11 (dark mode) makes this follow the active
-         theme — it will need a matching dark value here and in src/app/pwa/manifest.ts. -->
+    <!-- Light `--color-background`. Kept as the document default; the bootstrap below rewrites it
+         to the dark background when the dark theme wins, so the address bar tracks the page (F11). -->
     <meta name="theme-color" content="#F8F6F0" />
+    <!--
+      Pre-paint theme bootstrap (F11, #159). This has to run here, inline and synchronous, rather
+      than from the app bundle: the class it sets decides the very first frame, and doing it after
+      the module graph loads would paint a light screen and then flip it — the flash dark mode
+      exists to avoid.
+
+      It is deliberately a duplicate of shared/theme: the storage key, the media query and the two
+      theme-color values are repeated as literals because an inline script cannot import. That copy
+      is not left to drift — src/shared/theme/theme.test.ts reads this file and asserts every one of
+      those literals still matches the module's constants.
+    -->
+    <script>
+      (function () {
+        try {
+          var preference = localStorage.getItem('tb-theme')
+          if (preference !== 'light' && preference !== 'dark') preference = 'system'
+          var dark =
+            preference === 'dark' ||
+            (preference === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)
+          if (dark) {
+            document.documentElement.classList.add('dark')
+            var meta = document.querySelector('meta[name="theme-color"]')
+            if (meta) meta.setAttribute('content', '#141210')
+          }
+        } catch (e) {
+          /* No storage or no matchMedia — fall through to the light default in the markup. */
+        }
+      })()
+    </script>
     <!--
       Cold-start wake-up. The prod backend scales to zero, so kick it awake as early as possible —
       during HTML parse, before the JS bundle even downloads — so the container is already warming

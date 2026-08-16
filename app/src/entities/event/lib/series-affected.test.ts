@@ -1,19 +1,20 @@
 import { describe, expect, it } from 'vitest'
 import type { Event } from '@shared/api/events'
+import { makeEvent } from '@shared/testing/event-fixtures'
 import { buildAffectedPreview } from './series-affected'
 
-const event = (id: string, startTime: string): Event => ({
-  id,
-  eventType: { id: 'et-1', name: 'Training', color: '#225C9C' },
-  title: 'Training',
-  description: undefined,
-  startTime,
-  endTime: startTime,
-  location: undefined,
-  references: [],
-  recurringGroup: 'group-1',
-  attendanceSummary: { attending: 0, maybe: 0, absent: 0, notResponded: 0, roleBreakdown: [] },
-})
+// Built from the shared fixture so a new field on the generated Event contract lands in one place.
+// Series logic reads only ids and times; the rest is here to satisfy the type.
+const event = (id: string, startTime: string): Event =>
+  makeEvent({
+    id,
+    eventType: { id: 'et-1', name: 'Training', color: '#225C9C' },
+    title: 'Training',
+    startTime,
+    endTime: startTime,
+    recurringGroup: 'group-1',
+    attendanceSummary: { attending: 0, maybe: 0, absent: 0, notResponded: 0, roleBreakdown: [] },
+  })
 
 // Four occurrences, deliberately out of order to prove chronological sorting.
 const siblings = [

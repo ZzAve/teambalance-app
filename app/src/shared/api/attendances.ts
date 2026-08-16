@@ -43,3 +43,50 @@ export function useSetAttendance() {
     },
   })
 }
+
+interface BulkAttendVars {
+  userId: string
+  eventIds: string[]
+}
+
+/**
+ * Bulk Attend (ADR-0020) — fills every shown, unanswered, future event in one call. No optimistic
+ * update here, unlike the single toggle: the tap changes many cards at once and the server may
+ * legitimately create fewer rows than were asked for (a race, a just-past event), so the honest
+ * refresh is to invalidate and let the list re-render from the response.
+ *
+ * Resolves to the ids the server actually created — that list, not the ids we sent, is what Undo
+ * must be handed.
+ */
+export function useBulkAttend() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ userId, eventIds }: BulkAttendVars) => {
+      const res = await api.BulkAttend({ body: { userId, eventIds, state: 'ATTENDING' } })
+      return res.body.eventIds
+    },
+    onError: () => {
+      toast.error("Couldn't set your attendance — please try again.")
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['events'] })
+    },
+  })
+}
+
+/** Undo for [useBulkAttend]: deletes exactly the rows it created. */
+export function useBulkUndo() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ userId, eventIds }: BulkAttendVars) => {
+      const res = await api.BulkUndoAttend({ body: { userId, eventIds } })
+      return res.body.eventIds
+    },
+    onError: () => {
+      toast.error("Couldn't undo — please try again.")
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['events'] })
+    },
+  })
+}

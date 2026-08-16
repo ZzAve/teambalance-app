@@ -8,8 +8,11 @@ import com.github.zzave.teambalance.api.domain.model.PositionLabel
 import com.github.zzave.teambalance.api.domain.model.UNASSIGNED
 import com.github.zzave.teambalance.api.domain.port.CurrentTeamGateway
 import com.github.zzave.teambalance.api.domain.port.CurrentUserGateway
+import com.github.zzave.teambalance.api.interfaces.generated.endpoint.BulkAttend
+import com.github.zzave.teambalance.api.interfaces.generated.endpoint.BulkUndoAttend
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.SetAttendance
 import com.github.zzave.teambalance.api.interfaces.generated.model.Attendance
+import com.github.zzave.teambalance.api.interfaces.generated.model.BulkAttendanceResult
 import com.github.zzave.teambalance.api.interfaces.generated.model.AttendanceEntry
 import com.github.zzave.teambalance.api.interfaces.generated.model.AttendanceState as GeneratedAttendanceState
 import com.github.zzave.teambalance.api.interfaces.generated.model.AttendanceSummary
@@ -21,7 +24,9 @@ class AttendanceController(
     private val attendanceService: AttendanceService,
     private val currentUserGateway: CurrentUserGateway,
     private val currentTeamGateway: CurrentTeamGateway,
-) : SetAttendance.Handler {
+) : SetAttendance.Handler,
+    BulkAttend.Handler,
+    BulkUndoAttend.Handler {
 
     override suspend fun setAttendance(request: SetAttendance.Request): SetAttendance.Response<*> {
         val teamId = currentTeamGateway.requireCurrentTeamId()
@@ -50,7 +55,33 @@ class AttendanceController(
             )
         )
     }
+
+    // Bulk Attend (ADR-0020). Same shape as the single write above: the tenant and the acting user are
+    // server-resolved, while the *target* member and the ids come from the body — trust-based editing
+    // means the target may be a teammate, and the service still gates that they are one.
+    override suspend fun bulkAttend(request: BulkAttend.Request): BulkAttend.Response<*> {
+        val created = attendanceService.bulkAttend(
+            teamId = currentTeamGateway.requireCurrentTeamId(),
+            userId = request.body.userId.consumeUserId(),
+            eventIds = request.body.eventIds.map { it.consumeEventId() },
+            state = request.body.state.consume(),
+            changedBy = currentUserGateway.requireCurrentUserId(),
+        )
+        return BulkAttend.Response200(BulkAttendanceResult(eventIds = created.map { it.produce() }))
+    }
+
+    override suspend fun bulkUndoAttend(request: BulkUndoAttend.Request): BulkUndoAttend.Response<*> {
+        val deleted = attendanceService.bulkUndo(
+            teamId = currentTeamGateway.requireCurrentTeamId(),
+            userId = request.body.userId.consumeUserId(),
+            eventIds = request.body.eventIds.map { it.consumeEventId() },
+        )
+        return BulkUndoAttend.Response200(BulkAttendanceResult(eventIds = deleted.map { it.produce() }))
+    }
 }
+
+// The inbound half of the state edge — the outbound `produce()` below is its mirror.
+private fun GeneratedAttendanceState.consume() = AttendanceState.valueOf(name)
 
 // The Wirespec edge for a response row's identity — the contract still carries a bare UUID string.
 // internal so EventController's attendance entries convert the same way.

@@ -10,6 +10,8 @@ import { NextEventHero } from '@widgets/next-event-hero/ui/NextEventHero'
 import { CreateEventSheet } from '@widgets/create-event/ui/CreateEventSheet'
 import { EventFiltersView } from '@features/filter-event-types/ui/EventFiltersView'
 import { toggleTypeSelection } from '@features/filter-event-types/model/toggleTypeSelection'
+import { BulkAttendButton } from '@features/bulk-attend/ui/BulkAttendButton'
+import { eligibleEvents } from '@features/bulk-attend/lib/eligible-event-ids'
 
 export const Route = createFileRoute('/')({
     component: EventListPage,
@@ -60,6 +62,17 @@ function EventListPage() {
 
     const isTypeFiltered = activeTypeIds.size < (eventTypes?.length ?? 0)
 
+    // Bulk Attend acts on exactly what the page shows (ADR-0020), so it reads `sortedEvents` — the
+    // hero included, since pulling it out of the list does not stop it being on screen. Past events
+    // are excluded by the selector, not by the surrounding UI: with the tabs gone, `showPast` merely
+    // adds past events to the same list, so the future-only rule has to live in the selector.
+    // It reads the page's shared `now`, so the button and the cards can never disagree about which
+    // events have started.
+    const bulkEvents = useMemo(
+        () => eligibleEvents(sortedEvents, activeTypeIds, now),
+        [sortedEvents, activeTypeIds, now],
+    )
+
     return (
         <div>
             <div className="flex items-center justify-between gap-2">
@@ -86,6 +99,14 @@ function EventListPage() {
             {/* No hero when nothing is within RELATIVE_WINDOW_DAYS — and no placeholder in its
                 place. The list carries the page. */}
             {heroEvent && <NextEventHero event={heroEvent} now={now}/>}
+
+            {/* Gated on a non-empty set so a fully-answered page reserves no blank row; the button
+                hides itself at zero regardless. */}
+            {bulkEvents.length > 0 && (
+                <div className="mt-3 flex justify-end">
+                    <BulkAttendButton events={bulkEvents}/>
+                </div>
+            )}
 
             <EventListView
                 events={listEvents}

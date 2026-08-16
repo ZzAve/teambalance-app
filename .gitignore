@@ -2,6 +2,8 @@
 .gradle/
 build/
 !gradle/wrapper/
+# Kotlin compiler daemon session files, written to the root on any Gradle build.
+.kotlin/
 
 # IDE
 .idea/
@@ -23,6 +25,12 @@ dist/
 # Generated
 api/build/generated/
 app/src/shared/api/generated/
+
+# Demo recordings made locally. Share them on the PR or an upload - a binary video committed
+# here would sit in the history forever, and it is a build artifact, not source.
+/*.mp4
+/*.webm
+/*.gif
 
 # Worktrees
 .worktrees/

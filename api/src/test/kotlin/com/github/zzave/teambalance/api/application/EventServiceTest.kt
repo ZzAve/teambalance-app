@@ -35,6 +35,7 @@ import java.util.UUID
 // if touched, proving the guard short-circuits rather than the call merely erroring downstream.
 private class ExplodingEventRepo : EventRepository {
     override fun findById(id: EventId): Event? = error("repository must not be reached for an unauthorized caller")
+    override fun findByIds(ids: List<EventId>): List<Event> = error("unused")
     override fun findUpcoming(since: Instant): List<Event> = error("unused")
     override fun findAll(): List<Event> = error("unused")
     override fun findByRecurringGroup(group: UUID): List<Event> = error("unused")

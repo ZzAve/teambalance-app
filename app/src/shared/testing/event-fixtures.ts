@@ -27,6 +27,8 @@ export function makeEvent(overrides: Partial<Event> = {}): Event {
         { role: 'Setter', attending: 1 },
       ],
     },
+    // The viewer's own response. Defaults to a blank, which is the state Bulk Attend acts on.
+    myState: 'NOT_RESPONDED',
     ...overrides,
   }
 }

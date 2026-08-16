@@ -39,6 +39,11 @@ class JpaEventRepositoryAdapter(
         jpaRepository.findByUuid(id.value)?.internalize()
 
     @Transactional(readOnly = true)
+    override fun findByIds(ids: List<EventId>): List<Event> =
+        if (ids.isEmpty()) emptyList()
+        else jpaRepository.findByUuidIn(ids.map { it.value }).map { it.internalize() }
+
+    @Transactional(readOnly = true)
     override fun findUpcoming(since: Instant): List<Event> =
         jpaRepository.findByStartTimeGreaterThanOrderByStartTimeAsc(since).map { it.internalize() }
 

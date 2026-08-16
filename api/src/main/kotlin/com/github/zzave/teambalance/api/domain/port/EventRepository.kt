@@ -13,6 +13,13 @@ import java.util.UUID
  */
 interface EventRepository {
     fun findById(id: EventId): Event?
+
+    /**
+     * Many events in one query — lets a batch use case read the start times it must guard against
+     * (Bulk Attend's future-only rule, ADR-0020) without a per-id round-trip. Unknown ids simply do
+     * not come back, so the caller sees exactly the events that exist.
+     */
+    fun findByIds(ids: List<EventId>): List<Event>
     fun findUpcoming(since: Instant): List<Event>
     fun findAll(): List<Event>
     fun findByRecurringGroup(group: UUID): List<Event>

@@ -3,6 +3,7 @@ import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import type { Event, EventSeriesScope } from '@shared/api/events'
+import { makeEvent } from '@shared/testing/event-fixtures'
 import { buildAffectedPreview } from './series-affected'
 
 // CROSS-SEAM CONTRACT — the edit/delete split matrix lives in both this file's `series-affected.ts`
@@ -31,18 +32,18 @@ function loadGoldenFixture(): GoldenFixture {
   throw new Error('golden fixture contracts/recurrence-rules.golden.json not found')
 }
 
-const event = (id: string, startTime: string): Event => ({
-  id,
-  eventType: { id: 'et-1', name: 'Training', color: '#225C9C' },
-  title: 'Training',
-  description: undefined,
-  startTime,
-  endTime: startTime,
-  location: undefined,
-  references: [],
-  recurringGroup: 'group-1',
-  attendanceSummary: { attending: 0, maybe: 0, absent: 0, notResponded: 0, roleBreakdown: [] },
-})
+// Built from the shared fixture so a new field on the generated Event contract lands in one place.
+// Series logic reads only ids and times; the rest is here to satisfy the type.
+const event = (id: string, startTime: string): Event =>
+  makeEvent({
+    id,
+    eventType: { id: 'et-1', name: 'Training', color: '#225C9C' },
+    title: 'Training',
+    startTime,
+    endTime: startTime,
+    recurringGroup: 'group-1',
+    attendanceSummary: { attending: 0, maybe: 0, absent: 0, notResponded: 0, roleBreakdown: [] },
+  })
 
 const fixture = loadGoldenFixture()
 

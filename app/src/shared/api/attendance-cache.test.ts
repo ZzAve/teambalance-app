@@ -29,6 +29,8 @@ const makeEventDetail = (overrides: Partial<EventDetail> = {}): EventDetail => (
     roleBreakdown: [],
   },
   attendances: [],
+  // The viewer's own resolved response, mirroring the list payload.
+  myState: 'NOT_RESPONDED',
   ...overrides,
 })
 

@@ -51,13 +51,10 @@ FROM team_test.event_types et
 WHERE et.name = 'Training'
 ON CONFLICT DO NOTHING;
 
-INSERT INTO team_test.attendances (uuid, event_id, user_id, state, changed_by)
-SELECT
-    'e2e00000-0000-0000-0000-000000000005',
-    e.id,
-    'e2e00000-0000-0000-0000-000000000002',
-    'NOT_RESPONDED',
-    'e2e00000-0000-0000-0000-000000000002'
-FROM team_test.events e
-WHERE e.uuid = 'e2e00000-0000-0000-0000-000000000004'
-ON CONFLICT DO NOTHING;
+-- No attendance row is seeded for the event above, deliberately. NOT_RESPONDED *is* the absence of a
+-- row (ADR-0009, ADR-0020): it is resolved by outer-joining the roster, never stored. A materialized
+-- NOT_RESPONDED row therefore reads as a blank while behaving as an answer, which breaks any
+-- create-only write - Bulk Attend counts such an event as fillable but its guard finds a row and
+-- skips it, so the "Attend N" count can never reach zero. The seeded user starts not-responded on
+-- the event with no row at all, which is what a real not-responded member looks like.
+DELETE FROM team_test.attendances WHERE uuid = 'e2e00000-0000-0000-0000-000000000005';

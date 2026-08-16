@@ -10,6 +10,7 @@ import com.github.zzave.teambalance.api.domain.model.EventId
 import com.github.zzave.teambalance.api.domain.model.EventLocation
 import com.github.zzave.teambalance.api.domain.model.EventSeriesScope as DomainEventSeriesScope
 import com.github.zzave.teambalance.api.domain.model.EventTitle
+import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.port.CurrentTeamGateway
 import com.github.zzave.teambalance.api.domain.port.CurrentUserGateway
 import com.github.zzave.teambalance.api.interfaces.generated.model.EventSeriesScope as GeneratedEventSeriesScope
@@ -42,10 +43,11 @@ class EventController(
 
     override suspend fun listEvents(request: ListEvents.Request): ListEvents.Response<*> {
         val members = attendanceService.teamMembers(currentTeamGateway.requireCurrentTeamId())
+        val viewerId = currentUserGateway.requireCurrentUserId()
         val events = if (request.queries.includepast) eventService.getAllEvents() else eventService.getUpcomingEvents()
         val attendance = attendanceService.attendanceForAll(events.map { it.id }, members)
         return ListEvents.Response200(
-            EventList(events = events.map { it.produce(attendance.getValue(it.id)) })
+            EventList(events = events.map { it.produce(attendance.getValue(it.id), viewerId) })
         )
     }
 
@@ -58,7 +60,7 @@ class EventController(
             potential = request.body.consume(),
         )
         return CreateEvent.Response201(
-            event.produce(attendanceService.attendanceFor(event.id, attendanceService.teamMembers(teamId))),
+            event.produce(attendanceService.attendanceFor(event.id, attendanceService.teamMembers(teamId)), userId),
         )
     }
 
@@ -69,6 +71,7 @@ class EventController(
 
         val members = attendanceService.teamMembers(currentTeamGateway.requireCurrentTeamId())
         val attendance = attendanceService.attendanceFor(id, members)
+        val viewerId = currentUserGateway.requireCurrentUserId()
 
         return GetEvent.Response200(
             EventDetail(
@@ -83,6 +86,7 @@ class EventController(
                 recurringGroup = event.recurringGroup?.toString(),
                 attendanceSummary = attendance.summary().produce(attendance.attendingRoleBreakdown()),
                 attendances = attendance.entries.map { it.produce() },
+                myState = attendance.stateOf(viewerId).produce(),
             )
         )
     }
@@ -110,7 +114,7 @@ class EventController(
 
         val members = attendanceService.teamMembers(teamId)
         val attendance = attendanceService.attendanceForAll(events.map { it.id }, members)
-        return UpdateEvent.Response200(EventList(events = events.map { it.produce(attendance.getValue(it.id)) }))
+        return UpdateEvent.Response200(EventList(events = events.map { it.produce(attendance.getValue(it.id), userId) }))
     }
 
     override suspend fun deleteEvent(request: DeleteEvent.Request): DeleteEvent.Response<*> {
@@ -176,7 +180,10 @@ private fun List<DomainEventReference>.externalize(): List<EventReference> =
 
 // internal (not private) so RecurringEventController can reuse it for the batch-create response.
 // Takes the already-resolved projection so mapping stays free of data access (no per-event N+1).
-internal fun com.github.zzave.teambalance.api.domain.model.Event.produce(attendance: EventAttendance): Event =
+internal fun com.github.zzave.teambalance.api.domain.model.Event.produce(
+    attendance: EventAttendance,
+    viewerId: UserId,
+): Event =
     Event(
         id = id.produce(),
         eventType = eventType.produce(),
@@ -188,6 +195,7 @@ internal fun com.github.zzave.teambalance.api.domain.model.Event.produce(attenda
         references = references.externalize(),
         recurringGroup = recurringGroup?.toString(),
         attendanceSummary = attendance.summary().produce(attendance.attendingRoleBreakdown()),
+        myState = attendance.stateOf(viewerId).produce(),
     )
 
 private fun com.github.zzave.teambalance.api.domain.model.EventType.produce() =

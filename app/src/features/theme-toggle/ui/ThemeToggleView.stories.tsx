@@ -57,25 +57,26 @@ export const ReturningToSystem: Story = {
 }
 
 /**
- * The same control under the dark token layer. `.dark` on a wrapper is enough: the `dark:` variant
- * is `&:is(.dark *)` and the token overrides are custom properties, which inherit — so this renders
- * from exactly the variables a dark-mode app does, and Chromatic diffs them.
+ * The same control under the dark token layer, opted in via the preview's `theme` global — the
+ * exact mechanism the toolbar switcher and the app itself use (`.dark` on the document root), not a
+ * story-local wrapper. So this is a real dark-mode render, it holds Chromatic's dark baseline, and
+ * it fails if the global theme switcher ever stops applying the layer.
  */
 export const Dark: Story = {
   args: { value: 'dark' },
+  globals: { theme: 'dark' },
   decorators: [
     (Story) => (
-      <div className="dark">
-        <div className="bg-background p-6 text-foreground">
-          <Story />
-        </div>
+      <div className="p-6">
+        <Story />
       </div>
     ),
   ],
   play: async ({ canvasElement }) => {
-    // Prove the layer is actually live, not just that the wrapper has a class: the control's
-    // surface must resolve to the dark card token, not the cream one.
+    // Prove the layer is live rather than merely requested: the control's surface must resolve to
+    // the dark card token, not the cream one.
     const surface = within(canvasElement).getByRole('radiogroup')
     await expect(getComputedStyle(surface).backgroundColor).toBe('rgb(29, 27, 23)')
+    await expect(document.documentElement.classList.contains('dark')).toBe(true)
   },
 }

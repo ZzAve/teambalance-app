@@ -72,7 +72,7 @@ make help           # Show all targets
 - **No mocks for DB tests**: Use Testcontainers with real Postgres.
 - **Semantic attendance colors**: green=attending, gold=maybe, red=absent (defined in `design-tokens/tokens.css`).
 - **Fonts**: Grandstander (display only — wordmark, titles, stats), DM Sans (everything else).
-- **Guardrails**: ArchUnit enforces hexagonal boundaries, detekt 2.0 for Kotlin style, eslint-plugin-boundaries for FSD layers.
+- **Guardrails**: flock-detekt rulesets enforce hexagonal boundaries, detekt 2.0 for Kotlin style, eslint-plugin-boundaries for FSD layers.
 
 ## Plans
 

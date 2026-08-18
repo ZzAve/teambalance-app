@@ -56,8 +56,8 @@ export function SeriesScopeField({
   const verb = danger ? 'Removes' : 'Affects'
   const caption = danger ? DELETE_CAPTION[scope] : EDIT_CAPTION[scope]
   // Full literal classes — Tailwind can't see interpolated names.
-  const panelClass = danger ? 'border-red-500/20 bg-red-500/5' : 'border-blue/20 bg-blue/5'
-  const countClass = danger ? 'text-red-500' : 'text-blue'
+  const panelClass = danger ? 'border-red/20 bg-red/5' : 'border-blue/20 bg-blue/5'
+  const countClass = danger ? 'text-red' : 'text-blue'
 
   return (
     <div className="flex flex-col gap-3">
@@ -79,7 +79,7 @@ export function SeriesScopeField({
                   'flex-1 rounded-lg border px-2 py-2 text-xs font-semibold transition-colors',
                   active
                     ? danger
-                      ? 'border-red-500 bg-red-500 text-white'
+                      ? 'border-red bg-red text-white'
                       : 'border-blue bg-blue text-white'
                     : 'border-border text-muted-foreground hover:bg-muted/60',
                 ].join(' ')}
@@ -123,7 +123,7 @@ function AffectedTimeline({
   preview: NonNullable<ReturnType<typeof buildAffectedPreview>>
   danger: boolean
 }) {
-  const hit = danger ? 'bg-red-500' : 'bg-blue'
+  const hit = danger ? 'bg-red' : 'bg-blue'
   return (
     <div className="mt-2 flex items-center gap-1" aria-hidden="true">
       {preview.nodes.map((node, i) => {
@@ -138,7 +138,7 @@ function AffectedTimeline({
               className={[
                 'h-2.5 w-2.5 rounded-full transition-colors',
                 node.affected ? hit : 'bg-border',
-                node.isCurrent ? (danger ? 'ring-2 ring-red-500/40' : 'ring-2 ring-blue/40') : '',
+                node.isCurrent ? (danger ? 'ring-2 ring-red/40' : 'ring-2 ring-blue/40') : '',
               ].join(' ')}
             />
           </div>

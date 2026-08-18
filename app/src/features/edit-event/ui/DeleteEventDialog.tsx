@@ -37,7 +37,7 @@ export function DeleteEventDialog({ eventId, title, siblings = [] }: DeleteEvent
     <Dialog open={open} onOpenChange={setOpen}>
       <Button
         variant="outline"
-        className="flex-1 border-red-200 text-red-500 hover:bg-red-500/5 hover:text-red-500"
+        className="flex-1 border-red/30 text-red hover:bg-red/5 hover:text-red"
         onClick={() => setOpen(true)}
       >
         <Trash2 size={15} />

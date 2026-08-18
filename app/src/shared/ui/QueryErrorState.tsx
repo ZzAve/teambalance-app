@@ -25,7 +25,7 @@ export function QueryErrorState({
 }: QueryErrorStateProps) {
   return (
     <div role="alert" className="mt-10 flex flex-col items-center gap-4 text-center">
-      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-500/10 text-red-500">
+      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red/10 text-red">
         <AlertTriangle size={22} />
       </div>
       <div>

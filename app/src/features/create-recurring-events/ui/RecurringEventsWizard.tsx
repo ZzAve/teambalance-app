@@ -305,7 +305,7 @@ export function RecurringEventsWizard({
           <MonthCalendarPreview preview={preview} accentColor={accentColor} />
 
           {errorMessage && (
-            <p className="rounded-lg border border-red-300 bg-red-500/10 px-3 py-2 text-sm text-red-500">{errorMessage}</p>
+            <p className="rounded-lg border border-red/40 bg-red/10 px-3 py-2 text-sm text-red">{errorMessage}</p>
           )}
         </div>
       )}

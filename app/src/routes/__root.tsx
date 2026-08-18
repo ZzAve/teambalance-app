@@ -6,6 +6,7 @@ import { BottomNav } from '@shared/ui/BottomNav'
 import { authMeQueryOptions } from '@shared/api/auth'
 import { currentMemberQueryOptions } from '@shared/api/members'
 import { queryClient } from '@shared/api/query-client'
+import { directionFromIndices } from '@shared/lib/view-transition-direction'
 import { useUserStore } from '@shared/stores/user-store'
 
 // Only the sign-in routes (and the invite landing page, reachable before a joiner has any
@@ -64,25 +65,22 @@ export const Route = createRootRoute({
   },
 })
 
+// Slide direction comes from the router's history index, not the path (F8, #159): only a
+// *decreasing* index is a real pop. The href is a dependency too, so a navigation that keeps the
+// index (a replace) still re-evaluates instead of inheriting the previous move's direction. The
+// decision itself is a pure, unit-tested helper; the hook only owns the class toggle.
 function useViewTransitions() {
-  const location = useRouterState({ select: (s) => s.location })
-  const prevPathRef = useRef(location.pathname)
+  const href = useRouterState({ select: (s) => s.location.href })
+  const historyIndex = useRouterState({ select: (s) => s.location.state.__TSR_index })
+  // Starts empty on purpose: the first render (cold load or hard refresh, which keeps whatever
+  // index the entry already had) has nothing to compare against, so it slides forward.
+  const prevIndexRef = useRef<number | undefined>(undefined)
 
   useEffect(() => {
-    const prevPath = prevPathRef.current
-    const nextPath = location.pathname
-
-    // Heuristic: going to a deeper path = forward (slide right in), going shallower = back (slide left in)
-    const isBack = prevPath.length > nextPath.length || nextPath === '/'
-
-    if (isBack) {
-      document.documentElement.classList.add('vt-slide-back')
-    } else {
-      document.documentElement.classList.remove('vt-slide-back')
-    }
-
-    prevPathRef.current = nextPath
-  }, [location.pathname])
+    const direction = directionFromIndices(prevIndexRef.current, historyIndex)
+    document.documentElement.classList.toggle('vt-slide-back', direction === 'back')
+    prevIndexRef.current = historyIndex
+  }, [href, historyIndex])
 }
 
 function RootLayout() {

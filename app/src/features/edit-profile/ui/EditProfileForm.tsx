@@ -64,9 +64,9 @@ export function EditProfileForm({
           aria-invalid={touched && nameError ? true : undefined}
           placeholder="Your name"
         />
-        {touched && nameError && <p className="mt-1 text-sm text-red-500">{nameError}</p>}
+        {touched && nameError && <p className="mt-1 text-sm text-red">{nameError}</p>}
         {errorCode === 'NAME_TAKEN' && (
-          <p className="mt-1 text-sm text-red-500">That display name is already taken.</p>
+          <p className="mt-1 text-sm text-red">That display name is already taken.</p>
         )}
       </div>
 
@@ -82,7 +82,7 @@ export function EditProfileForm({
               setTouched(true)
             }}
           />
-          {touched && positionError && <p className="mt-1 text-sm text-red-500">{positionError}</p>}
+          {touched && positionError && <p className="mt-1 text-sm text-red">{positionError}</p>}
         </div>
       )}
 

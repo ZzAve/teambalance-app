@@ -6,7 +6,6 @@ import org.springframework.boot.gradle.tasks.run.BootRun
 
 val wirespecVersion: String by project
 val testcontainersVersion: String by project
-val archunitVersion: String by project
 val flockDetektVersion: String by project
 
 plugins {
@@ -83,9 +82,6 @@ dependencies {
     testImplementation("org.testcontainers:postgresql")
     testImplementation("org.testcontainers:testcontainers")
     testImplementation("org.springframework.boot:spring-boot-starter-webmvc-test")
-
-    // Testing — ArchUnit
-    testImplementation("com.tngtech.archunit:archunit-junit5:$archunitVersion")
 
     // Hexagonal-architecture rulesets for detekt (ADR-0018)
     detektPlugins("community.flock:hexagonal-detekt-rules:$flockDetektVersion")

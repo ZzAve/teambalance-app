@@ -41,7 +41,7 @@ function GetStartedPage() {
       </p>
 
       {isLoading && <p className="mt-6 text-sm text-muted-foreground">Loading…</p>}
-      {error && <p className="mt-6 text-sm text-red-500">Couldn't load your profile. Please try again.</p>}
+      {error && <p className="mt-6 text-sm text-red">Couldn't load your profile. Please try again.</p>}
 
       {member && (
         <div className="mt-6">

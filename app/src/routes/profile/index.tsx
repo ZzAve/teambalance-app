@@ -62,7 +62,7 @@ function ProfilePage() {
       <h2 className="font-display text-2xl font-bold">Profile</h2>
 
       {isLoading && <p className="mt-4 text-sm text-muted-foreground">Loading…</p>}
-      {error && <p className="mt-4 text-sm text-red-500">Couldn't load your profile. Please try again.</p>}
+      {error && <p className="mt-4 text-sm text-red">Couldn't load your profile. Please try again.</p>}
 
       {member && (
         <div className="mt-4">

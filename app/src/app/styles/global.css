@@ -40,6 +40,10 @@
   --color-blue: #225C9C;
   --color-green: #249E6C;
   --color-gold: #F4B400;
+  /* Brand red — the same value tokens.css binds --color-absent to. Exposed here so components can
+     say bg-red/text-red/border-red instead of reaching for Tailwind's own default red (#EF4444),
+     which is not ours (F9, #159). Keep in sync with design-tokens/tokens.css, like the three above. */
+  --color-red: #D93025;
   --color-border: hsl(214.3 31.8% 91.4%);
   --color-input: hsl(214.3 31.8% 91.4%);
   --color-ring: hsl(222.2 84% 4.9%);
@@ -48,7 +52,11 @@
   --color-primary-foreground: hsl(210 40% 98%);
   --color-secondary: hsl(210 40% 96.1%);
   --color-secondary-foreground: hsl(222.2 47.4% 11.2%);
-  --color-destructive: hsl(0 84.2% 60.2%);
+  /* Shadcn's destructive semantic, bound to the same brand red rather than its stock
+     hsl(0 84.2% 60.2%) (#EF4444). Without this a delete dialog paints two different reds — a
+     token-red error panel stacked on a stock-red confirm button. Bonus: white-on-red goes from
+     3.76:1 to 4.78:1, over the AA floor it used to miss. */
+  --color-destructive: var(--color-red);
   --color-destructive-foreground: hsl(210 40% 98%);
   --color-muted: hsl(210 40% 96.1%);
   --color-muted-foreground: hsl(215.4 16.3% 46.9%);
@@ -98,12 +106,17 @@
        are also the fills of the attendance buttons, so leaving them alone keeps one colour meaning
        one thing. Attendance therefore survives the switch intact — green = attending, gold = maybe,
        red = absent.
-     · red, purple and orange are *unchanged* too, despite being darker as text (red 3.6:1), because
-       in this app they are only ever fills behind white text — avatars, the recurring-events
-       calendar, the hero's "can't make it" chip (whose ground is white in both themes, where red
-       sits at 4.8:1). Lifting them to the `-light` variants would cost contrast, not gain it. The
-       `text-red-*` utilities scattered across the error shells are Tailwind's own palette, not this
-       token, and belong to the F9 sweep.
+     · purple and orange are *unchanged*: in this app they are only ever avatar fills behind white
+       text, so lifting them would cost contrast, not gain it.
+     · red had to be lifted, for the same reason blue did. F9 (#221) routed every red in the app
+       through this token, so `text-red` is now a real text utility (~26 call sites — every form
+       error, every "couldn't load" shell) and `--color-destructive` is bound to it. #D93025 is
+       3.6:1 on the dark card, which is not a readable error message. This takes the palette's own
+       `--color-red-light` (#EF5350) as the dark-theme red — 4.9:1 as text — and shifts the
+       `-light`/`-dark` variants around it so the ramp stays ordered. Same trade as blue: white on
+       a solid red fill (the absent attendance button, `bg-destructive`) drops to 3.5:1, just above
+       where the light theme's own white-on-green fills already sit. Attendance keeps its meaning —
+       `--color-absent` is `var(--color-red)`, so it follows.
      · blue is the exception and had to be lifted: #225C9C is 2.5:1 here, and `text-blue` is the
        app's most-used accent (~30 call sites). The palette's `--color-blue-light` (#2D6FB5) only
        reaches 3.4:1, so this keeps the brand hue and lifts the lightness instead — 5.1:1 as text —
@@ -124,13 +137,18 @@
   --color-text-muted: #7C766D;
   --color-text-inverse: #141210;
 
-  /* Brand — see the note above: only blue moves. */
+  /* Brand — see the note above: blue and red move, green/gold/purple/orange do not. */
   --color-blue: #4E90D6;
   --color-blue-light: #7CB0E4;
   --color-blue-dark: #2D6FB5;
+  --color-red: #EF5350;
+  --color-red-light: #F58A87;
+  --color-red-dark: #D93025;
 
-  /* Shadcn semantic set. `foreground`/`primary` invert (light ink on a dark ground); `destructive`
-     is deliberately left at its light value — it already reads at 4.6:1 on the dark card. */
+  /* Shadcn semantic set. `foreground`/`primary` invert (light ink on a dark ground). `destructive`
+     is absent on purpose: the `@theme` block binds it to `var(--color-red)`, and `var()` resolves
+     against the element it is used on — which is <html>, the very element `.dark` sits on — so it
+     picks up the lifted red above without a second declaration to keep in sync. */
   --color-foreground: #EDE9E1;
   --color-border: #2E2A24;
   --color-input: #2E2A24;

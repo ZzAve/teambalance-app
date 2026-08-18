@@ -32,7 +32,7 @@ const ATTENDEE_TABS: {
 }[] = [
   { state: 'ATTENDING', label: 'Going', barColor: 'bg-green', badgeBg: 'bg-green/10 text-green' },
   { state: 'MAYBE', label: 'Maybe', barColor: 'bg-gold', badgeBg: 'bg-gold/10 text-gold' },
-  { state: 'ABSENT', label: 'Absent', barColor: 'bg-red-500', badgeBg: 'bg-red-500/10 text-red-500' },
+  { state: 'ABSENT', label: 'Absent', barColor: 'bg-red', badgeBg: 'bg-red/10 text-red' },
   { state: 'NOT_RESPONDED', label: '?', barColor: 'bg-muted-foreground', badgeBg: 'bg-muted text-muted-foreground' },
 ]
 

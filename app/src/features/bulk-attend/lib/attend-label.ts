@@ -20,7 +20,7 @@ export function sharedTypeName(events: Event[]): string | null {
  * ("Match" -> "matches", "Training" -> "trainings"); an exotic name may pluralize awkwardly, which
  * is a cosmetic miss on a label, not a correctness problem.
  */
-function pluralize(noun: string): string {
+export function pluralizeType(noun: string): string {
   const lower = noun.toLowerCase()
   if (/(s|x|z|ch|sh)$/.test(lower)) return `${lower}es`
   if (/[^aeiou]y$/.test(lower)) return `${lower.slice(0, -1)}ies`
@@ -39,6 +39,6 @@ function pluralize(noun: string): string {
 export function attendLabel(count: number, typeName: string | null): string {
   const noun = typeName === null
     ? (count === 1 ? 'event' : 'events')
-    : (count === 1 ? typeName.toLowerCase() : pluralize(typeName))
+    : (count === 1 ? typeName.toLowerCase() : pluralizeType(typeName))
   return `Attend ${count} ${noun}`
 }

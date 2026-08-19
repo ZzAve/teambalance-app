@@ -87,13 +87,16 @@ any-team, self-service (see [ADR-0001](docs/adr/0001-product-ambition-hobby-tool
   deliberately narrow: **Attending-only** (never Maybe/Absent), **non-destructive** (only
   ever *creates* response rows for blanks — it never overwrites an existing response, so it's
   safe to re-tap as new events appear), **future-only** (past events are skipped), and scoped
-  to the events **currently shown** in the list (so the existing **Event Type** filter pills
-  double as the subset selector — e.g. filter to Training, then Bulk Attend only the trainings).
+  **per Event Type**: one button per type that currently has blanks, each naming its own scope
+  ("Attend 12 trainings", "Attend 3 matches"), so no filtering is needed to make a legible tap
+  ([ADR-0021](docs/adr/0021-bulk-attend-one-button-per-event-type.md) amends the original
+  "currently shown" scoping; the **Event Type** filter still narrows what is on screen, and so
+  what the buttons cover).
   Self-in-practice (no UI to Bulk Attend for others, though the endpoint stays trust-based per
   [ADR-0003](docs/adr/0003-trust-based-attendance-editing.md)) and **reversible** (an Undo
-  deletes exactly the rows it just created). Surfaced as an **"Attend N"** button that hides
-  when N is zero. Contrast with the per-event **Attendance Toggle**. _Avoid_: Accept All,
-  Attend All (overclaims — it's all *shown, unanswered, future*), Bulk RSVP.
+  deletes exactly the rows it just created). Surfaced as **"Attend N <type>"** buttons that
+  disappear when nothing is left to fill. Contrast with the per-event **Attendance Toggle**.
+  _Avoid_: Accept All, Attend All (overclaims — it's all *shown, unanswered, future*), Bulk RSVP.
 
 ### Money pool
 

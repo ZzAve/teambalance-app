@@ -1,3 +1,5 @@
+import { pluralizeType } from './attend-label'
+
 /**
  * What the toast says after a batch lands.
  *
@@ -12,15 +14,18 @@
  * started) are indistinguishable from here. "Already changed" is true of both; naming a specific
  * cause would be a guess that is sometimes wrong.
  *
+ * It echoes the type the button named (ADR-0021) so the confirmation matches what was tapped —
+ * "12 trainings set to Attending", not a bare "12 events".
+ *
  * Kept as a pure function so the wording is pinned by unit tests — the toast itself renders at the
  * app root via sonner, well outside this feature's component tree.
  */
-export function batchToastMessage(created: number, requested: number): string {
+export function batchToastMessage(created: number, requested: number, typeName: string): string {
   if (created === 0) return 'Nothing to set — those events already changed'
 
-  const attending = `${created} ${created === 1 ? 'event' : 'events'} set to Attending`
-  if (created === requested) return attending
+  const noun = created === 1 ? typeName.toLowerCase() : pluralizeType(typeName)
+  if (created === requested) return `${created} ${noun} set to Attending`
 
   const skipped = requested - created
-  return `${created} of ${requested} set to Attending — ${skipped} already changed`
+  return `${created} of ${requested} ${noun} set to Attending — ${skipped} already changed`
 }

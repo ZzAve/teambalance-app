@@ -10,7 +10,7 @@ import { NextEventHero } from '@widgets/next-event-hero/ui/NextEventHero'
 import { CreateEventSheet } from '@widgets/create-event/ui/CreateEventSheet'
 import { EventFiltersView } from '@features/filter-event-types/ui/EventFiltersView'
 import { toggleTypeSelection } from '@features/filter-event-types/model/toggleTypeSelection'
-import { BulkAttendButton } from '@features/bulk-attend/ui/BulkAttendButton'
+import { BulkAttendBar } from '@features/bulk-attend/ui/BulkAttendBar'
 import { eligibleEvents } from '@features/bulk-attend/lib/eligible-event-ids'
 
 export const Route = createFileRoute('/')({
@@ -100,13 +100,9 @@ function EventListPage() {
                 place. The list carries the page. */}
             {heroEvent && <NextEventHero event={heroEvent} now={now}/>}
 
-            {/* Gated on a non-empty set so a fully-answered page reserves no blank row; the button
-                hides itself at zero regardless. */}
-            {bulkEvents.length > 0 && (
-                <div className="mt-3 flex justify-end">
-                    <BulkAttendButton events={bulkEvents}/>
-                </div>
-            )}
+            {/* One button per event type with blanks left (ADR-0021); renders nothing at all when
+                there are none, so a fully-answered page reserves no empty row. */}
+            <BulkAttendBar events={bulkEvents}/>
 
             <EventListView
                 events={listEvents}

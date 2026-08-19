@@ -22,6 +22,19 @@
      kept as a fallback so the shared tokens stay valid for www/ (which still uses the CDN). */
   --font-display: 'Grandstander Variable', 'Grandstander', cursive;
   --font-body: 'DM Sans Variable', 'DM Sans', sans-serif;
+  --radius: 0.625rem;
+}
+
+/* ── Colour theme — NOT `inline`, and that is the whole trick behind dark mode (F11, #159) ──
+   Under `@theme inline` Tailwind bakes the literal into every utility: `bg-background` compiles to
+   `background-color: #F8F6F0`, and redefining `--color-background` further down the cascade changes
+   nothing. Under a plain `@theme` it compiles to `background-color: var(--color-background)`, so the
+   `.dark` block below re-points one variable and every utility, every `var(--color-…)` in a
+   component's inline style, and `body` itself follow. One switch, one source of truth.
+
+   Light values live here and in design-tokens/tokens.css (the shared identity, also consumed by
+   www/); they are the same numbers, and tokens.css — unlayered — is the one that wins at runtime. */
+@theme {
   --color-background: #F8F6F0;
   --color-card: #FEFDFB;
   --color-blue: #225C9C;
@@ -31,7 +44,6 @@
      say bg-red/text-red/border-red instead of reaching for Tailwind's own default red (#EF4444),
      which is not ours (F9, #159). Keep in sync with design-tokens/tokens.css, like the three above. */
   --color-red: #D93025;
-  --radius: 0.625rem;
   --color-border: hsl(214.3 31.8% 91.4%);
   --color-input: hsl(214.3 31.8% 91.4%);
   --color-ring: hsl(222.2 84% 4.9%);
@@ -72,6 +84,101 @@
    does. */
 :root {
   --header-height: 3.25rem;
+  /* Tells the UA which way native chrome should lean — form controls, scrollbars, the canvas
+     behind the page, and the default focus ring. Without it a dark page still gets white
+     scrollbars and a white flash between paints. */
+  color-scheme: light;
+}
+
+/* ── Dark token layer (F11, #159) ──────────────────────────────────────────────────────────────
+   `.dark` is set on <html> before first paint (see the bootstrap in index.html) and maintained by
+   shared/theme. Everything below is a *re-point of the same variable names* the light theme uses,
+   so no component needs a `dark:` utility to follow — utilities, inline `var(--color-…)` styles and
+   `body` all read the same tokens.
+
+   This block must stay unlayered and after the tokens.css @import: tokens.css declares its light
+   values on `:root` (also unlayered, equal specificity), so source order is what decides.
+
+   Which palette colours moved, and why so few (ratios are against --color-card, #1D1B17):
+     · Surfaces are warm near-blacks, not neutral greys — the light theme is a cream (#F8F6F0), and
+       a cold grey dark theme reads as a different product.
+     · green (5.1:1) and gold (9.3:1) are *unchanged*: they already read as text on dark, and they
+       are also the fills of the attendance buttons, so leaving them alone keeps one colour meaning
+       one thing. Attendance therefore survives the switch intact — green = attending, gold = maybe,
+       red = absent.
+     · purple and orange are *unchanged*: in this app they are only ever avatar fills behind white
+       text, so lifting them would cost contrast, not gain it.
+     · red had to be lifted, for the same reason blue did. F9 (#221) routed every red in the app
+       through this token, so `text-red` is now a real text utility (~26 call sites — every form
+       error, every "couldn't load" shell) and `--color-destructive` is bound to it. #D93025 is
+       3.6:1 on the dark card, which is not a readable error message. This takes the palette's own
+       `--color-red-light` (#EF5350) as the dark-theme red — 4.9:1 as text — and shifts the
+       `-light`/`-dark` variants around it so the ramp stays ordered. Same trade as blue: white on
+       a solid red fill (the absent attendance button, `bg-destructive`) drops to 3.5:1, just above
+       where the light theme's own white-on-green fills already sit. Attendance keeps its meaning —
+       `--color-absent` is `var(--color-red)`, so it follows.
+     · blue is the exception and had to be lifted: #225C9C is 2.5:1 here, and `text-blue` is the
+       app's most-used accent (~30 call sites). The palette's `--color-blue-light` (#2D6FB5) only
+       reaches 3.4:1, so this keeps the brand hue and lifts the lightness instead — 5.1:1 as text —
+       and the `-light`/`-dark` variants shift with it so gradients and hovers stay ordered. The
+       trade is white-on-solid-blue falling to 3.4:1, which is where the light theme's own
+       white-on-green fills already sit. */
+.dark {
+  color-scheme: dark;
+
+  /* Surfaces */
+  --color-background: #141210;
+  --color-card: #1D1B17;
+  --color-card-hover: #24211C;
+
+  /* Text (shared token names, consumed by www/ in light only) */
+  --color-text-primary: #EDE9E1;
+  --color-text-secondary: #A8A198;
+  --color-text-muted: #7C766D;
+  --color-text-inverse: #141210;
+
+  /* Brand — see the note above: blue and red move, green/gold/purple/orange do not. */
+  --color-blue: #4E90D6;
+  --color-blue-light: #7CB0E4;
+  --color-blue-dark: #2D6FB5;
+  --color-red: #EF5350;
+  --color-red-light: #F58A87;
+  --color-red-dark: #D93025;
+
+  /* Shadcn semantic set. `foreground`/`primary` invert (light ink on a dark ground). `destructive`
+     is absent on purpose: the `@theme` block binds it to `var(--color-red)`, and `var()` resolves
+     against the element it is used on — which is <html>, the very element `.dark` sits on — so it
+     picks up the lifted red above without a second declaration to keep in sync. */
+  --color-foreground: #EDE9E1;
+  --color-border: #2E2A24;
+  --color-input: #2E2A24;
+  --color-ring: #CBC6BC;
+  --color-primary: #EDE9E1;
+  --color-primary-foreground: #17150F;
+  --color-secondary: #26231D;
+  --color-secondary-foreground: #EDE9E1;
+  --color-muted: #22201A;
+  --color-muted-foreground: #A8A198;
+  --color-accent: #2A2721;
+  --color-accent-foreground: #EDE9E1;
+  --color-popover: #1D1B17;
+  --color-popover-foreground: #EDE9E1;
+  --color-sidebar-background: #1D1B17;
+  --color-sidebar-foreground: #EDE9E1;
+  --color-sidebar-primary: #EDE9E1;
+  --color-sidebar-primary-foreground: #17150F;
+  --color-sidebar-accent: #2A2721;
+  --color-sidebar-accent-foreground: #EDE9E1;
+  --color-sidebar-border: #2E2A24;
+  --color-sidebar-ring: #4E90D6;
+
+  /* The warm brown shadows of the light theme are invisible on a dark ground — depth on dark comes
+     from a darker, wider shadow plus the lighter card surface above. */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.55);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.6);
+  --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.45);
+  --shadow-card-hover: 0 8px 24px rgba(0, 0, 0, 0.6);
 }
 
 body {

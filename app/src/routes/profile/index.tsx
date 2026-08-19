@@ -5,6 +5,7 @@ import { usePositions } from '@shared/api/positions'
 import { useLogout } from '@shared/api/auth'
 import { useUserStore } from '@shared/stores/user-store'
 import { EditProfileForm } from '@features/edit-profile/ui/EditProfileForm'
+import { ThemeToggle } from '@features/theme-toggle/ui/ThemeToggle'
 
 export const Route = createFileRoute('/profile/')({
   component: ProfilePage,
@@ -77,6 +78,13 @@ function ProfilePage() {
           />
         </div>
       )}
+
+      {/* Appearance is a personal setting, so it sits on Profile rather than /team/settings (which
+          is team-scoped) — same reasoning that put Log out here (F11, #159). Above the admin and
+          log-out sections: it applies to every user, they do not. */}
+      <div className="mt-10 border-t border-border/40 pt-6">
+        <ThemeToggle />
+      </div>
 
       {isPlatformAdmin && (
         <div className="mt-10 border-t border-border/40 pt-6">

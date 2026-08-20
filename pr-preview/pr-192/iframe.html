@@ -554,21 +554,15 @@
 <!-- Keep the rendered story iframe out of search engines (see manager-head.html). -->
 <meta name="robots" content="noindex, nofollow" />
 
-<!-- Load the same web fonts the app pulls in via index.html (Storybook does not use index.html),
-     so display text renders in Grandstander and body text in DM Sans instead of falling back to
-     the generic cursive/sans-serif. -->
-<link rel="preconnect" href="https://fonts.googleapis.com" />
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link
-  href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Grandstander:ital,wght@0,100..900;1,100..900&display=swap"
-  rel="stylesheet"
-/>
+<!-- No font <link> here: Grandstander and DM Sans are self-hosted (F13) and pulled in by
+     src/app/styles/global.css, which .storybook/preview.ts imports. Storybook and Chromatic
+     therefore render the exact same font files as production, with no third-party request. -->
 
-    <script type="module" crossorigin src="./assets/iframe-eDo8ITG1.js"></script>
+    <script type="module" crossorigin src="./assets/iframe-CCPh2N4-.js"></script>
     <link rel="modulepreload" crossorigin href="./assets/rolldown-runtime-DkW27tQK.js">
     <link rel="modulepreload" crossorigin href="./assets/preload-helper-wdlQj8DP.js">
-    <link rel="modulepreload" crossorigin href="./assets/iframe-fHL5TMS7.js">
-    <link rel="stylesheet" crossorigin href="./assets/iframe-CCEaBH35.css">
+    <link rel="modulepreload" crossorigin href="./assets/iframe-BZB7xIoV.js">
+    <link rel="stylesheet" crossorigin href="./assets/iframe-BHzhULwp.css">
   </head>
 
   <body>

@@ -28,6 +28,19 @@ const meta = {
   args: { event: EVENT, now: NOW, myState: 'NOT_RESPONDED', onRespond: fn() },
 } satisfies Meta<typeof NextEventHeroView>
 
+/**
+ * What is actually on top at the centre of `el` — a real hit-test, not a DOM-tree lookup.
+ *
+ * These stories run in headless Chromium (Vitest browser mode), so `elementFromPoint` resolves the
+ * stretched-link overlay, `z-index` and `pointer-events` exactly as a thumb would. That is the only
+ * honest way to prove "this area is clickable": the overlay is a pseudo-element, so it is invisible
+ * to queries and to `userEvent`'s own targeting.
+ */
+function topmostAtCentreOf(el: Element): Element | null {
+  const { left, top, width, height } = el.getBoundingClientRect()
+  return document.elementFromPoint(left + width / 2, top + height / 2)
+}
+
 export default meta
 
 type Story = StoryObj<typeof meta>
@@ -120,6 +133,55 @@ export const Saving: Story = {
     await expect(canvas.getByRole('button', { name: /Can't make it/ })).toBeDisabled()
     await userEvent.click(canvas.getByRole('button', { name: /I'm in/ }))
     await expect(args.onRespond).not.toHaveBeenCalled()
+  },
+}
+
+// The hero is one big target: everything that isn't its own control opens the event. The title
+// carries a stretched-link overlay, so the passive rows (countdown, date, headcount, padding) all
+// hit that link instead of dead text — the same pattern EventCard already uses in the list below.
+export const WholeCardIsClickable: Story = {
+  play: async ({ canvas, canvasElement }) => {
+    const cardLink = canvas.getByRole('link', { name: EVENT.title })
+    const hero = canvasElement.querySelector('section')!
+
+    // Passive rows: each one hits the card link, not the text node under the cursor.
+    for (const passive of [
+      canvas.getByText('Next up'),
+      canvas.getByText('2d'), // the countdown block sits above the overlay but lets taps through
+      canvas.getByText(/20:00/), // the date · time row
+      canvas.getByText(/10 going/),
+    ]) {
+      await expect(topmostAtCentreOf(passive)).toBe(cardLink)
+    }
+
+    // Bare padding — the strip below the buttons — is part of the target too.
+    const { left, bottom, width } = hero.getBoundingClientRect()
+    await expect(document.elementFromPoint(left + width / 2, bottom - 4)).toBe(cardLink)
+  },
+}
+
+// The other half of the bargain: widening the target must not swallow the controls inside it.
+// A stretched overlay covering the RSVP buttons would make the hero's whole point unreachable, and
+// `userEvent` alone would not notice — it dispatches at the button either way.
+export const ControlsStayAboveTheOverlay: Story = {
+  play: async ({ canvas, canvasElement }) => {
+    for (const name of [/I'm in/, /Can't make it/]) {
+      const button = canvas.getByRole('button', { name })
+      await expect(topmostAtCentreOf(button)?.closest('button')).toBe(button)
+    }
+
+    // (The matching hover affordance — the card washes and the title underlines over the passive
+    // rows, but stays quiet over these buttons — hangs off the link's own :hover, since the overlay
+    // is the link's hit area. It is not asserted here: `userEvent` is synthetic and never moves a
+    // real cursor, so CSS :hover cannot be driven at this layer.)
+
+    // The location opens maps, so it stays its own target — and stays a *sibling* of the card link
+    // rather than a nested <a>, which is invalid HTML.
+    const maps = canvas.getByRole('link', { name: EVENT.location })
+    await expect(topmostAtCentreOf(maps)?.closest('a')).toBe(maps)
+    await expect(maps).toHaveAttribute('href', expect.stringContaining('maps.google.com'))
+    await expect(maps).toHaveAttribute('target', '_blank')
+    await expect(canvasElement.querySelectorAll('a a')).toHaveLength(0)
   },
 }
 

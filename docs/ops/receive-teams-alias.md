@@ -6,9 +6,14 @@ ADR-0019). This runbook sets up **inbound** mail for that alias and verifies it 
 
 > **Why this is a separate system from sending.** Scaleway TEM (`ScalewayTemEmailSender`,
 > ADR-0019 §7, `docs/ops/deploy.md`) is **send-only** — transactional API, no mailbox, no IMAP,
-> no inbound MX. So `teams@` cannot receive anything today: there is currently **no MX record** on
-> `teambalance.nl`. Receiving needs a *separate* inbound path — MX records pointing at a
-> forwarding provider that routes `teams@teambalance.nl` → a monitored private inbox. Sending
+> no inbound MX. So `teams@` cannot receive anything today. The zone's **only** MX is a
+> **self-pointing stub** — `teambalance.nl. IN MX 10 teambalance.nl.` — which directs mail at the apex
+> host, i.e. the **Edge/S3 landing page**, not an SMTP server. Nothing listens on port 25 there, so
+> mail to `teams@` is refused/times out and **bounces**. This stub **must be removed** as part of the
+> setup (Step 2) — left in place at priority 10 it would collide with ForwardEmail's MX and some
+> senders would keep hitting the dead self-pointer. Receiving needs a *separate* inbound path — MX
+> records pointing at a forwarding provider that routes `teams@teambalance.nl` → a monitored private
+> inbox. Sending
 > (SPF/DKIM/DMARC for TEM) is untouched by this; the one record they share is SPF — see the
 > **merge, don't duplicate** warning below.
 
@@ -48,12 +53,18 @@ to log into day-to-day: mail lands in the owner's existing inbox.
 Add these to `teambalance.nl`. **Do not remove** the existing TEM sending records (DKIM
 `*._domainkey`, `_dmarc`); only SPF is shared — see the warning.
 
-**MX** (net-new — there is no MX today, so nothing to replace):
+**MX — ⚠ first DELETE the stale self-pointing record, then add ForwardEmail's:**
+
+The zone currently has exactly one MX: `teambalance.nl. IN MX 10 teambalance.nl.` (a self-pointer at
+the Edge/S3 apex — no SMTP there). **Remove it.** If it stays at priority 10 it ties with
+`mx1.forwardemail.net` and roughly half of senders will try the dead host first. Then add:
 
 | Type | Name / host | Priority | Value |
 |------|-------------|----------|-------|
 | MX | `@` (root) | 10 | `mx1.forwardemail.net.` |
 | MX | `@` (root) | 20 | `mx2.forwardemail.net.` |
+
+After the change, `dig MX teambalance.nl` should return **only** the two `*.forwardemail.net` hosts.
 
 **TXT — the forwarding rule** (this is what maps the alias; specific alias, not a catch-all, so only
 `teams@` is forwarded and nothing else is silently accepted):

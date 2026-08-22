@@ -4,7 +4,8 @@
 - Date: 2026-08-22
 - Amends: [ADR-0019](0019-self-service-team-onboarding.md) (§3 one-team-per-user, §6 `/auth/me`'s singular `team`)
 - Relates to: [ADR-0014](0014-jdbc-backed-shared-sessions-survive-restart.md) (JDBC sessions), [ADR-0015](0015-session-lifetime-long-sliding-idle-plus-absolute-cap.md) (session lifetime), [ADR-0022](0022-platform-admin-act-as.md) (act-as rides this seam)
-- Resolves: #143
+- Resolves: [#143](https://github.com/ZzAve/teambalance-app/issues/143)
+- Enables: [#239](https://github.com/ZzAve/teambalance-app/issues/239) (act-as), [#240](https://github.com/ZzAve/teambalance-app/issues/240) (club rollout)
 
 ## Context
 
@@ -27,7 +28,7 @@ The routing query then picks between them by **UUID order** — arbitrary, and t
 error; it silently does not exist for them. #143 recorded this as unreachable. It was not.
 
 This is latent while there is one team per club and becomes real the moment a club runs several
-teams — the Tovo rollout ([#239](https://github.com/ZzAve/teambalance-app/issues/239)) — where
+teams — the club rollout ([#240](https://github.com/ZzAve/teambalance-app/issues/240)) — where
 double membership (a player who also trains another squad, a season-long fill-in) is ordinary.
 
 ## Decision

@@ -5,6 +5,7 @@
 - Builds on: [ADR-0021](0021-active-team-explicit-tenant-resolution.md) (the Active Team seam)
 - Amends: [ADR-0019](0019-self-service-team-onboarding.md) (§4 platform-admin identity, §5 founder becomes a member)
 - Relates to: [#237](https://github.com/ZzAve/teambalance-app/issues/237) (general audit log — deliberately decoupled)
+- Resolves: [#239](https://github.com/ZzAve/teambalance-app/issues/239); §5 is delivered by [#240](https://github.com/ZzAve/teambalance-app/issues/240)
 
 ## Context
 

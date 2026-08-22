@@ -18,6 +18,13 @@ any-team, self-service (see [ADR-0001](docs/adr/0001-product-ambition-hobby-tool
 
 - **Team** — A group of people who play together and share events and a money pool.
   Private/invite-only. The unit of tenancy (one tenant schema per team).
+- **Active Team** — The one Team a request is scoped to. **Explicitly selected, never
+  inferred**: carried on the session, chosen by the member (or by opening a team-scoped
+  link), and remembered as their default between logins. A Member of several Teams has
+  exactly one Active Team at a time; authorization for it comes either from their real
+  membership or, for a **Platform Admin**, from **Act-as**
+  ([ADR-0021](docs/adr/0021-active-team-explicit-tenant-resolution.md)).
+  _Avoid_: current team, selected tenant, team context.
 - **Member** — A person belonging to a Team. Has exactly one **Role** and at most one
   **Position**.
 - **Role** — A Member's permission tier within a Team: **Admin** or **User**. Every
@@ -121,14 +128,39 @@ any-team, self-service (see [ADR-0001](docs/adr/0001-product-ambition-hobby-tool
   _Avoid_: OAuth login, social login, password.
 - **Invite Link** — A single shareable link an admin generates to onboard members into
   an existing Team. Clicking it → enter email → Magic Link → joined. One link, many
-  joiners; can expire/rotate.
+  joiners; can expire/rotate. Carries the **Role** it grants on acceptance — ordinarily
+  **User**, but an **Admin**-granting link is how a memberless Team gets its first Admin
+  ([ADR-0022](docs/adr/0022-platform-admin-act-as.md)).
 - **Team creation** — Provisioning a new Team. Self-service: a logged-in, teamless user
   creates their Team from a name + slug + one-time **creation code**, which provisions the
   tenant schema inline (see [ADR-0019](docs/adr/0019-self-service-team-onboarding.md)).
-  Back-office onboarding is now just minting a creation code.
+  Back-office onboarding is now just minting a creation code. A **Platform Admin** may also
+  create a Team **memberless** — no founding Admin — and hand it over with an Admin-granting
+  **Invite Link** ([ADR-0022](docs/adr/0022-platform-admin-act-as.md)).
 
 ### Platform & integrations
 
+- **Platform Admin** — A platform-level identity that operates *across* Teams: mints creation
+  codes, and enters Teams via **Act-as**. Held by an allowlist (`teambalance.platform-admins`),
+  fail-closed. Structurally **teamless** — a Platform Admin is never a **Member** of any Team,
+  so a human who both runs the platform and plays keeps two separate accounts. Not a **Role**:
+  **Admin** is a Member's tier *within* a Team, and the two are unrelated.
+  _Avoid_: platform owner, superadmin, owner, god mode.
+- **Act-as** — An explicitly entered, time-boxed state in which a **Platform Admin** operates
+  inside one Team as if they were an Admin of it. Full read *and* write. Always visible while
+  active, always exited deliberately, and always recorded — see **Act-as Record**
+  ([ADR-0022](docs/adr/0022-platform-admin-act-as.md)). _Avoid_: impersonation, spy mode,
+  support mode, sudo.
+- **Virtual Member** — The synthesized **Admin** authorization a **Platform Admin** holds inside
+  a Team during **Act-as**. Exists only for the duration of the request: no `team_members` row is
+  ever written, so a Virtual Member never appears on the roster, in an **Event Attendance**
+  denominator, in the **Position** breakdown, or in the **Hall of Shame**.
+  _Avoid_: ghost member, shadow admin, temporary member.
+- **Act-as Record** — The team-visible account of what a **Platform Admin** did inside a Team.
+  Scoped to the **Act-as** session rather than to individual rows, because most tenant tables carry
+  no authorship column. Attributes the actor generically (the platform, not a named person), while
+  the underlying `created_by` keeps the real user id for forensics. _Avoid_: audit log (that is the
+  separate, broader feature), access log, trail.
 - **Tenant schema** — Per-team Postgres schema holding events, attendances,
   transactions, etc.
 - **Platform schema** (`public`) — Cross-team data: users, teams, team_members,

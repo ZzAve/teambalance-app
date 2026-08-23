@@ -57,12 +57,16 @@ class JpaTeamMemberRepositoryAdapter(
             ?.role
             ?.let { role -> Role.entries.firstOrNull { it.name == role } }
 
-    override fun findTeamId(userId: UserId): TeamId? =
-        jpaRepository.findTeamIdByUserId(userId.value)?.let(::TeamId)
+    override fun findTenantRouting(teamId: TeamId, userId: UserId): TenantRouting? =
+        jpaRepository.findTeamRouting(teamId.value, userId.value)?.toDomain()
 
-    override fun findTenantRouting(userId: UserId): TenantRouting? =
-        jpaRepository.findTeamRoutingByUserId(userId.value)
-            ?.let { TenantRouting(teamId = TeamId(it.teamId), schemaName = SchemaName(it.schemaName)) }
+    // Null on 0 rows AND on 2: "several teams" is not a routing, it is a question for the user. The
+    // query caps at 2 rows precisely so this can tell those apart without reading the whole list.
+    override fun findSoleTenantRouting(userId: UserId): TenantRouting? =
+        jpaRepository.findTeamRoutings(userId.value).singleOrNull()?.toDomain()
+
+    private fun TeamRoutingProjection.toDomain() =
+        TenantRouting(teamId = TeamId(teamId), schemaName = SchemaName(schemaName))
 
     @Transactional
     override fun updateRole(teamId: TeamId, userId: UserId, role: Role) {

@@ -1,9 +1,9 @@
 package com.github.zzave.teambalance.api.infrastructure.multitenancy
 
+import com.github.zzave.teambalance.api.application.ActiveTeamService
 import com.github.zzave.teambalance.api.domain.model.TenantRouting
 import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.port.CurrentUserGateway
-import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
 import jakarta.servlet.FilterChain
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
@@ -17,7 +17,7 @@ private const val FILTER_ORDER = Ordered.HIGHEST_PRECEDENCE + 3
 @Component
 @Order(FILTER_ORDER)
 class SessionTenantContextFilter(
-    private val teamMemberRepository: TeamMemberRepository,
+    private val activeTeamService: ActiveTeamService,
     private val currentUserGateway: CurrentUserGateway,
 ) : OncePerRequestFilter() {
 
@@ -28,8 +28,9 @@ class SessionTenantContextFilter(
     ) {
         // SessionUserContextFilter (order +2) already resolved and parsed the session user —
         // read it back through the gateway rather than re-parsing the session, to avoid duplicating
-        // that logic. Resolve schema and team id together (one row) so they can never diverge; a user
-        // with no team resolves to nothing (no silent "public" fallback for tenant-scoped work).
+        // that logic. Schema and team id are resolved together (one row) so they can never diverge; a
+        // caller with no Active Team resolves to nothing (no silent "public" fallback for
+        // tenant-scoped work).
         currentUserGateway.getCurrentUserId()?.let { userId ->
             resolveRouting(request, userId)?.let { routing ->
                 // Respect a tenant already pinned upstream (the test-profile X-Team-Id shim).
@@ -46,22 +47,31 @@ class SessionTenantContextFilter(
     }
 
     /**
-     * The tenant routing is immutable per session in v1 (one team per user, fixed for the session),
-     * so resolve it from the DB once and memoize schema + team id *together* on the session; later
-     * requests read the cached pair, avoiding a `team_members JOIN teams` round-trip on every
-     * authenticated call. Both are cached as a unit so a cached schema can never be paired with a
-     * freshly-queried team id — the single-row guarantee holds across the cache too. On a miss
-     * (first request, or a session surviving a restart) fall back to the DB. Multi-team support
-     * (post-v1) will invalidate these attributes on team-switch.
+     * The Active Team is carried on the session, so read the memo first: schema + team id are memoized
+     * *together* and later requests read the cached pair, avoiding a `team_members JOIN teams`
+     * round-trip on every authenticated call. Both are cached as a unit so a cached schema can never be
+     * paired with a freshly-queried team id.
+     *
+     * Since #143 that memo is a **correctness** concern, not a cache (ADR-0021 §2): it is what says
+     * which Team the request is scoped to, so every switch must overwrite it — [ActiveTeamService]
+     * owns that, by re-pinning through [TenantRoutingGatewayAdapter] on the way through. A missed
+     * overwrite here is a cross-tenant read, not a slow request.
+     *
+     * On a miss — a session predating the pin, or a caller who was teamless when they signed in and
+     * has since joined — fall back to the same landing resolution sign-in uses: the remembered Active
+     * Team while it is still a valid membership, else a sole membership, else nothing. It never picks
+     * between several Teams; a caller with several and none remembered simply has no tenant here and
+     * is asked to choose.
      *
      * The memo's attribute names and formats live in [TenantRoutingSession], shared with
-     * [TenantRoutingGatewayAdapter], which pins the same memo at sign-in. This filter reads the
-     * session off the request it is handed rather than through that adapter's port: it runs at
-     * `HIGHEST_PRECEDENCE + 3`, long before Spring binds the request-scoped proxy the adapter needs.
+     * [TenantRoutingGatewayAdapter], which pins the same memo at sign-in and on every switch. This
+     * filter reads the session off the request it is handed rather than through that adapter's port:
+     * it runs at `HIGHEST_PRECEDENCE + 3`, long before Spring binds the request-scoped proxy the
+     * adapter needs.
      */
     private fun resolveRouting(request: HttpServletRequest, userId: UserId): TenantRouting? {
         val session = request.getSession(false)
         TenantRoutingSession.read(session)?.let { return it }
-        return teamMemberRepository.findTenantRouting(userId)?.also { TenantRoutingSession.write(session, it) }
+        return activeTeamService.resolveLanding(userId)?.also { TenantRoutingSession.write(session, it) }
     }
 }

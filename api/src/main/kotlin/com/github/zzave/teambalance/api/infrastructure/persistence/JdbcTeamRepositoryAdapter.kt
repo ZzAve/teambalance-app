@@ -7,6 +7,7 @@ import com.github.zzave.teambalance.api.domain.model.TeamName
 import com.github.zzave.teambalance.api.domain.model.TeamSummary
 import com.github.zzave.teambalance.api.domain.port.TeamRepository
 import org.springframework.jdbc.core.JdbcTemplate
+import org.springframework.jdbc.core.RowMapper
 import org.springframework.stereotype.Repository
 import java.util.UUID
 
@@ -33,18 +34,31 @@ class JdbcTeamRepositoryAdapter(
             slug.value,
         ) ?: false
 
-    override fun findByUserId(userId: UUID): TeamSummary? =
+    // Ordered by name, not by id: this list is read by humans in the Team switcher. It is a
+    // presentation order and nothing else — resolving which Team is *active* never falls back to it
+    // (ADR-0021 §1). The `ORDER BY tm.team_id LIMIT 1` this replaced did exactly that, picking a Team
+    // by UUID and silently hiding the user's others.
+    override fun findTeamsOf(userId: UUID): List<TeamSummary> =
         jdbcTemplate.query(
             "SELECT t.id, t.name, t.slug FROM public.teams t " +
                 "JOIN public.team_members tm ON tm.team_id = t.id " +
-                "WHERE tm.user_id = ? AND tm.active = true ORDER BY tm.team_id LIMIT 1",
-            { rs, _ ->
-                TeamSummary(
-                    id = TeamId(rs.getObject("id", UUID::class.java)),
-                    name = TeamName(rs.getString("name")),
-                    slug = Slug(rs.getString("slug")),
-                )
-            },
+                "WHERE tm.user_id = ? AND tm.active = true ORDER BY t.name",
+            teamSummaryRow,
             userId,
+        )
+
+    override fun findBySlug(slug: Slug): TeamSummary? =
+        jdbcTemplate.query(
+            "SELECT t.id, t.name, t.slug FROM public.teams t WHERE t.slug = ?",
+            teamSummaryRow,
+            slug.value,
         ).firstOrNull()
+
+    private val teamSummaryRow = RowMapper { rs, _ ->
+        TeamSummary(
+            id = TeamId(rs.getObject("id", UUID::class.java)),
+            name = TeamName(rs.getString("name")),
+            slug = Slug(rs.getString("slug")),
+        )
+    }
 }

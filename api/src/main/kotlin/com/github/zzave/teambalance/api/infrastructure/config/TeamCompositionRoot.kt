@@ -1,10 +1,10 @@
 package com.github.zzave.teambalance.api.infrastructure.config
 
+import com.github.zzave.teambalance.api.application.ActiveTeamService
 import com.github.zzave.teambalance.api.application.CreationCodeAdminService
 import com.github.zzave.teambalance.api.application.TeamService
 import com.github.zzave.teambalance.api.domain.port.PlatformAdminGateway
 import com.github.zzave.teambalance.api.domain.port.TeamCreationCodeRepository
-import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
 import com.github.zzave.teambalance.api.domain.port.TeamNotificationGateway
 import com.github.zzave.teambalance.api.domain.port.TeamRegistrationGateway
 import com.github.zzave.teambalance.api.domain.port.TeamRepository
@@ -25,22 +25,22 @@ class TeamCompositionRoot {
 
     @Bean
     fun teamService(
-        teamMemberRepository: TeamMemberRepository,
         teamRepository: TeamRepository,
         creationCodeRepository: TeamCreationCodeRepository,
         tenantProvisioningGateway: TenantProvisioningGateway,
         teamRegistrationGateway: TeamRegistrationGateway,
         userRepository: UserRepository,
         teamNotificationGateway: TeamNotificationGateway,
+        activeTeamService: ActiveTeamService,
         clock: Clock,
     ) = TeamService(
-        teamMemberRepository = teamMemberRepository,
         teamRepository = teamRepository,
         creationCodeRepository = creationCodeRepository,
         tenantProvisioningGateway = tenantProvisioningGateway,
         teamRegistrationGateway = teamRegistrationGateway,
         userRepository = userRepository,
         teamNotificationGateway = teamNotificationGateway,
+        activeTeamService = activeTeamService,
         clock = clock,
     )
 

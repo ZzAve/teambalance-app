@@ -15,7 +15,12 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers
 import java.util.UUID
 
-private const val ADMIN_USER_ID = "b0000000-0000-0000-0000-0000000000f1"
+// Spec-dedicated, and it has to stay that way: this user must belong to exactly ONE Team. Tenant
+// routing resolves a sole membership and answers nothing for a user in two Teams (ADR-0021 §1), so
+// sharing this id with another spec's Team leaves every request here with no tenant. It used to
+// "work" by picking a Team in UUID order — which is the misrouting #143 fixes. (Was b…f1, shared
+// with ConcurrentSessionTenantIT.)
+private const val ADMIN_USER_ID = "b0000000-0000-0000-0000-0000000000e1"
 
 // teams.schema_name is UNIQUE, so every IT that routes to the `public` tenant shares this one team.
 private const val TEAM_ID = "a0000000-0000-0000-0000-000000000001"

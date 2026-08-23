@@ -1,13 +1,11 @@
 package com.github.zzave.teambalance.api.application
 
-import com.github.zzave.teambalance.api.domain.exception.AlreadyInTeamException
 import com.github.zzave.teambalance.api.domain.exception.InvalidCreationCodeException
 import com.github.zzave.teambalance.api.domain.exception.InvalidSlugException
 import com.github.zzave.teambalance.api.domain.exception.InvalidTeamNameException
 import com.github.zzave.teambalance.api.domain.exception.TeamSlugTakenException
 import com.github.zzave.teambalance.api.domain.model.DisplayName
 import com.github.zzave.teambalance.api.domain.model.Email
-import com.github.zzave.teambalance.api.domain.model.PositionId
 import com.github.zzave.teambalance.api.domain.model.Role
 import com.github.zzave.teambalance.api.domain.model.SchemaName
 import com.github.zzave.teambalance.api.domain.model.CreationCode
@@ -15,55 +13,22 @@ import com.github.zzave.teambalance.api.domain.model.Slug
 import com.github.zzave.teambalance.api.domain.model.TeamCreationCode
 import com.github.zzave.teambalance.api.domain.model.TeamId
 import com.github.zzave.teambalance.api.domain.model.TeamName
-import com.github.zzave.teambalance.api.domain.model.TenantRouting
-import com.github.zzave.teambalance.api.domain.model.TeamMember
-import com.github.zzave.teambalance.api.domain.model.TeamSummary
 import com.github.zzave.teambalance.api.domain.model.User
 import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.port.TeamCreationCodeRepository
-import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
 import com.github.zzave.teambalance.api.domain.port.TeamNotificationGateway
 import com.github.zzave.teambalance.api.domain.port.TeamRegistrationGateway
-import com.github.zzave.teambalance.api.domain.port.TeamRepository
 import com.github.zzave.teambalance.api.domain.port.TenantProvisioningGateway
-import com.github.zzave.teambalance.api.domain.port.UserRepository
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.collections.shouldContainExactly
+import io.kotest.matchers.nulls.shouldBeNull
+import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
 import java.time.Clock
 import java.time.Instant
 import java.time.ZoneOffset
 import java.util.UUID
-
-private class FakeMemberRepo(private val existingTeam: TeamId?) : TeamMemberRepository {
-    override fun findTeamId(userId: UserId): TeamId? = existingTeam
-    override fun findTenantRouting(userId: UserId): TenantRouting? = null
-    override fun findByTeamId(teamId: TeamId): List<TeamMember> = emptyList()
-    override fun findDisplayName(userId: UserId): DisplayName? = null
-    override fun findMembersByUserIds(userIds: Set<UserId>): Map<UserId, TeamMember> = emptyMap()
-    override fun findRole(teamId: TeamId, userId: UserId): Role? = null
-    override fun addMember(teamId: TeamId, userId: UserId) = Unit
-    override fun updateRole(teamId: TeamId, userId: UserId, role: Role) = Unit
-    override fun deactivate(teamId: TeamId, userId: UserId) = Unit
-    override fun assignPosition(teamId: TeamId, userId: UserId, positionId: PositionId?) = Unit
-    override fun markOnboarded(teamId: TeamId, userId: UserId, at: Instant) = Unit
-    override fun applyMemberEdit(
-        teamId: TeamId,
-        userId: UserId,
-        displayName: DisplayName,
-        role: Role,
-        positionId: PositionId?,
-        markOnboardedAt: Instant?,
-    ) = Unit
-    override fun countAdmins(teamId: TeamId): Int = 0
-}
-
-private class FakeTeamRepo(private val existingSlugs: Set<Slug> = emptySet()) : TeamRepository {
-    override fun findAllSchemaNames(): List<SchemaName> = emptyList()
-    override fun existsBySlug(slug: Slug): Boolean = slug in existingSlugs
-    override fun findByUserId(userId: UUID): TeamSummary? = null
-}
 
 private class FakeCodeRepo(private val redeemable: Boolean) : TeamCreationCodeRepository {
     override fun isRedeemable(code: CreationCode, now: Instant): Boolean = redeemable
@@ -86,7 +51,8 @@ private class RecordingProvisioner(private val calls: MutableList<String>, priva
 
 private class RecordingRegistrar(
     private val calls: MutableList<String>,
-    private val teamId: TeamId,
+    private val directory: TeamDirectory,
+    private val founder: UserId,
 ) : TeamRegistrationGateway {
     override fun register(
         creationCode: CreationCode,
@@ -97,14 +63,9 @@ private class RecordingRegistrar(
         now: Instant,
     ): TeamId {
         calls += "register:$slug"
-        return teamId
+        // What the real registrar commits in one transaction: the team row plus the founding admin.
+        return directory.addTeam(name.value, slug.value).also { directory.join(founder, it, Role.ADMIN) }
     }
-}
-
-private class FakeUserRepo(private val user: User?) : UserRepository {
-    override fun findById(id: UserId): User? = user
-    override fun findByEmail(email: Email): User? = null
-    override fun save(user: User): User = user
 }
 
 private class RecordingNotifier(private val throwing: Boolean = false) : TeamNotificationGateway {
@@ -124,46 +85,80 @@ class TeamServiceTest : FunSpec() {
     init {
         val clock = Clock.fixed(Instant.EPOCH, ZoneOffset.UTC)
         val founder = UserId.random()
-        val newTeamId = TeamId(UUID.randomUUID())
         val founderUser = User(id = founder, email = Email("founder@example.com"), displayName = DisplayName("Founder"))
 
-        fun service(
+        // The registrar is faked, so the directory has to be told what a successful register() would
+        // have written: the Team row and the founder's ADMIN membership. Handing that to
+        // RecordingRegistrar keeps "the founder is a Member as of register()" true here too — which is
+        // exactly the precondition the Active Team switch that follows it depends on.
+        fun fixture(
             calls: MutableList<String> = mutableListOf(),
-            existingTeam: TeamId? = null,
             existingSlugs: Set<Slug> = emptySet(),
             redeemable: Boolean = true,
             provisionFails: Boolean = false,
             user: User? = founderUser,
             notifier: TeamNotificationGateway = RecordingNotifier(),
-        ) = TeamService(
-            teamMemberRepository = FakeMemberRepo(existingTeam),
-            teamRepository = FakeTeamRepo(existingSlugs),
-            creationCodeRepository = FakeCodeRepo(redeemable),
-            tenantProvisioningGateway = RecordingProvisioner(calls, provisionFails),
-            teamRegistrationGateway = RecordingRegistrar(calls, newTeamId),
-            userRepository = FakeUserRepo(user),
-            teamNotificationGateway = notifier,
-            clock = clock,
-        )
+        ): Triple<TeamDirectory, RecordingTenantRoutingGateway, TeamService> {
+            val directory = TeamDirectory()
+            existingSlugs.forEach { directory.addTeam(it.value, it.value) }
+            val gateway = RecordingTenantRoutingGateway()
+            val service = TeamService(
+                teamRepository = directory.teamRepository(),
+                creationCodeRepository = FakeCodeRepo(redeemable),
+                tenantProvisioningGateway = RecordingProvisioner(calls, provisionFails),
+                teamRegistrationGateway = RecordingRegistrar(calls, directory, founder),
+                userRepository = directory.userRepository(*listOfNotNull(user).toTypedArray()),
+                teamNotificationGateway = notifier,
+                activeTeamService = directory.activeTeamService(gateway, *listOfNotNull(user).toTypedArray()),
+                clock = clock,
+            )
+            return Triple(directory, gateway, service)
+        }
+
+        fun service(
+            calls: MutableList<String> = mutableListOf(),
+            existingSlugs: Set<Slug> = emptySet(),
+            redeemable: Boolean = true,
+            provisionFails: Boolean = false,
+            user: User? = founderUser,
+            notifier: TeamNotificationGateway = RecordingNotifier(),
+        ) = fixture(calls, existingSlugs, redeemable, provisionFails, user, notifier).third
 
         test("creates the team: provisions the schema, registers, and returns id/name/slug") {
             val calls = mutableListOf<String>()
-            val created = service(calls).createTeam(founder, "Setpoint VT", "setpoint-vt", CreationCode("GOODCODE"))
+            val (directory, _, service) = fixture(calls)
+            val created = service.createTeam(founder, "Setpoint VT", "setpoint-vt", CreationCode("GOODCODE"))
 
-            created.id shouldBe newTeamId
+            directory.summaryOf(created.id).slug shouldBe Slug("setpoint-vt")
             created.name shouldBe TeamName("Setpoint VT")
             created.slug shouldBe Slug("setpoint-vt")
             // Provision-first: the schema is created before the atomic register commits.
             calls shouldContainExactly listOf("provision:team_setpoint_vt", "register:setpoint-vt")
         }
 
-        test("rejects a founder who already belongs to a team, without provisioning") {
+        // ADR-0019 §3's 409 ALREADY_IN_TEAM is lifted (ADR-0021 §4): it existed only to match a
+        // routing layer that could hold one Team per user, and that constraint is gone.
+        test("a founder who already plays in a team may create another") {
             val calls = mutableListOf<String>()
-            shouldThrow<AlreadyInTeamException> {
-                service(calls, existingTeam = TeamId(UUID.randomUUID()))
-                    .createTeam(founder, "New Team", "new-team", CreationCode("GOODCODE"))
-            }
-            calls shouldBe emptyList()
+            val (directory, _, service) = fixture(calls)
+            directory.join(founder, directory.addTeam("Tovo Heren 5", "tovo-heren-5"))
+
+            val created = service.createTeam(founder, "Setpoint VT", "setpoint-vt", CreationCode("GOODCODE"))
+
+            created.name shouldBe TeamName("Setpoint VT")
+            calls shouldContainExactly listOf("provision:team_setpoint_vt", "register:setpoint-vt")
+        }
+
+        // Without this the founder would create a Team and stay routed to the one they were already
+        // in — the new Team would exist and be invisible to the person who made it.
+        test("the new team becomes the founder's Active Team") {
+            val (directory, gateway, service) = fixture()
+            directory.join(founder, directory.addTeam("Tovo Heren 5", "tovo-heren-5"))
+
+            val created = service.createTeam(founder, "Setpoint VT", "setpoint-vt", CreationCode("GOODCODE"))
+
+            directory.rememberedTeamOf(founder) shouldBe created.id
+            gateway.lastPinned.shouldNotBeNull().schemaName shouldBe directory.schemaOf(created.id)
         }
 
         test("rejects a blank name with 400 before any provisioning") {
@@ -214,9 +209,9 @@ class TeamServiceTest : FunSpec() {
         }
 
         test("a failing notifier never fails a committed creation (fire-and-forget)") {
-            val created = service(notifier = RecordingNotifier(throwing = true))
-                .createTeam(founder, "Setpoint VT", "setpoint-vt", CreationCode("GOODCODE"))
-            created.id shouldBe newTeamId
+            val (directory, _, service) = fixture(notifier = RecordingNotifier(throwing = true))
+            val created = service.createTeam(founder, "Setpoint VT", "setpoint-vt", CreationCode("GOODCODE"))
+            directory.summaryOf(created.id).name shouldBe TeamName("Setpoint VT")
         }
     }
 }

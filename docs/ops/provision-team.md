@@ -37,9 +37,9 @@ can be spent at most once.
 
 ### Step 2 — The founder self-creates
 
-The founder logs in (magic link → their `users.email` is the identity key), and — while **teamless**
-— the has-a-team route gate (driven by `/auth/me`'s `team` field) lands them on the create-team
-screen. They enter:
+The founder logs in (magic link → their `users.email` is the identity key). While **teamless** the
+has-any-team route gate (driven by `/auth/me`'s `teams` list) lands them on the create-team screen;
+since #143 a founder who already plays in a Team can reach it too, from the Team switcher. They enter:
 
 - **Team name** — free text, ≤ 100 chars, **not** required to be unique.
 - **Slug** — the URL address, **user-editable and validated**: `^[a-z0-9]+(-[a-z0-9]+)*$`, ≤ 58 chars,
@@ -47,13 +47,13 @@ screen. They enter:
   shown.
 - **Creation code** — from Step 1.
 
-`POST /api/teams` then, in order: rejects a caller who already has a team (`409 ALREADY_IN_TEAM`);
-validates name/slug (`400 INVALID_NAME` / `400 INVALID_SLUG`); rejects a taken slug
+`POST /api/teams` then, in order: validates name/slug (`400 INVALID_NAME` / `400 INVALID_SLUG`); rejects a taken slug
 (`409 TEAM_SLUG_TAKEN`) or a bad/expired/consumed code (opaque `403 INVALID_CREATION_CODE`);
 **provisions the tenant schema** (`db/tenant-migration`, recorded in `flyway_tenant_schema_history`);
 then **atomically** consumes the code and inserts the `teams` row + the founder's `team_members`
-row (ADMIN, `onboarded_at = now()`, `position_id NULL`). The founder lands straight in the new,
-empty team.
+row (ADMIN, `onboarded_at = now()`, `position_id NULL`); and finally makes the new team the
+founder's **Active Team**, so they land straight in the new, empty team rather than staying in
+whichever team they were in before (ADR-0021).
 
 The founder is now the team's admin. From there, onboarding the rest of the team is the ordinary
 in-app flow (unchanged, ADR-0008 / ADR-0013):

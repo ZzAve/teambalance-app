@@ -241,9 +241,14 @@ class EventControllerTest : TeamBalanceIT() {
 
             // Member ids unique to this test: integration tests share DB state and seed with
             // ON CONFLICT DO NOTHING, so reusing the shared ids would keep roles set by other tests.
-            val setterAId = "b0000000-0000-0000-0000-0000000000a1"
-            val setterBId = "b0000000-0000-0000-0000-0000000000a2"
-            val liberoId = "b0000000-0000-0000-0000-0000000000a3"
+            // Since #143 the uniqueness must hold ACROSS specs too, not just within this one: tenant
+            // routing resolves a sole membership and answers *nothing* for a user who turns out to
+            // belong to two Teams, so a user id shared with another spec's Team no longer resolves at
+            // all. It used to, by picking one of the two Teams in UUID order — the silent misrouting
+            // ADR-0021 removes. (These collided with EventControllerTenantIsolationTest's ALPHA_USER.)
+            val setterAId = "b0000000-0000-0000-0000-0000000000d1"
+            val setterBId = "b0000000-0000-0000-0000-0000000000d2"
+            val liberoId = "b0000000-0000-0000-0000-0000000000d3"
 
             jdbcTemplate.execute(
                 """

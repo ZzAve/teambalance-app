@@ -21,15 +21,24 @@ interface TeamMemberRepository {
     /** The user's role on the team, or null if they have no active membership there. */
     fun findRole(teamId: TeamId, userId: UserId): Role?
 
-    /** The team the user actively belongs to, or null if they have no team (v1: one team per user). */
-    fun findTeamId(userId: UserId): TeamId?
+    /**
+     * The tenant routing (team id + schema) for **this** team and this user, resolved from ONE row,
+     * or null when they have no active membership of it (ADR-0021 §1). The team id is an input, not a
+     * discovery: this asks "resolve this team for this user, and verify they may have it" — it never
+     * picks a team on the caller's behalf.
+     *
+     * Null is the *only* failure mode, and it covers both "no such team" and "not yours" — the caller
+     * cannot tell them apart, so the team id space cannot be probed.
+     */
+    fun findTenantRouting(teamId: TeamId, userId: UserId): TenantRouting?
 
     /**
-     * The user's tenant routing (team id + schema) resolved from ONE row, or null if they have no
-     * active team. Lets the login path pin both onto the session together so authenticated requests
-     * read them back instead of racing to memoize them. Null-safe for a teamless user.
+     * The tenant routing of the user's **only** active membership, or null when they have none — or
+     * more than one. Deliberately not "their first team": with several memberships there is no
+     * defensible pick, so this answers null and the Active Team has to be chosen explicitly
+     * (ADR-0021 §3). This is what replaced the `ORDER BY team_id LIMIT 1` that used to choose by UUID.
      */
-    fun findTenantRouting(userId: UserId): TenantRouting?
+    fun findSoleTenantRouting(userId: UserId): TenantRouting?
 
     /** Joins the user to the team as a USER. No-op if already an active member of this team. */
     fun addMember(teamId: TeamId, userId: UserId)

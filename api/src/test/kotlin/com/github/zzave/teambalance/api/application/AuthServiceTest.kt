@@ -46,54 +46,11 @@ private class FakeAuthSessionGateway(private var sessionUserId: UserId? = null) 
     }
 }
 
-private class FakeTenantRoutingGateway : TenantRoutingGateway {
-    var pinnedRouting: TenantRouting? = null
-
-    override fun pinRouting(routing: TenantRouting) {
-        pinnedRouting = routing
-    }
-}
-
-private class FakeUserRepository(private val users: Map<UserId, User>) : UserRepository {
-    override fun findById(id: UserId): User? = users[id]
-    override fun findByEmail(email: Email): User? = users.values.firstOrNull { it.email == email }
-    override fun save(user: User): User = user
-}
-
-private class FakeRoutingTeamMemberRepository(private val routing: TenantRouting?) : TeamMemberRepository {
-    override fun findByTeamId(teamId: TeamId) = emptyList<TeamMember>()
-    override fun findDisplayName(userId: UserId): DisplayName? = null
-    override fun findMembersByUserIds(userIds: Set<UserId>) = emptyMap<UserId, TeamMember>()
-    override fun findRole(teamId: TeamId, userId: UserId): Role? = Role.USER
-    override fun findTeamId(userId: UserId): TeamId? = routing?.teamId
-    override fun findTenantRouting(userId: UserId): TenantRouting? = routing
-    override fun addMember(teamId: TeamId, userId: UserId) = Unit
-    override fun updateRole(teamId: TeamId, userId: UserId, role: Role) = Unit
-    override fun deactivate(teamId: TeamId, userId: UserId) = Unit
-    override fun assignPosition(teamId: TeamId, userId: UserId, positionId: PositionId?) = Unit
-    override fun applyMemberEdit(
-        teamId: TeamId,
-        userId: UserId,
-        displayName: DisplayName,
-        role: Role,
-        positionId: PositionId?,
-        markOnboardedAt: Instant?,
-    ) = Unit
-    override fun markOnboarded(teamId: TeamId, userId: UserId, at: Instant) = Unit
-    override fun countAdmins(teamId: TeamId): Int = 0
-}
-
 private class FakeMagicLinkTokenRepository : MagicLinkTokenRepository {
     override fun save(token: MagicLinkToken): MagicLinkToken = token
     override fun findByTokenHash(tokenHash: TokenHash): MagicLinkToken? = null
     override fun consumeAndResolveUser(consumedToken: MagicLinkToken, displayName: DisplayName): User =
         error("not used in these tests")
-}
-
-private class FakeTeamRepository : TeamRepository {
-    override fun findAllSchemaNames() = emptyList<SchemaName>()
-    override fun existsBySlug(slug: Slug) = false
-    override fun findByUserId(userId: UUID): TeamSummary? = null
 }
 
 private class FakeEmailGateway : EmailGateway {
@@ -120,55 +77,100 @@ class AuthServiceTest : FunSpec() {
             email = Email("session@test.com"),
             displayName = DisplayName("Session"),
         )
-        val routing = TenantRouting(teamId = TeamId(UUID.randomUUID()), schemaName = SchemaName("team_alpha"))
-
         fun serviceWith(
             gateway: AuthSessionGateway,
-            tenantRouting: TenantRouting?,
-            routingGateway: TenantRoutingGateway = FakeTenantRoutingGateway(),
+            directory: TeamDirectory = TeamDirectory(),
+            routingGateway: TenantRoutingGateway = RecordingTenantRoutingGateway(),
         ) = AuthService(
             magicLinkTokenRepository = FakeMagicLinkTokenRepository(),
-            userRepository = FakeUserRepository(mapOf(userId to user)),
-            teamRepository = FakeTeamRepository(),
-            teamMemberRepository = FakeRoutingTeamMemberRepository(tenantRouting),
+            userRepository = directory.userRepository(user),
+            teamMemberRepository = directory.teamMemberRepository(),
+            activeTeamService = directory.activeTeamService(routingGateway, user),
             emailGateway = FakeEmailGateway(),
             platformAdminGateway = FakePlatformAdminGateway(),
             authSessionGateway = gateway,
-            tenantRoutingGateway = routingGateway,
             clock = Clock.fixed(Instant.EPOCH, ZoneOffset.UTC),
         )
 
-        test("startSession pins the signed-in user's tenant routing") {
+        test("startSession pins the Active Team the signed-in user lands in, and reports it") {
             val gateway = FakeAuthSessionGateway()
-            val routingGateway = FakeTenantRoutingGateway()
+            val routingGateway = RecordingTenantRoutingGateway()
+            val directory = TeamDirectory()
+            val setpoint = directory.addTeam("Setpoint VT", "setpoint-vt")
+            directory.join(userId, setpoint)
 
-            serviceWith(gateway, routing, routingGateway).startSession(userId)
+            serviceWith(gateway, directory, routingGateway).startSession(userId) shouldBe setpoint
 
             gateway.startedFor shouldBe userId
-            routingGateway.pinnedRouting shouldBe routing
+            routingGateway.lastPinned?.schemaName shouldBe directory.schemaOf(setpoint)
         }
 
         test("startSession leaves the tenant unpinned for a teamless user") {
             val gateway = FakeAuthSessionGateway()
-            val routingGateway = FakeTenantRoutingGateway()
+            val routingGateway = RecordingTenantRoutingGateway()
 
-            serviceWith(gateway, null, routingGateway).startSession(userId)
+            serviceWith(gateway, routingGateway = routingGateway).startSession(userId) shouldBe null
 
             gateway.startedFor shouldBe userId
-            routingGateway.pinnedRouting shouldBe null
+            routingGateway.lastPinned shouldBe null
+        }
+
+        // A Member of several Teams with none remembered is signed in but *unrouted*: the session
+        // exists, no tenant is pinned, and the frontend asks them which Team they mean.
+        test("startSession pins nothing when several Teams are open and none is remembered") {
+            val gateway = FakeAuthSessionGateway()
+            val routingGateway = RecordingTenantRoutingGateway()
+            val directory = TeamDirectory()
+            directory.join(userId, directory.addTeam("Setpoint VT", "setpoint-vt"))
+            directory.join(userId, directory.addTeam("Tovo Heren 5", "tovo-heren-5"))
+
+            serviceWith(gateway, directory, routingGateway).startSession(userId) shouldBe null
+
+            gateway.startedFor shouldBe userId
+            routingGateway.pins shouldBe emptyList()
+        }
+
+        test("findTeamsFor lists every Team the caller is a Member of") {
+            val directory = TeamDirectory()
+            directory.join(userId, directory.addTeam("Tovo Heren 5", "tovo-heren-5"))
+            directory.join(userId, directory.addTeam("Setpoint VT", "setpoint-vt"))
+
+            serviceWith(FakeAuthSessionGateway(userId), directory).findTeamsFor(userId)
+                .map { it.name.value } shouldBe listOf("Setpoint VT", "Tovo Heren 5")
+        }
+
+        // The Role reported to the caller is the Role in the Team they are *in*, not a property of the
+        // user: the same person is an Admin in one Team and a plain User in another.
+        test("findRoleIn answers per Team, not per user") {
+            val directory = TeamDirectory()
+            val setpoint = directory.addTeam("Setpoint VT", "setpoint-vt")
+            val tovo = directory.addTeam("Tovo Heren 5", "tovo-heren-5")
+            directory.join(userId, setpoint, Role.ADMIN)
+            directory.join(userId, tovo, Role.USER)
+            val service = serviceWith(FakeAuthSessionGateway(userId), directory)
+
+            service.findRoleIn(setpoint, userId) shouldBe Role.ADMIN
+            service.findRoleIn(tovo, userId) shouldBe Role.USER
+        }
+
+        test("findRoleIn is null for a Team the caller is not a Member of") {
+            val directory = TeamDirectory()
+            val theirs = directory.addTeam("Someone Else", "someone-else")
+
+            serviceWith(FakeAuthSessionGateway(userId), directory).findRoleIn(theirs, userId) shouldBe null
         }
 
         test("currentUser resolves the user the session belongs to") {
-            serviceWith(FakeAuthSessionGateway(userId), routing).currentUser() shouldBe user
+            serviceWith(FakeAuthSessionGateway(userId)).currentUser() shouldBe user
         }
 
         test("currentUser is null without a session") {
-            serviceWith(FakeAuthSessionGateway(null), routing).currentUser() shouldBe null
+            serviceWith(FakeAuthSessionGateway(null)).currentUser() shouldBe null
         }
 
         test("endSession drops the session, leaving no current user") {
             val gateway = FakeAuthSessionGateway(userId)
-            val service = serviceWith(gateway, routing)
+            val service = serviceWith(gateway)
 
             service.endSession()
 

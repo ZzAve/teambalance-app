@@ -69,9 +69,16 @@ class ActiveTeamService(
     /**
      * Resolves and pins the caller's landing Team at sign-in, returning it. A teamless user — or one
      * with several Teams and none remembered — pins nothing and lands on a choice instead.
+     *
+     * The clear is unconditional and comes first, precisely *because* the pin is conditional. A
+     * sign-in can land on a session that already carries someone else's routing (a shared phone, a
+     * second magic link in the same browser); resolving to nothing would then leave that routing in
+     * place and hand the new caller the previous caller's tenant.
      */
-    fun pinLanding(userId: UserId): TeamId? =
-        resolveLanding(userId)?.also(tenantRoutingGateway::pinRouting)?.teamId
+    fun pinLanding(userId: UserId): TeamId? {
+        tenantRoutingGateway.clearRouting()
+        return resolveLanding(userId)?.also(tenantRoutingGateway::pinRouting)?.teamId
+    }
 
     /**
      * Makes [routing] the caller's Active Team: remembered on the user, then re-pinned on the session.

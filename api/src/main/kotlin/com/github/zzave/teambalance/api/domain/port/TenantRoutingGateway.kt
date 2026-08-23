@@ -15,4 +15,15 @@ interface TenantRoutingGateway {
      * back instead of several of them racing to memoize it (#205). Pinning it again is harmless.
      */
     fun pinRouting(routing: TenantRouting)
+
+    /**
+     * Drops any pinned routing, leaving the caller with **no** tenant rather than a stale one.
+     *
+     * Sign-in must call this before it pins, because pinning is conditional: a caller with no Team,
+     * or with several and none remembered, resolves to nothing and pins nothing. Signing in over a
+     * live session — a shared phone, a second magic link in the same browser — would otherwise leave
+     * the previous caller's `(schema, teamId)` pair sitting on the session for the new one to
+     * inherit. Clearing is the only operation that cannot be skipped.
+     */
+    fun clearRouting()
 }

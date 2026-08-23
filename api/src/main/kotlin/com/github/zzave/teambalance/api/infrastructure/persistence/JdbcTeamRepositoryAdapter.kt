@@ -38,11 +38,15 @@ class JdbcTeamRepositoryAdapter(
     // presentation order and nothing else — resolving which Team is *active* never falls back to it
     // (ADR-0021 §1). The `ORDER BY tm.team_id LIMIT 1` this replaced did exactly that, picking a Team
     // by UUID and silently hiding the user's others.
+    //
+    // `t.id` breaks ties because team names are deliberately NOT unique (ADR-0019 §2 — the slug is
+    // the unique address, the name is free text), so two Teams called "Heren 3" would otherwise swap
+    // places between requests.
     override fun findTeamsOf(userId: UUID): List<TeamSummary> =
         jdbcTemplate.query(
             "SELECT t.id, t.name, t.slug FROM public.teams t " +
                 "JOIN public.team_members tm ON tm.team_id = t.id " +
-                "WHERE tm.user_id = ? AND tm.active = true ORDER BY t.name",
+                "WHERE tm.user_id = ? AND tm.active = true ORDER BY t.name, t.id",
             teamSummaryRow,
             userId,
         )

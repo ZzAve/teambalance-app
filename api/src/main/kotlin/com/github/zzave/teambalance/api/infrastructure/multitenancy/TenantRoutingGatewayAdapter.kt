@@ -21,4 +21,8 @@ class TenantRoutingGatewayAdapter(
 ) : TenantRoutingGateway {
 
     override fun pinRouting(routing: TenantRouting) = TenantRoutingSession.write(request.session, routing)
+
+    // getSession(false): nothing to clear when there is no session, and creating one to empty it
+    // would be absurd.
+    override fun clearRouting() = TenantRoutingSession.clear(request.getSession(false))
 }

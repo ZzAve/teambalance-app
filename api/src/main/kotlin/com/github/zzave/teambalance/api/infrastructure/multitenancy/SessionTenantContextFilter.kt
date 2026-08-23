@@ -63,6 +63,15 @@ class SessionTenantContextFilter(
      * between several Teams; a caller with several and none remembered simply has no tenant here and
      * is asked to choose.
      *
+     * A memo hit is NOT re-verified against `team_members` — that is what makes it a memo rather than
+     * a query. The membership was verified when it was written (at sign-in, or by the switch that
+     * pinned it), so a caller removed from a Team mid-session keeps tenant access until their session
+     * ends, which under a four-week sliding window (ADR-0015) is a long time. That is unchanged by
+     * #143 and out of its scope; removing a Member is not yet a session-invalidating event anywhere.
+     * Authorization for individual actions still runs per request through
+     * [AuthorizationService][com.github.zzave.teambalance.api.application.AuthorizationService], so
+     * what a removed Member retains is reads, not admin rights.
+     *
      * The memo's attribute names and formats live in [TenantRoutingSession], shared with
      * [TenantRoutingGatewayAdapter], which pins the same memo at sign-in and on every switch. This
      * filter reads the session off the request it is handed rather than through that adapter's port:

@@ -110,16 +110,19 @@ class JpaTeamMemberRepositoryAdapter(
     @Transactional
     override fun addMember(teamId: TeamId, userId: UserId) {
         if (jpaRepository.findByTeamIdAndUserIdAndActiveTrue(teamId.value, userId.value) != null) return
+        // A previously-removed member has a row with active = false, and (team_id, user_id) is
+        // UNIQUE — so an insert cannot re-join them. Flipping the existing row is what "join this
+        // team" means for them; without it the accept answered 200 while leaving them out of the
+        // team, and (since #143) failed to switch them into it as well.
+        if (jpaRepository.reactivateAsUser(teamId.value, userId.value) > 0) return
         try {
             jpaRepository.save(
                 TeamMemberJpaEntity(teamId = teamId.value, userId = userId.value, role = Role.USER.name),
             )
         } catch (e: DataIntegrityViolationException) {
-            // Concurrent accept or inactive-member row conflict — already a member, no-op
-            logger.info(
-                "Failed to add member to team because of a conflic. " +
-                        "This signals that the user is already a member, no biggy", e
-            )
+            // Lost a race with a concurrent accept — the other one made them a member, which is the
+            // outcome this call wanted anyway.
+            logger.info("Concurrent accept for team {} / user {} — already a member", teamId, userId, e)
         }
     }
 }

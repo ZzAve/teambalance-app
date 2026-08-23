@@ -104,6 +104,39 @@ class JpaTeamMemberRepositoryAdapterTest : TeamBalanceIT() {
         test("findSoleTenantRouting is null for a user with no team at all") {
             teamMemberRepository.findSoleTenantRouting(UserId(seedUser())) shouldBe null
         }
+
+        // (team_id, user_id) is UNIQUE and a removed member keeps a deactivated row, so an INSERT
+        // cannot re-join them. Before this was handled, accepting a fresh invite answered 200 while
+        // silently leaving them out of the team — and, since #143, failing to switch them into it.
+        test("addMember re-joins a previously removed member by reactivating their row") {
+            val (teamId, userId) = seedMember(role = "USER", active = true)
+            teamMemberRepository.deactivate(teamId, userId)
+            teamMemberRepository.findRole(teamId, userId) shouldBe null
+
+            teamMemberRepository.addMember(teamId, userId)
+
+            teamMemberRepository.findRole(teamId, userId) shouldBe Role.USER
+            teamMemberRepository.findTenantRouting(teamId, userId)?.teamId shouldBe teamId
+        }
+
+        // A removed admin walking back in through a shared invite link must not arrive holding their
+        // old admin rights: addMember joins as a USER, and re-joining is joining.
+        test("a removed admin re-joins as a plain USER, not as an admin") {
+            val (teamId, userId) = seedMember(role = "ADMIN", active = true)
+            teamMemberRepository.deactivate(teamId, userId)
+
+            teamMemberRepository.addMember(teamId, userId)
+
+            teamMemberRepository.findRole(teamId, userId) shouldBe Role.USER
+        }
+
+        test("addMember leaves an existing active member untouched, role and all") {
+            val (teamId, userId) = seedMember(role = "ADMIN", active = true)
+
+            teamMemberRepository.addMember(teamId, userId)
+
+            teamMemberRepository.findRole(teamId, userId) shouldBe Role.ADMIN
+        }
     }
 
     private fun schemaNameOf(teamId: TeamId) = "team_${teamId.value.toString().replace("-", "")}"

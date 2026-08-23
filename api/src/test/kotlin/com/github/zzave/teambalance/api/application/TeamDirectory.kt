@@ -127,11 +127,21 @@ internal class TeamDirectory {
  * as the previous tenant.
  */
 internal class RecordingTenantRoutingGateway : TenantRoutingGateway {
-    val pins = mutableListOf<TenantRouting>()
+    /** Every pin and clear in order — `null` is a clear. */
+    val writes = mutableListOf<TenantRouting?>()
+
+    val pins: List<TenantRouting> get() = writes.filterNotNull()
     val lastPinned: TenantRouting? get() = pins.lastOrNull()
 
+    /** What the session would actually be carrying now: the last write, pin or clear. */
+    val pinned: TenantRouting? get() = writes.lastOrNull()
+
     override fun pinRouting(routing: TenantRouting) {
-        pins += routing
+        writes += routing
+    }
+
+    override fun clearRouting() {
+        writes += null
     }
 }
 

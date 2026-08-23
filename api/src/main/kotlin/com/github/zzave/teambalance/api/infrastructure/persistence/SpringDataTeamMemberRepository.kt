@@ -61,6 +61,18 @@ interface SpringDataTeamMemberRepository : JpaRepository<TeamMemberJpaEntity, UU
     )
     fun deactivate(@Param("teamId") teamId: UUID, @Param("userId") userId: UUID): Int
 
+    // Re-joining after removal. The role is reset to USER rather than restored: `addMember` joins as
+    // a USER by contract, and a removed admin walking back in through a shared invite link must not
+    // arrive holding their old admin rights. Returns the rows affected, so the caller can tell a real
+    // re-join from "there was no such row".
+    @Modifying
+    @Query(
+        "UPDATE public.team_members SET active = true, role = 'USER' " +
+            "WHERE team_id = :teamId AND user_id = :userId AND active = false",
+        nativeQuery = true,
+    )
+    fun reactivateAsUser(@Param("teamId") teamId: UUID, @Param("userId") userId: UUID): Int
+
     @Query(
         "SELECT COUNT(*) FROM public.team_members " +
             "WHERE team_id = :teamId AND role = 'ADMIN' AND active = true",

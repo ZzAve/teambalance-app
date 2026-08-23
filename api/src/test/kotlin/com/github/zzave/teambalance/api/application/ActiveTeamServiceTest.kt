@@ -2,8 +2,10 @@ package com.github.zzave.teambalance.api.application
 
 import com.github.zzave.teambalance.api.domain.model.DisplayName
 import com.github.zzave.teambalance.api.domain.model.Email
+import com.github.zzave.teambalance.api.domain.model.SchemaName
 import com.github.zzave.teambalance.api.domain.model.Slug
 import com.github.zzave.teambalance.api.domain.model.TeamId
+import com.github.zzave.teambalance.api.domain.model.TenantRouting
 import com.github.zzave.teambalance.api.domain.model.User
 import com.github.zzave.teambalance.api.domain.model.UserId
 import io.kotest.core.spec.style.FunSpec
@@ -71,7 +73,7 @@ class ActiveTeamServiceTest : FunSpec() {
                 directory.join(member, setpoint)
                 directory.join(member, tovo)
                 service.activate(member, tovo)
-                gateway.pins.clear()
+                gateway.writes.clear()
 
                 directory.leave(member, tovo)
 
@@ -129,7 +131,7 @@ class ActiveTeamServiceTest : FunSpec() {
                 val theirs = directory.addTeam("Someone Else", "someone-else")
                 directory.join(member, mine)
                 service.activate(member, mine)
-                gateway.pins.clear()
+                gateway.writes.clear()
 
                 service.activate(member, theirs).shouldBeNull()
 
@@ -203,6 +205,35 @@ class ActiveTeamServiceTest : FunSpec() {
 
                 service.pinLanding(member).shouldBeNull()
                 gateway.pins.shouldBeEmpty()
+            }
+
+            // Signing in on a session that already carries someone else's routing — a shared phone,
+            // a second magic link in the same browser. The pin is conditional; the clear is not, or
+            // the new caller inherits the previous caller's tenant.
+            test("clears any routing already on the session, even when it pins nothing after") {
+                val (directory, gateway, service) = fixture()
+                directory.join(member, directory.addTeam("Alpha", "alpha"))
+                directory.join(member, directory.addTeam("Bravo", "bravo"))
+                gateway.pinRouting(
+                    TenantRouting(teamId = TeamId(UUID.randomUUID()), schemaName = SchemaName("team_someone_else")),
+                )
+
+                service.pinLanding(member).shouldBeNull()
+
+                gateway.pinned.shouldBeNull()
+            }
+
+            test("clears before it pins, so a sole membership still lands correctly") {
+                val (directory, gateway, service) = fixture()
+                val alpha = directory.addTeam("Alpha", "alpha")
+                directory.join(member, alpha)
+                gateway.pinRouting(
+                    TenantRouting(teamId = TeamId(UUID.randomUUID()), schemaName = SchemaName("team_someone_else")),
+                )
+
+                service.pinLanding(member) shouldBe alpha
+
+                gateway.pinned.shouldNotBeNull().teamId shouldBe alpha
             }
         }
     }

@@ -19,6 +19,15 @@ import { teamRoutes } from '@shared/lib/team-routes'
  * The switch is skipped when the URL already names the Active Team — the common case, every
  * in-app navigation — so this costs one request per actual change of Team, not per page.
  *
+ * **The session, not this URL, is the authority on the tenant.** The slug asks for a Team; the
+ * session decides. So two tabs cannot sit in two Teams: opening a link in a second tab switches the
+ * one session, and the first tab then shows the other Team's data under its own slug until it
+ * navigates. ADR-0021 §2 weighed exactly this — request-carried tenancy would have fixed it — and
+ * took it as the price of keeping the installed PWA's navigation team-less. It is a stale *view*,
+ * never a cross-tenant write to the wrong place: every request is scoped by the session the server
+ * holds, and the slug influences it only through the authorized switch above. Revisit with the ADR
+ * if tab-per-team ergonomics become a real complaint, not by making the URL authoritative here.
+ *
  * **The cache is reset on a real switch.** Every tenant-scoped query (events, members, positions,
  * the season) is keyed without the Team in it, because a request has exactly one Active Team; that
  * makes the cache the frontend's mirror of `TenantRoutingSession`'s memo, and it inherits the same

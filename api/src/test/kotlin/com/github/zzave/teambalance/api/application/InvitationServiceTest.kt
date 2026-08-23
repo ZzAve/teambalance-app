@@ -143,7 +143,7 @@ class InvitationServiceTest : FunSpec() {
             f.directory.join(nonAdmin, other)
             f.service.acceptInvitation(token = "anything", userId = nonAdmin)
             f.invitations.expire()
-            f.routingGateway.pins.clear()
+            f.routingGateway.writes.clear()
 
             f.service.acceptInvitation(token = "anything", userId = nonAdmin) shouldBe null
 

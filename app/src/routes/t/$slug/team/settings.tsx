@@ -5,6 +5,7 @@ import { teamRoutes } from '@shared/lib/team-routes'
 import { MemberRoster } from '@features/manage-members/ui/MemberRoster'
 import { TeamSettings } from '@features/team-settings/ui/TeamSettings'
 import { ManagePositions } from '@features/manage-positions/ui/ManagePositions'
+import { ActAsRecords } from '@features/act-as/ui/ActAsRecords'
 
 export const Route = createFileRoute('/t/$slug/team/settings')({
   // Admin-only. Read the same /me query the root guard primed (from cache) and bounce non-admins
@@ -26,12 +27,15 @@ export const Route = createFileRoute('/t/$slug/team/settings')({
 
 function TeamSettingsPage() {
   // Admin manage surface: member management (the editable roster), then positions, then team
-  // settings. The read-only view of the same roster lives on /team.
+  // settings, then platform access. The read-only view of the same roster lives on /team.
   return (
     <div className="flex flex-col gap-10">
       <MemberRoster canManage />
       <ManagePositions />
       <TeamSettings />
+      {/* Admin-only, and last: platform access is rare and, to someone who has never heard of it,
+          alarming out of context. It sits below the settings an Admin actually came here for. */}
+      <ActAsRecords />
     </div>
   )
 }

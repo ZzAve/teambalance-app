@@ -20,6 +20,7 @@ const USER: AuthenticatedUser = {
   teams: [TEAM],
   activeTeam: TEAM,
   isPlatformAdmin: false,
+  actAs: undefined,
 }
 
 let meStatus = 401

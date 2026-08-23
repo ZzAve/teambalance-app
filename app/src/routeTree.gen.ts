@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as SelectTeamRouteImport } from './routes/select-team'
 import { Route as AdminCreationCodesRouteImport } from './routes/admin/creation-codes'
+import { Route as AdminTeamsRouteImport } from './routes/admin/teams'
 import { Route as AuthVerifyRouteImport } from './routes/auth/verify'
 import { Route as CreateTeamIndexRouteImport } from './routes/create-team/index'
 import { Route as InviteTokenRouteImport } from './routes/invite/$token'
@@ -44,6 +45,11 @@ const SelectTeamRoute = SelectTeamRouteImport.update({
 const AdminCreationCodesRoute = AdminCreationCodesRouteImport.update({
   id: '/admin/creation-codes',
   path: '/admin/creation-codes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminTeamsRoute = AdminTeamsRouteImport.update({
+  id: '/admin/teams',
+  path: '/admin/teams',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthVerifyRoute = AuthVerifyRouteImport.update({
@@ -113,6 +119,7 @@ export interface FileRoutesByFullPath {
   '/select-team': typeof SelectTeamRoute
   '/t/$slug': typeof TSlugRouteRouteWithChildren
   '/admin/creation-codes': typeof AdminCreationCodesRoute
+  '/admin/teams': typeof AdminTeamsRoute
   '/auth/verify': typeof AuthVerifyRoute
   '/invite/$token': typeof InviteTokenRoute
   '/onboarding/join': typeof OnboardingJoinRoute
@@ -130,6 +137,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/select-team': typeof SelectTeamRoute
   '/admin/creation-codes': typeof AdminCreationCodesRoute
+  '/admin/teams': typeof AdminTeamsRoute
   '/auth/verify': typeof AuthVerifyRoute
   '/invite/$token': typeof InviteTokenRoute
   '/onboarding/join': typeof OnboardingJoinRoute
@@ -149,6 +157,7 @@ export interface FileRoutesById {
   '/select-team': typeof SelectTeamRoute
   '/t/$slug': typeof TSlugRouteRouteWithChildren
   '/admin/creation-codes': typeof AdminCreationCodesRoute
+  '/admin/teams': typeof AdminTeamsRoute
   '/auth/verify': typeof AuthVerifyRoute
   '/invite/$token': typeof InviteTokenRoute
   '/onboarding/join': typeof OnboardingJoinRoute
@@ -169,6 +178,7 @@ export interface FileRouteTypes {
     | '/select-team'
     | '/t/$slug'
     | '/admin/creation-codes'
+    | '/admin/teams'
     | '/auth/verify'
     | '/invite/$token'
     | '/onboarding/join'
@@ -186,6 +196,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/select-team'
     | '/admin/creation-codes'
+    | '/admin/teams'
     | '/auth/verify'
     | '/invite/$token'
     | '/onboarding/join'
@@ -204,6 +215,7 @@ export interface FileRouteTypes {
     | '/select-team'
     | '/t/$slug'
     | '/admin/creation-codes'
+    | '/admin/teams'
     | '/auth/verify'
     | '/invite/$token'
     | '/onboarding/join'
@@ -223,6 +235,7 @@ export interface RootRouteChildren {
   SelectTeamRoute: typeof SelectTeamRoute
   TSlugRouteRoute: typeof TSlugRouteRouteWithChildren
   AdminCreationCodesRoute: typeof AdminCreationCodesRoute
+  AdminTeamsRoute: typeof AdminTeamsRoute
   AuthVerifyRoute: typeof AuthVerifyRoute
   InviteTokenRoute: typeof InviteTokenRoute
   OnboardingJoinRoute: typeof OnboardingJoinRoute
@@ -258,6 +271,13 @@ declare module '@tanstack/react-router' {
       path: '/admin/creation-codes'
       fullPath: '/admin/creation-codes'
       preLoaderRoute: typeof AdminCreationCodesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/teams': {
+      id: '/admin/teams'
+      path: '/admin/teams'
+      fullPath: '/admin/teams'
+      preLoaderRoute: typeof AdminTeamsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth/verify': {
@@ -375,6 +395,7 @@ const rootRouteChildren: RootRouteChildren = {
   SelectTeamRoute: SelectTeamRoute,
   TSlugRouteRoute: TSlugRouteRouteWithChildren,
   AdminCreationCodesRoute: AdminCreationCodesRoute,
+  AdminTeamsRoute: AdminTeamsRoute,
   AuthVerifyRoute: AuthVerifyRoute,
   InviteTokenRoute: InviteTokenRoute,
   OnboardingJoinRoute: OnboardingJoinRoute,

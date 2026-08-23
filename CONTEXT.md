@@ -159,11 +159,14 @@ any-team, self-service (see [ADR-0001](docs/adr/0001-product-ambition-hobby-tool
   ever written, so a Virtual Member never appears on the roster, in an **Event Attendance**
   denominator, in the **Position** breakdown, or in the **Hall of Shame**.
   _Avoid_: ghost member, shadow admin, temporary member.
-- **Act-as Record** — The team-visible account of what a **Platform Admin** did inside a Team.
-  Scoped to the **Act-as** session rather than to individual rows, because most tenant tables carry
-  no authorship column. Attributes the actor generically (the platform, not a named person), while
-  the underlying `created_by` keeps the real user id for forensics. _Avoid_: audit log (that is the
-  separate, broader feature), access log, trail.
+- **Act-as Record** — The account, readable by a Team's **Admins**, of when a **Platform Admin**
+  had access inside that Team. Scoped to the **Act-as** session rather than to individual rows,
+  because most tenant tables carry no authorship column — so it records that access *happened*,
+  never what came of it, and is worded accordingly ("worked in your team", never "made changes").
+  Attributes the actor generically (the TeamBalance owner, not a named person), while the underlying
+  `created_by` keeps the real user id for forensics. Lives on the Admin-only team settings page,
+  collapsed until opened ([ADR-0024](docs/adr/0024-platform-admin-act-as.md) §4). _Avoid_: audit log
+  (that is the separate, broader feature), access log, trail.
 - **Tenant schema** — Per-team Postgres schema holding events, attendances,
   transactions, etc.
 - **Platform schema** (`public`) — Cross-team data: users, teams, team_members,

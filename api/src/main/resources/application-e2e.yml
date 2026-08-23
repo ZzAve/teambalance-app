@@ -9,6 +9,9 @@ spring:
     password: teambalance
 
 teambalance:
+  # The act-as flow needs a Platform Admin (ADR-0024). Fail-closed by default, so name one here; the
+  # seed fixture creates this user WITHOUT a team_members row, which is the point (ADR-0024 section 3).
+  platform-admins: platform@example.com
   invitation:
     # Hardcoded salt for e2e runs (not a live environment); live supplies INVITATION_TOKEN_SALT.
     token-salt: e2e-invitation-salt

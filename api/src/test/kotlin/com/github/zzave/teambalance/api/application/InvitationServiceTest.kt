@@ -65,7 +65,7 @@ class InvitationServiceTest : FunSpec() {
             val service = InvitationService(
                 invitationRepository = invitations,
                 teamMemberRepository = members,
-                authorizationService = AuthorizationService(members),
+                authorizationService = AuthorizationService(members, FakeActAsGateway()),
                 activeTeamService = directory.activeTeamService(routingGateway, joiner),
                 clock = clock,
                 tokenSalt = "salt",

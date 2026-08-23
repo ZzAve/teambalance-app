@@ -33,7 +33,7 @@ class SchemaMultiTenantConnectionProvider(
 
     override fun supportsAggressiveRelease(): Boolean = false
 
-    override fun isUnwrappableAs(unwrapType: Class<*>?): Boolean = false
+    override fun isUnwrappableAs(unwrapType: Class<*>): Boolean = false
 
-    override fun <T : Any?> unwrap(unwrapType: Class<T>?): T? = null
+    override fun <T : Any> unwrap(unwrapType: Class<T>): T? = null
 }

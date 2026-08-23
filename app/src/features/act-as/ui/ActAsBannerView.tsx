@@ -21,6 +21,9 @@ export function ActAsBannerView({ teamName, isExiting, onExit }: ActAsBannerView
   return (
     <div
       role="status"
+      // Named, because the app's loading splash is a live region too — an unnamed `status` is not a
+      // locator, in a test or in a screen reader's rotor.
+      aria-label="Acting as the platform"
       className="flex flex-wrap items-center justify-between gap-3 border-b border-gold/40 bg-gold/15 px-5 py-2"
     >
       <p className="text-sm">

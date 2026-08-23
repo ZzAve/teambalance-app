@@ -19,6 +19,10 @@ interface ActAsRepository {
     /** Inserts a new episode or updates an existing one by [ActAs.id]. */
     fun save(actAs: ActAs)
 
-    /** Every episode inside [teamId], newest first — the team-visible record (ADR-0024 §4). */
+    /**
+     * Recent episodes inside [teamId], newest first — the team-visible record (ADR-0024 §4). Bounded,
+     * because it renders on a screen every member opens and platform access has no natural end; the
+     * full history stays in the store for the general audit log (#237).
+     */
     fun findForTeam(teamId: TeamId): List<ActAs>
 }

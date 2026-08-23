@@ -16,7 +16,7 @@ type Story = StoryObj<typeof meta>
 // squads is the exact condition under which a season gets prepped into the wrong one.
 export const NamesTheTeam: Story = {
   play: async ({ canvas }) => {
-    await expect(canvas.getByText('Tovo Dames 5')).toBeInTheDocument()
+    await expect(canvas.getByRole('status', { name: 'Acting as the platform' })).toHaveTextContent('Tovo Dames 5')
     await expect(canvas.getByRole('button', { name: 'Exit' })).toBeEnabled()
   },
 }

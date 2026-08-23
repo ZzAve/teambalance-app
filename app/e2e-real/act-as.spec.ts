@@ -48,7 +48,7 @@ test('a Platform Admin enters a team, writes in it, and leaves without ever join
   // 3. Inside: the banner NAMES the team. That name is the guard against prepping a season into the
   //    wrong one of twelve near-identically-named squads (ADR-0024 §4).
   await expect(page).toHaveURL(new RegExp(`/t/${TEAM.slug}`), { timeout: 15_000 })
-  await expect(page.getByRole('status')).toContainText(TEAM.name)
+  await expect(page.getByRole('status', { name: 'Acting as the platform' })).toContainText(TEAM.name)
 
   // 4. Write, as an Admin of a team we are not in: curating Positions is admin-only, so this is the
   //    Virtual Member doing real work (ADR-0024 §1).
@@ -73,7 +73,7 @@ test('a Platform Admin enters a team, writes in it, and leaves without ever join
   // 7. Exit: one click, and the banner is gone.
   await page.getByRole('button', { name: 'Exit' }).click()
   await expect(page).toHaveURL(/\/admin\/teams/, { timeout: 15_000 })
-  await expect(page.getByRole('status')).toHaveCount(0)
+  await expect(page.getByRole('status', { name: 'Acting as the platform' })).toHaveCount(0)
 
   // 8. The write landed in THAT tenant, and is the team's now: its own admin sees the Position, and
   //    still does not see the operator on the roster.

@@ -22,26 +22,6 @@ interface SpringDataTeamMemberRepository : JpaRepository<TeamMemberJpaEntity, UU
     )
     fun updateRole(@Param("teamId") teamId: UUID, @Param("userId") userId: UUID, @Param("role") role: String): Int
 
-    // position_id is CAST so a null bind has an explicit type (Postgres cannot infer it otherwise).
-    @Modifying
-    @Query(
-        "UPDATE public.team_members SET position_id = CAST(:positionId AS uuid) " +
-            "WHERE team_id = :teamId AND user_id = :userId AND active = true",
-        nativeQuery = true,
-    )
-    fun assignPosition(
-        @Param("teamId") teamId: UUID,
-        @Param("userId") userId: UUID,
-        @Param("positionId") positionId: UUID?,
-    ): Int
-
-    @Modifying
-    @Query(
-        "UPDATE public.team_members SET position_id = NULL WHERE position_id = :positionId",
-        nativeQuery = true,
-    )
-    fun clearPositionAssignments(@Param("positionId") positionId: UUID): Int
-
     @Modifying
     @Query(
         "UPDATE public.team_members SET onboarded_at = :at " +
@@ -85,13 +65,17 @@ interface SpringDataTeamMemberRepository : JpaRepository<TeamMemberJpaEntity, UU
         value = """
             SELECT tm.user_id::text     AS userId,
                    u.display_name       AS displayName,
-                   tm.position_id::text AS positionId,
-                   tp.label             AS position,
+                   mp.position_id::text AS positionId,
+                   p.label              AS position,
                    tm.role              AS permissionRole,
                    (tm.onboarded_at IS NOT NULL) AS onboarded
             FROM   public.team_members tm
             JOIN   public.users u ON u.id = tm.user_id
-            LEFT   JOIN public.team_positions tp ON tp.id = tm.position_id
+            -- Unqualified on purpose (ADR-0025): these two resolve against the routed tenant schema,
+            -- so the summary reports the position this member holds *in this team* — which is what
+            -- multi-team membership (ADR-0023) made a distinction worth drawing.
+            LEFT   JOIN member_positions mp ON mp.user_id = tm.user_id
+            LEFT   JOIN positions p ON p.id = mp.position_id
             WHERE  tm.user_id IN :userIds
             AND    tm.active = true
         """,
@@ -103,13 +87,17 @@ interface SpringDataTeamMemberRepository : JpaRepository<TeamMemberJpaEntity, UU
         value = """
             SELECT tm.user_id::text     AS userId,
                    u.display_name       AS displayName,
-                   tm.position_id::text AS positionId,
-                   tp.label             AS position,
+                   mp.position_id::text AS positionId,
+                   p.label              AS position,
                    tm.role              AS permissionRole,
                    (tm.onboarded_at IS NOT NULL) AS onboarded
             FROM   public.team_members tm
             JOIN   public.users u ON u.id = tm.user_id
-            LEFT   JOIN public.team_positions tp ON tp.id = tm.position_id
+            -- Unqualified on purpose (ADR-0025): these two resolve against the routed tenant schema,
+            -- so the summary reports the position this member holds *in this team* — which is what
+            -- multi-team membership (ADR-0023) made a distinction worth drawing.
+            LEFT   JOIN member_positions mp ON mp.user_id = tm.user_id
+            LEFT   JOIN positions p ON p.id = mp.position_id
             WHERE  tm.team_id = :teamId
             AND    tm.active = true
         """,

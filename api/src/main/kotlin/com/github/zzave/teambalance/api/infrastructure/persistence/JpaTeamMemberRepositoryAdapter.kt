@@ -10,6 +10,7 @@ import com.github.zzave.teambalance.api.domain.model.TeamMember
 import com.github.zzave.teambalance.api.domain.model.TenantRouting
 import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
+import com.github.zzave.teambalance.api.infrastructure.persistence.entity.MemberPositionJpaEntity
 import com.github.zzave.teambalance.api.infrastructure.persistence.entity.TeamMemberJpaEntity
 import org.slf4j.LoggerFactory
 import org.springframework.dao.DataIntegrityViolationException
@@ -26,6 +27,7 @@ import java.util.UUID
 class JpaTeamMemberRepositoryAdapter(
     private val jpaRepository: SpringDataTeamMemberRepository,
     private val userJpaRepository: SpringDataUserRepository,
+    private val memberPositionRepository: SpringDataMemberPositionRepository,
 ) : TeamMemberRepository {
     private val logger = LoggerFactory.getLogger(JpaTeamMemberRepositoryAdapter::class.java)
 
@@ -77,9 +79,28 @@ class JpaTeamMemberRepositoryAdapter(
         jpaRepository.deactivate(teamId.value, userId.value)
     }
 
+    /**
+     * The assignment lives in the tenant's `member_positions` (ADR-0025), so it is scoped by the
+     * routed schema and [teamId] no longer selects the row — it stays in the signature because the
+     * port is a team-scoped contract and callers authorize against it.
+     */
     @Transactional
     override fun assignPosition(teamId: TeamId, userId: UserId, positionId: PositionId?) {
-        jpaRepository.assignPosition(teamId.value, userId.value, positionId?.value)
+        writeAssignment(userId, positionId)
+    }
+
+    // One place for the tenant-side assignment write, shared by assignPosition and applyMemberEdit so
+    // the single-field path and the whole-member path cannot drift. Absence of a row IS "unassigned".
+    private fun writeAssignment(userId: UserId, positionId: PositionId?) {
+        if (positionId == null) {
+            if (memberPositionRepository.existsById(userId.value)) {
+                memberPositionRepository.deleteById(userId.value)
+            }
+            return
+        }
+        memberPositionRepository.save(
+            MemberPositionJpaEntity(userId = userId.value, positionId = positionId.value),
+        )
     }
 
     @Transactional
@@ -93,7 +114,7 @@ class JpaTeamMemberRepositoryAdapter(
     ) {
         userJpaRepository.updateDisplayName(userId.value, displayName.value)
         jpaRepository.updateRole(teamId.value, userId.value, role.name)
-        jpaRepository.assignPosition(teamId.value, userId.value, positionId?.value)
+        writeAssignment(userId, positionId)
         if (markOnboardedAt != null) {
             jpaRepository.markOnboarded(teamId.value, userId.value, markOnboardedAt.atOffset(ZoneOffset.UTC))
         }

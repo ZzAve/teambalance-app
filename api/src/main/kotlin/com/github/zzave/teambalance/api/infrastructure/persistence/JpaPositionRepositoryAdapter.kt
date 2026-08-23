@@ -3,23 +3,25 @@ package com.github.zzave.teambalance.api.infrastructure.persistence
 import com.github.zzave.teambalance.api.domain.model.Position
 import com.github.zzave.teambalance.api.domain.model.PositionId
 import com.github.zzave.teambalance.api.domain.model.PositionLabel
-import com.github.zzave.teambalance.api.domain.model.TeamId
 import com.github.zzave.teambalance.api.domain.port.PositionRepository
-import com.github.zzave.teambalance.api.infrastructure.persistence.entity.TeamPositionJpaEntity
+import com.github.zzave.teambalance.api.infrastructure.persistence.entity.PositionJpaEntity
 import org.springframework.stereotype.Repository
 import org.springframework.transaction.annotation.Transactional
 
+/**
+ * Positions, tenant-schema rows since ADR-0025 — so every query here is
+ * scoped by the routed connection rather than by a team id predicate. Assignments live with member
+ * edits (JpaTeamMemberRepositoryAdapter), which must write name, role and position in one call.
+ */
 @Repository
 class JpaPositionRepositoryAdapter(
-    private val jpaRepository: SpringDataTeamPositionRepository,
-    private val teamMemberRepository: SpringDataTeamMemberRepository,
+    private val jpaRepository: SpringDataPositionRepository,
 ) : PositionRepository {
 
-    override fun listByTeam(teamId: TeamId): List<Position> =
-        jpaRepository.findByTeamIdOrderByLabelAsc(teamId.value).map { it.toDomain() }
+    override fun list(): List<Position> = jpaRepository.findAllByOrderByLabelAsc().map { it.toDomain() }
 
-    override fun create(teamId: TeamId, label: PositionLabel): Position =
-        jpaRepository.save(TeamPositionJpaEntity(teamId = teamId.value, label = label.value)).toDomain()
+    override fun create(label: PositionLabel): Position =
+        jpaRepository.save(PositionJpaEntity(label = label.value)).toDomain()
 
     @Transactional
     override fun rename(id: PositionId, label: PositionLabel): Position {
@@ -30,19 +32,19 @@ class JpaPositionRepositoryAdapter(
         return jpaRepository.save(entity).toDomain()
     }
 
-    // Clears the FK from any member assigned to this position before deleting it, so the assignment
-    // constraint can never block the delete — members simply become unassigned.
-    @Transactional
-    override fun delete(id: PositionId) {
-        teamMemberRepository.clearPositionAssignments(id.value)
-        jpaRepository.deleteById(id.value)
-    }
+    /**
+     * No prior clearing statement: `member_positions.position_id` is a real foreign key with
+     * ON DELETE CASCADE, so assigned members become unassigned as part of this delete rather than
+     * by a separate write that could be skipped or fail in between. That guarantee is the point of
+     * moving positions into the tenant schema — before, the two tables sat in different schemas and
+     * no foreign key could span them.
+     */
+    override fun delete(id: PositionId) = jpaRepository.deleteById(id.value)
 
     override fun findById(id: PositionId): Position? =
         jpaRepository.findById(id.value).map { it.toDomain() }.orElse(null)
 
-    override fun existsInTeam(teamId: TeamId, positionId: PositionId): Boolean =
-        jpaRepository.findByIdAndTeamId(positionId.value, teamId.value) != null
+    override fun exists(positionId: PositionId): Boolean = jpaRepository.existsById(positionId.value)
 
-    private fun TeamPositionJpaEntity.toDomain() = Position(id = PositionId(id), label = PositionLabel(label))
+    private fun PositionJpaEntity.toDomain() = Position(id = PositionId(id), label = PositionLabel(label))
 }

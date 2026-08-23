@@ -14,30 +14,38 @@ class PositionService(
     private val positionRepository: PositionRepository,
     private val authorizationService: AuthorizationService,
 ) {
-    /** The team's positions. Any active member may read them; no admin check. */
-    fun listPositions(teamId: TeamId): List<Position> = positionRepository.listByTeam(teamId)
+    /**
+     * The team's positions. Any active member may read them; no admin check.
+     *
+     * Takes no team id since ADR-0025: positions are tenant rows, so the resolved schema is already
+     * the team. The write paths below still take one — not to find rows, but to authorize.
+     */
+    fun listPositions(): List<Position> = positionRepository.list()
 
     /** Admin-only. Trims the label and enforces per-team case-insensitive uniqueness. */
     fun createPosition(callerId: UserId, teamId: TeamId, rawLabel: String): Position {
         authorizationService.requireAdmin(callerId, teamId)
         val label = validLabel(rawLabel)
-        requireUnique(teamId, label, excludingId = null)
-        return positionRepository.create(teamId, label)
+        requireUnique(label, excludingId = null)
+        return positionRepository.create(label)
     }
 
     /** Admin-only. Renames a position of this team, keeping labels unique (excluding itself). */
     fun renamePosition(callerId: UserId, teamId: TeamId, id: PositionId, rawLabel: String): Position {
         authorizationService.requireAdmin(callerId, teamId)
-        if (!positionRepository.existsInTeam(teamId, id)) throw PositionNotFoundException(id)
+        if (!positionRepository.exists(id)) throw PositionNotFoundException(id)
         val label = validLabel(rawLabel)
-        requireUnique(teamId, label, excludingId = id)
+        requireUnique(label, excludingId = id)
         return positionRepository.rename(id, label)
     }
 
-    /** Admin-only. Deletes a position; members assigned to it are silently reset to unassigned. */
+    /**
+     * Admin-only. Deletes a position; members assigned to it are silently reset to unassigned —
+     * now by the member_positions ON DELETE CASCADE rather than by a prior clearing write.
+     */
     fun deletePosition(callerId: UserId, teamId: TeamId, id: PositionId) {
         authorizationService.requireAdmin(callerId, teamId)
-        if (!positionRepository.existsInTeam(teamId, id)) throw PositionNotFoundException(id)
+        if (!positionRepository.exists(id)) throw PositionNotFoundException(id)
         positionRepository.delete(id)
     }
 
@@ -49,8 +57,8 @@ class PositionService(
         return PositionLabel(label)
     }
 
-    private fun requireUnique(teamId: TeamId, label: PositionLabel, excludingId: PositionId?) {
-        val taken = positionRepository.listByTeam(teamId)
+    private fun requireUnique(label: PositionLabel, excludingId: PositionId?) {
+        val taken = positionRepository.list()
             .any { it.id != excludingId && it.label.value.equals(label.value, ignoreCase = true) }
         if (taken) throw PositionLabelTakenException(label.value)
     }

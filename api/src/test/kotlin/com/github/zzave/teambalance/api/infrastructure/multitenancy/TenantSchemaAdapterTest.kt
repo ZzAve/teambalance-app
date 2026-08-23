@@ -33,6 +33,8 @@ class TenantSchemaAdapterTest : TeamBalanceIT() {
                 "event_types",
                 "events",
                 "flyway_tenant_schema_history",
+                "member_positions",
+                "positions",
                 "team_settings",
                 "transactions",
             )

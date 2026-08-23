@@ -19,27 +19,26 @@ import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import java.util.UUID
 
-// In-memory positions keyed by id, tagged with their owning team. Also tracks how many times delete
-// ran so the "delete clears then removes" contract can be checked without a real DB.
+// In-memory positions keyed by id. No owning-team tag since ADR-0025: the fake stands in for one
+// tenant's schema, which is what "this team's positions" now means — a position from another team is
+// not a row this repository can see at all, rather than a row it must filter out.
 private class PosFakePositionRepo : PositionRepository {
-    private data class Row(val teamId: TeamId, var label: PositionLabel)
+    private val store: MutableMap<PositionId, PositionLabel> = mutableMapOf()
 
-    private val store: MutableMap<PositionId, Row> = mutableMapOf()
-
-    override fun listByTeam(teamId: TeamId): List<Position> =
-        store.filterValues { it.teamId == teamId }.map { Position(it.key, it.value.label) }.sortedBy { it.label.value }
-    override fun create(teamId: TeamId, label: PositionLabel): Position {
+    override fun list(): List<Position> =
+        store.map { Position(it.key, it.value) }.sortedBy { it.label.value }
+    override fun create(label: PositionLabel): Position {
         val id = PositionId(UUID.randomUUID())
-        store[id] = Row(teamId, label)
+        store[id] = label
         return Position(id, label)
     }
     override fun rename(id: PositionId, label: PositionLabel): Position {
-        store.getValue(id).label = label
+        store[id] = label
         return Position(id, label)
     }
     override fun delete(id: PositionId) { store.remove(id) }
-    override fun findById(id: PositionId): Position? = store[id]?.let { Position(id, it.label) }
-    override fun existsInTeam(teamId: TeamId, positionId: PositionId): Boolean = store[positionId]?.teamId == teamId
+    override fun findById(id: PositionId): Position? = store[id]?.let { Position(id, it) }
+    override fun exists(positionId: PositionId): Boolean = store.containsKey(positionId)
 }
 
 // Reports whichever role was seeded for a (team, user); everyone else is a non-member (null).
@@ -87,7 +86,7 @@ class PositionServiceTest : FunSpec() {
             val (service, _) = newService()
             service.createPosition(adminId, teamId, "Setter")
             service.createPosition(adminId, teamId, "Libero")
-            service.listPositions(teamId).map { it.label.value } shouldBe listOf("Libero", "Setter")
+            service.listPositions().map { it.label.value } shouldBe listOf("Libero", "Setter")
         }
 
         test("createPosition rejects a duplicate label case-insensitively with 409") {

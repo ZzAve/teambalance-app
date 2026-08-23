@@ -39,8 +39,12 @@ class PositionControllerIT : TeamBalanceIT() {
                 "ON CONFLICT DO NOTHING",
         )
         // Shared DB, no per-test rollback — reset this team's roster and positions to a known state.
+        // Since ADR-0025 the positions the API reads are the TENANT ones, so clearing only the
+        // platform tables would leave a previous test's labels in place and every create would 409.
         jdbcTemplate.execute("DELETE FROM public.team_members WHERE team_id = '$TEAM_ID'::uuid")
         jdbcTemplate.execute("DELETE FROM public.team_positions WHERE team_id = '$TEAM_ID'::uuid")
+        jdbcTemplate.execute("DELETE FROM $TEAM_SCHEMA.member_positions")
+        jdbcTemplate.execute("DELETE FROM $TEAM_SCHEMA.positions")
         jdbcTemplate.execute(
             "INSERT INTO public.users (id, email, display_name) " +
                 "VALUES ('$ADMIN_USER_ID'::uuid, 'pos-admin@test.com', 'Pos Admin') " +
@@ -108,7 +112,7 @@ class PositionControllerIT : TeamBalanceIT() {
                 .let { Regex("\"id\":\"([^\"]+)\"").find(it)!!.groupValues[1] }
 
             val stored = jdbcTemplate.queryForObject(
-                "SELECT label FROM public.team_positions WHERE id = ?::uuid", String::class.java, id,
+                "SELECT label FROM $TEAM_SCHEMA.positions WHERE id = ?::uuid", String::class.java, id,
             )
             stored shouldBe "Setter"
         }
@@ -154,17 +158,18 @@ class PositionControllerIT : TeamBalanceIT() {
         test("DELETE /api/positions/{id} deletes it and resets assigned members to no position") {
             seedTeam()
             val id = createPositionReturningId("Setter")
-            // Assign the position to the plain member, then delete it.
+            // Assign the position to the plain member, then delete it. The assignment is a tenant
+            // row since ADR-0025 — the position was created through the API and so exists only here.
             jdbcTemplate.update(
-                "UPDATE public.team_members SET position_id = ?::uuid WHERE user_id = ?::uuid",
-                id, MEMBER_USER_ID,
+                "INSERT INTO $TEAM_SCHEMA.member_positions (user_id, position_id) VALUES (?::uuid, ?::uuid)",
+                MEMBER_USER_ID, id,
             )
 
             deleteAs(ADMIN_USER_ID, id)
                 .andExpect(MockMvcResultMatchers.status().isNoContent)
 
             val remaining = jdbcTemplate.queryForObject(
-                "SELECT count(*) FROM public.team_positions WHERE id = ?::uuid", Long::class.java, id,
+                "SELECT count(*) FROM $TEAM_SCHEMA.positions WHERE id = ?::uuid", Long::class.java, id,
             )
             remaining shouldBe 0L
             val stillAssigned = jdbcTemplate.queryForObject(

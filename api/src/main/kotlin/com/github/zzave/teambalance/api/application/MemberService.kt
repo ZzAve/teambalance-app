@@ -64,7 +64,7 @@ class MemberService(
             ?: throw MemberNotFoundException(targetUserId)
         val roleChanged = role != currentRole
         guardRoleChange(callerId, targetUserId, teamId, currentRole, role, roleChanged)
-        requirePositionInTeam(teamId, positionId)
+        requirePositionInThisTeam(positionId)
         val name = normalizeAndValidateName(teamId, targetUserId, rawName)
 
         teamMemberRepository.applyMemberEdit(teamId, targetUserId, name, role, positionId)
@@ -87,9 +87,11 @@ class MemberService(
         }
     }
 
-    // A non-null position must belong to this team; null clears the assignment.
-    private fun requirePositionInTeam(teamId: TeamId, positionId: PositionId?) {
-        if (positionId != null && !positionRepository.existsInTeam(teamId, positionId)) {
+    // A non-null position must exist in this tenant; null clears the assignment. Takes no team id
+    // since ADR-0025: the routed schema is what makes a position "this team's", so there is nothing
+    // left to compare it against — an id from another team is simply not a row this can see.
+    private fun requirePositionInThisTeam(positionId: PositionId?) {
+        if (positionId != null && !positionRepository.exists(positionId)) {
             throw PositionNotFoundException(positionId)
         }
     }
@@ -103,7 +105,7 @@ class MemberService(
     fun completeOnboarding(userId: UserId, teamId: TeamId, rawName: String, positionId: PositionId?): TeamMember {
         val currentRole = teamMemberRepository.findRole(teamId, userId)
             ?: throw MemberNotFoundException(userId)
-        requirePositionInTeam(teamId, positionId)
+        requirePositionInThisTeam(positionId)
         val name = normalizeAndValidateName(teamId, userId, rawName)
 
         teamMemberRepository.applyMemberEdit(teamId, userId, name, currentRole, positionId, Instant.now(clock))

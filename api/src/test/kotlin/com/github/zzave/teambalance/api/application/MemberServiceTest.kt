@@ -110,29 +110,27 @@ private class FakeMembershipRepo(
         store.count { it.key.first == teamId && it.value.active && it.value.role == Role.ADMIN }
 }
 
-// Positions keyed by id, each tagged with the team it belongs to so existsInTeam can reject
-// a position id that exists but under a different team (the "other team" invalid case).
-private class MemberFakePositionRepo(seed: List<Triple<PositionId, TeamId, String>>) : PositionRepository {
-    private data class Row(val teamId: TeamId, var label: PositionLabel)
+// Positions of ONE tenant, keyed by id. Since ADR-0025 the schema scopes them, so "a position of
+// another team" is simply an id this repository does not hold — the same rejection path as an id
+// that never existed, which is why the fake no longer tracks an owning team.
+private class MemberFakePositionRepo(seed: List<Pair<PositionId, String>>) : PositionRepository {
+    private val store: MutableMap<PositionId, PositionLabel> =
+        seed.associate { (id, label) -> id to PositionLabel(label) }.toMutableMap()
 
-    private val store: MutableMap<PositionId, Row> =
-        seed.associate { (id, teamId, label) -> id to Row(teamId, PositionLabel(label)) }.toMutableMap()
-
-    override fun listByTeam(teamId: TeamId): List<Position> =
-        store.filterValues { it.teamId == teamId }.map { Position(it.key, it.value.label) }.sortedBy { it.label.value }
-    override fun create(teamId: TeamId, label: PositionLabel): Position {
+    override fun list(): List<Position> =
+        store.map { Position(it.key, it.value) }.sortedBy { it.label.value }
+    override fun create(label: PositionLabel): Position {
         val id = PositionId(UUID.randomUUID())
-        store[id] = Row(teamId, label)
+        store[id] = label
         return Position(id, label)
     }
     override fun rename(id: PositionId, label: PositionLabel): Position {
-        store.getValue(id).label = label
+        store[id] = label
         return Position(id, label)
     }
     override fun delete(id: PositionId) { store.remove(id) }
-    override fun findById(id: PositionId): Position? = store[id]?.let { Position(id, it.label) }
-    override fun existsInTeam(teamId: TeamId, positionId: PositionId): Boolean =
-        store[positionId]?.teamId == teamId
+    override fun findById(id: PositionId): Position? = store[id]?.let { Position(id, it) }
+    override fun exists(positionId: PositionId): Boolean = store.containsKey(positionId)
 }
 
 class MemberServiceTest : FunSpec() {
@@ -144,7 +142,10 @@ class MemberServiceTest : FunSpec() {
 
         // A "Setter" position on the team, plus one on a different team to test cross-team rejection.
         val setterPositionId = PositionId(UUID.randomUUID())
-        val otherTeamPositionId = PositionId(UUID.randomUUID())
+        // Not seeded into the repo: since ADR-0025 an id belonging to another team and an id that
+        // never existed are indistinguishable here, because the tenant schema — not a predicate —
+        // decides what this repository can see.
+        val foreignPositionId = PositionId(UUID.randomUUID())
 
         val fixedClock = java.time.Clock.fixed(java.time.Instant.parse("2026-07-22T10:00:00Z"), java.time.ZoneOffset.UTC)
 
@@ -160,12 +161,7 @@ class MemberServiceTest : FunSpec() {
                 ),
             )
             val memberRepo = FakeMembershipRepo(userRepo, mapOf(teamId to listOf(janId to janRole, lisaId to lisaRole)))
-            val positionRepo = MemberFakePositionRepo(
-                listOf(
-                    Triple(setterPositionId, teamId, "Setter"),
-                    Triple(otherTeamPositionId, TeamId(UUID.randomUUID()), "Libero"),
-                ),
-            )
+            val positionRepo = MemberFakePositionRepo(listOf(setterPositionId to "Setter"))
             return Triple(
                 MemberService(userRepo, memberRepo, positionRepo, AuthorizationService(memberRepo), fixedClock),
                 userRepo,
@@ -285,10 +281,10 @@ class MemberServiceTest : FunSpec() {
             cleared.positionId shouldBe null
         }
 
-        test("updateMember rejects a position from another team with PositionNotFoundException") {
+        test("updateMember rejects a position this team does not have with PositionNotFoundException") {
             val (service, _, _) = newService()
             shouldThrow<PositionNotFoundException> {
-                service.updateMember(janId, teamId, lisaId, "Lisa Bakker", Role.USER, otherTeamPositionId)
+                service.updateMember(janId, teamId, lisaId, "Lisa Bakker", Role.USER, foreignPositionId)
             }
         }
 

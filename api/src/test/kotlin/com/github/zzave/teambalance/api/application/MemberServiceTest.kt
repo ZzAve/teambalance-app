@@ -167,7 +167,7 @@ class MemberServiceTest : FunSpec() {
                 ),
             )
             return Triple(
-                MemberService(userRepo, memberRepo, positionRepo, AuthorizationService(memberRepo), fixedClock),
+                MemberService(userRepo, memberRepo, positionRepo, AuthorizationService(memberRepo, FakeActAsGateway()), fixedClock),
                 userRepo,
                 memberRepo,
             )

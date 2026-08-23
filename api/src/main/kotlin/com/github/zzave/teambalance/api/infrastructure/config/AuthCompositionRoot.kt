@@ -1,8 +1,11 @@
 package com.github.zzave.teambalance.api.infrastructure.config
 
+import com.github.zzave.teambalance.api.application.ActAsService
 import com.github.zzave.teambalance.api.application.ActiveTeamService
 import com.github.zzave.teambalance.api.application.AuthService
 import com.github.zzave.teambalance.api.application.AuthorizationService
+import com.github.zzave.teambalance.api.domain.port.ActAsGateway
+import com.github.zzave.teambalance.api.domain.port.ActAsRepository
 import com.github.zzave.teambalance.api.domain.port.AuthSessionGateway
 import com.github.zzave.teambalance.api.domain.port.EmailGateway
 import com.github.zzave.teambalance.api.domain.port.MagicLinkTokenRepository
@@ -27,6 +30,11 @@ import java.time.Clock
  *
  * [ActiveTeamService] is declared here for the same reason: every other area takes it as a
  * constructor parameter rather than building a resolution path of its own (ADR-0023 §1).
+ *
+ * [ActAsService] joins them because it is the *second* answer to the same two questions — who is
+ * calling and what may they do — and because it is [AuthorizationService]'s other source: a Platform
+ * Admin's **Virtual Member** (ADR-0024 §2). Keeping the pair in one root makes it visible that there
+ * are exactly two, and that both are wired at one place.
  */
 @Configuration
 class AuthCompositionRoot {
@@ -66,5 +74,21 @@ class AuthCompositionRoot {
     )
 
     @Bean
-    fun authorizationService(teamMemberRepository: TeamMemberRepository) = AuthorizationService(teamMemberRepository)
+    fun actAsService(
+        platformAdminGateway: PlatformAdminGateway,
+        actAsRepository: ActAsRepository,
+        teamRepository: TeamRepository,
+        tenantRoutingGateway: TenantRoutingGateway,
+        clock: Clock,
+    ) = ActAsService(
+        platformAdminGateway = platformAdminGateway,
+        actAsRepository = actAsRepository,
+        teamRepository = teamRepository,
+        tenantRoutingGateway = tenantRoutingGateway,
+        clock = clock,
+    )
+
+    @Bean
+    fun authorizationService(teamMemberRepository: TeamMemberRepository, actAsGateway: ActAsGateway) =
+        AuthorizationService(teamMemberRepository, actAsGateway)
 }

@@ -1,1 +1,0 @@
-import{t as e}from"./iframe-B920Crk_.js";e();

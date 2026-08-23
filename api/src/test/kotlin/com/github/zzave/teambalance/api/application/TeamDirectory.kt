@@ -122,7 +122,7 @@ internal class TeamDirectory {
 }
 
 /**
- * Records every pin in order. Order matters: the pin IS the session-memo invalidation (ADR-0021 §2),
+ * Records every pin in order. Order matters: the pin IS the session-memo invalidation (ADR-0023 §2),
  * so "was the last pin the Team we switched to?" is the assertion that a switch cannot be read back
  * as the previous tenant.
  */

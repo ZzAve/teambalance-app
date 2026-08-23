@@ -67,7 +67,7 @@ describe('magic-link verification', () => {
   it('establishes the session and lands on events, without the guard bouncing back to login', async () => {
     const router = renderAppAt('/auth/verify?token=valid-token')
 
-    // `/` is a dispatcher now: it resolves the Active Team and redirects into `/t/:slug` (ADR-0021
+    // `/` is a dispatcher now: it resolves the Active Team and redirects into `/t/:slug` (ADR-0023
     // §2), so landing "on events" means landing on that Team's events.
     await waitFor(() => expect(router.state.location.pathname).toBe('/t/setpoint-vt'), { timeout: 5000 })
     expect(await screen.findByRole('heading', { name: 'Events' }, { timeout: 5000 })).toBeInTheDocument()

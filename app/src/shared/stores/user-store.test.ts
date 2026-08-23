@@ -47,7 +47,7 @@ describe('user-store', () => {
     })
   })
 
-  // The whole point of ADR-0021: which Teams you are a Member of and which one this session is
+  // The whole point of ADR-0023: which Teams you are a Member of and which one this session is
   // scoped to are different questions. The store names the ACTIVE one — never the first of the list.
   it('names the Active Team, not the first of several memberships', () => {
     useUserStore.getState().setCurrentUser({

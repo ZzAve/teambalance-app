@@ -4,7 +4,7 @@ import type { TeamRef } from '@shared/api/teams'
 import { SelectTeamView } from './SelectTeamView'
 
 // The "which Team?" screen. It exists because tenant resolution refuses to guess between several
-// memberships (ADR-0021 §1): reaching it is a normal state — a first sign-in after joining a second
+// memberships (ADR-0023 §1): reaching it is a normal state — a first sign-in after joining a second
 // Team, or the remembered Team's membership ending — not an error, and the copy has to read that way.
 const TEAMS: TeamRef[] = [
   { id: 't1', name: 'Setpoint VT', slug: 'setpoint-vt' },

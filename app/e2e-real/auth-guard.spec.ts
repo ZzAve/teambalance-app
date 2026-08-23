@@ -31,7 +31,7 @@ test.describe('logout', () => {
 
     // The header no longer carries nav — the tab bar is the primary nav and Log out lives on the
     // Profile page. Route there via the Profile tab, then tear the session down. Profile is
-    // team-scoped since #143, so its URL carries the Team slug (ADR-0021 §2).
+    // team-scoped since #143, so its URL carries the Team slug (ADR-0023 §2).
     await page.getByRole('link', { name: 'Profile' }).click()
     await expect(page).toHaveURL(/\/t\/[^/]+\/profile\/?$/)
     await page.getByRole('button', { name: 'Log out' }).click()

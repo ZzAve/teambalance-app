@@ -23,7 +23,7 @@ const TEAM = { id: 'team-1', name: 'Setpoint VT', slug: 'setpoint-vt' }
 
 // Pre-join: a teamless newbie (no Role, no Teams). Accepting the invite makes them a Member — see
 // the accept handler, which flips the session to [MEMBER] so the has-any-team gate passes on the
-// landing. The joined Team comes back as the ACTIVE one, which is the server's job since ADR-0021
+// landing. The joined Team comes back as the ACTIVE one, which is the server's job since ADR-0023
 // §4: accepting is no longer fire-and-forget, so the joiner lands where they just accepted.
 const USER: AuthenticatedUser = {
   id: 'user-1',

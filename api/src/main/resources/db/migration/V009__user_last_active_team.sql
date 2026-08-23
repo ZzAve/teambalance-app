@@ -1,4 +1,4 @@
--- The Active Team is remembered per user, not per session (ADR-0021 §3): a session-only memory is
+-- The Active Team is remembered per user, not per session (ADR-0023 §3): a session-only memory is
 -- lost exactly when it is most useful — at a fresh magic-link login on a phone.
 --
 -- Nullable on purpose. NULL means "nothing remembered yet": a brand-new user, or one whose remembered

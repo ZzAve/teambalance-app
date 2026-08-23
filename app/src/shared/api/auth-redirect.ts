@@ -7,7 +7,7 @@ export const NO_TEAM_MEMBERSHIP_CODE = 'NO_TEAM_MEMBERSHIP'
  * The routes that already own the "you have no Active Team" question and must therefore never be
  * bounced off it. Since #143 that 403 no longer means only "teamless": it is also what a Member of
  * several Teams gets before one is chosen, and what a request to a Team the caller may not have
- * resolves to (ADR-0021 §1 — a rejected team id resolves to *no tenant*). Bouncing those to login
+ * resolves to (ADR-0023 §1 — a rejected team id resolves to *no tenant*). Bouncing those to login
  * would log out a perfectly authenticated person.
  */
 const TENANT_RESOLVING_PATHS = ['/select-team', '/onboarding', '/create-team']

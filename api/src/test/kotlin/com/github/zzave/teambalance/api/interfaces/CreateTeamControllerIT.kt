@@ -197,7 +197,7 @@ class CreateTeamControllerIT : TeamBalanceIT() {
                 .andExpect(MockMvcResultMatchers.status().isForbidden)
         }
 
-        // ADR-0019 §3's 409 ALREADY_IN_TEAM is lifted (ADR-0021 §4). Both Teams exist afterwards and
+        // ADR-0019 §3's 409 ALREADY_IN_TEAM is lifted (ADR-0023 §4). Both Teams exist afterwards and
         // both memberships are real — the routing layer no longer has an opinion about how many a
         // person may have.
         test("a founder already in a team may create a second one") {

@@ -52,7 +52,7 @@ class SessionTenantContextFilter(
      * round-trip on every authenticated call. Both are cached as a unit so a cached schema can never be
      * paired with a freshly-queried team id.
      *
-     * Since #143 that memo is a **correctness** concern, not a cache (ADR-0021 §2): it is what says
+     * Since #143 that memo is a **correctness** concern, not a cache (ADR-0023 §2): it is what says
      * which Team the request is scoped to, so every switch must overwrite it — [ActiveTeamService]
      * owns that, by re-pinning through [TenantRoutingGatewayAdapter] on the way through. A missed
      * overwrite here is a cross-tenant read, not a slow request.

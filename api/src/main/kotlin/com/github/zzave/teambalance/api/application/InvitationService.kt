@@ -58,7 +58,7 @@ class InvitationService(
     /**
      * Joins the presenting user to the invitation's team **and makes it their Active Team**, so a
      * joiner lands where they just accepted rather than back in whichever Team they were in before
-     * (ADR-0021 §4). That second half is why accepting is no longer fire-and-forget: since #143 a
+     * (ADR-0023 §4). That second half is why accepting is no longer fire-and-forget: since #143 a
      * joiner may already be a Member somewhere, and joining without switching would leave them
      * looking at the wrong Team.
      *

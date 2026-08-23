@@ -5,7 +5,7 @@ interface UserState {
   userId: string | null
   displayName: string | null
   email: string | null
-  /** The caller's Role **in the Active Team** — null when no Team is active (ADR-0021 §4). */
+  /** The caller's Role **in the Active Team** — null when no Team is active (ADR-0023 §4). */
   role: string | null
   /** The Active Team's name, or null when none is active. */
   teamName: string | null
@@ -25,7 +25,7 @@ export const useUserStore = create<UserState>((set) => ({
   isPlatformAdmin: false,
   // Everything Team-shaped is read off `activeTeam`, never off `teams`: which Team the caller is a
   // Member of and which one this session is scoped to are different questions, and the list's order
-  // answers neither (ADR-0021 §1).
+  // answers neither (ADR-0023 §1).
   setCurrentUser: (user) =>
     set({
       userId: user?.id ?? null,

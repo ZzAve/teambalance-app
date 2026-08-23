@@ -37,7 +37,7 @@ data class CreatedTeam(val id: TeamId, val name: TeamName, val slug: Slug)
  * migration runner. Notifications are best-effort and can never fail a committed creation.
  *
  * The founder no longer has to be teamless. ADR-0019 §3 rejected an existing member with
- * `409 ALREADY_IN_TEAM` to match a routing layer that could only hold one Team per user; ADR-0021
+ * `409 ALREADY_IN_TEAM` to match a routing layer that could only hold one Team per user; ADR-0023
  * lifted that guard along with the routing constraint behind it, so someone already playing in one
  * Team can start another.
  */

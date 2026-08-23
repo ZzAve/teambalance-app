@@ -51,7 +51,7 @@ class AuthController(
 
     /**
      * The authenticated-user payload: who is calling, every Team they are a Member of, and which one
-     * this request is scoped to (#143, ADR-0021 §4).
+     * this request is scoped to (#143, ADR-0023 §4).
      *
      * [activeTeamId] is intersected with the memberships rather than reported as given, so the payload
      * can only ever name a Team the caller actually has — a Team id resolved anywhere else cannot leak
@@ -74,7 +74,7 @@ class AuthController(
 }
 
 // The Wirespec edge for a Team's public identity — id, name and the slug its URLs are addressed by.
-// The tenant schema is deliberately absent (ADR-0021 §2). internal so the switch endpoint hands back
+// The tenant schema is deliberately absent (ADR-0023 §2). internal so the switch endpoint hands back
 // the same shape /auth/me does.
 internal fun TeamSummary.produce() = TeamRef(id = id.produce(), name = name.value, slug = slug.value)
 

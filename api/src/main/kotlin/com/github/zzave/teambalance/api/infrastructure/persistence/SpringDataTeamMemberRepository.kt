@@ -123,7 +123,7 @@ interface SpringDataTeamMemberRepository : JpaRepository<TeamMemberJpaEntity, UU
     // write schema and its authorized team id come from the same row and cannot diverge. The team id
     // is a parameter, not a discovery: the `tm.user_id = :userId AND tm.active` predicate IS the
     // membership check, so a team the caller may not have returns no row — the same answer an unknown
-    // team id gets (ADR-0021 §1).
+    // team id gets (ADR-0023 §1).
     @Query(
         value = """
             SELECT tm.team_id     AS teamId,

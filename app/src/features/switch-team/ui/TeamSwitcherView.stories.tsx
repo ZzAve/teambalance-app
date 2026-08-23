@@ -3,7 +3,7 @@ import { expect, fn, userEvent } from 'storybook/test'
 import type { TeamRef } from '@shared/api/teams'
 import { TeamSwitcherView } from './TeamSwitcherView'
 
-// The Team switcher (ADR-0021 §3). The behaviour worth pinning is not the dropdown mechanics but the
+// The Team switcher (ADR-0023 §3). The behaviour worth pinning is not the dropdown mechanics but the
 // rule the ADR leans on: it ALWAYS names the current Team. One kind of switch means a teammate's
 // link silently re-homes your default, and the only thing that makes that a one-tap correction
 // rather than a mystery is being able to see which Team you are in — so every story below asserts

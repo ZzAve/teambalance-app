@@ -8,7 +8,7 @@ import { teamRoutes } from '@shared/lib/team-routes'
 /**
  * The layout every team-scoped screen hangs off, and the one place the Active Team changes.
  *
- * **Opening a `/t/:slug/…` URL performs an authorized switch** (ADR-0021 §2) — that is the whole
+ * **Opening a `/t/:slug/…` URL performs an authorized switch** (ADR-0023 §2) — that is the whole
  * point of putting the slug in the URL: a teammate's link opens for anyone entitled to it, and there
  * is exactly one kind of switch, so a link-induced one and a tap in the switcher are the same
  * request and are remembered the same way (§3). A slug the caller may not have, and one that does
@@ -22,7 +22,7 @@ import { teamRoutes } from '@shared/lib/team-routes'
  * **The session, not this URL, is the authority on the tenant.** The slug asks for a Team; the
  * session decides. So two tabs cannot sit in two Teams: opening a link in a second tab switches the
  * one session, and the first tab then shows the other Team's data under its own slug until it
- * navigates. ADR-0021 §2 weighed exactly this — request-carried tenancy would have fixed it — and
+ * navigates. ADR-0023 §2 weighed exactly this — request-carried tenancy would have fixed it — and
  * took it as the price of keeping the installed PWA's navigation team-less. It is a stale *view*,
  * never a cross-tenant write to the wrong place: every request is scoped by the session the server
  * holds, and the slug influences it only through the authorized switch above. Revisit with the ADR

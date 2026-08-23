@@ -11,7 +11,7 @@ import com.github.zzave.teambalance.api.domain.port.TenantRoutingGateway
 import com.github.zzave.teambalance.api.domain.port.UserRepository
 
 /**
- * The Active Team (ADR-0021): the one Team a request is scoped to, **explicitly selected and never
+ * The Active Team (ADR-0023): the one Team a request is scoped to, **explicitly selected and never
  * inferred**. This is the single tenant-resolution seam — every path that decides which Team a caller
  * is working in goes through here, so there is exactly one place where "may they have it?" is asked.
  *
@@ -23,10 +23,10 @@ import com.github.zzave.teambalance.api.domain.port.UserRepository
  *    the caller has to choose. That is what replaced `ORDER BY team_id LIMIT 1`, which chose by UUID.
  *  - [activate] performs a **switch** to a *named* Team. It verifies membership, remembers the choice,
  *    and re-pins the session routing. Every switch is the same kind of switch — a deliberate one and a
- *    link-induced one are indistinguishable here, deliberately (ADR-0021 §3).
+ *    link-induced one are indistinguishable here, deliberately (ADR-0023 §3).
  *
  * Nothing here answers "not yours" differently from "does not exist": both are null, so the Team id
- * space cannot be probed. Act-as (ADR-0022) will plug a second *authorization* source into the
+ * space cannot be probed. Act-as (ADR-0024) will plug a second *authorization* source into the
  * membership check without adding a second resolution path.
  */
 class ActiveTeamService(

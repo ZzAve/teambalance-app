@@ -9,7 +9,7 @@ import { SelectTeamView } from '@features/switch-team/ui/SelectTeamView'
  * "Which Team?" — the screen that exists because tenant resolution refuses to guess.
  *
  * A Member of several Teams with none remembered lands here rather than in an arbitrary one
- * (ADR-0021 §1/§3). Reaching it is a real state, not an error: it happens on a first sign-in after
+ * (ADR-0023 §1/§3). Reaching it is a real state, not an error: it happens on a first sign-in after
  * joining a second Team, and after the remembered Team's membership ends.
  *
  * Picking a Team is an ordinary navigation to `/t/:slug` — that route's gate performs the authorized

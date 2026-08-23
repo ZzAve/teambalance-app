@@ -36,7 +36,7 @@ class JdbcTeamRepositoryAdapter(
 
     // Ordered by name, not by id: this list is read by humans in the Team switcher. It is a
     // presentation order and nothing else — resolving which Team is *active* never falls back to it
-    // (ADR-0021 §1). The `ORDER BY tm.team_id LIMIT 1` this replaced did exactly that, picking a Team
+    // (ADR-0023 §1). The `ORDER BY tm.team_id LIMIT 1` this replaced did exactly that, picking a Team
     // by UUID and silently hiding the user's others.
     //
     // `t.id` breaks ties because team names are deliberately NOT unique (ADR-0019 §2 — the slug is

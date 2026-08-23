@@ -12,7 +12,7 @@ interface TabConfig {
   isActive: (pathname: string) => boolean
 }
 
-// The tabs are team-scoped (ADR-0021 §2), built from the slug in the URL the bar is rendered on
+// The tabs are team-scoped (ADR-0023 §2), built from the slug in the URL the bar is rendered on
 // rather than from a store. Deriving them from the location is what keeps this component a pure
 // function of where you are: switch Team and every tab follows, with nothing to keep in sync.
 function tabsFor(routes: TeamRoutes): TabConfig[] {

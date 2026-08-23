@@ -1,7 +1,7 @@
 import { useRouterState } from '@tanstack/react-router'
 
 /**
- * Team-scoped routes all live under `/t/:slug/…` (ADR-0021 §2), so a link a teammate shares opens
+ * Team-scoped routes all live under `/t/:slug/…` (ADR-0023 §2), so a link a teammate shares opens
  * for anyone entitled to it and opening one performs an authorized switch of the Active Team.
  *
  * The slug is read back out of the URL rather than threaded through props or a store. Two reasons:

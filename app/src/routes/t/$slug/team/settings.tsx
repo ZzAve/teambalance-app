@@ -16,7 +16,7 @@ export const Route = createFileRoute('/t/$slug/team/settings')({
     } catch {
       // Session unconfirmed — treat as not authorized.
     }
-    // `role` is the caller's Role in the ACTIVE Team (ADR-0021 §4) — and /t/$slug's gate has
+    // `role` is the caller's Role in the ACTIVE Team (ADR-0023 §4) — and /t/$slug's gate has
     // already switched to this slug, so it is the Role here. Someone who is an Admin of their other
     // Team is a plain member on this screen.
     if (user?.role !== 'ADMIN') throw redirect({ to: teamRoutes(params.slug).events })

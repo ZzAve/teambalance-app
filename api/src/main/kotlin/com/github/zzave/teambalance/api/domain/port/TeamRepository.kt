@@ -24,7 +24,7 @@ interface TeamRepository {
     /**
      * Every team the user is an active Member of, by name, or empty when they belong to none. Ordered
      * so a switcher listing them is stable between requests; the order carries no other meaning — in
-     * particular it is *not* a fallback for "which team is active" (ADR-0021 §1).
+     * particular it is *not* a fallback for "which team is active" (ADR-0023 §1).
      */
     fun findTeamsOf(userId: UUID): List<TeamSummary>
 

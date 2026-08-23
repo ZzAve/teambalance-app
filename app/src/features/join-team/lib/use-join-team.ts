@@ -9,7 +9,7 @@ const GENERIC = 'Something went wrong, try again.'
 /**
  * Thin wiring over useAcceptInvitation for the /onboarding/join route: on success, drops the cache
  * and navigates to `/` — the dispatcher, which resolves the Active Team the server just set to the
- * team they joined (ADR-0021 §4) and lands them in it, where the team route's gate carries them on
+ * team they joined (ADR-0023 §4) and lands them in it, where the team route's gate carries them on
  * to get-started.
  *
  * The cache is reset rather than merely invalidating /auth/me (as /invite/\$token.tsx also does):

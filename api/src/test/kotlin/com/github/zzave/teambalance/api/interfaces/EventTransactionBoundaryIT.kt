@@ -16,7 +16,7 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers
 import java.util.UUID
 
 // Spec-dedicated, and it has to stay that way: this user must belong to exactly ONE Team. Tenant
-// routing resolves a sole membership and answers nothing for a user in two Teams (ADR-0021 §1), so
+// routing resolves a sole membership and answers nothing for a user in two Teams (ADR-0023 §1), so
 // sharing this id with another spec's Team leaves every request here with no tenant. It used to
 // "work" by picking a Team in UUID order — which is the misrouting #143 fixes. (Was b…f1, shared
 // with ConcurrentSessionTenantIT.)

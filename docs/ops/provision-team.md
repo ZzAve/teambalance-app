@@ -53,7 +53,7 @@ since #143 a founder who already plays in a Team can reach it too, from the Team
 then **atomically** consumes the code and inserts the `teams` row + the founder's `team_members`
 row (ADMIN, `onboarded_at = now()`, `position_id NULL`); and finally makes the new team the
 founder's **Active Team**, so they land straight in the new, empty team rather than staying in
-whichever team they were in before (ADR-0021).
+whichever team they were in before (ADR-0023).
 
 The founder is now the team's admin. From there, onboarding the rest of the team is the ordinary
 in-app flow (unchanged, ADR-0008 / ADR-0013):

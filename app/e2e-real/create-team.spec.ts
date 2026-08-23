@@ -54,7 +54,7 @@ test('create-team: a teamless founder enters code + name + slug and lands in the
 
   // 4. Create → provisions the tenant schema + Flyway migrate in-request (allow for cold start),
   //    makes the founder ADMIN, makes the new team their Active Team, and lands on its roster. The
-  //    URL carries the new team's slug (ADR-0021 §2), which is also the proof the Active Team moved.
+  //    URL carries the new team's slug (ADR-0023 §2), which is also the proof the Active Team moved.
   await page.getByRole('button', { name: 'Create team' }).click()
   await expect(page).toHaveURL(new RegExp(`/t/${EXPECTED_SLUG}/team/?$`), { timeout: 20_000 })
   await expect(page.getByRole('heading', { name: 'Team' })).toBeVisible()

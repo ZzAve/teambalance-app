@@ -17,13 +17,13 @@ import java.time.Instant
 import java.util.UUID
 
 /**
- * The switch endpoint through the real HTTP boundary (#143, ADR-0021 §2): `POST /api/teams/{slug}/activate`,
+ * The switch endpoint through the real HTTP boundary (#143, ADR-0023 §2): `POST /api/teams/{slug}/activate`,
  * driven over a **real signed-in session** (magic-link verify, then the session cookie) rather than
  * the X-User-Id test shim. Two things can only be proven that way:
  *
  *  - **The session memo really is invalidated.** The Active Team is carried as a session attribute
  *    pair that every later request reads back without touching the database, so "the switch
- *    overwrote it" is a claim about a *subsequent request on the same session*. ADR-0021 calls a
+ *    overwrote it" is a claim about a *subsequent request on the same session*. ADR-0023 calls a
  *    missed invalidation here a cross-tenant read; this is the test that would catch one.
  *  - **"Not yours" is indistinguishable from "no such Team".** Both must answer byte-identically,
  *    or the slug space becomes a probe for which Teams exist on the platform.
@@ -106,7 +106,7 @@ class ActivateTeamControllerIT : TeamBalanceIT() {
 
             // A second sign-in for the same person — a new session, a new device. With two Teams open
             // and nothing remembered they would have to choose; the remembered Team is what makes the
-            // landing deterministic (ADR-0021 §3).
+            // landing deterministic (ADR-0023 §3).
             val fresh = signIn(email)
 
             activeTeamOnMe(fresh) shouldBe bravoSlug

@@ -7,7 +7,7 @@ describe('toCreateTeamError', () => {
     expect(err.code).toBe('INVALID_CREATION_CODE')
   })
 
-  // ADR-0019 §3's 409 ALREADY_IN_TEAM was lifted by ADR-0021 (#143), so a 409 now means one thing:
+  // ADR-0019 §3's 409 ALREADY_IN_TEAM was lifted by ADR-0023 (#143), so a 409 now means one thing:
   // the slug is taken. A stale backend still sending the old code must not be read as a slug clash
   // *message* by accident — it still lands on the slug field, which is the closest honest placement,
   // and the code no longer exists for the form to branch on.

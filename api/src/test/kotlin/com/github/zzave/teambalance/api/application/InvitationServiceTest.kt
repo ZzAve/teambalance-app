@@ -123,7 +123,7 @@ class InvitationServiceTest : FunSpec() {
             f.members.findRole(f.teamId, nonAdmin) shouldBe Role.USER
         }
 
-        // ADR-0021 §4: accepting is no longer fire-and-forget. A joiner who is already a Member
+        // ADR-0023 §4: accepting is no longer fire-and-forget. A joiner who is already a Member
         // somewhere would otherwise join and keep looking at their other Team.
         test("acceptInvitation makes the joined Team the joiner's Active Team") {
             val f = newFixture()

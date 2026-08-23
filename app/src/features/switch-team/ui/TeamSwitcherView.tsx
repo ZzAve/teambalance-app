@@ -12,7 +12,7 @@ interface TeamSwitcherViewProps {
 }
 
 /**
- * The Team switcher, prop-only: it always **names the current Team** (ADR-0021 §3).
+ * The Team switcher, prop-only: it always **names the current Team** (ADR-0023 §3).
  *
  * That naming is not decoration. There is one kind of switch, so tapping a teammate's link to your
  * secondary Team re-homes your default and you may open the app later in the other Team. The rule

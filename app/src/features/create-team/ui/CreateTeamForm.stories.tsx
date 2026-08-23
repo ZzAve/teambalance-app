@@ -86,7 +86,7 @@ export const NameOrSlugInvalid: Story = {
   },
 }
 
-// The banner slot, now that ADR-0019 §3's 409 ALREADY_IN_TEAM is lifted (ADR-0021 §4) and a founder
+// The banner slot, now that ADR-0019 §3's 409 ALREADY_IN_TEAM is lifted (ADR-0023 §4) and a founder
 // who already plays somewhere may start another Team: GENERIC is the only error with nowhere better
 // to go than a banner, so this story is what keeps that slot covered.
 export const GenericFailure: Story = {

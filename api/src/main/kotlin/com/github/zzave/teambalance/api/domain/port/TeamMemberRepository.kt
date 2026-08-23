@@ -23,7 +23,7 @@ interface TeamMemberRepository {
 
     /**
      * The tenant routing (team id + schema) for **this** team and this user, resolved from ONE row,
-     * or null when they have no active membership of it (ADR-0021 §1). The team id is an input, not a
+     * or null when they have no active membership of it (ADR-0023 §1). The team id is an input, not a
      * discovery: this asks "resolve this team for this user, and verify they may have it" — it never
      * picks a team on the caller's behalf.
      *
@@ -36,7 +36,7 @@ interface TeamMemberRepository {
      * The tenant routing of the user's **only** active membership, or null when they have none — or
      * more than one. Deliberately not "their first team": with several memberships there is no
      * defensible pick, so this answers null and the Active Team has to be chosen explicitly
-     * (ADR-0021 §3). This is what replaced the `ORDER BY team_id LIMIT 1` that used to choose by UUID.
+     * (ADR-0023 §3). This is what replaced the `ORDER BY team_id LIMIT 1` that used to choose by UUID.
      */
     fun findSoleTenantRouting(userId: UserId): TenantRouting?
 

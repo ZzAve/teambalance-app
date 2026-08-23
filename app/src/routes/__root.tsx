@@ -45,7 +45,7 @@ export const Route = createRootRoute({
     }
     if (!user) throw redirect({ to: '/login' })
 
-    // Has-ANY-team gate (ADR-0021 §4, amending ADR-0019 §6). The question this gate asks changed
+    // Has-ANY-team gate (ADR-0023 §4, amending ADR-0019 §6). The question this gate asks changed
     // with #143: it is no longer "do you have a team" but "do you have *any* Team" — and *which* one
     // is active is a separate question, answered per-route by /t/$slug and never inferred from the
     // list's order. A teamless caller is a first-class state, routed to the join-vs-create fork
@@ -105,7 +105,7 @@ function RootLayout() {
             <Link to="/" className="font-display text-xl font-bold text-blue">
               Team<span className="text-green">Balance</span>
             </Link>
-            {/* The switcher is permanent UI and always names the current Team (ADR-0021 §3). That
+            {/* The switcher is permanent UI and always names the current Team (ADR-0023 §3). That
                 visibility is what makes one-kind-of-switch tolerable: opening a teammate's link
                 re-homes your default, and the only thing that makes it correctable is being able to
                 see, at a glance, which Team you are in. */}

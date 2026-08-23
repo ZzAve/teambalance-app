@@ -136,7 +136,7 @@ class TeamServiceTest : FunSpec() {
             calls shouldContainExactly listOf("provision:team_setpoint_vt", "register:setpoint-vt")
         }
 
-        // ADR-0019 §3's 409 ALREADY_IN_TEAM is lifted (ADR-0021 §4): it existed only to match a
+        // ADR-0019 §3's 409 ALREADY_IN_TEAM is lifted (ADR-0023 §4): it existed only to match a
         // routing layer that could hold one Team per user, and that constraint is gone.
         test("a founder who already plays in a team may create another") {
             val calls = mutableListOf<String>()

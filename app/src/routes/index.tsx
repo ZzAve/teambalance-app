@@ -7,12 +7,12 @@ import { teamRoutes } from '@shared/lib/team-routes'
  * The dispatcher. `/` names no Team, so it renders nothing — it answers "which Team am I in?" and
  * sends the caller there.
  *
- * It exists because team-scoped screens live under `/t/:slug/…` (ADR-0021 §2) while the app's own
+ * It exists because team-scoped screens live under `/t/:slug/…` (ADR-0023 §2) while the app's own
  * entry points — the installed PWA's start_url, a bookmark, the post-login redirect — cannot know a
  * slug. Resolving that here, from the Active Team the server already decided, keeps every one of
  * them a plain `/`.
  *
- * Three outcomes, matching the three states `/auth/me` can report (ADR-0021 §4): an Active Team, so
+ * Three outcomes, matching the three states `/auth/me` can report (ADR-0023 §4): an Active Team, so
  * go there; no Teams at all, so onboarding; several Teams and none active, which is not an error but
  * a choice the caller has to make.
  */

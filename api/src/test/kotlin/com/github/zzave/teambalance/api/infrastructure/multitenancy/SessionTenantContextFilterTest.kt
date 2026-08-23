@@ -82,7 +82,7 @@ class SessionTenantContextFilterTest : TeamBalanceIT() {
             second.teamId shouldBe teamId
         }
 
-        // The memo is a CORRECTNESS concern since #143, not a cache (ADR-0021 §2): it is what says
+        // The memo is a CORRECTNESS concern since #143, not a cache (ADR-0023 §2): it is what says
         // which Team the request is scoped to. This is the direct test that a switch overwrites it —
         // a switch that did not would leave the very next request reading the previous tenant.
         test("switching the Active Team overwrites the session memo, so the next request follows") {

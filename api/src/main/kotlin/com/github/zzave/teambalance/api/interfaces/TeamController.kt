@@ -45,7 +45,7 @@ class TeamController(
     }
 
     /**
-     * Switches the caller's Active Team to the Team at this slug (ADR-0021 §2) — the request a
+     * Switches the caller's Active Team to the Team at this slug (ADR-0023 §2) — the request a
      * `/t/:slug/…` link performs on the way in, and the one the switcher performs on a tap. They are
      * deliberately the same request.
      *

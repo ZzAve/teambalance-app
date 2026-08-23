@@ -245,7 +245,7 @@ class EventControllerTest : TeamBalanceIT() {
             // routing resolves a sole membership and answers *nothing* for a user who turns out to
             // belong to two Teams, so a user id shared with another spec's Team no longer resolves at
             // all. It used to, by picking one of the two Teams in UUID order — the silent misrouting
-            // ADR-0021 removes. (These collided with EventControllerTenantIsolationTest's ALPHA_USER.)
+            // ADR-0023 removes. (These collided with EventControllerTenantIsolationTest's ALPHA_USER.)
             val setterAId = "b0000000-0000-0000-0000-0000000000d1"
             val setterBId = "b0000000-0000-0000-0000-0000000000d2"
             val liberoId = "b0000000-0000-0000-0000-0000000000d3"

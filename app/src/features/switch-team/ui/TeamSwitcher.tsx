@@ -9,7 +9,7 @@ import { TeamSwitcherView } from './TeamSwitcherView'
  *
  * Navigating rather than calling the switch endpoint here is deliberate — `/t/$slug`'s gate already
  * performs the authorized switch for a shared link, and routing the switcher through the same door
- * keeps one code path for both (ADR-0021 §2). A switcher that called activate itself would be the
+ * keeps one code path for both (ADR-0023 §2). A switcher that called activate itself would be the
  * second tenant-resolution path the ADR exists to prevent.
  */
 export function TeamSwitcher() {

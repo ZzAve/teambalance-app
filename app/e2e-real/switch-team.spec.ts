@@ -1,7 +1,7 @@
 import { test, expect, request as playwrightRequest, type Page } from '@playwright/test'
 import { STORAGE_STATE, postAsSharedAdmin } from './helpers'
 
-// Real e2e: multi-Team membership and switching between Teams (#143, ADR-0021).
+// Real e2e: multi-Team membership and switching between Teams (#143, ADR-0023).
 //
 // Justified under the PR gate as a genuinely new seam: this is a **cross-tenant** flow, and neither
 // the login nor the attendance flow exercises it. Every other spec runs as a caller with exactly one
@@ -108,7 +108,7 @@ test('a member of two teams switches, and the tenant data follows', async ({ pag
   await expect(page.getByText(SECOND.event).first()).toBeVisible({ timeout: 15_000 })
   await expect(page.getByText(FIRST.event)).toHaveCount(0)
 
-  // 4. Switch back through the switcher, which names the Team it is in (ADR-0021 §3).
+  // 4. Switch back through the switcher, which names the Team it is in (ADR-0023 §3).
   await page.getByRole('button', { name: new RegExp(`Current team: ${SECOND.name}`) }).click()
   await page.getByRole('option', { name: new RegExp(FIRST.name) }).click()
 

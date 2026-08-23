@@ -7,7 +7,7 @@ import { TeamHeader } from './TeamHeader'
 // TeamHeader renders a TanStack Router <Link> for the admin gear, so it needs a router in context.
 // The two stories pin the only behaviour that matters: admins see the settings entry, members don't.
 //
-// The gear's target is team-scoped (ADR-0021 §2), derived from the slug in the path the header is
+// The gear's target is team-scoped (ADR-0023 §2), derived from the slug in the path the header is
 // rendered on — hence the initialEntries below. That is the whole reason it can be asserted here at
 // all: the destination is a function of the URL, not of a store the story would have to prime.
 const meta = {

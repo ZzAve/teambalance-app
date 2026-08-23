@@ -14,7 +14,7 @@ import org.springframework.jdbc.core.JdbcTemplate
 import java.util.UUID
 
 /**
- * The platform-level reads behind the Team switcher and the authorized switch (#143, ADR-0021).
+ * The platform-level reads behind the Team switcher and the authorized switch (#143, ADR-0023).
  * Both replaced an `ORDER BY tm.team_id LIMIT 1` that answered "the user's team" by picking one in
  * UUID order — so what matters here is that a user with several Teams gets *all* of them, and that
  * a slug resolves without saying anything about who may have it.

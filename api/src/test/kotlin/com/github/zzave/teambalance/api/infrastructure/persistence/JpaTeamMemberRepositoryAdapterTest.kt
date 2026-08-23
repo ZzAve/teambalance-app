@@ -66,7 +66,7 @@ class JpaTeamMemberRepositoryAdapterTest : TeamBalanceIT() {
             teamMemberRepository.findByTeamId(teamId).first { it.userId == userId }.onboarded shouldBe true
         }
 
-        // The tenant-resolution seam (ADR-0021 §1). Only a real database can prove these: the team id
+        // The tenant-resolution seam (ADR-0023 §1). Only a real database can prove these: the team id
         // is a parameter and the membership predicate IS the authorization, so the SQL is the check.
         test("findTenantRouting resolves schema and team id together for a member of that team") {
             val (teamId, userId) = seedMember(role = "USER", active = true)

@@ -71,7 +71,7 @@ export function useCreateTeam() {
 }
 
 /**
- * Switches the caller's Active Team to the Team at [slug] — the authorized switch (ADR-0021 §2).
+ * Switches the caller's Active Team to the Team at [slug] — the authorized switch (ADR-0023 §2).
  * Both the Team switcher and opening a shared `/t/:slug/…` link perform exactly this request; there
  * is deliberately only one kind of switch.
  *

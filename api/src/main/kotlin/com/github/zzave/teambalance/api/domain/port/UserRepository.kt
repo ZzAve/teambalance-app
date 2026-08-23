@@ -13,7 +13,7 @@ interface UserRepository {
     /**
      * The Team this user last had active, or null when nothing is remembered yet. It is a *hint*, not
      * an authorization: the membership behind it may since have been revoked, so a reader must
-     * re-verify it before routing anything to that tenant (ADR-0021 §3).
+     * re-verify it before routing anything to that tenant (ADR-0023 §3).
      */
     fun findLastActiveTeamId(userId: UserId): TeamId?
 

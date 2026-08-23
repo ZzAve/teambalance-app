@@ -59,7 +59,7 @@ ON CONFLICT DO NOTHING;
 -- the event with no row at all, which is what a real not-responded member looks like.
 DELETE FROM team_test.attendances WHERE uuid = 'e2e00000-0000-0000-0000-000000000005';
 
--- --- Second Team, for the team-switching flow (#143, ADR-0021) -------------------------------
+-- --- Second Team, for the team-switching flow (#143, ADR-0023) -------------------------------
 -- A second tenant with its own schema and its own event, so "the data followed the switch" is an
 -- observable fact rather than an assumption: each Team's events list names an event the other Team
 -- does not have.

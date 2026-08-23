@@ -10,7 +10,7 @@ import java.util.UUID
 
 /**
  * Team-scoped authorization checks — the single chokepoint every team-scoped decision passes through
- * (ADR-0021 §1). Act-as (ADR-0022) will add a second *source* of a Role here (a synthesized Virtual
+ * (ADR-0023 §1). Act-as (ADR-0024) will add a second *source* of a Role here (a synthesized Virtual
  * Member) rather than a second path around it.
  *
  * SECURITY CONTRACT — this primitive is only as safe as its arguments:

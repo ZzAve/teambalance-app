@@ -1,5 +1,6 @@
 package com.github.zzave.teambalance.api.application
 
+import com.github.zzave.teambalance.api.domain.model.EncryptedToken
 import com.github.zzave.teambalance.api.domain.model.Invitation
 import com.github.zzave.teambalance.api.domain.model.InviteToken
 import com.github.zzave.teambalance.api.domain.model.TeamId
@@ -15,7 +16,12 @@ import java.time.Instant
 import java.util.Base64
 import java.util.UUID
 
-/** The plaintext invite token (shown to the admin once) plus its expiry. Never persisted. */
+/**
+ * The plaintext invite token plus its expiry — what an admin needs to build and share a link.
+ *
+ * Since ADR-0025 this is no longer show-once: the token is persisted encrypted as well as hashed, so
+ * the same value can be handed back on a later request via [InvitationService.activeInviteLink].
+ */
 data class GeneratedInvitation(val token: InviteToken, val expiresAt: Instant)
 
 class InvitationService(
@@ -28,6 +34,8 @@ class InvitationService(
     // composition root — INVITATION_TOKEN_SALT in live environments (see application.yml), a
     // hardcoded value in dev and test.
     private val tokenSalt: String,
+    // Reversible counterpart to the hash, so the team's current link can be shown again (ADR-0025).
+    private val tokenCipher: InviteTokenCipher,
 ) {
     companion object {
         // Invite links don't expire on a timer by default in v1 — an admin rotates/expires
@@ -38,11 +46,29 @@ class InvitationService(
     }
 
     /**
-     * Mints a fresh invite link for the team: a random token returned to the caller once, with only
-     * its salted hash persisted. The plaintext is never stored, so a DB-read adversary cannot recover
-     * a usable link. Because the hash is one-way, a repeat call can't re-show a previous link — each
-     * call mints a new one; links already shared keep working until they expire. #38 adds explicit
-     * rotate/expire to invalidate them.
+     * The team's current invite link, or null if it has none — the read that lets an admin come back
+     * to a link they already shared instead of being forced to mint a replacement (ADR-0025).
+     *
+     * Null also covers a pre-ADR-0025 invitation that carries no ciphertext. V010 expired every one
+     * of those, so this is unreachable in practice; treating it as "no link" rather than throwing
+     * means a stray hash-only row surfaces to the admin as an offer to generate one, which is the
+     * honest answer and the recoverable path.
+     *
+     * Admin-only: [callerId] must be an admin of [teamId] (the server-resolved tenant).
+     */
+    fun activeInviteLink(callerId: UserId, teamId: TeamId): GeneratedInvitation? {
+        authorizationService.requireAdmin(callerId, teamId)
+        return invitationRepository.findActiveByTeam(teamId, clock.instant())?.let(::reveal)
+    }
+
+    /**
+     * The team's invite link, minting one only if it has none. Idempotent by design: a team has at
+     * most one active link, so repeat calls return the same token rather than quietly adding another
+     * usable credential (ADR-0025 — the unbounded accumulation this replaces was the security half of
+     * the bug). Minting a *replacement* is [rotateInviteLink]'s job.
+     *
+     * The token is persisted twice over: as a salted hash, which is what [acceptInvitation] matches
+     * on, and encrypted, which is what lets it be shown again.
      *
      * Admin-only: [callerId] must be an admin of [teamId] (the server-resolved tenant), and is also
      * recorded as the invitation's creator.
@@ -50,6 +76,8 @@ class InvitationService(
     fun generateInviteLink(callerId: UserId, teamId: TeamId): GeneratedInvitation {
         authorizationService.requireAdmin(callerId, teamId)
         val now = clock.instant()
+        invitationRepository.findActiveByTeam(teamId, now)?.let(::reveal)?.let { return it }
+
         val token = generateToken()
         invitationRepository.save(mint(token, callerId, teamId, now))
         return GeneratedInvitation(token = token, expiresAt = now.plus(INVITE_TTL))
@@ -100,10 +128,17 @@ class InvitationService(
         id = UUID.randomUUID(),
         teamId = teamId,
         tokenHash = hashToken(token.value),
+        encryptedToken = tokenCipher.encrypt(token),
         createdBy = callerId,
         expiresAt = now.plus(INVITE_TTL),
         createdAt = now,
     )
+
+    /** The stored form back to something shareable; null for a hash-only pre-ADR-0025 row. */
+    private fun reveal(invitation: Invitation): GeneratedInvitation? =
+        invitation.encryptedToken?.let { encrypted: EncryptedToken ->
+            GeneratedInvitation(token = tokenCipher.decrypt(encrypted), expiresAt = invitation.expiresAt)
+        }
 
     private fun generateToken(): InviteToken {
         val bytes = ByteArray(TOKEN_BYTE_LENGTH)
@@ -112,9 +147,10 @@ class InvitationService(
     }
 
     /**
-     * Salted SHA-256, hex-encoded. The salt is an app-wide secret (not per-record), so a leaked DB
-     * alone can't be brute-forced without it. The accept path (#37) will hash the presented token the
-     * same way and match on the stored hash.
+     * Salted SHA-256, hex-encoded. Still the token's identity for lookup: [acceptInvitation] hashes
+     * the presented token this way and matches on the stored digest, so a joiner's token never causes
+     * a decryption. ADR-0025 added an encrypted copy beside it for the admin read path; it did not
+     * change what accept matches on.
      */
     private fun hashToken(token: String): TokenHash =
         TokenHash(

@@ -1,5 +1,6 @@
 package com.github.zzave.teambalance.api.infrastructure.persistence.mapper
 
+import com.github.zzave.teambalance.api.domain.model.EncryptedToken
 import com.github.zzave.teambalance.api.domain.model.Invitation
 import com.github.zzave.teambalance.api.domain.model.TeamId
 import com.github.zzave.teambalance.api.domain.model.TokenHash
@@ -10,6 +11,7 @@ fun InvitationJpaEntity.internalize() = Invitation(
     id = id,
     teamId = TeamId(teamId),
     tokenHash = TokenHash(tokenHash),
+    encryptedToken = encryptedToken?.let(::EncryptedToken),
     createdBy = UserId(createdBy),
     expiresAt = expiresAt,
     createdAt = createdAt,
@@ -19,6 +21,7 @@ fun Invitation.externalize() = InvitationJpaEntity(
     id = id,
     teamId = teamId.value,
     tokenHash = tokenHash.value,
+    encryptedToken = encryptedToken?.value,
     createdBy = createdBy.value,
     expiresAt = expiresAt,
     createdAt = createdAt,

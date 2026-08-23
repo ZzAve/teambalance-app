@@ -149,6 +149,12 @@ teambalance:
     # via INVITATION_TOKEN_SALT (no default here → the app fails fast if it is unset). Dev and test
     # override it with a hardcoded value in their profile config.
     token-salt: ${INVITATION_TOKEN_SALT}
+    # App-wide AES-256 key (base64, 32 bytes) under which invite tokens are stored recoverably, so an
+    # admin can be shown their team's current link again (ADR-0025). Live environments MUST provide
+    # it via INVITATION_TOKEN_ENCRYPTION_KEY; dev, test and e2e override it in their profile config.
+    # Rotating this key makes existing links unreadable — the admin-only GET then reports no link and
+    # offers to generate one; already-shared links keep working, since accept matches on the hash.
+    token-encryption-key: ${INVITATION_TOKEN_ENCRYPTION_KEY}
   email:
     # Scaleway Transactional Email (TEM). Consumed only by the prod-profile ScalewayTemEmailAdapter.
     # api-key/project-id have no default → prod fails fast if the secrets are unset (dev/test/e2e

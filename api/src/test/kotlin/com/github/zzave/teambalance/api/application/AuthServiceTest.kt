@@ -86,6 +86,12 @@ class AuthServiceTest : FunSpec() {
             userRepository = directory.userRepository(user),
             teamMemberRepository = directory.teamMemberRepository(),
             activeTeamService = directory.activeTeamService(routingGateway, user),
+            actAsService = directory.actAsService(
+                routingGateway = routingGateway,
+                actAsRepository = InMemoryActAsRepository(),
+                clock = Clock.fixed(Instant.EPOCH, ZoneOffset.UTC),
+                platformAdmins = emptySet(),
+            ),
             emailGateway = FakeEmailGateway(),
             platformAdminGateway = FakePlatformAdminGateway(),
             authSessionGateway = gateway,

@@ -89,12 +89,14 @@ function ProfilePage() {
       {isPlatformAdmin && (
         <div className="mt-10 border-t border-border/40 pt-6">
           <h3 className="text-sm font-semibold text-muted-foreground">Platform admin</h3>
-          <Link
-            to="/admin/creation-codes"
-            className="mt-2 inline-block text-sm font-semibold text-blue hover:underline"
-          >
-            Creation codes
-          </Link>
+          <div className="mt-2 flex flex-col gap-2">
+            <Link to="/admin/teams" className="text-sm font-semibold text-blue hover:underline">
+              Teams
+            </Link>
+            <Link to="/admin/creation-codes" className="text-sm font-semibold text-blue hover:underline">
+              Creation codes
+            </Link>
+          </div>
         </div>
       )}
 

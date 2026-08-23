@@ -26,6 +26,7 @@ const USER: AuthenticatedUser = {
   teams: [TEAM],
   activeTeam: TEAM,
   isPlatformAdmin: false,
+  actAs: undefined,
 }
 
 const server = setupServer(

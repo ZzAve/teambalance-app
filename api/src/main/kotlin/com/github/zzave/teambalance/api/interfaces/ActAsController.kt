@@ -20,7 +20,7 @@ import java.util.UUID
 
 /**
  * **Act-as** (ADR-0024): the platform console's team list, entering and leaving a Team, and the
- * team-visible **Act-as Record**.
+ * **Act-as Record** a Team's Admins can read.
  *
  * Every gate is delegated — the platform-admin allowlist to [ActAsService], the team-scoped read to
  * [AuthorizationService] — so this controller decides nothing; error responses are mapped from the
@@ -54,13 +54,17 @@ class ActAsController(
     }
 
     /**
-     * Readable by any Member of the Active Team — that is what "team-visible" means. A Platform Admin
-     * currently inside the team passes the same check through their Virtual Member, so they can read
-     * the record they are writing.
+     * Admin-only (ADR-0024 §4): the record is shown to the people who can act on it, and an
+     * unexplained "someone was in here" in front of a player is alarm without recourse. The endpoint
+     * enforces that rather than leaving it to the Admin-only screen — a rule only the UI keeps is not
+     * a rule.
+     *
+     * A Platform Admin currently inside the Team passes through their Virtual Member, so they can
+     * read the record they are writing.
      */
     override suspend fun listActAsRecords(request: ListActAsRecords.Request): ListActAsRecords.Response<*> {
         val teamId = currentTeamGateway.requireCurrentTeamId()
-        authorizationService.requireMember(currentUserGateway.requireCurrentUserId(), teamId)
+        authorizationService.requireAdmin(currentUserGateway.requireCurrentUserId(), teamId)
         return ListActAsRecords.Response200(ActAsRecordList(actAsService.recordsFor(teamId).map { it.produce() }))
     }
 }
@@ -69,7 +73,7 @@ class ActAsController(
 // nothing on the client but tells the operator how long they have.
 internal fun EnteredActAs.produce() = ActAs(team = team.produce(), expiresAt = actAs.expiresAt.toString())
 
-// The team-visible projection. Deliberately no user id and no email: the actor is the platform, and
+// The Admin-readable projection. Deliberately no user id and no email: the actor is the platform, and
 // resolving a name would fail anyway — findMemberSummariesByUserIds joins team_members, and a
 // Platform Admin is a Member of nothing (ADR-0024 §3, §4). `created_by` keeps the truth underneath.
 private fun DomainActAs.produce() = ActAsRecord(

@@ -27,6 +27,7 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 // and is not on a roster.
 private const val OPERATOR_ID = "e0000000-0000-0000-0000-0000000000c1"
 private const val MEMBER_ID = "e0000000-0000-0000-0000-0000000000c2"
+private const val TEAM_ADMIN_ID = "e0000000-0000-0000-0000-0000000000c3"
 private const val TEAM_ID = "f0000000-0000-0000-0000-0000000000ca"
 private const val OTHER_TEAM_ID = "f0000000-0000-0000-0000-0000000000cb"
 private const val TEAM_SCHEMA = "team_act_as_it"
@@ -221,10 +222,10 @@ class ActAsControllerIT : TeamBalanceIT() {
         }
 
         context("the Act-as Record") {
-            test("is visible to the team, attributes the platform generically, and names no operator") {
+            test("is readable by the Team's Admin, attributes the platform generically, names no operator") {
                 enterAs(OPERATOR_ID, TEAM_ID).andExpect(status().isOk)
 
-                val body = dispatch(MockMvcRequestBuilders.get("/api/team/act-as-records").header("X-User-Id", MEMBER_ID))
+                val body = recordsAs(TEAM_ADMIN_ID)
                     .andExpect(status().isOk)
                     .andExpect(jsonPath("$.records[0].actorKind").value("PLATFORM_ADMIN"))
                     .andExpect(jsonPath("$.records[0].exitedAt").doesNotExist())
@@ -238,9 +239,26 @@ class ActAsControllerIT : TeamBalanceIT() {
                 enterAs(OPERATOR_ID, TEAM_ID).andExpect(status().isOk)
                 dispatch(MockMvcRequestBuilders.post("/api/admin/act-as/exit").header("X-User-Id", OPERATOR_ID))
 
-                dispatch(MockMvcRequestBuilders.get("/api/team/act-as-records").header("X-User-Id", MEMBER_ID))
+                recordsAs(TEAM_ADMIN_ID)
                     .andExpect(status().isOk)
                     .andExpect(jsonPath("$.records[0].exitedAt").isNotEmpty)
+            }
+
+            // ADR-0024 §4: shown to the people who can act on it. Enforced here and not merely by the
+            // Admin-only screen it lives on — a rule only the UI keeps is not a rule.
+            test("is closed to a plain Member, not just hidden from them") {
+                enterAs(OPERATOR_ID, TEAM_ID).andExpect(status().isOk)
+
+                recordsAs(MEMBER_ID)
+                    .andExpect(status().isForbidden)
+                    .andExpect(jsonPath("$.code").value("NOT_TEAM_ADMIN"))
+            }
+
+            // The operator reads the record they are writing, through their Virtual Member.
+            test("is readable by the Platform Admin currently inside the Team") {
+                enterAs(OPERATOR_ID, TEAM_ID).andExpect(status().isOk)
+
+                recordsAs(OPERATOR_ID).andExpect(status().isOk)
             }
         }
     }
@@ -270,6 +288,9 @@ class ActAsControllerIT : TeamBalanceIT() {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""{"teamId":"$teamId"}"""),
         )
+
+    private fun recordsAs(userId: String) =
+        dispatch(MockMvcRequestBuilders.get("/api/team/act-as-records").header("X-User-Id", userId))
 
     private fun createPositionAs(userId: String, label: String) =
         dispatch(
@@ -343,6 +364,12 @@ class ActAsControllerIT : TeamBalanceIT() {
                 "VALUES ('$MEMBER_ID'::uuid, 'act-as-it-member@test.com', 'Act-as IT Member') " +
                 "ON CONFLICT (id) DO UPDATE SET email = EXCLUDED.email",
         )
+        jdbcTemplate.execute(
+            "INSERT INTO public.users (id, email, display_name) " +
+                "VALUES ('$TEAM_ADMIN_ID'::uuid, 'act-as-it-admin@test.com', 'Act-as IT Admin') " +
+                "ON CONFLICT (id) DO UPDATE SET email = EXCLUDED.email",
+        )
         jdbcTemplate.execute("SELECT public.tb_add_member('$TEAM_ID'::uuid, '$MEMBER_ID'::uuid, 'USER', NULL)")
+        jdbcTemplate.execute("SELECT public.tb_add_member('$TEAM_ID'::uuid, '$TEAM_ADMIN_ID'::uuid, 'ADMIN', NULL)")
     }
 }

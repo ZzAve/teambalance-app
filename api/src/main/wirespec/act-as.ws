@@ -12,7 +12,7 @@ type PlatformTeamList {
     teams: TeamRef[]
 }
 
-// One episode of platform access, as the TEAM reads it. The actor is rendered generically via actorKind (MEMBER | PLATFORM_ADMIN) - no name lookup, and no operator email on a team-visible surface. exitedAt is null for an episode that ran out rather than being left deliberately; lastActiveAt is then the honest end of the window.
+// One episode of platform access, as a Team's ADMINS read it. The actor is rendered generically via actorKind (MEMBER | PLATFORM_ADMIN) - no name lookup, and no operator email on a team-visible surface. exitedAt is null for an episode that ran out rather than being left deliberately; lastActiveAt is then the honest end of the window.
 type ActAsRecord {
     actorKind: String,
     enteredAt: String,
@@ -43,7 +43,7 @@ endpoint ExitActAs POST /api/admin/act-as/exit -> {
     401 -> Unit
 }
 
-// The Act-as Record for the caller's Active Team, newest first - visible to every Member, which is the point (ADR-0024 section 4).
+// The Act-as Record for the caller's Active Team, newest first. Admin-only (ADR-0024 section 4): shown to the people who can act on it, and enforced here rather than only by the Admin-only screen it lives on.
 endpoint ListActAsRecords GET /api/team/act-as-records -> {
     200 -> ActAsRecordList
     403 -> Unit

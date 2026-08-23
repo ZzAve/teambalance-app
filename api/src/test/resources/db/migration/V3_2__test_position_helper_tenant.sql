@@ -34,7 +34,7 @@ BEGIN
         WHERE s IS NOT NULL
           AND EXISTS (
               SELECT 1 FROM information_schema.tables
-              WHERE table_schema = s AND table_name = 'positions'
+              WHERE table_schema = s AND table_name = 'member_profiles'
           )
     ) INTO v_schemas;
 
@@ -50,21 +50,24 @@ BEGIN
         VALUES (p_team, p_user, p_role, v_pos)
         ON CONFLICT (team_id, user_id) DO NOTHING;
 
-    IF p_label IS NOT NULL THEN
-        FOREACH v_schema IN ARRAY v_schemas LOOP
+    FOREACH v_schema IN ARRAY v_schemas LOOP
+        IF p_label IS NOT NULL THEN
             EXECUTE format(
                 'INSERT INTO %I.positions (id, label) VALUES (%L, %L) ON CONFLICT DO NOTHING',
                 v_schema, v_pos, p_label
             );
-            -- Re-read per schema: a label already present there keeps ITS id, and the assignment has
-            -- to point at the row that actually exists in that schema.
-            EXECUTE format(
-                'INSERT INTO %I.member_positions (user_id, position_id) ' ||
-                'SELECT %L, id FROM %I.positions WHERE lower(label) = lower(%L) ' ||
-                'ON CONFLICT (user_id) DO NOTHING',
-                v_schema, p_user, v_schema, p_label
-            );
-        END LOOP;
-    END IF;
+        END IF;
+        -- The profile row carries the member's name in this team as well as their position, so it is
+        -- written whether or not a label was given — a member with no profile would otherwise read
+        -- back through the platform fallback only. The position is re-read per schema, since a label
+        -- already present there keeps ITS id.
+        EXECUTE format(
+            'INSERT INTO %I.member_profiles (user_id, display_name, position_id) ' ||
+            'SELECT %L, u.display_name, (SELECT id FROM %I.positions WHERE lower(label) = lower(%L)) ' ||
+            'FROM public.users u WHERE u.id = %L ' ||
+            'ON CONFLICT (user_id) DO NOTHING',
+            v_schema, p_user, v_schema, COALESCE(p_label, ''), p_user
+        );
+    END LOOP;
 END;
 $$;

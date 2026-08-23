@@ -33,9 +33,10 @@ class JpaPositionRepositoryAdapter(
     }
 
     /**
-     * No prior clearing statement: `member_positions.position_id` is a real foreign key with
-     * ON DELETE CASCADE, so assigned members become unassigned as part of this delete rather than
-     * by a separate write that could be skipped or fail in between. That guarantee is the point of
+     * No prior clearing statement: `member_profiles.position_id` is a real foreign key with
+     * ON DELETE SET NULL, so assigned members become unassigned as part of this delete rather than
+     * by a separate write that could be skipped or fail in between — and they keep their name,
+     * which a cascade would have deleted along with the row. That guarantee is the point of
      * moving positions into the tenant schema — before, the two tables sat in different schemas and
      * no foreign key could span them.
      */

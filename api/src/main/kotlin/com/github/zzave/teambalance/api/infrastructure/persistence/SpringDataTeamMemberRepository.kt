@@ -58,23 +58,34 @@ interface SpringDataTeamMemberRepository : JpaRepository<TeamMemberJpaEntity, UU
     )
     fun countActiveAdmins(@Param("teamId") teamId: UUID): Int
 
-    @Query("SELECT u.display_name FROM public.users u WHERE u.id = :userId", nativeQuery = true)
+    // The tenant's name for this member, falling back to the platform one (ADR-0025). The fallback is
+    // not decoration: a member seeded outside the backfill has no profile row yet, and answering NULL
+    // would blank a name that exists.
+    @Query(
+        value = """
+            SELECT COALESCE(mp.display_name, u.display_name)
+            FROM   public.users u
+            LEFT   JOIN member_profiles mp ON mp.user_id = u.id
+            WHERE  u.id = :userId
+        """,
+        nativeQuery = true,
+    )
     fun findDisplayNameByUserId(userId: UUID): String?
 
     @Query(
         value = """
             SELECT tm.user_id::text     AS userId,
-                   u.display_name       AS displayName,
+                   COALESCE(mp.display_name, u.display_name) AS displayName,
                    mp.position_id::text AS positionId,
                    p.label              AS position,
                    tm.role              AS permissionRole,
                    (tm.onboarded_at IS NOT NULL) AS onboarded
             FROM   public.team_members tm
             JOIN   public.users u ON u.id = tm.user_id
-            -- Unqualified on purpose (ADR-0025): these two resolve against the routed tenant schema,
-            -- so the summary reports the position this member holds *in this team* — which is what
-            -- multi-team membership (ADR-0023) made a distinction worth drawing.
-            LEFT   JOIN member_positions mp ON mp.user_id = tm.user_id
+            -- Unqualified on purpose (ADR-0025): these resolve against the routed tenant schema, so
+            -- the summary reports the name and position this member carries *in this team* — which
+            -- is what multi-team membership (ADR-0023) made a distinction worth drawing.
+            LEFT   JOIN member_profiles mp ON mp.user_id = tm.user_id
             LEFT   JOIN positions p ON p.id = mp.position_id
             WHERE  tm.user_id IN :userIds
             AND    tm.active = true
@@ -86,17 +97,17 @@ interface SpringDataTeamMemberRepository : JpaRepository<TeamMemberJpaEntity, UU
     @Query(
         value = """
             SELECT tm.user_id::text     AS userId,
-                   u.display_name       AS displayName,
+                   COALESCE(mp.display_name, u.display_name) AS displayName,
                    mp.position_id::text AS positionId,
                    p.label              AS position,
                    tm.role              AS permissionRole,
                    (tm.onboarded_at IS NOT NULL) AS onboarded
             FROM   public.team_members tm
             JOIN   public.users u ON u.id = tm.user_id
-            -- Unqualified on purpose (ADR-0025): these two resolve against the routed tenant schema,
-            -- so the summary reports the position this member holds *in this team* — which is what
-            -- multi-team membership (ADR-0023) made a distinction worth drawing.
-            LEFT   JOIN member_positions mp ON mp.user_id = tm.user_id
+            -- Unqualified on purpose (ADR-0025): these resolve against the routed tenant schema, so
+            -- the summary reports the name and position this member carries *in this team* — which
+            -- is what multi-team membership (ADR-0023) made a distinction worth drawing.
+            LEFT   JOIN member_profiles mp ON mp.user_id = tm.user_id
             LEFT   JOIN positions p ON p.id = mp.position_id
             WHERE  tm.team_id = :teamId
             AND    tm.active = true

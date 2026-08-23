@@ -1,6 +1,6 @@
 package com.github.zzave.teambalance.api.infrastructure.persistence
 
-import com.github.zzave.teambalance.api.infrastructure.persistence.entity.MemberPositionJpaEntity
+import com.github.zzave.teambalance.api.infrastructure.persistence.entity.MemberProfileJpaEntity
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.boot.test.context.TestConfiguration
 import org.springframework.context.annotation.Bean
@@ -15,7 +15,7 @@ const val FAULT_MEMBER_USER_ID = "c1000000-0000-0000-0000-0000000000f1"
  * between the aggregates the edit touches.
  *
  * Since ADR-0025 that is a stronger claim than it used to be: the display name is written to
- * `public.users` in the PLATFORM schema and the position to `member_positions` in the TENANT
+ * `public.team_members` in the PLATFORM schema and the profile to `member_profiles` in the TENANT
  * schema, so this now proves the edit is one transaction *across the schema boundary*, not merely
  * across two tables.
  *
@@ -24,11 +24,11 @@ const val FAULT_MEMBER_USER_ID = "c1000000-0000-0000-0000-0000000000f1"
  * [FaultInjectingEventRepository] does: the transaction is owned by the adapter, so a fault injected
  * *above* the adapter would fire outside its transaction and could never demonstrate a rollback.
  */
-class FaultInjectingMemberPositionRepository(
-    private val delegate: SpringDataMemberPositionRepository,
-) : SpringDataMemberPositionRepository by delegate {
+class FaultInjectingMemberProfileRepository(
+    private val delegate: SpringDataMemberProfileRepository,
+) : SpringDataMemberProfileRepository by delegate {
 
-    override fun <S : MemberPositionJpaEntity> save(entity: S): S {
+    override fun <S : MemberProfileJpaEntity> save(entity: S): S {
         if (entity.userId.toString() == FAULT_MEMBER_USER_ID) {
             throw IllegalArgumentException("injected persistence failure assigning a position to ${entity.userId}")
         }
@@ -52,7 +52,7 @@ class FaultInjectingMemberPositionRepository(
 class FaultInjectingTeamMemberRepositoryConfig {
     @Bean
     @Primary
-    fun faultInjectingMemberPositionRepository(
-        @Qualifier("springDataMemberPositionRepository") delegate: SpringDataMemberPositionRepository,
-    ): SpringDataMemberPositionRepository = FaultInjectingMemberPositionRepository(delegate)
+    fun faultInjectingMemberProfileRepository(
+        @Qualifier("springDataMemberProfileRepository") delegate: SpringDataMemberProfileRepository,
+    ): SpringDataMemberProfileRepository = FaultInjectingMemberProfileRepository(delegate)
 }

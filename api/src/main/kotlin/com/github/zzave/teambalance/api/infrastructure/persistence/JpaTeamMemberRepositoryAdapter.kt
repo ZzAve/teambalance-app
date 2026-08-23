@@ -10,7 +10,7 @@ import com.github.zzave.teambalance.api.domain.model.TeamMember
 import com.github.zzave.teambalance.api.domain.model.TenantRouting
 import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
-import com.github.zzave.teambalance.api.infrastructure.persistence.entity.MemberPositionJpaEntity
+import com.github.zzave.teambalance.api.infrastructure.persistence.entity.MemberProfileJpaEntity
 import com.github.zzave.teambalance.api.infrastructure.persistence.entity.TeamMemberJpaEntity
 import org.slf4j.LoggerFactory
 import org.springframework.dao.DataIntegrityViolationException
@@ -27,7 +27,7 @@ import java.util.UUID
 class JpaTeamMemberRepositoryAdapter(
     private val jpaRepository: SpringDataTeamMemberRepository,
     private val userJpaRepository: SpringDataUserRepository,
-    private val memberPositionRepository: SpringDataMemberPositionRepository,
+    private val memberProfileRepository: SpringDataMemberProfileRepository,
 ) : TeamMemberRepository {
     private val logger = LoggerFactory.getLogger(JpaTeamMemberRepositoryAdapter::class.java)
 
@@ -80,26 +80,34 @@ class JpaTeamMemberRepositoryAdapter(
     }
 
     /**
-     * The assignment lives in the tenant's `member_positions` (ADR-0025), so it is scoped by the
+     * The assignment lives in the tenant's `member_profiles` (ADR-0025), so it is scoped by the
      * routed schema and [teamId] no longer selects the row — it stays in the signature because the
      * port is a team-scoped contract and callers authorize against it.
      */
     @Transactional
     override fun assignPosition(teamId: TeamId, userId: UserId, positionId: PositionId?) {
-        writeAssignment(userId, positionId)
+        writeProfile(userId, displayName = null, positionId = positionId)
     }
 
-    // One place for the tenant-side assignment write, shared by assignPosition and applyMemberEdit so
-    // the single-field path and the whole-member path cannot drift. Absence of a row IS "unassigned".
-    private fun writeAssignment(userId: UserId, positionId: PositionId?) {
-        if (positionId == null) {
-            if (memberPositionRepository.existsById(userId.value)) {
-                memberPositionRepository.deleteById(userId.value)
-            }
-            return
-        }
-        memberPositionRepository.save(
-            MemberPositionJpaEntity(userId = userId.value, positionId = positionId.value),
+    /**
+     * One place for the tenant-side profile write, shared by the single-field and whole-member paths
+     * so they cannot drift.
+     *
+     * The position is authoritative on both paths (null clears it); [displayName] is optional, since
+     * assignPosition must not blank a name it was never given. A member with no profile row yet gets
+     * one, seeded from the platform name — the only moment that column is read for this purpose.
+     */
+    private fun writeProfile(userId: UserId, displayName: DisplayName?, positionId: PositionId?) {
+        val existing = memberProfileRepository.findById(userId.value).orElse(null)
+        val name = displayName?.value
+            ?: existing?.displayName
+            ?: userJpaRepository.findById(userId.value).map { it.displayName }.orElse("")
+        memberProfileRepository.save(
+            MemberProfileJpaEntity(
+                userId = userId.value,
+                displayName = name,
+                positionId = positionId?.value,
+            ),
         )
     }
 
@@ -112,9 +120,11 @@ class JpaTeamMemberRepositoryAdapter(
         positionId: PositionId?,
         markOnboardedAt: Instant?,
     ) {
-        userJpaRepository.updateDisplayName(userId.value, displayName.value)
+        // The platform name is deliberately NOT written here (ADR-0025): it is the teamless fallback
+        // and the onboarding seed, and a team-scoped edit updating it is exactly the cross-team
+        // rename that multi-team membership turned into a bug.
         jpaRepository.updateRole(teamId.value, userId.value, role.name)
-        writeAssignment(userId, positionId)
+        writeProfile(userId, displayName = displayName, positionId = positionId)
         if (markOnboardedAt != null) {
             jpaRepository.markOnboarded(teamId.value, userId.value, markOnboardedAt.atOffset(ZoneOffset.UTC))
         }

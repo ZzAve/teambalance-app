@@ -19,21 +19,27 @@ CREATE TABLE positions (
 
 CREATE UNIQUE INDEX uq_positions_label ON positions (lower(label));
 
--- One position per member, matching what team_members.position_id expressed: a nullable single
--- value, here modelled as the row's presence. user_id carries no foreign key — it names a
--- public.users row, and identity is the one thing that is genuinely platform-wide. That is the
--- residual cross-schema edge after this move, and it points the right way.
+-- One row per member per team, holding the profile that belongs to THIS team: what they are called
+-- here and what they play here. Both were platform columns before — display_name on public.users and
+-- position_id on public.team_members — which under ADR-0023's multi-team membership meant renaming
+-- yourself in one team renamed you in every team you belong to. That is a live defect, not a
+-- hypothetical one, and splitting the row is what fixes it.
 --
--- ON DELETE CASCADE replaces application code: ADR-0013 says deleting a position in use reassigns
--- its members to NULL, which was a PositionService responsibility precisely because no foreign key
--- could span the schemas. Now the database does it.
-CREATE TABLE member_positions (
-    user_id     UUID PRIMARY KEY,
-    position_id UUID NOT NULL REFERENCES positions(id) ON DELETE CASCADE,
-    assigned_at TIMESTAMPTZ NOT NULL DEFAULT now()
+-- user_id carries no foreign key: it names a public.users row, and identity is the one genuinely
+-- platform-wide thing. That is the residual cross-schema edge after this move, and it points from
+-- tenant data at the platform rather than the other way round.
+--
+-- ON DELETE SET NULL, not CASCADE: deleting a position must leave the member — and their name — in
+-- place and merely unassign them (ADR-0013), which was a PositionService responsibility precisely
+-- because no foreign key could span the schemas. Cascading here would delete the whole profile.
+CREATE TABLE member_profiles (
+    user_id      UUID PRIMARY KEY,
+    display_name VARCHAR(100) NOT NULL,
+    position_id  UUID NULL REFERENCES positions(id) ON DELETE SET NULL,
+    updated_at   TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_member_positions_position ON member_positions (position_id);
+CREATE INDEX idx_member_profiles_position ON member_profiles (position_id);
 
 -- Backfill from the platform tables for THIS tenant only. current_schema() identifies the team via
 -- public.teams.schema_name, which is how every tenant schema is addressed.
@@ -51,16 +57,19 @@ JOIN   public.teams t ON t.id = tp.team_id
 WHERE  t.schema_name = current_schema()
 ON CONFLICT DO NOTHING;
 
--- Joined to `positions` rather than trusting tm.position_id: the insert above can legitimately skip
--- a row (a label already present in this schema keeps the id it already had), and copying an
--- assignment whose position was skipped would point at nothing. The foreign key would reject it —
--- which is how this was found — but the right answer is to carry over only assignments whose
--- position actually landed here, exactly as a target naming an absent position is ignored.
-INSERT INTO member_positions (user_id, position_id)
-SELECT tm.user_id, tm.position_id
+-- The profile carries the name each member already has, so nobody is renamed by this migration; the
+-- platform copy stays behind as the teamless fallback.
+--
+-- The position is LEFT joined to `positions` rather than trusting tm.position_id: the insert above
+-- can legitimately skip a row (a label already present in this schema keeps the id it already had),
+-- and carrying an assignment whose position was skipped would point at nothing. A plain join would
+-- instead drop the member's whole profile, which is why it is an outer one — they keep their name
+-- and simply arrive unassigned.
+INSERT INTO member_profiles (user_id, display_name, position_id)
+SELECT tm.user_id, u.display_name, p.id
 FROM   public.team_members tm
 JOIN   public.teams t ON t.id = tm.team_id
-JOIN   positions p ON p.id = tm.position_id
+JOIN   public.users u ON u.id = tm.user_id
+LEFT   JOIN positions p ON p.id = tm.position_id
 WHERE  t.schema_name = current_schema()
-  AND  tm.position_id IS NOT NULL
 ON CONFLICT (user_id) DO NOTHING;

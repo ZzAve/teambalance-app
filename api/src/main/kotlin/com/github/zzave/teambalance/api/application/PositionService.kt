@@ -41,7 +41,7 @@ class PositionService(
 
     /**
      * Admin-only. Deletes a position; members assigned to it are silently reset to unassigned —
-     * now by the member_positions ON DELETE CASCADE rather than by a prior clearing write.
+     * now by the member_profiles ON DELETE SET NULL rather than by a prior clearing write.
      */
     fun deletePosition(callerId: UserId, teamId: TeamId, id: PositionId) {
         authorizationService.requireAdmin(callerId, teamId)

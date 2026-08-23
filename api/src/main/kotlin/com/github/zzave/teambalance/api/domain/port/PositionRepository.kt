@@ -21,8 +21,8 @@ interface PositionRepository {
     fun rename(id: PositionId, label: PositionLabel): Position
 
     /**
-     * Deletes a position. Members assigned to it become unassigned by the `member_positions`
-     * foreign key's ON DELETE CASCADE, rather than by a prior clearing statement.
+     * Deletes a position. Members assigned to it become unassigned by the `member_profiles`
+     * foreign key's ON DELETE SET NULL, rather than by a prior clearing statement.
      */
     fun delete(id: PositionId)
 

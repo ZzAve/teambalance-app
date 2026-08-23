@@ -43,7 +43,7 @@ class PositionControllerIT : TeamBalanceIT() {
         // platform tables would leave a previous test's labels in place and every create would 409.
         jdbcTemplate.execute("DELETE FROM public.team_members WHERE team_id = '$TEAM_ID'::uuid")
         jdbcTemplate.execute("DELETE FROM public.team_positions WHERE team_id = '$TEAM_ID'::uuid")
-        jdbcTemplate.execute("DELETE FROM $TEAM_SCHEMA.member_positions")
+        jdbcTemplate.execute("DELETE FROM $TEAM_SCHEMA.member_profiles")
         jdbcTemplate.execute("DELETE FROM $TEAM_SCHEMA.positions")
         jdbcTemplate.execute(
             "INSERT INTO public.users (id, email, display_name) " +
@@ -161,7 +161,9 @@ class PositionControllerIT : TeamBalanceIT() {
             // Assign the position to the plain member, then delete it. The assignment is a tenant
             // row since ADR-0025 — the position was created through the API and so exists only here.
             jdbcTemplate.update(
-                "INSERT INTO $TEAM_SCHEMA.member_positions (user_id, position_id) VALUES (?::uuid, ?::uuid)",
+                "INSERT INTO $TEAM_SCHEMA.member_profiles (user_id, display_name, position_id) " +
+                    "VALUES (?::uuid, 'Pos Member', ?::uuid) " +
+                    "ON CONFLICT (user_id) DO UPDATE SET position_id = EXCLUDED.position_id",
                 MEMBER_USER_ID, id,
             )
 

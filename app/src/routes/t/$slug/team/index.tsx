@@ -1,6 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { MemberRoster } from '@features/manage-members/ui/MemberRoster'
 import { GenerateInviteDialog } from '@features/generate-invite/ui/GenerateInviteDialog'
+import { ActAsRecords } from '@features/act-as/ui/ActAsRecords'
 import { TeamHeader } from '@widgets/team-header/ui/TeamHeader'
 import { useUserStore } from '@shared/stores/user-store'
 
@@ -20,6 +21,9 @@ function TeamPage() {
     <div className="flex flex-col gap-6">
       <TeamHeader isAdmin={isAdmin} actions={<GenerateInviteDialog />} />
       <MemberRoster canManage={false} />
+      {/* Visible to every member, not gated behind /team/settings: the point of the Act-as Record is
+          that the TEAM can read it, not that its admin can (ADR-0024 §4). */}
+      <ActAsRecords />
     </div>
   )
 }

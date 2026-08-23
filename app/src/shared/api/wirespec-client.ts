@@ -1,6 +1,7 @@
 import { Wirespec } from './generated/Wirespec'
 import { client } from './generated/client'
 import { redirectToLogin, shouldRedirectToLogin } from './auth-redirect'
+import { isActAsExpired, returnToConsole } from './act-as-redirect'
 
 // Best-effort read of the `code` discriminator from an error body (GlobalExceptionHandler).
 const errorCode = (body: string): string | undefined => {
@@ -45,9 +46,15 @@ const handler = async (req: Wirespec.RawRequest): Promise<Wirespec.RawResponse> 
 
   const text = res.status === 204 ? '' : await res.text()
 
-  // A teamless authenticated user (403 NO_TEAM_MEMBERSHIP) belongs on the login/onboarding path,
-  // not on a data screen — bounce them there rather than surfacing a raw error.
-  if (shouldRedirectToLogin({ status: res.status, code: errorCode(text), currentPath: window.location.pathname })) {
+  const code = errorCode(text)
+
+  // A lapsed act-as is checked BEFORE the teamless bounce: a Platform Admin whose box ran out is
+  // teamless by construction (ADR-0024 §3), and belongs on the console, not on the login screen.
+  if (isActAsExpired({ status: res.status, code })) {
+    returnToConsole()
+  } else if (shouldRedirectToLogin({ status: res.status, code, currentPath: window.location.pathname })) {
+    // A teamless authenticated user (403 NO_TEAM_MEMBERSHIP) belongs on the login/onboarding path,
+    // not on a data screen — bounce them there rather than surfacing a raw error.
     redirectToLogin()
   }
 

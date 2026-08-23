@@ -62,11 +62,12 @@ class ActAsServiceTest : FunSpec() {
                 val f = fixture()
                 val dames5 = f.directory.addTeam("Dames 5", "dames-5")
 
-                val grant = f.service.enter(operator, dames5)
+                val entered = f.service.enter(operator, dames5)
 
-                grant.teamId shouldBe dames5
-                grant.userId shouldBe operator
-                grant.expiresAt shouldBe start.plus(ActAs.ACT_AS_TTL)
+                entered.team.name.value shouldBe "Dames 5"
+                entered.actAs.teamId shouldBe dames5
+                entered.actAs.userId shouldBe operator
+                entered.actAs.expiresAt shouldBe start.plus(ActAs.ACT_AS_TTL)
             }
 
             // The whole security story, invariant 2: the roster, the attendance denominator, the
@@ -117,8 +118,8 @@ class ActAsServiceTest : FunSpec() {
                 f.clock.advance(Duration.ofMinutes(5))
                 val second = f.service.enter(operator, heren3)
 
-                f.episodes.findOpenFor(operator)?.id shouldBe second.id
-                f.episodes.all().single { it.id == first.id }.exitedAt shouldBe f.clock.now
+                f.episodes.findOpenFor(operator)?.id shouldBe second.actAs.id
+                f.episodes.all().single { it.id == first.actAs.id }.exitedAt shouldBe f.clock.now
             }
         }
 
@@ -184,7 +185,7 @@ class ActAsServiceTest : FunSpec() {
 
                 f.service.resolve(operator)
 
-                f.episodes.findOpenFor(operator)?.expiresAt shouldBe entered.expiresAt
+                f.episodes.findOpenFor(operator)?.expiresAt shouldBe entered.actAs.expiresAt
             }
         }
 

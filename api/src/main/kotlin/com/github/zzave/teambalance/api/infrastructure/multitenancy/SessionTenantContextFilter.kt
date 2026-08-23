@@ -9,6 +9,7 @@ import com.github.zzave.teambalance.api.domain.port.CurrentUserGateway
 import jakarta.servlet.FilterChain
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
+import jakarta.servlet.http.HttpSession
 import org.springframework.core.Ordered
 import org.springframework.core.annotation.Order
 import org.springframework.stereotype.Component
@@ -66,19 +67,21 @@ class SessionTenantContextFilter(
      */
     private fun resolveRouting(request: HttpServletRequest, userId: UserId): TenantRouting? {
         val session = request.getSession(false)
-        when (val actAs = actAsService.resolve(userId)) {
+        return when (val actAs = actAsService.resolve(userId)) {
             is ActAsResolution.Active -> {
                 ActAsContext.set(actAs.actAs)
-                return actAs.routing
+                actAs.routing
             }
             ActAsResolution.Lapsed -> {
                 ActAsContext.markLapsed()
                 TenantRoutingSession.clear(session)
-                return null
+                null
             }
-            ActAsResolution.None -> Unit
+            ActAsResolution.None -> memoized(session, userId)
         }
-        TenantRoutingSession.read(session)?.let { return it }
-        return activeTeamService.resolveLanding(userId)?.also { TenantRoutingSession.write(session, it) }
     }
+
+    private fun memoized(session: HttpSession?, userId: UserId): TenantRouting? =
+        TenantRoutingSession.read(session)
+            ?: activeTeamService.resolveLanding(userId)?.also { TenantRoutingSession.write(session, it) }
 }

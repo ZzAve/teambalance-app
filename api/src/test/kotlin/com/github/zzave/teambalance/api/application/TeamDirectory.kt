@@ -84,6 +84,8 @@ internal class TeamDirectory {
         override fun findBySlug(slug: Slug): TeamSummary? =
             teams.values.firstOrNull { it.summary.slug == slug }?.summary
 
+        override fun findById(teamId: TeamId): TeamSummary? = teams[teamId]?.summary
+
         // Deliberately blind to `memberships` — the point of the unchecked lookup (ADR-0024).
         override fun findTenantRoutingUnchecked(teamId: TeamId): TenantRouting? = routing(teamId)
 
@@ -196,9 +198,11 @@ internal fun TeamDirectory.actAsService(
     actAsRepository: ActAsRepository,
     clock: java.time.Clock,
     platformAdmins: Set<UserId>,
+    actAsGateway: ActAsGateway = FakeActAsGateway(),
 ) = ActAsService(
     platformAdminGateway = AllowlistedPlatformAdmins(platformAdmins),
     actAsRepository = actAsRepository,
+    actAsGateway = actAsGateway,
     teamRepository = teamRepository(),
     tenantRoutingGateway = routingGateway,
     clock = clock,

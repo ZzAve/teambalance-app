@@ -53,6 +53,10 @@ class JdbcTeamRepositoryAdapter(
             slug.value,
         ).firstOrNull()
 
+    override fun findById(teamId: TeamId): TeamSummary? =
+        jdbcTemplate.query("SELECT t.id, t.name, t.slug FROM public.teams t WHERE t.id = ?", teamSummaryRow, teamId.value)
+            .firstOrNull()
+
     // No `team_members` in the FROM clause at all — the membership check is not omitted here, it is
     // inexpressible, which is what makes the name honest. Act-as only (ADR-0024); see the port.
     override fun findTenantRoutingUnchecked(teamId: TeamId): TenantRouting? =

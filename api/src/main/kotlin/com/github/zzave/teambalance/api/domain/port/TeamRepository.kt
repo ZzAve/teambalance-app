@@ -28,6 +28,9 @@ interface TeamRepository {
     /** The team at this slug, regardless of who is asking — membership is a separate check. */
     fun findBySlug(slug: Slug): TeamSummary?
 
+    /** The team's public identity, for naming a Team the caller is already authorized for. */
+    fun findById(teamId: TeamId): TeamSummary?
+
     /**
      * Routing for [teamId] with **no membership check at all** — the one lookup that can reach a
      * tenant its caller does not belong to.

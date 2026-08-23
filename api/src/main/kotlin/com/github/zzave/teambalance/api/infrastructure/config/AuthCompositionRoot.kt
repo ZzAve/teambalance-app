@@ -77,12 +77,14 @@ class AuthCompositionRoot {
     fun actAsService(
         platformAdminGateway: PlatformAdminGateway,
         actAsRepository: ActAsRepository,
+        actAsGateway: ActAsGateway,
         teamRepository: TeamRepository,
         tenantRoutingGateway: TenantRoutingGateway,
         clock: Clock,
     ) = ActAsService(
         platformAdminGateway = platformAdminGateway,
         actAsRepository = actAsRepository,
+        actAsGateway = actAsGateway,
         teamRepository = teamRepository,
         tenantRoutingGateway = tenantRoutingGateway,
         clock = clock,

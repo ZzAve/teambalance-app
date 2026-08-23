@@ -2,19 +2,20 @@ import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router'
 import { currentMemberQueryOptions, useCurrentMember, useCompleteOnboarding, MemberUpdateError } from '@shared/api/members'
 import { usePositions } from '@shared/api/positions'
 import { queryClient } from '@shared/api/query-client'
+import { useTeamRoutes, teamRoutes } from '@shared/lib/team-routes'
 import { EditProfileForm } from '@features/edit-profile/ui/EditProfileForm'
 
-export const Route = createFileRoute('/get-started/')({
+export const Route = createFileRoute('/t/$slug/get-started/')({
   // A member who has already onboarded has no business here — bounce them home before render.
   // Reads the same cached /members/me the root gate primed (race-free, like the /members gate).
-  beforeLoad: async () => {
+  beforeLoad: async ({ params }) => {
     let member = null
     try {
       member = await queryClient.ensureQueryData(currentMemberQueryOptions)
     } catch {
       // Session/member unconfirmed — let the root guard handle it; don't block this screen.
     }
-    if (member?.onboarded) throw redirect({ to: '/' })
+    if (member?.onboarded) throw redirect({ to: teamRoutes(params.slug).events })
   },
   component: GetStartedPage,
 })
@@ -27,6 +28,7 @@ export const Route = createFileRoute('/get-started/')({
  */
 function GetStartedPage() {
   const navigate = useNavigate()
+  const routes = useTeamRoutes()
   const { data: member, isLoading, error } = useCurrentMember()
   const { data: positions } = usePositions()
   const completeOnboarding = useCompleteOnboarding()
@@ -54,7 +56,7 @@ function GetStartedPage() {
             onSubmit={(name, positionId) =>
               completeOnboarding.mutate(
                 { displayName: name, role: member.role, positionId },
-                { onSuccess: () => navigate({ to: '/' }) },
+                { onSuccess: () => navigate({ to: routes.events }) },
               )
             }
           />

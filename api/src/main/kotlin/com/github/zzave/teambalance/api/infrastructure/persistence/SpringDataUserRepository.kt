@@ -13,4 +13,11 @@ interface SpringDataUserRepository : JpaRepository<UserJpaEntity, UUID> {
     @Modifying
     @Query("UPDATE public.users SET display_name = :displayName WHERE id = :id", nativeQuery = true)
     fun updateDisplayName(@Param("id") id: UUID, @Param("displayName") displayName: String): Int
+
+    @Query("SELECT u.last_active_team_id FROM public.users u WHERE u.id = :id", nativeQuery = true)
+    fun findLastActiveTeamId(@Param("id") id: UUID): UUID?
+
+    @Modifying
+    @Query("UPDATE public.users SET last_active_team_id = :teamId WHERE id = :id", nativeQuery = true)
+    fun updateLastActiveTeamId(@Param("id") id: UUID, @Param("teamId") teamId: UUID): Int
 }

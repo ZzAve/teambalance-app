@@ -3,6 +3,7 @@ import { Check, Clock, MapPin, X } from 'lucide-react'
 import type { Event } from '@shared/api/events'
 import type { AttendanceState } from '@features/attendance-toggle/ui/AttendanceToggle'
 import { heroCountdown } from '../lib/countdown'
+import { useTeamRoutes } from '@shared/lib/team-routes'
 
 interface NextEventHeroViewProps {
   event: Event
@@ -39,6 +40,7 @@ export function NextEventHeroView({
   onRespond,
   now = new Date(),
 }: NextEventHeroViewProps) {
+  const routes = useTeamRoutes()
   const date = new Date(event.startTime)
   const countdown = heroCountdown(event.startTime, now)
   const going = myState === 'ATTENDING'
@@ -85,8 +87,7 @@ export function NextEventHeroView({
             would navigate, and stay quiet over the controls, which are not part of it. The ring is
             inset so `overflow-hidden` can't clip it, and traces the real target — the whole card. */}
         <Link
-          to="/events/$eventId"
-          params={{ eventId: event.id }}
+          to={routes.event(event.id)}
           className="after:absolute after:inset-0 after:rounded-3xl after:bg-white/0 after:transition-colors after:duration-200 hover:underline hover:after:bg-white/[0.07] focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-inset focus-visible:after:ring-white"
         >
           {event.title}

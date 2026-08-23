@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { Link } from '@tanstack/react-router'
 import { Settings } from 'lucide-react'
+import { useTeamRoutes } from '@shared/lib/team-routes'
 
 interface TeamHeaderProps {
   /** Only admins get the entry into /team/settings; the page itself is read-only for everyone. */
@@ -19,6 +20,8 @@ interface TeamHeaderProps {
  * the role and supplies isAdmin and the admin actions.
  */
 export function TeamHeader({ isAdmin, actions }: TeamHeaderProps) {
+  const routes = useTeamRoutes()
+
   return (
     <div className="flex items-center justify-between">
       <h2 className="font-display text-2xl font-bold">Team</h2>
@@ -26,7 +29,7 @@ export function TeamHeader({ isAdmin, actions }: TeamHeaderProps) {
         <div className="flex items-center gap-2">
           {actions}
           <Link
-            to="/team/settings"
+            to={routes.teamSettings}
             aria-label="Team settings"
             className="rounded-full p-2 text-muted-foreground transition-colors hover:bg-blue/8 hover:text-foreground"
           >

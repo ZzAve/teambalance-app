@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link } from '@tanstack/react-router'
 import { ChevronDown, Repeat } from 'lucide-react'
 import type { SeriesPeek as SeriesPeekModel, SeriesPeekEntry } from '../lib/series-peek'
+import { useTeamRoutes } from '@shared/lib/team-routes'
 
 interface SeriesPeekProps {
   peek: SeriesPeekModel
@@ -12,6 +13,7 @@ function formatOccurrence(iso: string): string {
 }
 
 function Occurrence({ entry }: { entry: SeriesPeekEntry }) {
+  const routes = useTeamRoutes()
   const label = formatOccurrence(entry.startTime)
   const content = (
     <div
@@ -30,7 +32,7 @@ function Occurrence({ entry }: { entry: SeriesPeekEntry }) {
     </div>
   )
   // The current occurrence is the page you're on — the rest link to their own detail.
-  return entry.isCurrent ? content : <Link to="/events/$eventId" params={{ eventId: entry.id }}>{content}</Link>
+  return entry.isCurrent ? content : <Link to={routes.event(entry.id)}>{content}</Link>
 }
 
 /**

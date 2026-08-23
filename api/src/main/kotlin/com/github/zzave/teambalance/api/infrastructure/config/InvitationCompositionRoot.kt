@@ -1,5 +1,6 @@
 package com.github.zzave.teambalance.api.infrastructure.config
 
+import com.github.zzave.teambalance.api.application.ActiveTeamService
 import com.github.zzave.teambalance.api.application.AuthorizationService
 import com.github.zzave.teambalance.api.application.InvitationService
 import com.github.zzave.teambalance.api.domain.port.InvitationRepository
@@ -26,12 +27,14 @@ class InvitationCompositionRoot {
         invitationRepository: InvitationRepository,
         teamMemberRepository: TeamMemberRepository,
         authorizationService: AuthorizationService,
+        activeTeamService: ActiveTeamService,
         clock: Clock,
         @Value("\${teambalance.invitation.token-salt}") tokenSalt: String,
     ) = InvitationService(
         invitationRepository = invitationRepository,
         teamMemberRepository = teamMemberRepository,
         authorizationService = authorizationService,
+        activeTeamService = activeTeamService,
         clock = clock,
         tokenSalt = tokenSalt,
     )

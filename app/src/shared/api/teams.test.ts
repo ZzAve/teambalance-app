@@ -7,11 +7,8 @@ describe('toCreateTeamError', () => {
     expect(err.code).toBe('INVALID_CREATION_CODE')
   })
 
-  it('maps 409 ALREADY_IN_TEAM to a banner error', () => {
-    expect(toCreateTeamError(409, 'ALREADY_IN_TEAM').code).toBe('ALREADY_IN_TEAM')
-  })
-
-  it('maps any other 409 (backend TEAM_SLUG_TAKEN) to a slug-taken error', () => {
+  // ADR-0023 lifted ALREADY_IN_TEAM, so a 409 now means one thing: the slug is taken.
+  it('maps every 409 to a slug-taken error, the only conflict create-team has left', () => {
     expect(toCreateTeamError(409, 'TEAM_SLUG_TAKEN').code).toBe('SLUG_TAKEN')
     expect(toCreateTeamError(409, undefined).code).toBe('SLUG_TAKEN')
   })

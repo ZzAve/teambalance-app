@@ -7,6 +7,7 @@ import com.github.zzave.teambalance.api.domain.model.TeamName
 import com.github.zzave.teambalance.api.domain.model.TeamSummary
 import com.github.zzave.teambalance.api.domain.port.TeamRepository
 import org.springframework.jdbc.core.JdbcTemplate
+import org.springframework.jdbc.core.RowMapper
 import org.springframework.stereotype.Repository
 import java.util.UUID
 
@@ -33,18 +34,29 @@ class JdbcTeamRepositoryAdapter(
             slug.value,
         ) ?: false
 
-    override fun findByUserId(userId: UUID): TeamSummary? =
+    // A presentation order for the switcher, nothing more. `t.id` breaks ties because team names are
+    // deliberately not unique (ADR-0019 §2), so two Teams called "Heren 3" would otherwise reshuffle.
+    override fun findTeamsOf(userId: UUID): List<TeamSummary> =
         jdbcTemplate.query(
             "SELECT t.id, t.name, t.slug FROM public.teams t " +
                 "JOIN public.team_members tm ON tm.team_id = t.id " +
-                "WHERE tm.user_id = ? AND tm.active = true ORDER BY tm.team_id LIMIT 1",
-            { rs, _ ->
-                TeamSummary(
-                    id = TeamId(rs.getObject("id", UUID::class.java)),
-                    name = TeamName(rs.getString("name")),
-                    slug = Slug(rs.getString("slug")),
-                )
-            },
+                "WHERE tm.user_id = ? AND tm.active = true ORDER BY t.name, t.id",
+            teamSummaryRow,
             userId,
+        )
+
+    override fun findBySlug(slug: Slug): TeamSummary? =
+        jdbcTemplate.query(
+            "SELECT t.id, t.name, t.slug FROM public.teams t WHERE t.slug = ?",
+            teamSummaryRow,
+            slug.value,
         ).firstOrNull()
+
+    private val teamSummaryRow = RowMapper { rs, _ ->
+        TeamSummary(
+            id = TeamId(rs.getObject("id", UUID::class.java)),
+            name = TeamName(rs.getString("name")),
+            slug = Slug(rs.getString("slug")),
+        )
+    }
 }

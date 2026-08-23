@@ -21,17 +21,19 @@ interface TeamMemberRepository {
     /** The user's role on the team, or null if they have no active membership there. */
     fun findRole(teamId: TeamId, userId: UserId): Role?
 
-    /** The team the user actively belongs to, or null if they have no team (v1: one team per user). */
-    fun findTeamId(userId: UserId): TeamId?
+    /**
+     * Team id and schema for this team and this user, from ONE row. Null covers both "no such team"
+     * and "not yours", indistinguishably, so the team id space cannot be probed (ADR-0023 §1).
+     */
+    fun findTenantRouting(teamId: TeamId, userId: UserId): TenantRouting?
+
+    /** Null for none and for several: with several there is no defensible pick (ADR-0023 §3). */
+    fun findSoleTenantRouting(userId: UserId): TenantRouting?
 
     /**
-     * The user's tenant routing (team id + schema) resolved from ONE row, or null if they have no
-     * active team. Lets the login path pin both onto the session together so authenticated requests
-     * read them back instead of racing to memoize them. Null-safe for a teamless user.
+     * Joins the user to the team as a USER, whether or not they were a member before. No-op if they
+     * already are one. A previously removed member comes back as a USER, never at their old role.
      */
-    fun findTenantRouting(userId: UserId): TenantRouting?
-
-    /** Joins the user to the team as a USER. No-op if already an active member of this team. */
     fun addMember(teamId: TeamId, userId: UserId)
 
     /** Sets the permission [role] for an active member. */

@@ -1,12 +1,14 @@
 package com.github.zzave.teambalance.api.infrastructure.persistence
 
 import com.github.zzave.teambalance.api.domain.model.Email
+import com.github.zzave.teambalance.api.domain.model.TeamId
 import com.github.zzave.teambalance.api.domain.model.User
 import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.port.UserRepository
 import com.github.zzave.teambalance.api.infrastructure.persistence.mapper.externalize
 import com.github.zzave.teambalance.api.infrastructure.persistence.mapper.internalize
 import org.springframework.stereotype.Repository
+import org.springframework.transaction.annotation.Transactional
 
 @Repository
 class JpaUserRepositoryAdapter(
@@ -21,4 +23,14 @@ class JpaUserRepositoryAdapter(
 
     override fun save(user: User): User =
         jpaRepository.save(user.externalize()).internalize()
+
+    // A bare column rather than a UserJpaEntity field: keeping it off the entity stops a stale
+    // in-memory User from overwriting a switch made on another device.
+    override fun findLastActiveTeamId(userId: UserId): TeamId? =
+        jpaRepository.findLastActiveTeamId(userId.value)?.let(::TeamId)
+
+    @Transactional
+    override fun rememberActiveTeam(userId: UserId, teamId: TeamId) {
+        jpaRepository.updateLastActiveTeamId(userId.value, teamId.value)
+    }
 }

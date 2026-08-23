@@ -15,13 +15,16 @@ import type { AuthenticatedUser } from '@shared/api/auth'
 // verify rather than racing it with a slower background fetch.
 let session: AuthenticatedUser | null = null
 
+const TEAM = { id: 'team-1', name: 'Setpoint VT', slug: 'setpoint-vt' }
+
 const USER: AuthenticatedUser = {
   id: 'user-1',
   email: 'jan@example.com',
   displayName: 'Jan',
   role: 'USER',
-  // A member of a team, so the has-a-team gate passes and the flow lands on events (not /create-team).
-  team: { id: 'team-1', name: 'Setpoint VT', slug: 'setpoint-vt' },
+  // A Member with an Active Team, so the gate passes and `/` dispatches into that Team.
+  teams: [TEAM],
+  activeTeam: TEAM,
   isPlatformAdmin: false,
 }
 
@@ -34,8 +37,8 @@ const server = setupServer(
     return HttpResponse.json(USER)
   }),
   http.get('/api/auth/me', () => (session ? HttpResponse.json(session) : new HttpResponse(null, { status: 401 }))),
-  // The root onboarding gate reads /members/me; an onboarded member skips /get-started and lands on
-  // events, keeping this test focused on the verify/auth-routing seam.
+  // The team route's onboarding gate reads /members/me; an onboarded member skips get-started and
+  // lands on events, keeping this test focused on the verify/auth-routing seam.
   http.get('/api/members/me', () =>
     HttpResponse.json({ userId: 'user-1', displayName: 'Jan', role: 'USER', onboarded: true }),
   ),
@@ -63,7 +66,8 @@ describe('magic-link verification', () => {
   it('establishes the session and lands on events, without the guard bouncing back to login', async () => {
     const router = renderAppAt('/auth/verify?token=valid-token')
 
-    await waitFor(() => expect(router.state.location.pathname).toBe('/'), { timeout: 5000 })
+    // `/` is a dispatcher: it resolves the Active Team and redirects into `/t/:slug`.
+    await waitFor(() => expect(router.state.location.pathname).toBe('/t/setpoint-vt'), { timeout: 5000 })
     expect(await screen.findByRole('heading', { name: 'Events' }, { timeout: 5000 })).toBeInTheDocument()
     expect(screen.queryByText(/link expired/i)).not.toBeInTheDocument()
   })

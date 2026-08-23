@@ -24,4 +24,23 @@ describe('shouldRedirectToLogin', () => {
       shouldRedirectToLogin({ status: 403, code: NO_TEAM_MEMBERSHIP_CODE, currentPath: '/login' }),
     ).toBe(false)
   })
+
+  // This 403 no longer means "teamless" alone — a Member of several Teams gets it before one is
+  // Active — so picking a Team must not log you out on the way to picking it.
+  it.each(['/select-team', '/select-team/', '/onboarding', '/create-team'])(
+    'does NOT redirect from %s, which owns the no-Active-Team question itself',
+    (currentPath) => {
+      expect(shouldRedirectToLogin({ status: 403, code: NO_TEAM_MEMBERSHIP_CODE, currentPath })).toBe(false)
+    },
+  )
+
+  it('still redirects from a team-scoped screen whose tenant could not be resolved', () => {
+    expect(
+      shouldRedirectToLogin({
+        status: 403,
+        code: NO_TEAM_MEMBERSHIP_CODE,
+        currentPath: '/t/setpoint-vt/team',
+      }),
+    ).toBe(true)
+  })
 })

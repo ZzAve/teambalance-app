@@ -4,9 +4,9 @@
 - Date: 2026-08-03
 - Amends: [ADR-0001](0001-product-ambition-hobby-tool-built-to-grow.md) (team creation is back-office in v1)
 - Relates to: [ADR-0008](0008-auth-magic-link-and-shareable-invite.md) (magic-link auth, invite onboarding), [ADR-0013](0013-member-profile-position-role-management.md) (member/position/role)
-- Amended by: [ADR-0021](0021-active-team-explicit-tenant-resolution.md) (§3's one-team-per-user guard
+- Amended by: [ADR-0023](0023-active-team-explicit-tenant-resolution.md) (§3's one-team-per-user guard
   lifted; §6's singular `team` on `/auth/me` becomes `teams[]` + `activeTeam`), and
-  [ADR-0022](0022-platform-admin-act-as.md) (§5's "creator becomes founding admin" no longer holds when
+  [ADR-0024](0024-platform-admin-act-as.md) (§5's "creator becomes founding admin" no longer holds when
   a Platform Admin creates a team memberless)
 
 > Numbering note: the originating PRD (#154) named this ADR-0015. By the time it was written, 0015
@@ -154,7 +154,7 @@ flows). Net e2e count unchanged.
   docker-Flyway step is retired.
 - **One-team-per-user** matches routing's `ORDER BY … LIMIT 1`. Multi-team membership + a team
   switcher were deferred to **#143** and are now decided in
-  [ADR-0021](0021-active-team-explicit-tenant-resolution.md) — which also records that this guard never
+  [ADR-0023](0023-active-team-explicit-tenant-resolution.md) — which also records that this guard never
   actually closed the hole: it lives only in `createTeam`, while the invite path (`addMember`) has
   always been able to create a second membership. Public/www marketing signup + a resetting demo team are **#152**.
 - **Boot cost rises slightly** (tenant migrations run at startup). Kept cheap by idempotency, but see

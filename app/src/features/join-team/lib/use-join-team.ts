@@ -7,11 +7,12 @@ const INVALID_OR_EXPIRED =
 const GENERIC = 'Something went wrong, try again.'
 
 /**
- * Thin wiring over useAcceptInvitation for the /onboarding/join route: on success, invalidates
- * /auth/me (same pattern as /invite/$token.tsx) and navigates home — the root gate then carries the
- * now-teamed user on to /get-started. useAcceptInvitation throws a single generic Error for both an
- * invalid and an expired token (the accept endpoint returns 404 for both, deliberately, so there's no
- * oracle); anything else (network failure, unexpected status) is treated as the generic failure.
+ * Thin wiring over useAcceptInvitation for /onboarding/join. Accepting sets the Active Team server
+ * side (ADR-0023 §4), so `/` lands them in the Team they joined; the cache is reset because a joiner
+ * may have come from another tenant.
+ *
+ * useAcceptInvitation throws one generic Error for invalid and expired alike — the accept endpoint
+ * returns 404 for both deliberately, so there is no oracle.
  */
 export function useJoinTeam() {
   const client = useQueryClient()
@@ -21,7 +22,7 @@ export function useJoinTeam() {
   const join = (token: string) => {
     acceptInvitation.mutate(token, {
       onSuccess: async () => {
-        await client.invalidateQueries({ queryKey: ['auth', 'me'] })
+        await client.resetQueries()
         navigate({ to: '/' })
       },
     })

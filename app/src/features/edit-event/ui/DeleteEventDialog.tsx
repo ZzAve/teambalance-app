@@ -11,6 +11,7 @@ import {
 import { Button } from '@shared/ui/button'
 import { useDeleteEvent, type Event } from '@shared/api/events'
 import { DeleteEventDialogView } from './DeleteEventDialogView'
+import { useTeamRoutes } from '@shared/lib/team-routes'
 
 interface DeleteEventDialogProps {
   eventId: string
@@ -29,6 +30,7 @@ interface DeleteEventDialogProps {
 export function DeleteEventDialog({ eventId, title, siblings = [] }: DeleteEventDialogProps) {
   const [open, setOpen] = useState(false)
   const navigate = useNavigate()
+  const routes = useTeamRoutes()
   const deleteEvent = useDeleteEvent()
 
   const isSeries = siblings.length > 1
@@ -55,7 +57,9 @@ export function DeleteEventDialog({ eventId, title, siblings = [] }: DeleteEvent
           siblings={siblings}
           isPending={deleteEvent.isPending}
           isError={deleteEvent.isError}
-          onDelete={(scope) => deleteEvent.mutate({ id: eventId, scope }, { onSuccess: () => navigate({ to: '/' }) })}
+          onDelete={(scope) =>
+            deleteEvent.mutate({ id: eventId, scope }, { onSuccess: () => navigate({ to: routes.events }) })
+          }
           onCancel={() => setOpen(false)}
         />
       </DialogContent>

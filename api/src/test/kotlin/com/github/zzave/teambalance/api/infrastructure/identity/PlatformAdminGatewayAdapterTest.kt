@@ -4,6 +4,7 @@ import com.github.zzave.teambalance.api.domain.exception.NotPlatformAdminExcepti
 import com.github.zzave.teambalance.api.domain.model.DisplayName
 import com.github.zzave.teambalance.api.domain.model.Email
 import com.github.zzave.teambalance.api.domain.model.PlatformAdminAllowlist
+import com.github.zzave.teambalance.api.domain.model.TeamId
 import com.github.zzave.teambalance.api.domain.model.User
 import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.port.UserRepository
@@ -17,6 +18,8 @@ private class FakeUsers(private val byId: Map<UUID, User>) : UserRepository {
     override fun findById(id: UserId): User? = byId[id.value]
     override fun findByEmail(email: Email): User? = byId.values.firstOrNull { it.email == email }
     override fun save(user: User): User = user
+    override fun findLastActiveTeamId(userId: UserId): TeamId? = null
+    override fun rememberActiveTeam(userId: UserId, teamId: TeamId) = Unit
 }
 
 class PlatformAdminGatewayAdapterTest : FunSpec() {

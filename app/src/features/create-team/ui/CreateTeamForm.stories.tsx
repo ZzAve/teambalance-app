@@ -86,11 +86,12 @@ export const NameOrSlugInvalid: Story = {
   },
 }
 
-export const AlreadyInTeam: Story = {
-  args: { error: new CreateTeamError('ALREADY_IN_TEAM', "You're already on a team.") },
+// GENERIC is the only error with nowhere better to go than a banner, now that ADR-0023 lifted
+// ALREADY_IN_TEAM — so this story keeps that slot covered.
+export const GenericFailure: Story = {
+  args: { error: new CreateTeamError('GENERIC', 'Something went wrong creating your team. Please try again.') },
   play: async ({ canvas }) => {
-    // A banner (role=alert), not a field error — the container also redirects the user into their team.
-    await expect(canvas.getByRole('alert')).toHaveTextContent("You're already on a team.")
+    await expect(canvas.getByRole('alert')).toHaveTextContent('Something went wrong creating your team.')
   },
 }
 

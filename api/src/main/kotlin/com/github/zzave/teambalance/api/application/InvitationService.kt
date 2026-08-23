@@ -22,6 +22,7 @@ class InvitationService(
     private val invitationRepository: InvitationRepository,
     private val teamMemberRepository: TeamMemberRepository,
     private val authorizationService: AuthorizationService,
+    private val activeTeamService: ActiveTeamService,
     private val clock: Clock,
     // App-wide secret mixed into the token hash. Read from teambalance.invitation.token-salt by the
     // composition root — INVITATION_TOKEN_SALT in live environments (see application.yml), a
@@ -55,10 +56,10 @@ class InvitationService(
     }
 
     /**
-     * Joins the presenting user to the invitation's team. Returns null for an unknown or expired
-     * token (rotated/revoked tokens will read the same way once #38 lands) so the controller can
-     * answer with a plain 404 — no distinction is made between "never existed" and "expired" to
-     * avoid leaking which is the case.
+     * Joins the presenting user to the invitation's team and makes it their Active Team, so a joiner
+     * who was already a Member elsewhere lands where they just accepted (ADR-0023 §4).
+     *
+     * Returns null for an unknown or expired token — no distinction, to avoid leaking which it is.
      */
     fun acceptInvitation(token: String, userId: UserId): TeamId? {
         val now = Instant.now(clock)
@@ -66,6 +67,7 @@ class InvitationService(
             ?.takeIf { it.expiresAt.isAfter(now) }
             ?: return null
         teamMemberRepository.addMember(invitation.teamId, userId)
+        activeTeamService.activate(userId, invitation.teamId)
         return invitation.teamId
     }
 

@@ -14,11 +14,14 @@ import javax.sql.DataSource
 /**
  * E2e-profile-only bootstrap for full-stack Playwright runs.
  *
- * Provisions the `team_test` tenant schema through the real code path
+ * Provisions the tenant schemas through the real code path
  * ([TenantProvisioningGateway.provisionTenant]) and applies the pure-INSERT seed fixture
- * (known team + user + membership). Runs as an [ApplicationRunner] so it is guaranteed to
+ * (known teams + users + memberships). Runs as an [ApplicationRunner] so it is guaranteed to
  * execute after context initialization — i.e. after [PlatformSchemaInitializer] has run the
  * platform Flyway migrations. Ordering: Flyway → provision → seed.
+ *
+ * Two tenants, not one: the team-switching flow needs each Team's data to be visibly different, and
+ * a second team row on the same schema would show the same events and prove nothing about routing.
  *
  * Interim mechanism: once an admin API for team/tenant provisioning exists, the SQL fixture
  * is replaced by API calls in Playwright global-setup and this hook is absorbed into the
@@ -33,8 +36,9 @@ class E2eEnvironmentInitializer(
     private val log = LoggerFactory.getLogger(E2eEnvironmentInitializer::class.java)
 
     override fun run(args: ApplicationArguments) {
-        log.info("Provisioning e2e tenant schema 'team_test' and applying seed fixture")
+        log.info("Provisioning e2e tenant schemas 'team_test' + 'team_test_two' and applying seed fixture")
         tenantProvisioningGateway.provisionTenant(SchemaName("team_test"))
+        tenantProvisioningGateway.provisionTenant(SchemaName("team_test_two"))
         ResourceDatabasePopulator(ClassPathResource("db/e2e/seed.sql")).execute(dataSource)
     }
 }

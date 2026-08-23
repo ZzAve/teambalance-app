@@ -57,12 +57,15 @@ class JpaTeamMemberRepositoryAdapter(
             ?.role
             ?.let { role -> Role.entries.firstOrNull { it.name == role } }
 
-    override fun findTeamId(userId: UserId): TeamId? =
-        jpaRepository.findTeamIdByUserId(userId.value)?.let(::TeamId)
+    override fun findTenantRouting(teamId: TeamId, userId: UserId): TenantRouting? =
+        jpaRepository.findTeamRouting(teamId.value, userId.value)?.toDomain()
 
-    override fun findTenantRouting(userId: UserId): TenantRouting? =
-        jpaRepository.findTeamRoutingByUserId(userId.value)
-            ?.let { TenantRouting(teamId = TeamId(it.teamId), schemaName = SchemaName(it.schemaName)) }
+    // Null on 0 rows AND on 2: "several teams" is not a routing, it is a question for the user.
+    override fun findSoleTenantRouting(userId: UserId): TenantRouting? =
+        jpaRepository.findTeamRoutings(userId.value).singleOrNull()?.toDomain()
+
+    private fun TeamRoutingProjection.toDomain() =
+        TenantRouting(teamId = TeamId(teamId), schemaName = SchemaName(schemaName))
 
     @Transactional
     override fun updateRole(teamId: TeamId, userId: UserId, role: Role) {
@@ -106,16 +109,16 @@ class JpaTeamMemberRepositoryAdapter(
     @Transactional
     override fun addMember(teamId: TeamId, userId: UserId) {
         if (jpaRepository.findByTeamIdAndUserIdAndActiveTrue(teamId.value, userId.value) != null) return
+        // (team_id, user_id) is UNIQUE, so an insert cannot re-join a member whose row is inactive.
+        if (jpaRepository.reactivateAsUser(teamId.value, userId.value) > 0) return
         try {
             jpaRepository.save(
                 TeamMemberJpaEntity(teamId = teamId.value, userId = userId.value, role = Role.USER.name),
             )
         } catch (e: DataIntegrityViolationException) {
-            // Concurrent accept or inactive-member row conflict — already a member, no-op
-            logger.info(
-                "Failed to add member to team because of a conflic. " +
-                        "This signals that the user is already a member, no biggy", e
-            )
+            // Lost a race with a concurrent accept — the other one made them a member, which is the
+            // outcome this call wanted anyway.
+            logger.info("Concurrent accept for team {} / user {} — already a member", teamId, userId, e)
         }
     }
 }

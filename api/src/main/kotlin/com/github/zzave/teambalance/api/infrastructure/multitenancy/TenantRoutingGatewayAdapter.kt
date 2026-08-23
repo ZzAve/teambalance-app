@@ -21,4 +21,6 @@ class TenantRoutingGatewayAdapter(
 ) : TenantRoutingGateway {
 
     override fun pinRouting(routing: TenantRouting) = TenantRoutingSession.write(request.session, routing)
+
+    override fun clearRouting() = TenantRoutingSession.clear(request.getSession(false))
 }

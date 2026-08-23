@@ -97,11 +97,6 @@ class LastAdminException(teamId: TeamId) :
 class PositionLabelTakenException(label: String) :
     ConflictException("Position '$label' already exists in this team", "POSITION_LABEL_TAKEN")
 
-// The founder already belongs to a team. v1 is one-team-per-user (routing does ORDER BY … LIMIT 1);
-// multi-team membership + switcher is deferred to #143.
-class AlreadyInTeamException(userId: UUID) :
-    ConflictException("User $userId already belongs to a team", "ALREADY_IN_TEAM")
-
 // A team with this slug (and therefore this derived schema) already exists. No auto-suffixing — the
 // caller picks a different name.
 class TeamSlugTakenException(slug: String) :

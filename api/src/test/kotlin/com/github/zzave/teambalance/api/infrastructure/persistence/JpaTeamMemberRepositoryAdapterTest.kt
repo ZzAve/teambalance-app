@@ -65,12 +65,81 @@ class JpaTeamMemberRepositoryAdapterTest : TeamBalanceIT() {
             teamMemberRepository.markOnboarded(teamId, userId, Instant.parse("2026-07-22T10:00:00Z"))
             teamMemberRepository.findByTeamId(teamId).first { it.userId == userId }.onboarded shouldBe true
         }
+
+        // The membership predicate IS the authorization, so only a real database proves these.
+        test("findTenantRouting resolves schema and team id together for a member of that team") {
+            val (teamId, userId) = seedMember(role = "USER", active = true)
+            val routing = teamMemberRepository.findTenantRouting(teamId, userId)
+            routing?.teamId shouldBe teamId
+            routing?.schemaName?.value shouldBe schemaNameOf(teamId)
+        }
+
+        test("findTenantRouting is null for a team the user is not a member of") {
+            val (teamId, _) = seedMember(role = "USER", active = true)
+            val (_, stranger) = seedMember(role = "USER", active = true)
+            teamMemberRepository.findTenantRouting(teamId, stranger) shouldBe null
+        }
+
+        test("findTenantRouting is null once the membership is deactivated") {
+            val (teamId, userId) = seedMember(role = "USER", active = true)
+            teamMemberRepository.deactivate(teamId, userId)
+            teamMemberRepository.findTenantRouting(teamId, userId) shouldBe null
+        }
+
+        test("findSoleTenantRouting resolves the only team a user belongs to") {
+            val (teamId, userId) = seedMember(role = "USER", active = true)
+            teamMemberRepository.findSoleTenantRouting(userId)?.teamId shouldBe teamId
+        }
+
+        test("findSoleTenantRouting is null once the user belongs to two teams") {
+            val (_, userId) = seedMember(role = "USER", active = true)
+            val (second, _) = seedMember(role = "USER", active = true)
+            teamMemberRepository.addMember(second, userId)
+
+            teamMemberRepository.findSoleTenantRouting(userId) shouldBe null
+        }
+
+        test("findSoleTenantRouting is null for a user with no team at all") {
+            teamMemberRepository.findSoleTenantRouting(UserId(seedUser())) shouldBe null
+        }
+
+        // (team_id, user_id) is UNIQUE and a removed member keeps a deactivated row, so an INSERT
+        // cannot re-join them.
+        test("addMember re-joins a previously removed member by reactivating their row") {
+            val (teamId, userId) = seedMember(role = "USER", active = true)
+            teamMemberRepository.deactivate(teamId, userId)
+            teamMemberRepository.findRole(teamId, userId) shouldBe null
+
+            teamMemberRepository.addMember(teamId, userId)
+
+            teamMemberRepository.findRole(teamId, userId) shouldBe Role.USER
+            teamMemberRepository.findTenantRouting(teamId, userId)?.teamId shouldBe teamId
+        }
+
+        test("a removed admin re-joins as a plain USER, not as an admin") {
+            val (teamId, userId) = seedMember(role = "ADMIN", active = true)
+            teamMemberRepository.deactivate(teamId, userId)
+
+            teamMemberRepository.addMember(teamId, userId)
+
+            teamMemberRepository.findRole(teamId, userId) shouldBe Role.USER
+        }
+
+        test("addMember leaves an existing active member untouched, role and all") {
+            val (teamId, userId) = seedMember(role = "ADMIN", active = true)
+
+            teamMemberRepository.addMember(teamId, userId)
+
+            teamMemberRepository.findRole(teamId, userId) shouldBe Role.ADMIN
+        }
     }
+
+    private fun schemaNameOf(teamId: TeamId) = "team_${teamId.value.toString().replace("-", "")}"
 
     private fun seedMember(role: String, active: Boolean): Pair<TeamId, UserId> {
         tenantSchemaAdapter.provisionPlatformSchema()
         val teamId = TeamId(UUID.randomUUID())
-        val schemaName = "team_${teamId.toString().replace("-", "")}"
+        val schemaName = schemaNameOf(teamId)
         jdbcTemplate.update(
             "INSERT INTO public.teams (id, name, slug, schema_name) VALUES (?, ?, ?, ?)",
             teamId.value, "Test Team", "test-team-$teamId", schemaName,
@@ -79,12 +148,18 @@ class JpaTeamMemberRepositoryAdapterTest : TeamBalanceIT() {
         return teamId to userId
     }
 
-    private fun seedMemberOnTeam(teamId: TeamId, role: String, active: Boolean): UserId {
-        val userId = UserId.random()
+    private fun seedUser(): UUID {
+        tenantSchemaAdapter.provisionPlatformSchema()
+        val userId = UUID.randomUUID()
         jdbcTemplate.update(
             "INSERT INTO public.users (id, email, display_name) VALUES (?, ?, ?)",
-            userId.value, "member-$userId@test.com", "Test Member",
+            userId, "member-$userId@test.com", "Test Member",
         )
+        return userId
+    }
+
+    private fun seedMemberOnTeam(teamId: TeamId, role: String, active: Boolean): UserId {
+        val userId = UserId(seedUser())
         jdbcTemplate.update(
             "INSERT INTO public.team_members (team_id, user_id, role, active) VALUES (?, ?, ?, ?)",
             teamId.value, userId.value, role, active,

@@ -1,6 +1,5 @@
 package com.github.zzave.teambalance.api.application
 
-import com.github.zzave.teambalance.api.domain.exception.AlreadyInTeamException
 import com.github.zzave.teambalance.api.domain.exception.InvalidCreationCodeException
 import com.github.zzave.teambalance.api.domain.exception.TeamSlugTakenException
 import com.github.zzave.teambalance.api.domain.model.CreationCode
@@ -13,7 +12,6 @@ import com.github.zzave.teambalance.api.domain.port.TeamCreationCodeRepository
 import com.github.zzave.teambalance.api.domain.port.TeamNotificationGateway
 import com.github.zzave.teambalance.api.domain.port.TeamRegistrationGateway
 import com.github.zzave.teambalance.api.domain.port.TeamRepository
-import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
 import com.github.zzave.teambalance.api.domain.port.TenantProvisioningGateway
 import com.github.zzave.teambalance.api.domain.port.UserRepository
 import org.slf4j.LoggerFactory
@@ -28,30 +26,32 @@ data class CreatedTeam(val id: TeamId, val name: TeamName, val slug: Slug)
  * name + a one-time creation code and becomes its founding admin.
  *
  * Ordering is deliberately provision-first so a partial failure never strands a consumed code:
- *  1. reject if the caller already belongs to a team (v1 one-team-per-user, #143);
- *  2. validate the name + user-supplied slug and derive the tenant schema name (bad name/slug → 400);
- *  3. pre-check slug uniqueness and code redeemability (fast, clean 409 / opaque 403 before any writes);
- *  4. provision the tenant schema (idempotent, on its own connection — commits independently);
- *  5. atomically consume the code and insert the team + founding admin ([TeamRegistrationGateway]).
+ *  1. validate the name + user-supplied slug and derive the tenant schema name (bad name/slug → 400);
+ *  2. pre-check slug uniqueness and code redeemability (fast, clean 409 / opaque 403 before any writes);
+ *  3. provision the tenant schema (idempotent, on its own connection — commits independently);
+ *  4. atomically consume the code and insert the team + founding admin ([TeamRegistrationGateway]);
+ *  5. make the new Team the founder's Active Team, so they land in what they just created.
  *
- * If step 4 fails nothing is consumed and the user simply retries. If step 5 loses a race (code taken
+ * If step 3 fails nothing is consumed and the user simply retries. If step 4 loses a race (code taken
  * or slug collision) the only residue is a harmless empty orphan schema, self-healed by the startup
  * migration runner. Notifications are best-effort and can never fail a committed creation.
+ *
+ * The founder need not be teamless: ADR-0023 lifted ADR-0019 §3's `409 ALREADY_IN_TEAM` along with
+ * the one-team routing constraint behind it.
  */
 class TeamService(
-    private val teamMemberRepository: TeamMemberRepository,
     private val teamRepository: TeamRepository,
     private val creationCodeRepository: TeamCreationCodeRepository,
     private val tenantProvisioningGateway: TenantProvisioningGateway,
     private val teamRegistrationGateway: TeamRegistrationGateway,
     private val userRepository: UserRepository,
     private val teamNotificationGateway: TeamNotificationGateway,
+    private val activeTeamService: ActiveTeamService,
     private val clock: Clock,
 ) {
     private val log = LoggerFactory.getLogger(TeamService::class.java)
 
     fun createTeam(founderId: UserId, rawName: String, rawSlug: String, creationCode: CreationCode): CreatedTeam {
-        requireTeamless(founderId)
         val names = TeamNaming.validate(rawName, rawSlug)
         requireSlugAvailable(names.slug)
 
@@ -71,19 +71,17 @@ class TeamService(
             now = now,
         )
 
+        // Without this a founder who already plays elsewhere stays routed to their old Team.
+        activeTeamService.activate(founderId, teamId)
+
         notifyBestEffort(founderId, names.name, names.slug)
 
         return CreatedTeam(id = teamId, name = names.name, slug = names.slug)
     }
 
-    private fun requireTeamless(founderId: UserId) {
-        teamMemberRepository.findTeamId(founderId)?.let { throw AlreadyInTeamException(founderId.value) }
-    }
-
     private fun requireSlugAvailable(slug: Slug) {
         if (teamRepository.existsBySlug(slug)) {
-            // The exception carries the slug for its message only, so it takes the primitive — the
-            // same treatment AlreadyInTeamException already gets from requireTeamless above.
+            // The exception carries the slug for its message only, so it takes the primitive.
             throw TeamSlugTakenException(slug.value)
         }
     }

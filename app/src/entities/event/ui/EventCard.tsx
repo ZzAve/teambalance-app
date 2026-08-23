@@ -7,6 +7,7 @@ import { EventDateChit } from './EventDateChit'
 import { EventTypeBadge } from './EventTypeBadge'
 import { ReferenceChips } from './ReferenceChips'
 import { RelativeTimeLabel } from './RelativeTimeLabel'
+import { useTeamRoutes } from '@shared/lib/team-routes'
 
 interface EventCardProps {
   event: Event
@@ -24,6 +25,7 @@ interface EventCardProps {
  * edge-to-edge under the chit and the whole thing reads as one card rather than two panes.
  */
 export function EventCard({ event, index = 0, now = new Date() }: EventCardProps) {
+  const routes = useTeamRoutes()
   const date = new Date(event.startTime)
   const { attendanceSummary: s } = event
   const invited = s.attending + s.maybe + s.absent + s.notResponded
@@ -48,8 +50,7 @@ export function EventCard({ event, index = 0, now = new Date() }: EventCardProps
           </div>
 
           <Link
-            to="/events/$eventId"
-            params={{ eventId: event.id }}
+            to={routes.event(event.id)}
             className="font-display mt-1 block text-[17px] font-medium leading-tight after:absolute after:inset-0"
           >
             {event.title}

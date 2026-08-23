@@ -1,23 +1,31 @@
 import { Link, useRouterState } from '@tanstack/react-router'
 import { Calendar, Users, User, type LucideIcon } from 'lucide-react'
+import { teamRoutes, teamSlugFromPath, type TeamRoutes } from '@shared/lib/team-routes'
 
 interface TabConfig {
   icon: LucideIcon
   label: string
   to: string
-  // How to match the current path to this tab. Events is exact ('/' would prefix-match everything);
-  // Team also owns its nested routes (e.g. /team/settings), so it matches by prefix.
+  // How to match the current path to this tab. Events is exact (the Team home would otherwise
+  // prefix-match every screen under it); Team also owns its nested routes (e.g. .../team/settings),
+  // so it matches by prefix.
   isActive: (pathname: string) => boolean
 }
 
-const TABS: TabConfig[] = [
-  { icon: Calendar, label: 'Events', to: '/', isActive: (p) => p === '/' },
-  { icon: Users, label: 'Team', to: '/team', isActive: (p) => p === '/team' || p.startsWith('/team/') },
-  { icon: User, label: 'Profile', to: '/profile', isActive: (p) => p === '/profile' || p.startsWith('/profile/') },
-]
+// Built from the slug in the URL rather than a store, so switching Team makes every tab follow.
+function tabsFor(routes: TeamRoutes): TabConfig[] {
+  const exact = (path: string) => (p: string) => p.replace(/\/$/, '') === path
+  const prefix = (path: string) => (p: string) => p === path || p.startsWith(`${path}/`)
+  return [
+    { icon: Calendar, label: 'Events', to: routes.events, isActive: exact(routes.events) },
+    { icon: Users, label: 'Team', to: routes.team, isActive: prefix(routes.team) },
+    { icon: User, label: 'Profile', to: routes.profile, isActive: prefix(routes.profile) },
+  ]
+}
 
 export function BottomNav() {
   const pathname = useRouterState({ select: (s) => s.location.pathname })
+  const TABS = tabsFor(teamRoutes(teamSlugFromPath(pathname)))
 
   return (
     <nav

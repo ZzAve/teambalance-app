@@ -4,10 +4,9 @@ import { Toaster } from 'sonner'
 import { Providers } from '@app/providers'
 import { BottomNav } from '@shared/ui/BottomNav'
 import { authMeQueryOptions } from '@shared/api/auth'
-import { currentMemberQueryOptions } from '@shared/api/members'
+import { TeamSwitcher } from '@features/switch-team/ui/TeamSwitcher'
 import { queryClient } from '@shared/api/query-client'
 import { directionFromIndices } from '@shared/lib/view-transition-direction'
-import { useUserStore } from '@shared/stores/user-store'
 import { useThemeSync } from '@shared/theme/theme-store'
 
 // Only the sign-in routes (and the invite landing page, reachable before a joiner has any
@@ -16,6 +15,18 @@ import { useThemeSync } from '@shared/theme/theme-store'
 // precise: only `/invite/<single-token>` is public; sub-paths like `/invite/manage` are NOT exempt.
 function isAuthRoute(pathname: string): boolean {
   return pathname === '/login' || pathname.startsWith('/auth/') || /^\/invite\/[^/]+$/.test(pathname)
+}
+
+// The screens an authenticated caller can reach without being in a Team.
+function isTeamlessRoute(pathname: string): boolean {
+  const path = pathname.replace(/\/$/, '')
+  return (
+    path === '/onboarding' ||
+    path === '/onboarding/join' ||
+    path === '/create-team' ||
+    path === '/select-team' ||
+    path === '/admin/creation-codes'
+  )
 }
 
 export const Route = createRootRoute({
@@ -33,36 +44,12 @@ export const Route = createRootRoute({
     }
     if (!user) throw redirect({ to: '/login' })
 
-    // Has-a-team gate: an authenticated but teamless user is a first-class state — route them to
-    // /onboarding (the join-vs-create fork), and do it BEFORE the onboarding gate's tenant-scoped
-    // /members/me probe (which would 403 NO_TEAM_MEMBERSHIP and bounce them to /login). /onboarding
-    // and its /onboarding/join and /create-team branches are exempt so the fork can render (mirroring
-    // how /get-started is exempt from the onboarding gate below). Teamlessness is read from the
-    // explicit team field, not inferred from role == null (permission vs membership; see #26).
-    if (
-      location.pathname === '/onboarding' ||
-      location.pathname === '/onboarding/' ||
-      location.pathname === '/onboarding/join' ||
-      location.pathname === '/onboarding/join/' ||
-      location.pathname === '/create-team' ||
-      location.pathname === '/create-team/'
-    )
-      return
-    if (!user.team) throw redirect({ to: '/onboarding' })
-
-    // Onboarding gate: a confirmed member who hasn't completed onboarding is routed to /get-started
-    // before any app screen mounts. /get-started itself is exempt (below) so the flow can render; the
-    // auth routes are already exempt (returned above). Read /members/me through the cache — race-
-    // free, same pattern as the /members admin gate. Fail OPEN if the state can't be determined:
-    // an onboarding-status blip shouldn't trap the user, and auth was already confirmed.
-    if (location.pathname === '/get-started' || location.pathname === '/get-started/') return
-    let member = null
-    try {
-      member = await queryClient.ensureQueryData(currentMemberQueryOptions)
-    } catch {
-      // Couldn't read onboarding state — don't trap the user.
-    }
-    if (member && !member.onboarded) throw redirect({ to: '/get-started' })
+    // Has-ANY-team gate (ADR-0023 §4). Which Team is active is a separate question, answered by
+    // /t/$slug. Teamlessness is read from the explicit list, never inferred from role == null
+    // (permission vs membership; see #26), and is checked before any tenant-scoped probe, which
+    // would 403 NO_TEAM_MEMBERSHIP and bounce a teamless caller to /login.
+    if (isTeamlessRoute(location.pathname)) return
+    if (user.teams.length === 0) throw redirect({ to: '/onboarding' })
   },
 })
 
@@ -91,7 +78,6 @@ function RootLayout() {
   // while the preference is `system`. index.html applies the first frame; this owns every frame
   // after it. The returned value is the resolved theme, which sonner needs as a prop.
   const theme = useThemeSync()
-  const teamName = useUserStore((s) => s.teamName)
 
   return (
     <Providers>
@@ -112,12 +98,7 @@ function RootLayout() {
             <Link to="/" className="font-display text-xl font-bold text-blue">
               Team<span className="text-green">Balance</span>
             </Link>
-            {teamName && (
-              <div className="flex items-center gap-2 rounded-full bg-blue/8 px-3 py-1.5 text-xs font-semibold text-blue">
-                <span className="h-1.5 w-1.5 rounded-full bg-green" />
-                {teamName}
-              </div>
-            )}
+            <TeamSwitcher />
           </div>
         </header>
         {/* Bottom padding clears the fixed nav (~6rem) plus the home-indicator inset, so the last

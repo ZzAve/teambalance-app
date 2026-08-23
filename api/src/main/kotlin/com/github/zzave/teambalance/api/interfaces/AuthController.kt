@@ -2,7 +2,11 @@ package com.github.zzave.teambalance.api.interfaces
 
 import com.github.zzave.teambalance.api.application.AuthService
 import com.github.zzave.teambalance.api.domain.model.Email
+import com.github.zzave.teambalance.api.domain.model.TeamId
+import com.github.zzave.teambalance.api.domain.model.TeamSummary
+import com.github.zzave.teambalance.api.domain.model.User
 import com.github.zzave.teambalance.api.domain.model.UserId
+import com.github.zzave.teambalance.api.domain.port.CurrentTeamGateway
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.GetAuthMe
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.Logout
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.RequestMagicLink
@@ -15,6 +19,7 @@ import java.util.UUID
 @RestController
 class AuthController(
     private val authService: AuthService,
+    private val currentTeamGateway: CurrentTeamGateway,
 ) : RequestMagicLink.Handler,
     VerifyMagicLink.Handler,
     Logout.Handler,
@@ -27,17 +32,9 @@ class AuthController(
 
     override suspend fun verifyMagicLink(request: VerifyMagicLink.Request): VerifyMagicLink.Response<*> {
         val user = authService.verifyMagicLink(request.body.token) ?: return VerifyMagicLink.Response401(Unit)
-        authService.startSession(user.id)
-        return VerifyMagicLink.Response200(
-            AuthenticatedUser(
-                id = user.id.produce(),
-                email = user.email.produce(),
-                displayName = user.displayName.value,
-                role = resolveRole(user.id),
-                team = resolveTeam(user.id),
-                isPlatformAdmin = authService.isPlatformAdmin(user.id),
-            ),
-        )
+        // Not readable from the request context: the tenant filter ran before this session existed.
+        val activeTeamId = authService.startSession(user.id)
+        return VerifyMagicLink.Response200(describe(user, activeTeamId))
     }
 
     override suspend fun logout(request: Logout.Request): Logout.Response<*> {
@@ -46,28 +43,31 @@ class AuthController(
     }
 
     override suspend fun getAuthMe(request: GetAuthMe.Request): GetAuthMe.Response<*> =
-        authService.currentUser()?.let {
-            GetAuthMe.Response200(
-                AuthenticatedUser(
-                    id = it.id.produce(),
-                    email = it.email.produce(),
-                    displayName = it.displayName.value,
-                    role = resolveRole(it.id),
-                    team = resolveTeam(it.id),
-                    isPlatformAdmin = authService.isPlatformAdmin(it.id),
-                ),
-            )
-        } ?: GetAuthMe.Response401(Unit)
+        authService.currentUser()
+            ?.let { GetAuthMe.Response200(describe(it, currentTeamGateway.findCurrentTeamId())) }
+            ?: GetAuthMe.Response401(Unit)
 
-    private fun resolveRole(userId: UserId): String? = authService.findRoleFor(userId)?.name
-
-    // The has-a-team gate signal (#158): a null team means the caller is teamless and belongs on
-    // /create-team. Resolved through the application service so this inbound layer keeps no port
-    // dependency of its own (ADR-0018). v1: one team per user.
-    private fun resolveTeam(userId: UserId): TeamRef? =
-        authService.findTeamFor(userId)
-            ?.let { TeamRef(id = it.id.produce(), name = it.name.value, slug = it.slug.value) }
+    /**
+     * [activeTeamId] is intersected with the memberships rather than reported as given, so the payload
+     * can only ever name a Team the caller actually has. `role` is read for that same Team.
+     */
+    private fun describe(user: User, activeTeamId: TeamId?): AuthenticatedUser {
+        val teams = authService.findTeamsFor(user.id)
+        val activeTeam = activeTeamId?.let { id -> teams.firstOrNull { it.id == id } }
+        return AuthenticatedUser(
+            id = user.id.produce(),
+            email = user.email.produce(),
+            displayName = user.displayName.value,
+            role = activeTeam?.let { authService.findRoleIn(it.id, user.id)?.name },
+            teams = teams.map { it.produce() },
+            activeTeam = activeTeam?.produce(),
+            isPlatformAdmin = authService.isPlatformAdmin(user.id),
+        )
+    }
 }
+
+// The Wirespec edge for a Team's public identity; the tenant schema is deliberately absent.
+internal fun TeamSummary.produce() = TeamRef(id = id.produce(), name = name.value, slug = slug.value)
 
 // The Wirespec edge for a user's identity — the contract, and the session attribute the auth filter
 // reads back, both still carry a bare UUID string. internal so every controller that names a user

@@ -19,21 +19,25 @@ import { queryClient } from '@shared/api/query-client'
 let session: AuthenticatedUser | null = null
 let accepted = false
 
-// Pre-join: a teamless newbie (no role, no team). Accepting the invite makes them a member — see the
-// accept handler, which flips the session to [MEMBER] so the has-a-team gate passes on the landing.
+const TEAM = { id: 'team-1', name: 'Setpoint VT', slug: 'setpoint-vt' }
+
+// Pre-join: a teamless newbie. The accept handler flips the session to [MEMBER], with the joined
+// Team ACTIVE — the server's job since ADR-0023 §4, so the joiner lands where they accepted.
 const USER: AuthenticatedUser = {
   id: 'user-1',
   email: 'newbie@example.com',
   displayName: 'newbie',
   role: undefined,
-  team: undefined,
+  teams: [],
+  activeTeam: undefined,
   isPlatformAdmin: false,
 }
 
 const MEMBER: AuthenticatedUser = {
   ...USER,
   role: 'USER',
-  team: { id: 'team-1', name: 'Setpoint VT', slug: 'setpoint-vt' },
+  teams: [TEAM],
+  activeTeam: TEAM,
 }
 
 const server = setupServer(
@@ -46,16 +50,15 @@ const server = setupServer(
     return HttpResponse.json(USER)
   }),
   http.get('/api/auth/me', () => (session ? HttpResponse.json(session) : new HttpResponse(null, { status: 401 }))),
-  // The root onboarding gate reads /members/me; an onboarded member skips /get-started and lands on
-  // events, keeping this test focused on the invite/accept seam.
+  // The team route's onboarding gate reads /members/me; an onboarded member skips get-started and
+  // lands on events, keeping this test focused on the invite/accept seam.
   http.get('/api/members/me', () =>
     HttpResponse.json({ userId: 'user-1', displayName: 'newbie', role: 'USER', onboarded: true }),
   ),
   http.post('/api/invitations/:token/accept', ({ params }) => {
     if (params.token !== 'valid-invite-token') return new HttpResponse(null, { status: 404 })
     accepted = true
-    // Joining a team makes the caller a member — /auth/me now reports the team, so the has-a-team gate
-    // lets them land on events (the flow invalidates ['auth','me'] right after accept).
+    // /auth/me then reports both, so the gate lets them land on that Team's events.
     session = MEMBER
     return HttpResponse.json({ teamId: 'team-1' })
   }),
@@ -87,7 +90,8 @@ describe('invite acceptance', () => {
     session = USER
     const router = renderAppAt('/invite/valid-invite-token')
 
-    await waitFor(() => expect(router.state.location.pathname).toBe('/'))
+    // `/` dispatches into the Active Team, which after accept is the Team they just joined.
+    await waitFor(() => expect(router.state.location.pathname).toBe('/t/setpoint-vt'))
     expect(await screen.findByRole('heading', { name: 'Events' })).toBeInTheDocument()
     expect(accepted).toBe(true)
   })
@@ -113,7 +117,7 @@ describe('invite acceptance', () => {
     // (localStorage survives), so the pending invite token saved on submit is still there.
     const verifyRouter = renderAppAt('/auth/verify?token=valid-token')
 
-    await waitFor(() => expect(verifyRouter.state.location.pathname).toBe('/'))
+    await waitFor(() => expect(verifyRouter.state.location.pathname).toBe('/t/setpoint-vt'))
     expect(await screen.findAllByRole('heading', { name: 'Events' })).not.toHaveLength(0)
     expect(accepted).toBe(true)
     expect(localStorage.getItem('tb-pending-invite-token')).toBeNull()

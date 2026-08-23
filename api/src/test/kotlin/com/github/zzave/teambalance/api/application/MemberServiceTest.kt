@@ -33,6 +33,8 @@ private class FakeMemberUserRepo(users: List<User>) : UserRepository {
         store[user.id] = user
         return user
     }
+    override fun findLastActiveTeamId(userId: UserId): TeamId? = null
+    override fun rememberActiveTeam(userId: UserId, teamId: TeamId) = Unit
 }
 
 // Reads display names from [userRepo] so a save() is reflected by a later findByTeamId — mirroring the
@@ -74,8 +76,8 @@ private class FakeMembershipRepo(
     override fun findMembersByUserIds(userIds: Set<UserId>) = emptyMap<UserId, TeamMember>()
     override fun findRole(teamId: TeamId, userId: UserId): Role? =
         store[teamId to userId]?.takeIf { it.active }?.role
-    override fun findTeamId(userId: UserId): TeamId? = null
-    override fun findTenantRouting(userId: UserId): TenantRouting? = null
+    override fun findTenantRouting(teamId: TeamId, userId: UserId): TenantRouting? = null
+    override fun findSoleTenantRouting(userId: UserId): TenantRouting? = null
     override fun addMember(teamId: TeamId, userId: UserId) = Unit
     override fun updateRole(teamId: TeamId, userId: UserId, role: Role) {
         store[teamId to userId]?.role = role

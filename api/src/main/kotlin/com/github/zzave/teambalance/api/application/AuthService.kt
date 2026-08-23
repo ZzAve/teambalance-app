@@ -4,6 +4,7 @@ import com.github.zzave.teambalance.api.domain.model.DisplayName
 import com.github.zzave.teambalance.api.domain.model.Email
 import com.github.zzave.teambalance.api.domain.model.MagicLinkToken
 import com.github.zzave.teambalance.api.domain.model.Role
+import com.github.zzave.teambalance.api.domain.model.TeamId
 import com.github.zzave.teambalance.api.domain.model.TeamSummary
 import com.github.zzave.teambalance.api.domain.model.TokenHash
 import com.github.zzave.teambalance.api.domain.model.User
@@ -13,8 +14,6 @@ import com.github.zzave.teambalance.api.domain.port.EmailGateway
 import com.github.zzave.teambalance.api.domain.port.MagicLinkTokenRepository
 import com.github.zzave.teambalance.api.domain.port.PlatformAdminGateway
 import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
-import com.github.zzave.teambalance.api.domain.port.TeamRepository
-import com.github.zzave.teambalance.api.domain.port.TenantRoutingGateway
 import com.github.zzave.teambalance.api.domain.port.UserRepository
 import java.security.MessageDigest
 import java.security.SecureRandom
@@ -27,12 +26,11 @@ import java.util.UUID
 class AuthService(
     private val magicLinkTokenRepository: MagicLinkTokenRepository,
     private val userRepository: UserRepository,
-    private val teamRepository: TeamRepository,
     private val teamMemberRepository: TeamMemberRepository,
+    private val activeTeamService: ActiveTeamService,
     private val emailGateway: EmailGateway,
     private val platformAdminGateway: PlatformAdminGateway,
     private val authSessionGateway: AuthSessionGateway,
-    private val tenantRoutingGateway: TenantRoutingGateway,
     private val clock: Clock,
 ) {
     companion object {
@@ -59,24 +57,20 @@ class AuthService(
 
     fun findUserById(id: UserId): User? = userRepository.findById(id)
 
-    /** The team the user belongs to, or null if teamless — the has-a-team gate signal on `/auth/me`. */
-    fun findTeamFor(userId: UserId): TeamSummary? = teamRepository.findByUserId(userId.value)
+    /** The has-any-team gate signal on `/auth/me`. Which one is *active* is a separate question. */
+    fun findTeamsFor(userId: UserId): List<TeamSummary> = activeTeamService.teamsOf(userId)
 
     /**
-     * The user's role on the team they belong to, or null when they are teamless or have no active
-     * membership — the `role` field of the authenticated-user payload. Identity-shaped ("who is this
-     * caller?"), unlike [AuthorizationService], which answers "may this caller do X on team Y?".
+     * Identity-shaped ("who is this caller, here?"), unlike [AuthorizationService], which answers
+     * "may this caller do X on team Y?". The Active Team is an argument because a caller with several
+     * memberships has several Roles, and only the active one is theirs for this request.
      */
-    fun findRoleFor(userId: UserId): Role? =
-        teamMemberRepository.findTeamId(userId)?.let { teamId -> teamMemberRepository.findRole(teamId, userId) }
+    fun findRoleIn(teamId: TeamId, userId: UserId): Role? = teamMemberRepository.findRole(teamId, userId)
 
-    /**
-     * Signs [userId] in: opens their session, then pins where their work happens (team id + schema
-     * from one row, so the tenant lookup can't diverge or race). A teamless user has nothing to pin.
-     */
-    fun startSession(userId: UserId) {
+    /** Opens the session and returns the Active Team pinned for it, or null if none resolved. */
+    fun startSession(userId: UserId): TeamId? {
         authSessionGateway.startSession(userId)
-        teamMemberRepository.findTenantRouting(userId)?.let(tenantRoutingGateway::pinRouting)
+        return activeTeamService.pinLanding(userId)
     }
 
     /** The caller behind the current session, or null when unauthenticated — what `/auth/me` answers on. */

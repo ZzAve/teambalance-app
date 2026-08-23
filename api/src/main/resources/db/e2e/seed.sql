@@ -58,3 +58,40 @@ ON CONFLICT DO NOTHING;
 -- skips it, so the "Attend N" count can never reach zero. The seeded user starts not-responded on
 -- the event with no row at all, which is what a real not-responded member looks like.
 DELETE FROM team_test.attendances WHERE uuid = 'e2e00000-0000-0000-0000-000000000005';
+
+-- --- Second Team, for the team-switching flow (ADR-0023) -------------------------------------
+-- Its own schema and its own event, so "the data followed the switch" is observable. Its admin is a
+-- SEPARATE user: the shared e2e user must stay in exactly one Team, or every other spec's landing
+-- would (correctly) become a choice.
+
+INSERT INTO public.teams (id, name, slug, schema_name)
+VALUES ('e2e00000-0000-0000-0000-000000000011', 'E2E Second Team', 'e2e-second-team', 'team_test_two')
+ON CONFLICT DO NOTHING;
+
+INSERT INTO public.users (id, email, display_name)
+VALUES ('e2e00000-0000-0000-0000-000000000012', 'e2e-second@example.com', 'E2E Second Admin')
+ON CONFLICT DO NOTHING;
+
+INSERT INTO public.team_members (id, team_id, user_id, role, onboarded_at)
+VALUES (
+    'e2e00000-0000-0000-0000-000000000013',
+    'e2e00000-0000-0000-0000-000000000011',
+    'e2e00000-0000-0000-0000-000000000012',
+    'ADMIN',
+    now()
+)
+ON CONFLICT (id) DO UPDATE SET onboarded_at = EXCLUDED.onboarded_at;
+
+INSERT INTO team_test_two.events (uuid, event_type_id, title, description, start_time, end_time, location, created_by)
+SELECT
+    'e2e00000-0000-0000-0000-000000000014',
+    et.id,
+    'E2E Second Team Match',
+    'Seeded so the second Team''s events list is distinguishable from the first',
+    now() + interval '8 days',
+    now() + interval '8 days 2 hours',
+    'E2E Second Sporthal',
+    'e2e00000-0000-0000-0000-000000000012'
+FROM team_test_two.event_types et
+WHERE et.name = 'Match'
+ON CONFLICT DO NOTHING;

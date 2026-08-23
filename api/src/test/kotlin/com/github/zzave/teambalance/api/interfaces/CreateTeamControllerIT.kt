@@ -155,11 +155,14 @@ class CreateTeamControllerIT : TeamBalanceIT() {
             row["slug"] shouldBe "create-it-happy"
 
             // The read edge, the other direction: the same row mapped back through the port that
-            // powers /auth/me's has-a-team signal. Nothing asserted this mapping before.
-            val summary = teamRepository.findByUserId(UUID.fromString(founder)).shouldNotBeNull()
+            // powers /auth/me's has-any-team signal. Nothing asserted this mapping before.
+            val summary = teamRepository.findTeamsOf(UUID.fromString(founder)).single()
             summary.id shouldBe TeamId(UUID.fromString(teamId!!))
             summary.name shouldBe TeamName("Create IT Happy")
             summary.slug shouldBe Slug("create-it-happy")
+
+            // And addressable by its public slug, which is what /t/:slug/... resolves through.
+            teamRepository.findBySlug(Slug("create-it-happy")).shouldNotBeNull().id shouldBe summary.id
         }
 
         test("a consumed code cannot be reused — second use returns opaque 403") {
@@ -194,7 +197,10 @@ class CreateTeamControllerIT : TeamBalanceIT() {
                 .andExpect(MockMvcResultMatchers.status().isForbidden)
         }
 
-        test("a founder already in a team gets 409 and the code stays unconsumed") {
+        // ADR-0019 §3's 409 ALREADY_IN_TEAM is lifted (ADR-0023 §4). Both Teams exist afterwards and
+        // both memberships are real — the routing layer no longer has an opinion about how many a
+        // person may have.
+        test("a founder already in a team may create a second one") {
             val founder = UUID.randomUUID().toString()
             seedUser(founder, "already-${founder.take(8)}@test.com")
             seedCode("CT-FIRST-${founder.take(8)}")
@@ -204,16 +210,18 @@ class CreateTeamControllerIT : TeamBalanceIT() {
                 .andExpect(MockMvcResultMatchers.status().isCreated)
 
             createTeam(founder, "Create IT Second", "create-it-second", "CT-SECOND-${founder.take(8)}")
-                .andExpect(MockMvcResultMatchers.status().isConflict)
-                .andExpect(MockMvcResultMatchers.jsonPath("$.code").value("ALREADY_IN_TEAM"))
+                .andExpect(MockMvcResultMatchers.status().isCreated)
 
-            // The one-team guard trips before the code is touched, so the second code is still redeemable.
-            val consumedAt = jdbcTemplate.queryForObject(
-                "SELECT consumed_at FROM public.team_creation_codes WHERE code = ?",
-                java.sql.Timestamp::class.java,
-                "CT-SECOND-${founder.take(8)}",
-            )
-            consumedAt shouldBe null
+            teamRepository.findTeamsOf(UUID.fromString(founder)).map { it.slug.value } shouldBe
+                listOf("create-it-first", "create-it-second")
+
+            // The Team they just made is where they land — the second create-team switched them.
+            jdbcTemplate.queryForObject(
+                "SELECT t.slug FROM public.users u JOIN public.teams t ON t.id = u.last_active_team_id " +
+                    "WHERE u.id = ?::uuid",
+                String::class.java,
+                founder,
+            ) shouldBe "create-it-second"
         }
 
         // The only end-to-end exercise of TeamRepository.existsBySlug: every other test of the

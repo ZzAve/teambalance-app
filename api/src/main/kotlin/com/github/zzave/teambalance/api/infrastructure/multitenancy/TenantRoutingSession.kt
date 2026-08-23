@@ -36,4 +36,10 @@ internal object TenantRoutingSession {
         session?.setAttribute(TENANT_SCHEMA, routing.schemaName.value)
         session?.setAttribute(TENANT_TEAM_ID, routing.teamId.value.toString())
     }
+
+    /** Both together, so a half-cleared pair can never be read back as a hit. */
+    fun clear(session: HttpSession?) {
+        session?.removeAttribute(TENANT_SCHEMA)
+        session?.removeAttribute(TENANT_TEAM_ID)
+    }
 }

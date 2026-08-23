@@ -2,6 +2,7 @@ package com.github.zzave.teambalance.api.application
 
 import com.github.zzave.teambalance.api.domain.exception.NotTeamAdminException
 import com.github.zzave.teambalance.api.domain.model.DisplayName
+import com.github.zzave.teambalance.api.domain.model.Email
 import com.github.zzave.teambalance.api.domain.model.Invitation
 import com.github.zzave.teambalance.api.domain.model.PositionId
 import com.github.zzave.teambalance.api.domain.model.Role
@@ -9,6 +10,7 @@ import com.github.zzave.teambalance.api.domain.model.TeamId
 import com.github.zzave.teambalance.api.domain.model.TenantRouting
 import com.github.zzave.teambalance.api.domain.model.TeamMember
 import com.github.zzave.teambalance.api.domain.model.TokenHash
+import com.github.zzave.teambalance.api.domain.model.User
 import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.port.InvitationRepository
 import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
@@ -23,12 +25,16 @@ import java.util.UUID
 
 // Records saves and always resolves a live invitation for the accept path (token hashing is not the
 // subject here — authorization is).
-private class FakeInvitationRepo(private val live: Invitation) : InvitationRepository {
+private class FakeInvitationRepo(private var live: Invitation?) : InvitationRepository {
     val saved = mutableListOf<Invitation>()
     var expiredTeam: TeamId? = null
     val rotated = mutableListOf<Invitation>()
+
+    /** The way a rotate or a lapsed TTL does: every later lookup misses. */
+    fun expire() { live = null }
+
     override fun save(invitation: Invitation): Invitation { saved += invitation; return invitation }
-    override fun findByTokenHash(tokenHash: TokenHash): Invitation = live
+    override fun findByTokenHash(tokenHash: TokenHash): Invitation? = live
     override fun expireActive(teamId: TeamId, now: Instant) { expiredTeam = teamId }
     override fun rotate(teamId: TeamId, replacement: Invitation, now: Instant): Invitation {
         rotated += replacement
@@ -36,94 +42,109 @@ private class FakeInvitationRepo(private val live: Invitation) : InvitationRepos
     }
 }
 
-// USER for everyone except the seeded admins; records joins so the open accept path can be asserted.
-private class InviteFakeMemberRepo(private val admins: Set<UserId>) : TeamMemberRepository {
-    val joined = mutableListOf<Pair<TeamId, UserId>>()
-    override fun findRole(teamId: TeamId, userId: UserId): Role = if (userId in admins) Role.ADMIN else Role.USER
-    override fun addMember(teamId: TeamId, userId: UserId) { joined += teamId to userId }
-    override fun findByTeamId(teamId: TeamId): List<TeamMember> = emptyList()
-    override fun findDisplayName(userId: UserId): DisplayName? = null
-    override fun findMembersByUserIds(userIds: Set<UserId>): Map<UserId, TeamMember> = emptyMap()
-    override fun findTeamId(userId: UserId): TeamId? = null
-    override fun findTenantRouting(userId: UserId): TenantRouting? = null
-    override fun updateRole(teamId: TeamId, userId: UserId, role: Role) = Unit
-    override fun deactivate(teamId: TeamId, userId: UserId) = Unit
-    override fun assignPosition(teamId: TeamId, userId: UserId, positionId: PositionId?) = Unit
-    override fun applyMemberEdit(
-        teamId: TeamId,
-        userId: UserId,
-        displayName: DisplayName,
-        role: Role,
-        positionId: PositionId?,
-        markOnboardedAt: Instant?,
-    ) = Unit
-    override fun markOnboarded(teamId: TeamId, userId: UserId, at: Instant) = Unit
-    override fun countAdmins(teamId: TeamId): Int = admins.size
-}
-
 class InvitationServiceTest : FunSpec() {
     init {
         val clock = Clock.fixed(Instant.EPOCH, ZoneOffset.UTC)
-        val teamId = TeamId(UUID.randomUUID())
         val adminId = UserId.random()
         val nonAdmin = UserId.random()
+        val joiner = User(id = nonAdmin, email = Email("joiner@example.com"), displayName = DisplayName("Joiner"))
 
-        val liveInvitation = Invitation(
-            id = UUID.randomUUID(),
-            teamId = teamId,
-            tokenHash = TokenHash("hash"),
-            createdBy = adminId,
-            expiresAt = Instant.EPOCH.plus(Duration.ofDays(1)),
-            createdAt = Instant.EPOCH,
-        )
+        class Fixture(val directory: TeamDirectory, val teamId: TeamId) {
+            val invitations = FakeInvitationRepo(
+                Invitation(
+                    id = UUID.randomUUID(),
+                    teamId = teamId,
+                    tokenHash = TokenHash("hash"),
+                    createdBy = adminId,
+                    expiresAt = Instant.EPOCH.plus(Duration.ofDays(1)),
+                    createdAt = Instant.EPOCH,
+                ),
+            )
+            val routingGateway = RecordingTenantRoutingGateway()
+            val members = directory.teamMemberRepository()
+            val service = InvitationService(
+                invitationRepository = invitations,
+                teamMemberRepository = members,
+                authorizationService = AuthorizationService(members),
+                activeTeamService = directory.activeTeamService(routingGateway, joiner),
+                clock = clock,
+                tokenSalt = "salt",
+            )
+        }
 
-        fun newService(): Triple<InvitationService, FakeInvitationRepo, InviteFakeMemberRepo> {
-            val invitations = FakeInvitationRepo(liveInvitation)
-            val members = InviteFakeMemberRepo(admins = setOf(adminId))
-            val service = InvitationService(invitations, members, AuthorizationService(members), clock, "salt")
-            return Triple(service, invitations, members)
+        fun newFixture(): Fixture {
+            val directory = TeamDirectory()
+            val teamId = directory.addTeam("Setpoint VT", "setpoint-vt")
+            directory.join(adminId, teamId, Role.ADMIN)
+            return Fixture(directory, teamId)
         }
 
         test("generateInviteLink by a non-admin is forbidden") {
-            val (service, _, _) = newService()
-            shouldThrow<NotTeamAdminException> { service.generateInviteLink(callerId = nonAdmin, teamId = teamId) }
+            val f = newFixture()
+            shouldThrow<NotTeamAdminException> { f.service.generateInviteLink(callerId = nonAdmin, teamId = f.teamId) }
         }
 
         test("expireActiveInvitations by a non-admin is forbidden") {
-            val (service, _, _) = newService()
-            shouldThrow<NotTeamAdminException> { service.expireActiveInvitations(callerId = nonAdmin, teamId = teamId) }
+            val f = newFixture()
+            shouldThrow<NotTeamAdminException> {
+                f.service.expireActiveInvitations(callerId = nonAdmin, teamId = f.teamId)
+            }
         }
 
         test("rotateInviteLink by a non-admin is forbidden") {
-            val (service, _, _) = newService()
-            shouldThrow<NotTeamAdminException> { service.rotateInviteLink(callerId = nonAdmin, teamId = teamId) }
+            val f = newFixture()
+            shouldThrow<NotTeamAdminException> { f.service.rotateInviteLink(callerId = nonAdmin, teamId = f.teamId) }
         }
 
         // The expire and the mint must reach the port as ONE call: that single call is what the adapter
         // makes atomic, so a failure to mint can't leave the team with no usable link. Two separate
         // calls would be two transactions and would reintroduce that gap.
         test("rotateInviteLink hands the expire and the mint over as a single port call") {
-            val (service, invitations, _) = newService()
-            val result = service.rotateInviteLink(callerId = adminId, teamId = teamId)
+            val f = newFixture()
+            val result = f.service.rotateInviteLink(callerId = adminId, teamId = f.teamId)
 
-            invitations.rotated.single().createdBy shouldBe adminId
-            invitations.saved.isEmpty() shouldBe true
-            invitations.expiredTeam shouldBe null
+            f.invitations.rotated.single().createdBy shouldBe adminId
+            f.invitations.saved.isEmpty() shouldBe true
+            f.invitations.expiredTeam shouldBe null
             result.token.value.isNotBlank() shouldBe true
         }
 
         test("generateInviteLink by an admin mints a link attributed to the caller") {
-            val (service, invitations, _) = newService()
-            val result = service.generateInviteLink(callerId = adminId, teamId = teamId)
+            val f = newFixture()
+            val result = f.service.generateInviteLink(callerId = adminId, teamId = f.teamId)
             result.token.value.isNotBlank() shouldBe true
-            invitations.saved.single().createdBy shouldBe adminId
+            f.invitations.saved.single().createdBy shouldBe adminId
         }
 
         test("acceptInvitation requires no admin role — any authenticated user may join") {
-            val (service, _, members) = newService()
-            val joinedTeam = service.acceptInvitation(token = "anything", userId = nonAdmin)
-            joinedTeam shouldBe teamId
-            members.joined shouldBe listOf(teamId to nonAdmin)
+            val f = newFixture()
+            val joinedTeam = f.service.acceptInvitation(token = "anything", userId = nonAdmin)
+            joinedTeam shouldBe f.teamId
+            f.members.findRole(f.teamId, nonAdmin) shouldBe Role.USER
+        }
+
+        test("acceptInvitation makes the joined Team the joiner's Active Team") {
+            val f = newFixture()
+            val other = f.directory.addTeam("Tovo Heren 5", "tovo-heren-5")
+            f.directory.join(nonAdmin, other)
+
+            f.service.acceptInvitation(token = "anything", userId = nonAdmin)
+
+            f.directory.rememberedTeamOf(nonAdmin) shouldBe f.teamId
+            f.routingGateway.lastPinned?.schemaName shouldBe f.directory.schemaOf(f.teamId)
+        }
+
+        test("an expired token joins nothing and switches nothing") {
+            val f = newFixture()
+            val other = f.directory.addTeam("Tovo Heren 5", "tovo-heren-5")
+            f.directory.join(nonAdmin, other)
+            f.service.acceptInvitation(token = "anything", userId = nonAdmin)
+            f.invitations.expire()
+            f.routingGateway.writes.clear()
+
+            f.service.acceptInvitation(token = "anything", userId = nonAdmin) shouldBe null
+
+            f.routingGateway.pins shouldBe emptyList()
         }
     }
 }

@@ -9,7 +9,7 @@ import { useUserStore } from '@shared/stores/user-store'
 // Admins additionally get the invite link + the gear in the header (below) linking into
 // /team/settings, where member management lives — the team actions on the team screen, under the
 // new tab-bar nav.
-export const Route = createFileRoute('/team/')({
+export const Route = createFileRoute('/t/$slug/team/')({
   component: TeamPage,
 })
 

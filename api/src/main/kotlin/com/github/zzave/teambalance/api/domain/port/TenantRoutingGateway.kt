@@ -15,4 +15,10 @@ interface TenantRoutingGateway {
      * back instead of several of them racing to memoize it (#205). Pinning it again is harmless.
      */
     fun pinRouting(routing: TenantRouting)
+
+    /**
+     * Drops any pinned routing, leaving no tenant rather than a stale one. Sign-in clears before it
+     * pins, because pinning is conditional and would otherwise inherit the previous caller's tenant.
+     */
+    fun clearRouting()
 }

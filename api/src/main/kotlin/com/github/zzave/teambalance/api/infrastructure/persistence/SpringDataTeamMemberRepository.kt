@@ -61,6 +61,16 @@ interface SpringDataTeamMemberRepository : JpaRepository<TeamMemberJpaEntity, UU
     )
     fun deactivate(@Param("teamId") teamId: UUID, @Param("userId") userId: UUID): Int
 
+    // Re-joining after removal. The role resets to USER: a removed admin walking back in through a
+    // shared invite link must not arrive holding their old rights.
+    @Modifying
+    @Query(
+        "UPDATE public.team_members SET active = true, role = 'USER' " +
+            "WHERE team_id = :teamId AND user_id = :userId AND active = false",
+        nativeQuery = true,
+    )
+    fun reactivateAsUser(@Param("teamId") teamId: UUID, @Param("userId") userId: UUID): Int
+
     @Query(
         "SELECT COUNT(*) FROM public.team_members " +
             "WHERE team_id = :teamId AND role = 'ADMIN' AND active = true",
@@ -107,9 +117,24 @@ interface SpringDataTeamMemberRepository : JpaRepository<TeamMemberJpaEntity, UU
     )
     fun findMemberSummariesByTeamId(@Param("teamId") teamId: UUID): List<MemberSummaryProjection>
 
-    // Resolves the tenant routing (team id + schema) for a user in ONE query, so the request's write
-    // schema and its authorized team id come from the same row and cannot diverge. v1 assumes one team
-    // per user; the deterministic ORDER BY makes the single picked row stable if that is ever violated.
+    // The write schema and the authorized team id come from the same row, so they cannot diverge.
+    // The `user_id AND active` predicate IS the membership check.
+    @Query(
+        value = """
+            SELECT tm.team_id     AS teamId,
+                   t.schema_name  AS schemaName
+            FROM   public.team_members tm
+            JOIN   public.teams t ON t.id = tm.team_id
+            WHERE  tm.user_id = :userId
+            AND    tm.team_id = :teamId
+            AND    tm.active = true
+        """,
+        nativeQuery = true,
+    )
+    fun findTeamRouting(@Param("teamId") teamId: UUID, @Param("userId") userId: UUID): TeamRoutingProjection?
+
+    // LIMIT 2 is the point: a second row means there is no sole team, and the adapter answers null
+    // rather than picking one.
     @Query(
         value = """
             SELECT tm.team_id     AS teamId,
@@ -118,26 +143,11 @@ interface SpringDataTeamMemberRepository : JpaRepository<TeamMemberJpaEntity, UU
             JOIN   public.teams t ON t.id = tm.team_id
             WHERE  tm.user_id = :userId
             AND    tm.active = true
-            ORDER  BY tm.team_id
-            LIMIT  1
+            LIMIT  2
         """,
         nativeQuery = true,
     )
-    fun findTeamRoutingByUserId(@Param("userId") userId: UUID): TeamRoutingProjection?
-
-    // v1 assumes one team per user; the deterministic ORDER BY makes the single picked row stable.
-    @Query(
-        value = """
-            SELECT tm.team_id
-            FROM   public.team_members tm
-            WHERE  tm.user_id = :userId
-            AND    tm.active = true
-            ORDER  BY tm.team_id
-            LIMIT  1
-        """,
-        nativeQuery = true,
-    )
-    fun findTeamIdByUserId(@Param("userId") userId: UUID): UUID?
+    fun findTeamRoutings(@Param("userId") userId: UUID): List<TeamRoutingProjection>
 }
 
 interface MemberSummaryProjection {

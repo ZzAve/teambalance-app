@@ -21,6 +21,7 @@ export DEBIAN_FRONTEND=noninteractive
 
 JAVA_MAJOR=25          # gradle.properties javaVersion, .sdkmanrc
 NODE_VERSION=24.18.1   # .nvmrc
+PLAYWRIGHT_VERSION=1.62.1  # app/package.json @playwright/test
 JAVA_HOME_DIR="/usr/lib/jvm/java-${JAVA_MAJOR}-openjdk-amd64"
 NODE_PREFIX="/opt/node${NODE_VERSION}"
 TESTCONTAINER_IMAGES="postgres:17-alpine redis:7-alpine redis:8-alpine"
@@ -76,6 +77,24 @@ install_node() {
     log "WARN: node download failed"
   fi
   rm -rf "$tmp"
+}
+
+link_node_into_path() {
+  # The image points these at node 20. Repointing them puts the required version on the
+  # default PATH, so neither the hook nor a session has to manipulate PATH.
+  for binary in node npm npx; do
+    ln -sfn "${NODE_PREFIX}/bin/${binary}" "/usr/local/bin/${binary}" || true
+  done
+}
+
+install_playwright_browser() {
+  # Pulled into the snapshot so no session pays the ~150MB download. The hook re-runs the
+  # same install against the revision the repo's own @playwright/test pins, which is a
+  # no-op whenever this pin still matches.
+  export PLAYWRIGHT_BROWSERS_PATH="${PLAYWRIGHT_BROWSERS_PATH:-/opt/pw-browsers}"
+  log "installing playwright chromium (playwright ${PLAYWRIGHT_VERSION})"
+  npx --yes "playwright@${PLAYWRIGHT_VERSION}" install chromium chromium-headless-shell >/dev/null 2>&1 ||
+    log "WARN: playwright browser download failed — is cdn.playwright.dev allowlisted?"
 }
 
 configure_registry_mirror() {
@@ -143,6 +162,8 @@ install_jdk & jdk_pid=$!
 install_node & node_pid=$!
 wait "$jdk_pid" "$node_pid"
 
+link_node_into_path
+install_playwright_browser
 configure_registry_mirror
 install_compose_shim
 prewarm_container_images

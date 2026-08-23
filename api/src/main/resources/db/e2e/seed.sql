@@ -105,7 +105,5 @@ INSERT INTO public.users (id, email, display_name)
 VALUES ('e2e00000-0000-0000-0000-000000000021', 'platform@example.com', 'E2E Platform Operator')
 ON CONFLICT DO NOTHING;
 
--- Re-runs against a warm DB must start outside every team: an episode left open by a previous run
--- would still be inside its 60-minute box, and the operator would land in a team instead of on the
--- console. Closing it here is the fixture's job, not the app's.
-DELETE FROM public.act_as_sessions WHERE created_by = 'e2e00000-0000-0000-0000-000000000021';
+-- No act_as_sessions cleanup: signing in closes any open episode (ADR-0024 - act-as is entered, not
+-- resumed), so a warm DB starts the operator outside every team on its own. The e2e asserts that.

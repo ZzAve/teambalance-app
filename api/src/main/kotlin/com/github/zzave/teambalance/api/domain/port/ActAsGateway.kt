@@ -20,8 +20,9 @@ interface ActAsGateway {
     fun current(): ActAs?
 
     /**
-     * True when this request carries an act-as episode that has run out. Distinct from "never had
+     * The act-as episode this request entered and has since lost, or null. Distinct from "never had
      * one", so the lapse can be reported as `ACT_AS_EXPIRED` rather than as a bare permission denial.
+     * It authorizes nothing — it only explains a refusal, and only for the caller it names.
      */
-    fun isLapsed(): Boolean
+    fun lapsed(): ActAs?
 }

@@ -164,7 +164,7 @@ class ActAsServiceTest : FunSpec() {
 
                 f.clock.advance(ActAs.ACT_AS_TTL.plusSeconds(1))
 
-                f.service.resolve(operator) shouldBe ActAsResolution.Lapsed
+                f.service.resolve(operator).shouldBeInstanceOf<ActAsResolution.Lapsed>()
             }
 
             test("a lapse keeps saying Lapsed — every request in between, not just the first") {
@@ -173,8 +173,8 @@ class ActAsServiceTest : FunSpec() {
                 f.service.enter(operator, dames5)
                 f.clock.advance(ActAs.ACT_AS_TTL.plusSeconds(1))
 
-                f.service.resolve(operator) shouldBe ActAsResolution.Lapsed
-                f.service.resolve(operator) shouldBe ActAsResolution.Lapsed
+                f.service.resolve(operator).shouldBeInstanceOf<ActAsResolution.Lapsed>()
+                f.service.resolve(operator).shouldBeInstanceOf<ActAsResolution.Lapsed>()
             }
 
             test("a lapsed grant is never slid back to life") {
@@ -214,6 +214,22 @@ class ActAsServiceTest : FunSpec() {
                 f.service.exit(operator)
 
                 f.service.resolve(operator) shouldBe ActAsResolution.None
+            }
+
+            // The record has to say what happened, not when the operator got round to admitting it:
+            // an episode that lapsed at lunchtime did not run until the evening.
+            test("closing a lapsed episode ends it at its last activity, not at the moment of closing") {
+                val f = fixture()
+                val dames5 = f.directory.addTeam("Dames 5", "dames-5")
+                f.service.enter(operator, dames5)
+                f.clock.advance(Duration.ofMinutes(20))
+                f.service.resolve(operator)
+                val lastActive = f.clock.now
+                f.clock.advance(Duration.ofHours(6))
+
+                f.service.exit(operator)
+
+                f.episodes.all().single().exitedAt shouldBe lastActive
             }
 
             test("exiting without having entered is a no-op, not an error") {

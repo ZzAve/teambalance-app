@@ -67,7 +67,11 @@ class AuthController(
             id = user.id.produce(),
             email = user.email.produce(),
             displayName = user.displayName.value,
-            role = if (actAs != null) Role.ADMIN.name else activeTeam?.let { authService.findRoleIn(it.id, user.id)?.name },
+            // Real membership first, synthesis second — the same precedence AuthorizationService
+            // applies. A caller who somehow held both would otherwise be shown admin UI that every
+            // write then refuses.
+            role = activeTeam?.let { authService.findRoleIn(it.id, user.id)?.name }
+                ?: actAs?.let { Role.ADMIN.name },
             teams = teams.map { it.produce() },
             activeTeam = activeTeam?.produce(),
             isPlatformAdmin = authService.isPlatformAdmin(user.id),

@@ -57,8 +57,12 @@ function actorLabel(actorKind: string): string {
  * more than the record knows.
  */
 function describeWindow(record: ActAsRecord): string {
-  const entered = formatDateTime(new Date(record.enteredAt))
-  const end = formatTime(new Date(record.exitedAt ?? record.lastActiveAt))
+  const enteredAt = new Date(record.enteredAt)
+  const endAt = new Date(record.exitedAt ?? record.lastActiveAt)
+  const entered = formatDateTime(enteredAt)
+  // A window that crosses midnight reads backwards as a bare time ("23:30, until 00:15"), so the
+  // end carries its date whenever it falls on another day.
+  const end = enteredAt.toDateString() === endAt.toDateString() ? formatTime(endAt) : formatDateTime(endAt)
   return record.exitedAt ? `was here on ${entered}, until ${end}` : `was here on ${entered}, last seen ${end}`
 }
 

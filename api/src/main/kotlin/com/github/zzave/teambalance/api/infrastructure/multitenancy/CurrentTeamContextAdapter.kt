@@ -26,7 +26,7 @@ class CurrentTeamContextAdapter(
 ) : CurrentTeamGateway {
     override fun requireCurrentTeamId(): TeamId =
         findCurrentTeamId() ?: currentUser.requireCurrentUserId().let {
-            throw if (actAs.isLapsed()) ActAsExpiredException(it) else NoTeamMembershipException(it)
+            throw if (actAs.lapsed()?.userId == it) ActAsExpiredException(it) else NoTeamMembershipException(it)
         }
 
     override fun findCurrentTeamId(): TeamId? = CurrentTeamContext.get()?.let(::TeamId)

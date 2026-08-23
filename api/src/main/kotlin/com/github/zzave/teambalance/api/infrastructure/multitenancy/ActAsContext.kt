@@ -13,15 +13,18 @@ import com.github.zzave.teambalance.api.domain.model.ActAs
  */
 object ActAsContext {
     private val current = InheritableThreadLocal<ActAs>()
-    private val expired = InheritableThreadLocal<Boolean>()
+    private val expired = InheritableThreadLocal<ActAs>()
 
     fun set(actAs: ActAs) = current.set(actAs)
 
-    /** Marks the request as carrying an act-as episode that has run out. Grants nothing. */
-    fun markLapsed() = expired.set(true)
+    /**
+     * Records the episode this request entered and has since lost. Held apart from [set] so it can
+     * never be mistaken for a live grant: it explains a refusal, it does not authorize anything.
+     */
+    fun markLapsed(actAs: ActAs) = expired.set(actAs)
 
     fun get(): ActAs? = current.get()
-    fun isLapsed(): Boolean = expired.get() == true
+    fun lapsed(): ActAs? = expired.get()
 
     fun clear() {
         current.remove()

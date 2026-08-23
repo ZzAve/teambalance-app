@@ -15,5 +15,5 @@ import org.springframework.stereotype.Component
 @Component
 class ActAsContextAdapter : ActAsGateway {
     override fun current(): ActAs? = ActAsContext.get()
-    override fun isLapsed(): Boolean = ActAsContext.isLapsed()
+    override fun lapsed(): ActAs? = ActAsContext.lapsed()
 }

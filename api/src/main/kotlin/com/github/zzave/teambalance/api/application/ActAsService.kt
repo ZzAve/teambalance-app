@@ -92,7 +92,7 @@ class ActAsService(
      */
     fun resolve(userId: UserId): ActAsResolution {
         val open = actAsRepository.findOpenFor(userId) ?: return ActAsResolution.None
-        return carry(open, clock.instant()) ?: ActAsResolution.Lapsed
+        return carry(open, clock.instant()) ?: ActAsResolution.Lapsed(open)
     }
 
     /**
@@ -108,8 +108,15 @@ class ActAsService(
     /** The team-visible **Act-as Record** for [teamId], newest first. Authorization is the caller's. */
     fun recordsFor(teamId: TeamId): List<ActAs> = actAsRepository.findForTeam(teamId)
 
+    /**
+     * Ends the caller's open episode. A grant that already lapsed did **not** end when the operator
+     * got round to closing it — its last activity is where it really stopped, and stamping `now`
+     * would have the team-visible record claim hours of access that never happened.
+     */
     private fun close(userId: UserId, now: Instant) {
-        actAsRepository.findOpenFor(userId)?.let { actAsRepository.save(it.copy(exitedAt = now)) }
+        actAsRepository.findOpenFor(userId)?.let {
+            actAsRepository.save(it.copy(exitedAt = if (it.isActiveAt(now)) now else it.lastActiveAt))
+        }
     }
 }
 
@@ -122,7 +129,7 @@ sealed interface ActAsResolution {
     data class Active(val actAs: ActAs, val routing: TenantRouting) : ActAsResolution
 
     /** Entered, then ran out. Resolves to no tenant, and reports `ACT_AS_EXPIRED`. */
-    data object Lapsed : ActAsResolution
+    data class Lapsed(val actAs: ActAs) : ActAsResolution
 
     /** No act-as at all — the ordinary Member path (the overwhelming majority of requests). */
     data object None : ActAsResolution

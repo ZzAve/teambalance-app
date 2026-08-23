@@ -75,7 +75,11 @@ class AuthorizationService(
      * A lapsed act-as is reported as itself, not as a bare denial: the frontend returns the Platform
      * Admin to the console on `ACT_AS_EXPIRED`, and would have no way to tell that from "you may not
      * do this" if both arrived as the same 403.
+     *
+     * Only for the caller the lapsed episode names. A refusal about *someone else* — "is this member
+     * an admin?" asked inside a lapsed request — is an ordinary denial, and dressing it as a lapse
+     * would send the frontend to recover from something that never expired.
      */
     private inline fun lapsedOr(userId: UserId, otherwise: () -> RuntimeException): RuntimeException =
-        if (actAsGateway.isLapsed()) ActAsExpiredException(userId) else otherwise()
+        if (actAsGateway.lapsed()?.userId == userId) ActAsExpiredException(userId) else otherwise()
 }

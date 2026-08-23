@@ -165,12 +165,7 @@ class ActAsControllerIT : TeamBalanceIT() {
         context("/auth/me while inside a Team") {
             test("names the Team, reports the synthesized ADMIN, and stays teamless") {
                 val session = signInOperator()
-                dispatch(
-                    MockMvcRequestBuilders.post("/api/admin/act-as")
-                        .cookie(session)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""{"teamId":"$TEAM_ID"}"""),
-                ).andExpect(status().isOk)
+                enterOn(session, TEAM_ID).andExpect(status().isOk)
 
                 dispatch(MockMvcRequestBuilders.get("/api/auth/me").cookie(session))
                     .andExpect(status().isOk)
@@ -185,18 +180,43 @@ class ActAsControllerIT : TeamBalanceIT() {
             // reports nothing — otherwise the box would never close for a signed-in operator.
             test("reports no act-as once the box has run out, so the gate sends them to the console") {
                 val session = signInOperator()
-                dispatch(
-                    MockMvcRequestBuilders.post("/api/admin/act-as")
-                        .cookie(session)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""{"teamId":"$TEAM_ID"}"""),
-                ).andExpect(status().isOk)
+                enterOn(session, TEAM_ID).andExpect(status().isOk)
                 expireGrant()
 
                 dispatch(MockMvcRequestBuilders.get("/api/auth/me").cookie(session))
                     .andExpect(status().isOk)
                     .andExpect(jsonPath("$.actAs").doesNotExist())
                     .andExpect(jsonPath("$.activeTeam").doesNotExist())
+            }
+        }
+
+        // The grant outlives a session on purpose — it is a durable, time-boxed record — but it must
+        // never be *resumed*, or act-as stops being a mode you enter and becomes one you find
+        // yourself in after a login (ADR-0024 §4).
+        context("across sessions") {
+            test("a fresh sign-in does not resume an open grant") {
+                enterOn(signInOperator(), TEAM_ID).andExpect(status().isOk)
+
+                val second = signInOperator()
+
+                dispatch(MockMvcRequestBuilders.get("/api/auth/me").cookie(second))
+                    .andExpect(status().isOk)
+                    .andExpect(jsonPath("$.actAs").doesNotExist())
+                createPositionAs(OPERATOR_ID, "Setter")
+                    .andExpect(status().isForbidden)
+                    .andExpect(jsonPath("$.code").value("NO_TEAM_MEMBERSHIP"))
+            }
+
+            test("signing out leaves the Team behind") {
+                val session = signInOperator()
+                enterOn(session, TEAM_ID).andExpect(status().isOk)
+
+                dispatch(MockMvcRequestBuilders.post("/api/auth/logout").cookie(session))
+                    .andExpect(status().isNoContent)
+
+                createPositionAs(OPERATOR_ID, "Setter")
+                    .andExpect(status().isForbidden)
+                    .andExpect(jsonPath("$.code").value("NO_TEAM_MEMBERSHIP"))
             }
         }
 
@@ -234,6 +254,14 @@ class ActAsControllerIT : TeamBalanceIT() {
 
     private fun listTeamsAs(userId: String) =
         dispatch(MockMvcRequestBuilders.get("/api/admin/teams").header("X-User-Id", userId))
+
+    private fun enterOn(session: Cookie, teamId: String) =
+        dispatch(
+            MockMvcRequestBuilders.post("/api/admin/act-as")
+                .cookie(session)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""{"teamId":"$teamId"}"""),
+        )
 
     private fun enterAs(userId: String, teamId: String) =
         dispatch(

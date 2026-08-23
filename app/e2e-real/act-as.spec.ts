@@ -67,7 +67,9 @@ test('a Platform Admin enters a team, writes in it, and leaves without ever join
   // 6. ...and the team can see the platform was here, attributed generically (ADR-0024 §4).
   const platformAccess = page.locator('section').filter({ has: page.getByRole('heading', { name: 'Platform access' }) })
   await expect(platformAccess).toBeVisible()
-  await expect(platformAccess.getByText('TeamBalance', { exact: true })).toBeVisible()
+  // .first(): a warm DB carries earlier episodes, and this asserts the platform is IN the record,
+  // not how many times it has been here.
+  await expect(platformAccess.getByText('TeamBalance', { exact: true }).first()).toBeVisible()
   await expect(platformAccess.getByText(OPERATOR_NAME)).toHaveCount(0)
 
   // 7. Exit: one click, and the banner is gone.

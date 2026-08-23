@@ -72,8 +72,8 @@ class SessionTenantContextFilter(
                 ActAsContext.set(actAs.actAs)
                 actAs.routing
             }
-            ActAsResolution.Lapsed -> {
-                ActAsContext.markLapsed()
+            is ActAsResolution.Lapsed -> {
+                ActAsContext.markLapsed(actAs.actAs)
                 TenantRoutingSession.clear(session)
                 null
             }

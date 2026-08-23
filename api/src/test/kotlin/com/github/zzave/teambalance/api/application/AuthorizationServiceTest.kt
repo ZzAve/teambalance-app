@@ -167,7 +167,7 @@ class AuthorizationServiceTest : FunSpec() {
         }
 
         context("a grant that ran out") {
-            val lapsed = AuthorizationService(roster, FakeActAsGateway(lapsed = true))
+            val lapsed = AuthorizationService(roster, FakeActAsGateway(lapsed = ActAs.enter(operator, teamId, now)))
 
             test("authorizes nothing") {
                 lapsed.isAdmin(operator, teamId) shouldBe false
@@ -179,8 +179,11 @@ class AuthorizationServiceTest : FunSpec() {
                 shouldThrow<ActAsExpiredException> { lapsed.requireMember(operator, teamId) }
             }
 
-            test("does not turn an ordinary member's refusal into a lapse report") {
-                shouldThrow<ActAsExpiredException> { lapsed.requireAdmin(memberId, teamId) }
+            // The lapse explains a refusal only for the caller it belongs to. Asking "is this member
+            // an admin?" inside a lapsed request is an ordinary denial, and dressing it as a lapse
+            // would send the frontend off to recover from something that never expired.
+            test("does not turn a refusal about someone else into a lapse report") {
+                shouldThrow<NotTeamAdminException> { lapsed.requireAdmin(memberId, teamId) }
             }
         }
     }

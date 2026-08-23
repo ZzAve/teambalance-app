@@ -167,10 +167,10 @@ internal class AllowlistedPlatformAdmins(private val admins: Set<UserId>) : Plat
 /** Stands in for what the request filter resolved — the only source of a Virtual Member. */
 internal class FakeActAsGateway(
     private val grant: ActAs? = null,
-    private val lapsed: Boolean = false,
+    private val lapsed: ActAs? = null,
 ) : ActAsGateway {
     override fun current(): ActAs? = grant
-    override fun isLapsed(): Boolean = lapsed
+    override fun lapsed(): ActAs? = lapsed
 }
 
 /** Order matters: the pin is the session-memo invalidation (ADR-0023 §2). */

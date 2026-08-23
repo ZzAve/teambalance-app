@@ -1,8 +1,8 @@
-# ADR-0022: Platform Admin Act-as — entering a team you are not a member of
+# ADR-0024: Platform Admin Act-as — entering a team you are not a member of
 
 - Status: Accepted
 - Date: 2026-08-22
-- Builds on: [ADR-0021](0021-active-team-explicit-tenant-resolution.md) (the Active Team seam)
+- Builds on: [ADR-0023](0023-active-team-explicit-tenant-resolution.md) (the Active Team seam)
 - Amends: [ADR-0019](0019-self-service-team-onboarding.md) (§4 platform-admin identity, §5 founder becomes a member)
 - Relates to: [#237](https://github.com/ZzAve/teambalance-app/issues/237) (general audit log — deliberately decoupled)
 - Resolves: [#239](https://github.com/ZzAve/teambalance-app/issues/239); §5 is delivered by [#240](https://github.com/ZzAve/teambalance-app/issues/240)
@@ -42,14 +42,14 @@ of on gates.
 ### 2. Virtual Member — synthesized, never written
 
 Authorization inside act-as comes from a **Virtual Member**: `findRole(teamId, userId)` — the single
-chokepoint from ADR-0021 — returns `ADMIN`. **No `team_members` row is ever written.** The team's
+chokepoint from ADR-0023 — returns `ADMIN`. **No `team_members` row is ever written.** The team's
 roster, attendance denominators, Position breakdown and contributor rankings are untouched.
 
 **The synthesis keys off an actively-entered act-as state, never off `isPlatformAdmin(userId)`
 alone.** If the chokepoint learned "ADMIN when the caller is a platform admin", an ordinary session
 would silently be admin of every tenant it happened to be routed to, and act-as would stop being a
 mode you enter and become a property you carry. That is the same class of mistake as the `LIMIT 1`
-ADR-0021 removes: a rule invisible at the call site and only wrong later.
+ADR-0023 removes: a rule invisible at the call site and only wrong later.
 
 **Rejected: per-call-site bypasses** (`… || isPlatformAdmin`), which turn one chokepoint into N, and
 the one that gets forgotten is the vulnerability. **Rejected: a real-but-hidden `team_members` row**,

@@ -23,7 +23,7 @@ any-team, self-service (see [ADR-0001](docs/adr/0001-product-ambition-hobby-tool
   link), and remembered as their default between logins. A Member of several Teams has
   exactly one Active Team at a time; authorization for it comes either from their real
   membership or, for a **Platform Admin**, from **Act-as**
-  ([ADR-0021](docs/adr/0021-active-team-explicit-tenant-resolution.md)).
+  ([ADR-0023](docs/adr/0023-active-team-explicit-tenant-resolution.md)).
   _Avoid_: current team, selected tenant, team context.
 - **Member** — A person belonging to a Team. Has exactly one **Role** and at most one
   **Position**.
@@ -96,7 +96,7 @@ any-team, self-service (see [ADR-0001](docs/adr/0001-product-ambition-hobby-tool
   safe to re-tap as new events appear), **future-only** (past events are skipped), and scoped
   **per Event Type**: one button per type that currently has blanks, each naming its own scope
   ("Attend 12 trainings", "Attend 3 matches"), so no filtering is needed to make a legible tap
-  ([ADR-0021](docs/adr/0021-bulk-attend-one-button-per-event-type.md) amends the original
+  ([ADR-0023](docs/adr/0021-bulk-attend-one-button-per-event-type.md) amends the original
   "currently shown" scoping; the **Event Type** filter still narrows what is on screen, and so
   what the buttons cover).
   Self-in-practice (no UI to Bulk Attend for others, though the endpoint stays trust-based per
@@ -133,13 +133,13 @@ any-team, self-service (see [ADR-0001](docs/adr/0001-product-ambition-hobby-tool
   an existing Team. Clicking it → enter email → Magic Link → joined. One link, many
   joiners; can expire/rotate. Carries the **Role** it grants on acceptance — ordinarily
   **User**, but an **Admin**-granting link is how a memberless Team gets its first Admin
-  ([ADR-0022](docs/adr/0022-platform-admin-act-as.md)).
+  ([ADR-0024](docs/adr/0024-platform-admin-act-as.md)).
 - **Team creation** — Provisioning a new Team. Self-service: a logged-in, teamless user
   creates their Team from a name + slug + one-time **creation code**, which provisions the
   tenant schema inline (see [ADR-0019](docs/adr/0019-self-service-team-onboarding.md)).
   Back-office onboarding is now just minting a creation code. A **Platform Admin** may also
   create a Team **memberless** — no founding Admin — and hand it over with an Admin-granting
-  **Invite Link** ([ADR-0022](docs/adr/0022-platform-admin-act-as.md)).
+  **Invite Link** ([ADR-0024](docs/adr/0024-platform-admin-act-as.md)).
 
 ### Platform & integrations
 
@@ -152,7 +152,7 @@ any-team, self-service (see [ADR-0001](docs/adr/0001-product-ambition-hobby-tool
 - **Act-as** — An explicitly entered, time-boxed state in which a **Platform Admin** operates
   inside one Team as if they were an Admin of it. Full read *and* write. Always visible while
   active, always exited deliberately, and always recorded — see **Act-as Record**
-  ([ADR-0022](docs/adr/0022-platform-admin-act-as.md)). _Avoid_: impersonation, spy mode,
+  ([ADR-0024](docs/adr/0024-platform-admin-act-as.md)). _Avoid_: impersonation, spy mode,
   support mode, sudo.
 - **Virtual Member** — The synthesized **Admin** authorization a **Platform Admin** holds inside
   a Team during **Act-as**. Exists only for the duration of the request: no `team_members` row is

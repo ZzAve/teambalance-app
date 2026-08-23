@@ -1,9 +1,9 @@
-# ADR-0021: The Active Team — explicit, session-carried tenant resolution
+# ADR-0023: The Active Team — explicit, session-carried tenant resolution
 
 - Status: Accepted
 - Date: 2026-08-22
 - Amends: [ADR-0019](0019-self-service-team-onboarding.md) (§3 one-team-per-user, §6 `/auth/me`'s singular `team`)
-- Relates to: [ADR-0014](0014-jdbc-backed-shared-sessions-survive-restart.md) (JDBC sessions), [ADR-0015](0015-session-lifetime-long-sliding-idle-plus-absolute-cap.md) (session lifetime), [ADR-0022](0022-platform-admin-act-as.md) (act-as rides this seam)
+- Relates to: [ADR-0014](0014-jdbc-backed-shared-sessions-survive-restart.md) (JDBC sessions), [ADR-0015](0015-session-lifetime-long-sliding-idle-plus-absolute-cap.md) (session lifetime), [ADR-0024](0024-platform-admin-act-as.md) (act-as rides this seam)
 - Resolves: [#143](https://github.com/ZzAve/teambalance-app/issues/143)
 - Enables: [#239](https://github.com/ZzAve/teambalance-app/issues/239) (act-as), [#240](https://github.com/ZzAve/teambalance-app/issues/240) (club rollout)
 
@@ -38,7 +38,7 @@ double membership (a player who also trains another squad, a season-long fill-in
 A request is scoped to exactly one **Active Team**, **explicitly selected and never inferred**.
 `AuthorizationService`'s `findRole(teamId, userId)` remains the single authorization chokepoint and
 answers from one of two sources: a real `team_members` row, or the **Virtual Member** synthesized by
-**Act-as** (ADR-0022).
+**Act-as** (ADR-0024).
 
 `ORDER BY … LIMIT 1` is **deleted, not sidestepped**. `findTeamRoutingByUserId` and
 `findTeamIdByUserId` stop meaning "resolve the user's team" and become "resolve *this* team for this
@@ -88,7 +88,7 @@ rediscover.
 - **ADR-0019 §6 is amended**: `/auth/me`'s `team: TeamRef?` becomes `teams: TeamRef[]` plus an
   `activeTeam`. The frontend route gate's question changes from "do you have a team" to "do you have
   *any* team, and which is active", and gains a third branch for a teamless **Platform Admin**
-  (ADR-0022).
+  (ADR-0024).
 - **`AuthorizationService`'s security-contract comment is reworded.** It currently forbids `teamId`
   from being "a raw request parameter". Under this ADR the team id *is* a caller-influenced input,
   made safe by being validated at the one chokepoint. The prohibition it should carry instead: a
@@ -100,7 +100,7 @@ rediscover.
 ## Non-goals
 
 No cross-team data views or aggregation. No simultaneously-active roles across teams — one Active
-Team, one role, at a time. No cross-team identity merging (see ADR-0022: the two accounts a
+Team, one role, at a time. No cross-team identity merging (see ADR-0024: the two accounts a
 platform-running player holds must never be linked or auto-switched between).
 
 ## Consequences
@@ -109,5 +109,5 @@ platform-running player holds must never be linked or auto-switched between).
   leaves the codebase.
 - Every team-scoped screen gains a team slug in its route, and the switcher becomes permanent UI.
 - Session memo invalidation is now load-bearing; a missed invalidation is a cross-tenant read.
-- Act-as (ADR-0022) builds no tenant-resolution machinery of its own — it supplies a second
+- Act-as (ADR-0024) builds no tenant-resolution machinery of its own — it supplies a second
   authorization source to this one.

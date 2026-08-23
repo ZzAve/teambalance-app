@@ -1,6 +1,5 @@
-import { useNavigate } from '@tanstack/react-router'
 import { useAuthMe } from '@shared/api/auth'
-import { PLATFORM_CONSOLE_PATH } from '@shared/api/act-as-redirect'
+import { goToConsole } from '@shared/api/act-as-redirect'
 import { useExitActAs } from '@shared/api/act-as'
 import { ActAsBannerView } from './ActAsBannerView'
 
@@ -10,7 +9,6 @@ import { ActAsBannerView } from './ActAsBannerView'
  * operator back to the console on Exit. Pure wiring, covered by e2e rather than a story (ADR-0017).
  */
 export function ActAsBanner() {
-  const navigate = useNavigate()
   const { data: user } = useAuthMe()
   const exitActAs = useExitActAs()
 
@@ -18,7 +16,7 @@ export function ActAsBanner() {
     <ActAsBannerView
       teamName={user?.actAs?.team.name ?? null}
       isExiting={exitActAs.isPending}
-      onExit={() => exitActAs.mutate(undefined, { onSuccess: () => navigate({ to: PLATFORM_CONSOLE_PATH }) })}
+      onExit={() => exitActAs.mutate(undefined, { onSuccess: goToConsole })}
     />
   )
 }

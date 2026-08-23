@@ -52,14 +52,16 @@ export function useEnterActAs() {
   })
 }
 
-/** Leaves the Team. Never refused, so the only failure worth surfacing is the network. */
+/**
+ * Leaves the Team. Never refused, so the only failure worth surfacing is the network. The cache is
+ * not reset here: the caller leaves the page entirely (see `goToConsole`), which is the only way to
+ * drop tenant-scoped queries without refetching them against a tenant that is already gone.
+ */
 export function useExitActAs() {
-  const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async () => {
       await api.ExitActAs()
     },
-    onSuccess: () => queryClient.resetQueries(),
   })
 }
 

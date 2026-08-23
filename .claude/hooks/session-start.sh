@@ -17,17 +17,22 @@ start_docker_daemon() {
   docker info >/dev/null 2>&1 && return 0
 
   log "starting docker daemon"
+  # The daemon is not answering, so any pidfile here is stale — most likely captured in
+  # the environment snapshot. dockerd refuses to start when the PID it names happens to
+  # be live in the restored container, so clear it rather than inherit that deadlock.
+  rm -f /var/run/docker.pid
   # Disowned so nothing downstream can end up waiting on the daemon.
   nohup dockerd >/var/log/dockerd.log 2>&1 &
   disown $!
-  for _ in $(seq 1 30); do
+  for _ in $(seq 1 60); do
     docker info >/dev/null 2>&1 && return 0
     sleep 1
   done
 
-  log "ERROR: docker daemon failed to start — Testcontainers ITs and make e2e will fail"
+  # Not fatal: only Testcontainers ITs and make e2e need docker, and aborting here would
+  # cost the build as well.
+  log "WARN: docker daemon did not start — make test-api and make e2e will fail"
   tail -20 /var/log/dockerd.log
-  exit 1
 }
 
 install_playwright_browser() {

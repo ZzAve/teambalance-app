@@ -168,5 +168,20 @@ configure_registry_mirror
 install_compose_shim
 prewarm_container_images
 
+stop_docker_daemon() {
+  # The snapshot is taken once this script finishes, so leave the image store behind but
+  # no runtime state: a captured /var/run/docker.pid whose PID is live in the restored
+  # container makes dockerd refuse to start, and docker is then absent for the session.
+  pkill -x dockerd 2>/dev/null || true
+  for _ in $(seq 1 15); do
+    pgrep -x dockerd >/dev/null || break
+    sleep 1
+  done
+  pkill -9 -x dockerd 2>/dev/null || true
+  rm -f /var/run/docker.pid /var/run/docker.sock
+}
+
+stop_docker_daemon
+
 log "done"
 exit 0

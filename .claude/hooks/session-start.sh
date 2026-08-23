@@ -1,6 +1,20 @@
 #!/usr/bin/env bash
-# SessionStart hook — provisions a Claude Code on the web container so that
-# `make build`, `make lint`, `make test` and `make e2e` all work out of the box.
+# SessionStart hook — makes `make build`, `make lint`, `make test` and `make e2e` work
+# in a Claude Code on the web container.
+#
+# This is the second of two layers. The first is .claude/cloud-setup-script.sh, pasted
+# into the cloud environment's "Setup script" field: it runs once per environment and
+# the filesystem is snapshotted afterwards, so the toolchain it installs is already on
+# disk when a session starts. This hook runs on every session and resume and is NOT
+# cached, so it does the work a snapshot cannot hold — starting dockerd, exporting the
+# session environment — plus the project-level setup that has to run locally too:
+# wirespec codegen and npm install.
+#
+# Every VM-level step below is also a drift guard: it re-checks what the setup script
+# should have done and installs whatever is missing, so a session still works if the
+# script was never pasted, if the cache expired, or if the repo bumps .nvmrc /
+# gradle.properties past what that script pins. On a cached environment each of those
+# checks is a no-op costing milliseconds.
 #
 # What the base image gives us and what it misses:
 #   java     21   -> the build needs 25 (gradle.properties javaVersion, .sdkmanrc)
@@ -91,8 +105,10 @@ if docker info >/dev/null 2>&1; then
 else
   log "starting docker daemon"
   # Inherits HTTPS_PROXY/NO_PROXY and the system CA store, which is what lets the
-  # daemon reach the mirror through the egress proxy.
+  # daemon reach the mirror through the egress proxy. Disowned so that a later `wait`
+  # in this script could never block on the daemon.
   nohup dockerd >/var/log/dockerd.log 2>&1 &
+  disown $!
   for _ in $(seq 1 30); do
     docker info >/dev/null 2>&1 && break
     sleep 1

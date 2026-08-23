@@ -20,7 +20,7 @@ set -u
 export DEBIAN_FRONTEND=noninteractive
 
 JAVA_MAJOR=25          # gradle.properties javaVersion, .sdkmanrc
-NODE_VERSION=24.18.1   # .nvmrc
+NODE_VERSION=24.19.0   # .nvmrc
 PLAYWRIGHT_VERSION=1.62.1  # app/package.json @playwright/test
 JAVA_HOME_DIR="/usr/lib/jvm/java-${JAVA_MAJOR}-openjdk-amd64"
 NODE_PREFIX="/opt/node${NODE_VERSION}"

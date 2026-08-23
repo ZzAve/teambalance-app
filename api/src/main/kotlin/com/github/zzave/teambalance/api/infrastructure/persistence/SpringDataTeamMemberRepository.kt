@@ -61,10 +61,8 @@ interface SpringDataTeamMemberRepository : JpaRepository<TeamMemberJpaEntity, UU
     )
     fun deactivate(@Param("teamId") teamId: UUID, @Param("userId") userId: UUID): Int
 
-    // Re-joining after removal. The role is reset to USER rather than restored: `addMember` joins as
-    // a USER by contract, and a removed admin walking back in through a shared invite link must not
-    // arrive holding their old admin rights. Returns the rows affected, so the caller can tell a real
-    // re-join from "there was no such row".
+    // Re-joining after removal. The role resets to USER: a removed admin walking back in through a
+    // shared invite link must not arrive holding their old rights.
     @Modifying
     @Query(
         "UPDATE public.team_members SET active = true, role = 'USER' " +
@@ -119,11 +117,8 @@ interface SpringDataTeamMemberRepository : JpaRepository<TeamMemberJpaEntity, UU
     )
     fun findMemberSummariesByTeamId(@Param("teamId") teamId: UUID): List<MemberSummaryProjection>
 
-    // Resolves the tenant routing (team id + schema) for ONE named team of a user, so the request's
-    // write schema and its authorized team id come from the same row and cannot diverge. The team id
-    // is a parameter, not a discovery: the `tm.user_id = :userId AND tm.active` predicate IS the
-    // membership check, so a team the caller may not have returns no row — the same answer an unknown
-    // team id gets (ADR-0023 §1).
+    // The write schema and the authorized team id come from the same row, so they cannot diverge.
+    // The `user_id AND active` predicate IS the membership check.
     @Query(
         value = """
             SELECT tm.team_id     AS teamId,
@@ -138,10 +133,8 @@ interface SpringDataTeamMemberRepository : JpaRepository<TeamMemberJpaEntity, UU
     )
     fun findTeamRouting(@Param("teamId") teamId: UUID, @Param("userId") userId: UUID): TeamRoutingProjection?
 
-    // The routing of a user's ONLY active membership. `LIMIT 2` is the point: two rows come back when
-    // there is no sole team, and the adapter answers null rather than picking one. This is what the
-    // deleted `ORDER BY tm.team_id LIMIT 1` used to do wrong — it ordered by UUID, so with two
-    // memberships it chose arbitrarily, and TenantRoutingSession then made that choice sticky.
+    // LIMIT 2 is the point: a second row means there is no sole team, and the adapter answers null
+    // rather than picking one.
     @Query(
         value = """
             SELECT tm.team_id     AS teamId,

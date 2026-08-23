@@ -63,7 +63,6 @@ private class RecordingRegistrar(
         now: Instant,
     ): TeamId {
         calls += "register:$slug"
-        // What the real registrar commits in one transaction: the team row plus the founding admin.
         return directory.addTeam(name.value, slug.value).also { directory.join(founder, it, Role.ADMIN) }
     }
 }
@@ -87,10 +86,8 @@ class TeamServiceTest : FunSpec() {
         val founder = UserId.random()
         val founderUser = User(id = founder, email = Email("founder@example.com"), displayName = DisplayName("Founder"))
 
-        // The registrar is faked, so the directory has to be told what a successful register() would
-        // have written: the Team row and the founder's ADMIN membership. Handing that to
-        // RecordingRegistrar keeps "the founder is a Member as of register()" true here too — which is
-        // exactly the precondition the Active Team switch that follows it depends on.
+        // The faked registrar still writes what a real one commits — the Team row and the founder's
+        // ADMIN membership — because the Active Team switch that follows depends on it.
         fun fixture(
             calls: MutableList<String> = mutableListOf(),
             existingSlugs: Set<Slug> = emptySet(),
@@ -136,8 +133,6 @@ class TeamServiceTest : FunSpec() {
             calls shouldContainExactly listOf("provision:team_setpoint_vt", "register:setpoint-vt")
         }
 
-        // ADR-0019 §3's 409 ALREADY_IN_TEAM is lifted (ADR-0023 §4): it existed only to match a
-        // routing layer that could hold one Team per user, and that constraint is gone.
         test("a founder who already plays in a team may create another") {
             val calls = mutableListOf<String>()
             val (directory, _, service) = fixture(calls)
@@ -149,8 +144,6 @@ class TeamServiceTest : FunSpec() {
             calls shouldContainExactly listOf("provision:team_setpoint_vt", "register:setpoint-vt")
         }
 
-        // Without this the founder would create a Team and stay routed to the one they were already
-        // in — the new Team would exist and be invisible to the person who made it.
         test("the new team becomes the founder's Active Team") {
             val (directory, gateway, service) = fixture()
             directory.join(founder, directory.addTeam("Tovo Heren 5", "tovo-heren-5"))

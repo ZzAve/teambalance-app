@@ -22,25 +22,18 @@ interface TeamMemberRepository {
     fun findRole(teamId: TeamId, userId: UserId): Role?
 
     /**
-     * The tenant routing (team id + schema) for **this** team and this user, resolved from ONE row,
-     * or null when they have no active membership of it (ADR-0023 §1). The team id is an input, not a
-     * discovery: this asks "resolve this team for this user, and verify they may have it" — it never
-     * picks a team on the caller's behalf.
-     *
-     * Null is the *only* failure mode, and it covers both "no such team" and "not yours" — the caller
-     * cannot tell them apart, so the team id space cannot be probed.
+     * Team id and schema for this team and this user, from ONE row. Null covers both "no such team"
+     * and "not yours", indistinguishably, so the team id space cannot be probed (ADR-0023 §1).
      */
     fun findTenantRouting(teamId: TeamId, userId: UserId): TenantRouting?
 
-    /**
-     * The tenant routing of the user's **only** active membership, or null when they have none — or
-     * more than one. Deliberately not "their first team": with several memberships there is no
-     * defensible pick, so this answers null and the Active Team has to be chosen explicitly
-     * (ADR-0023 §3). This is what replaced the `ORDER BY team_id LIMIT 1` that used to choose by UUID.
-     */
+    /** Null for none and for several: with several there is no defensible pick (ADR-0023 §3). */
     fun findSoleTenantRouting(userId: UserId): TenantRouting?
 
-    /** Joins the user to the team as a USER. No-op if already an active member of this team. */
+    /**
+     * Joins the user to the team as a USER, whether or not they were a member before. No-op if they
+     * already are one. A previously removed member comes back as a USER, never at their old role.
+     */
     fun addMember(teamId: TeamId, userId: UserId)
 
     /** Sets the permission [role] for an active member. */

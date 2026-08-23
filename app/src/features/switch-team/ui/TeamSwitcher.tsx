@@ -4,13 +4,8 @@ import { teamRoutes } from '@shared/lib/team-routes'
 import { TeamSwitcherView } from './TeamSwitcherView'
 
 /**
- * Thin wiring for [TeamSwitcherView]: the caller's Teams from `/auth/me`, and a switch performed as
- * an ordinary navigation to `/t/:slug`.
- *
- * Navigating rather than calling the switch endpoint here is deliberate — `/t/$slug`'s gate already
- * performs the authorized switch for a shared link, and routing the switcher through the same door
- * keeps one code path for both (ADR-0023 §2). A switcher that called activate itself would be the
- * second tenant-resolution path the ADR exists to prevent.
+ * Thin wiring for [TeamSwitcherView]. Switching is an ordinary navigation to `/t/:slug` rather than a
+ * call to the switch endpoint, so a tap and a shared link go through one door (ADR-0023 §2).
  */
 export function TeamSwitcher() {
   const navigate = useNavigate()

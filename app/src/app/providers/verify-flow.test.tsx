@@ -22,8 +22,7 @@ const USER: AuthenticatedUser = {
   email: 'jan@example.com',
   displayName: 'Jan',
   role: 'USER',
-  // A Member with an Active Team, so the has-any-team gate passes and `/` dispatches into that Team
-  // rather than to onboarding or the picker.
+  // A Member with an Active Team, so the gate passes and `/` dispatches into that Team.
   teams: [TEAM],
   activeTeam: TEAM,
   isPlatformAdmin: false,
@@ -67,8 +66,7 @@ describe('magic-link verification', () => {
   it('establishes the session and lands on events, without the guard bouncing back to login', async () => {
     const router = renderAppAt('/auth/verify?token=valid-token')
 
-    // `/` is a dispatcher now: it resolves the Active Team and redirects into `/t/:slug` (ADR-0023
-    // §2), so landing "on events" means landing on that Team's events.
+    // `/` is a dispatcher: it resolves the Active Team and redirects into `/t/:slug`.
     await waitFor(() => expect(router.state.location.pathname).toBe('/t/setpoint-vt'), { timeout: 5000 })
     expect(await screen.findByRole('heading', { name: 'Events' }, { timeout: 5000 })).toBeInTheDocument()
     expect(screen.queryByText(/link expired/i)).not.toBeInTheDocument()

@@ -2,17 +2,14 @@ import { Users } from 'lucide-react'
 import type { TeamRef } from '@shared/api/teams'
 
 interface SelectTeamViewProps {
-  /** Every Team the caller is a Member of — at least two, or they would not be here. */
+  /** At least two, or the caller would not be here. */
   teams: TeamRef[]
   onSelect: (slug: string) => void
 }
 
 /**
- * "Which Team?" — the screen a Member of several Teams sees when none is active.
- *
- * Prop-only. It has no "remember my choice" control on purpose: picking a Team *is* the switch, and
- * every switch is remembered (ADR-0023 §3). Offering the choice separately would imply there is a
- * kind of switch that isn't remembered, which is exactly the invisible rule the ADR rejected.
+ * "Which Team?" — what a Member of several Teams sees when none is active. No "remember my choice"
+ * control on purpose: picking a Team *is* the switch, and every switch is remembered (ADR-0023 §3).
  */
 export function SelectTeamView({ teams, onSelect }: SelectTeamViewProps) {
   return (

@@ -47,8 +47,6 @@ describe('user-store', () => {
     })
   })
 
-  // The whole point of ADR-0023: which Teams you are a Member of and which one this session is
-  // scoped to are different questions. The store names the ACTIVE one — never the first of the list.
   it('names the Active Team, not the first of several memberships', () => {
     useUserStore.getState().setCurrentUser({
       id: 'u-1',
@@ -63,9 +61,7 @@ describe('user-store', () => {
     expect(useUserStore.getState()).toMatchObject({ teamName: 'Dames 2', teamSlug: 'dames-2' })
   })
 
-  // A Member of several Teams with none chosen yet: they have memberships, but no Team is active,
-  // so there is nothing to name. Reading the list's first entry here would be the old bug wearing
-  // frontend clothes.
+  // Reading the list's first entry here would be the old misrouting wearing frontend clothes.
   it('names no Team when memberships exist but none is active', () => {
     useUserStore.getState().setCurrentUser({
       id: 'u-1',

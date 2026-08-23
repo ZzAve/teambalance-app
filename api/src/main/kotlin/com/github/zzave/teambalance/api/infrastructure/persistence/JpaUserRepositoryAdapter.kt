@@ -24,9 +24,8 @@ class JpaUserRepositoryAdapter(
     override fun save(user: User): User =
         jpaRepository.save(user.externalize()).internalize()
 
-    // Read and written as a bare column rather than through UserJpaEntity: the Active Team memory is
-    // routing state, not part of the User aggregate the rest of the app maps, and keeping it off the
-    // entity stops a stale in-memory User from overwriting a switch made on another device.
+    // A bare column rather than a UserJpaEntity field: keeping it off the entity stops a stale
+    // in-memory User from overwriting a switch made on another device.
     override fun findLastActiveTeamId(userId: UserId): TeamId? =
         jpaRepository.findLastActiveTeamId(userId.value)?.let(::TeamId)
 

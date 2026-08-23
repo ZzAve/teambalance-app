@@ -36,10 +36,8 @@ data class CreatedTeam(val id: TeamId, val name: TeamName, val slug: Slug)
  * or slug collision) the only residue is a harmless empty orphan schema, self-healed by the startup
  * migration runner. Notifications are best-effort and can never fail a committed creation.
  *
- * The founder no longer has to be teamless. ADR-0019 §3 rejected an existing member with
- * `409 ALREADY_IN_TEAM` to match a routing layer that could only hold one Team per user; ADR-0023
- * lifted that guard along with the routing constraint behind it, so someone already playing in one
- * Team can start another.
+ * The founder need not be teamless: ADR-0023 lifted ADR-0019 §3's `409 ALREADY_IN_TEAM` along with
+ * the one-team routing constraint behind it.
  */
 class TeamService(
     private val teamRepository: TeamRepository,
@@ -73,9 +71,7 @@ class TeamService(
             now = now,
         )
 
-        // The founder is a Member of the new Team as of register(), so this switch resolves — and it
-        // has to happen here rather than being left to the client: without it a founder who already
-        // plays elsewhere would create a Team and stay routed to their old one.
+        // Without this a founder who already plays elsewhere stays routed to their old Team.
         activeTeamService.activate(founderId, teamId)
 
         notifyBestEffort(founderId, names.name, names.slug)

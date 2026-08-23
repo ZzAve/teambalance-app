@@ -21,10 +21,8 @@ let accepted = false
 
 const TEAM = { id: 'team-1', name: 'Setpoint VT', slug: 'setpoint-vt' }
 
-// Pre-join: a teamless newbie (no Role, no Teams). Accepting the invite makes them a Member — see
-// the accept handler, which flips the session to [MEMBER] so the has-any-team gate passes on the
-// landing. The joined Team comes back as the ACTIVE one, which is the server's job since ADR-0023
-// §4: accepting is no longer fire-and-forget, so the joiner lands where they just accepted.
+// Pre-join: a teamless newbie. The accept handler flips the session to [MEMBER], with the joined
+// Team ACTIVE — the server's job since ADR-0023 §4, so the joiner lands where they accepted.
 const USER: AuthenticatedUser = {
   id: 'user-1',
   email: 'newbie@example.com',
@@ -60,9 +58,7 @@ const server = setupServer(
   http.post('/api/invitations/:token/accept', ({ params }) => {
     if (params.token !== 'valid-invite-token') return new HttpResponse(null, { status: 404 })
     accepted = true
-    // Joining a Team makes the caller a Member of it AND makes it their Active Team, so /auth/me
-    // reports both and the has-any-team gate lets them land on that Team's events (the flow
-    // invalidates ['auth','me'] right after accept).
+    // /auth/me then reports both, so the gate lets them land on that Team's events.
     session = MEMBER
     return HttpResponse.json({ teamId: 'team-1' })
   }),

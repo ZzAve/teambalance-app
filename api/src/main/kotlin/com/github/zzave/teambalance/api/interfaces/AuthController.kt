@@ -32,9 +32,7 @@ class AuthController(
 
     override suspend fun verifyMagicLink(request: VerifyMagicLink.Request): VerifyMagicLink.Response<*> {
         val user = authService.verifyMagicLink(request.body.token) ?: return VerifyMagicLink.Response401(Unit)
-        // Sign-in resolves and pins the Active Team, and hands it back here. The Active Team of *this*
-        // request cannot be read from the request context instead: SessionTenantContextFilter ran
-        // before the session existed, so the context is empty on the very request that creates it.
+        // Not readable from the request context: the tenant filter ran before this session existed.
         val activeTeamId = authService.startSession(user.id)
         return VerifyMagicLink.Response200(describe(user, activeTeamId))
     }
@@ -50,13 +48,8 @@ class AuthController(
             ?: GetAuthMe.Response401(Unit)
 
     /**
-     * The authenticated-user payload: who is calling, every Team they are a Member of, and which one
-     * this request is scoped to (#143, ADR-0023 §4).
-     *
      * [activeTeamId] is intersected with the memberships rather than reported as given, so the payload
-     * can only ever name a Team the caller actually has — a Team id resolved anywhere else cannot leak
-     * a name and a slug through here. `role` is read for that same intersected Team, which is what
-     * makes it "your Role *here*" rather than a property of the user.
+     * can only ever name a Team the caller actually has. `role` is read for that same Team.
      */
     private fun describe(user: User, activeTeamId: TeamId?): AuthenticatedUser {
         val teams = authService.findTeamsFor(user.id)
@@ -73,9 +66,7 @@ class AuthController(
     }
 }
 
-// The Wirespec edge for a Team's public identity — id, name and the slug its URLs are addressed by.
-// The tenant schema is deliberately absent (ADR-0023 §2). internal so the switch endpoint hands back
-// the same shape /auth/me does.
+// The Wirespec edge for a Team's public identity; the tenant schema is deliberately absent.
 internal fun TeamSummary.produce() = TeamRef(id = id.produce(), name = name.value, slug = slug.value)
 
 // The Wirespec edge for a user's identity — the contract, and the session attribute the auth filter

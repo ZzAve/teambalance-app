@@ -23,9 +23,7 @@ export const useUserStore = create<UserState>((set) => ({
   teamName: null,
   teamSlug: null,
   isPlatformAdmin: false,
-  // Everything Team-shaped is read off `activeTeam`, never off `teams`: which Team the caller is a
-  // Member of and which one this session is scoped to are different questions, and the list's order
-  // answers neither (ADR-0023 §1).
+  // Read off `activeTeam`, never `teams`: the list's order says nothing about which is active.
   setCurrentUser: (user) =>
     set({
       userId: user?.id ?? null,

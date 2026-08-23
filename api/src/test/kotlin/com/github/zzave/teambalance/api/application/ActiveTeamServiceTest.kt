@@ -42,8 +42,6 @@ class ActiveTeamServiceTest : FunSpec() {
                 service.resolveLanding(member).shouldBeNull()
             }
 
-            // The bug this seam fixes: two memberships used to be resolved by `ORDER BY team_id LIMIT 1`,
-            // which picks by UUID. Answering *nothing* is what forces the choice to be explicit.
             test("two memberships and nothing remembered resolve to nothing, never an arbitrary pick") {
                 val (directory, _, service) = fixture()
                 directory.join(member, directory.addTeam("Setpoint VT", "setpoint-vt"))
@@ -63,9 +61,7 @@ class ActiveTeamServiceTest : FunSpec() {
                 service.resolveLanding(member)?.teamId shouldBe tovo
             }
 
-            // Sessions slide for four weeks and survive restarts (ADR-0014/0015), so a remembered Team
-            // can outlive the membership behind it. Trusting it would route a removed Member back into
-            // a tenant they were removed from.
+            // Sessions slide for four weeks (ADR-0015), long enough to outlive the membership.
             test("a remembered Team whose membership was revoked is not trusted") {
                 val (directory, gateway, service) = fixture()
                 val setpoint = directory.addTeam("Setpoint VT", "setpoint-vt")
@@ -77,8 +73,7 @@ class ActiveTeamServiceTest : FunSpec() {
 
                 directory.leave(member, tovo)
 
-                // Not "fall back to Setpoint": with the remembered Team gone they are down to one
-                // membership, and a sole membership IS a defensible landing.
+                // Not a fallback: with the remembered Team gone, a sole membership is defensible.
                 service.resolveLanding(member)?.teamId shouldBe setpoint
             }
 
@@ -106,8 +101,6 @@ class ActiveTeamServiceTest : FunSpec() {
                 service.activate(member, tovo).shouldNotBeNull().teamId shouldBe tovo
 
                 directory.rememberedTeamOf(member) shouldBe tovo
-                // The pin carries the NEW team's schema — this is the session-memo invalidation, and a
-                // pin of the outgoing tenant here would be a cross-tenant read on the next request.
                 gateway.lastPinned.shouldNotBeNull().schemaName shouldBe directory.schemaOf(tovo)
             }
 
@@ -135,8 +128,6 @@ class ActiveTeamServiceTest : FunSpec() {
 
                 service.activate(member, theirs).shouldBeNull()
 
-                // Nothing pinned and nothing remembered: a refused switch must not disturb the Active
-                // Team the caller already had, and must not route them at all.
                 gateway.pins.shouldBeEmpty()
                 directory.rememberedTeamOf(member) shouldBe mine
             }
@@ -159,8 +150,6 @@ class ActiveTeamServiceTest : FunSpec() {
                 gateway.lastPinned.shouldNotBeNull().teamId shouldBe tovo
             }
 
-            // "not yours" and "no such Team" must read identically, or the slug space becomes a probe
-            // for which Teams exist on the platform.
             test("a real slug the caller may not have, and an unknown slug, are both just null") {
                 val (directory, _, service) = fixture()
                 directory.join(member, directory.addTeam("Setpoint VT", "setpoint-vt"))
@@ -207,9 +196,8 @@ class ActiveTeamServiceTest : FunSpec() {
                 gateway.pins.shouldBeEmpty()
             }
 
-            // Signing in on a session that already carries someone else's routing — a shared phone,
-            // a second magic link in the same browser. The pin is conditional; the clear is not, or
-            // the new caller inherits the previous caller's tenant.
+            // A shared phone, or a second magic link in the same browser: the pin is conditional,
+            // the clear is not, or the new caller inherits the previous caller's tenant.
             test("clears any routing already on the session, even when it pins nothing after") {
                 val (directory, gateway, service) = fixture()
                 directory.join(member, directory.addTeam("Alpha", "alpha"))

@@ -5,11 +5,7 @@ import com.github.zzave.teambalance.api.domain.model.Slug
 import com.github.zzave.teambalance.api.domain.model.TeamSummary
 import java.util.UUID
 
-/**
- * Read-side access to platform-level teams. Slice 1 needed only the tenant schema names to keep every
- * team migrated at boot; create-team added the slug pre-check; #158 added the per-user lookup that powers
- * `/auth/me`; #143 turned that lookup into a *list*, because a user may be a Member of several Teams.
- */
+/** Read-side access to platform-level teams. */
 interface TeamRepository {
     /** Schema names of all teams — the source of truth for which tenant schemas must exist. */
     fun findAllSchemaNames(): List<SchemaName>
@@ -22,16 +18,11 @@ interface TeamRepository {
     fun existsBySlug(slug: Slug): Boolean
 
     /**
-     * Every team the user is an active Member of, by name, or empty when they belong to none. Ordered
-     * so a switcher listing them is stable between requests; the order carries no other meaning — in
-     * particular it is *not* a fallback for "which team is active" (ADR-0023 §1).
+     * Every team the user is an active Member of, in a stable display order. That order is not a
+     * fallback for "which team is active" (ADR-0023 §1).
      */
     fun findTeamsOf(userId: UUID): List<TeamSummary>
 
-    /**
-     * The team addressed by [slug], regardless of who is asking — the slug is a Team's public address
-     * (ADR-0019 §2), so this says nothing about membership. Authorization is a separate step: resolving
-     * a slug here and failing the membership check must be indistinguishable from an unknown slug.
-     */
+    /** The team at this slug, regardless of who is asking — membership is a separate check. */
     fun findBySlug(slug: Slug): TeamSummary?
 }

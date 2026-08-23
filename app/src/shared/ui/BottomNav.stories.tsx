@@ -8,10 +8,8 @@ import { BottomNav } from './BottomNav'
 // tabs; the active tab is derived from the current route. Each story starts the router at a
 // different path (via parameters.router.initialEntries) to pin the active-state wiring.
 //
-// Every tab is team-scoped since #143: the targets are built from the slug in the path the bar is
-// rendered on (ADR-0023 §2), which is exactly why starting the router at a path is enough to drive
-// them — there is no store to prime. The href assertions below are what would catch a tab that
-// stopped following the Active Team and started pointing at some other Team's screens.
+// The tab targets are built from the slug in the path the bar is rendered on (ADR-0023 §2), which is
+// why starting the router at a path is enough to drive them — there is no store to prime.
 const meta = {
   title: 'shared/ui/BottomNav',
   component: BottomNav,

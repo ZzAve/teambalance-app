@@ -17,8 +17,7 @@ function isAuthRoute(pathname: string): boolean {
   return pathname === '/login' || pathname.startsWith('/auth/') || /^\/invite\/[^/]+$/.test(pathname)
 }
 
-// The screens an authenticated caller can reach without being in a Team: the join-vs-create fork,
-// its two branches, and the picker a Member of several Teams lands on when none is active.
+// The screens an authenticated caller can reach without being in a Team.
 function isTeamlessRoute(pathname: string): boolean {
   const path = pathname.replace(/\/$/, '')
   return (
@@ -45,16 +44,10 @@ export const Route = createRootRoute({
     }
     if (!user) throw redirect({ to: '/login' })
 
-    // Has-ANY-team gate (ADR-0023 §4, amending ADR-0019 §6). The question this gate asks changed
-    // with #143: it is no longer "do you have a team" but "do you have *any* Team" — and *which* one
-    // is active is a separate question, answered per-route by /t/$slug and never inferred from the
-    // list's order. A teamless caller is a first-class state, routed to the join-vs-create fork
-    // before any tenant-scoped probe (which would 403 NO_TEAM_MEMBERSHIP and bounce them to /login).
-    // Teamlessness is read from the explicit teams list, not inferred from role == null (permission
-    // vs membership; see #26).
-    //
-    // The onboarding gate that used to live here moved to /t/$slug: onboarding is per-Team, so it
-    // can only be asked once the Active Team is settled.
+    // Has-ANY-team gate (ADR-0023 §4). Which Team is active is a separate question, answered by
+    // /t/$slug. Teamlessness is read from the explicit list, never inferred from role == null
+    // (permission vs membership; see #26), and is checked before any tenant-scoped probe, which
+    // would 403 NO_TEAM_MEMBERSHIP and bounce a teamless caller to /login.
     if (isTeamlessRoute(location.pathname)) return
     if (user.teams.length === 0) throw redirect({ to: '/onboarding' })
   },
@@ -105,10 +98,6 @@ function RootLayout() {
             <Link to="/" className="font-display text-xl font-bold text-blue">
               Team<span className="text-green">Balance</span>
             </Link>
-            {/* The switcher is permanent UI and always names the current Team (ADR-0023 §3). That
-                visibility is what makes one-kind-of-switch tolerable: opening a teammate's link
-                re-homes your default, and the only thing that makes it correctable is being able to
-                see, at a glance, which Team you are in. */}
             <TeamSwitcher />
           </div>
         </header>

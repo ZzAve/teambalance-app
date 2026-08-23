@@ -6,39 +6,12 @@ import { activateTeam } from '@shared/api/teams'
 import { teamRoutes } from '@shared/lib/team-routes'
 
 /**
- * The layout every team-scoped screen hangs off, and the one place the Active Team changes.
+ * The layout every team-scoped screen hangs off, and the one place the Active Team changes: opening
+ * a `/t/:slug/…` URL performs an authorized switch (ADR-0023 §2), so a teammate's link opens for
+ * anyone entitled to it.
  *
- * **Opening a `/t/:slug/…` URL performs an authorized switch** (ADR-0023 §2) — that is the whole
- * point of putting the slug in the URL: a teammate's link opens for anyone entitled to it, and there
- * is exactly one kind of switch, so a link-induced one and a tap in the switcher are the same
- * request and are remembered the same way (§3). A slug the caller may not have, and one that does
- * not exist, both fail the same way here: back to `/`, which re-resolves and lands them somewhere
- * they are entitled to. No error screen names the Team, because the backend deliberately does not
- * say which of the two happened.
- *
- * The switch is skipped when the URL already names the Active Team — the common case, every
- * in-app navigation — so this costs one request per actual change of Team, not per page.
- *
- * **The session, not this URL, is the authority on the tenant.** The slug asks for a Team; the
- * session decides. So two tabs cannot sit in two Teams: opening a link in a second tab switches the
- * one session, and the first tab then shows the other Team's data under its own slug until it
- * navigates. ADR-0023 §2 weighed exactly this — request-carried tenancy would have fixed it — and
- * took it as the price of keeping the installed PWA's navigation team-less. It is a stale *view*,
- * never a cross-tenant write to the wrong place: every request is scoped by the session the server
- * holds, and the slug influences it only through the authorized switch above. Revisit with the ADR
- * if tab-per-team ergonomics become a real complaint, not by making the URL authoritative here.
- *
- * **The cache is reset on a real switch.** Every tenant-scoped query (events, members, positions,
- * the season) is keyed without the Team in it, because a request has exactly one Active Team; that
- * makes the cache the frontend's mirror of `TenantRoutingSession`'s memo, and it inherits the same
- * obligation. Keeping it across a switch would paint the previous Team's roster onto the new Team's
- * screens.
- *
- * `resetQueries`, specifically, and not `clear()`: a switch between two team-scoped routes keeps the
- * same components mounted, and `clear()` empties the cache without telling those observers to fetch
- * again — so the screen sits there showing the Team you just left, indefinitely. `resetQueries`
- * discards the data *and* refetches what is on screen, which is the pair of things a tenant change
- * actually needs.
+ * The session, not this URL, is the authority on the tenant — two tabs therefore share one Active
+ * Team, which ADR-0023 §2 accepted as the price of team-less PWA navigation.
  */
 export const Route = createFileRoute('/t/$slug')({
   beforeLoad: async ({ params, location }) => {
@@ -47,18 +20,17 @@ export const Route = createFileRoute('/t/$slug')({
 
     if (user.activeTeam?.slug !== params.slug) {
       const activated = await activateTeam(params.slug).catch(() => null)
-      // Unknown slug, or not theirs — indistinguishable by design. `/` decides where they do belong.
       if (!activated) throw redirect({ to: '/' })
+      // Tenant-scoped queries are keyed without the Team in them, so they belong to the Team just
+      // left. resetQueries, not clear(): a switch keeps the same components mounted, and clear()
+      // empties the cache without telling those observers to refetch.
       await queryClient.resetQueries()
       user = await queryClient.ensureQueryData(authMeQueryOptions).catch(() => null)
       if (!user) throw redirect({ to: '/login' })
     }
 
-    // Onboarding gate: a Member who hasn't completed onboarding is routed to /get-started before any
-    // team screen mounts. It lives here rather than in the root guard because onboarding is
-    // per-Team — joining a second Team means onboarding into it — so it can only be asked once the
-    // Active Team is settled. /get-started itself is exempt so the flow can render. Fail OPEN if the
-    // state can't be read: an onboarding-status blip shouldn't trap the user, and auth is confirmed.
+    // Onboarding is per-Team, so it can only be asked once the Active Team is settled — hence here
+    // rather than in the root guard. Fails open: a status blip must not trap a confirmed caller.
     const routes = teamRoutes(params.slug)
     if (location.pathname.replace(/\/$/, '') === routes.getStarted) return
     const member = await queryClient.ensureQueryData(currentMemberQueryOptions).catch(() => null)

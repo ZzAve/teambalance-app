@@ -34,14 +34,8 @@ class JdbcTeamRepositoryAdapter(
             slug.value,
         ) ?: false
 
-    // Ordered by name, not by id: this list is read by humans in the Team switcher. It is a
-    // presentation order and nothing else — resolving which Team is *active* never falls back to it
-    // (ADR-0023 §1). The `ORDER BY tm.team_id LIMIT 1` this replaced did exactly that, picking a Team
-    // by UUID and silently hiding the user's others.
-    //
-    // `t.id` breaks ties because team names are deliberately NOT unique (ADR-0019 §2 — the slug is
-    // the unique address, the name is free text), so two Teams called "Heren 3" would otherwise swap
-    // places between requests.
+    // A presentation order for the switcher, nothing more. `t.id` breaks ties because team names are
+    // deliberately not unique (ADR-0019 §2), so two Teams called "Heren 3" would otherwise reshuffle.
     override fun findTeamsOf(userId: UUID): List<TeamSummary> =
         jdbcTemplate.query(
             "SELECT t.id, t.name, t.slug FROM public.teams t " +

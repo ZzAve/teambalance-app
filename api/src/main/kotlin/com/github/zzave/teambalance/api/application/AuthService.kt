@@ -57,28 +57,17 @@ class AuthService(
 
     fun findUserById(id: UserId): User? = userRepository.findById(id)
 
-    /**
-     * Every Team the user is an active Member of — the has-any-team gate signal on `/auth/me`. Plural
-     * since #143: membership of several Teams is ordinary, and which one is *active* is a separate
-     * question, answered by the Active Team ([ActiveTeamService]) rather than by this list's order.
-     */
+    /** The has-any-team gate signal on `/auth/me`. Which one is *active* is a separate question. */
     fun findTeamsFor(userId: UserId): List<TeamSummary> = activeTeamService.teamsOf(userId)
 
     /**
-     * The user's Role **in their Active Team**, or null when no Team is active for this request — the
-     * `role` field of the authenticated-user payload. Identity-shaped ("who is this caller, here?"),
-     * unlike [AuthorizationService], which answers "may this caller do X on team Y?". Takes the Active
-     * Team as an argument rather than resolving one: with several memberships a caller has several
-     * Roles, and only the active one is theirs for this request.
+     * Identity-shaped ("who is this caller, here?"), unlike [AuthorizationService], which answers
+     * "may this caller do X on team Y?". The Active Team is an argument because a caller with several
+     * memberships has several Roles, and only the active one is theirs for this request.
      */
     fun findRoleIn(teamId: TeamId, userId: UserId): Role? = teamMemberRepository.findRole(teamId, userId)
 
-    /**
-     * Signs [userId] in: opens their session, then pins the Active Team they land in (team id + schema
-     * from one row, so the tenant lookup can't diverge or race) and returns it. Null when nothing could
-     * be resolved — a teamless user, or one with several Teams and none remembered, who is asked to
-     * choose instead of being given an arbitrary one.
-     */
+    /** Opens the session and returns the Active Team pinned for it, or null if none resolved. */
     fun startSession(userId: UserId): TeamId? {
         authSessionGateway.startSession(userId)
         return activeTeamService.pinLanding(userId)

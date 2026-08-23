@@ -4,11 +4,9 @@ export const LOGIN_PATH = '/login'
 export const NO_TEAM_MEMBERSHIP_CODE = 'NO_TEAM_MEMBERSHIP'
 
 /**
- * The routes that already own the "you have no Active Team" question and must therefore never be
- * bounced off it. Since #143 that 403 no longer means only "teamless": it is also what a Member of
- * several Teams gets before one is chosen, and what a request to a Team the caller may not have
- * resolves to (ADR-0023 §1 — a rejected team id resolves to *no tenant*). Bouncing those to login
- * would log out a perfectly authenticated person.
+ * Routes that already own the "you have no Active Team" question. The 403 no longer means only
+ * "teamless" — a Member of several Teams gets it before choosing — so bouncing these to login would
+ * log out a perfectly authenticated person.
  */
 const TENANT_RESOLVING_PATHS = ['/select-team', '/onboarding', '/create-team']
 
@@ -16,10 +14,10 @@ const TENANT_RESOLVING_PATHS = ['/select-team', '/onboarding', '/create-team']
  * Whether an API response means we should bounce the user to the login screen. Kept pure (no
  * window/router) so it is unit-testable; the effectful redirect lives in [redirectToLogin].
  *
- * A 403 with the "no team membership" code means the request resolved to no tenant. That is a
- * session-shaped problem everywhere except on the screens that exist to fix it, which resolve it
- * themselves. Other 403s (e.g. "not a team admin") are genuine permission errors and stay inline.
- * The unauthenticated (401) case is handled by the route guard via the session probe, not here.
+ * A 403 with the "no team membership" code means the request resolved to no tenant — a
+ * session-shaped problem everywhere except on the screens that exist to fix it. Other 403s (e.g.
+ * "not a team admin") are genuine permission errors and stay inline. The 401 case is the route
+ * guard's, not this one's.
  */
 export function shouldRedirectToLogin(params: {
   status: number

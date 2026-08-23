@@ -20,10 +20,8 @@ import javax.sql.DataSource
  * execute after context initialization — i.e. after [PlatformSchemaInitializer] has run the
  * platform Flyway migrations. Ordering: Flyway → provision → seed.
  *
- * There are **two** tenants, not one. The team-switching flow (#143) needs a caller to be a Member
- * of two Teams and needs each Team's data to be visibly different, which only a second real tenant
- * schema gives you — a second team row pointing at the same schema would show the same events and
- * prove nothing about routing.
+ * Two tenants, not one: the team-switching flow needs each Team's data to be visibly different, and
+ * a second team row on the same schema would show the same events and prove nothing about routing.
  *
  * Interim mechanism: once an admin API for team/tenant provisioning exists, the SQL fixture
  * is replaced by API calls in Playwright global-setup and this hook is absorbed into the

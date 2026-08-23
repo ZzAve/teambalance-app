@@ -59,14 +59,10 @@ ON CONFLICT DO NOTHING;
 -- the event with no row at all, which is what a real not-responded member looks like.
 DELETE FROM team_test.attendances WHERE uuid = 'e2e00000-0000-0000-0000-000000000005';
 
--- --- Second Team, for the team-switching flow (#143, ADR-0023) -------------------------------
--- A second tenant with its own schema and its own event, so "the data followed the switch" is an
--- observable fact rather than an assumption: each Team's events list names an event the other Team
--- does not have.
---
--- Its admin is a SEPARATE user, deliberately. The shared e2e user must stay a Member of exactly one
--- Team: every other spec signs in as them and expects to land somewhere, and a second membership
--- would (correctly) make that landing a choice instead.
+-- --- Second Team, for the team-switching flow (ADR-0023) -------------------------------------
+-- Its own schema and its own event, so "the data followed the switch" is observable. Its admin is a
+-- SEPARATE user: the shared e2e user must stay in exactly one Team, or every other spec's landing
+-- would (correctly) become a choice.
 
 INSERT INTO public.teams (id, name, slug, schema_name)
 VALUES ('e2e00000-0000-0000-0000-000000000011', 'E2E Second Team', 'e2e-second-team', 'team_test_two')

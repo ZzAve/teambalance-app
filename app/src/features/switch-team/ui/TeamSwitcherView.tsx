@@ -12,23 +12,15 @@ interface TeamSwitcherViewProps {
 }
 
 /**
- * The Team switcher, prop-only: it always **names the current Team** (ADR-0023 §3).
+ * Always **names the current Team** (ADR-0023 §3) — not decoration: with one kind of switch, opening
+ * a teammate's link re-homes your default, and seeing which Team you are in is what makes that a
+ * one-tap correction rather than a mystery.
  *
- * That naming is not decoration. There is one kind of switch, so tapping a teammate's link to your
- * secondary Team re-homes your default and you may open the app later in the other Team. The rule
- * that makes that acceptable is that the switcher is permanent UI and states which Team you are in,
- * so the re-homing is self-evident and a one-tap correction — as opposed to a hidden rule about
- * deliberate-vs-link-induced switches that no user could see.
- *
- * A caller with a single Team gets a plain label, not a menu: there is nothing to switch to, and a
- * dropdown that only ever offers what you are already looking at is noise. The name still shows,
- * which is the part the rule above actually depends on.
+ * A single-Team caller gets the name without a menu; there is nothing to switch to.
  */
 export function TeamSwitcherView({ teams, activeTeam, onSelect }: TeamSwitcherViewProps) {
   const [open, setOpen] = useState(false)
 
-  // Nothing to name: a teamless caller, or one who has not chosen yet. The screens they are on
-  // (onboarding, the picker) say where they are; a chip saying nothing would only take up room.
   if (!activeTeam) return null
 
   if (teams.length < 2) {
@@ -57,8 +49,7 @@ export function TeamSwitcherView({ teams, activeTeam, onSelect }: TeamSwitcherVi
 
       {open && (
         <>
-          {/* Full-screen catcher so a tap anywhere closes the menu — the same affordance as Escape,
-              on a device with no Escape key. */}
+          {/* Tap-anywhere-to-close, for devices with no Escape key. */}
           <button
             type="button"
             aria-hidden="true"

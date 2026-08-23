@@ -56,15 +56,10 @@ class InvitationService(
     }
 
     /**
-     * Joins the presenting user to the invitation's team **and makes it their Active Team**, so a
-     * joiner lands where they just accepted rather than back in whichever Team they were in before
-     * (ADR-0023 §4). That second half is why accepting is no longer fire-and-forget: since #143 a
-     * joiner may already be a Member somewhere, and joining without switching would leave them
-     * looking at the wrong Team.
+     * Joins the presenting user to the invitation's team and makes it their Active Team, so a joiner
+     * who was already a Member elsewhere lands where they just accepted (ADR-0023 §4).
      *
-     * Returns null for an unknown or expired token (rotated/revoked tokens read the same way once #38
-     * lands) so the controller can answer with a plain 404 — no distinction is made between "never
-     * existed" and "expired" to avoid leaking which is the case.
+     * Returns null for an unknown or expired token — no distinction, to avoid leaking which it is.
      */
     fun acceptInvitation(token: String, userId: UserId): TeamId? {
         val now = Instant.now(clock)

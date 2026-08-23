@@ -30,7 +30,7 @@ private class FakeInvitationRepo(private var live: Invitation?) : InvitationRepo
     var expiredTeam: TeamId? = null
     val rotated = mutableListOf<Invitation>()
 
-    /** Kills the stored link the way a rotate or a lapsed TTL does — every later lookup misses. */
+    /** The way a rotate or a lapsed TTL does: every later lookup misses. */
     fun expire() { live = null }
 
     override fun save(invitation: Invitation): Invitation { saved += invitation; return invitation }
@@ -123,8 +123,6 @@ class InvitationServiceTest : FunSpec() {
             f.members.findRole(f.teamId, nonAdmin) shouldBe Role.USER
         }
 
-        // ADR-0023 §4: accepting is no longer fire-and-forget. A joiner who is already a Member
-        // somewhere would otherwise join and keep looking at their other Team.
         test("acceptInvitation makes the joined Team the joiner's Active Team") {
             val f = newFixture()
             val other = f.directory.addTeam("Tovo Heren 5", "tovo-heren-5")
@@ -136,7 +134,6 @@ class InvitationServiceTest : FunSpec() {
             f.routingGateway.lastPinned?.schemaName shouldBe f.directory.schemaOf(f.teamId)
         }
 
-        // A dead token must not disturb the Active Team of whoever presented it.
         test("an expired token joins nothing and switches nothing") {
             val f = newFixture()
             val other = f.directory.addTeam("Tovo Heren 5", "tovo-heren-5")

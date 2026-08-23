@@ -6,9 +6,6 @@ interface CurrentTeamGateway {
     /** The Active Team for the current request, or throws if the caller has no active team. */
     fun requireCurrentTeamId(): TeamId
 
-    /**
-     * The Active Team for the current request, or null when none is resolved. The nullable read for
-     * the one caller that must describe a teamless user rather than reject them (`/auth/me`).
-     */
+    /** The Active Team for the current request, or null when none is resolved. */
     fun findCurrentTeamId(): TeamId?
 }

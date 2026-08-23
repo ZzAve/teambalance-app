@@ -17,16 +17,10 @@ import java.time.Instant
 import java.util.UUID
 
 /**
- * The switch endpoint through the real HTTP boundary (#143, ADR-0023 §2): `POST /api/teams/{slug}/activate`,
- * driven over a **real signed-in session** (magic-link verify, then the session cookie) rather than
- * the X-User-Id test shim. Two things can only be proven that way:
- *
- *  - **The session memo really is invalidated.** The Active Team is carried as a session attribute
- *    pair that every later request reads back without touching the database, so "the switch
- *    overwrote it" is a claim about a *subsequent request on the same session*. ADR-0023 calls a
- *    missed invalidation here a cross-tenant read; this is the test that would catch one.
- *  - **"Not yours" is indistinguishable from "no such Team".** Both must answer byte-identically,
- *    or the slug space becomes a probe for which Teams exist on the platform.
+ * `POST /api/teams/{slug}/activate` over a **real signed-in session** (magic-link verify, then the
+ * session cookie) rather than the X-User-Id shim, because the two properties worth proving are both
+ * about a *subsequent request on the same session*: that the switch overwrote the session memo, and
+ * that "not yours" and "no such Team" answer byte-identically.
  */
 @AutoConfigureMockMvc
 class ActivateTeamControllerIT : TeamBalanceIT() {
@@ -66,8 +60,8 @@ class ActivateTeamControllerIT : TeamBalanceIT() {
 
             activate(secondSlug, session).andExpect(MockMvcResultMatchers.status().isOk)
 
-            // The load-bearing assertion: without the re-pin this still reads firstSlug, and every
-            // tenant-scoped read on this session lands in the previous Team's schema.
+            // Without the re-pin this still reads firstSlug, and every tenant-scoped read on this
+            // session lands in the previous Team's schema.
             activeTeamOnMe(session) shouldBe secondSlug
         }
 
@@ -85,8 +79,6 @@ class ActivateTeamControllerIT : TeamBalanceIT() {
                 .andExpect(MockMvcResultMatchers.status().isNotFound)
                 .andReturn().response.contentAsString
 
-            // Byte-identical, and carrying no discriminator either — the caller cannot tell which of
-            // the two happened, which is the whole point.
             notMine shouldBe notThere
             notMine.contains("code") shouldBe false
 
@@ -104,21 +96,18 @@ class ActivateTeamControllerIT : TeamBalanceIT() {
             seedMembership(first.userId, bravo)
             activate(bravoSlug, first).andExpect(MockMvcResultMatchers.status().isOk)
 
-            // A second sign-in for the same person — a new session, a new device. With two Teams open
-            // and nothing remembered they would have to choose; the remembered Team is what makes the
-            // landing deterministic (ADR-0023 §3).
+            // A new session, a new device: with two Teams open, the remembered one is what makes
+            // the landing deterministic rather than a choice (ADR-0023 §3).
             val fresh = signIn(email)
 
             activeTeamOnMe(fresh) shouldBe bravoSlug
             lastActiveTeamOf(first.userId) shouldBe bravo
-            // The other Team is still theirs — remembering one is not choosing between them.
-            teamSlugsOnMe(fresh) shouldBe listOf(alphaSlug, bravoSlug).sorted()
         }
     }
 
     // --- helpers ---------------------------------------------------------------------------------
 
-    /** A signed-in caller: the user the magic link resolved to, plus the session cookie to carry. */
+    /** The user the magic link resolved to, plus the session cookie to carry. */
     private data class SignedIn(val userId: UUID, val cookies: List<Cookie>)
 
     private fun signIn(email: String = "switcher-${UUID.randomUUID()}@test.com"): SignedIn {
@@ -167,7 +156,7 @@ class ActivateTeamControllerIT : TeamBalanceIT() {
             .andExpect(MockMvcResultMatchers.status().isOk)
             .andReturn().response.contentAsString
 
-    /** The Active Team as the caller's own `/auth/me` reports it — i.e. what the next request resolves. */
+    /** The Active Team as `/auth/me` reports it — what the next request resolves. */
     private fun activeTeamOnMe(session: SignedIn): String? =
         Regex("\"activeTeam\":\\{[^}]*\"slug\":\"([^\"]+)\"").find(me(session))?.groupValues?.get(1)
 

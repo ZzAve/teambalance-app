@@ -14,10 +14,8 @@ import org.springframework.jdbc.core.JdbcTemplate
 import java.util.UUID
 
 /**
- * The platform-level reads behind the Team switcher and the authorized switch (#143, ADR-0023).
- * Both replaced an `ORDER BY tm.team_id LIMIT 1` that answered "the user's team" by picking one in
- * UUID order — so what matters here is that a user with several Teams gets *all* of them, and that
- * a slug resolves without saying anything about who may have it.
+ * The platform-level reads behind the Team switcher and the authorized switch (ADR-0023): a user
+ * with several Teams gets *all* of them, and a slug resolves without saying who may have it.
  */
 class JdbcTeamRepositoryAdapterTest : TeamBalanceIT() {
 
@@ -55,9 +53,8 @@ class JdbcTeamRepositoryAdapterTest : TeamBalanceIT() {
             teamRepository.findTeamsOf(seedUser()).shouldBeEmpty()
         }
 
-        // Team names are deliberately not unique (the slug is the unique address), so the order has
-        // to be TOTAL or the switcher list reshuffles between requests. Which of the two comes first
-        // is not the point and is not asserted — that it is the same one every time is.
+        // Team names are deliberately not unique, so the order must be TOTAL. Which one comes first
+        // is not asserted; that it is the same one every time is.
         test("findTeamsOf orders stably when two teams share a name") {
             val userId = seedUser()
             seedMembership(userId, seedTeam("Heren 3"))
@@ -68,9 +65,6 @@ class JdbcTeamRepositoryAdapterTest : TeamBalanceIT() {
             repeat(3) { teamRepository.findTeamsOf(userId).map { it.id.value } shouldBe first }
         }
 
-        // The slug is a Team's public address, so resolving one says nothing about membership —
-        // authorization is a separate step, and keeping them separate is what lets "not yours" and
-        // "no such team" answer identically at the edge.
         test("findBySlug resolves a team regardless of who is asking") {
             val teamId = seedTeam("Someone Else's Team", slug = "someone-elses-team")
 

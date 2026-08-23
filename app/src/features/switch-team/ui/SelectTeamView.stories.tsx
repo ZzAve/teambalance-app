@@ -3,9 +3,8 @@ import { expect, fn, userEvent } from 'storybook/test'
 import type { TeamRef } from '@shared/api/teams'
 import { SelectTeamView } from './SelectTeamView'
 
-// The "which Team?" screen. It exists because tenant resolution refuses to guess between several
-// memberships (ADR-0023 §1): reaching it is a normal state — a first sign-in after joining a second
-// Team, or the remembered Team's membership ending — not an error, and the copy has to read that way.
+// Reaching this screen is a normal state, not an error — a first sign-in after joining a second
+// Team, or the remembered Team's membership ending — and the copy has to read that way.
 const TEAMS: TeamRef[] = [
   { id: 't1', name: 'Setpoint VT', slug: 'setpoint-vt' },
   { id: 't2', name: 'Tovo Heren 5', slug: 'tovo-heren-5' },
@@ -26,7 +25,6 @@ export const TwoTeams: Story = {
     await expect(canvas.getByRole('heading', { name: 'Which team?' })).toBeInTheDocument()
     await expect(canvas.getByText('Setpoint VT')).toBeInTheDocument()
     await expect(canvas.getByText('Tovo Heren 5')).toBeInTheDocument()
-    // The slug is shown: it is the Team's public address, and what a shared link carries.
     await expect(canvas.getByText('/setpoint-vt')).toBeInTheDocument()
   },
 }
@@ -44,8 +42,7 @@ export const ManyTeams: Story = {
   },
 }
 
-// The prop contract: choosing hands up the slug, which the container turns into a /t/:slug
-// navigation — and that navigation is what performs the authorized switch.
+// The container turns this slug into a /t/:slug navigation, which is what performs the switch.
 export const ChoosingHandsUpTheSlug: Story = {
   play: async ({ canvas, args }) => {
     await userEvent.click(canvas.getByText('Tovo Heren 5'))

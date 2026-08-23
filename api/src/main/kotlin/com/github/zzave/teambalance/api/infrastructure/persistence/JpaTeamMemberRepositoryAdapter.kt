@@ -60,8 +60,7 @@ class JpaTeamMemberRepositoryAdapter(
     override fun findTenantRouting(teamId: TeamId, userId: UserId): TenantRouting? =
         jpaRepository.findTeamRouting(teamId.value, userId.value)?.toDomain()
 
-    // Null on 0 rows AND on 2: "several teams" is not a routing, it is a question for the user. The
-    // query caps at 2 rows precisely so this can tell those apart without reading the whole list.
+    // Null on 0 rows AND on 2: "several teams" is not a routing, it is a question for the user.
     override fun findSoleTenantRouting(userId: UserId): TenantRouting? =
         jpaRepository.findTeamRoutings(userId.value).singleOrNull()?.toDomain()
 
@@ -110,10 +109,7 @@ class JpaTeamMemberRepositoryAdapter(
     @Transactional
     override fun addMember(teamId: TeamId, userId: UserId) {
         if (jpaRepository.findByTeamIdAndUserIdAndActiveTrue(teamId.value, userId.value) != null) return
-        // A previously-removed member has a row with active = false, and (team_id, user_id) is
-        // UNIQUE — so an insert cannot re-join them. Flipping the existing row is what "join this
-        // team" means for them; without it the accept answered 200 while leaving them out of the
-        // team, and (since #143) failed to switch them into it as well.
+        // (team_id, user_id) is UNIQUE, so an insert cannot re-join a member whose row is inactive.
         if (jpaRepository.reactivateAsUser(teamId.value, userId.value) > 0) return
         try {
             jpaRepository.save(

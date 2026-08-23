@@ -12,17 +12,13 @@ import com.github.zzave.teambalance.api.interfaces.generated.model.Team
 import org.springframework.web.bind.annotation.RestController
 
 /**
- * The two ways a caller comes to be working in a Team: creating one, and switching to one they
- * already have.
+ * Creating a Team, and switching to one you already have.
  *
- * Neither resolves the current tenant (`requireCurrentTeamId`) — create-team's caller may have no
- * Active Team at all, and switch-team's whole job is to *change* it, so reading the outgoing one
- * would prove nothing. Both resolve only the current *user* and let [ActiveTeamService] decide what
- * they may have.
+ * Neither resolves the current tenant: create-team's caller may have no Active Team, and switching
+ * exists to *change* it. Both resolve only the current user and let [ActiveTeamService] decide.
  *
- * Create-team's error mapping (bad name → 400, invalid code → opaque 403, slug clash → 409) is
- * handled by the thrown domain exceptions via [GlobalExceptionHandler]; only the 201 success branch
- * is produced here.
+ * Create-team's error mapping (400 / opaque 403 / 409) comes from the thrown domain exceptions via
+ * [GlobalExceptionHandler]; only the 201 branch is produced here.
  */
 @RestController
 class TeamController(
@@ -45,13 +41,9 @@ class TeamController(
     }
 
     /**
-     * Switches the caller's Active Team to the Team at this slug (ADR-0023 §2) — the request a
-     * `/t/:slug/…` link performs on the way in, and the one the switcher performs on a tap. They are
-     * deliberately the same request.
-     *
-     * A slug that is unknown, and one that names a Team the caller is not a Member of, both answer
-     * 404 with no body: the two are indistinguishable so the Team address space cannot be probed for
-     * which Teams exist. Nothing about the outgoing Active Team changes on a failed switch.
+     * The one switch (ADR-0023 §2): a `/t/:slug/…` link and a tap in the switcher are the same
+     * request. Unknown slug and not-a-Member both answer a bare 404, indistinguishably, and leave
+     * the outgoing Active Team untouched.
      */
     override suspend fun activateTeam(request: ActivateTeam.Request): ActivateTeam.Response<*> {
         val userId = currentUserGateway.requireCurrentUserId()

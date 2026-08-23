@@ -12,7 +12,7 @@ type TeamRef {
     slug: String
 }
 
-// `teams` is every Team the caller is an active Member of; `activeTeam` is the one this request is scoped to - the Active Team (ADR-0023). The route gate reads BOTH: an empty `teams` means teamless (send them to onboarding), while a non-empty `teams` with a null `activeTeam` means "a Member of several, none chosen yet" - a choice to make, not an error. Never infer either from `role`. And `role` is the caller's Role IN THE ACTIVE TEAM, so it is null exactly when `activeTeam` is: a Member of two Teams has two Roles, and only the active one is theirs for this request, which is why it cannot be a property of the user alone.
+// The route gate reads BOTH: empty `teams` means teamless, while a non-empty `teams` with a null `activeTeam` means "a Member of several, none chosen yet" - a choice, not an error. `role` is the Role IN THE ACTIVE TEAM, so it is null exactly when `activeTeam` is (ADR-0023).
 type AuthenticatedUser {
     id: String,
     email: String,

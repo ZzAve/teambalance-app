@@ -1,24 +1,13 @@
 import { useRouterState } from '@tanstack/react-router'
 
 /**
- * Team-scoped routes all live under `/t/:slug/…` (ADR-0023 §2), so a link a teammate shares opens
- * for anyone entitled to it and opening one performs an authorized switch of the Active Team.
- *
- * The slug is read back out of the URL rather than threaded through props or a store. Two reasons:
- * the URL is the authority on which Team the screen is showing (it is what the route gate switched
- * to), and reading it keeps every linking component a pure function of the current location — which
- * is what lets Storybook drive them by simply starting the router at a path.
+ * Team-scoped routes live under `/t/:slug/…` (ADR-0023 §2). The slug is read back out of the URL
+ * rather than threaded through props or a store, which keeps every linking component a pure function
+ * of the current location — and lets Storybook drive them by starting the router at a path.
  */
 const TEAM_PREFIX = '/t/'
 
-/**
- * The Team slug the given path is scoped to, or null for a path that is not team-scoped (`/login`,
- * `/onboarding`, `/create-team`, …).
- *
- * Deliberately strict: the segment right after `/t/` and nothing else. `/t/` with no slug, and a
- * `/team`-style path that merely starts with the same letters, are both "not team-scoped" — a
- * near-miss must not be read as a Team named after whatever followed.
- */
+/** Null for a path that is not team-scoped. Strict: the segment right after `/t/` and nothing else. */
 export function teamSlugFromPath(pathname: string): string | null {
   if (!pathname.startsWith(TEAM_PREFIX)) return null
   const slug = pathname.slice(TEAM_PREFIX.length).split('/')[0]
@@ -36,12 +25,8 @@ export interface TeamRoutes {
 }
 
 /**
- * The team-scoped destinations for [slug].
- *
- * With no slug — a component rendered outside a Team route, which in the app happens only in
- * Storybook — every destination collapses to `/`, the dispatcher that resolves the caller's Active
- * Team and redirects into it. That is the honest answer: without a Team in the URL there is no
- * team-scoped destination to name, and `/` is where the app decides which one it should be.
+ * With no slug every destination collapses to `/`, the dispatcher that resolves the Active Team:
+ * outside a Team route there is no team-scoped destination to name.
  */
 export function teamRoutes(slug: string | null): TeamRoutes {
   if (slug === null) {
@@ -58,7 +43,7 @@ export function teamRoutes(slug: string | null): TeamRoutes {
   }
 }
 
-/** [teamRoutes] for the Team the caller is currently in, derived from the location. */
+/** [teamRoutes] for the Team the caller is currently in. */
 export function useTeamRoutes(): TeamRoutes {
   const pathname = useRouterState({ select: (s) => s.location.pathname })
   return teamRoutes(teamSlugFromPath(pathname))

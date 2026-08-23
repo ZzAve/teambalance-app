@@ -12,9 +12,7 @@ interface TabConfig {
   isActive: (pathname: string) => boolean
 }
 
-// The tabs are team-scoped (ADR-0023 §2), built from the slug in the URL the bar is rendered on
-// rather than from a store. Deriving them from the location is what keeps this component a pure
-// function of where you are: switch Team and every tab follows, with nothing to keep in sync.
+// Built from the slug in the URL rather than a store, so switching Team makes every tab follow.
 function tabsFor(routes: TeamRoutes): TabConfig[] {
   const exact = (path: string) => (p: string) => p.replace(/\/$/, '') === path
   const prefix = (path: string) => (p: string) => p === path || p.startsWith(`${path}/`)

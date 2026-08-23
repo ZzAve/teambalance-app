@@ -21,14 +21,11 @@ import java.time.Instant
 import java.util.UUID
 
 /**
- * An in-memory stand-in for the `public` schema — Teams, who is an active Member of which, and each
- * user's remembered Active Team — behind the three ports that read it.
+ * An in-memory stand-in for the `public` schema behind the three ports that read it.
  *
- * Shared by the tests that exercise the Active Team seam because the interesting cases are *shapes of
- * the directory* (two memberships, a remembered Team whose membership was revoked, a deactivated row)
- * rather than shapes of a single port's answers. Building those from one holder keeps the three ports
- * consistent with each other the way the database keeps them consistent — a fake that let
- * `findTeamsOf` and `findTenantRouting` disagree could not reproduce the bug this seam fixes.
+ * One holder rather than three independent fakes, because the interesting cases are shapes of the
+ * *directory* (two memberships, a revoked one, a deactivated row) and the ports have to stay
+ * consistent with each other the way the database keeps them consistent.
  */
 internal class TeamDirectory {
     private data class TeamRow(val summary: TeamSummary, val schemaName: SchemaName)
@@ -52,7 +49,7 @@ internal class TeamDirectory {
         memberships[userId to teamId] = role
     }
 
-    /** Ends the membership the way `active = false` does: the row is gone for every read. */
+    /** Ends the membership the way `active = false` does: gone for every read. */
     fun leave(userId: UserId, teamId: TeamId) {
         memberships.remove(userId to teamId)
     }
@@ -121,19 +118,15 @@ internal class TeamDirectory {
     }
 }
 
-/**
- * Records every pin in order. Order matters: the pin IS the session-memo invalidation (ADR-0023 §2),
- * so "was the last pin the Team we switched to?" is the assertion that a switch cannot be read back
- * as the previous tenant.
- */
+/** Order matters: the pin is the session-memo invalidation (ADR-0023 §2). */
 internal class RecordingTenantRoutingGateway : TenantRoutingGateway {
-    /** Every pin and clear in order — `null` is a clear. */
+    /** In order; `null` is a clear. */
     val writes = mutableListOf<TenantRouting?>()
 
     val pins: List<TenantRouting> get() = writes.filterNotNull()
     val lastPinned: TenantRouting? get() = pins.lastOrNull()
 
-    /** What the session would actually be carrying now: the last write, pin or clear. */
+    /** What the session would be carrying now. */
     val pinned: TenantRouting? get() = writes.lastOrNull()
 
     override fun pinRouting(routing: TenantRouting) {

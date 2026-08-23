@@ -10,16 +10,9 @@ interface UserRepository {
     fun findByEmail(email: Email): User?
     fun save(user: User): User
 
-    /**
-     * The Team this user last had active, or null when nothing is remembered yet. It is a *hint*, not
-     * an authorization: the membership behind it may since have been revoked, so a reader must
-     * re-verify it before routing anything to that tenant (ADR-0023 §3).
-     */
+    /** A hint, not an authorization: the membership behind it may since have been revoked. */
     fun findLastActiveTeamId(userId: UserId): TeamId?
 
-    /**
-     * Remembers [teamId] as the user's Active Team, so a later sign-in — on another device, weeks
-     * later — lands them back where they were. Written on every switch, link-induced ones included.
-     */
+    /** Written on every switch, link-induced ones included, so a later sign-in lands back here. */
     fun rememberActiveTeam(userId: UserId, teamId: TeamId)
 }

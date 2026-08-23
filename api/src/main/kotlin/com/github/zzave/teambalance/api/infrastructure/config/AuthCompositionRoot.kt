@@ -25,9 +25,8 @@ import java.time.Clock
  * [AuthorizationService] is the one service every other area depends on — the sibling roots take it
  * as a constructor parameter and Spring resolves it to the bean declared here.
  *
- * [ActiveTeamService] is declared here for the same reason: the Active Team is part of "who is
- * calling, and where", and every other area (team creation, invitations, the tenant filter) takes it
- * as a constructor parameter rather than building a resolution path of its own (ADR-0023 §1).
+ * [ActiveTeamService] is declared here for the same reason: every other area takes it as a
+ * constructor parameter rather than building a resolution path of its own (ADR-0023 §1).
  */
 @Configuration
 class AuthCompositionRoot {

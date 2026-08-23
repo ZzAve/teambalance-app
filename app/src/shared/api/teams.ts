@@ -71,13 +71,8 @@ export function useCreateTeam() {
 }
 
 /**
- * Switches the caller's Active Team to the Team at [slug] — the authorized switch (ADR-0023 §2).
- * Both the Team switcher and opening a shared `/t/:slug/…` link perform exactly this request; there
- * is deliberately only one kind of switch.
- *
- * Returns null when the slug is unknown *or* not the caller's — the backend answers both with the
- * same bare 404 so the Team address space cannot be probed, and this preserves that: callers get one
- * "you cannot go there", never a reason.
+ * The authorized switch (ADR-0023 §2). Null for an unknown slug *and* for one that is not the
+ * caller's — the backend answers both with the same bare 404, and this preserves that.
  */
 export async function activateTeam(slug: string): Promise<TeamRef | null> {
   const res = await api.ActivateTeam({ slug })

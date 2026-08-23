@@ -16,8 +16,7 @@ const USER: AuthenticatedUser = {
   email: 'jan@example.com',
   displayName: 'Jan',
   role: 'USER',
-  // A confirmed Member with an Active Team, so the has-any-team gate passes and this test stays
-  // focused on the auth-confirmation seam (401 vs 200), not on team routing.
+  // A confirmed Member with an Active Team, so this stays focused on the auth-confirmation seam.
   teams: [TEAM],
   activeTeam: TEAM,
   isPlatformAdmin: false,

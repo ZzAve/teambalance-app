@@ -55,10 +55,10 @@ function CreateTeamPage() {
                 // Feed the X-Team-Id test shim; prod resolves the tenant from the session.
                 localStorage.setItem('teamId', team.id)
                 // The server already made the new Team the founder's Active Team (ADR-0021 §4), so
-                // drop the cache rather than merely refetching /me: a founder who came from another
+                // reset the cache rather than merely refetching /me: a founder who came from another
                 // Team is now in a different tenant, and every cached tenant-scoped query belongs to
                 // the one they left. This is the same obligation /t/$slug's gate carries on a switch.
-                client.clear()
+                await client.resetQueries()
                 // A brand-new team is empty: the roster is where the owner starts (invite people,
                 // then curate positions under team settings), not the events home.
                 navigate({ to: teamRoutes(team.slug).team })

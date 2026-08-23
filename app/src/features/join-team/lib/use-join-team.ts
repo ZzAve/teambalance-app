@@ -12,7 +12,7 @@ const GENERIC = 'Something went wrong, try again.'
  * team they joined (ADR-0021 §4) and lands them in it, where the team route's gate carries them on
  * to get-started.
  *
- * The cache is cleared rather than merely invalidating /auth/me (as /invite/\$token.tsx also does):
+ * The cache is reset rather than merely invalidating /auth/me (as /invite/\$token.tsx also does):
  * a joiner may already have been in another Team, and every cached tenant-scoped query belongs to
  * the one they were in. This is the same obligation `/t/\$slug`'s gate carries on a switch.
  *
@@ -27,8 +27,8 @@ export function useJoinTeam() {
 
   const join = (token: string) => {
     acceptInvitation.mutate(token, {
-      onSuccess: () => {
-        client.clear()
+      onSuccess: async () => {
+        await client.resetQueries()
         navigate({ to: '/' })
       },
     })

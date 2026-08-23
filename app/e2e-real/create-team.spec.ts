@@ -39,9 +39,9 @@ test('create-team: a teamless founder enters code + name + slug and lands in the
   expect(tokenResponse.ok()).toBeTruthy()
   const { token } = await tokenResponse.json()
 
-  // 2. Click the emailed link → session established. The has-a-team gate routes the teamless founder
-  //    to /onboarding (proving they are NOT bounced to /login by the old teamless-user behaviour),
-  //    from where they click through to /create-team — the rare, code-gated path.
+  // 2. Click the emailed link → session established. The has-any-team gate routes the teamless
+  //    founder to /onboarding (proving they are NOT bounced to /login by the old teamless-user
+  //    behaviour), from where they click through to /create-team — the rare, code-gated path.
   await page.goto(`/auth/verify?token=${token}`)
   await expect(page.getByRole('heading', { name: /Welcome to TeamBalance/ })).toBeVisible({ timeout: 10_000 })
   await page.getByRole('button', { name: 'Create a team' }).click()
@@ -53,8 +53,9 @@ test('create-team: a teamless founder enters code + name + slug and lands in the
   await page.getByLabel('Creation code').fill(CREATION_CODE)
 
   // 4. Create → provisions the tenant schema + Flyway migrate in-request (allow for cold start),
-  //    makes the founder ADMIN, and lands on the team roster inside the brand-new team.
+  //    makes the founder ADMIN, makes the new team their Active Team, and lands on its roster. The
+  //    URL carries the new team's slug (ADR-0021 §2), which is also the proof the Active Team moved.
   await page.getByRole('button', { name: 'Create team' }).click()
-  await expect(page).toHaveURL(/\/team\/?$/, { timeout: 20_000 })
+  await expect(page).toHaveURL(new RegExp(`/t/${EXPECTED_SLUG}/team/?$`), { timeout: 20_000 })
   await expect(page.getByRole('heading', { name: 'Team' })).toBeVisible()
 })

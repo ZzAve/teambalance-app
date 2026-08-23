@@ -19,11 +19,17 @@ import { teamRoutes } from '@shared/lib/team-routes'
  * The switch is skipped when the URL already names the Active Team — the common case, every
  * in-app navigation — so this costs one request per actual change of Team, not per page.
  *
- * **The cache is dropped on a real switch.** Every tenant-scoped query (events, members, positions,
+ * **The cache is reset on a real switch.** Every tenant-scoped query (events, members, positions,
  * the season) is keyed without the Team in it, because a request has exactly one Active Team; that
  * makes the cache the frontend's mirror of `TenantRoutingSession`'s memo, and it inherits the same
  * obligation. Keeping it across a switch would paint the previous Team's roster onto the new Team's
  * screens.
+ *
+ * `resetQueries`, specifically, and not `clear()`: a switch between two team-scoped routes keeps the
+ * same components mounted, and `clear()` empties the cache without telling those observers to fetch
+ * again — so the screen sits there showing the Team you just left, indefinitely. `resetQueries`
+ * discards the data *and* refetches what is on screen, which is the pair of things a tenant change
+ * actually needs.
  */
 export const Route = createFileRoute('/t/$slug')({
   beforeLoad: async ({ params, location }) => {
@@ -34,7 +40,7 @@ export const Route = createFileRoute('/t/$slug')({
       const activated = await activateTeam(params.slug).catch(() => null)
       // Unknown slug, or not theirs — indistinguishable by design. `/` decides where they do belong.
       if (!activated) throw redirect({ to: '/' })
-      queryClient.clear()
+      await queryClient.resetQueries()
       user = await queryClient.ensureQueryData(authMeQueryOptions).catch(() => null)
       if (!user) throw redirect({ to: '/login' })
     }

@@ -1,62 +1,37 @@
 #!/bin/bash
-# TeamBalance — cloud environment setup script.
+# Paste into the "Setup script" field of the cloud environment at claude.ai/code
+# (environment selector -> settings icon). Nothing in this repo runs it; the file lives
+# here to keep it version-controlled and reviewable.
 #
-# PASTE THIS into the "Setup script" field of the cloud environment at claude.ai/code
-# (environment selector -> settings icon). Nothing in this repo executes it; the file
-# lives here so the script is version-controlled and reviewable. Editing it has no
-# effect until the new version is pasted into the dialog.
+# This provisions the VM once per environment — the filesystem is snapshotted afterwards,
+# so what it installs is on disk at the start of every later session. The per-session
+# half, including everything a snapshot cannot hold, is .claude/hooks/session-start.sh.
 #
-# WHY THIS EXISTS ALONGSIDE THE HOOK
-# The setup script runs once per environment, before Claude Code launches, and the
-# filesystem is snapshotted afterwards — so what it installs is on disk at the start of
-# every later session for free. The SessionStart hook runs on every session and resume
-# and is NOT cached. So the split is:
+# Three constraints, all load-bearing:
+#   - A non-zero exit fails the session start, so fallible commands end in `|| true`.
+#   - It must finish in ~5 minutes or the cache cannot build.
+#   - It is scoped to the environment and may run for a session on any repository, so it
+#     never assumes this checkout exists. Anything that reads .nvmrc, gradle.properties
+#     or runs ./gradlew belongs in the hook.
 #
-#   here  -> provision the VM: toolchains missing from the base image, the docker
-#            daemon's registry config, the container images the suites need
-#   hook  -> per-session and per-project work: start dockerd (the cache keeps files,
-#            not processes), export the session env, wirespec codegen, npm install
-#
-# The hook re-checks everything this script does and installs whatever is missing, so a
-# session still works if this script was never pasted, if the cache expired, or if the
-# repo bumps .nvmrc / gradle.properties past what is pinned below. It just pays for it.
-#
-# RULES THIS SCRIPT MUST OBEY (per the cloud-environments docs)
-#   - Exit 0. A non-zero exit means the session fails to start, so every fallible
-#     command ends in `|| true` and the script ends in `exit 0`.
-#   - Finish in ~5 minutes or the cache can't build; the independent installs run in
-#     parallel with & / wait.
-#   - It is scoped to the ENVIRONMENT, not to this repository, and may run for a session
-#     on any repo. So it never assumes the checkout exists: anything that reads .nvmrc or
-#     gradle.properties, or runs ./gradlew, belongs in the hook instead.
-#
-# NETWORK: assumes Custom access with the Trusted defaults plus
-#   api.adoptium.net  cdn.playwright.dev  production.cloudfront.docker.com
-# Without those the script still exits 0 and the hook's fallbacks take over.
-#
-# Cache rebuilds when this script changes, when the allowed domains change, or after
-# roughly seven days. Resuming a session never re-runs it.
+# Pinned versions can drift from the repo; the hook verifies them and reports the gap.
 
 set -u
 export DEBIAN_FRONTEND=noninteractive
 
-# Pinned to match the repo. The hook reads the real values from gradle.properties and
-# .nvmrc and corrects any drift, so a stale pin here costs a slow session, not a break.
-JAVA_MAJOR=25
-NODE_VERSION=24.18.1
+JAVA_MAJOR=25          # gradle.properties javaVersion, .sdkmanrc
+NODE_VERSION=24.18.1   # .nvmrc
+JAVA_HOME_DIR="/usr/lib/jvm/java-${JAVA_MAJOR}-openjdk-amd64"
+NODE_PREFIX="/opt/node${NODE_VERSION}"
+TESTCONTAINER_IMAGES="postgres:17-alpine redis:7-alpine redis:8-alpine"
 
 log() { echo "[setup] $*"; }
 
-# --- OpenJDK ---------------------------------------------------------------
-# The base image ships OpenJDK 21; the Gradle build needs 25. Ubuntu noble-updates
-# carries openjdk-25 (25.0.3), matching the Temurin build .sdkmanrc pins.
-# Refresh only Ubuntu's own repos. The base image also ships third-party PPAs
-# (deadsnakes, ondrej/php) on ppa.launchpadcontent.net, which no allowlist covers, so a
-# plain `apt-get update` fails them as "no longer signed" and exits non-zero. Nothing we
-# install comes from those PPAs, so scope the refresh past them rather than relying on
-# them being reachable. (Adding ppa.launchpadcontent.net to the environment's allowed
-# domains would also silence it, for any other apt use mid-session.)
-apt_refresh() {
+refresh_ubuntu_repos_only() {
+  # The base image also ships third-party PPAs (deadsnakes, ondrej/php) on
+  # ppa.launchpadcontent.net, which no allowlist covers, so a plain `apt-get update`
+  # fails them as "no longer signed" and exits non-zero. Nothing here is served from
+  # them, so scope past them rather than widening the allowlist to reach them.
   if [ -f /etc/apt/sources.list.d/ubuntu.sources ]; then
     apt-get update -qq \
       -o Dir::Etc::sourcelist="sources.list.d/ubuntu.sources" \
@@ -68,28 +43,24 @@ apt_refresh() {
 }
 
 install_jdk() {
-  if [ -x "/usr/lib/jvm/java-${JAVA_MAJOR}-openjdk-amd64/bin/javac" ]; then
+  if [ -x "${JAVA_HOME_DIR}/bin/javac" ]; then
     log "JDK ${JAVA_MAJOR} already present"
     return 0
   fi
+  # Ubuntu's openjdk-25 is the same 25.0.3 HotSpot build .sdkmanrc pins as Temurin,
+  # which is reachable here while api.adoptium.net is not.
   log "installing OpenJDK ${JAVA_MAJOR}"
-  apt_refresh
-  # stdout to /dev/null: dpkg's unpack/alternatives chatter would otherwise fill the
-  # session-init panel. stderr is kept so a real failure is still visible.
+  refresh_ubuntu_repos_only
   apt-get install -y -qq --no-install-recommends "openjdk-${JAVA_MAJOR}-jdk-headless" >/dev/null || true
-  if [ -x "/usr/lib/jvm/java-${JAVA_MAJOR}-openjdk-amd64/bin/javac" ]; then
+  if [ -x "${JAVA_HOME_DIR}/bin/javac" ]; then
     log "JDK ${JAVA_MAJOR} installed"
   else
-    log "WARN: OpenJDK ${JAVA_MAJOR} install failed — the hook will retry per session"
+    log "WARN: OpenJDK ${JAVA_MAJOR} install failed — sessions will start without a usable gradle"
   fi
 }
 
-# --- Node ------------------------------------------------------------------
-# The image ships node 20/21/22; the SPA needs 24. Installed beside them under /opt,
-# left off PATH here — the hook puts it on PATH per session via CLAUDE_ENV_FILE.
 install_node() {
-  local prefix="/opt/node${NODE_VERSION}"
-  if [ -x "${prefix}/bin/node" ]; then
+  if [ -x "${NODE_PREFIX}/bin/node" ]; then
     log "node ${NODE_VERSION} already present"
     return 0
   fi
@@ -99,30 +70,22 @@ install_node() {
   if curl -fsSL --retry 3 --retry-delay 2 \
       "https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-x64.tar.xz" \
       -o "${tmp}/node.tar.xz"; then
-    mkdir -p "$prefix"
-    tar -xJf "${tmp}/node.tar.xz" -C "$prefix" --strip-components=1 || true
+    mkdir -p "$NODE_PREFIX"
+    tar -xJf "${tmp}/node.tar.xz" -C "$NODE_PREFIX" --strip-components=1 || true
   else
-    log "WARN: node download failed — the hook will retry"
+    log "WARN: node download failed"
   fi
   rm -rf "$tmp"
 }
 
-install_jdk & jdk_pid=$!
-install_node & node_pid=$!
-wait "$jdk_pid" "$node_pid"
+configure_registry_mirror() {
+  # Docker Hub serves blobs from production.cloudfront.docker.com, which the Trusted
+  # allowlist does not cover (it lists production.cloudflare.docker.com, a different
+  # host), so an un-allowlisted environment fails mid-pull. mirror.gcr.io is a Docker Hub
+  # pull-through cache under the allowlisted *.gcr.io, and is harmless when the CDN works.
+  mkdir -p /etc/docker
+  grep -q 'mirror.gcr.io' /etc/docker/daemon.json 2>/dev/null && return 0
 
-# --- Docker ----------------------------------------------------------------
-# Testcontainers ITs, `make infra` and `make e2e` all need a daemon and these images.
-# The snapshot keeps /var/lib/docker, so pulling here means no session ever waits on a
-# pull; it does NOT keep the daemon process, which the hook starts each session.
-#
-# The registry mirror is a hedge: Docker Hub serves blobs from
-# production.cloudfront.docker.com, which the Trusted allowlist does not cover (it lists
-# production.cloudflare.docker.com — a different host), so an un-allowlisted environment
-# fails mid-pull. mirror.gcr.io is a Docker Hub pull-through cache under the allowlisted
-# *.gcr.io, and is harmless when the CDN is reachable.
-mkdir -p /etc/docker
-if ! grep -q 'mirror.gcr.io' /etc/docker/daemon.json 2>/dev/null; then
   log "configuring docker registry mirror"
   cat > /etc/docker/daemon.json <<'JSON'
 {
@@ -131,33 +94,40 @@ if ! grep -q 'mirror.gcr.io' /etc/docker/daemon.json 2>/dev/null; then
 JSON
   pkill dockerd 2>/dev/null || true
   sleep 2
-fi
+}
 
-# The Makefile and scripts/e2e.sh call `docker-compose`; the image ships only the
-# `docker compose` plugin.
-if ! command -v docker-compose >/dev/null 2>&1; then
+install_compose_shim() {
+  # The Makefile and scripts/e2e.sh call `docker-compose`; the image ships only the
+  # `docker compose` plugin.
+  command -v docker-compose >/dev/null 2>&1 && return 0
   log "installing docker-compose shim"
   printf '#!/bin/sh\nexec docker compose "$@"\n' > /usr/local/bin/docker-compose
   chmod +x /usr/local/bin/docker-compose || true
-fi
+}
 
-if ! docker info >/dev/null 2>&1; then
+start_docker_daemon() {
+  docker info >/dev/null 2>&1 && return 0
   log "starting docker daemon"
-  # disown it: a bare `wait` would otherwise block on the daemon forever, which burns
-  # the script's five-minute budget and fails the session start.
+  # Disowned so the pull wait below cannot block on the daemon.
   nohup dockerd >/var/log/dockerd.log 2>&1 &
   disown $!
   for _ in $(seq 1 30); do
-    docker info >/dev/null 2>&1 && break
+    docker info >/dev/null 2>&1 && return 0
     sleep 1
   done
-fi
+  return 1
+}
 
-if docker info >/dev/null 2>&1; then
-  # postgres:17-alpine + redis:7-alpine back the Testcontainers ITs; redis:8-alpine is
-  # what docker-compose.yml starts. ryuk is pulled by Testcontainers at test time.
-  pull_pids=()
-  for image in postgres:17-alpine redis:7-alpine redis:8-alpine; do
+prewarm_container_images() {
+  # The snapshot keeps /var/lib/docker, so no session ever waits on these pulls.
+  # Testcontainers pulls its own ryuk at test time.
+  if ! start_docker_daemon; then
+    log "WARN: docker daemon did not start — images not pre-pulled"
+    return 0
+  fi
+
+  local pull_pids=()
+  for image in $TESTCONTAINER_IMAGES; do
     if docker image inspect "$image" >/dev/null 2>&1; then
       log "${image} already pulled"
     else
@@ -166,11 +136,16 @@ if docker info >/dev/null 2>&1; then
       pull_pids+=("$!")
     fi
   done
-  # Wait by PID, never bare: a bare `wait` would also wait on dockerd and hang.
   [ "${#pull_pids[@]}" -gt 0 ] && wait "${pull_pids[@]}"
-else
-  log "WARN: docker daemon did not start — the hook will retry"
-fi
+}
+
+install_jdk & jdk_pid=$!
+install_node & node_pid=$!
+wait "$jdk_pid" "$node_pid"
+
+configure_registry_mirror
+install_compose_shim
+prewarm_container_images
 
 log "done"
 exit 0

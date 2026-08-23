@@ -1,32 +1,22 @@
 #!/usr/bin/env bash
-# SessionStart hook — makes `make build`, `make lint`, `make test` and `make e2e` work
-# in a Claude Code on the web container.
+# SessionStart hook — the per-session half of cloud provisioning.
 #
-# This is the second of two layers. The first is .claude/cloud-setup-script.sh, pasted
-# into the cloud environment's "Setup script" field: it runs once per environment and
-# the filesystem is snapshotted afterwards, so the toolchain it installs is already on
-# disk when a session starts. This hook runs on every session and resume and is NOT
-# cached, so it does the work a snapshot cannot hold — starting dockerd, exporting the
-# session environment — plus the project-level setup that has to run locally too:
-# wirespec codegen and npm install.
+# The VM itself is provisioned by .claude/cloud-setup-script.sh, pasted into the cloud
+# environment's "Setup script" field: OpenJDK 25, node 24, the docker registry config
+# and the container images. That runs once per environment and is snapshotted, so it is
+# already on disk when a session starts. This hook deliberately does NOT duplicate it.
 #
-# Every VM-level step below is also a drift guard: it re-checks what the setup script
-# should have done and installs whatever is missing, so a session still works if the
-# script was never pasted, if the cache expired, or if the repo bumps .nvmrc /
-# gradle.properties past what that script pins. On a cached environment each of those
-# checks is a no-op costing milliseconds.
+# What is left for every session, because a filesystem snapshot cannot hold it:
+#   - the docker daemon: the cache keeps files, not processes
+#   - the session's environment (locale, JAVA_HOME, PATH) via CLAUDE_ENV_FILE
+#   - project setup that must run locally as well: wirespec codegen and npm install
+#   - the Playwright browser revision, which is pinned by app/node_modules
 #
-# What the base image gives us and what it misses:
-#   java     21   -> the build needs 25 (gradle.properties javaVersion, .sdkmanrc)
-#   node     22   -> the app needs 24  (.nvmrc, CI)
-#   docker   client only, no daemon -> Testcontainers ITs and `make infra` need one
-#   chromium bundled at $PLAYWRIGHT_BROWSERS_PATH, but at the image's revision, not the
-#            one @playwright/test pins (Vitest storybook project + e2e both need it)
-#
-# Runs synchronously: the session starts once the toolchain is actually usable.
+# If the toolchain is missing, this hook reports it and stops rather than installing it:
+# a session that quietly reinstalls a JDK every time hides a broken environment config.
 set -euo pipefail
 
-# Local runs already have sdkman/nvm/Docker Desktop; only provision the remote container.
+# Local runs already have sdkman/nvm/Docker Desktop; only touch the remote container.
 if [ "${CLAUDE_CODE_REMOTE:-}" != "true" ]; then
   exit 0
 fi
@@ -44,101 +34,61 @@ JAVA_HOME_DIR="/usr/lib/jvm/java-${JAVA_MAJOR}-openjdk-amd64"
 log() { echo "[session-start] $*"; }
 
 # The base image runs in the POSIX locale, which leaves the JVM with
-# sun.jnu.encoding=ANSI_X3.4-1968. Gradle then fails to *write* the HTML test
-# report for any test whose name contains a non-ASCII character (several api ITs
-# use an em dash), turning a fully green `make test-api` into a red build.
+# sun.jnu.encoding=ANSI_X3.4-1968. Gradle then fails to *write* the HTML test report for
+# any test whose name contains a non-ASCII character (several api ITs use an em dash),
+# turning a fully green `make test-api` into a red build.
 export LANG=C.UTF-8
 export LC_ALL=C.UTF-8
 
-# --- JDK -------------------------------------------------------------------
-# Temurin (.sdkmanrc: 25.0.3-tem) is not reachable from this network policy —
-# api.adoptium.net is denied by the egress proxy — so use Ubuntu's OpenJDK 25
-# from noble-updates/universe. Same HotSpot VM, same language level.
-if [ -x "${JAVA_HOME_DIR}/bin/javac" ]; then
-  log "JDK ${JAVA_MAJOR} already installed"
-else
-  log "installing OpenJDK ${JAVA_MAJOR}"
-  export DEBIAN_FRONTEND=noninteractive
-  apt-get update -qq
-  apt-get install -y -qq --no-install-recommends "openjdk-${JAVA_MAJOR}-jdk-headless"
+# --- Toolchain check -------------------------------------------------------
+# Versions come from gradle.properties and .nvmrc, so this also catches the case where
+# the repo moved past what the setup script pins.
+missing=""
+[ -x "${JAVA_HOME_DIR}/bin/javac" ] || missing="${missing}\n  - OpenJDK ${JAVA_MAJOR} at ${JAVA_HOME_DIR} (gradle.properties javaVersion)"
+[ -x "${NODE_PREFIX}/bin/node" ]    || missing="${missing}\n  - node ${NODE_VERSION} at ${NODE_PREFIX} (.nvmrc)"
+
+if [ -n "$missing" ]; then
+  log "ERROR: this environment is missing part of the toolchain:"
+  printf '%b\n' "$missing"
+  log "Fix it in the environment, not here: paste .claude/cloud-setup-script.sh into the"
+  log "cloud environment's Setup script field at claude.ai/code (environment selector ->"
+  log "settings icon). If it is already there, the pinned versions have drifted from the"
+  log "repo — update the script and let the cache rebuild."
+  exit 1
 fi
+
 export JAVA_HOME="$JAVA_HOME_DIR"
-export PATH="${JAVA_HOME}/bin:${PATH}"
+export PATH="${JAVA_HOME}/bin:${NODE_PREFIX}/bin:${PATH}"
 
-# --- Node ------------------------------------------------------------------
-if [ -x "${NODE_PREFIX}/bin/node" ]; then
-  log "node ${NODE_VERSION} already installed"
-else
-  log "installing node ${NODE_VERSION}"
-  tmp="$(mktemp -d)"
-  curl -fsSL --retry 3 --retry-delay 2 \
-    "https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-x64.tar.xz" \
-    -o "${tmp}/node.tar.xz"
-  mkdir -p "$NODE_PREFIX"
-  tar -xJf "${tmp}/node.tar.xz" -C "$NODE_PREFIX" --strip-components=1
-  rm -rf "$tmp"
-fi
-export PATH="${NODE_PREFIX}/bin:${PATH}"
-
-# --- Docker ----------------------------------------------------------------
-# The api ITs run Postgres + Redis through Testcontainers, and `make infra`/`make e2e`
-# use docker compose, so the container needs a live daemon.
-#
-# Docker Hub's blob CDN (production.cloudfront.docker.com) is denied by the egress
-# proxy, so a plain `docker pull` fails halfway through the download. mirror.gcr.io
-# is allowed and is a pull-through cache for Docker Hub — point the daemon at it so
-# every docker.io pull (incl. Testcontainers' ryuk) resolves transparently.
-mkdir -p /etc/docker
-if ! grep -q 'mirror.gcr.io' /etc/docker/daemon.json 2>/dev/null; then
-  log "configuring docker registry mirror"
-  cat > /etc/docker/daemon.json <<'JSON'
-{
-  "registry-mirrors": ["https://mirror.gcr.io"]
-}
-JSON
-  pkill dockerd 2>/dev/null || true
-  sleep 2
-fi
-
+# --- Docker daemon ---------------------------------------------------------
+# Testcontainers ITs, `make infra` and `make e2e` need a running daemon. The setup
+# script's snapshot carries /etc/docker/daemon.json and the pulled images, but not the
+# process, so it starts here every session.
 if docker info >/dev/null 2>&1; then
   log "docker daemon already running"
 else
   log "starting docker daemon"
-  # Inherits HTTPS_PROXY/NO_PROXY and the system CA store, which is what lets the
-  # daemon reach the mirror through the egress proxy. Disowned so that a later `wait`
-  # in this script could never block on the daemon.
+  # Inherits HTTPS_PROXY/NO_PROXY and the system CA store, which is what lets the daemon
+  # reach the registry through the egress proxy. Disowned so no later `wait` blocks on it.
   nohup dockerd >/var/log/dockerd.log 2>&1 &
   disown $!
   for _ in $(seq 1 30); do
     docker info >/dev/null 2>&1 && break
     sleep 1
   done
-  docker info >/dev/null 2>&1 || { log "ERROR: docker daemon failed to start"; tail -20 /var/log/dockerd.log; exit 1; }
+  docker info >/dev/null 2>&1 || {
+    log "ERROR: docker daemon failed to start — Testcontainers ITs and make e2e will fail"
+    tail -20 /var/log/dockerd.log
+    exit 1
+  }
 fi
-
-# The Makefile and scripts/e2e.sh call `docker-compose`; the image only ships the
-# `docker compose` plugin. Shim it rather than patching the repo.
-if ! command -v docker-compose >/dev/null 2>&1; then
-  log "installing docker-compose shim"
-  printf '#!/bin/sh\nexec docker compose "$@"\n' > /usr/local/bin/docker-compose
-  chmod +x /usr/local/bin/docker-compose
-fi
-
-# Warm the images the ITs and `make infra` need, so the first test run doesn't pay
-# for the pull (and cannot fail on a transient registry hiccup).
-for image in postgres:17-alpine redis:7-alpine redis:8-alpine; do
-  if ! docker image inspect "$image" >/dev/null 2>&1; then
-    log "pulling ${image}"
-    docker pull -q "$image" || log "WARN: could not pull ${image}"
-  fi
-done
 
 # --- Project dependencies --------------------------------------------------
 # Wirespec generates the TS client into app/src/shared/api/generated (gitignored).
 # The SPA, its stories and ESLint all import it, so generate before npm work.
 log "generating wirespec clients"
-# Two invocations on purpose: the wirespec plugin fails ("extensionClasses cannot be cast")
-# when both generators are requested in one build, exactly as the Makefile does it.
+# Two invocations on purpose: the wirespec plugin fails ("extensionClasses cannot be
+# cast") when both generators are requested in one build, exactly as the Makefile does it.
 ./gradlew --quiet :api:wirespec-kotlin
 ./gradlew --quiet :api:wirespec-typescript
 
@@ -146,16 +96,14 @@ log "installing app dependencies"
 (cd app && npm install --no-audit --no-fund)
 
 # --- Playwright browser ----------------------------------------------------
-# The Vitest `storybook` project renders every story in headless Chromium, and the
-# real e2e suite drives Chromium too, so the browser Playwright expects must exist.
+# The Vitest `storybook` project renders every story in headless Chromium, and the real
+# e2e suite drives Chromium too. The required revision is pinned by the installed
+# @playwright/test, so this belongs here rather than in the setup script, which runs
+# without the repo.
 #
-# The image ships a Playwright browser bundle, but its revision tracks the image, not
-# this repo's @playwright/test — and cdn.playwright.dev is denied by the egress proxy,
-# so a mismatch cannot be downloaded away. Try the real install first (a no-op when the
-# right revision is already there, and the correct fix once the CDN is reachable); if
-# that is blocked, alias the bundled build to the revision Playwright looks for. The
-# bundled Chromium is a few majors behind but speaks the same CDP surface the stories
-# and e2e flows use.
+# Try the real install first. When cdn.playwright.dev is not allowlisted it fails, and
+# the image's bundled build is aliased to the revision Playwright looks for — a few
+# Chromium majors behind, but the same CDP surface the stories and e2e flows use.
 setup_playwright_browsers() {
   local pw_dir="${PLAYWRIGHT_BROWSERS_PATH:-/opt/pw-browsers}"
   local want

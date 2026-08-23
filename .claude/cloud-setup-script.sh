@@ -50,14 +50,38 @@ log() { echo "[setup] $*"; }
 # --- OpenJDK ---------------------------------------------------------------
 # The base image ships OpenJDK 21; the Gradle build needs 25. Ubuntu noble-updates
 # carries openjdk-25 (25.0.3), matching the Temurin build .sdkmanrc pins.
+# Refresh only Ubuntu's own repos. The base image also ships third-party PPAs
+# (deadsnakes, ondrej/php) on ppa.launchpadcontent.net, which no allowlist covers, so a
+# plain `apt-get update` fails them as "no longer signed" and exits non-zero. Nothing we
+# install comes from those PPAs, so scope the refresh past them rather than relying on
+# them being reachable. (Adding ppa.launchpadcontent.net to the environment's allowed
+# domains would also silence it, for any other apt use mid-session.)
+apt_refresh() {
+  if [ -f /etc/apt/sources.list.d/ubuntu.sources ]; then
+    apt-get update -qq \
+      -o Dir::Etc::sourcelist="sources.list.d/ubuntu.sources" \
+      -o Dir::Etc::sourceparts="-" \
+      -o APT::Get::List-Cleanup="0" || true
+  else
+    apt-get update -qq || true
+  fi
+}
+
 install_jdk() {
   if [ -x "/usr/lib/jvm/java-${JAVA_MAJOR}-openjdk-amd64/bin/javac" ]; then
     log "JDK ${JAVA_MAJOR} already present"
     return 0
   fi
   log "installing OpenJDK ${JAVA_MAJOR}"
-  apt-get update -qq || true
-  apt-get install -y -qq --no-install-recommends "openjdk-${JAVA_MAJOR}-jdk-headless" || true
+  apt_refresh
+  # stdout to /dev/null: dpkg's unpack/alternatives chatter would otherwise fill the
+  # session-init panel. stderr is kept so a real failure is still visible.
+  apt-get install -y -qq --no-install-recommends "openjdk-${JAVA_MAJOR}-jdk-headless" >/dev/null || true
+  if [ -x "/usr/lib/jvm/java-${JAVA_MAJOR}-openjdk-amd64/bin/javac" ]; then
+    log "JDK ${JAVA_MAJOR} installed"
+  else
+    log "WARN: OpenJDK ${JAVA_MAJOR} install failed — the hook will retry per session"
+  fi
 }
 
 # --- Node ------------------------------------------------------------------

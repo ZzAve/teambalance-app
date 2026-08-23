@@ -11,18 +11,20 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as SelectTeamRouteImport } from './routes/select-team'
 import { Route as AdminCreationCodesRouteImport } from './routes/admin/creation-codes'
 import { Route as AuthVerifyRouteImport } from './routes/auth/verify'
 import { Route as CreateTeamIndexRouteImport } from './routes/create-team/index'
-import { Route as EventsEventIdRouteImport } from './routes/events/$eventId'
-import { Route as GetStartedIndexRouteImport } from './routes/get-started/index'
 import { Route as InviteTokenRouteImport } from './routes/invite/$token'
-import { Route as MembersIndexRouteImport } from './routes/members/index'
 import { Route as OnboardingIndexRouteImport } from './routes/onboarding/index'
 import { Route as OnboardingJoinRouteImport } from './routes/onboarding/join'
-import { Route as ProfileIndexRouteImport } from './routes/profile/index'
-import { Route as TeamIndexRouteImport } from './routes/team/index'
-import { Route as TeamSettingsRouteImport } from './routes/team/settings'
+import { Route as TSlugRouteRouteImport } from './routes/t/$slug/route'
+import { Route as TSlugIndexRouteImport } from './routes/t/$slug/index'
+import { Route as TSlugEventsEventIdRouteImport } from './routes/t/$slug/events/$eventId'
+import { Route as TSlugGetStartedIndexRouteImport } from './routes/t/$slug/get-started/index'
+import { Route as TSlugProfileIndexRouteImport } from './routes/t/$slug/profile/index'
+import { Route as TSlugTeamIndexRouteImport } from './routes/t/$slug/team/index'
+import { Route as TSlugTeamSettingsRouteImport } from './routes/t/$slug/team/settings'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -32,6 +34,11 @@ const IndexRoute = IndexRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SelectTeamRoute = SelectTeamRouteImport.update({
+  id: '/select-team',
+  path: '/select-team',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminCreationCodesRoute = AdminCreationCodesRouteImport.update({
@@ -49,24 +56,9 @@ const CreateTeamIndexRoute = CreateTeamIndexRouteImport.update({
   path: '/create-team/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const EventsEventIdRoute = EventsEventIdRouteImport.update({
-  id: '/events/$eventId',
-  path: '/events/$eventId',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const GetStartedIndexRoute = GetStartedIndexRouteImport.update({
-  id: '/get-started/',
-  path: '/get-started/',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const InviteTokenRoute = InviteTokenRouteImport.update({
   id: '/invite/$token',
   path: '/invite/$token',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const MembersIndexRoute = MembersIndexRouteImport.update({
-  id: '/members/',
-  path: '/members/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OnboardingIndexRoute = OnboardingIndexRouteImport.update({
@@ -79,137 +71,163 @@ const OnboardingJoinRoute = OnboardingJoinRouteImport.update({
   path: '/onboarding/join',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ProfileIndexRoute = ProfileIndexRouteImport.update({
+const TSlugRouteRoute = TSlugRouteRouteImport.update({
+  id: '/t/$slug',
+  path: '/t/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TSlugIndexRoute = TSlugIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => TSlugRouteRoute,
+} as any)
+const TSlugEventsEventIdRoute = TSlugEventsEventIdRouteImport.update({
+  id: '/events/$eventId',
+  path: '/events/$eventId',
+  getParentRoute: () => TSlugRouteRoute,
+} as any)
+const TSlugGetStartedIndexRoute = TSlugGetStartedIndexRouteImport.update({
+  id: '/get-started/',
+  path: '/get-started/',
+  getParentRoute: () => TSlugRouteRoute,
+} as any)
+const TSlugProfileIndexRoute = TSlugProfileIndexRouteImport.update({
   id: '/profile/',
   path: '/profile/',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => TSlugRouteRoute,
 } as any)
-const TeamIndexRoute = TeamIndexRouteImport.update({
+const TSlugTeamIndexRoute = TSlugTeamIndexRouteImport.update({
   id: '/team/',
   path: '/team/',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => TSlugRouteRoute,
 } as any)
-const TeamSettingsRoute = TeamSettingsRouteImport.update({
+const TSlugTeamSettingsRoute = TSlugTeamSettingsRouteImport.update({
   id: '/team/settings',
   path: '/team/settings',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => TSlugRouteRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/select-team': typeof SelectTeamRoute
+  '/t/$slug': typeof TSlugRouteRouteWithChildren
   '/admin/creation-codes': typeof AdminCreationCodesRoute
   '/auth/verify': typeof AuthVerifyRoute
-  '/events/$eventId': typeof EventsEventIdRoute
   '/invite/$token': typeof InviteTokenRoute
   '/onboarding/join': typeof OnboardingJoinRoute
-  '/team/settings': typeof TeamSettingsRoute
   '/create-team/': typeof CreateTeamIndexRoute
-  '/get-started/': typeof GetStartedIndexRoute
-  '/members/': typeof MembersIndexRoute
   '/onboarding/': typeof OnboardingIndexRoute
-  '/profile/': typeof ProfileIndexRoute
-  '/team/': typeof TeamIndexRoute
+  '/t/$slug/': typeof TSlugIndexRoute
+  '/t/$slug/events/$eventId': typeof TSlugEventsEventIdRoute
+  '/t/$slug/team/settings': typeof TSlugTeamSettingsRoute
+  '/t/$slug/get-started/': typeof TSlugGetStartedIndexRoute
+  '/t/$slug/profile/': typeof TSlugProfileIndexRoute
+  '/t/$slug/team/': typeof TSlugTeamIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/select-team': typeof SelectTeamRoute
   '/admin/creation-codes': typeof AdminCreationCodesRoute
   '/auth/verify': typeof AuthVerifyRoute
-  '/events/$eventId': typeof EventsEventIdRoute
   '/invite/$token': typeof InviteTokenRoute
   '/onboarding/join': typeof OnboardingJoinRoute
-  '/team/settings': typeof TeamSettingsRoute
   '/create-team': typeof CreateTeamIndexRoute
-  '/get-started': typeof GetStartedIndexRoute
-  '/members': typeof MembersIndexRoute
   '/onboarding': typeof OnboardingIndexRoute
-  '/profile': typeof ProfileIndexRoute
-  '/team': typeof TeamIndexRoute
+  '/t/$slug': typeof TSlugIndexRoute
+  '/t/$slug/events/$eventId': typeof TSlugEventsEventIdRoute
+  '/t/$slug/team/settings': typeof TSlugTeamSettingsRoute
+  '/t/$slug/get-started': typeof TSlugGetStartedIndexRoute
+  '/t/$slug/profile': typeof TSlugProfileIndexRoute
+  '/t/$slug/team': typeof TSlugTeamIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/select-team': typeof SelectTeamRoute
+  '/t/$slug': typeof TSlugRouteRouteWithChildren
   '/admin/creation-codes': typeof AdminCreationCodesRoute
   '/auth/verify': typeof AuthVerifyRoute
-  '/events/$eventId': typeof EventsEventIdRoute
   '/invite/$token': typeof InviteTokenRoute
   '/onboarding/join': typeof OnboardingJoinRoute
-  '/team/settings': typeof TeamSettingsRoute
   '/create-team/': typeof CreateTeamIndexRoute
-  '/get-started/': typeof GetStartedIndexRoute
-  '/members/': typeof MembersIndexRoute
   '/onboarding/': typeof OnboardingIndexRoute
-  '/profile/': typeof ProfileIndexRoute
-  '/team/': typeof TeamIndexRoute
+  '/t/$slug/': typeof TSlugIndexRoute
+  '/t/$slug/events/$eventId': typeof TSlugEventsEventIdRoute
+  '/t/$slug/team/settings': typeof TSlugTeamSettingsRoute
+  '/t/$slug/get-started/': typeof TSlugGetStartedIndexRoute
+  '/t/$slug/profile/': typeof TSlugProfileIndexRoute
+  '/t/$slug/team/': typeof TSlugTeamIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
     | '/login'
+    | '/select-team'
+    | '/t/$slug'
     | '/admin/creation-codes'
     | '/auth/verify'
-    | '/events/$eventId'
     | '/invite/$token'
     | '/onboarding/join'
-    | '/team/settings'
     | '/create-team/'
-    | '/get-started/'
-    | '/members/'
     | '/onboarding/'
-    | '/profile/'
-    | '/team/'
+    | '/t/$slug/'
+    | '/t/$slug/events/$eventId'
+    | '/t/$slug/team/settings'
+    | '/t/$slug/get-started/'
+    | '/t/$slug/profile/'
+    | '/t/$slug/team/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/login'
+    | '/select-team'
     | '/admin/creation-codes'
     | '/auth/verify'
-    | '/events/$eventId'
     | '/invite/$token'
     | '/onboarding/join'
-    | '/team/settings'
     | '/create-team'
-    | '/get-started'
-    | '/members'
     | '/onboarding'
-    | '/profile'
-    | '/team'
+    | '/t/$slug'
+    | '/t/$slug/events/$eventId'
+    | '/t/$slug/team/settings'
+    | '/t/$slug/get-started'
+    | '/t/$slug/profile'
+    | '/t/$slug/team'
   id:
     | '__root__'
     | '/'
     | '/login'
+    | '/select-team'
+    | '/t/$slug'
     | '/admin/creation-codes'
     | '/auth/verify'
-    | '/events/$eventId'
     | '/invite/$token'
     | '/onboarding/join'
-    | '/team/settings'
     | '/create-team/'
-    | '/get-started/'
-    | '/members/'
     | '/onboarding/'
-    | '/profile/'
-    | '/team/'
+    | '/t/$slug/'
+    | '/t/$slug/events/$eventId'
+    | '/t/$slug/team/settings'
+    | '/t/$slug/get-started/'
+    | '/t/$slug/profile/'
+    | '/t/$slug/team/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   LoginRoute: typeof LoginRoute
+  SelectTeamRoute: typeof SelectTeamRoute
+  TSlugRouteRoute: typeof TSlugRouteRouteWithChildren
   AdminCreationCodesRoute: typeof AdminCreationCodesRoute
   AuthVerifyRoute: typeof AuthVerifyRoute
-  EventsEventIdRoute: typeof EventsEventIdRoute
   InviteTokenRoute: typeof InviteTokenRoute
   OnboardingJoinRoute: typeof OnboardingJoinRoute
-  TeamSettingsRoute: typeof TeamSettingsRoute
   CreateTeamIndexRoute: typeof CreateTeamIndexRoute
-  GetStartedIndexRoute: typeof GetStartedIndexRoute
-  MembersIndexRoute: typeof MembersIndexRoute
   OnboardingIndexRoute: typeof OnboardingIndexRoute
-  ProfileIndexRoute: typeof ProfileIndexRoute
-  TeamIndexRoute: typeof TeamIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -226,6 +244,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/select-team': {
+      id: '/select-team'
+      path: '/select-team'
+      fullPath: '/select-team'
+      preLoaderRoute: typeof SelectTeamRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/creation-codes': {
@@ -249,32 +274,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CreateTeamIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/events/$eventId': {
-      id: '/events/$eventId'
-      path: '/events/$eventId'
-      fullPath: '/events/$eventId'
-      preLoaderRoute: typeof EventsEventIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/get-started/': {
-      id: '/get-started/'
-      path: '/get-started'
-      fullPath: '/get-started/'
-      preLoaderRoute: typeof GetStartedIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/invite/$token': {
       id: '/invite/$token'
       path: '/invite/$token'
       fullPath: '/invite/$token'
       preLoaderRoute: typeof InviteTokenRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/members/': {
-      id: '/members/'
-      path: '/members'
-      fullPath: '/members/'
-      preLoaderRoute: typeof MembersIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/onboarding/': {
@@ -291,45 +295,91 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OnboardingJoinRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/profile/': {
-      id: '/profile/'
+    '/t/$slug': {
+      id: '/t/$slug'
+      path: '/t/$slug'
+      fullPath: '/t/$slug'
+      preLoaderRoute: typeof TSlugRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/t/$slug/': {
+      id: '/t/$slug/'
+      path: '/'
+      fullPath: '/t/$slug/'
+      preLoaderRoute: typeof TSlugIndexRouteImport
+      parentRoute: typeof TSlugRouteRoute
+    }
+    '/t/$slug/events/$eventId': {
+      id: '/t/$slug/events/$eventId'
+      path: '/events/$eventId'
+      fullPath: '/t/$slug/events/$eventId'
+      preLoaderRoute: typeof TSlugEventsEventIdRouteImport
+      parentRoute: typeof TSlugRouteRoute
+    }
+    '/t/$slug/get-started/': {
+      id: '/t/$slug/get-started/'
+      path: '/get-started'
+      fullPath: '/t/$slug/get-started/'
+      preLoaderRoute: typeof TSlugGetStartedIndexRouteImport
+      parentRoute: typeof TSlugRouteRoute
+    }
+    '/t/$slug/profile/': {
+      id: '/t/$slug/profile/'
       path: '/profile'
-      fullPath: '/profile/'
-      preLoaderRoute: typeof ProfileIndexRouteImport
-      parentRoute: typeof rootRouteImport
+      fullPath: '/t/$slug/profile/'
+      preLoaderRoute: typeof TSlugProfileIndexRouteImport
+      parentRoute: typeof TSlugRouteRoute
     }
-    '/team/': {
-      id: '/team/'
+    '/t/$slug/team/': {
+      id: '/t/$slug/team/'
       path: '/team'
-      fullPath: '/team/'
-      preLoaderRoute: typeof TeamIndexRouteImport
-      parentRoute: typeof rootRouteImport
+      fullPath: '/t/$slug/team/'
+      preLoaderRoute: typeof TSlugTeamIndexRouteImport
+      parentRoute: typeof TSlugRouteRoute
     }
-    '/team/settings': {
-      id: '/team/settings'
+    '/t/$slug/team/settings': {
+      id: '/t/$slug/team/settings'
       path: '/team/settings'
-      fullPath: '/team/settings'
-      preLoaderRoute: typeof TeamSettingsRouteImport
-      parentRoute: typeof rootRouteImport
+      fullPath: '/t/$slug/team/settings'
+      preLoaderRoute: typeof TSlugTeamSettingsRouteImport
+      parentRoute: typeof TSlugRouteRoute
     }
   }
 }
 
+interface TSlugRouteRouteChildren {
+  TSlugIndexRoute: typeof TSlugIndexRoute
+  TSlugEventsEventIdRoute: typeof TSlugEventsEventIdRoute
+  TSlugTeamSettingsRoute: typeof TSlugTeamSettingsRoute
+  TSlugGetStartedIndexRoute: typeof TSlugGetStartedIndexRoute
+  TSlugProfileIndexRoute: typeof TSlugProfileIndexRoute
+  TSlugTeamIndexRoute: typeof TSlugTeamIndexRoute
+}
+
+const TSlugRouteRouteChildren: TSlugRouteRouteChildren = {
+  TSlugIndexRoute: TSlugIndexRoute,
+  TSlugEventsEventIdRoute: TSlugEventsEventIdRoute,
+  TSlugTeamSettingsRoute: TSlugTeamSettingsRoute,
+  TSlugGetStartedIndexRoute: TSlugGetStartedIndexRoute,
+  TSlugProfileIndexRoute: TSlugProfileIndexRoute,
+  TSlugTeamIndexRoute: TSlugTeamIndexRoute,
+}
+
+const TSlugRouteRouteWithChildren = TSlugRouteRoute._addFileChildren(
+  TSlugRouteRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   LoginRoute: LoginRoute,
+  SelectTeamRoute: SelectTeamRoute,
+  TSlugRouteRoute: TSlugRouteRouteWithChildren,
   AdminCreationCodesRoute: AdminCreationCodesRoute,
   AuthVerifyRoute: AuthVerifyRoute,
-  EventsEventIdRoute: EventsEventIdRoute,
   InviteTokenRoute: InviteTokenRoute,
   OnboardingJoinRoute: OnboardingJoinRoute,
-  TeamSettingsRoute: TeamSettingsRoute,
   CreateTeamIndexRoute: CreateTeamIndexRoute,
-  GetStartedIndexRoute: GetStartedIndexRoute,
-  MembersIndexRoute: MembersIndexRoute,
   OnboardingIndexRoute: OnboardingIndexRoute,
-  ProfileIndexRoute: ProfileIndexRoute,
-  TeamIndexRoute: TeamIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

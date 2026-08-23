@@ -69,7 +69,7 @@ export function CreateTeamForm({ isPending, error, onSubmit, reassuranceDelayMs 
   const nameError = placed('INVALID_NAME')
   const slugError = placed('INVALID_SLUG', 'SLUG_TAKEN') ?? clientSlugError
   const codeError = placed('INVALID_CREATION_CODE')
-  const bannerError = placed('ALREADY_IN_TEAM', 'GENERIC')
+  const bannerError = placed('GENERIC')
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">

@@ -19,8 +19,9 @@ import { AttendanceToggle, type AttendanceState } from '@features/attendance-tog
 import { EditEventDialog } from '@features/edit-event/ui/EditEventDialog'
 import { DeleteEventDialog } from '@features/edit-event/ui/DeleteEventDialog'
 import { PageHeader } from '@widgets/page-header/ui/PageHeader'
+import { useTeamRoutes } from '@shared/lib/team-routes'
 
-export const Route = createFileRoute('/events/$eventId')({
+export const Route = createFileRoute('/t/$slug/events/$eventId')({
   component: EventDetailPage,
 })
 
@@ -52,6 +53,7 @@ function AttendeeRow({ attendance }: { attendance: AttendanceEntry }) {
 
 function EventDetailPage() {
   const { eventId } = Route.useParams()
+  const routes = useTeamRoutes()
   const { data: event, isLoading, isError, refetch } = useEvent(eventId)
   const currentUserId = useUserStore((s) => s.userId)
   const isAdmin = useUserStore((s) => s.role) === 'ADMIN'
@@ -69,7 +71,7 @@ function EventDetailPage() {
         onRetry={() => refetch()}
       >
         <Button asChild variant="ghost">
-          <Link to="/">Back to events</Link>
+          <Link to={routes.events}>Back to events</Link>
         </Button>
       </QueryErrorState>
     )
@@ -91,7 +93,7 @@ function EventDetailPage() {
   return (
     <div>
       {/* Sticky sub-header — offset comes from --header-height via PageHeader, not a magic pixel */}
-      <PageHeader title={event.title} backTo="/" backLabel="Back to events" />
+      <PageHeader title={event.title} backTo={routes.events} backLabel="Back to events" />
 
       {/* Event header */}
       <div className="mt-2 flex items-start gap-4">

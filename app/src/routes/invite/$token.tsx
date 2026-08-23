@@ -32,7 +32,10 @@ function InvitePage() {
 
     acceptInvitation
       .mutateAsync(token)
-      .then(() => queryClient.invalidateQueries({ queryKey: ['auth', 'me'] }))
+      // Clear rather than invalidate: accepting makes the joined Team Active (ADR-0021 §4), so a
+      // joiner who was already in another Team has just changed tenant, and every cached
+      // tenant-scoped query belongs to the Team they left. `/` then dispatches into the new one.
+      .then(() => queryClient.clear())
       .then(() => navigate({ to: '/', replace: true }))
       .catch(() => setError('This invite link is invalid or has expired.'))
     // eslint-disable-next-line react-hooks/exhaustive-deps

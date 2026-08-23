@@ -4,9 +4,14 @@ import { withRouter } from '@shared/testing/router-decorator'
 import { BottomNav } from './BottomNav'
 
 // BottomNav renders TanStack Router <Link>s, so it needs a router in context — supplied by the
-// shared withRouter decorator. It is now a live three-tab bar (Events · Team · Profile) with no
-// disabled tabs; the active tab is derived from the current route. Each story starts the router at
-// a different path (via parameters.router.initialEntries) to pin the active-state wiring.
+// shared withRouter decorator. It is a live three-tab bar (Events · Team · Profile) with no disabled
+// tabs; the active tab is derived from the current route. Each story starts the router at a
+// different path (via parameters.router.initialEntries) to pin the active-state wiring.
+//
+// Every tab is team-scoped since #143: the targets are built from the slug in the path the bar is
+// rendered on (ADR-0021 §2), which is exactly why starting the router at a path is enough to drive
+// them — there is no store to prime. The href assertions below are what would catch a tab that
+// stopped following the Active Team and started pointing at some other Team's screens.
 const meta = {
   title: 'shared/ui/BottomNav',
   component: BottomNav,
@@ -19,9 +24,9 @@ type Story = StoryObj<typeof meta>
 
 // Every tab routes to a real destination — assert the href wiring holds regardless of which is active.
 async function expectTabTargets(canvas: Parameters<NonNullable<Story['play']>>[0]['canvas']) {
-  await expect(canvas.getByRole('link', { name: 'Events' })).toHaveAttribute('href', '/')
-  await expect(canvas.getByRole('link', { name: 'Team' })).toHaveAttribute('href', '/team')
-  await expect(canvas.getByRole('link', { name: 'Profile' })).toHaveAttribute('href', '/profile')
+  await expect(canvas.getByRole('link', { name: 'Events' })).toHaveAttribute('href', '/t/setpoint-vt')
+  await expect(canvas.getByRole('link', { name: 'Team' })).toHaveAttribute('href', '/t/setpoint-vt/team')
+  await expect(canvas.getByRole('link', { name: 'Profile' })).toHaveAttribute('href', '/t/setpoint-vt/profile')
   // No dead tabs: nothing is disabled/non-interactive anymore.
   await expect(canvas.getByRole('link', { name: 'Events' })).not.toHaveClass('pointer-events-none')
   await expect(canvas.getByRole('link', { name: 'Team' })).not.toHaveClass('pointer-events-none')
@@ -31,7 +36,7 @@ async function expectTabTargets(canvas: Parameters<NonNullable<Story['play']>>[0
 }
 
 export const EventsActive: Story = {
-  parameters: { router: { initialEntries: ['/'] } },
+  parameters: { router: { initialEntries: ['/t/setpoint-vt'] } },
   play: async ({ canvas }) => {
     await expectTabTargets(canvas)
     await expect(canvas.getByRole('link', { name: 'Events' })).toHaveClass('text-blue')
@@ -42,7 +47,7 @@ export const EventsActive: Story = {
 }
 
 export const TeamActive: Story = {
-  parameters: { router: { initialEntries: ['/team'] } },
+  parameters: { router: { initialEntries: ['/t/setpoint-vt/team'] } },
   play: async ({ canvas }) => {
     await expectTabTargets(canvas)
     await expect(canvas.getByRole('link', { name: 'Team' })).toHaveClass('text-blue')
@@ -55,7 +60,7 @@ export const TeamActive: Story = {
 
 // The Team tab stays active on nested team routes (e.g. the admin settings sub-page).
 export const TeamSettingsActive: Story = {
-  parameters: { router: { initialEntries: ['/team/settings'] } },
+  parameters: { router: { initialEntries: ['/t/setpoint-vt/team/settings'] } },
   play: async ({ canvas }) => {
     await expect(canvas.getByRole('link', { name: 'Team' })).toHaveClass('text-blue')
     await expect(canvas.getByRole('link', { name: 'Events' })).not.toHaveClass('text-blue')
@@ -63,7 +68,7 @@ export const TeamSettingsActive: Story = {
 }
 
 export const ProfileActive: Story = {
-  parameters: { router: { initialEntries: ['/profile'] } },
+  parameters: { router: { initialEntries: ['/t/setpoint-vt/profile'] } },
   play: async ({ canvas }) => {
     await expectTabTargets(canvas)
     await expect(canvas.getByRole('link', { name: 'Profile' })).toHaveClass('text-blue')

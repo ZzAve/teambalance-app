@@ -7,7 +7,7 @@ import { useUserStore } from '@shared/stores/user-store'
 import { EditProfileForm } from '@features/edit-profile/ui/EditProfileForm'
 import { ThemeToggle } from '@features/theme-toggle/ui/ThemeToggle'
 
-export const Route = createFileRoute('/profile/')({
+export const Route = createFileRoute('/t/$slug/profile/')({
   component: ProfilePage,
 })
 

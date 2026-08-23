@@ -4,10 +4,9 @@ import { Toaster } from 'sonner'
 import { Providers } from '@app/providers'
 import { BottomNav } from '@shared/ui/BottomNav'
 import { authMeQueryOptions } from '@shared/api/auth'
-import { currentMemberQueryOptions } from '@shared/api/members'
+import { TeamSwitcher } from '@features/switch-team/ui/TeamSwitcher'
 import { queryClient } from '@shared/api/query-client'
 import { directionFromIndices } from '@shared/lib/view-transition-direction'
-import { useUserStore } from '@shared/stores/user-store'
 import { useThemeSync } from '@shared/theme/theme-store'
 
 // Only the sign-in routes (and the invite landing page, reachable before a joiner has any
@@ -16,6 +15,19 @@ import { useThemeSync } from '@shared/theme/theme-store'
 // precise: only `/invite/<single-token>` is public; sub-paths like `/invite/manage` are NOT exempt.
 function isAuthRoute(pathname: string): boolean {
   return pathname === '/login' || pathname.startsWith('/auth/') || /^\/invite\/[^/]+$/.test(pathname)
+}
+
+// The screens an authenticated caller can reach without being in a Team: the join-vs-create fork,
+// its two branches, and the picker a Member of several Teams lands on when none is active.
+function isTeamlessRoute(pathname: string): boolean {
+  const path = pathname.replace(/\/$/, '')
+  return (
+    path === '/onboarding' ||
+    path === '/onboarding/join' ||
+    path === '/create-team' ||
+    path === '/select-team' ||
+    path === '/admin/creation-codes'
+  )
 }
 
 export const Route = createRootRoute({
@@ -33,36 +45,18 @@ export const Route = createRootRoute({
     }
     if (!user) throw redirect({ to: '/login' })
 
-    // Has-a-team gate: an authenticated but teamless user is a first-class state — route them to
-    // /onboarding (the join-vs-create fork), and do it BEFORE the onboarding gate's tenant-scoped
-    // /members/me probe (which would 403 NO_TEAM_MEMBERSHIP and bounce them to /login). /onboarding
-    // and its /onboarding/join and /create-team branches are exempt so the fork can render (mirroring
-    // how /get-started is exempt from the onboarding gate below). Teamlessness is read from the
-    // explicit team field, not inferred from role == null (permission vs membership; see #26).
-    if (
-      location.pathname === '/onboarding' ||
-      location.pathname === '/onboarding/' ||
-      location.pathname === '/onboarding/join' ||
-      location.pathname === '/onboarding/join/' ||
-      location.pathname === '/create-team' ||
-      location.pathname === '/create-team/'
-    )
-      return
-    if (!user.team) throw redirect({ to: '/onboarding' })
-
-    // Onboarding gate: a confirmed member who hasn't completed onboarding is routed to /get-started
-    // before any app screen mounts. /get-started itself is exempt (below) so the flow can render; the
-    // auth routes are already exempt (returned above). Read /members/me through the cache — race-
-    // free, same pattern as the /members admin gate. Fail OPEN if the state can't be determined:
-    // an onboarding-status blip shouldn't trap the user, and auth was already confirmed.
-    if (location.pathname === '/get-started' || location.pathname === '/get-started/') return
-    let member = null
-    try {
-      member = await queryClient.ensureQueryData(currentMemberQueryOptions)
-    } catch {
-      // Couldn't read onboarding state — don't trap the user.
-    }
-    if (member && !member.onboarded) throw redirect({ to: '/get-started' })
+    // Has-ANY-team gate (ADR-0021 §4, amending ADR-0019 §6). The question this gate asks changed
+    // with #143: it is no longer "do you have a team" but "do you have *any* Team" — and *which* one
+    // is active is a separate question, answered per-route by /t/$slug and never inferred from the
+    // list's order. A teamless caller is a first-class state, routed to the join-vs-create fork
+    // before any tenant-scoped probe (which would 403 NO_TEAM_MEMBERSHIP and bounce them to /login).
+    // Teamlessness is read from the explicit teams list, not inferred from role == null (permission
+    // vs membership; see #26).
+    //
+    // The onboarding gate that used to live here moved to /t/$slug: onboarding is per-Team, so it
+    // can only be asked once the Active Team is settled.
+    if (isTeamlessRoute(location.pathname)) return
+    if (user.teams.length === 0) throw redirect({ to: '/onboarding' })
   },
 })
 
@@ -91,7 +85,6 @@ function RootLayout() {
   // while the preference is `system`. index.html applies the first frame; this owns every frame
   // after it. The returned value is the resolved theme, which sonner needs as a prop.
   const theme = useThemeSync()
-  const teamName = useUserStore((s) => s.teamName)
 
   return (
     <Providers>
@@ -112,12 +105,11 @@ function RootLayout() {
             <Link to="/" className="font-display text-xl font-bold text-blue">
               Team<span className="text-green">Balance</span>
             </Link>
-            {teamName && (
-              <div className="flex items-center gap-2 rounded-full bg-blue/8 px-3 py-1.5 text-xs font-semibold text-blue">
-                <span className="h-1.5 w-1.5 rounded-full bg-green" />
-                {teamName}
-              </div>
-            )}
+            {/* The switcher is permanent UI and always names the current Team (ADR-0021 §3). That
+                visibility is what makes one-kind-of-switch tolerable: opening a teammate's link
+                re-homes your default, and the only thing that makes it correctable is being able to
+                see, at a glance, which Team you are in. */}
+            <TeamSwitcher />
           </div>
         </header>
         {/* Bottom padding clears the fixed nav (~6rem) plus the home-indicator inset, so the last

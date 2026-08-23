@@ -1,8 +1,10 @@
 import { useMutation } from '@tanstack/react-query'
 import { api } from './wirespec-client'
+import type { TeamRef } from './generated/model/TeamRef'
 
-// Re-export the generated contract type so the app has a single source of truth.
+// Re-export the generated contract types so the app has a single source of truth.
 export type { Team } from './generated/model/Team'
+export type { TeamRef } from './generated/model/TeamRef'
 
 // Create-team can fail in ways the form must place differently: some inline on a specific field
 // (recoverable), some as a screen banner. The stable frontend code drives that placement + copy; it is
@@ -12,7 +14,6 @@ export type CreateTeamErrorCode =
   | 'SLUG_TAKEN'
   | 'INVALID_SLUG'
   | 'INVALID_NAME'
-  | 'ALREADY_IN_TEAM'
   | 'GENERIC'
 
 export class CreateTeamError extends Error {
@@ -36,7 +37,6 @@ export function toCreateTeamError(status: number, code: string | undefined): Cre
     return new CreateTeamError('INVALID_CREATION_CODE', "That creation code isn't valid.")
   }
   if (status === 409) {
-    if (code === 'ALREADY_IN_TEAM') return new CreateTeamError('ALREADY_IN_TEAM', "You're already on a team.")
     return new CreateTeamError('SLUG_TAKEN', 'That address is already taken — try another.')
   }
   if (status === 400) {
@@ -68,4 +68,18 @@ export function useCreateTeam() {
       throw toCreateTeamError(res.status, code)
     },
   })
+}
+
+/**
+ * Switches the caller's Active Team to the Team at [slug] — the authorized switch (ADR-0021 §2).
+ * Both the Team switcher and opening a shared `/t/:slug/…` link perform exactly this request; there
+ * is deliberately only one kind of switch.
+ *
+ * Returns null when the slug is unknown *or* not the caller's — the backend answers both with the
+ * same bare 404 so the Team address space cannot be probed, and this preserves that: callers get one
+ * "you cannot go there", never a reason.
+ */
+export async function activateTeam(slug: string): Promise<TeamRef | null> {
+  const res = await api.ActivateTeam({ slug })
+  return res.status === 200 ? res.body : null
 }

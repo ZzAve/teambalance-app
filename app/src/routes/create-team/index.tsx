@@ -3,15 +3,17 @@ import { useQueryClient } from '@tanstack/react-query'
 import { authMeQueryOptions } from '@shared/api/auth'
 import { queryClient } from '@shared/api/query-client'
 import { CreateTeamError, useCreateTeam } from '@shared/api/teams'
+import { teamRoutes } from '@shared/lib/team-routes'
 import { CreateTeamForm } from '@features/create-team/ui/CreateTeamForm'
 
 export const Route = createFileRoute('/create-team/')({
-  // Reachable only by an authenticated, teamless user. A user who already has a team is bounced home
-  // (the root gate exempts /create-team from its has-a-team redirect, so this self-guard owns that).
+  // Authenticated callers only. There is no longer a teamless requirement: ADR-0019 §3's
+  // one-team-per-user guard was lifted by ADR-0021 (#143), so someone already playing in a Team can
+  // start another from the switcher. The root gate exempts /create-team from its has-any-team
+  // redirect, which is what lets a teamless caller reach it at all.
   beforeLoad: async () => {
     const user = await queryClient.ensureQueryData(authMeQueryOptions).catch(() => null)
     if (!user) throw redirect({ to: '/login' })
-    if (user.team) throw redirect({ to: '/' })
   },
   component: CreateTeamPage,
 })
@@ -50,20 +52,16 @@ function CreateTeamPage() {
             createTeam.mutate(values, {
               onSuccess: async (team) => {
                 if (!team) return
-                // Feed the X-Team-Id test shim + future multi-team; prod resolves tenant from session.
+                // Feed the X-Team-Id test shim; prod resolves the tenant from the session.
                 localStorage.setItem('teamId', team.id)
-                // Refetch /auth/me so `team` is non-null before we navigate — both gates then pass.
-                await client.invalidateQueries({ queryKey: ['auth', 'me'] })
-                // A brand-new team is empty: the team roster is where the owner starts (invite
-                // people, then curate positions under /team/settings), not the events home.
-                navigate({ to: '/team' })
-              },
-              onError: async (err) => {
-                // Already-in-team race: send the user into the team they already have.
-                if (err instanceof CreateTeamError && err.code === 'ALREADY_IN_TEAM') {
-                  await client.invalidateQueries({ queryKey: ['auth', 'me'] })
-                  navigate({ to: '/' })
-                }
+                // The server already made the new Team the founder's Active Team (ADR-0021 §4), so
+                // drop the cache rather than merely refetching /me: a founder who came from another
+                // Team is now in a different tenant, and every cached tenant-scoped query belongs to
+                // the one they left. This is the same obligation /t/$slug's gate carries on a switch.
+                client.clear()
+                // A brand-new team is empty: the roster is where the owner starts (invite people,
+                // then curate positions under team settings), not the events home.
+                navigate({ to: teamRoutes(team.slug).team })
               },
             })
           }

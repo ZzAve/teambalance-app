@@ -26,7 +26,7 @@ interface Pillar {
 const PILLARS: Pillar[] = [
   { icon: Wallet, title: 'One shared pot', blurb: "The whole team's money, in one place" },
   { icon: PlusCircle, title: 'Chip in fast', blurb: 'Top up your share in a couple of taps' },
-  { icon: Receipt, title: 'Every euro tracked', blurb: 'See who paid what, and where it went' },
+  { icon: Receipt, title: 'Every euro tracked', blurb: 'See what was paid, and where it went' },
 ]
 
 /**

@@ -70,6 +70,38 @@ class InvitationControllerTest : TeamBalanceIT() {
         )
     }
 
+    // These ITs share one Postgres with no truncation between them, so a link left active by an
+    // earlier test would be handed back by the now-idempotent POST. Tests that care start from none.
+    private fun expireAllInvitations() {
+        jdbcTemplate.update(
+            "UPDATE public.invitations SET expires_at = now() WHERE team_id = ?::uuid AND expires_at > now()",
+            TEAM_ID,
+        )
+    }
+
+    private fun activeInvitationCount(): Long =
+        jdbcTemplate.queryForObject(
+            "SELECT count(*) FROM public.invitations WHERE team_id = ?::uuid AND expires_at > now()",
+            Long::class.java,
+            TEAM_ID,
+        )!!
+
+    private fun getActiveInvitationAs(userId: String, expectedStatus: Int): String {
+        val mvcResult = mockMvc.perform(
+            MockMvcRequestBuilders.get("/api/invitations/active")
+                .header("X-Team-Id", "public")
+                .header("X-User-Id", userId),
+        )
+            .andExpect(MockMvcResultMatchers.request().asyncStarted())
+            .andReturn()
+
+        return mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(mvcResult))
+            .andExpect(MockMvcResultMatchers.status().`is`(expectedStatus))
+            .andReturn()
+            .response
+            .contentAsString
+    }
+
     private fun createInvitationAs(userId: String): String {
         val mvcResult = mockMvc.perform(
             MockMvcRequestBuilders.post("/api/invitations")
@@ -94,9 +126,13 @@ class InvitationControllerTest : TeamBalanceIT() {
 
             val token = objectMapper.readTree(createInvitationAs(JAN_USER_ID)).get("token").asText()
 
-            // The plaintext token is never persisted; only its salted SHA-256 hash is.
+            // Since ADR-0025 the token is recoverable, but it is still never written down in the
+            // clear: `token` holds the salted hash and `token_encrypted` holds ciphertext.
             val plaintextRows = jdbcTemplate.queryForObject(
-                "SELECT count(*) FROM public.invitations WHERE token = ?", Long::class.java, token,
+                "SELECT count(*) FROM public.invitations WHERE token = ? OR token_encrypted = ?",
+                Long::class.java,
+                token,
+                token,
             )
             plaintextRows shouldBe 0L
 
@@ -104,15 +140,96 @@ class InvitationControllerTest : TeamBalanceIT() {
                 "SELECT count(*) FROM public.invitations WHERE token = ?", Long::class.java, sha256Hex(TEST_SALT, token),
             )
             hashRows shouldBe 1L
+
+            // ...and the row carries the ciphertext that makes the link re-showable.
+            val ciphertext = jdbcTemplate.queryForObject(
+                "SELECT token_encrypted FROM public.invitations WHERE token = ?",
+                String::class.java,
+                sha256Hex(TEST_SALT, token),
+            )
+            ciphertext.isNullOrBlank() shouldBe false
         }
 
-        test("POST /api/invitations twice mints distinct tokens (fresh each call, no plaintext to reuse)") {
+        // Previously each call minted another concurrently-valid link, and since none of them could
+        // be read back the team accumulated invisible credentials (ADR-0025). A team has one link.
+        test("POST /api/invitations twice returns the same link, and only one is active") {
             seedAdmin()
+            expireAllInvitations()
 
             val first = objectMapper.readTree(createInvitationAs(JAN_USER_ID)).get("token").asText()
             val second = objectMapper.readTree(createInvitationAs(JAN_USER_ID)).get("token").asText()
 
-            first shouldNotBe second
+            first shouldBe second
+            activeInvitationCount() shouldBe 1L
+        }
+
+        test("GET /api/invitations/active returns the link a previous POST handed out") {
+            seedAdmin()
+            expireAllInvitations()
+            val created = objectMapper.readTree(createInvitationAs(JAN_USER_ID)).get("token").asText()
+
+            val body = getActiveInvitationAs(JAN_USER_ID, expectedStatus = 200)
+
+            objectMapper.readTree(body).get("token").asText() shouldBe created
+        }
+
+        test("GET /api/invitations/active is 204 when the team has no link") {
+            seedAdmin()
+            expireAllInvitations()
+
+            getActiveInvitationAs(JAN_USER_ID, expectedStatus = 204)
+        }
+
+        test("GET /api/invitations/active is 204 once the link has been expired") {
+            seedAdmin()
+            expireAllInvitations()
+            createInvitationAs(JAN_USER_ID)
+
+            mockMvc.perform(
+                MockMvcRequestBuilders.post("/api/invitations/expire")
+                    .header("X-Team-Id", "public")
+                    .header("X-User-Id", JAN_USER_ID),
+            )
+                .andExpect(MockMvcResultMatchers.request().asyncStarted())
+                .andReturn()
+                .let { mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(it)) }
+                .andExpect(MockMvcResultMatchers.status().isNoContent)
+
+            getActiveInvitationAs(JAN_USER_ID, expectedStatus = 204)
+        }
+
+        test("GET /api/invitations/active follows a rotate to the replacement link") {
+            seedAdmin()
+            expireAllInvitations()
+            val before = objectMapper.readTree(createInvitationAs(JAN_USER_ID)).get("token").asText()
+
+            val rotated = mockMvc.perform(
+                MockMvcRequestBuilders.post("/api/invitations/rotate")
+                    .header("X-Team-Id", "public")
+                    .header("X-User-Id", JAN_USER_ID),
+            )
+                .andExpect(MockMvcResultMatchers.request().asyncStarted())
+                .andReturn()
+                .let { mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(it)) }
+                .andReturn().response.contentAsString
+                .let { objectMapper.readTree(it).get("token").asText() }
+
+            rotated shouldNotBe before
+            objectMapper.readTree(getActiveInvitationAs(JAN_USER_ID, expectedStatus = 200))
+                .get("token").asText() shouldBe rotated
+        }
+
+        test("GET /api/invitations/active by a non-admin team member is rejected with 403") {
+            seedAdmin()
+            jdbcTemplate.execute(
+                "INSERT INTO public.users (id, email, display_name) " +
+                    "VALUES ('$LISA_USER_ID'::uuid, 'lisa-invite@test.com', 'Lisa Bakker') ON CONFLICT DO NOTHING",
+            )
+            jdbcTemplate.execute(
+                "SELECT public.tb_add_member('$TEAM_ID'::uuid, '$LISA_USER_ID'::uuid, 'USER', 'Libero')",
+            )
+
+            getActiveInvitationAs(LISA_USER_ID, expectedStatus = 403)
         }
 
         test("POST /api/invitations by a non-admin team member is rejected with 403") {

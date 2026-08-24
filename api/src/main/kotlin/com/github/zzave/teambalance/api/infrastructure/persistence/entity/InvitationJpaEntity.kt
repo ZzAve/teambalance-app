@@ -16,6 +16,8 @@ class InvitationJpaEntity(
     val teamId: UUID = UUID.randomUUID(),
     @Column(name = "token", nullable = false, unique = true)
     val tokenHash: String = "",
+    @Column(name = "token_encrypted")
+    val encryptedToken: String? = null,
     @Column(name = "created_by", nullable = false)
     val createdBy: UUID = UUID.randomUUID(),
     @Column(name = "expires_at", nullable = false)

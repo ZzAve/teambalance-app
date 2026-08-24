@@ -14,6 +14,8 @@ teambalance:
   invitation:
     # Hardcoded salt for the test profile — live environments supply INVITATION_TOKEN_SALT via env.
     token-salt: test-invitation-salt
+    # Hardcoded key for the test profile; live supplies INVITATION_TOKEN_ENCRYPTION_KEY.
+    token-encryption-key: dGVhbWJhbGFuY2UtdGVzdC1pbnZpdGF0aW9uLWtleTE=
   rate-limit:
     # Generous ceilings for the shared-context IT suite: every MockMvc request keys on the same
     # 127.0.0.1 bucket, so real limits would couple unrelated tests. RateLimitIT proves the low-limit

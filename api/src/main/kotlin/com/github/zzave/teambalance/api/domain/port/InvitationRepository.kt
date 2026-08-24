@@ -10,6 +10,13 @@ interface InvitationRepository {
     fun save(invitation: Invitation): Invitation
     fun findByTokenHash(tokenHash: TokenHash): Invitation?
 
+    /**
+     * The team's current invite link, or null if it has none. At most one is active at a time — the
+     * invariant [InvitationRepository] callers maintain by minting through
+     * `InvitationService.generateInviteLink` (idempotent) or [rotate] (expire-and-replace).
+     */
+    fun findActiveByTeam(teamId: TeamId, now: Instant): Invitation?
+
     /** Marks every currently-active (unexpired) invitation for the team as expired as of [now]. */
     fun expireActive(teamId: TeamId, now: Instant)
 

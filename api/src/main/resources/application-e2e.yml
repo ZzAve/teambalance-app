@@ -15,6 +15,8 @@ teambalance:
   invitation:
     # Hardcoded salt for e2e runs (not a live environment); live supplies INVITATION_TOKEN_SALT.
     token-salt: e2e-invitation-salt
+    # Hardcoded key for e2e runs; live supplies INVITATION_TOKEN_ENCRYPTION_KEY.
+    token-encryption-key: dGVhbWJhbGFuY2UtZTJlLWludml0YXRpb24ta2V5LTE=
   rate-limit:
     # Generous ceilings for the full-stack suite: every Playwright test logs in via the magic-link
     # flow from the same CI IP, so the default per-IP limits (5–10/min) would throttle later tests and

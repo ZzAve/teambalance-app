@@ -22,6 +22,9 @@ class JpaInvitationRepositoryAdapter(
     override fun findByTokenHash(tokenHash: TokenHash): Invitation? =
         jpaRepository.findByTokenHash(tokenHash.value)?.internalize()
 
+    override fun findActiveByTeam(teamId: TeamId, now: Instant): Invitation? =
+        jpaRepository.findFirstByTeamIdAndExpiresAtAfter(teamId.value, now)?.internalize()
+
     @Transactional
     override fun expireActive(teamId: TeamId, now: Instant) {
         jpaRepository.expireActive(teamId.value, now)

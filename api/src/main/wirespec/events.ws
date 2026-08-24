@@ -50,7 +50,8 @@ type Event {
     references: EventReference[],
     recurringGroup: String?,
     attendanceSummary: AttendanceSummary,
-    myState: AttendanceState
+    myState: AttendanceState,
+    rosterOverride: RosterRequirement?
 }
 
 type EventDetail {
@@ -65,7 +66,8 @@ type EventDetail {
     recurringGroup: String?,
     attendanceSummary: AttendanceSummary,
     attendances: AttendanceEntry[],
-    myState: AttendanceState
+    myState: AttendanceState,
+    rosterOverride: RosterRequirement?
 }
 
 type AttendanceEntry {
@@ -80,6 +82,7 @@ type EventList {
     events: Event[]
 }
 
+// `rosterOverride` absent (null) means this event INHERITS its type's default, and keeps inheriting: editing that default later moves every inheriting event with it. A present override is a whole replacement of the default, never a patch of it — so there is no partial inheritance to reason about.
 type CreateEventRequest {
     eventTypeId: String,
     title: String,
@@ -87,7 +90,8 @@ type CreateEventRequest {
     startTime: DateTimestampWithTimezone,
     endTime: DateTimestampWithTimezone,
     location: String?,
-    references: EventReference[]?
+    references: EventReference[]?,
+    rosterOverride: RosterRequirement?
 }
 
 type UpdateEventRequest {
@@ -97,7 +101,8 @@ type UpdateEventRequest {
     startTime: DateTimestampWithTimezone,
     endTime: DateTimestampWithTimezone,
     location: String?,
-    references: EventReference[]?
+    references: EventReference[]?,
+    rosterOverride: RosterRequirement?
 }
 
 endpoint ListEvents GET /api/events ? {include-past: Boolean} -> {

@@ -21,6 +21,13 @@ data class EventEdit(
     val references: List<EventReference>,
     val startTime: Instant,
     val endTime: Instant,
+    /**
+     * The roster requirement the edited occurrences take on, or null for "inherit the type default".
+     *
+     * Propagates with the scope like every other field here: null is a value the edit carries, not
+     * an omission, so a bulk edit without one returns its whole scope to following the type default.
+     */
+    val rosterOverride: RosterRequirement? = null,
 )
 
 /**
@@ -55,6 +62,12 @@ object SeriesModification {
      *  - **THIS_AND_FOLLOWING** → the target + every following occurrence move to [newTailGroup] with
      *    the edit applied (each keeps its own date); the occurrences before are untouched.
      *  - **ALL** → every occurrence gets the edit (each keeps its own date); the group is unchanged.
+     *
+     * [EventEdit.rosterOverride] propagates with the scope like every other field: a scoped edit
+     * means "these occurrences now need this lineup" (#219). Note the consequence — a bulk edit
+     * writes a concrete requirement onto every occurrence it sweeps in, so those rows stop tracking
+     * their type's default until something clears them; a bulk edit carrying null is what puts the
+     * whole scope back on the type default.
      */
     fun planEdit(
         series: List<Event>,
@@ -69,6 +82,20 @@ object SeriesModification {
         require(idx >= 0) { "target $targetId is not part of the series" }
         val target = ordered[idx]
 
+        return plan(ordered, idx, target, scope, edit, newTailGroup, zone)
+    }
+
+    // The scope matrix itself: each apply* function is "one occurrence, all the edited fields".
+    @Suppress("LongParameterList")
+    private fun plan(
+        ordered: List<Event>,
+        idx: Int,
+        target: Event,
+        scope: EventSeriesScope,
+        edit: EventEdit,
+        newTailGroup: UUID,
+        zone: ZoneId,
+    ): SeriesEditPlan {
         return when (scope) {
             EventSeriesScope.THIS -> SeriesEditPlan(
                 edited = listOf(target.applyMoved(edit, group = null)),
@@ -128,6 +155,7 @@ object SeriesModification {
             startTime = edit.startTime,
             endTime = edit.endTime,
             recurringGroup = group,
+            rosterOverride = edit.rosterOverride,
         )
 
     // A bulk-affected occurrence: keep its own calendar date, but re-anchor to the edit's wall-clock
@@ -145,6 +173,7 @@ object SeriesModification {
             startTime = newStart,
             endTime = newStart.plus(duration),
             recurringGroup = group,
+            rosterOverride = edit.rosterOverride,
         )
     }
 }

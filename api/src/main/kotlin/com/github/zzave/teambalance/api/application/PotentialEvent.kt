@@ -5,6 +5,7 @@ import com.github.zzave.teambalance.api.domain.model.EventLocation
 import com.github.zzave.teambalance.api.domain.model.EventReference
 import com.github.zzave.teambalance.api.domain.model.EventTitle
 import com.github.zzave.teambalance.api.domain.model.EventTypeId
+import com.github.zzave.teambalance.api.domain.model.RosterRequirement
 import java.time.Instant
 import java.util.UUID
 
@@ -18,4 +19,6 @@ data class PotentialEvent(
     val references: List<EventReference> = emptyList(),
     // A single event belongs to no series; a batch-created occurrence carries its shared group id.
     val recurringGroup: UUID? = null,
+    // Null means "inherit the event type's default", dynamically — see Event.rosterOverride.
+    val rosterOverride: RosterRequirement? = null,
 )

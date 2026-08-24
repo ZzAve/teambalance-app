@@ -8,7 +8,6 @@ import com.github.zzave.teambalance.api.domain.model.PositionLabel
 import com.github.zzave.teambalance.api.domain.model.TeamId
 import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.port.PositionRepository
-import java.util.UUID
 
 class PositionService(
     private val positionRepository: PositionRepository,
@@ -40,8 +39,16 @@ class PositionService(
     }
 
     /**
-     * Admin-only. Deletes a position; members assigned to it are silently reset to unassigned —
-     * now by the member_profiles ON DELETE SET NULL rather than by a prior clearing write.
+     * Admin-only. Deletes a position. Everything that referenced it goes with it, and none of that is
+     * this method's work any more (ADR-0026): members assigned to it become Unassigned via
+     * `member_profiles`' ON DELETE SET NULL, and the position drops out of every event type's roster
+     * default and every event's roster override via those tables' ON DELETE CASCADE.
+     *
+     * That used to be three ordered writes in this service, in a deliberate order — targets first,
+     * because a deleted position still named by a live target is unrecoverable while the reverse is
+     * merely re-runnable. The ordering mattered because each was its own transaction and no foreign
+     * key could span the platform/tenant boundary. Now that positions are tenant rows alongside the
+     * things that name them, one statement does all of it atomically.
      */
     fun deletePosition(callerId: UserId, teamId: TeamId, id: PositionId) {
         authorizationService.requireAdmin(callerId, teamId)

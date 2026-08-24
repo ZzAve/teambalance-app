@@ -23,6 +23,13 @@ class InvalidTeamNameException(message: String) : BadRequestException(message, "
 // is validated, not derived (#158): the caller owns the address, so a bad one is their error to fix.
 class InvalidSlugException(message: String) : BadRequestException(message, "INVALID_SLUG")
 
+// A roster requirement naming a position that is not this team's → 400 UNKNOWN_ROSTER_POSITION. A
+// 400 rather than a 404, because the missing thing is not the resource being addressed: the caller is
+// writing an event and got one field of the body wrong. Rejecting is what keeps a target from being
+// stored that no member can ever fill and no delete cascade can ever reach (#219).
+class UnknownRosterPositionException(id: PositionId) :
+    BadRequestException("Roster requirement names an unknown position: $id", "UNKNOWN_ROSTER_POSITION")
+
 sealed class NotFoundException(message: String) : TeambalanceException(message)
 
 class EventNotFoundException(id: EventId) : NotFoundException("Event not found: $id")

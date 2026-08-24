@@ -2,9 +2,11 @@ package com.github.zzave.teambalance.api.infrastructure.persistence
 
 import com.github.zzave.teambalance.api.domain.model.EventType
 import com.github.zzave.teambalance.api.domain.model.EventTypeId
+import com.github.zzave.teambalance.api.domain.model.PositionId
 import com.github.zzave.teambalance.api.domain.port.EventTypeRepository
 import com.github.zzave.teambalance.api.infrastructure.persistence.mapper.internalize
 import org.springframework.stereotype.Repository
+import org.springframework.transaction.annotation.Transactional
 
 @Repository
 class JpaEventTypeRepositoryAdapter(

@@ -118,8 +118,15 @@ copies from it. The drop is a separate, later change, once every environment has
   calling it unrouted fails loudly against `__no_tenant__` instead of quietly reading `public`. That
   is the intended behaviour — it is the same guarantee ADR-0024 relies on, now extended to positions —
   but it is a real contract change for any caller that ran without a tenant.
-- **#219 loses its workaround.** The write-time `UNKNOWN_ROSTER_POSITION` check and the roster half of
-  the position-delete cascade become unnecessary; a foreign key covers both.
+- **#219 loses most of its workaround.** The position-delete cascade goes entirely — three ordered
+  writes in `PositionService`, the ports and queries behind them, and the ordering rule that existed
+  because no foreign key could span the schemas — replaced by ON DELETE CASCADE on the two target
+  tables. `PositionService` stops depending on the event ports altogether.
+
+  The write-time `UNKNOWN_ROSTER_POSITION` check **stays**, with a different job. The foreign key is
+  what makes an unknown id unstorable, so the check is no longer load-bearing for integrity; but
+  without it the constraint surfaces as a 500, where the contract declares a `400`. It is now a
+  classifier, not a guard.
 - Ids are preserved through the backfill, so anything already holding a position id — roster targets,
   a client, a bookmarked payload — stays valid. Names are carried across too, so nobody is renamed by
   the migration.

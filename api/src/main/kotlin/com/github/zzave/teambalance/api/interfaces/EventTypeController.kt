@@ -19,6 +19,8 @@ class EventTypeController(
                 id = type.id.produce(),
                 name = type.name.value,
                 color = type.color?.value,
+                archived = type.archived,
+                rosterDefault = type.rosterDefault.produce(),
             )
         }
         return ListEventTypes.Response200(EventTypeList(eventTypes = types))

@@ -15,6 +15,17 @@ data class Event(
     val recurringGroup: UUID?,
     val createdBy: UserId,
     val createdAt: Instant,
+    /**
+     * This occurrence's own roster requirement, or null to **inherit** [eventType]'s
+     * [EventType.rosterDefault] — and to keep inheriting it, so a later edit of the default moves
+     * this event too. That dynamic inheritance is what lets a recurring series follow its type
+     * without rewriting every occurrence.
+     *
+     * When set, it is a **whole replacement** of the default, never a patch of it: there is no
+     * per-position partial inheritance to reason about, so "what does this event need?" has exactly
+     * one answer and one place to look.
+     */
+    val rosterOverride: RosterRequirement? = null,
 ) {
     init {
         require(references.size <= MAX_REFERENCES) {

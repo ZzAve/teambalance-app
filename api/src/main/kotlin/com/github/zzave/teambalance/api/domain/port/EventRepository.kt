@@ -2,6 +2,7 @@ package com.github.zzave.teambalance.api.domain.port
 
 import com.github.zzave.teambalance.api.domain.model.Event
 import com.github.zzave.teambalance.api.domain.model.EventId
+import com.github.zzave.teambalance.api.domain.model.PositionId
 import java.time.Instant
 import java.util.UUID
 
@@ -27,4 +28,5 @@ interface EventRepository {
     fun saveAll(events: List<Event>): List<Event>
     fun deleteById(id: EventId)
     fun deleteAllById(ids: List<EventId>)
+
 }

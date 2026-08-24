@@ -67,6 +67,15 @@ class SeriesModificationTest : FunSpec({
         )
     }
 
+    val setter = PositionId(UUID.randomUUID())
+    val twoSetters = RosterRequirement(
+        trackRoster = true,
+        positionTargets = listOf(PositionTarget(setter, PositionSlots(2))),
+    )
+    val headcountOnly = RosterRequirement(trackRoster = true, totalTarget = HeadcountTarget(8))
+
+    fun EventEdit.withRoster(requirement: RosterRequirement?): EventEdit = copy(rosterOverride = requirement)
+
     fun timeOfDay(instant: Instant): LocalTime = instant.atZone(zone).toLocalTime()
     fun localDate(instant: Instant): LocalDate = instant.atZone(zone).toLocalDate()
 
@@ -191,6 +200,53 @@ class SeriesModificationTest : FunSpec({
             plan.regrouped.shouldBeEmpty()
             plan.edited.single().recurringGroup shouldBe null
         }
+    }
+
+    // ── EDIT / ROSTER REQUIREMENT ───────────────────────────────────────────
+    // The roster requirement propagates exactly like every other edited field: a scoped edit means
+    // "these occurrences now need this lineup". Setting it on one Tuesday and not the rest would be
+    // an edit that silently did less than the scope it was given.
+
+    test("edit THIS applies the roster requirement to the target alone") {
+        val plan = SeriesModification.planEdit(series, d2.id, EventSeriesScope.THIS, editOn().withRoster(twoSetters), tailGroup, zone)
+
+        plan.edited.single().rosterOverride shouldBe twoSetters
+        // The regrouped tail is moved, not edited — its requirement is untouched either way.
+        plan.regrouped.forEach { it.rosterOverride shouldBe null }
+    }
+
+    test("edit THIS_AND_FOLLOWING applies the roster requirement to the target and every later occurrence") {
+        val edit = editOn().withRoster(twoSetters)
+        val plan = SeriesModification.planEdit(series, d2.id, EventSeriesScope.THIS_AND_FOLLOWING, edit, tailGroup, zone)
+
+        plan.edited.map { it.id } shouldContainExactly listOf(d2.id, d3.id, d4.id)
+        plan.edited.forEach { it.rosterOverride shouldBe twoSetters }
+    }
+
+    test("edit ALL applies the roster requirement to every occurrence in the series") {
+        val plan = SeriesModification.planEdit(series, d2.id, EventSeriesScope.ALL, editOn().withRoster(twoSetters), tailGroup, zone)
+
+        plan.edited.map { it.id } shouldContainExactly listOf(d1.id, d2.id, d3.id, d4.id)
+        plan.edited.forEach { it.rosterOverride shouldBe twoSetters }
+    }
+
+    test("a bulk edit carrying no override drops the whole scope back to inheriting the type default") {
+        // The override is a whole replacement, so "no override" is a value the edit carries, not an
+        // omission: a series previously pinned to its own lineup returns to following its type.
+        val pinned = series.map { it.copy(rosterOverride = twoSetters) }
+
+        val plan = SeriesModification.planEdit(pinned, d2.id, EventSeriesScope.ALL, editOn(), tailGroup, zone)
+
+        plan.edited.forEach { it.rosterOverride shouldBe null }
+    }
+
+    test("a bulk edit overwrites an occurrence that carried a different requirement of its own") {
+        val mixed = listOf(d1, d2.copy(rosterOverride = headcountOnly), d3, d4)
+
+        val edit = editOn(date = "2026-09-01").withRoster(twoSetters)
+        val plan = SeriesModification.planEdit(mixed, d1.id, EventSeriesScope.ALL, edit, tailGroup, zone)
+
+        plan.edited.forEach { it.rosterOverride shouldBe twoSetters }
     }
 
     test("an unknown target id is rejected") {

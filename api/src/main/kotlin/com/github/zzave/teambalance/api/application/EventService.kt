@@ -3,6 +3,7 @@ package com.github.zzave.teambalance.api.application
 import com.github.zzave.teambalance.api.domain.exception.EmptyRecurrenceException
 import com.github.zzave.teambalance.api.domain.exception.EventTypeNotFoundException
 import com.github.zzave.teambalance.api.domain.exception.RecurrenceExceedsCapException
+import com.github.zzave.teambalance.api.domain.exception.UnknownRosterPositionException
 import com.github.zzave.teambalance.api.domain.model.Event
 import com.github.zzave.teambalance.api.domain.model.EventDescription
 import com.github.zzave.teambalance.api.domain.model.EventEdit
@@ -14,12 +15,14 @@ import com.github.zzave.teambalance.api.domain.model.EventReference
 import com.github.zzave.teambalance.api.domain.model.EventSeriesScope
 import com.github.zzave.teambalance.api.domain.model.OccurrenceSchedule
 import com.github.zzave.teambalance.api.domain.model.Recurrence
+import com.github.zzave.teambalance.api.domain.model.RosterRequirement
 import com.github.zzave.teambalance.api.domain.model.SeasonPolicy
 import com.github.zzave.teambalance.api.domain.model.SeriesModification
 import com.github.zzave.teambalance.api.domain.model.TeamId
 import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.port.EventRepository
 import com.github.zzave.teambalance.api.domain.port.EventTypeRepository
+import com.github.zzave.teambalance.api.domain.port.PositionRepository
 import com.github.zzave.teambalance.api.domain.port.SeasonRepository
 import java.time.Clock
 import java.time.Duration
@@ -48,6 +51,7 @@ class EventService(
     private val eventRepository: EventRepository,
     private val eventTypeRepository: EventTypeRepository,
     private val seasonRepository: SeasonRepository,
+    private val positionRepository: PositionRepository,
     private val authorizationService: AuthorizationService,
     private val clock: Clock,
 ) {
@@ -74,6 +78,8 @@ class EventService(
         val eventType = eventTypeRepository.findById(potential.eventTypeId)
             ?: throw EventTypeNotFoundException(potential.eventTypeId)
 
+        requireKnownPositions(potential.rosterOverride)
+
         // ADR-0014: a created event's start must always fall within the configured season.
         seasonPolicy().requireCreatable(potential.startTime)
 
@@ -90,6 +96,7 @@ class EventService(
                 recurringGroup = potential.recurringGroup,
                 createdBy = callerId,
                 createdAt = clock.instant(),
+                rosterOverride = potential.rosterOverride,
             ),
         )
     }
@@ -195,11 +202,13 @@ class EventService(
         endTime: Instant,
         location: EventLocation?,
         references: List<EventReference> = emptyList(),
+        rosterOverride: RosterRequirement? = null,
     ): List<Event>? {
         authorizationService.requireAdmin(callerId, teamId)
         val target = eventRepository.findById(id) ?: return null
         val eventType = eventTypeRepository.findById(eventTypeId)
             ?: throw EventTypeNotFoundException(eventTypeId)
+        requireKnownPositions(rosterOverride)
 
         val series = seriesOf(target)
         // Replace-semantics (ADR-0016): the incoming list is the new full set of references.
@@ -215,6 +224,7 @@ class EventService(
                 references = references,
                 startTime = startTime,
                 endTime = endTime,
+                rosterOverride = rosterOverride,
             ),
             newTailGroup = UUID.randomUUID(),
             zone = clock.zone,
@@ -239,6 +249,25 @@ class EventService(
         val target = eventRepository.findById(id) ?: return false
         eventRepository.deleteAllById(SeriesModification.planDelete(seriesOf(target), id, scope))
         return true
+    }
+
+    /**
+     * Rejects a roster override naming a position this team does not have (#219).
+     *
+     * Since ADR-0026 this is **not** what keeps the data honest — `event_position_targets.position_id`
+     * is a real foreign key now that positions are tenant rows, so an unknown id cannot be stored
+     * whatever this method does. What it still buys is the *answer*: the contract declares
+     * `400 UNKNOWN_ROSTER_POSITION` for a bad id, and without the check the constraint would surface
+     * as a 500 that the client cannot tell from a server fault.
+     *
+     * One query, whatever the target count, and none at all for the common inheriting event.
+     */
+    private fun requireKnownPositions(requirement: RosterRequirement?) {
+        val targeted = requirement?.positionTargets.orEmpty()
+        if (targeted.isEmpty()) return
+        val known = positionRepository.list().map { it.id }.toSet()
+        targeted.firstOrNull { it.positionId !in known }
+            ?.let { throw UnknownRosterPositionException(it.positionId) }
     }
 
     // A group-less event is a one-occurrence series (its own row); otherwise the whole group,

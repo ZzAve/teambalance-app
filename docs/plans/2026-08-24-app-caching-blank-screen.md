@@ -104,9 +104,12 @@ they stop being referenced.
 
 - Drop `--delete` from the `assets/` sync (`ci.yml:307`). Hashed + `immutable`, so re-uploading
   unchanged hashes is a harmless no-op and stale hashes never collide.
-- Reclaim space with a **bucket lifecycle rule** on `assets/` (e.g. expire objects N days after last
-  modification — 30 days is generous vs. how long a client stays on an old shell). Configure via
-  Scaleway; document the rule in `docs/ops/deploy.md` since bucket config isn't in-repo.
+- Reclaim space with a **bucket lifecycle rule** on `assets/` — expire objects **90 days** after last
+  modification. Rationale: 90 days comfortably outlives how long any client realistically stays on a
+  stale shell, and stays safe once the app is stable and deploys are infrequent (a low deploy cadence
+  means old-but-still-referenced hashes must survive longer between releases; a shorter window like 30
+  days is fine only during heavy development where a fresh build lands often). Configure via Scaleway;
+  document the rule in `docs/ops/deploy.md` since bucket config isn't in-repo.
 - Keep upload order as-is (assets **before** `index.html`, `ci.yml:306` then `:308`) so `index.html`
   never references a not-yet-uploaded hash.
 
@@ -118,32 +121,62 @@ unobservable.
 lifecycle rule; note the manual verification (deploy twice, confirm prior-deploy `assets/*` still
 GET-able) in the PR.
 
-### Phase 3 — Deterministic SW updates (kills the "didn't come through" lag)
+### Phase 3 — Auto-update by default; prompt only when the user is actively in the app
 
-**Change (`app/`):** Replace silent `autoUpdate` with an explicit update-and-reload.
+**Goal:** keep the zero-friction auto-update for the common case (a returning user opens the app →
+always gets the fresh version, no UI), and fall back to a prompt **only** when a new version lands
+while someone is mid-session — so we never reload the rug out from under active work, and prompts
+don't fire "all the time."
 
-- Switch `registerType` to `'prompt'` and register via `virtual:pwa-register/react`
-  (`useRegisterSW`) instead of `injectRegister: 'auto'` (`vite.config.ts:23-31`). On `needRefresh`,
-  show a lightweight "New version available — Reload" toast wired to `updateSW(true)`.
-- Reconsider `clientsClaim: true` (`manifest.ts:63`): with a prompt-driven reload the new SW takes
-  control on the user's reload, so immediate claim is no longer needed and its mid-session swap
-  risk goes away. Keep `cleanupOutdatedCaches: true`.
-- Net effect: the user gets a clear, one-click path to the new version; no silent mid-session flip,
-  no indefinite "still on old shell."
+The behaviour splits into two independent knobs.
 
-**Trade-off / decision:** this is a small UX addition (a toast) vs. the current zero-UI autoupdate.
-Chosen because the silent path is precisely what makes deploys feel like they "didn't land." If we'd
-rather keep zero-UI, the fallback is `autoUpdate` **plus** a `controllerchange` listener that reloads
-once — but that reintroduces an automatic mid-session reload, which is worse UX than a prompt.
-**Recommend the prompt.** Flagging for confirmation before implementing.
+**Knob 1 — how often we even look for an update.** Fewer checks → fewer chances to interrupt. Check
+on page load and on regaining focus/visibility (`visibilitychange` → visible), plus at most a long
+periodic `registration.update()` interval (e.g. hourly), rather than aggressive polling. Tune via the
+`useRegisterSW` `onRegisteredSW` hook. This alone addresses "I don't want that happening all the
+time."
 
-**Tests:**
-- **Storybook story** for the update-available toast: idle vs. update-available states; `fn()` spy on
-  the reload callback asserted with `toHaveBeenCalled` in `play`.
-- **Vitest unit** for any pure "should prompt" logic if extracted.
-- The `useRegisterSW` wiring is a network/SW seam with no story or real-backend path — thin container,
-  covered by manual verification (deploy, confirm toast, click, confirm fresh shell). Not a new
-  sanctioned MSW test (doesn't meet the fourth-exception bar in CLAUDE.md).
+**Knob 2 — what we do when an update *is* found**, decided by app state at that moment:
+
+| Situation when the new SW becomes ready | Action |
+|---|---|
+| First install (no existing `navigator.serviceWorker.controller`) | Nothing to prompt — just activate. |
+| Update found during a fresh load, before the user has interacted this session | **Auto-apply** (`updateSW(true)`) — perceived as a normal load, no UI. |
+| Tab hidden / app not focused | **Auto-apply silently** and reload while hidden, so it's fresh when they return. |
+| App open & focused, user has interacted, but **no** unsaved / in-flight state | Auto-apply at the **next safe seam** (a route navigation, or the next `visibilitychange` → hidden). Only if none arrives, show the prompt. |
+| App open with unsaved input / open modal / in-flight mutation | **Prompt only** — never auto-reload; the user clicks "Reload" when ready. |
+
+Net: it behaves exactly like autoupdate for everyone who simply opens the app, and it *only ever
+prompts* the small set of users who happen to be actively working the moment a deploy lands — and even
+then it auto-resolves at the next natural boundary unless a reload would lose their state.
+
+**Change (`app/`):**
+- Switch `registerType` from `'autoUpdate'` to `'prompt'` and register via `virtual:pwa-register/react`
+  (`useRegisterSW`) instead of `injectRegister: 'auto'` (`vite.config.ts:23-31`). `'prompt'` only means
+  "the SW does not auto-`skipWaiting`" — it hands *us* the timing; it does **not** force a visible
+  prompt. Our code calls `updateSW(true)` (posts `SKIP_WAITING`, reloads on `controllerchange`) under
+  the rules above; the toast is shown only in the last-two table rows.
+- Drive the table from two signals: a `hasInteracted` flag (first real user input this session) and an
+  `isDirty` signal (unsaved forms + pending TanStack Query mutations). Both already observable in-app.
+- `clientsClaim: true` (`manifest.ts:63`) is no longer needed — control transfers on our controlled
+  reload; keep `cleanupOutdatedCaches: true`.
+
+**Decision (updated):** auto-update stays the default; the prompt is a *conditional fallback*, not the
+primary path. This matches "auto-update should still be possible, prompt only when the app is open."
+The one nuance to confirm: for the "focused, interacted, not dirty" row, prefer **auto at next seam**
+(recommended — stays invisible) vs. **always prompt** (more conservative, more toasts). Recommend
+auto-at-next-seam.
+
+**Tests (lowest layer that proves it):**
+- **Vitest unit** for the pure decision function
+  `decideUpdateAction({ hasController, hasInteracted, visibility, isDirty }) → 'activate' | 'auto' | 'defer' | 'prompt'`
+  — the table above *is* the test matrix. This is the irreducible logic and where the real risk lives.
+- **Storybook story** for the update-available toast (hidden vs. shown states) with an `fn()` spy on the
+  reload callback asserted `toHaveBeenCalled` in `play`.
+- The `useRegisterSW` wiring + seam listeners are a thin SW/lifecycle shell with no story or
+  real-backend path — manual-verified (deploy; confirm silent refresh on reopen; confirm a toast only
+  appears when a deploy lands while typing in a form). Not a new sanctioned MSW test (doesn't meet the
+  fourth-exception bar in CLAUDE.md).
 
 ### Phase 4 — Landing page CSS: stop it going stale
 
@@ -183,6 +216,7 @@ matches how they're referenced.
   replay queue is unsafe for a multi-tenant cookie-authed backend (the very reason `manifest.ts:56-60`
   marks `/api` `NetworkOnly`), and its manual `SW_VERSION` bumping is more error-prone than the
   hashed precache manifest Workbox already generates. Its one good idea — gating client claim on tab
-  count — is subsumed by Phase 3's prompt-driven update. Not adopted.
+  count — is subsumed by Phase 3's app-state-aware update (auto by default, prompt only when actively
+  in the app). Not adopted.
 - **Dropping the service worker entirely.** Would fix stale content but lose the installable
   offline shell (F2, #159). Not warranted; the update flow is the real gap, not the SW itself.

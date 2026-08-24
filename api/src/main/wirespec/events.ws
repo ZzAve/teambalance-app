@@ -30,6 +30,36 @@ type RoleCount {
     attending: Integer
 }
 
+// The layered, position-priority status of an event's roster. Position targets decide it whenever there are any — a lineup short of a setter is short of a setter however many people are coming in total — and a headcount set alongside them shows only as the panel's secondary "X/Y going". OFF renders no panel; TALLY_ONLY renders rows but no chip.
+enum RosterState {
+    OFF,
+    TALLY_ONLY,
+    HEADCOUNT_SHORT,
+    HEADCOUNT_FULL,
+    LINEUP_SET,
+    SPOTS_OPEN,
+    CRITICAL
+}
+
+// One row of the roster panel. `required` is null for a position that is merely attended, not targeted; those rows show a plain count instead of pips. Attending beyond required is the surplus the panel renders as "+N".
+type RosterPosition {
+    id: String,
+    label: String,
+    required: Integer?,
+    attending: Integer
+}
+
+// The event's roster, computed server-side so the status arithmetic has ONE tested home and the client only maps numbers to chip text, colour and pips. Rows are the positions with a target OR at least one attendee, in the position vocabulary's order; an untargeted empty position is omitted rather than rendered as a zero. `openSlots` is how many more people the DRIVING target needs — the sum of unmet position slots when positions are targeted, else the headcount shortfall. `unassignedAttending` drives the "N going haven't set a position" nudge; those attendees count toward the total but can fill no targeted slot.
+type EventRoster {
+    trackRoster: Boolean,
+    totalTarget: Integer?,
+    totalAttending: Integer,
+    positions: RosterPosition[],
+    unassignedAttending: Integer,
+    openSlots: Integer,
+    state: RosterState
+}
+
 type AttendanceSummary {
     attending: Integer,
     maybe: Integer,
@@ -51,7 +81,8 @@ type Event {
     recurringGroup: String?,
     attendanceSummary: AttendanceSummary,
     myState: AttendanceState,
-    rosterOverride: RosterRequirement?
+    rosterOverride: RosterRequirement?,
+    roster: EventRoster
 }
 
 type EventDetail {
@@ -67,7 +98,8 @@ type EventDetail {
     attendanceSummary: AttendanceSummary,
     attendances: AttendanceEntry[],
     myState: AttendanceState,
-    rosterOverride: RosterRequirement?
+    rosterOverride: RosterRequirement?,
+    roster: EventRoster
 }
 
 type AttendanceEntry {

@@ -55,6 +55,22 @@ class EventAttendance private constructor(
             // wrapped text — same String ordering as before.
             .sortedWith(compareByDescending<Pair<PositionLabel, Int>> { it.second }.thenBy { it.first.value })
 
+    /**
+     * Attending members counted per position **id**, with the unpositioned under the null key.
+     *
+     * The id-keyed sibling of [attendingRoleBreakdown], which groups by label for display. Roster
+     * fill joins by id so a renamed position keeps its targets (a label is display text; the id is
+     * the identity), and so two positions could never collide on a shared label.
+     *
+     * Only ATTENDING counts: maybe, absent and no-response do not fill a slot. That rule is the whole
+     * point of the fold and lives here, next to the other attendance folds.
+     */
+    fun attendingByPositionId(): Map<PositionId?, Int> =
+        entries
+            .filter { it.state == AttendanceState.ATTENDING }
+            .groupingBy { it.member.positionId }
+            .eachCount()
+
     companion object {
         /**
          * Resolve the picture for [members] (the current roster) against the event's [responses].

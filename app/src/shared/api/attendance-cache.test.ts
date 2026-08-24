@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { AttendanceEntry, EventDetail } from './events'
+import { makeRoster, NO_ROSTER } from '@shared/testing/event-fixtures'
 import { applyOptimisticAttendance } from './attendance-cache'
 
 const attendee = (overrides: Partial<AttendanceEntry> = {}): AttendanceEntry => ({
@@ -33,6 +34,7 @@ const makeEventDetail = (overrides: Partial<EventDetail> = {}): EventDetail => (
   myState: 'NOT_RESPONDED',
   // Undefined = this event inherits its type's roster default.
   rosterOverride: undefined,
+  roster: NO_ROSTER,
   ...overrides,
 })
 
@@ -134,5 +136,24 @@ describe('applyOptimisticAttendance', () => {
 
     expect(next.attendanceSummary.attending).toBe(0)
     expect(next.attendanceSummary.absent).toBe(1)
+  })
+
+  // The roster is server-authoritative (#219): its counts could be moved here, but openSlots/state
+  // could not without re-implementing the layered status the backend owns, and a half-patched roster
+  // is worse than a briefly stale one. Pinned so nobody "fixes" it into a second implementation.
+  it('leaves the server-computed roster untouched rather than deriving a new one', () => {
+    const roster = makeRoster({ totalAttending: 4, openSlots: 1, state: 'SPOTS_OPEN' })
+    const event = makeEventDetail({
+      roster,
+      attendances: [attendee({ userId: 'u1', state: 'ABSENT' })],
+      attendanceSummary: { attending: 4, maybe: 0, absent: 1, notResponded: 0, roleBreakdown: [] },
+    })
+
+    const next = applyOptimisticAttendance(event, 'u1', 'ATTENDING')
+
+    // The summary moved…
+    expect(next?.attendanceSummary.attending).toBe(5)
+    // …and the roster is carried through as-is, awaiting the server's recomputation.
+    expect(next?.roster).toEqual(roster)
   })
 })

@@ -27,6 +27,16 @@ data class Event(
      */
     val rosterOverride: RosterRequirement? = null,
 ) {
+    /**
+     * What this event actually needs: its own [rosterOverride], or its type's default when it has
+     * none. Resolved on every read rather than copied at write time — that is what makes the
+     * inheritance dynamic, so editing a type's default moves every inheriting event with it.
+     *
+     * The single answer to "what does this event require?", so no caller has to remember the
+     * precedence or get it subtly wrong.
+     */
+    val effectiveRosterRequirement: RosterRequirement get() = rosterOverride ?: eventType.rosterDefault
+
     init {
         require(references.size <= MAX_REFERENCES) {
             "An event may have at most $MAX_REFERENCES references"

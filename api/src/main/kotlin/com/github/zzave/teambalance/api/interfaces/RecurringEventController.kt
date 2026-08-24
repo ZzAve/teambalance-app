@@ -2,6 +2,7 @@ package com.github.zzave.teambalance.api.interfaces
 
 import com.github.zzave.teambalance.api.application.AttendanceService
 import com.github.zzave.teambalance.api.application.EventService
+import com.github.zzave.teambalance.api.application.PositionService
 import com.github.zzave.teambalance.api.domain.model.EventDescription
 import com.github.zzave.teambalance.api.domain.model.EventLocation
 import com.github.zzave.teambalance.api.domain.model.Recurrence
@@ -22,6 +23,7 @@ import java.util.UUID
 class RecurringEventController(
     private val eventService: EventService,
     private val attendanceService: AttendanceService,
+    private val positionService: PositionService,
     private val currentUserGateway: CurrentUserGateway,
     private val currentTeamGateway: CurrentTeamGateway,
 ) : CreateRecurringEvents.Handler {
@@ -51,10 +53,13 @@ class RecurringEventController(
         // batch in one query so the response doesn't fan out into a per-occurrence N+1.
         val members = attendanceService.teamMembers(teamId)
         val attendance = attendanceService.attendanceForAll(series.events.map { it.id }, members)
+        // Same vocabulary for every occurrence, so it is fetched once for the whole batch. Each
+        // occurrence inherits its type's roster default — a series never carries its own override.
+        val positions = positionService.listPositions()
         return CreateRecurringEvents.Response201(
             RecurringEventSeries(
                 recurringGroup = series.recurringGroup.toString(),
-                events = series.events.map { it.produce(attendance.getValue(it.id), userId) },
+                events = series.events.map { it.produce(attendance.getValue(it.id), userId, positions) },
             ),
         )
     }

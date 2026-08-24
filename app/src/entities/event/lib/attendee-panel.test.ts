@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { AttendanceEntry, EventDetail } from '@shared/api/events'
+import { NO_ROSTER } from '@shared/testing/event-fixtures'
 import { buildAttendeePanel } from './attendee-panel'
 
 const attendee = (overrides: Partial<AttendanceEntry> = {}): AttendanceEntry => ({
@@ -33,6 +34,7 @@ const makeEventDetail = (overrides: Partial<EventDetail> = {}): EventDetail => (
   myState: 'NOT_RESPONDED',
   // Undefined = this event inherits its type's roster default.
   rosterOverride: undefined,
+  roster: NO_ROSTER,
   ...overrides,
 })
 

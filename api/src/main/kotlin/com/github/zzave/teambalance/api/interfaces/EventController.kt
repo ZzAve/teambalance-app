@@ -2,6 +2,7 @@ package com.github.zzave.teambalance.api.interfaces
 
 import com.github.zzave.teambalance.api.application.AttendanceService
 import com.github.zzave.teambalance.api.application.EventService
+import com.github.zzave.teambalance.api.application.PositionService
 import com.github.zzave.teambalance.api.application.PotentialEvent
 import com.github.zzave.teambalance.api.domain.model.EventAttendance
 import com.github.zzave.teambalance.api.domain.model.EventDescription
@@ -10,6 +11,8 @@ import com.github.zzave.teambalance.api.domain.model.EventId
 import com.github.zzave.teambalance.api.domain.model.EventLocation
 import com.github.zzave.teambalance.api.domain.model.EventSeriesScope as DomainEventSeriesScope
 import com.github.zzave.teambalance.api.domain.model.EventTitle
+import com.github.zzave.teambalance.api.domain.model.Position
+import com.github.zzave.teambalance.api.domain.model.RosterFill
 import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.port.CurrentTeamGateway
 import com.github.zzave.teambalance.api.domain.port.CurrentUserGateway
@@ -33,6 +36,7 @@ import java.util.UUID
 class EventController(
     private val eventService: EventService,
     private val attendanceService: AttendanceService,
+    private val positionService: PositionService,
     private val currentUserGateway: CurrentUserGateway,
     private val currentTeamGateway: CurrentTeamGateway,
 ) : ListEvents.Handler,
@@ -46,8 +50,11 @@ class EventController(
         val viewerId = currentUserGateway.requireCurrentUserId()
         val events = if (request.queries.includepast) eventService.getAllEvents() else eventService.getUpcomingEvents()
         val attendance = attendanceService.attendanceForAll(events.map { it.id }, members)
+        // The position vocabulary is fetched once for the whole listing, not per event: it is the
+        // same list for every row, and it is both the label source and the row filter for the roster.
+        val positions = positionService.listPositions()
         return ListEvents.Response200(
-            EventList(events = events.map { it.produce(attendance.getValue(it.id), viewerId) })
+            EventList(events = events.map { it.produce(attendance.getValue(it.id), viewerId, positions) })
         )
     }
 
@@ -60,7 +67,11 @@ class EventController(
             potential = request.body.consume(),
         )
         return CreateEvent.Response201(
-            event.produce(attendanceService.attendanceFor(event.id, attendanceService.teamMembers(teamId)), userId),
+            event.produce(
+                attendanceService.attendanceFor(event.id, attendanceService.teamMembers(teamId)),
+                userId,
+                positionService.listPositions(),
+            ),
         )
     }
 
@@ -69,7 +80,8 @@ class EventController(
         val event = eventService.getEvent(id)
             ?: return GetEvent.Response404(Unit)
 
-        val members = attendanceService.teamMembers(currentTeamGateway.requireCurrentTeamId())
+        val teamId = currentTeamGateway.requireCurrentTeamId()
+        val members = attendanceService.teamMembers(teamId)
         val attendance = attendanceService.attendanceFor(id, members)
         val viewerId = currentUserGateway.requireCurrentUserId()
 
@@ -88,6 +100,7 @@ class EventController(
                 attendances = attendance.entries.map { it.produce() },
                 myState = attendance.stateOf(viewerId).produce(),
                 rosterOverride = event.rosterOverride?.produce(),
+                roster = event.rosterFill(attendance, positionService.listPositions()).produce(),
             )
         )
     }
@@ -116,7 +129,10 @@ class EventController(
 
         val members = attendanceService.teamMembers(teamId)
         val attendance = attendanceService.attendanceForAll(events.map { it.id }, members)
-        return UpdateEvent.Response200(EventList(events = events.map { it.produce(attendance.getValue(it.id), userId) }))
+        val positions = positionService.listPositions()
+        return UpdateEvent.Response200(
+            EventList(events = events.map { it.produce(attendance.getValue(it.id), userId, positions) }),
+        )
     }
 
     override suspend fun deleteEvent(request: DeleteEvent.Request): DeleteEvent.Response<*> {
@@ -186,6 +202,7 @@ private fun List<DomainEventReference>.externalize(): List<EventReference> =
 internal fun com.github.zzave.teambalance.api.domain.model.Event.produce(
     attendance: EventAttendance,
     viewerId: UserId,
+    positions: List<Position>,
 ): Event =
     Event(
         id = id.produce(),
@@ -200,7 +217,16 @@ internal fun com.github.zzave.teambalance.api.domain.model.Event.produce(
         attendanceSummary = attendance.summary().produce(attendance.attendingRoleBreakdown()),
         myState = attendance.stateOf(viewerId).produce(),
         rosterOverride = rosterOverride?.produce(),
+        roster = rosterFill(attendance, positions).produce(),
     )
+
+// The roster the card renders: this event's EFFECTIVE requirement (its override, else its type's
+// default) joined with who is actually attending. Derived per read — never stored — which is what
+// keeps an inheriting event following its type's default as that default changes.
+internal fun com.github.zzave.teambalance.api.domain.model.Event.rosterFill(
+    attendance: EventAttendance,
+    positions: List<Position>,
+): RosterFill = RosterFill.of(effectiveRosterRequirement, attendance.attendingByPositionId(), positions)
 
 private fun com.github.zzave.teambalance.api.domain.model.EventType.produce() =
     EventTypeSummary(id = id.produce(), name = name.value, color = color?.value)

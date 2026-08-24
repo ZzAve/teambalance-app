@@ -2,6 +2,7 @@ import { createRootRoute, redirect, Outlet, Link, useRouterState } from '@tansta
 import { useEffect, useRef } from 'react'
 import { Toaster } from 'sonner'
 import { Providers } from '@app/providers'
+import { SwUpdateManager } from '@app/pwa/sw-update'
 import { BottomNav } from '@shared/ui/BottomNav'
 import { authMeQueryOptions } from '@shared/api/auth'
 import { TeamSwitcher } from '@features/switch-team/ui/TeamSwitcher'
@@ -123,6 +124,9 @@ function RootLayout() {
           resolved theme rather than sonner's own "system" so it follows the in-app preference —
           a user on Light with a dark OS must not get dark toasts. */}
       <Toaster position="top-center" richColors theme={theme} />
+      {/* Service-worker update lifecycle (caching plan Phase 3): auto-applies a new version by
+          default and only shows a reload prompt when a deploy lands mid-session with unsaved work. */}
+      <SwUpdateManager />
     </Providers>
   )
 }

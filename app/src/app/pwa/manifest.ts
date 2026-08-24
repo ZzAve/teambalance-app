@@ -59,6 +59,9 @@ export const pwaWorkbox: VitePWAOptions['workbox'] = {
       handler: 'NetworkOnly',
     },
   ],
+  // Evict the precache of superseded builds once the new worker activates — keep it on.
   cleanupOutdatedCaches: true,
-  clientsClaim: true,
+  // `clientsClaim` deliberately omitted (caching plan Phase 3): control transfers on our own
+  // controlled reload (SwUpdateManager → updateServiceWorker → SKIP_WAITING → controllerchange →
+  // reload), so the worker never needs to seize already-open clients the moment it activates.
 }

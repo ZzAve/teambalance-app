@@ -17,12 +17,15 @@ export default defineConfig({
     tailwindcss(),
     // Installable app shell (F2). Workbox `generateSW` precaches the built shell and serves it
     // offline; see src/app/pwa/manifest.ts for the manifest and the never-cache-/api rule.
-    // `autoUpdate` + `injectRegister: 'auto'` keep registration out of the app bundle: the plugin
-    // emits registerSW.js and links it from index.html, so a new deploy takes over on next load.
-    // Left off in dev (the default) so the dev server and the real e2e never run against a stale SW.
+    // `registerType: 'prompt'` hands update *timing* to the app instead of the worker auto-skipping
+    // waiting: SwUpdateManager registers the worker via `virtual:pwa-register/react` and decides when
+    // to activate — auto by default, a toast only when a deploy lands mid-session (see
+    // decideUpdateAction, caching plan Phase 3). `injectRegister: null` because we register ourselves,
+    // so the plugin injects no registerSW.js. Left off in dev (the default) so the dev server and the
+    // real e2e never run against a stale SW.
     VitePWA({
-      registerType: 'autoUpdate',
-      injectRegister: 'auto',
+      registerType: 'prompt',
+      injectRegister: null,
       // The icon set and the master SVG are committed under public/ and generated ahead of the
       // build (`npm run generate-pwa-assets`), so the build itself needs no native image tooling;
       // Vite copies them to dist and the workbox globs pick them up (no `includeAssets` needed).

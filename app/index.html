@@ -5,9 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>TeamBalance</title>
 
-    <!-- PWA shell (F2). The manifest, the service worker and the registerSW.js link are injected
-         by vite-plugin-pwa at build time; the icons below are committed under public/ and
-         generated from public/tb-monogram.svg (see app/pwa-assets.config.ts). -->
+    <!-- PWA shell (F2). The manifest and the service worker are emitted by vite-plugin-pwa at build
+         time; registration is bundled into the app itself (SwUpdateManager via
+         virtual:pwa-register/react), not a plugin-injected registerSW.js — so the app owns update
+         timing (caching plan Phase 3). The icons below are committed under public/ and generated
+         from public/tb-monogram.svg (see app/pwa-assets.config.ts). -->
     <link rel="icon" href="/favicon.ico" sizes="48x48" />
     <link rel="icon" href="/tb-monogram.svg" sizes="any" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="/apple-touch-icon-180x180.png" />

@@ -100,9 +100,17 @@ class MemberEditBoundaryIT : TeamBalanceIT() {
             .andReturn()
             .let { mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(it)) }
 
+    // The name a member edit writes since ADR-0026: the tenant profile, not the platform row. Falls
+    // back to the platform name so a member seeded without a profile still reads as something —
+    // which is also what the API does.
     private fun displayNameOf(userId: String): String =
         jdbcTemplate.queryForObject(
-            "SELECT display_name FROM public.users WHERE id = ?::uuid",
+            """
+            SELECT COALESCE(mp.display_name, u.display_name)
+            FROM   public.users u
+            LEFT   JOIN $TEAM_SCHEMA.member_profiles mp ON mp.user_id = u.id
+            WHERE  u.id = ?::uuid
+            """,
             String::class.java,
             userId,
         )!!

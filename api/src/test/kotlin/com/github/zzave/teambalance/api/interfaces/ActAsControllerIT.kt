@@ -333,10 +333,18 @@ class ActAsControllerIT : TeamBalanceIT() {
             "SELECT count(*) FROM public.team_members WHERE user_id = ?::uuid", Int::class.java, userId,
         )!!
 
-    private fun positionCount(teamId: String): Int =
-        jdbcTemplate.queryForObject(
-            "SELECT count(*) FROM public.team_positions WHERE team_id = ?::uuid", Int::class.java, teamId,
-        )!!
+    // Positions are tenant rows since ADR-0026, so "did the write land in THIS team" is a question
+    // about that team's schema, not about a team_id column. Reading the old platform table here made
+    // the negative assertions pass for the wrong reason — nothing writes it any more, so a write that
+    // went to the wrong schema, or nowhere at all, would still have counted 0.
+    private fun positionCount(teamId: String): Int {
+        val schema = when (teamId) {
+            TEAM_ID -> TEAM_SCHEMA
+            OTHER_TEAM_ID -> OTHER_TEAM_SCHEMA
+            else -> error("no schema known for team $teamId")
+        }
+        return jdbcTemplate.queryForObject("SELECT count(*) FROM $schema.positions", Int::class.java)!!
+    }
 
     private fun seed() {
         tenantSchemaAdapter.provisionPlatformSchema()
@@ -350,9 +358,11 @@ class ActAsControllerIT : TeamBalanceIT() {
         )
         // Shared DB, no per-test rollback — reset to a known state before each case.
         jdbcTemplate.execute("DELETE FROM public.act_as_sessions WHERE created_by = '$OPERATOR_ID'::uuid")
-        jdbcTemplate.execute(
-            "DELETE FROM public.team_positions WHERE team_id IN ('$TEAM_ID'::uuid, '$OTHER_TEAM_ID'::uuid)",
-        )
+        // Positions live in each team's own schema since ADR-0026, so the reset is per schema. It has
+        // to happen: these cases assert exact counts, and without it a position written by an earlier
+        // case in this spec would be indistinguishable from the write under test.
+        jdbcTemplate.execute("DELETE FROM $TEAM_SCHEMA.positions")
+        jdbcTemplate.execute("DELETE FROM $OTHER_TEAM_SCHEMA.positions")
         jdbcTemplate.execute("DELETE FROM public.team_members WHERE team_id = '$TEAM_ID'::uuid")
         jdbcTemplate.execute(
             "INSERT INTO public.users (id, email, display_name) " +

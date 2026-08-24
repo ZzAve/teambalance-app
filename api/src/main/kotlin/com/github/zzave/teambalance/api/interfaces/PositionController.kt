@@ -27,8 +27,11 @@ class PositionController(
     override suspend fun listPositions(request: ListPositions.Request): ListPositions.Response<*> {
         // Any authenticated member may read the vocabulary; requireCurrentUserId fails closed with 401.
         currentUserGateway.requireCurrentUserId()
-        val teamId = currentTeamGateway.requireCurrentTeamId()
-        return ListPositions.Response200(PositionList(positionService.listPositions(teamId).map { it.toDto() }))
+        // Kept for its effect, not its value: since ADR-0026 the tenant schema scopes the rows, but
+        // this still refuses a caller with no Active Team — a clean 403 rather than a query against
+        // __no_tenant__ surfacing as a 500.
+        currentTeamGateway.requireCurrentTeamId()
+        return ListPositions.Response200(PositionList(positionService.listPositions().map { it.toDto() }))
     }
 
     override suspend fun createPosition(request: CreatePosition.Request): CreatePosition.Response<*> {

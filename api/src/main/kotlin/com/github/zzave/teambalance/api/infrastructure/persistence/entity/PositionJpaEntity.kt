@@ -6,13 +6,16 @@ import jakarta.persistence.Id
 import jakarta.persistence.Table
 import java.util.UUID
 
+/**
+ * A position, in the tenant schema (ADR-0026). Deliberately unqualified: no `schema = "public"`, so
+ * it routes through the tenant connection like every other team-owned entity — which is the whole
+ * point of the move. There is no team id column either; the schema is the team.
+ */
 @Entity
-@Table(name = "team_positions", schema = "public")
-class TeamPositionJpaEntity(
+@Table(name = "positions")
+class PositionJpaEntity(
     @Id
     val id: UUID = UUID.randomUUID(),
-    @Column(name = "team_id", nullable = false)
-    val teamId: UUID = UUID.randomUUID(),
     @Column(nullable = false)
     var label: String = "",
 )

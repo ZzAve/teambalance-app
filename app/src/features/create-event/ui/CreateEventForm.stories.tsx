@@ -1,14 +1,15 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { expect, fn, within } from 'storybook/test'
 import type { EventTypeItem } from '@shared/api/event-types'
+import { makeEventType } from '@shared/testing/event-fixtures'
 import { CreateEventForm } from './CreateEventForm'
 
 // CreateEventForm is the presentational form extracted from the CreateEventDialog container. It
 // owns local form state (type selection, title auto-suggest) and hands a fully-assembled input up
 // via onSubmit; data fetching + the mutation stay in the container. Its states are stories.
 const EVENT_TYPES: EventTypeItem[] = [
-  { id: 'et-1', name: 'Match', color: '#3b82f6' },
-  { id: 'et-2', name: 'Training', color: '#22c55e' },
+  makeEventType({ id: 'et-1', name: 'Match', color: '#3b82f6' }),
+  makeEventType({ id: 'et-2', name: 'Training', color: '#22c55e' }),
 ]
 
 const meta = {

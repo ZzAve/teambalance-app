@@ -31,6 +31,8 @@ const makeEventDetail = (overrides: Partial<EventDetail> = {}): EventDetail => (
   attendances: [],
   // The viewer's own resolved response, mirroring the list payload.
   myState: 'NOT_RESPONDED',
+  // Undefined = this event inherits its type's roster default.
+  rosterOverride: undefined,
   ...overrides,
 })
 

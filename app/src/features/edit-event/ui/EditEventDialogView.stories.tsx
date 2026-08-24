@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite'
 import { expect, fn } from 'storybook/test'
 import type { Event, EventDetail } from '@shared/api/events'
 import type { EventTypeItem } from '@shared/api/event-types'
+import { makeEventType } from '@shared/testing/event-fixtures'
 import { makeEvent } from '@shared/testing/event-fixtures'
 import { EditEventDialogView } from './EditEventDialogView'
 
@@ -11,8 +12,8 @@ import { EditEventDialogView } from './EditEventDialogView'
 // pending/error shells that used to live in the container are now the isPending/isError args, and
 // the submit story proves the wiring with a prop-contract spy.
 const EVENT_TYPES: EventTypeItem[] = [
-  { id: 'et-1', name: 'Training', color: '#22c55e' },
-  { id: 'et-2', name: 'Match', color: '#3b82f6' },
+  makeEventType({ id: 'et-1', name: 'Training', color: '#22c55e' }),
+  makeEventType({ id: 'et-2', name: 'Match', color: '#3b82f6' }),
 ]
 
 const EVENT: EventDetail = {
@@ -28,6 +29,7 @@ const EVENT: EventDetail = {
   attendanceSummary: { attending: 0, maybe: 0, absent: 0, notResponded: 0, roleBreakdown: [] },
   attendances: [],
   myState: 'NOT_RESPONDED',
+  rosterOverride: undefined,
 }
 
 // A three-occurrence series; the middle one ('evt-1') is the one being edited.
@@ -65,6 +67,51 @@ export const Series: Story = {
   play: async ({ canvas }) => {
     await expect(canvas.getByRole('group', { name: 'Scope' })).toBeInTheDocument()
     await expect(canvas.getByText('Affects 1 of 3 events')).toBeInTheDocument()
+  },
+}
+
+// The update is a whole replacement, so an omitted rosterOverride reads server-side as "drop back to
+// inheriting the type default". This form never edits the override, which is exactly why it has to
+// carry it: renaming an event must not silently erase its lineup. A prop-contract spy is the only
+// layer that can catch the omission — a getByText would not see it.
+export const CarriesRosterOverrideThroughAnUnrelatedEdit: Story = {
+  args: {
+    event: {
+      ...EVENT,
+      rosterOverride: {
+        trackRoster: true,
+        totalTarget: 12,
+        positionTargets: [{ positionId: 'pos-setter', count: 2 }],
+      },
+    },
+  },
+  play: async ({ canvas, userEvent, args }) => {
+    const title = canvas.getByLabelText('Title')
+    await userEvent.clear(title)
+    await userEvent.type(title, 'Renamed Training')
+    await userEvent.click(canvas.getByRole('button', { name: 'Save changes' }))
+
+    await expect(args.onSubmit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: 'Renamed Training',
+        rosterOverride: {
+          trackRoster: true,
+          totalTarget: 12,
+          positionTargets: [{ positionId: 'pos-setter', count: 2 }],
+        },
+      }),
+    )
+  },
+}
+
+// The mirror case: an inheriting event stays inheriting, rather than acquiring an override.
+export const KeepsAnInheritingEventInheriting: Story = {
+  play: async ({ canvas, userEvent, args }) => {
+    await userEvent.click(canvas.getByRole('button', { name: 'Save changes' }))
+
+    await expect(args.onSubmit).toHaveBeenCalledWith(
+      expect.objectContaining({ rosterOverride: undefined }),
+    )
   },
 }
 

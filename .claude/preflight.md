@@ -9,7 +9,7 @@ setup: npm --prefix app install && ./gradlew :api:wirespec-typescript  # generat
 - Never resolve a rebase with `-X ours` blindly: it silently dropped `findRole` a feature needed when a port addition conflicted with a differently-implemented upstream version. Resolve port/interface conflicts as a union by hand.
 
 ## wirespec client
-- Stale gen across branches: switching to a branch with a different `.ws` set leaves orphaned files in `app/src/shared/api/generated/` → `tsc`/build fails on a missing export (e.g. CreateInvitation → removed Invitation model). `rm -rf app/src/shared/api/generated api/build/generated` then re-run `:api:wirespec-typescript` before frontend build.
+- Stale gen across branches: switching to a branch with a different `.ws` set leaves orphaned files in `app/src/shared/api/generated/` → `tsc`/build fails on a missing export (e.g. CreateInvitation → removed Invitation model). `rm -rf app/src/shared/api/generated api/build/generated app/.tsbuild app/tsconfig.tsbuildinfo` then re-run `:api:wirespec-typescript` — `tsconfig.generated.json` is a composite project, so without clearing its buildinfo `tsc` keeps reporting the OLD generated types as missing properties.
 - mutationFns must unwrap res.body (return `res.body`, not the raw `api.*()` call) — caller mutation.data is the body, not the Wirespec envelope
 - Generated from() throws `Cannot internalize response with status: N` for undeclared status codes → React Query error state; no extra guard needed in queryFn for non-declared codes
 
@@ -23,6 +23,7 @@ setup: npm --prefix app install && ./gradlew :api:wirespec-typescript  # generat
 - A new required `@Value` with no default (fail-fast) must be supplied in EVERY non-prod profile: application-dev.yml, test (application-test.yml), AND application-e2e.yml. CI's `scripts/e2e.sh` boots bootRun under the `e2e` profile, so a missing key there fails CI even when `:api:test` (test profile) is green. Prod relies solely on the env var. EXCEPTION: if the reading bean is `@Profile("prod")`-gated (e.g. ScalewayTemEmailAdapter), its `@Value` is never read outside prod → leave the key defaultless and add nothing to non-prod profiles.
 
 ## backend / transactions
+- `make test` does NOT run `:api:processAot`; `make ci` (`./gradlew build -x test`) does. Spring Data AOT binds `:named` query params against the method signature, so an orphaned `@Query`/`@Modifying` left above the wrong method fails CI only — 'No bindable parameter with name X'. Run `./gradlew build -x test` before pushing.
 - `@Transactional` lives on the JPA adapter methods, NOT the service. A service method composing >1 write (e.g. bulk-update then save) is therefore NOT atomic unless it carries its own `@Transactional` — check any multi-step orchestration (InvitationService.rotateInviteLink). Pair a `@Modifying` bulk update with `clearAutomatically = true` so a same-tx read after it isn't stale.
 
 ## multitenancy / hexagonal

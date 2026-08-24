@@ -4,6 +4,7 @@ import com.github.zzave.teambalance.api.domain.exception.EventNotFoundException
 import com.github.zzave.teambalance.api.domain.exception.EventTypeNotFoundException
 import com.github.zzave.teambalance.api.domain.model.Event
 import com.github.zzave.teambalance.api.domain.model.EventId
+import com.github.zzave.teambalance.api.domain.model.PositionId
 import com.github.zzave.teambalance.api.domain.port.EventRepository
 import com.github.zzave.teambalance.api.infrastructure.persistence.mapper.internalize
 import com.github.zzave.teambalance.api.infrastructure.persistence.mapper.externalize
@@ -28,6 +29,11 @@ import java.util.UUID
  * The transaction is therefore opened deep inside the request, long after the per-request tenant
  * schema has been bound, so the connection it acquires always routes to the caller's tenant.
  */
+// One method per port method plus the two private persist/remove primitives, which is one over
+// detekt's stock ceiling. Splitting the adapter would mean splitting EventRepository, and the port is
+// deliberately whole: the batch methods exist so a use case can state "these rows go together" in a
+// single call, which only works while one adapter owns them all.
+@Suppress("TooManyFunctions")
 @Repository
 class JpaEventRepositoryAdapter(
     private val jpaRepository: SpringDataEventRepository,

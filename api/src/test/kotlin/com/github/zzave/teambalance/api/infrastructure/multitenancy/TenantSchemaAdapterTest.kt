@@ -29,7 +29,9 @@ class TenantSchemaAdapterTest : TeamBalanceIT() {
             tables.shouldContainExactlyInAnyOrder(
                 "attendances",
                 "event_audience",
+                "event_position_targets",
                 "event_references",
+                "event_type_position_targets",
                 "event_types",
                 "events",
                 "flyway_tenant_schema_history",

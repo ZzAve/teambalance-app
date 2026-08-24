@@ -7,7 +7,9 @@ import com.github.zzave.teambalance.api.domain.model.EventSeriesScope
 import com.github.zzave.teambalance.api.domain.model.EventTitle
 import com.github.zzave.teambalance.api.domain.model.EventType
 import com.github.zzave.teambalance.api.domain.model.EventTypeId
+import com.github.zzave.teambalance.api.domain.model.Position
 import com.github.zzave.teambalance.api.domain.model.PositionId
+import com.github.zzave.teambalance.api.domain.model.PositionLabel
 import com.github.zzave.teambalance.api.domain.model.Recurrence
 import com.github.zzave.teambalance.api.domain.model.RecurrenceFrequency
 import com.github.zzave.teambalance.api.domain.model.Role
@@ -17,6 +19,7 @@ import com.github.zzave.teambalance.api.domain.model.TeamMember
 import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.port.EventRepository
 import com.github.zzave.teambalance.api.domain.port.EventTypeRepository
+import com.github.zzave.teambalance.api.domain.port.PositionRepository
 import com.github.zzave.teambalance.api.domain.port.SeasonRepository
 import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
 import io.kotest.assertions.throwables.shouldThrow
@@ -48,6 +51,15 @@ private class ExplodingEventRepo : EventRepository {
 private class ExplodingEventTypeRepo : EventTypeRepository {
     override fun findAll(): List<EventType> = error("unused")
     override fun findById(id: EventTypeId): EventType? = error("repository must not be reached for an unauthorized caller")
+}
+
+private class ExplodingPositionRepo : PositionRepository {
+    override fun list(): List<Position> = error("unused")
+    override fun create(label: PositionLabel): Position = error("unused")
+    override fun rename(id: PositionId, label: PositionLabel): Position = error("unused")
+    override fun delete(id: PositionId) = error("unused")
+    override fun findById(id: PositionId): Position? = error("unused")
+    override fun exists(positionId: PositionId): Boolean = error("unused")
 }
 
 private class ExplodingSeasonRepo : SeasonRepository {
@@ -88,6 +100,7 @@ class EventServiceTest : FunSpec() {
             ExplodingEventRepo(),
             ExplodingEventTypeRepo(),
             ExplodingSeasonRepo(),
+            ExplodingPositionRepo(),
             AuthorizationService(EventFakeMemberRepo(admins = emptySet()), FakeActAsGateway()),
             Clock.fixed(Instant.EPOCH, ZoneOffset.UTC),
         )

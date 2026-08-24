@@ -289,6 +289,74 @@ class EventSeriesControllerIT : TeamBalanceIT() {
 
         // ── Auth + missing target ─────────────────────────────────────────────
 
+        // ── EDIT / ROSTER REQUIREMENT ────────────────────────────────────────
+        // The planner rules live in SeriesModificationTest; these prove the scope really reaches the
+        // other rows in the database, and that "inherit" is stored as null rather than as a copy.
+
+        test("PUT scope=THIS_AND_FOLLOWING applies the roster requirement to the target and every later row") {
+            seedTeamAndAdmin()
+            resetSeason()
+            val group = UUID.randomUUID()
+            val ev = seedSeries(group, "roster-following")
+
+            perform(
+                MockMvcRequestBuilders.put("/api/events/${ev[1]}?scope=THIS_AND_FOLLOWING")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(
+                        editBody(
+                            title = "Needs a lineup",
+                            start = "2026-09-08T17:00:00Z",
+                            end = "2026-09-08T18:30:00Z",
+                            rosterOverride = """{"trackRoster": true, "totalTarget": 8, "positionTargets": []}""",
+                        ),
+                    ),
+                ADMIN_USER_ID,
+            ).andExpect(MockMvcResultMatchers.status().isOk)
+
+            // The head keeps inheriting; the target and its tail each carry the requirement.
+            trackRosterOf(ev[0]) shouldBe null
+            listOf(ev[1], ev[2], ev[3]).forEach {
+                trackRosterOf(it) shouldBe true
+                totalTargetOf(it) shouldBe 8
+            }
+        }
+
+        test("PUT scope=ALL carrying no roster requirement returns the whole series to the type default") {
+            seedTeamAndAdmin()
+            resetSeason()
+            val group = UUID.randomUUID()
+            val ev = seedSeries(group, "roster-clear")
+
+            // Pin the series first, so clearing it is a real change rather than a no-op.
+            perform(
+                MockMvcRequestBuilders.put("/api/events/${ev[0]}?scope=ALL")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(
+                        editBody(
+                            title = "Pinned",
+                            start = "2026-09-01T17:00:00Z",
+                            end = "2026-09-01T18:30:00Z",
+                            rosterOverride = """{"trackRoster": true, "totalTarget": 6, "positionTargets": []}""",
+                        ),
+                    ),
+                ADMIN_USER_ID,
+            ).andExpect(MockMvcResultMatchers.status().isOk)
+            ev.forEach { trackRosterOf(it) shouldBe true }
+
+            perform(
+                MockMvcRequestBuilders.put("/api/events/${ev[0]}?scope=ALL")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(editBody(title = "Back to default", start = "2026-09-01T17:00:00Z", end = "2026-09-01T18:30:00Z")),
+                ADMIN_USER_ID,
+            ).andExpect(MockMvcResultMatchers.status().isOk)
+
+            // Null, not a stored copy of the default — the row inherits again, and keeps inheriting.
+            ev.forEach {
+                trackRosterOf(it) shouldBe null
+                totalTargetOf(it) shouldBe null
+            }
+        }
+
         test("PUT with a scope by a non-admin member is rejected with 403") {
             seedTeamAndAdmin()
             resetSeason()
@@ -339,7 +407,7 @@ class EventSeriesControllerIT : TeamBalanceIT() {
             id
         }
 
-    private fun editBody(title: String, start: String, end: String): String {
+    private fun editBody(title: String, start: String, end: String, rosterOverride: String? = null): String {
         val eventTypeId = trainingTypeId()
         return """
             {
@@ -348,10 +416,18 @@ class EventSeriesControllerIT : TeamBalanceIT() {
               "description": null,
               "startTime": "$start",
               "endTime": "$end",
-              "location": null
+              "location": null,
+              "rosterOverride": ${rosterOverride ?: "null"}
             }
         """.trimIndent()
     }
+
+    // The requirement columns as stored: null track_roster IS "inherits the type default" (#219).
+    private fun trackRosterOf(id: UUID): Boolean? =
+        jdbcTemplate.queryForObject("SELECT roster_track_roster FROM public.events WHERE uuid = ?", Boolean::class.java, id)
+
+    private fun totalTargetOf(id: UUID): Int? =
+        jdbcTemplate.queryForObject("SELECT roster_total_target FROM public.events WHERE uuid = ?", Int::class.java, id)
 
     private fun trainingTypeId(): UUID =
         jdbcTemplate.queryForObject("SELECT uuid FROM public.event_types WHERE name = 'Training'", UUID::class.java)!!

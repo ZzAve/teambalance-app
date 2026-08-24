@@ -85,6 +85,10 @@ export function EditEventDialogView({
       endTime: new Date(end).toISOString(),
       location: (form.get('location') as string) || undefined,
       references: cleanReferences(references),
+      // Carried through untouched. This form does not edit the roster override (that is the admin
+      // authoring surface), but the update is a whole replacement — omitting it would drop the event
+      // back to inheriting its type's default as a side effect of renaming it.
+      rosterOverride: event.rosterOverride,
     })
   }
 

@@ -5,6 +5,7 @@ import com.github.zzave.teambalance.api.application.EventService
 import com.github.zzave.teambalance.api.application.EventTypeService
 import com.github.zzave.teambalance.api.domain.port.EventRepository
 import com.github.zzave.teambalance.api.domain.port.EventTypeRepository
+import com.github.zzave.teambalance.api.domain.port.PositionRepository
 import com.github.zzave.teambalance.api.domain.port.SeasonRepository
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
@@ -29,12 +30,16 @@ class EventCompositionRoot {
         eventRepository: EventRepository,
         eventTypeRepository: EventTypeRepository,
         seasonRepository: SeasonRepository,
+        // For validating a roster override's position ids against the team's own vocabulary (#219) —
+        // the mirror of the position-delete cascade in MembershipCompositionRoot.
+        positionRepository: PositionRepository,
         authorizationService: AuthorizationService,
         clock: Clock,
     ) = EventService(
         eventRepository = eventRepository,
         eventTypeRepository = eventTypeRepository,
         seasonRepository = seasonRepository,
+        positionRepository = positionRepository,
         authorizationService = authorizationService,
         clock = clock,
     )

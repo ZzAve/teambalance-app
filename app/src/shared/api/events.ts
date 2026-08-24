@@ -15,6 +15,7 @@ export type { EventSeriesScope } from './generated/model/EventSeriesScope'
 
 import type { EventReference } from './generated/model/EventReference'
 import type { EventSeriesScope } from './generated/model/EventSeriesScope'
+import type { RosterRequirement } from './generated/model/RosterRequirement'
 
 export interface EventInput {
   eventTypeId: string
@@ -24,6 +25,11 @@ export interface EventInput {
   endTime?: string
   location?: string
   references?: EventReference[]
+  // Replace semantics, exactly like `references`: the server takes the body as the event's new whole
+  // requirement, and reads an ABSENT rosterOverride as "drop back to inheriting the type default".
+  // So an edit form that does not carry the event's current value silently erases it — every caller
+  // of useUpdateEvent must pass this through, even when its own UI never edits it.
+  rosterOverride?: RosterRequirement
 }
 
 export function useEvents(includePast = false, enabled = true) {

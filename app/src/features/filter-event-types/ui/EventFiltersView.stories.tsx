@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { expect, fn } from 'storybook/test'
 import type { EventTypeItem } from '@shared/api/event-types'
+import { makeEventType } from '@shared/testing/event-fixtures'
 import { EventFiltersView } from './EventFiltersView'
 
 // EventFiltersView is the events page's single filter control — the icon button plus the popover
@@ -8,9 +9,9 @@ import { EventFiltersView } from './EventFiltersView'
 // bar. Prop-only apart from the popover's open/closed state; the selection and the show-past flag
 // live in the route, so every state here renders from props with no network (ADR-0017).
 const EVENT_TYPES: EventTypeItem[] = [
-  { id: 'et-1', name: 'Training', color: '#249E6C' },
-  { id: 'et-2', name: 'Match', color: '#225C9C' },
-  { id: 'et-3', name: 'Tournament', color: '#7B5EA7' },
+  makeEventType({ id: 'et-1', name: 'Training', color: '#249E6C' }),
+  makeEventType({ id: 'et-2', name: 'Match', color: '#225C9C' }),
+  makeEventType({ id: 'et-3', name: 'Tournament', color: '#7B5EA7' }),
 ]
 
 const ALL = new Set(EVENT_TYPES.map((t) => t.id))

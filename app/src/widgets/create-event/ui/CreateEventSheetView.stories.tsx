@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite'
 import { expect, fn } from 'storybook/test'
 import { Sheet } from '@shared/ui/sheet'
 import type { EventTypeItem } from '@shared/api/event-types'
+import { makeEventType } from '@shared/testing/event-fixtures'
 import { CreateEventSheetView } from './CreateEventSheetView'
 
 // CreateEventSheetView is the presentational body of the create-event sheet behind the
@@ -11,8 +12,8 @@ import { CreateEventSheetView } from './CreateEventSheetView'
 // context — no portal, no network. The child features (chooser/form/wizard) own their own state
 // stories; here we cover the sheet's own header + navigation wiring with prop-contract spies.
 const EVENT_TYPES: EventTypeItem[] = [
-  { id: 'et-1', name: 'Training', color: '#22c55e' },
-  { id: 'et-2', name: 'Match', color: '#3b82f6' },
+  makeEventType({ id: 'et-1', name: 'Training', color: '#22c55e' }),
+  makeEventType({ id: 'et-2', name: 'Match', color: '#3b82f6' }),
 ]
 
 const meta = {

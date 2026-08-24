@@ -1,4 +1,6 @@
 import type { Event } from '@shared/api/events'
+import type { EventTypeItem } from '@shared/api/event-types'
+import type { RosterRequirement } from '@shared/api/event-types'
 
 /**
  * Canonical Event fixture for stories. One place to update when the generated Event contract
@@ -29,6 +31,31 @@ export function makeEvent(overrides: Partial<Event> = {}): Event {
     },
     // The viewer's own response. Defaults to a blank, which is the state Bulk Attend acts on.
     myState: 'NOT_RESPONDED',
+    // Undefined means this event inherits its type's roster default, which is the common case.
+    rosterOverride: undefined,
+    ...overrides,
+  }
+}
+
+/** Roster tracking switched off — the default for a type nobody has configured. */
+export const ROSTER_OFF: RosterRequirement = {
+  trackRoster: false,
+  totalTarget: undefined,
+  positionTargets: [],
+}
+
+/**
+ * Canonical EventTypeItem fixture, the sibling of [makeEvent]: one place to update when the
+ * generated event-type contract changes, instead of the inline literals every picker story used to
+ * carry.
+ */
+export function makeEventType(overrides: Partial<EventTypeItem> = {}): EventTypeItem {
+  return {
+    id: 'et-1',
+    name: 'Training',
+    color: '#249E6C',
+    archived: false,
+    rosterDefault: ROSTER_OFF,
     ...overrides,
   }
 }

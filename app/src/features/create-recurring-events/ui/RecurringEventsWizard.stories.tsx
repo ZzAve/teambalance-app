@@ -1,14 +1,15 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { expect, fn, within } from 'storybook/test'
 import type { EventTypeItem } from '@shared/api/event-types'
+import { makeEventType } from '@shared/testing/event-fixtures'
 import { RecurringEventsWizard } from './RecurringEventsWizard'
 
 // The guided wizard is the presentational shell of the recurring-create flow: ① details →
 // ② recurrence (with the live calendar preview) → ③ confirm. Data, the mutation, and the dialog
 // open/close live in the container; every step state is a story here.
 const EVENT_TYPES: EventTypeItem[] = [
-  { id: 'et-1', name: 'Training', color: '#225C9C' },
-  { id: 'et-2', name: 'Match', color: '#249E6C' },
+  makeEventType({ id: 'et-1', name: 'Training', color: '#225C9C' }),
+  makeEventType({ id: 'et-2', name: 'Match', color: '#249E6C' }),
 ]
 
 const SEASON = { start: '2026-09-01', end: '2027-05-31' }

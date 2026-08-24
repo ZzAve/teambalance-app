@@ -87,6 +87,7 @@ class EventController(
                 attendanceSummary = attendance.summary().produce(attendance.attendingRoleBreakdown()),
                 attendances = attendance.entries.map { it.produce() },
                 myState = attendance.stateOf(viewerId).produce(),
+                rosterOverride = event.rosterOverride?.produce(),
             )
         )
     }
@@ -110,6 +111,7 @@ class EventController(
             endTime = Instant.parse(req.endTime.value),
             location = req.location?.let(::EventLocation),
             references = req.references.internalize(),
+            rosterOverride = req.rosterOverride?.consume(),
         ) ?: return UpdateEvent.Response404(Unit)
 
         val members = attendanceService.teamMembers(teamId)
@@ -166,6 +168,7 @@ private fun com.github.zzave.teambalance.api.interfaces.generated.model.CreateEv
         endTime = Instant.parse(endTime.value),
         location = location?.let(::EventLocation),
         references = references.internalize(),
+        rosterOverride = rosterOverride?.consume(),
     )
 
 // The wire type carries an optional reference list; a null list is simply "no references". Each is
@@ -196,6 +199,7 @@ internal fun com.github.zzave.teambalance.api.domain.model.Event.produce(
         recurringGroup = recurringGroup?.toString(),
         attendanceSummary = attendance.summary().produce(attendance.attendingRoleBreakdown()),
         myState = attendance.stateOf(viewerId).produce(),
+        rosterOverride = rosterOverride?.produce(),
     )
 
 private fun com.github.zzave.teambalance.api.domain.model.EventType.produce() =

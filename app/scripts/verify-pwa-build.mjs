@@ -6,7 +6,7 @@
 // The manifest's *shape* is asserted at the unit layer (src/app/pwa/manifest.test.ts); this
 // checks the artefacts that only exist after a build.
 
-import { readFileSync, existsSync } from 'node:fs'
+import { readFileSync, existsSync, readdirSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -22,7 +22,18 @@ const read = (file) => (existsSync(resolve(dist, file)) ? readFileSync(resolve(d
 // 1. Service worker + its registration.
 const sw = read('sw.js')
 check('dist/sw.js is missing — the app has no service worker', sw !== null)
-check('dist/registerSW.js is missing — the service worker is never registered', existsSync(resolve(dist, 'registerSW.js')))
+// Registration is bundled into the app itself (SwUpdateManager → virtual:pwa-register/react), not a
+// plugin-injected registerSW.js (`injectRegister: null`), so the app owns update timing (Phase 3).
+// Prove some hashed app chunk still registers the worker rather than checking for the dropped file.
+const assetsDir = resolve(dist, 'assets')
+const registersSW =
+  existsSync(assetsDir) &&
+  readdirSync(assetsDir).some((file) => {
+    if (!file.endsWith('.js')) return false
+    const code = readFileSync(resolve(assetsDir, file), 'utf8')
+    return code.includes('serviceWorker') && code.includes('sw.js')
+  })
+check('no app chunk registers the service worker — registration is bundled via virtual:pwa-register/react', registersSW)
 
 if (sw) {
   const precached = [...sw.matchAll(/url:"([^"]+)"/g)].map(([, url]) => url)
@@ -55,7 +66,9 @@ const html = read('index.html')
 check('dist/index.html is missing', html !== null)
 if (html) {
   check('index.html does not link the web manifest', /<link[^>]+rel="manifest"/.test(html))
-  check('index.html does not register the service worker', html.includes('registerSW.js'))
+  // The SW is no longer registered from index.html (no registerSW.js link); the app module below
+  // registers it (verified against the app chunk above). index.html must still load that module.
+  check('index.html does not load the app module bundle', /<script[^>]+type="module"[^>]+src="[^"]+"/.test(html))
   check('index.html has no theme-color', /<meta[^>]+name="theme-color"/.test(html))
   check('index.html has no apple-touch-icon', /<link[^>]+rel="apple-touch-icon"/.test(html))
   check('index.html still loads fonts from a third party — they are self-hosted (F13)', !html.includes('fonts.googleapis.com'))

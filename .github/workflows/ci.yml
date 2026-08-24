@@ -318,14 +318,14 @@ jobs:
           # No --delete here: the root also holds index.html, which is uploaded separately.
           aws --endpoint-url "$S3_ENDPOINT" s3 sync app/dist "s3://${SPA_BUCKET}" \
             --exclude "assets/*" --exclude "index.html" \
-            --exclude "sw.js" --exclude "registerSW.js" --exclude "manifest.webmanifest" \
+            --exclude "sw.js" --exclude "manifest.webmanifest" \
             --cache-control "public,max-age=86400"
-          # The service worker, its registration script and the manifest must never be cached:
-          # a stale sw.js pins every installed client to the previous deploy's precache.
-          for f in sw.js registerSW.js; do
-            aws --endpoint-url "$S3_ENDPOINT" s3 cp "app/dist/$f" "s3://${SPA_BUCKET}/$f" \
-              --cache-control no-cache
-          done
+          # The service worker and the manifest must never be cached: a stale sw.js pins every
+          # installed client to the previous deploy's precache. Registration is now bundled into the
+          # app entry (vite-plugin-pwa injectRegister: null), so there is no separate registerSW.js
+          # to upload — the SW is emitted, self-registered by a hashed app chunk, nothing else.
+          aws --endpoint-url "$S3_ENDPOINT" s3 cp app/dist/sw.js "s3://${SPA_BUCKET}/sw.js" \
+            --cache-control no-cache
           # .webmanifest is not in the AWS CLI's mime table, so it would land as
           # application/octet-stream and be rejected as a manifest — set the type explicitly.
           aws --endpoint-url "$S3_ENDPOINT" s3 cp app/dist/manifest.webmanifest "s3://${SPA_BUCKET}/manifest.webmanifest" \

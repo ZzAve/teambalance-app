@@ -80,4 +80,4 @@ none of the reasoning above transfers.
 **Existing active invitations are expired by the migration.** They have no ciphertext, so they cannot
 be surfaced, and because of the accumulation bug there is no way to tell which of a team's live
 tokens was the one actually shared. Leaving them active would preserve exactly the state this ADR
-removes. Teams with a link in circulation must generate a new one; `V010` records this.
+removes. Teams with a link in circulation must generate a new one; `V011` records this.

@@ -197,7 +197,7 @@ class InvitationServiceTest : FunSpec() {
                 rotated.token.value
         }
 
-        // V010 expired every hash-only row, so this is unreachable in practice — but a stray one must
+        // V011 expired every hash-only row, so this is unreachable in practice — but a stray one must
         // read as "no link" (which the UI turns into an offer to generate) rather than throwing.
         test("activeInviteLink treats a pre-ADR-0025 hash-only link as no link") {
             val f = newFixture()

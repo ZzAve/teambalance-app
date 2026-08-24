@@ -49,7 +49,7 @@ class InvitationService(
      * The team's current invite link, or null if it has none — the read that lets an admin come back
      * to a link they already shared instead of being forced to mint a replacement (ADR-0025).
      *
-     * Null also covers a pre-ADR-0025 invitation that carries no ciphertext. V010 expired every one
+     * Null also covers a pre-ADR-0025 invitation that carries no ciphertext. V011 expired every one
      * of those, so this is unreachable in practice; treating it as "no link" rather than throwing
      * means a stray hash-only row surfaces to the admin as an offer to generate one, which is the
      * honest answer and the recoverable path.

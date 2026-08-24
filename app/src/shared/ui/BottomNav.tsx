@@ -1,5 +1,5 @@
 import { Link, useRouterState } from '@tanstack/react-router'
-import { Calendar, Users, User, type LucideIcon } from 'lucide-react'
+import { Calendar, Users, PiggyBank, User, type LucideIcon } from 'lucide-react'
 import { teamRoutes, teamSlugFromPath, type TeamRoutes } from '@shared/lib/team-routes'
 
 interface TabConfig {
@@ -19,6 +19,7 @@ function tabsFor(routes: TeamRoutes): TabConfig[] {
   return [
     { icon: Calendar, label: 'Events', to: routes.events, isActive: exact(routes.events) },
     { icon: Users, label: 'Team', to: routes.team, isActive: prefix(routes.team) },
+    { icon: PiggyBank, label: 'Money', to: routes.money, isActive: prefix(routes.money) },
     { icon: User, label: 'Profile', to: routes.profile, isActive: prefix(routes.profile) },
   ]
 }

@@ -36,6 +36,7 @@ describe('teamRoutes', () => {
     expect(routes.event('abc-123')).toBe('/t/setpoint-vt/events/abc-123')
     expect(routes.team).toBe('/t/setpoint-vt/team')
     expect(routes.teamSettings).toBe('/t/setpoint-vt/team/settings')
+    expect(routes.money).toBe('/t/setpoint-vt/money')
     expect(routes.profile).toBe('/t/setpoint-vt/profile')
     expect(routes.getStarted).toBe('/t/setpoint-vt/get-started')
   })
@@ -47,6 +48,7 @@ describe('teamRoutes', () => {
     expect(routes.events).toBe('/')
     expect(routes.event('abc-123')).toBe('/')
     expect(routes.teamSettings).toBe('/')
+    expect(routes.money).toBe('/')
   })
 
   it('round-trips through teamSlugFromPath', () => {

@@ -20,6 +20,8 @@ export interface TeamRoutes {
   event: (eventId: string) => string
   team: string
   teamSettings: string
+  /** The shared-money pool — a coming-soon placeholder for now (Bunq integration to follow). */
+  money: string
   profile: string
   getStarted: string
 }
@@ -30,7 +32,7 @@ export interface TeamRoutes {
  */
 export function teamRoutes(slug: string | null): TeamRoutes {
   if (slug === null) {
-    return { events: '/', event: () => '/', team: '/', teamSettings: '/', profile: '/', getStarted: '/' }
+    return { events: '/', event: () => '/', team: '/', teamSettings: '/', money: '/', profile: '/', getStarted: '/' }
   }
   const base = `${TEAM_PREFIX}${encodeURIComponent(slug)}`
   return {
@@ -38,6 +40,7 @@ export function teamRoutes(slug: string | null): TeamRoutes {
     event: (eventId) => `${base}/events/${encodeURIComponent(eventId)}`,
     team: `${base}/team`,
     teamSettings: `${base}/team/settings`,
+    money: `${base}/money`,
     profile: `${base}/profile`,
     getStarted: `${base}/get-started`,
   }

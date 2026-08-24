@@ -88,7 +88,7 @@ class EventServiceTest : FunSpec() {
             ExplodingEventRepo(),
             ExplodingEventTypeRepo(),
             ExplodingSeasonRepo(),
-            AuthorizationService(EventFakeMemberRepo(admins = emptySet())),
+            AuthorizationService(EventFakeMemberRepo(admins = emptySet()), FakeActAsGateway()),
             Clock.fixed(Instant.EPOCH, ZoneOffset.UTC),
         )
 

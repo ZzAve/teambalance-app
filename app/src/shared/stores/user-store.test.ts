@@ -13,6 +13,7 @@ const INITIAL = {
   teamName: null,
   teamSlug: null,
   isPlatformAdmin: false,
+  actAs: undefined,
 }
 
 const HEREN_3 = { id: 't-1', name: 'Heren 3', slug: 'heren-3' }
@@ -32,6 +33,7 @@ describe('user-store', () => {
       teams: [HEREN_3],
       activeTeam: HEREN_3,
       isPlatformAdmin: true,
+      actAs: undefined,
     }
 
     useUserStore.getState().setCurrentUser(user)
@@ -44,6 +46,7 @@ describe('user-store', () => {
       teamName: 'Heren 3',
       teamSlug: 'heren-3',
       isPlatformAdmin: true,
+      actAs: undefined,
     })
   })
 
@@ -56,6 +59,7 @@ describe('user-store', () => {
       teams: [HEREN_3, DAMES_2],
       activeTeam: DAMES_2,
       isPlatformAdmin: false,
+      actAs: undefined,
     })
 
     expect(useUserStore.getState()).toMatchObject({ teamName: 'Dames 2', teamSlug: 'dames-2' })
@@ -71,6 +75,7 @@ describe('user-store', () => {
       teams: [HEREN_3, DAMES_2],
       activeTeam: undefined,
       isPlatformAdmin: false,
+      actAs: undefined,
     })
 
     expect(useUserStore.getState()).toMatchObject({ teamName: null, teamSlug: null, role: null })
@@ -85,6 +90,7 @@ describe('user-store', () => {
       teams: [],
       activeTeam: undefined,
       isPlatformAdmin: false,
+      actAs: undefined,
     })
 
     expect(useUserStore.getState().teamName).toBeNull()
@@ -99,6 +105,7 @@ describe('user-store', () => {
       teams: [],
       activeTeam: undefined,
       isPlatformAdmin: false,
+      actAs: undefined,
     })
 
     expect(useUserStore.getState().role).toBeNull()
@@ -113,6 +120,7 @@ describe('user-store', () => {
       teams: [],
       activeTeam: undefined,
       isPlatformAdmin: false,
+      actAs: undefined,
     })
 
     expect(useUserStore.getState().isPlatformAdmin).toBe(false)
@@ -127,6 +135,7 @@ describe('user-store', () => {
       teams: [HEREN_3],
       activeTeam: HEREN_3,
       isPlatformAdmin: true,
+      actAs: undefined,
     })
 
     useUserStore.getState().setCurrentUser(null)

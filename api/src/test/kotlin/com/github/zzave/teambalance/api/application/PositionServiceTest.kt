@@ -73,7 +73,7 @@ class PositionServiceTest : FunSpec() {
 
         fun newService(): Pair<PositionService, PosFakePositionRepo> {
             val positions = PosFakePositionRepo()
-            val service = PositionService(positions, AuthorizationService(FakeAdminRepo(setOf(adminId))))
+            val service = PositionService(positions, AuthorizationService(FakeAdminRepo(setOf(adminId)), FakeActAsGateway()))
             return service to positions
         }
 

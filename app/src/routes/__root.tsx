@@ -5,6 +5,7 @@ import { Providers } from '@app/providers'
 import { BottomNav } from '@shared/ui/BottomNav'
 import { authMeQueryOptions } from '@shared/api/auth'
 import { TeamSwitcher } from '@features/switch-team/ui/TeamSwitcher'
+import { ActAsBanner } from '@features/act-as/ui/ActAsBanner'
 import { queryClient } from '@shared/api/query-client'
 import { directionFromIndices } from '@shared/lib/view-transition-direction'
 import { useThemeSync } from '@shared/theme/theme-store'
@@ -25,7 +26,8 @@ function isTeamlessRoute(pathname: string): boolean {
     path === '/onboarding/join' ||
     path === '/create-team' ||
     path === '/select-team' ||
-    path === '/admin/creation-codes'
+    path === '/admin/creation-codes' ||
+    path === '/admin/teams'
   )
 }
 
@@ -49,7 +51,13 @@ export const Route = createRootRoute({
     // (permission vs membership; see #26), and is checked before any tenant-scoped probe, which
     // would 403 NO_TEAM_MEMBERSHIP and bounce a teamless caller to /login.
     if (isTeamlessRoute(location.pathname)) return
-    if (user.teams.length === 0) throw redirect({ to: '/onboarding' })
+    if (user.teams.length > 0) return
+    // Teamless, but three different situations (ADR-0024). A Platform Admin inside a Team is scoped
+    // to it without being a Member, so team-scoped routes are legitimately theirs; one who is inside
+    // no Team — never entered, or the 60-minute box ran out — belongs on the console, not in
+    // onboarding, which exists to get a *player* into a team they would then be a Member of.
+    if (user.actAs) return
+    throw redirect({ to: user.isPlatformAdmin ? '/admin/teams' : '/onboarding' })
   },
 })
 
@@ -101,6 +109,9 @@ function RootLayout() {
             <TeamSwitcher />
           </div>
         </header>
+        {/* Renders nothing unless act-as is live. Directly under the header and outside <main> so it
+            stays put on every screen: a banner you can scroll away from is not a banner (ADR-0024 §4). */}
+        <ActAsBanner />
         {/* Bottom padding clears the fixed nav (~6rem) plus the home-indicator inset, so the last
             row of content is never hidden behind the bar on notched devices. */}
         <main className="mx-auto max-w-2xl px-4 py-6 pb-[calc(6rem+env(safe-area-inset-bottom))]">

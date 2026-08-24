@@ -25,7 +25,8 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers
  * Boots the real, PURE `prod` profile (inheritProfiles = false, so TeamBalanceIT's "test" profile
  * is dropped) — this is the context the live Scaleway container flips to, so a prod-only wiring
  * defect or an application-prod.yml typo fails here, not on deploy. Secrets that fail-fast in prod
- * (token-salt, TEM api-key/project-id) are supplied by the test; the datasource comes from
+ * (token-salt, token-encryption-key, TEM api-key/project-id) are supplied by the test; the
+ * datasource comes from
  * TeamBalanceIT's Testcontainers Postgres. Covers the split-origin CORS contract, the hardened
  * session cookie, and the prod email-sender selection against the real prod configuration.
  */
@@ -34,6 +35,7 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers
 @TestPropertySource(
     properties = [
         "teambalance.invitation.token-salt=prod-smoke-salt",
+        "teambalance.invitation.token-encryption-key=dGVhbWJhbGFuY2UtcHJvZC1zbW9rZS1rZXktMzJieXQ=",
         "teambalance.email.api-key=prod-smoke-key",
         "teambalance.email.project-id=prod-smoke-project",
         "teambalance.internal.api-key=prod-smoke-internal-key",

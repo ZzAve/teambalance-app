@@ -3,6 +3,7 @@ package com.github.zzave.teambalance.api.infrastructure.config
 import com.github.zzave.teambalance.api.application.ActiveTeamService
 import com.github.zzave.teambalance.api.application.AuthorizationService
 import com.github.zzave.teambalance.api.application.InvitationService
+import com.github.zzave.teambalance.api.application.InviteTokenCipher
 import com.github.zzave.teambalance.api.domain.port.InvitationRepository
 import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
 import org.springframework.beans.factory.annotation.Value
@@ -16,8 +17,9 @@ import java.time.Clock
  * part of the membership area because an invite link is a credential — it carries a salted token
  * hash and an admin-only mint path that the roster services know nothing about.
  *
- * Reading the token salt from configuration is this root's job: [InvitationService] takes the secret
- * as a plain constructor argument and never learns where it came from.
+ * Reading the token secrets from configuration is this root's job: [InvitationService] takes the
+ * salt as a plain constructor argument and the cipher already keyed, and neither learns where those
+ * came from.
  */
 @Configuration
 class InvitationCompositionRoot {
@@ -30,6 +32,7 @@ class InvitationCompositionRoot {
         activeTeamService: ActiveTeamService,
         clock: Clock,
         @Value("\${teambalance.invitation.token-salt}") tokenSalt: String,
+        @Value("\${teambalance.invitation.token-encryption-key}") tokenEncryptionKey: String,
     ) = InvitationService(
         invitationRepository = invitationRepository,
         teamMemberRepository = teamMemberRepository,
@@ -37,5 +40,6 @@ class InvitationCompositionRoot {
         activeTeamService = activeTeamService,
         clock = clock,
         tokenSalt = tokenSalt,
+        tokenCipher = InviteTokenCipher.fromBase64Key(tokenEncryptionKey),
     )
 }

@@ -31,6 +31,7 @@ const USER: AuthenticatedUser = {
   teams: [],
   activeTeam: undefined,
   isPlatformAdmin: false,
+  actAs: undefined,
 }
 
 const MEMBER: AuthenticatedUser = {

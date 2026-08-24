@@ -95,3 +95,15 @@ SELECT
 FROM team_test_two.event_types et
 WHERE et.name = 'Match'
 ON CONFLICT DO NOTHING;
+
+-- --- The Platform Admin, for the act-as flow (ADR-0024) -------------------------------------
+-- Deliberately teamless: NO team_members row, now or ever. A Platform Admin is never a Member, and
+-- the act-as e2e asserts exactly that after it has written inside a team it does not belong to.
+-- Held by the allowlist in application-e2e.yml.
+
+INSERT INTO public.users (id, email, display_name)
+VALUES ('e2e00000-0000-0000-0000-000000000021', 'platform@example.com', 'E2E Platform Operator')
+ON CONFLICT DO NOTHING;
+
+-- No act_as_sessions cleanup: signing in closes any open episode (ADR-0024 - act-as is entered, not
+-- resumed), so a warm DB starts the operator outside every team on its own. The e2e asserts that.

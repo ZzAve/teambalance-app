@@ -9,6 +9,8 @@ teambalance:
   invitation:
     # Dev-only salt (not a live environment) so bootRun works without INVITATION_TOKEN_SALT set.
     token-salt: dev-invitation-salt
+    # Dev-only key (not a live environment); live supplies INVITATION_TOKEN_ENCRYPTION_KEY.
+    token-encryption-key: dGVhbWJhbGFuY2UtZGV2LWludml0YXRpb24ta2V5LTE=
 
 logging:
   level:

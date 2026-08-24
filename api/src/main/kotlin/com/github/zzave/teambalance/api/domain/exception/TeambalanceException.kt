@@ -41,6 +41,12 @@ class PositionNotFoundException(id: PositionId) : NotFoundException("Position no
 // managing codes, not a founder probing them, so a plain not-found is appropriate.
 class CreationCodeNotFoundException(code: String) : NotFoundException("Creation code not found: $code")
 
+// Act-as was asked to enter a team that does not exist (ADR-0024). A plain 404: the caller is an
+// authenticated platform admin who already sees every team in the console, so there is nothing to
+// keep opaque here — unlike the member-facing activate path, where "not yours" and "no such team"
+// must be indistinguishable.
+class TeamNotFoundException(teamId: TeamId) : NotFoundException("Team not found: $teamId")
+
 // `code` is a stable machine-readable discriminator (the message is human prose) so clients can tell
 // the forbidden reasons apart — e.g. "no team yet" (send to login/onboarding) vs "not an admin".
 sealed class ForbiddenException(message: String, val code: String) : TeambalanceException(message)
@@ -60,6 +66,14 @@ class NoTeamMembershipException(userId: UserId) :
 // default forbids everyone. Gates the platform-admin surface (creation-codes CRUD, #154 Slice 4).
 class NotPlatformAdminException(userId: UUID) :
     ForbiddenException("User $userId is not a platform admin", "NOT_PLATFORM_ADMIN")
+
+// The caller entered Act-as (ADR-0024) and the 60-minute box ran out. Deliberately NOT a generic 403:
+// "your act-as ran out" and "you may not do this" call for different things from the frontend — the
+// first returns the Platform Admin to the console, the second is an error to read. A lapse is
+// fail-safe rather than fail-dangerous: a Platform Admin is structurally teamless (ADR-0024 §3), so
+// there is no membership to silently fall back into and the request resolves to no tenant at all.
+class ActAsExpiredException(userId: UserId) :
+    ForbiddenException("Act-as for user $userId has expired", "ACT_AS_EXPIRED")
 
 class CannotChangeOwnRoleException(userId: UserId) :
     ForbiddenException("User $userId cannot elevate their own role", "CANNOT_SELF_PROMOTE")

@@ -28,6 +28,7 @@ class AuthService(
     private val userRepository: UserRepository,
     private val teamMemberRepository: TeamMemberRepository,
     private val activeTeamService: ActiveTeamService,
+    private val actAsService: ActAsService,
     private val emailGateway: EmailGateway,
     private val platformAdminGateway: PlatformAdminGateway,
     private val authSessionGateway: AuthSessionGateway,
@@ -67,17 +68,28 @@ class AuthService(
      */
     fun findRoleIn(teamId: TeamId, userId: UserId): Role? = teamMemberRepository.findRole(teamId, userId)
 
-    /** Opens the session and returns the Active Team pinned for it, or null if none resolved. */
+    /**
+     * Opens the session and returns the Active Team pinned for it, or null if none resolved.
+     *
+     * Any open **Act-as** is closed first (ADR-0024): the grant outlives a session by design — it is
+     * a durable, time-boxed record — but a fresh sign-in must not *resume* one, or act-as stops being
+     * a mode you enter and becomes one you find yourself in. Same reasoning as `pinLanding` clearing
+     * the routing unconditionally: a sign-in inherits nothing.
+     */
     fun startSession(userId: UserId): TeamId? {
         authSessionGateway.startSession(userId)
+        actAsService.exit(userId)
         return activeTeamService.pinLanding(userId)
     }
 
     /** The caller behind the current session, or null when unauthenticated — what `/auth/me` answers on. */
     fun currentUser(): User? = authSessionGateway.currentUserId()?.let(::findUserById)
 
-    /** Signs the caller out by dropping their session. */
-    fun endSession() = authSessionGateway.endSession()
+    /** Signs the caller out by dropping their session, leaving any Team they were acting inside. */
+    fun endSession() {
+        authSessionGateway.currentUserId()?.let(actAsService::exit)
+        authSessionGateway.endSession()
+    }
 
     fun isPlatformAdmin(userId: UserId): Boolean = platformAdminGateway.isPlatformAdmin(userId.value)
 

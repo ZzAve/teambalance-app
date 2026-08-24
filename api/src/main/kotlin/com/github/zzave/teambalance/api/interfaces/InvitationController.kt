@@ -7,6 +7,7 @@ import com.github.zzave.teambalance.api.domain.port.CurrentUserGateway
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.AcceptInvitation
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.CreateInvitation
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.ExpireInvitations
+import com.github.zzave.teambalance.api.interfaces.generated.endpoint.GetActiveInvitation
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.RotateInvitation
 import com.github.zzave.teambalance.api.interfaces.generated.model.AcceptedInvitation
 import com.github.zzave.teambalance.api.interfaces.generated.model.Invitation
@@ -20,7 +21,27 @@ class InvitationController(
 ) : CreateInvitation.Handler,
     AcceptInvitation.Handler,
     ExpireInvitations.Handler,
+    GetActiveInvitation.Handler,
     RotateInvitation.Handler {
+
+    /**
+     * The team's current invite link, so an admin returning to the screen sees the link they already
+     * shared rather than being handed a new one (ADR-0025). 204 when the team has none — an absent
+     * link is an ordinary state the UI turns into a "generate one" offer, not an error.
+     */
+    override suspend fun getActiveInvitation(request: GetActiveInvitation.Request): GetActiveInvitation.Response<*> {
+        val userId = currentUserGateway.requireCurrentUserId()
+        val teamId = currentTeamGateway.requireCurrentTeamId()
+
+        val invitation = invitationService.activeInviteLink(callerId = userId, teamId = teamId)
+            ?: return GetActiveInvitation.Response204(Unit)
+        return GetActiveInvitation.Response200(
+            Invitation(
+                token = invitation.token.value,
+                expiresAt = invitation.expiresAt.toString(),
+            ),
+        )
+    }
 
     override suspend fun createInvitation(request: CreateInvitation.Request): CreateInvitation.Response<*> {
         val userId = currentUserGateway.requireCurrentUserId()

@@ -10,6 +10,8 @@ import java.util.UUID
 interface SpringDataInvitationRepository : JpaRepository<InvitationJpaEntity, UUID> {
     fun findByTokenHash(tokenHash: String): InvitationJpaEntity?
 
+    fun findFirstByTeamIdAndExpiresAtAfter(teamId: UUID, now: Instant): InvitationJpaEntity?
+
     @Modifying(clearAutomatically = true)
     @Query(
         "UPDATE InvitationJpaEntity i SET i.expiresAt = :now " +

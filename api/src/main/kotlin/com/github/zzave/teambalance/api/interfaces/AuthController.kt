@@ -1,7 +1,9 @@
 package com.github.zzave.teambalance.api.interfaces
 
+import com.github.zzave.teambalance.api.application.ActAsService
 import com.github.zzave.teambalance.api.application.AuthService
 import com.github.zzave.teambalance.api.domain.model.Email
+import com.github.zzave.teambalance.api.domain.model.Role
 import com.github.zzave.teambalance.api.domain.model.TeamId
 import com.github.zzave.teambalance.api.domain.model.TeamSummary
 import com.github.zzave.teambalance.api.domain.model.User
@@ -19,6 +21,7 @@ import java.util.UUID
 @RestController
 class AuthController(
     private val authService: AuthService,
+    private val actAsService: ActAsService,
     private val currentTeamGateway: CurrentTeamGateway,
 ) : RequestMagicLink.Handler,
     VerifyMagicLink.Handler,
@@ -50,18 +53,29 @@ class AuthController(
     /**
      * [activeTeamId] is intersected with the memberships rather than reported as given, so the payload
      * can only ever name a Team the caller actually has. `role` is read for that same Team.
+     *
+     * Act-as is the one case where the Active Team is *not* a membership: a Platform Admin inside a
+     * Team has an empty `teams` and is nonetheless scoped to that Team, as its ADMIN. Reporting it
+     * here is what lets the frontend's one route gate handle both worlds — and it is read off the
+     * grant the request pipeline already resolved, not re-derived (ADR-0024 §2).
      */
     private fun describe(user: User, activeTeamId: TeamId?): AuthenticatedUser {
         val teams = authService.findTeamsFor(user.id)
-        val activeTeam = activeTeamId?.let { id -> teams.firstOrNull { it.id == id } }
+        val actAs = actAsService.current()
+        val activeTeam = actAs?.team ?: activeTeamId?.let { id -> teams.firstOrNull { it.id == id } }
         return AuthenticatedUser(
             id = user.id.produce(),
             email = user.email.produce(),
             displayName = user.displayName.value,
-            role = activeTeam?.let { authService.findRoleIn(it.id, user.id)?.name },
+            // Real membership first, synthesis second — the same precedence AuthorizationService
+            // applies. A caller who somehow held both would otherwise be shown admin UI that every
+            // write then refuses.
+            role = activeTeam?.let { authService.findRoleIn(it.id, user.id)?.name }
+                ?: actAs?.let { Role.ADMIN.name },
             teams = teams.map { it.produce() },
             activeTeam = activeTeam?.produce(),
             isPlatformAdmin = authService.isPlatformAdmin(user.id),
+            actAs = actAs?.produce(),
         )
     }
 }

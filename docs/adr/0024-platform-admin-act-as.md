@@ -81,12 +81,24 @@ admin. See §5 below.
   the frontend returns the admin to the console. This comes nearly free: a lapsed teamless Platform
   Admin reports no active team, and the route gate's third branch sends teamless-plus-platform-admin
   to the console rather than to `/welcome`.
-- **An Act-as Record, visible to the team.** Scoped to the **act-as session, not to individual rows**
+- **An Act-as Record, visible to the team's Admins.** It lives on the Admin-only team settings page,
+  quiet at rest: one line that opens into the visits, and a visit that opens into its detail and the
+  reason platform access happens at all. Rejected: **the team-wide page**, tried first on the reasoning
+  that the record is the *team's*. In practice it puts an unexplained "someone was in here" in front of
+  players who have no context for it, on a screen they open to read the roster — the alarm lands, the
+  explanation does not, and the questions come to the operator anyway. The Admins are the ones who can
+  act on it, so they are the ones it is shown to, with the answer attached. Deliberately deferred, with
+  the same trigger as §6: the first team whose members have never met the operator.
+- **Nothing claims a change was made.** The record knows access happened and, because of the scoping
+  below, never what came of it — so the copy says *worked in your team*, never *made changes*. An
+  assertion the data cannot back is worse than none: the first Admin who checks and finds nothing
+  different has been given a reason to distrust the whole surface.
+- **Scoped to the act-as session, not to individual rows**
   — a necessity, not a preference: only `events` and `attendances` carry authorship
   (`created_by`, `changed_by`). `team_settings`, `team_positions`, `event_types` and invitations carry
   none, so per-row attribution structurally cannot cover Season configuration or Position curation,
   which is most of what setup *is*.
-- **The actor is rendered generically** ("the platform") via an `actor_kind` of `MEMBER` |
+- **The actor is rendered generically** ("the TeamBalance owner") via an `actor_kind` of `MEMBER` |
   `PLATFORM_ADMIN`. No name resolution is needed — convenient, since `findMemberSummariesByUserIds`
   joins `public.team_members` and would resolve a non-member to nothing — and the team-visible surface
   never exposes an operator's email. `created_by` keeps the real user id underneath for forensics; it

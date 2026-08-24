@@ -163,7 +163,7 @@ class MemberServiceTest : FunSpec() {
             val memberRepo = FakeMembershipRepo(userRepo, mapOf(teamId to listOf(janId to janRole, lisaId to lisaRole)))
             val positionRepo = MemberFakePositionRepo(listOf(setterPositionId to "Setter"))
             return Triple(
-                MemberService(userRepo, memberRepo, positionRepo, AuthorizationService(memberRepo), fixedClock),
+                MemberService(userRepo, memberRepo, positionRepo, AuthorizationService(memberRepo, FakeActAsGateway()), fixedClock),
                 userRepo,
                 memberRepo,
             )

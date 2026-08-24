@@ -7,7 +7,7 @@ import jakarta.persistence.Table
 import java.util.UUID
 
 /**
- * A position, in the tenant schema (ADR-0025). Deliberately unqualified: no `schema = "public"`, so
+ * A position, in the tenant schema (ADR-0026). Deliberately unqualified: no `schema = "public"`, so
  * it routes through the tenant connection like every other team-owned entity — which is the whole
  * point of the move. There is no team id column either; the schema is the team.
  */

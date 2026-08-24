@@ -22,7 +22,7 @@ private const val BETA_SCHEMA = "team_profile_iso_beta"
 private const val SHARED_USER = "b2500000-0000-0000-0000-000000000001"
 
 /**
- * The point of ADR-0025, proven where it can only be proven: against two real tenant schemas.
+ * The point of ADR-0026, proven where it can only be proven: against two real tenant schemas.
  *
  * A member's display name and position used to live on `public.users` and `public.team_members`, so
  * once ADR-0023 made multi-team membership real, renaming yourself in one team renamed you in every

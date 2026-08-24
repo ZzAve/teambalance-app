@@ -1,4 +1,4 @@
--- Test-only helper, updated for tenant-owned positions (ADR-0025).
+-- Test-only helper, updated for tenant-owned positions (ADR-0026).
 --
 -- Replaces the V3_1 body rather than editing it, so a warm local database does not trip Flyway's
 -- checksum validation on an already-applied migration.

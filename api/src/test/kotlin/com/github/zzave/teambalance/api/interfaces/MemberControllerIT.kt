@@ -111,7 +111,7 @@ class MemberControllerIT : TeamBalanceIT() {
 
     private fun positionId(label: String): String =
         jdbcTemplate.queryForObject(
-            // The tenant's own positions since ADR-0025 — the platform table may still hold a row
+            // The tenant's own positions since ADR-0026 — the platform table may still hold a row
             // with this label, but it is not what the API validates against any more.
             "SELECT id::text FROM $TEAM_SCHEMA.positions WHERE label = ?",
             String::class.java,

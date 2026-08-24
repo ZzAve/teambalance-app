@@ -88,7 +88,7 @@ class MemberService(
     }
 
     // A non-null position must exist in this tenant; null clears the assignment. Takes no team id
-    // since ADR-0025: the routed schema is what makes a position "this team's", so there is nothing
+    // since ADR-0026: the routed schema is what makes a position "this team's", so there is nothing
     // left to compare it against — an id from another team is simply not a row this can see.
     private fun requirePositionInThisTeam(positionId: PositionId?) {
         if (positionId != null && !positionRepository.exists(positionId)) {

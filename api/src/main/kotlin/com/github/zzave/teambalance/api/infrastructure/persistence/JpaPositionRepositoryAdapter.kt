@@ -9,7 +9,7 @@ import org.springframework.stereotype.Repository
 import org.springframework.transaction.annotation.Transactional
 
 /**
- * Positions, tenant-schema rows since ADR-0025 — so every query here is
+ * Positions, tenant-schema rows since ADR-0026 — so every query here is
  * scoped by the routed connection rather than by a team id predicate. Assignments live with member
  * edits (JpaTeamMemberRepositoryAdapter), which must write name, role and position in one call.
  */

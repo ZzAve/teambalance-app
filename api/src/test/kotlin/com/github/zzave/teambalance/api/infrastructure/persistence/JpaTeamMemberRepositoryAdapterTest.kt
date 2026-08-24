@@ -145,7 +145,7 @@ class JpaTeamMemberRepositoryAdapterTest : TeamBalanceIT() {
             "INSERT INTO public.teams (id, name, slug, schema_name) VALUES (?, ?, ?, ?)",
             teamId.value, "Test Team", "test-team-$teamId", schemaName,
         )
-        // Since ADR-0025 the member summary reads the tenant's positions, so findByTeamId needs a
+        // Since ADR-0026 the member summary reads the tenant's positions, so findByTeamId needs a
         // provisioned schema AND a routed connection — unrouted, Hibernate lands on __no_tenant__ and
         // the unqualified join fails loudly, which is the intended behaviour rather than a test quirk.
         tenantSchemaAdapter.provisionTenantSchema(schemaName)

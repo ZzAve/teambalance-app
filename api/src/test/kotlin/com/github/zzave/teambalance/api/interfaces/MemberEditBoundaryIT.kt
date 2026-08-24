@@ -100,7 +100,7 @@ class MemberEditBoundaryIT : TeamBalanceIT() {
             .andReturn()
             .let { mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(it)) }
 
-    // The name a member edit writes since ADR-0025: the tenant profile, not the platform row. Falls
+    // The name a member edit writes since ADR-0026: the tenant profile, not the platform row. Falls
     // back to the platform name so a member seeded without a profile still reads as something —
     // which is also what the API does.
     private fun displayNameOf(userId: String): String =

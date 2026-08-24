@@ -5,7 +5,7 @@ import com.github.zzave.teambalance.api.domain.model.PositionId
 import com.github.zzave.teambalance.api.domain.model.PositionLabel
 
 /**
- * Positions of the current tenant (ADR-0025). No method takes a team id: positions are tenant rows,
+ * Positions of the current tenant (ADR-0026). No method takes a team id: positions are tenant rows,
  * so the resolved schema already says which team's vocabulary this is. Passing one would invite the
  * caller to name a team other than the one the connection is routed to — the exact divergence
  * ADR-0023 removed from tenant resolution.

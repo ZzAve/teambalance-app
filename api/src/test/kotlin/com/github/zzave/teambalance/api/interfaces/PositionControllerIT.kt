@@ -39,7 +39,7 @@ class PositionControllerIT : TeamBalanceIT() {
                 "ON CONFLICT DO NOTHING",
         )
         // Shared DB, no per-test rollback — reset this team's roster and positions to a known state.
-        // Since ADR-0025 the positions the API reads are the TENANT ones, so clearing only the
+        // Since ADR-0026 the positions the API reads are the TENANT ones, so clearing only the
         // platform tables would leave a previous test's labels in place and every create would 409.
         jdbcTemplate.execute("DELETE FROM public.team_members WHERE team_id = '$TEAM_ID'::uuid")
         jdbcTemplate.execute("DELETE FROM public.team_positions WHERE team_id = '$TEAM_ID'::uuid")
@@ -159,7 +159,7 @@ class PositionControllerIT : TeamBalanceIT() {
             seedTeam()
             val id = createPositionReturningId("Setter")
             // Assign the position to the plain member, then delete it. The assignment is a tenant
-            // row since ADR-0025 — the position was created through the API and so exists only here.
+            // row since ADR-0026 — the position was created through the API and so exists only here.
             jdbcTemplate.update(
                 "INSERT INTO $TEAM_SCHEMA.member_profiles (user_id, display_name, position_id) " +
                     "VALUES (?::uuid, 'Pos Member', ?::uuid) " +

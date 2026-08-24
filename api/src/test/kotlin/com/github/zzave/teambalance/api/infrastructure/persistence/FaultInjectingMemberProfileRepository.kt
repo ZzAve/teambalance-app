@@ -14,7 +14,7 @@ const val FAULT_MEMBER_USER_ID = "c1000000-0000-0000-0000-0000000000f1"
  * performs after the display name and before the onboarding stamp, so the fault lands squarely
  * between the aggregates the edit touches.
  *
- * Since ADR-0025 that is a stronger claim than it used to be: the display name is written to
+ * Since ADR-0026 that is a stronger claim than it used to be: the display name is written to
  * `public.team_members` in the PLATFORM schema and the profile to `member_profiles` in the TENANT
  * schema, so this now proves the edit is one transaction *across the schema boundary*, not merely
  * across two tables.

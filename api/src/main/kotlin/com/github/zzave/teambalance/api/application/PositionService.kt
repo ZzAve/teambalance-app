@@ -17,7 +17,7 @@ class PositionService(
     /**
      * The team's positions. Any active member may read them; no admin check.
      *
-     * Takes no team id since ADR-0025: positions are tenant rows, so the resolved schema is already
+     * Takes no team id since ADR-0026: positions are tenant rows, so the resolved schema is already
      * the team. The write paths below still take one — not to find rows, but to authorize.
      */
     fun listPositions(): List<Position> = positionRepository.list()

@@ -1,4 +1,4 @@
--- Positions become tenant data (ADR-0025, amending ADR-0013 §"Position is a fixed per-team
+-- Positions become tenant data (ADR-0026, amending ADR-0013 §"Position is a fixed per-team
 -- vocabulary"). A position is a thing a team defines about how it plays; reading it out of the
 -- platform schema made it look global, and left it outside the schema-routing guarantee that
 -- ADR-0024's act-as safety rests on (TenantContext: platform entities "remain reachable regardless"

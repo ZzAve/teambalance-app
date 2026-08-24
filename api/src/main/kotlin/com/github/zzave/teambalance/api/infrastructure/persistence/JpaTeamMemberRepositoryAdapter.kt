@@ -80,7 +80,7 @@ class JpaTeamMemberRepositoryAdapter(
     }
 
     /**
-     * The assignment lives in the tenant's `member_profiles` (ADR-0025), so it is scoped by the
+     * The assignment lives in the tenant's `member_profiles` (ADR-0026), so it is scoped by the
      * routed schema and [teamId] no longer selects the row — it stays in the signature because the
      * port is a team-scoped contract and callers authorize against it.
      */
@@ -120,7 +120,7 @@ class JpaTeamMemberRepositoryAdapter(
         positionId: PositionId?,
         markOnboardedAt: Instant?,
     ) {
-        // The platform name is deliberately NOT written here (ADR-0025): it is the teamless fallback
+        // The platform name is deliberately NOT written here (ADR-0026): it is the teamless fallback
         // and the onboarding seed, and a team-scoped edit updating it is exactly the cross-team
         // rename that multi-team membership turned into a bug.
         jpaRepository.updateRole(teamId.value, userId.value, role.name)

@@ -19,7 +19,7 @@ import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import java.util.UUID
 
-// In-memory positions keyed by id. No owning-team tag since ADR-0025: the fake stands in for one
+// In-memory positions keyed by id. No owning-team tag since ADR-0026: the fake stands in for one
 // tenant's schema, which is what "this team's positions" now means — a position from another team is
 // not a row this repository can see at all, rather than a row it must filter out.
 private class PosFakePositionRepo : PositionRepository {

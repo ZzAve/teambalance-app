@@ -7,7 +7,7 @@ import jakarta.persistence.Table
 import java.util.UUID
 
 /**
- * What a member is called and what they play **in this team** (ADR-0025) — a tenant row.
+ * What a member is called and what they play **in this team** (ADR-0026) — a tenant row.
  *
  * Both fields were platform columns before (`public.users.display_name`,
  * `public.team_members.position_id`), which under ADR-0023's multi-team membership meant a rename in

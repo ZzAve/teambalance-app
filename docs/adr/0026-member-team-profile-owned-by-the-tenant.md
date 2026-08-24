@@ -1,4 +1,4 @@
-# ADR-0025: A member's team profile is owned by the tenant
+# ADR-0026: A member's team profile is owned by the tenant
 
 - Status: Accepted
 - Date: 2026-08-23

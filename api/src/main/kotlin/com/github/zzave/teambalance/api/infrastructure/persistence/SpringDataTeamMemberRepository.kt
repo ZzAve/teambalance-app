@@ -58,7 +58,7 @@ interface SpringDataTeamMemberRepository : JpaRepository<TeamMemberJpaEntity, UU
     )
     fun countActiveAdmins(@Param("teamId") teamId: UUID): Int
 
-    // The tenant's name for this member, falling back to the platform one (ADR-0025). The fallback is
+    // The tenant's name for this member, falling back to the platform one (ADR-0026). The fallback is
     // not decoration: a member seeded outside the backfill has no profile row yet, and answering NULL
     // would blank a name that exists.
     @Query(
@@ -82,7 +82,7 @@ interface SpringDataTeamMemberRepository : JpaRepository<TeamMemberJpaEntity, UU
                    (tm.onboarded_at IS NOT NULL) AS onboarded
             FROM   public.team_members tm
             JOIN   public.users u ON u.id = tm.user_id
-            -- Unqualified on purpose (ADR-0025): these resolve against the routed tenant schema, so
+            -- Unqualified on purpose (ADR-0026): these resolve against the routed tenant schema, so
             -- the summary reports the name and position this member carries *in this team* — which
             -- is what multi-team membership (ADR-0023) made a distinction worth drawing.
             LEFT   JOIN member_profiles mp ON mp.user_id = tm.user_id
@@ -104,7 +104,7 @@ interface SpringDataTeamMemberRepository : JpaRepository<TeamMemberJpaEntity, UU
                    (tm.onboarded_at IS NOT NULL) AS onboarded
             FROM   public.team_members tm
             JOIN   public.users u ON u.id = tm.user_id
-            -- Unqualified on purpose (ADR-0025): these resolve against the routed tenant schema, so
+            -- Unqualified on purpose (ADR-0026): these resolve against the routed tenant schema, so
             -- the summary reports the name and position this member carries *in this team* — which
             -- is what multi-team membership (ADR-0023) made a distinction worth drawing.
             LEFT   JOIN member_profiles mp ON mp.user_id = tm.user_id

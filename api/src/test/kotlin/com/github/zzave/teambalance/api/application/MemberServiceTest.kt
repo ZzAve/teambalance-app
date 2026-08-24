@@ -110,7 +110,7 @@ private class FakeMembershipRepo(
         store.count { it.key.first == teamId && it.value.active && it.value.role == Role.ADMIN }
 }
 
-// Positions of ONE tenant, keyed by id. Since ADR-0025 the schema scopes them, so "a position of
+// Positions of ONE tenant, keyed by id. Since ADR-0026 the schema scopes them, so "a position of
 // another team" is simply an id this repository does not hold — the same rejection path as an id
 // that never existed, which is why the fake no longer tracks an owning team.
 private class MemberFakePositionRepo(seed: List<Pair<PositionId, String>>) : PositionRepository {
@@ -142,7 +142,7 @@ class MemberServiceTest : FunSpec() {
 
         // A "Setter" position on the team, plus one on a different team to test cross-team rejection.
         val setterPositionId = PositionId(UUID.randomUUID())
-        // Not seeded into the repo: since ADR-0025 an id belonging to another team and an id that
+        // Not seeded into the repo: since ADR-0026 an id belonging to another team and an id that
         // never existed are indistinguishable here, because the tenant schema — not a predicate —
         // decides what this repository can see.
         val foreignPositionId = PositionId(UUID.randomUUID())

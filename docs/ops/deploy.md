@@ -52,10 +52,13 @@ verify: check **Scaleway Cockpit** container logs for the boot crash, fix forwar
 
 **`deploy-frontend`** — builds the SPA (`vite build` auto-loads `app/.env.production` →
 `VITE_API_URL=https://api.teambalance.nl`), syncs `app/dist` → `s3://teambalance-spa`
-(hashed assets `immutable`, `index.html` `no-cache`, and the PWA shell: icons cached a day,
+(hashed assets `immutable` and **retained across deploys — no `--delete`**, see *Object Storage
+lifecycle* below; `index.html` `no-cache`, and the PWA shell: icons cached a day,
 `sw.js` / `registerSW.js` / `manifest.webmanifest` `no-cache` so an installed client is never
 pinned to a previous deploy's precache) and the landing page + design tokens
-→ `s3://teambalance-www`, then purges both Edge Services pipelines. S3 uses the **dedicated
+→ `s3://teambalance-www` (`index.html` **and** its unhashed `style.css` / `tokens.css` all
+`no-cache`, so the root-referenced CSS revalidates in lockstep with the HTML and can't be served
+stale), then purges both Edge Services pipelines. S3 uses the **dedicated
 Object Storage IAM key** (`SCW_S3_*`).
 
 ## Container resource config
@@ -64,6 +67,30 @@ The container's **cpu / memory / sandbox** (2 vCPU, 2 GB, gVisor v2) are set **m
 the Scaleway console**, not by the deploy — the pipeline only updates the image. To A/B the
 cold start, change the vCPU in the console (e.g. 4 vCPU) and re-read the `Started … in X
 seconds` line. Console fields: CPU in vCPU, memory in MB, sandbox v1/v2.
+
+## Object Storage lifecycle (assets retention — console/IaC, not in-repo)
+
+The `assets/` sync intentionally runs **without `--delete`**: content-hashed chunks from the
+*previous* deploy must survive, because a client still on the old shell (a long-open tab, the
+installed PWA, or a stale service-worker precache) keeps requesting those old hashes. Pruning
+them the instant a new deploy lands 404s those clients into a blank screen. Because the chunks
+are content-addressed and `immutable`, re-uploading unchanged hashes is a harmless no-op and
+stale hashes never collide — so retaining them costs only storage, which a lifecycle rule
+reclaims.
+
+**Required rule — apply once, in the Scaleway console (Object Storage → `teambalance-spa` →
+Lifecycle rules) or via IaC.** This is **not** in this repo (bucket config lives outside the
+codebase) and must be set by someone with console access:
+
+- **Prefix:** `assets/`
+- **Action:** expire (delete) objects **90 days** after last modification.
+
+**Why 90 days.** It comfortably outlives how long any client realistically stays on a stale
+shell, and it stays safe once the app is stable and deploys are infrequent: a low deploy cadence
+means an old-but-still-referenced hash may need to survive a long gap between releases, so the
+retention window must exceed that gap. A shorter window (e.g. 30 days) is only safe during heavy
+development, where a fresh build lands often and no hash stays referenced for long. Leave it at 90
+unless the deploy cadence changes.
 
 ## Required GitHub Actions secrets
 

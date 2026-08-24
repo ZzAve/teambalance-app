@@ -302,9 +302,15 @@ jobs:
           AWS_DEFAULT_REGION: fr-par
         run: |
           set -euo pipefail
-          # SPA: content-hashed assets are immutable + pruned; index.html must never cache.
+          # SPA: content-hashed assets are immutable; index.html must never cache.
+          # --delete removed on purpose: a client still on the previous shell (a long-open tab,
+          # the installed PWA, or a stale SW) keeps referencing the last deploy's hashed chunks —
+          # pruning them the instant a new deploy lands 404s those clients into a blank screen.
+          # Hashes are content-addressed + immutable, so re-uploading unchanged hashes is a
+          # harmless no-op and stale hashes never collide; reclaiming space is handed to a bucket
+          # lifecycle rule (expire assets/ 90 days after last-modified — see docs/ops/deploy.md).
           aws --endpoint-url "$S3_ENDPOINT" s3 sync app/dist/assets "s3://${SPA_BUCKET}/assets" \
-            --cache-control "public,max-age=31536000,immutable" --delete
+            --cache-control "public,max-age=31536000,immutable"
           aws --endpoint-url "$S3_ENDPOINT" s3 cp app/dist/index.html "s3://${SPA_BUCKET}/index.html" \
             --cache-control no-cache
           # PWA shell (F2): icons, master SVG and the hashed workbox runtime live at the bucket
@@ -327,10 +333,19 @@ jobs:
           # Landing page: index.html + style.css at root, tokens.css under /design-tokens/.
           aws --endpoint-url "$S3_ENDPOINT" s3 cp www/index.html "s3://${WWW_BUCKET}/index.html" \
             --cache-control no-cache
-          aws --endpoint-url "$S3_ENDPOINT" s3 cp www/style.css "s3://${WWW_BUCKET}/style.css"
-          aws --endpoint-url "$S3_ENDPOINT" s3 cp design-tokens/tokens.css "s3://${WWW_BUCKET}/design-tokens/tokens.css"
+          # style.css + tokens.css are unhashed and referenced by name from index.html's <head>,
+          # so they must revalidate in lockstep with it: no-cache matches index.html and prevents
+          # a half-updated landing (fresh HTML, stale CSS served under the CDN default TTL).
+          aws --endpoint-url "$S3_ENDPOINT" s3 cp www/style.css "s3://${WWW_BUCKET}/style.css" \
+            --cache-control no-cache
+          aws --endpoint-url "$S3_ENDPOINT" s3 cp design-tokens/tokens.css "s3://${WWW_BUCKET}/design-tokens/tokens.css" \
+            --cache-control no-cache
 
       - name: Purge Edge Services cache
         run: |
+          # A silently-skipped purge lets the edge keep serving a stale index.html that points at
+          # pruned chunks. set -euo pipefail (matching the sync step) makes a failed purge fail the
+          # job — explicit, and robust to any repo-level default-shell override that drops -e.
+          set -euo pipefail
           scw edge-services purge-request create pipeline-id="$SPA_PIPELINE" all=true
           scw edge-services purge-request create pipeline-id="$WWW_PIPELINE" all=true

@@ -36,15 +36,17 @@ export const Route = createRootRoute({
   component: RootLayout,
   // A true gate: the session is probed before a protected route loads, so its component never
   // mounts (and never fetches protected data) unless the session is confirmed. An unauthenticated
-  // 401 — or any /me error (fail closed) — redirects to login before render.
+  // 401 redirects to login before render; a backend error surfaces the router's error fallback
+  // (see below) — either way the protected route is never rendered.
   beforeLoad: async ({ location }) => {
     if (isAuthRoute(location.pathname)) return
-    let user = null
-    try {
-      user = await queryClient.ensureQueryData(authMeQueryOptions)
-    } catch {
-      // Session could not be confirmed (network / 5xx) — fail closed.
-    }
+    // A genuine 401 resolves to null → /login. A backend error (network / 5xx while the
+    // scale-to-zero container is still waking) REJECTS: let it propagate to the router's
+    // themed error fallback (Retry reloads, by which point the backend is warm) instead of
+    // failing closed to /login. Failing closed here both logged out a still-valid session
+    // and — because the errored /me query stayed in cache while RootLayout mounted — crashed
+    // the render into a blank frame.
+    const user = await queryClient.ensureQueryData(authMeQueryOptions)
     if (!user) throw redirect({ to: '/login' })
 
     // Has-ANY-team gate (ADR-0023 §4). Which Team is active is a separate question, answered by

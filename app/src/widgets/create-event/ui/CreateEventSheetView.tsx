@@ -1,6 +1,7 @@
 import { ArrowLeft } from 'lucide-react'
 import { SheetDescription, SheetTitle } from '@shared/ui/sheet'
 import type { EventInput } from '@shared/api/events'
+import type { Position } from '@shared/api/positions'
 import type { EventTypeItem } from '@shared/api/event-types'
 import type { Season } from '@shared/api/season'
 import type { CreateRecurringEventsRequest } from '@shared/api/recurring-events'
@@ -26,6 +27,8 @@ interface CreateEventSheetViewProps {
   mode: CreateEventMode
   /** Event types for the pickers; defaults to an empty list while the container's query is in flight. */
   eventTypes?: EventTypeItem[]
+  /** The team's position vocabulary, for authoring a per-event roster override. */
+  positions?: Position[]
   season?: Season
   today: string
   isCreatingSingle?: boolean
@@ -52,6 +55,7 @@ interface CreateEventSheetViewProps {
 export function CreateEventSheetView({
   mode,
   eventTypes = [],
+  positions = [],
   season,
   today,
   isCreatingSingle,
@@ -87,6 +91,7 @@ export function CreateEventSheetView({
       {mode === 'single' && (
         <CreateEventForm
           eventTypes={eventTypes}
+          positions={positions}
           isPending={!!isCreatingSingle}
           onSubmit={onSubmitSingle}
           error={singleError}

@@ -108,6 +108,9 @@ private class FakeMembershipRepo(
     }
     override fun countAdmins(teamId: TeamId): Int =
         store.count { it.key.first == teamId && it.value.active && it.value.role == Role.ADMIN }
+
+    override fun countByPosition(teamId: TeamId, positionId: PositionId): Int =
+        store.count { it.value.active && it.value.positionId == positionId }
 }
 
 // Positions of ONE tenant, keyed by id. Since ADR-0026 the schema scopes them, so "a position of

@@ -43,9 +43,15 @@ class MembershipCompositionRoot {
     @Bean
     fun positionService(
         positionRepository: PositionRepository,
+        eventTypeRepository: EventTypeRepository,
+        eventRepository: EventRepository,
+        teamMemberRepository: TeamMemberRepository,
         authorizationService: AuthorizationService,
     ) = PositionService(
         positionRepository = positionRepository,
+        eventTypeRepository = eventTypeRepository,
+        eventRepository = eventRepository,
+        teamMemberRepository = teamMemberRepository,
         authorizationService = authorizationService,
     )
 }

@@ -1,8 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from './wirespec-client'
 
-// Re-export the generated contract type so the app has a single source of truth.
+// Re-export the generated contract types so the app has a single source of truth.
 export type { Position } from './generated/model/Position'
+export type { PositionUsage } from './generated/model/PositionUsage'
 
 // A position mutation can fail in ways the UI must distinguish: a taken label is recoverable and
 // shown inline; a 403/404 is not. Mirrors MemberUpdateError in members.ts.
@@ -23,6 +24,22 @@ export function usePositions() {
       // A 401 is handled globally (redirect to login) by the fetch handler; fall back to empty here.
       return res.body?.positions ?? []
     },
+  })
+}
+
+/**
+ * What deleting a position would touch — the type defaults and event overrides naming it, and the
+ * members holding it. Read only when the delete dialog opens (`enabled`), because it is admin-only
+ * and every member can see the rest of this screen.
+ */
+export function usePositionUsage(id: string | null) {
+  return useQuery({
+    queryKey: ['positions', id, 'usage'],
+    queryFn: async () => {
+      const res = await api.GetPositionUsage({ id: id as string })
+      return res.body
+    },
+    enabled: id !== null,
   })
 }
 

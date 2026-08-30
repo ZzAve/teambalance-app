@@ -4,6 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Button } from '@shared/ui/button'
 import { useUpdateEvent, type Event, type EventDetail } from '@shared/api/events'
 import { useEventTypes } from '@shared/api/event-types'
+import { usePositions } from '@shared/api/positions'
 import { EditEventDialogView } from './EditEventDialogView'
 
 interface EditEventDialogProps {
@@ -21,7 +22,11 @@ interface EditEventDialogProps {
  */
 export function EditEventDialog({ event, siblings = [] }: EditEventDialogProps) {
   const [open, setOpen] = useState(false)
-  const { data: eventTypes } = useEventTypes()
+  // Archived types included: an event may hold one that was archived without migration, and the
+  // picker must still be able to show the type this event actually has. The View narrows the
+  // choices back down to the active ones plus that.
+  const { data: eventTypes } = useEventTypes(true)
+  const { data: positions } = usePositions()
   const updateEvent = useUpdateEvent()
 
   return (
@@ -40,6 +45,7 @@ export function EditEventDialog({ event, siblings = [] }: EditEventDialogProps) 
           event={event}
           siblings={siblings}
           eventTypes={eventTypes}
+          positions={positions}
           isPending={updateEvent.isPending}
           isError={updateEvent.isError}
           onSubmit={(request) => updateEvent.mutate(request, { onSuccess: () => setOpen(false) })}

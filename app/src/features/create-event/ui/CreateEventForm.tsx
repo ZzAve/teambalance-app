@@ -4,12 +4,17 @@ import { Input } from '@shared/ui/input'
 import { Label } from '@shared/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@shared/ui/select'
 import type { EventInput } from '@shared/api/events'
+import type { RosterRequirement } from '@shared/api/event-types'
+import type { Position } from '@shared/api/positions'
+import { RosterOverrideField } from '@features/manage-event-types/ui/RosterOverrideField'
 import type { EventTypeItem } from '@shared/api/event-types'
 import { ReferenceRowsEditor } from '@entities/event/ui/ReferenceRowsEditor'
 import { cleanReferences, type ReferenceRow } from '@entities/event/lib/references'
 
 interface CreateEventFormProps {
   eventTypes: EventTypeItem[]
+  /** The team's position vocabulary, so a customised roster can be authored per position. */
+  positions?: Position[]
   isPending: boolean
   onSubmit: (values: EventInput) => void
   /** Message to surface when the last create attempt failed; null/undefined hides the alert. */
@@ -34,17 +39,28 @@ const DEFAULT_DURATION_MINUTES = '120'
  * sheet open/close state live in the CreateEventSheet widget — so every form state (idle,
  * type-selected, submitting, no-types) is renderable in isolation (see CreateEventForm.stories.tsx).
  */
-export function CreateEventForm({ eventTypes, isPending, onSubmit, error }: CreateEventFormProps) {
+export function CreateEventForm({
+  eventTypes,
+  positions = [],
+  isPending,
+  onSubmit,
+  error,
+}: CreateEventFormProps) {
   const [selectedTypeId, setSelectedTypeId] = useState<string>('')
   const [title, setTitle] = useState('')
   const [titleTouched, setTitleTouched] = useState(false)
   const [durationMinutes, setDurationMinutes] = useState(DEFAULT_DURATION_MINUTES)
   const [references, setReferences] = useState<ReferenceRow[]>([])
+  // undefined = inherit the selected type's default, which is the common case and the default here.
+  const [rosterOverride, setRosterOverride] = useState<RosterRequirement | undefined>(undefined)
 
   const selectedType = eventTypes.find((t) => t.id === selectedTypeId)
 
   const handleTypeChange = (typeId: string) => {
     setSelectedTypeId(typeId)
+    // A customised roster was seeded from the OLD type's default and is meaningless against the new
+    // one, so changing type drops back to inheriting rather than submitting the wrong shape.
+    setRosterOverride(undefined)
     // Auto-suggest title based on type name — only if user hasn't typed their own title
     if (!titleTouched) {
       const type = eventTypes.find((t) => t.id === typeId)
@@ -67,6 +83,7 @@ export function CreateEventForm({ eventTypes, isPending, onSubmit, error }: Crea
       endTime: end.toISOString(),
       location: (form.get('location') as string) || undefined,
       references: cleanReferences(references),
+      rosterOverride,
     })
   }
 
@@ -149,6 +166,14 @@ export function CreateEventForm({ eventTypes, isPending, onSubmit, error }: Crea
 
       {/* Links (References) — repeatable label + url rows. Label optional; blank rows are dropped. */}
       <ReferenceRowsEditor rows={references} onChange={setReferences} />
+
+      <RosterOverrideField
+        value={rosterOverride}
+        eventType={selectedType}
+        positions={positions}
+        disabled={isPending}
+        onChange={setRosterOverride}
+      />
 
       {error && (
         <p role="alert" className="text-sm text-destructive">

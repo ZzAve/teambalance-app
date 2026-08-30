@@ -66,4 +66,7 @@ interface TeamMemberRepository {
 
     /** Number of active ADMIN members on the team. */
     fun countAdmins(teamId: TeamId): Int
+
+    /** Active members currently assigned [positionId] — what a position delete would leave Unassigned. */
+    fun countByPosition(teamId: TeamId, positionId: PositionId): Int
 }

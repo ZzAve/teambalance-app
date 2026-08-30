@@ -29,4 +29,7 @@ interface EventRepository {
     fun deleteById(id: EventId)
     fun deleteAllById(ids: List<EventId>)
 
+
+    /** How many event roster overrides name [positionId] — half of the position-delete warning. */
+    fun countTargetsForPosition(positionId: PositionId): Int
 }

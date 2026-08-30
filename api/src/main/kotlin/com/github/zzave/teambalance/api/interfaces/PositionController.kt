@@ -7,9 +7,11 @@ import com.github.zzave.teambalance.api.domain.port.CurrentTeamGateway
 import com.github.zzave.teambalance.api.domain.port.CurrentUserGateway
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.CreatePosition
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.DeletePosition
+import com.github.zzave.teambalance.api.interfaces.generated.endpoint.GetPositionUsage
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.ListPositions
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.RenamePosition
 import com.github.zzave.teambalance.api.interfaces.generated.model.PositionList
+import com.github.zzave.teambalance.api.interfaces.generated.model.PositionUsage
 import org.springframework.web.bind.annotation.RestController
 import java.util.UUID
 import com.github.zzave.teambalance.api.interfaces.generated.model.Position as PositionDto
@@ -22,7 +24,8 @@ class PositionController(
 ) : ListPositions.Handler,
     CreatePosition.Handler,
     RenamePosition.Handler,
-    DeletePosition.Handler {
+    DeletePosition.Handler,
+    GetPositionUsage.Handler {
 
     override suspend fun listPositions(request: ListPositions.Request): ListPositions.Response<*> {
         // Any authenticated member may read the vocabulary; requireCurrentUserId fails closed with 401.
@@ -51,6 +54,23 @@ class PositionController(
             rawLabel = request.body.label,
         )
         return RenamePosition.Response200(renamed.toDto())
+    }
+
+    // What the delete confirmation reports before it lets the admin proceed (#219). Admin-only,
+    // because it is the delete's own dialog that reads it.
+    override suspend fun getPositionUsage(request: GetPositionUsage.Request): GetPositionUsage.Response<*> {
+        val usage = positionService.positionUsage(
+            callerId = currentUserGateway.requireCurrentUserId(),
+            teamId = currentTeamGateway.requireCurrentTeamId(),
+            id = request.path.id.consumePositionId(),
+        )
+        return GetPositionUsage.Response200(
+            PositionUsage(
+                eventTypeCount = usage.eventTypeCount.value.toLong(),
+                eventCount = usage.eventCount.value.toLong(),
+                memberCount = usage.memberCount.value.toLong(),
+            ),
+        )
     }
 
     override suspend fun deletePosition(request: DeletePosition.Request): DeletePosition.Response<*> {

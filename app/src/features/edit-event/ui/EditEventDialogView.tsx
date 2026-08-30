@@ -4,6 +4,9 @@ import { Input } from '@shared/ui/input'
 import { Label } from '@shared/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@shared/ui/select'
 import type { Event, EventDetail, EventInput, EventSeriesScope } from '@shared/api/events'
+import type { RosterRequirement } from '@shared/api/event-types'
+import type { Position } from '@shared/api/positions'
+import { RosterOverrideField } from '@features/manage-event-types/ui/RosterOverrideField'
 import type { EventTypeItem } from '@shared/api/event-types'
 import { ReferenceRowsEditor } from '@entities/event/ui/ReferenceRowsEditor'
 import { cleanReferences, toReferenceRows, type ReferenceRow } from '@entities/event/lib/references'
@@ -17,6 +20,8 @@ interface EditEventDialogViewProps {
   siblings?: Event[]
   /** Event types for the picker; defaults to an empty list while the container's query is in flight. */
   eventTypes?: EventTypeItem[]
+  /** The team's position vocabulary, so a customised roster can be authored per position. */
+  positions?: Position[]
   /** The update mutation is in flight — the submit button shows "Saving…" and is disabled. */
   isPending?: boolean
   /** The update mutation failed — render the inline error shell. */
@@ -54,6 +59,7 @@ export function EditEventDialogView({
   event,
   siblings = [],
   eventTypes = [],
+  positions = [],
   isPending,
   isError,
   onSubmit,
@@ -69,6 +75,15 @@ export function EditEventDialogView({
   // Seed the editor from the event's existing links — the update has replace-semantics, so the full
   // set must be sent back on every save or the links would be wiped.
   const [references, setReferences] = useState<ReferenceRow[]>(toReferenceRows(event.references))
+  // Seeded from what the event already carries, for the same replace-semantics reason as the links:
+  // whatever this form submits IS the event's new roster, so an untouched override must survive.
+  const [rosterOverride, setRosterOverride] = useState<RosterRequirement | undefined>(event.rosterOverride)
+
+  // Offer the active types, plus this event's own even when it has been archived: hiding it would
+  // leave the picker blank and — worse — leave the roster field with no type to read a default from,
+  // so "Customise" would seed tracking OFF instead of what the type actually asks for.
+  const selectableTypes = eventTypes.filter((t) => !t.archived || t.id === event.eventType.id)
+  const selectedEventType = eventTypes.find((t) => t.id === typeId)
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -85,10 +100,7 @@ export function EditEventDialogView({
       endTime: new Date(end).toISOString(),
       location: (form.get('location') as string) || undefined,
       references: cleanReferences(references),
-      // Carried through untouched. This form does not edit the roster override (that is the admin
-      // authoring surface), but the update is a whole replacement — omitting it would drop the event
-      // back to inheriting its type's default as a side effect of renaming it.
-      rosterOverride: event.rosterOverride,
+      rosterOverride,
     })
   }
 
@@ -110,7 +122,7 @@ export function EditEventDialogView({
             <SelectValue placeholder="Select type" />
           </SelectTrigger>
           <SelectContent>
-            {eventTypes.map((t) => (
+            {selectableTypes.map((t) => (
               <SelectItem key={t.id} value={t.id}>
                 <div className="flex items-center gap-2">
                   <span className="inline-block h-3 w-3 rounded-full" style={{ backgroundColor: t.color ?? '#888' }} />
@@ -181,6 +193,14 @@ export function EditEventDialogView({
         <Input id="edit-description" name="description" defaultValue={event.description ?? ''} />
       </div>
       <ReferenceRowsEditor rows={references} onChange={setReferences} />
+
+      <RosterOverrideField
+        value={rosterOverride}
+        eventType={selectedEventType}
+        positions={positions}
+        disabled={isPending}
+        onChange={setRosterOverride}
+      />
       {isError && (
         <p className="rounded-lg border border-red/40 bg-red/10 px-3 py-2 text-sm text-red">
           Could not save changes. Please try again.

@@ -51,6 +51,17 @@ would silently be admin of every tenant it happened to be routed to, and act-as 
 mode you enter and become a property you carry. That is the same class of mistake as the `LIMIT 1`
 ADR-0023 removes: a rule invisible at the call site and only wrong later.
 
+**The rule is about *granting*, not about *consulting `isPlatformAdmin` at all*.** The line to hold is
+precise: the Virtual Member synthesis (`findRole` returning `ADMIN`) must never key off
+`isPlatformAdmin` — only off an actively-entered, unexpired grant for *this* caller and *this* team. A
+performance short-circuit that merely *withholds work* — e.g. skipping the open-grant lookup for a
+caller who cannot possibly hold one, since only a Platform Admin can — **may** read `isPlatformAdmin`,
+because its only possible failure is fail-safe: a Platform Admin's act-as not resolving (no tenant),
+never an ordinary user gaining `ADMIN`. The test for any new use of `isPlatformAdmin` on this path:
+*can consulting it ever grant access?* If yes, forbidden. If it can only withhold, allowed. (Do not
+read this carve-out as licence for a `… || isPlatformAdmin` in the granting path — that grants, and is
+exactly what the paragraph above forbids.)
+
 **Rejected: per-call-site bypasses** (`… || isPlatformAdmin`), which turn one chokepoint into N, and
 the one that gets forgotten is the vulnerability. **Rejected: a real-but-hidden `team_members` row**,
 which makes every roster, count and summary query responsible for remembering to filter it out.
@@ -66,10 +77,20 @@ deliberately routes that to `__no_tenant__`, "a schema that intentionally does n
 unqualified table reference fails loudly instead of silently hitting `public`". A write can never be
 misdirected by a lapse; it can only fail.
 
+**The invariant is enforced at act-as *entry*, not merely assumed.** `enter` refuses when the caller
+already holds any active membership — the two-accounts assumption goes load-bearing at exactly that
+moment, and refusing there fail-closes both orderings a linked state can arise through: an allowlisted
+email that later joins a team, *and* a member whose email is later added to the allowlist (the case
+entry-side catches and membership-side cannot, because the row already exists when the allowlist entry
+lands). Membership-side enforcement (refusing to add an allowlisted email to a team) is **not** added:
+it burdens the hot, shared join path to defend a rare misconfiguration and still misses the
+added-after-join ordering. The fail-safe above holds regardless — this guard is erosion protection, so
+it is pinned with a test, not left to convention.
+
 It also amends **ADR-0019 §5**: a Platform Admin creating a team must *not* become its founding
 admin. See §5 below.
 
-### 4. Visible while active, recorded for the team
+### 4. Visible while active, recorded for the team's Admins
 
 - **60 minutes, sliding on activity.** Sessions themselves last four weeks (ADR-0015) precisely so
   nobody thinks about them; act-as riding that unchanged would mean "I popped into Dames 5 on Tuesday"
@@ -81,6 +102,18 @@ admin. See §5 below.
   the frontend returns the admin to the console. This comes nearly free: a lapsed teamless Platform
   Admin reports no active team, and the route gate's third branch sends teamless-plus-platform-admin
   to the console rather than to `/welcome`.
+- **Sign-in and sign-out each close an open grant.** A grant is durable — it outlives the session that
+  opened it, by design, so the record survives. But a *fresh sign-in* must not silently resume one, or
+  act-as reverts from a mode you enter to a property you find yourself in (§2); and signing out leaves
+  the team cleanly. Both funnel through the one sign-in seam (`AuthService.startSession`) and the exit
+  path. **Guardrail: every sign-in path must close any open grant by routing through
+  `AuthService.startSession` — never the lower-level session gateway directly.** The rule lives in a
+  single method today, so it is guarded with a test rather than left to the fact that there is
+  currently only one sign-in path.
+- **A lapsed grant's record ends where the work stopped, not where it was noticed.** When a grant is
+  closed after it already ran out (a later sign-out or a re-entry), `exitedAt` is stamped at the
+  grant's `lastActiveAt`, not at `now`. The team-visible window therefore never claims hours of access
+  that never happened — an honesty the "worked in your team" copy depends on.
 - **An Act-as Record, visible to the team's Admins.** It lives on the Admin-only team settings page,
   quiet at rest: one line that opens into the visits, and a visit that opens into its detail and the
   reason platform access happens at all. Rejected: **the team-wide page**, tried first on the reasoning
@@ -143,6 +176,15 @@ running its own squads.
 - The most security-sensitive path in the app now exists. Its safety rests on two invariants worth
   guarding with tests: the chokepoint synthesizes `ADMIN` **only** under an active act-as state, and
   no `team_members` row is ever written by it.
+- **`TeamRepository.findTenantRoutingUnchecked` is the single tenant-bypass primitive** — the one
+  lookup that reaches a tenant with no membership check. Its safety is that **only `ActAsService` may
+  call it** (both callers, `enter` and the per-request `carry`, sit behind the platform-admin gate). A
+  second caller is a cross-tenant hole. Today this is held by the `Unchecked` name and the port-doc
+  warning plus review; mechanisation is deferred, and the preferred mechanisation is **structural** —
+  splitting the method onto a narrow port injected only into `ActAsService`, so a second caller must
+  declare the dependency visibly in the Composition Root — rather than a custom flock-detekt rule
+  (flock ships no call-site rule; authoring one against the pre-release detekt 2.0 API, ADR-0018 §4,
+  is a poor trade for a two-caller method).
 - Teams can exist with zero members; empty states must handle it.
 - ADR-0019 §5's "creator becomes founding admin" no longer holds for Platform Admin creation.
 - Operating the platform and playing in a team now requires two accounts, permanently and by design.

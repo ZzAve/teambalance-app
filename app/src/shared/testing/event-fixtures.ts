@@ -25,8 +25,40 @@ export const NO_ROSTER: EventRoster = {
 /**
  * A computed roster, defaulting to a tracked lineup that is one short — the state a roster story
  * usually wants a starting point for. Pass overrides to move it to any other state.
+ *
+ * Keeps `openSlots` honest against the positions, because the server does not treat them as
+ * independent: whenever any position is targeted it derives `openSlots` as the sum of unmet slots
+ * (RosterFill.openSlots), so a fixture stating anything else depicts a payload the API cannot emit.
+ * That is not a harmless fiction — a story becomes a Chromatic baseline, so an impossible state gets
+ * approved as the expected one and a reviewer is asked to sign off on arithmetic the product never
+ * produces. Exactly that happened: `WithUnassigned` claimed 1 open slot across two unfilled
+ * positions, and only a human reading the screenshot caught it.
+ *
+ * So: **derive it when the caller did not ask for one**, which is what a test overriding only
+ * `positions` wants, and **throw when the caller states one that contradicts them**, which is the
+ * case worth failing loudly. Untargeted positions are left alone — the headcount drives there, and
+ * `openSlots` is its shortfall, which says nothing about the rows.
  */
 export function makeRoster(overrides: Partial<EventRoster> = {}): EventRoster {
+  const roster = makeRosterUnchecked(overrides)
+  const targeted = roster.positions.filter((p) => p.required != null)
+  if (targeted.length === 0) return roster
+
+  const unmet = targeted.reduce((sum, p) => sum + Math.max(0, (p.required ?? 0) - p.attending), 0)
+  if (!('openSlots' in overrides)) return { ...roster, openSlots: unmet }
+
+  if (unmet !== roster.openSlots) {
+    throw new Error(
+      `makeRoster: openSlots ${roster.openSlots} contradicts its positions, which leave ${unmet} ` +
+        `slot(s) unmet. The server sums unmet slots whenever positions are targeted, so this ` +
+        `roster could never arrive from the API. Fix the number, or drop the targets if the ` +
+        `fixture means to exercise the headcount axis instead.`,
+    )
+  }
+  return roster
+}
+
+function makeRosterUnchecked(overrides: Partial<EventRoster> = {}): EventRoster {
   return {
     trackRoster: true,
     totalTarget: undefined,

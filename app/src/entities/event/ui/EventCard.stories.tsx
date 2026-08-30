@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { expect } from 'storybook/test'
 import { withRouter } from '@shared/testing/router-decorator'
-import { makeEvent } from '@shared/testing/event-fixtures'
+import { makeEvent, makeRoster } from '@shared/testing/event-fixtures'
 import { EventCard } from './EventCard'
 
 // EventCard renders a TanStack Router <Link to="/events/$eventId">, which needs a router in context.
@@ -87,6 +87,41 @@ export const SocialEvent: Story = {
     await expect(canvas.getByText(/11 going/)).toBeInTheDocument()
     // The 15th is the Saturday of the current week.
     await expect(canvas.getByText('This weekend')).toBeInTheDocument()
+    // A social tracks no roster, so the card carries no status chip and no way to open a panel.
+    await expect(canvas.queryByRole('button')).not.toBeInTheDocument()
+  },
+}
+
+// The roster disclosure in place on a real card (#219): the chip sits at the end of the attendance
+// row, collapsed, and the panel drops full-width beneath it. RosterDisclosure's own stories cover
+// every roster state; this one proves the composition — that the card gives it room and that tapping
+// the chip does not follow the card's stretched link.
+export const WithRosterChip: Story = {
+  args: {
+    event: makeEvent({
+      startTime: on(13, 14, 30),
+      location: 'Sportcentrum Noord',
+      roster: makeRoster({
+        state: 'CRITICAL',
+        openSlots: 2,
+        totalAttending: 5,
+        positions: [
+          { id: 'pos-setter', label: 'Setter', required: 2, attending: 2 },
+          { id: 'pos-libero', label: 'Libero', required: 1, attending: 0 },
+          { id: 'pos-middle', label: 'Middle', required: 2, attending: 1 },
+        ],
+      }),
+    }),
+  },
+  play: async ({ canvas, userEvent }) => {
+    await expect(canvas.getByText('2 spots open')).toBeInTheDocument()
+    // Collapsed on a list card until asked.
+    await expect(canvas.queryByText(/the one to chase/)).not.toBeInTheDocument()
+
+    await userEvent.click(canvas.getByRole('button', { name: /Show positions/ }))
+
+    await expect(canvas.getByText('1 of 3 covered')).toBeInTheDocument()
+    await expect(canvas.getByText(/still has no one/)).toBeInTheDocument()
   },
 }
 

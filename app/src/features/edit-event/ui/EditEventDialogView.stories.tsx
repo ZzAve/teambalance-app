@@ -2,8 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite'
 import { expect, fn } from 'storybook/test'
 import type { Event, EventDetail } from '@shared/api/events'
 import type { EventTypeItem } from '@shared/api/event-types'
-import { makeEventType } from '@shared/testing/event-fixtures'
-import { makeEvent } from '@shared/testing/event-fixtures'
+import { makeEvent, makeEventType, NO_ROSTER } from '@shared/testing/event-fixtures'
 import { EditEventDialogView } from './EditEventDialogView'
 
 // EditEventDialogView is the presentational edit-event form behind the EditEventDialog container.
@@ -30,6 +29,7 @@ const EVENT: EventDetail = {
   attendances: [],
   myState: 'NOT_RESPONDED',
   rosterOverride: undefined,
+  roster: NO_ROSTER,
 }
 
 // A three-occurrence series; the middle one ('evt-1') is the one being edited.

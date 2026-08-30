@@ -24,6 +24,18 @@ const SUMMARY_FIELD: Record<AttendanceState, keyof Omit<AttendanceSummary, 'role
  * mutation carries no `displayName`/`role` to synthesise a complete one, so an unknown user is a
  * no-op (the server reconciliation on `onSettled` fills that case in). The update is immutable —
  * the original event and its entries are never touched, so a rollback can restore the snapshot.
+ *
+ * **`roster` is deliberately left alone** (#219). Its counts could be moved the same way the summary
+ * counters are, but `openSlots` and `state` could not: deriving those means re-implementing the
+ * layered, position-priority status the backend owns as its single tested authority, and a second
+ * implementation here would be free to drift from it. Patching the counts while leaving the status
+ * behind would be worse still — an internally inconsistent roster rather than a merely stale one.
+ * So the roster stays exactly as the server last computed it and reconciles on `onSettled`.
+ *
+ * That is a real, if brief, lag on any surface rendering the roster next to the summary. It is
+ * bounded by one round-trip, and the panel is collapsed by default; if it ever becomes visible
+ * enough to matter, the fix is for the server to return the recomputed roster from the attendance
+ * write, not for this function to start deriving one.
  */
 export function applyOptimisticAttendance(
   event: EventDetail | undefined,

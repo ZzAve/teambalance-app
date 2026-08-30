@@ -31,6 +31,16 @@ setup: npm --prefix app install && ./gradlew :api:wirespec-typescript  # generat
 - Filter reads UserContext.get() (set by SessionUserContextFilter at order +2); no session re-read needed — avoids duplicate UUID parse + impossible IllegalArgumentException catch
 - Tenant schema routing IS wired (Hibernate CurrentTenantIdentifierResolver + MultiTenantConnectionProvider, since #49) and fails closed to a non-existent schema if TenantContext is unresolved — no silent `public` fallback.
 
+## local IT runner (no Docker here)
+- `local-it.sh` starts its OWN postgres (`/var/lib/postgresql/tbdata`, socket `/tmp`). NEVER run
+  `service postgresql start` — the system cluster grabs 5432 first, the script's `pg_isready` check
+  passes, and it then dies on `psql: Password for user postgres`.
+- That failure is SILENT in the summary: the script does not clear `api/build/test-results`, so a
+  dead run leaves the previous branch's XML in place and the count read back belongs to another
+  branch. `rm -rf api/build/test-results` before every run and assert the expected new spec appears.
+- It patches `TeamBalanceIT.kt` to localhost JDBC for the duration and reverts on `trap EXIT` —
+  never commit that diff, and don't fight the stop-hook over it while a run is in flight.
+
 ## flaky tests
 - `app/src/app/providers/invite-flow.test.tsx` fails intermittently under the FULL vitest run (waitFor for '/events'/'Events' heading times out) but passes in isolation (`vitest run invite-flow`) — full-suite concurrency flake, not a regression. Re-run isolated to confirm before chasing.
 

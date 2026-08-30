@@ -44,6 +44,15 @@
      say bg-red/text-red/border-red instead of reaching for Tailwind's own default red (#EF4444),
      which is not ours (F9, #159). Keep in sync with design-tokens/tokens.css, like the three above. */
   --color-red: #D93025;
+  /* The `-dark` ramps of the same three hues, promoted from design-tokens/tokens.css. Tailwind 4
+     generates a utility only for what @theme declares, so `text-green-dark` silently produced
+     nothing before this. The roster panel (#219) needs the full triple per hue: the plain hue as a
+     15% tint for the chip ground, and the darker ramp for text on that tint, which the plain hue
+     itself fails at 11px. They sit in this block, not `@theme inline`, for the reason the note
+     above gives — the `.dark` layer re-points them. */
+  --color-green-dark: #1D7F57;
+  --color-gold-dark: #C89200;
+  --color-red-dark: #B71C1C;
   --color-border: hsl(214.3 31.8% 91.4%);
   --color-input: hsl(214.3 31.8% 91.4%);
   --color-ring: hsl(222.2 84% 4.9%);

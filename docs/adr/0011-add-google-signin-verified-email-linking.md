@@ -1,6 +1,8 @@
 # ADR-0011: Add Google Sign-In via verified-email linking; no passwords
 
-- Status: Accepted
+- Status: Accepted — **Google Sign-In decision superseded by
+  [ADR-0027](0027-drop-google-signin-magic-link-only.md)** (dropped for good; passkeys explored
+  instead). The cut-username/password and `Email`-normalization decisions below **still stand**.
 - Date: 2026-07-14
 - Amends: [ADR-0008](0008-auth-magic-link-and-shareable-invite.md) (which chose magic-link
   and explicitly excluded "passwords, no third-party OAuth provider")

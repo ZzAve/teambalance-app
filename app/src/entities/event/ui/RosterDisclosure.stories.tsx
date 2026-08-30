@@ -232,7 +232,10 @@ export const WithUnassigned: Story = {
   args: {
     roster: makeRoster({
       state: 'SPOTS_OPEN',
-      openSlots: 1,
+      // Setter is 1 short and Middle is 1 short, so the chip reads 2 — NOT 1. The three unassigned
+      // attendees cannot close either gap: nobody knows what they would play, which is the whole
+      // point of this story. They raise the headcount and drive the nudge, and that is all.
+      openSlots: 2,
       totalAttending: 6,
       unassignedAttending: 3,
       positions: [pos('Setter', 2, 1), pos('Libero', 1, 1), pos('Middle', 2, 1)],
@@ -240,6 +243,10 @@ export const WithUnassigned: Story = {
   },
   play: async ({ canvas }) => {
     await expect(canvas.getByText("3 going haven't set a position")).toBeInTheDocument()
+    // Pinned as an assertion, not left to the snapshot: the chip must report every unmet slot, and
+    // the unassigned three must not be silently credited against them.
+    await expect(canvas.getByText('2 spots open')).toBeInTheDocument()
+    await expect(canvas.getByText('1 of 3 covered')).toBeInTheDocument()
   },
 }
 

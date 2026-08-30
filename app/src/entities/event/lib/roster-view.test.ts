@@ -37,14 +37,16 @@ describe('rosterChip', () => {
   })
 
   it('reads "Lineup set" when every targeted position is covered', () => {
-    expect(rosterChip(roster({ state: 'LINEUP_SET', openSlots: 0 }))).toEqual({
+    const covered = [pos('Setter', 2, 2), pos('Libero', 1, 1)]
+    expect(rosterChip(roster({ state: 'LINEUP_SET', openSlots: 0, positions: covered }))).toEqual({
       text: 'Lineup set',
       tone: 'covered',
     })
   })
 
   it('counts the open spots when the lineup is short', () => {
-    expect(rosterChip(roster({ state: 'SPOTS_OPEN', openSlots: 3 }))).toEqual({
+    const shortBy3 = [pos('Setter', 3, 1), pos('Libero', 2, 1)]
+    expect(rosterChip(roster({ state: 'SPOTS_OPEN', openSlots: 3, positions: shortBy3 }))).toEqual({
       text: '3 spots open',
       tone: 'short',
     })
@@ -53,23 +55,29 @@ describe('rosterChip', () => {
   // Same words, different tone. The count is the news; the colour is what separates "chase later"
   // from "chase now" — a position sitting at zero.
   it('keeps the wording but turns critical when a position has nobody', () => {
-    expect(rosterChip(roster({ state: 'CRITICAL', openSlots: 3 }))).toEqual({
+    // Libero at zero is what makes it critical; Setter's two missing bring the count to three.
+    const criticalBy3 = [pos('Setter', 3, 1), pos('Libero', 1, 0)]
+    expect(rosterChip(roster({ state: 'CRITICAL', openSlots: 3, positions: criticalBy3 }))).toEqual({
       text: '3 spots open',
       tone: 'critical',
     })
   })
 
   it('says "spot" not "spots" for a single one', () => {
-    expect(rosterChip(roster({ state: 'SPOTS_OPEN', openSlots: 1 }))?.text).toBe('1 spot open')
-    expect(rosterChip(roster({ state: 'CRITICAL', openSlots: 1 }))?.text).toBe('1 spot open')
+    const shortBy1 = [pos('Setter', 2, 1)]
+    const criticalBy1 = [pos('Setter', 1, 0)]
+    expect(rosterChip(roster({ state: 'SPOTS_OPEN', openSlots: 1, positions: shortBy1 }))?.text).toBe('1 spot open')
+    expect(rosterChip(roster({ state: 'CRITICAL', openSlots: 1, positions: criticalBy1 }))?.text).toBe('1 spot open')
   })
 
   it('reads as a headcount when only a total is set', () => {
-    expect(rosterChip(roster({ state: 'HEADCOUNT_SHORT', openSlots: 2 }))).toEqual({
+    // No position carries a target, which is the only way the headcount can be the driving axis —
+    // so openSlots here is the headcount shortfall, not a sum over rows.
+    expect(rosterChip(roster({ state: 'HEADCOUNT_SHORT', openSlots: 2, positions: [] }))).toEqual({
       text: '2 more needed',
       tone: 'short',
     })
-    expect(rosterChip(roster({ state: 'HEADCOUNT_FULL', openSlots: 0 }))).toEqual({
+    expect(rosterChip(roster({ state: 'HEADCOUNT_FULL', openSlots: 0, positions: [] }))).toEqual({
       text: 'Full',
       tone: 'covered',
     })

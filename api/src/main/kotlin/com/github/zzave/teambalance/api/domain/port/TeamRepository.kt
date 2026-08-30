@@ -41,8 +41,10 @@ interface TeamRepository {
      * alone, so it cannot be "fixed" into a checked lookup by accident — the check simply isn't
      * expressible here, which is why the absence is stated in the name.
      *
-     * Its only caller is `ActAsService.enter`, which gates on `PlatformAdminGateway` first. Any second
-     * caller is a cross-tenant hole; the guard is one chokepoint, and a second is the bug.
+     * Its only callers are `ActAsService.enter` and the per-request `ActAsService.resolve` (via
+     * `carry`), both reached only behind `PlatformAdminGateway` — a grant exists only for a platform
+     * admin. Only `ActAsService` may call this. A call site anywhere else is a cross-tenant hole; the
+     * guard is that one class, and a second caller is the bug.
      */
     fun findTenantRoutingUnchecked(teamId: TeamId): TenantRouting?
 

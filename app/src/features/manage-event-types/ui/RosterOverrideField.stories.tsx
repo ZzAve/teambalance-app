@@ -47,6 +47,11 @@ export const Inheriting: Story = {
 // Switching to Customise seeds from the type's current default, so the admin edits from where the
 // event already is rather than from an empty form.
 export const CustomiseSeedsFromTheTypeDefault: Story = {
+  // Behavioural twin of Inheriting — the field is controlled, so clicking Customise fires
+  // onChange without re-rendering: the post-play picture is still the inheriting one
+  // (ADR-0027 §2). BackToInheriting deliberately KEEPS its baseline — its customised-with-no-
+  // position-targets frame is a picture no sibling carries.
+  parameters: { chromatic: { disableSnapshot: true } },
   args: { value: undefined },
   play: async ({ canvas, userEvent, args }) => {
     await userEvent.click(canvas.getByRole('radio', { name: 'Customise' }))

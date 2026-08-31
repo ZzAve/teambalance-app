@@ -77,6 +77,9 @@ export const WithTypes: Story = {
 }
 
 export const CreateEventType: Story = {
+  // Behavioural twin of Empty — save closes the editor, so the post-play frame is the empty list
+  // again (ADR-0027 §2). The spy is the point; the picture is Empty's.
+  parameters: { chromatic: { disableSnapshot: true } },
   args: { eventTypes: [] },
   play: async ({ canvas, userEvent, args }) => {
     await userEvent.click(canvas.getByRole('button', { name: 'Add event type' }))
@@ -92,6 +95,10 @@ export const CreateEventType: Story = {
 // The roster default is authored in the same editor the per-event override uses, so the two can't
 // disagree about what a blank field means.
 export const EditRosterDefault: Story = {
+  // Behavioural twin of WithTypes — save closes the editor and settles back to the list
+  // (ADR-0027 §2). The mid-play frames (targets appearing when tracking is switched on) are
+  // exercised here but pictured by RosterOverrideField's own stories.
+  parameters: { chromatic: { disableSnapshot: true } },
   play: async ({ canvas, userEvent, args }) => {
     await userEvent.click(canvas.getByRole('button', { name: 'Edit Training' }))
     // Tracking starts off for Training, so the targets are hidden until it is switched on.
@@ -113,6 +120,9 @@ export const EditRosterDefault: Story = {
 
 // A zero is "no target", the same as blank — and the same as what the server does with one.
 export const ZeroTargetMeansNoTarget: Story = {
+  // Behavioural twin of WithTypes — save closes the editor and settles back to the list
+  // (ADR-0027 §2). What is being proven is the dropped target in the payload, not a picture.
+  parameters: { chromatic: { disableSnapshot: true } },
   play: async ({ canvas, userEvent, args }) => {
     await userEvent.click(canvas.getByRole('button', { name: 'Edit Match' }))
     const setter = canvas.getByLabelText('Setter')
@@ -132,6 +142,9 @@ export const ZeroTargetMeansNoTarget: Story = {
 // The destructive path. It leads with the migration offer, because leaving events on a type no
 // picker shows is the fallback, not the default.
 export const ArchiveWithMigration: Story = {
+  // Behavioural twin of WithTypes — confirming closes the dialog, so the post-play frame is the
+  // list again (ADR-0027 §2). The open dialog is pictured by ArchiveDialogOpen below.
+  parameters: { chromatic: { disableSnapshot: true } },
   play: async ({ canvas, userEvent, args }) => {
     await userEvent.click(canvas.getByRole('button', { name: 'Archive Match' }))
     const dialog = within(document.body)
@@ -148,12 +161,30 @@ export const ArchiveWithMigration: Story = {
 
 // Declining the migration is a real choice, not an oversight: the events keep the archived type.
 export const ArchiveWithoutMigration: Story = {
+  // Behavioural twin of WithTypes — as above; this one proves the undefined migration target.
+  parameters: { chromatic: { disableSnapshot: true } },
   play: async ({ canvas, userEvent, args }) => {
     await userEvent.click(canvas.getByRole('button', { name: 'Archive Match' }))
     const dialog = within(document.body)
     await userEvent.click(await dialog.findByRole('button', { name: 'Archive' }))
 
     await expect(args.onArchive).toHaveBeenCalledWith('et-1', undefined)
+  },
+}
+
+// The archive dialog is the one screen that has to answer "will this delete my events?", and it
+// leads with the migration offer rather than burying it. Both Archive stories above confirm, so the
+// dialog is gone before Chromatic shoots — this one opens it and stops, so that wording carries a
+// baseline (ADR-0027 §2).
+export const ArchiveDialogOpen: Story = {
+  play: async ({ canvas, userEvent, args }) => {
+    await userEvent.click(canvas.getByRole('button', { name: 'Archive Match' }))
+    const dialog = within(document.body)
+    await expect(await dialog.findByText('Archive "Match"?')).toBeInTheDocument()
+    await expect(dialog.getByText(/no event is deleted/i)).toBeInTheDocument()
+    // The migration picker leads; leaving it unset is the fallback, not the default.
+    await expect(dialog.getByLabelText(/Move its events/)).toBeInTheDocument()
+    await expect(args.onArchive).not.toHaveBeenCalled()
   },
 }
 
@@ -185,6 +216,9 @@ export const NameTaken: Story = {
 // spinner. That it comes BACK on a rejection (draft intact) is the pure rule in lib/editor-open,
 // unit-tested there; a story cannot change args mid-play to drive the second half.
 export const SubmitClosesTheEditorOptimistically: Story = {
+  // Behavioural twin of Empty — asserts the editor is gone, which IS the empty-list picture
+  // (ADR-0027 §2).
+  parameters: { chromatic: { disableSnapshot: true } },
   args: { eventTypes: [] },
   play: async ({ canvas, userEvent }) => {
     await userEvent.click(canvas.getByRole('button', { name: 'Add event type' }))

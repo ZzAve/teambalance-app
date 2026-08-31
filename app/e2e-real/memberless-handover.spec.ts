@@ -1,4 +1,4 @@
-import { test, expect, type Page } from '@playwright/test'
+import { test, expect, type BrowserContext, type Page } from '@playwright/test'
 
 /**
  * Real e2e: the **memberless-team handover** (ADR-0024 §5, issue #240). A Platform Admin creates a
@@ -23,10 +23,15 @@ const PLATFORM_EMAIL = 'platform2@example.com'
 const TEAM_NAME = `E2E Handover ${RUN}`
 const TEAM_SLUG = `e2e-handover-${RUN}`
 const RECIPIENT_EMAIL = `handover-recipient-${RUN}@example.com`
+const BASE_URL = 'http://localhost:5173'
 
 test.use({ storageState: { cookies: [], origins: [] } })
 
-/** Signs an email in through the real magic-link flow, leaving the session on `page`. */
+/**
+ * Signs an email in through the real magic-link flow, leaving the session on `page`. The final
+ * `/auth/verify` is a page navigation, so the caller must wait for the app to settle (a `toHaveURL`)
+ * before relying on the session — used for the interactive Platform Admin flow below.
+ */
 async function signIn(page: Page, email: string) {
   const requested = await page.request.post('/api/auth/magic-link/request', { data: { email } })
   expect(requested.status()).toBe(202)
@@ -34,6 +39,24 @@ async function signIn(page: Page, email: string) {
   expect(tokenResponse.ok()).toBeTruthy()
   const { token } = await tokenResponse.json()
   await page.goto(`/auth/verify?token=${token}`)
+}
+
+/**
+ * Establishes a session on a browser context via the API — POST verify directly rather than through
+ * the verify page — so it is synchronous: the cookie is set the moment this returns, and any page in
+ * the context is immediately authenticated. Used for the recipient contexts, whose very next action is
+ * opening the invite link (which auto-accepts only for an already-authenticated visitor).
+ */
+async function authViaApi(context: BrowserContext, email: string) {
+  const requested = await context.request.post('/api/auth/magic-link/request', { data: { email } })
+  expect(requested.status()).toBe(202)
+  const tokenResponse = await context.request.get(`${BACKEND_URL}/internal/e2e/magic-link-token`, {
+    params: { email },
+  })
+  expect(tokenResponse.ok()).toBeTruthy()
+  const { token } = await tokenResponse.json()
+  const verified = await context.request.post('/api/auth/magic-link/verify', { data: { token } })
+  expect(verified.ok()).toBeTruthy()
 }
 
 test('a Platform Admin creates a memberless team, preps it, and hands it over as Admin by link', async ({
@@ -66,17 +89,18 @@ test('a Platform Admin creates a memberless team, preps it, and hands it over as
   const handoverUrl = await page.getByLabel('Admin handover link').inputValue()
   expect(handoverUrl).toContain('/invite/')
 
-  // 6. The recipient — a brand-new, teamless user in their own browser context — signs in and clicks
-  //    the handover link. The direct /invite/$token visit auto-accepts for an authenticated visitor.
-  const recipientContext = await browser.newContext({ storageState: { cookies: [], origins: [] } })
-  const recipient = await recipientContext.newPage()
+  // 6. The recipient — a brand-new, teamless user in their own browser context — authenticates, then
+  //    opens the handover link. A direct /invite/$token visit auto-accepts for an authenticated
+  //    visitor, so the session must be established first (authViaApi is synchronous).
+  const recipientContext = await browser.newContext({ baseURL: BASE_URL })
   try {
-    await signIn(recipient, RECIPIENT_EMAIL)
+    await authViaApi(recipientContext, RECIPIENT_EMAIL)
+    const recipient = await recipientContext.newPage()
     await recipient.goto(handoverUrl)
 
     // 7. They land as ADMIN of the prepared team — the whole point: one link, and control is handed over.
     await expect(async () => {
-      const me = await recipient.request.get('/api/auth/me')
+      const me = await recipientContext.request.get('/api/auth/me')
       expect(me.ok()).toBeTruthy()
       const body = await me.json()
       expect(body.role).toBe('ADMIN')
@@ -84,13 +108,13 @@ test('a Platform Admin creates a memberless team, preps it, and hands it over as
     }).toPass({ timeout: 15_000 })
 
     // 8. Single-use: a second person opening the same link gets nothing.
-    const secondContext = await browser.newContext({ storageState: { cookies: [], origins: [] } })
-    const second = await secondContext.newPage()
+    const secondContext = await browser.newContext({ baseURL: BASE_URL })
     try {
-      await signIn(second, `handover-second-${RUN}@example.com`)
+      await authViaApi(secondContext, `handover-second-${RUN}@example.com`)
+      const second = await secondContext.newPage()
       await second.goto(handoverUrl)
       await expect(second.getByText('Invite link invalid')).toBeVisible({ timeout: 15_000 })
-      const me = await second.request.get('/api/auth/me')
+      const me = await secondContext.request.get('/api/auth/me')
       const body = await me.json()
       // Never became a member of the team.
       expect((body.teams ?? []).some((t: { slug: string }) => t.slug === TEAM_SLUG)).toBe(false)

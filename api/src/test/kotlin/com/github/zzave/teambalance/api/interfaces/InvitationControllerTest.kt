@@ -300,7 +300,9 @@ class InvitationControllerTest : TeamBalanceIT() {
             expireAllInvitations()
 
             val mvcResult = mockMvc.perform(
-                MockMvcRequestBuilders.post("/api/invitations/admin").header("X-User-Id", JAN_USER_ID),
+                MockMvcRequestBuilders.post("/api/invitations/admin")
+                    .header("X-Team-Id", "public")
+                    .header("X-User-Id", JAN_USER_ID),
             )
                 .andExpect(MockMvcResultMatchers.request().asyncStarted())
                 .andReturn()
@@ -322,7 +324,9 @@ class InvitationControllerTest : TeamBalanceIT() {
             seedJoiner(JOINER_USER_ID, "not-admin-handover@test.com")
 
             val mvcResult = mockMvc.perform(
-                MockMvcRequestBuilders.post("/api/invitations/admin").header("X-User-Id", JOINER_USER_ID),
+                MockMvcRequestBuilders.post("/api/invitations/admin")
+                    .header("X-Team-Id", "public")
+                    .header("X-User-Id", JOINER_USER_ID),
             )
                 .andExpect(MockMvcResultMatchers.request().asyncStarted())
                 .andReturn()
@@ -361,6 +365,32 @@ class InvitationControllerTest : TeamBalanceIT() {
                 java.sql.Timestamp::class.java,
                 sha256Hex(TEST_SALT, "plaintext-admin-token"),
             ) shouldNotBe null
+        }
+
+        test("rotating the shareable link leaves a live ADMIN handover link untouched") {
+            seedAdmin()
+            expireAllInvitations()
+            seedAdminInvitation("plaintext-admin-survives-rotate")
+
+            // Rotate the (absent) shareable USER link — this mints a new USER link and expires the old
+            // USER one, but must not touch the independent single-use ADMIN handover link.
+            mockMvc.perform(
+                MockMvcRequestBuilders.post("/api/invitations/rotate")
+                    .header("X-Team-Id", "public")
+                    .header("X-User-Id", JAN_USER_ID),
+            )
+                .andExpect(MockMvcResultMatchers.request().asyncStarted())
+                .andReturn()
+                .let { mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(it)) }
+                .andExpect(MockMvcResultMatchers.status().isCreated)
+
+            // The ADMIN link is still active (unexpired) and unspent.
+            jdbcTemplate.queryForObject(
+                "SELECT count(*) FROM public.invitations " +
+                    "WHERE token = ? AND role = 'ADMIN' AND consumed_at IS NULL AND expires_at > now()",
+                Long::class.java,
+                sha256Hex(TEST_SALT, "plaintext-admin-survives-rotate"),
+            ) shouldBe 1L
         }
 
         test("an ADMIN link is single-use: a second person accepting it is rejected and joins nobody") {

@@ -327,6 +327,19 @@ class InvitationServiceTest : FunSpec() {
             f.service.activeInviteLink(callerId = adminId, teamId = f.teamId) shouldBe null
         }
 
+        // The two links are independent: rotating the shareable USER link must not disturb a live,
+        // unspent ADMIN handover link (the port scopes expire to USER — regression for the code review).
+        test("rotating the shareable link leaves the admin handover link mintable and unchanged") {
+            val f = newFixture()
+            val admin = f.service.generateAdminInviteLink(callerId = adminId, teamId = f.teamId)
+            f.service.generateInviteLink(callerId = adminId, teamId = f.teamId)
+            f.service.rotateInviteLink(callerId = adminId, teamId = f.teamId)
+
+            // Still the same unspent admin link — not collaterally expired by the USER-link rotate.
+            f.service.generateAdminInviteLink(callerId = adminId, teamId = f.teamId).token.value shouldBe
+                admin.token.value
+        }
+
         test("accepting an ADMIN link joins the recipient as ADMIN and switches them in") {
             val f = newFixture()
             f.invitations.present(adminLink(teamId = f.teamId))

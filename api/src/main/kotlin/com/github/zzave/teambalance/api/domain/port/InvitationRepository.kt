@@ -35,7 +35,11 @@ interface InvitationRepository {
      */
     fun consume(invitationId: UUID, now: Instant): Boolean
 
-    /** Marks every currently-active (unexpired) invitation for the team as expired as of [now]. */
+    /**
+     * Marks the team's active (unexpired) **shareable USER link(s)** as expired as of [now]. Scoped to
+     * [Role.USER] so revoking or rotating the player link never collaterally kills a live single-use
+     * ADMIN handover link, which is an independent credential (ADR-0024 §5).
+     */
     fun expireActive(teamId: TeamId, now: Instant)
 
     /**

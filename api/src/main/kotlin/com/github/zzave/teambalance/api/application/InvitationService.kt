@@ -94,6 +94,14 @@ class InvitationService(
      * rather than minting a second, so a team holds at most one live ADMIN credential. Once the previous
      * was accepted (consumed) or expired, this mints a fresh one.
      *
+     * The one-live-link property is held here, not in the schema — the same service-held invariant
+     * ADR-0025 chose for the USER link (a partial unique index can't bite on the time-based
+     * active-ness). So two near-simultaneous mints could each pass the find and leave two live ADMIN
+     * links. That is an anti-accumulation weakening, **not** a single-use hole: single-use is enforced
+     * at accept by the conditional [InvitationRepository.consume], so every link is still spent at most
+     * once. The extra-credential window is the accepted ADR-0025 trade-off, and the UI disables the
+     * button while the mint is in flight; the operator, not an accident, decides what to hand out.
+     *
      * Admin-only: [callerId] must be an admin of [teamId] — which, for the memberless handover, is the
      * acting-in Platform Admin's Virtual Member (ADR-0024 §2).
      */

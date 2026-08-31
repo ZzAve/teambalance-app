@@ -25,7 +25,8 @@ async function expectTabTargets(canvas: Parameters<NonNullable<Story['play']>>[0
   await expect(canvas.getByRole('link', { name: 'Events' })).toHaveAttribute('href', '/t/setpoint-vt')
   await expect(canvas.getByRole('link', { name: 'Team' })).toHaveAttribute('href', '/t/setpoint-vt/team')
   await expect(canvas.getByRole('link', { name: 'Money' })).toHaveAttribute('href', '/t/setpoint-vt/money')
-  await expect(canvas.getByRole('link', { name: 'Profile' })).toHaveAttribute('href', '/t/setpoint-vt/profile')
+  // Profile is the team-independent /account (ADR-0027 §1), not a slug-built destination.
+  await expect(canvas.getByRole('link', { name: 'Profile' })).toHaveAttribute('href', '/account')
   // No dead tabs: nothing is disabled/non-interactive. The Money tab is a live link to its
   // (coming-soon) placeholder page, not a greyed-out stub.
   await expect(canvas.getByRole('link', { name: 'Events' })).not.toHaveClass('pointer-events-none')
@@ -80,14 +81,19 @@ export const TeamSettingsActive: Story = {
   },
 }
 
+// Profile is the team-independent /account (ADR-0027 §1), so it is active there regardless of slug.
+// /account carries no slug, so the other tabs collapse to the dispatcher `/` — the accepted
+// teamless-bar behaviour (ADR-0027 consequences) — while Profile still points at its constant.
 export const ProfileActive: Story = {
-  parameters: { router: { initialEntries: ['/t/setpoint-vt/profile'] } },
+  parameters: { router: { initialEntries: ['/account'] } },
   play: async ({ canvas }) => {
-    await expectTabTargets(canvas)
+    await expect(canvas.getByRole('link', { name: 'Profile' })).toHaveAttribute('href', '/account')
     await expect(canvas.getByRole('link', { name: 'Profile' })).toHaveClass('text-blue')
     await expect(canvas.getByRole('link', { name: 'Profile' })).toHaveAttribute('aria-current', 'page')
     await expect(canvas.getByRole('link', { name: 'Events' })).not.toHaveClass('text-blue')
     await expect(canvas.getByRole('link', { name: 'Team' })).not.toHaveClass('text-blue')
     await expect(canvas.getByRole('link', { name: 'Money' })).not.toHaveClass('text-blue')
+    // With no slug in scope the non-Profile tabs point at the dispatcher.
+    await expect(canvas.getByRole('link', { name: 'Events' })).toHaveAttribute('href', '/')
   },
 }

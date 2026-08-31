@@ -25,8 +25,11 @@ export const currentMemberQueryOptions = queryOptions({
   },
 })
 
-export function useCurrentMember() {
-  return useQuery(currentMemberQueryOptions)
+// `enabled` lets a caller hold the fetch off when there is no tenant to resolve it against — the
+// Account container passes `enabled: !!activeTeam`, because a teamless member-profile fetch 403s
+// NO_TEAM_MEMBERSHIP, which the fetch handler turns into a forced logout (ADR-0027 consequences).
+export function useCurrentMember(options?: { enabled?: boolean }) {
+  return useQuery({ ...currentMemberQueryOptions, enabled: options?.enabled })
 }
 
 // The admin roster. Keyed ['members'] so a member mutation invalidating that prefix refreshes both

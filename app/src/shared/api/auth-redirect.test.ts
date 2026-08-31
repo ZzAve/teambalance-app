@@ -27,7 +27,7 @@ describe('shouldRedirectToLogin', () => {
 
   // This 403 no longer means "teamless" alone — a Member of several Teams gets it before one is
   // Active — so picking a Team must not log you out on the way to picking it.
-  it.each(['/select-team', '/select-team/', '/onboarding', '/create-team'])(
+  it.each(['/select-team', '/select-team/', '/onboarding', '/create-team', '/account', '/account/'])(
     'does NOT redirect from %s, which owns the no-Active-Team question itself',
     (currentPath) => {
       expect(shouldRedirectToLogin({ status: 403, code: NO_TEAM_MEMBERSHIP_CODE, currentPath })).toBe(false)

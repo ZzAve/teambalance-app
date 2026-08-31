@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { teamRoutes, teamSlugFromPath } from './team-routes'
+import { ACCOUNT_PATH, teamRoutes, teamSlugFromPath } from './team-routes'
 
 describe('teamSlugFromPath', () => {
   it('reads the slug from a team-scoped path', () => {
@@ -37,7 +37,6 @@ describe('teamRoutes', () => {
     expect(routes.team).toBe('/t/setpoint-vt/team')
     expect(routes.teamSettings).toBe('/t/setpoint-vt/team/settings')
     expect(routes.money).toBe('/t/setpoint-vt/money')
-    expect(routes.profile).toBe('/t/setpoint-vt/profile')
     expect(routes.getStarted).toBe('/t/setpoint-vt/get-started')
   })
 
@@ -53,5 +52,20 @@ describe('teamRoutes', () => {
 
   it('round-trips through teamSlugFromPath', () => {
     expect(teamSlugFromPath(teamRoutes('setpoint-vt').teamSettings)).toBe('setpoint-vt')
+  })
+
+  // Profile is no longer a team-scoped destination — it moved to the team-independent /account
+  // (ADR-0027 §1), so teamRoutes must not name it any more.
+  it('no longer names a team-scoped profile destination', () => {
+    expect('profile' in teamRoutes('setpoint-vt')).toBe(false)
+  })
+})
+
+describe('ACCOUNT_PATH', () => {
+  // The Account tab is a constant, team-independent route (ADR-0027 §1) — never built from a slug —
+  // so the BottomNav Profile tab and the /account route can both reference the same literal.
+  it('is the team-independent /account route', () => {
+    expect(ACCOUNT_PATH).toBe('/account')
+    expect(teamSlugFromPath(ACCOUNT_PATH)).toBeNull()
   })
 })

@@ -4,6 +4,8 @@
 - Date: 2026-08-30
 - Amends: [ADR-0017](0017-visual-regression-gate-and-gated-renovate-automerge.md)
   (§1 "Visual regression via Chromatic" and the "Snapshot budget" consequence)
+- Rollout worklist: [#259](https://github.com/ZzAve/teambalance-app/issues/259) — the per-story
+  `keep-baseline` / `disableSnapshot` / `modes-candidate` classification and rollout checklist
 
 ## Context
 
@@ -147,8 +149,9 @@ into a control.
 
 - **Behavioural coverage is unchanged; the pixel budget drops.** No `play` is deleted — every one of
   the 247 stories still runs under `make test-app`. `disableSnapshot` only removes redundant
-  *pictures*. The audit (`docs/plans/storybook-snapshot-audit.md`) classifies **205 keep-baseline,
-  42 disableSnapshot**, and **+11 deliberate dark-mode snapshots**, for a projected baseline of
+  *pictures*. The audit ([#259](https://github.com/ZzAve/teambalance-app/issues/259)) classifies
+  **205 keep-baseline, 42 disableSnapshot**, and **+11 deliberate dark-mode snapshots**, for a
+  projected baseline of
   **247 − 42 + 11 = 216** (net **−31**). The single biggest harvest is `NextEventHeroView` (−5:
   `RsvpIn`/`RsvpOut`/`WholeCardIsClickable`/`ControlsStayAboveTheOverlay` all render pixel-identically
   to the default state); confirm-dialog spies that close on confirm (`MemberRoster.RemoveMember`,
@@ -160,15 +163,15 @@ into a control.
   holding per-PR counts down.
 - **A `disableSnapshot` is a claim that must stay true.** It asserts "this render equals sibling X".
   If a later change makes the disabled story render something new, the claim is stale and the picture
-  silently goes ungarded. The naming comment is the guard-rail; a periodic re-audit (the one in
-  `docs/plans/storybook-snapshot-audit.md`) is the backstop.
+  silently goes ungarded. The naming comment is the guard-rail; a periodic re-audit (tracked in
+  [#259](https://github.com/ZzAve/teambalance-app/issues/259)) is the backstop.
 - **Dark-theme regressions become catchable.** Modes add real dark baselines on the token-sensitive
   surfaces, each with its own accept — the cost is one extra human click per intended change on those
   components, the same trade ADR-0017 already accepted for light.
 - **Rollout is incremental**, piggy-backing on ADR-0017's existing "prop-contract spies for the other
   interactive stories" rollout: apply `disableSnapshot` as each behavioural-only story is touched, and
   add modes to the token-sensitive components. No big-bang sweep required.
-- **The audit is a living document, not a one-off.** `docs/plans/storybook-snapshot-audit.md`
-  classifies each story `keep-baseline` / `disableSnapshot` / `modes-candidate`; it is the worklist
-  for the rollout and the reference for the next person who asks "why do we have so many similar
-  stories?"
+- **The audit is a living document, not a one-off.** Issue
+  [#259](https://github.com/ZzAve/teambalance-app/issues/259) classifies each story `keep-baseline` /
+  `disableSnapshot` / `modes-candidate`; it is the worklist for the rollout and the reference for the
+  next person who asks "why do we have so many similar stories?"

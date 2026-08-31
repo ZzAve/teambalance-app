@@ -18,6 +18,10 @@ class InvitationJpaEntity(
     val tokenHash: String = "",
     @Column(name = "token_encrypted")
     val encryptedToken: String? = null,
+    @Column(name = "role", nullable = false)
+    val role: String = "USER",
+    @Column(name = "consumed_at")
+    val consumedAt: Instant? = null,
     @Column(name = "created_by", nullable = false)
     val createdBy: UUID = UUID.randomUUID(),
     @Column(name = "expires_at", nullable = false)

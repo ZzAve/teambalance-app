@@ -41,15 +41,20 @@ interface SpringDataTeamMemberRepository : JpaRepository<TeamMemberJpaEntity, UU
     )
     fun deactivate(@Param("teamId") teamId: UUID, @Param("userId") userId: UUID): Int
 
-    // Re-joining after removal. The role resets to USER: a removed admin walking back in through a
-    // shared invite link must not arrive holding their old rights.
+    // Re-joining after removal. The role is set from the accepted link, never inherited: a removed
+    // admin walking back in through a shared USER link arrives as USER, and a single-use ADMIN handover
+    // link re-admits at ADMIN. The invitation's role — not the old row — decides.
     @Modifying
     @Query(
-        "UPDATE public.team_members SET active = true, role = 'USER' " +
+        "UPDATE public.team_members SET active = true, role = :role " +
             "WHERE team_id = :teamId AND user_id = :userId AND active = false",
         nativeQuery = true,
     )
-    fun reactivateAsUser(@Param("teamId") teamId: UUID, @Param("userId") userId: UUID): Int
+    fun reactivateWithRole(
+        @Param("teamId") teamId: UUID,
+        @Param("userId") userId: UUID,
+        @Param("role") role: String,
+    ): Int
 
     @Query(
         "SELECT COUNT(*) FROM public.team_members " +

@@ -5,6 +5,7 @@ import com.github.zzave.teambalance.api.domain.model.TeamId
 import com.github.zzave.teambalance.api.domain.port.CurrentTeamGateway
 import com.github.zzave.teambalance.api.domain.port.CurrentUserGateway
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.AcceptInvitation
+import com.github.zzave.teambalance.api.interfaces.generated.endpoint.CreateAdminInvitation
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.CreateInvitation
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.ExpireInvitations
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.GetActiveInvitation
@@ -19,6 +20,7 @@ class InvitationController(
     private val currentUserGateway: CurrentUserGateway,
     private val currentTeamGateway: CurrentTeamGateway,
 ) : CreateInvitation.Handler,
+    CreateAdminInvitation.Handler,
     AcceptInvitation.Handler,
     ExpireInvitations.Handler,
     GetActiveInvitation.Handler,
@@ -49,6 +51,26 @@ class InvitationController(
 
         val invitation = invitationService.generateInviteLink(callerId = userId, teamId = teamId)
         return CreateInvitation.Response201(
+            Invitation(
+                token = invitation.token.value,
+                expiresAt = invitation.expiresAt.toString(),
+            ),
+        )
+    }
+
+    /**
+     * The single-use, ADMIN-granting handover link (ADR-0024 §5). Same team-scoped admin gate as
+     * [createInvitation]; the acting-in Platform Admin passes it through their Virtual Member. The
+     * distinct minting keeps this link off the shareable USER link's idempotency and GET-active read.
+     */
+    override suspend fun createAdminInvitation(
+        request: CreateAdminInvitation.Request,
+    ): CreateAdminInvitation.Response<*> {
+        val userId = currentUserGateway.requireCurrentUserId()
+        val teamId = currentTeamGateway.requireCurrentTeamId()
+
+        val invitation = invitationService.generateAdminInviteLink(callerId = userId, teamId = teamId)
+        return CreateAdminInvitation.Response201(
             Invitation(
                 token = invitation.token.value,
                 expiresAt = invitation.expiresAt.toString(),

@@ -1,6 +1,7 @@
 package com.github.zzave.teambalance.api.domain.port
 
 import com.github.zzave.teambalance.api.domain.model.Invitation
+import com.github.zzave.teambalance.api.domain.model.Role
 import com.github.zzave.teambalance.api.domain.model.TeamId
 import com.github.zzave.teambalance.api.domain.model.TokenHash
 import java.time.Instant
@@ -11,11 +12,28 @@ interface InvitationRepository {
     fun findByTokenHash(tokenHash: TokenHash): Invitation?
 
     /**
-     * The team's current invite link, or null if it has none. At most one is active at a time — the
-     * invariant [InvitationRepository] callers maintain by minting through
-     * `InvitationService.generateInviteLink` (idempotent) or [rotate] (expire-and-replace).
+     * The team's current shareable (USER) invite link, or null if it has none. At most one is active at
+     * a time — the invariant [InvitationRepository] callers maintain by minting through
+     * `InvitationService.generateInviteLink` (idempotent) or [rotate] (expire-and-replace). Scoped to
+     * [Role.USER] so a live ADMIN handover link is never mistaken for the shareable one, and never
+     * re-shown by the admin's "current link" read.
      */
     fun findActiveByTeam(teamId: TeamId, now: Instant): Invitation?
+
+    /**
+     * The team's current unspent ADMIN handover link, or null if it has none — active at [now],
+     * [Role.ADMIN], and not yet consumed. Backs the idempotent mint of the handover link, so a team
+     * holds at most one live ADMIN credential at a time (ADR-0024 §5).
+     */
+    fun findActiveAdminByTeam(teamId: TeamId, now: Instant): Invitation?
+
+    /**
+     * Marks the invitation [invitationId] consumed as of [now], but only if it was still unspent —
+     * `UPDATE … SET consumed_at = :now WHERE id = :id AND consumed_at IS NULL`. Returns true iff one
+     * row changed, so a second accept of a single-use ADMIN link (or a lost race) gets false and joins
+     * nobody. Consume-first ordering makes the failure mode fail-safe: at most one caller ever passes.
+     */
+    fun consume(invitationId: UUID, now: Instant): Boolean
 
     /** Marks every currently-active (unexpired) invitation for the team as expired as of [now]. */
     fun expireActive(teamId: TeamId, now: Instant)

@@ -36,18 +36,34 @@ private class FakeInvitationRepo(private var live: Invitation?) : InvitationRepo
     var expiredTeam: TeamId? = null
     val rotated = mutableListOf<Invitation>()
     var active: Invitation? = null
+    var activeAdmin: Invitation? = null
+    private val consumed = mutableSetOf<UUID>()
 
     /** The way a rotate or a lapsed TTL does: every later lookup misses. */
     fun expire() { live = null; active = null }
 
+    /** Make [invitation] the one the accept path resolves — a specific ADMIN link, say. */
+    fun present(invitation: Invitation) { live = invitation }
+
+    /** True once [consume] has stamped this id — the single-use assertion. */
+    fun isConsumed(id: UUID): Boolean = id in consumed
+
     override fun save(invitation: Invitation): Invitation {
         saved += invitation
-        active = invitation
+        // A save routes to the role-scoped "active" slot the matching lookup reads, so the idempotent
+        // mint sees its own link back — the USER shareable one and the ADMIN handover one are separate.
+        if (invitation.role == Role.ADMIN) activeAdmin = invitation else active = invitation
         return invitation
     }
     override fun findByTokenHash(tokenHash: TokenHash): Invitation? = live
     override fun findActiveByTeam(teamId: TeamId, now: Instant): Invitation? =
-        active?.takeIf { it.teamId == teamId && it.expiresAt.isAfter(now) }
+        active?.takeIf { it.role == Role.USER && it.teamId == teamId && it.expiresAt.isAfter(now) }
+    override fun findActiveAdminByTeam(teamId: TeamId, now: Instant): Invitation? =
+        activeAdmin?.takeIf {
+            it.role == Role.ADMIN && it.consumedAt == null && it.id !in consumed &&
+                it.teamId == teamId && it.expiresAt.isAfter(now)
+        }
+    override fun consume(invitationId: UUID, now: Instant): Boolean = consumed.add(invitationId)
     override fun expireActive(teamId: TeamId, now: Instant) { expiredTeam = teamId; active = null }
     override fun rotate(teamId: TeamId, replacement: Invitation, now: Instant): Invitation {
         rotated += replacement
@@ -71,6 +87,8 @@ class InvitationServiceTest : FunSpec() {
                 Invitation(
                     id = UUID.randomUUID(),
                     teamId = teamId,
+                    role = Role.USER,
+                    consumedAt = null,
                     tokenHash = TokenHash("hash"),
                     // Hash-only, like every invitation minted before ADR-0025.
                     encryptedToken = null,
@@ -204,6 +222,8 @@ class InvitationServiceTest : FunSpec() {
             f.invitations.active = Invitation(
                 id = UUID.randomUUID(),
                 teamId = f.teamId,
+                role = Role.USER,
+                consumedAt = null,
                 tokenHash = TokenHash("legacy"),
                 encryptedToken = null,
                 createdBy = adminId,
@@ -220,6 +240,8 @@ class InvitationServiceTest : FunSpec() {
             f.invitations.active = Invitation(
                 id = UUID.randomUUID(),
                 teamId = f.teamId,
+                role = Role.USER,
+                consumedAt = null,
                 tokenHash = TokenHash("legacy"),
                 encryptedToken = null,
                 createdBy = adminId,
@@ -252,6 +274,97 @@ class InvitationServiceTest : FunSpec() {
             f.service.acceptInvitation(token = "anything", userId = nonAdmin) shouldBe null
 
             f.routingGateway.pins shouldBe emptyList()
+        }
+
+        // ----- Role-granting Admin handover link (ADR-0024 §5, #240) -----
+
+        val recipient = UserId.random()
+
+        fun adminLink(id: UUID = UUID.randomUUID(), teamId: TeamId) = Invitation(
+            id = id,
+            teamId = teamId,
+            role = Role.ADMIN,
+            consumedAt = null,
+            tokenHash = TokenHash("hash"),
+            encryptedToken = null,
+            createdBy = adminId,
+            expiresAt = Instant.EPOCH.plus(Duration.ofDays(1)),
+            createdAt = Instant.EPOCH,
+        )
+
+        test("generateAdminInviteLink by a non-admin is forbidden") {
+            val f = newFixture()
+            shouldThrow<NotTeamAdminException> {
+                f.service.generateAdminInviteLink(callerId = nonAdmin, teamId = f.teamId)
+            }
+        }
+
+        test("generateAdminInviteLink mints an ADMIN link attributed to the caller") {
+            val f = newFixture()
+            val result = f.service.generateAdminInviteLink(callerId = adminId, teamId = f.teamId)
+
+            result.token.value.isNotBlank() shouldBe true
+            f.invitations.saved.single().role shouldBe Role.ADMIN
+            f.invitations.saved.single().createdBy shouldBe adminId
+        }
+
+        // At most one live ADMIN credential per team, mirroring the USER link's anti-accumulation rule.
+        test("generateAdminInviteLink returns the existing unspent admin link instead of minting a second") {
+            val f = newFixture()
+            val first = f.service.generateAdminInviteLink(callerId = adminId, teamId = f.teamId)
+            val second = f.service.generateAdminInviteLink(callerId = adminId, teamId = f.teamId)
+
+            second.token.value shouldBe first.token.value
+            f.invitations.saved.size shouldBe 1
+        }
+
+        // The ADMIN link does not masquerade as the shareable USER link: the "current link" read and the
+        // USER idempotent mint must never surface it.
+        test("an admin handover link is not returned as the team's shareable USER link") {
+            val f = newFixture()
+            f.service.generateAdminInviteLink(callerId = adminId, teamId = f.teamId)
+
+            f.service.activeInviteLink(callerId = adminId, teamId = f.teamId) shouldBe null
+        }
+
+        test("accepting an ADMIN link joins the recipient as ADMIN and switches them in") {
+            val f = newFixture()
+            f.invitations.present(adminLink(teamId = f.teamId))
+
+            val joined = f.service.acceptInvitation(token = "handover", userId = recipient)
+
+            joined shouldBe f.teamId
+            f.members.findRole(f.teamId, recipient) shouldBe Role.ADMIN
+            f.routingGateway.lastPinned?.schemaName shouldBe f.directory.schemaOf(f.teamId)
+        }
+
+        // Single-use: the link is spent on the first accept, and forwarding it to a second person grants
+        // them nothing (ADR-0024 §5 — the decision made in #240).
+        test("an ADMIN link is single-use: a second accept joins nobody and switches nothing") {
+            val f = newFixture()
+            val id = UUID.randomUUID()
+            f.invitations.present(adminLink(id = id, teamId = f.teamId))
+            val second = UserId.random()
+
+            f.service.acceptInvitation(token = "handover", userId = recipient) shouldBe f.teamId
+            f.invitations.isConsumed(id) shouldBe true
+            f.routingGateway.writes.clear()
+
+            f.service.acceptInvitation(token = "handover", userId = second) shouldBe null
+            f.members.findRole(f.teamId, second) shouldBe null
+            f.routingGateway.pins shouldBe emptyList()
+        }
+
+        // A USER link is never consumed — the shareable "many joiners" model is unchanged (ADR-0025).
+        test("a USER link is reusable: two different people can both accept it") {
+            val f = newFixture()
+            val second = UserId.random()
+
+            f.service.acceptInvitation(token = "shared", userId = nonAdmin) shouldBe f.teamId
+            f.service.acceptInvitation(token = "shared", userId = second) shouldBe f.teamId
+
+            f.members.findRole(f.teamId, nonAdmin) shouldBe Role.USER
+            f.members.findRole(f.teamId, second) shouldBe Role.USER
         }
     }
 }

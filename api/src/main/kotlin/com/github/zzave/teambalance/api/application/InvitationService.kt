@@ -3,6 +3,7 @@ package com.github.zzave.teambalance.api.application
 import com.github.zzave.teambalance.api.domain.model.EncryptedToken
 import com.github.zzave.teambalance.api.domain.model.Invitation
 import com.github.zzave.teambalance.api.domain.model.InviteToken
+import com.github.zzave.teambalance.api.domain.model.Role
 import com.github.zzave.teambalance.api.domain.model.TeamId
 import com.github.zzave.teambalance.api.domain.model.TokenHash
 import com.github.zzave.teambalance.api.domain.model.UserId
@@ -79,7 +80,30 @@ class InvitationService(
         invitationRepository.findActiveByTeam(teamId, now)?.let(::reveal)?.let { return it }
 
         val token = generateToken()
-        invitationRepository.save(mint(token, callerId, teamId, now))
+        invitationRepository.save(mint(token, callerId, teamId, now, Role.USER))
+        return GeneratedInvitation(token = token, expiresAt = now.plus(INVITE_TTL))
+    }
+
+    /**
+     * The single-use, **ADMIN**-granting handover link (ADR-0024 §5) — how a memberless team gets its
+     * first Admin. Distinct from [generateInviteLink]: that mints the shareable USER link ("one link,
+     * many joiners", ADR-0025), whereas an ADMIN grant with those semantics would hand Admin to
+     * everyone the recipient forwards it to, so this link is spent on first accept.
+     *
+     * Idempotent while unspent: with a live, unconsumed ADMIN link already present it returns that one
+     * rather than minting a second, so a team holds at most one live ADMIN credential. Once the previous
+     * was accepted (consumed) or expired, this mints a fresh one.
+     *
+     * Admin-only: [callerId] must be an admin of [teamId] — which, for the memberless handover, is the
+     * acting-in Platform Admin's Virtual Member (ADR-0024 §2).
+     */
+    fun generateAdminInviteLink(callerId: UserId, teamId: TeamId): GeneratedInvitation {
+        authorizationService.requireAdmin(callerId, teamId)
+        val now = clock.instant()
+        invitationRepository.findActiveAdminByTeam(teamId, now)?.let(::reveal)?.let { return it }
+
+        val token = generateToken()
+        invitationRepository.save(mint(token, callerId, teamId, now, Role.ADMIN))
         return GeneratedInvitation(token = token, expiresAt = now.plus(INVITE_TTL))
     }
 
@@ -93,11 +117,24 @@ class InvitationService(
         val now = Instant.now(clock)
         val invitation = invitationRepository.findByTokenHash(hashToken(token))
             ?.takeIf { it.expiresAt.isAfter(now) }
+            ?.takeIf { claim(it, now) }
             ?: return null
-        teamMemberRepository.addMember(invitation.teamId, userId)
+
+        teamMemberRepository.addMember(invitation.teamId, userId, invitation.role)
         activeTeamService.activate(userId, invitation.teamId)
         return invitation.teamId
     }
+
+    /**
+     * Claims the invitation for the caller who is about to accept it, returning whether it may proceed.
+     *
+     * A single-use ADMIN link is consumed conditionally *before* it grants anything (ADR-0024 §5), so
+     * at most one accept ever passes: consume-first is the fail-safe order — a lost race or an
+     * already-spent link returns false and joins nobody, rather than risking two admins from one link.
+     * A USER link is reusable, always claimable, and never consumed.
+     */
+    private fun claim(invitation: Invitation, now: Instant): Boolean =
+        invitation.role != Role.ADMIN || invitationRepository.consume(invitation.id, now)
 
     /**
      * Invalidates every currently-active invite link for the team; already-expired ones are untouched.
@@ -120,13 +157,15 @@ class InvitationService(
         authorizationService.requireAdmin(callerId, teamId)
         val now = clock.instant()
         val token = generateToken()
-        invitationRepository.rotate(teamId, mint(token, callerId, teamId, now), now)
+        invitationRepository.rotate(teamId, mint(token, callerId, teamId, now, Role.USER), now)
         return GeneratedInvitation(token = token, expiresAt = now.plus(INVITE_TTL))
     }
 
-    private fun mint(token: InviteToken, callerId: UserId, teamId: TeamId, now: Instant) = Invitation(
+    private fun mint(token: InviteToken, callerId: UserId, teamId: TeamId, now: Instant, role: Role) = Invitation(
         id = UUID.randomUUID(),
         teamId = teamId,
+        role = role,
+        consumedAt = null,
         tokenHash = hashToken(token.value),
         encryptedToken = tokenCipher.encrypt(token),
         createdBy = callerId,

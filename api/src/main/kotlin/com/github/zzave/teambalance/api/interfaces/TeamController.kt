@@ -7,6 +7,7 @@ import com.github.zzave.teambalance.api.domain.model.CreationCode
 import com.github.zzave.teambalance.api.domain.model.Slug
 import com.github.zzave.teambalance.api.domain.port.CurrentUserGateway
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.ActivateTeam
+import com.github.zzave.teambalance.api.interfaces.generated.endpoint.CreateMemberlessTeam
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.CreateTeam
 import com.github.zzave.teambalance.api.interfaces.generated.model.Team
 import org.springframework.web.bind.annotation.RestController
@@ -26,6 +27,7 @@ class TeamController(
     private val activeTeamService: ActiveTeamService,
     private val currentUserGateway: CurrentUserGateway,
 ) : CreateTeam.Handler,
+    CreateMemberlessTeam.Handler,
     ActivateTeam.Handler {
 
     override suspend fun createTeam(request: CreateTeam.Request): CreateTeam.Response<*> {
@@ -38,6 +40,24 @@ class TeamController(
             creationCode = CreationCode(request.body.creationCode.trim()),
         )
         return CreateTeam.Response201(created.toDto())
+    }
+
+    /**
+     * Memberless creation by a Platform Admin (ADR-0024 §5): the team is provisioned with no members,
+     * and the caller does not become one. The platform-admin gate lives in [TeamService]; a non-admin
+     * caller surfaces as an opaque 403 via [GlobalExceptionHandler], like the rest of `/admin`. No
+     * tenant is resolved — the caller is teamless — and, deliberately, no Active Team is set.
+     */
+    override suspend fun createMemberlessTeam(
+        request: CreateMemberlessTeam.Request,
+    ): CreateMemberlessTeam.Response<*> {
+        val adminId = currentUserGateway.requireCurrentUserId()
+        val created = teamService.createMemberlessTeam(
+            adminId = adminId,
+            rawName = request.body.name,
+            rawSlug = request.body.slug,
+        )
+        return CreateMemberlessTeam.Response201(created.toDto())
     }
 
     /**

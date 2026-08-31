@@ -44,7 +44,7 @@ export function HandoverAdminView({
       ) : (
         <div className="flex flex-col gap-2">
           <div className="flex gap-2">
-            <Input readOnly value={link} onFocus={(e) => e.currentTarget.select()} />
+            <Input aria-label="Admin handover link" readOnly value={link} onFocus={(e) => e.currentTarget.select()} />
             <Button type="button" onClick={onCopy}>
               {copied ? 'Copied!' : 'Copy'}
             </Button>

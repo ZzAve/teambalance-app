@@ -75,6 +75,9 @@ export const Series: Story = {
 // carry it: renaming an event must not silently erase its lineup. A prop-contract spy is the only
 // layer that can catch the omission — a getByText would not see it.
 export const CarriesRosterOverrideThroughAnUnrelatedEdit: Story = {
+  // Behavioural twin of Standalone — the roster-override carry is a callback assertion; the filled
+  // edit-form picture ≈ Standalone (ADR-0027 §2).
+  parameters: { chromatic: { disableSnapshot: true } },
   args: {
     event: {
       ...EVENT,
@@ -106,6 +109,9 @@ export const CarriesRosterOverrideThroughAnUnrelatedEdit: Story = {
 
 // The mirror case: an inheriting event stays inheriting, rather than acquiring an override.
 export const KeepsAnInheritingEventInheriting: Story = {
+  // Behavioural twin of Standalone — asserts onSave gets `rosterOverride: undefined`; the picture
+  // settles back to Standalone (ADR-0027 §2).
+  parameters: { chromatic: { disableSnapshot: true } },
   play: async ({ canvas, userEvent, args }) => {
     await userEvent.click(canvas.getByRole('button', { name: 'Save changes' }))
 

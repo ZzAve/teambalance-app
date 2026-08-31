@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite'
 import { expect, fn } from 'storybook/test'
 import { withRouter } from '@shared/testing/router-decorator'
 import { makeEvent } from '@shared/testing/event-fixtures'
+import { allModes } from '../../../../.storybook/modes'
 import { NextEventHeroView } from './NextEventHeroView'
 
 // NextEventHeroView is the prop-only Next Up hero behind the NextEventHero container: the event,
@@ -21,11 +22,14 @@ const EVENT = makeEvent({
   attendanceSummary: { attending: 10, maybe: 1, absent: 0, notResponded: 4, roleBreakdown: [] },
 })
 
+// Token-sensitive component (ADR-0027 §3): the largest themed surface plus the RSVP colouring, so
+// modes at the meta level give every state a light *and* a dark baseline.
 const meta = {
   title: 'widgets/next-event-hero/NextEventHeroView',
   component: NextEventHeroView,
   decorators: [withRouter],
   args: { event: EVENT, now: NOW, myState: 'NOT_RESPONDED', onRespond: fn() },
+  parameters: { chromatic: { modes: { light: allModes.light, dark: allModes.dark } } },
 } satisfies Meta<typeof NextEventHeroView>
 
 /**
@@ -56,6 +60,8 @@ export const HasNext: Story = {
 }
 
 export const HaventReplied: Story = {
+  // Behavioural twin of HasNext — default args render the identical picture (ADR-0027 §2).
+  parameters: { chromatic: { disableSnapshot: true } },
   play: async ({ canvas }) => {
     await expect(canvas.getByText(/10 going · you haven't replied/)).toBeInTheDocument()
     // Neither answer is pressed yet — "I'm in" is solid because it is the invitation.
@@ -112,6 +118,9 @@ export const Maybe: Story = {
 // Prop-contract spies: the inline RSVP is the whole point of the hero, so prove both buttons
 // actually call onRespond with the right state — not merely that they render.
 export const RsvpIn: Story = {
+  // Behavioural twin of HasNext — the View is controlled, so a click reports to onRespond without
+  // re-rendering; the post-play picture is HasNext's (ADR-0027 §2).
+  parameters: { chromatic: { disableSnapshot: true } },
   play: async ({ canvas, userEvent, args }) => {
     await userEvent.click(canvas.getByRole('button', { name: /I'm in/ }))
     await expect(args.onRespond).toHaveBeenCalledWith('ATTENDING')
@@ -119,6 +128,8 @@ export const RsvpIn: Story = {
 }
 
 export const RsvpOut: Story = {
+  // Behavioural twin of HasNext — controlled click, picture unchanged from HasNext (ADR-0027 §2).
+  parameters: { chromatic: { disableSnapshot: true } },
   play: async ({ canvas, userEvent, args }) => {
     await userEvent.click(canvas.getByRole('button', { name: /Can't make it/ }))
     await expect(args.onRespond).toHaveBeenCalledWith('ABSENT')
@@ -140,6 +151,9 @@ export const Saving: Story = {
 // carries a stretched-link overlay, so the passive rows (countdown, date, headcount, padding) all
 // hit that link instead of dead text — the same pattern EventCard already uses in the list below.
 export const WholeCardIsClickable: Story = {
+  // Behavioural twin of HasNext — a hit-test that changes nothing visible; picture = HasNext
+  // (ADR-0027 §2).
+  parameters: { chromatic: { disableSnapshot: true } },
   play: async ({ canvas, canvasElement }) => {
     const cardLink = canvas.getByRole('link', { name: EVENT.title })
     const hero = canvasElement.querySelector('section')!
@@ -164,6 +178,9 @@ export const WholeCardIsClickable: Story = {
 // A stretched overlay covering the RSVP buttons would make the hero's whole point unreachable, and
 // `userEvent` alone would not notice — it dispatches at the button either way.
 export const ControlsStayAboveTheOverlay: Story = {
+  // Behavioural twin of HasNext — a hit-test that changes nothing visible; picture = HasNext
+  // (ADR-0027 §2).
+  parameters: { chromatic: { disableSnapshot: true } },
   play: async ({ canvas, canvasElement }) => {
     for (const name of [/I'm in/, /Can't make it/]) {
       const button = canvas.getByRole('button', { name })

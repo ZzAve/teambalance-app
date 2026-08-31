@@ -22,6 +22,8 @@ export const NamesTheTeam: Story = {
 }
 
 export const ExitIsOneClick: Story = {
+  // Behavioural twin of NamesTheTeam — onExit fires; the banner picture is unchanged (ADR-0027 §2).
+  parameters: { chromatic: { disableSnapshot: true } },
   play: async ({ canvas, userEvent, args }) => {
     await userEvent.click(canvas.getByRole('button', { name: 'Exit' }))
     await expect(args.onExit).toHaveBeenCalled()

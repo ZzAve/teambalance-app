@@ -26,6 +26,9 @@ export const Default: Story = {
 }
 
 export const TypingUpdatesTheContainer: Story = {
+  // Behavioural twin of Default — the field is controlled at `''`, so typing reports to onChange
+  // without changing the picture (ADR-0027 §2).
+  parameters: { chromatic: { disableSnapshot: true } },
   play: async ({ canvas, userEvent, args }) => {
     await userEvent.type(canvas.getByLabelText('Invite link'), 'abc')
     await expect(args.onChange).toHaveBeenCalled()

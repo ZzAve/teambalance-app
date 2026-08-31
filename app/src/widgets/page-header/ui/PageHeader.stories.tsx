@@ -49,6 +49,9 @@ export const TitleOnly: Story = {
 // end-to-end — a plain class assertion would still pass if the offset were re-hardcoded to today's
 // header height.
 export const StickyOffsetFollowsHeaderHeight: Story = {
+  // Behavioural twin of TitleOnly — the computed sticky offset is not visible; the picture = TitleOnly
+  // (ADR-0027 §2).
+  parameters: { chromatic: { disableSnapshot: true } },
   decorators: [
     (Story) => (
       <div style={{ '--header-height': '80px' } as React.CSSProperties}>

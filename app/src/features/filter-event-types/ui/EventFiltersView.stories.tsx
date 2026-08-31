@@ -59,6 +59,9 @@ export const Open: Story = {
 // Prop-contract spy: a chip tap must report the tapped type id up to the route, which owns the
 // isolate-first selection rule (toggleTypeSelection).
 export const TogglesType: Story = {
+  // Behavioural twin of Open — the open popover is the same picture; only onToggleType fires
+  // (ADR-0027 §2).
+  parameters: { chromatic: { disableSnapshot: true } },
   play: async ({ canvas, userEvent, args }) => {
     await userEvent.click(canvas.getByRole('button', { name: 'Filters' }))
     await userEvent.click(canvas.getByRole('button', { name: 'Match' }))
@@ -69,6 +72,9 @@ export const TogglesType: Story = {
 // Prop-contract spy: the switch reports the value it is moving *to*, which is what drives
 // useEvents(showPast).
 export const TogglesShowPast: Story = {
+  // Behavioural twin of Open — the open popover is the same picture; only onToggleShowPast fires
+  // (ADR-0027 §2).
+  parameters: { chromatic: { disableSnapshot: true } },
   play: async ({ canvas, userEvent, args }) => {
     await userEvent.click(canvas.getByRole('button', { name: 'Filters' }))
     await userEvent.click(canvas.getByRole('switch', { name: 'Show past events' }))
@@ -92,6 +98,8 @@ export const ShowingPast: Story = {
 }
 
 export const ClosesOnEscape: Story = {
+  // Behavioural twin of Closed — Escape settles back to the shut popover (ADR-0027 §2).
+  parameters: { chromatic: { disableSnapshot: true } },
   play: async ({ canvas, userEvent }) => {
     await userEvent.click(canvas.getByRole('button', { name: 'Filters' }))
     await expect(canvas.getByRole('dialog', { name: 'Filters' })).toBeInTheDocument()

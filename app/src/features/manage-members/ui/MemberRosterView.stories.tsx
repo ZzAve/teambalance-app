@@ -71,6 +71,9 @@ export const Default: Story = {
 }
 
 export const ChangePosition: Story = {
+  // Behavioural twin of Default — the controlled select closes back to the roster picture
+  // (ADR-0027 §2).
+  parameters: { chromatic: { disableSnapshot: true } },
   play: async ({ canvas, userEvent, args }) => {
     await userEvent.click(canvas.getByLabelText('Position for Grace Hopper'))
     const listbox = within(document.body)
@@ -113,6 +116,9 @@ export const RenameMember: Story = {
 // Prop-contract: promoting/demoting reuses the update mutation — the first "Make member" (the first
 // admin, Ada) fires onToggleRole with that member.
 export const ToggleRole: Story = {
+  // Behavioural twin of Default — onToggleRole fires while the roster picture is unchanged
+  // (ADR-0027 §2).
+  parameters: { chromatic: { disableSnapshot: true } },
   play: async ({ canvas, userEvent, args }) => {
     await userEvent.click(canvas.getAllByRole('button', { name: 'Make member' })[0])
     await expect(args.onToggleRole).toHaveBeenCalledWith(MEMBERS[0])
@@ -123,6 +129,9 @@ export const ToggleRole: Story = {
 // with the member. The row buttons go aria-hidden while the modal is open, so the dialog's Remove is
 // unambiguous.
 export const RemoveMember: Story = {
+  // Behavioural twin of Default — the confirm dialog closes on confirm and settles back to the
+  // roster picture; RemoveConfirmOpen holds the open-dialog baseline (ADR-0027 §2).
+  parameters: { chromatic: { disableSnapshot: true } },
   play: async ({ canvas, userEvent, args }) => {
     await userEvent.click(canvas.getAllByRole('button', { name: 'Remove' })[0])
     const dialog = within(document.body)

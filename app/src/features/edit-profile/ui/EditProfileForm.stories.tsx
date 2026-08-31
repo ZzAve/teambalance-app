@@ -37,6 +37,9 @@ export const Default: Story = {
 }
 
 export const Editing: Story = {
+  // Behavioural twin of Default — typing a name leaves the form structurally identical to Default
+  // (ADR-0027 §2).
+  parameters: { chromatic: { disableSnapshot: true } },
   play: async ({ canvas, userEvent }) => {
     const input = canvas.getByLabelText('Display name')
     await userEvent.clear(input)
@@ -63,6 +66,9 @@ export const NameTakenError: Story = {
 }
 
 export const SavedSuccess: Story = {
+  // Behavioural twin of Default — onSubmit fires; the post-play frame is the Default layout
+  // (ADR-0027 §2).
+  parameters: { chromatic: { disableSnapshot: true } },
   play: async ({ canvas, userEvent, args }) => {
     const input = canvas.getByLabelText('Display name')
     await userEvent.clear(input)

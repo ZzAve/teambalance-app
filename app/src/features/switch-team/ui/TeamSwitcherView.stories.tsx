@@ -45,6 +45,9 @@ export const MenuOpen: Story = {
 
 // The slug, not the id: it is what the team-scoped URL carries, and opening that URL is the switch.
 export const SwitchesToTheOtherTeam: Story = {
+  // Behavioural twin of SeveralTeams — the menu closes after the pick, settling to the trigger-closed
+  // picture (ADR-0027 §2).
+  parameters: { chromatic: { disableSnapshot: true } },
   play: async ({ canvas, args }) => {
     await userEvent.click(canvas.getByRole('button', { name: /Current team: Setpoint VT/ }))
     await userEvent.click(canvas.getByRole('option', { name: /Tovo Heren 5/ }))
@@ -54,6 +57,9 @@ export const SwitchesToTheOtherTeam: Story = {
 
 // Re-picking the current Team is not a switch, and must not fire one.
 export const PickingTheActiveTeamDoesNothing: Story = {
+  // Behavioural twin of SeveralTeams — the menu closes with no switch, settling to the trigger-closed
+  // picture (ADR-0027 §2).
+  parameters: { chromatic: { disableSnapshot: true } },
   play: async ({ canvas, args }) => {
     await userEvent.click(canvas.getByRole('button', { name: /Current team: Setpoint VT/ }))
     await userEvent.click(canvas.getByRole('option', { name: /Setpoint VT/ }))

@@ -69,6 +69,9 @@ export const WithItems: Story = {
 }
 
 export const GenerateCode: Story = {
+  // Behavioural twin of Empty — onCreate fires with `codes: []`, so the picture stays the Empty
+  // state (ADR-0027 §2).
+  parameters: { chromatic: { disableSnapshot: true } },
   args: { codes: [] },
   play: async ({ canvas, userEvent, args }) => {
     await userEvent.click(canvas.getByRole('button', { name: 'Generate code' }))
@@ -77,6 +80,9 @@ export const GenerateCode: Story = {
 }
 
 export const RevokeConfirm: Story = {
+  // Behavioural twin of WithItems — the confirm dialog closes on confirm and settles back to the
+  // items picture; the open-dialog frame is an untracked gap (#263, ADR-0027 §2).
+  parameters: { chromatic: { disableSnapshot: true } },
   play: async ({ canvas, userEvent, args }) => {
     // Open the confirm dialog from the first (active) code's Revoke button.
     await userEvent.click(canvas.getAllByRole('button', { name: 'Revoke' })[0])

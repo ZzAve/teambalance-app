@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite'
 import { expect } from 'storybook/test'
 import { withRouter } from '@shared/testing/router-decorator'
 import { makeEvent, makeRoster } from '@shared/testing/event-fixtures'
+import { allModes } from '../../../../.storybook/modes'
 import { EventCard } from './EventCard'
 
 // EventCard renders a TanStack Router <Link to="/events/$eventId">, which needs a router in context.
@@ -12,11 +13,14 @@ import { EventCard } from './EventCard'
 const NOW = new Date(2026, 7, 10, 9, 0) // Monday 10 August 2026, 09:00 local
 const on = (day: number, hour = 20, minute = 0) => new Date(2026, 7, day, hour, minute).toISOString()
 
+// Token-sensitive component (ADR-0027 §3): the event-type colour chits on the card surface, so
+// modes at the meta level give every state a light *and* a dark baseline.
 const meta = {
   title: 'entities/event/EventCard',
   component: EventCard,
   decorators: [withRouter],
   args: { now: NOW },
+  parameters: { chromatic: { modes: { light: allModes.light, dark: allModes.dark } } },
 } satisfies Meta<typeof EventCard>
 
 export default meta

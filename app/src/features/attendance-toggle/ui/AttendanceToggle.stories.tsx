@@ -1,14 +1,20 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { expect, fn } from 'storybook/test'
+import { allModes } from '../../../../.storybook/modes'
 import { AttendanceToggle } from './AttendanceToggle'
 
 // AttendanceToggle is presentational (value/onToggle/disabled). Each response state is a render arg;
 // the aria-pressed button is the observable contract. The mutation lives in the page container, so
 // there is nothing to mock — every state is a plain story.
+//
+// Token-sensitive component (ADR-0027 §3): the pressed states carry the semantic attendance colours
+// (green/gold/red), which a token or Tailwind bump can break in dark while light stays green. Modes
+// at the meta level give every state a light *and* a dark baseline.
 const meta = {
   title: 'features/attendance-toggle/AttendanceToggle',
   component: AttendanceToggle,
   args: { onToggle: fn() },
+  parameters: { chromatic: { modes: { light: allModes.light, dark: allModes.dark } } },
 } satisfies Meta<typeof AttendanceToggle>
 
 export default meta

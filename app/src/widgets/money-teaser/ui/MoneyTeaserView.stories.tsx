@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { expect, fn } from 'storybook/test'
+import { allModes } from '../../../../.storybook/modes'
 import { MoneyTeaserView } from './MoneyTeaserView'
 
 // MoneyTeaserView is the prop-only teaser behind the MoneyTeaser container: the vote's on/off state,
@@ -7,10 +8,13 @@ import { MoneyTeaserView } from './MoneyTeaserView'
 // (ADR-0017). There is no loading/error shell — the page shows no server data (the money feature has
 // no backend yet), so its only states are "haven't voted" and "voted". The count is fake theatre the
 // container computes from the clock; here it is just pinned to a fixed number per story.
+// Token-sensitive component (ADR-0027 §3): the money surface and its gradients, so modes at the
+// meta level give every state a light *and* a dark baseline.
 const meta = {
   title: 'widgets/money-teaser/MoneyTeaserView',
   component: MoneyTeaserView,
   args: { hasVoted: false, count: 142, onVote: fn() },
+  parameters: { chromatic: { modes: { light: allModes.light, dark: allModes.dark } } },
 } satisfies Meta<typeof MoneyTeaserView>
 
 export default meta
@@ -55,6 +59,9 @@ export const Voted: Story = {
 
 // Prop-contract spy: the vote is the whole interaction, so prove the button actually calls onVote.
 export const Voting: Story = {
+  // Behavioural twin of NotVoted — controlled `hasVoted: false`, so the tap reports to onVote
+  // without changing the picture (ADR-0027 §2).
+  parameters: { chromatic: { disableSnapshot: true } },
   play: async ({ canvas, userEvent, args }) => {
     await userEvent.click(canvas.getByRole('button', { name: 'I want this' }))
     await expect(args.onVote).toHaveBeenCalledTimes(1)
@@ -63,6 +70,9 @@ export const Voting: Story = {
 
 // The other half of the contract: once voted, the button is held, so a second tap can't double-fire.
 export const AlreadyVotedIsHeld: Story = {
+  // Behavioural twin of Voted — the held button doesn't fire, and nothing visible changes
+  // (ADR-0027 §2).
+  parameters: { chromatic: { disableSnapshot: true } },
   args: { hasVoted: true },
   play: async ({ canvas, userEvent, args }) => {
     await userEvent.click(canvas.getByRole('button', { name: "You're in!" }))

@@ -23,6 +23,8 @@ export const Default: Story = {
 }
 
 export const ChooseJoin: Story = {
+  // Behavioural twin of Default — onChooseJoin fires; the fork picture is unchanged (ADR-0027 §2).
+  parameters: { chromatic: { disableSnapshot: true } },
   play: async ({ canvas, userEvent, args }) => {
     // The accessible name includes the helper text, so match by substring rather than exact.
     await userEvent.click(canvas.getByRole('button', { name: /^I have an invite/ }))
@@ -31,6 +33,8 @@ export const ChooseJoin: Story = {
 }
 
 export const ChooseCreate: Story = {
+  // Behavioural twin of Default — onChooseCreate fires; the fork picture is unchanged (ADR-0027 §2).
+  parameters: { chromatic: { disableSnapshot: true } },
   play: async ({ canvas, userEvent, args }) => {
     await userEvent.click(canvas.getByRole('button', { name: /^Create a team/ }))
     await expect(args.onChooseCreate).toHaveBeenCalled()

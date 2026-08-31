@@ -42,6 +42,9 @@ export const DarkSelected: Story = {
 }
 
 export const ChoosingDark: Story = {
+  // Behavioural twin of SystemSelected — the control is controlled, so the click reports to onChange
+  // without moving the checked radio; the picture stays SystemSelected (ADR-0027 §2).
+  parameters: { chromatic: { disableSnapshot: true } },
   play: async ({ canvas, userEvent, args }) => {
     await userEvent.click(canvas.getByRole('radio', { name: 'Dark' }))
     await expect(args.onChange).toHaveBeenCalledWith('dark')
@@ -49,6 +52,9 @@ export const ChoosingDark: Story = {
 }
 
 export const ReturningToSystem: Story = {
+  // Behavioural twin of DarkSelected — controlled click, so the picture stays DarkSelected
+  // (ADR-0027 §2).
+  parameters: { chromatic: { disableSnapshot: true } },
   args: { value: 'dark' },
   play: async ({ canvas, userEvent, args }) => {
     await userEvent.click(canvas.getByRole('radio', { name: 'System' }))

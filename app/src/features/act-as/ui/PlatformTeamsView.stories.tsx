@@ -59,6 +59,8 @@ export const EveryTeam: Story = {
 }
 
 export const EnterATeam: Story = {
+  // Behavioural twin of EveryTeam — onEnter fires; the team-list picture is unchanged (ADR-0027 §2).
+  parameters: { chromatic: { disableSnapshot: true } },
   play: async ({ canvas, userEvent, args }) => {
     await userEvent.click(canvas.getAllByRole('button', { name: 'Enter' })[1])
     await expect(args.onEnter).toHaveBeenCalledWith(TEAMS[1])

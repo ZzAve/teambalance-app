@@ -96,6 +96,8 @@ export const GenericFailure: Story = {
 }
 
 export const GenericError: Story = {
+  // Behavioural twin of GenericFailure — a literal duplicate render (ADR-0027 §2).
+  parameters: { chromatic: { disableSnapshot: true } },
   args: {
     error: new CreateTeamError('GENERIC', 'Something went wrong creating your team. Please try again.'),
   },

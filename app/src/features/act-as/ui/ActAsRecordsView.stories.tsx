@@ -114,6 +114,9 @@ export const ReasoningIsReachable: Story = {
 // The reasoning belongs to the record it was opened from: collapsing that record takes it with it,
 // so re-opening a different one never starts mid-explanation.
 export const ReasoningClosesWithItsRecord: Story = {
+  // Behavioural twin of RecordExpandsToItsDetail — the final frame is the expanded-record detail
+  // (ADR-0027 §2).
+  parameters: { chromatic: { disableSnapshot: true } },
   play: async ({ canvas }) => {
     await userEvent.click(canvas.getByRole('button', { name: /worked here 2 times/ }))
     const records = canvas.getAllByRole('button', { name: /worked in your team/ })

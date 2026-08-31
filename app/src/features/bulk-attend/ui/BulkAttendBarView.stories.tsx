@@ -78,6 +78,9 @@ export const OneTypePending: Story = {
 
 // Prop-contract spy: the tap must reach onAttend with the type it named, not merely render.
 export const TapReportsItsType: Story = {
+  // Behavioural twin of PerType — onAttend fires with its type; the per-type bar is unchanged
+  // (ADR-0027 §2).
+  parameters: { chromatic: { disableSnapshot: true } },
   play: async ({ canvas, args, userEvent }) => {
     await userEvent.click(canvas.getByRole('button', { name: 'Attend 3 matches' }))
     await expect(args.onAttend).toHaveBeenCalledWith('et-match')

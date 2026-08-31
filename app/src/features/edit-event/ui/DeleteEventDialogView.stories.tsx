@@ -37,6 +37,8 @@ export const Standalone: Story = {
 }
 
 export const Cancel: Story = {
+  // Behavioural twin of Standalone — onCancel fires; the confirm picture is unchanged (ADR-0027 §2).
+  parameters: { chromatic: { disableSnapshot: true } },
   play: async ({ canvas, userEvent, args }) => {
     await userEvent.click(canvas.getByRole('button', { name: 'Cancel' }))
     await expect(args.onCancel).toHaveBeenCalled()

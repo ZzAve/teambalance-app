@@ -81,7 +81,8 @@ export const GenerateCode: Story = {
 
 export const RevokeConfirm: Story = {
   // Behavioural twin of WithItems — the confirm dialog closes on confirm and settles back to the
-  // items picture; the open-dialog frame is an untracked gap (#263, ADR-0027 §2).
+  // items picture; the open-dialog frame keeps its own baseline via RevokeConfirmOpen below
+  // (#263, ADR-0027 §2).
   parameters: { chromatic: { disableSnapshot: true } },
   play: async ({ canvas, userEvent, args }) => {
     // Open the confirm dialog from the first (active) code's Revoke button.
@@ -91,6 +92,18 @@ export const RevokeConfirm: Story = {
     // While the modal is open the list buttons are aria-hidden, so only the dialog's Revoke resolves.
     await userEvent.click(dialog.getByRole('button', { name: 'Revoke' }))
     await expect(args.onRevoke).toHaveBeenCalledWith(CODES[0])
+  },
+}
+
+// Open-dialog baseline: the first (active) code's Revoke opens the confirm dialog (a portal); we
+// stop with it open — no confirm click — so the open dialog frame gets its own keep-baseline
+// snapshot. The RevokeConfirm spy above closes on confirm, so it never pictures the open dialog.
+export const RevokeConfirmOpen: Story = {
+  play: async ({ canvas, userEvent }) => {
+    await userEvent.click(canvas.getAllByRole('button', { name: 'Revoke' })[0])
+    const dialog = within(document.body)
+    await expect(await dialog.findByText(/can no longer be used to create a team/)).toBeInTheDocument()
+    await expect(dialog.getByRole('button', { name: 'Cancel' })).toBeInTheDocument()
   },
 }
 

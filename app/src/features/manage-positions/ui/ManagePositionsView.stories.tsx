@@ -89,7 +89,8 @@ export const RenamePosition: Story = {
 
 export const DeleteConfirm: Story = {
   // Behavioural twin of WithItems — the confirm dialog closes on confirm and settles back to the
-  // items picture; the open-dialog frame is an untracked gap (#263, ADR-0027 §2).
+  // items picture; the open-dialog frame keeps its own baseline via DeleteConfirmOpen below
+  // (#263, ADR-0027 §2).
   parameters: { chromatic: { disableSnapshot: true } },
   play: async ({ canvas, userEvent, args }) => {
     await userEvent.click(canvas.getAllByRole('button', { name: 'Delete' })[0])
@@ -99,6 +100,20 @@ export const DeleteConfirm: Story = {
     ).toBeInTheDocument()
     await userEvent.click(dialog.getByRole('button', { name: 'Delete' }))
     await expect(args.onDelete).toHaveBeenCalledWith(POSITIONS[0])
+  },
+}
+
+// Open-dialog baseline: the first row's Delete opens the confirm dialog (a portal); we stop with it
+// open — no confirm click — so the open dialog frame gets its own keep-baseline snapshot. The
+// DeleteConfirm spy above closes on confirm, so it never pictures the open dialog.
+export const DeleteConfirmOpen: Story = {
+  play: async ({ canvas, userEvent }) => {
+    await userEvent.click(canvas.getAllByRole('button', { name: 'Delete' })[0])
+    const dialog = within(document.body)
+    await expect(
+      await dialog.findByText(/Members with this position will become Unassigned/),
+    ).toBeInTheDocument()
+    await expect(dialog.getByRole('button', { name: 'Cancel' })).toBeInTheDocument()
   },
 }
 

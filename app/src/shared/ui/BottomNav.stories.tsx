@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { expect } from 'storybook/test'
 import { withRouter } from '@shared/testing/router-decorator'
+import { allModes } from '../../../.storybook/modes'
 import { BottomNav } from './BottomNav'
 
 // BottomNav renders TanStack Router <Link>s, so it needs a router in context — supplied by the
@@ -10,10 +11,13 @@ import { BottomNav } from './BottomNav'
 //
 // The tab targets are built from the slug in the path the bar is rendered on (ADR-0023 §2), which is
 // why starting the router at a path is enough to drive them — there is no store to prime.
+// Token-sensitive component (ADR-0027 §3): persistent nav chrome plus the active-tab blue, so modes
+// at the meta level give every state a light *and* a dark baseline.
 const meta = {
   title: 'shared/ui/BottomNav',
   component: BottomNav,
   decorators: [withRouter],
+  parameters: { chromatic: { modes: { light: allModes.light, dark: allModes.dark } } },
 } satisfies Meta<typeof BottomNav>
 
 export default meta
@@ -73,7 +77,12 @@ export const MoneyActive: Story = {
 
 // The Team tab stays active on nested team routes (e.g. the admin settings sub-page).
 export const TeamSettingsActive: Story = {
-  parameters: { router: { initialEntries: ['/t/setpoint-vt/team/settings'] } },
+  // Behavioural twin of TeamActive — a nested route that keeps the Team tab active renders the same
+  // picture (ADR-0027 §2).
+  parameters: {
+    router: { initialEntries: ['/t/setpoint-vt/team/settings'] },
+    chromatic: { disableSnapshot: true },
+  },
   play: async ({ canvas }) => {
     await expect(canvas.getByRole('link', { name: 'Team' })).toHaveClass('text-blue')
     await expect(canvas.getByRole('link', { name: 'Events' })).not.toHaveClass('text-blue')

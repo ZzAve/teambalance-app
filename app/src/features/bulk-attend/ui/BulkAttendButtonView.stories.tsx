@@ -55,6 +55,8 @@ export const Pending: Story = {
 
 // Prop-contract spy: proves the tap actually reaches onAttend, not merely that the label renders.
 export const TapFiresOnAttend: Story = {
+  // Behavioural twin of WithCount — onAttend fires; the button picture is unchanged (ADR-0027 §2).
+  parameters: { chromatic: { disableSnapshot: true } },
   play: async ({ canvas, args, userEvent }) => {
     await userEvent.click(canvas.getByRole('button', { name: /Attend 3 events/ }))
     await expect(args.onAttend).toHaveBeenCalled()

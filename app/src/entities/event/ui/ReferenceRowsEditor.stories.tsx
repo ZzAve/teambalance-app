@@ -65,6 +65,9 @@ export const Prefilled: Story = {
 // The stateful stories above assert the resulting DOM; this asserts the wiring — that the add and
 // update paths call onChange with the expected array, which a getByLabelText check can't prove.
 export const ReportsEdits: Story = {
+  // Behavioural twin of AddAndRemove — the onChange spy's final frame is AddAndRemove's added-row
+  // state (ADR-0027 §2).
+  parameters: { chromatic: { disableSnapshot: true } },
   play: async ({ canvas, userEvent, args }) => {
     await userEvent.click(canvas.getByRole('button', { name: /Add link/ }))
     await expect(args.onChange).toHaveBeenCalledWith([{ title: '', url: '' }])

@@ -65,6 +65,9 @@ export const WithItems: Story = {
 }
 
 export const CreatePosition: Story = {
+  // Behavioural twin of Empty — the field clears with `positions: []`, settling to the Empty picture
+  // (ADR-0027 §2).
+  parameters: { chromatic: { disableSnapshot: true } },
   args: { positions: [] },
   play: async ({ canvas, userEvent, args }) => {
     await userEvent.type(canvas.getByLabelText('New position label'), 'Middle Blocker')
@@ -85,6 +88,9 @@ export const RenamePosition: Story = {
 }
 
 export const DeleteConfirm: Story = {
+  // Behavioural twin of WithItems — the confirm dialog closes on confirm and settles back to the
+  // items picture; the open-dialog frame is an untracked gap (#263, ADR-0027 §2).
+  parameters: { chromatic: { disableSnapshot: true } },
   play: async ({ canvas, userEvent, args }) => {
     await userEvent.click(canvas.getAllByRole('button', { name: 'Delete' })[0])
     const dialog = within(document.body)

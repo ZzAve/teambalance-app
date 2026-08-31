@@ -44,6 +44,9 @@ export const ManyTeams: Story = {
 
 // The container turns this slug into a /t/:slug navigation, which is what performs the switch.
 export const ChoosingHandsUpTheSlug: Story = {
+  // Behavioural twin of TwoTeams — onSelect fires with the slug; the two-team list is unchanged
+  // (ADR-0027 §2).
+  parameters: { chromatic: { disableSnapshot: true } },
   play: async ({ canvas, args }) => {
     await userEvent.click(canvas.getByText('Tovo Heren 5'))
     await expect(args.onSelect).toHaveBeenCalledWith('tovo-heren-5')

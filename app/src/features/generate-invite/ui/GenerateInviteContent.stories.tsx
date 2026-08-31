@@ -83,6 +83,9 @@ export const Copied: Story = {
 }
 
 export const RotateLink: Story = {
+  // Behavioural twin of ActiveLink — onRotate fires while the active-link picture is unchanged
+  // (ADR-0027 §2).
+  parameters: { chromatic: { disableSnapshot: true } },
   args: { link: LINK },
   play: async ({ canvas, userEvent, args }) => {
     await userEvent.click(canvas.getByRole('button', { name: 'Rotate link' }))
@@ -91,6 +94,9 @@ export const RotateLink: Story = {
 }
 
 export const RevokeLink: Story = {
+  // Behavioural twin of ActiveLink — onExpire fires while the active-link picture is unchanged
+  // (ADR-0027 §2).
+  parameters: { chromatic: { disableSnapshot: true } },
   args: { link: LINK },
   play: async ({ canvas, userEvent, args }) => {
     await userEvent.click(canvas.getByRole('button', { name: 'Revoke link' }))

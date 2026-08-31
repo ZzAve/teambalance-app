@@ -32,6 +32,9 @@ export const NoPositions: Story = {
 
 // Positions available: opening the picker lists them and choosing one emits its id.
 export const HasPositions: Story = {
+  // Behavioural twin of NoPositions — the controlled select closes, settling to the placeholder
+  // trigger picture (ADR-0027 §2).
+  parameters: { chromatic: { disableSnapshot: true } },
   play: async ({ canvas, userEvent, args }) => {
     await userEvent.click(canvas.getByRole('combobox'))
     const listbox = within(document.body)

@@ -50,6 +50,20 @@ export function useCreateInvitation() {
   })
 }
 
+/**
+ * Mints the single-use, ADMIN-granting handover link (ADR-0024 §5) — how a memberless team gets its
+ * first Admin. Idempotent server-side while unspent, so calling it again returns the same live link
+ * rather than adding a second Admin credential. Distinct from {@link useCreateInvitation}, whose link
+ * grants User and stays reusable; this one is spent on first accept.
+ */
+export function useCreateAdminInvitation() {
+  return useInvitationMutation(async () => {
+    const res = await api.CreateAdminInvitation()
+    if (res.status === 403) throw new Error('You are not allowed to manage the invite link.')
+    return res.body
+  })
+}
+
 export function useRotateInvitation() {
   return useInvitationMutation(async () => {
     const res = await api.RotateInvitation()

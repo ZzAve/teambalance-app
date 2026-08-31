@@ -5,6 +5,7 @@ import { teamRoutes } from '@shared/lib/team-routes'
 import { MemberRoster } from '@features/manage-members/ui/MemberRoster'
 import { TeamSettings } from '@features/team-settings/ui/TeamSettings'
 import { ManagePositions } from '@features/manage-positions/ui/ManagePositions'
+import { HandoverAdmin } from '@features/handover-admin/ui/HandoverAdmin'
 import { ActAsRecords } from '@features/act-as/ui/ActAsRecords'
 
 export const Route = createFileRoute('/t/$slug/team/settings')({
@@ -33,6 +34,9 @@ function TeamSettingsPage() {
       <MemberRoster canManage />
       <ManagePositions />
       <TeamSettings />
+      {/* Handing over admin (ADR-0024 §5): how a prepared, memberless team gets its first real Admin.
+          Below the day-to-day settings — it is a one-off, not a routine control. */}
+      <HandoverAdmin />
       {/* Admin-only, and last: platform access is rare and, to someone who has never heard of it,
           alarming out of context. It sits below the settings an Admin actually came here for. */}
       <ActAsRecords />

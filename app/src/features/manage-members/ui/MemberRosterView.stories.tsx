@@ -156,6 +156,30 @@ export const ReadOnly: Story = {
   },
 }
 
+// The zero-member state (ADR-0024 §5): a team a Platform Admin created memberless and is preparing
+// under act-as, before its first Admin accepts the handover link. The admin view points at the invite
+// link rather than showing an empty box.
+export const EmptyManaged: Story = {
+  args: { members: [] },
+  play: async ({ canvas }) => {
+    await expect(canvas.getByText('No members yet. Share an invite link to bring people in.')).toBeInTheDocument()
+    // No roster rows and no per-row controls when there is nobody on the roster.
+    await expect(canvas.queryByRole('button', { name: 'Remove' })).not.toBeInTheDocument()
+  },
+}
+
+// The same zero-member team as a plain viewer would see it: just that the roster is empty, with no
+// invite prompt (they can't act on it).
+export const EmptyReadOnly: Story = {
+  args: { members: [], canManage: false },
+  play: async ({ canvas }) => {
+    await expect(canvas.getByText('No members yet.')).toBeInTheDocument()
+    await expect(
+      canvas.queryByText('No members yet. Share an invite link to bring people in.'),
+    ).not.toBeInTheDocument()
+  },
+}
+
 export const LastAdminRefused: Story = {
   args: {
     members: [

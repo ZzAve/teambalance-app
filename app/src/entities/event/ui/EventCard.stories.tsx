@@ -125,7 +125,26 @@ export const WithRosterChip: Story = {
   },
 }
 
+// Nobody has answered yet, but the team HAS members: they all sit in notResponded, so the denominator
+// is real. Distinct from the zero-member card below (all counts zero).
 export const NoResponses: Story = {
+  args: {
+    event: makeEvent({
+      startTime: on(13),
+      attendanceSummary: { attending: 0, maybe: 0, absent: 0, notResponded: 12, roleBreakdown: [] },
+    }),
+  },
+  play: async ({ canvas }) => {
+    await expect(canvas.getByText(/0 going/)).toBeInTheDocument()
+    await expect(canvas.getByText(/of 12/)).toBeInTheDocument()
+    await expect(canvas.getByText(/12 pending/)).toBeInTheDocument()
+  },
+}
+
+// The zero-member state (ADR-0024 §5): an event on a team a Platform Admin created memberless and is
+// still preparing. Every count is zero, so the denominator is zero — "0 going of 0" would read as
+// broken, so the card says what is actually true: there is nobody on the roster yet.
+export const NoMembersYet: Story = {
   args: {
     event: makeEvent({
       startTime: on(13),
@@ -133,8 +152,10 @@ export const NoResponses: Story = {
     }),
   },
   play: async ({ canvas }) => {
-    await expect(canvas.getByText(/0 going/)).toBeInTheDocument()
-    await expect(canvas.getByText(/of 0/)).toBeInTheDocument()
+    await expect(canvas.getByText('No members yet')).toBeInTheDocument()
+    // The broken-looking "of 0" denominator is not shown.
+    await expect(canvas.queryByText(/of 0/)).not.toBeInTheDocument()
+    await expect(canvas.queryByText(/going/)).not.toBeInTheDocument()
   },
 }
 

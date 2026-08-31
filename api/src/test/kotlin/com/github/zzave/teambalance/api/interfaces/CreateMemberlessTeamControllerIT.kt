@@ -16,8 +16,15 @@ import java.util.UUID
 
 // Memberless creation (ADR-0024 §5, #240) is gated on the platform-admin allowlist, empty by default
 // (fail-closed) in the test profile. Pin one admin email here; the admin user is seeded with it.
+//
+// The admin identity is a FIXED (id, email) pair, not a per-test random id: the allowlist matches a
+// fixed email, and `public.users.email` is UNIQUE, so a fresh id with that same email would collide.
+// One stable admin, seeded idempotently, is the honest shape — it is the same operator every test.
+private const val ADMIN_ID = "d0000000-0000-0000-0000-000000000240"
+private const val ADMIN_EMAIL = "memberless-admin@test.com"
+
 @AutoConfigureMockMvc
-@TestPropertySource(properties = ["teambalance.platform-admins=memberless-admin@test.com"])
+@TestPropertySource(properties = ["teambalance.platform-admins=" + ADMIN_EMAIL])
 class CreateMemberlessTeamControllerIT : TeamBalanceIT() {
 
     @Autowired
@@ -64,8 +71,8 @@ class CreateMemberlessTeamControllerIT : TeamBalanceIT() {
 
     init {
         test("POST /api/admin/teams provisions the schema with NO members and records the creator") {
-            val admin = UUID.randomUUID().toString()
-            seedUser(admin, "memberless-admin@test.com")
+            val admin = ADMIN_ID
+            seedUser(admin, ADMIN_EMAIL)
 
             createMemberless(admin, "Dames 5", "ml-dames-5")
                 .andExpect(MockMvcResultMatchers.status().isCreated)
@@ -131,8 +138,8 @@ class CreateMemberlessTeamControllerIT : TeamBalanceIT() {
         }
 
         test("POST /api/admin/teams with a taken slug returns 409 TEAM_SLUG_TAKEN") {
-            val admin = UUID.randomUUID().toString()
-            seedUser(admin, "memberless-admin@test.com")
+            val admin = ADMIN_ID
+            seedUser(admin, ADMIN_EMAIL)
 
             createMemberless(admin, "First", "ml-dupe")
                 .andExpect(MockMvcResultMatchers.status().isCreated)

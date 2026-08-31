@@ -63,6 +63,15 @@ class InvitationControllerTest : TeamBalanceIT() {
         )
     }
 
+    /** An ADMIN-granting handover link (ADR-0024 §5), seeded directly so accept can be exercised. */
+    private fun seedAdminInvitation(plaintextToken: String, expiresAt: String = "2099-01-01T00:00:00Z") {
+        jdbcTemplate.execute(
+            "INSERT INTO public.invitations (team_id, token, created_by, expires_at, role) " +
+                "VALUES ('$TEAM_ID'::uuid, '${sha256Hex(TEST_SALT, plaintextToken)}', " +
+                "'$JAN_USER_ID'::uuid, '$expiresAt'::timestamptz, 'ADMIN')",
+        )
+    }
+
     private fun seedJoiner(userId: String, email: String) {
         jdbcTemplate.execute(
             "INSERT INTO public.users (id, email, display_name) " +
@@ -284,6 +293,100 @@ class InvitationControllerTest : TeamBalanceIT() {
                 JOINER_USER_ID,
             )
             memberRows shouldBe 1L
+        }
+
+        test("POST /api/invitations/admin by an admin mints an ADMIN-role link") {
+            seedAdmin()
+            expireAllInvitations()
+
+            val mvcResult = mockMvc.perform(
+                MockMvcRequestBuilders.post("/api/invitations/admin").header("X-User-Id", JAN_USER_ID),
+            )
+                .andExpect(MockMvcResultMatchers.request().asyncStarted())
+                .andReturn()
+
+            mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(mvcResult))
+                .andExpect(MockMvcResultMatchers.status().isCreated)
+                .andExpect(MockMvcResultMatchers.jsonPath("$.token").isNotEmpty)
+
+            jdbcTemplate.queryForObject(
+                "SELECT count(*) FROM public.invitations " +
+                    "WHERE team_id = ?::uuid AND role = 'ADMIN' AND consumed_at IS NULL AND expires_at > now()",
+                Long::class.java,
+                TEAM_ID,
+            ) shouldBe 1L
+        }
+
+        test("POST /api/invitations/admin by a non-admin is forbidden") {
+            seedAdmin()
+            seedJoiner(JOINER_USER_ID, "not-admin-handover@test.com")
+
+            val mvcResult = mockMvc.perform(
+                MockMvcRequestBuilders.post("/api/invitations/admin").header("X-User-Id", JOINER_USER_ID),
+            )
+                .andExpect(MockMvcResultMatchers.request().asyncStarted())
+                .andReturn()
+
+            mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(mvcResult))
+                .andExpect(MockMvcResultMatchers.status().isForbidden)
+        }
+
+        test("accepting an ADMIN link makes the joiner an ADMIN and marks the link consumed") {
+            seedAdmin()
+            seedJoiner(JOINER_USER_ID, "admin-joiner@test.com")
+            seedAdminInvitation("plaintext-admin-token")
+
+            val mvcResult = mockMvc.perform(
+                MockMvcRequestBuilders.post("/api/invitations/plaintext-admin-token/accept")
+                    .header("X-User-Id", JOINER_USER_ID),
+            )
+                .andExpect(MockMvcResultMatchers.request().asyncStarted())
+                .andReturn()
+
+            mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(mvcResult))
+                .andExpect(MockMvcResultMatchers.status().isOk)
+                .andExpect(MockMvcResultMatchers.jsonPath("$.teamId").value(TEAM_ID))
+
+            jdbcTemplate.queryForObject(
+                "SELECT count(*) FROM public.team_members " +
+                    "WHERE team_id = ?::uuid AND user_id = ?::uuid AND role = 'ADMIN' AND active = true",
+                Long::class.java,
+                TEAM_ID,
+                JOINER_USER_ID,
+            ) shouldBe 1L
+
+            // Single-use: the link is now spent.
+            jdbcTemplate.queryForObject(
+                "SELECT consumed_at FROM public.invitations WHERE token = ?",
+                java.sql.Timestamp::class.java,
+                sha256Hex(TEST_SALT, "plaintext-admin-token"),
+            ) shouldNotBe null
+        }
+
+        test("an ADMIN link is single-use: a second person accepting it is rejected and joins nobody") {
+            seedAdmin()
+            seedJoiner(JOINER_USER_ID, "admin-first@test.com")
+            seedJoiner(EXPIRED_JOINER_USER_ID, "admin-second@test.com")
+            seedAdminInvitation("plaintext-admin-once-token")
+
+            fun accept(userId: String) = mockMvc.perform(
+                MockMvcRequestBuilders.post("/api/invitations/plaintext-admin-once-token/accept")
+                    .header("X-User-Id", userId),
+            )
+                .andExpect(MockMvcResultMatchers.request().asyncStarted())
+                .andReturn()
+                .let { mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(it)) }
+
+            accept(JOINER_USER_ID).andExpect(MockMvcResultMatchers.status().isOk)
+            // The second accept of the spent link joins nobody — 404, indistinguishable from unknown.
+            accept(EXPIRED_JOINER_USER_ID).andExpect(MockMvcResultMatchers.status().isNotFound)
+
+            jdbcTemplate.queryForObject(
+                "SELECT count(*) FROM public.team_members WHERE team_id = ?::uuid AND user_id = ?::uuid",
+                Long::class.java,
+                TEAM_ID,
+                EXPIRED_JOINER_USER_ID,
+            ) shouldBe 0L
         }
 
         test("POST /api/invitations/{token}/accept with an unknown token is rejected with 404") {

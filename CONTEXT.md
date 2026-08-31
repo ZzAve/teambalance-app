@@ -119,15 +119,13 @@ any-team, self-service (see [ADR-0001](docs/adr/0001-product-ambition-hobby-tool
 
 ### Identity & onboarding ([ADR-0008](docs/adr/0008-auth-magic-link-and-shareable-invite.md), [ADR-0011](docs/adr/0011-add-google-signin-verified-email-linking.md))
 
-- **Magic Link** — A one-time, passwordless login link sent to a member's email. One of
-  two passwordless authentication methods (the other is **Google Sign-In**); both prove
-  control of an email. Sessions are server-side and stored in Postgres via Spring Session JDBC
+- **Magic Link** — A one-time, passwordless login link sent to a member's email, and **the sole
+  authentication method**: it proves control of an email, which is the only proof v1 accepts —
+  deliberately no passwords and no third-party OAuth ([ADR-0008](docs/adr/0008-auth-magic-link-and-shareable-invite.md);
+  Google Sign-In was dropped, [ADR-0027](docs/adr/0027-drop-google-signin-magic-link-only.md)).
+  Sessions are server-side and stored in Postgres via Spring Session JDBC
   (the `SESSION` cookie), so they survive a container restart / cold start / redeploy
   ([ADR-0014](docs/adr/0014-jdbc-backed-shared-sessions-survive-restart.md), supersedes ADR-0010).
-- **Google Sign-In** — Authenticating with a Google account. Treated as a second proof of
-  email control equivalent to a **Magic Link**: a Google login lands in the *same* account,
-  matched on verified email. There is no separate "Google account" in the model.
-  Deliberately **no passwords** — email control is the only proof v1 accepts.
   _Avoid_: OAuth login, social login, password.
 - **Invite Link** — A single shareable link an admin generates to onboard members into
   an existing Team. Clicking it → enter email → Magic Link → joined. One link, many

@@ -11,6 +11,8 @@ Three concrete gaps in the current hand-rolled filter model warranted adopting S
 (2) there is no CSRF stance for the cookie-session SPA;
 (3) the forthcoming Google Sign-In work introduces a second auth method — a unified `SecurityFilterChain` entry point is preferable to a second bespoke filter bolted on top.
 
+> **Update (ADR-0027):** Google Sign-In was subsequently dropped for good. Driver (3) is void, but the decision stands on drivers (1) and (2); the unified filter chain is where a future passkey provider would slot in, the way Google would have.
+
 CORS is not a driver — `WebMvcConfigurer.addCorsMappings` suffices, and the app currently relies on same-origin (Vite proxy in dev, same host in prod).
 
 ## Decision

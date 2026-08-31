@@ -75,7 +75,7 @@ export const Admin: Story = {
   args: { sections: ['email', 'appearance', 'teams', 'platformAdmin', 'logout'] },
   play: async ({ canvas }) => {
     await expect(canvas.getByRole('button', { name: 'Log out' })).toBeInTheDocument()
-    await expect(canvas.getByRole('link', { name: 'Teams' })).toHaveAttribute('href', '/admin/teams')
+    await expect(canvas.getByRole('link', { name: 'Teams console' })).toHaveAttribute('href', '/admin/teams')
     await expect(canvas.getByRole('link', { name: 'Creation codes' })).toHaveAttribute(
       'href',
       '/admin/creation-codes',

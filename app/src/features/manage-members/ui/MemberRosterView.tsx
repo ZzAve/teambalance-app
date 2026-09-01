@@ -80,22 +80,34 @@ export function MemberRosterView({
             </p>
           )}
 
-          <ul className="divide-y divide-border rounded-lg border border-border">
-            {members.map((member) => (
-              <MemberRow
-                key={member.userId}
-                member={member}
-                canManage={canManage}
-                positions={positions}
-                lastAdmin={isLastAdmin(members, member.userId)}
-                isSaving={savingUserId === member.userId}
-                onRename={onRename}
-                onToggleRole={onToggleRole}
-                onChangePosition={onChangePosition}
-                onRequestRemove={setConfirmTarget}
-              />
-            ))}
-          </ul>
+          {members.length === 0 ? (
+            // A team with no members at all — the state a memberless team sits in until its first
+            // Admin accepts the handover link (ADR-0024 §5). Transient, but real across the roster.
+            // An admin (which, in the handover window, is the acting-in Platform Admin) is pointed at
+            // the invite link; a plain viewer just sees that the roster is empty.
+            <p className="rounded-lg border border-dashed border-border px-3 py-6 text-center text-sm text-muted-foreground">
+              {canManage
+                ? 'No members yet. Share an invite link to bring people in.'
+                : 'No members yet.'}
+            </p>
+          ) : (
+            <ul className="divide-y divide-border rounded-lg border border-border">
+              {members.map((member) => (
+                <MemberRow
+                  key={member.userId}
+                  member={member}
+                  canManage={canManage}
+                  positions={positions}
+                  lastAdmin={isLastAdmin(members, member.userId)}
+                  isSaving={savingUserId === member.userId}
+                  onRename={onRename}
+                  onToggleRole={onToggleRole}
+                  onChangePosition={onChangePosition}
+                  onRequestRemove={setConfirmTarget}
+                />
+              ))}
+            </ul>
+          )}
 
           <Dialog open={confirmTarget !== null} onOpenChange={(open) => { if (!open) setConfirmTarget(null) }}>
             <DialogContent>

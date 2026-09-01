@@ -3,6 +3,7 @@ package com.github.zzave.teambalance.api.application
 import com.github.zzave.teambalance.api.domain.exception.InvalidCreationCodeException
 import com.github.zzave.teambalance.api.domain.exception.InvalidSlugException
 import com.github.zzave.teambalance.api.domain.exception.InvalidTeamNameException
+import com.github.zzave.teambalance.api.domain.exception.NotPlatformAdminException
 import com.github.zzave.teambalance.api.domain.exception.TeamSlugTakenException
 import com.github.zzave.teambalance.api.domain.model.DisplayName
 import com.github.zzave.teambalance.api.domain.model.Email
@@ -65,6 +66,18 @@ private class RecordingRegistrar(
         calls += "register:$slug"
         return directory.addTeam(name.value, slug.value).also { directory.join(founder, it, Role.ADMIN) }
     }
+
+    // Memberless: the team is created but — the point of the path — no membership is written.
+    override fun registerMemberless(
+        createdBy: UUID,
+        name: TeamName,
+        slug: Slug,
+        schemaName: SchemaName,
+        now: Instant,
+    ): TeamId {
+        calls += "registerMemberless:$slug"
+        return directory.addTeam(name.value, slug.value)
+    }
 }
 
 private class RecordingNotifier(private val throwing: Boolean = false) : TeamNotificationGateway {
@@ -95,6 +108,7 @@ class TeamServiceTest : FunSpec() {
             provisionFails: Boolean = false,
             user: User? = founderUser,
             notifier: TeamNotificationGateway = RecordingNotifier(),
+            platformAdmins: Set<UserId> = emptySet(),
         ): Triple<TeamDirectory, RecordingTenantRoutingGateway, TeamService> {
             val directory = TeamDirectory()
             existingSlugs.forEach { directory.addTeam(it.value, it.value) }
@@ -107,6 +121,7 @@ class TeamServiceTest : FunSpec() {
                 userRepository = directory.userRepository(*listOfNotNull(user).toTypedArray()),
                 teamNotificationGateway = notifier,
                 activeTeamService = directory.activeTeamService(gateway, *listOfNotNull(user).toTypedArray()),
+                platformAdminGateway = AllowlistedPlatformAdmins(platformAdmins),
                 clock = clock,
             )
             return Triple(directory, gateway, service)
@@ -119,7 +134,8 @@ class TeamServiceTest : FunSpec() {
             provisionFails: Boolean = false,
             user: User? = founderUser,
             notifier: TeamNotificationGateway = RecordingNotifier(),
-        ) = fixture(calls, existingSlugs, redeemable, provisionFails, user, notifier).third
+            platformAdmins: Set<UserId> = emptySet(),
+        ) = fixture(calls, existingSlugs, redeemable, provisionFails, user, notifier, platformAdmins).third
 
         test("creates the team: provisions the schema, registers, and returns id/name/slug") {
             val calls = mutableListOf<String>()
@@ -205,6 +221,70 @@ class TeamServiceTest : FunSpec() {
             val (directory, _, service) = fixture(notifier = RecordingNotifier(throwing = true))
             val created = service.createTeam(founder, "Setpoint VT", "setpoint-vt", CreationCode("GOODCODE"))
             directory.summaryOf(created.id).name shouldBe TeamName("Setpoint VT")
+        }
+
+        // ----- Memberless creation by a Platform Admin (ADR-0024 §5, #240) -----
+
+        val admin = UserId.random()
+
+        test("createMemberlessTeam provisions and registers with no member, and returns id/name/slug") {
+            val calls = mutableListOf<String>()
+            val (directory, _, service) = fixture(calls, platformAdmins = setOf(admin))
+
+            val created = service.createMemberlessTeam(admin, "Dames 5", "dames-5")
+
+            created.name shouldBe TeamName("Dames 5")
+            created.slug shouldBe Slug("dames-5")
+            directory.summaryOf(created.id).slug shouldBe Slug("dames-5")
+            // Provision-first, then the memberless register — the register variant that writes no member.
+            calls shouldContainExactly listOf("provision:team_dames_5", "registerMemberless:dames-5")
+        }
+
+        // The teamless invariant (ADR-0024 §3): the platform account must never hold a membership. If a
+        // fixture had to grant one to make this pass, the design would be broken, not the test.
+        test("createMemberlessTeam writes NO membership for the creating admin") {
+            val (directory, _, service) = fixture(platformAdmins = setOf(admin))
+
+            val created = service.createMemberlessTeam(admin, "Dames 5", "dames-5")
+
+            directory.membershipsOf(admin) shouldBe emptySet()
+            directory.membershipsOf(admin).contains(created.id) shouldBe false
+        }
+
+        // The admin enters via act-as; the new team must not silently become their Active Team, or the
+        // route gate would treat a teamless platform admin as having a team.
+        test("createMemberlessTeam does NOT make the new team the admin's Active Team") {
+            val (directory, gateway, service) = fixture(platformAdmins = setOf(admin))
+
+            service.createMemberlessTeam(admin, "Dames 5", "dames-5")
+
+            directory.rememberedTeamOf(admin) shouldBe null
+            gateway.writes shouldBe emptyList()
+        }
+
+        test("createMemberlessTeam by a non-platform-admin is forbidden before any provisioning") {
+            val calls = mutableListOf<String>()
+            shouldThrow<NotPlatformAdminException> {
+                service(calls, platformAdmins = emptySet()).createMemberlessTeam(admin, "Dames 5", "dames-5")
+            }
+            calls shouldBe emptyList()
+        }
+
+        test("createMemberlessTeam rejects an invalid slug with 400 before any provisioning") {
+            val calls = mutableListOf<String>()
+            shouldThrow<InvalidSlugException> {
+                service(calls, platformAdmins = setOf(admin)).createMemberlessTeam(admin, "Dames 5", "Bad Slug")
+            }
+            calls shouldBe emptyList()
+        }
+
+        test("createMemberlessTeam rejects a taken slug with 409 before any provisioning") {
+            val calls = mutableListOf<String>()
+            shouldThrow<TeamSlugTakenException> {
+                service(calls, existingSlugs = setOf(Slug("dames-5")), platformAdmins = setOf(admin))
+                    .createMemberlessTeam(admin, "Dames 5", "dames-5")
+            }
+            calls shouldBe emptyList()
         }
     }
 }

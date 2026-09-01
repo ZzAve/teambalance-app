@@ -29,6 +29,12 @@ export const Route = createFileRoute('/t/$slug')({
       if (!user) throw redirect({ to: '/login' })
     }
 
+    // A Platform Admin acting-as is structurally not a member of this team (ADR-0024 §3), so
+    // /members/me 404s for them — a query that can never cache, which the onboarding gate below would
+    // therefore re-fetch on every team-route navigation, flashing the pending splash each time. It is
+    // also meaningless for them: an operator preparing a team is not onboarding into it. Skip the gate.
+    if (user.actAs) return
+
     // Onboarding is per-Team, so it can only be asked once the Active Team is settled — hence here
     // rather than in the root guard. Fails open: a status blip must not trap a confirmed caller.
     const routes = teamRoutes(params.slug)

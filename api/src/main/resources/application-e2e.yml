@@ -11,7 +11,10 @@ spring:
 teambalance:
   # The act-as flow needs a Platform Admin (ADR-0024). Fail-closed by default, so name one here; the
   # seed fixture creates this user WITHOUT a team_members row, which is the point (ADR-0024 section 3).
-  platform-admins: platform@example.com
+  # A second admin (platform2@example.com) is named for the memberless-handover spec so it never races
+  # the act-as spec for platform@example.com's single magic-link token. It needs no seed row — its
+  # first sign-in creates it teamless, which is exactly the state a Platform Admin must be in.
+  platform-admins: platform@example.com, platform2@example.com
   invitation:
     # Hardcoded salt for e2e runs (not a live environment); live supplies INVITATION_TOKEN_SALT.
     token-salt: e2e-invitation-salt

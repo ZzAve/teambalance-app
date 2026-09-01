@@ -92,18 +92,26 @@ export function EventCard({ event, index = 0, now = new Date() }: EventCardProps
       {/* Attendance row. Sibling of the chit+body row, so its rule spans the full card width.
           `flex-wrap` so the roster panel, which is a full-width sibling of the chip, drops below. */}
       <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-border/40 pt-3">
-        <span className="rounded-full bg-green/10 px-2.5 py-1 text-xs font-medium text-green">
-          ✓ {s.attending} going
-        </span>
-        <span className="text-xs text-muted-foreground">
-          of {invited}
-          {s.notResponded > 0 && (
-            <>
-              {' · '}
-              <span className="opacity-60">{s.notResponded} pending</span>
-            </>
-          )}
-        </span>
+        {invited === 0 ? (
+          // A team with no members yet has a denominator of zero — "0 going of 0" reads as broken.
+          // Say what is actually true instead: nobody is on the roster to respond (ADR-0024 §5).
+          <span className="text-xs text-muted-foreground">No members yet</span>
+        ) : (
+          <>
+            <span className="rounded-full bg-green/10 px-2.5 py-1 text-xs font-medium text-green">
+              ✓ {s.attending} going
+            </span>
+            <span className="text-xs text-muted-foreground">
+              of {invited}
+              {s.notResponded > 0 && (
+                <>
+                  {' · '}
+                  <span className="opacity-60">{s.notResponded} pending</span>
+                </>
+              )}
+            </span>
+          </>
+        )}
         {/* Renders nothing at all when the event's type doesn't track a roster (a social). */}
         <RosterDisclosure roster={event.roster} />
       </div>

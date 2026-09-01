@@ -32,6 +32,7 @@ class TeamCompositionRoot {
         userRepository: UserRepository,
         teamNotificationGateway: TeamNotificationGateway,
         activeTeamService: ActiveTeamService,
+        platformAdminGateway: PlatformAdminGateway,
         clock: Clock,
     ) = TeamService(
         teamRepository = teamRepository,
@@ -41,6 +42,7 @@ class TeamCompositionRoot {
         userRepository = userRepository,
         teamNotificationGateway = teamNotificationGateway,
         activeTeamService = activeTeamService,
+        platformAdminGateway = platformAdminGateway,
         clock = clock,
     )
 

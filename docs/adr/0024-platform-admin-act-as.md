@@ -156,6 +156,31 @@ user creation or a pending-membership concept, plus correct email addresses up f
 but it puts a setup step in front of every recipient, which is the opposite of the point. It remains
 available as a zero-code fallback.
 
+**The ADMIN link is single-use; the USER link is not** (decided in [#240](https://github.com/ZzAve/teambalance-app/issues/240),
+which this ADR left open). The shareable Invite Link is deliberately *one link, many joiners*
+([ADR-0025](0025-invite-link-recoverable-at-rest.md)) — it is pasted into a team's WhatsApp and
+everyone who opens it joins as a **User**, and that low-secrecy model is the feature. An **Admin**
+grant cannot inherit those semantics: an admin-granting link with many-joiner reuse hands Admin to
+everyone the recipient forwards it to, and the blast radius of a leaked Admin credential is a
+different order of harm from a leaked roster join. So an `ADMIN`-granting link is **spent on first
+accept** — `invitations.consumed_at` is stamped by the one accept that wins a conditional consume, and
+a later present of the same token joins nobody. Minting is idempotent while the link is unspent, so a
+team holds at most one live Admin credential at a time, mirroring ADR-0025's anti-accumulation rule.
+
+Beyond single-use, the Admin link carries the **same lifecycle as the shareable link** (ADR-0025): it
+is read back on load so it survives a page refresh, it can be **rotated** (revoke-and-reissue, if it
+leaked before reaching the right person) and **revoked** without a replacement. Those operations are
+role-scoped — acting on the Admin link never disturbs the team's live User link, and vice-versa — so
+the two credentials are managed independently.
+
+**Rejected: accepting the shared trust model unchanged** ("it's the same as today"). It is not: today
+every link grants User, so forwarding one only ever adds a player to a roster an admin can prune. An
+Admin link is a handover of control, used exactly once by design, so the cost of making it single-use
+is nil and the cost of not is a silent Admin leak. **Rejected: making *every* link single-use**, which
+would break the deliberate many-joiner USER link for no gain — the reuse risk is specific to the Admin
+grant. The single-use rule is therefore scoped to `role = ADMIN`; `role = USER` keeps ADR-0025's
+semantics untouched.
+
 The adminless window is a **new state the app has never seen**: empty roster, an attendance
 denominator of zero, an empty Position breakdown. It is transient, and act-as is what covers it — but
 it is a new class of empty state across several screens.

@@ -1,6 +1,7 @@
 package com.github.zzave.teambalance.api.application
 
 import com.github.zzave.teambalance.api.domain.exception.NotPlatformAdminException
+import com.github.zzave.teambalance.api.domain.exception.PlatformAdminHasMembershipException
 import com.github.zzave.teambalance.api.domain.exception.TeamNotFoundException
 import com.github.zzave.teambalance.api.domain.model.ActAs
 import com.github.zzave.teambalance.api.domain.model.TeamId
@@ -96,6 +97,20 @@ class ActAsServiceTest : FunSpec() {
                 val dames5 = f.directory.addTeam("Dames 5", "dames-5")
 
                 shouldThrow<NotPlatformAdminException> { f.service.enter(outsider, dames5) }
+
+                f.episodes.all().shouldBeEmpty()
+                f.routing.writes.shouldBeEmpty()
+            }
+
+            // ADR-0024 §3: a Platform Admin is structurally teamless. Entry fail-closes both orderings
+            // a linked state can arise through — refusing whenever the caller holds *any* membership.
+            test("a Platform Admin who holds an active membership is refused entry, and opens nothing") {
+                val f = fixture()
+                val dames5 = f.directory.addTeam("Dames 5", "dames-5")
+                val heren3 = f.directory.addTeam("Heren 3", "heren-3")
+                f.directory.join(operator, heren3)
+
+                shouldThrow<PlatformAdminHasMembershipException> { f.service.enter(operator, dames5) }
 
                 f.episodes.all().shouldBeEmpty()
                 f.routing.writes.shouldBeEmpty()

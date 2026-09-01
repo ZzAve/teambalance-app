@@ -1,5 +1,6 @@
 package com.github.zzave.teambalance.api.application
 
+import com.github.zzave.teambalance.api.domain.model.ActAs
 import com.github.zzave.teambalance.api.domain.model.DisplayName
 import com.github.zzave.teambalance.api.domain.model.Email
 import com.github.zzave.teambalance.api.domain.model.MagicLinkToken
@@ -23,6 +24,7 @@ import com.github.zzave.teambalance.api.domain.port.TeamRepository
 import com.github.zzave.teambalance.api.domain.port.TenantRoutingGateway
 import com.github.zzave.teambalance.api.domain.port.UserRepository
 import io.kotest.core.spec.style.FunSpec
+import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.shouldBe
 import java.time.Clock
 import java.time.Instant
@@ -81,6 +83,7 @@ class AuthServiceTest : FunSpec() {
             gateway: AuthSessionGateway,
             directory: TeamDirectory = TeamDirectory(),
             routingGateway: TenantRoutingGateway = RecordingTenantRoutingGateway(),
+            episodes: InMemoryActAsRepository = InMemoryActAsRepository(),
         ) = AuthService(
             magicLinkTokenRepository = FakeMagicLinkTokenRepository(),
             userRepository = directory.userRepository(user),
@@ -88,7 +91,7 @@ class AuthServiceTest : FunSpec() {
             activeTeamService = directory.activeTeamService(routingGateway, user),
             actAsService = directory.actAsService(
                 routingGateway = routingGateway,
-                actAsRepository = InMemoryActAsRepository(),
+                actAsRepository = episodes,
                 clock = Clock.fixed(Instant.EPOCH, ZoneOffset.UTC),
                 platformAdmins = emptySet(),
             ),
@@ -134,6 +137,21 @@ class AuthServiceTest : FunSpec() {
 
             gateway.startedFor shouldBe userId
             routingGateway.pins shouldBe emptyList()
+        }
+
+        // ADR-0024 §4 guardrail: a fresh sign-in must not silently resume act-as. The grant outlives a
+        // session by design, so startSession closes any open one. Pinned here because the lower-level
+        // AuthSessionGateway.startSession does *not* — the invariant is one direct call away from bypass.
+        test("startSession closes an open act-as grant so a fresh sign-in never resumes it") {
+            val gateway = FakeAuthSessionGateway()
+            val directory = TeamDirectory()
+            val episodes = InMemoryActAsRepository()
+            val team = directory.addTeam("Dames 5", "dames-5")
+            episodes.save(ActAs.enter(userId = userId, teamId = team, now = Instant.EPOCH))
+
+            serviceWith(gateway, directory, episodes = episodes).startSession(userId)
+
+            episodes.findOpenFor(userId).shouldBeNull()
         }
 
         test("findTeamsFor lists every Team the caller is a Member of") {

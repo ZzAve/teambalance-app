@@ -127,3 +127,13 @@ class TeamSlugTakenException(slug: String) :
 // record of a real team's creation, not a pending invite to withdraw. The admin can't un-consume it.
 class CreationCodeConsumedException(code: String) :
     ConflictException("Creation code '$code' has already been consumed", "CREATION_CODE_CONSUMED")
+
+// A Platform Admin is structurally teamless (ADR-0024 §3): a human who both runs the platform and
+// plays holds two separate accounts. Entering act-as while holding any active membership is refused at
+// entry (ADR-0024 §3) — 409 because it is a state clash the operator resolves by switching accounts,
+// not a malformed request.
+class PlatformAdminHasMembershipException(userId: UserId) :
+    ConflictException(
+        "Platform admin $userId holds an active team membership; use a separate, teamless account to act as a team",
+        "PLATFORM_ADMIN_HAS_MEMBERSHIP",
+    )

@@ -1,5 +1,6 @@
 package com.github.zzave.teambalance.api.application
 
+import com.github.zzave.teambalance.api.domain.exception.PlatformAdminHasMembershipException
 import com.github.zzave.teambalance.api.domain.exception.TeamNotFoundException
 import com.github.zzave.teambalance.api.domain.model.ActAs
 import com.github.zzave.teambalance.api.domain.model.TeamId
@@ -52,6 +53,7 @@ class ActAsService(
      */
     fun enter(userId: UserId, teamId: TeamId): EnteredActAs {
         platformAdminGateway.requirePlatformAdmin(userId.value)
+        requireTeamless(userId)
         val routing = teamRepository.findTenantRoutingUnchecked(teamId) ?: throw TeamNotFoundException(teamId)
         val team = teamRepository.findById(teamId) ?: throw TeamNotFoundException(teamId)
         val now = clock.instant()
@@ -62,6 +64,15 @@ class ActAsService(
         tenantRoutingGateway.clearRouting()
         tenantRoutingGateway.pinRouting(routing)
         return EnteredActAs(grant, team)
+    }
+
+    /**
+     * A Platform Admin is structurally teamless (ADR-0024 §3). Refusing at entry fail-closes both
+     * orderings a linked state can arise through — including the member-then-allowlisted case that
+     * membership-side enforcement cannot catch. Reuses the same read the Active Team uses; no new port.
+     */
+    private fun requireTeamless(userId: UserId) {
+        if (teamRepository.findTeamsOf(userId.value).isNotEmpty()) throw PlatformAdminHasMembershipException(userId)
     }
 
     /**

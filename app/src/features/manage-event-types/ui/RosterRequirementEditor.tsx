@@ -72,8 +72,10 @@ export function RosterRequirementEditor({
           }`}
         >
           <span
-            className={`absolute top-0.5 size-5 rounded-full bg-white transition-transform ${
-              value.trackRoster ? 'translate-x-[22px]' : 'translate-x-0.5'
+            // left is pinned explicitly: a bare `absolute` would fall back to the static position,
+            // which a button's centred text alignment drags to the middle of the track.
+            className={`absolute top-0.5 left-0.5 size-5 rounded-full bg-white shadow-sm transition-transform ${
+              value.trackRoster ? 'translate-x-5' : 'translate-x-0'
             }`}
           />
         </button>

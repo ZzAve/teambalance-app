@@ -18,15 +18,15 @@ interface SpringDataInvitationRepository : JpaRepository<InvitationJpaEntity, UU
         now: Instant,
     ): InvitationJpaEntity?
 
-    // Scoped to the shareable USER link: rotate and revoke act on that link only, so a live single-use
-    // ADMIN handover link (an independent credential, ADR-0024 §5) is never collaterally expired by a
-    // player-link rotate/revoke. The ADMIN link is governed by its own consumption and TTL.
+    // Scoped by role, so revoke/rotate of the shareable USER link never touches a live ADMIN handover
+    // link and vice-versa — the two are independent credentials (ADR-0024 §5), each rotated/revoked on
+    // its own path.
     @Modifying(clearAutomatically = true)
     @Query(
         "UPDATE InvitationJpaEntity i SET i.expiresAt = :now " +
-            "WHERE i.teamId = :teamId AND i.role = 'USER' AND i.expiresAt > :now",
+            "WHERE i.teamId = :teamId AND i.role = :role AND i.expiresAt > :now",
     )
-    fun expireActive(teamId: UUID, now: Instant)
+    fun expireActiveByRole(teamId: UUID, role: String, now: Instant)
 
     // Conditional single-use consume: stamps consumed_at only while still unspent, so exactly one
     // accept of an ADMIN handover link can win. Returns the number of rows changed (0 or 1).

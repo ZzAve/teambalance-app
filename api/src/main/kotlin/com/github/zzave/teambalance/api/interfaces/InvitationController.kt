@@ -7,8 +7,11 @@ import com.github.zzave.teambalance.api.domain.port.CurrentUserGateway
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.AcceptInvitation
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.CreateAdminInvitation
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.CreateInvitation
+import com.github.zzave.teambalance.api.interfaces.generated.endpoint.ExpireAdminInvitations
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.ExpireInvitations
+import com.github.zzave.teambalance.api.interfaces.generated.endpoint.GetActiveAdminInvitation
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.GetActiveInvitation
+import com.github.zzave.teambalance.api.interfaces.generated.endpoint.RotateAdminInvitation
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.RotateInvitation
 import com.github.zzave.teambalance.api.interfaces.generated.model.AcceptedInvitation
 import com.github.zzave.teambalance.api.interfaces.generated.model.Invitation
@@ -21,6 +24,9 @@ class InvitationController(
     private val currentTeamGateway: CurrentTeamGateway,
 ) : CreateInvitation.Handler,
     CreateAdminInvitation.Handler,
+    GetActiveAdminInvitation.Handler,
+    RotateAdminInvitation.Handler,
+    ExpireAdminInvitations.Handler,
     AcceptInvitation.Handler,
     ExpireInvitations.Handler,
     GetActiveInvitation.Handler,
@@ -76,6 +82,48 @@ class InvitationController(
                 expiresAt = invitation.expiresAt.toString(),
             ),
         )
+    }
+
+    /**
+     * The team's current unspent ADMIN handover link, so it survives a refresh (ADR-0025's
+     * recoverability, extended to the handover link). 204 when there is none — the UI turns that into a
+     * "create one" offer.
+     */
+    override suspend fun getActiveAdminInvitation(
+        request: GetActiveAdminInvitation.Request,
+    ): GetActiveAdminInvitation.Response<*> {
+        val userId = currentUserGateway.requireCurrentUserId()
+        val teamId = currentTeamGateway.requireCurrentTeamId()
+
+        val invitation = invitationService.activeAdminInviteLink(callerId = userId, teamId = teamId)
+            ?: return GetActiveAdminInvitation.Response204(Unit)
+        return GetActiveAdminInvitation.Response200(
+            Invitation(token = invitation.token.value, expiresAt = invitation.expiresAt.toString()),
+        )
+    }
+
+    /** Revoke-and-reissue the ADMIN handover link (the shareable USER link is untouched). */
+    override suspend fun rotateAdminInvitation(
+        request: RotateAdminInvitation.Request,
+    ): RotateAdminInvitation.Response<*> {
+        val userId = currentUserGateway.requireCurrentUserId()
+        val teamId = currentTeamGateway.requireCurrentTeamId()
+
+        val invitation = invitationService.rotateAdminInviteLink(callerId = userId, teamId = teamId)
+        return RotateAdminInvitation.Response201(
+            Invitation(token = invitation.token.value, expiresAt = invitation.expiresAt.toString()),
+        )
+    }
+
+    /** Revoke the ADMIN handover link without a replacement (the shareable USER link keeps working). */
+    override suspend fun expireAdminInvitations(
+        request: ExpireAdminInvitations.Request,
+    ): ExpireAdminInvitations.Response<*> {
+        val userId = currentUserGateway.requireCurrentUserId()
+        val teamId = currentTeamGateway.requireCurrentTeamId()
+
+        invitationService.expireAdminInviteLinks(callerId = userId, teamId = teamId)
+        return ExpireAdminInvitations.Response204(Unit)
     }
 
     override suspend fun acceptInvitation(request: AcceptInvitation.Request): AcceptInvitation.Response<*> {

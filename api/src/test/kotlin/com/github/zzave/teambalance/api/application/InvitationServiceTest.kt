@@ -64,10 +64,14 @@ private class FakeInvitationRepo(private var live: Invitation?) : InvitationRepo
                 it.teamId == teamId && it.expiresAt.isAfter(now)
         }
     override fun consume(invitationId: UUID, now: Instant): Boolean = consumed.add(invitationId)
-    override fun expireActive(teamId: TeamId, now: Instant) { expiredTeam = teamId; active = null }
+    override fun expireActive(teamId: TeamId, role: Role, now: Instant) {
+        expiredTeam = teamId
+        // Role-scoped, like the real query: revoking USER never clears the ADMIN slot, and vice-versa.
+        if (role == Role.ADMIN) activeAdmin = null else active = null
+    }
     override fun rotate(teamId: TeamId, replacement: Invitation, now: Instant): Invitation {
         rotated += replacement
-        active = replacement
+        if (replacement.role == Role.ADMIN) activeAdmin = replacement else active = replacement
         return replacement
     }
 }
@@ -338,6 +342,61 @@ class InvitationServiceTest : FunSpec() {
             // Still the same unspent admin link — not collaterally expired by the USER-link rotate.
             f.service.generateAdminInviteLink(callerId = adminId, teamId = f.teamId).token.value shouldBe
                 admin.token.value
+        }
+
+        // ----- Admin handover link: survive refresh + rotate + revoke (parity with the USER link) -----
+
+        test("activeAdminInviteLink hands back the very admin link that was minted (survives a refresh)") {
+            val f = newFixture()
+            val minted = f.service.generateAdminInviteLink(callerId = adminId, teamId = f.teamId)
+
+            f.service.activeAdminInviteLink(callerId = adminId, teamId = f.teamId)?.token?.value shouldBe
+                minted.token.value
+        }
+
+        test("activeAdminInviteLink is null for a team with no admin link, and forbidden for a non-admin") {
+            val f = newFixture()
+            f.service.activeAdminInviteLink(callerId = adminId, teamId = f.teamId) shouldBe null
+            shouldThrow<NotTeamAdminException> {
+                f.service.activeAdminInviteLink(callerId = nonAdmin, teamId = f.teamId)
+            }
+        }
+
+        test("rotateAdminInviteLink replaces the admin link with a new one and follows it") {
+            val f = newFixture()
+            val before = f.service.generateAdminInviteLink(callerId = adminId, teamId = f.teamId)
+            val rotated = f.service.rotateAdminInviteLink(callerId = adminId, teamId = f.teamId)
+
+            rotated.token.value shouldNotBe before.token.value
+            f.service.activeAdminInviteLink(callerId = adminId, teamId = f.teamId)?.token?.value shouldBe
+                rotated.token.value
+        }
+
+        test("rotateAdminInviteLink and expireAdminInviteLinks by a non-admin are forbidden") {
+            val f = newFixture()
+            shouldThrow<NotTeamAdminException> { f.service.rotateAdminInviteLink(callerId = nonAdmin, teamId = f.teamId) }
+            shouldThrow<NotTeamAdminException> { f.service.expireAdminInviteLinks(callerId = nonAdmin, teamId = f.teamId) }
+        }
+
+        test("expireAdminInviteLinks revokes the admin link without a replacement") {
+            val f = newFixture()
+            f.service.generateAdminInviteLink(callerId = adminId, teamId = f.teamId)
+            f.service.expireAdminInviteLinks(callerId = adminId, teamId = f.teamId)
+
+            f.service.activeAdminInviteLink(callerId = adminId, teamId = f.teamId) shouldBe null
+        }
+
+        // The converse of the earlier independence test: acting on the ADMIN link leaves the USER link.
+        test("rotating/revoking the admin link leaves the shareable USER link untouched") {
+            val f = newFixture()
+            val user = f.service.generateInviteLink(callerId = adminId, teamId = f.teamId)
+            f.service.generateAdminInviteLink(callerId = adminId, teamId = f.teamId)
+
+            f.service.rotateAdminInviteLink(callerId = adminId, teamId = f.teamId)
+            f.service.activeInviteLink(callerId = adminId, teamId = f.teamId)?.token?.value shouldBe user.token.value
+
+            f.service.expireAdminInviteLinks(callerId = adminId, teamId = f.teamId)
+            f.service.activeInviteLink(callerId = adminId, teamId = f.teamId)?.token?.value shouldBe user.token.value
         }
 
         test("accepting an ADMIN link joins the recipient as ADMIN and switches them in") {

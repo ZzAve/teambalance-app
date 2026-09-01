@@ -134,6 +134,12 @@ accept** — `invitations.consumed_at` is stamped by the one accept that wins a 
 a later present of the same token joins nobody. Minting is idempotent while the link is unspent, so a
 team holds at most one live Admin credential at a time, mirroring ADR-0025's anti-accumulation rule.
 
+Beyond single-use, the Admin link carries the **same lifecycle as the shareable link** (ADR-0025): it
+is read back on load so it survives a page refresh, it can be **rotated** (revoke-and-reissue, if it
+leaked before reaching the right person) and **revoked** without a replacement. Those operations are
+role-scoped — acting on the Admin link never disturbs the team's live User link, and vice-versa — so
+the two credentials are managed independently.
+
 **Rejected: accepting the shared trust model unchanged** ("it's the same as today"). It is not: today
 every link grants User, so forwarding one only ever adds a player to a roster an admin can prune. An
 Admin link is a handover of control, used exactly once by design, so the cost of making it single-use

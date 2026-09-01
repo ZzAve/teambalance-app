@@ -25,6 +25,11 @@ import java.util.UUID
  */
 data class GeneratedInvitation(val token: InviteToken, val expiresAt: Instant)
 
+// One cohesive owner of every invite-link operation — generate / current / rotate / revoke for both
+// the shareable USER link and the single-use ADMIN handover link, plus accept. The two link kinds are
+// exact parallels sharing the same mint/reveal/hash machinery, so keeping them in one class is what
+// avoids duplicating that machinery; that pushes the method count just over detekt's default.
+@Suppress("TooManyFunctions")
 class InvitationService(
     private val invitationRepository: InvitationRepository,
     private val teamMemberRepository: TeamMemberRepository,
@@ -116,6 +121,46 @@ class InvitationService(
     }
 
     /**
+     * The team's current unspent ADMIN handover link, or null if it has none — the read that lets the
+     * link survive a page refresh, exactly as [activeInviteLink] does for the shareable USER link
+     * (ADR-0025). Scoped to a live, *unconsumed* ADMIN link: once one is accepted it is spent, so it is
+     * no longer offered back and the admin is shown the option to mint a fresh one.
+     *
+     * Admin-only: [callerId] must be an admin of [teamId] (the acting-in Platform Admin's Virtual
+     * Member, ADR-0024 §2).
+     */
+    fun activeAdminInviteLink(callerId: UserId, teamId: TeamId): GeneratedInvitation? {
+        authorizationService.requireAdmin(callerId, teamId)
+        return invitationRepository.findActiveAdminByTeam(teamId, clock.instant())?.let(::reveal)
+    }
+
+    /**
+     * Revoke-and-reissue for the ADMIN handover link: expires the team's active ADMIN link and mints a
+     * fresh one in its place, atomically (the guarantee lives in [InvitationRepository.rotate]). Used
+     * when a handover link may have leaked before it reached the right person. The USER shareable link
+     * is untouched — rotate is role-scoped by the replacement's role.
+     *
+     * Admin-only: [callerId] must be an admin of [teamId] (the server-resolved tenant).
+     */
+    fun rotateAdminInviteLink(callerId: UserId, teamId: TeamId): GeneratedInvitation {
+        authorizationService.requireAdmin(callerId, teamId)
+        val now = clock.instant()
+        val token = generateToken()
+        invitationRepository.rotate(teamId, mint(token, callerId, teamId, now, Role.ADMIN), now)
+        return GeneratedInvitation(token = token, expiresAt = now.plus(INVITE_TTL))
+    }
+
+    /**
+     * Revokes the team's active ADMIN handover link without a replacement — the "I don't want to hand
+     * over right now after all" path. Scoped to [Role.ADMIN], so the shareable USER link keeps working.
+     * Admin-only: [callerId] must be an admin of [teamId] (the server-resolved tenant).
+     */
+    fun expireAdminInviteLinks(callerId: UserId, teamId: TeamId) {
+        authorizationService.requireAdmin(callerId, teamId)
+        invitationRepository.expireActive(teamId, Role.ADMIN, Instant.now(clock))
+    }
+
+    /**
      * Joins the presenting user to the invitation's team and makes it their Active Team, so a joiner
      * who was already a Member elsewhere lands where they just accepted (ADR-0023 §4).
      *
@@ -150,7 +195,7 @@ class InvitationService(
      */
     fun expireActiveInvitations(callerId: UserId, teamId: TeamId) {
         authorizationService.requireAdmin(callerId, teamId)
-        invitationRepository.expireActive(teamId, Instant.now(clock))
+        invitationRepository.expireActive(teamId, Role.USER, Instant.now(clock))
     }
 
     /**

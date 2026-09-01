@@ -335,6 +335,79 @@ class InvitationControllerTest : TeamBalanceIT() {
                 .andExpect(MockMvcResultMatchers.status().isForbidden)
         }
 
+        test("GET /api/invitations/admin/active hands back the minted admin link (survives a refresh)") {
+            seedAdmin()
+            expireAllInvitations()
+
+            val minted = mockMvc.perform(
+                MockMvcRequestBuilders.post("/api/invitations/admin")
+                    .header("X-Team-Id", "public").header("X-User-Id", JAN_USER_ID),
+            )
+                .andExpect(MockMvcResultMatchers.request().asyncStarted()).andReturn()
+                .let { mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(it)) }
+                .andReturn().response.contentAsString
+            val mintedToken = objectMapper.readTree(minted).get("token").asText()
+
+            mockMvc.perform(
+                MockMvcRequestBuilders.get("/api/invitations/admin/active")
+                    .header("X-Team-Id", "public").header("X-User-Id", JAN_USER_ID),
+            )
+                .andExpect(MockMvcResultMatchers.request().asyncStarted()).andReturn()
+                .let { mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(it)) }
+                .andExpect(MockMvcResultMatchers.status().isOk)
+                .andExpect(MockMvcResultMatchers.jsonPath("$.token").value(mintedToken))
+        }
+
+        test("POST /api/invitations/admin/rotate mints a fresh admin link and expires the old one") {
+            seedAdmin()
+            expireAllInvitations()
+            seedAdminInvitation("plaintext-admin-to-rotate")
+
+            mockMvc.perform(
+                MockMvcRequestBuilders.post("/api/invitations/admin/rotate")
+                    .header("X-Team-Id", "public").header("X-User-Id", JAN_USER_ID),
+            )
+                .andExpect(MockMvcResultMatchers.request().asyncStarted()).andReturn()
+                .let { mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(it)) }
+                .andExpect(MockMvcResultMatchers.status().isCreated)
+                .andExpect(MockMvcResultMatchers.jsonPath("$.token").isNotEmpty)
+
+            // The old admin link is now expired...
+            jdbcTemplate.queryForObject(
+                "SELECT count(*) FROM public.invitations WHERE token = ? AND expires_at > now()",
+                Long::class.java,
+                sha256Hex(TEST_SALT, "plaintext-admin-to-rotate"),
+            ) shouldBe 0L
+            // ...and exactly one live unspent admin link remains (the replacement).
+            jdbcTemplate.queryForObject(
+                "SELECT count(*) FROM public.invitations " +
+                    "WHERE team_id = ?::uuid AND role = 'ADMIN' AND consumed_at IS NULL AND expires_at > now()",
+                Long::class.java,
+                TEAM_ID,
+            ) shouldBe 1L
+        }
+
+        test("POST /api/invitations/admin/expire revokes the admin link (204)") {
+            seedAdmin()
+            expireAllInvitations()
+            seedAdminInvitation("plaintext-admin-to-revoke")
+
+            mockMvc.perform(
+                MockMvcRequestBuilders.post("/api/invitations/admin/expire")
+                    .header("X-Team-Id", "public").header("X-User-Id", JAN_USER_ID),
+            )
+                .andExpect(MockMvcResultMatchers.request().asyncStarted()).andReturn()
+                .let { mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(it)) }
+                .andExpect(MockMvcResultMatchers.status().isNoContent)
+
+            jdbcTemplate.queryForObject(
+                "SELECT count(*) FROM public.invitations " +
+                    "WHERE team_id = ?::uuid AND role = 'ADMIN' AND expires_at > now()",
+                Long::class.java,
+                TEAM_ID,
+            ) shouldBe 0L
+        }
+
         test("accepting an ADMIN link makes the joiner an ADMIN and marks the link consumed") {
             seedAdmin()
             seedJoiner(JOINER_USER_ID, "admin-joiner@test.com")

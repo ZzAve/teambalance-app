@@ -38,13 +38,15 @@ class JpaInvitationRepositoryAdapter(
         jpaRepository.consume(invitationId, now) == 1
 
     @Transactional
-    override fun expireActive(teamId: TeamId, now: Instant) {
-        jpaRepository.expireActive(teamId.value, now)
+    override fun expireActive(teamId: TeamId, role: Role, now: Instant) {
+        jpaRepository.expireActiveByRole(teamId.value, role.name, now)
     }
 
     @Transactional
     override fun rotate(teamId: TeamId, replacement: Invitation, now: Instant): Invitation {
-        jpaRepository.expireActive(teamId.value, now)
+        // Expire only the links of the same role we are about to reissue, so a USER rotate leaves a
+        // live ADMIN handover link untouched (and vice-versa).
+        jpaRepository.expireActiveByRole(teamId.value, replacement.role.name, now)
         return jpaRepository.save(replacement.externalize()).internalize()
     }
 }

@@ -50,6 +50,36 @@ export function useCreateInvitation() {
   })
 }
 
+// The admin handover link is its own credential, tracked under its own key so its reads and mutations
+// never cross-invalidate the shareable USER link above (ADR-0024 §5).
+const ACTIVE_ADMIN_INVITATION_KEY = ['invitations', 'admin', 'active']
+
+/**
+ * The team's current unspent ADMIN handover link, or null if it has none — the read that lets the
+ * link survive a page refresh, exactly as {@link useActiveInvitation} does for the shareable link
+ * (ADR-0025, extended to the handover link). Admin-only; `enabled` keeps it from firing for members.
+ */
+export function useActiveAdminInvitation({ enabled }: { enabled: boolean }) {
+  return useQuery({
+    queryKey: ACTIVE_ADMIN_INVITATION_KEY,
+    enabled,
+    queryFn: async () => {
+      const res = await api.GetActiveAdminInvitation()
+      if (res.status === 403) throw new Error('You are not allowed to manage the invite link.')
+      // 204: no admin link yet — an ordinary state the UI turns into a "create one" offer.
+      return res.status === 200 ? res.body : null
+    },
+  })
+}
+
+function useAdminInvitationMutation<T>(mutationFn: () => Promise<T>) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ACTIVE_ADMIN_INVITATION_KEY }),
+  })
+}
+
 /**
  * Mints the single-use, ADMIN-granting handover link (ADR-0024 §5) — how a memberless team gets its
  * first Admin. Idempotent server-side while unspent, so calling it again returns the same live link
@@ -57,10 +87,26 @@ export function useCreateInvitation() {
  * grants User and stays reusable; this one is spent on first accept.
  */
 export function useCreateAdminInvitation() {
-  return useInvitationMutation(async () => {
+  return useAdminInvitationMutation(async () => {
     const res = await api.CreateAdminInvitation()
     if (res.status === 403) throw new Error('You are not allowed to manage the invite link.')
     return res.body
+  })
+}
+
+/** Revoke-and-reissue the admin handover link (in case it leaked before it reached the right person). */
+export function useRotateAdminInvitation() {
+  return useAdminInvitationMutation(async () => {
+    const res = await api.RotateAdminInvitation()
+    if (res.status === 403) throw new Error('You are not allowed to manage the invite link.')
+    return res.body
+  })
+}
+
+/** Revoke the admin handover link without a replacement. */
+export function useExpireAdminInvitations() {
+  return useAdminInvitationMutation(async () => {
+    await api.ExpireAdminInvitations()
   })
 }
 

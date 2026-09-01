@@ -141,13 +141,21 @@ class JpaTeamMemberRepositoryAdapter(
         jpaRepository.countActiveByPosition(teamId.value, positionId.value)
 
     @Transactional
-    override fun addMember(teamId: TeamId, userId: UserId) {
-        if (jpaRepository.findByTeamIdAndUserIdAndActiveTrue(teamId.value, userId.value) != null) return
+    override fun addMember(teamId: TeamId, userId: UserId, role: Role) {
+        val existing = jpaRepository.findByTeamIdAndUserIdAndActiveTrue(teamId.value, userId.value)
+        if (existing != null) {
+            // Already a member. An ADMIN handover link promotes a plain member; anything else is a
+            // no-op. Never demote — a USER link must not strip an existing admin's rights.
+            if (role == Role.ADMIN && existing.role != Role.ADMIN.name) {
+                jpaRepository.updateRole(teamId.value, userId.value, Role.ADMIN.name)
+            }
+            return
+        }
         // (team_id, user_id) is UNIQUE, so an insert cannot re-join a member whose row is inactive.
-        if (jpaRepository.reactivateAsUser(teamId.value, userId.value) > 0) return
+        if (jpaRepository.reactivateWithRole(teamId.value, userId.value, role.name) > 0) return
         try {
             jpaRepository.save(
-                TeamMemberJpaEntity(teamId = teamId.value, userId = userId.value, role = Role.USER.name),
+                TeamMemberJpaEntity(teamId = teamId.value, userId = userId.value, role = role.name),
             )
         } catch (e: DataIntegrityViolationException) {
             // Lost a race with a concurrent accept — the other one made them a member, which is the

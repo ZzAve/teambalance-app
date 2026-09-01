@@ -8,6 +8,7 @@ import com.github.zzave.teambalance.api.domain.model.TeamId
 import com.github.zzave.teambalance.api.domain.model.TeamName
 import com.github.zzave.teambalance.api.domain.model.TeamNaming
 import com.github.zzave.teambalance.api.domain.model.UserId
+import com.github.zzave.teambalance.api.domain.port.PlatformAdminGateway
 import com.github.zzave.teambalance.api.domain.port.TeamCreationCodeRepository
 import com.github.zzave.teambalance.api.domain.port.TeamNotificationGateway
 import com.github.zzave.teambalance.api.domain.port.TeamRegistrationGateway
@@ -47,6 +48,7 @@ class TeamService(
     private val userRepository: UserRepository,
     private val teamNotificationGateway: TeamNotificationGateway,
     private val activeTeamService: ActiveTeamService,
+    private val platformAdminGateway: PlatformAdminGateway,
     private val clock: Clock,
 ) {
     private val log = LoggerFactory.getLogger(TeamService::class.java)
@@ -75,6 +77,41 @@ class TeamService(
         activeTeamService.activate(founderId, teamId)
 
         notifyBestEffort(founderId, names.name, names.slug)
+
+        return CreatedTeam(id = teamId, name = names.name, slug = names.slug)
+    }
+
+    /**
+     * Memberless team creation by a Platform Admin (ADR-0024 §5, issue #240): provision the tenant
+     * schema and insert the `teams` row with **no `team_members` rows at all**. The admin does not
+     * become a member or a founder — the platform account is structurally teamless (ADR-0024 §3) — and
+     * the new team is deliberately **not** made their Active Team: they enter it via act-as, prepare it,
+     * and hand it over with an ADMIN invite link.
+     *
+     * Gated by the platform-admin allowlist, the same gate the rest of `/admin` carries — a stronger
+     * gate than a creation code, so no code is required here. [adminId] is recorded as the team's
+     * creator for provenance (who created which team, when).
+     *
+     * Provision-first, mirroring [createTeam]: a failed insert leaves at worst a harmless empty orphan
+     * schema, self-healed by the startup runner. Notifications are best-effort and never fail creation.
+     */
+    fun createMemberlessTeam(adminId: UserId, rawName: String, rawSlug: String): CreatedTeam {
+        platformAdminGateway.requirePlatformAdmin(adminId.value)
+
+        val names = TeamNaming.validate(rawName, rawSlug)
+        requireSlugAvailable(names.slug)
+
+        tenantProvisioningGateway.provisionTenant(names.schemaName)
+
+        val teamId = teamRegistrationGateway.registerMemberless(
+            createdBy = adminId.value,
+            name = names.name,
+            slug = names.slug,
+            schemaName = names.schemaName,
+            now = clock.instant(),
+        )
+
+        notifyCreatedBestEffort(adminId, names.name, names.slug)
 
         return CreatedTeam(id = teamId, name = names.name, slug = names.slug)
     }
@@ -108,6 +145,21 @@ class TeamService(
             teamNotificationGateway.creationCodeConsumed(teamName.value, teamSlug.value, founderEmail.value)
         } catch (e: Exception) {
             log.warn("Post-create notifications failed for team '{}' (creation succeeded)", teamSlug, e)
+        }
+    }
+
+    /**
+     * The memberless creator confirmation — just "the team is created", no code-consumed audit (no
+     * code was spent). Best-effort for the same reason as [notifyBestEffort]: the team is committed, so
+     * a failure to resolve the admin's email or send mail must never turn a success into a 500.
+     */
+    @Suppress("TooGenericExceptionCaught")
+    private fun notifyCreatedBestEffort(creatorId: UserId, teamName: TeamName, teamSlug: Slug) {
+        try {
+            val creatorEmail = userRepository.findById(creatorId)?.email ?: return
+            teamNotificationGateway.teamCreated(creatorEmail.value, teamName.value, teamSlug.value)
+        } catch (e: Exception) {
+            log.warn("Post-create notification failed for team '{}' (creation succeeded)", teamSlug, e)
         }
     }
 }

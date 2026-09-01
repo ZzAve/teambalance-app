@@ -61,7 +61,7 @@ class JdbcTeamRegistrationAdapter(
             throw InvalidCreationCodeException()
         }
 
-        val teamId = insertTeam(name, slug, schemaName)
+        val teamId = insertTeam(name, slug, schemaName, createdBy = founderId)
 
         // Link the consumed code to the team it produced (same transaction), so the codes-admin
         // surface can show which team a code was redeemed into. The binds below are `vararg Any?`, so
@@ -84,19 +84,36 @@ class JdbcTeamRegistrationAdapter(
         return teamId
     }
 
+    /**
+     * Memberless creation (ADR-0024 §5): the team row and nothing else. No creation code is consumed
+     * and — deliberately — no `team_members` row is written, so the platform account never holds a
+     * membership (ADR-0024 §3). [createdBy] is recorded only as the team's creator, for provenance.
+     * `@Transactional` is a formality for a single insert, kept for symmetry with [register].
+     */
+    @Transactional
+    override fun registerMemberless(
+        createdBy: UUID,
+        name: TeamName,
+        slug: Slug,
+        schemaName: SchemaName,
+        now: Instant,
+    ): TeamId = insertTeam(name, slug, schemaName, createdBy = createdBy)
+
     // The DuplicateKeyException is intentionally translated (not chained) into a clean domain 409:
     // the slug / schema_name UNIQUE constraint tripped because a team was created under this name in
     // the window after the pre-check. The driver-level cause carries no caller-actionable detail.
     @Suppress("SwallowedException")
-    private fun insertTeam(name: TeamName, slug: Slug, schemaName: SchemaName): TeamId =
+    private fun insertTeam(name: TeamName, slug: Slug, schemaName: SchemaName, createdBy: UUID): TeamId =
         try {
             TeamId(
                 jdbcTemplate.queryForObject(
-                    "INSERT INTO public.teams (name, slug, schema_name) VALUES (?, ?, ?) RETURNING id",
+                    "INSERT INTO public.teams (name, slug, schema_name, created_by) " +
+                        "VALUES (?, ?, ?, ?) RETURNING id",
                     UUID::class.java,
                     name.value,
                     slug.value,
                     schemaName.value,
+                    createdBy,
                 )!!,
             )
         } catch (e: DuplicateKeyException) {

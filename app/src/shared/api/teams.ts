@@ -70,6 +70,34 @@ export function useCreateTeam() {
   })
 }
 
+export interface CreateMemberlessTeamInput {
+  name: string
+  slug: string
+}
+
+/**
+ * Memberless creation by a Platform Admin (ADR-0024 §5): POST /api/admin/teams. No creation code — the
+ * platform-admin allowlist on `/admin` is the gate. Reuses [toCreateTeamError] for the shared
+ * name/slug failures; a 403 here means "not a Platform Admin" rather than a bad code, but the console
+ * is already admin-gated so it lands as a generic banner. Success returns the new (empty) team; the
+ * caller does not become a member — they enter it via act-as.
+ */
+export function useCreateMemberlessTeam() {
+  return useMutation({
+    mutationFn: async ({ name, slug }: CreateMemberlessTeamInput) => {
+      const res = await api.CreateMemberlessTeam({ body: { name, slug } }).catch(() => {
+        throw new CreateTeamError('GENERIC', 'Something went wrong creating the team. Please try again.')
+      })
+      if (res.status === 201) return res.body
+      if (res.status === 403) {
+        throw new CreateTeamError('GENERIC', "You don't have access to create teams.")
+      }
+      const code = (res.body as { code?: string } | undefined)?.code
+      throw toCreateTeamError(res.status, code)
+    },
+  })
+}
+
 /**
  * The authorized switch (ADR-0023 §2). Null for an unknown slug *and* for one that is not the
  * caller's — the backend answers both with the same bare 404, and this preserves that.

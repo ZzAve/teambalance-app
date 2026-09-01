@@ -29,7 +29,7 @@ private class FakeTeamMemberRepository(private val roles: Map<Pair<TeamId, UserI
     override fun findRole(teamId: TeamId, userId: UserId): Role? = roles[teamId to userId]
     override fun findTenantRouting(teamId: TeamId, userId: UserId): TenantRouting? = null
     override fun findSoleTenantRouting(userId: UserId): TenantRouting? = null
-    override fun addMember(teamId: TeamId, userId: UserId) {
+    override fun addMember(teamId: TeamId, userId: UserId, role: Role) {
         writes += "addMember"
     }
     override fun updateRole(teamId: TeamId, userId: UserId, role: Role) {

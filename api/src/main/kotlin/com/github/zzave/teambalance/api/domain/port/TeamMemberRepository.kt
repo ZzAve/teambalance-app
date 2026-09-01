@@ -31,10 +31,15 @@ interface TeamMemberRepository {
     fun findSoleTenantRouting(userId: UserId): TenantRouting?
 
     /**
-     * Joins the user to the team as a USER, whether or not they were a member before. No-op if they
-     * already are one. A previously removed member comes back as a USER, never at their old role.
+     * Joins the user to the team at [role], whether or not they were a member before. A previously
+     * removed member comes back at [role], never at their old one. If they are already an active member
+     * the call promotes them to [role] when it is higher (an ADMIN handover link makes an existing USER
+     * an ADMIN) and is otherwise a no-op.
+     *
+     * The ordinary accept path passes [Role.USER]; the single-use ADMIN handover link (ADR-0024 §5)
+     * passes [Role.ADMIN], which is how a memberless team gets its first Admin.
      */
-    fun addMember(teamId: TeamId, userId: UserId)
+    fun addMember(teamId: TeamId, userId: UserId, role: Role = Role.USER)
 
     /** Sets the permission [role] for an active member. */
     fun updateRole(teamId: TeamId, userId: UserId, role: Role)

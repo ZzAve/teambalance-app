@@ -113,7 +113,7 @@ internal class TeamDirectory {
         override fun findSoleTenantRouting(userId: UserId): TenantRouting? =
             memberships.keys.filter { it.first == userId }.singleOrNull()?.let { routing(it.second) }
 
-        override fun addMember(teamId: TeamId, userId: UserId) = join(userId, teamId)
+        override fun addMember(teamId: TeamId, userId: UserId, role: Role) = join(userId, teamId, role)
 
         override fun findByTeamId(teamId: TeamId): List<TeamMember> = emptyList()
         override fun findDisplayName(userId: UserId): DisplayName? = null

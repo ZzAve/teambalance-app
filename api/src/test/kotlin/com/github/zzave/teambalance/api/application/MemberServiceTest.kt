@@ -78,7 +78,7 @@ private class FakeMembershipRepo(
         store[teamId to userId]?.takeIf { it.active }?.role
     override fun findTenantRouting(teamId: TeamId, userId: UserId): TenantRouting? = null
     override fun findSoleTenantRouting(userId: UserId): TenantRouting? = null
-    override fun addMember(teamId: TeamId, userId: UserId) = Unit
+    override fun addMember(teamId: TeamId, userId: UserId, role: Role) = Unit
     override fun updateRole(teamId: TeamId, userId: UserId, role: Role) {
         store[teamId to userId]?.role = role
     }

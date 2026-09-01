@@ -34,4 +34,24 @@ interface TeamRegistrationGateway {
         schemaName: SchemaName,
         now: Instant,
     ): TeamId
+
+    /**
+     * Inserts the team ([name]/[slug]/[schemaName]) with **no `team_members` row and no creation code**
+     * — the memberless creation of ADR-0024 §5. [createdBy] is the Platform Admin, recorded as the
+     * team's creator for provenance ([now] as `created_at`); it is deliberately *not* made a member,
+     * because the platform account is structurally teamless (ADR-0024 §3). Returns the new team id.
+     *
+     * Kept a separate method rather than a nullable founder on [register]: "insert no member" must not
+     * be reachable from the ordinary self-service path, where the founder always becomes the admin.
+     *
+     * @throws com.github.zzave.teambalance.api.domain.exception.TeamSlugTakenException
+     *   if the slug / schema name collides with an existing team.
+     */
+    fun registerMemberless(
+        createdBy: UUID,
+        name: TeamName,
+        slug: Slug,
+        schemaName: SchemaName,
+        now: Instant,
+    ): TeamId
 }

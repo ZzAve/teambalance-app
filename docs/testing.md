@@ -108,7 +108,7 @@ make test                       # test-api + test-app
 ## Real e2e internals
 
 **Entry point:** `app/e2e-real/` + `playwright.real.config.ts`. `make e2e` runs `scripts/e2e.sh`, which:
-1. Reuses whatever is listening on :5432/:6379 (CI service containers) or docker-compose ups them.
+1. Reuses whatever is listening on :5432/:6379 (CI service containers) or `docker compose` ups them.
 2. Boots `bootRun --spring.profiles.active=e2e` and health-gates on `/internal/actuator/health`.
 3. Runs Playwright, then kills the backend by port (the bootRun JVM is a daemon child, not the gradlew pid).
 

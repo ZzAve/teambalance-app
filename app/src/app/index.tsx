@@ -5,12 +5,20 @@ import { routeTree } from '../routeTree.gen'
 import { WakingSplash } from '@shared/ui/ColdStartSplash'
 import { RouteErrorFallback } from '@shared/ui/RouteErrorFallback'
 import { installChunkErrorHandler } from '@shared/lib/chunk-reload'
+import { registerAppServiceWorker } from '@app/pwa/sw-registration'
 import './styles/global.css'
 
 // A stale shell can dynamic-import a route chunk whose hash the last deploy pruned → a blank frame.
 // This reloads once to the fresh index.html (which references chunk hashes that exist) rather than
 // leaving the screen blank; a second failure falls through to the router fallback below (Phase 1).
 installChunkErrorHandler()
+
+// Register the service worker and drive its update lifecycle here at bootstrap — outside the router,
+// so it runs on every load regardless of what renders. If a load ends on the error fallback (a cold
+// session probe failing) or crashes before the shell mounts, this still activates a waiting new
+// worker, so a broken build can always update itself on the next open instead of stranding the
+// client. The in-shell refinements (prompt, defer-to-navigation) live in SwUpdateManager.
+registerAppServiceWorker()
 
 // While the root guard probes the session (and on any route load), show the brand splash rather
 // than a blank frame. WakingSplash escalates its copy as it waits, so a cold-start backend wake

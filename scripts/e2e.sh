@@ -2,12 +2,12 @@
 # Orchestrates the real full-stack e2e suite (`make e2e`):
 #   infra (Postgres) → backend via bootRun under the `e2e` profile, health-gated → Playwright.
 #
-# Works both locally (brings docker-compose up if nothing listens on 5432) and in CI
+# Works both locally (brings docker compose up if nothing listens on 5432) and in CI
 # (reuses the workflow's Postgres service container already bound to localhost).
 #
 # Isolation note: the seed fixture is idempotent, and the login flow issues a fresh token per
 # run, so re-runs against a warm DB are safe. For a truly fresh DB locally:
-#   docker-compose down -v && make e2e
+#   docker compose down -v && make e2e
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
@@ -19,8 +19,8 @@ port_open() { (exec 3<>"/dev/tcp/localhost/$1") 2>/dev/null && exec 3>&-; }
 
 # --- Infra ---
 if ! port_open 5432; then
-  echo "Postgres not detected on :5432 — starting docker-compose infra"
-  docker-compose up -d
+  echo "Postgres not detected on :5432 — starting docker compose infra"
+  docker compose up -d
 fi
 for _ in $(seq 1 30); do
   port_open 5432 && break

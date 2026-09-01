@@ -35,13 +35,13 @@ ci:  ## Run a build in CI
 # --- Infrastructure ---
 
 db: ## Start PostgreSQL only
-	docker-compose up -d postgres
+	docker compose up -d postgres
 
 infra: ## Start all local infrastructure (PostgreSQL + Redis)
-	docker-compose up -d
+	docker compose up -d
 
 infra-down: ## Stop local infrastructure
-	docker-compose down -v
+	docker compose down -v
 
 # --- Run ---
 

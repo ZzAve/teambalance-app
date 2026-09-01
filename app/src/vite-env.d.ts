@@ -1,5 +1,6 @@
 /// <reference types="vite/client" />
 /// <reference types="vite-plugin-pwa/react" />
+/// <reference types="vite-plugin-pwa/vanillajs" />
 
 interface ImportMetaEnv {
   // Base URL for the API in a split-origin build (e.g. https://api.teambalance.nl).

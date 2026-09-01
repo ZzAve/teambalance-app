@@ -4,8 +4,14 @@ import { RosterRequirementEditor } from './RosterRequirementEditor'
 import { rosterDefaultSummary } from '../lib/roster-default-summary'
 
 interface RosterOverrideFieldProps {
-  /** The event's own requirement, or undefined to inherit `eventType`'s default. */
-  value?: RosterRequirement
+  /**
+   * The event's own requirement, or absent to inherit `eventType`'s default.
+   *
+   * Typed optional, but it is checked for null too: wirespec renders an optional field as
+   * `T | undefined` in TypeScript while the server puts a literal `null` on the wire, so an
+   * inheriting event really does arrive here as null however the type reads.
+   */
+  value?: RosterRequirement | null
   /** The type currently selected in the form — whose default is what "Inherit" means right now. */
   eventType?: EventTypeItem
   positions?: Position[]
@@ -31,7 +37,7 @@ export function RosterOverrideField({
   disabled,
   onChange,
 }: RosterOverrideFieldProps) {
-  const inheriting = value === undefined
+  const inheriting = value == null
   const typeDefault = eventType?.rosterDefault
 
   return (

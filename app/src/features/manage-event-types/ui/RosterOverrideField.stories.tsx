@@ -44,6 +44,19 @@ export const Inheriting: Story = {
   },
 }
 
+// The server puts a literal `null` on the wire for an inheriting event, while wirespec types the
+// field as `undefined`. Before this was guarded, a null slipped past the `=== undefined` check, the
+// editor rendered as "customised", and reading `value.trackRoster` crashed the whole edit dialog.
+// The cast is the point of the story: TypeScript says this state is impossible, and the wire
+// produces it anyway.
+export const NullFromTheWireStillInherits: Story = {
+  args: { value: null as unknown as undefined },
+  play: async ({ canvas }) => {
+    await expect(canvas.getByRole('radio', { name: 'Inherit default' })).toBeChecked()
+    await expect(canvas.queryByRole('switch', { name: 'Track roster' })).not.toBeInTheDocument()
+  },
+}
+
 // Switching to Customise seeds from the type's current default, so the admin edits from where the
 // event already is rather than from an empty form.
 export const CustomiseSeedsFromTheTypeDefault: Story = {

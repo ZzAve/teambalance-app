@@ -77,7 +77,12 @@ export function EditEventDialogView({
   const [references, setReferences] = useState<ReferenceRow[]>(toReferenceRows(event.references))
   // Seeded from what the event already carries, for the same replace-semantics reason as the links:
   // whatever this form submits IS the event's new roster, so an untouched override must survive.
-  const [rosterOverride, setRosterOverride] = useState<RosterRequirement | undefined>(event.rosterOverride)
+  // `?? undefined` is load-bearing: an inheriting event arrives with rosterOverride NULL, which the
+  // generated type declares as `undefined`. Seeding the state with the raw value hands null to the
+  // roster field, which then reads it as "customised" and dereferences it.
+  const [rosterOverride, setRosterOverride] = useState<RosterRequirement | undefined>(
+    event.rosterOverride ?? undefined,
+  )
 
   // Offer the active types, plus this event's own even when it has been archived: hiding it would
   // leave the picker blank and — worse — leave the roster field with no type to read a default from,

@@ -33,12 +33,16 @@ const USER: AuthenticatedUser = {
 }
 
 let meStatus = 401
+// A 200 with an empty (0-byte) body — what a cold/misbehaving backend can send. The wirespec client
+// surfaces it as an undefined user, which must be treated as unconfirmed, not signed-out.
+let meEmptyBody = false
 let eventsFetched = false
 
 const server = setupServer(
-  http.get('/api/auth/me', () =>
-    meStatus === 200 ? HttpResponse.json(USER) : new HttpResponse(null, { status: meStatus }),
-  ),
+  http.get('/api/auth/me', () => {
+    if (meEmptyBody) return new HttpResponse('', { status: 200 })
+    return meStatus === 200 ? HttpResponse.json(USER) : new HttpResponse(null, { status: meStatus })
+  }),
   http.get('/api/events', () => {
     eventsFetched = true
     return HttpResponse.json({ events: [] })
@@ -58,6 +62,7 @@ beforeEach(() => {
 afterEach(() => {
   server.resetHandlers()
   meStatus = 401
+  meEmptyBody = false
   eventsFetched = false
   queryClient.clear()
   queryClient.setQueryDefaults(['auth', 'me'], {})
@@ -101,6 +106,21 @@ describe('auth gate', () => {
     })
     expect(router.state.location.pathname).not.toBe('/login')
     // Still gated: the protected route never mounted, so its data fetch never fired.
+    expect(eventsFetched).toBe(false)
+    expect(screen.queryByRole('heading', { name: 'Events' })).not.toBeInTheDocument()
+  })
+
+  it('treats an empty (0-byte) 200 /me as unconfirmed → error fallback, not a signed-out /login', async () => {
+    // A cold/misbehaving backend answering the probe with an empty body is not "signed out": it must
+    // not bounce a valid session to /login (nor, historically, blank the screen), so it lands on the
+    // same retry fallback as a 5xx.
+    meEmptyBody = true
+    const router = renderAppAt('/')
+
+    await waitFor(() => expect(screen.getByText(/couldn't load this page/i)).toBeInTheDocument(), {
+      timeout: 5000,
+    })
+    expect(router.state.location.pathname).not.toBe('/login')
     expect(eventsFetched).toBe(false)
     expect(screen.queryByRole('heading', { name: 'Events' })).not.toBeInTheDocument()
   })

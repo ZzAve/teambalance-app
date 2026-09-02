@@ -12,7 +12,7 @@ class PlatformAdminAllowlistTest : FunSpec({
         allowlist.contains("  ADMIN@teambalance.NL ") shouldBe true
     }
 
-    test("an empty allowlist admits nobody — fail-closed default") {
+    test("an empty allowlist admits nobody - fail-closed default") {
         PlatformAdminAllowlist(emptyList()).contains("admin@teambalance.nl") shouldBe false
     }
 

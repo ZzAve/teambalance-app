@@ -118,7 +118,7 @@ class RosterFillIT : TeamBalanceIT() {
 
         // Only ATTENDING fills a slot. A maybe is not a body on the court, and an event whose whole
         // squad answered "maybe" must still read as needing everyone.
-        test("only attending rows fill slots — maybe, absent and no-response do not") {
+        test("only attending rows fill slots - maybe, absent and no-response do not") {
             seedTeam()
             val setter = positionId(SETTER)
             seedMember(SETTER_USER_ID, "fill-setter@test.com", SETTER)

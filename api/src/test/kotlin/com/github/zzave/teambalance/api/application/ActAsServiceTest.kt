@@ -124,7 +124,7 @@ class ActAsServiceTest : FunSpec() {
                 f.episodes.all().shouldBeEmpty()
             }
 
-            test("entering a second Team closes the first — one open grant, so the banner can't lie") {
+            test("entering a second Team closes the first - one open grant, so the banner can't lie") {
                 val f = fixture()
                 val dames5 = f.directory.addTeam("Dames 5", "dames-5")
                 val heren3 = f.directory.addTeam("Heren 3", "heren-3")
@@ -150,7 +150,7 @@ class ActAsServiceTest : FunSpec() {
                 resolved.routing shouldBe f.directory.tenantRoutingOf(dames5)
             }
 
-            test("a caller who never entered resolves None — act-as is not a property you carry") {
+            test("a caller who never entered resolves None - act-as is not a property you carry") {
                 val f = fixture()
                 f.directory.addTeam("Dames 5", "dames-5")
 
@@ -182,7 +182,7 @@ class ActAsServiceTest : FunSpec() {
                 f.service.resolve(operator).shouldBeInstanceOf<ActAsResolution.Lapsed>()
             }
 
-            test("a lapse keeps saying Lapsed — every request in between, not just the first") {
+            test("a lapse keeps saying Lapsed - every request in between, not just the first") {
                 val f = fixture()
                 val dames5 = f.directory.addTeam("Dames 5", "dames-5")
                 f.service.enter(operator, dames5)
@@ -285,7 +285,7 @@ class ActAsServiceTest : FunSpec() {
                 record.actorKind.name shouldBe "PLATFORM_ADMIN"
             }
 
-            test("is scoped to its Team — another Team's episodes are not its business") {
+            test("is scoped to its Team - another Team's episodes are not its business") {
                 val f = fixture()
                 val dames5 = f.directory.addTeam("Dames 5", "dames-5")
                 val heren3 = f.directory.addTeam("Heren 3", "heren-3")

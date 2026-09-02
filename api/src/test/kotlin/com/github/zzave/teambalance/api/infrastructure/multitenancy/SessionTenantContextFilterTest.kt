@@ -122,7 +122,7 @@ class SessionTenantContextFilterTest : TeamBalanceIT() {
 
         // The other half of the same guarantee: a refused switch must not disturb the memo either, or
         // a probe for someone else's Team would knock the caller out of their own.
-        test("a refused switch leaves the memo — and the Active Team — exactly as it was") {
+        test("a refused switch leaves the memo - and the Active Team - exactly as it was") {
             tenantSchemaAdapter.provisionPlatformSchema()
             val userId = UUID.randomUUID()
             val mine = UUID.randomUUID()

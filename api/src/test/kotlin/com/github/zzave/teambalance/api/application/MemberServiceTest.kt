@@ -301,7 +301,7 @@ class MemberServiceTest : FunSpec() {
             memberRepo.findByTeamId(teamId).first { it.userId == lisaId }.onboarded shouldBe true
         }
 
-        test("completeOnboarding is idempotent — a second call keeps onboarded true") {
+        test("completeOnboarding is idempotent - a second call keeps onboarded true") {
             val (service, _, _) = newService()
             service.completeOnboarding(lisaId, teamId, "Lisa Nova", setterPositionId)
             val again = service.completeOnboarding(lisaId, teamId, "Lisa Nova", setterPositionId)

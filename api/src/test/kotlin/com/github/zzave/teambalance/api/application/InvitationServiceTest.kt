@@ -158,7 +158,7 @@ class InvitationServiceTest : FunSpec() {
             f.invitations.saved.single().createdBy shouldBe adminId
         }
 
-        test("acceptInvitation requires no admin role — any authenticated user may join") {
+        test("acceptInvitation requires no admin role - any authenticated user may join") {
             val f = newFixture()
             val joinedTeam = f.service.acceptInvitation(token = "anything", userId = nonAdmin)
             joinedTeam shouldBe f.teamId

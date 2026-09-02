@@ -56,14 +56,14 @@ class RecurrenceContractTest : FunSpec({
             val expected = case["affectedIds"].map { it.asText() }
 
             // A scoped DELETE's affected set is exactly the ids it removes.
-            test("$name — planDelete") {
+            test("$name - planDelete") {
                 SeriesModification.planDelete(series, currentId, scope)
                     .map { idByUuid.getValue(it) } shouldBe expected
             }
 
             // A scoped EDIT's affected set is its `edited` occurrences — the "affects N" the UI
             // previews (the regrouped THIS-tail keeps its fields and is deliberately not "affected").
-            test("$name — planEdit.edited") {
+            test("$name - planEdit.edited") {
                 SeriesModification.planEdit(series, currentId, scope, EDIT, TAIL_GROUP, ZoneId.of("UTC"))
                     .edited.map { idByUuid.getValue(it.id) } shouldBe expected
             }

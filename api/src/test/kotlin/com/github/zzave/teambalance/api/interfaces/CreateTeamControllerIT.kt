@@ -165,7 +165,7 @@ class CreateTeamControllerIT : TeamBalanceIT() {
             teamRepository.findBySlug(Slug("create-it-happy")).shouldNotBeNull().id shouldBe summary.id
         }
 
-        test("a consumed code cannot be reused — second use returns opaque 403") {
+        test("a consumed code cannot be reused - second use returns opaque 403") {
             val founder = UUID.randomUUID().toString()
             val other = UUID.randomUUID().toString()
             seedUser(founder, "reuse-a-${founder.take(8)}@test.com")

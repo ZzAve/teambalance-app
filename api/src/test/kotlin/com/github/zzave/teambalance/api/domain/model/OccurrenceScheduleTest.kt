@@ -30,7 +30,7 @@ class OccurrenceScheduleTest : FunSpec({
         after.atZone(amsterdam).toLocalTime() shouldBe eight30pm
     }
 
-    test("naive 7-day arithmetic would drift by an hour across the boundary — resolution does not") {
+    test("naive 7-day arithmetic would drift by an hour across the boundary - resolution does not") {
         val before = OccurrenceSchedule.startInstant(LocalDate.of(2026, 10, 20), eight30pm, amsterdam)
         val after = OccurrenceSchedule.startInstant(LocalDate.of(2026, 10, 27), eight30pm, amsterdam)
 

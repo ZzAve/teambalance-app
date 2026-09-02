@@ -77,7 +77,7 @@ class ActAsControllerIT : TeamBalanceIT() {
         }
 
         context("entering a Team") {
-            test("answers with the Team it entered — the name the banner needs") {
+            test("answers with the Team it entered - the name the banner needs") {
                 enterAs(OPERATOR_ID, TEAM_ID)
                     .andExpect(status().isOk)
                     .andExpect(jsonPath("$.team.id").value(TEAM_ID))
@@ -141,7 +141,7 @@ class ActAsControllerIT : TeamBalanceIT() {
                     .andExpect(jsonPath("$.code").value("ACT_AS_EXPIRED"))
             }
 
-            test("leaves no tenant behind — a lapsed operator writes nowhere, not somewhere else") {
+            test("leaves no tenant behind - a lapsed operator writes nowhere, not somewhere else") {
                 enterAs(OPERATOR_ID, TEAM_ID).andExpect(status().isOk)
                 expireGrant()
 

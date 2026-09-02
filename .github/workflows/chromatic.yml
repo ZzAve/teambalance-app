@@ -32,6 +32,15 @@ on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
 
+# Collapse a burst of rapid pushes to the same PR into a single run: a newer commit cancels the
+# older in-progress/queued run before it reaches the Chromatic step, so WIP iteration snapshots the
+# latest state once instead of every intermediate push. Keyed by ref, so distinct PRs never cancel
+# each other. main is deliberately excluded from cancellation — the newest main commit defines the
+# baseline, so every merge to main must run to completion and promote its snapshots.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
 permissions:
   contents: read
 

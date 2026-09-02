@@ -102,12 +102,15 @@ type EventDetail {
     roster: EventRoster
 }
 
+// `changedBy` is the user id of whoever last set this row (ADR-0003 trust-based editing, so it may be a teammate); it and `updatedAt` are null for a member with no response row (NOT_RESPONDED). The client compares `changedBy` to `userId` and only shows attribution when they differ.
 type AttendanceEntry {
     id: String,
     userId: String,
     displayName: String,
     role: String,
-    state: AttendanceState
+    state: AttendanceState,
+    changedBy: String?,
+    updatedAt: DateTimestampWithTimezone?
 }
 
 type EventList {

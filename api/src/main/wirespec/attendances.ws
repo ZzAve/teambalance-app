@@ -8,7 +8,9 @@ type Attendance {
     userId: String,
     displayName: String,
     role: String,
-    state: String
+    state: String,
+    changedBy: String,
+    updatedAt: DateTimestampWithTimezone
 }
 
 endpoint SetAttendance PUT SetAttendanceRequest /api/events/{eventId: String}/attendances/{userId: String} -> {

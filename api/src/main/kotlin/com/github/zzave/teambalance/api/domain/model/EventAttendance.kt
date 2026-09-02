@@ -1,5 +1,6 @@
 package com.github.zzave.teambalance.api.domain.model
 
+import java.time.Instant
 
 /**
  * Bucket label for attendees who have no position assigned. A [PositionLabel] like any other, so
@@ -12,11 +13,15 @@ val UNASSIGNED = PositionLabel("Unassigned")
  * One member's resolved attendance for an event: their response-row state, or NOT_RESPONDED when
  * they have no row. [responseId] is the attendance row's id when they responded, null otherwise —
  * so a view can key off the real row while a not-responded member falls back to their user id.
+ * [changedBy] and [updatedAt] carry the row's attribution (who last set it, when); both are null
+ * for a member with no response row.
  */
 data class MemberAttendance(
     val member: TeamMember,
     val state: AttendanceState,
     val responseId: AttendanceId?,
+    val changedBy: UserId?,
+    val updatedAt: Instant?,
 )
 
 /**
@@ -86,6 +91,8 @@ class EventAttendance private constructor(
                         member = member,
                         state = response?.state ?: AttendanceState.NOT_RESPONDED,
                         responseId = response?.id,
+                        changedBy = response?.changedBy,
+                        updatedAt = response?.updatedAt,
                     )
                 },
             )

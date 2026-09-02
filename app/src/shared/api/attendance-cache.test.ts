@@ -9,6 +9,8 @@ const attendee = (overrides: Partial<AttendanceEntry> = {}): AttendanceEntry => 
   displayName: 'Julius',
   role: 'Spelverdeler',
   state: 'ATTENDING',
+  changedBy: undefined,
+  updatedAt: undefined,
   ...overrides,
 })
 

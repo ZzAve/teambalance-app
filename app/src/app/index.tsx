@@ -4,6 +4,8 @@ import { createRouter, RouterProvider } from '@tanstack/react-router'
 import { routeTree } from '../routeTree.gen'
 import { WakingSplash } from '@shared/ui/ColdStartSplash'
 import { RouteErrorFallback } from '@shared/ui/RouteErrorFallback'
+import { NotFoundView } from '@shared/ui/NotFoundView'
+import { clearSession, hasClearableSession } from '@shared/api/clear-session'
 import { RootErrorBoundary } from '@app/RootErrorBoundary'
 import { installChunkErrorHandler } from '@shared/lib/chunk-reload'
 import { registerAppServiceWorker } from '@app/pwa/sw-registration'
@@ -29,8 +31,18 @@ const router = createRouter({
   defaultPendingComponent: WakingSplash,
   // A route that still throws after the reload guard (e.g. the fresh shell also 404s a chunk — a
   // real outage, not a stale-chunk race) renders the retry fallback instead of nothing. Retry does
-  // a full reload to re-fetch the shell and its current chunk hashes.
-  defaultErrorComponent: () => <RouteErrorFallback onRetry={() => window.location.reload()} />,
+  // a full reload to re-fetch the shell and its current chunk hashes. Both out-of-shell fallbacks
+  // carry a client-only Log out (ADR-0027 §3) when a session exists — or might — since `/account`'s
+  // Log out can't reach a screen that renders in place of RootLayout.
+  defaultErrorComponent: () => (
+    <RouteErrorFallback
+      onRetry={() => window.location.reload()}
+      onLogout={hasClearableSession() ? () => clearSession() : undefined}
+    />
+  ),
+  defaultNotFoundComponent: () => (
+    <NotFoundView onLogout={hasClearableSession() ? () => clearSession() : undefined} />
+  ),
 })
 
 declare module '@tanstack/react-router' {

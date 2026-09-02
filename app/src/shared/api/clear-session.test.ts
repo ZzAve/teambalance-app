@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { AuthenticatedUser } from './auth'
 import { authMeQueryOptions } from './auth'
-import { clearSession } from './clear-session'
+import { clearSession, hasClearableSession } from './clear-session'
 import { queryClient } from './query-client'
 import { useUserStore } from '@shared/stores/user-store'
 
@@ -60,5 +60,24 @@ describe('clearSession', () => {
   it('makes no network call', () => {
     clearSession()
     expect(fetchSpy).not.toHaveBeenCalled()
+  })
+})
+
+describe('hasClearableSession', () => {
+  afterEach(() => queryClient.clear())
+
+  it('shows the hatch when a session is present', () => {
+    queryClient.setQueryData(authMeQueryOptions.queryKey, USER)
+    expect(hasClearableSession()).toBe(true)
+  })
+
+  it('hides the hatch once the probe resolves to no user', () => {
+    queryClient.setQueryData(authMeQueryOptions.queryKey, null)
+    expect(hasClearableSession()).toBe(false)
+  })
+
+  it('fails open: shows the hatch while the session is indeterminate', () => {
+    // Cache never populated — the probe has not resolved, so we cannot rule out a session.
+    expect(hasClearableSession()).toBe(true)
   })
 })

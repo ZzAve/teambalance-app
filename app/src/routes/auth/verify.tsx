@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
-import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
+import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useQueryClient } from '@tanstack/react-query'
 import { useVerifyMagicLink } from '@shared/api/auth'
+import { clearSession, hasClearableSession } from '@shared/api/clear-session'
 import { takePendingInviteTokenForEmail, useAcceptInvitation } from '@shared/api/invitations'
+import { VerifyErrorView } from '@shared/ui/VerifyErrorView'
 
 export const Route = createFileRoute('/auth/verify')({
   component: VerifyPage,
@@ -56,15 +58,13 @@ function VerifyPage() {
 
   if (!token || error) {
     return (
-      <div className="mx-auto mt-16 max-w-sm text-center">
-        <h1 className="font-display text-2xl font-bold">Link expired</h1>
-        <p className="mt-3 text-sm text-muted-foreground">
-          {error ?? 'This link is missing a token. Request a new one.'}
-        </p>
-        <Link to="/login" className="mt-6 inline-block text-sm font-medium text-blue">
-          Back to login
-        </Link>
-      </div>
+      <VerifyErrorView
+        message={error ?? 'This link is missing a token. Request a new one.'}
+        // Escape hatch (ADR-0027 §3): show a client-only Log out whenever a session exists — or might.
+        // The invite-accept-failure edge is exactly this: the magic link verified (a server session
+        // exists) but we withheld the auth cache, so there's a session with no in-app way out.
+        onLogout={hasClearableSession() ? () => clearSession() : undefined}
+      />
     )
   }
 

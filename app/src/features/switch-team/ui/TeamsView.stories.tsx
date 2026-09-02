@@ -16,10 +16,14 @@ export default meta
 
 type Story = StoryObj<typeof meta>
 
-// The common case: a member of one team. The view still offers join + create beside it.
+// The common case: a member of one team. Two clearly divided sections — the teams you belong to,
+// and the ways to gain another (join / create).
 export const SingleTeam: Story = {
   play: async ({ canvas }) => {
     await expect(canvas.getByRole('heading', { name: 'Teams' })).toBeInTheDocument()
+    // The two section headings that give the page its visual structure.
+    await expect(canvas.getByRole('heading', { name: 'Your teams' })).toBeInTheDocument()
+    await expect(canvas.getByRole('heading', { name: 'Join or create' })).toBeInTheDocument()
     await expect(canvas.getByText('Setpoint VT')).toBeInTheDocument()
     await expect(canvas.getByText('Active')).toBeInTheDocument()
     await expect(canvas.getByText('Join with an invite link')).toBeInTheDocument()

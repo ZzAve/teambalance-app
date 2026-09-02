@@ -132,6 +132,11 @@ internal class TeamDirectory {
         ) = Unit
         override fun countAdmins(teamId: TeamId): Int =
             memberships.count { it.key.second == teamId && it.value == Role.ADMIN }
+
+        // This directory models membership and roles, not positions — assignPosition is a no-op here
+        // — so nobody holds one. The position-usage counts (#219) are proven against a real Postgres
+        // in EventTypeAdminIT and as pure logic in PositionServiceTest, both of which track positions.
+        override fun countByPosition(teamId: TeamId, positionId: PositionId): Int = 0
     }
 }
 

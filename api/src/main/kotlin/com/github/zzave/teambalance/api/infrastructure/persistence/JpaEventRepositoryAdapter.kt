@@ -73,6 +73,10 @@ class JpaEventRepositoryAdapter(
     @Transactional
     override fun deleteAllById(ids: List<EventId>) = ids.forEach { remove(it) }
 
+    @Transactional(readOnly = true)
+    override fun countTargetsForPosition(positionId: PositionId): Int =
+        jpaRepository.countPositionTargets(positionId.value)
+
     private fun persist(event: Event): Event {
         val eventTypeEntity = eventTypeJpaRepository.findByUuid(event.eventType.id.value)
             ?: throw EventTypeNotFoundException(event.eventType.id)

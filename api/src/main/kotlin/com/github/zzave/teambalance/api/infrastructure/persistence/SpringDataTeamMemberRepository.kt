@@ -63,6 +63,23 @@ interface SpringDataTeamMemberRepository : JpaRepository<TeamMemberJpaEntity, UU
     )
     fun countActiveAdmins(@Param("teamId") teamId: UUID): Int
 
+    /**
+     * Active members holding this position — what a delete would leave Unassigned (#219).
+     *
+     * Same shape as the member listing: the platform table drives (it owns membership and the active
+     * flag) and the unqualified `member_profiles` joins in from the routed tenant schema, which is
+     * where the assignment has lived since ADR-0026. The team id is still needed even though the
+     * schema already scopes the profiles — without it, somebody removed from THIS team but active in
+     * another would keep their profile row and be counted.
+     */
+    @Query(
+        "SELECT COUNT(*) FROM public.team_members tm " +
+            "JOIN member_profiles mp ON mp.user_id = tm.user_id " +
+            "WHERE mp.position_id = :positionId AND tm.team_id = :teamId AND tm.active = true",
+        nativeQuery = true,
+    )
+    fun countActiveByPosition(@Param("teamId") teamId: UUID, @Param("positionId") positionId: UUID): Int
+
     // The tenant's name for this member, falling back to the platform one (ADR-0026). The fallback is
     // not decoration: a member seeded outside the backfill has no profile row yet, and answering NULL
     // would blank a name that exists.

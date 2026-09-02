@@ -3,6 +3,7 @@ import { Plus } from 'lucide-react'
 import { Button } from '@shared/ui/button'
 import { Sheet, SheetContent, SheetTrigger } from '@shared/ui/sheet'
 import { useEventTypes } from '@shared/api/event-types'
+import { usePositions } from '@shared/api/positions'
 import { useSeason } from '@shared/api/season'
 import { useCreateEvent, type EventInput } from '@shared/api/events'
 import {
@@ -25,6 +26,7 @@ type Mode = 'closed' | CreateEventMode
 export function CreateEventSheet() {
   const [mode, setMode] = useState<Mode>('closed')
   const { data: eventTypes } = useEventTypes()
+  const { data: positions } = usePositions()
   const { data: season } = useSeason()
   const createEvent = useCreateEvent()
   const createSeries = useCreateRecurringEvents()
@@ -64,6 +66,7 @@ export function CreateEventSheet() {
           <CreateEventSheetView
             mode={mode}
             eventTypes={eventTypes}
+            positions={positions}
             season={season}
             today={today}
             isCreatingSingle={createEvent.isPending}

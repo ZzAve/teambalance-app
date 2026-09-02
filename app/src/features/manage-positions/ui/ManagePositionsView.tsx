@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import type { Position } from '@shared/api/positions'
+import type { Position, PositionUsage } from '@shared/api/positions'
 import { Button } from '@shared/ui/button'
 import { Input } from '@shared/ui/input'
 import {
@@ -14,6 +14,13 @@ import { validatePositionLabel } from '../lib/validate-position-label'
 
 interface ManagePositionsViewProps {
   positions?: Position[]
+  /**
+   * What deleting `confirmTarget` would touch, once the container has fetched it. Undefined while
+   * it is still loading — the dialog says so rather than implying "nothing".
+   */
+  usage?: PositionUsage
+  /** Told which position the delete dialog is asking about, so the container can fetch its usage. */
+  onConfirmTargetChange?: (position: Position | null) => void
   /** The positions query is in flight — render the loading shell instead of the form. */
   isLoading?: boolean
   /** The positions query failed — render the error shell instead of the form. */
@@ -37,6 +44,8 @@ interface ManagePositionsViewProps {
  */
 export function ManagePositionsView({
   positions = [],
+  usage,
+  onConfirmTargetChange,
   isLoading,
   isError,
   isSaving,
@@ -46,7 +55,11 @@ export function ManagePositionsView({
   onDelete,
 }: ManagePositionsViewProps) {
   const [newLabel, setNewLabel] = useState('')
-  const [confirmTarget, setConfirmTarget] = useState<Position | null>(null)
+  const [confirmTarget, setConfirmTargetState] = useState<Position | null>(null)
+  const setConfirmTarget = (position: Position | null) => {
+    setConfirmTargetState(position)
+    onConfirmTargetChange?.(position)
+  }
 
   const newLabelError = validatePositionLabel(newLabel)
 
@@ -114,9 +127,14 @@ export function ManagePositionsView({
               <DialogHeader>
                 <DialogTitle>Delete position</DialogTitle>
                 <DialogDescription>
-                  Delete "{confirmTarget?.label}"? Members with this position will become Unassigned.
+                  Delete "{confirmTarget?.label}"? This cannot be undone.
                 </DialogDescription>
               </DialogHeader>
+              {/* Names what the delete will actually touch. A warning, not a veto — the delete
+                  proceeds either way, but an admin should not have to guess the blast radius. */}
+              <p className="text-sm text-muted-foreground">
+                {usage ? deleteImpact(usage) : 'Checking what uses this position…'}
+              </p>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setConfirmTarget(null)}>
                   Cancel
@@ -174,4 +192,22 @@ function PositionRow({ position, isSaving, onRename, onRequestDelete }: Position
       </Button>
     </li>
   )
+}
+
+/**
+ * Plain-language blast radius for a position delete. Only the non-zero parts are named, so a
+ * position nothing uses reads as a clean removal rather than a list of three zeroes.
+ */
+function deleteImpact(usage: PositionUsage): string {
+  const parts: string[] = []
+  if (usage.memberCount > 0) {
+    parts.push(`${usage.memberCount} ${usage.memberCount === 1 ? 'member becomes' : 'members become'} Unassigned`)
+  }
+  if (usage.eventTypeCount > 0) {
+    parts.push(`it is dropped from ${usage.eventTypeCount} event ${usage.eventTypeCount === 1 ? 'type' : 'types'}`)
+  }
+  if (usage.eventCount > 0) {
+    parts.push(`and from ${usage.eventCount} ${usage.eventCount === 1 ? 'event' : 'events'} with their own roster`)
+  }
+  return parts.length === 0 ? 'Nothing currently uses this position.' : `${parts.join(', ')}.`
 }

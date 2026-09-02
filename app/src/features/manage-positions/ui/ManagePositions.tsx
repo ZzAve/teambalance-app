@@ -1,7 +1,10 @@
+import { useState } from 'react'
+import type { Position } from '@shared/api/positions'
 import {
   PositionError,
   useCreatePosition,
   useDeletePosition,
+  usePositionUsage,
   usePositions,
   useRenamePosition,
 } from '@shared/api/positions'
@@ -18,6 +21,10 @@ export function ManagePositions() {
   const createPosition = useCreatePosition()
   const renamePosition = useRenamePosition()
   const deletePosition = useDeletePosition()
+  // The delete dialog's target, lifted here only so its usage can be fetched — the dialog itself
+  // stays the View's own local state.
+  const [usageTarget, setUsageTarget] = useState<Position | null>(null)
+  const { data: usage } = usePositionUsage(usageTarget?.id ?? null)
 
   const activeError = [createPosition.error, renamePosition.error, deletePosition.error].find(
     (e): e is PositionError => e instanceof PositionError,
@@ -28,6 +35,8 @@ export function ManagePositions() {
   return (
     <ManagePositionsView
       positions={positions}
+      usage={usageTarget ? usage : undefined}
+      onConfirmTargetChange={setUsageTarget}
       isLoading={isLoading}
       isError={!!error}
       isSaving={isSaving}

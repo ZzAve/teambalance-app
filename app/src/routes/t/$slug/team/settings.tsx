@@ -5,6 +5,7 @@ import { teamRoutes } from '@shared/lib/team-routes'
 import { MemberRoster } from '@features/manage-members/ui/MemberRoster'
 import { TeamSettings } from '@features/team-settings/ui/TeamSettings'
 import { ManagePositions } from '@features/manage-positions/ui/ManagePositions'
+import { ManageEventTypes } from '@features/manage-event-types/ui/ManageEventTypes'
 import { HandoverAdmin } from '@features/handover-admin/ui/HandoverAdmin'
 import { ActAsRecords } from '@features/act-as/ui/ActAsRecords'
 
@@ -27,12 +28,15 @@ export const Route = createFileRoute('/t/$slug/team/settings')({
 })
 
 function TeamSettingsPage() {
-  // Admin manage surface: member management (the editable roster), then positions, then team
-  // settings, then platform access. The read-only view of the same roster lives on /team.
+  // Admin manage surface: member management (the editable roster), then positions, then the event
+  // types whose roster defaults reference those positions, then team settings, then platform access.
+  // Event types come after positions deliberately — a roster default is authored in terms of the
+  // vocabulary above it. The read-only view of the same roster lives on /team.
   return (
     <div className="flex flex-col gap-10">
       <MemberRoster canManage />
       <ManagePositions />
+      <ManageEventTypes />
       <TeamSettings />
       {/* Handing over admin (ADR-0024 §5): how a prepared, memberless team gets its first real Admin.
           Below the day-to-day settings — it is a one-off, not a routine control. */}

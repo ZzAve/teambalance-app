@@ -137,6 +137,9 @@ class JpaTeamMemberRepositoryAdapter(
 
     override fun countAdmins(teamId: TeamId): Int = jpaRepository.countActiveAdmins(teamId.value)
 
+    override fun countByPosition(teamId: TeamId, positionId: PositionId): Int =
+        jpaRepository.countActiveByPosition(teamId.value, positionId.value)
+
     @Transactional
     override fun addMember(teamId: TeamId, userId: UserId, role: Role) {
         val existing = jpaRepository.findByTeamIdAndUserIdAndActiveTrue(teamId.value, userId.value)

@@ -49,6 +49,7 @@ private class FakeTeamMemberRepository(private val roles: Map<Pair<TeamId, UserI
     ) = Unit
     override fun markOnboarded(teamId: TeamId, userId: UserId, at: java.time.Instant) = Unit
     override fun countAdmins(teamId: TeamId): Int = 0
+    override fun countByPosition(teamId: TeamId, positionId: PositionId): Int = 0
 }
 
 class AuthorizationServiceTest : FunSpec() {

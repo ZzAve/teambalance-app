@@ -89,31 +89,65 @@ export const RenamePosition: Story = {
 
 export const DeleteConfirm: Story = {
   // Behavioural twin of WithItems — the confirm dialog closes on confirm and settles back to the
-  // items picture; the open-dialog frame keeps its own baseline via DeleteConfirmOpen below
-  // (#263, ADR-0027 §2).
+  // items picture; the open-dialog frames keep their own baselines below (#263, ADR-0027 §2) —
+  // three of them now, because #219 gives the dialog three states rather than one.
   parameters: { chromatic: { disableSnapshot: true } },
+  args: { usage: { eventTypeCount: 2, eventCount: 1, memberCount: 3 } },
   play: async ({ canvas, userEvent, args }) => {
     await userEvent.click(canvas.getAllByRole('button', { name: 'Delete' })[0])
     const dialog = within(document.body)
-    await expect(
-      await dialog.findByText(/Members with this position will become Unassigned/),
-    ).toBeInTheDocument()
+    // The dialog names what the delete will actually touch (#219) rather than warning in the
+    // abstract — a warning, not a veto: the Delete button is still live.
+    await expect(await dialog.findByText(/3 members become Unassigned/)).toBeInTheDocument()
+    await expect(dialog.getByText(/dropped from 2 event types/)).toBeInTheDocument()
+    await expect(dialog.getByText(/from 1 event with their own roster/)).toBeInTheDocument()
     await userEvent.click(dialog.getByRole('button', { name: 'Delete' }))
     await expect(args.onDelete).toHaveBeenCalledWith(POSITIONS[0])
   },
 }
 
-// Open-dialog baseline: the first row's Delete opens the confirm dialog (a portal); we stop with it
-// open — no confirm click — so the open dialog frame gets its own keep-baseline snapshot. The
-// DeleteConfirm spy above closes on confirm, so it never pictures the open dialog.
-export const DeleteConfirmOpen: Story = {
+// Open-dialog baselines. #264 added a single DeleteConfirmOpen here for the frame DeleteConfirm
+// cannot picture (its play confirms, so the dialog is gone before Chromatic shoots). #219 gives that
+// dialog three distinct states — the counts have arrived, they arrived as zero, or they are still in
+// flight — so the one story becomes three. Each opens the dialog and stops; none confirms.
+//
+// The populated one is the frame an admin actually reads before a destructive action, and it is why
+// the blast-radius work exists at all.
+export const DeleteConfirmUsageCounts: Story = {
+  args: { usage: { eventTypeCount: 2, eventCount: 1, memberCount: 3 } },
+  play: async ({ canvas, userEvent, args }) => {
+    await userEvent.click(canvas.getAllByRole('button', { name: 'Delete' })[0])
+    const dialog = within(document.body)
+    await expect(await dialog.findByText(/3 members become Unassigned/)).toBeInTheDocument()
+    await expect(dialog.getByText(/dropped from 2 event types/)).toBeInTheDocument()
+    await expect(dialog.getByText(/from 1 event with their own roster/)).toBeInTheDocument()
+    // Deliberately not confirmed: a warning is not a veto, so the Delete button stays live and
+    // nothing has fired yet.
+    await expect(dialog.getByRole('button', { name: 'Delete' })).toBeEnabled()
+    await expect(dialog.getByRole('button', { name: 'Cancel' })).toBeInTheDocument()
+    await expect(args.onDelete).not.toHaveBeenCalled()
+  },
+}
+
+// A position nothing uses reads as a clean removal rather than a list of three zeroes.
+export const DeleteConfirmUnused: Story = {
+  args: { usage: { eventTypeCount: 0, eventCount: 0, memberCount: 0 } },
   play: async ({ canvas, userEvent }) => {
     await userEvent.click(canvas.getAllByRole('button', { name: 'Delete' })[0])
     const dialog = within(document.body)
-    await expect(
-      await dialog.findByText(/Members with this position will become Unassigned/),
-    ).toBeInTheDocument()
-    await expect(dialog.getByRole('button', { name: 'Cancel' })).toBeInTheDocument()
+    await expect(await dialog.findByText('Nothing currently uses this position.')).toBeInTheDocument()
+  },
+}
+
+// The usage query is admin-only and fires when the dialog opens, so there is a moment with no
+// answer yet. It must not read as "nothing uses this".
+export const DeleteConfirmUsageLoading: Story = {
+  args: { usage: undefined },
+  play: async ({ canvas, userEvent }) => {
+    await userEvent.click(canvas.getAllByRole('button', { name: 'Delete' })[0])
+    const dialog = within(document.body)
+    await expect(await dialog.findByText('Checking what uses this position…')).toBeInTheDocument()
+    await expect(dialog.queryByText(/Nothing currently uses/)).not.toBeInTheDocument()
   },
 }
 

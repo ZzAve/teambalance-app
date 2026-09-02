@@ -30,6 +30,11 @@ class InvalidSlugException(message: String) : BadRequestException(message, "INVA
 class UnknownRosterPositionException(id: PositionId) :
     BadRequestException("Roster requirement names an unknown position: $id", "UNKNOWN_ROSTER_POSITION")
 
+// The migration target offered when archiving an event type must be a different, still-active type
+// (#219) — anything else would move the events somewhere nobody can find them again.
+class MigrationTargetInvalidException(reason: String) :
+    BadRequestException("Invalid migration target: $reason", "INVALID_MIGRATION_TARGET")
+
 sealed class NotFoundException(message: String) : TeambalanceException(message)
 
 class EventNotFoundException(id: EventId) : NotFoundException("Event not found: $id")
@@ -117,6 +122,16 @@ class LastAdminException(teamId: TeamId) :
 
 class PositionLabelTakenException(label: String) :
     ConflictException("Position '$label' already exists in this team", "POSITION_LABEL_TAKEN")
+
+// Event-type names are unique per team case-insensitively, the same rule positions follow. Archived
+// types count: two types sharing a name would become indistinguishable the moment one is restored.
+class EventTypeNameTakenException(name: String) :
+    ConflictException("Event type '$name' already exists in this team", "EVENT_TYPE_NAME_TAKEN")
+
+// Archiving the last active type would leave no type to create an event with, and no way back
+// through the UI (#219). The team must keep at least one, exactly as it must keep one admin.
+class CannotArchiveLastEventTypeException :
+    ConflictException("A team must keep at least one active event type", "LAST_EVENT_TYPE")
 
 // A team with this slug (and therefore this derived schema) already exists. No auto-suffixing — the
 // caller picks a different name.

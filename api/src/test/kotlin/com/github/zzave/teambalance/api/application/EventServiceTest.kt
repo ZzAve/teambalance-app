@@ -8,7 +8,10 @@ import com.github.zzave.teambalance.api.domain.model.EventTitle
 import com.github.zzave.teambalance.api.domain.model.EventType
 import com.github.zzave.teambalance.api.domain.model.EventTypeId
 import com.github.zzave.teambalance.api.domain.model.Position
+import com.github.zzave.teambalance.api.domain.model.EventTypeName
+import com.github.zzave.teambalance.api.domain.model.HexColor
 import com.github.zzave.teambalance.api.domain.model.PositionId
+import com.github.zzave.teambalance.api.domain.model.RosterRequirement
 import com.github.zzave.teambalance.api.domain.model.PositionLabel
 import com.github.zzave.teambalance.api.domain.model.Recurrence
 import com.github.zzave.teambalance.api.domain.model.RecurrenceFrequency
@@ -46,11 +49,24 @@ private class ExplodingEventRepo : EventRepository {
     override fun saveAll(events: List<Event>): List<Event> = error("unused")
     override fun deleteById(id: EventId) = error("unused")
     override fun deleteAllById(ids: List<EventId>) = error("unused")
+    override fun countTargetsForPosition(positionId: PositionId): Int = error("unused")
 }
 
 private class ExplodingEventTypeRepo : EventTypeRepository {
     override fun findAll(): List<EventType> = error("unused")
     override fun findById(id: EventTypeId): EventType? = error("repository must not be reached for an unauthorized caller")
+    override fun countTargetsForPosition(positionId: PositionId): Int = error("unused")
+    override fun countEventsOfType(id: EventTypeId): Int = error("unused")
+    override fun create(name: EventTypeName, color: HexColor?, rosterDefault: RosterRequirement): EventType =
+        error("unused")
+    override fun update(
+        id: EventTypeId,
+        name: EventTypeName,
+        color: HexColor?,
+        rosterDefault: RosterRequirement,
+    ): EventType = error("unused")
+    override fun archive(id: EventTypeId, migrateEventsTo: EventTypeId?): EventType = error("unused")
+    override fun unarchive(id: EventTypeId): EventType = error("unused")
 }
 
 private class ExplodingPositionRepo : PositionRepository {
@@ -89,6 +105,7 @@ private class EventFakeMemberRepo(private val admins: Set<UserId>) : TeamMemberR
     ) = Unit
     override fun markOnboarded(teamId: TeamId, userId: UserId, at: Instant) = Unit
     override fun countAdmins(teamId: TeamId): Int = admins.size
+    override fun countByPosition(teamId: TeamId, positionId: PositionId): Int = 0
 }
 
 class EventServiceTest : FunSpec() {

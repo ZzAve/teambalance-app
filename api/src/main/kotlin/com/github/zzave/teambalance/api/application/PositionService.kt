@@ -7,10 +7,18 @@ import com.github.zzave.teambalance.api.domain.model.PositionId
 import com.github.zzave.teambalance.api.domain.model.PositionLabel
 import com.github.zzave.teambalance.api.domain.model.TeamId
 import com.github.zzave.teambalance.api.domain.model.UserId
+import com.github.zzave.teambalance.api.domain.port.EventRepository
+import com.github.zzave.teambalance.api.domain.port.EventTypeRepository
+import com.github.zzave.teambalance.api.domain.model.PositionUsage
+import com.github.zzave.teambalance.api.domain.model.UsageCount
 import com.github.zzave.teambalance.api.domain.port.PositionRepository
+import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
 
 class PositionService(
     private val positionRepository: PositionRepository,
+    private val eventTypeRepository: EventTypeRepository,
+    private val eventRepository: EventRepository,
+    private val teamMemberRepository: TeamMemberRepository,
     private val authorizationService: AuthorizationService,
 ) {
     /**
@@ -39,10 +47,29 @@ class PositionService(
     }
 
     /**
+     * What deleting [id] would touch (#219): the type defaults and event overrides that name it, and
+     * the members who hold it. The admin confirmation states these before proceeding — the delete is
+     * still allowed, so this is a warning, not a veto, and it exists so the warning names real
+     * numbers instead of gesturing at "some types and members".
+     *
+     * Admin-only, because it is the delete's own dialog that reads it.
+     */
+    fun positionUsage(callerId: UserId, teamId: TeamId, id: PositionId): PositionUsage {
+        authorizationService.requireAdmin(callerId, teamId)
+        if (!positionRepository.exists(id)) throw PositionNotFoundException(id)
+        return PositionUsage(
+            eventTypeCount = UsageCount(eventTypeRepository.countTargetsForPosition(id)),
+            eventCount = UsageCount(eventRepository.countTargetsForPosition(id)),
+            memberCount = UsageCount(teamMemberRepository.countByPosition(teamId, id)),
+        )
+    }
+
+    /**
      * Admin-only. Deletes a position. Everything that referenced it goes with it, and none of that is
      * this method's work any more (ADR-0026): members assigned to it become Unassigned via
      * `member_profiles`' ON DELETE SET NULL, and the position drops out of every event type's roster
-     * default and every event's roster override via those tables' ON DELETE CASCADE.
+     * default and every event's roster override via those tables' ON DELETE CASCADE. Deleting is
+     * destructive by design — the admin UI warns what it is about to touch, using [positionUsage].
      *
      * That used to be three ordered writes in this service, in a deliberate order — targets first,
      * because a deleted position still named by a live target is unrecoverable while the reverse is

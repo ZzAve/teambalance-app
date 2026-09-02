@@ -45,6 +45,16 @@ class EventCompositionRoot {
     )
 
     // Event types are the events area's reference data — EventService resolves one on every write.
+    // PositionRepository is here for the same reason it is on EventService: a roster default must
+    // name positions this team actually has (#219).
     @Bean
-    fun eventTypeService(eventTypeRepository: EventTypeRepository) = EventTypeService(eventTypeRepository)
+    fun eventTypeService(
+        eventTypeRepository: EventTypeRepository,
+        positionRepository: PositionRepository,
+        authorizationService: AuthorizationService,
+    ) = EventTypeService(
+        eventTypeRepository = eventTypeRepository,
+        positionRepository = positionRepository,
+        authorizationService = authorizationService,
+    )
 }

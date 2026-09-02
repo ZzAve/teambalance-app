@@ -28,7 +28,10 @@ function isTeamlessRoute(pathname: string): boolean {
     path === '/create-team' ||
     path === '/select-team' ||
     path === '/admin/creation-codes' ||
-    path === '/admin/teams'
+    path === '/admin/teams' ||
+    // The team-independent Account tab (ADR-0027 §1): a teamless caller reaches it instead of being
+    // parked on /onboarding, so Log out is reachable with no team.
+    path === '/account'
   )
 }
 

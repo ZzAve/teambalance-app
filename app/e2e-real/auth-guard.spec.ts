@@ -29,10 +29,11 @@ test.describe('logout', () => {
     await page.goto('/')
     await expect(page.getByRole('heading', { name: 'Events' })).toBeVisible()
 
-    // The header no longer carries nav — the tab bar is the primary nav and Log out lives on the
-    // Profile page, whose URL is team-scoped (ADR-0023 §2).
+    // Log out lives on the team-independent Account tab now (ADR-0027 §1): the BottomNav Profile
+    // tab points at the constant /account regardless of team slug, so logout is reachable from
+    // every signed-in state — not only a fully-onboarded /t/:slug screen.
     await page.getByRole('link', { name: 'Profile' }).click()
-    await expect(page).toHaveURL(/\/t\/[^/]+\/profile\/?$/)
+    await expect(page).toHaveURL('/account')
     await page.getByRole('button', { name: 'Log out' }).click()
     await expect(page).toHaveURL('/login')
     await expect(page.getByRole('heading', { name: 'TeamBalance' })).toBeVisible()

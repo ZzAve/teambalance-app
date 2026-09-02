@@ -1,6 +1,6 @@
 import { Link, useRouterState } from '@tanstack/react-router'
 import { Calendar, Users, PiggyBank, User, type LucideIcon } from 'lucide-react'
-import { teamRoutes, teamSlugFromPath, type TeamRoutes } from '@shared/lib/team-routes'
+import { ACCOUNT_PATH, teamRoutes, teamSlugFromPath, type TeamRoutes } from '@shared/lib/team-routes'
 
 interface TabConfig {
   icon: LucideIcon
@@ -20,7 +20,10 @@ function tabsFor(routes: TeamRoutes): TabConfig[] {
     { icon: Calendar, label: 'Events', to: routes.events, isActive: exact(routes.events) },
     { icon: Users, label: 'Team', to: routes.team, isActive: prefix(routes.team) },
     { icon: PiggyBank, label: 'Money', to: routes.money, isActive: prefix(routes.money) },
-    { icon: User, label: 'Profile', to: routes.profile, isActive: prefix(routes.profile) },
+    // Profile points at the team-independent /account (ADR-0027 §1) — a constant, not a slug-built
+    // destination — so it resolves and logout stays reachable on every in-shell screen, teamless
+    // and mid-onboarding included.
+    { icon: User, label: 'Profile', to: ACCOUNT_PATH, isActive: prefix(ACCOUNT_PATH) },
   ]
 }
 

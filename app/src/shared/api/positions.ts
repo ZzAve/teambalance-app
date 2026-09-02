@@ -15,7 +15,9 @@ export class PositionError extends Error {
 
 // The per-team position vocabulary. Readable by any member (GET has no 403). Keyed ['positions'] so
 // a create/rename/delete mutation invalidating that prefix refreshes every picker.
-export function usePositions() {
+// `enabled` lets a caller hold the fetch off when there is no tenant to resolve it against — the
+// Account container passes `enabled: !!activeTeam`, since positions are a per-team vocabulary.
+export function usePositions(options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: ['positions'],
     queryFn: async () => {
@@ -23,6 +25,7 @@ export function usePositions() {
       // A 401 is handled globally (redirect to login) by the fetch handler; fall back to empty here.
       return res.body?.positions ?? []
     },
+    enabled: options?.enabled,
   })
 }
 

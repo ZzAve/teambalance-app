@@ -8,7 +8,10 @@ export const NO_TEAM_MEMBERSHIP_CODE = 'NO_TEAM_MEMBERSHIP'
  * "teamless" — a Member of several Teams gets it before choosing — so bouncing these to login would
  * log out a perfectly authenticated person.
  */
-const TENANT_RESOLVING_PATHS = ['/select-team', '/onboarding', '/create-team']
+// `/account` is team-independent (ADR-0027): a teamless caller reaches it, and its member-profile
+// fetch would 403 NO_TEAM_MEMBERSHIP — so, like the other no-Active-Team screens, a stray 403 here
+// means "no tenant yet", not "log out". Paired with the container's `enabled: !!activeTeam` guard.
+const TENANT_RESOLVING_PATHS = ['/select-team', '/onboarding', '/create-team', '/account']
 
 /**
  * Whether an API response means we should bounce the user to the login screen. Kept pure (no

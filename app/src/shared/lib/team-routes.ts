@@ -7,6 +7,12 @@ import { useRouterState } from '@tanstack/react-router'
  */
 const TEAM_PREFIX = '/t/'
 
+/**
+ * The Account tab is team-independent (ADR-0027 §1): a single constant, never built from a slug, so
+ * it resolves on every in-shell screen and the BottomNav Profile tab points here unconditionally.
+ */
+export const ACCOUNT_PATH = '/account'
+
 /** Null for a path that is not team-scoped. Strict: the segment right after `/t/` and nothing else. */
 export function teamSlugFromPath(pathname: string): string | null {
   if (!pathname.startsWith(TEAM_PREFIX)) return null
@@ -22,7 +28,6 @@ export interface TeamRoutes {
   teamSettings: string
   /** The shared-money pool — a coming-soon placeholder for now (Bunq integration to follow). */
   money: string
-  profile: string
   getStarted: string
 }
 
@@ -32,7 +37,7 @@ export interface TeamRoutes {
  */
 export function teamRoutes(slug: string | null): TeamRoutes {
   if (slug === null) {
-    return { events: '/', event: () => '/', team: '/', teamSettings: '/', money: '/', profile: '/', getStarted: '/' }
+    return { events: '/', event: () => '/', team: '/', teamSettings: '/', money: '/', getStarted: '/' }
   }
   const base = `${TEAM_PREFIX}${encodeURIComponent(slug)}`
   return {
@@ -41,7 +46,6 @@ export function teamRoutes(slug: string | null): TeamRoutes {
     team: `${base}/team`,
     teamSettings: `${base}/team/settings`,
     money: `${base}/money`,
-    profile: `${base}/profile`,
     getStarted: `${base}/get-started`,
   }
 }

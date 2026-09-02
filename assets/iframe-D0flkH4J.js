@@ -1,0 +1,1 @@
+import{t as e}from"./iframe-BD-ZbcV5.js";e();

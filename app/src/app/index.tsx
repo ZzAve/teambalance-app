@@ -4,6 +4,7 @@ import { createRouter, RouterProvider } from '@tanstack/react-router'
 import { routeTree } from '../routeTree.gen'
 import { WakingSplash } from '@shared/ui/ColdStartSplash'
 import { RouteErrorFallback } from '@shared/ui/RouteErrorFallback'
+import { RootErrorBoundary } from '@app/RootErrorBoundary'
 import { installChunkErrorHandler } from '@shared/lib/chunk-reload'
 import { registerAppServiceWorker } from '@app/pwa/sw-registration'
 import './styles/global.css'
@@ -40,6 +41,11 @@ declare module '@tanstack/react-router' {
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <RouterProvider router={router} />
+    {/* Last-resort boundary ABOVE the router: anything that escapes the router's own error handling
+        (an error thrown in its load/transition machinery, which sits outside that boundary) becomes
+        a themed retry screen here instead of an uncaught error that blanks the root. */}
+    <RootErrorBoundary>
+      <RouterProvider router={router} />
+    </RootErrorBoundary>
   </StrictMode>,
 )

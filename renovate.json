@@ -11,6 +11,8 @@
   ],
   "minimumReleaseAge": "14 days",
   "internalChecksFilter": "strict",
+  "rebaseWhen": "conflicted",
+  "prConcurrentLimit": 3,
   "platformAutomerge": true,
   "dependencyDashboard": true,
   "semanticCommits": "enabled",

@@ -25,7 +25,21 @@ on:
   # a required status check reads as "waiting" forever, blocking backend-only and Renovate PRs
   # (the exact automerge case ADR-0017 targets). TurboSnap (onlyChanged) keeps a no-app-change
   # run at 0 snapshots — free and auto-green — so always running costs nothing when nothing moved.
+  #
+  # ready_for_review is added to the default types so leaving draft re-runs Chromatic: the Run
+  # Chromatic step skips the snapshot upload while the PR is a draft (see `skip:` below), so a
+  # non-draft run must fire when the PR becomes reviewable to lay down the real snapshots.
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+# Collapse a burst of rapid pushes to the same PR into a single run: a newer commit cancels the
+# older in-progress/queued run before it reaches the Chromatic step, so WIP iteration snapshots the
+# latest state once instead of every intermediate push. Keyed by ref, so distinct PRs never cancel
+# each other. main is deliberately excluded from cancellation — the newest main commit defines the
+# baseline, so every merge to main must run to completion and promote its snapshots.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 permissions:
   contents: read
@@ -72,4 +86,11 @@ jobs:
           onlyChanged: true
           exitZeroOnChanges: true
           exitOnceUploaded: true
+          # Draft PRs are work-in-progress and can't merge, so their WIP pushes shouldn't spend the
+          # monthly snapshot budget. On a skip Chromatic uploads nothing (0 snapshots) yet still posts
+          # a passing "UI Tests"/"chromatic" status, so the required checks keep reporting rather than
+          # hang as "waiting". Marking the PR ready fires ready_for_review (see the trigger above),
+          # which re-runs this with skip=false to lay down the real snapshots and gate the merge. On
+          # push to main github.event.pull_request is null, so skip is empty/falsy and main always runs.
+          skip: ${{ github.event.pull_request.draft }}
           projectToken: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}

@@ -19,3 +19,13 @@ export function clearSession() {
   // states that render without the router's shell.
   window.location.assign(LOGIN_PATH)
 }
+
+/**
+ * Whether an out-of-shell escape hatch should offer "Log out" (ADR-0027 §3). Logout is a property of
+ * *having a session*, so the hatch shows whenever a session exists — or *might* (the `/auth/me` probe
+ * hasn't resolved) — and hides only once the cache has positively resolved to "no user". Fail-open:
+ * an indeterminate session (`undefined`, never fetched) still shows the hatch.
+ */
+export function hasClearableSession(): boolean {
+  return queryClient.getQueryData(authMeQueryOptions.queryKey) !== null
+}

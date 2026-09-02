@@ -112,13 +112,13 @@ export function AccountView({
           </section>
         )}
 
-        {/* A single entry naming the Active Team (Slice 2 opens it into the Teams view). Rendered as a
-            static row for now — no dead link — keeping Slice 1 focused on logout reachability. */}
+        {/* A single entry naming the Active Team (or hinting when there's none) that opens the Teams
+            "main view" at /select-team — switch · join · create (ADR-0027 §4). */}
         {has('teams') && (
           <section>
             <SectionLabel>Teams</SectionLabel>
             <div className={CARD}>
-              <div className={ROW}>
+              <Link to="/select-team" className={ROW_INTERACTIVE}>
                 <Users size={18} strokeWidth={1.9} className={ICON} aria-hidden="true" />
                 {activeTeamName ? (
                   <>
@@ -130,7 +130,12 @@ export function AccountView({
                 ) : (
                   <span className="font-medium text-muted-foreground">Join or create a team</span>
                 )}
-              </div>
+                <ChevronRight
+                  size={16}
+                  className={`${activeTeamName ? 'ml-3' : 'ml-auto'} shrink-0 text-muted-foreground/60`}
+                  aria-hidden="true"
+                />
+              </Link>
             </div>
           </section>
         )}

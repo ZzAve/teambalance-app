@@ -3,6 +3,8 @@ package com.github.zzave.teambalance.api.interfaces
 import com.github.zzave.teambalance.api.TeamBalanceIT
 import com.github.zzave.teambalance.api.infrastructure.multitenancy.TenantSchemaAdapter
 import io.kotest.matchers.shouldBe
+import org.hamcrest.Matchers.contains
+import org.hamcrest.Matchers.nullValue
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
 import org.springframework.http.MediaType
@@ -213,6 +215,78 @@ class AttendanceControllerTest : TeamBalanceIT() {
 
             queryChangedBy(eventId, ownerId) shouldBe UUID.fromString(editorId)
         }
+
+        test("GET /api/events/{id} returns changedBy as the acting user, not the target") {
+            tenantSchemaAdapter.provisionPlatformSchema()
+            tenantSchemaAdapter.provisionTenantSchema("public")
+
+            val teamId = UUID.randomUUID().toString()
+            val ownerId = UUID.randomUUID().toString()
+            val editorId = UUID.randomUUID().toString()
+            val selfId = UUID.randomUUID().toString()
+
+            jdbcTemplate.execute("""
+                INSERT INTO public.teams (id, name, slug, schema_name)
+                VALUES ('$teamId'::uuid, 'Attribution Team', 'attribution-team-$teamId', 'attribution-team-$teamId')
+                ON CONFLICT DO NOTHING
+            """)
+            jdbcTemplate.execute("""
+                INSERT INTO public.users (id, email, display_name) VALUES
+                    ('$ownerId'::uuid, 'owner-$ownerId@test.com', 'Owner'),
+                    ('$editorId'::uuid, 'editor-$editorId@test.com', 'Editor'),
+                    ('$selfId'::uuid, 'self-$selfId@test.com', 'Self')
+                ON CONFLICT DO NOTHING
+            """)
+            jdbcTemplate.execute("SELECT public.tb_add_member('$teamId'::uuid, '$ownerId'::uuid, 'USER', 'Setter')")
+            jdbcTemplate.execute("SELECT public.tb_add_member('$teamId'::uuid, '$editorId'::uuid, 'ADMIN', 'Libero')")
+            jdbcTemplate.execute("SELECT public.tb_add_member('$teamId'::uuid, '$selfId'::uuid, 'USER', 'Middle')")
+
+            val eventId = UUID.randomUUID()
+            jdbcTemplate.execute("""
+                INSERT INTO public.events (uuid, event_type_id, title, start_time, end_time, created_by, created_at, updated_at)
+                VALUES ('$eventId'::uuid,
+                    (SELECT id FROM public.event_types WHERE name = 'Training'),
+                    'Attribution Match', '2026-07-01 20:00:00+00', '2026-07-01 22:00:00+00',
+                    '$editorId'::uuid, now(), now())
+            """)
+
+            // The editor sets the owner's attendance (acting user differs from target)…
+            putAttendanceAs(eventId, ownerId, editorId, "ATTENDING")
+            // …and the self member sets their own (acting user equals target).
+            putAttendanceAs(eventId, selfId, selfId, "MAYBE")
+
+            val getResult = mockMvc.perform(
+                MockMvcRequestBuilders.get("/api/events/$eventId")
+                    .header("X-Team-Id", "public")
+                    .header("X-User-Id", editorId),
+            )
+                .andExpect(MockMvcResultMatchers.request().asyncStarted())
+                .andReturn()
+
+            mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(getResult))
+                .andExpect(MockMvcResultMatchers.status().isOk)
+                // Cross-edit: attribution is the editor, so the client can render "set by Editor".
+                .andExpect(MockMvcResultMatchers.jsonPath("$.attendances[?(@.userId=='$ownerId')].changedBy").value(editorId))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.attendances[?(@.userId=='$ownerId')].updatedAt").isNotEmpty)
+                // Self-set: changedBy equals the target, so the client's "only attribute when they differ" rule holds.
+                .andExpect(MockMvcResultMatchers.jsonPath("$.attendances[?(@.userId=='$selfId')].changedBy").value(selfId))
+                // A member with no response row carries no attribution (null, not the acting viewer).
+                .andExpect(MockMvcResultMatchers.jsonPath("$.attendances[?(@.userId=='$editorId')].changedBy").value(contains(nullValue())))
+        }
+    }
+
+    private fun putAttendanceAs(eventId: UUID, targetUserId: String, actingUserId: String, state: String) {
+        val started = mockMvc.perform(
+            MockMvcRequestBuilders.put("/api/events/$eventId/attendances/$targetUserId")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""{"state":"$state"}""")
+                .header("X-Team-Id", "public")
+                .header("X-User-Id", actingUserId),
+        )
+            .andExpect(MockMvcResultMatchers.request().asyncStarted())
+            .andReturn()
+        mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(started))
+            .andExpect(MockMvcResultMatchers.status().isOk)
     }
 
     private fun putAttendance(eventId: UUID, state: String) {

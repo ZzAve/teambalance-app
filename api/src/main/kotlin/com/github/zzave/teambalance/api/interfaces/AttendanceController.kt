@@ -14,6 +14,7 @@ import com.github.zzave.teambalance.api.interfaces.generated.endpoint.SetAttenda
 import com.github.zzave.teambalance.api.interfaces.generated.model.Attendance
 import com.github.zzave.teambalance.api.interfaces.generated.model.BulkAttendanceResult
 import com.github.zzave.teambalance.api.interfaces.generated.model.AttendanceEntry
+import com.github.zzave.teambalance.api.interfaces.generated.model.DateTimestampWithTimezone
 import com.github.zzave.teambalance.api.interfaces.generated.model.AttendanceState as GeneratedAttendanceState
 import com.github.zzave.teambalance.api.interfaces.generated.model.AttendanceSummary
 import com.github.zzave.teambalance.api.interfaces.generated.model.RoleCount
@@ -52,6 +53,8 @@ class AttendanceController(
                 displayName = member?.displayName?.value ?: "Unknown",
                 role = (member?.position ?: UNASSIGNED).value,
                 state = attendance.state.name,
+                changedBy = attendance.changedBy.produce(),
+                updatedAt = DateTimestampWithTimezone(attendance.updatedAt.toString()),
             )
         )
     }
@@ -97,6 +100,9 @@ internal fun MemberAttendance.produce() = AttendanceEntry(
     displayName = member.displayName.value,
     role = (member.position ?: UNASSIGNED).value,
     state = state.produce(),
+    // Attribution is present only for a real response row; a not-responded member carries neither.
+    changedBy = changedBy?.produce(),
+    updatedAt = updatedAt?.let { DateTimestampWithTimezone(it.toString()) },
 )
 
 internal fun Map<AttendanceState, Int>.produce(roleBreakdown: List<Pair<PositionLabel, Int>>) =

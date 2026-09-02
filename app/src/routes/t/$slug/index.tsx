@@ -1,7 +1,8 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { useEffect, useMemo, useState } from 'react'
-import { useEvents } from '@shared/api/events'
+import { useEvents, type Event } from '@shared/api/events'
 import { useEventTypes } from '@shared/api/event-types'
+import { useSetAttendance } from '@shared/api/attendances'
 import { useUserStore } from '@shared/stores/user-store'
 import { useNow } from '@shared/lib/use-now'
 import { EventListView } from '@entities/event/ui/EventListView'
@@ -43,6 +44,23 @@ function EventListPage() {
     // card's relative label are read off the same instant and can never disagree with each other —
     // and so a screen left open overnight stops claiming "Tomorrow" about today.
     const now = useNow()
+
+    // Attendance from the card (#273). `myState` is on the list payload, so the card needs no detail
+    // read; the one shared mutation and the optimistic hold live here. `applyOptimisticAttendance`
+    // patches only the detail cache, not this list, so the picked answer is held here. It is applied
+    // by EventListView only until the invalidated list refetch reports the same answer — no clearing
+    // effect needed, the derivation drops it on its own. onError clears it so a failed write does not
+    // leave the card stuck. While held, the card shows the answer optimistically and its readiness
+    // badge stays pending (⑤).
+    const currentUserId = useUserStore((s) => s.userId)
+    const {mutate: setAttendance} = useSetAttendance()
+    const [optimistic, setOptimistic] = useState<{ eventId: string; state: Event['myState'] } | null>(null)
+
+    const respond = (eventId: string, state: Event['myState']) => {
+        if (!currentUserId) return
+        setOptimistic({eventId, state})
+        setAttendance({eventId, userId: currentUserId, state}, {onError: () => setOptimistic(null)})
+    }
 
     const filteredEvents = useMemo(() => {
         if (!events || !eventTypes) return events ?? []
@@ -106,6 +124,8 @@ function EventListPage() {
 
             <EventListView
                 events={listEvents}
+                onRespond={respond}
+                optimistic={optimistic}
                 // A rendered hero IS loaded data — it was pulled out of this very list — so an empty
                 // list beneath it means "nothing else", never a failure. Withholding the flags keeps
                 // the list from painting a skeleton or an error over a page that is plainly fine.

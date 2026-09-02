@@ -8,10 +8,17 @@ import { EventTypeBadge } from './EventTypeBadge'
 import { ReferenceChips } from './ReferenceChips'
 import { RelativeTimeLabel } from './RelativeTimeLabel'
 import { useTeamRoutes } from '@shared/lib/team-routes'
-import { RosterDisclosure } from './RosterDisclosure'
+import { EventAnswerRow } from './EventAnswerRow'
+
+type AttendanceState = Event['myState']
 
 interface EventCardProps {
   event: Event
+  /** The viewer's own answer — already carrying any optimistic pick from the page container. */
+  myState: AttendanceState
+  /** An attendance write is in flight for this event. */
+  pending?: boolean
+  onRespond: (state: AttendanceState) => void
   index?: number
   /** Injected so the relative label is deterministic in stories; defaults to the real clock. */
   now?: Date
@@ -22,14 +29,17 @@ interface EventCardProps {
  * is what lets the list stay flat and chronological with no This Week / Later headings. The type
  * text tag stays next to it — colour alone is not a label.
  *
- * The divider above the attendance row is a child of the card, not of the text column, so it runs
- * edge-to-edge under the chit and the whole thing reads as one card rather than two panes.
+ * The bottom row answers exactly two questions (#271): *what did I say?* on the left, and *is this
+ * event OK?* on the right — the whole row a single tap target opening the answer control. The old
+ * `✓ 8 going · of 14 · 3 pending` counts are gone; they live on the detail page's tab bar.
+ *
+ * Prop-only (ADR-0017): `myState` arrives already optimistic and `onRespond` fires the write, both
+ * owned by the page container (the events route). That seam is covered by the existing attendance
+ * e2e; every rendered state here is a story.
  */
-export function EventCard({ event, index = 0, now = new Date() }: EventCardProps) {
+export function EventCard({ event, myState, pending, onRespond, index = 0, now = new Date() }: EventCardProps) {
   const routes = useTeamRoutes()
   const date = new Date(event.startTime)
-  const { attendanceSummary: s } = event
-  const invited = s.attending + s.maybe + s.absent + s.notResponded
   const label = relativeEventLabel(event.startTime, now)
 
   return (
@@ -89,31 +99,9 @@ export function EventCard({ event, index = 0, now = new Date() }: EventCardProps
         </div>
       </div>
 
-      {/* Attendance row. Sibling of the chit+body row, so its rule spans the full card width.
-          `flex-wrap` so the roster panel, which is a full-width sibling of the chip, drops below. */}
-      <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-border/40 pt-3">
-        {invited === 0 ? (
-          // A team with no members yet has a denominator of zero — "0 going of 0" reads as broken.
-          // Say what is actually true instead: nobody is on the roster to respond (ADR-0024 §5).
-          <span className="text-xs text-muted-foreground">No members yet</span>
-        ) : (
-          <>
-            <span className="rounded-full bg-green/10 px-2.5 py-1 text-xs font-medium text-green">
-              ✓ {s.attending} going
-            </span>
-            <span className="text-xs text-muted-foreground">
-              of {invited}
-              {s.notResponded > 0 && (
-                <>
-                  {' · '}
-                  <span className="opacity-60">{s.notResponded} pending</span>
-                </>
-              )}
-            </span>
-          </>
-        )}
-        {/* Renders nothing at all when the event's type doesn't track a roster (a social). */}
-        <RosterDisclosure roster={event.roster} />
+      {/* Answer row. Sibling of the chit+body row, so its rule spans the full card width. */}
+      <div className="mt-3 border-t border-border/40 pt-3">
+        <EventAnswerRow roster={event.roster} myState={myState} pending={pending} onRespond={onRespond} />
       </div>
     </Card>
   )

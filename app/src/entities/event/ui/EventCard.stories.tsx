@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
-import { expect } from 'storybook/test'
+import { expect, fn } from 'storybook/test'
 import { withRouter } from '@shared/testing/router-decorator'
 import { makeEvent, makeRoster } from '@shared/testing/event-fixtures'
 import { allModes } from '../../../../.storybook/modes'
@@ -8,8 +8,9 @@ import { EventCard } from './EventCard'
 // EventCard renders a TanStack Router <Link to="/events/$eventId">, which needs a router in context.
 // The shared withRouter decorator supplies a minimal in-memory router so the link target resolves.
 //
-// `now` is a prop, so every relative-label state is a fixed render rather than a function of when
-// the story happens to run — which is also what keeps the Chromatic snapshots stable.
+// Prop-only (ADR-0017): the answer + the mutation are the events route's job; here `myState` and
+// `onRespond` are plain props. `now` is a prop too, so every relative-label state is a fixed render
+// rather than a function of when the story runs — which also keeps the Chromatic snapshots stable.
 const NOW = new Date(2026, 7, 10, 9, 0) // Monday 10 August 2026, 09:00 local
 const on = (day: number, hour = 20, minute = 0) => new Date(2026, 7, day, hour, minute).toISOString()
 
@@ -19,7 +20,7 @@ const meta = {
   title: 'entities/event/EventCard',
   component: EventCard,
   decorators: [withRouter],
-  args: { now: NOW },
+  args: { now: NOW, myState: 'NOT_RESPONDED', onRespond: fn() },
   parameters: { chromatic: { modes: { light: allModes.light, dark: allModes.dark } } },
 } satisfies Meta<typeof EventCard>
 
@@ -37,8 +38,19 @@ export const Populated: Story = {
     await expect(canvas.getByText('14:30')).toBeInTheDocument()
     // The type text label stays alongside the chit's colour.
     await expect(canvas.getByText('Match')).toBeInTheDocument()
-    await expect(canvas.getByText(/5 going/)).toBeInTheDocument()
-    await expect(canvas.getByText(/of 8/)).toBeInTheDocument()
+    // The bottom row answers "what did I say?" — unanswered here, so it asks.
+    await expect(canvas.getByText('Going?')).toBeInTheDocument()
+    // The old "✓ 5 going · of 8 · 3 pending" counts are gone from the card.
+    await expect(canvas.queryByText(/of 8/)).not.toBeInTheDocument()
+    await expect(canvas.queryByText(/pending/)).not.toBeInTheDocument()
+  },
+}
+
+// The viewer's own answer, shown in words on the left.
+export const AnswerAttending: Story = {
+  args: { event: makeEvent({ startTime: on(13) }), myState: 'ATTENDING' },
+  play: async ({ canvas }) => {
+    await expect(canvas.getByText("You're in")).toBeInTheDocument()
   },
 }
 
@@ -68,7 +80,8 @@ export const WithoutRelativeLabel: Story = {
   },
 }
 
-// A social event: a different type colour tints the chit, and the text tag still names the type.
+// A social event: tracking is off, so the right slot falls back to a headcount (⑥). The row is still
+// one tap target — every event can be answered from the card.
 export const SocialEvent: Story = {
   args: {
     event: makeEvent({
@@ -76,31 +89,35 @@ export const SocialEvent: Story = {
       title: 'Season kick-off drinks',
       startTime: on(15, 21, 0),
       location: 'Café De Hoek',
-      attendanceSummary: {
-        attending: 11,
-        maybe: 0,
-        absent: 2,
-        notResponded: 2,
-        roleBreakdown: [],
+      roster: {
+        trackRoster: false,
+        totalTarget: undefined,
+        totalAttending: 11,
+        positions: [],
+        unassignedAttending: 0,
+        openSlots: 0,
+        state: 'OFF',
       },
     }),
   },
-  play: async ({ canvas }) => {
+  play: async ({ canvas, userEvent }) => {
     await expect(canvas.getByText('Social')).toBeInTheDocument()
     await expect(canvas.getByText('Season kick-off drinks')).toBeInTheDocument()
-    await expect(canvas.getByText(/11 going/)).toBeInTheDocument()
+    // No roster verdict, so the headcount fallback carries the team information.
+    await expect(canvas.getByText('11 going')).toBeInTheDocument()
     // The 15th is the Saturday of the current week.
     await expect(canvas.getByText('This weekend')).toBeInTheDocument()
-    // A social tracks no roster, so the card carries no status chip and no way to open a panel.
-    await expect(canvas.queryByRole('button')).not.toBeInTheDocument()
+    // Tapping the row opens the answer control even for a social.
+    await userEvent.click(canvas.getByRole('button', { name: /Change your answer/ }))
+    await expect(canvas.getByRole('button', { name: 'Going' })).toBeInTheDocument()
   },
 }
 
-// The roster disclosure in place on a real card (#219): the chip sits at the end of the attendance
-// row, collapsed, and the panel drops full-width beneath it. RosterDisclosure's own stories cover
-// every roster state; this one proves the composition — that the card gives it room and that tapping
-// the chip does not follow the card's stretched link.
-export const WithRosterChip: Story = {
+// The roster verdict in place on a real card (#219): the badge sits at the end of the answer row,
+// collapsed, and the panel drops beneath it. RosterPips / ReadinessBadge stories cover every roster
+// state; this proves the composition — that the card gives the row room and that tapping it does not
+// follow the card's stretched link.
+export const WithRosterVerdict: Story = {
   args: {
     event: makeEvent({
       startTime: on(13, 14, 30),
@@ -122,44 +139,10 @@ export const WithRosterChip: Story = {
     // Collapsed on a list card until asked.
     await expect(canvas.queryByText(/the one to chase/)).not.toBeInTheDocument()
 
-    await userEvent.click(canvas.getByRole('button', { name: /Show positions/ }))
+    await userEvent.click(canvas.getByRole('button', { name: /Change your answer/ }))
 
     await expect(canvas.getByText('1 of 3 covered')).toBeInTheDocument()
     await expect(canvas.getByText(/still has no one/)).toBeInTheDocument()
-  },
-}
-
-// Nobody has answered yet, but the team HAS members: they all sit in notResponded, so the denominator
-// is real. Distinct from the zero-member card below (all counts zero).
-export const NoResponses: Story = {
-  args: {
-    event: makeEvent({
-      startTime: on(13),
-      attendanceSummary: { attending: 0, maybe: 0, absent: 0, notResponded: 12, roleBreakdown: [] },
-    }),
-  },
-  play: async ({ canvas }) => {
-    await expect(canvas.getByText(/0 going/)).toBeInTheDocument()
-    await expect(canvas.getByText(/of 12/)).toBeInTheDocument()
-    await expect(canvas.getByText(/12 pending/)).toBeInTheDocument()
-  },
-}
-
-// The zero-member state (ADR-0024 §5): an event on a team a Platform Admin created memberless and is
-// still preparing. Every count is zero, so the denominator is zero — "0 going of 0" would read as
-// broken, so the card says what is actually true: there is nobody on the roster yet.
-export const NoMembersYet: Story = {
-  args: {
-    event: makeEvent({
-      startTime: on(13),
-      attendanceSummary: { attending: 0, maybe: 0, absent: 0, notResponded: 0, roleBreakdown: [] },
-    }),
-  },
-  play: async ({ canvas }) => {
-    await expect(canvas.getByText('No members yet')).toBeInTheDocument()
-    // The broken-looking "of 0" denominator is not shown.
-    await expect(canvas.queryByText(/of 0/)).not.toBeInTheDocument()
-    await expect(canvas.queryByText(/going/)).not.toBeInTheDocument()
   },
 }
 
@@ -192,8 +175,8 @@ export const WithLocation: Story = {
     await expect(maps).toHaveAttribute('href', expect.stringContaining('maps.google.com'))
     await expect(maps).toHaveAttribute('target', '_blank')
     // ...and it must NOT be nested inside the card's own <Link> anchor (invalid HTML — the
-    // "<a> cannot contain a nested <a>" warning this fix removes). The card link and the maps
-    // link are siblings; the card stays clickable via a stretched-link overlay.
+    // "<a> cannot contain a nested <a>" warning). The card link and the maps link are siblings;
+    // the card stays clickable via a stretched-link overlay.
     await expect(canvasElement.querySelectorAll('a a')).toHaveLength(0)
   },
 }

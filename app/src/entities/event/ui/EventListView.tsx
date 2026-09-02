@@ -2,6 +2,8 @@ import type { Event } from '@shared/api/events'
 import { Skeleton } from '@shared/ui/skeleton'
 import { EventCard } from './EventCard'
 
+type AttendanceState = Event['myState']
+
 interface EventListViewProps {
   /** Already filtered, already sorted, and with the hero event removed by the container. */
   events: Event[]
@@ -10,6 +12,10 @@ interface EventListViewProps {
   emptyMessage?: string
   /** Injected so relative labels are deterministic in stories; defaults to the real clock. */
   now?: Date
+  /** Fires the viewer's attendance write for one event. Wired by the page container (the route). */
+  onRespond?: (eventId: string, state: AttendanceState) => void
+  /** The event whose write is in flight, with the optimistic answer to show on its card meanwhile. */
+  optimistic?: { eventId: string; state: AttendanceState } | null
 }
 
 /**
@@ -27,6 +33,8 @@ export function EventListView({
   error,
   emptyMessage = 'No upcoming events.',
   now,
+  onRespond,
+  optimistic,
 }: EventListViewProps) {
   // Data wins: keep showing cached events even when a background refetch is loading or has errored,
   // so a transient failure never blanks a list the user is already looking at.
@@ -38,9 +46,23 @@ export function EventListView({
 
   return (
     <div className="mt-4 flex flex-col gap-3">
-      {events.map((event, idx) => (
-        <EventCard key={event.id} event={event} index={idx} now={now} />
-      ))}
+      {events.map((event, idx) => {
+        // Apply the optimistic pick only until the refreshed list reports the same answer: while it
+        // differs the write is still settling, so show the pick and keep the badge pending (⑤); once
+        // the list catches up the row is real again. A failed write is dropped by the container.
+        const settling = optimistic?.eventId === event.id && optimistic.state !== event.myState
+        return (
+          <EventCard
+            key={event.id}
+            event={event}
+            index={idx}
+            now={now}
+            myState={settling ? optimistic.state : event.myState}
+            pending={settling}
+            onRespond={(state) => onRespond?.(event.id, state)}
+          />
+        )
+      })}
     </div>
   )
 }

@@ -45,7 +45,7 @@ class RosterRequirementTest : FunSpec() {
             requirement.totalTarget shouldBe HeadcountTarget(12)
         }
 
-        test("the two axes are independent — either may be set without the other") {
+        test("the two axes are independent - either may be set without the other") {
             RosterRequirement(trackRoster = true, totalTarget = HeadcountTarget(12)).positionTargets shouldBe emptyList()
             RosterRequirement(
                 trackRoster = true,
@@ -62,7 +62,7 @@ class RosterRequirementTest : FunSpec() {
             requirement.targetFor(positionId()) shouldBe null
         }
 
-        test("withoutPosition drops only that position's target — how a deleted position leaves") {
+        test("withoutPosition drops only that position's target - how a deleted position leaves") {
             val setter = positionId()
             val libero = positionId()
             val requirement = RosterRequirement(

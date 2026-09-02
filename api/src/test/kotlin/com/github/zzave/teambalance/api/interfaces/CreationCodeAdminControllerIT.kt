@@ -99,7 +99,7 @@ class CreationCodeAdminControllerIT : TeamBalanceIT() {
             seedUser(outsider, "codes-outsider@test.com")
         }
 
-        test("a platform admin creates a code, then sees it in the list — redeemable in the DB") {
+        test("a platform admin creates a code, then sees it in the list - redeemable in the DB") {
             val result = createAs(admin)
                 .andExpect(MockMvcResultMatchers.status().isCreated)
                 .andExpect(MockMvcResultMatchers.jsonPath("$.code").isString)

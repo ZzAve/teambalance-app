@@ -155,13 +155,13 @@ class AuthorizationServiceTest : FunSpec() {
                 actingAs(teamId, who = otherOperator).isAdmin(operator, teamId) shouldBe false
             }
 
-            test("the synthesis never touches team_members — no row is written, ever") {
+            test("the synthesis never touches team_members - no row is written, ever") {
                 actingAs(teamId).requireAdmin(operator, teamId)
 
                 roster.writes.shouldBeEmpty()
             }
 
-            test("an existing member keeps their own role — the grant does not overwrite it") {
+            test("an existing member keeps their own role - the grant does not overwrite it") {
                 actingAs(teamId).isAdmin(memberId, teamId) shouldBe false
                 actingAs(teamId).isMember(memberId, teamId) shouldBe true
             }

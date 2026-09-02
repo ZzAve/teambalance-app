@@ -171,7 +171,7 @@ class MemberControllerIT : TeamBalanceIT() {
                 .andExpect(MockMvcResultMatchers.jsonPath("$.members.length()").value(2))
         }
 
-        test("GET /api/members as a non-admin returns the roster — any active member may read it") {
+        test("GET /api/members as a non-admin returns the roster - any active member may read it") {
             seedTeam(janRole = "USER")
 
             listMembersAs(JAN_USER_ID)

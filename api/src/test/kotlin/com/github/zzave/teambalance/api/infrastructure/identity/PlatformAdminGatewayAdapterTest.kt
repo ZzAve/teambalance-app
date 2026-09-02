@@ -40,7 +40,7 @@ class PlatformAdminGatewayAdapterTest : FunSpec() {
             guard(listOf("admin@teambalance.nl")).isPlatformAdmin(plainId) shouldBe false
         }
 
-        test("empty allowlist is fail-closed — nobody is a platform admin") {
+        test("empty allowlist is fail-closed - nobody is a platform admin") {
             guard(emptyList()).isPlatformAdmin(adminId) shouldBe false
         }
 

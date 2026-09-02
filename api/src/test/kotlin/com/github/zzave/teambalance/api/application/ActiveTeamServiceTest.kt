@@ -36,7 +36,7 @@ class ActiveTeamServiceTest : FunSpec() {
                 service.resolveLanding(member)?.teamId shouldBe setpoint
             }
 
-            test("a teamless caller lands nowhere — no silent default tenant") {
+            test("a teamless caller lands nowhere - no silent default tenant") {
                 val (_, _, service) = fixture()
 
                 service.resolveLanding(member).shouldBeNull()
@@ -140,7 +140,7 @@ class ActiveTeamServiceTest : FunSpec() {
             }
         }
 
-        context("switching by slug — what a shared /t/:slug link performs") {
+        context("switching by slug - what a shared /t/:slug link performs") {
             test("a slug the caller is entitled to switches and hands back the Team") {
                 val (directory, gateway, service) = fixture()
                 val tovo = directory.addTeam("Tovo Heren 5", "tovo-heren-5")

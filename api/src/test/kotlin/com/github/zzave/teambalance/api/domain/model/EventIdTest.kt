@@ -14,7 +14,7 @@ import java.util.UUID
  */
 class EventIdTest : FunSpec({
 
-    test("wrapping and unwrapping is lossless — the edges can convert either way") {
+    test("wrapping and unwrapping is lossless - the edges can convert either way") {
         val raw = UUID.randomUUID()
 
         EventId(raw).value shouldBe raw

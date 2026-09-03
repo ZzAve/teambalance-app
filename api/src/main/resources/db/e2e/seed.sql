@@ -51,6 +51,24 @@ FROM team_test.event_types et
 WHERE et.name = 'Training'
 ON CONFLICT DO NOTHING;
 
+-- A second member of team_test, so the edit-a-teammate's-attendance e2e (#274) has a target other
+-- than the acting admin. Deliberately position-less (position_id NULL → Unassigned) and with no
+-- seeded attendance row, so they start NOT_RESPONDED; the spec sets their answer as the admin, which
+-- is the cross-member write it exists to cover (ADR-0003 trust-based editing).
+INSERT INTO public.users (id, email, display_name)
+VALUES ('e2e00000-0000-0000-0000-000000000006', 'e2e-teammate@example.com', 'E2E Teammate')
+ON CONFLICT DO NOTHING;
+
+INSERT INTO public.team_members (id, team_id, user_id, role, onboarded_at)
+VALUES (
+    'e2e00000-0000-0000-0000-000000000007',
+    'e2e00000-0000-0000-0000-000000000001',
+    'e2e00000-0000-0000-0000-000000000006',
+    'USER',
+    now()
+)
+ON CONFLICT (id) DO UPDATE SET onboarded_at = EXCLUDED.onboarded_at;
+
 -- No attendance row is seeded for the event above, deliberately. NOT_RESPONDED *is* the absence of a
 -- row (ADR-0009, ADR-0020): it is resolved by outer-joining the roster, never stored. A materialized
 -- NOT_RESPONDED row therefore reads as a blank while behaving as an answer, which breaks any

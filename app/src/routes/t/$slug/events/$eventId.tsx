@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { useState } from 'react'
 import { MapPin } from 'lucide-react'
-import { useEvent, useEvents, type AttendanceEntry } from '@shared/api/events'
+import { useEvent, useEvents } from '@shared/api/events'
 import { useSetAttendance } from '@shared/api/attendances'
 import { useUserStore } from '@shared/stores/user-store'
 import { Button } from '@shared/ui/button'
@@ -11,10 +11,12 @@ import { EventDetailSkeleton } from '@entities/event/ui/EventDetailSkeleton'
 import { QueryErrorState } from '@shared/ui/QueryErrorState'
 import { ReferenceChips } from '@entities/event/ui/ReferenceChips'
 import { RoleBreakdown } from '@entities/event/ui/RoleBreakdown'
+import { RosterPips } from '@entities/event/ui/RosterPips'
 import { SeriesPeek } from '@entities/event/ui/SeriesPeek'
 import { buildAttendeePanel } from '@entities/event/lib/attendee-panel'
+import { attributionName } from '@entities/event/lib/attribution'
 import { buildSeriesPeek } from '@entities/event/lib/series-peek'
-import { Avatar } from '@shared/ui/avatar'
+import { AttendeeList } from '@widgets/attendee-list/ui/AttendeeList'
 import { AttendanceToggle, type AttendanceState } from '@features/attendance-toggle/ui/AttendanceToggle'
 import { EditEventDialog } from '@features/edit-event/ui/EditEventDialog'
 import { DeleteEventDialog } from '@features/edit-event/ui/DeleteEventDialog'
@@ -34,22 +36,8 @@ const ATTENDEE_TABS: {
   { state: 'ATTENDING', label: 'Going', barColor: 'bg-green', badgeBg: 'bg-green/10 text-green' },
   { state: 'MAYBE', label: 'Maybe', barColor: 'bg-gold', badgeBg: 'bg-gold/10 text-gold' },
   { state: 'ABSENT', label: 'Absent', barColor: 'bg-red', badgeBg: 'bg-red/10 text-red' },
-  { state: 'NOT_RESPONDED', label: '?', barColor: 'bg-muted-foreground', badgeBg: 'bg-muted text-muted-foreground' },
+  { state: 'NOT_RESPONDED', label: 'Awaiting', barColor: 'bg-muted-foreground', badgeBg: 'bg-muted text-muted-foreground' },
 ]
-
-function AttendeeRow({ attendance }: { attendance: AttendanceEntry }) {
-  return (
-    <div className="flex items-center gap-3 py-2 px-3">
-      <Avatar userId={attendance.userId} name={attendance.displayName} />
-      <div className="min-w-0">
-        <span className="block text-sm leading-tight">{attendance.displayName}</span>
-        {attendance.role && (
-          <span className="block text-xs text-muted-foreground">{attendance.role}</span>
-        )}
-      </div>
-    </div>
-  )
-}
 
 function EventDetailPage() {
   const { eventId } = Route.useParams()
@@ -83,6 +71,10 @@ function EventDetailPage() {
 
   const attendeePanel = buildAttendeePanel(event)
   const filteredAttendees = attendeePanel[activeAttendeeTab].attendees
+  const myAttribution = myAttendance ? attributionName(myAttendance, event.attendances) : null
+  // The pips panel replaces RoleBreakdown only where a position carries a target; otherwise it has
+  // nothing to show and RoleBreakdown stays as the fallback (⑥, same rule as the card).
+  const hasPositionTargets = event.roster.positions.some((p) => p.required != null)
 
   // "Part of a series" peek: siblings are every event sharing this occurrence's recurring group.
   const siblings = event.recurringGroup
@@ -134,6 +126,8 @@ function EventDetailPage() {
             disabled={isPending}
             onToggle={(state) => mutate({ eventId, userId: currentUserId, state })}
           />
+          {/* You learn a teammate changed your answer right where you would change it back (⑪). */}
+          {myAttribution && <p className="mt-2 text-xs text-muted-foreground">set by {myAttribution}</p>}
         </div>
       )}
 
@@ -179,15 +173,22 @@ function EventDetailPage() {
         </div>
         {/* Panel content */}
         <div className="p-1">
-          {activeAttendeeTab === 'ATTENDING' && (
-            <RoleBreakdown breakdown={event.attendanceSummary.roleBreakdown} />
-          )}
-          {filteredAttendees.map((a) => (
-            <AttendeeRow key={a.userId} attendance={a} />
-          ))}
-          {filteredAttendees.length === 0 && (
-            <p className="py-6 text-center text-sm text-muted-foreground">No one</p>
-          )}
+          {activeAttendeeTab === 'ATTENDING' &&
+            (hasPositionTargets ? (
+              <div className="border-b border-border/40 px-3 pb-3 pt-2">
+                <RosterPips roster={event.roster} />
+              </div>
+            ) : (
+              <RoleBreakdown breakdown={event.attendanceSummary.roleBreakdown} />
+            ))}
+          <AttendeeList
+            attendees={filteredAttendees}
+            allAttendees={event.attendances}
+            roster={event.roster}
+            grouped={activeAttendeeTab === 'ATTENDING'}
+            onRespond={(userId, state) => mutate({ eventId, userId, state })}
+            pending={isPending}
+          />
         </div>
       </div>
 

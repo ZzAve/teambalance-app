@@ -107,12 +107,33 @@ function rowTone(position: RosterPosition): RosterTone | null {
   return position.attending >= position.required ? 'covered' : 'short'
 }
 
+/** The chase callout, split so the caller can bold the subject without owning any of the copy. */
+export interface ChaseNudge {
+  /** The subject — position names, or a count once naming them would be an inventory. */
+  lead: string
+  /** The rest of the sentence, already agreeing in number with `lead`. */
+  rest: string
+}
+
 /**
- * The first targeted position with nobody at all — the "one to chase". Only the first: a callout
- * naming three positions is a list, not a nudge, and the panel rows already show the rest.
+ * The callout under the rows for targeted positions with nobody at all.
+ *
+ * It scales with how many are empty, because one shape cannot honestly cover all three. Naming a
+ * single position and calling it "the one to chase" is the useful case and stays. Naming two is
+ * still a nudge. From three on it becomes an inventory the rows above already print, so the count
+ * carries it instead.
+ *
+ * What must not happen is the old behaviour: naming the *first* empty position and calling it "the
+ * one to chase" regardless of how many others were also empty. On an event nobody has answered yet
+ * that singled out one position and implied every other was covered.
  */
-export function oneToChase(roster: EventRoster): RosterRow | null {
-  return rosterRows(roster).find((row) => row.pips.length > 0 && row.pips.every((p) => p === 'missing')) ?? null
+export function chaseNudge(roster: EventRoster): ChaseNudge | null {
+  const empty = rosterRows(roster).filter((row) => row.pips.length > 0 && row.pips.every((p) => p === 'missing'))
+
+  if (empty.length === 0) return null
+  if (empty.length === 1) return { lead: empty[0].label, rest: 'still has no one — the one to chase.' }
+  if (empty.length === 2) return { lead: `${empty[0].label} and ${empty[1].label}`, rest: 'still have no one.' }
+  return { lead: `${empty.length} positions`, rest: 'still have no one.' }
 }
 
 /**

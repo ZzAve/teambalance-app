@@ -3,7 +3,7 @@ import type { EventRoster } from '@shared/api/events'
 import {
   coveredSummary,
   headcountLine,
-  oneToChase,
+  chaseNudge,
   rosterRows,
   unassignedNudge,
   type PipState,
@@ -40,7 +40,7 @@ const PIP_TONE: Record<PipState, string> = {
 export function RosterPips({ roster }: RosterPipsProps) {
   const rows = rosterRows(roster)
   const covered = coveredSummary(roster)
-  const chase = oneToChase(roster)
+  const chase = chaseNudge(roster)
   const nudge = unassignedNudge(roster)
   const headcount = headcountLine(roster)
 
@@ -71,7 +71,7 @@ export function RosterPips({ roster }: RosterPipsProps) {
         <p className="mt-2.5 flex items-start gap-1.5 rounded-[10px] bg-gold/15 px-2.5 py-2 text-[11.5px] text-foreground/80">
           <TriangleAlert size={13} className="mt-0.5 shrink-0 text-gold-dark" aria-hidden />
           <span>
-            <b>{chase.label}</b> still has no one — the one to chase.
+            <b>{chase.lead}</b> {chase.rest}
           </span>
         </p>
       )}

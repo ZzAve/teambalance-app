@@ -1,0 +1,10 @@
+import{n as e}from"./rolldown-runtime-DkW27tQK.js";import{i as t,o as n}from"./roster-view-Unq0Rf0p.js";import{t as r}from"./jsx-runtime-DeHZSEgm.js";function i({roster:e,pending:t=!1}){let r=n(e),i=t?`animate-pulse opacity-60`:``;return r?(0,a.jsxs)(`span`,{"aria-busy":t,className:`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold ${o[r.tone]} ${i}`,children:[(0,a.jsx)(`span`,{className:`size-1.5 rounded-full ${s[r.tone]}`,"aria-hidden":!0}),r.text]}):(0,a.jsxs)(`span`,{"aria-busy":t,className:`text-xs font-semibold text-muted-foreground ${i}`,children:[e.totalAttending,` going`]})}var a,o,s;function c(){return(c=e((()=>{t(),a=r(),o={covered:`bg-green/15 text-green-dark`,short:`bg-gold/20 text-gold-dark`,critical:`bg-red/15 text-red-dark`},s={covered:`bg-green`,short:`bg-gold`,critical:`bg-red`},i.__docgenInfo={description:`The card row's right slot: the one-glance readiness verdict.
+
+Presentational — the verdict is \`rosterChip\`, already computed by the server (#219). Two roster
+states carry no verdict (a social, and tracking-on-with-no-targets): rather than leave the row with
+no team information at all, both fall back to a plain headcount from \`roster.totalAttending\` (⑥,
+#271). That headcount counts coaches as players today — deliberately left as-is until #281.
+
+While an attendance write is in flight the badge shows a \`pending\` state (⑤): the roster is not
+recomputed client-side (see \`applyOptimisticAttendance\`), so the last-known verdict is dimmed while
+it settles rather than asserted as current — it is most prominent at the moment it is most stale.`,methods:[],displayName:`ReadinessBadge`,props:{roster:{required:!0,tsType:{name:`EventRoster`},description:``},pending:{required:!1,tsType:{name:`boolean`},description:`A write is in flight: the roster the server last computed is now stale, so dim it while it settles.`,defaultValue:{value:`false`,computed:!1}}}}})))()}export{c as n,i as t};

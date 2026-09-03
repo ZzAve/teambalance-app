@@ -4,7 +4,7 @@ import tailwindcss from '@tailwindcss/vite'
 import { TanStackRouterVite } from '@tanstack/router-plugin/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 import { resolve } from 'path'
-import { pwaManifest, pwaWorkbox } from './src/app/pwa/manifest'
+import { pwaManifest, pwaWorkbox } from './src/app/pwa/manifest.ts'
 
 export default defineConfig({
   plugins: [
@@ -35,12 +35,12 @@ export default defineConfig({
   ],
   resolve: {
     alias: {
-      '@app': resolve(__dirname, 'src/app'),
-      '@pages': resolve(__dirname, 'src/pages'),
-      '@widgets': resolve(__dirname, 'src/widgets'),
-      '@features': resolve(__dirname, 'src/features'),
-      '@entities': resolve(__dirname, 'src/entities'),
-      '@shared': resolve(__dirname, 'src/shared'),
+      '@app': resolve(import.meta.dirname, 'src/app'),
+      '@pages': resolve(import.meta.dirname, 'src/pages'),
+      '@widgets': resolve(import.meta.dirname, 'src/widgets'),
+      '@features': resolve(import.meta.dirname, 'src/features'),
+      '@entities': resolve(import.meta.dirname, 'src/entities'),
+      '@shared': resolve(import.meta.dirname, 'src/shared'),
     },
   },
   server: {

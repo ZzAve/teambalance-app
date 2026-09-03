@@ -3,7 +3,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { playwright } from '@vitest/browser-playwright'
 import { storybookTest } from '@storybook/addon-vitest/vitest-plugin'
-import viteConfig from './vite.config'
+import viteConfig from './vite.config.ts'
 
 const dirname = path.dirname(fileURLToPath(import.meta.url))
 

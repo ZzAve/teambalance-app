@@ -5,7 +5,7 @@ import {
   coveredSummary,
   hasRosterPanel,
   headcountLine,
-  oneToChase,
+  chaseNudge,
   rosterChip,
   rosterRows,
   unassignedNudge,
@@ -147,27 +147,52 @@ describe('rosterRows', () => {
   })
 })
 
-describe('oneToChase', () => {
-  it('picks the first targeted position with nobody at all', () => {
+describe('chaseNudge', () => {
+  it('names the single empty position and calls it the one to chase', () => {
     const r = roster({
-      positions: [pos('Setter', 2, 1), pos('Libero', 1, 0), pos('Middle', 2, 0)],
+      positions: [pos('Setter', 2, 1), pos('Libero', 1, 0), pos('Middle', 2, 1)],
     })
-    expect(oneToChase(r)?.label).toBe('Libero')
+    expect(chaseNudge(r)).toEqual({ lead: 'Libero', rest: 'still has no one — the one to chase.' })
   })
 
-  // One name, not a list: a callout naming three positions is an inventory, and the rows already
-  // show the rest.
-  it('names only one even when several are empty', () => {
+  // Two is still a nudge, so both are named. "the one to chase" must not survive: it is a definite
+  // article, and claiming uniqueness when two are empty says the other one is fine.
+  it('names both when two are empty, and drops the uniqueness claim', () => {
     const r = roster({ positions: [pos('Libero', 1, 0), pos('Middle', 2, 0)] })
-    expect(oneToChase(r)?.label).toBe('Libero')
+    expect(chaseNudge(r)).toEqual({ lead: 'Libero and Middle', rest: 'still have no one.' })
+  })
+
+  // Three names is an inventory, not a nudge, and the rows above already list them. The count is
+  // the news: it says "this is not one gap" without reprinting the panel.
+  it('counts them instead of listing once there are three or more', () => {
+    const r = roster({
+      positions: [pos('Libero', 1, 0), pos('Middle', 2, 0), pos('Setter', 2, 0)],
+    })
+    expect(chaseNudge(r)).toEqual({ lead: '3 positions', rest: 'still have no one.' })
+  })
+
+  // The reported case: nobody has answered at all, so every targeted position is empty. Singling
+  // one out implied the other five were covered.
+  it('counts them when nothing has been answered at all', () => {
+    const r = roster({
+      positions: [
+        pos('Diagonaal', 2, 0),
+        pos('Libero', 1, 0),
+        pos('Midden', 3, 0),
+        pos('Passer/Loper', 2, 0),
+        pos('Spelverdeler', 2, 0),
+        pos('Trainer/Coach', 1, 0),
+      ],
+    })
+    expect(chaseNudge(r)).toEqual({ lead: '6 positions', rest: 'still have no one.' })
   })
 
   it('is absent when every targeted position has somebody', () => {
-    expect(oneToChase(roster({ positions: [pos('Setter', 3, 1)] }))).toBeNull()
+    expect(chaseNudge(roster({ positions: [pos('Setter', 3, 1)] }))).toBeNull()
   })
 
-  it('never picks an untargeted position, however empty', () => {
-    expect(oneToChase(roster({ positions: [pos('Middle', undefined, 0)] }))).toBeNull()
+  it('never counts an untargeted position, however empty', () => {
+    expect(chaseNudge(roster({ positions: [pos('Middle', undefined, 0)] }))).toBeNull()
   })
 })
 

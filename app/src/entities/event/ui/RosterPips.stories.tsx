@@ -78,6 +78,51 @@ export const Critical: Story = {
   },
 }
 
+// Two empty positions are still worth naming, but "the one to chase" must not survive: a definite
+// article claiming uniqueness tells you the other one is covered.
+export const TwoEmptyPositions: Story = {
+  args: {
+    roster: makeRoster({
+      state: 'CRITICAL',
+      totalAttending: 2,
+      positions: [pos('Setter', 2, 2), pos('Libero', 1, 0), pos('Middle', 2, 0)],
+    }),
+  },
+  play: async ({ canvas }) => {
+    await expect(canvas.getByText('Libero and Middle', { selector: 'b' })).toBeInTheDocument()
+    await expect(canvas.getByText(/still have no one/)).toBeInTheDocument()
+    await expect(canvas.queryByText(/the one to chase/)).not.toBeInTheDocument()
+  },
+}
+
+// The reported case: nobody has answered, so every targeted position is empty. Naming the first one
+// claimed the other five were fine — from three up the count is the news, and the rows above already
+// list which ones.
+export const NothingAnsweredYet: Story = {
+  args: {
+    roster: makeRoster({
+      state: 'CRITICAL',
+      totalAttending: 0,
+      positions: [
+        pos('Diagonaal', 2, 0),
+        pos('Libero', 1, 0),
+        pos('Midden', 3, 0),
+        pos('Passer/Loper', 2, 0),
+        pos('Spelverdeler', 2, 0),
+        pos('Trainer/Coach', 1, 0),
+      ],
+    }),
+  },
+  play: async ({ canvas }) => {
+    await expect(canvas.getByText('6 positions', { selector: 'b' })).toBeInTheDocument()
+    await expect(canvas.getByText(/still have no one/)).toBeInTheDocument()
+    // No position is singled out, and none is called "the one".
+    await expect(canvas.queryByText(/the one to chase/)).not.toBeInTheDocument()
+    await expect(canvas.queryByText('Diagonaal', { selector: 'b' })).not.toBeInTheDocument()
+    await expect(canvas.getByText('0 of 6 covered')).toBeInTheDocument()
+  },
+}
+
 // No position carries a target, so there is no covered fraction and no pips — the header carries the
 // absolute headcount instead.
 export const HeadcountOnly: Story = {

@@ -7,9 +7,9 @@ import { EventAnswerRow } from './EventAnswerRow'
 
 type AttendanceState = Event['myState']
 
-// The card's bottom row: the viewer's own answer + the readiness verdict, the whole row one tap
-// target opening a panel with the three-way control above the pips. Prop-only apart from the open
-// state (ADR-0017), so answer state × roster state × open/collapsed are all just props.
+// The card's bottom row: two independent disclosures — attendance (left) and roster (right). Each
+// opens its own panel; both can be open at once, with the attendance panel always above. Prop-only
+// apart from the two open states (ADR-0017), so every combination is just props.
 const meta = {
   title: 'entities/event/EventAnswerRow',
   component: EventAnswerRow,
@@ -27,15 +27,18 @@ export default meta
 
 type Story = StoryObj<typeof meta>
 
-// ── Collapsed answer states — the pill says what I answered, in words ────────────────────────────
+// ── Collapsed — the row shows my answer (left) and the verdict (right), nothing expanded ─────────
 
-// The one state that asks for something, drawn as a prompt.
 export const Unanswered: Story = {
   play: async ({ canvas }) => {
     await expect(canvas.getByText('Going?')).toBeInTheDocument()
-    // Collapsed: the three-way control is not on the row until asked.
-    await expect(canvas.queryByRole('button', { name: 'Going' })).not.toBeInTheDocument()
     await expect(canvas.getByText('1 spot open')).toBeInTheDocument()
+    // Neither panel is open until asked.
+    await expect(canvas.queryByRole('button', { name: /^Going$/ })).not.toBeInTheDocument()
+    await expect(canvas.queryByText('Positions')).not.toBeInTheDocument()
+    // Both sides are their own trigger.
+    await expect(canvas.getByRole('button', { name: /Change your answer/ })).toBeInTheDocument()
+    await expect(canvas.getByRole('button', { name: /Show lineup/ })).toBeInTheDocument()
   },
 }
 
@@ -46,60 +49,56 @@ export const Attending: Story = {
   },
 }
 
-export const SaidMaybe: Story = {
-  args: { myState: 'MAYBE' },
-  play: async ({ canvas }) => {
-    await expect(canvas.getByText('You said maybe')).toBeInTheDocument()
-  },
-}
+// ── One side at a time — tapping a trigger opens only its own panel ──────────────────────────────
 
-export const Out: Story = {
-  args: { myState: 'ABSENT' },
-  play: async ({ canvas }) => {
-    await expect(canvas.getByText("You're out")).toBeInTheDocument()
-  },
-}
-
-// ── Headcount fallback (⑥) — two roster states carry no verdict, so the right slot shows who's coming
-
-export const HeadcountFallbackOff: Story = {
-  args: { roster: { ...NO_ROSTER, totalAttending: 8 } },
+export const OpenAttendanceOnly: Story = {
   play: async ({ canvas, userEvent }) => {
-    await expect(canvas.getByText('8 going')).toBeInTheDocument()
-    // A social still opens to an answer control — the row is one tap target for every event (③).
     await userEvent.click(canvas.getByRole('button', { name: /Change your answer/ }))
-    await expect(canvas.getByRole('button', { name: 'Going' })).toBeInTheDocument()
-    // …but with no targets there are no pips to show.
+    // The three-way control is shown…
+    await expect(canvas.getByRole('button', { name: /^Going$/ })).toBeInTheDocument()
+    // …and the roster panel stays closed.
     await expect(canvas.queryByText('Positions')).not.toBeInTheDocument()
   },
 }
 
-export const HeadcountFallbackTallyOnly: Story = {
-  args: { roster: makeRoster({ state: 'TALLY_ONLY', openSlots: 0, totalAttending: 5, positions: [] }) },
-  play: async ({ canvas }) => {
-    await expect(canvas.getByText('5 going')).toBeInTheDocument()
+export const OpenRosterOnly: Story = {
+  play: async ({ canvas, userEvent }) => {
+    await userEvent.click(canvas.getByRole('button', { name: /Show lineup/ }))
+    // The pips are shown…
+    await expect(canvas.getByText('Positions')).toBeInTheDocument()
+    // …and the answer control stays closed.
+    await expect(canvas.queryByRole('button', { name: /^Going$/ })).not.toBeInTheDocument()
   },
 }
 
-// ── Expanded — the panel holds the control above the pips, and the control is wired ──────────────
+// Both open, opened roster-first: the attendance panel must still sit ABOVE the roster panel (①).
+export const BothOpenAttendanceOnTop: Story = {
+  play: async ({ canvas, userEvent }) => {
+    await userEvent.click(canvas.getByRole('button', { name: /Show lineup/ }))
+    await userEvent.click(canvas.getByRole('button', { name: /Change your answer/ }))
 
-export const Expanded: Story = {
-  args: { defaultOpen: true, myState: 'ATTENDING' },
+    const going = canvas.getByRole('button', { name: /^Going$/ })
+    const positions = canvas.getByText('Positions')
+    await expect(going).toBeInTheDocument()
+    await expect(positions).toBeInTheDocument()
+    // Attendance renders above the roster panel regardless of which was opened first.
+    await expect(going.getBoundingClientRect().top).toBeLessThan(positions.getBoundingClientRect().top)
+  },
+}
+
+// ── Wiring — prove the answer callback, not just the render ──────────────────────────────────────
+
+export const AnswerIsReported: Story = {
+  args: { defaultAttnOpen: true, myState: 'ATTENDING' },
   play: async ({ canvas, userEvent, args }) => {
-    // The control sits above the position pips, both visible at once (the whole point of ③).
-    await expect(canvas.getByRole('button', { name: 'Going' })).toBeInTheDocument()
-    await expect(canvas.getByText('Positions')).toBeInTheDocument()
-    // The current answer is the pressed segment.
-    await expect(canvas.getByRole('button', { name: 'Going' })).toHaveAttribute('aria-pressed', 'true')
-
-    // Prove the wiring, not just the render.
-    await userEvent.click(canvas.getByRole('button', { name: 'Maybe' }))
+    await expect(canvas.getByRole('button', { name: /^Going$/ })).toHaveAttribute('aria-pressed', 'true')
+    await userEvent.click(canvas.getByRole('button', { name: /^Maybe$/ }))
     await expect(args.onRespond).toHaveBeenCalledWith('MAYBE')
   },
 }
 
-// Collapse-on-pick (④) as its own story: the harness models the container's optimistic update so the
-// end-to-end behaviour — panel closes AND the pill flips — can be asserted.
+// Collapse-on-pick (④): picking closes the attendance panel and flips the pill, while an open roster
+// panel is left untouched. The harness models the container's optimistic update.
 function CollapseOnPickHarness(args: Parameters<typeof EventAnswerRow>[0]) {
   const [state, setState] = useState<AttendanceState>('NOT_RESPONDED')
   return (
@@ -115,16 +114,18 @@ function CollapseOnPickHarness(args: Parameters<typeof EventAnswerRow>[0]) {
 }
 
 export const CollapseOnPick: Story = {
-  args: { defaultOpen: true },
+  args: { defaultAttnOpen: true, defaultRosterOpen: true },
   render: (args) => <CollapseOnPickHarness {...args} />,
   play: async ({ canvas, userEvent, args }) => {
     await expect(canvas.getByText('Going?')).toBeInTheDocument()
-    await userEvent.click(canvas.getByRole('button', { name: 'Going' }))
+    await userEvent.click(canvas.getByRole('button', { name: /^Going$/ }))
 
-    // The panel collapsed…
-    await expect(canvas.queryByRole('button', { name: 'Going' })).not.toBeInTheDocument()
+    // Attendance panel collapsed…
+    await expect(canvas.queryByRole('button', { name: /^Going$/ })).not.toBeInTheDocument()
     // …the pill flipped optimistically…
     await expect(canvas.getByText("You're in")).toBeInTheDocument()
+    // …the roster panel stayed open…
+    await expect(canvas.getByText('Positions')).toBeInTheDocument()
     // …and the answer was reported.
     await expect(args.onRespond).toHaveBeenCalledWith('ATTENDING')
   },
@@ -132,9 +133,34 @@ export const CollapseOnPick: Story = {
 
 // The pending state (⑤): the badge dims while the write settles and the control is held.
 export const Pending: Story = {
-  args: { defaultOpen: true, myState: 'ATTENDING', pending: true },
+  args: { defaultAttnOpen: true, myState: 'ATTENDING', pending: true },
   play: async ({ canvas }) => {
     await expect(canvas.getByText('1 spot open')).toHaveAttribute('aria-busy', 'true')
-    await expect(canvas.getByRole('button', { name: 'Going' })).toBeDisabled()
+    await expect(canvas.getByRole('button', { name: /^Going$/ })).toBeDisabled()
+  },
+}
+
+// ── Headcount fallback (⑥) — right side ────────────────────────────────────────────────────────
+
+// A social: tracking off, so there is no lineup. The right side is a plain headcount, NOT a trigger.
+export const HeadcountFallbackOff: Story = {
+  args: { roster: { ...NO_ROSTER, totalAttending: 8 } },
+  play: async ({ canvas, userEvent }) => {
+    await expect(canvas.getByText('8 going')).toBeInTheDocument()
+    await expect(canvas.queryByRole('button', { name: /Show lineup/ })).not.toBeInTheDocument()
+    // Answering still works.
+    await userEvent.click(canvas.getByRole('button', { name: /Change your answer/ }))
+    await expect(canvas.getByRole('button', { name: /^Going$/ })).toBeInTheDocument()
+  },
+}
+
+// Tracking on but no targets — still no verdict, so the badge shows the headcount, but there ARE
+// per-position rows to open.
+export const HeadcountFallbackTallyOnly: Story = {
+  args: { roster: makeRoster({ state: 'TALLY_ONLY', openSlots: 0, totalAttending: 5, positions: [] }) },
+  play: async ({ canvas, userEvent }) => {
+    await expect(canvas.getByText('5 going')).toBeInTheDocument()
+    await userEvent.click(canvas.getByRole('button', { name: /Show lineup/ }))
+    await expect(canvas.getByText('Positions')).toBeInTheDocument()
   },
 }

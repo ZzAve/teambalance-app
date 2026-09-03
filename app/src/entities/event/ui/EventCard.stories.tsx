@@ -139,7 +139,8 @@ export const WithRosterVerdict: Story = {
     // Collapsed on a list card until asked.
     await expect(canvas.queryByText(/the one to chase/)).not.toBeInTheDocument()
 
-    await userEvent.click(canvas.getByRole('button', { name: /Change your answer/ }))
+    // The verdict is its own disclosure now — opening it reveals the pips, not the answer control.
+    await userEvent.click(canvas.getByRole('button', { name: /Show lineup/ }))
 
     await expect(canvas.getByText('1 of 3 covered')).toBeInTheDocument()
     await expect(canvas.getByText(/still has no one/)).toBeInTheDocument()

@@ -83,7 +83,7 @@ export function RosterPips({ roster }: RosterPipsProps) {
 
 function PositionRow({ row }: { row: RosterRow }) {
   return (
-    <li className="grid grid-cols-[70px_1fr_auto] items-center gap-2.5">
+    <li className="grid grid-cols-[1fr_2fr_3em] items-center gap-2.5">
       <span className="truncate text-[12.5px] text-foreground/80">{row.label}</span>
       <span className="flex flex-wrap items-center gap-1.5">
         {row.pips.map((pip, i) => (

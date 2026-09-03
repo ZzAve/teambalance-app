@@ -37,3 +37,4 @@ app/src/shared/api/generated/
 .claude/worktrees/
 app/src/**/*.js
 *.tsbuildinfo
+docs/plans

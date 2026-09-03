@@ -31,7 +31,7 @@ type Story = StoryObj<typeof meta>
 
 export const Unanswered: Story = {
   play: async ({ canvas }) => {
-    await expect(canvas.getByText('Going?')).toBeInTheDocument()
+    await expect(canvas.getByText('Respond')).toBeInTheDocument()
     await expect(canvas.getByText('1 spot open')).toBeInTheDocument()
     // Neither panel is open until asked.
     await expect(canvas.queryByRole('button', { name: /^Going$/ })).not.toBeInTheDocument()
@@ -117,7 +117,7 @@ export const CollapseOnPick: Story = {
   args: { defaultAttnOpen: true, defaultRosterOpen: true },
   render: (args) => <CollapseOnPickHarness {...args} />,
   play: async ({ canvas, userEvent, args }) => {
-    await expect(canvas.getByText('Going?')).toBeInTheDocument()
+    await expect(canvas.getByText('Respond')).toBeInTheDocument()
     await userEvent.click(canvas.getByRole('button', { name: /^Going$/ }))
 
     // Attendance panel collapsed…

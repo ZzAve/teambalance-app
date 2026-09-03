@@ -22,14 +22,16 @@ interface EventAnswerRowProps {
   defaultRosterOpen?: boolean
 }
 
-// The answer pill's tone, keyed by `myAnswer`. The three settled answers reuse the attendance
-// palette; the unanswered prompt takes the blue accent because it is the one state that asks to be
-// acted on, not merely reported.
+// The answer pill's tone, keyed by `myAnswer`. The three settled answers are soft tints from the
+// attendance palette — they report a fact. The unanswered `prompt` is deliberately NOT a tint: it is
+// a loud, filled neutral (ink, so it reads as an action in both themes and never competes with the
+// green/gold/red answers) with a marker dot, so "we still need your answer" stands out as the one
+// thing to act on rather than a fourth colour.
 const PILL_TONE: Record<MyAnswer['tone'], { className: string; Icon?: ComponentType<{ size?: number }> }> = {
-  attending: { className: 'bg-green/10 text-green', Icon: Check },
-  maybe: { className: 'bg-gold/20 text-gold-dark', Icon: HelpCircle },
-  absent: { className: 'bg-red/10 text-red', Icon: X },
-  prompt: { className: 'bg-blue/10 text-blue' },
+  attending: { className: 'bg-green/10 text-green font-semibold', Icon: Check },
+  maybe: { className: 'bg-gold/20 text-gold-dark font-semibold', Icon: HelpCircle },
+  absent: { className: 'bg-red/10 text-red font-semibold', Icon: X },
+  prompt: { className: 'bg-foreground text-background font-bold' },
 }
 
 const OPTIONS: { value: AttendanceState; label: string; active: string; inactive: string }[] = [
@@ -91,8 +93,13 @@ export function EventAnswerRow({
           onClick={() => setAttnOpen((o) => !o)}
           className={`${TRIGGER} pl-1 pr-1.5`}
         >
-          <span className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${pillClass}`}>
-            {Icon && <Icon size={13} />}
+          <span className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs ${pillClass}`}>
+            {answer.tone === 'prompt' ? (
+              // A marker dot rather than a status icon: the prompt is a call to act, not an answer.
+              <span aria-hidden className="size-1.5 rounded-full bg-background" />
+            ) : (
+              Icon && <Icon size={13} />
+            )}
             {answer.label}
           </span>
           <ChevronDown

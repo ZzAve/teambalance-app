@@ -12,8 +12,9 @@ export interface MyAnswer {
 /**
  * The viewer's own attendance, said in the first person for the card's answer pill.
  *
- * Only `NOT_RESPONDED` reads as a question — it is the single state that asks the viewer to act, so
- * it is the single one drawn as a prompt rather than a settled statement.
+ * The three settled answers are statements. `NOT_RESPONDED` is the single state that asks the viewer
+ * to act, so it is drawn as a `prompt` — a loud, neutral call to action ("Respond") rather than a
+ * soft coloured status, so "we still need your answer" cannot be mistaken for a fourth answer.
  */
 export function myAnswer(state: AttendanceState): MyAnswer {
   switch (state) {
@@ -24,6 +25,6 @@ export function myAnswer(state: AttendanceState): MyAnswer {
     case 'ABSENT':
       return { label: "You're out", tone: 'absent' }
     case 'NOT_RESPONDED':
-      return { label: 'Going?', tone: 'prompt' }
+      return { label: 'Respond', tone: 'prompt' }
   }
 }

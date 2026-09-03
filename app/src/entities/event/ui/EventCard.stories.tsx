@@ -39,7 +39,7 @@ export const Populated: Story = {
     // The type text label stays alongside the chit's colour.
     await expect(canvas.getByText('Match')).toBeInTheDocument()
     // The bottom row answers "what did I say?" — unanswered here, so it asks.
-    await expect(canvas.getByText('Going?')).toBeInTheDocument()
+    await expect(canvas.getByText('Respond')).toBeInTheDocument()
     // The old "✓ 5 going · of 8 · 3 pending" counts are gone from the card.
     await expect(canvas.queryByText(/of 8/)).not.toBeInTheDocument()
     await expect(canvas.queryByText(/pending/)).not.toBeInTheDocument()

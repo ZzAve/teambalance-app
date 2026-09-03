@@ -10,6 +10,6 @@ describe('myAnswer', () => {
 
   // The one state that asks for something is drawn as a prompt, not a statement.
   it('asks the question when unanswered', () => {
-    expect(myAnswer('NOT_RESPONDED')).toEqual({ label: 'Going?', tone: 'prompt' })
+    expect(myAnswer('NOT_RESPONDED')).toEqual({ label: 'Respond', tone: 'prompt' })
   })
 })

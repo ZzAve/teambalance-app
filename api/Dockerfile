@@ -18,7 +18,7 @@
 # ---- build stage -------------------------------------------------------------
 # Build on the native builder arch (the bootJar is platform-independent JVM bytecode),
 # so a cross-arch build (e.g. --platform=linux/amd64 on an arm host) stays fast.
-FROM --platform=$BUILDPLATFORM eclipse-temurin:25-jdk AS build
+FROM --platform=$BUILDPLATFORM eclipse-temurin:25-jdk@sha256:e787e08ef76f4c16866108cd7f9fcd96a68eef3ac6cc76866897d4d02d5a2262 AS build
 WORKDIR /workspace
 
 # Wrapper + build scripts first so dependency resolution can cache across source-only changes.
@@ -54,7 +54,7 @@ RUN ./gradlew --no-daemon --no-configuration-cache :api:bootJar \
 # JRE images ship different module sets, so baking on `:25-jdk` while running on `:25-jre` produced
 # "[aot] This file is not the one used while building the shared archive file: .../lib/modules,
 # size has changed" → "Unable to map shared spaces", and the app fell back to no cache (fail-safe).
-FROM eclipse-temurin:25-jre AS bake
+FROM eclipse-temurin:25-jre@sha256:f9e65324a37f28209ce7dd0e5149a7aa954520ed936fb87813cf6ded2400a112 AS bake
 WORKDIR /app
 COPY --from=build /workspace/app.jar /app/app.jar
 
@@ -98,7 +98,7 @@ RUN set -x; \
     touch /app/app.aot
 
 # ---- runtime stage -----------------------------------------------------------
-FROM eclipse-temurin:25-jre AS runtime
+FROM eclipse-temurin:25-jre@sha256:f9e65324a37f28209ce7dd0e5149a7aa954520ed936fb87813cf6ded2400a112 AS runtime
 WORKDIR /app
 
 # Run as an unprivileged user.

@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { useState } from 'react'
+import { useLayoutEffect, useRef, useState } from 'react'
 import { MapPin } from 'lucide-react'
-import { useEvent, useEvents, type AttendanceEntry } from '@shared/api/events'
+import { useEvent, useEvents } from '@shared/api/events'
 import { useSetAttendance } from '@shared/api/attendances'
 import { useUserStore } from '@shared/stores/user-store'
 import { Button } from '@shared/ui/button'
@@ -11,10 +11,11 @@ import { EventDetailSkeleton } from '@entities/event/ui/EventDetailSkeleton'
 import { QueryErrorState } from '@shared/ui/QueryErrorState'
 import { ReferenceChips } from '@entities/event/ui/ReferenceChips'
 import { RoleBreakdown } from '@entities/event/ui/RoleBreakdown'
+import { RosterBar } from '@entities/event/ui/RosterBar'
 import { SeriesPeek } from '@entities/event/ui/SeriesPeek'
-import { buildAttendeePanel } from '@entities/event/lib/attendee-panel'
+import { attributionName } from '@entities/event/lib/attribution'
 import { buildSeriesPeek } from '@entities/event/lib/series-peek'
-import { Avatar } from '@shared/ui/avatar'
+import { AttendeeList } from '@widgets/attendee-list/ui/AttendeeList'
 import { AttendanceToggle, type AttendanceState } from '@features/attendance-toggle/ui/AttendanceToggle'
 import { EditEventDialog } from '@features/edit-event/ui/EditEventDialog'
 import { DeleteEventDialog } from '@features/edit-event/ui/DeleteEventDialog'
@@ -25,32 +26,6 @@ export const Route = createFileRoute('/t/$slug/events/$eventId')({
   component: EventDetailPage,
 })
 
-const ATTENDEE_TABS: {
-  state: AttendanceState
-  label: string
-  barColor: string
-  badgeBg: string
-}[] = [
-  { state: 'ATTENDING', label: 'Going', barColor: 'bg-green', badgeBg: 'bg-green/10 text-green' },
-  { state: 'MAYBE', label: 'Maybe', barColor: 'bg-gold', badgeBg: 'bg-gold/10 text-gold' },
-  { state: 'ABSENT', label: 'Absent', barColor: 'bg-red', badgeBg: 'bg-red/10 text-red' },
-  { state: 'NOT_RESPONDED', label: '?', barColor: 'bg-muted-foreground', badgeBg: 'bg-muted text-muted-foreground' },
-]
-
-function AttendeeRow({ attendance }: { attendance: AttendanceEntry }) {
-  return (
-    <div className="flex items-center gap-3 py-2 px-3">
-      <Avatar userId={attendance.userId} name={attendance.displayName} />
-      <div className="min-w-0">
-        <span className="block text-sm leading-tight">{attendance.displayName}</span>
-        {attendance.role && (
-          <span className="block text-xs text-muted-foreground">{attendance.role}</span>
-        )}
-      </div>
-    </div>
-  )
-}
-
 function EventDetailPage() {
   const { eventId } = Route.useParams()
   const routes = useTeamRoutes()
@@ -58,9 +33,23 @@ function EventDetailPage() {
   const currentUserId = useUserStore((s) => s.userId)
   const isAdmin = useUserStore((s) => s.role) === 'ADMIN'
   const { mutate, isPending } = useSetAttendance()
-  const [activeAttendeeTab, setActiveAttendeeTab] = useState<AttendanceState>('ATTENDING')
+  // The roster bar pins directly beneath the sticky PageHeader; its offset is the header var plus the
+  // sub-header's measured height, so it stacks without a magic pixel (the offset the PageHeader
+  // widget was created to kill). Measured, not hardcoded, so a wrapped title can't overlap it.
+  const subHeaderRef = useRef<HTMLDivElement>(null)
+  const [subHeaderHeight, setSubHeaderHeight] = useState(0)
   // Only load the full list to find series siblings when this event actually belongs to a group.
   const { data: allEvents } = useEvents(true, !!event?.recurringGroup)
+
+  useLayoutEffect(() => {
+    const el = subHeaderRef.current
+    if (!el) return
+    const measure = () => setSubHeaderHeight(el.offsetHeight)
+    measure()
+    const observer = new ResizeObserver(measure)
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [event?.id])
 
   if (isLoading) return <EventDetailSkeleton />
   if (isError)
@@ -81,8 +70,10 @@ function EventDetailPage() {
   const myAttendance = event.attendances.find((a) => a.userId === currentUserId)
   const myState: AttendanceState = (myAttendance?.state as AttendanceState) ?? 'NOT_RESPONDED'
 
-  const attendeePanel = buildAttendeePanel(event)
-  const filteredAttendees = attendeePanel[activeAttendeeTab].attendees
+  const myAttribution = myAttendance ? attributionName(myAttendance, event.attendances) : null
+  // The roster bar replaces RoleBreakdown only where a position carries a target; otherwise it has
+  // nothing to be a fraction of and RoleBreakdown stays as the fallback (⑥, same rule as the card).
+  const hasPositionTargets = event.roster.positions.some((p) => p.required != null)
 
   // "Part of a series" peek: siblings are every event sharing this occurrence's recurring group.
   const siblings = event.recurringGroup
@@ -92,8 +83,11 @@ function EventDetailPage() {
 
   return (
     <div>
-      {/* Sticky sub-header — offset comes from --header-height via PageHeader, not a magic pixel */}
-      <PageHeader title={event.title} backTo={routes.events} backLabel="Back to events" />
+      {/* Sticky sub-header — offset comes from --header-height via PageHeader, not a magic pixel.
+          Wrapped so its height can be measured for the roster bar that pins directly beneath it. */}
+      <div ref={subHeaderRef}>
+        <PageHeader title={event.title} backTo={routes.events} backLabel="Back to events" />
+      </div>
 
       {/* Event header */}
       <div className="mt-2 flex items-start gap-4">
@@ -129,11 +123,17 @@ function EventDetailPage() {
       {currentUserId && (
         <div className="mt-6">
           <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground">Your response</p>
-          <AttendanceToggle
-            value={myState}
-            disabled={isPending}
-            onToggle={(state) => mutate({ eventId, userId: currentUserId, state })}
-          />
+          {/* Named group so this primary control is distinct from the per-row controls in the list
+              below — the viewer now has a row of their own there too. */}
+          <div role="group" aria-label="Your response">
+            <AttendanceToggle
+              value={myState}
+              disabled={isPending}
+              onToggle={(state) => mutate({ eventId, userId: currentUserId, state })}
+            />
+          </div>
+          {/* You learn a teammate changed your answer right where you would change it back (⑪). */}
+          {myAttribution && <p className="mt-2 text-xs text-muted-foreground">set by {myAttribution}</p>}
         </div>
       )}
 
@@ -153,42 +153,26 @@ function EventDetailPage() {
         </div>
       )}
 
-      {/* Attendance list — tabbed */}
-      <div className="mt-6 overflow-hidden rounded-2xl border border-border/40 bg-card shadow-sm">
-        {/* Tab bar */}
-        <div className="flex border-b border-border/40">
-          {ATTENDEE_TABS.map((tab) => {
-            const isActive = activeAttendeeTab === tab.state
-            const count = attendeePanel[tab.state].count
-            return (
-              <button
-                key={tab.state}
-                onClick={() => setActiveAttendeeTab(tab.state)}
-                className={`relative flex flex-1 items-center justify-center gap-1.5 py-3 text-sm font-medium transition-colors ${isActive ? 'text-foreground' : 'text-muted-foreground'}`}
-              >
-                {tab.label}
-                <span className={`rounded-full px-1.5 py-0.5 text-xs font-semibold ${tab.badgeBg}`}>
-                  {count}
-                </span>
-                {isActive && (
-                  <span className={`absolute bottom-0 left-[10%] right-[10%] h-0.5 rounded-full ${tab.barColor}`} />
-                )}
-              </button>
-            )
-          })}
+      {/* Attendance — one list by position, no tabs. The roster bar pins beneath the sub-header so
+          completeness stays visible however far a big squad scrolls; where no position carries a
+          target it has nothing to show and the headcount breakdown stays as the fallback. */}
+      {hasPositionTargets && (
+        <div
+          className="sticky z-20 -mx-4 mt-6"
+          style={{ top: `calc(var(--header-height) + ${subHeaderHeight}px)` }}
+        >
+          <RosterBar roster={event.roster} />
         </div>
-        {/* Panel content */}
-        <div className="p-1">
-          {activeAttendeeTab === 'ATTENDING' && (
-            <RoleBreakdown breakdown={event.attendanceSummary.roleBreakdown} />
-          )}
-          {filteredAttendees.map((a) => (
-            <AttendeeRow key={a.userId} attendance={a} />
-          ))}
-          {filteredAttendees.length === 0 && (
-            <p className="py-6 text-center text-sm text-muted-foreground">No one</p>
-          )}
-        </div>
+      )}
+      <div className={`overflow-hidden rounded-2xl border border-border/40 bg-card shadow-sm ${hasPositionTargets ? 'mt-3' : 'mt-6'}`}>
+        {!hasPositionTargets && <RoleBreakdown breakdown={event.attendanceSummary.roleBreakdown} />}
+        <AttendeeList
+          attendees={event.attendances}
+          roster={event.roster}
+          currentUserId={currentUserId}
+          onRespond={(userId, state) => mutate({ eventId, userId, state })}
+          pending={isPending}
+        />
       </div>
 
       {/* Part of a series peek */}

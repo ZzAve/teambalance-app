@@ -123,11 +123,15 @@ function EventDetailPage() {
       {currentUserId && (
         <div className="mt-6">
           <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground">Your response</p>
-          <AttendanceToggle
-            value={myState}
-            disabled={isPending}
-            onToggle={(state) => mutate({ eventId, userId: currentUserId, state })}
-          />
+          {/* Named group so this primary control is distinct from the per-row controls in the list
+              below — the viewer now has a row of their own there too. */}
+          <div role="group" aria-label="Your response">
+            <AttendanceToggle
+              value={myState}
+              disabled={isPending}
+              onToggle={(state) => mutate({ eventId, userId: currentUserId, state })}
+            />
+          </div>
           {/* You learn a teammate changed your answer right where you would change it back (⑪). */}
           {myAttribution && <p className="mt-2 text-xs text-muted-foreground">set by {myAttribution}</p>}
         </div>

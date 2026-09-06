@@ -21,6 +21,7 @@ describe('pwaManifest', () => {
       name: 'TeamBalance',
       short_name: 'TeamBalance',
       display: 'standalone',
+      orientation: 'any',
       start_url: '/',
       scope: '/',
     })
@@ -36,19 +37,36 @@ describe('pwaManifest', () => {
     expect(pwaManifest.theme_color).toBe(background)
   })
 
-  it('ships the icon sizes Android and the install prompt need, including a maskable one', () => {
+  it('ships the canonical icon sizes, each also as a maskable variant', () => {
     const icons = pwaManifest.icons ?? []
+    const sizesOf = (purpose?: string) =>
+      icons.filter((icon) => icon.purpose === purpose).map((icon) => icon.sizes)
 
-    expect(icons.map((icon) => icon.sizes)).toEqual(
-      expect.arrayContaining(['64x64', '192x192', '512x512']),
+    expect(sizesOf(undefined)).toEqual(
+      expect.arrayContaining(['64x64', '192x192', '384x384', '512x512', '1024x1024']),
     )
-    expect(icons.filter((icon) => icon.purpose === 'maskable')).toHaveLength(1)
+    expect(sizesOf('maskable')).toEqual(
+      expect.arrayContaining(['192x192', '384x384', '512x512', '1024x1024']),
+    )
   })
 
-  it('only references icons that are committed under public/', () => {
-    const missing = (pwaManifest.icons ?? [])
-      .map((icon) => icon.src)
-      .filter((src) => !existsSync(resolve(appRoot, 'public', src)))
+  it('previews the events overview for both form factors', () => {
+    const formFactors = (pwaManifest.screenshots ?? []).map((shot) => shot.form_factor)
+
+    expect(formFactors).toEqual(expect.arrayContaining(['narrow', 'wide']))
+  })
+
+  it('offers an Events shortcut through the slug-less dispatcher route', () => {
+    expect(pwaManifest.shortcuts).toEqual([expect.objectContaining({ name: 'Events', url: '/events' })])
+  })
+
+  it('only references images that are committed under public/', () => {
+    const sources = [
+      ...(pwaManifest.icons ?? []),
+      ...(pwaManifest.screenshots ?? []),
+      ...(pwaManifest.shortcuts ?? []).flatMap((shortcut) => shortcut.icons ?? []),
+    ].map((image) => image.src)
+    const missing = sources.filter((src) => !existsSync(resolve(appRoot, 'public', src)))
 
     expect(missing).toEqual([])
   })
@@ -61,6 +79,10 @@ describe('pwaWorkbox', () => {
     for (const extension of ['html', 'js', 'css', 'woff2', 'png', 'svg', 'ico']) {
       expect(globs).toContain(extension)
     }
+  })
+
+  it('keeps the install-dialog screenshots out of the precache', () => {
+    expect(pwaWorkbox!.globIgnores).toContain('screenshots/**')
   })
 
   it('serves the precached shell for offline SPA navigations', () => {

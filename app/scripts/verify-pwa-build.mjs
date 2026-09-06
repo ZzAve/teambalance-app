@@ -42,23 +42,28 @@ if (sw) {
   check('no self-hosted font is precached — offline text would fall back to a system font', precached.some((url) => url.endsWith('.woff2')))
   check('no /api route is pinned to NetworkOnly — API responses must never be cached', sw.includes('NetworkOnly') && sw.includes('/api'))
   check('an /api URL is precached — session-authed, multi-tenant responses must never be cached', !precached.some((url) => url.startsWith('api/')))
+  check('an install-dialog screenshot is precached — the shell never renders them, keep them out of every install', !precached.some((url) => url.startsWith('screenshots/')))
 }
 
 // 2. Web manifest, linked from the shell.
 const manifest = read('manifest.webmanifest')
 check('dist/manifest.webmanifest is missing — the app is not installable', manifest !== null)
 
-const icons = manifest ? JSON.parse(manifest).icons ?? [] : []
+const parsed = manifest ? JSON.parse(manifest) : {}
+const icons = parsed.icons ?? []
+const screenshots = parsed.screenshots ?? []
 if (manifest) {
-  const parsed = JSON.parse(manifest)
   check('the manifest is not named TeamBalance', parsed.name === 'TeamBalance')
   check('the manifest does not request standalone display', parsed.display === 'standalone')
   check('the manifest declares no maskable icon', icons.some((icon) => icon.purpose === 'maskable'))
 }
 
-// 3. Every icon the shell points at is actually in the build.
+// 3. Every image the shell points at is actually in the build.
 for (const file of [...icons.map((icon) => icon.src), 'apple-touch-icon-180x180.png', 'favicon.ico', 'tb-monogram.svg']) {
   check(`dist/${file} is missing — regenerate with \`npm run generate-pwa-assets\``, existsSync(resolve(dist, file)))
+}
+for (const file of screenshots.map((shot) => shot.src)) {
+  check(`dist/${file} is missing — recapture with \`npm run generate-pwa-screenshots\``, existsSync(resolve(dist, file)))
 }
 
 // 4. The shell wires it all together.

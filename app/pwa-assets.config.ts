@@ -16,8 +16,8 @@ const resizeOptions = { fit: 'contain', background: BACKGROUND } as const
 export default defineConfig({
   headLinkOptions: { preset: '2023' },
   preset: {
-    transparent: { sizes: [64, 192, 512], favicons: [[48, 'favicon.ico']], padding: 0, resizeOptions },
-    maskable: { sizes: [512], padding: 0, resizeOptions },
+    transparent: { sizes: [64, 192, 384, 512, 1024], favicons: [[48, 'favicon.ico']], padding: 0, resizeOptions },
+    maskable: { sizes: [192, 384, 512, 1024], padding: 0, resizeOptions },
     apple: { sizes: [180], padding: 0, resizeOptions },
   },
   images: ['public/tb-monogram.svg'],

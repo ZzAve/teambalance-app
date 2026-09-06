@@ -1,5 +1,3 @@
-import { useState } from 'react'
-import { ChevronDown } from 'lucide-react'
 import type { AttendanceEntry, EventRoster } from '@shared/api/events'
 import { Avatar } from '@shared/ui/avatar'
 import { AttendanceToggle, type AttendanceState } from '@features/attendance-toggle/ui/AttendanceToggle'
@@ -7,50 +5,51 @@ import { groupAttendeesByPosition, type AttendeePositionGroup } from '@entities/
 import { attributionName } from '@entities/event/lib/attribution'
 
 interface AttendeeListProps {
-  /** The rows to show — the people in the active tab's state. */
+  /** Everyone on the event — every position section lists all its members, whatever their answer. */
   attendees: AttendanceEntry[]
-  /** The whole event roster, so a `changedBy` id resolves to a name from any tab, not just this one. */
-  allAttendees: AttendanceEntry[]
   roster: EventRoster
-  /** Group by position (the Going tab). Other tabs pass `false` and render flat. */
-  grouped: boolean
   /** Fires with the *target* member's id — trust-based editing lets a member set a teammate's answer. */
   onRespond: (userId: string, state: AttendanceState) => void
-  /** An attendance write is in flight; the open control is held. */
+  /** The viewer, so their own row is marked. */
+  currentUserId?: string | null
+  /** An attendance write is in flight; every control is held. */
   pending?: boolean
 }
 
-/**
- * The event-detail attendance list. The Going tab is grouped by position (Unassigned last), so a
- * heading's `2/3` and the names beneath it are one fact at two altitudes (⑩); the other tabs render
- * flat. Every row taps open to the same three-way control for *that* member (⑫) — the write targets
- * the row's own id — and a row a teammate last changed carries a quiet `set by …` line (⑪).
- *
- * Prop-only apart from which row is expanded (ADR-0017): the grouping and name resolution are pure
- * helpers, and the mutation lives in the route container.
- */
-export function AttendeeList({ attendees, allAttendees, roster, grouped, onRespond, pending = false }: AttendeeListProps) {
-  const [expandedId, setExpandedId] = useState<string | null>(null)
-  const groups = grouped ? groupAttendeesByPosition(attendees, roster) : null
+// A subtle wash + left accent in the answer's colour, so the list reads at a glance without opening
+// anything. Awaiting is deliberately neutral — the absence of an answer should look like absence.
+const ROW_TINT: Record<AttendanceState, string> = {
+  ATTENDING: 'border-l-green bg-green/5',
+  MAYBE: 'border-l-gold bg-gold/5',
+  ABSENT: 'border-l-red bg-red/5',
+  NOT_RESPONDED: 'border-l-border bg-transparent',
+}
 
+/**
+ * The event-detail attendance list: no tabs. Everyone is shown under their position (Unassigned
+ * last), tinted by their answer, with the three-way control on every row so a member can set anyone's
+ * answer in one tap (⑫, ADR-0003 trust-based). A row a teammate last changed carries a quiet
+ * `set by …` line (⑪). Falls back to a flat list when the roster carries no positions.
+ *
+ * Prop-only (ADR-0017): grouping and name resolution are pure helpers; the mutation lives in the
+ * route container. Rows keep their roster order — an answer changing must not make the list jump.
+ */
+export function AttendeeList({ attendees, roster, onRespond, currentUserId, pending = false }: AttendeeListProps) {
   if (attendees.length === 0) {
     return <p className="py-6 text-center text-sm text-muted-foreground">No one</p>
   }
 
-  const renderRow = (attendance: AttendanceEntry) => (
+  const groups = groupAttendeesByPosition(attendees, roster)
+
+  const renderRow = (attendance: AttendanceEntry, showRole: boolean) => (
     <AttendeeRow
       key={attendance.userId}
       attendance={attendance}
-      attribution={attributionName(attendance, allAttendees)}
-      // Grouped rows sit under a position heading, so repeating the role on the row is noise.
-      showRole={groups === null}
-      expanded={expandedId === attendance.userId}
+      attribution={attributionName(attendance, attendees)}
+      isSelf={attendance.userId === currentUserId}
+      showRole={showRole}
       pending={pending}
-      onToggle={() => setExpandedId((current) => (current === attendance.userId ? null : attendance.userId))}
-      onRespond={(state) => {
-        onRespond(attendance.userId, state)
-        setExpandedId(null)
-      }}
+      onRespond={(state) => onRespond(attendance.userId, state)}
     />
   )
 
@@ -58,13 +57,13 @@ export function AttendeeList({ attendees, allAttendees, roster, grouped, onRespo
     return (
       <div>
         {groups.map((group) => (
-          <PositionGroup key={group.positionLabel} group={group} renderRow={renderRow} />
+          <PositionGroup key={group.positionLabel} group={group} renderRow={(a) => renderRow(a, false)} />
         ))}
       </div>
     )
   }
 
-  return <div>{attendees.map(renderRow)}</div>
+  return <div className="py-1">{attendees.map((a) => renderRow(a, true))}</div>
 }
 
 function PositionGroup({
@@ -90,18 +89,16 @@ function PositionGroup({
 function AttendeeRow({
   attendance,
   attribution,
+  isSelf,
   showRole,
-  expanded,
   pending,
-  onToggle,
   onRespond,
 }: {
   attendance: AttendanceEntry
   attribution: string | null
+  isSelf: boolean
   showRole: boolean
-  expanded: boolean
   pending: boolean
-  onToggle: () => void
   onRespond: (state: AttendanceState) => void
 }) {
   // Attribution takes the subtitle when present; otherwise, in the flat list only, the member's own
@@ -113,33 +110,22 @@ function AttendeeRow({
       : null
 
   return (
-    <div>
-      <button
-        type="button"
-        aria-expanded={expanded}
-        onClick={onToggle}
-        className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-      >
-        <Avatar userId={attendance.userId} name={attendance.displayName} />
-        <div className="min-w-0 flex-1">
-          <span className="block text-sm leading-tight">{attendance.displayName}</span>
-          {subtitle && <span className="block text-xs text-muted-foreground">{subtitle}</span>}
-        </div>
-        <ChevronDown
-          size={16}
-          aria-hidden
-          className={`shrink-0 text-muted-foreground transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`}
-        />
-        <span className="sr-only">{expanded ? 'Hide answer options' : `Change ${attendance.displayName}'s answer`}</span>
-      </button>
-
-      {/* The three-way control — a sibling of the row button, never nested (no <button> in <button>).
-          The group names whose answer this is, so it stays distinct from the viewer's own control. */}
-      {expanded && (
-        <div className="px-3 pb-3 pt-1" role="group" aria-label={`${attendance.displayName}'s answer`}>
-          <AttendanceToggle value={attendance.state} disabled={pending} onToggle={onRespond} />
-        </div>
-      )}
+    <div className={`flex items-center gap-3 border-l-[3px] px-2.5 py-2 ${ROW_TINT[attendance.state]}`}>
+      <Avatar userId={attendance.userId} name={attendance.displayName} />
+      <div className="min-w-0 flex-1">
+        <span className="block truncate text-sm leading-tight">
+          {attendance.displayName}
+          {isSelf && (
+            <span className="ml-1.5 rounded-full bg-blue/10 px-1.5 py-0.5 align-[1px] text-[10px] font-bold tracking-wide text-blue">
+              You
+            </span>
+          )}
+        </span>
+        {subtitle && <span className="block text-xs text-muted-foreground">{subtitle}</span>}
+      </div>
+      <div role="group" aria-label={`${attendance.displayName}'s answer`}>
+        <AttendanceToggle compact value={attendance.state} disabled={pending} onToggle={onRespond} />
+      </div>
     </div>
   )
 }

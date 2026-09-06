@@ -67,3 +67,10 @@ export const Disabled: Story = {
     }
   },
 }
+
+// Icon-only, for a per-attendee row where the control repeats down the roster list. The visible label
+// is gone, so each button is named by its aria-label — the same accessible contract as the full form.
+export const Compact: Story = {
+  args: { value: 'MAYBE', compact: true },
+  play: async ({ canvas }) => expectPressed(canvas, 'Maybe'),
+}

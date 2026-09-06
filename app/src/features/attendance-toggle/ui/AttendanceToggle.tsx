@@ -39,13 +39,19 @@ interface AttendanceToggleProps {
   value: AttendanceState
   onToggle: (state: AttendanceState) => void
   disabled?: boolean
+  /**
+   * Icon-only, right-sized for a per-attendee row where the control repeats down a long list
+   * (the roster view). The full-width labelled form stays the default for the primary
+   * "Your response" control. Same three options, same callback — only the density changes.
+   */
+  compact?: boolean
 }
 
 // Presentational: current response + callback come in as props; the mutation lives in the
 // page container. Idle/pending/selected states are pure render args (Storybook-ready).
-export function AttendanceToggle({ value, onToggle, disabled = false }: AttendanceToggleProps) {
+export function AttendanceToggle({ value, onToggle, disabled = false, compact = false }: AttendanceToggleProps) {
   return (
-    <div className="flex gap-2.5">
+    <div className={compact ? 'inline-flex gap-1' : 'flex gap-2.5'}>
       {RESPONSE_OPTIONS.map(({ value: option, label, icon: Icon, activeClass, inactiveClass }) => {
         const isActive = value === option
         const handleClick = (e: MouseEvent<HTMLButtonElement>) => {
@@ -55,17 +61,20 @@ export function AttendanceToggle({ value, onToggle, disabled = false }: Attendan
         return (
           <button
             key={option}
+            // Icon-only rows lose the visible label, so name the control for a screen reader.
+            aria-label={compact ? label : undefined}
             aria-pressed={isActive}
             disabled={disabled}
             onClick={handleClick}
             className={[
-              'flex flex-1 items-center justify-center gap-2 rounded-xl border-2 py-3.5 text-sm font-semibold transition-all active:scale-95',
+              'flex items-center justify-center rounded-xl border-2 font-semibold transition-all active:scale-95',
+              compact ? 'h-9 w-10' : 'flex-1 gap-2 py-3.5 text-sm',
               isActive ? activeClass : inactiveClass,
               disabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer',
             ].join(' ')}
           >
-            <Icon size={18} />
-            {label}
+            <Icon size={compact ? 16 : 18} />
+            {!compact && label}
           </button>
         )
       })}

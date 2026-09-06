@@ -60,7 +60,7 @@
     "@vitest/coverage-v8": "4.1.10",
     "chromatic": "18.1.0",
     "eslint": "9.39.5",
-    "eslint-plugin-boundaries": "6.0.2",
+    "eslint-plugin-boundaries": "7.2.0",
     "eslint-plugin-react-hooks": "7.1.1",
     "globals": "17.9.0",
     "jsdom": "30.0.1",

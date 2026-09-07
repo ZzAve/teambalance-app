@@ -40,6 +40,8 @@ test("a member changes a teammate's attendance from the detail page, and it pers
   // 3. The write persists: after a full reload the teammate is still on screen (now tinted absent),
   //    attributed to the admin who changed it (⑪ — you learn who set it right where you'd change it back).
   await page.reload()
-  await expect(page.getByText('E2E Teammate')).toBeVisible({ timeout: 10_000 })
+  // exact: the row's trigger carries an sr-only "Change E2E Teammate's answer", so a substring
+  // match would be ambiguous — the visible name is the exact one.
+  await expect(page.getByText('E2E Teammate', { exact: true })).toBeVisible({ timeout: 10_000 })
   await expect(page.getByText('set by E2E Tester')).toBeVisible()
 })

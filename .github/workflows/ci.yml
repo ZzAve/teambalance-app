@@ -166,12 +166,30 @@ jobs:
 
   # MANUAL deploy gate: runs only on push to `main`/`deploy*`, after `build`; each pauses for
   # approval via the `production` environment. Deploys the exact commit CI validated (tag = SHA).
-  deploy-api:
+  #
+  # The wait for approval sits in its own tiny `approve-*` job, separate from the `deploy-*` job
+  # that does the work. That split is what makes a stale gate harmless: `approve-*` is
+  # `cancel-in-progress: true`, so a newer push to `main` cancels a still-unapproved gate from an
+  # older commit and immediately asks for approval on the new one — no manual reject needed. The
+  # `deploy-*` jobs only ever start once approved and stay `cancel-in-progress: false`, so a
+  # rollout that is already under way is never interrupted; a second approved deploy queues behind
+  # it. API and frontend keep their own gate, so they are still approved independently.
+  approve-api:
     needs: build
     if: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/deploy')) }}
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 5
     environment: production
+    concurrency:
+      group: deploy-prod-api-approval
+      cancel-in-progress: true
+    steps:
+      - run: echo "Production ${GITHUB_SHA::12} approved — starting the api rollout."
+
+  deploy-api:
+    needs: approve-api
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
     concurrency:
       group: deploy-prod-api
       cancel-in-progress: false
@@ -246,12 +264,22 @@ jobs:
           echo "::error::Image ${EXPECTED_SHA} never became live within $(( 360 / 60 )) min — deployment NOT verified. The new container likely failed to boot; check Scaleway Cockpit logs for a crash (e.g. Flyway validation)."
           exit 1
 
-  deploy-frontend:
+  approve-frontend:
     needs: build
     if: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/deploy')) }}
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 5
     environment: production
+    concurrency:
+      group: deploy-prod-frontend-approval
+      cancel-in-progress: true
+    steps:
+      - run: echo "Production ${GITHUB_SHA::12} approved — starting the frontend rollout."
+
+  deploy-frontend:
+    needs: approve-frontend
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
     concurrency:
       group: deploy-prod-frontend
       cancel-in-progress: false

@@ -23,12 +23,15 @@ test("a member changes a teammate's attendance from the detail page, and it pers
   })
   expect(seeded.ok()).toBeTruthy()
 
-  // 1. Open the seeded event. There are no tabs: everyone is listed under their position, so the
-  //    teammate (position-less → Unassigned) is on screen with their own control already visible.
+  // 1. Open the seeded event. There are no tabs: everyone is listed under their position, and each row
+  //    is a collapsed pill. Expand the teammate's (position-less → Unassigned) to reveal their control.
   await page.goto('/')
   await page.getByText('E2E Training').first().click()
+  await page.getByRole('button', { name: "Change E2E Teammate's answer" }).click()
   const teammateControl = page.getByRole('group', { name: "E2E Teammate's answer" })
   await expect(teammateControl).toBeVisible()
+  // A cross-member change announces itself — you should know whose answer you're setting.
+  await expect(teammateControl.getByText(/Changing/)).toBeVisible()
 
   // 2. Set *their* answer to Can't go — scoped to their own control, so it is never confused with the
   //    viewer's own "Your response" toggle.

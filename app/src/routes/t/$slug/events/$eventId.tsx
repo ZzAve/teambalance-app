@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { useLayoutEffect, useRef, useState } from 'react'
 import { MapPin } from 'lucide-react'
+import { toast } from 'sonner'
 import { useEvent, useEvents } from '@shared/api/events'
 import { useSetAttendance } from '@shared/api/attendances'
 import { useUserStore } from '@shared/stores/user-store'
@@ -14,6 +15,7 @@ import { RoleBreakdown } from '@entities/event/ui/RoleBreakdown'
 import { RosterBar } from '@entities/event/ui/RosterBar'
 import { SeriesPeek } from '@entities/event/ui/SeriesPeek'
 import { attributionName } from '@entities/event/lib/attribution'
+import { crossMemberToast } from '@entities/event/lib/cross-member-toast'
 import { buildSeriesPeek } from '@entities/event/lib/series-peek'
 import { AttendeeList } from '@widgets/attendee-list/ui/AttendeeList'
 import { AttendanceToggle, type AttendanceState } from '@features/attendance-toggle/ui/AttendanceToggle'
@@ -71,6 +73,23 @@ function EventDetailPage() {
   const myState: AttendanceState = (myAttendance?.state as AttendanceState) ?? 'NOT_RESPONDED'
 
   const myAttribution = myAttendance ? attributionName(myAttendance, event.attendances) : null
+
+  // Setting an answer. For a teammate (trust-based, ADR-0003) it raises an Undo toast — the awareness
+  // and the safety net for a cross-member change; your own answer just writes.
+  const setAttendance = (userId: string, state: AttendanceState) => {
+    const target = event.attendances.find((a) => a.userId === userId)
+    const prior = (target?.state as AttendanceState) ?? 'NOT_RESPONDED'
+    mutate({ eventId, userId, state })
+    if (userId !== currentUserId) {
+      const { message, undoState } = crossMemberToast(target?.displayName ?? 'teammate', state, prior)
+      toast(
+        message,
+        undoState
+          ? { action: { label: 'Undo', onClick: () => mutate({ eventId, userId, state: undoState }) } }
+          : undefined,
+      )
+    }
+  }
   // The roster bar replaces RoleBreakdown only where a position carries a target; otherwise it has
   // nothing to be a fraction of and RoleBreakdown stays as the fallback (⑥, same rule as the card).
   const hasPositionTargets = event.roster.positions.some((p) => p.required != null)
@@ -170,7 +189,7 @@ function EventDetailPage() {
           attendees={event.attendances}
           roster={event.roster}
           currentUserId={currentUserId}
-          onRespond={(userId, state) => mutate({ eventId, userId, state })}
+          onRespond={setAttendance}
           pending={isPending}
         />
       </div>

@@ -56,6 +56,18 @@ describe('pwaManifest', () => {
     expect(formFactors).toEqual(expect.arrayContaining(['narrow', 'wide']))
   })
 
+  // Install dialogs trust `sizes`, so a recapture at another viewport that forgets to update the
+  // manifest ships a lie. The PNG header (IHDR: big-endian width at byte 16, height at 20) is the
+  // truth; `npm run generate-pwa-screenshots` prints the same numbers.
+  it('declares each screenshot at its actual pixel size', () => {
+    for (const shot of pwaManifest.screenshots ?? []) {
+      const header = readFileSync(resolve(appRoot, 'public', shot.src))
+      const actual = `${header.readUInt32BE(16)}x${header.readUInt32BE(20)}`
+
+      expect(`${shot.src} ${actual}`).toBe(`${shot.src} ${shot.sizes}`)
+    }
+  })
+
   it('offers an Events shortcut through the slug-less dispatcher route', () => {
     expect(pwaManifest.shortcuts).toEqual([expect.objectContaining({ name: 'Events', url: '/events' })])
   })

@@ -44,6 +44,19 @@ function headcount(roster: EventRoster) {
  */
 export function VariantA({ roster }: { roster: EventRoster }) {
   const { going, target, pct, chip } = headcount(roster)
+  // Decision ⑥, the half the detail page never got: with a target this is a fraction against it;
+  // without one it is a plain tally, which is still the team information the page otherwise omits.
+  // No track in the tally case — a progress bar with no denominator is a lie.
+  if (roster.totalTarget == null) {
+    return (
+      <div className="border-b border-border/40 bg-gradient-to-b from-card to-background px-4 py-3">
+        <div className="flex items-baseline justify-between gap-3">
+          <span className="text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground">Squad</span>
+          <span className="font-display text-sm font-bold tabular-nums">{going} going</span>
+        </div>
+      </div>
+    )
+  }
   return (
     <div className="border-b border-border/40 bg-gradient-to-b from-card to-background px-4 py-3">
       <div className="mb-2 flex items-baseline justify-between gap-3">

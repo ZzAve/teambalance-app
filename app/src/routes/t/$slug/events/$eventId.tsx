@@ -34,6 +34,8 @@ export const Route = createFileRoute('/t/$slug/events/$eventId')({
   validateSearch: (search: Record<string, unknown>) => ({
     variant: (search.variant as string) ?? 'A',
     headcount: search.headcount ? Number(search.headcount) : undefined,
+    // PROTOTYPE: ?tally=1 forces TALLY_ONLY — tracking on, no targets of any kind.
+    tally: search.tally ? Number(search.tally) : undefined,
   }),
 })
 
@@ -45,7 +47,7 @@ const VARIANT_NAMES = {
 
 function EventDetailPage() {
   const { eventId } = Route.useParams()
-  const { variant, headcount: protoTarget } = Route.useSearch()
+  const { variant, headcount: protoTarget, tally: protoTally } = Route.useSearch()
   const navigate = Route.useNavigate()
   const routes = useTeamRoutes()
   const { data: event, isLoading, isError, refetch } = useEvent(eventId)
@@ -110,6 +112,18 @@ function EventDetailPage() {
   // The roster bar replaces RoleBreakdown only where a position carries a target; otherwise it has
   // nothing to be a fraction of and RoleBreakdown stays as the fallback (⑥, same rule as the card).
   let roster = event.roster
+  if (protoTally) {
+    // PROTOTYPE: a tally — tracking on, nothing to fall short of. rosterChip returns null.
+    roster = {
+      ...roster,
+      trackRoster: true,
+      totalTarget: undefined,
+      totalAttending: event.attendanceSummary.attending,
+      positions: roster.positions.map((p) => ({ ...p, required: undefined })),
+      openSlots: 0,
+      state: 'TALLY_ONLY',
+    }
+  }
   if (protoTarget) {
     // PROTOTYPE: a headcount-only roster — a total target, no position targets. The state the real
     // page loses today.
@@ -125,7 +139,8 @@ function EventDetailPage() {
     }
   }
   const hasPositionTargets = roster.positions.some((p) => p.required != null)
-  const headcountOnly = !hasPositionTargets && roster.totalTarget != null
+  // Anything tracked but without position targets — the target case AND the tally case.
+  const headcountOnly = !hasPositionTargets && roster.trackRoster
 
   // "Part of a series" peek: siblings are every event sharing this occurrence's recurring group.
   const siblings = event.recurringGroup

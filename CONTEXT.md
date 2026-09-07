@@ -27,6 +27,8 @@ any-team, self-service (see [ADR-0001](docs/adr/0001-product-ambition-hobby-tool
   _Avoid_: current team, selected tenant, team context.
 - **Member** — A person belonging to a Team. Has exactly one **Role** and at most one
   **Position**.
+- **Roster** — A Team's current **Members**. Unqualified "roster" always means this; an Event's fill
+  picture is the **Event Roster**. _Avoid_: squad, member list.
 - **Role** — A Member's permission tier within a Team: **Admin** or **User**. Every
   member has exactly one. _Avoid_: permission level, access level — and don't confuse it
   with **Position** (the DB column `role` holds this).
@@ -78,7 +80,10 @@ any-team, self-service (see [ADR-0001](docs/adr/0001-product-ambition-hobby-tool
 - **Attendance** — A Member's response to an Event. One of four **Attendance States**.
 - **Attendance State** — `Attending` (green), `Maybe` (gold), `Absent` (red),
   `Not Responded` (default, no response yet). The semantic colors are fixed brand
-  identity.
+  identity. These are the payload and code names; the UI says the same four states in the
+  member's own words — `Going` / `Maybe` / `Can't` / `Not responded` on controls and filters,
+  and `You're in` / `You said maybe` / `You're out` / `Respond` on the card's answer pill.
+  Prose uses the same root: a member has *responded* or *not responded*, never *replied*.
 - **Event Attendance** — The resolved attendance picture of a single Event: every current
   Member paired with their **Attendance State** for that Event (their response, or
   **Not Responded** when they haven't answered). Derived from the *current* roster, so a
@@ -86,6 +91,21 @@ any-team, self-service (see [ADR-0001](docs/adr/0001-product-ambition-hobby-tool
   even if they once responded (per [ADR-0009](docs/adr/0009-attendance-model-roles-in-audience-deferred.md)).
   The summary counts, the roster, and the attending-**Position** breakdown are all views of
   this one picture. _Avoid_: attendance list, attendance snapshot.
+- **Event Roster** — Whether an Event has *enough* of the right people, as opposed to who answered
+  what (**Event Attendance**). Computed server-side into one **Roster State** so the arithmetic has a
+  single tested home. Distinct from a Team's **Roster** — this one is about a single Event's fill.
+  _Avoid_: lineup (that is one Roster State), readiness, roster status.
+- **Roster State** — The Event Roster's verdict, one of seven: `CRITICAL` (a targeted **Position** has
+  nobody), `SPOTS_OPEN` (a targeted Position is short but not empty), `LINEUP_SET` (every targeted
+  Position covered), `HEADCOUNT_SHORT` / `HEADCOUNT_FULL` (no Position targets, judged against a
+  headcount), `TALLY_ONLY` (tracking on, nothing to fall short of) and `OFF` (not tracked — a social).
+  Position targets always win over a headcount. `TALLY_ONLY` and `OFF` are deliberately **not**
+  verdicts: presenting either as one would invent a judgement the team never asked for.
+- **Turnout** — The member-facing banding of **Roster State** into four legible bands —
+  `Missing a position`, `Spots open`, `Covered`, `No target set` — answering "where am I most needed?".
+  A total partition: every Event sits in exactly one band, which is what lets the events filter offer
+  it as a dimension ([ADR-0029](docs/adr/0029-event-list-filters-partition-and-everything-follows-them.md)).
+  _Avoid_: roster issue, readiness, needs attention.
 - **Attendance Toggle** — The core daily interaction: a Member sets their state on an
   event. Editable by others today (trust-based) — see
   [ADR-0003](docs/adr/0003-trust-based-attendance-editing.md).

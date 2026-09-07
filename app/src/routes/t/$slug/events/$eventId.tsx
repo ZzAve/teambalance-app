@@ -90,9 +90,13 @@ function EventDetailPage() {
       )
     }
   }
-  // The roster bar replaces RoleBreakdown only where a position carries a target; otherwise it has
-  // nothing to be a fraction of and RoleBreakdown stays as the fallback (⑥, same rule as the card).
+  // Two independent questions, and conflating them is what used to lose the headcount here (#271 ⑥).
+  // The bar shows for ANY tracked roster — with position targets it counts slots, without them it
+  // counts people (a target fraction, or a plain tally). RoleBreakdown is the per-role fallback and
+  // still turns on the narrower question: it survives only where no position carries a target, since
+  // there the bar states a total but nothing about who plays where.
   const hasPositionTargets = event.roster.positions.some((p) => p.required != null)
+  const showRosterBar = hasPositionTargets || event.roster.trackRoster
 
   // "Part of a series" peek: siblings are every event sharing this occurrence's recurring group.
   const siblings = event.recurringGroup
@@ -175,7 +179,7 @@ function EventDetailPage() {
       {/* Attendance — one list by position, no tabs. The roster bar pins beneath the sub-header so
           completeness stays visible however far a big squad scrolls; where no position carries a
           target it has nothing to show and the headcount breakdown stays as the fallback. */}
-      {hasPositionTargets && (
+      {showRosterBar && (
         <div
           className="sticky z-20 -mx-4 mt-6"
           style={{ top: `calc(var(--header-height) + ${subHeaderHeight}px)` }}
@@ -183,7 +187,7 @@ function EventDetailPage() {
           <RosterBar roster={event.roster} />
         </div>
       )}
-      <div className={`overflow-hidden rounded-2xl border border-border/40 bg-card shadow-sm ${hasPositionTargets ? 'mt-3' : 'mt-6'}`}>
+      <div className={`overflow-hidden rounded-2xl border border-border/40 bg-card shadow-sm ${showRosterBar ? 'mt-3' : 'mt-6'}`}>
         {!hasPositionTargets && <RoleBreakdown breakdown={event.attendanceSummary.roleBreakdown} />}
         <AttendeeList
           attendees={event.attendances}

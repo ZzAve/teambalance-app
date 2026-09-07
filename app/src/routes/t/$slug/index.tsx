@@ -11,6 +11,9 @@ import { NextEventHero } from '@widgets/next-event-hero/ui/NextEventHero'
 import { CreateEventSheet } from '@widgets/create-event/ui/CreateEventSheet'
 import { EventFiltersView } from '@features/filter-event-types/ui/EventFiltersView'
 import { toggleTypeSelection } from '@features/filter-event-types/model/toggleTypeSelection'
+import { ALL_ATTENDANCE_STATES } from '@features/filter-event-types/model/attendance-states'
+import { filterEvents } from '@features/filter-event-types/model/filter-events'
+import { emptyEventsMessage } from '@features/filter-event-types/model/empty-message'
 import { BulkAttendBar } from '@features/bulk-attend/ui/BulkAttendBar'
 import { eligibleEvents } from '@features/bulk-attend/lib/eligible-event-ids'
 
@@ -22,13 +25,19 @@ export const Route = createFileRoute('/t/$slug/')({
  * The events page. Composition, in order: a compact header with the filter trigger, the Next Up
  * hero when (and only when) one is due, then one flat chronological list.
  *
- * All the deciding happens here so the views below stay prop-only: which events survive the type
- * filter, whether there is a hero, and — because the hero must not appear twice — which event the
- * list drops.
+ * All the deciding happens here so the views below stay prop-only: which events survive the filters,
+ * whether there is a hero, and — because the hero must not appear twice — which event the list
+ * drops. Everything on the page reads the same filtered list — the hero and Bulk Attend included
+ * (ADR-0029 §6).
  */
 function EventListPage() {
     const [showPast, setShowPast] = useState(false)
     const [activeTypeIds, setActiveTypeIds] = useState<Set<string>>(new Set())
+    // Every answer on by default — the four states partition the list, so this is the unfiltered
+    // view and nothing is pre-applied (ADR-0029 §1, §8). No bootstrap effect: unlike event types,
+    // the states are known without a request.
+    const [activeStates, setActiveStates] = useState<Set<Event['myState']>>(
+        new Set(ALL_ATTENDANCE_STATES))
     const {data: events, isLoading, error} = useEvents(showPast)
     const {data: eventTypes} = useEventTypes()
     const isAdmin = useUserStore((s) => s.role) === 'ADMIN'
@@ -64,9 +73,8 @@ function EventListPage() {
 
     const filteredEvents = useMemo(() => {
         if (!events || !eventTypes) return events ?? []
-        if (activeTypeIds.size === eventTypes.length) return events
-        return events.filter(e => activeTypeIds.has(e.eventType.id))
-    }, [events, activeTypeIds, eventTypes])
+        return filterEvents(events, activeTypeIds, activeStates)
+    }, [events, activeTypeIds, activeStates, eventTypes])
 
     // The API returns upcoming ascending but "all" descending, so sort here: the list is flat now,
     // and flat only reads if it is chronological.
@@ -78,10 +86,22 @@ function EventListPage() {
     const heroEvent = selectHeroEvent(sortedEvents, now)
     const listEvents = heroEvent ? sortedEvents.filter(e => e.id !== heroEvent.id) : sortedEvents
 
-    const isTypeFiltered = activeTypeIds.size < (eventTypes?.length ?? 0)
+    const allTypeIds = useMemo(() => (eventTypes ?? []).map(t => t.id), [eventTypes])
+    const hasActiveFilter =
+        showPast ||
+        activeTypeIds.size < allTypeIds.length ||
+        activeStates.size < ALL_ATTENDANCE_STATES.length
 
-    // Bulk Attend acts on exactly what the page shows (ADR-0020), so it reads `sortedEvents` — the
-    // hero included, since pulling it out of the list does not stop it being on screen. Past events
+    const clearFilters = () => {
+        setActiveTypeIds(new Set(allTypeIds))
+        setActiveStates(new Set(ALL_ATTENDANCE_STATES))
+        setShowPast(false)
+    }
+
+    // Bulk Attend acts on exactly what the page shows (ADR-0020, ADR-0029 §6), so it reads
+    // `sortedEvents` — already narrowed by *both* chip groups, the hero included since pulling it
+    // out of the list does not stop it being on screen. That is why filtering to an answered status
+    // leaves no buttons at all: the visible list then holds nothing unanswered. Past events
     // are excluded by the selector, not by the surrounding UI: with the tabs gone, `showPast` merely
     // adds past events to the same list, so the future-only rule has to live in the selector.
     // It reads the page's shared `now`, so the button and the cards can never disagree about which
@@ -104,10 +124,17 @@ function EventListPage() {
                     <EventFiltersView
                         eventTypes={eventTypes ?? []}
                         activeTypeIds={activeTypeIds}
+                        activeStates={activeStates}
                         showPast={showPast}
+                        resultCount={sortedEvents.length}
                         onToggleType={(typeId) =>
-                            setActiveTypeIds(prev =>
-                                toggleTypeSelection(prev, (eventTypes ?? []).map(t => t.id), typeId))
+                            setActiveTypeIds(prev => toggleTypeSelection(prev, allTypeIds, typeId))
+                        }
+                        // The same isolate-first toggler as the type chips (ADR-0029 §3), so one tap
+                        // from the all-on default isolates "Not responded" instead of removing it.
+                        onToggleState={(state) =>
+                            setActiveStates(prev =>
+                                toggleTypeSelection(prev, ALL_ATTENDANCE_STATES, state))
                         }
                         onToggleShowPast={setShowPast}
                     />
@@ -132,17 +159,14 @@ function EventListPage() {
                 isLoading={heroEvent ? false : isLoading}
                 error={heroEvent ? undefined : error}
                 now={now}
-                emptyMessage={
-                    // With a hero on screen the page is not empty — the list just has nothing left
-                    // after the hero was pulled out of it.
-                    heroEvent
-                        ? 'Nothing else coming up.'
-                        : isTypeFiltered
-                            ? 'No events for this type.'
-                            : showPast
-                                ? 'No events yet.'
-                                : 'No upcoming events.'
-                }
+                emptyMessage={emptyEventsMessage({
+                    hasHero: heroEvent !== null,
+                    showPast,
+                    activeTypeIds,
+                    allTypeIds,
+                    activeStates,
+                })}
+                onClearFilters={hasActiveFilter ? clearFilters : undefined}
             />
         </div>
     )

@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { expect, fn } from 'storybook/test'
 import { withRouter } from '@shared/testing/router-decorator'
-import { makeEvent } from '@shared/testing/event-fixtures'
+import { makeEvent, makeRoster, NO_ROSTER } from '@shared/testing/event-fixtures'
 import { allModes } from '../../../../.storybook/modes'
 import { NextEventHeroView } from './NextEventHeroView'
 
@@ -212,5 +212,99 @@ export const StartingToday: Story = {
   },
   play: async ({ canvas }) => {
     await expect(canvas.getByText('11h')).toBeInTheDocument()
+  },
+}
+
+// ── Readiness (#275) ────────────────────────────────────────────────────────────────────────────
+// The hero was the last surface in the app with no roster verdict. It carries the same
+// `ReadinessBadge` as the card row (#273) — same `rosterChip`, no second computation — in its
+// `hero` variant: a solid white chip, because the tinted card chip's green-on-green would vanish
+// against this ground.
+
+const READY_EVENT = makeEvent({
+  ...EVENT,
+  roster: makeRoster({
+    state: 'LINEUP_SET',
+    positions: [
+      { id: 'pos-setter', label: 'Setter', required: 2, attending: 2 },
+      { id: 'pos-libero', label: 'Libero', required: 1, attending: 1 },
+      { id: 'pos-middle', label: 'Middle', required: 2, attending: 2 },
+    ],
+    totalAttending: 10,
+  }),
+})
+
+export const ReadinessCovered: Story = {
+  args: { event: READY_EVENT, myState: 'ATTENDING' },
+  play: async ({ canvas }) => {
+    await expect(canvas.getByText('Lineup set')).toBeInTheDocument()
+    // The verdict joins the headcount the hero already carried; it does not replace it.
+    await expect(canvas.getByText(/10 going · you're in/)).toBeInTheDocument()
+  },
+}
+
+export const ReadinessShort: Story = {
+  args: {
+    event: makeEvent({ ...EVENT, roster: makeRoster({ totalAttending: 10 }) }),
+    myState: 'ATTENDING',
+  },
+  play: async ({ canvas }) => {
+    await expect(canvas.getByText('1 spot open')).toBeInTheDocument()
+  },
+}
+
+// Nobody at all at two targeted positions. The headcount moves with it: a roster with no one
+// attending cannot sit on a summary claiming ten are.
+export const ReadinessCritical: Story = {
+  args: {
+    event: makeEvent({
+      ...EVENT,
+      attendanceSummary: { attending: 0, maybe: 0, absent: 2, notResponded: 13, roleBreakdown: [] },
+      roster: makeRoster({
+        state: 'CRITICAL',
+        positions: [
+          { id: 'pos-setter', label: 'Setter', required: 2, attending: 0 },
+          { id: 'pos-libero', label: 'Libero', required: 1, attending: 0 },
+        ],
+        totalAttending: 0,
+      }),
+    }),
+  },
+  play: async ({ canvas }) => {
+    await expect(canvas.getByText('3 spots open')).toBeInTheDocument()
+  },
+}
+
+// Tracking is on but nothing is targeted, so there is no verdict to give. On the card that falls
+// back to a plain headcount — here it renders nothing, because the hero's own status line is
+// already a headcount and printing "10 going" twice on one card says nothing twice.
+export const ReadinessTallyOnly: Story = {
+  // Behavioural twin of Going — no chip, so the picture is the unbadged hero (ADR-0027 §2).
+  parameters: { chromatic: { disableSnapshot: true } },
+  args: {
+    event: makeEvent({
+      ...EVENT,
+      roster: makeRoster({ state: 'TALLY_ONLY', positions: [], totalAttending: 10, openSlots: 0 }),
+    }),
+    myState: 'ATTENDING',
+  },
+  play: async ({ canvas }) => {
+    await expect(canvas.getAllByText(/\bgoing\b/)).toHaveLength(1)
+  },
+}
+
+// A social: tracking off entirely. No chip — and, because the chip shares the status line's row
+// rather than claiming one of its own, no reserved space either.
+export const ReadinessNotTracked: Story = {
+  // Behavioural twin of Going — no chip, identical picture (ADR-0027 §2).
+  parameters: { chromatic: { disableSnapshot: true } },
+  args: { event: makeEvent({ ...EVENT, roster: NO_ROSTER }), myState: 'ATTENDING' },
+  play: async ({ canvas }) => {
+    const status = canvas.getByText(/10 going · you're in/)
+    await expect(canvas.queryByText(/spot|spots|Lineup set|Full|more needed/)).not.toBeInTheDocument()
+    // The row the chip would have shared claims no more height than the status line inside it, so
+    // an absent verdict leaves no gap above the RSVP buttons.
+    const row = status.parentElement!
+    await expect(row.getBoundingClientRect().height).toBe(status.getBoundingClientRect().height)
   },
 }

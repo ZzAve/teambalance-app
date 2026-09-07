@@ -12,6 +12,11 @@ import { CreateEventSheet } from '@widgets/create-event/ui/CreateEventSheet'
 import { EventFiltersView } from '@features/filter-event-types/ui/EventFiltersView'
 import { toggleTypeSelection } from '@features/filter-event-types/model/toggleTypeSelection'
 import { ALL_ATTENDANCE_STATES } from '@features/filter-event-types/model/attendance-states'
+import {
+    ALL_TURNOUT_BUCKETS,
+    spansMultipleTurnoutBuckets,
+    type TurnoutBucket,
+} from '@features/filter-event-types/model/turnout'
 import { filterEvents } from '@features/filter-event-types/model/filter-events'
 import { emptyEventsMessage } from '@features/filter-event-types/model/empty-message'
 import { BulkAttendBar } from '@features/bulk-attend/ui/BulkAttendBar'
@@ -38,6 +43,10 @@ function EventListPage() {
     // the states are known without a request.
     const [activeStates, setActiveStates] = useState<Set<Event['myState']>>(
         new Set(ALL_ATTENDANCE_STATES))
+    // Same for the Turnout bands: all four on is the unfiltered view, and it stays that way for a
+    // team whose list spans one band — the group is not rendered for them, so nothing can narrow it.
+    const [activeTurnouts, setActiveTurnouts] = useState<Set<TurnoutBucket>>(
+        new Set(ALL_TURNOUT_BUCKETS))
     const {data: events, isLoading, error} = useEvents(showPast)
     const {data: eventTypes} = useEventTypes()
     const isAdmin = useUserStore((s) => s.role) === 'ADMIN'
@@ -73,8 +82,8 @@ function EventListPage() {
 
     const filteredEvents = useMemo(() => {
         if (!events || !eventTypes) return events ?? []
-        return filterEvents(events, activeTypeIds, activeStates)
-    }, [events, activeTypeIds, activeStates, eventTypes])
+        return filterEvents(events, activeTypeIds, activeStates, activeTurnouts)
+    }, [events, activeTypeIds, activeStates, activeTurnouts, eventTypes])
 
     // The API returns upcoming ascending but "all" descending, so sort here: the list is flat now,
     // and flat only reads if it is chronological.
@@ -90,11 +99,17 @@ function EventListPage() {
     const hasActiveFilter =
         showPast ||
         activeTypeIds.size < allTypeIds.length ||
-        activeStates.size < ALL_ATTENDANCE_STATES.length
+        activeStates.size < ALL_ATTENDANCE_STATES.length ||
+        activeTurnouts.size < ALL_TURNOUT_BUCKETS.length
+
+    // Read off the *unfiltered* list (ADR-0029 §5): narrowing another dimension must not make the
+    // group vanish underneath a Turnout selection that is still in effect.
+    const showTurnout = useMemo(() => spansMultipleTurnoutBuckets(events ?? []), [events])
 
     const clearFilters = () => {
         setActiveTypeIds(new Set(allTypeIds))
         setActiveStates(new Set(ALL_ATTENDANCE_STATES))
+        setActiveTurnouts(new Set(ALL_TURNOUT_BUCKETS))
         setShowPast(false)
     }
 
@@ -125,6 +140,8 @@ function EventListPage() {
                         eventTypes={eventTypes ?? []}
                         activeTypeIds={activeTypeIds}
                         activeStates={activeStates}
+                        activeTurnouts={activeTurnouts}
+                        showTurnout={showTurnout}
                         showPast={showPast}
                         resultCount={sortedEvents.length}
                         onToggleType={(typeId) =>
@@ -135,6 +152,10 @@ function EventListPage() {
                         onToggleState={(state) =>
                             setActiveStates(prev =>
                                 toggleTypeSelection(prev, ALL_ATTENDANCE_STATES, state))
+                        }
+                        onToggleTurnout={(bucket) =>
+                            setActiveTurnouts(prev =>
+                                toggleTypeSelection(prev, ALL_TURNOUT_BUCKETS, bucket))
                         }
                         onToggleShowPast={setShowPast}
                     />
@@ -165,6 +186,7 @@ function EventListPage() {
                     activeTypeIds,
                     allTypeIds,
                     activeStates,
+                    activeTurnouts,
                 })}
                 onClearFilters={hasActiveFilter ? clearFilters : undefined}
             />

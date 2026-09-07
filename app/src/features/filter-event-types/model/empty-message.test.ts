@@ -1,6 +1,7 @@
 import {describe, expect, it} from 'vitest'
 import type {AttendanceState} from '@features/attendance-toggle/ui/AttendanceToggle'
 import {ALL_ATTENDANCE_STATES} from './attendance-states'
+import {ALL_TURNOUT_BUCKETS, type TurnoutBucket} from './turnout'
 import {emptyEventsMessage} from './empty-message'
 
 const ALL_TYPE_IDS = ['training', 'match']
@@ -12,6 +13,7 @@ const message = (overrides: Partial<Parameters<typeof emptyEventsMessage>[0]> = 
         activeTypeIds: new Set(ALL_TYPE_IDS),
         allTypeIds: ALL_TYPE_IDS,
         activeStates: new Set(ALL_ATTENDANCE_STATES),
+        activeTurnouts: new Set(ALL_TURNOUT_BUCKETS),
         ...overrides,
     })
 
@@ -51,6 +53,29 @@ describe('emptyEventsMessage', () => {
         expect(message({
             activeTypeIds: new Set(['match']),
             activeStates: new Set<AttendanceState>(['NOT_RESPONDED']),
+        })).toBe('No events match these filters.')
+    })
+
+    it('names the turnout dimension when it is narrowed to the short bands', () => {
+        expect(message({activeTurnouts: new Set<TurnoutBucket>(['spots-open'])}))
+            .toBe('No events are short of players.')
+        expect(message({activeTurnouts: new Set<TurnoutBucket>(['missing-position'])}))
+            .toBe('No events are short of players.')
+        expect(message({activeTurnouts: new Set<TurnoutBucket>(['missing-position', 'spots-open'])}))
+            .toBe('No events are short of players.')
+    })
+
+    it('stays generic for a covered selection, where "short of players" would be a lie', () => {
+        expect(message({activeTurnouts: new Set<TurnoutBucket>(['covered'])}))
+            .toBe('No events match these filters.')
+        expect(message({activeTurnouts: new Set<TurnoutBucket>(['spots-open', 'no-target'])}))
+            .toBe('No events match these filters.')
+    })
+
+    it('stays generic when turnout is narrowed alongside another dimension', () => {
+        expect(message({
+            activeStates: new Set<AttendanceState>(['NOT_RESPONDED']),
+            activeTurnouts: new Set<TurnoutBucket>(['spots-open']),
         })).toBe('No events match these filters.')
     })
 })

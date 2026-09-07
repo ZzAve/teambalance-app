@@ -46,9 +46,11 @@ class EventController(
     DeleteEvent.Handler {
 
     override suspend fun listEvents(request: ListEvents.Request): ListEvents.Response<*> {
-        val members = attendanceService.teamMembers(currentTeamGateway.requireCurrentTeamId())
+        val teamId = currentTeamGateway.requireCurrentTeamId()
+        val members = attendanceService.teamMembers(teamId)
         val viewerId = currentUserGateway.requireCurrentUserId()
-        val events = if (request.queries.includepast) eventService.getAllEvents() else eventService.getUpcomingEvents()
+        val events =
+            if (request.queries.includepast) eventService.getAllEvents(teamId) else eventService.getUpcomingEvents()
         val attendance = attendanceService.attendanceForAll(events.map { it.id }, members)
         // The position vocabulary is fetched once for the whole listing, not per event: it is the
         // same list for every row, and it is both the label source and the row filter for the roster.

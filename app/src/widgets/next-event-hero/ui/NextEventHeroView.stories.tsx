@@ -59,11 +59,11 @@ export const HasNext: Story = {
   },
 }
 
-export const HaventReplied: Story = {
+export const HaventResponded: Story = {
   // Behavioural twin of HasNext — default args render the identical picture (ADR-0027 §2).
   parameters: { chromatic: { disableSnapshot: true } },
   play: async ({ canvas }) => {
-    await expect(canvas.getByText(/10 going · you haven't replied/)).toBeInTheDocument()
+    await expect(canvas.getByText(/10 going · you haven't responded/)).toBeInTheDocument()
     // Neither answer is pressed yet — "I'm in" is solid because it is the invitation.
     await expect(canvas.getByRole('button', { name: /I'm in/ })).toHaveAttribute(
       'aria-pressed',

@@ -23,13 +23,30 @@ import { EditEventDialog } from '@features/edit-event/ui/EditEventDialog'
 import { DeleteEventDialog } from '@features/edit-event/ui/DeleteEventDialog'
 import { PageHeader } from '@widgets/page-header/ui/PageHeader'
 import { useTeamRoutes } from '@shared/lib/team-routes'
+// PROTOTYPE (#271 gap) — throwaway wiring, removed before the real fix lands.
+import { VariantA, VariantB, VariantC } from '@entities/event/ui/HeadcountVariants.prototype'
+import { PrototypeSwitcher } from '@shared/ui/PrototypeSwitcher.prototype'
 
 export const Route = createFileRoute('/t/$slug/events/$eventId')({
   component: EventDetailPage,
+  // PROTOTYPE: ?variant=A|B|C picks a headcount treatment; ?headcount=N forces a headcount-only
+  // roster so the state can be seen without configuring one in the DB.
+  validateSearch: (search: Record<string, unknown>) => ({
+    variant: (search.variant as string) ?? 'A',
+    headcount: search.headcount ? Number(search.headcount) : undefined,
+  }),
 })
+
+const VARIANT_NAMES = {
+  A: 'Pinned headcount bar',
+  B: 'List header',
+  C: 'Header stat ring',
+}
 
 function EventDetailPage() {
   const { eventId } = Route.useParams()
+  const { variant, headcount: protoTarget } = Route.useSearch()
+  const navigate = Route.useNavigate()
   const routes = useTeamRoutes()
   const { data: event, isLoading, isError, refetch } = useEvent(eventId)
   const currentUserId = useUserStore((s) => s.userId)
@@ -92,7 +109,23 @@ function EventDetailPage() {
   }
   // The roster bar replaces RoleBreakdown only where a position carries a target; otherwise it has
   // nothing to be a fraction of and RoleBreakdown stays as the fallback (⑥, same rule as the card).
-  const hasPositionTargets = event.roster.positions.some((p) => p.required != null)
+  let roster = event.roster
+  if (protoTarget) {
+    // PROTOTYPE: a headcount-only roster — a total target, no position targets. The state the real
+    // page loses today.
+    const going = event.attendanceSummary.attending
+    roster = {
+      ...roster,
+      trackRoster: true,
+      totalTarget: protoTarget,
+      totalAttending: going,
+      positions: roster.positions.map((p) => ({ ...p, required: undefined })),
+      openSlots: Math.max(0, protoTarget - going),
+      state: going >= protoTarget ? 'HEADCOUNT_FULL' : 'HEADCOUNT_SHORT',
+    }
+  }
+  const hasPositionTargets = roster.positions.some((p) => p.required != null)
+  const headcountOnly = !hasPositionTargets && roster.totalTarget != null
 
   // "Part of a series" peek: siblings are every event sharing this occurrence's recurring group.
   const siblings = event.recurringGroup
@@ -137,6 +170,9 @@ function EventDetailPage() {
           )}
         </div>
       </div>
+
+      {/* PROTOTYPE variant C — completeness as a header stat. */}
+      {headcountOnly && variant === 'C' && <VariantC roster={roster} />}
 
       {/* Your Response */}
       {currentUserId && (
@@ -183,7 +219,18 @@ function EventDetailPage() {
           <RosterBar roster={event.roster} />
         </div>
       )}
+      {/* PROTOTYPE variant A — the same pinned slot, in its headcount form. */}
+      {headcountOnly && variant === 'A' && (
+        <div
+          className="sticky z-20 -mx-4 mt-6"
+          style={{ top: `calc(var(--header-height) + ${subHeaderHeight}px)` }}
+        >
+          <VariantA roster={roster} />
+        </div>
+      )}
       <div className={`overflow-hidden rounded-2xl border border-border/40 bg-card shadow-sm ${hasPositionTargets ? 'mt-3' : 'mt-6'}`}>
+        {/* PROTOTYPE variant B — the fraction as the list's own header. */}
+        {headcountOnly && variant === 'B' && <VariantB roster={roster} />}
         {!hasPositionTargets && <RoleBreakdown breakdown={event.attendanceSummary.roleBreakdown} />}
         <AttendeeList
           attendees={event.attendances}
@@ -193,6 +240,13 @@ function EventDetailPage() {
           pending={isPending}
         />
       </div>
+
+      <PrototypeSwitcher
+        variants={['A', 'B', 'C']}
+        names={VARIANT_NAMES}
+        current={variant}
+        onChange={(v) => navigate({ search: (prev) => ({ ...prev, variant: v }), replace: true })}
+      />
 
       {/* Part of a series peek */}
       {seriesPeek && <SeriesPeek peek={seriesPeek} />}

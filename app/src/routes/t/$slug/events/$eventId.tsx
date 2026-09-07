@@ -138,6 +138,20 @@ function EventDetailPage() {
         </div>
       </div>
 
+      {/* Roster overview — pinned so completeness stays one glance away however far a big squad
+          scrolls. Sits high, right under the event identity, so on a tall desktop screen it is
+          visible and pinning from the start rather than buried below the response/info sections.
+          Where no position carries a target it renders nothing (the list keeps the headcount
+          breakdown as the fallback, ⑥). */}
+      {hasPositionTargets && (
+        <div
+          className="sticky z-20 -mx-4 mt-6"
+          style={{ top: `calc(var(--header-height) + ${subHeaderHeight}px)` }}
+        >
+          <RosterBar roster={event.roster} />
+        </div>
+      )}
+
       {/* Your Response */}
       {currentUserId && (
         <div className="mt-6">
@@ -172,18 +186,9 @@ function EventDetailPage() {
         </div>
       )}
 
-      {/* Attendance — one list by position, no tabs. The roster bar pins beneath the sub-header so
-          completeness stays visible however far a big squad scrolls; where no position carries a
-          target it has nothing to show and the headcount breakdown stays as the fallback. */}
-      {hasPositionTargets && (
-        <div
-          className="sticky z-20 -mx-4 mt-6"
-          style={{ top: `calc(var(--header-height) + ${subHeaderHeight}px)` }}
-        >
-          <RosterBar roster={event.roster} />
-        </div>
-      )}
-      <div className={`overflow-hidden rounded-2xl border border-border/40 bg-card shadow-sm ${hasPositionTargets ? 'mt-3' : 'mt-6'}`}>
+      {/* Attendance — one list by position, no tabs. Where no position carries a target the roster
+          bar (pinned above) shows nothing and the headcount breakdown stays as the fallback. */}
+      <div className="mt-6 overflow-hidden rounded-2xl border border-border/40 bg-card shadow-sm">
         {!hasPositionTargets && <RoleBreakdown breakdown={event.attendanceSummary.roleBreakdown} />}
         <AttendeeList
           attendees={event.attendances}

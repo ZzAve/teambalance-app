@@ -42,6 +42,33 @@ class EventAttendanceTest : FunSpec({
         projection.entries.single().state shouldBe AttendanceState.NOT_RESPONDED
     }
 
+    test("changedByOf names whoever last set that member's row, teammate or self") {
+        val jan = member("Jan")
+        val lisa = member("Lisa")
+        // Lisa set Jan's answer for him (ADR-0003); Lisa set her own.
+        val jansRow = jan.responded(AttendanceState.ATTENDING).copy(changedBy = lisa.userId)
+
+        val projection = EventAttendance.resolve(
+            members = listOf(jan, lisa),
+            responses = listOf(jansRow, lisa.responded(AttendanceState.MAYBE)),
+        )
+
+        projection.changedByOf(jan.userId) shouldBe lisa.userId
+        // Raw, not filtered: a self-set row reports the member's own id, and the "only when it
+        // wasn't you" rule stays with whoever renders it.
+        projection.changedByOf(lisa.userId) shouldBe lisa.userId
+    }
+
+    test("changedByOf is null for a member with no row, and for a non-member") {
+        val jan = member("Jan")
+        val stranger = member("Stranger")
+
+        val projection = EventAttendance.resolve(members = listOf(jan), responses = emptyList())
+
+        projection.changedByOf(jan.userId) shouldBe null
+        projection.changedByOf(stranger.userId) shouldBe null
+    }
+
     test("summary counts every current member by resolved state") {
         val attending = member("A")
         val maybe = member("M")

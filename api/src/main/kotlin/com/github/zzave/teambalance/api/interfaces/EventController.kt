@@ -101,6 +101,7 @@ class EventController(
                 attendanceSummary = attendance.summary().produce(attendance.attendingRoleBreakdown()),
                 attendances = attendance.entries.map { it.produce() },
                 myState = attendance.stateOf(viewerId).produce(),
+                myChangedBy = attendance.changedByOf(viewerId)?.produce(),
                 rosterOverride = event.rosterOverride?.produce(),
                 roster = event.rosterFill(attendance, positionService.listPositions()).produce(),
             )
@@ -218,6 +219,7 @@ internal fun com.github.zzave.teambalance.api.domain.model.Event.produce(
         recurringGroup = recurringGroup?.toString(),
         attendanceSummary = attendance.summary().produce(attendance.attendingRoleBreakdown()),
         myState = attendance.stateOf(viewerId).produce(),
+        myChangedBy = attendance.changedByOf(viewerId)?.produce(),
         rosterOverride = rosterOverride?.produce(),
         roster = rosterFill(attendance, positions).produce(),
     )

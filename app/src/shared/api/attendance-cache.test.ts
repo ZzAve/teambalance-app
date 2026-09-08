@@ -32,8 +32,9 @@ const makeEventDetail = (overrides: Partial<EventDetail> = {}): EventDetail => (
     roleBreakdown: [],
   },
   attendances: [],
-  // The viewer's own resolved response, mirroring the list payload.
+  // The viewer's own resolved response and its attribution, mirroring the list payload.
   myState: 'NOT_RESPONDED',
+  myChangedBy: undefined,
   // Undefined = this event inherits its type's roster default.
   rosterOverride: undefined,
   roster: NO_ROSTER,
@@ -179,5 +180,35 @@ describe('applyOptimisticAttendance', () => {
     const next = applyOptimisticAttendance(event, 'user-2', 'ATTENDING', 'user-1')
 
     expect(next?.attendances[0].changedBy).toBe('user-1')
+  })
+  // `myState`/`myChangedBy` are the caller's own answer projected to the top level (the shape the
+  // list payload carries), so they have to move with the row they project — the detail page reads
+  // the attribution from there, not from its own row.
+  it("moves the top-level projection with the caller's own answer", () => {
+    const event = makeEventDetail({
+      myState: 'ABSENT',
+      myChangedBy: 'user-tim',
+      attendances: [attendee({ userId: 'user-1', state: 'ABSENT', changedBy: 'user-tim' })],
+    })
+
+    const next = applyOptimisticAttendance(event, 'user-1', 'ATTENDING', 'user-1')
+
+    expect(next?.myState).toBe('ATTENDING')
+    expect(next?.myChangedBy).toBe('user-1')
+  })
+
+  // …and stays put when the write is about someone else: a teammate's answer says nothing about the
+  // caller's own, and claiming otherwise would put a false "set by" under their own control.
+  it("leaves the top-level projection alone when setting a teammate's answer", () => {
+    const event = makeEventDetail({
+      myState: 'ABSENT',
+      myChangedBy: 'user-tim',
+      attendances: [attendee({ userId: 'user-2', state: 'MAYBE' })],
+    })
+
+    const next = applyOptimisticAttendance(event, 'user-2', 'ATTENDING', 'user-1')
+
+    expect(next?.myState).toBe('ABSENT')
+    expect(next?.myChangedBy).toBe('user-tim')
   })
 })

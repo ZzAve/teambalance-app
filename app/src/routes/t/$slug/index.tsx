@@ -174,6 +174,7 @@ function EventListPage() {
                 events={listEvents}
                 onRespond={respond}
                 optimistic={optimistic}
+                currentUserId={currentUserId}
                 // A rendered hero IS loaded data — it was pulled out of this very list — so an empty
                 // list beneath it means "nothing else", never a failure. Withholding the flags keeps
                 // the list from painting a skeleton or an error over a page that is plainly fine.

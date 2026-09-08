@@ -98,3 +98,54 @@ export const DataDespiteBackgroundError: Story = {
     await expect(canvas.queryByText(/couldn't load events/i)).not.toBeInTheDocument()
   },
 }
+
+// ⑪ on the card. The list payload carries `myChangedBy` but no attendance rows, so the id cannot be
+// named yet — the fact still lands. Only the event a teammate touched is marked: the negative on the
+// self-set card is the design, not an oversight.
+export const AttributionOnTheCard: Story = {
+  args: {
+    currentUserId: 'u-me',
+    events: [
+      makeEvent({
+        id: 'evt-1',
+        title: 'League Match',
+        startTime: on(11),
+        myState: 'ABSENT',
+        myChangedBy: 'u-tim',
+      }),
+      makeEvent({
+        id: 'evt-2',
+        title: 'Training',
+        startTime: on(13),
+        myState: 'ATTENDING',
+        myChangedBy: 'u-me',
+      }),
+    ],
+  },
+  play: async ({ canvas }) => {
+    await expect(canvas.getAllByText('set by a teammate')).toHaveLength(1)
+    await expect(canvas.queryByText('set by u-me')).not.toBeInTheDocument()
+  },
+}
+
+// The pick in flight is the viewer's own, so the attribution it replaces is dropped the moment they
+// tap — not one round-trip later, when the refetched list finally agrees.
+export const AttributionClearsWhileSettling: Story = {
+  args: {
+    currentUserId: 'u-me',
+    optimistic: { eventId: 'evt-1', state: 'ATTENDING' },
+    events: [
+      makeEvent({
+        id: 'evt-1',
+        title: 'League Match',
+        startTime: on(11),
+        myState: 'ABSENT',
+        myChangedBy: 'u-tim',
+      }),
+    ],
+  },
+  play: async ({ canvas }) => {
+    await expect(canvas.getByText("You're in")).toBeInTheDocument()
+    await expect(canvas.queryByText(/^set by /)).not.toBeInTheDocument()
+  },
+}

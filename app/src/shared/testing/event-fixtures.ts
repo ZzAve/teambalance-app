@@ -120,6 +120,8 @@ export function makeEvent(overrides: Partial<Event> = {}): Event {
     },
     // The viewer's own response. Defaults to a blank, which is the state Bulk Attend acts on.
     myState: 'NOT_RESPONDED',
+    // Who last set that response. Undefined = nobody has, which is what a blank answer implies.
+    myChangedBy: undefined,
     // Undefined means this event inherits its type's roster default, which is the common case.
     rosterOverride: undefined,
     // The server-computed roster. Off by default so a fixture that is not about the roster renders

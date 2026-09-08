@@ -68,7 +68,7 @@ type AttendanceSummary {
     roleBreakdown: RoleCount[]
 }
 
-// `myState` is the authenticated caller's own resolved attendance. The listing already resolves every member's state for the summary, so it costs no extra query; without it the list carries only aggregate counts and the client cannot tell which events it is Not Responded on (what Bulk Attend selects over, ADR-0020). EventDetail carries it too, so an EventDetail stays an Event plus attendances - code that falls back from detail to list row depends on that.
+// `myState` is the authenticated caller's own resolved attendance; `myChangedBy` is its attribution - the user id of whoever last set it, the top-level counterpart of `AttendanceEntry.changedBy` and equally raw (no rule applied, so an answer the caller set themselves reads as their own id). Both ride along because the listing already resolves every member's state for the summary, so they cost no extra query, and it carries no attendance rows for a client to derive them from. Without `myState` the list carries only aggregate counts and cannot tell which events it is Not Responded on (what Bulk Attend selects over, ADR-0020); without `myChangedBy` a card cannot tell that a teammate set the answer it is showing (#271). EventDetail carries both too, so an EventDetail stays an Event plus attendances - code that falls back from detail to list row depends on that.
 type Event {
     id: String,
     eventType: EventTypeSummary,
@@ -81,6 +81,7 @@ type Event {
     recurringGroup: String?,
     attendanceSummary: AttendanceSummary,
     myState: AttendanceState,
+    myChangedBy: String?,
     rosterOverride: RosterRequirement?,
     roster: EventRoster
 }
@@ -98,6 +99,7 @@ type EventDetail {
     attendanceSummary: AttendanceSummary,
     attendances: AttendanceEntry[],
     myState: AttendanceState,
+    myChangedBy: String?,
     rosterOverride: RosterRequirement?,
     roster: EventRoster
 }

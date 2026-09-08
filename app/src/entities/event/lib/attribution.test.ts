@@ -31,4 +31,15 @@ describe('attributionName', () => {
   it('falls back to a neutral label when the setter is no longer in the list', () => {
     expect(attributionName(attendee({ changedBy: 'user-gone' }), [tim])).toBe('a teammate')
   })
+  // ⑪ excludes the blank: a teammate clearing your answer is not an answer they gave you, and the
+  // marker dot keys off this same null, so a dot there would mark every unanswered event.
+  it('is null for NOT_RESPONDED even when the row carries a setter', () => {
+    expect(attributionName(attendee({ state: 'NOT_RESPONDED', changedBy: 'user-tim' }), [tim])).toBeNull()
+  })
+
+  // What the events card gets today: `myChangedBy` with no rows to resolve it against. The fact
+  // survives ("not yours"), the name does not — until the list payload carries attendances.
+  it('reads as a teammate when there are no rows to resolve the setter from', () => {
+    expect(attributionName(attendee({ changedBy: 'user-tim' }), [])).toBe('a teammate')
+  })
 })

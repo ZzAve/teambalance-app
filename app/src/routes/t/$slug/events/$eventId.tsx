@@ -72,7 +72,14 @@ function EventDetailPage() {
   const myAttendance = event.attendances.find((a) => a.userId === currentUserId)
   const myState: AttendanceState = (myAttendance?.state as AttendanceState) ?? 'NOT_RESPONDED'
 
-  const myAttribution = myAttendance ? attributionName(myAttendance, event.attendances) : null
+  // The same field the card reads (⑪), not this page's own row — one answer to "who set mine?".
+  // Here the rows are present, so the id resolves to a name instead of the neutral fallback.
+  const myAttribution = currentUserId
+    ? attributionName(
+        { userId: currentUserId, state: myState, changedBy: event.myChangedBy },
+        event.attendances,
+      )
+    : null
 
   // Setting an answer. For a teammate (trust-based, ADR-0003) it raises an Undo toast — the awareness
   // and the safety net for a cross-member change; your own answer just writes.

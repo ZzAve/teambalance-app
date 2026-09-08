@@ -15,6 +15,11 @@ interface EventAnswerRowProps {
   myState: AttendanceState
   /** An attendance write is in flight; the control is held and the badge shows a pending state. */
   pending?: boolean
+  /**
+   * Who set this answer, when that was not the viewer — already resolved by the container, since
+   * the name lives in data the card does not carry. Drives both the marker dot and the line (⑪).
+   */
+  setBy?: string | null
   onRespond: (state: AttendanceState) => void
   /** Start the attendance panel expanded. Collapsed by default so a list of events stays a list. */
   defaultAttnOpen?: boolean
@@ -60,11 +65,19 @@ const TRIGGER =
  * tracking off shows a plain `8 going` headcount with nothing to expand (⑥). Prop-only apart from the
  * two open states, which is exactly the local view state a story can drive; the mutation and the
  * optimistic hold live in the container.
+ *
+ * An answer a teammate set carries a marker dot on the trigger and a `set by …` line under the row
+ * (⑪) — a list is scanned, so the dot is what carries at a glance and the line says who. The dot
+ * never collides with the unanswered pill's own marker: that one is the `prompt` tone, which is
+ * NOT_RESPONDED, and an answer nobody gave cannot have been given by someone else. Both clear the
+ * moment you answer for yourself, which is the whole acknowledgement mechanism — there is no
+ * separate read state.
  */
 export function EventAnswerRow({
   roster,
   myState,
   pending = false,
+  setBy = null,
   onRespond,
   defaultAttnOpen = false,
   defaultRosterOpen = false,
@@ -93,6 +106,9 @@ export function EventAnswerRow({
           onClick={() => setAttnOpen((o) => !o)}
           className={`${TRIGGER} pl-1 pr-1.5`}
         >
+          {/* The marker: ink, not an attendance colour — green/gold/red all mean an answer, and this
+              means "not yours". The `set by …` line below carries the same fact in words. */}
+          {setBy && <span aria-hidden className="size-1.5 shrink-0 rounded-full bg-foreground" />}
           <span className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs ${pillClass}`}>
             {answer.tone === 'prompt' ? (
               // A marker dot rather than a status icon: the prompt is a call to act, not an answer.
@@ -134,6 +150,10 @@ export function EventAnswerRow({
           </span>
         )}
       </div>
+
+      {/* Left-aligned under the answer it explains, and above both panels so opening one never
+          pushes it out from under the pill. */}
+      {setBy && <p className="mt-1.5 text-[11px] text-muted-foreground">set by {setBy}</p>}
 
       {/* Attendance panel — always FIRST in the DOM, so it sits above the roster panel when both are
           open (①). Picking an option collapses it (④). */}

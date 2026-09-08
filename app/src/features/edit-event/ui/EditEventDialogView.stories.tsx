@@ -28,6 +28,7 @@ const EVENT: EventDetail = {
   attendanceSummary: { attending: 0, maybe: 0, absent: 0, notResponded: 0, roleBreakdown: [] },
   attendances: [],
   myState: 'NOT_RESPONDED',
+  myChangedBy: undefined,
   rosterOverride: undefined,
   roster: NO_ROSTER,
 }

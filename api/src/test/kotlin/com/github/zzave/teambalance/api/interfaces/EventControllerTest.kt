@@ -4,6 +4,7 @@ import com.github.zzave.teambalance.api.TeamBalanceIT
 import com.github.zzave.teambalance.api.domain.port.AttendanceRepository
 import com.github.zzave.teambalance.api.infrastructure.multitenancy.TenantSchemaAdapter
 import io.kotest.matchers.shouldBe
+import org.hamcrest.Matchers
 import org.mockito.ArgumentMatchers
 import org.mockito.Mockito
 import org.springframework.beans.factory.annotation.Autowired
@@ -154,6 +155,85 @@ class EventControllerTest : TeamBalanceIT() {
                     MockMvcResultMatchers.jsonPath("$.events[?(@.id=='$eventId')].attendanceSummary.roleBreakdown[0].attending")
                         .value(1)
                 )
+        }
+
+        // myChangedBy is the caller's OWN attribution, so it must be resolved against the caller —
+        // not the event's creator, and not the first row in the list. Both payloads carry it, so
+        // both are asserted here: a card reads it from the list, the detail page from the detail.
+        test("GET /api/events{,/id} reports who last set the CALLER's own attendance") {
+            tenantSchemaAdapter.provisionPlatformSchema()
+            tenantSchemaAdapter.provisionTenantSchema("public")
+
+            jdbcTemplate.execute(
+                """
+                INSERT INTO public.teams (id, name, slug, schema_name)
+                VALUES ('$TEAM_ID'::uuid, 'Test Team', 'test-team', 'public')
+                ON CONFLICT DO NOTHING
+            """
+            )
+            jdbcTemplate.execute(
+                """
+                INSERT INTO public.users (id, email, display_name)
+                VALUES ('$JAN_USER_ID'::uuid, 'jan@test.com', 'Jan de Vries'),
+                       ('$LISA_USER_ID'::uuid, 'lisa@test.com', 'Lisa Bakker')
+                ON CONFLICT DO NOTHING
+            """
+            )
+            jdbcTemplate.execute(
+                "SELECT public.tb_add_member('$TEAM_ID'::uuid, '$JAN_USER_ID'::uuid, 'USER', 'Setter')"
+            )
+            jdbcTemplate.execute(
+                "SELECT public.tb_add_member('$TEAM_ID'::uuid, '$LISA_USER_ID'::uuid, 'USER', 'Libero')"
+            )
+
+            val eventId = UUID.randomUUID()
+            jdbcTemplate.execute(
+                """
+                INSERT INTO public.events (uuid, event_type_id, title, start_time, end_time, created_by, created_at, updated_at)
+                VALUES ('$eventId'::uuid,
+                    (SELECT id FROM public.event_types WHERE name = 'Training'),
+                    'Attribution Test', '2050-07-01 20:00:00+00', '2050-07-01 22:00:00+00',
+                    '$JAN_USER_ID'::uuid, now(), now())
+            """
+            )
+            // Lisa sets Jan's answer for him — trust-based editing, ADR-0003. Lisa answers nobody's.
+            insertAttendance(eventId, JAN_USER_ID, changedBy = LISA_USER_ID)
+
+            val detail = mockMvc.perform(
+                MockMvcRequestBuilders.get("/api/events/$eventId")
+                    .header("X-Team-Id", "public")
+                    .header("X-User-Id", JAN_USER_ID),
+            ).andExpect(MockMvcResultMatchers.request().asyncStarted()).andReturn()
+
+            mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(detail))
+                .andExpect(MockMvcResultMatchers.status().isOk)
+                .andExpect(MockMvcResultMatchers.jsonPath("$.myChangedBy").value(LISA_USER_ID))
+
+            val list = mockMvc.perform(
+                MockMvcRequestBuilders.get("/api/events?include-past=true")
+                    .header("X-Team-Id", "public")
+                    .header("X-User-Id", JAN_USER_ID),
+            ).andExpect(MockMvcResultMatchers.request().asyncStarted()).andReturn()
+
+            mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(list))
+                .andExpect(MockMvcResultMatchers.status().isOk)
+                .andExpect(
+                    MockMvcResultMatchers.jsonPath("$.events[?(@.id=='$eventId')].myChangedBy")
+                        .value(LISA_USER_ID)
+                )
+
+            // Lisa, who has no row of her own on this event, carries no attribution — the field is
+            // the caller's, so the row she authored for Jan must not leak into her own payload.
+            val lisaDetail = mockMvc.perform(
+                MockMvcRequestBuilders.get("/api/events/$eventId")
+                    .header("X-Team-Id", "public")
+                    .header("X-User-Id", LISA_USER_ID),
+            ).andExpect(MockMvcResultMatchers.request().asyncStarted()).andReturn()
+
+            mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(lisaDetail))
+                .andExpect(MockMvcResultMatchers.status().isOk)
+                .andExpect(MockMvcResultMatchers.jsonPath("$.myState").value("NOT_RESPONDED"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.myChangedBy").value(Matchers.nullValue()))
         }
 
         test("GET /api/events/{id} attendanceSummary.roleBreakdown contains only ATTENDING members") {
@@ -914,13 +994,18 @@ class EventControllerTest : TeamBalanceIT() {
         }
     }
 
-    private fun insertAttendance(eventId: UUID, userId: String, state: String = "ATTENDING") {
+    private fun insertAttendance(
+        eventId: UUID,
+        userId: String,
+        state: String = "ATTENDING",
+        changedBy: String = userId,
+    ) {
         jdbcTemplate.execute(
             """
             INSERT INTO public.attendances (uuid, event_id, user_id, state, updated_at, changed_by)
             VALUES (gen_random_uuid(),
                 (SELECT id FROM public.events WHERE uuid = '$eventId'::uuid),
-                '$userId'::uuid, '$state', now(), '$userId'::uuid)
+                '$userId'::uuid, '$state', now(), '$changedBy'::uuid)
         """
         )
     }

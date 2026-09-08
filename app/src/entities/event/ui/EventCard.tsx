@@ -18,6 +18,8 @@ interface EventCardProps {
   myState: AttendanceState
   /** An attendance write is in flight for this event. */
   pending?: boolean
+  /** Who set the viewer's answer, when it was not the viewer — resolved by the container (⑪). */
+  setBy?: string | null
   onRespond: (state: AttendanceState) => void
   index?: number
   /** Injected so the relative label is deterministic in stories; defaults to the real clock. */
@@ -37,7 +39,15 @@ interface EventCardProps {
  * owned by the page container (the events route). That seam is covered by the existing attendance
  * e2e; every rendered state here is a story.
  */
-export function EventCard({ event, myState, pending, onRespond, index = 0, now = new Date() }: EventCardProps) {
+export function EventCard({
+  event,
+  myState,
+  pending,
+  setBy,
+  onRespond,
+  index = 0,
+  now = new Date(),
+}: EventCardProps) {
   const routes = useTeamRoutes()
   const date = new Date(event.startTime)
   const label = relativeEventLabel(event.startTime, now)
@@ -101,7 +111,13 @@ export function EventCard({ event, myState, pending, onRespond, index = 0, now =
 
       {/* Answer row. Sibling of the chit+body row, so its rule spans the full card width. */}
       <div className="mt-3 border-t border-border/40 pt-3">
-        <EventAnswerRow roster={event.roster} myState={myState} pending={pending} onRespond={onRespond} />
+        <EventAnswerRow
+          roster={event.roster}
+          myState={myState}
+          pending={pending}
+          setBy={setBy}
+          onRespond={onRespond}
+        />
       </div>
     </Card>
   )

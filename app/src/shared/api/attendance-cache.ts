@@ -31,6 +31,10 @@ const SUMMARY_FIELD: Record<AttendanceState, keyof Omit<AttendanceSummary, 'role
  * `set by Tim` (⑪) sitting under the very control you just used. Unlike the roster below, this
  * needs no derivation: the acting user *is* the new `changedBy`.
  *
+ * `myState`/`myChangedBy` are the caller's own answer projected to the top level, so they move with
+ * it — but only when the caller is writing their *own* row. Setting a teammate's answer says nothing
+ * about yours, and patching them there would tell the detail page a teammate's write was your own.
+ *
  * **`roster` is deliberately left alone** (#219). Its counts could be moved the same way the summary
  * counters are, but `openSlots` and `state` could not: deriving those means re-implementing the
  * layered, position-priority status the backend owns as its single tested authority, and a second
@@ -65,9 +69,13 @@ export function applyOptimisticAttendance(
     summary[to] = summary[to] + 1
   }
 
+  const isSelf = userId === actorId
+
   return {
     ...event,
     attendanceSummary: summary,
+    myState: isSelf ? state : event.myState,
+    myChangedBy: isSelf ? (actorId ?? undefined) : event.myChangedBy,
     attendances: event.attendances.map((a) =>
       a.userId === userId ? { ...a, state, changedBy: actorId ?? undefined } : a,
     ),

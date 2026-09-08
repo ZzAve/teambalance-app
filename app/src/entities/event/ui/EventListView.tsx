@@ -1,5 +1,6 @@
 import type { Event } from '@shared/api/events'
 import { Skeleton } from '@shared/ui/skeleton'
+import { attributionName } from '../lib/attribution'
 import { EventCard } from './EventCard'
 
 type AttendanceState = Event['myState']
@@ -16,6 +17,8 @@ interface EventListViewProps {
   onRespond?: (eventId: string, state: AttendanceState) => void
   /** The event whose write is in flight, with the optimistic answer to show on its card meanwhile. */
   optimistic?: { eventId: string; state: AttendanceState } | null
+  /** The viewer, so a card can tell an answer it set itself from one a teammate set for it (⑪). */
+  currentUserId?: string | null
   /**
    * Resets every filter. Passed only while one is active, and offered only on the empty state: the
    * chip groups live behind a popover, so a member can strand themselves on an empty list without
@@ -41,6 +44,7 @@ export function EventListView({
   now,
   onRespond,
   optimistic,
+  currentUserId,
   onClearFilters,
 }: EventListViewProps) {
   // Data wins: keep showing cached events even when a background refetch is loading or has errored,
@@ -70,6 +74,16 @@ export function EventListView({
         // differs the write is still settling, so show the pick and keep the badge pending (⑤); once
         // the list catches up the row is real again. A failed write is dropped by the container.
         const settling = optimistic?.eventId === event.id && optimistic.state !== event.myState
+        // No rows on the list payload to resolve `myChangedBy` against yet, so this reads
+        // "set by a teammate" until there are — see attributionName. Suppressed while settling: the
+        // pick in flight is the viewer's own, so the answer it replaces is no longer attributed.
+        const setBy =
+          settling || !currentUserId
+            ? null
+            : attributionName(
+                { userId: currentUserId, state: event.myState, changedBy: event.myChangedBy },
+                [],
+              )
         return (
           <EventCard
             key={event.id}
@@ -78,6 +92,7 @@ export function EventListView({
             now={now}
             myState={settling ? optimistic.state : event.myState}
             pending={settling}
+            setBy={setBy}
             onRespond={(state) => onRespond?.(event.id, state)}
           />
         )

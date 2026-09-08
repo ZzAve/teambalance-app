@@ -48,6 +48,19 @@ class EventAttendance private constructor(
         entries.firstOrNull { it.member.userId == userId }?.state ?: AttendanceState.NOT_RESPONDED
 
     /**
+     * Who last set one member's own response — null when they have no row, and equally when they
+     * are not on the roster at all (same blank as [stateOf], for the same reason). Raw: a member who
+     * set their own answer reads as their own id, so the "only when it wasn't you" rule stays with
+     * the caller that renders it rather than being decided twice.
+     *
+     * The attribution counterpart of [stateOf]: a listing carries no attendance rows for a client
+     * to look this up in, so the projection answers it here instead of the caller re-deriving it
+     * from [entries].
+     */
+    fun changedByOf(userId: UserId): UserId? =
+        entries.firstOrNull { it.member.userId == userId }?.changedBy
+
+    /**
      * Attending members grouped by position (unpositioned in the [UNASSIGNED] bucket), ordered by
      * count descending then position label ascending.
      */

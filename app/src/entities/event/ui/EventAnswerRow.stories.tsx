@@ -86,6 +86,33 @@ export const BothOpenAttendanceOnTop: Story = {
   },
 }
 
+// ── Attribution (⑪) — an answer someone else gave on your behalf ─────────────────────────────────
+
+export const SetByTeammate: Story = {
+  args: { myState: 'ABSENT', setBy: 'Tim de Vries' },
+  play: async ({ canvas }) => {
+    await expect(canvas.getByText('set by Tim de Vries')).toBeInTheDocument()
+    // Still your answer, still yours to change — the attribution explains it, it does not replace it.
+    await expect(canvas.getByText("You're out")).toBeInTheDocument()
+  },
+}
+
+// What the events list shows until its payload carries attendance rows: the fact without the name.
+export const SetByUnnamedTeammate: Story = {
+  args: { myState: 'ATTENDING', setBy: 'a teammate' },
+  play: async ({ canvas }) => {
+    await expect(canvas.getByText('set by a teammate')).toBeInTheDocument()
+  },
+}
+
+// The negative is the design: an answer you gave yourself says nothing at all.
+export const SelfSetSaysNothing: Story = {
+  args: { myState: 'ATTENDING' },
+  play: async ({ canvas }) => {
+    await expect(canvas.queryByText(/^set by /)).not.toBeInTheDocument()
+  },
+}
+
 // ── Wiring — prove the answer callback, not just the render ──────────────────────────────────────
 
 export const AnswerIsReported: Story = {

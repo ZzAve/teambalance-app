@@ -10,13 +10,9 @@ import { selectHeroEvent } from '@entities/event/lib/next-event'
 import { NextEventHero } from '@widgets/next-event-hero/ui/NextEventHero'
 import { CreateEventSheet } from '@widgets/create-event/ui/CreateEventSheet'
 import { EventFiltersView } from '@features/filter-event-types/ui/EventFiltersView'
-import { toggleTypeSelection } from '@features/filter-event-types/model/toggleTypeSelection'
-import { ALL_ATTENDANCE_STATES } from '@features/filter-event-types/model/attendance-states'
-import {
-    ALL_TURNOUT_BUCKETS,
-    spansMultipleTurnoutBuckets,
-    type TurnoutBucket,
-} from '@features/filter-event-types/model/turnout'
+import { useEventFiltersStore } from '@features/filter-event-types/model/event-filters-store'
+import { reconcileTypeIds } from '@features/filter-event-types/model/filter-preferences'
+import { spansMultipleTurnoutBuckets } from '@features/filter-event-types/model/turnout'
 import { filterEvents } from '@features/filter-event-types/model/filter-events'
 import { emptyEventsMessage } from '@features/filter-event-types/model/empty-message'
 import { BulkAttendBar } from '@features/bulk-attend/ui/BulkAttendBar'
@@ -36,27 +32,24 @@ export const Route = createFileRoute('/t/$slug/')({
  * (ADR-0029 §6).
  */
 function EventListPage() {
-    const [showPast, setShowPast] = useState(false)
-    const [activeTypeIds, setActiveTypeIds] = useState<Set<string>>(new Set())
-    // Every answer on by default — the four states partition the list, so this is the unfiltered
-    // view and nothing is pre-applied (ADR-0029 §1, §8). No bootstrap effect: unlike event types,
-    // the states are known without a request.
-    const [activeStates, setActiveStates] = useState<Set<Event['myState']>>(
-        new Set(ALL_ATTENDANCE_STATES))
-    // Same for the Turnout bands: all four on is the unfiltered view, and it stays that way for a
-    // team whose list spans one band — the group is not rendered for them, so nothing can narrow it.
-    const [activeTurnouts, setActiveTurnouts] = useState<Set<TurnoutBucket>>(
-        new Set(ALL_TURNOUT_BUCKETS))
+    const {slug} = Route.useParams()
+    // All four filter dimensions live in the store, restored from this team's local preferences
+    // (ADR-0030 §1, reversing ADR-0029 §8): members reach the detail page by mis-tapping a card, and
+    // losing the filter as the penalty for that is worse than the misreporting §8 guarded against.
+    const {
+        showPast, hiddenTypeIds, activeStates, activeTurnouts,
+        openTeam, setShowPast, toggleType, toggleState, toggleTurnout, clearFilters,
+    } = useEventFiltersStore()
     const {data: events, isLoading, error} = useEvents(showPast)
     const {data: eventTypes} = useEventTypes()
     const isAdmin = useUserStore((s) => s.role) === 'ADMIN'
 
+    // Per team, so a member of two teams does not carry one team's type filter into the other. The
+    // restore lands after the first render, so a persisted `showPast` costs one extra events
+    // request on entry — the alternative is holding the whole page back on local storage.
     useEffect(() => {
-        if (eventTypes && activeTypeIds.size === 0) {
-            setTimeout(() => setActiveTypeIds(new Set(eventTypes.map(t => t.id))))
-        }
-        /* eslint-disable-next-line react-hooks/exhaustive-deps */
-    }, [eventTypes])
+        openTeam(slug)
+    }, [slug, openTeam])
 
     // One ticking clock for the whole page, so the hero's countdown, the hero cut-off and every
     // card's relative label are read off the same instant and can never disagree with each other —
@@ -80,6 +73,16 @@ function EventListPage() {
         setAttendance({eventId, userId: currentUserId, state}, {onError: () => setOptimistic(null)})
     }
 
+    const allTypeIds = useMemo(() => (eventTypes ?? []).map(t => t.id), [eventTypes])
+    // The types to show, derived rather than stored: what the member switched off is what persists,
+    // so a type deleted since the last visit is inert and a type added since defaults to on
+    // (ADR-0030, #325). That is also why there is no bootstrap effect any more — before the types
+    // load there is simply nothing to derive, and filtering is withheld until then.
+    const activeTypeIds = useMemo(
+        () => reconcileTypeIds(hiddenTypeIds, allTypeIds),
+        [hiddenTypeIds, allTypeIds],
+    )
+
     const filteredEvents = useMemo(() => {
         if (!events || !eventTypes) return events ?? []
         return filterEvents(events, activeTypeIds, activeStates, activeTurnouts)
@@ -95,23 +98,9 @@ function EventListPage() {
     const heroEvent = selectHeroEvent(sortedEvents, now)
     const listEvents = heroEvent ? sortedEvents.filter(e => e.id !== heroEvent.id) : sortedEvents
 
-    const allTypeIds = useMemo(() => (eventTypes ?? []).map(t => t.id), [eventTypes])
-    const hasActiveFilter =
-        showPast ||
-        activeTypeIds.size < allTypeIds.length ||
-        activeStates.size < ALL_ATTENDANCE_STATES.length ||
-        activeTurnouts.size < ALL_TURNOUT_BUCKETS.length
-
     // Read off the *unfiltered* list (ADR-0029 §5): narrowing another dimension must not make the
     // group vanish underneath a Turnout selection that is still in effect.
     const showTurnout = useMemo(() => spansMultipleTurnoutBuckets(events ?? []), [events])
-
-    const clearFilters = () => {
-        setActiveTypeIds(new Set(allTypeIds))
-        setActiveStates(new Set(ALL_ATTENDANCE_STATES))
-        setActiveTurnouts(new Set(ALL_TURNOUT_BUCKETS))
-        setShowPast(false)
-    }
 
     // Bulk Attend acts on exactly what the page shows (ADR-0020, ADR-0029 §6), so it reads
     // `sortedEvents` — already narrowed by *both* chip groups, the hero included since pulling it
@@ -144,20 +133,15 @@ function EventListPage() {
                         showTurnout={showTurnout}
                         showPast={showPast}
                         resultCount={sortedEvents.length}
-                        onToggleType={(typeId) =>
-                            setActiveTypeIds(prev => toggleTypeSelection(prev, allTypeIds, typeId))
-                        }
-                        // The same isolate-first toggler as the type chips (ADR-0029 §3), so one tap
-                        // from the all-on default isolates "Not responded" instead of removing it.
-                        onToggleState={(state) =>
-                            setActiveStates(prev =>
-                                toggleTypeSelection(prev, ALL_ATTENDANCE_STATES, state))
-                        }
-                        onToggleTurnout={(bucket) =>
-                            setActiveTurnouts(prev =>
-                                toggleTypeSelection(prev, ALL_TURNOUT_BUCKETS, bucket))
-                        }
+                        onToggleType={(typeId) => toggleType(typeId, allTypeIds)}
+                        // Every group runs through the same isolate-first toggler in the store
+                        // (ADR-0029 §3): one tap from the all-on default isolates the chip.
+                        onToggleState={toggleState}
+                        onToggleTurnout={toggleTurnout}
                         onToggleShowPast={setShowPast}
+                        // A restored filter must never be invisible (ADR-0030 §2): the dot on the
+                        // trigger says *that* something is filtered, this says undo it.
+                        onClearFilters={clearFilters}
                     />
                 </div>
             </div>
@@ -188,7 +172,6 @@ function EventListPage() {
                     activeStates,
                     activeTurnouts,
                 })}
-                onClearFilters={hasActiveFilter ? clearFilters : undefined}
             />
         </div>
     )

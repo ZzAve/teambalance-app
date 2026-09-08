@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
-import { expect, fn } from 'storybook/test'
+import { expect } from 'storybook/test'
 import { withRouter } from '@shared/testing/router-decorator'
 import { makeEvent } from '@shared/testing/event-fixtures'
 import { EventListView } from './EventListView'
@@ -49,21 +49,6 @@ export const EmptyWhenFiltered: Story = {
   args: { events: [], emptyMessage: 'No events for this type.' },
   play: async ({ canvas }) => {
     await expect(canvas.getByText('No events for this type.')).toBeInTheDocument()
-  },
-}
-
-// Stranded on an empty list by filters hidden behind a popover — the way out has to be on the empty
-// state itself (ADR-0029). The reset lives in the route; this view only reports the tap.
-export const EmptyWithClearFilters: Story = {
-  args: {
-    events: [],
-    emptyMessage: 'Nothing needs your answer.',
-    onClearFilters: fn(),
-  },
-  play: async ({ canvas, userEvent, args }) => {
-    await expect(canvas.getByText('Nothing needs your answer.')).toBeInTheDocument()
-    await userEvent.click(canvas.getByRole('button', { name: 'Clear filters' }))
-    await expect(args.onClearFilters).toHaveBeenCalled()
   },
 }
 

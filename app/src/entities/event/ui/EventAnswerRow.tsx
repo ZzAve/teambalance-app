@@ -41,9 +41,10 @@ const OPTIONS: { value: AttendanceState; label: string; active: string; inactive
 ]
 
 // Shared trigger chrome: lifted above the card link's stretched overlay (relative z-10) so a tap opens
-// its panel instead of navigating, with a comfortable hit area and a visible focus ring.
+// its panel instead of navigating, and `min-h-11` gives it a real 44px thumb target (#324) — the
+// height sits on the button, so the pill inside keeps its size and the padding above it is tappable.
 const TRIGGER =
-  'relative z-10 flex shrink-0 items-center gap-1.5 rounded-full py-1 ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2'
+  'relative z-10 flex min-h-11 shrink-0 items-center gap-1.5 rounded-full ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2'
 
 /**
  * The card's bottom row: two independent disclosures, not one (#273). The left trigger is the viewer's
@@ -129,7 +130,11 @@ export function EventAnswerRow({
             <span className="sr-only">{rosterOpen ? 'Hide lineup' : 'Show lineup'}</span>
           </button>
         ) : (
-          <span className="relative z-10 ml-auto flex shrink-0 items-center">
+          // Not a target at all, so the same screen position navigates here while every other card
+          // expands (#324 cause 3). Left as-is deliberately: a social has nothing to expand *to*
+          // until the member-list panel lands — see #326. `min-h-11` only keeps the row the same
+          // height as a card whose verdict is a trigger.
+          <span className="relative z-10 ml-auto flex min-h-11 shrink-0 items-center">
             <ReadinessBadge roster={roster} pending={pending} />
           </span>
         )}

@@ -44,8 +44,8 @@ export function EventCard({ event, myState, pending, onRespond, index = 0, now =
 
   return (
     // Stretched-link pattern: the card itself is not an anchor. The title <Link> carries an
-    // after:inset-0 overlay that makes the whole card clickable, so the maps link can be a sibling
-    // anchor rather than a nested one (an <a> inside the card's <a> is invalid HTML).
+    // after:inset-0 overlay that makes the whole card clickable, so the reference chips can be
+    // sibling anchors rather than nested ones (an <a> inside the card's <a> is invalid HTML).
     <Card
       style={{ animationDelay: `${index * 60}ms` }}
       className="card-enter card-shadow relative p-3.5 transition-[box-shadow] hover:card-shadow-hover"
@@ -77,15 +77,7 @@ export function EventCard({ event, myState, pending, onRespond, index = 0, now =
               <>
                 <span className="text-muted-foreground/40">·</span>
                 <MapPin size={13} className="shrink-0 text-muted-foreground/60" />
-                {/* relative z-10 lifts this above the card link's stretched overlay so it stays clickable */}
-                <a
-                  href={`https://maps.google.com/?q=${encodeURIComponent(event.location)}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="relative z-10 hover:text-blue hover:underline"
-                >
-                  {event.location}
-                </a>
+                <span>{event.location}</span>
               </>
             )}
           </div>
@@ -99,8 +91,11 @@ export function EventCard({ event, myState, pending, onRespond, index = 0, now =
         </div>
       </div>
 
-      {/* Answer row. Sibling of the chit+body row, so its rule spans the full card width. */}
-      <div className="mt-3 border-t border-border/40 pt-3">
+      {/* Answer row. Sibling of the chit+body row, so its rule spans the full card width, and
+          `relative z-10` so the whole strip — spacing included — sits above the stretched-link
+          overlay: a thumb aiming slightly high at a disclosure must not navigate instead (#324).
+          Most of the old `pt-3` moved into the triggers themselves, where it is tappable. */}
+      <div className="relative z-10 mt-3 border-t border-border/40 pt-1">
         <EventAnswerRow roster={event.roster} myState={myState} pending={pending} onRespond={onRespond} />
       </div>
     </Card>

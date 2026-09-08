@@ -32,12 +32,19 @@ export function rosterChip(roster: EventRoster): RosterChip | null {
       return null
     case 'LINEUP_SET':
       return { text: 'Lineup set', tone: 'covered' }
-    // Same words either way — the count is the news. The tone is what says whether somebody is
-    // merely short or missing entirely, which is the difference between "chase later" and "chase now".
     case 'SPOTS_OPEN':
       return { text: `${roster.openSlots} ${plural(roster.openSlots, 'spot', 'spots')} open`, tone: 'short' }
-    case 'CRITICAL':
-      return { text: `${roster.openSlots} ${plural(roster.openSlots, 'spot', 'spots')} open`, tone: 'critical' }
+    // Different words, not merely a different tone (#313). Both states used to read "3 spots open"
+    // and only gold-vs-red told them apart, which is unavailable to anyone who cannot distinguish
+    // the two and absent from the accessible name — WCAG 1.4.1. The open-slot count is also the
+    // wrong news here: what makes this "chase now" is a position sitting at nobody, not how far the
+    // rest of the lineup is off. The wording is the Turnout filter's own band (#311) rather than a
+    // third phrasing for the same distinction; the panel's `chaseNudge` names the positions, which
+    // is where there is room for them.
+    case 'CRITICAL': {
+      const empty = emptyPositions(roster).length
+      return { text: empty > 1 ? `Missing ${empty} positions` : 'Missing a position', tone: 'critical' }
+    }
     case 'HEADCOUNT_FULL':
       return { text: 'Full', tone: 'covered' }
     case 'HEADCOUNT_SHORT':
@@ -128,12 +135,21 @@ export interface ChaseNudge {
  * that singled out one position and implied every other was covered.
  */
 export function chaseNudge(roster: EventRoster): ChaseNudge | null {
-  const empty = rosterRows(roster).filter((row) => row.pips.length > 0 && row.pips.every((p) => p === 'missing'))
+  const empty = emptyPositions(roster)
 
   if (empty.length === 0) return null
   if (empty.length === 1) return { lead: empty[0].label, rest: 'still has no one — the one to chase.' }
   if (empty.length === 2) return { lead: `${empty[0].label} and ${empty[1].label}`, rest: 'still have no one.' }
   return { lead: `${empty.length} positions`, rest: 'still have no one.' }
+}
+
+/**
+ * The targeted positions with nobody at all — the fact that separates a critical roster from one
+ * that is merely short. Shared by the chip and the nudge so the two can never disagree about which
+ * positions are empty.
+ */
+function emptyPositions(roster: EventRoster): RosterRow[] {
+  return rosterRows(roster).filter((row) => row.pips.length > 0 && row.pips.every((p) => p === 'missing'))
 }
 
 /**

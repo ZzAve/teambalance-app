@@ -43,7 +43,7 @@ export const Critical: Story = {
     }),
   },
   play: async ({ canvas }) => {
-    await expect(canvas.getByText(/2 spots open/)).toBeInTheDocument()
+    await expect(canvas.getByText(/Missing a position/)).toBeInTheDocument()
     await expect(canvas.getByText(/Middle 0\/2/)).toBeInTheDocument()
   },
 }

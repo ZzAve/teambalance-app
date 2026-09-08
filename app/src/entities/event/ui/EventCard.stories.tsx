@@ -171,13 +171,91 @@ export const WithReferences: Story = {
 export const WithLocation: Story = {
   args: { event: makeEvent({ startTime: on(13), location: 'Sporthal De Boog' }) },
   play: async ({ canvas, canvasElement }) => {
-    // The location renders as a real maps link that opens in a new tab...
-    const maps = canvas.getByRole('link', { name: 'Sporthal De Boog' })
-    await expect(maps).toHaveAttribute('href', expect.stringContaining('maps.google.com'))
-    await expect(maps).toHaveAttribute('target', '_blank')
-    // ...and it must NOT be nested inside the card's own <Link> anchor (invalid HTML — the
-    // "<a> cannot contain a nested <a>" warning). The card link and the maps link are siblings;
-    // the card stays clickable via a stretched-link overlay.
+    // The location is plain text on the card (ADR-0030 §9): a maps link is a destination competing
+    // with the card's own, right beside the disclosures. It lives on the detail page instead.
+    await expect(canvas.getByText('Sporthal De Boog')).toBeInTheDocument()
+    await expect(canvasElement.querySelectorAll('a[href*="maps.google.com"]')).toHaveLength(0)
+    // The reference chips are still sibling anchors of the card's own <Link>, never nested inside
+    // it (invalid HTML — the "<a> cannot contain a nested <a>" warning, #273); the card stays
+    // clickable via a stretched-link overlay.
     await expect(canvasElement.querySelectorAll('a a')).toHaveLength(0)
+  },
+}
+
+// ── Hit areas (#324) ─────────────────────────────────────────────────────────────────────────────
+
+/** What a tap at a viewport point actually lands on — the honest hit-area question. */
+const hitAt = (el: HTMLElement, x: number, y: number) => el.ownerDocument.elementFromPoint(x, y)
+
+// Cause 1: the spacing band between the card's rule and the answer pill fell through to the card's
+// stretched-link overlay, so a thumb aiming slightly high navigated instead of opening the answer
+// control. That band is the trigger's own padding now, so a tap in it opens the disclosure.
+export const AnswerTriggerBandIsTappable: Story = {
+  args: { event: makeEvent({ startTime: on(13), location: 'Sportcentrum Noord' }) },
+  play: async ({ canvas, canvasElement, userEvent, args }) => {
+    const trigger = canvas.getByRole('button', { name: /Change your answer/ })
+    const pill = canvas.getByText('Respond').getBoundingClientRect()
+
+    // 6px above the pill: inside the strip's top spacing, where a high thumb lands.
+    const hit = hitAt(canvasElement, pill.left + pill.width / 2, pill.top - 6)
+    await expect(trigger.contains(hit)).toBe(true)
+    // …and it is not the card's stretched link.
+    await expect(hit?.closest('a')).toBeNull()
+
+    await userEvent.click(hit as HTMLElement)
+    // The disclosure fired: the three-way answer control is open, and nothing was answered for us.
+    await expect(canvas.getByRole('button', { name: /^Going$/ })).toBeInTheDocument()
+    await expect(args.onRespond).not.toHaveBeenCalled()
+  },
+}
+
+// Same band on the right-hand verdict trigger.
+export const RosterTriggerBandIsTappable: Story = {
+  args: {
+    event: makeEvent({
+      startTime: on(13),
+      roster: makeRoster({
+        state: 'CRITICAL',
+        openSlots: 2,
+        totalAttending: 5,
+        positions: [{ id: 'pos-libero', label: 'Libero', required: 2, attending: 0 }],
+      }),
+    }),
+  },
+  play: async ({ canvas, canvasElement, userEvent }) => {
+    const trigger = canvas.getByRole('button', { name: /Show lineup/ })
+    const badge = canvas.getByText('Missing a position').getBoundingClientRect()
+
+    const hit = hitAt(canvasElement, badge.left + badge.width / 2, badge.top - 6)
+    await expect(trigger.contains(hit)).toBe(true)
+    await expect(hit?.closest('a')).toBeNull()
+
+    await userEvent.click(hit as HTMLElement)
+    await expect(canvas.getByText('Positions')).toBeInTheDocument()
+  },
+}
+
+// Cause 2: both triggers are a real thumb target (≥44 CSS px). The height sits on the button
+// (`min-h-11`), so the pills inside keep the size they had.
+export const TriggersAreThumbSized: Story = {
+  args: { event: makeEvent({ startTime: on(13), roster: makeRoster() }) },
+  play: async ({ canvas }) => {
+    for (const name of [/Change your answer/, /Show lineup/]) {
+      const box = canvas.getByRole('button', { name }).getBoundingClientRect()
+      await expect(box.height).toBeGreaterThanOrEqual(44)
+    }
+  },
+}
+
+// The stretched link is still the point of the card: everything outside the answer strip navigates.
+export const CardBodyStillNavigates: Story = {
+  args: { event: makeEvent({ startTime: on(13), title: 'Match vs Nova', location: 'Sportcentrum Noord' }) },
+  play: async ({ canvas, canvasElement }) => {
+    const link = canvas.getByRole('link', { name: 'Match vs Nova' })
+    const title = link.getBoundingClientRect()
+
+    // Blank card surface to the right of the title — covered by the link's stretched overlay.
+    const hit = hitAt(canvasElement, canvasElement.getBoundingClientRect().right - 6, title.top + title.height / 2)
+    await expect(hit).toBe(link)
   },
 }

@@ -142,6 +142,20 @@ function EventDetailPage() {
         </div>
       </div>
 
+      {/* Roster overview — pinned so completeness stays one glance away however far a big squad
+          scrolls. Sits high, right under the event identity, so on a tall desktop screen it is
+          visible and pinning from the start rather than buried below the response/info sections.
+          Shows for any tracked roster (#317): position targets count slots, otherwise a headcount
+          or plain tally; RoleBreakdown stays the per-role fallback where no position is targeted (⑥). */}
+      {showRosterBar && (
+        <div
+          className="sticky z-20 -mx-4 mt-6"
+          style={{ top: `calc(var(--header-height) + ${subHeaderHeight}px)` }}
+        >
+          <RosterBar roster={event.roster} />
+        </div>
+      )}
+
       {/* Your Response */}
       {currentUserId && (
         <div className="mt-6">
@@ -176,18 +190,10 @@ function EventDetailPage() {
         </div>
       )}
 
-      {/* Attendance — one list by position, no tabs. The roster bar pins beneath the sub-header so
-          completeness stays visible however far a big squad scrolls; where no position carries a
-          target it has nothing to show and the headcount breakdown stays as the fallback. */}
-      {showRosterBar && (
-        <div
-          className="sticky z-20 -mx-4 mt-6"
-          style={{ top: `calc(var(--header-height) + ${subHeaderHeight}px)` }}
-        >
-          <RosterBar roster={event.roster} />
-        </div>
-      )}
-      <div className={`overflow-hidden rounded-2xl border border-border/40 bg-card shadow-sm ${showRosterBar ? 'mt-3' : 'mt-6'}`}>
+      {/* Attendance — one list by position, no tabs. The roster bar (pinned above) shows for any
+          tracked roster; where no position carries a target RoleBreakdown stays as the per-role
+          fallback (⑥). */}
+      <div className="mt-6 overflow-hidden rounded-2xl border border-border/40 bg-card shadow-sm">
         {!hasPositionTargets && <RoleBreakdown breakdown={event.attendanceSummary.roleBreakdown} />}
         <AttendeeList
           attendees={event.attendances}

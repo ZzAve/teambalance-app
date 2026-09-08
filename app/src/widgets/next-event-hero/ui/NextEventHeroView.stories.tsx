@@ -271,7 +271,7 @@ export const ReadinessCritical: Story = {
     }),
   },
   play: async ({ canvas }) => {
-    await expect(canvas.getByText('3 spots open')).toBeInTheDocument()
+    await expect(canvas.getByText('Missing 2 positions')).toBeInTheDocument()
   },
 }
 

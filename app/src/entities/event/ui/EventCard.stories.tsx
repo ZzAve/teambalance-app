@@ -135,7 +135,7 @@ export const WithRosterVerdict: Story = {
     }),
   },
   play: async ({ canvas, userEvent }) => {
-    await expect(canvas.getByText('2 spots open')).toBeInTheDocument()
+    await expect(canvas.getByText('Missing a position')).toBeInTheDocument()
     // Collapsed on a list card until asked.
     await expect(canvas.queryByText(/the one to chase/)).not.toBeInTheDocument()
 

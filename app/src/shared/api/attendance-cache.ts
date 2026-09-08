@@ -25,6 +25,12 @@ const SUMMARY_FIELD: Record<AttendanceState, keyof Omit<AttendanceSummary, 'role
  * no-op (the server reconciliation on `onSettled` fills that case in). The update is immutable —
  * the original event and its entries are never touched, so a rollback can restore the snapshot.
  *
+ * `changedBy` moves with the state: [actorId] is whoever is doing the writing, which under
+ * ADR-0003 trust-based editing need not be [userId]. Without the stamp the row keeps its previous
+ * attribution for the round-trip — so correcting an answer a teammate set for you would leave
+ * `set by Tim` (⑪) sitting under the very control you just used. Unlike the roster below, this
+ * needs no derivation: the acting user *is* the new `changedBy`.
+ *
  * **`roster` is deliberately left alone** (#219). Its counts could be moved the same way the summary
  * counters are, but `openSlots` and `state` could not: deriving those means re-implementing the
  * layered, position-priority status the backend owns as its single tested authority, and a second
@@ -44,6 +50,7 @@ export function applyOptimisticAttendance(
   event: EventDetail | undefined,
   userId: string,
   state: AttendanceState,
+  actorId: string | null,
 ): EventDetail | undefined {
   if (!event) return event
 
@@ -61,6 +68,8 @@ export function applyOptimisticAttendance(
   return {
     ...event,
     attendanceSummary: summary,
-    attendances: event.attendances.map((a) => (a.userId === userId ? { ...a, state } : a)),
+    attendances: event.attendances.map((a) =>
+      a.userId === userId ? { ...a, state, changedBy: actorId ?? undefined } : a,
+    ),
   }
 }

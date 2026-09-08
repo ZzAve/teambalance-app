@@ -1,5 +1,6 @@
 import {describe, expect, it} from 'vitest'
 import {toggleTypeSelection} from './toggleTypeSelection'
+import type {AttendanceState} from '@features/attendance-toggle/ui/AttendanceToggle'
 
 const ALL = ['training', 'match', 'tournament', 'social']
 
@@ -33,5 +34,21 @@ describe('toggleTypeSelection', () => {
         const input = new Set(['training', 'match'])
         toggleTypeSelection(input, ALL, 'training')
         expect([...input].sort()).toEqual(['match', 'training'])
+    })
+})
+
+// The same toggler drives the Attendance State chips (ADR-0029 §3) — one implementation, so
+// "show me only what needs my answer" is the same single tap as isolating an event type.
+describe('toggleTypeSelection over attendance states', () => {
+    const STATES: AttendanceState[] = ['ATTENDING', 'MAYBE', 'ABSENT', 'NOT_RESPONDED']
+
+    it('isolates the tapped state when all states are active', () => {
+        const result = toggleTypeSelection(new Set(STATES), STATES, 'NOT_RESPONDED')
+        expect([...result]).toEqual(['NOT_RESPONDED'])
+    })
+
+    it('adds a second state back, which is the OR case', () => {
+        const result = toggleTypeSelection(new Set<AttendanceState>(['NOT_RESPONDED']), STATES, 'MAYBE')
+        expect([...result].sort()).toEqual(['MAYBE', 'NOT_RESPONDED'])
     })
 })

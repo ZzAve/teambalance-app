@@ -7,6 +7,10 @@ branch, only after `build` is green, and each **pauses for a one-click approval*
 `production` GitHub Environment. They deploy the exact commit CI just validated
 (image tag = commit SHA — no drift between what was tested and what ships).
 
+The approval itself is waited for by a separate one-step job per side — `approve-api` /
+`approve-frontend` — and `deploy-api` / `deploy-frontend` only start once their gate is
+approved. See *Superseding an unapproved deploy* below for why.
+
 ## One-time setup (REQUIRED — this *is* the manual gate)
 
 Settings → **Environments** → **New environment** named `production`:
@@ -20,14 +24,34 @@ Settings → **Environments** → **New environment** named `production`:
 ## Trigger a deploy
 
 1. Push to `main` (normal merge) or to a `deploy*` branch.
-2. CI runs `build` (lint + all tests + real e2e). If green, `deploy-api` and
-   `deploy-frontend` appear as **Pending — waiting for approval**.
+2. CI runs `build` (lint + all tests + real e2e). If green, `approve-api` and
+   `approve-frontend` appear as **Pending — waiting for approval**.
 3. In the run (or **Deployments** → `production`), click **Review deployments**, pick the
    job(s) to approve, and confirm. Each job is approved independently, so you can ship the
-   API without the frontend or vice-versa.
+   API without the frontend or vice-versa. Approving releases the gate; the `deploy-*` job
+   behind it then runs unattended.
 
 There is no `dry_run` input: **not approving is the dry run.** A default push builds and
 tests everything and simply waits — nothing deploys until you approve.
+
+> **Caveat.** Because the `production` environment is bound to the *gate* job, **Deployments**
+> → `production` flips to green the moment you approve, not when the rollout is verified. The
+> `deploy-*` job's own red/green in the Actions run is the truth.
+
+## Superseding an unapproved deploy
+
+A gate waiting for approval holds its concurrency group, so an obsolete pending deploy used to
+park the next push behind it: you had to approve or reject yesterday's commit before today's
+could even ask. It no longer does.
+
+- **Push to `main` while an older commit still sits unapproved** → the old `approve-*` job is
+  **cancelled** (`cancel-in-progress: true`) and the new commit asks for approval instead.
+  Nothing to reject by hand. The old run shows the gate as *cancelled* — expected, not a failure.
+- **Push while an approved deploy is mid-rollout** → the rollout is **never** interrupted. The
+  `deploy-*` jobs are `cancel-in-progress: false` on their own group, so the new deploy simply
+  queues behind it and starts when it finishes.
+
+That is the whole reason the wait and the work are two jobs: only the wait is disposable.
 
 ## What each job does
 
@@ -116,6 +140,7 @@ Settings → Secrets and variables → Actions (names only — never commit valu
 ## Rollback
 
 To roll back, re-deploy an earlier good commit: Actions → the CI run for that commit →
-**Re-run jobs**, then approve `deploy-api`. The image tag is that commit's SHA, so the old
-image is rebuilt/redeployed deterministically. (Old image tags are also retained in the
-registry.) Alternatively, revert the offending commit on `main` and approve the new deploy.
+**Re-run jobs**, then approve the API gate (`approve-api`). The image tag is that commit's
+SHA, so the old image is rebuilt/redeployed deterministically. (Old image tags are also
+retained in the registry.) Alternatively, revert the offending commit on `main` and approve
+the new deploy.

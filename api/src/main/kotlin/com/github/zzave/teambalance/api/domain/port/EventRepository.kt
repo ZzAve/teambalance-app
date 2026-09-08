@@ -22,7 +22,13 @@ interface EventRepository {
      */
     fun findByIds(ids: List<EventId>): List<Event>
     fun findUpcoming(since: Instant): List<Event>
-    fun findAll(): List<Event>
+
+    /**
+     * The [limit] most recent events, newest first. The bound is part of the contract because it
+     * has to reach the query: the all-events read grows monotonically across seasons, and a caller
+     * that trimmed the result afterwards would already have paid for every row (#310).
+     */
+    fun findMostRecent(limit: Int): List<Event>
     fun findByRecurringGroup(group: UUID): List<Event>
     fun save(event: Event): Event
     fun saveAll(events: List<Event>): List<Event>

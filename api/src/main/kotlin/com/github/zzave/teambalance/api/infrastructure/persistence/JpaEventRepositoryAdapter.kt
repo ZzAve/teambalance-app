@@ -8,6 +8,7 @@ import com.github.zzave.teambalance.api.domain.model.PositionId
 import com.github.zzave.teambalance.api.domain.port.EventRepository
 import com.github.zzave.teambalance.api.infrastructure.persistence.mapper.internalize
 import com.github.zzave.teambalance.api.infrastructure.persistence.mapper.externalize
+import org.springframework.data.domain.Limit
 import org.springframework.stereotype.Repository
 import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
@@ -54,8 +55,8 @@ class JpaEventRepositoryAdapter(
         jpaRepository.findByStartTimeGreaterThanOrderByStartTimeAsc(since).map { it.internalize() }
 
     @Transactional(readOnly = true)
-    override fun findAll(): List<Event> =
-        jpaRepository.findAllByOrderByStartTimeDesc().map { it.internalize() }
+    override fun findMostRecent(limit: Int): List<Event> =
+        jpaRepository.findAllByOrderByStartTimeDesc(Limit.of(limit)).map { it.internalize() }
 
     @Transactional(readOnly = true)
     override fun findByRecurringGroup(group: UUID): List<Event> =

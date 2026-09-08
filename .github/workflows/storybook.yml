@@ -1,11 +1,13 @@
 name: Storybook
 
 # Deploys the component catalog to GitHub Pages (branch-based, gh-pages):
-#   push to main -> gh-pages root -> https://storybook.teambalance.nl
+#   push to main             -> gh-pages root       -> https://storybook.teambalance.nl
+#   PR (own-repo, app diff)  -> gh-pages/pr-preview/pr-<n>/ + a comment on the PR
+#   PR closed                -> that preview dir is removed
 #
-# Main only, on purpose: per-PR review of the catalog happens in Chromatic
-# (chromatic.yml), which publishes a browsable Storybook per PR build alongside the
-# visual diff. A second per-PR copy on gh-pages was duplicate work with no extra signal.
+# Per-PR previews are back on purpose: Chromatic's per-build Storybook (chromatic.yml)
+# has been unreliable at publishing a browsable catalog, so the gh-pages PR preview is
+# the dependable way to open a PR's Storybook. Revisit if Chromatic's publish stabilises.
 #
 # Kept separate from ci.yml on purpose: this needs `contents: write` (to push the
 # gh-pages branch), whereas ci.yml is deliberately read-only.
@@ -16,14 +18,21 @@ on:
     paths:
       - 'app/**'
       - 'design-tokens/**'
+  pull_request:
+    types: [opened, synchronize, reopened, closed]
+    paths:
+      - 'app/**'
+      - 'design-tokens/**'
   workflow_dispatch:
 
 permissions:
   contents: write        # push the built Storybook to the gh-pages branch
+  pull-requests: write   # pr-preview-action comments the preview URL on the PR
 
 jobs:
   # Canonical Storybook for main -> served at storybook.teambalance.nl
   deploy-main:
+    if: ${{ github.event_name == 'push' || github.event_name == 'workflow_dispatch' }}
     runs-on: ubuntu-latest
     concurrency:
       group: storybook-main
@@ -57,20 +66,86 @@ jobs:
         working-directory: app
 
       # CNAME binds the custom domain on every publish (clean would drop it otherwise);
-      # robots.txt keeps the domain out of search engines.
+      # robots.txt at the gh-pages root keeps the whole domain (previews included) out
+      # of search engines.
       - name: Add CNAME + robots.txt
         working-directory: app/storybook-static
         run: |
           echo 'storybook.teambalance.nl' > CNAME
           printf 'User-agent: *\nDisallow: /\n' > robots.txt
 
-      # `clean: true` with no exclusions: the gh-pages branch now holds nothing but the
-      # main build, so the first run after this change also sweeps away the leftover
-      # pr-preview/ dirs from the retired PR-preview job.
       - name: Publish to gh-pages root
         uses: JamesIves/github-pages-deploy-action@fa24774553152dd7873cd16ebd8d959b010c5445 # v4.9.0
         with:
           folder: app/storybook-static
           branch: gh-pages
           clean: true
+          clean-exclude: pr-preview/   # never wipe live PR previews
           commit-message: 'docs(storybook): deploy main ${{ github.sha }}'
+
+  # Per-PR preview. Own-repo branches only: fork PRs run without write access/secrets,
+  # so we skip them rather than reach for pull_request_target.
+  deploy-preview:
+    if: >-
+      github.event_name == 'pull_request' &&
+      github.event.action != 'closed' &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    concurrency:
+      group: storybook-preview-${{ github.event.pull_request.number }}
+      cancel-in-progress: true
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
+        with:
+          distribution: temurin
+          java-version: '25'
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '24.19.0'
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+
+      - uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
+
+      - name: Generate Wirespec TypeScript client
+        run: ./gradlew :api:wirespec-typescript
+
+      - name: Build Storybook
+        run: |
+          npm ci
+          npm run build-storybook
+        working-directory: app
+
+      # Deploys to gh-pages/pr-preview/pr-<n>/, comments the URL, preserves the root
+      # site + other previews. Storybook's Vite build already uses relative asset
+      # paths (base: './'), so it serves correctly from the subpath.
+      - name: Deploy preview
+        uses: rossjrw/pr-preview-action@ffa7509e91a3ec8dfc2e5536c4d5c1acdf7a6de9 # v1.8.1
+        with:
+          source-dir: app/storybook-static
+          preview-branch: gh-pages
+          umbrella-dir: pr-preview
+
+  # PR closed -> remove its preview dir (no build needed).
+  cleanup-preview:
+    if: >-
+      github.event_name == 'pull_request' &&
+      github.event.action == 'closed' &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    concurrency:
+      group: storybook-preview-${{ github.event.pull_request.number }}
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Remove preview
+        uses: rossjrw/pr-preview-action@ffa7509e91a3ec8dfc2e5536c4d5c1acdf7a6de9 # v1.8.1
+        with:
+          source-dir: app/storybook-static
+          preview-branch: gh-pages
+          umbrella-dir: pr-preview
+          action: remove

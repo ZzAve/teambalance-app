@@ -3,6 +3,7 @@ import { SlidersHorizontal } from 'lucide-react'
 import type { EventTypeItem } from '@shared/api/event-types'
 import type { AttendanceState } from '@features/attendance-toggle/ui/AttendanceToggle'
 import { ALL_ATTENDANCE_STATES } from '../model/attendance-states'
+import { ALL_TURNOUT_BUCKETS, type TurnoutBucket } from '../model/turnout'
 
 interface EventFiltersViewProps {
   eventTypes: EventTypeItem[]
@@ -10,11 +11,19 @@ interface EventFiltersViewProps {
   activeTypeIds: Set<string>
   /** Attendance States currently shown. Every state active = no answer filter in effect. */
   activeStates: Set<AttendanceState>
+  /** Turnout bands currently shown. Every band active = no turnout filter in effect. */
+  activeTurnouts: Set<TurnoutBucket>
+  /**
+   * Whether the list spans two or more Turnout bands (ADR-0029 §5). False hides the whole group:
+   * for a team that sets no targets it would be four chips that provably filter nothing.
+   */
+  showTurnout: boolean
   showPast: boolean
   /** How many events survive the current filter — announced, never shown (ADR-0029). */
   resultCount: number
   onToggleType: (typeId: string) => void
   onToggleState: (state: AttendanceState) => void
+  onToggleTurnout: (bucket: TurnoutBucket) => void
   onToggleShowPast: (showPast: boolean) => void
 }
 
@@ -48,27 +57,64 @@ const STATE_CHIPS: { state: AttendanceState; label: string; active: string; inac
 ]
 
 /**
+ * The Turnout chips, in the order the bands run from most to least short of people. The first three
+ * carry the card's own roster tones — red / gold / green — so the filter and the card say the same
+ * thing about a state. `No target set` carries none: a tally and a social are not verdicts, and
+ * colouring them would invent the judgement the card deliberately withholds (ADR-0029 §4).
+ */
+const TURNOUT_CHIPS: { bucket: TurnoutBucket; label: string; active: string; inactive: string }[] = [
+  {
+    bucket: 'missing-position',
+    label: 'Missing a position',
+    active: 'bg-red border-red text-white',
+    inactive: 'border-red/40 text-red',
+  },
+  {
+    bucket: 'spots-open',
+    label: 'Spots open',
+    active: 'bg-gold border-gold text-white',
+    inactive: 'border-gold/40 text-gold',
+  },
+  {
+    bucket: 'covered',
+    label: 'Covered',
+    active: 'bg-green border-green text-white',
+    inactive: 'border-green/40 text-green',
+  },
+  {
+    bucket: 'no-target',
+    label: 'No target set',
+    active: 'bg-muted-foreground border-muted-foreground text-white',
+    inactive: 'border-muted-foreground/40 text-muted-foreground',
+  },
+]
+
+/**
  * The events page's single filter control: an icon button that opens a popover holding the
- * event-type chips, the answer chips and the "Show past events" switch. It replaces the old
- * Upcoming/Past segmented tab bar — past events are a filter, not a mode, and the page no longer
- * spends a band of chrome on a control that only flipped which way the same list grew.
+ * event-type chips, the answer chips, the Turnout chips and the "Show past events" switch. It
+ * replaces the old Upcoming/Past segmented tab bar — past events are a filter, not a mode, and the
+ * page no longer spends a band of chrome on a control that only flipped which way the same list grew.
  *
  * Each chip group is a total partition of the list, so "all chips on" is the unfiltered default and
  * can never hide anything (ADR-0029 §1). Selection is isolate-first and lives in the route, which
- * owns the one toggler both groups share.
+ * owns the one toggler every group shares. Groups come from the data: the type chips render only
+ * when the team has types, and the Turnout group only when the list spans two of its bands (§5).
  *
- * Prop-only apart from the popover's own open/closed state, which is local view state: the selected
- * types, the selected answers and the show-past flag live in the route so they can drive
- * `useEvents`, the hero and Bulk Attend.
+ * Prop-only apart from the popover's own open/closed state, which is local view state: the three
+ * selections and the show-past flag live in the route so they can drive `useEvents`, the hero and
+ * Bulk Attend.
  */
 export function EventFiltersView({
   eventTypes,
   activeTypeIds,
   activeStates,
+  activeTurnouts,
+  showTurnout,
   showPast,
   resultCount,
   onToggleType,
   onToggleState,
+  onToggleTurnout,
   onToggleShowPast,
 }: EventFiltersViewProps) {
   const [open, setOpen] = useState(false)
@@ -78,7 +124,8 @@ export function EventFiltersView({
   const hasActiveFilter =
     showPast ||
     activeTypeIds.size < eventTypes.length ||
-    activeStates.size < ALL_ATTENDANCE_STATES.length
+    activeStates.size < ALL_ATTENDANCE_STATES.length ||
+    activeTurnouts.size < ALL_TURNOUT_BUCKETS.length
 
   // Escape has to be caught on the document: focus stays on the trigger, which is a sibling of the
   // popover, so a handler on the panel itself would never see the key.
@@ -192,6 +239,39 @@ export function EventFiltersView({
                 })}
               </div>
             </div>
+
+            {showTurnout && (
+              <>
+                <div className="-mx-3.5 my-3.5 h-px bg-border/60" />
+
+                <div role="group" aria-labelledby="turnout-filter-heading">
+                  <h3
+                    id="turnout-filter-heading"
+                    className="mb-2.5 text-[11px] font-bold uppercase tracking-[0.09em] text-muted-foreground"
+                  >
+                    Turnout
+                  </h3>
+                  <div className="flex flex-wrap gap-2">
+                    {TURNOUT_CHIPS.map(({ bucket, label, active, inactive }) => {
+                      const isActive = activeTurnouts.has(bucket)
+                      return (
+                        <button
+                          key={bucket}
+                          aria-pressed={isActive}
+                          onClick={() => onToggleTurnout(bucket)}
+                          className={[
+                            'shrink-0 rounded-full border px-3 py-1.5 text-xs font-semibold transition-all',
+                            isActive ? active : inactive,
+                          ].join(' ')}
+                        >
+                          {label}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              </>
+            )}
 
             <div className="-mx-3.5 my-3.5 h-px bg-border/60" />
 

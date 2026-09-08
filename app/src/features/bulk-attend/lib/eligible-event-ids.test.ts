@@ -2,6 +2,10 @@ import { describe, expect, it } from 'vitest'
 import type { AttendanceState } from '@features/attendance-toggle/ui/AttendanceToggle'
 import { makeEvent } from '@shared/testing/event-fixtures'
 import { ALL_ATTENDANCE_STATES } from '@features/filter-event-types/model/attendance-states'
+import {
+  ALL_TURNOUT_BUCKETS,
+  type TurnoutBucket,
+} from '@features/filter-event-types/model/turnout'
 import { filterEvents } from '@features/filter-event-types/model/filter-events'
 import { eligibleEventIds } from './eligible-event-ids'
 
@@ -14,6 +18,7 @@ const TRAINING = { id: 'et-training', name: 'Training', color: '#22c55e' }
 const MATCH = { id: 'et-match', name: 'Match', color: '#3b82f6' }
 
 const ALL_TYPES = new Set([TRAINING.id, MATCH.id])
+const ALL_TURNOUTS = new Set<TurnoutBucket>(ALL_TURNOUT_BUCKETS)
 
 describe('eligibleEventIds', () => {
   it('returns nothing when there are no events', () => {
@@ -88,7 +93,7 @@ describe('eligibleEventIds under the answer filter', () => {
     makeEvent({ id: 'going', eventType: TRAINING, startTime: FUTURE, myState: 'ATTENDING' }),
   ]
   const shown = (activeStates: Set<AttendanceState>) =>
-    eligibleEventIds(filterEvents(EVENTS, ALL_TYPES, activeStates), ALL_TYPES, NOW)
+    eligibleEventIds(filterEvents(EVENTS, ALL_TYPES, activeStates, ALL_TURNOUTS), ALL_TYPES, NOW)
 
   it('offers the unanswered events when no answer chip narrows the list', () => {
     expect(shown(ALL_STATES)).toEqual(['blank'])
@@ -101,5 +106,12 @@ describe('eligibleEventIds under the answer filter', () => {
 
   it('offers exactly the visible list when filtered to Not responded — the bar\'s preview', () => {
     expect(shown(new Set<AttendanceState>(['NOT_RESPONDED']))).toEqual(['blank'])
+  })
+
+  // The Turnout chips narrow the bar the same way (#311): both fixtures are socials, so isolating
+  // any other band empties the list and with it the bar.
+  it('follows the turnout dimension too', () => {
+    const covered = filterEvents(EVENTS, ALL_TYPES, ALL_STATES, new Set<TurnoutBucket>(['covered']))
+    expect(eligibleEventIds(covered, ALL_TYPES, NOW)).toEqual([])
   })
 })

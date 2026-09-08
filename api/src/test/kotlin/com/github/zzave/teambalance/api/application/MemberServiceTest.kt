@@ -10,6 +10,7 @@ import com.github.zzave.teambalance.api.domain.model.DisplayName
 import com.github.zzave.teambalance.api.domain.model.Email
 import com.github.zzave.teambalance.api.domain.model.Position
 import com.github.zzave.teambalance.api.domain.model.PositionId
+import com.github.zzave.teambalance.api.domain.model.PositionKind
 import com.github.zzave.teambalance.api.domain.model.PositionLabel
 import com.github.zzave.teambalance.api.domain.model.Role
 import com.github.zzave.teambalance.api.domain.model.TeamId
@@ -131,6 +132,7 @@ private class MemberFakePositionRepo(seed: List<Pair<PositionId, String>>) : Pos
         store[id] = label
         return Position(id, label)
     }
+    override fun setKind(id: PositionId, kind: PositionKind): Position = Position(id, store.getValue(id), kind)
     override fun delete(id: PositionId) { store.remove(id) }
     override fun findById(id: PositionId): Position? = store[id]?.let { Position(id, it) }
     override fun exists(positionId: PositionId): Boolean = store.containsKey(positionId)

@@ -2,6 +2,7 @@ package com.github.zzave.teambalance.api.domain.port
 
 import com.github.zzave.teambalance.api.domain.model.Position
 import com.github.zzave.teambalance.api.domain.model.PositionId
+import com.github.zzave.teambalance.api.domain.model.PositionKind
 import com.github.zzave.teambalance.api.domain.model.PositionLabel
 
 /**
@@ -19,6 +20,9 @@ interface PositionRepository {
 
     /** Renames an existing position and returns the updated value. */
     fun rename(id: PositionId, label: PositionLabel): Position
+
+    /** Reclassifies a position as played or staffed and returns the updated value (#281). */
+    fun setKind(id: PositionId, kind: PositionKind): Position
 
     /**
      * Deletes a position. Members assigned to it become unassigned by the `member_profiles`

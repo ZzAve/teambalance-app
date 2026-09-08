@@ -2,6 +2,7 @@ package com.github.zzave.teambalance.api.infrastructure.persistence
 
 import com.github.zzave.teambalance.api.domain.model.Position
 import com.github.zzave.teambalance.api.domain.model.PositionId
+import com.github.zzave.teambalance.api.domain.model.PositionKind
 import com.github.zzave.teambalance.api.domain.model.PositionLabel
 import com.github.zzave.teambalance.api.domain.port.PositionRepository
 import com.github.zzave.teambalance.api.infrastructure.persistence.entity.PositionJpaEntity
@@ -32,6 +33,15 @@ class JpaPositionRepositoryAdapter(
         return jpaRepository.save(entity).toDomain()
     }
 
+    @Transactional
+    override fun setKind(id: PositionId, kind: PositionKind): Position {
+        val entity = jpaRepository.findById(id.value).orElseThrow {
+            IllegalStateException("Position $id disappeared while setting its kind")
+        }
+        entity.kind = kind.name
+        return jpaRepository.save(entity).toDomain()
+    }
+
     /**
      * No prior clearing statement: `member_profiles.position_id` is a real foreign key with
      * ON DELETE SET NULL, so assigned members become unassigned as part of this delete rather than
@@ -47,5 +57,6 @@ class JpaPositionRepositoryAdapter(
 
     override fun exists(positionId: PositionId): Boolean = jpaRepository.existsById(positionId.value)
 
-    private fun PositionJpaEntity.toDomain() = Position(id = PositionId(id), label = PositionLabel(label))
+    private fun PositionJpaEntity.toDomain() =
+        Position(id = PositionId(id), label = PositionLabel(label), kind = PositionKind.valueOf(kind))
 }

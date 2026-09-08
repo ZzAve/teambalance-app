@@ -4,7 +4,8 @@ import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import java.util.UUID
 
-private fun position(label: String) = Position(PositionId(UUID.randomUUID()), PositionLabel(label))
+private fun position(label: String, kind: PositionKind = PositionKind.PLAYING) =
+    Position(PositionId(UUID.randomUUID()), PositionLabel(label), kind)
 
 /**
  * The roster fill arithmetic — the single tested place where targets plus attendance become a
@@ -16,7 +17,8 @@ class RosterFillTest : FunSpec() {
         val setter = position("Setter")
         val libero = position("Libero")
         val middle = position("Middle")
-        val all = listOf(setter, libero, middle)
+        val trainer = position("Trainer", PositionKind.STAFF)
+        val all = listOf(setter, libero, middle, trainer)
 
         fun fill(
             requirement: RosterRequirement,
@@ -278,6 +280,85 @@ class RosterFillTest : FunSpec() {
             result.positions.map { it.position } shouldBe listOf(setter)
             result.openSlots.value shouldBe 0
             result.state shouldBe RosterState.LINEUP_SET
+        }
+        // ── staff do not fill a headcount (#281) ──────────────────────────────
+
+        // The bug this section exists for. A headcount target is a target for *players*: an admin
+        // asking for 12 at a training means twelve on the court, not eleven and the coach. Counting
+        // the coach reported a squad that was a player short as "Full", which is precisely the
+        // moment the panel is supposed to speak up.
+        test("a staff attendee does not fill a headcount target") {
+            val result = fill(
+                RosterRequirement(trackRoster = true, totalTarget = HeadcountTarget(12)),
+                mapOf(setter.id to 11, trainer.id to 1),
+            )
+
+            result.state shouldBe RosterState.HEADCOUNT_SHORT
+            result.openSlots.value shouldBe 1
+        }
+
+        // The three counts partition the attendees: `totalAttending` stays the honest answer to "how
+        // many people are coming", `playingAttending` is the one the target is measured against, and
+        // `staffAttending` is the difference. The client renders each directly and subtracts nothing.
+        test("the attending counts partition into playing and staff") {
+            val result = fill(
+                RosterRequirement(trackRoster = true, totalTarget = HeadcountTarget(12)),
+                mapOf(setter.id to 11, trainer.id to 1),
+            )
+
+            result.totalAttending.value shouldBe 12
+            result.playingAttending.value shouldBe 11
+            result.staffAttending.value shouldBe 1
+        }
+
+        // Excluded from the target, not hidden. A coach who said yes is still coming, and the panel
+        // still lists them under their own position — the fix is to stop *counting* them, not to
+        // stop showing them.
+        test("a staff attendee still gets a row of their own") {
+            val result = fill(
+                RosterRequirement(trackRoster = true, totalTarget = HeadcountTarget(12)),
+                mapOf(setter.id to 11, trainer.id to 1),
+            )
+
+            result.positions.map { it.position.label.value } shouldBe listOf("Setter", "Trainer")
+            result.positions.single { it.position == trainer }.attending.value shouldBe 1
+        }
+
+        // "No position set" is not "not a player". An attendee with no position is someone whose
+        // position we do not know, and the overwhelmingly likely answer is that they play — so they
+        // keep counting toward the headcount exactly as before.
+        test("unpositioned attendees still count toward the headcount") {
+            val result = fill(
+                RosterRequirement(trackRoster = true, totalTarget = HeadcountTarget(3)),
+                mapOf(null to 3, trainer.id to 1),
+            )
+
+            result.state shouldBe RosterState.HEADCOUNT_FULL
+            result.playingAttending.value shouldBe 3
+            result.staffAttending.value shouldBe 1
+        }
+
+        // Position targets are per-position and unaffected: an admin who explicitly asked for a
+        // Trainer gets a Trainer row that behaves like any other, empty-and-required included. This
+        // issue changes which *headcount* an event is measured against, not what a target means.
+        test("a target on a staff position drives state like any other position") {
+            val result = fill(
+                RosterRequirement(trackRoster = true, positionTargets = targets(setter to 1, trainer to 1)),
+                mapOf(setter.id to 1),
+            )
+
+            result.state shouldBe RosterState.CRITICAL
+            result.openSlots.value shouldBe 1
+        }
+
+        // Tracking off draws no playing/staff line at all: there is no target for staff to be
+        // excluded from, so splitting the headcount would invent a distinction the event never made.
+        test("tracking off reports every attendee as playing and no staff") {
+            val result = fill(RosterRequirement.OFF, mapOf(setter.id to 3, trainer.id to 1))
+
+            result.totalAttending.value shouldBe 4
+            result.playingAttending.value shouldBe 4
+            result.staffAttending.value shouldBe 0
         }
     }
 }

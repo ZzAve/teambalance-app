@@ -8,14 +8,21 @@ import {
   chaseNudge,
   rosterChip,
   rosterRows,
+  staffNote,
   unassignedNudge,
 } from './roster-view'
 
-const pos = (label: string, required: number | undefined, attending: number): RosterPosition => ({
+const pos = (
+  label: string,
+  required: number | undefined,
+  attending: number,
+  kind: RosterPosition['kind'] = 'PLAYING',
+): RosterPosition => ({
   id: `pos-${label.toLowerCase()}`,
   label,
   required,
   attending,
+  kind,
 })
 
 const roster = (overrides: Partial<EventRoster>) => makeRoster(overrides)
@@ -243,5 +250,43 @@ describe('headcountLine', () => {
 
   it('is absent when there is no total at all', () => {
     expect(headcountLine(roster({ totalTarget: undefined }))).toBeNull()
+  })
+
+  // The fraction counts players (#281). Twelve people are in the room and the line says 11/12,
+  // which is the honest reading of a target the coach was never meant to fill — staffNote below
+  // accounts for the twelfth so the pair does not look like an arithmetic slip.
+  it('counts players against the target, not staff', () => {
+    const r = roster({
+      totalTarget: 12,
+      totalAttending: 12,
+      positions: [pos('Setter', undefined, 11), pos('Trainer', undefined, 1, 'STAFF')],
+    })
+    expect(headcountLine(r)).toBe('11/12 going')
+  })
+})
+
+describe('staffNote', () => {
+  it('accounts for the attendees the fraction leaves out', () => {
+    const r = roster({
+      totalTarget: 12,
+      totalAttending: 12,
+      positions: [pos('Setter', undefined, 11), pos('Trainer', undefined, 1, 'STAFF')],
+    })
+    expect(staffNote(r)).toBe('1 staff also going, not counted toward the target')
+  })
+
+  // "staff" reads the same in one and in five, which the team's own labels would not.
+  it('reads the same for several', () => {
+    const r = roster({
+      totalTarget: 12,
+      totalAttending: 13,
+      positions: [pos('Setter', undefined, 11), pos('Trainer', undefined, 2, 'STAFF')],
+    })
+    expect(staffNote(r)).toBe('2 staff also going, not counted toward the target')
+  })
+
+  // Every roster on a team that has marked no staff — which is every team on the day this ships.
+  it('is absent when nobody attending holds a staff position', () => {
+    expect(staffNote(roster({ positions: [pos('Setter', 2, 2)] }))).toBeNull()
   })
 })

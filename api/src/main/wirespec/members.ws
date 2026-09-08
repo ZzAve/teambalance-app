@@ -1,8 +1,14 @@
+// A member's position as a reference: enough to display it and to preselect the picker, and nothing more. Not the vocabulary entry Position — a member row resolves the label by join and has never known the position's kind (#281), so carrying the full type here would have meant reporting a kind nobody looked up.
+type MemberPosition {
+    id: String,
+    label: String
+}
+
 type Member {
     userId: String,
     displayName: String,
     role: String,
-    position: Position?,
+    position: MemberPosition?,
     onboarded: Boolean
 }
 

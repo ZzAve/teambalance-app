@@ -13,7 +13,7 @@ import com.github.zzave.teambalance.api.interfaces.generated.endpoint.RemoveMemb
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.UpdateMember
 import com.github.zzave.teambalance.api.interfaces.generated.model.Member
 import com.github.zzave.teambalance.api.interfaces.generated.model.MemberList
-import com.github.zzave.teambalance.api.interfaces.generated.model.Position
+import com.github.zzave.teambalance.api.interfaces.generated.model.MemberPosition
 import org.springframework.web.bind.annotation.RestController
 
 @RestController
@@ -81,6 +81,6 @@ private fun TeamMember.toDto() = Member(
     userId = userId.produce(),
     displayName = displayName.value,
     role = permission.name,
-    position = positionId?.let { Position(id = it.produce(), label = position?.value ?: "") },
+    position = positionId?.let { MemberPosition(id = it.produce(), label = position?.value ?: "") },
     onboarded = onboarded,
 )

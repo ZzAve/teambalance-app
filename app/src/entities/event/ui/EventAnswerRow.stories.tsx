@@ -144,7 +144,7 @@ export const Pending: Story = {
 
 // A social: tracking off, so there is no lineup. The right side is a plain headcount, NOT a trigger.
 export const HeadcountFallbackOff: Story = {
-  args: { roster: { ...NO_ROSTER, totalAttending: 8 } },
+  args: { roster: makeRoster({ ...NO_ROSTER, totalAttending: 8 }) },
   play: async ({ canvas, userEvent }) => {
     await expect(canvas.getByText('8 going')).toBeInTheDocument()
     await expect(canvas.queryByRole('button', { name: /Show lineup/ })).not.toBeInTheDocument()

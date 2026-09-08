@@ -36,8 +36,8 @@ export const Critical: Story = {
   args: {
     roster: makeRoster({
       positions: [
-        { id: 'pos-setter', label: 'Setter', required: 2, attending: 2 },
-        { id: 'pos-middle', label: 'Middle', required: 2, attending: 0 },
+        { id: 'pos-setter', label: 'Setter', required: 2, attending: 2, kind: 'PLAYING' },
+        { id: 'pos-middle', label: 'Middle', required: 2, attending: 0, kind: 'PLAYING' },
       ],
       state: 'CRITICAL',
     }),
@@ -53,8 +53,8 @@ export const LineupSet: Story = {
   args: {
     roster: makeRoster({
       positions: [
-        { id: 'pos-setter', label: 'Setter', required: 2, attending: 2 },
-        { id: 'pos-libero', label: 'Libero', required: 1, attending: 1 },
+        { id: 'pos-setter', label: 'Setter', required: 2, attending: 2, kind: 'PLAYING' },
+        { id: 'pos-libero', label: 'Libero', required: 1, attending: 1, kind: 'PLAYING' },
       ],
       state: 'LINEUP_SET',
     }),
@@ -139,5 +139,56 @@ export const TrackingOff: Story = {
   },
   play: async ({ canvasElement }) => {
     await expect(canvasElement.querySelector('div')?.textContent ?? '').toBe('')
+  },
+}
+
+// The same event on the detail page's pinned bar (#281). The progress track measures the eleven
+// players against the twelve wanted; the coach is named beside the fraction rather than advancing it,
+// which is what used to fill the bar and turn the headline green.
+export const WithStaffAttending: Story = {
+  args: {
+    roster: makeRoster({
+      state: 'HEADCOUNT_SHORT',
+      openSlots: 1,
+      totalTarget: 12,
+      totalAttending: 12,
+      positions: [
+        { id: 'pos-setter', label: 'Setter', required: undefined, attending: 11, kind: 'PLAYING' },
+        { id: 'pos-trainer', label: 'Trainer', required: undefined, attending: 1, kind: 'STAFF' },
+      ],
+    }),
+  },
+  play: async ({ canvas }) => {
+    await expect(canvas.getByText(/11\/12 going \+1 staff/)).toBeInTheDocument()
+    await expect(canvas.getByText(/1 more needed/)).toBeInTheDocument()
+  },
+}
+
+// The same eleven players and one coach, on a team that has NOT ticked Staff on Trainer — which is
+// every team on the day this ships, because the migration defaults to PLAYING. It reads "12/12 going
+// · Full" with a filled track.
+//
+// Its whole job is to sit next to WithStaffAttending above, where the identical attendance reads
+// "11/12 going +1 staff · 1 more needed". Same people, same answers; the only difference is one
+// checkbox in the position editor. That contrast is the change, and a reviewer should be able to see
+// it as two pictures rather than reconstruct it from a diff.
+export const WithStaffNotYetMarked: Story = {
+  args: {
+    roster: makeRoster({
+      state: 'HEADCOUNT_FULL',
+      openSlots: 0,
+      totalTarget: 12,
+      totalAttending: 12,
+      positions: [
+        { id: 'pos-setter', label: 'Setter', required: undefined, attending: 11, kind: 'PLAYING' },
+        { id: 'pos-trainer', label: 'Trainer', required: undefined, attending: 1, kind: 'PLAYING' },
+      ],
+    }),
+  },
+  play: async ({ canvas }) => {
+    await expect(canvas.getByText(/12\/12 going/)).toBeInTheDocument()
+    await expect(canvas.getByText(/Full/)).toBeInTheDocument()
+    // No staff suffix: nobody attending holds a staff position.
+    await expect(canvas.queryByText(/staff/)).not.toBeInTheDocument()
   },
 }

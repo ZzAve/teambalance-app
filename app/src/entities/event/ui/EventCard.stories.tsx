@@ -93,6 +93,8 @@ export const SocialEvent: Story = {
         trackRoster: false,
         totalTarget: undefined,
         totalAttending: 11,
+        playingAttending: 11,
+        staffAttending: 0,
         positions: [],
         unassignedAttending: 0,
         openSlots: 0,
@@ -127,9 +129,9 @@ export const WithRosterVerdict: Story = {
         openSlots: 2,
         totalAttending: 5,
         positions: [
-          { id: 'pos-setter', label: 'Setter', required: 2, attending: 2 },
-          { id: 'pos-libero', label: 'Libero', required: 1, attending: 0 },
-          { id: 'pos-middle', label: 'Middle', required: 2, attending: 1 },
+          { id: 'pos-setter', label: 'Setter', required: 2, attending: 2, kind: 'PLAYING' },
+          { id: 'pos-libero', label: 'Libero', required: 1, attending: 0, kind: 'PLAYING' },
+          { id: 'pos-middle', label: 'Middle', required: 2, attending: 1, kind: 'PLAYING' },
         ],
       }),
     }),
@@ -144,6 +146,41 @@ export const WithRosterVerdict: Story = {
 
     await expect(canvas.getByText('1 of 3 covered')).toBeInTheDocument()
     await expect(canvas.getByText(/still has no one/)).toBeInTheDocument()
+  },
+}
+
+// The reported surface (#281). A training wanting 12, attended by 11 players and a coach: the card
+// used to carry a green "Full" here, because the coach filled the twelfth slot. It now reads "1 more
+// needed", and opening the lineup shows both why (the fraction counts 11) and where the twelfth
+// person went (the staff line). The one story that puts the whole fix on the object a member
+// actually looks at.
+export const WithStaffAttending: Story = {
+  args: {
+    event: makeEvent({
+      title: 'Training',
+      startTime: on(13, 20, 0),
+      roster: makeRoster({
+        state: 'HEADCOUNT_SHORT',
+        openSlots: 1,
+        totalTarget: 12,
+        totalAttending: 12,
+        positions: [
+          { id: 'pos-setter', label: 'Setter', required: undefined, attending: 11, kind: 'PLAYING' },
+          { id: 'pos-trainer', label: 'Trainer', required: undefined, attending: 1, kind: 'STAFF' },
+        ],
+      }),
+    }),
+  },
+  play: async ({ canvas, userEvent }) => {
+    // Not "Full" — the coach no longer fills a player's slot.
+    await expect(canvas.getByText('1 more needed')).toBeInTheDocument()
+
+    await userEvent.click(canvas.getByRole('button', { name: /Show lineup/ }))
+
+    await expect(canvas.getByText('11/12 going')).toBeInTheDocument()
+    await expect(canvas.getByText('1 staff also going, not counted toward the target')).toBeInTheDocument()
+    // Excluded from the target, not hidden.
+    await expect(canvas.getByText('Trainer')).toBeInTheDocument()
   },
 }
 

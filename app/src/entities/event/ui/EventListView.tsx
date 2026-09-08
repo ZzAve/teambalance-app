@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import type { Event } from '@shared/api/events'
 import { Skeleton } from '@shared/ui/skeleton'
+import { attributionName } from '../lib/attribution'
 import { EventCard } from './EventCard'
 
 type AttendanceState = Event['myState']
@@ -19,6 +20,8 @@ interface EventListViewProps {
   optimistic?: { eventId: string; state: AttendanceState } | null
   /** Every card's roster panel starts expanded — the member's `Keep open` preference (ADR-0030 §6). */
   defaultRosterOpen?: boolean
+  /** The viewer, so a card can tell an answer it set itself from one a teammate set for it (⑪). */
+  currentUserId?: string | null
   /**
    * What each card's roster disclosure opens onto. A function of the event because the panel is
    * built per event; left out, every card falls back to the position pips it has always shown.
@@ -45,6 +48,7 @@ export function EventListView({
   optimistic,
   defaultRosterOpen,
   rosterPanel,
+  currentUserId,
 }: EventListViewProps) {
   // Data wins: keep showing cached events even when a background refetch is loading or has errored,
   // so a transient failure never blanks a list the user is already looking at.
@@ -64,6 +68,11 @@ export function EventListView({
         // differs the write is still settling, so show the pick and keep the badge pending (⑤); once
         // the list catches up the row is real again. A failed write is dropped by the container.
         const settling = optimistic?.eventId === event.id && optimistic.state !== event.myState
+        // Resolved from the event's own rows, exactly as the detail page does (⑪) — the list payload
+        // carries every member since ADR-0030 §8. Suppressed while settling: the pick in flight is
+        // the viewer's own, so the answer it replaces is no longer attributed to anyone else.
+        const mine = currentUserId ? event.attendances.find((a) => a.userId === currentUserId) : undefined
+        const setBy = settling || !mine ? null : attributionName(mine, event.attendances)
         return (
           <EventCard
             key={event.id}
@@ -72,6 +81,7 @@ export function EventListView({
             now={now}
             myState={settling ? optimistic.state : event.myState}
             pending={settling}
+            setBy={setBy}
             onRespond={(state) => onRespond?.(event.id, state)}
             defaultRosterOpen={defaultRosterOpen}
             rosterPanel={rosterPanel?.(event)}

@@ -19,6 +19,8 @@ interface EventCardProps {
   myState: AttendanceState
   /** An attendance write is in flight for this event. */
   pending?: boolean
+  /** Who set the viewer's answer, when it was not the viewer — resolved by the container (⑪). */
+  setBy?: string | null
   onRespond: (state: AttendanceState) => void
   index?: number
   /** Injected so the relative label is deterministic in stories; defaults to the real clock. */
@@ -46,6 +48,7 @@ export function EventCard({
   event,
   myState,
   pending,
+  setBy,
   onRespond,
   index = 0,
   now = new Date(),
@@ -114,6 +117,7 @@ export function EventCard({
           roster={event.roster}
           myState={myState}
           pending={pending}
+          setBy={setBy}
           onRespond={onRespond}
           defaultRosterOpen={defaultRosterOpen}
           rosterPanel={rosterPanel}

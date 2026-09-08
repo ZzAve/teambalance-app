@@ -30,6 +30,7 @@ const SUMMARY_FIELD: Record<AttendanceState, keyof Omit<AttendanceSummary, 'role
  * attribution for the round-trip — so correcting an answer a teammate set for you would leave
  * `set by Tim` (⑪) sitting under the very control you just used. Unlike the roster below, this
  * needs no derivation: the acting user *is* the new `changedBy`.
+
  *
  * **`roster` is deliberately left alone** (#219). Its counts could be moved the same way the summary
  * counters are, but `openSlots` and `state` could not: deriving those means re-implementing the

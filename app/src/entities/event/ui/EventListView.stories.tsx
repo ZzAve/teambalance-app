@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { expect } from 'storybook/test'
 import { withRouter } from '@shared/testing/router-decorator'
-import { makeEvent } from '@shared/testing/event-fixtures'
+import { makeAttendee, makeEvent } from '@shared/testing/event-fixtures'
 import { EventListView } from './EventListView'
 
 // EventListView is the presentational list region of the events page: it renders one of four
@@ -81,5 +81,62 @@ export const DataDespiteBackgroundError: Story = {
   play: async ({ canvas }) => {
     await expect(canvas.getByText('League Match')).toBeInTheDocument()
     await expect(canvas.queryByText(/couldn't load events/i)).not.toBeInTheDocument()
+  },
+}
+
+// ⑪ on the card: the list payload carries every member (ADR-0030 §8), so the setter resolves to a
+// real name here exactly as it does on the detail page. Only the event a teammate touched is marked
+// — the negative on the self-set card is the design, not an oversight.
+export const AttributionOnTheCard: Story = {
+  args: {
+    currentUserId: 'u-me',
+    events: [
+      makeEvent({
+        id: 'evt-1',
+        title: 'League Match',
+        startTime: on(11),
+        myState: 'ABSENT',
+        attendances: [
+          makeAttendee('u-me', 'Me', 'Unassigned', { state: 'ABSENT', changedBy: 'u-tim' }),
+          makeAttendee('u-tim', 'Tim de Vries', 'Unassigned', { changedBy: 'u-tim' }),
+        ],
+      }),
+      makeEvent({
+        id: 'evt-2',
+        title: 'Training',
+        startTime: on(13),
+        myState: 'ATTENDING',
+        attendances: [makeAttendee('u-me', 'Me', 'Unassigned', { changedBy: 'u-me' })],
+      }),
+    ],
+  },
+  play: async ({ canvas }) => {
+    await expect(canvas.getByText('set by Tim de Vries')).toBeInTheDocument()
+    await expect(canvas.queryByText('set by Me')).not.toBeInTheDocument()
+  },
+}
+
+// The pick in flight is the viewer's own, so the attribution it replaces is dropped the moment they
+// tap — not one round-trip later, when the refetched list finally agrees.
+export const AttributionClearsWhileSettling: Story = {
+  args: {
+    currentUserId: 'u-me',
+    optimistic: { eventId: 'evt-1', state: 'ATTENDING' },
+    events: [
+      makeEvent({
+        id: 'evt-1',
+        title: 'League Match',
+        startTime: on(11),
+        myState: 'ABSENT',
+        attendances: [
+          makeAttendee('u-me', 'Me', 'Unassigned', { state: 'ABSENT', changedBy: 'u-tim' }),
+          makeAttendee('u-tim', 'Tim de Vries', 'Unassigned', { changedBy: 'u-tim' }),
+        ],
+      }),
+    ],
+  },
+  play: async ({ canvas }) => {
+    await expect(canvas.getByText("You're in")).toBeInTheDocument()
+    await expect(canvas.queryByText(/^set by /)).not.toBeInTheDocument()
   },
 }

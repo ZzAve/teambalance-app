@@ -16,12 +16,6 @@ interface EventListViewProps {
   onRespond?: (eventId: string, state: AttendanceState) => void
   /** The event whose write is in flight, with the optimistic answer to show on its card meanwhile. */
   optimistic?: { eventId: string; state: AttendanceState } | null
-  /**
-   * Resets every filter. Passed only while one is active, and offered only on the empty state: the
-   * chip groups live behind a popover, so a member can strand themselves on an empty list without
-   * remembering why (ADR-0029).
-   */
-  onClearFilters?: () => void
 }
 
 /**
@@ -41,26 +35,16 @@ export function EventListView({
   now,
   onRespond,
   optimistic,
-  onClearFilters,
 }: EventListViewProps) {
   // Data wins: keep showing cached events even when a background refetch is loading or has errored,
   // so a transient failure never blanks a list the user is already looking at.
   if (events.length === 0) {
     if (isLoading) return <EventListSkeleton />
     if (error) return <p className="mt-4 text-sm text-red">Couldn&apos;t load events.</p>
-    return (
-      <div className="mt-4">
-        <p className="text-muted-foreground">{emptyMessage}</p>
-        {onClearFilters && (
-          <button
-            onClick={onClearFilters}
-            className="mt-3 rounded-full border border-border/60 px-3 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-muted"
-          >
-            Clear filters
-          </button>
-        )}
-      </div>
-    )
+    // No way out of a filtered-to-empty list here any more: `Clear filters` moved up beside the
+    // filter trigger, where it is visible whenever a filter is active rather than only once one has
+    // already emptied the list (ADR-0030 §2).
+    return <p className="mt-4 text-muted-foreground">{emptyMessage}</p>
   }
 
   return (

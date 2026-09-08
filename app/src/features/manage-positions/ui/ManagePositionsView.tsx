@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import type { Position, PositionUsage } from '@shared/api/positions'
+import type { Position, PositionKind, PositionUsage } from '@shared/api/positions'
 import { Button } from '@shared/ui/button'
 import { Input } from '@shared/ui/input'
 import {
@@ -30,13 +30,15 @@ interface ManagePositionsViewProps {
   errorCode?: string | null
   onCreate: (label: string) => void
   onRename: (id: string, label: string) => void
+  /** Reclassifies a position as played or staffed (#281). Applies at once — no Save to press. */
+  onSetKind: (id: string, kind: PositionKind) => void
   onDelete: (position: Position) => void
 }
 
 /**
  * Presentational positions-management UI — the complete section, heading and all. Owns only local
  * view state (the new-label field, per-row edits, the delete-confirm dialog target); the query and
- * the create/rename/delete mutations live in the ManagePositions container.
+ * the create/rename/set-kind/delete mutations live in the ManagePositions container.
  *
  * The load/error/data shells are props-driven (isLoading / isError) rather than lived in the
  * container, so every state — loading / error / empty / with items / delete-confirm / label-taken —
@@ -52,6 +54,7 @@ export function ManagePositionsView({
   errorCode,
   onCreate,
   onRename,
+  onSetKind,
   onDelete,
 }: ManagePositionsViewProps) {
   const [newLabel, setNewLabel] = useState('')
@@ -111,6 +114,7 @@ export function ManagePositionsView({
                   position={position}
                   isSaving={isSaving}
                   onRename={onRename}
+                  onSetKind={onSetKind}
                   onRequestDelete={setConfirmTarget}
                 />
               ))}
@@ -161,10 +165,11 @@ interface PositionRowProps {
   position: Position
   isSaving?: boolean
   onRename: (id: string, label: string) => void
+  onSetKind: (id: string, kind: PositionKind) => void
   onRequestDelete: (position: Position) => void
 }
 
-function PositionRow({ position, isSaving, onRename, onRequestDelete }: PositionRowProps) {
+function PositionRow({ position, isSaving, onRename, onSetKind, onRequestDelete }: PositionRowProps) {
   const [label, setLabel] = useState(position.label)
   const dirty = label.trim().length > 0 && label.trim() !== position.label
 
@@ -181,6 +186,21 @@ function PositionRow({ position, isSaving, onRename, onRequestDelete }: Position
           Save
         </Button>
       )}
+      {/* No local state and no Save: the checkbox reflects the server's kind and the flip is the
+          whole gesture. Unchecked is PLAYING, which is what every position was before this existed. */}
+      <label className="flex items-center gap-1.5 text-sm text-muted-foreground">
+        <input
+          type="checkbox"
+          // Named per row, because "Staff" alone repeats down the list and says nothing about which
+          // position it belongs to — the same reason the label field is "Label for Setter".
+          aria-label={`${position.label} is staff`}
+          className="size-4 accent-green"
+          checked={position.kind === 'STAFF'}
+          disabled={isSaving}
+          onChange={(e) => onSetKind(position.id, e.target.checked ? 'STAFF' : 'PLAYING')}
+        />
+        Staff
+      </label>
       <Button
         variant="destructive"
         size="sm"

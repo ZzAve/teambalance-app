@@ -85,7 +85,12 @@ data class RosterPositionFill(
 data class RosterFill(
     val trackRoster: Boolean,
     val totalTarget: HeadcountTarget?,
+    /** How many people are coming, whoever they are. [playingAttending] + [staffAttending]. */
     val totalAttending: AttendingCount,
+    /** The number [totalTarget] is measured against: everyone coming who is not staff (#281). */
+    val playingAttending: AttendingCount,
+    /** Coming, shown in their own row, and deliberately counted toward no headcount (#281). */
+    val staffAttending: AttendingCount,
     val positions: List<RosterPositionFill>,
     val unassignedAttending: AttendingCount,
     val openSlots: OpenSlots,
@@ -115,10 +120,15 @@ data class RosterFill(
             val unassigned = attendingByPosition[null] ?: 0
 
             if (!requirement.trackRoster) {
+                // Tracking off draws no playing/staff line: there is no target for staff to be
+                // excluded from, so splitting the headcount would invent a distinction a social
+                // never made.
                 return RosterFill(
                     trackRoster = false,
                     totalTarget = null,
                     totalAttending = AttendingCount(totalAttending),
+                    playingAttending = AttendingCount(totalAttending),
+                    staffAttending = AttendingCount(0),
                     positions = emptyList(),
                     unassignedAttending = AttendingCount(unassigned),
                     openSlots = OpenSlots(0),
@@ -136,9 +146,18 @@ data class RosterFill(
                 }
                 .filter { it.required != null || it.attending.value > 0 }
 
+            // A headcount is a target for players (#281). Staff are whoever holds a position the
+            // team marked STAFF; everyone else counts, unpositioned attendees included — "no position
+            // set" is not "not a player", and the likeliest answer for an unknown position is that
+            // they play. An attendee at a position outside the vocabulary counts for the same reason.
+            val staffAttending = positions
+                .filter { it.kind == PositionKind.STAFF }
+                .sumOf { attendingByPosition[it.id] ?: 0 }
+            val playingAttending = totalAttending - staffAttending
+
             val targeted = rows.filter { it.required != null }
             val openSlots = if (targeted.isEmpty()) {
-                headcountShortfall(requirement.totalTarget, totalAttending)
+                headcountShortfall(requirement.totalTarget, playingAttending)
             } else {
                 targeted.sumOf { it.openSlots.value }
             }
@@ -147,10 +166,12 @@ data class RosterFill(
                 trackRoster = true,
                 totalTarget = requirement.totalTarget,
                 totalAttending = AttendingCount(totalAttending),
+                playingAttending = AttendingCount(playingAttending),
+                staffAttending = AttendingCount(staffAttending),
                 positions = rows,
                 unassignedAttending = AttendingCount(unassigned),
                 openSlots = OpenSlots(openSlots),
-                state = stateOf(targeted, requirement.totalTarget, totalAttending),
+                state = stateOf(targeted, requirement.totalTarget, playingAttending),
             )
         }
 
@@ -160,21 +181,26 @@ data class RosterFill(
          * coming in total, and merging the two axes into one number would hide exactly that. A
          * headcount set alongside them still shows in the panel as a secondary "X/Y going"; it just
          * does not decide the chip.
+         *
+         * Unchanged in shape by #281 — it simply receives an honest [playingAttending] rather than a
+         * total with the coaches folded in. A target on a STAFF position is still a target and still
+         * drives the position axis: an admin who explicitly asked for a Trainer gets a Trainer row
+         * that behaves like any other.
          */
         private fun stateOf(
             targeted: List<RosterPositionFill>,
             totalTarget: HeadcountTarget?,
-            totalAttending: Int,
+            playingAttending: Int,
         ): RosterState = when {
             targeted.any { it.isEmptyAndRequired } -> RosterState.CRITICAL
             targeted.any { it.openSlots.value > 0 } -> RosterState.SPOTS_OPEN
             targeted.isNotEmpty() -> RosterState.LINEUP_SET
             totalTarget == null -> RosterState.TALLY_ONLY
-            headcountShortfall(totalTarget, totalAttending) > 0 -> RosterState.HEADCOUNT_SHORT
+            headcountShortfall(totalTarget, playingAttending) > 0 -> RosterState.HEADCOUNT_SHORT
             else -> RosterState.HEADCOUNT_FULL
         }
 
-        private fun headcountShortfall(totalTarget: HeadcountTarget?, totalAttending: Int): Int =
-            ((totalTarget?.value ?: 0) - totalAttending).coerceAtLeast(0)
+        private fun headcountShortfall(totalTarget: HeadcountTarget?, playingAttending: Int): Int =
+            ((totalTarget?.value ?: 0) - playingAttending).coerceAtLeast(0)
     }
 }

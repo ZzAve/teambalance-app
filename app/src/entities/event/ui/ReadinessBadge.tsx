@@ -35,9 +35,9 @@ const DOT_TONE: Record<RosterTone, string> = {
  *
  * Presentational — the verdict is `rosterChip`, already computed by the server (#219). Two roster
  * states carry no verdict (a social, and tracking-on-with-no-targets): rather than leave the row with
- * no team information at all, both fall back to a plain headcount from `roster.totalAttending` (⑥,
- * #271). That headcount counts coaches as players today — deliberately left as-is until #281. The
- * `hero` variant renders nothing instead, because that surface already prints the headcount itself.
+ * no team information at all, both fall back to a plain headcount from `roster.playingAttending`
+ * (⑥, #271), with any staff named separately rather than folded in (#281). The `hero` variant
+ * renders nothing instead, because that surface already prints the headcount itself.
  *
  * While an attendance write is in flight the badge shows a `pending` state (⑤): the roster is not
  * recomputed client-side (see `applyOptimisticAttendance`), so the last-known verdict is dimmed while
@@ -53,10 +53,12 @@ export function ReadinessBadge({ roster, pending = false, variant = 'card' }: Re
     // ("10 going - you're in"), so a chip repeating that number would say the same thing twice.
     if (hero) return null
 
-    // No verdict to give — say who is coming rather than nothing.
+    // No verdict to give — say who is coming rather than nothing. Players and staff are counted
+    // apart (#281): "12 going" on a training told a member eleven players and a coach were twelve
+    // players, which was the whole complaint. A team that has marked no staff never sees the suffix.
     return (
       <span aria-busy={pending} className={`text-xs font-semibold text-muted-foreground ${dim}`}>
-        {roster.totalAttending} going
+        {roster.playingAttending} going{roster.staffAttending > 0 && ` +${roster.staffAttending} staff`}
       </span>
     )
   }

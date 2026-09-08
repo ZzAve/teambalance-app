@@ -8,8 +8,8 @@ import { MemberRosterView } from './MemberRosterView'
 // only local view state (per-row name edits + the remove-confirm dialog); the members/positions
 // queries and the update/remove mutations stay in the container, so every state renders from props.
 const POSITIONS: Position[] = [
-  { id: 'p1', label: 'Setter' },
-  { id: 'p2', label: 'Libero' },
+  { id: 'p1', label: 'Setter', kind: 'PLAYING' },
+  { id: 'p2', label: 'Libero', kind: 'PLAYING' },
 ]
 
 const MEMBERS: Member[] = [

@@ -7,8 +7,8 @@ import { EditProfileForm } from './EditProfileForm'
 // text field, the position picker + inline validation; the member query and update mutation stay in
 // the container, so every state (default, editing, saving, name-taken, position) renders from props.
 const POSITIONS: Position[] = [
-  { id: 'p1', label: 'Setter' },
-  { id: 'p2', label: 'Libero' },
+  { id: 'p1', label: 'Setter', kind: 'PLAYING' },
+  { id: 'p2', label: 'Libero', kind: 'PLAYING' },
 ]
 
 const meta = {

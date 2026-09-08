@@ -18,4 +18,11 @@ class PositionJpaEntity(
     val id: UUID = UUID.randomUUID(),
     @Column(nullable = false)
     var label: String = "",
+    /**
+     * [com.github.zzave.teambalance.api.domain.model.PositionKind] as its name. Stored as text rather
+     * than an ordinal so the column reads for itself in a psql session and adding a kind later cannot
+     * silently renumber the existing rows.
+     */
+    @Column(nullable = false)
+    var kind: String = "PLAYING",
 )

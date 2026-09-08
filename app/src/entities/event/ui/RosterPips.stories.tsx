@@ -7,11 +7,17 @@ import { RosterPips } from './RosterPips'
 // The per-position body of the card's answer panel. Prop-only (ADR-0017) — every number arrives
 // already computed by the server, so each roster state is just a different prop value. These stories
 // replace the panel half of the old RosterDisclosure.
-const pos = (label: string, required: number | undefined, attending: number): RosterPosition => ({
+const pos = (
+  label: string,
+  required: number | undefined,
+  attending: number,
+  kind: RosterPosition['kind'] = 'PLAYING',
+): RosterPosition => ({
   id: `pos-${label.toLowerCase()}`,
   label,
   required,
   attending,
+  kind,
 })
 
 const meta = {
@@ -241,5 +247,26 @@ export const BothAxes: Story = {
   play: async ({ canvas }) => {
     await expect(canvas.getByText('1 of 2 covered')).toBeInTheDocument()
     await expect(canvas.getByText('7/12 going')).toBeInTheDocument()
+  },
+}
+
+// The reported case (#281): a training wanting 12, attended by 11 players and a coach. The fraction
+// counts the eleven, the Trainer keeps a row of their own, and the note underneath accounts for the
+// twelfth person so the two numbers do not read as an arithmetic slip.
+export const WithStaffAttending: Story = {
+  args: {
+    roster: makeRoster({
+      state: 'HEADCOUNT_SHORT',
+      openSlots: 1,
+      totalTarget: 12,
+      totalAttending: 12,
+      positions: [pos('Setter', undefined, 11), pos('Trainer', undefined, 1, 'STAFF')],
+    }),
+  },
+  play: async ({ canvas }) => {
+    await expect(canvas.getByText('11/12 going')).toBeInTheDocument()
+    await expect(canvas.getByText('1 staff also going, not counted toward the target')).toBeInTheDocument()
+    // Excluded from the target, not hidden.
+    await expect(canvas.getByText('Trainer')).toBeInTheDocument()
   },
 }

@@ -29,8 +29,8 @@ const TONE_TEXT: Record<RosterTone, string> = {
  * Three shapes, because a roster can be targeted in two different ways or not at all (#271 (6)):
  *
  *   - **Positions targeted** — the fraction counts *slots*, and each position gets a chip.
- *   - **A headcount target only** — the fraction counts *people* against `totalTarget`. No chips:
- *     nothing is targeted per position, so there is nothing to list.
+ *   - **A headcount target only** — the fraction counts *playing people* against `totalTarget`. No
+ *     chips: nothing is targeted per position, so there is nothing to list.
  *   - **A tally** — tracking on, nothing targeted. The plain count, and deliberately **no progress
  *     track**: a bar with no denominator would assert exactly the judgement `rosterChip` withholds
  *     for this state.
@@ -50,9 +50,14 @@ export function RosterBar({ roster }: RosterBarProps) {
   // the target is a headcount, and nothing at all for a tally.
   const slots = rows.reduce((sum, row) => sum + row.pips.length, 0)
   const target = byPosition ? slots : roster.totalTarget
-  const filled = byPosition ? slots - roster.openSlots : roster.totalAttending
+  // `playingAttending`, not `totalAttending` (#281): a headcount is a target for players, so an
+  // attending coach must not advance the bar toward it. `staff` is appended instead, so the people
+  // missing from the fraction are still accounted for rather than silently dropped.
+  const filled = byPosition ? slots - roster.openSlots : roster.playingAttending
   const met = target != null && filled >= target
-  const headline = target == null ? `${filled} going` : `${filled}/${target} ${byPosition ? 'spots' : 'going'}`
+  const staff = roster.staffAttending > 0 ? ` +${roster.staffAttending} staff` : ''
+  const headline =
+    (target == null ? `${filled} going` : `${filled}/${target} ${byPosition ? 'spots' : 'going'}`) + staff
   // Null for a tally — no denominator, no track.
   const pct = target == null || target === 0 ? null : Math.min(100, Math.round((filled / target) * 100))
   const chip = rosterChip(roster)

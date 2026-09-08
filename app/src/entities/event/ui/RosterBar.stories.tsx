@@ -36,8 +36,8 @@ export const Critical: Story = {
   args: {
     roster: makeRoster({
       positions: [
-        { id: 'pos-setter', label: 'Setter', required: 2, attending: 2 },
-        { id: 'pos-middle', label: 'Middle', required: 2, attending: 0 },
+        { id: 'pos-setter', label: 'Setter', required: 2, attending: 2, kind: 'PLAYING' },
+        { id: 'pos-middle', label: 'Middle', required: 2, attending: 0, kind: 'PLAYING' },
       ],
       state: 'CRITICAL',
     }),
@@ -53,8 +53,8 @@ export const LineupSet: Story = {
   args: {
     roster: makeRoster({
       positions: [
-        { id: 'pos-setter', label: 'Setter', required: 2, attending: 2 },
-        { id: 'pos-libero', label: 'Libero', required: 1, attending: 1 },
+        { id: 'pos-setter', label: 'Setter', required: 2, attending: 2, kind: 'PLAYING' },
+        { id: 'pos-libero', label: 'Libero', required: 1, attending: 1, kind: 'PLAYING' },
       ],
       state: 'LINEUP_SET',
     }),
@@ -139,5 +139,27 @@ export const TrackingOff: Story = {
   },
   play: async ({ canvasElement }) => {
     await expect(canvasElement.querySelector('div')?.textContent ?? '').toBe('')
+  },
+}
+
+// The same event on the detail page's pinned bar (#281). The progress track measures the eleven
+// players against the twelve wanted; the coach is named beside the fraction rather than advancing it,
+// which is what used to fill the bar and turn the headline green.
+export const WithStaffAttending: Story = {
+  args: {
+    roster: makeRoster({
+      state: 'HEADCOUNT_SHORT',
+      openSlots: 1,
+      totalTarget: 12,
+      totalAttending: 12,
+      positions: [
+        { id: 'pos-setter', label: 'Setter', required: undefined, attending: 11, kind: 'PLAYING' },
+        { id: 'pos-trainer', label: 'Trainer', required: undefined, attending: 1, kind: 'STAFF' },
+      ],
+    }),
+  },
+  play: async ({ canvas }) => {
+    await expect(canvas.getByText(/11\/12 going \+1 staff/)).toBeInTheDocument()
+    await expect(canvas.getByText(/1 more needed/)).toBeInTheDocument()
   },
 }

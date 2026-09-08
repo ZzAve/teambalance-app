@@ -9,8 +9,8 @@ import { ManageEventTypesView } from './ManageEventTypesView'
 // type carrying the roster default its events inherit. Prop-only, so every state — including the
 // destructive archive dialog and its migration offer — renders from props with no network (ADR-0017).
 const POSITIONS: Position[] = [
-  { id: 'p1', label: 'Setter' },
-  { id: 'p2', label: 'Libero' },
+  { id: 'p1', label: 'Setter', kind: 'PLAYING' },
+  { id: 'p2', label: 'Libero', kind: 'PLAYING' },
 ]
 
 const TYPES: EventTypeItem[] = [

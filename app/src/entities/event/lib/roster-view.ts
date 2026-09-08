@@ -169,8 +169,26 @@ export function unassignedNudge(roster: EventRoster): string | null {
  * to the covered fraction and this becomes a secondary line beneath the rows; without them, the
  * header is free and this fills it. Either way the chip already said "4 more needed" — the absolute
  * numbers are what the panel adds.
+ *
+ * The numerator is `playingAttending`, not `totalAttending` (#281): a headcount is a target for
+ * players, so a training of 11 players and a coach against a target of 12 reads "11/12 going" — and
+ * [staffNote] says where the twelfth person went, so the two numbers do not look like a mistake.
  */
 export function headcountLine(roster: EventRoster): string | null {
   if (roster.totalTarget == null) return null
-  return `${roster.totalAttending}/${roster.totalTarget} going`
+  return `${roster.playingAttending}/${roster.totalTarget} going`
+}
+
+/**
+ * "1 staff also going, not counted toward the target" — null when nobody attending holds a staff
+ * position, which is every roster on a team that has not marked one.
+ *
+ * Excluded from the target, not hidden: the rows above already name who they are, and this says why
+ * the fraction beside them is smaller than the number of people in the room. "staff" reads the same
+ * in one and in five, which the team's own labels (Trainer, Physio) would not.
+ */
+export function staffNote(roster: EventRoster): string | null {
+  const n = roster.staffAttending
+  if (n <= 0) return null
+  return `${n} staff also going, not counted toward the target`
 }

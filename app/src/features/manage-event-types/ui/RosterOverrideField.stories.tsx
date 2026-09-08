@@ -7,8 +7,8 @@ import { RosterOverrideField } from './RosterOverrideField'
 // "Inherit default / Customise" in the create and edit event forms. Prop-only: the value and the
 // selected event type come from the form around it, so both branches render with no network.
 const POSITIONS: Position[] = [
-  { id: 'p1', label: 'Setter' },
-  { id: 'p2', label: 'Libero' },
+  { id: 'p1', label: 'Setter', kind: 'PLAYING' },
+  { id: 'p2', label: 'Libero', kind: 'PLAYING' },
 ]
 
 const MATCH = makeEventType({

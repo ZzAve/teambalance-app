@@ -4,6 +4,7 @@ import com.github.zzave.teambalance.api.domain.exception.PositionLabelTakenExcep
 import com.github.zzave.teambalance.api.domain.exception.PositionNotFoundException
 import com.github.zzave.teambalance.api.domain.model.Position
 import com.github.zzave.teambalance.api.domain.model.PositionId
+import com.github.zzave.teambalance.api.domain.model.PositionKind
 import com.github.zzave.teambalance.api.domain.model.PositionLabel
 import com.github.zzave.teambalance.api.domain.model.TeamId
 import com.github.zzave.teambalance.api.domain.model.UserId
@@ -44,6 +45,20 @@ class PositionService(
         val label = validLabel(rawLabel)
         requireUnique(label, excludingId = id)
         return positionRepository.rename(id, label)
+    }
+
+    /**
+     * Admin-only. Marks a position as played or staffed (#281) — the switch that decides whether the
+     * people holding it count toward an event's headcount target.
+     *
+     * Its own method rather than a second argument to [renamePosition], because the two are different
+     * admin gestures: a label is typed and saved, a kind is toggled and applies at once. No
+     * uniqueness check — the kind is not part of a position's identity, so two positions may share it.
+     */
+    fun setPositionKind(callerId: UserId, teamId: TeamId, id: PositionId, kind: PositionKind): Position {
+        authorizationService.requireAdmin(callerId, teamId)
+        if (!positionRepository.exists(id)) throw PositionNotFoundException(id)
+        return positionRepository.setKind(id, kind)
     }
 
     /**

@@ -163,3 +163,32 @@ export const WithStaffAttending: Story = {
     await expect(canvas.getByText(/1 more needed/)).toBeInTheDocument()
   },
 }
+
+// The same eleven players and one coach, on a team that has NOT ticked Staff on Trainer — which is
+// every team on the day this ships, because the migration defaults to PLAYING. It reads "12/12 going
+// · Full" with a filled track.
+//
+// Its whole job is to sit next to WithStaffAttending above, where the identical attendance reads
+// "11/12 going +1 staff · 1 more needed". Same people, same answers; the only difference is one
+// checkbox in the position editor. That contrast is the change, and a reviewer should be able to see
+// it as two pictures rather than reconstruct it from a diff.
+export const WithStaffNotYetMarked: Story = {
+  args: {
+    roster: makeRoster({
+      state: 'HEADCOUNT_FULL',
+      openSlots: 0,
+      totalTarget: 12,
+      totalAttending: 12,
+      positions: [
+        { id: 'pos-setter', label: 'Setter', required: undefined, attending: 11, kind: 'PLAYING' },
+        { id: 'pos-trainer', label: 'Trainer', required: undefined, attending: 1, kind: 'PLAYING' },
+      ],
+    }),
+  },
+  play: async ({ canvas }) => {
+    await expect(canvas.getByText(/12\/12 going/)).toBeInTheDocument()
+    await expect(canvas.getByText(/Full/)).toBeInTheDocument()
+    // No staff suffix: nobody attending holds a staff position.
+    await expect(canvas.queryByText(/staff/)).not.toBeInTheDocument()
+  },
+}

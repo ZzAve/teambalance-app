@@ -270,3 +270,24 @@ export const WithStaffAttending: Story = {
     await expect(canvas.getByText('Trainer')).toBeInTheDocument()
   },
 }
+
+// Staff alongside targeted positions — the panel's densest honest state, and the one where all three
+// numbers appear at once: the covered fraction owns the header (2 of 2), the headcount drops to a
+// secondary line counting players only (3/6), and the staff line explains why four people are listed
+// under a fraction that says three. WithStaffAttending above is the tally-shaped training; this is
+// the same distinction on an event that also names a lineup.
+export const WithStaffAndPositionTargets: Story = {
+  args: {
+    roster: makeRoster({
+      state: 'LINEUP_SET',
+      totalTarget: 6,
+      totalAttending: 4,
+      positions: [pos('Setter', 2, 2), pos('Libero', 1, 1), pos('Trainer', undefined, 1, 'STAFF')],
+    }),
+  },
+  play: async ({ canvas }) => {
+    await expect(canvas.getByText('2 of 2 covered')).toBeInTheDocument()
+    await expect(canvas.getByText('3/6 going')).toBeInTheDocument()
+    await expect(canvas.getByText('1 staff also going, not counted toward the target')).toBeInTheDocument()
+  },
+}

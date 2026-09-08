@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  TeamBalance app mark: the single master image every PWA icon is generated from
+  (see app/pwa-assets.config.ts, `npm run generate-pwa-assets`). Edit this file, re-run the
+  generator, and commit the regenerated PNGs; never hand-edit the generated output.
+
+  "TB" monogram: blue T + green B, echoing the "Team|Balance" split of the wordmark.
+  Colours are the design tokens (color-blue #225C9C, color-green #249E6C) on the surface
+  color-background #F8F6F0; they are literals because an icon file cannot read CSS vars.
+
+  Maskable by construction: the background is full-bleed and the glyphs sit inside the
+  safe zone (the centred circle of radius 40% = r 205 around 256,256), so Android can crop
+  the mark to any shape (circle, squircle, rounded square) without clipping it. That is
+  why the generator runs with padding 0: the padding is already baked in here.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="TeamBalance">
+  <title>TeamBalance</title>
+  <rect width="512" height="512" fill="#F8F6F0"/>
+  <g transform="translate(2 0)" fill="none" stroke-width="34" stroke-linecap="round" stroke-linejoin="round">
+    <!-- T -->
+    <g stroke="#225C9C">
+      <path d="M133 155H233"/>
+      <path d="M183 155V357"/>
+    </g>
+    <!-- B -->
+    <g stroke="#249E6C">
+      <path d="M285 155V357"/>
+      <path d="M285 155H322A47.5 47.5 0 0 1 322 250H285"/>
+      <path d="M285 250H322A53.5 53.5 0 0 1 322 357H285"/>
+    </g>
+  </g>
+</svg>

@@ -16,7 +16,8 @@
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
     "chromatic": "chromatic --only-changed --exit-zero-on-changes",
-    "generate-pwa-assets": "pwa-assets-generator"
+    "generate-pwa-assets": "pwa-assets-generator",
+    "generate-pwa-screenshots": "node scripts/capture-pwa-screenshots.mjs"
   },
   "dependencies": {
     "@fontsource-variable/dm-sans": "5.3.0",

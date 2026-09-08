@@ -114,6 +114,7 @@ Four honest layers — place each new test at the **lowest layer that proves it*
 > - Component states (empty/loading/data/error) → a Storybook story. **Interactive components: pass `fn()` spies as callback props and assert `toHaveBeenCalledWith` in `play`** (prove the wiring, not just the render). Hold the network line — no MSW in stories.
 > - **Container/View split**: the `*View` (prop-only) gets the story with loading/error shells as props-driven states; the container is thin wiring covered by e2e. See ADR-0017 and `features/manage-positions` (exemplar).
 > - Visual appearance → covered automatically by Chromatic once the component has a story; no extra work per component.
+> - A visible change to the events overview or the app shell (header, bottom nav) → rerun `npm run generate-pwa-screenshots` (in `app/`) and commit the PNGs. They are the install-dialog previews in the web manifest; nothing regenerates them automatically, and the manifest unit test only proves their pixel size still matches.
 > - Pure logic (mappers, adapters, stores) → a Vitest unit.
 > - Backend behaviour → a Kotest unit or Testcontainers IT.
 > - **A new e2e is justified *only* if the change introduces a seam not already exercised by the login or attendance flows** (new auth path, new cross-tenant write, new external integration). If it does, add one flow. If it doesn't, say so in the PR.

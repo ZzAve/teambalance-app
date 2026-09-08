@@ -13,11 +13,13 @@ test('change attendance: toggle a response and it persists across a reload', asy
   await page.goto('/')
   await expect(page.getByRole('heading', { name: 'Events' })).toBeVisible()
 
-  // 2. Open the seeded event (list → detail navigation)
+  // 2. Open the seeded event (list → detail navigation). Scope to the primary "Your response"
+  //    control — every attendee row (the viewer's own included) now carries its own Going/Maybe/Can't,
+  //    so an unscoped name would be ambiguous.
   await page.getByText('E2E Training').first().click()
-  // exact: the attendee-count tabs also match by prefix ("Going 0")
-  const going = page.getByRole('button', { name: 'Going', exact: true })
-  const maybe = page.getByRole('button', { name: 'Maybe', exact: true })
+  const response = page.getByRole('group', { name: 'Your response' })
+  const going = response.getByRole('button', { name: 'Going', exact: true })
+  const maybe = response.getByRole('button', { name: 'Maybe', exact: true })
   await expect(going).toBeVisible()
 
   // 3. Toggle to a state different from the current one
@@ -29,9 +31,7 @@ test('change attendance: toggle a response and it persists across a reload', asy
 
   // 4. The transition survives a full reload — i.e. it was persisted, not just local state
   await page.reload()
-  await expect(page.getByRole('button', { name: targetName, exact: true })).toHaveAttribute(
-    'aria-pressed',
-    'true',
-    { timeout: 10_000 },
-  )
+  await expect(
+    page.getByRole('group', { name: 'Your response' }).getByRole('button', { name: targetName, exact: true }),
+  ).toHaveAttribute('aria-pressed', 'true', { timeout: 10_000 })
 })

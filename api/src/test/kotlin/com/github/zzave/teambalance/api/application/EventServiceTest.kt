@@ -25,8 +25,16 @@ import com.github.zzave.teambalance.api.domain.port.EventTypeRepository
 import com.github.zzave.teambalance.api.domain.port.PositionRepository
 import com.github.zzave.teambalance.api.domain.port.SeasonRepository
 import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
+import ch.qos.logback.classic.Level
+import ch.qos.logback.classic.Logger
+import ch.qos.logback.classic.spi.ILoggingEvent
+import ch.qos.logback.core.read.ListAppender
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
+import io.kotest.matchers.collections.shouldContainExactly
+import io.kotest.matchers.shouldBe
+import io.kotest.matchers.string.shouldContain
+import org.slf4j.LoggerFactory
 import java.time.Clock
 import java.time.DayOfWeek
 import java.time.Instant
@@ -43,7 +51,7 @@ private class ExplodingEventRepo : EventRepository {
     override fun findById(id: EventId): Event? = error("repository must not be reached for an unauthorized caller")
     override fun findByIds(ids: List<EventId>): List<Event> = error("unused")
     override fun findUpcoming(since: Instant): List<Event> = error("unused")
-    override fun findAll(): List<Event> = error("unused")
+    override fun findMostRecent(limit: Int): List<Event> = error("unused")
     override fun findByRecurringGroup(group: UUID): List<Event> = error("unused")
     override fun save(event: Event): Event = error("unused")
     override fun saveAll(events: List<Event>): List<Event> = error("unused")
@@ -106,6 +114,45 @@ private class EventFakeMemberRepo(private val admins: Set<UserId>) : TeamMemberR
     override fun markOnboarded(teamId: TeamId, userId: UserId, at: Instant) = Unit
     override fun countAdmins(teamId: TeamId): Int = admins.size
     override fun countByPosition(teamId: TeamId, positionId: PositionId): Int = 0
+}
+
+/**
+ * Answers [findMostRecent] honestly — at most [limit] rows, newest first — and records the limit it
+ * was asked for. That is what lets these tests state the cap policy without a database: how many
+ * rows the service asks for, how many it hands back, and when it warns. Whether that limit actually
+ * reaches SQL is a different claim, proven against real Postgres in `EventHistoryCapIT`.
+ */
+private class RecordingEventRepo(private val available: Int) : EventRepository {
+    var requestedLimit: Int? = null
+
+    override fun findMostRecent(limit: Int): List<Event> {
+        requestedLimit = limit
+        return (0 until minOf(limit, available)).map { historyEvent(it) }
+    }
+
+    override fun findById(id: EventId): Event? = error("unused")
+    override fun findByIds(ids: List<EventId>): List<Event> = error("unused")
+    override fun findUpcoming(since: Instant): List<Event> = error("unused")
+    override fun findByRecurringGroup(group: UUID): List<Event> = error("unused")
+    override fun save(event: Event): Event = error("unused")
+    override fun saveAll(events: List<Event>): List<Event> = error("unused")
+    override fun deleteById(id: EventId) = error("unused")
+    override fun deleteAllById(ids: List<EventId>) = error("unused")
+    override fun countTargetsForPosition(positionId: PositionId): Int = error("unused")
+
+    // Index 0 is the newest, so "the oldest row is the one dropped" is observable by title.
+    private fun historyEvent(index: Int) = Event(
+        id = EventId(UUID.randomUUID()),
+        eventType = EventType(EventTypeId(UUID.randomUUID()), EventTypeName("Training"), null),
+        title = EventTitle("Event $index"),
+        description = null,
+        startTime = Instant.EPOCH.minusSeconds(index.toLong()),
+        endTime = Instant.EPOCH.minusSeconds(index.toLong()).plusSeconds(3600),
+        location = null,
+        recurringGroup = null,
+        createdBy = UserId.random(),
+        createdAt = Instant.EPOCH,
+    )
 }
 
 class EventServiceTest : FunSpec() {
@@ -179,5 +226,70 @@ class EventServiceTest : FunSpec() {
                 )
             }
         }
+
+        // --- the include-past cap (#310) -------------------------------------------------------
+
+        fun serviceOverHistoryOf(available: Int): Pair<EventService, RecordingEventRepo> {
+            val repo = RecordingEventRepo(available)
+            return EventService(
+                repo,
+                ExplodingEventTypeRepo(),
+                ExplodingSeasonRepo(),
+                ExplodingPositionRepo(),
+                AuthorizationService(EventFakeMemberRepo(admins = emptySet()), FakeActAsGateway()),
+                Clock.fixed(Instant.EPOCH, ZoneOffset.UTC),
+            ) to repo
+        }
+
+        fun warningsWhile(block: () -> Unit): List<String> {
+            val logger = LoggerFactory.getLogger(EventService::class.java) as Logger
+            val appender = ListAppender<ILoggingEvent>().also { it.start() }
+            logger.addAppender(appender)
+            try {
+                block()
+            } finally {
+                logger.detachAppender(appender)
+                appender.stop()
+            }
+            return appender.list.filter { it.level == Level.WARN }.map { it.formattedMessage }
+        }
+
+        test("getAllEvents asks for one row beyond the cap, which is what separates 'at' from 'over'") {
+            val (service, repo) = serviceOverHistoryOf(EventService.EVENT_HISTORY_CAP + 1)
+
+            service.getAllEvents(teamId)
+
+            repo.requestedLimit shouldBe EventService.EVENT_HISTORY_CAP + 1
+        }
+
+        test("over the cap, exactly the cap comes back and the oldest row is the one dropped") {
+            val (service, _) = serviceOverHistoryOf(EventService.EVENT_HISTORY_CAP + 1)
+
+            val events = service.getAllEvents(teamId)
+
+            events.map { it.title.value } shouldContainExactly
+                (0 until EventService.EVENT_HISTORY_CAP).map { "Event $it" }
+        }
+
+        test("exactly at the cap, everything comes back and nothing is warned about") {
+            val (service, _) = serviceOverHistoryOf(EventService.EVENT_HISTORY_CAP)
+
+            var events: List<Event> = emptyList()
+            val warnings = warningsWhile { events = service.getAllEvents(teamId) }
+
+            events.size shouldBe EventService.EVENT_HISTORY_CAP
+            warnings shouldBe emptyList()
+        }
+
+        test("over the cap, one WARN names the team and the cap") {
+            val (service, _) = serviceOverHistoryOf(EventService.EVENT_HISTORY_CAP + 1)
+
+            val warnings = warningsWhile { service.getAllEvents(teamId) }
+
+            warnings.size shouldBe 1
+            warnings.single() shouldContain teamId.value.toString()
+            warnings.single() shouldContain EventService.EVENT_HISTORY_CAP.toString()
+        }
+
     }
 }

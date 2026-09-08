@@ -24,6 +24,7 @@ import com.github.zzave.teambalance.api.domain.port.EventRepository
 import com.github.zzave.teambalance.api.domain.port.EventTypeRepository
 import com.github.zzave.teambalance.api.domain.port.PositionRepository
 import com.github.zzave.teambalance.api.domain.port.SeasonRepository
+import org.slf4j.LoggerFactory
 import java.time.Clock
 import java.time.Duration
 import java.time.Instant
@@ -55,16 +56,45 @@ class EventService(
     private val authorizationService: AuthorizationService,
     private val clock: Clock,
 ) {
+    private val log = LoggerFactory.getLogger(EventService::class.java)
+
     companion object {
         val GRACE_PERIOD: Duration = Duration.ofHours(6)
 
         // A single occurrence can't run longer than a day — guards against a bogus/huge duration.
         const val MAX_DURATION_MINUTES: Long = 24 * 60
+
+        /**
+         * The most events `include-past=true` will ever return. Roughly four seasons of history at
+         * three events a week — well above any team we have, so it is a guardrail rather than a
+         * limit anyone should meet, and reaching it is itself the signal (the WARN below).
+         *
+         * Truncation drops the OLDEST events, since the ordering is newest-first. Future events are
+         * the newest of all, so Bulk Attend (future-only, ADR-0020) can never lose a row to it.
+         */
+        const val EVENT_HISTORY_CAP: Int = 500
     }
 
     fun getUpcomingEvents(): List<Event> = eventRepository.findUpcoming(clock.instant().minus(GRACE_PERIOD))
 
-    fun getAllEvents(): List<Event> = eventRepository.findAll()
+    /**
+     * Every event, newest first — capped at [EVENT_HISTORY_CAP].
+     *
+     * One row beyond the cap is asked for, which is what tells "exactly at the cap" from "over it"
+     * without a second `count()`. [teamId] is here for the warning and nothing else: the tenant is
+     * already bound by the time this runs, but a log line that cannot name the team is no signal.
+     */
+    fun getAllEvents(teamId: TeamId): List<Event> {
+        val events = eventRepository.findMostRecent(EVENT_HISTORY_CAP + 1)
+        if (events.size <= EVENT_HISTORY_CAP) return events
+        log.warn(
+            "Team {} has more than {} events; returning the {} most recent and dropping older history",
+            teamId,
+            EVENT_HISTORY_CAP,
+            EVENT_HISTORY_CAP,
+        )
+        return events.take(EVENT_HISTORY_CAP)
+    }
 
     fun getEvent(id: EventId): Event? = eventRepository.findById(id)
 

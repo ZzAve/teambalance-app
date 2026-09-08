@@ -2,6 +2,7 @@ import { Link } from '@tanstack/react-router'
 import { Check, Clock, MapPin, X } from 'lucide-react'
 import type { Event } from '@shared/api/events'
 import type { AttendanceState } from '@features/attendance-toggle/ui/AttendanceToggle'
+import { ReadinessBadge } from '@entities/event/ui/ReadinessBadge'
 import { heroCountdown } from '../lib/countdown'
 import { useTeamRoutes } from '@shared/lib/team-routes'
 
@@ -21,7 +22,7 @@ const MY_STATE_TEXT: Record<AttendanceState, string> = {
   ATTENDING: "you're in",
   ABSENT: "you're out",
   MAYBE: 'you said maybe',
-  NOT_RESPONDED: "you haven't replied",
+  NOT_RESPONDED: "you haven't responded",
 }
 
 /**
@@ -118,9 +119,17 @@ export function NextEventHeroView({
         </p>
       )}
 
-      <p className="mt-2.5 text-[13px] text-white/90">
-        {event.attendanceSummary.attending} going · {MY_STATE_TEXT[myState]}
-      </p>
+      {/* The headcount and the viewer's answer on the left; the roster verdict on the right (#275).
+          One row, not two: with no verdict to give the badge renders nothing and the row collapses
+          to the height of the status line, so a social reserves no space for a chip it never shows.
+          The badge is deliberately *not* lifted above the stretched overlay — it is information, not
+          a control, so tapping it opens the event like the rest of the passive rows. */}
+      <div className="mt-2.5 flex items-center justify-between gap-2">
+        <p className="text-[13px] text-white/90">
+          {event.attendanceSummary.attending} going · {MY_STATE_TEXT[myState]}
+        </p>
+        <ReadinessBadge roster={event.roster} variant="hero" pending={isSaving} />
+      </div>
 
       {/* The answer the viewer has given is the solid button; the other one recedes. With no answer
           yet, "I'm in" is solid because it is the invitation, not because it has been chosen. */}

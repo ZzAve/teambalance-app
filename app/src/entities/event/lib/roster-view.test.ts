@@ -52,22 +52,37 @@ describe('rosterChip', () => {
     })
   })
 
-  // Same words, different tone. The count is the news; the colour is what separates "chase later"
-  // from "chase now" — a position sitting at zero.
-  it('keeps the wording but turns critical when a position has nobody', () => {
-    // Libero at zero is what makes it critical; Setter's two missing bring the count to three.
+  // Critical is not "more of the same shortfall": a position has nobody, and that is what the chip
+  // says. The count of open slots is the wrong news here — Setter being two short is not why this
+  // event needs chasing now.
+  it('names the missing position rather than the open-slot count when a position has nobody', () => {
+    // Libero at zero is what makes it critical; Setter's two missing bring openSlots to three.
     const criticalBy3 = [pos('Setter', 3, 1), pos('Libero', 1, 0)]
     expect(rosterChip(roster({ state: 'CRITICAL', openSlots: 3, positions: criticalBy3 }))).toEqual({
-      text: '3 spots open',
+      text: 'Missing a position',
       tone: 'critical',
     })
   })
 
-  it('says "spot" not "spots" for a single one', () => {
+  it('counts the empty positions once more than one has nobody', () => {
+    const criticalBy4 = [pos('Setter', 3, 0), pos('Libero', 1, 0)]
+    expect(rosterChip(roster({ state: 'CRITICAL', openSlots: 4, positions: criticalBy4 }))?.text).toBe(
+      'Missing 2 positions',
+    )
+  })
+
+  // WCAG 1.4.1 (#313). Before this, both states read "3 spots open" and only gold-vs-red told them
+  // apart — unavailable to anyone who cannot distinguish the two, and absent from the accessible
+  // name entirely. The words, not the tone, must carry the difference.
+  it('distinguishes critical from merely short by text, not only by tone', () => {
+    const short = rosterChip(roster({ state: 'SPOTS_OPEN', openSlots: 3, positions: [pos('Setter', 3, 0)] }))
+    const critical = rosterChip(roster({ state: 'CRITICAL', openSlots: 3, positions: [pos('Setter', 3, 0)] }))
+    expect(critical?.text).not.toBe(short?.text)
+  })
+
+  it('says "spot" not "spots" for a single open one', () => {
     const shortBy1 = [pos('Setter', 2, 1)]
-    const criticalBy1 = [pos('Setter', 1, 0)]
     expect(rosterChip(roster({ state: 'SPOTS_OPEN', openSlots: 1, positions: shortBy1 }))?.text).toBe('1 spot open')
-    expect(rosterChip(roster({ state: 'CRITICAL', openSlots: 1, positions: criticalBy1 }))?.text).toBe('1 spot open')
   })
 
   it('reads as a headcount when only a total is set', () => {

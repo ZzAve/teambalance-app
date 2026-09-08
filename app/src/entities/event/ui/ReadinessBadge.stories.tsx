@@ -41,8 +41,10 @@ export const Critical: Story = {
   args: {
     roster: makeRoster({ state: 'CRITICAL', positions: [{ id: 'p', label: 'Libero', required: 1, attending: 0 }] }),
   },
+  // Not "1 spot open" — that is what Short says, and red-vs-gold was the only thing telling the two
+  // apart (#313).
   play: async ({ canvas }) => {
-    await expect(canvas.getByText('1 spot open')).toBeInTheDocument()
+    await expect(canvas.getByText('Missing a position')).toBeInTheDocument()
   },
 }
 

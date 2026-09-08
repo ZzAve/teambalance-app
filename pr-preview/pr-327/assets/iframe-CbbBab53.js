@@ -1,0 +1,1 @@
+import{t as e}from"./iframe-BUQITW27.js";e();

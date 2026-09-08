@@ -17,7 +17,9 @@ import org.testcontainers.utility.DockerImageName
 @ContextConfiguration(initializers = [TeamBalanceIT.Initializer::class])
 abstract class TeamBalanceIT : FunSpec() {
 
-    override fun extensions() = listOf(SpringTestExtension(SpringTestLifecycleMode.Test))
+    init {
+        extension(SpringTestExtension(SpringTestLifecycleMode.Test))
+    }
 
     companion object {
         val postgres: PostgreSQLContainer<*> = PostgreSQLContainer("postgres:17-alpine")

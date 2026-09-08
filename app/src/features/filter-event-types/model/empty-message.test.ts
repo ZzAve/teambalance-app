@@ -1,0 +1,81 @@
+import {describe, expect, it} from 'vitest'
+import type {AttendanceState} from '@features/attendance-toggle/ui/AttendanceToggle'
+import {ALL_ATTENDANCE_STATES} from './attendance-states'
+import {ALL_TURNOUT_BUCKETS, type TurnoutBucket} from './turnout'
+import {emptyEventsMessage} from './empty-message'
+
+const ALL_TYPE_IDS = ['training', 'match']
+
+const message = (overrides: Partial<Parameters<typeof emptyEventsMessage>[0]> = {}) =>
+    emptyEventsMessage({
+        hasHero: false,
+        showPast: false,
+        activeTypeIds: new Set(ALL_TYPE_IDS),
+        allTypeIds: ALL_TYPE_IDS,
+        activeStates: new Set(ALL_ATTENDANCE_STATES),
+        activeTurnouts: new Set(ALL_TURNOUT_BUCKETS),
+        ...overrides,
+    })
+
+describe('emptyEventsMessage', () => {
+    it('says the list is merely exhausted when a hero is on screen', () => {
+        expect(message({hasHero: true, activeTypeIds: new Set(['match'])})).toBe('Nothing else coming up.')
+    })
+
+    it('reports an unfiltered upcoming list as having nothing coming', () => {
+        expect(message()).toBe('No upcoming events.')
+    })
+
+    it('reports an unfiltered list including past as having nothing at all', () => {
+        expect(message({showPast: true})).toBe('No events yet.')
+    })
+
+    it('names the type dimension when only it is narrowed', () => {
+        expect(message({activeTypeIds: new Set(['match'])})).toBe('No events for this type.')
+    })
+
+    it('names the answer dimension when it is narrowed to Not responded alone', () => {
+        expect(message({activeStates: new Set<AttendanceState>(['NOT_RESPONDED'])}))
+            .toBe('Nothing needs your answer.')
+    })
+
+    it('stays generic for an answered status, where "needs your answer" would be a lie', () => {
+        expect(message({activeStates: new Set<AttendanceState>(['ATTENDING'])}))
+            .toBe('No events match these filters.')
+    })
+
+    it('stays generic for a multi-state selection', () => {
+        expect(message({activeStates: new Set<AttendanceState>(['MAYBE', 'NOT_RESPONDED'])}))
+            .toBe('No events match these filters.')
+    })
+
+    it('stays generic when both dimensions are narrowed', () => {
+        expect(message({
+            activeTypeIds: new Set(['match']),
+            activeStates: new Set<AttendanceState>(['NOT_RESPONDED']),
+        })).toBe('No events match these filters.')
+    })
+
+    it('names the turnout dimension when it is narrowed to the short bands', () => {
+        expect(message({activeTurnouts: new Set<TurnoutBucket>(['spots-open'])}))
+            .toBe('No events are short of players.')
+        expect(message({activeTurnouts: new Set<TurnoutBucket>(['missing-position'])}))
+            .toBe('No events are short of players.')
+        expect(message({activeTurnouts: new Set<TurnoutBucket>(['missing-position', 'spots-open'])}))
+            .toBe('No events are short of players.')
+    })
+
+    it('stays generic for a covered selection, where "short of players" would be a lie', () => {
+        expect(message({activeTurnouts: new Set<TurnoutBucket>(['covered'])}))
+            .toBe('No events match these filters.')
+        expect(message({activeTurnouts: new Set<TurnoutBucket>(['spots-open', 'no-target'])}))
+            .toBe('No events match these filters.')
+    })
+
+    it('stays generic when turnout is narrowed alongside another dimension', () => {
+        expect(message({
+            activeStates: new Set<AttendanceState>(['NOT_RESPONDED']),
+            activeTurnouts: new Set<TurnoutBucket>(['spots-open']),
+        })).toBe('No events match these filters.')
+    })
+})

@@ -22,7 +22,7 @@ const MY_STATE_TEXT: Record<AttendanceState, string> = {
   ATTENDING: "you're in",
   ABSENT: "you're out",
   MAYBE: 'you said maybe',
-  NOT_RESPONDED: "you haven't replied",
+  NOT_RESPONDED: "you haven't responded",
 }
 
 /**

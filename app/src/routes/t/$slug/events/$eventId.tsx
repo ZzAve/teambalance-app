@@ -90,9 +90,13 @@ function EventDetailPage() {
       )
     }
   }
-  // The roster bar replaces RoleBreakdown only where a position carries a target; otherwise it has
-  // nothing to be a fraction of and RoleBreakdown stays as the fallback (⑥, same rule as the card).
+  // Two independent questions, and conflating them is what used to lose the headcount here (#271 ⑥).
+  // The bar shows for ANY tracked roster — with position targets it counts slots, without them it
+  // counts people (a target fraction, or a plain tally). RoleBreakdown is the per-role fallback and
+  // still turns on the narrower question: it survives only where no position carries a target, since
+  // there the bar states a total but nothing about who plays where.
   const hasPositionTargets = event.roster.positions.some((p) => p.required != null)
+  const showRosterBar = hasPositionTargets || event.roster.trackRoster
 
   // "Part of a series" peek: siblings are every event sharing this occurrence's recurring group.
   const siblings = event.recurringGroup
@@ -141,9 +145,9 @@ function EventDetailPage() {
       {/* Roster overview — pinned so completeness stays one glance away however far a big squad
           scrolls. Sits high, right under the event identity, so on a tall desktop screen it is
           visible and pinning from the start rather than buried below the response/info sections.
-          Where no position carries a target it renders nothing (the list keeps the headcount
-          breakdown as the fallback, ⑥). */}
-      {hasPositionTargets && (
+          Shows for any tracked roster (#317): position targets count slots, otherwise a headcount
+          or plain tally; RoleBreakdown stays the per-role fallback where no position is targeted (⑥). */}
+      {showRosterBar && (
         <div
           className="sticky z-20 -mx-4 mt-6"
           style={{ top: `calc(var(--header-height) + ${subHeaderHeight}px)` }}
@@ -186,8 +190,9 @@ function EventDetailPage() {
         </div>
       )}
 
-      {/* Attendance — one list by position, no tabs. Where no position carries a target the roster
-          bar (pinned above) shows nothing and the headcount breakdown stays as the fallback. */}
+      {/* Attendance — one list by position, no tabs. The roster bar (pinned above) shows for any
+          tracked roster; where no position carries a target RoleBreakdown stays as the per-role
+          fallback (⑥). */}
       <div className="mt-6 overflow-hidden rounded-2xl border border-border/40 bg-card shadow-sm">
         {!hasPositionTargets && <RoleBreakdown breakdown={event.attendanceSummary.roleBreakdown} />}
         <AttendeeList

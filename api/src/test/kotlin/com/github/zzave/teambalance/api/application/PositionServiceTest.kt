@@ -87,7 +87,7 @@ private class CountingEventRepo : EventRepository {
     override fun findById(id: EventId): Event? = error("unused")
     override fun findByIds(ids: List<EventId>): List<Event> = error("unused")
     override fun findUpcoming(since: Instant): List<Event> = error("unused")
-    override fun findAll(): List<Event> = error("unused")
+    override fun findMostRecent(limit: Int): List<Event> = error("unused")
     override fun findByRecurringGroup(group: UUID): List<Event> = error("unused")
     override fun save(event: Event): Event = error("unused")
     override fun saveAll(events: List<Event>): List<Event> = error("unused")

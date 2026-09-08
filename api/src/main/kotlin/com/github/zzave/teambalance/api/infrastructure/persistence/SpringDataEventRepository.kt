@@ -1,6 +1,7 @@
 package com.github.zzave.teambalance.api.infrastructure.persistence
 
 import com.github.zzave.teambalance.api.infrastructure.persistence.entity.EventJpaEntity
+import org.springframework.data.domain.Limit
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Modifying
 import org.springframework.data.jpa.repository.Query
@@ -12,7 +13,12 @@ interface SpringDataEventRepository : JpaRepository<EventJpaEntity, Long> {
     fun findByUuid(uuid: UUID): EventJpaEntity?
     fun findByUuidIn(uuids: List<UUID>): List<EventJpaEntity>
     fun findByStartTimeGreaterThanOrderByStartTimeAsc(since: Instant): List<EventJpaEntity>
-    fun findAllByOrderByStartTimeDesc(): List<EventJpaEntity>
+    /**
+     * Newest first, at most [limit] rows. A `Limit` parameter rather than a `findTopN` name so the
+     * cap stays where the policy is (`EventService.EVENT_HISTORY_CAP`) instead of being baked into a
+     * method name — and, unlike trimming the list afterwards, it becomes a SQL `LIMIT` (#310).
+     */
+    fun findAllByOrderByStartTimeDesc(limit: Limit): List<EventJpaEntity>
     fun findByRecurringGroupOrderByStartTimeAsc(recurringGroup: UUID): List<EventJpaEntity>
 
     fun countByEventTypeId(eventTypeId: Long): Int

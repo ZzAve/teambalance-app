@@ -69,10 +69,15 @@ dependencies {
 
     // Testing — Kotest
     val kotestVersion: String by project
-    val kotestSpringExtensionVersion: String by project
     testImplementation("io.kotest:kotest-runner-junit5:$kotestVersion")
     testImplementation("io.kotest:kotest-assertions-core:$kotestVersion")
-    testImplementation("io.kotest.extensions:kotest-extensions-spring:$kotestSpringExtensionVersion")
+    // Kotest 6 absorbed the Spring extension into the main repo: it now ships as
+    // io.kotest:kotest-extensions-spring on the Kotest version, replacing the separately
+    // versioned io.kotest.extensions:kotest-extensions-spring (last release 1.3.0, built
+    // against Kotest 5.8.1). The old artifact also pulled io.kotest:kotest-framework-api,
+    // which Kotest 6 folded into kotest-framework-engine and no longer publishes — leaving
+    // stale 5.x classes on the test classpath that shadowed their 6.x replacements.
+    testImplementation("io.kotest:kotest-extensions-spring:$kotestVersion")
 
     // Testing — Spring + Testcontainers
     testImplementation("org.springframework.boot:spring-boot-starter-test")

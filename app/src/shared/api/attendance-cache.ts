@@ -32,10 +32,13 @@ const SUMMARY_FIELD: Record<AttendanceState, keyof Omit<AttendanceSummary, 'role
  * behind would be worse still — an internally inconsistent roster rather than a merely stale one.
  * So the roster stays exactly as the server last computed it and reconciles on `onSettled`.
  *
- * That is a real, if brief, lag on any surface rendering the roster next to the summary. It is
- * bounded by one round-trip, and the panel is collapsed by default; if it ever becomes visible
- * enough to matter, the fix is for the server to return the recomputed roster from the attendance
- * write, not for this function to start deriving one.
+ * That is a real, if brief, lag on any surface rendering the roster next to the summary, and since
+ * #271 those surfaces are no longer tucked away: the readiness verdict sits on every card row and on
+ * the Next Up hero, and the detail page pins the roster bar above the fold. What bounds the lag is
+ * the `pending` state (⑤) — while the write is in flight callers dim the badge rather than assert a
+ * stale verdict as current — and one round-trip. If that ever stops being enough, the fix is for the
+ * server to return the recomputed roster from the attendance write, not for this function to start
+ * deriving one.
  */
 export function applyOptimisticAttendance(
   event: EventDetail | undefined,

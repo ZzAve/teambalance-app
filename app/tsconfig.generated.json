@@ -12,7 +12,6 @@
     "outDir": "./.tsbuild/generated",
     "rootDir": "./src/shared/api/generated",
     "tsBuildInfoFile": "./.tsbuild/generated.tsbuildinfo",
-    "baseUrl": ".",
     // The Wirespec emitter produces unused imports and barrel re-exports that trip the
     // app's strict rules; the generated code is never hand-edited, so relax them here only.
     "noUnusedLocals": false,

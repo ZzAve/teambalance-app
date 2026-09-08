@@ -16,6 +16,8 @@
     "esModuleInterop": true,
     "noEmit": true,
     "types": ["vitest/globals"],
+    // No `baseUrl`: TypeScript 7 removed it. These `paths` are resolved relative to this
+    // tsconfig, which is the same directory `baseUrl: "."` used to point at.
     "paths": {
       "@app/*": ["./src/app/*"],
       "@pages/*": ["./src/pages/*"],
@@ -23,8 +25,7 @@
       "@features/*": ["./src/features/*"],
       "@entities/*": ["./src/entities/*"],
       "@shared/*": ["./src/shared/*"]
-    },
-    "baseUrl": "."
+    }
   },
   "include": ["src"],
   "exclude": ["src/shared/api/generated"],

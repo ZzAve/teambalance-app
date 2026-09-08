@@ -49,7 +49,7 @@ describe('applyOptimisticAttendance', () => {
       ],
     })
 
-    const next = applyOptimisticAttendance(event, 'user-1', 'ABSENT')
+    const next = applyOptimisticAttendance(event, 'user-1', 'ABSENT', 'user-1')
     if (!next) throw new Error('expected a patched event')
 
     expect(next.attendances.find((a) => a.userId === 'user-1')?.state).toBe('ABSENT')
@@ -62,7 +62,7 @@ describe('applyOptimisticAttendance', () => {
       attendances: [attendee({ userId: 'user-2', state: 'MAYBE' })],
     })
 
-    const next = applyOptimisticAttendance(event, 'unknown-user', 'ATTENDING')
+    const next = applyOptimisticAttendance(event, 'unknown-user', 'ATTENDING', 'user-1')
     if (!next) throw new Error('expected the event back unchanged')
 
     expect(next.attendances).toEqual(event.attendances)
@@ -74,7 +74,7 @@ describe('applyOptimisticAttendance', () => {
     })
     const originalEntry = original.attendances[0]
 
-    const next = applyOptimisticAttendance(original, 'user-1', 'ABSENT')
+    const next = applyOptimisticAttendance(original, 'user-1', 'ABSENT', 'user-1')
     if (!next) throw new Error('expected a patched event')
 
     expect(next).not.toBe(original)
@@ -85,7 +85,7 @@ describe('applyOptimisticAttendance', () => {
   })
 
   it('returns null unchanged (nothing cached yet)', () => {
-    expect(applyOptimisticAttendance(undefined, 'user-1', 'ABSENT')).toBeUndefined()
+    expect(applyOptimisticAttendance(undefined, 'user-1', 'ABSENT', 'user-1')).toBeUndefined()
   })
 
   // The Next Up hero shows the response and the headcount on one line, so the summary has to move
@@ -102,7 +102,7 @@ describe('applyOptimisticAttendance', () => {
       attendances: [attendee({ userId: 'user-1', state: 'NOT_RESPONDED' })],
     })
 
-    const next = applyOptimisticAttendance(event, 'user-1', 'ATTENDING')
+    const next = applyOptimisticAttendance(event, 'user-1', 'ATTENDING', 'user-1')
     if (!next) throw new Error('expected a patched event')
 
     expect(next.attendanceSummary.attending).toBe(11)
@@ -121,7 +121,7 @@ describe('applyOptimisticAttendance', () => {
       attendances: [attendee({ userId: 'user-1', state: 'ATTENDING' })],
     })
 
-    const next = applyOptimisticAttendance(event, 'user-1', 'ATTENDING')
+    const next = applyOptimisticAttendance(event, 'user-1', 'ATTENDING', 'user-1')
     if (!next) throw new Error('expected a patched event')
 
     expect(next.attendanceSummary.attending).toBe(4)
@@ -133,7 +133,7 @@ describe('applyOptimisticAttendance', () => {
       attendances: [attendee({ userId: 'user-1', state: 'ATTENDING' })],
     })
 
-    const next = applyOptimisticAttendance(event, 'user-1', 'ABSENT')
+    const next = applyOptimisticAttendance(event, 'user-1', 'ABSENT', 'user-1')
     if (!next) throw new Error('expected a patched event')
 
     expect(next.attendanceSummary.attending).toBe(0)
@@ -151,11 +151,33 @@ describe('applyOptimisticAttendance', () => {
       attendanceSummary: { attending: 4, maybe: 0, absent: 1, notResponded: 0, roleBreakdown: [] },
     })
 
-    const next = applyOptimisticAttendance(event, 'u1', 'ATTENDING')
+    const next = applyOptimisticAttendance(event, 'u1', 'ATTENDING', 'u1')
 
     // The summary moved…
     expect(next?.attendanceSummary.attending).toBe(5)
     // …and the roster is carried through as-is, awaiting the server's recomputation.
     expect(next?.roster).toEqual(roster)
+  })
+  // ⑪: the row's attribution has to move with its state, or the "set by …" line contradicts the
+  // answer next to it for a whole round-trip — most visibly on the detail page, where the line sits
+  // directly under the control that just fired.
+  it('stamps the acting user as the row\'s changedBy, clearing a teammate\'s stale attribution', () => {
+    const event = makeEventDetail({
+      attendances: [attendee({ userId: 'user-1', state: 'ABSENT', changedBy: 'user-tim' })],
+    })
+
+    const next = applyOptimisticAttendance(event, 'user-1', 'ATTENDING', 'user-1')
+
+    expect(next?.attendances[0].changedBy).toBe('user-1')
+  })
+
+  it("stamps the actor, not the target, when setting a teammate's answer (ADR-0003)", () => {
+    const event = makeEventDetail({
+      attendances: [attendee({ userId: 'user-2', state: 'NOT_RESPONDED', changedBy: undefined })],
+    })
+
+    const next = applyOptimisticAttendance(event, 'user-2', 'ATTENDING', 'user-1')
+
+    expect(next?.attendances[0].changedBy).toBe('user-1')
   })
 })

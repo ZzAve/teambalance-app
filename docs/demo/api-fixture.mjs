@@ -42,15 +42,24 @@ const summary = (attending, maybe, absent, notResponded, roleBreakdown = []) => 
  * only when the list spans two or more (ADR-0029 §5), and a demo of the filter popover that showed
  * the group collapsed would misrepresent the feature.
  */
-const roster = (state, { totalTarget, totalAttending = 0, positions = [], unassignedAttending = 0, openSlots = 0 } = {}) => ({
-  trackRoster: state !== 'OFF' && state !== 'TALLY_ONLY',
-  totalTarget,
-  totalAttending,
-  positions,
-  unassignedAttending,
-  openSlots,
-  state,
-})
+// `playingAttending` / `staffAttending` are DERIVED, never taken: the server splits `totalAttending`
+// by the rows' kinds (#281) and the card's headcount fallback reads `playingAttending`, so a fixture
+// that omits it renders a bare "going" with no number — which is what this helper used to do.
+const roster = (state, { totalTarget, totalAttending = 0, positions = [], unassignedAttending = 0, openSlots = 0 } = {}) => {
+  const rows = positions.map((p) => ({ kind: 'PLAYING', ...p }))
+  const staff = rows.filter((p) => p.kind === 'STAFF').reduce((sum, p) => sum + p.attending, 0)
+  return {
+    trackRoster: state !== 'OFF' && state !== 'TALLY_ONLY',
+    totalTarget,
+    totalAttending,
+    playingAttending: totalAttending - staff,
+    staffAttending: staff,
+    positions: rows,
+    unassignedAttending,
+    openSlots,
+    state,
+  }
+}
 
 const EVENTS = [
   {
@@ -86,8 +95,22 @@ const EVENTS = [
     location: 'Sporthal De Toekomst',
     references: [],
     recurringGroup: 'grp-training',
-    attendanceSummary: summary(9, 2, 0, 1),
-    roster: roster('SPOTS_OPEN', { totalTarget: 12, totalAttending: 9, openSlots: 3, unassignedAttending: 9 }),
+    // The one event in the LIST with a real lineup (the match is the hero, which draws no panel), so
+    // this is the card the roster panel is demonstrated on. Its numbers are kept consistent with the
+    // six members below and their OTHERS_STATE answers, because the panel now shows both views of
+    // the same event: three attending (Julia, Sam, Tim), one each at Setter, Libero and Outside
+    // Hitter. Middle Blocker carries no target and nobody attending, so the server would omit it —
+    // and Noor, who holds it and answered Maybe, falls to Unassigned exactly as she would live.
+    attendanceSummary: summary(3, 1, 1, 1, [
+      { role: 'Setter', attending: 1 },
+      { role: 'Libero', attending: 1 },
+      { role: 'Outside Hitter', attending: 1 },
+    ]),
+    roster: roster('SPOTS_OPEN', { totalTarget: 6, totalAttending: 3, openSlots: 2, positions: [
+      { id: 'p1', label: 'Setter', required: 2, attending: 1 },
+      { id: 'p2', label: 'Libero', required: 1, attending: 1 },
+      { id: 'p4', label: 'Outside Hitter', required: 2, attending: 1 },
+    ] }),
     myState: 'ATTENDING',
   },
   {
@@ -144,7 +167,9 @@ const withAttendances = (event) => ({
     id: `att-${event.id}-${m.userId}`,
     userId: m.userId,
     displayName: m.displayName,
-    role: m.position?.label ?? 'MEMBER',
+    // `Unassigned`, not `MEMBER`: it is what the server sends for a member with no position, and
+    // AttendeeList suppresses exactly that word as a row subtitle. `MEMBER` printed it.
+    role: m.position?.label ?? 'Unassigned',
     state: m.userId === ME.userId ? event.myState : OTHERS_STATE[i],
   })),
 })

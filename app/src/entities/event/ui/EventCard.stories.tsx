@@ -255,7 +255,7 @@ export const RosterTriggerBandIsTappable: Story = {
         state: 'CRITICAL',
         openSlots: 2,
         totalAttending: 5,
-        positions: [{ id: 'pos-libero', label: 'Libero', required: 2, attending: 0 }],
+        positions: [{ id: 'pos-libero', label: 'Libero', required: 2, attending: 0, kind: 'PLAYING' }],
       }),
     }),
   },

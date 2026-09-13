@@ -53,5 +53,11 @@ Learned the hard way while recording #325. None of them announce themselves.
   passes and the real take dies mid-way on a strict-mode violation.
 - **The fixture's identity**: Julia Vermeer, `ADMIN`, team *Heren 3* (`heren-3`) — so persisted
   preferences land under `tb.pref.heren-3.*`.
+- **Brand colours come from `design-tokens/tokens.css`**, not from your eye: `--color-green
+  #249E6C`, `--color-red #D93025`, `--color-gold #F4B400`. A caption accent picked by eye off a
+  screenshot lands close enough to look deliberate and wrong enough to be off-brand.
+- **Playwright lives in `app/`, not the repo root.** `check-deps.sh` run from the root reports
+  "playwright not installed" — that is the wrong cwd, not a missing dependency. Run the harness and
+  any probe from `app/`, which is also where ESM resolves it from.
 - **Chromium**: the recording box may need `npx playwright install chromium-headless-shell`
   alongside the usual `chromium`.

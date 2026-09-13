@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import type { Event } from '@shared/api/events'
 import { Skeleton } from '@shared/ui/skeleton'
 import { EventCard } from './EventCard'
@@ -16,6 +17,13 @@ interface EventListViewProps {
   onRespond?: (eventId: string, state: AttendanceState) => void
   /** The event whose write is in flight, with the optimistic answer to show on its card meanwhile. */
   optimistic?: { eventId: string; state: AttendanceState } | null
+  /** Every card's roster panel starts expanded — the member's `Keep open` preference (ADR-0030 §6). */
+  defaultRosterOpen?: boolean
+  /**
+   * What each card's roster disclosure opens onto. A function of the event because the panel is
+   * built per event; left out, every card falls back to the position pips it has always shown.
+   */
+  rosterPanel?: (event: Event) => ReactNode | null
 }
 
 /**
@@ -35,6 +43,8 @@ export function EventListView({
   now,
   onRespond,
   optimistic,
+  defaultRosterOpen,
+  rosterPanel,
 }: EventListViewProps) {
   // Data wins: keep showing cached events even when a background refetch is loading or has errored,
   // so a transient failure never blanks a list the user is already looking at.
@@ -63,6 +73,8 @@ export function EventListView({
             myState={settling ? optimistic.state : event.myState}
             pending={settling}
             onRespond={(state) => onRespond?.(event.id, state)}
+            defaultRosterOpen={defaultRosterOpen}
+            rosterPanel={rosterPanel?.(event)}
           />
         )
       })}

@@ -1,6 +1,6 @@
 import { useId, useState } from 'react'
 import { Check, ChevronDown, HelpCircle, X } from 'lucide-react'
-import type { ComponentType } from 'react'
+import type { ComponentType, ReactNode } from 'react'
 import type { Event, EventRoster } from '@shared/api/events'
 import { hasRosterPanel } from '../lib/roster-view'
 import { myAnswer, type MyAnswer } from '../lib/my-answer'
@@ -18,8 +18,20 @@ interface EventAnswerRowProps {
   onRespond: (state: AttendanceState) => void
   /** Start the attendance panel expanded. Collapsed by default so a list of events stays a list. */
   defaultAttnOpen?: boolean
-  /** Start the roster panel expanded. Collapsed by default. */
+  /**
+   * Start the roster panel expanded. Collapsed by default, and a *live* default: flipping the
+   * preference re-opens or re-closes the panel on every card at once (ADR-0030 §6), which is what a
+   * member toggling `Keep open` expects to happen — not something they only see on the next visit.
+   */
   defaultRosterOpen?: boolean
+  /**
+   * What the roster disclosure opens onto, or `null` when there is nothing to open.
+   *
+   * Left out, it falls back to the position pips — and to no disclosure at all on an untracked
+   * roster, which is exactly the old behaviour. The events list injects the whole panel instead (a
+   * widget: it may render the member list), and that is what gives a social something to expand to.
+   */
+  rosterPanel?: ReactNode | null
 }
 
 // The answer pill's tone, keyed by `myAnswer`. The three settled answers are soft tints from the
@@ -57,9 +69,11 @@ const TRIGGER =
  * home, and DOM order == visual order == focus order keeps that accessible. Picking an answer collapses
  * the attendance panel (④) — its job is done — while the roster panel, if open, stays put.
  *
- * The right side is a disclosure only when there is a lineup to show (`hasRosterPanel`); a social with
- * tracking off shows a plain `8 going` headcount with nothing to expand (⑥). Prop-only apart from the
- * two open states, which is exactly the local view state a story can drive; the mutation and the
+ * The right side is a disclosure whenever the caller hands it a panel. Left to its own default that is
+ * the position pips, so an untracked social shows a plain `8 going` headcount with nothing to expand
+ * (⑥) — but the events list injects a panel that always has content, which is how a social stopped
+ * being the one card whose verdict silently navigates (#324 cause 3). Prop-only apart from the two
+ * open states, which is exactly the local view state a story can drive; the mutation and the
  * optimistic hold live in the container.
  */
 export function EventAnswerRow({
@@ -69,14 +83,27 @@ export function EventAnswerRow({
   onRespond,
   defaultAttnOpen = false,
   defaultRosterOpen = false,
+  rosterPanel,
 }: EventAnswerRowProps) {
   const [attnOpen, setAttnOpen] = useState(defaultAttnOpen)
   const [rosterOpen, setRosterOpen] = useState(defaultRosterOpen)
+  // `Keep open` is a preference, not merely an initial value: when it flips, follow it — a member
+  // switching it on expects every card to open now, not on their next visit. Adjusted during render
+  // rather than in an effect (the React-recommended shape for "reset state when a prop changes"), and
+  // only on an actual change, so a panel this member collapsed by hand stays collapsed.
+  const [appliedDefault, setAppliedDefault] = useState(defaultRosterOpen)
+  if (appliedDefault !== defaultRosterOpen) {
+    setAppliedDefault(defaultRosterOpen)
+    setRosterOpen(defaultRosterOpen)
+  }
   const attnId = useId()
   const rosterId = useId()
   const answer = myAnswer(myState)
   const { className: pillClass, Icon } = PILL_TONE[answer.tone]
-  const rosterExpandable = hasRosterPanel(roster)
+  const panel = rosterPanel === undefined ? defaultRosterPanel(roster) : rosterPanel
+  const rosterExpandable = panel !== null
+  // The pips are a lineup; an untracked social has no positions at all, so its panel is its people.
+  const panelNoun = roster.trackRoster ? 'lineup' : "who's coming"
 
   const pick = (state: AttendanceState) => {
     onRespond(state)
@@ -127,13 +154,12 @@ export function EventAnswerRow({
               aria-hidden
               className={`text-muted-foreground transition-transform duration-200 ${rosterOpen ? 'rotate-180' : ''}`}
             />
-            <span className="sr-only">{rosterOpen ? 'Hide lineup' : 'Show lineup'}</span>
+            <span className="sr-only">{rosterOpen ? `Hide ${panelNoun}` : `Show ${panelNoun}`}</span>
           </button>
         ) : (
-          // Not a target at all, so the same screen position navigates here while every other card
-          // expands (#324 cause 3). Left as-is deliberately: a social has nothing to expand *to*
-          // until the member-list panel lands — see #326. `min-h-11` only keeps the row the same
-          // height as a card whose verdict is a trigger.
+          // Nothing to open, so nothing to tap: the verdict is a plain label. On the events list this
+          // branch is now unreachable — every card is handed a panel — which is how #324 cause 3 was
+          // closed. `min-h-11` keeps the row the same height as a card whose verdict is a trigger.
           <span className="relative z-10 ml-auto flex min-h-11 shrink-0 items-center">
             <ReadinessBadge roster={roster} pending={pending} />
           </span>
@@ -165,9 +191,14 @@ export function EventAnswerRow({
       {/* Roster panel — second in the DOM, so it stays below the attendance panel. */}
       {rosterExpandable && rosterOpen && (
         <div id={rosterId} className="relative z-10 mt-3 w-full border-t border-dashed border-border pt-3">
-          <RosterPips roster={roster} />
+          {panel}
         </div>
       )}
     </>
   )
+}
+
+/** The pips, for a caller that named no panel — and nothing at all for a roster that isn't tracked. */
+function defaultRosterPanel(roster: EventRoster): ReactNode | null {
+  return hasRosterPanel(roster) ? <RosterPips roster={roster} /> : null
 }

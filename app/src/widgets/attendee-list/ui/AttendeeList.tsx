@@ -10,8 +10,17 @@ interface AttendeeListProps {
   /** Everyone on the event — every position section lists all its members, whatever their answer. */
   attendees: AttendanceEntry[]
   roster: EventRoster
-  /** Fires with the *target* member's id — trust-based editing lets a member set a teammate's answer. */
-  onRespond: (userId: string, state: AttendanceState) => void
+  /**
+   * Fires with the *target* member's id — trust-based editing lets a member set a teammate's answer.
+   *
+   * **Omit it to render the list read-only**, which is what the events-list card does (#326). Editing
+   * a teammate's attendance lives on detail-page rows only (#271 ⑫), and reusing this component on
+   * the card would have extended that to the list page by accident; a read-only render keeps ⑫ intact
+   * while the card's own answer row still handles the viewer's own answer. There is no separate
+   * `readOnly` flag on purpose — with one, "read-only but respondable" would be a state to reason
+   * about.
+   */
+  onRespond?: (userId: string, state: AttendanceState) => void
   /** The viewer, so their own row is marked and its edit skips the "changing …" notice. */
   currentUserId?: string | null
   /** An attendance write is in flight; the open control is held. */
@@ -43,6 +52,9 @@ const ANSWER_PILL: Record<AttendanceState, { label: string; className: string }>
  * Opening a teammate's control carries a quiet "Changing …" notice (a member may set a teammate's
  * answer — ADR-0003 — but should know they are). A row a teammate last changed reads `set by …` (⑪).
  *
+ * Without `onRespond` the same list renders read-only — every row still named, tinted and pilled,
+ * but no disclosure and no control. That is how the events-list card shows it (#326, #271 ⑫).
+ *
  * Prop-only apart from which row is open (ADR-0017): grouping and name resolution are pure helpers,
  * and the mutation (and its Undo toast) live in the route container. Rows keep their roster order —
  * an answer changing must not make the list jump.
@@ -66,10 +78,13 @@ export function AttendeeList({ attendees, roster, onRespond, currentUserId, pend
       expanded={expandedId === attendance.userId}
       pending={pending}
       onToggle={() => setExpandedId((id) => (id === attendance.userId ? null : attendance.userId))}
-      onRespond={(state) => {
-        onRespond(attendance.userId, state)
-        setExpandedId(null)
-      }}
+      onRespond={
+        onRespond &&
+        ((state) => {
+          onRespond(attendance.userId, state)
+          setExpandedId(null)
+        })
+      }
     />
   )
 
@@ -123,7 +138,8 @@ function AttendeeRow({
   expanded: boolean
   pending: boolean
   onToggle: () => void
-  onRespond: (state: AttendanceState) => void
+  /** Absent on a read-only list: the pill becomes a plain label with nothing to open (#271 ⑫). */
+  onRespond?: (state: AttendanceState) => void
 }) {
   // Attribution takes the subtitle when present; otherwise, in the flat list only, the member's own
   // position — unless it is the non-informative "Unassigned".
@@ -149,26 +165,33 @@ function AttendeeRow({
           </span>
           {subtitle && <span className="block text-xs text-muted-foreground">{subtitle}</span>}
         </div>
-        {/* The collapsed answer pill is the disclosure trigger — same interaction as the event card. */}
-        <button
-          type="button"
-          aria-expanded={expanded}
-          onClick={onToggle}
-          className="flex shrink-0 items-center gap-1.5 rounded-full py-1 pl-1 pr-1 ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-        >
-          <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${pill.className}`}>{pill.label}</span>
-          <ChevronDown
-            size={14}
-            aria-hidden
-            className={`text-muted-foreground transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`}
-          />
-          <span className="sr-only">
-            {expanded ? 'Hide answer options' : `Change ${attendance.displayName}'s answer`}
+        {/* The collapsed answer pill is the disclosure trigger — same interaction as the event card.
+            Read-only, it is the same pill without the disclosure: a fact, not a control. */}
+        {onRespond ? (
+          <button
+            type="button"
+            aria-expanded={expanded}
+            onClick={onToggle}
+            className="flex shrink-0 items-center gap-1.5 rounded-full py-1 pl-1 pr-1 ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          >
+            <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${pill.className}`}>{pill.label}</span>
+            <ChevronDown
+              size={14}
+              aria-hidden
+              className={`text-muted-foreground transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`}
+            />
+            <span className="sr-only">
+              {expanded ? 'Hide answer options' : `Change ${attendance.displayName}'s answer`}
+            </span>
+          </button>
+        ) : (
+          <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${pill.className}`}>
+            {pill.label}
           </span>
-        </button>
+        )}
       </div>
 
-      {expanded && (
+      {onRespond && expanded && (
         <div
           className="border-t border-dashed border-border px-2.5 pb-3 pt-2.5"
           role="group"

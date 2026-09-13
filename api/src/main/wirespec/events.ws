@@ -71,7 +71,7 @@ type AttendanceSummary {
     roleBreakdown: RoleCount[]
 }
 
-// `myState` is the authenticated caller's own resolved attendance. The listing already resolves every member's state for the summary, so it costs no extra query; without it the list carries only aggregate counts and the client cannot tell which events it is Not Responded on (what Bulk Attend selects over, ADR-0020). EventDetail carries it too, so an EventDetail stays an Event plus attendances - code that falls back from detail to list row depends on that.
+// `myState` is the authenticated caller's own resolved attendance. The listing already resolves every member's state for the summary, so it costs no extra query; without it the list carries only aggregate counts and the client cannot tell which events it is Not Responded on (what Bulk Attend selects over, ADR-0020). `attendances` is every current member, non-responders included, so the events list can show who is coming without a per-card detail fetch (ADR-0030 decisions 5-8). It costs no query either - the listing already resolves the whole picture per event for the summary - but it does take an event from roughly 1KB to roughly 8.8KB, which ADR-0030 decision 8 accepts deliberately and provisionally while we find out which view members use. The named exit is a list-only entry type dropping `id`, `changedBy` and `updatedAt`, which no component reads; take it once the UI settles. With it here, Event and EventDetail now carry the same fields - EventDetail stays a distinct type because the two are expected to diverge again when that exit is taken.
 type Event {
     id: String,
     eventType: EventTypeSummary,
@@ -83,6 +83,7 @@ type Event {
     references: EventReference[],
     recurringGroup: String?,
     attendanceSummary: AttendanceSummary,
+    attendances: AttendanceEntry[],
     myState: AttendanceState,
     rosterOverride: RosterRequirement?,
     roster: EventRoster

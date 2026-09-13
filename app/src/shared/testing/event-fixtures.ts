@@ -140,6 +140,10 @@ export function makeEvent(overrides: Partial<Event> = {}): Event {
         { role: 'Setter', attending: 1 },
       ],
     },
+    // Every current member, non-responders included (ADR-0030 §8) — the list payload now carries the
+    // same entries the detail does. Empty by default: a fixture that is not about the member list
+    // renders no names, and the panel stories pass their own team.
+    attendances: [],
     // The viewer's own response. Defaults to a blank, which is the state Bulk Attend acts on.
     myState: 'NOT_RESPONDED',
     // Undefined means this event inherits its type's roster default, which is the common case.

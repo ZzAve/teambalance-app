@@ -11,6 +11,9 @@ import { NextEventHero } from '@widgets/next-event-hero/ui/NextEventHero'
 import { CreateEventSheet } from '@widgets/create-event/ui/CreateEventSheet'
 import { EventFiltersView } from '@features/filter-event-types/ui/EventFiltersView'
 import { useEventFiltersStore } from '@features/filter-event-types/model/event-filters-store'
+import { useEventPanelStore } from '@features/event-panel-view/model/event-panel-store'
+import { EventRosterPanel } from '@widgets/event-panel/ui/EventRosterPanel'
+import { useTeamRoutes } from '@shared/lib/team-routes'
 import { reconcileTypeIds } from '@features/filter-event-types/model/filter-preferences'
 import { spansMultipleTurnoutBuckets } from '@features/filter-event-types/model/turnout'
 import { filterEvents } from '@features/filter-event-types/model/filter-events'
@@ -40,6 +43,11 @@ function EventListPage() {
         showPast, hiddenTypeIds, activeStates, activeTurnouts,
         openTeam, setShowPast, toggleType, toggleState, toggleTurnout, clearFilters,
     } = useEventFiltersStore()
+    // The card panel's two display preferences, in their own store: `Clear filters` clears where the
+    // member was and must leave how they like to look at it alone (ADR-0030 §3).
+    const {
+        view, defaultExpanded, openTeam: openPanelTeam, setView, setDefaultExpanded,
+    } = useEventPanelStore()
     const {data: events, isLoading, error} = useEvents(showPast)
     const {data: eventTypes} = useEventTypes()
     const isAdmin = useUserStore((s) => s.role) === 'ADMIN'
@@ -49,7 +57,8 @@ function EventListPage() {
     // request on entry — the alternative is holding the whole page back on local storage.
     useEffect(() => {
         openTeam(slug)
-    }, [slug, openTeam])
+        openPanelTeam(slug)
+    }, [slug, openTeam, openPanelTeam])
 
     // One ticking clock for the whole page, so the hero's countdown, the hero cut-off and every
     // card's relative label are read off the same instant and can never disagree with each other —
@@ -64,6 +73,7 @@ function EventListPage() {
     // leave the card stuck. While held, the card shows the answer optimistically and its readiness
     // badge stays pending (⑤).
     const currentUserId = useUserStore((s) => s.userId)
+    const routes = useTeamRoutes()
     const {mutate: setAttendance} = useSetAttendance()
     const [optimistic, setOptimistic] = useState<{ eventId: string; state: Event['myState'] } | null>(null)
 
@@ -158,6 +168,21 @@ function EventListPage() {
                 events={listEvents}
                 onRespond={respond}
                 optimistic={optimistic}
+                // What each card's roster disclosure opens onto (ADR-0030 §5-§7). Injected from here
+                // because the member list is a widget and the card is an entity — and because the
+                // preference is global, so one store drives every card.
+                defaultRosterOpen={defaultExpanded}
+                rosterPanel={(event) => (
+                    <EventRosterPanel
+                        event={event}
+                        view={view}
+                        onViewChange={setView}
+                        defaultExpanded={defaultExpanded}
+                        onDefaultExpandedChange={setDefaultExpanded}
+                        currentUserId={currentUserId}
+                        detailHref={routes.event(event.id)}
+                    />
+                )}
                 // A rendered hero IS loaded data — it was pulled out of this very list — so an empty
                 // list beneath it means "nothing else", never a failure. Withholding the flags keeps
                 // the list from painting a skeleton or an error over a page that is plainly fine.

@@ -217,6 +217,9 @@ internal fun com.github.zzave.teambalance.api.domain.model.Event.produce(
         references = references.externalize(),
         recurringGroup = recurringGroup?.toString(),
         attendanceSummary = attendance.summary().produce(attendance.attendingRoleBreakdown()),
+        // Every current member, non-responders included — mapped from the projection the caller
+        // already resolved, exactly as getEvent does, so the listing gains no query (ADR-0030 §8).
+        attendances = attendance.entries.map { it.produce() },
         myState = attendance.stateOf(viewerId).produce(),
         rosterOverride = rosterOverride?.produce(),
         roster = rosterFill(attendance, positions).produce(),

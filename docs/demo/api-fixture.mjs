@@ -135,10 +135,10 @@ const ME = ROSTER[0]
 
 const OTHERS_STATE = ['ATTENDING', 'ATTENDING', 'MAYBE', 'ATTENDING', 'ABSENT', 'NOT_RESPONDED']
 
-// The hero and the detail page read the viewer's own response out of `attendances`, not off the
-// list row — so the current user's entry has to mirror the row's `myState`, or the hero would claim
-// "you're in" about an event the list shows as unanswered.
-const detailOf = (event) => ({
+// The hero, the detail page and now the list row all read attendance out of `attendances` (the list
+// carries it since #326), not off the row's own counts — so the current user's entry has to mirror
+// the row's `myState`, or the hero would claim "you're in" about an event the list shows unanswered.
+const withAttendances = (event) => ({
   ...event,
   attendances: ROSTER.map((m, i) => ({
     id: `att-${event.id}-${m.userId}`,
@@ -212,12 +212,12 @@ export async function installFixtureApi(page) {
           { id: 'p3', label: 'Middle Blocker' },
           { id: 'p4', label: 'Outside Hitter' },
         ] })
-      if (path === '/api/events') return json({ events: EVENTS })
+      if (path === '/api/events') return json({ events: EVENTS.map(withAttendances) })
 
       const detail = path.match(/^\/api\/events\/([^/]+)$/)
       if (detail) {
         const event = EVENTS.find((e) => e.id === detail[1]) ?? EVENTS[0]
-        return json(detailOf(event))
+        return json(withAttendances(event))
       }
 
       // Attendance writes: echo the new state back so the optimistic update settles cleanly.

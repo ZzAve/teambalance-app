@@ -1,5 +1,6 @@
 package com.github.zzave.teambalance.api.interfaces
 
+import com.fasterxml.jackson.databind.ObjectMapper
 import com.github.zzave.teambalance.api.TeamBalanceIT
 import com.github.zzave.teambalance.api.domain.port.AttendanceRepository
 import com.github.zzave.teambalance.api.infrastructure.multitenancy.TenantSchemaAdapter
@@ -856,7 +857,7 @@ class EventControllerTest : TeamBalanceIT() {
             status shouldBe 400
         }
 
-        test("GET /api/events resolves attendance for the whole list in one query (no N+1)") {
+        test("GET /api/events carries every member's attendance, still in one query (no N+1)") {
             tenantSchemaAdapter.provisionPlatformSchema()
             tenantSchemaAdapter.provisionTenantSchema("public")
 
@@ -874,8 +875,20 @@ class EventControllerTest : TeamBalanceIT() {
                 ON CONFLICT DO NOTHING
             """
             )
+            // Lisa never answers anything: the list payload must still carry her, because a member
+            // list that silently omits non-responders is not the team (ADR-0030 §8).
+            jdbcTemplate.execute(
+                """
+                INSERT INTO public.users (id, email, display_name)
+                VALUES ('$LISA_USER_ID'::uuid, 'lisa@test.com', 'Lisa Bakker')
+                ON CONFLICT DO NOTHING
+            """
+            )
             jdbcTemplate.execute(
                 "SELECT public.tb_add_member('$TEAM_ID'::uuid, '$JAN_USER_ID'::uuid, 'USER', 'Setter')"
+            )
+            jdbcTemplate.execute(
+                "SELECT public.tb_add_member('$TEAM_ID'::uuid, '$LISA_USER_ID'::uuid, 'USER', 'Libero')"
             )
 
             // Several events so a per-event fetch would show up as multiple round trips.
@@ -904,11 +917,30 @@ class EventControllerTest : TeamBalanceIT() {
                 .andExpect(MockMvcResultMatchers.request().asyncStarted())
                 .andReturn()
 
-            mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(mvcResult))
+            val body = mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(mvcResult))
                 .andExpect(MockMvcResultMatchers.status().isOk)
+                .andReturn().response.contentAsString
+
+            // The list row carries the same `attendances` the detail does (ADR-0030 §8), so the
+            // events page can show who is coming without a per-card detail fetch.
+            val guarded = ObjectMapper().readTree(body)["events"].first { it["title"].asText() == "N+1 Guard 0" }
+            val entries = guarded["attendances"].associateBy { it["userId"].asText() }
+            entries.getValue(JAN_USER_ID)["state"].asText() shouldBe "ATTENDING"
+
+            // A member with no response row at all is present and named — a member list that
+            // silently omits non-responders is not the team.
+            val lisa = entries.getValue(LISA_USER_ID)
+            lisa["displayName"].asText() shouldBe "Lisa Bakker"
+            lisa["state"].asText() shouldBe "NOT_RESPONDED"
+            // Her attribution is carried, and carried as null: that null is what keeps the
+            // `set by …` line off a row nobody ever set.
+            lisa.has("changedBy") shouldBe true
+            lisa["changedBy"].isNull shouldBe true
+            lisa["updatedAt"].isNull shouldBe true
 
             // One batched query for every listed event and nothing else — no per-event fetch, which is
             // exactly the N+1 this projection removes (reverting to findByEventId-per-event fails here).
+            // Carrying the full entries must not cost a query: they come out of the same projection.
             Mockito.verify(attendanceRepository, Mockito.times(1)).findByEventIds(ArgumentMatchers.anyList())
             Mockito.verifyNoMoreInteractions(attendanceRepository)
         }

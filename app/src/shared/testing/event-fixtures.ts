@@ -1,4 +1,4 @@
-import type { Event, EventRoster } from '@shared/api/events'
+import type { AttendanceEntry, Event, EventRoster } from '@shared/api/events'
 import type { EventTypeItem, RosterRequirement } from '@shared/api/event-types'
 
 /** Roster tracking switched off — the default for a type nobody has configured. */
@@ -109,6 +109,29 @@ export function makeEventType(overrides: Partial<EventTypeItem> = {}): EventType
     color: '#249E6C',
     archived: false,
     rosterDefault: ROSTER_OFF,
+    ...overrides,
+  }
+}
+
+/**
+ * One attendance entry — the shape the list and the detail both carry since #326. Defaults to a
+ * plain `ATTENDING` row with no attribution, which is what most fixtures want; `id` follows the
+ * user id the way the server's own fallback does for a member with no response row.
+ */
+export function makeAttendee(
+  userId: string,
+  displayName: string,
+  role: string,
+  overrides: Partial<AttendanceEntry> = {},
+): AttendanceEntry {
+  return {
+    id: userId,
+    userId,
+    displayName,
+    role,
+    state: 'ATTENDING',
+    changedBy: undefined,
+    updatedAt: undefined,
     ...overrides,
   }
 }

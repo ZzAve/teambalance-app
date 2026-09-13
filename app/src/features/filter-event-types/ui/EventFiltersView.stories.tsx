@@ -37,6 +37,7 @@ const meta = {
     onToggleState: fn(),
     onToggleTurnout: fn(),
     onToggleShowPast: fn(),
+    onClearFilters: fn(),
   },
 } satisfies Meta<typeof EventFiltersView>
 
@@ -51,6 +52,45 @@ export const Closed: Story = {
       'false',
     )
     await expect(canvas.queryByRole('dialog')).not.toBeInTheDocument()
+    // Nothing is filtered, so there is nothing to undo — the header stays as narrow as it was.
+    await expect(canvas.queryByRole('button', { name: 'Clear filters' })).not.toBeInTheDocument()
+  },
+}
+
+// Filter state now survives navigation and reopening (ADR-0030 §1), so a member can arrive at a
+// narrowed list they did not narrow this visit. `Clear filters` is therefore visible whenever any
+// dimension is in effect — not only once the filter has emptied the list, which is where it used to
+// live (ADR-0030 §2).
+export const ClearFiltersVisible: Story = {
+  args: { activeTypeIds: new Set(['et-2']), resultCount: 2 },
+  play: async ({ canvas }) => {
+    await expect(canvas.getByRole('button', { name: 'Clear filters' })).toBeInTheDocument()
+    // Both signals, side by side: the dot says *that* something is filtered, the button says undo.
+    await expect(canvas.getByTestId('active-filter-dot')).toBeInTheDocument()
+  },
+}
+
+// Prop-contract spy: the reset itself lives in the route (it owns all four dimensions), so this
+// view's whole job is to report the tap.
+export const ClearsFilters: Story = {
+  // Behavioural twin of ClearFiltersVisible — the same picture, only onClearFilters fires
+  // (ADR-0027 §2).
+  args: { activeTypeIds: new Set(['et-2']), resultCount: 2 },
+  parameters: { chromatic: { disableSnapshot: true } },
+  play: async ({ canvas, userEvent, args }) => {
+    await userEvent.click(canvas.getByRole('button', { name: 'Clear filters' }))
+    await expect(args.onClearFilters).toHaveBeenCalled()
+  },
+}
+
+// Every dimension counts, not just the chips: past events on is a filter too, and reaching the
+// switch that turned it on means opening the popover first.
+export const ClearFiltersVisibleForShowPastAlone: Story = {
+  args: { showPast: true },
+  parameters: { chromatic: { disableSnapshot: true } },
+  play: async ({ canvas, userEvent, args }) => {
+    await userEvent.click(canvas.getByRole('button', { name: 'Clear filters' }))
+    await expect(args.onClearFilters).toHaveBeenCalled()
   },
 }
 

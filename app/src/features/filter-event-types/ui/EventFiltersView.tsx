@@ -25,6 +25,8 @@ interface EventFiltersViewProps {
   onToggleState: (state: AttendanceState) => void
   onToggleTurnout: (bucket: TurnoutBucket) => void
   onToggleShowPast: (showPast: boolean) => void
+  /** Resets every dimension. Offered next to the trigger whenever a filter is in effect. */
+  onClearFilters: () => void
 }
 
 /** The answer chips, worded as the member's own answer control words them (#273, CONTEXT.md). */
@@ -91,7 +93,8 @@ const TURNOUT_CHIPS: { bucket: TurnoutBucket; label: string; active: string; ina
 
 /**
  * The events page's single filter control: an icon button that opens a popover holding the
- * event-type chips, the answer chips, the Turnout chips and the "Show past events" switch. It
+ * event-type chips, the answer chips, the Turnout chips and the "Show past events" switch — plus a
+ * `Clear filters` button beside it whenever any of them is in effect (ADR-0030 §2). It
  * replaces the old Upcoming/Past segmented tab bar — past events are a filter, not a mode, and the
  * page no longer spends a band of chrome on a control that only flipped which way the same list grew.
  *
@@ -116,6 +119,7 @@ export function EventFiltersView({
   onToggleState,
   onToggleTurnout,
   onToggleShowPast,
+  onClearFilters,
 }: EventFiltersViewProps) {
   const [open, setOpen] = useState(false)
   // A dot on the trigger so an active filter is visible with the popover closed — otherwise a
@@ -139,170 +143,187 @@ export function EventFiltersView({
   }, [open])
 
   return (
-    <div className="relative">
-      <button
-        aria-label="Filters"
-        aria-expanded={open}
-        aria-haspopup="dialog"
-        onClick={() => setOpen((wasOpen) => !wasOpen)}
-        className="relative flex h-11 w-11 items-center justify-center rounded-xl border border-border/60 bg-card text-muted-foreground transition-colors hover:text-foreground"
-      >
-        <SlidersHorizontal size={16} />
-        {hasActiveFilter && (
-          <span
-            data-testid="active-filter-dot"
-            className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full border-2 border-background bg-blue"
-          />
-        )}
-      </button>
-
-      {/* The result count is announced, not shown: a member who taps a chip inside a popover gets no
-          other feedback that the list behind it moved. */}
-      <p aria-live="polite" className="sr-only">
-        {resultCount === 1 ? '1 event matches these filters' : `${resultCount} events match these filters`}
-      </p>
-
-      {open && (
-        <>
-          {/* Click-outside catcher. Not focusable — Escape and the trigger are the keyboard paths. */}
-          <div
-            className="fixed inset-0 z-40 bg-black/20"
-            aria-hidden="true"
-            onClick={() => setOpen(false)}
-          />
-          <div
-            role="dialog"
-            aria-label="Filters"
-            className="card-shadow-hover absolute right-0 top-12 z-50 w-[248px] origin-top-right rounded-2xl border border-border/60 bg-card p-3.5"
-          >
-            {/* A team with no event types (or a types request that failed) still gets the past
-                toggle — it is the only way to reach past events now that the tab bar is gone. */}
-            {eventTypes.length > 0 && (
-              <>
-                <div role="group" aria-labelledby="event-types-filter-heading">
-                  <h3
-                    id="event-types-filter-heading"
-                    className="mb-2.5 text-[11px] font-bold uppercase tracking-[0.09em] text-muted-foreground"
-                  >
-                    Event types
-                  </h3>
-                  <div className="flex flex-wrap gap-2">
-                    {eventTypes.map((type) => {
-                      const isActive = activeTypeIds.has(type.id)
-                      const color = type.color ?? '#888'
-                      return (
-                        <button
-                          key={type.id}
-                          aria-pressed={isActive}
-                          onClick={() => onToggleType(type.id)}
-                          style={
-                            isActive
-                              ? { backgroundColor: color, borderColor: color, color: '#fff' }
-                              : { borderColor: color + '66', color }
-                          }
-                          className="shrink-0 rounded-full border px-3 py-1.5 text-xs font-semibold transition-all"
-                        >
-                          {type.name}
-                        </button>
-                      )
-                    })}
-                  </div>
-                </div>
-
-                <div className="-mx-3.5 my-3.5 h-px bg-border/60" />
-              </>
-            )}
-
-            <div role="group" aria-labelledby="your-answer-filter-heading">
-              <h3
-                id="your-answer-filter-heading"
-                className="mb-2.5 text-[11px] font-bold uppercase tracking-[0.09em] text-muted-foreground"
-              >
-                Your answer
-              </h3>
-              <div className="flex flex-wrap gap-2">
-                {STATE_CHIPS.map(({ state, label, active, inactive }) => {
-                  const isActive = activeStates.has(state)
-                  return (
-                    <button
-                      key={state}
-                      aria-pressed={isActive}
-                      onClick={() => onToggleState(state)}
-                      className={[
-                        'shrink-0 rounded-full border px-3 py-1.5 text-xs font-semibold transition-all',
-                        isActive ? active : inactive,
-                      ].join(' ')}
-                    >
-                      {label}
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
-
-            {showTurnout && (
-              <>
-                <div className="-mx-3.5 my-3.5 h-px bg-border/60" />
-
-                <div role="group" aria-labelledby="turnout-filter-heading">
-                  <h3
-                    id="turnout-filter-heading"
-                    className="mb-2.5 text-[11px] font-bold uppercase tracking-[0.09em] text-muted-foreground"
-                  >
-                    Turnout
-                  </h3>
-                  <div className="flex flex-wrap gap-2">
-                    {TURNOUT_CHIPS.map(({ bucket, label, active, inactive }) => {
-                      const isActive = activeTurnouts.has(bucket)
-                      return (
-                        <button
-                          key={bucket}
-                          aria-pressed={isActive}
-                          onClick={() => onToggleTurnout(bucket)}
-                          className={[
-                            'shrink-0 rounded-full border px-3 py-1.5 text-xs font-semibold transition-all',
-                            isActive ? active : inactive,
-                          ].join(' ')}
-                        >
-                          {label}
-                        </button>
-                      )
-                    })}
-                  </div>
-                </div>
-              </>
-            )}
-
-            <div className="-mx-3.5 my-3.5 h-px bg-border/60" />
-
-            <div className="flex items-center justify-between gap-2.5">
-              <div>
-                <div className="text-[13.5px] font-semibold">Show past events</div>
-                <div className="mt-0.5 text-[11.5px] text-muted-foreground">
-                  {showPast ? 'On — past events included' : 'Off — upcoming only'}
-                </div>
-              </div>
-              <button
-                role="switch"
-                aria-checked={showPast}
-                aria-label="Show past events"
-                onClick={() => onToggleShowPast(!showPast)}
-                className={[
-                  'relative h-6 w-11 shrink-0 rounded-full transition-colors',
-                  showPast ? 'bg-green' : 'bg-muted-foreground/30',
-                ].join(' ')}
-              >
-                <span
-                  className={[
-                    'absolute top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-[left] duration-200',
-                    showPast ? 'left-[22px]' : 'left-0.5',
-                  ].join(' ')}
-                />
-              </button>
-            </div>
-          </div>
-        </>
+    <div className="flex items-center gap-2">
+      {/* A restored filter must never be invisible (ADR-0030 §2). The dot below says *that*
+          something is filtered; this says how to undo it — the one thing a member who did not set
+          the filter this visit actually needs. Deliberately not a summary chip row naming the active
+          filters: variable height above a list on a phone is the cost the popover was chosen to
+          avoid (ADR-0029 §4). It replaces the button that used to sit on the empty state, which
+          could only be reached once the filter had already emptied the list. */}
+      {hasActiveFilter && (
+        <button
+          onClick={onClearFilters}
+          className="flex h-11 shrink-0 items-center rounded-xl border border-border/60 bg-card px-3 text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground"
+        >
+          Clear filters
+        </button>
       )}
+
+      <div className="relative">
+        <button
+          aria-label="Filters"
+          aria-expanded={open}
+          aria-haspopup="dialog"
+          onClick={() => setOpen((wasOpen) => !wasOpen)}
+          className="relative flex h-11 w-11 items-center justify-center rounded-xl border border-border/60 bg-card text-muted-foreground transition-colors hover:text-foreground"
+        >
+          <SlidersHorizontal size={16} />
+          {hasActiveFilter && (
+            <span
+              data-testid="active-filter-dot"
+              className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full border-2 border-background bg-blue"
+            />
+          )}
+        </button>
+
+        {/* The result count is announced, not shown: a member who taps a chip inside a popover gets no
+            other feedback that the list behind it moved. */}
+        <p aria-live="polite" className="sr-only">
+          {resultCount === 1 ? '1 event matches these filters' : `${resultCount} events match these filters`}
+        </p>
+
+        {open && (
+          <>
+            {/* Click-outside catcher. Not focusable — Escape and the trigger are the keyboard paths. */}
+            <div
+              className="fixed inset-0 z-40 bg-black/20"
+              aria-hidden="true"
+              onClick={() => setOpen(false)}
+            />
+            <div
+              role="dialog"
+              aria-label="Filters"
+              className="card-shadow-hover absolute right-0 top-12 z-50 w-[248px] origin-top-right rounded-2xl border border-border/60 bg-card p-3.5"
+            >
+              {/* A team with no event types (or a types request that failed) still gets the past
+                  toggle — it is the only way to reach past events now that the tab bar is gone. */}
+              {eventTypes.length > 0 && (
+                <>
+                  <div role="group" aria-labelledby="event-types-filter-heading">
+                    <h3
+                      id="event-types-filter-heading"
+                      className="mb-2.5 text-[11px] font-bold uppercase tracking-[0.09em] text-muted-foreground"
+                    >
+                      Event types
+                    </h3>
+                    <div className="flex flex-wrap gap-2">
+                      {eventTypes.map((type) => {
+                        const isActive = activeTypeIds.has(type.id)
+                        const color = type.color ?? '#888'
+                        return (
+                          <button
+                            key={type.id}
+                            aria-pressed={isActive}
+                            onClick={() => onToggleType(type.id)}
+                            style={
+                              isActive
+                                ? { backgroundColor: color, borderColor: color, color: '#fff' }
+                                : { borderColor: color + '66', color }
+                            }
+                            className="shrink-0 rounded-full border px-3 py-1.5 text-xs font-semibold transition-all"
+                          >
+                            {type.name}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="-mx-3.5 my-3.5 h-px bg-border/60" />
+                </>
+              )}
+
+              <div role="group" aria-labelledby="your-answer-filter-heading">
+                <h3
+                  id="your-answer-filter-heading"
+                  className="mb-2.5 text-[11px] font-bold uppercase tracking-[0.09em] text-muted-foreground"
+                >
+                  Your answer
+                </h3>
+                <div className="flex flex-wrap gap-2">
+                  {STATE_CHIPS.map(({ state, label, active, inactive }) => {
+                    const isActive = activeStates.has(state)
+                    return (
+                      <button
+                        key={state}
+                        aria-pressed={isActive}
+                        onClick={() => onToggleState(state)}
+                        className={[
+                          'shrink-0 rounded-full border px-3 py-1.5 text-xs font-semibold transition-all',
+                          isActive ? active : inactive,
+                        ].join(' ')}
+                      >
+                        {label}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {showTurnout && (
+                <>
+                  <div className="-mx-3.5 my-3.5 h-px bg-border/60" />
+
+                  <div role="group" aria-labelledby="turnout-filter-heading">
+                    <h3
+                      id="turnout-filter-heading"
+                      className="mb-2.5 text-[11px] font-bold uppercase tracking-[0.09em] text-muted-foreground"
+                    >
+                      Turnout
+                    </h3>
+                    <div className="flex flex-wrap gap-2">
+                      {TURNOUT_CHIPS.map(({ bucket, label, active, inactive }) => {
+                        const isActive = activeTurnouts.has(bucket)
+                        return (
+                          <button
+                            key={bucket}
+                            aria-pressed={isActive}
+                            onClick={() => onToggleTurnout(bucket)}
+                            className={[
+                              'shrink-0 rounded-full border px-3 py-1.5 text-xs font-semibold transition-all',
+                              isActive ? active : inactive,
+                            ].join(' ')}
+                          >
+                            {label}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+                </>
+              )}
+
+              <div className="-mx-3.5 my-3.5 h-px bg-border/60" />
+
+              <div className="flex items-center justify-between gap-2.5">
+                <div>
+                  <div className="text-[13.5px] font-semibold">Show past events</div>
+                  <div className="mt-0.5 text-[11.5px] text-muted-foreground">
+                    {showPast ? 'On — past events included' : 'Off — upcoming only'}
+                  </div>
+                </div>
+                <button
+                  role="switch"
+                  aria-checked={showPast}
+                  aria-label="Show past events"
+                  onClick={() => onToggleShowPast(!showPast)}
+                  className={[
+                    'relative h-6 w-11 shrink-0 rounded-full transition-colors',
+                    showPast ? 'bg-green' : 'bg-muted-foreground/30',
+                  ].join(' ')}
+                >
+                  <span
+                    className={[
+                      'absolute top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-[left] duration-200',
+                      showPast ? 'left-[22px]' : 'left-0.5',
+                    ].join(' ')}
+                  />
+                </button>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
     </div>
   )
 }

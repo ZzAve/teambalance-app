@@ -33,6 +33,25 @@ const summary = (attending, maybe, absent, notResponded, roleBreakdown = []) => 
   roleBreakdown,
 })
 
+/**
+ * The backend-owned Roster verdict that rides on every event (contract: EventRoster). The client
+ * never recomputes it — `features/filter-event-types/model/turnout.ts` only re-words the state into
+ * one of four Turnout bands — so the fixture has to state it outright.
+ *
+ * The four events below deliberately land in four different bands: the Turnout chip group renders
+ * only when the list spans two or more (ADR-0029 §5), and a demo of the filter popover that showed
+ * the group collapsed would misrepresent the feature.
+ */
+const roster = (state, { totalTarget, totalAttending = 0, positions = [], unassignedAttending = 0, openSlots = 0 } = {}) => ({
+  trackRoster: state !== 'OFF' && state !== 'TALLY_ONLY',
+  totalTarget,
+  totalAttending,
+  positions,
+  unassignedAttending,
+  openSlots,
+  state,
+})
+
 const EVENTS = [
   {
     id: 'evt-1',
@@ -49,6 +68,12 @@ const EVENTS = [
       { role: 'Libero', attending: 1 },
       { role: 'Middle Blocker', attending: 2 },
     ]),
+    roster: roster('CRITICAL', { totalTarget: 12, totalAttending: 7, openSlots: 5, positions: [
+      { id: 'p1', label: 'Setter', required: 2, attending: 2 },
+      { id: 'p2', label: 'Libero', required: 1, attending: 1 },
+      { id: 'p3', label: 'Middle Blocker', required: 2, attending: 2 },
+      { id: 'p4', label: 'Outside Hitter', required: 4, attending: 0 },
+    ] }),
     myState: 'NOT_RESPONDED',
   },
   {
@@ -62,6 +87,7 @@ const EVENTS = [
     references: [],
     recurringGroup: 'grp-training',
     attendanceSummary: summary(9, 2, 0, 1),
+    roster: roster('SPOTS_OPEN', { totalTarget: 12, totalAttending: 9, openSlots: 3, unassignedAttending: 9 }),
     myState: 'ATTENDING',
   },
   {
@@ -75,6 +101,7 @@ const EVENTS = [
     references: [],
     recurringGroup: undefined,
     attendanceSummary: summary(5, 4, 2, 1),
+    roster: roster('OFF', { totalAttending: 5 }),
     myState: 'MAYBE',
   },
   {
@@ -88,6 +115,7 @@ const EVENTS = [
     references: [],
     recurringGroup: 'grp-training',
     attendanceSummary: summary(6, 1, 1, 4),
+    roster: roster('HEADCOUNT_FULL', { totalTarget: 6, totalAttending: 6, unassignedAttending: 6 }),
     myState: 'NOT_RESPONDED',
   },
 ]
@@ -100,6 +128,8 @@ const ROSTER = [
   { userId: 'u-5', displayName: 'Fleur Smit', role: 'MEMBER', position: { id: 'p1', label: 'Setter' }, onboarded: true },
   { userId: 'u-6', displayName: 'Daan Hofman', role: 'MEMBER', position: undefined, onboarded: true },
 ]
+
+const TEAM = { id: 't-1', name: 'Heren 3', slug: 'heren-3' }
 
 const ME = ROSTER[0]
 
@@ -121,10 +151,23 @@ const detailOf = (event) => ({
 
 /** Install the fixture on a Playwright page/context. Call before the first navigation. */
 export async function installFixtureApi(page) {
-  // Neutralise the service worker for the recording. Playwright's route interception does not reach
-  // requests the *worker* makes, so once the SW is controlling the page its NetworkOnly /api handler
-  // fetches straight past the fixture and every call fails. Serving an empty registerSW.js means no
-  // worker ever takes control; the precached shell isn't what this demo is about.
+  // Keep the service worker out of the recording entirely. Playwright's route interception does not
+  // reach a page the SW controls, so the moment one takes over, every /api call sails past the
+  // fixture and the app sits on the cold-start splash.
+  //
+  // Serving an empty sw.js is NOT enough, and the way it fails is nasty: the empty script still
+  // *registers and activates*, so the first load (no controller yet) works, and only the second
+  // navigation — the reload this demo is built around — comes up dead. Stop the registration from
+  // happening at all. The promise is left pending rather than rejected: `registerAppServiceWorker()`
+  // is fire-and-forget at bootstrap and never awaited before render, so nothing hangs on it and
+  // there is no rejection to surface as an unhandled error mid-take.
+  await page.addInitScript(() => {
+    if (navigator.serviceWorker) {
+      navigator.serviceWorker.register = () => new Promise(() => {})
+      navigator.serviceWorker.getRegistrations?.().then((rs) => rs.forEach((r) => r.unregister())).catch(() => {})
+    }
+  })
+  // Belt and braces: if a registration path is ever reached anyway, it gets an inert worker.
   await page.route(
     (url) => /\/(registerSW|sw)\.js$/.test(url.pathname),
     (route) => route.fulfill({ status: 200, contentType: 'application/javascript', body: '' }),
@@ -140,7 +183,9 @@ export async function installFixtureApi(page) {
       const path = url.pathname.replace(/\/$/, '')
       const json = (body, status = 200) => route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(body) })
 
-      if (path === '/api/ping' || path === '/api/health') return route.fulfill({ status: 204, body: '' })
+      // A 200 with a body, not an empty 204: Playwright fulfilling a 204 surfaces in the page as
+      // net::ERR_ABORTED, and the shell treats a failed probe as a backend that is still waking.
+      if (path === '/api/ping' || path === '/api/health') return json({ status: 'ok' })
 
       if (path === '/api/auth/me')
         return json({
@@ -148,8 +193,13 @@ export async function installFixtureApi(page) {
           email: 'julia@example.com',
           displayName: 'Julia Vermeer',
           role: 'ADMIN',
-          team: { id: 't-1', name: 'Heren 3', slug: 'heren-3' },
+          // `teams` is an array and `activeTeam` a separate ref: the root guard gates on
+          // `user.teams.length` and the /me query rejects outright unless `teams` is an array, so a
+          // singular `team` here parks the whole app on the cold-start splash.
+          teams: [TEAM],
+          activeTeam: TEAM,
           isPlatformAdmin: false,
+          actAs: undefined,
         })
 
       if (path === '/api/members/me') return json(ME)

@@ -3,8 +3,8 @@ import type { Position } from '@shared/api/positions'
 import { validatePosition } from './validate-position'
 
 const POSITIONS: Position[] = [
-  { id: 'p1', label: 'Setter' },
-  { id: 'p2', label: 'Libero' },
+  { id: 'p1', label: 'Setter', kind: 'PLAYING' },
+  { id: 'p2', label: 'Libero', kind: 'PLAYING' },
 ]
 
 describe('validatePosition', () => {

@@ -1,8 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from './wirespec-client'
+import type { PositionKind } from './generated/model/PositionKind'
 
 // Re-export the generated contract types so the app has a single source of truth.
 export type { Position } from './generated/model/Position'
+export type { PositionKind } from './generated/model/PositionKind'
 export type { PositionUsage } from './generated/model/PositionUsage'
 
 // A position mutation can fail in ways the UI must distinguish: a taken label is recoverable and
@@ -70,6 +72,31 @@ export function useRenamePosition() {
       return res.body
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['positions'] }),
+  })
+}
+
+/**
+ * Marks a position as played or staffed (#281) — whether the people holding it count toward an
+ * event's headcount target. Its own mutation rather than a wider rename: the toggle applies at
+ * once, while a label is typed and then saved.
+ *
+ * Invalidates events too, because the roster arithmetic every card renders is computed server-side
+ * from these kinds: reclassifying a position changes the verdict on every event without any event
+ * itself having changed.
+ */
+export function useSetPositionKind() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id, kind }: { id: string; kind: PositionKind }) => {
+      const res = await api.SetPositionKind({ id, body: { kind } })
+      if (res.status === 403) throw new PositionError('FORBIDDEN', 'You are not allowed to make this change.')
+      if (res.status === 404) throw new PositionError('NOT_FOUND', 'Position not found.')
+      return res.body
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['positions'] })
+      queryClient.invalidateQueries({ queryKey: ['events'] })
+    },
   })
 }
 

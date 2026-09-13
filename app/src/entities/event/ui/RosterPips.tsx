@@ -5,6 +5,7 @@ import {
   headcountLine,
   chaseNudge,
   rosterRows,
+  staffNote,
   unassignedNudge,
   type PipState,
   type RosterRow,
@@ -43,6 +44,7 @@ export function RosterPips({ roster }: RosterPipsProps) {
   const chase = chaseNudge(roster)
   const nudge = unassignedNudge(roster)
   const headcount = headcountLine(roster)
+  const staff = staffNote(roster)
 
   return (
     <div>
@@ -75,6 +77,10 @@ export function RosterPips({ roster }: RosterPipsProps) {
           </span>
         </p>
       )}
+
+      {/* Why the fraction above is smaller than the number of people in the room (#281). The rows
+          already name them; this says they are excluded from the target, not missing from it. */}
+      {staff && <p className="mt-2 text-[11.5px] text-muted-foreground">{staff}</p>}
 
       {nudge && <p className="mt-2 text-[11.5px] text-muted-foreground">{nudge}</p>}
     </div>

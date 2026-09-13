@@ -16,8 +16,8 @@ import { AccountView } from './AccountView'
 // which is the whole reason the ADR exists. LoggingOut additionally proves the click reaches
 // onLogout (a fn() spy), so the wiring survives a dependency bump.
 const POSITIONS: Position[] = [
-  { id: 'p1', label: 'Setter' },
-  { id: 'p2', label: 'Libero' },
+  { id: 'p1', label: 'Setter', kind: 'PLAYING' },
+  { id: 'p2', label: 'Libero', kind: 'PLAYING' },
 ]
 
 const MEMBER: Member = {

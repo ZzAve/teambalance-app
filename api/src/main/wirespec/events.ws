@@ -41,19 +41,22 @@ enum RosterState {
     CRITICAL
 }
 
-// One row of the roster panel. `required` is null for a position that is merely attended, not targeted; those rows show a plain count instead of pips. Attending beyond required is the surplus the panel renders as "+N".
+// One row of the roster panel. `required` is null for a position that is merely attended, not targeted; those rows show a plain count instead of pips. Attending beyond required is the surplus the panel renders as "+N". `kind` marks a STAFF row as excluded from the headcount — shown, not counted (#281).
 type RosterPosition {
     id: String,
     label: String,
     required: Integer?,
-    attending: Integer
+    attending: Integer,
+    kind: PositionKind
 }
 
-// The event's roster, computed server-side so the status arithmetic has ONE tested home and the client only maps numbers to chip text, colour and pips. Rows are the positions with a target OR at least one attendee, in the position vocabulary's order; an untargeted empty position is omitted rather than rendered as a zero. `openSlots` is how many more people the DRIVING target needs — the sum of unmet position slots when positions are targeted, else the headcount shortfall. `unassignedAttending` drives the "N going haven't set a position" nudge; those attendees count toward the total but can fill no targeted slot.
+// The event's roster, computed server-side so the status arithmetic has ONE tested home and the client only maps numbers to chip text, colour and pips. Rows are the positions with a target OR at least one attendee, in the position vocabulary's order; an untargeted empty position is omitted rather than rendered as a zero. `openSlots` is how many more people the DRIVING target needs — the sum of unmet position slots when positions are targeted, else the headcount shortfall. `unassignedAttending` drives the "N going haven't set a position" nudge; those attendees count toward the total but can fill no targeted slot. The three attending counts partition the attendees so the client subtracts nothing: `totalAttending` is how many people are coming, `playingAttending` is the number `totalTarget` is measured against, and `staffAttending` is the rest (#281) — with tracking off there is no target for staff to be excluded from, so the split is not drawn and every attendee is reported as playing.
 type EventRoster {
     trackRoster: Boolean,
     totalTarget: Integer?,
     totalAttending: Integer,
+    playingAttending: Integer,
+    staffAttending: Integer,
     positions: RosterPosition[],
     unassignedAttending: Integer,
     openSlots: Integer,

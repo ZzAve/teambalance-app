@@ -16,14 +16,21 @@ import { ManagePositionsView } from './ManagePositionsView'
 //      onDelete are fn() spies). This proves the wiring survives a dependency bump; a getByText
 //      assertion alone would not.
 const POSITIONS: Position[] = [
-  { id: 'p1', label: 'Setter' },
-  { id: 'p2', label: 'Libero' },
+  { id: 'p1', label: 'Setter', kind: 'PLAYING' },
+  { id: 'p2', label: 'Libero', kind: 'PLAYING' },
+]
+
+// A vocabulary with the distinction actually used (#281). Kept apart from POSITIONS so the default
+// picture stays the one every team sees before an admin marks anything.
+const WITH_STAFF: Position[] = [
+  { id: 'p1', label: 'Setter', kind: 'PLAYING' },
+  { id: 'p3', label: 'Trainer', kind: 'STAFF' },
 ]
 
 const meta = {
   title: 'features/manage-positions/ManagePositionsView',
   component: ManagePositionsView,
-  args: { positions: POSITIONS, onCreate: fn(), onRename: fn(), onDelete: fn() },
+  args: { positions: POSITIONS, onCreate: fn(), onRename: fn(), onSetKind: fn(), onDelete: fn() },
 } satisfies Meta<typeof ManagePositionsView>
 
 export default meta
@@ -61,6 +68,43 @@ export const WithItems: Story = {
     await expect(canvas.getByLabelText('Label for Setter')).toHaveValue('Setter')
     await expect(canvas.getByLabelText('Label for Libero')).toHaveValue('Libero')
     await expect(canvas.getAllByRole('button', { name: 'Delete' })).toHaveLength(2)
+  },
+}
+
+// The staff toggle's resting state (#281): a team that has marked nothing sees every box clear, so
+// the distinction costs an existing admin no attention until they want it.
+export const StaffToggleOff: Story = {
+  parameters: { chromatic: { disableSnapshot: true } },
+  play: async ({ canvas }) => {
+    await expect(canvas.getByLabelText('Setter is staff')).not.toBeChecked()
+    await expect(canvas.getByLabelText('Libero is staff')).not.toBeChecked()
+  },
+}
+
+export const WithStaffPosition: Story = {
+  args: { positions: WITH_STAFF },
+  play: async ({ canvas }) => {
+    await expect(canvas.getByLabelText('Trainer is staff')).toBeChecked()
+    await expect(canvas.getByLabelText('Setter is staff')).not.toBeChecked()
+  },
+}
+
+// The gesture is the flip itself — no Save to press, unlike the label beside it.
+export const MarkPositionStaff: Story = {
+  parameters: { chromatic: { disableSnapshot: true } },
+  play: async ({ canvas, userEvent, args }) => {
+    await userEvent.click(canvas.getByLabelText('Setter is staff'))
+    await expect(args.onSetKind).toHaveBeenCalledWith('p1', 'STAFF')
+  },
+}
+
+// Reclassifying is not one-way: an admin who marked the wrong position can put it back.
+export const MarkPositionPlaying: Story = {
+  parameters: { chromatic: { disableSnapshot: true } },
+  args: { positions: WITH_STAFF },
+  play: async ({ canvas, userEvent, args }) => {
+    await userEvent.click(canvas.getByLabelText('Trainer is staff'))
+    await expect(args.onSetKind).toHaveBeenCalledWith('p3', 'PLAYING')
   },
 }
 

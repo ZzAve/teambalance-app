@@ -30,7 +30,7 @@ export const Covered: Story = {
 
 export const Short: Story = {
   args: {
-    roster: makeRoster({ state: 'SPOTS_OPEN', positions: [{ id: 'p', label: 'Setter', required: 2, attending: 1 }] }),
+    roster: makeRoster({ state: 'SPOTS_OPEN', positions: [{ id: 'p', label: 'Setter', required: 2, attending: 1, kind: 'PLAYING' }] }),
   },
   play: async ({ canvas }) => {
     await expect(canvas.getByText('1 spot open')).toBeInTheDocument()
@@ -39,7 +39,7 @@ export const Short: Story = {
 
 export const Critical: Story = {
   args: {
-    roster: makeRoster({ state: 'CRITICAL', positions: [{ id: 'p', label: 'Libero', required: 1, attending: 0 }] }),
+    roster: makeRoster({ state: 'CRITICAL', positions: [{ id: 'p', label: 'Libero', required: 1, attending: 0, kind: 'PLAYING' }] }),
   },
   // Not "1 spot open" — that is what Short says, and red-vs-gold was the only thing telling the two
   // apart (#313).
@@ -51,7 +51,7 @@ export const Critical: Story = {
 // A social — tracking off, so no verdict. The headcount fallback keeps the row from carrying no
 // team information at all (⑥).
 export const HeadcountFallbackOff: Story = {
-  args: { roster: { ...NO_ROSTER, totalAttending: 8 } },
+  args: { roster: makeRoster({ ...NO_ROSTER, totalAttending: 8 }) },
   play: async ({ canvas }) => {
     await expect(canvas.getByText('8 going')).toBeInTheDocument()
   },
@@ -79,5 +79,25 @@ export const Pending: Story = {
     const badge = canvas.getByText('Lineup set')
     await expect(badge).toBeInTheDocument()
     await expect(badge).toHaveAttribute('aria-busy', 'true')
+  },
+}
+
+// The headcount fallback (⑥, #271) with the players and staff counted apart (#281). It used to read
+// "12 going" on a training of eleven players and a coach, which was the reported complaint in its
+// most prominent form: no verdict beside it to correct the impression.
+export const HeadcountFallbackWithStaff: Story = {
+  args: {
+    roster: makeRoster({
+      state: 'TALLY_ONLY',
+      totalTarget: undefined,
+      totalAttending: 12,
+      positions: [
+        { id: 'pos-setter', label: 'Setter', required: undefined, attending: 11, kind: 'PLAYING' },
+        { id: 'pos-trainer', label: 'Trainer', required: undefined, attending: 1, kind: 'STAFF' },
+      ],
+    }),
+  },
+  play: async ({ canvas }) => {
+    await expect(canvas.getByText(/11 going \+1 staff/)).toBeInTheDocument()
   },
 }

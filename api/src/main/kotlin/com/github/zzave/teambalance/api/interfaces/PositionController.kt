@@ -10,6 +10,7 @@ import com.github.zzave.teambalance.api.interfaces.generated.endpoint.DeletePosi
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.GetPositionUsage
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.ListPositions
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.RenamePosition
+import com.github.zzave.teambalance.api.interfaces.generated.endpoint.SetPositionKind
 import com.github.zzave.teambalance.api.interfaces.generated.model.PositionList
 import com.github.zzave.teambalance.api.interfaces.generated.model.PositionUsage
 import org.springframework.web.bind.annotation.RestController
@@ -25,6 +26,7 @@ class PositionController(
     CreatePosition.Handler,
     RenamePosition.Handler,
     DeletePosition.Handler,
+    SetPositionKind.Handler,
     GetPositionUsage.Handler {
 
     override suspend fun listPositions(request: ListPositions.Request): ListPositions.Response<*> {
@@ -56,6 +58,20 @@ class PositionController(
         return RenamePosition.Response200(renamed.toDto())
     }
 
+    // Its own endpoint rather than a wider rename body (#281): a label is typed and saved, a kind is
+    // toggled and applies at once, and "rename" that also reclassifies would misname the contract.
+    override suspend fun setPositionKind(request: SetPositionKind.Request): SetPositionKind.Response<*> {
+        val caller = currentUserGateway.requireCurrentUserId()
+        val teamId = currentTeamGateway.requireCurrentTeamId()
+        val updated = positionService.setPositionKind(
+            callerId = caller,
+            teamId = teamId,
+            id = request.path.id.consumePositionId(),
+            kind = request.body.kind.consume(),
+        )
+        return SetPositionKind.Response200(updated.toDto())
+    }
+
     // What the delete confirmation reports before it lets the admin proceed (#219). Admin-only,
     // because it is the delete's own dialog that reads it.
     override suspend fun getPositionUsage(request: GetPositionUsage.Request): GetPositionUsage.Response<*> {
@@ -81,7 +97,7 @@ class PositionController(
     }
 }
 
-private fun Position.toDto() = PositionDto(id = id.produce(), label = label.value)
+private fun Position.toDto() = PositionDto(id = id.produce(), label = label.value, kind = kind.produce())
 
 // The Wirespec edge for a position's identity — the contract still carries a bare UUID string,
 // unchanged by PositionId (ADR-0018). internal so MemberController, which reads a position off

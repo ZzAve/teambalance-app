@@ -29,10 +29,12 @@ private const val SETTER_USER_ID = "b2190000-0000-0000-0000-000000000012"
 private const val SETTER_USER_2_ID = "b2190000-0000-0000-0000-000000000013"
 private const val LIBERO_USER_ID = "b2190000-0000-0000-0000-000000000014"
 private const val NOPOS_USER_ID = "b2190000-0000-0000-0000-000000000015"
+private const val TRAINER_USER_ID = "b2190000-0000-0000-0000-000000000016"
 private const val TEAM_ID = "a0000000-0000-0000-0000-000000000001"
 private const val SETTER = "Fill Setter"
 private const val LIBERO = "Fill Libero"
 private const val MIDDLE = "Fill Middle"
+private const val TRAINER = "Fill Trainer"
 private const val TYPE_NAME = "FillFixture"
 
 /**
@@ -314,6 +316,78 @@ class RosterFillIT : TeamBalanceIT() {
                 .andExpect(jsonPath("$.roster.openSlots").value(1))
         }
 
+        // ── staff do not fill a headcount (#281) ────────────────────────────
+
+        // The reported bug, end to end through the real payload: two attendees, one of them staff,
+        // against a headcount of 2. Before the kind existed this answered HEADCOUNT_FULL and the card
+        // said "Full" while the team was a player short.
+        test("a staff attendee is shown but does not fill the headcount") {
+            seedTeam()
+            positionId(SETTER)
+            positionId(TRAINER, kind = "STAFF")
+            seedMember(SETTER_USER_ID, "fill-setter@test.com", SETTER)
+            seedMember(TRAINER_USER_ID, "fill-trainer@test.com", TRAINER)
+            setTypeDefault(trackRoster = true, totalTarget = 2, targets = emptyMap())
+            val id = createEvent("Training", rosterOverride = null)
+            attend(id, SETTER_USER_ID)
+            attend(id, TRAINER_USER_ID)
+
+            detail(id)
+                .andExpect(jsonPath("$.roster.state").value("HEADCOUNT_SHORT"))
+                .andExpect(jsonPath("$.roster.openSlots").value(1))
+                // Excluded from the target, not hidden: both counts are reported and both rows show.
+                .andExpect(jsonPath("$.roster.totalAttending").value(2))
+                .andExpect(jsonPath("$.roster.playingAttending").value(1))
+                .andExpect(jsonPath("$.roster.staffAttending").value(1))
+                .andExpect(jsonPath("$.roster.positions.length()").value(2))
+        }
+
+        // The migration default is what keeps every existing team's numbers still on deploy: a
+        // position nobody has reclassified plays, so the same attendance yields the same verdict.
+        test("a position nobody has reclassified still fills the headcount") {
+            seedTeam()
+            positionId(SETTER)
+            positionId(TRAINER)
+            seedMember(SETTER_USER_ID, "fill-setter@test.com", SETTER)
+            seedMember(TRAINER_USER_ID, "fill-trainer@test.com", TRAINER)
+            setTypeDefault(trackRoster = true, totalTarget = 2, targets = emptyMap())
+            val id = createEvent("Untouched", rosterOverride = null)
+            attend(id, SETTER_USER_ID)
+            attend(id, TRAINER_USER_ID)
+
+            detail(id)
+                .andExpect(jsonPath("$.roster.state").value("HEADCOUNT_FULL"))
+                .andExpect(jsonPath("$.roster.playingAttending").value(2))
+                .andExpect(jsonPath("$.roster.staffAttending").value(0))
+        }
+
+        // Marking a position staff is an admin action whose effect is felt on every event at once —
+        // the roster is derived on read, so no event has to be touched for its verdict to change.
+        test("marking a position staff turns a Full training back into a short one") {
+            seedTeam()
+            positionId(SETTER)
+            val trainer = positionId(TRAINER)
+            seedMember(SETTER_USER_ID, "fill-setter@test.com", SETTER)
+            seedMember(TRAINER_USER_ID, "fill-trainer@test.com", TRAINER)
+            setTypeDefault(trackRoster = true, totalTarget = 2, targets = emptyMap())
+            val id = createEvent("Reclassified", rosterOverride = null)
+            attend(id, SETTER_USER_ID)
+            attend(id, TRAINER_USER_ID)
+
+            detail(id).andExpect(jsonPath("$.roster.state").value("HEADCOUNT_FULL"))
+
+            perform(
+                MockMvcRequestBuilders.put("/api/positions/$trainer/kind")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"kind": "STAFF"}"""),
+                ADMIN_USER_ID,
+            ).andExpect(status().isOk)
+
+            detail(id)
+                .andExpect(jsonPath("$.roster.state").value("HEADCOUNT_SHORT"))
+                .andExpect(jsonPath("$.roster.openSlots").value(1))
+        }
+
         // There is deliberately no IT for "a stale target naming a deleted position": since ADR-0025
         // the targets and the positions share one schema, so event_type_position_targets.position_id
         // is a foreign key with ON DELETE CASCADE and the row cannot outlive the position it names.
@@ -404,11 +478,15 @@ class RosterFillIT : TeamBalanceIT() {
     // Positions are tenant rows since ADR-0025, and this spec's team routes to `public`, so that is
     // where a position has to exist for a target to reference it — event_type_position_targets
     // .position_id is a real foreign key now, and seeding only the platform table would be rejected.
-    private fun positionId(label: String): UUID {
+    private fun positionId(label: String, kind: String = "PLAYING"): UUID {
         jdbcTemplate.update(
-            "INSERT INTO public.positions (id, label) VALUES (gen_random_uuid(), ?) ON CONFLICT DO NOTHING",
+            "INSERT INTO public.positions (id, label, kind) VALUES (gen_random_uuid(), ?, ?) ON CONFLICT DO NOTHING",
             label,
+            kind,
         )
+        // ON CONFLICT DO NOTHING leaves a position this spec already seeded on its original kind, and
+        // these tests reclassify. Re-assert it, the way seedMember re-asserts a position.
+        jdbcTemplate.update("UPDATE public.positions SET kind = ? WHERE lower(label) = lower(?)", kind, label)
         return jdbcTemplate.queryForObject(
             "SELECT id FROM public.positions WHERE lower(label) = lower(?)",
             UUID::class.java,

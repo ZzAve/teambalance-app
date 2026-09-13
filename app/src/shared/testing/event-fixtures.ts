@@ -16,6 +16,8 @@ export const NO_ROSTER: EventRoster = {
   trackRoster: false,
   totalTarget: undefined,
   totalAttending: 0,
+  playingAttending: 0,
+  staffAttending: 0,
   positions: [],
   unassignedAttending: 0,
   openSlots: 0,
@@ -38,9 +40,15 @@ export const NO_ROSTER: EventRoster = {
  * `positions` wants, and **throw when the caller states one that contradicts them**, which is the
  * case worth failing loudly. Untargeted positions are left alone — the headcount drives there, and
  * `openSlots` is its shortfall, which says nothing about the rows.
+ *
+ * `playingAttending` / `staffAttending` are always derived rather than taken (#281), for the same
+ * reason and a stricter one: the server splits `totalAttending` by the rows' kinds, so there is no
+ * value a caller could legitimately state that derivation would not already give. Deriving beats
+ * guarding here because a fixture built by spreading another roster carries those fields whether it
+ * means to or not, and a guard would fail it for the copy rather than for anything it asserted.
  */
 export function makeRoster(overrides: Partial<EventRoster> = {}): EventRoster {
-  const roster = makeRosterUnchecked(overrides)
+  const roster = withAttendingSplit(makeRosterUnchecked(overrides))
   const targeted = roster.positions.filter((p) => p.required != null)
   if (targeted.length === 0) return roster
 
@@ -58,15 +66,29 @@ export function makeRoster(overrides: Partial<EventRoster> = {}): EventRoster {
   return roster
 }
 
+/**
+ * Splits `totalAttending` the way the server does: staff are whoever holds a STAFF row, everyone
+ * else — unpositioned attendees included — plays. With tracking off there is no target for staff to
+ * be excluded from, so no split is drawn and every attendee is reported as playing.
+ */
+function withAttendingSplit(roster: EventRoster): EventRoster {
+  const staff = roster.trackRoster
+    ? roster.positions.filter((p) => p.kind === 'STAFF').reduce((sum, p) => sum + p.attending, 0)
+    : 0
+  return { ...roster, playingAttending: roster.totalAttending - staff, staffAttending: staff }
+}
+
 function makeRosterUnchecked(overrides: Partial<EventRoster> = {}): EventRoster {
   return {
     trackRoster: true,
     totalTarget: undefined,
     totalAttending: 4,
+    playingAttending: 4,
+    staffAttending: 0,
     positions: [
-      { id: 'pos-setter', label: 'Setter', required: 2, attending: 2 },
-      { id: 'pos-libero', label: 'Libero', required: 1, attending: 1 },
-      { id: 'pos-middle', label: 'Middle', required: 2, attending: 1 },
+      { id: 'pos-setter', label: 'Setter', required: 2, attending: 2, kind: 'PLAYING' },
+      { id: 'pos-libero', label: 'Libero', required: 1, attending: 1, kind: 'PLAYING' },
+      { id: 'pos-middle', label: 'Middle', required: 2, attending: 1, kind: 'PLAYING' },
     ],
     unassignedAttending: 0,
     openSlots: 1,

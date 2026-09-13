@@ -51,7 +51,7 @@ describe('groupAttendeesByPosition', () => {
 
   it('gives an untargeted position no fraction', () => {
     const roster: EventRoster = makeRoster({
-      positions: [{ id: 'pos-coach', label: 'Coach', required: undefined, attending: 1 }],
+      positions: [{ id: 'pos-coach', label: 'Coach', required: undefined, attending: 1, kind: 'PLAYING' }],
       openSlots: 0,
       state: 'TALLY_ONLY',
     })

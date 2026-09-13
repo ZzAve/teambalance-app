@@ -12,6 +12,7 @@ import com.github.zzave.teambalance.api.domain.model.EventTypeName
 import com.github.zzave.teambalance.api.domain.model.HexColor
 import com.github.zzave.teambalance.api.domain.model.PositionId
 import com.github.zzave.teambalance.api.domain.model.RosterRequirement
+import com.github.zzave.teambalance.api.domain.model.PositionKind
 import com.github.zzave.teambalance.api.domain.model.PositionLabel
 import com.github.zzave.teambalance.api.domain.model.Recurrence
 import com.github.zzave.teambalance.api.domain.model.RecurrenceFrequency
@@ -81,6 +82,7 @@ private class ExplodingPositionRepo : PositionRepository {
     override fun list(): List<Position> = error("unused")
     override fun create(label: PositionLabel): Position = error("unused")
     override fun rename(id: PositionId, label: PositionLabel): Position = error("unused")
+    override fun setKind(id: PositionId, kind: PositionKind): Position = error("unused")
     override fun delete(id: PositionId) = error("unused")
     override fun findById(id: PositionId): Position? = error("unused")
     override fun exists(positionId: PositionId): Boolean = error("unused")

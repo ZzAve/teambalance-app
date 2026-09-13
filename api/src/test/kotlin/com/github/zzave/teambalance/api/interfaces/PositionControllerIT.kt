@@ -10,6 +10,7 @@ import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers
+import java.util.UUID
 
 // Ids dedicated to this spec so its position/roster assertions are isolated from other specs and the
 // demo seed migration, which also write to the shared platform tables in the one Testcontainers DB.
@@ -87,6 +88,17 @@ class PositionControllerIT : TeamBalanceIT() {
             .andReturn()
             .let { mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(it)) }
 
+    private fun setKindAs(userId: String, id: String, kind: String) =
+        mockMvc.perform(
+            MockMvcRequestBuilders.put("/api/positions/$id/kind")
+                .header("X-User-Id", userId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""{"kind":"$kind"}"""),
+        )
+            .andExpect(MockMvcResultMatchers.request().asyncStarted())
+            .andReturn()
+            .let { mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(it)) }
+
     private fun deleteAs(userId: String, id: String) =
         mockMvc.perform(MockMvcRequestBuilders.delete("/api/positions/$id").header("X-User-Id", userId))
             .andExpect(MockMvcResultMatchers.request().asyncStarted())
@@ -101,6 +113,64 @@ class PositionControllerIT : TeamBalanceIT() {
             .let { Regex("\"id\":\"([^\"]+)\"").find(it)!!.groupValues[1] }
 
     init {
+        // ── position kind (#281) ─────────────────────────────────────────────
+
+        // The migration default, proved through the API a team actually reads: a position created
+        // without saying anything about its kind plays, so nothing an existing team sees moves.
+        test("a created position is PLAYING, and the column agrees") {
+            seedTeam()
+            val id = createAs(ADMIN_USER_ID, "Setter")
+                .andExpect(MockMvcResultMatchers.status().isCreated)
+                .andExpect(MockMvcResultMatchers.jsonPath("$.kind").value("PLAYING"))
+                .andReturn().response.contentAsString
+                .let { Regex("\"id\":\"([^\"]+)\"").find(it)!!.groupValues[1] }
+
+            val stored = jdbcTemplate.queryForObject(
+                "SELECT kind FROM $TEAM_SCHEMA.positions WHERE id = ?::uuid", String::class.java, id,
+            )
+            stored shouldBe "PLAYING"
+        }
+
+        test("PUT /api/positions/{id}/kind by an admin marks it staff, and the list agrees") {
+            seedTeam()
+            val id = createPositionReturningId("Trainer")
+
+            setKindAs(ADMIN_USER_ID, id, "STAFF")
+                .andExpect(MockMvcResultMatchers.status().isOk)
+                .andExpect(MockMvcResultMatchers.jsonPath("$.kind").value("STAFF"))
+
+            listAs(MEMBER_USER_ID)
+                .andExpect(MockMvcResultMatchers.status().isOk)
+                .andExpect(MockMvcResultMatchers.jsonPath("$.positions[0].kind").value("STAFF"))
+        }
+
+        // Reclassifying is not one-way: a team that marked the wrong position can put it back.
+        test("a staff position can be marked playing again") {
+            seedTeam()
+            val id = createPositionReturningId("Trainer")
+            setKindAs(ADMIN_USER_ID, id, "STAFF").andExpect(MockMvcResultMatchers.status().isOk)
+
+            setKindAs(ADMIN_USER_ID, id, "PLAYING")
+                .andExpect(MockMvcResultMatchers.status().isOk)
+                .andExpect(MockMvcResultMatchers.jsonPath("$.kind").value("PLAYING"))
+        }
+
+        // The vocabulary is every member's to read and only an admin's to change — same gate as
+        // create, rename and delete.
+        test("PUT /api/positions/{id}/kind by a plain member is forbidden") {
+            seedTeam()
+            val id = createPositionReturningId("Trainer")
+
+            setKindAs(MEMBER_USER_ID, id, "STAFF").andExpect(MockMvcResultMatchers.status().isForbidden)
+        }
+
+        test("PUT /api/positions/{id}/kind for an unknown id is 404") {
+            seedTeam()
+
+            setKindAs(ADMIN_USER_ID, UUID.randomUUID().toString(), "STAFF")
+                .andExpect(MockMvcResultMatchers.status().isNotFound)
+        }
+
         // Also pins the JPA edge: PositionLabel is an internal representation, so the column must
         // still hold the bare string the response carries.
         test("POST /api/positions by an admin creates a position") {

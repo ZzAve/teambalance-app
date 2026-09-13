@@ -226,9 +226,9 @@ const READY_EVENT = makeEvent({
   roster: makeRoster({
     state: 'LINEUP_SET',
     positions: [
-      { id: 'pos-setter', label: 'Setter', required: 2, attending: 2 },
-      { id: 'pos-libero', label: 'Libero', required: 1, attending: 1 },
-      { id: 'pos-middle', label: 'Middle', required: 2, attending: 2 },
+      { id: 'pos-setter', label: 'Setter', required: 2, attending: 2, kind: 'PLAYING' },
+      { id: 'pos-libero', label: 'Libero', required: 1, attending: 1, kind: 'PLAYING' },
+      { id: 'pos-middle', label: 'Middle', required: 2, attending: 2, kind: 'PLAYING' },
     ],
     totalAttending: 10,
   }),
@@ -263,8 +263,8 @@ export const ReadinessCritical: Story = {
       roster: makeRoster({
         state: 'CRITICAL',
         positions: [
-          { id: 'pos-setter', label: 'Setter', required: 2, attending: 0 },
-          { id: 'pos-libero', label: 'Libero', required: 1, attending: 0 },
+          { id: 'pos-setter', label: 'Setter', required: 2, attending: 0, kind: 'PLAYING' },
+          { id: 'pos-libero', label: 'Libero', required: 1, attending: 0, kind: 'PLAYING' },
         ],
         totalAttending: 0,
       }),

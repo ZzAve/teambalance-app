@@ -4,8 +4,8 @@ import type { Position } from '@shared/api/positions'
 import { rosterDefaultSummary } from './roster-default-summary'
 
 const POSITIONS: Position[] = [
-  { id: 'p1', label: 'Setter' },
-  { id: 'p2', label: 'Libero' },
+  { id: 'p1', label: 'Setter', kind: 'PLAYING' },
+  { id: 'p2', label: 'Libero', kind: 'PLAYING' },
 ]
 
 const req = (overrides: Partial<RosterRequirement> = {}): RosterRequirement => ({

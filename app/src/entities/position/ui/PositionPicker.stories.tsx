@@ -7,9 +7,9 @@ import { PositionPicker } from './PositionPicker'
 // roster. It emits the chosen position id (or null for Unassigned). Props-only and network-free, so
 // its states (no-positions / has-positions / preselected) render as stories.
 const POSITIONS: Position[] = [
-  { id: 'p1', label: 'Setter' },
-  { id: 'p2', label: 'Libero' },
-  { id: 'p3', label: 'Outside Hitter' },
+  { id: 'p1', label: 'Setter', kind: 'PLAYING' },
+  { id: 'p2', label: 'Libero', kind: 'PLAYING' },
+  { id: 'p3', label: 'Outside Hitter', kind: 'PLAYING' },
 ]
 
 const meta = {

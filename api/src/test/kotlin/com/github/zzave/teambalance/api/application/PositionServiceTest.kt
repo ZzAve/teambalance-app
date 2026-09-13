@@ -12,6 +12,7 @@ import com.github.zzave.teambalance.api.domain.model.EventTypeName
 import com.github.zzave.teambalance.api.domain.model.HexColor
 import com.github.zzave.teambalance.api.domain.model.Position
 import com.github.zzave.teambalance.api.domain.model.PositionId
+import com.github.zzave.teambalance.api.domain.model.PositionKind
 import com.github.zzave.teambalance.api.domain.model.PositionLabel
 import com.github.zzave.teambalance.api.domain.model.Role
 import com.github.zzave.teambalance.api.domain.model.RosterRequirement
@@ -33,26 +34,26 @@ import java.util.UUID
 // tenant's schema, which is what "this team's positions" now means — a position from another team is
 // not a row this repository can see at all, rather than a row it must filter out.
 private class PosFakePositionRepo : PositionRepository {
-    private val store: MutableMap<PositionId, PositionLabel> = mutableMapOf()
+    private val store: MutableMap<PositionId, Position> = mutableMapOf()
 
-    override fun list(): List<Position> = store.map { Position(it.key, it.value) }.sortedBy { it.label.value }
+    override fun list(): List<Position> = store.values.sortedBy { it.label.value }
 
     override fun create(label: PositionLabel): Position {
         val id = PositionId(UUID.randomUUID())
-        store[id] = label
-        return Position(id, label)
+        return Position(id, label).also { store[id] = it }
     }
 
-    override fun rename(id: PositionId, label: PositionLabel): Position {
-        store[id] = label
-        return Position(id, label)
-    }
+    override fun rename(id: PositionId, label: PositionLabel): Position =
+        store.getValue(id).copy(label = label).also { store[id] = it }
+
+    override fun setKind(id: PositionId, kind: PositionKind): Position =
+        store.getValue(id).copy(kind = kind).also { store[id] = it }
 
     override fun delete(id: PositionId) {
         store.remove(id)
     }
 
-    override fun findById(id: PositionId): Position? = store[id]?.let { Position(id, it) }
+    override fun findById(id: PositionId): Position? = store[id]
     override fun exists(positionId: PositionId): Boolean = store.containsKey(positionId)
 }
 
@@ -181,6 +182,38 @@ class PositionServiceTest : FunSpec() {
             }
         }
 
+        test("a new position plays until an admin says otherwise") {
+            val (service, _) = newService()
+            service.createPosition(adminId, teamId, "Setter").kind shouldBe PositionKind.PLAYING
+        }
+
+        test("setPositionKind marks a position as staff, and back again") {
+            val (service, _) = newService()
+            val created = service.createPosition(adminId, teamId, "Trainer")
+
+            service.setPositionKind(adminId, teamId, created.id, PositionKind.STAFF).kind shouldBe PositionKind.STAFF
+            service.listPositions().single().kind shouldBe PositionKind.STAFF
+
+            service.setPositionKind(adminId, teamId, created.id, PositionKind.PLAYING)
+            service.listPositions().single().kind shouldBe PositionKind.PLAYING
+        }
+
+        // The kind is not part of a position's identity, so two may share it — unlike the label.
+        test("setPositionKind of an unknown id returns 404") {
+            val (service, _) = newService()
+            shouldThrow<PositionNotFoundException> {
+                service.setPositionKind(adminId, teamId, PositionId(UUID.randomUUID()), PositionKind.STAFF)
+            }
+        }
+
+        test("renaming a staff position keeps it staff") {
+            val (service, _) = newService()
+            val created = service.createPosition(adminId, teamId, "Trainer")
+            service.setPositionKind(adminId, teamId, created.id, PositionKind.STAFF)
+
+            service.renamePosition(adminId, teamId, created.id, "Coach").kind shouldBe PositionKind.STAFF
+        }
+
         test("deletePosition removes the position") {
             val (service, positions) = newService()
             val created = service.createPosition(adminId, teamId, "Setter")
@@ -219,6 +252,9 @@ class PositionServiceTest : FunSpec() {
             val (service, _) = newService()
             val created = service.createPosition(adminId, teamId, "Setter")
             shouldThrow<NotTeamAdminException> { service.renamePosition(userId, teamId, created.id, "X") }
+            shouldThrow<NotTeamAdminException> {
+                service.setPositionKind(userId, teamId, created.id, PositionKind.STAFF)
+            }
             shouldThrow<NotTeamAdminException> { service.deletePosition(userId, teamId, created.id) }
             shouldThrow<NotTeamAdminException> { service.positionUsage(userId, teamId, created.id) }
         }

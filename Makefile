@@ -14,6 +14,9 @@ build: ## Build everything (autoformat)
 #    yolo: ## quick build of the project - with as little validation as possible
 #    	<yolo command>
 #
+check-tooling: ## Check the toolchain is present and the generated API client is current
+	@./scripts/check-tooling.sh
+
 help: ## Show this help
 
 	@echo "Usage: make <command>"; \
@@ -86,6 +89,7 @@ format: ## Auto-format code
 wirespec: ## Generate code from Wirespec definitions
 	./gradlew :api:wirespec-kotlin
 	./gradlew :api:wirespec-typescript
+	@./scripts/wirespec-stamp.sh write
 
 # --- Shortcuts ---
 yolo: ## Fast build, skip tests and linting

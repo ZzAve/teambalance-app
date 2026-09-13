@@ -69,10 +69,9 @@ dependencies {
 
     // Testing — Kotest
     val kotestVersion: String by project
-    val kotestSpringExtensionVersion: String by project
     testImplementation("io.kotest:kotest-runner-junit5:$kotestVersion")
     testImplementation("io.kotest:kotest-assertions-core:$kotestVersion")
-    testImplementation("io.kotest.extensions:kotest-extensions-spring:$kotestSpringExtensionVersion")
+    testImplementation("io.kotest:kotest-extensions-spring:$kotestVersion")
 
     // Testing — Spring + Testcontainers
     testImplementation("org.springframework.boot:spring-boot-starter-test")

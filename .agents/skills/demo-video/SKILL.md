@@ -25,6 +25,10 @@ If something *still* seems to flicker after `-qp`, diagnose in order — most of
 - **Navigate in-app (SPA), not `page.goto`.** A hard reload flashes white (reads as restless) and wipes injected styles/caption/cursor. Click the app's own nav after the first entry/login.
 - **Show what opens each window.** Caption the action and show the click before a dialog appears (`'Click "Add"…'` then click) — otherwise modals seem to materialize from nowhere.
 
+## Demoing a change you can't see
+
+Hit areas, spacing, z-order, focus rings: before and after are the same screenshot, so a straight take shows nothing. Record **two segments of the same app**, flipping the code between them (`git show origin/main:<file> > <file>` → record → `git checkout HEAD -- <file>`, and leave the tree clean), and annotate both from the live DOM with **`scripts/annotate.mjs`**: `box()` returns the rect it drew, so the same measured number lands in the on-screen label *and* the caption — the video becomes evidence rather than narration. Tap with `tapAt(page, x, y)`, a coordinate: the `click()` helper aims at an element's centre and so can never reproduce a near-miss. Reset app state before *every* segment (a take that mutates data leaves the next one opening in the wrong state), and end segment 1 on a `titleCard()` so the cut into segment 2's `page.goto` is dark-to-dark instead of a white flash. Full recipe and traps: [REFERENCE.md](REFERENCE.md) "Before/after".
+
 ## Pipeline
 
 1. **Check the toolchain** — run `scripts/check-deps.sh` from the project root and install whatever it flags: Node.js, `ffmpeg`/`ffprobe`, and Playwright + its Chromium browser (`npx playwright install chromium`). Recording is **headless** by default, so a server / container / CI box is fine; if Chromium won't launch there, set `CHROMIUM_NO_SANDBOX=1` (auto-on as root or when `CI` is set).
@@ -84,4 +88,4 @@ Two tests, both must pass: (1) is it about recording/encoding/capture, not the a
 ## Details
 
 - Recipes (transcode/concat/gif), the `-qp` trap, frame-verify, MUI helper snippets, multi-segment design, troubleshooting: [REFERENCE.md](REFERENCE.md).
-- Engine: `scripts/record-harness.mjs` (rarely edited). Per-demo: `scripts/steps.template.mjs` (copy + edit). Steps receive `{ page, caption, section, sleep, env, BASE, click, type, scrollTo, moveTo, pan }` — the last five drive the visible pointer / smooth scroll (see "Record calm, legible takes"). `STORAGE_STATE=` reuses auth across segments (load if present; steps can save to it to skip re-login). `INJECT_CSS=` re-injects CSS on every load (flatten flickery backdrops, etc.).
+- Engine: `scripts/record-harness.mjs` (rarely edited). Per-demo: `scripts/steps.template.mjs` (copy + edit). Annotation overlays (measured boxes, hatched bands, crosshairs, coordinate taps, title cards): `scripts/annotate.mjs`. Steps receive `{ page, caption, section, sleep, env, BASE, click, type, scrollTo, moveTo, pan }` — the last five drive the visible pointer / smooth scroll (see "Record calm, legible takes"). `STORAGE_STATE=` reuses auth across segments (load if present; steps can save to it to skip re-login). `INJECT_CSS=` re-injects CSS on every load (flatten flickery backdrops, etc.).

@@ -1,19 +1,22 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { useState } from 'react'
 import { VariantA } from './VariantA'
-import { VariantB } from './VariantB'
-import { VariantC } from './VariantC'
+import { VariantD } from './VariantD'
+import { VariantE } from './VariantE'
+import { VariantF } from './VariantF'
 import { demoAttendances, demoRoster, DEMO_SELF_ID } from './demo-squad'
 import type { LineupState } from './lineup-model'
 
 /**
  * PROTOTYPE — throwaway, and NOT an example of how stories are written here: no play functions, no
- * spies, no states matrix. It exists so the three variants can be compared side by side without the
+ * spies, no states matrix. It exists so the variants can be compared side by side without the
  * backend, in a card-width frame, against the demo squad. The real prototype is the events page
- * itself (`?variant=A|B|C`).
+ * itself (`?variant=A|D|E|F`).
  */
 
-function Frame({ variant }: { variant: 'A' | 'B' | 'C' }) {
+type Variant = 'A' | 'D' | 'E' | 'F'
+
+function Frame({ variant }: { variant: Variant }) {
   const [rows, setRows] = useState(demoAttendances)
   const onRespond = (userId: string, state: LineupState) =>
     setRows((current) => current.map((r) => (r.userId === userId ? { ...r, state } : r)))
@@ -25,8 +28,9 @@ function Frame({ variant }: { variant: 'A' | 'B' | 'C' }) {
         Variant {variant}
       </div>
       {variant === 'A' && <VariantA {...props} />}
-      {variant === 'B' && <VariantB {...props} />}
-      {variant === 'C' && <VariantC {...props} />}
+      {variant === 'D' && <VariantD {...props} />}
+      {variant === 'E' && <VariantE {...props} />}
+      {variant === 'F' && <VariantF {...props} />}
     </div>
   )
 }
@@ -40,5 +44,6 @@ export default meta
 type Story = StoryObj<typeof meta>
 
 export const A_Pips: Story = { args: { variant: 'A' } }
-export const B_Pills: Story = { args: { variant: 'B' } }
-export const C_LineupSheet: Story = { args: { variant: 'C' } }
+export const D_Huddle: Story = { args: { variant: 'D' } }
+export const E_Court: Story = { args: { variant: 'E' } }
+export const F_Triage: Story = { args: { variant: 'F' } }

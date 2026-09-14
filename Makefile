@@ -63,6 +63,32 @@ run-local: infra ## Start infra + backend + frontend (backend in background)
 www: ## Open the landing page
 	open www/index.html
 
+# --- Prototype (throwaway, delete with the branch) ---
+
+prototype: infra ## Run the events-list lineup prototype (throwaway, `?variant=`)
+	@echo ""
+	@echo "  Lineup-panel prototype — a row per position, members as pips/pills."
+	@echo "  Open any team's events page and add ?variant= :"
+	@echo ""
+	@echo "    http://localhost:5173/t/<your-slug>/?variant=A&demo=1   A · Pips"
+	@echo "    http://localhost:5173/t/<your-slug>/?variant=B&demo=1   B · Pills"
+	@echo "    http://localhost:5173/t/<your-slug>/?variant=C&demo=1   C · Lineup sheet"
+	@echo "    http://localhost:5173/t/<your-slug>/                    today's panel"
+	@echo ""
+	@echo "  Or use the floating bar at the bottom / the arrow keys."
+	@echo "  demo=1 swaps in an 18-person squad; its edits stay in memory."
+	@echo "  Panels start collapsed — tap a card's readiness badge, or turn on"
+	@echo "  'Keep panels open' in the view menu beside Filters."
+	@echo ""
+	trap 'kill 0' EXIT; \
+	$(MAKE) api & \
+	$(MAKE) app & \
+	wait
+
+prototype-panels: ## The three lineup variants side by side in Storybook (no backend)
+	@echo "  Storybook → Prototype/Lineup panel (A · Pips, B · Pills, C · Lineup sheet)"
+	cd app && npm run storybook
+
 # --- Test & Lint ---
 
 test: test-api test-app ## Run all tests

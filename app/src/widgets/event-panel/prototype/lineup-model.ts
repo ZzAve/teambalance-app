@@ -141,3 +141,28 @@ export const STATE_WORD: Record<LineupState, string> = {
   ABSENT: "Can't",
   NOT_RESPONDED: 'Awaiting',
 }
+
+/**
+ * The row's news in words, not a fraction — "nobody yet" lands before "0/1" does, and the second
+ * round of variants leads with it. Null for an untargeted row, which has nothing to fall short of.
+ */
+export function verdictWord(row: LineupRow): string | null {
+  if (row.required == null) return null
+  if (row.attending === 0) return 'nobody yet'
+  if (row.openSlots > 0) return `needs ${row.openSlots} more`
+  if (row.surplus > 0) return `${row.surplus} spare`
+  return 'covered'
+}
+
+/** The rows that still want somebody, worst first — what a triage view leads with. */
+export function gaps(rows: LineupRow[]): LineupRow[] {
+  return rows
+    .filter((r) => r.openSlots > 0)
+    .sort((a, b) => Number(b.tone === 'critical') - Number(a.tone === 'critical') || b.openSlots - a.openSlots)
+}
+
+/** Who is worth asking for a gap: this position's maybes and silents first, then the settled noes. */
+export function chaseable(row: LineupRow): LineupMember[] {
+  const rank: Record<LineupState, number> = { MAYBE: 0, NOT_RESPONDED: 1, ABSENT: 2, ATTENDING: 3 }
+  return row.members.filter((m) => m.state !== 'ATTENDING').sort((a, b) => rank[a.state] - rank[b.state])
+}

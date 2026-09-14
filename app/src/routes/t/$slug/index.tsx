@@ -30,7 +30,7 @@ export const Route = createFileRoute('/t/$slug/')({
     // `demo` swaps in an in-memory squad. Both absent on every normal navigation, so the page is
     // untouched unless the URL asks for it. Goes away with the prototype.
     validateSearch: (search: Record<string, unknown>): { variant?: PrototypeVariant; demo?: boolean } => ({
-        variant: ['A', 'B', 'C', 'current'].includes(search.variant as string)
+        variant: ['A', 'D', 'E', 'F', 'current'].includes(search.variant as string)
             ? (search.variant as PrototypeVariant)
             : undefined,
         // TanStack JSON-parses search values, so `?demo=1` arrives as the number 1, not '1'.

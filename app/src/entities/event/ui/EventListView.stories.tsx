@@ -111,8 +111,9 @@ export const AttributionOnTheCard: Story = {
     ],
   },
   play: async ({ canvas }) => {
-    await expect(canvas.getByText('set by Tim de Vries')).toBeInTheDocument()
-    await expect(canvas.queryByText('set by Me')).not.toBeInTheDocument()
+    await expect(canvas.getByText("Tim de Vries said you're out")).toBeInTheDocument()
+    // The self-set card stays in the first person.
+    await expect(canvas.getByText("You're in")).toBeInTheDocument()
   },
 }
 
@@ -137,6 +138,6 @@ export const AttributionClearsWhileSettling: Story = {
   },
   play: async ({ canvas }) => {
     await expect(canvas.getByText("You're in")).toBeInTheDocument()
-    await expect(canvas.queryByText(/^set by /)).not.toBeInTheDocument()
+    await expect(canvas.queryByText(/ said /)).not.toBeInTheDocument()
   },
 }

@@ -91,25 +91,44 @@ export const BothOpenAttendanceOnTop: Story = {
 export const SetByTeammate: Story = {
   args: { myState: 'ABSENT', setBy: 'Tim de Vries' },
   play: async ({ canvas }) => {
-    await expect(canvas.getByText('set by Tim de Vries')).toBeInTheDocument()
-    // Still your answer, still yours to change — the attribution explains it, it does not replace it.
-    await expect(canvas.getByText("You're out")).toBeInTheDocument()
+    await expect(canvas.getByText("Tim de Vries said you're out")).toBeInTheDocument()
+    // Still your answer and still yours to change: the pill is the same trigger it always was.
+    await expect(canvas.getByRole('button', { name: /Change your answer/ })).toBeInTheDocument()
   },
 }
 
-// What the events list shows until its payload carries attendance rows: the fact without the name.
+// A setter the event's rows cannot name — one who has since left the team — still gets a subject.
 export const SetByUnnamedTeammate: Story = {
   args: { myState: 'ATTENDING', setBy: 'a teammate' },
   play: async ({ canvas }) => {
-    await expect(canvas.getByText('set by a teammate')).toBeInTheDocument()
+    await expect(canvas.getByText("a teammate said you're in")).toBeInTheDocument()
   },
 }
 
-// The negative is the design: an answer you gave yourself says nothing at all.
+// A name is the one thing on this row with no upper bound, so it yields first: the pill truncates
+// rather than pushing the chevron or the verdict off a narrow card.
+export const SetByLongName: Story = {
+  args: { myState: 'ATTENDING', setBy: 'Sophie van Dijk-van der Bergh' },
+  decorators: [
+    (Story) => (
+      <div className="w-[300px] rounded-xl border border-border bg-card p-3.5">
+        <Story />
+      </div>
+    ),
+  ],
+  play: async ({ canvas }) => {
+    await expect(canvas.getByText(/said you're in/)).toBeInTheDocument()
+    // The verdict on the right survives — the row never wraps or scrolls.
+    await expect(canvas.getByRole('button', { name: /Show lineup/ })).toBeInTheDocument()
+  },
+}
+
+// The negative is the design: an answer you gave yourself is simply yours, in the first person.
 export const SelfSetSaysNothing: Story = {
   args: { myState: 'ATTENDING' },
   play: async ({ canvas }) => {
-    await expect(canvas.queryByText(/^set by /)).not.toBeInTheDocument()
+    await expect(canvas.getByText("You're in")).toBeInTheDocument()
+    await expect(canvas.queryByText(/ said /)).not.toBeInTheDocument()
   },
 }
 

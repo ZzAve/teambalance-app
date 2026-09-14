@@ -62,7 +62,7 @@ export function PanelViewMenu({
         aria-expanded={open}
         aria-haspopup="dialog"
         onClick={() => setOpen((wasOpen) => !wasOpen)}
-        className="flex h-11 w-11 items-center justify-center rounded-xl border border-border/60 bg-card text-muted-foreground transition-colors hover:text-foreground"
+        className="flex h-11 w-11 items-center justify-center rounded-md border border-border/60 bg-card text-muted-foreground transition-colors hover:text-foreground"
       >
         <LayoutList size={16} />
       </button>
@@ -74,12 +74,12 @@ export function PanelViewMenu({
           <div
             role="dialog"
             aria-label="View options"
-            className="card-shadow-hover absolute right-0 top-12 z-50 w-[248px] origin-top-right rounded-2xl border border-border/60 bg-card p-3.5"
+            className="card-shadow-hover absolute right-0 top-12 z-50 w-[248px] origin-top-right rounded-lg border border-border/60 bg-card p-3.5"
           >
             <div role="group" aria-labelledby="panel-view-heading">
               <h3
                 id="panel-view-heading"
-                className="mb-2.5 text-[11px] font-bold uppercase tracking-[0.09em] text-muted-foreground"
+                className="mb-2.5 text-caption font-bold uppercase tracking-[0.09em] text-muted-foreground"
               >
                 Card panel shows
               </h3>
@@ -92,7 +92,7 @@ export function PanelViewMenu({
                       aria-pressed={isActive}
                       onClick={() => onViewChange(value)}
                       className={[
-                        'flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition-all',
+                        'flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-caption font-semibold transition-all',
                         isActive
                           ? 'border-foreground bg-foreground text-background'
                           : 'border-border text-muted-foreground',
@@ -110,8 +110,8 @@ export function PanelViewMenu({
 
             <div className="flex items-center justify-between gap-2.5">
               <div>
-                <div className="text-[13.5px] font-semibold">Keep panels open</div>
-                <div className="mt-0.5 text-[11.5px] text-muted-foreground">
+                <div className="text-small font-semibold">Keep panels open</div>
+                <div className="mt-0.5 text-caption text-muted-foreground">
                   {defaultExpanded ? 'On — every card starts open' : 'Off — tap to open a card'}
                 </div>
               </div>

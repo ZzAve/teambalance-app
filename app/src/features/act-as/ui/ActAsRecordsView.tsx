@@ -36,17 +36,17 @@ export function ActAsRecordsView({ records = [], isLoading, isError }: ActAsReco
 
   return (
     <section>
-      <h3 className="font-display text-lg font-bold">Platform access</h3>
-      <p className="mt-1 text-sm text-muted-foreground">
+      <h3 className="font-display text-lead font-bold">Platform access</h3>
+      <p className="mt-1 text-small text-muted-foreground">
         When the people who run TeamBalance worked inside your team.
       </p>
 
-      {isLoading && <p className="mt-3 text-sm text-muted-foreground">Loading…</p>}
-      {isError && <p className="mt-3 text-sm text-red">Couldn't load platform access. Please try again.</p>}
+      {isLoading && <p className="mt-3 text-small text-muted-foreground">Loading…</p>}
+      {isError && <p className="mt-3 text-small text-red">Couldn't load platform access. Please try again.</p>}
 
       {!isLoading && !isError && (
         records.length === 0 ? (
-          <p className="mt-3 text-sm text-muted-foreground">
+          <p className="mt-3 text-small text-muted-foreground">
             The TeamBalance owner has never worked in your team.
           </p>
         ) : (
@@ -61,7 +61,7 @@ export function ActAsRecordsView({ records = [], isLoading, isError }: ActAsReco
                 size={16}
                 className={`shrink-0 text-muted-foreground transition-transform duration-200 ${listOpen ? 'rotate-90' : ''}`}
               />
-              <span className="text-sm font-medium">{summarize(records.length)}</span>
+              <span className="text-small font-medium">{summarize(records.length)}</span>
             </button>
 
             {listOpen && (
@@ -82,13 +82,13 @@ export function ActAsRecordsView({ records = [], isLoading, isError }: ActAsReco
                           className={`shrink-0 text-muted-foreground transition-transform duration-200 ${isOpen ? 'rotate-90' : ''}`}
                         />
                         <span>
-                          <span className="block text-sm font-medium">{actorLabel(record.actorKind)} worked in your team</span>
-                          <span className="block text-sm text-muted-foreground">{describeWindow(record)}</span>
+                          <span className="block text-small font-medium">{actorLabel(record.actorKind)} worked in your team</span>
+                          <span className="block text-small text-muted-foreground">{describeWindow(record)}</span>
                         </span>
                       </button>
 
                       {isOpen && (
-                        <div className="pb-3 pl-9 pr-3 text-sm">
+                        <div className="pb-3 pl-9 pr-3 text-small">
                           <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1">
                             <dt className="text-muted-foreground">Started</dt>
                             <dd>{formatDateTime(new Date(record.enteredAt))}</dd>
@@ -102,13 +102,13 @@ export function ActAsRecordsView({ records = [], isLoading, isError }: ActAsReco
                             type="button"
                             aria-expanded={whyOpen}
                             onClick={() => setWhyOpen((open) => !open)}
-                            className="mt-3 text-sm font-medium text-blue underline underline-offset-4"
+                            className="mt-3 text-small font-medium text-blue underline underline-offset-4"
                           >
                             Why does this happen?
                           </button>
 
                           {whyOpen && (
-                            <div className="mt-2 flex flex-col gap-2 border-l-2 border-border pl-3 text-sm text-muted-foreground">
+                            <div className="mt-2 flex flex-col gap-2 border-l-2 border-border pl-3 text-small text-muted-foreground">
                               <p>
                                 TeamBalance is run by a small team. The owner works inside a team to set it up,
                                 prepare a season, or fix something that was reported.

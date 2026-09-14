@@ -117,8 +117,8 @@ function EventDetailPage() {
         <EventTypeIcon type={event.eventType} size="md" />
         <div className="min-w-0">
           <EventTypeBadge type={event.eventType} />
-          <h1 className="font-display text-2xl font-bold leading-tight">{event.title}</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
+          <h1 className="font-display text-title font-bold leading-tight">{event.title}</h1>
+          <p className="mt-1 text-small text-muted-foreground">
             {date.toLocaleDateString('nl-NL', {
               weekday: 'long',
               day: 'numeric',
@@ -133,7 +133,7 @@ function EventDetailPage() {
               href={`https://maps.google.com/?q=${encodeURIComponent(event.location)}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-0.5 flex items-center gap-1 text-sm text-muted-foreground hover:text-blue hover:underline"
+              className="mt-0.5 flex items-center gap-1 text-small text-muted-foreground hover:text-blue hover:underline"
             >
               <MapPin size={13} className="shrink-0" />
               {event.location}
@@ -159,7 +159,7 @@ function EventDetailPage() {
       {/* Your Response */}
       {currentUserId && (
         <div className="mt-6">
-          <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground">Your response</p>
+          <p className="mb-3 text-caption font-semibold uppercase tracking-widest text-muted-foreground">Your response</p>
           {/* Named group so this primary control is distinct from the per-row controls in the list
               below — the viewer now has a row of their own there too. */}
           <div role="group" aria-label="Your response">
@@ -170,22 +170,22 @@ function EventDetailPage() {
             />
           </div>
           {/* You learn a teammate changed your answer right where you would change it back (⑪). */}
-          {myAttribution && <p className="mt-2 text-xs text-muted-foreground">set by {myAttribution}</p>}
+          {myAttribution && <p className="mt-2 text-caption text-muted-foreground">set by {myAttribution}</p>}
         </div>
       )}
 
       {/* Description */}
       {event.description && (
-        <div className="mt-6 rounded-2xl border border-border/40 bg-card p-4 shadow-sm">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground">Description</p>
-          <p className="text-sm leading-relaxed text-muted-foreground">{event.description}</p>
+        <div className="mt-6 rounded-lg border border-border/40 bg-card p-4 shadow-sm">
+          <p className="mb-2 text-caption font-semibold uppercase tracking-widest text-muted-foreground">Description</p>
+          <p className="text-small leading-relaxed text-muted-foreground">{event.description}</p>
         </div>
       )}
 
       {/* Additional info — the event's References (Nevobo, match form, …), shown in full */}
       {event.references.length > 0 && (
-        <div className="mt-6 rounded-2xl border border-border/40 bg-card p-4 shadow-sm">
-          <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground">Additional info</p>
+        <div className="mt-6 rounded-lg border border-border/40 bg-card p-4 shadow-sm">
+          <p className="mb-3 text-caption font-semibold uppercase tracking-widest text-muted-foreground">Additional info</p>
           <ReferenceChips references={event.references} max={event.references.length} />
         </div>
       )}
@@ -193,7 +193,7 @@ function EventDetailPage() {
       {/* Attendance — one list by position, no tabs. The roster bar (pinned above) shows for any
           tracked roster; where no position carries a target RoleBreakdown stays as the per-role
           fallback (⑥). */}
-      <div className="mt-6 overflow-hidden rounded-2xl border border-border/40 bg-card shadow-sm">
+      <div className="mt-6 overflow-hidden rounded-lg border border-border/40 bg-card shadow-sm">
         {!hasPositionTargets && <RoleBreakdown breakdown={event.attendanceSummary.roleBreakdown} />}
         <AttendeeList
           attendees={event.attendances}

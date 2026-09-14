@@ -109,7 +109,7 @@ function RootLayout() {
           style={{ paddingLeft: 'env(safe-area-inset-left)', paddingRight: 'env(safe-area-inset-right)' }}
         >
           <div className="flex h-full items-center justify-between px-5">
-            <Link to="/" className="font-display text-xl font-bold text-blue">
+            <Link to="/" className="font-display text-title font-bold text-blue">
               Team<span className="text-green">Balance</span>
             </Link>
             <TeamSwitcher />

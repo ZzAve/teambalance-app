@@ -4,7 +4,7 @@ import type { TeamRef } from '@shared/api/teams'
 
 // Section heading, matching AccountView's settings-list labels so the two screens read as one system.
 function SectionLabel({ children }: { children: ReactNode }) {
-  return <h2 className="mb-2 px-1 text-sm font-semibold text-muted-foreground">{children}</h2>
+  return <h2 className="mb-2 px-1 text-small font-semibold text-muted-foreground">{children}</h2>
 }
 
 interface TeamsViewProps {
@@ -30,7 +30,7 @@ interface TeamsViewProps {
 export function TeamsView({ teams, activeTeam, onSelect, onJoin, onCreate }: TeamsViewProps) {
   return (
     <div className="mx-auto mt-10 max-w-sm">
-      <h1 className="font-display text-2xl font-bold">Teams</h1>
+      <h1 className="font-display text-title font-bold">Teams</h1>
 
       {/* Section 1 — the teams you belong to; tapping one switches to it (ADR-0023). */}
       <section className="mt-6">
@@ -44,17 +44,17 @@ export function TeamsView({ teams, activeTeam, onSelect, onJoin, onCreate }: Tea
                   type="button"
                   onClick={() => onSelect(team.slug)}
                   aria-current={isActive ? 'true' : undefined}
-                  className="flex w-full items-center gap-3 rounded-2xl border border-border/60 bg-card px-4 py-4 text-left transition-colors hover:border-blue/40 hover:bg-blue/5"
+                  className="flex w-full items-center gap-3 rounded-lg border border-border/60 bg-card px-4 py-4 text-left transition-colors hover:border-blue/40 hover:bg-blue/5"
                 >
                   <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue/10 text-blue">
                     <Users size={18} />
                   </span>
                   <span className="min-w-0">
-                    <span className="block truncate text-sm font-semibold">{team.name}</span>
-                    <span className="block truncate text-xs text-muted-foreground">/{team.slug}</span>
+                    <span className="block truncate text-small font-semibold">{team.name}</span>
+                    <span className="block truncate text-caption text-muted-foreground">/{team.slug}</span>
                   </span>
                   {isActive && (
-                    <span className="ml-auto flex shrink-0 items-center gap-1 rounded-full bg-green/10 px-2 py-0.5 text-xs font-semibold text-green">
+                    <span className="ml-auto flex shrink-0 items-center gap-1 rounded-full bg-green/10 px-2 py-0.5 text-caption font-semibold text-green">
                       <Check size={13} />
                       Active
                     </span>
@@ -73,14 +73,14 @@ export function TeamsView({ teams, activeTeam, onSelect, onJoin, onCreate }: Tea
           <button
             type="button"
             onClick={onJoin}
-            className="flex w-full items-center gap-3 rounded-2xl border border-border/60 bg-card px-4 py-4 text-left transition-colors hover:border-blue/40 hover:bg-blue/5"
+            className="flex w-full items-center gap-3 rounded-lg border border-border/60 bg-card px-4 py-4 text-left transition-colors hover:border-blue/40 hover:bg-blue/5"
           >
             <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue/10 text-blue">
               <Ticket size={18} />
             </span>
             <span className="min-w-0">
-              <span className="block text-sm font-semibold">Join with an invite link</span>
-              <span className="block truncate text-xs text-muted-foreground">
+              <span className="block text-small font-semibold">Join with an invite link</span>
+              <span className="block truncate text-caption text-muted-foreground">
                 Someone shared a join link with you
               </span>
             </span>
@@ -89,14 +89,14 @@ export function TeamsView({ teams, activeTeam, onSelect, onJoin, onCreate }: Tea
           <button
             type="button"
             onClick={onCreate}
-            className="flex w-full items-center gap-3 rounded-2xl border border-border/60 bg-card px-4 py-4 text-left transition-colors hover:border-blue/40 hover:bg-blue/5"
+            className="flex w-full items-center gap-3 rounded-lg border border-border/60 bg-card px-4 py-4 text-left transition-colors hover:border-blue/40 hover:bg-blue/5"
           >
             <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue/10 text-blue">
               <PlusCircle size={18} />
             </span>
             <span className="min-w-0">
-              <span className="block text-sm font-semibold">Create a team</span>
-              <span className="block truncate text-xs text-muted-foreground">
+              <span className="block text-small font-semibold">Create a team</span>
+              <span className="block truncate text-caption text-muted-foreground">
                 You'll need a creation code
               </span>
             </span>

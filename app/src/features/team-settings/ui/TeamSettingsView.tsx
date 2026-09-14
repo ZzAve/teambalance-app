@@ -45,21 +45,21 @@ export function TeamSettingsView({ season = {}, isLoading, isError, isSaving, er
   return (
     <div className="flex flex-col gap-4">
       <div>
-        <h2 className="font-display text-2xl font-bold">Season</h2>
-        <p className="mt-1 text-sm text-muted-foreground">
+        <h2 className="font-display text-title font-bold">Season</h2>
+        <p className="mt-1 text-small text-muted-foreground">
           Bound your team's events to a season. Once set, events cannot be scheduled outside this window.
         </p>
       </div>
 
-      {isLoading && <p className="text-sm text-muted-foreground">Loading…</p>}
+      {isLoading && <p className="text-small text-muted-foreground">Loading…</p>}
       {isError && (
-        <p className="text-sm text-red">Couldn't load team settings. Please try again.</p>
+        <p className="text-small text-red">Couldn't load team settings. Please try again.</p>
       )}
 
       {!isLoading && !isError && (
         <>
           {!isSeasonConfigured(season) && !dirty && (
-            <p className="text-sm text-muted-foreground">No season set — events can be scheduled on any date.</p>
+            <p className="text-small text-muted-foreground">No season set — events can be scheduled on any date.</p>
           )}
 
           <div className="flex flex-wrap gap-4">
@@ -87,15 +87,15 @@ export function TeamSettingsView({ season = {}, isLoading, isError, isSaving, er
             </div>
           </div>
 
-          {rangeError && <p className="text-sm text-red">{rangeError}</p>}
+          {rangeError && <p className="text-small text-red">{rangeError}</p>}
 
           {showWarning && !rangeError && (
-            <p className="rounded-lg border border-gold/40 bg-gold/10 px-3 py-2 text-sm text-foreground" role="alert">
+            <p className="rounded-lg border border-gold/40 bg-gold/10 px-3 py-2 text-small text-foreground" role="alert">
               Changing the season won't move or delete existing events — some may now fall outside the new window.
             </p>
           )}
 
-          {error && <p className="text-sm text-red">{error}</p>}
+          {error && <p className="text-small text-red">{error}</p>}
 
           <div>
             <Button disabled={isSaving || !dirty || !!rangeError} onClick={handleSave}>

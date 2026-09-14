@@ -63,7 +63,7 @@ export function AttendeeList({ attendees, roster, onRespond, currentUserId, pend
   const [expandedId, setExpandedId] = useState<string | null>(null)
 
   if (attendees.length === 0) {
-    return <p className="py-6 text-center text-sm text-muted-foreground">No one</p>
+    return <p className="py-6 text-center text-small text-muted-foreground">No one</p>
   }
 
   const groups = groupAttendeesByPosition(attendees, roster)
@@ -111,9 +111,9 @@ function PositionGroup({
   return (
     <div>
       <div className="flex items-center justify-between px-3 pb-1 pt-3">
-        <h3 className="text-[11px] font-bold uppercase tracking-[0.09em] text-muted-foreground">{group.positionLabel}</h3>
+        <h3 className="text-caption font-bold uppercase tracking-[0.09em] text-muted-foreground">{group.positionLabel}</h3>
         {group.countLabel && (
-          <span className="text-[11px] font-bold tabular-nums text-foreground/70">{group.countLabel}</span>
+          <span className="text-caption font-bold tabular-nums text-foreground/70">{group.countLabel}</span>
         )}
       </div>
       {group.attendees.map(renderRow)}
@@ -155,15 +155,15 @@ function AttendeeRow({
       <div className={`flex items-center gap-3 border-l-[3px] px-2.5 py-1.5 ${ROW_TINT[attendance.state]}`}>
         <Avatar userId={attendance.userId} name={attendance.displayName} />
         <div className="min-w-0 flex-1">
-          <span className="block truncate text-sm leading-tight">
+          <span className="block truncate text-small leading-tight">
             {attendance.displayName}
             {isSelf && (
-              <span className="ml-1.5 rounded-full bg-blue/10 px-1.5 py-0.5 align-[1px] text-[10px] font-bold tracking-wide text-blue">
+              <span className="ml-1.5 rounded-full bg-blue/10 px-1.5 py-0.5 align-[1px] text-caption font-bold tracking-wide text-blue">
                 You
               </span>
             )}
           </span>
-          {subtitle && <span className="block text-xs text-muted-foreground">{subtitle}</span>}
+          {subtitle && <span className="block text-caption text-muted-foreground">{subtitle}</span>}
         </div>
         {/* The collapsed answer pill is the disclosure trigger — same interaction as the event card.
             Read-only, it is the same pill without the disclosure: a fact, not a control. */}
@@ -174,7 +174,7 @@ function AttendeeRow({
             onClick={onToggle}
             className="flex shrink-0 items-center gap-1.5 rounded-full py-1 pl-1 pr-1 ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           >
-            <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${pill.className}`}>{pill.label}</span>
+            <span className={`rounded-full px-2.5 py-1 text-caption font-semibold ${pill.className}`}>{pill.label}</span>
             <ChevronDown
               size={14}
               aria-hidden
@@ -185,7 +185,7 @@ function AttendeeRow({
             </span>
           </button>
         ) : (
-          <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${pill.className}`}>
+          <span className={`shrink-0 rounded-full px-2.5 py-1 text-caption font-semibold ${pill.className}`}>
             {pill.label}
           </span>
         )}
@@ -199,7 +199,7 @@ function AttendeeRow({
         >
           {/* You may set a teammate's answer (ADR-0003), but you should know you're doing it. */}
           {!isSelf && (
-            <p className="mb-2 text-xs text-muted-foreground">
+            <p className="mb-2 text-caption text-muted-foreground">
               Changing <span className="font-semibold text-foreground">{attendance.displayName}</span>’s answer
             </p>
           )}

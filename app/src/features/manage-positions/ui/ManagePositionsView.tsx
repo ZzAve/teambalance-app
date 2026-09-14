@@ -74,11 +74,11 @@ export function ManagePositionsView({
 
   return (
     <div>
-      <h2 className="font-display text-2xl font-bold">Positions</h2>
+      <h2 className="font-display text-title font-bold">Positions</h2>
 
-      {isLoading && <p className="mt-4 text-sm text-muted-foreground">Loading…</p>}
+      {isLoading && <p className="mt-4 text-small text-muted-foreground">Loading…</p>}
       {isError && (
-        <p className="mt-4 text-sm text-red">Couldn't load positions. Please try again.</p>
+        <p className="mt-4 text-small text-red">Couldn't load positions. Please try again.</p>
       )}
 
       {!isLoading && !isError && (
@@ -101,11 +101,11 @@ export function ManagePositionsView({
             </Button>
           </div>
           {errorCode === 'POSITION_LABEL_TAKEN' && (
-            <p className="mt-1 text-sm text-red">That position already exists.</p>
+            <p className="mt-1 text-small text-red">That position already exists.</p>
           )}
 
           {positions.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No positions yet. Add one above.</p>
+            <p className="text-small text-muted-foreground">No positions yet. Add one above.</p>
           ) : (
             <ul className="divide-y divide-border rounded-lg border border-border">
               {positions.map((position) => (
@@ -136,7 +136,7 @@ export function ManagePositionsView({
               </DialogHeader>
               {/* Names what the delete will actually touch. A warning, not a veto — the delete
                   proceeds either way, but an admin should not have to guess the blast radius. */}
-              <p className="text-sm text-muted-foreground">
+              <p className="text-small text-muted-foreground">
                 {usage ? deleteImpact(usage) : 'Checking what uses this position…'}
               </p>
               <DialogFooter>
@@ -188,7 +188,7 @@ function PositionRow({ position, isSaving, onRename, onSetKind, onRequestDelete 
       )}
       {/* No local state and no Save: the checkbox reflects the server's kind and the flip is the
           whole gesture. Unchecked is PLAYING, which is what every position was before this existed. */}
-      <label className="flex items-center gap-1.5 text-sm text-muted-foreground">
+      <label className="flex items-center gap-1.5 text-small text-muted-foreground">
         <input
           type="checkbox"
           // Named per row, because "Staff" alone repeats down the list and says nothing about which

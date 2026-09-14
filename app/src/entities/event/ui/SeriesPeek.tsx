@@ -18,14 +18,14 @@ function Occurrence({ entry }: { entry: SeriesPeekEntry }) {
   const content = (
     <div
       className={[
-        'flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-sm tabular-nums transition-colors',
+        'flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-small tabular-nums transition-colors',
         entry.isCurrent ? 'bg-blue/10 font-semibold text-foreground' : 'text-muted-foreground hover:bg-muted/60',
       ].join(' ')}
     >
       <span className={`h-2 w-2 shrink-0 rounded-full ${entry.isCurrent ? 'bg-blue' : 'bg-blue/40'}`} />
       {label}
       {entry.isCurrent && (
-        <span className="ml-auto rounded-full bg-blue/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-blue">
+        <span className="ml-auto rounded-full bg-blue/15 px-2 py-0.5 text-caption font-bold uppercase tracking-wide text-blue">
           This one
         </span>
       )}
@@ -46,7 +46,7 @@ export function SeriesPeek({ peek }: SeriesPeekProps) {
   const [open, setOpen] = useState(false)
 
   return (
-    <div className="mt-6 rounded-2xl border border-blue/15 bg-blue/5 p-4">
+    <div className="mt-6 rounded-lg border border-blue/15 bg-blue/5 p-4">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
@@ -57,8 +57,8 @@ export function SeriesPeek({ peek }: SeriesPeekProps) {
           <Repeat size={15} />
         </span>
         <div className="min-w-0">
-          <p className="text-sm font-bold leading-tight">Part of a series</p>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-small font-bold leading-tight">Part of a series</p>
+          <p className="text-caption text-muted-foreground">
             Occurrence {peek.currentPosition} of {peek.total}
           </p>
         </div>
@@ -74,7 +74,7 @@ export function SeriesPeek({ peek }: SeriesPeekProps) {
             <Occurrence key={e.id} entry={e} />
           ))}
           {peek.hiddenCount > 0 && (
-            <div className="flex items-center gap-2 px-2.5 py-1 text-xs italic text-muted-foreground">
+            <div className="flex items-center gap-2 px-2.5 py-1 text-caption italic text-muted-foreground">
               <span className="h-px flex-1 bg-border" />+{peek.hiddenCount} more
               <span className="h-px flex-1 bg-border" />
             </div>

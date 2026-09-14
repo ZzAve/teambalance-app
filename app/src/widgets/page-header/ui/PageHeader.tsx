@@ -38,7 +38,7 @@ export function PageHeader({ title, backTo, backLabel = 'Back', actions }: PageH
           </Link>
         </Button>
       )}
-      <h2 className="font-display truncate text-base font-semibold">{title}</h2>
+      <h2 className="font-display truncate text-body font-semibold">{title}</h2>
       {actions && <div className="ml-auto flex shrink-0 items-center gap-2">{actions}</div>}
     </div>
   )

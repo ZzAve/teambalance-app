@@ -50,14 +50,14 @@ export function GenerateInviteContent({
   if (justExpired) {
     return (
       <div className="flex flex-col gap-3">
-        <p className="text-sm text-muted-foreground">
+        <p className="text-small text-muted-foreground">
           The link has been revoked. New joiners can no longer use it.
         </p>
         <Button type="button" onClick={onGenerate} disabled={isGenerating}>
           {isGenerating ? 'Generating...' : 'Generate new link'}
         </Button>
         {actionError && (
-          <p className="text-sm text-destructive">Something went wrong. Please try again.</p>
+          <p className="text-small text-destructive">Something went wrong. Please try again.</p>
         )}
       </div>
     )
@@ -66,14 +66,14 @@ export function GenerateInviteContent({
   if (!link) {
     return (
       <div className="flex flex-col gap-3">
-        <p className="text-sm text-muted-foreground">
+        <p className="text-small text-muted-foreground">
           This team doesn't have an invite link yet.
         </p>
         <Button type="button" onClick={onGenerate} disabled={isGenerating}>
           {isGenerating ? 'Generating...' : 'Generate link'}
         </Button>
         {actionError && (
-          <p className="text-sm text-destructive">Something went wrong. Please try again.</p>
+          <p className="text-small text-destructive">Something went wrong. Please try again.</p>
         )}
       </div>
     )
@@ -81,7 +81,7 @@ export function GenerateInviteContent({
 
   return (
     <div className="flex flex-col gap-3">
-      <p className="text-sm text-muted-foreground">
+      <p className="text-small text-muted-foreground">
         Share this link with your team. Anyone with the link can join.
       </p>
       <div className="flex gap-2">
@@ -98,12 +98,12 @@ export function GenerateInviteContent({
           {isExpiring ? 'Revoking...' : 'Revoke link'}
         </Button>
       </div>
-      <p className="text-xs text-muted-foreground">
+      <p className="text-caption text-muted-foreground">
         Rotating replaces this link with a new one. Revoking removes it without a replacement. Either
         way the old link stops working.
       </p>
       {actionError && (
-        <p className="text-sm text-destructive">Something went wrong. Please try again.</p>
+        <p className="text-small text-destructive">Something went wrong. Please try again.</p>
       )}
     </div>
   )

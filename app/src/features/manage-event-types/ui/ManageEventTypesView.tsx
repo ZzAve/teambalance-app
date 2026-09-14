@@ -108,25 +108,25 @@ export function ManageEventTypesView({
 
   return (
     <div>
-      <h2 className="font-display text-2xl font-bold">Event types</h2>
-      <p className="mt-1 text-sm text-muted-foreground">
+      <h2 className="font-display text-title font-bold">Event types</h2>
+      <p className="mt-1 text-small text-muted-foreground">
         Each type carries the roster an event of that kind needs. Events follow their type unless you
         give one its own.
       </p>
 
-      {isLoading && <p className="mt-4 text-sm text-muted-foreground">Loading…</p>}
+      {isLoading && <p className="mt-4 text-small text-muted-foreground">Loading…</p>}
       {isError && (
-        <p className="mt-4 text-sm text-red">Couldn't load event types. Please try again.</p>
+        <p className="mt-4 text-small text-red">Couldn't load event types. Please try again.</p>
       )}
 
       {!isLoading && !isError && (
         <div className="mt-4 flex flex-col gap-3">
           {/* Every code the container can hand down renders something. A save that failed and said
               nothing is indistinguishable from one that worked. */}
-          {errorCode && <p className="text-sm text-red">{ERROR_MESSAGES[errorCode] ?? FALLBACK_ERROR}</p>}
+          {errorCode && <p className="text-small text-red">{ERROR_MESSAGES[errorCode] ?? FALLBACK_ERROR}</p>}
 
           {active.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No event types yet. Add one below.</p>
+            <p className="text-small text-muted-foreground">No event types yet. Add one below.</p>
           ) : (
             <ul className="divide-y divide-border rounded-lg border border-border">
               {active.map((type) => (
@@ -136,8 +136,8 @@ export function ManageEventTypesView({
                     className="size-3 shrink-0 rounded-full"
                     style={{ background: type.color ?? '#94A3B8' }}
                   />
-                  <span className="text-sm font-semibold">{type.name}</span>
-                  <span className="text-[11.5px] text-muted-foreground">
+                  <span className="text-small font-semibold">{type.name}</span>
+                  <span className="text-caption text-muted-foreground">
                     {rosterDefaultSummary(type.rosterDefault, positions)}
                   </span>
                   <div className="ml-auto flex gap-2">
@@ -175,7 +175,7 @@ export function ManageEventTypesView({
 
           {editorOpen && draft && (
             <div className="flex flex-col gap-3 rounded-lg border border-border p-3">
-              <h3 className="text-sm font-semibold">
+              <h3 className="text-small font-semibold">
                 {editingId === 'new' ? 'New event type' : 'Edit event type'}
               </h3>
               <div className="flex flex-wrap items-center gap-2">
@@ -225,13 +225,13 @@ export function ManageEventTypesView({
 
           {archived.length > 0 && (
             <div className="mt-2">
-              <h3 className="text-[11px] font-bold uppercase tracking-[0.09em] text-muted-foreground">
+              <h3 className="text-caption font-bold uppercase tracking-[0.09em] text-muted-foreground">
                 Archived
               </h3>
               <ul className="mt-2 divide-y divide-border rounded-lg border border-dashed border-border">
                 {archived.map((type) => (
                   <li key={type.id} className="flex items-center gap-2 p-3">
-                    <span className="text-sm text-muted-foreground">{type.name}</span>
+                    <span className="text-small text-muted-foreground">{type.name}</span>
                     <Button
                       variant="outline"
                       size="sm"
@@ -304,12 +304,12 @@ function ArchiveDialog({ target, alternatives, isSaving, onCancel, onConfirm }: 
 
         {alternatives.length > 0 && (
           <div className="flex flex-col gap-2">
-            <label htmlFor="migrate-to" className="text-[13px] font-semibold">
+            <label htmlFor="migrate-to" className="text-small font-semibold">
               Move its events to another type first?
             </label>
             <select
               id="migrate-to"
-              className="rounded-md border border-input bg-transparent px-3 py-2 text-sm"
+              className="rounded-md border border-input bg-transparent px-3 py-2 text-small"
               value={migrateTo}
               onChange={(e) => setMigrateTo(e.target.value)}
             >

@@ -155,7 +155,7 @@ export function EventFiltersView({
       {hasActiveFilter && (
         <button
           onClick={onClearFilters}
-          className="flex h-11 shrink-0 items-center rounded-xl border border-border/60 bg-card px-3 text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground"
+          className="flex h-11 shrink-0 items-center rounded-md border border-border/60 bg-card px-3 text-caption font-semibold text-muted-foreground transition-colors hover:text-foreground"
         >
           Clear filters
         </button>
@@ -167,7 +167,7 @@ export function EventFiltersView({
           aria-expanded={open}
           aria-haspopup="dialog"
           onClick={() => setOpen((wasOpen) => !wasOpen)}
-          className="relative flex h-11 w-11 items-center justify-center rounded-xl border border-border/60 bg-card text-muted-foreground transition-colors hover:text-foreground"
+          className="relative flex h-11 w-11 items-center justify-center rounded-md border border-border/60 bg-card text-muted-foreground transition-colors hover:text-foreground"
         >
           <SlidersHorizontal size={16} />
           {hasActiveFilter && (
@@ -195,7 +195,7 @@ export function EventFiltersView({
             <div
               role="dialog"
               aria-label="Filters"
-              className="card-shadow-hover absolute right-0 top-12 z-50 w-[248px] origin-top-right rounded-2xl border border-border/60 bg-card p-3.5"
+              className="card-shadow-hover absolute right-0 top-12 z-50 w-[248px] origin-top-right rounded-lg border border-border/60 bg-card p-3.5"
             >
               {/* A team with no event types (or a types request that failed) still gets the past
                   toggle — it is the only way to reach past events now that the tab bar is gone. */}
@@ -204,7 +204,7 @@ export function EventFiltersView({
                   <div role="group" aria-labelledby="event-types-filter-heading">
                     <h3
                       id="event-types-filter-heading"
-                      className="mb-2.5 text-[11px] font-bold uppercase tracking-[0.09em] text-muted-foreground"
+                      className="mb-2.5 text-caption font-bold uppercase tracking-[0.09em] text-muted-foreground"
                     >
                       Event types
                     </h3>
@@ -222,7 +222,7 @@ export function EventFiltersView({
                                 ? { backgroundColor: color, borderColor: color, color: '#fff' }
                                 : { borderColor: color + '66', color }
                             }
-                            className="shrink-0 rounded-full border px-3 py-1.5 text-xs font-semibold transition-all"
+                            className="shrink-0 rounded-full border px-3 py-1.5 text-caption font-semibold transition-all"
                           >
                             {type.name}
                           </button>
@@ -238,7 +238,7 @@ export function EventFiltersView({
               <div role="group" aria-labelledby="your-answer-filter-heading">
                 <h3
                   id="your-answer-filter-heading"
-                  className="mb-2.5 text-[11px] font-bold uppercase tracking-[0.09em] text-muted-foreground"
+                  className="mb-2.5 text-caption font-bold uppercase tracking-[0.09em] text-muted-foreground"
                 >
                   Your answer
                 </h3>
@@ -251,7 +251,7 @@ export function EventFiltersView({
                         aria-pressed={isActive}
                         onClick={() => onToggleState(state)}
                         className={[
-                          'shrink-0 rounded-full border px-3 py-1.5 text-xs font-semibold transition-all',
+                          'shrink-0 rounded-full border px-3 py-1.5 text-caption font-semibold transition-all',
                           isActive ? active : inactive,
                         ].join(' ')}
                       >
@@ -269,7 +269,7 @@ export function EventFiltersView({
                   <div role="group" aria-labelledby="turnout-filter-heading">
                     <h3
                       id="turnout-filter-heading"
-                      className="mb-2.5 text-[11px] font-bold uppercase tracking-[0.09em] text-muted-foreground"
+                      className="mb-2.5 text-caption font-bold uppercase tracking-[0.09em] text-muted-foreground"
                     >
                       Turnout
                     </h3>
@@ -282,7 +282,7 @@ export function EventFiltersView({
                             aria-pressed={isActive}
                             onClick={() => onToggleTurnout(bucket)}
                             className={[
-                              'shrink-0 rounded-full border px-3 py-1.5 text-xs font-semibold transition-all',
+                              'shrink-0 rounded-full border px-3 py-1.5 text-caption font-semibold transition-all',
                               isActive ? active : inactive,
                             ].join(' ')}
                           >
@@ -299,8 +299,8 @@ export function EventFiltersView({
 
               <div className="flex items-center justify-between gap-2.5">
                 <div>
-                  <div className="text-[13.5px] font-semibold">Show past events</div>
-                  <div className="mt-0.5 text-[11.5px] text-muted-foreground">
+                  <div className="text-small font-semibold">Show past events</div>
+                  <div className="mt-0.5 text-caption text-muted-foreground">
                     {showPast ? 'On — past events included' : 'Off — upcoming only'}
                   </div>
                 </div>

@@ -65,17 +65,17 @@ export function MemberRosterView({
 
   return (
     <div>
-      <h2 className="font-display text-2xl font-bold">Members</h2>
+      <h2 className="font-display text-title font-bold">Members</h2>
 
-      {isLoading && <p className="mt-4 text-sm text-muted-foreground">Loading…</p>}
+      {isLoading && <p className="mt-4 text-small text-muted-foreground">Loading…</p>}
       {isError && (
-        <p className="mt-4 text-sm text-red">Couldn't load members. Please try again.</p>
+        <p className="mt-4 text-small text-red">Couldn't load members. Please try again.</p>
       )}
 
       {!isLoading && !isError && (
         <div className="mt-4 flex flex-col gap-3">
           {errorMessage && (
-            <p role="alert" className="rounded-md bg-red/10 px-3 py-2 text-sm text-red">
+            <p role="alert" className="rounded-md bg-red/10 px-3 py-2 text-small text-red">
               {errorMessage}
             </p>
           )}
@@ -85,7 +85,7 @@ export function MemberRosterView({
             // Admin accepts the handover link (ADR-0024 §5). Transient, but real across the roster.
             // An admin (which, in the handover window, is the acting-in Platform Admin) is pointed at
             // the invite link; a plain viewer just sees that the roster is empty.
-            <p className="rounded-lg border border-dashed border-border px-3 py-6 text-center text-sm text-muted-foreground">
+            <p className="rounded-lg border border-dashed border-border px-3 py-6 text-center text-small text-muted-foreground">
               {canManage
                 ? 'No members yet. Share an invite link to bring people in.'
                 : 'No members yet.'}
@@ -173,7 +173,7 @@ function MemberRow({
   const roleBadge = (
     <span
       className={[
-        'ml-auto rounded-full px-2 py-0.5 text-xs font-semibold',
+        'ml-auto rounded-full px-2 py-0.5 text-caption font-semibold',
         isAdmin ? 'bg-blue/10 text-blue' : 'bg-muted text-muted-foreground',
       ].join(' ')}
     >
@@ -188,7 +188,7 @@ function MemberRow({
       <li className="flex flex-wrap items-center gap-2 p-3">
         <Avatar userId={member.userId} name={member.displayName} />
         <span className="w-40 font-medium">{member.displayName}</span>
-        <span className="text-sm text-muted-foreground">{member.position?.label ?? 'Unassigned'}</span>
+        <span className="text-small text-muted-foreground">{member.position?.label ?? 'Unassigned'}</span>
         {roleBadge}
       </li>
     )
@@ -221,7 +221,7 @@ function MemberRow({
           />
         </div>
       ) : (
-        <span className="text-sm text-muted-foreground">{member.position?.label ?? 'Unassigned'}</span>
+        <span className="text-small text-muted-foreground">{member.position?.label ?? 'Unassigned'}</span>
       )}
 
       {roleBadge}

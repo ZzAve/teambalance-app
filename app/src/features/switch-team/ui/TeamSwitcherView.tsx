@@ -25,7 +25,7 @@ export function TeamSwitcherView({ teams, activeTeam, onSelect }: TeamSwitcherVi
 
   if (teams.length < 2) {
     return (
-      <div className="flex items-center gap-2 rounded-full bg-blue/8 px-3 py-1.5 text-xs font-semibold text-blue">
+      <div className="flex items-center gap-2 rounded-full bg-blue/8 px-3 py-1.5 text-caption font-semibold text-blue">
         <span className="h-1.5 w-1.5 rounded-full bg-green" />
         {activeTeam.name}
       </div>
@@ -40,7 +40,7 @@ export function TeamSwitcherView({ teams, activeTeam, onSelect }: TeamSwitcherVi
         aria-expanded={open}
         aria-label={`Current team: ${activeTeam.name}. Switch team`}
         onClick={() => setOpen((wasOpen) => !wasOpen)}
-        className="flex items-center gap-2 rounded-full bg-blue/8 px-3 py-1.5 text-xs font-semibold text-blue transition-colors hover:bg-blue/15"
+        className="flex items-center gap-2 rounded-full bg-blue/8 px-3 py-1.5 text-caption font-semibold text-blue transition-colors hover:bg-blue/15"
       >
         <span className="h-1.5 w-1.5 rounded-full bg-green" />
         {activeTeam.name}
@@ -60,7 +60,7 @@ export function TeamSwitcherView({ teams, activeTeam, onSelect }: TeamSwitcherVi
           <ul
             role="listbox"
             aria-label="Your teams"
-            className="absolute right-0 z-50 mt-2 min-w-56 overflow-hidden rounded-2xl border border-border/60 bg-card py-1 shadow-lg"
+            className="absolute right-0 z-50 mt-2 min-w-56 overflow-hidden rounded-lg border border-border/60 bg-card py-1 shadow-lg"
           >
             {teams.map((team) => {
               const isActive = team.id === activeTeam.id
@@ -75,7 +75,7 @@ export function TeamSwitcherView({ teams, activeTeam, onSelect }: TeamSwitcherVi
                       if (!isActive) onSelect(team.slug)
                     }}
                     className={[
-                      'flex w-full items-center justify-between gap-3 px-4 py-3 text-left text-sm transition-colors',
+                      'flex w-full items-center justify-between gap-3 px-4 py-3 text-left text-small transition-colors',
                       isActive ? 'font-semibold text-blue' : 'text-foreground hover:bg-blue/8',
                     ].join(' ')}
                   >

@@ -30,8 +30,8 @@ interface AccountViewProps {
 
 // A settings card: rows share the same warm surface, hairline dividers and soft lift as the
 // appearance control, so the whole tab reads as one grouped list (ADR-0027 §2, concept prototype).
-const CARD = 'overflow-hidden rounded-xl border border-border bg-card shadow-[var(--shadow-card)]'
-const ROW = 'flex items-center gap-3 px-4 py-3 text-sm'
+const CARD = 'overflow-hidden rounded-md border border-border bg-card shadow-[var(--shadow-card)]'
+const ROW = 'flex items-center gap-3 px-4 py-3 text-small'
 // Links / buttons get a hover wash and an inset focus ring so keyboard focus stays visible on a row.
 const ROW_INTERACTIVE =
   `${ROW} w-full text-left transition-colors hover:bg-muted/60 ` +
@@ -39,7 +39,7 @@ const ROW_INTERACTIVE =
 const ICON = 'shrink-0 text-muted-foreground'
 
 function SectionLabel({ children }: { children: ReactNode }) {
-  return <h3 className="mb-2 px-1 text-sm font-semibold text-muted-foreground">{children}</h3>
+  return <h3 className="mb-2 px-1 text-small font-semibold text-muted-foreground">{children}</h3>
 }
 
 /**
@@ -70,7 +70,7 @@ export function AccountView({
 
   return (
     <div>
-      <h2 className="font-display text-2xl font-bold">Account</h2>
+      <h2 className="font-display text-title font-bold">Account</h2>
 
       <div className="mt-6 space-y-6">
         {has('email') && (
@@ -94,9 +94,9 @@ export function AccountView({
           <section>
             <SectionLabel>Profile</SectionLabel>
             <div className={`${CARD} p-4`}>
-              {isMemberLoading && <p className="text-sm text-muted-foreground">Loading…</p>}
+              {isMemberLoading && <p className="text-small text-muted-foreground">Loading…</p>}
               {isMemberError && (
-                <p className="text-sm text-red">Couldn't load your profile. Please try again.</p>
+                <p className="text-small text-red">Couldn't load your profile. Please try again.</p>
               )}
               {!isMemberLoading && !isMemberError && member && (
                 <EditProfileForm
@@ -123,7 +123,7 @@ export function AccountView({
                 {activeTeamName ? (
                   <>
                     <span className="min-w-0 truncate font-medium">{activeTeamName}</span>
-                    <span className="ml-auto rounded-full bg-green/10 px-2 py-0.5 text-xs font-semibold text-green">
+                    <span className="ml-auto rounded-full bg-green/10 px-2 py-0.5 text-caption font-semibold text-green">
                       Active
                     </span>
                   </>

@@ -99,13 +99,15 @@ export function ColdStartSplash({ elapsedMs = 0 }: { elapsedMs?: number }) {
     >
       <div className="flex items-center gap-2">
         <Wordmark />
-        <span className={stage === 'brand' ? '' : 'animate-bounce'} aria-hidden>
+        <span className={stage === 'brand' ? '' : 'animate-bounce motion-reduce:animate-none'} aria-hidden>
           🏐
         </span>
       </div>
 
       {stage === 'waking' && (
-        <p className="animate-pulse text-sm text-muted-foreground">{wakingMessageFor(elapsedMs)}</p>
+        <p className="animate-pulse text-sm text-muted-foreground motion-reduce:animate-none">
+          {wakingMessageFor(elapsedMs)}
+        </p>
       )}
 
       {stage === 'warming' && (

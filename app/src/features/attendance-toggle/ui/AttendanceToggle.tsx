@@ -24,7 +24,7 @@ const RESPONSE_OPTIONS: ResponseOption[] = [
     label: 'Maybe',
     icon: HelpCircle,
     activeClass: 'bg-gold text-white border-gold hover:bg-gold/90',
-    inactiveClass: 'border-gold/30 text-gold hover:bg-gold/10',
+    inactiveClass: 'border-gold/30 text-gold-ink hover:bg-gold/10',
   },
   {
     value: 'ABSENT',

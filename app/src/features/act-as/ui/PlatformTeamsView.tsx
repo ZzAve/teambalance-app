@@ -38,7 +38,7 @@ export function PlatformTeamsView({
       </p>
 
       {wasExpired && (
-        <p className="mt-4 text-sm text-gold">Your act-as ran out after 60 minutes. Enter a team again to continue.</p>
+        <p className="mt-4 text-sm text-gold-ink">Your act-as ran out after 60 minutes. Enter a team again to continue.</p>
       )}
 
       {isLoading && <p className="mt-4 text-sm text-muted-foreground">Loading…</p>}

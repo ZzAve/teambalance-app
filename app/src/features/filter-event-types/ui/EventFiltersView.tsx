@@ -29,8 +29,10 @@ interface EventFiltersViewProps {
   onClearFilters: () => void
 }
 
-/** The answer chips, worded as the member's own answer control words them (#273, CONTEXT.md). */
-const STATE_CHIPS: { state: AttendanceState; label: string; active: string; inactive: string }[] = [
+/** The answer chips, worded as the member's own answer control words them (#273, CONTEXT.md).
+ *  Exported for `EventFiltersView.chips.test.ts` — a bare `text-gold` fails contrast as ink (#336),
+ *  so `inactive` must always reach for `text-gold-ink` instead. */
+export const STATE_CHIPS: { state: AttendanceState; label: string; active: string; inactive: string }[] = [
   {
     state: 'ATTENDING',
     label: 'Going',
@@ -41,7 +43,7 @@ const STATE_CHIPS: { state: AttendanceState; label: string; active: string; inac
     state: 'MAYBE',
     label: 'Maybe',
     active: 'bg-gold border-gold text-white',
-    inactive: 'border-gold/40 text-gold',
+    inactive: 'border-gold/40 text-gold-ink',
   },
   {
     state: 'ABSENT',
@@ -64,7 +66,7 @@ const STATE_CHIPS: { state: AttendanceState; label: string; active: string; inac
  * thing about a state. `No target set` carries none: a tally and a social are not verdicts, and
  * colouring them would invent the judgement the card deliberately withholds (ADR-0029 §4).
  */
-const TURNOUT_CHIPS: { bucket: TurnoutBucket; label: string; active: string; inactive: string }[] = [
+export const TURNOUT_CHIPS: { bucket: TurnoutBucket; label: string; active: string; inactive: string }[] = [
   {
     bucket: 'missing-position',
     label: 'Missing a position',
@@ -75,7 +77,7 @@ const TURNOUT_CHIPS: { bucket: TurnoutBucket; label: string; active: string; ina
     bucket: 'spots-open',
     label: 'Spots open',
     active: 'bg-gold border-gold text-white',
-    inactive: 'border-gold/40 text-gold',
+    inactive: 'border-gold/40 text-gold-ink',
   },
   {
     bucket: 'covered',

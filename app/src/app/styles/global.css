@@ -53,6 +53,18 @@
   --color-green-dark: #1D7F57;
   --color-gold-dark: #C89200;
   --color-red-dark: #B71C1C;
+  /* Gold-dark itself is only a chip-ground ink: 6.2:1 on the dark card, but a mere 2.7:1 on the
+     light --color-card and 2.6:1 on --color-background (relative-luminance/WCAG formula), well
+     under the 4.5:1 floor normal-size text needs — it was never meant to sit directly on either
+     bare light surface (#336). One flat hex can't clear 4.5:1 against both a near-white card and a
+     near-black dark card (the luminance bands that satisfy each don't overlap), so this needs the
+     same per-theme lift blue/red got above: light gets a darker step (5.1:1 on card, 4.8:1 on
+     background), and the `.dark` override below re-points it to gold-dark's own value, which
+     already clears 4.5:1 there. Use this wherever gold is *ink* (text/icon colour) on a bare light
+     or dark card/background — bg-gold-ink / text-gold-ink / border-gold-ink. Where gold is a fill
+     under white text, or ink on top of a gold tint chip (bg-gold/15 and friends), the plain hue or
+     -dark ramp are still correct and unaffected by this token. */
+  --color-gold-ink: #8C6600;
   --color-border: hsl(214.3 31.8% 91.4%);
   --color-input: hsl(214.3 31.8% 91.4%);
   --color-ring: hsl(222.2 84% 4.9%);
@@ -153,6 +165,11 @@
   --color-red: #EF5350;
   --color-red-light: #F58A87;
   --color-red-dark: #D93025;
+  /* --color-gold-ink is the one gold token that *does* move here (#336): its light value is tuned
+     dark enough to clear 4.5:1 on the cream card/background and would be far too dark to read as
+     text on this near-black card. Re-pointing it to gold-dark's own value reuses a hex already
+     proven at 6.2:1 on this card, instead of minting a second dark-only gold. */
+  --color-gold-ink: var(--color-gold-dark);
 
   /* Shadcn semantic set. `foreground`/`primary` invert (light ink on a dark ground). `destructive`
      is absent on purpose: the `@theme` block binds it to `var(--color-red)`, and `var()` resolves

@@ -86,6 +86,52 @@ export const BothOpenAttendanceOnTop: Story = {
   },
 }
 
+// ── Attribution (⑪) — an answer someone else gave on your behalf ─────────────────────────────────
+
+export const SetByTeammate: Story = {
+  args: { myState: 'ABSENT', setBy: 'Tim de Vries' },
+  play: async ({ canvas }) => {
+    await expect(canvas.getByText("Tim de Vries said you're out")).toBeInTheDocument()
+    // Still your answer and still yours to change: the pill is the same trigger it always was.
+    await expect(canvas.getByRole('button', { name: /Change your answer/ })).toBeInTheDocument()
+  },
+}
+
+// A setter the event's rows cannot name — one who has since left the team — still gets a subject.
+export const SetByUnnamedTeammate: Story = {
+  args: { myState: 'ATTENDING', setBy: 'a teammate' },
+  play: async ({ canvas }) => {
+    await expect(canvas.getByText("a teammate said you're in")).toBeInTheDocument()
+  },
+}
+
+// A name is the one thing on this row with no upper bound, so it yields first: the pill truncates
+// rather than pushing the chevron or the verdict off a narrow card.
+export const SetByLongName: Story = {
+  args: { myState: 'ATTENDING', setBy: 'Sophie van Dijk-van der Bergh' },
+  decorators: [
+    (Story) => (
+      <div className="w-[300px] rounded-xl border border-border bg-card p-3.5">
+        <Story />
+      </div>
+    ),
+  ],
+  play: async ({ canvas }) => {
+    await expect(canvas.getByText(/said you're in/)).toBeInTheDocument()
+    // The verdict on the right survives — the row never wraps or scrolls.
+    await expect(canvas.getByRole('button', { name: /Show lineup/ })).toBeInTheDocument()
+  },
+}
+
+// The negative is the design: an answer you gave yourself is simply yours, in the first person.
+export const SelfSetSaysNothing: Story = {
+  args: { myState: 'ATTENDING' },
+  play: async ({ canvas }) => {
+    await expect(canvas.getByText("You're in")).toBeInTheDocument()
+    await expect(canvas.queryByText(/ said /)).not.toBeInTheDocument()
+  },
+}
+
 // ── Wiring — prove the answer callback, not just the render ──────────────────────────────────────
 
 export const AnswerIsReported: Story = {

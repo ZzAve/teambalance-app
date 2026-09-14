@@ -10,20 +10,25 @@ export interface MyAnswer {
 }
 
 /**
- * The viewer's own attendance, said in the first person for the card's answer pill.
+ * The viewer's own attendance, said in words for the card's answer pill.
  *
  * The three settled answers are statements. `NOT_RESPONDED` is the single state that asks the viewer
  * to act, so it is drawn as a `prompt` — a loud, neutral call to action ("Respond") rather than a
  * soft coloured status, so "we still need your answer" cannot be mistaken for a fourth answer.
+ *
+ * [setBy] names whoever gave the answer when that was not the viewer (⑪). It changes the *subject*
+ * of the sentence rather than adding a footnote to it — "Lisa Bakker said you're in" is the whole
+ * fact in the place the viewer already reads, which is why the card needs no separate marker for it.
+ * It never applies to `NOT_RESPONDED`: an answer nobody gave has no author (see `attributionName`).
  */
-export function myAnswer(state: AttendanceState): MyAnswer {
+export function myAnswer(state: AttendanceState, setBy?: string | null): MyAnswer {
   switch (state) {
     case 'ATTENDING':
-      return { label: "You're in", tone: 'attending' }
+      return { label: setBy ? `${setBy} said you're in` : "You're in", tone: 'attending' }
     case 'MAYBE':
-      return { label: 'You said maybe', tone: 'maybe' }
+      return { label: setBy ? `${setBy} said maybe` : 'You said maybe', tone: 'maybe' }
     case 'ABSENT':
-      return { label: "You're out", tone: 'absent' }
+      return { label: setBy ? `${setBy} said you're out` : "You're out", tone: 'absent' }
     case 'NOT_RESPONDED':
       return { label: 'Respond', tone: 'prompt' }
   }

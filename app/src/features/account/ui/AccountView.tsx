@@ -1,10 +1,10 @@
-import type { ReactNode } from 'react'
 import { Link } from '@tanstack/react-router'
 import { ChevronRight, KeyRound, LogOut, Mail, ShieldCheck, Users } from 'lucide-react'
 import type { Member } from '@shared/api/members'
 import type { Position } from '@shared/api/positions'
 import { EditProfileForm } from '@features/edit-profile/ui/EditProfileForm'
 import { ThemeToggle } from '@features/theme-toggle/ui/ThemeToggle'
+import { SectionLabel } from '@shared/ui/SectionLabel'
 import type { AccountSection } from '../lib/account-sections'
 
 interface AccountViewProps {
@@ -30,17 +30,13 @@ interface AccountViewProps {
 
 // A settings card: rows share the same warm surface, hairline dividers and soft lift as the
 // appearance control, so the whole tab reads as one grouped list (ADR-0027 §2, concept prototype).
-const CARD = 'overflow-hidden rounded-xl border border-border bg-card shadow-[var(--shadow-card)]'
-const ROW = 'flex items-center gap-3 px-4 py-3 text-sm'
+const CARD = 'overflow-hidden rounded-md border border-border bg-card shadow-[var(--shadow-card)]'
+const ROW = 'flex items-center gap-3 px-4 py-3 text-small'
 // Links / buttons get a hover wash and an inset focus ring so keyboard focus stays visible on a row.
 const ROW_INTERACTIVE =
   `${ROW} w-full text-left transition-colors hover:bg-muted/60 ` +
   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/50'
 const ICON = 'shrink-0 text-muted-foreground'
-
-function SectionLabel({ children }: { children: ReactNode }) {
-  return <h3 className="mb-2 px-1 text-sm font-semibold text-muted-foreground">{children}</h3>
-}
 
 /**
  * The adaptive Account settings list (ADR-0027 §2) — prop-only and presentational. The container
@@ -70,12 +66,12 @@ export function AccountView({
 
   return (
     <div>
-      <h2 className="font-display text-2xl font-bold">Account</h2>
+      <h2 className="font-display text-title font-bold">Account</h2>
 
       <div className="mt-6 space-y-6">
         {has('email') && (
           <section>
-            <SectionLabel>Account</SectionLabel>
+            <SectionLabel as="h3" className="mb-2 px-1 text-small">Account</SectionLabel>
             <div className={CARD}>
               <div className={ROW}>
                 <Mail size={18} strokeWidth={1.9} className={ICON} aria-hidden="true" />
@@ -92,11 +88,11 @@ export function AccountView({
             an Active Team; its loading/error shells are props-driven so they render with no network. */}
         {has('displayName') && (
           <section>
-            <SectionLabel>Profile</SectionLabel>
+            <SectionLabel as="h3" className="mb-2 px-1 text-small">Profile</SectionLabel>
             <div className={`${CARD} p-4`}>
-              {isMemberLoading && <p className="text-sm text-muted-foreground">Loading…</p>}
+              {isMemberLoading && <p className="text-small text-muted-foreground">Loading…</p>}
               {isMemberError && (
-                <p className="text-sm text-red">Couldn't load your profile. Please try again.</p>
+                <p className="text-small text-red">Couldn't load your profile. Please try again.</p>
               )}
               {!isMemberLoading && !isMemberError && member && (
                 <EditProfileForm
@@ -116,14 +112,14 @@ export function AccountView({
             "main view" at /select-team — switch · join · create (ADR-0027 §4). */}
         {has('teams') && (
           <section>
-            <SectionLabel>Teams</SectionLabel>
+            <SectionLabel as="h3" className="mb-2 px-1 text-small">Teams</SectionLabel>
             <div className={CARD}>
               <Link to="/select-team" className={ROW_INTERACTIVE}>
                 <Users size={18} strokeWidth={1.9} className={ICON} aria-hidden="true" />
                 {activeTeamName ? (
                   <>
                     <span className="min-w-0 truncate font-medium">{activeTeamName}</span>
-                    <span className="ml-auto rounded-full bg-green/10 px-2 py-0.5 text-xs font-semibold text-green">
+                    <span className="ml-auto rounded-full bg-green/10 px-2 py-0.5 text-caption font-semibold text-green">
                       Active
                     </span>
                   </>
@@ -150,7 +146,7 @@ export function AccountView({
 
         {has('platformAdmin') && (
           <section>
-            <SectionLabel>Platform admin</SectionLabel>
+            <SectionLabel as="h3" className="mb-2 px-1 text-small">Platform admin</SectionLabel>
             <div className={CARD}>
               <div className="divide-y divide-border">
                 <Link to="/admin/teams" className={ROW_INTERACTIVE}>

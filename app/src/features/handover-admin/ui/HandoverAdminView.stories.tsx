@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
-import { expect, fn } from 'storybook/test'
+import { expect, fn, within } from 'storybook/test'
 import { HandoverAdminView } from './HandoverAdminView'
 
 const LINK = 'https://app.teambalance.nl/invite/handover-token-abc'
@@ -110,11 +110,41 @@ export const RotateContract: Story = {
   },
 }
 
+// Revoking is irreversible and leaves no replacement, so it asks for confirmation first (#341) —
+// unlike rotate, which is one click because it lands on a new link right away.
 export const RevokeContract: Story = {
   args: { link: LINK },
   play: async ({ canvas, userEvent, args }) => {
     await userEvent.click(canvas.getByRole('button', { name: 'Revoke link' }))
+    await expect(args.onRevoke).not.toHaveBeenCalled()
+
+    const dialog = within(document.body)
+    await userEvent.click(await dialog.findByRole('button', { name: 'Revoke link' }))
     await expect(args.onRevoke).toHaveBeenCalled()
+  },
+}
+
+export const RevokeConfirmOpen: Story = {
+  args: { link: LINK },
+  play: async ({ canvas, userEvent, args }) => {
+    await userEvent.click(canvas.getByRole('button', { name: 'Revoke link' }))
+    const dialog = within(document.body)
+    await expect(await dialog.findByText('Revoke the invite link?')).toBeInTheDocument()
+    await expect(dialog.getByText(/old link stops working and no replacement is created/)).toBeInTheDocument()
+    await expect(dialog.getByRole('button', { name: 'Cancel' })).toBeInTheDocument()
+    await expect(args.onRevoke).not.toHaveBeenCalled()
+  },
+}
+
+export const RevokeConfirmCancelled: Story = {
+  parameters: { chromatic: { disableSnapshot: true } },
+  args: { link: LINK },
+  play: async ({ canvas, userEvent, args }) => {
+    await userEvent.click(canvas.getByRole('button', { name: 'Revoke link' }))
+    const dialog = within(document.body)
+    await userEvent.click(await dialog.findByRole('button', { name: 'Cancel' }))
+    await expect(canvas.queryByText('Revoke the invite link?')).not.toBeInTheDocument()
+    await expect(args.onRevoke).not.toHaveBeenCalled()
   },
 }
 

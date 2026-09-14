@@ -1,5 +1,6 @@
 import { TriangleAlert } from 'lucide-react'
 import type { EventRoster } from '@shared/api/events'
+import { SectionLabel } from '@shared/ui/SectionLabel'
 import {
   coveredSummary,
   headcountLine,
@@ -49,14 +50,14 @@ export function RosterPips({ roster }: RosterPipsProps) {
   return (
     <div>
       <div className="mb-2.5 flex items-center justify-between">
-        <span className="text-[11px] font-bold uppercase tracking-[0.09em] text-muted-foreground">Positions</span>
-        <span className="text-[11px] font-bold text-foreground/70">{covered ?? headcount ?? ''}</span>
+        <SectionLabel as="span">Positions</SectionLabel>
+        <span className="text-caption font-bold text-foreground/70">{covered ?? headcount ?? ''}</span>
       </div>
 
       {rows.length === 0 ? (
         // No rows does NOT mean nobody is coming: attendees with no position get no row of their
         // own (the nudge below speaks for them), so only an empty event earns this copy.
-        roster.totalAttending === 0 && <p className="text-[12.5px] text-muted-foreground">Nobody has answered yet.</p>
+        roster.totalAttending === 0 && <p className="text-small text-muted-foreground">Nobody has answered yet.</p>
       ) : (
         <ul className="flex flex-col gap-2">
           {rows.map((row) => (
@@ -67,10 +68,10 @@ export function RosterPips({ roster }: RosterPipsProps) {
 
       {/* The secondary "X/Y going" — shown only when a headcount sits alongside position targets,
           where the covered fraction already owns the header. */}
-      {covered && headcount && <p className="mt-2.5 text-[11.5px] text-muted-foreground">{headcount}</p>}
+      {covered && headcount && <p className="mt-2.5 text-caption text-muted-foreground">{headcount}</p>}
 
       {chase && (
-        <p className="mt-2.5 flex items-start gap-1.5 rounded-[10px] bg-gold/15 px-2.5 py-2 text-[11.5px] text-foreground/80">
+        <p className="mt-2.5 flex items-start gap-1.5 rounded-md bg-gold/15 px-2.5 py-2 text-caption text-foreground/80">
           <TriangleAlert size={13} className="mt-0.5 shrink-0 text-gold-dark" aria-hidden />
           <span>
             <b>{chase.lead}</b> {chase.rest}
@@ -80,9 +81,9 @@ export function RosterPips({ roster }: RosterPipsProps) {
 
       {/* Why the fraction above is smaller than the number of people in the room (#281). The rows
           already name them; this says they are excluded from the target, not missing from it. */}
-      {staff && <p className="mt-2 text-[11.5px] text-muted-foreground">{staff}</p>}
+      {staff && <p className="mt-2 text-caption text-muted-foreground">{staff}</p>}
 
-      {nudge && <p className="mt-2 text-[11.5px] text-muted-foreground">{nudge}</p>}
+      {nudge && <p className="mt-2 text-caption text-muted-foreground">{nudge}</p>}
     </div>
   )
 }
@@ -90,16 +91,16 @@ export function RosterPips({ roster }: RosterPipsProps) {
 function PositionRow({ row }: { row: RosterRow }) {
   return (
     <li className="grid grid-cols-[1fr_2fr_3em] items-center gap-2.5">
-      <span className="truncate text-[12.5px] text-foreground/80">{row.label}</span>
+      <span className="truncate text-small text-foreground/80">{row.label}</span>
       <span className="flex flex-wrap items-center gap-1.5">
         {row.pips.map((pip, i) => (
           // Pips are decoration for the count beside them, which carries the same fact as text.
           <i key={i} aria-hidden className={`block size-[13px] rounded-full border-[1.5px] ${PIP_TONE[pip]}`} />
         ))}
-        {row.surplus > 0 && <span className="text-[11px] font-semibold text-green-dark">+{row.surplus}</span>}
+        {row.surplus > 0 && <span className="text-caption font-semibold text-green-dark">+{row.surplus}</span>}
       </span>
       <span
-        className={`text-right text-xs font-bold tabular-nums ${row.tone ? COUNT_TONE[row.tone] : 'text-muted-foreground'}`}
+        className={`text-right text-caption font-bold tabular-nums ${row.tone ? COUNT_TONE[row.tone] : 'text-muted-foreground'}`}
       >
         {row.countLabel}
       </span>

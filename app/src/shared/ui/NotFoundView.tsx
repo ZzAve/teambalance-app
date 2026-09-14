@@ -17,8 +17,8 @@ interface NotFoundViewProps {
 export function NotFoundView({ onLogout }: NotFoundViewProps) {
   return (
     <div className="mx-auto mt-16 max-w-sm text-center">
-      <h1 className="font-display text-2xl font-bold">Page not found</h1>
-      <p className="mt-3 text-sm text-muted-foreground">
+      <h1 className="font-display text-title font-bold">Page not found</h1>
+      <p className="mt-3 text-small text-muted-foreground">
         We couldn't find that page. It may have moved, or the link may be out of date.
       </p>
       <div className="mt-6 flex items-center justify-center gap-2">

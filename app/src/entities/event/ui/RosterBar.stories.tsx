@@ -12,7 +12,7 @@ const meta = {
   args: { roster: makeRoster() },
   decorators: [
     (Story) => (
-      <div className="max-w-md overflow-hidden rounded-2xl border border-border/40 bg-card shadow-sm">
+      <div className="max-w-md overflow-hidden rounded-lg border border-border/40 bg-card shadow-sm">
         <Story />
       </div>
     ),

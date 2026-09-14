@@ -25,7 +25,7 @@ const meta = {
   component: RosterPips,
   decorators: [
     (Story) => (
-      <div className="max-w-xs rounded-xl border border-border bg-card p-3.5">
+      <div className="max-w-xs rounded-md border border-border bg-card p-3.5">
         <Story />
       </div>
     ),

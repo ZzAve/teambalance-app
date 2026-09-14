@@ -3,6 +3,7 @@ import { Check, Clock, MapPin, X } from 'lucide-react'
 import type { Event } from '@shared/api/events'
 import type { AttendanceState } from '@features/attendance-toggle/ui/AttendanceToggle'
 import { ReadinessBadge } from '@entities/event/ui/ReadinessBadge'
+import { SectionLabel } from '@shared/ui/SectionLabel'
 import { heroCountdown } from '../lib/countdown'
 import { useTeamRoutes } from '@shared/lib/team-routes'
 
@@ -50,7 +51,7 @@ export function NextEventHeroView({
   return (
     <section
       aria-label="Next up"
-      className="relative mt-4 overflow-hidden rounded-3xl p-4 text-white"
+      className="relative mt-4 overflow-hidden rounded-lg p-4 text-white"
       style={{
         background: 'linear-gradient(135deg, var(--color-green) 0%, var(--color-green-dark) 100%)',
         boxShadow: '0 14px 34px rgba(34, 92, 156, 0.18)',
@@ -65,20 +66,20 @@ export function NextEventHeroView({
       {/* pointer-events-none: this block sits above the title's stretched overlay (z-10 keeps it
           clear of the decorative blur), so without it the countdown would be a dead patch. */}
       <div className="pointer-events-none absolute right-4 top-4 z-10 text-right">
-        <span className="font-display block text-[22px] font-extrabold leading-none">
+        <span className="font-display block text-title font-extrabold leading-none">
           {countdown.value}
         </span>
-        <span className="text-[10px] uppercase tracking-[0.08em] opacity-85">{countdown.unit}</span>
+        <span className="text-caption opacity-85">{countdown.unit}</span>
       </div>
 
       {/* The passive rows fade with a colour alpha (text-white/xx), never with `opacity`: an
           element with opacity < 1 forms its own stacking context and would paint *above* the
           title's stretched overlay, punching a dead hole in the card's hit area. */}
-      <p className="pr-12 text-[11px] font-bold uppercase tracking-[0.14em] text-white/90">
+      <SectionLabel as="p" className="pr-12 text-white/90">
         Next up
-      </p>
+      </SectionLabel>
 
-      <h3 className="font-display mb-1 mt-2 pr-12 text-[21px] font-extrabold leading-[1.08]">
+      <h3 className="font-display mb-1 mt-2 pr-12 text-title font-extrabold leading-[1.08]">
         {/* Stretched-link pattern, as EventCard uses in the list below: the card is not an anchor,
             the title's after:inset-0 overlay makes the whole hero open the event. The controls that
             live inside it — the RSVP buttons, the maps link — are lifted back above the overlay with
@@ -89,13 +90,13 @@ export function NextEventHeroView({
             inset so `overflow-hidden` can't clip it, and traces the real target — the whole card. */}
         <Link
           to={routes.event(event.id)}
-          className="after:absolute after:inset-0 after:rounded-3xl after:bg-white/0 after:transition-colors after:duration-200 hover:underline hover:after:bg-white/[0.07] focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-inset focus-visible:after:ring-white"
+          className="after:absolute after:inset-0 after:rounded-lg after:bg-white/0 after:transition-colors after:duration-200 hover:underline hover:after:bg-white/[0.07] focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-inset focus-visible:after:ring-white"
         >
           {event.title}
         </Link>
       </h3>
 
-      <p className="flex flex-wrap items-center gap-1.5 text-[13px] text-white/95">
+      <p className="flex flex-wrap items-center gap-1.5 text-small text-white/95">
         <Clock size={13} className="shrink-0" />
         {date.toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short' })}
         {' · '}
@@ -103,7 +104,7 @@ export function NextEventHeroView({
       </p>
 
       {event.location && (
-        <p className="mt-1 flex flex-wrap items-center gap-1.5 text-[13px] text-white/95">
+        <p className="mt-1 flex flex-wrap items-center gap-1.5 text-small text-white/95">
           <MapPin size={13} className="shrink-0" />
           {/* An address is worth a tap of its own, exactly as in the list card below. It is a
               sibling of the card link rather than nested inside it (an <a> in an <a> is invalid
@@ -125,7 +126,7 @@ export function NextEventHeroView({
           The badge is deliberately *not* lifted above the stretched overlay — it is information, not
           a control, so tapping it opens the event like the rest of the passive rows. */}
       <div className="mt-2.5 flex items-center justify-between gap-2">
-        <p className="text-[13px] text-white/90">
+        <p className="text-small text-white/90">
           {event.attendanceSummary.attending} going · {MY_STATE_TEXT[myState]}
         </p>
         <ReadinessBadge roster={event.roster} variant="hero" pending={isSaving} />
@@ -140,7 +141,7 @@ export function NextEventHeroView({
           onClick={() => onRespond('ATTENDING')}
           style={out ? undefined : { color: 'var(--color-green-dark)' }}
           className={[
-            'flex flex-1 items-center justify-center gap-1.5 rounded-xl py-2.5 text-[13.5px] font-bold transition-all active:scale-95',
+            'flex flex-1 items-center justify-center gap-1.5 rounded-md py-2.5 text-small font-bold transition-all active:scale-95',
             out ? 'bg-white/20 text-white' : 'bg-white',
             isSaving ? 'cursor-not-allowed opacity-60' : 'cursor-pointer',
           ].join(' ')}
@@ -154,7 +155,7 @@ export function NextEventHeroView({
           onClick={() => onRespond('ABSENT')}
           style={out ? { color: 'var(--color-red)' } : undefined}
           className={[
-            'flex flex-1 items-center justify-center gap-1.5 rounded-xl py-2.5 text-[13.5px] font-bold transition-all active:scale-95',
+            'flex flex-1 items-center justify-center gap-1.5 rounded-md py-2.5 text-small font-bold transition-all active:scale-95',
             out ? 'bg-white' : going ? 'bg-white/12 text-white' : 'bg-white/20 text-white',
             isSaving ? 'cursor-not-allowed opacity-60' : 'cursor-pointer',
           ].join(' ')}

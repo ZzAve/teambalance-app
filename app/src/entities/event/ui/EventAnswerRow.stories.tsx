@@ -16,7 +16,7 @@ const meta = {
   args: { roster: makeRoster(), myState: 'NOT_RESPONDED', onRespond: fn() },
   decorators: [
     (Story) => (
-      <div className="max-w-md rounded-xl border border-border bg-card p-3.5">
+      <div className="max-w-md rounded-md border border-border bg-card p-3.5">
         <Story />
       </div>
     ),
@@ -111,7 +111,7 @@ export const SetByLongName: Story = {
   args: { myState: 'ATTENDING', setBy: 'Sophie van Dijk-van der Bergh' },
   decorators: [
     (Story) => (
-      <div className="w-[300px] rounded-xl border border-border bg-card p-3.5">
+      <div className="w-[300px] rounded-lg border border-border bg-card p-3.5">
         <Story />
       </div>
     ),

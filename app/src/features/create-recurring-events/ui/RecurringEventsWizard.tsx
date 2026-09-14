@@ -126,21 +126,21 @@ export function RecurringEventsWizard({
 
       {/* Friendly per-step heading (prototype A) — a plain-language question for the current step. */}
       <div>
-        <p className="font-display text-lg font-semibold leading-tight">{STEP_HEADINGS[step].title}</p>
-        <p className="text-sm text-muted-foreground">{STEP_HEADINGS[step].sub}</p>
+        <p className="font-display text-lead font-semibold leading-tight">{STEP_HEADINGS[step].title}</p>
+        <p className="text-small text-muted-foreground">{STEP_HEADINGS[step].sub}</p>
       </div>
 
       {/* Persistent context block — the chosen summary + running count, carried across steps. */}
       {step > 0 && (
-        <div className="rounded-xl border border-blue/15 bg-blue/5 p-3">
+        <div className="rounded-md border border-blue/15 bg-blue/5 p-3">
           <div className="flex items-center gap-2">
             <span className="inline-block h-3 w-3 shrink-0 rounded-full" style={{ backgroundColor: accentColor }} />
-            <span className="truncate text-sm font-semibold">{title || 'Untitled series'}</span>
-            <span className="ml-auto shrink-0 rounded-full bg-blue/10 px-2 py-0.5 text-xs font-semibold text-blue">
+            <span className="truncate text-small font-semibold">{title || 'Untitled series'}</span>
+            <span className="ml-auto shrink-0 rounded-full bg-blue/10 px-2 py-0.5 text-caption font-semibold text-blue">
               {preview.count} {preview.count === 1 ? 'event' : 'events'}
             </span>
           </div>
-          <p className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
+          <p className="mt-1 flex items-center gap-1.5 text-caption text-muted-foreground">
             <CalendarClock size={12} className="shrink-0" />
             {timeOfDay} · {durationMinutes} min · {frequencyLabel(frequency)} · {summariseWeekdays(weekdays)}
           </p>
@@ -230,7 +230,7 @@ export function RecurringEventsWizard({
                   type="button"
                   onClick={() => setFrequency(f)}
                   className={[
-                    'rounded-full px-4 py-1 text-sm font-medium transition-all',
+                    'rounded-full px-4 py-1 text-small font-medium transition-all',
                     frequency === f ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground',
                   ].join(' ')}
                 >
@@ -252,7 +252,7 @@ export function RecurringEventsWizard({
                     aria-pressed={selected}
                     onClick={() => toggleWeekday(value)}
                     className={[
-                      'rounded-full border px-3 py-1 text-xs font-medium transition-all',
+                      'rounded-full border px-3 py-1 text-caption font-medium transition-all',
                       selected ? 'border-blue bg-blue text-white' : 'border-border text-muted-foreground hover:border-blue hover:text-blue',
                     ].join(' ')}
                   >
@@ -281,12 +281,12 @@ export function RecurringEventsWizard({
       {/* ── Step 3: confirm ── */}
       {step === 2 && (
         <div className="flex flex-col gap-4">
-          <div className="rounded-xl border border-border/60 bg-card p-4 shadow-sm">
-            <p className="flex items-center gap-2 font-display text-lg font-semibold">
+          <div className="rounded-md border border-border/60 bg-card p-4 shadow-sm">
+            <p className="flex items-center gap-2 font-display text-lead font-semibold">
               <Repeat size={18} style={{ color: accentColor }} />
               {title || 'Untitled series'}
             </p>
-            <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-sm">
+            <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-small">
               <SummaryRow label="Type" value={selectedType?.name ?? '—'} />
               <SummaryRow label="When" value={`${timeOfDay} · ${durationMinutes} min`} />
               <SummaryRow label="Repeats" value={`${frequencyLabel(frequency)} · ${summariseWeekdays(weekdays)}`} />
@@ -305,7 +305,7 @@ export function RecurringEventsWizard({
           <MonthCalendarPreview preview={preview} accentColor={accentColor} />
 
           {errorMessage && (
-            <p className="rounded-lg border border-red/40 bg-red/10 px-3 py-2 text-sm text-red">{errorMessage}</p>
+            <p className="rounded-lg border border-red/40 bg-red/10 px-3 py-2 text-small text-red">{errorMessage}</p>
           )}
         </div>
       )}
@@ -354,13 +354,13 @@ function Stepper({ step }: { step: number }) {
           <div className="flex items-center gap-1.5">
             <span
               className={[
-                'flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold transition-all',
+                'flex h-6 w-6 items-center justify-center rounded-full text-caption font-bold transition-all',
                 i < step ? 'bg-green text-white' : i === step ? 'bg-blue text-white' : 'bg-muted text-muted-foreground',
               ].join(' ')}
             >
               {i < step ? <Check size={13} /> : i + 1}
             </span>
-            <span className={`text-xs font-medium ${i === step ? 'text-foreground' : 'text-muted-foreground'}`}>
+            <span className={`text-caption font-medium ${i === step ? 'text-foreground' : 'text-muted-foreground'}`}>
               {label}
             </span>
           </div>

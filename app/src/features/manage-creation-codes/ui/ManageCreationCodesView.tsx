@@ -52,17 +52,17 @@ export function ManageCreationCodesView({
 
   return (
     <div>
-      <h2 className="font-display text-2xl font-bold">Creation codes</h2>
-      <p className="mt-1 text-sm text-muted-foreground">
+      <h2 className="font-display text-title font-bold">Creation codes</h2>
+      <p className="mt-1 text-small text-muted-foreground">
         Generate one-time codes that let a new owner create a team.
       </p>
 
-      {isLoading && <p className="mt-4 text-sm text-muted-foreground">Loading…</p>}
+      {isLoading && <p className="mt-4 text-small text-muted-foreground">Loading…</p>}
       {isForbidden && (
-        <p className="mt-4 text-sm text-muted-foreground">You don't have access to creation codes.</p>
+        <p className="mt-4 text-small text-muted-foreground">You don't have access to creation codes.</p>
       )}
       {isError && !isForbidden && (
-        <p className="mt-4 text-sm text-red">Couldn't load creation codes. Please try again.</p>
+        <p className="mt-4 text-small text-red">Couldn't load creation codes. Please try again.</p>
       )}
 
       {!isLoading && !isError && !isForbidden && (
@@ -74,11 +74,11 @@ export function ManageCreationCodesView({
           </div>
 
           {errorCode === 'CONSUMED' && (
-            <p className="text-sm text-red">That code was already used and cannot be revoked.</p>
+            <p className="text-small text-red">That code was already used and cannot be revoked.</p>
           )}
 
           {codes.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No creation codes yet. Generate one above.</p>
+            <p className="text-small text-muted-foreground">No creation codes yet. Generate one above.</p>
           ) : (
             <ul className="divide-y divide-border rounded-lg border border-border">
               {codes.map((code) => (
@@ -138,8 +138,8 @@ interface CreationCodeRowProps {
 function CreationCodeRow({ code, status, isSaving, onRequestRevoke }: CreationCodeRowProps) {
   return (
     <li className="flex flex-wrap items-center gap-3 p-3">
-      <span className="font-mono text-sm font-medium tracking-wide">{code.code}</span>
-      <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${STATUS_STYLES[status]}`}>
+      <span className="font-mono text-small font-medium tracking-wide">{code.code}</span>
+      <span className={`rounded-full px-2 py-0.5 text-caption font-semibold ${STATUS_STYLES[status]}`}>
         {creationCodeStatusLabel(status)}
       </span>
       {/* Only an unconsumed code can be revoked; a consumed one is an audit record (backend 409s). */}

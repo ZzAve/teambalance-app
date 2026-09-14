@@ -8,7 +8,7 @@ import { avatarColor, avatarInitials } from '@shared/lib/avatar'
 export function Avatar({ userId, name }: { userId: string; name: string }) {
   return (
     <div
-      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white"
+      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-caption font-semibold text-white"
       style={{ backgroundColor: avatarColor(userId) }}
     >
       {avatarInitials(name)}

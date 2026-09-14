@@ -37,13 +37,13 @@ function GetStartedPage() {
 
   return (
     <div className="mx-auto mt-10 max-w-sm">
-      <h1 className="font-display text-2xl font-bold">Welcome to TeamBalance</h1>
-      <p className="mt-2 text-sm text-muted-foreground">
+      <h1 className="font-display text-title font-bold">Welcome to TeamBalance</h1>
+      <p className="mt-2 text-small text-muted-foreground">
         Let's set up your profile — tell us your name and where you play.
       </p>
 
-      {isLoading && <p className="mt-6 text-sm text-muted-foreground">Loading…</p>}
-      {error && <p className="mt-6 text-sm text-red">Couldn't load your profile. Please try again.</p>}
+      {isLoading && <p className="mt-6 text-small text-muted-foreground">Loading…</p>}
+      {error && <p className="mt-6 text-small text-red">Couldn't load your profile. Please try again.</p>}
 
       {member && (
         <div className="mt-6">

@@ -1,11 +1,17 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { expect, fn, within } from 'storybook/test'
 import type { Position } from '@shared/api/positions'
+import { Stack } from '@shared/testing/stack'
 import { EditProfileForm } from './EditProfileForm'
 
 // EditProfileForm is the presentational form behind the /profile route container. It owns only the
 // text field, the position picker + inline validation; the member query and update mutation stay in
 // the container, so every state (default, editing, saving, name-taken, position) renders from props.
+//
+// Three stories (ADR-0031 §1): Data is the one live instance — no positions defined for the team, so
+// no picker shows. Shells stacks the saving / name-taken / position-required / position-preselected
+// states in one frame. Interactions keeps every onSubmit spy assertion — plus the editing and
+// position-picking gestures that lead up to it — in a multi-step play.
 const POSITIONS: Position[] = [
   { id: 'p1', label: 'Setter', kind: 'PLAYING' },
   { id: 'p2', label: 'Libero', kind: 'PLAYING' },
@@ -27,7 +33,7 @@ export default meta
 
 type Story = StoryObj<typeof meta>
 
-export const Default: Story = {
+export const Data: Story = {
   play: async ({ canvas }) => {
     await expect(canvas.getByLabelText('Display name')).toHaveValue('Ada Lovelace')
     // No positions defined for the team → no picker is shown.
@@ -36,72 +42,76 @@ export const Default: Story = {
   },
 }
 
-export const Editing: Story = {
-  // Behavioural twin of Default — typing a name leaves the form structurally identical to Default
-  // (ADR-0027 §2).
-  parameters: { chromatic: { disableSnapshot: true } },
-  play: async ({ canvas, userEvent }) => {
-    const input = canvas.getByLabelText('Display name')
-    await userEvent.clear(input)
-    await userEvent.type(input, 'Grace Hopper')
-    await expect(input).toHaveValue('Grace Hopper')
-    await expect(canvas.getByRole('button', { name: 'Save' })).toBeEnabled()
-  },
-}
-
-export const Saving: Story = {
-  args: { isSaving: true },
+export const Shells: Story = {
+  render: (args) => (
+    <Stack
+      items={{
+        Saving: <EditProfileForm {...args} isSaving />,
+        'Name taken': <EditProfileForm {...args} errorCode="NAME_TAKEN" />,
+        // Required-when-available: the team defines positions but this member has none yet, so the
+        // picker shows and Save stays disabled until one is picked.
+        'Position required': <EditProfileForm {...args} positions={POSITIONS} currentPositionId={null} />,
+        // A member with an existing position: the picker is preselected.
+        'Position preselected': <EditProfileForm {...args} positions={POSITIONS} currentPositionId="p1" />,
+      }}
+    />
+  ),
   play: async ({ canvas }) => {
-    const save = canvas.getByRole('button', { name: 'Saving...' })
+    const region = (name: string) => within(canvas.getByRole('region', { name }))
+
+    const save = region('Saving').getByRole('button', { name: 'Saving...' })
     await expect(save).toBeInTheDocument()
     await expect(save).toBeDisabled()
+
+    await expect(
+      region('Name taken').getByText('That display name is already taken.'),
+    ).toBeInTheDocument()
+
+    await expect(region('Position required').getByLabelText('Position')).toBeInTheDocument()
+    await expect(region('Position required').getByRole('button', { name: 'Save' })).toBeDisabled()
+
+    await expect(
+      within(region('Position preselected').getByLabelText('Position')).getByText('Setter'),
+    ).toBeInTheDocument()
   },
 }
 
-export const NameTakenError: Story = {
-  args: { errorCode: 'NAME_TAKEN' },
-  play: async ({ canvas }) => {
-    await expect(canvas.getByText('That display name is already taken.')).toBeInTheDocument()
-  },
-}
-
-export const SavedSuccess: Story = {
-  // Behavioural twin of Default — onSubmit fires; the post-play frame is the Default layout
-  // (ADR-0027 §2).
+// Picture owned by Data — behavioural only (ADR-0031 §1). Three instances: the default form (editing
+// the name, then saving), and the required/preselected position configurations, each proving onSubmit
+// carries the right (name, positionId) pair.
+export const Interactions: Story = {
   parameters: { chromatic: { disableSnapshot: true } },
+  render: (args) => (
+    <Stack
+      items={{
+        Default: <EditProfileForm {...args} />,
+        'Position required': <EditProfileForm {...args} positions={POSITIONS} currentPositionId={null} />,
+        'Position preselected': <EditProfileForm {...args} positions={POSITIONS} currentPositionId="p1" />,
+      }}
+    />
+  ),
   play: async ({ canvas, userEvent, args }) => {
-    const input = canvas.getByLabelText('Display name')
-    await userEvent.clear(input)
-    await userEvent.type(input, 'Grace Hopper')
-    await userEvent.click(canvas.getByRole('button', { name: 'Save' }))
+    const region = (name: string) => within(canvas.getByRole('region', { name }))
+
+    // Editing leaves the form structurally identical to Data — the field value and Save's enabled
+    // state are the only visible change.
+    const nameField = region('Default').getByLabelText('Display name')
+    await userEvent.clear(nameField)
+    await userEvent.type(nameField, 'Grace Hopper')
+    await expect(nameField).toHaveValue('Grace Hopper')
+    await expect(region('Default').getByRole('button', { name: 'Save' })).toBeEnabled()
+    await userEvent.click(region('Default').getByRole('button', { name: 'Save' }))
     await expect(args.onSubmit).toHaveBeenCalledWith('Grace Hopper', null)
-  },
-}
 
-// The team defines positions but this member has none yet: the picker shows and, until one is
-// picked, Save stays disabled (required-when-available). Choosing a position enables submit.
-export const PositionRequired: Story = {
-  args: { positions: POSITIONS, currentPositionId: null },
-  play: async ({ canvas, userEvent, args }) => {
-    await expect(canvas.getByLabelText('Position')).toBeInTheDocument()
-    await expect(canvas.getByRole('button', { name: 'Save' })).toBeDisabled()
-
-    await userEvent.click(canvas.getByLabelText('Position'))
+    await userEvent.click(region('Position required').getByLabelText('Position'))
     await userEvent.click(await within(document.body).findByRole('option', { name: 'Libero' }))
+    const requiredSave = region('Position required').getByRole('button', { name: 'Save' })
+    await expect(requiredSave).toBeEnabled()
+    await userEvent.click(requiredSave)
+    await expect(args.onSubmit).toHaveBeenLastCalledWith('Ada Lovelace', 'p2')
 
-    const save = canvas.getByRole('button', { name: 'Save' })
-    await expect(save).toBeEnabled()
-    await userEvent.click(save)
-    await expect(args.onSubmit).toHaveBeenCalledWith('Ada Lovelace', 'p2')
-  },
-}
-
-// A member with an existing position: the picker is preselected and submitting carries the id.
-export const PositionPreselected: Story = {
-  args: { positions: POSITIONS, currentPositionId: 'p1' },
-  play: async ({ canvas, userEvent, args }) => {
-    await expect(within(canvas.getByLabelText('Position')).getByText('Setter')).toBeInTheDocument()
-    await userEvent.click(canvas.getByRole('button', { name: 'Save' }))
-    await expect(args.onSubmit).toHaveBeenCalledWith('Ada Lovelace', 'p1')
+    // Preselected: submitting carries the id already chosen, with no picker interaction needed.
+    await userEvent.click(region('Position preselected').getByRole('button', { name: 'Save' }))
+    await expect(args.onSubmit).toHaveBeenLastCalledWith('Ada Lovelace', 'p1')
   },
 }

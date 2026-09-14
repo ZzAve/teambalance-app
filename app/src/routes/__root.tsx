@@ -1,8 +1,9 @@
-import { createRootRoute, redirect, Outlet, Link, useRouterState } from '@tanstack/react-router'
+import { createRootRoute, redirect, Outlet, useRouterState } from '@tanstack/react-router'
 import { useEffect, useRef } from 'react'
 import { Toaster } from 'sonner'
 import { Providers } from '@app/providers'
 import { SwUpdateManager } from '@app/pwa/sw-update'
+import { AppShellFrame } from '@shared/ui/AppShellFrame'
 import { BottomNav } from '@shared/ui/BottomNav'
 import { authMeQueryOptions } from '@shared/api/auth'
 import { TeamSwitcher } from '@features/switch-team/ui/TeamSwitcher'
@@ -95,36 +96,11 @@ function RootLayout() {
 
   return (
     <Providers>
-      {/* min-h-dvh (not min-h-screen/100vh) so the layout measures the *visible* viewport on mobile —
-          the dynamic unit accounts for browser chrome and pairs with viewport-fit=cover. */}
-      <div className="min-h-dvh bg-background">
-        {/* The tab bar (BottomNav) is now the single primary nav — the header carries only identity
-            (wordmark + real team name, top-right), no nav links. Horizontal safe-area insets keep it
-            clear of a landscape notch now that viewport-fit=cover lets content into the inset region.
-            Its height is fixed to --header-height (global.css) rather than left to fall out of the
-            padding: that same variable is what every sticky PageHeader offsets by, so the sub-header
-            can no longer drift out of alignment when this header changes (F12, #159). */}
-        <header
-          className="sticky top-0 z-40 h-[var(--header-height)] border-b border-border/40 bg-card/88 backdrop-blur-lg"
-          style={{ paddingLeft: 'env(safe-area-inset-left)', paddingRight: 'env(safe-area-inset-right)' }}
-        >
-          <div className="flex h-full items-center justify-between px-5">
-            <Link to="/" className="font-display text-xl font-bold text-blue">
-              Team<span className="text-green">Balance</span>
-            </Link>
-            <TeamSwitcher />
-          </div>
-        </header>
-        {/* Renders nothing unless act-as is live. Directly under the header and outside <main> so it
-            stays put on every screen: a banner you can scroll away from is not a banner (ADR-0024 §4). */}
-        <ActAsBanner />
-        {/* Bottom padding clears the fixed nav (~6rem) plus the home-indicator inset, so the last
-            row of content is never hidden behind the bar on notched devices. */}
-        <main className="mx-auto max-w-2xl px-4 py-6 pb-[calc(6rem+env(safe-area-inset-bottom))]">
-          <Outlet />
-        </main>
-        <BottomNav />
-      </div>
+      {/* The frame itself (header, main column, tab bar) is a shared component so the Storybook
+          app-shell decorator renders page composites in the identical chrome (ADR-0031 §3). */}
+      <AppShellFrame teamSwitcher={<TeamSwitcher />} banner={<ActAsBanner />} nav={<BottomNav />}>
+        <Outlet />
+      </AppShellFrame>
       {/* App-wide toast primitive. richColors gives the error toast a semantic red; `theme` is the
           resolved theme rather than sonner's own "system" so it follows the in-app preference —
           a user on Light with a dark OS must not get dark toasts. */}

@@ -1,7 +1,8 @@
 import { useState } from 'react'
-import { Check, ChevronDown, HelpCircle, X } from 'lucide-react'
-import { chaseable, gaps, lineupRows, STATE_WORD, verdictWord, type LineupMember, type LineupRow, type LineupState } from './lineup-model'
+import { ChevronDown } from 'lucide-react'
+import { chaseable, gaps, lineupRows, STATE_WORD, verdictWord, type LineupRow, type LineupState } from './lineup-model'
 import { Face, Hole } from './Face'
+import { AnswerSheet } from './AnswerSheet'
 import type { LineupPanelProps } from './types'
 
 /**
@@ -45,7 +46,7 @@ export function VariantF({ attendances, roster, currentUserId, onRespond, pendin
               key={row.id}
               row={row}
               editing={editing}
-              onToggleMember={(userId) => setEditing((id) => (id === userId ? null : userId))}
+              onToggleMember={setEditing}
               onRespond={(userId, state) => {
                 onRespond(userId, state)
                 setEditing(null)
@@ -98,6 +99,14 @@ export function VariantF({ attendances, roster, currentUserId, onRespond, pendin
           )}
         </div>
       )}
+
+      <AnswerSheet
+        member={rows.flatMap((r) => r.members).find((m) => m.userId === editing) ?? null}
+        position={rows.find((r) => r.members.some((m) => m.userId === editing))?.label}
+        pending={pending}
+        onRespond={onRespond}
+        onClose={() => setEditing(null)}
+      />
     </div>
   )
 }
@@ -177,19 +186,13 @@ function Gap({
                   </button>
                   <button
                     type="button"
-                    aria-expanded={editing === m.userId}
                     onClick={() => onToggleMember(m.userId)}
                     className="shrink-0 rounded-full px-1 py-1 text-muted-foreground"
                   >
-                    <ChevronDown
-                      size={14}
-                      aria-hidden
-                      className={`transition-transform ${editing === m.userId ? 'rotate-180' : ''}`}
-                    />
+                    <ChevronDown size={14} aria-hidden />
                     <span className="sr-only">Other answers for {m.displayName}</span>
                   </button>
                 </div>
-                {editing === m.userId && <Picker member={m} onRespond={onRespond} pending={pending} />}
               </li>
             ))}
           </ul>
@@ -210,36 +213,3 @@ const STATE_TEXT: Record<LineupState, string> = {
   ABSENT: 'text-red/80',
 }
 
-const OPTIONS: { value: LineupState; label: string; Icon: typeof Check; on: string; off: string }[] = [
-  { value: 'ATTENDING', label: 'Going', Icon: Check, on: 'bg-green text-white border-green', off: 'border-green/30 text-green' },
-  { value: 'MAYBE', label: 'Maybe', Icon: HelpCircle, on: 'bg-gold text-white border-gold', off: 'border-gold/30 text-gold-dark' },
-  { value: 'ABSENT', label: "Can't", Icon: X, on: 'bg-red text-white border-red', off: 'border-red/30 text-red' },
-]
-
-function Picker({
-  member,
-  onRespond,
-  pending,
-}: {
-  member: LineupMember
-  onRespond: (userId: string, state: LineupState) => void
-  pending?: boolean
-}) {
-  return (
-    <div className="flex gap-1.5 py-1.5 pl-8" role="group" aria-label={`${member.displayName}'s answer`}>
-      {OPTIONS.map(({ value, label, Icon, on, off }) => (
-        <button
-          key={value}
-          type="button"
-          aria-pressed={member.state === value}
-          disabled={pending}
-          onClick={() => onRespond(member.userId, value)}
-          className={`flex flex-1 items-center justify-center gap-1 rounded-lg border bg-card py-1.5 text-[12px] font-bold ${member.state === value ? on : off} ${pending ? 'opacity-60' : ''}`}
-        >
-          <Icon size={12} />
-          {label}
-        </button>
-      ))}
-    </div>
-  )
-}

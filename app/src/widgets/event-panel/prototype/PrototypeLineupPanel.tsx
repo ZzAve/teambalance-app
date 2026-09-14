@@ -2,8 +2,8 @@ import { useState } from 'react'
 import type { Event } from '@shared/api/events'
 import { EventRosterPanel } from '../ui/EventRosterPanel'
 import type { PanelView } from '@features/event-panel-view/model/panel-preferences'
-import { VariantA } from './VariantA'
 import { VariantD } from './VariantD'
+import { VariantG } from './VariantG'
 import { VariantE } from './VariantE'
 import { VariantF } from './VariantF'
 import { demoAttendances, demoRoster, DEMO_SELF_ID } from './demo-squad'
@@ -26,31 +26,40 @@ import type { LineupState } from './lineup-model'
  * gone from the rotation; they live in the commit that introduced them. **A stays as the contrast
  * case** — the most conservative rendering of the idea, and the thing round two has to beat.
  *
- * **Round two** answers that verdict three ways:
+ * **Round two** answered that verdict three ways — D Huddle, E Court, F Triage — and the review
+ * picked **D**, with three notes: initials are not a person while the app has no avatar photos, so
+ * make the chip a name and buy the density back with overlap; try it with and without the identity
+ * dot; and keep the bottom sheet as the answer control.
  *
- *   - **D Huddle** — the going players overlap into one mass of faces, and the row's headline is a
- *     word ("nobody yet", "1 spare") with the fraction demoted. Faces keep their identity colour
- *     and wear the answer as a ring, so a teammate looks like themselves.
- *   - **E Court** — stops treating a lineup as a list at all: draws the six rotation zones and puts
- *     each position where it stands. A hole gets a location. Exposes a real question — positions
- *     are free text, so the label→zone mapping has to become something a team can set.
+ * **Round three** is that. A (Pips) leaves the rotation — D beat it, so the contrast case has done
+ * its job; it lives in the commits above.
+ *
+ *   - **D Roster** — identity dot plus first name, chips overlapping so a crowded position tightens
+ *     to four or five characters each and a quiet one shows whole names. The row's headline stays a
+ *     word, with the fraction demoted.
+ *   - **G Names** — D minus the dot: about two more characters per chip at the same width. The one
+ *     place two variants share a rendering, because the question is whether the dot earns its width.
+ *   - **E Court** — draws the six rotation zones and puts each position where it stands, so a hole
+ *     gets a location. Exposes a real question: positions are free text, so the label→zone mapping
+ *     has to become something a team can set.
  *   - **F Triage** — refuses to give every position equal space. Opens with a sentence naming what
- *     is wrong, spends the panel on the positions that are short with the people worth asking one
- *     tap from Going, and collapses everything that is fine to one quiet line.
+ *     is wrong, spends the panel on the short positions with the people worth asking one tap from
+ *     Going, and collapses everything fine to one quiet line.
  *
- * Every variant reads the same view model (`lineup-model.ts`) and shares nothing else, on purpose —
- * except the round-two face chip (`Face.tsx`), which is a primitive, not a layout.
+ * Every variant reads the same view model (`lineup-model.ts`). They now also share one answer
+ * control (`AnswerSheet`) — the review's call, and it makes the comparison honest: what differs
+ * between them is layout, not three interactions wearing different layouts.
  *
  * Writes are real (`onRespond` is the route's own `setAttendance`) unless `?demo=1`, which swaps in
  * an in-memory squad big enough to judge the layouts and keeps its edits local.
  */
 
-export type PrototypeVariant = 'current' | 'A' | 'D' | 'E' | 'F'
+export type PrototypeVariant = 'current' | 'D' | 'G' | 'E' | 'F'
 
 export const VARIANTS: { key: PrototypeVariant; name: string }[] = [
   { key: 'current', name: "Today's panel" },
-  { key: 'A', name: 'Pips' },
-  { key: 'D', name: 'Huddle' },
+  { key: 'D', name: 'Roster' },
+  { key: 'G', name: 'Names' },
   { key: 'E', name: 'Court' },
   { key: 'F', name: 'Triage' },
 ]
@@ -95,8 +104,8 @@ export function PrototypeLineupPanel({
 
   const props = { attendances, roster, currentUserId: self, onRespond: respond }
 
-  if (variant === 'A') return <VariantA {...props} />
   if (variant === 'D') return <VariantD {...props} />
+  if (variant === 'G') return <VariantG {...props} />
   if (variant === 'E') return <VariantE {...props} />
   return <VariantF {...props} />
 }

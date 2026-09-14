@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import { Check, HelpCircle, X } from 'lucide-react'
-import { coveredLine, lineupRows, STATE_WORD, verdictWord, type LineupMember, type LineupRow, type LineupState } from './lineup-model'
+import { coveredLine, lineupRows, STATE_WORD, verdictWord, type LineupRow, type LineupState } from './lineup-model'
 import { Face } from './Face'
+import { AnswerSheet } from './AnswerSheet'
 import type { LineupPanelProps } from './types'
 
 /**
@@ -143,8 +143,7 @@ export function VariantE({ attendances, roster, currentUserId, onRespond, pendin
               <li key={m.userId}>
                 <button
                   type="button"
-                  aria-expanded={editing === m.userId}
-                  onClick={() => setEditing((id) => (id === m.userId ? null : m.userId))}
+                  onClick={() => setEditing(m.userId)}
                   className="flex w-full items-center gap-2.5 rounded-lg px-1 py-1 text-left"
                 >
                   <Face member={m} size={24} selected={editing === m.userId} />
@@ -153,16 +152,6 @@ export function VariantE({ attendances, roster, currentUserId, onRespond, pendin
                     {STATE_WORD[m.state]}
                   </span>
                 </button>
-                {editing === m.userId && (
-                  <Picker
-                    member={m}
-                    pending={pending}
-                    onRespond={(userId, state) => {
-                      onRespond(userId, state)
-                      setEditing(null)
-                    }}
-                  />
-                )}
               </li>
             ))}
             {selected.members.length === 0 && (
@@ -173,6 +162,14 @@ export function VariantE({ attendances, roster, currentUserId, onRespond, pendin
           </ul>
         </div>
       )}
+
+      <AnswerSheet
+        member={selected?.members.find((m) => m.userId === editing) ?? null}
+        position={selected?.label}
+        pending={pending}
+        onRespond={onRespond}
+        onClose={() => setEditing(null)}
+      />
     </div>
   )
 }
@@ -257,36 +254,3 @@ const STATE_TEXT: Record<LineupState, string> = {
   ABSENT: 'text-red/80',
 }
 
-const OPTIONS: { value: LineupState; label: string; Icon: typeof Check; on: string; off: string }[] = [
-  { value: 'ATTENDING', label: 'Going', Icon: Check, on: 'bg-green text-white border-green', off: 'border-green/30 text-green' },
-  { value: 'MAYBE', label: 'Maybe', Icon: HelpCircle, on: 'bg-gold text-white border-gold', off: 'border-gold/30 text-gold-dark' },
-  { value: 'ABSENT', label: "Can't", Icon: X, on: 'bg-red text-white border-red', off: 'border-red/30 text-red' },
-]
-
-function Picker({
-  member,
-  onRespond,
-  pending,
-}: {
-  member: LineupMember
-  onRespond: (userId: string, state: LineupState) => void
-  pending?: boolean
-}) {
-  return (
-    <div className="flex gap-1.5 px-1 pb-1.5 pt-1" role="group" aria-label={`${member.displayName}'s answer`}>
-      {OPTIONS.map(({ value, label, Icon, on, off }) => (
-        <button
-          key={value}
-          type="button"
-          aria-pressed={member.state === value}
-          disabled={pending}
-          onClick={() => onRespond(member.userId, value)}
-          className={`flex flex-1 items-center justify-center gap-1 rounded-lg border bg-card py-1.5 text-[12px] font-bold ${member.state === value ? on : off} ${pending ? 'opacity-60' : ''}`}
-        >
-          <Icon size={12} />
-          {label}
-        </button>
-      ))}
-    </div>
-  )
-}

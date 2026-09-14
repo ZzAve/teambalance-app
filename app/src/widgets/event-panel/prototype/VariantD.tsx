@@ -1,30 +1,51 @@
 import { useState } from 'react'
-import { Check, HelpCircle, X } from 'lucide-react'
-import { coveredLine, lineupRows, STATE_WORD, verdictWord, type LineupMember, type LineupRow, type LineupState } from './lineup-model'
-import { Face, Hole } from './Face'
+import { coveredLine, lineupRows, verdictWord, type LineupMember, type LineupRow } from './lineup-model'
+import { NameChip, ChipHole } from './NameChip'
+import { AnswerSheet } from './AnswerSheet'
 import type { LineupPanelProps } from './types'
 
 /**
- * PROTOTYPE variant D — "Huddle". Throwaway.
+ * PROTOTYPE variant D — "Roster". Throwaway. The one the review picked, rebuilt on what it said.
  *
- * Round two, answering the verdict on round one: pips and pills read as a spreadsheet, not a squad.
+ * Round two's D overlapped *faces*, and the verdict was: the idea is right but initials are not a
+ * person while the app has no avatar photos. So the chip is now a name — identity dot plus first
+ * name — and the density comes back through overlap rather than abbreviation. The fan tightens as a
+ * position fills up, so a crowded row shows four or five characters each and a quiet one shows
+ * whole names; the last chip is always whole.
  *
- * Two changes carry it. The people **overlap** — a position's going players are one huddle of faces,
- * not a row of separate cells, so fifteen of them cost the width of six and the group reads as a
- * group. And the row's headline is a **word**, not a fraction: "nobody yet", "needs 1 more",
- * "1 spare". The numbers are still there, demoted to the right edge where you look only when the
- * word made you want them.
+ * The rest of round two's D survives because the review kept it: the row's headline is a **word**
+ * ("nobody yet", "1 spare") with the fraction demoted to the edge, and the three clusters — in,
+ * holes, and everyone else — sit apart so "who is actually playing" is one shape.
  *
- * Faces keep their own identity colour with the answer as a ring (see `Face`), so a teammate looks
- * like themselves here and on the team page — the thing state-coloured pips gave up.
- *
- * Tapping a huddle fans it out into names; tapping a name changes their answer.
+ * Tapping anyone opens the shared bottom sheet (`AnswerSheet`), which the review also picked.
  */
+
+const VERDICT_TONE = {
+  covered: 'text-green-dark',
+  short: 'text-gold-dark',
+  critical: 'text-red',
+}
+
 export function VariantD({ attendances, roster, currentUserId, onRespond, pending }: LineupPanelProps) {
+  return <RosterChips {...{ attendances, roster, currentUserId, onRespond, pending }} withAvatar />
+}
+
+/** Shared with variant G, which is this exact layout minus the identity dot. */
+export function RosterChips({
+  attendances,
+  roster,
+  currentUserId,
+  onRespond,
+  pending,
+  withAvatar,
+}: LineupPanelProps & { withAvatar: boolean }) {
   const rows = lineupRows(attendances, roster, currentUserId)
   const covered = coveredLine(rows)
-  const [openRow, setOpenRow] = useState<string | null>(null)
-  const [editing, setEditing] = useState<string | null>(null)
+  const [openId, setOpenId] = useState<string | null>(null)
+
+  const all = rows.flatMap((r) => r.members)
+  const open = all.find((m) => m.userId === openId) ?? null
+  const openRow = rows.find((r) => r.members.some((m) => m.userId === openId))
 
   return (
     <div>
@@ -35,66 +56,38 @@ export function VariantD({ attendances, roster, currentUserId, onRespond, pendin
 
       <div className="flex flex-col gap-3.5">
         {rows.map((row) => (
-          <Huddle
-            key={row.id}
-            row={row}
-            open={openRow === row.id}
-            editing={editing}
-            onToggleRow={() => {
-              setOpenRow((id) => (id === row.id ? null : row.id))
-              setEditing(null)
-            }}
-            onToggleMember={(userId) => setEditing((id) => (id === userId ? null : userId))}
-            onRespond={(userId, state) => {
-              onRespond(userId, state)
-              setEditing(null)
-            }}
-            pending={pending}
-          />
+          <Row key={row.id} row={row} withAvatar={withAvatar} onPick={setOpenId} />
         ))}
       </div>
+
+      <AnswerSheet
+        member={open}
+        position={openRow?.label}
+        pending={pending}
+        onRespond={onRespond}
+        onClose={() => setOpenId(null)}
+      />
     </div>
   )
 }
 
-const VERDICT_TONE = {
-  covered: 'text-green-dark',
-  short: 'text-gold-dark',
-  critical: 'text-red',
-}
-
-function Huddle({
+function Row({
   row,
-  open,
-  editing,
-  onToggleRow,
-  onToggleMember,
-  onRespond,
-  pending,
+  withAvatar,
+  onPick,
 }: {
   row: LineupRow
-  open: boolean
-  editing: string | null
-  onToggleRow: () => void
-  onToggleMember: (userId: string) => void
-  onRespond: (userId: string, state: LineupState) => void
-  pending?: boolean
+  withAvatar: boolean
+  onPick: (userId: string) => void
 }) {
   const verdict = verdictWord(row)
-  // Three clusters with real air between them, so "who is in" is one shape rather than a sorted run:
-  // the lineup, the maybes, then the people who are out.
   const going = row.members.filter((m) => m.state === 'ATTENDING')
   const maybe = row.members.filter((m) => m.state === 'MAYBE')
   const out = row.members.filter((m) => m.state === 'NOT_RESPONDED' || m.state === 'ABSENT')
 
   return (
     <div>
-      <button
-        type="button"
-        aria-expanded={open}
-        onClick={onToggleRow}
-        className="flex w-full items-baseline justify-between gap-2 text-left"
-      >
+      <div className="flex items-baseline justify-between gap-2">
         <span className="font-display truncate text-[14px] font-bold leading-none">{row.label}</span>
         <span className="flex shrink-0 items-baseline gap-2">
           {verdict && (
@@ -104,113 +97,48 @@ function Huddle({
             {row.required == null ? `${row.attending}` : `${row.attending}/${row.required}`}
           </span>
         </span>
-      </button>
+      </div>
 
-      <button
-        type="button"
-        aria-expanded={open}
-        onClick={onToggleRow}
-        className="mt-2 flex w-full flex-wrap items-center gap-x-4 gap-y-2 py-0.5"
-      >
-        {going.length > 0 && (
-          <span className="flex">
-            {going.map((m) => (
-              <Face key={m.userId} member={m} stacked />
-            ))}
-          </span>
-        )}
+      {/* Three fans with real air between them. Each is its own flex row, so a crowded "in" group
+          tightens without dragging the people who are out along with it. */}
+      <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5">
+        {going.length > 0 && <Fan members={going} withAvatar={withAvatar} onPick={onPick} />}
         {row.openSlots > 0 && (
           <span className="flex">
             {Array.from({ length: row.openSlots }, (_, i) => (
-              <Hole key={i} critical={row.tone === 'critical'} />
+              <ChipHole key={i} critical={row.tone === 'critical'} />
             ))}
           </span>
         )}
-        {maybe.length > 0 && (
-          <span className="flex">
-            {maybe.map((m) => (
-              <Face key={m.userId} member={m} stacked />
-            ))}
-          </span>
-        )}
+        {maybe.length > 0 && <Fan members={maybe} withAvatar={withAvatar} onPick={onPick} />}
         {out.length > 0 && (
-          <span className="flex">
-            {out.map((m) => (
-              <Face key={m.userId} member={m} size={26} stacked />
-            ))}
+          <span className="opacity-70">
+            <Fan members={out} withAvatar={withAvatar} onPick={onPick} />
           </span>
         )}
-        <span className="sr-only">{open ? `Hide ${row.label} names` : `Show ${row.label} names`}</span>
-      </button>
-
-      {open && (
-        <ul className="mt-2 flex flex-col gap-0.5 rounded-xl bg-muted/45 p-1.5">
-          {row.members.map((m) => (
-            <li key={m.userId}>
-              <button
-                type="button"
-                aria-expanded={editing === m.userId}
-                onClick={() => onToggleMember(m.userId)}
-                className="flex w-full items-center gap-2.5 rounded-lg px-1.5 py-1 text-left"
-              >
-                <Face member={m} size={24} selected={editing === m.userId} />
-                <span className="min-w-0 flex-1 truncate text-[13px]">
-                  {m.displayName}
-                  {m.isSelf && <span className="ml-1.5 text-[10px] font-bold text-blue">you</span>}
-                </span>
-                <span className={`shrink-0 text-[11px] font-semibold ${STATE_TEXT[m.state]}`}>
-                  {STATE_WORD[m.state]}
-                </span>
-              </button>
-              {editing === m.userId && <Picker member={m} onRespond={onRespond} pending={pending} />}
-            </li>
-          ))}
-          {row.members.length === 0 && (
-            <li className="px-1.5 py-2 text-[12.5px] text-muted-foreground">Nobody plays {row.label} yet.</li>
-          )}
-        </ul>
-      )}
+        {row.members.length === 0 && row.openSlots === 0 && (
+          <span className="text-[12px] text-muted-foreground">Nobody yet</span>
+        )}
+      </div>
     </div>
   )
 }
 
-const STATE_TEXT: Record<LineupState, string> = {
-  ATTENDING: 'text-green-dark',
-  MAYBE: 'text-gold-dark',
-  NOT_RESPONDED: 'text-muted-foreground',
-  ABSENT: 'text-red/80',
-}
-
-const OPTIONS: { value: LineupState; label: string; Icon: typeof Check; on: string; off: string }[] = [
-  { value: 'ATTENDING', label: 'Going', Icon: Check, on: 'bg-green text-white border-green', off: 'border-green/30 text-green' },
-  { value: 'MAYBE', label: 'Maybe', Icon: HelpCircle, on: 'bg-gold text-white border-gold', off: 'border-gold/30 text-gold-dark' },
-  { value: 'ABSENT', label: "Can't", Icon: X, on: 'bg-red text-white border-red', off: 'border-red/30 text-red' },
-]
-
-function Picker({
-  member,
-  onRespond,
-  pending,
+/** `min-w-0` on the fan is what lets its chips shrink rather than push the row wide. */
+function Fan({
+  members,
+  withAvatar,
+  onPick,
 }: {
-  member: LineupMember
-  onRespond: (userId: string, state: LineupState) => void
-  pending?: boolean
+  members: LineupMember[]
+  withAvatar: boolean
+  onPick: (userId: string) => void
 }) {
   return (
-    <div className="flex gap-1.5 px-1.5 pb-1.5 pt-1" role="group" aria-label={`${member.displayName}'s answer`}>
-      {OPTIONS.map(({ value, label, Icon, on, off }) => (
-        <button
-          key={value}
-          type="button"
-          aria-pressed={member.state === value}
-          disabled={pending}
-          onClick={() => onRespond(member.userId, value)}
-          className={`flex flex-1 items-center justify-center gap-1 rounded-lg border bg-card py-1.5 text-[12px] font-bold ${member.state === value ? on : off} ${pending ? 'opacity-60' : ''}`}
-        >
-          <Icon size={12} />
-          {label}
-        </button>
+    <span className="flex min-w-0 max-w-full items-center overflow-hidden">
+      {members.map((m) => (
+        <NameChip key={m.userId} member={m} withAvatar={withAvatar} onClick={() => onPick(m.userId)} />
       ))}
-    </div>
+    </span>
   )
 }

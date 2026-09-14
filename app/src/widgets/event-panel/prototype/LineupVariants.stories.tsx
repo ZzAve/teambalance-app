@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { useState } from 'react'
-import { VariantA } from './VariantA'
 import { VariantD } from './VariantD'
+import { VariantG } from './VariantG'
 import { VariantE } from './VariantE'
 import { VariantF } from './VariantF'
 import { demoAttendances, demoRoster, DEMO_SELF_ID } from './demo-squad'
@@ -11,10 +11,10 @@ import type { LineupState } from './lineup-model'
  * PROTOTYPE — throwaway, and NOT an example of how stories are written here: no play functions, no
  * spies, no states matrix. It exists so the variants can be compared side by side without the
  * backend, in a card-width frame, against the demo squad. The real prototype is the events page
- * itself (`?variant=A|D|E|F`).
+ * itself (`?variant=D|G|E|F`).
  */
 
-type Variant = 'A' | 'D' | 'E' | 'F'
+type Variant = 'D' | 'G' | 'E' | 'F'
 
 function Frame({ variant }: { variant: Variant }) {
   const [rows, setRows] = useState(demoAttendances)
@@ -27,8 +27,8 @@ function Frame({ variant }: { variant: Variant }) {
       <div className="mb-3 border-b border-border/40 pb-2 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
         Variant {variant}
       </div>
-      {variant === 'A' && <VariantA {...props} />}
       {variant === 'D' && <VariantD {...props} />}
+      {variant === 'G' && <VariantG {...props} />}
       {variant === 'E' && <VariantE {...props} />}
       {variant === 'F' && <VariantF {...props} />}
     </div>
@@ -43,7 +43,7 @@ const meta = {
 export default meta
 type Story = StoryObj<typeof meta>
 
-export const A_Pips: Story = { args: { variant: 'A' } }
-export const D_Huddle: Story = { args: { variant: 'D' } }
+export const D_Roster: Story = { args: { variant: 'D' } }
+export const G_Names: Story = { args: { variant: 'G' } }
 export const E_Court: Story = { args: { variant: 'E' } }
 export const F_Triage: Story = { args: { variant: 'F' } }

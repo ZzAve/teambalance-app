@@ -48,25 +48,31 @@ describe('parsePanelPreferences', () => {
 
 describe('readPanelPreferences', () => {
   it('defaults to the behaviour of a member who never touched the control', () => {
-    expect(readPanelPreferences(mapStorage(), 'setpoint-vt')).toEqual(defaultPanelPreferences())
+    expect(readPanelPreferences(mapStorage())).toEqual(defaultPanelPreferences())
     expect(defaultPanelPreferences()).toEqual({ view: 'pips', defaultExpanded: false })
   })
 
-  it('restores what was written, per team', () => {
+  it('restores what was written', () => {
     const storage = mapStorage()
-    writePanelPreferences(storage, 'setpoint-vt', { view: 'members', defaultExpanded: true })
+    writePanelPreferences(storage, { view: 'members', defaultExpanded: true })
 
-    expect(readPanelPreferences(storage, 'setpoint-vt')).toEqual({
-      view: 'members',
-      defaultExpanded: true,
-    })
-    // Another team is untouched — the key is per team (ADR-0030 §4).
-    expect(readPanelPreferences(storage, 'other-team')).toEqual(defaultPanelPreferences())
+    expect(readPanelPreferences(storage)).toEqual({ view: 'members', defaultExpanded: true })
+  })
+
+  // The scope, which is the half this got wrong first time round. A display preference is a taste,
+  // not a position: it follows the member into every team, the way `tb-theme` does. Team-scoping it
+  // meant entering a second team looked like the setting had been forgotten.
+  it('is stored app-wide, under no team', () => {
+    const storage = mapStorage()
+    writePanelPreferences(storage, { view: 'members', defaultExpanded: true })
+
+    expect(storage.getItem('tb.pref.event-panel')).toBe('{"view":"members","defaultExpanded":true}')
+    expect(storage.getItem('tb.pref.setpoint-vt.event-panel')).toBeNull()
   })
 
   it('falls back to the defaults on a malformed value rather than throwing', () => {
-    const storage = mapStorage({ 'tb.pref.setpoint-vt.event-panel': '{ not json' })
-    expect(readPanelPreferences(storage, 'setpoint-vt')).toEqual(defaultPanelPreferences())
+    const storage = mapStorage({ 'tb.pref.event-panel': '{ not json' })
+    expect(readPanelPreferences(storage)).toEqual(defaultPanelPreferences())
   })
 
   it('survives storage that refuses to be read', () => {
@@ -78,7 +84,7 @@ describe('readPanelPreferences', () => {
         throw new Error('private mode')
       },
     }
-    expect(readPanelPreferences(throwing, 'setpoint-vt')).toEqual(defaultPanelPreferences())
-    expect(() => writePanelPreferences(throwing, 'setpoint-vt', defaultPanelPreferences())).not.toThrow()
+    expect(readPanelPreferences(throwing)).toEqual(defaultPanelPreferences())
+    expect(() => writePanelPreferences(throwing, defaultPanelPreferences())).not.toThrow()
   })
 })

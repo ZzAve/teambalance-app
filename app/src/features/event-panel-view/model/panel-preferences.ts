@@ -1,6 +1,6 @@
 import {
+  appPreferenceKey,
   readPreference,
-  teamPreferenceKey,
   writePreference,
   type PreferenceStorage,
 } from '@shared/preferences/preferences'
@@ -11,8 +11,14 @@ import {
  *
  * ADR-0030 §3 is the reason these are not one stored blob with the filters: filter state is "where
  * was I" and a display preference is "how do I like this". Only the second is a setting, and only
- * the second survives `Clear filters` — which it could not if the two shared a key. Same mechanism
- * (`shared/preferences`), same per-team key namespace, its own name.
+ * the second survives `Clear filters` — which it could not if the two shared a key.
+ *
+ * That same distinction decides the **scope**, which is where this first landed wrong. These were
+ * team-scoped, because they reused the filter store's `teamPreferenceKey`; but per-team is right for
+ * a position and wrong for a taste. Nobody wants pips in one team and names in another, and being
+ * asked to set it again on entering a second team reads as the setting having been forgotten. So the
+ * key is app-wide, following `tb-theme` — the app's other display preference — rather than the
+ * filters next door.
  */
 
 /** What the roster disclosure opens onto: the position pips, or the member list. */
@@ -49,21 +55,17 @@ export function parsePanelPreferences(raw: unknown): PanelPreferences | null {
   }
 }
 
-/** The team's stored preferences, or the defaults — never a throw. */
-export function readPanelPreferences(
-  storage: PreferenceStorage | null,
-  teamSlug: string,
-): PanelPreferences {
+/** The member's stored preferences, or the defaults — never a throw. */
+export function readPanelPreferences(storage: PreferenceStorage | null): PanelPreferences {
   return (
-    readPreference(storage, teamPreferenceKey(teamSlug, PREFERENCE_NAME), parsePanelPreferences) ??
+    readPreference(storage, appPreferenceKey(PREFERENCE_NAME), parsePanelPreferences) ??
     defaultPanelPreferences()
   )
 }
 
 export function writePanelPreferences(
   storage: PreferenceStorage | null,
-  teamSlug: string,
   preferences: PanelPreferences,
 ): void {
-  writePreference(storage, teamPreferenceKey(teamSlug, PREFERENCE_NAME), preferences)
+  writePreference(storage, appPreferenceKey(PREFERENCE_NAME), preferences)
 }

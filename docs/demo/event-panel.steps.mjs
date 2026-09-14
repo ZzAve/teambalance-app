@@ -4,8 +4,8 @@ import { installFixtureApi } from './api-fixture.mjs'
  * Demo take: the event card's panel offers roster pips or the member list (#326, ADR-0030 §5–§8).
  *
  * The storyline follows the decisions in order: open a card's lineup → switch the panel to the
- * team → show that the choice is global, not per card → show that a social finally has something to
- * expand to (#324 cause 3) → turn `Keep open` on and reload. The last beat is the point of the
+ * team from the header control → show that the choice is global, not per card → show that a social
+ * finally has something to expand to (#324 cause 3) → turn `Keep open` on and reload. The last beat is the point of the
  * payload change: every card can start expanded because the list already carries every answer, so
  * none of this costs a request per visible card.
  *
@@ -58,8 +58,12 @@ export default async function script({ page, caption, section, sleep, click, scr
   const nearLineup = card('evt-2').getByRole('button', { name: /Show lineup/ })
   const fullLineup = card('evt-4').getByRole('button', { name: /Show lineup/ })
   const socialTrigger = card('evt-3').getByRole('button', { name: /Show who's coming/ })
-  const peopleView = card('evt-2').getByRole('button', { name: 'People' })
-  const keepOpen = card('evt-2').getByRole('button', { name: 'Keep open' })
+  // The two display preferences live in the page header, beside Filters — one control for the whole
+  // list, not one per card (ADR-0030 §5, amended). `exact` on the trigger for the same reason the
+  // filters take needs it: accessible-name matching is a substring match.
+  const viewMenu = page.getByRole('button', { name: 'View options', exact: true })
+  const peopleView = page.getByRole('button', { name: 'People', exact: true })
+  const keepOpen = page.getByRole('switch', { name: 'Keep panels open' })
   const nearTraining = page.locator('a[href$="/events/evt-2"]')
 
   await installFixtureApi(page)
@@ -81,8 +85,13 @@ export default async function script({ page, caption, section, sleep, click, scr
 
   await section('switch', async () => {
     await say('Same panel, a second view — and the member picks', 1800)
+    await click(page, viewMenu)
+    await sleep(page, 700)
+    await say('One control for the whole list, up with the filters', 2200)
     await click(page, peopleView)
-    await sleep(page, 1000)
+    await sleep(page, 400)
+    await page.keyboard.press('Escape')
+    await sleep(page, 900)
     await say('The team itself, grouped the same way', 2600)
     await scrollTo(page, page.getByText('Noor Bakker').first())
     await sleep(page, 600)
@@ -95,7 +104,7 @@ export default async function script({ page, caption, section, sleep, click, scr
   await section('global', async () => {
     await scrollTo(page, fullLineup)
     await sleep(page, 600)
-    await say('The choice is one preference, not a per-card toggle', 2000)
+    await say('It is one preference, not a per-card toggle', 2000)
     await click(page, fullLineup)
     await sleep(page, 1000)
     await say('Another card — already on the same view', 3000)
@@ -114,7 +123,11 @@ export default async function script({ page, caption, section, sleep, click, scr
     await scrollTo(page, nearTraining)
     await sleep(page, 600)
     await say('One more preference: keep every panel open', 1800)
+    await click(page, viewMenu)
+    await sleep(page, 700)
     await click(page, keepOpen)
+    await sleep(page, 400)
+    await page.keyboard.press('Escape')
     await sleep(page, 1200)
     await say('Free, because the list already carries every answer', 3000)
     await say('No extra request per card — that is what paid for this', 2800)

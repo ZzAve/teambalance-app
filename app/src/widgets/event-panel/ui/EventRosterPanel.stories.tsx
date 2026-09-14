@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
-import { expect, fn } from 'storybook/test'
+import { expect } from 'storybook/test'
 import type { AttendanceEntry } from '@shared/api/events'
 import { withRouter } from '@shared/testing/router-decorator'
 import { makeEvent, makeRoster, NO_ROSTER } from '@shared/testing/event-fixtures'
@@ -7,8 +7,9 @@ import { allModes } from '../../../../.storybook/modes'
 import { EventRosterPanel, MEMBER_CAP } from './EventRosterPanel'
 
 // What the card's roster disclosure opens onto: the position pips, or the team (ADR-0030 §5). The
-// view is one global preference switched from the bar at the foot of the panel; `Keep open` is the
-// second. Prop-only (ADR-0017) — the store is wired in by the events route.
+// view is one global preference, now set from the page header (`PanelViewMenu`) rather than from
+// inside the panel — so this component is content only, with no preference chrome of its own. The
+// stories for the control itself live next to it. Prop-only (ADR-0017).
 const att = (
   userId: string,
   displayName: string,
@@ -50,9 +51,6 @@ const meta = {
   args: {
     event: TRACKED,
     view: 'pips',
-    onViewChange: fn(),
-    defaultExpanded: false,
-    onDefaultExpandedChange: fn(),
     currentUserId: 'u-lib',
     detailHref: '/t/setpoint-vt/events/evt-002',
   },
@@ -82,42 +80,6 @@ export const MembersView: Story = {
     await expect(canvas.getByText('Awaiting')).toBeInTheDocument()
     // The viewer's own row is marked.
     await expect(canvas.getByText('You')).toBeInTheDocument()
-  },
-}
-
-// ── The switch — prove the callback, not just the render (ADR-0030 §5) ───────────────────────────
-
-export const SwitchingToMembersIsReported: Story = {
-  play: async ({ canvas, userEvent, args }) => {
-    await expect(canvas.getByRole('button', { name: 'Positions' })).toHaveAttribute('aria-pressed', 'true')
-    await userEvent.click(canvas.getByRole('button', { name: 'People' }))
-    await expect(args.onViewChange).toHaveBeenCalledWith('members')
-  },
-}
-
-export const SwitchingBackToPipsIsReported: Story = {
-  args: { view: 'members' },
-  play: async ({ canvas, userEvent, args }) => {
-    await expect(canvas.getByRole('button', { name: 'People' })).toHaveAttribute('aria-pressed', 'true')
-    await userEvent.click(canvas.getByRole('button', { name: 'Positions' }))
-    await expect(args.onViewChange).toHaveBeenCalledWith('pips')
-  },
-}
-
-export const KeepOpenIsReported: Story = {
-  play: async ({ canvas, userEvent, args }) => {
-    const keepOpen = canvas.getByRole('button', { name: 'Keep open' })
-    await expect(keepOpen).toHaveAttribute('aria-pressed', 'false')
-    await userEvent.click(keepOpen)
-    await expect(args.onDefaultExpandedChange).toHaveBeenCalledWith(true)
-  },
-}
-
-export const KeepOpenAlreadyOn: Story = {
-  args: { defaultExpanded: true },
-  play: async ({ canvas, userEvent, args }) => {
-    await userEvent.click(canvas.getByRole('button', { name: 'Keep open' }))
-    await expect(args.onDefaultExpandedChange).toHaveBeenCalledWith(false)
   },
 }
 
@@ -163,8 +125,8 @@ export const MemberListIsReadOnly: Story = {
 // ── The social (#324 cause 3) ────────────────────────────────────────────────────────────────────
 
 // Tracking off: there are no pips to draw, so the panel is its people whatever the preference says —
-// which is what finally gives a social something to expand to. No view switch: the other view would
-// be blank.
+// which is what finally gives a social something to expand to. It no longer has to suppress a view
+// switch to manage that, because there is no switch on a card any more.
 export const SocialAlwaysShowsMembers: Story = {
   args: {
     view: 'pips',
@@ -172,9 +134,7 @@ export const SocialAlwaysShowsMembers: Story = {
   },
   play: async ({ canvas }) => {
     await expect(canvas.getByText('Sanne')).toBeInTheDocument()
-    await expect(canvas.queryByRole('button', { name: 'Positions' })).not.toBeInTheDocument()
-    await expect(canvas.queryByRole('button', { name: 'People' })).not.toBeInTheDocument()
-    // `Keep open` is still offered — it applies to every card.
-    await expect(canvas.getByRole('button', { name: 'Keep open' })).toBeInTheDocument()
+    // Even asked for pips, it shows people — there are none to draw.
+    await expect(canvas.queryByText('Positions')).not.toBeInTheDocument()
   },
 }

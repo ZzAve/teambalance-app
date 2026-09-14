@@ -3,7 +3,6 @@ import { ArrowRight } from 'lucide-react'
 import type { Event } from '@shared/api/events'
 import { RosterPips } from '@entities/event/ui/RosterPips'
 import { AttendeeList } from '@widgets/attendee-list/ui/AttendeeList'
-import { PanelPreferencesBar } from '@features/event-panel-view/ui/PanelPreferencesBar'
 import type { PanelView } from '@features/event-panel-view/model/panel-preferences'
 
 /**
@@ -14,10 +13,8 @@ export const MEMBER_CAP = 15
 
 interface EventRosterPanelProps {
   event: Event
+  /** The member's global choice of view. Set from the page header, never from here. */
   view: PanelView
-  onViewChange: (view: PanelView) => void
-  defaultExpanded: boolean
-  onDefaultExpandedChange: (defaultExpanded: boolean) => void
   /** The viewer, so their own row is marked `You`. */
   currentUserId?: string | null
   /** Where the capped remainder lives — this event's own detail page. */
@@ -35,20 +32,16 @@ interface EventRosterPanelProps {
  * ⑫), and the card's own answer row already handles the viewer's own answer.
  *
  * An event with roster tracking off has no pips to draw, so it always shows its members — which is
- * what finally gives a social something to expand to (#324 cause 3) and why it offers no view
- * switch: the other view would be blank.
+ * what finally gives a social something to expand to (#324 cause 3). It does not have to refuse the
+ * preference to do that any more: the control has moved to the page header (`PanelViewMenu`), so a
+ * card no longer answers for a setting it does not own, and this one simply renders the only view it
+ * has.
+ *
+ * Content only, therefore: no preference chrome on any card. That is the whole point of the move —
+ * a control repeated once per open card reads as a per-card control, whatever the state behind it.
  */
-export function EventRosterPanel({
-  event,
-  view,
-  onViewChange,
-  defaultExpanded,
-  onDefaultExpandedChange,
-  currentUserId,
-  detailHref,
-}: EventRosterPanelProps) {
-  const tracked = event.roster.trackRoster
-  const showMembers = view === 'members' || !tracked
+export function EventRosterPanel({ event, view, currentUserId, detailHref }: EventRosterPanelProps) {
+  const showMembers = view === 'members' || !event.roster.trackRoster
   const hidden = event.attendances.length - MEMBER_CAP
 
   return (
@@ -74,13 +67,6 @@ export function EventRosterPanel({
       ) : (
         <RosterPips roster={event.roster} />
       )}
-
-      <PanelPreferencesBar
-        view={tracked ? view : null}
-        onViewChange={onViewChange}
-        defaultExpanded={defaultExpanded}
-        onDefaultExpandedChange={onDefaultExpandedChange}
-      />
     </div>
   )
 }

@@ -12,6 +12,7 @@ import { CreateEventSheet } from '@widgets/create-event/ui/CreateEventSheet'
 import { EventFiltersView } from '@features/filter-event-types/ui/EventFiltersView'
 import { useEventFiltersStore } from '@features/filter-event-types/model/event-filters-store'
 import { useEventPanelStore } from '@features/event-panel-view/model/event-panel-store'
+import { PanelViewMenu } from '@features/event-panel-view/ui/PanelViewMenu'
 import { EventRosterPanel } from '@widgets/event-panel/ui/EventRosterPanel'
 import { useTeamRoutes } from '@shared/lib/team-routes'
 import { reconcileTypeIds } from '@features/filter-event-types/model/filter-preferences'
@@ -44,10 +45,9 @@ function EventListPage() {
         openTeam, setShowPast, toggleType, toggleState, toggleTurnout, clearFilters,
     } = useEventFiltersStore()
     // The card panel's two display preferences, in their own store: `Clear filters` clears where the
-    // member was and must leave how they like to look at it alone (ADR-0030 §3).
-    const {
-        view, defaultExpanded, openTeam: openPanelTeam, setView, setDefaultExpanded,
-    } = useEventPanelStore()
+    // member was and must leave how they like to look at it alone (ADR-0030 §3). No team binding —
+    // a taste follows the member across their teams, so there is nothing to restore on entry.
+    const {view, defaultExpanded, setView, setDefaultExpanded} = useEventPanelStore()
     const {data: events, isLoading, error} = useEvents(showPast)
     const {data: eventTypes} = useEventTypes()
     const isAdmin = useUserStore((s) => s.role) === 'ADMIN'
@@ -57,8 +57,7 @@ function EventListPage() {
     // request on entry — the alternative is holding the whole page back on local storage.
     useEffect(() => {
         openTeam(slug)
-        openPanelTeam(slug)
-    }, [slug, openTeam, openPanelTeam])
+    }, [slug, openTeam])
 
     // One ticking clock for the whole page, so the hero's countdown, the hero cut-off and every
     // card's relative label are read off the same instant and can never disagree with each other —
@@ -153,6 +152,15 @@ function EventListPage() {
                         // trigger says *that* something is filtered, this says undo it.
                         onClearFilters={clearFilters}
                     />
+                    {/* How the list is drawn, beside what it contains but deliberately not inside it
+                        (ADR-0030 §3): a filter is "where was I", this is "how do I like this". It
+                        used to sit in every open card's panel, which read as a per-card control. */}
+                    <PanelViewMenu
+                        view={view}
+                        onViewChange={setView}
+                        defaultExpanded={defaultExpanded}
+                        onDefaultExpandedChange={setDefaultExpanded}
+                    />
                 </div>
             </div>
 
@@ -176,9 +184,6 @@ function EventListPage() {
                     <EventRosterPanel
                         event={event}
                         view={view}
-                        onViewChange={setView}
-                        defaultExpanded={defaultExpanded}
-                        onDefaultExpandedChange={setDefaultExpanded}
                         currentUserId={currentUserId}
                         detailHref={routes.event(event.id)}
                     />

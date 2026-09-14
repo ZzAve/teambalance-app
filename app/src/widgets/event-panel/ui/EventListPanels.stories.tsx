@@ -5,6 +5,7 @@ import type { AttendanceEntry, Event } from '@shared/api/events'
 import { withRouter } from '@shared/testing/router-decorator'
 import { makeAttendee, makeEvent, makeRoster, NO_ROSTER } from '@shared/testing/event-fixtures'
 import { EventListView } from '@entities/event/ui/EventListView'
+import { PanelViewMenu } from '@features/event-panel-view/ui/PanelViewMenu'
 import { allModes } from '../../../../.storybook/modes'
 import { EventRosterPanel, MEMBER_CAP } from './EventRosterPanel'
 import type { PanelView } from '@features/event-panel-view/model/panel-preferences'
@@ -14,10 +15,13 @@ import type { PanelView } from '@features/event-panel-view/model/panel-preferenc
  * the same two views, driven by the one global preference (ADR-0030 §5–§7).
  *
  * The per-card stories next door prove the panel in isolation; what only shows here is the part that
- * is a property of the *list*: that the view is one choice across every card rather than a per-card
- * toggle, that `Keep open` reaches cards the member never touched, and — the reason those two are
- * affordable at all — that a list of every roster state renders its whole variety of panels with no
- * fetch beyond the one that loaded the list (ADR-0030 §8).
+ * is a property of the *list*: that one control in the header moves every card at once, that `Keep
+ * open` reaches cards the member never touched, and — the reason those two are affordable at all —
+ * that a list of every roster state renders its whole variety of panels with no fetch beyond the one
+ * that loaded the list (ADR-0030 §8).
+ *
+ * The harness renders `PanelViewMenu` above the list because the page does: since the control left
+ * the panel, "switching moves every card" is only demonstrable with both halves on screen.
  *
  * It lives in `widgets/` rather than beside `EventListView` because the panel is a widget and the
  * list is an entity: a story file in `entities/` may not import one (eslint-plugin-boundaries).
@@ -167,6 +171,13 @@ const SOCIAL = makeEvent({
 const EVERY_ROSTER_STATE = [MISSING_A_POSITION, SPOTS_OPEN, LINEUP_SET, HEADCOUNT_SHORT, SOCIAL]
 
 /**
+ * An open card's roster trigger. Matched unanchored and by both wordings on purpose: the accessible
+ * name is the readiness badge *plus* the sr-only verb ("Missing a position Hide lineup"), so it
+ * never starts with `Hide`, and a social says `who's coming` where a tracked event says `lineup`.
+ */
+const OPEN_PANEL = /Hide (lineup|who's coming)/
+
+/**
  * The events route's wiring, in the smallest honest form: the two preferences in state, one panel
  * factory handing every card the same view. Exactly what the route does, so a story that drives the
  * switch drives the real composition rather than a story-only stand-in.
@@ -193,13 +204,10 @@ function ListWithPanels({
   const [defaultExpanded, setDefaultExpanded] = useState(initialExpanded)
 
   return (
-    <EventListView
-      events={events}
-      now={NOW}
-      defaultRosterOpen={defaultExpanded}
-      rosterPanel={(event) => (
-        <EventRosterPanel
-          event={event}
+    <div>
+      {/* The page header, in miniature: the one control that drives every card below. */}
+      <div className="mb-2 flex justify-end">
+        <PanelViewMenu
           view={view}
           onViewChange={(next) => {
             onViewChange?.(next)
@@ -210,11 +218,22 @@ function ListWithPanels({
             onDefaultExpandedChange?.(next)
             setDefaultExpanded(next)
           }}
-          currentUserId={LARS[0]}
-          detailHref={`/t/setpoint-vt/events/${event.id}`}
         />
-      )}
-    />
+      </div>
+      <EventListView
+        events={events}
+        now={NOW}
+        defaultRosterOpen={defaultExpanded}
+        rosterPanel={(event) => (
+          <EventRosterPanel
+            event={event}
+            view={view}
+            currentUserId={LARS[0]}
+            detailHref={`/t/setpoint-vt/events/${event.id}`}
+          />
+        )}
+      />
+    </div>
   )
 }
 
@@ -244,9 +263,9 @@ export const RestingList: Story = {
     await expect(canvas.getByText('Lineup set')).toBeInTheDocument()
     await expect(canvas.getByText('3 more needed')).toBeInTheDocument()
     await expect(canvas.getByText('4 going')).toBeInTheDocument() // the social's headcount
-    // Nothing is open, so no panel chrome is on screen at all.
-    await expect(canvas.queryByRole('button', { name: 'People' })).not.toBeInTheDocument()
+    // Nothing is open, so no panel content is on screen at all.
     await expect(canvas.queryByText('Sanne Bakker')).not.toBeInTheDocument()
+    await expect(canvas.queryByText('Positions')).not.toBeInTheDocument()
   },
 }
 
@@ -258,11 +277,9 @@ export const RestingList: Story = {
 export const EveryPanelOpenOnPips: Story = {
   args: { defaultExpanded: true },
   play: async ({ canvas }) => {
-    // One open panel per card, four of them offering the switch — the social has only one view.
-    await expect(canvas.getAllByRole('button', { name: 'Keep open' })).toHaveLength(5)
-    for (const button of canvas.getAllByRole('button', { name: 'Positions' })) {
-      await expect(button).toHaveAttribute('aria-pressed', 'true')
-    }
+    // One open panel per card, and no preference chrome on any of them.
+    await expect(canvas.getAllByRole('button', { name: OPEN_PANEL })).toHaveLength(5)
+    await expect(canvas.queryByRole('switch', { name: 'Keep panels open' })).not.toBeInTheDocument()
     await expect(canvas.getByText(/still has no one/)).toBeInTheDocument() // CRITICAL's chase nudge
     await expect(canvas.getByText('4 of 4 covered')).toBeInTheDocument() // LINEUP_SET's fraction
     await expect(canvas.getByText('5/8 going')).toBeInTheDocument() // the headcount-only panel
@@ -296,7 +313,10 @@ export const SwitchingTheViewMovesEveryCard: Story = {
     await expect(canvas.getByText(/still has no one/)).toBeInTheDocument()
     await expect(canvas.getAllByText('Sanne Bakker')).toHaveLength(1)
 
-    await userEvent.click(canvas.getAllByRole('button', { name: 'People' })[0])
+    // One control, in the header — not one per card, which is the whole point of the move.
+    await userEvent.click(canvas.getByRole('button', { name: 'View options' }))
+    await userEvent.click(canvas.getByRole('button', { name: 'People' }))
+    await userEvent.keyboard('{Escape}')
 
     await expect(args.onViewChange).toHaveBeenCalledWith('members')
     // No card is left on the old view — the pips and their callouts are gone everywhere…
@@ -304,10 +324,6 @@ export const SwitchingTheViewMovesEveryCard: Story = {
     await expect(canvas.queryByText('4 of 4 covered')).not.toBeInTheDocument()
     // …and each of the five now names the team.
     await expect(canvas.getAllByText('Sanne Bakker')).toHaveLength(5)
-    // Every switch reads as pressed, so no card disagrees about which view it is on.
-    for (const button of canvas.getAllByRole('button', { name: 'People' })) {
-      await expect(button).toHaveAttribute('aria-pressed', 'true')
-    }
   },
 }
 
@@ -317,20 +333,24 @@ export const SwitchingTheViewMovesEveryCard: Story = {
 export const KeepOpenReachesEveryCardAtOnce: Story = {
   args: { onDefaultExpandedChange: fn() },
   play: async ({ canvas, userEvent, args }) => {
-    // `Keep open` appears once per OPEN panel, so counting it counts the open cards.
+    // An open card's own trigger reads `Hide …`, so counting those counts the open panels — and it
+    // counts them whichever view they are on, and whatever the header popover is doing.
+    const openPanels = () => canvas.queryAllByRole('button', { name: OPEN_PANEL })
+
     // Open one by hand; the other four are untouched and closed.
     await userEvent.click(canvas.getAllByRole('button', { name: /Show lineup/ })[0])
-    await expect(canvas.getAllByRole('button', { name: 'Keep open' })).toHaveLength(1)
+    await expect(openPanels()).toHaveLength(1)
 
-    await userEvent.click(canvas.getByRole('button', { name: 'Keep open' }))
+    await userEvent.click(canvas.getByRole('button', { name: 'View options' }))
+    await userEvent.click(canvas.getByRole('switch', { name: 'Keep panels open' }))
 
     await expect(args.onDefaultExpandedChange).toHaveBeenCalledWith(true)
-    await expect(canvas.getAllByRole('button', { name: 'Keep open' })).toHaveLength(5)
+    await expect(openPanels()).toHaveLength(5)
 
     // And off again, which has to close them just as promptly.
-    await userEvent.click(canvas.getAllByRole('button', { name: 'Keep open' })[0])
+    await userEvent.click(canvas.getByRole('switch', { name: 'Keep panels open' }))
     await expect(args.onDefaultExpandedChange).toHaveBeenLastCalledWith(false)
-    await expect(canvas.queryByRole('button', { name: 'Keep open' })).not.toBeInTheDocument()
+    await expect(openPanels()).toHaveLength(0)
   },
 }
 

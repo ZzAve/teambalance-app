@@ -122,7 +122,7 @@ export const AttributionOnTheCard: Story = {
 export const AttributionClearsWhileSettling: Story = {
   args: {
     currentUserId: 'u-me',
-    optimistic: { eventId: 'evt-1', state: 'ATTENDING' },
+    optimistic: { eventId: 'evt-1', userId: 'u-me', state: 'ATTENDING' },
     events: [
       makeEvent({
         id: 'evt-1',

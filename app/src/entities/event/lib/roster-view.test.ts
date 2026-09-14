@@ -2,14 +2,10 @@ import { describe, expect, it } from 'vitest'
 import type { EventRoster, RosterPosition } from '@shared/api/events'
 import { makeRoster, NO_ROSTER } from '@shared/testing/event-fixtures'
 import {
-  coveredSummary,
-  hasRosterPanel,
   headcountLine,
-  chaseNudge,
   rosterChip,
   rosterRows,
   staffNote,
-  unassignedNudge,
 } from './roster-view'
 
 const pos = (
@@ -36,12 +32,6 @@ describe('rosterChip', () => {
 
   // A tally has nothing to fall short of, so a chip would invent a judgement nobody asked for. It
   // still differs from "off": the panel opens.
-  it('shows no chip for a tally, but still offers a panel', () => {
-    const tally = roster({ state: 'TALLY_ONLY', openSlots: 0, positions: [pos('Setter', undefined, 2)] })
-    expect(rosterChip(tally)).toBeNull()
-    expect(hasRosterPanel(tally)).toBe(true)
-    expect(hasRosterPanel(NO_ROSTER)).toBe(false)
-  })
 
   it('reads "Lineup set" when every targeted position is covered', () => {
     const covered = [pos('Setter', 2, 2), pos('Libero', 1, 1)]
@@ -106,29 +96,6 @@ describe('rosterChip', () => {
   })
 })
 
-describe('coveredSummary', () => {
-  it('counts covered targeted positions', () => {
-    const r = roster({
-      positions: [pos('Setter', 2, 2), pos('Libero', 1, 0), pos('Middle', 2, 1)],
-    })
-    expect(coveredSummary(r)).toBe('1 of 3 covered')
-  })
-
-  it('counts an over-filled position as covered', () => {
-    expect(coveredSummary(roster({ positions: [pos('Setter', 2, 5)] }))).toBe('1 of 1 covered')
-  })
-
-  // A tally is not a fraction of anything.
-  it('is absent when no position carries a target', () => {
-    expect(coveredSummary(roster({ positions: [pos('Setter', undefined, 3)] }))).toBeNull()
-    expect(coveredSummary(roster({ positions: [] }))).toBeNull()
-  })
-
-  it('ignores untargeted rows in the fraction', () => {
-    const r = roster({ positions: [pos('Setter', 2, 2), pos('Middle', undefined, 4)] })
-    expect(coveredSummary(r)).toBe('1 of 1 covered')
-  })
-})
 
 describe('rosterRows', () => {
   it('draws one pip per required slot, filled left to right', () => {
@@ -169,69 +136,7 @@ describe('rosterRows', () => {
   })
 })
 
-describe('chaseNudge', () => {
-  it('names the single empty position and calls it the one to chase', () => {
-    const r = roster({
-      positions: [pos('Setter', 2, 1), pos('Libero', 1, 0), pos('Middle', 2, 1)],
-    })
-    expect(chaseNudge(r)).toEqual({ lead: 'Libero', rest: 'still has no one — the one to chase.' })
-  })
 
-  // Two is still a nudge, so both are named. "the one to chase" must not survive: it is a definite
-  // article, and claiming uniqueness when two are empty says the other one is fine.
-  it('names both when two are empty, and drops the uniqueness claim', () => {
-    const r = roster({ positions: [pos('Libero', 1, 0), pos('Middle', 2, 0)] })
-    expect(chaseNudge(r)).toEqual({ lead: 'Libero and Middle', rest: 'still have no one.' })
-  })
-
-  // Three names is an inventory, not a nudge, and the rows above already list them. The count is
-  // the news: it says "this is not one gap" without reprinting the panel.
-  it('counts them instead of listing once there are three or more', () => {
-    const r = roster({
-      positions: [pos('Libero', 1, 0), pos('Middle', 2, 0), pos('Setter', 2, 0)],
-    })
-    expect(chaseNudge(r)).toEqual({ lead: '3 positions', rest: 'still have no one.' })
-  })
-
-  // The reported case: nobody has answered at all, so every targeted position is empty. Singling
-  // one out implied the other five were covered.
-  it('counts them when nothing has been answered at all', () => {
-    const r = roster({
-      positions: [
-        pos('Diagonaal', 2, 0),
-        pos('Libero', 1, 0),
-        pos('Midden', 3, 0),
-        pos('Passer/Loper', 2, 0),
-        pos('Spelverdeler', 2, 0),
-        pos('Trainer/Coach', 1, 0),
-      ],
-    })
-    expect(chaseNudge(r)).toEqual({ lead: '6 positions', rest: 'still have no one.' })
-  })
-
-  it('is absent when every targeted position has somebody', () => {
-    expect(chaseNudge(roster({ positions: [pos('Setter', 3, 1)] }))).toBeNull()
-  })
-
-  it('never counts an untargeted position, however empty', () => {
-    expect(chaseNudge(roster({ positions: [pos('Middle', undefined, 0)] }))).toBeNull()
-  })
-})
-
-describe('unassignedNudge', () => {
-  it('prompts when attendees have no position set', () => {
-    expect(unassignedNudge(roster({ unassignedAttending: 3 }))).toBe("3 going haven't set a position")
-  })
-
-  it('reads singular for one', () => {
-    expect(unassignedNudge(roster({ unassignedAttending: 1 }))).toBe("1 going hasn't set a position")
-  })
-
-  // A prompt, not a permanent label.
-  it('is absent when everyone coming has a position', () => {
-    expect(unassignedNudge(roster({ unassignedAttending: 0 }))).toBeNull()
-  })
-})
 
 describe('headcountLine', () => {
   // The locked rule: a total set alongside position targets is secondary information in the panel,

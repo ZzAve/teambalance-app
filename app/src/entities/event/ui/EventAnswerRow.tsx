@@ -2,10 +2,8 @@ import { useId, useState } from 'react'
 import { Check, ChevronDown, HelpCircle, X } from 'lucide-react'
 import type { ComponentType, ReactNode } from 'react'
 import type { Event, EventRoster } from '@shared/api/events'
-import { hasRosterPanel } from '../lib/roster-view'
 import { myAnswer, type MyAnswer } from '../lib/my-answer'
 import { ReadinessBadge } from './ReadinessBadge'
-import { RosterPips } from './RosterPips'
 
 type AttendanceState = Event['myState']
 
@@ -27,11 +25,12 @@ interface EventAnswerRowProps {
    */
   defaultRosterOpen?: boolean
   /**
-   * What the roster disclosure opens onto, or `null` when there is nothing to open.
+   * What the roster disclosure opens onto, or nothing at all when omitted.
    *
-   * Left out, it falls back to the position pips — and to no disclosure at all on an untracked
-   * roster, which is exactly the old behaviour. The events list injects the whole panel instead (a
-   * widget: it may render the member list), and that is what gives a social something to expand to.
+   * Always injected by the events list, which is the only place cards render: the panel is a widget
+   * (it reaches the attendance control and the answer sheet) and the card is an entity, so the card
+   * cannot build one itself. There is no fallback any more — the position pips that used to be one
+   * were the *other half* of the either/or the lineup panel replaced.
    */
   rosterPanel?: ReactNode | null
 }
@@ -71,12 +70,12 @@ const TRIGGER =
  * home, and DOM order == visual order == focus order keeps that accessible. Picking an answer collapses
  * the attendance panel (④) — its job is done — while the roster panel, if open, stays put.
  *
- * The right side is a disclosure whenever the caller hands it a panel. Left to its own default that is
- * the position pips, so an untracked social shows a plain `8 going` headcount with nothing to expand
- * (⑥) — but the events list injects a panel that always has content, which is how a social stopped
- * being the one card whose verdict silently navigates (#324 cause 3). Prop-only apart from the two
- * open states, which is exactly the local view state a story can drive; the mutation and the
- * optimistic hold live in the container.
+ * The right side is a disclosure whenever the caller hands it a panel, and a plain label when it does
+ * not. The events list always injects one — the lineup panel, which has content for every roster
+ * shape including an untracked social — which is how a social stopped being the one card whose
+ * verdict silently navigates (#324 cause 3). Prop-only apart from the two open states, which is
+ * exactly the local view state a story can drive; the mutation and the optimistic hold live in the
+ * container.
  *
  * An answer a teammate set says so in the pill itself — `Lisa Bakker said you're in` (⑪). The
  * attribution is the sentence's subject, not a marker beside it or a line beneath it: a list is
@@ -109,8 +108,7 @@ export function EventAnswerRow({
   const rosterId = useId()
   const answer = myAnswer(myState, setBy)
   const { className: pillClass, Icon } = PILL_TONE[answer.tone]
-  const panel = rosterPanel === undefined ? defaultRosterPanel(roster) : rosterPanel
-  const rosterExpandable = panel !== null
+  const rosterExpandable = rosterPanel != null
   // The pips are a lineup; an untracked social has no positions at all, so its panel is its people.
   const panelNoun = roster.trackRoster ? 'lineup' : "who's coming"
 
@@ -201,14 +199,10 @@ export function EventAnswerRow({
       {/* Roster panel — second in the DOM, so it stays below the attendance panel. */}
       {rosterExpandable && rosterOpen && (
         <div id={rosterId} className="relative z-10 mt-3 w-full border-t border-dashed border-border pt-3">
-          {panel}
+          {rosterPanel}
         </div>
       )}
     </>
   )
 }
 
-/** The pips, for a caller that named no panel — and nothing at all for a roster that isn't tracked. */
-function defaultRosterPanel(roster: EventRoster): ReactNode | null {
-  return hasRosterPanel(roster) ? <RosterPips roster={roster} /> : null
-}

@@ -16,11 +16,18 @@ const on = (day: number, hour = 20, minute = 0) => new Date(2026, 7, day, hour, 
 
 // Token-sensitive component (ADR-0027 §3): the event-type colour chits on the card surface, so
 // modes at the meta level give every state a light *and* a dark baseline.
+// The roster panel is injected by the events route (the real one is `EventLineupPanel`, a widget
+// this entity may not import). A stand-in is the honest fixture here: what the card owns is the
+// disclosure and the verdict badge beside it, never the panel's contents — those are covered where
+// they live, in EventLineupPanel.stories.
+const PANEL = <p>Setter · Sanne, Sofia</p>
+const PANEL_TEXT = 'Setter · Sanne, Sofia'
+
 const meta = {
   title: 'entities/event/EventCard',
   component: EventCard,
   decorators: [withRouter],
-  args: { now: NOW, myState: 'NOT_RESPONDED', onRespond: fn() },
+  args: { now: NOW, myState: 'NOT_RESPONDED', onRespond: fn(), rosterPanel: PANEL },
   parameters: { chromatic: { modes: { light: allModes.light, dark: allModes.dark } } },
 } satisfies Meta<typeof EventCard>
 
@@ -139,13 +146,13 @@ export const WithRosterVerdict: Story = {
   play: async ({ canvas, userEvent }) => {
     await expect(canvas.getByText('Missing a position')).toBeInTheDocument()
     // Collapsed on a list card until asked.
-    await expect(canvas.queryByText(/the one to chase/)).not.toBeInTheDocument()
+    await expect(canvas.queryByText(PANEL_TEXT)).not.toBeInTheDocument()
 
-    // The verdict is its own disclosure now — opening it reveals the pips, not the answer control.
+    // The verdict is its own disclosure — opening it reveals the lineup, not the answer control.
     await userEvent.click(canvas.getByRole('button', { name: /Show lineup/ }))
 
-    await expect(canvas.getByText('1 of 3 covered')).toBeInTheDocument()
-    await expect(canvas.getByText(/still has no one/)).toBeInTheDocument()
+    await expect(canvas.getByText(PANEL_TEXT)).toBeInTheDocument()
+    await expect(canvas.queryByRole('button', { name: /^Going$/ })).not.toBeInTheDocument()
   },
 }
 
@@ -172,15 +179,12 @@ export const WithStaffAttending: Story = {
     }),
   },
   play: async ({ canvas, userEvent }) => {
-    // Not "Full" — the coach no longer fills a player's slot.
+    // Not "Full" — the coach no longer fills a player's slot. That is the card's half of #281; the
+    // panel's half (the 11/12 fraction and the staff line) is in EventLineupPanel.stories.
     await expect(canvas.getByText('1 more needed')).toBeInTheDocument()
 
     await userEvent.click(canvas.getByRole('button', { name: /Show lineup/ }))
-
-    await expect(canvas.getByText('11/12 going')).toBeInTheDocument()
-    await expect(canvas.getByText('1 staff also going, not counted toward the target')).toBeInTheDocument()
-    // Excluded from the target, not hidden.
-    await expect(canvas.getByText('Trainer')).toBeInTheDocument()
+    await expect(canvas.getByText(PANEL_TEXT)).toBeInTheDocument()
   },
 }
 
@@ -268,7 +272,7 @@ export const RosterTriggerBandIsTappable: Story = {
     await expect(hit?.closest('a')).toBeNull()
 
     await userEvent.click(hit as HTMLElement)
-    await expect(canvas.getByText('Positions')).toBeInTheDocument()
+    await expect(canvas.getByText(PANEL_TEXT)).toBeInTheDocument()
   },
 }
 

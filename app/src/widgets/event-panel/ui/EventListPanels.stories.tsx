@@ -7,21 +7,20 @@ import { makeAttendee, makeEvent, makeRoster, NO_ROSTER } from '@shared/testing/
 import { EventListView } from '@entities/event/ui/EventListView'
 import { PanelViewMenu } from '@features/event-panel-view/ui/PanelViewMenu'
 import { allModes } from '../../../../.storybook/modes'
-import { EventRosterPanel, MEMBER_CAP } from './EventRosterPanel'
-import type { PanelView } from '@features/event-panel-view/model/panel-preferences'
+import { EventLineupPanel } from './EventLineupPanel'
 
 /**
  * The panel **as the events page actually assembles it** — a whole list of cards, each opening onto
- * the same two views, driven by the one global preference (ADR-0030 §5–§7).
+ * its own lineup (ADR-0030 §6–§8).
  *
  * The per-card stories next door prove the panel in isolation; what only shows here is the part that
- * is a property of the *list*: that one control in the header moves every card at once, that `Keep
- * open` reaches cards the member never touched, and — the reason those two are affordable at all —
- * that a list of every roster state renders its whole variety of panels with no fetch beyond the one
- * that loaded the list (ADR-0030 §8).
+ * is a property of the *list*: that `Keep open` reaches cards the member never touched, that a chip
+ * on one card answers for the member on *that* card, and — the reason either is affordable — that a
+ * list of every roster state renders its whole variety of panels with no fetch beyond the one that
+ * loaded the list (ADR-0030 §8).
  *
- * The harness renders `PanelViewMenu` above the list because the page does: since the control left
- * the panel, "switching moves every card" is only demonstrable with both halves on screen.
+ * The harness renders `PanelViewMenu` above the list because the page does: `Keep open` is a live
+ * default, so "flipping it moves every card" is only demonstrable with both halves on screen.
  *
  * It lives in `widgets/` rather than beside `EventListView` because the panel is a widget and the
  * list is an entity: a story file in `entities/` may not import one (eslint-plugin-boundaries).
@@ -178,29 +177,25 @@ const EVERY_ROSTER_STATE = [MISSING_A_POSITION, SPOTS_OPEN, LINEUP_SET, HEADCOUN
 const OPEN_PANEL = /Hide (lineup|who's coming)/
 
 /**
- * The events route's wiring, in the smallest honest form: the two preferences in state, one panel
- * factory handing every card the same view. Exactly what the route does, so a story that drives the
- * switch drives the real composition rather than a story-only stand-in.
+ * The events route's wiring, in the smallest honest form: the preference in state, one panel factory
+ * handing every card its own lineup. Exactly what the route does, so a story that drives the switch
+ * drives the real composition rather than a story-only stand-in.
  */
 interface ListWithPanelsProps {
   events: Event[]
-  /** The view every card starts on — the member may switch it from any open panel. */
-  view?: PanelView
   /** `Keep open`, as the store would have restored it. */
   defaultExpanded?: boolean
-  /** Spies, so a story can prove the preference was reported and not merely rendered. */
-  onViewChange?: (view: PanelView) => void
+  /** Spies, so a story can prove the preference and the answer were reported, not merely rendered. */
   onDefaultExpandedChange?: (defaultExpanded: boolean) => void
+  onRespond?: (eventId: string, userId: string, state: Event['myState']) => void
 }
 
 function ListWithPanels({
   events,
-  view: initialView = 'pips',
   defaultExpanded: initialExpanded = false,
-  onViewChange,
   onDefaultExpandedChange,
+  onRespond,
 }: ListWithPanelsProps) {
-  const [view, setView] = useState<PanelView>(initialView)
   const [defaultExpanded, setDefaultExpanded] = useState(initialExpanded)
 
   return (
@@ -208,11 +203,6 @@ function ListWithPanels({
       {/* The page header, in miniature: the one control that drives every card below. */}
       <div className="mb-2 flex justify-end">
         <PanelViewMenu
-          view={view}
-          onViewChange={(next) => {
-            onViewChange?.(next)
-            setView(next)
-          }}
           defaultExpanded={defaultExpanded}
           onDefaultExpandedChange={(next) => {
             onDefaultExpandedChange?.(next)
@@ -223,13 +213,14 @@ function ListWithPanels({
       <EventListView
         events={events}
         now={NOW}
+        currentUserId={LARS[0]}
         defaultRosterOpen={defaultExpanded}
         rosterPanel={(event) => (
-          <EventRosterPanel
-            event={event}
-            view={view}
+          <EventLineupPanel
+            attendances={event.attendances}
+            roster={event.roster}
             currentUserId={LARS[0]}
-            detailHref={`/t/setpoint-vt/events/${event.id}`}
+            onRespond={(userId, state) => onRespond?.(event.id, userId, state)}
           />
         )}
       />
@@ -238,7 +229,7 @@ function ListWithPanels({
 }
 
 // `component` is the harness, not EventListView: the args a story drives here are the events page's
-// two preferences, which is the seam this file exists to cover. The list's own four states
+// own wiring, which is the seam this file exists to cover. The list's own four states
 // (loading / error / empty / data) stay where they were, in EventListView.stories.tsx.
 const meta = {
   title: 'widgets/event-panel/EventListPanels',
@@ -265,65 +256,43 @@ export const RestingList: Story = {
     await expect(canvas.getByText('4 going')).toBeInTheDocument() // the social's headcount
     // Nothing is open, so no panel content is on screen at all.
     await expect(canvas.queryByText('Sanne Bakker')).not.toBeInTheDocument()
-    await expect(canvas.queryByText('Positions')).not.toBeInTheDocument()
+    await expect(canvas.queryByText('Lineup')).not.toBeInTheDocument()
   },
 }
 
-// ── Every panel open, both views ─────────────────────────────────────────────────────────────────
+// ── Every panel open ────────────────────────────────────────────────────────────────────────────
 
-// The pips variety in one frame: red rings for a position with nobody, a mixed row, a fully covered
-// row, and a headcount-only panel with no rows at all. The social ignores the preference — it has no
-// pips to show — which is the one card here that opens onto names instead.
-export const EveryPanelOpenOnPips: Story = {
+// The whole variety in one frame: a position with nobody, a mixed row, a covered row, a
+// headcount-only panel, and a social. One panel does all five now — before the lineup panel this
+// took two stories, because the card opened onto pips OR names and neither could show both.
+export const EveryPanelOpen: Story = {
   args: { defaultExpanded: true },
   play: async ({ canvas }) => {
     // One open panel per card, and no preference chrome on any of them.
     await expect(canvas.getAllByRole('button', { name: OPEN_PANEL })).toHaveLength(5)
     await expect(canvas.queryByRole('switch', { name: 'Keep panels open' })).not.toBeInTheDocument()
-    await expect(canvas.getByText(/still has no one/)).toBeInTheDocument() // CRITICAL's chase nudge
-    await expect(canvas.getByText('4 of 4 covered')).toBeInTheDocument() // LINEUP_SET's fraction
+
+    // Targets and people at once, which is the merge: the verdict words come from the roster, the
+    // names beside them from the attendances, on the same rows.
+    await expect(canvas.getAllByText('nobody yet').length).toBeGreaterThan(0)
+    await expect(canvas.getByText('4 of 4 covered')).toBeInTheDocument()
     await expect(canvas.getByText('5/8 going')).toBeInTheDocument() // the headcount-only panel
-    // The social has no pips to draw, so it opens onto its people whatever the preference says —
-    // and it is the ONLY card naming anyone while the rest are on pips.
-    await expect(canvas.getAllByText('Sanne Bakker')).toHaveLength(1)
+    // Every card names the team, the social included — there is no view that hides them any more.
+    await expect(canvas.getAllByText(/Sanne/)).toHaveLength(5)
   },
 }
 
-// The same five events on the member view: grouped under their positions where the roster has any,
-// flat with a position subtitle where it does not, non-responders named throughout.
-export const EveryPanelOpenOnMembers: Story = {
-  args: { view: 'members', defaultExpanded: true },
-  play: async ({ canvas }) => {
-    await expect(canvas.getAllByRole('heading', { name: 'Setter' })).toHaveLength(3) // the 3 with positions
-    await expect(canvas.getAllByText('Uwe Hofman')).toHaveLength(5) // a non-responder, on every card
-    await expect(canvas.getAllByText('Awaiting').length).toBeGreaterThan(0)
-    // Read-only on every card, not just the one the per-card story checks (#271 ⑫).
-    await expect(canvas.queryByRole('button', { name: /Change .+'s answer/ })).not.toBeInTheDocument()
-  },
-}
-
-// ── What only the list can prove ─────────────────────────────────────────────────────────────────
-
-// The view is ONE preference, not a per-card toggle (ADR-0030 §5). Switching it on the first card
-// has to move every other open card with it — which no per-card story can show.
-export const SwitchingTheViewMovesEveryCard: Story = {
-  args: { defaultExpanded: true, onViewChange: fn() },
+// Answering from the list, on the right card. A chip reaches its own member and its own event, which
+// a per-card story cannot prove: five cards carry the same squad, so a factory closing over the
+// wrong event would look identical.
+export const AnsweringFromACardInTheList: Story = {
+  args: { defaultExpanded: true, onRespond: fn() },
   play: async ({ canvas, userEvent, args }) => {
-    // Every tracked card starts on pips; only the social names anyone.
-    await expect(canvas.getByText(/still has no one/)).toBeInTheDocument()
-    await expect(canvas.getAllByText('Sanne Bakker')).toHaveLength(1)
+    const card = within(canvas.getByText('League Match vs Smash United').closest('.card-enter') as HTMLElement)
+    await userEvent.click(card.getAllByRole('button', { name: /Sanne Bakker/ })[0])
 
-    // One control, in the header — not one per card, which is the whole point of the move.
-    await userEvent.click(canvas.getByRole('button', { name: 'View options' }))
-    await userEvent.click(canvas.getByRole('button', { name: 'People' }))
-    await userEvent.keyboard('{Escape}')
-
-    await expect(args.onViewChange).toHaveBeenCalledWith('members')
-    // No card is left on the old view — the pips and their callouts are gone everywhere…
-    await expect(canvas.queryByText(/still has no one/)).not.toBeInTheDocument()
-    await expect(canvas.queryByText('4 of 4 covered')).not.toBeInTheDocument()
-    // …and each of the five now names the team.
-    await expect(canvas.getAllByText('Sanne Bakker')).toHaveLength(5)
+    await userEvent.click(within(document.body).getByRole('button', { name: "Can't go" }))
+    await expect(args.onRespond).toHaveBeenCalledWith('evt-critical', SANNE[0], 'ABSENT')
   },
 }
 
@@ -356,17 +325,20 @@ export const KeepOpenReachesEveryCardAtOnce: Story = {
 
 // ── The cap, in the list it exists to protect (ADR-0030 §7) ──────────────────────────────────────
 
+// Zero-padded, because the panel sorts members by name and "Member 10" sorts before "Member 2" —
+// which would make the assertions below read backwards for a reason that has nothing to do with
+// the cap they are about.
 const BIG_SQUAD = Array.from({ length: 17 }, (_, i) =>
-  makeAttendee(`u-big-${i}`, `Member ${i + 1}`, 'Unassigned', {
+  makeAttendee(`u-big-${i}`, `Member ${String(i + 1).padStart(2, '0')}`, 'Unassigned', {
     state: i % 4 === 0 ? 'NOT_RESPONDED' : 'ATTENDING',
   }),
 )
 
-// A club side of 17 beside a normal card: capped at 15 with the rest behind the event, so one card
-// on the member view cannot swallow the screen and stop the list being a list.
+// A club side of 17 beside a normal card. The panel caps each cluster and hands the rest to a
+// counter, so one card cannot swallow the screen and stop the list being a list — and the counter,
+// not a link to the detail page, is how the rest are reached now.
 export const ABigSquadIsCapped: Story = {
   args: {
-    view: 'members',
     defaultExpanded: true,
     events: [
       makeEvent({
@@ -380,15 +352,18 @@ export const ABigSquadIsCapped: Story = {
       SOCIAL,
     ],
   },
-  play: async ({ canvas }) => {
+  play: async ({ canvas, userEvent }) => {
     const card = within(canvas.getByText('Club Night').closest('.card-enter') as HTMLElement)
-    await expect(card.getByText(`Member ${MEMBER_CAP}`)).toBeInTheDocument()
-    await expect(card.queryByText(`Member ${MEMBER_CAP + 1}`)).not.toBeInTheDocument()
-    await expect(card.getByRole('link', { name: /See all 17/ })).toHaveAttribute(
-      'href',
-      '/t/setpoint-vt/events/evt-big',
-    )
-    // The neighbouring card is untouched by the cap — it is a per-card limit, not a list-wide one.
-    await expect(canvas.getByText('Sanne Bakker')).toBeInTheDocument()
+    // Twelve going, four shown plus a counter — the collapsed row is a handful of chips, not 17.
+    await expect(card.getByRole('button', { name: /Member 02 —/ })).toBeInTheDocument()
+    await expect(card.queryByRole('button', { name: /Member 16 —/ })).not.toBeInTheDocument()
+
+    await userEvent.click(card.getByRole('button', { name: 'Show 8 more going' }))
+    await expect(card.getByRole('button', { name: /Member 16 —/ })).toBeInTheDocument()
+
+    // The five awaiting sit in their own cluster, which is at the cap and so shows in full: the
+    // limit is per run of chips, not per row — and certainly not per list.
+    await expect(card.getByRole('button', { name: /Member 17 — Awaiting/ })).toBeInTheDocument()
+    await expect(canvas.getByText(/Sanne/)).toBeInTheDocument()
   },
 }

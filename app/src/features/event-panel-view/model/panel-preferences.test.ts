@@ -17,26 +17,18 @@ const mapStorage = (entries: Record<string, string> = {}): PreferenceStorage => 
 }
 
 describe('parsePanelPreferences', () => {
-  it('reads a stored pair back', () => {
-    expect(parsePanelPreferences({ view: 'members', defaultExpanded: true })).toEqual({
-      view: 'members',
-      defaultExpanded: true,
-    })
+  it('reads a stored value back', () => {
+    expect(parsePanelPreferences({ defaultExpanded: true })).toEqual({ defaultExpanded: true })
   })
 
-  it('falls back to pips for a view it does not recognise', () => {
-    // A third view that has since gone, or a hand-edited value: render the default, not nothing.
-    expect(parsePanelPreferences({ view: 'names', defaultExpanded: true })).toEqual({
-      view: 'pips',
+  it('ignores a field a previous build wrote — here the retired pips-or-people view', () => {
+    expect(parsePanelPreferences({ view: 'members', defaultExpanded: true })).toEqual({
       defaultExpanded: true,
     })
   })
 
   it('is lenient per field — a missing one costs only itself', () => {
-    expect(parsePanelPreferences({ view: 'members' })).toEqual({
-      view: 'members',
-      defaultExpanded: false,
-    })
+    expect(parsePanelPreferences({})).toEqual({ defaultExpanded: false })
   })
 
   it('rejects anything that is not an object', () => {
@@ -49,14 +41,14 @@ describe('parsePanelPreferences', () => {
 describe('readPanelPreferences', () => {
   it('defaults to the behaviour of a member who never touched the control', () => {
     expect(readPanelPreferences(mapStorage())).toEqual(defaultPanelPreferences())
-    expect(defaultPanelPreferences()).toEqual({ view: 'pips', defaultExpanded: false })
+    expect(defaultPanelPreferences()).toEqual({ defaultExpanded: false })
   })
 
   it('restores what was written', () => {
     const storage = mapStorage()
-    writePanelPreferences(storage, { view: 'members', defaultExpanded: true })
+    writePanelPreferences(storage, { defaultExpanded: true })
 
-    expect(readPanelPreferences(storage)).toEqual({ view: 'members', defaultExpanded: true })
+    expect(readPanelPreferences(storage)).toEqual({ defaultExpanded: true })
   })
 
   // The scope, which is the half this got wrong first time round. A display preference is a taste,
@@ -64,9 +56,9 @@ describe('readPanelPreferences', () => {
   // meant entering a second team looked like the setting had been forgotten.
   it('is stored app-wide, under no team', () => {
     const storage = mapStorage()
-    writePanelPreferences(storage, { view: 'members', defaultExpanded: true })
+    writePanelPreferences(storage, { defaultExpanded: true })
 
-    expect(storage.getItem('tb.pref.event-panel')).toBe('{"view":"members","defaultExpanded":true}')
+    expect(storage.getItem('tb.pref.event-panel')).toBe('{"defaultExpanded":true}')
     expect(storage.getItem('tb.pref.setpoint-vt.event-panel')).toBeNull()
   })
 

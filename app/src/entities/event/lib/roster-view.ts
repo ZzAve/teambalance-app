@@ -52,21 +52,7 @@ export function rosterChip(roster: EventRoster): RosterChip | null {
   }
 }
 
-/** True when there is a panel to open — everything except a roster that isn't tracked at all. */
-export function hasRosterPanel(roster: EventRoster): boolean {
-  return roster.trackRoster
-}
 
-/**
- * "3 of 5 covered" for the panel header, or null when no position carries a target — a tally has
- * nothing to be a fraction of.
- */
-export function coveredSummary(roster: EventRoster): string | null {
-  const targeted = roster.positions.filter((p) => p.required != null)
-  if (targeted.length === 0) return null
-  const covered = targeted.filter((p) => p.attending >= (p.required ?? 0)).length
-  return `${covered} of ${targeted.length} covered`
-}
 
 /** One slot's dot. `missing` is an open slot at a position with nobody at all — drawn in alarm. */
 export type PipState = 'filled' | 'open' | 'missing'
@@ -115,52 +101,13 @@ function rowTone(position: RosterPosition): RosterTone | null {
 }
 
 /** The chase callout, split so the caller can bold the subject without owning any of the copy. */
-export interface ChaseNudge {
-  /** The subject — position names, or a count once naming them would be an inventory. */
-  lead: string
-  /** The rest of the sentence, already agreeing in number with `lead`. */
-  rest: string
-}
 
-/**
- * The callout under the rows for targeted positions with nobody at all.
- *
- * It scales with how many are empty, because one shape cannot honestly cover all three. Naming a
- * single position and calling it "the one to chase" is the useful case and stays. Naming two is
- * still a nudge. From three on it becomes an inventory the rows above already print, so the count
- * carries it instead.
- *
- * What must not happen is the old behaviour: naming the *first* empty position and calling it "the
- * one to chase" regardless of how many others were also empty. On an event nobody has answered yet
- * that singled out one position and implied every other was covered.
- */
-export function chaseNudge(roster: EventRoster): ChaseNudge | null {
-  const empty = emptyPositions(roster)
 
-  if (empty.length === 0) return null
-  if (empty.length === 1) return { lead: empty[0].label, rest: 'still has no one — the one to chase.' }
-  if (empty.length === 2) return { lead: `${empty[0].label} and ${empty[1].label}`, rest: 'still have no one.' }
-  return { lead: `${empty.length} positions`, rest: 'still have no one.' }
-}
-
-/**
- * The targeted positions with nobody at all — the fact that separates a critical roster from one
- * that is merely short. Shared by the chip and the nudge so the two can never disagree about which
- * positions are empty.
- */
+/** The targeted positions with nobody at all — the fact that separates a critical roster from a short one. */
 function emptyPositions(roster: EventRoster): RosterRow[] {
   return rosterRows(roster).filter((row) => row.pips.length > 0 && row.pips.every((p) => p === 'missing'))
 }
 
-/**
- * The soft nudge under the rows when attendees have no position set. Null when everyone coming has
- * one — this is a prompt, not a permanent label.
- */
-export function unassignedNudge(roster: EventRoster): string | null {
-  const n = roster.unassignedAttending
-  if (n <= 0) return null
-  return `${n} going ${plural(n, "hasn't", "haven't")} set a position`
-}
 
 /**
  * "7/12 going" whenever a headcount target exists at all.

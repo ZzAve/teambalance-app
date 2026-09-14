@@ -6,8 +6,12 @@ import {
 } from '@shared/preferences/preferences'
 
 /**
- * How the member likes the card's roster panel (ADR-0030 §5 and §6) — the *display* half of
- * "remember how I left this", kept deliberately apart from the filter state next door.
+ * How the member likes the card's roster panel (ADR-0030 §6) — the *display* half of "remember how I
+ * left this", kept deliberately apart from the filter state next door.
+ *
+ * Only one preference is left. ADR-0030 §5's `view` (pips or the member list) went with the either/or
+ * it selected: the lineup panel is both halves at once, so there is no longer a choice to remember.
+ * A stored `view` from an older build is simply ignored — see [parsePanelPreferences].
  *
  * ADR-0030 §3 is the reason these are not one stored blob with the filters: filter state is "where
  * was I" and a display preference is "how do I like this". Only the second is a setting, and only
@@ -21,38 +25,27 @@ import {
  * filters next door.
  */
 
-/** What the roster disclosure opens onto: the position pips, or the member list. */
-export type PanelView = 'pips' | 'members'
-
 export interface PanelPreferences {
-  view: PanelView
   /** Start every card's roster panel open. Affordable only because the list carries attendances. */
   defaultExpanded: boolean
 }
 
 const PREFERENCE_NAME = 'event-panel'
 
-/**
- * Pips and collapsed — the behaviour every member had before this preference existed, which is what
- * "never touched the control" has to mean.
- */
+/** Collapsed — the behaviour every member had before this preference existed. */
 export function defaultPanelPreferences(): PanelPreferences {
-  return { view: 'pips', defaultExpanded: false }
+  return { defaultExpanded: false }
 }
 
 /**
  * Lenient per field, like the filter preferences: a value written by another build should cost the
- * member the field that changed, not the one that did not. An unrecognised `view` — a third view
- * that has since gone, or a hand-edited string — falls back to the default rather than rendering
- * nothing.
+ * member the field that changed, not the one that did not. That leniency is also what makes the
+ * removal of `view` free — a blob written by an older build still parses, its dead field ignored.
  */
 export function parsePanelPreferences(raw: unknown): PanelPreferences | null {
   if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) return null
   const value = raw as Record<string, unknown>
-  return {
-    view: value.view === 'members' ? 'members' : 'pips',
-    defaultExpanded: value.defaultExpanded === true,
-  }
+  return { defaultExpanded: value.defaultExpanded === true }
 }
 
 /** The member's stored preferences, or the defaults — never a throw. */

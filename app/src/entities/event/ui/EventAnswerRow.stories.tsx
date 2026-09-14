@@ -10,10 +10,17 @@ type AttendanceState = Event['myState']
 // The card's bottom row: two independent disclosures — attendance (left) and roster (right). Each
 // opens its own panel; both can be open at once, with the attendance panel always above. Prop-only
 // apart from the two open states (ADR-0017), so every combination is just props.
+//
+// The roster panel is always *injected* — the real one is `EventLineupPanel`, a widget this entity
+// may not import. What the row owns is the disclosure, so a stand-in is the honest fixture: these
+// stories prove the trigger, the open states and the ordering, never the panel's contents.
+const PANEL = <p>Setter · Sanne, Sofia</p>
+const PANEL_TEXT = 'Setter · Sanne, Sofia'
+
 const meta = {
   title: 'entities/event/EventAnswerRow',
   component: EventAnswerRow,
-  args: { roster: makeRoster(), myState: 'NOT_RESPONDED', onRespond: fn() },
+  args: { roster: makeRoster(), myState: 'NOT_RESPONDED', onRespond: fn(), rosterPanel: PANEL },
   decorators: [
     (Story) => (
       <div className="max-w-md rounded-xl border border-border bg-card p-3.5">
@@ -35,7 +42,7 @@ export const Unanswered: Story = {
     await expect(canvas.getByText('1 spot open')).toBeInTheDocument()
     // Neither panel is open until asked.
     await expect(canvas.queryByRole('button', { name: /^Going$/ })).not.toBeInTheDocument()
-    await expect(canvas.queryByText('Positions')).not.toBeInTheDocument()
+    await expect(canvas.queryByText(PANEL_TEXT)).not.toBeInTheDocument()
     // Both sides are their own trigger.
     await expect(canvas.getByRole('button', { name: /Change your answer/ })).toBeInTheDocument()
     await expect(canvas.getByRole('button', { name: /Show lineup/ })).toBeInTheDocument()
@@ -57,7 +64,7 @@ export const OpenAttendanceOnly: Story = {
     // The three-way control is shown…
     await expect(canvas.getByRole('button', { name: /^Going$/ })).toBeInTheDocument()
     // …and the roster panel stays closed.
-    await expect(canvas.queryByText('Positions')).not.toBeInTheDocument()
+    await expect(canvas.queryByText(PANEL_TEXT)).not.toBeInTheDocument()
   },
 }
 
@@ -65,7 +72,7 @@ export const OpenRosterOnly: Story = {
   play: async ({ canvas, userEvent }) => {
     await userEvent.click(canvas.getByRole('button', { name: /Show lineup/ }))
     // The pips are shown…
-    await expect(canvas.getByText('Positions')).toBeInTheDocument()
+    await expect(canvas.getByText(PANEL_TEXT)).toBeInTheDocument()
     // …and the answer control stays closed.
     await expect(canvas.queryByRole('button', { name: /^Going$/ })).not.toBeInTheDocument()
   },
@@ -78,7 +85,7 @@ export const BothOpenAttendanceOnTop: Story = {
     await userEvent.click(canvas.getByRole('button', { name: /Change your answer/ }))
 
     const going = canvas.getByRole('button', { name: /^Going$/ })
-    const positions = canvas.getByText('Positions')
+    const positions = canvas.getByText(PANEL_TEXT)
     await expect(going).toBeInTheDocument()
     await expect(positions).toBeInTheDocument()
     // Attendance renders above the roster panel regardless of which was opened first.
@@ -125,7 +132,7 @@ export const CollapseOnPick: Story = {
     // …the pill flipped optimistically…
     await expect(canvas.getByText("You're in")).toBeInTheDocument()
     // …the roster panel stayed open…
-    await expect(canvas.getByText('Positions')).toBeInTheDocument()
+    await expect(canvas.getByText(PANEL_TEXT)).toBeInTheDocument()
     // …and the answer was reported.
     await expect(args.onRespond).toHaveBeenCalledWith('ATTENDING')
   },
@@ -142,9 +149,10 @@ export const Pending: Story = {
 
 // ── Headcount fallback (⑥) — right side ────────────────────────────────────────────────────────
 
-// A social: tracking off, so there is no lineup. The right side is a plain headcount, NOT a trigger.
+// A caller with nothing to open: the right side is a plain headcount, NOT a trigger. The events
+// list never takes this branch — it always injects a panel — but the contract still allows it.
 export const HeadcountFallbackOff: Story = {
-  args: { roster: makeRoster({ ...NO_ROSTER, totalAttending: 8 }) },
+  args: { roster: makeRoster({ ...NO_ROSTER, totalAttending: 8 }), rosterPanel: null },
   play: async ({ canvas, userEvent }) => {
     await expect(canvas.getByText('8 going')).toBeInTheDocument()
     await expect(canvas.queryByRole('button', { name: /Show lineup/ })).not.toBeInTheDocument()
@@ -161,7 +169,7 @@ export const HeadcountFallbackTallyOnly: Story = {
   play: async ({ canvas, userEvent }) => {
     await expect(canvas.getByText('5 going')).toBeInTheDocument()
     await userEvent.click(canvas.getByRole('button', { name: /Show lineup/ }))
-    await expect(canvas.getByText('Positions')).toBeInTheDocument()
+    await expect(canvas.getByText(PANEL_TEXT)).toBeInTheDocument()
   },
 }
 
@@ -171,7 +179,7 @@ export const HeadcountFallbackTallyOnly: Story = {
 export const RosterCollapsedByDefault: Story = {
   args: { defaultRosterOpen: false },
   play: async ({ canvas }) => {
-    await expect(canvas.queryByText('Positions')).not.toBeInTheDocument()
+    await expect(canvas.queryByText(PANEL_TEXT)).not.toBeInTheDocument()
     await expect(canvas.getByRole('button', { name: /Show lineup/ })).toBeInTheDocument()
   },
 }
@@ -182,11 +190,11 @@ export const RosterCollapsedByDefault: Story = {
 export const RosterExpandedByDefault: Story = {
   args: { defaultRosterOpen: true },
   play: async ({ canvas, userEvent }) => {
-    await expect(canvas.getByText('Positions')).toBeInTheDocument()
+    await expect(canvas.getByText(PANEL_TEXT)).toBeInTheDocument()
     await expect(canvas.getByRole('button', { name: /Hide lineup/ })).toBeInTheDocument()
     // Still a disclosure, not a permanently open panel.
     await userEvent.click(canvas.getByRole('button', { name: /Hide lineup/ }))
-    await expect(canvas.queryByText('Positions')).not.toBeInTheDocument()
+    await expect(canvas.queryByText(PANEL_TEXT)).not.toBeInTheDocument()
   },
 }
 
@@ -208,11 +216,3 @@ export const SocialExpands: Story = {
   },
 }
 
-// A caller may still say there is nothing to open, which is what the plain headcount is for.
-export const NoPanelStaysAPlainHeadcount: Story = {
-  args: { roster: makeRoster({ ...NO_ROSTER, totalAttending: 8 }), rosterPanel: null },
-  play: async ({ canvas }) => {
-    await expect(canvas.getByText('8 going')).toBeInTheDocument()
-    await expect(canvas.queryByRole('button', { name: /Show/ })).not.toBeInTheDocument()
-  },
-}

@@ -32,6 +32,19 @@ export function teamPreferenceKey(teamSlug: string, name: string): string {
 }
 
 /**
+ * An app-wide key, for a preference that is a *taste* rather than a position.
+ *
+ * The distinction is ADR-0030 §3's, and it decides the scope as well as the storage: filter state is
+ * "where was I", which is genuinely per team — someone who plays in two teams must not carry one
+ * team's event-type filter into the other. A display preference is "how do I like this", which
+ * follows the member everywhere, the same way `tb-theme` always has. Nobody wants roster pips in one
+ * team and names in the other; being asked to set it again per team is the bug, not the feature.
+ */
+export function appPreferenceKey(name: string): string {
+  return `${PREFIX}.${name}`
+}
+
+/**
  * The stored preference, or `null` for anything that is not one: nothing written yet, malformed
  * JSON, a shape `parse` rejects, or storage that refuses to be read (Safari private mode throws on
  * access). The caller decides what "nothing stored" means — for every consumer so far it means

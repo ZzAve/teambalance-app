@@ -9,6 +9,7 @@ JDK — and, more usefully, never drifts with the seed data.
 |------|-----------------|
 | `dark-mode.steps.mjs` | A look around, then light → dark → system (#159) |
 | `filter-preferences.steps.mjs` | The events list remembering its filters, per team (#325, ADR-0030) |
+| `event-panel.steps.mjs` | The card's panel: roster pips or the member list, and Keep open (#326, ADR-0030) |
 
 Each steps module's docstring carries its own exact commands. The `.mp4` output is gitignored on
 purpose — share it on the PR, don't commit it.
@@ -55,3 +56,12 @@ Learned the hard way while recording #325. None of them announce themselves.
   preferences land under `tb.pref.heren-3.*`.
 - **Chromium**: the recording box may need `npx playwright install chromium-headless-shell`
   alongside the usual `chromium`.
+- **Never address a disclosure by index.** Two event cards carry the same `Show lineup` name, and
+  opening one flips *its* name to `Hide lineup` — which silently renumbers the rest, so a `.nth(1)`
+  that resolved before the first beat times out after it. Scope to the card instead: `.card-enter`
+  is EventCard's own root class, and the title link (`a[href$="/events/evt-2"]`) says which one.
+- **Scroll first, then caption.** A caption that names a card must not land while the previous card
+  is still the one on screen: `scrollTo` → short `sleep` → `say` → click.
+- **The fixture's team is six people**, so anything with a larger threshold — the member list's
+  15-cap and its see-all link (ADR-0030 §7) — cannot be filmed against it without growing `ROSTER`,
+  which would change the Team page in every other take.

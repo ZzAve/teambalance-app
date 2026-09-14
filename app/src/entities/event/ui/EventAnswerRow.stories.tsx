@@ -164,3 +164,55 @@ export const HeadcountFallbackTallyOnly: Story = {
     await expect(canvas.getByText('Positions')).toBeInTheDocument()
   },
 }
+
+// ── The panel's default open state (ADR-0030 §6) ─────────────────────────────────────────────────
+
+// `Keep open` off — the resting state, and the only one before this preference existed.
+export const RosterCollapsedByDefault: Story = {
+  args: { defaultRosterOpen: false },
+  play: async ({ canvas }) => {
+    await expect(canvas.queryByText('Positions')).not.toBeInTheDocument()
+    await expect(canvas.getByRole('button', { name: /Show lineup/ })).toBeInTheDocument()
+  },
+}
+
+// `Keep open` on — the panel is already open on arrival, which is affordable only because the list
+// payload now carries the whole picture (ADR-0030 §8); with a per-card detail fetch this would have
+// been one request per visible card.
+export const RosterExpandedByDefault: Story = {
+  args: { defaultRosterOpen: true },
+  play: async ({ canvas, userEvent }) => {
+    await expect(canvas.getByText('Positions')).toBeInTheDocument()
+    await expect(canvas.getByRole('button', { name: /Hide lineup/ })).toBeInTheDocument()
+    // Still a disclosure, not a permanently open panel.
+    await userEvent.click(canvas.getByRole('button', { name: /Hide lineup/ }))
+    await expect(canvas.queryByText('Positions')).not.toBeInTheDocument()
+  },
+}
+
+// ── The social is a disclosure now (#324 cause 3) ────────────────────────────────────────────────
+
+// With a panel handed in, tracking-off stops being the one card whose verdict silently navigates:
+// the same screen position expands, like every other card. The events list always hands one in.
+export const SocialExpands: Story = {
+  args: {
+    roster: makeRoster({ ...NO_ROSTER, totalAttending: 8 }),
+    rosterPanel: <p>Sanne, Sofia, Lars</p>,
+  },
+  play: async ({ canvas, userEvent }) => {
+    await expect(canvas.getByText('8 going')).toBeInTheDocument()
+    // A social has no positions, so the trigger names what it actually opens.
+    const trigger = canvas.getByRole('button', { name: /Show who's coming/ })
+    await userEvent.click(trigger)
+    await expect(canvas.getByText('Sanne, Sofia, Lars')).toBeInTheDocument()
+  },
+}
+
+// A caller may still say there is nothing to open, which is what the plain headcount is for.
+export const NoPanelStaysAPlainHeadcount: Story = {
+  args: { roster: makeRoster({ ...NO_ROSTER, totalAttending: 8 }), rosterPanel: null },
+  play: async ({ canvas }) => {
+    await expect(canvas.getByText('8 going')).toBeInTheDocument()
+    await expect(canvas.queryByRole('button', { name: /Show/ })).not.toBeInTheDocument()
+  },
+}

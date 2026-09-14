@@ -1,4 +1,4 @@
-import type { Event, EventRoster } from '@shared/api/events'
+import type { AttendanceEntry, Event, EventRoster } from '@shared/api/events'
 import type { EventTypeItem, RosterRequirement } from '@shared/api/event-types'
 
 /** Roster tracking switched off — the default for a type nobody has configured. */
@@ -114,6 +114,29 @@ export function makeEventType(overrides: Partial<EventTypeItem> = {}): EventType
 }
 
 /**
+ * One attendance entry — the shape the list and the detail both carry since #326. Defaults to a
+ * plain `ATTENDING` row with no attribution, which is what most fixtures want; `id` follows the
+ * user id the way the server's own fallback does for a member with no response row.
+ */
+export function makeAttendee(
+  userId: string,
+  displayName: string,
+  role: string,
+  overrides: Partial<AttendanceEntry> = {},
+): AttendanceEntry {
+  return {
+    id: userId,
+    userId,
+    displayName,
+    role,
+    state: 'ATTENDING',
+    changedBy: undefined,
+    updatedAt: undefined,
+    ...overrides,
+  }
+}
+
+/**
  * Canonical Event fixture for stories. One place to update when the generated Event contract
  * changes. Pass overrides to vary a story (attendanceSummary is replaced wholesale, not merged).
  */
@@ -140,6 +163,10 @@ export function makeEvent(overrides: Partial<Event> = {}): Event {
         { role: 'Setter', attending: 1 },
       ],
     },
+    // Every current member, non-responders included (ADR-0030 §8) — the list payload now carries the
+    // same entries the detail does. Empty by default: a fixture that is not about the member list
+    // renders no names, and the panel stories pass their own team.
+    attendances: [],
     // The viewer's own response. Defaults to a blank, which is the state Bulk Attend acts on.
     myState: 'NOT_RESPONDED',
     // Undefined means this event inherits its type's roster default, which is the common case.

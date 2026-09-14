@@ -1,5 +1,6 @@
 import { Link } from '@tanstack/react-router'
 import { Clock, MapPin } from 'lucide-react'
+import type { ReactNode } from 'react'
 import { Card } from '@shared/ui/card'
 import type { Event } from '@shared/api/events'
 import { relativeEventLabel } from '../lib/relative-event-label'
@@ -22,6 +23,10 @@ interface EventCardProps {
   index?: number
   /** Injected so the relative label is deterministic in stories; defaults to the real clock. */
   now?: Date
+  /** Start the roster panel expanded — the member's `Keep open` preference (ADR-0030 §6). */
+  defaultRosterOpen?: boolean
+  /** What the roster disclosure opens onto; see EventAnswerRow. Defaults to the position pips. */
+  rosterPanel?: ReactNode | null
 }
 
 /**
@@ -37,7 +42,16 @@ interface EventCardProps {
  * owned by the page container (the events route). That seam is covered by the existing attendance
  * e2e; every rendered state here is a story.
  */
-export function EventCard({ event, myState, pending, onRespond, index = 0, now = new Date() }: EventCardProps) {
+export function EventCard({
+  event,
+  myState,
+  pending,
+  onRespond,
+  index = 0,
+  now = new Date(),
+  defaultRosterOpen,
+  rosterPanel,
+}: EventCardProps) {
   const routes = useTeamRoutes()
   const date = new Date(event.startTime)
   const label = relativeEventLabel(event.startTime, now)
@@ -96,7 +110,14 @@ export function EventCard({ event, myState, pending, onRespond, index = 0, now =
           overlay: a thumb aiming slightly high at a disclosure must not navigate instead (#324).
           Most of the old `pt-3` moved into the triggers themselves, where it is tappable. */}
       <div className="relative z-10 mt-3 border-t border-border/40 pt-1">
-        <EventAnswerRow roster={event.roster} myState={myState} pending={pending} onRespond={onRespond} />
+        <EventAnswerRow
+          roster={event.roster}
+          myState={myState}
+          pending={pending}
+          onRespond={onRespond}
+          defaultRosterOpen={defaultRosterOpen}
+          rosterPanel={rosterPanel}
+        />
       </div>
     </Card>
   )

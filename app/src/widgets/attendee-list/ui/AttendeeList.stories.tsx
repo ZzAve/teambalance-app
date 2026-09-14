@@ -134,3 +134,19 @@ export const ChangingATeammateShowsNotice: Story = {
     await expect(canvas.queryByText(/Changing/)).not.toBeInTheDocument()
   },
 }
+
+// Without `onRespond` the same list is a read-out, not a control: every member still named, tinted
+// and pilled, but nothing to open. That is how the events-list card renders it, which is what keeps
+// editing a teammate's attendance on detail-page rows only (#271 ⑫, #326).
+export const ReadOnly: Story = {
+  args: { onRespond: undefined },
+  play: async ({ canvas }) => {
+    // The list itself is unchanged — same groups, same names, same answers.
+    await expect(canvas.getByRole('heading', { name: 'Setter' })).toBeInTheDocument()
+    await expect(canvas.getByText('Sanne')).toBeInTheDocument()
+    await expect(canvas.getByText('Awaiting')).toBeInTheDocument()
+    // But no row is a disclosure, so there is no route to anyone's answer control.
+    await expect(canvas.queryByRole('button', { name: /Change .*'s answer/ })).not.toBeInTheDocument()
+    await expect(canvas.queryByRole('button')).not.toBeInTheDocument()
+  },
+}

@@ -3,15 +3,16 @@ import { expect } from 'storybook/test'
 import { makeRoster } from '@shared/testing/event-fixtures'
 import { RosterBar } from './RosterBar'
 
-// The pinned roster overview: spots filled, a progress track, and a chip per targeted position
-// coloured by tone. Prop-only; every number arrives already computed by the server (#219).
+// The roster overview: spots filled, a progress track, and a chip per targeted position coloured
+// by tone. Prop-only; every number arrives already computed by the server (#219). The card chrome
+// is the caller's, so the decorator supplies the same wrapper the detail page does.
 const meta = {
   title: 'entities/event/RosterBar',
   component: RosterBar,
   args: { roster: makeRoster() },
   decorators: [
     (Story) => (
-      <div className="max-w-md">
+      <div className="max-w-md overflow-hidden rounded-2xl border border-border/40 bg-card shadow-sm">
         <Story />
       </div>
     ),

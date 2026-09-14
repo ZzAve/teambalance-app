@@ -3,7 +3,6 @@ import type { Event } from '@shared/api/events'
 import { EventRosterPanel } from '../ui/EventRosterPanel'
 import type { PanelView } from '@features/event-panel-view/model/panel-preferences'
 import { VariantD } from './VariantD'
-import { VariantG } from './VariantG'
 import { VariantE } from './VariantE'
 import { VariantF } from './VariantF'
 import { demoAttendances, demoRoster, DEMO_SELF_ID } from './demo-squad'
@@ -31,14 +30,14 @@ import type { LineupState } from './lineup-model'
  * make the chip a name and buy the density back with overlap; try it with and without the identity
  * dot; and keep the bottom sheet as the answer control.
  *
- * **Round three** is that. A (Pips) leaves the rotation — D beat it, so the contrast case has done
- * its job; it lives in the commits above.
+ * **Round three** is that, and it has since been validated against the research and measured against
+ * WCAG (see the design-validation memo). Two findings changed the chip: shrinking a chip past its own
+ * name failed technique F104 under the standard text-spacing override, so nothing is clipped any more
+ * and crowding goes to a `+N` counter instead; and the dot earns its width, so **G (the dotless
+ * variant) is gone** along with A (Pips). Both live in the commits above.
  *
- *   - **D Roster** — identity dot plus first name, chips overlapping so a crowded position tightens
- *     to four or five characters each and a quiet one shows whole names. The row's headline stays a
- *     word, with the fraction demoted.
- *   - **G Names** — D minus the dot: about two more characters per chip at the same width. The one
- *     place two variants share a rendering, because the question is whether the dot earns its width.
+ *   - **D Roster** — identity dot plus first name, chips overlapping into one group, each cluster
+ *     capped at five with the rest behind `+N`. The row's headline stays a word, fraction demoted.
  *   - **E Court** — draws the six rotation zones and puts each position where it stands, so a hole
  *     gets a location. Exposes a real question: positions are free text, so the label→zone mapping
  *     has to become something a team can set.
@@ -54,12 +53,11 @@ import type { LineupState } from './lineup-model'
  * an in-memory squad big enough to judge the layouts and keeps its edits local.
  */
 
-export type PrototypeVariant = 'current' | 'D' | 'G' | 'E' | 'F'
+export type PrototypeVariant = 'current' | 'D' | 'E' | 'F'
 
 export const VARIANTS: { key: PrototypeVariant; name: string }[] = [
   { key: 'current', name: "Today's panel" },
   { key: 'D', name: 'Roster' },
-  { key: 'G', name: 'Names' },
   { key: 'E', name: 'Court' },
   { key: 'F', name: 'Triage' },
 ]
@@ -105,7 +103,6 @@ export function PrototypeLineupPanel({
   const props = { attendances, roster, currentUserId: self, onRespond: respond }
 
   if (variant === 'D') return <VariantD {...props} />
-  if (variant === 'G') return <VariantG {...props} />
   if (variant === 'E') return <VariantE {...props} />
   return <VariantF {...props} />
 }

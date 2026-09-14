@@ -2,22 +2,27 @@ import { avatarColor, avatarInitials } from '@shared/lib/avatar'
 import { STATE_WORD, type LineupMember, type LineupState } from './lineup-model'
 
 /**
- * PROTOTYPE — throwaway. Round three's chip: **a name, overlapped**.
+ * PROTOTYPE — throwaway. The roster chip: a name, overlapped.
  *
- * The review that picked D also said what was wrong with it — initials are weak identity while the
- * app has no real avatar photos, so two letters in a circle is a colour, not a person. This carries
- * the first name instead, and buys the density back by letting the chips **overlap** so only each
- * one's head shows: enough to recognise a teammate you already know, with the last chip whole.
+ * **Overlap for grouping, never for truncation** (validation §1). The earlier version let chips
+ * shrink past their own text so a crowded position "tightened" to four or five characters each.
+ * Measuring that against WCAG 1.4.12 killed it: applying the standard text-spacing override clipped
+ * three of eighteen names that had been readable, which is failure technique F104 — a documented AA
+ * failure, not a judgement call. So a chip is now exactly as wide as its name and never shrinks. The
+ * overlap is a fixed pull-back that survives any spacing, because it eats the gap between chips
+ * rather than the letters inside them.
  *
- * It also settles the round-two question of whether a chip's colour means identity or state, by
- * refusing the choice: the **avatar dot carries identity** (the member's own colour, the one the
- * team page uses) and the **pill carries state**. Neither has to do both.
+ * What the overlap still buys is the thing it was actually borrowed for: the facepile reading, where
+ * a run of overlapping items is one group rather than a row of separate cells. Crowding is absorbed
+ * by the `+N` chip below instead (validation §2) — which is what every avatar-group implementation
+ * already does.
  *
- * How the fan works: flexbox, not arithmetic. Each chip after the first pulls back over its
- * neighbour by a fixed amount and is allowed to shrink to a floor, so a crowded position tightens
- * on its own — the more people, the less of each name, down to about four characters — and a quiet
- * one shows whole names. `text-overflow: clip`, deliberately: an ellipsis would sit under the chip
- * on top of it, and the overlap is already the "there is more here" signal.
+ * The pull-back is `margin-right`, not `margin-left`, so a fan that wraps starts its second row flush
+ * at the container edge instead of hanging 10px outside it.
+ *
+ * The identity dot stays (validation §4): chip guidance recommends a leading avatar precisely to keep
+ * chips apart in a crowd, and it is the only thing carrying the colour a teammate is known by
+ * elsewhere in the app. Identity lives in the dot, state in the pill; neither does both jobs.
  */
 
 const PILL: Record<LineupState, string> = {
@@ -27,47 +32,70 @@ const PILL: Record<LineupState, string> = {
   ABSENT: 'bg-red/10 border-red/35 text-red',
 }
 
-interface NameChipProps {
-  member: LineupMember
-  /** Drop the identity dot and spend the width on letters instead — variant G's whole difference. */
-  withAvatar?: boolean
-  onClick: () => void
-}
+// The gap the next chip eats. Enough to interlock the rings and read as one group; never enough to
+// reach a letter, because a chip is never narrower than its own name.
+const OVERLAP = '-mr-2.5 last:mr-0'
 
-export function NameChip({ member, withAvatar = true, onClick }: NameChipProps) {
+const CHIP =
+  'relative flex shrink-0 max-w-full items-center gap-1 overflow-hidden text-ellipsis whitespace-nowrap rounded-full border py-0.5 pl-0.5 pr-2.5 text-[12.5px] font-semibold ring-2 ring-card'
+
+export function NameChip({ member, onClick }: { member: LineupMember; onClick: () => void }) {
   const first = member.displayName.split(' ')[0]
 
   return (
     <button
       type="button"
       onClick={onClick}
+      // One string for the whole control (validation §3). The visible first name used to sit in the
+      // accessible name alongside a visually-hidden full one, so a screen reader announced
+      // "Anna Anna Bakker — Going. Change their answer". aria-label replaces the content entirely.
+      aria-label={`${member.displayName}${member.isSelf ? ' (you)' : ''} — ${STATE_WORD[member.state]}. Change their answer`}
       title={`${member.displayName} — ${STATE_WORD[member.state]}`}
-      // `-ml-2.5` is the overlap, `first:ml-0` exempts the leading chip, and `last:shrink-0` keeps
-      // the final one whole so the row never ends mid-name. `min-w-0` + a basis floor is what lets
-      // flexbox tighten the fan instead of overflowing the card.
-      // `basis-auto` (not a fixed basis) so a chip's natural size is its name; `shrink` + a
-      // `min-w` floor is what lets a crowded fan tighten to about four characters and no further.
-      // `last:shrink-0` keeps the final chip whole, and so does your own — you should always be
-      // able to find yourself in the row, however full it is.
-      className={`relative -ml-2.5 flex shrink basis-auto items-center gap-1 overflow-hidden text-clip whitespace-nowrap rounded-full border py-0.5 pl-0.5 pr-2.5 text-[12.5px] font-semibold ring-2 ring-card first:ml-0 last:shrink-0 ${withAvatar ? 'min-w-[58px]' : 'min-w-[46px]'} ${member.isSelf ? 'shrink-0' : ''} ${PILL[member.state]}`}
+      className={`${CHIP} ${OVERLAP} ${PILL[member.state]}`}
     >
-      {withAvatar ? (
-        <span
-          aria-hidden
-          className="flex size-5 shrink-0 items-center justify-center rounded-full text-[8px] font-bold text-white"
-          style={{ backgroundColor: avatarColor(member.userId) }}
-        >
-          {avatarInitials(member.displayName)}
-        </span>
-      ) : (
-        <span className="pl-2" />
-      )}
-      <span className="min-w-0 shrink">{first}</span>
-      {member.isSelf && <span className="shrink-0 text-[10px] font-bold text-blue">you</span>}
-
-      <span className="sr-only">
-        {member.displayName} — {STATE_WORD[member.state]}. Change their answer
+      <span
+        aria-hidden
+        className="flex size-5 shrink-0 items-center justify-center rounded-full text-[8px] font-bold text-white"
+        style={{ backgroundColor: avatarColor(member.userId) }}
+      >
+        {avatarInitials(member.displayName)}
       </span>
+      <span aria-hidden>{first}</span>
+      {member.isSelf && (
+        <span aria-hidden className="shrink-0 text-[10px] font-bold text-blue">
+          you
+        </span>
+      )}
+    </button>
+  )
+}
+
+/**
+ * The rest of a crowded fan, collapsed (validation §2). Atlassian's avatar group caps at four and
+ * hands the remainder to a `+N`; Emplifi's caps at five. This is that move, and it is what makes the
+ * "never clip a name" rule affordable — the overflow goes somewhere rather than into the letters.
+ */
+export function OverflowChip({
+  hidden,
+  expanded,
+  label,
+  onClick,
+}: {
+  hidden: number
+  expanded: boolean
+  /** What the fan holds, for the accessible name: "3 more going", "2 more out". */
+  label: string
+  onClick: () => void
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-expanded={expanded}
+      aria-label={expanded ? `Show fewer ${label}` : `Show ${hidden} more ${label}`}
+      className={`${CHIP} ${OVERLAP} border-border bg-card pl-2.5 text-muted-foreground`}
+    >
+      <span aria-hidden>{expanded ? 'less' : `+${hidden}`}</span>
     </button>
   )
 }
@@ -77,7 +105,7 @@ export function ChipHole({ critical = false }: { critical?: boolean }) {
   return (
     <span
       aria-hidden
-      className={`-ml-2.5 flex h-[26px] shrink-0 items-center justify-center rounded-full border border-dashed px-3 text-[12px] font-bold ring-2 ring-card first:ml-0 ${critical ? 'border-red/55 bg-card text-red' : 'border-muted-foreground/40 bg-card text-muted-foreground'}`}
+      className={`${OVERLAP} flex h-[26px] shrink-0 items-center justify-center rounded-full border border-dashed px-3 text-[12px] font-bold ring-2 ring-card ${critical ? 'border-red/55 bg-card text-red' : 'border-muted-foreground/40 bg-card text-muted-foreground'}`}
     >
       +
     </span>

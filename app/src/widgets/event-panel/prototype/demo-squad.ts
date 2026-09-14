@@ -11,7 +11,8 @@ import type { LineupState } from './lineup-model'
  *
  * Deliberately awkward: one position over-subscribed, one covered exactly, one short, one with
  * nobody at all, an untargeted staff row, and two people with no position — every row shape the
- * variants have to survive, on one card.
+ * variants have to survive, on one card. Outside Hitter carries six going on purpose: that is one
+ * past the chip cap, so the `+N` overflow is a shape the fixture actually exercises.
  */
 
 interface Seed {
@@ -30,6 +31,7 @@ const SQUAD: Seed[] = [
   { name: 'Femke Koning', role: 'Outside Hitter', state: 'ATTENDING' },
   { name: 'Gijs Mulder', role: 'Outside Hitter', state: 'ATTENDING' },
   { name: 'Hanna Vos', role: 'Outside Hitter', state: 'ATTENDING' },
+  { name: 'Iris Kok', role: 'Outside Hitter', state: 'ATTENDING' },
   { name: 'Ivo Peters', role: 'Outside Hitter', state: 'MAYBE' },
   { name: 'Julia Meijer', role: 'Outside Hitter', state: 'NOT_RESPONDED' },
 

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Archive, ArchiveRestore, Pencil } from 'lucide-react'
+import { ArchiveRestore } from 'lucide-react'
 import type { EventTypeItem, RosterRequirement } from '@shared/api/event-types'
 import type { Position } from '@shared/api/positions'
 import { Button } from '@shared/ui/button'
@@ -12,9 +12,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@shared/ui/dialog'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@shared/ui/dropdown-menu'
 import { RosterRequirementEditor } from './RosterRequirementEditor'
 import { rosterDefaultSummary } from '../lib/roster-default-summary'
 import { isEditorOpen } from '../lib/editor-open'
+import { SectionLabel } from '@shared/ui/SectionLabel'
 
 export interface EventTypeDraft {
   name: string
@@ -52,6 +59,11 @@ const ERROR_MESSAGES: Record<string, string> = {
 
 /**
  * Presentational event-type management — the whole section, heading and all.
+ *
+ * Same quiet-row shape as the member roster and positions list (issue #341, variant B): colour dot +
+ * name + roster summary as text, and a single overflow (⋯) menu carrying "Edit" (opens the editor
+ * below) and "Archive…" — deliberately not the red destructive treatment, since archiving only ever
+ * hides a type (it can be restored from the Archived section) and never deletes anything.
  *
  * Owns only local view state (which type is being edited, the draft in the form, the archive
  * dialog's target and migration choice); the queries and mutations live in the ManageEventTypes
@@ -130,38 +142,39 @@ export function ManageEventTypesView({
           ) : (
             <ul className="divide-y divide-border rounded-lg border border-border">
               {active.map((type) => (
-                <li key={type.id} className="flex flex-wrap items-center gap-2 p-3">
+                <li key={type.id} className="flex items-center gap-2 p-3">
                   <span
                     aria-hidden
                     className="size-3 shrink-0 rounded-full"
                     style={{ background: type.color ?? '#94A3B8' }}
                   />
-                  <span className="text-small font-semibold">{type.name}</span>
-                  <span className="text-caption text-muted-foreground">
-                    {rosterDefaultSummary(type.rosterDefault, positions)}
+                  <span className="min-w-0 flex-1 truncate">
+                    <span className="text-small font-semibold">{type.name}</span>{' '}
+                    <span className="text-caption text-muted-foreground">
+                      {rosterDefaultSummary(type.rosterDefault, positions)}
+                    </span>
                   </span>
-                  <div className="ml-auto flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={isSaving}
-                      onClick={() => startEdit(type)}
-                      aria-label={`Edit ${type.name}`}
-                    >
-                      <Pencil size={14} />
-                      Edit
-                    </Button>
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      disabled={isSaving}
-                      onClick={() => setArchiveTarget(type)}
-                      aria-label={`Archive ${type.name}`}
-                    >
-                      <Archive size={14} />
-                      Archive
-                    </Button>
-                  </div>
+
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button
+                        type="button"
+                        aria-label={`Actions for ${type.name}`}
+                        disabled={isSaving}
+                        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-lg hover:bg-accent disabled:pointer-events-none disabled:opacity-50"
+                      >
+                        ⋯
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onSelect={() => startEdit(type)}>Edit</DropdownMenuItem>
+                      {/* Archiving is reversible (a type can be restored below) — not the
+                          destructive red treatment. */}
+                      <DropdownMenuItem onSelect={() => setArchiveTarget(type)}>
+                        Archive…
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </li>
               ))}
             </ul>
@@ -225,9 +238,7 @@ export function ManageEventTypesView({
 
           {archived.length > 0 && (
             <div className="mt-2">
-              <h3 className="text-caption font-bold uppercase tracking-[0.09em] text-muted-foreground">
-                Archived
-              </h3>
+              <SectionLabel as="h3">Archived</SectionLabel>
               <ul className="mt-2 divide-y divide-border rounded-lg border border-dashed border-border">
                 {archived.map((type) => (
                   <li key={type.id} className="flex items-center gap-2 p-3">
@@ -274,11 +285,12 @@ interface ArchiveDialogProps {
 }
 
 /**
- * The destructive confirmation. It leads with the migration offer rather than burying it, because
+ * The archive confirmation. It leads with the migration offer rather than burying it, because
  * moving the events somewhere still visible is almost always what an admin wants — keeping them on
  * a type that no longer appears in any picker is the fallback, not the default.
  *
- * It cannot delete anything: an event's type is non-null, so archiving only ever hides the type.
+ * Not styled as destructive: an event's type is non-null, so archiving only ever hides the type — it
+ * cannot delete anything, and can be undone from the Archived section below.
  */
 function ArchiveDialog({ target, alternatives, isSaving, onCancel, onConfirm }: ArchiveDialogProps) {
   const [migrateTo, setMigrateTo] = useState<string>('')
@@ -333,8 +345,9 @@ function ArchiveDialog({ target, alternatives, isSaving, onCancel, onConfirm }: 
           >
             Cancel
           </Button>
+          {/* Not destructive styling: archiving is reversible (Restore lives in the Archived
+              section) — an event type is hidden, never deleted. */}
           <Button
-            variant="destructive"
             disabled={isSaving}
             onClick={() => {
               if (target) onConfirm(target.id, migrateTo || undefined)

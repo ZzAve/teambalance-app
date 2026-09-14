@@ -10,6 +10,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@shared/ui/dialog'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@shared/ui/dropdown-menu'
 import { validatePositionLabel } from '../lib/validate-position-label'
 
 interface ManagePositionsViewProps {
@@ -39,6 +45,10 @@ interface ManagePositionsViewProps {
  * Presentational positions-management UI — the complete section, heading and all. Owns only local
  * view state (the new-label field, per-row edits, the delete-confirm dialog target); the query and
  * the create/rename/set-kind/delete mutations live in the ManagePositions container.
+ *
+ * Same quiet-row shape as the member roster (issue #341, variant B): label as text with a pencil to
+ * rename it, the Staff checkbox inline since it's the common edit, and a single overflow (⋯) menu
+ * carrying the destructive delete.
  *
  * The load/error/data shells are props-driven (isLoading / isError) rather than lived in the
  * container, so every state — loading / error / empty / with items / delete-confirm / label-taken —
@@ -170,25 +180,63 @@ interface PositionRowProps {
 }
 
 function PositionRow({ position, isSaving, onRename, onSetKind, onRequestDelete }: PositionRowProps) {
-  const [label, setLabel] = useState(position.label)
-  const dirty = label.trim().length > 0 && label.trim() !== position.label
+  const [editingLabel, setEditingLabel] = useState(false)
+  const [draftLabel, setDraftLabel] = useState(position.label)
+
+  const startEdit = () => {
+    setDraftLabel(position.label)
+    setEditingLabel(true)
+  }
+
+  const cancelEdit = () => {
+    setDraftLabel(position.label)
+    setEditingLabel(false)
+  }
+
+  const saveEdit = () => {
+    const next = draftLabel.trim()
+    if (next.length === 0) return
+    onRename(position.id, next)
+    setEditingLabel(false)
+  }
+
+  if (editingLabel) {
+    return (
+      <li className="flex items-center gap-2 p-3">
+        <Input
+          aria-label={`Label for ${position.label}`}
+          value={draftLabel}
+          autoFocus
+          onChange={(e) => setDraftLabel(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault()
+              saveEdit()
+            } else if (e.key === 'Escape') {
+              e.preventDefault()
+              cancelEdit()
+            }
+          }}
+          className="min-w-0 flex-1"
+        />
+        <Button size="sm" disabled={isSaving} onClick={saveEdit}>
+          {isSaving ? 'Saving...' : 'Save'}
+        </Button>
+        <Button size="sm" variant="outline" onClick={cancelEdit}>
+          Cancel
+        </Button>
+      </li>
+    )
+  }
 
   return (
-    <li className="flex flex-wrap items-center gap-2 p-3">
-      <Input
-        aria-label={`Label for ${position.label}`}
-        value={label}
-        onChange={(e) => setLabel(e.target.value)}
-        className="w-48"
-      />
-      {dirty && (
-        <Button size="sm" disabled={isSaving} onClick={() => onRename(position.id, label.trim())}>
-          Save
-        </Button>
-      )}
+    <li className="flex items-center gap-2 p-3">
+      <span className="min-w-0 flex-1 truncate font-medium" title={position.label}>
+        {position.label}
+      </span>
       {/* No local state and no Save: the checkbox reflects the server's kind and the flip is the
           whole gesture. Unchecked is PLAYING, which is what every position was before this existed. */}
-      <label className="flex items-center gap-1.5 text-small text-muted-foreground">
+      <label className="flex shrink-0 items-center gap-1.5 text-small text-muted-foreground">
         <input
           type="checkbox"
           // Named per row, because "Staff" alone repeats down the list and says nothing about which
@@ -201,15 +249,27 @@ function PositionRow({ position, isSaving, onRename, onSetKind, onRequestDelete 
         />
         Staff
       </label>
-      <Button
-        variant="destructive"
-        size="sm"
-        className="ml-auto"
-        disabled={isSaving}
-        onClick={() => onRequestDelete(position)}
-      >
-        Delete
-      </Button>
+
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button
+            type="button"
+            aria-label={`Actions for ${position.label}`}
+            disabled={isSaving}
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-lg hover:bg-accent disabled:pointer-events-none disabled:opacity-50"
+          >
+            ⋯
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem disabled={isSaving} onSelect={startEdit}>
+            Rename
+          </DropdownMenuItem>
+          <DropdownMenuItem tone="destructive" onSelect={() => onRequestDelete(position)}>
+            Delete…
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
     </li>
   )
 }

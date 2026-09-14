@@ -13,14 +13,21 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@shared/ui/dialog'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@shared/ui/dropdown-menu'
 import { isLastAdmin } from '../lib/roster'
 
 interface MemberRosterViewProps {
   members?: Member[]
   /**
    * Admin capability. `true` renders the full per-row controls (rename, role toggle, position
-   * picker, remove); `false` renders read-only rows — every authenticated member sees the roster,
-   * only admins can edit it.
+   * picker, remove, via the row's overflow menu); `false` renders read-only rows — every
+   * authenticated member sees the roster, only admins can edit it.
    */
   canManage: boolean
   /** The team's position vocabulary, offered per row so an admin can (re)assign a member. */
@@ -43,6 +50,11 @@ interface MemberRosterViewProps {
  * Presentational admin roster — the complete section, heading and all. Owns only local view state
  * (per-row name edits + the remove-confirm dialog target); the queries and mutations live in the
  * MemberRoster container.
+ *
+ * One quiet row per member (issue #341, variant B): avatar, name as text (Rename in the menu swaps
+ * it for an inline field), the position picker inline since it's the common edit, an Admin badge only
+ * on admins, and a single overflow (⋯) menu carrying the rarer actions — promote/demote and the
+ * destructive remove.
  *
  * The load/error/data shells are props-driven (isLoading / isError) rather than lived in the
  * container, so every state — loading / error / roster / confirm dialog open / last-admin refusal —
@@ -162,28 +174,43 @@ function MemberRow({
   onChangePosition,
   onRequestRemove,
 }: MemberRowProps) {
-  const [name, setName] = useState(member.displayName)
+  const [editingName, setEditingName] = useState(false)
+  const [draftName, setDraftName] = useState(member.displayName)
   const isAdmin = member.role === 'ADMIN'
-  const dirty = name.trim().length > 0 && name.trim() !== member.displayName
-  // The last admin can't be demoted or removed — we hint via tooltip but keep the buttons enabled
+  // The last admin can't be demoted or removed — we hint via tooltip but keep the action enabled
   // so the backend stays the source of truth.
   const lastAdminHint = lastAdmin ? 'This is the last admin — the team must keep at least one.' : undefined
 
-  // The role/admin badge is shown to everyone — the one control that survives into the read-only row.
-  const roleBadge = (
-    <span
-      className={[
-        'ml-auto rounded-full px-2 py-0.5 text-caption font-semibold',
-        isAdmin ? 'bg-blue/10 text-blue' : 'bg-muted text-muted-foreground',
-      ].join(' ')}
-    >
-      {member.role}
-    </span>
-  )
+  const startEdit = () => {
+    setDraftName(member.displayName)
+    setEditingName(true)
+  }
+
+  const cancelEdit = () => {
+    setDraftName(member.displayName)
+    setEditingName(false)
+  }
+
+  const saveEdit = () => {
+    const next = draftName.trim()
+    if (next.length === 0) return
+    onRename(member.userId, next)
+    setEditingName(false)
+  }
 
   // Read-only row for non-admins: name + position as plain text + the role badge. Same layout as the
-  // admin row, minus every action control (rename input, position picker, promote/demote, remove).
+  // admin row, minus every action control (rename, position picker, promote/demote, remove).
   if (!canManage) {
+    const roleBadge = (
+      <span
+        className={[
+          'ml-auto rounded-full px-2 py-0.5 text-caption font-semibold',
+          isAdmin ? 'bg-blue/10 text-blue' : 'bg-muted text-muted-foreground',
+        ].join(' ')}
+      >
+        {isAdmin ? 'Admin' : 'Member'}
+      </span>
+    )
     return (
       <li className="flex flex-wrap items-center gap-2 p-3">
         <Avatar userId={member.userId} name={member.displayName} />
@@ -194,23 +221,47 @@ function MemberRow({
     )
   }
 
-  return (
-    <li className="flex flex-wrap items-center gap-2 p-3">
-      <Avatar userId={member.userId} name={member.displayName} />
-      <Input
-        aria-label={`Display name for ${member.displayName}`}
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-        className="w-40"
-      />
-      {dirty && (
-        <Button size="sm" disabled={isSaving} onClick={() => onRename(member.userId, name.trim())}>
+  if (editingName) {
+    return (
+      <li className="flex items-center gap-2 p-3">
+        <Avatar userId={member.userId} name={member.displayName} />
+        <Input
+          aria-label={`Display name for ${member.displayName}`}
+          value={draftName}
+          autoFocus
+          onChange={(e) => setDraftName(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault()
+              saveEdit()
+            } else if (e.key === 'Escape') {
+              e.preventDefault()
+              cancelEdit()
+            }
+          }}
+          className="min-w-0 flex-1"
+        />
+        <Button size="sm" disabled={isSaving} onClick={saveEdit}>
           {isSaving ? 'Saving...' : 'Save'}
         </Button>
-      )}
+        <Button size="sm" variant="outline" onClick={cancelEdit}>
+          Cancel
+        </Button>
+      </li>
+    )
+  }
 
+  return (
+    // One line at 390px: the name and the picker share what is left after the avatar, the ⋯ and (on
+    // an admin row) the badge. Rename lives in the menu, not as a pencil on the row — it is rare,
+    // and a third 44px target here squeezed the picker to "Middl…", which is the common edit (#341).
+    <li className="flex items-center gap-2 p-3">
+      <Avatar userId={member.userId} name={member.displayName} />
+      <span className="min-w-0 flex-1 truncate font-medium" title={member.displayName}>
+        {member.displayName}
+      </span>
       {positions.length > 0 ? (
-        <div className="w-44">
+        <div className="w-32 shrink-0">
           <PositionPicker
             aria-label={`Position for ${member.displayName}`}
             positions={positions}
@@ -221,29 +272,43 @@ function MemberRow({
           />
         </div>
       ) : (
-        <span className="text-small text-muted-foreground">{member.position?.label ?? 'Unassigned'}</span>
+        <span className="shrink-0 text-small text-muted-foreground">{member.position?.label ?? 'Unassigned'}</span>
       )}
 
-      {roleBadge}
+      {isAdmin && (
+        <span className="shrink-0 rounded-full bg-blue/10 px-1.5 py-0.5 text-caption font-semibold text-blue">
+          Admin
+        </span>
+      )}
 
-      <Button
-        variant="outline"
-        size="sm"
-        disabled={isSaving}
-        title={isAdmin ? lastAdminHint : undefined}
-        onClick={() => onToggleRole(member)}
-      >
-        {isAdmin ? 'Make member' : 'Make admin'}
-      </Button>
-      <Button
-        variant="destructive"
-        size="sm"
-        disabled={isSaving}
-        title={lastAdminHint}
-        onClick={() => onRequestRemove(member)}
-      >
-        Remove
-      </Button>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button
+            type="button"
+            aria-label={`Actions for ${member.displayName}`}
+            disabled={isSaving}
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-lg hover:bg-accent disabled:pointer-events-none disabled:opacity-50"
+          >
+            ⋯
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem disabled={isSaving} onSelect={startEdit}>
+            Rename
+          </DropdownMenuItem>
+          <DropdownMenuItem title={lastAdminHint} onSelect={() => onToggleRole(member)}>
+            {isAdmin ? 'Make member' : 'Make admin'}
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem
+            tone="destructive"
+            title={lastAdminHint}
+            onSelect={() => onRequestRemove(member)}
+          >
+            Remove…
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
     </li>
   )
 }

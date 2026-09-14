@@ -1,6 +1,7 @@
 import type { Position } from '@shared/api/positions'
 import type { RosterRequirement } from '@shared/api/event-types'
 import { Input } from '@shared/ui/input'
+import { SectionLabel } from '@shared/ui/SectionLabel'
 
 interface RosterRequirementEditorProps {
   value: RosterRequirement
@@ -110,9 +111,7 @@ export function RosterRequirementEditor({
             </p>
           ) : (
             <div className="flex flex-col gap-2">
-              <p className="text-caption font-bold uppercase tracking-[0.09em] text-muted-foreground">
-                Per position
-              </p>
+              <SectionLabel as="p">Per position</SectionLabel>
               {positions.map((position) => (
                 <div key={position.id} className="flex items-center justify-between gap-3">
                   <label htmlFor={`${idPrefix}-pos-${position.id}`} className="truncate text-small">

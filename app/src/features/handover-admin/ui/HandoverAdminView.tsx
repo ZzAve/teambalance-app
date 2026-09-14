@@ -1,5 +1,14 @@
+import { useState } from 'react'
 import { Button } from '@shared/ui/button'
 import { Input } from '@shared/ui/input'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@shared/ui/dialog'
 
 interface HandoverAdminViewProps {
   /** The active-admin-link read is in flight. */
@@ -30,6 +39,9 @@ interface HandoverAdminViewProps {
  * The link is read on load and survives a page refresh (ADR-0025's recoverability, extended here);
  * rotating replaces it (if it leaked) and revoking removes it — the same lifecycle as the player link,
  * but this link grants **Admin** and is spent on first accept, so the copy has to say both.
+ *
+ * Revoking asks for confirmation first (issue #341): it is irreversible and offers no replacement,
+ * unlike rotate which lands on a new link in the same click.
  */
 export function HandoverAdminView({
   isLoading,
@@ -46,6 +58,7 @@ export function HandoverAdminView({
   onRotate,
   onRevoke,
 }: HandoverAdminViewProps) {
+  const [confirmRevokeOpen, setConfirmRevokeOpen] = useState(false)
   const heading = (
     <div>
       <h2 className="font-display text-title font-bold">Hand over as admin</h2>
@@ -96,7 +109,12 @@ export function HandoverAdminView({
             <Button type="button" variant="outline" onClick={onRotate} disabled={isRotating}>
               {isRotating ? 'Rotating…' : 'Rotate link'}
             </Button>
-            <Button type="button" variant="destructive" onClick={onRevoke} disabled={isRevoking}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setConfirmRevokeOpen(true)}
+              disabled={isRevoking}
+            >
               {isRevoking ? 'Revoking…' : 'Revoke link'}
             </Button>
           </div>
@@ -107,6 +125,32 @@ export function HandoverAdminView({
           {actionError && <p className="text-small text-destructive">Something went wrong. Please try again.</p>}
         </div>
       )}
+
+      <Dialog open={confirmRevokeOpen} onOpenChange={setConfirmRevokeOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Revoke the invite link?</DialogTitle>
+            <DialogDescription>
+              The old link stops working and no replacement is created. It can no longer be used to
+              become an admin of this team.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmRevokeOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                setConfirmRevokeOpen(false)
+                onRevoke()
+              }}
+            >
+              Revoke link
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

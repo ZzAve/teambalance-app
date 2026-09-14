@@ -44,7 +44,7 @@ export function MonthCalendarPreview({ preview, accentColor }: MonthCalendarPrev
 
       {/* Cap / out-of-season warnings */}
       {overCap && (
-        <div className="mb-3 flex items-start gap-2 rounded-lg border border-gold/40 bg-gold/10 px-3 py-2 text-xs leading-snug text-gold">
+        <div className="mb-3 flex items-start gap-2 rounded-lg border border-gold/40 bg-gold/10 px-3 py-2 text-xs leading-snug text-gold-ink">
           <AlertTriangle size={14} className="mt-0.5 shrink-0" />
           <span>
             That&rsquo;s over {MAX_OCCURRENCES} events — shorten the range or thin the schedule before creating.

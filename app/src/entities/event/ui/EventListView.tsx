@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import type { Event } from '@shared/api/events'
 import { Skeleton } from '@shared/ui/skeleton'
+import { attributionName } from '../lib/attribution'
 import { EventCard } from './EventCard'
 
 type AttendanceState = Event['myState']
@@ -32,13 +33,16 @@ interface EventListViewProps {
   onRespond?: (eventId: string, state: AttendanceState) => void
   /** The answer whose write is in flight, to show on its card meanwhile. */
   optimistic?: OptimisticAnswer | null
-  /** The viewer, so an optimistic answer can tell "my own pill" from "a teammate's chip" apart. */
+  /**
+   * The viewer. Two jobs: telling an answer they set themselves from one a teammate set for them
+   * (⑪), and telling an optimistic pick for their own pill from one for a teammate's chip.
+   */
   currentUserId?: string | null
   /** Every card's roster panel starts expanded — the member's `Keep open` preference (ADR-0030 §6). */
   defaultRosterOpen?: boolean
   /**
    * What each card's roster disclosure opens onto. A function of the event because the panel is
-   * built per event; left out, every card falls back to the position pips it has always shown.
+   * built per event; left out, a card's verdict is a plain label with nothing to expand.
    */
   rosterPanel?: (event: Event) => ReactNode | null
 }
@@ -84,6 +88,14 @@ export function EventListView({
         const held = optimistic?.eventId === event.id ? optimistic : null
         const settling = held != null && held.state !== stateOf(event, held.userId)
         const shown = settling ? withAnswer(event, held.userId, held.state, held.userId === currentUserId) : event
+        // Resolved from the event's own rows, exactly as the detail page does (⑪) — the list payload
+        // carries every member since ADR-0030 §8. Suppressed only while the viewer's OWN pick is in
+        // flight: the answer it replaces is no longer attributed to anyone else. A pick in flight for
+        // a *teammate* leaves the viewer's own attribution alone, which is a distinction the panel
+        // made possible — before it, every held answer was necessarily the viewer's.
+        const settlingMine = settling && held.userId === currentUserId
+        const mine = currentUserId ? shown.attendances.find((a) => a.userId === currentUserId) : undefined
+        const setBy = settlingMine || !mine ? null : attributionName(mine, shown.attendances)
         return (
           <EventCard
             key={event.id}
@@ -92,6 +104,7 @@ export function EventListView({
             now={now}
             myState={shown.myState}
             pending={settling}
+            setBy={setBy}
             onRespond={(state) => onRespond?.(event.id, state)}
             defaultRosterOpen={defaultRosterOpen}
             rosterPanel={rosterPanel?.(shown)}

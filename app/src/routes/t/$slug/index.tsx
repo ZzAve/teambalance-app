@@ -178,6 +178,7 @@ function EventListPage() {
                 events={listEvents}
                 onRespond={respond}
                 optimistic={optimistic}
+                currentUserId={currentUserId}
                 // What each card's roster disclosure opens onto (ADR-0030 §5-§7, as amended by the
                 // lineup panel). Injected from here because the panel is a widget and the card is an
                 // entity — the card cannot build one itself.

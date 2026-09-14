@@ -13,6 +13,8 @@ interface EventAnswerRowProps {
   myState: AttendanceState
   /** An attendance write is in flight; the control is held and the badge shows a pending state. */
   pending?: boolean
+  /** Who set this answer, when that was not the viewer — it becomes the pill's subject (⑪). */
+  setBy?: string | null
   onRespond: (state: AttendanceState) => void
   /** Start the attendance panel expanded. Collapsed by default so a list of events stays a list. */
   defaultAttnOpen?: boolean
@@ -38,7 +40,7 @@ interface EventAnswerRowProps {
 // a loud, filled neutral (ink, so it reads as an action in both themes and never competes with the
 // green/gold/red answers) with a marker dot, so "we still need your answer" stands out as the one
 // thing to act on rather than a fourth colour.
-const PILL_TONE: Record<MyAnswer['tone'], { className: string; Icon?: ComponentType<{ size?: number }> }> = {
+const PILL_TONE: Record<MyAnswer['tone'], { className: string; Icon?: ComponentType<{ size?: number; className?: string }> }> = {
   attending: { className: 'bg-green/10 text-green font-semibold', Icon: Check },
   maybe: { className: 'bg-gold/20 text-gold-dark font-semibold', Icon: HelpCircle },
   absent: { className: 'bg-red/10 text-red font-semibold', Icon: X },
@@ -47,7 +49,7 @@ const PILL_TONE: Record<MyAnswer['tone'], { className: string; Icon?: ComponentT
 
 const OPTIONS: { value: AttendanceState; label: string; active: string; inactive: string }[] = [
   { value: 'ATTENDING', label: 'Going', active: 'bg-green text-white border-green', inactive: 'border-green/30 text-green' },
-  { value: 'MAYBE', label: 'Maybe', active: 'bg-gold text-white border-gold', inactive: 'border-gold/30 text-gold' },
+  { value: 'MAYBE', label: 'Maybe', active: 'bg-gold text-white border-gold', inactive: 'border-gold/30 text-gold-ink' },
   { value: 'ABSENT', label: "Can't", active: 'bg-red text-white border-red', inactive: 'border-red/30 text-red' },
 ]
 
@@ -55,7 +57,7 @@ const OPTIONS: { value: AttendanceState; label: string; active: string; inactive
 // its panel instead of navigating, and `min-h-11` gives it a real 44px thumb target (#324) — the
 // height sits on the button, so the pill inside keeps its size and the padding above it is tappable.
 const TRIGGER =
-  'relative z-10 flex min-h-11 shrink-0 items-center gap-1.5 rounded-full ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2'
+  'relative z-10 flex min-h-11 items-center gap-1.5 rounded-full ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2'
 
 /**
  * The card's bottom row: two independent disclosures, not one (#273). The left trigger is the viewer's
@@ -74,11 +76,18 @@ const TRIGGER =
  * verdict silently navigates (#324 cause 3). Prop-only apart from the two open states, which is
  * exactly the local view state a story can drive; the mutation and the optimistic hold live in the
  * container.
+ *
+ * An answer a teammate set says so in the pill itself — `Lisa Bakker said you're in` (⑪). The
+ * attribution is the sentence's subject, not a marker beside it or a line beneath it: a list is
+ * scanned, and the one thing already being read is the answer. It reverts to the first person the
+ * moment you answer for yourself, which is the whole acknowledgement mechanism — there is no
+ * separate read state to store.
  */
 export function EventAnswerRow({
   roster,
   myState,
   pending = false,
+  setBy = null,
   onRespond,
   defaultAttnOpen = false,
   defaultRosterOpen = false,
@@ -97,7 +106,7 @@ export function EventAnswerRow({
   }
   const attnId = useId()
   const rosterId = useId()
-  const answer = myAnswer(myState)
+  const answer = myAnswer(myState, setBy)
   const { className: pillClass, Icon } = PILL_TONE[answer.tone]
   const rosterExpandable = rosterPanel != null
   // The pips are a lineup; an untracked social has no positions at all, so its panel is its people.
@@ -117,21 +126,22 @@ export function EventAnswerRow({
           aria-expanded={attnOpen}
           aria-controls={attnOpen ? attnId : undefined}
           onClick={() => setAttnOpen((o) => !o)}
-          className={`${TRIGGER} pl-1 pr-1.5`}
+          className={`${TRIGGER} min-w-0 pl-1 pr-1.5`}
         >
-          <span className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs ${pillClass}`}>
+          <span className={`flex min-w-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-xs ${pillClass}`}>
             {answer.tone === 'prompt' ? (
               // A marker dot rather than a status icon: the prompt is a call to act, not an answer.
-              <span aria-hidden className="size-1.5 rounded-full bg-background" />
+              <span aria-hidden className="size-1.5 shrink-0 rounded-full bg-background" />
             ) : (
-              Icon && <Icon size={13} />
+              Icon && <Icon size={13} className="shrink-0" />
             )}
-            {answer.label}
+            {/* A name makes this the longest thing on the row, so it yields before the row wraps. */}
+            <span className="truncate">{answer.label}</span>
           </span>
           <ChevronDown
             size={14}
             aria-hidden
-            className={`text-muted-foreground transition-transform duration-200 ${attnOpen ? 'rotate-180' : ''}`}
+            className={`shrink-0 text-muted-foreground transition-transform duration-200 ${attnOpen ? 'rotate-180' : ''}`}
           />
           <span className="sr-only">{attnOpen ? 'Hide answer options' : 'Change your answer'}</span>
         </button>
@@ -144,7 +154,7 @@ export function EventAnswerRow({
             aria-expanded={rosterOpen}
             aria-controls={rosterOpen ? rosterId : undefined}
             onClick={() => setRosterOpen((o) => !o)}
-            className={`${TRIGGER} ml-auto pl-1.5 pr-1`}
+            className={`${TRIGGER} ml-auto shrink-0 pl-1.5 pr-1`}
           >
             <ReadinessBadge roster={roster} pending={pending} />
             <ChevronDown

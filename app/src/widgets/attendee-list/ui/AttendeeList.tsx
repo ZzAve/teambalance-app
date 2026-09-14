@@ -5,6 +5,7 @@ import { Avatar } from '@shared/ui/avatar'
 import { AttendanceToggle, type AttendanceState } from '@features/attendance-toggle/ui/AttendanceToggle'
 import { groupAttendeesByPosition, type AttendeePositionGroup } from '@entities/event/lib/attendee-groups'
 import { attributionName } from '@entities/event/lib/attribution'
+import { SectionLabel } from '@shared/ui/SectionLabel'
 
 interface AttendeeListProps {
   /** Everyone on the event — every position section lists all its members, whatever their answer. */
@@ -111,7 +112,7 @@ function PositionGroup({
   return (
     <div>
       <div className="flex items-center justify-between px-3 pb-1 pt-3">
-        <h3 className="text-caption font-bold uppercase tracking-[0.09em] text-muted-foreground">{group.positionLabel}</h3>
+        <SectionLabel as="h3">{group.positionLabel}</SectionLabel>
         {group.countLabel && (
           <span className="text-caption font-bold tabular-nums text-foreground/70">{group.countLabel}</span>
         )}

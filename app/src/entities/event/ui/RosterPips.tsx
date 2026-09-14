@@ -1,5 +1,6 @@
 import { TriangleAlert } from 'lucide-react'
 import type { EventRoster } from '@shared/api/events'
+import { SectionLabel } from '@shared/ui/SectionLabel'
 import {
   coveredSummary,
   headcountLine,
@@ -49,7 +50,7 @@ export function RosterPips({ roster }: RosterPipsProps) {
   return (
     <div>
       <div className="mb-2.5 flex items-center justify-between">
-        <span className="text-caption font-bold uppercase tracking-[0.09em] text-muted-foreground">Positions</span>
+        <SectionLabel as="span">Positions</SectionLabel>
         <span className="text-caption font-bold text-foreground/70">{covered ?? headcount ?? ''}</span>
       </div>
 

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { LayoutList, LayoutGrid, Users } from 'lucide-react'
 import type { ComponentType } from 'react'
+import { SectionLabel } from '@shared/ui/SectionLabel'
 import type { PanelView } from '../model/panel-preferences'
 
 interface PanelViewMenuProps {
@@ -77,12 +78,9 @@ export function PanelViewMenu({
             className="card-shadow-hover absolute right-0 top-12 z-50 w-[248px] origin-top-right rounded-lg border border-border/60 bg-card p-3.5"
           >
             <div role="group" aria-labelledby="panel-view-heading">
-              <h3
-                id="panel-view-heading"
-                className="mb-2.5 text-caption font-bold uppercase tracking-[0.09em] text-muted-foreground"
-              >
+              <SectionLabel as="h3" id="panel-view-heading" className="mb-2.5">
                 Card panel shows
-              </h3>
+              </SectionLabel>
               <div className="flex flex-wrap gap-2">
                 {VIEWS.map(({ value, label, Icon }) => {
                   const isActive = view === value

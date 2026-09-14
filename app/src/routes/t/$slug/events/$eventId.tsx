@@ -10,6 +10,7 @@ import { EventTypeBadge } from '@entities/event/ui/EventTypeBadge'
 import { EventTypeIcon } from '@entities/event/ui/EventTypeIcon'
 import { EventDetailSkeleton } from '@entities/event/ui/EventDetailSkeleton'
 import { QueryErrorState } from '@shared/ui/QueryErrorState'
+import { SectionLabel } from '@shared/ui/SectionLabel'
 import { ReferenceChips } from '@entities/event/ui/ReferenceChips'
 import { RoleBreakdown } from '@entities/event/ui/RoleBreakdown'
 import { RosterBar } from '@entities/event/ui/RosterBar'
@@ -159,7 +160,9 @@ function EventDetailPage() {
       {/* Your Response */}
       {currentUserId && (
         <div className="mt-6">
-          <p className="mb-3 text-caption font-semibold uppercase tracking-widest text-muted-foreground">Your response</p>
+          <SectionLabel as="p" className="mb-3">
+            Your response
+          </SectionLabel>
           {/* Named group so this primary control is distinct from the per-row controls in the list
               below — the viewer now has a row of their own there too. */}
           <div role="group" aria-label="Your response">
@@ -177,7 +180,9 @@ function EventDetailPage() {
       {/* Description */}
       {event.description && (
         <div className="mt-6 rounded-lg border border-border/40 bg-card p-4 shadow-sm">
-          <p className="mb-2 text-caption font-semibold uppercase tracking-widest text-muted-foreground">Description</p>
+          <SectionLabel as="p" className="mb-2">
+            Description
+          </SectionLabel>
           <p className="text-small leading-relaxed text-muted-foreground">{event.description}</p>
         </div>
       )}
@@ -185,7 +190,9 @@ function EventDetailPage() {
       {/* Additional info — the event's References (Nevobo, match form, …), shown in full */}
       {event.references.length > 0 && (
         <div className="mt-6 rounded-lg border border-border/40 bg-card p-4 shadow-sm">
-          <p className="mb-3 text-caption font-semibold uppercase tracking-widest text-muted-foreground">Additional info</p>
+          <SectionLabel as="p" className="mb-3">
+            Additional info
+          </SectionLabel>
           <ReferenceChips references={event.references} max={event.references.length} />
         </div>
       )}

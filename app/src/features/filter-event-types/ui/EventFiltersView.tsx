@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { SlidersHorizontal } from 'lucide-react'
 import type { EventTypeItem } from '@shared/api/event-types'
 import type { AttendanceState } from '@features/attendance-toggle/ui/AttendanceToggle'
+import { SectionLabel } from '@shared/ui/SectionLabel'
 import { ALL_ATTENDANCE_STATES } from '../model/attendance-states'
 import { ALL_TURNOUT_BUCKETS, type TurnoutBucket } from '../model/turnout'
 
@@ -202,12 +203,9 @@ export function EventFiltersView({
               {eventTypes.length > 0 && (
                 <>
                   <div role="group" aria-labelledby="event-types-filter-heading">
-                    <h3
-                      id="event-types-filter-heading"
-                      className="mb-2.5 text-caption font-bold uppercase tracking-[0.09em] text-muted-foreground"
-                    >
+                    <SectionLabel as="h3" id="event-types-filter-heading" className="mb-2.5">
                       Event types
-                    </h3>
+                    </SectionLabel>
                     <div className="flex flex-wrap gap-2">
                       {eventTypes.map((type) => {
                         const isActive = activeTypeIds.has(type.id)
@@ -236,12 +234,9 @@ export function EventFiltersView({
               )}
 
               <div role="group" aria-labelledby="your-answer-filter-heading">
-                <h3
-                  id="your-answer-filter-heading"
-                  className="mb-2.5 text-caption font-bold uppercase tracking-[0.09em] text-muted-foreground"
-                >
+                <SectionLabel as="h3" id="your-answer-filter-heading" className="mb-2.5">
                   Your answer
-                </h3>
+                </SectionLabel>
                 <div className="flex flex-wrap gap-2">
                   {STATE_CHIPS.map(({ state, label, active, inactive }) => {
                     const isActive = activeStates.has(state)
@@ -267,12 +262,9 @@ export function EventFiltersView({
                   <div className="-mx-3.5 my-3.5 h-px bg-border/60" />
 
                   <div role="group" aria-labelledby="turnout-filter-heading">
-                    <h3
-                      id="turnout-filter-heading"
-                      className="mb-2.5 text-caption font-bold uppercase tracking-[0.09em] text-muted-foreground"
-                    >
+                    <SectionLabel as="h3" id="turnout-filter-heading" className="mb-2.5">
                       Turnout
-                    </h3>
+                    </SectionLabel>
                     <div className="flex flex-wrap gap-2">
                       {TURNOUT_CHIPS.map(({ bucket, label, active, inactive }) => {
                         const isActive = activeTurnouts.has(bucket)

@@ -1,4 +1,5 @@
 import type { EventRoster } from '@shared/api/events'
+import { SectionLabel } from '@shared/ui/SectionLabel'
 import { rosterChip, rosterRows, type RosterTone } from '../lib/roster-view'
 
 interface RosterBarProps {
@@ -65,7 +66,7 @@ export function RosterBar({ roster }: RosterBarProps) {
   return (
     <div className="border-b border-border/40 bg-gradient-to-b from-card to-background px-4 py-3">
       <div className={`flex items-baseline justify-between gap-3 ${pct == null && !byPosition ? '' : 'mb-2'}`}>
-        <span className="text-caption font-bold uppercase tracking-[0.1em] text-muted-foreground">Roster</span>
+        <SectionLabel as="span">Roster</SectionLabel>
         <span className="flex items-baseline gap-1.5">
           <span className={`font-display text-small font-bold tabular-nums ${met ? 'text-green-dark' : 'text-foreground'}`}>
             {headline}

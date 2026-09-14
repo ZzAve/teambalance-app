@@ -1,11 +1,6 @@
-import type { ReactNode } from 'react'
 import { Check, PlusCircle, Ticket, Users } from 'lucide-react'
 import type { TeamRef } from '@shared/api/teams'
-
-// Section heading, matching AccountView's settings-list labels so the two screens read as one system.
-function SectionLabel({ children }: { children: ReactNode }) {
-  return <h2 className="mb-2 px-1 text-small font-semibold text-muted-foreground">{children}</h2>
-}
+import { SectionLabel } from '@shared/ui/SectionLabel'
 
 interface TeamsViewProps {
   /** Every Team the caller is a Member of. May be a single team. */
@@ -34,7 +29,9 @@ export function TeamsView({ teams, activeTeam, onSelect, onJoin, onCreate }: Tea
 
       {/* Section 1 — the teams you belong to; tapping one switches to it (ADR-0023). */}
       <section className="mt-6">
-        <SectionLabel>Your teams</SectionLabel>
+        <SectionLabel as="h2" className="mb-2 px-1 text-small">
+          Your teams
+        </SectionLabel>
         <ul className="flex flex-col gap-2">
           {teams.map((team) => {
             const isActive = team.id === activeTeam?.id
@@ -68,7 +65,9 @@ export function TeamsView({ teams, activeTeam, onSelect, onJoin, onCreate }: Tea
 
       {/* Section 2 — ways to gain another team, split off by a hairline divider for a clear break. */}
       <section className="mt-8 border-t border-border pt-6">
-        <SectionLabel>Join or create</SectionLabel>
+        <SectionLabel as="h2" className="mb-2 px-1 text-small">
+          Join or create
+        </SectionLabel>
         <div className="flex flex-col gap-2">
           <button
             type="button"

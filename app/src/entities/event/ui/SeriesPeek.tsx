@@ -25,7 +25,7 @@ function Occurrence({ entry }: { entry: SeriesPeekEntry }) {
       <span className={`h-2 w-2 shrink-0 rounded-full ${entry.isCurrent ? 'bg-blue' : 'bg-blue/40'}`} />
       {label}
       {entry.isCurrent && (
-        <span className="ml-auto rounded-full bg-blue/15 px-2 py-0.5 text-caption font-bold uppercase tracking-wide text-blue">
+        <span className="ml-auto rounded-full bg-blue/15 px-2 py-0.5 text-caption font-semibold text-blue">
           This one
         </span>
       )}

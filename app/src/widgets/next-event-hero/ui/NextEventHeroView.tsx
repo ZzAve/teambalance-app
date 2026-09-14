@@ -3,6 +3,7 @@ import { Check, Clock, MapPin, X } from 'lucide-react'
 import type { Event } from '@shared/api/events'
 import type { AttendanceState } from '@features/attendance-toggle/ui/AttendanceToggle'
 import { ReadinessBadge } from '@entities/event/ui/ReadinessBadge'
+import { SectionLabel } from '@shared/ui/SectionLabel'
 import { heroCountdown } from '../lib/countdown'
 import { useTeamRoutes } from '@shared/lib/team-routes'
 
@@ -68,15 +69,15 @@ export function NextEventHeroView({
         <span className="font-display block text-title font-extrabold leading-none">
           {countdown.value}
         </span>
-        <span className="text-caption uppercase tracking-[0.08em] opacity-85">{countdown.unit}</span>
+        <span className="text-caption opacity-85">{countdown.unit}</span>
       </div>
 
       {/* The passive rows fade with a colour alpha (text-white/xx), never with `opacity`: an
           element with opacity < 1 forms its own stacking context and would paint *above* the
           title's stretched overlay, punching a dead hole in the card's hit area. */}
-      <p className="pr-12 text-caption font-bold uppercase tracking-[0.14em] text-white/90">
+      <SectionLabel as="p" className="pr-12 text-white/90">
         Next up
-      </p>
+      </SectionLabel>
 
       <h3 className="font-display mb-1 mt-2 pr-12 text-title font-extrabold leading-[1.08]">
         {/* Stretched-link pattern, as EventCard uses in the list below: the card is not an anchor,

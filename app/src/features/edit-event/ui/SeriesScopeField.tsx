@@ -1,6 +1,7 @@
 import { Lock, Split } from 'lucide-react'
 import type { Event, EventSeriesScope } from '@shared/api/events'
 import { buildAffectedPreview } from '@entities/event/lib/series-affected'
+import { SectionLabel } from '@shared/ui/SectionLabel'
 
 interface SeriesScopeFieldProps {
   /** Every occurrence sharing the current event's recurring group (any order). */
@@ -62,9 +63,9 @@ export function SeriesScopeField({
   return (
     <div className="flex flex-col gap-3">
       <div>
-        <p className="mb-1.5 text-caption font-semibold uppercase tracking-widest text-muted-foreground">
+        <SectionLabel as="p" className="mb-1.5">
           {danger ? 'Delete' : 'Apply to'}
-        </p>
+        </SectionLabel>
         {/* Segmented scope control — exactly one is pressed. */}
         <div role="group" aria-label="Scope" className="flex gap-1.5">
           {SCOPES.map(({ value, label }) => {

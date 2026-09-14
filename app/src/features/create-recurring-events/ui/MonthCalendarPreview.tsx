@@ -74,7 +74,7 @@ export function MonthCalendarPreview({ preview, accentColor }: MonthCalendarPrev
             <p className="mb-1.5 text-small font-semibold">{month.label}</p>
             <div className="grid grid-cols-7 gap-0.5 text-center">
               {WEEKDAY_HEADS.map((h) => (
-                <span key={h} className="py-1 text-caption font-medium uppercase tracking-wide text-muted-foreground">
+                <span key={h} className="py-1 text-caption font-medium text-muted-foreground">
                   {h}
                 </span>
               ))}

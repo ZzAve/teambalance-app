@@ -3,6 +3,7 @@ import { Clock, MapPin } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { Card } from '@shared/ui/card'
 import type { Event } from '@shared/api/events'
+import { myAttributionName } from '../lib/attribution'
 import { relativeEventLabel } from '../lib/relative-event-label'
 import { EventDateChit } from './EventDateChit'
 import { EventTypeBadge } from './EventTypeBadge'
@@ -19,6 +20,12 @@ interface EventCardProps {
   myState: AttendanceState
   /** An attendance write is in flight for this event. */
   pending?: boolean
+  /**
+   * Who is looking, so the card can find the viewer's own row among `event.attendances` and name a
+   * teammate who answered for them. Left out, the pill stays first-person — which is what every
+   * surface that has no viewer (a story, a signed-out preview) should show.
+   */
+  currentUserId?: string | null
   onRespond: (state: AttendanceState) => void
   index?: number
   /** Injected so the relative label is deterministic in stories; defaults to the real clock. */
@@ -46,6 +53,7 @@ export function EventCard({
   event,
   myState,
   pending,
+  currentUserId,
   onRespond,
   index = 0,
   now = new Date(),
@@ -55,6 +63,10 @@ export function EventCard({
   const routes = useTeamRoutes()
   const date = new Date(event.startTime)
   const label = relativeEventLabel(event.startTime, now)
+  // Who answered for the viewer, if anyone — the list payload carries every member's row since
+  // ADR-0030 §8, so the card can say this without a detail fetch. `pending` is the viewer's own write
+  // still settling, which has to silence it; see myAttributionName.
+  const setBy = myAttributionName(event.attendances, currentUserId, pending ?? false)
 
   return (
     // Stretched-link pattern: the card itself is not an anchor. The title <Link> carries an
@@ -113,6 +125,7 @@ export function EventCard({
         <EventAnswerRow
           roster={event.roster}
           myState={myState}
+          setBy={setBy}
           pending={pending}
           onRespond={onRespond}
           defaultRosterOpen={defaultRosterOpen}

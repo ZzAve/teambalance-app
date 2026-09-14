@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { expect, fn } from 'storybook/test'
 import { withRouter } from '@shared/testing/router-decorator'
-import { makeEvent, makeRoster } from '@shared/testing/event-fixtures'
+import { makeAttendee, makeEvent, makeRoster } from '@shared/testing/event-fixtures'
 import { allModes } from '../../../../.storybook/modes'
 import { EventCard } from './EventCard'
 
@@ -181,6 +181,29 @@ export const WithStaffAttending: Story = {
     await expect(canvas.getByText('1 staff also going, not counted toward the target')).toBeInTheDocument()
     // Excluded from the target, not hidden.
     await expect(canvas.getByText('Trainer')).toBeInTheDocument()
+  },
+}
+
+// ── Someone else answered for you ────────────────────────────────────────────────────────────────
+
+// The card resolves this itself from the list payload (ADR-0030 §8) — no detail fetch — by finding
+// the viewer's own row among `attendances`. Unattributed, the pill would read "You're in" about a
+// sentence Lisa said; a member who never opens a card would never learn their answer was not theirs.
+export const AnswerSetByATeammate: Story = {
+  args: {
+    currentUserId: 'u-me',
+    myState: 'ATTENDING',
+    event: makeEvent({
+      startTime: on(13, 20, 0),
+      attendances: [
+        makeAttendee('u-me', 'Me', 'Setter', { changedBy: 'u-lisa' }),
+        makeAttendee('u-lisa', 'Lisa', 'Libero'),
+      ],
+    }),
+  },
+  play: async ({ canvas }) => {
+    await expect(canvas.getByText("Lisa said you're in")).toBeInTheDocument()
+    await expect(canvas.queryByText("You're in")).not.toBeInTheDocument()
   },
 }
 

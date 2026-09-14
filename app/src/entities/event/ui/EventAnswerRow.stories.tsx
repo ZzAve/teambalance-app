@@ -216,3 +216,41 @@ export const NoPanelStaysAPlainHeadcount: Story = {
     await expect(canvas.queryByRole('button', { name: /Show/ })).not.toBeInTheDocument()
   },
 }
+
+// ── Someone else answered for you (ADR-0003) ─────────────────────────────────────────────────────
+
+// The setter takes the subject of the sentence rather than earning a caption under it: "You're in"
+// would credit the viewer with a sentence a teammate said. Same tint — the answer itself stands —
+// and the control still opens, because the whole point is that the viewer can correct it.
+export const AnswerSetByATeammate: Story = {
+  args: { myState: 'ATTENDING', setBy: 'Lisa' },
+  play: async ({ canvas, userEvent }) => {
+    await expect(canvas.getByText("Lisa said you're in")).toBeInTheDocument()
+    await expect(canvas.queryByText("You're in")).not.toBeInTheDocument()
+    await userEvent.click(canvas.getByRole('button', { name: /Change your answer/ }))
+    await expect(canvas.getByRole('button', { name: /^Can't$/ })).toBeInTheDocument()
+  },
+}
+
+// A name is the one label in this row with no bound on its length, so the pill truncates and the
+// verdict opposite keeps its size — the readiness badge is a fixed short phrase, and losing its end
+// would cost more than losing the tail of a long name.
+export const LongSetterNameTruncates: Story = {
+  args: { myState: 'ABSENT', setBy: 'Jean-Baptiste van der Veldhuizen' },
+  play: async ({ canvas }) => {
+    await expect(canvas.getByText(/said you're out/)).toBeInTheDocument()
+    // The verdict survives intact beside it.
+    await expect(canvas.getByText('1 spot open')).toBeInTheDocument()
+  },
+}
+
+// The unanswered prompt is never attributed: clearing an answer back to NOT_RESPONDED leaves a row
+// whose `changedBy` is the clearer, and "Lisa said respond" would blunt the one state that asks for
+// something without helping anyone act on it.
+export const PromptIsNeverAttributed: Story = {
+  args: { myState: 'NOT_RESPONDED', setBy: 'Lisa' },
+  play: async ({ canvas }) => {
+    await expect(canvas.getByText('Respond')).toBeInTheDocument()
+    await expect(canvas.queryByText(/Lisa/)).not.toBeInTheDocument()
+  },
+}

@@ -17,6 +17,8 @@ interface EventListViewProps {
   onRespond?: (eventId: string, state: AttendanceState) => void
   /** The event whose write is in flight, with the optimistic answer to show on its card meanwhile. */
   optimistic?: { eventId: string; state: AttendanceState } | null
+  /** Who is looking, so a card can name the teammate who answered for them. See EventCard. */
+  currentUserId?: string | null
   /** Every card's roster panel starts expanded — the member's `Keep open` preference (ADR-0030 §6). */
   defaultRosterOpen?: boolean
   /**
@@ -43,6 +45,7 @@ export function EventListView({
   now,
   onRespond,
   optimistic,
+  currentUserId,
   defaultRosterOpen,
   rosterPanel,
 }: EventListViewProps) {
@@ -72,6 +75,7 @@ export function EventListView({
             now={now}
             myState={settling ? optimistic.state : event.myState}
             pending={settling}
+            currentUserId={currentUserId}
             onRespond={(state) => onRespond?.(event.id, state)}
             defaultRosterOpen={defaultRosterOpen}
             rosterPanel={rosterPanel?.(event)}

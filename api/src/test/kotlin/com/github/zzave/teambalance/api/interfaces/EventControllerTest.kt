@@ -157,6 +157,71 @@ class EventControllerTest : TeamBalanceIT() {
                 )
         }
 
+        // The positive half of attribution on the LIST payload: the N+1 guard above pins the null
+        // case (a row nobody set), this pins a row set by someone other than its own member — the
+        // one the card renders `set by …` from, and the only shape that can go wrong silently.
+        test("GET /api/events carries a row's setter when a teammate answered for its member") {
+            tenantSchemaAdapter.provisionPlatformSchema()
+            tenantSchemaAdapter.provisionTenantSchema("public")
+
+            jdbcTemplate.execute(
+                """
+                INSERT INTO public.teams (id, name, slug, schema_name)
+                VALUES ('$TEAM_ID'::uuid, 'Test Team', 'test-team', 'public')
+                ON CONFLICT DO NOTHING
+            """
+            )
+            jdbcTemplate.execute(
+                """
+                INSERT INTO public.users (id, email, display_name)
+                VALUES ('$JAN_USER_ID'::uuid, 'jan@test.com', 'Jan de Vries'),
+                       ('$LISA_USER_ID'::uuid, 'lisa@test.com', 'Lisa Bakker')
+                ON CONFLICT DO NOTHING
+            """
+            )
+            jdbcTemplate.execute(
+                "SELECT public.tb_add_member('$TEAM_ID'::uuid, '$JAN_USER_ID'::uuid, 'USER', 'Setter')"
+            )
+            jdbcTemplate.execute(
+                "SELECT public.tb_add_member('$TEAM_ID'::uuid, '$LISA_USER_ID'::uuid, 'USER', 'Libero')"
+            )
+
+            val eventId = UUID.randomUUID()
+            jdbcTemplate.execute(
+                """
+                INSERT INTO public.events (uuid, event_type_id, title, start_time, end_time, created_by, created_at, updated_at)
+                VALUES ('$eventId'::uuid,
+                    (SELECT id FROM public.event_types WHERE name = 'Training'),
+                    'Attribution Test', '2050-07-01 20:00:00+00', '2050-07-01 22:00:00+00',
+                    '$JAN_USER_ID'::uuid, now(), now())
+            """
+            )
+            // Lisa answers for Jan — trust-based editing, ADR-0003 — and for herself.
+            insertAttendance(eventId, JAN_USER_ID, changedBy = LISA_USER_ID)
+            insertAttendance(eventId, LISA_USER_ID)
+
+            val list = mockMvc.perform(
+                MockMvcRequestBuilders.get("/api/events?include-past=true")
+                    .header("X-Team-Id", "public")
+                    .header("X-User-Id", JAN_USER_ID),
+            ).andExpect(MockMvcResultMatchers.request().asyncStarted()).andReturn()
+
+            mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(list))
+                .andExpect(MockMvcResultMatchers.status().isOk)
+                .andExpect(
+                    MockMvcResultMatchers
+                        .jsonPath("$.events[?(@.id=='$eventId')].attendances[?(@.userId=='$JAN_USER_ID')].changedBy")
+                        .value(LISA_USER_ID)
+                )
+                // Raw, not filtered: a self-set row reports its own member, and the "only when it
+                // wasn't you" rule stays with the client that renders it.
+                .andExpect(
+                    MockMvcResultMatchers
+                        .jsonPath("$.events[?(@.id=='$eventId')].attendances[?(@.userId=='$LISA_USER_ID')].changedBy")
+                        .value(LISA_USER_ID)
+                )
+        }
+
         test("GET /api/events/{id} attendanceSummary.roleBreakdown contains only ATTENDING members") {
             tenantSchemaAdapter.provisionPlatformSchema()
             tenantSchemaAdapter.provisionTenantSchema("public")
@@ -946,13 +1011,18 @@ class EventControllerTest : TeamBalanceIT() {
         }
     }
 
-    private fun insertAttendance(eventId: UUID, userId: String, state: String = "ATTENDING") {
+    private fun insertAttendance(
+        eventId: UUID,
+        userId: String,
+        state: String = "ATTENDING",
+        changedBy: String = userId,
+    ) {
         jdbcTemplate.execute(
             """
             INSERT INTO public.attendances (uuid, event_id, user_id, state, updated_at, changed_by)
             VALUES (gen_random_uuid(),
                 (SELECT id FROM public.events WHERE uuid = '$eventId'::uuid),
-                '$userId'::uuid, '$state', now(), '$userId'::uuid)
+                '$userId'::uuid, '$state', now(), '$changedBy'::uuid)
         """
         )
     }

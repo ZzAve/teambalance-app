@@ -176,6 +176,7 @@ function EventListPage() {
                 events={listEvents}
                 onRespond={respond}
                 optimistic={optimistic}
+                currentUserId={currentUserId}
                 // What each card's roster disclosure opens onto (ADR-0030 §5-§7). Injected from here
                 // because the member list is a widget and the card is an entity — and because the
                 // preference is global, so one store drives every card.

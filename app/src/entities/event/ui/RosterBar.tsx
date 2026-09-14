@@ -19,9 +19,9 @@ const TONE_TEXT: Record<RosterTone, string> = {
 }
 
 /**
- * A compact, always-visible roster overview: how full the squad is, a progress track, and a chip per
- * targeted position coloured by its tone. Meant to be pinned above the attendee list so completeness
- * stays one glance away however far you scroll a large squad — the thing a flat list loses.
+ * A compact roster overview: how full the squad is, a progress track, and a chip per targeted
+ * position coloured by its tone. Sits high on the event detail page so completeness reads at a
+ * glance — the thing a flat list loses. Chrome-free: the caller supplies the surrounding card.
  *
  * Prop-only (ADR-0017), and it re-presents what the server already computed rather than re-deriving
  * status: the chips come from `rosterRows`, the headline chip from `rosterChip`, and the counts are
@@ -64,7 +64,7 @@ export function RosterBar({ roster }: RosterBarProps) {
   const chip = rosterChip(roster)
 
   return (
-    <div className="border-b border-border/40 bg-gradient-to-b from-card to-background px-4 py-3">
+    <div className="px-4 py-3">
       <div className={`flex items-baseline justify-between gap-3 ${pct == null && !byPosition ? '' : 'mb-2'}`}>
         <SectionLabel as="span">Roster</SectionLabel>
         <span className="flex items-baseline gap-1.5">

@@ -1,5 +1,4 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { useLayoutEffect, useRef, useState } from 'react'
 import { MapPin } from 'lucide-react'
 import { toast } from 'sonner'
 import { useEvent, useEvents } from '@shared/api/events'
@@ -36,23 +35,8 @@ function EventDetailPage() {
   const currentUserId = useUserStore((s) => s.userId)
   const isAdmin = useUserStore((s) => s.role) === 'ADMIN'
   const { mutate, isPending } = useSetAttendance()
-  // The roster bar pins directly beneath the sticky PageHeader; its offset is the header var plus the
-  // sub-header's measured height, so it stacks without a magic pixel (the offset the PageHeader
-  // widget was created to kill). Measured, not hardcoded, so a wrapped title can't overlap it.
-  const subHeaderRef = useRef<HTMLDivElement>(null)
-  const [subHeaderHeight, setSubHeaderHeight] = useState(0)
   // Only load the full list to find series siblings when this event actually belongs to a group.
   const { data: allEvents } = useEvents(true, !!event?.recurringGroup)
-
-  useLayoutEffect(() => {
-    const el = subHeaderRef.current
-    if (!el) return
-    const measure = () => setSubHeaderHeight(el.offsetHeight)
-    measure()
-    const observer = new ResizeObserver(measure)
-    observer.observe(el)
-    return () => observer.disconnect()
-  }, [event?.id])
 
   if (isLoading) return <EventDetailSkeleton />
   if (isError)
@@ -107,11 +91,8 @@ function EventDetailPage() {
 
   return (
     <div>
-      {/* Sticky sub-header — offset comes from --header-height via PageHeader, not a magic pixel.
-          Wrapped so its height can be measured for the roster bar that pins directly beneath it. */}
-      <div ref={subHeaderRef}>
-        <PageHeader title={event.title} backTo={routes.events} backLabel="Back to events" />
-      </div>
+      {/* Sticky sub-header — offset comes from --header-height via PageHeader, not a magic pixel. */}
+      <PageHeader title={event.title} backTo={routes.events} backLabel="Back to events" />
 
       {/* Event header */}
       <div className="mt-2 flex items-start gap-4">
@@ -143,16 +124,13 @@ function EventDetailPage() {
         </div>
       </div>
 
-      {/* Roster overview — pinned so completeness stays one glance away however far a big squad
-          scrolls. Sits high, right under the event identity, so on a tall desktop screen it is
-          visible and pinning from the start rather than buried below the response/info sections.
+      {/* Roster overview — sits high, right under the event identity, so completeness reads before
+          the response/info sections rather than being buried below them. It scrolls with the page:
+          pinning it made it float over the sections beneath and clip them.
           Shows for any tracked roster (#317): position targets count slots, otherwise a headcount
           or plain tally; RoleBreakdown stays the per-role fallback where no position is targeted (⑥). */}
       {showRosterBar && (
-        <div
-          className="sticky z-20 -mx-4 mt-6"
-          style={{ top: `calc(var(--header-height) + ${subHeaderHeight}px)` }}
-        >
+        <div className="mt-6 overflow-hidden rounded-lg border border-border/40 bg-card shadow-sm">
           <RosterBar roster={event.roster} />
         </div>
       )}
@@ -197,7 +175,7 @@ function EventDetailPage() {
         </div>
       )}
 
-      {/* Attendance — one list by position, no tabs. The roster bar (pinned above) shows for any
+      {/* Attendance — one list by position, no tabs. The roster bar (above) shows for any
           tracked roster; where no position carries a target RoleBreakdown stays as the per-role
           fallback (⑥). */}
       <div className="mt-6 overflow-hidden rounded-lg border border-border/40 bg-card shadow-sm">

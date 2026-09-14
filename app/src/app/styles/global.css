@@ -342,3 +342,42 @@ main {
 .att-bounce {
   animation: att-bounce 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
+
+/* ── #337: prefers-reduced-motion — one switch for every animation system above ──
+   Four systems stack on a single interaction (open the app, tap attendance): the card-enter
+   stagger, the view-transition route slide, the attendance bounce, and the hover shadow
+   transition on [data-slot="card"]. None of them convey information — they're all decoration —
+   so vestibular/motion-sensitive users get all four turned off here, in one place, rather than
+   patched per call-site.
+     · `.card-enter`/`.att-bounce`: `animation: none` is enough to land on the resting frame.
+       `.card-enter` sets no static opacity/transform of its own (those live only inside the
+       `@keyframes`), so with the animation off the element renders at its plain, fully-opaque
+       DOM position — never stuck at the keyframe's `from { opacity: 0 }`.
+     · View transitions: plain `animation: none` was rejected here. The snapshot pair keeps its
+       *static* state without an animation driving it — the old snapshot sits at opacity 1, on
+       top, for the entire transition duration — so the page would hold a fully-opaque stale frame
+       of the page you just left, then pop to the new one, which is a worse motion experience than
+       a slide. A very short (80ms, linear, well under the ~100-150ms this reads as instant) opacity
+       fade using the file's existing `fade-in`/`fade-out` keyframes swaps old for new almost like a
+       cut, with no slide/translate and no stale hold. */
+@media (prefers-reduced-motion: reduce) {
+  .card-enter,
+  .att-bounce {
+    animation: none;
+  }
+
+  ::view-transition-old(root),
+  ::view-transition-old(main-content),
+  .vt-slide-back::view-transition-old(main-content) {
+    animation: 80ms linear fade-out both;
+  }
+  ::view-transition-new(root),
+  ::view-transition-new(main-content),
+  .vt-slide-back::view-transition-new(main-content) {
+    animation: 80ms linear fade-in both;
+  }
+
+  [data-slot="card"] {
+    transition: none;
+  }
+}

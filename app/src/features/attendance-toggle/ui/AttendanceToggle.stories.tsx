@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { expect, fn } from 'storybook/test'
-import { allModes } from '../../../../.storybook/modes'
+import { darkMode } from '../../../../.storybook/modes'
 import { AttendanceToggle } from './AttendanceToggle'
 
 // AttendanceToggle is presentational (value/onToggle/disabled). Each response state is a render arg;
@@ -14,7 +14,7 @@ const meta = {
   title: 'features/attendance-toggle/AttendanceToggle',
   component: AttendanceToggle,
   args: { onToggle: fn() },
-  parameters: { chromatic: { modes: { light: allModes.light, dark: allModes.dark } } },
+  parameters: { chromatic: { modes: darkMode } },
 } satisfies Meta<typeof AttendanceToggle>
 
 export default meta

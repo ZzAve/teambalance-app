@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite'
 import { expect, fn } from 'storybook/test'
 import { withRouter } from '@shared/testing/router-decorator'
 import { makeEvent, makeRoster } from '@shared/testing/event-fixtures'
-import { allModes } from '../../../../.storybook/modes'
+import { darkMode } from '../../../../.storybook/modes'
 import { EventCard } from './EventCard'
 
 // EventCard renders a TanStack Router <Link to="/events/$eventId">, which needs a router in context.
@@ -27,8 +27,8 @@ const meta = {
   title: 'entities/event/EventCard',
   component: EventCard,
   decorators: [withRouter],
-  args: { now: NOW, myState: 'NOT_RESPONDED', onRespond: fn(), rosterPanel: PANEL },
-  parameters: { chromatic: { modes: { light: allModes.light, dark: allModes.dark } } },
+  args: { now: NOW, myState: 'NOT_RESPONDED', onRespond: fn() },
+  parameters: { chromatic: { modes: darkMode } },
 } satisfies Meta<typeof EventCard>
 
 export default meta

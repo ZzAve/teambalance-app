@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { expect, fn } from 'storybook/test'
-import { allModes } from '../../../../.storybook/modes'
+import { darkMode } from '../../../../.storybook/modes'
 import { PanelViewMenu } from './PanelViewMenu'
 
 /**
@@ -25,7 +25,7 @@ const meta = {
       </div>
     ),
   ],
-  parameters: { chromatic: { modes: { light: allModes.light, dark: allModes.dark } } },
+  parameters: { chromatic: { modes: darkMode } },
 } satisfies Meta<typeof PanelViewMenu>
 
 export default meta

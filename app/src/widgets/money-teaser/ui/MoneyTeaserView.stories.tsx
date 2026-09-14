@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { expect, fn } from 'storybook/test'
-import { allModes } from '../../../../.storybook/modes'
+import { darkMode } from '../../../../.storybook/modes'
 import { MoneyTeaserView } from './MoneyTeaserView'
 
 // MoneyTeaserView is the prop-only teaser behind the MoneyTeaser container: the vote's on/off state
@@ -14,7 +14,7 @@ const meta = {
   title: 'widgets/money-teaser/MoneyTeaserView',
   component: MoneyTeaserView,
   args: { hasVoted: false, onVote: fn() },
-  parameters: { chromatic: { modes: { light: allModes.light, dark: allModes.dark } } },
+  parameters: { chromatic: { modes: darkMode } },
 } satisfies Meta<typeof MoneyTeaserView>
 
 export default meta

@@ -1,12 +1,37 @@
-// Chromatic modes for the theme axis (ADR-0027 §3).
-// Theme is a preview *global* (see preview.ts — the `theme` toolbar + `.dark` decorator), so a
-// second-theme baseline belongs in a mode, not a hand-written `*Dark` twin story. A mode re-renders
-// a story with a global flipped: same args, same `play`, one extra snapshot with its own baseline.
-// Apply these at the meta level on the token-sensitive components (attendance colours, the hero, the
-// money surfaces, event-type chits, the bottom nav) so every state inherits both a light and a dark
-// picture. This mirrors the exemplar `features/theme-toggle/ThemeToggleView` `Dark` story, which
-// opts into the dark layer via `globals: { theme: 'dark' }`.
-export const allModes = {
-  light: { theme: 'light' },
-  dark: { theme: 'dark' },
+// Chromatic modes (ADR-0031 §4-§5) and the Storybook viewport axis they share their widths with.
+//
+// A mode re-renders a story with globals and/or a browser viewport flipped: same args, same `play`,
+// one extra snapshot with its own baseline. Two axes live here:
+//
+//   - viewport — the app is a single-column, mobile-first layout (`max-w-2xl` main container), so the
+//     phone width is the picture that matters. preview.ts applies `xs` globally, which means *every*
+//     baseline is captured at phone width instead of Chromatic's 1200px default. Page composites add
+//     `xl` so the centred-desktop layout has one guard too.
+//   - theme — the `.dark` token layer (preview.ts `theme` global). Only page composites and the
+//     token-sensitive galleries carry `xsDark`; everything else inherits dark coverage through the
+//     composite it is rendered in.
+//
+// Widths track Tailwind 4's default breakpoints (sm 640 / md 768 / lg 1024 / xl 1280) plus a 360px
+// phone below `sm`. VIEWPORTS is the single source for both the toolbar switcher and the modes, so
+// the two can never disagree about what "xs" means.
+export const VIEWPORTS = {
+  xs: { width: 360, height: 780, type: 'mobile' },
+  sm: { width: 640, height: 960, type: 'tablet' },
+  md: { width: 768, height: 1024, type: 'tablet' },
+  lg: { width: 1024, height: 768, type: 'desktop' },
+  xl: { width: 1280, height: 800, type: 'desktop' },
 } as const
+
+export type ViewportKey = keyof typeof VIEWPORTS
+
+export const allModes = {
+  xs: { viewport: VIEWPORTS.xs.width },
+  xsDark: { theme: 'dark', viewport: VIEWPORTS.xs.width },
+  xl: { viewport: VIEWPORTS.xl.width },
+} as const
+
+/** The extra baselines a page composite carries on top of the global `xs` (ADR-0031 §5). */
+export const pageModes = { xsDark: allModes.xsDark, xl: allModes.xl } as const
+
+/** The extra baseline a token-sensitive gallery carries on top of the global `xs`. */
+export const darkMode = { xsDark: allModes.xsDark } as const

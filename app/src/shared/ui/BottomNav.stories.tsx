@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { expect } from 'storybook/test'
 import { withRouter } from '@shared/testing/router-decorator'
-import { allModes } from '../../../.storybook/modes'
+import { darkMode } from '../../../.storybook/modes'
 import { BottomNav } from './BottomNav'
 
 // BottomNav renders TanStack Router <Link>s, so it needs a router in context — supplied by the
@@ -17,7 +17,7 @@ const meta = {
   title: 'shared/ui/BottomNav',
   component: BottomNav,
   decorators: [withRouter],
-  parameters: { chromatic: { modes: { light: allModes.light, dark: allModes.dark } } },
+  parameters: { chromatic: { modes: darkMode } },
 } satisfies Meta<typeof BottomNav>
 
 export default meta

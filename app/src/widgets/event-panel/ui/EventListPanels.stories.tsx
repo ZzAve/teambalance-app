@@ -6,8 +6,9 @@ import { withRouter } from '@shared/testing/router-decorator'
 import { makeAttendee, makeEvent, makeRoster, NO_ROSTER } from '@shared/testing/event-fixtures'
 import { EventListView } from '@entities/event/ui/EventListView'
 import { PanelViewMenu } from '@features/event-panel-view/ui/PanelViewMenu'
-import { allModes } from '../../../../.storybook/modes'
-import { EventLineupPanel } from './EventLineupPanel'
+import { darkMode } from '../../../../.storybook/modes'
+import { EventRosterPanel, MEMBER_CAP } from './EventRosterPanel'
+import type { PanelView } from '@features/event-panel-view/model/panel-preferences'
 
 /**
  * The panel **as the events page actually assembles it** — a whole list of cards, each opening onto
@@ -236,7 +237,7 @@ const meta = {
   component: ListWithPanels,
   decorators: [withRouter],
   args: { events: EVERY_ROSTER_STATE },
-  parameters: { chromatic: { modes: { light: allModes.light, dark: allModes.dark } } },
+  parameters: { chromatic: { modes: darkMode } },
 } satisfies Meta<typeof ListWithPanels>
 
 export default meta

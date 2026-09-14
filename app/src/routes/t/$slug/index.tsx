@@ -13,7 +13,9 @@ import { EventFiltersView } from '@features/filter-event-types/ui/EventFiltersVi
 import { useEventFiltersStore } from '@features/filter-event-types/model/event-filters-store'
 import { useEventPanelStore } from '@features/event-panel-view/model/event-panel-store'
 import { PanelViewMenu } from '@features/event-panel-view/ui/PanelViewMenu'
-import { EventRosterPanel } from '@widgets/event-panel/ui/EventRosterPanel'
+// PROTOTYPE (throwaway, `?variant=`): see widgets/event-panel/prototype/PrototypeLineupPanel.tsx.
+import { PrototypeLineupPanel, type PrototypeVariant } from '@widgets/event-panel/prototype/PrototypeLineupPanel'
+import { PrototypeSwitcher } from '@widgets/event-panel/prototype/PrototypeSwitcher'
 import { useTeamRoutes } from '@shared/lib/team-routes'
 import { reconcileTypeIds } from '@features/filter-event-types/model/filter-preferences'
 import { spansMultipleTurnoutBuckets } from '@features/filter-event-types/model/turnout'
@@ -24,6 +26,16 @@ import { eligibleEvents } from '@features/bulk-attend/lib/eligible-event-ids'
 
 export const Route = createFileRoute('/t/$slug/')({
     component: EventListPage,
+    // PROTOTYPE only. `variant` picks a roster-panel prototype (default `current` = the real panel);
+    // `demo` swaps in an in-memory squad. Both absent on every normal navigation, so the page is
+    // untouched unless the URL asks for it. Goes away with the prototype.
+    validateSearch: (search: Record<string, unknown>): { variant?: PrototypeVariant; demo?: boolean } => ({
+        variant: ['A', 'B', 'C', 'current'].includes(search.variant as string)
+            ? (search.variant as PrototypeVariant)
+            : undefined,
+        // TanStack JSON-parses search values, so `?demo=1` arrives as the number 1, not '1'.
+        demo: [true, 1, '1', 'true'].includes(search.demo as never) ? true : undefined,
+    }),
 })
 
 /**
@@ -81,6 +93,15 @@ function EventListPage() {
         setOptimistic({eventId, state})
         setAttendance({eventId, userId: currentUserId, state}, {onError: () => setOptimistic(null)})
     }
+
+    // PROTOTYPE wiring. `respondFor` is the same mutation as `respond` above, aimed at any member
+    // rather than only the viewer (ADR-0003 trust-based editing) — the list page has never needed
+    // that before. No optimistic hold: the route's `optimistic` slot models the *viewer's* answer,
+    // so a teammate's pill waits on the invalidated refetch.
+    const {variant = 'current', demo = false} = Route.useSearch()
+    const navigate = Route.useNavigate()
+    const respondFor = (eventId: string, userId: string, state: Event['myState']) =>
+        setAttendance({eventId, userId, state})
 
     const allTypeIds = useMemo(() => (eventTypes ?? []).map(t => t.id), [eventTypes])
     // The types to show, derived rather than stored: what the member switched off is what persists,
@@ -181,10 +202,14 @@ function EventListPage() {
                 // preference is global, so one store drives every card.
                 defaultRosterOpen={defaultExpanded}
                 rosterPanel={(event) => (
-                    <EventRosterPanel
+                    // PROTOTYPE: renders EventRosterPanel verbatim for `current`, a variant otherwise.
+                    <PrototypeLineupPanel
                         event={event}
-                        view={view}
+                        variant={variant}
+                        demo={demo}
                         currentUserId={currentUserId}
+                        onRespond={(userId, state) => respondFor(event.id, userId, state)}
+                        view={view}
                         detailHref={routes.event(event.id)}
                     />
                 )}
@@ -202,6 +227,14 @@ function EventListPage() {
                     activeStates,
                     activeTurnouts,
                 })}
+            />
+
+            {/* PROTOTYPE: dev-only floating variant bar. Delete with the prototype. */}
+            <PrototypeSwitcher
+                variant={variant}
+                demo={demo}
+                onVariantChange={(next) => navigate({search: (prev) => ({...prev, variant: next}), replace: true})}
+                onDemoChange={(next) => navigate({search: (prev) => ({...prev, demo: next || undefined}), replace: true})}
             />
         </div>
     )

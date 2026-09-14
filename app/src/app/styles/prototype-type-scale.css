@@ -1,0 +1,157 @@
+/**
+ * PROTOTYPE — throwaway, issue #338. Not part of the real design system.
+ *
+ * Answers "which type scale / radius scale does the app actually need" by remapping the 58
+ * arbitrary text sizes and 7 radii already in use on the events overview route, purely in CSS —
+ * no component touched. Scoped under [data-proto-scale="B"|"C"]; "A" gets no rules at all, so it
+ * is the unmodified baseline. Tailwind 4 escapes bracket utilities like `.text-\[11px\]`; every
+ * selector below mirrors that escaping so it matches the generated class exactly.
+ *
+ * Delete this file (and its import in routes/t/$slug/index.tsx) once #338 is decided.
+ */
+
+/* ── Variant B — six-step, compact: 11 caption · 13 small · 15 body · 17 lead · 22 title · 28 page.
+   Line-heights follow category, not step: caption/small are labels (1.3), body/lead are reading
+   text (1.5), title/page are headlines (1.15). Radii snap to 8 / 12 / 16 only. ───────────────── */
+
+[data-proto-scale='B'] .text-\[9px\],
+[data-proto-scale='B'] .text-\[10px\],
+[data-proto-scale='B'] .text-\[11px\] {
+    font-size: 11px;
+    line-height: 1.3;
+}
+
+[data-proto-scale='B'] .text-\[12px\],
+[data-proto-scale='B'] .text-\[12\.5px\],
+[data-proto-scale='B'] .text-\[13px\],
+[data-proto-scale='B'] .text-\[13\.5px\] {
+    font-size: 13px;
+    line-height: 1.3;
+}
+
+[data-proto-scale='B'] .text-\[15px\] {
+    font-size: 15px;
+    line-height: 1.5;
+}
+
+[data-proto-scale='B'] .text-\[17px\] {
+    font-size: 17px;
+    line-height: 1.5;
+}
+
+[data-proto-scale='B'] .text-\[21px\],
+[data-proto-scale='B'] .text-\[22px\] {
+    font-size: 22px;
+    line-height: 1.15;
+}
+
+/* Tailwind's own scale, remapped onto the same six steps so the whole page moves together. */
+[data-proto-scale='B'] .text-xs {
+    font-size: 13px;
+    line-height: 1.3;
+}
+[data-proto-scale='B'] .text-sm,
+[data-proto-scale='B'] .text-base {
+    font-size: 15px;
+    line-height: 1.5;
+}
+[data-proto-scale='B'] .text-lg {
+    font-size: 17px;
+    line-height: 1.5;
+}
+[data-proto-scale='B'] .text-xl,
+[data-proto-scale='B'] .text-2xl {
+    font-size: 22px;
+    line-height: 1.15;
+}
+[data-proto-scale='B'] .text-3xl {
+    font-size: 28px;
+    line-height: 1.15;
+}
+
+/* Radii: snapped to 8 / 12 / 16 only. sm/md/lg/xl/2xl already land on those three (xl is Tailwind's
+   own 12px, numerically identical to md — that's why the app's own inventory doesn't count it as an
+   eighth radius); the two arbitrary outliers move onto the nearest step. */
+[data-proto-scale='B'] .rounded-\[10px\] {
+    border-radius: 12px;
+}
+[data-proto-scale='B'] .rounded-\[15px\] {
+    border-radius: 16px;
+}
+[data-proto-scale='B'] .rounded-3xl {
+    border-radius: 16px;
+}
+
+/* ── Variant C — five-step, generous: 12 caption · 14 small · 16 body · 18 lead · 24 title, page
+   title stays 28 via 3xl. Same groupings as B, each one notch up. Radii collapse to just two: 10
+   for anything ≤ 12px today (chips, badges, inputs), 16 for anything bigger (cards). ───────────── */
+
+[data-proto-scale='C'] .text-\[9px\],
+[data-proto-scale='C'] .text-\[10px\],
+[data-proto-scale='C'] .text-\[11px\],
+[data-proto-scale='C'] .text-\[11\.5px\] {
+    font-size: 12px;
+    line-height: 1.3;
+}
+
+[data-proto-scale='C'] .text-\[12px\],
+[data-proto-scale='C'] .text-\[12\.5px\],
+[data-proto-scale='C'] .text-\[13px\],
+[data-proto-scale='C'] .text-\[13\.5px\] {
+    font-size: 14px;
+    line-height: 1.3;
+}
+
+[data-proto-scale='C'] .text-\[15px\] {
+    font-size: 16px;
+    line-height: 1.5;
+}
+
+[data-proto-scale='C'] .text-\[17px\] {
+    font-size: 18px;
+    line-height: 1.5;
+}
+
+[data-proto-scale='C'] .text-\[21px\],
+[data-proto-scale='C'] .text-\[22px\] {
+    font-size: 24px;
+    line-height: 1.15;
+}
+
+[data-proto-scale='C'] .text-xs {
+    font-size: 14px;
+    line-height: 1.3;
+}
+[data-proto-scale='C'] .text-sm,
+[data-proto-scale='C'] .text-base {
+    font-size: 16px;
+    line-height: 1.5;
+}
+[data-proto-scale='C'] .text-lg {
+    font-size: 18px;
+    line-height: 1.5;
+}
+[data-proto-scale='C'] .text-xl,
+[data-proto-scale='C'] .text-2xl {
+    font-size: 24px;
+    line-height: 1.15;
+}
+[data-proto-scale='C'] .text-3xl {
+    font-size: 28px; /* page title: stays 28, just carried by 3xl instead of Tailwind's own 30 */
+    line-height: 1.15;
+}
+
+/* Radii: two steps only. Anything at or under 12px today collapses to 10; anything bigger (cards)
+   collapses to 16. */
+[data-proto-scale='C'] .rounded-sm,
+[data-proto-scale='C'] .rounded-md,
+[data-proto-scale='C'] .rounded-xl,
+[data-proto-scale='C'] .rounded-\[10px\] {
+    border-radius: 10px;
+}
+[data-proto-scale='C'] .rounded-lg,
+[data-proto-scale='C'] .rounded-2xl,
+[data-proto-scale='C'] .rounded-3xl,
+[data-proto-scale='C'] .rounded-\[15px\] {
+    border-radius: 16px;
+}

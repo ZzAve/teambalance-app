@@ -21,6 +21,18 @@ import { filterEvents } from '@features/filter-event-types/model/filter-events'
 import { emptyEventsMessage } from '@features/filter-event-types/model/empty-message'
 import { BulkAttendBar } from '@features/bulk-attend/ui/BulkAttendBar'
 import { eligibleEvents } from '@features/bulk-attend/lib/eligible-event-ids'
+// PROTOTYPE — throwaway, issue #338 (type-scale/radius exploration). Remove this block (and the
+// `data-proto-scale` wrapper + ScaleMapDetails below) once #338 is decided; nothing else on this
+// route depends on it.
+import { PrototypeSwitcher, usePrototypeVariant } from '@shared/ui/PrototypeSwitcher'
+import { ScaleMapDetails } from '@entities/event/ui/prototype/ScaleMapDetails'
+import '@app/styles/prototype-type-scale.css'
+
+const SCALE_VARIANTS = [
+    { key: 'A', name: 'Current' },
+    { key: 'B', name: 'Six-step, compact' },
+    { key: 'C', name: 'Five-step, generous' },
+] as const
 
 export const Route = createFileRoute('/t/$slug/')({
     component: EventListPage,
@@ -124,8 +136,14 @@ function EventListPage() {
         [sortedEvents, activeTypeIds, now],
     )
 
+    // PROTOTYPE — throwaway, issue #338. Pure-CSS variants keyed off this attribute; see
+    // prototype-type-scale.css. Remove alongside the imports above once #338 is decided.
+    const scaleVariant = usePrototypeVariant(SCALE_VARIANTS.map((v) => v.key))
+
     return (
-        <div>
+        <div data-proto-scale={scaleVariant}>
+            <ScaleMapDetails variant={scaleVariant} />
+
             <div className="flex items-center justify-between gap-2">
                 <h2 className="font-display text-2xl font-bold">Events</h2>
                 <div className="flex items-center gap-2">
@@ -203,6 +221,9 @@ function EventListPage() {
                     activeTurnouts,
                 })}
             />
+
+            {/* PROTOTYPE — throwaway, issue #338. Dev-only; remove alongside the rest of this block. */}
+            <PrototypeSwitcher variants={SCALE_VARIANTS} />
         </div>
     )
 }

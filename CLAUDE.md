@@ -111,9 +111,9 @@ Four honest layers — place each new test at the **lowest layer that proves it*
 ### PR gate
 
 > **When adding or changing a feature, place its coverage at the lowest layer that proves it:**
-> - Component states (empty/loading/data/error) → a Storybook story. **Interactive components: pass `fn()` spies as callback props and assert `toHaveBeenCalledWith` in `play`** (prove the wiring, not just the render). Hold the network line — no MSW in stories.
+> - Component states (empty/loading/data/error) → a Storybook story, **at most three per View** (`Data`, `Shells`, `Interactions`; ADR-0031). **Interactive components: pass `fn()` spies as callback props and assert `toHaveBeenCalledWith` in a multi-step `play`** (prove the wiring, not just the render). A View shown inside a page composite keeps a snapshot only for states the composite can't show. Hold the network line — no MSW in stories.
 > - **Container/View split**: the `*View` (prop-only) gets the story with loading/error shells as props-driven states; the container is thin wiring covered by e2e. See ADR-0017 and `features/manage-positions` (exemplar).
-> - Visual appearance → covered automatically by Chromatic once the component has a story; no extra work per component.
+> - Visual appearance → covered by Chromatic; the pixels are owned by the page composites (`pages/*View` under `withAppShell`) and by one gallery per primitive. Every story is captured at phone width (`xs`); add `pageModes` only where the layout changes with width.
 > - A visible change to the events overview or the app shell (header, bottom nav) → rerun `npm run generate-pwa-screenshots` (in `app/`) and commit the PNGs. They are the install-dialog previews in the web manifest; nothing regenerates them automatically, and the manifest unit test only proves their pixel size still matches.
 > - Pure logic (mappers, adapters, stores) → a Vitest unit.
 > - Backend behaviour → a Kotest unit or Testcontainers IT.

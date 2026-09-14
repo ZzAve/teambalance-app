@@ -3,7 +3,7 @@ import { expect } from 'storybook/test'
 import type { AttendanceEntry } from '@shared/api/events'
 import { withRouter } from '@shared/testing/router-decorator'
 import { makeEvent, makeRoster, NO_ROSTER } from '@shared/testing/event-fixtures'
-import { allModes } from '../../../../.storybook/modes'
+import { darkMode } from '../../../../.storybook/modes'
 import { EventRosterPanel, MEMBER_CAP } from './EventRosterPanel'
 
 // What the card's roster disclosure opens onto: the position pips, or the team (ADR-0030 §5). The
@@ -54,7 +54,7 @@ const meta = {
     currentUserId: 'u-lib',
     detailHref: '/t/setpoint-vt/events/evt-002',
   },
-  parameters: { chromatic: { modes: { light: allModes.light, dark: allModes.dark } } },
+  parameters: { chromatic: { modes: darkMode } },
 } satisfies Meta<typeof EventRosterPanel>
 
 export default meta

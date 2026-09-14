@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite'
 import { expect, fn } from 'storybook/test'
 import { withRouter } from '@shared/testing/router-decorator'
 import { makeEvent, makeRoster, NO_ROSTER } from '@shared/testing/event-fixtures'
-import { allModes } from '../../../../.storybook/modes'
+import { darkMode } from '../../../../.storybook/modes'
 import { NextEventHeroView } from './NextEventHeroView'
 
 // NextEventHeroView is the prop-only Next Up hero behind the NextEventHero container: the event,
@@ -29,7 +29,7 @@ const meta = {
   component: NextEventHeroView,
   decorators: [withRouter],
   args: { event: EVENT, now: NOW, myState: 'NOT_RESPONDED', onRespond: fn() },
-  parameters: { chromatic: { modes: { light: allModes.light, dark: allModes.dark } } },
+  parameters: { chromatic: { modes: darkMode } },
 } satisfies Meta<typeof NextEventHeroView>
 
 /**

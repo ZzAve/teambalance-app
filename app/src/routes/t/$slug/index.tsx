@@ -5,15 +5,13 @@ import { useEventTypes } from '@shared/api/event-types'
 import { useSetAttendance } from '@shared/api/attendances'
 import { useUserStore } from '@shared/stores/user-store'
 import { useNow } from '@shared/lib/use-now'
-import { EventListView } from '@entities/event/ui/EventListView'
 import { selectHeroEvent } from '@entities/event/lib/next-event'
 import { NextEventHero } from '@widgets/next-event-hero/ui/NextEventHero'
 import { CreateEventSheet } from '@widgets/create-event/ui/CreateEventSheet'
-import { EventFiltersView } from '@features/filter-event-types/ui/EventFiltersView'
 import { useEventFiltersStore } from '@features/filter-event-types/model/event-filters-store'
 import { useEventPanelStore } from '@features/event-panel-view/model/event-panel-store'
-import { PanelViewMenu } from '@features/event-panel-view/ui/PanelViewMenu'
 import { EventRosterPanel } from '@widgets/event-panel/ui/EventRosterPanel'
+import { EventsPageView } from '@pages/events/ui/EventsPageView'
 import { useTeamRoutes } from '@shared/lib/team-routes'
 import { reconcileTypeIds } from '@features/filter-event-types/model/filter-preferences'
 import { spansMultipleTurnoutBuckets } from '@features/filter-event-types/model/turnout'
@@ -125,85 +123,66 @@ function EventListPage() {
     )
 
     return (
-        <div>
-            <div className="flex items-center justify-between gap-2">
-                <h2 className="font-display text-2xl font-bold">Events</h2>
-                <div className="flex items-center gap-2">
-                    {/* The invite link moved to the Team page (team-management action); Events keeps
-                        only event creation for admins. */}
-                    {isAdmin && <CreateEventSheet/>}
-                    {/* Always mounted: the popover now owns the only route to past events, so it
-                        must not disappear with the event types it also happens to host. */}
-                    <EventFiltersView
-                        eventTypes={eventTypes ?? []}
-                        activeTypeIds={activeTypeIds}
-                        activeStates={activeStates}
-                        activeTurnouts={activeTurnouts}
-                        showTurnout={showTurnout}
-                        showPast={showPast}
-                        resultCount={sortedEvents.length}
-                        onToggleType={(typeId) => toggleType(typeId, allTypeIds)}
-                        // Every group runs through the same isolate-first toggler in the store
-                        // (ADR-0029 §3): one tap from the all-on default isolates the chip.
-                        onToggleState={toggleState}
-                        onToggleTurnout={toggleTurnout}
-                        onToggleShowPast={setShowPast}
-                        // A restored filter must never be invisible (ADR-0030 §2): the dot on the
-                        // trigger says *that* something is filtered, this says undo it.
-                        onClearFilters={clearFilters}
-                    />
-                    {/* How the list is drawn, beside what it contains but deliberately not inside it
-                        (ADR-0030 §3): a filter is "where was I", this is "how do I like this". It
-                        used to sit in every open card's panel, which read as a per-card control. */}
-                    <PanelViewMenu
-                        view={view}
-                        onViewChange={setView}
-                        defaultExpanded={defaultExpanded}
-                        onDefaultExpandedChange={setDefaultExpanded}
-                    />
-                </div>
-            </div>
-
-            {/* No hero when nothing is within RELATIVE_WINDOW_DAYS — and no placeholder in its
-                place. The list carries the page. */}
-            {heroEvent && <NextEventHero event={heroEvent} now={now}/>}
-
-            {/* One button per event type with blanks left (ADR-0021); renders nothing at all when
-                there are none, so a fully-answered page reserves no empty row. */}
-            <BulkAttendBar events={bulkEvents}/>
-
-            <EventListView
-                events={listEvents}
-                onRespond={respond}
-                optimistic={optimistic}
-                currentUserId={currentUserId}
+        <EventsPageView
+            createAction={isAdmin && <CreateEventSheet/>}
+            filters={{
+                eventTypes: eventTypes ?? [],
+                activeTypeIds,
+                activeStates,
+                activeTurnouts,
+                showTurnout,
+                showPast,
+                resultCount: sortedEvents.length,
+                onToggleType: (typeId) => toggleType(typeId, allTypeIds),
+                // Every group runs through the same isolate-first toggler in the store
+                // (ADR-0029 §3): one tap from the all-on default isolates the chip.
+                onToggleState: toggleState,
+                onToggleTurnout: toggleTurnout,
+                onToggleShowPast: setShowPast,
+                // A restored filter must never be invisible (ADR-0030 §2): the dot on the
+                // trigger says *that* something is filtered, this says undo it.
+                onClearFilters: clearFilters,
+            }}
+            panelMenu={{
+                view,
+                onViewChange: setView,
+                defaultExpanded,
+                onDefaultExpandedChange: setDefaultExpanded,
+            }}
+            hero={heroEvent && <NextEventHero event={heroEvent} now={now}/>}
+            bulkBar={<BulkAttendBar events={bulkEvents}/>}
+            list={{
+                events: listEvents,
+                onRespond: respond,
+                optimistic,
+                currentUserId,
                 // What each card's roster disclosure opens onto (ADR-0030 §5-§7). Injected from here
                 // because the member list is a widget and the card is an entity — and because the
                 // preference is global, so one store drives every card.
-                defaultRosterOpen={defaultExpanded}
-                rosterPanel={(event) => (
+                defaultRosterOpen: defaultExpanded,
+                rosterPanel: (event) => (
                     <EventRosterPanel
                         event={event}
                         view={view}
                         currentUserId={currentUserId}
                         detailHref={routes.event(event.id)}
                     />
-                )}
+                ),
                 // A rendered hero IS loaded data — it was pulled out of this very list — so an empty
                 // list beneath it means "nothing else", never a failure. Withholding the flags keeps
                 // the list from painting a skeleton or an error over a page that is plainly fine.
-                isLoading={heroEvent ? false : isLoading}
-                error={heroEvent ? undefined : error}
-                now={now}
-                emptyMessage={emptyEventsMessage({
+                isLoading: heroEvent ? false : isLoading,
+                error: heroEvent ? undefined : error,
+                now,
+                emptyMessage: emptyEventsMessage({
                     hasHero: heroEvent !== null,
                     showPast,
                     activeTypeIds,
                     allTypeIds,
                     activeStates,
                     activeTurnouts,
-                })}
-            />
-        </div>
+                }),
+            }}
+        />
     )
 }

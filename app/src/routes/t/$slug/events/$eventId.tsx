@@ -23,6 +23,8 @@ import { EditEventDialog } from '@features/edit-event/ui/EditEventDialog'
 import { DeleteEventDialog } from '@features/edit-event/ui/DeleteEventDialog'
 import { PageHeader } from '@widgets/page-header/ui/PageHeader'
 import { useTeamRoutes } from '@shared/lib/team-routes'
+import { PrototypeSwitcher, usePrototypeVariant } from '@shared/ui/PrototypeSwitcher'
+import { LabelInventory } from '@entities/event/ui/prototype/LabelInventory'
 
 export const Route = createFileRoute('/t/$slug/events/$eventId')({
   component: EventDetailPage,
@@ -35,6 +37,8 @@ function EventDetailPage() {
   const currentUserId = useUserStore((s) => s.userId)
   const isAdmin = useUserStore((s) => s.role) === 'ADMIN'
   const { mutate, isPending } = useSetAttendance()
+  // PROTOTYPE #339 — labels on this page. See UI.md / .claude/skills/prototype.
+  const variant = usePrototypeVariant(['A', 'B', 'C'] as const)
   // The roster bar pins directly beneath the sticky PageHeader; its offset is the header var plus the
   // sub-header's measured height, so it stacks without a magic pixel (the offset the PageHeader
   // widget was created to kill). Measured, not hardcoded, so a wrapped title can't overlap it.
@@ -106,6 +110,9 @@ function EventDetailPage() {
 
   return (
     <div>
+      {/* PROTOTYPE #339 — surfaces the label treatment for the active variant. Throwaway. */}
+      <LabelInventory variant={variant} />
+
       {/* Sticky sub-header — offset comes from --header-height via PageHeader, not a magic pixel.
           Wrapped so its height can be measured for the roster bar that pins directly beneath it. */}
       <div ref={subHeaderRef}>
@@ -156,10 +163,14 @@ function EventDetailPage() {
         </div>
       )}
 
-      {/* Your Response */}
+      {/* Your Response — PROTOTYPE #339: A keeps the caps label, B re-sets it sentence-case, C drops
+          it (the three buttons underneath are self-evidently "your response"). */}
       {currentUserId && (
         <div className="mt-6">
-          <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground">Your response</p>
+          {variant === 'A' && (
+            <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground">Your response</p>
+          )}
+          {variant === 'B' && <p className="mb-3 text-[11px] font-semibold text-muted-foreground">Your response</p>}
           {/* Named group so this primary control is distinct from the per-row controls in the list
               below — the viewer now has a row of their own there too. */}
           <div role="group" aria-label="Your response">
@@ -174,18 +185,25 @@ function EventDetailPage() {
         </div>
       )}
 
-      {/* Description */}
+      {/* Description — PROTOTYPE #339: C drops the label, the paragraph reads on its own. */}
       {event.description && (
         <div className="mt-6 rounded-2xl border border-border/40 bg-card p-4 shadow-sm">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground">Description</p>
+          {variant === 'A' && (
+            <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground">Description</p>
+          )}
+          {variant === 'B' && <p className="mb-2 text-[11px] font-semibold text-muted-foreground">Description</p>}
           <p className="text-sm leading-relaxed text-muted-foreground">{event.description}</p>
         </div>
       )}
 
-      {/* Additional info — the event's References (Nevobo, match form, …), shown in full */}
+      {/* Additional info — the event's References (Nevobo, match form, …), shown in full.
+          PROTOTYPE #339: C drops the label, the link chips read on their own. */}
       {event.references.length > 0 && (
         <div className="mt-6 rounded-2xl border border-border/40 bg-card p-4 shadow-sm">
-          <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground">Additional info</p>
+          {variant === 'A' && (
+            <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground">Additional info</p>
+          )}
+          {variant === 'B' && <p className="mb-3 text-[11px] font-semibold text-muted-foreground">Additional info</p>}
           <ReferenceChips references={event.references} max={event.references.length} />
         </div>
       )}
@@ -214,6 +232,15 @@ function EventDetailPage() {
           <DeleteEventDialog eventId={event.id} title={event.title} siblings={siblings} />
         </div>
       )}
+
+      {/* PROTOTYPE #339 — throwaway, dev-only. See .claude/skills/prototype/UI.md. */}
+      <PrototypeSwitcher
+        variants={[
+          { key: 'A', name: 'Current' },
+          { key: 'B', name: 'Sentence case' },
+          { key: 'C', name: 'Only informative labels' },
+        ]}
+      />
     </div>
   )
 }

@@ -1,5 +1,6 @@
 import type { EventRoster } from '@shared/api/events'
 import { rosterChip, rosterRows, type RosterTone } from '../lib/roster-view'
+import { usePrototypeVariant } from '@shared/ui/PrototypeSwitcher'
 
 interface RosterBarProps {
   roster: EventRoster
@@ -40,6 +41,9 @@ const TONE_TEXT: Record<RosterTone, string> = {
  * caught up with the card: the card said "4 more needed", you tapped through, and the number was gone.
  */
 export function RosterBar({ roster }: RosterBarProps) {
+  // PROTOTYPE #339 — variant B re-sets "Roster" in sentence case; variant C drops it outright (the
+  // bar + fraction already say "roster"). See UI.md.
+  const variant = usePrototypeVariant(['A', 'B', 'C'] as const)
   const rows = rosterRows(roster).filter((row) => row.pips.length > 0)
   const byPosition = rows.length > 0
 
@@ -64,8 +68,15 @@ export function RosterBar({ roster }: RosterBarProps) {
 
   return (
     <div className="border-b border-border/40 bg-gradient-to-b from-card to-background px-4 py-3">
-      <div className={`flex items-baseline justify-between gap-3 ${pct == null && !byPosition ? '' : 'mb-2'}`}>
-        <span className="text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground">Roster</span>
+      <div
+        className={`flex items-baseline gap-3 ${variant === 'C' ? 'justify-end' : 'justify-between'} ${pct == null && !byPosition ? '' : 'mb-2'}`}
+      >
+        {variant !== 'C' &&
+          (variant === 'B' ? (
+            <span className="text-[11px] font-semibold text-muted-foreground">Roster</span>
+          ) : (
+            <span className="text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground">Roster</span>
+          ))}
         <span className="flex items-baseline gap-1.5">
           <span className={`font-display text-sm font-bold tabular-nums ${met ? 'text-green-dark' : 'text-foreground'}`}>
             {headline}

@@ -3,6 +3,7 @@ import { Link } from '@tanstack/react-router'
 import { ChevronDown, Repeat } from 'lucide-react'
 import type { SeriesPeek as SeriesPeekModel, SeriesPeekEntry } from '../lib/series-peek'
 import { useTeamRoutes } from '@shared/lib/team-routes'
+import { usePrototypeVariant } from '@shared/ui/PrototypeSwitcher'
 
 interface SeriesPeekProps {
   peek: SeriesPeekModel
@@ -14,7 +15,13 @@ function formatOccurrence(iso: string): string {
 
 function Occurrence({ entry }: { entry: SeriesPeekEntry }) {
   const routes = useTeamRoutes()
+  // PROTOTYPE #339 — the "This one" chip stays in every variant; B/C re-set it in sentence case.
+  const variant = usePrototypeVariant(['A', 'B', 'C'] as const)
   const label = formatOccurrence(entry.startTime)
+  const thisOneClassName =
+    variant === 'A'
+      ? 'ml-auto rounded-full bg-blue/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-blue'
+      : 'ml-auto rounded-full bg-blue/15 px-2 py-0.5 text-[11px] font-semibold text-blue'
   const content = (
     <div
       className={[
@@ -24,11 +31,7 @@ function Occurrence({ entry }: { entry: SeriesPeekEntry }) {
     >
       <span className={`h-2 w-2 shrink-0 rounded-full ${entry.isCurrent ? 'bg-blue' : 'bg-blue/40'}`} />
       {label}
-      {entry.isCurrent && (
-        <span className="ml-auto rounded-full bg-blue/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-blue">
-          This one
-        </span>
-      )}
+      {entry.isCurrent && <span className={thisOneClassName}>This one</span>}
     </div>
   )
   // The current occurrence is the page you're on — the rest link to their own detail.

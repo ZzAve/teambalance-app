@@ -5,6 +5,7 @@ import { Avatar } from '@shared/ui/avatar'
 import { AttendanceToggle, type AttendanceState } from '@features/attendance-toggle/ui/AttendanceToggle'
 import { groupAttendeesByPosition, type AttendeePositionGroup } from '@entities/event/lib/attendee-groups'
 import { attributionName } from '@entities/event/lib/attribution'
+import { usePrototypeVariant } from '@shared/ui/PrototypeSwitcher'
 
 interface AttendeeListProps {
   /** Everyone on the event — every position section lists all its members, whatever their answer. */
@@ -108,10 +109,17 @@ function PositionGroup({
   group: AttendeePositionGroup
   renderRow: (a: AttendanceEntry) => React.ReactNode
 }) {
+  // PROTOTYPE #339 — position group headings partition the list (that's information), so they stay
+  // in every variant; B/C re-set them in sentence case. See UI.md.
+  const variant = usePrototypeVariant(['A', 'B', 'C'] as const)
+  const headingClassName =
+    variant === 'A'
+      ? 'text-[11px] font-bold uppercase tracking-[0.09em] text-muted-foreground'
+      : 'text-[11px] font-semibold text-muted-foreground'
   return (
     <div>
       <div className="flex items-center justify-between px-3 pb-1 pt-3">
-        <h3 className="text-[11px] font-bold uppercase tracking-[0.09em] text-muted-foreground">{group.positionLabel}</h3>
+        <h3 className={headingClassName}>{group.positionLabel}</h3>
         {group.countLabel && (
           <span className="text-[11px] font-bold tabular-nums text-foreground/70">{group.countLabel}</span>
         )}

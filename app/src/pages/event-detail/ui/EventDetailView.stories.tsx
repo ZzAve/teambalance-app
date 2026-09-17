@@ -93,7 +93,7 @@ const meta = {
   title: 'pages/event-detail/EventDetailView',
   component: EventDetailView,
   decorators: shell.decorators,
-  parameters: { ...shell.parameters, chromatic: { modes: pageModes } },
+  parameters: shell.parameters,
   args: {
     backTo: SHELL_ROUTES.events,
     event: EVENT,
@@ -113,6 +113,8 @@ export default meta
 type Story = StoryObj<typeof meta>
 
 export const Data: Story = {
+  // The page's picture, in dark and once at desktop width too (ADR-0031 §4-§5).
+  parameters: { chromatic: { modes: pageModes } },
   play: async ({ canvas }) => {
     await expect(canvas.getByRole('link', { name: 'Back to events' })).toHaveAttribute('href', SHELL_ROUTES.events)
     await expect(canvas.getByRole('heading', { level: 1, name: 'Training — Court 2' })).toBeInTheDocument()

@@ -46,7 +46,7 @@ const meta = {
   title: 'pages/team/TeamPageView',
   component: TeamPageView,
   decorators: shell.decorators,
-  parameters: { ...shell.parameters, chromatic: { modes: pageModes } },
+  parameters: shell.parameters,
   args: {
     isAdmin: true,
     inviteAction: <Button variant="outline">Invite Link</Button>,
@@ -59,6 +59,8 @@ export default meta
 type Story = StoryObj<typeof meta>
 
 export const Data: Story = {
+  // The page's picture, in dark and once at desktop width too (ADR-0031 §4-§5).
+  parameters: { chromatic: { modes: pageModes } },
   play: async ({ canvas }) => {
     await expect(canvas.getByRole('heading', { name: 'Team' })).toBeInTheDocument()
     await expect(canvas.getByRole('button', { name: 'Invite Link' })).toBeInTheDocument()

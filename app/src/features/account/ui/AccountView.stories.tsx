@@ -42,7 +42,7 @@ const meta = {
   title: 'features/account/AccountView',
   component: AccountView,
   decorators: shell.decorators,
-  parameters: { ...shell.parameters, chromatic: { modes: pageModes } },
+  parameters: shell.parameters,
   args: {
     email: 'alex@example.com',
     sections: WITH_TEAM,
@@ -60,6 +60,8 @@ type Story = StoryObj<typeof meta>
 
 // A member of one team: the full list.
 export const Data: Story = {
+  // The page's picture, in dark and once at desktop width too (ADR-0031 §4-§5).
+  parameters: { chromatic: { modes: pageModes } },
   play: async ({ canvas }) => {
     await expect(canvas.getByRole('button', { name: 'Log out' })).toBeInTheDocument()
     await expect(canvas.getByLabelText('Display name')).toHaveValue('Alex')

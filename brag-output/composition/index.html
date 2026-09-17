@@ -1,0 +1,871 @@
+<!doctype html>
+<html lang="en" data-resolution="landscape">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <title>TeamBalance — brag</title>
+    <script src="assets/js/gsap.min.js"></script>
+    <style>
+      @font-face {
+        font-family: "Grandstander";
+        src: url("assets/fonts/grandstander.woff2") format("woff2");
+        font-weight: 100 900;
+        font-style: normal;
+        font-display: block;
+      }
+      @font-face {
+        font-family: "DM Sans";
+        src: url("assets/fonts/dm-sans.woff2") format("woff2");
+        font-weight: 100 1000;
+        font-style: normal;
+        font-display: block;
+      }
+
+      :root {
+        --bg: #f8f6f0;
+        --card: #fefdfb;
+        --text: #1e293b;
+        --text2: #64748b;
+        --ring: #94a3b8;
+        --blue: #225c9c;
+        --green: #249e6c;
+        --green-dark: #1d7f57;
+        --gold: #f4b400;
+        --gold-dark: #c89200;
+        --red: #d93025;
+        --red-dark: #b71c1c;
+        --radius-sm: 8px;
+        --radius-md: 12px;
+        --radius-lg: 16px;
+        --shadow-card: 0 2px 8px rgba(120, 80, 40, 0.06);
+        --shadow-lg: 0 10px 15px rgba(120, 80, 40, 0.1);
+        --shadow-hero: 0 18px 40px rgba(120, 80, 40, 0.16);
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        background: var(--bg);
+      }
+      #root {
+        width: 100%;
+        height: 100%;
+        position: relative;
+        overflow: hidden;
+        background: var(--bg);
+        font-family: "DM Sans", sans-serif;
+        color: var(--text);
+        -webkit-font-smoothing: antialiased;
+      }
+
+      .clip {
+        position: absolute;
+        inset: 0;
+      }
+      .inner {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+      }
+      /* initial hidden states live in CSS, not a tl.set at position 0 */
+      #s2-inner,
+      #s3-inner,
+      #s4-inner,
+      #s5-inner {
+        opacity: 0;
+      }
+      #s1 {
+        z-index: 1;
+      }
+      #s2 {
+        z-index: 2;
+      }
+      #s3 {
+        z-index: 3;
+      }
+      #s4 {
+        z-index: 4;
+      }
+      #s5 {
+        z-index: 5;
+      }
+
+      /* ---------- Scene 1 : the hook ---------- */
+      .hook-line {
+        font-family: "Grandstander", cursive;
+        font-weight: 800;
+        font-size: 104px;
+        line-height: 1.12;
+        letter-spacing: -0.01em;
+        text-align: center;
+      }
+      #s1-l2 {
+        color: var(--red);
+        margin-top: 18px;
+      }
+
+      /* ---------- shared card chrome ---------- */
+      .card {
+        width: 1180px;
+        background: var(--card);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-lg);
+        padding: 40px 44px;
+      }
+      .card-top {
+        display: flex;
+        gap: 28px;
+        align-items: flex-start;
+      }
+      .chit {
+        width: 116px;
+        height: 116px;
+        flex: 0 0 116px;
+        border-radius: var(--radius-md);
+        background: var(--blue);
+        color: #fff;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        line-height: 1;
+      }
+      .chit .dow {
+        font-size: 22px;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+      }
+      .chit .day {
+        font-family: "Grandstander", cursive;
+        font-size: 48px;
+        font-weight: 800;
+        margin: 4px 0;
+      }
+      .chit .mon {
+        font-size: 22px;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+      }
+      .card-main {
+        flex: 1;
+        min-width: 0;
+      }
+      .tagrow {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 14px;
+      }
+      .badge {
+        font-size: 20px;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        padding: 7px 16px;
+        border-radius: var(--radius-full, 9999px);
+        background: rgba(34, 92, 156, 0.12);
+        color: var(--blue);
+      }
+      .rel {
+        font-size: 24px;
+        color: var(--text2);
+      }
+      .ev-title {
+        font-size: 44px;
+        font-weight: 700;
+        letter-spacing: -0.01em;
+        line-height: 1.15;
+      }
+      .meta {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-top: 14px;
+        font-size: 26px;
+        color: var(--text2);
+      }
+      .meta .t {
+        font-weight: 700;
+        color: var(--text);
+      }
+      .ico {
+        width: 26px;
+        height: 26px;
+        flex: none;
+        stroke: var(--text2);
+        stroke-width: 2;
+        fill: none;
+      }
+      .rule {
+        height: 1px;
+        background: rgba(30, 41, 59, 0.1);
+        margin: 30px 0 26px;
+      }
+      .answer-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 27px;
+        font-weight: 700;
+        padding: 13px 24px;
+        border-radius: 9999px;
+      }
+      .pill-in {
+        background: rgba(36, 158, 108, 0.14);
+        color: var(--green-dark);
+      }
+      .pill-wait {
+        background: rgba(100, 116, 139, 0.14);
+        color: #4b5563;
+      }
+      .chip {
+        font-size: 27px;
+        font-weight: 700;
+        padding: 13px 24px;
+        border-radius: 9999px;
+      }
+      .chip-bad {
+        background: rgba(217, 48, 37, 0.12);
+        color: var(--red-dark);
+      }
+      .chip-good {
+        background: rgba(36, 158, 108, 0.14);
+        color: var(--green-dark);
+      }
+
+      /* ---------- roster panel ---------- */
+      .panel {
+        margin-top: 26px;
+        border-top: 1px solid rgba(30, 41, 59, 0.1);
+        padding-top: 26px;
+      }
+      .panel-head {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        margin-bottom: 22px;
+      }
+      .panel-head .lbl {
+        font-size: 24px;
+        font-weight: 700;
+        letter-spacing: 0.1em;
+        color: var(--text2);
+      }
+      .panel-head .cov {
+        font-size: 28px;
+        font-weight: 700;
+        color: var(--text);
+      }
+      .prow {
+        display: flex;
+        align-items: center;
+        gap: 22px;
+        padding: 11px 0;
+      }
+      .pname {
+        font-size: 29px;
+        font-weight: 500;
+        width: 240px;
+      }
+      .pips {
+        display: flex;
+        gap: 11px;
+        flex: 1;
+      }
+      .pip {
+        width: 26px;
+        height: 26px;
+        border-radius: 50%;
+      }
+      .pip-full {
+        background: var(--green);
+      }
+      .pip-open {
+        border: 3px solid var(--ring);
+      }
+      .pip-miss {
+        border: 3px solid var(--red);
+      }
+      .pcount {
+        font-size: 27px;
+        font-weight: 700;
+        color: var(--text2);
+        width: 70px;
+        text-align: right;
+      }
+      .nudge {
+        margin-top: 22px;
+        font-size: 31px;
+        font-weight: 500;
+        color: var(--red-dark);
+      }
+
+      /* ---------- Scene 3 : attendee row + cursor ---------- */
+      .att-row {
+        display: flex;
+        align-items: center;
+        gap: 22px;
+        margin-top: 8px;
+      }
+      .avatar {
+        width: 62px;
+        height: 62px;
+        border-radius: 50%;
+        background: rgba(34, 92, 156, 0.14);
+        color: var(--blue);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 25px;
+        font-weight: 700;
+        flex: none;
+      }
+      .att-name {
+        font-size: 31px;
+        font-weight: 500;
+        flex: 1;
+      }
+      .att-pos {
+        font-size: 25px;
+        color: var(--text2);
+        margin-left: 14px;
+      }
+      .toggle {
+        display: flex;
+        gap: 12px;
+        background: rgba(30, 41, 59, 0.05);
+        border-radius: 9999px;
+        padding: 7px;
+      }
+      .tbtn {
+        font-size: 26px;
+        font-weight: 700;
+        padding: 11px 24px;
+        border-radius: 9999px;
+        color: var(--text2);
+      }
+      .tbtn-on {
+        background: var(--green);
+        color: #fff;
+      }
+      /* the pill and the toggle occupy one slot so swapping them shifts no layout */
+      .swap {
+        position: relative;
+        width: 400px;
+        height: 62px;
+        flex: none;
+      }
+      .swap > * {
+        position: absolute;
+        right: 0;
+        top: 50%;
+        margin-top: -31px;
+      }
+      .swap .pill {
+        margin-top: -27px;
+      }
+      #s3-toggle {
+        opacity: 0;
+      }
+      #cursor {
+        position: absolute;
+        left: 1187px;
+        top: 627px;
+        width: 44px;
+        height: 44px;
+        z-index: 40;
+        pointer-events: none;
+      }
+      #cursor svg {
+        width: 100%;
+        height: 100%;
+        filter: drop-shadow(0 3px 5px rgba(120, 80, 40, 0.34));
+      }
+
+      /* ---------- Scene 4 : the list ---------- */
+      .phone {
+        width: 1180px;
+        display: flex;
+        flex-direction: column;
+        gap: 22px;
+      }
+      .hero {
+        background: linear-gradient(135deg, #2aa877 0%, #218f61 100%);
+        border-radius: 20px;
+        box-shadow: var(--shadow-hero);
+        padding: 34px 40px;
+        color: #fff;
+        position: relative;
+        overflow: hidden;
+      }
+      .hero .nx {
+        font-size: 22px;
+        font-weight: 700;
+        letter-spacing: 0.18em;
+      }
+      .hero h2 {
+        font-family: "Grandstander", cursive;
+        font-size: 52px;
+        font-weight: 800;
+        margin: 10px 0 12px;
+      }
+      .hero .hmeta {
+        font-size: 26px;
+        opacity: 0.95;
+      }
+      .hero .going {
+        font-size: 25px;
+        opacity: 0.92;
+        margin-top: 10px;
+      }
+      .hero-away {
+        position: absolute;
+        top: 34px;
+        right: 40px;
+        text-align: right;
+        line-height: 1.05;
+      }
+      .hero-away .d {
+        font-family: "Grandstander", cursive;
+        font-size: 44px;
+        font-weight: 800;
+      }
+      .hero-away .a {
+        font-size: 19px;
+        font-weight: 700;
+        letter-spacing: 0.16em;
+        opacity: 0.9;
+      }
+      .hero-btns {
+        display: flex;
+        gap: 18px;
+        margin-top: 24px;
+      }
+      .hbtn {
+        flex: 1;
+        text-align: center;
+        font-size: 28px;
+        font-weight: 700;
+        padding: 17px 0;
+        border-radius: 14px;
+      }
+      .hbtn-y {
+        background: #fff;
+        color: var(--green-dark);
+      }
+      .hbtn-n {
+        background: rgba(20, 90, 60, 0.5);
+        color: #fff;
+      }
+      .mini {
+        background: var(--card);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-card);
+        padding: 22px 28px;
+        display: flex;
+        align-items: center;
+        gap: 24px;
+      }
+      .mini .mchit {
+        width: 78px;
+        height: 78px;
+        flex: none;
+        border-radius: 10px;
+        color: #fff;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        line-height: 1;
+      }
+      .mchit .d {
+        font-family: "Grandstander", cursive;
+        font-size: 33px;
+        font-weight: 800;
+      }
+      .mchit .m {
+        font-size: 16px;
+        font-weight: 700;
+        letter-spacing: 0.1em;
+        margin-top: 3px;
+      }
+      .mini .mbody {
+        flex: 1;
+        min-width: 0;
+      }
+      .mini .mbadge {
+        font-size: 17px;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        padding: 5px 12px;
+        border-radius: 9999px;
+      }
+      .mini .mtitle {
+        font-size: 33px;
+        font-weight: 700;
+        margin-top: 9px;
+      }
+      .caption {
+        margin-top: 34px;
+        font-size: 38px;
+        font-weight: 500;
+        color: var(--text2);
+        text-align: center;
+      }
+
+      /* ---------- Scene 5 : outro ---------- */
+      #wordmark {
+        font-family: "Grandstander", cursive;
+        font-weight: 800;
+        font-size: 138px;
+        letter-spacing: -0.02em;
+        color: var(--blue);
+      }
+      #wordmark .g {
+        color: var(--green);
+      }
+      #s5-line {
+        margin-top: 26px;
+        font-size: 46px;
+        font-weight: 500;
+        color: var(--text2);
+      }
+      #s5-url {
+        margin-top: 34px;
+        font-size: 30px;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        color: var(--blue);
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="21"
+      data-width="1920"
+      data-height="1080"
+    >
+      <!-- ============ SCENE 1 — the hook ============ -->
+      <section id="s1" class="clip" data-start="0" data-duration="4.35">
+        <div class="inner" id="s1-inner">
+          <div class="hook-line" id="s1-l1">Six said yes.</div>
+          <div class="hook-line" id="s1-l2">You still don&rsquo;t have a team.</div>
+        </div>
+      </section>
+
+      <!-- ============ SCENE 2 — the card already knew ============ -->
+      <section id="s2" class="clip" data-start="4" data-duration="6.85">
+        <div class="inner" id="s2-inner">
+          <div class="card" id="s2-card">
+            <div class="card-top">
+              <div class="chit">
+                <div class="dow">VR</div>
+                <div class="day">18</div>
+                <div class="mon">SEP</div>
+              </div>
+              <div class="card-main">
+                <div class="tagrow">
+                  <span class="badge">MATCH</span>
+                  <span class="rel">in 4 days</span>
+                </div>
+                <div class="ev-title">Setpoint VT &mdash; VC Zaanstad D2</div>
+                <div class="meta">
+                  <svg class="ico" viewBox="0 0 24 24">
+                    <circle cx="12" cy="12" r="9" />
+                    <path d="M12 7v5l3 2" />
+                  </svg>
+                  <span class="t">19:00</span>
+                  <span>&middot;</span>
+                  <svg class="ico" viewBox="0 0 24 24">
+                    <path d="M12 21s7-6.2 7-11a7 7 0 1 0-14 0c0 4.8 7 11 7 11z" />
+                    <circle cx="12" cy="10" r="2.6" />
+                  </svg>
+                  <span>Sporthal De Vliet</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="rule"></div>
+
+            <div class="answer-row">
+              <span class="pill pill-in" id="s2-pill">
+                <svg class="ico" viewBox="0 0 24 24" style="stroke: #1d7f57">
+                  <path d="M4 12.5l5 5L20 6.5" />
+                </svg>
+                You&rsquo;re in
+              </span>
+              <span class="chip chip-bad" id="s2-chip">Missing a position</span>
+            </div>
+
+            <div class="panel" id="s2-panel">
+              <div class="panel-head" id="s2-phead">
+                <span class="lbl">POSITIONS</span>
+                <span class="cov">2 of 3 covered</span>
+              </div>
+
+              <div class="prow" id="s2-r1">
+                <span class="pname">Setter</span>
+                <span class="pips">
+                  <i class="pip pip-full"></i><i class="pip pip-full"></i>
+                </span>
+                <span class="pcount">2/2</span>
+              </div>
+              <div class="prow" id="s2-r2">
+                <span class="pname">Outside</span>
+                <span class="pips">
+                  <i class="pip pip-full"></i><i class="pip pip-full"></i>
+                </span>
+                <span class="pcount">2/2</span>
+              </div>
+              <div class="prow" id="s2-r3">
+                <span class="pname">Middle</span>
+                <span class="pips"><i class="pip pip-miss"></i></span>
+                <span class="pcount">0/1</span>
+              </div>
+
+              <div class="nudge" id="s2-nudge">
+                Middle still has no one &mdash; the one to chase.
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ SCENE 3 — one tap ============ -->
+      <section id="s3" class="clip" data-start="10.5" data-duration="4.05">
+        <div class="inner" id="s3-inner">
+          <div class="card" id="s3-card">
+            <!-- same card as Scene 2, so the chip flip reads as this event being fixed -->
+            <div class="ev-title">Setpoint VT &mdash; VC Zaanstad D2</div>
+
+            <div class="answer-row" style="margin-top: 22px">
+              <span class="pill pill-in">
+                <svg class="ico" viewBox="0 0 24 24" style="stroke: #1d7f57">
+                  <path d="M4 12.5l5 5L20 6.5" />
+                </svg>
+                You&rsquo;re in
+              </span>
+              <span class="chip chip-bad" id="s3-chip">Missing a position</span>
+            </div>
+
+            <div class="rule"></div>
+
+            <div class="att-row">
+              <span class="avatar">MJ</span>
+              <span class="att-name">Mees Jansen<span class="att-pos">Middle</span></span>
+
+              <span class="swap" data-layout-allow-overlap>
+                <span class="pill pill-wait" id="s3-wait">Awaiting</span>
+                <span class="toggle" id="s3-toggle">
+                  <span class="tbtn" id="s3-going">Going</span>
+                  <span class="tbtn">Maybe</span>
+                  <span class="tbtn">Can&rsquo;t go</span>
+                </span>
+              </span>
+            </div>
+          </div>
+
+          <div id="cursor">
+            <svg viewBox="0 0 24 24">
+              <path
+                d="M5 2l14 9-6.2 1.4L9.6 19z"
+                fill="#1e293b"
+                stroke="#fefdfb"
+                stroke-width="1.4"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ SCENE 4 — the whole season ============ -->
+      <section id="s4" class="clip" data-start="14.2" data-duration="3.35">
+        <div class="inner" id="s4-inner">
+          <div class="phone">
+            <div class="hero" id="s4-hero">
+              <div class="hero-away">
+                <div class="d">1d</div>
+                <div class="a">AWAY</div>
+              </div>
+              <div class="nx">NEXT UP</div>
+              <h2>Training</h2>
+              <div class="hmeta">di 15 sep &middot; 20:00 &middot; Sporthal De Vliet</div>
+              <div class="going">4 going &middot; you&rsquo;re in</div>
+              <div class="hero-btns">
+                <span class="hbtn hbtn-y">I&rsquo;m in</span>
+                <span class="hbtn hbtn-n">Can&rsquo;t make it</span>
+              </div>
+            </div>
+
+            <div class="mini" id="s4-c1">
+              <span class="mchit" style="background: #225c9c">
+                <span class="d">18</span><span class="m">SEP</span>
+              </span>
+              <span class="mbody">
+                <span class="mbadge" style="background: rgba(34, 92, 156, 0.12); color: #225c9c">MATCH</span>
+                <div class="mtitle">Setpoint VT &mdash; VC Zaanstad D2</div>
+              </span>
+            </div>
+            <div class="mini" id="s4-c2">
+              <span class="mchit" style="background: #249e6c">
+                <span class="d">22</span><span class="m">SEP</span>
+              </span>
+              <span class="mbody">
+                <span class="mbadge" style="background: rgba(36, 158, 108, 0.14); color: #1d7f57">TRAINING</span>
+                <div class="mtitle">Training</div>
+              </span>
+            </div>
+            <div class="mini" id="s4-c3">
+              <span class="mchit" style="background: #f4b400">
+                <span class="d">25</span><span class="m">SEP</span>
+              </span>
+              <span class="mbody">
+                <span class="mbadge" style="background: rgba(244, 180, 0, 0.18); color: #c89200">OTHER</span>
+                <div class="mtitle">Team dinner</div>
+              </span>
+            </div>
+          </div>
+
+          <div class="caption" id="s4-cap">Every training, match and team dinner.</div>
+        </div>
+      </section>
+
+      <!-- ============ SCENE 5 — outro ============ -->
+      <section id="s5" class="clip" data-start="17.2" data-duration="3.8">
+        <div class="inner" id="s5-inner">
+          <div id="wordmark">Team<span class="g">Balance</span></div>
+          <div id="s5-line">Know your lineup before you get to the hall.</div>
+          <div id="s5-url">teambalance.nl</div>
+        </div>
+      </section>
+
+      <!-- ============ audio ============ -->
+      <audio id="bgm" src="assets/audio/music.mp3" data-start="0" data-duration="21" data-volume="1"></audio>
+      <audio id="sfx-t1" src="assets/sfx/tick.ogg" data-start="5.8" data-duration="0.057" data-volume="0.34"></audio>
+      <audio id="sfx-t2" src="assets/sfx/tick.ogg" data-start="6.34" data-duration="0.057" data-volume="0.34"></audio>
+      <audio id="sfx-t3" src="assets/sfx/tick.ogg" data-start="6.86" data-duration="0.057" data-volume="0.34"></audio>
+      <audio id="sfx-click" src="assets/sfx/click.ogg" data-start="12.2" data-duration="0.056" data-volume="0.5"></audio>
+      <audio id="sfx-ok" src="assets/sfx/confirm.ogg" data-start="12.65" data-duration="0.123" data-volume="0.42"></audio>
+    </div>
+
+    <script>
+      const EASE = "power3.out";
+      const SPRING = "back.out(1.7)"; // the app's cubic-bezier(.34,1.56,.64,1) signature
+      const tl = gsap.timeline({ paused: true });
+
+      /* ---------- scene crossfades (0.35s) ---------- */
+      tl.to("#s1-inner", { opacity: 0, duration: 0.35, ease: "none" }, 4.0);
+      tl.to("#s2-inner", { opacity: 1, duration: 0.35, ease: "none" }, 4.0);
+      tl.to("#s2-inner", { opacity: 0, duration: 0.35, ease: "none" }, 10.5);
+      tl.to("#s3-inner", { opacity: 1, duration: 0.35, ease: "none" }, 10.5);
+      tl.to("#s3-inner", { opacity: 0, duration: 0.35, ease: "none" }, 14.2);
+      tl.to("#s4-inner", { opacity: 1, duration: 0.35, ease: "none" }, 14.2);
+      tl.to("#s4-inner", { opacity: 0, duration: 0.35, ease: "none" }, 17.2);
+      tl.to("#s5-inner", { opacity: 1, duration: 0.35, ease: "none" }, 17.2);
+
+      /* ---------- S1 : hook ---------- */
+      tl.fromTo("#s1-l1", { y: 34, opacity: 0 }, { y: 0, opacity: 1, duration: 0.5, ease: EASE }, 0.3);
+      // line 2 gated to the 1.60s strong cue
+      tl.fromTo("#s1-l2", { y: 30, opacity: 0 }, { y: 0, opacity: 1, duration: 0.45, ease: EASE }, 1.6);
+
+      /* ---------- S2 : the card already knew ---------- */
+      tl.fromTo("#s2-card", { y: 44, opacity: 0 }, { y: 0, opacity: 1, duration: 0.55, ease: EASE }, 4.05);
+      tl.fromTo("#s2-pill", { opacity: 0, x: -14 }, { opacity: 1, x: 0, duration: 0.35, ease: EASE }, 4.45);
+      tl.fromTo("#s2-chip", { opacity: 0, x: 14 }, { opacity: 1, x: 0, duration: 0.35, ease: EASE }, 4.62);
+
+      // the readiness chip opens the panel
+      tl.fromTo("#s2-panel", { opacity: 0, height: 0 }, { opacity: 1, height: "auto", duration: 0.45, ease: EASE }, 5.2);
+      tl.fromTo("#s2-phead", { opacity: 0 }, { opacity: 1, duration: 0.3, ease: EASE }, 5.35);
+
+      // position rows, one per beat — 5.80 / 6.34 / 6.86
+      tl.fromTo("#s2-r1", { opacity: 0, x: -26 }, { opacity: 1, x: 0, duration: 0.34, ease: EASE }, 5.8);
+      tl.fromTo("#s2-r2", { opacity: 0, x: -26 }, { opacity: 1, x: 0, duration: 0.34, ease: EASE }, 6.34);
+      tl.fromTo("#s2-r3", { opacity: 0, x: -26 }, { opacity: 1, x: 0, duration: 0.34, ease: EASE }, 6.86);
+
+      // the nudge line — settles 7.78, holds to 10.5 (2.72s, its reading floor is 2.7s)
+      tl.fromTo("#s2-nudge", { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.4, ease: EASE }, 7.38);
+
+      /* ---------- S3 : one tap ---------- */
+      // cursor rests at the "Going" button; x/y are transform offsets back from there
+      tl.fromTo("#cursor", { x: 364, y: 169, opacity: 0 }, { opacity: 1, duration: 0.25, ease: "none" }, 10.6);
+      tl.fromTo("#s3-toggle", { scale: 0.94 }, { scale: 0.94, duration: 0.01 }, 10.5);
+      tl.fromTo("#s3-card", { y: 24, opacity: 0 }, { y: 0, opacity: 1, duration: 0.4, ease: EASE }, 10.6);
+
+      // cursor travels to the Awaiting pill and taps it open
+      tl.to("#cursor", { x: 231, y: 0, duration: 0.6, ease: "power2.inOut" }, 11.05);
+      tl.to("#cursor", { scale: 0.82, duration: 0.08, ease: "power2.in" }, 11.68);
+      tl.to("#cursor", { scale: 1, duration: 0.14, ease: SPRING }, 11.76);
+      // the pill clears the slot BEFORE the toggle arrives — they never share the frame
+      tl.to("#s3-wait", { opacity: 0, scale: 0.9, duration: 0.14, ease: "power2.in" }, 11.72);
+      tl.to("#s3-toggle", { opacity: 1, scale: 1, duration: 0.22, ease: SPRING }, 11.88);
+
+      // cursor moves onto "Going" and taps — click SFX at 12.20
+      tl.to("#cursor", { x: 0, y: 0, duration: 0.26, ease: "power2.inOut" }, 11.9);
+      tl.to("#cursor", { scale: 0.82, duration: 0.08, ease: "power2.in" }, 12.2);
+      tl.to("#cursor", { scale: 1, duration: 0.14, ease: SPRING }, 12.28);
+      tl.to("#s3-going", { backgroundColor: "#249e6c", color: "#ffffff", duration: 0.22, ease: "power2.out" }, 12.26);
+      tl.to("#cursor", { opacity: 0, duration: 0.22, ease: "none" }, 12.45);
+
+      // the payoff: the readiness chip flips on the 12.65 strong cue
+      tl.to("#s3-chip", { opacity: 0, duration: 0.14, ease: "none" }, 12.55);
+      tl.call(
+        () => {
+          const c = document.getElementById("s3-chip");
+          c.textContent = "Lineup set";
+          c.className = "chip chip-good";
+        },
+        null,
+        12.69
+      );
+      tl.fromTo(
+        "#s3-chip",
+        { opacity: 0, scale: 0.9 },
+        // immediateRender would blank the red chip from frame 0 — it must be visible until the flip
+        { opacity: 1, scale: 1, duration: 0.34, ease: SPRING, immediateRender: false },
+        12.7
+      );
+
+      /* ---------- S4 : the whole season ---------- */
+      tl.fromTo("#s4-hero", { y: 30, opacity: 0 }, { y: 0, opacity: 1, duration: 0.45, ease: EASE }, 14.3);
+      tl.fromTo("#s4-cap", { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.35, ease: EASE }, 14.9);
+      // cards on the beat grid — 14.76 / 15.28 / 15.81
+      tl.fromTo("#s4-c1", { opacity: 0, y: 26 }, { opacity: 1, y: 0, duration: 0.34, ease: EASE }, 14.76);
+      tl.fromTo("#s4-c2", { opacity: 0, y: 26 }, { opacity: 1, y: 0, duration: 0.34, ease: EASE }, 15.28);
+      tl.fromTo("#s4-c3", { opacity: 0, y: 26 }, { opacity: 1, y: 0, duration: 0.34, ease: EASE }, 15.81);
+
+      /* ---------- S5 : outro ---------- */
+      // wordmark on the 17.91 strong cue
+      tl.fromTo("#wordmark", { scale: 0.9, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.5, ease: SPRING }, 17.91);
+      tl.fromTo("#s5-line", { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.35, ease: EASE }, 18.2);
+      tl.fromTo("#s5-url", { opacity: 0 }, { opacity: 1, duration: 0.3, ease: EASE }, 19.2);
+
+      /* ---------- music shaping ---------- */
+      tl.set("#bgm", { volume: 0.55 }, 0);
+      tl.to("#bgm", { volume: 0.32, duration: 0.6, ease: "none" }, 4.0); // duck under the UI scenes
+      tl.to("#bgm", { volume: 0.55, duration: 0.6, ease: "none" }, 14.2); // back up
+      tl.to("#bgm", { volume: 0.62, duration: 0.5, ease: "none" }, 17.2); // lift into the outro
+      tl.to("#bgm", { volume: 0, duration: 1.0, ease: "none" }, 20.0); // fade to silence
+
+      window.__timelines["main"] = tl;
+      tl.seek(0);
+    </script>
+  </body>
+</html>

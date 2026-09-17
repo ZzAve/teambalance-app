@@ -1,0 +1,1 @@
+Built TeamBalance, a team app for amateur clubs. It doesn't just count who said yes — it tells you whether you can actually field a team. "Middle still has no one — the one to chase."

@@ -35,7 +35,9 @@ const server = setupServer(
     if (body.token !== 'valid-token') return new HttpResponse(null, { status: 401 })
     await delay(10)
     session = USER
-    return HttpResponse.json(USER)
+    // Verify answers with the session wrapper: the user, plus what became of an Invite Link the
+    // sign-in was requested from. An ordinary login carries none (#342).
+    return HttpResponse.json({ user: USER, inviteOutcome: undefined })
   }),
   http.get('/api/auth/me', () => (session ? HttpResponse.json(session) : new HttpResponse(null, { status: 401 }))),
   // The team route's onboarding gate reads /members/me; an onboarded member skips get-started and

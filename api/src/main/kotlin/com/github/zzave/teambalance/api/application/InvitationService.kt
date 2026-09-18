@@ -166,16 +166,43 @@ class InvitationService(
      *
      * Returns null for an unknown or expired token — no distinction, to avoid leaking which it is.
      */
-    fun acceptInvitation(token: String, userId: UserId): TeamId? {
+    fun acceptInvitation(token: String, userId: UserId): TeamId? =
+        accept(invitationRepository.findByTokenHash(hashToken(token)), userId)
+
+    /**
+     * Accepts the invitation a Magic Link was requested from, named by id rather than by token (#342).
+     *
+     * The plaintext token never reaches the magic-link record — it holds a reference, so that an
+     * emailed login link carries no join credential of its own — which is why this path cannot go back
+     * through the hash. Same refusal semantics as [acceptInvitation]: null for an invitation that has
+     * since expired, been rotated away, or, for the single-use ADMIN handover link, already been spent.
+     */
+    fun acceptPendingInvitation(invitationId: UUID, userId: UserId): TeamId? =
+        accept(invitationRepository.findById(invitationId), userId)
+
+    /**
+     * The id of the live invitation [token] names, or null when it names none — what a magic-link
+     * request resolves so a dead link is refused before any email is sent (#342).
+     *
+     * Resolution only: nothing is claimed or consumed here. A single-use ADMIN handover link that is
+     * merely requested stays unspent, so the person who actually clicks through is the one who spends
+     * it, and a request never burns a link on someone's behalf.
+     */
+    fun findPendingInvitation(token: String): UUID? =
+        invitationRepository.findByTokenHash(hashToken(token))
+            ?.takeIf { it.expiresAt.isAfter(Instant.now(clock)) }
+            ?.id
+
+    private fun accept(invitation: Invitation?, userId: UserId): TeamId? {
         val now = Instant.now(clock)
-        val invitation = invitationRepository.findByTokenHash(hashToken(token))
+        val claimed = invitation
             ?.takeIf { it.expiresAt.isAfter(now) }
             ?.takeIf { claim(it, now) }
             ?: return null
 
-        teamMemberRepository.addMember(invitation.teamId, userId, invitation.role)
-        activeTeamService.activate(userId, invitation.teamId)
-        return invitation.teamId
+        teamMemberRepository.addMember(claimed.teamId, userId, claimed.role)
+        activeTeamService.activate(userId, claimed.teamId)
+        return claimed.teamId
     }
 
     /**

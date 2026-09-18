@@ -1,5 +1,6 @@
 type RequestMagicLinkRequest {
-    email: String
+    email: String,
+    inviteToken: String?
 }
 
 type VerifyMagicLinkRequest {
@@ -24,12 +25,19 @@ type AuthenticatedUser {
     actAs: ActAs?
 }
 
+// What a magic-link verification produces. `inviteOutcome` is null for an ordinary sign-in, and for one requested from an Invite Link it reports what became of that invite: JOINED, or UNAVAILABLE when the link expired or was rotated between the request and the click. The sign-in itself succeeds either way - landing signed-in but teamless is a legitimate state with its own onboarding hub, so a dead invite no longer withholds the session (amends ADR-0008). Deliberately coarse: accept collapses unknown, expired and spent into one refusal, and this reports on it without being more talkative.
+type VerifiedSession {
+    user: AuthenticatedUser,
+    inviteOutcome: String?
+}
+
 endpoint RequestMagicLink POST RequestMagicLinkRequest /api/auth/magic-link/request -> {
     202 -> Unit
+    404 -> Unit
 }
 
 endpoint VerifyMagicLink POST VerifyMagicLinkRequest /api/auth/magic-link/verify -> {
-    200 -> AuthenticatedUser
+    200 -> VerifiedSession
     401 -> Unit
 }
 

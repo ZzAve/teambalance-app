@@ -16,7 +16,7 @@ function LoginPage() {
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    requestMagicLink.mutate(email, { onSuccess: () => setSent(true) })
+    requestMagicLink.mutate({ email }, { onSuccess: () => setSent(true) })
   }
 
   if (sent) {

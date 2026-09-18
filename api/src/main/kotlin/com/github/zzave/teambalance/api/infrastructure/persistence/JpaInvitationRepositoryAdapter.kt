@@ -23,6 +23,9 @@ class JpaInvitationRepositoryAdapter(
     override fun findByTokenHash(tokenHash: TokenHash): Invitation? =
         jpaRepository.findByTokenHash(tokenHash.value)?.internalize()
 
+    override fun findById(invitationId: UUID): Invitation? =
+        jpaRepository.findById(invitationId).orElse(null)?.internalize()
+
     override fun findActiveByTeam(teamId: TeamId, now: Instant): Invitation? =
         jpaRepository.findFirstByTeamIdAndRoleAndExpiresAtAfter(teamId.value, Role.USER.name, now)?.internalize()
 

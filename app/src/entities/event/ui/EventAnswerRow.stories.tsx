@@ -3,6 +3,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite'
 import { expect, fn, within } from 'storybook/test'
 import type { Event } from '@shared/api/events'
 import { Stack } from '@shared/testing/stack'
+import { appColumn } from '@shared/testing/app-column-decorator'
 import { makeRoster, NO_ROSTER } from '@shared/testing/event-fixtures'
 import { EventAnswerRow } from './EventAnswerRow'
 
@@ -19,12 +20,15 @@ type AttendanceState = Event['myState']
 // injected panel) in one frame and carries the snapshot. `Interactions` is `disableSnapshot`; its
 // play walks every click the old per-branch stories made, including the collapse-on-pick harness
 // that models the container's optimistic update.
-const CARD = 'max-w-md rounded-xl border border-border bg-card p-3.5'
+// The card chrome the row sits in on the events page. No width of its own: the app column
+// decorator on the meta gives it the width the product gives it at each breakpoint.
+const CARD = 'rounded-xl border border-border bg-card p-3.5'
 const LONG_NAME_CARD = 'w-[300px] rounded-xl border border-border bg-card p-3.5'
 
 const meta = {
   title: 'entities/event/EventAnswerRow',
   component: EventAnswerRow,
+  ...appColumn,
   args: { roster: makeRoster(), myState: 'NOT_RESPONDED', onRespond: fn() },
 } satisfies Meta<typeof EventAnswerRow>
 

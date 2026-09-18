@@ -1,6 +1,13 @@
 import type { ReactNode } from 'react'
 import { Link } from '@tanstack/react-router'
 
+/**
+ * The centred content column every in-shell page renders in. Exported so a story can host a
+ * component in the same column the app does, which is what makes a wider viewport show the width
+ * the component actually gets (up to the column's cap) rather than an unbounded stretch.
+ */
+export const APP_COLUMN = 'mx-auto max-w-2xl px-4'
+
 interface AppShellFrameProps {
   /** Top-right identity slot — the live TeamSwitcher in the app, a prop-only view in a story. */
   teamSwitcher: ReactNode
@@ -42,7 +49,7 @@ export function AppShellFrame({ teamSwitcher, banner, nav, children }: AppShellF
       {banner}
       {/* Bottom padding clears the fixed nav (~6rem) plus the home-indicator inset, so the last
           row of content is never hidden behind the bar on notched devices. */}
-      <main className="mx-auto max-w-2xl px-4 py-6 pb-[calc(6rem+env(safe-area-inset-bottom))]">
+      <main className={`${APP_COLUMN} py-6 pb-[calc(6rem+env(safe-area-inset-bottom))]`}>
         {children}
       </main>
       {nav}

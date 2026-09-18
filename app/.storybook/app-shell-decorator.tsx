@@ -24,8 +24,10 @@ export const SHELL_ROUTES = {
  *
  * Needs a router below it for BottomNav's links and active-tab derivation, so use it as
  * `decorators: [withAppShell, withRouter]` and point `parameters.router.initialEntries` at the
- * matching SHELL_ROUTES entry. This lives outside `src/` on purpose: it reaches across FSD layers
- * (shared + features) in a way no production module may.
+ * matching SHELL_ROUTES entry — `appShell(tab)` bundles both, plus the `fullscreen` layout so the
+ * frame sits flush against the viewport like the real one, with no preview padding around it.
+ * This lives outside `src/` on purpose: it reaches across FSD layers (shared + features) in a way
+ * no production module may.
  */
 export const withAppShell: Decorator = (Story) => (
   <AppShellFrame
@@ -40,6 +42,6 @@ export const withAppShell: Decorator = (Story) => (
 export function appShell(tab: keyof typeof SHELL_ROUTES) {
   return {
     decorators: [withAppShell, withRouter] as Decorator[],
-    parameters: { router: { initialEntries: [SHELL_ROUTES[tab]] } },
+    parameters: { layout: 'fullscreen', router: { initialEntries: [SHELL_ROUTES[tab]] } },
   }
 }

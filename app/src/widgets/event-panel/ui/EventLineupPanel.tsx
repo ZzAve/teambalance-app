@@ -1,14 +1,12 @@
 import { useState } from 'react'
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@shared/ui/sheet'
 import type { AttendanceEntry, EventRoster } from '@shared/api/events'
-import { AttendanceToggle } from '@features/attendance-toggle/ui/AttendanceToggle'
+import { AnswerSheet } from '@features/attendance-toggle/ui/AnswerSheet'
 import { MemberChip, OverflowChip, OpenSlotChip } from '@entities/event/ui/MemberChip'
 import { headcountLine, staffNote } from '@entities/event/lib/roster-view'
 import {
   coveredLine,
   lineupRows,
   verdictWord,
-  STATE_WORD,
   type LineupMember,
   type LineupRow,
   type LineupState,
@@ -115,9 +113,9 @@ export function EventLineupPanel({
       {covered && headcount && <p className="mt-3 text-[11.5px] text-muted-foreground">{headcount}</p>}
       {staff && <p className="mt-2 text-[11.5px] text-muted-foreground">{staff}</p>}
 
+      {/* One answer control app-wide — the detail page's attendee list opens this same sheet. */}
       <AnswerSheet
-        member={member}
-        position={memberRow?.label}
+        target={member && { ...member, position: memberRow?.label }}
         pending={pending}
         onRespond={onRespond}
         onClose={() => setAnsweringFor(null)}
@@ -215,51 +213,5 @@ function Cluster({
         <OverflowChip hidden={hidden} expanded={expanded} label={label} onToggle={onToggle} />
       )}
     </span>
-  )
-}
-
-/**
- * The one answer control, reached from any chip. A bottom sheet rather than an inline strip because
- * it is a thumb-height target at the bottom of the screen instead of a 26px circle halfway up it,
- * and because it has room to name whose answer is being changed — which matters, since ADR-0003
- * lets a member change a teammate's.
- */
-function AnswerSheet({
-  member,
-  position,
-  onRespond,
-  onClose,
-  pending,
-}: {
-  member: LineupMember | null
-  position?: string
-  onRespond: (userId: string, state: LineupState) => void
-  onClose: () => void
-  pending?: boolean
-}) {
-  return (
-    <Sheet open={member !== null} onOpenChange={(open) => !open && onClose()}>
-      <SheetContent>
-        {member && (
-          <>
-            <SheetHeader>
-              <SheetTitle>{member.displayName}</SheetTitle>
-              <SheetDescription>
-                {position ? `${position} · ` : ''}currently {STATE_WORD[member.state].toLowerCase()}
-                {!member.isSelf && ' · you are answering for them'}
-              </SheetDescription>
-            </SheetHeader>
-            <AttendanceToggle
-              value={member.state}
-              disabled={pending}
-              onToggle={(state) => {
-                onRespond(member.userId, state)
-                onClose()
-              }}
-            />
-          </>
-        )}
-      </SheetContent>
-    </Sheet>
   )
 }

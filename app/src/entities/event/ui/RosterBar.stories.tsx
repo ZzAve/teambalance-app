@@ -28,7 +28,9 @@ export const OneSpotOpen: Story = {
   play: async ({ canvas }) => {
     await expect(canvas.getByText(/4\/5 spots/)).toBeInTheDocument()
     await expect(canvas.getByText(/1 spot open/)).toBeInTheDocument()
-    await expect(canvas.getByText(/Middle 1\/2/)).toBeInTheDocument()
+    // The bar states the event's verdict and nothing per position: naming Middle here would repeat
+    // what the attendee list already says beside its own heading, three blocks further down.
+    await expect(canvas.queryByText(/Middle/)).not.toBeInTheDocument()
   },
 }
 
@@ -45,7 +47,7 @@ export const Critical: Story = {
   },
   play: async ({ canvas }) => {
     await expect(canvas.getByText(/Missing a position/)).toBeInTheDocument()
-    await expect(canvas.getByText(/Middle 0\/2/)).toBeInTheDocument()
+    await expect(canvas.queryByText(/Middle/)).not.toBeInTheDocument()
   },
 }
 

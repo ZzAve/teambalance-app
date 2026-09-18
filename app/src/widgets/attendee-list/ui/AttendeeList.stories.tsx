@@ -4,11 +4,11 @@ import type { AttendanceEntry } from '@shared/api/events'
 import { makeRoster, NO_ROSTER } from '@shared/testing/event-fixtures'
 import { AttendeeList } from './AttendeeList'
 
-// The event-detail attendance list: no tabs. Everyone shows under their position (Unassigned last),
-// tinted by their answer, each row a collapsed pill that expands to the three-way control — the same
-// disclosure the event card uses. Editing a teammate carries a quiet "Changing …" notice (ADR-0003
-// trust-based). A "set by …" line marks a row a teammate changed. Prop-only apart from which row is
-// open (ADR-0017) — the mutation and its Undo toast live in the route container.
+// The event-detail attendance list: everyone under their position (Unassigned last), tinted by their
+// answer, and any row opens the one answer sheet the event card also opens. Headings lead with the
+// verdict word and demote the fraction, exactly as the card's lineup does. A "set by …" line marks a
+// row a teammate changed. Prop-only apart from which row's sheet is open (ADR-0017) — the mutation
+// and its Undo toast live in the route container.
 const att = (
   userId: string,
   displayName: string,
@@ -59,15 +59,24 @@ type Story = StoryObj<typeof meta>
 
 export const GroupedByPosition: Story = {
   play: async ({ canvas }) => {
-    // Every position with someone gets a heading and the roster's own fraction beside it.
-    await expect(canvas.getByRole('heading', { name: 'Setter' })).toBeInTheDocument()
-    await expect(canvas.getByText('2/2')).toBeInTheDocument()
-    await expect(canvas.getByText('1/2')).toBeInTheDocument() // Middle, one short
+    const heading = (name: string) => within(canvas.getByRole('heading', { name }).parentElement!)
+
+    // Each position's verdict leads and its fraction is demoted — the card's order, the card's words.
+    // Setter's two people are one Going and one Maybe, so the fraction counts the *attending* member
+    // rather than the roster's server-side 2/2: the heading can never contradict the rows beneath it.
+    await expect(heading('Setter').getByText('needs 1 more')).toBeInTheDocument()
+    await expect(heading('Setter').getByText('1/2')).toBeInTheDocument()
+    await expect(heading('Libero').getByText('covered')).toBeInTheDocument()
+    await expect(heading('Libero').getByText('1/1')).toBeInTheDocument()
+
+    // Unassigned is last and carries no verdict — there is nothing for it to fall short of.
     const headings = canvas.getAllByRole('heading').map((h) => h.textContent)
     expect(headings.at(-1)).toContain('Unassigned')
-    // Rows are collapsed: each is a disclosure trigger, and no answer control is on screen yet.
-    await expect(canvas.getByRole('button', { name: /Change Sanne's answer/ })).toBeInTheDocument()
-    await expect(canvas.queryByRole('group')).not.toBeInTheDocument()
+    await expect(heading('Unassigned').queryByText(/covered|needs|spare|nobody/)).not.toBeInTheDocument()
+
+    // Nothing is open: each row is a way into the sheet, and no answer control is on screen yet.
+    await expect(canvas.getByRole('button', { name: /Sanne — Going/ })).toBeInTheDocument()
+    await expect(within(document.body).queryByRole('dialog')).not.toBeInTheDocument()
   },
 }
 
@@ -75,7 +84,7 @@ export const FlatWhenNoPositions: Story = {
   args: { roster: NO_ROSTER, attendees: [att('u-a', 'Sanne', 'Unassigned'), att('u-b', 'Lars', 'Unassigned')] },
   play: async ({ canvas }) => {
     await expect(canvas.queryByRole('heading')).not.toBeInTheDocument()
-    await expect(canvas.getByRole('button', { name: /Change Sanne's answer/ })).toBeInTheDocument()
+    await expect(canvas.getByRole('button', { name: /Sanne — Going/ })).toBeInTheDocument()
   },
 }
 
@@ -114,30 +123,39 @@ export const Attribution: Story = {
 export const EditingTargetsThatMember: Story = {
   args: { attendees: [att('u-bob', 'Bob', 'Setter', { state: 'ATTENDING' })] },
   play: async ({ canvas, args }) => {
-    // Expand Bob's row, then set *his* answer — the write targets Bob, not the viewer.
-    await canvas.getByRole('button', { name: /Change Bob's answer/ }).click()
-    const control = within(canvas.getByRole('group', { name: "Bob's answer" }))
-    await control.getByRole('button', { name: "Can't go" }).click()
+    // Open Bob's row, then set *his* answer — the write targets Bob, not the viewer.
+    await canvas.getByRole('button', { name: /Bob — Going/ }).click()
+    // The sheet is a portal, so it lands on document.body rather than inside the canvas.
+    const sheet = within(await within(document.body).findByRole('dialog'))
+    await sheet.getByRole('button', { name: "Can't go" }).click()
     await expect(args.onRespond).toHaveBeenCalledWith('u-bob', 'ABSENT')
   },
 }
 
-export const ChangingATeammateShowsNotice: Story = {
+export const ChangingATeammateSaysSo: Story = {
   args: { currentUserId: 'u-set1' }, // the viewer is Sanne
-  play: async ({ canvas }) => {
-    // Opening a teammate's control announces whose answer you're about to change.
-    await canvas.getByRole('button', { name: /Change Sofia's answer/ }).click()
-    await expect(canvas.getByText(/Changing/)).toBeInTheDocument()
-    await expect(within(canvas.getByRole('group', { name: "Sofia's answer" })).getByText('Sofia')).toBeInTheDocument()
-    // The viewer's own row gets no such notice — it isn't a cross-member change.
-    await canvas.getByRole('button', { name: /Change Sanne's answer/ }).click()
-    await expect(canvas.queryByText(/Changing/)).not.toBeInTheDocument()
+  play: async ({ canvas, userEvent }) => {
+    // The sheet names the teammate, their position and that you are answering for them.
+    await userEvent.click(canvas.getByRole('button', { name: /Sofia — Maybe/ }))
+    const body = within(document.body)
+    const sheet = within(await body.findByRole('dialog'))
+    await expect(sheet.getByText('Sofia')).toBeInTheDocument()
+    await expect(sheet.getByText(/Setter · currently maybe · you are answering for them/)).toBeInTheDocument()
+  },
+}
+
+export const AnsweringForYourselfSaysNothingExtra: Story = {
+  args: { currentUserId: 'u-set1' }, // the viewer is Sanne
+  play: async ({ canvas, userEvent }) => {
+    await userEvent.click(canvas.getByRole('button', { name: /Sanne \(you\) — Going/ }))
+    const sheet = within(await within(document.body).findByRole('dialog'))
+    await expect(sheet.getByText(/Setter · currently going/)).toBeInTheDocument()
+    await expect(sheet.queryByText(/answering for them/)).not.toBeInTheDocument()
   },
 }
 
 // Without `onRespond` the same list is a read-out, not a control: every member still named, tinted
-// and pilled, but nothing to open. That is how the events-list card renders it, which is what keeps
-// editing a teammate's attendance on detail-page rows only (#271 ⑫, #326).
+// and pilled, but nothing to open.
 export const ReadOnly: Story = {
   args: { onRespond: undefined },
   play: async ({ canvas }) => {
@@ -145,8 +163,7 @@ export const ReadOnly: Story = {
     await expect(canvas.getByRole('heading', { name: 'Setter' })).toBeInTheDocument()
     await expect(canvas.getByText('Sanne')).toBeInTheDocument()
     await expect(canvas.getByText('Awaiting')).toBeInTheDocument()
-    // But no row is a disclosure, so there is no route to anyone's answer control.
-    await expect(canvas.queryByRole('button', { name: /Change .*'s answer/ })).not.toBeInTheDocument()
+    // But no row is a control, so there is no route to anyone's answer.
     await expect(canvas.queryByRole('button')).not.toBeInTheDocument()
   },
 }

@@ -22,3 +22,19 @@ export const appColumn = {
   decorators: [withAppColumn] as Decorator[],
   parameters: { layout: 'fullscreen' },
 }
+
+/**
+ * Hosts a story in the width a dialog gives its content: the shadcn `DialogContent` is `w-full
+ * max-w-lg p-6`, so a dialog child is 312px wide on a phone and 464px from `sm` up, never the app
+ * column. For the prop-only content of a dialog (a scope field, a form) this is the honest host.
+ */
+export const withDialogContent: Decorator = (Story) => (
+  <div className="mx-auto w-full max-w-lg p-6">
+    <Story />
+  </div>
+)
+
+export const appDialog = {
+  decorators: [withDialogContent] as Decorator[],
+  parameters: { layout: 'fullscreen' },
+}

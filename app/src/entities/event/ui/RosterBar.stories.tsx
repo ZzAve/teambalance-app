@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite'
 import { expect, within } from 'storybook/test'
 import { makeRoster } from '@shared/testing/event-fixtures'
 import { Stack } from '@shared/testing/stack'
+import { appColumn } from '@shared/testing/app-column-decorator'
 import { RosterBar } from './RosterBar'
 
 // The roster overview: spots filled, a progress track, and a chip per targeted position coloured
@@ -10,11 +11,14 @@ import { RosterBar } from './RosterBar'
 //
 // One Gallery story (ADR-0031 §2): every roster shape stacked via `Stack`, one snapshot, and every
 // old assertion scoped to its own labelled region.
-const CARD = 'max-w-md overflow-hidden rounded-2xl border border-border/40 bg-card shadow-sm'
+// The wrapper the detail page puts around it. No width of its own: the app column decorator on the
+// meta gives it the width the product gives it at each breakpoint (ADR-0031 §4).
+const CARD = 'overflow-hidden rounded-2xl border border-border/40 bg-card shadow-sm'
 
 const meta = {
   title: 'entities/event/RosterBar',
   component: RosterBar,
+  ...appColumn,
 } satisfies Meta<typeof RosterBar>
 
 export default meta

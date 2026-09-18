@@ -3,6 +3,7 @@ import { expect, fn, within } from 'storybook/test'
 import type { AttendanceEntry } from '@shared/api/events'
 import { makeRoster, NO_ROSTER } from '@shared/testing/event-fixtures'
 import { Stack } from '@shared/testing/stack'
+import { appColumn } from '@shared/testing/app-column-decorator'
 import { AttendeeList } from './AttendeeList'
 
 // The event-detail attendance list: no tabs. Everyone shows under their position (Unassigned last),
@@ -57,13 +58,17 @@ const meta = {
     roster: makeRoster(),
     onRespond: fn(),
   },
+  // The card the detail page wraps it in, hosted in the app column so a wider viewport shows the
+  // width the product gives the list at each breakpoint (ADR-0031 §4).
   decorators: [
     (Story) => (
-      <div className="max-w-md overflow-hidden rounded-lg border border-border/40 bg-card">
+      <div className="overflow-hidden rounded-2xl border border-border/40 bg-card">
         <Story />
       </div>
     ),
+    ...appColumn.decorators,
   ],
+  parameters: appColumn.parameters,
 } satisfies Meta<typeof AttendeeList>
 
 export default meta

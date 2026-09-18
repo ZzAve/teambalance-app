@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { expect, within } from 'storybook/test'
+import { appColumn } from '@shared/testing/app-column-decorator'
 import { makeRoster, NO_ROSTER } from '@shared/testing/event-fixtures'
 import { ReadinessBadge } from './ReadinessBadge'
 
@@ -51,6 +52,7 @@ const VARIANTS = {
 const meta = {
   title: 'entities/event/ReadinessBadge',
   component: ReadinessBadge,
+  ...appColumn,
 } satisfies Meta<typeof ReadinessBadge>
 
 export default meta
@@ -65,7 +67,7 @@ export const Gallery: Story = {
         <div
           key={name}
           data-testid={`variant-${name}`}
-          className="flex max-w-xs items-center justify-end rounded-xl border border-border bg-card p-3.5"
+          className="flex items-center justify-end rounded-xl border border-border bg-card p-3.5"
         >
           <ReadinessBadge {...props} />
         </div>

@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { expect, fn, within } from 'storybook/test'
 import { withRouter } from '@shared/testing/router-decorator'
+import { appColumn } from '@shared/testing/app-column-decorator'
 import { Stack } from '@shared/testing/stack'
 import { Button } from '@shared/ui/button'
 import { PageHeader } from './PageHeader'
@@ -21,16 +22,10 @@ const onAction = fn()
 const meta = {
   title: 'widgets/page-header/PageHeader',
   component: PageHeader,
-  decorators: [
-    // Mirrors the app's <main> gutter (max-w-2xl px-4) so the header's -mx-4 full-bleed edge
-    // renders faithfully in context.
-    (Story) => (
-      <div className="mx-auto max-w-2xl px-4">
-        <Story />
-      </div>
-    ),
-    withRouter,
-  ],
+  // The app's <main> gutter, so the header's -mx-4 full-bleed edge renders faithfully in context
+  // at every breakpoint (ADR-0031 §4).
+  decorators: [...appColumn.decorators, withRouter],
+  parameters: appColumn.parameters,
 } satisfies Meta<typeof PageHeader>
 
 export default meta

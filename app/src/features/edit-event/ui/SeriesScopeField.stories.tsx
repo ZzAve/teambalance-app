@@ -4,6 +4,7 @@ import { expect, fn, within } from 'storybook/test'
 import type { Event, EventSeriesScope } from '@shared/api/events'
 import { makeEvent } from '@shared/testing/event-fixtures'
 import { Stack } from '@shared/testing/stack'
+import { appDialog } from '@shared/testing/app-column-decorator'
 import { SeriesScopeField } from './SeriesScopeField'
 
 // Four weekly occurrences sharing a group; the 2nd ('b') is the one being edited/deleted.
@@ -29,7 +30,7 @@ function Harness({
 }) {
   const [scope, setScope] = useState<EventSeriesScope>(initialScope)
   return (
-    <div className="max-w-md">
+    <div>
       <SeriesScopeField
         siblings={SIBLINGS}
         currentId="b"
@@ -47,6 +48,9 @@ function Harness({
 const meta = {
   title: 'features/edit-event/SeriesScopeField',
   component: Harness,
+  // Lives inside the edit/delete dialogs, so it is hosted at a dialog's content width, not the app
+  // column (ADR-0031 §4).
+  ...appDialog,
   args: { onScopeChange: fn() },
 } satisfies Meta<typeof Harness>
 

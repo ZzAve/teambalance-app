@@ -7,7 +7,11 @@ import { ManageEventTypesView } from './ManageEventTypesView'
 
 // The admin surface behind the ManageEventTypes container: create / rename / recolor / archive, each
 // type carrying the roster default its events inherit. Prop-only, so every state — including the
-// destructive archive dialog and its migration offer — renders from props with no network (ADR-0017).
+// archive dialog and its migration offer — renders from props with no network (ADR-0017).
+//
+// One quiet row per type (issue #341, variant B): colour dot + name + roster summary as text, and a
+// single overflow (⋯) menu carrying "Edit" and "Archive…" — Archive is deliberately NOT the red
+// destructive treatment, since it only ever hides a type (reversible from the Archived section).
 const POSITIONS: Position[] = [
   { id: 'p1', label: 'Setter', kind: 'PLAYING' },
   { id: 'p2', label: 'Libero', kind: 'PLAYING' },
@@ -73,6 +77,20 @@ export const WithTypes: Story = {
     await expect(canvas.getByText('Match')).toBeInTheDocument()
     await expect(canvas.getByText('2 Setter · 12 total')).toBeInTheDocument()
     await expect(canvas.getByText('No roster')).toBeInTheDocument()
+    // One overflow-menu trigger per row, no inline Edit/Archive buttons.
+    await expect(canvas.getAllByLabelText(/^Actions for /)).toHaveLength(2)
+  },
+}
+
+// Opening a row's menu shows Edit and Archive… — Archive carries no destructive (red) styling,
+// because it only ever hides the type; it can be restored.
+export const MenuOpen: Story = {
+  play: async ({ canvas, userEvent }) => {
+    await userEvent.click(canvas.getByLabelText('Actions for Match'))
+    const menu = within(document.body)
+    const archiveItem = await menu.findByRole('menuitem', { name: 'Archive…' })
+    await expect(menu.getByRole('menuitem', { name: 'Edit' })).toBeInTheDocument()
+    await expect(archiveItem).not.toHaveAttribute('data-tone', 'destructive')
   },
 }
 
@@ -100,7 +118,9 @@ export const EditRosterDefault: Story = {
   // exercised here but pictured by RosterOverrideField's own stories.
   parameters: { chromatic: { disableSnapshot: true } },
   play: async ({ canvas, userEvent, args }) => {
-    await userEvent.click(canvas.getByRole('button', { name: 'Edit Training' }))
+    await userEvent.click(canvas.getByLabelText('Actions for Training'))
+    const menu = within(document.body)
+    await userEvent.click(await menu.findByRole('menuitem', { name: 'Edit' }))
     // Tracking starts off for Training, so the targets are hidden until it is switched on.
     await expect(canvas.queryByLabelText('People needed in total')).not.toBeInTheDocument()
 
@@ -124,7 +144,9 @@ export const ZeroTargetMeansNoTarget: Story = {
   // (ADR-0027 §2). What is being proven is the dropped target in the payload, not a picture.
   parameters: { chromatic: { disableSnapshot: true } },
   play: async ({ canvas, userEvent, args }) => {
-    await userEvent.click(canvas.getByRole('button', { name: 'Edit Match' }))
+    await userEvent.click(canvas.getByLabelText('Actions for Match'))
+    const menu = within(document.body)
+    await userEvent.click(await menu.findByRole('menuitem', { name: 'Edit' }))
     const setter = canvas.getByLabelText('Setter')
     await userEvent.clear(setter)
     await userEvent.type(setter, '0')
@@ -139,14 +161,16 @@ export const ZeroTargetMeansNoTarget: Story = {
   },
 }
 
-// The destructive path. It leads with the migration offer, because leaving events on a type no
-// picker shows is the fallback, not the default.
+// The archive path, reached via the row's overflow menu. It leads with the migration offer, because
+// leaving events on a type no picker shows is the fallback, not the default.
 export const ArchiveWithMigration: Story = {
   // Behavioural twin of WithTypes — confirming closes the dialog, so the post-play frame is the
   // list again (ADR-0027 §2). The open dialog is pictured by ArchiveDialogOpen below.
   parameters: { chromatic: { disableSnapshot: true } },
   play: async ({ canvas, userEvent, args }) => {
-    await userEvent.click(canvas.getByRole('button', { name: 'Archive Match' }))
+    await userEvent.click(canvas.getByLabelText('Actions for Match'))
+    const menu = within(document.body)
+    await userEvent.click(await menu.findByRole('menuitem', { name: 'Archive…' }))
     const dialog = within(document.body)
     await expect(await dialog.findByText('Archive "Match"?')).toBeInTheDocument()
     // Says plainly that no event is deleted — the fear this dialog has to answer.
@@ -164,7 +188,9 @@ export const ArchiveWithoutMigration: Story = {
   // Behavioural twin of WithTypes — as above; this one proves the undefined migration target.
   parameters: { chromatic: { disableSnapshot: true } },
   play: async ({ canvas, userEvent, args }) => {
-    await userEvent.click(canvas.getByRole('button', { name: 'Archive Match' }))
+    await userEvent.click(canvas.getByLabelText('Actions for Match'))
+    const menu = within(document.body)
+    await userEvent.click(await menu.findByRole('menuitem', { name: 'Archive…' }))
     const dialog = within(document.body)
     await userEvent.click(await dialog.findByRole('button', { name: 'Archive' }))
 
@@ -175,10 +201,13 @@ export const ArchiveWithoutMigration: Story = {
 // The archive dialog is the one screen that has to answer "will this delete my events?", and it
 // leads with the migration offer rather than burying it. Both Archive stories above confirm, so the
 // dialog is gone before Chromatic shoots — this one opens it and stops, so that wording carries a
-// baseline (ADR-0027 §2).
+// baseline (ADR-0027 §2). Its confirm button is the neutral/primary style, not destructive — the
+// grep in the PR proves it.
 export const ArchiveDialogOpen: Story = {
   play: async ({ canvas, userEvent, args }) => {
-    await userEvent.click(canvas.getByRole('button', { name: 'Archive Match' }))
+    await userEvent.click(canvas.getByLabelText('Actions for Match'))
+    const menu = within(document.body)
+    await userEvent.click(await menu.findByRole('menuitem', { name: 'Archive…' }))
     const dialog = within(document.body)
     await expect(await dialog.findByText('Archive "Match"?')).toBeInTheDocument()
     await expect(dialog.getByText(/no event is deleted/i)).toBeInTheDocument()
@@ -198,7 +227,7 @@ export const WithArchivedTypes: Story = {
   play: async ({ canvas, userEvent, args }) => {
     // Archived types are listed apart, and cannot be edited — only restored.
     await expect(canvas.getByText('Archived')).toBeInTheDocument()
-    await expect(canvas.queryByRole('button', { name: 'Edit Old Social' })).not.toBeInTheDocument()
+    await expect(canvas.queryByLabelText('Actions for Old Social')).not.toBeInTheDocument()
 
     await userEvent.click(canvas.getByRole('button', { name: 'Restore Old Social' }))
     await expect(args.onUnarchive).toHaveBeenCalledWith('et-3')

@@ -70,7 +70,7 @@ function VerifyPage() {
 
   return (
     <div className="mx-auto mt-16 max-w-sm text-center">
-      <p className="text-sm text-muted-foreground">Signing you in...</p>
+      <p className="text-small text-muted-foreground">Signing you in...</p>
     </div>
   )
 }

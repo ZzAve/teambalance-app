@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
-import { expect, fn } from 'storybook/test'
+import { expect, fn, within } from 'storybook/test'
 import { GenerateInviteContent } from './GenerateInviteContent'
 
 // GenerateInviteContent is the presentational body split out of the GenerateInviteDialog container
@@ -93,6 +93,8 @@ export const RotateLink: Story = {
   },
 }
 
+// Revoking is irreversible and leaves no replacement, so it asks for confirmation first (#341) —
+// unlike rotate, which is one click because it lands on a new link right away.
 export const RevokeLink: Story = {
   // Behavioural twin of ActiveLink — onExpire fires while the active-link picture is unchanged
   // (ADR-0027 §2).
@@ -100,7 +102,35 @@ export const RevokeLink: Story = {
   args: { link: LINK },
   play: async ({ canvas, userEvent, args }) => {
     await userEvent.click(canvas.getByRole('button', { name: 'Revoke link' }))
+    await expect(args.onExpire).not.toHaveBeenCalled()
+
+    const dialog = within(document.body)
+    await userEvent.click(await dialog.findByRole('button', { name: 'Revoke link' }))
     await expect(args.onExpire).toHaveBeenCalled()
+  },
+}
+
+export const RevokeConfirmOpen: Story = {
+  args: { link: LINK },
+  play: async ({ canvas, userEvent, args }) => {
+    await userEvent.click(canvas.getByRole('button', { name: 'Revoke link' }))
+    const dialog = within(document.body)
+    await expect(await dialog.findByText('Revoke the invite link?')).toBeInTheDocument()
+    await expect(dialog.getByText(/old link stops working and no replacement is created/)).toBeInTheDocument()
+    await expect(dialog.getByRole('button', { name: 'Cancel' })).toBeInTheDocument()
+    await expect(args.onExpire).not.toHaveBeenCalled()
+  },
+}
+
+export const RevokeConfirmCancelled: Story = {
+  parameters: { chromatic: { disableSnapshot: true } },
+  args: { link: LINK },
+  play: async ({ canvas, userEvent, args }) => {
+    await userEvent.click(canvas.getByRole('button', { name: 'Revoke link' }))
+    const dialog = within(document.body)
+    await userEvent.click(await dialog.findByRole('button', { name: 'Cancel' }))
+    await expect(canvas.queryByText('Revoke the invite link?')).not.toBeInTheDocument()
+    await expect(args.onExpire).not.toHaveBeenCalled()
   },
 }
 

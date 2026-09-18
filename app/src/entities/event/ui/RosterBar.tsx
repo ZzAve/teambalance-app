@@ -1,4 +1,5 @@
 import type { EventRoster } from '@shared/api/events'
+import { SectionLabel } from '@shared/ui/SectionLabel'
 import { rosterChip, rosterRows, type RosterTone } from '../lib/roster-view'
 
 interface RosterBarProps {
@@ -65,12 +66,12 @@ export function RosterBar({ roster }: RosterBarProps) {
   return (
     <div className="px-4 py-3">
       <div className={`flex items-baseline justify-between gap-3 ${pct == null && !byPosition ? '' : 'mb-2'}`}>
-        <span className="text-[11px] font-bold uppercase tracking-[0.1em] text-muted-foreground">Roster</span>
+        <SectionLabel as="span">Roster</SectionLabel>
         <span className="flex items-baseline gap-1.5">
-          <span className={`font-display text-sm font-bold tabular-nums ${met ? 'text-green-dark' : 'text-foreground'}`}>
+          <span className={`font-display text-small font-bold tabular-nums ${met ? 'text-green-dark' : 'text-foreground'}`}>
             {headline}
           </span>
-          {chip && <span className={`text-xs font-semibold ${TONE_TEXT[chip.tone]}`}>· {chip.text}</span>}
+          {chip && <span className={`text-caption font-semibold ${TONE_TEXT[chip.tone]}`}>· {chip.text}</span>}
         </span>
       </div>
 
@@ -91,7 +92,7 @@ export function RosterBar({ roster }: RosterBarProps) {
           {rows.map((row) => (
             <span
               key={row.id}
-              className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11.5px] font-semibold tabular-nums ${CHIP_TONE[row.tone ?? 'short']}`}
+              className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-caption font-semibold tabular-nums ${CHIP_TONE[row.tone ?? 'short']}`}
             >
               {row.label} {row.countLabel}
             </span>

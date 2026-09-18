@@ -43,7 +43,7 @@ export function activeWarmingStep(elapsedMs: number): number {
 
 function Wordmark() {
   return (
-    <span className="font-display text-2xl font-bold text-blue">
+    <span className="font-display text-title font-bold text-blue">
       Team<span className="text-green">Balance</span>
     </span>
   )
@@ -52,7 +52,7 @@ function Wordmark() {
 function StepIndicator({ elapsedMs }: { elapsedMs: number }) {
   const active = activeWarmingStep(elapsedMs)
   return (
-    <ul className="flex flex-col gap-2 text-sm">
+    <ul className="flex flex-col gap-2 text-small">
       {WARMING_STEPS.map((step, i) => {
         const done = i < active
         const isActive = i === active
@@ -105,7 +105,7 @@ export function ColdStartSplash({ elapsedMs = 0 }: { elapsedMs?: number }) {
       </div>
 
       {stage === 'waking' && (
-        <p className="animate-pulse text-sm text-muted-foreground motion-reduce:animate-none">
+        <p className="animate-pulse text-small text-muted-foreground motion-reduce:animate-none">
           {wakingMessageFor(elapsedMs)}
         </p>
       )}
@@ -113,7 +113,7 @@ export function ColdStartSplash({ elapsedMs = 0 }: { elapsedMs?: number }) {
       {stage === 'warming' && (
         <div className="flex flex-col items-center gap-4">
           <StepIndicator elapsedMs={elapsedMs} />
-          <p className="max-w-xs text-xs text-muted-foreground">
+          <p className="max-w-xs text-caption text-muted-foreground">
             Still warming up the court — this happens after a quiet spell. Hang tight! 🏐
           </p>
         </div>

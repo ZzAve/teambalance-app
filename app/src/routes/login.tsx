@@ -22,8 +22,8 @@ function LoginPage() {
   if (sent) {
     return (
       <div className="mx-auto mt-16 max-w-sm text-center">
-        <h1 className="font-display text-2xl font-bold">Check your email</h1>
-        <p className="mt-3 text-sm text-muted-foreground">
+        <h1 className="font-display text-title font-bold">Check your email</h1>
+        <p className="mt-3 text-small text-muted-foreground">
           If an account exists for <span className="font-medium text-foreground">{email}</span>, we've sent a magic
           link to sign in. Click it to continue.
         </p>
@@ -38,10 +38,10 @@ function LoginPage() {
 
   return (
     <div className="mx-auto mt-16 max-w-sm">
-      <h1 className="font-display text-center text-2xl font-bold">
+      <h1 className="font-display text-center text-title font-bold">
         Team<span className="text-green">Balance</span>
       </h1>
-      <p className="mt-2 text-center text-sm text-muted-foreground">Sign in with your email — no password needed.</p>
+      <p className="mt-2 text-center text-small text-muted-foreground">Sign in with your email — no password needed.</p>
       <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-4">
         <div>
           <Label htmlFor="email">Email</Label>
@@ -60,7 +60,7 @@ function LoginPage() {
           {requestMagicLink.isPending ? 'Sending...' : 'Send magic link'}
         </Button>
         {requestMagicLink.isError && (
-          <p className="text-center text-sm text-red">Something went wrong. Please try again.</p>
+          <p className="text-center text-small text-red">Something went wrong. Please try again.</p>
         )}
       </form>
     </div>

@@ -10,7 +10,7 @@ const meta = {
   component: ReadinessBadge,
   decorators: [
     (Story) => (
-      <div className="flex max-w-xs items-center justify-end rounded-xl border border-border bg-card p-3.5">
+      <div className="flex max-w-xs items-center justify-end rounded-md border border-border bg-card p-3.5">
         <Story />
       </div>
     ),

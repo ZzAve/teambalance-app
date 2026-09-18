@@ -1,6 +1,7 @@
 import { Lock, Split } from 'lucide-react'
 import type { Event, EventSeriesScope } from '@shared/api/events'
 import { buildAffectedPreview } from '@entities/event/lib/series-affected'
+import { SectionLabel } from '@shared/ui/SectionLabel'
 
 interface SeriesScopeFieldProps {
   /** Every occurrence sharing the current event's recurring group (any order). */
@@ -62,9 +63,9 @@ export function SeriesScopeField({
   return (
     <div className="flex flex-col gap-3">
       <div>
-        <p className="mb-1.5 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+        <SectionLabel as="p" className="mb-1.5">
           {danger ? 'Delete' : 'Apply to'}
-        </p>
+        </SectionLabel>
         {/* Segmented scope control — exactly one is pressed. */}
         <div role="group" aria-label="Scope" className="flex gap-1.5">
           {SCOPES.map(({ value, label }) => {
@@ -76,7 +77,7 @@ export function SeriesScopeField({
                 aria-pressed={active}
                 onClick={() => onScopeChange(value)}
                 className={[
-                  'flex-1 rounded-lg border px-2 py-2 text-xs font-semibold transition-colors',
+                  'flex-1 rounded-lg border px-2 py-2 text-caption font-semibold transition-colors',
                   active
                     ? danger
                       ? 'border-red bg-red text-white'
@@ -92,14 +93,14 @@ export function SeriesScopeField({
       </div>
 
       {/* Affected panel: count + before│this│after timeline + split caption. */}
-      <div className={`rounded-xl border p-3 ${panelClass}`}>
-        <p className={`text-sm font-bold ${countClass}`}>
+      <div className={`rounded-md border p-3 ${panelClass}`}>
+        <p className={`text-small font-bold ${countClass}`}>
           {verb} {preview.affectedCount} of {preview.total} event{preview.total === 1 ? '' : 's'}
         </p>
 
         <AffectedTimeline preview={preview} danger={danger} />
 
-        <p className="mt-2.5 flex items-start gap-1.5 text-xs text-muted-foreground">
+        <p className="mt-2.5 flex items-start gap-1.5 text-caption text-muted-foreground">
           <Split size={13} className="mt-0.5 shrink-0" />
           <span>{caption}</span>
         </p>
@@ -107,7 +108,7 @@ export function SeriesScopeField({
 
       {/* Bulk edit locks the per-occurrence date — a changed time still propagates. */}
       {!danger && scope !== 'THIS' && (
-        <p className="flex items-start gap-1.5 rounded-lg bg-muted/60 px-3 py-2 text-xs text-muted-foreground">
+        <p className="flex items-start gap-1.5 rounded-lg bg-muted/60 px-3 py-2 text-caption text-muted-foreground">
           <Lock size={13} className="mt-0.5 shrink-0" />
           <span>Each occurrence keeps its own date; the time &amp; details apply to all affected events.</span>
         </p>

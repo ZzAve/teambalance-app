@@ -207,7 +207,7 @@ export function EditEventDialogView({
         onChange={setRosterOverride}
       />
       {isError && (
-        <p className="rounded-lg border border-red/40 bg-red/10 px-3 py-2 text-sm text-red">
+        <p className="rounded-lg border border-red/40 bg-red/10 px-3 py-2 text-small text-red">
           Could not save changes. Please try again.
         </p>
       )}

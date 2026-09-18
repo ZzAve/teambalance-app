@@ -12,8 +12,8 @@ interface OnboardingHubViewProps {
 export function OnboardingHubView({ onChooseJoin, onChooseCreate }: OnboardingHubViewProps) {
   return (
     <div className="mx-auto mt-10 max-w-sm text-center">
-      <h1 className="font-display text-2xl font-bold">Welcome to TeamBalance 👋</h1>
-      <p className="mt-2 text-sm text-muted-foreground">
+      <h1 className="font-display text-title font-bold">Welcome to TeamBalance 👋</h1>
+      <p className="mt-2 text-small text-muted-foreground">
         You're signed in, but not on a team yet. How would you like to get started?
       </p>
 
@@ -23,8 +23,8 @@ export function OnboardingHubView({ onChooseJoin, onChooseCreate }: OnboardingHu
           onClick={onChooseJoin}
           className="rounded-lg border border-border bg-blue/5 p-4 text-left transition-colors hover:border-blue"
         >
-          <span className="block font-display text-lg font-bold">I have an invite</span>
-          <span className="mt-1 block text-sm text-muted-foreground">Someone shared a join link with you</span>
+          <span className="block font-display text-lead font-bold">I have an invite</span>
+          <span className="mt-1 block text-small text-muted-foreground">Someone shared a join link with you</span>
         </button>
 
         <button
@@ -33,7 +33,7 @@ export function OnboardingHubView({ onChooseJoin, onChooseCreate }: OnboardingHu
           className="rounded-lg border border-border p-4 text-left transition-colors hover:border-blue"
         >
           <span className="block font-semibold">Create a team</span>
-          <span className="mt-1 block text-sm text-muted-foreground">
+          <span className="mt-1 block text-small text-muted-foreground">
             You'll need a creation code — team owners get these from us
           </span>
         </button>

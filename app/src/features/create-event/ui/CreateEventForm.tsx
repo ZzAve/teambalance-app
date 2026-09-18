@@ -176,7 +176,7 @@ export function CreateEventForm({
       />
 
       {error && (
-        <p role="alert" className="text-sm text-destructive">
+        <p role="alert" className="text-small text-destructive">
           {error}
         </p>
       )}

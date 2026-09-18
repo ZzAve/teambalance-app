@@ -29,8 +29,8 @@ export function JoinTeamView({ value, onChange, onSubmit, submitting, error }: J
 
   return (
     <div>
-      <h1 className="font-display text-2xl font-bold">Join your team</h1>
-      <p className="mt-2 text-sm text-muted-foreground">
+      <h1 className="font-display text-title font-bold">Join your team</h1>
+      <p className="mt-2 text-small text-muted-foreground">
         Paste the invite link you were sent below — or easiest of all, just click the link directly.
       </p>
 
@@ -46,7 +46,7 @@ export function JoinTeamView({ value, onChange, onSubmit, submitting, error }: J
           />
         </div>
         {error && (
-          <p role="alert" className="text-sm text-destructive">
+          <p role="alert" className="text-small text-destructive">
             {error}
           </p>
         )}
@@ -55,7 +55,7 @@ export function JoinTeamView({ value, onChange, onSubmit, submitting, error }: J
         </Button>
       </form>
 
-      <details className="mt-8 text-sm text-muted-foreground">
+      <details className="mt-8 text-small text-muted-foreground">
         <summary className="cursor-pointer font-medium text-foreground">I don't have a link</summary>
         <p className="mt-2">
           Ask your team's captain or admin to send you the invite link — they can generate one from the

@@ -23,6 +23,11 @@ import java.time.Instant
  * [expired] is served rather than left to the client to derive from [expiresAt], because it is the
  * server's clock that decides whether a feed still answers, and a client that computed it from a
  * skewed one would tell the member their working link is dead (or the reverse).
+ *
+ * [url] is null only for a link whose token cannot be decrypted — what an encryption-key rotation
+ * leaves behind. The row is still reported, for the same reason ADR-0025 reports rather than hides an
+ * unreadable invitation: it still counts toward the cap, so hiding it would lock the member out of
+ * both listing and creating with nothing on screen to explain why.
  */
 data class IssuedCalendarLink(
     val id: CalendarLinkId,
@@ -30,7 +35,7 @@ data class IssuedCalendarLink(
     val createdAt: Instant,
     val expiresAt: Instant,
     val expired: Boolean,
-    val url: CalendarFeedUrl,
+    val url: CalendarFeedUrl?,
 )
 
 /**
@@ -122,13 +127,21 @@ class CalendarLinkService(
     private fun slugOf(teamId: TeamId): Slug =
         teamRepository.findById(teamId)?.slug ?: error("Team $teamId has no platform record")
 
-    private fun CalendarLink.issued(slug: Slug, now: Instant, token: CalendarToken = tokens.reveal(encryptedToken)) =
+    /**
+     * [token] is passed in by [createLink], which has just minted it; a read decrypts instead — and
+     * tolerates failing to. One unreadable row must not 500 the whole list: that would leave the
+     * member unable to see the links, unable to get an id to delete one, and unable to create another
+     * because the cap counts what they cannot see.
+     */
+    private fun CalendarLink.issued(slug: Slug, now: Instant, token: CalendarToken? = reveal()) =
         IssuedCalendarLink(
             id = id,
             label = label,
             createdAt = createdAt,
             expiresAt = expiresAt,
             expired = !isLiveAt(now),
-            url = CalendarFeedUrl("$apiBaseUrl/api/calendar/$slug/${token.value}.ics"),
+            url = token?.let { CalendarFeedUrl("$apiBaseUrl/api/calendar/$slug/${it.value}.ics") },
         )
+
+    private fun CalendarLink.reveal(): CalendarToken? = runCatching { tokens.reveal(encryptedToken) }.getOrNull()
 }

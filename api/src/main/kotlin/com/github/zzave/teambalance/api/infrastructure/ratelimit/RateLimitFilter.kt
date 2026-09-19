@@ -79,7 +79,10 @@ class RateLimitFilter(
     private fun resolveRule(request: HttpServletRequest): Rule? {
         val path = StringUtils.cleanPath(pathHelper.getPathWithinApplication(request))
         val post = request.method == HttpMethod.POST.name()
-        val get = request.method == HttpMethod.GET.name()
+        // HEAD too: Spring routes it to the feed's @GetMapping handler, so a GET-only rule would leave
+        // an unmetered way to reach it (CalendarFeedTenantFilter matches the same pair, for the same
+        // reason).
+        val get = request.method in FEED_METHODS
         return when {
             post && path == MAGIC_LINK_REQUEST_PATH ->
                 Rule("magic-link-request", properties.magicLinkRequest, ipKey(request))
@@ -131,6 +134,7 @@ class RateLimitFilter(
         // Same single-`*` reasoning; the token is base64url and the slug is [a-z0-9-], so neither
         // segment can carry a slash that would escape onto another handler.
         const val CALENDAR_FEED_PATTERN = "/api/calendar/*/*.ics"
+        val FEED_METHODS = setOf(HttpMethod.GET.name(), HttpMethod.HEAD.name())
 
         const val X_FORWARDED_FOR = "X-Forwarded-For"
         const val MILLIS_PER_SECOND = 1000.0

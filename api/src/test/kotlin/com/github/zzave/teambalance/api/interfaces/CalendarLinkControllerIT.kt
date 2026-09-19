@@ -8,6 +8,7 @@ import com.github.zzave.teambalance.api.interfaces.CalendarLinkFixture.ALPHA_SCH
 import com.github.zzave.teambalance.api.interfaces.CalendarLinkFixture.ALPHA_SLUG
 import com.github.zzave.teambalance.api.interfaces.CalendarLinkFixture.BETA_MEMBER
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldMatch
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
@@ -135,6 +136,30 @@ class CalendarLinkControllerIT : TeamBalanceIT() {
             }
         }
 
+        // What an encryption-key rotation leaves behind. The row must stay listed and deletable: it
+        // still counts toward the cap, so hiding it - or throwing - would lock the member out of
+        // listing AND creating, with nothing on screen to explain why.
+        context("a link whose token can no longer be decrypted") {
+            test("is still listed, with no URL rather than a failed request") {
+                createAs(ALPHA_MEMBER).andExpect(status().isCreated)
+                corruptStoredToken()
+
+                val listed = listAs(ALPHA_MEMBER).andExpect(status().isOk).andReturn().links().single()
+                listed["url"] shouldBe null
+                listed["id"] shouldNotBe null
+            }
+
+            test("can still be deleted, which is the way out") {
+                createAs(ALPHA_MEMBER).andExpect(status().isCreated)
+                corruptStoredToken()
+                val id = listAs(ALPHA_MEMBER).andReturn().links().single()["id"] as String
+
+                deleteAs(ALPHA_MEMBER, id).andExpect(status().isNoContent)
+
+                listAs(ALPHA_MEMBER).andReturn().links().size shouldBe 0
+            }
+        }
+
         // The rows live in the team's own schema, so a member of two teams has two separate sets and
         // neither counts against the other's cap.
         test("links are scoped to the team they were created in") {
@@ -165,6 +190,14 @@ class CalendarLinkControllerIT : TeamBalanceIT() {
 
     private fun deleteAs(userId: String, id: String) =
         dispatch(MockMvcRequestBuilders.delete("/api/calendar-links/$id").header("X-User-Id", userId))
+
+    /** Stands in for a key rotation: the ciphertext is intact base64 that this key cannot open. */
+    private fun corruptStoredToken() {
+        jdbcTemplate.update(
+            "UPDATE $ALPHA_SCHEMA.calendar_links SET token_encrypted = ?",
+            java.util.Base64.getEncoder().encodeToString(ByteArray(48) { it.toByte() }),
+        )
+    }
 
     private fun expiredLink() = CalendarLinkFixture.link(
         jdbcTemplate, calendarLinkTokens, ALPHA_SCHEMA, ALPHA_MEMBER,

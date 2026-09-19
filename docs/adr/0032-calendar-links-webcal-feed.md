@@ -138,8 +138,22 @@ may hold one member's schedule. `DTSTAMP` is the event's `created_at` rather tha
 precisely so the ETag is stable; a `now()` there would defeat the whole mechanism.
 
 Rate limited to 60/hour **per token** on the existing `RateLimitFilter` (ADR-0020), which now also
-inspects GETs. Per token rather than per IP because there is no session to key on and a whole club
-behind one office NAT would otherwise share a bucket and knock each other's calendars offline.
+inspects GET and HEAD. Per token rather than per IP because there is no session to key on and a whole
+club behind one office NAT would otherwise share a bucket and knock each other's calendars offline.
+
+Two consequences of keying on a caller-supplied value, both accepted:
+
+- **It bounds a subscription, not a host.** Someone varying the token gets a fresh bucket per
+  request, so this is not a volume defence — which is what ADR-0020 already says the limiter is
+  ("a coarse backstop", "not a live-vuln fix"), and no unauthenticated route here has one. What it
+  *does* buy is the case it was written for: a misconfigured or runaway calendar client hammering one
+  real subscription. The bucket store is bounded (`maximumSize`), so distinct keys cost memory only up
+  to that cap.
+- **A refill period must not outlive the bucket store's eviction window.** `RateLimiter` evicts idle
+  buckets, and its comment — "a bucket unused that long has long since refilled to full" — is only
+  true while the window is at least the longest refill period. This is the first policy to refill over
+  anything longer than a minute, and at the old ten-minute window a "60 per hour" limit silently
+  enforced 60 per ten minutes. The window is now an hour, and the invariant is written down.
 
 ### Not Wirespec, and one library
 
@@ -167,6 +181,12 @@ an admin can do, which is the deliberate flip side of "no admin control".
 **Membership is the live check, not the link.** A departed member's links keep existing and stop
 working. That is the property that matters, and it costs a `team_members` read per fetch.
 
+**HEAD is the same endpoint as GET, and has to be treated as one.** Spring routes a HEAD request to
+the `@GetMapping` handler, so the tenant filter and the throttle both match the pair. Matching GET
+alone left HEAD reaching the controller with no tenant bound — a 500 against `__no_tenant__` instead
+of the undifferentiated 404, and, with a session cookie present, a token matched against the caller's
+own team rather than the slug's.
+
 **A member cannot be told why a link stopped working.** The undifferentiated 404 is a real usability
 cost: a subscriber whose link expired sees exactly what a stranger with a wrong token sees, and their
 calendar app will simply show the subscription as failing. The management list carries `expired`, so
@@ -174,7 +194,17 @@ the answer exists — just not at the feed.
 
 **Rotating the encryption key makes existing links unlistable but not dead.** Lookup matches on the
 hash, so every subscribed calendar keeps working while the management screen can no longer show the
-URLs. That is the same asymmetry ADR-0025 accepted.
+URLs. That is the same asymmetry ADR-0025 accepted — and it is why `url` is nullable in the contract
+and an undecryptable row is still *listed*: the row still counts toward the cap, so dropping it (or
+failing the read) would leave the member unable to list, unable to delete and unable to create, with
+nothing on screen to explain why.
+
+**The cap is enforced by a read-then-write, so a member racing themselves can end up with four.**
+Exactly the trade ADR-0025 made for the one-live-invite-link invariant, and for the same reason: the
+cap is `count(*) <= 3`, which no index predicate can express, and buying it would mean inventing a
+column for a constraint to bite on. The failure is bounded (one extra link, by the member's own double
+click) and self-correcting (they can see and delete it), unlike the accumulation ADR-0025 was written
+to stop, which was invisible and unbounded.
 
 **The event deep link uses `teambalance.frontend-base-url`; the feed URL needs a new
 `teambalance.api-base-url`.** In production the SPA and the API are separate origins, and it is the

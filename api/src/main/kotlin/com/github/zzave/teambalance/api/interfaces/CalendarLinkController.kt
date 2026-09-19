@@ -60,5 +60,5 @@ private fun IssuedCalendarLink.toDto() = CalendarLinkDto(
     createdAt = createdAt.toString(),
     expiresAt = expiresAt.toString(),
     expired = expired,
-    url = url.value,
+    url = url?.value,
 )

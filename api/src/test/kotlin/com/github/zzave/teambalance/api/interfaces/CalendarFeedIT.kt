@@ -80,6 +80,24 @@ class CalendarFeedIT : TeamBalanceIT() {
             body(fetch(ALPHA_SLUG, liveLink(LEAVER))) shouldContain "SUMMARY:✗ $TRAINING"
         }
 
+        // Spring routes HEAD to the @GetMapping handler, so both the tenant filter and the throttle have
+        // to match it too. Matching GET alone let HEAD through with no tenant bound, which surfaced as
+        // a 500 against __no_tenant__ rather than the 404 every other refusal gives.
+        context("HEAD is the same endpoint, not a way past its filters") {
+            test("a live link answers HEAD with the same status and headers as GET") {
+                val token = liveLink()
+                val eTag = fetch(ALPHA_SLUG, token).andReturn().response.getHeader(HttpHeaders.ETAG)
+
+                head(ALPHA_SLUG, token)
+                    .andExpect(status().isOk)
+                    .andExpect(header().string(HttpHeaders.ETAG, eTag!!))
+            }
+
+            test("an unknown token answers 404, not a 500 from an unbound tenant") {
+                head(ALPHA_SLUG, calendarLinkTokens.mint()).andExpect(status().isNotFound)
+            }
+        }
+
         test("the feed is private and revalidates, so no shared cache holds one member's schedule") {
             fetch(ALPHA_SLUG, liveLink())
                 .andExpect(header().string(HttpHeaders.CACHE_CONTROL, "max-age=0, private"))
@@ -179,6 +197,9 @@ class CalendarFeedIT : TeamBalanceIT() {
             MockMvcRequestBuilders.get("/api/calendar/$slug/${token.value}.ics")
                 .apply { ifNoneMatch?.let { header(HttpHeaders.IF_NONE_MATCH, it) } },
         )
+
+    private fun head(slug: String, token: CalendarToken) =
+        mockMvc.perform(MockMvcRequestBuilders.head("/api/calendar/$slug/${token.value}.ics"))
 
     private fun body(result: org.springframework.test.web.servlet.ResultActions) =
         result.andReturn().response.contentAsString

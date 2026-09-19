@@ -1,11 +1,11 @@
-// A member's personal webcal subscription to their team's events (ADR-0032). `url` is the whole point of the type: the token is never served on its own, because there is nothing a client can do with it except build this URL. `expired` is the server's own verdict on `expiresAt` - a client computing it from a skewed clock would tell the member a working link is dead, or the reverse. An expired link is still listed: it counts toward the per-member maximum of three, so it has to be visible to be deleted.
+// A member's personal webcal subscription to their team's events (ADR-0032). `url` is the whole point of the type: the token is never served on its own, because there is nothing a client can do with it except build this URL. It is nullable for one case only - a link whose token cannot be decrypted, which an encryption-key rotation leaves behind: the row is still listed, because it still counts toward the maximum of three and the member has to be able to delete it, but there is no URL left to show. `expired` is the server's own verdict on `expiresAt` - a client computing it from a skewed clock would tell the member a working link is dead, or the reverse. An expired link is still listed: it counts toward the per-member maximum of three, so it has to be visible to be deleted.
 type CalendarLink {
     id: String,
     label: String?,
     createdAt: String,
     expiresAt: String,
     expired: Boolean,
-    url: String
+    url: String?
 }
 
 type CalendarLinkList {

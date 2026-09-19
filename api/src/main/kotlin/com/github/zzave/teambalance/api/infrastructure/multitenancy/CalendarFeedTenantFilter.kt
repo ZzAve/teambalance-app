@@ -68,9 +68,17 @@ class CalendarFeedTenantFilter(
             ?.let { teamRepository.findTenantRoutingUnchecked(it.id) }
             ?.also { TenantContext.set(it.schemaName.value) } != null
 
-    // Single `*` per segment, so the slug is exactly one segment and cannot walk out of the pattern.
+    /**
+     * Single `*` per segment, so the slug is exactly one segment and cannot walk out of the pattern.
+     *
+     * HEAD as well as GET, and that is not a nicety: Spring routes a HEAD request to the `@GetMapping`
+     * handler, so a filter that matched GET alone would let HEAD reach the controller with no tenant
+     * bound — a query against `__no_tenant__`, which is a 500 rather than the 404 every other refusal
+     * gives, and (with a session cookie present) a token matched against the caller's own team instead
+     * of the slug's. Calendar clients do send HEAD.
+     */
     private fun slugOf(request: HttpServletRequest): Slug? =
-        request.takeIf { it.method == HttpMethod.GET.name() }
+        request.takeIf { it.method in FEED_METHODS }
             ?.let { StringUtils.cleanPath(pathHelper.getPathWithinApplication(it)) }
             ?.takeIf { pathMatcher.match(FEED_PATTERN, it) }
             ?.let { pathMatcher.extractUriTemplateVariables(FEED_TEMPLATE, it)["teamSlug"] }
@@ -78,6 +86,8 @@ class CalendarFeedTenantFilter(
             ?.let(::Slug)
 
     private companion object {
+        val FEED_METHODS = setOf(HttpMethod.GET.name(), HttpMethod.HEAD.name())
+
         const val FEED_PATTERN = "/api/calendar/*/*.ics"
         const val FEED_TEMPLATE = "/api/calendar/{teamSlug}/{token}.ics"
     }

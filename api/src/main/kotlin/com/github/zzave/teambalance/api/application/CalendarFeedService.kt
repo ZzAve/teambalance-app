@@ -2,6 +2,7 @@ package com.github.zzave.teambalance.api.application
 
 import com.github.zzave.teambalance.api.domain.model.AttendanceState
 import com.github.zzave.teambalance.api.domain.model.Event
+import com.github.zzave.teambalance.api.domain.model.RefreshCadence
 import com.github.zzave.teambalance.api.domain.model.Slug
 import com.github.zzave.teambalance.api.domain.model.TeamSummary
 import com.github.zzave.teambalance.api.domain.model.UserId
@@ -17,8 +18,18 @@ import java.time.Instant
 /** One event as the subscriber's calendar will show it: the event, and *their* answer to it. */
 data class CalendarFeedEntry(val event: Event, val state: AttendanceState)
 
-/** Everything the subscribed calendar is told: whose team this is, and what is on. */
-data class CalendarFeed(val team: TeamSummary, val entries: List<CalendarFeedEntry>)
+/**
+ * Everything the subscribed calendar is told: whose team this is, what is on, and how soon to ask
+ * again.
+ *
+ * [refresh] is carried rather than derived here because it depends on *now*, which a description of
+ * what is being served has no business holding.
+ */
+data class CalendarFeed(
+    val team: TeamSummary,
+    val entries: List<CalendarFeedEntry>,
+    val refresh: RefreshCadence,
+)
 
 /**
  * The session-less half of **Calendar links** (ADR-0032): resolve a webcal URL to one member's view of
@@ -52,7 +63,10 @@ class CalendarFeedService(
     fun feed(slug: Slug, presentedToken: String): CalendarFeed? {
         val now = clock.instant()
         val team = teamRepository.findBySlug(slug) ?: return null
-        return subscriber(team, presentedToken, now)?.let { CalendarFeed(team, entriesFor(it, now)) }
+        return subscriber(team, presentedToken, now)?.let {
+            val entries = entriesFor(it, now)
+            CalendarFeed(team, entries, RefreshCadence.before(nextStart(entries, now), now))
+        }
     }
 
     /**
@@ -75,6 +89,14 @@ class CalendarFeedService(
             .associate { it.eventId to it.state }
         return events.map { CalendarFeedEntry(it, states[it.id] ?: AttendanceState.NOT_RESPONDED) }
     }
+
+    /**
+     * The soonest Event still ahead of the subscriber, which is what sets the refresh cadence. Taken
+     * by minimum rather than by position: the feed reaches back thirty days, so its first entry is
+     * usually one that has already happened.
+     */
+    private fun nextStart(entries: List<CalendarFeedEntry>, now: Instant): Instant? =
+        entries.map { it.event.startTime }.filter { it.isAfter(now) }.minOrNull()
 
     private companion object {
         /**

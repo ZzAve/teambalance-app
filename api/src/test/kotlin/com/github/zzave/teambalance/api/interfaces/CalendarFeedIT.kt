@@ -25,6 +25,7 @@ import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.header
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
+import java.time.Duration
 import java.time.Instant
 
 /**
@@ -95,6 +96,34 @@ class CalendarFeedIT : TeamBalanceIT() {
 
             test("an unknown token answers 404, not a 500 from an unbound tenant") {
                 head(ALPHA_SLUG, calendarLinkTokens.mint()).andExpect(status().isNotFound)
+            }
+        }
+
+        // The banding itself is RefreshCadenceTest's; what this proves is that the *right* event picks
+        // the band — against real rows, where the feed also carries a month of history.
+        context("the refresh cadence follows the next event") {
+            test("a team with nothing soon is told to come back in twelve hours") {
+                body(fetch(ALPHA_SLUG, liveLink())) shouldContain "REFRESH-INTERVAL;VALUE=DURATION:PT12H"
+            }
+
+            test("an event tomorrow tightens it to an hour") {
+                CalendarLinkFixture.extraEvent(jdbcTemplate, Instant.now().plus(Duration.ofDays(1)))
+
+                body(fetch(ALPHA_SLUG, liveLink())) shouldContain "REFRESH-INTERVAL;VALUE=DURATION:PT1H"
+            }
+
+            test("an event two and a half days out sits in the middle band") {
+                CalendarLinkFixture.extraEvent(jdbcTemplate, Instant.now().plus(Duration.ofHours(60)))
+
+                body(fetch(ALPHA_SLUG, liveLink())) shouldContain "REFRESH-INTERVAL;VALUE=DURATION:PT6H"
+            }
+
+            // The feed reaches thirty days back, so its *first* entry is usually already over. Only
+            // events still ahead may tighten the cadence.
+            test("an event that has already happened does not tighten anything") {
+                CalendarLinkFixture.extraEvent(jdbcTemplate, Instant.now().minus(Duration.ofDays(1)))
+
+                body(fetch(ALPHA_SLUG, liveLink())) shouldContain "REFRESH-INTERVAL;VALUE=DURATION:PT12H"
             }
         }
 

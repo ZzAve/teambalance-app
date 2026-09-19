@@ -27,11 +27,6 @@ object CalendarIcs {
 
     private const val PRODUCT_ID = "-//TeamBalance//Calendar Link//EN"
 
-    /**
-     * How often a client should come back. Both spellings on purpose: `REFRESH-INTERVAL` is the
-     * standard one (RFC 7986) and `X-PUBLISHED-TTL` is what Outlook and several others actually read.
-     */
-    private const val REFRESH_INTERVAL = "PT1H"
 
     /**
      * The member's own answer, worn on the title so a glance at the week says who is in. A prefix
@@ -53,8 +48,13 @@ object CalendarIcs {
             // use to title a subscribed calendar, and a feed nobody can tell apart in a sidebar full
             // of calendars has failed at the one thing the name is for.
             setExperimentalProperty("X-WR-CALNAME", feed.team.name.value)
-            addExperimentalProperty("REFRESH-INTERVAL", ICalDataType.DURATION, REFRESH_INTERVAL)
-            addExperimentalProperty("X-PUBLISHED-TTL", REFRESH_INTERVAL)
+            // How soon to come back, tightening as the next event nears (RefreshCadence). Both
+            // spellings on purpose: `REFRESH-INTERVAL` is the standard one (RFC 7986) and
+            // `X-PUBLISHED-TTL` is what Outlook and several others actually read. Java renders a
+            // Duration as ISO-8601, which RFC 5545's DURATION is a subset of.
+            val refresh = feed.refresh.interval.toString()
+            addExperimentalProperty("REFRESH-INTERVAL", ICalDataType.DURATION, refresh)
+            addExperimentalProperty("X-PUBLISHED-TTL", refresh)
         }
         feed.entries.forEach { calendar.addEvent(it.toVEvent(feed.team.slug.value, frontendBaseUrl)) }
         return Biweekly.write(calendar).go()

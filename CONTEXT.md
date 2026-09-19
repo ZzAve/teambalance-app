@@ -119,6 +119,12 @@ any-team, self-service (see [ADR-0001](docs/adr/0001-product-ambition-hobby-tool
   ([ADR-0032](docs/adr/0032-calendar-links-webcal-feed.md)). _Avoid_: calendar feed (that is what the
   link *serves*), iCal link, calendar subscription, calendar token. Distinct from a **Reference** (an
   admin's outbound link *on* an Event) and from **Magic/Invite Links**.
+- **Refresh Cadence** — How often a **Calendar link**'s feed asks a calendar app to come back, banded by
+  how far off the soonest *future* **Event** is: `Relaxed` (12h) when nothing is within three days or
+  there is nothing at all, `Closing` (6h) at two to three days, `Imminent` (1h) under two. Boundaries
+  belong to the calmer band, and past Events never tighten it. Advisory — a client honours it as a hint
+  at best ([ADR-0032](docs/adr/0032-calendar-links-webcal-feed.md)). _Avoid_: polling interval, TTL,
+  refresh rate, sync frequency.
 - **Attendance Toggle** — The core daily interaction: a Member sets their state on an
   event. Editable by others today (trust-based) — see
   [ADR-0003](docs/adr/0003-trust-based-attendance-editing.md).

@@ -11,6 +11,7 @@ import com.github.zzave.teambalance.api.domain.model.EventTitle
 import com.github.zzave.teambalance.api.domain.model.EventType
 import com.github.zzave.teambalance.api.domain.model.EventTypeId
 import com.github.zzave.teambalance.api.domain.model.EventTypeName
+import com.github.zzave.teambalance.api.domain.model.RefreshCadence
 import com.github.zzave.teambalance.api.domain.model.Slug
 import com.github.zzave.teambalance.api.domain.model.TeamId
 import com.github.zzave.teambalance.api.domain.model.TeamName
@@ -55,8 +56,14 @@ private fun event(
     createdAt = Instant.parse("2026-09-01T09:00:00Z"),
 )
 
-private fun render(state: AttendanceState = AttendanceState.NOT_RESPONDED, event: Event = event()) =
-    CalendarIcs.render(CalendarFeed(TEAM, listOf(CalendarFeedEntry(event, state))), FRONTEND)
+private fun feed(entries: List<CalendarFeedEntry>, refresh: RefreshCadence = RefreshCadence.RELAXED) =
+    CalendarFeed(TEAM, entries, refresh)
+
+private fun render(
+    state: AttendanceState = AttendanceState.NOT_RESPONDED,
+    event: Event = event(),
+    refresh: RefreshCadence = RefreshCadence.RELAXED,
+) = CalendarIcs.render(feed(listOf(CalendarFeedEntry(event, state)), refresh), FRONTEND)
 
 /**
  * The wire format of the calendar-link feed (ADR-0032). These assertions are what a subscriber's
@@ -70,10 +77,20 @@ class CalendarIcsTest : FunSpec({
         render() shouldContain "X-WR-CALNAME:Tovo Dames 5"
     }
 
-    test("the calendar advertises how often to come back, in both spellings clients read") {
-        val ics = render()
-        ics shouldContain "REFRESH-INTERVAL;VALUE=DURATION:PT1H"
-        ics shouldContain "X-PUBLISHED-TTL:PT1H"
+    // Which band applies is RefreshCadenceTest's business; what matters here is that whichever one
+    // the feed carries is written out, in both spellings, as a well-formed DURATION.
+    context("the calendar advertises how often to come back") {
+        listOf(
+            RefreshCadence.RELAXED to "PT12H",
+            RefreshCadence.CLOSING to "PT6H",
+            RefreshCadence.IMMINENT to "PT1H",
+        ).forEach { (cadence, iso) ->
+            test("$cadence is written in both spellings clients read") {
+                val ics = render(refresh = cadence)
+                ics shouldContain "REFRESH-INTERVAL;VALUE=DURATION:$iso"
+                ics shouldContain "X-PUBLISHED-TTL:$iso"
+            }
+        }
     }
 
     test("it is a well-formed calendar with one event per entry") {
@@ -160,17 +177,14 @@ class CalendarIcsTest : FunSpec({
     // Deliberately absent (ADR-0032): a subscription URL is a bearer credential shared to a device,
     // so it carries the subscriber's own schedule and nothing about anybody else.
     test("no roster, no attendees and no alarms are disclosed") {
-        val ics = CalendarIcs.render(
-            CalendarFeed(TEAM, listOf(CalendarFeedEntry(event(), AttendanceState.ATTENDING))),
-            FRONTEND,
-        )
+        val ics = CalendarIcs.render(feed(listOf(CalendarFeedEntry(event(), AttendanceState.ATTENDING))), FRONTEND)
         ics shouldNotContain "ATTENDEE"
         ics shouldNotContain "ORGANIZER"
         ics shouldNotContain "BEGIN:VALARM"
     }
 
     test("a team with nothing on still renders a valid, empty calendar") {
-        val ics = CalendarIcs.render(CalendarFeed(TEAM, emptyList()), FRONTEND)
+        val ics = CalendarIcs.render(feed(emptyList()), FRONTEND)
         ics shouldContain "BEGIN:VCALENDAR"
         ics shouldNotContain "BEGIN:VEVENT"
     }

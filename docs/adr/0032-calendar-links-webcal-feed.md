@@ -130,15 +130,40 @@ look busy — while an *unanswered* event stays opaque, since "I haven't decided
 software we do not control; the less it discloses if it leaks, the better. Reminders are the
 subscriber's own business and their calendar app already does them better.
 
+### The refresh cadence tightens as an event approaches
+
+`REFRESH-INTERVAL` (RFC 7986) and `X-PUBLISHED-TTL` (what Outlook and several others actually read)
+are not fixed. They are banded by how far off the feed's soonest *future* event is:
+
+| Next event | Cadence |
+|---|---|
+| three days or more away, or nothing at all | **12 hours** |
+| two to three days | **6 hours** |
+| under two days | **1 hour** |
+
+A flat interval has to be wrong in one direction. Hourly polling of a team whose next training is a
+fortnight away is pure traffic for a calendar that will not change; twelve-hourly polling on the
+morning of a match means a cancellation reaches people after they have already left for the hall.
+
+Three bands rather than a formula, because a client honours this as a **hint** at best — Google in
+particular polls on its own schedule regardless — so finer resolution would be precision nobody
+consumes, while three named bands are three cases a test can state. The boundaries belong to the
+calmer band (exactly three days away is still 12 hours), and only events still ahead count: the feed
+reaches thirty days back, so its first entry is usually one that has already happened.
+
+There is no configuration for this. The bands are a product decision about how fresh a team's
+schedule needs to be, not an operational dial.
+
 ### Caching and throttling
 
 `ETag` over the response body with `If-None-Match`/304 and `Cache-Control: max-age=0, private` — a
-client refetches hourly whether or not anything changed, so the 304 is the point, and no shared cache
-may hold one member's schedule. `DTSTAMP` is the event's `created_at` rather than the wall clock,
-precisely so the ETag is stable; a `now()` there would defeat the whole mechanism.
+client refetches on its own schedule whether or not anything changed, so the 304 is the point, and no
+shared cache may hold one member's schedule. `DTSTAMP` is the event's `created_at` rather than the
+wall clock, precisely so the ETag is stable; a `now()` there would defeat the whole mechanism.
 
 Rate limited to 60/hour **per token** on the existing `RateLimitFilter` (ADR-0020), which now also
-inspects GET and HEAD. Per token rather than per IP because there is no session to key on and a whole
+inspects GET and HEAD. Generous against even the tightest band above, and unchanged by the banding:
+the ceiling exists for a runaway client, not to enforce the cadence. Per token rather than per IP because there is no session to key on and a whole
 club behind one office NAT would otherwise share a bucket and knock each other's calendars offline.
 
 Two consequences of keying on a caller-supplied value, both accepted:
@@ -186,6 +211,12 @@ the `@GetMapping` handler, so the tenant filter and the throttle both match the 
 alone left HEAD reaching the controller with no tenant bound — a 500 against `__no_tenant__` instead
 of the undifferentiated 404, and, with a session cookie present, a token matched against the caller's
 own team rather than the slug's.
+
+**The ETag now moves with the clock as well as with the data.** The cadence is a calendar property,
+so it is inside the body the ETag hashes: crossing a band changes the ETag even though nothing about
+the schedule did, and that fetch is a 200 rather than a 304. That is the correct behaviour — a client
+that kept revalidating into an unchanged response would never learn the new cadence — and it costs
+two extra full responses per event, against the polling it saves in every quiet week.
 
 **A member cannot be told why a link stopped working.** The undifferentiated 404 is a real usability
 cost: a subscriber whose link expired sees exactly what a stranger with a wrong token sees, and their

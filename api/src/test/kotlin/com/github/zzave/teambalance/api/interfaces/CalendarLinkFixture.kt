@@ -76,6 +76,21 @@ object CalendarLinkFixture {
     }
 
 
+    /** An extra Alpha event at [startsAt], for specs that need the schedule to be near or already past. */
+    fun extraEvent(jdbc: JdbcTemplate, startsAt: Instant, title: String = "Extra") {
+        jdbc.update(
+            """
+            INSERT INTO $ALPHA_SCHEMA.events (uuid, event_type_id, title, start_time, end_time, created_by)
+            SELECT gen_random_uuid(), et.id, ?, ?, ?, ?::uuid
+            FROM   $ALPHA_SCHEMA.event_types et WHERE et.name = 'Training'
+            """,
+            title,
+            Timestamp.from(startsAt),
+            Timestamp.from(startsAt.plusSeconds(5400)),
+            ALPHA_MEMBER,
+        )
+    }
+
     fun answer(jdbc: JdbcTemplate, userId: String, state: String) {
         jdbc.update(
             """

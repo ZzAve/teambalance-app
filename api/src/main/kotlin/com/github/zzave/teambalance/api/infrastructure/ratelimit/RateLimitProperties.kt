@@ -32,8 +32,9 @@ data class RateLimitProperties(
      * `GET /api/calendar/{slug}/{token}.ics` — keyed per **token**, not per IP. The feed is
      * session-less, so there is no user to key on, and a whole club behind one office NAT would share
      * an IP bucket and throttle each other. The token is the subscription's identity, which is exactly
-     * the thing worth bounding: 60/hour is generous against the `PT1H` refresh the feed advertises,
-     * and tight enough that the URL is not a free bulk-read endpoint.
+     * the thing worth bounding: 60/hour is generous against even the tightest cadence the feed
+     * advertises (hourly, and only in the two days before an event — see `RefreshCadence`), and tight
+     * enough that the URL is not a free bulk-read endpoint.
      */
     val calendarFeed: Policy = Policy(capacity = 60, refillPeriod = Duration.ofHours(1)),
 ) {

@@ -28,6 +28,7 @@ class TenantSchemaAdapterTest : TeamBalanceIT() {
 
             tables.shouldContainExactlyInAnyOrder(
                 "attendances",
+                "calendar_links",
                 "event_audience",
                 "event_position_targets",
                 "event_references",

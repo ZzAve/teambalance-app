@@ -18,14 +18,14 @@ interface OnboardingHubViewProps {
 export function OnboardingHubView({ onChooseJoin, onChooseCreate, inviteUnavailable }: OnboardingHubViewProps) {
   return (
     <div className="mx-auto mt-10 max-w-sm text-center">
-      <h1 className="font-display text-2xl font-bold">Welcome to TeamBalance 👋</h1>
+      <h1 className="font-display text-title font-bold">Welcome to TeamBalance 👋</h1>
       {inviteUnavailable && (
-        <p className="mt-3 rounded-lg border border-gold/40 bg-gold/10 p-3 text-sm text-foreground">
+        <p className="mt-3 rounded-lg border border-gold/40 bg-gold/10 p-3 text-small text-foreground">
           You're signed in, but the invite link you used has expired or been replaced. Ask your team
           for a new one, then use <span className="font-medium">I have an invite</span> below.
         </p>
       )}
-      <p className="mt-2 text-sm text-muted-foreground">
+      <p className="mt-2 text-small text-muted-foreground">
         {inviteUnavailable
           ? 'How would you like to get started?'
           : "You're signed in, but not on a team yet. How would you like to get started?"}
@@ -37,8 +37,8 @@ export function OnboardingHubView({ onChooseJoin, onChooseCreate, inviteUnavaila
           onClick={onChooseJoin}
           className="rounded-lg border border-border bg-blue/5 p-4 text-left transition-colors hover:border-blue"
         >
-          <span className="block font-display text-lg font-bold">I have an invite</span>
-          <span className="mt-1 block text-sm text-muted-foreground">Someone shared a join link with you</span>
+          <span className="block font-display text-lead font-bold">I have an invite</span>
+          <span className="mt-1 block text-small text-muted-foreground">Someone shared a join link with you</span>
         </button>
 
         <button
@@ -47,7 +47,7 @@ export function OnboardingHubView({ onChooseJoin, onChooseCreate, inviteUnavaila
           className="rounded-lg border border-border p-4 text-left transition-colors hover:border-blue"
         >
           <span className="block font-semibold">Create a team</span>
-          <span className="mt-1 block text-sm text-muted-foreground">
+          <span className="mt-1 block text-small text-muted-foreground">
             You'll need a creation code — team owners get these from us
           </span>
         </button>

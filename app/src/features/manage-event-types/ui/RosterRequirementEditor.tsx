@@ -1,6 +1,7 @@
 import type { Position } from '@shared/api/positions'
 import type { RosterRequirement } from '@shared/api/event-types'
 import { Input } from '@shared/ui/input'
+import { SectionLabel } from '@shared/ui/SectionLabel'
 
 interface RosterRequirementEditorProps {
   value: RosterRequirement
@@ -51,8 +52,8 @@ export function RosterRequirementEditor({
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <div className="text-[13.5px] font-semibold">Track roster</div>
-          <div className="mt-0.5 text-[11.5px] text-muted-foreground">
+          <div className="text-small font-semibold">Track roster</div>
+          <div className="mt-0.5 text-caption text-muted-foreground">
             {value.trackRoster
               ? 'On — the card shows who is covering which position'
               : 'Off — no roster panel on the card'}
@@ -86,9 +87,9 @@ export function RosterRequirementEditor({
       {value.trackRoster && (
         <div className="flex flex-col gap-3 rounded-lg border border-border p-3">
           <div className="flex items-center justify-between gap-3">
-            <label htmlFor={`${idPrefix}-total`} className="text-[13px]">
+            <label htmlFor={`${idPrefix}-total`} className="text-small">
               People needed in total
-              <span className="ml-1 text-[11.5px] text-muted-foreground">(optional)</span>
+              <span className="ml-1 text-caption text-muted-foreground">(optional)</span>
             </label>
             <Input
               id={`${idPrefix}-total`}
@@ -105,17 +106,15 @@ export function RosterRequirementEditor({
           </div>
 
           {positions.length === 0 ? (
-            <p className="text-[12px] text-muted-foreground">
+            <p className="text-small text-muted-foreground">
               Add positions below to require a specific lineup.
             </p>
           ) : (
             <div className="flex flex-col gap-2">
-              <p className="text-[11px] font-bold uppercase tracking-[0.09em] text-muted-foreground">
-                Per position
-              </p>
+              <SectionLabel as="p">Per position</SectionLabel>
               {positions.map((position) => (
                 <div key={position.id} className="flex items-center justify-between gap-3">
-                  <label htmlFor={`${idPrefix}-pos-${position.id}`} className="truncate text-[13px]">
+                  <label htmlFor={`${idPrefix}-pos-${position.id}`} className="truncate text-small">
                     {position.label}
                   </label>
                   <Input

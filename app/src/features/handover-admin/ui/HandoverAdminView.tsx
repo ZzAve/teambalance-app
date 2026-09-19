@@ -1,5 +1,14 @@
+import { useState } from 'react'
 import { Button } from '@shared/ui/button'
 import { Input } from '@shared/ui/input'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@shared/ui/dialog'
 
 interface HandoverAdminViewProps {
   /** The active-admin-link read is in flight. */
@@ -30,6 +39,9 @@ interface HandoverAdminViewProps {
  * The link is read on load and survives a page refresh (ADR-0025's recoverability, extended here);
  * rotating replaces it (if it leaked) and revoking removes it — the same lifecycle as the player link,
  * but this link grants **Admin** and is spent on first accept, so the copy has to say both.
+ *
+ * Revoking asks for confirmation first (issue #341): it is irreversible and offers no replacement,
+ * unlike rotate which lands on a new link in the same click.
  */
 export function HandoverAdminView({
   isLoading,
@@ -46,10 +58,11 @@ export function HandoverAdminView({
   onRotate,
   onRevoke,
 }: HandoverAdminViewProps) {
+  const [confirmRevokeOpen, setConfirmRevokeOpen] = useState(false)
   const heading = (
     <div>
-      <h2 className="font-display text-2xl font-bold">Hand over as admin</h2>
-      <p className="mt-1 text-sm text-muted-foreground">
+      <h2 className="font-display text-title font-bold">Hand over as admin</h2>
+      <p className="mt-1 text-small text-muted-foreground">
         Create a single-use link that makes the first person who opens it an admin of this team. Send
         it to one person — anyone who opens it becomes an admin, and it stops working once used.
       </p>
@@ -60,18 +73,18 @@ export function HandoverAdminView({
     <div className="flex flex-col gap-3">
       {heading}
 
-      {isLoading && <p className="text-sm text-muted-foreground">Loading…</p>}
-      {isError && <p className="text-sm text-destructive">Failed to load the admin link.</p>}
+      {isLoading && <p className="text-small text-muted-foreground">Loading…</p>}
+      {isError && <p className="text-small text-destructive">Failed to load the admin link.</p>}
 
       {!isLoading && !isError && justRevoked && (
         <div className="flex flex-col gap-2">
-          <p className="text-sm text-muted-foreground">
+          <p className="text-small text-muted-foreground">
             The link has been revoked. It can no longer make anyone an admin.
           </p>
           <Button type="button" onClick={onCreate} disabled={isCreating} className="self-start">
             {isCreating ? 'Creating…' : 'Create new admin link'}
           </Button>
-          {actionError && <p className="text-sm text-destructive">Something went wrong. Please try again.</p>}
+          {actionError && <p className="text-small text-destructive">Something went wrong. Please try again.</p>}
         </div>
       )}
 
@@ -80,7 +93,7 @@ export function HandoverAdminView({
           <Button type="button" onClick={onCreate} disabled={isCreating} className="self-start">
             {isCreating ? 'Creating…' : 'Create admin handover link'}
           </Button>
-          {actionError && <p className="text-sm text-destructive">Something went wrong. Please try again.</p>}
+          {actionError && <p className="text-small text-destructive">Something went wrong. Please try again.</p>}
         </div>
       )}
 
@@ -96,17 +109,48 @@ export function HandoverAdminView({
             <Button type="button" variant="outline" onClick={onRotate} disabled={isRotating}>
               {isRotating ? 'Rotating…' : 'Rotate link'}
             </Button>
-            <Button type="button" variant="destructive" onClick={onRevoke} disabled={isRevoking}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setConfirmRevokeOpen(true)}
+              disabled={isRevoking}
+            >
               {isRevoking ? 'Revoking…' : 'Revoke link'}
             </Button>
           </div>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-caption text-muted-foreground">
             This link grants admin and can be used once. Rotating replaces it with a new one; revoking
             removes it. Either way the old link stops working.
           </p>
-          {actionError && <p className="text-sm text-destructive">Something went wrong. Please try again.</p>}
+          {actionError && <p className="text-small text-destructive">Something went wrong. Please try again.</p>}
         </div>
       )}
+
+      <Dialog open={confirmRevokeOpen} onOpenChange={setConfirmRevokeOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Revoke the invite link?</DialogTitle>
+            <DialogDescription>
+              The old link stops working and no replacement is created. It can no longer be used to
+              become an admin of this team.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmRevokeOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                setConfirmRevokeOpen(false)
+                onRevoke()
+              }}
+            >
+              Revoke link
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

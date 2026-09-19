@@ -24,7 +24,7 @@ export function TeamHeader({ isAdmin, actions }: TeamHeaderProps) {
 
   return (
     <div className="flex items-center justify-between">
-      <h2 className="font-display text-2xl font-bold">Team</h2>
+      <h2 className="font-display text-title font-bold">Team</h2>
       {isAdmin && (
         <div className="flex items-center gap-2">
           {actions}

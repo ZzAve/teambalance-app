@@ -20,9 +20,9 @@ const iso = (daysFromNow, hour, minute = 0) => {
 }
 
 const TYPES = [
-  { id: 'et-match', name: 'Match', color: '#225C9C' },
-  { id: 'et-training', name: 'Training', color: '#249E6C' },
-  { id: 'et-social', name: 'Social', color: '#F4B400' },
+  { id: 'et-match', name: 'Match', color: '#225C9C', archived: false, rosterDefault: { trackRoster: true, totalTarget: 12, positionTargets: [] } },
+  { id: 'et-training', name: 'Training', color: '#249E6C', archived: false, rosterDefault: { trackRoster: true, totalTarget: 8, positionTargets: [] } },
+  { id: 'et-social', name: 'Social', color: '#F4B400', archived: false, rosterDefault: { trackRoster: false, totalTarget: undefined, positionTargets: [] } },
 ]
 
 const summary = (attending, maybe, absent, notResponded, roleBreakdown = []) => ({
@@ -238,6 +238,8 @@ export async function installFixtureApi(page) {
           { id: 'p4', label: 'Outside Hitter' },
         ] })
       if (path === '/api/events') return json({ events: EVENTS.map(withAttendances) })
+      if (path === '/api/team/season') return json({ start: undefined, end: undefined })
+      if (path.startsWith('/api/invitations')) return json({ token: 'abc123', expiresAt: new Date(Date.now()+864e5*7).toISOString() })
 
       const detail = path.match(/^\/api\/events\/([^/]+)$/)
       if (detail) {

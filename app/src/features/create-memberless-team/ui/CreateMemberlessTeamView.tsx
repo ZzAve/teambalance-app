@@ -54,20 +54,20 @@ export function CreateMemberlessTeamView({
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-3">
       <div>
-        <h2 className="font-display text-2xl font-bold">Create a team</h2>
-        <p className="mt-1 text-sm text-muted-foreground">
+        <h2 className="font-display text-title font-bold">Create a team</h2>
+        <p className="mt-1 text-small text-muted-foreground">
           Creates an empty team you can enter and set up, then hand over with an admin invite link. You
           don't join it.
         </p>
       </div>
 
       {bannerError && (
-        <p role="alert" className="text-sm text-destructive">
+        <p role="alert" className="text-small text-destructive">
           {bannerError}
         </p>
       )}
       {createdName && !bannerError && (
-        <p role="status" className="text-sm text-green">
+        <p role="status" className="text-small text-green">
           Created “{createdName}”. Enter it from the list below to set it up.
         </p>
       )}
@@ -81,7 +81,7 @@ export function CreateMemberlessTeamView({
           onChange={(e) => setName(e.target.value)}
           placeholder="e.g. Tovo Dames 5"
         />
-        {nameError && <p className="mt-1 text-sm text-destructive">{nameError}</p>}
+        {nameError && <p className="mt-1 text-small text-destructive">{nameError}</p>}
       </div>
 
       <div>
@@ -93,7 +93,7 @@ export function CreateMemberlessTeamView({
           onChange={(e) => setSlug(e.target.value)}
           placeholder="tovo-dames-5"
         />
-        {slugError && <p className="mt-1 text-sm text-destructive">{slugError}</p>}
+        {slugError && <p className="mt-1 text-small text-destructive">{slugError}</p>}
       </div>
 
       <Button type="submit" disabled={!canSubmit} className="self-start">

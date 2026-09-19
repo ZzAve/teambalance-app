@@ -29,6 +29,30 @@ export default tseslint.config(
     },
     rules: {
       ...reactHooks.configs.recommended.rules,
+      // #338: arbitrary Tailwind text sizes and radii are banned — the six-step type scale
+      // (--text-caption/small/body/lead/title/page, app/src/app/styles/global.css) and the 8/12/16
+      // radius triple (rounded-sm/md/lg) cover every real size the app needs. Flags both plain
+      // string literals (className="text-[11px]") and template-literal chunks (the many
+      // conditional `className={`...text-[11px]...`}` call sites) containing the arbitrary form.
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: String.raw`Literal[value=/\btext-\[\d/]`,
+          message: 'Arbitrary text size — use the type scale (text-caption/small/body/lead/title/page) from app/src/app/styles/global.css instead.',
+        },
+        {
+          selector: String.raw`TemplateElement[value.raw=/\btext-\[\d/]`,
+          message: 'Arbitrary text size — use the type scale (text-caption/small/body/lead/title/page) from app/src/app/styles/global.css instead.',
+        },
+        {
+          selector: String.raw`Literal[value=/\brounded-\[\d/]`,
+          message: 'Arbitrary radius — use rounded-sm/md/lg (8/12/16, design-tokens/tokens.css) instead.',
+        },
+        {
+          selector: String.raw`TemplateElement[value.raw=/\brounded-\[\d/]`,
+          message: 'Arbitrary radius — use rounded-sm/md/lg (8/12/16, design-tokens/tokens.css) instead.',
+        },
+      ],
       // FSD: layers can only import from same layer or layers below
       'boundaries/dependencies': [
         'error',

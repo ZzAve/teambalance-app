@@ -57,7 +57,7 @@ export function EventRosterPanel({ event, view, currentUserId, detailHref }: Eve
           {hidden > 0 && (
             <Link
               to={detailHref}
-              className="mt-2 flex items-center gap-1 px-2.5 text-xs font-semibold text-blue"
+              className="mt-2 flex items-center gap-1 px-2.5 text-caption font-semibold text-blue"
             >
               See all {event.attendances.length}
               <ArrowRight size={12} aria-hidden />

@@ -20,6 +20,11 @@ teambalance:
     token-salt: e2e-invitation-salt
     # Hardcoded key for e2e runs; live supplies INVITATION_TOKEN_ENCRYPTION_KEY.
     token-encryption-key: dGVhbWJhbGFuY2UtZTJlLWludml0YXRpb24ta2V5LTE=
+  api-base-url: http://localhost:8080
+  calendar-link:
+    # Hardcoded secrets for e2e runs (not a live environment).
+    token-salt: e2e-calendar-link-salt
+    token-encryption-key: dGVhbWJhbGFuY2UtZTJlLWNhbGVuZGFyLWtleS0xMjM=
   rate-limit:
     # Generous ceilings for the full-stack suite: every Playwright test logs in via the magic-link
     # flow from the same CI IP, so the default per-IP limits (5–10/min) would throttle later tests and

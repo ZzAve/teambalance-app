@@ -11,6 +11,12 @@ teambalance:
     token-salt: dev-invitation-salt
     # Dev-only key (not a live environment); live supplies INVITATION_TOKEN_ENCRYPTION_KEY.
     token-encryption-key: dGVhbWJhbGFuY2UtZGV2LWludml0YXRpb24ta2V5LTE=
+  # Local API origin, so a calendar link created against `make api` is fetchable as-is.
+  api-base-url: http://localhost:8080
+  calendar-link:
+    # Dev-only secrets (not a live environment) so bootRun works without the env vars set.
+    token-salt: dev-calendar-link-salt
+    token-encryption-key: dGVhbWJhbGFuY2UtZGV2LWNhbGVuZGFyLWtleS0xMjM=
 
 logging:
   level:

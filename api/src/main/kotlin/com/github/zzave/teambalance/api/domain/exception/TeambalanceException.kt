@@ -1,5 +1,6 @@
 package com.github.zzave.teambalance.api.domain.exception
 
+import com.github.zzave.teambalance.api.domain.model.CalendarLinkId
 import com.github.zzave.teambalance.api.domain.model.EventId
 import com.github.zzave.teambalance.api.domain.model.EventTypeId
 import com.github.zzave.teambalance.api.domain.model.PositionId
@@ -53,6 +54,11 @@ class PositionNotFoundException(id: PositionId) : NotFoundException("Position no
 // managing codes, not a founder probing them, so a plain not-found is appropriate.
 class CreationCodeNotFoundException(code: String) : NotFoundException("Creation code not found: $code")
 
+// The caller asked to delete a calendar link that is not theirs, or does not exist. One exception for
+// both: which of the two it is, is exactly what a caller probing other members' link ids would want
+// to learn (ADR-0032).
+class CalendarLinkNotFoundException(id: CalendarLinkId) : NotFoundException("Calendar link not found: $id")
+
 // Act-as was asked to enter a team that does not exist (ADR-0024). A plain 404: the caller is an
 // authenticated platform admin who already sees every team in the console, so there is nothing to
 // keep opaque here — unlike the member-facing activate path, where "not yours" and "no such team"
@@ -90,6 +96,14 @@ class ActAsExpiredException(userId: UserId) :
 class CannotChangeOwnRoleException(userId: UserId) :
     ForbiddenException("User $userId cannot elevate their own role", "CANNOT_SELF_PROMOTE")
 
+// Blocked for the duration of an Act-as grant (ADR-0024). A Calendar link is a standing credential
+// issued to a *person*, so minting or revoking one while operating as somebody else's Admin would
+// leave a member holding a subscription they never asked for — or lose one they rely on — with only
+// the generic Act-as Record to show for it. Refused rather than attributed: act-as is full read and
+// write on the team's own data, and this is not that.
+class NotUnderActAsException :
+    ForbiddenException("This is not available while acting as a team", "ACT_AS_NOT_PERMITTED")
+
 // `code` is the stable machine-readable discriminator for 422 rejections — a request that is
 // well-formed but violates a business rule (not a state clash, so not a 409). Mirrors the code
 // convention of ForbiddenException/ConflictException.
@@ -119,6 +133,12 @@ class NameTakenException(name: String) :
 
 class LastAdminException(teamId: TeamId) :
     ConflictException("Team $teamId must keep at least one admin", "LAST_ADMIN")
+
+// A member already holds the maximum number of Calendar links in this team, expired ones included
+// (ADR-0032). A 409 rather than a 422: nothing about the request is wrong, and the caller resolves it
+// by deleting one of the links they already have — the same shape as LastAdminException.
+class CalendarLinkLimitReachedException(max: Int) :
+    ConflictException("You already have $max calendar links for this team; delete one first", "CALENDAR_LINK_LIMIT")
 
 class PositionLabelTakenException(label: String) :
     ConflictException("Position '$label' already exists in this team", "POSITION_LABEL_TAKEN")

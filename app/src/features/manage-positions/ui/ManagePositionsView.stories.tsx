@@ -8,14 +8,20 @@ import { ManagePositionsView } from './ManagePositionsView'
 // container. It owns only local view state (new-label field, per-row edits, delete-confirm dialog);
 // the query + mutations stay in the container, so every state renders purely from props.
 //
-// This is the reference exemplar for the three-story shape (ADR-0031 §1):
+// One quiet row per position (issue #341, variant B): label as text (rename lives behind the row's
+// ⋯ menu, not an always-open input), the Staff checkbox inline since it's the common edit, and a
+// single overflow (⋯) menu carrying Rename and the destructive Delete….
+//
+// This is the reference exemplar for the three-story shape (ADR-0032 §1):
 //   1. Data — the one populated live instance, and the picture of this View.
 //   2. Shells — every non-data state (load / error / empty / staff / label-taken) stacked in one
 //      frame, one picture, each state's assertions scoped to its labelled region.
 //   3. Interactions — no picture; one play walks every interaction and keeps every prop-contract
 //      spy (args.onCreate/onRename/onSetKind/onDelete are fn() spies). This proves the wiring
 //      survives a dependency bump; a getByText assertion alone would not.
-// Plus one extra picture, DeleteConfirmOpen, for the frame no composite shows: the open dialog.
+// Plus two extra pictures for frames no composite shows: DeleteConfirmOpen (the open dialog) and
+// MenuOpen (the open ⋯ menu itself — a distinct frame Interactions never rests on, since every step
+// that opens it goes on to click a menu item).
 const POSITIONS: Position[] = [
   { id: 'p1', label: 'Setter', kind: 'PLAYING' },
   { id: 'p2', label: 'Libero', kind: 'PLAYING' },
@@ -42,9 +48,13 @@ type Story = StoryObj<typeof meta>
 
 export const Data: Story = {
   play: async ({ canvas }) => {
-    await expect(canvas.getByLabelText('Label for Setter')).toHaveValue('Setter')
-    await expect(canvas.getByLabelText('Label for Libero')).toHaveValue('Libero')
-    await expect(canvas.getAllByRole('button', { name: 'Delete' })).toHaveLength(2)
+    // Labels render as plain text (with rename behind the ⋯ menu) — not an always-open input.
+    await expect(canvas.getByText('Setter')).toBeInTheDocument()
+    await expect(canvas.getByText('Libero')).toBeInTheDocument()
+    await expect(canvas.queryByLabelText('Label for Setter')).not.toBeInTheDocument()
+    // One overflow-menu trigger per row, no inline Delete buttons.
+    await expect(canvas.getAllByLabelText(/^Actions for /)).toHaveLength(2)
+    await expect(canvas.queryByRole('button', { name: 'Delete' })).not.toBeInTheDocument()
     // The staff toggle's resting state (#281): a team that has marked nothing sees every box clear,
     // so the distinction costs an existing admin no attention until they want it.
     await expect(canvas.getByLabelText('Setter is staff')).not.toBeChecked()
@@ -91,6 +101,18 @@ export const Shells: Story = {
   },
 }
 
+// The ⋯ menu itself is a frame Interactions never rests on — every step that opens it goes on to
+// click a menu item. Delete… carries the red destructive treatment (the row itself carries none).
+export const MenuOpen: Story = {
+  play: async ({ canvas, userEvent }) => {
+    await userEvent.click(canvas.getByLabelText('Actions for Setter'))
+    const menu = within(document.body)
+    const deleteItem = await menu.findByRole('menuitem', { name: 'Delete…' })
+    await expect(menu.getByRole('menuitem', { name: 'Rename' })).toBeInTheDocument()
+    await expect(deleteItem).toHaveAttribute('data-tone', 'destructive')
+  },
+}
+
 // The open-dialog frame (#264, #219): the populated blast-radius dialog is what an admin actually
 // reads before a destructive action, and it is why that work exists at all. Opened and left open
 // — none of the Interactions steps can picture it, because they confirm or cancel.
@@ -98,11 +120,8 @@ export const DeleteConfirmOpen: Story = {
   args: { usage: USAGE },
   play: async ({ canvas, userEvent, args }) => {
     await userEvent.click(canvas.getByLabelText('Actions for Setter'))
-    const menu = within(document.body)
-    await userEvent.click(await menu.findByRole('menuitem', { name: 'Delete…' }))
-    await expect(args.onDelete).not.toHaveBeenCalled()
-
     const dialog = within(document.body)
+    await userEvent.click(await dialog.findByRole('menuitem', { name: 'Delete…' }))
     // The dialog names what the delete will actually touch (#219) rather than warning in the
     // abstract — a warning, not a veto: the Delete button is still live.
     await expect(await dialog.findByText(/3 members become Unassigned/)).toBeInTheDocument()
@@ -116,9 +135,9 @@ export const DeleteConfirmOpen: Story = {
   },
 }
 
-// Picture owned by Data and DeleteConfirmOpen — behavioural only (ADR-0031 §1). Several instances
-// because some steps need a state the default one is never in (an empty list to create into, a
-// staff position to reclassify, a dialog with nothing / no answer yet to read).
+// Picture owned by Data, MenuOpen and DeleteConfirmOpen — behavioural only (ADR-0032 §1). Several
+// instances because some steps need a state the default one is never in (an empty list to create
+// into, a staff position to reclassify, a dialog with nothing / no answer yet to read).
 export const Interactions: Story = {
   parameters: { chromatic: { disableSnapshot: true } },
   render: (args) => (
@@ -139,9 +158,9 @@ export const Interactions: Story = {
   ),
   play: async ({ canvas, userEvent, args }) => {
     const region = (name: string) => within(canvas.getByRole('region', { name }))
-    const dialog = within(document.body)
+    const portal = within(document.body)
 
-    // The gesture is the flip itself — no Save to press, unlike the label beside it.
+    // The gesture is the flip itself — no Save to press, unlike a rename beside it.
     await userEvent.click(region('Positions').getByLabelText('Setter is staff'))
     await expect(args.onSetKind).toHaveBeenLastCalledWith('p1', 'STAFF')
     // Reclassifying is not one-way: an admin who marked the wrong position can put it back.
@@ -152,29 +171,46 @@ export const Interactions: Story = {
     await userEvent.click(region('Empty').getByRole('button', { name: 'Add' }))
     await expect(args.onCreate).toHaveBeenCalledWith('Middle Blocker')
 
-    // The per-row Save button only appears once the label is edited to a new, non-empty value.
+    // Escape backs out of a rename without calling onRename — checked before the successful rename
+    // below, since a spy's "not called" assertion must precede any step that calls it.
+    await userEvent.click(region('Positions').getByLabelText('Actions for Libero'))
+    await userEvent.click(await portal.findByRole('menuitem', { name: 'Rename' }))
+    const liberoField = region('Positions').getByLabelText('Label for Libero')
+    await userEvent.type(liberoField, ' extra{Escape}')
+    await expect(region('Positions').queryByLabelText('Label for Libero')).not.toBeInTheDocument()
+    await expect(region('Positions').getByText('Libero')).toBeInTheDocument()
+    await expect(args.onRename).not.toHaveBeenCalled()
+
+    // Rename lives behind the ⋯ menu and swaps the label for an inline input; Enter saves without a
+    // mouse click on a Save button.
+    await userEvent.click(region('Positions').getByLabelText('Actions for Setter'))
+    await userEvent.click(await portal.findByRole('menuitem', { name: 'Rename' }))
     const field = region('Positions').getByLabelText('Label for Setter')
+    await expect(field).toHaveValue('Setter')
     await userEvent.clear(field)
-    await userEvent.type(field, 'Middle Blocker')
-    await userEvent.click(region('Positions').getByRole('button', { name: 'Save' }))
+    await userEvent.type(field, 'Middle Blocker{Enter}')
     await expect(args.onRename).toHaveBeenCalledWith('p1', 'Middle Blocker')
 
-    // Confirming the blast-radius dialog fires the delete and closes it.
-    await userEvent.click(region('Positions').getAllByRole('button', { name: 'Delete' })[0])
-    await expect(await dialog.findByText(/3 members become Unassigned/)).toBeInTheDocument()
-    await userEvent.click(dialog.getByRole('button', { name: 'Delete' }))
+    // Confirming the blast-radius dialog fires the delete and closes it. Reached via the ⋯ menu;
+    // Delete… itself carries the red destructive treatment (MenuOpen carries that baseline).
+    await userEvent.click(region('Positions').getByLabelText('Actions for Setter'))
+    await userEvent.click(await portal.findByRole('menuitem', { name: 'Delete…' }))
+    await expect(await portal.findByText(/3 members become Unassigned/)).toBeInTheDocument()
+    await userEvent.click(portal.getByRole('button', { name: 'Delete' }))
     await expect(args.onDelete).toHaveBeenCalledWith(POSITIONS[0])
 
     // A position nothing uses reads as a clean removal rather than a list of three zeroes.
-    await userEvent.click(region('Unused').getAllByRole('button', { name: 'Delete' })[0])
-    await expect(await dialog.findByText('Nothing currently uses this position.')).toBeInTheDocument()
-    await userEvent.click(dialog.getByRole('button', { name: 'Cancel' }))
+    await userEvent.click(region('Unused').getByLabelText('Actions for Setter'))
+    await userEvent.click(await portal.findByRole('menuitem', { name: 'Delete…' }))
+    await expect(await portal.findByText('Nothing currently uses this position.')).toBeInTheDocument()
+    await userEvent.click(portal.getByRole('button', { name: 'Cancel' }))
 
     // The usage query is admin-only and fires when the dialog opens, so there is a moment with no
     // answer yet. It must not read as "nothing uses this".
-    await userEvent.click(region('Usage loading').getAllByRole('button', { name: 'Delete' })[0])
-    await expect(await dialog.findByText('Checking what uses this position…')).toBeInTheDocument()
-    await expect(dialog.queryByText(/Nothing currently uses/)).not.toBeInTheDocument()
-    await userEvent.click(dialog.getByRole('button', { name: 'Cancel' }))
+    await userEvent.click(region('Usage loading').getByLabelText('Actions for Setter'))
+    await userEvent.click(await portal.findByRole('menuitem', { name: 'Delete…' }))
+    await expect(await portal.findByText('Checking what uses this position…')).toBeInTheDocument()
+    await expect(portal.queryByText(/Nothing currently uses/)).not.toBeInTheDocument()
+    await userEvent.click(portal.getByRole('button', { name: 'Cancel' }))
   },
 }

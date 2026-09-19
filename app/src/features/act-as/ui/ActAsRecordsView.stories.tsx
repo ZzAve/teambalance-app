@@ -9,7 +9,7 @@ import { ActAsRecordsView } from './ActAsRecordsView'
 // act-as session rather than the row, since most tenant tables carry no per-row authorship column.
 // Pure prop-driven view with local disclosure state only (no callback props).
 //
-// Three-story shape (ADR-0031 §1):
+// Three-story shape (ADR-0032 §1):
 //   1. Data — the one populated live instance, at rest and collapsed.
 //   2. Shells — loading / error / never-visited / a single-record instance, stacked in one frame.
 //   3. Interactions — no picture; one play walks the disclosure all the way to the reasoning text,
@@ -84,7 +84,7 @@ export const Shells: Story = {
   },
 }
 
-// Picture owned by Data and Shells — behavioural only (ADR-0031 §1). Two instances because the
+// Picture owned by Data and Shells — behavioural only (ADR-0032 §1). Two instances because the
 // ran-out wording ("when the hour ran out") only shows for a record with no exitedAt.
 export const Interactions: Story = {
   parameters: { chromatic: { disableSnapshot: true } },

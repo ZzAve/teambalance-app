@@ -7,8 +7,7 @@ import { makeAttendee, makeEvent, makeRoster, NO_ROSTER } from '@shared/testing/
 import { EventListView } from '@entities/event/ui/EventListView'
 import { PanelViewMenu } from '@features/event-panel-view/ui/PanelViewMenu'
 import { Stack } from '@shared/testing/stack'
-import { EventRosterPanel, MEMBER_CAP } from './EventRosterPanel'
-import type { PanelView } from '@features/event-panel-view/model/panel-preferences'
+import { EventLineupPanel } from './EventLineupPanel'
 
 /**
  * The panel **as the events page actually assembles it** — a whole list of cards, each opening onto
@@ -26,20 +25,21 @@ import type { PanelView } from '@features/event-panel-view/model/panel-preferenc
  * It lives in `widgets/` rather than beside `EventListView` because the panel is a widget and the
  * list is an entity: a story file in `entities/` may not import one (eslint-plugin-boundaries).
  *
- * `component` is the harness (`ListWithPanels`): the two preferences it drives are the events page's
- * own, which is the seam this file exists to cover.
+ * `component` is the harness (`ListWithPanels`): the events page's own wiring is the seam this file
+ * exists to cover.
  *
- * Rendered inside the events page composite (EventsPageView), so per the ownership rule
- * (ADR-0031 §3) its Data story is behavioural only — the composite's own picture already shows this
+ * Rendered inside the events page composite (pages/EventsPageView), so per the ownership rule
+ * (ADR-0032 §3) its `Data` story is behavioural only — the composite's own picture already shows this
  * list, with its panels, in context.
  *
- * Three-story shape (ADR-0031 §1):
- *   1. Data — the list at rest, five events, five roster states, nothing expanded, disableSnapshot
+ * Three-story shape (ADR-0032 §1):
+ *   1. `Data` — the list at rest, five events, five roster states, nothing expanded, disableSnapshot
  *      (picture owned by the page).
- *   2. Shells — every panel open on pips / on members, and the big-squad cap, stacked in one frame —
- *      this picture stays, since the composite's default frame cannot show a card already open.
- *   3. Interactions — no picture; what only the list can prove: the one header control moves every
- *      open card at once, and `Keep open` reaches cards the member never touched.
+ *   2. `Shells` — every panel open at once, and a big squad capped, stacked in one frame — this
+ *      picture stays, since the composite's default frame cannot show a card already open.
+ *   3. `Interactions` — no picture; what only the list can prove: a chip on one card answers for the
+ *      member on *that* card, `Keep open` reaches cards the member never touched, and expanding a
+ *      crowded cluster inside a big squad leaves the neighbouring card untouched.
  */
 
 // ── The team ─────────────────────────────────────────────────────────────────────────────────────
@@ -241,6 +241,9 @@ function ListWithPanels({
   )
 }
 
+// `component` is the harness, not EventListView: the args a story drives here are the events page's
+// own wiring, which is the seam this file exists to cover. The list's own four states
+// (loading / error / empty / data) stay where they were, in EventListView.stories.tsx.
 const meta = {
   title: 'widgets/event-panel/EventListPanels',
   component: ListWithPanels,
@@ -252,7 +255,7 @@ export default meta
 
 type Story = StoryObj<typeof meta>
 
-// Picture owned by the page composite (pages/EventsPageView) — behavioural only (ADR-0031 §3).
+// Picture owned by the page composite (pages/EventsPageView) — behavioural only (ADR-0032 §3).
 // Five events, five roster states, nothing expanded — the card's resting state is unchanged by any
 // of this, which is what the cap and the collapsed default are there to protect.
 export const Data: Story = {
@@ -269,137 +272,135 @@ export const Data: Story = {
   },
 }
 
+// Zero-padded, because the panel sorts members by name and "Member 10" sorts before "Member 2" —
+// which would make the assertions below read backwards for a reason that has nothing to do with the
+// cap they are about.
 const BIG_SQUAD = Array.from({ length: 17 }, (_, i) =>
   makeAttendee(`u-big-${i}`, `Member ${String(i + 1).padStart(2, '0')}`, 'Unassigned', {
     state: i % 4 === 0 ? 'NOT_RESPONDED' : 'ATTENDING',
   }),
 )
 
+// A club side of 17 beside a normal card. The panel caps each cluster and hands the rest to a
+// counter, so one card cannot swallow the screen and stop the list being a list.
+const bigSquadEvents = (): Event[] => [
+  makeEvent({
+    id: 'evt-big',
+    eventType: TYPES.training,
+    title: 'Club Night',
+    startTime: on(12),
+    roster: makeRoster({ state: 'TALLY_ONLY', openSlots: 0, totalAttending: 13, positions: [] }),
+    attendances: BIG_SQUAD,
+  }),
+  SOCIAL,
+]
+
 export const Shells: Story = {
   render: (args) => (
     <Stack
       items={{
-        // The pips variety in one frame: red rings for a position with nobody, a mixed row, a fully
-        // covered row, and a headcount-only panel with no rows at all. The social ignores the
-        // preference — it has no pips to show — which is the one card here that opens onto names.
-        'Every panel open on pips': <ListWithPanels {...args} defaultExpanded />,
-        // The same five events on the member view: grouped under their positions where the roster
-        // has any, flat with a position subtitle where it does not, non-responders named throughout.
-        'Every panel open on members': <ListWithPanels {...args} view="members" defaultExpanded />,
-        // A club side of 17 beside a normal card: capped at 15 with the rest behind the event, so
-        // one card on the member view cannot swallow the screen and stop the list being a list.
-        'A big squad is capped': (
-          <ListWithPanels
-            {...args}
-            view="members"
-            defaultExpanded
-            events={[
-              makeEvent({
-                id: 'evt-big',
-                eventType: TYPES.training,
-                title: 'Club Night',
-                startTime: on(12),
-                roster: makeRoster({ state: 'TALLY_ONLY', openSlots: 0, totalAttending: 13, positions: [] }),
-                attendances: BIG_SQUAD,
-              }),
-              SOCIAL,
-            ]}
-          />
-        ),
+        // The whole variety in one frame: a position with nobody, a mixed row, a covered row, a
+        // headcount-only panel, and a social. One panel does all five now — before the lineup panel
+        // this took two stories, because the card opened onto pips OR names and neither could show
+        // both.
+        'Every panel open': <ListWithPanels {...args} defaultExpanded />,
+        // Capped and collapsed — the picture the counter exists to protect.
+        'A big squad is capped': <ListWithPanels {...args} defaultExpanded events={bigSquadEvents()} />,
       }}
     />
   ),
   play: async ({ canvas }) => {
     const region = (name: string) => within(canvas.getByRole('region', { name }))
+    const everyPanelOpen = region('Every panel open')
 
     // One open panel per card, and no preference chrome on any of them.
-    await expect(region('Every panel open on pips').getAllByRole('button', { name: OPEN_PANEL })).toHaveLength(5)
-    await expect(
-      region('Every panel open on pips').queryByRole('switch', { name: 'Keep panels open' }),
-    ).not.toBeInTheDocument()
-    await expect(region('Every panel open on pips').getByText(/still has no one/)).toBeInTheDocument() // CRITICAL's chase nudge
-    await expect(region('Every panel open on pips').getByText('4 of 4 covered')).toBeInTheDocument() // LINEUP_SET's fraction
-    await expect(region('Every panel open on pips').getByText('5/8 going')).toBeInTheDocument() // the headcount-only panel
-    // The social has no pips to draw, so it opens onto its people whatever the preference says —
-    // and it is the ONLY card naming anyone while the rest are on pips.
-    await expect(region('Every panel open on pips').getAllByText('Sanne Bakker')).toHaveLength(1)
+    await expect(everyPanelOpen.getAllByRole('button', { name: OPEN_PANEL })).toHaveLength(5)
+    await expect(everyPanelOpen.queryByRole('switch', { name: 'Keep panels open' })).not.toBeInTheDocument()
 
-    await expect(
-      region('Every panel open on members').getAllByRole('heading', { name: 'Setter' }),
-    ).toHaveLength(3) // the 3 with positions
-    await expect(region('Every panel open on members').getAllByText('Uwe Hofman')).toHaveLength(5) // a non-responder, on every card
-    await expect(region('Every panel open on members').getAllByText('Awaiting').length).toBeGreaterThan(0)
-    // Read-only on every card, not just the one the per-card story checks (#271 ⑫).
-    await expect(
-      region('Every panel open on members').queryByRole('button', { name: /Change .+'s answer/ }),
-    ).not.toBeInTheDocument()
+    // Targets and people at once, which is the merge: the verdict words come from the roster, the
+    // names beside them from the attendances, on the same rows.
+    await expect(everyPanelOpen.getAllByText('nobody yet').length).toBeGreaterThan(0)
+    await expect(everyPanelOpen.getByText('4 of 4 covered')).toBeInTheDocument()
+    await expect(everyPanelOpen.getByText('5/8 going')).toBeInTheDocument() // the headcount-only panel
+    // Every card names the team, the social included — there is no view that hides them any more.
+    await expect(everyPanelOpen.getAllByText(/Sanne/)).toHaveLength(5)
+    // A non-responder is still on every card, whatever its roster state — named in the chip's
+    // accessible name even though the chip itself prints only a first name.
+    await expect(everyPanelOpen.getAllByRole('button', { name: /Uwe Hofman — Awaiting/ })).toHaveLength(5)
 
-    const card = within(
-      region('A big squad is capped').getByText('Club Night').closest('.card-enter') as HTMLElement,
-    )
-    await expect(card.getByText(`Member ${MEMBER_CAP}`)).toBeInTheDocument()
-    await expect(card.queryByText(`Member ${MEMBER_CAP + 1}`)).not.toBeInTheDocument()
-    await expect(card.getByRole('link', { name: /See all 17/ })).toHaveAttribute(
-      'href',
-      '/t/setpoint-vt/events/evt-big',
-    )
+    const bigSquad = region('A big squad is capped')
+    const card = within(bigSquad.getByText('Club Night').closest('.card-enter') as HTMLElement)
+    // Twelve going, four shown plus a counter — the collapsed row is a handful of chips, not 17.
+    await expect(card.getByRole('button', { name: /Member 02 —/ })).toBeInTheDocument()
+    await expect(card.queryByRole('button', { name: /Member 16 —/ })).not.toBeInTheDocument()
     // The neighbouring card is untouched by the cap — it is a per-card limit, not a list-wide one.
-    await expect(region('A big squad is capped').getByText('Sanne Bakker')).toBeInTheDocument()
+    await expect(bigSquad.getByRole('button', { name: /Sanne Bakker/ })).toBeInTheDocument()
   },
 }
 
-// Picture owned by the page composite — behavioural only (ADR-0031 §1, §3). What only the list can
-// prove: the view is ONE preference, not a per-card toggle (ADR-0030 §5), and `Keep open` is a *live*
-// default (ADR-0030 §6) that reaches cards the member never touched, now. Two instances because each
-// needs a starting point the other does not — every panel already open for the view switch, every
-// panel closed for `Keep open` to reach.
+// Fresh per story-run spies (ADR-0032 §1 — a Stack instance a play clicks needs its own): sharing
+// the meta-level `args` would mean the "Keep open" instance's clicks show up in the same spy as the
+// "Answer from a card" instance's.
+const onRespondSpy = fn()
+const onDefaultExpandedChangeSpy = fn()
+
+// Picture owned by the page composite (pages/EventsPageView) — behavioural only (ADR-0032 §3). Three
+// instances, each needing a starting point the others do not: an open card to answer from, every
+// panel closed for `Keep open` to reach, and a big squad already open to expand.
 export const Interactions: Story = {
   parameters: { chromatic: { disableSnapshot: true } },
-  args: { onViewChange: fn(), onDefaultExpandedChange: fn() },
   render: (args) => (
     <Stack
       items={{
-        'Switch view': <ListWithPanels {...args} defaultExpanded />,
-        'Keep open': <ListWithPanels {...args} />,
+        'Answer from a card': <ListWithPanels {...args} defaultExpanded onRespond={onRespondSpy} />,
+        'Keep open': <ListWithPanels {...args} onDefaultExpandedChange={onDefaultExpandedChangeSpy} />,
+        'Big squad': <ListWithPanels {...args} defaultExpanded events={bigSquadEvents()} />,
       }}
     />
   ),
-  play: async ({ canvas, userEvent, args }) => {
+  play: async ({ canvas, userEvent }) => {
     const region = (name: string) => within(canvas.getByRole('region', { name }))
 
-    // Every tracked card starts on pips; only the social names anyone.
-    await expect(region('Switch view').getByText(/still has no one/)).toBeInTheDocument()
-    await expect(region('Switch view').getAllByText('Sanne Bakker')).toHaveLength(1)
+    // Answering from the list, on the right card. A chip reaches its own member and its own event,
+    // which a per-card story cannot prove: five cards carry the same squad, so a factory closing over
+    // the wrong event would look identical.
+    const answerFrom = region('Answer from a card')
+    const criticalCard = within(
+      answerFrom.getByText('League Match vs Smash United').closest('.card-enter') as HTMLElement,
+    )
+    await userEvent.click(criticalCard.getAllByRole('button', { name: /Sanne Bakker/ })[0])
+    await userEvent.click(within(document.body).getByRole('button', { name: "Can't go" }))
+    await expect(onRespondSpy).toHaveBeenCalledWith('evt-critical', SANNE[0], 'ABSENT')
 
-    // One control, in the header — not one per card, which is the whole point of the move.
-    await userEvent.click(region('Switch view').getByRole('button', { name: 'View options' }))
-    await userEvent.click(region('Switch view').getByRole('button', { name: 'People' }))
-    await userEvent.keyboard('{Escape}')
-
-    await expect(args.onViewChange).toHaveBeenCalledWith('members')
-    // No card is left on the old view — the pips and their callouts are gone everywhere…
-    await expect(region('Switch view').queryByText(/still has no one/)).not.toBeInTheDocument()
-    await expect(region('Switch view').queryByText('4 of 4 covered')).not.toBeInTheDocument()
-    // …and each of the five now names the team.
-    await expect(region('Switch view').getAllByText('Sanne Bakker')).toHaveLength(5)
-
-    // An open card's own trigger reads `Hide …`, so counting those counts the open panels — and it
-    // counts them whichever view they are on, and whatever the header popover is doing.
-    const openPanels = () => region('Keep open').queryAllByRole('button', { name: OPEN_PANEL })
+    // `Keep open` is a *live* default (ADR-0030 §6): turning it on opens the cards the member never
+    // touched, now — not on their next visit. The card holds its own open state, so this is the one
+    // behaviour that only appears when the preference changes under a list that is already rendered.
+    const keepOpen = region('Keep open')
+    // An open card's own trigger reads `Hide …`, so counting those counts the open panels.
+    const openPanels = () => keepOpen.queryAllByRole('button', { name: OPEN_PANEL })
 
     // Open one by hand; the other four are untouched and closed.
-    await userEvent.click(region('Keep open').getAllByRole('button', { name: /Show lineup/ })[0])
+    await userEvent.click(keepOpen.getAllByRole('button', { name: /Show lineup/ })[0])
     await expect(openPanels()).toHaveLength(1)
 
-    await userEvent.click(region('Keep open').getByRole('button', { name: 'View options' }))
-    await userEvent.click(region('Keep open').getByRole('switch', { name: 'Keep panels open' }))
-
-    await expect(args.onDefaultExpandedChange).toHaveBeenCalledWith(true)
+    await userEvent.click(keepOpen.getByRole('button', { name: 'View options' }))
+    await userEvent.click(keepOpen.getByRole('switch', { name: 'Keep panels open' }))
+    await expect(onDefaultExpandedChangeSpy).toHaveBeenCalledWith(true)
     await expect(openPanels()).toHaveLength(5)
 
     // And off again, which has to close them just as promptly.
-    await userEvent.click(region('Keep open').getByRole('switch', { name: 'Keep panels open' }))
-    await expect(args.onDefaultExpandedChange).toHaveBeenLastCalledWith(false)
+    await userEvent.click(keepOpen.getByRole('switch', { name: 'Keep panels open' }))
+    await expect(onDefaultExpandedChangeSpy).toHaveBeenLastCalledWith(false)
     await expect(openPanels()).toHaveLength(0)
+
+    // A club side of 17: expanding one card's crowded cluster leaves its neighbour untouched.
+    const bigSquad = region('Big squad')
+    const clubNight = within(bigSquad.getByText('Club Night').closest('.card-enter') as HTMLElement)
+    await userEvent.click(clubNight.getByRole('button', { name: 'Show 8 more going' }))
+    await expect(clubNight.getByRole('button', { name: /Member 16 —/ })).toBeInTheDocument()
+    // The five awaiting sit in their own cluster, which is at the cap and so shows in full: the limit
+    // is per run of chips, not per row — and certainly not per list.
+    await expect(clubNight.getByRole('button', { name: /Member 17 — Awaiting/ })).toBeInTheDocument()
+    await expect(bigSquad.getByRole('button', { name: /Sanne Bakker/ })).toBeInTheDocument()
   },
 }

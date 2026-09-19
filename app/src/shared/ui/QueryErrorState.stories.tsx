@@ -10,7 +10,7 @@ import { QueryErrorState } from './QueryErrorState'
 // context, a Retry button that re-runs the failed query, and an optional actions slot (e.g. a Back
 // link). It is distinct from an empty state — a failure is never rendered as "nothing here".
 //
-// One gallery story (ADR-0031 §2) stacks both variants; the Retry click-through is behavioural only
+// One gallery story (ADR-0032 §2) stacks both variants; the Retry click-through is behavioural only
 // and lives in Interactions.
 const meta = {
   title: 'shared/ui/QueryErrorState',
@@ -58,7 +58,7 @@ export const Gallery: Story = {
   },
 }
 
-// Picture owned by Gallery — behavioural only (ADR-0031 §1).
+// Picture owned by Gallery — behavioural only (ADR-0032 §1).
 export const Interactions: Story = {
   parameters: { chromatic: { disableSnapshot: true } },
   args: {

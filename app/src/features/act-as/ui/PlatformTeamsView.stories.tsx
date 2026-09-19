@@ -9,7 +9,7 @@ import { PlatformTeamsView } from './PlatformTeamsView'
 // explicit, time-boxed and recorded. Presentational — the query and the enter mutation live in the
 // container.
 //
-// Three-story shape (ADR-0031 §1):
+// Three-story shape (ADR-0032 §1):
 //   1. Data — the one populated live instance, every team listed with its slug.
 //   2. Shells — load / error / forbidden / empty / after-a-lapse / entering, stacked in one frame.
 //   3. Interactions — no picture; the Enter click, keeping the onEnter spy assertion.
@@ -81,7 +81,7 @@ export const Shells: Story = {
   },
 }
 
-// Picture owned by Data — behavioural only (ADR-0031 §1).
+// Picture owned by Data — behavioural only (ADR-0032 §1).
 export const Interactions: Story = {
   parameters: { chromatic: { disableSnapshot: true } },
   play: async ({ canvas, userEvent, args }) => {

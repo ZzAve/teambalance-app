@@ -6,7 +6,7 @@ import { ReferenceChips } from './ReferenceChips'
 // (renders nothing), a titled link, the host fallback when a title is blank, and overflow
 // collapsing to "+N".
 //
-// One gallery story (ADR-0031 §2): every variant side by side, one picture, every branch asserted.
+// One gallery story (ADR-0032 §2): every variant side by side, one picture, every branch asserted.
 const VARIANTS = {
   none: { references: [] },
   oneTitled: { references: [{ title: 'Nevobo', url: 'https://api.nevobo.nl/permalink/wedstrijd/2018133' }] },

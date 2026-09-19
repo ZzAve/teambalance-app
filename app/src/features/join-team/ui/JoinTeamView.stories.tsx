@@ -8,7 +8,7 @@ import { JoinTeamView } from './JoinTeamView'
 // route can hand the same raw text to a retried submit); it does own the token parsing (via the pure
 // parse-invite-token) so onSubmit always receives the bare token, never the raw pasted URL.
 //
-// Three stories (ADR-0031 §1): Data is the empty, ready-to-paste form and carries the snapshot.
+// Three stories (ADR-0032 §1): Data is the empty, ready-to-paste form and carries the snapshot.
 // Shells stacks the submitting and error states in one frame. Interactions has no picture; one play
 // types into the field, submits a pasted link, and opens the "I don't have a link" disclosure,
 // keeping every onChange/onSubmit assertion.
@@ -54,7 +54,7 @@ export const Shells: Story = {
   },
 }
 
-// Picture owned by Data — behavioural only (ADR-0031 §1).
+// Picture owned by Data — behavioural only (ADR-0032 §1).
 export const Interactions: Story = {
   parameters: { chromatic: { disableSnapshot: true } },
   render: (args) => (

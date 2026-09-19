@@ -10,7 +10,7 @@ import { SeriesPeek } from './SeriesPeek'
 //
 // Collapsed by default — series membership is usually incidental, so only the header shows. There is
 // no `defaultOpen`-style prop, so the expanded picture cannot be reached without a click: `Gallery`
-// covers every collapsed variant (one picture, ADR-0031 §2) and `Interactions` (disableSnapshot)
+// covers every collapsed variant (one picture, ADR-0032 §2) and `Interactions` (disableSnapshot)
 // covers the expand behaviour and its assertions.
 const meta = {
   title: 'entities/event/SeriesPeek',
@@ -59,7 +59,7 @@ export const Gallery: Story = {
   },
 }
 
-// Picture owned by Gallery — behavioural only (ADR-0031 §1). Expanding reveals first-two + last-two
+// Picture owned by Gallery — behavioural only (ADR-0032 §1). Expanding reveals first-two + last-two
 // with a "+N more" gap for a long series, the current occurrence highlighted with the "This one" tag
 // when it falls in the head, and no gap at all once a short series is expanded.
 export const Interactions: Story = {

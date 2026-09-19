@@ -9,7 +9,7 @@ import { MonthCalendarPreview } from './MonthCalendarPreview'
 // highlights, a running count, and cap / out-of-season warnings.
 const SEASON = { start: '2026-09-01', end: '2027-05-31' }
 
-// One gallery story (ADR-0031 §2): every variant stacked, one snapshot, every branch asserted.
+// One gallery story (ADR-0032 §2): every variant stacked, one snapshot, every branch asserted.
 const meta = {
   title: 'features/create-recurring-events/MonthCalendarPreview',
   component: MonthCalendarPreview,

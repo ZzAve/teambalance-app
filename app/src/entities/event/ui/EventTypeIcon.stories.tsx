@@ -7,7 +7,7 @@ import { EventTypeIcon } from './EventTypeIcon'
 // (e.g. `.lucide-dumbbell`), so each mapping branch is directly assertable. The `size` prop swaps
 // the wrapper dimensions (h-9 for sm, h-11 for md).
 //
-// One gallery story (ADR-0031 §2): every variant side by side, one picture, every branch asserted.
+// One gallery story (ADR-0032 §2): every variant side by side, one picture, every branch asserted.
 const VARIANTS = {
   training: { type: { id: 'et-1', name: 'Training', color: '#22c55e' } },
   match: { type: { id: 'et-2', name: 'Match', color: '#3b82f6' } },

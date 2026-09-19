@@ -5,7 +5,7 @@ import { EventTypeBadge } from './EventTypeBadge'
 // Leaf presentational badge: renders the type name tinted by its colour, falling back to a neutral
 // grey when the type has no colour.
 //
-// One gallery story (ADR-0031 §2): both branches side by side, one picture, both asserted.
+// One gallery story (ADR-0032 §2): both branches side by side, one picture, both asserted.
 const VARIANTS = {
   withColor: { type: { id: 'et-1', name: 'Match', color: '#3b82f6' } },
   withoutColor: { type: { id: 'et-2', name: 'Social', color: undefined } },

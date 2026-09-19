@@ -1,4 +1,4 @@
-# ADR-0031: Composite snapshots, at most three stories per View, and a viewport axis
+# ADR-0032: Composite snapshots, at most three stories per View, and a viewport axis
 
 - Status: Accepted
 - Date: 2026-09-14

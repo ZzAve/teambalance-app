@@ -22,7 +22,7 @@ interface AppShellFrameProps {
  * The in-shell page frame: sticky header (wordmark + team identity), an optional banner, the centred
  * `max-w-2xl` main column and the fixed bottom nav. The root route renders it around the router
  * outlet; the Storybook app-shell decorator renders the same frame around a page composite, so a
- * story's snapshot is the phone's actual screen rather than a floating component (ADR-0031 §3).
+ * story's snapshot is the phone's actual screen rather than a floating component (ADR-0032 §3).
  */
 export function AppShellFrame({ teamSwitcher, banner, nav, children }: AppShellFrameProps) {
   return (
@@ -40,7 +40,7 @@ export function AppShellFrame({ teamSwitcher, banner, nav, children }: AppShellF
         style={{ paddingLeft: 'env(safe-area-inset-left)', paddingRight: 'env(safe-area-inset-right)' }}
       >
         <div className="flex h-full items-center justify-between px-5">
-          <Link to="/" className="font-display text-xl font-bold text-blue">
+          <Link to="/" className="font-display text-title font-bold text-blue">
             Team<span className="text-green">Balance</span>
           </Link>
           {teamSwitcher}

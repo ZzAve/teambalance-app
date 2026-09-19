@@ -19,7 +19,7 @@ export const SHELL_ROUTES = {
 /**
  * Renders a page composite inside the real app frame — header with the wordmark and the team name,
  * the centred main column, the bottom tab bar — so its snapshot is what a phone actually shows
- * (ADR-0031 §3). The frame is the same `AppShellFrame` the root route uses; only the two live slots
+ * (ADR-0032 §3). The frame is the same `AppShellFrame` the root route uses; only the two live slots
  * are swapped for prop-only stand-ins (a single-team `TeamSwitcherView`, no act-as banner).
  *
  * Needs a router below it for BottomNav's links and active-tab derivation, so use it as

@@ -14,7 +14,7 @@ import { EventFiltersView } from './EventFiltersView'
 // three selections and the show-past flag live in the route, so every state here renders from props
 // with no network (ADR-0017).
 //
-// Four stories (ADR-0031 §3): this View is rendered inside the events page composite, which owns the
+// Four stories (ADR-0032 §3): this View is rendered inside the events page composite, which owns the
 // closed picture, so Data is `disableSnapshot`. Shells stacks the closed-but-filtered states — clear
 // filters visible, the announced result count, and the two configurations with a whole group missing
 // — in one frame, none of which need the popover open. `Open` is the one extra snapshotted story:
@@ -55,7 +55,7 @@ export default meta
 
 type Story = StoryObj<typeof meta>
 
-// Picture owned by the page composite (pages/EventsPageView) — behavioural only (ADR-0031 §3).
+// Picture owned by the page composite (pages/EventsPageView) — behavioural only (ADR-0032 §3).
 export const Data: Story = {
   parameters: { chromatic: { disableSnapshot: true } },
   play: async ({ canvas }) => {
@@ -140,7 +140,7 @@ export const Open: Story = {
   },
 }
 
-// Picture owned by Data and Open — behavioural only (ADR-0031 §1). Several instances because some
+// Picture owned by Data and Open — behavioural only (ADR-0032 §1). Several instances because some
 // steps need a state the default one is never in (no event types, no Turnout group, a narrowed
 // selection already in effect). The popover is not a portal, but its click-outside catcher covers the
 // full frame, so only one instance may be open at a time — every cycle below opens, acts, asserts,

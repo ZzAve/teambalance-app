@@ -8,7 +8,7 @@ import { EditProfileForm } from './EditProfileForm'
 // text field, the position picker + inline validation; the member query and update mutation stay in
 // the container, so every state (default, editing, saving, name-taken, position) renders from props.
 //
-// Three stories (ADR-0031 §1): Data is the one live instance — no positions defined for the team, so
+// Three stories (ADR-0032 §1): Data is the one live instance — no positions defined for the team, so
 // no picker shows. Shells stacks the saving / name-taken / position-required / position-preselected
 // states in one frame. Interactions keeps every onSubmit spy assertion — plus the editing and
 // position-picking gestures that lead up to it — in a multi-step play.
@@ -76,7 +76,7 @@ export const Shells: Story = {
   },
 }
 
-// Picture owned by Data — behavioural only (ADR-0031 §1). Three instances: the default form (editing
+// Picture owned by Data — behavioural only (ADR-0032 §1). Three instances: the default form (editing
 // the name, then saving), and the required/preselected position configurations, each proving onSubmit
 // carries the right (name, positionId) pair.
 export const Interactions: Story = {

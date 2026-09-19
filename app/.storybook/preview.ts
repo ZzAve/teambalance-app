@@ -13,7 +13,7 @@ const preview: Preview = {
       },
     },
 
-    // ── Viewport switcher (ADR-0031 §4) ─────────────────────────────────────────────────────────
+    // ── Viewport switcher (ADR-0032 §4) ─────────────────────────────────────────────────────────
     // One entry per breakpoint, so any story can be inspected at every width from the toolbar. The
     // widths are the same constants the Chromatic modes use, so what a human sees at "xl" is what
     // Chromatic captures for the `xl` mode.

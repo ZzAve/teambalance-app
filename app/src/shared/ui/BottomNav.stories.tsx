@@ -11,7 +11,7 @@ import { BottomNav } from './BottomNav'
 // The tab targets are built from the slug in the path the bar is rendered on (ADR-0023 §2), which is
 // why starting the router at a path is enough to drive them — there is no store to prime.
 //
-// Covered entirely by the page composites (ADR-0031 §3): every page renders BottomNav in its real
+// Covered entirely by the page composites (ADR-0032 §3): every page renders BottomNav in its real
 // frame, so no story here carries a picture. `parameters.router.initialEntries` is a per-story
 // parameter, and the active tab is derived from the router's current path, so one Stack frame can't
 // hold all five router states at once — each path stays its own disableSnapshot story.
@@ -40,7 +40,7 @@ async function expectTabTargets(canvas: Parameters<NonNullable<Story['play']>>[0
   await expect(canvas.getByRole('link', { name: 'Profile' })).not.toHaveClass('pointer-events-none')
 }
 
-// Picture owned by the page composites (ADR-0031 §3).
+// Picture owned by the page composites (ADR-0032 §3).
 export const EventsActive: Story = {
   parameters: {
     router: { initialEntries: ['/t/setpoint-vt'] },
@@ -56,7 +56,7 @@ export const EventsActive: Story = {
   },
 }
 
-// Picture owned by the page composites (ADR-0031 §3).
+// Picture owned by the page composites (ADR-0032 §3).
 export const TeamActive: Story = {
   parameters: {
     router: { initialEntries: ['/t/setpoint-vt/team'] },
@@ -73,7 +73,7 @@ export const TeamActive: Story = {
   },
 }
 
-// Picture owned by the page composites (ADR-0031 §3).
+// Picture owned by the page composites (ADR-0032 §3).
 export const MoneyActive: Story = {
   parameters: {
     router: { initialEntries: ['/t/setpoint-vt/money'] },
@@ -91,7 +91,7 @@ export const MoneyActive: Story = {
 
 // The Team tab stays active on nested team routes (e.g. the admin settings sub-page). Behavioural
 // twin of TeamActive — a nested route that keeps the Team tab active renders the same picture
-// (ADR-0027 §2), and the picture itself is owned by the page composites (ADR-0031 §3).
+// (ADR-0027 §2), and the picture itself is owned by the page composites (ADR-0032 §3).
 export const TeamSettingsActive: Story = {
   parameters: {
     router: { initialEntries: ['/t/setpoint-vt/team/settings'] },
@@ -106,7 +106,7 @@ export const TeamSettingsActive: Story = {
 // Profile is the team-independent /account (ADR-0027 §1), so it is active there regardless of slug.
 // /account carries no slug, so the other tabs collapse to the dispatcher `/` — the accepted
 // teamless-bar behaviour (ADR-0027 consequences) — while Profile still points at its constant.
-// Picture owned by the page composites (ADR-0031 §3).
+// Picture owned by the page composites (ADR-0032 §3).
 export const ProfileActive: Story = {
   parameters: {
     router: { initialEntries: ['/account'] },

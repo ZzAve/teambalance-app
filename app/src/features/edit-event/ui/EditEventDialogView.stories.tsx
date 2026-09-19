@@ -12,7 +12,7 @@ import { EditEventDialogView } from './EditEventDialogView'
 // pending/error shells that used to live in the container are now the isPending/isError args, and
 // the submit story proves the wiring with a prop-contract spy.
 //
-// Three stories (ADR-0031 §1): Data is the standalone edit — no siblings, no scope prompt — and
+// Three stories (ADR-0032 §1): Data is the standalone edit — no siblings, no scope prompt — and
 // carries the snapshot, because it is a dialog's content: the page composite can never show it open,
 // so nothing else owns this picture. Shells stacks the series / saving / error states in one frame.
 // Interactions keeps every onSubmit spy assertion — including the two roster-override carry cases,
@@ -99,7 +99,7 @@ export const Shells: Story = {
   },
 }
 
-// Picture owned by Data — behavioural only (ADR-0031 §1). Submits with the default THIS scope, and
+// Picture owned by Data — behavioural only (ADR-0032 §1). Submits with the default THIS scope, and
 // proves an inheriting event stays inheriting — the update is a whole replacement, so an omitted
 // rosterOverride reads server-side as "drop back to the type default". A prop-contract spy is the
 // only layer that can catch the omission — a getByText would not see it.
@@ -118,7 +118,7 @@ export const Interactions: Story = {
 
 // Behavioural twin of Interactions, in a separate story rather than a Stack instance: the form's
 // fields carry static ids (#edit-title and friends), so two instances side by side would collide on
-// them and mis-pair labels (ADR-0031 §1 "prefer the Stack" — except where a component's own ids rule
+// them and mis-pair labels (ADR-0032 §1 "prefer the Stack" — except where a component's own ids rule
 // it out). Renaming an event must not silently drop its customised roster.
 export const InteractionsRosterOverride: Story = {
   parameters: { chromatic: { disableSnapshot: true } },

@@ -8,7 +8,7 @@ import { PositionPicker } from './PositionPicker'
 // roster. It emits the chosen position id (or null for Unassigned). Props-only and network-free, so
 // its states (no-positions / has-positions / preselected) render as stories.
 //
-// One gallery story (ADR-0031 §2) stacks the static trigger states; opening the menu and picking an
+// One gallery story (ADR-0032 §2) stacks the static trigger states; opening the menu and picking an
 // option is behavioural only and lives in Interactions.
 const POSITIONS: Position[] = [
   { id: 'p1', label: 'Setter', kind: 'PLAYING' },
@@ -50,7 +50,7 @@ export const Gallery: Story = {
   },
 }
 
-// Picture owned by Gallery — behavioural only (ADR-0031 §1). Two instances: positions available
+// Picture owned by Gallery — behavioural only (ADR-0032 §1). Two instances: positions available
 // (select-and-report) and the roster's explicit Unassigned choice.
 export const Interactions: Story = {
   parameters: { chromatic: { disableSnapshot: true } },

@@ -9,7 +9,7 @@ import { VerifyErrorView } from './VerifyErrorView'
 // when `onLogout` is passed — the container passes it iff a session exists (or might). Stranded is the
 // key edge: sign-in worked but the invite failed, so a client-only logout is the only way out.
 //
-// One gallery story (ADR-0031 §2) stacks both variants; the Log out click-through is behavioural only
+// One gallery story (ADR-0032 §2) stacks both variants; the Log out click-through is behavioural only
 // and lives in Interactions.
 const meta = {
   title: 'shared/ui/VerifyErrorView',
@@ -61,7 +61,7 @@ export const Gallery: Story = {
   },
 }
 
-// Picture owned by Gallery — behavioural only (ADR-0031 §1).
+// Picture owned by Gallery — behavioural only (ADR-0032 §1).
 export const Interactions: Story = {
   parameters: { chromatic: { disableSnapshot: true } },
   args: {

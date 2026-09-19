@@ -13,10 +13,10 @@ import { NextEventHeroView } from './NextEventHeroView'
 // hero at all. That boundary is proven by the selectHeroEvent unit test and the list's Empty story.
 //
 // Rendered inside the events page composite (EventsPageView), so per the ownership rule
-// (ADR-0031 §3) its Data story is behavioural only — the composite's own picture already shows this
+// (ADR-0032 §3) its Data story is behavioural only — the composite's own picture already shows this
 // hero in context.
 //
-// Three-story shape (ADR-0031 §1):
+// Three-story shape (ADR-0032 §1):
 //   1. Data — the default, unanswered instance, disableSnapshot (picture owned by the page).
 //   2. Shells — every answer state, the saving hold, the same-day countdown and the readiness
 //      variants, stacked in one frame — this picture stays, since the composite's default frame
@@ -71,7 +71,7 @@ export default meta
 
 type Story = StoryObj<typeof meta>
 
-// Picture owned by the page composite (pages/EventsPageView) — behavioural only (ADR-0031 §3).
+// Picture owned by the page composite (pages/EventsPageView) — behavioural only (ADR-0032 §3).
 export const Data: Story = {
   parameters: { chromatic: { disableSnapshot: true } },
   play: async ({ canvas }) => {
@@ -207,7 +207,7 @@ export const Shells: Story = {
   },
 }
 
-// Picture owned by Data — behavioural only (ADR-0031 §1, §3). Two instances: the default hero for
+// Picture owned by Data — behavioural only (ADR-0032 §1, §3). Two instances: the default hero for
 // the RSVP spies and the hit-test geometry, and a saving one — held, so its tap must report nothing —
 // checked first, before the default instance's own taps put a call on the shared spy.
 export const Interactions: Story = {

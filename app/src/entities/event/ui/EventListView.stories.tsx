@@ -10,10 +10,10 @@ import { EventListView } from './EventListView'
 // renders EventCards (which link out), so the router decorator is applied.
 //
 // Rendered inside the events page composite (EventsPageView), so per the ownership rule
-// (ADR-0031 §3) its Data story is behavioural only — the composite's own picture already shows
+// (ADR-0032 §3) its Data story is behavioural only — the composite's own picture already shows
 // this list in context.
 //
-// Three-story shape (ADR-0031 §1):
+// Three-story shape (ADR-0032 §1):
 //   1. Data — the one populated live instance, disableSnapshot (picture owned by the page).
 //   2. Shells — loading / error / empty / filtered-empty / background-error / attribution, stacked
 //      in one frame — this picture stays, since the composite's default frame cannot show them.
@@ -35,7 +35,7 @@ export default meta
 
 type Story = StoryObj<typeof meta>
 
-// Picture owned by the page composite (pages/EventsPageView) — behavioural only (ADR-0031 §3).
+// Picture owned by the page composite (pages/EventsPageView) — behavioural only (ADR-0032 §3).
 // A flat, chronological list — no This Week / Later headings; each card's chit carries its date.
 export const Data: Story = {
   parameters: { chromatic: { disableSnapshot: true } },
@@ -112,7 +112,7 @@ export const Shells: Story = {
           <EventListView
             {...args}
             currentUserId="u-me"
-            optimistic={{ eventId: 'evt-1', state: 'ATTENDING' }}
+            optimistic={{ eventId: 'evt-1', userId: 'u-me', state: 'ATTENDING' }}
             events={[
               makeEvent({
                 id: 'evt-1',
@@ -157,7 +157,7 @@ export const Shells: Story = {
   },
 }
 
-// Picture owned by Data — behavioural only (ADR-0031 §1, §3). The card itself only knows its own
+// Picture owned by Data — behavioural only (ADR-0032 §1, §3). The card itself only knows its own
 // event's id; this View's own job is folding that id into onRespond, which no per-card story proves.
 export const Interactions: Story = {
   parameters: { chromatic: { disableSnapshot: true } },

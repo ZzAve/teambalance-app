@@ -8,7 +8,7 @@ import { RosterOverrideField } from './RosterOverrideField'
 // "Inherit default / Customise" in the create and edit event forms. Prop-only: the value and the
 // selected event type come from the form around it, so both branches render with no network.
 //
-// Three-story shape (ADR-0031 §1):
+// Three-story shape (ADR-0032 §1):
 //   1. Data — the one populated live instance (a customised override with real per-position
 //      targets), and the picture of this View.
 //   2. Shells — every other state (inheriting, the wire's literal null, tracking switched off, no
@@ -118,7 +118,7 @@ export const Shells: Story = {
   },
 }
 
-// Picture owned by Data and Shells — behavioural only (ADR-0031 §1). Two instances because seeding
+// Picture owned by Data and Shells — behavioural only (ADR-0032 §1). Two instances because seeding
 // Customise needs a starting value that is inheriting, while clearing back to Inherit needs one that
 // is already customised.
 export const Interactions: Story = {

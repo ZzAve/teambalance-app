@@ -8,10 +8,13 @@ const LINK = 'https://app.teambalance.nl/invite/handover-token-abc'
 // The admin handover control (ADR-0024 §5). Prop-only, so loading / no-link / minted / copied /
 // revoked / error all render from props with no network — the read + mutations live in the container.
 //
-// Three stories (ADR-0031 §1): Data is the minted-link instance and carries the snapshot. Shells
+// Three stories (ADR-0032 §1): Data is the minted-link instance and carries the snapshot. Shells
 // stacks every non-data state — loading / load-error / no-link-yet / creating / copied / just-revoked
 // / action-error — in one frame. Interactions has no picture; one play walks create / copy / rotate /
-// revoke and keeps every onCreate/onCopy/onRotate/onRevoke prop-contract spy assertion.
+// revoke and keeps every onCreate/onCopy/onRotate/onRevoke prop-contract spy assertion, including the
+// revoke-confirm dialog's cancel and confirm paths.
+// Plus one extra picture, RevokeConfirmOpen, for the frame no composite shows: revoking is
+// irreversible and offers no replacement, so it asks for confirmation first (#341).
 const meta = {
   title: 'features/handover-admin/HandoverAdminView',
   component: HandoverAdminView,
@@ -97,8 +100,25 @@ export const Shells: Story = {
   },
 }
 
-// Picture owned by Data — behavioural only (ADR-0031 §1). Prop-contract: each control fires its
-// callback, proving the wiring survives a dependency bump.
+// The open-dialog frame (#341): the confirm dialog is what an admin actually reads before an
+// irreversible action with no replacement — no composite shows this open, so it needs its own
+// picture. Left open — Interactions confirms or cancels it.
+export const RevokeConfirmOpen: Story = {
+  args: { link: LINK },
+  play: async ({ canvas, userEvent, args }) => {
+    await userEvent.click(canvas.getByRole('button', { name: 'Revoke link' }))
+    const dialog = within(document.body)
+    await expect(await dialog.findByText('Revoke the invite link?')).toBeInTheDocument()
+    await expect(
+      dialog.getByText(/old link stops working and no replacement is created/),
+    ).toBeInTheDocument()
+    await expect(dialog.getByRole('button', { name: 'Cancel' })).toBeInTheDocument()
+    await expect(args.onRevoke).not.toHaveBeenCalled()
+  },
+}
+
+// Picture owned by Data and RevokeConfirmOpen — behavioural only (ADR-0032 §1). Prop-contract: each
+// control fires its callback, proving the wiring survives a dependency bump.
 export const Interactions: Story = {
   parameters: { chromatic: { disableSnapshot: true } },
   render: (args) => (
@@ -111,6 +131,7 @@ export const Interactions: Story = {
   ),
   play: async ({ canvas, userEvent, args }) => {
     const region = (name: string) => within(canvas.getByRole('region', { name }))
+    const dialog = within(document.body)
 
     await userEvent.click(
       region('No link').getByRole('button', { name: 'Create admin handover link' }),
@@ -123,7 +144,19 @@ export const Interactions: Story = {
     await userEvent.click(region('Active link').getByRole('button', { name: 'Rotate link' }))
     await expect(args.onRotate).toHaveBeenCalled()
 
+    // Revoking is irreversible and leaves no replacement, so it asks for confirmation first (#341)
+    // — unlike rotate, which is one click because it lands on a new link right away.
     await userEvent.click(region('Active link').getByRole('button', { name: 'Revoke link' }))
+    await expect(args.onRevoke).not.toHaveBeenCalled()
+
+    // Cancelling leaves the link alone and closes the dialog.
+    await userEvent.click(dialog.getByRole('button', { name: 'Cancel' }))
+    await expect(canvas.queryByText('Revoke the invite link?')).not.toBeInTheDocument()
+    await expect(args.onRevoke).not.toHaveBeenCalled()
+
+    // Confirming fires the revoke and closes the dialog.
+    await userEvent.click(region('Active link').getByRole('button', { name: 'Revoke link' }))
+    await userEvent.click(await dialog.findByRole('button', { name: 'Revoke link' }))
     await expect(args.onRevoke).toHaveBeenCalled()
   },
 }

@@ -9,7 +9,7 @@ import { CreateEventForm } from './CreateEventForm'
 // owns local form state (type selection, title auto-suggest, link rows) and hands a fully-assembled
 // input up via onSubmit; data fetching + the mutation stay in the container.
 //
-// Three stories (ADR-0031 §1):
+// Three stories (ADR-0032 §1):
 //   1. Data — the one populated live instance, and the picture of this View.
 //   2. Shells — every non-data state (submitting / no types loaded / create failed) stacked in one
 //      frame, one picture, each state's assertions scoped to its labelled region.
@@ -69,7 +69,7 @@ export const Shells: Story = {
   },
 }
 
-// Picture owned by Data — behavioural only (ADR-0031 §1).
+// Picture owned by Data — behavioural only (ADR-0032 §1).
 export const Interactions: Story = {
   parameters: { chromatic: { disableSnapshot: true } },
   play: async ({ canvas, userEvent, args }) => {

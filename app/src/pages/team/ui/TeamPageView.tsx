@@ -10,7 +10,7 @@ interface TeamPageViewProps {
 }
 
 /**
- * The team page laid out (ADR-0031 §3): the header (title, and for admins the invite action plus
+ * The team page laid out (ADR-0032 §3): the header (title, and for admins the invite action plus
  * the gear into /team/settings) over the roster. Read-only for everyone, admins included — member
  * management lives under settings.
  */

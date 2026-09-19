@@ -7,7 +7,7 @@ import { ReadinessBadge } from './ReadinessBadge'
 // The card row's right slot: the server-computed readiness verdict, or a headcount fallback where
 // there is none. Prop-only (ADR-0017) — each roster state is a different prop value, no network.
 //
-// One gallery story (ADR-0031 §2): every roster state side by side, each in the card-row context it
+// One gallery story (ADR-0032 §2): every roster state side by side, each in the card-row context it
 // actually renders in, one picture, every branch asserted.
 const VARIANTS = {
   covered: { roster: makeRoster({ state: 'LINEUP_SET', openSlots: 0, positions: [] }) },
@@ -67,7 +67,7 @@ export const Gallery: Story = {
         <div
           key={name}
           data-testid={`variant-${name}`}
-          className="flex items-center justify-end rounded-xl border border-border bg-card p-3.5"
+          className="flex items-center justify-end rounded-md border border-border bg-card p-3.5"
         >
           <ReadinessBadge {...props} />
         </div>

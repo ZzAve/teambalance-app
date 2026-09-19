@@ -14,7 +14,7 @@ import { CreateEventSheetView } from './CreateEventSheetView'
 // stories; here we cover the sheet's own header + navigation wiring with prop-contract spies.
 //
 // Sheet content, not shown by any page composite, so unlike this file's siblings both stories keep
-// their snapshot (ADR-0031 §1):
+// their snapshot (ADR-0032 §1):
 //   1. Data — the chooser mode, the first thing the sheet shows.
 //   2. Shells — single-form / single-error / recurring stacked in one frame, their own back-step
 //      clicks scoped to each region.

@@ -11,7 +11,7 @@ import { DeleteEventDialogView } from './DeleteEventDialogView'
 // that used to live in the container are now the isPending/isError args, and the confirm stories
 // prove the wiring with a prop-contract spy.
 //
-// Three stories (ADR-0031 §1): Data is the standalone delete — no siblings, no scope prompt — and
+// Three stories (ADR-0032 §1): Data is the standalone delete — no siblings, no scope prompt — and
 // carries the snapshot, because it is a dialog's content: the page composite can never show it open,
 // so nothing else owns this picture. Shells stacks the series / pending / error states in one frame.
 // Interactions keeps every onDelete/onCancel spy assertion in a multi-step play.
@@ -67,7 +67,7 @@ export const Shells: Story = {
   },
 }
 
-// Picture owned by Data — behavioural only (ADR-0031 §1). Two instances: the standalone confirm/cancel
+// Picture owned by Data — behavioural only (ADR-0032 §1). Two instances: the standalone confirm/cancel
 // wiring, and a series occurrence where picking a bulk scope both relabels the confirm button and
 // hands the chosen scope up.
 export const Interactions: Story = {

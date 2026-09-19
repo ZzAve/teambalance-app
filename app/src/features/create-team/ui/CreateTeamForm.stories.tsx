@@ -8,7 +8,7 @@ import { CreateTeamForm } from './CreateTeamForm'
 // only local field state (name/slug/code + the slug auto-suggest-until-edited flag); the mutation,
 // navigation, and success side-effects stay in the container, so every state renders purely from props.
 //
-// Three stories (ADR-0031 §1):
+// Three stories (ADR-0032 §1):
 //   1. Data — the pristine form, and the picture of this View.
 //   2. Shells — every non-data state (submitting / code invalid / slug taken / generic failure)
 //      stacked in one frame, one picture, each state's assertions scoped to its labelled region.

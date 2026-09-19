@@ -7,7 +7,7 @@ import { CreateMemberlessTeamView } from './CreateMemberlessTeamView'
 // The console's memberless-create form (ADR-0024 §5). Prop-only, so loading / error / success / the
 // submit contract all render from props with no network — the mutation lives in the container.
 //
-// Three stories (ADR-0031 §1):
+// Three stories (ADR-0032 §1):
 //   1. Data — the pristine form, and the picture of this View.
 //   2. Shells — every non-data state (pending / slug taken / generic error / created) stacked in one
 //      frame, one picture, each state's assertions scoped to its labelled region.

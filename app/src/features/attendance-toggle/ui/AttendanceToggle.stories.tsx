@@ -11,7 +11,7 @@ import { AttendanceToggle, type AttendanceState } from './AttendanceToggle'
 // (green/gold/red), which a token or Tailwind bump can break in dark while light stays green. Modes
 // at the meta level give every state a light *and* a dark baseline.
 //
-// One gallery story (ADR-0031 §2): every variant side by side, one snapshot, every branch asserted.
+// One gallery story (ADR-0032 §2): every variant side by side, one snapshot, every branch asserted.
 // `Interactions` (disableSnapshot) keeps the one prop-contract spy: clicking an option reports its
 // value to the container.
 const VARIANTS: Record<string, { value: AttendanceState; disabled?: boolean }> = {
@@ -71,7 +71,7 @@ export const Gallery: Story = {
   },
 }
 
-// Picture owned by Gallery — behavioural only (ADR-0031 §1).
+// Picture owned by Gallery — behavioural only (ADR-0032 §1).
 export const Interactions: Story = {
   parameters: { chromatic: { disableSnapshot: true } },
   args: { value: 'NOT_RESPONDED' },

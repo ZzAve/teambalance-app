@@ -13,7 +13,11 @@ type AttendanceState = Event['myState']
 // opens its own panel; both can be open at once, with the attendance panel always above. Prop-only
 // apart from the two open states (ADR-0017), so every combination is just props.
 //
-// Three stories (ADR-0031 §1): `Data` is the one live instance — the collapsed, unanswered row —
+// The roster panel is always *injected* — the real one is `EventLineupPanel`, a widget this entity
+// may not import. What the row owns is the disclosure, so a stand-in is the honest fixture: these
+// stories prove the trigger, the open states and the ordering, never the panel's contents.
+//
+// Three stories (ADR-0032 §1): `Data` is the one live instance — the collapsed, unanswered row —
 // and its picture is owned by the events page composite (pages/EventsPageView), so it is
 // `disableSnapshot`. `Shells` stacks every visually distinct static state (attribution, long name,
 // headcount fallbacks, the panels' default-open shapes, pending, both panels open, a social's
@@ -22,21 +26,24 @@ type AttendanceState = Event['myState']
 // that models the container's optimistic update.
 // The card chrome the row sits in on the events page. No width of its own: the app column
 // decorator on the meta gives it the width the product gives it at each breakpoint.
-const CARD = 'rounded-xl border border-border bg-card p-3.5'
-const LONG_NAME_CARD = 'w-[300px] rounded-xl border border-border bg-card p-3.5'
+const CARD = 'rounded-md border border-border bg-card p-3.5'
+const LONG_NAME_CARD = 'w-[300px] rounded-lg border border-border bg-card p-3.5'
+
+const PANEL = <p>Setter · Sanne, Sofia</p>
+const PANEL_TEXT = 'Setter · Sanne, Sofia'
 
 const meta = {
   title: 'entities/event/EventAnswerRow',
   component: EventAnswerRow,
   ...appColumn,
-  args: { roster: makeRoster(), myState: 'NOT_RESPONDED', onRespond: fn() },
+  args: { roster: makeRoster(), myState: 'NOT_RESPONDED', onRespond: fn(), rosterPanel: PANEL },
 } satisfies Meta<typeof EventAnswerRow>
 
 export default meta
 
 type Story = StoryObj<typeof meta>
 
-// Picture owned by the page composite (pages/EventsPageView) — behavioural only (ADR-0031 §3).
+// Picture owned by the page composite (pages/EventsPageView) — behavioural only (ADR-0032 §3).
 export const Data: Story = {
   parameters: { chromatic: { disableSnapshot: true } },
   render: (args) => (
@@ -79,11 +86,15 @@ export const Shells: Story = {
             <EventAnswerRow {...args} myState="ATTENDING" setBy="Sophie van Dijk-van der Bergh" />
           </div>
         ),
-        // Headcount fallback (⑥), right side, off: a social with tracking off has no lineup, so the
-        // verdict is a plain headcount, NOT a trigger.
+        // Headcount fallback (⑥), right side, off: a caller with nothing to open — the events list
+        // never takes this branch, it always injects a panel, but the contract still allows it.
         'Headcount fallback — off': (
           <div className={CARD}>
-            <EventAnswerRow {...args} roster={makeRoster({ ...NO_ROSTER, totalAttending: 8 })} />
+            <EventAnswerRow
+              {...args}
+              roster={makeRoster({ ...NO_ROSTER, totalAttending: 8 })}
+              rosterPanel={null}
+            />
           </div>
         ),
         // Tracking on but no targets — still no verdict, so the badge shows the headcount, but there
@@ -157,7 +168,7 @@ export const Shells: Story = {
 
     await expect(region('Headcount fallback — tally only').getByText('5 going')).toBeInTheDocument()
 
-    await expect(region('Roster expanded by default').getByText('Positions')).toBeInTheDocument()
+    await expect(region('Roster expanded by default').getByText(PANEL_TEXT)).toBeInTheDocument()
     await expect(
       region('Roster expanded by default').getByRole('button', { name: /Hide lineup/ }),
     ).toBeInTheDocument()
@@ -166,7 +177,7 @@ export const Shells: Story = {
     await expect(region('Pending').getByRole('button', { name: /^Going$/ })).toBeDisabled()
 
     const going = region('Both panels open').getByRole('button', { name: /^Going$/ })
-    const positions = region('Both panels open').getByText('Positions')
+    const positions = region('Both panels open').getByText(PANEL_TEXT)
     await expect(going).toBeInTheDocument()
     await expect(positions).toBeInTheDocument()
     // Attendance renders above the roster panel regardless of which was opened first.
@@ -193,7 +204,7 @@ function CollapseOnPickHarness(args: Parameters<typeof EventAnswerRow>[0]) {
   )
 }
 
-// Picture owned by Data and Shells — behavioural only (ADR-0031 §1). Several fresh instances because
+// Picture owned by Data and Shells — behavioural only (ADR-0032 §1). Several fresh instances because
 // several steps need a state the shared default is never in, or must not carry a click another
 // step's assertion depends on staying unclicked.
 export const Interactions: Story = {
@@ -235,7 +246,12 @@ export const Interactions: Story = {
         // side the badge falls back to.
         'Headcount off answer': (
           <div className={CARD}>
-            <EventAnswerRow {...args} roster={makeRoster({ ...NO_ROSTER, totalAttending: 8 })} onRespond={fn()} />
+            <EventAnswerRow
+              {...args}
+              roster={makeRoster({ ...NO_ROSTER, totalAttending: 8 })}
+              rosterPanel={null}
+              onRespond={fn()}
+            />
           </div>
         ),
         'Headcount tally answer': (
@@ -275,11 +291,11 @@ export const Interactions: Story = {
     // The three-way control is shown…
     await expect(region('Attendance trigger').getByRole('button', { name: /^Going$/ })).toBeInTheDocument()
     // …and the roster panel stays closed.
-    await expect(region('Attendance trigger').queryByText('Positions')).not.toBeInTheDocument()
+    await expect(region('Attendance trigger').queryByText(PANEL_TEXT)).not.toBeInTheDocument()
 
     await userEvent.click(region('Roster trigger').getByRole('button', { name: /Show lineup/ }))
     // The pips are shown…
-    await expect(region('Roster trigger').getByText('Positions')).toBeInTheDocument()
+    await expect(region('Roster trigger').getByText(PANEL_TEXT)).toBeInTheDocument()
     // …and the answer control stays closed.
     await expect(region('Roster trigger').queryByRole('button', { name: /^Going$/ })).not.toBeInTheDocument()
 
@@ -303,7 +319,7 @@ export const Interactions: Story = {
     // …the pill flipped optimistically…
     await expect(region('Collapse on pick').getByText("You're in")).toBeInTheDocument()
     // …the roster panel stayed open…
-    await expect(region('Collapse on pick').getByText('Positions')).toBeInTheDocument()
+    await expect(region('Collapse on pick').getByText(PANEL_TEXT)).toBeInTheDocument()
     // …and the answer was reported.
     await expect(args.onRespond).toHaveBeenLastCalledWith('ATTENDING')
 
@@ -312,15 +328,15 @@ export const Interactions: Story = {
     await expect(region('Headcount off answer').getByRole('button', { name: /^Going$/ })).toBeInTheDocument()
 
     await userEvent.click(region('Headcount tally answer').getByRole('button', { name: /Show lineup/ }))
-    await expect(region('Headcount tally answer').getByText('Positions')).toBeInTheDocument()
+    await expect(region('Headcount tally answer').getByText(PANEL_TEXT)).toBeInTheDocument()
 
-    await expect(region('Roster collapsed').queryByText('Positions')).not.toBeInTheDocument()
+    await expect(region('Roster collapsed').queryByText(PANEL_TEXT)).not.toBeInTheDocument()
     await expect(
       region('Roster collapsed').getByRole('button', { name: /Show lineup/ }),
     ).toBeInTheDocument()
 
     await userEvent.click(region('Roster expanded — collapse').getByRole('button', { name: /Hide lineup/ }))
-    await expect(region('Roster expanded — collapse').queryByText('Positions')).not.toBeInTheDocument()
+    await expect(region('Roster expanded — collapse').queryByText(PANEL_TEXT)).not.toBeInTheDocument()
 
     await expect(region('No panel').getByText('8 going')).toBeInTheDocument()
     await expect(region('No panel').queryByRole('button', { name: /Show/ })).not.toBeInTheDocument()

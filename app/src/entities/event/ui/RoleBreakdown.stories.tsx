@@ -5,7 +5,7 @@ import { RoleBreakdown } from './RoleBreakdown'
 // Presentational breakdown of attending members grouped by role, rendered as chips. Renders nothing
 // when no role has attendees.
 //
-// One gallery story (ADR-0031 §2): every variant side by side, one picture, every branch asserted.
+// One gallery story (ADR-0032 §2): every variant side by side, one picture, every branch asserted.
 const VARIANTS = {
   populated: {
     breakdown: [

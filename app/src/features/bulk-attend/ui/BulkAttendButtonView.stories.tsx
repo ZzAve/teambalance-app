@@ -5,7 +5,7 @@ import { BulkAttendButtonView } from './BulkAttendButtonView'
 // The presentational half of Bulk Attend (ADR-0020). Every state is props-driven, so the whole
 // component renders with no network — the mutation and Undo toast live in the container.
 //
-// One gallery story (ADR-0031 §2): every variant side by side, one snapshot, every branch asserted.
+// One gallery story (ADR-0032 §2): every variant side by side, one snapshot, every branch asserted.
 // `Interactions` (disableSnapshot) keeps the prop-contract spy: the tap actually reaches onAttend.
 const VARIANTS = {
   // Nothing left to fill: the button hides entirely rather than showing a disabled "Attend 0".
@@ -55,7 +55,7 @@ export const Gallery: Story = {
   },
 }
 
-// Picture owned by Gallery — behavioural only (ADR-0031 §1).
+// Picture owned by Gallery — behavioural only (ADR-0032 §1).
 export const Interactions: Story = {
   parameters: { chromatic: { disableSnapshot: true } },
   play: async ({ canvas, args, userEvent }) => {

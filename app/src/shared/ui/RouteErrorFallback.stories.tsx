@@ -8,7 +8,7 @@ import { RouteErrorFallback } from './RouteErrorFallback'
 // The escape hatch (ADR-0027 §3) renders only when `onLogout` is passed — the container passes it iff
 // a session exists (or might); LoggedOut proves the hatch is absent once the probe says "no user".
 //
-// One gallery story (ADR-0031 §2) stacks both variants; the Retry/Log out click-throughs are
+// One gallery story (ADR-0032 §2) stacks both variants; the Retry/Log out click-throughs are
 // behavioural only and live in Interactions.
 const meta = {
   title: 'shared/ui/RouteErrorFallback',
@@ -40,7 +40,7 @@ export const Gallery: Story = {
   },
 }
 
-// Picture owned by Gallery — behavioural only (ADR-0031 §1).
+// Picture owned by Gallery — behavioural only (ADR-0032 §1).
 export const Interactions: Story = {
   // Prop-contract spies: prove Retry and Log out actually reach their callbacks, not merely render.
   parameters: { chromatic: { disableSnapshot: true } },

@@ -49,7 +49,7 @@ const meta = {
   title: 'features/edit-event/SeriesScopeField',
   component: Harness,
   // Lives inside the edit/delete dialogs, so it is hosted at a dialog's content width, not the app
-  // column (ADR-0031 §4).
+  // column (ADR-0032 §4).
   ...appDialog,
   args: { onScopeChange: fn() },
 } satisfies Meta<typeof Harness>
@@ -58,7 +58,7 @@ export default meta
 
 type Story = StoryObj<typeof meta>
 
-// One gallery story (ADR-0031 §2): all six scope variants stacked — the edit/delete axis crossed
+// One gallery story (ADR-0032 §2): all six scope variants stacked — the edit/delete axis crossed
 // with THIS / THIS_AND_FOLLOWING / ALL — one snapshot, every branch asserted. Each variant starts
 // already at the scope it names (`initialScope`), so the picture needs no click to reach it.
 export const Gallery: Story = {
@@ -120,7 +120,7 @@ export const Gallery: Story = {
   },
 }
 
-// Picture owned by Gallery — behavioural only (ADR-0031 §1). Two instances so the edit and delete
+// Picture owned by Gallery — behavioural only (ADR-0032 §1). Two instances so the edit and delete
 // prop-contract (picking a scope reports it up) is proven for both variants; the resulting picture
 // is already Gallery's static "This & following" frame, so nothing here needs a snapshot.
 export const Interactions: Story = {

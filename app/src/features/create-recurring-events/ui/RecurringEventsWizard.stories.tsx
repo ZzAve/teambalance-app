@@ -10,7 +10,7 @@ import { RecurringEventsWizard } from './RecurringEventsWizard'
 // open/close live in the container.
 //
 // The wizard has no `step` (or field-value) prop — its step and every field are local state — so no
-// step past the first is reachable from props alone. Three stories (ADR-0031 §1, adapted for a
+// step past the first is reachable from props alone. Three stories (ADR-0032 §1, adapted for a
 // wizard):
 //   1. Data — step 1, populated: picking a type (the only click needed to reach it) auto-fills the
 //      title and unlocks Next. The picture of this View.

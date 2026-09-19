@@ -9,7 +9,7 @@ import { appShell } from '../../../../.storybook/app-shell-decorator'
 import { pageModes } from '../../../../.storybook/modes'
 import { TeamPageView } from './TeamPageView'
 
-// The team page as a phone shows it (ADR-0031 §3): the header (title, invite action and settings
+// The team page as a phone shows it (ADR-0032 §3): the header (title, invite action and settings
 // gear for admins) over the read-only roster, inside the real app shell. This composite owns the
 // pixels for TeamHeader and the read-only MemberRosterView; the roster keeps its own snapshots only
 // for the editable rows, the shells and the open remove-confirm.
@@ -59,7 +59,7 @@ export default meta
 type Story = StoryObj<typeof meta>
 
 export const Data: Story = {
-  // The page's picture, in dark and once at desktop width too (ADR-0031 §4-§5).
+  // The page's picture, in dark and once at desktop width too (ADR-0032 §4-§5).
   parameters: { chromatic: { modes: pageModes } },
   play: async ({ canvas }) => {
     await expect(canvas.getByRole('heading', { name: 'Team' })).toBeInTheDocument()

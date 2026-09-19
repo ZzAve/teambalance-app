@@ -7,7 +7,7 @@ import { UpdateToast } from './UpdateToast'
 // with unsaved / in-flight state. Prop-only: hidden vs shown and the reload callback are props, so it
 // renders with no service worker.
 //
-// One gallery story (ADR-0031 §2) stacks both variants — the hidden assertion (renders nothing rather
+// One gallery story (ADR-0032 §2) stacks both variants — the hidden assertion (renders nothing rather
 // than an empty bar) folds into this play; the Reload click-through is behavioural only and lives in
 // Interactions.
 const meta = {
@@ -39,7 +39,7 @@ export const Gallery: Story = {
   },
 }
 
-// Picture owned by Gallery — behavioural only (ADR-0031 §1).
+// Picture owned by Gallery — behavioural only (ADR-0032 §1).
 export const Interactions: Story = {
   // Prop-contract spy: proves Reload actually reaches onReload, not merely that the bar renders.
   parameters: { chromatic: { disableSnapshot: true } },

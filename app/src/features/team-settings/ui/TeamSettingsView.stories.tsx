@@ -7,7 +7,7 @@ import { TeamSettingsView } from './TeamSettingsView'
 // owns only local draft state (the two date fields); the query + SetSeason mutation stay in the
 // container, so every state renders purely from props.
 //
-// Three stories (ADR-0031 §1):
+// Three stories (ADR-0032 §1):
 //   1. Data — the one populated live instance (a configured, pristine season), and the picture of
 //      this View.
 //   2. Shells — every non-data state (loading / error / unset) stacked in one frame, one picture,

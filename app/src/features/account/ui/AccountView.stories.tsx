@@ -9,7 +9,7 @@ import { pageModes } from '../../../../.storybook/modes'
 import { AccountView } from './AccountView'
 
 // AccountView is the adaptive Account settings list behind the /account container (ADR-0027 §2), and
-// the whole of that page — so it is rendered as a page composite (ADR-0031 §3): inside the real app
+// the whole of that page — so it is rendered as a page composite (ADR-0032 §3): inside the real app
 // shell, on the Profile tab, at phone width in both themes and once at desktop width. It is prop-only
 // and network-free, so every context — teamless / single / multi / admin — and both profile shells
 // (loading / error) render purely from props. It renders TanStack Router <Link>s (the platform-admin
@@ -60,7 +60,7 @@ type Story = StoryObj<typeof meta>
 
 // A member of one team: the full list.
 export const Data: Story = {
-  // The page's picture, in dark and once at desktop width too (ADR-0031 §4-§5).
+  // The page's picture, in dark and once at desktop width too (ADR-0032 §4-§5).
   parameters: { chromatic: { modes: pageModes } },
   play: async ({ canvas }) => {
     await expect(canvas.getByRole('button', { name: 'Log out' })).toBeInTheDocument()
@@ -118,7 +118,7 @@ export const Shells: Story = {
   },
 }
 
-// Picture owned by Data — behavioural only (ADR-0031 §1).
+// Picture owned by Data — behavioural only (ADR-0032 §1).
 export const Interactions: Story = {
   parameters: { chromatic: { disableSnapshot: true } },
   play: async ({ canvas, userEvent, args }) => {

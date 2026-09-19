@@ -3,7 +3,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite'
 import { expect, fn, within } from 'storybook/test'
 import type { AttendanceEntry } from '@shared/api/events'
 import { makeAttendee, makeRoster, NO_ROSTER } from '@shared/testing/event-fixtures'
-import { allModes } from '../../../../.storybook/modes'
+import { Stack } from '@shared/testing/stack'
 import { EventLineupPanel } from './EventLineupPanel'
 
 /**
@@ -16,6 +16,17 @@ import { EventLineupPanel } from './EventLineupPanel'
  * The interactive stories pass `fn()` spies and assert `toHaveBeenCalledWith`, because the thing
  * worth pinning here is not that a chip renders but that tapping one reaches the right *member*: the
  * panel answers for anybody (ADR-0003), and a chip wired to the wrong id would look perfectly fine.
+ *
+ * Three-story shape (ADR-0032 §1). The panel is rendered inside the events page composite
+ * (pages/EventsPageView), so per the ownership rule (ADR-0032 §3) its `Data` picture is behavioural
+ * only:
+ *   1. `Data` — the one populated live instance, disableSnapshot (the composite already shows this).
+ *   2. `Shells` — every static roster shape stacked in one frame: nobody yet, a position nobody
+ *      plays, headcount only, an untracked social, a crowded position collapsed, and a write pending.
+ *      This picture stays — none of it is on screen in the composite's own default frame.
+ *   3. `Interactions` — no picture; one play walks expanding a crowded position, answering for a
+ *      teammate, answering for yourself, and the fact that an answer moves a chip and its row's count
+ *      together, keeping every prop-contract spy.
  */
 
 // ── The squad ────────────────────────────────────────────────────────────────────────────────────
@@ -88,15 +99,14 @@ const meta = {
       </div>
     ),
   ],
-  parameters: { chromatic: { modes: { light: allModes.light, dark: allModes.dark } } },
 } satisfies Meta<typeof EventLineupPanel>
 
 export default meta
 type Story = StoryObj<typeof meta>
 
-// ── The shapes a roster comes in ─────────────────────────────────────────────────────────────────
-
-export const Default: Story = {
+// Picture owned by the page composite (pages/EventsPageView) — behavioural only (ADR-0032 §3).
+export const Data: Story = {
+  parameters: { chromatic: { disableSnapshot: true } },
   play: async ({ canvas }) => {
     // The verdict word leads and the fraction follows, for each of the four row states.
     await expect(canvas.getByText('covered')).toBeInTheDocument()
@@ -107,132 +117,120 @@ export const Default: Story = {
   },
 }
 
-/** Nobody has answered and nobody is configured: the panel says so rather than rendering blank. */
-export const NobodyYet: Story = {
-  args: { attendances: [], roster: makeRoster({ positions: [], totalAttending: 0 }) },
-  play: async ({ canvas }) => {
-    await expect(canvas.getByText('Nobody has answered yet.')).toBeInTheDocument()
-  },
-}
-
-/** Everyone declined a position the server therefore dropped — the row the old pips panel lost. */
-export const APositionNobodyIsPlaying: Story = {
-  args: {
-    attendances: [makeAttendee('u-nina', 'Nina Hendriks', 'Libero', { state: 'ABSENT' })],
-    roster: makeRoster({ positions: [POSITIONS[3]], totalAttending: 0 }),
-  },
-  play: async ({ canvas }) => {
-    await expect(canvas.getByText('nobody yet')).toBeInTheDocument()
-    await expect(canvas.getByRole('button', { name: /Nina Hendriks — Can't/ })).toBeInTheDocument()
-  },
-}
-
-/**
- * A headcount target with no position targets. There is no covered fraction to state, so the header
- * falls back to the headcount — and the staff note explains why it is smaller than the room.
- */
-export const HeadcountOnly: Story = {
-  args: {
-    roster: makeRoster({
-      positions: [POSITIONS[4]],
-      totalAttending: 11,
-      totalTarget: 12,
-    }),
-  },
-  play: async ({ canvas }) => {
-    await expect(canvas.getByText('10/12 going')).toBeInTheDocument()
-    await expect(canvas.getByText(/1 staff also going/)).toBeInTheDocument()
-  },
-}
-
-/** A social: tracking off, so there are no targets — just who is coming, grouped by position. */
-export const UntrackedSocial: Story = {
-  args: { roster: makeRoster({ ...NO_ROSTER, totalAttending: 11 }) },
-  play: async ({ canvas }) => {
-    await expect(canvas.getByText('11 going')).toBeInTheDocument()
-    await expect(canvas.queryByText('covered')).not.toBeInTheDocument()
-  },
-}
-
-// ── Crowding: the cap is what lets a chip refuse to clip a name ──────────────────────────────────
-
-export const CrowdedPositionCollapses: Story = {
-  play: async ({ canvas }) => {
-    // Six going in Outside, capped at five: four chips and a counter for the rest.
-    await expect(canvas.getByRole('button', { name: 'Show 2 more going' })).toBeInTheDocument()
-    await expect(canvas.queryByRole('button', { name: /Iris Kok/ })).not.toBeInTheDocument()
-  },
-}
-
-export const ExpandingACrowdedPosition: Story = {
+export const Shells: Story = {
+  render: (args) => (
+    <Stack
+      items={{
+        'Nobody yet': (
+          <EventLineupPanel {...args} attendances={[]} roster={makeRoster({ positions: [], totalAttending: 0 })} />
+        ),
+        // Everyone declined a position the server therefore dropped — the row the old pips panel lost.
+        'A position nobody plays': (
+          <EventLineupPanel
+            {...args}
+            attendances={[makeAttendee('u-nina', 'Nina Hendriks', 'Libero', { state: 'ABSENT' })]}
+            roster={makeRoster({ positions: [POSITIONS[3]], totalAttending: 0 })}
+          />
+        ),
+        // A headcount target with no position targets: no covered fraction to state, so the header
+        // falls back to the headcount, and the staff note explains why it is smaller than the room.
+        'Headcount only': (
+          <EventLineupPanel
+            {...args}
+            roster={makeRoster({ positions: [POSITIONS[4]], totalAttending: 11, totalTarget: 12 })}
+          />
+        ),
+        // A social: tracking off, so there are no targets — just who is coming, grouped by position.
+        'Untracked social': <EventLineupPanel {...args} roster={makeRoster({ ...NO_ROSTER, totalAttending: 11 })} />,
+        // Six going in Outside, capped at five: four chips and a counter for the rest.
+        'Crowded position collapsed': <EventLineupPanel {...args} />,
+        // A write is in flight: the control is held so a second tap cannot race the first.
+        Pending: <EventLineupPanel {...args} pending />,
+      }}
+    />
+  ),
   play: async ({ canvas, userEvent }) => {
-    await userEvent.click(canvas.getByRole('button', { name: 'Show 2 more going' }))
-    await expect(canvas.getByRole('button', { name: /Iris Kok — Going/ })).toBeInTheDocument()
-    // And back: the counter becomes the way to re-collapse, so the row is never stuck open.
-    await userEvent.click(canvas.getByRole('button', { name: 'Show fewer going' }))
-    await expect(canvas.queryByRole('button', { name: /Iris Kok/ })).not.toBeInTheDocument()
+    const region = (name: string) => within(canvas.getByRole('region', { name }))
+
+    await expect(region('Nobody yet').getByText('Nobody has answered yet.')).toBeInTheDocument()
+
+    await expect(region('A position nobody plays').getByText('nobody yet')).toBeInTheDocument()
+    await expect(
+      region('A position nobody plays').getByRole('button', { name: /Nina Hendriks — Can't/ }),
+    ).toBeInTheDocument()
+
+    await expect(region('Headcount only').getByText('10/12 going')).toBeInTheDocument()
+    await expect(region('Headcount only').getByText(/1 staff also going/)).toBeInTheDocument()
+
+    await expect(region('Untracked social').getByText('11 going')).toBeInTheDocument()
+    await expect(region('Untracked social').queryByText('covered')).not.toBeInTheDocument()
+
+    await expect(
+      region('Crowded position collapsed').getByRole('button', { name: 'Show 2 more going' }),
+    ).toBeInTheDocument()
+    await expect(
+      region('Crowded position collapsed').queryByRole('button', { name: /Iris Kok/ }),
+    ).not.toBeInTheDocument()
+
+    await userEvent.click(region('Pending').getByRole('button', { name: /Lotte Dijkstra/ }))
+    await expect(
+      await within(document.body).findByRole('button', { name: 'Going' }),
+    ).toBeDisabled()
   },
 }
 
-// ── Wiring — a chip has to reach the right member ────────────────────────────────────────────────
-
-export const AnsweringForATeammate: Story = {
+// Picture owned by the page composite (pages/EventsPageView) — behavioural only (ADR-0032 §3).
+// Two instances: the default squad for the chip-cap and answer-sheet wiring, and a live one whose
+// `attendances` is fed back in as a prop, which is what proves a written answer moves a chip and its
+// row's count together rather than one lagging the other.
+export const Interactions: Story = {
+  parameters: { chromatic: { disableSnapshot: true } },
+  render: (args) => (
+    <Stack
+      items={{
+        Squad: <EventLineupPanel {...args} />,
+        'Live count': <LivePanel {...args} />,
+      }}
+    />
+  ),
   play: async ({ canvas, userEvent, args }) => {
-    await userEvent.click(canvas.getByRole('button', { name: /Lotte Dijkstra — Maybe/ }))
-
-    // The sheet is portalled out of the canvas, so it is queried from the document (as the
-    // manage-positions dialogs are).
+    const region = (name: string) => within(canvas.getByRole('region', { name }))
     const body = within(document.body)
-    const sheet = await body.findByRole('dialog')
-    // The sheet names whose answer is about to change — ADR-0003 allows it, but you should know.
-    await expect(sheet).toHaveTextContent('Lotte Dijkstra')
-    await expect(sheet).toHaveTextContent('Middle · currently maybe · you are answering for them')
 
+    // Expanding a crowded position: six going in Outside, capped at five.
+    await userEvent.click(region('Squad').getByRole('button', { name: 'Show 2 more going' }))
+    await expect(region('Squad').getByRole('button', { name: /Iris Kok — Going/ })).toBeInTheDocument()
+    // And back: the counter becomes the way to re-collapse, so the row is never stuck open.
+    await userEvent.click(region('Squad').getByRole('button', { name: 'Show fewer going' }))
+    await expect(region('Squad').queryByRole('button', { name: /Iris Kok/ })).not.toBeInTheDocument()
+
+    // Answering for a teammate — the sheet is portalled out of the canvas, so it is queried from the
+    // document (as the manage-positions dialogs are).
+    await userEvent.click(region('Squad').getByRole('button', { name: /Lotte Dijkstra — Maybe/ }))
+    const teammateSheet = await body.findByRole('dialog')
+    // The sheet names whose answer is about to change — ADR-0003 allows it, but you should know.
+    await expect(teammateSheet).toHaveTextContent('Lotte Dijkstra')
+    await expect(teammateSheet).toHaveTextContent('Middle · currently maybe · you are answering for them')
     await userEvent.click(body.getByRole('button', { name: 'Going' }))
     await expect(args.onRespond).toHaveBeenCalledWith('u-lotte', 'ATTENDING')
-  },
-}
 
-export const AnsweringForYourself: Story = {
-  play: async ({ canvas, userEvent, args }) => {
-    await userEvent.click(canvas.getByRole('button', { name: /Eva Smit \(you\) — Going/ }))
-
-    const body = within(document.body)
-    const sheet = await body.findByRole('dialog')
-    // No "you are answering for them" on your own row — it is a warning, not a label.
-    await expect(sheet).toHaveTextContent('Outside · currently going')
-    await expect(sheet).not.toHaveTextContent('answering for them')
-
+    // Answering for yourself — no "you are answering for them" on your own row; it is a warning, not
+    // a label.
+    await userEvent.click(region('Squad').getByRole('button', { name: /Eva Smit \(you\) — Going/ }))
+    const selfSheet = await body.findByRole('dialog')
+    await expect(selfSheet).toHaveTextContent('Outside · currently going')
+    await expect(selfSheet).not.toHaveTextContent('answering for them')
     await userEvent.click(body.getByRole('button', { name: "Can't go" }))
     await expect(args.onRespond).toHaveBeenCalledWith('u-eva', 'ABSENT')
-  },
-}
 
-/** A write is in flight: the control is held so a second tap cannot race the first. */
-export const Pending: Story = {
-  args: { pending: true },
-  play: async ({ canvas, userEvent }) => {
-    await userEvent.click(canvas.getByRole('button', { name: /Lotte Dijkstra/ }))
-    await expect(await within(document.body).findByRole('button', { name: 'Going' })).toBeDisabled()
-  },
-}
-
-/**
- * The panel counts its fractions from the members it renders, so an answer moves the chip and the
- * count together. This is the state the events route holds while a write settles — proved here by
- * driving the same prop change a re-render would.
- */
-export const AnswerMovesChipAndCountTogether: Story = {
-  render: (args) => <LivePanel {...args} />,
-  play: async ({ canvas, userEvent }) => {
-    await expect(canvas.getByText('needs 1 more')).toBeInTheDocument()
-    await expect(canvas.getByText('2 of 4 covered')).toBeInTheDocument()
-
-    await userEvent.click(canvas.getByRole('button', { name: /Lotte Dijkstra — Maybe/ }))
-    await userEvent.click(within(document.body).getByRole('button', { name: 'Going' }))
-
-    // Middle was 1/2; Lotte's chip turning green is the same fact as the row reading covered.
-    await expect(canvas.queryByText('needs 1 more')).not.toBeInTheDocument()
-    await expect(canvas.getByText('3 of 4 covered')).toBeInTheDocument()
+    // The panel counts its fractions from the members it renders, so an answer moves the chip and
+    // the count together — proved here by driving the same prop change a re-render would. Middle was
+    // 1/2; Lotte's chip turning green is the same fact as the row reading covered.
+    await expect(region('Live count').getByText('needs 1 more')).toBeInTheDocument()
+    await expect(region('Live count').getByText('2 of 4 covered')).toBeInTheDocument()
+    await userEvent.click(region('Live count').getByRole('button', { name: /Lotte Dijkstra — Maybe/ }))
+    await userEvent.click(body.getByRole('button', { name: 'Going' }))
+    await expect(region('Live count').queryByText('needs 1 more')).not.toBeInTheDocument()
+    await expect(region('Live count').getByText('3 of 4 covered')).toBeInTheDocument()
   },
 }

@@ -14,7 +14,7 @@ import { PageHeader } from './PageHeader'
 // The back control is a real <Link>, so the story runs under the router decorator and asserts the
 // resolved href (same contract as TeamHeader's gear).
 //
-// Covered by the event-detail page composite (EventDetailView, ADR-0031 §3): every shape this widget
+// Covered by the event-detail page composite (EventDetailView, ADR-0032 §3): every shape this widget
 // can take is folded into one disableSnapshot Gallery, including the sticky-offset derivation — the
 // picture lives on the composite.
 const onAction = fn()
@@ -23,7 +23,7 @@ const meta = {
   title: 'widgets/page-header/PageHeader',
   component: PageHeader,
   // The app's <main> gutter, so the header's -mx-4 full-bleed edge renders faithfully in context
-  // at every breakpoint (ADR-0031 §4).
+  // at every breakpoint (ADR-0032 §4).
   decorators: [...appColumn.decorators, withRouter],
   parameters: appColumn.parameters,
 } satisfies Meta<typeof PageHeader>
@@ -32,7 +32,7 @@ export default meta
 
 type Story = StoryObj<typeof meta>
 
-// Picture owned by the event-detail page composite (EventDetailView) — behavioural only (ADR-0031 §3).
+// Picture owned by the event-detail page composite (EventDetailView) — behavioural only (ADR-0032 §3).
 export const Gallery: Story = {
   parameters: { chromatic: { disableSnapshot: true } },
   // title is required on PageHeader; unused by render below — each Stack instance sets its own.

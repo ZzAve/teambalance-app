@@ -16,7 +16,7 @@ const CODES: CreationCode[] = [
   { code: 'GGGG-HHHH-JJJJ', createdAt: '2026-07-20T00:00:00Z', expiresAt: undefined, consumedAt: '2026-07-21T00:00:00Z', consumedByUserId: 'u1', createdTeamId: 't1' },
 ]
 
-// Three stories (ADR-0031 §1): Data is the populated list and carries the snapshot. Shells stacks
+// Three stories (ADR-0032 §1): Data is the populated list and carries the snapshot. Shells stacks
 // every non-data state — loading / error / forbidden / empty / revoke-blocked — in one frame.
 // Interactions has no picture; one play generates a code and drives the confirm-and-revoke flow to
 // its close, keeping every onCreate/onRevoke assertion. Plus one extra picture, RevokeConfirmOpen,
@@ -87,7 +87,7 @@ export const Shells: Story = {
   },
 }
 
-// Picture owned by Data — behavioural only (ADR-0031 §1). Two instances because generating needs an
+// Picture owned by Data — behavioural only (ADR-0032 §1). Two instances because generating needs an
 // empty list to stay the Empty picture (ADR-0027 §2) while revoking needs the populated list.
 export const Interactions: Story = {
   parameters: { chromatic: { disableSnapshot: true } },

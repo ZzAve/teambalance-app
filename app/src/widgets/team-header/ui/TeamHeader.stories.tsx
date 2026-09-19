@@ -9,7 +9,7 @@ import { TeamHeader } from './TeamHeader'
 // The gear's target is derived from the slug in the path the header is rendered on — hence the
 // initialEntries below.
 //
-// Covered by the team page composite (TeamPageView, ADR-0031 §3): the only behaviour that matters —
+// Covered by the team page composite (TeamPageView, ADR-0032 §3): the only behaviour that matters —
 // admins see the settings entry, members don't — is folded into one disableSnapshot Gallery; the
 // picture lives on the composite.
 const meta = {
@@ -29,7 +29,7 @@ type Story = StoryObj<typeof meta>
 // slot to render; the dialog behaviour is covered by the generate-invite feature's own stories.
 const inviteAction = <Button variant="outline">Invite Link</Button>
 
-// Picture owned by the team page composite (TeamPageView) — behavioural only (ADR-0031 §3).
+// Picture owned by the team page composite (TeamPageView) — behavioural only (ADR-0032 §3).
 export const Gallery: Story = {
   parameters: { chromatic: { disableSnapshot: true } },
   // isAdmin is required on TeamHeader; unused by render below — each Stack instance sets its own.

@@ -8,16 +8,22 @@ import { ManageEventTypesView } from './ManageEventTypesView'
 
 // The admin surface behind the ManageEventTypes container: create / rename / recolor / archive, each
 // type carrying the roster default its events inherit. Prop-only, so every state — including the
-// destructive archive dialog and its migration offer — renders from props with no network (ADR-0017).
+// archive dialog and its migration offer — renders from props with no network (ADR-0017).
 //
-// Three-story shape (ADR-0031 §1):
+// One quiet row per type (issue #341, variant B): colour dot + name + roster summary as text, and a
+// single overflow (⋯) menu carrying "Edit" and "Archive…" — Archive is deliberately NOT the red
+// destructive treatment, since it only ever hides a type (reversible from the Archived section).
+//
+// Three-story shape (ADR-0032 §1):
 //   1. Data — the one populated live instance, and the picture of this View.
 //   2. Shells — every non-data state (load / error / empty / archived / the three error codes)
 //      stacked in one frame, each state's assertions scoped to its labelled region.
 //   3. Interactions — no picture; one play walks every interaction (create, edit a roster default,
-//      drop a target to zero, archive with and without migration) and keeps every onCreate/onUpdate/
-//      onArchive/onUnarchive spy assertion.
-// Plus one extra picture, ArchiveDialogOpen, for the frame no composite shows: the open dialog.
+//      drop a target to zero, archive with and without migration), routed through each row's ⋯ menu,
+//      and keeps every onCreate/onUpdate/onArchive/onUnarchive spy assertion.
+// Plus two extra pictures for frames no composite shows: ArchiveDialogOpen (the open dialog) and
+// MenuOpen (the open ⋯ menu itself — a distinct frame the Interactions play never rests on, since it
+// always proceeds to click a menu item).
 const POSITIONS: Position[] = [
   { id: 'p1', label: 'Setter', kind: 'PLAYING' },
   { id: 'p2', label: 'Libero', kind: 'PLAYING' },
@@ -71,18 +77,6 @@ export const Data: Story = {
   },
 }
 
-// Opening a row's menu shows Edit and Archive… — Archive carries no destructive (red) styling,
-// because it only ever hides the type; it can be restored.
-export const MenuOpen: Story = {
-  play: async ({ canvas, userEvent }) => {
-    await userEvent.click(canvas.getByLabelText('Actions for Match'))
-    const menu = within(document.body)
-    const archiveItem = await menu.findByRole('menuitem', { name: 'Archive…' })
-    await expect(menu.getByRole('menuitem', { name: 'Edit' })).toBeInTheDocument()
-    await expect(archiveItem).not.toHaveAttribute('data-tone', 'destructive')
-  },
-}
-
 export const Shells: Story = {
   render: (args) => (
     <Stack
@@ -117,8 +111,9 @@ export const Shells: Story = {
     await expect(region('Empty').getByText('No event types yet. Add one below.')).toBeInTheDocument()
 
     await expect(region('With archived types').getByText('Archived')).toBeInTheDocument()
+    // Archived rows only offer Restore — no ⋯ actions menu at all.
     await expect(
-      region('With archived types').queryByRole('button', { name: 'Edit Old Social' }),
+      region('With archived types').queryByLabelText('Actions for Old Social'),
     ).not.toBeInTheDocument()
 
     await expect(
@@ -133,27 +128,39 @@ export const Shells: Story = {
   },
 }
 
+// The ⋯ menu itself is a frame the Interactions play never rests on — every step that opens it goes
+// on to click a menu item. Archive… is deliberately not the red destructive treatment (it only ever
+// hides a type, and can be restored), so this is also where that non-styling carries a baseline.
+export const MenuOpen: Story = {
+  play: async ({ canvas, userEvent }) => {
+    await userEvent.click(canvas.getByLabelText('Actions for Match'))
+    const menu = within(document.body)
+    const archiveItem = await menu.findByRole('menuitem', { name: 'Archive…' })
+    await expect(menu.getByRole('menuitem', { name: 'Edit' })).toBeInTheDocument()
+    await expect(archiveItem).not.toHaveAttribute('data-tone', 'destructive')
+  },
+}
+
 // The archive dialog is the one screen that has to answer "will this delete my events?", and it
 // leads with the migration offer rather than burying it. The Interactions play below confirms it
 // twice (with and without migration), so the dialog is gone before Chromatic shoots — this one opens
-// it and stops, so that wording carries a baseline (ADR-0027 §2).
+// it (via the row's ⋯ menu) and stops, so that wording carries a baseline (ADR-0027 §2).
 export const ArchiveDialogOpen: Story = {
   play: async ({ canvas, userEvent, args }) => {
     await userEvent.click(canvas.getByLabelText('Actions for Match'))
-    const menu = within(document.body)
-    await userEvent.click(await menu.findByRole('menuitem', { name: 'Archive…' }))
-    const dialog = within(document.body)
-    await expect(await dialog.findByText('Archive "Match"?')).toBeInTheDocument()
+    const portal = within(document.body)
+    await userEvent.click(await portal.findByRole('menuitem', { name: 'Archive…' }))
+    await expect(await portal.findByText('Archive "Match"?')).toBeInTheDocument()
     // Says plainly that no event is deleted — the fear this dialog has to answer.
-    await expect(dialog.getByText(/no event is deleted/i)).toBeInTheDocument()
+    await expect(portal.getByText(/no event is deleted/i)).toBeInTheDocument()
     // The migration picker leads; leaving it unset is the fallback, not the default.
-    await expect(dialog.getByLabelText(/Move its events/)).toBeInTheDocument()
+    await expect(portal.getByLabelText(/Move its events/)).toBeInTheDocument()
     await expect(args.onArchive).not.toHaveBeenCalled()
   },
 }
 
-// Picture owned by Data, Shells and ArchiveDialogOpen — behavioural only (ADR-0031 §1). Three
-// instances because the create flow needs an empty list to create into and restoring needs an
+// Picture owned by Data, Shells, MenuOpen and ArchiveDialogOpen — behavioural only (ADR-0032 §1).
+// Three instances because the create flow needs an empty list to create into and restoring needs an
 // archived type, while the rest edit and archive types already on the list.
 export const Interactions: Story = {
   parameters: { chromatic: { disableSnapshot: true } },
@@ -168,7 +175,7 @@ export const Interactions: Story = {
   ),
   play: async ({ canvas, userEvent, args }) => {
     const region = (name: string) => within(canvas.getByRole('region', { name }))
-    const dialog = within(document.body)
+    const portal = within(document.body)
 
     // Creating: the editor hides optimistically on submit — the admin sees the save land rather
     // than watching a spinner.
@@ -181,8 +188,10 @@ export const Interactions: Story = {
     await expect(region('Empty').queryByLabelText('Event type name')).not.toBeInTheDocument()
 
     // The roster default is authored in the same editor the per-event override uses, so the two
-    // can't disagree about what a blank field means.
-    await userEvent.click(region('List').getByRole('button', { name: 'Edit Training' }))
+    // can't disagree about what a blank field means. Reached via the row's ⋯ menu, not an inline
+    // Edit button.
+    await userEvent.click(region('List').getByLabelText('Actions for Training'))
+    await userEvent.click(await portal.findByRole('menuitem', { name: 'Edit' }))
     // Tracking starts off for Training, so the targets are hidden until it is switched on.
     await expect(region('List').queryByLabelText('People needed in total')).not.toBeInTheDocument()
     await userEvent.click(region('List').getByRole('switch', { name: 'Track roster' }))
@@ -197,7 +206,8 @@ export const Interactions: Story = {
     )
 
     // A zero is "no target", the same as blank — and the same as what the server does with one.
-    await userEvent.click(region('List').getByRole('button', { name: 'Edit Match' }))
+    await userEvent.click(region('List').getByLabelText('Actions for Match'))
+    await userEvent.click(await portal.findByRole('menuitem', { name: 'Edit' }))
     const setter = region('List').getByLabelText('Setter')
     await userEvent.clear(setter)
     await userEvent.type(setter, '0')
@@ -210,21 +220,24 @@ export const Interactions: Story = {
     )
 
     // The destructive path. It leads with the migration offer, because leaving events on a type no
-    // picker shows is the fallback, not the default.
-    await userEvent.click(region('List').getByRole('button', { name: 'Archive Match' }))
-    await expect(await dialog.findByText('Archive "Match"?')).toBeInTheDocument()
+    // picker shows is the fallback, not the default. Reached via the ⋯ menu; Archive… itself carries
+    // no destructive styling (it only ever hides a type — MenuOpen carries that baseline).
+    await userEvent.click(region('List').getByLabelText('Actions for Match'))
+    await userEvent.click(await portal.findByRole('menuitem', { name: 'Archive…' }))
+    await expect(await portal.findByText('Archive "Match"?')).toBeInTheDocument()
     // Says plainly that no event is deleted — the fear this dialog has to answer.
-    await expect(dialog.getByText(/no event is deleted/i)).toBeInTheDocument()
-    await userEvent.selectOptions(dialog.getByLabelText(/Move its events/), 'et-2')
-    await userEvent.click(dialog.getByRole('button', { name: 'Archive' }))
+    await expect(portal.getByText(/no event is deleted/i)).toBeInTheDocument()
+    await userEvent.selectOptions(portal.getByLabelText(/Move its events/), 'et-2')
+    await userEvent.click(portal.getByRole('button', { name: 'Archive' }))
     await expect(args.onArchive).toHaveBeenCalledWith('et-1', 'et-2')
 
     // Declining the migration is a real choice, not an oversight: the events keep the archived type.
-    await userEvent.click(region('List').getByRole('button', { name: 'Archive Match' }))
-    await userEvent.click(await dialog.findByRole('button', { name: 'Archive' }))
+    await userEvent.click(region('List').getByLabelText('Actions for Match'))
+    await userEvent.click(await portal.findByRole('menuitem', { name: 'Archive…' }))
+    await userEvent.click(await portal.findByRole('button', { name: 'Archive' }))
     await expect(args.onArchive).toHaveBeenCalledWith('et-1', undefined)
 
-    // Restoring an archived type is the only action its row offers.
+    // Restoring an archived type is the only action its row offers — no ⋯ menu for archived rows.
     await userEvent.click(region('Archived').getByRole('button', { name: 'Restore Old Social' }))
     await expect(args.onUnarchive).toHaveBeenCalledWith('et-3')
   },

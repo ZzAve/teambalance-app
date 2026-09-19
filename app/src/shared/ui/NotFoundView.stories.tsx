@@ -8,7 +8,7 @@ import { NotFoundView } from './NotFoundView'
 // it takes the shared withRouter decorator. The escape hatch renders only when `onLogout` is passed —
 // the container passes it iff a session exists (or might); LoggedOut proves it's absent otherwise.
 //
-// One gallery story (ADR-0031 §2) stacks both variants; the click-through to onLogout is behavioural
+// One gallery story (ADR-0032 §2) stacks both variants; the click-through to onLogout is behavioural
 // only and lives in Interactions.
 const meta = {
   title: 'shared/ui/NotFoundView',
@@ -42,7 +42,7 @@ export const Gallery: Story = {
   },
 }
 
-// Picture owned by Gallery — behavioural only (ADR-0031 §1).
+// Picture owned by Gallery — behavioural only (ADR-0032 §1).
 export const Interactions: Story = {
   parameters: { chromatic: { disableSnapshot: true } },
   play: async ({ canvas, userEvent, args }) => {

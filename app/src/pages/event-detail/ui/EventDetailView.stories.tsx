@@ -10,7 +10,7 @@ import { appShell, SHELL_ROUTES } from '../../../../.storybook/app-shell-decorat
 import { pageModes } from '../../../../.storybook/modes'
 import { EventDetailView } from './EventDetailView'
 
-// The event-detail page as a phone shows it (ADR-0031 §3): sticky sub-header, identity, roster bar,
+// The event-detail page as a phone shows it (ADR-0032 §3): sticky sub-header, identity, roster bar,
 // the viewer's response, description, references, the attendance list, the series peek and the
 // admin actions, inside the real app shell. This composite owns the pixels for PageHeader,
 // EventTypeBadge/Icon, RosterBar, AttendanceToggle, ReferenceChips, RoleBreakdown, AttendeeList and
@@ -113,7 +113,7 @@ export default meta
 type Story = StoryObj<typeof meta>
 
 export const Data: Story = {
-  // The page's picture, in dark and once at desktop width too (ADR-0031 §4-§5).
+  // The page's picture, in dark and once at desktop width too (ADR-0032 §4-§5).
   parameters: { chromatic: { modes: pageModes } },
   play: async ({ canvas }) => {
     await expect(canvas.getByRole('link', { name: 'Back to events' })).toHaveAttribute('href', SHELL_ROUTES.events)
@@ -176,7 +176,7 @@ export const Shells: Story = {
   },
 }
 
-// Picture owned by Data — behavioural only (ADR-0031 §1).
+// Picture owned by Data — behavioural only (ADR-0032 §1).
 export const Interactions: Story = {
   parameters: { chromatic: { disableSnapshot: true } },
   render: (args) => (
@@ -195,10 +195,12 @@ export const Interactions: Story = {
     await userEvent.click(within(page.getByRole('group', { name: 'Your response' })).getByRole('button', { name: 'Maybe' }))
     await expect(args.onToggleMine).toHaveBeenCalledWith('MAYBE')
 
-    // Changing a teammate's answer goes through their row and names them (ADR-0003, trust-based).
-    await userEvent.click(page.getByRole('button', { name: /Change Sofia's answer/ }))
-    await expect(page.getByText(/Changing/)).toBeInTheDocument()
-    await userEvent.click(within(page.getByRole('group', { name: "Sofia's answer" })).getByRole('button', { name: "Can't go" }))
+    // Changing a teammate's answer goes through their row into the answer sheet, which names them
+    // and says you are answering for them (ADR-0003, trust-based; awareness, not friction).
+    await userEvent.click(page.getByRole('button', { name: /Sofia — Maybe/ }))
+    const sheet = within(await within(document.body).findByRole('dialog'))
+    await expect(sheet.getByText(/Middle · currently maybe · you are answering for them/)).toBeInTheDocument()
+    await userEvent.click(sheet.getByRole('button', { name: "Can't go" }))
     await expect(args.onRespond).toHaveBeenCalledWith('u-4', 'ABSENT')
 
     // The error shell's retry reaches the query.

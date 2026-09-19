@@ -9,7 +9,7 @@ import { TeamsView } from './TeamsView'
 // link, or create a team. Prop-only and presentational; the route container owns the navigation each
 // callback performs.
 //
-// Three-story shape (ADR-0031 §1):
+// Three-story shape (ADR-0032 §1):
 //   1. Data — the one populated live instance: the common case, a member of one team.
 //   2. Shells — the multiple-teams variant, in its own frame (only the active team carries the badge).
 //   3. Interactions — no picture; selecting a team, joining, and creating, keeping every spy
@@ -58,7 +58,7 @@ export const Shells: Story = {
   },
 }
 
-// Picture owned by Data and Shells — behavioural only (ADR-0031 §1). Two instances because selecting
+// Picture owned by Data and Shells — behavioural only (ADR-0032 §1). Two instances because selecting
 // a non-active team needs a second team to pick.
 export const Interactions: Story = {
   parameters: { chromatic: { disableSnapshot: true } },

@@ -7,10 +7,10 @@ import { BulkAttendBarView } from './BulkAttendBarView'
 
 // The per-type Bulk Attend row (ADR-0021). Props-driven throughout, so every state renders with no
 // network: the container does the grouping, the mutation and the Undo toast. Rendered inside the
-// events page composite (EventsPageView), so per the ownership rule (ADR-0031 §3) its Data story is
+// events page composite (EventsPageView), so per the ownership rule (ADR-0032 §3) its Data story is
 // behavioural only — the composite's own picture already shows this bar in context.
 //
-// Three-story shape (ADR-0031 §1):
+// Three-story shape (ADR-0032 §1):
 //   1. Data — the one populated live instance, disableSnapshot (picture owned by the page).
 //   2. Shells — hidden / single-type / many-types / one-type-pending, stacked in one frame — this
 //      picture stays, since the composite's default frame cannot show these variants.
@@ -34,7 +34,7 @@ export default meta
 
 type Story = StoryObj<typeof meta>
 
-// Picture owned by the page composite (pages/EventsPageView) — behavioural only (ADR-0031 §3).
+// Picture owned by the page composite (pages/EventsPageView) — behavioural only (ADR-0032 §3).
 // The point of ADR-0021: each type gets its own button, so the scope needs no filtering to read.
 export const Data: Story = {
   parameters: { chromatic: { disableSnapshot: true } },
@@ -95,7 +95,7 @@ export const Shells: Story = {
 }
 
 // Prop-contract spy: the tap must reach onAttend with the type it named, not merely render. Picture
-// owned by the page composite — behavioural only (ADR-0031 §1, §3).
+// owned by the page composite — behavioural only (ADR-0032 §1, §3).
 export const Interactions: Story = {
   parameters: { chromatic: { disableSnapshot: true } },
   play: async ({ canvas, args, userEvent }) => {

@@ -13,7 +13,7 @@ import { EventCard } from './EventCard'
 // `onRespond` are plain props. `now` is a prop too, so every relative-label state is a fixed render
 // rather than a function of when the story runs — which also keeps the Chromatic snapshots stable.
 //
-// Two stories (ADR-0031 §2): `Gallery` stacks every visually distinct card — populated, answered,
+// Two stories (ADR-0032 §2): `Gallery` stacks every visually distinct card — populated, answered,
 // the three relative-label bands, a social (headcount fallback), the roster verdict open onto its
 // pips (via `defaultRosterOpen`, no click needed for a static picture), staff attending, references
 // and location — one snapshot, no clicks (a click's end state would become *that* frame's baseline).
@@ -36,7 +36,7 @@ const meta = {
   title: 'entities/event/EventCard',
   component: EventCard,
   decorators: [withRouter],
-  args: { now: NOW, myState: 'NOT_RESPONDED', onRespond: fn() },
+  args: { now: NOW, myState: 'NOT_RESPONDED', onRespond: fn(), rosterPanel: PANEL },
   parameters: { chromatic: { modes: darkMode } },
 } satisfies Meta<typeof EventCard>
 
@@ -189,17 +189,13 @@ export const Gallery: Story = {
     await expect(region('Social event').getByText('This weekend')).toBeInTheDocument()
 
     await expect(region('Roster verdict').getByText('Missing a position')).toBeInTheDocument()
-    await expect(region('Roster verdict').getByText('1 of 3 covered')).toBeInTheDocument()
-    await expect(region('Roster verdict').getByText(/still has no one/)).toBeInTheDocument()
+    // Pips content moved out; the injected panel is a stand-in (ADR-0032 §1, see top-of-file note).
+    await expect(region('Roster verdict').getByText(PANEL_TEXT)).toBeInTheDocument()
 
-    // Not "Full" — the coach no longer fills a player's slot.
+    // Not "Full" — the coach no longer fills a player's slot. That is the card's half of #281; the
+    // panel's half (the 11/12 fraction and the staff line) is in EventLineupPanel.stories.
     await expect(region('Staff attending').getByText('1 more needed')).toBeInTheDocument()
-    await expect(region('Staff attending').getByText('11/12 going')).toBeInTheDocument()
-    await expect(
-      region('Staff attending').getByText('1 staff also going, not counted toward the target'),
-    ).toBeInTheDocument()
-    // Excluded from the target, not hidden.
-    await expect(region('Staff attending').getByText('Trainer')).toBeInTheDocument()
+    await expect(region('Staff attending').getByText(PANEL_TEXT)).toBeInTheDocument()
 
     // Two chips visible on the card, the third collapsed into "+1".
     await expect(region('With references').getByRole('link', { name: /Nevobo/ })).toBeInTheDocument()
@@ -225,7 +221,7 @@ export const Gallery: Story = {
 /** What a tap at a viewport point actually lands on — the honest hit-area question. */
 const hitAt = (el: HTMLElement, x: number, y: number) => el.ownerDocument.elementFromPoint(x, y)
 
-// Picture owned by Gallery — behavioural only (ADR-0031 §1). Separate instances because some steps
+// Picture owned by Gallery — behavioural only (ADR-0032 §1). Separate instances because some steps
 // need a state Gallery's static picture is never in (a disclosure closed and then opened by a real
 // click, not `defaultRosterOpen`) or a fixture built only for a geometry check.
 export const Interactions: Story = {
@@ -338,16 +334,16 @@ export const Interactions: Story = {
     await userEvent.click(region('Social event').getByRole('button', { name: /Change your answer/ }))
     await expect(region('Social event').getByRole('button', { name: 'Going' })).toBeInTheDocument()
 
-    // The verdict is its own disclosure — collapsed until asked, opening it reveals the pips, not
+    // The verdict is its own disclosure — collapsed until asked, opening it reveals the lineup, not
     // the answer control.
-    await expect(region('Roster verdict').queryByText(/the one to chase/)).not.toBeInTheDocument()
+    await expect(region('Roster verdict').queryByText(PANEL_TEXT)).not.toBeInTheDocument()
     await userEvent.click(region('Roster verdict').getByRole('button', { name: /Show lineup/ }))
-    // Full pip detail on the opened panel is Gallery's assertion (rendered via `defaultRosterOpen`);
-    // this click only needs to prove the affordance itself opens it.
-    await expect(region('Roster verdict').getByText('1 of 3 covered')).toBeInTheDocument()
+    // Full panel detail is Gallery's assertion (rendered via `defaultRosterOpen`); this click only
+    // needs to prove the affordance itself opens it.
+    await expect(region('Roster verdict').getByText(PANEL_TEXT)).toBeInTheDocument()
 
     await userEvent.click(region('Staff attending').getByRole('button', { name: /Show lineup/ }))
-    await expect(region('Staff attending').getByText('11/12 going')).toBeInTheDocument()
+    await expect(region('Staff attending').getByText(PANEL_TEXT)).toBeInTheDocument()
 
     const answerTrigger = region('Answer trigger band').getByRole('button', { name: /Change your answer/ })
     const answerPillEl = region('Answer trigger band').getByText('Respond')
@@ -373,7 +369,7 @@ export const Interactions: Story = {
     await expect(rosterTrigger.contains(rosterHit)).toBe(true)
     await expect(rosterHit?.closest('a')).toBeNull()
     await userEvent.click(rosterHit as HTMLElement)
-    await expect(region('Roster trigger band').getByText('Positions')).toBeInTheDocument()
+    await expect(region('Roster trigger band').getByText(PANEL_TEXT)).toBeInTheDocument()
 
     for (const name of [/Change your answer/, /Show lineup/]) {
       const box = region('Thumb sized').getByRole('button', { name }).getBoundingClientRect()

@@ -8,7 +8,7 @@ import { ThemeToggleView } from './ThemeToggleView'
 // without a network: the three selectable preferences, and the prop-contract spies proving a click
 // reaches onChange with the right preference.
 //
-// Three stories (ADR-0031 §1):
+// Three stories (ADR-0032 §1):
 //   1. Data — System selected (the default a user who never chose sits at), and the picture of this
 //      View. Carries the dark-mode baseline too (`darkMode`): the tokens are what this slice mostly
 //      ships, so a light-only picture would leave them unwatched.
@@ -57,7 +57,7 @@ export const Shells: Story = {
   },
 }
 
-// Picture owned by Data — behavioural only (ADR-0031 §1). Runs under the dark token layer, opted in
+// Picture owned by Data — behavioural only (ADR-0032 §1). Runs under the dark token layer, opted in
 // via the preview's `theme` global — the exact mechanism the toolbar switcher and the app itself use
 // (`.dark` on the document root) — so it also fails if that switcher ever stops applying the layer.
 export const Interactions: Story = {

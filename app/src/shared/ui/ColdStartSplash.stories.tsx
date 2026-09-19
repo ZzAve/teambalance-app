@@ -7,7 +7,7 @@ import { ColdStartSplash } from './ColdStartSplash'
 // a moment on an injected `elapsedMs` clock, so no fake timers are needed — the story just picks a
 // moment on the clock and asserts what the user would see then.
 //
-// One gallery story (ADR-0031 §2): every stage stacked in one frame, one picture, each stage's
+// One gallery story (ADR-0032 §2): every stage stacked in one frame, one picture, each stage's
 // assertions scoped to its labelled region.
 const meta = {
   title: 'shared/ColdStartSplash',

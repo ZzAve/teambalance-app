@@ -1,4 +1,4 @@
-// Chromatic modes (ADR-0031 §4-§5) and the Storybook viewport axis they share their widths with.
+// Chromatic modes (ADR-0032 §4-§5) and the Storybook viewport axis they share their widths with.
 //
 // A mode re-renders a story with globals and/or a browser viewport flipped: same args, same `play`,
 // one extra snapshot with its own baseline. Two axes live here:
@@ -30,7 +30,7 @@ export const allModes = {
   xl: { viewport: VIEWPORTS.xl.width },
 } as const
 
-/** The extra baselines a page composite carries on top of the global `xs` (ADR-0031 §5). */
+/** The extra baselines a page composite carries on top of the global `xs` (ADR-0032 §5). */
 export const pageModes = { xsDark: allModes.xsDark, xl: allModes.xl } as const
 
 /** The extra baseline a token-sensitive gallery carries on top of the global `xs`. */

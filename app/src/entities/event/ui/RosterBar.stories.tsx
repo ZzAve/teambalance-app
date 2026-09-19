@@ -5,15 +5,16 @@ import { Stack } from '@shared/testing/stack'
 import { appColumn } from '@shared/testing/app-column-decorator'
 import { RosterBar } from './RosterBar'
 
-// The roster overview: spots filled, a progress track, and a chip per targeted position coloured
-// by tone. Prop-only; every number arrives already computed by the server (#219). The card chrome
-// is the caller's, so each instance below gets the same wrapper the detail page does.
+// The roster overview: spots filled and a progress track — the event-level verdict only, now that
+// the per-position chips moved to live with the people they describe, in the attendee list below.
+// Prop-only; every number arrives already computed by the server (#219). The card chrome is the
+// caller's, so each instance below gets the same wrapper the detail page does.
 //
-// One Gallery story (ADR-0031 §2): every roster shape stacked via `Stack`, one snapshot, and every
+// One Gallery story (ADR-0032 §2): every roster shape stacked via `Stack`, one snapshot, and every
 // old assertion scoped to its own labelled region.
 // The wrapper the detail page puts around it. No width of its own: the app column decorator on the
-// meta gives it the width the product gives it at each breakpoint (ADR-0031 §4).
-const CARD = 'overflow-hidden rounded-2xl border border-border/40 bg-card shadow-sm'
+// meta gives it the width the product gives it at each breakpoint (ADR-0032 §4).
+const CARD = 'overflow-hidden rounded-lg border border-border/40 bg-card shadow-sm'
 
 const meta = {
   title: 'entities/event/RosterBar',
@@ -176,10 +177,12 @@ export const Gallery: Story = {
 
     await expect(region('One spot open').getByText(/4\/5 spots/)).toBeInTheDocument()
     await expect(region('One spot open').getByText(/1 spot open/)).toBeInTheDocument()
-    await expect(region('One spot open').getByText(/Middle 1\/2/)).toBeInTheDocument()
+    // The bar states the event's verdict and nothing per position: naming Middle here would repeat
+    // what the attendee list already says beside its own heading, three blocks further down.
+    await expect(region('One spot open').queryByText(/Middle/)).not.toBeInTheDocument()
 
     await expect(region('Critical').getByText(/Missing a position/)).toBeInTheDocument()
-    await expect(region('Critical').getByText(/Middle 0\/2/)).toBeInTheDocument()
+    await expect(region('Critical').queryByText(/Middle/)).not.toBeInTheDocument()
 
     await expect(region('Lineup fully set').getByText(/3\/3 spots/)).toBeInTheDocument()
     await expect(region('Lineup fully set').getByText(/Lineup set/)).toBeInTheDocument()

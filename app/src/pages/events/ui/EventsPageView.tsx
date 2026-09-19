@@ -16,7 +16,7 @@ interface EventsPageViewProps {
 }
 
 /**
- * The events page laid out (ADR-0031 §3): a compact header with the filter trigger and the view
+ * The events page laid out (ADR-0032 §3): a compact header with the filter trigger and the view
  * menu, the Next Up hero when one is due, the bulk-attend bar, then one flat chronological list.
  * Prop-only — the route decides what goes in each slot (the live hero, bar and create sheet are
  * containers with their own queries), and the story fills the same slots with their prop-only Views,
@@ -26,7 +26,7 @@ export function EventsPageView({ createAction, filters, panelMenu, hero, bulkBar
   return (
     <div>
       <div className="flex items-center justify-between gap-2">
-        <h2 className="font-display text-2xl font-bold">Events</h2>
+        <h2 className="font-display text-title font-bold">Events</h2>
         <div className="flex items-center gap-2">
           {/* The invite link moved to the Team page (team-management action); Events keeps
               only event creation for admins. */}
@@ -35,8 +35,7 @@ export function EventsPageView({ createAction, filters, panelMenu, hero, bulkBar
               must not disappear with the event types it also happens to host. */}
           <EventFiltersView {...filters} />
           {/* How the list is drawn, beside what it contains but deliberately not inside it
-              (ADR-0030 §3): a filter is "where was I", this is "how do I like this". It
-              used to sit in every open card's panel, which read as a per-card control. */}
+              (ADR-0030 §3): a filter is "where was I", this is "how do I like this". */}
           <PanelViewMenu {...panelMenu} />
         </div>
       </div>

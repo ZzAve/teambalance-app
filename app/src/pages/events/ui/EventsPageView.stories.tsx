@@ -12,17 +12,16 @@ import { ALL_ATTENDANCE_STATES } from '@features/filter-event-types/model/attend
 import { ALL_TURNOUT_BUCKETS, type TurnoutBucket } from '@features/filter-event-types/model/turnout'
 import { filterEvents } from '@features/filter-event-types/model/filter-events'
 import { emptyEventsMessage } from '@features/filter-event-types/model/empty-message'
-import type { PanelView } from '@features/event-panel-view/model/panel-preferences'
 import { BulkAttendBarView } from '@features/bulk-attend/ui/BulkAttendBarView'
 import { groupByType } from '@features/bulk-attend/lib/group-by-type'
 import { eligibleEvents } from '@features/bulk-attend/lib/eligible-event-ids'
 import { NextEventHeroView } from '@widgets/next-event-hero/ui/NextEventHeroView'
-import { EventRosterPanel } from '@widgets/event-panel/ui/EventRosterPanel'
-import { appShell, SHELL_ROUTES } from '../../../../.storybook/app-shell-decorator'
+import { EventLineupPanel } from '@widgets/event-panel/ui/EventLineupPanel'
+import { appShell } from '../../../../.storybook/app-shell-decorator'
 import { pageModes } from '../../../../.storybook/modes'
 import { EventsPageView } from './EventsPageView'
 
-// The events page as a phone shows it (ADR-0031 §3): header, filter trigger, view menu, the Next Up
+// The events page as a phone shows it (ADR-0032 §3): header, filter trigger, view menu, the Next Up
 // hero, the bulk-attend bar and the card list, inside the real app shell. This composite owns the
 // pixels for every piece it shows — EventFiltersView, PanelViewMenu, NextEventHeroView,
 // BulkAttendBarView, EventListView, EventCard and the roster panel keep their own snapshots only
@@ -132,9 +131,10 @@ interface HarnessArgs {
   onToggleType: (typeId: string) => void
   onToggleState: (state: AttendanceState) => void
   onToggleShowPast: (showPast: boolean) => void
-  onViewChange: (view: PanelView) => void
   onHeroRespond: (state: AttendanceState) => void
   onRespond: (eventId: string, state: AttendanceState) => void
+  /** An answer set from a card's lineup panel — for anyone on the event, the viewer included. */
+  onRespondFor: (eventId: string, userId: string, state: AttendanceState) => void
   onAttend: (typeId: string) => void
 }
 
@@ -151,11 +151,22 @@ function EventsPageHarness(args: HarnessArgs) {
   const [activeStates, setActiveStates] = useState(new Set(ALL_ATTENDANCE_STATES))
   const [activeTurnouts, setActiveTurnouts] = useState(new Set<TurnoutBucket>(ALL_TURNOUT_BUCKETS))
   const [showPast, setShowPast] = useState(false)
-  const [view, setView] = useState<PanelView>('pips')
   const [defaultExpanded, setDefaultExpanded] = useState(false)
-  const [answers, setAnswers] = useState<Record<string, AttendanceState>>({})
+  // eventId → userId → the answer picked in this session, applied to the member's row and, for the
+  // viewer, to the card's own pill — the optimistic hold the route keeps, in miniature.
+  const [answers, setAnswers] = useState<Record<string, Record<string, AttendanceState>>>({})
+  const answer = (eventId: string, userId: string, state: AttendanceState) =>
+    setAnswers((a) => ({ ...a, [eventId]: { ...a[eventId], [userId]: state } }))
 
-  const events = args.events.map((e) => (answers[e.id] ? { ...e, myState: answers[e.id] } : e))
+  const events = args.events.map((e) => {
+    const picked = answers[e.id]
+    if (!picked) return e
+    return {
+      ...e,
+      myState: picked['u-me'] ?? e.myState,
+      attendances: e.attendances.map((m) => (picked[m.userId] ? { ...m, state: picked[m.userId] } : m)),
+    }
+  })
   const sorted = [...filterEvents(events, activeTypeIds, activeStates, activeTurnouts)].sort((a, b) =>
     a.startTime.localeCompare(b.startTime),
   )
@@ -201,15 +212,7 @@ function EventsPageHarness(args: HarnessArgs) {
           setShowPast(false)
         },
       }}
-      panelMenu={{
-        view,
-        onViewChange: (next) => {
-          args.onViewChange(next)
-          setView(next)
-        },
-        defaultExpanded,
-        onDefaultExpandedChange: setDefaultExpanded,
-      }}
+      panelMenu={{ defaultExpanded, onDefaultExpandedChange: setDefaultExpanded }}
       hero={
         hero && (
           <NextEventHeroView
@@ -218,7 +221,7 @@ function EventsPageHarness(args: HarnessArgs) {
             now={NOW}
             onRespond={(state) => {
               args.onHeroRespond(state)
-              setAnswers((a) => ({ ...a, [hero.id]: state }))
+              answer(hero.id, 'u-me', state)
             }}
           />
         )
@@ -231,14 +234,17 @@ function EventsPageHarness(args: HarnessArgs) {
         defaultRosterOpen: defaultExpanded,
         onRespond: (eventId, state) => {
           args.onRespond(eventId, state)
-          setAnswers((a) => ({ ...a, [eventId]: state }))
+          answer(eventId, 'u-me', state)
         },
         rosterPanel: (event) => (
-          <EventRosterPanel
-            event={event}
-            view={view}
+          <EventLineupPanel
+            attendances={event.attendances}
+            roster={event.roster}
             currentUserId="u-me"
-            detailHref={`${SHELL_ROUTES.events}/events/${event.id}`}
+            onRespond={(userId, state) => {
+              args.onRespondFor(event.id, userId, state)
+              answer(event.id, userId, state)
+            }}
           />
         ),
         emptyMessage: emptyEventsMessage({
@@ -267,7 +273,7 @@ const meta = {
     onToggleType: fn(),
     onToggleState: fn(),
     onToggleShowPast: fn(),
-    onViewChange: fn(),
+    onRespondFor: fn(),
     onHeroRespond: fn(),
     onRespond: fn(),
     onAttend: fn(),
@@ -279,7 +285,7 @@ export default meta
 type Story = StoryObj<typeof meta>
 
 export const Data: Story = {
-  // The page's picture, in dark and once at desktop width too (ADR-0031 §4-§5).
+  // The page's picture, in dark and once at desktop width too (ADR-0032 §4-§5).
   parameters: { chromatic: { modes: pageModes } },
   play: async ({ canvas }) => {
     await expect(canvas.getByRole('heading', { name: 'Events' })).toBeInTheDocument()
@@ -322,7 +328,7 @@ const STATIC = {
     onToggleShowPast: noop,
     onClearFilters: noop,
   },
-  panelMenu: { view: 'pips' as const, onViewChange: noop, defaultExpanded: false, onDefaultExpandedChange: noop },
+  panelMenu: { defaultExpanded: false, onDefaultExpandedChange: noop },
 }
 
 // The page's non-data frames, stacked: no hero in any of them, so the list carries the page.
@@ -366,7 +372,7 @@ export const Shells: Story = {
   },
 }
 
-// Picture owned by Data — behavioural only (ADR-0031 §1). Every slot's wiring, in one walk.
+// Picture owned by Data — behavioural only (ADR-0032 §1). Every slot's wiring, in one walk.
 export const Interactions: Story = {
   parameters: { chromatic: { disableSnapshot: true } },
   play: async ({ canvas, userEvent, args }) => {
@@ -389,11 +395,19 @@ export const Interactions: Story = {
     await userEvent.click(canvas.getByRole('button', { name: 'Clear filters' }))
     await expect(canvas.getByText('Training — Court 1')).toBeInTheDocument()
 
-    // The view menu re-draws every card's roster panel.
+    // The view menu holds the one remaining preference: every card's panel starts open.
     await userEvent.click(canvas.getByRole('button', { name: 'View options' }))
-    await userEvent.click(canvas.getByRole('button', { name: 'People' }))
-    await expect(args.onViewChange).toHaveBeenCalledWith('members')
+    await userEvent.click(canvas.getByRole('switch', { name: 'Keep panels open' }))
     await userEvent.keyboard('{Escape}')
+    await expect(canvas.getAllByRole('button', { name: /Hide lineup/ }).length).toBeGreaterThan(0)
+
+    // Answering for a teammate from a card's lineup: the chip opens the answer sheet, which names
+    // them, and the pick reports the event, the member and the state through the panel slot.
+    await userEvent.click(canvas.getAllByRole('button', { name: /Sofia — Maybe/ })[0])
+    const sheet = within(await within(document.body).findByRole('dialog'))
+    await expect(sheet.getByText(/you are answering for them/)).toBeInTheDocument()
+    await userEvent.click(sheet.getByRole('button', { name: "Can't go" }))
+    await expect(args.onRespondFor).toHaveBeenCalledWith('evt-match', 'u-4', 'ABSENT')
 
     // Answering from a card: the match and the tournament are already answered, so their rows read
     // "Change your answer"; the list is chronological, so the first is the match. Picking Maybe

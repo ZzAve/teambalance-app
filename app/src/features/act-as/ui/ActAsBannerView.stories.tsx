@@ -7,7 +7,7 @@ import { ActAsBannerView } from './ActAsBannerView'
 // near-identically-named club squads is the exact condition under which a season gets prepped into
 // the wrong one. Presentational — the grant and the exit mutation live in the container.
 //
-// Three-story shape (ADR-0031 §1):
+// Three-story shape (ADR-0032 §1):
 //   1. Data — the one populated live instance, naming the team.
 //   2. Shells — the exiting and not-acting-as states, stacked in one frame.
 //   3. Interactions — no picture; the Exit click, keeping the onExit spy assertion.
@@ -50,7 +50,7 @@ export const Shells: Story = {
   },
 }
 
-// Picture owned by Data — behavioural only (ADR-0031 §1).
+// Picture owned by Data — behavioural only (ADR-0032 §1).
 export const Interactions: Story = {
   parameters: { chromatic: { disableSnapshot: true } },
   play: async ({ canvas, userEvent, args }) => {

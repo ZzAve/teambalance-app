@@ -8,11 +8,14 @@ import { GenerateInviteContent } from './GenerateInviteContent'
 // state is a plain render arg; the click interactions just prove the callbacks fire (the container
 // owns the state in the app).
 //
-// Three stories (ADR-0031 §1): Data is the active-link instance and keeps the snapshot — it renders
+// Three stories (ADR-0032 §1): Data is the active-link instance and keeps the snapshot — it renders
 // inside a dialog the TeamPageView composite can't show open, so this file owns that picture
-// (ADR-0031 §3). Shells stacks every non-data state — load / error / no-link / generating / copied /
+// (ADR-0032 §3). Shells stacks every non-data state — load / error / no-link / generating / copied /
 // rotating / revoking / just-expired / action-error — in one frame. Interactions has no picture; one
-// play walks every click and keeps every onCopy/onGenerate/onRotate/onExpire spy assertion.
+// play walks every click and keeps every onCopy/onGenerate/onRotate/onExpire spy assertion, including
+// the revoke-confirm dialog's cancel and confirm paths.
+// Plus one extra picture, RevokeConfirmOpen, for the frame no composite shows: revoking is
+// irreversible and offers no replacement, so it asks for confirmation first (#341).
 const LINK = 'https://app.teambalance.nl/invite/abc123'
 
 const meta = {
@@ -100,7 +103,24 @@ export const Shells: Story = {
   },
 }
 
-// Picture owned by Data — behavioural only (ADR-0031 §1).
+// The open-dialog frame (#341): the confirm dialog is what an admin actually reads before an
+// irreversible action with no replacement — no composite shows this open, so it needs its own
+// picture. Left open — Interactions confirms or cancels it.
+export const RevokeConfirmOpen: Story = {
+  args: { link: LINK },
+  play: async ({ canvas, userEvent, args }) => {
+    await userEvent.click(canvas.getByRole('button', { name: 'Revoke link' }))
+    const dialog = within(document.body)
+    await expect(await dialog.findByText('Revoke the invite link?')).toBeInTheDocument()
+    await expect(
+      dialog.getByText(/old link stops working and no replacement is created/),
+    ).toBeInTheDocument()
+    await expect(dialog.getByRole('button', { name: 'Cancel' })).toBeInTheDocument()
+    await expect(args.onExpire).not.toHaveBeenCalled()
+  },
+}
+
+// Picture owned by Data and RevokeConfirmOpen — behavioural only (ADR-0032 §1).
 export const Interactions: Story = {
   parameters: { chromatic: { disableSnapshot: true } },
   render: (args) => (
@@ -114,12 +134,26 @@ export const Interactions: Story = {
   ),
   play: async ({ canvas, userEvent, args }) => {
     const region = (name: string) => within(canvas.getByRole('region', { name }))
+    const dialog = within(document.body)
 
     await userEvent.click(region('Active link').getByRole('button', { name: 'Copy' }))
     await expect(args.onCopy).toHaveBeenCalled()
     await userEvent.click(region('Active link').getByRole('button', { name: 'Rotate link' }))
     await expect(args.onRotate).toHaveBeenCalled()
+
+    // Revoking is irreversible and leaves no replacement, so it asks for confirmation first (#341)
+    // — unlike rotate, which is one click because it lands on a new link right away.
     await userEvent.click(region('Active link').getByRole('button', { name: 'Revoke link' }))
+    await expect(args.onExpire).not.toHaveBeenCalled()
+
+    // Cancelling leaves the link alone and closes the dialog.
+    await userEvent.click(dialog.getByRole('button', { name: 'Cancel' }))
+    await expect(canvas.queryByText('Revoke the invite link?')).not.toBeInTheDocument()
+    await expect(args.onExpire).not.toHaveBeenCalled()
+
+    // Confirming fires the revoke and closes the dialog.
+    await userEvent.click(region('Active link').getByRole('button', { name: 'Revoke link' }))
+    await userEvent.click(await dialog.findByRole('button', { name: 'Revoke link' }))
     await expect(args.onExpire).toHaveBeenCalled()
 
     // Both no-link and just-expired route through onGenerate — a running total proves each click

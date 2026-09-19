@@ -14,7 +14,7 @@ import { MoneyTeaserView } from './MoneyTeaserView'
 // widget siblings its Data story keeps both its snapshot and its dark mode — the money surface and
 // its gradients are token-sensitive (ADR-0027 §3) and nothing else currently covers them in dark.
 //
-// Three-story shape (ADR-0031 §1):
+// Three-story shape (ADR-0032 §1):
 //   1. Data — the default not-voted state, the coming-soon teaser with its three pillars.
 //   2. Shells — the voted state, stacked — this stays a separate frame rather than joining Data,
 //      since the two are the whole of this View's states and each is its own primary picture.

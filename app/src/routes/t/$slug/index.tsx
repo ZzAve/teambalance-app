@@ -10,9 +10,9 @@ import { NextEventHero } from '@widgets/next-event-hero/ui/NextEventHero'
 import { CreateEventSheet } from '@widgets/create-event/ui/CreateEventSheet'
 import { useEventFiltersStore } from '@features/filter-event-types/model/event-filters-store'
 import { useEventPanelStore } from '@features/event-panel-view/model/event-panel-store'
-import { EventRosterPanel } from '@widgets/event-panel/ui/EventRosterPanel'
+import type { OptimisticAnswer } from '@entities/event/ui/EventListView'
+import { EventLineupPanel } from '@widgets/event-panel/ui/EventLineupPanel'
 import { EventsPageView } from '@pages/events/ui/EventsPageView'
-import { useTeamRoutes } from '@shared/lib/team-routes'
 import { reconcileTypeIds } from '@features/filter-event-types/model/filter-preferences'
 import { spansMultipleTurnoutBuckets } from '@features/filter-event-types/model/turnout'
 import { filterEvents } from '@features/filter-event-types/model/filter-events'
@@ -80,7 +80,6 @@ function EventListPage() {
         setOptimistic({eventId, userId, state})
         setAttendance({eventId, userId, state}, {onError: () => setOptimistic(null)})
     }
-
     const respond = (eventId: string, state: Event['myState']) => {
         if (!currentUserId) return
         respondFor(eventId, currentUserId, state)
@@ -150,8 +149,6 @@ function EventListPage() {
                 onClearFilters: clearFilters,
             }}
             panelMenu={{
-                view,
-                onViewChange: setView,
                 defaultExpanded,
                 onDefaultExpandedChange: setDefaultExpanded,
             }}
@@ -162,14 +159,14 @@ function EventListPage() {
                 onRespond: respond,
                 optimistic,
                 currentUserId,
-                // What each card's roster disclosure opens onto (ADR-0030 §5-§7). Injected from here
-                // because the member list is a widget and the card is an entity — and because the
-                // preference is global, so one store drives every card.
+                // What each card's roster disclosure opens onto (ADR-0030 §5-§7, as amended by the
+                // lineup panel). Injected from here because the panel is a widget and the card is an
+                // entity — the card cannot build one itself.
                 defaultRosterOpen: defaultExpanded,
                 rosterPanel: (event) => (
-                    <EventRosterPanel
-                        event={event}
-                        view={view}
+                    <EventLineupPanel
+                        attendances={event.attendances}
+                        roster={event.roster}
                         currentUserId={currentUserId}
                         onRespond={(userId, state) => respondFor(event.id, userId, state)}
                     />

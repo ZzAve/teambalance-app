@@ -7,13 +7,13 @@ import { TeamSwitcherView } from './TeamSwitcherView'
 // The rule worth pinning is not the dropdown mechanics but the one ADR-0023 §3 leans on: the
 // switcher ALWAYS names the current Team, including in the single-Team case that has no menu.
 //
-// Three-story shape (ADR-0031 §1) plus one extra snapshotted state:
+// Three-story shape (ADR-0032 §1) plus one extra snapshotted state:
 //   1. Data — the one populated live instance, several teams, menu closed.
 //   2. Shells — the single-team and no-active-team variants, stacked in one frame.
 //   3. Interactions — no picture; picking the active team (no-op) then the other team (switches),
 //      keeping every onSelect spy assertion.
 //   + MenuOpen — the open listbox is a visually new state reachable only by interaction, and no
-//     composite shows it open, so it keeps its own snapshot (ADR-0031 §1).
+//     composite shows it open, so it keeps its own snapshot (ADR-0032 §1).
 const SETPOINT: TeamRef = { id: 't1', name: 'Setpoint VT', slug: 'setpoint-vt' }
 const TOVO: TeamRef = { id: 't2', name: 'Tovo Heren 5', slug: 'tovo-heren-5' }
 
@@ -70,7 +70,7 @@ export const MenuOpen: Story = {
   },
 }
 
-// Picture owned by Data and MenuOpen — behavioural only (ADR-0031 §1).
+// Picture owned by Data and MenuOpen — behavioural only (ADR-0032 §1).
 export const Interactions: Story = {
   parameters: { chromatic: { disableSnapshot: true } },
   play: async ({ canvas, args }) => {

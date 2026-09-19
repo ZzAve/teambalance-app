@@ -83,8 +83,9 @@ private class FakeInvitationRepo(private var live: Invitation?) : InvitationRepo
 class InvitationServiceTest : FunSpec() {
     init {
         val clock = Clock.fixed(Instant.EPOCH, ZoneOffset.UTC)
-        val testCipher = InviteTokenCipher.fromBase64Key(
+        val testCipher = TokenCipher.fromBase64Key(
             Base64.getEncoder().encodeToString(ByteArray(32) { it.toByte() }),
+            "test-key",
         )
         val adminId = UserId.random()
         val nonAdmin = UserId.random()

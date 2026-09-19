@@ -41,7 +41,7 @@ class InvitationService(
     // hardcoded value in dev and test.
     private val tokenSalt: String,
     // Reversible counterpart to the hash, so the team's current link can be shown again (ADR-0025).
-    private val tokenCipher: InviteTokenCipher,
+    private val tokenCipher: TokenCipher,
 ) {
     companion object {
         // Invite links don't expire on a timer by default in v1 — an admin rotates/expires
@@ -247,7 +247,7 @@ class InvitationService(
         role = role,
         consumedAt = null,
         tokenHash = hashToken(token.value),
-        encryptedToken = tokenCipher.encrypt(token),
+        encryptedToken = tokenCipher.encrypt(token.value),
         createdBy = callerId,
         expiresAt = now.plus(INVITE_TTL),
         createdAt = now,
@@ -256,7 +256,7 @@ class InvitationService(
     /** The stored form back to something shareable; null for a hash-only pre-ADR-0025 row. */
     private fun reveal(invitation: Invitation): GeneratedInvitation? =
         invitation.encryptedToken?.let { encrypted: EncryptedToken ->
-            GeneratedInvitation(token = tokenCipher.decrypt(encrypted), expiresAt = invitation.expiresAt)
+            GeneratedInvitation(token = InviteToken(tokenCipher.decrypt(encrypted)), expiresAt = invitation.expiresAt)
         }
 
     private fun generateToken(): InviteToken {

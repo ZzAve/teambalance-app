@@ -1,6 +1,12 @@
 interface OnboardingHubViewProps {
   onChooseJoin: () => void
   onChooseCreate: () => void
+  /**
+   * They signed in from an Invite Link that had expired or been rotated by the time they clicked it
+   * (#342). Naming it is the whole point: the sign-in worked, so without this they would be told only
+   * that they have no team, and would have no idea the invite was the part that failed.
+   */
+  inviteUnavailable?: boolean
 }
 
 /**
@@ -9,12 +15,20 @@ interface OnboardingHubViewProps {
  * placeholder for new users). The route container owns navigation to /onboarding/join and
  * /create-team.
  */
-export function OnboardingHubView({ onChooseJoin, onChooseCreate }: OnboardingHubViewProps) {
+export function OnboardingHubView({ onChooseJoin, onChooseCreate, inviteUnavailable }: OnboardingHubViewProps) {
   return (
     <div className="mx-auto mt-10 max-w-sm text-center">
       <h1 className="font-display text-title font-bold">Welcome to TeamBalance 👋</h1>
+      {inviteUnavailable && (
+        <p className="mt-3 rounded-lg border border-gold/40 bg-gold/10 p-3 text-small text-foreground">
+          You're signed in, but the invite link you used has expired or been replaced. Ask your team
+          for a new one, then use <span className="font-medium">I have an invite</span> below.
+        </p>
+      )}
       <p className="mt-2 text-small text-muted-foreground">
-        You're signed in, but not on a team yet. How would you like to get started?
+        {inviteUnavailable
+          ? 'How would you like to get started?'
+          : "You're signed in, but not on a team yet. How would you like to get started?"}
       </p>
 
       <div className="mt-8 flex flex-col gap-4">

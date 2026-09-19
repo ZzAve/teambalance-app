@@ -4,6 +4,7 @@ import com.github.zzave.teambalance.api.domain.exception.NotPlatformAdminExcepti
 import com.github.zzave.teambalance.api.domain.model.ActAs
 import com.github.zzave.teambalance.api.domain.model.DisplayName
 import com.github.zzave.teambalance.api.domain.model.Email
+import com.github.zzave.teambalance.api.domain.model.Invitation
 import com.github.zzave.teambalance.api.domain.model.PositionId
 import com.github.zzave.teambalance.api.domain.model.Role
 import com.github.zzave.teambalance.api.domain.model.SchemaName
@@ -13,16 +14,19 @@ import com.github.zzave.teambalance.api.domain.model.TeamMember
 import com.github.zzave.teambalance.api.domain.model.TeamName
 import com.github.zzave.teambalance.api.domain.model.TeamSummary
 import com.github.zzave.teambalance.api.domain.model.TenantRouting
+import com.github.zzave.teambalance.api.domain.model.TokenHash
 import com.github.zzave.teambalance.api.domain.model.User
 import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.port.ActAsGateway
 import com.github.zzave.teambalance.api.domain.port.ActAsRepository
+import com.github.zzave.teambalance.api.domain.port.InvitationRepository
 import com.github.zzave.teambalance.api.domain.port.PlatformAdminGateway
 import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
 import com.github.zzave.teambalance.api.domain.port.TeamRepository
 import com.github.zzave.teambalance.api.domain.port.TenantRoutingGateway
 import com.github.zzave.teambalance.api.domain.port.UserRepository
 import java.time.Instant
+import java.util.Base64
 import java.util.UUID
 
 /**
@@ -221,4 +225,63 @@ internal fun TeamDirectory.activeTeamService(
     teamRepository = teamRepository(),
     userRepository = userRepository(*users),
     tenantRoutingGateway = routingGateway,
+)
+
+/**
+ * `invitations`, reduced to the one link a sign-in might carry. Readable by hash or by id, because a
+ * magic link requested from an Invite Link remembers the invitation's id rather than its token (#342)
+ * and so accepts through the id-shaped read.
+ *
+ * Hash matching is deliberately not modelled: a presented token resolves to whatever link is loaded,
+ * the same shortcut InvitationServiceTest's fake takes, because hashing is never the subject here.
+ * "No such link" is expressed by loading none.
+ */
+internal class InMemoryInvitationRepository(private var invitation: Invitation? = null) : InvitationRepository {
+    private val consumed = mutableSetOf<UUID>()
+
+    /** Swap the loaded link — how a test expires or rotates one between request and click. */
+    fun put(value: Invitation?) {
+        invitation = value
+    }
+
+    override fun save(invitation: Invitation) =
+        invitation.also { this.invitation = it }
+
+    override fun findByTokenHash(tokenHash: TokenHash) = invitation
+
+    override fun findById(invitationId: UUID) = invitation?.takeIf { it.id == invitationId }
+
+    override fun findActiveByTeam(teamId: TeamId, now: Instant) = invitation?.takeIf {
+        it.role == Role.USER && it.teamId == teamId && it.expiresAt.isAfter(now)
+    }
+
+    override fun findActiveAdminByTeam(teamId: TeamId, now: Instant) = invitation?.takeIf {
+        it.role == Role.ADMIN && it.id !in consumed && it.teamId == teamId && it.expiresAt.isAfter(now)
+    }
+
+    override fun consume(invitationId: UUID, now: Instant): Boolean = consumed.add(invitationId)
+
+    override fun expireActive(teamId: TeamId, role: Role, now: Instant) {
+        invitation = null
+    }
+
+    override fun rotate(teamId: TeamId, replacement: Invitation, now: Instant) =
+        replacement.also { invitation = it }
+}
+
+internal fun TeamDirectory.invitationService(
+    invitations: InvitationRepository,
+    routingGateway: TenantRoutingGateway,
+    clock: java.time.Clock,
+    vararg users: User,
+) = InvitationService(
+    invitationRepository = invitations,
+    teamMemberRepository = teamMemberRepository(),
+    authorizationService = AuthorizationService(teamMemberRepository(), FakeActAsGateway()),
+    activeTeamService = activeTeamService(routingGateway, *users),
+    clock = clock,
+    tokenSalt = "test-salt",
+    tokenCipher = InviteTokenCipher.fromBase64Key(
+        Base64.getEncoder().encodeToString(ByteArray(32) { it.toByte() }),
+    ),
 )

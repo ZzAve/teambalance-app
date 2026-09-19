@@ -12,6 +12,7 @@ fun MagicLinkTokenJpaEntity.internalize() = MagicLinkToken(
     expiresAt = expiresAt,
     usedAt = usedAt,
     createdAt = createdAt,
+    invitationId = invitationId,
 )
 
 fun MagicLinkToken.externalize() = MagicLinkTokenJpaEntity(
@@ -21,4 +22,5 @@ fun MagicLinkToken.externalize() = MagicLinkTokenJpaEntity(
     expiresAt = expiresAt,
     usedAt = usedAt,
     createdAt = createdAt,
+    invitationId = invitationId,
 )

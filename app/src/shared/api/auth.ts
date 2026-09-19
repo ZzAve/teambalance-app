@@ -4,14 +4,36 @@ import type { AuthenticatedUser } from './generated/model/AuthenticatedUser'
 
 export type { AuthenticatedUser } from './generated/model/AuthenticatedUser'
 
+/** Rejection reason for a magic-link request whose Invite Link is no longer live. */
+export const INVITE_UNAVAILABLE = 'invite-unavailable'
+
+/**
+ * Requests a magic link, naming the Invite Link it was started from when there is one (#342).
+ *
+ * The invite travels with the request rather than being stashed in this browser, because the emailed
+ * link is routinely opened somewhere else — a laptop, Safari after a tap in WhatsApp's in-app browser
+ * — and nothing written here reaches those. The server remembers it against the magic-link record and
+ * applies it on verification.
+ *
+ * A 404 means the invite named no live link, so no email was sent and the invite page says so now
+ * rather than after a round trip that would have ended on the teamless hub. It rejects with
+ * [INVITE_UNAVAILABLE] so that refusal stays distinguishable from a network failure, which is
+ * retryable and must not be reported as a dead invite.
+ */
 export function useRequestMagicLink() {
   return useMutation({
-    mutationFn: async (email: string) => {
-      await api.RequestMagicLink({ body: { email } })
+    mutationFn: async ({ email, inviteToken }: { email: string; inviteToken?: string }) => {
+      const res = await api.RequestMagicLink({ body: { email, inviteToken } })
+      if (res.status === 404) throw new Error(INVITE_UNAVAILABLE)
     },
   })
 }
 
+/**
+ * Verifies a magic link. The reply carries the signed-in user plus, for a sign-in that came from an
+ * Invite Link, what became of that invite — the server joins the team itself, so nothing about the
+ * join is this browser's to remember or to do (#342).
+ */
 export function useVerifyMagicLink() {
   return useMutation({
     mutationFn: async (token: string) => {

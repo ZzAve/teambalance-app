@@ -56,6 +56,10 @@ private class FakeInvitationRepo(private var live: Invitation?) : InvitationRepo
         return invitation
     }
     override fun findByTokenHash(tokenHash: TokenHash): Invitation? = live
+
+    // The id-shaped read a sign-in requested from an Invite Link accepts through (#342). Scoped to
+    // `live` like the hash read, so expiring the fake closes both doors at once.
+    override fun findById(invitationId: UUID): Invitation? = live?.takeIf { it.id == invitationId }
     override fun findActiveByTeam(teamId: TeamId, now: Instant): Invitation? =
         active?.takeIf { it.role == Role.USER && it.teamId == teamId && it.expiresAt.isAfter(now) }
     override fun findActiveAdminByTeam(teamId: TeamId, now: Instant): Invitation? =

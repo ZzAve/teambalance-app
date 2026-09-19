@@ -22,6 +22,18 @@ export const Default: Story = {
   },
 }
 
+// The state a joiner lands in when the Invite Link they signed in from expired or was rotated before
+// they clicked the email (#342). Its own picture, because the difference from Default is the whole
+// point: the sign-in worked, and only the invite half failed.
+export const InviteUnavailable: Story = {
+  args: { inviteUnavailable: true },
+  play: async ({ canvas }) => {
+    await expect(canvas.getByText(/invite link you used has expired or been replaced/)).toBeInTheDocument()
+    // The recovery route stays reachable — this is a detour, not a dead end.
+    await expect(canvas.getByRole('button', { name: /^I have an invite/ })).toBeInTheDocument()
+  },
+}
+
 export const ChooseJoin: Story = {
   // Behavioural twin of Default — onChooseJoin fires; the fork picture is unchanged (ADR-0027 §2).
   parameters: { chromatic: { disableSnapshot: true } },

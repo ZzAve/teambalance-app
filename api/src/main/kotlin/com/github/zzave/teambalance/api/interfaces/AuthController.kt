@@ -15,6 +15,7 @@ import com.github.zzave.teambalance.api.interfaces.generated.endpoint.RequestMag
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.VerifyMagicLink
 import com.github.zzave.teambalance.api.interfaces.generated.model.AuthenticatedUser
 import com.github.zzave.teambalance.api.interfaces.generated.model.TeamRef
+import com.github.zzave.teambalance.api.interfaces.generated.model.VerifiedSession
 import org.springframework.web.bind.annotation.RestController
 import java.util.UUID
 
@@ -29,15 +30,22 @@ class AuthController(
     GetAuthMe.Handler {
 
     override suspend fun requestMagicLink(request: RequestMagicLink.Request): RequestMagicLink.Response<*> {
-        authService.requestMagicLink(request.body.email.consumeEmail())
-        return RequestMagicLink.Response202(Unit)
+        // 404 means the invite token named no live invitation, so nothing was sent — the same
+        // undistinguished refusal accept gives, which never separates unknown from expired.
+        val sent = authService.requestMagicLink(request.body.email.consumeEmail(), request.body.inviteToken)
+        return if (sent) RequestMagicLink.Response202(Unit) else RequestMagicLink.Response404(Unit)
     }
 
     override suspend fun verifyMagicLink(request: VerifyMagicLink.Request): VerifyMagicLink.Response<*> {
-        val user = authService.verifyMagicLink(request.body.token) ?: return VerifyMagicLink.Response401(Unit)
+        val signIn = authService.verifyMagicLink(request.body.token) ?: return VerifyMagicLink.Response401(Unit)
         // Not readable from the request context: the tenant filter ran before this session existed.
-        val activeTeamId = authService.startSession(user.id)
-        return VerifyMagicLink.Response200(describe(user, activeTeamId))
+        val activeTeamId = authService.startSession(signIn.user.id)
+        return VerifyMagicLink.Response200(
+            VerifiedSession(
+                user = describe(signIn.user, activeTeamId),
+                inviteOutcome = signIn.inviteOutcome?.name,
+            ),
+        )
     }
 
     override suspend fun logout(request: Logout.Request): Logout.Response<*> {

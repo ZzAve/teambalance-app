@@ -94,8 +94,11 @@ class E2eSupportIT : TeamBalanceIT() {
                     .contentType(MediaType.APPLICATION_JSON)
                     .content("""{"token":"$token"}"""),
             )
+            // Verify answers with the session wrapper: the user, plus the outcome of any Invite Link
+            // the sign-in was requested from — null for this ordinary login (#342).
             verified.andExpect(MockMvcResultMatchers.status().isOk)
-                .andExpect(MockMvcResultMatchers.jsonPath("$.email").value(email))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.user.email").value(email))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.inviteOutcome").doesNotExist())
         }
 
         // Guards the seed ↔ domain-model contract: a fixture row the Event mapper can't

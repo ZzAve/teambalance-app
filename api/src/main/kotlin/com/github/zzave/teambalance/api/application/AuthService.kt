@@ -23,12 +23,22 @@ import java.time.Instant
 import java.util.Base64
 import java.util.UUID
 
+/** What a pending Invite Link became on the sign-in that carried it (#342). */
+enum class InviteOutcome { JOINED, UNAVAILABLE }
+
+/**
+ * A verified magic link: the signed-in user, and what became of the Invite Link the sign-in was
+ * requested from. [inviteOutcome] is null for an ordinary login that carried no invite.
+ */
+data class MagicLinkSignIn(val user: User, val inviteOutcome: InviteOutcome?)
+
 class AuthService(
     private val magicLinkTokenRepository: MagicLinkTokenRepository,
     private val userRepository: UserRepository,
     private val teamMemberRepository: TeamMemberRepository,
     private val activeTeamService: ActiveTeamService,
     private val actAsService: ActAsService,
+    private val invitationService: InvitationService,
     private val emailGateway: EmailGateway,
     private val platformAdminGateway: PlatformAdminGateway,
     private val authSessionGateway: AuthSessionGateway,
@@ -40,7 +50,26 @@ class AuthService(
         private val secureRandom = SecureRandom()
     }
 
-    fun requestMagicLink(email: Email) {
+    /**
+     * Sends a magic link, remembering the Invite Link it was requested from (#342).
+     *
+     * Returns false, having sent nothing, when [inviteToken] names no live invitation. Resolving the
+     * invite here rather than on the click is what lets a dead link be refused while the joiner is
+     * still looking at the invite page, instead of after an email round trip. The refusal is
+     * deliberately no more specific than that: like accept, it does not separate unknown from expired.
+     *
+     * Storing the resolved id rather than the token keeps the emailed link a pure identity credential.
+     * An Invite Link is reusable and lives until an admin rotates it, while this magic link is
+     * single-use and expires in [TOKEN_TTL], so writing the token into the email would have left a
+     * long-lived join credential sitting in every joiner's mailbox.
+     */
+    fun requestMagicLink(email: Email, inviteToken: String? = null): Boolean {
+        val invitationId = if (inviteToken == null) {
+            null
+        } else {
+            invitationService.findPendingInvitation(inviteToken) ?: return false
+        }
+
         val token = generateToken()
         val now = clock.instant()
         magicLinkTokenRepository.save(
@@ -51,9 +80,11 @@ class AuthService(
                 expiresAt = now.plus(TOKEN_TTL),
                 usedAt = null,
                 createdAt = now,
+                invitationId = invitationId,
             ),
         )
         emailGateway.sendMagicLink(email, token)
+        return true
     }
 
     fun findUserById(id: UserId): User? = userRepository.findById(id)
@@ -93,7 +124,21 @@ class AuthService(
 
     fun isPlatformAdmin(userId: UserId): Boolean = platformAdminGateway.isPlatformAdmin(userId.value)
 
-    fun verifyMagicLink(token: String): User? {
+    /**
+     * Verifies a magic link and, when it was requested from an Invite Link, joins the team (#342).
+     *
+     * Accepting here is what makes the invite survive the trip: the browser that clicks the emailed
+     * link need not be the one that started at `/invite/:token`, because the only thing that travels
+     * is the URL, and the pending invitation hangs off the record it names.
+     *
+     * The accept sits **outside** the atomic consume-and-resolve pair and **before** the session
+     * starts. Outside, because an invitation that expired or was rotated inside the link's 15 minutes
+     * is an ordinary outcome, not a reason to refuse a valid proof of identity — landing signed in but
+     * teamless has its own onboarding hub, so it no longer withholds the session (amends ADR-0008).
+     * Before, because accepting remembers the joined Team as the caller's last active one, which is
+     * what [startSession]'s landing pin then reads (ADR-0023 §4); reversed, the two would disagree.
+     */
+    fun verifyMagicLink(token: String): MagicLinkSignIn? {
         val now = clock.instant()
         val record = magicLinkTokenRepository.findByTokenHash(hash(token))
             ?.takeIf { it.usedAt == null && it.expiresAt.isAfter(now) }
@@ -102,10 +147,17 @@ class AuthService(
         // Consuming the token and resolving (creating if absent) the user is one atomic unit: a
         // failure to create the user must not burn the single-use token. No display name is collected
         // at magic-link signup, so derive a placeholder from the email for a first-time sign-in.
-        return magicLinkTokenRepository.consumeAndResolveUser(
+        val user = magicLinkTokenRepository.consumeAndResolveUser(
             consumedToken = record.copy(usedAt = now),
             displayName = DisplayName(record.email.value.substringBefore("@")),
         )
+
+        val outcome = record.invitationId?.let { invitationId ->
+            invitationService.acceptPendingInvitation(invitationId, user.id)
+                ?.let { InviteOutcome.JOINED }
+                ?: InviteOutcome.UNAVAILABLE
+        }
+        return MagicLinkSignIn(user = user, inviteOutcome = outcome)
     }
 
     private fun generateToken(): String {

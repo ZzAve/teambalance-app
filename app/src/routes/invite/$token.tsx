@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { useQueryClient } from '@tanstack/react-query'
-import { useAuthMe, useRequestMagicLink } from '@shared/api/auth'
-import { savePendingInviteToken, useAcceptInvitation } from '@shared/api/invitations'
+import { INVITE_UNAVAILABLE, useAuthMe, useRequestMagicLink } from '@shared/api/auth'
+import { useAcceptInvitation } from '@shared/api/invitations'
 import { Button } from '@shared/ui/button'
 import { Input } from '@shared/ui/input'
 import { Label } from '@shared/ui/label'
@@ -62,8 +62,21 @@ function InvitePage() {
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    savePendingInviteToken(token, email)
-    requestMagicLink.mutate(email, { onSuccess: () => setSent(true) })
+    // The invite rides along with the request, so the server remembers it against the magic-link
+    // record and applies it on verification (#342). It used to be stashed in this browser's
+    // localStorage, which never reached the browser that opened the email.
+    requestMagicLink.mutate(
+      { email, inviteToken: token },
+      {
+        onSuccess: () => setSent(true),
+        // A dead link is refused before any email goes out, so say so here rather than letting them
+        // wait for mail that will not come. Anything else — a dropped connection, a 500 — is
+        // retryable and falls through to the form's try-again message instead.
+        onError: (err) => {
+          if (err.message === INVITE_UNAVAILABLE) setError('This invite link is invalid or has expired.')
+        },
+      },
+    )
   }
 
   if (sent) {

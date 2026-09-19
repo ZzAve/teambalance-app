@@ -151,7 +151,9 @@ any-team, self-service (see [ADR-0001](docs/adr/0001-product-ambition-hobby-tool
   an existing Team. Clicking it → enter email → Magic Link → joined. One link, many
   joiners; can expire/rotate. Carries the **Role** it grants on acceptance — ordinarily
   **User**, but an **Admin**-granting link is how a memberless Team gets its first Admin
-  ([ADR-0024](docs/adr/0024-platform-admin-act-as.md)).
+  ([ADR-0024](docs/adr/0024-platform-admin-act-as.md)). Joining completes when the **Magic
+  Link** is verified, not when the invite page is submitted, so it does not matter where the
+  email is opened ([ADR-0031](docs/adr/0031-invite-travels-with-the-magic-link-request.md)).
 - **Team creation** — Provisioning a new Team. Self-service: a logged-in, teamless user
   creates their Team from a name + slug + one-time **creation code**, which provisions the
   tenant schema inline (see [ADR-0019](docs/adr/0019-self-service-team-onboarding.md)).

@@ -1,11 +1,15 @@
 import { test, expect } from '@playwright/test'
 
-// Real e2e: a member edits a *teammate's* attendance from the event detail page (#274, ⑫).
+// Real e2e: a member edits a *teammate's* attendance from the event detail page (#274).
 //
 // Seam uniquely covered: a cross-member attendance WRITE driven from the UI. ADR-0003 has always
 // made this trust-based at the API — any member may set a teammate's answer — but until now only the
 // UI withheld it, so no flow exercised it end to end. The existing attendance flow only ever writes
 // the viewer's OWN response; this is the new seam, per the PR gate.
+//
+// The gesture is now the answer sheet, shared with the event card's lineup panel (ADR-0003
+// amendment): a row opens it, and the sheet — not an inline notice — is what says whose answer you
+// are about to set.
 //
 // Runs as the seeded admin (shared storageState). The teammate is the second seeded member of
 // team_test (db/e2e/seed.sql). Idempotent across warm-DB re-runs: the precondition below pins the
@@ -23,25 +27,26 @@ test("a member changes a teammate's attendance from the detail page, and it pers
   })
   expect(seeded.ok()).toBeTruthy()
 
-  // 1. Open the seeded event. There are no tabs: everyone is listed under their position, and each row
-  //    is a collapsed pill. Expand the teammate's (position-less → Unassigned) to reveal their control.
+  // 1. Open the seeded event. Everyone is listed under their position and the whole row is the
+  //    control; tapping the teammate's (position-less → Unassigned) opens the answer sheet.
   await page.goto('/')
   await page.getByText('E2E Training').first().click()
-  await page.getByRole('button', { name: "Change E2E Teammate's answer" }).click()
-  const teammateControl = page.getByRole('group', { name: "E2E Teammate's answer" })
-  await expect(teammateControl).toBeVisible()
+  await page.getByRole('button', { name: /^E2E Teammate — / }).click()
+  const sheet = page.getByRole('dialog')
+  await expect(sheet).toBeVisible()
   // A cross-member change announces itself — you should know whose answer you're setting.
-  await expect(teammateControl.getByText(/Changing/)).toBeVisible()
+  await expect(sheet.getByText('E2E Teammate')).toBeVisible()
+  await expect(sheet.getByText(/you are answering for them/)).toBeVisible()
 
-  // 2. Set *their* answer to Can't go — scoped to their own control, so it is never confused with the
-  //    viewer's own "Your response" toggle.
-  await teammateControl.getByRole('button', { name: "Can't go", exact: true }).click()
+  // 2. Set *their* answer to Can't go — inside the sheet, so it is never confused with the viewer's
+  //    own "Your response" toggle on the page behind it.
+  await sheet.getByRole('button', { name: "Can't go", exact: true }).click()
 
   // 3. The write persists: after a full reload the teammate is still on screen (now tinted absent),
   //    attributed to the admin who changed it (⑪ — you learn who set it right where you'd change it back).
   await page.reload()
-  // exact: the row's trigger carries an sr-only "Change E2E Teammate's answer", so a substring
-  // match would be ambiguous — the visible name is the exact one.
+  // exact: the row's accessible name repeats the display name, so a substring match would be
+  // ambiguous — the visible name is the exact one.
   await expect(page.getByText('E2E Teammate', { exact: true })).toBeVisible({ timeout: 10_000 })
   await expect(page.getByText('set by E2E Tester')).toBeVisible()
 })

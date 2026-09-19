@@ -7,6 +7,9 @@ import { ManagePositionsView } from './ManagePositionsView'
 // container. It owns only local view state (new-label field, per-row edits, delete-confirm dialog);
 // the query + mutations stay in the container, so every state renders purely from props.
 //
+// One quiet row per position (issue #341, variant B): label as text with a pencil to rename it, the
+// Staff checkbox inline (the common edit), and a single overflow (⋯) menu carrying "Delete…".
+//
 // This is the reference exemplar for two conventions (ADR-0017):
 //   1. All four data states are stories — Loading / ErrorState / Empty / WithItems — because the
 //      load+error shells were pushed down from the container into the View (props-driven), so they
@@ -65,9 +68,13 @@ export const Empty: Story = {
 
 export const WithItems: Story = {
   play: async ({ canvas }) => {
-    await expect(canvas.getByLabelText('Label for Setter')).toHaveValue('Setter')
-    await expect(canvas.getByLabelText('Label for Libero')).toHaveValue('Libero')
-    await expect(canvas.getAllByRole('button', { name: 'Delete' })).toHaveLength(2)
+    // Labels render as plain text (with a pencil to rename) — not an always-open input.
+    await expect(canvas.getByText('Setter')).toBeInTheDocument()
+    await expect(canvas.getByText('Libero')).toBeInTheDocument()
+    await expect(canvas.queryByLabelText('Label for Setter')).not.toBeInTheDocument()
+    // One overflow-menu trigger per row, no inline Delete buttons.
+    await expect(canvas.getAllByLabelText(/^Actions for /)).toHaveLength(2)
+    await expect(canvas.queryByRole('button', { name: 'Delete' })).not.toBeInTheDocument()
   },
 }
 
@@ -120,14 +127,42 @@ export const CreatePosition: Story = {
   },
 }
 
+// Prop-contract: Rename in the ⋯ menu swaps the label for an inline input; Enter saves without a mouse click.
 export const RenamePosition: Story = {
   play: async ({ canvas, userEvent, args }) => {
-    // The per-row Save button only appears once the label is edited to a new, non-empty value.
+    await userEvent.click(canvas.getByLabelText('Actions for Setter'))
+    await userEvent.click(await within(document.body).findByRole('menuitem', { name: 'Rename' }))
     const field = canvas.getByLabelText('Label for Setter')
+    await expect(field).toHaveValue('Setter')
     await userEvent.clear(field)
-    await userEvent.type(field, 'Middle Blocker')
-    await userEvent.click(canvas.getByRole('button', { name: 'Save' }))
+    await userEvent.type(field, 'Middle Blocker{Enter}')
     await expect(args.onRename).toHaveBeenCalledWith('p1', 'Middle Blocker')
+  },
+}
+
+// Escape backs out of the rename without calling onRename.
+export const RenameCancelledWithEscape: Story = {
+  parameters: { chromatic: { disableSnapshot: true } },
+  play: async ({ canvas, userEvent, args }) => {
+    await userEvent.click(canvas.getByLabelText('Actions for Setter'))
+    await userEvent.click(await within(document.body).findByRole('menuitem', { name: 'Rename' }))
+    const field = canvas.getByLabelText('Label for Setter')
+    await userEvent.type(field, ' extra{Escape}')
+    await expect(canvas.queryByLabelText('Label for Setter')).not.toBeInTheDocument()
+    await expect(canvas.getByText('Setter')).toBeInTheDocument()
+    await expect(args.onRename).not.toHaveBeenCalled()
+  },
+}
+
+// Opening a row's menu shows Delete… in the red destructive treatment — but the row itself carries
+// no red.
+export const MenuOpen: Story = {
+  play: async ({ canvas, userEvent }) => {
+    await userEvent.click(canvas.getByLabelText('Actions for Setter'))
+    const menu = within(document.body)
+    const deleteItem = await menu.findByRole('menuitem', { name: 'Delete…' })
+    await expect(deleteItem).toBeInTheDocument()
+    await expect(deleteItem).toHaveAttribute('data-tone', 'destructive')
   },
 }
 
@@ -138,7 +173,11 @@ export const DeleteConfirm: Story = {
   parameters: { chromatic: { disableSnapshot: true } },
   args: { usage: { eventTypeCount: 2, eventCount: 1, memberCount: 3 } },
   play: async ({ canvas, userEvent, args }) => {
-    await userEvent.click(canvas.getAllByRole('button', { name: 'Delete' })[0])
+    await userEvent.click(canvas.getByLabelText('Actions for Setter'))
+    const menu = within(document.body)
+    await userEvent.click(await menu.findByRole('menuitem', { name: 'Delete…' }))
+    await expect(args.onDelete).not.toHaveBeenCalled()
+
     const dialog = within(document.body)
     // The dialog names what the delete will actually touch (#219) rather than warning in the
     // abstract — a warning, not a veto: the Delete button is still live.
@@ -160,7 +199,9 @@ export const DeleteConfirm: Story = {
 export const DeleteConfirmUsageCounts: Story = {
   args: { usage: { eventTypeCount: 2, eventCount: 1, memberCount: 3 } },
   play: async ({ canvas, userEvent, args }) => {
-    await userEvent.click(canvas.getAllByRole('button', { name: 'Delete' })[0])
+    await userEvent.click(canvas.getByLabelText('Actions for Setter'))
+    const menu = within(document.body)
+    await userEvent.click(await menu.findByRole('menuitem', { name: 'Delete…' }))
     const dialog = within(document.body)
     await expect(await dialog.findByText(/3 members become Unassigned/)).toBeInTheDocument()
     await expect(dialog.getByText(/dropped from 2 event types/)).toBeInTheDocument()
@@ -177,7 +218,9 @@ export const DeleteConfirmUsageCounts: Story = {
 export const DeleteConfirmUnused: Story = {
   args: { usage: { eventTypeCount: 0, eventCount: 0, memberCount: 0 } },
   play: async ({ canvas, userEvent }) => {
-    await userEvent.click(canvas.getAllByRole('button', { name: 'Delete' })[0])
+    await userEvent.click(canvas.getByLabelText('Actions for Setter'))
+    const menu = within(document.body)
+    await userEvent.click(await menu.findByRole('menuitem', { name: 'Delete…' }))
     const dialog = within(document.body)
     await expect(await dialog.findByText('Nothing currently uses this position.')).toBeInTheDocument()
   },
@@ -188,7 +231,9 @@ export const DeleteConfirmUnused: Story = {
 export const DeleteConfirmUsageLoading: Story = {
   args: { usage: undefined },
   play: async ({ canvas, userEvent }) => {
-    await userEvent.click(canvas.getAllByRole('button', { name: 'Delete' })[0])
+    await userEvent.click(canvas.getByLabelText('Actions for Setter'))
+    const menu = within(document.body)
+    await userEvent.click(await menu.findByRole('menuitem', { name: 'Delete…' }))
     const dialog = within(document.body)
     await expect(await dialog.findByText('Checking what uses this position…')).toBeInTheDocument()
     await expect(dialog.queryByText(/Nothing currently uses/)).not.toBeInTheDocument()

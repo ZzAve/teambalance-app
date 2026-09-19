@@ -128,7 +128,7 @@ export function EventAnswerRow({
           onClick={() => setAttnOpen((o) => !o)}
           className={`${TRIGGER} min-w-0 pl-1 pr-1.5`}
         >
-          <span className={`flex min-w-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-xs ${pillClass}`}>
+          <span className={`flex min-w-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-caption ${pillClass}`}>
             {answer.tone === 'prompt' ? (
               // A marker dot rather than a status icon: the prompt is a call to act, not an answer.
               <span aria-hidden className="size-1.5 shrink-0 rounded-full bg-background" />
@@ -187,7 +187,7 @@ export function EventAnswerRow({
                 aria-pressed={isActive}
                 disabled={pending}
                 onClick={() => pick(value)}
-                className={`flex-1 rounded-xl border py-2 text-[13px] font-bold transition-colors ${isActive ? active : inactive} ${pending ? 'cursor-not-allowed opacity-60' : ''}`}
+                className={`flex-1 rounded-md border py-2 text-small font-bold transition-colors ${isActive ? active : inactive} ${pending ? 'cursor-not-allowed opacity-60' : ''}`}
               >
                 {label}
               </button>

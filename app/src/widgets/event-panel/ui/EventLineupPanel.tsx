@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { AttendanceEntry, EventRoster } from '@shared/api/events'
+import { SectionLabel } from '@shared/ui/SectionLabel'
 import { AnswerSheet } from '@features/attendance-toggle/ui/AnswerSheet'
 import { MemberChip, OverflowChip, OpenSlotChip } from '@entities/event/ui/MemberChip'
 import { headcountLine, staffNote } from '@entities/event/lib/roster-view'
@@ -89,12 +90,12 @@ export function EventLineupPanel({
   return (
     <div>
       <div className="mb-3 flex items-center justify-between gap-2">
-        <span className="text-[11px] font-bold uppercase tracking-[0.09em] text-muted-foreground">Lineup</span>
-        <span className="text-[11px] font-bold text-foreground/70">{summary}</span>
+        <SectionLabel as="span">Lineup</SectionLabel>
+        <span className="text-caption font-bold text-foreground/70">{summary}</span>
       </div>
 
       {rows.length === 0 ? (
-        <p className="text-[12.5px] text-muted-foreground">Nobody has answered yet.</p>
+        <p className="text-small text-muted-foreground">Nobody has answered yet.</p>
       ) : (
         <div className="flex flex-col gap-3.5">
           {rows.map((row) => (
@@ -110,8 +111,8 @@ export function EventLineupPanel({
       )}
 
       {/* Why the fraction above can be smaller than the number of people in the room (#281). */}
-      {covered && headcount && <p className="mt-3 text-[11.5px] text-muted-foreground">{headcount}</p>}
-      {staff && <p className="mt-2 text-[11.5px] text-muted-foreground">{staff}</p>}
+      {covered && headcount && <p className="mt-3 text-caption text-muted-foreground">{headcount}</p>}
+      {staff && <p className="mt-2 text-caption text-muted-foreground">{staff}</p>}
 
       {/* One answer control app-wide — the detail page's attendee list opens this same sheet. */}
       <AnswerSheet
@@ -153,12 +154,12 @@ function PositionRow({
   return (
     <div>
       <div className="flex items-baseline justify-between gap-2">
-        <span className="font-display truncate text-[14px] font-bold leading-none">{row.label}</span>
+        <span className="font-display truncate text-small font-bold leading-none">{row.label}</span>
         <span className="flex shrink-0 items-baseline gap-2">
           {verdict && (
-            <span className={`text-[12px] font-semibold ${VERDICT_TONE[row.tone ?? 'short']}`}>{verdict}</span>
+            <span className={`text-caption font-semibold ${VERDICT_TONE[row.tone ?? 'short']}`}>{verdict}</span>
           )}
-          <span className="text-[11px] font-bold tabular-nums text-muted-foreground">
+          <span className="text-caption font-bold tabular-nums text-muted-foreground">
             {row.required == null ? row.attending : `${row.attending}/${row.required}`}
           </span>
         </span>
@@ -176,7 +177,7 @@ function PositionRow({
         {maybe.length > 0 && cluster('maybe', maybe, 'maybe')}
         {out.length > 0 && <span className="opacity-70">{cluster('out', out, 'out')}</span>}
         {row.members.length === 0 && row.openSlots === 0 && (
-          <span className="text-[12px] text-muted-foreground">Nobody yet</span>
+          <span className="text-caption text-muted-foreground">Nobody yet</span>
         )}
       </div>
     </div>

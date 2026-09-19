@@ -24,15 +24,15 @@ function CreateTeamPage() {
 
   return (
     <div className="mx-auto mt-10 max-w-sm">
-      <h1 className="font-display text-2xl font-bold">Create your team</h1>
-      <p className="mt-2 text-sm text-muted-foreground">
+      <h1 className="font-display text-title font-bold">Create your team</h1>
+      <p className="mt-2 text-small text-muted-foreground">
         Enter your creation code and name your team — you'll be its admin.
       </p>
-      <p className="mt-2 text-sm text-muted-foreground">
+      <p className="mt-2 text-small text-muted-foreground">
         Starting a team is invite-only while we're getting established. Got a creation code? Enter it
         below.
       </p>
-      <p className="mt-1 text-sm text-muted-foreground">
+      <p className="mt-1 text-small text-muted-foreground">
         Don't have one?{' '}
         <a
           href="mailto:teams@teambalance.nl?subject=Request%20a%20team%20on%20TeamBalance"

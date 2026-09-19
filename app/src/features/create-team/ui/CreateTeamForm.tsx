@@ -74,7 +74,7 @@ export function CreateTeamForm({ isPending, error, onSubmit, reassuranceDelayMs 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
       {bannerError && (
-        <p role="alert" className="text-sm text-destructive">
+        <p role="alert" className="text-small text-destructive">
           {bannerError}
         </p>
       )}
@@ -88,7 +88,7 @@ export function CreateTeamForm({ isPending, error, onSubmit, reassuranceDelayMs 
           onChange={(e) => handleNameChange(e.target.value)}
           placeholder="e.g. Tovo Heren 4"
         />
-        {nameError && <p className="mt-1 text-sm text-destructive">{nameError}</p>}
+        {nameError && <p className="mt-1 text-small text-destructive">{nameError}</p>}
       </div>
 
       <div>
@@ -103,7 +103,7 @@ export function CreateTeamForm({ isPending, error, onSubmit, reassuranceDelayMs 
           }}
           placeholder="tovo-heren-4"
         />
-        {slugError && <p className="mt-1 text-sm text-destructive">{slugError}</p>}
+        {slugError && <p className="mt-1 text-small text-destructive">{slugError}</p>}
       </div>
 
       <div>
@@ -115,14 +115,14 @@ export function CreateTeamForm({ isPending, error, onSubmit, reassuranceDelayMs 
           onChange={(e) => setCreationCode(e.target.value)}
           placeholder="Enter your creation code"
         />
-        {codeError && <p className="mt-1 text-sm text-destructive">{codeError}</p>}
+        {codeError && <p className="mt-1 text-small text-destructive">{codeError}</p>}
       </div>
 
       <Button type="submit" disabled={!canSubmit}>
         {isPending ? 'Creating your team…' : 'Create team'}
       </Button>
       {isPending && reassuranceElapsed && (
-        <p className="text-sm text-muted-foreground">
+        <p className="text-small text-muted-foreground">
           Setting up your team's space — this can take a few seconds…
         </p>
       )}

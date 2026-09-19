@@ -49,7 +49,7 @@ export function PanelViewMenu({ defaultExpanded, onDefaultExpandedChange }: Pane
         aria-expanded={open}
         aria-haspopup="dialog"
         onClick={() => setOpen((wasOpen) => !wasOpen)}
-        className="flex h-11 w-11 items-center justify-center rounded-xl border border-border/60 bg-card text-muted-foreground transition-colors hover:text-foreground"
+        className="flex h-11 w-11 items-center justify-center rounded-md border border-border/60 bg-card text-muted-foreground transition-colors hover:text-foreground"
       >
         <LayoutList size={16} />
       </button>
@@ -61,12 +61,12 @@ export function PanelViewMenu({ defaultExpanded, onDefaultExpandedChange }: Pane
           <div
             role="dialog"
             aria-label="View options"
-            className="card-shadow-hover absolute right-0 top-12 z-50 w-[248px] origin-top-right rounded-2xl border border-border/60 bg-card p-3.5"
+            className="card-shadow-hover absolute right-0 top-12 z-50 w-[248px] origin-top-right rounded-lg border border-border/60 bg-card p-3.5"
           >
             <div className="flex items-center justify-between gap-2.5">
               <div>
-                <div className="text-[13.5px] font-semibold">Keep panels open</div>
-                <div className="mt-0.5 text-[11.5px] text-muted-foreground">
+                <div className="text-small font-semibold">Keep panels open</div>
+                <div className="mt-0.5 text-caption text-muted-foreground">
                   {defaultExpanded ? 'On — every card starts open' : 'Off — tap to open a card'}
                 </div>
               </div>

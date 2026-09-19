@@ -5,6 +5,7 @@ import { AnswerSheet, type AnswerTarget } from '@features/attendance-toggle/ui/A
 import type { AttendanceState } from '@features/attendance-toggle/ui/AttendanceToggle'
 import { lineupRows, verdictWord, STATE_WORD, UNASSIGNED, type LineupRow } from '@entities/event/lib/lineup'
 import { attributionName } from '@entities/event/lib/attribution'
+import { SectionLabel } from '@shared/ui/SectionLabel'
 
 interface AttendeeListProps {
   /** Everyone on the event — every position section lists all its members, whatever their answer. */
@@ -70,7 +71,7 @@ export function AttendeeList({ attendees, roster, onRespond, currentUserId, pend
   const [target, setTarget] = useState<AnswerTarget | null>(null)
 
   if (attendees.length === 0) {
-    return <p className="py-6 text-center text-sm text-muted-foreground">No one</p>
+    return <p className="py-6 text-center text-small text-muted-foreground">No one</p>
   }
 
   const open = (attendance: AttendanceEntry, position?: string) =>
@@ -132,12 +133,12 @@ function PositionGroup({
   return (
     <div>
       <div className="flex items-baseline justify-between gap-3 px-3 pb-1 pt-3">
-        <h3 className="text-[11px] font-bold uppercase tracking-[0.09em] text-muted-foreground">{row.label}</h3>
+        <SectionLabel as="h3">{row.label}</SectionLabel>
         <span className="flex items-baseline gap-1.5">
           {/* The verdict leads and the fraction is demoted — the same order the card uses. */}
-          {verdict && <span className={`text-[11.5px] font-semibold ${TONE_TEXT[row.tone ?? 'short']}`}>{verdict}</span>}
+          {verdict && <span className={`text-caption font-semibold ${TONE_TEXT[row.tone ?? 'short']}`}>{verdict}</span>}
           {row.required != null && (
-            <span className="text-[11px] font-bold tabular-nums text-foreground/60">
+            <span className="text-caption font-bold tabular-nums text-foreground/70">
               {`${row.attending}/${row.required}`}
             </span>
           )}
@@ -145,7 +146,7 @@ function PositionGroup({
       </div>
       {/* A targeted position nobody plays still gets its row — that gap is the point (#320 §3). */}
       {byName.length === 0 ? (
-        <p className="px-3 pb-2 text-xs italic text-muted-foreground">nobody in this position yet</p>
+        <p className="px-3 pb-2 text-caption italic text-muted-foreground">nobody in this position yet</p>
       ) : (
         byName.map((m) => renderRow(attendees.find((a) => a.userId === m.userId)!, row.label))
       )}
@@ -179,17 +180,17 @@ function AttendeeRow({
     <>
       <Avatar userId={attendance.userId} name={attendance.displayName} />
       <span className="min-w-0 flex-1">
-        <span className="block truncate text-sm leading-tight">
+        <span className="block truncate text-small leading-tight">
           {attendance.displayName}
           {isSelf && (
-            <span className="ml-1.5 rounded-full bg-blue/10 px-1.5 py-0.5 align-[1px] text-[10px] font-bold tracking-wide text-blue">
+            <span className="ml-1.5 rounded-full bg-blue/10 px-1.5 py-0.5 align-[1px] text-caption font-bold tracking-wide text-blue">
               You
             </span>
           )}
         </span>
-        {subtitle && <span className="block text-xs text-muted-foreground">{subtitle}</span>}
+        {subtitle && <span className="block text-caption text-muted-foreground">{subtitle}</span>}
       </span>
-      <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${ANSWER_PILL[attendance.state]}`}>
+      <span className={`shrink-0 rounded-full px-2.5 py-1 text-caption font-semibold ${ANSWER_PILL[attendance.state]}`}>
         {STATE_WORD[attendance.state]}
       </span>
     </>

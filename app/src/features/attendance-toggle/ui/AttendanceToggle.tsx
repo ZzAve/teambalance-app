@@ -59,7 +59,7 @@ export function AttendanceToggle({ value, onToggle, disabled = false }: Attendan
             disabled={disabled}
             onClick={handleClick}
             className={[
-              'flex flex-1 items-center justify-center gap-2 rounded-xl border-2 py-3.5 text-sm font-semibold transition-all active:scale-95',
+              'flex flex-1 items-center justify-center gap-2 rounded-md border-2 py-3.5 text-small font-semibold transition-all active:scale-95',
               isActive ? activeClass : inactiveClass,
               disabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer',
             ].join(' ')}

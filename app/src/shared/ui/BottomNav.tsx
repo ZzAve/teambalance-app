@@ -46,7 +46,7 @@ export function BottomNav() {
               key={label}
               to={to}
               className={[
-                'flex flex-col items-center gap-0.5 px-4 py-2 text-xs transition-colors',
+                'flex flex-col items-center gap-0.5 px-4 py-2 text-caption transition-colors',
                 active ? 'text-blue' : 'text-muted-foreground hover:text-foreground',
               ].join(' ')}
               aria-current={active ? 'page' : undefined}

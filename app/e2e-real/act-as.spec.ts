@@ -55,8 +55,8 @@ test('a Platform Admin enters a team, writes in it, and leaves without ever join
   await page.goto(`/t/${TEAM.slug}/team/settings`)
   await page.getByLabel('New position label').fill(POSITION)
   await page.getByRole('button', { name: 'Add', exact: true }).click()
-  // The curated list renders each label in an editable field, so assert the value, not the text.
-  await expect(page.getByLabel(`Label for ${POSITION}`)).toHaveValue(POSITION, { timeout: 15_000 })
+  // The curated list renders each label as text on its row (#341); Rename lives in the row's menu.
+  await expect(page.getByText(POSITION, { exact: true })).toBeVisible({ timeout: 15_000 })
 
   // 5. No membership was created on the way in: the roster does not list the operator — so neither
   //    does the attendance denominator, the Position breakdown, or the Hall of Shame (ADR-0024 §2).

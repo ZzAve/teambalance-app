@@ -29,8 +29,8 @@ export function QueryErrorState({
         <AlertTriangle size={22} />
       </div>
       <div>
-        <p className="font-display text-lg font-semibold">{title}</p>
-        {description && <p className="mt-1 text-sm text-muted-foreground">{description}</p>}
+        <p className="font-display text-lead font-semibold">{title}</p>
+        {description && <p className="mt-1 text-small text-muted-foreground">{description}</p>}
       </div>
       <div className="flex items-center gap-2">
         <Button onClick={onRetry}>{retryLabel}</Button>

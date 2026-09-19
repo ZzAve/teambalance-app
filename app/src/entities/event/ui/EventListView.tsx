@@ -72,7 +72,7 @@ export function EventListView({
   // so a transient failure never blanks a list the user is already looking at.
   if (events.length === 0) {
     if (isLoading) return <EventListSkeleton />
-    if (error) return <p className="mt-4 text-sm text-red">Couldn&apos;t load events.</p>
+    if (error) return <p className="mt-4 text-small text-red">Couldn&apos;t load events.</p>
     // No way out of a filtered-to-empty list here any more: `Clear filters` moved up beside the
     // filter trigger, where it is visible whenever a filter is active rather than only once one has
     // already emptied the list (ADR-0030 §2).
@@ -144,9 +144,9 @@ function EventListSkeleton() {
   return (
     <div className="mt-4 flex flex-col gap-3" role="status" aria-label="Loading events">
       {[0, 1, 2].map((i) => (
-        <div key={i} className="rounded-2xl border border-border/40 bg-card p-3.5 shadow-sm">
+        <div key={i} className="rounded-lg border border-border/40 bg-card p-3.5 shadow-sm">
           <div className="flex gap-3.5">
-            <Skeleton className="h-[62px] w-[54px] shrink-0 rounded-[15px]" />
+            <Skeleton className="h-[62px] w-[54px] shrink-0 rounded-lg" />
             <div className="min-w-0 flex-1 space-y-2">
               <Skeleton className="h-4 w-16 rounded-full" />
               <Skeleton className="h-5 w-2/3" />

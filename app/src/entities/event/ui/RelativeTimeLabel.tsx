@@ -11,14 +11,14 @@ import type { RelativeLabel } from '../lib/relative-event-label'
 export function RelativeTimeLabel({ label }: { label: RelativeLabel }) {
   if (label.emphasis === 'solid') {
     return (
-      <span className="ml-auto shrink-0 whitespace-nowrap rounded-full bg-[rgba(30,41,59,0.08)] px-2.5 py-0.5 text-[11px] font-bold tracking-[0.01em] text-foreground">
+      <span className="ml-auto shrink-0 whitespace-nowrap rounded-full bg-[rgba(30,41,59,0.08)] px-2.5 py-0.5 text-caption font-bold tracking-[0.01em] text-foreground">
         {label.text}
       </span>
     )
   }
 
   return (
-    <span className="ml-auto shrink-0 whitespace-nowrap text-[11px] font-semibold text-muted-foreground">
+    <span className="ml-auto shrink-0 whitespace-nowrap text-caption font-semibold text-muted-foreground">
       {label.text}
     </span>
   )

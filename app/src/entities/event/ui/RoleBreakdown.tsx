@@ -17,7 +17,7 @@ export function RoleBreakdown({ breakdown }: RoleBreakdownProps) {
       {breakdown.map(({ role, attending }) => (
         <span
           key={role}
-          className="rounded-full bg-green/10 px-2.5 py-1 text-xs font-medium text-green"
+          className="rounded-full bg-green/10 px-2.5 py-1 text-caption font-medium text-green"
         >
           {attending} {role}
         </span>

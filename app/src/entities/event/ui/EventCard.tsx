@@ -79,13 +79,13 @@ export function EventCard({
 
           <Link
             to={routes.event(event.id)}
-            className="font-display mt-1 block text-[17px] font-medium leading-tight after:absolute after:inset-0"
+            className="font-display mt-1 block text-lead font-medium leading-tight after:absolute after:inset-0"
           >
             {event.title}
           </Link>
 
           {/* Meta: time · location — the chit already carries the date */}
-          <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[12.5px] text-muted-foreground">
+          <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-small text-muted-foreground">
             <Clock size={13} className="shrink-0 text-muted-foreground/60" />
             <span className="font-semibold text-foreground">
               {date.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })}

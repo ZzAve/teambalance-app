@@ -34,7 +34,7 @@ const PILL: Record<LineupState, string> = {
 const OVERLAP = '-mr-2.5 last:mr-0'
 
 const CHIP =
-  'relative flex shrink-0 max-w-full items-center gap-1 overflow-hidden text-ellipsis whitespace-nowrap rounded-full border py-0.5 pl-0.5 pr-2.5 text-[12.5px] font-semibold ring-2 ring-card ring-offset-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
+  'relative flex shrink-0 max-w-full items-center gap-1 overflow-hidden text-ellipsis whitespace-nowrap rounded-full border py-0.5 pl-0.5 pr-2.5 text-small font-semibold ring-2 ring-card ring-offset-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
 
 interface MemberChipProps {
   member: LineupMember
@@ -55,14 +55,14 @@ export function MemberChip({ member, onSelect }: MemberChipProps) {
     >
       <span
         aria-hidden
-        className="flex size-5 shrink-0 items-center justify-center rounded-full text-[8px] font-bold text-white"
+        className="flex size-5 shrink-0 items-center justify-center rounded-full text-caption font-bold text-white"
         style={{ backgroundColor: avatarColor(member.userId) }}
       >
         {avatarInitials(member.displayName)}
       </span>
       <span aria-hidden>{member.chipName}</span>
       {member.isSelf && (
-        <span aria-hidden className="shrink-0 text-[10px] font-bold text-blue">
+        <span aria-hidden className="shrink-0 text-caption font-bold text-blue">
           you
         </span>
       )}
@@ -109,7 +109,7 @@ export function OpenSlotChip({ critical = false }: { critical?: boolean }) {
   return (
     <span
       aria-hidden
-      className={`${OVERLAP} flex h-[26px] shrink-0 items-center justify-center rounded-full border border-dashed px-3 text-[12px] font-bold ring-2 ring-card ${critical ? 'border-red/55 bg-card text-red' : 'border-muted-foreground/40 bg-card text-muted-foreground'}`}
+      className={`${OVERLAP} flex h-[26px] shrink-0 items-center justify-center rounded-full border border-dashed px-3 text-small font-bold ring-2 ring-card ${critical ? 'border-red/55 bg-card text-red' : 'border-muted-foreground/40 bg-card text-muted-foreground'}`}
     >
       +
     </span>

@@ -132,7 +132,7 @@ function EventListPage() {
     return (
         <div>
             <div className="flex items-center justify-between gap-2">
-                <h2 className="font-display text-2xl font-bold">Events</h2>
+                <h2 className="font-display text-title font-bold">Events</h2>
                 <div className="flex items-center gap-2">
                     {/* The invite link moved to the Team page (team-management action); Events keeps
                         only event creation for admins. */}

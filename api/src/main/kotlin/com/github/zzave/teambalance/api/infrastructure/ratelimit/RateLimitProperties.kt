@@ -28,6 +28,14 @@ data class RateLimitProperties(
     val magicLinkVerify: Policy = Policy(capacity = 10, refillPeriod = Duration.ofMinutes(1)),
     /** `POST /api/invitations/{token}/accept` — keyed per authenticated user, falling back to IP. */
     val invitationAccept: Policy = Policy(capacity = 10, refillPeriod = Duration.ofMinutes(1)),
+    /**
+     * `GET /api/calendar/{slug}/{token}.ics` — keyed per **token**, not per IP. The feed is
+     * session-less, so there is no user to key on, and a whole club behind one office NAT would share
+     * an IP bucket and throttle each other. The token is the subscription's identity, which is exactly
+     * the thing worth bounding: 60/hour is generous against the `PT1H` refresh the feed advertises,
+     * and tight enough that the URL is not a free bulk-read endpoint.
+     */
+    val calendarFeed: Policy = Policy(capacity = 60, refillPeriod = Duration.ofHours(1)),
 ) {
     /** A token-bucket allowance: `capacity` requests, fully replenished once per `refillPeriod`. */
     data class Policy(

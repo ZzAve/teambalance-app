@@ -6,12 +6,6 @@ interface RosterBarProps {
   roster: EventRoster
 }
 
-const CHIP_TONE: Record<RosterTone, string> = {
-  covered: 'bg-green/10 text-green-dark',
-  short: 'bg-gold/15 text-gold-dark',
-  critical: 'bg-red/10 text-red',
-}
-
 const TONE_TEXT: Record<RosterTone, string> = {
   covered: 'text-green-dark',
   short: 'text-gold-dark',
@@ -24,8 +18,12 @@ const TONE_TEXT: Record<RosterTone, string> = {
  * glance — the thing a flat list loses. Chrome-free: the caller supplies the surrounding card.
  *
  * Prop-only (ADR-0017), and it re-presents what the server already computed rather than re-deriving
- * status: the chips come from `rosterRows`, the headline chip from `rosterChip`, and the counts are
- * server-owned (#219).
+ * status: the headline chip comes from `rosterChip` and the counts are server-owned (#219).
+ *
+ * **It states the event-level verdict only.** It used to also print a chip per position, which the
+ * attendee list below then repeated as a fraction beside every heading — the same fact twice, three
+ * blocks apart. The per-position verdict now lives with the people it describes; what stays here is
+ * the thing no single position can tell you.
  *
  * Three shapes, because a roster can be targeted in two different ways or not at all (#271 (6)):
  *
@@ -65,7 +63,7 @@ export function RosterBar({ roster }: RosterBarProps) {
 
   return (
     <div className="px-4 py-3">
-      <div className={`flex items-baseline justify-between gap-3 ${pct == null && !byPosition ? '' : 'mb-2'}`}>
+      <div className={`flex items-baseline justify-between gap-3 ${pct == null ? '' : 'mb-2'}`}>
         <SectionLabel as="span">Roster</SectionLabel>
         <span className="flex items-baseline gap-1.5">
           <span className={`font-display text-small font-bold tabular-nums ${met ? 'text-green-dark' : 'text-foreground'}`}>
@@ -76,10 +74,7 @@ export function RosterBar({ roster }: RosterBarProps) {
       </div>
 
       {pct != null && (
-        <div
-          data-slot="roster-track"
-          className={`h-1.5 overflow-hidden rounded-full bg-muted ${byPosition ? 'mb-2.5' : ''}`}
-        >
+        <div data-slot="roster-track" className="h-1.5 overflow-hidden rounded-full bg-muted">
           <div
             className="h-full rounded-full bg-green transition-[width] duration-300 ease-out"
             style={{ width: `${pct}%` }}
@@ -87,18 +82,7 @@ export function RosterBar({ roster }: RosterBarProps) {
         </div>
       )}
 
-      {byPosition && (
-        <div className="flex flex-wrap gap-1.5">
-          {rows.map((row) => (
-            <span
-              key={row.id}
-              className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-caption font-semibold tabular-nums ${CHIP_TONE[row.tone ?? 'short']}`}
-            >
-              {row.label} {row.countLabel}
-            </span>
-          ))}
-        </div>
-      )}
+
     </div>
   )
 }

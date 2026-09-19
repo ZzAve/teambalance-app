@@ -6,6 +6,21 @@ import { EventCard } from './EventCard'
 
 type AttendanceState = Event['myState']
 
+/**
+ * An attendance write in flight, held by the route and applied here until the refetch catches up.
+ *
+ * It carries `userId` because the card's panel can answer for anyone (ADR-0003): a teammate's chip
+ * has to move on tap just as the viewer's own pill does, and both come from this one record. The
+ * panel counts its fractions from the attendances it renders, so patching the entry moves the chip
+ * and the count together — which is why this does not need to touch `roster` (see attendance-cache,
+ * which leaves it to the server for the same reason).
+ */
+export interface OptimisticAnswer {
+  eventId: string
+  userId: string
+  state: AttendanceState
+}
+
 interface EventListViewProps {
   /** Already filtered, already sorted, and with the hero event removed by the container. */
   events: Event[]
@@ -16,15 +31,18 @@ interface EventListViewProps {
   now?: Date
   /** Fires the viewer's attendance write for one event. Wired by the page container (the route). */
   onRespond?: (eventId: string, state: AttendanceState) => void
-  /** The event whose write is in flight, with the optimistic answer to show on its card meanwhile. */
-  optimistic?: { eventId: string; state: AttendanceState } | null
+  /** The answer whose write is in flight, to show on its card meanwhile. */
+  optimistic?: OptimisticAnswer | null
+  /**
+   * The viewer. Two jobs: telling an answer they set themselves from one a teammate set for them
+   * (⑪), and telling an optimistic pick for their own pill from one for a teammate's chip.
+   */
+  currentUserId?: string | null
   /** Every card's roster panel starts expanded — the member's `Keep open` preference (ADR-0030 §6). */
   defaultRosterOpen?: boolean
-  /** The viewer, so a card can tell an answer it set itself from one a teammate set for it (⑪). */
-  currentUserId?: string | null
   /**
    * What each card's roster disclosure opens onto. A function of the event because the panel is
-   * built per event; left out, every card falls back to the position pips it has always shown.
+   * built per event; left out, a card's verdict is a plain label with nothing to expand.
    */
   rosterPanel?: (event: Event) => ReactNode | null
 }
@@ -46,9 +64,9 @@ export function EventListView({
   now,
   onRespond,
   optimistic,
+  currentUserId,
   defaultRosterOpen,
   rosterPanel,
-  currentUserId,
 }: EventListViewProps) {
   // Data wins: keep showing cached events even when a background refetch is loading or has errored,
   // so a transient failure never blanks a list the user is already looking at.
@@ -67,29 +85,58 @@ export function EventListView({
         // Apply the optimistic pick only until the refreshed list reports the same answer: while it
         // differs the write is still settling, so show the pick and keep the badge pending (⑤); once
         // the list catches up the row is real again. A failed write is dropped by the container.
-        const settling = optimistic?.eventId === event.id && optimistic.state !== event.myState
+        const held = optimistic?.eventId === event.id ? optimistic : null
+        const settling = held != null && held.state !== stateOf(event, held.userId)
+        const shown = settling ? withAnswer(event, held.userId, held.state, held.userId === currentUserId) : event
         // Resolved from the event's own rows, exactly as the detail page does (⑪) — the list payload
-        // carries every member since ADR-0030 §8. Suppressed while settling: the pick in flight is
-        // the viewer's own, so the answer it replaces is no longer attributed to anyone else.
-        const mine = currentUserId ? event.attendances.find((a) => a.userId === currentUserId) : undefined
-        const setBy = settling || !mine ? null : attributionName(mine, event.attendances)
+        // carries every member since ADR-0030 §8. Suppressed only while the viewer's OWN pick is in
+        // flight: the answer it replaces is no longer attributed to anyone else. A pick in flight for
+        // a *teammate* leaves the viewer's own attribution alone, which is a distinction the panel
+        // made possible — before it, every held answer was necessarily the viewer's.
+        const settlingMine = settling && held.userId === currentUserId
+        const mine = currentUserId ? shown.attendances.find((a) => a.userId === currentUserId) : undefined
+        const setBy = settlingMine || !mine ? null : attributionName(mine, shown.attendances)
         return (
           <EventCard
             key={event.id}
-            event={event}
+            event={shown}
             index={idx}
             now={now}
-            myState={settling ? optimistic.state : event.myState}
+            myState={shown.myState}
             pending={settling}
             setBy={setBy}
             onRespond={(state) => onRespond?.(event.id, state)}
             defaultRosterOpen={defaultRosterOpen}
-            rosterPanel={rosterPanel?.(event)}
+            rosterPanel={rosterPanel?.(shown)}
           />
         )
       })}
     </div>
   )
+}
+
+/** The answer the list currently reports for one member — the viewer's own is `myState`. */
+function stateOf(event: Event, userId: string): AttendanceState {
+  return event.attendances.find((a) => a.userId === userId)?.state ?? event.myState
+}
+
+/**
+ * The event as it would be once the in-flight write lands: the member's entry patched, and `myState`
+ * with it when that member is the viewer. Immutable, so dropping the optimistic answer restores the
+ * original by simply not applying it.
+ *
+ * `roster` is deliberately untouched, exactly as `attendance-cache` leaves it: its `openSlots` and
+ * `state` are the backend's tested authority (#219), and a second implementation here would be free
+ * to drift from it. The lineup panel is unaffected because it counts its own fractions from
+ * `attendances`; the readiness badge is the one surface that stays briefly stale, and it renders a
+ * pending state meanwhile.
+ */
+function withAnswer(event: Event, userId: string, state: AttendanceState, isSelf: boolean): Event {
+  return {
+    ...event,
+    myState: isSelf ? state : event.myState,
+    attendances: event.attendances.map((a) => (a.userId === userId ? { ...a, state } : a)),
+  }
 }
 
 /** A few skeleton cards mirroring EventCard's date-block layout, shown while the first load runs. */

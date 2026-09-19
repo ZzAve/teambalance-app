@@ -1,9 +1,9 @@
 import { useState } from 'react'
-import { ChevronDown } from 'lucide-react'
 import type { AttendanceEntry, EventRoster } from '@shared/api/events'
 import { Avatar } from '@shared/ui/avatar'
-import { AttendanceToggle, type AttendanceState } from '@features/attendance-toggle/ui/AttendanceToggle'
-import { groupAttendeesByPosition, type AttendeePositionGroup } from '@entities/event/lib/attendee-groups'
+import { AnswerSheet, type AnswerTarget } from '@features/attendance-toggle/ui/AnswerSheet'
+import type { AttendanceState } from '@features/attendance-toggle/ui/AttendanceToggle'
+import { lineupRows, verdictWord, STATE_WORD, UNASSIGNED, type LineupRow } from '@entities/event/lib/lineup'
 import { attributionName } from '@entities/event/lib/attribution'
 import { SectionLabel } from '@shared/ui/SectionLabel'
 
@@ -14,21 +14,17 @@ interface AttendeeListProps {
   /**
    * Fires with the *target* member's id — trust-based editing lets a member set a teammate's answer.
    *
-   * **Omit it to render the list read-only**, which is what the events-list card does (#326). Editing
-   * a teammate's attendance lives on detail-page rows only (#271 ⑫), and reusing this component on
-   * the card would have extended that to the list page by accident; a read-only render keeps ⑫ intact
-   * while the card's own answer row still handles the viewer's own answer. There is no separate
-   * `readOnly` flag on purpose — with one, "read-only but respondable" would be a state to reason
-   * about.
+   * **Omit it to render the list read-only.** There is no separate `readOnly` flag on purpose — with
+   * one, "read-only but respondable" would be a state to reason about.
    */
   onRespond?: (userId: string, state: AttendanceState) => void
-  /** The viewer, so their own row is marked and its edit skips the "changing …" notice. */
+  /** The viewer, so their own row is marked and the sheet knows it is not a cross-member change. */
   currentUserId?: string | null
   /** An attendance write is in flight; the open control is held. */
   pending?: boolean
 }
 
-// A subtle wash + left accent in the answer's colour, so the list reads at a glance while collapsed.
+// A subtle wash + left accent in the answer's colour, so the list reads at a glance.
 const ROW_TINT: Record<AttendanceState, string> = {
   ATTENDING: 'border-l-green bg-green/5',
   MAYBE: 'border-l-gold bg-gold/5',
@@ -36,88 +32,124 @@ const ROW_TINT: Record<AttendanceState, string> = {
   NOT_RESPONDED: 'border-l-border bg-transparent',
 }
 
-// The collapsed answer pill. Awaiting is a quiet neutral — in this list it is a fact about a teammate,
-// not the loud call-to-act the viewer's own "Your response" prompt carries.
-const ANSWER_PILL: Record<AttendanceState, { label: string; className: string }> = {
-  ATTENDING: { label: 'Going', className: 'bg-green/10 text-green' },
-  MAYBE: { label: 'Maybe', className: 'bg-gold/20 text-gold-dark' },
-  ABSENT: { label: "Can't", className: 'bg-red/10 text-red' },
-  NOT_RESPONDED: { label: 'Awaiting', className: 'bg-muted text-muted-foreground' },
+// Awaiting is a quiet neutral — in this list it is a fact about a teammate, not the loud
+// call-to-act the viewer's own "Your response" prompt carries.
+const ANSWER_PILL: Record<AttendanceState, string> = {
+  ATTENDING: 'bg-green/10 text-green',
+  MAYBE: 'bg-gold/20 text-gold-dark',
+  ABSENT: 'bg-red/10 text-red',
+  NOT_RESPONDED: 'bg-muted text-muted-foreground',
 }
 
+const TONE_TEXT = {
+  covered: 'text-green-dark',
+  short: 'text-gold-dark',
+  critical: 'text-red',
+} as const
+
 /**
- * The event-detail attendance list: no tabs. Everyone is shown under their position (Unassigned last),
- * tinted by their answer, each row a collapsed answer pill that expands to the three-way control —
- * the same disclosure the event card uses, so the interaction is one thing app-wide. Editing anyone
- * is a deliberate two steps; the viewer's own fast path is the "Your response" control above the list.
- * Opening a teammate's control carries a quiet "Changing …" notice (a member may set a teammate's
- * answer — ADR-0003 — but should know they are). A row a teammate last changed reads `set by …` (⑪).
+ * The event-detail attendance list: everyone under their position, Unassigned last, tinted by their
+ * answer, and any row opens the answer sheet.
  *
- * Without `onRespond` the same list renders read-only — every row still named, tinted and pilled,
- * but no disclosure and no control. That is how the events-list card shows it (#326, #271 ⑫).
+ * It is the unabridged half of what the event card shows. The card compresses a position into
+ * overlapping chips capped at five; here there is room for the avatar, the whole name, the `set by …`
+ * attribution and the role, so nothing is dropped. What the two share is the *model* and the
+ * *words*: both build their rows with [lineupRows], both lead with [verdictWord] before the fraction,
+ * and both open the one [AnswerSheet]. A reader who learned the card has nothing new to learn here.
  *
- * Prop-only apart from which row is open (ADR-0017): grouping and name resolution are pure helpers,
- * and the mutation (and its Undo toast) live in the route container. Rows keep their roster order —
- * an answer changing must not make the list jump.
+ * Two deliberate differences from the card, both because the jobs differ:
+ *
+ *   - **Rows keep roster order and sort by name inside a position, never by answer.** The card sorts
+ *     by state because you are scanning it; you are *editing* here, and a row that jumps out from
+ *     under your finger the moment you set it is a bug, not a feature.
+ *   - **No cap.** Crowding collapses on a card because a card has ~40px to give. A page does not.
+ *
+ * Prop-only apart from which row's sheet is open (ADR-0017): grouping and name resolution are pure
+ * helpers, and the mutation (and its Undo toast) live in the route container.
  */
 export function AttendeeList({ attendees, roster, onRespond, currentUserId, pending = false }: AttendeeListProps) {
-  const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [target, setTarget] = useState<AnswerTarget | null>(null)
 
   if (attendees.length === 0) {
     return <p className="py-6 text-center text-small text-muted-foreground">No one</p>
   }
 
-  const groups = groupAttendeesByPosition(attendees, roster)
+  const open = (attendance: AttendanceEntry, position?: string) =>
+    setTarget({
+      userId: attendance.userId,
+      displayName: attendance.displayName,
+      state: attendance.state,
+      isSelf: attendance.userId === currentUserId,
+      position,
+    })
 
-  const renderRow = (attendance: AttendanceEntry, showRole: boolean) => (
+  const renderRow = (attendance: AttendanceEntry, position?: string, showRole = false) => (
     <AttendeeRow
       key={attendance.userId}
       attendance={attendance}
       attribution={attributionName(attendance, attendees)}
       isSelf={attendance.userId === currentUserId}
       showRole={showRole}
-      expanded={expandedId === attendance.userId}
-      pending={pending}
-      onToggle={() => setExpandedId((id) => (id === attendance.userId ? null : attendance.userId))}
-      onRespond={
-        onRespond &&
-        ((state) => {
-          onRespond(attendance.userId, state)
-          setExpandedId(null)
-        })
-      }
+      onOpen={onRespond && (() => open(attendance, position))}
     />
   )
 
-  if (groups) {
+  const sheet = onRespond && (
+    <AnswerSheet target={target} onRespond={onRespond} onClose={() => setTarget(null)} pending={pending} />
+  )
+
+  // No positions at all: a flat list, with each member's own role as the subtitle.
+  if (roster.positions.length === 0) {
     return (
-      <div>
-        {groups.map((group) => (
-          <PositionGroup key={group.positionLabel} group={group} renderRow={(a) => renderRow(a, false)} />
-        ))}
+      <div className="py-1">
+        {attendees.map((a) => renderRow(a, undefined, true))}
+        {sheet}
       </div>
     )
   }
 
-  return <div className="py-1">{attendees.map((a) => renderRow(a, true))}</div>
+  return (
+    <div>
+      {lineupRows(attendees, roster, currentUserId).map((row) => (
+        <PositionGroup key={row.id} row={row} attendees={attendees} renderRow={renderRow} />
+      ))}
+      {sheet}
+    </div>
+  )
 }
 
 function PositionGroup({
-  group,
+  row,
+  attendees,
   renderRow,
 }: {
-  group: AttendeePositionGroup
-  renderRow: (a: AttendanceEntry) => React.ReactNode
+  row: LineupRow
+  attendees: AttendanceEntry[]
+  renderRow: (a: AttendanceEntry, position?: string, showRole?: boolean) => React.ReactNode
 }) {
+  const verdict = verdictWord(row)
+  const byName = [...row.members].sort((a, b) => a.displayName.localeCompare(b.displayName))
+
   return (
     <div>
-      <div className="flex items-center justify-between px-3 pb-1 pt-3">
-        <SectionLabel as="h3">{group.positionLabel}</SectionLabel>
-        {group.countLabel && (
-          <span className="text-caption font-bold tabular-nums text-foreground/70">{group.countLabel}</span>
-        )}
+      <div className="flex items-baseline justify-between gap-3 px-3 pb-1 pt-3">
+        <SectionLabel as="h3">{row.label}</SectionLabel>
+        <span className="flex items-baseline gap-1.5">
+          {/* The verdict leads and the fraction is demoted — the same order the card uses. */}
+          {verdict && <span className={`text-caption font-semibold ${TONE_TEXT[row.tone ?? 'short']}`}>{verdict}</span>}
+          {row.required != null && (
+            <span className="text-caption font-bold tabular-nums text-foreground/70">
+              {`${row.attending}/${row.required}`}
+            </span>
+          )}
+        </span>
       </div>
-      {group.attendees.map(renderRow)}
+      {/* A targeted position nobody plays still gets its row — that gap is the point (#320 §3). */}
+      {byName.length === 0 ? (
+        <p className="px-3 pb-2 text-caption italic text-muted-foreground">nobody in this position yet</p>
+      ) : (
+        byName.map((m) => renderRow(attendees.find((a) => a.userId === m.userId)!, row.label))
+      )}
     </div>
   )
 }
@@ -127,86 +159,56 @@ function AttendeeRow({
   attribution,
   isSelf,
   showRole,
-  expanded,
-  pending,
-  onToggle,
-  onRespond,
+  onOpen,
 }: {
   attendance: AttendanceEntry
   attribution: string | null
   isSelf: boolean
   showRole: boolean
-  expanded: boolean
-  pending: boolean
-  onToggle: () => void
-  /** Absent on a read-only list: the pill becomes a plain label with nothing to open (#271 ⑫). */
-  onRespond?: (state: AttendanceState) => void
+  /** Absent on a read-only list: the row becomes a fact rather than a control. */
+  onOpen?: () => void
 }) {
   // Attribution takes the subtitle when present; otherwise, in the flat list only, the member's own
   // position — unless it is the non-informative "Unassigned".
   const subtitle = attribution
     ? `set by ${attribution}`
-    : showRole && attendance.role && attendance.role !== 'Unassigned'
+    : showRole && attendance.role && attendance.role !== UNASSIGNED
       ? attendance.role
       : null
-  const pill = ANSWER_PILL[attendance.state]
 
-  return (
-    <div>
-      <div className={`flex items-center gap-3 border-l-[3px] px-2.5 py-1.5 ${ROW_TINT[attendance.state]}`}>
-        <Avatar userId={attendance.userId} name={attendance.displayName} />
-        <div className="min-w-0 flex-1">
-          <span className="block truncate text-small leading-tight">
-            {attendance.displayName}
-            {isSelf && (
-              <span className="ml-1.5 rounded-full bg-blue/10 px-1.5 py-0.5 align-[1px] text-caption font-bold tracking-wide text-blue">
-                You
-              </span>
-            )}
-          </span>
-          {subtitle && <span className="block text-caption text-muted-foreground">{subtitle}</span>}
-        </div>
-        {/* The collapsed answer pill is the disclosure trigger — same interaction as the event card.
-            Read-only, it is the same pill without the disclosure: a fact, not a control. */}
-        {onRespond ? (
-          <button
-            type="button"
-            aria-expanded={expanded}
-            onClick={onToggle}
-            className="flex shrink-0 items-center gap-1.5 rounded-full py-1 pl-1 pr-1 ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-          >
-            <span className={`rounded-full px-2.5 py-1 text-caption font-semibold ${pill.className}`}>{pill.label}</span>
-            <ChevronDown
-              size={14}
-              aria-hidden
-              className={`text-muted-foreground transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`}
-            />
-            <span className="sr-only">
-              {expanded ? 'Hide answer options' : `Change ${attendance.displayName}'s answer`}
+  const body = (
+    <>
+      <Avatar userId={attendance.userId} name={attendance.displayName} />
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-small leading-tight">
+          {attendance.displayName}
+          {isSelf && (
+            <span className="ml-1.5 rounded-full bg-blue/10 px-1.5 py-0.5 align-[1px] text-caption font-bold tracking-wide text-blue">
+              You
             </span>
-          </button>
-        ) : (
-          <span className={`shrink-0 rounded-full px-2.5 py-1 text-caption font-semibold ${pill.className}`}>
-            {pill.label}
-          </span>
-        )}
-      </div>
-
-      {onRespond && expanded && (
-        <div
-          className="border-t border-dashed border-border px-2.5 pb-3 pt-2.5"
-          role="group"
-          aria-label={`${attendance.displayName}'s answer`}
-        >
-          {/* You may set a teammate's answer (ADR-0003), but you should know you're doing it. */}
-          {!isSelf && (
-            <p className="mb-2 text-caption text-muted-foreground">
-              Changing <span className="font-semibold text-foreground">{attendance.displayName}</span>’s answer
-            </p>
           )}
-          <AttendanceToggle value={attendance.state} disabled={pending} onToggle={onRespond} />
-        </div>
-      )}
-    </div>
+        </span>
+        {subtitle && <span className="block text-caption text-muted-foreground">{subtitle}</span>}
+      </span>
+      <span className={`shrink-0 rounded-full px-2.5 py-1 text-caption font-semibold ${ANSWER_PILL[attendance.state]}`}>
+        {STATE_WORD[attendance.state]}
+      </span>
+    </>
+  )
+
+  const shell = `flex w-full items-center gap-3 border-l-[3px] px-2.5 py-1.5 text-left ${ROW_TINT[attendance.state]}`
+
+  // The whole row is the target, not a pill at its edge — a 44px-tall strip instead of a small chip.
+  return onOpen ? (
+    <button
+      type="button"
+      onClick={onOpen}
+      aria-label={`${attendance.displayName}${isSelf ? ' (you)' : ''} — ${STATE_WORD[attendance.state]}. Change their answer`}
+      className={`${shell} transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring`}
+    >
+      {body}
+    </button>
+  ) : (
+    <div className={shell}>{body}</div>
   )
 }

@@ -1,32 +1,23 @@
 import { useEffect, useState } from 'react'
-import { LayoutList, LayoutGrid, Users } from 'lucide-react'
-import type { ComponentType } from 'react'
-import { SectionLabel } from '@shared/ui/SectionLabel'
-import type { PanelView } from '../model/panel-preferences'
+import { LayoutList } from 'lucide-react'
 
 interface PanelViewMenuProps {
-  view: PanelView
-  onViewChange: (view: PanelView) => void
   defaultExpanded: boolean
   onDefaultExpandedChange: (defaultExpanded: boolean) => void
 }
 
-const VIEWS: { value: PanelView; label: string; Icon: ComponentType<{ size?: number }> }[] = [
-  { value: 'pips', label: 'Positions', Icon: LayoutGrid },
-  { value: 'members', label: 'People', Icon: Users },
-]
-
 /**
  * The events page's view control: an icon button beside `Filters` that opens a small popover holding
- * the two panel preferences — which view a card's roster panel opens onto, and whether it starts
- * open (ADR-0030 §5 and §6, as amended).
+ * the panel preference — whether a card's roster panel starts open (ADR-0030 §6).
  *
- * **Why it is here rather than inside the panel**, which is where §5 first put it: both settings are
- * one global choice, and a control drawn once per open card reads as a per-card one however the
- * state is actually held. It also charged every open panel a row of chrome for a setting a member
- * touches once. The page header is where the scope is legible — beside the other page-level control,
- * at no vertical cost — and the list behind the popover still re-renders live, so the result is as
- * visible as it was from inside the panel.
+ * It held two settings until the lineup panel landed. ADR-0030 §5's pips-or-people choice went with
+ * the either/or it selected: the panel is both halves at once now, so there is nothing to pick.
+ *
+ * **Why it is here rather than inside the panel**, which is where §5 first put its sibling: the
+ * setting is one global choice, and a control drawn once per open card reads as a per-card one
+ * however the state is actually held. It also charged every open panel a row of chrome for a setting
+ * a member touches once. The page header is where the scope is legible — beside the other page-level
+ * control, at no vertical cost — and the list behind the popover still re-renders live.
  *
  * **Its own trigger, not a section inside `Filters`**, for the reason §3 draws the line at all: a
  * filter is "where was I" and this is "how do I like this". One popover holding both would be the
@@ -37,12 +28,7 @@ const VIEWS: { value: PanelView; label: string; Icon: ComponentType<{ size?: num
  *
  * Prop-only apart from the popover's own open state: the preferences live in `event-panel-store`.
  */
-export function PanelViewMenu({
-  view,
-  onViewChange,
-  defaultExpanded,
-  onDefaultExpandedChange,
-}: PanelViewMenuProps) {
+export function PanelViewMenu({ defaultExpanded, onDefaultExpandedChange }: PanelViewMenuProps) {
   const [open, setOpen] = useState(false)
 
   // Escape has to be caught on the document: focus stays on the trigger, which is a sibling of the
@@ -77,35 +63,6 @@ export function PanelViewMenu({
             aria-label="View options"
             className="card-shadow-hover absolute right-0 top-12 z-50 w-[248px] origin-top-right rounded-lg border border-border/60 bg-card p-3.5"
           >
-            <div role="group" aria-labelledby="panel-view-heading">
-              <SectionLabel as="h3" id="panel-view-heading" className="mb-2.5">
-                Card panel shows
-              </SectionLabel>
-              <div className="flex flex-wrap gap-2">
-                {VIEWS.map(({ value, label, Icon }) => {
-                  const isActive = view === value
-                  return (
-                    <button
-                      key={value}
-                      aria-pressed={isActive}
-                      onClick={() => onViewChange(value)}
-                      className={[
-                        'flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-caption font-semibold transition-all',
-                        isActive
-                          ? 'border-foreground bg-foreground text-background'
-                          : 'border-border text-muted-foreground',
-                      ].join(' ')}
-                    >
-                      <Icon size={12} />
-                      {label}
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
-
-            <div className="-mx-3.5 my-3.5 h-px bg-border/60" />
-
             <div className="flex items-center justify-between gap-2.5">
               <div>
                 <div className="text-small font-semibold">Keep panels open</div>

@@ -48,12 +48,13 @@ class RateLimitFilter(
     private val pathHelper = UrlPathHelper()
     private val pathMatcher = AntPathMatcher()
 
-    private enum class KeyStrategy { IP, USER_OR_IP }
-
+    // The bucket a request spends from: the policy that bounds it, and who "one caller" is for that
+    // policy. The key is resolved here rather than carried as a strategy because the three answers
+    // come from three different places — the socket, the session, and the credential in the path.
     private data class Rule(
         val policyName: String,
         val policy: RateLimitProperties.Policy,
-        val keyStrategy: KeyStrategy,
+        val key: String,
     )
 
     override fun doFilterInternal(
@@ -67,8 +68,7 @@ class RateLimitFilter(
             return
         }
 
-        val clientKey = clientKey(request, rule.keyStrategy)
-        val consumption = rateLimiter.tryConsume(rule.policyName, rule.policy, clientKey)
+        val consumption = rateLimiter.tryConsume(rule.policyName, rule.policy, rule.key)
         if (!consumption.allowed) {
             writeTooManyRequests(response, consumption.retryAfterMillis)
             return
@@ -77,25 +77,31 @@ class RateLimitFilter(
     }
 
     private fun resolveRule(request: HttpServletRequest): Rule? {
-        if (request.method != HttpMethod.POST.name()) return null
         val path = StringUtils.cleanPath(pathHelper.getPathWithinApplication(request))
+        val post = request.method == HttpMethod.POST.name()
+        // HEAD too: Spring routes it to the feed's @GetMapping handler, so a GET-only rule would leave
+        // an unmetered way to reach it (CalendarFeedTenantFilter matches the same pair, for the same
+        // reason).
+        val get = request.method in FEED_METHODS
         return when {
-            path == MAGIC_LINK_REQUEST_PATH ->
-                Rule("magic-link-request", properties.magicLinkRequest, KeyStrategy.IP)
-            path == MAGIC_LINK_VERIFY_PATH ->
-                Rule("magic-link-verify", properties.magicLinkVerify, KeyStrategy.IP)
-            pathMatcher.match(INVITATION_ACCEPT_PATTERN, path) ->
-                Rule("invitation-accept", properties.invitationAccept, KeyStrategy.USER_OR_IP)
+            post && path == MAGIC_LINK_REQUEST_PATH ->
+                Rule("magic-link-request", properties.magicLinkRequest, ipKey(request))
+            post && path == MAGIC_LINK_VERIFY_PATH ->
+                Rule("magic-link-verify", properties.magicLinkVerify, ipKey(request))
+            post && pathMatcher.match(INVITATION_ACCEPT_PATTERN, path) ->
+                Rule("invitation-accept", properties.invitationAccept, userOrIpKey(request))
+            // Keyed on the token segment: the feed has no session to key on, and a club behind one
+            // office NAT would otherwise throttle itself. The token IS the subscription's identity.
+            get && pathMatcher.match(CALENDAR_FEED_PATTERN, path) ->
+                Rule("calendar-feed", properties.calendarFeed, "token:${path.substringAfterLast('/')}")
             else -> null
         }
     }
 
-    private fun clientKey(request: HttpServletRequest, strategy: KeyStrategy): String =
-        when (strategy) {
-            KeyStrategy.IP -> "ip:${clientIp(request)}"
-            KeyStrategy.USER_OR_IP ->
-                currentUserGateway.getCurrentUserId()?.let { "user:${it.value}" } ?: "ip:${clientIp(request)}"
-        }
+    private fun ipKey(request: HttpServletRequest): String = "ip:${clientIp(request)}"
+
+    private fun userOrIpKey(request: HttpServletRequest): String =
+        currentUserGateway.getCurrentUserId()?.let { "user:${it.value}" } ?: ipKey(request)
 
     private fun clientIp(request: HttpServletRequest): String {
         if (properties.trustForwardedFor) {
@@ -124,6 +130,11 @@ class RateLimitFilter(
         // Single `*` matches one path segment, so the token can't contain a slash that escapes onto
         // another handler — the token is a URL-safe Base64 string with no slashes anyway.
         const val INVITATION_ACCEPT_PATTERN = "/api/invitations/*/accept"
+
+        // Same single-`*` reasoning; the token is base64url and the slug is [a-z0-9-], so neither
+        // segment can carry a slash that would escape onto another handler.
+        const val CALENDAR_FEED_PATTERN = "/api/calendar/*/*.ics"
+        val FEED_METHODS = setOf(HttpMethod.GET.name(), HttpMethod.HEAD.name())
 
         const val X_FORWARDED_FOR = "X-Forwarded-For"
         const val MILLIS_PER_SECOND = 1000.0

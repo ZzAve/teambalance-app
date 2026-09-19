@@ -36,6 +36,8 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers
     properties = [
         "teambalance.invitation.token-salt=prod-smoke-salt",
         "teambalance.invitation.token-encryption-key=dGVhbWJhbGFuY2UtcHJvZC1zbW9rZS1rZXktMzJieXQ=",
+        "teambalance.calendar-link.token-salt=prod-smoke-calendar-salt",
+        "teambalance.calendar-link.token-encryption-key=cHJvZC1zbW9rZS1jYWxlbmRhci1rZXktMzJieXRlcyE=",
         "teambalance.email.api-key=prod-smoke-key",
         "teambalance.email.project-id=prod-smoke-project",
         "teambalance.internal.api-key=prod-smoke-internal-key",

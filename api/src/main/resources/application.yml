@@ -116,8 +116,13 @@ teambalance:
     # hold it; unset here (empty default) → InternalEndpointGuardFilter stays fail-closed and info is a
     # 403 from the internet. Live environments provide it via INTERNAL_API_KEY.
     api-key: ${INTERNAL_API_KEY:}
-  # Base URL of the SPA; used to build the clickable magic-link (…/auth/verify?token=…).
+  # Base URL of the SPA; used to build the clickable magic-link (…/auth/verify?token=…) and the
+  # event deep link a calendar entry points back at (…/t/{slug}/events/{id}).
   frontend-base-url: ${TEAMBALANCE_FRONTEND_BASE_URL:https://app.teambalance.nl}
+  # Public origin of THIS api — the host a calendar client fetches a calendar-link feed from
+  # (ADR-0032). Distinct from frontend-base-url: the SPA and the API are separate origins in prod,
+  # and it is the API that serves the .ics. Only the calendar-link management response embeds it.
+  api-base-url: ${TEAMBALANCE_API_BASE_URL:https://api.teambalance.nl}
   # Comma-separated platform-admin emails (PLATFORM_ADMIN_EMAILS). Empty default = fail-closed: nobody
   # is a platform admin. Gates the creation-codes admin surface (#154 Slice 4) and receives the
   # "code consumed → team created" audit notifications. See ADR-0019.
@@ -144,6 +149,22 @@ teambalance:
     invitation-accept:
       capacity: 10
       refill-period: 1m
+    # GET /api/calendar/{slug}/{token}.ics — keyed per token, not per IP: the feed is session-less and
+    # calendar clients behind one corporate NAT would otherwise share a bucket. 60/hour is generous
+    # against the PT1H refresh interval the feed itself advertises.
+    calendar-feed:
+      capacity: 60
+      refill-period: 1h
+  calendar-link:
+    # App-wide secret salt applied to stored calendar-link token hashes. A sibling of the invitation
+    # salt, never the same value: one leaked secret must not read the other kind of link. Live
+    # environments MUST provide it via TEAMBALANCE_CALENDAR_LINK_SALT (no default → fail fast).
+    token-salt: ${TEAMBALANCE_CALENDAR_LINK_SALT}
+    # App-wide AES-256 key (base64, 32 bytes) under which calendar-link tokens are stored recoverably,
+    # so a member can be shown their subscription URL again (ADR-0032). Live environments MUST provide
+    # it via TEAMBALANCE_CALENDAR_LINK_ENCRYPTION_KEY. Rotating this key makes existing links
+    # unlistable; the feeds themselves keep working, since lookup matches on the hash.
+    token-encryption-key: ${TEAMBALANCE_CALENDAR_LINK_ENCRYPTION_KEY}
   invitation:
     # App-wide secret salt applied to stored invite-token hashes. Live environments MUST provide it
     # via INVITATION_TOKEN_SALT (no default here → the app fails fast if it is unset). Dev and test

@@ -17,6 +17,13 @@ import java.time.Duration
  * of distinct IPs or users can't grow it without bound. Eviction only drops idle keys (a bucket
  * unused that long has long since refilled to full), so it never weakens an active limit.
  *
+ * INVARIANT: [EVICTION_WINDOW] must be at least the longest configured
+ * [RateLimitProperties.Policy.refillPeriod]. That sentence above — "has long since refilled to full"
+ * — is only true while it holds; break it and an evicted bucket comes back *empty of history*
+ * mid-period, so a policy of N per hour silently enforces N per eviction window instead. The
+ * calendar feed (ADR-0032) is the first policy to refill over anything longer than a minute, and is
+ * why this is now an hour rather than ten minutes.
+ *
  * Bucket4j drives refill from its own [TimeMeter]; we bridge it to the injected [Clock] so timing
  * matches the rest of the app (Amsterdam zone) and stays deterministic under a test clock.
  */
@@ -61,6 +68,6 @@ class RateLimiter(clock: Clock) {
 
     private companion object {
         const val MAX_TRACKED_KEYS = 100_000L
-        val EVICTION_WINDOW: Duration = Duration.ofMinutes(10)
+        val EVICTION_WINDOW: Duration = Duration.ofHours(1)
     }
 }

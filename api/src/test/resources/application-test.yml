@@ -11,6 +11,11 @@ spring:
       maximum-pool-size: 8
 
 teambalance:
+  api-base-url: http://localhost:8080
+  calendar-link:
+    # Hardcoded secrets for the test profile — live environments supply them via env.
+    token-salt: test-calendar-link-salt
+    token-encryption-key: dGVhbWJhbGFuY2UtdGVzdC1jYWxlbmRhci1rZXktMTI=
   invitation:
     # Hardcoded salt for the test profile — live environments supply INVITATION_TOKEN_SALT via env.
     token-salt: test-invitation-salt
@@ -25,4 +30,7 @@ teambalance:
     magic-link-verify:
       capacity: 1000
     invitation-accept:
+      capacity: 1000
+    # Same reasoning: CalendarFeedRateLimitIT proves the 429 in its own forked context.
+    calendar-feed:
       capacity: 1000

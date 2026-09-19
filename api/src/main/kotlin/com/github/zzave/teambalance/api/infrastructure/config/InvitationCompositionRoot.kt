@@ -3,7 +3,7 @@ package com.github.zzave.teambalance.api.infrastructure.config
 import com.github.zzave.teambalance.api.application.ActiveTeamService
 import com.github.zzave.teambalance.api.application.AuthorizationService
 import com.github.zzave.teambalance.api.application.InvitationService
-import com.github.zzave.teambalance.api.application.InviteTokenCipher
+import com.github.zzave.teambalance.api.application.TokenCipher
 import com.github.zzave.teambalance.api.domain.port.InvitationRepository
 import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
 import org.springframework.beans.factory.annotation.Value
@@ -40,6 +40,6 @@ class InvitationCompositionRoot {
         activeTeamService = activeTeamService,
         clock = clock,
         tokenSalt = tokenSalt,
-        tokenCipher = InviteTokenCipher.fromBase64Key(tokenEncryptionKey),
+        tokenCipher = TokenCipher.fromBase64Key(tokenEncryptionKey, "teambalance.invitation.token-encryption-key"),
     )
 }

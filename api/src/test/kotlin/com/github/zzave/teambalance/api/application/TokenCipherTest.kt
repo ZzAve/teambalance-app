@@ -1,7 +1,6 @@
 package com.github.zzave.teambalance.api.application
 
 import com.github.zzave.teambalance.api.domain.model.EncryptedToken
-import com.github.zzave.teambalance.api.domain.model.InviteToken
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.assertions.throwables.shouldThrowAny
 import io.kotest.core.spec.style.FunSpec
@@ -12,13 +11,16 @@ import java.util.Base64
 
 private fun key(seed: Byte) = Base64.getEncoder().encodeToString(ByteArray(32) { seed })
 
-class InviteTokenCipherTest : FunSpec({
+// Named in every rejection message so an operator is told which of the sibling keys is misconfigured.
+private const val PROPERTY = "teambalance.invitation.token-encryption-key"
 
-    val cipher = InviteTokenCipher.fromBase64Key(key(1))
-    val token = InviteToken("k4Ln9-Qb7xVzA2mE")
+class TokenCipherTest : FunSpec({
+
+    val cipher = TokenCipher.fromBase64Key(key(1), PROPERTY)
+    val token = "k4Ln9-Qb7xVzA2mE"
 
     test("a token survives the round trip") {
-        cipher.decrypt(cipher.encrypt(token)).value shouldBe token.value
+        cipher.decrypt(cipher.encrypt(token)) shouldBe token
     }
 
     // A fresh IV per call: two encryptions of one token must not be byte-identical, or the stored
@@ -28,12 +30,12 @@ class InviteTokenCipherTest : FunSpec({
     }
 
     test("the ciphertext does not contain the plaintext") {
-        cipher.encrypt(token).value shouldNotContain token.value
+        cipher.encrypt(token).value shouldNotContain token
     }
 
     test("a token encrypted under one key cannot be read under another") {
         val encrypted = cipher.encrypt(token)
-        shouldThrowAny { InviteTokenCipher.fromBase64Key(key(2)).decrypt(encrypted) }
+        shouldThrowAny { TokenCipher.fromBase64Key(key(2), PROPERTY).decrypt(encrypted) }
     }
 
     // GCM authenticates, so a tampered row fails loudly instead of yielding a token that would then
@@ -49,11 +51,11 @@ class InviteTokenCipherTest : FunSpec({
     // click.
     test("a key of the wrong length is rejected when the cipher is built") {
         shouldThrow<IllegalArgumentException> {
-            InviteTokenCipher.fromBase64Key(Base64.getEncoder().encodeToString(ByteArray(16)))
+            TokenCipher.fromBase64Key(Base64.getEncoder().encodeToString(ByteArray(16)), PROPERTY)
         }
     }
 
     test("a key that is not base64 is rejected when the cipher is built") {
-        shouldThrowAny { InviteTokenCipher.fromBase64Key("not base64!!") }
+        shouldThrowAny { TokenCipher.fromBase64Key("not base64!!", PROPERTY) }
     }
 })

@@ -30,6 +30,10 @@ import { EventsPageView } from './EventsPageView'
 // The Data and Interactions stories render through a small state harness (§6) so a person can
 // actually use the page in Storybook — filters narrow the list, the hero re-picks itself, an RSVP
 // flips the card — while the `play` still proves the callbacks fired.
+//
+// `Data`'s `xl` mode is the acceptance picture for the left rail (ADR-0033): at 1280 the header,
+// hero and bulk bar sit in the 22rem rail and the cards keep the 40rem they already had. The
+// phone modes are the proof that nothing moved below `lg`.
 const NOW = new Date(2026, 7, 10, 9, 0) // Monday 10 August 2026, 09:00 local
 const at = (day: number, month = 7, hour = 20) => new Date(2026, month, day, hour, 0).toISOString()
 
@@ -288,7 +292,11 @@ export const Data: Story = {
   // The page's picture, in dark and once at desktop width too (ADR-0032 §4-§5).
   parameters: { chromatic: { modes: pageModes } },
   play: async ({ canvas }) => {
-    await expect(canvas.getByRole('heading', { name: 'Events' })).toBeInTheDocument()
+    const heading = canvas.getByRole('heading', { name: 'Events' })
+    await expect(heading).toBeInTheDocument()
+    // The contract the rail rests on (ADR-0033): without this marker on the page root the shell
+    // keeps its 42rem cap, and the rail and the list would be sharing 40rem instead of 64.
+    await expect(heading.closest('[data-wide-column]')).not.toBeNull()
     await expect(canvas.getByRole('button', { name: 'New Event' })).toBeInTheDocument()
     await expect(canvas.getByRole('button', { name: 'Filters' })).toHaveAttribute('aria-expanded', 'false')
     // The hero holds the one event within the window, and the list does not repeat it.

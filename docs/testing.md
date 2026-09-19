@@ -42,7 +42,8 @@ handler" class — which a `getByText` assertion cannot. **Hold the network line
 component called its prop; it does *not* prove the request reached the server. Real API round-trips
 stay in the e2e flows — do not reach for MSW in a story to assert HTTP.
 
-`features/manage-positions/ui/ManagePositionsView.stories.tsx` is the reference exemplar.
+`features/manage-positions/ui/ManagePositionsView.stories.tsx` is the reference exemplar of the
+three-story shape (`Data` / `Shells` / `Interactions`, ADR-0032).
 
 ### Container/View split — state shells live in the View
 
@@ -65,6 +66,11 @@ Tailwind/Radix/shadcn bump that shifts spacing, a token, or a layout is caught e
   **"UI Tests"** commit status stays unresolved until a human accepts/rejects in the Chromatic UI.
   That status, marked **required** in branch protection, is what gates Renovate automerge.
 - **TurboSnap** (`--only-changed`) re-shoots only stories whose dependencies changed.
+- **What gets a picture** (ADR-0032): the page composites (`pages/*View` rendered under
+  `.storybook/app-shell-decorator.tsx`) and one gallery per primitive own the pixels; a feature View
+  keeps a snapshot only for states no composite shows. Every story is captured at phone width (the
+  global `xs` mode in `.storybook/preview.ts`); page composites add dark and `xl`. The toolbar's
+  viewport switcher uses the same widths, so pick the breakpoint to inspect there.
 - **Setup lives outside this repo:** the Chromatic project, the `CHROMATIC_PROJECT_TOKEN` secret,
   and the required-check branch-protection rule are one-time manual steps. Until "UI Tests" is a
   required check, a visual delta will not actually block a merge.

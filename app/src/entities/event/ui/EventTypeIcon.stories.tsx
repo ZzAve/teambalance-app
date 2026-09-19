@@ -6,6 +6,17 @@ import { EventTypeIcon } from './EventTypeIcon'
 // Social) and falls back to a Calendar for anything unknown. lucide renders a per-icon class
 // (e.g. `.lucide-dumbbell`), so each mapping branch is directly assertable. The `size` prop swaps
 // the wrapper dimensions (h-9 for sm, h-11 for md).
+//
+// One gallery story (ADR-0032 §2): every variant side by side, one picture, every branch asserted.
+const VARIANTS = {
+  training: { type: { id: 'et-1', name: 'Training', color: '#22c55e' } },
+  match: { type: { id: 'et-2', name: 'Match', color: '#3b82f6' } },
+  tournament: { type: { id: 'et-3', name: 'Tournament', color: '#f59e0b' } },
+  social: { type: { id: 'et-4', name: 'Social', color: '#ec4899' } },
+  unknown: { type: { id: 'et-5', name: 'Beach Cleanup', color: undefined } },
+  small: { type: { id: 'et-1', name: 'Training', color: '#22c55e' }, size: 'sm' as const },
+}
+
 const meta = {
   title: 'entities/event/EventTypeIcon',
   component: EventTypeIcon,
@@ -15,47 +26,27 @@ export default meta
 
 type Story = StoryObj<typeof meta>
 
-export const Training: Story = {
-  args: { type: { id: 'et-1', name: 'Training', color: '#22c55e' } },
-  play: async ({ canvasElement }) => {
-    await expect(canvasElement.querySelector('.lucide-dumbbell')).toBeInTheDocument()
-  },
-}
-
-export const Match: Story = {
-  args: { type: { id: 'et-2', name: 'Match', color: '#3b82f6' } },
-  play: async ({ canvasElement }) => {
-    await expect(canvasElement.querySelector('.lucide-swords')).toBeInTheDocument()
-  },
-}
-
-export const Tournament: Story = {
-  args: { type: { id: 'et-3', name: 'Tournament', color: '#f59e0b' } },
-  play: async ({ canvasElement }) => {
-    await expect(canvasElement.querySelector('.lucide-trophy')).toBeInTheDocument()
-  },
-}
-
-export const Social: Story = {
-  args: { type: { id: 'et-4', name: 'Social', color: '#ec4899' } },
-  play: async ({ canvasElement }) => {
-    await expect(canvasElement.querySelector('.lucide-party-popper')).toBeInTheDocument()
-  },
-}
-
-export const UnknownFallback: Story = {
-  args: { type: { id: 'et-5', name: 'Beach Cleanup', color: undefined } },
-  play: async ({ canvasElement }) => {
+export const Gallery: Story = {
+  args: VARIANTS.training,
+  render: () => (
+    <div className="flex flex-wrap items-center gap-4">
+      {Object.entries(VARIANTS).map(([name, props]) => (
+        <div key={name} data-testid={`variant-${name}`}>
+          <EventTypeIcon {...props} />
+        </div>
+      ))}
+    </div>
+  ),
+  play: async ({ canvas }) => {
+    const variant = (name: keyof typeof VARIANTS) => canvas.getByTestId(`variant-${name}`)
+    await expect(variant('training').querySelector('.lucide-dumbbell')).toBeInTheDocument()
+    await expect(variant('match').querySelector('.lucide-swords')).toBeInTheDocument()
+    await expect(variant('tournament').querySelector('.lucide-trophy')).toBeInTheDocument()
+    await expect(variant('social').querySelector('.lucide-party-popper')).toBeInTheDocument()
     // Unmapped type → Calendar fallback.
-    await expect(canvasElement.querySelector('.lucide-calendar')).toBeInTheDocument()
-  },
-}
-
-export const Small: Story = {
-  args: { type: { id: 'et-1', name: 'Training', color: '#22c55e' }, size: 'sm' },
-  play: async ({ canvasElement }) => {
+    await expect(variant('unknown').querySelector('.lucide-calendar')).toBeInTheDocument()
     // The sm variant uses a 36px (h-9) wrapper rather than the default 44px (h-11).
-    await expect(canvasElement.querySelector('.h-9')).toBeInTheDocument()
-    await expect(canvasElement.querySelector('.h-11')).not.toBeInTheDocument()
+    await expect(variant('small').querySelector('.h-9')).toBeInTheDocument()
+    await expect(variant('small').querySelector('.h-11')).not.toBeInTheDocument()
   },
 }

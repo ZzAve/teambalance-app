@@ -1,8 +1,10 @@
 import { useState } from 'react'
 import type { Meta, StoryObj } from '@storybook/react-vite'
-import { expect, fn } from 'storybook/test'
+import { expect, fn, within } from 'storybook/test'
 import type { Event, EventSeriesScope } from '@shared/api/events'
 import { makeEvent } from '@shared/testing/event-fixtures'
+import { Stack } from '@shared/testing/stack'
+import { appDialog } from '@shared/testing/app-column-decorator'
 import { SeriesScopeField } from './SeriesScopeField'
 
 // Four weekly occurrences sharing a group; the 2nd ('b') is the one being edited/deleted.
@@ -13,11 +15,10 @@ const SIBLINGS: Event[] = [
   makeEvent({ id: 'd', startTime: '2026-09-22T18:30:00Z', recurringGroup: 'g1' }),
 ]
 
-// Stateful harness: `scope` is owned by the parent dialog in production, so the story holds it to
-// make the segmented control interactive. The story's args drive the variant + starting scope.
-// `onScopeChange` (default fn() spy from meta) is forwarded before the local state update so a story
-// can assert the prop-contract — that a scope button fires onScopeChange with the picked value —
-// while the live preview still reacts to the click.
+// Stateful harness: `scope` is owned by the parent dialog in production, so the harness holds it to
+// make the segmented control interactive. `onScopeChange` is forwarded before the local state update
+// so a story can assert the prop-contract — that a scope button fires onScopeChange with the picked
+// value — while the live preview still reacts to the click.
 function Harness({
   variant,
   initialScope,
@@ -29,7 +30,7 @@ function Harness({
 }) {
   const [scope, setScope] = useState<EventSeriesScope>(initialScope)
   return (
-    <div className="max-w-md">
+    <div>
       <SeriesScopeField
         siblings={SIBLINGS}
         currentId="b"
@@ -47,6 +48,9 @@ function Harness({
 const meta = {
   title: 'features/edit-event/SeriesScopeField',
   component: Harness,
+  // Lives inside the edit/delete dialogs, so it is hosted at a dialog's content width, not the app
+  // column (ADR-0032 §4).
+  ...appDialog,
   args: { onScopeChange: fn() },
 } satisfies Meta<typeof Harness>
 
@@ -54,66 +58,92 @@ export default meta
 
 type Story = StoryObj<typeof meta>
 
-export const EditThis: Story = {
+// One gallery story (ADR-0032 §2): all six scope variants stacked — the edit/delete axis crossed
+// with THIS / THIS_AND_FOLLOWING / ALL — one snapshot, every branch asserted. Each variant starts
+// already at the scope it names (`initialScope`), so the picture needs no click to reach it.
+export const Gallery: Story = {
+  // Unused by render below — every Stack item supplies its own `variant`/`initialScope` — but
+  // required to satisfy the story's prop contract.
   args: { variant: 'edit', initialScope: 'THIS' },
+  render: (args) => (
+    <Stack
+      items={{
+        'Edit / This': <Harness {...args} variant="edit" initialScope="THIS" />,
+        'Edit / This & following': <Harness {...args} variant="edit" initialScope="THIS_AND_FOLLOWING" />,
+        'Edit / All': <Harness {...args} variant="edit" initialScope="ALL" />,
+        'Delete / This': <Harness {...args} variant="delete" initialScope="THIS" />,
+        'Delete / This & following': (
+          <Harness {...args} variant="delete" initialScope="THIS_AND_FOLLOWING" />
+        ),
+        'Delete / All': <Harness {...args} variant="delete" initialScope="ALL" />,
+      }}
+    />
+  ),
   play: async ({ canvas }) => {
-    await expect(canvas.getByText('Affects 1 of 4 events')).toBeInTheDocument()
-    await expect(canvas.getByRole('button', { name: 'This event' })).toHaveAttribute('aria-pressed', 'true')
-    await expect(canvas.getByText(/Splits the series into three/)).toBeInTheDocument()
+    const region = (name: string) => within(canvas.getByRole('region', { name }))
+
+    await expect(region('Edit / This').getByText('Affects 1 of 4 events')).toBeInTheDocument()
+    await expect(
+      region('Edit / This').getByRole('button', { name: 'This event' }),
+    ).toHaveAttribute('aria-pressed', 'true')
+    await expect(region('Edit / This').getByText(/Splits the series into three/)).toBeInTheDocument()
     // THIS keeps the date free, so no lock note.
-    await expect(canvas.queryByText(/keeps its own date/)).not.toBeInTheDocument()
-  },
-}
+    await expect(region('Edit / This').queryByText(/keeps its own date/)).not.toBeInTheDocument()
 
-export const EditThisAndFollowing: Story = {
-  args: { variant: 'edit', initialScope: 'THIS' },
-  play: async ({ canvas, userEvent, args }) => {
-    await userEvent.click(canvas.getByRole('button', { name: 'This & following' }))
-    // Prop-contract: picking a scope reports it up (the dialog persists it as the chosen scope).
-    await expect(args.onScopeChange).toHaveBeenCalledWith('THIS_AND_FOLLOWING')
-    await expect(canvas.getByText('Affects 3 of 4 events')).toBeInTheDocument()
-    await expect(canvas.getByRole('button', { name: 'This & following' })).toHaveAttribute('aria-pressed', 'true')
-    await expect(canvas.getByText(/Splits the series in two/)).toBeInTheDocument()
+    await expect(region('Edit / This & following').getByText('Affects 3 of 4 events')).toBeInTheDocument()
+    await expect(
+      region('Edit / This & following').getByRole('button', { name: 'This & following' }),
+    ).toHaveAttribute('aria-pressed', 'true')
+    await expect(
+      region('Edit / This & following').getByText(/Splits the series in two/),
+    ).toBeInTheDocument()
     // A bulk scope locks the per-occurrence date.
-    await expect(canvas.getByText(/keeps its own date/)).toBeInTheDocument()
-  },
-}
+    await expect(region('Edit / This & following').getByText(/keeps its own date/)).toBeInTheDocument()
 
-export const EditAll: Story = {
-  args: { variant: 'edit', initialScope: 'ALL' },
-  play: async ({ canvas }) => {
-    await expect(canvas.getByText('Affects 4 of 4 events')).toBeInTheDocument()
-    await expect(canvas.getByRole('button', { name: 'All events' })).toHaveAttribute('aria-pressed', 'true')
-    await expect(canvas.getByText(/No split/)).toBeInTheDocument()
-    await expect(canvas.getByText(/keeps its own date/)).toBeInTheDocument()
-  },
-}
+    await expect(region('Edit / All').getByText('Affects 4 of 4 events')).toBeInTheDocument()
+    await expect(
+      region('Edit / All').getByRole('button', { name: 'All events' }),
+    ).toHaveAttribute('aria-pressed', 'true')
+    await expect(region('Edit / All').getByText(/No split/)).toBeInTheDocument()
+    await expect(region('Edit / All').getByText(/keeps its own date/)).toBeInTheDocument()
 
-export const DeleteThis: Story = {
-  args: { variant: 'delete', initialScope: 'THIS' },
-  play: async ({ canvas }) => {
-    await expect(canvas.getByText('Removes 1 of 4 events')).toBeInTheDocument()
-    await expect(canvas.getByText(/Removes just this occurrence/)).toBeInTheDocument()
+    await expect(region('Delete / This').getByText('Removes 1 of 4 events')).toBeInTheDocument()
+    await expect(region('Delete / This').getByText(/Removes just this occurrence/)).toBeInTheDocument()
     // Delete never locks a date — that note is edit-only.
-    await expect(canvas.queryByText(/keeps its own date/)).not.toBeInTheDocument()
+    await expect(region('Delete / This').queryByText(/keeps its own date/)).not.toBeInTheDocument()
+
+    await expect(region('Delete / This & following').getByText('Removes 3 of 4 events')).toBeInTheDocument()
+    await expect(region('Delete / This & following').getByText(/every later one/)).toBeInTheDocument()
+
+    await expect(region('Delete / All').getByText('Removes 4 of 4 events')).toBeInTheDocument()
+    await expect(region('Delete / All').getByText(/Removes the entire series/)).toBeInTheDocument()
   },
 }
 
-export const DeleteThisAndFollowing: Story = {
-  args: { variant: 'delete', initialScope: 'THIS' },
+// Picture owned by Gallery — behavioural only (ADR-0032 §1). Two instances so the edit and delete
+// prop-contract (picking a scope reports it up) is proven for both variants; the resulting picture
+// is already Gallery's static "This & following" frame, so nothing here needs a snapshot.
+export const Interactions: Story = {
+  parameters: { chromatic: { disableSnapshot: true } },
+  // Unused by render below — every Stack item supplies its own `variant`/`initialScope` — but
+  // required to satisfy the story's prop contract.
+  args: { variant: 'edit', initialScope: 'THIS' },
+  render: (args) => (
+    <Stack
+      items={{
+        Edit: <Harness {...args} variant="edit" initialScope="THIS" />,
+        Delete: <Harness {...args} variant="delete" initialScope="THIS" />,
+      }}
+    />
+  ),
   play: async ({ canvas, userEvent, args }) => {
-    await userEvent.click(canvas.getByRole('button', { name: 'This & following' }))
-    // Same scope-report contract holds for the delete variant.
-    await expect(args.onScopeChange).toHaveBeenCalledWith('THIS_AND_FOLLOWING')
-    await expect(canvas.getByText('Removes 3 of 4 events')).toBeInTheDocument()
-    await expect(canvas.getByText(/every later one/)).toBeInTheDocument()
-  },
-}
+    const region = (name: string) => within(canvas.getByRole('region', { name }))
 
-export const DeleteAll: Story = {
-  args: { variant: 'delete', initialScope: 'ALL' },
-  play: async ({ canvas }) => {
-    await expect(canvas.getByText('Removes 4 of 4 events')).toBeInTheDocument()
-    await expect(canvas.getByText(/Removes the entire series/)).toBeInTheDocument()
+    await userEvent.click(region('Edit').getByRole('button', { name: 'This & following' }))
+    await expect(args.onScopeChange).toHaveBeenLastCalledWith('THIS_AND_FOLLOWING')
+
+    // Same scope-report contract holds for the delete variant.
+    await userEvent.click(region('Delete').getByRole('button', { name: 'This & following' }))
+    await expect(args.onScopeChange).toHaveBeenLastCalledWith('THIS_AND_FOLLOWING')
   },
 }

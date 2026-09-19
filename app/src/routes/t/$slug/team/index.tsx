@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { MemberRoster } from '@features/manage-members/ui/MemberRoster'
 import { GenerateInviteDialog } from '@features/generate-invite/ui/GenerateInviteDialog'
-import { TeamHeader } from '@widgets/team-header/ui/TeamHeader'
+import { TeamPageView } from '@pages/team/ui/TeamPageView'
 import { useUserStore } from '@shared/stores/user-store'
 
 // The team roster for every authenticated member — no admin gate (the root route already guarantees
@@ -17,9 +17,10 @@ function TeamPage() {
   const isAdmin = useUserStore((s) => s.role) === 'ADMIN'
 
   return (
-    <div className="flex flex-col gap-6">
-      <TeamHeader isAdmin={isAdmin} actions={<GenerateInviteDialog />} />
-      <MemberRoster canManage={false} />
-    </div>
+    <TeamPageView
+      isAdmin={isAdmin}
+      inviteAction={<GenerateInviteDialog />}
+      roster={<MemberRoster canManage={false} />}
+    />
   )
 }

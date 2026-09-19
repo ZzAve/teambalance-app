@@ -4,6 +4,21 @@ import { BulkAttendButtonView } from './BulkAttendButtonView'
 
 // The presentational half of Bulk Attend (ADR-0020). Every state is props-driven, so the whole
 // component renders with no network — the mutation and Undo toast live in the container.
+//
+// One gallery story (ADR-0032 §2): every variant side by side, one snapshot, every branch asserted.
+// `Interactions` (disableSnapshot) keeps the prop-contract spy: the tap actually reaches onAttend.
+const VARIANTS = {
+  // Nothing left to fill: the button hides entirely rather than showing a disabled "Attend 0".
+  hidden: { count: 0 },
+  withCount: { count: 3 },
+  // The label is the pre-tap confirmation, so a single event must not read "Attend 1 events".
+  singleEvent: { count: 1 },
+  // Filtered to one type: the label names it, so the scope is legible before the tap.
+  singleType: { count: 4, typeName: 'Training' },
+  // Disabled while the batch is in flight, so a double-tap can't fire it twice.
+  pending: { count: 3, isPending: true },
+}
+
 const meta = {
   title: 'features/bulk-attend/BulkAttendButtonView',
   component: BulkAttendButtonView,
@@ -14,48 +29,34 @@ export default meta
 
 type Story = StoryObj<typeof meta>
 
-// Nothing left to fill: the button hides entirely rather than showing a disabled "Attend 0".
-export const Hidden: Story = {
-  args: { count: 0 },
-  play: async ({ canvasElement }) => {
-    await expect(within(canvasElement).queryByRole('button')).not.toBeInTheDocument()
-  },
-}
-
-export const WithCount: Story = {
+export const Gallery: Story = {
+  render: (args) => (
+    <div className="flex flex-wrap items-center gap-4">
+      {Object.entries(VARIANTS).map(([name, props]) => (
+        <div key={name} data-testid={`variant-${name}`}>
+          <BulkAttendButtonView {...args} {...props} />
+        </div>
+      ))}
+    </div>
+  ),
   play: async ({ canvas }) => {
-    await expect(canvas.getByRole('button', { name: /Attend 3 events/ })).toBeInTheDocument()
-  },
-}
+    const variant = (name: keyof typeof VARIANTS) => within(canvas.getByTestId(`variant-${name}`))
 
-// The label is the pre-tap confirmation, so a single event must not read "Attend 1 events".
-export const SingleEvent: Story = {
-  args: { count: 1 },
-  play: async ({ canvas }) => {
+    await expect(variant('hidden').queryByRole('button')).not.toBeInTheDocument()
+
+    await expect(variant('withCount').getByRole('button', { name: /Attend 3 events/ })).toBeInTheDocument()
+
     // Singular noun, so the label never reads "Attend 1 events".
-    await expect(canvas.getByRole('button', { name: 'Attend 1 event' })).toBeInTheDocument()
+    await expect(variant('singleEvent').getByRole('button', { name: 'Attend 1 event' })).toBeInTheDocument()
+
+    await expect(variant('singleType').getByRole('button', { name: 'Attend 4 trainings' })).toBeInTheDocument()
+
+    await expect(variant('pending').getByRole('button', { name: /Attend 3 events/ })).toBeDisabled()
   },
 }
 
-// Filtered to one type: the label names it, so the scope is legible before the tap.
-export const SingleType: Story = {
-  args: { count: 4, typeName: 'Training' },
-  play: async ({ canvas }) => {
-    await expect(canvas.getByRole('button', { name: 'Attend 4 trainings' })).toBeInTheDocument()
-  },
-}
-
-export const Pending: Story = {
-  args: { isPending: true },
-  play: async ({ canvas }) => {
-    // Disabled while the batch is in flight, so a double-tap can't fire it twice.
-    await expect(canvas.getByRole('button', { name: /Attend 3 events/ })).toBeDisabled()
-  },
-}
-
-// Prop-contract spy: proves the tap actually reaches onAttend, not merely that the label renders.
-export const TapFiresOnAttend: Story = {
-  // Behavioural twin of WithCount — onAttend fires; the button picture is unchanged (ADR-0027 §2).
+// Picture owned by Gallery — behavioural only (ADR-0032 §1).
+export const Interactions: Story = {
   parameters: { chromatic: { disableSnapshot: true } },
   play: async ({ canvas, args, userEvent }) => {
     await userEvent.click(canvas.getByRole('button', { name: /Attend 3 events/ }))

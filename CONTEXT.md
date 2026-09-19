@@ -106,6 +106,19 @@ any-team, self-service (see [ADR-0001](docs/adr/0001-product-ambition-hobby-tool
   A total partition: every Event sits in exactly one band, which is what lets the events filter offer
   it as a dimension ([ADR-0029](docs/adr/0029-event-list-filters-partition-and-everything-follows-them.md)).
   _Avoid_: roster issue, readiness, needs attention.
+- **Calendar link** — A member's personal, unauthenticated **webcal** subscription URL for one Team's
+  Events: `…/api/calendar/{slug}/{token}.ics`, which a phone's calendar app polls hourly so the team's
+  schedule sits beside the rest of their week. Belongs to one (user, Team) membership and lives in the
+  **Tenant schema**. Created explicitly with an optional label, at most **three per Member per Team**
+  (expired ones counted), expires after **one year** with no renewal, and **delete** is the only other
+  action — your own only, with no admin view and no admin control, because it is a personal credential
+  rather than team data. The token is the whole credential: it is stored hashed for lookup and
+  encrypted for re-display (the ADR-0025 pattern), and the feed re-checks membership on every fetch, so
+  leaving the Team stops it. Carries only the subscriber's own **Attendance State** as a `✓`/`?`/`✗`
+  prefix — never a roster, attendees or teammate names. Blocked under **Act-as**
+  ([ADR-0032](docs/adr/0032-calendar-links-webcal-feed.md)). _Avoid_: calendar feed (that is what the
+  link *serves*), iCal link, calendar subscription, calendar token. Distinct from a **Reference** (an
+  admin's outbound link *on* an Event) and from **Magic/Invite Links**.
 - **Attendance Toggle** — The core daily interaction: a Member sets their state on an
   event. Editable by others today (trust-based) — see
   [ADR-0003](docs/adr/0003-trust-based-attendance-editing.md).

@@ -6,7 +6,6 @@ import type { Event } from '@shared/api/events'
 import { relativeEventLabel } from '../lib/relative-event-label'
 import { EventDateChit } from './EventDateChit'
 import { EventTypeBadge } from './EventTypeBadge'
-import { ReferenceChips } from './ReferenceChips'
 import { RelativeTimeLabel } from './RelativeTimeLabel'
 import { useTeamRoutes } from '@shared/lib/team-routes'
 import { EventAnswerRow } from './EventAnswerRow'
@@ -61,8 +60,8 @@ export function EventCard({
 
   return (
     // Stretched-link pattern: the card itself is not an anchor. The title <Link> carries an
-    // after:inset-0 overlay that makes the whole card clickable, so the reference chips can be
-    // sibling anchors rather than nested ones (an <a> inside the card's <a> is invalid HTML).
+    // after:inset-0 overlay that makes the whole card clickable, so the answer row's controls can
+    // sit above it as siblings rather than nested inside an <a>.
     <Card
       style={{ animationDelay: `${index * 60}ms` }}
       className="card-enter card-shadow relative p-3.5 transition-[box-shadow] hover:card-shadow-hover motion-reduce:transition-none"
@@ -99,11 +98,10 @@ export function EventCard({
             )}
           </div>
 
-          {/* Reference chips — up to 2, then "+N" */}
-          {event.references.length > 0 && (
-            <div className="mt-2">
-              <ReferenceChips references={event.references} max={2} />
-            </div>
+          {/* Description, clamped so a long one cannot stretch the card. The references are not on
+              the card: a link is a destination competing with the card's own — see the detail page. */}
+          {event.description && (
+            <p className="mt-1.5 line-clamp-2 text-small text-muted-foreground">{event.description}</p>
           )}
         </div>
       </div>

@@ -15,7 +15,7 @@ import { EventCard } from './EventCard'
 //
 // Two stories (ADR-0032 §2): `Gallery` stacks every visually distinct card — populated, answered,
 // the three relative-label bands, a social (headcount fallback), the roster verdict open onto its
-// pips (via `defaultRosterOpen`, no click needed for a static picture), staff attending, references
+// pips (via `defaultRosterOpen`, no click needed for a static picture), staff attending, description
 // and location — one snapshot, no clicks (a click's end state would become *that* frame's baseline).
 // `Interactions` is `disableSnapshot` and walks every click this file used to spend a whole story on:
 // opening a disclosure, the hit-area geometry (#324), and the thumb-size floor, plus the `onRespond`
@@ -134,16 +134,15 @@ export const Gallery: Story = {
             })}
           />
         ),
-        'With references': (
+        // The description is on the card; the references are not — a link is a destination competing
+        // with the card's own, like the location's maps link. Both live on the detail page.
+        'With description': (
           <EventCard
             {...args}
             event={makeEvent({
               startTime: on(13),
-              references: [
-                { title: 'Nevobo', url: 'https://api.nevobo.nl/permalink/wedstrijd/2018133' },
-                { title: 'Match form', url: 'https://dwf.volleybal.nl/match/42' },
-                { title: 'Route', url: 'https://maps.example.com/hall' },
-              ],
+              description: 'Bring both kits — we warm up in the small hall.',
+              references: [{ title: 'Nevobo', url: 'https://api.nevobo.nl/permalink/wedstrijd/2018133' }],
             })}
           />
         ),
@@ -197,22 +196,14 @@ export const Gallery: Story = {
     await expect(region('Staff attending').getByText('1 more needed')).toBeInTheDocument()
     await expect(region('Staff attending').getByText(PANEL_TEXT)).toBeInTheDocument()
 
-    // Two chips visible on the card, the third collapsed into "+1".
-    await expect(region('With references').getByRole('link', { name: /Nevobo/ })).toBeInTheDocument()
-    await expect(region('With references').getByRole('link', { name: /Match form/ })).toBeInTheDocument()
-    await expect(region('With references').getByText('+1')).toBeInTheDocument()
-    // Chips are siblings of (not nested in) the card's own <Link> anchor — no invalid <a> in <a>.
     await expect(
-      canvas.getByRole('region', { name: 'With references' }).querySelectorAll('a a'),
-    ).toHaveLength(0)
+      region('With description').getByText('Bring both kits — we warm up in the small hall.'),
+    ).toBeInTheDocument()
+    await expect(region('With description').queryByRole('link', { name: /Nevobo/ })).not.toBeInTheDocument()
 
     await expect(region('With location').getByText('Sporthal De Boog')).toBeInTheDocument()
     const locationRegion = canvas.getByRole('region', { name: 'With location' })
     await expect(locationRegion.querySelectorAll('a[href*="maps.google.com"]')).toHaveLength(0)
-    // Reference chips are still sibling anchors of the card's own <Link>, never nested inside it
-    // (invalid HTML — the "<a> cannot contain a nested <a>" warning, #273); the card stays clickable
-    // via a stretched-link overlay.
-    await expect(locationRegion.querySelectorAll('a a')).toHaveLength(0)
   },
 }
 

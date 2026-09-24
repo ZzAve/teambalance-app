@@ -8,6 +8,17 @@ import { Link } from '@tanstack/react-router'
  */
 export const APP_COLUMN = 'mx-auto max-w-2xl px-4'
 
+/**
+ * Spread onto a page's root element to opt that page out of the centred phone column from `lg` up
+ * (ADR-0033): `<div {...WIDE_COLUMN}>`. The frame reads it with `:has()` rather than taking a prop,
+ * because the frame is rendered once by the root route around an `<Outlet/>` and never learns which
+ * page is inside it — a prop would have to be threaded back out through the router.
+ *
+ * It only lifts the cap. What a page does with the extra room is the page's own business, and a
+ * page that keeps a single column is still capped at `max-w-2xl` by its own content.
+ */
+export const WIDE_COLUMN = { 'data-wide-column': '' } as const
+
 interface AppShellFrameProps {
   /** Top-right identity slot — the live TeamSwitcher in the app, a prop-only view in a story. */
   teamSwitcher: ReactNode
@@ -49,7 +60,12 @@ export function AppShellFrame({ teamSwitcher, banner, nav, children }: AppShellF
       {banner}
       {/* Bottom padding clears the fixed nav (~6rem) plus the home-indicator inset, so the last
           row of content is never hidden behind the bar on notched devices. */}
-      <main className={`${APP_COLUMN} py-6 pb-[calc(6rem+env(safe-area-inset-bottom))]`}>
+      {/* `lg:has-[[data-wide-column]]` is the one per-page override (ADR-0033): a page that spreads
+          WIDE_COLUMN on its root widens this cap from 42rem to 66rem at `lg`, which is 64rem of
+          content beside the 1rem edge padding. Below `lg` every page is the same centred column. */}
+      <main
+        className={`${APP_COLUMN} py-6 pb-[calc(6rem+env(safe-area-inset-bottom))] lg:has-[[data-wide-column]]:max-w-[66rem]`}
+      >
         {children}
       </main>
       {nav}

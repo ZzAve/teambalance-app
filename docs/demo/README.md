@@ -10,6 +10,7 @@ JDK — and, more usefully, never drifts with the seed data.
 | `dark-mode.steps.mjs` | A look around, then light → dark → system (#159) |
 | `filter-preferences.steps.mjs` | The events list remembering its filters, per team (#325, ADR-0030) |
 | `event-panel.steps.mjs` | The card's panel: roster pips or the member list, and Keep open (#326, ADR-0030) |
+| `events-rail.steps.mjs` | The events page splitting into a left rail from `lg` up (#352, ADR-0033) |
 
 Each steps module's docstring carries its own exact commands. The `.mp4` output is gitignored on
 purpose — share it on the PR, don't commit it.

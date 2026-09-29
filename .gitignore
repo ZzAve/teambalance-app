@@ -38,3 +38,6 @@ app/src/shared/api/generated/
 app/src/**/*.js
 *.tsbuildinfo
 docs/plans
+
+# Local scratch
+tmp/

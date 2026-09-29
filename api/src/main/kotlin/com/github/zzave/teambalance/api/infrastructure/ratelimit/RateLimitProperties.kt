@@ -9,7 +9,7 @@ import java.time.Duration
  *
  * Defaults are conservative for the pre-auth surface (a human clicking "email me a link" rarely
  * needs more than a handful of tries a minute) and looser for the authenticated `accept` path.
- * See ADR-0020 for why this is an in-memory, per-instance limiter rather than a Redis-backed one.
+ * See ADR-0033 for why this is an in-memory, per-instance limiter rather than a Redis-backed one.
  */
 @ConfigurationProperties(prefix = "teambalance.rate-limit")
 data class RateLimitProperties(

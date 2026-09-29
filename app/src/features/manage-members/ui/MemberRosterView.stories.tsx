@@ -202,7 +202,7 @@ export const Shells: Story = {
 
 // The open-dialog frame: the populated confirm dialog is what an admin actually reads before a
 // destructive action. Opened and left open — Interactions below confirms it, so this is the only
-// place the dialog carries a baseline (ADR-0027 §2).
+// place the dialog carries a baseline (ADR-0035 §2).
 export const RemoveConfirmOpen: Story = {
   play: async ({ canvas, userEvent }) => {
     // Alan Turing is the third row; opening his ⋯ menu and choosing Remove… opens the confirm

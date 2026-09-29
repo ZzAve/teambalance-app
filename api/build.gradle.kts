@@ -57,7 +57,7 @@ dependencies {
     implementation("com.github.ben-manes.caffeine:caffeine")
 
     // Rate limiting — in-memory token-bucket algorithm (no external store). The jdk17 line is the
-    // maintained Bucket4j artifact; buckets are held per-key in the Caffeine cache above. See ADR-0020.
+    // maintained Bucket4j artifact; buckets are held per-key in the Caffeine cache above. See ADR-0033.
     val bucket4jVersion: String by project
     implementation("com.bucket4j:bucket4j_jdk17-core:$bucket4jVersion")
 

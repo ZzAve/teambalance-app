@@ -39,6 +39,14 @@ any-team, self-service (see [ADR-0001](docs/adr/0001-product-ambition-hobby-tool
   amending [ADR-0009](docs/adr/0009-attendance-model-roles-in-audience-deferred.md)).
   _Avoid_: role, team_role.
 - **Unassigned** — The bucket in the attendance summary for Members with no **Position**.
+- **Substitute** — A person outside the Team whom the Team keeps on a reusable list and can call in
+  for a specific Event. Not a **Member**: not on the **Roster**, no **Role**, no account, and never
+  expected to respond. Appears on an Event only once someone adds them, and from then on carries an
+  **Attendance State** like anyone else, so "asked" (Maybe) is distinguishable from "confirmed" (Attending).
+  Has at most one **Position**. Any Member may add one to an Event; the list itself is kept by Admins.
+  Taking a Substitute off the list removes them from every Event, past ones included, the same as a
+  departed Member.
+  _Avoid_: guest, reserve, invaller, substitute member.
 - **Admin** — A Member whose **Role** is Admin: CRUD events, manage members, manage
   positions, promote/demote other members, configure integrations. Contrast with a plain
   **User**.
@@ -90,10 +98,12 @@ any-team, self-service (see [ADR-0001](docs/adr/0001-product-ambition-hobby-tool
   Member who joins after the Event appears as Not Responded and a departed Member drops out,
   even if they once responded (per [ADR-0009](docs/adr/0009-attendance-model-roles-in-audience-deferred.md)).
   The summary counts, the roster, and the attending-**Position** breakdown are all views of
-  this one picture. _Avoid_: attendance list, attendance snapshot.
+  this one picture. **Substitutes** added to the Event are part of it too, but never count toward
+  the expected total and are never Not Responded. _Avoid_: attendance list, attendance snapshot.
 - **Event Roster** — Whether an Event has *enough* of the right people, as opposed to who answered
   what (**Event Attendance**). Computed server-side into one **Roster State** so the arithmetic has a
   single tested home. Distinct from a Team's **Roster** — this one is about a single Event's fill.
+  An attending **Substitute** fills a spot exactly like an attending Member.
   _Avoid_: lineup (that is one Roster State), readiness, roster status.
 - **Roster State** — The Event Roster's verdict, one of seven: `CRITICAL` (a targeted **Position** has
   nobody), `SPOTS_OPEN` (a targeted Position is short but not empty), `LINEUP_SET` (every targeted

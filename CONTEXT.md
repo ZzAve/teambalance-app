@@ -39,6 +39,11 @@ any-team, self-service (see [ADR-0001](docs/adr/0001-product-ambition-hobby-tool
   amending [ADR-0009](docs/adr/0009-attendance-model-roles-in-audience-deferred.md)).
   _Avoid_: role, team_role.
 - **Unassigned** — The bucket in the attendance summary for Members with no **Position**.
+- **Substitute** — A person outside the Team whom the Team keeps on a reusable list and can call in
+  for a specific Event. Not a **Member**: not on the **Roster**, no **Role**, no account, and never
+  expected to respond. Appears on an Event only once someone adds them, and from then on carries an
+  **Attendance State** like anyone else, so "asked" (Maybe) is distinguishable from "confirmed" (Attending).
+  _Avoid_: guest, reserve, invaller, substitute member.
 - **Admin** — A Member whose **Role** is Admin: CRUD events, manage members, manage
   positions, promote/demote other members, configure integrations. Contrast with a plain
   **User**.

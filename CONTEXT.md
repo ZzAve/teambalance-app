@@ -44,7 +44,8 @@ any-team, self-service (see [ADR-0001](docs/adr/0001-product-ambition-hobby-tool
   expected to respond. Appears on an Event only once someone adds them, and from then on carries an
   **Attendance State** like anyone else, so "asked" (Maybe) is distinguishable from "confirmed" (Attending).
   Has at most one **Position**. Any Member may add one to an Event; the list itself is kept by Admins.
-  Taking a Substitute off the list does not erase the Events they already appeared on.
+  Taking a Substitute off the list removes them from every Event, past ones included, the same as a
+  departed Member.
   _Avoid_: guest, reserve, invaller, substitute member.
 - **Admin** — A Member whose **Role** is Admin: CRUD events, manage members, manage
   positions, promote/demote other members, configure integrations. Contrast with a plain

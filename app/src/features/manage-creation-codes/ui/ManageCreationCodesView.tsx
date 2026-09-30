@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import type { CreationCode } from '@shared/api/creation-codes'
 import { Button } from '@shared/ui/button'
-import { ConfirmDialog } from '@shared/ui/confirm-dialog'
+import { ConfirmDialog } from '@shared/ui/ConfirmDialog'
 import { creationCodeStatusLabel, deriveCreationCodeStatus, type CreationCodeStatus } from '../lib/creation-code-status'
 
 interface ManageCreationCodesViewProps {

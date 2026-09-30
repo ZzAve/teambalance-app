@@ -135,7 +135,9 @@ export const ArchiveDialogOpen: Story = {
   play: async ({ canvas, userEvent, args }) => {
     await userEvent.click(canvas.getByLabelText('Actions for Match'))
     const portal = within(document.body)
-    await userEvent.click(await portal.findByRole('menuitem', { name: 'Archive…' }))
+    const archiveItem = await portal.findByRole('menuitem', { name: 'Archive…' })
+    await expect(archiveItem).not.toHaveAttribute('data-tone', 'destructive')
+    await userEvent.click(archiveItem)
     await expect(await portal.findByText('Archive "Match"?')).toBeInTheDocument()
     // Says plainly that no event is deleted — the fear this dialog has to answer.
     await expect(portal.getByText(/no event is deleted/i)).toBeInTheDocument()

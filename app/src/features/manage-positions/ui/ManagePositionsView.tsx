@@ -2,7 +2,7 @@ import { useState } from 'react'
 import type { Position, PositionKind, PositionUsage } from '@shared/api/positions'
 import { Button } from '@shared/ui/button'
 import { Input } from '@shared/ui/input'
-import { ConfirmDialog } from '@shared/ui/confirm-dialog'
+import { ConfirmDialog } from '@shared/ui/ConfirmDialog'
 import {
   DropdownMenu,
   DropdownMenuContent,

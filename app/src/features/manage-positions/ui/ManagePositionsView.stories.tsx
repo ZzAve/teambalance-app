@@ -181,7 +181,9 @@ export const Interactions: Story = {
     // Confirming the blast-radius dialog fires the delete and closes it. Reached via the ⋯ menu;
     // Delete… itself carries the red destructive treatment.
     await userEvent.click(region('Positions').getByLabelText('Actions for Setter'))
-    await userEvent.click(await portal.findByRole('menuitem', { name: 'Delete…' }))
+    const deleteItem = await portal.findByRole('menuitem', { name: 'Delete…' })
+    await expect(deleteItem).toHaveAttribute('data-tone', 'destructive')
+    await userEvent.click(deleteItem)
     await expect(await portal.findByText(/3 members become Unassigned/)).toBeInTheDocument()
     await userEvent.click(portal.getByRole('button', { name: 'Delete' }))
     await expect(args.onDelete).toHaveBeenCalledWith(POSITIONS[0])

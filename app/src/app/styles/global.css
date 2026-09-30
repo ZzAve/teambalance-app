@@ -43,6 +43,8 @@
      say bg-red/text-red/border-red instead of reaching for Tailwind's own default red (#EF4444),
      which is not ours (F9, #159). Keep in sync with design-tokens/tokens.css, like the three above. */
   --color-red: #D93025;
+  /* Substitutes' colour (ADR-0033): the tag, the dashed avatar and the "+ N substitutes" line. */
+  --color-purple: #7B5EA7;
   /* The `-dark` ramps of the same three hues, promoted from design-tokens/tokens.css. Tailwind 4
      generates a utility only for what @theme declares, so `text-green-dark` silently produced
      nothing before this. The roster panel (#219) needs the full triple per hue: the plain hue as a

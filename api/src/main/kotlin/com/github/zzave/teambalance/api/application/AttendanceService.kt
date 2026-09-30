@@ -11,6 +11,7 @@ import com.github.zzave.teambalance.api.domain.model.TeamMember
 import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.port.AttendanceRepository
 import com.github.zzave.teambalance.api.domain.port.EventRepository
+import com.github.zzave.teambalance.api.domain.port.SubstituteRepository
 import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
 import java.time.Clock
 import java.util.UUID
@@ -19,6 +20,7 @@ class AttendanceService(
     private val attendanceRepository: AttendanceRepository,
     private val eventRepository: EventRepository,
     private val teamMemberRepository: TeamMemberRepository,
+    private val substituteRepository: SubstituteRepository,
     private val authorizationService: AuthorizationService,
     private val clock: Clock,
 ) {
@@ -129,15 +131,22 @@ class AttendanceService(
 
     /** The resolved attendance picture for one event — its response rows fetched once. */
     fun attendanceFor(eventId: EventId, members: List<TeamMember>): EventAttendance =
-        EventAttendance.resolve(members, attendanceRepository.findByEventId(eventId))
+        EventAttendance.resolve(
+            members,
+            attendanceRepository.findByEventId(eventId),
+            substituteRepository.findAttendanceByEventIds(listOf(eventId))[eventId].orEmpty(),
+        )
 
     /**
-     * The resolved picture for many events, keyed by event id, from a single response-row query —
-     * kills the per-event N+1 when producing a listing.
+     * The resolved picture for many events, keyed by event id, from a single response-row query and a
+     * single Substitute query — kills the per-event N+1 when producing a listing.
      */
     fun attendanceForAll(eventIds: List<EventId>, members: List<TeamMember>): Map<EventId, EventAttendance> {
         val responsesByEvent = attendanceRepository.findByEventIds(eventIds).groupBy { it.eventId }
-        return eventIds.associateWith { EventAttendance.resolve(members, responsesByEvent[it] ?: emptyList()) }
+        val substitutesByEvent = substituteRepository.findAttendanceByEventIds(eventIds)
+        return eventIds.associateWith {
+            EventAttendance.resolve(members, responsesByEvent[it].orEmpty(), substitutesByEvent[it].orEmpty())
+        }
     }
 
     fun findMember(userId: UserId): TeamMember? =

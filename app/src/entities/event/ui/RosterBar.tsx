@@ -82,6 +82,13 @@ export function RosterBar({ roster }: RosterBarProps) {
         </div>
       )}
 
+      {/* Substitutes are already inside the counts above; this names them (ADR-0033). */}
+      {roster.substituteAttending > 0 && (
+        <p className="mt-1.5 text-caption font-semibold text-purple">
+          + {roster.substituteAttending} substitute{roster.substituteAttending === 1 ? '' : 's'}
+        </p>
+      )}
+
 
     </div>
   )

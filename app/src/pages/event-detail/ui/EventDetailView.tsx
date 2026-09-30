@@ -16,6 +16,7 @@ import type { SeriesPeek as SeriesPeekModel } from '@entities/event/lib/series-p
 import { AttendeeList } from '@widgets/attendee-list/ui/AttendeeList'
 import { PageHeader } from '@widgets/page-header/ui/PageHeader'
 import { AttendanceToggle, type AttendanceState } from '@features/attendance-toggle/ui/AttendanceToggle'
+import { SubstitutesBlock, type SubstituteState } from '@features/call-in-substitutes/ui/SubstitutesBlock'
 
 interface EventDetailViewProps {
   isLoading?: boolean
@@ -33,6 +34,10 @@ interface EventDetailViewProps {
   onToggleMine: (state: AttendanceState) => void
   /** Any row in the list, the viewer's included — a teammate's change raises the Undo toast upstream. */
   onRespond: (userId: string, state: AttendanceState) => void
+  /** Any Member changing a Substitute's state on this event (ADR-0033). */
+  onSetSubstituteState: (substituteId: string, state: SubstituteState) => void
+  /** Opens the picker for calling Substitutes in. */
+  onCallInSubstitutes: () => void
   seriesPeek: SeriesPeekModel | null
   /** Scoped series edit/delete (ADR-0014 Phase 3); absent for members. */
   adminActions?: ReactNode
@@ -56,6 +61,8 @@ export function EventDetailView({
   isPending = false,
   onToggleMine,
   onRespond,
+  onSetSubstituteState,
+  onCallInSubstitutes,
   seriesPeek,
   adminActions,
 }: EventDetailViewProps) {
@@ -178,6 +185,14 @@ export function EventDetailView({
           pending={isPending}
         />
       </div>
+
+      {/* Substitutes — directly under the Position groups (ADR-0033). */}
+      <SubstitutesBlock
+        substitutes={event.substitutes}
+        onSetState={onSetSubstituteState}
+        onCallIn={onCallInSubstitutes}
+        pending={isPending}
+      />
 
       {/* Part of a series peek */}
       {seriesPeek && <SeriesPeek peek={seriesPeek} />}

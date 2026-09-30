@@ -3,6 +3,7 @@ package com.github.zzave.teambalance.api.domain.exception
 import com.github.zzave.teambalance.api.domain.model.EventId
 import com.github.zzave.teambalance.api.domain.model.EventTypeId
 import com.github.zzave.teambalance.api.domain.model.PositionId
+import com.github.zzave.teambalance.api.domain.model.SubstituteId
 import com.github.zzave.teambalance.api.domain.model.TeamId
 import com.github.zzave.teambalance.api.domain.model.UserId
 import java.util.UUID
@@ -44,6 +45,8 @@ class EventTypeNotFoundException(id: EventTypeId) : NotFoundException("EventType
 class MemberNotFoundException(userId: UserId) : NotFoundException("Member not found: $userId")
 
 class PositionNotFoundException(id: PositionId) : NotFoundException("Position not found: $id")
+
+class SubstituteNotFoundException(id: SubstituteId) : NotFoundException("Substitute not found: $id")
 
 // The codes-admin CRUD (#154 Slice 4) targets a code that does not exist → 404. Distinct from the
 // opaque INVALID_CREATION_CODE 403 the redeem path returns: this is an authenticated platform admin

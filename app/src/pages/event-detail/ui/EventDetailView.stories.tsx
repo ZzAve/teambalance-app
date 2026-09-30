@@ -3,7 +3,7 @@ import { Pencil, Trash2 } from 'lucide-react'
 import { expect, fn, within } from 'storybook/test'
 import type { EventDetail } from '@shared/api/events'
 import { Button } from '@shared/ui/button'
-import { makeAttendee, makeEvent, makeRoster, NO_ROSTER } from '@shared/testing/event-fixtures'
+import { makeAttendee, makeEvent, makeRoster, makeSubstitute, NO_ROSTER } from '@shared/testing/event-fixtures'
 import { Stack } from '@shared/testing/stack'
 import { buildSeriesPeek } from '@entities/event/lib/series-peek'
 import { appShell, SHELL_ROUTES } from '../../../../.storybook/app-shell-decorator'
@@ -48,8 +48,13 @@ const EVENT: EventDetail = makeEvent({
   ],
   recurringGroup: SERIES,
   attendances: TEAM,
+  // One called in and confirmed, one only asked (ADR-0033).
+  substitutes: [
+    makeSubstitute('sub-1', 'Jan de Vries', { position: { id: 'pos-libero', label: 'Libero' } }),
+    makeSubstitute('sub-2', 'Mila Jansen', { state: 'MAYBE' }),
+  ],
   myState: 'ATTENDING',
-  roster: makeRoster(),
+  roster: makeRoster({ substituteAttending: 1 }),
 })
 
 const SOCIAL: EventDetail = makeEvent({
@@ -105,6 +110,8 @@ const meta = {
     onRetry: fn(),
     onToggleMine: fn(),
     onRespond: fn(),
+    onSetSubstituteState: fn(),
+    onCallInSubstitutes: fn(),
   },
 } satisfies Meta<typeof EventDetailView>
 
@@ -132,6 +139,13 @@ export const Data: Story = {
     for (const name of ['Julius', 'Sanne', 'Lars', 'Sofia', 'Tim', 'Noor']) {
       await expect(canvas.getByText(name)).toBeInTheDocument()
     }
+    // Substitutes fill spots but are named apart from the Members going (ADR-0033).
+    await expect(canvas.getByText('+ 1 substitute')).toBeInTheDocument()
+    const block = canvas.getByRole('region', { name: 'Substitutes' })
+    await expect(block).toHaveTextContent('1 going · 1 asked')
+    const substitutes = within(block)
+    await expect(substitutes.getByText('Jan de Vries')).toBeInTheDocument()
+    await expect(substitutes.getByText('Mila Jansen')).toBeInTheDocument()
     await expect(canvas.getByRole('button', { name: 'Edit event' })).toBeInTheDocument()
     await expect(canvas.getByRole('button', { name: 'Delete' })).toBeInTheDocument()
     // The shell around it: the Events tab stays current on a detail route under it.
@@ -202,6 +216,13 @@ export const Interactions: Story = {
     await expect(sheet.getByText(/Middle · currently maybe · you are answering for them/)).toBeInTheDocument()
     await userEvent.click(sheet.getByRole('button', { name: "Can't go" }))
     await expect(args.onRespond).toHaveBeenCalledWith('u-4', 'ABSENT')
+
+    // Any Member moves a Substitute from asked to going inline, and calls more in (ADR-0033).
+    const substitutes = within(page.getByRole('region', { name: 'Substitutes' }))
+    await userEvent.click(within(substitutes.getByRole('group', { name: 'Mila Jansen' })).getByRole('button', { name: 'Going' }))
+    await expect(args.onSetSubstituteState).toHaveBeenCalledWith('sub-2', 'ATTENDING')
+    await userEvent.click(substitutes.getByRole('button', { name: 'Call in substitutes' }))
+    await expect(args.onCallInSubstitutes).toHaveBeenCalled()
 
     // The error shell's retry reaches the query.
     await userEvent.click(region('Error').getByRole('button', { name: /try again|retry/i }))

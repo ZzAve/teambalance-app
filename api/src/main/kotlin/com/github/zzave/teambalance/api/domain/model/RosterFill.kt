@@ -91,6 +91,8 @@ data class RosterFill(
     val playingAttending: AttendingCount,
     /** Coming, shown in their own row, and deliberately counted toward no headcount (#281). */
     val staffAttending: AttendingCount,
+    /** How many of [totalAttending] are Substitutes (ADR-0033): the Roster bar's "+ N substitutes". */
+    val substituteAttending: AttendingCount,
     val positions: List<RosterPositionFill>,
     val unassignedAttending: AttendingCount,
     val openSlots: OpenSlots,
@@ -110,11 +112,15 @@ data class RosterFill(
          * Rows are the positions that have a target OR at least one attendee. An untargeted, empty
          * position is omitted rather than rendered as `0/—`, which is what keeps the panel from
          * becoming a wall of zeroes on a team with a long vocabulary.
+         *
+         * Attending Substitutes are already inside [attendingByPosition], so they fill spots like
+         * anyone else; [substituteAttending] only says how many of them there are.
          */
         fun of(
             requirement: RosterRequirement,
             attendingByPosition: Map<PositionId?, Int>,
             positions: List<Position>,
+            substituteAttending: Int,
         ): RosterFill {
             val totalAttending = attendingByPosition.values.sum()
             val unassigned = attendingByPosition[null] ?: 0
@@ -129,6 +135,7 @@ data class RosterFill(
                     totalAttending = AttendingCount(totalAttending),
                     playingAttending = AttendingCount(totalAttending),
                     staffAttending = AttendingCount(0),
+                    substituteAttending = AttendingCount(substituteAttending),
                     positions = emptyList(),
                     unassignedAttending = AttendingCount(unassigned),
                     openSlots = OpenSlots(0),
@@ -168,6 +175,7 @@ data class RosterFill(
                 totalAttending = AttendingCount(totalAttending),
                 playingAttending = AttendingCount(playingAttending),
                 staffAttending = AttendingCount(staffAttending),
+                substituteAttending = AttendingCount(substituteAttending),
                 positions = rows,
                 unassignedAttending = AttendingCount(unassigned),
                 openSlots = OpenSlots(openSlots),

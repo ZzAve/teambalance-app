@@ -16,34 +16,3 @@ allprojects {
         mavenCentral()
     }
 }
-
-// Installs the committed git hooks (.githooks) into the repository's hooks dir
-// so the pre-commit gate is enforced for every contributor. The destination is 
-// resolved via `git rev-parse --git-path hooks` rather than
-// hardcoded to `.git/hooks` to support worktrees
-val resolvedHooksDir: String = runCatching {
-    providers.exec {
-        isIgnoreExitValue = true
-        workingDir = layout.projectDirectory.asFile
-        commandLine("git", "rev-parse", "--git-path", "hooks")
-    }.standardOutput.asText.get().trim()
-}.getOrDefault("")
-
-// Blank output means not a git repo (git present, non-zero exit) or no git
-// binary at all (process fails to start → runCatching yields ""), e.g. the
-// Docker/source-archive build. Either way, skip wiring the task entirely
-// rather than fabricating a `.git` dir.
-if (resolvedHooksDir.isNotBlank()) {
-    val installGitHooks by tasks.registering(Copy::class) {
-        description = "Installs git hooks from .githooks into the git-resolved hooks dir"
-        group = "git hooks"
-        from(layout.projectDirectory.dir(".githooks"))
-        into(resolvedHooksDir)
-        filePermissions { unix("0755") }
-    }
-
-    // Auto-install whenever anything is built, mirroring husky's `prepare` step.
-    subprojects {
-        tasks.matching { it.name == "build" }.configureEach { dependsOn(installGitHooks) }
-    }
-}

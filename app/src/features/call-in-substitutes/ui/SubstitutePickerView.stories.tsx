@@ -3,9 +3,10 @@ import { expect, fn, within } from 'storybook/test'
 import { makeSubstitute } from '@shared/testing/event-fixtures'
 import { SubstitutePickerView } from './SubstitutePickerView'
 
-// The picker for calling Substitutes in (ADR-0033). A sheet, so the event-page composite never shows
-// it open and this View owns its own picture. Three stories (ADR-0032 §1): Data is the Team's list
-// with people in each state, Shells the Team with nobody on the list yet, Interactions every spy.
+// The picker for calling Substitutes in (ADR-0033). A sheet, so no page composite shows it open and
+// this View owns its own picture. Three stories (ADR-0032 §1): Data is the picker opened for one
+// Position, with the people who play it first and people in each state; Shells the unfiltered picker
+// with nobody on the list yet; Interactions every spy, from a Position's open spot.
 const POSITIONS = [
   { id: 'pos-setter', label: 'Setter' },
   { id: 'pos-libero', label: 'Libero' },
@@ -46,8 +47,18 @@ export default meta
 type Story = StoryObj<typeof meta>
 
 export const Data: Story = {
+  args: { position: LIBERO },
   play: async () => {
-    const sheet = within(await within(document.body).findByRole('dialog', { name: 'Call in substitutes' }))
+    const sheet = within(await within(document.body).findByRole('dialog', { name: 'Find a Libero' }))
+    // Who plays the Position comes first, the rest after (#359 decision 9).
+    const plays = within(sheet.getByRole('group', { name: 'Plays Libero' }))
+    await expect(plays.getAllByRole('group').map((g) => g.getAttribute('aria-label'))).toEqual(['Jan de Vries'])
+    const others = within(sheet.getByRole('group', { name: 'Others' }))
+    await expect(others.getAllByRole('group').map((g) => g.getAttribute('aria-label'))).toEqual([
+      'Mila Jansen',
+      'Kees Bakker',
+      'Pieter Smit',
+    ])
     const jan = within(sheet.getByRole('group', { name: 'Jan de Vries' }))
     await expect(jan.getByRole('button', { name: 'Going' })).toHaveAttribute('aria-pressed', 'true')
     await expect(jan.getByText('Libero')).toBeInTheDocument()
@@ -64,21 +75,23 @@ export const Data: Story = {
   },
 }
 
-// Nobody on the list yet: the only way forward is a new one.
+// Opened without a Position, and nobody on the list yet: the only way forward is a new one.
 export const Shells: Story = {
   args: { substitutes: [], onEvent: [] },
   play: async () => {
     const sheet = within(await within(document.body).findByRole('dialog', { name: 'Call in substitutes' }))
     await expect(sheet.getByText('Nobody on the list yet.')).toBeInTheDocument()
+    await expect(sheet.queryByRole('group', { name: 'Others' })).not.toBeInTheDocument()
     await expect(sheet.getByRole('button', { name: /New substitute/ })).toBeInTheDocument()
   },
 }
 
 // Picture owned by Data — behavioural only (ADR-0032 §1).
 export const Interactions: Story = {
+  args: { position: LIBERO },
   parameters: { chromatic: { disableSnapshot: true } },
   play: async ({ userEvent, args }) => {
-    const sheet = within(await within(document.body).findByRole('dialog', { name: 'Call in substitutes' }))
+    const sheet = within(await within(document.body).findByRole('dialog', { name: 'Find a Libero' }))
 
     // Several people can be called in before Done: one confirmed, one only asked.
     await userEvent.click(within(sheet.getByRole('group', { name: 'Kees Bakker' })).getByRole('button', { name: 'Going' }))
@@ -89,14 +102,22 @@ export const Interactions: Story = {
     await userEvent.click(within(sheet.getByRole('group', { name: 'Mila Jansen' })).getByRole('button', { name: "Can't" }))
     await expect(args.onSetState).toHaveBeenCalledWith('sub-2', 'ABSENT')
 
-    // Someone not on the list yet: a name and an optional Position, added as Asked.
+    // Someone not on the list yet: a name and an optional Position, added as Asked. Opened for
+    // Libero, so Libero is already chosen.
     await userEvent.click(sheet.getByRole('button', { name: /New substitute/ }))
     const add = sheet.getByRole('button', { name: 'Add as asked' })
     await expect(add).toBeDisabled()
-    await userEvent.type(sheet.getByLabelText('Name'), 'Pieter Smit')
-    await userEvent.click(sheet.getByRole('button', { name: 'Libero' }))
+    await expect(sheet.getByRole('button', { name: 'Libero' })).toHaveAttribute('aria-pressed', 'true')
+    await userEvent.type(sheet.getByLabelText('Name'), 'Anouk de Boer')
     await userEvent.click(add)
-    await expect(args.onCreate).toHaveBeenCalledWith('Pieter Smit', 'pos-libero')
+    await expect(args.onCreate).toHaveBeenCalledWith('Anouk de Boer', 'pos-libero')
+
+    // The picker stays open for the next one, and the form starts from the Position again.
+    await userEvent.click(sheet.getByRole('button', { name: /New substitute/ }))
+    await userEvent.type(sheet.getByLabelText('Name'), 'Sanne Vos')
+    await userEvent.click(sheet.getByRole('button', { name: 'None' }))
+    await userEvent.click(sheet.getByRole('button', { name: 'Add as asked' }))
+    await expect(args.onCreate).toHaveBeenCalledWith('Sanne Vos', null)
 
     await userEvent.click(sheet.getByRole('button', { name: 'Done' }))
     await expect(args.onClose).toHaveBeenCalled()

@@ -225,3 +225,11 @@ export const STATE_WORD: Record<LineupState, string> = {
   ABSENT: "Can't",
   NOT_RESPONDED: 'Awaiting',
 }
+
+/**
+ * "Find a Libero": the words on every way into the picker for one Position. The label is the team's
+ * own, so it keeps its casing; only the article follows it.
+ */
+export function findSomeone(positionLabel: string): string {
+  return `Find ${/^[aeiou]/i.test(positionLabel) ? 'an' : 'a'} ${positionLabel}`
+}

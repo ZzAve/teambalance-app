@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { makeAttendee, makeRoster, makeSubstitute } from '@shared/testing/event-fixtures'
-import { coveredLine, lineupRows, verdictWord } from './lineup'
+import { coveredLine, findSomeone, lineupRows, verdictWord } from './lineup'
 
 // Pure mapping, so a plain unit is the lowest layer that proves it (CLAUDE.md testing table). What
 // the panel *looks* like in each of these shapes is a story; what the numbers are is here.
@@ -202,5 +202,16 @@ describe('coveredLine', () => {
 
   it('is null when nothing is targeted, so the caller can fall back to a headcount', () => {
     expect(coveredLine(lineupRows([], roster([POSITIONS[2]])))).toBeNull()
+  })
+})
+
+describe('findSomeone', () => {
+  it('uses "a" before a consonant and "an" before a vowel', () => {
+    expect(findSomeone('Libero')).toBe('Find a Libero')
+    expect(findSomeone('Outside')).toBe('Find an Outside')
+  })
+
+  it('keeps the label as the team wrote it, so an acronym stays one', () => {
+    expect(findSomeone('DS')).toBe('Find a DS')
   })
 })

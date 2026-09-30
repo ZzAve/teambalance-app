@@ -1,5 +1,5 @@
 import { avatarColor, avatarInitials } from '@shared/lib/avatar'
-import { STATE_WORD, type LineupMember, type LineupState } from '../lib/lineup'
+import { STATE_WORD, findSomeone, type LineupMember, type LineupState } from '../lib/lineup'
 
 /**
  * A person in a lineup row: their colour, their first name, their answer.
@@ -43,27 +43,43 @@ interface MemberChipProps {
 }
 
 export function MemberChip({ member, onSelect }: MemberChipProps) {
+  const who = member.isSubstitute ? `${member.displayName}, substitute` : `${member.displayName}${member.isSelf ? ' (you)' : ''}`
   return (
     <button
       type="button"
       onClick={() => onSelect(member.userId)}
       // One string for the whole control. Without it the visible first name lands in the accessible
       // name alongside the full one and a screen reader says "Anna Anna Bakker — Going".
-      aria-label={`${member.displayName}${member.isSelf ? ' (you)' : ''} — ${STATE_WORD[member.state]}. Change their answer`}
+      aria-label={`${who} — ${STATE_WORD[member.state]}. Change their answer`}
       title={`${member.displayName} — ${STATE_WORD[member.state]}`}
       className={`${CHIP} ${OVERLAP} ${PILL[member.state]} ${member.isSelf ? 'shrink-0' : ''}`}
     >
-      <span
-        aria-hidden
-        className="flex size-5 shrink-0 items-center justify-center rounded-full text-caption font-bold text-white"
-        style={{ backgroundColor: avatarColor(member.userId) }}
-      >
-        {avatarInitials(member.displayName)}
-      </span>
+      {member.isSubstitute ? (
+        // The dashed purple of every Substitute avatar (ADR-0033), at chip size.
+        <span
+          aria-hidden
+          className="flex size-5 shrink-0 items-center justify-center rounded-full border-[1.5px] border-dashed border-purple bg-card text-caption font-bold text-purple-ink"
+        >
+          {avatarInitials(member.displayName)}
+        </span>
+      ) : (
+        <span
+          aria-hidden
+          className="flex size-5 shrink-0 items-center justify-center rounded-full text-caption font-bold text-white"
+          style={{ backgroundColor: avatarColor(member.userId) }}
+        >
+          {avatarInitials(member.displayName)}
+        </span>
+      )}
       <span aria-hidden>{member.chipName}</span>
       {member.isSelf && (
         <span aria-hidden className="shrink-0 text-caption font-bold text-blue">
           you
+        </span>
+      )}
+      {member.isSubstitute && (
+        <span aria-hidden className="shrink-0 text-caption font-bold text-purple-ink">
+          Sub
         </span>
       )}
     </button>
@@ -103,15 +119,18 @@ export function OverflowChip({
 
 /**
  * A required slot with nobody in it, drawn at chip height so a gap sits *in* the row rather than
- * after it. Decorative: the row's verdict word and fraction already state the same fact in text.
+ * after it. Tapping it looks for someone to fill it: the picker opens for that Position (#359). The
+ * purple matches the rest of the Substitute controls.
  */
-export function OpenSlotChip({ critical = false }: { critical?: boolean }) {
+export function OpenSlotChip({ positionLabel, onFind }: { positionLabel: string; onFind: () => void }) {
   return (
-    <span
-      aria-hidden
-      className={`${OVERLAP} flex h-[26px] shrink-0 items-center justify-center rounded-full border border-dashed px-3 text-small font-bold ring-2 ring-card ${critical ? 'border-red/55 bg-card text-red' : 'border-muted-foreground/40 bg-card text-muted-foreground'}`}
+    <button
+      type="button"
+      onClick={onFind}
+      aria-label={findSomeone(positionLabel)}
+      className={`${OVERLAP} flex h-[26px] shrink-0 items-center justify-center rounded-full border-[1.5px] border-dashed border-purple bg-card px-3 text-small font-bold text-purple-ink ring-2 ring-card hover:bg-purple/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring`}
     >
-      +
-    </span>
+      <span aria-hidden>+</span>
+    </button>
   )
 }

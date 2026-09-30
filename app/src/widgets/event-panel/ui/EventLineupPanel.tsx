@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import type { AttendanceEntry, EventRoster } from '@shared/api/events'
+import type { AttendanceEntry, EventRoster, SubstituteEntry } from '@shared/api/events'
 import { SectionLabel } from '@shared/ui/SectionLabel'
 import { AnswerSheet } from '@features/attendance-toggle/ui/AnswerSheet'
 import { MemberChip, OverflowChip, OpenSlotChip } from '@entities/event/ui/MemberChip'
@@ -52,7 +52,11 @@ interface EventLineupPanelProps {
   roster: EventRoster
   /** The viewer, so their own chip is marked and never squeezed out of a crowded row. */
   currentUserId?: string | null
+  /** Substitutes on the event (ADR-0033), shown in their Position row with a "Sub" tag. */
+  substitutes?: SubstituteEntry[]
   onRespond: (userId: string, state: LineupState) => void
+  /** Opens the Substitute picker, for one Position when it comes from that Position's open spot. */
+  onCallInSubstitutes: (position: { id: string; label: string } | null) => void
   /** An attendance write is in flight; the answer control is held. */
   pending?: boolean
 }
@@ -61,17 +65,20 @@ export function EventLineupPanel({
   attendances,
   roster,
   currentUserId,
+  substitutes = [],
   onRespond,
+  onCallInSubstitutes,
   pending,
 }: EventLineupPanelProps) {
-  const rows = lineupRows(attendances, roster, currentUserId)
+  const rows = lineupRows(attendances, roster, currentUserId, substitutes)
   const [answeringFor, setAnsweringFor] = useState<string | null>(null)
   // Which clusters the viewer unfolded, keyed `rowId:group`. Expanding one leaves the rest collapsed
   // — the point of the cap is that a long row stays short unless you ask it not to.
   const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set())
 
-  const member = rows.flatMap((r) => r.members).find((m) => m.userId === answeringFor) ?? null
-  const memberRow = rows.find((r) => r.members.some((m) => m.userId === answeringFor))
+  // Members only: the answer sheet writes Member attendance, and a Substitute's id must never reach it.
+  const member = rows.flatMap((r) => r.members).find((m) => !m.isSubstitute && m.userId === answeringFor) ?? null
+  const memberRow = rows.find((r) => r.members.some((m) => !m.isSubstitute && m.userId === answeringFor))
 
   const toggleCluster = (key: string) =>
     setExpanded((current) => {
@@ -105,6 +112,7 @@ export function EventLineupPanel({
               expanded={expanded}
               onToggleCluster={toggleCluster}
               onSelect={setAnsweringFor}
+              onFind={() => onCallInSubstitutes({ id: row.id, label: row.label })}
             />
           ))}
         </div>
@@ -130,11 +138,13 @@ function PositionRow({
   expanded,
   onToggleCluster,
   onSelect,
+  onFind,
 }: {
   row: LineupRow
   expanded: ReadonlySet<string>
   onToggleCluster: (key: string) => void
   onSelect: (userId: string) => void
+  onFind: () => void
 }) {
   const verdict = verdictWord(row)
   const going = row.members.filter((m) => m.state === 'ATTENDING')
@@ -170,7 +180,7 @@ function PositionRow({
         {row.openSlots > 0 && (
           <span className="flex flex-wrap items-center">
             {Array.from({ length: row.openSlots }, (_, i) => (
-              <OpenSlotChip key={i} critical={row.tone === 'critical'} />
+              <OpenSlotChip key={i} positionLabel={row.label} onFind={onFind} />
             ))}
           </span>
         )}

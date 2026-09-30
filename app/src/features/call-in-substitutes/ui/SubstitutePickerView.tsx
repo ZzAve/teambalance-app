@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { Plus } from 'lucide-react'
 import type { SubstituteEntry } from '@shared/api/events'
 import type { Substitute } from '@shared/api/substitutes'
@@ -8,6 +8,8 @@ import { Label } from '@shared/ui/label'
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@shared/ui/sheet'
 import { cn } from '@shared/lib/utils'
 import { SubstituteAvatar } from '@entities/event/ui/SubstituteAvatar'
+import { findSomeone } from '@entities/event/lib/lineup'
+import { groupForPosition } from '../lib/picker-groups'
 import { SUBSTITUTE_OPTIONS, type SubstituteState } from './SubstitutesBlock'
 
 interface PositionOption {
@@ -18,6 +20,8 @@ interface PositionOption {
 interface SubstitutePickerViewProps {
   open: boolean
   eventTitle: string
+  /** Opened from one Position's open spot: who plays it comes first, and a new one plays it too. */
+  position?: PositionOption | null
   positions: PositionOption[]
   /** The Team's list, ordered by name. */
   substitutes: Substitute[]
@@ -47,6 +51,7 @@ interface SubstitutePickerViewProps {
 export function SubstitutePickerView({
   open,
   eventTitle,
+  position = null,
   positions,
   substitutes,
   isLoading = false,
@@ -61,62 +66,64 @@ export function SubstitutePickerView({
   const [name, setName] = useState('')
   const [positionId, setPositionId] = useState<string | null>(null)
 
+  const renderRow = (sub: Substitute) => {
+    const state = onEvent.find((e) => e.substituteId === sub.id)?.state
+    return (
+      <div
+        key={sub.id}
+        role="group"
+        aria-label={sub.name}
+        className="flex items-center gap-3 border-b border-border/40 px-3 py-2 last:border-b-0"
+      >
+        <SubstituteAvatar name={sub.name} />
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-small font-medium">{sub.name}</span>
+          <span className="block text-caption text-muted-foreground">{sub.position?.label ?? 'Unassigned'}</span>
+        </span>
+        <span className="flex shrink-0 items-center gap-1">
+          {SUBSTITUTE_OPTIONS.map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              aria-pressed={state === option.value}
+              disabled={pending}
+              onClick={() => onSetState(sub.id, option.value)}
+              className={cn(
+                'rounded-full border-[1.5px] px-2 py-1 text-caption font-semibold transition-colors disabled:opacity-60',
+                state === option.value ? option.active : 'border-border text-muted-foreground hover:bg-muted',
+              )}
+            >
+              {option.label}
+            </button>
+          ))}
+        </span>
+      </div>
+    )
+  }
+
   const submit = () => {
     onCreate(name.trim(), positionId)
     setFormOpen(false)
     setName('')
-    setPositionId(null)
   }
 
   return (
     <Sheet open={open} onOpenChange={(next) => !next && onClose()}>
       <SheetContent>
         <SheetHeader>
-          <SheetTitle>Call in substitutes</SheetTitle>
+          <SheetTitle>{position ? findSomeone(position.label) : 'Call in substitutes'}</SheetTitle>
           <SheetDescription>{eventTitle}</SheetDescription>
         </SheetHeader>
 
-        <div className="mb-3 overflow-hidden rounded-lg border border-border/60 bg-card">
-          {substitutes.length === 0 && (
-            <p className="px-3 py-2.5 text-small text-muted-foreground">
-              {isLoading ? 'Loading the list…' : 'Nobody on the list yet.'}
-            </p>
-          )}
-          {substitutes.map((sub) => {
-            const state = onEvent.find((e) => e.substituteId === sub.id)?.state
-            return (
-              <div
-                key={sub.id}
-                role="group"
-                aria-label={sub.name}
-                className="flex items-center gap-3 border-b border-border/40 px-3 py-2 last:border-b-0"
-              >
-                <SubstituteAvatar name={sub.name} />
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-small font-medium">{sub.name}</span>
-                  <span className="block text-caption text-muted-foreground">{sub.position?.label ?? 'Unassigned'}</span>
-                </span>
-                <span className="flex shrink-0 items-center gap-1">
-                  {SUBSTITUTE_OPTIONS.map((option) => (
-                    <button
-                      key={option.value}
-                      type="button"
-                      aria-pressed={state === option.value}
-                      disabled={pending}
-                      onClick={() => onSetState(sub.id, option.value)}
-                      className={cn(
-                        'rounded-full border-[1.5px] px-2 py-1 text-caption font-semibold transition-colors disabled:opacity-60',
-                        state === option.value ? option.active : 'border-border text-muted-foreground hover:bg-muted',
-                      )}
-                    >
-                      {option.label}
-                    </button>
-                  ))}
-                </span>
-              </div>
-            )
-          })}
-        </div>
+        {substitutes.length === 0 ? (
+          <p className="mb-3 rounded-lg border border-border/60 bg-card px-3 py-2.5 text-small text-muted-foreground">
+            {isLoading ? 'Loading the list…' : 'Nobody on the list yet.'}
+          </p>
+        ) : position ? (
+          <PositionGroups position={position} substitutes={substitutes} renderRow={renderRow} />
+        ) : (
+          <div className={LIST}>{substitutes.map(renderRow)}</div>
+        )}
 
         {formOpen ? (
           <div className="flex flex-col gap-3 rounded-lg border-[1.5px] border-dashed border-purple bg-card p-3">
@@ -155,7 +162,10 @@ export function SubstitutePickerView({
         ) : (
           <button
             type="button"
-            onClick={() => setFormOpen(true)}
+            onClick={() => {
+              setPositionId(position?.id ?? null)
+              setFormOpen(true)
+            }}
             className="flex items-center gap-3 rounded-lg border-[1.5px] border-dashed border-purple bg-card px-3 py-2.5 text-left font-semibold text-purple-ink"
           >
             <span className="grid size-8 place-items-center rounded-full border-[1.5px] border-dashed border-purple">
@@ -175,5 +185,40 @@ export function SubstitutePickerView({
         </Button>
       </SheetContent>
     </Sheet>
+  )
+}
+
+const LIST = 'mb-3 overflow-hidden rounded-lg border border-border/60 bg-card'
+
+function PositionGroups({
+  position,
+  substitutes,
+  renderRow,
+}: {
+  position: PositionOption
+  substitutes: Substitute[]
+  renderRow: (sub: Substitute) => ReactNode
+}) {
+  const { plays, others } = groupForPosition(substitutes, position.id)
+  const heading = `Plays ${position.label}`
+  return (
+    <>
+      <div role="group" aria-label={heading}>
+        <h3 className="mb-1.5 text-caption font-semibold text-muted-foreground">{heading}</h3>
+        <div className={LIST}>
+          {plays.length === 0 ? (
+            <p className="px-3 py-2.5 text-small text-muted-foreground">Nobody on the list plays this yet.</p>
+          ) : (
+            plays.map(renderRow)
+          )}
+        </div>
+      </div>
+      {others.length > 0 && (
+        <div role="group" aria-label="Others">
+          <h3 className="mb-1.5 text-caption font-semibold text-muted-foreground">Others</h3>
+          <div className={LIST}>{others.map(renderRow)}</div>
+        </div>
+      )}
+    </>
   )
 }

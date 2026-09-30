@@ -1,4 +1,4 @@
-import { MAX_SLUG_LENGTH } from './validate-slug'
+import { MAX_SLUG_LENGTH } from '@shared/lib/validate-slug'
 
 /**
  * Suggests a URL slug from a team name — pure UX sugar (#158): it pre-fills the slug field until the

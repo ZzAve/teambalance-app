@@ -1,14 +1,7 @@
 import { useState } from 'react'
 import { Button } from '@shared/ui/button'
 import { Input } from '@shared/ui/input'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@shared/ui/dialog'
+import { ConfirmDialog } from '@shared/ui/confirm-dialog'
 
 interface HandoverAdminViewProps {
   /** The active-admin-link read is in flight. */
@@ -126,31 +119,17 @@ export function HandoverAdminView({
         </div>
       )}
 
-      <Dialog open={confirmRevokeOpen} onOpenChange={setConfirmRevokeOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Revoke the invite link?</DialogTitle>
-            <DialogDescription>
-              The old link stops working and no replacement is created. It can no longer be used to
-              become an admin of this team.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setConfirmRevokeOpen(false)}>
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={() => {
-                setConfirmRevokeOpen(false)
-                onRevoke()
-              }}
-            >
-              Revoke link
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ConfirmDialog
+        open={confirmRevokeOpen}
+        title="Revoke the invite link?"
+        description="The old link stops working and no replacement is created. It can no longer be used to become an admin of this team."
+        confirmLabel="Revoke link"
+        onConfirm={() => {
+          setConfirmRevokeOpen(false)
+          onRevoke()
+        }}
+        onCancel={() => setConfirmRevokeOpen(false)}
+      />
     </div>
   )
 }

@@ -19,9 +19,8 @@ import { ManagePositionsView } from './ManagePositionsView'
 //   3. Interactions — no picture; one play walks every interaction and keeps every prop-contract
 //      spy (args.onCreate/onRename/onSetKind/onDelete are fn() spies). This proves the wiring
 //      survives a dependency bump; a getByText assertion alone would not.
-// Plus two extra pictures for frames no composite shows: DeleteConfirmOpen (the open dialog) and
-// MenuOpen (the open ⋯ menu itself — a distinct frame Interactions never rests on, since every step
-// that opens it goes on to click a menu item).
+// Plus one extra picture for a frame no composite shows: DeleteConfirmOpen (the open dialog). The
+// open ⋯ menu picture lives in MemberRosterView.stories.tsx.
 const POSITIONS: Position[] = [
   { id: 'p1', label: 'Setter', kind: 'PLAYING' },
   { id: 'p2', label: 'Libero', kind: 'PLAYING' },
@@ -101,18 +100,6 @@ export const Shells: Story = {
   },
 }
 
-// The ⋯ menu itself is a frame Interactions never rests on — every step that opens it goes on to
-// click a menu item. Delete… carries the red destructive treatment (the row itself carries none).
-export const MenuOpen: Story = {
-  play: async ({ canvas, userEvent }) => {
-    await userEvent.click(canvas.getByLabelText('Actions for Setter'))
-    const menu = within(document.body)
-    const deleteItem = await menu.findByRole('menuitem', { name: 'Delete…' })
-    await expect(menu.getByRole('menuitem', { name: 'Rename' })).toBeInTheDocument()
-    await expect(deleteItem).toHaveAttribute('data-tone', 'destructive')
-  },
-}
-
 // The open-dialog frame (#264, #219): the populated blast-radius dialog is what an admin actually
 // reads before a destructive action, and it is why that work exists at all. Opened and left open
 // — none of the Interactions steps can picture it, because they confirm or cancel.
@@ -135,7 +122,7 @@ export const DeleteConfirmOpen: Story = {
   },
 }
 
-// Picture owned by Data, MenuOpen and DeleteConfirmOpen — behavioural only (ADR-0032 §1). Several
+// Picture owned by Data and DeleteConfirmOpen — behavioural only (ADR-0032 §1). Several
 // instances because some steps need a state the default one is never in (an empty list to create
 // into, a staff position to reclassify, a dialog with nothing / no answer yet to read).
 export const Interactions: Story = {
@@ -192,7 +179,7 @@ export const Interactions: Story = {
     await expect(args.onRename).toHaveBeenCalledWith('p1', 'Middle Blocker')
 
     // Confirming the blast-radius dialog fires the delete and closes it. Reached via the ⋯ menu;
-    // Delete… itself carries the red destructive treatment (MenuOpen carries that baseline).
+    // Delete… itself carries the red destructive treatment.
     await userEvent.click(region('Positions').getByLabelText('Actions for Setter'))
     await userEvent.click(await portal.findByRole('menuitem', { name: 'Delete…' }))
     await expect(await portal.findByText(/3 members become Unassigned/)).toBeInTheDocument()

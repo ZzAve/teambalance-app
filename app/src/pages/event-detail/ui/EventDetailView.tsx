@@ -32,6 +32,8 @@ interface EventDetailViewProps {
   /** Who last set the viewer's own answer, when it was a teammate (⑪). */
   myAttribution: string | null
   isPending?: boolean
+  /** A Substitute write is in flight; the Substitute controls are held. */
+  isSubstitutePending?: boolean
   /** The viewer changing their own answer. */
   onToggleMine: (state: AttendanceState) => void
   /** Any row in the list, the viewer's included — a teammate's change raises the Undo toast upstream. */
@@ -63,6 +65,7 @@ export function EventDetailView({
   myState,
   myAttribution,
   isPending = false,
+  isSubstitutePending = false,
   onToggleMine,
   onRespond,
   onSetSubstituteState,
@@ -204,7 +207,7 @@ export function EventDetailView({
         onSetState={onSetSubstituteState}
         onOpen={setOpenSubstituteId}
         onCallIn={onCallInSubstitutes}
-        pending={isPending}
+        pending={isSubstitutePending}
       />
       <SubstituteSheet
         substitute={openSubstitute ?? null}
@@ -212,7 +215,7 @@ export function EventDetailView({
         onSetState={onSetSubstituteState}
         onTakeOff={onTakeOffSubstitute}
         onClose={() => setOpenSubstituteId(null)}
-        pending={isPending}
+        pending={isSubstitutePending}
       />
 
       {/* Part of a series peek */}

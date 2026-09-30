@@ -1,11 +1,11 @@
 import { useState } from 'react'
 import type { AttendanceEntry, EventRoster, SubstituteEntry } from '@shared/api/events'
-import { avatarInitials } from '@shared/lib/avatar'
 import { Avatar } from '@shared/ui/avatar'
 import { AnswerSheet, type AnswerTarget } from '@features/attendance-toggle/ui/AnswerSheet'
 import type { AttendanceState } from '@features/attendance-toggle/ui/AttendanceToggle'
 import { lineupRows, verdictWord, STATE_WORD, UNASSIGNED, type LineupRow } from '@entities/event/lib/lineup'
 import { attributionName, setByName } from '@entities/event/lib/attribution'
+import { SubstituteAvatar } from '@entities/event/ui/SubstituteAvatar'
 import { SectionLabel } from '@shared/ui/SectionLabel'
 
 interface AttendeeListProps {
@@ -267,12 +267,7 @@ function SubstituteRow({
 }) {
   const body = (
     <>
-      <span
-        aria-hidden="true"
-        className="grid size-8 shrink-0 place-items-center rounded-full border-[1.5px] border-dashed border-purple text-caption font-bold text-purple-ink"
-      >
-        {avatarInitials(substitute.name)}
-      </span>
+      <SubstituteAvatar name={substitute.name} />
       <span className="min-w-0 flex-1">
         <span className="block truncate text-small leading-tight">
           {substitute.name}

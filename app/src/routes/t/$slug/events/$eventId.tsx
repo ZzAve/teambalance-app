@@ -36,10 +36,11 @@ function EventDetailPage() {
   const { data: allEvents } = useEvents(true, !!event?.recurringGroup)
   const [pickerOpen, setPickerOpen] = useState(false)
   const { data: positions } = usePositions({ enabled: pickerOpen })
-  const { data: teamSubstitutes } = useSubstitutes({ enabled: pickerOpen })
+  const { data: teamSubstitutes, isLoading: substitutesLoading } = useSubstitutes({ enabled: pickerOpen })
   const createSubstitute = useCreateSubstitute()
   const setSubstituteAttendance = useSetSubstituteAttendance()
   const removeSubstituteAttendance = useRemoveSubstituteAttendance()
+  const substitutePending = setSubstituteAttendance.isPending || removeSubstituteAttendance.isPending
 
   const myAttendance = event?.attendances.find((a) => a.userId === currentUserId)
   const myState: AttendanceState = (myAttendance?.state as AttendanceState) ?? 'NOT_RESPONDED'
@@ -80,6 +81,7 @@ function EventDetailPage() {
         myState={myState}
         myAttribution={myAttribution}
         isPending={isPending}
+        isSubstitutePending={substitutePending}
         onToggleMine={(state) => {
           if (currentUserId) mutate({ eventId, userId: currentUserId, state })
         }}
@@ -104,6 +106,8 @@ function EventDetailPage() {
           eventTitle={event.title}
           positions={positions ?? []}
           substitutes={teamSubstitutes ?? []}
+          isLoading={substitutesLoading}
+          pending={substitutePending}
           onEvent={event.substitutes}
           onSetState={(substituteId, state) => setSubstituteAttendance.mutate({ eventId, substituteId, state })}
           onTakeOff={(substituteId) => removeSubstituteAttendance.mutate({ eventId, substituteId })}

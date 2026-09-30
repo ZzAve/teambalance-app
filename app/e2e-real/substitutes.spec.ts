@@ -7,9 +7,10 @@ import { test, expect } from '@playwright/test'
 // its own tenant table and reaches the event page through a separate read, so neither the login nor
 // the attendance flow exercises it.
 //
-// Runs as the seeded admin (shared storageState) on the seeded "E2E Training". Idempotent across
+// Runs as the seeded admin (shared storageState) on the seeded "E2E Training". Deterministic across
 // warm-DB re-runs: the Substitute gets a name unique to this run, and the flow ends by taking them
-// off the event again.
+// off the event again. Each run does leave one more name on the Team's list, which has no removal
+// until Admins can manage it (#359 slice 3).
 
 test('a member calls in a new substitute, confirms them, and takes them off again', async ({ page }) => {
   const name = `Sub ${Date.now()}`

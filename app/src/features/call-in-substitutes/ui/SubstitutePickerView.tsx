@@ -2,13 +2,13 @@ import { useState } from 'react'
 import { Plus, X } from 'lucide-react'
 import type { SubstituteEntry } from '@shared/api/events'
 import type { Substitute } from '@shared/api/substitutes'
-import { avatarInitials } from '@shared/lib/avatar'
 import { Button } from '@shared/ui/button'
 import { Input } from '@shared/ui/input'
 import { Label } from '@shared/ui/label'
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@shared/ui/sheet'
 import { cn } from '@shared/lib/utils'
-import type { SubstituteState } from './SubstitutesBlock'
+import { SubstituteAvatar } from '@entities/event/ui/SubstituteAvatar'
+import { SUBSTITUTE_OPTIONS, type SubstituteState } from './SubstitutesBlock'
 
 interface PositionOption {
   id: string
@@ -21,6 +21,10 @@ interface SubstitutePickerViewProps {
   positions: PositionOption[]
   /** The Team's list, ordered by name. */
   substitutes: Substitute[]
+  /** The list is still loading: say so, rather than claiming nobody is on it. */
+  isLoading?: boolean
+  /** A Substitute write is in flight; the state buttons are held. */
+  pending?: boolean
   /** The Substitutes already on this event, with their state. */
   onEvent: SubstituteEntry[]
   onSetState: (substituteId: string, state: SubstituteState) => void
@@ -33,10 +37,7 @@ interface SubstitutePickerViewProps {
 
 // The picker offers the two ways a Substitute joins an event; "Can't" is set afterwards, on the
 // event page, once someone has answered.
-const OPTIONS: { value: SubstituteState; label: string; active: string }[] = [
-  { value: 'ATTENDING', label: 'Going', active: 'border-green bg-green text-white' },
-  { value: 'MAYBE', label: 'Asked', active: 'border-gold bg-gold text-white' },
-]
+const OPTIONS = SUBSTITUTE_OPTIONS.filter((option) => option.value !== 'ABSENT')
 
 /**
  * Calling Substitutes in for one event (ADR-0033). Lists the Team's Substitutes, each with inline
@@ -49,6 +50,8 @@ export function SubstitutePickerView({
   eventTitle,
   positions,
   substitutes,
+  isLoading = false,
+  pending = false,
   onEvent,
   onSetState,
   onTakeOff,
@@ -77,7 +80,9 @@ export function SubstitutePickerView({
 
         <div className="mb-3 overflow-hidden rounded-lg border border-border/60 bg-card">
           {substitutes.length === 0 && (
-            <p className="px-3 py-2.5 text-small text-muted-foreground">Nobody on the list yet.</p>
+            <p className="px-3 py-2.5 text-small text-muted-foreground">
+              {isLoading ? 'Loading the list…' : 'Nobody on the list yet.'}
+            </p>
           )}
           {substitutes.map((sub) => {
             const state = onEvent.find((e) => e.substituteId === sub.id)?.state
@@ -88,12 +93,7 @@ export function SubstitutePickerView({
                 aria-label={sub.name}
                 className="flex items-center gap-3 border-b border-border/40 px-3 py-2 last:border-b-0"
               >
-                <span
-                  aria-hidden="true"
-                  className="grid size-8 shrink-0 place-items-center rounded-full border-[1.5px] border-dashed border-purple text-caption font-bold text-purple-ink"
-                >
-                  {avatarInitials(sub.name)}
-                </span>
+                <SubstituteAvatar name={sub.name} />
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-small font-medium">{sub.name}</span>
                   <span className="block text-caption text-muted-foreground">{sub.position?.label ?? 'Unassigned'}</span>
@@ -104,9 +104,10 @@ export function SubstitutePickerView({
                       key={option.value}
                       type="button"
                       aria-pressed={state === option.value}
+                      disabled={pending}
                       onClick={() => onSetState(sub.id, option.value)}
                       className={cn(
-                        'rounded-full border-[1.5px] px-2 py-1 text-caption font-semibold transition-colors',
+                        'rounded-full border-[1.5px] px-2 py-1 text-caption font-semibold transition-colors disabled:opacity-60',
                         state === option.value ? option.active : 'border-border text-muted-foreground hover:bg-muted',
                       )}
                     >
@@ -117,6 +118,7 @@ export function SubstitutePickerView({
                     <button
                       type="button"
                       aria-label="Take off"
+                      disabled={pending}
                       onClick={() => onTakeOff(sub.id)}
                       className="grid size-7 place-items-center rounded-full text-muted-foreground hover:bg-muted"
                     >
@@ -135,6 +137,7 @@ export function SubstitutePickerView({
             <Input
               id="new-substitute-name"
               value={name}
+              maxLength={100}
               autoComplete="off"
               placeholder="e.g. Pieter Smit"
               onChange={(e) => setName(e.target.value)}

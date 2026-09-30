@@ -1,14 +1,14 @@
 import { UserPlus } from 'lucide-react'
 import type { AttendanceEntry, SubstituteEntry } from '@shared/api/events'
-import { avatarInitials } from '@shared/lib/avatar'
 import { cn } from '@shared/lib/utils'
 import { setByName } from '@entities/event/lib/attribution'
+import { SubstituteAvatar } from '@entities/event/ui/SubstituteAvatar'
 
 export type SubstituteState = SubstituteEntry['state']
 
 // A Substitute is never Not Responded (ADR-0033), so these three are every state they can hold.
 // "Asked" is Maybe: someone sent a message and is waiting to hear back.
-const OPTIONS: { value: SubstituteState; label: string; active: string }[] = [
+export const SUBSTITUTE_OPTIONS: { value: SubstituteState; label: string; active: string }[] = [
   { value: 'ATTENDING', label: 'Going', active: 'border-green bg-green text-white' },
   { value: 'MAYBE', label: 'Asked', active: 'border-gold bg-gold text-white' },
   { value: 'ABSENT', label: "Can't", active: 'border-red bg-red text-white' },
@@ -72,12 +72,7 @@ export function SubstitutesBlock({
 
       {substitutes.map((sub) => (
         <div key={sub.substituteId} role="group" aria-label={sub.name} className="flex items-center gap-3 px-4 py-2">
-          <span
-            aria-hidden="true"
-            className="grid size-8 shrink-0 place-items-center rounded-full border-[1.5px] border-dashed border-purple text-caption font-bold text-purple-ink"
-          >
-            {avatarInitials(sub.name)}
-          </span>
+          <SubstituteAvatar name={sub.name} />
           <button type="button" onClick={() => onOpen(sub.substituteId)} className="min-w-0 flex-1 text-left">
             <span className="block truncate text-small font-medium">{sub.name}</span>
             <span className="block text-caption text-muted-foreground">
@@ -85,7 +80,7 @@ export function SubstitutesBlock({
             </span>
           </button>
           <span className="flex shrink-0 gap-1">
-            {OPTIONS.map((option) => {
+            {SUBSTITUTE_OPTIONS.map((option) => {
               const on = sub.state === option.value
               return (
                 <button

@@ -60,8 +60,6 @@ export function RosterBar({ roster }: RosterBarProps) {
   // Null for a tally — no denominator, no track.
   const pct = target == null || target === 0 ? null : Math.min(100, Math.round((filled / target) * 100))
   const chip = rosterChip(roster)
-  // The part of the filled track that Substitutes account for, as a percentage of it.
-  const subShare = filled > 0 ? Math.round((Math.min(roster.substituteAttending, filled) / filled) * 100) : 0
 
   return (
     <div className="px-4 py-3">
@@ -77,11 +75,10 @@ export function RosterBar({ roster }: RosterBarProps) {
 
       {pct != null && (
         <div data-slot="roster-track" className="h-1.5 overflow-hidden rounded-full bg-muted">
-          {/* One track, split: Members in green, then the Substitutes filling the rest of it (ADR-0033). */}
-          <div className="flex h-full overflow-hidden rounded-full transition-[width] duration-300 ease-out" style={{ width: `${pct}%` }}>
-            <div className="h-full bg-green" style={{ width: `${100 - subShare}%` }} />
-            <div className="h-full bg-purple" style={{ width: `${subShare}%` }} />
-          </div>
+          <div
+            className="h-full rounded-full bg-green transition-[width] duration-300 ease-out"
+            style={{ width: `${pct}%` }}
+          />
         </div>
       )}
 

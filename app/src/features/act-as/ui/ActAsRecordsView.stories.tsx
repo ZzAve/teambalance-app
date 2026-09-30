@@ -7,7 +7,7 @@ import { ActAsRecordsView } from './ActAsRecordsView'
 // ActAsRecordsView is the Admin-visible Act-as Record (ADR-0024 §4): what platform access this Team
 // has had. Quiet by default — one line, two more taps to the full reasoning — and scoped to the
 // act-as session rather than the row, since most tenant tables carry no per-row authorship column.
-// Pure prop-driven view with local disclosure state only (no callback props).
+// Pure prop-driven view; the disclosures are native <details> (no callback props).
 //
 // Three-story shape (ADR-0032 §1):
 //   1. Data — the one populated live instance, at rest and collapsed.
@@ -43,11 +43,8 @@ type Story = StoryObj<typeof meta>
 // the list is not the resting state (ADR-0024 §4).
 export const Data: Story = {
   play: async ({ canvas }) => {
-    await expect(canvas.getByRole('button', { name: /worked here 2 times/ })).toHaveAttribute(
-      'aria-expanded',
-      'false',
-    )
-    await expect(canvas.queryByText(/worked in your team/)).not.toBeInTheDocument()
+    await expect(canvas.getByText(/worked here 2 times/).closest('details')).not.toHaveAttribute('open')
+    await expect(canvas.getAllByText(/worked in your team/)[0]).not.toBeVisible()
   },
 }
 
@@ -75,11 +72,11 @@ export const Shells: Story = {
     await expect(
       region('Never visited').getByText('The TeamBalance owner has never worked in your team.'),
     ).toBeInTheDocument()
-    // Nothing to disclose, so the section does not offer a control that opens an empty list.
-    await expect(region('Never visited').queryByRole('button')).not.toBeInTheDocument()
+    // Nothing to disclose, so the section does not offer a disclosure that opens an empty list.
+    await expect(region('Never visited').queryByText(/worked here/)).not.toBeInTheDocument()
 
     await expect(
-      region('One visit').getByRole('button', { name: /worked here once/ }),
+      region('One visit').getByText(/worked here once/),
     ).toBeInTheDocument()
   },
 }
@@ -100,37 +97,30 @@ export const Interactions: Story = {
     const region = (name: string) => within(canvas.getByRole('region', { name }))
 
     // The actor is the platform, never a person: no name, no email, nothing to look up (ADR-0024 §4).
-    await userEvent.click(region('Records').getByRole('button', { name: /worked here 2 times/ }))
+    await userEvent.click(region('Records').getByText(/worked here 2 times/))
     await expect(
       region('Records').getAllByText('The TeamBalance owner worked in your team'),
     ).toHaveLength(2)
 
     // Second tap: the per-visit facts. Nothing here claims a change was made — the record is scoped
     // to the session, so it knows access happened and not what came of it.
-    const [first, second] = region('Records').getAllByRole('button', { name: /worked in your team/ })
+    const [first] = region('Records').getAllByText(/worked in your team/)
     await userEvent.click(first)
-    await expect(region('Records').getByText('Started')).toBeInTheDocument()
-    await expect(region('Records').getByText(/when they left/)).toBeInTheDocument()
-    await expect(region('Records').getByText('An admin of your team')).toBeInTheDocument()
+    await expect(region('Records').getAllByText('Started')[0]).toBeVisible()
+    await expect(region('Records').getByText(/when they left/)).toBeVisible()
+    await expect(region('Records').getAllByText('An admin of your team')[0]).toBeVisible()
 
     // Third tap: the reason. This is the whole point of the redesign — an Admin who asks "why was
     // someone in our team?" gets an answer in place rather than having to write to us.
-    await userEvent.click(region('Records').getByRole('button', { name: 'Why does this happen?' }))
-    await expect(region('Records').getByText(/TeamBalance is run by a small team/)).toBeInTheDocument()
-    await expect(region('Records').getByText(/whether or not anything changed/)).toBeInTheDocument()
-
-    // The reasoning belongs to the record it was opened from: collapsing that record takes it with
-    // it, so opening a different one never starts mid-explanation.
-    await userEvent.click(second)
-    await expect(
-      region('Records').queryByText(/TeamBalance is run by a small team/),
-    ).not.toBeInTheDocument()
+    await userEvent.click(region('Records').getAllByText('Why does this happen?')[0])
+    await expect(region('Records').getAllByText(/TeamBalance is run by a small team/)[0]).toBeVisible()
+    await expect(region('Records').getAllByText(/whether or not anything changed/)[0]).toBeVisible()
 
     // An episode that ran out has no exitedAt, so the window ends at the last activity rather than
     // at a time the record cannot actually vouch for.
-    await userEvent.click(region('Ran out').getByRole('button', { name: /worked here once/ }))
-    await userEvent.click(region('Ran out').getByRole('button', { name: /worked in your team/ }))
-    await expect(region('Ran out').getByText(/when the hour ran out/)).toBeInTheDocument()
+    await userEvent.click(region('Ran out').getByText(/worked here once/))
+    await userEvent.click(region('Ran out').getByText(/worked in your team/))
+    await expect(region('Ran out').getByText(/when the hour ran out/)).toBeVisible()
     await expect(region('Ran out').queryByText(/when they left/)).not.toBeInTheDocument()
   },
 }

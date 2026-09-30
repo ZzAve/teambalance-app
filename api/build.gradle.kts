@@ -30,7 +30,6 @@ dependencies {
     // Boot 4 split this out of starter-web; the prod ScalewayTemEmailAdapter needs the builder bean.
     implementation("org.springframework.boot:spring-boot-restclient")
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
-    implementation("org.springframework.boot:spring-boot-starter-validation")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
 
     // Spring Session backed by JDBC (Postgres): keeps authenticated sessions out of the JVM heap so
@@ -41,8 +40,8 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-session-jdbc")
 
     // Flyway
-    api("org.flywaydb:flyway-core")
-    api("org.flywaydb:flyway-database-postgresql")
+    implementation("org.flywaydb:flyway-core")
+    implementation("org.flywaydb:flyway-database-postgresql")
 
     // Database
     runtimeOnly("org.postgresql:postgresql")
@@ -75,11 +74,8 @@ dependencies {
 
     // Testing — Spring + Testcontainers
     testImplementation("org.springframework.boot:spring-boot-starter-test")
-    testImplementation("org.springframework.boot:spring-boot-testcontainers")
     testImplementation(platform("org.testcontainers:testcontainers-bom:$testcontainersVersion"))
-    testImplementation("org.testcontainers:testcontainers-junit-jupiter")
     testImplementation("org.testcontainers:testcontainers-postgresql")
-    testImplementation("org.testcontainers:testcontainers")
     testImplementation("org.springframework.boot:spring-boot-starter-webmvc-test")
 
     // Hexagonal-architecture rulesets for detekt (ADR-0018)

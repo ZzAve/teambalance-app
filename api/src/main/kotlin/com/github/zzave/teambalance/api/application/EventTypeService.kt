@@ -135,14 +135,12 @@ class EventTypeService(
         }
     }
 
-    // Mirrors EventService.requireKnownPositions, and for the same reason: the foreign key on
-    // event_type_position_targets.position_id is what actually keeps an unknown position out, but it
-    // would surface as a 500. This turns it into the declared 400 (UNKNOWN_ROSTER_POSITION) before
-    // the write is attempted. Takes no team id since ADR-0025 — the tenant schema is the team.
+    // The foreign key on event_type_position_targets.position_id is what actually keeps an unknown
+    // position out, but it would surface as a 500. This turns it into the declared 400
+    // (UNKNOWN_ROSTER_POSITION) before the write is attempted. Takes no team id since ADR-0025 —
+    // the tenant schema is the team.
     private fun requireKnownPositions(requirement: RosterRequirement) {
         if (requirement.positionTargets.isEmpty()) return
-        val known: Set<PositionId> = positionRepository.list().map { it.id }.toSet()
-        requirement.positionTargets.firstOrNull { it.positionId !in known }
-            ?.let { throw com.github.zzave.teambalance.api.domain.exception.UnknownRosterPositionException(it.positionId) }
+        requirement.requireKnownPositions(positionRepository.list().map { it.id }.toSet())
     }
 }

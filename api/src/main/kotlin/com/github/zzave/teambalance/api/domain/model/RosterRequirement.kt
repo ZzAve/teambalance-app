@@ -1,5 +1,7 @@
 package com.github.zzave.teambalance.api.domain.model
 
+import com.github.zzave.teambalance.api.domain.exception.UnknownRosterPositionException
+
 /**
  * How many attending people one position needs — the number the panel draws as slot pips.
  *
@@ -80,6 +82,12 @@ data class RosterRequirement(
     /** Drops any target for [positionId] — how a deleted position leaves the requirements it is in. */
     fun withoutPosition(positionId: PositionId): RosterRequirement =
         copy(positionTargets = positionTargets.filterNot { it.positionId == positionId })
+
+    /** Rejects a target on any position outside [known], naming the first such position. */
+    fun requireKnownPositions(known: Set<PositionId>) {
+        positionTargets.firstOrNull { it.positionId !in known }
+            ?.let { throw UnknownRosterPositionException(it.positionId) }
+    }
 
     companion object {
         const val MAX_POSITION_TARGETS = 50

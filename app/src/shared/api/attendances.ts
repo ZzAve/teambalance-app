@@ -2,7 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { api } from './wirespec-client'
 import { applyOptimisticAttendance } from './attendance-cache'
-import { useUserStore } from '@shared/stores/user-store'
+import { useCurrentUser } from './auth'
 import type { AttendanceEntry, EventDetail } from './events'
 
 type AttendanceState = AttendanceEntry['state']
@@ -17,7 +17,7 @@ export function useSetAttendance() {
   const queryClient = useQueryClient()
   // Who is writing, which is not always whose row is written (ADR-0003): the optimistic patch stamps
   // this as the row's `changedBy` so attribution does not lag the answer it belongs to.
-  const actorId = useUserStore((s) => s.userId)
+  const actorId = useCurrentUser()?.id ?? null
   return useMutation({
     mutationFn: async ({ eventId, userId, state }: SetAttendanceVars) => {
       const res = await api.SetAttendance({ eventId, userId, body: { state } })

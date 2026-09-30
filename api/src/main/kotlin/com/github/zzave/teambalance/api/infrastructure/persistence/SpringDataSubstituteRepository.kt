@@ -10,6 +10,33 @@ import java.util.UUID
 
 interface SpringDataSubstituteRepository : JpaRepository<SubstituteJpaEntity, UUID> {
 
+    @Query(
+        value = """
+            SELECT s.id::text          AS id,
+                   s.name              AS name,
+                   s.position_id::text AS positionId,
+                   p.label             AS position
+            FROM   substitutes s
+            LEFT   JOIN positions p ON p.id = s.position_id
+            ORDER  BY lower(s.name)
+        """,
+        nativeQuery = true,
+    )
+    fun findAllWithPosition(): List<SubstituteProjection>
+
+    @Modifying
+    @Query(
+        value = """
+            DELETE FROM substitute_attendances sa
+            USING  events e
+            WHERE  e.id = sa.event_id
+            AND    e.uuid = :eventId
+            AND    sa.substitute_id = :substituteId
+        """,
+        nativeQuery = true,
+    )
+    fun deleteAttendance(@Param("eventId") eventId: UUID, @Param("substituteId") substituteId: UUID): Int
+
     // One statement both adds and updates, keyed by the (event, substitute) pair. The event's
     // technical id is looked up by its uuid inside the statement, so an unknown event inserts nothing
     // and the returned count is how the adapter tells the caller.
@@ -53,6 +80,13 @@ interface SpringDataSubstituteRepository : JpaRepository<SubstituteJpaEntity, UU
         nativeQuery = true,
     )
     fun findAttendanceByEventIds(@Param("eventIds") eventIds: Collection<UUID>): List<SubstituteAttendanceProjection>
+}
+
+interface SubstituteProjection {
+    val id: String
+    val name: String
+    val positionId: String?
+    val position: String?
 }
 
 interface SubstituteAttendanceProjection {

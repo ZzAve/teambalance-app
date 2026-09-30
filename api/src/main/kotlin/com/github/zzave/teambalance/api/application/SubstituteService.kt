@@ -27,10 +27,17 @@ class SubstituteService(
     private val authorizationService: AuthorizationService,
     private val clock: Clock,
 ) {
+    /** The Team's list, for the picker. Any Member may read it. */
+    fun listSubstitutes(callerId: UserId, teamId: TeamId): List<Substitute> {
+        authorizationService.requireMember(callerId, teamId)
+        return substituteRepository.list()
+    }
+
     fun createSubstitute(callerId: UserId, teamId: TeamId, rawName: String, positionId: PositionId?): Substitute {
         authorizationService.requireMember(callerId, teamId)
         val name = rawName.trim()
         require(name.isNotBlank()) { "Substitute name must not be blank" }
+        require(name.length <= MAX_NAME_LENGTH) { "Substitute name must be at most $MAX_NAME_LENGTH characters" }
         if (positionId != null && !positionRepository.exists(positionId)) throw PositionNotFoundException(positionId)
         return substituteRepository.create(DisplayName(name), positionId, callerId)
     }
@@ -47,5 +54,16 @@ class SubstituteService(
         if (!substituteRepository.exists(substituteId)) throw SubstituteNotFoundException(substituteId)
         return substituteRepository.setAttendance(eventId, substituteId, state, callerId, clock.instant())
             ?: throw EventNotFoundException(eventId)
+    }
+
+    /** Takes the Substitute off the Event; they stay on the Team's list. */
+    fun removeAttendance(callerId: UserId, teamId: TeamId, eventId: EventId, substituteId: SubstituteId) {
+        authorizationService.requireMember(callerId, teamId)
+        if (!substituteRepository.removeAttendance(eventId, substituteId)) throw SubstituteNotFoundException(substituteId)
+    }
+
+    private companion object {
+        // The width of `substitutes.name`.
+        const val MAX_NAME_LENGTH = 100
     }
 }

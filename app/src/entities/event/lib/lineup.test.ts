@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { makeAttendee, makeRoster } from '@shared/testing/event-fixtures'
+import { makeAttendee, makeRoster, makeSubstitute } from '@shared/testing/event-fixtures'
 import { coveredLine, lineupRows, verdictWord } from './lineup'
 
 // Pure mapping, so a plain unit is the lowest layer that proves it (CLAUDE.md testing table). What
@@ -136,6 +136,27 @@ describe('lineupRows', () => {
       'me',
     )
     expect(rows[0].members[0].isSelf).toBe(true)
+  })
+
+  // ADR-0033: a Substitute sits in their Position group in any state, and an attending one fills a
+  // spot there exactly like a Member, so the row's fraction agrees with the Roster bar.
+  it('puts substitutes in their position row, counting the attending ones', () => {
+    const rows = lineupRows([makeAttendee('u1', 'Anna', 'Setter')], roster(), null, [
+      makeSubstitute('s1', 'Jan de Vries', { position: { id: 'p-setter', label: 'Setter' } }),
+      makeSubstitute('s2', 'Mila Jansen', { position: { id: 'p-libero', label: 'Libero' }, state: 'MAYBE' }),
+    ])
+    expect(rows[0]).toMatchObject({ label: 'Setter', attending: 2, openSlots: 0 })
+    expect(rows[0].members.map((m) => [m.displayName, m.isSubstitute])).toEqual([
+      ['Anna', false],
+      ['Jan de Vries', true],
+    ])
+    expect(rows[1]).toMatchObject({ label: 'Libero', attending: 0 })
+    expect(rows[1].members[0]).toMatchObject({ userId: 's2', isSubstitute: true, state: 'MAYBE' })
+  })
+
+  it('puts a substitute without a position under Unassigned', () => {
+    const rows = lineupRows([], roster(), null, [makeSubstitute('s1', 'Floater')])
+    expect(rows.at(-1)).toMatchObject({ label: 'Unassigned', attending: 1 })
   })
 
   it('flags a staff row, which is shown but not counted toward the headcount', () => {

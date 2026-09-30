@@ -26,6 +26,16 @@ class JpaSubstituteRepositoryAdapter(
     private val positionJpaRepository: SpringDataPositionRepository,
 ) : SubstituteRepository {
 
+    @Transactional(readOnly = true)
+    override fun list(): List<Substitute> = jpaRepository.findAllWithPosition().map {
+        Substitute(
+            id = SubstituteId(UUID.fromString(it.id)),
+            name = DisplayName(it.name),
+            positionId = it.positionId?.let { id -> PositionId(UUID.fromString(id)) },
+            position = it.position?.let(::PositionLabel),
+        )
+    }
+
     @Transactional
     override fun create(name: DisplayName, positionId: PositionId?, createdBy: UserId): Substitute {
         val saved = jpaRepository.save(
@@ -56,6 +66,10 @@ class JpaSubstituteRepositoryAdapter(
             .single { it.substituteId == substituteId.value.toString() }
             .toDomain()
     }
+
+    @Transactional
+    override fun removeAttendance(eventId: EventId, substituteId: SubstituteId): Boolean =
+        jpaRepository.deleteAttendance(eventId.value, substituteId.value) > 0
 
     @Transactional(readOnly = true)
     override fun findAttendanceByEventIds(eventIds: List<EventId>): Map<EventId, List<SubstituteAttendance>> =

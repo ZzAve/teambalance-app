@@ -1,7 +1,8 @@
 import { UserPlus } from 'lucide-react'
-import type { SubstituteEntry } from '@shared/api/events'
+import type { AttendanceEntry, SubstituteEntry } from '@shared/api/events'
 import { avatarInitials } from '@shared/lib/avatar'
 import { cn } from '@shared/lib/utils'
+import { setByName } from '@entities/event/lib/attribution'
 
 export type SubstituteState = SubstituteEntry['state']
 
@@ -21,7 +22,11 @@ const TALLY: { state: SubstituteState; word: string; tone: string }[] = [
 
 interface SubstitutesBlockProps {
   substitutes: SubstituteEntry[]
+  /** The event's Members, to name who set each Substitute's state. */
+  members: AttendanceEntry[]
   onSetState: (substituteId: string, state: SubstituteState) => void
+  /** Opens the Substitute's sheet, which can also take them off the event. */
+  onOpen: (substituteId: string) => void
   onCallIn: () => void
   pending?: boolean
 }
@@ -31,7 +36,14 @@ interface SubstitutesBlockProps {
  * (ADR-0033). Sits directly under the Position groups on the event page. Prop-only: the writes and
  * the picker live in the route.
  */
-export function SubstitutesBlock({ substitutes, onSetState, onCallIn, pending = false }: SubstitutesBlockProps) {
+export function SubstitutesBlock({
+  substitutes,
+  members,
+  onSetState,
+  onOpen,
+  onCallIn,
+  pending = false,
+}: SubstitutesBlockProps) {
   const tally = TALLY.map((t) => ({ ...t, count: substitutes.filter((s) => s.state === t.state).length })).filter(
     (t) => t.count > 0,
   )
@@ -39,7 +51,7 @@ export function SubstitutesBlock({ substitutes, onSetState, onCallIn, pending = 
   return (
     <section aria-label="Substitutes" className="mt-6 overflow-hidden rounded-lg border border-border/40 bg-card shadow-sm">
       <div className="flex items-baseline justify-between gap-3 px-4 pb-2 pt-3">
-        <h3 className="text-caption font-semibold text-purple">Substitutes</h3>
+        <h3 className="text-caption font-semibold text-purple-ink">Substitutes</h3>
         <span className="text-caption font-semibold">
           {tally.length === 0 ? (
             <span className="text-muted-foreground">none yet</span>
@@ -62,14 +74,16 @@ export function SubstitutesBlock({ substitutes, onSetState, onCallIn, pending = 
         <div key={sub.substituteId} role="group" aria-label={sub.name} className="flex items-center gap-3 px-4 py-2">
           <span
             aria-hidden="true"
-            className="grid size-8 shrink-0 place-items-center rounded-full border-[1.5px] border-dashed border-purple text-caption font-bold text-purple"
+            className="grid size-8 shrink-0 place-items-center rounded-full border-[1.5px] border-dashed border-purple text-caption font-bold text-purple-ink"
           >
             {avatarInitials(sub.name)}
           </span>
-          <span className="min-w-0 flex-1">
+          <button type="button" onClick={() => onOpen(sub.substituteId)} className="min-w-0 flex-1 text-left">
             <span className="block truncate text-small font-medium">{sub.name}</span>
-            <span className="block text-caption text-muted-foreground">{sub.position?.label ?? 'Unassigned'}</span>
-          </span>
+            <span className="block text-caption text-muted-foreground">
+              {sub.position?.label ?? 'Unassigned'} · set by {setByName(sub.changedBy, members)}
+            </span>
+          </button>
           <span className="flex shrink-0 gap-1">
             {OPTIONS.map((option) => {
               const on = sub.state === option.value
@@ -96,7 +110,7 @@ export function SubstitutesBlock({ substitutes, onSetState, onCallIn, pending = 
       <button
         type="button"
         onClick={onCallIn}
-        className="flex w-full items-center justify-center gap-2 border-t border-border/40 py-3 text-small font-semibold text-purple hover:bg-purple/5"
+        className="flex w-full items-center justify-center gap-2 border-t border-border/40 py-3 text-small font-semibold text-purple-ink hover:bg-purple/5"
       >
         <UserPlus size={18} />
         Call in substitutes

@@ -10,10 +10,13 @@ import com.github.zzave.teambalance.api.domain.model.SubstituteId
 import com.github.zzave.teambalance.api.domain.port.CurrentTeamGateway
 import com.github.zzave.teambalance.api.domain.port.CurrentUserGateway
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.CreateSubstitute
+import com.github.zzave.teambalance.api.interfaces.generated.endpoint.ListSubstitutes
+import com.github.zzave.teambalance.api.interfaces.generated.endpoint.RemoveSubstituteAttendance
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.SetSubstituteAttendance
 import com.github.zzave.teambalance.api.interfaces.generated.model.DateTimestampWithTimezone
 import com.github.zzave.teambalance.api.interfaces.generated.model.MemberPosition
 import com.github.zzave.teambalance.api.interfaces.generated.model.SubstituteEntry
+import com.github.zzave.teambalance.api.interfaces.generated.model.SubstituteList
 import org.springframework.web.bind.annotation.RestController
 import java.util.UUID
 import com.github.zzave.teambalance.api.interfaces.generated.model.Substitute as SubstituteDto
@@ -23,8 +26,18 @@ class SubstituteController(
     private val substituteService: SubstituteService,
     private val currentUserGateway: CurrentUserGateway,
     private val currentTeamGateway: CurrentTeamGateway,
-) : CreateSubstitute.Handler,
-    SetSubstituteAttendance.Handler {
+) : ListSubstitutes.Handler,
+    CreateSubstitute.Handler,
+    SetSubstituteAttendance.Handler,
+    RemoveSubstituteAttendance.Handler {
+
+    override suspend fun listSubstitutes(request: ListSubstitutes.Request): ListSubstitutes.Response<*> {
+        val substitutes = substituteService.listSubstitutes(
+            callerId = currentUserGateway.requireCurrentUserId(),
+            teamId = currentTeamGateway.requireCurrentTeamId(),
+        )
+        return ListSubstitutes.Response200(SubstituteList(substitutes.map { it.produce() }))
+    }
 
     override suspend fun createSubstitute(request: CreateSubstitute.Request): CreateSubstitute.Response<*> {
         val created = substituteService.createSubstitute(
@@ -47,6 +60,18 @@ class SubstituteController(
             state = AttendanceState.valueOf(request.body.state.name),
         )
         return SetSubstituteAttendance.Response200(attendance.produce())
+    }
+
+    override suspend fun removeSubstituteAttendance(
+        request: RemoveSubstituteAttendance.Request,
+    ): RemoveSubstituteAttendance.Response<*> {
+        substituteService.removeAttendance(
+            callerId = currentUserGateway.requireCurrentUserId(),
+            teamId = currentTeamGateway.requireCurrentTeamId(),
+            eventId = request.path.eventId.consumeEventId(),
+            substituteId = request.path.substituteId.consumeSubstituteId(),
+        )
+        return RemoveSubstituteAttendance.Response204(Unit)
     }
 }
 

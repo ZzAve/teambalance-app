@@ -50,7 +50,7 @@ const EVENT: EventDetail = makeEvent({
   attendances: TEAM,
   // One called in and confirmed, one only asked (ADR-0033).
   substitutes: [
-    makeSubstitute('sub-1', 'Jan de Vries', { position: { id: 'pos-libero', label: 'Libero' } }),
+    makeSubstitute('sub-1', 'Jan de Vries', { position: { id: 'pos-libero', label: 'Libero' }, changedBy: 'u-2' }),
     makeSubstitute('sub-2', 'Mila Jansen', { state: 'MAYBE' }),
   ],
   myState: 'ATTENDING',
@@ -111,6 +111,7 @@ const meta = {
     onToggleMine: fn(),
     onRespond: fn(),
     onSetSubstituteState: fn(),
+    onTakeOffSubstitute: fn(),
     onCallInSubstitutes: fn(),
   },
 } satisfies Meta<typeof EventDetailView>
@@ -145,7 +146,11 @@ export const Data: Story = {
     await expect(block).toHaveTextContent('1 going · 1 asked')
     const substitutes = within(block)
     await expect(substitutes.getByText('Jan de Vries')).toBeInTheDocument()
+    await expect(substitutes.getByText('Libero · set by Sanne')).toBeInTheDocument()
     await expect(substitutes.getByText('Mila Jansen')).toBeInTheDocument()
+    // They also sit in their Position group, tagged, in any state; without a Position, under Unassigned.
+    await expect(canvas.getByRole('button', { name: /^Jan de Vries, substitute — Going/ })).toBeInTheDocument()
+    await expect(canvas.getByRole('button', { name: /^Mila Jansen, substitute — Maybe/ })).toBeInTheDocument()
     await expect(canvas.getByRole('button', { name: 'Edit event' })).toBeInTheDocument()
     await expect(canvas.getByRole('button', { name: 'Delete' })).toBeInTheDocument()
     // The shell around it: the Events tab stays current on a detail route under it.
@@ -223,6 +228,19 @@ export const Interactions: Story = {
     await expect(args.onSetSubstituteState).toHaveBeenCalledWith('sub-2', 'ATTENDING')
     await userEvent.click(substitutes.getByRole('button', { name: 'Call in substitutes' }))
     await expect(args.onCallInSubstitutes).toHaveBeenCalled()
+
+    // Tapping a Substitute, in their Position group or in the block, opens their sheet, which can also
+    // take them off the event.
+    await userEvent.click(page.getByRole('button', { name: /^Jan de Vries, substitute/ }))
+    let subSheet = within(await within(document.body).findByRole('dialog', { name: 'Jan de Vries' }))
+    await expect(subSheet.getByText('Substitute · Libero · set by Sanne')).toBeInTheDocument()
+    await userEvent.click(subSheet.getByRole('button', { name: 'Take off this event' }))
+    await expect(args.onTakeOffSubstitute).toHaveBeenCalledWith('sub-1')
+
+    await userEvent.click(substitutes.getByRole('button', { name: /^Mila Jansen/ }))
+    subSheet = within(await within(document.body).findByRole('dialog', { name: 'Mila Jansen' }))
+    await userEvent.click(subSheet.getByRole('button', { name: "Can't go" }))
+    await expect(args.onSetSubstituteState).toHaveBeenCalledWith('sub-2', 'ABSENT')
 
     // The error shell's retry reaches the query.
     await userEvent.click(region('Error').getByRole('button', { name: /try again|retry/i }))

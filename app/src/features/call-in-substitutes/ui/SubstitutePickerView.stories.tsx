@@ -1,12 +1,27 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { expect, fn, within } from 'storybook/test'
+import { makeSubstitute } from '@shared/testing/event-fixtures'
 import { SubstitutePickerView } from './SubstitutePickerView'
 
 // The picker for calling Substitutes in (ADR-0033). A sheet, so the event-page composite never shows
-// it open and this View owns its own picture.
+// it open and this View owns its own picture. Three stories (ADR-0032 §1): Data is the Team's list
+// with people in each state, Shells the Team with nobody on the list yet, Interactions every spy.
 const POSITIONS = [
   { id: 'pos-setter', label: 'Setter' },
   { id: 'pos-libero', label: 'Libero' },
+]
+
+const LIBERO = { id: 'pos-libero', label: 'Libero' }
+
+const TEAM_LIST = [
+  { id: 'sub-1', name: 'Jan de Vries', position: LIBERO },
+  { id: 'sub-2', name: 'Mila Jansen', position: undefined },
+  { id: 'sub-3', name: 'Kees Bakker', position: { id: 'pos-setter', label: 'Setter' } },
+]
+
+const ON_EVENT = [
+  makeSubstitute('sub-1', 'Jan de Vries', { position: LIBERO }),
+  makeSubstitute('sub-2', 'Mila Jansen', { state: 'MAYBE' }),
 ]
 
 const meta = {
@@ -16,6 +31,10 @@ const meta = {
     open: true,
     eventTitle: 'League Match vs Smash United',
     positions: POSITIONS,
+    substitutes: TEAM_LIST,
+    onEvent: ON_EVENT,
+    onSetState: fn(),
+    onTakeOff: fn(),
     onCreate: fn(),
     onClose: fn(),
   },
@@ -25,11 +44,44 @@ export default meta
 
 type Story = StoryObj<typeof meta>
 
+export const Data: Story = {
+  play: async () => {
+    const sheet = within(await within(document.body).findByRole('dialog', { name: 'Call in substitutes' }))
+    const jan = within(sheet.getByRole('group', { name: 'Jan de Vries' }))
+    await expect(jan.getByRole('button', { name: 'Going' })).toHaveAttribute('aria-pressed', 'true')
+    await expect(jan.getByText('Libero')).toBeInTheDocument()
+    const mila = within(sheet.getByRole('group', { name: 'Mila Jansen' }))
+    await expect(mila.getByRole('button', { name: 'Asked' })).toHaveAttribute('aria-pressed', 'true')
+    // Not on this event yet: nothing pressed, nothing to take off.
+    const kees = within(sheet.getByRole('group', { name: 'Kees Bakker' }))
+    await expect(kees.getByRole('button', { name: 'Going' })).toHaveAttribute('aria-pressed', 'false')
+    await expect(kees.queryByRole('button', { name: 'Take off' })).not.toBeInTheDocument()
+  },
+}
+
+// Nobody on the list yet: the only way forward is a new one.
+export const Shells: Story = {
+  args: { substitutes: [], onEvent: [] },
+  play: async () => {
+    const sheet = within(await within(document.body).findByRole('dialog', { name: 'Call in substitutes' }))
+    await expect(sheet.getByText('Nobody on the list yet.')).toBeInTheDocument()
+    await expect(sheet.getByRole('button', { name: /New substitute/ })).toBeInTheDocument()
+  },
+}
+
 // Picture owned by Data — behavioural only (ADR-0032 §1).
 export const Interactions: Story = {
   parameters: { chromatic: { disableSnapshot: true } },
   play: async ({ userEvent, args }) => {
     const sheet = within(await within(document.body).findByRole('dialog', { name: 'Call in substitutes' }))
+
+    // Several people can be called in before Done: one confirmed, one only asked.
+    await userEvent.click(within(sheet.getByRole('group', { name: 'Kees Bakker' })).getByRole('button', { name: 'Going' }))
+    await expect(args.onSetState).toHaveBeenCalledWith('sub-3', 'ATTENDING')
+    await userEvent.click(within(sheet.getByRole('group', { name: 'Jan de Vries' })).getByRole('button', { name: 'Asked' }))
+    await expect(args.onSetState).toHaveBeenCalledWith('sub-1', 'MAYBE')
+    await userEvent.click(within(sheet.getByRole('group', { name: 'Mila Jansen' })).getByRole('button', { name: 'Take off' }))
+    await expect(args.onTakeOff).toHaveBeenCalledWith('sub-2')
 
     // Someone not on the list yet: a name and an optional Position, added as Asked.
     await userEvent.click(sheet.getByRole('button', { name: /New substitute/ }))

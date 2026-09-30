@@ -15,6 +15,9 @@ import java.time.Instant
  * [PositionRepository], no method takes a team id: the routed schema is the team.
  */
 interface SubstituteRepository {
+    /** Every Substitute of the current tenant, ordered by name. */
+    fun list(): List<Substitute>
+
     fun create(name: DisplayName, positionId: PositionId?, createdBy: UserId): Substitute
 
     fun exists(id: SubstituteId): Boolean
@@ -30,6 +33,9 @@ interface SubstituteRepository {
         changedBy: UserId,
         at: Instant,
     ): SubstituteAttendance?
+
+    /** Takes the Substitute off the Event. False when they were not on it. */
+    fun removeAttendance(eventId: EventId, substituteId: SubstituteId): Boolean
 
     /** The Substitutes on each of [eventIds], in one query. An Event with none has no key. */
     fun findAttendanceByEventIds(eventIds: List<EventId>): Map<EventId, List<SubstituteAttendance>>

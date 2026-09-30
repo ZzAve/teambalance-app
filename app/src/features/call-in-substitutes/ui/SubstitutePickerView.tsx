@@ -1,10 +1,14 @@
 import { useState } from 'react'
-import { Plus } from 'lucide-react'
+import { Plus, X } from 'lucide-react'
+import type { SubstituteEntry } from '@shared/api/events'
+import type { Substitute } from '@shared/api/substitutes'
+import { avatarInitials } from '@shared/lib/avatar'
 import { Button } from '@shared/ui/button'
 import { Input } from '@shared/ui/input'
 import { Label } from '@shared/ui/label'
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@shared/ui/sheet'
 import { cn } from '@shared/lib/utils'
+import type { SubstituteState } from './SubstitutesBlock'
 
 interface PositionOption {
   id: string
@@ -15,21 +19,39 @@ interface SubstitutePickerViewProps {
   open: boolean
   eventTitle: string
   positions: PositionOption[]
+  /** The Team's list, ordered by name. */
+  substitutes: Substitute[]
+  /** The Substitutes already on this event, with their state. */
+  onEvent: SubstituteEntry[]
+  onSetState: (substituteId: string, state: SubstituteState) => void
+  onTakeOff: (substituteId: string) => void
   /** Creates a Substitute and adds them to the event as Asked. */
   onCreate: (name: string, positionId: string | null) => void
   onClose: () => void
   creating?: boolean
 }
 
+// The picker offers the two ways a Substitute joins an event; "Can't" is set afterwards, on the
+// event page, once someone has answered.
+const OPTIONS: { value: SubstituteState; label: string; active: string }[] = [
+  { value: 'ATTENDING', label: 'Going', active: 'border-green bg-green text-white' },
+  { value: 'MAYBE', label: 'Asked', active: 'border-gold bg-gold text-white' },
+]
+
 /**
- * Calling Substitutes in for one event (ADR-0033). Any Member may add someone who is not on the
- * Team's list yet: a name and an optional Position, added as Asked (Maybe), since the person has
+ * Calling Substitutes in for one event (ADR-0033). Lists the Team's Substitutes, each with inline
+ * Going / Asked, so several can be called in before Done. Any Member may also add someone who is not
+ * on the list yet: a name and an optional Position, added as Asked (Maybe), since the person has
  * been asked and not yet answered. Prop-only; the writes live in the route.
  */
 export function SubstitutePickerView({
   open,
   eventTitle,
   positions,
+  substitutes,
+  onEvent,
+  onSetState,
+  onTakeOff,
   onCreate,
   onClose,
   creating = false,
@@ -52,6 +74,60 @@ export function SubstitutePickerView({
           <SheetTitle>Call in substitutes</SheetTitle>
           <SheetDescription>{eventTitle}</SheetDescription>
         </SheetHeader>
+
+        <div className="mb-3 overflow-hidden rounded-lg border border-border/60 bg-card">
+          {substitutes.length === 0 && (
+            <p className="px-3 py-2.5 text-small text-muted-foreground">Nobody on the list yet.</p>
+          )}
+          {substitutes.map((sub) => {
+            const state = onEvent.find((e) => e.substituteId === sub.id)?.state
+            return (
+              <div
+                key={sub.id}
+                role="group"
+                aria-label={sub.name}
+                className="flex items-center gap-3 border-b border-border/40 px-3 py-2 last:border-b-0"
+              >
+                <span
+                  aria-hidden="true"
+                  className="grid size-8 shrink-0 place-items-center rounded-full border-[1.5px] border-dashed border-purple text-caption font-bold text-purple-ink"
+                >
+                  {avatarInitials(sub.name)}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-small font-medium">{sub.name}</span>
+                  <span className="block text-caption text-muted-foreground">{sub.position?.label ?? 'Unassigned'}</span>
+                </span>
+                <span className="flex shrink-0 items-center gap-1">
+                  {OPTIONS.map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      aria-pressed={state === option.value}
+                      onClick={() => onSetState(sub.id, option.value)}
+                      className={cn(
+                        'rounded-full border-[1.5px] px-2 py-1 text-caption font-semibold transition-colors',
+                        state === option.value ? option.active : 'border-border text-muted-foreground hover:bg-muted',
+                      )}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                  {state && (
+                    <button
+                      type="button"
+                      aria-label="Take off"
+                      onClick={() => onTakeOff(sub.id)}
+                      className="grid size-7 place-items-center rounded-full text-muted-foreground hover:bg-muted"
+                    >
+                      <X size={14} />
+                    </button>
+                  )}
+                </span>
+              </div>
+            )
+          })}
+        </div>
 
         {formOpen ? (
           <div className="flex flex-col gap-3 rounded-lg border-[1.5px] border-dashed border-purple bg-card p-3">
@@ -90,7 +166,7 @@ export function SubstitutePickerView({
           <button
             type="button"
             onClick={() => setFormOpen(true)}
-            className="flex items-center gap-3 rounded-lg border-[1.5px] border-dashed border-purple bg-card px-3 py-2.5 text-left font-semibold text-purple"
+            className="flex items-center gap-3 rounded-lg border-[1.5px] border-dashed border-purple bg-card px-3 py-2.5 text-left font-semibold text-purple-ink"
           >
             <span className="grid size-8 place-items-center rounded-full border-[1.5px] border-dashed border-purple">
               <Plus size={16} />

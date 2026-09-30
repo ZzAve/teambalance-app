@@ -5,6 +5,15 @@ type Substitute {
     position: MemberPosition?
 }
 
+type SubstituteList {
+    substitutes: Substitute[]
+}
+
+// Ordered by name. Any Member may read it: the picker lists everyone the Team has called in before.
+endpoint ListSubstitutes GET /api/substitutes -> {
+    200 -> SubstituteList
+}
+
 // Any Member may create one, typically while calling them in for an Event.
 type CreateSubstituteRequest {
     name: String,
@@ -24,5 +33,11 @@ type SetSubstituteAttendanceRequest {
 endpoint SetSubstituteAttendance PUT SetSubstituteAttendanceRequest /api/events/{eventId: String}/substitutes/{substituteId: String} -> {
     200 -> SubstituteEntry
     400 -> Unit
+    404 -> Unit
+}
+
+// Takes the Substitute off this Event. 404 when they were not on it.
+endpoint RemoveSubstituteAttendance DELETE /api/events/{eventId: String}/substitutes/{substituteId: String} -> {
+    204 -> Unit
     404 -> Unit
 }

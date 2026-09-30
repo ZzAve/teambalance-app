@@ -98,6 +98,7 @@ export const Interactions: Story = {
 
     // The actor is the platform, never a person: no name, no email, nothing to look up (ADR-0024 §4).
     await userEvent.click(region('Records').getByText(/worked here 2 times/))
+    await expect(region('Records').getByText(/worked here 2 times/).closest('details')).toHaveAttribute('open')
     await expect(
       region('Records').getAllByText('The TeamBalance owner worked in your team'),
     ).toHaveLength(2)

@@ -4,11 +4,11 @@ import com.github.zzave.teambalance.api.domain.port.EmailGateway
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.types.shouldBeInstanceOf
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan
+import org.springframework.boot.test.context.TestConfiguration
 import org.springframework.boot.test.context.runner.ApplicationContextRunner
-import org.springframework.context.annotation.Configuration
 import org.springframework.web.client.RestClient
 
-@Configuration
+@TestConfiguration
 @ConfigurationPropertiesScan
 private class EmailPropertiesScan
 

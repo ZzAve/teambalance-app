@@ -9,7 +9,7 @@ const LABEL: Record<AttendanceState, string> = {
   NOT_RESPONDED: 'Awaiting',
 }
 
-export interface CrossMemberToast {
+interface CrossMemberToast {
   message: string
   /**
    * The state to restore on Undo, or null when it can't be restored: NOT_RESPONDED *is* the absence

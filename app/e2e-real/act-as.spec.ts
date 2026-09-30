@@ -69,8 +69,10 @@ test('a Platform Admin enters a team, writes in it, and leaves without ever join
   await page.goto(`/t/${TEAM.slug}/team/settings`)
   const platformAccess = page.locator('section').filter({ has: page.getByRole('heading', { name: 'Platform access' }) })
   await expect(platformAccess).toBeVisible({ timeout: 15_000 })
-  await expect(platformAccess.getByRole('group', { name: /The TeamBalance owner worked here/ })).toBeVisible()
+  const platformRecords = platformAccess.locator('details').filter({ hasText: /The TeamBalance owner worked here/ }).first()
+  await expect(platformRecords).not.toHaveAttribute('open')
   await platformAccess.getByText(/The TeamBalance owner worked here/).click()
+  await expect(platformRecords).toHaveAttribute('open')
   // .first(): a warm DB carries earlier episodes, and this asserts the platform is IN the record,
   // not how many times it has been here.
   await expect(platformAccess.getByText('The TeamBalance owner worked in your team').first()).toBeVisible()

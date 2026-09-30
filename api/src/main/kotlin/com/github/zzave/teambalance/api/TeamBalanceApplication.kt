@@ -4,8 +4,10 @@ import com.github.zzave.teambalance.api.infrastructure.startup.DatabaseWarmupLis
 import org.springframework.boot.SpringApplication
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.context.metrics.buffering.BufferingApplicationStartup
+import org.springframework.boot.context.properties.ConfigurationPropertiesScan
 
 @SpringBootApplication
+@ConfigurationPropertiesScan
 class TeamBalanceApplication
 
 // Ring-buffer capacity for the startup timing tree — large enough to hold every boot step without

@@ -1,8 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useState, type CSSProperties, type ReactNode } from 'react'
 import { SlidersHorizontal } from 'lucide-react'
 import type { EventTypeItem } from '@shared/api/event-types'
 import type { AttendanceState } from '@features/attendance-toggle/ui/AttendanceToggle'
 import { SectionLabel } from '@shared/ui/SectionLabel'
+import { Switch } from '@shared/ui/switch'
+import { useEscapeToClose } from '@shared/lib/use-escape-to-close'
 import { ALL_ATTENDANCE_STATES } from '../model/attendance-states'
 import { ALL_TURNOUT_BUCKETS, type TurnoutBucket } from '../model/turnout'
 
@@ -94,6 +96,38 @@ export const TURNOUT_CHIPS: { bucket: TurnoutBucket; label: string; active: stri
   },
 ]
 
+function Divider() {
+  return <div className="-mx-3.5 my-3.5 h-px bg-border/60" />
+}
+
+interface ChipProps {
+  pressed: boolean
+  onToggle: () => void
+  activeClassName?: string
+  inactiveClassName?: string
+  activeStyle?: CSSProperties
+  inactiveStyle?: CSSProperties
+  children: ReactNode
+}
+
+function Chip({ pressed, onToggle, activeClassName, inactiveClassName, activeStyle, inactiveStyle, children }: ChipProps) {
+  return (
+    <button
+      aria-pressed={pressed}
+      onClick={onToggle}
+      style={pressed ? activeStyle : inactiveStyle}
+      className={[
+        'shrink-0 rounded-full border px-3 py-1.5 text-caption font-semibold transition-all',
+        pressed ? activeClassName : inactiveClassName,
+      ]
+        .filter(Boolean)
+        .join(' ')}
+    >
+      {children}
+    </button>
+  )
+}
+
 /**
  * The events page's single filter control: an icon button that opens a popover holding the
  * event-type chips, the answer chips, the Turnout chips and the "Show past events" switch — plus a
@@ -134,16 +168,7 @@ export function EventFiltersView({
     activeStates.size < ALL_ATTENDANCE_STATES.length ||
     activeTurnouts.size < ALL_TURNOUT_BUCKETS.length
 
-  // Escape has to be caught on the document: focus stays on the trigger, which is a sibling of the
-  // popover, so a handler on the panel itself would never see the key.
-  useEffect(() => {
-    if (!open) return
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setOpen(false)
-    }
-    document.addEventListener('keydown', onKeyDown)
-    return () => document.removeEventListener('keydown', onKeyDown)
-  }, [open])
+  useEscapeToClose(open, () => setOpen(false))
 
   return (
     <div className="flex items-center gap-2">
@@ -208,28 +233,23 @@ export function EventFiltersView({
                     </SectionLabel>
                     <div className="flex flex-wrap gap-2">
                       {eventTypes.map((type) => {
-                        const isActive = activeTypeIds.has(type.id)
                         const color = type.color ?? '#888'
                         return (
-                          <button
+                          <Chip
                             key={type.id}
-                            aria-pressed={isActive}
-                            onClick={() => onToggleType(type.id)}
-                            style={
-                              isActive
-                                ? { backgroundColor: color, borderColor: color, color: '#fff' }
-                                : { borderColor: color + '66', color }
-                            }
-                            className="shrink-0 rounded-full border px-3 py-1.5 text-caption font-semibold transition-all"
+                            pressed={activeTypeIds.has(type.id)}
+                            onToggle={() => onToggleType(type.id)}
+                            activeStyle={{ backgroundColor: color, borderColor: color, color: '#fff' }}
+                            inactiveStyle={{ borderColor: color + '66', color }}
                           >
                             {type.name}
-                          </button>
+                          </Chip>
                         )
                       })}
                     </div>
                   </div>
 
-                  <div className="-mx-3.5 my-3.5 h-px bg-border/60" />
+                  <Divider />
                 </>
               )}
 
@@ -238,56 +258,46 @@ export function EventFiltersView({
                   Your answer
                 </SectionLabel>
                 <div className="flex flex-wrap gap-2">
-                  {STATE_CHIPS.map(({ state, label, active, inactive }) => {
-                    const isActive = activeStates.has(state)
-                    return (
-                      <button
-                        key={state}
-                        aria-pressed={isActive}
-                        onClick={() => onToggleState(state)}
-                        className={[
-                          'shrink-0 rounded-full border px-3 py-1.5 text-caption font-semibold transition-all',
-                          isActive ? active : inactive,
-                        ].join(' ')}
-                      >
-                        {label}
-                      </button>
-                    )
-                  })}
+                  {STATE_CHIPS.map(({ state, label, active, inactive }) => (
+                    <Chip
+                      key={state}
+                      pressed={activeStates.has(state)}
+                      onToggle={() => onToggleState(state)}
+                      activeClassName={active}
+                      inactiveClassName={inactive}
+                    >
+                      {label}
+                    </Chip>
+                  ))}
                 </div>
               </div>
 
               {showTurnout && (
                 <>
-                  <div className="-mx-3.5 my-3.5 h-px bg-border/60" />
+                  <Divider />
 
                   <div role="group" aria-labelledby="turnout-filter-heading">
                     <SectionLabel as="h3" id="turnout-filter-heading" className="mb-2.5">
                       Turnout
                     </SectionLabel>
                     <div className="flex flex-wrap gap-2">
-                      {TURNOUT_CHIPS.map(({ bucket, label, active, inactive }) => {
-                        const isActive = activeTurnouts.has(bucket)
-                        return (
-                          <button
-                            key={bucket}
-                            aria-pressed={isActive}
-                            onClick={() => onToggleTurnout(bucket)}
-                            className={[
-                              'shrink-0 rounded-full border px-3 py-1.5 text-caption font-semibold transition-all',
-                              isActive ? active : inactive,
-                            ].join(' ')}
-                          >
-                            {label}
-                          </button>
-                        )
-                      })}
+                      {TURNOUT_CHIPS.map(({ bucket, label, active, inactive }) => (
+                        <Chip
+                          key={bucket}
+                          pressed={activeTurnouts.has(bucket)}
+                          onToggle={() => onToggleTurnout(bucket)}
+                          activeClassName={active}
+                          inactiveClassName={inactive}
+                        >
+                          {label}
+                        </Chip>
+                      ))}
                     </div>
                   </div>
                 </>
               )}
 
-              <div className="-mx-3.5 my-3.5 h-px bg-border/60" />
+              <Divider />
 
               <div className="flex items-center justify-between gap-2.5">
                 <div>
@@ -296,23 +306,7 @@ export function EventFiltersView({
                     {showPast ? 'On — past events included' : 'Off — upcoming only'}
                   </div>
                 </div>
-                <button
-                  role="switch"
-                  aria-checked={showPast}
-                  aria-label="Show past events"
-                  onClick={() => onToggleShowPast(!showPast)}
-                  className={[
-                    'relative h-6 w-11 shrink-0 rounded-full transition-colors',
-                    showPast ? 'bg-green' : 'bg-muted-foreground/30',
-                  ].join(' ')}
-                >
-                  <span
-                    className={[
-                      'absolute top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-[left] duration-200',
-                      showPast ? 'left-[22px]' : 'left-0.5',
-                    ].join(' ')}
-                  />
-                </button>
+                <Switch checked={showPast} onCheckedChange={onToggleShowPast} aria-label="Show past events" />
               </div>
             </div>
           </>

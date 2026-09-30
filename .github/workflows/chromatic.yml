@@ -57,27 +57,7 @@ jobs:
           # TurboSnap (onlyChanged) — a shallow clone breaks baseline detection.
           fetch-depth: 0
 
-      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
-        with:
-          distribution: temurin
-          java-version: '25'
-
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version: '24.19.0'
-          cache: npm
-          cache-dependency-path: app/package-lock.json
-
-      - uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
-
-      # Stories transitively import the Wirespec-generated TS client (gitignored); generate it
-      # before the Storybook build, exactly like storybook.yml, or Vite fails on missing modules.
-      - name: Generate Wirespec TypeScript client
-        run: ./gradlew :api:wirespec-typescript
-
-      - name: Install dependencies
-        run: npm ci
-        working-directory: app
+      - uses: ./.github/actions/setup-toolchain
 
       - name: Run Chromatic
         uses: chromaui/action@14cfaef73576e69f95f47f60058063f46ca38719 # v18.1.0

@@ -84,11 +84,17 @@ jobs:
         with:
           workingDir: app
           onlyChanged: true
-          # TurboSnap only traces files in the Storybook bundle's module graph. tokens.css reaches it
-          # through a CSS @import in global.css, so it is not in that graph and a tokens-only change
-          # would snapshot nothing. Listing it as an external makes such a change a full build.
-          # The path is relative to the repo root, not to workingDir.
-          externals: design-tokens/*.css
+          # TurboSnap only traces files in the Storybook bundle's module graph, and a changed external
+          # forces a full build. Paths are relative to the repo root, not to workingDir.
+          #   - tokens.css reaches the bundle through a CSS @import in global.css, so it is not in the
+          #     graph and a tokens-only change would snapshot nothing.
+          #   - Tailwind and the @fontsource fonts are also loaded through CSS @import, so a lockfile
+          #     bump to them maps to no stories. Every lockfile change becomes a full build instead
+          #     (~115 snapshots at the time of writing), the price of catching a visual regression
+          #     in a dependency bump (ADR-0017).
+          externals: |
+            design-tokens/*.css
+            app/package-lock.json
           exitZeroOnChanges: true
           exitOnceUploaded: true
           # Draft PRs are work-in-progress and can't merge, so their WIP pushes shouldn't spend the

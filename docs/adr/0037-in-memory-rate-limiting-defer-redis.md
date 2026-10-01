@@ -1,4 +1,4 @@
-# ADR-0033: In-memory per-instance rate limiting; defer a shared (Redis) store
+# ADR-0037: In-memory per-instance rate limiting; defer a shared (Redis) store
 
 - Status: Accepted
 - Date: 2026-08-10

@@ -4,7 +4,7 @@
 - Date: 2026-07-24
 - Recorded 2026-09-29 from the implementation plan (docs/plans, local only).
 - Relates to: [ADR-0022](0022-jdbc-backed-shared-sessions-survive-restart.md) (sessions in Postgres, no Redis),
-  [ADR-0033](0033-in-memory-rate-limiting-defer-redis.md) (Redis stays un-wired)
+  [ADR-0037](0037-in-memory-rate-limiting-defer-redis.md) (Redis stays un-wired)
 
 ## Context
 
@@ -77,7 +77,7 @@ serial path.
   after-change prod numbers are recorded yet; they can only be measured on a fresh prod container
   and belong in a follow-up amendment.
 - Redis is not on the classpath. Re-adding it would put back the dead weight measured above; this is
-  why ADR-0033 rate-limits in memory.
+  why ADR-0037 rate-limits in memory.
 - The warm-up connection is a second, short-lived connection at boot. It is prod-only because other
   profiles use an always-on local database.
 - A profile-specific AOT build means a bean that exists only under another profile needs `processAot`

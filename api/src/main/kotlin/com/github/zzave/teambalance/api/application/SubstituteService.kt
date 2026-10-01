@@ -2,6 +2,7 @@ package com.github.zzave.teambalance.api.application
 
 import com.github.zzave.teambalance.api.domain.exception.EventNotFoundException
 import com.github.zzave.teambalance.api.domain.exception.PositionNotFoundException
+import com.github.zzave.teambalance.api.domain.exception.SubstituteNameTakenException
 import com.github.zzave.teambalance.api.domain.exception.SubstituteNotFoundException
 import com.github.zzave.teambalance.api.domain.model.AttendanceState
 import com.github.zzave.teambalance.api.domain.model.DisplayName
@@ -11,6 +12,7 @@ import com.github.zzave.teambalance.api.domain.model.Substitute
 import com.github.zzave.teambalance.api.domain.model.SubstituteAttendance
 import com.github.zzave.teambalance.api.domain.model.SubstituteId
 import com.github.zzave.teambalance.api.domain.model.TeamId
+import com.github.zzave.teambalance.api.domain.model.UsageCount
 import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.port.PositionRepository
 import com.github.zzave.teambalance.api.domain.port.SubstituteRepository
@@ -35,7 +37,7 @@ class SubstituteService(
 
     fun createSubstitute(callerId: UserId, teamId: TeamId, rawName: String, positionId: PositionId?): Substitute {
         authorizationService.requireMember(callerId, teamId)
-        val name = validName(rawName)
+        val name = validName(rawName, excluding = null)
         requireKnownPosition(positionId)
         return substituteRepository.create(name, positionId, callerId)
     }
@@ -50,9 +52,23 @@ class SubstituteService(
     ): Substitute {
         authorizationService.requireAdmin(callerId, teamId)
         if (!substituteRepository.exists(id)) throw SubstituteNotFoundException(id)
-        val name = validName(rawName)
+        val name = validName(rawName, excluding = id)
         requireKnownPosition(positionId)
         return substituteRepository.update(id, name, positionId)
+    }
+
+    /** Admin-only: the remove dialog states how many Events the removal takes the Substitute off. */
+    fun substituteEventCount(callerId: UserId, teamId: TeamId, id: SubstituteId): UsageCount {
+        authorizationService.requireAdmin(callerId, teamId)
+        if (!substituteRepository.exists(id)) throw SubstituteNotFoundException(id)
+        return UsageCount(substituteRepository.countEvents(id))
+    }
+
+    /** Admin-only, and final: there is no restore. The Substitute leaves every Event, past ones included. */
+    fun deleteSubstitute(callerId: UserId, teamId: TeamId, id: SubstituteId) {
+        authorizationService.requireAdmin(callerId, teamId)
+        if (!substituteRepository.exists(id)) throw SubstituteNotFoundException(id)
+        substituteRepository.delete(id)
     }
 
     fun setAttendance(
@@ -75,10 +91,14 @@ class SubstituteService(
         if (!substituteRepository.removeAttendance(eventId, substituteId)) throw SubstituteNotFoundException(substituteId)
     }
 
-    private fun validName(rawName: String): DisplayName {
+    // Trimmed, 1..MAX_NAME_LENGTH, and unique on the list ignoring case, so the picker never shows two
+    // rows nobody can tell apart. [excluding] lets a Substitute keep their own name through a rename.
+    private fun validName(rawName: String, excluding: SubstituteId?): DisplayName {
         val name = rawName.trim()
         require(name.isNotBlank()) { "Substitute name must not be blank" }
         require(name.length <= MAX_NAME_LENGTH) { "Substitute name must be at most $MAX_NAME_LENGTH characters" }
+        val taken = substituteRepository.list().any { it.id != excluding && it.name.value.equals(name, ignoreCase = true) }
+        if (taken) throw SubstituteNameTakenException(name)
         return DisplayName(name)
     }
 

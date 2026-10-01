@@ -14,6 +14,8 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
+import java.time.Duration
+import java.time.Instant
 import java.util.UUID
 
 // Fixture ids are namespaced after this feature's issue (#359), for the reason RosterFillIT gives:
@@ -22,6 +24,7 @@ private const val ADMIN_USER_ID = "03590000-0000-0000-0000-000000000001"
 private const val MEMBER_USER_ID = "03590000-0000-0000-0000-000000000002"
 private const val TEAM_ID = "a0000000-0000-0000-0000-000000000001"
 private const val SETTER = "Sub Setter"
+private const val LIBERO = "Sub Libero"
 private const val TYPE_NAME = "SubstituteFixture"
 
 /**
@@ -151,6 +154,89 @@ class SubstituteIT : TeamBalanceIT() {
             detail(eventId).andExpect(jsonPath("$.substitutes[0].name").value("After Rename"))
         }
 
+        // Only Admins keep the list (ADR-0033); a plain Member gets the refusal every admin endpoint gives.
+        test("a plain member cannot rename, move, count or remove a substitute") {
+            seedTeam()
+            val setter = positionId(SETTER)
+            val substituteId = createSubstitute("Kept As Is", positionId = null, asUser = MEMBER_USER_ID)
+
+            putSubstitute(substituteId, "Renamed By Member", positionId = null, asUser = MEMBER_USER_ID)
+                .andExpect(status().isForbidden)
+            putSubstitute(substituteId, "Kept As Is", positionId = setter, asUser = MEMBER_USER_ID)
+                .andExpect(status().isForbidden)
+            perform(MockMvcRequestBuilders.get("/api/substitutes/$substituteId/usage"), MEMBER_USER_ID)
+                .andExpect(status().isForbidden)
+            perform(MockMvcRequestBuilders.delete("/api/substitutes/$substituteId"), MEMBER_USER_ID)
+                .andExpect(status().isForbidden)
+
+            perform(MockMvcRequestBuilders.get("/api/substitutes"), MEMBER_USER_ID)
+                .andExpect(jsonPath("$.substitutes[?(@.id == '$substituteId')].name").value("Kept As Is"))
+                .andExpect(jsonPath("$.substitutes[?(@.id == '$substituteId')].position").value(contains(nullValue())))
+        }
+
+        // Unchanged behaviour, proven here: an Event reads the Substitute's current Position, as it
+        // does a Member's, so a change moves them on every Event they are already on.
+        test("changing a substitute's position moves them to that position's group on existing events") {
+            seedTeam()
+            val setter = positionId(SETTER)
+            val libero = positionId(LIBERO)
+            setTypeDefault(targets = mapOf(setter to 2, libero to 1))
+            val eventId = createEvent("Moved on")
+            val substituteId = createSubstitute("Moving", positionId = setter, asUser = MEMBER_USER_ID)
+            setSubstituteState(eventId, substituteId, "ATTENDING", asUser = MEMBER_USER_ID).andExpect(status().isOk)
+
+            putSubstitute(substituteId, "Moving", positionId = libero, asUser = ADMIN_USER_ID).andExpect(status().isOk)
+
+            detail(eventId)
+                .andExpect(jsonPath("$.substitutes[0].position.label").value(LIBERO))
+                .andExpect(jsonPath("$.roster.positions[?(@.id == '$libero')].attending").value(contains(1)))
+                .andExpect(jsonPath("$.roster.positions[?(@.id == '$setter')].attending").value(contains(0)))
+        }
+
+        test("a substitute's name stays unique on the list") {
+            seedTeam()
+            createSubstitute("Unique Name", positionId = null, asUser = MEMBER_USER_ID)
+            val other = createSubstitute("Other Name", positionId = null, asUser = MEMBER_USER_ID)
+
+            postSubstitute("unique name", asUser = MEMBER_USER_ID).andExpect(status().isConflict)
+            putSubstitute(other, "UNIQUE NAME", positionId = null, asUser = ADMIN_USER_ID).andExpect(status().isConflict)
+        }
+
+        test("the remove dialog's count is every event the substitute is on, past ones included") {
+            seedTeam()
+            val past = createEvent("Counted, played", start = "2026-01-11T17:00:00Z")
+            val upcoming = createEvent("Counted, to play", start = "2099-01-11T17:00:00Z")
+            createEvent("Not on this one")
+            val substituteId = createSubstitute("Counted", positionId = null, asUser = MEMBER_USER_ID)
+            setSubstituteState(past, substituteId, "ABSENT", asUser = MEMBER_USER_ID).andExpect(status().isOk)
+            setSubstituteState(upcoming, substituteId, "MAYBE", asUser = MEMBER_USER_ID).andExpect(status().isOk)
+
+            perform(MockMvcRequestBuilders.get("/api/substitutes/$substituteId/usage"), ADMIN_USER_ID)
+                .andExpect(status().isOk)
+                .andExpect(jsonPath("$.eventCount").value(2))
+        }
+
+        // The same rule as a departed Member (ADR-0009): they leave no trace on any Event, past ones included.
+        test("an admin removes a substitute and they leave every event, past ones included") {
+            seedTeam()
+            val past = createEvent("Played already", start = "2026-01-10T17:00:00Z")
+            val upcoming = createEvent("Still to play", start = "2099-01-10T17:00:00Z")
+            val substituteId = createSubstitute("Leaving", positionId = null, asUser = MEMBER_USER_ID)
+            setSubstituteState(past, substituteId, "ATTENDING", asUser = MEMBER_USER_ID).andExpect(status().isOk)
+            setSubstituteState(upcoming, substituteId, "MAYBE", asUser = MEMBER_USER_ID).andExpect(status().isOk)
+
+            perform(MockMvcRequestBuilders.delete("/api/substitutes/$substituteId"), ADMIN_USER_ID)
+                .andExpect(status().isNoContent)
+
+            detail(past).andExpect(jsonPath("$.substitutes.length()").value(0))
+            detail(upcoming).andExpect(jsonPath("$.substitutes.length()").value(0))
+            perform(MockMvcRequestBuilders.get("/api/substitutes"), MEMBER_USER_ID)
+                .andExpect(jsonPath("$.substitutes[?(@.id == '$substituteId')]").isEmpty)
+            // There is no restore: a second removal finds nothing.
+            perform(MockMvcRequestBuilders.delete("/api/substitutes/$substituteId"), ADMIN_USER_ID)
+                .andExpect(status().isNotFound)
+        }
+
         test("a blank or over-long name is refused") {
             seedTeam()
 
@@ -200,14 +286,15 @@ class SubstituteIT : TeamBalanceIT() {
             asUser,
         )
 
-    private fun createEvent(title: String): UUID {
+    private fun createEvent(title: String, start: String = "2026-09-01T17:00:00Z"): UUID {
+        val startTime = Instant.parse(start)
         val body = """
             {
               "eventTypeId": "${fixtureTypeId()}",
               "title": "$title",
               "description": null,
-              "startTime": "2026-09-01T17:00:00Z",
-              "endTime": "2026-09-01T18:30:00Z",
+              "startTime": "$startTime",
+              "endTime": "${startTime.plus(Duration.ofMinutes(90))}",
               "location": null,
               "references": [],
               "rosterOverride": null

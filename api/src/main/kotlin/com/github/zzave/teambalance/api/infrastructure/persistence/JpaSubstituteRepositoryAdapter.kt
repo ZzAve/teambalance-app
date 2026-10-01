@@ -54,7 +54,13 @@ class JpaSubstituteRepositoryAdapter(
         return jpaRepository.save(entity).toDomain()
     }
 
+    @Transactional
+    override fun delete(id: SubstituteId) = jpaRepository.deleteById(id.value)
+
     override fun exists(id: SubstituteId): Boolean = jpaRepository.existsById(id.value)
+
+    @Transactional(readOnly = true)
+    override fun countEvents(id: SubstituteId): Int = jpaRepository.countAttendances(id.value)
 
     @Transactional
     override fun setAttendance(

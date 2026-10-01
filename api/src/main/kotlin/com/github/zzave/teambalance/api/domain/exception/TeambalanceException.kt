@@ -123,6 +123,9 @@ class LastAdminException(teamId: TeamId) :
 class PositionLabelTakenException(label: String) :
     ConflictException("Position '$label' already exists in this team", "POSITION_LABEL_TAKEN")
 
+class SubstituteNameTakenException(name: String) :
+    ConflictException("Substitute '$name' is already on this team's list", "SUBSTITUTE_NAME_TAKEN")
+
 // Event-type names are unique per team case-insensitively, the same rule positions follow. Archived
 // types count: two types sharing a name would become indistinguishable the moment one is restored.
 class EventTypeNameTakenException(name: String) :

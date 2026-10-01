@@ -88,7 +88,7 @@ export const Shells: Story = {
 }
 
 // Picture owned by Data — behavioural only (ADR-0032 §1). Two instances because generating needs an
-// empty list to stay the Empty picture (ADR-0027 §2) while revoking needs the populated list.
+// empty list to stay the Empty picture (ADR-0035 §2) while revoking needs the populated list.
 export const Interactions: Story = {
   parameters: { chromatic: { disableSnapshot: true } },
   render: (args) => (

@@ -124,5 +124,5 @@ EXPOSE 8080
 #                             only logs a warning and boots normally).
 #   -Dspring.aot.enabled    — activate the AOT-generated bean definitions packaged in the jar.
 # The GC flag MUST match the bake-stage training run, or the AOT cache is rejected at runtime.
-# See docs/plans/2026-07-24-startup-time-optimization.md.
+# See docs/adr/0036-jvm-startup-time-tuning-without-native-image.md.
 ENTRYPOINT ["java", "-XX:+UseSerialGC", "-XX:TieredStopAtLevel=1", "-XX:AOTCache=app.aot", "-Dspring.aot.enabled=true", "-jar", "app.jar"]

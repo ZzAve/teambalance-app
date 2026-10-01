@@ -144,7 +144,7 @@ export const MenuOpen: Story = {
 // The archive dialog is the one screen that has to answer "will this delete my events?", and it
 // leads with the migration offer rather than burying it. The Interactions play below confirms it
 // twice (with and without migration), so the dialog is gone before Chromatic shoots — this one opens
-// it (via the row's ⋯ menu) and stops, so that wording carries a baseline (ADR-0027 §2).
+// it (via the row's ⋯ menu) and stops, so that wording carries a baseline (ADR-0035 §2).
 export const ArchiveDialogOpen: Story = {
   play: async ({ canvas, userEvent, args }) => {
     await userEvent.click(canvas.getByLabelText('Actions for Match'))

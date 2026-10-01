@@ -1,8 +1,8 @@
-# ADR-0020: In-memory per-instance rate limiting; defer a shared (Redis) store
+# ADR-0037: In-memory per-instance rate limiting; defer a shared (Redis) store
 
 - Status: Accepted
 - Date: 2026-08-10
-- Relates to: #200 (rate limiting on invitation & auth endpoints); ADR-0010 / ADR-0014 (session store)
+- Relates to: #200 (rate limiting on invitation & auth endpoints); ADR-0010 / ADR-0022 (session store)
 
 ## Context
 
@@ -17,7 +17,7 @@ already in the infra", and also listed "a lightweight servlet filter" as a candi
 
 Two facts about this codebase point away from Redis:
 
-- **Redis is deliberately un-wired.** ADR-0010 chose in-memory sessions over Redis; ADR-0014
+- **Redis is deliberately un-wired.** ADR-0010 chose in-memory sessions over Redis; ADR-0022
   then backed sessions with **Postgres (JDBC)**, not Redis. The startup-time-optimization work
   went further and **removed `spring-boot-starter-data-redis` / `spring-session-data-redis`
   outright** as cold-start dead weight ("Found 0 Redis repository interfaces", multiple-modules
@@ -48,7 +48,7 @@ candidate — not a Redis-backed store.
 
 ## Consequences
 
-- **Zero new runtime infra / dependencies**; no cold-start regression — consistent with ADR-0010/0014.
+- **Zero new runtime infra / dependencies**; no cold-start regression — consistent with ADR-0010/0022.
 - Limits are **per instance**: with N live instances the effective ceiling is N× the configured
   value. Acceptable at current scale for a defense-in-depth control.
 - Buckets are **not shared across instances and reset on restart** (an attacker's counter resets on

@@ -23,7 +23,7 @@ test('a member calls in a new substitute, confirms them, and takes them off agai
   await block.getByRole('button', { name: 'Call in substitutes' }).click()
   const picker = page.getByRole('dialog', { name: 'Call in substitutes' })
   await picker.getByRole('button', { name: /New substitute/ }).click()
-  await picker.getByLabel('Name').fill(name)
+  await picker.getByLabel('Name', { exact: true }).fill(name)
   await picker.getByRole('button', { name: 'Add as asked' }).click()
   await expect(picker.getByRole('group', { name }).getByRole('button', { name: 'Asked' })).toHaveAttribute(
     'aria-pressed',

@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { create } from 'zustand'
+import { browserPreferenceStorage } from '../preferences/preferences'
 import {
   applyTheme,
   DARK_COLOR_SCHEME_QUERY,
@@ -32,15 +33,6 @@ function osPrefersDark(): boolean {
   return window.matchMedia(DARK_COLOR_SCHEME_QUERY).matches
 }
 
-function localStorageOrNull() {
-  try {
-    return typeof window === 'undefined' ? null : window.localStorage
-  } catch {
-    // Accessing localStorage itself throws when cookies are blocked.
-    return null
-  }
-}
-
 interface ThemeState {
   preference: ThemePreference
   resolved: ResolvedTheme
@@ -50,13 +42,13 @@ interface ThemeState {
   syncSystemPreference: () => void
 }
 
-const initialPreference = readThemePreference(localStorageOrNull())
+const initialPreference = readThemePreference(browserPreferenceStorage())
 
 export const useThemeStore = create<ThemeState>((set, get) => ({
   preference: initialPreference,
   resolved: resolveTheme(initialPreference, osPrefersDark()),
   setPreference: (preference) => {
-    writeThemePreference(preference, localStorageOrNull())
+    writeThemePreference(preference, browserPreferenceStorage())
     set({ preference, resolved: resolveTheme(preference, osPrefersDark()) })
   },
   syncSystemPreference: () => set({ resolved: resolveTheme(get().preference, osPrefersDark()) }),

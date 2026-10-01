@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { ChevronRight } from 'lucide-react'
 import type { ActAsRecord } from '@shared/api/act-as'
 
@@ -20,20 +19,12 @@ interface ActAsRecordsViewProps {
  * out of context — so at rest it is one line, and the reasoning is reachable in two more taps
  * rather than pre-emptively defended on a page visited for other things.
  *
+ * Each level is a native `<details>`, so the browser owns open/closed state and keyboard handling.
+ *
  * The actor is rendered generically ("the TeamBalance owner"), never as a person: no name lookup,
  * and no operator email on a surface the team's Admins read.
  */
 export function ActAsRecordsView({ records = [], isLoading, isError }: ActAsRecordsViewProps) {
-  const [listOpen, setListOpen] = useState(false)
-  const [openRecord, setOpenRecord] = useState<string | null>(null)
-  const [whyOpen, setWhyOpen] = useState(false)
-
-  // The reasoning belongs to the record you opened it from, so collapsing that record takes it too.
-  const toggleRecord = (key: string) => {
-    setOpenRecord((current) => (current === key ? null : key))
-    setWhyOpen(false)
-  }
-
   return (
     <section>
       <h3 className="font-display text-lead font-bold">Platform access</h3>
@@ -50,83 +41,61 @@ export function ActAsRecordsView({ records = [], isLoading, isError }: ActAsReco
             The TeamBalance owner has never worked in your team.
           </p>
         ) : (
-          <div className="mt-3">
-            <button
-              type="button"
-              aria-expanded={listOpen}
-              onClick={() => setListOpen((open) => !open)}
-              className="flex w-full items-center gap-2 rounded-lg border border-border bg-card p-3 text-left transition-colors hover:bg-card-hover"
-            >
+          <details className="group/list mt-3">
+            <summary className="flex w-full list-none items-center gap-2 rounded-lg border border-border bg-card p-3 text-left transition-colors hover:bg-card-hover [&::-webkit-details-marker]:hidden">
               <ChevronRight
                 size={16}
-                className={`shrink-0 text-muted-foreground transition-transform duration-200 ${listOpen ? 'rotate-90' : ''}`}
+                className="shrink-0 text-muted-foreground transition-transform duration-200 group-open/list:rotate-90"
               />
               <span className="text-small font-medium">{summarize(records.length)}</span>
-            </button>
+            </summary>
 
-            {listOpen && (
-              <ul className="mt-2 divide-y divide-border rounded-lg border border-border">
-                {records.map((record) => {
-                  const key = `${record.enteredAt}-${record.actorKind}`
-                  const isOpen = openRecord === key
-                  return (
-                    <li key={key}>
-                      <button
-                        type="button"
-                        aria-expanded={isOpen}
-                        onClick={() => toggleRecord(key)}
-                        className="flex w-full items-center gap-2 p-3 text-left"
-                      >
-                        <ChevronRight
-                          size={15}
-                          className={`shrink-0 text-muted-foreground transition-transform duration-200 ${isOpen ? 'rotate-90' : ''}`}
-                        />
-                        <span>
-                          <span className="block text-small font-medium">{actorLabel(record.actorKind)} worked in your team</span>
-                          <span className="block text-small text-muted-foreground">{describeWindow(record)}</span>
-                        </span>
-                      </button>
+            <ul className="mt-2 divide-y divide-border rounded-lg border border-border">
+              {records.map((record) => (
+                <li key={`${record.enteredAt}-${record.actorKind}`}>
+                  <details className="group/record">
+                    <summary className="flex w-full list-none items-center gap-2 p-3 text-left [&::-webkit-details-marker]:hidden">
+                      <ChevronRight
+                        size={15}
+                        className="shrink-0 text-muted-foreground transition-transform duration-200 group-open/record:rotate-90"
+                      />
+                      <span>
+                        <span className="block text-small font-medium">{actorLabel(record.actorKind)} worked in your team</span>
+                        <span className="block text-small text-muted-foreground">{describeWindow(record)}</span>
+                      </span>
+                    </summary>
 
-                      {isOpen && (
-                        <div className="pb-3 pl-9 pr-3 text-small">
-                          <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1">
-                            <dt className="text-muted-foreground">Started</dt>
-                            <dd>{formatDateTime(new Date(record.enteredAt))}</dd>
-                            <dt className="text-muted-foreground">Ended</dt>
-                            <dd>{describeEnd(record)}</dd>
-                            <dt className="text-muted-foreground">Acting as</dt>
-                            <dd>An admin of your team</dd>
-                          </dl>
+                    <div className="pb-3 pl-9 pr-3 text-small">
+                      <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1">
+                        <dt className="text-muted-foreground">Started</dt>
+                        <dd>{formatDateTime(new Date(record.enteredAt))}</dd>
+                        <dt className="text-muted-foreground">Ended</dt>
+                        <dd>{describeEnd(record)}</dd>
+                        <dt className="text-muted-foreground">Acting as</dt>
+                        <dd>An admin of your team</dd>
+                      </dl>
 
-                          <button
-                            type="button"
-                            aria-expanded={whyOpen}
-                            onClick={() => setWhyOpen((open) => !open)}
-                            className="mt-3 text-small font-medium text-blue underline underline-offset-4"
-                          >
-                            Why does this happen?
-                          </button>
-
-                          {whyOpen && (
-                            <div className="mt-2 flex flex-col gap-2 border-l-2 border-border pl-3 text-small text-muted-foreground">
-                              <p>
-                                TeamBalance is run by a small team. The owner works inside a team to set it up,
-                                prepare a season, or fix something that was reported.
-                              </p>
-                              <p>
-                                Access lasts an hour at a time and is never silent — it is listed here whether or
-                                not anything changed.
-                              </p>
-                            </div>
-                          )}
+                      <details className="mt-3">
+                        <summary className="w-fit list-none text-small font-medium text-blue underline underline-offset-4 [&::-webkit-details-marker]:hidden">
+                          Why does this happen?
+                        </summary>
+                        <div className="mt-2 flex flex-col gap-2 border-l-2 border-border pl-3 text-small text-muted-foreground">
+                          <p>
+                            TeamBalance is run by a small team. The owner works inside a team to set it up,
+                            prepare a season, or fix something that was reported.
+                          </p>
+                          <p>
+                            Access lasts an hour at a time and is never silent — it is listed here whether or
+                            not anything changed.
+                          </p>
                         </div>
-                      )}
-                    </li>
-                  )
-                })}
-              </ul>
-            )}
-          </div>
+                      </details>
+                    </div>
+                  </details>
+                </li>
+              ))}
+            </ul>
+          </details>
         )
       )}
     </section>

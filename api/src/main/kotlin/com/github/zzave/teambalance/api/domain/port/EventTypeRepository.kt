@@ -27,9 +27,6 @@ interface EventTypeRepository {
 
     fun unarchive(id: EventTypeId): EventType
 
-    /** How many events currently hold this type — what the archive dialog reports before migrating. */
-    fun countEventsOfType(id: EventTypeId): Int
-
     /** How many type roster defaults name [positionId] — half of the position-delete warning. */
     fun countTargetsForPosition(positionId: PositionId): Int
 

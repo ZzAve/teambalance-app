@@ -45,7 +45,7 @@ export function useMembers() {
   })
 }
 
-export interface UpdateMemberInput {
+interface UpdateMemberInput {
   userId: string
   displayName: string
   role: string

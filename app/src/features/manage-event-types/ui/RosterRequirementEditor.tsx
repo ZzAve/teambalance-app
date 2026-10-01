@@ -2,6 +2,7 @@ import type { Position } from '@shared/api/positions'
 import type { RosterRequirement } from '@shared/api/event-types'
 import { Input } from '@shared/ui/input'
 import { SectionLabel } from '@shared/ui/SectionLabel'
+import { Switch } from '@shared/ui/switch'
 
 interface RosterRequirementEditorProps {
   value: RosterRequirement
@@ -59,27 +60,14 @@ export function RosterRequirementEditor({
               : 'Off — no roster panel on the card'}
           </div>
         </div>
-        <button
-          type="button"
-          role="switch"
-          aria-checked={value.trackRoster}
-          aria-label="Track roster"
+        <Switch
+          checked={value.trackRoster}
           disabled={disabled}
+          aria-label="Track roster"
           // Targets are kept when tracking goes off, so switching it back on restores the lineup
           // instead of handing back an empty form. The server keeps them for the same reason.
-          onClick={() => onChange({ ...value, trackRoster: !value.trackRoster })}
-          className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${
-            value.trackRoster ? 'bg-green' : 'bg-muted-foreground/30'
-          }`}
-        >
-          <span
-            // left is pinned explicitly: a bare `absolute` would fall back to the static position,
-            // which a button's centred text alignment drags to the middle of the track.
-            className={`absolute top-0.5 left-0.5 size-5 rounded-full bg-white shadow-sm transition-transform ${
-              value.trackRoster ? 'translate-x-5' : 'translate-x-0'
-            }`}
-          />
-        </button>
+          onCheckedChange={(trackRoster) => onChange({ ...value, trackRoster })}
+        />
       </div>
 
       {/* Hidden rather than disabled when tracking is off: there is nothing to configure, and a

@@ -93,12 +93,6 @@ class JpaEventTypeRepositoryAdapter(
     }
 
     @Transactional(readOnly = true)
-    override fun countEventsOfType(id: EventTypeId): Int {
-        val existing = jpaRepository.findByUuid(id.value) ?: return 0
-        return eventJpaRepository.countByEventTypeId(existing.id)
-    }
-
-    @Transactional(readOnly = true)
     override fun countTargetsForPosition(positionId: PositionId): Int =
         jpaRepository.countPositionTargets(positionId.value)
 

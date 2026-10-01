@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Button } from '@shared/ui/button'
 import { Input } from '@shared/ui/input'
 import { Label } from '@shared/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@shared/ui/select'
+import { EventTypeSelect } from '@entities/event/ui/EventTypeSelect'
 import type { Event, EventDetail, EventInput, EventSeriesScope } from '@shared/api/events'
 import type { RosterRequirement } from '@shared/api/event-types'
 import type { Position } from '@shared/api/positions'
@@ -122,21 +122,7 @@ export function EditEventDialogView({
       )}
       <div>
         <Label htmlFor="edit-type">Type</Label>
-        <Select value={typeId} onValueChange={setTypeId}>
-          <SelectTrigger id="edit-type">
-            <SelectValue placeholder="Select type" />
-          </SelectTrigger>
-          <SelectContent>
-            {selectableTypes.map((t) => (
-              <SelectItem key={t.id} value={t.id}>
-                <div className="flex items-center gap-2">
-                  <span className="inline-block h-3 w-3 rounded-full" style={{ backgroundColor: t.color ?? '#888' }} />
-                  {t.name}
-                </div>
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <EventTypeSelect id="edit-type" eventTypes={selectableTypes} value={typeId} onValueChange={setTypeId} />
       </div>
       <div>
         <Label htmlFor="edit-title">Title</Label>
@@ -144,49 +130,13 @@ export function EditEventDialogView({
       </div>
       {dateLocked ? (
         <>
-          <div>
-            <Label htmlFor="edit-start-time">Start time</Label>
-            <Input
-              id="edit-start-time"
-              type="time"
-              required
-              value={start.slice(11, 16)}
-              onChange={(e) => setStart((s) => withTime(s, e.target.value))}
-            />
-          </div>
-          <div>
-            <Label htmlFor="edit-end-time">End time</Label>
-            <Input
-              id="edit-end-time"
-              type="time"
-              required
-              value={end.slice(11, 16)}
-              onChange={(e) => setEnd((s) => withTime(s, e.target.value))}
-            />
-          </div>
+          <TimeField id="edit-start-time" label="Start time" type="time" value={start.slice(11, 16)} onChange={(v) => setStart((s) => withTime(s, v))} />
+          <TimeField id="edit-end-time" label="End time" type="time" value={end.slice(11, 16)} onChange={(v) => setEnd((s) => withTime(s, v))} />
         </>
       ) : (
         <>
-          <div>
-            <Label htmlFor="edit-start">Start time</Label>
-            <Input
-              id="edit-start"
-              type="datetime-local"
-              required
-              value={start}
-              onChange={(e) => setStart(e.target.value)}
-            />
-          </div>
-          <div>
-            <Label htmlFor="edit-end">End time</Label>
-            <Input
-              id="edit-end"
-              type="datetime-local"
-              required
-              value={end}
-              onChange={(e) => setEnd(e.target.value)}
-            />
-          </div>
+          <TimeField id="edit-start" label="Start time" type="datetime-local" value={start} onChange={setStart} />
+          <TimeField id="edit-end" label="End time" type="datetime-local" value={end} onChange={setEnd} />
         </>
       )}
       <div>
@@ -215,5 +165,22 @@ export function EditEventDialogView({
         {isPending ? 'Saving…' : 'Save changes'}
       </Button>
     </form>
+  )
+}
+
+interface TimeFieldProps {
+  id: string
+  label: string
+  type: 'time' | 'datetime-local'
+  value: string
+  onChange: (value: string) => void
+}
+
+function TimeField({ id, label, type, value, onChange }: TimeFieldProps) {
+  return (
+    <div>
+      <Label htmlFor={id}>{label}</Label>
+      <Input id={id} type={type} required value={value} onChange={(e) => onChange(e.target.value)} />
+    </div>
   )
 }

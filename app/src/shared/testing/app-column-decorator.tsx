@@ -12,7 +12,7 @@ import { APP_COLUMN } from '@shared/ui/AppShellFrame'
  * story to Storybook's `fullscreen` layout, dropping the preview's own 1rem root padding so the
  * column's edge padding is the only one — the same 16px the app's main column has, not 32.
  */
-export const withAppColumn: Decorator = (Story) => (
+const withAppColumn: Decorator = (Story) => (
   <div className={`${APP_COLUMN} py-4`}>
     <Story />
   </div>
@@ -28,7 +28,7 @@ export const appColumn = {
  * max-w-lg p-6`, so a dialog child is 312px wide on a phone and 464px from `sm` up, never the app
  * column. For the prop-only content of a dialog (a scope field, a form) this is the honest host.
  */
-export const withDialogContent: Decorator = (Story) => (
+const withDialogContent: Decorator = (Story) => (
   <div className="mx-auto w-full max-w-lg p-6">
     <Story />
   </div>

@@ -41,9 +41,6 @@ class EventNotFoundException(id: EventId) : NotFoundException("Event not found: 
 
 class EventTypeNotFoundException(id: EventTypeId) : NotFoundException("EventType not found: $id")
 
-class AttendanceNotFoundException(eventId: EventId, userId: UserId) :
-    NotFoundException("Attendance not found for event $eventId and user $userId")
-
 class MemberNotFoundException(userId: UserId) : NotFoundException("Member not found: $userId")
 
 class PositionNotFoundException(id: PositionId) : NotFoundException("Position not found: $id")

@@ -3,7 +3,6 @@ package com.github.zzave.teambalance.api.application
 import com.github.zzave.teambalance.api.domain.exception.EmptyRecurrenceException
 import com.github.zzave.teambalance.api.domain.exception.EventTypeNotFoundException
 import com.github.zzave.teambalance.api.domain.exception.RecurrenceExceedsCapException
-import com.github.zzave.teambalance.api.domain.exception.UnknownRosterPositionException
 import com.github.zzave.teambalance.api.domain.model.Event
 import com.github.zzave.teambalance.api.domain.model.EventDescription
 import com.github.zzave.teambalance.api.domain.model.EventEdit
@@ -293,11 +292,8 @@ class EventService(
      * One query, whatever the target count, and none at all for the common inheriting event.
      */
     private fun requireKnownPositions(requirement: RosterRequirement?) {
-        val targeted = requirement?.positionTargets.orEmpty()
-        if (targeted.isEmpty()) return
-        val known = positionRepository.list().map { it.id }.toSet()
-        targeted.firstOrNull { it.positionId !in known }
-            ?.let { throw UnknownRosterPositionException(it.positionId) }
+        if (requirement?.positionTargets.isNullOrEmpty()) return
+        requirement.requireKnownPositions(positionRepository.list().map { it.id }.toSet())
     }
 
     // A group-less event is a one-occurrence series (its own row); otherwise the whole group,

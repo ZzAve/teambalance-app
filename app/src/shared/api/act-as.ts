@@ -20,7 +20,7 @@ export class ActAsError extends Error {
 }
 
 /** Every team on the platform (ADR-0024 §6). A 403 is the no-access shell; retry cannot help. */
-export const platformTeamsQueryOptions = queryOptions({
+const platformTeamsQueryOptions = queryOptions({
   queryKey: ['platform', 'teams'],
   retry: false,
   queryFn: async () => {

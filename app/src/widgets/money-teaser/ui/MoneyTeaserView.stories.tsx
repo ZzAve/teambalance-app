@@ -12,7 +12,7 @@ import { MoneyTeaserView } from './MoneyTeaserView'
 //
 // Not yet shown by any page composite (there is no money page composite), so unlike this file's
 // widget siblings its Data story keeps both its snapshot and its dark mode — the money surface and
-// its gradients are token-sensitive (ADR-0027 §3) and nothing else currently covers them in dark.
+// its gradients are token-sensitive (ADR-0035 §3) and nothing else currently covers them in dark.
 //
 // Three-story shape (ADR-0032 §1):
 //   1. Data — the default not-voted state, the coming-soon teaser with its three pillars.

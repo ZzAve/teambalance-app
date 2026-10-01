@@ -1,6 +1,6 @@
 import type { Event, EventSeriesScope } from '@shared/api/events'
 
-export interface AffectedNode {
+interface AffectedNode {
   id: string
   startTime: string
   /** True when a scoped edit/delete reaches this occurrence. */
@@ -9,7 +9,7 @@ export interface AffectedNode {
   isCurrent: boolean
 }
 
-export interface AffectedPreview {
+interface AffectedPreview {
   scope: EventSeriesScope
   /** The whole series in chronological order, each flagged affected / current. */
   nodes: AffectedNode[]

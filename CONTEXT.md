@@ -126,7 +126,7 @@ any-team, self-service (see [ADR-0001](docs/adr/0001-product-ambition-hobby-tool
   safe to re-tap as new events appear), **future-only** (past events are skipped), and scoped
   **per Event Type**: one button per type that currently has blanks, each naming its own scope
   ("Attend 12 trainings", "Attend 3 matches"), so no filtering is needed to make a legible tap
-  ([ADR-0023](docs/adr/0021-bulk-attend-one-button-per-event-type.md) amends the original
+  ([ADR-0021](docs/adr/0021-bulk-attend-one-button-per-event-type.md) amends the original
   "currently shown" scoping; the **Event Type** filter still narrows what is on screen, and so
   what the buttons cover).
   Self-in-practice (no UI to Bulk Attend for others, though the endpoint stays trust-based per
@@ -152,10 +152,10 @@ any-team, self-service (see [ADR-0001](docs/adr/0001-product-ambition-hobby-tool
 - **Magic Link** — A one-time, passwordless login link sent to a member's email, and **the sole
   authentication method**: it proves control of an email, which is the only proof v1 accepts —
   deliberately no passwords and no third-party OAuth ([ADR-0008](docs/adr/0008-auth-magic-link-and-shareable-invite.md);
-  Google Sign-In was dropped, [ADR-0027](docs/adr/0027-drop-google-signin-magic-link-only.md)).
+  Google Sign-In was dropped, [ADR-0034](docs/adr/0034-drop-google-signin-magic-link-only.md)).
   Sessions are server-side and stored in Postgres via Spring Session JDBC
   (the `SESSION` cookie), so they survive a container restart / cold start / redeploy
-  ([ADR-0014](docs/adr/0014-jdbc-backed-shared-sessions-survive-restart.md), supersedes ADR-0010).
+  ([ADR-0022](docs/adr/0022-jdbc-backed-shared-sessions-survive-restart.md), supersedes ADR-0010).
   _Avoid_: OAuth login, social login, password.
 - **Invite Link** — A single shareable link an admin generates to onboard members into
   an existing Team. Clicking it → enter email → Magic Link → joined. One link, many

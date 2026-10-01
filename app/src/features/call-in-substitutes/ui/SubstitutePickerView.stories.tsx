@@ -17,11 +17,13 @@ const TEAM_LIST = [
   { id: 'sub-1', name: 'Jan de Vries', position: LIBERO },
   { id: 'sub-2', name: 'Mila Jansen', position: undefined },
   { id: 'sub-3', name: 'Kees Bakker', position: { id: 'pos-setter', label: 'Setter' } },
+  { id: 'sub-4', name: 'Pieter Smit', position: { id: 'pos-setter', label: 'Setter' } },
 ]
 
 const ON_EVENT = [
   makeSubstitute('sub-1', 'Jan de Vries', { position: LIBERO }),
   makeSubstitute('sub-2', 'Mila Jansen', { state: 'MAYBE' }),
+  makeSubstitute('sub-4', 'Pieter Smit', { state: 'ABSENT' }),
 ]
 
 const meta = {
@@ -34,7 +36,6 @@ const meta = {
     substitutes: TEAM_LIST,
     onEvent: ON_EVENT,
     onSetState: fn(),
-    onTakeOff: fn(),
     onCreate: fn(),
     onClose: fn(),
   },
@@ -52,10 +53,14 @@ export const Data: Story = {
     await expect(jan.getByText('Libero')).toBeInTheDocument()
     const mila = within(sheet.getByRole('group', { name: 'Mila Jansen' }))
     await expect(mila.getByRole('button', { name: 'Asked' })).toHaveAttribute('aria-pressed', 'true')
-    // Not on this event yet: nothing pressed, nothing to take off.
+    // Asked and said no: kept on the event as declined, not deleted.
+    const pieter = within(sheet.getByRole('group', { name: 'Pieter Smit' }))
+    await expect(pieter.getByRole('button', { name: "Can't" })).toHaveAttribute('aria-pressed', 'true')
+    // Not on this event yet: nothing pressed.
     const kees = within(sheet.getByRole('group', { name: 'Kees Bakker' }))
     await expect(kees.getByRole('button', { name: 'Going' })).toHaveAttribute('aria-pressed', 'false')
-    await expect(kees.queryByRole('button', { name: 'Take off' })).not.toBeInTheDocument()
+    // Deleting someone from the event is not a picker action; it lives in their sheet on the page.
+    await expect(sheet.queryByRole('button', { name: /take off/i })).not.toBeInTheDocument()
   },
 }
 
@@ -80,8 +85,9 @@ export const Interactions: Story = {
     await expect(args.onSetState).toHaveBeenCalledWith('sub-3', 'ATTENDING')
     await userEvent.click(within(sheet.getByRole('group', { name: 'Jan de Vries' })).getByRole('button', { name: 'Asked' }))
     await expect(args.onSetState).toHaveBeenCalledWith('sub-1', 'MAYBE')
-    await userEvent.click(within(sheet.getByRole('group', { name: 'Mila Jansen' })).getByRole('button', { name: 'Take off' }))
-    await expect(args.onTakeOff).toHaveBeenCalledWith('sub-2')
+    // Mila answered no: recorded as declined, so the team still sees she was asked.
+    await userEvent.click(within(sheet.getByRole('group', { name: 'Mila Jansen' })).getByRole('button', { name: "Can't" }))
+    await expect(args.onSetState).toHaveBeenCalledWith('sub-2', 'ABSENT')
 
     // Someone not on the list yet: a name and an optional Position, added as Asked.
     await userEvent.click(sheet.getByRole('button', { name: /New substitute/ }))

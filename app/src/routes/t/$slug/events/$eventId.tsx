@@ -110,7 +110,6 @@ function EventDetailPage() {
           pending={substitutePending}
           onEvent={event.substitutes}
           onSetState={(substituteId, state) => setSubstituteAttendance.mutate({ eventId, substituteId, state })}
-          onTakeOff={(substituteId) => removeSubstituteAttendance.mutate({ eventId, substituteId })}
           creating={createSubstitute.isPending}
           // Someone new has been asked, not confirmed: they join the event as Asked (Maybe).
           onCreate={(name, positionId) =>

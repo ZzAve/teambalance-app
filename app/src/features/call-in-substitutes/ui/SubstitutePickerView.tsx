@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Plus, X } from 'lucide-react'
+import { Plus } from 'lucide-react'
 import type { SubstituteEntry } from '@shared/api/events'
 import type { Substitute } from '@shared/api/substitutes'
 import { Button } from '@shared/ui/button'
@@ -28,22 +28,21 @@ interface SubstitutePickerViewProps {
   /** The Substitutes already on this event, with their state. */
   onEvent: SubstituteEntry[]
   onSetState: (substituteId: string, state: SubstituteState) => void
-  onTakeOff: (substituteId: string) => void
   /** Creates a Substitute and adds them to the event as Asked. */
   onCreate: (name: string, positionId: string | null) => void
   onClose: () => void
   creating?: boolean
 }
 
-// The picker offers the two ways a Substitute joins an event; "Can't" is set afterwards, on the
-// event page, once someone has answered.
-const OPTIONS = SUBSTITUTE_OPTIONS.filter((option) => option.value !== 'ABSENT')
-
 /**
  * Calling Substitutes in for one event (ADR-0033). Lists the Team's Substitutes, each with inline
- * Going / Asked, so several can be called in before Done. Any Member may also add someone who is not
- * on the list yet: a name and an optional Position, added as Asked (Maybe), since the person has
- * been asked and not yet answered. Prop-only; the writes live in the route.
+ * Going / Asked / Can't, so several can be called in, and a "no" recorded, before Done. Can't keeps
+ * the person on the event as declined; taking them off the event is not offered here, only in their
+ * sheet on the event page, so recording a "no" can never delete that they were asked.
+ *
+ * Any Member may also add someone who is not on the list yet: a name and an optional Position, added
+ * as Asked (Maybe), since the person has been asked and not yet answered. Prop-only; the writes live
+ * in the route.
  */
 export function SubstitutePickerView({
   open,
@@ -54,7 +53,6 @@ export function SubstitutePickerView({
   pending = false,
   onEvent,
   onSetState,
-  onTakeOff,
   onCreate,
   onClose,
   creating = false,
@@ -99,7 +97,7 @@ export function SubstitutePickerView({
                   <span className="block text-caption text-muted-foreground">{sub.position?.label ?? 'Unassigned'}</span>
                 </span>
                 <span className="flex shrink-0 items-center gap-1">
-                  {OPTIONS.map((option) => (
+                  {SUBSTITUTE_OPTIONS.map((option) => (
                     <button
                       key={option.value}
                       type="button"
@@ -114,17 +112,6 @@ export function SubstitutePickerView({
                       {option.label}
                     </button>
                   ))}
-                  {state && (
-                    <button
-                      type="button"
-                      aria-label="Take off"
-                      disabled={pending}
-                      onClick={() => onTakeOff(sub.id)}
-                      className="grid size-7 place-items-center rounded-full text-muted-foreground hover:bg-muted"
-                    >
-                      <X size={14} />
-                    </button>
-                  )}
                 </span>
               </div>
             )

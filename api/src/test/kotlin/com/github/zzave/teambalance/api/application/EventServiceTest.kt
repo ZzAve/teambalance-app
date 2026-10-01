@@ -65,7 +65,6 @@ private class ExplodingEventTypeRepo : EventTypeRepository {
     override fun findAll(): List<EventType> = error("unused")
     override fun findById(id: EventTypeId): EventType? = error("repository must not be reached for an unauthorized caller")
     override fun countTargetsForPosition(positionId: PositionId): Int = error("unused")
-    override fun countEventsOfType(id: EventTypeId): Int = error("unused")
     override fun create(name: EventTypeName, color: HexColor?, rosterDefault: RosterRequirement): EventType =
         error("unused")
     override fun update(

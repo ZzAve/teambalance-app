@@ -14,6 +14,7 @@ import { RosterBar } from '@entities/event/ui/RosterBar'
 import { SeriesPeek } from '@entities/event/ui/SeriesPeek'
 import type { SeriesPeek as SeriesPeekModel } from '@entities/event/lib/series-peek'
 import { AttendeeList } from '@widgets/attendee-list/ui/AttendeeList'
+import type { PositionRef } from '@entities/event/lib/lineup'
 import { PageHeader } from '@widgets/page-header/ui/PageHeader'
 import { AttendanceToggle, type AttendanceState } from '@features/attendance-toggle/ui/AttendanceToggle'
 import { SubstitutesBlock, type SubstituteState } from '@features/call-in-substitutes/ui/SubstitutesBlock'
@@ -43,7 +44,7 @@ interface EventDetailViewProps {
   /** Takes a Substitute off this event; they stay on the Team's list. */
   onTakeOffSubstitute: (substituteId: string) => void
   /** Opens the picker for calling Substitutes in: for one Position from its nudge, else unfiltered. */
-  onCallInSubstitutes: (position: { id: string; label: string } | null) => void
+  onCallInSubstitutes: (position: PositionRef | null) => void
   seriesPeek: SeriesPeekModel | null
   /** Scoped series edit/delete (ADR-0014 Phase 3); absent for members. */
   adminActions?: ReactNode

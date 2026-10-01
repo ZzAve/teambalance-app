@@ -3,9 +3,10 @@ import { usePositions } from '@shared/api/positions'
 import {
   useCreateSubstitute,
   useSetSubstituteAttendance,
-  useSubstituteAttendancePending,
+  usePendingSubstituteEvents,
   useSubstitutes,
 } from '@shared/api/substitutes'
+import type { PositionRef } from '@entities/event/lib/lineup'
 import { SubstitutePickerView } from './SubstitutePickerView'
 
 interface PickerEvent {
@@ -28,14 +29,14 @@ export function SubstitutePicker({
   open: boolean
   event: PickerEvent | null
   /** Opened from one Position's open spot; null for the unfiltered picker. */
-  position?: { id: string; label: string } | null
+  position?: PositionRef | null
   onClose: () => void
 }) {
   const { data: positions } = usePositions({ enabled: open })
   const { data: teamSubstitutes, isLoading } = useSubstitutes({ enabled: open })
   const createSubstitute = useCreateSubstitute()
   const setSubstituteAttendance = useSetSubstituteAttendance()
-  const pending = useSubstituteAttendancePending()
+  const pendingEvents = usePendingSubstituteEvents()
 
   if (!event) return null
   const eventId = event.id
@@ -48,7 +49,7 @@ export function SubstitutePicker({
       positions={positions ?? []}
       substitutes={teamSubstitutes ?? []}
       isLoading={isLoading}
-      pending={pending}
+      pending={pendingEvents.includes(eventId)}
       onEvent={event.substitutes}
       onSetState={(substituteId, state) => setSubstituteAttendance.mutate({ eventId, substituteId, state })}
       creating={createSubstitute.isPending}

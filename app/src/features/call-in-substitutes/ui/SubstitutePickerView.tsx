@@ -8,21 +8,16 @@ import { Label } from '@shared/ui/label'
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@shared/ui/sheet'
 import { cn } from '@shared/lib/utils'
 import { SubstituteAvatar } from '@entities/event/ui/SubstituteAvatar'
-import { findSomeone } from '@entities/event/lib/lineup'
+import { findSomeone, type PositionRef } from '@entities/event/lib/lineup'
 import { groupForPosition } from '../lib/picker-groups'
 import { SUBSTITUTE_OPTIONS, type SubstituteState } from './SubstitutesBlock'
-
-interface PositionOption {
-  id: string
-  label: string
-}
 
 interface SubstitutePickerViewProps {
   open: boolean
   eventTitle: string
   /** Opened from one Position's open spot: who plays it comes first, and a new one plays it too. */
-  position?: PositionOption | null
-  positions: PositionOption[]
+  position?: PositionRef | null
+  positions: PositionRef[]
   /** The Team's list, ordered by name. */
   substitutes: Substitute[]
   /** The list is still loading: say so, rather than claiming nobody is on it. */
@@ -202,7 +197,7 @@ function PositionGroups({
   substitutes,
   renderRow,
 }: {
-  position: PositionOption
+  position: PositionRef
   substitutes: Substitute[]
   renderRow: (sub: Substitute) => ReactNode
 }) {

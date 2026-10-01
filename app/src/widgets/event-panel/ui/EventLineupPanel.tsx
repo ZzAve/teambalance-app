@@ -14,6 +14,7 @@ import {
   substituteLine,
   verdictWord,
   type LineupMember,
+  type PositionRef,
   type LineupRow,
   type LineupState,
 } from '@entities/event/lib/lineup'
@@ -61,7 +62,7 @@ interface EventLineupPanelProps {
   substitutes?: SubstituteEntry[]
   onRespond: (userId: string, state: LineupState) => void
   /** Opens the Substitute picker, for one Position when it comes from that Position's open spot. */
-  onCallInSubstitutes: (position: { id: string; label: string } | null) => void
+  onCallInSubstitutes: (position: PositionRef | null) => void
   /** Any Member changing a Substitute's state on this event, from their sheet (ADR-0033). */
   onSetSubstituteState: (substituteId: string, state: SubstituteState) => void
   /** Takes a Substitute off this event; they stay on the Team's list. */
@@ -91,8 +92,9 @@ export function EventLineupPanel({
   // — the point of the cap is that a long row stays short unless you ask it not to.
   const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set())
 
-  const member = rows.flatMap((r) => r.members).find((m) => m.userId === answeringFor) ?? null
-  const memberRow = rows.find((r) => r.members.some((m) => m.userId === answeringFor))
+  // Members only, whichever path set `answeringFor`: the answer sheet writes Member attendance.
+  const member = rows.flatMap((r) => r.members).find((m) => !m.isSubstitute && m.userId === answeringFor) ?? null
+  const memberRow = rows.find((r) => r.members.some((m) => !m.isSubstitute && m.userId === answeringFor))
   const openSubstitute = substitutes.find((s) => s.substituteId === openSubstituteId) ?? null
 
   // A chip routes by who it is: the answer sheet writes Member attendance, so a Substitute's id must
@@ -223,14 +225,7 @@ function PositionRow({
 
       <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5">
         {going.length > 0 && cluster('in', going, 'going')}
-        {row.openSlots > 0 && (
-          <span className="flex flex-wrap items-center">
-            {Array.from({ length: row.openSlots }, (_, i) => (
-              // One tab stop per row: the rest of the row's "+"s do the same thing.
-              <OpenSlotChip key={i} positionLabel={row.label} onFind={onFind} repeat={i > 0} />
-            ))}
-          </span>
-        )}
+        {row.openSlots > 0 && <OpenSlotChip positionLabel={row.label} openSlots={row.openSlots} onFind={onFind} />}
         {maybe.length > 0 && cluster('maybe', maybe, 'maybe')}
         {out.length > 0 && <span className="opacity-70">{cluster('out', out, 'out')}</span>}
         {row.members.length === 0 && row.openSlots === 0 && (

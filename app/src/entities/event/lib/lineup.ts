@@ -219,8 +219,8 @@ export function coveredLine(rows: LineupRow[]): string | null {
 }
 
 /**
- * "1 sub" for the panel header, beside the covered line: how many of the people filling spots were
- * called in from outside the Team (ADR-0033). Null when no Substitute is going.
+ * "1 sub" for the panel header, beside the covered line: how many Substitutes are going, wherever
+ * they sit — the same count as the Roster bar's "+ N substitutes" (ADR-0033). Null when none is.
  */
 export function substituteLine(rows: LineupRow[]): string | null {
   const going = rows.flatMap((r) => r.members).filter((m) => m.isSubstitute && m.state === 'ATTENDING').length
@@ -234,6 +234,12 @@ export const STATE_WORD: Record<LineupState, string> = {
   MAYBE: 'Maybe',
   ABSENT: "Can't",
   NOT_RESPONDED: 'Awaiting',
+}
+
+/** A Position as the Substitute picker is aimed at it: from an open spot, or a short group. */
+export interface PositionRef {
+  id: string
+  label: string
 }
 
 /**

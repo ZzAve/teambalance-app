@@ -113,30 +113,35 @@ export function OverflowChip({
 }
 
 /**
- * A required slot with nobody in it, drawn at chip height so a gap sits *in* the row rather than
- * after it. Tapping it looks for someone to fill it: the picker opens for that Position (#359). The
- * purple matches the rest of the Substitute controls.
+ * A row's required slots with nobody in them, one "+" per slot at chip height, so a gap sits *in*
+ * the row rather than after it. One button for all of them: tapping looks for someone to fill the
+ * Position, and the picker opens for it (#359). The purple matches the other Substitute controls.
  */
 export function OpenSlotChip({
   positionLabel,
+  openSlots,
   onFind,
-  repeat = false,
 }: {
   positionLabel: string
+  openSlots: number
   onFind: () => void
-  /** A further open spot in the same row: still tappable, but not another identical tab stop. */
-  repeat?: boolean
 }) {
   return (
     <button
       type="button"
       onClick={onFind}
       aria-label={findSomeone(positionLabel)}
-      aria-hidden={repeat || undefined}
-      tabIndex={repeat ? -1 : undefined}
-      className={`${OVERLAP} flex h-[26px] shrink-0 items-center justify-center rounded-full border-[1.5px] border-dashed border-purple bg-card px-3 text-small font-bold text-purple-ink ring-2 ring-card hover:bg-purple/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring`}
+      className="flex flex-wrap items-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
-      <span aria-hidden>+</span>
+      {Array.from({ length: openSlots }, (_, i) => (
+        <span
+          key={i}
+          aria-hidden
+          className={`${OVERLAP} flex h-[26px] shrink-0 items-center justify-center rounded-full border-[1.5px] border-dashed border-purple bg-card px-3 text-small font-bold text-purple-ink ring-2 ring-card hover:bg-purple/5`}
+        >
+          +
+        </span>
+      ))}
     </button>
   )
 }

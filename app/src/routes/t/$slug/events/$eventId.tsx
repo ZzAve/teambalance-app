@@ -7,9 +7,10 @@ import { useCurrentUser } from '@shared/api/auth'
 import {
   useRemoveSubstituteAttendance,
   useSetSubstituteAttendance,
-  useSubstituteAttendancePending,
+  usePendingSubstituteEvents,
 } from '@shared/api/substitutes'
 import { attributionName } from '@entities/event/lib/attribution'
+import type { PositionRef } from '@entities/event/lib/lineup'
 import { crossMemberToast } from '@entities/event/lib/cross-member-toast'
 import { buildSeriesPeek } from '@entities/event/lib/series-peek'
 import type { AttendanceState } from '@features/attendance-toggle/ui/AttendanceToggle'
@@ -33,13 +34,13 @@ function EventDetailPage() {
   // Only load the full list to find series siblings when this event actually belongs to a group.
   const { data: allEvents } = useEvents(true, !!event?.recurringGroup)
   // The picker's Position outlives `open`, so the sheet can animate out.
-  const [picker, setPicker] = useState<{ open: boolean; position: { id: string; label: string } | null }>({
+  const [picker, setPicker] = useState<{ open: boolean; position: PositionRef | null }>({
     open: false,
     position: null,
   })
   const setSubstituteAttendance = useSetSubstituteAttendance()
   const removeSubstituteAttendance = useRemoveSubstituteAttendance()
-  const substitutePending = useSubstituteAttendancePending()
+  const substitutePending = usePendingSubstituteEvents().includes(eventId)
 
   const myAttendance = event?.attendances.find((a) => a.userId === currentUserId)
   const myState: AttendanceState = (myAttendance?.state as AttendanceState) ?? 'NOT_RESPONDED'

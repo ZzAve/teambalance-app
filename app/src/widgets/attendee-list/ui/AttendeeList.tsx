@@ -11,6 +11,7 @@ import {
   STATE_WORD,
   UNASSIGNED,
   type LineupRow,
+  type PositionRef,
 } from '@entities/event/lib/lineup'
 import { attributionName, setByName } from '@entities/event/lib/attribution'
 import { SubstituteAvatar } from '@entities/event/ui/SubstituteAvatar'
@@ -36,7 +37,7 @@ interface AttendeeListProps {
   /** Opens a Substitute's sheet. Omit it and their rows are read-only. */
   onOpenSubstitute?: (substituteId: string) => void
   /** Opens the Substitute picker for a short Position (#359). Omit it and no nudge is shown. */
-  onFindSubstitute?: (position: { id: string; label: string }) => void
+  onFindSubstitute?: (position: PositionRef) => void
 }
 
 // A subtle wash + left accent in the answer's colour, so the list reads at a glance.

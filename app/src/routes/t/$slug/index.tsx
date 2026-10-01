@@ -6,11 +6,12 @@ import { useSetAttendance } from '@shared/api/attendances'
 import {
     useRemoveSubstituteAttendance,
     useSetSubstituteAttendance,
-    useSubstituteAttendancePending,
+    usePendingSubstituteEvents,
 } from '@shared/api/substitutes'
 import { useCurrentUser } from '@shared/api/auth'
 import { useNow } from '@shared/lib/use-now'
 import { selectHeroEvent } from '@entities/event/lib/next-event'
+import type { PositionRef } from '@entities/event/lib/lineup'
 import { NextEventHero } from '@widgets/next-event-hero/ui/NextEventHero'
 import { CreateEventSheet } from '@widgets/create-event/ui/CreateEventSheet'
 import { useEventFiltersStore } from '@features/filter-event-types/model/event-filters-store'
@@ -89,11 +90,11 @@ function EventListPage() {
     // One Substitute picker for the whole page (#359), aimed at one card's event and, from an open
     // spot, one Position. Any Member may call Substitutes in (ADR-0033). The target outlives `open`
     // so the sheet can animate out.
-    const [picker, setPicker] = useState<{eventId: string, position: {id: string, label: string} | null, open: boolean} | null>(null)
+    const [picker, setPicker] = useState<{eventId: string, position: PositionRef | null, open: boolean} | null>(null)
     const pickerEvent = events?.find(e => e.id === picker?.eventId) ?? null
     const setSubstituteAttendance = useSetSubstituteAttendance()
     const removeSubstituteAttendance = useRemoveSubstituteAttendance()
-    const substitutePending = useSubstituteAttendancePending()
+    const pendingSubstituteEvents = usePendingSubstituteEvents()
 
     const respond = (eventId: string, state: Event['myState']) => {
         if (!currentUserId) return
@@ -191,7 +192,7 @@ function EventListPage() {
                             setSubstituteAttendance.mutate({eventId: event.id, substituteId, state})}
                         onTakeOffSubstitute={(substituteId) =>
                             removeSubstituteAttendance.mutate({eventId: event.id, substituteId})}
-                        substitutePending={substitutePending}
+                        substitutePending={pendingSubstituteEvents.includes(event.id)}
                     />
                 ),
                 // A rendered hero IS loaded data — it was pulled out of this very list — so an empty

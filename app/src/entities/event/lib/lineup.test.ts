@@ -219,7 +219,7 @@ describe('findSomeone', () => {
 describe('substituteLine', () => {
   const LIBERO = { id: 'p-libero', label: 'Libero' }
 
-  it('counts the attending Substitutes only, since only they fill spots', () => {
+  it('counts the Substitutes who are going, not those only asked or who can’t', () => {
     const rows = lineupRows([], roster(), null, [
       makeSubstitute('s1', 'Jan', { position: LIBERO }),
       makeSubstitute('s2', 'Mila', { state: 'MAYBE' }),

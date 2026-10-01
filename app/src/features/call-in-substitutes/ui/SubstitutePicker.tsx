@@ -3,6 +3,7 @@ import { usePositions } from '@shared/api/positions'
 import {
   useCreateSubstitute,
   useSetSubstituteAttendance,
+  useSubstituteAttendancePending,
   useSubstitutes,
 } from '@shared/api/substitutes'
 import { SubstitutePickerView } from './SubstitutePickerView'
@@ -34,21 +35,20 @@ export function SubstitutePicker({
   const { data: teamSubstitutes, isLoading } = useSubstitutes({ enabled: open })
   const createSubstitute = useCreateSubstitute()
   const setSubstituteAttendance = useSetSubstituteAttendance()
+  const pending = useSubstituteAttendancePending()
 
   if (!event) return null
   const eventId = event.id
 
   return (
     <SubstitutePickerView
-      // A new event or Position starts a fresh form, with that Position chosen.
-      key={`${eventId}:${position?.id ?? ''}`}
       open={open}
       eventTitle={event.title}
       position={position}
       positions={positions ?? []}
       substitutes={teamSubstitutes ?? []}
       isLoading={isLoading}
-      pending={setSubstituteAttendance.isPending}
+      pending={pending}
       onEvent={event.substitutes}
       onSetState={(substituteId, state) => setSubstituteAttendance.mutate({ eventId, substituteId, state })}
       creating={createSubstitute.isPending}

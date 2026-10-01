@@ -218,6 +218,16 @@ export function coveredLine(rows: LineupRow[]): string | null {
   return `${targeted.filter((r) => r.openSlots === 0).length} of ${targeted.length} covered`
 }
 
+/**
+ * "1 sub" for the panel header, beside the covered line: how many of the people filling spots were
+ * called in from outside the Team (ADR-0033). Null when no Substitute is going.
+ */
+export function substituteLine(rows: LineupRow[]): string | null {
+  const going = rows.flatMap((r) => r.members).filter((m) => m.isSubstitute && m.state === 'ATTENDING').length
+  if (going === 0) return null
+  return `${going} ${going === 1 ? 'sub' : 'subs'}`
+}
+
 /** Short label for a member's answer, used on chips and in the answer sheet. */
 export const STATE_WORD: Record<LineupState, string> = {
   ATTENDING: 'Going',

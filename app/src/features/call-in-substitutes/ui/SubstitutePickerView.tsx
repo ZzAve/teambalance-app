@@ -42,11 +42,11 @@ interface SubstitutePickerViewProps {
  * Calling Substitutes in for one event (ADR-0033). Lists the Team's Substitutes, each with inline
  * Going / Asked / Can't, so several can be called in, and a "no" recorded, before Done. Can't keeps
  * the person on the event as declined; taking them off the event is not offered here, only in their
- * sheet on the event page, so recording a "no" can never delete that they were asked.
+ * Substitute sheet, so recording a "no" can never delete that they were asked.
  *
  * Any Member may also add someone who is not on the list yet: a name and an optional Position, added
  * as Asked (Maybe), since the person has been asked and not yet answered. Prop-only; the writes live
- * in the route.
+ * in [SubstitutePicker].
  */
 export function SubstitutePickerView({
   open,
@@ -101,6 +101,13 @@ export function SubstitutePickerView({
     )
   }
 
+  // Closing drops a half-typed name, so the next open starts fresh.
+  const close = () => {
+    setFormOpen(false)
+    setName('')
+    onClose()
+  }
+
   const submit = () => {
     onCreate(name.trim(), positionId)
     setFormOpen(false)
@@ -108,7 +115,7 @@ export function SubstitutePickerView({
   }
 
   return (
-    <Sheet open={open} onOpenChange={(next) => !next && onClose()}>
+    <Sheet open={open} onOpenChange={(next) => !next && close()}>
       <SheetContent>
         <SheetHeader>
           <SheetTitle>{position ? findSomeone(position.label) : 'Call in substitutes'}</SheetTitle>
@@ -180,7 +187,7 @@ export function SubstitutePickerView({
           </button>
         )}
 
-        <Button type="button" variant="outline" className="mt-4" onClick={onClose}>
+        <Button type="button" variant="outline" className="mt-4" onClick={close}>
           Done
         </Button>
       </SheetContent>

@@ -119,7 +119,11 @@ export const Interactions: Story = {
     await userEvent.click(sheet.getByRole('button', { name: 'Add as asked' }))
     await expect(args.onCreate).toHaveBeenCalledWith('Sanne Vos', null)
 
+    // Closing drops a half-typed name, so the next open starts fresh.
+    await userEvent.click(sheet.getByRole('button', { name: /New substitute/ }))
+    await userEvent.type(sheet.getByLabelText('Name'), 'Half')
     await userEvent.click(sheet.getByRole('button', { name: 'Done' }))
     await expect(args.onClose).toHaveBeenCalled()
+    await expect(sheet.queryByLabelText('Name')).not.toBeInTheDocument()
   },
 }

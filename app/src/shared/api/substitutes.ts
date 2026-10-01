@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useIsMutating, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { api } from './wirespec-client'
 import type { SubstituteEntry } from './generated/model/SubstituteEntry'
@@ -47,10 +47,19 @@ interface SetSubstituteAttendanceVars {
   state: SubstituteEntry['state']
 }
 
+// Shared by both Substitute attendance writes, so every control on a page can wait on any of them.
+const SUBSTITUTE_ATTENDANCE = ['substitute-attendance']
+
+/** Whether any Substitute attendance write is in flight, from whichever component started it. */
+export function useSubstituteAttendancePending() {
+  return useIsMutating({ mutationKey: SUBSTITUTE_ATTENDANCE }) > 0
+}
+
 /** Adds a Substitute to an event, or changes their state there (ADR-0033). */
 export function useSetSubstituteAttendance() {
   const queryClient = useQueryClient()
   return useMutation({
+    mutationKey: SUBSTITUTE_ATTENDANCE,
     mutationFn: async ({ eventId, substituteId, state }: SetSubstituteAttendanceVars) => {
       const res = await api.SetSubstituteAttendance({ eventId, substituteId, body: { state } })
       if (res.status !== 200) throw new Error(`Couldn't set substitute (${res.status})`)
@@ -75,6 +84,7 @@ interface RemoveSubstituteAttendanceVars {
 export function useRemoveSubstituteAttendance() {
   const queryClient = useQueryClient()
   return useMutation({
+    mutationKey: SUBSTITUTE_ATTENDANCE,
     mutationFn: async ({ eventId, substituteId }: RemoveSubstituteAttendanceVars) => {
       const res = await api.RemoveSubstituteAttendance({ eventId, substituteId })
       if (res.status !== 204) throw new Error(`Couldn't take the substitute off (${res.status})`)

@@ -1,4 +1,5 @@
 import { avatarColor, avatarInitials } from '@shared/lib/avatar'
+import { SubstituteAvatar } from './SubstituteAvatar'
 import { STATE_WORD, findSomeone, type LineupMember, type LineupState } from '../lib/lineup'
 
 /**
@@ -55,13 +56,7 @@ export function MemberChip({ member, onSelect }: MemberChipProps) {
       className={`${CHIP} ${OVERLAP} ${PILL[member.state]} ${member.isSelf ? 'shrink-0' : ''}`}
     >
       {member.isSubstitute ? (
-        // The dashed purple of every Substitute avatar (ADR-0033), at chip size.
-        <span
-          aria-hidden
-          className="flex size-5 shrink-0 items-center justify-center rounded-full border-[1.5px] border-dashed border-purple bg-card text-caption font-bold text-purple-ink"
-        >
-          {avatarInitials(member.displayName)}
-        </span>
+        <SubstituteAvatar name={member.displayName} className="size-5 bg-card" />
       ) : (
         <span
           aria-hidden
@@ -122,12 +117,23 @@ export function OverflowChip({
  * after it. Tapping it looks for someone to fill it: the picker opens for that Position (#359). The
  * purple matches the rest of the Substitute controls.
  */
-export function OpenSlotChip({ positionLabel, onFind }: { positionLabel: string; onFind: () => void }) {
+export function OpenSlotChip({
+  positionLabel,
+  onFind,
+  repeat = false,
+}: {
+  positionLabel: string
+  onFind: () => void
+  /** A further open spot in the same row: still tappable, but not another identical tab stop. */
+  repeat?: boolean
+}) {
   return (
     <button
       type="button"
       onClick={onFind}
       aria-label={findSomeone(positionLabel)}
+      aria-hidden={repeat || undefined}
+      tabIndex={repeat ? -1 : undefined}
       className={`${OVERLAP} flex h-[26px] shrink-0 items-center justify-center rounded-full border-[1.5px] border-dashed border-purple bg-card px-3 text-small font-bold text-purple-ink ring-2 ring-card hover:bg-purple/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring`}
     >
       <span aria-hidden>+</span>

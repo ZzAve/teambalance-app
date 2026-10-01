@@ -3,6 +3,11 @@ import { useEffect, useMemo, useState } from 'react'
 import { useEvents, type Event } from '@shared/api/events'
 import { useEventTypes } from '@shared/api/event-types'
 import { useSetAttendance } from '@shared/api/attendances'
+import {
+    useRemoveSubstituteAttendance,
+    useSetSubstituteAttendance,
+    useSubstituteAttendancePending,
+} from '@shared/api/substitutes'
 import { useCurrentUser } from '@shared/api/auth'
 import { useNow } from '@shared/lib/use-now'
 import { selectHeroEvent } from '@entities/event/lib/next-event'
@@ -86,6 +91,9 @@ function EventListPage() {
     // so the sheet can animate out.
     const [picker, setPicker] = useState<{eventId: string, position: {id: string, label: string} | null, open: boolean} | null>(null)
     const pickerEvent = events?.find(e => e.id === picker?.eventId) ?? null
+    const setSubstituteAttendance = useSetSubstituteAttendance()
+    const removeSubstituteAttendance = useRemoveSubstituteAttendance()
+    const substitutePending = useSubstituteAttendancePending()
 
     const respond = (eventId: string, state: Event['myState']) => {
         if (!currentUserId) return
@@ -179,6 +187,11 @@ function EventListPage() {
                         substitutes={event.substitutes}
                         onRespond={(userId, state) => respondFor(event.id, userId, state)}
                         onCallInSubstitutes={(position) => setPicker({eventId: event.id, position, open: true})}
+                        onSetSubstituteState={(substituteId, state) =>
+                            setSubstituteAttendance.mutate({eventId: event.id, substituteId, state})}
+                        onTakeOffSubstitute={(substituteId) =>
+                            removeSubstituteAttendance.mutate({eventId: event.id, substituteId})}
+                        substitutePending={substitutePending}
                     />
                 ),
                 // A rendered hero IS loaded data — it was pulled out of this very list — so an empty

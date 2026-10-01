@@ -235,6 +235,8 @@ function ListWithPanels({
             currentUserId={LARS[0]}
             substitutes={event.substitutes}
             onCallInSubstitutes={() => {}}
+            onSetSubstituteState={() => {}}
+            onTakeOffSubstitute={() => {}}
             onRespond={(userId, state) => onRespond?.(event.id, userId, state)}
           />
         )}

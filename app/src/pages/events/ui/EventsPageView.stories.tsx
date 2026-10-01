@@ -243,6 +243,8 @@ function EventsPageHarness(args: HarnessArgs) {
             currentUserId="u-me"
             substitutes={event.substitutes}
             onCallInSubstitutes={() => {}}
+            onSetSubstituteState={() => {}}
+            onTakeOffSubstitute={() => {}}
             onRespond={(userId, state) => {
               args.onRespondFor(event.id, userId, state)
               answer(event.id, userId, state)

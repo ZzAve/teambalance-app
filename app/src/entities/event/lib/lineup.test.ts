@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { makeAttendee, makeRoster, makeSubstitute } from '@shared/testing/event-fixtures'
-import { coveredLine, findSomeone, lineupRows, verdictWord } from './lineup'
+import { coveredLine, findSomeone, lineupRows, substituteLine, verdictWord } from './lineup'
 
 // Pure mapping, so a plain unit is the lowest layer that proves it (CLAUDE.md testing table). What
 // the panel *looks* like in each of these shapes is a story; what the numbers are is here.
@@ -213,5 +213,28 @@ describe('findSomeone', () => {
 
   it('keeps the label as the team wrote it, so an acronym stays one', () => {
     expect(findSomeone('DS')).toBe('Find a DS')
+  })
+})
+
+describe('substituteLine', () => {
+  const LIBERO = { id: 'p-libero', label: 'Libero' }
+
+  it('counts the attending Substitutes only, since only they fill spots', () => {
+    const rows = lineupRows([], roster(), null, [
+      makeSubstitute('s1', 'Jan', { position: LIBERO }),
+      makeSubstitute('s2', 'Mila', { state: 'MAYBE' }),
+      makeSubstitute('s3', 'Kees', { state: 'ABSENT' }),
+    ])
+    expect(substituteLine(rows)).toBe('1 sub')
+  })
+
+  it('says "subs" for more than one', () => {
+    const rows = lineupRows([], roster(), null, [makeSubstitute('s1', 'Jan', { position: LIBERO }), makeSubstitute('s2', 'Mila')])
+    expect(substituteLine(rows)).toBe('2 subs')
+  })
+
+  it('is null when no Substitute is going', () => {
+    const rows = lineupRows([], roster(), null, [makeSubstitute('s2', 'Mila', { state: 'MAYBE' })])
+    expect(substituteLine(rows)).toBeNull()
   })
 })

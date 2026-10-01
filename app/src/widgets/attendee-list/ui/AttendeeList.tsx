@@ -1,9 +1,17 @@
 import { useState } from 'react'
+import { Plus } from 'lucide-react'
 import type { AttendanceEntry, EventRoster, SubstituteEntry } from '@shared/api/events'
 import { Avatar } from '@shared/ui/avatar'
 import { AnswerSheet, type AnswerTarget } from '@features/attendance-toggle/ui/AnswerSheet'
 import type { AttendanceState } from '@features/attendance-toggle/ui/AttendanceToggle'
-import { lineupRows, verdictWord, STATE_WORD, UNASSIGNED, type LineupRow } from '@entities/event/lib/lineup'
+import {
+  findSomeone,
+  lineupRows,
+  verdictWord,
+  STATE_WORD,
+  UNASSIGNED,
+  type LineupRow,
+} from '@entities/event/lib/lineup'
 import { attributionName, setByName } from '@entities/event/lib/attribution'
 import { SubstituteAvatar } from '@entities/event/ui/SubstituteAvatar'
 import { SectionLabel } from '@shared/ui/SectionLabel'
@@ -27,6 +35,8 @@ interface AttendeeListProps {
   substitutes?: SubstituteEntry[]
   /** Opens a Substitute's sheet. Omit it and their rows are read-only. */
   onOpenSubstitute?: (substituteId: string) => void
+  /** Opens the Substitute picker for a short Position (#359). Omit it and no nudge is shown. */
+  onFindSubstitute?: (position: { id: string; label: string }) => void
 }
 
 // A subtle wash + left accent in the answer's colour, so the list reads at a glance.
@@ -80,6 +90,7 @@ export function AttendeeList({
   pending = false,
   substitutes = [],
   onOpenSubstitute,
+  onFindSubstitute,
 }: AttendeeListProps) {
   const [target, setTarget] = useState<AnswerTarget | null>(null)
 
@@ -141,6 +152,7 @@ export function AttendeeList({
           substitutes={substitutes}
           renderRow={renderRow}
           renderSubstitute={renderSubstitute}
+          onFind={onFindSubstitute && (() => onFindSubstitute({ id: row.id, label: row.label }))}
         />
       ))}
       {sheet}
@@ -154,14 +166,18 @@ function PositionGroup({
   substitutes,
   renderRow,
   renderSubstitute,
+  onFind,
 }: {
   row: LineupRow
   attendees: AttendanceEntry[]
   substitutes: SubstituteEntry[]
   renderRow: (a: AttendanceEntry, position?: string, showRole?: boolean) => React.ReactNode
   renderSubstitute: (s: SubstituteEntry) => React.ReactNode
+  /** Absent on a read-only list, or when the group is not short. */
+  onFind?: () => void
 }) {
   const verdict = verdictWord(row)
+  const nudge = row.openSlots > 0 ? onFind : undefined
   const byName = [...row.members].sort((a, b) => a.displayName.localeCompare(b.displayName))
 
   return (
@@ -178,9 +194,12 @@ function PositionGroup({
           )}
         </span>
       </div>
-      {/* A targeted position nobody plays still gets its row — that gap is the point (#320 §3). */}
+      {/* A targeted position nobody plays still gets its row — that gap is the point (#320 §3). The
+          nudge says the same thing and offers a way to fill it, so it takes the empty line's place. */}
       {byName.length === 0 ? (
+        !nudge && (
         <p className="px-3 pb-2 text-caption italic text-muted-foreground">nobody in this position yet</p>
+        )
       ) : (
         byName.map((m) =>
           m.isSubstitute
@@ -188,7 +207,31 @@ function PositionGroup({
             : renderRow(attendees.find((a) => a.userId === m.userId)!, row.label),
         )
       )}
+      {nudge && <FindRow label={row.label} openSlots={row.openSlots} onFind={nudge} />}
     </div>
+  )
+}
+
+/** "Find a Libero · 1 open": a short Position's way into the Substitute picker (#359). */
+function FindRow({ label, openSlots, onFind }: { label: string; openSlots: number; onFind: () => void }) {
+  const text = findSomeone(label)
+  return (
+    <button
+      type="button"
+      onClick={onFind}
+      aria-label={`${text} · ${openSlots} open`}
+      className="flex w-full items-center gap-3 border-l-[3px] border-l-transparent px-2.5 py-1.5 text-left text-small font-semibold text-purple-ink transition-colors hover:bg-purple/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+    >
+      <span
+        aria-hidden
+        className="grid size-8 shrink-0 place-items-center rounded-full border-[1.5px] border-dashed border-purple"
+      >
+        <Plus size={16} />
+      </span>
+      <span aria-hidden>
+        {text} <span className="font-normal text-muted-foreground">· {openSlots} open</span>
+      </span>
+    </button>
   )
 }
 

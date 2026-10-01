@@ -4,7 +4,11 @@ import { toast } from 'sonner'
 import { useEvent, useEvents } from '@shared/api/events'
 import { useSetAttendance } from '@shared/api/attendances'
 import { useCurrentUser } from '@shared/api/auth'
-import { useRemoveSubstituteAttendance, useSetSubstituteAttendance } from '@shared/api/substitutes'
+import {
+  useRemoveSubstituteAttendance,
+  useSetSubstituteAttendance,
+  useSubstituteAttendancePending,
+} from '@shared/api/substitutes'
 import { attributionName } from '@entities/event/lib/attribution'
 import { crossMemberToast } from '@entities/event/lib/cross-member-toast'
 import { buildSeriesPeek } from '@entities/event/lib/series-peek'
@@ -28,10 +32,14 @@ function EventDetailPage() {
   const { mutate, isPending } = useSetAttendance()
   // Only load the full list to find series siblings when this event actually belongs to a group.
   const { data: allEvents } = useEvents(true, !!event?.recurringGroup)
-  const [pickerOpen, setPickerOpen] = useState(false)
+  // The picker's Position outlives `open`, so the sheet can animate out.
+  const [picker, setPicker] = useState<{ open: boolean; position: { id: string; label: string } | null }>({
+    open: false,
+    position: null,
+  })
   const setSubstituteAttendance = useSetSubstituteAttendance()
   const removeSubstituteAttendance = useRemoveSubstituteAttendance()
-  const substitutePending = setSubstituteAttendance.isPending || removeSubstituteAttendance.isPending
+  const substitutePending = useSubstituteAttendancePending()
 
   const myAttendance = event?.attendances.find((a) => a.userId === currentUserId)
   const myState: AttendanceState = (myAttendance?.state as AttendanceState) ?? 'NOT_RESPONDED'
@@ -79,7 +87,7 @@ function EventDetailPage() {
         onRespond={setAttendance}
         onSetSubstituteState={(substituteId, state) => setSubstituteAttendance.mutate({ eventId, substituteId, state })}
         onTakeOffSubstitute={(substituteId) => removeSubstituteAttendance.mutate({ eventId, substituteId })}
-        onCallInSubstitutes={() => setPickerOpen(true)}
+        onCallInSubstitutes={(position) => setPicker({ open: true, position })}
         seriesPeek={seriesPeek}
         adminActions={
           isAdmin &&
@@ -91,7 +99,12 @@ function EventDetailPage() {
           )
         }
       />
-      <SubstitutePicker open={pickerOpen} event={event ?? null} onClose={() => setPickerOpen(false)} />
+      <SubstitutePicker
+        open={picker.open}
+        event={event ?? null}
+        position={picker.position}
+        onClose={() => setPicker((current) => ({ ...current, open: false }))}
+      />
     </>
   )
 }

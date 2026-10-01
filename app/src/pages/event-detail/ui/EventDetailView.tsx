@@ -42,8 +42,8 @@ interface EventDetailViewProps {
   onSetSubstituteState: (substituteId: string, state: SubstituteState) => void
   /** Takes a Substitute off this event; they stay on the Team's list. */
   onTakeOffSubstitute: (substituteId: string) => void
-  /** Opens the picker for calling Substitutes in. */
-  onCallInSubstitutes: () => void
+  /** Opens the picker for calling Substitutes in: for one Position from its nudge, else unfiltered. */
+  onCallInSubstitutes: (position: { id: string; label: string } | null) => void
   seriesPeek: SeriesPeekModel | null
   /** Scoped series edit/delete (ADR-0014 Phase 3); absent for members. */
   adminActions?: ReactNode
@@ -197,6 +197,7 @@ export function EventDetailView({
           pending={isPending}
           substitutes={event.substitutes}
           onOpenSubstitute={setOpenSubstituteId}
+          onFindSubstitute={onCallInSubstitutes}
         />
       </div>
 
@@ -206,7 +207,7 @@ export function EventDetailView({
         members={event.attendances}
         onSetState={onSetSubstituteState}
         onOpen={setOpenSubstituteId}
-        onCallIn={onCallInSubstitutes}
+        onCallIn={() => onCallInSubstitutes(null)}
         pending={isSubstitutePending}
       />
       <SubstituteSheet

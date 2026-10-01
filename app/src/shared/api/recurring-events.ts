@@ -11,7 +11,7 @@ export type { RecurringEventSeries } from './generated/model/RecurringEventSerie
 
 // The distinct business-rule rejections the backend returns as 422, discriminated by the response
 // body's `code` so the wizard can show the right reason instead of a generic failure.
-export type RecurringCreateReason = 'outside-season' | 'over-cap' | 'empty' | 'unknown'
+type RecurringCreateReason = 'outside-season' | 'over-cap' | 'empty' | 'unknown'
 
 export class RecurringCreateError extends Error {
   constructor(public readonly reason: RecurringCreateReason) {

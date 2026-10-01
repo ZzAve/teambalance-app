@@ -63,9 +63,8 @@ function renderAppAt(path: string) {
 }
 
 describe('magic-link verification', () => {
-  // Timeouts are generous because the assertion waits out a real chain — the 10ms verify delay,
-  // the direct cache write, the redirect, then the events route mounting — which a loaded CI
-  // runner walks through well past the 1000ms default (green locally, flaked in CI at 1000ms).
+  // Timeouts are generous because the chain (10ms verify delay, cache write, redirect, events route
+  // mount) can run well past the 1000ms default on a loaded CI runner (green locally, flaked in CI).
   it('establishes the session and lands on events, without the guard bouncing back to login', async () => {
     const router = renderAppAt('/auth/verify?token=valid-token')
 

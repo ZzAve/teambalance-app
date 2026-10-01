@@ -20,6 +20,9 @@ interface SubstituteRepository {
 
     fun create(name: DisplayName, positionId: PositionId?, createdBy: UserId): Substitute
 
+    /** Replaces the name and Position of an existing Substitute; a null [positionId] clears it. */
+    fun update(id: SubstituteId, name: DisplayName, positionId: PositionId?): Substitute
+
     fun exists(id: SubstituteId): Boolean
 
     /**

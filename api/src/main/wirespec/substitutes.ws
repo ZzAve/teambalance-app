@@ -41,3 +41,15 @@ endpoint RemoveSubstituteAttendance DELETE /api/events/{eventId: String}/substit
     204 -> Unit
     404 -> Unit
 }
+
+// Admin-only, like editing a Member: the name and the Position are saved together, so a Position change resends the current name. A changed Position applies to every Event the Substitute is on, past ones included, because Events read the Substitute's current Position.
+type UpdateSubstituteRequest {
+    name: String,
+    positionId: String?
+}
+
+endpoint UpdateSubstitute PUT UpdateSubstituteRequest /api/substitutes/{id: String} -> {
+    200 -> Substitute
+    403 -> Unit
+    404 -> Unit
+}

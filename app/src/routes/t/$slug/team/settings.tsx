@@ -5,6 +5,7 @@ import { teamRoutes } from '@shared/lib/team-routes'
 import { MemberRoster } from '@features/manage-members/ui/MemberRoster'
 import { TeamSettings } from '@features/team-settings/ui/TeamSettings'
 import { ManagePositions } from '@features/manage-positions/ui/ManagePositions'
+import { ManageSubstitutes } from '@features/manage-substitutes/ui/ManageSubstitutes'
 import { ManageEventTypes } from '@features/manage-event-types/ui/ManageEventTypes'
 import { HandoverAdmin } from '@features/handover-admin/ui/HandoverAdmin'
 import { ActAsRecords } from '@features/act-as/ui/ActAsRecords'
@@ -36,6 +37,7 @@ function TeamSettingsPage() {
     <div className="flex flex-col gap-10">
       <MemberRoster canManage />
       <ManagePositions />
+      <ManageSubstitutes />
       <ManageEventTypes />
       <TeamSettings />
       {/* Handing over admin (ADR-0024 §5): how a prepared, memberless team gets its first real Admin.

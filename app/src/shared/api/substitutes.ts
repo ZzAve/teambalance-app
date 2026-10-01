@@ -41,6 +41,34 @@ export function useCreateSubstitute() {
   })
 }
 
+interface UpdateSubstituteVars {
+  id: string
+  name: string
+  positionId: string | null
+}
+
+/**
+ * Admin-only: renames a Substitute or changes their Position. Events show the Substitute's current
+ * name and Position, so the event caches refresh too.
+ */
+export function useUpdateSubstitute() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id, name, positionId }: UpdateSubstituteVars) => {
+      const res = await api.UpdateSubstitute({ id, body: { name, positionId: positionId ?? undefined } })
+      if (res.status !== 200) throw new Error(`Couldn't save the substitute (${res.status})`)
+      return res.body
+    },
+    onError: () => {
+      toast.error("Couldn't save the substitute — please try again.")
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['substitutes'] })
+      queryClient.invalidateQueries({ queryKey: ['events'] })
+    },
+  })
+}
+
 interface SetSubstituteAttendanceVars {
   eventId: string
   substituteId: string

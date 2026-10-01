@@ -13,6 +13,7 @@ import com.github.zzave.teambalance.api.interfaces.generated.endpoint.CreateSubs
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.ListSubstitutes
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.RemoveSubstituteAttendance
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.SetSubstituteAttendance
+import com.github.zzave.teambalance.api.interfaces.generated.endpoint.UpdateSubstitute
 import com.github.zzave.teambalance.api.interfaces.generated.model.DateTimestampWithTimezone
 import com.github.zzave.teambalance.api.interfaces.generated.model.MemberPosition
 import com.github.zzave.teambalance.api.interfaces.generated.model.SubstituteEntry
@@ -28,6 +29,7 @@ class SubstituteController(
     private val currentTeamGateway: CurrentTeamGateway,
 ) : ListSubstitutes.Handler,
     CreateSubstitute.Handler,
+    UpdateSubstitute.Handler,
     SetSubstituteAttendance.Handler,
     RemoveSubstituteAttendance.Handler {
 
@@ -47,6 +49,17 @@ class SubstituteController(
             positionId = request.body.positionId?.consumePositionId(),
         )
         return CreateSubstitute.Response201(created.produce())
+    }
+
+    override suspend fun updateSubstitute(request: UpdateSubstitute.Request): UpdateSubstitute.Response<*> {
+        val updated = substituteService.updateSubstitute(
+            callerId = currentUserGateway.requireCurrentUserId(),
+            teamId = currentTeamGateway.requireCurrentTeamId(),
+            id = request.path.id.consumeSubstituteId(),
+            rawName = request.body.name,
+            positionId = request.body.positionId?.consumePositionId(),
+        )
+        return UpdateSubstitute.Response200(updated.produce())
     }
 
     override suspend fun setSubstituteAttendance(

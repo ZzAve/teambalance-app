@@ -41,13 +41,17 @@ class JpaSubstituteRepositoryAdapter(
         val saved = jpaRepository.save(
             SubstituteJpaEntity(name = name.value, positionId = positionId?.value, createdBy = createdBy.value),
         )
-        return Substitute(
-            id = SubstituteId(saved.id),
-            name = DisplayName(saved.name),
-            positionId = positionId,
-            position = positionId?.let { positionJpaRepository.findById(it.value).orElse(null) }
-                ?.let { PositionLabel(it.label) },
-        )
+        return saved.toDomain()
+    }
+
+    @Transactional
+    override fun update(id: SubstituteId, name: DisplayName, positionId: PositionId?): Substitute {
+        val entity = jpaRepository.findById(id.value).orElseThrow {
+            IllegalStateException("Substitute $id disappeared during update")
+        }
+        entity.name = name.value
+        entity.positionId = positionId?.value
+        return jpaRepository.save(entity).toDomain()
     }
 
     override fun exists(id: SubstituteId): Boolean = jpaRepository.existsById(id.value)
@@ -79,6 +83,13 @@ class JpaSubstituteRepositoryAdapter(
             jpaRepository.findAttendanceByEventIds(eventIds.map { it.value })
                 .groupBy({ EventId(UUID.fromString(it.eventId)) }, { it.toDomain() })
         }
+
+    private fun SubstituteJpaEntity.toDomain() = Substitute(
+        id = SubstituteId(id),
+        name = DisplayName(name),
+        positionId = positionId?.let(::PositionId),
+        position = positionId?.let { positionJpaRepository.findById(it).orElse(null) }?.let { PositionLabel(it.label) },
+    )
 
     private fun SubstituteAttendanceProjection.toDomain() = SubstituteAttendance(
         substitute = Substitute(

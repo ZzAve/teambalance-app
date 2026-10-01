@@ -138,6 +138,19 @@ class SubstituteIT : TeamBalanceIT() {
                 .andExpect(status().isNotFound)
         }
 
+        test("an admin renames a substitute and every event shows the new name") {
+            seedTeam()
+            val eventId = createEvent("Renamed on")
+            val substituteId = createSubstitute("Before Rename", positionId = null, asUser = MEMBER_USER_ID)
+            setSubstituteState(eventId, substituteId, "MAYBE", asUser = MEMBER_USER_ID).andExpect(status().isOk)
+
+            putSubstitute(substituteId, "After Rename", positionId = null, asUser = ADMIN_USER_ID)
+                .andExpect(status().isOk)
+                .andExpect(jsonPath("$.name").value("After Rename"))
+
+            detail(eventId).andExpect(jsonPath("$.substitutes[0].name").value("After Rename"))
+        }
+
         test("a blank or over-long name is refused") {
             seedTeam()
 
@@ -160,6 +173,14 @@ class SubstituteIT : TeamBalanceIT() {
     private fun postSubstitute(name: String, positionId: UUID? = null, asUser: String) =
         perform(
             MockMvcRequestBuilders.post("/api/substitutes")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""{"name": "$name", "positionId": ${positionId?.let { "\"$it\"" } ?: "null"}}"""),
+            asUser,
+        )
+
+    private fun putSubstitute(id: String, name: String, positionId: UUID?, asUser: String) =
+        perform(
+            MockMvcRequestBuilders.put("/api/substitutes/$id")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""{"name": "$name", "positionId": ${positionId?.let { "\"$it\"" } ?: "null"}}"""),
             asUser,

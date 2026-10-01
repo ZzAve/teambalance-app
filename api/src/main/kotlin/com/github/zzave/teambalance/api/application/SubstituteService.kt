@@ -35,11 +35,24 @@ class SubstituteService(
 
     fun createSubstitute(callerId: UserId, teamId: TeamId, rawName: String, positionId: PositionId?): Substitute {
         authorizationService.requireMember(callerId, teamId)
-        val name = rawName.trim()
-        require(name.isNotBlank()) { "Substitute name must not be blank" }
-        require(name.length <= MAX_NAME_LENGTH) { "Substitute name must be at most $MAX_NAME_LENGTH characters" }
-        if (positionId != null && !positionRepository.exists(positionId)) throw PositionNotFoundException(positionId)
-        return substituteRepository.create(DisplayName(name), positionId, callerId)
+        val name = validName(rawName)
+        requireKnownPosition(positionId)
+        return substituteRepository.create(name, positionId, callerId)
+    }
+
+    /** Admin-only. Saves the name and the Position together; a null [positionId] clears it. */
+    fun updateSubstitute(
+        callerId: UserId,
+        teamId: TeamId,
+        id: SubstituteId,
+        rawName: String,
+        positionId: PositionId?,
+    ): Substitute {
+        authorizationService.requireAdmin(callerId, teamId)
+        if (!substituteRepository.exists(id)) throw SubstituteNotFoundException(id)
+        val name = validName(rawName)
+        requireKnownPosition(positionId)
+        return substituteRepository.update(id, name, positionId)
     }
 
     fun setAttendance(
@@ -60,6 +73,17 @@ class SubstituteService(
     fun removeAttendance(callerId: UserId, teamId: TeamId, eventId: EventId, substituteId: SubstituteId) {
         authorizationService.requireMember(callerId, teamId)
         if (!substituteRepository.removeAttendance(eventId, substituteId)) throw SubstituteNotFoundException(substituteId)
+    }
+
+    private fun validName(rawName: String): DisplayName {
+        val name = rawName.trim()
+        require(name.isNotBlank()) { "Substitute name must not be blank" }
+        require(name.length <= MAX_NAME_LENGTH) { "Substitute name must be at most $MAX_NAME_LENGTH characters" }
+        return DisplayName(name)
+    }
+
+    private fun requireKnownPosition(positionId: PositionId?) {
+        if (positionId != null && !positionRepository.exists(positionId)) throw PositionNotFoundException(positionId)
     }
 
     private companion object {

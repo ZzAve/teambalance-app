@@ -7,7 +7,7 @@ import {
   type TurnoutBucket,
 } from '@features/filter-event-types/model/turnout'
 import { filterEvents } from '@features/filter-event-types/model/filter-events'
-import { eligibleEventIds } from './eligible-event-ids'
+import { eligibleEvents } from './eligible-event-ids'
 
 // "Now" is fixed so the future/past split is decided by the fixtures, never by the wall clock.
 const NOW = new Date('2026-06-01T12:00:00Z')
@@ -20,7 +20,10 @@ const MATCH = { id: 'et-match', name: 'Match', color: '#3b82f6' }
 const ALL_TYPES = new Set([TRAINING.id, MATCH.id])
 const ALL_TURNOUTS = new Set<TurnoutBucket>(ALL_TURNOUT_BUCKETS)
 
-describe('eligibleEventIds', () => {
+const eligibleEventIds = (...args: Parameters<typeof eligibleEvents>) =>
+  eligibleEvents(...args).map((event) => event.id)
+
+describe('eligibleEvents', () => {
   it('returns nothing when there are no events', () => {
     expect(eligibleEventIds([], ALL_TYPES, NOW)).toEqual([])
   })
@@ -86,7 +89,7 @@ describe('eligibleEventIds', () => {
 // "fixed" by exempting Bulk Attend from this dimension: filtering to an answered status leaves the
 // bar with nothing to act on, and the reason is on screen — the visible list holds nothing
 // unanswered. The converse is the useful half: `Not responded` *is* the bar's preview.
-describe('eligibleEventIds under the answer filter', () => {
+describe('eligibleEvents under the answer filter', () => {
   const ALL_STATES = new Set<AttendanceState>(ALL_ATTENDANCE_STATES)
   const EVENTS = [
     makeEvent({ id: 'blank', eventType: TRAINING, startTime: FUTURE, myState: 'NOT_RESPONDED' }),

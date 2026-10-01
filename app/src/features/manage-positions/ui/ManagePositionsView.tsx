@@ -2,14 +2,7 @@ import { useState } from 'react'
 import type { Position, PositionKind, PositionUsage } from '@shared/api/positions'
 import { Button } from '@shared/ui/button'
 import { Input } from '@shared/ui/input'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@shared/ui/dialog'
+import { ConfirmDialog } from '@shared/ui/ConfirmDialog'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -131,40 +124,23 @@ export function ManagePositionsView({
             </ul>
           )}
 
-          <Dialog
+          <ConfirmDialog
             open={confirmTarget !== null}
-            onOpenChange={(open) => {
-              if (!open) setConfirmTarget(null)
+            title="Delete position"
+            description={<>Delete "{confirmTarget?.label}"? This cannot be undone.</>}
+            confirmLabel="Delete"
+            onConfirm={() => {
+              if (confirmTarget) onDelete(confirmTarget)
+              setConfirmTarget(null)
             }}
+            onCancel={() => setConfirmTarget(null)}
           >
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Delete position</DialogTitle>
-                <DialogDescription>
-                  Delete "{confirmTarget?.label}"? This cannot be undone.
-                </DialogDescription>
-              </DialogHeader>
-              {/* Names what the delete will actually touch. A warning, not a veto — the delete
-                  proceeds either way, but an admin should not have to guess the blast radius. */}
-              <p className="text-small text-muted-foreground">
-                {usage ? deleteImpact(usage) : 'Checking what uses this position…'}
-              </p>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setConfirmTarget(null)}>
-                  Cancel
-                </Button>
-                <Button
-                  variant="destructive"
-                  onClick={() => {
-                    if (confirmTarget) onDelete(confirmTarget)
-                    setConfirmTarget(null)
-                  }}
-                >
-                  Delete
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+            {/* Names what the delete will actually touch. A warning, not a veto — the delete
+                proceeds either way, but an admin should not have to guess the blast radius. */}
+            <p className="text-small text-muted-foreground">
+              {usage ? deleteImpact(usage) : 'Checking what uses this position…'}
+            </p>
+          </ConfirmDialog>
         </div>
       )}
     </div>

@@ -7,7 +7,7 @@ import { AttendanceToggle, type AttendanceState } from './AttendanceToggle'
 // the aria-pressed button is the observable contract. The mutation lives in the page container, so
 // there is nothing to mock — every state is a plain render.
 //
-// Token-sensitive component (ADR-0027 §3): the pressed states carry the semantic attendance colours
+// Token-sensitive component (ADR-0035 §3): the pressed states carry the semantic attendance colours
 // (green/gold/red), which a token or Tailwind bump can break in dark while light stays green. Modes
 // at the meta level give every state a light *and* a dark baseline.
 //

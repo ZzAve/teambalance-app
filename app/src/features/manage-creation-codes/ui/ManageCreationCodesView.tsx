@@ -1,14 +1,7 @@
 import { useState } from 'react'
 import type { CreationCode } from '@shared/api/creation-codes'
 import { Button } from '@shared/ui/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@shared/ui/dialog'
+import { ConfirmDialog } from '@shared/ui/ConfirmDialog'
 import { creationCodeStatusLabel, deriveCreationCodeStatus, type CreationCodeStatus } from '../lib/creation-code-status'
 
 interface ManageCreationCodesViewProps {
@@ -93,35 +86,17 @@ export function ManageCreationCodesView({
             </ul>
           )}
 
-          <Dialog
+          <ConfirmDialog
             open={confirmTarget !== null}
-            onOpenChange={(open) => {
-              if (!open) setConfirmTarget(null)
+            title="Revoke code"
+            description={<>Revoke "{confirmTarget?.code}"? It can no longer be used to create a team.</>}
+            confirmLabel="Revoke"
+            onConfirm={() => {
+              if (confirmTarget) onRevoke(confirmTarget)
+              setConfirmTarget(null)
             }}
-          >
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Revoke code</DialogTitle>
-                <DialogDescription>
-                  Revoke "{confirmTarget?.code}"? It can no longer be used to create a team.
-                </DialogDescription>
-              </DialogHeader>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setConfirmTarget(null)}>
-                  Cancel
-                </Button>
-                <Button
-                  variant="destructive"
-                  onClick={() => {
-                    if (confirmTarget) onRevoke(confirmTarget)
-                    setConfirmTarget(null)
-                  }}
-                >
-                  Revoke
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+            onCancel={() => setConfirmTarget(null)}
+          />
         </div>
       )}
     </div>

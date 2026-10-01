@@ -1,4 +1,4 @@
-# ADR-0014: JDBC-backed shared sessions (Postgres) so logins survive a restart
+# ADR-0022: JDBC-backed shared sessions (Postgres) so logins survive a restart
 
 - Status: Accepted
 - Date: 2026-07-26

@@ -91,7 +91,7 @@ export const MoneyActive: Story = {
 
 // The Team tab stays active on nested team routes (e.g. the admin settings sub-page). Behavioural
 // twin of TeamActive — a nested route that keeps the Team tab active renders the same picture
-// (ADR-0027 §2), and the picture itself is owned by the page composites (ADR-0032 §3).
+// (ADR-0035 §2), and the picture itself is owned by the page composites (ADR-0032 §3).
 export const TeamSettingsActive: Story = {
   parameters: {
     router: { initialEntries: ['/t/setpoint-vt/team/settings'] },

@@ -2,12 +2,12 @@
 
 - Status: Accepted
 - Date: 2026-07-26
-- Builds on: ADR-0014 (JDBC-backed sessions), ADR-0008 (session-based auth)
+- Builds on: ADR-0022 (JDBC-backed sessions), ADR-0008 (session-based auth)
 - See also: ADR-0012 (Spring Security — session fixation, not yet implemented)
 
 ## Context
 
-ADR-0014 made sessions durable (Postgres-backed, survive a restart). This ADR sets *how long*
+ADR-0022 made sessions durable (Postgres-backed, survive a restart). This ADR sets *how long*
 a login lasts. Logging in is a magic-link email round-trip — enough friction that users
 experience it as a hassle — so the product goal is to **stay logged in for a long time** and
 re-authenticate rarely, while still bounding how long any single login (and therefore a leaked
@@ -29,7 +29,7 @@ Three settings, layered:
    cookie is dropped on browser close, forcing re-login for no security gain. Set to the absolute
    cap so the cookie never expires *before* the server-side session could. Native (Spring Boot maps
    `server.servlet.session.cookie.*` onto Spring Session's cookie serializer). Cookie stays
-   `HttpOnly` + prod `Secure`/`SameSite=Lax` (ADR-0014).
+   `HttpOnly` + prod `Secure`/`SameSite=Lax` (ADR-0022).
 
 3. **Absolute lifetime cap — 3 months.** Enforced by `SessionUserContextFilter` (not Spring
    Session, which cannot do it): if `now − session.creationTime > teambalance.session.absolute-timeout`

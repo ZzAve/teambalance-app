@@ -26,12 +26,3 @@ export function eligibleEvents(
       new Date(event.startTime) >= now,
   )
 }
-
-/** Just the ids, for the batch request. See [eligibleEvents] for the rule. */
-export function eligibleEventIds(
-  events: Event[] | undefined,
-  activeTypeIds: Set<string>,
-  now: Date,
-): string[] {
-  return eligibleEvents(events, activeTypeIds, now).map((event) => event.id)
-}

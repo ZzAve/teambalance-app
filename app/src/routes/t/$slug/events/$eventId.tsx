@@ -2,7 +2,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { toast } from 'sonner'
 import { useEvent, useEvents } from '@shared/api/events'
 import { useSetAttendance } from '@shared/api/attendances'
-import { useUserStore } from '@shared/stores/user-store'
+import { useCurrentUser } from '@shared/api/auth'
 import { attributionName } from '@entities/event/lib/attribution'
 import { crossMemberToast } from '@entities/event/lib/cross-member-toast'
 import { buildSeriesPeek } from '@entities/event/lib/series-peek'
@@ -20,8 +20,8 @@ function EventDetailPage() {
   const { eventId } = Route.useParams()
   const routes = useTeamRoutes()
   const { data: event, isLoading, isError, refetch } = useEvent(eventId)
-  const currentUserId = useUserStore((s) => s.userId)
-  const isAdmin = useUserStore((s) => s.role) === 'ADMIN'
+  const currentUserId = useCurrentUser()?.id ?? null
+  const isAdmin = useCurrentUser()?.role === 'ADMIN'
   const { mutate, isPending } = useSetAttendance()
   // Only load the full list to find series siblings when this event actually belongs to a group.
   const { data: allEvents } = useEvents(true, !!event?.recurringGroup)

@@ -23,7 +23,7 @@ import { EventCard } from './EventCard'
 const NOW = new Date(2026, 7, 10, 9, 0) // Monday 10 August 2026, 09:00 local
 const on = (day: number, hour = 20, minute = 0) => new Date(2026, 7, day, hour, minute).toISOString()
 
-// Token-sensitive component (ADR-0027 §3): the event-type colour chits on the card surface, so
+// Token-sensitive component (ADR-0035 §3): the event-type colour chits on the card surface, so
 // modes at the meta level give every state a light *and* a dark baseline.
 // The roster panel is injected by the events route (the real one is `EventLineupPanel`, a widget
 // this entity may not import). A stand-in is the honest fixture here: what the card owns is the

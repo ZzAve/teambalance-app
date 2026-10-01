@@ -1,6 +1,6 @@
 import { useEvent, type Event } from '@shared/api/events'
 import { useSetAttendance } from '@shared/api/attendances'
-import { useUserStore } from '@shared/stores/user-store'
+import { useCurrentUser } from '@shared/api/auth'
 import type { AttendanceState } from '@features/attendance-toggle/ui/AttendanceToggle'
 import { NextEventHeroView } from './NextEventHeroView'
 
@@ -21,7 +21,7 @@ import { NextEventHeroView } from './NextEventHeroView'
  */
 export function NextEventHero({ event, now }: { event: Event; now?: Date }) {
   const { data: detail } = useEvent(event.id)
-  const currentUserId = useUserStore((s) => s.userId)
+  const currentUserId = useCurrentUser()?.id ?? null
   const { mutate, isPending } = useSetAttendance()
 
   const myState: AttendanceState =

@@ -1,18 +1,6 @@
 # Demo recordings
 
-Scripted screencasts of the real SPA, driven by the `demo-video` skill
-(`.agents/skills/demo-video/`). Each take is a `*.steps.mjs` module; they all share
-`api-fixture.mjs`, which intercepts `/api/**` so a recording needs no backend, no Postgres and no
-JDK — and, more usefully, never drifts with the seed data.
-
-| File | What it records |
-|------|-----------------|
-| `dark-mode.steps.mjs` | A look around, then light → dark → system (#159) |
-| `filter-preferences.steps.mjs` | The events list remembering its filters, per team (#325, ADR-0030) |
-| `event-panel.steps.mjs` | The card's panel: roster pips or the member list, and Keep open (#326, ADR-0030) |
-
-Each steps module's docstring carries its own exact commands. The `.mp4` output is gitignored on
-purpose — share it on the PR, don't commit it.
+Scripted screencasts of the real SPA, driven by the `demo-video` skill (`.agents/skills/demo-video/`). New takes start from `.agents/skills/demo-video/scripts/steps.template.mjs` and use `api-fixture.mjs` for API interception.
 
 ## The five things that will cost you an hour
 

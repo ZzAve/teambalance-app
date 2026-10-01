@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
-import { expect, fn, userEvent, within } from 'storybook/test'
+import { expect, fn, userEvent, waitFor, within } from 'storybook/test'
 import type { TeamRef } from '@shared/api/teams'
 import { Stack } from '@shared/testing/stack'
 import { TeamSwitcherView } from './TeamSwitcherView'
@@ -29,9 +29,9 @@ type Story = StoryObj<typeof meta>
 
 export const Data: Story = {
   play: async ({ canvas }) => {
-    const trigger = canvas.getByRole('button', { name: /Current team: Setpoint VT/ })
+    const trigger = canvas.getByRole('combobox', { name: /Current team: Setpoint VT/ })
     await expect(trigger).toBeInTheDocument()
-    await expect(canvas.queryByRole('listbox')).not.toBeInTheDocument()
+    await expect(within(document.body).queryByRole('listbox')).not.toBeInTheDocument()
   },
 }
 
@@ -57,16 +57,11 @@ export const Shells: Story = {
 // The open-dialog-shaped frame no composite shows: opened and left open.
 export const MenuOpen: Story = {
   play: async ({ canvas }) => {
-    await userEvent.click(canvas.getByRole('button', { name: /Current team: Setpoint VT/ }))
-    await expect(canvas.getByRole('listbox', { name: 'Your teams' })).toBeInTheDocument()
-    await expect(canvas.getByRole('option', { name: /Setpoint VT/ })).toHaveAttribute(
-      'aria-selected',
-      'true',
-    )
-    await expect(canvas.getByRole('option', { name: /Tovo Heren 5/ })).toHaveAttribute(
-      'aria-selected',
-      'false',
-    )
+    await userEvent.click(canvas.getByRole('combobox', { name: /Current team: Setpoint VT/ }))
+    const menu = within(document.body)
+    await expect(await menu.findByRole('listbox')).toBeInTheDocument()
+    await expect(menu.getByRole('option', { name: /Setpoint VT/ })).toHaveAttribute('aria-selected', 'true')
+    await expect(menu.getByRole('option', { name: /Tovo Heren 5/ })).toHaveAttribute('aria-selected', 'false')
   },
 }
 
@@ -74,16 +69,18 @@ export const MenuOpen: Story = {
 export const Interactions: Story = {
   parameters: { chromatic: { disableSnapshot: true } },
   play: async ({ canvas, args }) => {
+    const menu = within(document.body)
+
     // Re-picking the current Team is not a switch, and must not fire one.
-    await userEvent.click(canvas.getByRole('button', { name: /Current team: Setpoint VT/ }))
-    await userEvent.click(canvas.getByRole('option', { name: /Setpoint VT/ }))
+    await userEvent.click(canvas.getByRole('combobox', { name: /Current team: Setpoint VT/ }))
+    await userEvent.click(await menu.findByRole('option', { name: /Setpoint VT/ }))
     await expect(args.onSelect).not.toHaveBeenCalled()
-    await expect(canvas.queryByRole('listbox')).not.toBeInTheDocument()
+    await waitFor(() => expect(menu.queryByRole('listbox')).not.toBeInTheDocument())
 
     // The slug, not the id: it is what the team-scoped URL carries, and opening that URL is the
     // switch.
-    await userEvent.click(canvas.getByRole('button', { name: /Current team: Setpoint VT/ }))
-    await userEvent.click(canvas.getByRole('option', { name: /Tovo Heren 5/ }))
+    await userEvent.click(canvas.getByRole('combobox', { name: /Current team: Setpoint VT/ }))
+    await userEvent.click(await menu.findByRole('option', { name: /Tovo Heren 5/ }))
     await expect(args.onSelect).toHaveBeenCalledWith('tovo-heren-5')
   },
 }

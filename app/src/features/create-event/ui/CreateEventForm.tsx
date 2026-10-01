@@ -2,7 +2,9 @@ import { useState } from 'react'
 import { Button } from '@shared/ui/button'
 import { Input } from '@shared/ui/input'
 import { Label } from '@shared/ui/label'
+import { FormError } from '@shared/ui/FormError'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@shared/ui/select'
+import { EventTypeSelect } from '@entities/event/ui/EventTypeSelect'
 import type { EventInput } from '@shared/api/events'
 import type { RosterRequirement } from '@shared/api/event-types'
 import type { Position } from '@shared/api/positions'
@@ -99,24 +101,15 @@ export function CreateEventForm({
             style={{ backgroundColor: selectedType?.color ?? 'transparent' }}
             aria-hidden="true"
           />
-          <Select name="eventTypeId" required value={selectedTypeId} onValueChange={handleTypeChange}>
-            <SelectTrigger id="eventTypeId" className="flex-1">
-              <SelectValue placeholder="Select type" />
-            </SelectTrigger>
-            <SelectContent>
-              {eventTypes.map((t) => (
-                <SelectItem key={t.id} value={t.id}>
-                  <div className="flex items-center gap-2">
-                    <span
-                      className="inline-block h-3 w-3 rounded-full"
-                      style={{ backgroundColor: t.color ?? '#888' }}
-                    />
-                    {t.name}
-                  </div>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <EventTypeSelect
+            id="eventTypeId"
+            name="eventTypeId"
+            required
+            eventTypes={eventTypes}
+            value={selectedTypeId}
+            onValueChange={handleTypeChange}
+            className="flex-1"
+          />
         </div>
       </div>
 
@@ -175,11 +168,7 @@ export function CreateEventForm({
         onChange={setRosterOverride}
       />
 
-      {error && (
-        <p role="alert" className="text-small text-destructive">
-          {error}
-        </p>
-      )}
+      {error && <FormError>{error}</FormError>}
       <Button
         type="submit"
         disabled={isPending}

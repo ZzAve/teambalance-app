@@ -37,8 +37,8 @@ private class FakeSubstituteRepository : SubstituteRepository {
     override fun create(name: DisplayName, positionId: PositionId?, createdBy: UserId): Substitute =
         Substitute(SubstituteId(UUID.randomUUID()), name, positionId, position = null).also { store[it.id] = it }
 
-    override fun update(id: SubstituteId, name: DisplayName, positionId: PositionId?): Substitute =
-        store.getValue(id).copy(name = name, positionId = positionId).also { store[id] = it }
+    override fun update(id: SubstituteId, name: DisplayName, positionId: PositionId?): Substitute? =
+        store[id]?.copy(name = name, positionId = positionId)?.also { store[id] = it }
 
     override fun delete(id: SubstituteId) {
         store.remove(id)

@@ -71,6 +71,7 @@ export function useUpdateSubstitute() {
       if (res.status === 409) throw nameTaken(name)
       if (res.status === 403) throw new SubstituteError('You are not allowed to make this change.')
       if (res.status === 404) throw new SubstituteError('That substitute is no longer on the list.')
+      if (res.status !== 200) throw new SubstituteError("Couldn't save the substitute — please try again.")
       return res.body
     },
     onSettled: () => {
@@ -90,6 +91,8 @@ export function useSubstituteEventCount(id: string | null) {
       return res.body.eventCount
     },
     enabled: id !== null,
+    // Dropped as soon as the dialog closes, so reopening it never shows a count from before a call-in.
+    gcTime: 0,
   })
 }
 
@@ -101,6 +104,7 @@ export function useDeleteSubstitute() {
       const res = await api.DeleteSubstitute({ id })
       if (res.status === 403) throw new SubstituteError('You are not allowed to remove this substitute.')
       if (res.status === 404) throw new SubstituteError('That substitute is no longer on the list.')
+      if (res.status !== 204) throw new SubstituteError("Couldn't remove the substitute — please try again.")
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['substitutes'] })

@@ -20,8 +20,9 @@ interface ManageSubstitutesProps {
 
 /**
  * Container for the Team's Substitute list: wires the substitutes query, the update and delete
- * mutations and the remove dialog's event count to ManageSubstitutesView. Pure wiring, covered by
- * e2e rather than a story. See ADR-0017.
+ * mutations and the remove dialog's event count to ManageSubstitutesView. Pure wiring; the View's
+ * stories cover its states and callbacks. No e2e drives it: an Admin write inside the tenant, the
+ * same kind of change as managing Positions, adds no seam the existing flows miss. See ADR-0017.
  */
 export function ManageSubstitutes({ canManage = false }: ManageSubstitutesProps) {
   const { data: substitutes, isLoading, error } = useSubstitutes()
@@ -31,11 +32,15 @@ export function ManageSubstitutes({ canManage = false }: ManageSubstitutesProps)
   // The remove dialog's target, lifted here only so its event count can be fetched — the dialog
   // itself stays the View's own state.
   const [removeTarget, setRemoveTarget] = useState<Substitute | null>(null)
-  const { data: eventCount } = useSubstituteEventCount(removeTarget?.id ?? null)
+  const { data: eventCount, isError: eventCountFailed } = useSubstituteEventCount(removeTarget?.id ?? null)
 
-  const activeError = [updateSubstitute.error, deleteSubstitute.error].find(
-    (e): e is SubstituteError => e instanceof SubstituteError,
-  )
+  // Each write resets the other, so the banner only ever shows the latest refusal.
+  const activeError = updateSubstitute.error ?? deleteSubstitute.error
+  const errorMessage = activeError
+    ? activeError instanceof SubstituteError
+      ? activeError.message
+      : "Couldn't save the change — please try again."
+    : null
 
   const savingId = updateSubstitute.isPending
     ? updateSubstitute.variables?.id
@@ -51,16 +56,22 @@ export function ManageSubstitutes({ canManage = false }: ManageSubstitutesProps)
       isLoading={isLoading}
       isError={!!error}
       savingId={savingId}
-      errorMessage={activeError?.message ?? null}
+      errorMessage={errorMessage}
       eventCount={removeTarget ? eventCount : undefined}
+      eventCountFailed={eventCountFailed}
       onConfirmTargetChange={setRemoveTarget}
-      onRename={(substitute, name) =>
+      onRename={(substitute, name) => {
+        deleteSubstitute.reset()
         updateSubstitute.mutate({ id: substitute.id, name, positionId: substitute.position?.id ?? null })
-      }
-      onChangePosition={(substitute, positionId) =>
+      }}
+      onChangePosition={(substitute, positionId) => {
+        deleteSubstitute.reset()
         updateSubstitute.mutate({ id: substitute.id, name: substitute.name, positionId })
-      }
-      onRemove={(substitute) => deleteSubstitute.mutate({ id: substitute.id })}
+      }}
+      onRemove={(substitute) => {
+        updateSubstitute.reset()
+        deleteSubstitute.mutate({ id: substitute.id })
+      }}
     />
   )
 }

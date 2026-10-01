@@ -51,10 +51,9 @@ class SubstituteService(
         positionId: PositionId?,
     ): Substitute {
         authorizationService.requireAdmin(callerId, teamId)
-        if (!substituteRepository.exists(id)) throw SubstituteNotFoundException(id)
         val name = validName(rawName, excluding = id)
         requireKnownPosition(positionId)
-        return substituteRepository.update(id, name, positionId)
+        return substituteRepository.update(id, name, positionId) ?: throw SubstituteNotFoundException(id)
     }
 
     /** Admin-only: the remove dialog states how many Events the removal takes the Substitute off. */

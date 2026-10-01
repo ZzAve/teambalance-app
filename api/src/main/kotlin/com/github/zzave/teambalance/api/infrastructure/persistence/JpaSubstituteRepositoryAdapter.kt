@@ -45,10 +45,8 @@ class JpaSubstituteRepositoryAdapter(
     }
 
     @Transactional
-    override fun update(id: SubstituteId, name: DisplayName, positionId: PositionId?): Substitute {
-        val entity = jpaRepository.findById(id.value).orElseThrow {
-            IllegalStateException("Substitute $id disappeared during update")
-        }
+    override fun update(id: SubstituteId, name: DisplayName, positionId: PositionId?): Substitute? {
+        val entity = jpaRepository.findById(id.value).orElse(null) ?: return null
         entity.name = name.value
         entity.positionId = positionId?.value
         return jpaRepository.save(entity).toDomain()

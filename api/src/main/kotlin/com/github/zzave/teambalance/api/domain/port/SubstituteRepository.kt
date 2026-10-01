@@ -20,8 +20,8 @@ interface SubstituteRepository {
 
     fun create(name: DisplayName, positionId: PositionId?, createdBy: UserId): Substitute
 
-    /** Replaces the name and Position of an existing Substitute; a null [positionId] clears it. */
-    fun update(id: SubstituteId, name: DisplayName, positionId: PositionId?): Substitute
+    /** Replaces the Substitute's name and Position; a null [positionId] clears it. Null when they are gone. */
+    fun update(id: SubstituteId, name: DisplayName, positionId: PositionId?): Substitute?
 
     /** Deletes the Substitute; the schema's ON DELETE CASCADE takes their attendance on every Event with them. */
     fun delete(id: SubstituteId)

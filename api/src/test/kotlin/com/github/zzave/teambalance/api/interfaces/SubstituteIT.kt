@@ -2,9 +2,11 @@ package com.github.zzave.teambalance.api.interfaces
 
 import com.github.zzave.teambalance.api.TeamBalanceIT
 import com.github.zzave.teambalance.api.infrastructure.multitenancy.TenantSchemaAdapter
+import io.kotest.assertions.throwables.shouldThrow
 import org.hamcrest.Matchers.contains
 import org.hamcrest.Matchers.nullValue
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
 import org.springframework.http.MediaType
 import org.springframework.jdbc.core.JdbcTemplate
@@ -200,6 +202,20 @@ class SubstituteIT : TeamBalanceIT() {
 
             postSubstitute("unique name", asUser = MEMBER_USER_ID).andExpect(status().isConflict)
             putSubstitute(other, "UNIQUE NAME", positionId = null, asUser = ADMIN_USER_ID).andExpect(status().isConflict)
+        }
+
+        // Two Members creating the same name at once both pass the service's check; the index refuses
+        // the second insert, as uq_positions_label does for Positions.
+        test("the schema refuses a second substitute whose name differs only in case") {
+            seedTeam()
+            createSubstitute("Indexed Name", positionId = null, asUser = MEMBER_USER_ID)
+
+            shouldThrow<DataIntegrityViolationException> {
+                jdbcTemplate.update(
+                    "INSERT INTO public.substitutes (id, name, created_by) VALUES (gen_random_uuid(), 'INDEXED NAME', ?::uuid)",
+                    MEMBER_USER_ID,
+                )
+            }
         }
 
         test("the remove dialog's count is every event the substitute is on, past ones included") {

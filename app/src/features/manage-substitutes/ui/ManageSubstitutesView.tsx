@@ -20,6 +20,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@shared/ui/dropdown-menu'
+import { eventCountLine } from '../lib/event-count-line'
 
 interface ManageSubstitutesViewProps {
   substitutes?: Substitute[]
@@ -43,6 +44,8 @@ interface ManageSubstitutesViewProps {
    * Undefined while loading: the dialog says so rather than implying "none".
    */
   eventCount?: number
+  /** The count could not be read; the dialog says so instead of "Checking…". */
+  eventCountFailed?: boolean
   /** Told which Substitute the remove dialog is asking about, so the container can fetch the count. */
   onConfirmTargetChange?: (substitute: Substitute | null) => void
   onRename: (substitute: Substitute, name: string) => void
@@ -68,6 +71,7 @@ export function ManageSubstitutesView({
   savingId,
   errorMessage,
   eventCount,
+  eventCountFailed = false,
   onConfirmTargetChange,
   onRename,
   onChangePosition,
@@ -127,7 +131,7 @@ export function ManageSubstitutesView({
                 </DialogDescription>
               </DialogHeader>
               <p className="text-small text-muted-foreground">
-                {confirmTarget && eventCountLine(confirmTarget.name, eventCount)}
+                {confirmTarget && eventCountLine(confirmTarget.name, eventCount, eventCountFailed)}
               </p>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setConfirmTarget(null)}>
@@ -149,12 +153,6 @@ export function ManageSubstitutesView({
       )}
     </div>
   )
-}
-
-function eventCountLine(name: string, eventCount: number | undefined): string {
-  if (eventCount === undefined) return `Checking which events ${name} is on…`
-  if (eventCount === 0) return `${name} is not on any event.`
-  return `${name} is on ${eventCount} ${eventCount === 1 ? 'event' : 'events'}.`
 }
 
 interface SubstituteRowProps {
@@ -219,6 +217,7 @@ function SubstituteRow({
         <Input
           aria-label={`Name for ${substitute.name}`}
           value={draftName}
+          maxLength={100}
           autoFocus
           onChange={(e) => setDraftName(e.target.value)}
           onKeyDown={(e) => {

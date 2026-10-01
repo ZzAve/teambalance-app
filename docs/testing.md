@@ -132,7 +132,7 @@ The magic-link token recorder is last-write-wins per email (`ConcurrentHashMap<e
 
 ### CI timeout on auth render-gate tests
 
-The auth render-gate jsdom tests (`verify-flow`, `auth-gate`) flake in CI at RTL's default 1000ms `findBy`/`waitFor` timeout — the "lands on events" chain (10ms verify delay → cache write → redirect → events route mount) can exceed 1000ms on a loaded runner. Pass explicit `{ timeout: 5000 }` to router/render assertions in these tests. Do not rely on the 1000ms default for any `msw/node` router-render assertion.
+Router render tests (`verify-flow`, `auth-gate`) rely on `autoCodeSplitting` being off under Vitest (the `!process.env.VITEST` switch in `app/vite.config.ts`). With splitting on, each route component is a dynamic import that Vite transforms cold in the middle of the test; the events-page chunk alone took ~700ms and pushed `verify-flow` past the timeout on loaded runners. A route-render assertion is bounded by vitest's `testTimeout` (5000ms), so keep splitting off there and pass `{ timeout: 5000 }` to `msw/node` router-render assertions rather than relying on the 1000ms default.
 
 ### Git hooks
 

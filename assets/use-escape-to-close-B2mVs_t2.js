@@ -1,0 +1,1 @@
+import{n as e}from"./rolldown-runtime-DkW27tQK.js";import{a as t}from"./iframe-fIKSnzJy.js";function n(e,t){(0,r.useEffect)(()=>{if(!e)return;let n=e=>{e.key===`Escape`&&t()};return document.addEventListener(`keydown`,n),()=>document.removeEventListener(`keydown`,n)},[e,t])}var r;function i(){return(i=e((()=>{r=t()})))()}export{n,i as t};

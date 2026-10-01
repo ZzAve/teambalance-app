@@ -58,10 +58,7 @@ const handler = async (req: Wirespec.RawRequest): Promise<Wirespec.RawResponse> 
     redirectToLogin()
   }
 
-  const headers: Record<string, string> = {}
-  res.headers.forEach((value, key) => {
-    headers[key] = value
-  })
+  const headers: Record<string, string> = Object.fromEntries(res.headers)
   return { status: res.status, headers, body: text === '' ? undefined : text }
 }
 

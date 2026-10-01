@@ -56,6 +56,13 @@ jobs:
           # Chromatic needs full git history to find each commit's baseline and to run
           # TurboSnap (onlyChanged) — a shallow clone breaks baseline detection.
           fetch-depth: 0
+          # On pull_request, actions/checkout defaults to GitHub's ephemeral merge commit of the PR
+          # into the latest main. The Chromatic action records the build under the PR head SHA, but
+          # TurboSnap diffs the checked-out tree, so every file main gained since the branch point
+          # lands in the changed set (and any .storybook/** change among them forces a full build).
+          # Checking out the PR branch itself keeps the diff to the PR's own changes, as Chromatic
+          # recommends for pull_request triggers. Empty on push, so main checks out github.ref.
+          ref: ${{ github.event.pull_request.head.ref }}
 
       - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
         with:

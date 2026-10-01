@@ -2,9 +2,9 @@
 
 - Status: Accepted
 - Date: 2026-09-14
-- Supersedes: [ADR-0027](0027-snapshot-policy-disable-behavioral-only-stories-modes-for-theme.md)
+- Supersedes: [ADR-0035](0035-snapshot-policy-disable-behavioral-only-stories-modes-for-theme.md)
   §1 (a story per behavioural branch), §3 (theme modes on token-sensitive components) and §5
-  (no controls, no interactivity). ADR-0027 §2 (`disableSnapshot` names its sibling) and §4 (snapshot
+  (no controls, no interactivity). ADR-0035 §2 (`disableSnapshot` names its sibling) and §4 (snapshot
   intent is co-located with the story) stand unchanged.
 - Extends: [ADR-0017](0017-visual-regression-gate-and-gated-renovate-automerge.md) (the gate) and
   [ADR-0028](0028-chromatic-snapshot-budget-turbosnap-full-builds-and-ci-levers.md) (capture
@@ -12,7 +12,7 @@
 
 ## Context
 
-ADR-0027 kept "one story per behavioural branch" and only decoupled the pixel from the test with
+ADR-0035 kept "one story per behavioural branch" and only decoupled the pixel from the test with
 `disableSnapshot`. Two weeks after its rollout the catalogue stood at **411 story exports across 61
 files** with **63** `disableSnapshot`s and dark modes on 8 files: a projected Chromatic baseline of
 **~401 snapshots** (348 light + 53 dark). The rollout cut 31 pictures; the catalogue then grew by 160
@@ -92,7 +92,7 @@ rendered in a composite that already carries a dark picture.
 
 Page composite `Data` stories wrap the View in a small `useState` harness so filters, the view menu,
 RSVP and open/close actually flip when a person clicks in Storybook. `play` still asserts the spies.
-This is a harness in the story, not `argTypes`: ADR-0027's reasons for keeping controls out hold.
+This is a harness in the story, not `argTypes`: ADR-0035's reasons for keeping controls out hold.
 
 ## Consequences
 
@@ -103,7 +103,7 @@ This is a harness in the story, not `argTypes`: ADR-0027's reasons for keeping c
   Land it in one PR, kept as draft until complete (ADR-0028 §1).
 - **Every `play` assertion survives** in a multi-step `Interactions` story or a gallery. What is lost
   is only pictures, and the pictures that remain show the same pixels in context.
-- **A `disableSnapshot` is still a claim** (ADR-0027 §2 and the "stays true" consequence): each one
+- **A `disableSnapshot` is still a claim** (ADR-0035 §2 and the "stays true" consequence): each one
   names the story whose picture covers it.
 - **Snapshotting a multi-step story captures its last frame.** That is why `Interactions` stories are
   `disableSnapshot` and why a visually new end state gets its own short story instead.

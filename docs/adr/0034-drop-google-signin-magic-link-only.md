@@ -1,4 +1,4 @@
-# ADR-0027: Drop Google Sign-In — magic-link stays the sole auth method
+# ADR-0034: Drop Google Sign-In — magic-link stays the sole auth method
 
 - Status: Accepted
 - Date: 2026-08-30

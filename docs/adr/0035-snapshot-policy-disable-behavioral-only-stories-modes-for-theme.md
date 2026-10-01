@@ -1,4 +1,4 @@
-# ADR-0027: A snapshot policy — render-similarity never merges a story; `disableSnapshot` for behavioural-only stories; `modes` for the theme axis
+# ADR-0035: A snapshot policy — render-similarity never merges a story; `disableSnapshot` for behavioural-only stories; `modes` for the theme axis
 
 - Status: Proposed
 - Date: 2026-08-30

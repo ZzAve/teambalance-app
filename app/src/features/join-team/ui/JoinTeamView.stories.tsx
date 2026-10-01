@@ -72,7 +72,7 @@ export const Interactions: Story = {
     const region = (name: string) => within(canvas.getByRole('region', { name }))
 
     // Typing reports to onChange without changing the picture — the field is controlled by the
-    // container (ADR-0027 §2).
+    // container (ADR-0035 §2).
     await userEvent.type(region('Typing').getByLabelText('Invite link'), 'abc')
     await expect(args.onChange).toHaveBeenCalled()
 

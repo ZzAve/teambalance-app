@@ -48,7 +48,7 @@ candidate — not a Redis-backed store.
 
 ## Consequences
 
-- **Zero new runtime infra / dependencies**; no cold-start regression — consistent with ADR-0010/0014.
+- **Zero new runtime infra / dependencies**; no cold-start regression — consistent with ADR-0010/0022.
 - Limits are **per instance**: with N live instances the effective ceiling is N× the configured
   value. Acceptable at current scale for a defense-in-depth control.
 - Buckets are **not shared across instances and reset on restart** (an attacker's counter resets on

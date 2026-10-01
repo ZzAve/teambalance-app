@@ -1,0 +1,39 @@
+name: Setup toolchain
+description: Java, Node and Gradle setup, plus the Wirespec TypeScript client and npm dependencies.
+
+inputs:
+  wirespec:
+    description: Generate the Wirespec TypeScript client (./gradlew :api:wirespec-typescript).
+    default: 'true'
+  npm-ci:
+    description: Run npm ci in app/.
+    default: 'true'
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
+      with:
+        distribution: temurin
+        java-version: '25'
+
+    - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      with:
+        node-version-file: .nvmrc
+        cache: npm
+        cache-dependency-path: app/package-lock.json
+
+    - uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
+
+    # The SPA and Storybook import the Wirespec-generated TS client (gitignored, emitted by
+    # Gradle into app/src/shared/api/generated); generate it before any Vite build.
+    - name: Generate Wirespec TypeScript client
+      if: ${{ inputs.wirespec == 'true' }}
+      shell: bash
+      run: ./gradlew :api:wirespec-typescript
+
+    - name: Install dependencies
+      if: ${{ inputs.npm-ci == 'true' }}
+      shell: bash
+      run: npm ci
+      working-directory: app

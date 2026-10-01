@@ -9,8 +9,8 @@ import { test, expect } from '@playwright/test'
 //
 // Runs as the seeded admin (shared storageState) on the seeded "E2E Training". Deterministic across
 // warm-DB re-runs: the Substitute gets a name unique to this run, and the flow ends by taking them
-// off the event again. Each run does leave one more name on the Team's list, which has no removal
-// until Admins can manage it (#359 slice 3).
+// off the event again. Each run does leave one more name on the Team's list: removing it is an
+// Admin action on team settings, outside this flow.
 
 test('a member calls in a new substitute, confirms them, and takes them off again', async ({ page }) => {
   const name = `Sub ${Date.now()}`

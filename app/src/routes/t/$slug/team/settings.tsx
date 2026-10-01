@@ -29,15 +29,16 @@ export const Route = createFileRoute('/t/$slug/team/settings')({
 })
 
 function TeamSettingsPage() {
-  // Admin manage surface: member management (the editable roster), then positions, then the event
-  // types whose roster defaults reference those positions, then team settings, then platform access.
+  // Admin manage surface: member management (the editable roster), then positions, then the Team's
+  // Substitutes (who hold those positions), then the event types whose roster defaults reference
+  // those positions, then team settings, then platform access.
   // Event types come after positions deliberately — a roster default is authored in terms of the
   // vocabulary above it. The read-only view of the same roster lives on /team.
   return (
     <div className="flex flex-col gap-10">
       <MemberRoster canManage />
       <ManagePositions />
-      <ManageSubstitutes />
+      <ManageSubstitutes canManage />
       <ManageEventTypes />
       <TeamSettings />
       {/* Handing over admin (ADR-0024 §5): how a prepared, memberless team gets its first real Admin.

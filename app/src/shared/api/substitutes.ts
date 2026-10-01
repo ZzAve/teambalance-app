@@ -6,6 +6,16 @@ import type { SubstituteEntry } from './generated/model/SubstituteEntry'
 // Re-export the generated contract types so the app has a single source of truth.
 export type { Substitute } from './generated/model/Substitute'
 
+/** A refusal a Substitute write reports to the person who made it, with a message to show. */
+export class SubstituteError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = 'SubstituteError'
+  }
+}
+
+const nameTaken = (name: string) => new SubstituteError(`${name} is already on the list.`)
+
 /** The Team's list of Substitutes, for the picker. Keyed ['substitutes'] so a create refreshes it. */
 export function useSubstitutes(options?: { enabled?: boolean }) {
   return useQuery({
@@ -29,11 +39,12 @@ export function useCreateSubstitute() {
   return useMutation({
     mutationFn: async ({ name, positionId }: CreateSubstituteVars) => {
       const res = await api.CreateSubstitute({ body: { name, positionId: positionId ?? undefined } })
+      if (res.status === 409) throw nameTaken(name)
       if (res.status === 404) throw new Error('Position not found')
       return res.body
     },
-    onError: () => {
-      toast.error("Couldn't add the substitute — please try again.")
+    onError: (error) => {
+      toast.error(error instanceof SubstituteError ? error.message : "Couldn't add the substitute — please try again.")
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['substitutes'] })
@@ -49,18 +60,47 @@ interface UpdateSubstituteVars {
 
 /**
  * Admin-only: renames a Substitute or changes their Position. Events show the Substitute's current
- * name and Position, so the event caches refresh too.
+ * name and Position, so the event caches refresh too. A refusal is a [SubstituteError] for the
+ * settings list to show inline.
  */
 export function useUpdateSubstitute() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async ({ id, name, positionId }: UpdateSubstituteVars) => {
       const res = await api.UpdateSubstitute({ id, body: { name, positionId: positionId ?? undefined } })
-      if (res.status !== 200) throw new Error(`Couldn't save the substitute (${res.status})`)
+      if (res.status === 409) throw nameTaken(name)
+      if (res.status === 403) throw new SubstituteError('You are not allowed to make this change.')
+      if (res.status === 404) throw new SubstituteError('That substitute is no longer on the list.')
       return res.body
     },
-    onError: () => {
-      toast.error("Couldn't save the substitute — please try again.")
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['substitutes'] })
+      queryClient.invalidateQueries({ queryKey: ['events'] })
+    },
+  })
+}
+
+/** Admin-only, for the remove dialog: how many Events the Substitute is on, past ones included. */
+export function useSubstituteEventCount(id: string | null) {
+  return useQuery({
+    queryKey: ['substitutes', id, 'usage'],
+    queryFn: async () => {
+      const res = await api.GetSubstituteUsage({ id: id as string })
+      if (res.status !== 200) throw new SubstituteError("Couldn't count this substitute's events.")
+      return res.body.eventCount
+    },
+    enabled: id !== null,
+  })
+}
+
+/** Admin-only and final: takes the Substitute off the list and off every Event, past ones included. */
+export function useDeleteSubstitute() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id }: { id: string }) => {
+      const res = await api.DeleteSubstitute({ id })
+      if (res.status === 403) throw new SubstituteError('You are not allowed to remove this substitute.')
+      if (res.status === 404) throw new SubstituteError('That substitute is no longer on the list.')
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['substitutes'] })

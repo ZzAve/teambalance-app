@@ -10,14 +10,16 @@ interface TeamPageViewProps {
   inviteAction?: ReactNode
   /** The member roster — the live container in the route, the prop-only View in a story. */
   roster: ReactNode
+  /** The Team's Substitutes (ADR-0033), read-only, under the roster: they are not Members. */
+  substitutes: ReactNode
 }
 
 /**
  * The team page laid out (ADR-0032 §3): the header (title, and for admins the invite action plus
- * the gear into /team/settings) over the roster. Read-only for everyone, admins included — member
- * management lives under settings.
+ * the gear into /team/settings) over the roster, then the Team's Substitutes. Read-only for
+ * everyone, admins included — managing both lives under settings.
  */
-export function TeamPageView({ isAdmin, inviteAction, roster }: TeamPageViewProps) {
+export function TeamPageView({ isAdmin, inviteAction, roster, substitutes }: TeamPageViewProps) {
   const routes = useTeamRoutes()
 
   return (
@@ -38,6 +40,7 @@ export function TeamPageView({ isAdmin, inviteAction, roster }: TeamPageViewProp
         )}
       </div>
       {roster}
+      {substitutes}
     </div>
   )
 }

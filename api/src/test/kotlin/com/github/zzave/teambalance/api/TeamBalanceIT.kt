@@ -8,9 +8,7 @@ import org.springframework.context.ApplicationContextInitializer
 import org.springframework.context.ConfigurableApplicationContext
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.context.ContextConfiguration
-import org.testcontainers.containers.GenericContainer
 import org.testcontainers.containers.PostgreSQLContainer
-import org.testcontainers.utility.DockerImageName
 
 @SpringBootTest
 @ActiveProfiles("test")
@@ -24,10 +22,6 @@ abstract class TeamBalanceIT : FunSpec() {
     companion object {
         val postgres: PostgreSQLContainer<*> = PostgreSQLContainer("postgres:17-alpine")
             .also { it.start() }
-
-        val redis: GenericContainer<*> = GenericContainer(DockerImageName.parse("redis:7-alpine"))
-            .withExposedPorts(6379)
-            .also { it.start() }
     }
 
     class Initializer : ApplicationContextInitializer<ConfigurableApplicationContext> {
@@ -36,8 +30,6 @@ abstract class TeamBalanceIT : FunSpec() {
             env["spring.datasource.url"] = postgres.jdbcUrl
             env["spring.datasource.username"] = postgres.username
             env["spring.datasource.password"] = postgres.password
-            env["spring.data.redis.host"] = redis.host
-            env["spring.data.redis.port"] = redis.getMappedPort(6379).toString()
         }
     }
 }

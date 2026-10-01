@@ -91,6 +91,11 @@ jobs:
         with:
           workingDir: app
           onlyChanged: true
+          # TurboSnap only traces files in the Storybook bundle's module graph. tokens.css reaches it
+          # through a CSS @import in global.css, so it is not in that graph and a tokens-only change
+          # would snapshot nothing. Listing it as an external makes such a change a full build.
+          # The path is relative to the repo root, not to workingDir.
+          externals: design-tokens/*.css
           exitZeroOnChanges: true
           exitOnceUploaded: true
           # Draft PRs are work-in-progress and can't merge, so their WIP pushes shouldn't spend the

@@ -66,7 +66,7 @@ export const Prefilled: Story = {
 // update paths call onChange with the expected array, which a getByLabelText check can't prove.
 export const ReportsEdits: Story = {
   // Behavioural twin of AddAndRemove — the onChange spy's final frame is AddAndRemove's added-row
-  // state (ADR-0027 §2).
+  // state (ADR-0035 §2).
   parameters: { chromatic: { disableSnapshot: true } },
   play: async ({ canvas, userEvent, args }) => {
     await userEvent.click(canvas.getByRole('button', { name: /Add link/ }))

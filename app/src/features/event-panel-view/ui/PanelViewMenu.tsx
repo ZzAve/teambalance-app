@@ -1,5 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { LayoutList } from 'lucide-react'
+import { Switch } from '@shared/ui/switch'
+import { useEscapeToClose } from '@shared/lib/use-escape-to-close'
 
 interface PanelViewMenuProps {
   defaultExpanded: boolean
@@ -31,16 +33,7 @@ interface PanelViewMenuProps {
 export function PanelViewMenu({ defaultExpanded, onDefaultExpandedChange }: PanelViewMenuProps) {
   const [open, setOpen] = useState(false)
 
-  // Escape has to be caught on the document: focus stays on the trigger, which is a sibling of the
-  // popover, so a handler on the panel itself would never see the key. Same as EventFiltersView.
-  useEffect(() => {
-    if (!open) return
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setOpen(false)
-    }
-    document.addEventListener('keydown', onKeyDown)
-    return () => document.removeEventListener('keydown', onKeyDown)
-  }, [open])
+  useEscapeToClose(open, () => setOpen(false))
 
   return (
     <div className="relative">
@@ -70,23 +63,11 @@ export function PanelViewMenu({ defaultExpanded, onDefaultExpandedChange }: Pane
                   {defaultExpanded ? 'On — every card starts open' : 'Off — tap to open a card'}
                 </div>
               </div>
-              <button
-                role="switch"
-                aria-checked={defaultExpanded}
+              <Switch
+                checked={defaultExpanded}
+                onCheckedChange={onDefaultExpandedChange}
                 aria-label="Keep panels open"
-                onClick={() => onDefaultExpandedChange(!defaultExpanded)}
-                className={[
-                  'relative h-6 w-11 shrink-0 rounded-full transition-colors',
-                  defaultExpanded ? 'bg-green' : 'bg-muted-foreground/30',
-                ].join(' ')}
-              >
-                <span
-                  className={[
-                    'absolute top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-[left] duration-200',
-                    defaultExpanded ? 'left-[22px]' : 'left-0.5',
-                  ].join(' ')}
-                />
-              </button>
+              />
             </div>
           </div>
         </>

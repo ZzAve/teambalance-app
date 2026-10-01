@@ -3,7 +3,7 @@ import { ArrowLeft, ArrowRight, CalendarClock, Check, Repeat } from 'lucide-reac
 import { Button } from '@shared/ui/button'
 import { Input } from '@shared/ui/input'
 import { Label } from '@shared/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@shared/ui/select'
+import { EventTypeSelect } from '@entities/event/ui/EventTypeSelect'
 import { ReferenceRowsEditor } from '@entities/event/ui/ReferenceRowsEditor'
 import { cleanReferences, type ReferenceRow } from '@entities/event/lib/references'
 import type { EventTypeItem } from '@shared/api/event-types'
@@ -158,21 +158,13 @@ export function RecurringEventsWizard({
                 style={{ backgroundColor: selectedType?.color ?? 'transparent' }}
                 aria-hidden="true"
               />
-              <Select value={selectedTypeId} onValueChange={handleTypeChange}>
-                <SelectTrigger id="rec-type" className="flex-1">
-                  <SelectValue placeholder="Select type" />
-                </SelectTrigger>
-                <SelectContent>
-                  {eventTypes.map((t) => (
-                    <SelectItem key={t.id} value={t.id}>
-                      <div className="flex items-center gap-2">
-                        <span className="inline-block h-3 w-3 rounded-full" style={{ backgroundColor: t.color ?? '#888' }} />
-                        {t.name}
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <EventTypeSelect
+                id="rec-type"
+                eventTypes={eventTypes}
+                value={selectedTypeId}
+                onValueChange={handleTypeChange}
+                className="flex-1"
+              />
             </div>
           </div>
 

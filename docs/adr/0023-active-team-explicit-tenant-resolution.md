@@ -3,7 +3,7 @@
 - Status: Accepted
 - Date: 2026-08-22
 - Amends: [ADR-0019](0019-self-service-team-onboarding.md) (§3 one-team-per-user, §6 `/auth/me`'s singular `team`)
-- Relates to: [ADR-0014](0014-jdbc-backed-shared-sessions-survive-restart.md) (JDBC sessions), [ADR-0015](0015-session-lifetime-long-sliding-idle-plus-absolute-cap.md) (session lifetime), [ADR-0024](0024-platform-admin-act-as.md) (act-as rides this seam)
+- Relates to: [ADR-0022](0022-jdbc-backed-shared-sessions-survive-restart.md) (JDBC sessions), [ADR-0015](0015-session-lifetime-long-sliding-idle-plus-absolute-cap.md) (session lifetime), [ADR-0024](0024-platform-admin-act-as.md) (act-as rides this seam)
 - Resolves: [#143](https://github.com/ZzAve/teambalance-app/issues/143)
 - Enables: [#239](https://github.com/ZzAve/teambalance-app/issues/239) (act-as), [#240](https://github.com/ZzAve/teambalance-app/issues/240) (club rollout)
 

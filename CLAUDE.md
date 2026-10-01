@@ -43,7 +43,7 @@ app/src/
 ```bash
 make build          # Build everything (default target)
 make db             # Start PostgreSQL only
-make infra          # Start all infra (Postgres + Redis)
+make infra          # Start all infra (Postgres)
 make api            # Run backend (port 8080)
 make app            # Run frontend dev server (port 5173)
 make run-local      # Start infra + backend + frontend
@@ -53,10 +53,10 @@ make test-app       # Frontend tests only (Vitest: units + Storybook stories)
 make e2e            # Real full-stack Playwright suite (requires infra + port 8080 free)
 make lint           # Lint everything (detekt + ESLint)
 make format         # Auto-format code
+make hooks          # Install git hooks (pre-commit: lint, pre-push: test)
 make wirespec       # Regenerate API contracts from .wirespec files
 make yolo           # Fast build, skip tests and linting
 make clean          # Clean build artifacts
-make update         # Check for dependency updates
 make help           # Show all targets
 ```
 

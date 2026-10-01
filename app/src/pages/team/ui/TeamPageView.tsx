@@ -1,7 +1,10 @@
 import type { ReactNode } from 'react'
-import { TeamHeader } from '@widgets/team-header/ui/TeamHeader'
+import { Link } from '@tanstack/react-router'
+import { Settings } from 'lucide-react'
+import { useTeamRoutes } from '@shared/lib/team-routes'
 
 interface TeamPageViewProps {
+  /** Only admins get the entry into /team/settings; the page itself is read-only for everyone. */
   isAdmin: boolean
   /** The admin's invite-link action, rendered in the header beside the settings gear. */
   inviteAction?: ReactNode
@@ -15,9 +18,25 @@ interface TeamPageViewProps {
  * management lives under settings.
  */
 export function TeamPageView({ isAdmin, inviteAction, roster }: TeamPageViewProps) {
+  const routes = useTeamRoutes()
+
   return (
     <div className="flex flex-col gap-6">
-      <TeamHeader isAdmin={isAdmin} actions={inviteAction} />
+      <div className="flex items-center justify-between">
+        <h2 className="font-display text-title font-bold">Team</h2>
+        {isAdmin && (
+          <div className="flex items-center gap-2">
+            {inviteAction}
+            <Link
+              to={routes.teamSettings}
+              aria-label="Team settings"
+              className="rounded-full p-2 text-muted-foreground transition-colors hover:bg-blue/8 hover:text-foreground"
+            >
+              <Settings size={20} />
+            </Link>
+          </div>
+        )}
+      </div>
       {roster}
     </div>
   )

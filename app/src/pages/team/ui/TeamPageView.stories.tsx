@@ -11,7 +11,7 @@ import { TeamPageView } from './TeamPageView'
 
 // The team page as a phone shows it (ADR-0032 §3): the header (title, invite action and settings
 // gear for admins) over the read-only roster, inside the real app shell. This composite owns the
-// pixels for TeamHeader and the read-only MemberRosterView; the roster keeps its own snapshots only
+// pixels for the header and the read-only MemberRosterView; the roster keeps its own snapshots only
 // for the editable rows, the shells and the open remove-confirm.
 const POSITIONS: Position[] = [
   { id: 'p1', label: 'Setter', kind: 'PLAYING' },

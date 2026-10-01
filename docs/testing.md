@@ -104,7 +104,7 @@ make test-api                   # all backend tests (Kotlin units + Testcontaine
 make test-app                   # Vitest unit project + Storybook stories (headless)
 
 # Real full-stack e2e
-make infra                      # ensure Postgres + Redis are up
+make infra                      # ensure Postgres is up
 make e2e                        # boots backend, runs Playwright, kills backend
 
 # Fast inner loop (no e2e)
@@ -114,7 +114,7 @@ make test                       # test-api + test-app
 ## Real e2e internals
 
 **Entry point:** `app/e2e-real/` + `playwright.real.config.ts`. `make e2e` runs `scripts/e2e.sh`, which:
-1. Reuses whatever is listening on :5432/:6379 (CI service containers) or `docker compose` ups them.
+1. Reuses whatever is listening on :5432 (CI service containers) or `docker compose` ups them.
 2. Boots `bootRun --spring.profiles.active=e2e` and health-gates on `/internal/actuator/health`.
 3. Runs Playwright, then kills the backend by port (the bootRun JVM is a daemon child, not the gradlew pid).
 
@@ -134,9 +134,13 @@ The magic-link token recorder is last-write-wins per email (`ConcurrentHashMap<e
 
 The auth render-gate jsdom tests (`verify-flow`, `auth-gate`) flake in CI at RTL's default 1000ms `findBy`/`waitFor` timeout — the "lands on events" chain (10ms verify delay → cache write → redirect → events route mount) can exceed 1000ms on a loaded runner. Pass explicit `{ timeout: 5000 }` to router/render assertions in these tests. Do not rely on the 1000ms default for any `msw/node` router-render assertion.
 
+### Git hooks
+
+`make hooks` sets `core.hooksPath` to `.githooks`: `make lint` runs on commit, `make test` runs on push.
+
 ### Colima env for Testcontainers
 
-`make test-api` runs Testcontainers (real Postgres). On this machine, Colima manages Docker. The pre-commit hook runs `make test-api` unconditionally, so the Colima env must be active:
+`make test-api` runs Testcontainers (real Postgres). On this machine, Colima manages Docker. The pre-push hook runs `make test` (including `make test-api`), so the Colima env must be active:
 
 ```
 DOCKER_HOST=unix:///Users/<you>/.colima/default/docker.sock
@@ -144,11 +148,11 @@ TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE=/var/run/docker.sock
 TESTCONTAINERS_RYUK_DISABLED=true
 ```
 
-`make e2e` also needs Docker up (`docker info`) and ports 5432/6379/8080 free.
+`make e2e` also needs Docker up (`docker info`) and ports 5432/8080 free.
 
 ### Fresh-worktree setup
 
-When working in a git worktree, two extra steps are required before the pre-commit gate will pass:
+When working in a git worktree, two extra steps are required before the pre-push gate will pass:
 
 ```bash
 npm ci --prefix <worktree>/app                              # node_modules are not shared

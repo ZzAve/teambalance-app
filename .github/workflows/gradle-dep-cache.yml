@@ -7,7 +7,7 @@ name: Gradle dependency cache
 
 on:
   schedule:
-    - cron: '17 3 1,15 * *'
+    - cron: '17 3 1 * *'
   workflow_dispatch:
   # Build the cache (without publishing) when this pipeline itself changes.
   pull_request:
@@ -60,5 +60,5 @@ jobs:
         run: |
           gh release view gradle-dep-cache >/dev/null 2>&1 || gh release create gradle-dep-cache \
             --prerelease --target "$GITHUB_SHA" --title "Gradle dependency cache" \
-            --notes "Rolling Gradle read-only dependency cache for Claude Code cloud sessions. Rebuilt on the 1st and 15th of each month by .github/workflows/gradle-dep-cache.yml."
+            --notes "Rolling Gradle read-only dependency cache for Claude Code cloud sessions. Rebuilt on the 1st of each month by .github/workflows/gradle-dep-cache.yml."
           gh release upload gradle-dep-cache "$ARCHIVE" --clobber

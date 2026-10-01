@@ -1,1 +1,0 @@
-import{n as e}from"./rolldown-runtime-DkW27tQK.js";function t(e,t){let{changedBy:n}=e;return n==null||n===e.userId||e.state===`NOT_RESPONDED`?null:t.find(e=>e.userId===n)?.displayName??`a teammate`}function n(){return(n=e((()=>{})))()}export{n,t};

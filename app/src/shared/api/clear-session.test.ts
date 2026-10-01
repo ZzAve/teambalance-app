@@ -3,7 +3,6 @@ import type { AuthenticatedUser } from './auth'
 import { authMeQueryOptions } from './auth'
 import { clearSession, hasClearableSession } from './clear-session'
 import { queryClient } from './query-client'
-import { useUserStore } from '@shared/stores/user-store'
 
 const USER: AuthenticatedUser = {
   id: 'u1',
@@ -32,7 +31,6 @@ describe('clearSession', () => {
     // A real fetch would prove a network call slipped in; there is no api client on this path.
     fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(null))
     // Start from a signed-in state so the clear is observable.
-    useUserStore.getState().setCurrentUser(USER)
     queryClient.setQueryData(authMeQueryOptions.queryKey, USER)
   })
 
@@ -40,11 +38,6 @@ describe('clearSession', () => {
     Object.defineProperty(window, 'location', { configurable: true, value: originalLocation })
     vi.restoreAllMocks()
     queryClient.clear()
-  })
-
-  it('nulls the user store', () => {
-    clearSession()
-    expect(useUserStore.getState().userId).toBeNull()
   })
 
   it('nulls the cached /auth/me', () => {

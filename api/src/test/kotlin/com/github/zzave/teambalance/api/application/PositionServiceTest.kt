@@ -70,7 +70,6 @@ private class CountingEventTypeRepo : EventTypeRepository {
     override fun countTargetsForPosition(positionId: PositionId): Int = TYPE_TARGETS
     override fun findAll(): List<EventType> = error("unused")
     override fun findById(id: EventTypeId): EventType? = error("unused")
-    override fun countEventsOfType(id: EventTypeId): Int = error("unused")
     override fun create(name: EventTypeName, color: HexColor?, rosterDefault: RosterRequirement): EventType =
         error("unused")
     override fun update(

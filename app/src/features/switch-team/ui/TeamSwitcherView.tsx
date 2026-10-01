@@ -1,6 +1,5 @@
-import { useState } from 'react'
-import { Check, ChevronsUpDown } from 'lucide-react'
 import type { TeamRef } from '@shared/api/teams'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@shared/ui/select'
 
 interface TeamSwitcherViewProps {
   /** Every Team the caller is a Member of. */
@@ -19,8 +18,6 @@ interface TeamSwitcherViewProps {
  * A single-Team caller gets the name without a menu; there is nothing to switch to.
  */
 export function TeamSwitcherView({ teams, activeTeam, onSelect }: TeamSwitcherViewProps) {
-  const [open, setOpen] = useState(false)
-
   if (!activeTeam) return null
 
   if (teams.length < 2) {
@@ -33,61 +30,27 @@ export function TeamSwitcherView({ teams, activeTeam, onSelect }: TeamSwitcherVi
   }
 
   return (
-    <div className="relative">
-      <button
-        type="button"
-        aria-haspopup="listbox"
-        aria-expanded={open}
+    <Select
+      value={activeTeam.id}
+      onValueChange={(id) => {
+        const team = teams.find((t) => t.id === id)
+        if (team) onSelect(team.slug)
+      }}
+    >
+      <SelectTrigger
         aria-label={`Current team: ${activeTeam.name}. Switch team`}
-        onClick={() => setOpen((wasOpen) => !wasOpen)}
-        className="flex items-center gap-2 rounded-full bg-blue/8 px-3 py-1.5 text-caption font-semibold text-blue transition-colors hover:bg-blue/15"
+        className="h-auto w-auto gap-2 rounded-full border-0 bg-blue/8 px-3 py-1.5 text-caption font-semibold text-blue transition-colors hover:bg-blue/15"
       >
         <span className="h-1.5 w-1.5 rounded-full bg-green" />
-        {activeTeam.name}
-        <ChevronsUpDown size={13} />
-      </button>
-
-      {open && (
-        <>
-          {/* Tap-anywhere-to-close, for devices with no Escape key. */}
-          <button
-            type="button"
-            aria-hidden="true"
-            tabIndex={-1}
-            className="fixed inset-0 z-40 cursor-default"
-            onClick={() => setOpen(false)}
-          />
-          <ul
-            role="listbox"
-            aria-label="Your teams"
-            className="absolute right-0 z-50 mt-2 min-w-56 overflow-hidden rounded-lg border border-border/60 bg-card py-1 shadow-lg"
-          >
-            {teams.map((team) => {
-              const isActive = team.id === activeTeam.id
-              return (
-                <li key={team.id}>
-                  <button
-                    type="button"
-                    role="option"
-                    aria-selected={isActive}
-                    onClick={() => {
-                      setOpen(false)
-                      if (!isActive) onSelect(team.slug)
-                    }}
-                    className={[
-                      'flex w-full items-center justify-between gap-3 px-4 py-3 text-left text-small transition-colors',
-                      isActive ? 'font-semibold text-blue' : 'text-foreground hover:bg-blue/8',
-                    ].join(' ')}
-                  >
-                    {team.name}
-                    {isActive && <Check size={15} className="shrink-0" />}
-                  </button>
-                </li>
-              )
-            })}
-          </ul>
-        </>
-      )}
-    </div>
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent align="end">
+        {teams.map((team) => (
+          <SelectItem key={team.id} value={team.id}>
+            {team.name}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   )
 }

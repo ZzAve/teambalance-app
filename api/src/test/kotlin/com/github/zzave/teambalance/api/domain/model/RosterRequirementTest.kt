@@ -1,5 +1,6 @@
 package com.github.zzave.teambalance.api.domain.model
 
+import com.github.zzave.teambalance.api.domain.exception.UnknownRosterPositionException
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
@@ -125,6 +126,27 @@ class RosterRequirementTest : FunSpec() {
             val tooMany = (0..RosterRequirement.MAX_POSITION_TARGETS).map { PositionTarget(positionId(), PositionSlots(1)) }
 
             shouldThrow<IllegalArgumentException> { RosterRequirement(trackRoster = true, positionTargets = tooMany) }
+        }
+
+        test("targets on known positions pass the known-positions check") {
+            val setter = positionId()
+            val requirement = RosterRequirement(trackRoster = true, positionTargets = listOf(PositionTarget(setter, PositionSlots(2))))
+
+            requirement.requireKnownPositions(known = setOf(setter))
+            RosterRequirement.OFF.requireKnownPositions(known = emptySet())
+        }
+
+        test("a target on an unknown position is rejected, naming that position") {
+            val setter = positionId()
+            val libero = positionId()
+            val requirement = RosterRequirement(
+                trackRoster = true,
+                positionTargets = listOf(PositionTarget(setter, PositionSlots(2)), PositionTarget(libero, PositionSlots(1))),
+            )
+
+            val rejected = shouldThrow<UnknownRosterPositionException> { requirement.requireKnownPositions(known = setOf(setter)) }
+
+            rejected.message shouldBe UnknownRosterPositionException(libero).message
         }
     }
 }

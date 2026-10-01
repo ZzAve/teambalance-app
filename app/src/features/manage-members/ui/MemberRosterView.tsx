@@ -5,14 +5,7 @@ import { PositionPicker } from '@entities/position/ui/PositionPicker'
 import { Avatar } from '@shared/ui/avatar'
 import { Button } from '@shared/ui/button'
 import { Input } from '@shared/ui/input'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@shared/ui/dialog'
+import { ConfirmDialog } from '@shared/ui/ConfirmDialog'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -121,30 +114,17 @@ export function MemberRosterView({
             </ul>
           )}
 
-          <Dialog open={confirmTarget !== null} onOpenChange={(open) => { if (!open) setConfirmTarget(null) }}>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Remove member</DialogTitle>
-                <DialogDescription>
-                  Remove {confirmTarget?.displayName} from the team? They will lose access until re-invited.
-                </DialogDescription>
-              </DialogHeader>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setConfirmTarget(null)}>
-                  Cancel
-                </Button>
-                <Button
-                  variant="destructive"
-                  onClick={() => {
-                    if (confirmTarget) onRemove(confirmTarget)
-                    setConfirmTarget(null)
-                  }}
-                >
-                  Remove
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+          <ConfirmDialog
+            open={confirmTarget !== null}
+            title="Remove member"
+            description={<>Remove {confirmTarget?.displayName} from the team? They will lose access until re-invited.</>}
+            confirmLabel="Remove"
+            onConfirm={() => {
+              if (confirmTarget) onRemove(confirmTarget)
+              setConfirmTarget(null)
+            }}
+            onCancel={() => setConfirmTarget(null)}
+          />
         </div>
       )}
     </div>

@@ -92,7 +92,7 @@ test('a member of two teams switches, and the tenant data follows', async ({ pag
   await expect(page.getByText(FIRST.event)).toHaveCount(0)
 
   // 4. Switch back through the switcher, which names the Team it is in (ADR-0023 §3).
-  await page.getByRole('button', { name: new RegExp(`Current team: ${SECOND.name}`) }).click()
+  await page.getByRole('combobox', { name: new RegExp(`Current team: ${SECOND.name}`) }).click()
   await page.getByRole('option', { name: new RegExp(FIRST.name) }).click()
 
   await expect(page).toHaveURL(new RegExp(`/t/${FIRST.slug}/?$`), { timeout: 15_000 })

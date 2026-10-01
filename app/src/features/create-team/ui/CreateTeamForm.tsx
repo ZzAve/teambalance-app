@@ -2,9 +2,10 @@ import { useEffect, useState } from 'react'
 import { Button } from '@shared/ui/button'
 import { Input } from '@shared/ui/input'
 import { Label } from '@shared/ui/label'
-import type { CreateTeamError } from '@shared/api/teams'
+import { placeCreateTeamError, type CreateTeamError } from '@shared/api/teams'
+import { FormError } from '@shared/ui/FormError'
 import { suggestSlug } from '../lib/suggest-slug'
-import { validateSlug } from '../lib/validate-slug'
+import { validateSlug } from '@shared/lib/validate-slug'
 
 interface CreateTeamFormProps {
   isPending: boolean
@@ -64,8 +65,7 @@ export function CreateTeamForm({ isPending, error, onSubmit, reassuranceDelayMs 
     onSubmit({ name: name.trim(), slug, creationCode: creationCode.trim() })
   }
 
-  const placed = (...codes: CreateTeamError['code'][]) =>
-    error && codes.includes(error.code) ? error.message : null
+  const placed = (...codes: CreateTeamError['code'][]) => placeCreateTeamError(error, ...codes)
   const nameError = placed('INVALID_NAME')
   const slugError = placed('INVALID_SLUG', 'SLUG_TAKEN') ?? clientSlugError
   const codeError = placed('INVALID_CREATION_CODE')
@@ -73,11 +73,7 @@ export function CreateTeamForm({ isPending, error, onSubmit, reassuranceDelayMs 
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-      {bannerError && (
-        <p role="alert" className="text-small text-destructive">
-          {bannerError}
-        </p>
-      )}
+      {bannerError && <FormError>{bannerError}</FormError>}
 
       <div>
         <Label htmlFor="team-name">Team name</Label>

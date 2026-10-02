@@ -43,14 +43,21 @@ export const Shells: Story = {
             error="That invite link didn't work — it may be invalid or expired. Ask your team admin for a fresh one."
           />
         ),
+        // The native <details> disclosure opened — driven via play, since the view owns no prop for it.
+        'No link fallback open': <JoinTeamView {...args} />,
       }}
     />
   ),
-  play: async ({ canvas }) => {
+  play: async ({ canvas, userEvent }) => {
     const region = (name: string) => within(canvas.getByRole('region', { name }))
 
     await expect(region('Submitting').getByRole('button', { name: 'Joining…' })).toBeDisabled()
     await expect(region('Error').getByRole('alert')).toHaveTextContent('invalid or expired')
+
+    await userEvent.click(region('No link fallback open').getByText("I don't have a link"))
+    await expect(
+      await region('No link fallback open').findByText(/Ask your team's captain or admin/),
+    ).toBeInTheDocument()
   },
 }
 

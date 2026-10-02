@@ -37,9 +37,14 @@ export const Gallery: Story = {
       <div data-testid="variant-preselected">
         <PositionPicker {...args} value="p3" />
       </div>
+      {/* Mid-pick: dropdown open over the option list, before a choice is made. Last in the row so
+          the popover, anchored to this trigger, opens into empty space rather than over a sibling. */}
+      <div data-testid="variant-open">
+        <PositionPicker {...args} />
+      </div>
     </div>
   ),
-  play: async ({ canvas }) => {
+  play: async ({ canvas, userEvent }) => {
     const variant = (name: string) => within(canvas.getByTestId(`variant-${name}`))
 
     await expect(variant('noPositions').getByText('Select a position')).toBeInTheDocument()
@@ -47,6 +52,13 @@ export const Gallery: Story = {
     await expect(
       within(variant('preselected').getByRole('combobox')).getByText('Outside Hitter'),
     ).toBeInTheDocument()
+
+    // Opened and left open, so the snapshot shows the menu mid-pick, not just the closed trigger.
+    await userEvent.click(variant('open').getByRole('combobox'))
+    const listbox = within(document.body)
+    await expect(await listbox.findByRole('option', { name: 'Setter' })).toBeInTheDocument()
+    await expect(listbox.getByRole('option', { name: 'Libero' })).toBeInTheDocument()
+    await expect(listbox.getByRole('option', { name: 'Outside Hitter' })).toBeInTheDocument()
   },
 }
 

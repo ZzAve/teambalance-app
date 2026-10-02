@@ -1,5 +1,7 @@
+import type { ReactNode } from 'react'
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { expect } from 'storybook/test'
+import { Stack } from '@shared/testing/stack'
 import { EventTypeIcon } from './EventTypeIcon'
 
 // Leaf presentational icon: maps a known type name to a lucide icon (Training/Match/Tournament/
@@ -8,6 +10,8 @@ import { EventTypeIcon } from './EventTypeIcon'
 // the wrapper dimensions (h-9 for sm, h-11 for md).
 //
 // One gallery story (ADR-0032 §2): every variant side by side, one picture, every branch asserted.
+// VARIANTS already covers every ICON_MAP branch (the four mapped types + the Calendar fallback)
+// plus the `sm` size — there is no missing event type to add.
 const VARIANTS = {
   training: { type: { id: 'et-1', name: 'Training', color: '#22c55e' } },
   match: { type: { id: 'et-2', name: 'Match', color: '#3b82f6' } },
@@ -29,13 +33,17 @@ type Story = StoryObj<typeof meta>
 export const Gallery: Story = {
   args: VARIANTS.training,
   render: () => (
-    <div className="flex flex-wrap items-center gap-4">
-      {Object.entries(VARIANTS).map(([name, props]) => (
-        <div key={name} data-testid={`variant-${name}`}>
-          <EventTypeIcon {...props} />
-        </div>
-      ))}
-    </div>
+    <Stack
+      columns="grid-cols-3"
+      items={Object.fromEntries(
+        Object.entries(VARIANTS).map(([name, props]): [string, ReactNode] => [
+          name,
+          <div data-testid={`variant-${name}`}>
+            <EventTypeIcon {...props} />
+          </div>,
+        ]),
+      )}
+    />
   ),
   play: async ({ canvas }) => {
     const variant = (name: keyof typeof VARIANTS) => canvas.getByTestId(`variant-${name}`)

@@ -1,5 +1,7 @@
+import type { ReactNode } from 'react'
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { expect, within } from 'storybook/test'
+import { Stack } from '@shared/testing/stack'
 import { RoleBreakdown } from './RoleBreakdown'
 
 // Presentational breakdown of attending members grouped by role, rendered as chips. Renders nothing
@@ -38,13 +40,17 @@ type Story = StoryObj<typeof meta>
 export const Gallery: Story = {
   args: VARIANTS.populated,
   render: () => (
-    <div className="flex flex-wrap items-start gap-4">
-      {Object.entries(VARIANTS).map(([name, props]) => (
-        <div key={name} data-testid={`variant-${name}`}>
-          <RoleBreakdown {...props} />
-        </div>
-      ))}
-    </div>
+    <Stack
+      columns="grid-cols-1"
+      items={Object.fromEntries(
+        Object.entries(VARIANTS).map(([name, props]): [string, ReactNode] => [
+          name,
+          <div data-testid={`variant-${name}`}>
+            <RoleBreakdown {...props} />
+          </div>,
+        ]),
+      )}
+    />
   ),
   play: async ({ canvas }) => {
     const variant = (name: keyof typeof VARIANTS) => within(canvas.getByTestId(`variant-${name}`))

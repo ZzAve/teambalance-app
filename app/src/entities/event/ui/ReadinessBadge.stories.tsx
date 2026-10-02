@@ -1,7 +1,9 @@
+import type { ReactNode } from 'react'
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { expect, within } from 'storybook/test'
 import { appColumn } from '@shared/testing/app-column-decorator'
 import { makeRoster, NO_ROSTER } from '@shared/testing/event-fixtures'
+import { Stack } from '@shared/testing/stack'
 import { ReadinessBadge } from './ReadinessBadge'
 
 // The card row's right slot: the server-computed readiness verdict, or a headcount fallback where
@@ -62,17 +64,20 @@ type Story = StoryObj<typeof meta>
 export const Gallery: Story = {
   args: VARIANTS.covered,
   render: () => (
-    <div className="flex flex-wrap gap-4">
-      {Object.entries(VARIANTS).map(([name, props]) => (
-        <div
-          key={name}
-          data-testid={`variant-${name}`}
-          className="flex items-center justify-end rounded-md border border-border bg-card p-3.5"
-        >
-          <ReadinessBadge {...props} />
-        </div>
-      ))}
-    </div>
+    <Stack
+      columns="grid-cols-1"
+      items={Object.fromEntries(
+        Object.entries(VARIANTS).map(([name, props]): [string, ReactNode] => [
+          name,
+          <div
+            data-testid={`variant-${name}`}
+            className="flex items-center justify-end rounded-md border border-border bg-card p-3.5"
+          >
+            <ReadinessBadge {...props} />
+          </div>,
+        ]),
+      )}
+    />
   ),
   play: async ({ canvas }) => {
     const variant = (name: keyof typeof VARIANTS) => within(canvas.getByTestId(`variant-${name}`))

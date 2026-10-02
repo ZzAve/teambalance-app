@@ -112,20 +112,18 @@ interface CreationCodeRowProps {
 
 function CreationCodeRow({ code, status, isSaving, onRequestRevoke }: CreationCodeRowProps) {
   return (
-    <li className="flex flex-wrap items-center gap-3 p-3">
-      <span className="font-mono text-small font-medium tracking-wide">{code.code}</span>
-      <span className={`rounded-full px-2 py-0.5 text-caption font-semibold ${STATUS_STYLES[status]}`}>
-        {creationCodeStatusLabel(status)}
-      </span>
+    <li className="flex items-center gap-3 p-3">
+      {/* Status stacked under the code rather than beside it, as TeamsView/PlatformTeamsView stack
+          name over slug: beside it, the badge started wherever the code's own width happened to end. */}
+      <div className="min-w-0 flex-1">
+        <p className="truncate font-mono text-small font-medium tracking-wide">{code.code}</p>
+        <span className={`mt-1 inline-block rounded-full px-2 py-0.5 text-caption font-semibold ${STATUS_STYLES[status]}`}>
+          {creationCodeStatusLabel(status)}
+        </span>
+      </div>
       {/* Only an unconsumed code can be revoked; a consumed one is an audit record (backend 409s). */}
       {status !== 'consumed' && (
-        <Button
-          variant="destructive"
-          size="sm"
-          className="ml-auto"
-          disabled={isSaving}
-          onClick={() => onRequestRevoke(code)}
-        >
+        <Button variant="destructive" size="sm" disabled={isSaving} onClick={() => onRequestRevoke(code)}>
           Revoke
         </Button>
       )}

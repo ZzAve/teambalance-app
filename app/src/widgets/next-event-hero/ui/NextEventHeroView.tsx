@@ -150,7 +150,8 @@ export function NextEventHeroView({
       </div>
 
       {/* The answer the viewer has given is the solid button; the other one recedes. With no answer
-          yet, "I'm in" is solid because it is the invitation, not because it has been chosen. */}
+          yet, "I'm in" is solid because it is the invitation, not because it has been chosen.
+          min-h-11 holds the 44px touch target (F7); px-3 keeps the label off the edge. */}
       <div className="relative z-10 mt-3.5 flex gap-2">
         <button
           aria-pressed={going}
@@ -158,7 +159,7 @@ export function NextEventHeroView({
           onClick={() => onRespond('ATTENDING')}
           style={out ? undefined : { color: 'var(--color-green-dark)' }}
           className={[
-            'flex flex-1 items-center justify-center gap-1.5 rounded-md py-2.5 text-small font-bold transition-all active:scale-95',
+            'flex min-h-11 flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-2.5 text-small font-bold transition-all active:scale-95',
             out ? 'bg-white/20 text-white' : 'bg-white',
             isSaving ? 'cursor-not-allowed opacity-60' : 'cursor-pointer',
           ].join(' ')}
@@ -172,7 +173,7 @@ export function NextEventHeroView({
           onClick={() => onRespond('ABSENT')}
           style={out ? { color: 'var(--color-red)' } : undefined}
           className={[
-            'flex flex-1 items-center justify-center gap-1.5 rounded-md py-2.5 text-small font-bold transition-all active:scale-95',
+            'flex min-h-11 flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-2.5 text-small font-bold transition-all active:scale-95',
             out ? 'bg-white' : going ? 'bg-white/12 text-white' : 'bg-white/20 text-white',
             isSaving ? 'cursor-not-allowed opacity-60' : 'cursor-pointer',
           ].join(' ')}

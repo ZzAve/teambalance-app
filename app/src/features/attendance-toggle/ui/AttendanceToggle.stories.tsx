@@ -1,5 +1,7 @@
+import type { ReactNode } from 'react'
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { expect, fn, within } from 'storybook/test'
+import { Stack } from '@shared/testing/stack'
 import { darkMode } from '../../../../.storybook/modes'
 import { AttendanceToggle, type AttendanceState } from './AttendanceToggle'
 
@@ -48,13 +50,17 @@ export const Gallery: Story = {
   // story's prop contract (`value` is required on AttendanceToggle).
   args: { value: 'ATTENDING' },
   render: (args) => (
-    <div className="flex flex-wrap items-start gap-6">
-      {Object.entries(VARIANTS).map(([name, props]) => (
-        <div key={name} data-testid={`variant-${name}`}>
-          <AttendanceToggle {...args} {...props} />
-        </div>
-      ))}
-    </div>
+    <Stack
+      columns="grid-cols-1"
+      items={Object.fromEntries(
+        Object.entries(VARIANTS).map(([name, props]): [string, ReactNode] => [
+          name,
+          <div data-testid={`variant-${name}`}>
+            <AttendanceToggle {...args} {...props} />
+          </div>,
+        ]),
+      )}
+    />
   ),
   play: async ({ canvas }) => {
     const variant = (name: keyof typeof VARIANTS) => within(canvas.getByTestId(`variant-${name}`))

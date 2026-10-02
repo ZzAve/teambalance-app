@@ -30,6 +30,9 @@ export const Gallery: Story = {
         WakingLater: <ColdStartSplash elapsedMs={7_000} />,
         // ~12s in: past the cold-start threshold, the step indicator has replaced the looped motion.
         Warming: <ColdStartSplash elapsedMs={12_000} />,
+        // ~20s+: the last step is active — the first two steps are done, and "Loading your team" is
+        // the one milestone that stays active until the route actually resolves.
+        WarmingLastStep: <ColdStartSplash elapsedMs={20_000} />,
       }}
     />
   ),
@@ -48,5 +51,11 @@ export const Gallery: Story = {
     await expect(region('Warming').getByText(/connecting/i)).toBeInTheDocument()
     await expect(region('Warming').getByText('Loading your team')).toBeInTheDocument()
     await expect(region('Warming').getByText(/warming up the court/i)).toBeInTheDocument()
+
+    // The ellipsis marks the active step — "Loading your team…" only renders once the first two
+    // steps are done, distinguishing this from Warming's "Connecting…".
+    await expect(region('WarmingLastStep').getByText('Loading your team…')).toBeInTheDocument()
+    await expect(region('WarmingLastStep').getByText('Waking the server')).toBeInTheDocument()
+    await expect(region('WarmingLastStep').getByText('Connecting')).toBeInTheDocument()
   },
 }

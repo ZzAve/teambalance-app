@@ -22,8 +22,9 @@ import { EventLineupPanel } from './EventLineupPanel'
  * only:
  *   1. `Data` — the one populated live instance, disableSnapshot (the composite already shows this).
  *   2. `Shells` — every static roster shape stacked in one frame: nobody yet, a position nobody
- *      plays, headcount only, an untracked social, a crowded position collapsed, and a write pending.
- *      This picture stays — none of it is on screen in the composite's own default frame.
+ *      plays, headcount only, an untracked social, a crowded position collapsed, a crowded position
+ *      expanded past the chip cap, and a write pending. This picture stays — none of it is on screen
+ *      in the composite's own default frame.
  *   3. `Interactions` — no picture; one play walks expanding a crowded position, answering for a
  *      teammate, answering for yourself, and the fact that an answer moves a chip and its row's count
  *      together, keeping every prop-contract spy.
@@ -144,6 +145,10 @@ export const Shells: Story = {
         'Untracked social': <EventLineupPanel {...args} roster={makeRoster({ ...NO_ROSTER, totalAttending: 11 })} />,
         // Six going in Outside, capped at five: four chips and a counter for the rest.
         'Crowded position collapsed': <EventLineupPanel {...args} />,
+        // The same crowded row, expanded past the cap: all six chips plus "Show fewer going" — left
+        // open by this story's own play rather than closed, unlike `Interactions` which clicks it
+        // straight back shut.
+        'Crowded position expanded': <EventLineupPanel {...args} />,
         // A write is in flight: the control is held so a second tap cannot race the first.
         Pending: <EventLineupPanel {...args} pending />,
       }}
@@ -172,10 +177,29 @@ export const Shells: Story = {
       region('Crowded position collapsed').queryByRole('button', { name: /Iris Kok/ }),
     ).not.toBeInTheDocument()
 
+    // Expand the twin instance and leave it open — this is the frame the snapshot keeps.
+    await userEvent.click(
+      region('Crowded position expanded').getByRole('button', { name: 'Show 2 more going' }),
+    )
+    await expect(
+      region('Crowded position expanded').getByRole('button', { name: /Hanna Vos — Going/ }),
+    ).toBeInTheDocument()
+    await expect(
+      region('Crowded position expanded').getByRole('button', { name: /Iris Kok — Going/ }),
+    ).toBeInTheDocument()
+    await expect(
+      region('Crowded position expanded').getByRole('button', { name: 'Show fewer going' }),
+    ).toBeInTheDocument()
+
     await userEvent.click(region('Pending').getByRole('button', { name: /Lotte Dijkstra/ }))
     await expect(
       await within(document.body).findByRole('button', { name: 'Going' }),
     ).toBeDisabled()
+    // The sheet is a portal with fixed positioning: a disabled toggle can't auto-close it by
+    // answering, so close it explicitly or it is still open — on top of every other section — in
+    // the frame this story snapshots.
+    await userEvent.keyboard('{Escape}')
+    await expect(within(document.body).queryByRole('dialog')).not.toBeInTheDocument()
   },
 }
 

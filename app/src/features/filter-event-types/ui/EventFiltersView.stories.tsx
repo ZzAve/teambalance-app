@@ -113,6 +113,17 @@ export const Shells: Story = {
 }
 
 export const Open: Story = {
+  // The popover is `absolute right-0` against a wrapper that is only as wide as the trigger button —
+  // on the real page that trigger sits near the right edge of the header row, so the popover opens
+  // leftward into room that's there. Bare, the trigger sits flush at the canvas's left edge, so the
+  // popover's left edge lands off-canvas. This decorator puts the trigger where the page always does.
+  decorators: [
+    (Story) => (
+      <div className="flex justify-end">
+        <Story />
+      </div>
+    ),
+  ],
   play: async ({ canvas, userEvent }) => {
     await userEvent.click(canvas.getByRole('button', { name: 'Filters' }))
     await expect(canvas.getByRole('dialog', { name: 'Filters' })).toBeInTheDocument()

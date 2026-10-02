@@ -56,6 +56,18 @@ export const Shells: Story = {
 
 // The open-dialog-shaped frame no composite shows: opened and left open.
 export const MenuOpen: Story = {
+  // The menu is `absolute right-0` against a wrapper that is only as wide as the trigger — on the
+  // real page that trigger sits in the shell header, near the right edge, so the menu opens leftward
+  // into room that's there. Bare, the trigger sits flush at the canvas's left edge, so the menu's
+  // right-aligned edge lands off-canvas. This decorator puts the trigger where the page always does
+  // (same fix as EventFiltersView:Open).
+  decorators: [
+    (Story) => (
+      <div className="flex justify-end">
+        <Story />
+      </div>
+    ),
+  ],
   play: async ({ canvas }) => {
     await userEvent.click(canvas.getByRole('combobox', { name: /Current team: Setpoint VT/ }))
     const menu = within(document.body)

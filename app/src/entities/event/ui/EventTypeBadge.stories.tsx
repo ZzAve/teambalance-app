@@ -1,5 +1,7 @@
+import type { ReactNode } from 'react'
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { expect, within } from 'storybook/test'
+import { Stack } from '@shared/testing/stack'
 import { EventTypeBadge } from './EventTypeBadge'
 
 // Leaf presentational badge: renders the type name tinted by its colour, falling back to a neutral
@@ -23,13 +25,17 @@ type Story = StoryObj<typeof meta>
 export const Gallery: Story = {
   args: VARIANTS.withColor,
   render: () => (
-    <div className="flex flex-wrap items-center gap-4">
-      {Object.entries(VARIANTS).map(([name, props]) => (
-        <div key={name} data-testid={`variant-${name}`}>
-          <EventTypeBadge {...props} />
-        </div>
-      ))}
-    </div>
+    <Stack
+      columns="grid-cols-2"
+      items={Object.fromEntries(
+        Object.entries(VARIANTS).map(([name, props]): [string, ReactNode] => [
+          name,
+          <div data-testid={`variant-${name}`}>
+            <EventTypeBadge {...props} />
+          </div>,
+        ]),
+      )}
+    />
   ),
   play: async ({ canvas }) => {
     const variant = (name: keyof typeof VARIANTS) => within(canvas.getByTestId(`variant-${name}`))

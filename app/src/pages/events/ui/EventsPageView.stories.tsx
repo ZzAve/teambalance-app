@@ -6,6 +6,8 @@ import type { Event } from '@shared/api/events'
 import { Button } from '@shared/ui/button'
 import { makeAttendee, makeEvent, makeEventType, makeRoster, NO_ROSTER } from '@shared/testing/event-fixtures'
 import { Stack } from '@shared/testing/stack'
+import { appColumn } from '@shared/testing/app-column-decorator'
+import { withRouter } from '@shared/testing/router-decorator'
 import { selectHeroEvent } from '@entities/event/lib/next-event'
 import type { AttendanceState } from '@features/attendance-toggle/ui/AttendanceToggle'
 import { ALL_ATTENDANCE_STATES } from '@features/filter-event-types/model/attendance-states'
@@ -265,7 +267,6 @@ const shell = appShell('events')
 const meta = {
   title: 'pages/events/EventsPageView',
   component: EventsPageHarness,
-  decorators: shell.decorators,
   parameters: shell.parameters,
   args: {
     events: EVENTS,
@@ -285,6 +286,7 @@ export default meta
 type Story = StoryObj<typeof meta>
 
 export const Data: Story = {
+  decorators: shell.decorators,
   // The page's picture, in dark and once at desktop width too (ADR-0032 §4-§5).
   parameters: { chromatic: { modes: pageModes } },
   play: async ({ canvas }) => {
@@ -332,7 +334,14 @@ const STATIC = {
 }
 
 // The page's non-data frames, stacked: no hero in any of them, so the list carries the page.
+//
+// Hosted in the app column rather than the real shell (unlike Data/Interactions): BottomNav is
+// `position: fixed`, which pins it to the bottom of the whole frame — fine for one page, but a Stack
+// of four stands several viewport-heights tall, so the one shared nav lands mid-page, over an
+// unrelated case. Data already proves the real shell renders this View correctly; this story's job
+// is the four prop shapes, not the chrome.
 export const Shells: Story = {
+  decorators: [...appColumn.decorators, withRouter],
   render: () => (
     <Stack
       items={{
@@ -374,6 +383,7 @@ export const Shells: Story = {
 
 // Picture owned by Data — behavioural only (ADR-0032 §1). Every slot's wiring, in one walk.
 export const Interactions: Story = {
+  decorators: shell.decorators,
   parameters: { chromatic: { disableSnapshot: true } },
   play: async ({ canvas, userEvent, args }) => {
     // RSVP from the hero: the callback fires and the harness flips the hero's own state.

@@ -14,9 +14,12 @@ import { EditEventDialogView } from './EditEventDialogView'
 //
 // Three stories (ADR-0032 §1): Data is the standalone edit — no siblings, no scope prompt — and
 // carries the snapshot, because it is a dialog's content: the page composite can never show it open,
-// so nothing else owns this picture. Shells stacks the series / saving / error states in one frame.
-// Interactions keeps every onSubmit spy assertion — including the two roster-override carry cases,
-// which are behavioural twins of Data rather than new pictures — in a multi-step play.
+// so nothing else owns this picture. Shells stacks the series / saving / error states in one frame;
+// its own `play` also switches the Series instance to a bulk scope and leaves it there, so the same
+// frame shows the date-locked layout (time-only inputs + the "keeps its own date" note) that no prop
+// alone can reach. Interactions keeps every onSubmit spy assertion — including the two
+// roster-override carry cases, which are behavioural twins of Data rather than new pictures — in a
+// multi-step play.
 const EVENT_TYPES: EventTypeItem[] = [
   makeEventType({ id: 'et-1', name: 'Training', color: '#22c55e' }),
   makeEventType({ id: 'et-2', name: 'Match', color: '#3b82f6' }),
@@ -86,7 +89,7 @@ export const Shells: Story = {
       }}
     />
   ),
-  play: async ({ canvas }) => {
+  play: async ({ canvas, userEvent }) => {
     const region = (name: string) => within(canvas.getByRole('region', { name }))
 
     await expect(region('Series').getByRole('group', { name: 'Scope' })).toBeInTheDocument()
@@ -97,6 +100,13 @@ export const Shells: Story = {
     await expect(
       region('Error').getByText('Could not save changes. Please try again.'),
     ).toBeInTheDocument()
+
+    // A bulk scope locks the per-occurrence date: the datetime-local inputs swap for time-only ones
+    // and a lock note appears. Left on this scope — this is the frame the snapshot keeps.
+    await userEvent.click(region('Series').getByRole('button', { name: 'This & following' }))
+    await expect(region('Series').getByLabelText('Start time')).toHaveAttribute('type', 'time')
+    await expect(region('Series').getByLabelText('End time')).toHaveAttribute('type', 'time')
+    await expect(region('Series').getByText(/keeps its own date/)).toBeInTheDocument()
   },
 }
 

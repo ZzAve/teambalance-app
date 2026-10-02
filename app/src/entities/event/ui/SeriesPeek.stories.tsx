@@ -9,9 +9,11 @@ import { SeriesPeek } from './SeriesPeek'
 // SeriesPeek renders TanStack Router <Link>s to sibling occurrences, so it needs a router in context.
 //
 // Collapsed by default — series membership is usually incidental, so only the header shows. There is
-// no `defaultOpen`-style prop, so the expanded picture cannot be reached without a click: `Gallery`
-// covers every collapsed variant (one picture, ADR-0032 §2) and `Interactions` (disableSnapshot)
-// covers the expand behaviour and its assertions.
+// no `defaultOpen`-style prop, so the expanded picture can only be reached by a click: `Gallery`
+// (one picture, ADR-0032 §2) stacks every collapsed variant and, via its own `play`, expands and
+// leaves open the "Current in head" instance — the one whose expansion shows the "+N more" gap and
+// the "This one" tag together. `Interactions` (disableSnapshot) re-covers the expand behaviour (and
+// the short-series no-gap case) across every instance, click-by-click, with its assertions.
 const meta = {
   title: 'entities/event/SeriesPeek',
   component: SeriesPeek,
@@ -44,7 +46,7 @@ export const Gallery: Story = {
       }}
     />
   ),
-  play: async ({ canvas }) => {
+  play: async ({ canvas, userEvent }) => {
     const region = (name: string) => within(canvas.getByRole('region', { name }))
 
     await expect(region('Long series').getByText('Part of a series')).toBeInTheDocument()
@@ -56,6 +58,14 @@ export const Gallery: Story = {
     await expect(region('Current in head').getByText('Occurrence 1 of 5')).toBeInTheDocument()
 
     await expect(region('Short series').getByText('Occurrence 2 of 3')).toBeInTheDocument()
+
+    // Expand "Current in head" and leave it open: this instance's current occurrence falls in the
+    // head, so one picture shows the first-two + last-two list, the "+N more" gap, and the "This one"
+    // tag together — the state no collapsed story reaches.
+    await userEvent.click(region('Current in head').getByRole('button'))
+    await expect(region('Current in head').getByRole('button')).toHaveAttribute('aria-expanded', 'true')
+    await expect(region('Current in head').getByText('This one')).toBeInTheDocument()
+    await expect(region('Current in head').getByText(/\+1 more/)).toBeInTheDocument()
   },
 }
 

@@ -40,11 +40,33 @@ export default meta
 type Story = StoryObj<typeof meta>
 
 // At rest the whole section is one line. Platform access is rare and, out of context, alarming —
-// the list is not the resting state (ADR-0024 §4).
+// the list is not the resting state (ADR-0024 §4). A second instance, driven open via play, shows
+// the access list expanded down to its nested "why does this happen?" reasoning.
 export const Data: Story = {
+  render: (args) => (
+    <Stack
+      items={{
+        Collapsed: <ActAsRecordsView {...args} />,
+        Expanded: <ActAsRecordsView {...args} />,
+      }}
+    />
+  ),
   play: async ({ canvas }) => {
-    await expect(canvas.getByText(/worked here 2 times/).closest('details')).not.toHaveAttribute('open')
-    await expect(canvas.getAllByText(/worked in your team/)[0]).not.toBeVisible()
+    const region = (name: string) => within(canvas.getByRole('region', { name }))
+
+    const collapsed = region('Collapsed')
+    await expect(collapsed.getByText(/worked here 2 times/).closest('details')).not.toHaveAttribute('open')
+    await expect(collapsed.getAllByText(/worked in your team/)[0]).not.toBeVisible()
+
+    // Open the list, then a record, then its nested reasoning — the deepest disclosure. Each level
+    // is a native <details>, so clicking its <summary> is what opens it.
+    const expanded = region('Expanded')
+    await userEvent.click(expanded.getByText(/worked here 2 times/))
+    await userEvent.click(expanded.getAllByText(/worked in your team/)[0])
+    await userEvent.click(expanded.getAllByText('Why does this happen?')[0])
+
+    await expect(expanded.getAllByText('Started')[0]).toBeVisible()
+    await expect(expanded.getAllByText(/TeamBalance is run by a small team/)[0]).toBeVisible()
   },
 }
 

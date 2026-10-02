@@ -14,9 +14,11 @@ import { RecurringEventsWizard } from './RecurringEventsWizard'
 // wizard):
 //   1. Data — step 1, populated: picking a type (the only click needed to reach it) auto-fills the
 //      title and unlocks Next. The picture of this View.
-//   2. Shells — the other *props-reachable* step-1 state (nothing chosen yet, Next blocked) — the
-//      over-cap and submitting states live on steps 2/3, which only a click can reach, so they move
-//      to Interactions instead (per this file's rubric note).
+//   2. Shells — the other *props-reachable* step-1 state (nothing chosen yet, Next blocked), plus
+//      steps 2 and 3 themselves: only a click can reach them, so `play` walks two further instances
+//      there and leaves each parked on its step. The over-cap and submitting states are still only
+//      reachable past a *second* click past that, so they stay on Interactions (per this file's
+//      rubric note).
 //   3. Interactions — no picture; three fresh instances (one per starting args) each walked to the
 //      state its old story exercised, keeping every assertion.
 const EVENT_TYPES: EventTypeItem[] = [
@@ -63,14 +65,31 @@ export const Shells: Story = {
       items={{
         // Nothing chosen yet — Next is blocked until a type + title exist.
         Empty: <RecurringEventsWizard {...args} />,
+        // Step 2, parked there by `play`: frequency pills, weekday chips, the live calendar preview.
+        Repeat: <RecurringEventsWizard {...args} />,
+        // Step 3, parked there by `play`: the summary card + calendar, short of the final click.
+        Confirm: <RecurringEventsWizard {...args} />,
       }}
     />
   ),
-  play: async ({ canvas }) => {
+  play: async ({ canvas, userEvent }) => {
     const region = (name: string) => within(canvas.getByRole('region', { name }))
 
     await expect(region('Empty').getByText('Details')).toBeInTheDocument()
     await expect(region('Empty').getByRole('button', { name: /Next/ })).toBeDisabled()
+
+    await chooseTraining(region('Repeat'), userEvent)
+    await userEvent.click(region('Repeat').getByRole('button', { name: /Next/ }))
+    await expect(region('Repeat').getByText('How often?')).toBeInTheDocument()
+    await expect(region('Repeat').getByRole('button', { name: 'Weekly' })).toBeInTheDocument()
+    await expect(region('Repeat').getByRole('button', { name: 'Tu' })).toHaveAttribute('aria-pressed', 'true')
+    await expect(region('Repeat').getByTestId('occurrence-count')).toBeInTheDocument()
+
+    await chooseTraining(region('Confirm'), userEvent)
+    await userEvent.click(region('Confirm').getByRole('button', { name: /Next/ }))
+    await userEvent.click(region('Confirm').getByRole('button', { name: /Next/ }))
+    await expect(region('Confirm').getByText('Ready to create')).toBeInTheDocument()
+    await expect(region('Confirm').getByRole('button', { name: /Create \d+ events?/ })).toBeInTheDocument()
   },
 }
 

@@ -5,6 +5,8 @@ import type { EventDetail } from '@shared/api/events'
 import { Button } from '@shared/ui/button'
 import { makeAttendee, makeEvent, makeRoster, makeSubstitute, NO_ROSTER } from '@shared/testing/event-fixtures'
 import { Stack } from '@shared/testing/stack'
+import { appColumn } from '@shared/testing/app-column-decorator'
+import { withRouter } from '@shared/testing/router-decorator'
 import { buildSeriesPeek } from '@entities/event/lib/series-peek'
 import { appShell, SHELL_ROUTES } from '../../../../.storybook/app-shell-decorator'
 import { pageModes } from '../../../../.storybook/modes'
@@ -97,7 +99,6 @@ const shell = appShell('events')
 const meta = {
   title: 'pages/event-detail/EventDetailView',
   component: EventDetailView,
-  decorators: shell.decorators,
   parameters: shell.parameters,
   args: {
     backTo: SHELL_ROUTES.events,
@@ -121,6 +122,7 @@ export default meta
 type Story = StoryObj<typeof meta>
 
 export const Data: Story = {
+  decorators: shell.decorators,
   // The page's picture, in dark and once at desktop width too (ADR-0032 §4-§5).
   parameters: { chromatic: { modes: pageModes } },
   play: async ({ canvas }) => {
@@ -160,7 +162,14 @@ export const Data: Story = {
 
 // The page's other frames, stacked: the two shells, the missing event, and a member (no admin
 // actions) on a social — no roster, so the per-role fallback shows — whose answer a teammate set.
+//
+// Hosted in the app column rather than the real shell (unlike Data/Interactions): BottomNav is
+// `position: fixed`, which pins it to the bottom of the whole frame — fine for one page, but a Stack
+// of four stands several viewport-heights tall, so the one shared nav lands mid-page, over an
+// unrelated case. Data already proves the real shell renders this View correctly; this story's job
+// is the four prop shapes, not the chrome.
 export const Shells: Story = {
+  decorators: [...appColumn.decorators, withRouter],
   render: (args) => (
     <Stack
       items={{
@@ -197,6 +206,7 @@ export const Shells: Story = {
 
 // Picture owned by Data — behavioural only (ADR-0032 §1).
 export const Interactions: Story = {
+  decorators: shell.decorators,
   parameters: { chromatic: { disableSnapshot: true } },
   render: (args) => (
     <Stack

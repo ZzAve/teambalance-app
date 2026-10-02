@@ -45,7 +45,7 @@ interface AttendanceToggleProps {
 // page container. Idle/pending/selected states are pure render args (Storybook-ready).
 export function AttendanceToggle({ value, onToggle, disabled = false }: AttendanceToggleProps) {
   return (
-    <div className="flex gap-2.5">
+    <div className="flex gap-2">
       {RESPONSE_OPTIONS.map(({ value: option, label, icon: Icon, activeClass, inactiveClass }) => {
         const isActive = value === option
         const handleClick = (e: MouseEvent<HTMLButtonElement>) => {
@@ -59,7 +59,9 @@ export function AttendanceToggle({ value, onToggle, disabled = false }: Attendan
             disabled={disabled}
             onClick={handleClick}
             className={[
-              'flex flex-1 items-center justify-center gap-2 rounded-md border-2 py-3.5 text-small font-semibold transition-all active:scale-95',
+              // min-h-11 holds the 44px touch target that the reduced vertical padding would
+              // otherwise drop below; px-3 keeps the label off the border.
+              'flex min-h-11 flex-1 items-center justify-center gap-2 rounded-md border-2 px-3 py-2.5 text-small font-semibold transition-all active:scale-95',
               isActive ? activeClass : inactiveClass,
               disabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer',
             ].join(' ')}

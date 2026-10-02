@@ -187,7 +187,9 @@ export function EventAnswerRow({
                 aria-pressed={isActive}
                 disabled={pending}
                 onClick={() => pick(value)}
-                className={`flex-1 rounded-md border py-2 text-small font-bold transition-colors ${isActive ? active : inactive} ${pending ? 'cursor-not-allowed opacity-60' : ''}`}
+                // min-h-11 + px-3 give these inline options the same 44px target as the row's own
+                // trigger above (#324); flush horizontal padding left the label on the border.
+                className={`flex min-h-11 flex-1 items-center justify-center rounded-md border px-3 py-2 text-small font-bold transition-colors ${isActive ? active : inactive} ${pending ? 'cursor-not-allowed opacity-60' : ''}`}
               >
                 {label}
               </button>

@@ -25,7 +25,19 @@ export const Gallery: Story = {
     <Stack
       items={{
         Hidden: <UpdateToast show={false} onReload={fn()} />,
-        Shown: <UpdateToast show onReload={fn()} />,
+        // UpdateToast is `fixed`, which has no containing block of its own: bare, it pins to the
+        // Storybook canvas's viewport rather than to this region, so it drifts away from the "Shown"
+        // label down to wherever the capture's own height ends up — the same escape BottomNav makes
+        // out of a Stack, by the same CSS mechanism. No app-shell decorator applies here (the toast is
+        // mounted at the app root, never inside a page composite), so instead `contain-layout` makes
+        // this box itself the containing block: the toast's `bottom-[6rem]` now measures from its
+        // bottom edge, landing the pill right under its label with the gap below it that is really the
+        // clearance it always keeps above the bottom nav.
+        Shown: (
+          <div className="relative h-40 contain-layout">
+            <UpdateToast show onReload={fn()} />
+          </div>
+        ),
       }}
     />
   ),

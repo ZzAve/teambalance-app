@@ -3,6 +3,8 @@ import { expect, fn, within } from 'storybook/test'
 import type { Member } from '@shared/api/members'
 import type { Position } from '@shared/api/positions'
 import { Stack } from '@shared/testing/stack'
+import { appColumn } from '@shared/testing/app-column-decorator'
+import { withRouter } from '@shared/testing/router-decorator'
 import type { AccountSection } from '../lib/account-sections'
 import { appShell } from '../../../../.storybook/app-shell-decorator'
 import { pageModes } from '../../../../.storybook/modes'
@@ -41,7 +43,6 @@ const shell = appShell('account')
 const meta = {
   title: 'features/account/AccountView',
   component: AccountView,
-  decorators: shell.decorators,
   parameters: shell.parameters,
   args: {
     email: 'alex@example.com',
@@ -60,6 +61,7 @@ type Story = StoryObj<typeof meta>
 
 // A member of one team: the full list.
 export const Data: Story = {
+  decorators: shell.decorators,
   // The page's picture, in dark and once at desktop width too (ADR-0032 §4-§5).
   parameters: { chromatic: { modes: pageModes } },
   play: async ({ canvas }) => {
@@ -73,7 +75,14 @@ export const Data: Story = {
 
 // Every other context, stacked. Multi-team with one active shows the same sections — the switcher is
 // Slice 2, so the only visible difference is that Teams names the active one.
+//
+// Hosted in the app column rather than the real shell (unlike Data/Interactions): BottomNav is
+// `position: fixed`, which pins it to the bottom of the whole frame — fine for one page, but a Stack
+// of five stands five pages tall, so the one shared nav lands nowhere near four of them. Data already
+// proves the real shell renders this View correctly; this story's job is the five prop shapes, not
+// the chrome.
 export const Shells: Story = {
+  decorators: [...appColumn.decorators, withRouter],
   render: (args) => (
     <Stack
       items={{
@@ -120,6 +129,7 @@ export const Shells: Story = {
 
 // Picture owned by Data — behavioural only (ADR-0032 §1).
 export const Interactions: Story = {
+  decorators: shell.decorators,
   parameters: { chromatic: { disableSnapshot: true } },
   play: async ({ canvas, userEvent, args }) => {
     // Saving the profile hands the name and the position up.

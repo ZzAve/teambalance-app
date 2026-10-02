@@ -30,12 +30,20 @@ export const SHELL_ROUTES = {
  * no production module may.
  */
 export const withAppShell: Decorator = (Story) => (
-  <AppShellFrame
-    teamSwitcher={<TeamSwitcherView teams={[SHELL_TEAM]} activeTeam={SHELL_TEAM} onSelect={() => {}} />}
-    nav={<BottomNav />}
-  >
-    <Story />
-  </AppShellFrame>
+  // `contain-layout` makes this box the containing block for BottomNav's `position: fixed`. In the
+  // product the bar pins to the viewport, which is what you want on a page you scroll; a snapshot
+  // has no scrolling, and Chromatic renders the page at its full content height while `fixed` still
+  // resolves against the capture viewport. A composite taller than one viewport therefore draws the
+  // bar one viewport down — across the middle of the picture, over whatever card is there. Pinning
+  // it to the frame instead puts it under the content, where a reader expects it.
+  <div className="contain-layout">
+    <AppShellFrame
+      teamSwitcher={<TeamSwitcherView teams={[SHELL_TEAM]} activeTeam={SHELL_TEAM} onSelect={() => {}} />}
+      nav={<BottomNav />}
+    >
+      <Story />
+    </AppShellFrame>
+  </div>
 )
 
 /** The decorator stack + router start for a page composite on the given tab. */

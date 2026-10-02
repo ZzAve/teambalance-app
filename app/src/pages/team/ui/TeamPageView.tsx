@@ -30,7 +30,8 @@ export function TeamPageView({ isAdmin, inviteAction, roster }: TeamPageViewProp
             <Link
               to={routes.teamSettings}
               aria-label="Team settings"
-              className="rounded-full p-2 text-muted-foreground transition-colors hover:bg-blue/8 hover:text-foreground"
+              // h-11 w-11 (not p-2) keeps the gear a 44px touch target (F7), same as PageHeader's back link.
+              className="flex h-11 w-11 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-blue/8 hover:text-foreground"
             >
               <Settings size={20} />
             </Link>

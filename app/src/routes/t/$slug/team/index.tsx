@@ -1,5 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { MemberRoster } from '@features/manage-members/ui/MemberRoster'
+import { RosterPrototype } from '@features/manage-members/ui/RosterPrototype'
 import { ManageSubstitutes } from '@features/manage-substitutes/ui/ManageSubstitutes'
 import { GenerateInviteDialog } from '@features/generate-invite/ui/GenerateInviteDialog'
 import { TeamPageView } from '@pages/team/ui/TeamPageView'
@@ -16,12 +17,13 @@ export const Route = createFileRoute('/t/$slug/team/')({
 
 function TeamPage() {
   const isAdmin = useCurrentUser()?.role === 'ADMIN'
+  const variant = new URLSearchParams(window.location.search).get('variant')
 
   return (
     <TeamPageView
       isAdmin={isAdmin}
       inviteAction={<GenerateInviteDialog />}
-      roster={<MemberRoster canManage={false} />}
+      roster={variant ? <RosterPrototype variant={variant} /> : <MemberRoster canManage={false} />}
       substitutes={<ManageSubstitutes canManage={false} />}
     />
   )

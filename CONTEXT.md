@@ -40,14 +40,15 @@ any-team, self-service (see [ADR-0001](docs/adr/0001-product-ambition-hobby-tool
   _Avoid_: role, team_role.
 - **Unassigned** — The bucket in the attendance summary for Members with no **Position**.
 - **Shirt Number** — The number a Member or **Substitute** plays under in a Team: a whole number of
-  up to three digits. Optional, at most one, and no two Members of a Team share one.
+  up to three digits, where 7 and 07 are the same number. Optional and at most one. No two current
+  Members of a Team share one, nor do two Substitutes; a Substitute may share a Member's.
   _Avoid_: jersey number, rugnummer, player number.
 - **Personal Photo** — A person's own picture, independent of any Team. Never shown in a Team
   directly; it is the source a **Team Photo** can be copied from.
   _Avoid_: avatar, profile picture.
 - **Team Photo** — The picture a Member is shown with inside one Team. Optional; either a copy of
   their **Personal Photo** taken at a moment in time, or a separate picture for that Team. A Member
-  without one is shown by their initials.
+  without one is shown by their initials, never by their Personal Photo. Leaving the Team discards it.
   _Avoid_: avatar, profile picture.
 - **Substitute** — A person outside the Team whom the Team keeps on a reusable list and can call in
   for a specific Event. Not a **Member**: not on the **Roster**, no **Role**, no account, and never

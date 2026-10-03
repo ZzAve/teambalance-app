@@ -3,9 +3,15 @@ import { useEffect, useMemo, useState } from 'react'
 import { useEvents, type Event } from '@shared/api/events'
 import { useEventTypes } from '@shared/api/event-types'
 import { useSetAttendance } from '@shared/api/attendances'
+import {
+    useRemoveSubstituteAttendance,
+    useSetSubstituteAttendance,
+    usePendingSubstituteEvents,
+} from '@shared/api/substitutes'
 import { useCurrentUser } from '@shared/api/auth'
 import { useNow } from '@shared/lib/use-now'
 import { selectHeroEvent } from '@entities/event/lib/next-event'
+import type { PositionRef } from '@entities/event/lib/lineup'
 import { NextEventHero } from '@widgets/next-event-hero/ui/NextEventHero'
 import { CreateEventSheet } from '@widgets/create-event/ui/CreateEventSheet'
 import { useEventFiltersStore } from '@features/filter-event-types/model/event-filters-store'
@@ -18,6 +24,7 @@ import { spansMultipleTurnoutBuckets } from '@features/filter-event-types/model/
 import { filterEvents } from '@features/filter-event-types/model/filter-events'
 import { emptyEventsMessage } from '@features/filter-event-types/model/empty-message'
 import { BulkAttendBar } from '@features/bulk-attend/ui/BulkAttendBar'
+import { SubstitutePicker } from '@features/call-in-substitutes/ui/SubstitutePicker'
 import { eligibleEvents } from '@features/bulk-attend/lib/eligible-event-ids'
 
 export const Route = createFileRoute('/t/$slug/')({
@@ -80,6 +87,15 @@ function EventListPage() {
         setOptimistic({eventId, userId, state})
         setAttendance({eventId, userId, state}, {onError: () => setOptimistic(null)})
     }
+    // One Substitute picker for the whole page (#359), aimed at one card's event and, from an open
+    // spot, one Position. Any Member may call Substitutes in (ADR-0033). The target outlives `open`
+    // so the sheet can animate out.
+    const [picker, setPicker] = useState<{eventId: string, position: PositionRef | null, open: boolean} | null>(null)
+    const pickerEvent = events?.find(e => e.id === picker?.eventId) ?? null
+    const setSubstituteAttendance = useSetSubstituteAttendance()
+    const removeSubstituteAttendance = useRemoveSubstituteAttendance()
+    const pendingSubstituteEvents = usePendingSubstituteEvents()
+
     const respond = (eventId: string, state: Event['myState']) => {
         if (!currentUserId) return
         respondFor(eventId, currentUserId, state)
@@ -128,6 +144,7 @@ function EventListPage() {
     )
 
     return (
+        <>
         <EventsPageView
             createAction={isAdmin && <CreateEventSheet/>}
             filters={{
@@ -168,7 +185,14 @@ function EventListPage() {
                         attendances={event.attendances}
                         roster={event.roster}
                         currentUserId={currentUserId}
+                        substitutes={event.substitutes}
                         onRespond={(userId, state) => respondFor(event.id, userId, state)}
+                        onCallInSubstitutes={(position) => setPicker({eventId: event.id, position, open: true})}
+                        onSetSubstituteState={(substituteId, state) =>
+                            setSubstituteAttendance.mutate({eventId: event.id, substituteId, state})}
+                        onTakeOffSubstitute={(substituteId) =>
+                            removeSubstituteAttendance.mutate({eventId: event.id, substituteId})}
+                        substitutePending={pendingSubstituteEvents.includes(event.id)}
                     />
                 ),
                 // A rendered hero IS loaded data — it was pulled out of this very list — so an empty
@@ -187,5 +211,12 @@ function EventListPage() {
                 }),
             }}
         />
+        <SubstitutePicker
+            open={picker?.open ?? false}
+            event={pickerEvent}
+            position={picker?.position}
+            onClose={() => setPicker(current => current && {...current, open: false})}
+        />
+        </>
     )
 }

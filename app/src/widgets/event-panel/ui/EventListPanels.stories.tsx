@@ -233,6 +233,10 @@ function ListWithPanels({
             attendances={event.attendances}
             roster={event.roster}
             currentUserId={LARS[0]}
+            substitutes={event.substitutes}
+            onCallInSubstitutes={() => {}}
+            onSetSubstituteState={() => {}}
+            onTakeOffSubstitute={() => {}}
             onRespond={(userId, state) => onRespond?.(event.id, userId, state)}
           />
         )}

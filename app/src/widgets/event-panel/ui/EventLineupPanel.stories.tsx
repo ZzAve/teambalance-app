@@ -2,7 +2,7 @@ import { useState, type ComponentProps } from 'react'
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { expect, fn, within } from 'storybook/test'
 import type { AttendanceEntry } from '@shared/api/events'
-import { makeAttendee, makeRoster, NO_ROSTER } from '@shared/testing/event-fixtures'
+import { makeAttendee, makeRoster, makeSubstitute, NO_ROSTER } from '@shared/testing/event-fixtures'
 import { Stack } from '@shared/testing/stack'
 import { EventLineupPanel } from './EventLineupPanel'
 
@@ -58,6 +58,17 @@ const SQUAD: AttendanceEntry[] = [
   makeAttendee('u-roos', 'Roos Timmer', 'Unassigned', { state: 'NOT_RESPONDED' }),
 ]
 
+// Called in from outside the Team (ADR-0033): Jan only asked so far, so the Libero spot is still open;
+// Femke confirmed and, with no Position, sits under Unassigned.
+const SUBSTITUTES = [
+  makeSubstitute('sub-jan', 'Jan de Vries', {
+    position: { id: 'p-libero', label: 'Libero' },
+    state: 'MAYBE',
+    changedBy: 'u-eva',
+  }),
+  makeSubstitute('sub-femke', 'Femke Dekker', { changedBy: 'u-eva' }),
+]
+
 const POSITIONS = [
   { id: 'p-setter', label: 'Setter', required: 2, attending: 2, kind: 'PLAYING' as const },
   { id: 'p-outside', label: 'Outside', required: 4, attending: 6, kind: 'PLAYING' as const },
@@ -88,7 +99,11 @@ const meta = {
     attendances: SQUAD,
     roster: makeRoster({ positions: POSITIONS, totalAttending: 11, totalTarget: undefined }),
     currentUserId: 'u-eva',
+    substitutes: SUBSTITUTES,
     onRespond: fn(),
+    onCallInSubstitutes: fn(),
+    onSetSubstituteState: fn(),
+    onTakeOffSubstitute: fn(),
   },
   // Card width: the panel lives inside an event card in a list, which is the width its chips have to
   // wrap and cap against. Judging it any wider would hide the only layout pressure it is under.
@@ -114,6 +129,11 @@ export const Data: Story = {
     await expect(canvas.getByText('needs 1 more')).toBeInTheDocument()
     await expect(canvas.getByText('nobody yet')).toBeInTheDocument()
     await expect(canvas.getByText('2 of 4 covered')).toBeInTheDocument()
+    // A Substitute sits in their Position row, marked as one, in whatever state they are in; the
+    // header counts the ones going.
+    await expect(canvas.getByRole('button', { name: /Jan de Vries, substitute — Maybe/ })).toBeInTheDocument()
+    await expect(canvas.getByRole('button', { name: /Femke Dekker, substitute — Going/ })).toBeInTheDocument()
+    await expect(canvas.getByText('1 sub')).toBeInTheDocument()
   },
 }
 
@@ -122,7 +142,12 @@ export const Shells: Story = {
     <Stack
       items={{
         'Nobody yet': (
-          <EventLineupPanel {...args} attendances={[]} roster={makeRoster({ positions: [], totalAttending: 0 })} />
+          <EventLineupPanel
+            {...args}
+            attendances={[]}
+            substitutes={[]}
+            roster={makeRoster({ positions: [], totalAttending: 0 })}
+          />
         ),
         // Everyone declined a position the server therefore dropped — the row the old pips panel lost.
         'A position nobody plays': (
@@ -222,6 +247,28 @@ export const Interactions: Story = {
     await expect(selfSheet).not.toHaveTextContent('answering for them')
     await userEvent.click(body.getByRole('button', { name: "Can't go" }))
     await expect(args.onRespond).toHaveBeenCalledWith('u-eva', 'ABSENT')
+
+    // An open spot is a way to fill it: the "+" opens the picker for that Position (#359); the
+    // button under the lineup opens it for no Position in particular.
+    await userEvent.click(region('Squad').getByRole('button', { name: 'Find a Libero' }))
+    await expect(args.onCallInSubstitutes).toHaveBeenCalledWith({ id: 'p-libero', label: 'Libero' })
+    await userEvent.click(region('Squad').getByRole('button', { name: 'Call in substitutes' }))
+    await expect(args.onCallInSubstitutes).toHaveBeenCalledWith(null)
+
+    // A Substitute's chip opens the Substitute sheet, never the Member answer sheet: that one writes
+    // Member attendance, and a Substitute's id must not reach it (ADR-0033).
+    await userEvent.click(region('Squad').getByRole('button', { name: /Jan de Vries, substitute — Maybe/ }))
+    const subSheet = within(await body.findByRole('dialog', { name: 'Jan de Vries' }))
+    await expect(subSheet.getByText('Substitute · Libero · set by Eva Smit')).toBeInTheDocument()
+    await expect(subSheet.queryByText(/answering for them/)).not.toBeInTheDocument()
+    await userEvent.click(subSheet.getByRole('button', { name: 'Going' }))
+    await expect(args.onSetSubstituteState).toHaveBeenCalledWith('sub-jan', 'ATTENDING')
+    await userEvent.click(region('Squad').getByRole('button', { name: /Jan de Vries, substitute/ }))
+    await userEvent.click(
+      within(await body.findByRole('dialog', { name: 'Jan de Vries' })).getByRole('button', { name: 'Take off this event' }),
+    )
+    await expect(args.onTakeOffSubstitute).toHaveBeenCalledWith('sub-jan')
+    await expect(args.onRespond).not.toHaveBeenCalledWith('sub-jan', expect.anything())
 
     // The panel counts its fractions from the members it renders, so an answer moves the chip and
     // the count together — proved here by driving the same prop change a re-render would. Middle was

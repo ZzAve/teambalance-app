@@ -5,14 +5,7 @@ import { PositionPicker } from '@entities/position/ui/PositionPicker'
 import { SubstituteAvatar } from '@entities/event/ui/SubstituteAvatar'
 import { Button } from '@shared/ui/button'
 import { Input } from '@shared/ui/input'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@shared/ui/dialog'
+import { ConfirmDialog } from '@shared/ui/ConfirmDialog'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -121,34 +114,26 @@ export function ManageSubstitutesView({
             </ul>
           )}
 
-          <Dialog open={confirmTarget !== null} onOpenChange={(open) => { if (!open) setConfirmTarget(null) }}>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Remove substitute</DialogTitle>
-                <DialogDescription>
-                  {confirmTarget?.name} will disappear from every event they were added to, including past ones. This
-                  can't be undone.
-                </DialogDescription>
-              </DialogHeader>
-              <p className="text-small text-muted-foreground">
-                {confirmTarget && eventCountLine(confirmTarget.name, eventCount, eventCountFailed)}
-              </p>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setConfirmTarget(null)}>
-                  Cancel
-                </Button>
-                <Button
-                  variant="destructive"
-                  onClick={() => {
-                    if (confirmTarget) onRemove(confirmTarget)
-                    setConfirmTarget(null)
-                  }}
-                >
-                  Remove
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+          <ConfirmDialog
+            open={confirmTarget !== null}
+            title="Remove substitute"
+            description={
+              <>
+                {confirmTarget?.name} will disappear from every event they were added to, including past ones. This
+                can't be undone.
+              </>
+            }
+            confirmLabel="Remove"
+            onConfirm={() => {
+              if (confirmTarget) onRemove(confirmTarget)
+              setConfirmTarget(null)
+            }}
+            onCancel={() => setConfirmTarget(null)}
+          >
+            <p className="text-small text-muted-foreground">
+              {confirmTarget && eventCountLine(confirmTarget.name, eventCount, eventCountFailed)}
+            </p>
+          </ConfirmDialog>
         </div>
       )}
     </div>

@@ -10,9 +10,9 @@ import { appShell, SHELL_ROUTES } from '../../../../.storybook/app-shell-decorat
 import { pageModes } from '../../../../.storybook/modes'
 import { EventDetailView } from './EventDetailView'
 
-// The event-detail page as a phone shows it (ADR-0032 §3): sticky sub-header, identity, roster bar,
-// the viewer's response, description, references, the attendance list, the series peek and the
-// admin actions, inside the real app shell. This composite owns the pixels for PageHeader,
+// The event-detail page as a phone shows it (ADR-0032 §3): sticky sub-header, the info card
+// (identity, date, time, location, description, references), roster bar, the viewer's response,
+// the attendance list, the series peek and the admin actions, inside the real app shell. This composite owns the pixels for PageHeader,
 // EventTypeBadge/Icon, RosterBar, AttendanceToggle, ReferenceChips, RoleBreakdown, AttendeeList and
 // SeriesPeek in context; those keep their own snapshots only as galleries or for states this frame
 // cannot show.

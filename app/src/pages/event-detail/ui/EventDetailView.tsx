@@ -1,8 +1,9 @@
 import { useState, type ReactNode } from 'react'
 import { Link } from '@tanstack/react-router'
-import { MapPin } from 'lucide-react'
+import { AlignLeft, CalendarDays, Clock, ExternalLink, Link2, MapPin, type LucideIcon } from 'lucide-react'
 import type { EventDetail } from '@shared/api/events'
 import { Button } from '@shared/ui/button'
+import { MapsLink } from '@shared/ui/MapsLink'
 import { QueryErrorState } from '@shared/ui/QueryErrorState'
 import { SectionLabel } from '@shared/ui/SectionLabel'
 import { EventTypeBadge } from '@entities/event/ui/EventTypeBadge'
@@ -51,10 +52,11 @@ interface EventDetailViewProps {
 }
 
 /**
- * The event-detail page laid out (ADR-0032 §3): load and error shells, then the header, roster
- * bar, the viewer's response, description, references, the attendance list, the series peek and
- * the admin actions. Prop-only — the mutation, its cross-member Undo toast and the sibling lookup
- * stay in the route; the story renders every section with zero network.
+ * The event-detail page laid out (ADR-0032 §3): load and error shells, then one card with the
+ * event's identity, description and references, the roster bar, the viewer's response, the
+ * attendance list, the series peek and the admin actions. Prop-only — the mutation, its
+ * cross-member Undo toast and the sibling lookup stay in the route; the story renders every
+ * section with zero network.
  */
 export function EventDetailView({
   isLoading,
@@ -108,38 +110,55 @@ export function EventDetailView({
       {/* Sticky sub-header — offset comes from --header-height via PageHeader, not a magic pixel. */}
       <PageHeader title={event.title} backTo={backTo} backLabel="Back to events" />
 
-      {/* Event header */}
-      <div className="mt-2 flex items-start gap-4">
-        <EventTypeIcon type={event.eventType} size="md" />
-        <div className="min-w-0">
-          <EventTypeBadge type={event.eventType} />
-          <h1 className="font-display text-title font-bold leading-tight">{event.title}</h1>
-          <p className="mt-1 text-small text-muted-foreground">
+      {/* Event info — identity, then one icon-marked row per detail */}
+      <div className="mt-2 rounded-lg border border-border/40 bg-card p-5 shadow-sm">
+        <div className="flex items-start gap-4">
+          <EventTypeIcon type={event.eventType} size="md" />
+          <div className="min-w-0">
+            <EventTypeBadge type={event.eventType} />
+            <h1 className="mt-1 font-display text-title font-bold leading-tight">{event.title}</h1>
+          </div>
+        </div>
+
+        <dl className="mt-5 space-y-4 border-t border-border/40 pt-5 text-body">
+          <InfoRow icon={CalendarDays} label="Date">
             {date.toLocaleDateString('nl-NL', {
               weekday: 'long',
               day: 'numeric',
               month: 'long',
               year: 'numeric',
             })}
-            {' · '}
+          </InfoRow>
+          <InfoRow icon={Clock} label="Time">
             {date.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })}
-          </p>
+          </InfoRow>
           {event.location && (
-            <a
-              href={`https://maps.google.com/?q=${encodeURIComponent(event.location)}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-0.5 flex items-center gap-1 text-small text-muted-foreground hover:text-blue hover:underline"
-            >
-              <MapPin size={13} className="shrink-0" />
-              {event.location}
-            </a>
+            <InfoRow icon={MapPin} label="Location">
+              <MapsLink
+                location={event.location}
+                className="inline-flex items-center gap-1.5 font-medium text-blue underline decoration-blue/30 underline-offset-4 hover:decoration-blue"
+              >
+                {event.location}
+                <ExternalLink size={14} className="shrink-0" aria-hidden />
+              </MapsLink>
+            </InfoRow>
           )}
-        </div>
+          {event.description && (
+            <InfoRow icon={AlignLeft} label="Description">
+              <p className="leading-relaxed text-muted-foreground">{event.description}</p>
+            </InfoRow>
+          )}
+          {/* The event's References (Nevobo, match form, …), shown in full */}
+          {event.references.length > 0 && (
+            <InfoRow icon={Link2} label="Additional info">
+              <ReferenceChips references={event.references} max={event.references.length} />
+            </InfoRow>
+          )}
+        </dl>
       </div>
 
       {/* Roster overview — sits high, right under the event identity, so completeness reads before
-          the response/info sections rather than being buried below them. It scrolls with the page:
+          the response section rather than being buried below it. It scrolls with the page:
           pinning it made it float over the sections beneath and clip them.
           Shows for any tracked roster (#317): position targets count slots, otherwise a headcount
           or plain tally; RoleBreakdown stays the per-role fallback where no position is targeted (⑥). */}
@@ -162,26 +181,6 @@ export function EventDetailView({
           </div>
           {/* You learn a teammate changed your answer right where you would change it back (⑪). */}
           {myAttribution && <p className="mt-2 text-caption text-muted-foreground">set by {myAttribution}</p>}
-        </div>
-      )}
-
-      {/* Description */}
-      {event.description && (
-        <div className="mt-6 rounded-lg border border-border/40 bg-card p-4 shadow-sm">
-          <SectionLabel as="p" className="mb-2">
-            Description
-          </SectionLabel>
-          <p className="text-small leading-relaxed text-muted-foreground">{event.description}</p>
-        </div>
-      )}
-
-      {/* Additional info — the event's References (Nevobo, match form, …), shown in full */}
-      {event.references.length > 0 && (
-        <div className="mt-6 rounded-lg border border-border/40 bg-card p-4 shadow-sm">
-          <SectionLabel as="p" className="mb-3">
-            Additional info
-          </SectionLabel>
-          <ReferenceChips references={event.references} max={event.references.length} />
         </div>
       )}
 
@@ -227,6 +226,19 @@ export function EventDetailView({
       {adminActions && (
         <div className="mt-6 flex gap-2.5 border-t border-border/40 pt-5">{adminActions}</div>
       )}
+    </div>
+  )
+}
+
+/** One detail line in the info card: the icon marks what the line is, the label names it for screen readers. */
+function InfoRow({ icon: Icon, label, children }: { icon: LucideIcon; label: string; children: ReactNode }) {
+  return (
+    <div className="flex items-start gap-3">
+      <dt className="flex h-6 shrink-0 items-center text-muted-foreground">
+        <Icon size={18} aria-hidden />
+        <span className="sr-only">{label}</span>
+      </dt>
+      <dd className="min-w-0 flex-1">{children}</dd>
     </div>
   )
 }

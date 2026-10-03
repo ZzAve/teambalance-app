@@ -31,6 +31,9 @@ test("a member changes a teammate's attendance from the detail page, and it pers
   //    control; tapping the teammate's (position-less → Unassigned) opens the answer sheet.
   await page.goto('/')
   await page.getByText('E2E Training').first().click()
+  // Wait for the detail page: the events page's Next Up hero shows the same lineup, so the
+  // teammate's button is already on screen before the navigation lands.
+  await expect(page.getByRole('heading', { level: 1, name: 'E2E Training' })).toBeVisible()
   await page.getByRole('button', { name: /^E2E Teammate — / }).click()
   const sheet = page.getByRole('dialog')
   await expect(sheet).toBeVisible()

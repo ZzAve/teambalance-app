@@ -2,7 +2,7 @@ import { useEvent, type Event } from '@shared/api/events'
 import { useSetAttendance } from '@shared/api/attendances'
 import { useCurrentUser } from '@shared/api/auth'
 import type { AttendanceState } from '@features/attendance-toggle/ui/AttendanceToggle'
-import { EventLineupPanel } from '@widgets/event-panel/ui/EventLineupPanel'
+import type { ReactNode } from 'react'
 import { NextEventHeroView } from './NextEventHeroView'
 
 /**
@@ -20,7 +20,16 @@ import { NextEventHeroView } from './NextEventHeroView'
  * attendances): the response and the headcount then come from one payload, so the status line can't
  * say "10 going · you're in" with a count that predates the tap.
  */
-export function NextEventHero({ event, now }: { event: Event; now?: Date }) {
+export function NextEventHero({
+  event,
+  now,
+  lineup,
+}: {
+  event: Event
+  now?: Date
+  /** The lineup panel for an event — built by the route, which owns the page's Substitute picker. */
+  lineup: (event: Event) => ReactNode
+}) {
   const { data: detail } = useEvent(event.id)
   const currentUserId = useCurrentUser()?.id ?? null
   const { mutate, isPending } = useSetAttendance()
@@ -40,15 +49,7 @@ export function NextEventHero({ event, now }: { event: Event; now?: Date }) {
       onRespond={(state) => {
         if (currentUserId) mutate({ eventId: event.id, userId: currentUserId, state })
       }}
-      lineup={
-        <EventLineupPanel
-          attendances={shown.attendances}
-          roster={shown.roster}
-          currentUserId={currentUserId}
-          pending={isPending}
-          onRespond={(userId, state) => mutate({ eventId: event.id, userId, state })}
-        />
-      }
+      lineup={lineup(shown)}
     />
   )
 }

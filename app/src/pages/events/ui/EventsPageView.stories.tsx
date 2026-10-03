@@ -228,6 +228,10 @@ function EventsPageHarness(args: HarnessArgs) {
                 attendances={hero.attendances}
                 roster={hero.roster}
                 currentUserId="u-me"
+                substitutes={hero.substitutes}
+                onCallInSubstitutes={() => {}}
+                onSetSubstituteState={() => {}}
+                onTakeOffSubstitute={() => {}}
                 onRespond={(userId, state) => {
                   args.onRespondFor(hero.id, userId, state)
                   answer(hero.id, userId, state)

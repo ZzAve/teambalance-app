@@ -44,7 +44,15 @@ const EVENT = makeEvent({
 // The same panel the list cards open, always shown here. Its answer wiring is the container's, so
 // the stories prove only that it renders and that its chips stay above the card link's overlay.
 const LINEUP = (
-  <EventLineupPanel attendances={EVENT.attendances} roster={EVENT.roster} currentUserId="u-me" onRespond={fn()} />
+  <EventLineupPanel
+    attendances={EVENT.attendances}
+    roster={EVENT.roster}
+    currentUserId="u-me"
+    onRespond={fn()}
+    onCallInSubstitutes={fn()}
+    onSetSubstituteState={fn()}
+    onTakeOffSubstitute={fn()}
+  />
 )
 
 const READY_EVENT = makeEvent({

@@ -1,12 +1,16 @@
 package com.github.zzave.teambalance.api.interfaces
 
 import com.github.zzave.teambalance.api.TeamBalanceIT
+import com.github.zzave.teambalance.api.domain.exception.SubstituteNameTakenException
+import com.github.zzave.teambalance.api.domain.model.DisplayName
+import com.github.zzave.teambalance.api.domain.model.UserId
+import com.github.zzave.teambalance.api.domain.port.SubstituteRepository
+import com.github.zzave.teambalance.api.infrastructure.multitenancy.TenantContext
 import com.github.zzave.teambalance.api.infrastructure.multitenancy.TenantSchemaAdapter
 import io.kotest.assertions.throwables.shouldThrow
 import org.hamcrest.Matchers.contains
 import org.hamcrest.Matchers.nullValue
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
 import org.springframework.http.MediaType
 import org.springframework.jdbc.core.JdbcTemplate
@@ -46,6 +50,9 @@ class SubstituteIT : TeamBalanceIT() {
 
     @Autowired
     lateinit var tenantSchemaAdapter: TenantSchemaAdapter
+
+    @Autowired
+    lateinit var substituteRepository: SubstituteRepository
 
     init {
         test("a plain member calls in a new substitute as going, and they fill a spot on the event roster") {
@@ -204,17 +211,22 @@ class SubstituteIT : TeamBalanceIT() {
             putSubstitute(other, "UNIQUE NAME", positionId = null, asUser = ADMIN_USER_ID).andExpect(status().isConflict)
         }
 
-        // Two Members creating the same name at once both pass the service's check; the index refuses
-        // the second insert, as uq_positions_label does for Positions.
-        test("the schema refuses a second substitute whose name differs only in case") {
+        // Two Members creating the same name at once both pass the service's check, so the repository
+        // is called directly here, as the second of the two would be. The index refuses it, and the
+        // caller hears the same 409 the service gives.
+        test("a name taken between the service's check and the write is refused as taken") {
             seedTeam()
-            createSubstitute("Indexed Name", positionId = null, asUser = MEMBER_USER_ID)
+            val createdBy = UserId(UUID.fromString(MEMBER_USER_ID))
+            val other = inPublicTenant {
+                substituteRepository.create(DisplayName("Raced Name"), null, createdBy)
+                substituteRepository.create(DisplayName("Raced Other"), null, createdBy)
+            }
 
-            shouldThrow<DataIntegrityViolationException> {
-                jdbcTemplate.update(
-                    "INSERT INTO public.substitutes (id, name, created_by) VALUES (gen_random_uuid(), 'INDEXED NAME', ?::uuid)",
-                    MEMBER_USER_ID,
-                )
+            shouldThrow<SubstituteNameTakenException> {
+                inPublicTenant { substituteRepository.create(DisplayName("RACED NAME"), null, createdBy) }
+            }
+            shouldThrow<SubstituteNameTakenException> {
+                inPublicTenant { substituteRepository.update(other.id, DisplayName("raced name"), null) }
             }
         }
 
@@ -262,6 +274,15 @@ class SubstituteIT : TeamBalanceIT() {
     }
 
     // --- helpers ---------------------------------------------------------------------------------
+
+    private fun <T> inPublicTenant(block: () -> T): T {
+        TenantContext.set("public")
+        try {
+            return block()
+        } finally {
+            TenantContext.clear()
+        }
+    }
 
     private fun perform(builder: MockHttpServletRequestBuilder, userId: String) =
         mockMvc.perform(builder.header("X-Team-Id", "public").header("X-User-Id", userId))

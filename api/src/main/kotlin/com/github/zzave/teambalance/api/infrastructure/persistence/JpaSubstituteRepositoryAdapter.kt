@@ -1,5 +1,6 @@
 package com.github.zzave.teambalance.api.infrastructure.persistence
 
+import com.github.zzave.teambalance.api.domain.exception.SubstituteNameTakenException
 import com.github.zzave.teambalance.api.domain.model.AttendanceState
 import com.github.zzave.teambalance.api.domain.model.DisplayName
 import com.github.zzave.teambalance.api.domain.model.EventId
@@ -11,6 +12,7 @@ import com.github.zzave.teambalance.api.domain.model.SubstituteId
 import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.port.SubstituteRepository
 import com.github.zzave.teambalance.api.infrastructure.persistence.entity.SubstituteJpaEntity
+import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.stereotype.Repository
 import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
@@ -38,7 +40,7 @@ class JpaSubstituteRepositoryAdapter(
 
     @Transactional
     override fun create(name: DisplayName, positionId: PositionId?, createdBy: UserId): Substitute {
-        val saved = jpaRepository.save(
+        val saved = jpaRepository.saveRefusingTakenName(
             SubstituteJpaEntity(name = name.value, positionId = positionId?.value, createdBy = createdBy.value),
         )
         return saved.toDomain()
@@ -49,7 +51,7 @@ class JpaSubstituteRepositoryAdapter(
         val entity = jpaRepository.findById(id.value).orElse(null) ?: return null
         entity.name = name.value
         entity.positionId = positionId?.value
-        return jpaRepository.save(entity).toDomain()
+        return jpaRepository.saveRefusingTakenName(entity).toDomain()
     }
 
     @Transactional
@@ -107,3 +109,16 @@ class JpaSubstituteRepositoryAdapter(
         updatedAt = updatedAt,
     )
 }
+
+private const val NAME_INDEX = "uq_substitutes_name"
+
+// The service refuses a taken name before writing; uq_substitutes_name catches the one taken in
+// between, by a concurrent create. Flushing makes that refusal happen here rather than at commit, so
+// the caller hears the same SubstituteNameTakenException (409) either way.
+private fun SpringDataSubstituteRepository.saveRefusingTakenName(entity: SubstituteJpaEntity): SubstituteJpaEntity =
+    try {
+        saveAndFlush(entity)
+    } catch (e: DataIntegrityViolationException) {
+        if (e.mostSpecificCause.message?.contains(NAME_INDEX) == true) throw SubstituteNameTakenException(entity.name)
+        throw e
+    }

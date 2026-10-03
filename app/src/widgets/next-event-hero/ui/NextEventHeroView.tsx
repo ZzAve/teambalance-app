@@ -4,6 +4,7 @@ import type { Event } from '@shared/api/events'
 import type { AttendanceState } from '@features/attendance-toggle/ui/AttendanceToggle'
 import { ReadinessBadge } from '@entities/event/ui/ReadinessBadge'
 import { SectionLabel } from '@shared/ui/SectionLabel'
+import { MapsLink } from '@shared/ui/MapsLink'
 import { heroCountdown } from '../lib/countdown'
 import { useTeamRoutes } from '@shared/lib/team-routes'
 
@@ -109,14 +110,12 @@ export function NextEventHeroView({
           {/* An address is worth a tap of its own, exactly as in the list card below. It is a
               sibling of the card link rather than nested inside it (an <a> in an <a> is invalid
               HTML), and relative z-10 lifts it above the stretched overlay. */}
-          <a
-            href={`https://maps.google.com/?q=${encodeURIComponent(event.location)}`}
-            target="_blank"
-            rel="noopener noreferrer"
+          <MapsLink
+            location={event.location}
             className="relative z-10 underline decoration-white/30 underline-offset-2 transition-colors hover:decoration-white"
           >
             {event.location}
-          </a>
+          </MapsLink>
         </p>
       )}
 

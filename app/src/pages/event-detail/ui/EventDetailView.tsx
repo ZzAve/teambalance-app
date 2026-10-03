@@ -1,8 +1,9 @@
 import { useState, type ReactNode } from 'react'
 import { Link } from '@tanstack/react-router'
-import { AlignLeft, CalendarDays, Clock, Link2, MapPin, type LucideIcon } from 'lucide-react'
+import { AlignLeft, CalendarDays, Clock, ExternalLink, Link2, MapPin, type LucideIcon } from 'lucide-react'
 import type { EventDetail } from '@shared/api/events'
 import { Button } from '@shared/ui/button'
+import { MapsLink } from '@shared/ui/MapsLink'
 import { QueryErrorState } from '@shared/ui/QueryErrorState'
 import { SectionLabel } from '@shared/ui/SectionLabel'
 import { EventTypeBadge } from '@entities/event/ui/EventTypeBadge'
@@ -132,14 +133,13 @@ export function EventDetailView({
           </InfoRow>
           {event.location && (
             <InfoRow icon={MapPin} label="Location">
-              <a
-                href={`https://maps.google.com/?q=${encodeURIComponent(event.location)}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hover:text-blue hover:underline"
+              <MapsLink
+                location={event.location}
+                className="inline-flex items-center gap-1.5 font-medium text-blue underline decoration-blue/30 underline-offset-4 hover:decoration-blue"
               >
                 {event.location}
-              </a>
+                <ExternalLink size={14} className="shrink-0" aria-hidden />
+              </MapsLink>
             </InfoRow>
           )}
           {event.description && (

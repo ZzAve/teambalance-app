@@ -2,6 +2,7 @@ import { useEvent, type Event } from '@shared/api/events'
 import { useSetAttendance } from '@shared/api/attendances'
 import { useCurrentUser } from '@shared/api/auth'
 import type { AttendanceState } from '@features/attendance-toggle/ui/AttendanceToggle'
+import { EventLineupPanel } from '@widgets/event-panel/ui/EventLineupPanel'
 import { NextEventHeroView } from './NextEventHeroView'
 
 /**
@@ -28,15 +29,26 @@ export function NextEventHero({ event, now }: { event: Event; now?: Date }) {
     (detail?.attendances.find((a) => a.userId === currentUserId)?.state as AttendanceState) ??
     'NOT_RESPONDED'
 
+  const shown = detail ?? event
+
   return (
     <NextEventHeroView
-      event={detail ?? event}
+      event={shown}
       myState={myState}
       isSaving={isPending}
       now={now}
       onRespond={(state) => {
         if (currentUserId) mutate({ eventId: event.id, userId: currentUserId, state })
       }}
+      lineup={
+        <EventLineupPanel
+          attendances={shown.attendances}
+          roster={shown.roster}
+          currentUserId={currentUserId}
+          pending={isPending}
+          onRespond={(userId, state) => mutate({ eventId: event.id, userId, state })}
+        />
+      }
     />
   )
 }

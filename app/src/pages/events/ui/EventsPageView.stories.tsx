@@ -223,6 +223,17 @@ function EventsPageHarness(args: HarnessArgs) {
               args.onHeroRespond(state)
               answer(hero.id, 'u-me', state)
             }}
+            lineup={
+              <EventLineupPanel
+                attendances={hero.attendances}
+                roster={hero.roster}
+                currentUserId="u-me"
+                onRespond={(userId, state) => {
+                  args.onRespondFor(hero.id, userId, state)
+                  answer(hero.id, userId, state)
+                }}
+              />
+            }
           />
         )
       }
@@ -402,8 +413,9 @@ export const Interactions: Story = {
     await expect(canvas.getAllByRole('button', { name: /Hide lineup/ }).length).toBeGreaterThan(0)
 
     // Answering for a teammate from a card's lineup: the chip opens the answer sheet, which names
-    // them, and the pick reports the event, the member and the state through the panel slot.
-    await userEvent.click(canvas.getAllByRole('button', { name: /Sofia — Maybe/ })[0])
+    // them, and the pick reports the event, the member and the state through the panel slot. The
+    // hero's lineup is always open and comes first, so the match card's chip is the second.
+    await userEvent.click(canvas.getAllByRole('button', { name: /Sofia — Maybe/ })[1])
     const sheet = within(await within(document.body).findByRole('dialog'))
     await expect(sheet.getByText(/you are answering for them/)).toBeInTheDocument()
     await userEvent.click(sheet.getByRole('button', { name: "Can't go" }))

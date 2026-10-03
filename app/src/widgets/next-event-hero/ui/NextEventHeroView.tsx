@@ -1,4 +1,5 @@
 import { Link } from '@tanstack/react-router'
+import type { ReactNode } from 'react'
 import { Check, Clock, MapPin, X } from 'lucide-react'
 import type { Event } from '@shared/api/events'
 import type { AttendanceState } from '@features/attendance-toggle/ui/AttendanceToggle'
@@ -16,6 +17,12 @@ interface NextEventHeroViewProps {
   onRespond: (state: AttendanceState) => void
   /** Injected so the countdown is deterministic in stories; defaults to the real clock. */
   now?: Date
+  /**
+   * The lineup, always shown: the list cards keep it behind a disclosure, but the next event is the
+   * one whose roster matters right now. Injected for the same reason as on the card — it is built
+   * from widgets this View should not have to wire.
+   */
+  lineup?: ReactNode
 }
 
 /** The status line's second clause — what the viewer has (or hasn't) said. */
@@ -41,6 +48,7 @@ export function NextEventHeroView({
   isSaving = false,
   onRespond,
   now = new Date(),
+  lineup,
 }: NextEventHeroViewProps) {
   const routes = useTeamRoutes()
   const date = new Date(event.startTime)
@@ -75,9 +83,15 @@ export function NextEventHeroView({
       {/* The passive rows fade with a colour alpha (text-white/xx), never with `opacity`: an
           element with opacity < 1 forms its own stacking context and would paint *above* the
           title's stretched overlay, punching a dead hole in the card's hit area. */}
-      <SectionLabel as="p" className="pr-12 text-white/90">
-        Next up
-      </SectionLabel>
+      <div className="flex items-center gap-2 pr-12">
+        <SectionLabel as="p" className="text-white/90">
+          Next up
+        </SectionLabel>
+        {/* The card's type tag, in white: the type's own tint has no contrast on the green. */}
+        <span className="rounded-full bg-white/20 px-2 py-0.5 text-caption font-semibold">
+          {event.eventType.name}
+        </span>
+      </div>
 
       <h3 className="font-display mb-1 mt-2 pr-12 text-title font-extrabold leading-[1.08]">
         {/* Stretched-link pattern, as EventCard uses in the list below: the card is not an anchor,
@@ -118,6 +132,10 @@ export function NextEventHeroView({
             {event.location}
           </a>
         </p>
+      )}
+
+      {event.description && (
+        <p className="mt-1.5 line-clamp-2 text-small text-white/85">{event.description}</p>
       )}
 
       {/* The headcount and the viewer's answer on the left; the roster verdict on the right (#275).
@@ -164,6 +182,12 @@ export function NextEventHeroView({
           Can&apos;t make it
         </button>
       </div>
+
+      {/* On a light surface of its own: the panel is drawn in the card's palette. relative z-10 lifts
+          its chips above the stretched overlay. */}
+      {lineup && (
+        <div className="relative z-10 mt-3 rounded-md bg-card p-3 text-foreground">{lineup}</div>
+      )}
     </section>
   )
 }

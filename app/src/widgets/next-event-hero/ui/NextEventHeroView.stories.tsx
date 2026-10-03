@@ -1,8 +1,9 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { expect, fn, within } from 'storybook/test'
 import { withRouter } from '@shared/testing/router-decorator'
-import { makeEvent, makeRoster, NO_ROSTER } from '@shared/testing/event-fixtures'
+import { makeAttendee, makeEvent, makeRoster, NO_ROSTER } from '@shared/testing/event-fixtures'
 import { Stack } from '@shared/testing/stack'
+import { EventLineupPanel } from '@widgets/event-panel/ui/EventLineupPanel'
 import { NextEventHeroView } from './NextEventHeroView'
 
 // NextEventHeroView is the prop-only Next Up hero behind the NextEventHero container: the event,
@@ -31,8 +32,20 @@ const EVENT = makeEvent({
   title: 'Training — Court 2',
   startTime: new Date(2026, 7, 12, 20, 0).toISOString(),
   location: 'Sporthal De Toekomst',
+  description: 'Bring both shirts — we split into two sides for the last half hour.',
   attendanceSummary: { attending: 10, maybe: 1, absent: 0, notResponded: 4, roleBreakdown: [] },
+  attendances: [
+    makeAttendee('u-me', 'Julius', 'Setter', { state: 'NOT_RESPONDED' }),
+    makeAttendee('u-2', 'Sanne', 'Setter'),
+    makeAttendee('u-3', 'Lars', 'Libero'),
+  ],
 })
+
+// The same panel the list cards open, always shown here. Its answer wiring is the container's, so
+// the stories prove only that it renders and that its chips stay above the card link's overlay.
+const LINEUP = (
+  <EventLineupPanel attendances={EVENT.attendances} roster={EVENT.roster} currentUserId="u-me" onRespond={fn()} />
+)
 
 const READY_EVENT = makeEvent({
   ...EVENT,
@@ -74,10 +87,18 @@ type Story = StoryObj<typeof meta>
 // Picture owned by the page composite (pages/EventsPageView) — behavioural only (ADR-0032 §3).
 export const Data: Story = {
   parameters: { chromatic: { disableSnapshot: true } },
+  args: { lineup: LINEUP },
   play: async ({ canvas }) => {
     await expect(canvas.getByText('Next up')).toBeInTheDocument()
+    // Every detail a list card carries: type, title, time, location, description and the lineup.
+    await expect(canvas.getByText('Training')).toBeInTheDocument()
     await expect(canvas.getByText('Training — Court 2')).toBeInTheDocument()
     await expect(canvas.getByText('Sporthal De Toekomst')).toBeInTheDocument()
+    await expect(canvas.getByText(/Bring both shirts/)).toBeInTheDocument()
+    // The lineup is open from the start — there is no disclosure to tap.
+    await expect(canvas.getByText('Lineup')).toBeInTheDocument()
+    await expect(canvas.getByRole('button', { name: /^Sanne/ })).toBeInTheDocument()
+    await expect(canvas.queryByRole('button', { name: /Show lineup/ })).not.toBeInTheDocument()
     // Two days and eleven hours out, floored to the largest useful unit.
     await expect(canvas.getByText('2d')).toBeInTheDocument()
     await expect(canvas.getByText(/10 going · you haven't responded/)).toBeInTheDocument()
@@ -215,7 +236,7 @@ export const Interactions: Story = {
   render: (args) => (
     <Stack
       items={{
-        Default: <NextEventHeroView {...args} />,
+        Default: <NextEventHeroView {...args} lineup={LINEUP} />,
         Saving: <NextEventHeroView {...args} isSaving />,
       }}
     />
@@ -247,6 +268,10 @@ export const Interactions: Story = {
       const button = within(defaultRegion).getByRole('button', { name })
       await expect(topmostAtCentreOf(button)?.closest('button')).toBe(button)
     }
+
+    // The lineup's chips open the answer sheet, so they sit above the overlay too.
+    const chip = within(defaultRegion).getByRole('button', { name: /^Sanne/ })
+    await expect(topmostAtCentreOf(chip)?.closest('button')).toBe(chip)
 
     // The location opens maps, so it stays its own target — and stays a *sibling* of the card link
     // rather than a nested <a>, which is invalid HTML.

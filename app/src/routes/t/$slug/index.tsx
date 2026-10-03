@@ -96,6 +96,24 @@ function EventListPage() {
     const removeSubstituteAttendance = useRemoveSubstituteAttendance()
     const pendingSubstituteEvents = usePendingSubstituteEvents()
 
+    // The lineup panel, built once for the list cards and the hero: both need the page's attendance
+    // write and its one Substitute picker.
+    const lineupPanel = (event: Event) => (
+        <EventLineupPanel
+            attendances={event.attendances}
+            roster={event.roster}
+            currentUserId={currentUserId}
+            substitutes={event.substitutes}
+            onRespond={(userId, state) => respondFor(event.id, userId, state)}
+            onCallInSubstitutes={(position) => setPicker({eventId: event.id, position, open: true})}
+            onSetSubstituteState={(substituteId, state) =>
+                setSubstituteAttendance.mutate({eventId: event.id, substituteId, state})}
+            onTakeOffSubstitute={(substituteId) =>
+                removeSubstituteAttendance.mutate({eventId: event.id, substituteId})}
+            substitutePending={pendingSubstituteEvents.includes(event.id)}
+        />
+    )
+
     const respond = (eventId: string, state: Event['myState']) => {
         if (!currentUserId) return
         respondFor(eventId, currentUserId, state)
@@ -169,7 +187,7 @@ function EventListPage() {
                 defaultExpanded,
                 onDefaultExpandedChange: setDefaultExpanded,
             }}
-            hero={heroEvent && <NextEventHero event={heroEvent} now={now}/>}
+            hero={heroEvent && <NextEventHero event={heroEvent} now={now} lineup={lineupPanel}/>}
             bulkBar={<BulkAttendBar events={bulkEvents}/>}
             list={{
                 events: listEvents,
@@ -180,21 +198,7 @@ function EventListPage() {
                 // lineup panel). Injected from here because the panel is a widget and the card is an
                 // entity — the card cannot build one itself.
                 defaultRosterOpen: defaultExpanded,
-                rosterPanel: (event) => (
-                    <EventLineupPanel
-                        attendances={event.attendances}
-                        roster={event.roster}
-                        currentUserId={currentUserId}
-                        substitutes={event.substitutes}
-                        onRespond={(userId, state) => respondFor(event.id, userId, state)}
-                        onCallInSubstitutes={(position) => setPicker({eventId: event.id, position, open: true})}
-                        onSetSubstituteState={(substituteId, state) =>
-                            setSubstituteAttendance.mutate({eventId: event.id, substituteId, state})}
-                        onTakeOffSubstitute={(substituteId) =>
-                            removeSubstituteAttendance.mutate({eventId: event.id, substituteId})}
-                        substitutePending={pendingSubstituteEvents.includes(event.id)}
-                    />
-                ),
+                rosterPanel: lineupPanel,
                 // A rendered hero IS loaded data — it was pulled out of this very list — so an empty
                 // list beneath it means "nothing else", never a failure. Withholding the flags keeps
                 // the list from painting a skeleton or an error over a page that is plainly fine.

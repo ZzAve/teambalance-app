@@ -227,7 +227,7 @@ export const Interactions: Story = {
     await userEvent.click(within(substitutes.getByRole('group', { name: 'Mila Jansen' })).getByRole('button', { name: 'Going' }))
     await expect(args.onSetSubstituteState).toHaveBeenCalledWith('sub-2', 'ATTENDING')
     await userEvent.click(substitutes.getByRole('button', { name: 'Call in substitutes' }))
-    await expect(args.onCallInSubstitutes).toHaveBeenCalled()
+    await expect(args.onCallInSubstitutes).toHaveBeenCalledWith(null)
 
     // Tapping a Substitute, in their Position group or in the block, opens their sheet, which can also
     // take them off the event.

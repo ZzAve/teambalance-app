@@ -58,6 +58,7 @@ const meta = {
     attendees: ROSTER_PEOPLE,
     roster: makeRoster(),
     onRespond: fn(),
+    onFindSubstitute: fn(),
   },
   // The card the detail page wraps it in, hosted in the app column so a wider viewport shows the
   // width the product gives the list at each breakpoint (ADR-0032 §4).
@@ -92,6 +93,11 @@ export const Data: Story = {
     // Middle is short the same way (Milan going, Mees can't).
     await expect(heading('Middle').getByText('needs 1 more')).toBeInTheDocument()
     await expect(heading('Middle').getByText('1/2')).toBeInTheDocument()
+
+    // A short Position offers a way to fill it (#359); a covered one does not.
+    await expect(canvas.getByRole('button', { name: 'Find a Setter · 1 open' })).toBeInTheDocument()
+    await expect(canvas.getByRole('button', { name: 'Find a Middle · 1 open' })).toBeInTheDocument()
+    await expect(canvas.queryByRole('button', { name: /Find a Libero/ })).not.toBeInTheDocument()
 
     // Unassigned is last and carries no verdict — there is nothing for it to fall short of.
     const headings = canvas.getAllByRole('heading').map((h) => h.textContent)
@@ -130,7 +136,7 @@ export const Shells: Story = {
         ),
         // Without `onRespond` the same list is a read-out, not a control: every member still named,
         // tinted and pilled, but nothing to open.
-        ReadOnly: <AttendeeList {...args} onRespond={undefined} />,
+        ReadOnly: <AttendeeList {...args} onRespond={undefined} onFindSubstitute={undefined} />,
       }}
     />
   ),
@@ -205,5 +211,10 @@ export const Interactions: Story = {
     const sanneSheet = within(await body.findByRole('dialog'))
     await expect(sanneSheet.getByText(/Setter · currently going/)).toBeInTheDocument()
     await expect(sanneSheet.queryByText(/answering for them/)).not.toBeInTheDocument()
+    await userEvent.keyboard('{Escape}')
+
+    // A short Position's nudge opens the picker for that Position (#359).
+    await userEvent.click(region('Viewer among teammates').getByRole('button', { name: 'Find a Middle · 1 open' }))
+    await expect(args.onFindSubstitute).toHaveBeenCalledWith({ id: 'pos-middle', label: 'Middle' })
   },
 }

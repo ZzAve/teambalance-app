@@ -71,7 +71,11 @@ export function useRenamePosition() {
       if (res.status === 404) throw new PositionError('NOT_FOUND', 'Position not found.')
       return res.body
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['positions'] }),
+    // Substitutes carry their Position's label, so their list shows the new one too.
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['positions'] })
+      queryClient.invalidateQueries({ queryKey: ['substitutes'] })
+    },
   })
 }
 
@@ -108,10 +112,12 @@ export function useDeletePosition() {
       if (res.status === 403) throw new PositionError('FORBIDDEN', 'You are not allowed to remove this position.')
       if (res.status === 404) throw new PositionError('NOT_FOUND', 'Position not found.')
     },
-    // Deleting a position reassigns its members to Unassigned, so refresh the roster too.
+    // Deleting a position reassigns its members and Substitutes to Unassigned, so refresh both lists
+    // too. A stale Substitute row would otherwise resend the deleted id on its next rename.
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['positions'] })
       queryClient.invalidateQueries({ queryKey: ['members'] })
+      queryClient.invalidateQueries({ queryKey: ['substitutes'] })
     },
   })
 }

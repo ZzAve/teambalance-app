@@ -1,5 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { MemberRoster } from '@features/manage-members/ui/MemberRoster'
+import { ManageSubstitutes } from '@features/manage-substitutes/ui/ManageSubstitutes'
 import { GenerateInviteDialog } from '@features/generate-invite/ui/GenerateInviteDialog'
 import { TeamPageView } from '@pages/team/ui/TeamPageView'
 import { useCurrentUser } from '@shared/api/auth'
@@ -21,6 +22,7 @@ function TeamPage() {
       isAdmin={isAdmin}
       inviteAction={<GenerateInviteDialog />}
       roster={<MemberRoster canManage={false} />}
+      substitutes={<ManageSubstitutes canManage={false} />}
     />
   )
 }

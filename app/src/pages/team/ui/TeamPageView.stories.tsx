@@ -5,14 +5,15 @@ import type { Position } from '@shared/api/positions'
 import { Button } from '@shared/ui/button'
 import { Stack } from '@shared/testing/stack'
 import { MemberRosterView } from '@features/manage-members/ui/MemberRosterView'
+import { ManageSubstitutesView } from '@features/manage-substitutes/ui/ManageSubstitutesView'
 import { appShell } from '../../../../.storybook/app-shell-decorator'
 import { pageModes } from '../../../../.storybook/modes'
 import { TeamPageView } from './TeamPageView'
 
 // The team page as a phone shows it (ADR-0032 §3): the header (title, invite action and settings
-// gear for admins) over the read-only roster, inside the real app shell. This composite owns the
-// pixels for the header and the read-only MemberRosterView; the roster keeps its own snapshots only
-// for the editable rows, the shells and the open remove-confirm.
+// gear for admins) over the read-only roster and the read-only Substitute list, inside the real app
+// shell. This composite owns the pixels for the header, the read-only MemberRosterView and the
+// read-only ManageSubstitutesView; those keep their own snapshots only for what this page can't show.
 const POSITIONS: Position[] = [
   { id: 'p1', label: 'Setter', kind: 'PLAYING' },
   { id: 'p2', label: 'Libero', kind: 'PLAYING' },
@@ -40,6 +41,20 @@ const roster = (state: Partial<Parameters<typeof MemberRosterView>[0]> = {}) => 
   />
 )
 
+const substitutes = (
+  <ManageSubstitutesView
+    canManage={false}
+    substitutes={[
+      { id: 's1', name: 'Jan de Vries', position: { id: 'p2', label: 'Libero' } },
+      { id: 's2', name: 'Sam Bakker', position: undefined },
+    ]}
+    positions={POSITIONS}
+    onRename={noop}
+    onChangePosition={noop}
+    onRemove={noop}
+  />
+)
+
 const shell = appShell('team')
 
 const meta = {
@@ -51,6 +66,7 @@ const meta = {
     isAdmin: true,
     inviteAction: <Button variant="outline">Invite Link</Button>,
     roster: roster(),
+    substitutes,
   },
 } satisfies Meta<typeof TeamPageView>
 
@@ -68,8 +84,12 @@ export const Data: Story = {
     for (const name of ['Ada Lovelace', 'Grace Hopper', 'Alan Turing', 'Katherine Johnson']) {
       await expect(canvas.getByText(name)).toBeInTheDocument()
     }
+    // The Team's Substitutes sit under the roster: people the Team calls in, not Members (ADR-0033).
+    await expect(canvas.getByRole('heading', { name: 'Substitutes' })).toBeInTheDocument()
+    await expect(canvas.getByText('Jan de Vries')).toBeInTheDocument()
     // Read-only for everyone, admins included: management lives under settings.
     await expect(canvas.queryByRole('button', { name: 'Remove' })).not.toBeInTheDocument()
+    await expect(canvas.queryByLabelText(/^Actions for /)).not.toBeInTheDocument()
     // The shell around it: the Team tab is the current one.
     await expect(canvas.getByRole('link', { name: 'Team' })).toHaveAttribute('aria-current', 'page')
   },

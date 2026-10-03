@@ -24,6 +24,12 @@ interface SpringDataSubstituteRepository : JpaRepository<SubstituteJpaEntity, UU
     )
     fun findAllWithPosition(): List<SubstituteProjection>
 
+    @Query(
+        value = "SELECT count(*) FROM substitute_attendances WHERE substitute_id = :substituteId",
+        nativeQuery = true,
+    )
+    fun countAttendances(@Param("substituteId") substituteId: UUID): Int
+
     @Modifying
     @Query(
         value = """

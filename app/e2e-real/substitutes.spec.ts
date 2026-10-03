@@ -8,12 +8,20 @@ import { test, expect } from '@playwright/test'
 // the attendance flow exercises it.
 //
 // Runs as the seeded admin (shared storageState) on the seeded "E2E Training". Deterministic across
-// warm-DB re-runs: the Substitute gets a name unique to this run, and the flow ends by taking them
-// off the event again. Each run does leave one more name on the Team's list, which has no removal
-// until Admins can manage it (#359 slice 3).
+// warm-DB re-runs: the Substitute gets a name unique to this run, the flow ends by taking them off
+// the event again, and afterEach removes them from the Team's list, so the list does not grow by one
+// per run. That removal is cleanup through the API, not part of the flow under test.
+
+const name = `Sub ${Date.now()}`
+
+test.afterEach(async ({ page }) => {
+  const res = await page.request.get('/api/substitutes')
+  const { substitutes } = (await res.json()) as { substitutes: { id: string; name: string }[] }
+  const created = substitutes.find((s) => s.name === name)
+  if (created) expect((await page.request.delete(`/api/substitutes/${created.id}`)).status()).toBe(204)
+})
 
 test('a member calls in a new substitute, confirms them, and takes them off again', async ({ page }) => {
-  const name = `Sub ${Date.now()}`
 
   await page.goto('/')
   await page.getByText('E2E Training').first().click()
@@ -23,7 +31,7 @@ test('a member calls in a new substitute, confirms them, and takes them off agai
   await block.getByRole('button', { name: 'Call in substitutes' }).click()
   const picker = page.getByRole('dialog', { name: 'Call in substitutes' })
   await picker.getByRole('button', { name: /New substitute/ }).click()
-  await picker.getByLabel('Name').fill(name)
+  await picker.getByLabel('Name', { exact: true }).fill(name)
   await picker.getByRole('button', { name: 'Add as asked' }).click()
   await expect(picker.getByRole('group', { name }).getByRole('button', { name: 'Asked' })).toHaveAttribute(
     'aria-pressed',

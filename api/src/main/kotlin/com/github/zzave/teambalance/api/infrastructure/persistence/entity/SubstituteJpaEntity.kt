@@ -14,9 +14,9 @@ class SubstituteJpaEntity(
     @Id
     val id: UUID = UUID.randomUUID(),
     @Column(nullable = false)
-    val name: String = "",
+    var name: String = "",
     @Column(name = "position_id")
-    val positionId: UUID? = null,
+    var positionId: UUID? = null,
     @Column(name = "created_by", nullable = false)
     val createdBy: UUID = UUID.randomUUID(),
     @Column(name = "created_at", nullable = false)

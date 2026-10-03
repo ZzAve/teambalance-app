@@ -10,13 +10,17 @@ import com.github.zzave.teambalance.api.domain.model.SubstituteId
 import com.github.zzave.teambalance.api.domain.port.CurrentTeamGateway
 import com.github.zzave.teambalance.api.domain.port.CurrentUserGateway
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.CreateSubstitute
+import com.github.zzave.teambalance.api.interfaces.generated.endpoint.DeleteSubstitute
+import com.github.zzave.teambalance.api.interfaces.generated.endpoint.GetSubstituteUsage
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.ListSubstitutes
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.RemoveSubstituteAttendance
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.SetSubstituteAttendance
+import com.github.zzave.teambalance.api.interfaces.generated.endpoint.UpdateSubstitute
 import com.github.zzave.teambalance.api.interfaces.generated.model.DateTimestampWithTimezone
 import com.github.zzave.teambalance.api.interfaces.generated.model.MemberPosition
 import com.github.zzave.teambalance.api.interfaces.generated.model.SubstituteEntry
 import com.github.zzave.teambalance.api.interfaces.generated.model.SubstituteList
+import com.github.zzave.teambalance.api.interfaces.generated.model.SubstituteUsage
 import org.springframework.web.bind.annotation.RestController
 import java.util.UUID
 import com.github.zzave.teambalance.api.interfaces.generated.model.Substitute as SubstituteDto
@@ -28,6 +32,9 @@ class SubstituteController(
     private val currentTeamGateway: CurrentTeamGateway,
 ) : ListSubstitutes.Handler,
     CreateSubstitute.Handler,
+    UpdateSubstitute.Handler,
+    DeleteSubstitute.Handler,
+    GetSubstituteUsage.Handler,
     SetSubstituteAttendance.Handler,
     RemoveSubstituteAttendance.Handler {
 
@@ -47,6 +54,35 @@ class SubstituteController(
             positionId = request.body.positionId?.consumePositionId(),
         )
         return CreateSubstitute.Response201(created.produce())
+    }
+
+    override suspend fun updateSubstitute(request: UpdateSubstitute.Request): UpdateSubstitute.Response<*> {
+        val updated = substituteService.updateSubstitute(
+            callerId = currentUserGateway.requireCurrentUserId(),
+            teamId = currentTeamGateway.requireCurrentTeamId(),
+            id = request.path.id.consumeSubstituteId(),
+            rawName = request.body.name,
+            positionId = request.body.positionId?.consumePositionId(),
+        )
+        return UpdateSubstitute.Response200(updated.produce())
+    }
+
+    override suspend fun getSubstituteUsage(request: GetSubstituteUsage.Request): GetSubstituteUsage.Response<*> {
+        val eventCount = substituteService.substituteEventCount(
+            callerId = currentUserGateway.requireCurrentUserId(),
+            teamId = currentTeamGateway.requireCurrentTeamId(),
+            id = request.path.id.consumeSubstituteId(),
+        )
+        return GetSubstituteUsage.Response200(SubstituteUsage(eventCount = eventCount.value.toLong()))
+    }
+
+    override suspend fun deleteSubstitute(request: DeleteSubstitute.Request): DeleteSubstitute.Response<*> {
+        substituteService.deleteSubstitute(
+            callerId = currentUserGateway.requireCurrentUserId(),
+            teamId = currentTeamGateway.requireCurrentTeamId(),
+            id = request.path.id.consumeSubstituteId(),
+        )
+        return DeleteSubstitute.Response204(Unit)
     }
 
     override suspend fun setSubstituteAttendance(

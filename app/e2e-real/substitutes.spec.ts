@@ -8,12 +8,20 @@ import { test, expect } from '@playwright/test'
 // the attendance flow exercises it.
 //
 // Runs as the seeded admin (shared storageState) on the seeded "E2E Training". Deterministic across
-// warm-DB re-runs: the Substitute gets a name unique to this run, and the flow ends by taking them
-// off the event again. Each run does leave one more name on the Team's list: removing it is an
-// Admin action on team settings, outside this flow.
+// warm-DB re-runs: the Substitute gets a name unique to this run, the flow ends by taking them off
+// the event again, and afterEach removes them from the Team's list, so the list does not grow by one
+// per run. That removal is cleanup through the API, not part of the flow under test.
+
+const name = `Sub ${Date.now()}`
+
+test.afterEach(async ({ page }) => {
+  const res = await page.request.get('/api/substitutes')
+  const { substitutes } = (await res.json()) as { substitutes: { id: string; name: string }[] }
+  const created = substitutes.find((s) => s.name === name)
+  if (created) expect((await page.request.delete(`/api/substitutes/${created.id}`)).status()).toBe(204)
+})
 
 test('a member calls in a new substitute, confirms them, and takes them off again', async ({ page }) => {
-  const name = `Sub ${Date.now()}`
 
   await page.goto('/')
   await page.getByText('E2E Training').first().click()

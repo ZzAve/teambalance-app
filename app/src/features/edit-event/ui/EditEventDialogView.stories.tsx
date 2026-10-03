@@ -34,6 +34,7 @@ const EVENT: EventDetail = {
   recurringGroup: undefined,
   attendanceSummary: { attending: 0, maybe: 0, absent: 0, notResponded: 0, roleBreakdown: [] },
   attendances: [],
+  substitutes: [],
   myState: 'NOT_RESPONDED',
   rosterOverride: undefined,
   roster: NO_ROSTER,

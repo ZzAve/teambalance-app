@@ -1,6 +1,7 @@
 package com.github.zzave.teambalance.api.domain.model
 
 import com.github.zzave.teambalance.api.domain.model.DisplayName
+import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import java.time.Instant
@@ -110,5 +111,72 @@ class EventAttendanceTest : FunSpec({
 
         projection.entries.first { it.member == responded }.responseId shouldBe row.id
         projection.entries.first { it.member == silent }.responseId shouldBe null
+    }
+
+    // ── Substitutes (ADR-0033) ────────────────────────────────────────────
+
+    val setterId = PositionId(UUID.randomUUID())
+
+    fun substitute(name: String, positionId: PositionId? = null) = Substitute(
+        id = SubstituteId(UUID.randomUUID()),
+        name = DisplayName(name),
+        positionId = positionId,
+        position = positionId?.let { PositionLabel("Setter") },
+    )
+
+    fun Substitute.on(state: AttendanceState) = SubstituteAttendance(
+        substitute = this,
+        state = state,
+        changedBy = UserId.random(),
+        updatedAt = Instant.EPOCH,
+    )
+
+    test("an attending substitute fills their position, like an attending member") {
+        val setter = member("S").copy(positionId = setterId)
+        val sub = substitute("Sub", positionId = setterId)
+        val unpositionedSub = substitute("Floater")
+
+        val projection = EventAttendance.resolve(
+            members = listOf(setter),
+            responses = listOf(setter.responded(AttendanceState.ATTENDING)),
+            substitutes = listOf(sub.on(AttendanceState.ATTENDING), unpositionedSub.on(AttendanceState.ATTENDING)),
+        )
+
+        projection.attendingByPositionId() shouldBe mapOf(setterId to 2, null to 1)
+        projection.attendingSubstitutes() shouldBe 2
+    }
+
+    test("a substitute who is only asked fills no spot") {
+        val asked = substitute("Asked", positionId = setterId)
+
+        val projection = EventAttendance.resolve(
+            members = emptyList(),
+            responses = emptyList(),
+            substitutes = listOf(asked.on(AttendanceState.MAYBE)),
+        )
+
+        projection.attendingByPositionId() shouldBe emptyMap()
+        projection.attendingSubstitutes() shouldBe 0
+    }
+
+    test("substitutes never count toward the members' summary") {
+        val silent = member("Silent")
+
+        val projection = EventAttendance.resolve(
+            members = listOf(silent),
+            responses = emptyList(),
+            substitutes = listOf(substitute("Sub").on(AttendanceState.ATTENDING)),
+        )
+
+        projection.summary() shouldBe mapOf(
+            AttendanceState.ATTENDING to 0,
+            AttendanceState.MAYBE to 0,
+            AttendanceState.ABSENT to 0,
+            AttendanceState.NOT_RESPONDED to 1,
+        )
+    }
+
+    test("a substitute is never Not Responded") {
+        shouldThrow<IllegalArgumentException> { substitute("Sub").on(AttendanceState.NOT_RESPONDED) }
     }
 })

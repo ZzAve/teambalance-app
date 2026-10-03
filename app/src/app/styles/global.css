@@ -43,6 +43,12 @@
      say bg-red/text-red/border-red instead of reaching for Tailwind's own default red (#EF4444),
      which is not ours (F9, #159). Keep in sync with design-tokens/tokens.css, like the three above. */
   --color-red: #D93025;
+  /* Substitutes' colour (ADR-0033): fills and borders use purple, text uses purple-ink. The fill
+     stays one value in both themes because avatars also sit white text on it (shared/lib/avatar).
+     Purple as text needs its own dark step, the same split gold-ink makes below: the `.dark`
+     override re-points purple-ink to #A68BD0 (5.9:1 on the dark card, where #7B5EA7 is 3.3:1). */
+  --color-purple: #7B5EA7;
+  --color-purple-ink: #7B5EA7;
   /* The `-dark` ramps of the same three hues, promoted from design-tokens/tokens.css. Tailwind 4
      generates a utility only for what @theme declares, so `text-green-dark` silently produced
      nothing before this. The roster panel (#219) needs the full triple per hue: the plain hue as a
@@ -224,6 +230,8 @@
   --color-red: #EF5350;
   --color-red-light: #F58A87;
   --color-red-dark: #D93025;
+  /* Purple as ink moves, like gold-ink: #7B5EA7 is 3.3:1 on this card, #A68BD0 is 5.9:1. */
+  --color-purple-ink: #A68BD0;
   /* --color-gold-ink is the one gold token that *does* move here (#336): its light value is tuned
      dark enough to clear 4.5:1 on the cream card/background and would be far too dark to read as
      text on this near-black card. Re-pointing it to gold-dark's own value reuses a hex already

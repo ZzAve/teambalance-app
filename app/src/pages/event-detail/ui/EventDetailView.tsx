@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import { Link } from '@tanstack/react-router'
 import { MapPin } from 'lucide-react'
 import type { EventDetail } from '@shared/api/events'
@@ -16,6 +16,9 @@ import type { SeriesPeek as SeriesPeekModel } from '@entities/event/lib/series-p
 import { AttendeeList } from '@widgets/attendee-list/ui/AttendeeList'
 import { PageHeader } from '@widgets/page-header/ui/PageHeader'
 import { AttendanceToggle, type AttendanceState } from '@features/attendance-toggle/ui/AttendanceToggle'
+import { SubstitutesBlock, type SubstituteState } from '@features/call-in-substitutes/ui/SubstitutesBlock'
+import { SubstituteSheet } from '@features/call-in-substitutes/ui/SubstituteSheet'
+import { setByName } from '@entities/event/lib/attribution'
 
 interface EventDetailViewProps {
   isLoading?: boolean
@@ -29,10 +32,18 @@ interface EventDetailViewProps {
   /** Who last set the viewer's own answer, when it was a teammate (⑪). */
   myAttribution: string | null
   isPending?: boolean
+  /** A Substitute write is in flight; the Substitute controls are held. */
+  isSubstitutePending?: boolean
   /** The viewer changing their own answer. */
   onToggleMine: (state: AttendanceState) => void
   /** Any row in the list, the viewer's included — a teammate's change raises the Undo toast upstream. */
   onRespond: (userId: string, state: AttendanceState) => void
+  /** Any Member changing a Substitute's state on this event (ADR-0033). */
+  onSetSubstituteState: (substituteId: string, state: SubstituteState) => void
+  /** Takes a Substitute off this event; they stay on the Team's list. */
+  onTakeOffSubstitute: (substituteId: string) => void
+  /** Opens the picker for calling Substitutes in. */
+  onCallInSubstitutes: () => void
   seriesPeek: SeriesPeekModel | null
   /** Scoped series edit/delete (ADR-0014 Phase 3); absent for members. */
   adminActions?: ReactNode
@@ -54,11 +65,18 @@ export function EventDetailView({
   myState,
   myAttribution,
   isPending = false,
+  isSubstitutePending = false,
   onToggleMine,
   onRespond,
+  onSetSubstituteState,
+  onTakeOffSubstitute,
+  onCallInSubstitutes,
   seriesPeek,
   adminActions,
 }: EventDetailViewProps) {
+  // Which Substitute's sheet is open. Both their Position-group row and the block open it.
+  const [openSubstituteId, setOpenSubstituteId] = useState<string | null>(null)
+
   if (isLoading) return <EventDetailSkeleton />
   if (isError)
     return (
@@ -81,6 +99,7 @@ export function EventDetailView({
   // still turns on the narrower question: it survives only where no position carries a target, since
   // there the bar states a total but nothing about who plays where.
   const hasPositionTargets = event.roster.positions.some((p) => p.required != null)
+  const openSubstitute = event.substitutes.find((s) => s.substituteId === openSubstituteId)
   const showRosterBar = hasPositionTargets || event.roster.trackRoster
 
   return (
@@ -176,8 +195,28 @@ export function EventDetailView({
           currentUserId={currentUserId}
           onRespond={onRespond}
           pending={isPending}
+          substitutes={event.substitutes}
+          onOpenSubstitute={setOpenSubstituteId}
         />
       </div>
+
+      {/* Substitutes — directly under the Position groups (ADR-0033). */}
+      <SubstitutesBlock
+        substitutes={event.substitutes}
+        members={event.attendances}
+        onSetState={onSetSubstituteState}
+        onOpen={setOpenSubstituteId}
+        onCallIn={onCallInSubstitutes}
+        pending={isSubstitutePending}
+      />
+      <SubstituteSheet
+        substitute={openSubstitute ?? null}
+        setBy={openSubstitute ? setByName(openSubstitute.changedBy, event.attendances) : null}
+        onSetState={onSetSubstituteState}
+        onTakeOff={onTakeOffSubstitute}
+        onClose={() => setOpenSubstituteId(null)}
+        pending={isSubstitutePending}
+      />
 
       {/* Part of a series peek */}
       {seriesPeek && <SeriesPeek peek={seriesPeek} />}

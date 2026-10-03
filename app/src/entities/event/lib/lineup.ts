@@ -1,4 +1,4 @@
-import type { AttendanceEntry, EventRoster, RosterPosition } from '@shared/api/events'
+import type { AttendanceEntry, EventRoster, RosterPosition, SubstituteEntry } from '@shared/api/events'
 
 /**
  * The lineup panel's view model: one row per position, each carrying the people who play it.
@@ -32,6 +32,7 @@ const STATE_ORDER: Record<LineupState, number> = {
 }
 
 export interface LineupMember {
+  /** A Member's user id; for a Substitute, who has no account, their substitute id. */
   userId: string
   displayName: string
   /**
@@ -42,6 +43,8 @@ export interface LineupMember {
   state: LineupState
   /** The viewer, so the panel can mark their own chip and never squeeze it. */
   isSelf: boolean
+  /** Called in from outside the Team (ADR-0033): shown with a "Sub" tag, and never the viewer. */
+  isSubstitute: boolean
 }
 
 export interface LineupRow {
@@ -71,16 +74,24 @@ export const UNASSIGNED = 'Unassigned'
  * lists non-attendees too, so the rows are the union of the server's positions and the positions the
  * attendees actually name. A stale label nobody has cleaned up therefore still shows its people
  * rather than silently moving them to Unassigned.
+ *
+ * [substitutes] join the row of their Position, in whatever state they are, and an attending one
+ * counts toward it like an attending Member (ADR-0033).
  */
 export function lineupRows(
   attendees: AttendanceEntry[],
   roster: EventRoster,
   currentUserId?: string | null,
+  substitutes: SubstituteEntry[] = [],
 ): LineupRow[] {
+  const people = [
+    ...attendees.map((a) => ({ entry: toMember(a, currentUserId), role: a.role })),
+    ...substitutes.map((s) => ({ entry: substituteMember(s), role: s.position?.label })),
+  ]
   const byLabel = new Map<string, RosterPosition>(roster.positions.map((p) => [p.label, p]))
   const labels = [...byLabel.keys()]
-  for (const entry of attendees) {
-    if (entry.role && entry.role !== UNASSIGNED && !labels.includes(entry.role)) labels.push(entry.role)
+  for (const { role } of people) {
+    if (role && role !== UNASSIGNED && !labels.includes(role)) labels.push(role)
   }
 
   const rows = labels.map((label) => {
@@ -90,14 +101,11 @@ export function lineupRows(
       label,
       required: position?.required ?? null,
       isStaff: position?.kind === 'STAFF',
-      members: sortMembers(
-        attendees.filter((a) => a.role === label),
-        currentUserId,
-      ),
+      members: sortMembers(people.filter((p) => p.role === label).map((p) => p.entry)),
     })
   })
 
-  const unassigned = attendees.filter((a) => !a.role || !labels.includes(a.role))
+  const unassigned = people.filter((p) => !p.role || !labels.includes(p.role)).map((p) => p.entry)
   if (unassigned.length > 0) {
     rows.push(
       row({
@@ -105,7 +113,7 @@ export function lineupRows(
         label: UNASSIGNED,
         required: null,
         isStaff: false,
-        members: sortMembers(unassigned, currentUserId),
+        members: sortMembers(unassigned),
       }),
     )
   }
@@ -159,17 +167,33 @@ function row(base: Omit<LineupRow, 'attending' | 'openSlots' | 'surplus' | 'tone
   }
 }
 
-function sortMembers(entries: AttendanceEntry[], currentUserId?: string | null): LineupMember[] {
-  return entries
-    .map((a) => ({
-      userId: a.userId,
-      displayName: a.displayName,
-      // Replaced by `withDistinctNames` once the whole panel is known.
-      chipName: a.displayName,
-      state: a.state,
-      isSelf: a.userId === currentUserId,
-    }))
-    .sort((a, b) => STATE_ORDER[a.state] - STATE_ORDER[b.state] || a.displayName.localeCompare(b.displayName))
+function toMember(a: AttendanceEntry, currentUserId?: string | null): LineupMember {
+  return {
+    userId: a.userId,
+    displayName: a.displayName,
+    // Replaced by `withDistinctNames` once the whole panel is known.
+    chipName: a.displayName,
+    state: a.state,
+    isSelf: a.userId === currentUserId,
+    isSubstitute: false,
+  }
+}
+
+function substituteMember(s: SubstituteEntry): LineupMember {
+  return {
+    userId: s.substituteId,
+    displayName: s.name,
+    chipName: s.name,
+    state: s.state,
+    isSelf: false,
+    isSubstitute: true,
+  }
+}
+
+function sortMembers(members: LineupMember[]): LineupMember[] {
+  return members.sort(
+    (a, b) => STATE_ORDER[a.state] - STATE_ORDER[b.state] || a.displayName.localeCompare(b.displayName),
+  )
 }
 
 /**

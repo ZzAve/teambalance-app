@@ -33,6 +33,8 @@ data class MemberAttendance(
  */
 class EventAttendance private constructor(
     val entries: List<MemberAttendance>,
+    /** The Substitutes added to this Event (ADR-0033). Kept apart from [entries], so no Member fold sees them. */
+    val substitutes: List<SubstituteAttendance>,
 ) {
     /** Count of current members in each state (every state present, zero when none). */
     fun summary(): Map<AttendanceState, Int> =
@@ -68,21 +70,32 @@ class EventAttendance private constructor(
      * the identity), and so two positions could never collide on a shared label.
      *
      * Only ATTENDING counts: maybe, absent and no-response do not fill a slot. That rule is the whole
-     * point of the fold and lives here, next to the other attendance folds.
+     * point of the fold and lives here, next to the other attendance folds. An attending Substitute
+     * fills a spot exactly like an attending Member (ADR-0033).
      */
     fun attendingByPositionId(): Map<PositionId?, Int> =
-        entries
-            .filter { it.state == AttendanceState.ATTENDING }
-            .groupingBy { it.member.positionId }
+        (
+            entries.filter { it.state == AttendanceState.ATTENDING }.map { it.member.positionId } +
+                substitutes.filter { it.state == AttendanceState.ATTENDING }.map { it.substitute.positionId }
+            )
+            .groupingBy { it }
             .eachCount()
+
+    /** How many of the people attending are Substitutes: the Roster bar's "+ N substitutes". */
+    fun attendingSubstitutes(): Int = substitutes.count { it.state == AttendanceState.ATTENDING }
 
     companion object {
         /**
          * Resolve the picture for [members] (the current roster) against the event's [responses].
          * A member's state is their response row's state, or NOT_RESPONDED when they have no row;
          * a stale row for someone no longer on the roster is ignored (never counted or listed).
+         * [substitutes] are taken as they are: a Substitute is on the Event exactly when they have a row.
          */
-        fun resolve(members: List<TeamMember>, responses: List<Attendance>): EventAttendance {
+        fun resolve(
+            members: List<TeamMember>,
+            responses: List<Attendance>,
+            substitutes: List<SubstituteAttendance> = emptyList(),
+        ): EventAttendance {
             val responseByUser = responses.associateBy { it.userId }
             return EventAttendance(
                 members.map { member ->
@@ -95,6 +108,7 @@ class EventAttendance private constructor(
                         updatedAt = response?.updatedAt,
                     )
                 },
+                substitutes,
             )
         }
     }

@@ -1,14 +1,23 @@
+import { useState } from 'react'
 import { createFileRoute } from '@tanstack/react-router'
 import { toast } from 'sonner'
 import { useEvent, useEvents } from '@shared/api/events'
 import { useSetAttendance } from '@shared/api/attendances'
 import { useCurrentUser } from '@shared/api/auth'
+import { usePositions } from '@shared/api/positions'
+import {
+  useCreateSubstitute,
+  useRemoveSubstituteAttendance,
+  useSetSubstituteAttendance,
+  useSubstitutes,
+} from '@shared/api/substitutes'
 import { attributionName } from '@entities/event/lib/attribution'
 import { crossMemberToast } from '@entities/event/lib/cross-member-toast'
 import { buildSeriesPeek } from '@entities/event/lib/series-peek'
 import type { AttendanceState } from '@features/attendance-toggle/ui/AttendanceToggle'
 import { EditEventDialog } from '@features/edit-event/ui/EditEventDialog'
 import { DeleteEventDialog } from '@features/edit-event/ui/DeleteEventDialog'
+import { SubstitutePickerView } from '@features/call-in-substitutes/ui/SubstitutePickerView'
 import { useTeamRoutes } from '@shared/lib/team-routes'
 import { EventDetailView } from '@pages/event-detail/ui/EventDetailView'
 
@@ -25,6 +34,13 @@ function EventDetailPage() {
   const { mutate, isPending } = useSetAttendance()
   // Only load the full list to find series siblings when this event actually belongs to a group.
   const { data: allEvents } = useEvents(true, !!event?.recurringGroup)
+  const [pickerOpen, setPickerOpen] = useState(false)
+  const { data: positions } = usePositions({ enabled: pickerOpen })
+  const { data: teamSubstitutes, isLoading: substitutesLoading } = useSubstitutes({ enabled: pickerOpen })
+  const createSubstitute = useCreateSubstitute()
+  const setSubstituteAttendance = useSetSubstituteAttendance()
+  const removeSubstituteAttendance = useRemoveSubstituteAttendance()
+  const substitutePending = setSubstituteAttendance.isPending || removeSubstituteAttendance.isPending
 
   const myAttendance = event?.attendances.find((a) => a.userId === currentUserId)
   const myState: AttendanceState = (myAttendance?.state as AttendanceState) ?? 'NOT_RESPONDED'
@@ -54,30 +70,57 @@ function EventDetailPage() {
   const seriesPeek = event?.recurringGroup ? buildSeriesPeek(siblings, event.id) : null
 
   return (
-    <EventDetailView
-      isLoading={isLoading}
-      isError={isError}
-      onRetry={() => refetch()}
-      backTo={routes.events}
-      event={event ?? null}
-      currentUserId={currentUserId}
-      myState={myState}
-      myAttribution={myAttribution}
-      isPending={isPending}
-      onToggleMine={(state) => {
-        if (currentUserId) mutate({ eventId, userId: currentUserId, state })
-      }}
-      onRespond={setAttendance}
-      seriesPeek={seriesPeek}
-      adminActions={
-        isAdmin &&
-        event && (
-          <>
-            <EditEventDialog event={event} siblings={siblings} />
-            <DeleteEventDialog eventId={event.id} title={event.title} siblings={siblings} />
-          </>
-        )
-      }
-    />
+    <>
+      <EventDetailView
+        isLoading={isLoading}
+        isError={isError}
+        onRetry={() => refetch()}
+        backTo={routes.events}
+        event={event ?? null}
+        currentUserId={currentUserId}
+        myState={myState}
+        myAttribution={myAttribution}
+        isPending={isPending}
+        isSubstitutePending={substitutePending}
+        onToggleMine={(state) => {
+          if (currentUserId) mutate({ eventId, userId: currentUserId, state })
+        }}
+        onRespond={setAttendance}
+        onSetSubstituteState={(substituteId, state) => setSubstituteAttendance.mutate({ eventId, substituteId, state })}
+        onTakeOffSubstitute={(substituteId) => removeSubstituteAttendance.mutate({ eventId, substituteId })}
+        onCallInSubstitutes={() => setPickerOpen(true)}
+        seriesPeek={seriesPeek}
+        adminActions={
+          isAdmin &&
+          event && (
+            <>
+              <EditEventDialog event={event} siblings={siblings} />
+              <DeleteEventDialog eventId={event.id} title={event.title} siblings={siblings} />
+            </>
+          )
+        }
+      />
+      {event && (
+        <SubstitutePickerView
+          open={pickerOpen}
+          eventTitle={event.title}
+          positions={positions ?? []}
+          substitutes={teamSubstitutes ?? []}
+          isLoading={substitutesLoading}
+          pending={substitutePending}
+          onEvent={event.substitutes}
+          onSetState={(substituteId, state) => setSubstituteAttendance.mutate({ eventId, substituteId, state })}
+          creating={createSubstitute.isPending}
+          // Someone new has been asked, not confirmed: they join the event as Asked (Maybe).
+          onCreate={(name, positionId) =>
+            createSubstitute.mutate(
+              { name, positionId },
+              { onSuccess: (sub) => setSubstituteAttendance.mutate({ eventId, substituteId: sub.id, state: 'MAYBE' }) },
+            )
+          }
+          onClose={() => setPickerOpen(false)}
+        />
+      )}
+    </>
   )
 }

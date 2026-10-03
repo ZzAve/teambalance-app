@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { AttendanceEntry } from '@shared/api/events'
-import { attributionName } from './attribution'
+import { attributionName, setByName } from './attribution'
 
 const attendee = (overrides: Partial<AttendanceEntry> = {}): AttendanceEntry => ({
   id: 'att',
@@ -37,4 +37,15 @@ describe('attributionName', () => {
     expect(attributionName(attendee({ state: 'NOT_RESPONDED', changedBy: 'user-tim' }), [tim])).toBeNull()
   })
 
+})
+
+// A Substitute never answers for themselves (ADR-0033), so whoever set their state is always named.
+describe('setByName', () => {
+  it('resolves the Member who set it', () => {
+    expect(setByName('user-tim', [tim])).toBe('Tim de Vries')
+  })
+
+  it('falls back to a neutral label for a setter who has left the team', () => {
+    expect(setByName('user-gone', [tim])).toBe('a teammate')
+  })
 })

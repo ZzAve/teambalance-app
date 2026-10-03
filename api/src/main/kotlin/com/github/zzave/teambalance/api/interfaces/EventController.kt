@@ -100,6 +100,7 @@ class EventController(
                 recurringGroup = event.recurringGroup?.toString(),
                 attendanceSummary = attendance.summary().produce(attendance.attendingRoleBreakdown()),
                 attendances = attendance.entries.map { it.produce() },
+                substitutes = attendance.substitutes.map { it.produce() },
                 myState = attendance.stateOf(viewerId).produce(),
                 rosterOverride = event.rosterOverride?.produce(),
                 roster = event.rosterFill(attendance, positionService.listPositions()).produce(),
@@ -220,6 +221,7 @@ internal fun com.github.zzave.teambalance.api.domain.model.Event.produce(
         // Every current member, non-responders included — mapped from the projection the caller
         // already resolved, exactly as getEvent does, so the listing gains no query (ADR-0030 §8).
         attendances = attendance.entries.map { it.produce() },
+        substitutes = attendance.substitutes.map { it.produce() },
         myState = attendance.stateOf(viewerId).produce(),
         rosterOverride = rosterOverride?.produce(),
         roster = rosterFill(attendance, positions).produce(),
@@ -231,7 +233,12 @@ internal fun com.github.zzave.teambalance.api.domain.model.Event.produce(
 internal fun com.github.zzave.teambalance.api.domain.model.Event.rosterFill(
     attendance: EventAttendance,
     positions: List<Position>,
-): RosterFill = RosterFill.of(effectiveRosterRequirement, attendance.attendingByPositionId(), positions)
+): RosterFill = RosterFill.of(
+    effectiveRosterRequirement,
+    attendance.attendingByPositionId(),
+    positions,
+    attendance.attendingSubstitutes(),
+)
 
 private fun com.github.zzave.teambalance.api.domain.model.EventType.produce() =
     EventTypeSummary(id = id.produce(), name = name.value, color = color?.value)

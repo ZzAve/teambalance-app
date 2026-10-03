@@ -14,5 +14,13 @@ import type { AttendanceEntry } from '@shared/api/events'
 export function attributionName(attendance: AttendanceEntry, all: AttendanceEntry[]): string | null {
   const { changedBy } = attendance
   if (changedBy == null || changedBy === attendance.userId || attendance.state === 'NOT_RESPONDED') return null
+  return setByName(changedBy, all)
+}
+
+/**
+ * The name of the Member behind [changedBy], resolved from the event's attendance list. A Substitute
+ * never sets their own state (ADR-0033), so their rows always name someone.
+ */
+export function setByName(changedBy: string, all: AttendanceEntry[]): string {
   return all.find((a) => a.userId === changedBy)?.displayName ?? 'a teammate'
 }

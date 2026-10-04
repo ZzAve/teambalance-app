@@ -8,7 +8,7 @@ import { appColumn } from '@shared/testing/app-column-decorator'
 import { withRouter } from '@shared/testing/router-decorator'
 import { MemberRosterView } from '@features/manage-members/ui/MemberRosterView'
 import { ManageSubstitutesView } from '@features/manage-substitutes/ui/ManageSubstitutesView'
-import { appShell } from '../../../../.storybook/app-shell-decorator'
+import { appShell } from '../../../../storybook-support/app-shell-decorator'
 import { pageModes } from '../../../../.storybook/modes'
 import { TeamPageView } from './TeamPageView'
 

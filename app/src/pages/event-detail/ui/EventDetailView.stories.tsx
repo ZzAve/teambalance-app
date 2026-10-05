@@ -163,11 +163,10 @@ export const Data: Story = {
 // The page's other frames, stacked: the two shells, the missing event, and a member (no admin
 // actions) on a social — no roster, so the per-role fallback shows — whose answer a teammate set.
 //
-// Hosted in the app column rather than the real shell (unlike Data/Interactions): BottomNav is
-// `position: fixed`, which pins it to the bottom of the whole frame — fine for one page, but a Stack
-// of four stands several viewport-heights tall, so the one shared nav lands mid-page, over an
-// unrelated case. Data already proves the real shell renders this View correctly; this story's job
-// is the four prop shapes, not the chrome.
+// Hosted in the app column rather than the real shell (unlike Data/Interactions): one header and
+// one tab bar around a Stack of four pages would frame them as a single page. Data already proves
+// the real shell renders this View correctly; this story's job is the four prop shapes, not the
+// chrome.
 export const Shells: Story = {
   decorators: [...appColumn.decorators, withRouter],
   render: (args) => (

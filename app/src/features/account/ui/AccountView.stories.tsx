@@ -76,11 +76,10 @@ export const Data: Story = {
 // Every other context, stacked. Multi-team with one active shows the same sections — the switcher is
 // Slice 2, so the only visible difference is that Teams names the active one.
 //
-// Hosted in the app column rather than the real shell (unlike Data/Interactions): BottomNav is
-// `position: fixed`, which pins it to the bottom of the whole frame — fine for one page, but a Stack
-// of five stands five pages tall, so the one shared nav lands nowhere near four of them. Data already
-// proves the real shell renders this View correctly; this story's job is the five prop shapes, not
-// the chrome.
+// Hosted in the app column rather than the real shell (unlike Data/Interactions): one header and
+// one tab bar around a Stack of five pages would frame them as a single page. Data already proves
+// the real shell renders this View correctly; this story's job is the five prop shapes, not the
+// chrome.
 export const Shells: Story = {
   decorators: [...appColumn.decorators, withRouter],
   render: (args) => (

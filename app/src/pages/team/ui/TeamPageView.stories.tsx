@@ -99,11 +99,9 @@ export const Data: Story = {
 
 // A member's view of the same page, and the roster's two shells under the header.
 //
-// Hosted in the app column rather than the real shell (unlike Data): BottomNav is `position: fixed`,
-// which pins it to the bottom of the whole frame — fine for one page, but a Stack of three stands
-// several viewport-heights tall, so the one shared nav lands mid-page, over an unrelated case. Data
-// already proves the real shell renders this View correctly; this story's job is the three prop
-// shapes, not the chrome.
+// Hosted in the app column rather than the real shell (unlike Data): one header and one tab bar
+// around a Stack of three pages would frame them as a single page. Data already proves the real
+// shell renders this View correctly; this story's job is the three prop shapes, not the chrome.
 export const Shells: Story = {
   decorators: [...appColumn.decorators, withRouter],
   render: (args) => (

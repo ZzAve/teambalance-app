@@ -354,11 +354,10 @@ const STATIC = {
 
 // The page's non-data frames, stacked: no hero in any of them, so the list carries the page.
 //
-// Hosted in the app column rather than the real shell (unlike Data/Interactions): BottomNav is
-// `position: fixed`, which pins it to the bottom of the whole frame — fine for one page, but a Stack
-// of four stands several viewport-heights tall, so the one shared nav lands mid-page, over an
-// unrelated case. Data already proves the real shell renders this View correctly; this story's job
-// is the four prop shapes, not the chrome.
+// Hosted in the app column rather than the real shell (unlike Data/Interactions): one header and
+// one tab bar around a Stack of four pages would frame them as a single page. Data already proves
+// the real shell renders this View correctly; this story's job is the four prop shapes, not the
+// chrome.
 export const Shells: Story = {
   decorators: [...appColumn.decorators, withRouter],
   render: () => (

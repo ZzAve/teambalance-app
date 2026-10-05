@@ -62,6 +62,10 @@ and is covered by the existing backups. Storage sits behind a port so object sto
 
 - `/welcome` gains an optional Shirt Number field and, when the member already has a Personal Photo,
   a pre-ticked "use my personal photo in this team" — the moment that copy most often happens.
-- The shared `Avatar` gains an image path, and a Shirt Number badge where the roster and the Event
-  lineup show members.
+- The `/team` roster becomes a grid of round faces with the Shirt Number as a badge, sorted by
+  number (members without one last). Each face opens a **member detail page** showing the photo,
+  number, Position and Role. There a member edits their own name, Position, Shirt Number and Team
+  Photo; an Admin edits anyone's name, Position and Shirt Number and may remove their Team Photo.
+  Chosen from a UI prototype (roster variant "round faces", detail variant "round header").
+- The Event lineup panel does not show numbers or photos yet; that comes with the lineup work.
 - Uploading a Personal Photo while the current Team has no Team Photo asks once whether to copy it.

@@ -235,6 +235,14 @@ export const Interactions: Story = {
     const substitutes = within(page.getByRole('region', { name: 'Substitutes' }))
     await userEvent.click(within(substitutes.getByRole('group', { name: 'Mila Jansen' })).getByRole('button', { name: 'Going' }))
     await expect(args.onSetSubstituteState).toHaveBeenCalledWith('sub-2', 'ATTENDING')
+    // The pill stays small, but a tap anywhere in a 44px band around it lands on it (F7).
+    const pill = within(substitutes.getByRole('group', { name: 'Jan de Vries' })).getByRole('button', { name: 'Asked' })
+    pill.scrollIntoView({ block: 'center' })
+    const box = pill.getBoundingClientRect()
+    const reach = (44 - box.height) / 2 - 1
+    for (const y of [box.top - reach, box.bottom + reach]) {
+      await expect(document.elementFromPoint(box.left + box.width / 2, y)).toBe(pill)
+    }
     await userEvent.click(substitutes.getByRole('button', { name: 'Call in substitutes' }))
     await expect(args.onCallInSubstitutes).toHaveBeenCalledWith(null)
 

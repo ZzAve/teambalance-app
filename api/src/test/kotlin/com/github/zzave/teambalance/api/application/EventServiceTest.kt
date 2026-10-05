@@ -43,6 +43,7 @@ import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneOffset
 import com.github.zzave.teambalance.api.domain.model.EventId
+import com.github.zzave.teambalance.api.domain.model.ShirtNumber
 import java.util.UUID
 
 // The write use cases are admin-guarded in the service now (uniform write-authorization seam), so a
@@ -110,6 +111,7 @@ private class EventFakeMemberRepo(private val admins: Set<UserId>) : TeamMemberR
         displayName: DisplayName,
         role: Role,
         positionId: PositionId?,
+        shirtNumber: ShirtNumber?,
         markOnboardedAt: Instant?,
     ) = Unit
     override fun markOnboarded(teamId: TeamId, userId: UserId, at: Instant) = Unit

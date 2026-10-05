@@ -6,6 +6,7 @@ import com.github.zzave.teambalance.api.domain.exception.MemberNotFoundException
 import com.github.zzave.teambalance.api.domain.exception.NameTakenException
 import com.github.zzave.teambalance.api.domain.exception.NotTeamAdminException
 import com.github.zzave.teambalance.api.domain.exception.PositionNotFoundException
+import com.github.zzave.teambalance.api.domain.exception.ShirtNumberTakenException
 import com.github.zzave.teambalance.api.domain.model.DisplayName
 import com.github.zzave.teambalance.api.domain.model.Email
 import com.github.zzave.teambalance.api.domain.model.Position
@@ -13,6 +14,7 @@ import com.github.zzave.teambalance.api.domain.model.PositionId
 import com.github.zzave.teambalance.api.domain.model.PositionKind
 import com.github.zzave.teambalance.api.domain.model.PositionLabel
 import com.github.zzave.teambalance.api.domain.model.Role
+import com.github.zzave.teambalance.api.domain.model.ShirtNumber
 import com.github.zzave.teambalance.api.domain.model.TeamId
 import com.github.zzave.teambalance.api.domain.model.TenantRouting
 import com.github.zzave.teambalance.api.domain.model.TeamMember
@@ -50,6 +52,7 @@ private class FakeMembershipRepo(
         var active: Boolean,
         var positionId: PositionId? = null,
         var onboarded: Boolean = false,
+        var shirtNumber: ShirtNumber? = null,
     )
 
     private val store: MutableMap<Pair<TeamId, UserId>, Membership> =
@@ -69,6 +72,7 @@ private class FakeMembershipRepo(
                         positionId = membership.positionId,
                         position = null,
                         onboarded = membership.onboarded,
+                        shirtNumber = membership.shirtNumber,
                     )
                 }
             }
@@ -84,7 +88,10 @@ private class FakeMembershipRepo(
         store[teamId to userId]?.role = role
     }
     override fun deactivate(teamId: TeamId, userId: UserId) {
-        store[teamId to userId]?.active = false
+        store[teamId to userId]?.apply {
+            active = false
+            shirtNumber = null
+        }
     }
     override fun assignPosition(teamId: TeamId, userId: UserId, positionId: PositionId?) {
         store[teamId to userId]?.positionId = positionId
@@ -98,12 +105,14 @@ private class FakeMembershipRepo(
         displayName: DisplayName,
         role: Role,
         positionId: PositionId?,
+        shirtNumber: ShirtNumber?,
         markOnboardedAt: java.time.Instant?,
     ) {
         userRepo.findById(userId)?.let { userRepo.save(it.copy(displayName = displayName)) }
         store[teamId to userId]?.apply {
             this.role = role
             this.positionId = positionId
+            this.shirtNumber = shirtNumber
             if (markOnboardedAt != null) onboarded = true
         }
     }
@@ -291,6 +300,64 @@ class MemberServiceTest : FunSpec() {
             shouldThrow<PositionNotFoundException> {
                 service.updateMember(janId, teamId, lisaId, "Lisa Bakker", Role.USER, foreignPositionId)
             }
+        }
+
+        test("admin updateMember sets another member's shirt number") {
+            val (service, _, _) = newService()
+            val updated = service.updateMember(janId, teamId, lisaId, "Lisa Bakker", Role.USER, shirtNumber = 7)
+            updated.shirtNumber shouldBe ShirtNumber(7)
+        }
+
+        test("updateMember accepts a three-digit shirt number") {
+            val (service, _, _) = newService()
+            service.updateMember(lisaId, teamId, lisaId, "Lisa Bakker", Role.USER, shirtNumber = 999)
+                .shirtNumber shouldBe ShirtNumber(999)
+        }
+
+        test("updateMember with a null shirt number clears it") {
+            val (service, _, _) = newService()
+            service.updateMember(janId, teamId, lisaId, "Lisa Bakker", Role.USER, shirtNumber = 7)
+            service.updateMember(janId, teamId, lisaId, "Lisa Bakker", Role.USER, shirtNumber = null)
+                .shirtNumber shouldBe null
+        }
+
+        test("updateMember rejects a shirt number outside 0..999") {
+            val (service, _, _) = newService()
+            shouldThrow<IllegalArgumentException> {
+                service.updateMember(janId, teamId, lisaId, "Lisa Bakker", Role.USER, shirtNumber = 1000)
+            }
+            shouldThrow<IllegalArgumentException> {
+                service.updateMember(janId, teamId, lisaId, "Lisa Bakker", Role.USER, shirtNumber = -1)
+            }
+        }
+
+        test("updateMember rejects a shirt number another member wears with ShirtNumberTakenException") {
+            val (service, _, _) = newService()
+            service.updateMember(janId, teamId, janId, "Jan de Vries", Role.ADMIN, shirtNumber = 7)
+            shouldThrow<ShirtNumberTakenException> {
+                service.updateMember(janId, teamId, lisaId, "Lisa Bakker", Role.USER, shirtNumber = 7)
+            }
+        }
+
+        test("updateMember lets a member keep their own shirt number") {
+            val (service, _, _) = newService()
+            service.updateMember(lisaId, teamId, lisaId, "Lisa Bakker", Role.USER, shirtNumber = 7)
+            service.updateMember(lisaId, teamId, lisaId, "Lisa B", Role.USER, shirtNumber = 7)
+                .shirtNumber shouldBe ShirtNumber(7)
+        }
+
+        test("a removed member's shirt number is free for someone else") {
+            val (service, _, _) = newService()
+            service.updateMember(janId, teamId, lisaId, "Lisa Bakker", Role.USER, shirtNumber = 7)
+            service.removeMember(janId, teamId, lisaId)
+            service.updateMember(janId, teamId, janId, "Jan de Vries", Role.ADMIN, shirtNumber = 7)
+                .shirtNumber shouldBe ShirtNumber(7)
+        }
+
+        test("completeOnboarding applies the shirt number") {
+            val (service, _, _) = newService()
+            service.completeOnboarding(lisaId, teamId, "Lisa Nova", null, shirtNumber = 12)
+                .shirtNumber shouldBe ShirtNumber(12)
         }
 
         test("completeOnboarding marks the member onboarded and applies name and position") {

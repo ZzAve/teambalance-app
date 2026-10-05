@@ -17,6 +17,7 @@ import com.github.zzave.teambalance.api.domain.model.TenantRouting
 import com.github.zzave.teambalance.api.domain.model.TokenHash
 import com.github.zzave.teambalance.api.domain.model.User
 import com.github.zzave.teambalance.api.domain.model.UserId
+import com.github.zzave.teambalance.api.domain.model.ShirtNumber
 import com.github.zzave.teambalance.api.domain.port.ActAsGateway
 import com.github.zzave.teambalance.api.domain.port.ActAsRepository
 import com.github.zzave.teambalance.api.domain.port.InvitationRepository
@@ -132,6 +133,7 @@ internal class TeamDirectory {
             displayName: DisplayName,
             role: Role,
             positionId: PositionId?,
+            shirtNumber: ShirtNumber?,
             markOnboardedAt: Instant?,
         ) = Unit
         override fun countAdmins(teamId: TeamId): Int =

@@ -58,6 +58,7 @@ class MemberControllerIT : TeamBalanceIT() {
         jdbcTemplate.execute(
             "SELECT public.tb_add_member('$TEAM_ID'::uuid, '$LISA_USER_ID'::uuid, '$lisaRole', 'Libero')",
         )
+        jdbcTemplate.execute("UPDATE $TEAM_SCHEMA.member_profiles SET shirt_number = NULL")
     }
 
     private fun listMembersAs(userId: String) =
@@ -93,6 +94,17 @@ class MemberControllerIT : TeamBalanceIT() {
                 .header("X-User-Id", userId)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""{"displayName":"$displayName","role":"USER"}"""),
+        )
+            .andExpect(MockMvcResultMatchers.request().asyncStarted())
+            .andReturn()
+            .let { mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(it)) }
+
+    private fun updateShirtNumberAs(userId: String, pathUserId: String, displayName: String, shirtNumber: Long) =
+        mockMvc.perform(
+            MockMvcRequestBuilders.put("/api/members/$pathUserId")
+                .header("X-User-Id", userId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""{"displayName":"$displayName","role":"USER","shirtNumber":$shirtNumber}"""),
         )
             .andExpect(MockMvcResultMatchers.request().asyncStarted())
             .andReturn()
@@ -154,6 +166,42 @@ class MemberControllerIT : TeamBalanceIT() {
             updateNameAs(JAN_USER_ID, JAN_USER_ID, "Lisa Bakker")
                 .andExpect(MockMvcResultMatchers.status().isConflict)
                 .andExpect(MockMvcResultMatchers.jsonPath("$.code").value("NAME_TAKEN"))
+        }
+
+        test("PUT /api/members/{ownId} with a shirt number stores it and GET /me returns it") {
+            seedTeam(janRole = "USER")
+
+            updateShirtNumberAs(JAN_USER_ID, JAN_USER_ID, "Jan de Vries", 7)
+                .andExpect(MockMvcResultMatchers.status().isOk)
+                .andExpect(MockMvcResultMatchers.jsonPath("$.shirtNumber").value(7))
+
+            getMeAs(JAN_USER_ID)
+                .andExpect(MockMvcResultMatchers.jsonPath("$.shirtNumber").value(7))
+        }
+
+        test("PUT /api/members/{ownId} with a shirt number another member wears returns 409 NUMBER_TAKEN") {
+            seedTeam(janRole = "USER")
+            updateShirtNumberAs(LISA_USER_ID, LISA_USER_ID, "Lisa Bakker", 7)
+                .andExpect(MockMvcResultMatchers.status().isOk)
+
+            updateShirtNumberAs(JAN_USER_ID, JAN_USER_ID, "Jan de Vries", 7)
+                .andExpect(MockMvcResultMatchers.status().isConflict)
+                .andExpect(MockMvcResultMatchers.jsonPath("$.code").value("NUMBER_TAKEN"))
+        }
+
+        test("PUT /api/members/{ownId} with a four-digit shirt number returns 400") {
+            seedTeam(janRole = "USER")
+
+            updateShirtNumberAs(JAN_USER_ID, JAN_USER_ID, "Jan de Vries", 1000)
+                .andExpect(MockMvcResultMatchers.status().isBadRequest)
+        }
+
+        test("PUT /api/members/{ownId} with a shirt number past Int range returns 400 instead of wrapping") {
+            seedTeam(janRole = "USER")
+
+            // 2^32 + 7 would wrap to 7 if narrowed with toInt().
+            updateShirtNumberAs(JAN_USER_ID, JAN_USER_ID, "Jan de Vries", 4_294_967_303)
+                .andExpect(MockMvcResultMatchers.status().isBadRequest)
         }
 
         test("PUT /api/members/{otherUserId} by a non-admin is rejected with 403") {

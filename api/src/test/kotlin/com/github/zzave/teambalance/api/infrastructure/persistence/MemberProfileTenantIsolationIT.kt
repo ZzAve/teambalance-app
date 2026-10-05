@@ -51,6 +51,7 @@ class MemberProfileTenantIsolationIT : TeamBalanceIT() {
                     displayName = DisplayName("Alpha Name"),
                     role = Role.USER,
                     positionId = null,
+                    shirtNumber = null,
                     markOnboardedAt = null,
                 )
             }
@@ -69,6 +70,7 @@ class MemberProfileTenantIsolationIT : TeamBalanceIT() {
                     displayName = DisplayName("Only Here"),
                     role = Role.USER,
                     positionId = null,
+                    shirtNumber = null,
                     markOnboardedAt = null,
                 )
             }

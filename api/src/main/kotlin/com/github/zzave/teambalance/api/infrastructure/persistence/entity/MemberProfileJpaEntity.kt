@@ -27,4 +27,6 @@ class MemberProfileJpaEntity(
     var displayName: String = "",
     @Column(name = "position_id")
     var positionId: UUID? = null,
+    @Column(name = "shirt_number")
+    var shirtNumber: Int? = null,
 )

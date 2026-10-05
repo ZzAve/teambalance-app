@@ -5,9 +5,11 @@ import com.github.zzave.teambalance.api.domain.exception.LastAdminException
 import com.github.zzave.teambalance.api.domain.exception.MemberNotFoundException
 import com.github.zzave.teambalance.api.domain.exception.NameTakenException
 import com.github.zzave.teambalance.api.domain.exception.PositionNotFoundException
+import com.github.zzave.teambalance.api.domain.exception.ShirtNumberTakenException
 import com.github.zzave.teambalance.api.domain.model.DisplayName
 import com.github.zzave.teambalance.api.domain.model.PositionId
 import com.github.zzave.teambalance.api.domain.model.Role
+import com.github.zzave.teambalance.api.domain.model.ShirtNumber
 import com.github.zzave.teambalance.api.domain.model.TeamId
 import com.github.zzave.teambalance.api.domain.model.TeamMember
 import com.github.zzave.teambalance.api.domain.model.UserId
@@ -47,8 +49,9 @@ class MemberService(
      * member can still rename themselves; editing anyone else requires the caller to be a team admin.
      * Role changes are guarded: a caller may not elevate their own role, and the team must always keep
      * at least one admin. A non-null [positionId] must identify a position of this team; null clears the
-     * assignment (the backend is lenient — "required when positions exist" is a frontend concern). All
-     * guards are checked before any write so a rejected change leaves the name untouched.
+     * assignment (the backend is lenient — "required when positions exist" is a frontend concern). The
+     * [shirtNumber] is the member's full state too: null clears it. All guards are checked before any
+     * write so a rejected change leaves the name untouched.
      */
     fun updateMember(
         callerId: UserId,
@@ -57,6 +60,7 @@ class MemberService(
         rawName: String,
         role: Role,
         positionId: PositionId? = null,
+        shirtNumber: Int? = null,
     ): TeamMember {
         if (callerId != targetUserId) authorizationService.requireAdmin(callerId, teamId)
 
@@ -66,8 +70,9 @@ class MemberService(
         guardRoleChange(callerId, targetUserId, teamId, currentRole, role, roleChanged)
         requirePositionInThisTeam(positionId)
         val name = normalizeAndValidateName(teamId, targetUserId, rawName)
+        val number = validateShirtNumber(teamId, targetUserId, shirtNumber)
 
-        teamMemberRepository.applyMemberEdit(teamId, targetUserId, name, role, positionId)
+        teamMemberRepository.applyMemberEdit(teamId, targetUserId, name, role, positionId, number)
         return getMember(teamId, targetUserId)
     }
 
@@ -102,13 +107,20 @@ class MemberService(
      * Idempotent: re-running keeps the member onboarded and simply re-applies name/position. The
      * controller enforces that [userId] is the authenticated principal (self-only).
      */
-    fun completeOnboarding(userId: UserId, teamId: TeamId, rawName: String, positionId: PositionId?): TeamMember {
+    fun completeOnboarding(
+        userId: UserId,
+        teamId: TeamId,
+        rawName: String,
+        positionId: PositionId?,
+        shirtNumber: Int? = null,
+    ): TeamMember {
         val currentRole = teamMemberRepository.findRole(teamId, userId)
             ?: throw MemberNotFoundException(userId)
         requirePositionInThisTeam(positionId)
         val name = normalizeAndValidateName(teamId, userId, rawName)
+        val number = validateShirtNumber(teamId, userId, shirtNumber)
 
-        teamMemberRepository.applyMemberEdit(teamId, userId, name, currentRole, positionId, Instant.now(clock))
+        teamMemberRepository.applyMemberEdit(teamId, userId, name, currentRole, positionId, number, Instant.now(clock))
         return getMember(teamId, userId)
     }
 
@@ -134,6 +146,15 @@ class MemberService(
             .any { it.userId != targetUserId && it.displayName.value.equals(name, ignoreCase = true) }
         if (taken) throw NameTakenException(name)
         return DisplayName(name)
+    }
+
+    // Unique among the team's current members only: a removed member no longer holds one (ADR-0038).
+    private fun validateShirtNumber(teamId: TeamId, targetUserId: UserId, rawNumber: Int?): ShirtNumber? {
+        val number = rawNumber?.let(::ShirtNumber) ?: return null
+        val taken = teamMemberRepository.findByTeamId(teamId)
+            .any { it.userId != targetUserId && it.shirtNumber == number }
+        if (taken) throw ShirtNumberTakenException(number)
+        return number
     }
 
     // A single-aggregate write (users only), so it needs no cross-aggregate boundary — used by the

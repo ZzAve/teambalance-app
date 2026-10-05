@@ -9,13 +9,16 @@ type Member {
     displayName: String,
     role: String,
     position: MemberPosition?,
-    onboarded: Boolean
+    onboarded: Boolean,
+    shirtNumber: Integer?
 }
 
+// The member's full editable state: a null `shirtNumber` clears it. 409 NUMBER_TAKEN when another current member wears that number; 400 outside 0..999 (ADR-0038).
 type UpdateMemberRequest {
     displayName: String,
     role: String,
-    positionId: String?
+    positionId: String?,
+    shirtNumber: Integer?
 }
 
 type MemberList {

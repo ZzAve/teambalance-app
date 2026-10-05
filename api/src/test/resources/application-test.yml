@@ -31,6 +31,9 @@ teambalance:
       capacity: 1000
     invitation-accept:
       capacity: 1000
-    # Same reasoning: CalendarFeedRateLimitIT proves the 429 in its own forked context.
+    # Same reasoning: CalendarFeedRateLimitIT proves the 429 in its own forked context. Both feed
+    # ceilings are raised, or the per-IP one would throttle the whole suite from 127.0.0.1.
     calendar-feed:
       capacity: 1000
+    calendar-feed-per-client:
+      capacity: 100000

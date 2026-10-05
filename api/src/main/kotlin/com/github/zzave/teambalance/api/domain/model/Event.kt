@@ -16,6 +16,19 @@ data class Event(
     val createdBy: UserId,
     val createdAt: Instant,
     /**
+     * When this occurrence was last revised, defaulting to [createdAt] for one never edited.
+     *
+     * Exists for the calendar-link feed (ADR-0032), which has to tell a subscriber's calendar app
+     * whether a component it already holds has changed. RFC 5545 gives that job to `DTSTAMP` on an
+     * object with no `METHOD` — "the date and time that the information associated with the calendar
+     * component was last revised" — so a feed built from [createdAt] tells every client that a
+     * rescheduled training is the same version it already had.
+     *
+     * Stamped by the service that owns the clock, not by the database: time is injected everywhere
+     * here precisely so a test can fix it.
+     */
+    val updatedAt: Instant = createdAt,
+    /**
      * This occurrence's own roster requirement, or null to **inherit** [eventType]'s
      * [EventType.rosterDefault] — and to keep inheriting it, so a later edit of the default moves
      * this event too. That dynamic inheritance is what lets a recurring series follow its type

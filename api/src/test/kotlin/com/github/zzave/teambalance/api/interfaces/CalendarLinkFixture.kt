@@ -34,6 +34,18 @@ object CalendarLinkFixture {
     const val LEAVER = "b8320000-0000-0000-0000-000000000003"
 
     const val TRAINING = "Tuesday training"
+
+    /** Seeded per tenant by V002, with a fixed uuid — so an event edit can name its type. */
+    const val TRAINING_TYPE = "c0000000-0000-0000-0000-000000000001"
+
+    /**
+     * When the seeded event was written, fixed and well in the past rather than `now()`.
+     *
+     * DTSTAMP has one-second resolution, so a spec that seeds at `now()` and then edits within the
+     * same second cannot tell the two revisions apart — and "an unedited event stamps its creation"
+     * has nothing stable to assert against either.
+     */
+    const val SEEDED_AT = "2026-01-02T09:00:00Z"
     const val TRAINING_START = "2099-01-06T18:30:00Z"
 
     /** Fixed, so a spec can assert on the VEVENT's UID without reading it back first. */
@@ -48,7 +60,8 @@ object CalendarLinkFixture {
         user(jdbc, ALPHA_MEMBER, "cal-alpha-member@test.com", "Alpha Member")
         user(jdbc, BETA_MEMBER, "cal-beta-member@test.com", "Beta Member")
         user(jdbc, LEAVER, "cal-leaver@test.com", "Cal Leaver")
-        member(jdbc, ALPHA_TEAM, ALPHA_MEMBER)
+        // Admin, so CalendarFeedIT can edit an event through the real service and watch the feed move.
+        member(jdbc, ALPHA_TEAM, ALPHA_MEMBER, role = "ADMIN")
         member(jdbc, ALPHA_TEAM, LEAVER)
         member(jdbc, BETA_TEAM, BETA_MEMBER)
         // Every spec starts from no links, since the cap counts rows and the database is shared.
@@ -64,14 +77,17 @@ object CalendarLinkFixture {
         jdbc.update(
             """
             INSERT INTO $ALPHA_SCHEMA.events
-                (uuid, event_type_id, title, description, start_time, end_time, location, created_by)
-            SELECT ?::uuid, et.id, ?, 'Bring a ball, and shoes', ?, ?, 'Galgenwaard; hall 1', ?::uuid
+                (uuid, event_type_id, title, description, start_time, end_time, location, created_by,
+                 created_at, updated_at)
+            SELECT ?::uuid, et.id, ?, 'Bring a ball, and shoes', ?, ?, 'Galgenwaard; hall 1', ?::uuid, ?, ?
             FROM   $ALPHA_SCHEMA.event_types et WHERE et.name = 'Training'
             """,
             TRAINING_ID, TRAINING,
             Timestamp.from(Instant.parse(TRAINING_START)),
             Timestamp.from(Instant.parse("2099-01-06T20:00:00Z")),
             ALPHA_MEMBER,
+            Timestamp.from(Instant.parse(SEEDED_AT)),
+            Timestamp.from(Instant.parse(SEEDED_AT)),
         )
     }
 
@@ -80,14 +96,17 @@ object CalendarLinkFixture {
     fun extraEvent(jdbc: JdbcTemplate, startsAt: Instant, title: String = "Extra") {
         jdbc.update(
             """
-            INSERT INTO $ALPHA_SCHEMA.events (uuid, event_type_id, title, start_time, end_time, created_by)
-            SELECT gen_random_uuid(), et.id, ?, ?, ?, ?::uuid
+            INSERT INTO $ALPHA_SCHEMA.events
+                (uuid, event_type_id, title, start_time, end_time, created_by, created_at, updated_at)
+            SELECT gen_random_uuid(), et.id, ?, ?, ?, ?::uuid, ?, ?
             FROM   $ALPHA_SCHEMA.event_types et WHERE et.name = 'Training'
             """,
             title,
             Timestamp.from(startsAt),
             Timestamp.from(startsAt.plusSeconds(5400)),
             ALPHA_MEMBER,
+            Timestamp.from(Instant.parse(SEEDED_AT)),
+            Timestamp.from(Instant.parse(SEEDED_AT)),
         )
     }
 
@@ -138,11 +157,15 @@ object CalendarLinkFixture {
         )
     }
 
-    /** Re-activates too: a spec that proves a departure stops the feed must not strand the next one. */
-    private fun member(jdbc: JdbcTemplate, teamId: String, userId: String) {
-        jdbc.execute("SELECT public.tb_add_member('$teamId'::uuid, '$userId'::uuid, 'USER', NULL)")
+    /**
+     * Re-activates and re-roles on every seed: `tb_add_member` is ON CONFLICT DO NOTHING, so whichever
+     * spec touched this id first would otherwise decide both. A spec that proves a departure stops the
+     * feed must not strand the next one, and the feed spec drives a real admin event edit.
+     */
+    private fun member(jdbc: JdbcTemplate, teamId: String, userId: String, role: String = "USER") {
+        jdbc.execute("SELECT public.tb_add_member('$teamId'::uuid, '$userId'::uuid, '$role', NULL)")
         jdbc.execute(
-            "UPDATE public.team_members SET active = true " +
+            "UPDATE public.team_members SET active = true, role = '$role' " +
                 "WHERE team_id = '$teamId'::uuid AND user_id = '$userId'::uuid",
         )
     }

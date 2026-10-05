@@ -66,9 +66,20 @@ object CalendarIcs {
             // The event's own id, so a re-fetch updates the entry the subscriber already has instead
             // of adding a duplicate beside it. biweekly's VEvent() would otherwise mint a random one.
             setUid(event.id.value.toString())
-            // Fixed, not `now()`: DTSTAMP is inside the body the ETag is derived from, so a wall-clock
-            // value would make every response a fresh ETag and defeat the 304 the feed exists to serve.
-            setDateTimeStamp(Date.from(event.createdAt))
+            // The event's own revision time, twice over. On an object with no METHOD, RFC 5545 gives
+            // DTSTAMP the meaning "when the information in this component was last revised", and
+            // LAST-MODIFIED says the same thing in the property clients more often read. Together they
+            // are how a calendar app decides that the component it already holds under this UID is
+            // stale — so a rescheduled training actually moves in the subscriber's week.
+            //
+            // Still not `now()`: it is a property of the event, so it is stable between edits, and the
+            // ETag derived from this body keeps serving 304s until something really changes.
+            //
+            // No SEQUENCE. It counts revisions, and nothing here counts them; a number synthesised
+            // from a timestamp would be a lie that also overflows. Its actual job is iTIP scheduling
+            // (METHOD:REQUEST with ATTENDEEs), which a published read-only feed is not.
+            setDateTimeStamp(Date.from(event.updatedAt))
+            setLastModified(Date.from(event.updatedAt))
             setDateStart(Date.from(event.startTime))
             setDateEnd(Date.from(event.endTime))
             setSummary(prefix(state) + event.title.value)

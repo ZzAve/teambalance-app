@@ -37,6 +37,19 @@ data class RateLimitProperties(
      * enough that the URL is not a free bulk-read endpoint.
      */
     val calendarFeed: Policy = Policy(capacity = 60, refillPeriod = Duration.ofHours(1)),
+    /**
+     * `GET /api/calendar/{slug}/{token}.ics` — the second ceiling on the same request, keyed per
+     * client IP, because [calendarFeed] alone bounds a *subscription* and not a *host*: the token is
+     * caller-supplied, so varying it hands out a fresh per-token bucket every time.
+     *
+     * Deliberately loose. A whole club behind one office NAT shares this bucket, and the feed itself
+     * only asks to be polled between once and twelve times a day — so even fifty members on one
+     * address sit around 50/hour at the tightest cadence, two orders of magnitude under this. It is
+     * not here to shape honest traffic; it is here so an unauthenticated endpoint that does three
+     * indexed queries cannot be driven without limit, and so the bucket store cannot be churned past
+     * its key cap from one source.
+     */
+    val calendarFeedPerClient: Policy = Policy(capacity = 600, refillPeriod = Duration.ofHours(1)),
 ) {
     /** A token-bucket allowance: `capacity` requests, fully replenished once per `refillPeriod`. */
     data class Policy(

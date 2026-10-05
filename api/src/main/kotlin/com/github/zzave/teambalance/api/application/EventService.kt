@@ -263,7 +263,7 @@ class EventService(
         val originalStarts = series.associate { it.id to it.startTime }
         seasonPolicy().requireEditable(plan, originalStarts)
 
-        eventRepository.saveAll(plan.toPersist)
+        eventRepository.saveAll(plan.revisedAt(clock.instant()))
         return plan.edited.sortedBy { it.startTime }
     }
 

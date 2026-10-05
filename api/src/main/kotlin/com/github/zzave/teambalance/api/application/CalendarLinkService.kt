@@ -76,28 +76,27 @@ class CalendarLinkService(
      */
     fun createLink(callerId: UserId, teamId: TeamId, rawLabel: String?): IssuedCalendarLink {
         requireOwnAccess(callerId, teamId)
-        val existing = calendarLinkRepository.findByUser(callerId)
-        if (existing.size >= CalendarLink.MAX_PER_MEMBER) {
-            throw CalendarLinkLimitReachedException(CalendarLink.MAX_PER_MEMBER)
-        }
 
         val now = clock.instant()
         val token = tokens.mint()
-        val saved = calendarLinkRepository.save(
-            CalendarLink(
-                id = CalendarLinkId.random(),
-                userId = callerId,
-                tokenHash = tokens.hash(token.value),
-                encryptedToken = tokens.conceal(token),
-                label = CalendarLinkLabel.ofNullable(rawLabel),
-                createdAt = now,
-                expiresAt = now.plus(CalendarLink.TTL),
-            ),
+        val link = CalendarLink(
+            id = CalendarLinkId.random(),
+            userId = callerId,
+            tokenHash = tokens.hash(token.value),
+            encryptedToken = tokens.conceal(token),
+            label = CalendarLinkLabel.ofNullable(rawLabel),
+            createdAt = now,
+            expiresAt = now.plus(CalendarLink.TTL),
         )
+        // The cap is handed to the write rather than checked before it, so one member clicking twice
+        // cannot land two links past the limit between the count and the insert.
+        if (!calendarLinkRepository.saveWithinCap(link, CalendarLink.MAX_PER_MEMBER)) {
+            throw CalendarLinkLimitReachedException(CalendarLink.MAX_PER_MEMBER)
+        }
         // Built from the token just minted rather than by decrypting what was stored: a create that
         // returned a URL is a create whose round trip through the cipher has not been exercised, and
         // the read path is where that gets proven anyway.
-        return saved.issued(slugOf(teamId), now, token)
+        return link.issued(slugOf(teamId), now, token)
     }
 
     /**

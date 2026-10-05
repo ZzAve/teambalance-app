@@ -184,13 +184,19 @@ class InvitationService(
      * The id of the live invitation [token] names, or null when it names none — what a magic-link
      * request resolves so a dead link is refused before any email is sent (#342).
      *
-     * Resolution only: nothing is claimed or consumed here. A single-use ADMIN handover link that is
-     * merely requested stays unspent, so the person who actually clicks through is the one who spends
-     * it, and a request never burns a link on someone's behalf.
+     * "Live" has to mean both unexpired **and** unspent. A single-use ADMIN handover link that was
+     * already accepted is as dead as an expired one, and checking only the expiry sent an email for
+     * it, then failed on verification and landed the joiner on `?invite=unavailable` — the round trip
+     * this method exists to avoid. [acceptInvitation] already refuses it, via `claim`.
+     *
+     * Resolution only: nothing is claimed or consumed here. An unspent ADMIN link that is merely
+     * requested stays unspent, so the person who actually clicks through is the one who spends it,
+     * and a request never burns a link on someone's behalf.
      */
     fun findPendingInvitation(token: String): UUID? =
         invitationRepository.findByTokenHash(hashToken(token))
             ?.takeIf { it.expiresAt.isAfter(Instant.now(clock)) }
+            ?.takeIf { it.consumedAt == null }
             ?.id
 
     private fun accept(invitation: Invitation?, userId: UserId): TeamId? {

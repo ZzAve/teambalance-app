@@ -13,6 +13,9 @@ interface SpringDataCalendarLinkRepository : JpaRepository<CalendarLinkJpaEntity
 
     fun findByTokenHash(tokenHash: String): CalendarLinkJpaEntity?
 
+    /** Expired rows included — the cap counts them (ADR-0032). */
+    fun countByUserId(userId: UUID): Long
+
     /** Owner in the predicate, count out: the caller learns whether *their* link was the one removed. */
     fun deleteByIdAndUserId(id: UUID, userId: UUID): Long
 }

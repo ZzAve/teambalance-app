@@ -20,9 +20,11 @@ import io.kotest.matchers.string.shouldContain
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
 import org.springframework.http.HttpHeaders
+import org.springframework.http.MediaType
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.header
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import java.time.Duration
@@ -190,6 +192,36 @@ class CalendarFeedIT : TeamBalanceIT() {
             }
         }
 
+        // The whole chain in one go: EventService stamps a revision, the mapper writes and reads it,
+        // CalendarIcs renders it as DTSTAMP/LAST-MODIFIED, and the ETag therefore moves. Before this,
+        // DTSTAMP carried created_at, so a rescheduled training reached a subscriber's calendar
+        // claiming to be the version it already had — and `updated_at` was written as created_at on
+        // every save, so there was no revision time to use.
+        context("a rescheduled event reaches the subscriber as a new revision") {
+            test("the edit moves DTSTART, DTSTAMP and the ETag together") {
+                val token = liveLink()
+                val before = fetch(ALPHA_SLUG, token).andExpect(status().isOk).andReturn().response
+                before.contentAsString shouldContain "DTSTART:20990106T183000Z"
+                // An untouched event reports when it was written, not when it was fetched.
+                before.contentAsString shouldContain "DTSTAMP:20260102T090000Z"
+
+                reschedule(to = "2099-01-07T18:30:00Z", end = "2099-01-07T20:00:00Z")
+
+                val after = fetch(ALPHA_SLUG, token).andExpect(status().isOk).andReturn().response
+                after.contentAsString shouldContain "DTSTART:20990107T183000Z"
+                after.getHeader(HttpHeaders.ETAG) shouldNotBe before.getHeader(HttpHeaders.ETAG)
+                revisionOf(after.contentAsString) shouldNotBe revisionOf(before.contentAsString)
+            }
+
+            // LAST-MODIFIED is the property several clients read instead of DTSTAMP; they must agree.
+            test("DTSTAMP and LAST-MODIFIED carry the same revision") {
+                reschedule(to = "2099-01-08T18:30:00Z", end = "2099-01-08T20:00:00Z")
+
+                val ics = body(fetch(ALPHA_SLUG, liveLink()))
+                ics shouldContain "LAST-MODIFIED:${revisionOf(ics)}"
+            }
+        }
+
         context("conditional fetching") {
             test("an unchanged calendar answers 304 with no body") {
                 val token = liveLink()
@@ -226,6 +258,27 @@ class CalendarFeedIT : TeamBalanceIT() {
             MockMvcRequestBuilders.get("/api/calendar/$slug/${token.value}.ics")
                 .apply { ifNoneMatch?.let { header(HttpHeaders.IF_NONE_MATCH, it) } },
         )
+
+    /** Moves the seeded training through the real admin edit path, scope THIS. */
+    private fun reschedule(to: String, end: String) {
+        val body = """
+            {"eventTypeId":"${CalendarLinkFixture.TRAINING_TYPE}","title":"$TRAINING",
+             "startTime":"$to","endTime":"$end","location":"Galgenwaard; hall 1"}
+        """.trimIndent()
+        mockMvc.perform(
+            MockMvcRequestBuilders.put("/api/events/${CalendarLinkFixture.TRAINING_ID}")
+                .header("X-User-Id", ALPHA_MEMBER)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(body),
+        )
+            .andExpect(MockMvcResultMatchers.request().asyncStarted())
+            .andReturn()
+            .let { mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(it)) }
+            .andExpect(status().isOk)
+    }
+
+    private fun revisionOf(ics: String): String =
+        Regex("DTSTAMP:(\\S+)").find(ics)?.groupValues?.get(1) ?: error("no DTSTAMP in feed")
 
     private fun head(slug: String, token: CalendarToken) =
         mockMvc.perform(MockMvcRequestBuilders.head("/api/calendar/$slug/${token.value}.ics"))

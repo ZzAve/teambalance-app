@@ -117,8 +117,25 @@ since every row served is still gated on steps 2–4. It is the second and last 
 ### What the feed discloses, and what it does not
 
 One `VEVENT` per event from 30 days back (a subscribed calendar is a record as well as a plan), UTC
-timestamps, the event's own id as `UID` so an hourly refetch updates entries in place, `LOCATION`,
-and a `DESCRIPTION`/`URL` pointing back at the event page.
+timestamps, the event's own id as `UID` so a refetch updates entries in place, `LOCATION`, and a
+`DESCRIPTION`/`URL` pointing back at the event page.
+
+`DTSTAMP` and `LAST-MODIFIED` both carry the **event's revision time**. On an object with no `METHOD`,
+RFC 5545 gives `DTSTAMP` the meaning "the date and time that the information associated with the
+calendar component was last revised", and `LAST-MODIFIED` says the same in the property several
+clients read instead — together they are how a calendar app decides that the component it already
+holds under this `UID` is stale. Carrying the *creation* time instead, as the first cut did, told every
+client that a rescheduled training was the version it already had.
+
+That needed a revision time to exist. `events.updated_at` was in the schema from the baseline but the
+JPA mapper wrote it as `created_at` on every save, so the column was dead; `Event` now carries
+`updatedAt` and the scoped-edit write path stamps it from the injected clock. Only the occurrences the
+edit actually touched are stamped — a detached series tail is moved, not revised, and bumping it would
+churn every subscription for a split no subscriber can see.
+
+**No `SEQUENCE`.** It counts revisions and nothing here counts them; a number synthesised from a
+timestamp would be both a lie and an overflow waiting to happen. Its real job is iTIP scheduling
+(`METHOD:REQUEST` with `ATTENDEE`s), which a published read-only feed is not.
 
 `SUMMARY` carries the subscriber's own answer as a prefix — `✓`, `?`, `✗`, and nothing at all for an
 unanswered event, because a bare title is the honest rendering of "you haven't answered". A prefix
@@ -166,19 +183,23 @@ inspects GET and HEAD. Generous against even the tightest band above, and unchan
 the ceiling exists for a runaway client, not to enforce the cadence. Per token rather than per IP because there is no session to key on and a whole
 club behind one office NAT would otherwise share a bucket and knock each other's calendars offline.
 
-Two consequences of keying on a caller-supplied value, both accepted:
+Per token alone, though, bounds a *subscription* and not a *host*: the token comes from the path, so a
+caller who never reuses one is handed a fresh full bucket every request. So the feed carries **two
+ceilings**, and must satisfy both — the per-token one above, plus **600/hour per client IP**. The
+per-IP one is deliberately loose: a whole club behind one office NAT shares it, and the feed asks to be
+polled between once and twelve times a day per subscription, so even fifty members on one address sit
+two orders of magnitude under it. It is not there to shape honest traffic; it is there so an
+unauthenticated endpoint doing three indexed queries cannot be driven without limit, and so the bucket
+store cannot be churned past its key cap from one source. The token is hashed into its bucket key
+rather than used raw, because keys outlive the request in the limiter's cache and a live credential has
+no business sitting there.
 
-- **It bounds a subscription, not a host.** Someone varying the token gets a fresh bucket per
-  request, so this is not a volume defence — which is what ADR-0020 already says the limiter is
-  ("a coarse backstop", "not a live-vuln fix"), and no unauthenticated route here has one. What it
-  *does* buy is the case it was written for: a misconfigured or runaway calendar client hammering one
-  real subscription. The bucket store is bounded (`maximumSize`), so distinct keys cost memory only up
-  to that cap.
-- **A refill period must not outlive the bucket store's eviction window.** `RateLimiter` evicts idle
-  buckets, and its comment — "a bucket unused that long has long since refilled to full" — is only
-  true while the window is at least the longest refill period. This is the first policy to refill over
-  anything longer than a minute, and at the old ten-minute window a "60 per hour" limit silently
-  enforced 60 per ten minutes. The window is now an hour, and the invariant is written down.
+One further rule came out of this: **a refill period must not outlive the bucket store's eviction
+window.** `RateLimiter` evicts idle buckets, and its comment — "a bucket unused that long has long
+since refilled to full" — is only true while the window is at least the longest refill period. This is
+the first policy to refill over anything longer than a minute, and at the old ten-minute window a
+"60 per hour" limit silently enforced 60 per ten minutes. The window is now an hour, and the invariant
+is written into the class.
 
 ### Not Wirespec, and one library
 
@@ -230,12 +251,18 @@ and an undecryptable row is still *listed*: the row still counts toward the cap,
 failing the read) would leave the member unable to list, unable to delete and unable to create, with
 nothing on screen to explain why.
 
-**The cap is enforced by a read-then-write, so a member racing themselves can end up with four.**
-Exactly the trade ADR-0025 made for the one-live-invite-link invariant, and for the same reason: the
-cap is `count(*) <= 3`, which no index predicate can express, and buying it would mean inventing a
-column for a constraint to bite on. The failure is bounded (one extra link, by the member's own double
-click) and self-correcting (they can see and delete it), unlike the accumulation ADR-0025 was written
-to stop, which was invisible and unbounded.
+**The cap travels with the write, so it is an invariant rather than a hope.** `count(*) <= 3` is not
+expressible as an index predicate, and ADR-0025 accepted exactly this read-then-write for the
+one-live-invite-link rule. Here it was cheap to close without inventing a column for a constraint to
+bite on: the cap is an argument to `CalendarLinkRepository.saveWithinCap`, so one port call is one
+transaction, and the adapter serialises the count and the insert per member with a transaction-scoped
+Postgres advisory lock. Eight simultaneous creates leave three links; without the lock they leave
+eight, which is what `CalendarLinkCapIT` pins.
+
+The lock is taken through the `EntityManager`, not a `JdbcTemplate`, and that detail is load-bearing:
+`SchemaMultiTenantConnectionProvider` pulls Hibernate's connection straight from the pool to set its
+`search_path`, so Hibernate and a `JdbcTemplate` in the same Spring transaction sit on *different*
+physical connections — and a transaction-scoped lock on one guards nothing happening on the other.
 
 **The event deep link uses `teambalance.frontend-base-url`; the feed URL needs a new
 `teambalance.api-base-url`.** In production the SPA and the API are separate origins, and it is the

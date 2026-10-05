@@ -36,3 +36,5 @@ teambalance:
       capacity: 1000
     invitation-accept:
       capacity: 1000
+    calendar-feed-per-client:
+      capacity: 100000

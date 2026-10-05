@@ -102,6 +102,16 @@ class SeriesModificationTest : FunSpec({
         }
         // d1 (before) is untouched — absent from the plan entirely.
         plan.toPersist.map { it.id } shouldContainExactly listOf(d2.id, d3.id, d4.id)
+
+        // The write path stamps a revision time on what it edited, and leaves the detached tail alone:
+        // nothing a calendar subscriber can see about those occurrences changed, so bumping them would
+        // churn every subscription for a split that is invisible to it (ADR-0032).
+        val revised = java.time.Instant.parse("2026-11-02T10:00:00Z")
+        plan.revisedAt(revised).associate { it.id to it.updatedAt } shouldBe mapOf(
+            d2.id to revised,
+            d3.id to d3.updatedAt,
+            d4.id to d4.updatedAt,
+        )
     }
 
     test("edit THIS on the first occurrence regroups the whole tail and detaches only the first") {

@@ -22,7 +22,17 @@ interface CalendarLinkRepository {
     /** The link a presented token names, or null. Expiry and membership are the caller's checks. */
     fun findByTokenHash(hash: TokenHash): CalendarLink?
 
-    fun save(link: CalendarLink): CalendarLink
+    /**
+     * Saves [link] only if its owner holds fewer than [max] links in this team, returning whether it
+     * was saved.
+     *
+     * The cap travels with the write because it cannot be held anywhere else. `count(*) < max` is not
+     * expressible as an index predicate, so a service that counted and then saved would let two
+     * near-simultaneous requests from one member both pass the count — the same read-then-write the
+     * invite link accepted in ADR-0025, but here it is cheap to close: one port call is one
+     * transaction, so the adapter can serialise the pair per member.
+     */
+    fun saveWithinCap(link: CalendarLink, max: Int): Boolean
 
     /**
      * Deletes [id] only if it belongs to [userId], returning whether it did. Ownership is in the

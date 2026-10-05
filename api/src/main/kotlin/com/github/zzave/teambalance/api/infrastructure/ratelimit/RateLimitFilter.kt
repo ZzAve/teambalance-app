@@ -15,6 +15,7 @@ import org.springframework.util.AntPathMatcher
 import org.springframework.util.StringUtils
 import org.springframework.web.filter.OncePerRequestFilter
 import org.springframework.web.util.UrlPathHelper
+import java.security.MessageDigest
 import kotlin.math.ceil
 
 // Just after SessionUserContextFilter (+2) and SessionTenantContextFilter (+3): the session→user
@@ -62,21 +63,24 @@ class RateLimitFilter(
         response: HttpServletResponse,
         filterChain: FilterChain,
     ) {
-        val rule = if (properties.enabled) resolveRule(request) else null
-        if (rule == null) {
-            filterChain.doFilter(request, response)
-            return
-        }
-
-        val consumption = rateLimiter.tryConsume(rule.policyName, rule.policy, rule.key)
-        if (!consumption.allowed) {
-            writeTooManyRequests(response, consumption.retryAfterMillis)
-            return
+        val rules = if (properties.enabled) resolveRules(request) else emptyList()
+        // Every rule on the request has to admit it. Spent in order and short-circuited on the first
+        // refusal, so a request rejected by one ceiling does not also cost a token at the next.
+        for (rule in rules) {
+            val consumption = rateLimiter.tryConsume(rule.policyName, rule.policy, rule.key)
+            if (!consumption.allowed) {
+                writeTooManyRequests(response, consumption.retryAfterMillis)
+                return
+            }
         }
         filterChain.doFilter(request, response)
     }
 
-    private fun resolveRule(request: HttpServletRequest): Rule? {
+    /**
+     * The ceilings this request must satisfy — usually one, and two for the calendar feed, which is
+     * the only endpoint whose natural key is supplied by the caller.
+     */
+    private fun resolveRules(request: HttpServletRequest): List<Rule> {
         val path = StringUtils.cleanPath(pathHelper.getPathWithinApplication(request))
         val post = request.method == HttpMethod.POST.name()
         // HEAD too: Spring routes it to the feed's @GetMapping handler, so a GET-only rule would leave
@@ -85,18 +89,39 @@ class RateLimitFilter(
         val get = request.method in FEED_METHODS
         return when {
             post && path == MAGIC_LINK_REQUEST_PATH ->
-                Rule("magic-link-request", properties.magicLinkRequest, ipKey(request))
+                listOf(Rule("magic-link-request", properties.magicLinkRequest, ipKey(request)))
             post && path == MAGIC_LINK_VERIFY_PATH ->
-                Rule("magic-link-verify", properties.magicLinkVerify, ipKey(request))
+                listOf(Rule("magic-link-verify", properties.magicLinkVerify, ipKey(request)))
             post && pathMatcher.match(INVITATION_ACCEPT_PATTERN, path) ->
-                Rule("invitation-accept", properties.invitationAccept, userOrIpKey(request))
-            // Keyed on the token segment: the feed has no session to key on, and a club behind one
-            // office NAT would otherwise throttle itself. The token IS the subscription's identity.
-            get && pathMatcher.match(CALENDAR_FEED_PATTERN, path) ->
-                Rule("calendar-feed", properties.calendarFeed, "token:${path.substringAfterLast('/')}")
-            else -> null
+                listOf(Rule("invitation-accept", properties.invitationAccept, userOrIpKey(request)))
+            get && pathMatcher.match(CALENDAR_FEED_PATTERN, path) -> calendarFeedRules(request, path)
+            else -> emptyList()
         }
     }
+
+    /**
+     * Two ceilings, because neither alone is the whole answer (ADR-0032).
+     *
+     * Per **token** is what bounds a real subscription: the feed is session-less, so there is no user
+     * to key on, and keying on IP alone would put a whole club behind one office NAT in a single
+     * bucket to throttle each other. But the token comes from the path, so a caller that never reuses
+     * one would get a fresh full bucket every request — per **IP** is the backstop that closes that,
+     * loose enough never to bite honest traffic.
+     *
+     * The token is hashed into the key rather than used raw: bucket keys outlive the request in the
+     * limiter's cache, and a live credential has no business sitting in it.
+     */
+    private fun calendarFeedRules(request: HttpServletRequest, path: String): List<Rule> = listOf(
+        Rule("calendar-feed", properties.calendarFeed, "token:${keyHash(path.substringAfterLast('/'))}"),
+        Rule("calendar-feed-client", properties.calendarFeedPerClient, ipKey(request)),
+    )
+
+    /** Truncated SHA-256 — enough to separate buckets, not enough to be a token. */
+    private fun keyHash(value: String): String =
+        MessageDigest.getInstance("SHA-256")
+            .digest(value.toByteArray())
+            .take(KEY_HASH_BYTES)
+            .joinToString("") { "%02x".format(it) }
 
     private fun ipKey(request: HttpServletRequest): String = "ip:${clientIp(request)}"
 
@@ -137,6 +162,7 @@ class RateLimitFilter(
         val FEED_METHODS = setOf(HttpMethod.GET.name(), HttpMethod.HEAD.name())
 
         const val X_FORWARDED_FOR = "X-Forwarded-For"
+        const val KEY_HASH_BYTES = 16
         const val MILLIS_PER_SECOND = 1000.0
         const val BODY = """{"error":"Too many requests. Please slow down and try again shortly.","code":"rate_limited"}"""
     }

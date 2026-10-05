@@ -19,6 +19,7 @@ import com.github.zzave.teambalance.api.domain.model.TeamSummary
 import com.github.zzave.teambalance.api.domain.model.UserId
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.string.shouldNotContain
 import java.time.Instant
@@ -33,12 +34,16 @@ private val TEAM = TeamSummary(
     slug = Slug("tovo-dames-5"),
 )
 
+private val CREATED: Instant = Instant.parse("2026-09-01T09:00:00Z")
+private val REVISED: Instant = Instant.parse("2026-09-20T14:45:00Z")
+
 private fun event(
     title: String = "Training",
     description: String? = null,
     location: String? = "Galgenwaard",
     start: Instant = Instant.parse("2026-10-01T18:30:00Z"),
     end: Instant = Instant.parse("2026-10-01T20:00:00Z"),
+    updatedAt: Instant = CREATED,
 ) = Event(
     id = EventId(EVENT_ID),
     eventType = EventType(
@@ -53,7 +58,8 @@ private fun event(
     location = location?.let(::EventLocation),
     recurringGroup = null,
     createdBy = UserId(UUID.randomUUID()),
-    createdAt = Instant.parse("2026-09-01T09:00:00Z"),
+    createdAt = CREATED,
+    updatedAt = updatedAt,
 )
 
 private fun feed(entries: List<CalendarFeedEntry>, refresh: RefreshCadence = RefreshCadence.RELAXED) =
@@ -119,6 +125,35 @@ class CalendarIcsTest : FunSpec({
     // new ETag and the 304 path would never fire.
     test("the timestamp is stable across renders, so the ETag can be") {
         render() shouldBe render()
+    }
+
+    // On an object with no METHOD, RFC 5545 gives DTSTAMP the meaning "last revised", and
+    // LAST-MODIFIED says the same in the property clients more often read. Both carried the creation
+    // time before, which told every client that a rescheduled training was the version it already had.
+    context("the event's revision time is what a client compares") {
+        test("an unedited event stamps its creation time") {
+            val ics = render()
+            ics shouldContain "DTSTAMP:20260901T090000Z"
+            ics shouldContain "LAST-MODIFIED:20260901T090000Z"
+        }
+
+        test("an edited event stamps the edit, not the creation") {
+            val ics = render(event = event(updatedAt = REVISED))
+            ics shouldContain "DTSTAMP:20260920T144500Z"
+            ics shouldContain "LAST-MODIFIED:20260920T144500Z"
+            ics shouldNotContain "20260901T090000Z"
+        }
+
+        // Which is also what keeps the ETag honest: it moves when the event does, and only then.
+        test("an edit changes the rendered calendar, an unrelated render does not") {
+            render(event = event(updatedAt = REVISED)) shouldNotBe render(event = event(updatedAt = CREATED))
+        }
+
+        // SEQUENCE counts revisions and nothing here counts them; a number synthesised from a
+        // timestamp would be a lie that also overflows. Its job is iTIP scheduling, not a published feed.
+        test("no SEQUENCE is invented") {
+            render() shouldNotContain "SEQUENCE"
+        }
     }
 
     context("the member's own answer is worn on the title") {

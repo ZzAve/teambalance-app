@@ -155,6 +155,11 @@ teambalance:
     calendar-feed:
       capacity: 60
       refill-period: 1h
+    # The second ceiling on the same request, per client IP. Loose on purpose: a club behind one
+    # office NAT shares it, and the feed only asks to be polled 1-12 times a day per subscription.
+    calendar-feed-per-client:
+      capacity: 600
+      refill-period: 1h
   calendar-link:
     # App-wide secret salt applied to stored calendar-link token hashes. A sibling of the invitation
     # salt, never the same value: one leaked secret must not read the other kind of link. Live

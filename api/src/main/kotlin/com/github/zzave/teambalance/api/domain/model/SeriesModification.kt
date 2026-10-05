@@ -40,7 +40,18 @@ data class SeriesEditPlan(
     val edited: List<Event>,
     val regrouped: List<Event>,
 ) {
+    /** Every row the plan touches — the validation view (see `SeasonPolicy.requireEditable`). */
     val toPersist: List<Event> get() = edited + regrouped
+
+    /**
+     * The rows to **write**, with [edited] stamped as revised at [now] — the write path's only view,
+     * so a revision time cannot be forgotten.
+     *
+     * [regrouped] is deliberately left alone: its occurrences moved to another series group and
+     * nothing a subscriber can see about them changed, so bumping their revision would churn every
+     * calendar subscription for a split that is invisible to it (ADR-0032).
+     */
+    fun revisedAt(now: Instant): List<Event> = edited.map { it.copy(updatedAt = now) } + regrouped
 }
 
 /**

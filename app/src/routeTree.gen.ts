@@ -28,7 +28,6 @@ import { Route as TSlugGetStartedIndexRouteImport } from './routes/t/$slug/get-s
 import { Route as TSlugMoneyIndexRouteImport } from './routes/t/$slug/money/index'
 import { Route as TSlugProfileIndexRouteImport } from './routes/t/$slug/profile/index'
 import { Route as TSlugTeamIndexRouteImport } from './routes/t/$slug/team/index'
-import { Route as TSlugTeamUserIdRouteImport } from './routes/t/$slug/team/$userId'
 import { Route as TSlugTeamSettingsRouteImport } from './routes/t/$slug/team/settings'
 
 const IndexRoute = IndexRouteImport.update({
@@ -126,11 +125,6 @@ const TSlugTeamIndexRoute = TSlugTeamIndexRouteImport.update({
   path: '/team/',
   getParentRoute: () => TSlugRouteRoute,
 } as any)
-const TSlugTeamUserIdRoute = TSlugTeamUserIdRouteImport.update({
-  id: '/team/$userId',
-  path: '/team/$userId',
-  getParentRoute: () => TSlugRouteRoute,
-} as any)
 const TSlugTeamSettingsRoute = TSlugTeamSettingsRouteImport.update({
   id: '/team/settings',
   path: '/team/settings',
@@ -153,7 +147,6 @@ export interface FileRoutesByFullPath {
   '/onboarding/': typeof OnboardingIndexRoute
   '/t/$slug/': typeof TSlugIndexRoute
   '/t/$slug/events/$eventId': typeof TSlugEventsEventIdRoute
-  '/t/$slug/team/$userId': typeof TSlugTeamUserIdRoute
   '/t/$slug/team/settings': typeof TSlugTeamSettingsRoute
   '/t/$slug/get-started/': typeof TSlugGetStartedIndexRoute
   '/t/$slug/money/': typeof TSlugMoneyIndexRoute
@@ -175,7 +168,6 @@ export interface FileRoutesByTo {
   '/onboarding': typeof OnboardingIndexRoute
   '/t/$slug': typeof TSlugIndexRoute
   '/t/$slug/events/$eventId': typeof TSlugEventsEventIdRoute
-  '/t/$slug/team/$userId': typeof TSlugTeamUserIdRoute
   '/t/$slug/team/settings': typeof TSlugTeamSettingsRoute
   '/t/$slug/get-started': typeof TSlugGetStartedIndexRoute
   '/t/$slug/money': typeof TSlugMoneyIndexRoute
@@ -199,7 +191,6 @@ export interface FileRoutesById {
   '/onboarding/': typeof OnboardingIndexRoute
   '/t/$slug/': typeof TSlugIndexRoute
   '/t/$slug/events/$eventId': typeof TSlugEventsEventIdRoute
-  '/t/$slug/team/$userId': typeof TSlugTeamUserIdRoute
   '/t/$slug/team/settings': typeof TSlugTeamSettingsRoute
   '/t/$slug/get-started/': typeof TSlugGetStartedIndexRoute
   '/t/$slug/money/': typeof TSlugMoneyIndexRoute
@@ -224,7 +215,6 @@ export interface FileRouteTypes {
     | '/onboarding/'
     | '/t/$slug/'
     | '/t/$slug/events/$eventId'
-    | '/t/$slug/team/$userId'
     | '/t/$slug/team/settings'
     | '/t/$slug/get-started/'
     | '/t/$slug/money/'
@@ -246,7 +236,6 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/t/$slug'
     | '/t/$slug/events/$eventId'
-    | '/t/$slug/team/$userId'
     | '/t/$slug/team/settings'
     | '/t/$slug/get-started'
     | '/t/$slug/money'
@@ -269,7 +258,6 @@ export interface FileRouteTypes {
     | '/onboarding/'
     | '/t/$slug/'
     | '/t/$slug/events/$eventId'
-    | '/t/$slug/team/$userId'
     | '/t/$slug/team/settings'
     | '/t/$slug/get-started/'
     | '/t/$slug/money/'
@@ -428,13 +416,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TSlugTeamIndexRouteImport
       parentRoute: typeof TSlugRouteRoute
     }
-    '/t/$slug/team/$userId': {
-      id: '/t/$slug/team/$userId'
-      path: '/team/$userId'
-      fullPath: '/t/$slug/team/$userId'
-      preLoaderRoute: typeof TSlugTeamUserIdRouteImport
-      parentRoute: typeof TSlugRouteRoute
-    }
     '/t/$slug/team/settings': {
       id: '/t/$slug/team/settings'
       path: '/team/settings'
@@ -448,7 +429,6 @@ declare module '@tanstack/react-router' {
 interface TSlugRouteRouteChildren {
   TSlugIndexRoute: typeof TSlugIndexRoute
   TSlugEventsEventIdRoute: typeof TSlugEventsEventIdRoute
-  TSlugTeamUserIdRoute: typeof TSlugTeamUserIdRoute
   TSlugTeamSettingsRoute: typeof TSlugTeamSettingsRoute
   TSlugGetStartedIndexRoute: typeof TSlugGetStartedIndexRoute
   TSlugMoneyIndexRoute: typeof TSlugMoneyIndexRoute
@@ -459,7 +439,6 @@ interface TSlugRouteRouteChildren {
 const TSlugRouteRouteChildren: TSlugRouteRouteChildren = {
   TSlugIndexRoute: TSlugIndexRoute,
   TSlugEventsEventIdRoute: TSlugEventsEventIdRoute,
-  TSlugTeamUserIdRoute: TSlugTeamUserIdRoute,
   TSlugTeamSettingsRoute: TSlugTeamSettingsRoute,
   TSlugGetStartedIndexRoute: TSlugGetStartedIndexRoute,
   TSlugMoneyIndexRoute: TSlugMoneyIndexRoute,

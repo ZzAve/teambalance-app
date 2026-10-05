@@ -1,8 +1,9 @@
 import { useState, type ReactNode } from 'react'
 import { Link } from '@tanstack/react-router'
-import { AlignLeft, CalendarDays, Clock, ExternalLink, Link2, MapPin, type LucideIcon } from 'lucide-react'
+import { AlignLeft, CalendarDays, Clock, ExternalLink, Link2, MapPin } from 'lucide-react'
 import type { EventDetail } from '@shared/api/events'
 import { Button } from '@shared/ui/button'
+import { InfoRow } from '@shared/ui/InfoRow'
 import { MapsLink } from '@shared/ui/MapsLink'
 import { QueryErrorState } from '@shared/ui/QueryErrorState'
 import { SectionLabel } from '@shared/ui/SectionLabel'
@@ -230,15 +231,3 @@ export function EventDetailView({
   )
 }
 
-/** One detail line in the info card: the icon marks what the line is, the label names it for screen readers. */
-function InfoRow({ icon: Icon, label, children }: { icon: LucideIcon; label: string; children: ReactNode }) {
-  return (
-    <div className="flex items-start gap-3">
-      <dt className="flex h-6 shrink-0 items-center text-muted-foreground">
-        <Icon size={18} aria-hidden />
-        <span className="sr-only">{label}</span>
-      </dt>
-      <dd className="min-w-0 flex-1">{children}</dd>
-    </div>
-  )
-}

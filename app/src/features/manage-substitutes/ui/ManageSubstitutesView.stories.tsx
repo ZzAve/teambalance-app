@@ -14,8 +14,11 @@ import { ManageSubstitutesView } from './ManageSubstitutesView'
 // lives here only as a behavioural shell; the editable list is shown by no composite and keeps Data's
 // picture.
 //   1. Data — the editable list, and the picture of this View.
-//   2. Shells — every other state stacked in one frame, each asserted in its labelled region.
+//   2. Shells — every other state stacked in one frame, each asserted in its labelled region,
+//      including a row left mid-rename.
 //   3. Interactions — no picture; one play drives rename, change Position and remove-with-confirm.
+// Plus RemoveConfirmOpen, the open dialog, as on MemberRosterView: a portal, so it cannot ride in
+// Shells without covering the other cases.
 const POSITIONS: Position[] = [
   { id: 'p1', label: 'Setter', kind: 'PLAYING' },
   { id: 'p2', label: 'Libero', kind: 'PLAYING' },
@@ -70,10 +73,12 @@ export const Shells: Story = {
         // With no Positions in the team, rows fall back to a plain Unassigned label (no picker).
         'No positions': <ManageSubstitutesView {...args} positions={[]} />,
         'Name taken': <ManageSubstitutesView {...args} errorMessage="Sam Bakker is already on the list." />,
+        // Rename picked from the row's menu: the name becomes a field. Opened by the play and left open.
+        Renaming: <ManageSubstitutesView {...args} />,
       }}
     />
   ),
-  play: async ({ canvas }) => {
+  play: async ({ canvas, userEvent }) => {
     const region = (name: string) => within(canvas.getByRole('region', { name }))
 
     await expect(region('Loading').getByText('Loading…')).toBeInTheDocument()
@@ -95,10 +100,28 @@ export const Shells: Story = {
     await expect(region('No positions').getByText('Unassigned')).toBeInTheDocument()
 
     await expect(region('Name taken').getByRole('alert')).toHaveTextContent('Sam Bakker is already on the list.')
+
+    await userEvent.click(region('Renaming').getByLabelText('Actions for Jan de Vries'))
+    await userEvent.click(await within(document.body).findByRole('menuitem', { name: 'Rename' }))
+    await expect(region('Renaming').getByLabelText('Name for Jan de Vries')).toHaveValue('Jan de Vries')
+    await expect(region('Renaming').getByRole('button', { name: 'Save' })).toBeInTheDocument()
   },
 }
 
-// Picture owned by Data and Shells — behavioural only (ADR-0032 §1).
+// The open-dialog frame: what an admin reads before a removal that reaches past Events. Opened and
+// left open; Interactions confirms it, so this is the only place the dialog carries a baseline.
+export const RemoveConfirmOpen: Story = {
+  args: { eventCount: 4 },
+  play: async ({ canvas, userEvent }) => {
+    await userEvent.click(canvas.getByLabelText('Actions for Jan de Vries'))
+    await userEvent.click(await within(document.body).findByRole('menuitem', { name: 'Remove…' }))
+    const dialog = within(await within(document.body).findByRole('dialog'))
+    await expect(dialog.getByText('Jan de Vries is on 4 events.')).toBeInTheDocument()
+    await expect(dialog.getByRole('button', { name: 'Cancel' })).toBeInTheDocument()
+  },
+}
+
+// Picture owned by Data, Shells and RemoveConfirmOpen — behavioural only (ADR-0032 §1).
 export const Interactions: Story = {
   parameters: { chromatic: { disableSnapshot: true } },
   args: { eventCount: 4 },

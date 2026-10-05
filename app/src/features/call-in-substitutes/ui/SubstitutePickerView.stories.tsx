@@ -75,14 +75,21 @@ export const Data: Story = {
   },
 }
 
-// Opened without a Position, and nobody on the list yet: the only way forward is a new one.
+// Opened without a Position, and nobody on the list yet: the only way forward is a new one. The play
+// leaves that form open, the one frame of it — Data pictures the closed "New substitute" button, and
+// Interactions takes no picture.
 export const Shells: Story = {
   args: { substitutes: [], onEvent: [] },
-  play: async () => {
+  play: async ({ userEvent }) => {
     const sheet = within(await within(document.body).findByRole('dialog', { name: 'Call in substitutes' }))
     await expect(sheet.getByText('Nobody on the list yet.')).toBeInTheDocument()
     await expect(sheet.queryByRole('group', { name: 'Others' })).not.toBeInTheDocument()
-    await expect(sheet.getByRole('button', { name: /New substitute/ })).toBeInTheDocument()
+
+    // Opened without a Position, so none is chosen yet.
+    await userEvent.click(sheet.getByRole('button', { name: /New substitute/ }))
+    await expect(sheet.getByLabelText('Name')).toBeInTheDocument()
+    await expect(sheet.getByRole('button', { name: 'None' })).toHaveAttribute('aria-pressed', 'true')
+    await expect(sheet.getByRole('button', { name: 'Add as asked' })).toBeDisabled()
   },
 }
 

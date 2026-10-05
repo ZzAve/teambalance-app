@@ -30,6 +30,7 @@ const MEMBER: Member = {
   role: 'MEMBER',
   position: { id: 'p1', label: 'Setter' },
   onboarded: true,
+  shirtNumber: undefined,
 }
 
 const WITH_TEAM: AccountSection[] = ['email', 'displayName', 'position', 'appearance', 'teams', 'logout']

@@ -8,7 +8,10 @@ export type { Member } from './generated/model/Member'
 // shown inline; a 403/404 is not). Carry the backend's discriminator code so the UI can branch.
 // LAST_ADMIN is a 409 too — refusing a demote/remove that would leave the team without an admin.
 export class MemberUpdateError extends Error {
-  constructor(public readonly code: 'NAME_TAKEN' | 'FORBIDDEN' | 'NOT_FOUND' | 'LAST_ADMIN', message: string) {
+  constructor(
+    public readonly code: 'NAME_TAKEN' | 'NUMBER_TAKEN' | 'FORBIDDEN' | 'NOT_FOUND' | 'LAST_ADMIN',
+    message: string,
+  ) {
     super(message)
     this.name = 'MemberUpdateError'
   }
@@ -52,19 +55,25 @@ interface UpdateMemberInput {
   /** The member's position, or null to leave them Unassigned. Callers pass the current value to
    *  preserve it on a name/role-only change. */
   positionId: string | null
+  /** The member's Shirt Number, or null for none. Like positionId, pass the current value to keep it. */
+  shirtNumber: number | null
 }
 
 export function useUpdateMember() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async ({ userId, displayName, role, positionId }: UpdateMemberInput) => {
-      const res = await api.UpdateMember({ userId, body: { displayName, role, positionId: positionId ?? undefined } })
-      // A 409 is either a name collision (rename) or the last-admin guard (demote). The contract
+    mutationFn: async ({ userId, displayName, role, positionId, shirtNumber }: UpdateMemberInput) => {
+      const res = await api.UpdateMember({
+        userId,
+        body: { displayName, role, positionId: positionId ?? undefined, shirtNumber: shirtNumber ?? undefined },
+      })
+      // A 409 is a name or Shirt Number collision, or the last-admin guard (demote). The contract
       // types the body as undefined, but the handler still sends a { code } discriminator we can
       // read at runtime to tell them apart.
       if (res.status === 409) {
         const code = (res.body as { code?: string } | undefined)?.code
         if (code === 'LAST_ADMIN') throw new MemberUpdateError('LAST_ADMIN', 'A team must keep at least one admin.')
+        if (code === 'NUMBER_TAKEN') throw new MemberUpdateError('NUMBER_TAKEN', 'That shirt number is already taken.')
         throw new MemberUpdateError('NAME_TAKEN', 'That display name is already taken.')
       }
       if (res.status === 403) throw new MemberUpdateError('FORBIDDEN', 'You are not allowed to make this change.')
@@ -82,8 +91,21 @@ export function useUpdateMember() {
 export function useCompleteOnboarding() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async ({ displayName, role, positionId }: { displayName: string; role: string; positionId: string | null }) => {
-      const res = await api.CompleteOnboarding({ body: { displayName, role, positionId: positionId ?? undefined } })
+    mutationFn: async ({
+      displayName,
+      role,
+      positionId,
+      shirtNumber,
+    }: {
+      displayName: string
+      role: string
+      positionId: string | null
+      /** Pass the current value: an Admin may already have set one before the member onboards. */
+      shirtNumber: number | null
+    }) => {
+      const res = await api.CompleteOnboarding({
+        body: { displayName, role, positionId: positionId ?? undefined, shirtNumber: shirtNumber ?? undefined },
+      })
       if (res.status === 409) throw new MemberUpdateError('NAME_TAKEN', 'That display name is already taken.')
       return res.body
     },

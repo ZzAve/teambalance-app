@@ -21,10 +21,10 @@ const POSITIONS: Position[] = [
 ]
 
 const MEMBERS: Member[] = [
-  { userId: 'u1', displayName: 'Ada Lovelace', role: 'ADMIN', position: POSITIONS[0], onboarded: true },
-  { userId: 'u2', displayName: 'Grace Hopper', role: 'ADMIN', position: POSITIONS[2], onboarded: true },
-  { userId: 'u3', displayName: 'Alan Turing', role: 'USER', position: POSITIONS[1], onboarded: true },
-  { userId: 'u4', displayName: 'Katherine Johnson', role: 'USER', position: undefined, onboarded: true },
+  { userId: 'u1', displayName: 'Ada Lovelace', role: 'ADMIN', position: POSITIONS[0], onboarded: true, shirtNumber: 7 },
+  { userId: 'u2', displayName: 'Grace Hopper', role: 'ADMIN', position: POSITIONS[2], onboarded: true, shirtNumber: undefined },
+  { userId: 'u3', displayName: 'Alan Turing', role: 'USER', position: POSITIONS[1], onboarded: true, shirtNumber: 1 },
+  { userId: 'u4', displayName: 'Katherine Johnson', role: 'USER', position: undefined, onboarded: true, shirtNumber: 112 },
 ]
 
 const noop = () => {}
@@ -81,9 +81,11 @@ export const Data: Story = {
     await expect(canvas.getByRole('heading', { name: 'Team' })).toBeInTheDocument()
     await expect(canvas.getByRole('button', { name: 'Invite Link' })).toBeInTheDocument()
     await expect(canvas.getByRole('link', { name: 'Team settings' })).toHaveAttribute('href', '/t/setpoint-vt/team/settings')
+    // The roster is a grid of faces, each opening that member's page (ADR-0038).
     for (const name of ['Ada Lovelace', 'Grace Hopper', 'Alan Turing', 'Katherine Johnson']) {
-      await expect(canvas.getByText(name)).toBeInTheDocument()
+      await expect(canvas.getByRole('link', { name })).toBeInTheDocument()
     }
+    await expect(canvas.getByLabelText('Shirt number 112')).toBeInTheDocument()
     // The Team's Substitutes sit under the roster: people the Team calls in, not Members (ADR-0033).
     await expect(canvas.getByRole('heading', { name: 'Substitutes' })).toBeInTheDocument()
     await expect(canvas.getByText('Jan de Vries')).toBeInTheDocument()
@@ -110,7 +112,7 @@ export const Shells: Story = {
     const region = (name: string) => within(canvas.getByRole('region', { name }))
     await expect(region('Member').queryByRole('button', { name: 'Invite Link' })).not.toBeInTheDocument()
     await expect(region('Member').queryByRole('link', { name: 'Team settings' })).not.toBeInTheDocument()
-    await expect(region('Member').getByText('Ada Lovelace')).toBeInTheDocument()
+    await expect(region('Member').getByRole('link', { name: 'Ada Lovelace' })).toBeInTheDocument()
     await expect(region('Loading').getByText('Loading…')).toBeInTheDocument()
     await expect(region('Error').getByText(/couldn't load/i)).toBeInTheDocument()
   },

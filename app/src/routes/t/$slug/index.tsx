@@ -192,7 +192,14 @@ function EventListPage() {
                 onDefaultExpandedChange: setDefaultExpanded,
             }}
             hero={heroEvent && (
-                <NextEventHero event={heroEvent} now={now} lineup={(event) => lineupPanel(event, {summary: false})}/>
+                <NextEventHero
+                    event={heroEvent}
+                    now={now}
+                    // The hero's lineup sits behind the cards' disclosure and follows the same
+                    // preference (#386).
+                    defaultLineupOpen={defaultExpanded}
+                    lineup={(event) => lineupPanel(event, {summary: false})}
+                />
             )}
             bulkBar={<BulkAttendBar events={bulkEvents}/>}
             list={{

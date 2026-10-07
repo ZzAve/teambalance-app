@@ -20,9 +20,9 @@ import { NextEventHeroView } from './NextEventHeroView'
 //
 // Three-story shape (ADR-0032 §1):
 //   1. Data — the default, unanswered instance, disableSnapshot (picture owned by the page).
-//   2. Shells — every answer state, the saving hold, the same-day countdown and the readiness
-//      variants, stacked in one frame — this picture stays, since the composite's default frame
-//      cannot show any of them.
+//   2. Shells — every answer state, the saving hold, the same-day countdown, the readiness
+//      variants and the lineup open, stacked in one frame — this picture stays, since the
+//      composite's default frame cannot show any of them.
 //   3. Interactions — no picture; the inline RSVP's prop-contract spies and the hit-area geometry
 //      (#324) — both the whole-card link and the controls that must stay above its overlay.
 const NOW = new Date(2026, 7, 10, 9, 0) // Monday 10 August 2026, 09:00 local
@@ -42,9 +42,9 @@ const EVENT = makeEvent({
   ],
 })
 
-// The same panel the list cards open, always shown here, without its header summary: the hero's
-// badge already states the verdict (#386). Its answer wiring is the container's, so the stories
-// prove only that it renders and that its chips stay above the card link's overlay.
+// The same panel the list cards open, behind the same disclosure (#386), without its header
+// summary: the hero's badge already states the verdict. Its answer wiring is the container's, so the
+// stories prove only that it renders and that its chips stay above the card link's overlay.
 const lineupFor = (event: Event) => (
   <EventLineupPanel
     attendances={event.attendances}
@@ -100,17 +100,23 @@ type Story = StoryObj<typeof meta>
 export const Data: Story = {
   parameters: { chromatic: { disableSnapshot: true } },
   args: { lineup: LINEUP },
-  play: async ({ canvas }) => {
+  play: async ({ canvas, userEvent }) => {
     await expect(canvas.getByText('Next up')).toBeInTheDocument()
     // Every detail a list card carries: type, title, time, location, description and the lineup.
     await expect(canvas.getByText('Training')).toBeInTheDocument()
     await expect(canvas.getByText('Training — Court 2')).toBeInTheDocument()
     await expect(canvas.getByText('Sporthal De Toekomst')).toBeInTheDocument()
     await expect(canvas.getByText(/Bring both shirts/)).toBeInTheDocument()
-    // The lineup is open from the start — there is no disclosure to tap.
+    // The lineup sits behind the cards' disclosure (#386), closed unless the member keeps panels
+    // open: the hero must leave room for the next card on a phone.
+    const disclosure = canvas.getByRole('button', { name: /Show who's coming/ })
+    await expect(disclosure).toHaveAttribute('aria-expanded', 'false')
+    await expect(canvas.queryByText('Lineup')).not.toBeInTheDocument()
+    await expect(canvas.queryByRole('button', { name: /^Sanne/ })).not.toBeInTheDocument()
+    await userEvent.click(disclosure)
+    await expect(canvas.getByRole('button', { name: /Hide who's coming/ })).toHaveAttribute('aria-expanded', 'true')
     await expect(canvas.getByText('Lineup')).toBeInTheDocument()
     await expect(canvas.getByRole('button', { name: /^Sanne/ })).toBeInTheDocument()
-    await expect(canvas.queryByRole('button', { name: /Show lineup/ })).not.toBeInTheDocument()
     // The headcount is stated once (#386): the status line carries it, so the lineup header does
     // not print its own "0 going" beneath it.
     await expect(canvas.queryByText(/^\d+ going$/)).not.toBeInTheDocument()
@@ -148,7 +154,13 @@ export const Shells: Story = {
         // The hero was the last surface in the app with no roster verdict. It carries the same
         // `ReadinessBadge` as the card row (#273) — same `rosterChip`, no second computation.
         'Readiness covered': (
-          <NextEventHeroView {...args} event={READY_EVENT} myState="ATTENDING" lineup={lineupFor(READY_EVENT)} />
+          <NextEventHeroView
+            {...args}
+            event={READY_EVENT}
+            myState="ATTENDING"
+            lineup={lineupFor(READY_EVENT)}
+            defaultLineupOpen
+          />
         ),
         'Readiness short': (
           <NextEventHeroView
@@ -191,6 +203,9 @@ export const Shells: Story = {
         'Readiness not tracked': (
           <NextEventHeroView {...args} event={makeEvent({ ...EVENT, roster: NO_ROSTER })} myState="ATTENDING" />
         ),
+        // The member keeps panels open (ADR-0030 §6): the hero's lineup starts open like every
+        // card's. The one frame that still shows the panel on the green (#386).
+        'Lineup open': <NextEventHeroView {...args} lineup={LINEUP} defaultLineupOpen />,
       }}
     />
   ),
@@ -246,6 +261,12 @@ export const Shells: Story = {
     // an absent verdict leaves no gap above the RSVP buttons.
     const row = notTrackedStatus.parentElement!
     await expect(row.getBoundingClientRect().height).toBe(notTrackedStatus.getBoundingClientRect().height)
+
+    await expect(region('Lineup open').getByRole('button', { name: /Hide who's coming/ })).toHaveAttribute(
+      'aria-expanded',
+      'true',
+    )
+    await expect(region('Lineup open').getByRole('button', { name: /^Sanne/ })).toBeInTheDocument()
   },
 }
 
@@ -257,7 +278,7 @@ export const Interactions: Story = {
   render: (args) => (
     <Stack
       items={{
-        Default: <NextEventHeroView {...args} lineup={LINEUP} />,
+        Default: <NextEventHeroView {...args} lineup={LINEUP} defaultLineupOpen />,
         Saving: <NextEventHeroView {...args} isSaving />,
       }}
     />
@@ -290,7 +311,10 @@ export const Interactions: Story = {
       await expect(topmostAtCentreOf(button)?.closest('button')).toBe(button)
     }
 
-    // The lineup's chips open the answer sheet, so they sit above the overlay too.
+    // The lineup's disclosure and, once open, its chips (which open the answer sheet) sit above
+    // the overlay too.
+    const disclosure = within(defaultRegion).getByRole('button', { name: /Hide who's coming/ })
+    await expect(topmostAtCentreOf(disclosure)?.closest('button')).toBe(disclosure)
     const chip = within(defaultRegion).getByRole('button', { name: /^Sanne/ })
     await expect(topmostAtCentreOf(chip)?.closest('button')).toBe(chip)
 

@@ -1,6 +1,6 @@
 import { Link } from '@tanstack/react-router'
-import type { ReactNode } from 'react'
-import { Check, Clock, MapPin, X } from 'lucide-react'
+import { useId, useState, type ReactNode } from 'react'
+import { Check, ChevronDown, Clock, MapPin, X } from 'lucide-react'
 import type { Event } from '@shared/api/events'
 import type { AttendanceState } from '@features/attendance-toggle/ui/AttendanceToggle'
 import { ReadinessBadge } from '@entities/event/ui/ReadinessBadge'
@@ -19,11 +19,15 @@ interface NextEventHeroViewProps {
   /** Injected so the countdown is deterministic in stories; defaults to the real clock. */
   now?: Date
   /**
-   * The lineup, always shown: the list cards keep it behind a disclosure, but the next event is the
-   * one whose roster matters right now. Injected for the same reason as on the card — it is built
-   * from widgets this View should not have to wire.
+   * The lineup, behind the same disclosure the list cards use (#386). It was always open once —
+   * the next event is the one whose roster matters right now — but open it filled a phone's whole
+   * first screen, and a member opening the app to see what is coming saw one event. The verdict
+   * badge keeps the one-glance news; the roster is a tap away. Injected for the same reason as on
+   * the card — it is built from widgets this View should not have to wire.
    */
   lineup?: ReactNode
+  /** Start the lineup open — the member's `Keep open` preference, as on every card (ADR-0030 §6). */
+  defaultLineupOpen?: boolean
 }
 
 /** The status line's second clause — what the viewer has (or hasn't) said. */
@@ -50,8 +54,21 @@ export function NextEventHeroView({
   onRespond,
   now = new Date(),
   lineup,
+  defaultLineupOpen = false,
 }: NextEventHeroViewProps) {
   const routes = useTeamRoutes()
+  const [lineupOpen, setLineupOpen] = useState(defaultLineupOpen)
+  // `Keep open` is a preference, not merely an initial value: when it flips, follow it — the same
+  // render-time reset EventAnswerRow does, so the hero and the cards open and close together.
+  const [appliedDefault, setAppliedDefault] = useState(defaultLineupOpen)
+  if (appliedDefault !== defaultLineupOpen) {
+    setAppliedDefault(defaultLineupOpen)
+    setLineupOpen(defaultLineupOpen)
+  }
+  const lineupId = useId()
+  // The same noun the card's disclosure uses: an untracked social has no positions, so its panel is
+  // its people.
+  const panelNoun = event.roster.trackRoster ? 'lineup' : "who's coming"
   const date = new Date(event.startTime)
   const countdown = heroCountdown(event.startTime, now)
   const going = myState === 'ATTENDING'
@@ -183,10 +200,31 @@ export function NextEventHeroView({
         </button>
       </div>
 
+      {/* The lineup's disclosure, a quieter row under the answers: it is a way in, not a third
+          answer. Lifted above the stretched overlay like the buttons; min-h-11 keeps the target. */}
+      {lineup && (
+        <button
+          type="button"
+          aria-expanded={lineupOpen}
+          aria-controls={lineupOpen ? lineupId : undefined}
+          onClick={() => setLineupOpen((open) => !open)}
+          className="relative z-10 mt-2 flex min-h-11 w-full cursor-pointer items-center justify-center gap-1.5 rounded-md bg-white/10 px-3 text-small font-semibold text-white/90 transition-colors hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+        >
+          {lineupOpen ? `Hide ${panelNoun}` : `Show ${panelNoun}`}
+          <ChevronDown
+            size={14}
+            aria-hidden
+            className={`transition-transform duration-200 ${lineupOpen ? 'rotate-180' : ''}`}
+          />
+        </button>
+      )}
+
       {/* On a light surface of its own: the panel is drawn in the card's palette. relative z-10 lifts
           its chips above the stretched overlay. */}
-      {lineup && (
-        <div className="relative z-10 mt-3 rounded-md bg-card p-3 text-foreground">{lineup}</div>
+      {lineup && lineupOpen && (
+        <div id={lineupId} className="relative z-10 mt-3 rounded-md bg-card p-3 text-foreground">
+          {lineup}
+        </div>
       )}
     </section>
   )

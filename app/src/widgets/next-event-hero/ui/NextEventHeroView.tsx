@@ -1,6 +1,7 @@
 import { Link } from '@tanstack/react-router'
 import type { ReactNode } from 'react'
-import { Check, Clock, MapPin, X } from 'lucide-react'
+import { useId, useState } from 'react'
+import { Check, ChevronDown, Clock, MapPin, X } from 'lucide-react'
 import type { Event } from '@shared/api/events'
 import type { AttendanceState } from '@features/attendance-toggle/ui/AttendanceToggle'
 import { ReadinessBadge } from '@entities/event/ui/ReadinessBadge'
@@ -24,6 +25,10 @@ interface NextEventHeroViewProps {
    * from widgets this View should not have to wire.
    */
   lineup?: ReactNode
+  /** PROTOTYPE variant A (#386): the lineup sits behind a disclosure, as on the cards. */
+  lineupDisclosure?: boolean
+  /** PROTOTYPE variant A: the member's "Keep panels open" preference. */
+  defaultLineupOpen?: boolean
 }
 
 /** The status line's second clause — what the viewer has (or hasn't) said. */
@@ -50,8 +55,18 @@ export function NextEventHeroView({
   onRespond,
   now = new Date(),
   lineup,
+  lineupDisclosure = false,
+  defaultLineupOpen = false,
 }: NextEventHeroViewProps) {
   const routes = useTeamRoutes()
+  const [lineupOpen, setLineupOpen] = useState(defaultLineupOpen)
+  const [appliedDefault, setAppliedDefault] = useState(defaultLineupOpen)
+  if (appliedDefault !== defaultLineupOpen) {
+    setAppliedDefault(defaultLineupOpen)
+    setLineupOpen(defaultLineupOpen)
+  }
+  const lineupId = useId()
+  const showLineup = lineup && (!lineupDisclosure || lineupOpen)
   const date = new Date(event.startTime)
   const countdown = heroCountdown(event.startTime, now)
   const going = myState === 'ATTENDING'
@@ -183,10 +198,23 @@ export function NextEventHeroView({
         </button>
       </div>
 
+      {lineup && lineupDisclosure && (
+        <button
+          type="button"
+          aria-expanded={lineupOpen}
+          aria-controls={lineupOpen ? lineupId : undefined}
+          onClick={() => setLineupOpen((o) => !o)}
+          className="relative z-10 mt-2 flex min-h-11 w-full items-center justify-center gap-1.5 rounded-md bg-white/12 px-3 text-small font-semibold text-white/90 hover:bg-white/20"
+        >
+          {lineupOpen ? 'Hide lineup' : 'Show lineup'}
+          <ChevronDown size={14} aria-hidden className={`transition-transform duration-200 ${lineupOpen ? 'rotate-180' : ''}`} />
+        </button>
+      )}
+
       {/* On a light surface of its own: the panel is drawn in the card's palette. relative z-10 lifts
           its chips above the stretched overlay. */}
-      {lineup && (
-        <div className="relative z-10 mt-3 rounded-md bg-card p-3 text-foreground">{lineup}</div>
+      {showLineup && (
+        <div id={lineupId} className="relative z-10 mt-3 rounded-md bg-card p-3 text-foreground">{lineup}</div>
       )}
     </section>
   )

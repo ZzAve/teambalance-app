@@ -24,11 +24,16 @@ export function NextEventHero({
   event,
   now,
   lineup,
+  lineupDisclosure,
+  defaultLineupOpen,
 }: {
   event: Event
   now?: Date
   /** The lineup panel for an event — built by the route, which owns the page's Substitute picker. */
   lineup: (event: Event) => ReactNode
+  /** PROTOTYPE variant A (#386). */
+  lineupDisclosure?: boolean
+  defaultLineupOpen?: boolean
 }) {
   const { data: detail } = useEvent(event.id)
   const currentUserId = useCurrentUser()?.id ?? null
@@ -50,6 +55,8 @@ export function NextEventHero({
         if (currentUserId) mutate({ eventId: event.id, userId: currentUserId, state })
       }}
       lineup={lineup(shown)}
+      lineupDisclosure={lineupDisclosure}
+      defaultLineupOpen={defaultLineupOpen}
     />
   )
 }

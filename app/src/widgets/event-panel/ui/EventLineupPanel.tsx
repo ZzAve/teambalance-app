@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { UserPlus } from 'lucide-react'
+import { useId, useState } from 'react'
+import { ChevronDown, UserPlus } from 'lucide-react'
 import type { AttendanceEntry, EventRoster, SubstituteEntry } from '@shared/api/events'
 import { SectionLabel } from '@shared/ui/SectionLabel'
 import { AnswerSheet } from '@features/attendance-toggle/ui/AnswerSheet'
@@ -73,6 +73,11 @@ interface EventLineupPanelProps {
    * its own headcount line (#386) — so a verdict is never printed twice on one card.
    */
   summary?: boolean
+  /**
+   * PROTOTYPE variant B (#386): show only the positions with open slots in full; fold the covered
+   * ones (and the untargeted rows) into one line that opens on tap.
+   */
+  collapseCovered?: boolean
   /** An attendance write is in flight; the answer control is held. */
   pending?: boolean
   /** A Substitute write is in flight; the Substitute sheet is held. */
@@ -89,6 +94,7 @@ export function EventLineupPanel({
   onSetSubstituteState,
   onTakeOffSubstitute,
   summary = true,
+  collapseCovered = false,
   pending,
   substitutePending,
 }: EventLineupPanelProps) {
@@ -98,6 +104,12 @@ export function EventLineupPanel({
   // Which clusters the viewer unfolded, keyed `rowId:group`. Expanding one leaves the rest collapsed
   // — the point of the cap is that a long row stays short unless you ask it not to.
   const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set())
+  const [coveredOpen, setCoveredOpen] = useState(false)
+  const coveredId = useId()
+  // Only a targeted roster has anything to fold: with no targets every row is "who is coming".
+  const folding = collapseCovered && rows.some((r) => r.required != null)
+  const shortRows = folding ? rows.filter((r) => r.openSlots > 0) : rows
+  const coveredRows = folding ? rows.filter((r) => r.openSlots === 0) : []
 
   // Members only, whichever path set `answeringFor`: the answer sheet writes Member attendance.
   const member = rows.flatMap((r) => r.members).find((m) => !m.isSubstitute && m.userId === answeringFor) ?? null
@@ -142,7 +154,7 @@ export function EventLineupPanel({
         <p className="text-small text-muted-foreground">Nobody has answered yet.</p>
       ) : (
         <div className="flex flex-col gap-3.5">
-          {rows.map((row) => (
+          {shortRows.map((row) => (
             <PositionRow
               key={row.id}
               row={row}
@@ -152,6 +164,42 @@ export function EventLineupPanel({
               onFind={() => onCallInSubstitutes({ id: row.id, label: row.label })}
             />
           ))}
+          {coveredRows.length > 0 && (
+            <>
+              <button
+                type="button"
+                aria-expanded={coveredOpen}
+                aria-controls={coveredOpen ? coveredId : undefined}
+                onClick={() => setCoveredOpen((o) => !o)}
+                className="flex min-h-11 w-full items-center justify-between gap-2 rounded-md text-left text-caption text-muted-foreground hover:bg-muted/40"
+              >
+                <span className="min-w-0 truncate">
+                  <span className="font-semibold text-green-dark">
+                    {shortRows.length === 0 ? 'Everyone covered' : 'Covered'}
+                  </span>
+                  {' · '}
+                  {coveredRows
+                    .map((r) => (r.required == null ? `${r.label} ${r.attending}` : `${r.label} ${r.attending}/${r.required}`))
+                    .join(' · ')}
+                </span>
+                <ChevronDown size={14} aria-hidden className={`shrink-0 transition-transform duration-200 ${coveredOpen ? 'rotate-180' : ''}`} />
+              </button>
+              {coveredOpen && (
+                <div id={coveredId} className="flex flex-col gap-3.5">
+                  {coveredRows.map((row) => (
+                    <PositionRow
+                      key={row.id}
+                      row={row}
+                      expanded={expanded}
+                      onToggleCluster={toggleCluster}
+                      onSelect={select}
+                      onFind={() => onCallInSubstitutes({ id: row.id, label: row.label })}
+                    />
+                  ))}
+                </div>
+              )}
+            </>
+          )}
         </div>
       )}
 

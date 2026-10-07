@@ -26,6 +26,14 @@ import { emptyEventsMessage } from '@features/filter-event-types/model/empty-mes
 import { BulkAttendBar } from '@features/bulk-attend/ui/BulkAttendBar'
 import { SubstitutePicker } from '@features/call-in-substitutes/ui/SubstitutePicker'
 import { eligibleEvents } from '@features/bulk-attend/lib/eligible-event-ids'
+import { PrototypeSwitcher, usePrototypeVariant } from '@shared/ui/PrototypeSwitcher'
+
+// PROTOTYPE (#386): three treatments of the hero's lineup on this route, switchable via `?variant=`.
+const VARIANTS = [
+    {key: 'current', name: 'Lineup always open'},
+    {key: 'A', name: 'Disclosure like the cards'},
+    {key: 'B', name: 'Capped at what is short'},
+] as const
 
 export const Route = createFileRoute('/t/$slug/')({
     component: EventListPage,
@@ -53,6 +61,7 @@ function EventListPage() {
     // member was and must leave how they like to look at it alone (ADR-0030 §3). No team binding —
     // a taste follows the member across their teams, so there is nothing to restore on entry.
     const {defaultExpanded, setDefaultExpanded} = useEventPanelStore()
+    const variant = usePrototypeVariant(VARIANTS.map(v => v.key))
     const {data: events, isLoading, error} = useEvents(showPast)
     const {data: eventTypes} = useEventTypes()
     const isAdmin = useCurrentUser()?.role === 'ADMIN'
@@ -99,13 +108,14 @@ function EventListPage() {
     // The lineup panel, built once for the list cards and the hero: both need the page's attendance
     // write and its one Substitute picker. The hero drops the header summary — its badge and status
     // line already state the verdict and the headcount (#386).
-    const lineupPanel = (event: Event, {summary = true} = {}) => (
+    const lineupPanel = (event: Event, {summary = true, collapseCovered = false} = {}) => (
         <EventLineupPanel
             attendances={event.attendances}
             roster={event.roster}
             currentUserId={currentUserId}
             substitutes={event.substitutes}
             summary={summary}
+            collapseCovered={collapseCovered}
             onRespond={(userId, state) => respondFor(event.id, userId, state)}
             onCallInSubstitutes={(position) => setPicker({eventId: event.id, position, open: true})}
             onSetSubstituteState={(substituteId, state) =>
@@ -190,7 +200,13 @@ function EventListPage() {
                 onDefaultExpandedChange: setDefaultExpanded,
             }}
             hero={heroEvent && (
-                <NextEventHero event={heroEvent} now={now} lineup={(event) => lineupPanel(event, {summary: false})}/>
+                <NextEventHero
+                    event={heroEvent}
+                    now={now}
+                    lineupDisclosure={variant === 'A'}
+                    defaultLineupOpen={defaultExpanded}
+                    lineup={(event) => lineupPanel(event, {summary: false, collapseCovered: variant === 'B'})}
+                />
             )}
             bulkBar={<BulkAttendBar events={bulkEvents}/>}
             list={{
@@ -225,6 +241,7 @@ function EventListPage() {
             position={picker?.position}
             onClose={() => setPicker(current => current && {...current, open: false})}
         />
+        <PrototypeSwitcher variants={VARIANTS}/>
         </>
     )
 }

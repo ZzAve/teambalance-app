@@ -25,7 +25,7 @@ import tools.jackson.databind.ObjectMapper
 import java.time.Instant
 
 /**
- * The member-facing management of Calendar links (ADR-0032), against a real tenant schema — which is
+ * The member-facing management of Calendar links (ADR-0039), against a real tenant schema — which is
  * where the rules that matter actually live: the cap counts rows in one team's schema, and ownership
  * is a predicate on a delete rather than a check somebody remembered to write.
  */

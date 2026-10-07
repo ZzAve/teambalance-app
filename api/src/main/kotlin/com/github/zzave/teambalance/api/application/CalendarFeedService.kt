@@ -32,7 +32,7 @@ data class CalendarFeed(
 )
 
 /**
- * The session-less half of **Calendar links** (ADR-0032): resolve a webcal URL to one member's view of
+ * The session-less half of **Calendar links** (ADR-0039): resolve a webcal URL to one member's view of
  * one team's schedule, from the token alone.
  *
  * Nothing here trusts the caller beyond the token. Team, link, liveness and *current* membership are

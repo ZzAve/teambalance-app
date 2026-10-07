@@ -10,7 +10,7 @@ private val NOW: Instant = Instant.parse("2026-10-01T12:00:00Z")
 private fun cadenceWithEventIn(away: Duration) = RefreshCadence.before(NOW.plus(away), NOW)
 
 /**
- * How often a subscribed calendar is told to come back (ADR-0032). Pure banding, so it is pinned
+ * How often a subscribed calendar is told to come back (ADR-0039). Pure banding, so it is pinned
  * here rather than through the feed: the only thing that can be wrong is which side of a boundary a
  * given distance falls on, and that is exactly what a table of cases says out loud.
  */

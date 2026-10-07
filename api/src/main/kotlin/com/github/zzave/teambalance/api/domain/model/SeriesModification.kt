@@ -49,7 +49,7 @@ data class SeriesEditPlan(
      *
      * [regrouped] is deliberately left alone: its occurrences moved to another series group and
      * nothing a subscriber can see about them changed, so bumping their revision would churn every
-     * calendar subscription for a split that is invisible to it (ADR-0032).
+     * calendar subscription for a split that is invisible to it (ADR-0039).
      */
     fun revisedAt(now: Instant): List<Event> = edited.map { it.copy(updatedAt = now) } + regrouped
 }

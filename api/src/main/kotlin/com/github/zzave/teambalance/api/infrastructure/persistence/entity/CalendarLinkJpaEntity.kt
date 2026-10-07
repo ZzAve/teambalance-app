@@ -8,7 +8,7 @@ import java.time.Instant
 import java.util.UUID
 
 /**
- * A calendar link, in the tenant schema (ADR-0032). Deliberately unqualified: no `schema = "public"`,
+ * A calendar link, in the tenant schema (ADR-0039). Deliberately unqualified: no `schema = "public"`,
  * so it routes through the tenant connection like every other team-owned entity. There is no team id
  * column — the schema is the team, and that is what scopes a token lookup to one team's links.
  */

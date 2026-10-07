@@ -27,7 +27,7 @@ private const val CAPACITY = 30
 private const val CLIENT_CAPACITY = 35
 
 /**
- * The feed is throttled per **token**, 30 an hour (ADR-0032) — the number `application.yml` ships and
+ * The feed is throttled per **token**, 30 an hour (ADR-0039) — the number `application.yml` ships and
  * the one restored here, because the shared test profile raises every limit to 1000 so unrelated specs
  * do not throttle each other.
  *

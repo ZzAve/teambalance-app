@@ -39,14 +39,14 @@ data class IssuedCalendarLink(
 )
 
 /**
- * The member-facing half of **Calendar links** (ADR-0032): create, list and delete your own
+ * The member-facing half of **Calendar links** (ADR-0039): create, list and delete your own
  * subscription URLs for your Active Team. The feed those URLs address is [CalendarFeedService]'s.
  *
  * Every operation is scoped to the *caller's own* links. There is no admin view and no admin control:
  * a calendar link is a personal credential, and an admin who could list or revoke one would be reading
  * (or breaking) a teammate's private subscription for no stated purpose.
  *
- * Blocked entirely under **Act-as** ([NotUnderActAsException]) — see ADR-0032 §"Act-as".
+ * Blocked entirely under **Act-as** ([NotUnderActAsException]) — see ADR-0039 §"Act-as".
  */
 class CalendarLinkService(
     private val calendarLinkRepository: CalendarLinkRepository,

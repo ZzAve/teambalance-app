@@ -18,7 +18,7 @@ data class Event(
     /**
      * When this occurrence was last revised, defaulting to [createdAt] for one never edited.
      *
-     * Exists for the calendar-link feed (ADR-0032), which has to tell a subscriber's calendar app
+     * Exists for the calendar-link feed (ADR-0039), which has to tell a subscriber's calendar app
      * whether a component it already holds has changed. RFC 5545 gives that job to `DTSTAMP` on an
      * object with no `METHOD` — "the date and time that the information associated with the calendar
      * component was last revised" — so a feed built from [createdAt] tells every client that a

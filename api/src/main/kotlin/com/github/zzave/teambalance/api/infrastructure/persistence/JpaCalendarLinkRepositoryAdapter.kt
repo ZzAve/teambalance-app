@@ -13,7 +13,7 @@ import org.springframework.stereotype.Repository
 import org.springframework.transaction.annotation.Transactional
 
 /**
- * Calendar links, tenant-schema rows (ADR-0032) — every query here is scoped by the routed connection
+ * Calendar links, tenant-schema rows (ADR-0039) — every query here is scoped by the routed connection
  * rather than by a team id predicate, exactly as [JpaPositionRepositoryAdapter] is.
  *
  * Reads are `@Transactional(readOnly = true)` for the reason [JpaEventRepositoryAdapter] documents:

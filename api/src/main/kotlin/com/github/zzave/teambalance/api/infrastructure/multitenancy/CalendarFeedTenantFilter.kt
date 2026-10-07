@@ -21,7 +21,7 @@ private const val FILTER_ORDER = Ordered.HIGHEST_PRECEDENCE + 5
 
 /**
  * Binds the tenant schema for the one endpoint that has no session to resolve it from: the
- * calendar-link feed, `GET /api/calendar/{teamSlug}/{token}.ics` (ADR-0032).
+ * calendar-link feed, `GET /api/calendar/{teamSlug}/{token}.ics` (ADR-0039).
  *
  * [SessionTenantContextFilter] resolves the tenant from the authenticated user's Active Team, so for a
  * cookie-less request it resolves nothing at all — and `TenantContext` then routes tenant tables to a

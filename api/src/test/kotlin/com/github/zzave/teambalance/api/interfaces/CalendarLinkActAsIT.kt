@@ -21,7 +21,7 @@ private const val OPERATOR_ID = "b8320000-0000-0000-0000-0000000000f1"
 private const val OPERATOR_EMAIL = "cal-link-operator@test.com"
 
 /**
- * Calendar links are closed under **Act-as** (ADR-0032, ADR-0024).
+ * Calendar links are closed under **Act-as** (ADR-0039, ADR-0024).
  *
  * Worth its own spec because the failure mode is quiet: a Platform Admin inside a team holds a
  * **Virtual Member** that satisfies `AuthorizationService.requireMember` exactly as a real membership

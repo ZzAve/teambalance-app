@@ -105,7 +105,7 @@ class SeriesModificationTest : FunSpec({
 
         // The write path stamps a revision time on what it edited, and leaves the detached tail alone:
         // nothing a calendar subscriber can see about those occurrences changed, so bumping them would
-        // churn every subscription for a split that is invisible to it (ADR-0032).
+        // churn every subscription for a split that is invisible to it (ADR-0039).
         val revised = java.time.Instant.parse("2026-11-02T10:00:00Z")
         plan.revisedAt(revised).associate { it.id to it.updatedAt } shouldBe mapOf(
             d2.id to revised,

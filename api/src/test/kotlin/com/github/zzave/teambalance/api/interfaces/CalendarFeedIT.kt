@@ -31,7 +31,7 @@ import java.time.Duration
 import java.time.Instant
 
 /**
- * The feed end to end (ADR-0032): a cookie-less GET resolving a team by slug, a token by hash and a
+ * The feed end to end (ADR-0039): a cookie-less GET resolving a team by slug, a token by hash and a
  * membership by row, against two real tenant schemas.
  *
  * Everything here is the wiring the units cannot see. [CalendarIcsTest] already pins the ICS format,

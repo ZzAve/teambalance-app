@@ -100,7 +100,7 @@ class RateLimitFilter(
     }
 
     /**
-     * Two ceilings, because neither alone is the whole answer (ADR-0032).
+     * Two ceilings, because neither alone is the whole answer (ADR-0039).
      *
      * Per **token** is what bounds a real subscription: the feed is session-less, so there is no user
      * to key on, and keying on IP alone would put a whole club behind one office NAT in a single

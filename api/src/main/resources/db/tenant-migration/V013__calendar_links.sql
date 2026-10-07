@@ -1,4 +1,4 @@
--- Calendar links (ADR-0032): a member's personal, unauthenticated webcal subscription URL for this
+-- Calendar links (ADR-0039): a member's personal, unauthenticated webcal subscription URL for this
 -- team's events.
 --
 -- Tenant data, not platform data. The link exists to serve THIS team's events, its lookup runs

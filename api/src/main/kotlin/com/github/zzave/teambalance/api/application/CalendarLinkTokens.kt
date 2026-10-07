@@ -9,7 +9,7 @@ import java.util.Base64
 
 /**
  * How a calendar-link token is minted, matched and shown again — the one place that knows all three,
- * so the feed and the management API can never disagree about what a token is (ADR-0032).
+ * so the feed and the management API can never disagree about what a token is (ADR-0039).
  *
  * The same twofold storage ADR-0025 gave the invite link: [hash] is what the feed matches a presented
  * token on, and is irreversible; [conceal]/[reveal] are the recoverable copy behind the member's own

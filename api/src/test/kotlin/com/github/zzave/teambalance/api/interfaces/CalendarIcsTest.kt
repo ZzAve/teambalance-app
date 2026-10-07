@@ -75,7 +75,7 @@ private fun render(
 ) = CalendarIcs.render(feed(listOf(CalendarFeedEntry(event, state)), refresh), FRONTEND)
 
 /**
- * The wire format of the calendar-link feed (ADR-0032). These assertions are what a subscriber's
+ * The wire format of the calendar-link feed (ADR-0039). These assertions are what a subscriber's
  * calendar app actually reads, so they are written against the emitted text rather than against a
  * biweekly object graph — the bugs worth catching here (a missing `Z`, an unescaped comma, a
  * TRANSP on the wrong state) all live in the encoding, not in the model.
@@ -213,7 +213,7 @@ class CalendarIcsTest : FunSpec({
         }
     }
 
-    // Deliberately absent (ADR-0032): a subscription URL is a bearer credential shared to a device,
+    // Deliberately absent (ADR-0039): a subscription URL is a bearer credential shared to a device,
     // so it carries the subscriber's own schedule and nothing about anybody else.
     test("no roster, no attendees and no alarms are disclosed") {
         val ics = CalendarIcs.render(feed(listOf(CalendarFeedEntry(event(), AttendanceState.ATTENDING))), FRONTEND)

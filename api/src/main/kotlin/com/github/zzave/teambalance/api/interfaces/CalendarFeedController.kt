@@ -16,7 +16,7 @@ import java.security.MessageDigest
 import java.util.concurrent.TimeUnit
 
 /**
- * The webcal feed behind a **Calendar link** (ADR-0032).
+ * The webcal feed behind a **Calendar link** (ADR-0039).
  *
  * **Not Wirespec, on purpose.** Wirespec models JSON request/response types; this endpoint serves
  * `text/calendar` to a calendar client, and the SPA never calls it — there is no generated client for

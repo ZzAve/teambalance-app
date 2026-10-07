@@ -1,12 +1,12 @@
-# ADR-0032: Calendar links — a per-member webcal feed, unauthenticated by design
+# ADR-0039: Calendar links — a per-member webcal feed, unauthenticated by design
 
 - Status: Accepted
 - Date: 2026-09-19
 - Builds on: [ADR-0025](0025-invite-link-recoverable-at-rest.md) (the token storage pattern),
   [ADR-0024](0024-platform-admin-act-as.md) (what Act-as may not do),
   [ADR-0026](0026-member-team-profile-owned-by-the-tenant.md) (what belongs in a tenant schema)
-- Numbering note: this was specified as ADR-0031, which `main` had already taken
-  ([ADR-0031](0031-invite-travels-with-the-magic-link-request.md), merged in `5df8f7c`).
+- Numbering note: specified as ADR-0031, which `main` had already taken; renumbered again to 0039 when
+  the branch caught up with `main`, which had since taken 0032 through 0038.
 
 ## Context
 
@@ -184,7 +184,7 @@ client refetches on its own schedule whether or not anything changed, so the 304
 shared cache may hold one member's schedule. `DTSTAMP` is the event's `created_at` rather than the
 wall clock, precisely so the ETag is stable; a `now()` there would defeat the whole mechanism.
 
-Rate limited to 30/hour **per token** on the existing `RateLimitFilter` (ADR-0020), which now also
+Rate limited to 30/hour **per token** on the existing `RateLimitFilter` (ADR-0037), which now also
 inspects GET and HEAD. That is thirty times the headroom over the tightest band above, which is the
 right shape: the ceiling exists for a runaway client, not to enforce the cadence, so it only has to
 sit far enough above honest traffic to never be reached by it. Per token rather than per IP because there is no session to key on and a whole

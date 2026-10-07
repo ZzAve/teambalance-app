@@ -14,7 +14,7 @@ import java.util.UUID
 import com.github.zzave.teambalance.api.interfaces.generated.model.CalendarLink as CalendarLinkDto
 
 /**
- * The member-facing management of **Calendar links** (ADR-0032) — create, list, delete your own
+ * The member-facing management of **Calendar links** (ADR-0039) — create, list, delete your own
  * subscription URLs for your Active Team. The feed those URLs address is [CalendarFeedController]'s,
  * and is the one endpoint in the pair that is not authenticated.
  */

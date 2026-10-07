@@ -9,7 +9,7 @@ import javax.crypto.spec.SecretKeySpec
 
 /**
  * Reversible storage for a secret token that must be shown again: the invite link (ADR-0025) and the
- * calendar link (ADR-0032). Sits beside a salted hash rather than replacing it — the hash still
+ * calendar link (ADR-0039). Sits beside a salted hash rather than replacing it — the hash still
  * resolves a *presented* token, and this is read only on the path where the holder asks to see their
  * own link.
  *

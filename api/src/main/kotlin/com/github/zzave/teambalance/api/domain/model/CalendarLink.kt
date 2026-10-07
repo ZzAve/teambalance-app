@@ -50,7 +50,7 @@ value class CalendarFeedUrl(val value: String) {
 
 /**
  * A **Calendar link**: one member's personal, unauthenticated webcal subscription to one team's
- * events (ADR-0032).
+ * events (ADR-0039).
  *
  * Belongs to a (user, team) membership — the team is the tenant schema the row lives in, so it is not
  * a column here. The token is persisted twice over, exactly as an [Invitation]'s is since ADR-0025:

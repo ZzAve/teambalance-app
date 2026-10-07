@@ -21,7 +21,7 @@ import java.time.Duration
  * [RateLimitProperties.Policy.refillPeriod]. That sentence above — "has long since refilled to full"
  * — is only true while it holds; break it and an evicted bucket comes back *empty of history*
  * mid-period, so a policy of N per hour silently enforces N per eviction window instead. The
- * calendar feed (ADR-0032) is the first policy to refill over anything longer than a minute, and is
+ * calendar feed (ADR-0039) is the first policy to refill over anything longer than a minute, and is
  * why this is now an hour rather than ten minutes.
  *
  * Bucket4j drives refill from its own [TimeMeter]; we bridge it to the injected [Clock] so timing

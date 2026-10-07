@@ -18,7 +18,7 @@ private fun tokens(salt: String = "calendar-salt", keySeed: Byte = 1) = Calendar
 )
 
 /**
- * The mint/match/reveal trio a calendar link rests on (ADR-0032). The property that matters is that
+ * The mint/match/reveal trio a calendar link rests on (ADR-0039). The property that matters is that
  * the two stored forms stay in their lanes: the hash resolves a presented token and cannot be
  * reversed, the ciphertext can be, and neither is derivable from the other without the right secret.
  */

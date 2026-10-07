@@ -9,7 +9,7 @@ import java.time.Instant
 import java.util.UUID
 
 /**
- * The teams, members and events the calendar-link specs run against (ADR-0032).
+ * The teams, members and events the calendar-link specs run against (ADR-0039).
  *
  * Shared between them because they need the *same* two-team shape — a token minted in one team must
  * be a miss under the other's slug, which needs two real tenant schemas and two sole-membership

@@ -6,7 +6,7 @@ import com.github.zzave.teambalance.api.domain.model.TokenHash
 import com.github.zzave.teambalance.api.domain.model.UserId
 
 /**
- * Calendar links of the current tenant (ADR-0032). No team-scoped finders and no team id: the routed
+ * Calendar links of the current tenant (ADR-0039). No team-scoped finders and no team id: the routed
  * connection's schema already scopes every row, the same way [PositionRepository] is scoped.
  *
  * That scoping is load-bearing rather than incidental — it is what makes a token minted for one team

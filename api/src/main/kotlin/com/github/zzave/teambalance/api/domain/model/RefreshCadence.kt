@@ -11,7 +11,7 @@ private const val NEAR_HOURS = 3L
 private const val IMMINENT_HOURS = 1L
 
 /**
- * How often a subscribed calendar is asked to come back for a **Calendar link** feed (ADR-0032), and
+ * How often a subscribed calendar is asked to come back for a **Calendar link** feed (ADR-0039), and
  * the rule that decides it: the closer the next Event, the tighter the cadence.
  *
  * A flat interval has to be wrong in one direction or the other. Hourly polling of a team whose next

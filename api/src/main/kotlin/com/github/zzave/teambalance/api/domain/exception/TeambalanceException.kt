@@ -57,7 +57,7 @@ class CreationCodeNotFoundException(code: String) : NotFoundException("Creation 
 
 // The caller asked to delete a calendar link that is not theirs, or does not exist. One exception for
 // both: which of the two it is, is exactly what a caller probing other members' link ids would want
-// to learn (ADR-0032).
+// to learn (ADR-0039).
 class CalendarLinkNotFoundException(id: CalendarLinkId) : NotFoundException("Calendar link not found: $id")
 
 // Act-as was asked to enter a team that does not exist (ADR-0024). A plain 404: the caller is an
@@ -139,7 +139,7 @@ class LastAdminException(teamId: TeamId) :
     ConflictException("Team $teamId must keep at least one admin", "LAST_ADMIN")
 
 // A member already holds the maximum number of Calendar links in this team, expired ones included
-// (ADR-0032). A 409 rather than a 422: nothing about the request is wrong, and the caller resolves it
+// (ADR-0039). A 409 rather than a 422: nothing about the request is wrong, and the caller resolves it
 // by deleting one of the links they already have — the same shape as LastAdminException.
 class CalendarLinkLimitReachedException(max: Int) :
     ConflictException("You already have $max calendar links for this team; delete one first", "CALENDAR_LINK_LIMIT")

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Member } from '@shared/api/members'
-import { isLastAdmin, toggleRole } from './roster'
+import { isLastAdmin, sortByShirtNumber, toggleRole } from './roster'
 
 describe('toggleRole', () => {
   it('demotes an admin to a user', () => {
@@ -13,7 +13,8 @@ describe('toggleRole', () => {
 })
 
 describe('isLastAdmin', () => {
-  const m = (userId: string, role: string): Member => ({ userId, displayName: userId, role, position: undefined, onboarded: true })
+  const m = (userId: string, role: string): Member =>
+    ({ userId, displayName: userId, role, position: undefined, onboarded: true, shirtNumber: undefined })
 
   it('is true for the only admin', () => {
     const members = [m('a', 'ADMIN'), m('b', 'USER')]
@@ -28,5 +29,15 @@ describe('isLastAdmin', () => {
   it('is false for a non-admin even when there is one admin', () => {
     const members = [m('a', 'ADMIN'), m('b', 'USER')]
     expect(isLastAdmin(members, 'b')).toBe(false)
+  })
+})
+
+describe('sortByShirtNumber', () => {
+  const m = (userId: string, shirtNumber?: number): Member =>
+    ({ userId, displayName: userId, role: 'USER', position: undefined, onboarded: true, shirtNumber })
+
+  it('orders members by shirt number, members without one last in their original order', () => {
+    const members = [m('none-a'), m('twelve', 12), m('one', 1), m('none-b'), m('hundred', 112)]
+    expect(sortByShirtNumber(members).map((x) => x.userId)).toEqual(['one', 'twelve', 'hundred', 'none-a', 'none-b'])
   })
 })

@@ -3,6 +3,7 @@ package com.github.zzave.teambalance.api.domain.exception
 import com.github.zzave.teambalance.api.domain.model.EventId
 import com.github.zzave.teambalance.api.domain.model.EventTypeId
 import com.github.zzave.teambalance.api.domain.model.PositionId
+import com.github.zzave.teambalance.api.domain.model.ShirtNumber
 import com.github.zzave.teambalance.api.domain.model.SubstituteId
 import com.github.zzave.teambalance.api.domain.model.TeamId
 import com.github.zzave.teambalance.api.domain.model.UserId
@@ -116,6 +117,9 @@ sealed class ConflictException(message: String, val code: String) : TeambalanceE
 
 class NameTakenException(name: String) :
     ConflictException("Display name '$name' is already taken in this team", "NAME_TAKEN")
+
+class ShirtNumberTakenException(number: ShirtNumber) :
+    ConflictException("Shirt number $number is already worn by another member of this team", "NUMBER_TAKEN")
 
 class LastAdminException(teamId: TeamId) :
     ConflictException("Team $teamId must keep at least one admin", "LAST_ADMIN")

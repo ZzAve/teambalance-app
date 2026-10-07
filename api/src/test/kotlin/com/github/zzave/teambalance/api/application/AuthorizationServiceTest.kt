@@ -11,6 +11,7 @@ import com.github.zzave.teambalance.api.domain.model.TeamId
 import com.github.zzave.teambalance.api.domain.model.TenantRouting
 import com.github.zzave.teambalance.api.domain.model.TeamMember
 import com.github.zzave.teambalance.api.domain.model.UserId
+import com.github.zzave.teambalance.api.domain.model.ShirtNumber
 import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
@@ -45,6 +46,7 @@ private class FakeTeamMemberRepository(private val roles: Map<Pair<TeamId, UserI
         displayName: DisplayName,
         role: Role,
         positionId: PositionId?,
+        shirtNumber: ShirtNumber?,
         markOnboardedAt: java.time.Instant?,
     ) = Unit
     override fun markOnboarded(teamId: TeamId, userId: UserId, at: java.time.Instant) = Unit

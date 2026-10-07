@@ -3,6 +3,7 @@ import { expect, fn, within } from 'storybook/test'
 import type { Member } from '@shared/api/members'
 import type { Position } from '@shared/api/positions'
 import { Stack } from '@shared/testing/stack'
+import { withRouter } from '@shared/testing/router-decorator'
 import { MemberRosterView } from './MemberRosterView'
 
 // MemberRosterView is the presentational admin roster behind the /members route container. It owns
@@ -33,10 +34,10 @@ const POSITIONS: Position[] = [
 ]
 
 const MEMBERS: Member[] = [
-  { userId: 'u1', displayName: 'Ada Lovelace', role: 'ADMIN', position: POSITIONS[0], onboarded: true },
-  { userId: 'u2', displayName: 'Grace Hopper', role: 'ADMIN', position: undefined, onboarded: true },
-  { userId: 'u3', displayName: 'Alan Turing', role: 'USER', position: POSITIONS[1], onboarded: true },
-  { userId: 'u4', displayName: 'Katherine Johnson', role: 'USER', position: undefined, onboarded: true },
+  { userId: 'u1', displayName: 'Ada Lovelace', role: 'ADMIN', position: POSITIONS[0], onboarded: true, shirtNumber: 12 },
+  { userId: 'u2', displayName: 'Grace Hopper', role: 'ADMIN', position: undefined, onboarded: true, shirtNumber: undefined },
+  { userId: 'u3', displayName: 'Alan Turing', role: 'USER', position: POSITIONS[1], onboarded: true, shirtNumber: 1 },
+  { userId: 'u4', displayName: 'Katherine Johnson', role: 'USER', position: undefined, onboarded: true, shirtNumber: 112 },
 ]
 
 // The row stays one line even at 390px with a long, real-world name — the name wins over the picker
@@ -56,11 +57,15 @@ const MANY_MEMBERS: Member[] = Array.from({ length: 15 }, (_, i) => ({
   role: i === 0 ? 'ADMIN' : 'USER',
   position: POSITIONS[i % POSITIONS.length],
   onboarded: true,
+  shirtNumber: undefined,
 }))
 
 const meta = {
   title: 'features/manage-members/MemberRosterView',
   component: MemberRosterView,
+  // The read-only grid links each face to the member's page, built from the Team in the URL.
+  decorators: [withRouter],
+  parameters: { router: { initialEntries: ['/t/setpoint-vt/team'] } },
   args: {
     canManage: true,
     members: MEMBERS,
@@ -110,9 +115,9 @@ export const Shells: Story = {
         Error: <MemberRosterView {...args} isError />,
         // With no positions in the team, rows fall back to a plain Unassigned label (no picker).
         'No positions': <MemberRosterView {...args} positions={[]} />,
-        // The member-facing (canManage: false) roster: every authenticated member sees the roster
-        // read-only. Names and positions render as plain text, the role/admin badge is shown to
-        // everyone, and none of the admin controls (rename, position picker, overflow menu) render.
+        // The member-facing (canManage: false) roster (ADR-0038): a grid of faces with the Shirt
+        // Number, ordered by number, each a link to that member's page. None of the admin controls
+        // (rename, position picker, overflow menu) render.
         'Read only': <MemberRosterView {...args} canManage={false} />,
         // A team a Platform Admin created memberless and is preparing under act-as, before its first
         // Admin accepts the handover link (ADR-0024 §5). The admin view points at the invite link
@@ -125,8 +130,8 @@ export const Shells: Story = {
           <MemberRosterView
             {...args}
             members={[
-              { userId: 'u1', displayName: 'Ada Lovelace', role: 'ADMIN', position: undefined, onboarded: true },
-              { userId: 'u3', displayName: 'Alan Turing', role: 'USER', position: undefined, onboarded: true },
+              { userId: 'u1', displayName: 'Ada Lovelace', role: 'ADMIN', position: undefined, onboarded: true, shirtNumber: undefined },
+              { userId: 'u3', displayName: 'Alan Turing', role: 'USER', position: undefined, onboarded: true, shirtNumber: undefined },
             ]}
             errorMessage="A team must keep at least one admin."
           />
@@ -154,25 +159,23 @@ export const Shells: Story = {
     ).not.toBeInTheDocument()
     await expect(region('No positions').getAllByText('Unassigned').length).toBeGreaterThan(0)
 
-    // The shared avatar (colour circle + initials) leads read-only rows too.
+    // Faces ordered by Shirt Number, members without one last.
+    const faces = region('Read only').getAllByRole('link')
+    await expect(faces.map((a) => a.getAttribute('aria-label'))).toEqual([
+      'Alan Turing',
+      'Ada Lovelace',
+      'Katherine Johnson',
+      'Grace Hopper',
+    ])
+    await expect(region('Read only').getByRole('link', { name: 'Ada Lovelace' })).toHaveAttribute(
+      'href',
+      '/t/setpoint-vt/team/u1',
+    )
+    await expect(region('Read only').getByLabelText('Shirt number 112')).toBeInTheDocument()
+    // The shared avatar (colour circle + initials) carries the face.
     await expect(region('Read only').getByText('AL')).toBeInTheDocument()
-    // Names and positions are plain text — no rename control, no position picker.
-    await expect(region('Read only').getByText('Ada Lovelace')).toBeInTheDocument()
-    await expect(region('Read only').getByText('Libero')).toBeInTheDocument()
-    await expect(
-      region('Read only').queryByLabelText('Actions for Ada Lovelace'),
-    ).not.toBeInTheDocument()
-    await expect(
-      region('Read only').queryByLabelText('Position for Alan Turing'),
-    ).not.toBeInTheDocument()
-    // The role/admin badge stays visible to everyone, sentence case ("Admin"/"Member" — no more
-    // "ADMIN"/"USER").
-    await expect(region('Read only').getAllByText('Admin')).toHaveLength(2)
-    await expect(region('Read only').getAllByText('Member')).toHaveLength(2)
-    // None of the admin actions render — no overflow menu at all on a read-only row.
-    await expect(
-      region('Read only').queryByLabelText(/^Actions for /),
-    ).not.toBeInTheDocument()
+    await expect(region('Read only').queryByLabelText(/^Actions for /)).not.toBeInTheDocument()
+    await expect(region('Read only').queryByLabelText('Position for Alan Turing')).not.toBeInTheDocument()
 
     await expect(
       region('Empty (admin)').getByText('No members yet. Share an invite link to bring people in.'),

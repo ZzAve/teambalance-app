@@ -101,17 +101,17 @@ export const Interactions: Story = {
     await expect(nameField).toHaveValue('Grace Hopper')
     await expect(region('Default').getByRole('button', { name: 'Save' })).toBeEnabled()
     await userEvent.click(region('Default').getByRole('button', { name: 'Save' }))
-    await expect(args.onSubmit).toHaveBeenCalledWith('Grace Hopper', null)
+    await expect(args.onSubmit).toHaveBeenCalledWith('Grace Hopper', null, null)
 
     await userEvent.click(region('Position required').getByLabelText('Position'))
     await userEvent.click(await within(document.body).findByRole('option', { name: 'Libero' }))
     const requiredSave = region('Position required').getByRole('button', { name: 'Save' })
     await expect(requiredSave).toBeEnabled()
     await userEvent.click(requiredSave)
-    await expect(args.onSubmit).toHaveBeenLastCalledWith('Ada Lovelace', 'p2')
+    await expect(args.onSubmit).toHaveBeenLastCalledWith('Ada Lovelace', 'p2', null)
 
     // Preselected: submitting carries the id already chosen, with no picker interaction needed.
     await userEvent.click(region('Position preselected').getByRole('button', { name: 'Save' }))
-    await expect(args.onSubmit).toHaveBeenLastCalledWith('Ada Lovelace', 'p1')
+    await expect(args.onSubmit).toHaveBeenLastCalledWith('Ada Lovelace', 'p1', null)
   },
 }

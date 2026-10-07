@@ -20,6 +20,7 @@ import com.github.zzave.teambalance.api.domain.model.TeamId
 import com.github.zzave.teambalance.api.domain.model.TeamMember
 import com.github.zzave.teambalance.api.domain.model.TenantRouting
 import com.github.zzave.teambalance.api.domain.model.UserId
+import com.github.zzave.teambalance.api.domain.model.ShirtNumber
 import com.github.zzave.teambalance.api.domain.port.EventRepository
 import com.github.zzave.teambalance.api.domain.port.EventTypeRepository
 import com.github.zzave.teambalance.api.domain.port.PositionRepository
@@ -113,6 +114,7 @@ private class FakeAdminRepo(private val admins: Set<UserId>) : TeamMemberReposit
         displayName: DisplayName,
         role: Role,
         positionId: PositionId?,
+        shirtNumber: ShirtNumber?,
         markOnboardedAt: Instant?,
     ) = Unit
     override fun markOnboarded(teamId: TeamId, userId: UserId, at: Instant) = Unit

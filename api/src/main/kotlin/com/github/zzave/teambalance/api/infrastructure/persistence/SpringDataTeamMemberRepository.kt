@@ -100,6 +100,7 @@ interface SpringDataTeamMemberRepository : JpaRepository<TeamMemberJpaEntity, UU
                    COALESCE(mp.display_name, u.display_name) AS displayName,
                    mp.position_id::text AS positionId,
                    p.label              AS position,
+                   mp.shirt_number      AS shirtNumber,
                    tm.role              AS permissionRole,
                    (tm.onboarded_at IS NOT NULL) AS onboarded
             FROM   public.team_members tm
@@ -122,6 +123,7 @@ interface SpringDataTeamMemberRepository : JpaRepository<TeamMemberJpaEntity, UU
                    COALESCE(mp.display_name, u.display_name) AS displayName,
                    mp.position_id::text AS positionId,
                    p.label              AS position,
+                   mp.shirt_number      AS shirtNumber,
                    tm.role              AS permissionRole,
                    (tm.onboarded_at IS NOT NULL) AS onboarded
             FROM   public.team_members tm
@@ -176,6 +178,7 @@ interface MemberSummaryProjection {
     fun getDisplayName(): String
     fun getPositionId(): String?
     fun getPosition(): String?
+    fun getShirtNumber(): Int?
     fun getPermissionRole(): String
     fun getOnboarded(): Boolean
 }

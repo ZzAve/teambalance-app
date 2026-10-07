@@ -1,7 +1,10 @@
 import { useState } from 'react'
+import { Link } from '@tanstack/react-router'
 import type { Member } from '@shared/api/members'
 import type { Position } from '@shared/api/positions'
 import { PositionPicker } from '@entities/position/ui/PositionPicker'
+import { MemberFace } from '@entities/member/ui/MemberFace'
+import { useTeamRoutes } from '@shared/lib/team-routes'
 import { Avatar } from '@shared/ui/avatar'
 import { Button } from '@shared/ui/button'
 import { Input } from '@shared/ui/input'
@@ -13,14 +16,15 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@shared/ui/dropdown-menu'
-import { isLastAdmin } from '../lib/roster'
+import { isLastAdmin, sortByShirtNumber } from '../lib/roster'
 
 interface MemberRosterViewProps {
   members?: Member[]
   /**
    * Admin capability. `true` renders the full per-row controls (rename, role toggle, position
-   * picker, remove, via the row's overflow menu); `false` renders read-only rows — every
-   * authenticated member sees the roster, only admins can edit it.
+   * picker, remove, via the row's overflow menu); `false` renders the read-only grid of faces, each
+   * opening that member's detail page — every authenticated member sees the roster, only admins can
+   * edit it here.
    */
   canManage: boolean
   /** The team's position vocabulary, offered per row so an admin can (re)assign a member. */
@@ -95,13 +99,14 @@ export function MemberRosterView({
                 ? 'No members yet. Share an invite link to bring people in.'
                 : 'No members yet.'}
             </p>
+          ) : !canManage ? (
+            <MemberFaceGrid members={members} />
           ) : (
             <ul className="divide-y divide-border rounded-lg border border-border">
               {members.map((member) => (
                 <MemberRow
                   key={member.userId}
                   member={member}
-                  canManage={canManage}
                   positions={positions}
                   lastAdmin={isLastAdmin(members, member.userId)}
                   isSaving={savingUserId === member.userId}
@@ -131,9 +136,31 @@ export function MemberRosterView({
   )
 }
 
+// The read-only roster (ADR-0038): round faces with the Shirt Number, ordered by number.
+function MemberFaceGrid({ members }: { members: Member[] }) {
+  const routes = useTeamRoutes()
+  return (
+    <ul className="grid grid-cols-4 gap-x-2 gap-y-4">
+      {sortByShirtNumber(members).map((member) => (
+        <li key={member.userId}>
+          <Link
+            to={routes.member(member.userId)}
+            aria-label={member.displayName}
+            className="flex flex-col items-center gap-1 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+          >
+            <MemberFace userId={member.userId} name={member.displayName} shirtNumber={member.shirtNumber} size="md" />
+            <span className="w-full truncate text-center text-caption font-medium">
+              {member.displayName.split(' ')[0]}
+            </span>
+          </Link>
+        </li>
+      ))}
+    </ul>
+  )
+}
+
 interface MemberRowProps {
   member: Member
-  canManage: boolean
   positions: Position[]
   lastAdmin: boolean
   isSaving: boolean
@@ -145,7 +172,6 @@ interface MemberRowProps {
 
 function MemberRow({
   member,
-  canManage,
   positions,
   lastAdmin,
   isSaving,
@@ -176,29 +202,6 @@ function MemberRow({
     if (next.length === 0) return
     onRename(member.userId, next)
     setEditingName(false)
-  }
-
-  // Read-only row for non-admins: name + position as plain text + the role badge. Same layout as the
-  // admin row, minus every action control (rename, position picker, promote/demote, remove).
-  if (!canManage) {
-    const roleBadge = (
-      <span
-        className={[
-          'ml-auto rounded-full px-2 py-0.5 text-caption font-semibold',
-          isAdmin ? 'bg-blue/10 text-blue' : 'bg-muted text-muted-foreground',
-        ].join(' ')}
-      >
-        {isAdmin ? 'Admin' : 'Member'}
-      </span>
-    )
-    return (
-      <li className="flex flex-wrap items-center gap-2 p-3">
-        <Avatar userId={member.userId} name={member.displayName} />
-        <span className="w-40 font-medium">{member.displayName}</span>
-        <span className="text-small text-muted-foreground">{member.position?.label ?? 'Unassigned'}</span>
-        {roleBadge}
-      </li>
-    )
   }
 
   if (editingName) {

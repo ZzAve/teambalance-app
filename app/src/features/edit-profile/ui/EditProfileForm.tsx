@@ -4,6 +4,7 @@ import { PositionPicker } from '@entities/position/ui/PositionPicker'
 import { Button } from '@shared/ui/button'
 import { Input } from '@shared/ui/input'
 import { Label } from '@shared/ui/label'
+import { parseShirtNumber } from '../lib/parse-shirt-number'
 import { validateDisplayName } from '../lib/validate-display-name'
 import { validatePosition } from '../lib/validate-position'
 
@@ -12,8 +13,13 @@ interface EditProfileFormProps {
   /** The team's position vocabulary. Empty → the picker is hidden and position is left untouched. */
   positions: Position[]
   currentPositionId: string | null
+  /** Shows the Shirt Number field (ADR-0038). Off where the form edits only name and position. */
+  withShirtNumber?: boolean
+  currentShirtNumber?: number | null
   isSaving: boolean
-  onSubmit: (name: string, positionId: string | null) => void
+  onSubmit: (name: string, positionId: string | null, shirtNumber: number | null) => void
+  /** Renders a Cancel button beside Save when given. */
+  onCancel?: () => void
   /** Backend error discriminator surfaced by the container (e.g. "NAME_TAKEN"). */
   errorCode?: string
 }
@@ -28,17 +34,22 @@ export function EditProfileForm({
   currentName,
   positions,
   currentPositionId,
+  withShirtNumber = false,
+  currentShirtNumber = null,
   isSaving,
   onSubmit,
+  onCancel,
   errorCode,
 }: EditProfileFormProps) {
   const [name, setName] = useState(currentName)
   const [positionId, setPositionId] = useState<string | null>(currentPositionId)
+  const [shirtNumberText, setShirtNumberText] = useState(currentShirtNumber?.toString() ?? '')
   const [touched, setTouched] = useState(false)
 
   const nameError = validateDisplayName(name)
   const positionError = validatePosition(positions, positionId)
-  const validationError = nameError ?? positionError
+  const shirtNumber = parseShirtNumber(shirtNumberText)
+  const validationError = nameError ?? positionError ?? shirtNumber.error
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -46,7 +57,7 @@ export function EditProfileForm({
       setTouched(true)
       return
     }
-    onSubmit(name.trim(), positionId)
+    onSubmit(name.trim(), positionId, withShirtNumber ? shirtNumber.value : currentShirtNumber)
   }
 
   return (
@@ -86,9 +97,39 @@ export function EditProfileForm({
         </div>
       )}
 
-      <Button type="submit" disabled={isSaving || !!validationError}>
-        {isSaving ? 'Saving...' : 'Save'}
-      </Button>
+      {withShirtNumber && (
+        <div>
+          <Label htmlFor="shirtNumber">Shirt number</Label>
+          <Input
+            id="shirtNumber"
+            name="shirtNumber"
+            inputMode="numeric"
+            value={shirtNumberText}
+            onChange={(e) => {
+              setShirtNumberText(e.target.value)
+              setTouched(true)
+            }}
+            aria-invalid={touched && shirtNumber.error ? true : undefined}
+            placeholder="None"
+            className="w-24"
+          />
+          {touched && shirtNumber.error && <p className="mt-1 text-small text-red">{shirtNumber.error}</p>}
+          {errorCode === 'NUMBER_TAKEN' && (
+            <p className="mt-1 text-small text-red">That shirt number is already taken.</p>
+          )}
+        </div>
+      )}
+
+      <div className="flex gap-2">
+        <Button type="submit" className="flex-1" disabled={isSaving || !!validationError}>
+          {isSaving ? 'Saving...' : 'Save'}
+        </Button>
+        {onCancel && (
+          <Button type="button" variant="outline" onClick={onCancel}>
+            Cancel
+          </Button>
+        )}
+      </div>
     </form>
   )
 }

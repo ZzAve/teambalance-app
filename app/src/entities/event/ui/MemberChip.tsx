@@ -131,7 +131,8 @@ export function OpenSlotChip({
       type="button"
       onClick={onFind}
       aria-label={findSomeone(positionLabel)}
-      className="flex flex-wrap items-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      // The "+" keeps chip size; the invisible ::after stretches the tap target to 44px each way (F7).
+      className="relative flex flex-wrap items-center rounded-full after:absolute after:-inset-x-1.5 after:-inset-y-2.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
       {Array.from({ length: openSlots }, (_, i) => (
         <span

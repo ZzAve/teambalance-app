@@ -157,6 +157,16 @@ export const Interactions: Story = {
     const add = sheet.getByRole('button', { name: 'Add as asked' })
     await expect(add).toBeDisabled()
     await expect(sheet.getByRole('button', { name: 'Libero' })).toHaveAttribute('aria-pressed', 'true')
+    // A Position chip is a full 44px target itself: the chip is the box, no band around it (#388).
+    for (const label of ['Setter', 'Libero', 'None']) {
+      const chip = sheet.getByRole('button', { name: label })
+      chip.scrollIntoView({ block: 'center' })
+      const box = chip.getBoundingClientRect()
+      await expect(box.height).toBeGreaterThanOrEqual(44)
+      for (const y of [box.top + 1, box.bottom - 1]) {
+        await expect(document.elementFromPoint(box.left + box.width / 2, y)).toBe(chip)
+      }
+    }
     await userEvent.type(sheet.getByLabelText('Name'), 'Anouk de Boer')
     await userEvent.click(add)
     await expect(args.onCreate).toHaveBeenCalledWith('Anouk de Boer', 'pos-libero')

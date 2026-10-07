@@ -222,6 +222,19 @@ dependency is confined to one file. If it ever has to go, `CalendarIcs` is what 
 `CalendarIcsTest` — which asserts on the emitted text, not on a biweekly object graph — is what
 proves the replacement.
 
+**Known deviation: biweekly folds by character, not by octet.** RFC 5545 §3.1 says a line SHOULD NOT
+exceed 75 **octets**; biweekly (through vinnie) counts characters, so the `✓`/`✗` prefix plus any
+accented title pushes a folded line past the limit — 90 octets for a real Dutch event title. It never
+splits a codepoint, so nothing a client reads is corrupt and no client is known to object, which is
+why this is a deviation we live with rather than a reason to replace the library today.
+
+It is pinned rather than left as a comment. `CalendarIcsTest` asserts both halves: an ASCII calendar
+folds inside 75 octets (it lands on exactly 75, so the bound is tight), and a multibyte one
+deliberately overshoots while staying within 75 *characters* and decoding cleanly. If the overshoot
+test ever starts failing, the library has begun counting octets — that is the fix, not a regression,
+and the comment on the test says to delete it and widen the strict one. Those two tests are also the
+first acceptance criteria any hand-rolled writer would have to meet.
+
 ## Consequences
 
 **A leaked calendar-link URL discloses one member's schedule for up to a year, to anyone holding it.**

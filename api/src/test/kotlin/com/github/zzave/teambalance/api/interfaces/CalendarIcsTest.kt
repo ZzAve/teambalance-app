@@ -17,7 +17,10 @@ import com.github.zzave.teambalance.api.domain.model.TeamId
 import com.github.zzave.teambalance.api.domain.model.TeamName
 import com.github.zzave.teambalance.api.domain.model.TeamSummary
 import com.github.zzave.teambalance.api.domain.model.UserId
+import io.kotest.assertions.withClue
 import io.kotest.core.spec.style.FunSpec
+import io.kotest.matchers.ints.shouldBeGreaterThan
+import io.kotest.matchers.ints.shouldBeLessThanOrEqual
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
@@ -224,7 +227,68 @@ class CalendarIcsTest : FunSpec({
         ics shouldContain "BEGIN:VCALENDAR"
         ics shouldNotContain "BEGIN:VEVENT"
     }
+
+    /*
+     * RFC 5545 §3.1: "Lines of text SHOULD NOT be longer than 75 octets, excluding the line break."
+     * Octets, not characters — and biweekly (through vinnie) counts characters, so our ✓/✗ prefixes
+     * and any accented title push a folded line past the limit.
+     *
+     * These two tests split that into the guarantee we have and the deviation we are living with, so
+     * the build knows which is which. Both are written against the emitted bytes rather than against
+     * biweekly, which is what would make them the acceptance criteria for a hand-rolled writer.
+     */
+    context("line folding") {
+        test("an ASCII calendar folds inside the RFC's 75 octets") {
+            val longAscii = "Match against a club with a very long name indeed, away at their hall"
+
+            widestLine(render(event = event(title = longAscii, description = longAscii))).let { widest ->
+                withClue("widest line was ${widest.octets} octets: ${widest.text}") {
+                    widest.octets shouldBeLessThanOrEqual MAX_OCTETS
+                }
+            }
+        }
+
+        // KNOWN DEVIATION, pinned deliberately rather than left as a comment. If this test starts
+        // failing, biweekly (or its replacement) has begun counting octets — which is the fix, not a
+        // regression: delete this test and extend the ASCII one above to cover multibyte text too.
+        test("a multibyte calendar overshoots it — biweekly folds by character, not by octet") {
+            val widest = widestLine(render(event = event(title = MULTIBYTE_TITLE)))
+
+            withClue("expected the known overshoot; widest line was ${widest.octets} octets") {
+                widest.octets shouldBeGreaterThan MAX_OCTETS
+            }
+            // The bound on the damage: it is a character count, so it never exceeds 75 of those...
+            widest.text.length shouldBeLessThanOrEqual MAX_OCTETS
+            // ...and, crucially, never splits a codepoint, so nothing a client reads is corrupt.
+            lines(render(event = event(title = MULTIBYTE_TITLE))).all { it.decodesCleanly() } shouldBe true
+        }
+    }
 })
+
+private const val MAX_OCTETS = 75
+
+// Long enough to force a fold, and multibyte on both sides of where the fold lands: the ✓ prefix the
+// feed adds for an ATTENDING answer, plus accents and an em dash in the middle of the title.
+private const val MULTIBYTE_TITLE =
+    "Wedstrijd tegen Taurus — véél té lange naam mét áccenten ✓✓✓ zodat de regel moet breken"
+
+/** One emitted line, measured the way RFC 5545 measures: in UTF-8 octets. */
+private data class IcsLine(val text: String) {
+    val octets: Int get() = text.toByteArray(Charsets.UTF_8).size
+
+    /**
+     * Whether this line survives a round trip through UTF-8 — false if a fold landed mid-codepoint,
+     * which is the one way over-long lines could actually corrupt what a client reads.
+     */
+    fun decodesCleanly(): Boolean {
+        val bytes = text.toByteArray(Charsets.UTF_8)
+        return String(bytes, Charsets.UTF_8) == text && !text.contains('\uFFFD')
+    }
+}
+
+private fun lines(ics: String) = ics.split("\r\n").filter { it.isNotEmpty() }.map(::IcsLine)
+
+private fun widestLine(ics: String) = lines(ics).maxBy { it.octets }
 
 // iCalendar folds lines at 75 octets with a CRLF + single space. Undo that before asserting on a
 // property's whole value, or an assertion fails on where the wrapping happened rather than on content.

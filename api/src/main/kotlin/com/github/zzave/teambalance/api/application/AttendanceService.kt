@@ -4,14 +4,12 @@ import com.github.zzave.teambalance.api.domain.model.Attendance
 import com.github.zzave.teambalance.api.domain.model.AttendanceId
 import com.github.zzave.teambalance.api.domain.model.AttendanceState
 import com.github.zzave.teambalance.api.domain.model.DisplayName
-import com.github.zzave.teambalance.api.domain.model.EventAttendance
 import com.github.zzave.teambalance.api.domain.model.EventId
 import com.github.zzave.teambalance.api.domain.model.TeamId
 import com.github.zzave.teambalance.api.domain.model.TeamMember
 import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.port.AttendanceRepository
 import com.github.zzave.teambalance.api.domain.port.EventRepository
-import com.github.zzave.teambalance.api.domain.port.SubstituteRepository
 import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
 import java.time.Clock
 import java.util.UUID
@@ -20,7 +18,6 @@ class AttendanceService(
     private val attendanceRepository: AttendanceRepository,
     private val eventRepository: EventRepository,
     private val teamMemberRepository: TeamMemberRepository,
-    private val substituteRepository: SubstituteRepository,
     private val authorizationService: AuthorizationService,
     private val clock: Clock,
 ) {
@@ -119,34 +116,6 @@ class AttendanceService(
         authorizationService.requireMember(userId, teamId)
         if (eventIds.isEmpty()) return emptyList()
         return attendanceRepository.deleteByUserIdAndEventIds(userId, eventIds)
-    }
-
-    /** Current active roster of a team — fetch once per request and pass into the projections below. */
-    fun teamMembers(teamId: TeamId): List<TeamMember> = teamMemberRepository.findByTeamId(teamId)
-
-    // The attendance picture is derived from *current team membership*, not from the rows that existed
-    // when the event was made: a member who joined later shows as NOT_RESPONDED (no seeded row needed)
-    // and a member who left drops out even with a stale row (#103, #114). EventAttendance concentrates
-    // that rule; `members` is passed in so a listing resolves the roster once.
-
-    /** The resolved attendance picture for one event — its response rows fetched once. */
-    fun attendanceFor(eventId: EventId, members: List<TeamMember>): EventAttendance =
-        EventAttendance.resolve(
-            members,
-            attendanceRepository.findByEventId(eventId),
-            substituteRepository.findAttendanceByEventIds(listOf(eventId))[eventId].orEmpty(),
-        )
-
-    /**
-     * The resolved picture for many events, keyed by event id, from a single response-row query and a
-     * single Substitute query — kills the per-event N+1 when producing a listing.
-     */
-    fun attendanceForAll(eventIds: List<EventId>, members: List<TeamMember>): Map<EventId, EventAttendance> {
-        val responsesByEvent = attendanceRepository.findByEventIds(eventIds).groupBy { it.eventId }
-        val substitutesByEvent = substituteRepository.findAttendanceByEventIds(eventIds)
-        return eventIds.associateWith {
-            EventAttendance.resolve(members, responsesByEvent[it].orEmpty(), substitutesByEvent[it].orEmpty())
-        }
     }
 
     fun findMember(userId: UserId): TeamMember? =

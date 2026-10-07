@@ -1,5 +1,6 @@
 # preflight — project notes
 test: npm --prefix app test (=vitest run) + ./gradlew :api:test   # api tests need colima env (see docs/testcontainers-colima); export it in the shell that commits/pushes too: the pre-commit hook runs `make yolo test`
+# `make yolo`/the hook rewrites app/package-lock.json (prunes optional peers) — `git checkout app/package-lock.json` before staging
 # macOS: no JAVA_HOME override needed (gradle toolchain=25 in gradle.properties, default java is 25); the JDK-21/linux path in progress.txt is sandbox-only
 # in a worktree, results live in <worktree>/api/build/test-results — read those, not the main repo's build dir
 setup: npm --prefix app install && ./gradlew :api:wirespec-typescript  # generated TS client must exist before typecheck/build; typecheck is `npm run typecheck` (tsc -b) — `tsc -p` floods TS6305/TS7006 from the project refs

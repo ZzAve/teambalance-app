@@ -1,6 +1,7 @@
 import { avatarColor, avatarInitials } from '@shared/lib/avatar'
 import { SubstituteAvatar } from './SubstituteAvatar'
-import { STATE_WORD, findSomeone, type LineupMember, type LineupState } from '../lib/lineup'
+import { findSomeone, type LineupMember, type LineupState } from '../lib/lineup'
+import { ATTENDANCE_WORDS } from '../lib/attendance-words'
 
 /**
  * A person in a lineup row: their colour, their first name, their answer.
@@ -51,8 +52,8 @@ export function MemberChip({ member, onSelect }: MemberChipProps) {
       onClick={() => onSelect(member.userId)}
       // One string for the whole control. Without it the visible first name lands in the accessible
       // name alongside the full one and a screen reader says "Anna Anna Bakker — Going".
-      aria-label={`${who} — ${STATE_WORD[member.state]}. Change their answer`}
-      title={`${member.displayName} — ${STATE_WORD[member.state]}`}
+      aria-label={`${who} — ${ATTENDANCE_WORDS[member.state].word}. Change their answer`}
+      title={`${member.displayName} — ${ATTENDANCE_WORDS[member.state].word}`}
       className={`${CHIP} ${OVERLAP} ${PILL[member.state]} ${member.isSelf ? 'shrink-0' : ''}`}
     >
       {member.isSubstitute ? (

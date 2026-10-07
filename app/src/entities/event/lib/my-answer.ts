@@ -1,6 +1,4 @@
-import type { Event } from '@shared/api/events'
-
-type AttendanceState = Event['myState']
+import { ATTENDANCE_WORDS, type AttendanceState } from './attendance-words'
 
 /** The viewer's own answer, in words, plus which semantic tone the pill carries. */
 export interface MyAnswer {
@@ -24,12 +22,12 @@ export interface MyAnswer {
 export function myAnswer(state: AttendanceState, setBy?: string | null): MyAnswer {
   switch (state) {
     case 'ATTENDING':
-      return { label: setBy ? `${setBy} said you're in` : "You're in", tone: 'attending' }
+      return { label: setBy ? `${setBy} said you're in` : ATTENDANCE_WORDS.ATTENDING.pill, tone: 'attending' }
     case 'MAYBE':
-      return { label: setBy ? `${setBy} said maybe` : 'You said maybe', tone: 'maybe' }
+      return { label: setBy ? `${setBy} said maybe` : ATTENDANCE_WORDS.MAYBE.pill, tone: 'maybe' }
     case 'ABSENT':
-      return { label: setBy ? `${setBy} said you're out` : "You're out", tone: 'absent' }
+      return { label: setBy ? `${setBy} said you're out` : ATTENDANCE_WORDS.ABSENT.pill, tone: 'absent' }
     case 'NOT_RESPONDED':
-      return { label: 'Respond', tone: 'prompt' }
+      return { label: ATTENDANCE_WORDS.NOT_RESPONDED.pill, tone: 'prompt' }
   }
 }

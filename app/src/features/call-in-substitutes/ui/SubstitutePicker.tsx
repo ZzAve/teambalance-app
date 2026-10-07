@@ -59,7 +59,7 @@ export function SubstitutePicker({
       pending={pendingEvents.includes(eventId)}
       onEvent={event.substitutes}
       onSetState={(substituteId, state) => setSubstituteAttendance.mutate({ eventId, substituteId, state })}
-      // Someone new has been asked, not confirmed: they join the event as Asked (Maybe).
+      // Someone new has been asked, not confirmed: they join the event as Maybe.
       onCreate={(name, positionId) =>
         createSubstitute.mutateAsync(
           { name, positionId },

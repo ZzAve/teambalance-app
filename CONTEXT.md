@@ -53,7 +53,8 @@ any-team, self-service (see [ADR-0001](docs/adr/0001-product-ambition-hobby-tool
 - **Substitute** — A person outside the Team whom the Team keeps on a reusable list and can call in
   for a specific Event. Not a **Member**: not on the **Roster**, no **Role**, no account, and never
   expected to respond. Appears on an Event only once someone adds them, and from then on carries an
-  **Attendance State** like anyone else, so "asked" (Maybe) is distinguishable from "confirmed" (Attending).
+  **Attendance State** like anyone else, so "asked" (Maybe) is distinguishable from "confirmed" (Attending);
+  the UI says `Maybe`, and explains that it means asked.
   Has at most one **Position** and at most one **Shirt Number**. Any Member may add one to an Event; the list itself is kept by Admins.
   Taking a Substitute off the list removes them from every Event, past ones included, the same as a
   departed Member.
@@ -100,9 +101,12 @@ any-team, self-service (see [ADR-0001](docs/adr/0001-product-ambition-hobby-tool
 - **Attendance State** — `Attending` (green), `Maybe` (gold), `Absent` (red),
   `Not Responded` (default, no response yet). The semantic colors are fixed brand
   identity. These are the payload and code names; the UI says the same four states in the
-  member's own words — `Going` / `Maybe` / `Can't` / `Not responded` on controls and filters,
+  member's own words — `Going` / `Maybe` / `Can't` / `Not responded` on controls, filters, rows
+  and chips (the hero included, [ADR-0039](docs/adr/0039-hero-offers-all-three-answers-in-the-control-words.md)),
   and `You're in` / `You said maybe` / `You're out` / `Respond` on the card's answer pill.
-  Prose uses the same root: a member has *responded* or *not responded*, never *replied*.
+  A **Substitute**'s states are said in the same words. Prose uses the same root: a member has
+  *responded* or *not responded*, never *replied*.
+  _Avoid_: I'm in, Can't go, Can't make it, Awaiting, Asked, out.
 - **Event Attendance** — The resolved attendance picture of a single Event: every current
   Member paired with their **Attendance State** for that Event (their response, or
   **Not Responded** when they haven't answered). Derived from the *current* roster, so a

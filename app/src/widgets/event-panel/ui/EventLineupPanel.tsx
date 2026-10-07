@@ -6,6 +6,7 @@ import { AnswerSheet } from '@features/attendance-toggle/ui/AnswerSheet'
 import { SubstituteSheet } from '@features/call-in-substitutes/ui/SubstituteSheet'
 import type { SubstituteState } from '@features/call-in-substitutes/ui/SubstitutesBlock'
 import { setByName } from '@entities/event/lib/attribution'
+import { ATTENDANCE_WORDS } from '@entities/event/lib/attendance-words'
 import { MemberChip, OverflowChip, OpenSlotChip } from '@entities/event/ui/MemberChip'
 import { headcountLine, staffNote } from '@entities/event/lib/roster-view'
 import { VERDICT_TONE } from '@entities/event/ui/verdict-tone'
@@ -229,16 +230,24 @@ function PositionRow({
 
       {/* The row gap is the "+" chip's tap band (F7): any smaller and the band reaches the line above. */}
       <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2.5">
-        {going.length > 0 && cluster('in', going, 'going')}
+        {going.length > 0 && cluster('in', going, WORD.ATTENDING)}
         {row.openSlots > 0 && <OpenSlotChip positionLabel={row.label} openSlots={row.openSlots} onFind={onFind} />}
-        {maybe.length > 0 && cluster('maybe', maybe, 'maybe')}
-        {out.length > 0 && <span className="opacity-70">{cluster('out', out, 'out')}</span>}
+        {maybe.length > 0 && cluster('maybe', maybe, WORD.MAYBE)}
+        {out.length > 0 && <span className="opacity-70">{cluster('out', out, `${WORD.ABSENT} or ${WORD.NOT_RESPONDED}`)}</span>}
         {row.members.length === 0 && row.openSlots === 0 && (
           <span className="text-caption text-muted-foreground">Nobody yet</span>
         )}
       </div>
     </div>
   )
+}
+
+// The cluster names, for the overflow chip's accessible name: "Show 3 more going".
+const WORD = {
+  ATTENDING: ATTENDANCE_WORDS.ATTENDING.word.toLowerCase(),
+  MAYBE: ATTENDANCE_WORDS.MAYBE.word.toLowerCase(),
+  ABSENT: ATTENDANCE_WORDS.ABSENT.word.toLowerCase(),
+  NOT_RESPONDED: ATTENDANCE_WORDS.NOT_RESPONDED.word.toLowerCase(),
 }
 
 /**

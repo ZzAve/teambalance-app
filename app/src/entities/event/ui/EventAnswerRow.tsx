@@ -2,6 +2,7 @@ import { useId, useState } from 'react'
 import { Check, ChevronDown, HelpCircle, X } from 'lucide-react'
 import type { ComponentType, ReactNode } from 'react'
 import type { Event, EventRoster } from '@shared/api/events'
+import { ATTENDANCE_WORDS } from '../lib/attendance-words'
 import { myAnswer, type MyAnswer } from '../lib/my-answer'
 import { panelNoun } from '../lib/roster-view'
 import { ReadinessBadge } from './ReadinessBadge'
@@ -49,9 +50,9 @@ const PILL_TONE: Record<MyAnswer['tone'], { className: string; Icon?: ComponentT
 }
 
 const OPTIONS: { value: AttendanceState; label: string; active: string; inactive: string }[] = [
-  { value: 'ATTENDING', label: 'Going', active: 'bg-green text-white border-green', inactive: 'border-green/30 text-green' },
-  { value: 'MAYBE', label: 'Maybe', active: 'bg-gold text-white border-gold', inactive: 'border-gold/30 text-gold-ink' },
-  { value: 'ABSENT', label: "Can't", active: 'bg-red text-white border-red', inactive: 'border-red/30 text-red' },
+  { value: 'ATTENDING', label: ATTENDANCE_WORDS.ATTENDING.word, active: 'bg-green text-white border-green', inactive: 'border-green/30 text-green' },
+  { value: 'MAYBE', label: ATTENDANCE_WORDS.MAYBE.word, active: 'bg-gold text-white border-gold', inactive: 'border-gold/30 text-gold-ink' },
+  { value: 'ABSENT', label: ATTENDANCE_WORDS.ABSENT.word, active: 'bg-red text-white border-red', inactive: 'border-red/30 text-red' },
 ]
 
 // Shared trigger chrome: lifted above the card link's stretched overlay (relative z-10) so a tap opens

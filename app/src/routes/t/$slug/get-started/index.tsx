@@ -1,9 +1,11 @@
 import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router'
+import { useAuthMe } from '@shared/api/auth'
 import { currentMemberQueryOptions, useCurrentMember, useCompleteOnboarding, MemberUpdateError } from '@shared/api/members'
+import { useCopyPersonalPhotoToTeam } from '@shared/api/photos'
 import { usePositions } from '@shared/api/positions'
 import { queryClient } from '@shared/api/query-client'
 import { useTeamRoutes, teamRoutes } from '@shared/lib/team-routes'
-import { EditProfileForm } from '@features/edit-profile/ui/EditProfileForm'
+import { GetStartedView } from '@pages/get-started/ui/GetStartedView'
 
 export const Route = createFileRoute('/t/$slug/get-started/')({
   // A member who has already onboarded has no business here — bounce them home before render.
@@ -21,47 +23,43 @@ export const Route = createFileRoute('/t/$slug/get-started/')({
 })
 
 /**
- * One-time onboarding screen. Reuses the presentational EditProfileForm (name + required-when-
- * available position), prefilled from the current member, and completes onboarding via
- * useCompleteOnboarding. On success the member is stamped onboarded, so navigating home no longer
- * bounces back here.
+ * One-time onboarding screen: thin wiring around GetStartedView. Completes onboarding with name,
+ * position and Shirt Number, then copies the Personal Photo when the member kept that ticked. On
+ * success the member is stamped onboarded, so navigating home no longer bounces back here. A failed
+ * copy does not hold them up: the photo can still be set from their page.
  */
 function GetStartedPage() {
   const navigate = useNavigate()
   const routes = useTeamRoutes()
+  const { data: user } = useAuthMe()
   const { data: member, isLoading, error } = useCurrentMember()
   const { data: positions } = usePositions()
   const completeOnboarding = useCompleteOnboarding()
+  const copyPersonalPhoto = useCopyPersonalPhotoToTeam()
 
   const errorCode = completeOnboarding.error instanceof MemberUpdateError ? completeOnboarding.error.code : undefined
 
   return (
-    <div className="mx-auto mt-10 max-w-sm">
-      <h1 className="font-display text-title font-bold">Welcome to TeamBalance</h1>
-      <p className="mt-2 text-small text-muted-foreground">
-        Let's set up your profile — tell us your name and where you play.
-      </p>
-
-      {isLoading && <p className="mt-6 text-small text-muted-foreground">Loading…</p>}
-      {error && <p className="mt-6 text-small text-red">Couldn't load your profile. Please try again.</p>}
-
-      {member && (
-        <div className="mt-6">
-          <EditProfileForm
-            currentName={member.displayName}
-            positions={positions ?? []}
-            currentPositionId={member.position?.id ?? null}
-            isSaving={completeOnboarding.isPending}
-            errorCode={errorCode}
-            onSubmit={(name, positionId) =>
-              completeOnboarding.mutate(
-                { displayName: name, role: member.role, positionId },
-                { onSuccess: () => navigate({ to: routes.events }) },
-              )
-            }
-          />
-        </div>
-      )}
-    </div>
+    <GetStartedView
+      member={member}
+      positions={positions ?? []}
+      isLoading={isLoading}
+      isError={!!error}
+      isSaving={completeOnboarding.isPending || copyPersonalPhoto.isPending}
+      errorCode={errorCode}
+      hasPersonalPhoto={!!user?.personalPhotoVersion}
+      onSubmit={(displayName, positionId, shirtNumber, usePersonalPhoto) => {
+        if (!member) return
+        completeOnboarding.mutate(
+          { displayName, role: member.role, positionId, shirtNumber },
+          {
+            onSuccess: async () => {
+              if (usePersonalPhoto) await copyPersonalPhoto.mutateAsync().catch(() => undefined)
+              navigate({ to: routes.events })
+            },
+          },
+        )
+      }}
+    />
   )
 }

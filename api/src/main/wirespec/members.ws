@@ -4,13 +4,15 @@ type MemberPosition {
     label: String
 }
 
+// `photoVersion` changes whenever the Team Photo does; null means none, shown by initials (ADR-0038). The image itself is binary, so it is served outside this contract at GET /api/members/{userId}/photo, with this value as `?v=` so a cached image is never stale.
 type Member {
     userId: String,
     displayName: String,
     role: String,
     position: MemberPosition?,
     onboarded: Boolean,
-    shirtNumber: Integer?
+    shirtNumber: Integer?,
+    photoVersion: String?
 }
 
 // The member's full editable state: a missing or null `shirtNumber` clears it. Known risk, accepted: an app from before shirt numbers never sends it, so a save from one clears the number (PR #383). 409 NUMBER_TAKEN when another current member wears that number; 400 outside 0..999 (ADR-0038).
@@ -21,11 +23,12 @@ type UpdateMemberRequest {
     shirtNumber: Integer?
 }
 
-// Onboarding sets name and position only; it never touches the Shirt Number. `role` is ignored, kept so the body stays what earlier apps send.
+// Onboarding sets name, position and, when given, the Shirt Number; a missing or null `shirtNumber` keeps the current one, so an app from before this field never clears a number an Admin set. 409 NUMBER_TAKEN as on UpdateMember. `role` is ignored, kept so the body stays what earlier apps send.
 type CompleteOnboardingRequest {
     displayName: String,
     role: String,
-    positionId: String?
+    positionId: String?,
+    shirtNumber: Integer?
 }
 
 type MemberList {

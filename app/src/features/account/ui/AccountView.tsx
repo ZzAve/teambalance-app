@@ -2,15 +2,35 @@ import { Link } from '@tanstack/react-router'
 import { ChevronRight, KeyRound, LogOut, Mail, ShieldCheck, Users } from 'lucide-react'
 import type { Member } from '@shared/api/members'
 import type { Position } from '@shared/api/positions'
+import { personalPhotoUrl } from '@shared/api/photos'
 import { EditProfileForm } from '@features/edit-profile/ui/EditProfileForm'
+import { PhotoPicker } from '@features/pick-photo/ui/PhotoPicker'
 import { ThemeToggle } from '@features/theme-toggle/ui/ThemeToggle'
+import { Avatar } from '@shared/ui/avatar'
+import { Button } from '@shared/ui/button'
 import { SectionLabel } from '@shared/ui/SectionLabel'
 import type { AccountSection } from '../lib/account-sections'
 
 interface AccountViewProps {
   /** The visible sections for this session, from {@link accountSections}. Drives which rows render. */
   sections: AccountSection[]
+  userId: string
+  /** The platform name, for the initials when there is no Personal Photo. */
+  displayName: string
   email: string
+  /** The caller's own Personal Photo (ADR-0038); null when they have none. */
+  personalPhotoVersion?: string | null
+  isPhotoSaving?: boolean
+  photoErrorMessage?: string
+  /**
+   * Set right after a Personal Photo upload while the Active Team has no Team Photo: the one moment
+   * the tab offers to copy it into that Team (ADR-0038). Null hides the offer.
+   */
+  copyPhotoTeamName?: string | null
+  onUploadPersonalPhoto?: (photo: Blob) => void
+  onRemovePersonalPhoto?: () => void
+  onCopyPhotoToTeam?: () => void
+  onDismissCopyPhoto?: () => void
   /** The Active Team's name, or null when there is none (teamless). */
   activeTeamName?: string | null
   /** The current member — only present (and only fetched) when there is an Active Team. */
@@ -51,7 +71,17 @@ const ICON = 'shrink-0 text-muted-foreground'
  */
 export function AccountView({
   sections,
+  userId,
+  displayName,
   email,
+  personalPhotoVersion,
+  isPhotoSaving,
+  photoErrorMessage,
+  copyPhotoTeamName,
+  onUploadPersonalPhoto,
+  onRemovePersonalPhoto,
+  onCopyPhotoToTeam,
+  onDismissCopyPhoto,
   activeTeamName,
   member,
   positions = [],
@@ -80,6 +110,53 @@ export function AccountView({
                   {email}
                 </span>
               </div>
+            </div>
+          </section>
+        )}
+
+        {has('photo') && (
+          <section>
+            <SectionLabel as="h3" className="mb-2 px-1 text-small">Personal photo</SectionLabel>
+            <div className={`${CARD} p-4`}>
+              <div className="flex items-center gap-4">
+                <Avatar
+                  userId={userId}
+                  name={displayName}
+                  size="md"
+                  photoUrl={personalPhotoVersion ? personalPhotoUrl(personalPhotoVersion) : undefined}
+                />
+                <div className="flex min-w-0 flex-col gap-2">
+                  <p className="text-small text-muted-foreground">
+                    Only you see this photo. A team shows the photo you choose for that team.
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    <PhotoPicker
+                      label={personalPhotoVersion ? 'Change photo' : 'Upload photo'}
+                      disabled={isPhotoSaving}
+                      onPicked={(photo) => onUploadPersonalPhoto?.(photo)}
+                    />
+                    {personalPhotoVersion && (
+                      <Button variant="outline" size="sm" disabled={isPhotoSaving} onClick={onRemovePersonalPhoto}>
+                        Remove photo
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </div>
+              {photoErrorMessage && <p className="mt-3 text-small text-red">{photoErrorMessage}</p>}
+              {copyPhotoTeamName && (
+                <div className="mt-4 rounded-md bg-muted p-3">
+                  <p className="text-small">Use this photo in {copyPhotoTeamName} too?</p>
+                  <div className="mt-2 flex gap-2">
+                    <Button size="sm" disabled={isPhotoSaving} onClick={onCopyPhotoToTeam}>
+                      Use in {copyPhotoTeamName}
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={onDismissCopyPhoto}>
+                      Not now
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
           </section>
         )}

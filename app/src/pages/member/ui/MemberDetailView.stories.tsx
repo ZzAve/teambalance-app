@@ -21,6 +21,7 @@ const ADA: Member = {
   position: POSITIONS[0],
   onboarded: true,
   shirtNumber: 12,
+  photoVersion: undefined,
 }
 
 const shell = appShell('team')
@@ -39,6 +40,13 @@ const meta = {
     onEdit: fn(),
     onCancelEdit: fn(),
     onSubmit: fn(),
+    canChangePhoto: true,
+    canRemovePhoto: true,
+    hasPersonalPhoto: true,
+    isPhotoSaving: false,
+    onUploadPhoto: fn(),
+    onUsePersonalPhoto: fn(),
+    onRemovePhoto: fn(),
   },
 } satisfies Meta<typeof MemberDetailView>
 
@@ -66,9 +74,19 @@ export const Shells: Story = {
           <MemberDetailView
             {...args}
             canEdit={false}
+            canChangePhoto={false}
+            canRemovePhoto={false}
             // shirtNumber null, as the API sends "no number" (the generated type says undefined).
             member={{ ...ADA, userId: 'u3', displayName: 'Alan Turing', role: 'USER', position: undefined, shirtNumber: null as unknown as undefined }}
           />
+        ),
+        // An Admin on someone else's page: the photo can only be removed. (No network in stories, so
+        // the photo falls back to initials.)
+        'Admin, their photo': (
+          <MemberDetailView {...args} canEdit canChangePhoto={false} member={{ ...ADA, photoVersion: 'v1' }} />
+        ),
+        'Photo upload failed': (
+          <MemberDetailView {...args} hasPersonalPhoto={false} photoErrorMessage="That photo is too large. Please pick another one." />
         ),
         Editing: <MemberDetailView {...args} isEditing errorCode="NUMBER_TAKEN" />,
         // A failure the form has no field for, e.g. the member was removed meanwhile.
@@ -87,6 +105,18 @@ export const Shells: Story = {
     await expect(region('Read only').getAllByText('Unassigned').length).toBeGreaterThan(0)
     await expect(region('Read only').queryByLabelText(/^Shirt number/)).not.toBeInTheDocument()
 
+    await expect(region('Read only').queryByRole('button', { name: /photo/i })).not.toBeInTheDocument()
+
+    await expect(region('Admin, their photo').getByRole('button', { name: 'Remove photo' })).toBeInTheDocument()
+    await expect(region('Admin, their photo').queryByRole('button', { name: /upload/i })).not.toBeInTheDocument()
+    await expect(region('Admin, their photo').queryByRole('button', { name: 'Use my personal photo' })).not.toBeInTheDocument()
+
+    // Nothing to copy and nothing to remove: only the upload.
+    await expect(region('Photo upload failed').getByRole('button', { name: 'Upload photo' })).toBeInTheDocument()
+    await expect(region('Photo upload failed').queryByRole('button', { name: 'Use my personal photo' })).not.toBeInTheDocument()
+    await expect(region('Photo upload failed').queryByRole('button', { name: 'Remove photo' })).not.toBeInTheDocument()
+    await expect(region('Photo upload failed').getByText('That photo is too large. Please pick another one.')).toBeInTheDocument()
+
     await expect(region('Editing').getByLabelText('Shirt number')).toHaveValue('12')
     await expect(region('Editing').getByText('That shirt number is already taken.')).toBeInTheDocument()
 
@@ -99,19 +129,25 @@ export const Shells: Story = {
   },
 }
 
-// No picture: proves the Edit button, the number field's validation and the submit/cancel wiring.
+// No picture: proves the photo buttons, the Edit button, the number field's validation and the submit/cancel wiring.
 export const Interactions: Story = {
   parameters: { chromatic: { disableSnapshot: true } },
   render: (args) => (
     <Stack
       items={{
-        Reading: <MemberDetailView {...args} />,
+        Reading: <MemberDetailView {...args} member={{ ...ADA, photoVersion: 'v1' }} />,
         Editing: <MemberDetailView {...args} isEditing />,
       }}
     />
   ),
   play: async ({ canvas, args }) => {
     const region = (name: string) => within(canvas.getByRole('region', { name }))
+
+    await userEvent.click(region('Reading').getByRole('button', { name: 'Use my personal photo' }))
+    await expect(args.onUsePersonalPhoto).toHaveBeenCalledOnce()
+    await userEvent.click(region('Reading').getByRole('button', { name: 'Remove photo' }))
+    await expect(args.onRemovePhoto).toHaveBeenCalledOnce()
+    await expect(region('Reading').getByRole('button', { name: 'Upload a different photo' })).toBeInTheDocument()
 
     await userEvent.click(region('Reading').getByRole('button', { name: 'Edit profile' }))
     await expect(args.onEdit).toHaveBeenCalledOnce()

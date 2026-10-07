@@ -84,16 +84,33 @@ export function useUpdateMember() {
   })
 }
 
-// Applies the member's own name + position and stamps them onboarded (PUT /members/me/onboarding).
-// The request carries a role, but the backend ignores it (onboarding never changes role); we send
-// the member's current role to satisfy the contract. A 409 is a name collision, mapped like
-// useUpdateMember so the /get-started form can surface it inline.
+// Applies the member's own name, position and Shirt Number and stamps them onboarded
+// (PUT /members/me/onboarding). A null number keeps the current one. The request carries a role, but
+// the backend ignores it (onboarding never changes role); we send the member's current role to
+// satisfy the contract. A 409 is a name or number collision, mapped like useUpdateMember so the
+// /get-started form can surface it inline.
 export function useCompleteOnboarding() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async ({ displayName, role, positionId }: { displayName: string; role: string; positionId: string | null }) => {
-      const res = await api.CompleteOnboarding({ body: { displayName, role, positionId: positionId ?? undefined } })
-      if (res.status === 409) throw new MemberUpdateError('NAME_TAKEN', 'That display name is already taken.')
+    mutationFn: async ({
+      displayName,
+      role,
+      positionId,
+      shirtNumber,
+    }: {
+      displayName: string
+      role: string
+      positionId: string | null
+      shirtNumber: number | null
+    }) => {
+      const res = await api.CompleteOnboarding({
+        body: { displayName, role, positionId: positionId ?? undefined, shirtNumber: shirtNumber ?? undefined },
+      })
+      if (res.status === 409) {
+        const code = (res.body as { code?: string } | undefined)?.code
+        if (code === 'NUMBER_TAKEN') throw new MemberUpdateError('NUMBER_TAKEN', 'That shirt number is already taken.')
+        throw new MemberUpdateError('NAME_TAKEN', 'That display name is already taken.')
+      }
       return res.body
     },
     // Write the now-onboarded member straight into the cache before invalidating, so the root

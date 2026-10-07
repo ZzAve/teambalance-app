@@ -14,7 +14,7 @@ describe('toggleRole', () => {
 
 describe('isLastAdmin', () => {
   const m = (userId: string, role: string): Member =>
-    ({ userId, displayName: userId, role, position: undefined, onboarded: true, shirtNumber: undefined })
+    ({ userId, displayName: userId, role, position: undefined, onboarded: true, shirtNumber: undefined, photoVersion: undefined })
 
   it('is true for the only admin', () => {
     const members = [m('a', 'ADMIN'), m('b', 'USER')]
@@ -34,7 +34,7 @@ describe('isLastAdmin', () => {
 
 describe('sortByShirtNumber', () => {
   const m = (userId: string, shirtNumber?: number): Member =>
-    ({ userId, displayName: userId, role: 'USER', position: undefined, onboarded: true, shirtNumber })
+    ({ userId, displayName: userId, role: 'USER', position: undefined, onboarded: true, shirtNumber, photoVersion: undefined })
 
   it('orders members by shirt number, members without one last in their original order', () => {
     const members = [m('none-a'), m('twelve', 12), m('one', 1), m('none-b'), m('hundred', 112)]

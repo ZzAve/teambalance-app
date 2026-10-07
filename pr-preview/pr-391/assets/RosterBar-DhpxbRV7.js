@@ -1,0 +1,24 @@
+import{n as e}from"./rolldown-runtime-DkW27tQK.js";import{t}from"./jsx-runtime-DeHZSEgm.js";import{i as n,n as r,r as i}from"./roster-view-DD_aJHJx.js";import{n as a,t as o}from"./SectionLabel-_vzOhMMA.js";import{n as s,t as c}from"./verdict-tone-c6U3PQEN.js";function l({roster:e}){let t=n(e).filter(e=>e.pips.length>0),r=t.length>0;if(!r&&!e.trackRoster)return null;let a=t.reduce((e,t)=>e+t.pips.length,0),s=r?a:e.totalTarget,l=r?a-e.openSlots:e.playingAttending,d=s!=null&&l>=s,f=e.staffAttending>0?` +${e.staffAttending} staff`:``,p=(s==null?`${l} going`:`${l}/${s} ${r?`spots`:`going`}`)+f,m=s==null||s===0?null:Math.min(100,Math.round(l/s*100)),h=i(e);return(0,u.jsxs)(`div`,{className:`px-4 py-3`,children:[(0,u.jsxs)(`div`,{className:`flex items-baseline justify-between gap-3 ${m==null?``:`mb-2`}`,children:[(0,u.jsx)(o,{as:`span`,children:`Roster`}),(0,u.jsxs)(`span`,{className:`flex items-baseline gap-1.5`,children:[(0,u.jsx)(`span`,{className:`font-display text-small font-bold tabular-nums ${d?`text-green-dark`:`text-foreground`}`,children:p}),h&&(0,u.jsxs)(`span`,{className:`text-caption font-semibold ${c[h.tone]}`,children:[`· `,h.text]})]})]}),m!=null&&(0,u.jsx)(`div`,{"data-slot":`roster-track`,className:`h-1.5 overflow-hidden rounded-full bg-muted`,children:(0,u.jsx)(`div`,{className:`h-full rounded-full bg-green transition-[width] duration-300 ease-out`,style:{width:`${m}%`}})}),e.substituteAttending>0&&(0,u.jsxs)(`p`,{className:`mt-1.5 text-caption font-semibold text-purple-ink`,children:[`+ `,e.substituteAttending,` substitute`,e.substituteAttending===1?``:`s`]})]})}var u;function d(){return(d=e((()=>{a(),r(),s(),u=t(),l.__docgenInfo={description:`A compact roster overview: how full the squad is, a progress track, and a chip per targeted
+position coloured by its tone. Sits high on the event detail page so completeness reads at a
+glance — the thing a flat list loses. Chrome-free: the caller supplies the surrounding card.
+
+Prop-only (ADR-0017), and it re-presents what the server already computed rather than re-deriving
+status: the headline chip comes from \`rosterChip\` and the counts are server-owned (#219).
+
+**It states the event-level verdict only.** It used to also print a chip per position, which the
+attendee list below then repeated as a fraction beside every heading — the same fact twice, three
+blocks apart. The per-position verdict now lives with the people it describes; what stays here is
+the thing no single position can tell you.
+
+Three shapes, because a roster can be targeted in two different ways or not at all (#271 (6)):
+
+  - **Positions targeted** — the fraction counts *slots*, and each position gets a chip.
+  - **A headcount target only** — the fraction counts *playing people* against \`totalTarget\`. No
+    chips: nothing is targeted per position, so there is nothing to list.
+  - **A tally** — tracking on, nothing targeted. The plain count, and deliberately **no progress
+    track**: a bar with no denominator would assert exactly the judgement \`rosterChip\` withholds
+    for this state.
+
+Only a roster with tracking switched off renders nothing — a social is not a roster event, and the
+route falls back to the role breakdown. The two headcount shapes were missing until this page
+caught up with the card: the card said "4 more needed", you tapped through, and the number was gone.`,methods:[],displayName:`RosterBar`,props:{roster:{required:!0,tsType:{name:`EventRoster`},description:``}}}})))()}export{d as n,l as t};

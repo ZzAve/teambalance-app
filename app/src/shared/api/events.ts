@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from './wirespec-client'
+import { queryKeys } from './query-keys'
 import type { CreateEventRequest } from './generated/model/CreateEventRequest'
 import type { UpdateEventRequest } from './generated/model/UpdateEventRequest'
 
@@ -38,7 +39,7 @@ export interface EventInput {
 
 export function useEvents(includePast = false, enabled = true) {
   return useQuery({
-    queryKey: ['events', { includePast }],
+    queryKey: queryKeys.events.list(includePast),
     queryFn: async () => {
       const res = await api.ListEvents({ 'include-past': includePast })
       return res.body
@@ -50,7 +51,7 @@ export function useEvents(includePast = false, enabled = true) {
 
 export function useEvent(id: string) {
   return useQuery({
-    queryKey: ['events', id],
+    queryKey: queryKeys.events.detail(id),
     queryFn: async () => {
       const res = await api.GetEvent({ id })
       // A missing event is a resolved-but-empty result, not a query error, so the detail page can
@@ -68,7 +69,7 @@ export function useCreateEvent() {
       const res = await api.CreateEvent({ body: event as CreateEventRequest })
       return res.body
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['events'] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.events.all }),
   })
 }
 
@@ -81,7 +82,7 @@ export function useUpdateEvent() {
       const res = await api.UpdateEvent({ id, scope, body: event as UpdateEventRequest })
       return res.body
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['events'] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.events.all }),
   })
 }
 
@@ -90,6 +91,6 @@ export function useDeleteEvent() {
   return useMutation({
     mutationFn: ({ id, scope = 'THIS' }: { id: string; scope?: EventSeriesScope }) =>
       api.DeleteEvent({ id, scope }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['events'] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.events.all }),
   })
 }

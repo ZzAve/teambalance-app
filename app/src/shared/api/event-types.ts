@@ -1,5 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from './wirespec-client'
+import { throwOnStatus } from './errors'
+import { queryKeys } from './query-keys'
 
 // Re-export the generated contract types so consumers have a single source of truth. The roster
 // types live here rather than in events.ts because the event type is where a team *authors* them;
@@ -50,7 +52,7 @@ const notFound = () => new EventTypeError('NOT_FOUND', 'Event type not found.')
  */
 export function useEventTypes(includeArchived = false) {
   return useQuery({
-    queryKey: ['event-types', { includeArchived }],
+    queryKey: queryKeys.eventTypes.list(includeArchived),
     queryFn: async () => {
       const res = await api.ListEventTypes({ 'include-archived': includeArchived })
       return res.body
@@ -71,9 +73,7 @@ export function useCreateEventType() {
   return useMutation({
     mutationFn: async (input: EventTypeInput) => {
       const res = await api.CreateEventType({ body: input as EventTypeItem })
-      if (res.status === 400) throw invalid()
-      if (res.status === 409) throw nameTaken()
-      if (res.status === 403) throw forbidden()
+      throwOnStatus(res, { 400: invalid, 409: nameTaken, 403: forbidden })
       return res.body
     },
     onSuccess: () => invalidate(queryClient),
@@ -85,10 +85,7 @@ export function useUpdateEventType() {
   return useMutation({
     mutationFn: async ({ id, ...input }: EventTypeInput & { id: string }) => {
       const res = await api.UpdateEventType({ id, body: input as EventTypeItem })
-      if (res.status === 400) throw invalid()
-      if (res.status === 409) throw nameTaken()
-      if (res.status === 403) throw forbidden()
-      if (res.status === 404) throw notFound()
+      throwOnStatus(res, { 400: invalid, 409: nameTaken, 403: forbidden, 404: notFound })
       return res.body
     },
     onSuccess: () => invalidate(queryClient),
@@ -106,12 +103,12 @@ export function useArchiveEventType() {
   return useMutation({
     mutationFn: async ({ id, migrateEventsTo }: { id: string; migrateEventsTo?: string }) => {
       const res = await api.ArchiveEventType({ id, body: { migrateEventsTo } })
-      if (res.status === 400) throw invalid()
-      if (res.status === 409) {
-        throw new EventTypeError('LAST_EVENT_TYPE', 'A team must keep at least one active event type.')
-      }
-      if (res.status === 403) throw forbidden()
-      if (res.status === 404) throw notFound()
+      throwOnStatus(res, {
+        400: invalid,
+        409: () => new EventTypeError('LAST_EVENT_TYPE', 'A team must keep at least one active event type.'),
+        403: forbidden,
+        404: notFound,
+      })
       return res.body
     },
     // Archiving moves events onto another type, so the events cache is stale too.
@@ -124,9 +121,7 @@ export function useUnarchiveEventType() {
   return useMutation({
     mutationFn: async ({ id }: { id: string }) => {
       const res = await api.UnarchiveEventType({ id })
-      if (res.status === 409) throw nameTaken()
-      if (res.status === 403) throw forbidden()
-      if (res.status === 404) throw notFound()
+      throwOnStatus(res, { 409: nameTaken, 403: forbidden, 404: notFound })
       return res.body
     },
     onSuccess: () => invalidate(queryClient),
@@ -137,6 +132,6 @@ export function useUnarchiveEventType() {
 // inheriting event's computed roster, so editing one changes the events payload without touching an
 // event row. Archiving with a migration rewrites the events' type outright.
 function invalidate(queryClient: ReturnType<typeof useQueryClient>) {
-  queryClient.invalidateQueries({ queryKey: ['event-types'] })
-  queryClient.invalidateQueries({ queryKey: ['events'] })
+  queryClient.invalidateQueries({ queryKey: queryKeys.eventTypes.all })
+  queryClient.invalidateQueries({ queryKey: queryKeys.events.all })
 }

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useQueryClient } from '@tanstack/react-query'
 import { useVerifyMagicLink } from '@shared/api/auth'
+import { queryKeys } from '@shared/api/query-keys'
 import { clearSession, hasClearableSession } from '@shared/api/clear-session'
 import { VerifyErrorView } from '@shared/ui/VerifyErrorView'
 
@@ -29,7 +30,7 @@ function VerifyPage() {
       .then((session) => {
         // The server already joined the team and rebuilt the payload around it, so this user is the
         // post-join one — nothing here has to accept anything or refetch to catch up (#342).
-        queryClient.setQueryData(['auth', 'me'], session.user)
+        queryClient.setQueryData(queryKeys.authMe, session.user)
 
         // A dead invite no longer withholds the session: refusing a valid proof of identity would
         // strand them for good, since re-clicking an expired invite cannot help. Land them on the

@@ -1,5 +1,6 @@
 import { queryOptions, useMutation, useQuery } from '@tanstack/react-query'
 import { api } from './wirespec-client'
+import { queryKeys } from './query-keys'
 import type { AuthenticatedUser } from './generated/model/AuthenticatedUser'
 
 export type { AuthenticatedUser } from './generated/model/AuthenticatedUser'
@@ -57,7 +58,7 @@ export function useLogout() {
 // resolves to null (unauthenticated); anything else that isn't a usable user rejects and is treated
 // as unconfirmed (retried, then the router's error fallback).
 export const authMeQueryOptions = queryOptions({
-  queryKey: ['auth', 'me'],
+  queryKey: queryKeys.authMe,
   queryFn: async () => {
     const res = await api.GetAuthMe()
     if (res.status === 401) return null

@@ -1,6 +1,8 @@
 import { useMutation, useMutationState, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { api } from './wirespec-client'
+import { throwOnStatus } from './errors'
+import { queryKeys } from './query-keys'
 import type { SubstituteEntry } from './generated/model/SubstituteEntry'
 
 // Re-export the generated contract types so the app has a single source of truth.
@@ -14,12 +16,13 @@ export class SubstituteError extends Error {
   }
 }
 
-const nameTaken = (name: string) => new SubstituteError(`${name} is already on the list.`)
+const nameTaken = (name: string) => () => new SubstituteError(`${name} is already on the list.`)
+const noLongerListed = () => new SubstituteError('That substitute is no longer on the list.')
 
 /** The Team's list of Substitutes, for the picker. Keyed ['substitutes'] so a create refreshes it. */
 export function useSubstitutes(options?: { enabled?: boolean }) {
   return useQuery({
-    queryKey: ['substitutes'],
+    queryKey: queryKeys.substitutes.all,
     queryFn: async () => {
       const res = await api.ListSubstitutes()
       return res.body.substitutes
@@ -39,15 +42,14 @@ export function useCreateSubstitute() {
   return useMutation({
     mutationFn: async ({ name, positionId }: CreateSubstituteVars) => {
       const res = await api.CreateSubstitute({ body: { name, positionId: positionId ?? undefined } })
-      if (res.status === 409) throw nameTaken(name)
-      if (res.status === 404) throw new Error('Position not found')
+      throwOnStatus(res, { 409: nameTaken(name), 404: () => new Error('Position not found') })
       return res.body
     },
     onError: (error) => {
       toast.error(error instanceof SubstituteError ? error.message : "Couldn't add the substitute — please try again.")
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['substitutes'] })
+      queryClient.invalidateQueries({ queryKey: queryKeys.substitutes.all })
     },
   })
 }
@@ -68,15 +70,17 @@ export function useUpdateSubstitute() {
   return useMutation({
     mutationFn: async ({ id, name, positionId }: UpdateSubstituteVars) => {
       const res = await api.UpdateSubstitute({ id, body: { name, positionId: positionId ?? undefined } })
-      if (res.status === 409) throw nameTaken(name)
-      if (res.status === 403) throw new SubstituteError('You are not allowed to make this change.')
-      if (res.status === 404) throw new SubstituteError('That substitute is no longer on the list.')
+      throwOnStatus(res, {
+        409: nameTaken(name),
+        403: () => new SubstituteError('You are not allowed to make this change.'),
+        404: noLongerListed,
+      })
       if (res.status !== 200) throw new SubstituteError("Couldn't save the substitute — please try again.")
       return res.body
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['substitutes'] })
-      queryClient.invalidateQueries({ queryKey: ['events'] })
+      queryClient.invalidateQueries({ queryKey: queryKeys.substitutes.all })
+      queryClient.invalidateQueries({ queryKey: queryKeys.events.all })
     },
   })
 }
@@ -84,7 +88,7 @@ export function useUpdateSubstitute() {
 /** Admin-only, for the remove dialog: how many Events the Substitute is on, past ones included. */
 export function useSubstituteEventCount(id: string | null) {
   return useQuery({
-    queryKey: ['substitutes', id, 'usage'],
+    queryKey: queryKeys.substitutes.usage(id),
     queryFn: async () => {
       const res = await api.GetSubstituteUsage({ id: id as string })
       if (res.status !== 200) throw new SubstituteError("Couldn't count this substitute's events.")
@@ -102,13 +106,15 @@ export function useDeleteSubstitute() {
   return useMutation({
     mutationFn: async ({ id }: { id: string }) => {
       const res = await api.DeleteSubstitute({ id })
-      if (res.status === 403) throw new SubstituteError('You are not allowed to remove this substitute.')
-      if (res.status === 404) throw new SubstituteError('That substitute is no longer on the list.')
+      throwOnStatus(res, {
+        403: () => new SubstituteError('You are not allowed to remove this substitute.'),
+        404: noLongerListed,
+      })
       if (res.status !== 204) throw new SubstituteError("Couldn't remove the substitute — please try again.")
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['substitutes'] })
-      queryClient.invalidateQueries({ queryKey: ['events'] })
+      queryClient.invalidateQueries({ queryKey: queryKeys.substitutes.all })
+      queryClient.invalidateQueries({ queryKey: queryKeys.events.all })
     },
   })
 }
@@ -147,8 +153,8 @@ export function useSetSubstituteAttendance() {
       toast.error("Couldn't save the substitute — please try again.")
     },
     onSettled: (_data, _error, { eventId }) => {
-      queryClient.invalidateQueries({ queryKey: ['events'] })
-      queryClient.invalidateQueries({ queryKey: ['events', eventId] })
+      queryClient.invalidateQueries({ queryKey: queryKeys.events.all })
+      queryClient.invalidateQueries({ queryKey: queryKeys.events.detail(eventId) })
     },
   })
 }
@@ -171,8 +177,8 @@ export function useRemoveSubstituteAttendance() {
       toast.error("Couldn't take the substitute off — please try again.")
     },
     onSettled: (_data, _error, { eventId }) => {
-      queryClient.invalidateQueries({ queryKey: ['events'] })
-      queryClient.invalidateQueries({ queryKey: ['events', eventId] })
+      queryClient.invalidateQueries({ queryKey: queryKeys.events.all })
+      queryClient.invalidateQueries({ queryKey: queryKeys.events.detail(eventId) })
     },
   })
 }

@@ -1,5 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from './wirespec-client'
+import { throwOnStatus } from './errors'
+import { queryKeys } from './query-keys'
 import type { PositionKind } from './generated/model/PositionKind'
 
 // Re-export the generated contract types so the app has a single source of truth.
@@ -16,13 +18,17 @@ export class PositionError extends Error {
   }
 }
 
+const labelTaken = () => new PositionError('POSITION_LABEL_TAKEN', 'That position already exists.')
+const forbidden = () => new PositionError('FORBIDDEN', 'You are not allowed to make this change.')
+const notFound = () => new PositionError('NOT_FOUND', 'Position not found.')
+
 // The per-team position vocabulary. Readable by any member (GET has no 403). Keyed ['positions'] so
 // a create/rename/delete mutation invalidating that prefix refreshes every picker.
 // `enabled` lets a caller hold the fetch off when there is no tenant to resolve it against — the
 // Account container passes `enabled: !!activeTeam`, since positions are a per-team vocabulary.
 export function usePositions(options?: { enabled?: boolean }) {
   return useQuery({
-    queryKey: ['positions'],
+    queryKey: queryKeys.positions.all,
     queryFn: async () => {
       const res = await api.ListPositions()
       // A 401 is handled globally (redirect to login) by the fetch handler; fall back to empty here.
@@ -39,7 +45,7 @@ export function usePositions(options?: { enabled?: boolean }) {
  */
 export function usePositionUsage(id: string | null) {
   return useQuery({
-    queryKey: ['positions', id, 'usage'],
+    queryKey: queryKeys.positions.usage(id),
     queryFn: async () => {
       const res = await api.GetPositionUsage({ id: id as string })
       return res.body
@@ -53,11 +59,10 @@ export function useCreatePosition() {
   return useMutation({
     mutationFn: async ({ label }: { label: string }) => {
       const res = await api.CreatePosition({ body: { label } })
-      if (res.status === 409) throw new PositionError('POSITION_LABEL_TAKEN', 'That position already exists.')
-      if (res.status === 403) throw new PositionError('FORBIDDEN', 'You are not allowed to make this change.')
+      throwOnStatus(res, { 409: labelTaken, 403: forbidden })
       return res.body
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['positions'] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.positions.all }),
   })
 }
 
@@ -66,15 +71,13 @@ export function useRenamePosition() {
   return useMutation({
     mutationFn: async ({ id, label }: { id: string; label: string }) => {
       const res = await api.RenamePosition({ id, body: { label } })
-      if (res.status === 409) throw new PositionError('POSITION_LABEL_TAKEN', 'That position already exists.')
-      if (res.status === 403) throw new PositionError('FORBIDDEN', 'You are not allowed to make this change.')
-      if (res.status === 404) throw new PositionError('NOT_FOUND', 'Position not found.')
+      throwOnStatus(res, { 409: labelTaken, 403: forbidden, 404: notFound })
       return res.body
     },
     // Substitutes carry their Position's label, so their list shows the new one too.
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['positions'] })
-      queryClient.invalidateQueries({ queryKey: ['substitutes'] })
+      queryClient.invalidateQueries({ queryKey: queryKeys.positions.all })
+      queryClient.invalidateQueries({ queryKey: queryKeys.substitutes.all })
     },
   })
 }
@@ -93,13 +96,12 @@ export function useSetPositionKind() {
   return useMutation({
     mutationFn: async ({ id, kind }: { id: string; kind: PositionKind }) => {
       const res = await api.SetPositionKind({ id, body: { kind } })
-      if (res.status === 403) throw new PositionError('FORBIDDEN', 'You are not allowed to make this change.')
-      if (res.status === 404) throw new PositionError('NOT_FOUND', 'Position not found.')
+      throwOnStatus(res, { 403: forbidden, 404: notFound })
       return res.body
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['positions'] })
-      queryClient.invalidateQueries({ queryKey: ['events'] })
+      queryClient.invalidateQueries({ queryKey: queryKeys.positions.all })
+      queryClient.invalidateQueries({ queryKey: queryKeys.events.all })
     },
   })
 }
@@ -109,15 +111,17 @@ export function useDeletePosition() {
   return useMutation({
     mutationFn: async ({ id }: { id: string }) => {
       const res = await api.DeletePosition({ id })
-      if (res.status === 403) throw new PositionError('FORBIDDEN', 'You are not allowed to remove this position.')
-      if (res.status === 404) throw new PositionError('NOT_FOUND', 'Position not found.')
+      throwOnStatus(res, {
+        403: () => new PositionError('FORBIDDEN', 'You are not allowed to remove this position.'),
+        404: notFound,
+      })
     },
     // Deleting a position reassigns its members and Substitutes to Unassigned, so refresh both lists
     // too. A stale Substitute row would otherwise resend the deleted id on its next rename.
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['positions'] })
-      queryClient.invalidateQueries({ queryKey: ['members'] })
-      queryClient.invalidateQueries({ queryKey: ['substitutes'] })
+      queryClient.invalidateQueries({ queryKey: queryKeys.positions.all })
+      queryClient.invalidateQueries({ queryKey: queryKeys.members.all })
+      queryClient.invalidateQueries({ queryKey: queryKeys.substitutes.all })
     },
   })
 }

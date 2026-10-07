@@ -1,5 +1,7 @@
 import { queryOptions, useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from './wirespec-client'
+import { throwOnStatus } from './errors'
+import { queryKeys } from './query-keys'
 
 // Re-export the generated contract type so the app has a single source of truth.
 export type { Member } from './generated/model/Member'
@@ -17,11 +19,15 @@ export class MemberUpdateError extends Error {
   }
 }
 
+const lastAdmin = () => new MemberUpdateError('LAST_ADMIN', 'A team must keep at least one admin.')
+const nameTaken = () => new MemberUpdateError('NAME_TAKEN', 'That display name is already taken.')
+const notFound = () => new MemberUpdateError('NOT_FOUND', 'Member not found.')
+
 // Shared so the router guards (root onboarding gate, /get-started) can prime this exact query
 // (ensureQueryData) and useCurrentMember reads it back from cache — no duplicate fetch, no drifting
 // key. Same pattern as authMeQueryOptions.
 export const currentMemberQueryOptions = queryOptions({
-  queryKey: ['members', 'me'],
+  queryKey: queryKeys.members.me,
   queryFn: async () => {
     const res = await api.GetCurrentMember()
     return res.body
@@ -39,7 +45,7 @@ export function useCurrentMember(options?: { enabled?: boolean }) {
 // the list and ['members', 'me'].
 export function useMembers() {
   return useQuery({
-    queryKey: ['members'],
+    queryKey: queryKeys.members.all,
     queryFn: async () => {
       const res = await api.ListMembers()
       if (res.status === 403) throw new MemberUpdateError('FORBIDDEN', 'You are not allowed to view members.')
@@ -70,17 +76,19 @@ export function useUpdateMember() {
       // A 409 is a name or Shirt Number collision, or the last-admin guard (demote). The contract
       // types the body as undefined, but the handler still sends a { code } discriminator we can
       // read at runtime to tell them apart.
-      if (res.status === 409) {
-        const code = (res.body as { code?: string } | undefined)?.code
-        if (code === 'LAST_ADMIN') throw new MemberUpdateError('LAST_ADMIN', 'A team must keep at least one admin.')
-        if (code === 'NUMBER_TAKEN') throw new MemberUpdateError('NUMBER_TAKEN', 'That shirt number is already taken.')
-        throw new MemberUpdateError('NAME_TAKEN', 'That display name is already taken.')
-      }
-      if (res.status === 403) throw new MemberUpdateError('FORBIDDEN', 'You are not allowed to make this change.')
-      if (res.status === 404) throw new MemberUpdateError('NOT_FOUND', 'Member not found.')
+      throwOnStatus(res, {
+        409: (body: unknown) => {
+          const code = (body as { code?: string } | undefined)?.code
+          if (code === 'LAST_ADMIN') return lastAdmin()
+          if (code === 'NUMBER_TAKEN') return new MemberUpdateError('NUMBER_TAKEN', 'That shirt number is already taken.')
+          return nameTaken()
+        },
+        403: () => new MemberUpdateError('FORBIDDEN', 'You are not allowed to make this change.'),
+        404: notFound,
+      })
       return res.body
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['members'] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.members.all }),
   })
 }
 
@@ -93,7 +101,7 @@ export function useCompleteOnboarding() {
   return useMutation({
     mutationFn: async ({ displayName, role, positionId }: { displayName: string; role: string; positionId: string | null }) => {
       const res = await api.CompleteOnboarding({ body: { displayName, role, positionId: positionId ?? undefined } })
-      if (res.status === 409) throw new MemberUpdateError('NAME_TAKEN', 'That display name is already taken.')
+      throwOnStatus(res, { 409: nameTaken })
       return res.body
     },
     // Write the now-onboarded member straight into the cache before invalidating, so the root
@@ -102,7 +110,7 @@ export function useCompleteOnboarding() {
     // the stale onboarded=false and bounce back to /get-started.
     onSuccess: (updated) => {
       queryClient.setQueryData(currentMemberQueryOptions.queryKey, updated)
-      queryClient.invalidateQueries({ queryKey: ['members'] })
+      queryClient.invalidateQueries({ queryKey: queryKeys.members.all })
     },
   })
 }
@@ -112,10 +120,12 @@ export function useRemoveMember() {
   return useMutation({
     mutationFn: async ({ userId }: { userId: string }) => {
       const res = await api.RemoveMember({ userId })
-      if (res.status === 409) throw new MemberUpdateError('LAST_ADMIN', 'A team must keep at least one admin.')
-      if (res.status === 403) throw new MemberUpdateError('FORBIDDEN', 'You are not allowed to remove this member.')
-      if (res.status === 404) throw new MemberUpdateError('NOT_FOUND', 'Member not found.')
+      throwOnStatus(res, {
+        409: lastAdmin,
+        403: () => new MemberUpdateError('FORBIDDEN', 'You are not allowed to remove this member.'),
+        404: notFound,
+      })
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['members'] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.members.all }),
   })
 }

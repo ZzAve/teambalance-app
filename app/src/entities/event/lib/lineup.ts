@@ -228,14 +228,6 @@ export function substituteLine(rows: LineupRow[]): string | null {
   return `${going} ${going === 1 ? 'sub' : 'subs'}`
 }
 
-/** Short label for a member's answer, used on chips and in the answer sheet. */
-export const STATE_WORD: Record<LineupState, string> = {
-  ATTENDING: 'Going',
-  MAYBE: 'Maybe',
-  ABSENT: "Can't",
-  NOT_RESPONDED: 'Awaiting',
-}
-
 /** A Position as the Substitute picker is aimed at it: from an open spot, or a short group. */
 export interface PositionRef {
   id: string

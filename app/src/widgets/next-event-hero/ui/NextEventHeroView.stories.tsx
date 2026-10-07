@@ -126,12 +126,11 @@ export const Data: Story = {
     // Two days and eleven hours out, floored to the largest useful unit.
     await expect(canvas.getByText('2d')).toBeInTheDocument()
     await expect(canvas.getByText(/10 going · you haven't responded/)).toBeInTheDocument()
-    // Neither answer is pressed yet — "I'm in" is solid because it is the invitation.
-    await expect(canvas.getByRole('button', { name: /I'm in/ })).toHaveAttribute('aria-pressed', 'false')
-    await expect(canvas.getByRole('button', { name: /Can't make it/ })).toHaveAttribute(
-      'aria-pressed',
-      'false',
-    )
+    // All three answers, in the control words, none pressed yet — "Going" is solid because it is
+    // the invitation (ADR-0039).
+    for (const name of ['Going', 'Maybe', "Can't"]) {
+      await expect(canvas.getByRole('button', { name })).toHaveAttribute('aria-pressed', 'false')
+    }
   },
 }
 
@@ -141,10 +140,8 @@ export const Shells: Story = {
       items={{
         Going: <NextEventHeroView {...args} myState="ATTENDING" />,
         'Not going': <NextEventHeroView {...args} myState="ABSENT" />,
-        // "Maybe" can only be set from the detail page — the hero offers the two answers it offers.
-        // So it shows neither button as chosen and lets the status line carry what was actually said.
         Maybe: <NextEventHeroView {...args} myState="MAYBE" />,
-        // Both answers are held while an RSVP is in flight, so a double-tap can't race the mutation.
+        // Every answer is held while an RSVP is in flight, so a double-tap can't race the mutation.
         Saving: <NextEventHeroView {...args} isSaving />,
         // A same-day hero drops to hours, which is the one thing the card's date chit cannot say.
         'Starting today': (
@@ -215,30 +212,27 @@ export const Shells: Story = {
   play: async ({ canvas }) => {
     const region = (name: string) => within(canvas.getByRole('region', { name }))
 
+    // The answer given is the pressed one, and the status line says it in the pill's words.
+    const pressed = async (instance: string, name: string) => {
+      for (const other of ['Going', 'Maybe', "Can't"]) {
+        await expect(region(instance).getByRole('button', { name: other })).toHaveAttribute(
+          'aria-pressed',
+          other === name ? 'true' : 'false',
+        )
+      }
+    }
     await expect(region('Going').getByText(/10 going · you're in/)).toBeInTheDocument()
-    await expect(region('Going').getByRole('button', { name: /I'm in/ })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    )
+    await pressed('Going', 'Going')
 
     await expect(region('Not going').getByText(/10 going · you're out/)).toBeInTheDocument()
-    await expect(region('Not going').getByRole('button', { name: /Can't make it/ })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    )
+    await pressed('Not going', "Can't")
 
     await expect(region('Maybe').getByText(/10 going · you said maybe/)).toBeInTheDocument()
-    await expect(region('Maybe').getByRole('button', { name: /I'm in/ })).toHaveAttribute(
-      'aria-pressed',
-      'false',
-    )
-    await expect(region('Maybe').getByRole('button', { name: /Can't make it/ })).toHaveAttribute(
-      'aria-pressed',
-      'false',
-    )
+    await pressed('Maybe', 'Maybe')
 
-    await expect(region('Saving').getByRole('button', { name: /I'm in/ })).toBeDisabled()
-    await expect(region('Saving').getByRole('button', { name: /Can't make it/ })).toBeDisabled()
+    for (const name of ['Going', 'Maybe', "Can't"]) {
+      await expect(region('Saving').getByRole('button', { name })).toBeDisabled()
+    }
 
     await expect(region('Starting today').getByText('11h')).toBeInTheDocument()
 
@@ -309,7 +303,7 @@ export const Interactions: Story = {
     await expect(document.elementFromPoint(left + width / 2, bottom - 4)).toBe(cardLink)
 
     // ── The other half of the bargain: widening the target must not swallow the controls ───────
-    for (const name of [/I'm in/, /Can't make it/]) {
+    for (const name of ['Going', 'Maybe', "Can't"]) {
       const button = within(defaultRegion).getByRole('button', { name })
       await expect(topmostAtCentreOf(button)?.closest('button')).toBe(button)
     }
@@ -330,13 +324,15 @@ export const Interactions: Story = {
     await expect(defaultRegion.querySelectorAll('a a')).toHaveLength(0)
 
     // ── Held: a saving hero's tap must not fire, checked before any call reaches the shared spy ──
-    await userEvent.click(region('Saving').getByRole('button', { name: /I'm in/ }))
+    await userEvent.click(region('Saving').getByRole('button', { name: 'Going' }))
     await expect(args.onRespond).not.toHaveBeenCalled()
 
-    // ── Prop-contract spies: both buttons actually call onRespond with the right state ──────────
-    await userEvent.click(region('Default').getByRole('button', { name: /I'm in/ }))
+    // ── Prop-contract spies: each button actually calls onRespond with its state ────────────────
+    await userEvent.click(region('Default').getByRole('button', { name: 'Going' }))
     await expect(args.onRespond).toHaveBeenLastCalledWith('ATTENDING')
-    await userEvent.click(region('Default').getByRole('button', { name: /Can't make it/ }))
+    await userEvent.click(region('Default').getByRole('button', { name: 'Maybe' }))
+    await expect(args.onRespond).toHaveBeenLastCalledWith('MAYBE')
+    await userEvent.click(region('Default').getByRole('button', { name: "Can't" }))
     await expect(args.onRespond).toHaveBeenLastCalledWith('ABSENT')
   },
 }

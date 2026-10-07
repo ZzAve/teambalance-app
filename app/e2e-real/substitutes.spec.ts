@@ -27,13 +27,13 @@ test('a member calls in a new substitute, confirms them, and takes them off agai
   await page.getByText('E2E Training').first().click()
   const block = page.getByRole('region', { name: 'Substitutes' })
 
-  // 1. Someone not on the Team's list yet joins the event as Asked: they were asked, not confirmed.
+  // 1. Someone not on the Team's list yet joins the event as Maybe: they were asked, not confirmed.
   await block.getByRole('button', { name: 'Call in substitutes' }).click()
   const picker = page.getByRole('dialog', { name: 'Call in substitutes' })
   await picker.getByRole('button', { name: /New substitute/ }).click()
   await picker.getByLabel('Name', { exact: true }).fill(name)
-  await picker.getByRole('button', { name: 'Add as asked' }).click()
-  await expect(picker.getByRole('group', { name }).getByRole('button', { name: 'Asked' })).toHaveAttribute(
+  await picker.getByRole('button', { name: 'Add as Maybe' }).click()
+  await expect(picker.getByRole('group', { name }).getByRole('button', { name: 'Maybe' })).toHaveAttribute(
     'aria-pressed',
     'true',
   )

@@ -269,7 +269,7 @@ export const Interactions: Story = {
     const selfSheet = await body.findByRole('dialog')
     await expect(selfSheet).toHaveTextContent('Outside · currently going')
     await expect(selfSheet).not.toHaveTextContent('answering for them')
-    await userEvent.click(body.getByRole('button', { name: "Can't go" }))
+    await userEvent.click(body.getByRole('button', { name: "Can't" }))
     await expect(args.onRespond).toHaveBeenCalledWith('u-eva', 'ABSENT')
 
     // An open spot is a way to fill it: the "+" opens the picker for that Position (#359); the

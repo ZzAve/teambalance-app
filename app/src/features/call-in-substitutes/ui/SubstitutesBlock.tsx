@@ -2,16 +2,18 @@ import { UserPlus } from 'lucide-react'
 import type { AttendanceEntry, SubstituteEntry } from '@shared/api/events'
 import { cn } from '@shared/lib/utils'
 import { setByName } from '@entities/event/lib/attribution'
+import { ATTENDANCE_WORDS } from '@entities/event/lib/attendance-words'
 import { SubstituteAvatar } from '@entities/event/ui/SubstituteAvatar'
 
 export type SubstituteState = SubstituteEntry['state']
 
-// A Substitute is never Not Responded (ADR-0033), so these three are every state they can hold.
-// "Asked" is Maybe: someone sent a message and is waiting to hear back.
+// A Substitute is never Not Responded (ADR-0033), so these three are every state they can hold. They
+// are said in the member words: a Substitute's Maybe means asked and waiting to hear back, which the
+// sheet explains in a sentence rather than a word of its own (#335).
 export const SUBSTITUTE_OPTIONS: { value: SubstituteState; label: string; active: string }[] = [
-  { value: 'ATTENDING', label: 'Going', active: 'border-green bg-green text-white' },
-  { value: 'MAYBE', label: 'Asked', active: 'border-gold bg-gold text-white' },
-  { value: 'ABSENT', label: "Can't", active: 'border-red bg-red text-white' },
+  { value: 'ATTENDING', label: ATTENDANCE_WORDS.ATTENDING.word, active: 'border-green bg-green text-white' },
+  { value: 'MAYBE', label: ATTENDANCE_WORDS.MAYBE.word, active: 'border-gold bg-gold text-white' },
+  { value: 'ABSENT', label: ATTENDANCE_WORDS.ABSENT.word, active: 'border-red bg-red text-white' },
 ]
 
 // The pill stays small; `tap-band` stretches the tap target to 44px tall (F7). Shared by the block
@@ -20,9 +22,9 @@ export const SUBSTITUTE_PILL =
   'tap-band rounded-full border-[1.5px] px-2 py-1 text-caption font-semibold transition-colors disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
 
 const TALLY: { state: SubstituteState; word: string; tone: string }[] = [
-  { state: 'ATTENDING', word: 'going', tone: 'text-green-dark' },
-  { state: 'MAYBE', word: 'asked', tone: 'text-gold-ink' },
-  { state: 'ABSENT', word: "can't", tone: 'text-red' },
+  { state: 'ATTENDING', word: ATTENDANCE_WORDS.ATTENDING.word.toLowerCase(), tone: 'text-green-dark' },
+  { state: 'MAYBE', word: ATTENDANCE_WORDS.MAYBE.word.toLowerCase(), tone: 'text-gold-ink' },
+  { state: 'ABSENT', word: ATTENDANCE_WORDS.ABSENT.word.toLowerCase(), tone: 'text-red' },
 ]
 
 interface SubstitutesBlockProps {

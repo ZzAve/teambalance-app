@@ -41,9 +41,9 @@ test("a member changes a teammate's attendance from the detail page, and it pers
   await expect(sheet.getByText('E2E Teammate')).toBeVisible()
   await expect(sheet.getByText(/you are answering for them/)).toBeVisible()
 
-  // 2. Set *their* answer to Can't go — inside the sheet, so it is never confused with the viewer's
+  // 2. Set *their* answer to Can't — inside the sheet, so it is never confused with the viewer's
   //    own "Your response" toggle on the page behind it.
-  await sheet.getByRole('button', { name: "Can't go", exact: true }).click()
+  await sheet.getByRole('button', { name: "Can't", exact: true }).click()
 
   // 3. The write persists: after a full reload the teammate is still on screen (now tinted absent),
   //    attributed to the admin who changed it (⑪ — you learn who set it right where you'd change it back).

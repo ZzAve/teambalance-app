@@ -1,8 +1,9 @@
 import { Link } from '@tanstack/react-router'
-import { useId, useState, type ReactNode } from 'react'
-import { Check, ChevronDown, Clock, MapPin, X } from 'lucide-react'
+import { useId, useState, type ComponentType, type ReactNode } from 'react'
+import { Check, ChevronDown, Clock, HelpCircle, MapPin, X } from 'lucide-react'
 import type { Event } from '@shared/api/events'
 import type { AttendanceState } from '@features/attendance-toggle/ui/AttendanceToggle'
+import { ATTENDANCE_WORDS } from '@entities/event/lib/attendance-words'
 import { ReadinessBadge } from '@entities/event/ui/ReadinessBadge'
 import { panelNoun } from '@entities/event/lib/roster-view'
 import { SectionLabel } from '@shared/ui/SectionLabel'
@@ -14,7 +15,7 @@ interface NextEventHeroViewProps {
   event: Event
   /** The viewer's own response — drives the CTA styling and the status line. */
   myState: AttendanceState
-  /** An RSVP is in flight; both buttons are held until it settles. */
+  /** An RSVP is in flight; every button is held until it settles. */
   isSaving?: boolean
   onRespond: (state: AttendanceState) => void
   /** Injected so the countdown is deterministic in stories; defaults to the real clock. */
@@ -30,13 +31,12 @@ interface NextEventHeroViewProps {
   defaultRosterOpen?: boolean
 }
 
-/** The status line's second clause — what the viewer has (or hasn't) said. */
-const MY_STATE_TEXT: Record<AttendanceState, string> = {
-  ATTENDING: "you're in",
-  ABSENT: "you're out",
-  MAYBE: 'you said maybe',
-  NOT_RESPONDED: "you haven't responded",
-}
+/** The three answers the hero offers, in the order every other answer control uses (ADR-0039). */
+const ANSWERS: { state: AttendanceState; Icon: ComponentType<{ size?: number }>; ink: string }[] = [
+  { state: 'ATTENDING', Icon: Check, ink: 'var(--color-green-dark)' },
+  { state: 'MAYBE', Icon: HelpCircle, ink: 'var(--color-gold-dark)' },
+  { state: 'ABSENT', Icon: X, ink: 'var(--color-red)' },
+]
 
 /**
  * The Next Up hero: the most imminent event, big, with its countdown and an inline RSVP so the
@@ -69,8 +69,7 @@ export function NextEventHeroView({
   const noun = panelNoun(event.roster)
   const date = new Date(event.startTime)
   const countdown = heroCountdown(event.startTime, now)
-  const going = myState === 'ATTENDING'
-  const out = myState === 'ABSENT'
+  const answered = myState !== 'NOT_RESPONDED'
 
   return (
     <section
@@ -159,43 +158,37 @@ export function NextEventHeroView({
           a control, so tapping it opens the event like the rest of the passive rows. */}
       <div className="mt-2.5 flex items-center justify-between gap-2">
         <p className="text-small text-white/90">
-          {event.attendanceSummary.attending} going · {MY_STATE_TEXT[myState]}
+          {event.attendanceSummary.attending} going · {ATTENDANCE_WORDS[myState].status}
         </p>
         <ReadinessBadge roster={event.roster} variant="hero" pending={isSaving} />
       </div>
 
-      {/* The answer the viewer has given is the solid button; the other one recedes. With no answer
-          yet, "I'm in" is solid because it is the invitation, not because it has been chosen.
-          min-h-11 holds the 44px touch target (F7); px-3 keeps the label off the edge. */}
+      {/* The answer the viewer has given is the solid button; the others recede. With no answer yet,
+          "Going" is solid because it is the invitation, not because it has been chosen, and the other
+          two stay a notch brighter than once an answer exists, so an open question reads as open.
+          min-h-11 holds the 44px touch target (F7); px-2 keeps three labels off the edge at 360px. */}
       <div className="relative z-10 mt-3.5 flex gap-2">
-        <button
-          aria-pressed={going}
-          disabled={isSaving}
-          onClick={() => onRespond('ATTENDING')}
-          style={out ? undefined : { color: 'var(--color-green-dark)' }}
-          className={[
-            'flex min-h-11 flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-2.5 text-small font-bold transition-all active:scale-95',
-            out ? 'bg-white/20 text-white' : 'bg-white',
-            isSaving ? 'cursor-not-allowed opacity-60' : 'cursor-pointer',
-          ].join(' ')}
-        >
-          <Check size={16} />
-          I&apos;m in
-        </button>
-        <button
-          aria-pressed={out}
-          disabled={isSaving}
-          onClick={() => onRespond('ABSENT')}
-          style={out ? { color: 'var(--color-red)' } : undefined}
-          className={[
-            'flex min-h-11 flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-2.5 text-small font-bold transition-all active:scale-95',
-            out ? 'bg-white' : going ? 'bg-white/12 text-white' : 'bg-white/20 text-white',
-            isSaving ? 'cursor-not-allowed opacity-60' : 'cursor-pointer',
-          ].join(' ')}
-        >
-          <X size={16} />
-          Can&apos;t make it
-        </button>
+        {ANSWERS.map(({ state, Icon, ink }) => {
+          const chosen = myState === state
+          const solid = chosen || (!answered && state === 'ATTENDING')
+          return (
+            <button
+              key={state}
+              aria-pressed={chosen}
+              disabled={isSaving}
+              onClick={() => onRespond(state)}
+              style={solid ? { color: ink } : undefined}
+              className={[
+                'flex min-h-11 flex-1 items-center justify-center gap-1.5 rounded-md px-2 py-2.5 text-small font-bold transition-all active:scale-95',
+                solid ? 'bg-white' : answered ? 'bg-white/12 text-white' : 'bg-white/20 text-white',
+                isSaving ? 'cursor-not-allowed opacity-60' : 'cursor-pointer',
+              ].join(' ')}
+            >
+              <Icon size={16} />
+              {ATTENDANCE_WORDS[state].word}
+            </button>
+          )
+        })}
       </div>
 
       {/* The lineup's disclosure, a quieter row under the answers: it is a way in, not a third

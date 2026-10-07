@@ -1,0 +1,31 @@
+{
+  "name": "confluence-axi",
+  "version": "0.1.0",
+  "description": "AXI-compliant Confluence CLI on the Confluence REST API — token-efficient TOON output for agents",
+  "type": "module",
+  "private": true,
+  "bin": {
+    "confluence-axi": "./dist/bin/confluence-axi.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx bin/confluence-axi.ts",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@toon-format/toon": "^4.1.1",
+    "axi-sdk-js": "^0.1.13",
+    "turndown": "^7.2.4"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.4",
+    "@types/turndown": "^5.0.6",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.3"
+  }
+}

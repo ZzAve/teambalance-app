@@ -121,6 +121,17 @@ class MemberControllerIT : TeamBalanceIT() {
             .andReturn()
             .let { mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(it)) }
 
+    private fun completeOnboardingWithNumberAs(userId: String, displayName: String, shirtNumber: Long) =
+        mockMvc.perform(
+            MockMvcRequestBuilders.put("/api/members/me/onboarding")
+                .header("X-User-Id", userId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""{"displayName":"$displayName","role":"USER","shirtNumber":$shirtNumber}"""),
+        )
+            .andExpect(MockMvcResultMatchers.request().asyncStarted())
+            .andReturn()
+            .let { mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(it)) }
+
     private fun positionId(label: String): String =
         jdbcTemplate.queryForObject(
             // The tenant's own positions since ADR-0026 — the platform table may still hold a row
@@ -212,6 +223,24 @@ class MemberControllerIT : TeamBalanceIT() {
             completeOnboardingAs(LISA_USER_ID, "Lisa B", positionId("Libero"))
                 .andExpect(MockMvcResultMatchers.status().isOk)
                 .andExpect(MockMvcResultMatchers.jsonPath("$.shirtNumber").value(4))
+        }
+
+        test("PUT /api/members/me/onboarding with a shirt number sets it") {
+            seedTeam(janRole = "ADMIN")
+
+            completeOnboardingWithNumberAs(LISA_USER_ID, "Lisa B", 12)
+                .andExpect(MockMvcResultMatchers.status().isOk)
+                .andExpect(MockMvcResultMatchers.jsonPath("$.shirtNumber").value(12))
+        }
+
+        test("PUT /api/members/me/onboarding with a number another member wears returns 409 NUMBER_TAKEN") {
+            seedTeam(janRole = "ADMIN")
+            updateShirtNumberAs(JAN_USER_ID, LISA_USER_ID, "Lisa Bakker", 12)
+                .andExpect(MockMvcResultMatchers.status().isOk)
+
+            completeOnboardingWithNumberAs(JAN_USER_ID, "Jan", 12)
+                .andExpect(MockMvcResultMatchers.status().isConflict)
+                .andExpect(MockMvcResultMatchers.jsonPath("$.code").value("NUMBER_TAKEN"))
         }
 
         test("PUT /api/members/{otherUserId} by a non-admin is rejected with 403") {

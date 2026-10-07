@@ -1,5 +1,7 @@
 import { queryOptions, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from './wirespec-client'
+import { throwOnStatus } from './errors'
+import { queryKeys } from './query-keys'
 
 // Re-export the generated contract types so the app has a single source of truth.
 export type { ActAs } from './generated/model/ActAs'
@@ -21,11 +23,11 @@ export class ActAsError extends Error {
 
 /** Every team on the platform (ADR-0024 §6). A 403 is the no-access shell; retry cannot help. */
 const platformTeamsQueryOptions = queryOptions({
-  queryKey: ['platform', 'teams'],
+  queryKey: queryKeys.platformTeams,
   retry: false,
   queryFn: async () => {
     const res = await api.ListPlatformTeams()
-    if (res.status === 403) throw new ActAsError('FORBIDDEN', 'You do not have access to the platform console.')
+    throwOnStatus(res, { 403: () => new ActAsError('FORBIDDEN', 'You do not have access to the platform console.') })
     return res.body?.teams ?? []
   },
 })
@@ -43,8 +45,10 @@ export function useEnterActAs() {
   return useMutation({
     mutationFn: async (teamId: string) => {
       const res = await api.EnterActAs({ body: { teamId } })
-      if (res.status === 403) throw new ActAsError('FORBIDDEN', 'You do not have access to the platform console.')
-      if (res.status === 404) throw new ActAsError('NOT_FOUND', 'That team no longer exists.')
+      throwOnStatus(res, {
+        403: () => new ActAsError('FORBIDDEN', 'You do not have access to the platform console.'),
+        404: () => new ActAsError('NOT_FOUND', 'That team no longer exists.'),
+      })
       if (res.status !== 200) throw new ActAsError('GENERIC', 'Could not enter that team. Please try again.')
       return res.body
     },
@@ -68,11 +72,11 @@ export function useExitActAs() {
 /** The Act-as Record for the Active Team, newest first — readable by every Member (ADR-0024 §4). */
 export function useActAsRecords() {
   return useQuery({
-    queryKey: ['act-as-records'],
+    queryKey: queryKeys.actAsRecords,
     retry: false,
     queryFn: async () => {
       const res = await api.ListActAsRecords()
-      if (res.status === 403) throw new ActAsError('FORBIDDEN', 'You do not have access to this team.')
+      throwOnStatus(res, { 403: () => new ActAsError('FORBIDDEN', 'You do not have access to this team.') })
       return res.body?.records ?? []
     },
   })

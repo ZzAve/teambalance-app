@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from './wirespec-client'
+import { queryKeys } from './query-keys'
 import type { CreateRecurringEventsRequest } from './generated/model/CreateRecurringEventsRequest'
 
 // Re-export the generated contract types so the app has a single source of truth.
@@ -41,6 +42,6 @@ export function useCreateRecurringEvents() {
       throw new RecurringCreateError('unknown')
     },
     // A batch creates many events across upcoming + past buckets — refresh every events reader.
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['events'] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.events.all }),
   })
 }

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
+import { queryKeys } from '@shared/api/query-keys'
 import { useCreateMemberlessTeam, type CreateTeamError } from '@shared/api/teams'
 import { CreateMemberlessTeamView } from './CreateMemberlessTeamView'
 
@@ -24,7 +25,7 @@ export function CreateMemberlessTeam() {
           {
             onSuccess: (team) => {
               setCreatedName(team.name)
-              queryClient.invalidateQueries({ queryKey: ['platform', 'teams'] })
+              queryClient.invalidateQueries({ queryKey: queryKeys.platformTeams })
             },
           },
         )

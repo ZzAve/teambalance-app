@@ -1,6 +1,7 @@
 # preflight — project notes
 test: npm --prefix app test (=vitest run) + ./gradlew :api:test   # api tests need colima env (see docs/testcontainers-colima)
-# macOS: no JAVA_HOME override needed (gradle toolchain=25 in gradle.properties, default java is 25); the JDK-21/linux path in progress.txt is sandbox-only
+# non-login shells (agents, git hooks) have no sdkman/nvm on PATH: export JAVA_HOME=~/.sdkman/candidates/java/current and PATH=~/.nvm/versions/node/v24.19.0/bin:$PATH (the .nvmrc pin) — Node 26 (homebrew default) fails ~27 unit tests with `undefined.getItem` (its own `localStorage` global shadows jsdom's)
+# pre-commit hook runs `make yolo test` (gradle build + api tests): the committing shell needs the JAVA_HOME + DOCKER_HOST/TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE exports above, or it fails before any test runs
 # in a worktree, results live in <worktree>/api/build/test-results — read those, not the main repo's build dir
 setup: npm --prefix app install && ./gradlew :api:wirespec-typescript  # generated TS client must exist before typecheck/build
 
@@ -42,7 +43,13 @@ setup: npm --prefix app install && ./gradlew :api:wirespec-typescript  # generat
   never commit that diff, and don't fight the stop-hook over it while a run is in flight.
 
 ## flaky tests
+- `InvitationControllerTest` (2) + `MagicLinkInviteCarryIT` (1) fail on an unchanged `api/` at origin/main c0743bba (2026-10-07) — pre-existing, not branch-related; check `git diff origin/main -- api` before chasing.
+- Real e2e against one long-lived backend: `create-team.spec.ts` passes once per boot — the seeded code `E2E-CREATE-TEAM` is single-use and only reset by the e2e seed on start. Reset: `UPDATE public.team_creation_codes SET consumed_at=NULL, consumed_by_user_id=NULL WHERE code='E2E-CREATE-TEAM'`.
 - `app/src/app/providers/invite-flow.test.tsx` fails intermittently under the FULL vitest run (waitFor for '/events'/'Events' heading times out) but passes in isolation (`vitest run invite-flow`) — full-suite concurrency flake, not a regression. Re-run isolated to confirm before chasing.
+
+## real e2e / local stack
+- `e2e-real/helpers.ts` posts to `http://localhost:5173` directly (not baseURL): the dev server MUST be on 5173, and `BACKEND_URL` is the only backend override. vite.config.ts hardcodes the proxy target 8080 — for another backend port edit it to `process.env.VITE_API_TARGET ?? 'http://localhost:8080'` for the session and revert before committing.
+- `npm run generate-pwa-screenshots` takes `APP_URL` + `BACKEND_URL`; the dev profile's demo team has an untracked Training roster, so the hero reads "Show who's coming" there.
 
 ## html
 - EventCard renders location as `<a>` nested inside the outer `<Link>` `<a>` — invalid HTML; console error in Playwright run; pre-existing, tracked separately

@@ -24,14 +24,12 @@ class AttendanceCompositionRoot {
         attendanceRepository: AttendanceRepository,
         eventRepository: EventRepository,
         teamMemberRepository: TeamMemberRepository,
-        substituteRepository: SubstituteRepository,
         authorizationService: AuthorizationService,
         clock: Clock,
     ) = AttendanceService(
         attendanceRepository = attendanceRepository,
         eventRepository = eventRepository,
         teamMemberRepository = teamMemberRepository,
-        substituteRepository = substituteRepository,
         authorizationService = authorizationService,
         clock = clock,
     )

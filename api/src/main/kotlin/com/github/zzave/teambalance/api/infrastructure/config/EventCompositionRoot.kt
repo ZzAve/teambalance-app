@@ -1,12 +1,16 @@
 package com.github.zzave.teambalance.api.infrastructure.config
 
 import com.github.zzave.teambalance.api.application.AuthorizationService
+import com.github.zzave.teambalance.api.application.EventQueries
 import com.github.zzave.teambalance.api.application.EventService
 import com.github.zzave.teambalance.api.application.EventTypeService
+import com.github.zzave.teambalance.api.domain.port.AttendanceRepository
 import com.github.zzave.teambalance.api.domain.port.EventRepository
 import com.github.zzave.teambalance.api.domain.port.EventTypeRepository
 import com.github.zzave.teambalance.api.domain.port.PositionRepository
 import com.github.zzave.teambalance.api.domain.port.SeasonRepository
+import com.github.zzave.teambalance.api.domain.port.SubstituteRepository
+import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import java.time.Clock
@@ -42,6 +46,19 @@ class EventCompositionRoot {
         positionRepository = positionRepository,
         authorizationService = authorizationService,
         clock = clock,
+    )
+
+    @Bean
+    fun eventQueries(
+        attendanceRepository: AttendanceRepository,
+        substituteRepository: SubstituteRepository,
+        teamMemberRepository: TeamMemberRepository,
+        positionRepository: PositionRepository,
+    ) = EventQueries(
+        attendanceRepository = attendanceRepository,
+        substituteRepository = substituteRepository,
+        teamMemberRepository = teamMemberRepository,
+        positionRepository = positionRepository,
     )
 
     // Event types are the events area's reference data — EventService resolves one on every write.

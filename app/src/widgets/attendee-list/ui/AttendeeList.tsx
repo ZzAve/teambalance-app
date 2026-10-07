@@ -15,6 +15,7 @@ import {
 } from '@entities/event/lib/lineup'
 import { attributionName, setByName } from '@entities/event/lib/attribution'
 import { SubstituteAvatar } from '@entities/event/ui/SubstituteAvatar'
+import { VERDICT_TONE } from '@entities/event/ui/verdict-tone'
 import { SectionLabel } from '@shared/ui/SectionLabel'
 
 interface AttendeeListProps {
@@ -56,12 +57,6 @@ const ANSWER_PILL: Record<AttendanceState, string> = {
   ABSENT: 'bg-red/10 text-red',
   NOT_RESPONDED: 'bg-muted text-muted-foreground',
 }
-
-const TONE_TEXT = {
-  covered: 'text-green-dark',
-  short: 'text-gold-dark',
-  critical: 'text-red',
-} as const
 
 /**
  * The event-detail attendance list: everyone under their position, Unassigned last, tinted by their
@@ -187,7 +182,7 @@ function PositionGroup({
         <SectionLabel as="h3">{row.label}</SectionLabel>
         <span className="flex items-baseline gap-1.5">
           {/* The verdict leads and the fraction is demoted — the same order the card uses. */}
-          {verdict && <span className={`text-caption font-semibold ${TONE_TEXT[row.tone ?? 'short']}`}>{verdict}</span>}
+          {verdict && <span className={`text-caption font-semibold ${VERDICT_TONE[row.tone ?? 'short']}`}>{verdict}</span>}
           {row.required != null && (
             <span className="text-caption font-bold tabular-nums text-foreground/70">
               {`${row.attending}/${row.required}`}

@@ -50,13 +50,14 @@ type RosterPosition {
     kind: PositionKind
 }
 
-// The event's roster, computed server-side so the status arithmetic has ONE tested home and the client only maps numbers to chip text, colour and pips. Rows are the positions with a target OR at least one attendee, in the position vocabulary's order; an untargeted empty position is omitted rather than rendered as a zero. `openSlots` is how many more people the DRIVING target needs — the sum of unmet position slots when positions are targeted, else the headcount shortfall. `unassignedAttending` drives the "N going haven't set a position" nudge; those attendees count toward the total but can fill no targeted slot. The three attending counts partition the attendees so the client subtracts nothing: `totalAttending` is how many people are coming, `playingAttending` is the number `totalTarget` is measured against, and `staffAttending` is the rest (#281) — with tracking off there is no target for staff to be excluded from, so the split is not drawn and every attendee is reported as playing.
+// The event's roster, computed server-side so the status arithmetic has ONE tested home and the client only maps numbers to chip text, colour and pips. Rows are the positions with a target OR at least one attendee, in the position vocabulary's order; an untargeted empty position is omitted rather than rendered as a zero. `openSlots` is how many more people the DRIVING target needs — the sum of unmet position slots when positions are targeted, else the headcount shortfall. `unassignedAttending` drives the "N going haven't set a position" nudge; those attendees count toward the total but can fill no targeted slot. The three attending counts partition the attendees so the client subtracts nothing: `totalAttending` is how many people are coming, `playingAttending` is the number `totalTarget` is measured against, and `staffAttending` is the rest (#281) — with tracking off there is no target for staff to be excluded from, so the split is not drawn and every attendee is reported as playing. `substituteAttending` is how many of `totalAttending` are Substitutes (ADR-0033): they fill spots like anyone attending, and the Roster bar names them as "+ N substitutes".
 type EventRoster {
     trackRoster: Boolean,
     totalTarget: Integer?,
     totalAttending: Integer,
     playingAttending: Integer,
     staffAttending: Integer,
+    substituteAttending: Integer,
     positions: RosterPosition[],
     unassignedAttending: Integer,
     openSlots: Integer,
@@ -84,6 +85,7 @@ type Event {
     recurringGroup: String?,
     attendanceSummary: AttendanceSummary,
     attendances: AttendanceEntry[],
+    substitutes: SubstituteEntry[],
     myState: AttendanceState,
     rosterOverride: RosterRequirement?,
     roster: EventRoster
@@ -101,6 +103,7 @@ type EventDetail {
     recurringGroup: String?,
     attendanceSummary: AttendanceSummary,
     attendances: AttendanceEntry[],
+    substitutes: SubstituteEntry[],
     myState: AttendanceState,
     rosterOverride: RosterRequirement?,
     roster: EventRoster
@@ -115,6 +118,16 @@ type AttendanceEntry {
     state: AttendanceState,
     changedBy: String?,
     updatedAt: DateTimestampWithTimezone?
+}
+
+// A Substitute on this Event (ADR-0033). Only those a Member has added appear, so there is always a row behind the entry: `state` is never NOT_RESPONDED and the attribution is always present. They are not in `attendanceSummary`, which counts Members only.
+type SubstituteEntry {
+    substituteId: String,
+    name: String,
+    position: MemberPosition?,
+    state: AttendanceState,
+    changedBy: String,
+    updatedAt: DateTimestampWithTimezone
 }
 
 type EventList {

@@ -39,6 +39,25 @@ any-team, self-service (see [ADR-0001](docs/adr/0001-product-ambition-hobby-tool
   amending [ADR-0009](docs/adr/0009-attendance-model-roles-in-audience-deferred.md)).
   _Avoid_: role, team_role.
 - **Unassigned** — The bucket in the attendance summary for Members with no **Position**.
+- **Shirt Number** — The number a Member or **Substitute** plays under in a Team: a whole number of
+  up to three digits, where 7 and 07 are the same number. Optional and at most one. No two current
+  Members of a Team share one, nor do two Substitutes; a Substitute may share a Member's.
+  _Avoid_: jersey number, rugnummer, player number.
+- **Personal Photo** — A person's own picture, independent of any Team. Never shown in a Team
+  directly; it is the source a **Team Photo** can be copied from.
+  _Avoid_: avatar, profile picture.
+- **Team Photo** — The picture a Member is shown with inside one Team. Optional; either a copy of
+  their **Personal Photo** taken at a moment in time, or a separate picture for that Team. A Member
+  without one is shown by their initials, never by their Personal Photo. Leaving the Team discards it.
+  _Avoid_: avatar, profile picture.
+- **Substitute** — A person outside the Team whom the Team keeps on a reusable list and can call in
+  for a specific Event. Not a **Member**: not on the **Roster**, no **Role**, no account, and never
+  expected to respond. Appears on an Event only once someone adds them, and from then on carries an
+  **Attendance State** like anyone else, so "asked" (Maybe) is distinguishable from "confirmed" (Attending).
+  Has at most one **Position** and at most one **Shirt Number**. Any Member may add one to an Event; the list itself is kept by Admins.
+  Taking a Substitute off the list removes them from every Event, past ones included, the same as a
+  departed Member.
+  _Avoid_: guest, reserve, invaller, substitute member.
 - **Admin** — A Member whose **Role** is Admin: CRUD events, manage members, manage
   positions, promote/demote other members, configure integrations. Contrast with a plain
   **User**.
@@ -90,10 +109,12 @@ any-team, self-service (see [ADR-0001](docs/adr/0001-product-ambition-hobby-tool
   Member who joins after the Event appears as Not Responded and a departed Member drops out,
   even if they once responded (per [ADR-0009](docs/adr/0009-attendance-model-roles-in-audience-deferred.md)).
   The summary counts, the roster, and the attending-**Position** breakdown are all views of
-  this one picture. _Avoid_: attendance list, attendance snapshot.
+  this one picture. **Substitutes** added to the Event are part of it too, but never count toward
+  the expected total and are never Not Responded. _Avoid_: attendance list, attendance snapshot.
 - **Event Roster** — Whether an Event has *enough* of the right people, as opposed to who answered
   what (**Event Attendance**). Computed server-side into one **Roster State** so the arithmetic has a
   single tested home. Distinct from a Team's **Roster** — this one is about a single Event's fill.
+  An attending **Substitute** fills a spot exactly like an attending Member.
   _Avoid_: lineup (that is one Roster State), readiness, roster status.
 - **Roster State** — The Event Roster's verdict, one of seven: `CRITICAL` (a targeted **Position** has
   nobody), `SPOTS_OPEN` (a targeted Position is short but not empty), `LINEUP_SET` (every targeted
@@ -136,7 +157,7 @@ any-team, self-service (see [ADR-0001](docs/adr/0001-product-ambition-hobby-tool
   safe to re-tap as new events appear), **future-only** (past events are skipped), and scoped
   **per Event Type**: one button per type that currently has blanks, each naming its own scope
   ("Attend 12 trainings", "Attend 3 matches"), so no filtering is needed to make a legible tap
-  ([ADR-0023](docs/adr/0021-bulk-attend-one-button-per-event-type.md) amends the original
+  ([ADR-0021](docs/adr/0021-bulk-attend-one-button-per-event-type.md) amends the original
   "currently shown" scoping; the **Event Type** filter still narrows what is on screen, and so
   what the buttons cover).
   Self-in-practice (no UI to Bulk Attend for others, though the endpoint stays trust-based per
@@ -162,10 +183,10 @@ any-team, self-service (see [ADR-0001](docs/adr/0001-product-ambition-hobby-tool
 - **Magic Link** — A one-time, passwordless login link sent to a member's email, and **the sole
   authentication method**: it proves control of an email, which is the only proof v1 accepts —
   deliberately no passwords and no third-party OAuth ([ADR-0008](docs/adr/0008-auth-magic-link-and-shareable-invite.md);
-  Google Sign-In was dropped, [ADR-0027](docs/adr/0027-drop-google-signin-magic-link-only.md)).
+  Google Sign-In was dropped, [ADR-0034](docs/adr/0034-drop-google-signin-magic-link-only.md)).
   Sessions are server-side and stored in Postgres via Spring Session JDBC
   (the `SESSION` cookie), so they survive a container restart / cold start / redeploy
-  ([ADR-0014](docs/adr/0014-jdbc-backed-shared-sessions-survive-restart.md), supersedes ADR-0010).
+  ([ADR-0022](docs/adr/0022-jdbc-backed-shared-sessions-survive-restart.md), supersedes ADR-0010).
   _Avoid_: OAuth login, social login, password.
 - **Invite Link** — A single shareable link an admin generates to onboard members into
   an existing Team. Clicking it → enter email → Magic Link → joined. One link, many

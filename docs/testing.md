@@ -42,7 +42,8 @@ handler" class — which a `getByText` assertion cannot. **Hold the network line
 component called its prop; it does *not* prove the request reached the server. Real API round-trips
 stay in the e2e flows — do not reach for MSW in a story to assert HTTP.
 
-`features/manage-positions/ui/ManagePositionsView.stories.tsx` is the reference exemplar.
+`features/manage-positions/ui/ManagePositionsView.stories.tsx` is the reference exemplar of the
+three-story shape (`Data` / `Shells` / `Interactions`, ADR-0032).
 
 ### Container/View split — state shells live in the View
 
@@ -65,6 +66,11 @@ Tailwind/Radix/shadcn bump that shifts spacing, a token, or a layout is caught e
   **"UI Tests"** commit status stays unresolved until a human accepts/rejects in the Chromatic UI.
   That status, marked **required** in branch protection, is what gates Renovate automerge.
 - **TurboSnap** (`--only-changed`) re-shoots only stories whose dependencies changed.
+- **What gets a picture** (ADR-0032): the page composites (`pages/*View` rendered under
+  `.storybook/app-shell-decorator.tsx`) and one gallery per primitive own the pixels; a feature View
+  keeps a snapshot only for states no composite shows. Every story is captured at phone width (the
+  global `xs` mode in `.storybook/preview.ts`); page composites add dark and `xl`. The toolbar's
+  viewport switcher uses the same widths, so pick the breakpoint to inspect there.
 - **Setup lives outside this repo:** the Chromatic project, the `CHROMATIC_PROJECT_TOKEN` secret,
   and the required-check branch-protection rule are one-time manual steps. Until "UI Tests" is a
   required check, a visual delta will not actually block a merge.
@@ -98,7 +104,7 @@ make test-api                   # all backend tests (Kotlin units + Testcontaine
 make test-app                   # Vitest unit project + Storybook stories (headless)
 
 # Real full-stack e2e
-make infra                      # ensure Postgres + Redis are up
+make infra                      # ensure Postgres is up
 make e2e                        # boots backend, runs Playwright, kills backend
 
 # Fast inner loop (no e2e)
@@ -108,7 +114,7 @@ make test                       # test-api + test-app
 ## Real e2e internals
 
 **Entry point:** `app/e2e-real/` + `playwright.real.config.ts`. `make e2e` runs `scripts/e2e.sh`, which:
-1. Reuses whatever is listening on :5432/:6379 (CI service containers) or `docker compose` ups them.
+1. Reuses whatever is listening on :5432 (CI service containers) or `docker compose` ups them.
 2. Boots `bootRun --spring.profiles.active=e2e` and health-gates on `/internal/actuator/health`.
 3. Runs Playwright, then kills the backend by port (the bootRun JVM is a daemon child, not the gradlew pid).
 
@@ -126,11 +132,15 @@ The magic-link token recorder is last-write-wins per email (`ConcurrentHashMap<e
 
 ### CI timeout on auth render-gate tests
 
-The auth render-gate jsdom tests (`verify-flow`, `auth-gate`) flake in CI at RTL's default 1000ms `findBy`/`waitFor` timeout — the "lands on events" chain (10ms verify delay → cache write → redirect → events route mount) can exceed 1000ms on a loaded runner. Pass explicit `{ timeout: 5000 }` to router/render assertions in these tests. Do not rely on the 1000ms default for any `msw/node` router-render assertion.
+Router render tests (`verify-flow`, `auth-gate`) rely on `autoCodeSplitting` being off under Vitest (the `!process.env.VITEST` switch in `app/vite.config.ts`). With splitting on, each route component is a dynamic import that Vite transforms cold in the middle of the test; the events-page chunk alone took ~700ms and pushed `verify-flow` past the timeout on loaded runners. A route-render assertion is bounded by vitest's `testTimeout` (5000ms), so keep splitting off there and pass `{ timeout: 5000 }` to `msw/node` router-render assertions rather than relying on the 1000ms default.
+
+### Git hooks
+
+`make hooks` sets `core.hooksPath` to `.githooks`: `make lint` runs on commit, `make test` runs on push.
 
 ### Colima env for Testcontainers
 
-`make test-api` runs Testcontainers (real Postgres). On this machine, Colima manages Docker. The pre-commit hook runs `make test-api` unconditionally, so the Colima env must be active:
+`make test-api` runs Testcontainers (real Postgres). On this machine, Colima manages Docker. The pre-push hook runs `make test` (including `make test-api`), so the Colima env must be active:
 
 ```
 DOCKER_HOST=unix:///Users/<you>/.colima/default/docker.sock
@@ -138,11 +148,11 @@ TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE=/var/run/docker.sock
 TESTCONTAINERS_RYUK_DISABLED=true
 ```
 
-`make e2e` also needs Docker up (`docker info`) and ports 5432/6379/8080 free.
+`make e2e` also needs Docker up (`docker info`) and ports 5432/8080 free.
 
 ### Fresh-worktree setup
 
-When working in a git worktree, two extra steps are required before the pre-commit gate will pass:
+When working in a git worktree, two extra steps are required before the pre-push gate will pass:
 
 ```bash
 npm ci --prefix <worktree>/app                              # node_modules are not shared

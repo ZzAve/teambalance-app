@@ -4,6 +4,8 @@ import com.github.zzave.teambalance.api.domain.model.CalendarLinkId
 import com.github.zzave.teambalance.api.domain.model.EventId
 import com.github.zzave.teambalance.api.domain.model.EventTypeId
 import com.github.zzave.teambalance.api.domain.model.PositionId
+import com.github.zzave.teambalance.api.domain.model.ShirtNumber
+import com.github.zzave.teambalance.api.domain.model.SubstituteId
 import com.github.zzave.teambalance.api.domain.model.TeamId
 import com.github.zzave.teambalance.api.domain.model.UserId
 import java.util.UUID
@@ -42,12 +44,11 @@ class EventNotFoundException(id: EventId) : NotFoundException("Event not found: 
 
 class EventTypeNotFoundException(id: EventTypeId) : NotFoundException("EventType not found: $id")
 
-class AttendanceNotFoundException(eventId: EventId, userId: UserId) :
-    NotFoundException("Attendance not found for event $eventId and user $userId")
-
 class MemberNotFoundException(userId: UserId) : NotFoundException("Member not found: $userId")
 
 class PositionNotFoundException(id: PositionId) : NotFoundException("Position not found: $id")
+
+class SubstituteNotFoundException(id: SubstituteId) : NotFoundException("Substitute not found: $id")
 
 // The codes-admin CRUD (#154 Slice 4) targets a code that does not exist → 404. Distinct from the
 // opaque INVALID_CREATION_CODE 403 the redeem path returns: this is an authenticated platform admin
@@ -131,6 +132,9 @@ sealed class ConflictException(message: String, val code: String) : TeambalanceE
 class NameTakenException(name: String) :
     ConflictException("Display name '$name' is already taken in this team", "NAME_TAKEN")
 
+class ShirtNumberTakenException(number: ShirtNumber) :
+    ConflictException("Shirt number $number is already worn by another member of this team", "NUMBER_TAKEN")
+
 class LastAdminException(teamId: TeamId) :
     ConflictException("Team $teamId must keep at least one admin", "LAST_ADMIN")
 
@@ -142,6 +146,9 @@ class CalendarLinkLimitReachedException(max: Int) :
 
 class PositionLabelTakenException(label: String) :
     ConflictException("Position '$label' already exists in this team", "POSITION_LABEL_TAKEN")
+
+class SubstituteNameTakenException(name: String) :
+    ConflictException("Substitute '$name' is already on this team's list", "SUBSTITUTE_NAME_TAKEN")
 
 // Event-type names are unique per team case-insensitively, the same rule positions follow. Archived
 // types count: two types sharing a name would become indistinguishable the moment one is restored.

@@ -1,9 +1,11 @@
 import { Link } from '@tanstack/react-router'
+import type { ReactNode } from 'react'
 import { Check, Clock, MapPin, X } from 'lucide-react'
 import type { Event } from '@shared/api/events'
 import type { AttendanceState } from '@features/attendance-toggle/ui/AttendanceToggle'
 import { ReadinessBadge } from '@entities/event/ui/ReadinessBadge'
 import { SectionLabel } from '@shared/ui/SectionLabel'
+import { MapsLink } from '@shared/ui/MapsLink'
 import { heroCountdown } from '../lib/countdown'
 import { useTeamRoutes } from '@shared/lib/team-routes'
 
@@ -16,6 +18,12 @@ interface NextEventHeroViewProps {
   onRespond: (state: AttendanceState) => void
   /** Injected so the countdown is deterministic in stories; defaults to the real clock. */
   now?: Date
+  /**
+   * The lineup, always shown: the list cards keep it behind a disclosure, but the next event is the
+   * one whose roster matters right now. Injected for the same reason as on the card — it is built
+   * from widgets this View should not have to wire.
+   */
+  lineup?: ReactNode
 }
 
 /** The status line's second clause — what the viewer has (or hasn't) said. */
@@ -41,6 +49,7 @@ export function NextEventHeroView({
   isSaving = false,
   onRespond,
   now = new Date(),
+  lineup,
 }: NextEventHeroViewProps) {
   const routes = useTeamRoutes()
   const date = new Date(event.startTime)
@@ -75,9 +84,15 @@ export function NextEventHeroView({
       {/* The passive rows fade with a colour alpha (text-white/xx), never with `opacity`: an
           element with opacity < 1 forms its own stacking context and would paint *above* the
           title's stretched overlay, punching a dead hole in the card's hit area. */}
-      <SectionLabel as="p" className="pr-12 text-white/90">
-        Next up
-      </SectionLabel>
+      <div className="flex items-center gap-2 pr-12">
+        <SectionLabel as="p" className="text-white/90">
+          Next up
+        </SectionLabel>
+        {/* The card's type tag, in white: the type's own tint has no contrast on the green. */}
+        <span className="rounded-full bg-white/20 px-2 py-0.5 text-caption font-semibold">
+          {event.eventType.name}
+        </span>
+      </div>
 
       <h3 className="font-display mb-1 mt-2 pr-12 text-title font-extrabold leading-[1.08]">
         {/* Stretched-link pattern, as EventCard uses in the list below: the card is not an anchor,
@@ -109,15 +124,17 @@ export function NextEventHeroView({
           {/* An address is worth a tap of its own, exactly as in the list card below. It is a
               sibling of the card link rather than nested inside it (an <a> in an <a> is invalid
               HTML), and relative z-10 lifts it above the stretched overlay. */}
-          <a
-            href={`https://maps.google.com/?q=${encodeURIComponent(event.location)}`}
-            target="_blank"
-            rel="noopener noreferrer"
+          <MapsLink
+            location={event.location}
             className="relative z-10 underline decoration-white/30 underline-offset-2 transition-colors hover:decoration-white"
           >
             {event.location}
-          </a>
+          </MapsLink>
         </p>
+      )}
+
+      {event.description && (
+        <p className="mt-1.5 line-clamp-2 text-small text-white/85">{event.description}</p>
       )}
 
       {/* The headcount and the viewer's answer on the left; the roster verdict on the right (#275).
@@ -133,7 +150,8 @@ export function NextEventHeroView({
       </div>
 
       {/* The answer the viewer has given is the solid button; the other one recedes. With no answer
-          yet, "I'm in" is solid because it is the invitation, not because it has been chosen. */}
+          yet, "I'm in" is solid because it is the invitation, not because it has been chosen.
+          min-h-11 holds the 44px touch target (F7); px-3 keeps the label off the edge. */}
       <div className="relative z-10 mt-3.5 flex gap-2">
         <button
           aria-pressed={going}
@@ -141,7 +159,7 @@ export function NextEventHeroView({
           onClick={() => onRespond('ATTENDING')}
           style={out ? undefined : { color: 'var(--color-green-dark)' }}
           className={[
-            'flex flex-1 items-center justify-center gap-1.5 rounded-md py-2.5 text-small font-bold transition-all active:scale-95',
+            'flex min-h-11 flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-2.5 text-small font-bold transition-all active:scale-95',
             out ? 'bg-white/20 text-white' : 'bg-white',
             isSaving ? 'cursor-not-allowed opacity-60' : 'cursor-pointer',
           ].join(' ')}
@@ -155,7 +173,7 @@ export function NextEventHeroView({
           onClick={() => onRespond('ABSENT')}
           style={out ? { color: 'var(--color-red)' } : undefined}
           className={[
-            'flex flex-1 items-center justify-center gap-1.5 rounded-md py-2.5 text-small font-bold transition-all active:scale-95',
+            'flex min-h-11 flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-2.5 text-small font-bold transition-all active:scale-95',
             out ? 'bg-white' : going ? 'bg-white/12 text-white' : 'bg-white/20 text-white',
             isSaving ? 'cursor-not-allowed opacity-60' : 'cursor-pointer',
           ].join(' ')}
@@ -164,6 +182,12 @@ export function NextEventHeroView({
           Can&apos;t make it
         </button>
       </div>
+
+      {/* On a light surface of its own: the panel is drawn in the card's palette. relative z-10 lifts
+          its chips above the stretched overlay. */}
+      {lineup && (
+        <div className="relative z-10 mt-3 rounded-md bg-card p-3 text-foreground">{lineup}</div>
+      )}
     </section>
   )
 }

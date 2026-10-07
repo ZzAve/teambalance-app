@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { Check, PlusCircle, Ticket, Users } from 'lucide-react'
 import type { TeamRef } from '@shared/api/teams'
 import { SectionLabel } from '@shared/ui/SectionLabel'
@@ -13,6 +14,32 @@ interface TeamsViewProps {
   onJoin: () => void
   /** Entry point to the create-team flow. */
   onCreate: () => void
+}
+
+function RowButton({
+  icon,
+  onClick,
+  isCurrent,
+  children,
+}: {
+  icon: ReactNode
+  onClick: () => void
+  isCurrent?: boolean
+  children: ReactNode
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-current={isCurrent ? 'true' : undefined}
+      className="flex w-full items-center gap-3 rounded-lg border border-border/60 bg-card px-4 py-4 text-left transition-colors hover:border-blue/40 hover:bg-blue/5"
+    >
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue/10 text-blue">
+        {icon}
+      </span>
+      {children}
+    </button>
+  )
 }
 
 /**
@@ -37,15 +64,7 @@ export function TeamsView({ teams, activeTeam, onSelect, onJoin, onCreate }: Tea
             const isActive = team.id === activeTeam?.id
             return (
               <li key={team.id}>
-                <button
-                  type="button"
-                  onClick={() => onSelect(team.slug)}
-                  aria-current={isActive ? 'true' : undefined}
-                  className="flex w-full items-center gap-3 rounded-lg border border-border/60 bg-card px-4 py-4 text-left transition-colors hover:border-blue/40 hover:bg-blue/5"
-                >
-                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue/10 text-blue">
-                    <Users size={18} />
-                  </span>
+                <RowButton icon={<Users size={18} />} onClick={() => onSelect(team.slug)} isCurrent={isActive}>
                   <span className="min-w-0">
                     <span className="block truncate text-small font-semibold">{team.name}</span>
                     <span className="block truncate text-caption text-muted-foreground">/{team.slug}</span>
@@ -56,7 +75,7 @@ export function TeamsView({ teams, activeTeam, onSelect, onJoin, onCreate }: Tea
                       Active
                     </span>
                   )}
-                </button>
+                </RowButton>
               </li>
             )
           })}
@@ -69,37 +88,23 @@ export function TeamsView({ teams, activeTeam, onSelect, onJoin, onCreate }: Tea
           Join or create
         </SectionLabel>
         <div className="flex flex-col gap-2">
-          <button
-            type="button"
-            onClick={onJoin}
-            className="flex w-full items-center gap-3 rounded-lg border border-border/60 bg-card px-4 py-4 text-left transition-colors hover:border-blue/40 hover:bg-blue/5"
-          >
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue/10 text-blue">
-              <Ticket size={18} />
-            </span>
+          <RowButton icon={<Ticket size={18} />} onClick={onJoin}>
             <span className="min-w-0">
               <span className="block text-small font-semibold">Join with an invite link</span>
               <span className="block truncate text-caption text-muted-foreground">
                 Someone shared a join link with you
               </span>
             </span>
-          </button>
+          </RowButton>
 
-          <button
-            type="button"
-            onClick={onCreate}
-            className="flex w-full items-center gap-3 rounded-lg border border-border/60 bg-card px-4 py-4 text-left transition-colors hover:border-blue/40 hover:bg-blue/5"
-          >
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue/10 text-blue">
-              <PlusCircle size={18} />
-            </span>
+          <RowButton icon={<PlusCircle size={18} />} onClick={onCreate}>
             <span className="min-w-0">
               <span className="block text-small font-semibold">Create a team</span>
               <span className="block truncate text-caption text-muted-foreground">
                 You'll need a creation code
               </span>
             </span>
-          </button>
+          </RowButton>
         </div>
       </section>
     </div>

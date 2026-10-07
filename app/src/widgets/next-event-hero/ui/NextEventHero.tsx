@@ -1,7 +1,8 @@
 import { useEvent, type Event } from '@shared/api/events'
 import { useSetAttendance } from '@shared/api/attendances'
-import { useUserStore } from '@shared/stores/user-store'
+import { useCurrentUser } from '@shared/api/auth'
 import type { AttendanceState } from '@features/attendance-toggle/ui/AttendanceToggle'
+import type { ReactNode } from 'react'
 import { NextEventHeroView } from './NextEventHeroView'
 
 /**
@@ -19,24 +20,36 @@ import { NextEventHeroView } from './NextEventHeroView'
  * attendances): the response and the headcount then come from one payload, so the status line can't
  * say "10 going · you're in" with a count that predates the tap.
  */
-export function NextEventHero({ event, now }: { event: Event; now?: Date }) {
+export function NextEventHero({
+  event,
+  now,
+  lineup,
+}: {
+  event: Event
+  now?: Date
+  /** The lineup panel for an event — built by the route, which owns the page's Substitute picker. */
+  lineup: (event: Event) => ReactNode
+}) {
   const { data: detail } = useEvent(event.id)
-  const currentUserId = useUserStore((s) => s.userId)
+  const currentUserId = useCurrentUser()?.id ?? null
   const { mutate, isPending } = useSetAttendance()
 
   const myState: AttendanceState =
     (detail?.attendances.find((a) => a.userId === currentUserId)?.state as AttendanceState) ??
     'NOT_RESPONDED'
 
+  const shown = detail ?? event
+
   return (
     <NextEventHeroView
-      event={detail ?? event}
+      event={shown}
       myState={myState}
       isSaving={isPending}
       now={now}
       onRespond={(state) => {
         if (currentUserId) mutate({ eventId: event.id, userId: currentUserId, state })
       }}
+      lineup={lineup(shown)}
     />
   )
 }

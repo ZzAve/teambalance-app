@@ -61,15 +61,18 @@ test('a Platform Admin enters a team, writes in it, and leaves without ever join
   // 5. No membership was created on the way in: the roster does not list the operator — so neither
   //    does the attendance denominator, the Position breakdown, or the Hall of Shame (ADR-0024 §2).
   await page.goto(`/t/${TEAM.slug}/team`)
-  await expect(page.getByText('E2E Tester')).toBeVisible({ timeout: 15_000 })
-  await expect(page.getByText(OPERATOR_NAME)).toHaveCount(0)
+  await expect(page.getByRole('link', { name: 'E2E Tester' })).toBeVisible({ timeout: 15_000 })
+  await expect(page.getByRole('link', { name: OPERATOR_NAME })).toHaveCount(0)
 
   // 6. ...and the team's Admins can see the platform was here, attributed generically (ADR-0024 §4).
   //    The record lives on the Admin-only settings page, collapsed until asked for.
   await page.goto(`/t/${TEAM.slug}/team/settings`)
   const platformAccess = page.locator('section').filter({ has: page.getByRole('heading', { name: 'Platform access' }) })
   await expect(platformAccess).toBeVisible({ timeout: 15_000 })
-  await platformAccess.getByRole('button', { name: /The TeamBalance owner worked here/ }).click()
+  const platformRecords = platformAccess.locator('details').filter({ hasText: /The TeamBalance owner worked here/ }).first()
+  await expect(platformRecords).not.toHaveAttribute('open')
+  await platformAccess.getByText(/The TeamBalance owner worked here/).click()
+  await expect(platformRecords).toHaveAttribute('open')
   // .first(): a warm DB carries earlier episodes, and this asserts the platform is IN the record,
   // not how many times it has been here.
   await expect(platformAccess.getByText('The TeamBalance owner worked in your team').first()).toBeVisible()

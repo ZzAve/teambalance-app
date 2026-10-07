@@ -1,3 +1,5 @@
+import type { PreferenceStorage } from '../preferences/preferences'
+
 /**
  * Theme primitives (F11, #159) — the pure half of dark mode.
  *
@@ -31,15 +33,9 @@ export const THEME_COLOR: Record<ResolvedTheme, string> = {
   dark: '#141210',
 }
 
-/** The slice of `Storage` this module needs — so a test can hand it a Map and nothing else. */
-export interface ThemeStorage {
-  getItem: (key: string) => string | null
-  setItem: (key: string, value: string) => void
-}
-
 const PREFERENCES: readonly ThemePreference[] = ['system', 'light', 'dark']
 
-export function isThemePreference(value: unknown): value is ThemePreference {
+function isThemePreference(value: unknown): value is ThemePreference {
   return typeof value === 'string' && (PREFERENCES as readonly string[]).includes(value)
 }
 
@@ -48,7 +44,7 @@ export function isThemePreference(value: unknown): value is ThemePreference {
  * an older/newer build, or storage that refuses to be read (Safari private mode throws on access).
  * Falling back to `system` is the safe default — the user still gets the theme their OS asked for.
  */
-export function readThemePreference(storage: ThemeStorage | null | undefined): ThemePreference {
+export function readThemePreference(storage: PreferenceStorage | null | undefined): ThemePreference {
   try {
     const stored = storage?.getItem(THEME_STORAGE_KEY)
     return isThemePreference(stored) ? stored : 'system'
@@ -60,7 +56,7 @@ export function readThemePreference(storage: ThemeStorage | null | undefined): T
 /** Persists the preference. A theme choice is never worth breaking the app over, so this swallows. */
 export function writeThemePreference(
   preference: ThemePreference,
-  storage: ThemeStorage | null | undefined,
+  storage: PreferenceStorage | null | undefined,
 ): void {
   try {
     storage?.setItem(THEME_STORAGE_KEY, preference)

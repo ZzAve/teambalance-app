@@ -1,6 +1,8 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
-import { expect, fn } from 'storybook/test'
+import { expect, fn, within } from 'storybook/test'
 import { withRouter } from '@shared/testing/router-decorator'
+import { appColumn } from '@shared/testing/app-column-decorator'
+import { Stack } from '@shared/testing/stack'
 import { Button } from '@shared/ui/button'
 import { PageHeader } from './PageHeader'
 
@@ -9,101 +11,99 @@ import { PageHeader } from './PageHeader'
 // app header (no magic pixel offset). It is prop-only — no store, no query — so every state below
 // renders from args alone; the routes that use it stay thin wiring (ADR-0017).
 //
-// The back control is a real <Link>, so the stories run under the router decorator and assert the
-// resolved href (same contract as TeamHeader's gear). The actions slot is exercised with an fn()
-// spy: a click in `play` must reach the caller's handler, proving the slot is genuinely interactive
-// and not just rendered.
+// The back control is a real <Link>, so the story runs under the router decorator and asserts the
+// resolved href (same contract as TeamHeader's gear).
+//
+// Covered by the event-detail page composite (EventDetailView, ADR-0032 §3): every shape this widget
+// can take is folded into one disableSnapshot Gallery, including the sticky-offset derivation — the
+// picture lives on the composite.
 const onAction = fn()
 
 const meta = {
   title: 'widgets/page-header/PageHeader',
   component: PageHeader,
-  decorators: [
-    // Mirrors the app's <main> gutter (max-w-2xl px-4) so the header's -mx-4 full-bleed edge
-    // renders faithfully in the Chromatic snapshot instead of overflowing the bare canvas.
-    (Story) => (
-      <div className="mx-auto max-w-2xl px-4">
-        <Story />
-      </div>
-    ),
-    withRouter,
-  ],
-  args: { title: 'Training — Tuesday' },
+  // The app's <main> gutter, so the header's -mx-4 full-bleed edge renders faithfully in context
+  // at every breakpoint (ADR-0032 §4).
+  decorators: [...appColumn.decorators, withRouter],
+  parameters: appColumn.parameters,
 } satisfies Meta<typeof PageHeader>
 
 export default meta
 
 type Story = StoryObj<typeof meta>
 
-// Title only: no back target, no actions — the minimal shape a page can use.
-export const TitleOnly: Story = {
-  play: async ({ canvas }) => {
-    await expect(canvas.getByRole('heading', { name: 'Training — Tuesday' })).toBeInTheDocument()
-    await expect(canvas.queryByRole('link')).not.toBeInTheDocument()
-  },
-}
-
-// The sticky offset is the whole point of the widget: it must be *derived* from --header-height,
-// never a hardcoded pixel value that drifts when the app header changes (the F12 defect). Overriding
-// the variable to an off-token value and reading the resolved `top` back proves the derivation
-// end-to-end — a plain class assertion would still pass if the offset were re-hardcoded to today's
-// header height.
-export const StickyOffsetFollowsHeaderHeight: Story = {
-  // Behavioural twin of TitleOnly — the computed sticky offset is not visible; the picture = TitleOnly
-  // (ADR-0027 §2).
+// Picture owned by the event-detail page composite (EventDetailView) — behavioural only (ADR-0032 §3).
+export const Gallery: Story = {
   parameters: { chromatic: { disableSnapshot: true } },
-  decorators: [
-    (Story) => (
-      <div style={{ '--header-height': '80px' } as React.CSSProperties}>
-        <Story />
-      </div>
-    ),
-  ],
-  play: async ({ canvas }) => {
-    const header = canvas.getByRole('heading').parentElement as HTMLElement
-    await expect(getComputedStyle(header).top).toBe('80px')
-  },
-}
-
-// The event-detail shape: back link into the parent list plus a title.
-export const WithBack: Story = {
-  args: { backTo: '/', backLabel: 'Back to events' },
-  play: async ({ canvas }) => {
-    const back = canvas.getByRole('link', { name: 'Back to events' })
-    await expect(back).toHaveAttribute('href', '/')
-    await expect(canvas.getByRole('heading', { name: 'Training — Tuesday' })).toBeInTheDocument()
-  },
-}
-
-// Back link plus a trailing actions slot — the actions are the caller's nodes, so the story proves
-// a click reaches the caller's handler rather than being swallowed by the header.
-export const WithBackAndActions: Story = {
-  args: {
-    backTo: '/',
-    backLabel: 'Back to events',
-    actions: (
-      <Button variant="outline" size="sm" onClick={() => onAction()}>
-        Edit
-      </Button>
-    ),
-  },
+  // title is required on PageHeader; unused by render below — each Stack instance sets its own.
+  args: { title: 'Training — Tuesday' },
+  render: () => (
+    <Stack
+      items={{
+        // Title only: no back target, no actions — the minimal shape a page can use.
+        'Title only': <PageHeader title="Training — Tuesday" />,
+        // The event-detail shape: back link into the parent list plus a title.
+        'With back': <PageHeader title="Training — Tuesday" backTo="/" backLabel="Back to events" />,
+        // Back link plus a trailing actions slot — the actions are the caller's nodes, so the play
+        // proves a click reaches the caller's handler rather than being swallowed by the header.
+        'With back and actions': (
+          <PageHeader
+            title="Training — Tuesday"
+            backTo="/"
+            backLabel="Back to events"
+            actions={
+              <Button variant="outline" size="sm" onClick={() => onAction()}>
+                Edit
+              </Button>
+            }
+          />
+        ),
+        // A title long enough to overrun the bar: it must truncate on one line so the back button
+        // and the actions slot keep their space (real event titles are user-authored and unbounded).
+        'Long title': (
+          <PageHeader
+            title="Volleybalvereniging Heren 3 — thuiswedstrijd tegen de allerlangste clubnaam"
+            backTo="/"
+            backLabel="Back to events"
+          />
+        ),
+        // The sticky offset is the whole point of the widget: it must be *derived* from
+        // --header-height, never a hardcoded pixel value that drifts when the app header changes
+        // (the F12 defect). Overriding the variable to an off-token value and reading the resolved
+        // `top` back proves the derivation end-to-end — a plain class assertion would still pass if
+        // the offset were re-hardcoded to today's header height.
+        'Sticky offset': (
+          <div style={{ '--header-height': '80px' } as React.CSSProperties}>
+            <PageHeader title="Training — Tuesday" />
+          </div>
+        ),
+      }}
+    />
+  ),
   play: async ({ canvas, userEvent }) => {
-    onAction.mockClear()
-    await expect(canvas.getByRole('link', { name: 'Back to events' })).toBeInTheDocument()
-    await userEvent.click(canvas.getByRole('button', { name: 'Edit' }))
-    await expect(onAction).toHaveBeenCalledTimes(1)
-  },
-}
+    const region = (name: string) => within(canvas.getByRole('region', { name }))
 
-// A title long enough to overrun the bar: it must truncate on one line so the back button and the
-// actions slot keep their space (the real event titles are user-authored and unbounded).
-export const LongTitle: Story = {
-  args: {
-    title: 'Volleybalvereniging Heren 3 — thuiswedstrijd tegen de allerlangste clubnaam',
-    backTo: '/',
-    backLabel: 'Back to events',
-  },
-  play: async ({ canvas }) => {
-    await expect(canvas.getByRole('heading')).toHaveClass('truncate')
+    await expect(
+      region('Title only').getByRole('heading', { name: 'Training — Tuesday' }),
+    ).toBeInTheDocument()
+    await expect(region('Title only').queryByRole('link')).not.toBeInTheDocument()
+
+    const back = region('With back').getByRole('link', { name: 'Back to events' })
+    await expect(back).toHaveAttribute('href', '/')
+    await expect(
+      region('With back').getByRole('heading', { name: 'Training — Tuesday' }),
+    ).toBeInTheDocument()
+
+    await expect(
+      region('With back and actions').getByRole('link', { name: 'Back to events' }),
+    ).toBeInTheDocument()
+    onAction.mockClear()
+    await userEvent.click(region('With back and actions').getByRole('button', { name: 'Edit' }))
+    await expect(onAction).toHaveBeenCalledTimes(1)
+
+    await expect(region('Long title').getByRole('heading')).toHaveClass('truncate')
+
+    const stickyHeading = region('Sticky offset').getByRole('heading').parentElement as HTMLElement
+    await expect(getComputedStyle(stickyHeading).top).toBe('80px')
   },
 }

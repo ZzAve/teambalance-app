@@ -52,7 +52,13 @@ export function MemberRoster({ canManage = false }: MemberRosterProps) {
       onRename={(userId, displayName) => {
         const member = members?.find((m) => m.userId === userId)
         if (member)
-          updateMember.mutate({ userId, displayName, role: member.role, positionId: member.position?.id ?? null })
+          updateMember.mutate({
+            userId,
+            displayName,
+            role: member.role,
+            positionId: member.position?.id ?? null,
+            shirtNumber: member.shirtNumber ?? null,
+          })
       }}
       onToggleRole={(member) =>
         updateMember.mutate({
@@ -60,10 +66,17 @@ export function MemberRoster({ canManage = false }: MemberRosterProps) {
           displayName: member.displayName,
           role: toggleRole(member.role),
           positionId: member.position?.id ?? null,
+          shirtNumber: member.shirtNumber ?? null,
         })
       }
       onChangePosition={(member, positionId) =>
-        updateMember.mutate({ userId: member.userId, displayName: member.displayName, role: member.role, positionId })
+        updateMember.mutate({
+          userId: member.userId,
+          displayName: member.displayName,
+          role: member.role,
+          positionId,
+          shirtNumber: member.shirtNumber ?? null,
+        })
       }
       onRemove={(member) => removeMember.mutate({ userId: member.userId })}
     />

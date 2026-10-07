@@ -1,12 +1,12 @@
 import { Link } from '@tanstack/react-router'
-import { Clock, MapPin } from 'lucide-react'
+import { AlignLeft, Clock, MapPin } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { Card } from '@shared/ui/card'
+import { InfoRow } from '@shared/ui/InfoRow'
 import type { Event } from '@shared/api/events'
 import { relativeEventLabel } from '../lib/relative-event-label'
 import { EventDateChit } from './EventDateChit'
 import { EventTypeBadge } from './EventTypeBadge'
-import { ReferenceChips } from './ReferenceChips'
 import { RelativeTimeLabel } from './RelativeTimeLabel'
 import { useTeamRoutes } from '@shared/lib/team-routes'
 import { EventAnswerRow } from './EventAnswerRow'
@@ -61,11 +61,11 @@ export function EventCard({
 
   return (
     // Stretched-link pattern: the card itself is not an anchor. The title <Link> carries an
-    // after:inset-0 overlay that makes the whole card clickable, so the reference chips can be
-    // sibling anchors rather than nested ones (an <a> inside the card's <a> is invalid HTML).
+    // after:inset-0 overlay that makes the whole card clickable, so the answer row's controls can
+    // sit above it as siblings rather than nested inside an <a>.
     <Card
       style={{ animationDelay: `${index * 60}ms` }}
-      className="card-enter card-shadow relative p-3.5 transition-[box-shadow] hover:card-shadow-hover motion-reduce:transition-none"
+      className="card-enter card-shadow relative p-4 transition-[box-shadow] hover:card-shadow-hover motion-reduce:transition-none"
     >
       <div className="flex gap-3.5">
         <EventDateChit date={date} type={event.eventType} />
@@ -84,27 +84,27 @@ export function EventCard({
             {event.title}
           </Link>
 
-          {/* Meta: time · location — the chit already carries the date */}
-          <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-small text-muted-foreground">
-            <Clock size={13} className="shrink-0 text-muted-foreground/60" />
-            <span className="font-semibold text-foreground">
-              {date.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })}
-            </span>
+          {/* One icon-marked line per detail — the chit already carries the date. The location is
+              plain text: a maps link is a destination competing with the card's own (ADR-0030 §9).
+              The references are not on the card for the same reason — see the detail page. */}
+          <dl className="mt-3 space-y-2 text-small">
+            <InfoRow icon={Clock} label="Time">
+              <span className="font-semibold">
+                {date.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })}
+              </span>
+            </InfoRow>
             {event.location && (
-              <>
-                <span className="text-muted-foreground/40">·</span>
-                <MapPin size={13} className="shrink-0 text-muted-foreground/60" />
-                <span>{event.location}</span>
-              </>
+              <InfoRow icon={MapPin} label="Location">
+                {event.location}
+              </InfoRow>
             )}
-          </div>
-
-          {/* Reference chips — up to 2, then "+N" */}
-          {event.references.length > 0 && (
-            <div className="mt-2">
-              <ReferenceChips references={event.references} max={2} />
-            </div>
-          )}
+            {/* Clamped so a long description cannot stretch the card. */}
+            {event.description && (
+              <InfoRow icon={AlignLeft} label="Description">
+                <p className="line-clamp-2 text-muted-foreground">{event.description}</p>
+              </InfoRow>
+            )}
+          </dl>
         </div>
       </div>
 

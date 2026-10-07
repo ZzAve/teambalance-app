@@ -14,9 +14,6 @@ build: ## Build everything (autoformat)
 #    yolo: ## quick build of the project - with as little validation as possible
 #    	<yolo command>
 #
-check-tooling: ## Check the toolchain is present and the generated API client is current
-	@./scripts/check-tooling.sh
-
 help: ## Show this help
 
 	@echo "Usage: make <command>"; \
@@ -40,7 +37,7 @@ ci:  ## Run a build in CI
 db: ## Start PostgreSQL only
 	docker compose up -d postgres
 
-infra: ## Start all local infrastructure (PostgreSQL + Redis)
+infra: ## Start all local infrastructure (PostgreSQL)
 	docker compose up -d
 
 infra-down: ## Stop local infrastructure
@@ -60,9 +57,6 @@ run-local: infra ## Start infra + backend + frontend (backend in background)
 	$(MAKE) app & \
 	wait
 
-www: ## Open the landing page
-	open www/index.html
-
 # --- Test & Lint ---
 
 test: test-api test-app ## Run all tests
@@ -71,6 +65,7 @@ test-api: ## Run backend tests only
 	./gradlew :api:test
 
 test-app: ## Run frontend tests only
+	./gradlew :api:wirespec-typescript
 	cd app && npm test
 
 e2e: ## Run real full-stack e2e (infra + backend e2e profile + Playwright)
@@ -84,12 +79,14 @@ format: ## Auto-format code
 	./gradlew :api:detekt --auto-correct || ./gradlew :api:detekt --auto-correct
 	cd app && ./node_modules/.bin/eslint . --fix
 
+hooks: ## Install git hooks (pre-commit: lint, pre-push: test)
+	git config core.hooksPath .githooks
+
 # --- Code generation ---
 
 wirespec: ## Generate code from Wirespec definitions
 	./gradlew :api:wirespec-kotlin
 	./gradlew :api:wirespec-typescript
-	@./scripts/wirespec-stamp.sh write
 
 # --- Shortcuts ---
 yolo: ## Fast build, skip tests and linting
@@ -99,7 +96,3 @@ yolo: ## Fast build, skip tests and linting
 clean: infra-down ## Clean build artifacts
 	./gradlew clean
 	cd app && rm -rf dist node_modules
-
-update: ## Check for dependency updates
-	./gradlew dependencyUpdates
-	cd app && npx npm-check-updates

@@ -57,7 +57,13 @@ function AccountPage() {
       memberErrorCode={memberErrorCode}
       onSubmitProfile={(name, positionId) => {
         if (!member) return
-        updateMember.mutate({ userId: member.userId, displayName: name, role: member.role, positionId })
+        updateMember.mutate({
+          userId: member.userId,
+          displayName: name,
+          role: member.role,
+          positionId,
+          shirtNumber: member.shirtNumber ?? null,
+        })
       }}
       // In-shell logout: a clean server-side teardown first, then the shared client clear.
       onLogout={() => logout.mutate(undefined, { onSuccess: () => clearSession() })}

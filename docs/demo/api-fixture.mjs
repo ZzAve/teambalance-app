@@ -210,7 +210,7 @@ export async function installFixtureApi(page) {
 
       // A 200 with a body, not an empty 204: Playwright fulfilling a 204 surfaces in the page as
       // net::ERR_ABORTED, and the shell treats a failed probe as a backend that is still waking.
-      if (path === '/api/ping' || path === '/api/health') return json({ status: 'ok' })
+      if (path === '/api/ping') return json({ status: 'ok' })
 
       if (path === '/api/auth/me')
         return json({

@@ -11,7 +11,7 @@ import type { EventRoster, RosterPosition } from '@shared/api/events'
 /** Which semantic colour a chip or row carries. Mirrors the attendance palette: green / gold / red. */
 export type RosterTone = 'covered' | 'short' | 'critical'
 
-export interface RosterChip {
+interface RosterChip {
   text: string
   tone: RosterTone
 }
@@ -55,9 +55,9 @@ export function rosterChip(roster: EventRoster): RosterChip | null {
 
 
 /** One slot's dot. `missing` is an open slot at a position with nobody at all — drawn in alarm. */
-export type PipState = 'filled' | 'open' | 'missing'
+type PipState = 'filled' | 'open' | 'missing'
 
-export interface RosterRow {
+interface RosterRow {
   id: string
   label: string
   /** One entry per required slot. Empty for an untargeted position, which shows a plain count. */

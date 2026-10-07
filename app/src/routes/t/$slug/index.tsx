@@ -3,22 +3,28 @@ import { useEffect, useMemo, useState } from 'react'
 import { useEvents, type Event } from '@shared/api/events'
 import { useEventTypes } from '@shared/api/event-types'
 import { useSetAttendance } from '@shared/api/attendances'
-import { useUserStore } from '@shared/stores/user-store'
+import {
+    useRemoveSubstituteAttendance,
+    useSetSubstituteAttendance,
+    usePendingSubstituteEvents,
+} from '@shared/api/substitutes'
+import { useCurrentUser } from '@shared/api/auth'
 import { useNow } from '@shared/lib/use-now'
-import { EventListView, type OptimisticAnswer } from '@entities/event/ui/EventListView'
 import { selectHeroEvent } from '@entities/event/lib/next-event'
+import type { PositionRef } from '@entities/event/lib/lineup'
 import { NextEventHero } from '@widgets/next-event-hero/ui/NextEventHero'
 import { CreateEventSheet } from '@widgets/create-event/ui/CreateEventSheet'
-import { EventFiltersView } from '@features/filter-event-types/ui/EventFiltersView'
 import { useEventFiltersStore } from '@features/filter-event-types/model/event-filters-store'
 import { useEventPanelStore } from '@features/event-panel-view/model/event-panel-store'
-import { PanelViewMenu } from '@features/event-panel-view/ui/PanelViewMenu'
+import type { OptimisticAnswer } from '@entities/event/ui/EventListView'
 import { EventLineupPanel } from '@widgets/event-panel/ui/EventLineupPanel'
+import { EventsPageView } from '@pages/events/ui/EventsPageView'
 import { reconcileTypeIds } from '@features/filter-event-types/model/filter-preferences'
 import { spansMultipleTurnoutBuckets } from '@features/filter-event-types/model/turnout'
 import { filterEvents } from '@features/filter-event-types/model/filter-events'
 import { emptyEventsMessage } from '@features/filter-event-types/model/empty-message'
 import { BulkAttendBar } from '@features/bulk-attend/ui/BulkAttendBar'
+import { SubstitutePicker } from '@features/call-in-substitutes/ui/SubstitutePicker'
 import { eligibleEvents } from '@features/bulk-attend/lib/eligible-event-ids'
 
 export const Route = createFileRoute('/t/$slug/')({
@@ -49,7 +55,7 @@ function EventListPage() {
     const {defaultExpanded, setDefaultExpanded} = useEventPanelStore()
     const {data: events, isLoading, error} = useEvents(showPast)
     const {data: eventTypes} = useEventTypes()
-    const isAdmin = useUserStore((s) => s.role) === 'ADMIN'
+    const isAdmin = useCurrentUser()?.role === 'ADMIN'
 
     // Per team, so a member of two teams does not carry one team's type filter into the other. The
     // restore lands after the first render, so a persisted `showPast` costs one extra events
@@ -71,7 +77,7 @@ function EventListPage() {
     // invalidated refetch reports the same answer — no clearing effect needed, the derivation drops
     // it on its own. onError clears it so a failed write does not leave the card stuck. While held,
     // the card shows the answer optimistically and its readiness badge stays pending (⑤).
-    const currentUserId = useUserStore((s) => s.userId)
+    const currentUserId = useCurrentUser()?.id ?? null
     const {mutate: setAttendance} = useSetAttendance()
     const [optimistic, setOptimistic] = useState<OptimisticAnswer | null>(null)
 
@@ -81,6 +87,32 @@ function EventListPage() {
         setOptimistic({eventId, userId, state})
         setAttendance({eventId, userId, state}, {onError: () => setOptimistic(null)})
     }
+    // One Substitute picker for the whole page (#359), aimed at one card's event and, from an open
+    // spot, one Position. Any Member may call Substitutes in (ADR-0033). The target outlives `open`
+    // so the sheet can animate out.
+    const [picker, setPicker] = useState<{eventId: string, position: PositionRef | null, open: boolean} | null>(null)
+    const pickerEvent = events?.find(e => e.id === picker?.eventId) ?? null
+    const setSubstituteAttendance = useSetSubstituteAttendance()
+    const removeSubstituteAttendance = useRemoveSubstituteAttendance()
+    const pendingSubstituteEvents = usePendingSubstituteEvents()
+
+    // The lineup panel, built once for the list cards and the hero: both need the page's attendance
+    // write and its one Substitute picker.
+    const lineupPanel = (event: Event) => (
+        <EventLineupPanel
+            attendances={event.attendances}
+            roster={event.roster}
+            currentUserId={currentUserId}
+            substitutes={event.substitutes}
+            onRespond={(userId, state) => respondFor(event.id, userId, state)}
+            onCallInSubstitutes={(position) => setPicker({eventId: event.id, position, open: true})}
+            onSetSubstituteState={(substituteId, state) =>
+                setSubstituteAttendance.mutate({eventId: event.id, substituteId, state})}
+            onTakeOffSubstitute={(substituteId) =>
+                removeSubstituteAttendance.mutate({eventId: event.id, substituteId})}
+            substitutePending={pendingSubstituteEvents.includes(event.id)}
+        />
+    )
 
     const respond = (eventId: string, state: Event['myState']) => {
         if (!currentUserId) return
@@ -130,82 +162,65 @@ function EventListPage() {
     )
 
     return (
-        <div>
-            <div className="flex items-center justify-between gap-2">
-                <h2 className="font-display text-title font-bold">Events</h2>
-                <div className="flex items-center gap-2">
-                    {/* The invite link moved to the Team page (team-management action); Events keeps
-                        only event creation for admins. */}
-                    {isAdmin && <CreateEventSheet/>}
-                    {/* Always mounted: the popover now owns the only route to past events, so it
-                        must not disappear with the event types it also happens to host. */}
-                    <EventFiltersView
-                        eventTypes={eventTypes ?? []}
-                        activeTypeIds={activeTypeIds}
-                        activeStates={activeStates}
-                        activeTurnouts={activeTurnouts}
-                        showTurnout={showTurnout}
-                        showPast={showPast}
-                        resultCount={sortedEvents.length}
-                        onToggleType={(typeId) => toggleType(typeId, allTypeIds)}
-                        // Every group runs through the same isolate-first toggler in the store
-                        // (ADR-0029 §3): one tap from the all-on default isolates the chip.
-                        onToggleState={toggleState}
-                        onToggleTurnout={toggleTurnout}
-                        onToggleShowPast={setShowPast}
-                        // A restored filter must never be invisible (ADR-0030 §2): the dot on the
-                        // trigger says *that* something is filtered, this says undo it.
-                        onClearFilters={clearFilters}
-                    />
-                    {/* How the list is drawn, beside what it contains but deliberately not inside it
-                        (ADR-0030 §3): a filter is "where was I", this is "how do I like this". */}
-                    <PanelViewMenu
-                        defaultExpanded={defaultExpanded}
-                        onDefaultExpandedChange={setDefaultExpanded}
-                    />
-                </div>
-            </div>
-
-            {/* No hero when nothing is within RELATIVE_WINDOW_DAYS — and no placeholder in its
-                place. The list carries the page. */}
-            {heroEvent && <NextEventHero event={heroEvent} now={now}/>}
-
-            {/* One button per event type with blanks left (ADR-0021); renders nothing at all when
-                there are none, so a fully-answered page reserves no empty row. */}
-            <BulkAttendBar events={bulkEvents}/>
-
-            <EventListView
-                events={listEvents}
-                onRespond={respond}
-                optimistic={optimistic}
-                currentUserId={currentUserId}
+        <>
+        <EventsPageView
+            createAction={isAdmin && <CreateEventSheet/>}
+            filters={{
+                eventTypes: eventTypes ?? [],
+                activeTypeIds,
+                activeStates,
+                activeTurnouts,
+                showTurnout,
+                showPast,
+                resultCount: sortedEvents.length,
+                onToggleType: (typeId) => toggleType(typeId, allTypeIds),
+                // Every group runs through the same isolate-first toggler in the store
+                // (ADR-0029 §3): one tap from the all-on default isolates the chip.
+                onToggleState: toggleState,
+                onToggleTurnout: toggleTurnout,
+                onToggleShowPast: setShowPast,
+                // A restored filter must never be invisible (ADR-0030 §2): the dot on the
+                // trigger says *that* something is filtered, this says undo it.
+                onClearFilters: clearFilters,
+            }}
+            panelMenu={{
+                defaultExpanded,
+                onDefaultExpandedChange: setDefaultExpanded,
+            }}
+            hero={heroEvent && <NextEventHero event={heroEvent} now={now} lineup={lineupPanel}/>}
+            bulkBar={<BulkAttendBar events={bulkEvents}/>}
+            list={{
+                events: listEvents,
+                onRespond: respond,
+                optimistic,
+                currentUserId,
                 // What each card's roster disclosure opens onto (ADR-0030 §5-§7, as amended by the
                 // lineup panel). Injected from here because the panel is a widget and the card is an
                 // entity — the card cannot build one itself.
-                defaultRosterOpen={defaultExpanded}
-                rosterPanel={(event) => (
-                    <EventLineupPanel
-                        attendances={event.attendances}
-                        roster={event.roster}
-                        currentUserId={currentUserId}
-                        onRespond={(userId, state) => respondFor(event.id, userId, state)}
-                    />
-                )}
+                defaultRosterOpen: defaultExpanded,
+                rosterPanel: lineupPanel,
                 // A rendered hero IS loaded data — it was pulled out of this very list — so an empty
                 // list beneath it means "nothing else", never a failure. Withholding the flags keeps
                 // the list from painting a skeleton or an error over a page that is plainly fine.
-                isLoading={heroEvent ? false : isLoading}
-                error={heroEvent ? undefined : error}
-                now={now}
-                emptyMessage={emptyEventsMessage({
+                isLoading: heroEvent ? false : isLoading,
+                error: heroEvent ? undefined : error,
+                now,
+                emptyMessage: emptyEventsMessage({
                     hasHero: heroEvent !== null,
                     showPast,
                     activeTypeIds,
                     allTypeIds,
                     activeStates,
                     activeTurnouts,
-                })}
-            />
-        </div>
+                }),
+            }}
+        />
+        <SubstitutePicker
+            open={picker?.open ?? false}
+            event={pickerEvent}
+            position={picker?.position}
+            onClose={() => setPicker(current => current && {...current, open: false})}
+        />
+        </>
     )
 }

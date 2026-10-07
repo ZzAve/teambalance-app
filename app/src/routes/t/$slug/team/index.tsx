@@ -1,8 +1,9 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { MemberRoster } from '@features/manage-members/ui/MemberRoster'
+import { ManageSubstitutes } from '@features/manage-substitutes/ui/ManageSubstitutes'
 import { GenerateInviteDialog } from '@features/generate-invite/ui/GenerateInviteDialog'
-import { TeamHeader } from '@widgets/team-header/ui/TeamHeader'
-import { useUserStore } from '@shared/stores/user-store'
+import { TeamPageView } from '@pages/team/ui/TeamPageView'
+import { useCurrentUser } from '@shared/api/auth'
 
 // The team roster for every authenticated member — no admin gate (the root route already guarantees
 // authenticated + onboarded). Read-only for everyone, admins included: this is the view surface.
@@ -14,12 +15,14 @@ export const Route = createFileRoute('/t/$slug/team/')({
 })
 
 function TeamPage() {
-  const isAdmin = useUserStore((s) => s.role) === 'ADMIN'
+  const isAdmin = useCurrentUser()?.role === 'ADMIN'
 
   return (
-    <div className="flex flex-col gap-6">
-      <TeamHeader isAdmin={isAdmin} actions={<GenerateInviteDialog />} />
-      <MemberRoster canManage={false} />
-    </div>
+    <TeamPageView
+      isAdmin={isAdmin}
+      inviteAction={<GenerateInviteDialog />}
+      roster={<MemberRoster canManage={false} />}
+      substitutes={<ManageSubstitutes canManage={false} />}
+    />
   )
 }

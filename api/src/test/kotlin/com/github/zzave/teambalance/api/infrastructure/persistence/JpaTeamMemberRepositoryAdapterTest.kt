@@ -1,7 +1,9 @@
 package com.github.zzave.teambalance.api.infrastructure.persistence
 
 import com.github.zzave.teambalance.api.TeamBalanceIT
+import com.github.zzave.teambalance.api.domain.model.DisplayName
 import com.github.zzave.teambalance.api.domain.model.Role
+import com.github.zzave.teambalance.api.domain.model.ShirtNumber
 import com.github.zzave.teambalance.api.domain.model.TeamId
 import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
@@ -126,6 +128,28 @@ class JpaTeamMemberRepositoryAdapterTest : TeamBalanceIT() {
             teamMemberRepository.findRole(teamId, userId) shouldBe Role.USER
         }
 
+        test("applyMemberEdit stores the shirt number and findByTeamId reads it back") {
+            val (teamId, userId) = seedMember(role = "USER", active = true)
+            editShirtNumber(teamId, userId, ShirtNumber(112))
+            shirtNumberOf(teamId, userId) shouldBe ShirtNumber(112)
+        }
+
+        test("assignPosition keeps the member's shirt number") {
+            val (teamId, userId) = seedMember(role = "USER", active = true)
+            editShirtNumber(teamId, userId, ShirtNumber(7))
+            teamMemberRepository.assignPosition(teamId, userId, null)
+            shirtNumberOf(teamId, userId) shouldBe ShirtNumber(7)
+        }
+
+        // ADR-0038: leaving the team frees the number, so a member who re-joins starts without one.
+        test("a member who leaves and re-joins has no shirt number") {
+            val (teamId, userId) = seedMember(role = "USER", active = true)
+            editShirtNumber(teamId, userId, ShirtNumber(7))
+            teamMemberRepository.deactivate(teamId, userId)
+            teamMemberRepository.addMember(teamId, userId)
+            shirtNumberOf(teamId, userId) shouldBe null
+        }
+
         test("addMember leaves an existing active member untouched, role and all") {
             val (teamId, userId) = seedMember(role = "ADMIN", active = true)
 
@@ -134,6 +158,19 @@ class JpaTeamMemberRepositoryAdapterTest : TeamBalanceIT() {
             teamMemberRepository.findRole(teamId, userId) shouldBe Role.ADMIN
         }
     }
+
+    private fun editShirtNumber(teamId: TeamId, userId: UserId, shirtNumber: ShirtNumber) =
+        teamMemberRepository.applyMemberEdit(
+            teamId = teamId,
+            userId = userId,
+            displayName = DisplayName("Test Member"),
+            role = Role.USER,
+            positionId = null,
+            shirtNumber = shirtNumber,
+        )
+
+    private fun shirtNumberOf(teamId: TeamId, userId: UserId) =
+        teamMemberRepository.findByTeamId(teamId).first { it.userId == userId }.shirtNumber
 
     private fun schemaNameOf(teamId: TeamId) = "team_${teamId.value.toString().replace("-", "")}"
 

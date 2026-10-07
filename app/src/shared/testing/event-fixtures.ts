@@ -1,4 +1,4 @@
-import type { AttendanceEntry, Event, EventRoster } from '@shared/api/events'
+import type { AttendanceEntry, Event, EventRoster, SubstituteEntry } from '@shared/api/events'
 import type { EventTypeItem, RosterRequirement } from '@shared/api/event-types'
 
 /** Roster tracking switched off — the default for a type nobody has configured. */
@@ -18,6 +18,7 @@ export const NO_ROSTER: EventRoster = {
   totalAttending: 0,
   playingAttending: 0,
   staffAttending: 0,
+  substituteAttending: 0,
   positions: [],
   unassignedAttending: 0,
   openSlots: 0,
@@ -85,6 +86,7 @@ function makeRosterUnchecked(overrides: Partial<EventRoster> = {}): EventRoster 
     totalAttending: 4,
     playingAttending: 4,
     staffAttending: 0,
+    substituteAttending: 0,
     positions: [
       { id: 'pos-setter', label: 'Setter', required: 2, attending: 2, kind: 'PLAYING' },
       { id: 'pos-libero', label: 'Libero', required: 1, attending: 1, kind: 'PLAYING' },
@@ -137,6 +139,26 @@ export function makeAttendee(
 }
 
 /**
+ * One Substitute on an event (ADR-0033). Defaults to called in as Going, with no Position; there is
+ * always a row behind the entry, so the attribution is always present.
+ */
+export function makeSubstitute(
+  substituteId: string,
+  name: string,
+  overrides: Partial<SubstituteEntry> = {},
+): SubstituteEntry {
+  return {
+    substituteId,
+    name,
+    position: undefined,
+    state: 'ATTENDING',
+    changedBy: 'u-me',
+    updatedAt: '2026-08-01T12:00:00Z',
+    ...overrides,
+  }
+}
+
+/**
  * Canonical Event fixture for stories. One place to update when the generated Event contract
  * changes. Pass overrides to vary a story (attendanceSummary is replaced wholesale, not merged).
  */
@@ -167,6 +189,8 @@ export function makeEvent(overrides: Partial<Event> = {}): Event {
     // same entries the detail does. Empty by default: a fixture that is not about the member list
     // renders no names, and the panel stories pass their own team.
     attendances: [],
+    // Substitutes called in for this event (ADR-0033). None by default.
+    substitutes: [],
     // The viewer's own response. Defaults to a blank, which is the state Bulk Attend acts on.
     myState: 'NOT_RESPONDED',
     // Undefined means this event inherits its type's roster default, which is the common case.

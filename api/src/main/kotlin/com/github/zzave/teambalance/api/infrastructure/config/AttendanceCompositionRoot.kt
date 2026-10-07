@@ -2,8 +2,11 @@ package com.github.zzave.teambalance.api.infrastructure.config
 
 import com.github.zzave.teambalance.api.application.AttendanceService
 import com.github.zzave.teambalance.api.application.AuthorizationService
+import com.github.zzave.teambalance.api.application.SubstituteService
 import com.github.zzave.teambalance.api.domain.port.AttendanceRepository
 import com.github.zzave.teambalance.api.domain.port.EventRepository
+import com.github.zzave.teambalance.api.domain.port.PositionRepository
+import com.github.zzave.teambalance.api.domain.port.SubstituteRepository
 import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
@@ -21,12 +24,27 @@ class AttendanceCompositionRoot {
         attendanceRepository: AttendanceRepository,
         eventRepository: EventRepository,
         teamMemberRepository: TeamMemberRepository,
+        substituteRepository: SubstituteRepository,
         authorizationService: AuthorizationService,
         clock: Clock,
     ) = AttendanceService(
         attendanceRepository = attendanceRepository,
         eventRepository = eventRepository,
         teamMemberRepository = teamMemberRepository,
+        substituteRepository = substituteRepository,
+        authorizationService = authorizationService,
+        clock = clock,
+    )
+
+    @Bean
+    fun substituteService(
+        substituteRepository: SubstituteRepository,
+        positionRepository: PositionRepository,
+        authorizationService: AuthorizationService,
+        clock: Clock,
+    ) = SubstituteService(
+        substituteRepository = substituteRepository,
+        positionRepository = positionRepository,
         authorizationService = authorizationService,
         clock = clock,
     )

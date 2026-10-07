@@ -52,6 +52,7 @@ class MemberController(
             rawName = request.body.displayName,
             role = Role.valueOf(request.body.role),
             positionId = request.body.positionId?.let { it.consumePositionId() },
+            shirtNumber = request.body.shirtNumber?.toIntOrMax(),
         )
         return UpdateMember.Response200(updated.toDto())
     }
@@ -83,4 +84,9 @@ private fun TeamMember.toDto() = Member(
     role = permission.name,
     position = positionId?.let { MemberPosition(id = it.produce(), label = position?.value ?: "") },
     onboarded = onboarded,
+    shirtNumber = shirtNumber?.value?.toLong(),
 )
+
+// Saturates instead of wrapping, so a number past Int range is rejected as out of range rather than
+// silently becoming a valid one.
+private fun Long.toIntOrMax(): Int = if (this in Int.MIN_VALUE.toLong()..Int.MAX_VALUE.toLong()) toInt() else Int.MAX_VALUE

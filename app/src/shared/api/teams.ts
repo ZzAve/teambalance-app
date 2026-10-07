@@ -26,6 +26,11 @@ export class CreateTeamError extends Error {
   }
 }
 
+/** The error's message when its code is one of [codes], else null — how forms place a failure by field or banner. */
+export function placeCreateTeamError(error: CreateTeamError | null | undefined, ...codes: CreateTeamErrorCode[]): string | null {
+  return error && codes.includes(error.code) ? error.message : null
+}
+
 /**
  * Maps a failed create-team response to a typed [CreateTeamError]. Pure and exported so it can be
  * unit-tested against the backend's contract (#158): 403 → invalid code; 409 → already-in-team (banner)

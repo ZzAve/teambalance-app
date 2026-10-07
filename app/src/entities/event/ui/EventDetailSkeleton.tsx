@@ -8,13 +8,22 @@ import { Skeleton } from '@shared/ui/skeleton'
 export function EventDetailSkeleton() {
   return (
     <div role="status" aria-label="Loading event">
-      {/* Header block: type icon + badge / title / date */}
-      <div className="mt-2 flex items-start gap-4">
-        <Skeleton className="h-11 w-11 rounded-md" />
-        <div className="min-w-0 flex-1 space-y-2">
-          <Skeleton className="h-4 w-20 rounded-full" />
-          <Skeleton className="h-7 w-3/4" />
-          <Skeleton className="h-4 w-1/2" />
+      {/* Event info card: type icon + badge / title, then the icon-marked detail rows */}
+      <div className="mt-2 rounded-lg border border-border/40 bg-card p-5 shadow-sm">
+        <div className="flex items-start gap-4">
+          <Skeleton className="h-11 w-11 rounded-md" />
+          <div className="min-w-0 flex-1 space-y-2">
+            <Skeleton className="h-4 w-20 rounded-full" />
+            <Skeleton className="h-7 w-3/4" />
+          </div>
+        </div>
+        <div className="mt-5 space-y-4 border-t border-border/40 pt-5">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="flex items-center gap-3">
+              <Skeleton className="h-5 w-5 shrink-0 rounded" />
+              <Skeleton className="h-4 w-1/2" />
+            </div>
+          ))}
         </div>
       </div>
 

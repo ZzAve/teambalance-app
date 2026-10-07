@@ -29,7 +29,7 @@ import { ALL_TURNOUT_BUCKETS, type TurnoutBucket } from './turnout'
  * The other two dimensions have fixed universes — the four Attendance States and the four Turnout
  * bands — so they store their active selection directly.
  */
-export interface StoredEventFilters {
+interface StoredEventFilters {
   showPast: boolean
   /** Event types switched off. Everything else, present and future, is shown. */
   hiddenTypeIds: string[]

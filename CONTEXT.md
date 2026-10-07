@@ -106,7 +106,7 @@ any-team, self-service (see [ADR-0001](docs/adr/0001-product-ambition-hobby-tool
   and `You're in` / `You said maybe` / `You're out` / `Respond` on the card's answer pill.
   A **Substitute**'s states are said in the same words. Prose uses the same root: a member has
   *responded* or *not responded*, never *replied*.
-  _Avoid_: I'm in, Can't go, Can't make it, Awaiting, Asked, out.
+  _Avoid_: I'm in, Can't go, Can't make it, Awaiting, Asked, and a bare "out" as a label.
 - **Event Attendance** — The resolved attendance picture of a single Event: every current
   Member paired with their **Attendance State** for that Event (their response, or
   **Not Responded** when they haven't answered). Derived from the *current* roster, so a

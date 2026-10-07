@@ -31,11 +31,18 @@ interface NextEventHeroViewProps {
   defaultRosterOpen?: boolean
 }
 
-/** The three answers the hero offers, in the order every other answer control uses (ADR-0039). */
+/**
+ * The three answers the hero offers, in the order every other answer control uses (ADR-0039).
+ *
+ * Each `ink` is the colour on the chosen button, which is white in both themes, so the inks must be
+ * the values that clear 4.5:1 on white in both: green-dark and red-dark hold their value in dark
+ * mode, while gold-ink is re-pointed to gold-dark there (2.6:1 on white, #336), so the hero keeps
+ * gold-ink's light value by hand.
+ */
 const ANSWERS: { state: AttendanceState; Icon: ComponentType<{ size?: number }>; ink: string }[] = [
   { state: 'ATTENDING', Icon: Check, ink: 'var(--color-green-dark)' },
-  { state: 'MAYBE', Icon: HelpCircle, ink: 'var(--color-gold-dark)' },
-  { state: 'ABSENT', Icon: X, ink: 'var(--color-red)' },
+  { state: 'MAYBE', Icon: HelpCircle, ink: '#8C6600' },
+  { state: 'ABSENT', Icon: X, ink: 'var(--color-red-dark)' },
 ]
 
 /**

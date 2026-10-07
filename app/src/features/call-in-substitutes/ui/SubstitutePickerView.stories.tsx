@@ -1,12 +1,15 @@
+import { useState } from 'react'
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { expect, fn, within } from 'storybook/test'
+import { SubstituteError } from '@shared/api/substitutes'
 import { makeSubstitute } from '@shared/testing/event-fixtures'
 import { SubstitutePickerView } from './SubstitutePickerView'
 
 // The picker for calling Substitutes in (ADR-0033). A sheet, so no page composite shows it open and
 // this View owns its own picture. Three stories (ADR-0032 §1): Data is the picker opened for one
 // Position, with the people who play it first and people in each state; Shells the unfiltered picker
-// with nobody on the list yet; Interactions every spy, from a Position's open spot.
+// when the list and the Positions could not be loaded; Interactions every spy, from a Position's
+// open spot.
 const POSITIONS = [
   { id: 'pos-setter', label: 'Setter' },
   { id: 'pos-libero', label: 'Libero' },
@@ -39,6 +42,8 @@ const meta = {
     onSetState: fn(),
     onCreate: fn(),
     onClose: fn(),
+    onRetry: fn(),
+    onRetryPositions: fn(),
   },
 } satisfies Meta<typeof SubstitutePickerView>
 
@@ -75,30 +80,59 @@ export const Data: Story = {
   },
 }
 
-// Opened without a Position, and nobody on the list yet: the only way forward is a new one. The play
-// leaves that form open, the one frame of it — Data pictures the closed "New substitute" button, and
-// Interactions takes no picture.
+// Opened without a Position, and the list could not be loaded: an error with a retry, never "Nobody on
+// the list yet" over a list that exists (#389). Try again re-requests, so the frame ends on the loading
+// copy; the play then opens the form, where the Positions carry their own error, and leaves it open —
+// the one frame of either.
 export const Shells: Story = {
-  args: { substitutes: [], onEvent: [] },
-  play: async ({ userEvent }) => {
+  args: { substitutes: [], onEvent: [], positions: [], positionsError: true },
+  render: function Render(args) {
+    const [retried, setRetried] = useState(false)
+    return (
+      <SubstitutePickerView
+        {...args}
+        isError={!retried}
+        isLoading={retried}
+        onRetry={() => {
+          args.onRetry?.()
+          setRetried(true)
+        }}
+      />
+    )
+  },
+  play: async ({ userEvent, args }) => {
     const sheet = within(await within(document.body).findByRole('dialog', { name: 'Call in substitutes' }))
-    await expect(sheet.getByText('Nobody on the list yet.')).toBeInTheDocument()
+    await expect(sheet.getByRole('alert')).toHaveTextContent("Couldn't load the list.")
+    await expect(sheet.queryByText('Nobody on the list yet.')).not.toBeInTheDocument()
     await expect(sheet.queryByRole('group', { name: 'Others' })).not.toBeInTheDocument()
 
-    // Opened without a Position, so none is chosen yet.
+    await userEvent.click(sheet.getByRole('button', { name: 'Try again' }))
+    await expect(args.onRetry).toHaveBeenCalled()
+    await expect(await sheet.findByText('Loading the list…')).toBeInTheDocument()
+    await expect(sheet.queryByText('Nobody on the list yet.')).not.toBeInTheDocument()
+
+    // Opened without a Position, so none is chosen yet; the Positions failed to load, so None is the
+    // only chip, next to its own Try again.
     await userEvent.click(sheet.getByRole('button', { name: /New substitute/ }))
     await expect(sheet.getByLabelText('Name')).toBeInTheDocument()
     await expect(sheet.getByRole('button', { name: 'None' })).toHaveAttribute('aria-pressed', 'true')
+    await expect(sheet.queryByRole('button', { name: 'Setter' })).not.toBeInTheDocument()
+    await expect(sheet.getByRole('alert')).toHaveTextContent("Couldn't load the positions.")
+    await userEvent.click(sheet.getByRole('button', { name: 'Try again' }))
+    await expect(args.onRetryPositions).toHaveBeenCalled()
     await expect(sheet.getByRole('button', { name: 'Add as asked' })).toBeDisabled()
   },
 }
 
-// Picture owned by Data — behavioural only (ADR-0032 §1).
+// Picture owned by Data — behavioural only (ADR-0032 §1). Rendered with `isError` on top of a loaded
+// list: a transient refetch error keeps the data on screen rather than replacing it with the shell.
 export const Interactions: Story = {
-  args: { position: LIBERO },
+  args: { position: LIBERO, isError: true },
   parameters: { chromatic: { disableSnapshot: true } },
   play: async ({ userEvent, args }) => {
     const sheet = within(await within(document.body).findByRole('dialog', { name: 'Find a Libero' }))
+    await expect(sheet.getByRole('group', { name: 'Plays Libero' })).toBeInTheDocument()
+    await expect(sheet.queryByRole('alert')).not.toBeInTheDocument()
 
     // Several people can be called in before Done: one confirmed, one only asked.
     await userEvent.click(within(sheet.getByRole('group', { name: 'Kees Bakker' })).getByRole('button', { name: 'Going' }))
@@ -126,13 +160,41 @@ export const Interactions: Story = {
     await userEvent.type(sheet.getByLabelText('Name'), 'Anouk de Boer')
     await userEvent.click(add)
     await expect(args.onCreate).toHaveBeenCalledWith('Anouk de Boer', 'pos-libero')
+    // Added: the form closes and the picker stays open for the next one.
+    await expect(await sheet.findByRole('button', { name: /New substitute/ })).toBeInTheDocument()
 
-    // The picker stays open for the next one, and the form starts from the Position again.
+    // The form starts from the Position again; None is a choice.
     await userEvent.click(sheet.getByRole('button', { name: /New substitute/ }))
     await userEvent.type(sheet.getByLabelText('Name'), 'Sanne Vos')
     await userEvent.click(sheet.getByRole('button', { name: 'None' }))
     await userEvent.click(sheet.getByRole('button', { name: 'Add as asked' }))
     await expect(args.onCreate).toHaveBeenCalledWith('Sanne Vos', null)
+    await expect(await sheet.findByRole('button', { name: /New substitute/ })).toBeInTheDocument()
+
+    // Someone already on the list, in another case: caught before any request, with a pointer to
+    // where they are (#389). The hint goes once the name differs.
+    await userEvent.click(sheet.getByRole('button', { name: /New substitute/ }))
+    await userEvent.type(sheet.getByLabelText('Name'), ' kees BAKKER ')
+    await expect(sheet.getByRole('alert')).toHaveTextContent('Kees Bakker is already on the list — find them above.')
+    await expect(sheet.getByRole('button', { name: 'Add as asked' })).toBeDisabled()
+    await userEvent.type(sheet.getByLabelText('Name'), 'jr')
+    await expect(sheet.queryByRole('alert')).not.toBeInTheDocument()
+    await expect(args.onCreate).not.toHaveBeenCalledWith(expect.stringMatching(/kees/i), expect.anything())
+
+    // The request is refused (someone else added them meanwhile), then fails outright: each time the
+    // form stays open with the name, and says why under the field (#389).
+    args.onCreate.mockRejectedValueOnce(new SubstituteError('Kees Bakker jr is already on the list.'))
+    await userEvent.click(sheet.getByRole('button', { name: 'Add as asked' }))
+    await expect(args.onCreate).toHaveBeenCalledWith('kees BAKKER jr', 'pos-libero')
+    await expect(await sheet.findByRole('alert')).toHaveTextContent('Kees Bakker jr is already on the list.')
+    await expect(sheet.getByLabelText('Name')).toHaveValue(' kees BAKKER jr')
+    args.onCreate.mockRejectedValueOnce(new Error('offline'))
+    await userEvent.click(sheet.getByRole('button', { name: 'Add as asked' }))
+    await expect(await sheet.findByRole('alert')).toHaveTextContent("Couldn't add the substitute — please try again.")
+    await expect(sheet.getByLabelText('Name')).toHaveValue(' kees BAKKER jr')
+    // Third time lucky: the same name goes through and the form closes.
+    await userEvent.click(sheet.getByRole('button', { name: 'Add as asked' }))
+    await expect(await sheet.findByRole('button', { name: /New substitute/ })).toBeInTheDocument()
 
     // Closing drops a half-typed name, so the next open starts fresh.
     await userEvent.click(sheet.getByRole('button', { name: /New substitute/ }))
@@ -140,5 +202,25 @@ export const Interactions: Story = {
     await userEvent.click(sheet.getByRole('button', { name: 'Done' }))
     await expect(args.onClose).toHaveBeenCalled()
     await expect(sheet.queryByLabelText('Name')).not.toBeInTheDocument()
+
+    // While the request is out, the button says so and holds, and the name stays put.
+    let settle = () => {}
+    args.onCreate.mockReturnValueOnce(new Promise<void>((resolve) => (settle = resolve)))
+    await userEvent.click(sheet.getByRole('button', { name: /New substitute/ }))
+    await expect(sheet.getByLabelText('Name')).toHaveValue('')
+    await userEvent.type(sheet.getByLabelText('Name'), 'Sanne Vos')
+    await userEvent.click(sheet.getByRole('button', { name: 'Add as asked' }))
+    await expect(await sheet.findByRole('button', { name: 'Adding…' })).toBeDisabled()
+    await expect(sheet.getByLabelText('Name')).toHaveValue('Sanne Vos')
+
+    // Closed and reopened while that request is still out: the fresh form is not held by it, and
+    // its settling later leaves the fresh form alone.
+    await userEvent.click(sheet.getByRole('button', { name: 'Done' }))
+    await userEvent.click(sheet.getByRole('button', { name: /New substitute/ }))
+    await userEvent.type(sheet.getByLabelText('Name'), 'Bram Visser')
+    await expect(sheet.getByRole('button', { name: 'Add as asked' })).toBeEnabled()
+    settle()
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    await expect(sheet.getByLabelText('Name')).toHaveValue('Bram Visser')
   },
 }

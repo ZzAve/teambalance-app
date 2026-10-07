@@ -1,0 +1,1 @@
+import{n as e}from"./rolldown-runtime-DkW27tQK.js";var t;function n(){return(n=e((()=>{t={ATTENDING:{word:`Going`,pill:`You're in`,status:`you're in`},MAYBE:{word:`Maybe`,pill:`You said maybe`,status:`you said maybe`},ABSENT:{word:`Can't`,pill:`You're out`,status:`you're out`},NOT_RESPONDED:{word:`Not responded`,pill:`Respond`,status:`you haven't responded`}}})))()}export{n,t};

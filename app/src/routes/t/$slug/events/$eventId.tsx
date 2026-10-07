@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { createFileRoute } from '@tanstack/react-router'
 import { toast } from 'sonner'
 import { useEvent, useEvents } from '@shared/api/events'
-import { useSetAttendance } from '@shared/api/attendances'
+import { useSetAttendance } from '@entities/attendance/api/attendances'
 import { useCurrentUser } from '@shared/api/auth'
 import {
   useRemoveSubstituteAttendance,
@@ -13,7 +13,7 @@ import { attributionName } from '@entities/event/lib/attribution'
 import type { PositionRef } from '@entities/event/lib/lineup'
 import { crossMemberToast } from '@entities/event/lib/cross-member-toast'
 import { buildSeriesPeek } from '@entities/event/lib/series-peek'
-import type { AttendanceState } from '@features/attendance-toggle/ui/AttendanceToggle'
+import { myAnswerOf, type AttendanceState } from '@entities/attendance/model/attendance-state'
 import { EditEventDialog } from '@features/edit-event/ui/EditEventDialog'
 import { DeleteEventDialog } from '@features/edit-event/ui/DeleteEventDialog'
 import { SubstitutePicker } from '@features/call-in-substitutes/ui/SubstitutePicker'
@@ -43,14 +43,14 @@ function EventDetailPage() {
   const substitutePending = usePendingSubstituteEvents().includes(eventId)
 
   const myAttendance = event?.attendances.find((a) => a.userId === currentUserId)
-  const myState: AttendanceState = (myAttendance?.state as AttendanceState) ?? 'NOT_RESPONDED'
+  const myState = myAnswerOf(event?.attendances ?? [], currentUserId)
   const myAttribution = myAttendance && event ? attributionName(myAttendance, event.attendances) : null
 
   // Setting an answer. For a teammate (trust-based, ADR-0003) it raises an Undo toast — the awareness
   // and the safety net for a cross-member change; your own answer just writes.
   const setAttendance = (userId: string, state: AttendanceState) => {
     const target = event?.attendances.find((a) => a.userId === userId)
-    const prior = (target?.state as AttendanceState) ?? 'NOT_RESPONDED'
+    const prior = myAnswerOf(event?.attendances ?? [], userId)
     mutate({ eventId, userId, state })
     if (userId !== currentUserId) {
       const { message, undoState } = crossMemberToast(target?.displayName ?? 'teammate', state, prior)

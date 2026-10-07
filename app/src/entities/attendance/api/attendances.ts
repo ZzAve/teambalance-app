@@ -1,11 +1,10 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { api } from './wirespec-client'
-import { applyOptimisticAttendance } from './attendance-cache'
-import { useCurrentUser } from './auth'
-import type { AttendanceEntry, EventDetail } from './events'
-
-type AttendanceState = AttendanceEntry['state']
+import { api } from '@shared/api/wirespec-client'
+import { useCurrentUser } from '@shared/api/auth'
+import type { EventDetail } from '@shared/api/events'
+import { applyOptimisticAttendance } from '../lib/optimistic-attendance'
+import type { AttendanceState } from '../model/attendance-state'
 
 interface SetAttendanceVars {
   eventId: string

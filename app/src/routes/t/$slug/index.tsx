@@ -2,7 +2,8 @@ import { createFileRoute } from '@tanstack/react-router'
 import { useEffect, useMemo, useState } from 'react'
 import { useEvents, type Event } from '@shared/api/events'
 import { useEventTypes } from '@shared/api/event-types'
-import { useSetAttendance } from '@shared/api/attendances'
+import { useSetAttendance } from '@entities/attendance/api/attendances'
+import type { AttendanceState } from '@entities/attendance/model/attendance-state'
 import {
     useRemoveSubstituteAttendance,
     useSetSubstituteAttendance,
@@ -83,7 +84,7 @@ function EventListPage() {
 
     // One path for every answer on this page, the viewer's own included: the panel's chips and the
     // card's own pill are the same write aimed at a different member.
-    const respondFor = (eventId: string, userId: string, state: Event['myState']) => {
+    const respondFor = (eventId: string, userId: string, state: AttendanceState) => {
         setOptimistic({eventId, userId, state})
         setAttendance({eventId, userId, state}, {onError: () => setOptimistic(null)})
     }
@@ -114,7 +115,7 @@ function EventListPage() {
         />
     )
 
-    const respond = (eventId: string, state: Event['myState']) => {
+    const respond = (eventId: string, state: AttendanceState) => {
         if (!currentUserId) return
         respondFor(eventId, currentUserId, state)
     }

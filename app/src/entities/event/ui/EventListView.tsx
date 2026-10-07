@@ -1,10 +1,9 @@
 import type { ReactNode } from 'react'
+import type { AttendanceState } from '@entities/attendance/model/attendance-state'
 import type { Event } from '@shared/api/events'
 import { Skeleton } from '@shared/ui/skeleton'
 import { attributionName } from '../lib/attribution'
 import { EventCard } from './EventCard'
-
-type AttendanceState = Event['myState']
 
 /**
  * An attendance write in flight, held by the route and applied here until the refetch catches up.
@@ -12,7 +11,7 @@ type AttendanceState = Event['myState']
  * It carries `userId` because the card's panel can answer for anyone (ADR-0003): a teammate's chip
  * has to move on tap just as the viewer's own pill does, and both come from this one record. The
  * panel counts its fractions from the attendances it renders, so patching the entry moves the chip
- * and the count together — which is why this does not need to touch `roster` (see attendance-cache,
+ * and the count together — which is why this does not need to touch `roster` (see optimistic-attendance,
  * which leaves it to the server for the same reason).
  */
 export interface OptimisticAnswer {
@@ -125,7 +124,7 @@ function stateOf(event: Event, userId: string): AttendanceState {
  * with it when that member is the viewer. Immutable, so dropping the optimistic answer restores the
  * original by simply not applying it.
  *
- * `roster` is deliberately untouched, exactly as `attendance-cache` leaves it: its `openSlots` and
+ * `roster` is deliberately untouched, exactly as `optimistic-attendance` leaves it: its `openSlots` and
  * `state` are the backend's tested authority (#219), and a second implementation here would be free
  * to drift from it. The lineup panel is unaffected because it counts its own fractions from
  * `attendances`; the readiness badge is the one surface that stays briefly stale, and it renders a

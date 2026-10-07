@@ -1,11 +1,11 @@
-import type { AttendanceState } from '@features/attendance-toggle/ui/AttendanceToggle'
+import type { AttendanceState } from '@entities/attendance/model/attendance-state'
 import {
   readPreference,
   teamPreferenceKey,
   writePreference,
   type PreferenceStorage,
 } from '@shared/preferences/preferences'
-import { ALL_ATTENDANCE_STATES } from './attendance-states'
+import { ALL_ATTENDANCE_STATES } from '@entities/attendance/model/attendance-state'
 import { ALL_TURNOUT_BUCKETS, type TurnoutBucket } from './turnout'
 
 /**

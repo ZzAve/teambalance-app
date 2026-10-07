@@ -1,13 +1,11 @@
 import { useState } from 'react'
+import type { AttendanceState } from '@entities/attendance/model/attendance-state'
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { expect, fn, within } from 'storybook/test'
-import type { Event } from '@shared/api/events'
 import { Stack } from '@shared/testing/stack'
 import { appColumn } from '@shared/testing/app-column-decorator'
 import { makeRoster, NO_ROSTER } from '@shared/testing/event-fixtures'
 import { EventAnswerRow } from './EventAnswerRow'
-
-type AttendanceState = Event['myState']
 
 // The card's bottom row: two independent disclosures — attendance (left) and roster (right). Each
 // opens its own panel; both can be open at once, with the attendance panel always above. Prop-only

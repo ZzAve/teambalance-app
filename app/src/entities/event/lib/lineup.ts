@@ -15,7 +15,7 @@ import type { AttendanceEntry, EventRoster, RosterPosition, SubstituteEntry } fr
  * `openSlots`, which stay the server's and drive the readiness badge. It is the narrower rule that a
  * row must not contradict itself: the chips beside the fraction are the same people the fraction
  * counts, so an optimistic answer moves both together instead of turning a chip green next to a
- * count that still reads 1/2 (see `attendance-cache`, which deliberately leaves `roster` stale).
+ * count that still reads 1/2 (see `optimistic-attendance`, which deliberately leaves `roster` stale).
  */
 
 export type LineupState = AttendanceEntry['state']

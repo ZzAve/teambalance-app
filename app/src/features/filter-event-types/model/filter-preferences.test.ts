@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import type { AttendanceState } from '@features/attendance-toggle/ui/AttendanceToggle'
+import type { AttendanceState } from '@entities/attendance/model/attendance-state'
 import type { PreferenceStorage } from '@shared/preferences/preferences'
-import { ALL_ATTENDANCE_STATES } from './attendance-states'
+import { ALL_ATTENDANCE_STATES } from '@entities/attendance/model/attendance-state'
 import {
   hiddenTypeIdsOf,
   parseStoredEventFilters,

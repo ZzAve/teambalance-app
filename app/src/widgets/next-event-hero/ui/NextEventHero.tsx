@@ -1,7 +1,7 @@
 import { useEvent, type Event } from '@shared/api/events'
-import { useSetAttendance } from '@shared/api/attendances'
+import { useSetAttendance } from '@entities/attendance/api/attendances'
 import { useCurrentUser } from '@shared/api/auth'
-import type { AttendanceState } from '@features/attendance-toggle/ui/AttendanceToggle'
+import { myAnswerOf } from '@entities/attendance/model/attendance-state'
 import type { ReactNode } from 'react'
 import { NextEventHeroView } from './NextEventHeroView'
 
@@ -34,9 +34,7 @@ export function NextEventHero({
   const currentUserId = useCurrentUser()?.id ?? null
   const { mutate, isPending } = useSetAttendance()
 
-  const myState: AttendanceState =
-    (detail?.attendances.find((a) => a.userId === currentUserId)?.state as AttendanceState) ??
-    'NOT_RESPONDED'
+  const myState = myAnswerOf(detail?.attendances ?? [], currentUserId)
 
   const shown = detail ?? event
 

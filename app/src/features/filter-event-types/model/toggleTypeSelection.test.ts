@@ -1,6 +1,6 @@
 import {describe, expect, it} from 'vitest'
 import {toggleTypeSelection} from './toggleTypeSelection'
-import type {AttendanceState} from '@features/attendance-toggle/ui/AttendanceToggle'
+import type { AttendanceState } from '@entities/attendance/model/attendance-state'
 
 const ALL = ['training', 'match', 'tournament', 'social']
 

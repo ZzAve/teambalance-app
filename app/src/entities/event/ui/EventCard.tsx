@@ -1,4 +1,5 @@
 import { Link } from '@tanstack/react-router'
+import type { AttendanceState } from '@entities/attendance/model/attendance-state'
 import { AlignLeft, Clock, MapPin } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { Card } from '@shared/ui/card'
@@ -10,8 +11,6 @@ import { EventTypeBadge } from './EventTypeBadge'
 import { RelativeTimeLabel } from './RelativeTimeLabel'
 import { useTeamRoutes } from '@shared/lib/team-routes'
 import { EventAnswerRow } from './EventAnswerRow'
-
-type AttendanceState = Event['myState']
 
 interface EventCardProps {
   event: Event

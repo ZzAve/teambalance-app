@@ -1,5 +1,5 @@
-import type { AttendanceState } from '@features/attendance-toggle/ui/AttendanceToggle'
-import { ALL_ATTENDANCE_STATES } from './attendance-states'
+import type { AttendanceState } from '@entities/attendance/model/attendance-state'
+import { ALL_ATTENDANCE_STATES } from '@entities/attendance/model/attendance-state'
 import { ALL_TURNOUT_BUCKETS, type TurnoutBucket } from './turnout'
 
 interface EmptyMessageInput {

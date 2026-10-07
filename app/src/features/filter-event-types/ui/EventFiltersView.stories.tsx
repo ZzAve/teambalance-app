@@ -1,10 +1,10 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { expect, fn, within } from 'storybook/test'
 import type { EventTypeItem } from '@shared/api/event-types'
-import type { AttendanceState } from '@features/attendance-toggle/ui/AttendanceToggle'
+import type { AttendanceState } from '@entities/attendance/model/attendance-state'
 import { makeEventType } from '@shared/testing/event-fixtures'
 import { Stack } from '@shared/testing/stack'
-import { ALL_ATTENDANCE_STATES } from '../model/attendance-states'
+import { ALL_ATTENDANCE_STATES } from '@entities/attendance/model/attendance-state'
 import { ALL_TURNOUT_BUCKETS, type TurnoutBucket } from '../model/turnout'
 import { EventFiltersView } from './EventFiltersView'
 

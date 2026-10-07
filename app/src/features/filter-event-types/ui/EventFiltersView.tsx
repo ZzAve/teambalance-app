@@ -1,11 +1,11 @@
 import { useState, type CSSProperties, type ReactNode } from 'react'
 import { SlidersHorizontal } from 'lucide-react'
 import type { EventTypeItem } from '@shared/api/event-types'
-import type { AttendanceState } from '@features/attendance-toggle/ui/AttendanceToggle'
+import type { AttendanceState } from '@entities/attendance/model/attendance-state'
 import { SectionLabel } from '@shared/ui/SectionLabel'
 import { Switch } from '@shared/ui/switch'
 import { useEscapeToClose } from '@shared/lib/use-escape-to-close'
-import { ALL_ATTENDANCE_STATES } from '../model/attendance-states'
+import { ALL_ATTENDANCE_STATES } from '@entities/attendance/model/attendance-state'
 import { ALL_TURNOUT_BUCKETS, type TurnoutBucket } from '../model/turnout'
 
 interface EventFiltersViewProps {

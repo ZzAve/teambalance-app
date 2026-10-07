@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { toast } from 'sonner'
 import type { Event } from '@shared/api/events'
-import { useBulkAttend, useBulkUndo } from '@shared/api/attendances'
+import { useBulkAttend, useBulkUndo } from '@entities/attendance/api/attendances'
 import { useCurrentUser } from '@shared/api/auth'
 import { groupByType } from '../lib/group-by-type'
 import { batchToastMessage } from '../lib/batch-toast-message'

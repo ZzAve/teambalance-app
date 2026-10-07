@@ -1,6 +1,4 @@
-import type { Event } from '@shared/api/events'
-
-type AttendanceState = Event['myState']
+import type { AttendanceState } from '@entities/attendance/model/attendance-state'
 
 /** The viewer's own answer, in words, plus which semantic tone the pill carries. */
 export interface MyAnswer {

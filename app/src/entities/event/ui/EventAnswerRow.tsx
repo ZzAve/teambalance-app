@@ -1,11 +1,10 @@
 import { useId, useState } from 'react'
+import type { AttendanceState } from '@entities/attendance/model/attendance-state'
 import { Check, ChevronDown, HelpCircle, X } from 'lucide-react'
 import type { ComponentType, ReactNode } from 'react'
-import type { Event, EventRoster } from '@shared/api/events'
+import type { EventRoster } from '@shared/api/events'
 import { myAnswer, type MyAnswer } from '../lib/my-answer'
 import { ReadinessBadge } from './ReadinessBadge'
-
-type AttendanceState = Event['myState']
 
 interface EventAnswerRowProps {
   roster: EventRoster

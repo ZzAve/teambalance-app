@@ -3,7 +3,8 @@ import type { Meta, StoryObj } from '@storybook/react-vite'
 import { expect, fn, within } from 'storybook/test'
 import { Stack } from '@shared/testing/stack'
 import { darkMode } from '../../../../.storybook/modes'
-import { AttendanceToggle, type AttendanceState } from './AttendanceToggle'
+import type { AttendanceState } from '@entities/attendance/model/attendance-state'
+import { AttendanceToggle } from './AttendanceToggle'
 
 // AttendanceToggle is presentational (value/onToggle/disabled). Each response state is a render arg;
 // the aria-pressed button is the observable contract. The mutation lives in the page container, so

@@ -1,6 +1,4 @@
-import type { AttendanceEntry } from '@shared/api/events'
-
-type AttendanceState = AttendanceEntry['state']
+import type { AttendanceState } from '@entities/attendance/model/attendance-state'
 
 const LABEL: Record<AttendanceState, string> = {
   ATTENDING: 'Going',

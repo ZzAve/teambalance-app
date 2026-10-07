@@ -1,7 +1,6 @@
 import type { ComponentType, MouseEvent } from 'react'
 import { Check, HelpCircle, X } from 'lucide-react'
-
-export type AttendanceState = 'ATTENDING' | 'MAYBE' | 'ABSENT' | 'NOT_RESPONDED'
+import type { AttendanceState } from '@entities/attendance/model/attendance-state'
 
 interface ResponseOption {
   value: AttendanceState

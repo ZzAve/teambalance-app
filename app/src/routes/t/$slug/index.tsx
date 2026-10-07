@@ -193,11 +193,14 @@ function EventListPage() {
             }}
             hero={heroEvent && (
                 <NextEventHero
+                    // Keyed like the cards, so a re-pick (a filter, an event starting) hands the new
+                    // hero a fresh disclosure rather than the one the member opened on the last.
+                    key={heroEvent.id}
                     event={heroEvent}
                     now={now}
                     // The hero's lineup sits behind the cards' disclosure and follows the same
                     // preference (#386).
-                    defaultLineupOpen={defaultExpanded}
+                    defaultRosterOpen={defaultExpanded}
                     lineup={(event) => lineupPanel(event, {summary: false})}
                 />
             )}

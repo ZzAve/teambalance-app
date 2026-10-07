@@ -221,7 +221,7 @@ function EventsPageHarness(args: HarnessArgs) {
             event={hero}
             myState={hero.myState}
             now={NOW}
-            defaultLineupOpen={defaultExpanded}
+            defaultRosterOpen={defaultExpanded}
             onRespond={(state) => {
               args.onHeroRespond(state)
               answer(hero.id, 'u-me', state)

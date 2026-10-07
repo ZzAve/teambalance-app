@@ -127,15 +127,17 @@ export function EventLineupPanel({
     <div>
       <div className="mb-3 flex items-center justify-between gap-2">
         <SectionLabel as="span">Lineup</SectionLabel>
-        <span className="text-caption font-bold text-foreground/70">
-          {summary && <span>{news}</span>}
-          {subs && (
-            <>
-              {summary && ' · '}
-              <span className="text-purple-ink">{subs}</span>
-            </>
-          )}
-        </span>
+        {(summary || subs) && (
+          <span className="text-caption font-bold text-foreground/70">
+            {summary && <span>{news}</span>}
+            {subs && (
+              <>
+                {summary && ' · '}
+                <span className="text-purple-ink">{subs}</span>
+              </>
+            )}
+          </span>
+        )}
       </div>
 
       {rows.length === 0 ? (

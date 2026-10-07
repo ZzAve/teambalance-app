@@ -4,6 +4,7 @@ import { Check, ChevronDown, Clock, MapPin, X } from 'lucide-react'
 import type { Event } from '@shared/api/events'
 import type { AttendanceState } from '@features/attendance-toggle/ui/AttendanceToggle'
 import { ReadinessBadge } from '@entities/event/ui/ReadinessBadge'
+import { panelNoun } from '@entities/event/lib/roster-view'
 import { SectionLabel } from '@shared/ui/SectionLabel'
 import { MapsLink } from '@shared/ui/MapsLink'
 import { heroCountdown } from '../lib/countdown'
@@ -19,15 +20,14 @@ interface NextEventHeroViewProps {
   /** Injected so the countdown is deterministic in stories; defaults to the real clock. */
   now?: Date
   /**
-   * The lineup, behind the same disclosure the list cards use (#386). It was always open once —
-   * the next event is the one whose roster matters right now — but open it filled a phone's whole
-   * first screen, and a member opening the app to see what is coming saw one event. The verdict
-   * badge keeps the one-glance news; the roster is a tap away. Injected for the same reason as on
-   * the card — it is built from widgets this View should not have to wire.
+   * The lineup, behind the same disclosure the list cards use and closed by default (#386): open,
+   * it fills a phone's first screen and hides the next card, while the readiness badge already
+   * carries the one-glance verdict. Injected for the same reason as on the card — it is built from
+   * widgets this View should not have to wire.
    */
   lineup?: ReactNode
   /** Start the lineup open — the member's `Keep open` preference, as on every card (ADR-0030 §6). */
-  defaultLineupOpen?: boolean
+  defaultRosterOpen?: boolean
 }
 
 /** The status line's second clause — what the viewer has (or hasn't) said. */
@@ -54,21 +54,19 @@ export function NextEventHeroView({
   onRespond,
   now = new Date(),
   lineup,
-  defaultLineupOpen = false,
+  defaultRosterOpen = false,
 }: NextEventHeroViewProps) {
   const routes = useTeamRoutes()
-  const [lineupOpen, setLineupOpen] = useState(defaultLineupOpen)
+  const [lineupOpen, setLineupOpen] = useState(defaultRosterOpen)
   // `Keep open` is a preference, not merely an initial value: when it flips, follow it — the same
   // render-time reset EventAnswerRow does, so the hero and the cards open and close together.
-  const [appliedDefault, setAppliedDefault] = useState(defaultLineupOpen)
-  if (appliedDefault !== defaultLineupOpen) {
-    setAppliedDefault(defaultLineupOpen)
-    setLineupOpen(defaultLineupOpen)
+  const [appliedDefault, setAppliedDefault] = useState(defaultRosterOpen)
+  if (appliedDefault !== defaultRosterOpen) {
+    setAppliedDefault(defaultRosterOpen)
+    setLineupOpen(defaultRosterOpen)
   }
   const lineupId = useId()
-  // The same noun the card's disclosure uses: an untracked social has no positions, so its panel is
-  // its people.
-  const panelNoun = event.roster.trackRoster ? 'lineup' : "who's coming"
+  const noun = panelNoun(event.roster)
   const date = new Date(event.startTime)
   const countdown = heroCountdown(event.startTime, now)
   const going = myState === 'ATTENDING'
@@ -210,7 +208,7 @@ export function NextEventHeroView({
           onClick={() => setLineupOpen((open) => !open)}
           className="relative z-10 mt-2 flex min-h-11 w-full cursor-pointer items-center justify-center gap-1.5 rounded-md bg-white/10 px-3 text-small font-semibold text-white/90 transition-colors hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
         >
-          {lineupOpen ? `Hide ${panelNoun}` : `Show ${panelNoun}`}
+          {lineupOpen ? `Hide ${noun}` : `Show ${noun}`}
           <ChevronDown
             size={14}
             aria-hidden

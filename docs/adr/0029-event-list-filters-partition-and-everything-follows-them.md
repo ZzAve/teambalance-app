@@ -60,6 +60,11 @@ said the right thing — the action covers what is *shown* — and needed restat
    The pleasant converse is that filtering to `Not responded` *is* Bulk Attend's preview: the list
    then shows exactly what the buttons would write to.
 
+   *Amended by #386:* the Next Up hero's own event is the one event on screen that Bulk Attend does
+   **not** cover. Its answer buttons sit directly above the bar, so "Attend 1 match" describing the
+   event the member has just read is noise rather than a shortcut; the bar reads the list *below*
+   the hero. The filter invariant is untouched — the hero still follows every dimension.
+
 7. **Filtering stays client-side, and the list is not paginated.** Both fields are already on the
    payload and the list endpoint is batched, not N+1 (`AttendanceService.attendanceForAll`). At a
    realistic ceiling of a few hundred events a team the payload is tens of kilobytes gzipped, and

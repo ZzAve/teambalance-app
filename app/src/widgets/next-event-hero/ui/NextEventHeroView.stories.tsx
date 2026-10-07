@@ -120,6 +120,9 @@ export const Data: Story = {
     // The headcount is stated once (#386): the status line carries it, so the lineup header does
     // not print its own "0 going" beneath it.
     await expect(canvas.queryByText(/^\d+ going$/)).not.toBeInTheDocument()
+    // And it closes again.
+    await userEvent.click(canvas.getByRole('button', { name: /Hide who's coming/ }))
+    await expect(canvas.queryByText('Lineup')).not.toBeInTheDocument()
     // Two days and eleven hours out, floored to the largest useful unit.
     await expect(canvas.getByText('2d')).toBeInTheDocument()
     await expect(canvas.getByText(/10 going · you haven't responded/)).toBeInTheDocument()
@@ -159,7 +162,7 @@ export const Shells: Story = {
             event={READY_EVENT}
             myState="ATTENDING"
             lineup={lineupFor(READY_EVENT)}
-            defaultLineupOpen
+            defaultRosterOpen
           />
         ),
         'Readiness short': (
@@ -205,7 +208,7 @@ export const Shells: Story = {
         ),
         // The member keeps panels open (ADR-0030 §6): the hero's lineup starts open like every
         // card's. The one frame that still shows the panel on the green (#386).
-        'Lineup open': <NextEventHeroView {...args} lineup={LINEUP} defaultLineupOpen />,
+        'Lineup open': <NextEventHeroView {...args} lineup={LINEUP} defaultRosterOpen />,
       }}
     />
   ),
@@ -278,7 +281,7 @@ export const Interactions: Story = {
   render: (args) => (
     <Stack
       items={{
-        Default: <NextEventHeroView {...args} lineup={LINEUP} defaultLineupOpen />,
+        Default: <NextEventHeroView {...args} lineup={LINEUP} defaultRosterOpen />,
         Saving: <NextEventHeroView {...args} isSaving />,
       }}
     />

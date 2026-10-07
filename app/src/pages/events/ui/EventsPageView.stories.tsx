@@ -312,6 +312,8 @@ export const Data: Story = {
     await expect(canvas.getByRole('heading', { name: 'Events' })).toBeInTheDocument()
     await expect(canvas.getByRole('button', { name: 'New Event' })).toBeInTheDocument()
     await expect(canvas.getByRole('button', { name: 'Filters' })).toHaveAttribute('aria-expanded', 'false')
+    // Every member, not just admins, reaches their calendar links from here.
+    await expect(canvas.getByRole('link', { name: 'Calendar links' })).toHaveAttribute('href', '/t/setpoint-vt/calendar')
     // The hero holds the one event within the window, and the list does not repeat it.
     await expect(canvas.getByText('Next up')).toBeInTheDocument()
     await expect(canvas.getAllByText('Training — Court 2')).toHaveLength(1)

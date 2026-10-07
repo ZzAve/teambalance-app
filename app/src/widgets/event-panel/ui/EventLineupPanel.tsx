@@ -155,7 +155,7 @@ export function EventLineupPanel({
       <button
         type="button"
         onClick={() => onCallInSubstitutes(null)}
-        className="mt-3.5 flex w-full items-center justify-center gap-2 rounded-md border-[1.5px] border-dashed border-purple/55 py-2 text-small font-semibold text-purple-ink hover:bg-purple/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="mt-3.5 flex w-full items-center justify-center gap-2 rounded-md border-[1.5px] border-dashed border-purple/55 min-h-11 py-2 text-small font-semibold text-purple-ink hover:bg-purple/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
         <UserPlus size={18} aria-hidden />
         Call in substitutes

@@ -84,7 +84,8 @@ export function SubstitutePickerView({
               disabled={pending}
               onClick={() => onSetState(sub.id, option.value)}
               className={cn(
-                'rounded-full border-[1.5px] px-2 py-1 text-caption font-semibold transition-colors disabled:opacity-60',
+                // The pill stays small; the invisible ::after stretches the tap target to 44px tall (F7).
+                'relative rounded-full border-[1.5px] px-2 py-1 text-caption font-semibold transition-colors disabled:opacity-60 after:absolute after:-inset-y-2.5 after:inset-x-0',
                 state === option.value ? option.active : 'border-border text-muted-foreground hover:bg-muted',
               )}
             >

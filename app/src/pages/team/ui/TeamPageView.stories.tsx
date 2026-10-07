@@ -4,6 +4,8 @@ import type { Member } from '@shared/api/members'
 import type { Position } from '@shared/api/positions'
 import { Button } from '@shared/ui/button'
 import { Stack } from '@shared/testing/stack'
+import { appColumn } from '@shared/testing/app-column-decorator'
+import { withRouter } from '@shared/testing/router-decorator'
 import { MemberRosterView } from '@features/manage-members/ui/MemberRosterView'
 import { ManageSubstitutesView } from '@features/manage-substitutes/ui/ManageSubstitutesView'
 import { appShell } from '../../../../.storybook/app-shell-decorator'
@@ -60,7 +62,6 @@ const shell = appShell('team')
 const meta = {
   title: 'pages/team/TeamPageView',
   component: TeamPageView,
-  decorators: shell.decorators,
   parameters: shell.parameters,
   args: {
     isAdmin: true,
@@ -75,6 +76,7 @@ export default meta
 type Story = StoryObj<typeof meta>
 
 export const Data: Story = {
+  decorators: shell.decorators,
   // The page's picture, in dark and once at desktop width too (ADR-0032 §4-§5).
   parameters: { chromatic: { modes: pageModes } },
   play: async ({ canvas }) => {
@@ -96,7 +98,12 @@ export const Data: Story = {
 }
 
 // A member's view of the same page, and the roster's two shells under the header.
+//
+// Hosted in the app column rather than the real shell (unlike Data): one header and one tab bar
+// around a Stack of three pages would frame them as a single page. Data already proves the real
+// shell renders this View correctly; this story's job is the three prop shapes, not the chrome.
 export const Shells: Story = {
+  decorators: [...appColumn.decorators, withRouter],
   render: (args) => (
     <Stack
       items={{

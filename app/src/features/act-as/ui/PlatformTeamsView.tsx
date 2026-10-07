@@ -52,15 +52,14 @@ export function PlatformTeamsView({
           ) : (
             <ul className="divide-y divide-border rounded-lg border border-border">
               {teams.map((team) => (
-                <li key={team.id} className="flex flex-wrap items-center gap-3 p-3">
-                  <span className="text-small font-medium">{team.name}</span>
-                  <span className="font-mono text-caption text-muted-foreground">/{team.slug}</span>
-                  <Button
-                    size="sm"
-                    className="ml-auto"
-                    disabled={isEntering}
-                    onClick={() => onEnter(team)}
-                  >
+                <li key={team.id} className="flex items-center gap-3 p-3">
+                  {/* Name over slug rather than beside it: side by side, the slug started wherever
+                      the name happened to end, so no two rows lined up. */}
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-small font-medium">{team.name}</p>
+                    <p className="truncate font-mono text-caption text-muted-foreground">/{team.slug}</p>
+                  </div>
+                  <Button size="sm" disabled={isEntering} onClick={() => onEnter(team)}>
                     Enter
                   </Button>
                 </li>

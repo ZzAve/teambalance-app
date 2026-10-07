@@ -24,7 +24,13 @@ const meta = {
   title: 'features/event-panel-view/PanelViewMenu',
   component: PanelViewMenu,
   args: { defaultExpanded: false, onDefaultExpandedChange: fn() },
-  // The popover opens downward from the trigger, so the frame needs room beneath it.
+  // min-h-[320px]: the popover opens downward from the trigger, so the frame needs room beneath it.
+  // justify-end: load-bearing, not incidental — the popover is `absolute right-0` against a wrapper
+  // that is only as wide as the trigger, so without this the trigger would sit flush at the canvas's
+  // left edge and the popover's right-aligned edge would land off-canvas (the same defect fixed with
+  // an explicit decorator in TeamSwitcherView:MenuOpen and EventFiltersView:Open). Here it comes from
+  // the meta, so it protects Data, Shells, MenuOpen and Interactions at once — keep it if this
+  // decorator ever changes.
   decorators: [
     (Story) => (
       <div className="flex min-h-[320px] justify-end p-4">

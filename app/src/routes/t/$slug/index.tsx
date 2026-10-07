@@ -97,13 +97,15 @@ function EventListPage() {
     const pendingSubstituteEvents = usePendingSubstituteEvents()
 
     // The lineup panel, built once for the list cards and the hero: both need the page's attendance
-    // write and its one Substitute picker.
-    const lineupPanel = (event: Event) => (
+    // write and its one Substitute picker. The hero drops the header summary — its badge and status
+    // line already state the verdict and the headcount (#386).
+    const lineupPanel = (event: Event, {summary = true} = {}) => (
         <EventLineupPanel
             attendances={event.attendances}
             roster={event.roster}
             currentUserId={currentUserId}
             substitutes={event.substitutes}
+            summary={summary}
             onRespond={(userId, state) => respondFor(event.id, userId, state)}
             onCallInSubstitutes={(position) => setPicker({eventId: event.id, position, open: true})}
             onSetSubstituteState={(substituteId, state) =>
@@ -149,16 +151,16 @@ function EventListPage() {
     const showTurnout = useMemo(() => spansMultipleTurnoutBuckets(events ?? []), [events])
 
     // Bulk Attend acts on exactly what the page shows (ADR-0020, ADR-0029 §6), so it reads
-    // `sortedEvents` — already narrowed by *both* chip groups, the hero included since pulling it
-    // out of the list does not stop it being on screen. That is why filtering to an answered status
-    // leaves no buttons at all: the visible list then holds nothing unanswered. Past events
-    // are excluded by the selector, not by the surrounding UI: with the tabs gone, `showPast` merely
-    // adds past events to the same list, so the future-only rule has to live in the selector.
-    // It reads the page's shared `now`, so the button and the cards can never disagree about which
-    // events have started.
+    // `listEvents` — already narrowed by *both* chip groups. The hero's event is left out (#386): its
+    // own answer buttons sit directly above the bar, so "Attend 1 match" must not describe the event
+    // the member just read. That is also why filtering to an answered status leaves no buttons at
+    // all: the visible list then holds nothing unanswered. Past events are excluded by the selector,
+    // not by the surrounding UI: with the tabs gone, `showPast` merely adds past events to the same
+    // list, so the future-only rule has to live in the selector. It reads the page's shared `now`,
+    // so the button and the cards can never disagree about which events have started.
     const bulkEvents = useMemo(
-        () => eligibleEvents(sortedEvents, activeTypeIds, now),
-        [sortedEvents, activeTypeIds, now],
+        () => eligibleEvents(listEvents, activeTypeIds, now),
+        [listEvents, activeTypeIds, now],
     )
 
     return (
@@ -187,7 +189,9 @@ function EventListPage() {
                 defaultExpanded,
                 onDefaultExpandedChange: setDefaultExpanded,
             }}
-            hero={heroEvent && <NextEventHero event={heroEvent} now={now} lineup={lineupPanel}/>}
+            hero={heroEvent && (
+                <NextEventHero event={heroEvent} now={now} lineup={(event) => lineupPanel(event, {summary: false})}/>
+            )}
             bulkBar={<BulkAttendBar events={bulkEvents}/>}
             list={{
                 events: listEvents,

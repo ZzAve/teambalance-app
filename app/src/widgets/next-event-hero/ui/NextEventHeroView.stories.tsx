@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { expect, fn, within } from 'storybook/test'
+import type { Event } from '@shared/api/events'
 import { withRouter } from '@shared/testing/router-decorator'
 import { makeAttendee, makeEvent, makeRoster, NO_ROSTER } from '@shared/testing/event-fixtures'
 import { Stack } from '@shared/testing/stack'
@@ -41,19 +42,22 @@ const EVENT = makeEvent({
   ],
 })
 
-// The same panel the list cards open, always shown here. Its answer wiring is the container's, so
-// the stories prove only that it renders and that its chips stay above the card link's overlay.
-const LINEUP = (
+// The same panel the list cards open, always shown here, without its header summary: the hero's
+// badge already states the verdict (#386). Its answer wiring is the container's, so the stories
+// prove only that it renders and that its chips stay above the card link's overlay.
+const lineupFor = (event: Event) => (
   <EventLineupPanel
-    attendances={EVENT.attendances}
-    roster={EVENT.roster}
+    attendances={event.attendances}
+    roster={event.roster}
     currentUserId="u-me"
+    summary={false}
     onRespond={fn()}
     onCallInSubstitutes={fn()}
     onSetSubstituteState={fn()}
     onTakeOffSubstitute={fn()}
   />
 )
+const LINEUP = lineupFor(EVENT)
 
 const READY_EVENT = makeEvent({
   ...EVENT,
@@ -107,6 +111,9 @@ export const Data: Story = {
     await expect(canvas.getByText('Lineup')).toBeInTheDocument()
     await expect(canvas.getByRole('button', { name: /^Sanne/ })).toBeInTheDocument()
     await expect(canvas.queryByRole('button', { name: /Show lineup/ })).not.toBeInTheDocument()
+    // The headcount is stated once (#386): the status line carries it, so the lineup header does
+    // not print its own "0 going" beneath it.
+    await expect(canvas.queryByText(/^\d+ going$/)).not.toBeInTheDocument()
     // Two days and eleven hours out, floored to the largest useful unit.
     await expect(canvas.getByText('2d')).toBeInTheDocument()
     await expect(canvas.getByText(/10 going · you haven't responded/)).toBeInTheDocument()
@@ -140,7 +147,9 @@ export const Shells: Story = {
         // ── Readiness (#275) ──────────────────────────────────────────────────────────────────────
         // The hero was the last surface in the app with no roster verdict. It carries the same
         // `ReadinessBadge` as the card row (#273) — same `rosterChip`, no second computation.
-        'Readiness covered': <NextEventHeroView {...args} event={READY_EVENT} myState="ATTENDING" />,
+        'Readiness covered': (
+          <NextEventHeroView {...args} event={READY_EVENT} myState="ATTENDING" lineup={lineupFor(READY_EVENT)} />
+        ),
         'Readiness short': (
           <NextEventHeroView
             {...args}
@@ -218,6 +227,10 @@ export const Shells: Story = {
     await expect(region('Readiness covered').getByText('Lineup set')).toBeInTheDocument()
     // The verdict joins the headcount the hero already carried; it does not replace it.
     await expect(region('Readiness covered').getByText(/10 going · you're in/)).toBeInTheDocument()
+    // And it is stated once (#386): the badge carries it, so the lineup header's "3 of 3 covered"
+    // — the same news in other words — is not repeated beneath it.
+    await expect(region('Readiness covered').getByText('Lineup')).toBeInTheDocument()
+    await expect(region('Readiness covered').queryByText(/\d+ of \d+ covered/)).not.toBeInTheDocument()
 
     await expect(region('Readiness short').getByText('1 spot open')).toBeInTheDocument()
 

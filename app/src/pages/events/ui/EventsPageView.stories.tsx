@@ -174,7 +174,7 @@ function EventsPageHarness(args: HarnessArgs) {
   )
   const hero = selectHeroEvent(sorted, NOW)
   const listEvents = hero ? sorted.filter((e) => e.id !== hero.id) : sorted
-  const groups = groupByType(eligibleEvents(sorted, activeTypeIds, NOW))
+  const groups = groupByType(eligibleEvents(listEvents, activeTypeIds, NOW))
 
   return (
     <EventsPageView
@@ -231,6 +231,7 @@ function EventsPageHarness(args: HarnessArgs) {
                 roster={hero.roster}
                 currentUserId="u-me"
                 substitutes={hero.substitutes}
+                summary={false}
                 onCallInSubstitutes={() => {}}
                 onSetSubstituteState={() => {}}
                 onTakeOffSubstitute={() => {}}
@@ -316,8 +317,10 @@ export const Data: Story = {
     await expect(canvas.getByText('Next up')).toBeInTheDocument()
     await expect(canvas.getAllByText('Training — Court 2')).toHaveLength(1)
     await expect(canvas.getByRole('button', { name: /I'm in/ })).toHaveAttribute('aria-pressed', 'false')
-    // Bulk Attend reads the same list the page shows: two unanswered trainings, one social.
-    await expect(canvas.getByRole('button', { name: 'Attend 2 trainings' })).toBeInTheDocument()
+    // Bulk Attend reads the list below the hero (#386): the hero's own training has its answer
+    // buttons right there, so the bar counts only the other unanswered training and the social.
+    await expect(canvas.getByRole('button', { name: 'Attend 1 training' })).toBeInTheDocument()
+    await expect(canvas.queryByRole('button', { name: 'Attend 2 trainings' })).not.toBeInTheDocument()
     await expect(canvas.getByRole('button', { name: 'Attend 1 social' })).toBeInTheDocument()
     for (const title of [
       'League Match vs Smash United',
@@ -404,11 +407,12 @@ export const Interactions: Story = {
   decorators: shell.decorators,
   parameters: { chromatic: { disableSnapshot: true } },
   play: async ({ canvas, userEvent, args }) => {
-    // RSVP from the hero: the callback fires and the harness flips the hero's own state.
+    // RSVP from the hero: the callback fires and the harness flips the hero's own state. Bulk
+    // Attend never counted the hero's training (#386), so the bar reads the same before and after.
+    await expect(canvas.getByRole('button', { name: 'Attend 1 training' })).toBeInTheDocument()
     await userEvent.click(canvas.getByRole('button', { name: /I'm in/ }))
     await expect(args.onHeroRespond).toHaveBeenCalledWith('ATTENDING')
     await expect(canvas.getByRole('button', { name: /I'm in/ })).toHaveAttribute('aria-pressed', 'true')
-    // …and Bulk Attend no longer counts that training.
     await expect(canvas.getByRole('button', { name: 'Attend 1 training' })).toBeInTheDocument()
 
     // Hide trainings: the callback fires, the hero re-picks the next event in the window.

@@ -155,18 +155,24 @@ are not fixed. They are banded by how far off the feed's soonest *future* event 
 | Next event | Cadence |
 |---|---|
 | three days or more away, or nothing at all | **12 hours** |
-| two to three days | **6 hours** |
-| under two days | **1 hour** |
+| inside three days | **6 hours** |
+| inside 36 hours | **3 hours** |
+| inside 12 hours | **1 hour** |
 
 A flat interval has to be wrong in one direction. Hourly polling of a team whose next training is a
 fortnight away is pure traffic for a calendar that will not change; twelve-hourly polling on the
 morning of a match means a cancellation reaches people after they have already left for the hall.
 
-Three bands rather than a formula, because a client honours this as a **hint** at best — Google in
+Four bands rather than a formula, because a client honours this as a **hint** at best — Google in
 particular polls on its own schedule regardless — so finer resolution would be precision nobody
-consumes, while three named bands are three cases a test can state. The boundaries belong to the
-calmer band (exactly three days away is still 12 hours), and only events still ahead count: the feed
-reaches thirty days back, so its first entry is usually one that has already happened.
+consumes, while four named bands are four cases a test can state. The boundaries belong to the calmer
+band (exactly three days away is still 12 hours), and only events still ahead count: the feed reaches
+thirty days back, so its first entry is usually one that has already happened.
+
+The hourly band is deliberately narrow. An event is only *about* to happen for the last half-day, and
+that is the window where a cancellation has to land before people leave for the hall; a day out, three
+hours is soon enough, and two days out six hours is. Spending an hourly poll on everything inside two
+days — the first cut — bought nothing and cost twelve times the traffic in the quiet half of it.
 
 There is no configuration for this. The bands are a product decision about how fresh a team's
 schedule needs to be, not an operational dial.
@@ -178,17 +184,18 @@ client refetches on its own schedule whether or not anything changed, so the 304
 shared cache may hold one member's schedule. `DTSTAMP` is the event's `created_at` rather than the
 wall clock, precisely so the ETag is stable; a `now()` there would defeat the whole mechanism.
 
-Rate limited to 60/hour **per token** on the existing `RateLimitFilter` (ADR-0020), which now also
-inspects GET and HEAD. Generous against even the tightest band above, and unchanged by the banding:
-the ceiling exists for a runaway client, not to enforce the cadence. Per token rather than per IP because there is no session to key on and a whole
+Rate limited to 30/hour **per token** on the existing `RateLimitFilter` (ADR-0020), which now also
+inspects GET and HEAD. That is thirty times the headroom over the tightest band above, which is the
+right shape: the ceiling exists for a runaway client, not to enforce the cadence, so it only has to
+sit far enough above honest traffic to never be reached by it. Per token rather than per IP because there is no session to key on and a whole
 club behind one office NAT would otherwise share a bucket and knock each other's calendars offline.
 
 Per token alone, though, bounds a *subscription* and not a *host*: the token comes from the path, so a
 caller who never reuses one is handed a fresh full bucket every request. So the feed carries **two
 ceilings**, and must satisfy both — the per-token one above, plus **600/hour per client IP**. The
 per-IP one is deliberately loose: a whole club behind one office NAT shares it, and the feed asks to be
-polled between once and twelve times a day per subscription, so even fifty members on one address sit
-two orders of magnitude under it. It is not there to shape honest traffic; it is there so an
+polled between twice and twenty-four times a day per subscription, so even fifty members on one address
+sit an order of magnitude under it. It is not there to shape honest traffic; it is there so an
 unauthenticated endpoint doing three indexed queries cannot be driven without limit, and so the bucket
 store cannot be churned past its key cap from one source. The token is hashed into its bucket key
 rather than used raw, because keys outlive the request in the limiter's cache and a live credential has

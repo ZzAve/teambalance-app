@@ -25,18 +25,22 @@ class RefreshCadenceTest : FunSpec({
         }
     }
 
-    // The three reference points the bands were specified by.
+    // The four reference points the bands are specified by.
     context("the bands tighten as an event approaches") {
         test("three days out: twelve hours") {
             cadenceWithEventIn(Duration.ofDays(3)) shouldBe RefreshCadence.RELAXED
             RefreshCadence.RELAXED.interval shouldBe Duration.ofHours(12)
         }
-        test("two days out: six hours") {
-            cadenceWithEventIn(Duration.ofDays(2)) shouldBe RefreshCadence.CLOSING
+        test("inside three days: six hours") {
+            cadenceWithEventIn(Duration.ofHours(36)) shouldBe RefreshCadence.CLOSING
             RefreshCadence.CLOSING.interval shouldBe Duration.ofHours(6)
         }
-        test("one day out: one hour") {
-            cadenceWithEventIn(Duration.ofDays(1)) shouldBe RefreshCadence.IMMINENT
+        test("inside thirty-six hours: three hours") {
+            cadenceWithEventIn(Duration.ofHours(12)) shouldBe RefreshCadence.NEAR
+            RefreshCadence.NEAR.interval shouldBe Duration.ofHours(3)
+        }
+        test("inside twelve hours: one hour") {
+            cadenceWithEventIn(Duration.ofHours(11)) shouldBe RefreshCadence.IMMINENT
             RefreshCadence.IMMINENT.interval shouldBe Duration.ofHours(1)
         }
     }
@@ -47,17 +51,15 @@ class RefreshCadenceTest : FunSpec({
         test("a minute short of three days has already tightened") {
             cadenceWithEventIn(Duration.ofDays(3).minusMinutes(1)) shouldBe RefreshCadence.CLOSING
         }
-        test("a minute short of two days has tightened again") {
-            cadenceWithEventIn(Duration.ofDays(2).minusMinutes(1)) shouldBe RefreshCadence.IMMINENT
+        test("a minute short of thirty-six hours has tightened again") {
+            cadenceWithEventIn(Duration.ofHours(36).minusMinutes(1)) shouldBe RefreshCadence.NEAR
+        }
+        test("a minute short of twelve hours is as tight as it gets") {
+            cadenceWithEventIn(Duration.ofHours(12).minusMinutes(1)) shouldBe RefreshCadence.IMMINENT
         }
     }
 
-    // The 1-2 day stretch was not given a band of its own; it rides with the imminent one.
-    test("a day and a half out is imminent, not closing") {
-        cadenceWithEventIn(Duration.ofHours(36)) shouldBe RefreshCadence.IMMINENT
-    }
-
-    test("an event about to start is as imminent as it gets") {
+    test("an event about to start is imminent") {
         cadenceWithEventIn(Duration.ofMinutes(10)) shouldBe RefreshCadence.IMMINENT
     }
 
@@ -69,7 +71,7 @@ class RefreshCadenceTest : FunSpec({
 
     // Java renders a Duration as ISO-8601, which RFC 5545's DURATION is a subset of. CalendarIcs
     // writes the interval straight out, so a band that did not render as `PT..H` would be malformed.
-    test("every band renders as an RFC 5545 duration") {
-        RefreshCadence.entries.map { it.interval.toString() } shouldBe listOf("PT12H", "PT6H", "PT1H")
+    test("every band renders as an RFC 5545 duration, loosest first") {
+        RefreshCadence.entries.map { it.interval.toString() } shouldBe listOf("PT12H", "PT6H", "PT3H", "PT1H")
     }
 })

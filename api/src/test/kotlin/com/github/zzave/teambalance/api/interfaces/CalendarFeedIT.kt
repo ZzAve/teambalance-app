@@ -108,13 +108,19 @@ class CalendarFeedIT : TeamBalanceIT() {
                 body(fetch(ALPHA_SLUG, liveLink())) shouldContain "REFRESH-INTERVAL;VALUE=DURATION:PT12H"
             }
 
-            test("an event tomorrow tightens it to an hour") {
-                CalendarLinkFixture.extraEvent(jdbcTemplate, Instant.now().plus(Duration.ofDays(1)))
+            test("an event this evening tightens it to an hour") {
+                CalendarLinkFixture.extraEvent(jdbcTemplate, Instant.now().plus(Duration.ofHours(6)))
 
                 body(fetch(ALPHA_SLUG, liveLink())) shouldContain "REFRESH-INTERVAL;VALUE=DURATION:PT1H"
             }
 
-            test("an event two and a half days out sits in the middle band") {
+            test("an event tomorrow sits three hours apart") {
+                CalendarLinkFixture.extraEvent(jdbcTemplate, Instant.now().plus(Duration.ofDays(1)))
+
+                body(fetch(ALPHA_SLUG, liveLink())) shouldContain "REFRESH-INTERVAL;VALUE=DURATION:PT3H"
+            }
+
+            test("an event two and a half days out sits six hours apart") {
                 CalendarLinkFixture.extraEvent(jdbcTemplate, Instant.now().plus(Duration.ofHours(60)))
 
                 body(fetch(ALPHA_SLUG, liveLink())) shouldContain "REFRESH-INTERVAL;VALUE=DURATION:PT6H"

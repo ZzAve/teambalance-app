@@ -19,15 +19,15 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers.header
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import java.time.Instant
 
-private const val CAPACITY = 60
+private const val CAPACITY = 30
 
 // The per-IP backstop, set just above the per-token one so this spec can exercise both without
-// hundreds of requests. In application.yml it is 600 — ten times looser, because honest traffic from a
-// NAT'd club sits two orders of magnitude under even that.
-private const val CLIENT_CAPACITY = 65
+// hundreds of requests. In application.yml it is 600 — twenty times looser, because honest traffic
+// from a NAT'd club sits an order of magnitude under even that.
+private const val CLIENT_CAPACITY = 35
 
 /**
- * The feed is throttled per **token**, 60 an hour (ADR-0032) — the number `application.yml` ships and
+ * The feed is throttled per **token**, 30 an hour (ADR-0032) — the number `application.yml` ships and
  * the one restored here, because the shared test profile raises every limit to 1000 so unrelated specs
  * do not throttle each other.
  *
@@ -61,7 +61,7 @@ class CalendarFeedRateLimitIT : TeamBalanceIT() {
 
         // Each test takes its own TEST-NET-3 address, so the per-token and per-client ceilings cannot
         // couple: one test spending its client allowance must not decide another's outcome.
-        test("the 61st fetch of one token in an hour is refused, with a Retry-After") {
+        test("the 31st fetch of one token in an hour is refused, with a Retry-After") {
             val ip = "198.51.100.40"
             val token = liveLink()
             repeat(CAPACITY) { fetch(token, ip).andExpect(status().isOk) }

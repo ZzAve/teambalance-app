@@ -89,6 +89,7 @@ class CalendarIcsTest : FunSpec({
         listOf(
             RefreshCadence.RELAXED to "PT12H",
             RefreshCadence.CLOSING to "PT6H",
+            RefreshCadence.NEAR to "PT3H",
             RefreshCadence.IMMINENT to "PT1H",
         ).forEach { (cadence, iso) ->
             test("$cadence is written in both spellings clients read") {

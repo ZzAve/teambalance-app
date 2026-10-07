@@ -150,10 +150,10 @@ teambalance:
       capacity: 10
       refill-period: 1m
     # GET /api/calendar/{slug}/{token}.ics — keyed per token, not per IP: the feed is session-less and
-    # calendar clients behind one corporate NAT would otherwise share a bucket. 60/hour is generous
-    # against the PT1H refresh interval the feed itself advertises.
+    # calendar clients behind one corporate NAT would otherwise share a bucket. 30/hour against a
+    # tightest advertised cadence of PT1H, so thirty times the headroom a well-behaved client needs.
     calendar-feed:
-      capacity: 60
+      capacity: 30
       refill-period: 1h
     # The second ceiling on the same request, per client IP. Loose on purpose: a club behind one
     # office NAT shares it, and the feed only asks to be polled 1-12 times a day per subscription.

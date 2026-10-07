@@ -27,8 +27,14 @@ export function CalendarLinks() {
       isSaving={createLink.isPending || deleteLink.isPending}
       actionError={createLink.isError || deleteLink.isError}
       copiedId={copiedId}
-      onGenerate={(label) => createLink.mutate({ label })}
-      onDelete={(id) => deleteLink.mutate({ id })}
+      onGenerate={(label) => {
+        deleteLink.reset()
+        createLink.mutate({ label }, { onSuccess: () => setCopiedId(null) })
+      }}
+      onDelete={(id) => {
+        createLink.reset()
+        deleteLink.mutate({ id }, { onSuccess: () => setCopiedId(null) })
+      }}
       onCopy={handleCopy}
       onRetry={() => refetch()}
     />

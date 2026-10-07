@@ -74,7 +74,7 @@ class MemberControllerIT : TeamBalanceIT() {
             MockMvcRequestBuilders.put("/api/members/$pathUserId")
                 .header("X-User-Id", userId)
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("""{"displayName":"$displayName","role":"$role"}"""),
+                .content("""{"displayName":"$displayName","role":"$role","shirtNumber":{"value":null}}"""),
         )
             .andExpect(MockMvcResultMatchers.request().asyncStarted())
             .andReturn()
@@ -93,7 +93,7 @@ class MemberControllerIT : TeamBalanceIT() {
             MockMvcRequestBuilders.put("/api/members/$pathUserId")
                 .header("X-User-Id", userId)
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("""{"displayName":"$displayName","role":"USER"}"""),
+                .content("""{"displayName":"$displayName","role":"USER","shirtNumber":{"value":null}}"""),
         )
             .andExpect(MockMvcResultMatchers.request().asyncStarted())
             .andReturn()
@@ -104,11 +104,20 @@ class MemberControllerIT : TeamBalanceIT() {
             MockMvcRequestBuilders.put("/api/members/$pathUserId")
                 .header("X-User-Id", userId)
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("""{"displayName":"$displayName","role":"USER","shirtNumber":$shirtNumber}"""),
+                .content("""{"displayName":"$displayName","role":"USER","shirtNumber":{"value":$shirtNumber}}"""),
         )
             .andExpect(MockMvcResultMatchers.request().asyncStarted())
             .andReturn()
             .let { mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(it)) }
+
+    // Refused while reading the body, before the handler runs, so the response is synchronous.
+    private fun updateWithoutShirtNumberAs(userId: String, pathUserId: String, displayName: String) =
+        mockMvc.perform(
+            MockMvcRequestBuilders.put("/api/members/$pathUserId")
+                .header("X-User-Id", userId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""{"displayName":"$displayName","role":"USER"}"""),
+        )
 
     private fun completeOnboardingAs(userId: String, displayName: String, positionId: String) =
         mockMvc.perform(
@@ -202,6 +211,31 @@ class MemberControllerIT : TeamBalanceIT() {
             // 2^32 + 7 would wrap to 7 if narrowed with toInt().
             updateShirtNumberAs(JAN_USER_ID, JAN_USER_ID, "Jan de Vries", 4_294_967_303)
                 .andExpect(MockMvcResultMatchers.status().isBadRequest)
+        }
+
+        // An app from before shirt numbers does not send the field. Reading that as "no number" would
+        // silently clear one set from a newer app, so the request is refused instead (PR #383).
+        test("PUT /api/members/{ownId} without a shirtNumber returns 400 and keeps the number") {
+            seedTeam(janRole = "USER")
+            updateShirtNumberAs(JAN_USER_ID, JAN_USER_ID, "Jan de Vries", 7)
+                .andExpect(MockMvcResultMatchers.status().isOk)
+
+            updateWithoutShirtNumberAs(JAN_USER_ID, JAN_USER_ID, "Jan Janssen")
+                .andExpect(MockMvcResultMatchers.status().isBadRequest)
+
+            getMeAs(JAN_USER_ID)
+                .andExpect(MockMvcResultMatchers.jsonPath("$.displayName").value("Jan de Vries"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.shirtNumber").value(7))
+        }
+
+        test("PUT /api/members/me/onboarding keeps a shirt number an admin already set") {
+            seedTeam(janRole = "ADMIN")
+            updateShirtNumberAs(JAN_USER_ID, LISA_USER_ID, "Lisa Bakker", 4)
+                .andExpect(MockMvcResultMatchers.status().isOk)
+
+            completeOnboardingAs(LISA_USER_ID, "Lisa B", positionId("Libero"))
+                .andExpect(MockMvcResultMatchers.status().isOk)
+                .andExpect(MockMvcResultMatchers.jsonPath("$.shirtNumber").value(4))
         }
 
         test("PUT /api/members/{otherUserId} by a non-admin is rejected with 403") {

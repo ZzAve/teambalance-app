@@ -103,22 +103,17 @@ class MemberService(
 
     /**
      * Completes the caller's one-time onboarding: applies the member's own display name and position
-     * and stamps onboarded_at, as one unit. Role is left untouched — onboarding never changes it.
+     * and stamps onboarded_at, as one unit. Role and Shirt Number are left untouched — onboarding never
+     * changes them, so a number an Admin set beforehand is carried over.
      * Idempotent: re-running keeps the member onboarded and simply re-applies name/position. The
      * controller enforces that [userId] is the authenticated principal (self-only).
      */
-    fun completeOnboarding(
-        userId: UserId,
-        teamId: TeamId,
-        rawName: String,
-        positionId: PositionId?,
-        shirtNumber: Int? = null,
-    ): TeamMember {
+    fun completeOnboarding(userId: UserId, teamId: TeamId, rawName: String, positionId: PositionId?): TeamMember {
         val currentRole = teamMemberRepository.findRole(teamId, userId)
             ?: throw MemberNotFoundException(userId)
         requirePositionInThisTeam(positionId)
         val name = normalizeAndValidateName(teamId, userId, rawName)
-        val number = validateShirtNumber(teamId, userId, shirtNumber)
+        val number = getMember(teamId, userId).shirtNumber
 
         teamMemberRepository.applyMemberEdit(teamId, userId, name, currentRole, positionId, number, Instant.now(clock))
         return getMember(teamId, userId)

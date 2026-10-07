@@ -52,7 +52,7 @@ class MemberController(
             rawName = request.body.displayName,
             role = Role.valueOf(request.body.role),
             positionId = request.body.positionId?.let { it.consumePositionId() },
-            shirtNumber = request.body.shirtNumber?.toIntOrMax(),
+            shirtNumber = request.body.shirtNumber.value?.toIntOrMax(),
         )
         return UpdateMember.Response200(updated.toDto())
     }
@@ -66,7 +66,6 @@ class MemberController(
             teamId = teamId,
             rawName = request.body.displayName,
             positionId = request.body.positionId?.let { it.consumePositionId() },
-            shirtNumber = request.body.shirtNumber?.toIntOrMax(),
         )
         return CompleteOnboarding.Response200(updated.toDto())
     }

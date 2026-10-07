@@ -354,9 +354,10 @@ class MemberServiceTest : FunSpec() {
                 .shirtNumber shouldBe ShirtNumber(7)
         }
 
-        test("completeOnboarding applies the shirt number") {
+        test("completeOnboarding keeps the shirt number the member already has") {
             val (service, _, _) = newService()
-            service.completeOnboarding(lisaId, teamId, "Lisa Nova", null, shirtNumber = 12)
+            service.updateMember(janId, teamId, lisaId, "Lisa Bakker", Role.USER, shirtNumber = 12)
+            service.completeOnboarding(lisaId, teamId, "Lisa Nova", null)
                 .shirtNumber shouldBe ShirtNumber(12)
         }
 

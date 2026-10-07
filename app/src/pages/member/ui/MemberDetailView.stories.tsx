@@ -71,6 +71,8 @@ export const Shells: Story = {
           />
         ),
         Editing: <MemberDetailView {...args} isEditing errorCode="NUMBER_TAKEN" />,
+        // A failure the form has no field for, e.g. the member was removed meanwhile.
+        'Save failed': <MemberDetailView {...args} isEditing errorCode="NOT_FOUND" errorMessage="Member not found." />,
         Loading: <MemberDetailView {...args} member={undefined} isLoading />,
         Error: <MemberDetailView {...args} member={undefined} isError />,
         'Not on the team': <MemberDetailView {...args} member={undefined} />,
@@ -87,6 +89,9 @@ export const Shells: Story = {
 
     await expect(region('Editing').getByLabelText('Shirt number')).toHaveValue('12')
     await expect(region('Editing').getByText('That shirt number is already taken.')).toBeInTheDocument()
+
+    await expect(region('Save failed').getByRole('alert')).toHaveTextContent('Member not found.')
+    await expect(region('Editing').queryByRole('alert')).not.toBeInTheDocument()
 
     await expect(region('Loading').getByText('Loading…')).toBeInTheDocument()
     await expect(region('Error').getByText(/couldn't load this member/i)).toBeInTheDocument()

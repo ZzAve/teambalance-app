@@ -19,6 +19,8 @@ interface MemberDetailViewProps {
   isSaving: boolean
   /** Backend error discriminator from the update (e.g. NAME_TAKEN, NUMBER_TAKEN), shown inline. */
   errorCode?: string
+  /** A failed save the form has no field for (e.g. forbidden, member gone), shown above the form. */
+  errorMessage?: string
   onEdit: () => void
   onCancelEdit: () => void
   onSubmit: (name: string, positionId: string | null, shirtNumber: number | null) => void
@@ -43,6 +45,7 @@ export function MemberDetailView({
   isEditing,
   isSaving,
   errorCode,
+  errorMessage,
   onEdit,
   onCancelEdit,
   onSubmit,
@@ -71,6 +74,11 @@ export function MemberDetailView({
 
           {isEditing ? (
             <div className={`${CARD} p-4`}>
+              {errorMessage && (
+                <p role="alert" className="mb-4 rounded-md bg-red/10 px-3 py-2 text-small text-red">
+                  {errorMessage}
+                </p>
+              )}
               <EditProfileForm
                 currentName={member.displayName}
                 positions={positions}

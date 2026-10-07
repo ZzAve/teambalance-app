@@ -83,7 +83,7 @@ class MemberEditBoundaryIT : TeamBalanceIT() {
             MockMvcRequestBuilders.put("/api/members/$targetUserId")
                 .header("X-User-Id", callerId)
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("""{"displayName":"$newName","role":"USER"}"""),
+                .content("""{"displayName":"$newName","role":"USER","shirtNumber":{"value":null}}"""),
         )
             .andExpect(MockMvcResultMatchers.request().asyncStarted())
             .andReturn()

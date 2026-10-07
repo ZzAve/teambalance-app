@@ -25,6 +25,11 @@ function MemberDetailPage() {
 
   const member = members?.find((m) => m.userId === userId)
   const errorCode = updateMember.error instanceof MemberUpdateError ? updateMember.error.code : undefined
+  // NAME_TAKEN and NUMBER_TAKEN sit under their fields; any other failure needs its own message.
+  const errorMessage =
+    updateMember.isError && errorCode !== 'NAME_TAKEN' && errorCode !== 'NUMBER_TAKEN'
+      ? (updateMember.error instanceof MemberUpdateError ? updateMember.error.message : "Couldn't save. Please try again.")
+      : undefined
 
   return (
     <MemberDetailView
@@ -36,6 +41,7 @@ function MemberDetailPage() {
       isEditing={isEditing}
       isSaving={updateMember.isPending}
       errorCode={errorCode}
+      errorMessage={errorMessage}
       onEdit={() => {
         updateMember.reset()
         setIsEditing(true)

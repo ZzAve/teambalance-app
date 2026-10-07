@@ -13,12 +13,24 @@ type Member {
     shirtNumber: Integer?
 }
 
-// The member's full editable state: a null `shirtNumber` clears it. 409 NUMBER_TAKEN when another current member wears that number; 400 outside 0..999 (ADR-0038).
+// A Shirt Number as the member's whole state: `value` null means no number. Wrapped so the field itself can be required: a nullable field reads the same whether it was sent as null or left out.
+type ShirtNumberValue {
+    value: Integer?
+}
+
+// The member's full editable state. `shirtNumber` is required: an app from before shirt numbers leaves it out and gets a 400, rather than clearing a number it never knew about (PR #383). 409 NUMBER_TAKEN when another current member wears that number; 400 outside 0..999 (ADR-0038).
 type UpdateMemberRequest {
     displayName: String,
     role: String,
     positionId: String?,
-    shirtNumber: Integer?
+    shirtNumber: ShirtNumberValue
+}
+
+// Onboarding sets name and position only; it never touches the Shirt Number. `role` is ignored, kept so the body stays what earlier apps send.
+type CompleteOnboardingRequest {
+    displayName: String,
+    role: String,
+    positionId: String?
 }
 
 type MemberList {
@@ -42,7 +54,7 @@ endpoint UpdateMember PUT UpdateMemberRequest /api/members/{userId: String} -> {
     409 -> Unit
 }
 
-endpoint CompleteOnboarding PUT UpdateMemberRequest /api/members/me/onboarding -> {
+endpoint CompleteOnboarding PUT CompleteOnboardingRequest /api/members/me/onboarding -> {
     200 -> Member
     401 -> Unit
     409 -> Unit

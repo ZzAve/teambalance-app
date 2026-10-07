@@ -65,7 +65,7 @@ export function useUpdateMember() {
     mutationFn: async ({ userId, displayName, role, positionId, shirtNumber }: UpdateMemberInput) => {
       const res = await api.UpdateMember({
         userId,
-        body: { displayName, role, positionId: positionId ?? undefined, shirtNumber: shirtNumber ?? undefined },
+        body: { displayName, role, positionId: positionId ?? undefined, shirtNumber: { value: shirtNumber ?? undefined } },
       })
       // A 409 is a name or Shirt Number collision, or the last-admin guard (demote). The contract
       // types the body as undefined, but the handler still sends a { code } discriminator we can
@@ -91,21 +91,8 @@ export function useUpdateMember() {
 export function useCompleteOnboarding() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async ({
-      displayName,
-      role,
-      positionId,
-      shirtNumber,
-    }: {
-      displayName: string
-      role: string
-      positionId: string | null
-      /** Pass the current value: an Admin may already have set one before the member onboards. */
-      shirtNumber: number | null
-    }) => {
-      const res = await api.CompleteOnboarding({
-        body: { displayName, role, positionId: positionId ?? undefined, shirtNumber: shirtNumber ?? undefined },
-      })
+    mutationFn: async ({ displayName, role, positionId }: { displayName: string; role: string; positionId: string | null }) => {
+      const res = await api.CompleteOnboarding({ body: { displayName, role, positionId: positionId ?? undefined } })
       if (res.status === 409) throw new MemberUpdateError('NAME_TAKEN', 'That display name is already taken.')
       return res.body
     },

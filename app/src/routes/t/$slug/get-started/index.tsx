@@ -55,7 +55,7 @@ function GetStartedPage() {
             errorCode={errorCode}
             onSubmit={(name, positionId) =>
               completeOnboarding.mutate(
-                { displayName: name, role: member.role, positionId, shirtNumber: member.shirtNumber ?? null },
+                { displayName: name, role: member.role, positionId },
                 { onSuccess: () => navigate({ to: routes.events }) },
               )
             }

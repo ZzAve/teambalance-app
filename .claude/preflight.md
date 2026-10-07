@@ -53,13 +53,15 @@ setup: npm --prefix app install && ./gradlew :api:wirespec-typescript  # generat
 - A retry after a load error is a fetch in `error` status, and a paused retry (tab hidden/offline) is neither fetching nor failed, so `isLoading`/`isError` both read false. Map `failed = isError && !isFetching`, loading = `!isSuccess && !failed` — SubstitutePicker.tsx.
 
 ## flaky tests
-- `InvitationControllerTest` (2) + `MagicLinkInviteCarryIT` (1) fail on an unchanged `api/` at origin/main c0743bba (2026-10-07) — pre-existing, not branch-related; check `git diff origin/main -- api` before chasing.
 - Real e2e against one long-lived backend: `create-team.spec.ts` passes once per boot — the seeded code `E2E-CREATE-TEAM` is single-use and only reset by the e2e seed on start. Reset: `UPDATE public.team_creation_codes SET consumed_at=NULL, consumed_by_user_id=NULL WHERE code='E2E-CREATE-TEAM'`.
 - `app/src/app/providers/invite-flow.test.tsx` fails intermittently under the FULL vitest run (waitFor for '/events'/'Events' heading times out) but passes in isolation (`vitest run invite-flow`) — full-suite concurrency flake, not a regression. Re-run isolated to confirm before chasing.
 
 ## real e2e / local stack
 - `e2e-real/helpers.ts` posts to `http://localhost:5173` directly (not baseURL): the dev server MUST be on 5173, and `BACKEND_URL` is the only backend override. vite.config.ts hardcodes the proxy target 8080 — for another backend port edit it to `process.env.VITE_API_TARGET ?? 'http://localhost:8080'` for the session and revert before committing.
 - `npm run generate-pwa-screenshots` takes `APP_URL` + `BACKEND_URL`; the dev profile's demo team has an untracked Training roster, so the hero reads "Show who's coming" there.
+
+## theme / contrast
+- Ink on a surface that stays white in both themes (the hero's chosen answer button) must not use theme-moving tokens: gold-ink → gold-dark and --color-red → #EF5350 in `.dark` both fall under 4.5:1 on white. Use green-dark / red-dark / gold-ink's light hex — NextEventHeroView.tsx:ANSWERS, ReadinessBadge.tsx (same rule).
 
 ## html
 - EventCard renders location as `<a>` nested inside the outer `<Link>` `<a>` — invalid HTML; console error in Playwright run; pre-existing, tracked separately

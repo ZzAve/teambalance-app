@@ -52,7 +52,7 @@ class MemberController(
             rawName = request.body.displayName,
             role = Role.valueOf(request.body.role),
             positionId = request.body.positionId?.let { it.consumePositionId() },
-            shirtNumber = request.body.shirtNumber.value?.toIntOrMax(),
+            shirtNumber = request.body.shirtNumber?.toIntOrMax(),
         )
         return UpdateMember.Response200(updated.toDto())
     }

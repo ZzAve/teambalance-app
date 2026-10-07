@@ -65,7 +65,7 @@ export function useUpdateMember() {
     mutationFn: async ({ userId, displayName, role, positionId, shirtNumber }: UpdateMemberInput) => {
       const res = await api.UpdateMember({
         userId,
-        body: { displayName, role, positionId: positionId ?? undefined, shirtNumber: { value: shirtNumber ?? undefined } },
+        body: { displayName, role, positionId: positionId ?? undefined, shirtNumber: shirtNumber ?? undefined },
       })
       // A 409 is a name or Shirt Number collision, or the last-admin guard (demote). The contract
       // types the body as undefined, but the handler still sends a { code } discriminator we can

@@ -5,6 +5,10 @@ test: npm --prefix app test (=vitest run) + ./gradlew :api:test   # api tests ne
 # in a worktree, results live in <worktree>/api/build/test-results — read those, not the main repo's build dir
 setup: npm --prefix app install && ./gradlew :api:wirespec-typescript  # generated TS client must exist before typecheck/build; typecheck is `npm run typecheck` (tsc -b) — `tsc -p` floods TS6305/TS7006 from the project refs
 
+## demo / screenshots
+- PWA install screenshots (`npm run generate-pwa-screenshots` in app/): backend `--spring.profiles.active=dev,e2e` (dev seed + e2e token endpoint; e2e alone → 403 NO_TEAM_MEMBERSHIP) on a FRESH Postgres (`docker run … -p 5434:5432`, `SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:5434/teambalance`) + vite on 5173 — header of app/scripts/capture-pwa-screenshots.mjs.
+- Before/after demo takes flip files with `git show main:<f> > <f>`: COMMIT first (the flip overwrites uncommitted edits and `checkout HEAD --` cannot bring them back), and in zsh keep the file list in an array — `$FILES` does not word-split, so the loop silently writes nothing and the "before" take records the after build.
+
 ## review scope
 - PRs are squash-merged; local `main` diverges from origin/main → diff-base.sh mis-scopes. Scope the review to `origin/main..HEAD`, and rebase feature branches with `rebase --onto origin/main <last-already-merged-commit>` (expect "patch already upstream" drops).
 - Never resolve a rebase with `-X ours` blindly: it silently dropped `findRole` a feature needed when a port addition conflicted with a differently-implemented upstream version. Resolve port/interface conflicts as a union by hand.

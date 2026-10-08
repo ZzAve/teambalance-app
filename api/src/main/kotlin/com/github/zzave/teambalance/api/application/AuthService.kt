@@ -15,12 +15,9 @@ import com.github.zzave.teambalance.api.domain.port.MagicLinkTokenRepository
 import com.github.zzave.teambalance.api.domain.port.PlatformAdminGateway
 import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
 import com.github.zzave.teambalance.api.domain.port.UserRepository
-import java.security.MessageDigest
-import java.security.SecureRandom
 import java.time.Clock
 import java.time.Duration
 import java.time.Instant
-import java.util.Base64
 import java.util.UUID
 
 /** What a pending Invite Link became on the sign-in that carried it (#342). */
@@ -47,7 +44,6 @@ class AuthService(
     companion object {
         val TOKEN_TTL: Duration = Duration.ofMinutes(15)
         private const val TOKEN_BYTE_LENGTH = 32
-        private val secureRandom = SecureRandom()
     }
 
     /**
@@ -153,12 +149,7 @@ class AuthService(
         return MagicLinkSignIn(user = user, inviteOutcome = outcome)
     }
 
-    private fun generateToken(): String {
-        val bytes = ByteArray(TOKEN_BYTE_LENGTH)
-        secureRandom.nextBytes(bytes)
-        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes)
-    }
+    private fun generateToken(): String = SecureTokens.urlSafe(TOKEN_BYTE_LENGTH)
 
-    private fun hash(token: String): TokenHash =
-        TokenHash(MessageDigest.getInstance("SHA-256").digest(token.toByteArray()).joinToString("") { "%02x".format(it) })
+    private fun hash(token: String): TokenHash = TokenHash(SecureTokens.sha256Hex(token.toByteArray()))
 }

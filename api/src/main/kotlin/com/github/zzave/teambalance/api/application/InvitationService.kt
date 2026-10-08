@@ -10,12 +10,9 @@ import com.github.zzave.teambalance.api.domain.model.TokenHash
 import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.port.InvitationRepository
 import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
-import java.security.MessageDigest
-import java.security.SecureRandom
 import java.time.Clock
 import java.time.Duration
 import java.time.Instant
-import java.util.Base64
 import java.util.UUID
 
 /**
@@ -49,7 +46,6 @@ class InvitationService(
         // them explicitly (#38). This TTL is a long-lived backstop, not the invalidation mechanism.
         val INVITE_TTL: Duration = Duration.ofDays(365)
         private const val TOKEN_BYTE_LENGTH = 32
-        private val secureRandom = SecureRandom()
     }
 
     /**
@@ -260,11 +256,7 @@ class InvitationService(
             GeneratedInvitation(token = tokenCipher.decrypt(encrypted), expiresAt = invitation.expiresAt)
         }
 
-    private fun generateToken(): InviteToken {
-        val bytes = ByteArray(TOKEN_BYTE_LENGTH)
-        secureRandom.nextBytes(bytes)
-        return InviteToken(Base64.getUrlEncoder().withoutPadding().encodeToString(bytes))
-    }
+    private fun generateToken(): InviteToken = InviteToken(SecureTokens.urlSafe(TOKEN_BYTE_LENGTH))
 
     /**
      * Salted SHA-256, hex-encoded. Still the token's identity for lookup: [acceptInvitation] hashes
@@ -273,9 +265,5 @@ class InvitationService(
      * change what accept matches on.
      */
     private fun hashToken(token: String): TokenHash =
-        TokenHash(
-            MessageDigest.getInstance("SHA-256")
-                .digest((tokenSalt + token).toByteArray())
-                .joinToString("") { "%02x".format(it) },
-        )
+        TokenHash(SecureTokens.sha256Hex((tokenSalt + token).toByteArray()))
 }

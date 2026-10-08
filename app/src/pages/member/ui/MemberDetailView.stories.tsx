@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
-import { expect, fn, userEvent, within } from 'storybook/test'
+import { expect, fn, screen, userEvent, within } from 'storybook/test'
 import type { Member } from '@shared/api/members'
 import type { Position } from '@shared/api/positions'
 import { Stack } from '@shared/testing/stack'
@@ -145,7 +145,12 @@ export const Interactions: Story = {
 
     await userEvent.click(region('Reading').getByRole('button', { name: 'Use my personal photo' }))
     await expect(args.onUsePersonalPhoto).toHaveBeenCalledOnce()
+    // Removing asks first; Cancel leaves the photo alone.
     await userEvent.click(region('Reading').getByRole('button', { name: 'Remove photo' }))
+    await userEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Cancel' }))
+    await expect(args.onRemovePhoto).not.toHaveBeenCalled()
+    await userEvent.click(region('Reading').getByRole('button', { name: 'Remove photo' }))
+    await userEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Remove' }))
     await expect(args.onRemovePhoto).toHaveBeenCalledOnce()
     await expect(region('Reading').getByRole('button', { name: 'Upload a different photo' })).toBeInTheDocument()
 

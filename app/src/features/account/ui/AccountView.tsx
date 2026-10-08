@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Link } from '@tanstack/react-router'
 import { ChevronRight, KeyRound, LogOut, Mail, ShieldCheck, Users } from 'lucide-react'
 import type { Member } from '@shared/api/members'
@@ -8,6 +9,7 @@ import { PhotoPicker } from '@features/pick-photo/ui/PhotoPicker'
 import { ThemeToggle } from '@features/theme-toggle/ui/ThemeToggle'
 import { Avatar } from '@shared/ui/avatar'
 import { Button } from '@shared/ui/button'
+import { ConfirmDialog } from '@shared/ui/ConfirmDialog'
 import { SectionLabel } from '@shared/ui/SectionLabel'
 import type { AccountSection } from '../lib/account-sections'
 
@@ -93,6 +95,7 @@ export function AccountView({
   onLogout,
 }: AccountViewProps) {
   const has = (section: AccountSection) => sections.includes(section)
+  const [confirmingPhotoRemove, setConfirmingPhotoRemove] = useState(false)
 
   return (
     <div>
@@ -136,7 +139,12 @@ export function AccountView({
                       onPicked={(photo) => onUploadPersonalPhoto?.(photo)}
                     />
                     {personalPhotoVersion && (
-                      <Button variant="outline" size="sm" disabled={isPhotoSaving} onClick={onRemovePersonalPhoto}>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={isPhotoSaving}
+                        onClick={() => setConfirmingPhotoRemove(true)}
+                      >
                         Remove photo
                       </Button>
                     )}
@@ -144,6 +152,17 @@ export function AccountView({
                 </div>
               </div>
               {photoErrorMessage && <p className="mt-3 text-small text-red">{photoErrorMessage}</p>}
+              <ConfirmDialog
+                open={confirmingPhotoRemove}
+                title="Remove photo"
+                description="Your teams keep the photos they already use."
+                confirmLabel="Remove"
+                onConfirm={() => {
+                  setConfirmingPhotoRemove(false)
+                  onRemovePersonalPhoto?.()
+                }}
+                onCancel={() => setConfirmingPhotoRemove(false)}
+              />
               {copyPhotoTeamName && (
                 <div className="mt-4 rounded-md bg-muted p-3">
                   <p className="text-small">Use this photo in {copyPhotoTeamName} too?</p>

@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
-import { expect, fn, within } from 'storybook/test'
+import { expect, fn, screen, within } from 'storybook/test'
 import type { Member } from '@shared/api/members'
 import type { Position } from '@shared/api/positions'
 import { Stack } from '@shared/testing/stack'
@@ -163,7 +163,12 @@ export const Interactions: Story = {
     await expect(args.onCopyPhotoToTeam).toHaveBeenCalledOnce()
     await userEvent.click(canvas.getByRole('button', { name: 'Not now' }))
     await expect(args.onDismissCopyPhoto).toHaveBeenCalledOnce()
+    // Removing asks first; Cancel leaves the photo alone.
     await userEvent.click(canvas.getByRole('button', { name: 'Remove photo' }))
+    await userEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Cancel' }))
+    await expect(args.onRemovePersonalPhoto).not.toHaveBeenCalled()
+    await userEvent.click(canvas.getByRole('button', { name: 'Remove photo' }))
+    await userEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Remove' }))
     await expect(args.onRemovePersonalPhoto).toHaveBeenCalledOnce()
 
     // Saving the profile hands the name and the position up.

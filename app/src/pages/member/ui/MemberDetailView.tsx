@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Link } from '@tanstack/react-router'
 import { ArrowLeft, Hash, Shield, Shirt } from 'lucide-react'
 import type { Member } from '@shared/api/members'
@@ -7,6 +8,7 @@ import { EditProfileForm } from '@features/edit-profile/ui/EditProfileForm'
 import { PhotoPicker } from '@features/pick-photo/ui/PhotoPicker'
 import { useTeamRoutes } from '@shared/lib/team-routes'
 import { Button } from '@shared/ui/button'
+import { ConfirmDialog } from '@shared/ui/ConfirmDialog'
 
 interface MemberDetailViewProps {
   /** Undefined while loading, on error, or when the id names nobody on the Roster. */
@@ -72,6 +74,7 @@ export function MemberDetailView({
   onRemovePhoto,
 }: MemberDetailViewProps) {
   const routes = useTeamRoutes()
+  const [confirmingRemove, setConfirmingRemove] = useState(false)
 
   return (
     <div className="flex flex-col gap-5">
@@ -115,12 +118,27 @@ export function MemberDetailView({
                   />
                 )}
                 {canRemovePhoto && member.photoVersion && (
-                  <Button variant="outline" size="sm" disabled={isPhotoSaving} onClick={onRemovePhoto}>
+                  <Button variant="outline" size="sm" disabled={isPhotoSaving} onClick={() => setConfirmingRemove(true)}>
                     Remove photo
                   </Button>
                 )}
               </div>
               {photoErrorMessage && <p className="text-small text-red">{photoErrorMessage}</p>}
+              <ConfirmDialog
+                open={confirmingRemove}
+                title="Remove photo"
+                description={
+                  canChangePhoto
+                    ? 'The team will see your initials until you add a new photo.'
+                    : `Remove ${member.displayName}'s photo? Only they can add a new one.`
+                }
+                confirmLabel="Remove"
+                onConfirm={() => {
+                  setConfirmingRemove(false)
+                  onRemovePhoto()
+                }}
+                onCancel={() => setConfirmingRemove(false)}
+              />
             </div>
           )}
 

@@ -1,22 +1,16 @@
-import { useState } from 'react'
 import { createFileRoute } from '@tanstack/react-router'
 import { toast } from 'sonner'
 import { useEvent, useEvents } from '@shared/api/events'
 import { useSetAttendance } from '@entities/attendance/api/attendances'
 import { useSession } from '@shared/session/session'
-import {
-  useRemoveSubstituteAttendance,
-  useSetSubstituteAttendance,
-  usePendingSubstituteEvents,
-} from '@shared/api/substitutes'
 import { attributionName } from '@entities/event/lib/attribution'
-import type { PositionRef } from '@entities/event/lib/lineup'
 import { crossMemberToast } from '@entities/event/lib/cross-member-toast'
 import { buildSeriesPeek } from '@entities/event/lib/series-peek'
 import { myAnswerOf, type AttendanceState } from '@entities/attendance/model/attendance-state'
 import { EditEventDialog } from '@features/edit-event/ui/EditEventDialog'
 import { DeleteEventDialog } from '@features/edit-event/ui/DeleteEventDialog'
 import { SubstitutePicker } from '@features/call-in-substitutes/ui/SubstitutePicker'
+import { useEventLineup } from '@widgets/event-panel/model/use-event-lineup'
 import { useTeamRoutes } from '@shared/lib/team-routes'
 import { EventDetailView } from '@pages/event-detail/ui/EventDetailView'
 
@@ -33,14 +27,8 @@ function EventDetailPage() {
   const { mutate, isPending } = useSetAttendance()
   // Only load the full list to find series siblings when this event actually belongs to a group.
   const { data: allEvents } = useEvents(true, !!event?.recurringGroup)
-  // The picker's Position outlives `open`, so the sheet can animate out.
-  const [picker, setPicker] = useState<{ open: boolean; position: PositionRef | null }>({
-    open: false,
-    position: null,
-  })
-  const setSubstituteAttendance = useSetSubstituteAttendance()
-  const removeSubstituteAttendance = useRemoveSubstituteAttendance()
-  const substitutePending = usePendingSubstituteEvents().includes(eventId)
+  const { picker, lineupHandlers } = useEventLineup(event ? [event] : undefined)
+  const { substitutePending, ...substituteHandlers } = lineupHandlers(eventId)
 
   const myAttendance = event?.attendances.find((a) => a.userId === currentUserId)
   const myState = myAnswerOf(event?.attendances ?? [], currentUserId)
@@ -86,9 +74,7 @@ function EventDetailPage() {
           if (currentUserId) mutate({ eventId, userId: currentUserId, state })
         }}
         onRespond={setAttendance}
-        onSetSubstituteState={(substituteId, state) => setSubstituteAttendance.mutate({ eventId, substituteId, state })}
-        onTakeOffSubstitute={(substituteId) => removeSubstituteAttendance.mutate({ eventId, substituteId })}
-        onCallInSubstitutes={(position) => setPicker({ open: true, position })}
+        {...substituteHandlers}
         seriesPeek={seriesPeek}
         adminActions={
           isAdmin &&
@@ -100,12 +86,7 @@ function EventDetailPage() {
           )
         }
       />
-      <SubstitutePicker
-        open={picker.open}
-        event={event ?? null}
-        position={picker.position}
-        onClose={() => setPicker((current) => ({ ...current, open: false }))}
-      />
+      <SubstitutePicker {...picker} />
     </>
   )
 }

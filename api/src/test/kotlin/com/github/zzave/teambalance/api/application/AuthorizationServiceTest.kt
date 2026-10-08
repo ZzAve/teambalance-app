@@ -95,8 +95,9 @@ class AuthorizationServiceTest : FunSpec() {
             shouldThrow<NoTeamMembershipException> { service.requireMember(scope(memberId, otherTeamId)) }
         }
 
-        test("requireMember on a target checks the target, not the caller") {
-            service.requireMember(scope(strangerId), targetUserId = memberId)
+        test("requireMember on a target requires both the caller and the target to be members") {
+            service.requireMember(scope(adminId), targetUserId = memberId)
+            shouldThrow<NoTeamMembershipException> { service.requireMember(scope(strangerId), targetUserId = memberId) }
             shouldThrow<NoTeamMembershipException> { service.requireMember(scope(adminId), targetUserId = strangerId) }
         }
 
@@ -141,6 +142,10 @@ class AuthorizationServiceTest : FunSpec() {
                 actingAs(teamId, who = otherOperator).roleOf(operator, teamId) shouldBe null
             }
 
+            test("an operator acting as a team may write for one of its members") {
+                actingAs(teamId).requireMember(scope(operator), targetUserId = memberId)
+            }
+
             test("the synthesis never touches team_members - no row is written, ever") {
                 actingAs(teamId).requireAdmin(scope(operator))
 
@@ -162,6 +167,10 @@ class AuthorizationServiceTest : FunSpec() {
             test("is refused as ACT_AS_EXPIRED, not as a generic denial the frontend cannot read") {
                 shouldThrow<ActAsExpiredException> { lapsed.requireAdmin(scope(operator)) }
                 shouldThrow<ActAsExpiredException> { lapsed.requireMember(scope(operator)) }
+            }
+
+            test("is refused as ACT_AS_EXPIRED when writing for a member") {
+                shouldThrow<ActAsExpiredException> { lapsed.requireMember(scope(operator), targetUserId = memberId) }
             }
 
             // The lapse explains a refusal only for the caller it belongs to. Asking "is this member

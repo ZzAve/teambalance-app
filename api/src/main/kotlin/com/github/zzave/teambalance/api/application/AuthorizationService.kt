@@ -49,16 +49,21 @@ class AuthorizationService(
      * Asserts the caller is an active member of the scope's team — the gate for team-scoped reads and
      * writes that any member may perform. Fail-closed: a non-member yields no role and is rejected.
      */
-    fun requireMember(scope: TeamScope) = requireMember(scope, scope.userId)
+    fun requireMember(scope: TeamScope) {
+        if (roleOf(scope.userId, scope.teamId) != null) return
+        throw lapsedOr(scope.userId) { NoTeamMembershipException(scope.userId) }
+    }
 
     /**
-     * Asserts [targetUserId] is an active member of the scope's team. For writes made on another
-     * member's behalf, where editing is trust-based (ADR-0003) but the target must still be one of
-     * the team. A lapsed act-as is reported only when the target is the lapsed caller.
+     * Asserts the caller *and* [targetUserId] are active members of the scope's team. For writes made
+     * on another member's behalf, where editing is trust-based (ADR-0003) between members: the caller
+     * must still be one (a member removed mid-session keeps their session's tenant routing), and so
+     * must the target. A lapsed act-as is reported through the caller check.
      */
     fun requireMember(scope: TeamScope, targetUserId: UserId) {
+        requireMember(scope)
         if (roleOf(targetUserId, scope.teamId) != null) return
-        throw lapsedOr(targetUserId) { NoTeamMembershipException(targetUserId) }
+        throw NoTeamMembershipException(targetUserId)
     }
 
     /** Self-edits pass for any member; acting on someone else requires an admin. */

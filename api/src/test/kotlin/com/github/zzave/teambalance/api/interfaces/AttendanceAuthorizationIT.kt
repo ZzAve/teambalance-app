@@ -3,6 +3,7 @@ package com.github.zzave.teambalance.api.interfaces
 import com.github.zzave.teambalance.api.TeamBalanceIT
 import com.github.zzave.teambalance.api.infrastructure.multitenancy.TenantSchemaAdapter
 import io.kotest.matchers.shouldBe
+import jakarta.servlet.http.Cookie
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
 import org.springframework.http.MediaType
@@ -10,6 +11,9 @@ import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers
+import java.security.MessageDigest
+import java.sql.Timestamp
+import java.time.Instant
 import java.util.UUID
 
 /**
@@ -84,6 +88,71 @@ class AttendanceAuthorizationIT : TeamBalanceIT() {
 
             attendanceRowCount(eventId, teammateId) shouldBe 1
         }
+
+        // A signed-in session memoizes its Team and does not re-check team_members on later requests
+        // (SessionTenantContextFilter), so a removed member still reaches the write path.
+        test("setAttendance by a member removed mid-session is rejected with 403") {
+            tenantSchemaAdapter.provisionPlatformSchema()
+            tenantSchemaAdapter.provisionTenantSchema("public")
+
+            val teamId = UUID.randomUUID()
+            val slug = "authz-$teamId"
+            newTeamMember(teamId, "seed@test.com", "Sam Seed")
+            val teammateId = joinTeam(teamId, "mate3@test.com", "Tom Teammate")
+            val session = signIn("removed@test.com")
+            jdbcTemplate.execute("SELECT public.tb_add_member('$teamId'::uuid, '${session.userId}'::uuid, 'USER', 'Setter')")
+            val eventId = insertEvent(teammateId)
+
+            mockMvc.perform(MockMvcRequestBuilders.post("/api/teams/$slug/activate").cookie(*session.cookies))
+                .andExpect(MockMvcResultMatchers.request().asyncStarted())
+                .andReturn()
+                .let { mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(it)) }
+                .andExpect(MockMvcResultMatchers.status().isOk)
+
+            jdbcTemplate.execute("UPDATE public.team_members SET active = false WHERE user_id = '${session.userId}'::uuid")
+
+            val result = mockMvc.perform(
+                MockMvcRequestBuilders.put("/api/events/$eventId/attendances/$teammateId")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"state":"ATTENDING"}""")
+                    .header("X-Team-Id", "public")
+                    .cookie(*session.cookies),
+            ).andExpect(MockMvcResultMatchers.request().asyncStarted()).andReturn()
+
+            mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(result))
+                .andExpect(MockMvcResultMatchers.status().isForbidden)
+                .andExpect(MockMvcResultMatchers.jsonPath("$.code").value("NO_TEAM_MEMBERSHIP"))
+
+            attendanceRowCount(eventId, teammateId) shouldBe 0
+        }
+    }
+
+    private class SignedIn(val userId: String, val cookies: Array<Cookie>)
+
+    private fun signIn(email: String): SignedIn {
+        val rawToken = "authz-${UUID.randomUUID()}"
+        jdbcTemplate.update(
+            """
+            INSERT INTO public.magic_link_tokens (id, token_hash, email, expires_at, used_at, created_at)
+            VALUES (?, ?, ?, ?, NULL, now())
+            """,
+            UUID.randomUUID(),
+            MessageDigest.getInstance("SHA-256").digest(rawToken.toByteArray()).joinToString("") { "%02x".format(it) },
+            email,
+            Timestamp.from(Instant.now().plusSeconds(900)),
+        )
+        val response = mockMvc.perform(
+            MockMvcRequestBuilders.post("/api/auth/magic-link/verify")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""{"token":"$rawToken"}"""),
+        )
+            .andExpect(MockMvcResultMatchers.request().asyncStarted())
+            .andReturn()
+            .let { mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(it)) }
+            .andExpect(MockMvcResultMatchers.status().isOk)
+            .andReturn().response
+        val userId = Regex("\"id\":\"([^\"]+)\"").find(response.contentAsString)!!.groupValues[1]
+        return SignedIn(userId, response.cookies)
     }
 
     // Creates a team (with a unique schema mapping) and joins a brand-new USER to it.

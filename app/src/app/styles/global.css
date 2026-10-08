@@ -448,3 +448,18 @@ main {
     transition: none;
   }
 }
+
+/* ── Tap band (F7) ──
+   A 44px tap target for a control whose visible box is smaller: the box stays as drawn and an
+   invisible ::after extends the hit area 10px above and below it. Add `after:-inset-x-*` where the
+   width falls short too. Keep it off any control with a neighbour closer than the band, or the band
+   steals the neighbour's edge. */
+@utility tap-band {
+  position: relative;
+  &::after {
+    content: '';
+    position: absolute;
+    inset-block: -10px;
+    inset-inline: 0;
+  }
+}

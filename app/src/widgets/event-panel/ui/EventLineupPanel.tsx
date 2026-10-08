@@ -227,7 +227,8 @@ function PositionRow({
         </span>
       </div>
 
-      <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5">
+      {/* The row gap is the "+" chip's tap band (F7): any smaller and the band reaches the line above. */}
+      <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2.5">
         {going.length > 0 && cluster('in', going, 'going')}
         {row.openSlots > 0 && <OpenSlotChip positionLabel={row.label} openSlots={row.openSlots} onFind={onFind} />}
         {maybe.length > 0 && cluster('maybe', maybe, 'maybe')}

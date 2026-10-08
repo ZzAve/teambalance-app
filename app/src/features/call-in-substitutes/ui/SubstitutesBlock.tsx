@@ -14,10 +14,10 @@ export const SUBSTITUTE_OPTIONS: { value: SubstituteState; label: string; active
   { value: 'ABSENT', label: "Can't", active: 'border-red bg-red text-white' },
 ]
 
-// The pill stays small; the invisible ::after stretches the tap target to 44px tall (F7). Shared by
-// the block and the picker, so the two inline pill sets cannot drift apart.
+// The pill stays small; `tap-band` stretches the tap target to 44px tall (F7). Shared by the block
+// and the picker, so the two inline pill sets cannot drift apart.
 export const SUBSTITUTE_PILL =
-  'relative rounded-full border-[1.5px] px-2 py-1 text-caption font-semibold transition-colors disabled:opacity-60 after:absolute after:-inset-y-2.5 after:inset-x-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
+  'tap-band rounded-full border-[1.5px] px-2 py-1 text-caption font-semibold transition-colors disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
 
 const TALLY: { state: SubstituteState; word: string; tone: string }[] = [
   { state: 'ATTENDING', word: 'going', tone: 'text-green-dark' },

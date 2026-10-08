@@ -15,10 +15,10 @@ const POSITIONS = [
 const LIBERO = { id: 'pos-libero', label: 'Libero' }
 
 const TEAM_LIST = [
-  { id: 'sub-1', name: 'Jan de Vries', position: LIBERO },
-  { id: 'sub-2', name: 'Mila Jansen', position: undefined },
-  { id: 'sub-3', name: 'Kees Bakker', position: { id: 'pos-setter', label: 'Setter' } },
-  { id: 'sub-4', name: 'Pieter Smit', position: { id: 'pos-setter', label: 'Setter' } },
+  { id: 'sub-1', name: 'Jan de Vries', position: LIBERO, shirtNumber: undefined },
+  { id: 'sub-2', name: 'Mila Jansen', position: undefined, shirtNumber: undefined },
+  { id: 'sub-3', name: 'Kees Bakker', position: { id: 'pos-setter', label: 'Setter' }, shirtNumber: undefined },
+  { id: 'sub-4', name: 'Pieter Smit', position: { id: 'pos-setter', label: 'Setter' }, shirtNumber: undefined },
 ]
 
 const ON_EVENT = [

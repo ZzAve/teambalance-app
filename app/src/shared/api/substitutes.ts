@@ -56,18 +56,27 @@ interface UpdateSubstituteVars {
   id: string
   name: string
   positionId: string | null
+  /** The whole state is saved together: pass the current number to keep it, null to clear it. */
+  shirtNumber: number | null
 }
 
 /**
- * Admin-only: renames a Substitute or changes their Position. Events show the Substitute's current
- * name and Position, so the event caches refresh too. A refusal is a [SubstituteError] for the
- * settings list to show inline.
+ * Admin-only: renames a Substitute or changes their Position or Shirt Number. Events show the
+ * Substitute's current name and Position, so the event caches refresh too. A refusal is a
+ * [SubstituteError] for the settings list to show inline.
  */
 export function useUpdateSubstitute() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async ({ id, name, positionId }: UpdateSubstituteVars) => {
-      const res = await api.UpdateSubstitute({ id, body: { name, positionId: positionId ?? undefined } })
+    mutationFn: async ({ id, name, positionId, shirtNumber }: UpdateSubstituteVars) => {
+      const res = await api.UpdateSubstitute({
+        id,
+        body: { name, positionId: positionId ?? undefined, shirtNumber: shirtNumber ?? undefined },
+      })
+      // The contract types the 409 body as undefined, but the handler sends a { code } to tell them apart.
+      if (res.status === 409 && (res.body as { code?: string } | undefined)?.code === 'NUMBER_TAKEN') {
+        throw new SubstituteError(`Number ${shirtNumber} is already worn by another substitute.`)
+      }
       if (res.status === 409) throw nameTaken(name)
       if (res.status === 403) throw new SubstituteError('You are not allowed to make this change.')
       if (res.status === 404) throw new SubstituteError('That substitute is no longer on the list.')

@@ -16,7 +16,8 @@ import { ManageSubstitutesView } from './ManageSubstitutesView'
 //   1. Data — the editable list, and the picture of this View.
 //   2. Shells — every other state stacked in one frame, each asserted in its labelled region,
 //      including a row left mid-rename.
-//   3. Interactions — no picture; one play drives rename, change Position and remove-with-confirm.
+//   3. Interactions — no picture; one play drives rename, Shirt Number, change Position and
+//      remove-with-confirm.
 // Plus RemoveConfirmOpen, the open dialog, as on MemberRosterView: a portal, so it cannot ride in
 // Shells without covering the other cases.
 const POSITIONS: Position[] = [
@@ -25,8 +26,9 @@ const POSITIONS: Position[] = [
 ]
 
 const SUBSTITUTES: Substitute[] = [
-  { id: 's1', name: 'Jan de Vries', position: { id: 'p2', label: 'Libero' } },
-  { id: 's2', name: 'Sam Bakker', position: undefined },
+  { id: 's1', name: 'Jan de Vries', position: { id: 'p2', label: 'Libero' }, shirtNumber: 14 },
+  // null, as the API sends "no number" (the generated type says undefined).
+  { id: 's2', name: 'Sam Bakker', position: undefined, shirtNumber: null as unknown as undefined },
 ]
 
 const meta = {
@@ -39,6 +41,7 @@ const meta = {
     onConfirmTargetChange: fn(),
     onRename: fn(),
     onChangePosition: fn(),
+    onChangeShirtNumber: fn(),
     onRemove: fn(),
   },
 } satisfies Meta<typeof ManageSubstitutesView>
@@ -57,6 +60,8 @@ export const Data: Story = {
     // The Position picker is inline, as on the Member roster: the common edit.
     await expect(within(canvas.getByLabelText('Position for Jan de Vries')).getByText('Libero')).toBeInTheDocument()
     await expect(within(canvas.getByLabelText('Position for Sam Bakker')).getByText('Unassigned')).toBeInTheDocument()
+    await expect(canvas.getByLabelText('Shirt number 14')).toBeInTheDocument()
+    await expect(canvas.queryAllByLabelText(/^Shirt number/)).toHaveLength(1)
   },
 }
 
@@ -95,6 +100,7 @@ export const Shells: Story = {
     await expect(region('Read only').getByText('Libero')).toBeInTheDocument()
     await expect(region('Read only').queryByLabelText(/^Actions for /)).not.toBeInTheDocument()
     await expect(region('Read only').queryByLabelText(/^Position for /)).not.toBeInTheDocument()
+    await expect(region('Read only').getByLabelText('Shirt number 14')).toBeInTheDocument()
 
     await expect(region('No positions').queryByLabelText(/^Position for /)).not.toBeInTheDocument()
     await expect(region('No positions').getByText('Unassigned')).toBeInTheDocument()
@@ -144,6 +150,24 @@ export const Interactions: Story = {
     await userEvent.type(field, '  Jan Visser  ')
     await userEvent.click(canvas.getByRole('button', { name: 'Save' }))
     await expect(args.onRename).toHaveBeenCalledWith(SUBSTITUTES[0], 'Jan Visser')
+
+    // Shirt number: starts at the current one, refuses what is not 0..999, and an empty field clears it.
+    await userEvent.click(canvas.getByLabelText('Actions for Jan de Vries'))
+    await userEvent.click(await portal.findByRole('menuitem', { name: 'Shirt number' }))
+    const number = canvas.getByLabelText('Shirt number for Jan de Vries')
+    await expect(number).toHaveValue('14')
+    await userEvent.clear(number)
+    await userEvent.type(number, '1000')
+    await expect(canvas.getByText('Use a whole number from 0 to 999.')).toBeInTheDocument()
+    await expect(canvas.getByRole('button', { name: 'Save' })).toBeDisabled()
+    await userEvent.clear(number)
+    await userEvent.type(number, '07{Enter}')
+    await expect(args.onChangeShirtNumber).toHaveBeenCalledWith(SUBSTITUTES[0], 7)
+    await userEvent.click(canvas.getByLabelText('Actions for Sam Bakker'))
+    await userEvent.click(await portal.findByRole('menuitem', { name: 'Shirt number' }))
+    await expect(canvas.getByLabelText('Shirt number for Sam Bakker')).toHaveValue('')
+    await userEvent.click(canvas.getByRole('button', { name: 'Save' }))
+    await expect(args.onChangeShirtNumber).toHaveBeenLastCalledWith(SUBSTITUTES[1], null)
 
     // Change Position: set one, and clear one back to Unassigned.
     await userEvent.click(canvas.getByLabelText('Position for Sam Bakker'))

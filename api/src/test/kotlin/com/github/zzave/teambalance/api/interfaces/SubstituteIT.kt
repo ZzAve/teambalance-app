@@ -211,6 +211,26 @@ class SubstituteIT : TeamBalanceIT() {
             putSubstitute(other, "UNIQUE NAME", positionId = null, asUser = ADMIN_USER_ID).andExpect(status().isConflict)
         }
 
+        test("an admin gives a substitute a shirt number that no other substitute wears") {
+            seedTeam()
+            val wearer = createSubstitute("Number Wearer", positionId = null, asUser = MEMBER_USER_ID)
+            val other = createSubstitute("Number Other", positionId = null, asUser = MEMBER_USER_ID)
+
+            putSubstitute(wearer, "Number Wearer", null, ADMIN_USER_ID, shirtNumber = 21)
+                .andExpect(status().isOk)
+                .andExpect(jsonPath("$.shirtNumber").value(21))
+            perform(MockMvcRequestBuilders.get("/api/substitutes"), MEMBER_USER_ID)
+                .andExpect(jsonPath("$.substitutes[?(@.name == 'Number Wearer')].shirtNumber").value(contains(21)))
+
+            putSubstitute(other, "Number Other", null, ADMIN_USER_ID, shirtNumber = 21)
+                .andExpect(status().isConflict)
+                .andExpect(jsonPath("$.code").value("NUMBER_TAKEN"))
+            putSubstitute(other, "Number Other", null, ADMIN_USER_ID, shirtNumber = 1000)
+                .andExpect(status().isBadRequest)
+            putSubstitute(other, "Number Other", null, MEMBER_USER_ID, shirtNumber = 22)
+                .andExpect(status().isForbidden)
+        }
+
         // Two Members creating the same name at once both pass the service's check, so the repository
         // is called directly here, as the second of the two would be. The index refuses it, and the
         // caller hears the same 409 the service gives.
@@ -226,7 +246,7 @@ class SubstituteIT : TeamBalanceIT() {
                 inPublicTenant { substituteRepository.create(DisplayName("RACED NAME"), null, createdBy) }
             }
             shouldThrow<SubstituteNameTakenException> {
-                inPublicTenant { substituteRepository.update(other.id, DisplayName("raced name"), null) }
+                inPublicTenant { substituteRepository.update(other.id, DisplayName("raced name"), null, null) }
             }
         }
 
@@ -301,11 +321,13 @@ class SubstituteIT : TeamBalanceIT() {
             asUser,
         )
 
-    private fun putSubstitute(id: String, name: String, positionId: UUID?, asUser: String) =
+    private fun putSubstitute(id: String, name: String, positionId: UUID?, asUser: String, shirtNumber: Long? = null) =
         perform(
             MockMvcRequestBuilders.put("/api/substitutes/$id")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("""{"name": "$name", "positionId": ${positionId?.let { "\"$it\"" } ?: "null"}}"""),
+                .content(
+                    """{"name": "$name", "positionId": ${positionId?.let { "\"$it\"" } ?: "null"}, "shirtNumber": $shirtNumber}""",
+                ),
             asUser,
         )
 
@@ -404,6 +426,7 @@ class SubstituteIT : TeamBalanceIT() {
             """,
         )
         jdbcTemplate.update("UPDATE public.team_settings SET season_start = NULL, season_end = NULL WHERE id = 1")
+        jdbcTemplate.update("UPDATE public.substitutes SET shirt_number = NULL")
         seedMember(ADMIN_USER_ID, "sub-admin@test.com", role = "ADMIN")
         seedMember(MEMBER_USER_ID, "sub-member@test.com", role = "USER")
     }

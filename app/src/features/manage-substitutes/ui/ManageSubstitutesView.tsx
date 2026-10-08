@@ -13,6 +13,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@shared/ui/dropdown-menu'
+import { parseShirtNumber } from '@features/edit-profile/lib/parse-shirt-number'
 import { eventCountLine } from '../lib/event-count-line'
 
 interface ManageSubstitutesViewProps {
@@ -43,12 +44,15 @@ interface ManageSubstitutesViewProps {
   onConfirmTargetChange?: (substitute: Substitute | null) => void
   onRename: (substitute: Substitute, name: string) => void
   onChangePosition: (substitute: Substitute, positionId: string | null) => void
+  /** Null clears the number. Unique among Substitutes only (ADR-0038). */
+  onChangeShirtNumber: (substitute: Substitute, shirtNumber: number | null) => void
   onRemove: (substitute: Substitute) => void
 }
 
 /**
  * The Team's list of Substitutes (ADR-0033), heading and all. Rows match the Member roster's
- * (MemberRosterView): avatar, name, the Position picker inline, and a ⋯ menu for Rename and Remove.
+ * (MemberRosterView): avatar, name with the Shirt Number, the Position picker inline, and a ⋯ menu for
+ * Rename, Shirt number and Remove.
  * Owns only local view state (the inline rename and the remove-confirm target); the query and
  * mutations live in the ManageSubstitutes container, so every state renders from props (ADR-0017).
  *
@@ -68,6 +72,7 @@ export function ManageSubstitutesView({
   onConfirmTargetChange,
   onRename,
   onChangePosition,
+  onChangeShirtNumber,
   onRemove,
 }: ManageSubstitutesViewProps) {
   const [confirmTarget, setConfirmTargetState] = useState<Substitute | null>(null)
@@ -108,6 +113,7 @@ export function ManageSubstitutesView({
                   isSaving={savingId === substitute.id}
                   onRename={onRename}
                   onChangePosition={onChangePosition}
+                  onChangeShirtNumber={onChangeShirtNumber}
                   onRequestRemove={setConfirmTarget}
                 />
               ))}
@@ -147,6 +153,7 @@ interface SubstituteRowProps {
   isSaving: boolean
   onRename: (substitute: Substitute, name: string) => void
   onChangePosition: (substitute: Substitute, positionId: string | null) => void
+  onChangeShirtNumber: (substitute: Substitute, shirtNumber: number | null) => void
   onRequestRemove: (substitute: Substitute) => void
 }
 
@@ -157,10 +164,16 @@ function SubstituteRow({
   isSaving,
   onRename,
   onChangePosition,
+  onChangeShirtNumber,
   onRequestRemove,
 }: SubstituteRowProps) {
   const [editingName, setEditingName] = useState(false)
   const [draftName, setDraftName] = useState(substitute.name)
+  const [editingNumber, setEditingNumber] = useState(false)
+  const [draftNumber, setDraftNumber] = useState('')
+  const parsedNumber = parseShirtNumber(draftNumber)
+  // The API sends null for "no number" although the generated type says undefined.
+  const shirtNumber = typeof substitute.shirtNumber === 'number' ? substitute.shirtNumber : null
 
   const startEdit = () => {
     setDraftName(substitute.name)
@@ -179,6 +192,33 @@ function SubstituteRow({
     setEditingName(false)
   }
 
+  const startNumberEdit = () => {
+    setDraftNumber(shirtNumber?.toString() ?? '')
+    setEditingNumber(true)
+  }
+
+  const saveNumber = () => {
+    if (parsedNumber.error) return
+    onChangeShirtNumber(substitute, parsedNumber.value)
+    setEditingNumber(false)
+  }
+
+  const nameWithNumber = (
+    <span className="flex min-w-0 flex-1 items-center gap-2">
+      <span className="min-w-0 truncate font-medium" title={substitute.name}>
+        {substitute.name}
+      </span>
+      {shirtNumber !== null && (
+        <span
+          aria-label={`Shirt number ${shirtNumber}`}
+          className="shrink-0 rounded-full bg-muted px-2 text-caption font-semibold leading-5 tabular-nums"
+        >
+          {shirtNumber}
+        </span>
+      )}
+    </span>
+  )
+
   const positionLabel = (
     <span className="shrink-0 text-small text-muted-foreground">{substitute.position?.label ?? 'Unassigned'}</span>
   )
@@ -187,10 +227,45 @@ function SubstituteRow({
     return (
       <li className="flex items-center gap-2 p-3">
         <SubstituteAvatar name={substitute.name} />
-        <span className="min-w-0 flex-1 truncate font-medium" title={substitute.name}>
-          {substitute.name}
-        </span>
+        {nameWithNumber}
         {positionLabel}
+      </li>
+    )
+  }
+
+  if (editingNumber) {
+    return (
+      <li className="flex flex-col gap-1 p-3">
+        <div className="flex items-center gap-2">
+          <SubstituteAvatar name={substitute.name} />
+          <span className="min-w-0 flex-1 truncate font-medium">{substitute.name}</span>
+          <Input
+            aria-label={`Shirt number for ${substitute.name}`}
+            inputMode="numeric"
+            placeholder="None"
+            value={draftNumber}
+            autoFocus
+            onChange={(e) => setDraftNumber(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault()
+                saveNumber()
+              } else if (e.key === 'Escape') {
+                e.preventDefault()
+                setEditingNumber(false)
+              }
+            }}
+            aria-invalid={parsedNumber.error ? true : undefined}
+            className="w-20 shrink-0"
+          />
+          <Button size="sm" disabled={isSaving || !!parsedNumber.error} onClick={saveNumber}>
+            Save
+          </Button>
+          <Button size="sm" variant="outline" onClick={() => setEditingNumber(false)}>
+            Cancel
+          </Button>
+        </div>
+        {parsedNumber.error && <p className="text-small text-red">{parsedNumber.error}</p>}
       </li>
     )
   }
@@ -229,9 +304,7 @@ function SubstituteRow({
   return (
     <li className="flex items-center gap-2 p-3">
       <SubstituteAvatar name={substitute.name} />
-      <span className="min-w-0 flex-1 truncate font-medium" title={substitute.name}>
-        {substitute.name}
-      </span>
+      {nameWithNumber}
       {positions.length > 0 ? (
         <div className="w-32 shrink-0">
           <PositionPicker
@@ -259,6 +332,7 @@ function SubstituteRow({
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
           <DropdownMenuItem onSelect={startEdit}>Rename</DropdownMenuItem>
+          <DropdownMenuItem onSelect={startNumberEdit}>Shirt number</DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem tone="destructive" onSelect={() => onRequestRemove(substitute)}>
             Remove…

@@ -18,6 +18,15 @@ interface ManageSubstitutesProps {
   canManage?: boolean
 }
 
+// The update saves the whole Substitute, so every edit starts from what they have now.
+// `?? null`: the API sends null for "none" although the generated types say undefined.
+const currentState = (substitute: Substitute) => ({
+  id: substitute.id,
+  name: substitute.name,
+  positionId: substitute.position?.id ?? null,
+  shirtNumber: substitute.shirtNumber ?? null,
+})
+
 /**
  * Container for the Team's Substitute list: wires the substitutes query, the update and delete
  * mutations and the remove dialog's event count to ManageSubstitutesView. Pure wiring; the View's
@@ -62,11 +71,15 @@ export function ManageSubstitutes({ canManage = false }: ManageSubstitutesProps)
       onConfirmTargetChange={setRemoveTarget}
       onRename={(substitute, name) => {
         deleteSubstitute.reset()
-        updateSubstitute.mutate({ id: substitute.id, name, positionId: substitute.position?.id ?? null })
+        updateSubstitute.mutate({ ...currentState(substitute), name })
       }}
       onChangePosition={(substitute, positionId) => {
         deleteSubstitute.reset()
-        updateSubstitute.mutate({ id: substitute.id, name: substitute.name, positionId })
+        updateSubstitute.mutate({ ...currentState(substitute), positionId })
+      }}
+      onChangeShirtNumber={(substitute, shirtNumber) => {
+        deleteSubstitute.reset()
+        updateSubstitute.mutate({ ...currentState(substitute), shirtNumber })
       }}
       onRemove={(substitute) => {
         updateSubstitute.reset()

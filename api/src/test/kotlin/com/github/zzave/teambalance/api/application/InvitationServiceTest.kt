@@ -34,6 +34,7 @@ import java.util.UUID
 // question the idempotent mint asks. A team with no link yet is the state most tests want.
 private class FakeInvitationRepo(private var live: Invitation?) : InvitationRepository {
     val saved = mutableListOf<Invitation>()
+    val lookedUp = mutableListOf<TokenHash>()
     var expiredTeam: TeamId? = null
     val rotated = mutableListOf<Invitation>()
     var active: Invitation? = null
@@ -56,7 +57,10 @@ private class FakeInvitationRepo(private var live: Invitation?) : InvitationRepo
         if (invitation.role == Role.ADMIN) activeAdmin = invitation else active = invitation
         return invitation
     }
-    override fun findByTokenHash(tokenHash: TokenHash): Invitation? = live
+    override fun findByTokenHash(tokenHash: TokenHash): Invitation? {
+        lookedUp += tokenHash
+        return live
+    }
 
     // The id-shaped read a sign-in requested from an Invite Link accepts through (#342). Scoped to
     // `live` like the hash read, so expiring the fake closes both doors at once.
@@ -442,6 +446,16 @@ class InvitationServiceTest : FunSpec() {
 
             f.members.findRole(f.teamId, nonAdmin) shouldBe Role.USER
             f.members.findRole(f.teamId, second) shouldBe Role.USER
+        }
+
+        // Stored hashes must stay byte-identical across releases, or every outstanding invite link dies.
+        test("an invite token is looked up by its salted SHA-256 hex") {
+            val f = newFixture()
+
+            f.service.acceptInvitation(token = "golden-token", userId = nonAdmin)
+
+            f.invitations.lookedUp.single() shouldBe
+                TokenHash("1bc3cb594271524693cba2f47159c3ff1495d23af3d6d2a1fdaf66e174dcfdae")
         }
     }
 }

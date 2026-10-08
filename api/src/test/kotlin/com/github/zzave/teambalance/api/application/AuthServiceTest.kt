@@ -59,10 +59,13 @@ private class FakeAuthSessionGateway(private var sessionUserId: UserId? = null) 
  */
 private class FakeMagicLinkTokenRepository(private val resolvesTo: User? = null) : MagicLinkTokenRepository {
     val saved = mutableListOf<MagicLinkToken>()
+    val lookedUp = mutableListOf<TokenHash>()
 
     override fun save(token: MagicLinkToken): MagicLinkToken = token.also { saved += it }
-    override fun findByTokenHash(tokenHash: TokenHash): MagicLinkToken? =
-        saved.lastOrNull { it.tokenHash == tokenHash }
+    override fun findByTokenHash(tokenHash: TokenHash): MagicLinkToken? {
+        lookedUp += tokenHash
+        return saved.lastOrNull { it.tokenHash == tokenHash }
+    }
 
     override fun consumeAndResolveUser(consumedToken: MagicLinkToken, displayName: DisplayName): User =
         resolvesTo ?: error("no user configured for this test")
@@ -299,6 +302,16 @@ class AuthServiceTest : FunSpec() {
             magicLinks.saved.single().invitationId.shouldBeNull()
 
             service.verifyMagicLink(emails.lastToken!!)?.inviteOutcome.shouldBeNull()
+        }
+
+        // Stored hashes must stay byte-identical across releases, or every outstanding magic link dies.
+        test("a magic link token is looked up by its unsalted SHA-256 hex") {
+            val magicLinks = FakeMagicLinkTokenRepository()
+
+            serviceWith(FakeAuthSessionGateway(), magicLinks = magicLinks).verifyMagicLink("golden-token")
+
+            magicLinks.lookedUp.single() shouldBe
+                TokenHash("3d4ee2c2c5688ef85fd7e49d2e45fa8c1a2df490ae0b9e0a119fa9c9e33ba55f")
         }
     }
 }

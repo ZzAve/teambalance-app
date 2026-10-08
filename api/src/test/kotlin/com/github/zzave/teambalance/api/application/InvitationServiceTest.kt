@@ -55,11 +55,20 @@ private class FakeInvitationRepo(private var live: Invitation?) : InvitationRepo
         if (invitation.role == Role.ADMIN) activeAdmin = invitation else active = invitation
         return invitation
     }
-    override fun findByTokenHash(tokenHash: TokenHash): Invitation? = live
+    override fun findByTokenHash(tokenHash: TokenHash): Invitation? = live?.asStored()
 
     // The id-shaped read a sign-in requested from an Invite Link accepts through (#342). Scoped to
     // `live` like the hash read, so expiring the fake closes both doors at once.
-    override fun findById(invitationId: UUID): Invitation? = live?.takeIf { it.id == invitationId }
+    override fun findById(invitationId: UUID): Invitation? = live?.takeIf { it.id == invitationId }?.asStored()
+
+    /**
+     * What a read would actually come back with: [consume] stamps `consumed_at` on the row in the real
+     * adapter, so a fake that kept handing back `consumedAt = null` would hide every bug about reading
+     * a spent link. Tracking consumption in a set and projecting it here keeps the single-use
+     * assertions readable while still telling callers the truth.
+     */
+    private fun Invitation.asStored(): Invitation =
+        if (id in consumed) copy(consumedAt = Instant.EPOCH) else this
     override fun findActiveByTeam(teamId: TeamId, now: Instant): Invitation? =
         active?.takeIf { it.role == Role.USER && it.teamId == teamId && it.expiresAt.isAfter(now) }
     override fun findActiveAdminByTeam(teamId: TeamId, now: Instant): Invitation? =
@@ -83,8 +92,9 @@ private class FakeInvitationRepo(private var live: Invitation?) : InvitationRepo
 class InvitationServiceTest : FunSpec() {
     init {
         val clock = Clock.fixed(Instant.EPOCH, ZoneOffset.UTC)
-        val testCipher = InviteTokenCipher.fromBase64Key(
+        val testCipher = TokenCipher.fromBase64Key(
             Base64.getEncoder().encodeToString(ByteArray(32) { it.toByte() }),
+            "test-key",
         )
         val adminId = UserId.random()
         val nonAdmin = UserId.random()
@@ -346,6 +356,32 @@ class InvitationServiceTest : FunSpec() {
             // Still the same unspent admin link — not collaterally expired by the USER-link rotate.
             f.service.generateAdminInviteLink(callerId = adminId, teamId = f.teamId).token.value shouldBe
                 admin.token.value
+        }
+
+        // The pre-send gate has to agree with the accept path about what "live" means, or a magic-link
+        // request succeeds, an email goes out, and verification then fails on a link that was already
+        // spent — landing the joiner on ?invite=unavailable, the exact round trip this gate exists to
+        // avoid. Expiry was checked; consumption was not.
+        test("findPendingInvitation refuses a single-use admin link that has already been accepted") {
+            val f = newFixture()
+            val admin = f.service.generateAdminInviteLink(callerId = adminId, teamId = f.teamId)
+            f.invitations.present(f.invitations.saved.last { it.role == Role.ADMIN })
+
+            f.service.findPendingInvitation(admin.token.value) shouldNotBe null
+            f.service.acceptInvitation(admin.token.value, joiner.id) shouldNotBe null
+
+            f.service.findPendingInvitation(admin.token.value) shouldBe null
+        }
+
+        // The shareable USER link is reusable by design, so nothing about it is ever spent.
+        test("findPendingInvitation keeps resolving the shareable link after someone joins with it") {
+            val f = newFixture()
+            val shareable = f.service.generateInviteLink(callerId = adminId, teamId = f.teamId)
+            f.invitations.present(f.invitations.saved.last { it.role == Role.USER })
+
+            f.service.acceptInvitation(shareable.token.value, joiner.id) shouldNotBe null
+
+            f.service.findPendingInvitation(shareable.token.value) shouldNotBe null
         }
 
         // ----- Admin handover link: survive refresh + rotate + revoke (parity with the USER link) -----

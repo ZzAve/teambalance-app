@@ -2,6 +2,7 @@ package com.github.zzave.teambalance.api.interfaces
 
 import com.github.zzave.teambalance.api.application.ActAsService
 import com.github.zzave.teambalance.api.application.AuthService
+import com.github.zzave.teambalance.api.application.PhotoService
 import com.github.zzave.teambalance.api.domain.model.Email
 import com.github.zzave.teambalance.api.domain.model.Role
 import com.github.zzave.teambalance.api.domain.model.TeamId
@@ -24,6 +25,7 @@ class AuthController(
     private val authService: AuthService,
     private val actAsService: ActAsService,
     private val currentTeamGateway: CurrentTeamGateway,
+    private val photoService: PhotoService,
 ) : RequestMagicLink.Handler,
     VerifyMagicLink.Handler,
     Logout.Handler,
@@ -84,6 +86,7 @@ class AuthController(
             activeTeam = activeTeam?.produce(),
             isPlatformAdmin = authService.isPlatformAdmin(user.id),
             actAs = actAs?.produce(),
+            personalPhotoVersion = photoService.personalPhotoVersion(user.id),
         )
     }
 }

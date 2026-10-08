@@ -1,6 +1,7 @@
 package com.github.zzave.teambalance.api.infrastructure.persistence
 
 import com.github.zzave.teambalance.api.domain.model.DisplayName
+import com.github.zzave.teambalance.api.domain.model.PhotoVersion
 import com.github.zzave.teambalance.api.domain.model.PositionId
 import com.github.zzave.teambalance.api.domain.model.PositionLabel
 import com.github.zzave.teambalance.api.domain.model.Role
@@ -29,6 +30,7 @@ class JpaTeamMemberRepositoryAdapter(
     private val jpaRepository: SpringDataTeamMemberRepository,
     private val userJpaRepository: SpringDataUserRepository,
     private val memberProfileRepository: SpringDataMemberProfileRepository,
+    private val memberPhotoRepository: SpringDataMemberPhotoRepository,
 ) : TeamMemberRepository {
     private val logger = LoggerFactory.getLogger(JpaTeamMemberRepositoryAdapter::class.java)
 
@@ -54,6 +56,7 @@ class JpaTeamMemberRepositoryAdapter(
         position = getPosition()?.let(::PositionLabel),
         onboarded = getOnboarded(),
         shirtNumber = getShirtNumber()?.let(::ShirtNumber),
+        photoVersion = getPhotoVersion()?.let(::PhotoVersion),
     )
 
     override fun findRole(teamId: TeamId, userId: UserId): Role? =
@@ -76,7 +79,8 @@ class JpaTeamMemberRepositoryAdapter(
         jpaRepository.updateRole(teamId.value, userId.value, role.name)
     }
 
-    // Leaving the team frees the Shirt Number (ADR-0038), so a member who re-joins starts without one.
+    // Leaving the team frees the Shirt Number and discards the Team Photo (ADR-0038), so a member who
+    // re-joins starts without either.
     @Transactional
     override fun deactivate(teamId: TeamId, userId: UserId) {
         jpaRepository.deactivate(teamId.value, userId.value)
@@ -84,6 +88,7 @@ class JpaTeamMemberRepositoryAdapter(
             profile.shirtNumber = null
             memberProfileRepository.save(profile)
         }
+        memberPhotoRepository.deleteById(userId.value)
     }
 
     /**

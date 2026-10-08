@@ -13,6 +13,7 @@ const USER: AuthenticatedUser = {
   activeTeam: undefined,
   isPlatformAdmin: false,
   actAs: undefined,
+  personalPhotoVersion: undefined,
 }
 
 describe('clearSession', () => {

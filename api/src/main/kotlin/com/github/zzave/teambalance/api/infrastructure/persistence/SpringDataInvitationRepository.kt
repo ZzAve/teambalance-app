@@ -10,8 +10,6 @@ import java.util.UUID
 interface SpringDataInvitationRepository : JpaRepository<InvitationJpaEntity, UUID> {
     fun findByTokenHash(tokenHash: String): InvitationJpaEntity?
 
-    fun findFirstByTeamIdAndRoleAndExpiresAtAfter(teamId: UUID, role: String, now: Instant): InvitationJpaEntity?
-
     fun findFirstByTeamIdAndRoleAndConsumedAtIsNullAndExpiresAtAfter(
         teamId: UUID,
         role: String,

@@ -1,6 +1,7 @@
 package com.github.zzave.teambalance.api.interfaces
 
 import com.github.zzave.teambalance.api.application.InvitationService
+import com.github.zzave.teambalance.api.domain.model.Role
 import com.github.zzave.teambalance.api.domain.model.TeamId
 import com.github.zzave.teambalance.api.domain.port.CurrentUserGateway
 import com.github.zzave.teambalance.api.domain.port.RequestScopeGateway
@@ -38,7 +39,7 @@ class InvitationController(
      * link is an ordinary state the UI turns into a "generate one" offer, not an error.
      */
     override suspend fun getActiveInvitation(request: GetActiveInvitation.Request): GetActiveInvitation.Response<*> {
-        val invitation = invitationService.activeInviteLink(requestScope.teamScope())
+        val invitation = invitationService.activeInviteLink(requestScope.teamScope(), Role.USER)
             ?: return GetActiveInvitation.Response204(Unit)
         return GetActiveInvitation.Response200(
             Invitation(
@@ -49,7 +50,7 @@ class InvitationController(
     }
 
     override suspend fun createInvitation(request: CreateInvitation.Request): CreateInvitation.Response<*> {
-        val invitation = invitationService.generateInviteLink(requestScope.teamScope())
+        val invitation = invitationService.generateInviteLink(requestScope.teamScope(), Role.USER)
         return CreateInvitation.Response201(
             Invitation(
                 token = invitation.token.value,
@@ -66,7 +67,7 @@ class InvitationController(
     override suspend fun createAdminInvitation(
         request: CreateAdminInvitation.Request,
     ): CreateAdminInvitation.Response<*> {
-        val invitation = invitationService.generateAdminInviteLink(requestScope.teamScope())
+        val invitation = invitationService.generateInviteLink(requestScope.teamScope(), Role.ADMIN)
         return CreateAdminInvitation.Response201(
             Invitation(
                 token = invitation.token.value,
@@ -83,7 +84,7 @@ class InvitationController(
     override suspend fun getActiveAdminInvitation(
         request: GetActiveAdminInvitation.Request,
     ): GetActiveAdminInvitation.Response<*> {
-        val invitation = invitationService.activeAdminInviteLink(requestScope.teamScope())
+        val invitation = invitationService.activeInviteLink(requestScope.teamScope(), Role.ADMIN)
             ?: return GetActiveAdminInvitation.Response204(Unit)
         return GetActiveAdminInvitation.Response200(
             Invitation(token = invitation.token.value, expiresAt = invitation.expiresAt.toString()),
@@ -94,7 +95,7 @@ class InvitationController(
     override suspend fun rotateAdminInvitation(
         request: RotateAdminInvitation.Request,
     ): RotateAdminInvitation.Response<*> {
-        val invitation = invitationService.rotateAdminInviteLink(requestScope.teamScope())
+        val invitation = invitationService.rotateInviteLink(requestScope.teamScope(), Role.ADMIN)
         return RotateAdminInvitation.Response201(
             Invitation(token = invitation.token.value, expiresAt = invitation.expiresAt.toString()),
         )
@@ -104,7 +105,7 @@ class InvitationController(
     override suspend fun expireAdminInvitations(
         request: ExpireAdminInvitations.Request,
     ): ExpireAdminInvitations.Response<*> {
-        invitationService.expireAdminInviteLinks(requestScope.teamScope())
+        invitationService.expireInviteLinks(requestScope.teamScope(), Role.ADMIN)
         return ExpireAdminInvitations.Response204(Unit)
     }
 
@@ -116,12 +117,12 @@ class InvitationController(
     }
 
     override suspend fun expireInvitations(request: ExpireInvitations.Request): ExpireInvitations.Response<*> {
-        invitationService.expireActiveInvitations(requestScope.teamScope())
+        invitationService.expireInviteLinks(requestScope.teamScope(), Role.USER)
         return ExpireInvitations.Response204(Unit)
     }
 
     override suspend fun rotateInvitation(request: RotateInvitation.Request): RotateInvitation.Response<*> {
-        val invitation = invitationService.rotateInviteLink(requestScope.teamScope())
+        val invitation = invitationService.rotateInviteLink(requestScope.teamScope(), Role.USER)
         return RotateInvitation.Response201(
             Invitation(
                 token = invitation.token.value,

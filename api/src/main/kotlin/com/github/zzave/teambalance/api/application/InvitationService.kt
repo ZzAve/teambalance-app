@@ -10,12 +10,9 @@ import com.github.zzave.teambalance.api.domain.model.TokenHash
 import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.port.InvitationRepository
 import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
-import java.security.MessageDigest
-import java.security.SecureRandom
 import java.time.Clock
 import java.time.Duration
 import java.time.Instant
-import java.util.Base64
 import java.util.UUID
 
 /**
@@ -49,116 +46,84 @@ class InvitationService(
         // them explicitly (#38). This TTL is a long-lived backstop, not the invalidation mechanism.
         val INVITE_TTL: Duration = Duration.ofDays(365)
         private const val TOKEN_BYTE_LENGTH = 32
-        private val secureRandom = SecureRandom()
     }
 
     /**
-     * The team's current invite link, or null if it has none — the read that lets an admin come back
-     * to a link they already shared instead of being forced to mint a replacement (ADR-0025).
+     * The team's current unspent link of [role], or null if it has none — the read that lets an admin
+     * come back to a link they already shared instead of being forced to mint a replacement
+     * (ADR-0025). [Role.USER] is the shareable "one link, many joiners" link; [Role.ADMIN] is the
+     * single-use handover link (ADR-0024 §5), offered back only while unspent.
      *
      * Null also covers a pre-ADR-0025 invitation that carries no ciphertext. V011 expired every one
      * of those, so this is unreachable in practice; treating it as "no link" rather than throwing
      * means a stray hash-only row surfaces to the admin as an offer to generate one, which is the
      * honest answer and the recoverable path.
      *
-     * Admin-only: the caller must be an admin of the scope's team.
+     * Admin-only: the caller must be an admin of the scope's team — which, for the memberless handover,
+     * is the acting-in Platform Admin's Virtual Member (ADR-0024 §2).
      */
-    fun activeInviteLink(scope: TeamScope): GeneratedInvitation? {
+    fun activeInviteLink(scope: TeamScope, role: Role): GeneratedInvitation? {
         authorizationService.requireAdmin(scope)
-        return invitationRepository.findActiveByTeam(scope.teamId, clock.instant())?.let(::reveal)
+        return invitationRepository.findActive(scope.teamId, role, clock.instant())?.let(::reveal)
     }
 
     /**
-     * The team's invite link, minting one only if it has none. Idempotent by design: a team has at
-     * most one active link, so repeat calls return the same token rather than quietly adding another
-     * usable credential (ADR-0025 — the unbounded accumulation this replaces was the security half of
-     * the bug). Minting a *replacement* is [rotateInviteLink]'s job.
+     * The team's link of [role], minting one only if it has none. Idempotent by design: a team has at
+     * most one active link per role, so repeat calls return the same token rather than quietly adding
+     * another usable credential (ADR-0025 — the unbounded accumulation this replaces was the security
+     * half of the bug). Minting a *replacement* is [rotateInviteLink]'s job.
      *
      * The token is persisted twice over: as a salted hash, which is what [acceptInvitation] matches
      * on, and encrypted, which is what lets it be shown again.
      *
+     * The one-live-link property is held here, not in the schema (a partial unique index can't bite on
+     * the time-based active-ness). So two near-simultaneous mints could each pass the find and leave two
+     * live links. For [Role.ADMIN] that is an anti-accumulation weakening, **not** a single-use hole:
+     * single-use is enforced at accept by the conditional [InvitationRepository.consume], so every
+     * handover link is still spent at most once. The extra-credential window is the accepted ADR-0025
+     * trade-off, and the UI disables the button while the mint is in flight.
+     *
      * Admin-only: the caller must be an admin of the scope's team, and is also recorded as the
      * invitation's creator.
      */
-    fun generateInviteLink(scope: TeamScope): GeneratedInvitation {
+    fun generateInviteLink(scope: TeamScope, role: Role): GeneratedInvitation {
         authorizationService.requireAdmin(scope)
         val now = clock.instant()
-        invitationRepository.findActiveByTeam(scope.teamId, now)?.let(::reveal)?.let { return it }
+        invitationRepository.findActive(scope.teamId, role, now)?.let(::reveal)?.let { return it }
 
         val token = generateToken()
-        invitationRepository.save(mint(token, scope, now, Role.USER))
+        invitationRepository.save(mint(token, scope, now, role))
         return GeneratedInvitation(token = token, expiresAt = now.plus(INVITE_TTL))
     }
 
     /**
-     * The single-use, **ADMIN**-granting handover link (ADR-0024 §5) — how a memberless team gets its
-     * first Admin. Distinct from [generateInviteLink]: that mints the shareable USER link ("one link,
-     * many joiners", ADR-0025), whereas an ADMIN grant with those semantics would hand Admin to
-     * everyone the recipient forwards it to, so this link is spent on first accept.
-     *
-     * Idempotent while unspent: with a live, unconsumed ADMIN link already present it returns that one
-     * rather than minting a second, so a team holds at most one live ADMIN credential. Once the previous
-     * was accepted (consumed) or expired, this mints a fresh one.
-     *
-     * The one-live-link property is held here, not in the schema — the same service-held invariant
-     * ADR-0025 chose for the USER link (a partial unique index can't bite on the time-based
-     * active-ness). So two near-simultaneous mints could each pass the find and leave two live ADMIN
-     * links. That is an anti-accumulation weakening, **not** a single-use hole: single-use is enforced
-     * at accept by the conditional [InvitationRepository.consume], so every link is still spent at most
-     * once. The extra-credential window is the accepted ADR-0025 trade-off, and the UI disables the
-     * button while the mint is in flight; the operator, not an accident, decides what to hand out.
-     *
-     * Admin-only: the caller must be an admin of the scope's team — which, for the memberless handover, is the
-     * acting-in Platform Admin's Virtual Member (ADR-0024 §2).
-     */
-    fun generateAdminInviteLink(scope: TeamScope): GeneratedInvitation {
-        authorizationService.requireAdmin(scope)
-        val now = clock.instant()
-        invitationRepository.findActiveAdminByTeam(scope.teamId, now)?.let(::reveal)?.let { return it }
-
-        val token = generateToken()
-        invitationRepository.save(mint(token, scope, now, Role.ADMIN))
-        return GeneratedInvitation(token = token, expiresAt = now.plus(INVITE_TTL))
-    }
-
-    /**
-     * The team's current unspent ADMIN handover link, or null if it has none — the read that lets the
-     * link survive a page refresh, exactly as [activeInviteLink] does for the shareable USER link
-     * (ADR-0025). Scoped to a live, *unconsumed* ADMIN link: once one is accepted it is spent, so it is
-     * no longer offered back and the admin is shown the option to mint a fresh one.
-     *
-     * Admin-only: the caller must be an admin of the scope's team (the acting-in Platform Admin's Virtual
-     * Member, ADR-0024 §2).
-     */
-    fun activeAdminInviteLink(scope: TeamScope): GeneratedInvitation? {
-        authorizationService.requireAdmin(scope)
-        return invitationRepository.findActiveAdminByTeam(scope.teamId, clock.instant())?.let(::reveal)
-    }
-
-    /**
-     * Revoke-and-reissue for the ADMIN handover link: expires the team's active ADMIN link and mints a
-     * fresh one in its place, atomically (the guarantee lives in [InvitationRepository.rotate]). Used
-     * when a handover link may have leaked before it reached the right person. The USER shareable link
-     * is untouched — rotate is role-scoped by the replacement's role.
+     * Invalidates the team's active links of [role] and mints a fresh one in its place. Atomic: a
+     * failure to mint rolls the expire back rather than leaving the team with no usable link. That
+     * guarantee lives in [InvitationRepository.rotate] — the expire and the mint are handed over as a
+     * single port call, so this service states the intent without naming a transaction. Rotate is
+     * role-scoped by the replacement's role, so rotating the USER link leaves a live ADMIN handover
+     * link alone and vice-versa.
      *
      * Admin-only: the caller must be an admin of the scope's team.
      */
-    fun rotateAdminInviteLink(scope: TeamScope): GeneratedInvitation {
+    fun rotateInviteLink(scope: TeamScope, role: Role): GeneratedInvitation {
         authorizationService.requireAdmin(scope)
         val now = clock.instant()
         val token = generateToken()
-        invitationRepository.rotate(scope.teamId, mint(token, scope, now, Role.ADMIN), now)
+        invitationRepository.rotate(scope.teamId, mint(token, scope, now, role), now)
         return GeneratedInvitation(token = token, expiresAt = now.plus(INVITE_TTL))
     }
 
     /**
-     * Revokes the team's active ADMIN handover link without a replacement — the "I don't want to hand
-     * over right now after all" path. Scoped to [Role.ADMIN], so the shareable USER link keeps working.
+     * Revokes the team's active links of [role] without a replacement. Scoped by role, so revoking the
+     * ADMIN handover link ("I don't want to hand over right now after all") keeps the shareable USER
+     * link working, and vice-versa. Already-expired links are untouched.
+     *
      * Admin-only: the caller must be an admin of the scope's team.
      */
-    fun expireAdminInviteLinks(scope: TeamScope) {
+    fun expireInviteLinks(scope: TeamScope, role: Role) {
         authorizationService.requireAdmin(scope)
-        invitationRepository.expireActive(scope.teamId, Role.ADMIN, Instant.now(clock))
+        invitationRepository.expireActive(scope.teamId, role, Instant.now(clock))
     }
 
     /**
@@ -217,31 +182,6 @@ class InvitationService(
     private fun claim(invitation: Invitation, now: Instant): Boolean =
         invitation.role != Role.ADMIN || invitationRepository.consume(invitation.id, now)
 
-    /**
-     * Invalidates every currently-active invite link for the team; already-expired ones are untouched.
-     * Admin-only: the caller must be an admin of the scope's team.
-     */
-    fun expireActiveInvitations(scope: TeamScope) {
-        authorizationService.requireAdmin(scope)
-        invitationRepository.expireActive(scope.teamId, Role.USER, Instant.now(clock))
-    }
-
-    /**
-     * Invalidates the team's active invite link(s) and mints a fresh one in its place. Atomic: a
-     * failure to mint rolls the expire back rather than leaving the team with no usable link. That
-     * guarantee lives in [InvitationRepository.rotate] — the expire and the mint are handed over as a
-     * single port call, so this service states the intent without naming a transaction.
-     *
-     * Admin-only: the caller must be an admin of the scope's team.
-     */
-    fun rotateInviteLink(scope: TeamScope): GeneratedInvitation {
-        authorizationService.requireAdmin(scope)
-        val now = clock.instant()
-        val token = generateToken()
-        invitationRepository.rotate(scope.teamId, mint(token, scope, now, Role.USER), now)
-        return GeneratedInvitation(token = token, expiresAt = now.plus(INVITE_TTL))
-    }
-
     private fun mint(token: InviteToken, scope: TeamScope, now: Instant, role: Role) = Invitation(
         id = UUID.randomUUID(),
         teamId = scope.teamId,
@@ -260,11 +200,7 @@ class InvitationService(
             GeneratedInvitation(token = tokenCipher.decrypt(encrypted), expiresAt = invitation.expiresAt)
         }
 
-    private fun generateToken(): InviteToken {
-        val bytes = ByteArray(TOKEN_BYTE_LENGTH)
-        secureRandom.nextBytes(bytes)
-        return InviteToken(Base64.getUrlEncoder().withoutPadding().encodeToString(bytes))
-    }
+    private fun generateToken(): InviteToken = InviteToken(SecureTokens.urlSafe(TOKEN_BYTE_LENGTH))
 
     /**
      * Salted SHA-256, hex-encoded. Still the token's identity for lookup: [acceptInvitation] hashes
@@ -273,9 +209,5 @@ class InvitationService(
      * change what accept matches on.
      */
     private fun hashToken(token: String): TokenHash =
-        TokenHash(
-            MessageDigest.getInstance("SHA-256")
-                .digest((tokenSalt + token).toByteArray())
-                .joinToString("") { "%02x".format(it) },
-        )
+        TokenHash(SecureTokens.sha256Hex((tokenSalt + token).toByteArray()))
 }

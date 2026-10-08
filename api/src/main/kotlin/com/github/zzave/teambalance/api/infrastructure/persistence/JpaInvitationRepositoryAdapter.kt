@@ -26,15 +26,9 @@ class JpaInvitationRepositoryAdapter(
     override fun findById(invitationId: UUID): Invitation? =
         jpaRepository.findById(invitationId).orElse(null)?.internalize()
 
-    override fun findActiveByTeam(teamId: TeamId, now: Instant): Invitation? =
-        jpaRepository.findFirstByTeamIdAndRoleAndExpiresAtAfter(teamId.value, Role.USER.name, now)?.internalize()
-
-    override fun findActiveAdminByTeam(teamId: TeamId, now: Instant): Invitation? =
-        jpaRepository.findFirstByTeamIdAndRoleAndConsumedAtIsNullAndExpiresAtAfter(
-            teamId.value,
-            Role.ADMIN.name,
-            now,
-        )?.internalize()
+    override fun findActive(teamId: TeamId, role: Role, now: Instant): Invitation? =
+        jpaRepository.findFirstByTeamIdAndRoleAndConsumedAtIsNullAndExpiresAtAfter(teamId.value, role.name, now)
+            ?.internalize()
 
     @Transactional
     override fun consume(invitationId: UUID, now: Instant): Boolean =

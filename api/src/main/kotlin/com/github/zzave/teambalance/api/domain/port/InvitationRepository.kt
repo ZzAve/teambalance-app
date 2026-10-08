@@ -22,20 +22,14 @@ interface InvitationRepository {
     fun findById(invitationId: UUID): Invitation?
 
     /**
-     * The team's current shareable (USER) invite link, or null if it has none. At most one is active at
-     * a time — the invariant [InvitationRepository] callers maintain by minting through
-     * `InvitationService.generateInviteLink` (idempotent) or [rotate] (expire-and-replace). Scoped to
-     * [Role.USER] so a live ADMIN handover link is never mistaken for the shareable one, and never
-     * re-shown by the admin's "current link" read.
+     * The team's current unspent link of [role], or null if it has none — active at [now] and not yet
+     * consumed. At most one is active per role at a time, the invariant callers maintain by minting
+     * through `InvitationService.generateInviteLink` (idempotent) or [rotate] (expire-and-replace).
+     * Scoped by role so a live ADMIN handover link is never mistaken for the shareable USER one, and
+     * never re-shown by the "current link" read (ADR-0024 §5). A USER link is never consumed, so the
+     * unspent filter only narrows ADMIN links.
      */
-    fun findActiveByTeam(teamId: TeamId, now: Instant): Invitation?
-
-    /**
-     * The team's current unspent ADMIN handover link, or null if it has none — active at [now],
-     * [Role.ADMIN], and not yet consumed. Backs the idempotent mint of the handover link, so a team
-     * holds at most one live ADMIN credential at a time (ADR-0024 §5).
-     */
-    fun findActiveAdminByTeam(teamId: TeamId, now: Instant): Invitation?
+    fun findActive(teamId: TeamId, role: Role, now: Instant): Invitation?
 
     /**
      * Marks the invitation [invitationId] consumed as of [now], but only if it was still unspent —

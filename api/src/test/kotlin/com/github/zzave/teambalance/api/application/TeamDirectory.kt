@@ -42,8 +42,16 @@ internal class TeamDirectory {
 
     private val teams = mutableMapOf<TeamId, TeamRow>()
 
-    /** (userId, teamId) -> role, present only while the membership is active. */
-    private val memberships = mutableMapOf<Pair<UserId, TeamId>, Role>()
+    /** What `team_members` holds for an active membership; a row is present only while it is active. */
+    private data class Membership(
+        val role: Role,
+        val positionId: PositionId? = null,
+        val onboarded: Boolean = false,
+        val shirtNumber: ShirtNumber? = null,
+    )
+
+    private val memberships = mutableMapOf<Pair<UserId, TeamId>, Membership>()
+    private val users = mutableMapOf<UserId, User>()
     private val remembered = mutableMapOf<UserId, TeamId>()
 
     fun addTeam(name: String, slug: String): TeamId {
@@ -55,8 +63,15 @@ internal class TeamDirectory {
         return id
     }
 
+    /** Every roster-mutating call made through [teamMemberRepository], so "writes nothing" is observable. */
+    val writes = mutableListOf<String>()
+
+    fun register(vararg newUsers: User) {
+        newUsers.forEach { users[it.id] = it }
+    }
+
     fun join(userId: UserId, teamId: TeamId, role: Role = Role.USER) {
-        memberships[userId to teamId] = role
+        memberships[userId to teamId] = memberships[userId to teamId]?.copy(role = role) ?: Membership(role)
     }
 
     /** Ends the membership the way `active = false` does: gone for every read. */
@@ -97,20 +112,22 @@ internal class TeamDirectory {
         override fun findAll(): List<TeamSummary> = teams.values.map { it.summary }.sortedBy { it.name.value }
     }
 
-    fun userRepository(vararg users: User): UserRepository = object : UserRepository {
-        private val byId = users.associateBy { it.id }
-        override fun findById(id: UserId): User? = byId[id]
-        override fun findByEmail(email: Email): User? = byId.values.firstOrNull { it.email == email }
-        override fun save(user: User): User = user
-        override fun findLastActiveTeamId(userId: UserId): TeamId? = remembered[userId]
-        override fun rememberActiveTeam(userId: UserId, teamId: TeamId) {
-            remembered[userId] = teamId
+    fun userRepository(vararg newUsers: User): UserRepository {
+        register(*newUsers)
+        return object : UserRepository {
+            override fun findById(id: UserId): User? = users[id]
+            override fun findByEmail(email: Email): User? = users.values.firstOrNull { it.email == email }
+            override fun save(user: User): User = user.also { users[it.id] = it }
+            override fun findLastActiveTeamId(userId: UserId): TeamId? = remembered[userId]
+            override fun rememberActiveTeam(userId: UserId, teamId: TeamId) {
+                remembered[userId] = teamId
+            }
         }
     }
 
     @Suppress("TooManyFunctions")
     fun teamMemberRepository(): TeamMemberRepository = object : TeamMemberRepository {
-        override fun findRole(teamId: TeamId, userId: UserId): Role? = memberships[userId to teamId]
+        override fun findRole(teamId: TeamId, userId: UserId): Role? = memberships[userId to teamId]?.role
 
         override fun findTenantRouting(teamId: TeamId, userId: UserId): TenantRouting? =
             routing(teamId)?.takeIf { memberships.containsKey(userId to teamId) }
@@ -118,15 +135,49 @@ internal class TeamDirectory {
         override fun findSoleTenantRouting(userId: UserId): TenantRouting? =
             memberships.keys.filter { it.first == userId }.singleOrNull()?.let { routing(it.second) }
 
-        override fun addMember(teamId: TeamId, userId: UserId, role: Role) = join(userId, teamId, role)
+        override fun addMember(teamId: TeamId, userId: UserId, role: Role) {
+            writes += "addMember"
+            join(userId, teamId, role)
+        }
 
-        override fun findByTeamId(teamId: TeamId): List<TeamMember> = emptyList()
-        override fun findDisplayName(userId: UserId): DisplayName? = null
+        /** Display names come from the registered users, as the adapter reads them from `public.users`. */
+        override fun findByTeamId(teamId: TeamId): List<TeamMember> =
+            memberships.filterKeys { it.second == teamId }.mapNotNull { (key, membership) ->
+                users[key.first]?.let {
+                    TeamMember(
+                        userId = it.id,
+                        displayName = it.displayName,
+                        permission = membership.role,
+                        positionId = membership.positionId,
+                        position = null,
+                        onboarded = membership.onboarded,
+                        shirtNumber = membership.shirtNumber,
+                    )
+                }
+            }
+
         override fun findMembersByUserIds(userIds: Set<UserId>): Map<UserId, TeamMember> = emptyMap()
-        override fun updateRole(teamId: TeamId, userId: UserId, role: Role) = join(userId, teamId, role)
-        override fun deactivate(teamId: TeamId, userId: UserId) = leave(userId, teamId)
-        override fun assignPosition(teamId: TeamId, userId: UserId, positionId: PositionId?) = Unit
-        override fun markOnboarded(teamId: TeamId, userId: UserId, at: Instant) = Unit
+
+        override fun updateRole(teamId: TeamId, userId: UserId, role: Role) {
+            writes += "updateRole"
+            update(teamId, userId) { it.copy(role = role) }
+        }
+
+        override fun deactivate(teamId: TeamId, userId: UserId) {
+            writes += "deactivate"
+            leave(userId, teamId)
+        }
+
+        override fun assignPosition(teamId: TeamId, userId: UserId, positionId: PositionId?) {
+            writes += "assignPosition"
+            update(teamId, userId) { it.copy(positionId = positionId) }
+        }
+
+        override fun markOnboarded(teamId: TeamId, userId: UserId, at: Instant) {
+            writes += "markOnboarded"
+            update(teamId, userId) { it.copy(onboarded = true) }
+        }
+
         override fun applyMemberEdit(
             teamId: TeamId,
             userId: UserId,
@@ -135,14 +186,28 @@ internal class TeamDirectory {
             positionId: PositionId?,
             shirtNumber: ShirtNumber?,
             markOnboardedAt: Instant?,
-        ) = Unit
-        override fun countAdmins(teamId: TeamId): Int =
-            memberships.count { it.key.second == teamId && it.value == Role.ADMIN }
+        ) {
+            writes += "applyMemberEdit"
+            users[userId]?.let { users[userId] = it.copy(displayName = displayName) }
+            update(teamId, userId) {
+                it.copy(
+                    role = role,
+                    positionId = positionId,
+                    shirtNumber = shirtNumber,
+                    onboarded = it.onboarded || markOnboardedAt != null,
+                )
+            }
+        }
 
-        // This directory models membership and roles, not positions — assignPosition is a no-op here
-        // — so nobody holds one. The position-usage counts (#219) are proven against a real Postgres
-        // in EventTypeAdminIT and as pure logic in PositionServiceTest, both of which track positions.
-        override fun countByPosition(teamId: TeamId, positionId: PositionId): Int = 0
+        override fun countAdmins(teamId: TeamId): Int =
+            memberships.count { it.key.second == teamId && it.value.role == Role.ADMIN }
+
+        override fun countByPosition(teamId: TeamId, positionId: PositionId): Int =
+            memberships.count { it.key.second == teamId && it.value.positionId == positionId }
+
+        private fun update(teamId: TeamId, userId: UserId, change: (Membership) -> Membership) {
+            memberships[userId to teamId]?.let { memberships[userId to teamId] = change(it) }
+        }
     }
 }
 

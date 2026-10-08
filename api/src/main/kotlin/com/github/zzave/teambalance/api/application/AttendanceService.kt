@@ -3,7 +3,6 @@ package com.github.zzave.teambalance.api.application
 import com.github.zzave.teambalance.api.domain.model.Attendance
 import com.github.zzave.teambalance.api.domain.model.AttendanceId
 import com.github.zzave.teambalance.api.domain.model.AttendanceState
-import com.github.zzave.teambalance.api.domain.model.DisplayName
 import com.github.zzave.teambalance.api.domain.model.EventId
 import com.github.zzave.teambalance.api.domain.model.TeamId
 import com.github.zzave.teambalance.api.domain.model.TeamMember
@@ -120,6 +119,4 @@ class AttendanceService(
 
     fun findMember(userId: UserId): TeamMember? =
         teamMemberRepository.findMembersByUserIds(setOf(userId)).values.firstOrNull()
-
-    fun findDisplayName(userId: UserId): DisplayName? = teamMemberRepository.findDisplayName(userId)
 }

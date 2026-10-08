@@ -4,55 +4,15 @@ import com.github.zzave.teambalance.api.domain.exception.ActAsExpiredException
 import com.github.zzave.teambalance.api.domain.exception.NoTeamMembershipException
 import com.github.zzave.teambalance.api.domain.exception.NotTeamAdminException
 import com.github.zzave.teambalance.api.domain.model.ActAs
-import com.github.zzave.teambalance.api.domain.model.DisplayName
-import com.github.zzave.teambalance.api.domain.model.PositionId
 import com.github.zzave.teambalance.api.domain.model.Role
 import com.github.zzave.teambalance.api.domain.model.TeamId
-import com.github.zzave.teambalance.api.domain.model.TenantRouting
-import com.github.zzave.teambalance.api.domain.model.TeamMember
 import com.github.zzave.teambalance.api.domain.model.UserId
-import com.github.zzave.teambalance.api.domain.model.ShirtNumber
-import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.shouldBe
 import java.time.Instant
 import java.util.UUID
-
-private class FakeTeamMemberRepository(private val roles: Map<Pair<TeamId, UserId>, Role>) : TeamMemberRepository {
-    /** Every roster-mutating call, so "the synthesis writes nothing" is observable, not assumed. */
-    val writes = mutableListOf<String>()
-
-    override fun findByTeamId(teamId: TeamId) = emptyList<TeamMember>()
-    override fun findDisplayName(userId: UserId): DisplayName? = null
-    override fun findMembersByUserIds(userIds: Set<UserId>) = emptyMap<UserId, TeamMember>()
-    override fun findRole(teamId: TeamId, userId: UserId): Role? = roles[teamId to userId]
-    override fun findTenantRouting(teamId: TeamId, userId: UserId): TenantRouting? = null
-    override fun findSoleTenantRouting(userId: UserId): TenantRouting? = null
-    override fun addMember(teamId: TeamId, userId: UserId, role: Role) {
-        writes += "addMember"
-    }
-    override fun updateRole(teamId: TeamId, userId: UserId, role: Role) {
-        writes += "updateRole"
-    }
-    override fun deactivate(teamId: TeamId, userId: UserId) {
-        writes += "deactivate"
-    }
-    override fun assignPosition(teamId: TeamId, userId: UserId, positionId: PositionId?) = Unit
-    override fun applyMemberEdit(
-        teamId: TeamId,
-        userId: UserId,
-        displayName: DisplayName,
-        role: Role,
-        positionId: PositionId?,
-        shirtNumber: ShirtNumber?,
-        markOnboardedAt: java.time.Instant?,
-    ) = Unit
-    override fun markOnboarded(teamId: TeamId, userId: UserId, at: java.time.Instant) = Unit
-    override fun countAdmins(teamId: TeamId): Int = 0
-    override fun countByPosition(teamId: TeamId, positionId: PositionId): Int = 0
-}
 
 class AuthorizationServiceTest : FunSpec() {
 
@@ -63,12 +23,11 @@ class AuthorizationServiceTest : FunSpec() {
         val memberId = UserId.random()
         val strangerId = UserId.random()
 
-        val roster = FakeTeamMemberRepository(
-            mapOf(
-                (teamId to adminId) to Role.ADMIN,
-                (teamId to memberId) to Role.USER,
-            ),
-        )
+        val directory = TeamDirectory().apply {
+            join(adminId, teamId, Role.ADMIN)
+            join(memberId, teamId, Role.USER)
+        }
+        val roster = directory.teamMemberRepository()
         val service = AuthorizationService(roster, FakeActAsGateway())
 
         /** The Platform Admin — structurally a Member of nothing (ADR-0024 §3). */
@@ -160,7 +119,7 @@ class AuthorizationServiceTest : FunSpec() {
             test("the synthesis never touches team_members - no row is written, ever") {
                 actingAs(teamId).requireAdmin(operator, teamId)
 
-                roster.writes.shouldBeEmpty()
+                directory.writes.shouldBeEmpty()
             }
 
             test("an existing member keeps their own role - the grant does not overwrite it") {

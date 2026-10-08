@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { expect, fn, within } from 'storybook/test'
-import type { Event } from '@shared/api/events'
-import { makeEvent } from '@shared/testing/event-fixtures'
+import type { Event } from '@entities/event/api/events'
+import { makeEvent } from '@entities/event/testing/event-fixtures'
 import { Stack } from '@shared/testing/stack'
 import { DeleteEventDialogView } from './DeleteEventDialogView'
 

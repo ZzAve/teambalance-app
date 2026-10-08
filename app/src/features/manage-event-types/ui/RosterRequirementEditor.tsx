@@ -1,5 +1,5 @@
 import type { Position } from '@entities/position/api/positions'
-import type { RosterRequirement } from '@shared/api/event-types'
+import type { RosterRequirement } from '@entities/event/api/event-types'
 import { Input } from '@shared/ui/input'
 import { SectionLabel } from '@shared/ui/SectionLabel'
 import { Switch } from '@shared/ui/switch'

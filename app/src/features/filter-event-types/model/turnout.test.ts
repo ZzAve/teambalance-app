@@ -1,6 +1,6 @@
 import {describe, expect, it} from 'vitest'
-import type {RosterState} from '@shared/api/events'
-import {makeEvent, makeRoster} from '@shared/testing/event-fixtures'
+import type {RosterState} from '@entities/event/api/events'
+import {makeEvent, makeRoster} from '@entities/event/testing/event-fixtures'
 import {
     ALL_TURNOUT_BUCKETS,
     TURNOUT_BY_STATE,

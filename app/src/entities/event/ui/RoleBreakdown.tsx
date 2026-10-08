@@ -1,4 +1,4 @@
-import type { RoleCount } from '@shared/api/events'
+import type { RoleCount } from '../api/events'
 
 interface RoleBreakdownProps {
   breakdown: RoleCount[]

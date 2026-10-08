@@ -1,8 +1,8 @@
 import { useState, type ComponentProps } from 'react'
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { expect, fn, within } from 'storybook/test'
-import type { AttendanceEntry } from '@shared/api/events'
-import { makeAttendee, makeRoster, makeSubstitute, NO_ROSTER } from '@shared/testing/event-fixtures'
+import type { AttendanceEntry } from '@entities/event/api/events'
+import { makeAttendee, makeRoster, makeSubstitute, NO_ROSTER } from '@entities/event/testing/event-fixtures'
 import { Stack } from '@shared/testing/stack'
 import { EventLineupPanel } from './EventLineupPanel'
 

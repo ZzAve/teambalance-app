@@ -1,4 +1,4 @@
-import type { EventRoster, RosterPosition } from '@shared/api/events'
+import type { EventRoster, RosterPosition } from '../api/events'
 
 /**
  * The roster panel's whole view model, derived from the server-computed roster.

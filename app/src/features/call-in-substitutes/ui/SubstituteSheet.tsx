@@ -1,4 +1,4 @@
-import type { SubstituteEntry } from '@shared/api/events'
+import type { SubstituteEntry } from '@entities/event/api/events'
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@shared/ui/sheet'
 import { AttendanceToggle } from '@features/attendance-toggle/ui/AttendanceToggle'
 import type { SubstituteState } from './SubstitutesBlock'

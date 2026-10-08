@@ -1,4 +1,4 @@
-import type { Event } from '@shared/api/events'
+import type { Event } from '@entities/event/api/events'
 
 /** The fillable events of one event type, ready for a button of its own. */
 export interface EligibleTypeGroup {

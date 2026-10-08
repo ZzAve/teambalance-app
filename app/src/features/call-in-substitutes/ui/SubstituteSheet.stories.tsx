@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { expect, fn, within } from 'storybook/test'
-import { makeSubstitute } from '@shared/testing/event-fixtures'
+import { makeSubstitute } from '@entities/event/testing/event-fixtures'
 import { SubstituteSheet } from './SubstituteSheet'
 
 // One Substitute on one event (ADR-0033), opened from their chip in the lineup or their row in the

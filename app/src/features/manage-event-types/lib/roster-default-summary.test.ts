@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { RosterRequirement } from '@shared/api/event-types'
+import type { RosterRequirement } from '@entities/event/api/event-types'
 import type { Position } from '@entities/position/api/positions'
 import { rosterDefaultSummary } from './roster-default-summary'
 

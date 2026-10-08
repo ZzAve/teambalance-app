@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import type { Event } from '@shared/api/events'
+import type { Event } from '@entities/event/api/events'
 import {
     useRemoveSubstituteAttendance,
     useSetSubstituteAttendance,

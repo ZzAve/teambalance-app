@@ -1,4 +1,4 @@
-import type { EventRoster } from '@shared/api/events'
+import type { EventRoster } from '../api/events'
 import { rosterChip, type RosterTone } from '../lib/roster-view'
 
 interface ReadinessBadgeProps {

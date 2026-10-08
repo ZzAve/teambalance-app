@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { makeEvent } from '@shared/testing/event-fixtures'
+import { makeEvent } from '@entities/event/testing/event-fixtures'
 import { ALL_ATTENDANCE_STATES, type AttendanceState } from '@entities/attendance/model/attendance-state'
 import { ALL_TURNOUT_BUCKETS, type TurnoutBucket } from '@features/filter-event-types/model/turnout'
 import { buildEventsPageModel, type EventsPageModelInput } from './events-page-model'

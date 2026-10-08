@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { makeEvent } from '@shared/testing/event-fixtures'
+import { makeEvent } from '@entities/event/testing/event-fixtures'
 import { groupByType } from './group-by-type'
 
 const TRAINING = { id: 'et-training', name: 'Training', color: '#22c55e' }

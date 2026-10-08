@@ -1,4 +1,4 @@
-import { useEvent, type Event } from '@shared/api/events'
+import { useEvent, type Event } from '@entities/event/api/events'
 import { useSetAttendance } from '@entities/attendance/api/attendances'
 import { useSession } from '@shared/session/session'
 import { myAnswerOf } from '@entities/attendance/model/attendance-state'

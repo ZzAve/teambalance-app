@@ -5,7 +5,7 @@ import {
   useEventTypes,
   useUnarchiveEventType,
   useUpdateEventType,
-} from '@shared/api/event-types'
+} from '@entities/event/api/event-types'
 import { usePositions } from '@entities/position/api/positions'
 import { summarizeMutations } from '@shared/lib/mutation-group'
 import { ManageEventTypesView } from './ManageEventTypesView'

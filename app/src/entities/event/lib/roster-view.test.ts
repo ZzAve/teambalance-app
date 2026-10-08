@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import type { EventRoster, RosterPosition } from '@shared/api/events'
-import { makeRoster, NO_ROSTER } from '@shared/testing/event-fixtures'
+import type { EventRoster, RosterPosition } from '../api/events'
+import { makeRoster, NO_ROSTER } from '../testing/event-fixtures'
 import {
   headcountLine,
   rosterChip,

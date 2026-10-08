@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react'
 import { Plus } from 'lucide-react'
-import type { SubstituteEntry } from '@shared/api/events'
+import type { SubstituteEntry } from '@entities/event/api/events'
 import type { Substitute } from '@entities/substitute/api/substitutes'
 import { Button } from '@shared/ui/button'
 import { Input } from '@shared/ui/input'

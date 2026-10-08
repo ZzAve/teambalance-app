@@ -1,4 +1,4 @@
-import type { SubstituteEntry } from '@shared/api/events'
+import type { SubstituteEntry } from '@entities/event/api/events'
 import { usePositions } from '@entities/position/api/positions'
 import {
   useCreateSubstitute,

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import type { Event } from '@shared/api/events'
-import { makeEvent } from '@shared/testing/event-fixtures'
+import type { Event } from '../api/events'
+import { makeEvent } from '../testing/event-fixtures'
 import { selectHeroEvent } from './next-event'
 
 const at = (y: number, m: number, d: number, h = 12, min = 0) =>

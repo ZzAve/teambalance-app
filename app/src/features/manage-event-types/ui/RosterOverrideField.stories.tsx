@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite'
 import { expect, fn, within } from 'storybook/test'
 import type { Position } from '@entities/position/api/positions'
 import { Stack } from '@shared/testing/stack'
-import { makeEventType } from '@shared/testing/event-fixtures'
+import { makeEventType } from '@entities/event/testing/event-fixtures'
 import { RosterOverrideField } from './RosterOverrideField'
 
 // "Inherit default / Customise" in the create and edit event forms. Prop-only: the value and the

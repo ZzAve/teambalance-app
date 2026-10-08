@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from 'react'
 import { Link } from '@tanstack/react-router'
 import { AlignLeft, CalendarDays, Clock, ExternalLink, Link2, MapPin } from 'lucide-react'
-import type { EventDetail } from '@shared/api/events'
+import type { EventDetail } from '@entities/event/api/events'
 import { Button } from '@shared/ui/button'
 import { InfoRow } from '@shared/ui/InfoRow'
 import { MapsLink } from '@shared/ui/MapsLink'

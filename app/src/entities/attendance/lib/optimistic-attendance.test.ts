@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import type { AttendanceEntry, EventDetail } from '@shared/api/events'
-import { makeRoster, NO_ROSTER } from '@shared/testing/event-fixtures'
+import type { AttendanceEntry, EventDetail } from '@entities/event/api/events'
+import { makeRoster, NO_ROSTER } from '@entities/event/testing/event-fixtures'
 import { applyOptimisticAttendance } from './optimistic-attendance'
 
 const attendee = (overrides: Partial<AttendanceEntry> = {}): AttendanceEntry => ({

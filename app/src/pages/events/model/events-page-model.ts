@@ -1,4 +1,4 @@
-import type { Event } from '@shared/api/events'
+import type { Event } from '@entities/event/api/events'
 import type { AttendanceState } from '@entities/attendance/model/attendance-state'
 import { selectHeroEvent } from '@entities/event/lib/next-event'
 import { reconcileTypeIds } from '@features/filter-event-types/model/filter-preferences'

@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { expect, fn, within } from 'storybook/test'
 import { withRouter } from '@shared/testing/router-decorator'
-import { makeEvent, makeRoster } from '@shared/testing/event-fixtures'
+import { makeEvent, makeRoster } from '../testing/event-fixtures'
 import { Stack } from '@shared/testing/stack'
 import { darkMode } from '../../../../.storybook/modes'
 import { EventCard } from './EventCard'

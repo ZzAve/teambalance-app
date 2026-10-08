@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { expect, within } from 'storybook/test'
-import { makeRoster } from '@shared/testing/event-fixtures'
+import { makeRoster } from '../testing/event-fixtures'
 import { Stack } from '@shared/testing/stack'
 import { appColumn } from '@shared/testing/app-column-decorator'
 import { RosterBar } from './RosterBar'

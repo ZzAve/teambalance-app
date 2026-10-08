@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { UserPlus } from 'lucide-react'
-import type { AttendanceEntry, EventRoster, SubstituteEntry } from '@shared/api/events'
+import type { AttendanceEntry, EventRoster, SubstituteEntry } from '@entities/event/api/events'
 import { SectionLabel } from '@shared/ui/SectionLabel'
 import { AnswerSheet } from '@features/attendance-toggle/ui/AnswerSheet'
 import { SubstituteSheet } from '@features/call-in-substitutes/ui/SubstituteSheet'

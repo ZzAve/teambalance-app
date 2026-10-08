@@ -1,4 +1,4 @@
-import type { AttendanceEntry } from '@shared/api/events'
+import type { AttendanceEntry } from '../api/events'
 
 /**
  * The name to show after "set by" on an attendee row, or `null` when no attribution should show —

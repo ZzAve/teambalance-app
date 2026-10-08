@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Plus } from 'lucide-react'
-import type { AttendanceEntry, EventRoster, SubstituteEntry } from '@shared/api/events'
+import type { AttendanceEntry, EventRoster, SubstituteEntry } from '@entities/event/api/events'
 import { Avatar } from '@shared/ui/avatar'
 import { AnswerSheet, type AnswerTarget } from '@features/attendance-toggle/ui/AnswerSheet'
 import type { AttendanceState } from '@entities/attendance/model/attendance-state'

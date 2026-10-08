@@ -1,5 +1,5 @@
 import { ExternalLink } from 'lucide-react'
-import type { EventReference } from '@shared/api/events'
+import type { EventReference } from '../api/events'
 import { referenceLabel } from '../lib/reference-label'
 
 /**

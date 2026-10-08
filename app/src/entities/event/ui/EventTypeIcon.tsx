@@ -1,5 +1,5 @@
 import { Dumbbell, Swords, Trophy, PartyPopper, Calendar, type LucideIcon } from 'lucide-react'
-import type { EventTypeSummary } from '@shared/api/events'
+import type { EventTypeSummary } from '../api/events'
 
 const ICON_MAP: Record<string, LucideIcon> = {
   Training: Dumbbell,

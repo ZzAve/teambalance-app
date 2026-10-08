@@ -1,5 +1,5 @@
-import type { AttendanceEntry, Event, EventRoster, SubstituteEntry } from '@shared/api/events'
-import type { EventTypeItem, RosterRequirement } from '@shared/api/event-types'
+import type { AttendanceEntry, Event, EventRoster, SubstituteEntry } from '../api/events'
+import type { EventTypeItem, RosterRequirement } from '../api/event-types'
 
 /** Roster tracking switched off — the default for a type nobody has configured. */
 export const ROSTER_OFF: RosterRequirement = {

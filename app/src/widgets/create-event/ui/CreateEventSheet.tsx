@@ -2,10 +2,10 @@ import { useState } from 'react'
 import { Plus } from 'lucide-react'
 import { Button } from '@shared/ui/button'
 import { Sheet, SheetContent, SheetTrigger } from '@shared/ui/sheet'
-import { useEventTypes } from '@shared/api/event-types'
+import { useEventTypes } from '@entities/event/api/event-types'
 import { usePositions } from '@entities/position/api/positions'
 import { useSeason } from '@entities/team/api/season'
-import { useCreateEvent, type EventInput } from '@shared/api/events'
+import { useCreateEvent, type EventInput } from '@entities/event/api/events'
 import {
   RecurringCreateError,
   useCreateRecurringEvents,

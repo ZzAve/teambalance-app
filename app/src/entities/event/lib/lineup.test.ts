@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { makeAttendee, makeRoster, makeSubstitute } from '@shared/testing/event-fixtures'
+import { makeAttendee, makeRoster, makeSubstitute } from '../testing/event-fixtures'
 import { coveredLine, findSomeone, lineupRows, substituteLine, verdictWord } from './lineup'
 
 // Pure mapping, so a plain unit is the lowest layer that proves it (CLAUDE.md testing table). What

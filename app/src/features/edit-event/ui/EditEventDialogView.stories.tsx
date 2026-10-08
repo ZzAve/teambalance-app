@@ -1,8 +1,8 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { expect, fn, within } from 'storybook/test'
-import type { Event, EventDetail } from '@shared/api/events'
-import type { EventTypeItem } from '@shared/api/event-types'
-import { makeEvent, makeEventType, NO_ROSTER } from '@shared/testing/event-fixtures'
+import type { Event, EventDetail } from '@entities/event/api/events'
+import type { EventTypeItem } from '@entities/event/api/event-types'
+import { makeEvent, makeEventType, NO_ROSTER } from '@entities/event/testing/event-fixtures'
 import { Stack } from '@shared/testing/stack'
 import { EditEventDialogView } from './EditEventDialogView'
 

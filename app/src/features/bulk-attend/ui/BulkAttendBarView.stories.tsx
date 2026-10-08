@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { expect, fn, within } from 'storybook/test'
-import { makeEvent } from '@shared/testing/event-fixtures'
+import { makeEvent } from '@entities/event/testing/event-fixtures'
 import { Stack } from '@shared/testing/stack'
 import type { EligibleTypeGroup } from '../lib/group-by-type'
 import { BulkAttendBarView } from './BulkAttendBarView'

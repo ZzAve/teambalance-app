@@ -1,6 +1,6 @@
 import { useState, type CSSProperties, type ReactNode } from 'react'
 import { SlidersHorizontal } from 'lucide-react'
-import type { EventTypeItem } from '@shared/api/event-types'
+import type { EventTypeItem } from '@entities/event/api/event-types'
 import type { AttendanceState } from '@entities/attendance/model/attendance-state'
 import { SectionLabel } from '@shared/ui/SectionLabel'
 import { Switch } from '@shared/ui/switch'

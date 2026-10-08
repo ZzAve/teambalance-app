@@ -1,4 +1,4 @@
-import type { EventTypeSummary } from '@shared/api/events'
+import type { EventTypeSummary } from '../api/events'
 
 /**
  * The calendar "chit" that leads every event card: weekday, a big Grandstander day number, month —

@@ -1,4 +1,4 @@
-import type { Position } from '@shared/api/positions'
+import type { Position } from '@entities/position/api/positions'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@shared/ui/select'
 
 // Radix Select forbids an empty-string item value (reserved for clearing), so "Unassigned" rides a

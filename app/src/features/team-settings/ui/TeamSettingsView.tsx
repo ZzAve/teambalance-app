@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Button } from '@shared/ui/button'
 import { Input } from '@shared/ui/input'
 import { Label } from '@shared/ui/label'
-import type { SeasonInput } from '@shared/api/season'
+import type { SeasonInput } from '@entities/team/api/season'
 import { isSeasonConfigured, seasonChanged, validateSeasonRange, type SeasonBounds } from '../lib/season'
 
 interface TeamSettingsViewProps {

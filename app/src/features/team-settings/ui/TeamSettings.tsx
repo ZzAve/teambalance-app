@@ -1,4 +1,4 @@
-import { useSeason, useSetSeason } from '@shared/api/season'
+import { useSeason, useSetSeason } from '@entities/team/api/season'
 import { TeamSettingsView } from './TeamSettingsView'
 
 /**

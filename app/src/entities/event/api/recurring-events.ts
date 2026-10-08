@@ -1,14 +1,14 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { api } from './wirespec-client'
-import { queryKeys } from './query-keys'
-import type { CreateRecurringEventsRequest } from './generated/model/CreateRecurringEventsRequest'
+import { api } from '@shared/api/wirespec-client'
+import { queryKeys } from '@shared/api/query-keys'
+import type { CreateRecurringEventsRequest } from '@shared/api/generated/model/CreateRecurringEventsRequest'
 
 // Re-export the generated contract types so the app has a single source of truth.
-export type { CreateRecurringEventsRequest } from './generated/model/CreateRecurringEventsRequest'
-export type { RecurrenceRule } from './generated/model/RecurrenceRule'
-export type { RecurrenceFrequency } from './generated/model/RecurrenceFrequency'
-export type { Weekday } from './generated/model/Weekday'
-export type { RecurringEventSeries } from './generated/model/RecurringEventSeries'
+export type { CreateRecurringEventsRequest } from '@shared/api/generated/model/CreateRecurringEventsRequest'
+export type { RecurrenceRule } from '@shared/api/generated/model/RecurrenceRule'
+export type { RecurrenceFrequency } from '@shared/api/generated/model/RecurrenceFrequency'
+export type { Weekday } from '@shared/api/generated/model/Weekday'
+export type { RecurringEventSeries } from '@shared/api/generated/model/RecurringEventSeries'
 
 // The distinct business-rule rejections the backend returns as 422, discriminated by the response
 // body's `code` so the wizard can show the right reason instead of a generic failure.

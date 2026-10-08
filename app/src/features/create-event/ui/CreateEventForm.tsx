@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { EventTypeSelect } from '@entities/event/ui/EventTypeSelect'
 import type { EventInput } from '@shared/api/events'
 import type { RosterRequirement } from '@shared/api/event-types'
-import type { Position } from '@shared/api/positions'
+import type { Position } from '@entities/position/api/positions'
 import { RosterOverrideField } from '@features/manage-event-types/ui/RosterOverrideField'
 import type { EventTypeItem } from '@shared/api/event-types'
 import { ReferenceRowsEditor } from '@entities/event/ui/ReferenceRowsEditor'

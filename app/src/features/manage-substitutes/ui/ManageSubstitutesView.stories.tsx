@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { expect, fn, within } from 'storybook/test'
-import type { Position } from '@shared/api/positions'
-import type { Substitute } from '@shared/api/substitutes'
+import type { Position } from '@entities/position/api/positions'
+import type { Substitute } from '@entities/substitute/api/substitutes'
 import { Stack } from '@shared/testing/stack'
 import { ManageSubstitutesView } from './ManageSubstitutesView'
 

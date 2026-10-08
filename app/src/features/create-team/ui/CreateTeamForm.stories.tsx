@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { expect, fn, within } from 'storybook/test'
-import { CreateTeamError } from '@shared/api/teams'
+import { CreateTeamError } from '@entities/team/api/teams'
 import { Stack } from '@shared/testing/stack'
 import { CreateTeamForm } from './CreateTeamForm'
 

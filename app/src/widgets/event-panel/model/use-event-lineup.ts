@@ -4,7 +4,7 @@ import {
     useRemoveSubstituteAttendance,
     useSetSubstituteAttendance,
     usePendingSubstituteEvents,
-} from '@shared/api/substitutes'
+} from '@entities/substitute/api/substitutes'
 import type { PositionRef } from '@entities/event/lib/lineup'
 import type { SubstituteState } from '@features/call-in-substitutes/ui/SubstitutesBlock'
 

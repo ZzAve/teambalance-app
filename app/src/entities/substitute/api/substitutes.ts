@@ -1,12 +1,12 @@
 import { useMutation, useMutationState, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { api } from './wirespec-client'
-import { throwOnStatus } from './errors'
-import { queryKeys } from './query-keys'
-import type { SubstituteEntry } from './generated/model/SubstituteEntry'
+import { api } from '@shared/api/wirespec-client'
+import { throwOnStatus } from '@shared/api/errors'
+import { queryKeys } from '@shared/api/query-keys'
+import type { SubstituteEntry } from '@shared/api/generated/model/SubstituteEntry'
 
 // Re-export the generated contract types so the app has a single source of truth.
-export type { Substitute } from './generated/model/Substitute'
+export type { Substitute } from '@shared/api/generated/model/Substitute'
 
 /** A refusal a Substitute write reports to the person who made it, with a message to show. */
 export class SubstituteError extends Error {

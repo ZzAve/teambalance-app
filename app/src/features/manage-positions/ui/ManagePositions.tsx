@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import type { Position } from '@shared/api/positions'
+import type { Position } from '@entities/position/api/positions'
 import { summarizeMutations } from '@shared/lib/mutation-group'
 import {
   PositionError,
@@ -9,7 +9,7 @@ import {
   usePositions,
   useRenamePosition,
   useSetPositionKind,
-} from '@shared/api/positions'
+} from '@entities/position/api/positions'
 import { ManagePositionsView } from './ManagePositionsView'
 
 /**

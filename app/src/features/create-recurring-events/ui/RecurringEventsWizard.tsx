@@ -7,8 +7,8 @@ import { EventTypeSelect } from '@entities/event/ui/EventTypeSelect'
 import { ReferenceRowsEditor } from '@entities/event/ui/ReferenceRowsEditor'
 import { cleanReferences, type ReferenceRow } from '@entities/event/lib/references'
 import type { EventTypeItem } from '@shared/api/event-types'
-import type { Season } from '@shared/api/season'
-import type { CreateRecurringEventsRequest, RecurrenceFrequency, Weekday } from '@shared/api/recurring-events'
+import type { Season } from '@entities/team/api/season'
+import type { CreateRecurringEventsRequest, RecurrenceFrequency, Weekday } from '@entities/event/api/recurring-events'
 import {
   buildCalendarPreview,
   defaultDateRange,

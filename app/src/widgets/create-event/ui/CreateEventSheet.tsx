@@ -3,14 +3,14 @@ import { Plus } from 'lucide-react'
 import { Button } from '@shared/ui/button'
 import { Sheet, SheetContent, SheetTrigger } from '@shared/ui/sheet'
 import { useEventTypes } from '@shared/api/event-types'
-import { usePositions } from '@shared/api/positions'
-import { useSeason } from '@shared/api/season'
+import { usePositions } from '@entities/position/api/positions'
+import { useSeason } from '@entities/team/api/season'
 import { useCreateEvent, type EventInput } from '@shared/api/events'
 import {
   RecurringCreateError,
   useCreateRecurringEvents,
   type CreateRecurringEventsRequest,
-} from '@shared/api/recurring-events'
+} from '@entities/event/api/recurring-events'
 import { CreateEventSheetView, type CreateEventMode } from './CreateEventSheetView'
 
 type Mode = 'closed' | CreateEventMode

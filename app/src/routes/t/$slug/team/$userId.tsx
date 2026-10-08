@@ -1,9 +1,9 @@
 import { useState } from 'react'
 import { createFileRoute } from '@tanstack/react-router'
 import { useSession } from '@shared/session/session'
-import { MemberUpdateError, useMembers, useUpdateMember } from '@shared/api/members'
+import { MemberUpdateError, useMembers, useUpdateMember } from '@entities/member/api/members'
 import { PhotoError, useCopyPersonalPhotoToTeam, useRemoveTeamPhoto, useUploadTeamPhoto } from '@shared/api/photos'
-import { usePositions } from '@shared/api/positions'
+import { usePositions } from '@entities/position/api/positions'
 import { MemberDetailView } from '@pages/member/ui/MemberDetailView'
 
 export const Route = createFileRoute('/t/$slug/team/$userId')({

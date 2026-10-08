@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import type { Position, PositionKind, PositionUsage } from '@shared/api/positions'
+import type { Position, PositionKind, PositionUsage } from '@entities/position/api/positions'
 import { Button } from '@shared/ui/button'
 import { Input } from '@shared/ui/input'
 import { ConfirmDialog } from '@shared/ui/ConfirmDialog'

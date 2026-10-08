@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Button } from '@shared/ui/button'
 import { useUpdateEvent, type Event, type EventDetail } from '@shared/api/events'
 import { useEventTypes } from '@shared/api/event-types'
-import { usePositions } from '@shared/api/positions'
+import { usePositions } from '@entities/position/api/positions'
 import { EditEventDialogView } from './EditEventDialogView'
 
 interface EditEventDialogProps {

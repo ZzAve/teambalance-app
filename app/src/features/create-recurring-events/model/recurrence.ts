@@ -1,5 +1,5 @@
-import type { RecurrenceFrequency, Weekday } from '@shared/api/recurring-events'
-import type { Season } from '@shared/api/season'
+import type { RecurrenceFrequency, Weekday } from '@entities/event/api/recurring-events'
+import type { Season } from '@entities/team/api/season'
 
 // A single batch materializes at most this many occurrences (ADR-0014). The backend enforces the
 // same cap and hard-rejects over it; the wizard mirrors it so the user sees the wall before submit.

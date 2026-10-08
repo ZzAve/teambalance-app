@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { queryKeys } from '@shared/api/query-keys'
-import { useCreateMemberlessTeam, type CreateTeamError } from '@shared/api/teams'
+import { useCreateMemberlessTeam, type CreateTeamError } from '@entities/team/api/teams'
 import { CreateMemberlessTeamView } from './CreateMemberlessTeamView'
 
 /**

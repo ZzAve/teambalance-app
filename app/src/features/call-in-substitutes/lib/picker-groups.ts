@@ -1,4 +1,4 @@
-import type { Substitute } from '@shared/api/substitutes'
+import type { Substitute } from '@entities/substitute/api/substitutes'
 
 /**
  * The picker opened for one Position: the Substitutes who play it first, everyone else after

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { Member } from '@shared/api/members'
+import type { Member } from '@entities/member/api/members'
 import { isLastAdmin, sortByShirtNumber, toggleRole } from './roster'
 
 describe('toggleRole', () => {

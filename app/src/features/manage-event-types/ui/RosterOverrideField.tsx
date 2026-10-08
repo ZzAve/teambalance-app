@@ -1,5 +1,5 @@
 import type { EventTypeItem, RosterRequirement } from '@shared/api/event-types'
-import type { Position } from '@shared/api/positions'
+import type { Position } from '@entities/position/api/positions'
 import { RosterRequirementEditor } from './RosterRequirementEditor'
 import { rosterDefaultSummary } from '../lib/roster-default-summary'
 

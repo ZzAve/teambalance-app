@@ -2,14 +2,14 @@ import { useState } from 'react'
 import { createFileRoute } from '@tanstack/react-router'
 import { useAuthMe, useLogout } from '@shared/api/auth'
 import { endSession } from '@shared/session/session'
-import { MemberUpdateError, useCurrentMember, useUpdateMember } from '@shared/api/members'
+import { MemberUpdateError, useCurrentMember, useUpdateMember } from '@entities/member/api/members'
 import {
   PhotoError,
   useCopyPersonalPhotoToTeam,
   useRemovePersonalPhoto,
   useUploadPersonalPhoto,
 } from '@shared/api/photos'
-import { usePositions } from '@shared/api/positions'
+import { usePositions } from '@entities/position/api/positions'
 import { accountSections } from '@features/account/lib/account-sections'
 import { AccountView } from '@features/account/ui/AccountView'
 

@@ -1,5 +1,5 @@
-import { MemberUpdateError, useMembers, useRemoveMember, useUpdateMember } from '@shared/api/members'
-import { usePositions } from '@shared/api/positions'
+import { MemberUpdateError, useMembers, useRemoveMember, useUpdateMember } from '@entities/member/api/members'
+import { usePositions } from '@entities/position/api/positions'
 import { summarizeMutations } from '@shared/lib/mutation-group'
 import { toggleRole } from '../lib/roster'
 import { MemberRosterView } from './MemberRosterView'

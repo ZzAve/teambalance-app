@@ -1,10 +1,10 @@
 import { queryOptions, useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { api } from './wirespec-client'
-import { throwOnStatus } from './errors'
-import { queryKeys } from './query-keys'
+import { api } from '@shared/api/wirespec-client'
+import { throwOnStatus } from '@shared/api/errors'
+import { queryKeys } from '@shared/api/query-keys'
 
 // Re-export the generated contract type so the app has a single source of truth.
-export type { Member } from './generated/model/Member'
+export type { Member } from '@shared/api/generated/model/Member'
 
 // A member update can fail in ways the form needs to distinguish (a taken name is recoverable and
 // shown inline; a 403/404 is not). Carry the backend's discriminator code so the UI can branch.

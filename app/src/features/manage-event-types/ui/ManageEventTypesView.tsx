@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { ArchiveRestore } from 'lucide-react'
 import type { EventTypeItem, RosterRequirement } from '@shared/api/event-types'
-import type { Position } from '@shared/api/positions'
+import type { Position } from '@entities/position/api/positions'
 import { Button } from '@shared/ui/button'
 import { Input } from '@shared/ui/input'
 import {

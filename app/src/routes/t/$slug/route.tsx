@@ -1,6 +1,6 @@
 import { createFileRoute, redirect, Outlet } from '@tanstack/react-router'
 import { authMeQueryOptions } from '@shared/api/auth'
-import { currentMemberQueryOptions } from '@shared/api/members'
+import { currentMemberQueryOptions } from '@entities/member/api/members'
 import { queryClient } from '@shared/api/query-client'
 import { teamRoutes } from '@shared/lib/team-routes'
 import { enterTeam } from '@shared/session/session'

@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import type { Member } from '@shared/api/members'
-import type { Position } from '@shared/api/positions'
+import type { Member } from '@entities/member/api/members'
+import type { Position } from '@entities/position/api/positions'
 import { EditProfileForm } from '@features/edit-profile/ui/EditProfileForm'
 
 interface GetStartedViewProps {

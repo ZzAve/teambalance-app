@@ -3,7 +3,7 @@ import { Button } from '@shared/ui/button'
 import { Input } from '@shared/ui/input'
 import { Label } from '@shared/ui/label'
 import { validateSlug } from '@shared/lib/validate-slug'
-import { placeCreateTeamError, type CreateTeamError } from '@shared/api/teams'
+import { placeCreateTeamError, type CreateTeamError } from '@entities/team/api/teams'
 import { FormError } from '@shared/ui/FormError'
 
 interface CreateMemberlessTeamViewProps {

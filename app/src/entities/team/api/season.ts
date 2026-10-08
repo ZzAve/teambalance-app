@@ -1,10 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { api } from './wirespec-client'
-import { throwOnStatus } from './errors'
-import { queryKeys } from './query-keys'
+import { api } from '@shared/api/wirespec-client'
+import { throwOnStatus } from '@shared/api/errors'
+import { queryKeys } from '@shared/api/query-keys'
 
 // Re-export the generated contract type so the app has a single source of truth.
-export type { Season } from './generated/model/Season'
+export type { Season } from '@shared/api/generated/model/Season'
 
 // A season bound is an ISO date string ("2026-09-01") or undefined (unbounded on that side).
 export interface SeasonInput {

@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { expect, fn, within } from 'storybook/test'
-import type { Position } from '@shared/api/positions'
+import type { Position } from '@entities/position/api/positions'
 import { Stack } from '@shared/testing/stack'
 import { ManagePositionsView } from './ManagePositionsView'
 

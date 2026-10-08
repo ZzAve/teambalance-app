@@ -1,4 +1,4 @@
-import type { Position } from '@shared/api/positions'
+import type { Position } from '@entities/position/api/positions'
 import type { RosterRequirement } from '@shared/api/event-types'
 import { Input } from '@shared/ui/input'
 import { SectionLabel } from '@shared/ui/SectionLabel'

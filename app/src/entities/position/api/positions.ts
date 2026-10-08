@@ -1,13 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { api } from './wirespec-client'
-import { throwOnStatus } from './errors'
-import { queryKeys } from './query-keys'
-import type { PositionKind } from './generated/model/PositionKind'
+import { api } from '@shared/api/wirespec-client'
+import { throwOnStatus } from '@shared/api/errors'
+import { queryKeys } from '@shared/api/query-keys'
+import type { PositionKind } from '@shared/api/generated/model/PositionKind'
 
 // Re-export the generated contract types so the app has a single source of truth.
-export type { Position } from './generated/model/Position'
-export type { PositionKind } from './generated/model/PositionKind'
-export type { PositionUsage } from './generated/model/PositionUsage'
+export type { Position } from '@shared/api/generated/model/Position'
+export type { PositionKind } from '@shared/api/generated/model/PositionKind'
+export type { PositionUsage } from '@shared/api/generated/model/PositionUsage'
 
 // A position mutation can fail in ways the UI must distinguish: a taken label is recoverable and
 // shown inline; a 403/404 is not. Mirrors MemberUpdateError in members.ts.

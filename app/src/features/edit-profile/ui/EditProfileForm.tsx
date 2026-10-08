@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import type { Position } from '@shared/api/positions'
+import type { Position } from '@entities/position/api/positions'
 import { PositionPicker } from '@entities/position/ui/PositionPicker'
 import { Button } from '@shared/ui/button'
 import { Input } from '@shared/ui/input'

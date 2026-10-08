@@ -1,11 +1,11 @@
 import type { SubstituteEntry } from '@shared/api/events'
-import { usePositions } from '@shared/api/positions'
+import { usePositions } from '@entities/position/api/positions'
 import {
   useCreateSubstitute,
   useSetSubstituteAttendance,
   usePendingSubstituteEvents,
   useSubstitutes,
-} from '@shared/api/substitutes'
+} from '@entities/substitute/api/substitutes'
 import type { PositionRef } from '@entities/event/lib/lineup'
 import { SubstitutePickerView } from './SubstitutePickerView'
 

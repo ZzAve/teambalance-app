@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import type { Position } from '@shared/api/positions'
-import type { Substitute } from '@shared/api/substitutes'
+import type { Position } from '@entities/position/api/positions'
+import type { Substitute } from '@entities/substitute/api/substitutes'
 import { PositionPicker } from '@entities/position/ui/PositionPicker'
 import { SubstituteAvatar } from '@entities/event/ui/SubstituteAvatar'
 import { Button } from '@shared/ui/button'

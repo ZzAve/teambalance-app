@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { Position } from '@shared/api/positions'
+import type { Position } from '@entities/position/api/positions'
 import { validatePosition } from './validate-position'
 
 const POSITIONS: Position[] = [

@@ -1,5 +1,5 @@
 import type { RosterRequirement } from '@shared/api/event-types'
-import type { Position } from '@shared/api/positions'
+import type { Position } from '@entities/position/api/positions'
 
 /**
  * A one-line description of a roster requirement, for the admin list row — so an admin can read what

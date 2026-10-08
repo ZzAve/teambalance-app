@@ -1,7 +1,7 @@
 import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router'
 import { authMeQueryOptions } from '@shared/api/auth'
 import { queryClient } from '@shared/api/query-client'
-import { CreateTeamError, useCreateTeam } from '@shared/api/teams'
+import { CreateTeamError, useCreateTeam } from '@entities/team/api/teams'
 import { teamRoutes } from '@shared/lib/team-routes'
 import { afterTenantChange } from '@shared/session/session'
 import { CreateTeamForm } from '@features/create-team/ui/CreateTeamForm'

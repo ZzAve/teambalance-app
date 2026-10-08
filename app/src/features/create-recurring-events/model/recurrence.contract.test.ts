@@ -2,7 +2,7 @@ import { existsSync, readFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
-import type { RecurrenceFrequency, Weekday } from '@shared/api/recurring-events'
+import type { RecurrenceFrequency, Weekday } from '@entities/event/api/recurring-events'
 import { generateOccurrences, MAX_OCCURRENCES } from './recurrence'
 
 // CROSS-SEAM CONTRACT — the occurrence-generation rule lives in both this file's `recurrence.ts` and

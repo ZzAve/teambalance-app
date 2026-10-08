@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { expect, fn, within } from 'storybook/test'
 import type { EventTypeItem } from '@shared/api/event-types'
-import type { Position } from '@shared/api/positions'
+import type { Position } from '@entities/position/api/positions'
 import { Stack } from '@shared/testing/stack'
 import { makeEventType, ROSTER_OFF } from '@shared/testing/event-fixtures'
 import { ManageEventTypesView } from './ManageEventTypesView'

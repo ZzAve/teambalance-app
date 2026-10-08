@@ -1,4 +1,4 @@
-import type { Member } from '@shared/api/members'
+import type { Member } from '@entities/member/api/members'
 
 /** Promote/demote toggle — a member is either an ADMIN or a plain USER. */
 export function toggleRole(role: string): string {

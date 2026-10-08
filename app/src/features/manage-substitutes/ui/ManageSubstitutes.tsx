@@ -1,13 +1,13 @@
 import { useState } from 'react'
-import { usePositions } from '@shared/api/positions'
-import type { Substitute } from '@shared/api/substitutes'
+import { usePositions } from '@entities/position/api/positions'
+import type { Substitute } from '@entities/substitute/api/substitutes'
 import {
   SubstituteError,
   useDeleteSubstitute,
   useSubstituteEventCount,
   useSubstitutes,
   useUpdateSubstitute,
-} from '@shared/api/substitutes'
+} from '@entities/substitute/api/substitutes'
 import { ManageSubstitutesView } from './ManageSubstitutesView'
 
 interface ManageSubstitutesProps {

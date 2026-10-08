@@ -1,4 +1,4 @@
-import type { Position } from '@shared/api/positions'
+import type { Position } from '@entities/position/api/positions'
 
 /**
  * Required-when-available validation for the profile position picker: if the team defines any

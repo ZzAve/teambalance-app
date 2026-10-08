@@ -319,12 +319,8 @@ internal class InMemoryInvitationRepository(private var invitation: Invitation? 
 
     override fun findById(invitationId: UUID) = invitation?.takeIf { it.id == invitationId }
 
-    override fun findActiveByTeam(teamId: TeamId, now: Instant) = invitation?.takeIf {
-        it.role == Role.USER && it.teamId == teamId && it.expiresAt.isAfter(now)
-    }
-
-    override fun findActiveAdminByTeam(teamId: TeamId, now: Instant) = invitation?.takeIf {
-        it.role == Role.ADMIN && it.id !in consumed && it.teamId == teamId && it.expiresAt.isAfter(now)
+    override fun findActive(teamId: TeamId, role: Role, now: Instant) = invitation?.takeIf {
+        it.role == role && it.id !in consumed && it.teamId == teamId && it.expiresAt.isAfter(now)
     }
 
     override fun consume(invitationId: UUID, now: Instant): Boolean = consumed.add(invitationId)

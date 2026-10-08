@@ -1,4 +1,4 @@
-import type { Event } from '@shared/api/events'
+import type { Event } from '../api/events'
 import { RELATIVE_WINDOW_DAYS, calendarDaysUntil } from './relative-event-label'
 
 /**

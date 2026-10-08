@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { toast } from 'sonner'
-import type { Event } from '@shared/api/events'
+import type { Event } from '@entities/event/api/events'
 import { useBulkAttend, useBulkUndo } from '@entities/attendance/api/attendances'
 import { useSession } from '@shared/session/session'
 import { groupByType } from '../lib/group-by-type'

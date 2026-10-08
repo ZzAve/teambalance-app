@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { DialogFooter } from '@shared/ui/dialog'
 import { Button } from '@shared/ui/button'
-import { type Event, type EventSeriesScope } from '@shared/api/events'
+import { type Event, type EventSeriesScope } from '@entities/event/api/events'
 import { SeriesScopeField } from './SeriesScopeField'
 
 interface DeleteEventDialogViewProps {

@@ -1,4 +1,4 @@
-import type { EventRoster } from '@shared/api/events'
+import type { EventRoster } from '../api/events'
 import { SectionLabel } from '@shared/ui/SectionLabel'
 import { rosterChip, rosterRows, type RosterTone } from '../lib/roster-view'
 

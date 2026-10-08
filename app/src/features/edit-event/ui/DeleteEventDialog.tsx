@@ -9,7 +9,7 @@ import {
   DialogTitle,
 } from '@shared/ui/dialog'
 import { Button } from '@shared/ui/button'
-import { useDeleteEvent, type Event } from '@shared/api/events'
+import { useDeleteEvent, type Event } from '@entities/event/api/events'
 import { DeleteEventDialogView } from './DeleteEventDialogView'
 import { useTeamRoutes } from '@shared/lib/team-routes'
 

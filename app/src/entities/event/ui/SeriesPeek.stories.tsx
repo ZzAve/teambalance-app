@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { expect, within } from 'storybook/test'
 import { withRouter } from '@shared/testing/router-decorator'
-import { makeEvent } from '@shared/testing/event-fixtures'
+import { makeEvent } from '../testing/event-fixtures'
 import { Stack } from '@shared/testing/stack'
 import { buildSeriesPeek } from '../lib/series-peek'
 import { SeriesPeek } from './SeriesPeek'

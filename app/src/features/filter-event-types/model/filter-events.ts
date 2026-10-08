@@ -1,4 +1,4 @@
-import type { Event } from '@shared/api/events'
+import type { Event } from '@entities/event/api/events'
 import type { AttendanceState } from '@entities/attendance/model/attendance-state'
 import { turnoutBucket, type TurnoutBucket } from './turnout'
 

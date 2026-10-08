@@ -1,5 +1,5 @@
 import { UserPlus } from 'lucide-react'
-import type { AttendanceEntry, SubstituteEntry } from '@shared/api/events'
+import type { AttendanceEntry, SubstituteEntry } from '@entities/event/api/events'
 import { cn } from '@shared/lib/utils'
 import { setByName } from '@entities/event/lib/attribution'
 import { SubstituteAvatar } from '@entities/event/ui/SubstituteAvatar'

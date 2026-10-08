@@ -2,8 +2,8 @@ import { existsSync, readFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
-import type { Event, EventSeriesScope } from '@shared/api/events'
-import { makeEvent } from '@shared/testing/event-fixtures'
+import type { Event, EventSeriesScope } from '../api/events'
+import { makeEvent } from '../testing/event-fixtures'
 import { buildAffectedPreview } from './series-affected'
 
 // CROSS-SEAM CONTRACT — the edit/delete split matrix lives in both this file's `series-affected.ts`

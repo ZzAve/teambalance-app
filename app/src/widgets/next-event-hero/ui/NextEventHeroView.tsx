@@ -1,7 +1,7 @@
 import { Link } from '@tanstack/react-router'
 import type { ReactNode } from 'react'
 import { Check, Clock, MapPin, X } from 'lucide-react'
-import type { Event } from '@shared/api/events'
+import type { Event } from '@entities/event/api/events'
 import type { AttendanceState } from '@entities/attendance/model/attendance-state'
 import { ReadinessBadge } from '@entities/event/ui/ReadinessBadge'
 import { SectionLabel } from '@shared/ui/SectionLabel'

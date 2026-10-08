@@ -1,17 +1,17 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { api } from './wirespec-client'
-import { throwOnStatus } from './errors'
-import { queryKeys } from './query-keys'
+import { api } from '@shared/api/wirespec-client'
+import { throwOnStatus } from '@shared/api/errors'
+import { queryKeys } from '@shared/api/query-keys'
 
 // Re-export the generated contract types so consumers have a single source of truth. The roster
 // types live here rather than in events.ts because the event type is where a team *authors* them;
 // an event only ever carries an override of one (see events.ts).
-export type { EventTypeItem } from './generated/model/EventTypeItem'
-export type { RosterRequirement } from './generated/model/RosterRequirement'
-export type { PositionTarget } from './generated/model/PositionTarget'
+export type { EventTypeItem } from '@shared/api/generated/model/EventTypeItem'
+export type { RosterRequirement } from '@shared/api/generated/model/RosterRequirement'
+export type { PositionTarget } from '@shared/api/generated/model/PositionTarget'
 
-import type { EventTypeItem } from './generated/model/EventTypeItem'
-import type { RosterRequirement } from './generated/model/RosterRequirement'
+import type { EventTypeItem } from '@shared/api/generated/model/EventTypeItem'
+import type { RosterRequirement } from '@shared/api/generated/model/RosterRequirement'
 
 // An event-type mutation can fail in ways the UI must tell apart: a taken name is recoverable and
 // shown inline, archiving the last active type is a rule the admin needs explained, and a bad

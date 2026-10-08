@@ -1,4 +1,4 @@
-import type { AttendanceSummary, EventDetail } from '@shared/api/events'
+import type { AttendanceSummary, EventDetail } from '@entities/event/api/events'
 import type { AttendanceState } from '../model/attendance-state'
 
 /** Which summary counter each state feeds. `roleBreakdown` is left to the server reconciliation. */

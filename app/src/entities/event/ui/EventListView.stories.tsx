@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite'
 import { expect, fn, within } from 'storybook/test'
 import { withRouter } from '@shared/testing/router-decorator'
 import { Stack } from '@shared/testing/stack'
-import { makeAttendee, makeEvent } from '@shared/testing/event-fixtures'
+import { makeAttendee, makeEvent } from '../testing/event-fixtures'
 import { EventListView } from './EventListView'
 
 // EventListView is the presentational list region of the events page: it renders one of four

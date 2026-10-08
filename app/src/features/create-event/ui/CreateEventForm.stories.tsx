@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { expect, fn, within } from 'storybook/test'
-import type { EventTypeItem } from '@shared/api/event-types'
-import { makeEventType } from '@shared/testing/event-fixtures'
+import type { EventTypeItem } from '@entities/event/api/event-types'
+import { makeEventType } from '@entities/event/testing/event-fixtures'
 import { Stack } from '@shared/testing/stack'
 import { CreateEventForm } from './CreateEventForm'
 

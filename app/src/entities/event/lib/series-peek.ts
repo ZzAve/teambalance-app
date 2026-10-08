@@ -1,4 +1,4 @@
-import type { Event } from '@shared/api/events'
+import type { Event } from '../api/events'
 
 export interface SeriesPeekEntry {
   id: string

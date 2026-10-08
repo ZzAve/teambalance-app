@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { expect, fn, within } from 'storybook/test'
-import { makeSubstitute } from '@shared/testing/event-fixtures'
+import { makeSubstitute } from '@entities/event/testing/event-fixtures'
 import { SubstitutePickerView } from './SubstitutePickerView'
 
 // The picker for calling Substitutes in (ADR-0033). A sheet, so no page composite shows it open and

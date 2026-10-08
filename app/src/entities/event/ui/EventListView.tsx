@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import type { AttendanceState } from '@entities/attendance/model/attendance-state'
-import type { Event } from '@shared/api/events'
+import type { Event } from '../api/events'
 import { Skeleton } from '@shared/ui/skeleton'
 import { attributionName } from '../lib/attribution'
 import { EventCard } from './EventCard'

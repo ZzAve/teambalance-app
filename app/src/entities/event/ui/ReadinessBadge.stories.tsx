@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { expect, within } from 'storybook/test'
 import { appColumn } from '@shared/testing/app-column-decorator'
-import { makeRoster, NO_ROSTER } from '@shared/testing/event-fixtures'
+import { makeRoster, NO_ROSTER } from '../testing/event-fixtures'
 import { Stack } from '@shared/testing/stack'
 import { ReadinessBadge } from './ReadinessBadge'
 

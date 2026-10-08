@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { toast } from 'sonner'
-import { useEvent, useEvents } from '@shared/api/events'
+import { useEvent, useEvents } from '@entities/event/api/events'
 import { useSetAttendance } from '@entities/attendance/api/attendances'
 import { useSession } from '@shared/session/session'
 import { attributionName } from '@entities/event/lib/attribution'

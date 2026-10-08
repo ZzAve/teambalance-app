@@ -1,9 +1,9 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { expect, fn, within } from 'storybook/test'
-import type { EventTypeItem } from '@shared/api/event-types'
+import type { EventTypeItem } from '@entities/event/api/event-types'
 import type { Position } from '@entities/position/api/positions'
 import { Stack } from '@shared/testing/stack'
-import { makeEventType, ROSTER_OFF } from '@shared/testing/event-fixtures'
+import { makeEventType, ROSTER_OFF } from '@entities/event/testing/event-fixtures'
 import { ManageEventTypesView } from './ManageEventTypesView'
 
 // The admin surface behind the ManageEventTypes container: create / rename / recolor / archive, each

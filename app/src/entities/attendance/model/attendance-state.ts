@@ -1,4 +1,4 @@
-import type { AttendanceEntry } from '@shared/api/events'
+import type { AttendanceEntry } from '@entities/event/api/events'
 
 export type AttendanceState = AttendanceEntry['state']
 

@@ -1,4 +1,4 @@
-import type { EventReference } from '@shared/api/events'
+import type { EventReference } from '../api/events'
 
 // A single editable link row. Title is always a string here (controlled input); the stored contract
 // type allows it to be absent, so cleanReferences maps a blank title back to undefined.

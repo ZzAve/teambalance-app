@@ -1,5 +1,5 @@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@shared/ui/select'
-import type { EventTypeItem } from '@shared/api/event-types'
+import type { EventTypeItem } from '../api/event-types'
 
 interface EventTypeSelectProps {
   id: string

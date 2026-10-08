@@ -1,5 +1,5 @@
 import { Lock, Split } from 'lucide-react'
-import type { Event, EventSeriesScope } from '@shared/api/events'
+import type { Event, EventSeriesScope } from '@entities/event/api/events'
 import { buildAffectedPreview } from '@entities/event/lib/series-affected'
 import { SectionLabel } from '@shared/ui/SectionLabel'
 

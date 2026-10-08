@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import type { Event } from '@shared/api/events'
-import { makeEvent } from '@shared/testing/event-fixtures'
+import type { Event } from '../api/events'
+import { makeEvent } from '../testing/event-fixtures'
 import { buildSeriesPeek } from './series-peek'
 
 // Built from the shared fixture so a new field on the generated Event contract lands in one place.

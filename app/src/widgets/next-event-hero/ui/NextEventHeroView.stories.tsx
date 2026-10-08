@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { expect, fn, within } from 'storybook/test'
 import { withRouter } from '@shared/testing/router-decorator'
-import { makeAttendee, makeEvent, makeRoster, NO_ROSTER } from '@shared/testing/event-fixtures'
+import { makeAttendee, makeEvent, makeRoster, NO_ROSTER } from '@entities/event/testing/event-fixtures'
 import { Stack } from '@shared/testing/stack'
 import { EventLineupPanel } from '@widgets/event-panel/ui/EventLineupPanel'
 import { NextEventHeroView } from './NextEventHeroView'

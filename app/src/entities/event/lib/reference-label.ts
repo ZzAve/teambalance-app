@@ -1,4 +1,4 @@
-import type { EventReference } from '@shared/api/events'
+import type { EventReference } from '../api/events'
 
 /**
  * The label shown for a reference: the admin's title, or the URL host as a fallback when the title

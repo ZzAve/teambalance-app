@@ -1,4 +1,4 @@
-import type { Event } from '@shared/api/events'
+import type { Event } from '@entities/event/api/events'
 
 /**
  * The ids Bulk Attend would fill: the events currently *shown* that the member has not answered and

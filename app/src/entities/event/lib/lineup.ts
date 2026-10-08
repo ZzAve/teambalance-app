@@ -1,4 +1,4 @@
-import type { AttendanceEntry, EventRoster, RosterPosition, SubstituteEntry } from '@shared/api/events'
+import type { AttendanceEntry, EventRoster, RosterPosition, SubstituteEntry } from '../api/events'
 
 /**
  * The lineup panel's view model: one row per position, each carrying the people who play it.

@@ -1,4 +1,4 @@
-import type { Event, RosterState } from '@shared/api/events'
+import type { Event, RosterState } from '@entities/event/api/events'
 
 /**
  * Turnout — the member-facing banding of the seven Roster States into four legible chips

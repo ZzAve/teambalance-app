@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { AttendanceEntry } from '@shared/api/events'
+import type { AttendanceEntry } from '../api/events'
 import { attributionName, setByName } from './attribution'
 
 const attendee = (overrides: Partial<AttendanceEntry> = {}): AttendanceEntry => ({

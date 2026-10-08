@@ -1,4 +1,4 @@
-import type { Event, EventSeriesScope } from '@shared/api/events'
+import type { Event, EventSeriesScope } from '../api/events'
 
 interface AffectedNode {
   id: string

@@ -2,9 +2,9 @@ package com.github.zzave.teambalance.api.interfaces
 
 import com.github.zzave.teambalance.api.application.ActAsService
 import com.github.zzave.teambalance.api.application.AuthService
+import com.github.zzave.teambalance.api.application.AuthorizationService
 import com.github.zzave.teambalance.api.application.PhotoService
 import com.github.zzave.teambalance.api.domain.model.Email
-import com.github.zzave.teambalance.api.domain.model.Role
 import com.github.zzave.teambalance.api.domain.model.TeamId
 import com.github.zzave.teambalance.api.domain.model.TeamSummary
 import com.github.zzave.teambalance.api.domain.model.User
@@ -25,6 +25,7 @@ class AuthController(
     private val authService: AuthService,
     private val actAsService: ActAsService,
     private val currentTeamGateway: CurrentTeamGateway,
+    private val authorizationService: AuthorizationService,
     private val photoService: PhotoService,
 ) : RequestMagicLink.Handler,
     VerifyMagicLink.Handler,
@@ -77,11 +78,9 @@ class AuthController(
             id = user.id.produce(),
             email = user.email.produce(),
             displayName = user.displayName.value,
-            // Real membership first, synthesis second — the same precedence AuthorizationService
-            // applies. A caller who somehow held both would otherwise be shown admin UI that every
+            // The Role the write checks enforce, so the UI is never shown admin controls that every
             // write then refuses.
-            role = activeTeam?.let { authService.findRoleIn(it.id, user.id)?.name }
-                ?: actAs?.let { Role.ADMIN.name },
+            role = activeTeam?.let { authorizationService.roleOf(user.id, it.id)?.name },
             teams = teams.map { it.produce() },
             activeTeam = activeTeam?.produce(),
             isPlatformAdmin = authService.isPlatformAdmin(user.id),

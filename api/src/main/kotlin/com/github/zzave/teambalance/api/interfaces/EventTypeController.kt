@@ -5,8 +5,8 @@ import com.github.zzave.teambalance.api.domain.model.EventType
 import com.github.zzave.teambalance.api.domain.model.EventTypeId
 import com.github.zzave.teambalance.api.domain.model.EventTypeName
 import com.github.zzave.teambalance.api.domain.model.HexColor
-import com.github.zzave.teambalance.api.domain.port.CurrentTeamGateway
 import com.github.zzave.teambalance.api.domain.port.CurrentUserGateway
+import com.github.zzave.teambalance.api.domain.port.RequestScopeGateway
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.ArchiveEventType
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.CreateEventType
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.ListEventTypes
@@ -21,7 +21,7 @@ import java.util.UUID
 class EventTypeController(
     private val eventTypeService: EventTypeService,
     private val currentUserGateway: CurrentUserGateway,
-    private val currentTeamGateway: CurrentTeamGateway,
+    private val requestScope: RequestScopeGateway,
 ) : ListEventTypes.Handler,
     CreateEventType.Handler,
     UpdateEventType.Handler,
@@ -45,8 +45,7 @@ class EventTypeController(
         val body = request.body
         return CreateEventType.Response201(
             eventTypeService.createEventType(
-                callerId = currentUserGateway.requireCurrentUserId(),
-                teamId = currentTeamGateway.requireCurrentTeamId(),
+                scope = requestScope.teamScope(),
                 name = EventTypeName(body.name.trim()),
                 color = body.color?.let(::HexColor),
                 rosterDefault = body.rosterDefault.consume(),
@@ -58,8 +57,7 @@ class EventTypeController(
         val body = request.body
         return UpdateEventType.Response200(
             eventTypeService.updateEventType(
-                callerId = currentUserGateway.requireCurrentUserId(),
-                teamId = currentTeamGateway.requireCurrentTeamId(),
+                scope = requestScope.teamScope(),
                 id = request.path.id.consumeEventTypeId(),
                 name = EventTypeName(body.name.trim()),
                 color = body.color?.let(::HexColor),
@@ -73,8 +71,7 @@ class EventTypeController(
     override suspend fun archiveEventType(request: ArchiveEventType.Request): ArchiveEventType.Response<*> =
         ArchiveEventType.Response200(
             eventTypeService.archiveEventType(
-                callerId = currentUserGateway.requireCurrentUserId(),
-                teamId = currentTeamGateway.requireCurrentTeamId(),
+                scope = requestScope.teamScope(),
                 id = request.path.id.consumeEventTypeId(),
                 migrateEventsTo = request.body.migrateEventsTo?.consumeEventTypeId(),
             ).produce(),
@@ -83,8 +80,7 @@ class EventTypeController(
     override suspend fun unarchiveEventType(request: UnarchiveEventType.Request): UnarchiveEventType.Response<*> =
         UnarchiveEventType.Response200(
             eventTypeService.unarchiveEventType(
-                callerId = currentUserGateway.requireCurrentUserId(),
-                teamId = currentTeamGateway.requireCurrentTeamId(),
+                scope = requestScope.teamScope(),
                 id = request.path.id.consumeEventTypeId(),
             ).produce(),
         )

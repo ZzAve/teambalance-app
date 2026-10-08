@@ -12,6 +12,7 @@ import com.github.zzave.teambalance.api.domain.model.Substitute
 import com.github.zzave.teambalance.api.domain.model.SubstituteAttendance
 import com.github.zzave.teambalance.api.domain.model.SubstituteId
 import com.github.zzave.teambalance.api.domain.model.TeamId
+import com.github.zzave.teambalance.api.domain.model.TeamScope
 import com.github.zzave.teambalance.api.domain.model.UsageCount
 import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.port.PositionRepository
@@ -30,63 +31,61 @@ class SubstituteService(
     private val clock: Clock,
 ) {
     /** The Team's list, for the picker. Any Member may read it. */
-    fun listSubstitutes(callerId: UserId, teamId: TeamId): List<Substitute> {
-        authorizationService.requireMember(callerId, teamId)
+    fun listSubstitutes(scope: TeamScope): List<Substitute> {
+        authorizationService.requireMember(scope)
         return substituteRepository.list()
     }
 
-    fun createSubstitute(callerId: UserId, teamId: TeamId, rawName: String, positionId: PositionId?): Substitute {
-        authorizationService.requireMember(callerId, teamId)
+    fun createSubstitute(scope: TeamScope, rawName: String, positionId: PositionId?): Substitute {
+        authorizationService.requireMember(scope)
         val name = validName(rawName, excluding = null)
         requireKnownPosition(positionId)
-        return substituteRepository.create(name, positionId, callerId)
+        return substituteRepository.create(name, positionId, scope.userId)
     }
 
     /** Admin-only. Saves the name and the Position together; a null [positionId] clears it. */
     fun updateSubstitute(
-        callerId: UserId,
-        teamId: TeamId,
+        scope: TeamScope,
         id: SubstituteId,
         rawName: String,
         positionId: PositionId?,
     ): Substitute {
-        authorizationService.requireAdmin(callerId, teamId)
+        authorizationService.requireAdmin(scope)
         val name = validName(rawName, excluding = id)
         requireKnownPosition(positionId)
         return substituteRepository.update(id, name, positionId) ?: throw SubstituteNotFoundException(id)
     }
 
     /** Admin-only: the remove dialog states how many Events the removal takes the Substitute off. */
-    fun substituteEventCount(callerId: UserId, teamId: TeamId, id: SubstituteId): UsageCount {
-        authorizationService.requireAdmin(callerId, teamId)
+    fun substituteEventCount(scope: TeamScope, id: SubstituteId): UsageCount {
+        authorizationService.requireAdmin(scope)
         if (!substituteRepository.exists(id)) throw SubstituteNotFoundException(id)
         return UsageCount(substituteRepository.countEvents(id))
     }
 
     /** Admin-only, and final: there is no restore. The Substitute leaves every Event, past ones included. */
-    fun deleteSubstitute(callerId: UserId, teamId: TeamId, id: SubstituteId) {
-        authorizationService.requireAdmin(callerId, teamId)
+    fun deleteSubstitute(scope: TeamScope, id: SubstituteId) {
+        authorizationService.requireAdmin(scope)
         if (!substituteRepository.exists(id)) throw SubstituteNotFoundException(id)
         substituteRepository.delete(id)
     }
 
     fun setAttendance(
-        callerId: UserId,
-        teamId: TeamId,
+        scope: TeamScope,
         eventId: EventId,
         substituteId: SubstituteId,
         state: AttendanceState,
     ): SubstituteAttendance {
-        authorizationService.requireMember(callerId, teamId)
+        authorizationService.requireMember(scope)
         require(state != AttendanceState.NOT_RESPONDED) { "A substitute is never Not Responded" }
         if (!substituteRepository.exists(substituteId)) throw SubstituteNotFoundException(substituteId)
-        return substituteRepository.setAttendance(eventId, substituteId, state, callerId, clock.instant())
+        return substituteRepository.setAttendance(eventId, substituteId, state, scope.userId, clock.instant())
             ?: throw EventNotFoundException(eventId)
     }
 
     /** Takes the Substitute off the Event; they stay on the Team's list. */
-    fun removeAttendance(callerId: UserId, teamId: TeamId, eventId: EventId, substituteId: SubstituteId) {
-        authorizationService.requireMember(callerId, teamId)
+    fun removeAttendance(scope: TeamScope, eventId: EventId, substituteId: SubstituteId) {
+        authorizationService.requireMember(scope)
         if (!substituteRepository.removeAttendance(eventId, substituteId)) throw SubstituteNotFoundException(substituteId)
     }
 

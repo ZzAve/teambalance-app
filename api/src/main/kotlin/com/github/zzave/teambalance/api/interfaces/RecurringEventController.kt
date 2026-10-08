@@ -6,8 +6,7 @@ import com.github.zzave.teambalance.api.domain.model.EventDescription
 import com.github.zzave.teambalance.api.domain.model.EventLocation
 import com.github.zzave.teambalance.api.domain.model.Recurrence
 import com.github.zzave.teambalance.api.domain.model.RecurrenceFrequency as DomainRecurrenceFrequency
-import com.github.zzave.teambalance.api.domain.port.CurrentTeamGateway
-import com.github.zzave.teambalance.api.domain.port.CurrentUserGateway
+import com.github.zzave.teambalance.api.domain.port.RequestScopeGateway
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.CreateRecurringEvents
 import com.github.zzave.teambalance.api.interfaces.generated.model.RecurrenceFrequency
 import com.github.zzave.teambalance.api.interfaces.generated.model.RecurringEventSeries
@@ -22,20 +21,17 @@ import java.util.UUID
 class RecurringEventController(
     private val eventService: EventService,
     private val eventQueries: EventQueries,
-    private val currentUserGateway: CurrentUserGateway,
-    private val currentTeamGateway: CurrentTeamGateway,
+    private val requestScope: RequestScopeGateway,
 ) : CreateRecurringEvents.Handler {
 
     // Admin-only, mirroring single-event create — enforced in EventService.createRecurringEvents.
     // Season/cap/empty violations surface as 422 via the GlobalExceptionHandler; a non-admin as 403.
     override suspend fun createRecurringEvents(request: CreateRecurringEvents.Request): CreateRecurringEvents.Response<*> {
-        val teamId = currentTeamGateway.requireCurrentTeamId()
-        val userId = currentUserGateway.requireCurrentUserId()
+        val scope = requestScope.teamScope()
 
         val body = request.body
         val series = eventService.createRecurringEvents(
-            callerId = userId,
-            teamId = teamId,
+            scope = scope,
             eventTypeId = body.eventTypeId.consumeEventTypeId(),
             title = body.title.consumeEventTitle(),
             description = body.description?.let(::EventDescription),
@@ -49,7 +45,7 @@ class RecurringEventController(
         return CreateRecurringEvents.Response201(
             RecurringEventSeries(
                 recurringGroup = series.recurringGroup.toString(),
-                events = eventQueries.attended(teamId, series.events).map { it.produce(userId) },
+                events = eventQueries.attended(scope, series.events).map { it.produce(scope.userId) },
             ),
         )
     }

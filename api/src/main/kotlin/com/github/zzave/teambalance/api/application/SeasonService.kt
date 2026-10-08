@@ -2,6 +2,7 @@ package com.github.zzave.teambalance.api.application
 
 import com.github.zzave.teambalance.api.domain.model.Season
 import com.github.zzave.teambalance.api.domain.model.TeamId
+import com.github.zzave.teambalance.api.domain.model.TeamScope
 import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.port.SeasonRepository
 import java.time.LocalDate
@@ -19,8 +20,8 @@ class SeasonService(
      * range with end before start is rejected (400). Changing the window never touches events —
      * a warning about now-out-of-window events is the frontend's job (ADR-0014).
      */
-    fun setSeason(callerId: UserId, teamId: TeamId, start: LocalDate?, end: LocalDate?): Season {
-        authorizationService.requireAdmin(callerId, teamId)
+    fun setSeason(scope: TeamScope, start: LocalDate?, end: LocalDate?): Season {
+        authorizationService.requireAdmin(scope)
         require(start == null || end == null || !end.isBefore(start)) {
             "Season end must not be before season start"
         }

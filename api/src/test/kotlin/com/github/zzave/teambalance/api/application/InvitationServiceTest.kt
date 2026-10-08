@@ -7,6 +7,7 @@ import com.github.zzave.teambalance.api.domain.model.Invitation
 import com.github.zzave.teambalance.api.domain.model.PositionId
 import com.github.zzave.teambalance.api.domain.model.Role
 import com.github.zzave.teambalance.api.domain.model.TeamId
+import com.github.zzave.teambalance.api.domain.model.TeamScope
 import com.github.zzave.teambalance.api.domain.model.TenantRouting
 import com.github.zzave.teambalance.api.domain.model.TeamMember
 import com.github.zzave.teambalance.api.domain.model.TokenHash
@@ -127,19 +128,19 @@ class InvitationServiceTest : FunSpec() {
 
         test("generateInviteLink by a non-admin is forbidden") {
             val f = newFixture()
-            shouldThrow<NotTeamAdminException> { f.service.generateInviteLink(callerId = nonAdmin, teamId = f.teamId) }
+            shouldThrow<NotTeamAdminException> { f.service.generateInviteLink(scope = TeamScope(nonAdmin, f.teamId)) }
         }
 
         test("expireActiveInvitations by a non-admin is forbidden") {
             val f = newFixture()
             shouldThrow<NotTeamAdminException> {
-                f.service.expireActiveInvitations(callerId = nonAdmin, teamId = f.teamId)
+                f.service.expireActiveInvitations(scope = TeamScope(nonAdmin, f.teamId))
             }
         }
 
         test("rotateInviteLink by a non-admin is forbidden") {
             val f = newFixture()
-            shouldThrow<NotTeamAdminException> { f.service.rotateInviteLink(callerId = nonAdmin, teamId = f.teamId) }
+            shouldThrow<NotTeamAdminException> { f.service.rotateInviteLink(scope = TeamScope(nonAdmin, f.teamId)) }
         }
 
         // The expire and the mint must reach the port as ONE call: that single call is what the adapter
@@ -147,7 +148,7 @@ class InvitationServiceTest : FunSpec() {
         // calls would be two transactions and would reintroduce that gap.
         test("rotateInviteLink hands the expire and the mint over as a single port call") {
             val f = newFixture()
-            val result = f.service.rotateInviteLink(callerId = adminId, teamId = f.teamId)
+            val result = f.service.rotateInviteLink(scope = TeamScope(adminId, f.teamId))
 
             f.invitations.rotated.single().createdBy shouldBe adminId
             f.invitations.saved.isEmpty() shouldBe true
@@ -157,7 +158,7 @@ class InvitationServiceTest : FunSpec() {
 
         test("generateInviteLink by an admin mints a link attributed to the caller") {
             val f = newFixture()
-            val result = f.service.generateInviteLink(callerId = adminId, teamId = f.teamId)
+            val result = f.service.generateInviteLink(scope = TeamScope(adminId, f.teamId))
             result.token.value.isNotBlank() shouldBe true
             f.invitations.saved.single().createdBy shouldBe adminId
         }
@@ -185,8 +186,8 @@ class InvitationServiceTest : FunSpec() {
         // credentials that no screen ever showed. A team has one link; asking again returns that one.
         test("generateInviteLink returns the team's existing link instead of minting a second") {
             val f = newFixture()
-            val first = f.service.generateInviteLink(callerId = adminId, teamId = f.teamId)
-            val second = f.service.generateInviteLink(callerId = adminId, teamId = f.teamId)
+            val first = f.service.generateInviteLink(scope = TeamScope(adminId, f.teamId))
+            val second = f.service.generateInviteLink(scope = TeamScope(adminId, f.teamId))
 
             second.token.value shouldBe first.token.value
             f.invitations.saved.size shouldBe 1
@@ -194,32 +195,32 @@ class InvitationServiceTest : FunSpec() {
 
         test("activeInviteLink hands back the very token that was minted") {
             val f = newFixture()
-            val minted = f.service.generateInviteLink(callerId = adminId, teamId = f.teamId)
+            val minted = f.service.generateInviteLink(scope = TeamScope(adminId, f.teamId))
 
-            f.service.activeInviteLink(callerId = adminId, teamId = f.teamId)?.token?.value shouldBe
+            f.service.activeInviteLink(scope = TeamScope(adminId, f.teamId))?.token?.value shouldBe
                 minted.token.value
         }
 
         test("activeInviteLink is null for a team with no link") {
             val f = newFixture()
-            f.service.activeInviteLink(callerId = adminId, teamId = f.teamId) shouldBe null
+            f.service.activeInviteLink(scope = TeamScope(adminId, f.teamId)) shouldBe null
         }
 
         test("activeInviteLink is null once the link is expired") {
             val f = newFixture()
-            f.service.generateInviteLink(callerId = adminId, teamId = f.teamId)
-            f.service.expireActiveInvitations(callerId = adminId, teamId = f.teamId)
+            f.service.generateInviteLink(scope = TeamScope(adminId, f.teamId))
+            f.service.expireActiveInvitations(scope = TeamScope(adminId, f.teamId))
 
-            f.service.activeInviteLink(callerId = adminId, teamId = f.teamId) shouldBe null
+            f.service.activeInviteLink(scope = TeamScope(adminId, f.teamId)) shouldBe null
         }
 
         test("activeInviteLink follows a rotate to the replacement link") {
             val f = newFixture()
-            val before = f.service.generateInviteLink(callerId = adminId, teamId = f.teamId)
-            val rotated = f.service.rotateInviteLink(callerId = adminId, teamId = f.teamId)
+            val before = f.service.generateInviteLink(scope = TeamScope(adminId, f.teamId))
+            val rotated = f.service.rotateInviteLink(scope = TeamScope(adminId, f.teamId))
 
             rotated.token.value shouldNotBe before.token.value
-            f.service.activeInviteLink(callerId = adminId, teamId = f.teamId)?.token?.value shouldBe
+            f.service.activeInviteLink(scope = TeamScope(adminId, f.teamId))?.token?.value shouldBe
                 rotated.token.value
         }
 
@@ -239,7 +240,7 @@ class InvitationServiceTest : FunSpec() {
                 createdAt = Instant.EPOCH,
             )
 
-            f.service.activeInviteLink(callerId = adminId, teamId = f.teamId) shouldBe null
+            f.service.activeInviteLink(scope = TeamScope(adminId, f.teamId)) shouldBe null
         }
 
         // ...and the mint must not be blocked by one either, or such a team could never get a link.
@@ -257,17 +258,17 @@ class InvitationServiceTest : FunSpec() {
                 createdAt = Instant.EPOCH,
             )
 
-            val minted = f.service.generateInviteLink(callerId = adminId, teamId = f.teamId)
+            val minted = f.service.generateInviteLink(scope = TeamScope(adminId, f.teamId))
 
             minted.token.value.isNotBlank() shouldBe true
-            f.service.activeInviteLink(callerId = adminId, teamId = f.teamId)?.token?.value shouldBe
+            f.service.activeInviteLink(scope = TeamScope(adminId, f.teamId))?.token?.value shouldBe
                 minted.token.value
         }
 
         test("activeInviteLink by a non-admin is forbidden") {
             val f = newFixture()
             shouldThrow<NotTeamAdminException> {
-                f.service.activeInviteLink(callerId = nonAdmin, teamId = f.teamId)
+                f.service.activeInviteLink(scope = TeamScope(nonAdmin, f.teamId))
             }
         }
 
@@ -303,13 +304,13 @@ class InvitationServiceTest : FunSpec() {
         test("generateAdminInviteLink by a non-admin is forbidden") {
             val f = newFixture()
             shouldThrow<NotTeamAdminException> {
-                f.service.generateAdminInviteLink(callerId = nonAdmin, teamId = f.teamId)
+                f.service.generateAdminInviteLink(scope = TeamScope(nonAdmin, f.teamId))
             }
         }
 
         test("generateAdminInviteLink mints an ADMIN link attributed to the caller") {
             val f = newFixture()
-            val result = f.service.generateAdminInviteLink(callerId = adminId, teamId = f.teamId)
+            val result = f.service.generateAdminInviteLink(scope = TeamScope(adminId, f.teamId))
 
             result.token.value.isNotBlank() shouldBe true
             f.invitations.saved.single().role shouldBe Role.ADMIN
@@ -319,8 +320,8 @@ class InvitationServiceTest : FunSpec() {
         // At most one live ADMIN credential per team, mirroring the USER link's anti-accumulation rule.
         test("generateAdminInviteLink returns the existing unspent admin link instead of minting a second") {
             val f = newFixture()
-            val first = f.service.generateAdminInviteLink(callerId = adminId, teamId = f.teamId)
-            val second = f.service.generateAdminInviteLink(callerId = adminId, teamId = f.teamId)
+            val first = f.service.generateAdminInviteLink(scope = TeamScope(adminId, f.teamId))
+            val second = f.service.generateAdminInviteLink(scope = TeamScope(adminId, f.teamId))
 
             second.token.value shouldBe first.token.value
             f.invitations.saved.size shouldBe 1
@@ -330,21 +331,21 @@ class InvitationServiceTest : FunSpec() {
         // USER idempotent mint must never surface it.
         test("an admin handover link is not returned as the team's shareable USER link") {
             val f = newFixture()
-            f.service.generateAdminInviteLink(callerId = adminId, teamId = f.teamId)
+            f.service.generateAdminInviteLink(scope = TeamScope(adminId, f.teamId))
 
-            f.service.activeInviteLink(callerId = adminId, teamId = f.teamId) shouldBe null
+            f.service.activeInviteLink(scope = TeamScope(adminId, f.teamId)) shouldBe null
         }
 
         // The two links are independent: rotating the shareable USER link must not disturb a live,
         // unspent ADMIN handover link (the port scopes expire to USER — regression for the code review).
         test("rotating the shareable link leaves the admin handover link mintable and unchanged") {
             val f = newFixture()
-            val admin = f.service.generateAdminInviteLink(callerId = adminId, teamId = f.teamId)
-            f.service.generateInviteLink(callerId = adminId, teamId = f.teamId)
-            f.service.rotateInviteLink(callerId = adminId, teamId = f.teamId)
+            val admin = f.service.generateAdminInviteLink(scope = TeamScope(adminId, f.teamId))
+            f.service.generateInviteLink(scope = TeamScope(adminId, f.teamId))
+            f.service.rotateInviteLink(scope = TeamScope(adminId, f.teamId))
 
             // Still the same unspent admin link — not collaterally expired by the USER-link rotate.
-            f.service.generateAdminInviteLink(callerId = adminId, teamId = f.teamId).token.value shouldBe
+            f.service.generateAdminInviteLink(scope = TeamScope(adminId, f.teamId)).token.value shouldBe
                 admin.token.value
         }
 
@@ -352,55 +353,55 @@ class InvitationServiceTest : FunSpec() {
 
         test("activeAdminInviteLink hands back the very admin link that was minted (survives a refresh)") {
             val f = newFixture()
-            val minted = f.service.generateAdminInviteLink(callerId = adminId, teamId = f.teamId)
+            val minted = f.service.generateAdminInviteLink(scope = TeamScope(adminId, f.teamId))
 
-            f.service.activeAdminInviteLink(callerId = adminId, teamId = f.teamId)?.token?.value shouldBe
+            f.service.activeAdminInviteLink(scope = TeamScope(adminId, f.teamId))?.token?.value shouldBe
                 minted.token.value
         }
 
         test("activeAdminInviteLink is null for a team with no admin link, and forbidden for a non-admin") {
             val f = newFixture()
-            f.service.activeAdminInviteLink(callerId = adminId, teamId = f.teamId) shouldBe null
+            f.service.activeAdminInviteLink(scope = TeamScope(adminId, f.teamId)) shouldBe null
             shouldThrow<NotTeamAdminException> {
-                f.service.activeAdminInviteLink(callerId = nonAdmin, teamId = f.teamId)
+                f.service.activeAdminInviteLink(scope = TeamScope(nonAdmin, f.teamId))
             }
         }
 
         test("rotateAdminInviteLink replaces the admin link with a new one and follows it") {
             val f = newFixture()
-            val before = f.service.generateAdminInviteLink(callerId = adminId, teamId = f.teamId)
-            val rotated = f.service.rotateAdminInviteLink(callerId = adminId, teamId = f.teamId)
+            val before = f.service.generateAdminInviteLink(scope = TeamScope(adminId, f.teamId))
+            val rotated = f.service.rotateAdminInviteLink(scope = TeamScope(adminId, f.teamId))
 
             rotated.token.value shouldNotBe before.token.value
-            f.service.activeAdminInviteLink(callerId = adminId, teamId = f.teamId)?.token?.value shouldBe
+            f.service.activeAdminInviteLink(scope = TeamScope(adminId, f.teamId))?.token?.value shouldBe
                 rotated.token.value
         }
 
         test("rotateAdminInviteLink and expireAdminInviteLinks by a non-admin are forbidden") {
             val f = newFixture()
-            shouldThrow<NotTeamAdminException> { f.service.rotateAdminInviteLink(callerId = nonAdmin, teamId = f.teamId) }
-            shouldThrow<NotTeamAdminException> { f.service.expireAdminInviteLinks(callerId = nonAdmin, teamId = f.teamId) }
+            shouldThrow<NotTeamAdminException> { f.service.rotateAdminInviteLink(scope = TeamScope(nonAdmin, f.teamId)) }
+            shouldThrow<NotTeamAdminException> { f.service.expireAdminInviteLinks(scope = TeamScope(nonAdmin, f.teamId)) }
         }
 
         test("expireAdminInviteLinks revokes the admin link without a replacement") {
             val f = newFixture()
-            f.service.generateAdminInviteLink(callerId = adminId, teamId = f.teamId)
-            f.service.expireAdminInviteLinks(callerId = adminId, teamId = f.teamId)
+            f.service.generateAdminInviteLink(scope = TeamScope(adminId, f.teamId))
+            f.service.expireAdminInviteLinks(scope = TeamScope(adminId, f.teamId))
 
-            f.service.activeAdminInviteLink(callerId = adminId, teamId = f.teamId) shouldBe null
+            f.service.activeAdminInviteLink(scope = TeamScope(adminId, f.teamId)) shouldBe null
         }
 
         // The converse of the earlier independence test: acting on the ADMIN link leaves the USER link.
         test("rotating/revoking the admin link leaves the shareable USER link untouched") {
             val f = newFixture()
-            val user = f.service.generateInviteLink(callerId = adminId, teamId = f.teamId)
-            f.service.generateAdminInviteLink(callerId = adminId, teamId = f.teamId)
+            val user = f.service.generateInviteLink(scope = TeamScope(adminId, f.teamId))
+            f.service.generateAdminInviteLink(scope = TeamScope(adminId, f.teamId))
 
-            f.service.rotateAdminInviteLink(callerId = adminId, teamId = f.teamId)
-            f.service.activeInviteLink(callerId = adminId, teamId = f.teamId)?.token?.value shouldBe user.token.value
+            f.service.rotateAdminInviteLink(scope = TeamScope(adminId, f.teamId))
+            f.service.activeInviteLink(scope = TeamScope(adminId, f.teamId))?.token?.value shouldBe user.token.value
 
-            f.service.expireAdminInviteLinks(callerId = adminId, teamId = f.teamId)
-            f.service.activeInviteLink(callerId = adminId, teamId = f.teamId)?.token?.value shouldBe user.token.value
+            f.service.expireAdminInviteLinks(scope = TeamScope(adminId, f.teamId))
+            f.service.activeInviteLink(scope = TeamScope(adminId, f.teamId))?.token?.value shouldBe user.token.value
         }
 
         test("accepting an ADMIN link joins the recipient as ADMIN and switches them in") {

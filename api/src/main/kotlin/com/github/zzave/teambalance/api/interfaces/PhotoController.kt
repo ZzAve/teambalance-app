@@ -2,8 +2,8 @@ package com.github.zzave.teambalance.api.interfaces
 
 import com.github.zzave.teambalance.api.application.PhotoService
 import com.github.zzave.teambalance.api.domain.model.Photo
-import com.github.zzave.teambalance.api.domain.port.CurrentTeamGateway
 import com.github.zzave.teambalance.api.domain.port.CurrentUserGateway
+import com.github.zzave.teambalance.api.domain.port.RequestScopeGateway
 import jakarta.servlet.http.HttpServletRequest
 import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
@@ -31,36 +31,28 @@ import org.springframework.web.bind.annotation.RestController
 class PhotoController(
     private val photoService: PhotoService,
     private val currentUserGateway: CurrentUserGateway,
-    private val currentTeamGateway: CurrentTeamGateway,
+    private val requestScope: RequestScopeGateway,
 ) {
     @GetMapping("/api/members/{userId}/photo")
     fun teamPhoto(@PathVariable userId: String): ResponseEntity<ByteArray> {
-        val caller = currentUserGateway.requireCurrentUserId()
-        val teamId = currentTeamGateway.requireCurrentTeamId()
-        return photoService.teamPhoto(caller, teamId, userId.consumeUserId()).toResponse()
+        return photoService.teamPhoto(requestScope.teamScope(), userId.consumeUserId()).toResponse()
     }
 
     @PutMapping("/api/members/me/photo")
     fun uploadTeamPhoto(request: HttpServletRequest): ResponseEntity<Void> {
-        val caller = currentUserGateway.requireCurrentUserId()
-        val teamId = currentTeamGateway.requireCurrentTeamId()
-        photoService.uploadTeamPhoto(caller, teamId, request.readPhotoBody())
+        photoService.uploadTeamPhoto(requestScope.teamScope(), request.readPhotoBody())
         return ResponseEntity.noContent().build()
     }
 
     @PostMapping("/api/members/me/photo/from-personal")
     fun copyPersonalPhotoToTeam(): ResponseEntity<Void> {
-        val caller = currentUserGateway.requireCurrentUserId()
-        val teamId = currentTeamGateway.requireCurrentTeamId()
-        photoService.copyPersonalPhotoToTeam(caller, teamId)
+        photoService.copyPersonalPhotoToTeam(requestScope.teamScope())
         return ResponseEntity.noContent().build()
     }
 
     @DeleteMapping("/api/members/{userId}/photo")
     fun removeTeamPhoto(@PathVariable userId: String): ResponseEntity<Void> {
-        val caller = currentUserGateway.requireCurrentUserId()
-        val teamId = currentTeamGateway.requireCurrentTeamId()
-        photoService.removeTeamPhoto(caller, teamId, userId.consumeUserId())
+        photoService.removeTeamPhoto(requestScope.teamScope(), userId.consumeUserId())
         return ResponseEntity.noContent().build()
     }
 

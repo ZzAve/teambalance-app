@@ -16,6 +16,7 @@ import com.github.zzave.teambalance.api.domain.model.PositionLabel
 import com.github.zzave.teambalance.api.domain.model.Role
 import com.github.zzave.teambalance.api.domain.model.RosterRequirement
 import com.github.zzave.teambalance.api.domain.model.TeamId
+import com.github.zzave.teambalance.api.domain.model.TeamScope
 import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.port.EventRepository
 import com.github.zzave.teambalance.api.domain.port.EventTypeRepository
@@ -115,60 +116,60 @@ class PositionServiceTest : FunSpec() {
 
         test("createPosition trims the label and stores it") {
             val (service, _, _) = newService()
-            service.createPosition(adminId, teamId, "  Setter  ").label shouldBe PositionLabel("Setter")
+            service.createPosition(TeamScope(adminId, teamId), "  Setter  ").label shouldBe PositionLabel("Setter")
         }
 
         test("listPositions returns the team's positions") {
             val (service, _, _) = newService()
-            service.createPosition(adminId, teamId, "Setter")
-            service.createPosition(adminId, teamId, "Libero")
+            service.createPosition(TeamScope(adminId, teamId), "Setter")
+            service.createPosition(TeamScope(adminId, teamId), "Libero")
             service.listPositions().map { it.label.value } shouldBe listOf("Libero", "Setter")
         }
 
         test("createPosition rejects a duplicate label case-insensitively with 409") {
             val (service, _, _) = newService()
-            service.createPosition(adminId, teamId, "Setter")
-            shouldThrow<PositionLabelTakenException> { service.createPosition(adminId, teamId, "setter") }
+            service.createPosition(TeamScope(adminId, teamId), "Setter")
+            shouldThrow<PositionLabelTakenException> { service.createPosition(TeamScope(adminId, teamId), "setter") }
         }
 
         test("createPosition by a non-admin is forbidden") {
             val (service, _, _) = newService()
-            shouldThrow<NotTeamAdminException> { service.createPosition(userId, teamId, "Setter") }
+            shouldThrow<NotTeamAdminException> { service.createPosition(TeamScope(userId, teamId), "Setter") }
         }
 
         test("renamePosition updates the label") {
             val (service, _, _) = newService()
-            val created = service.createPosition(adminId, teamId, "Setter")
-            service.renamePosition(adminId, teamId, created.id, "Playmaker").label shouldBe PositionLabel("Playmaker")
+            val created = service.createPosition(TeamScope(adminId, teamId), "Setter")
+            service.renamePosition(TeamScope(adminId, teamId), created.id, "Playmaker").label shouldBe PositionLabel("Playmaker")
         }
 
         test("renamePosition to another existing label returns 409") {
             val (service, _, _) = newService()
-            service.createPosition(adminId, teamId, "Setter")
-            val libero = service.createPosition(adminId, teamId, "Libero")
-            shouldThrow<PositionLabelTakenException> { service.renamePosition(adminId, teamId, libero.id, "Setter") }
+            service.createPosition(TeamScope(adminId, teamId), "Setter")
+            val libero = service.createPosition(TeamScope(adminId, teamId), "Libero")
+            shouldThrow<PositionLabelTakenException> { service.renamePosition(TeamScope(adminId, teamId), libero.id, "Setter") }
         }
 
         test("renamePosition of an unknown id returns 404") {
             val (service, _, _) = newService()
             shouldThrow<PositionNotFoundException> {
-                service.renamePosition(adminId, teamId, PositionId(UUID.randomUUID()), "X")
+                service.renamePosition(TeamScope(adminId, teamId), PositionId(UUID.randomUUID()), "X")
             }
         }
 
         test("a new position plays until an admin says otherwise") {
             val (service, _, _) = newService()
-            service.createPosition(adminId, teamId, "Setter").kind shouldBe PositionKind.PLAYING
+            service.createPosition(TeamScope(adminId, teamId), "Setter").kind shouldBe PositionKind.PLAYING
         }
 
         test("setPositionKind marks a position as staff, and back again") {
             val (service, _, _) = newService()
-            val created = service.createPosition(adminId, teamId, "Trainer")
+            val created = service.createPosition(TeamScope(adminId, teamId), "Trainer")
 
-            service.setPositionKind(adminId, teamId, created.id, PositionKind.STAFF).kind shouldBe PositionKind.STAFF
+            service.setPositionKind(TeamScope(adminId, teamId), created.id, PositionKind.STAFF).kind shouldBe PositionKind.STAFF
             service.listPositions().single().kind shouldBe PositionKind.STAFF
 
-            service.setPositionKind(adminId, teamId, created.id, PositionKind.PLAYING)
+            service.setPositionKind(TeamScope(adminId, teamId), created.id, PositionKind.PLAYING)
             service.listPositions().single().kind shouldBe PositionKind.PLAYING
         }
 
@@ -176,29 +177,29 @@ class PositionServiceTest : FunSpec() {
         test("setPositionKind of an unknown id returns 404") {
             val (service, _, _) = newService()
             shouldThrow<PositionNotFoundException> {
-                service.setPositionKind(adminId, teamId, PositionId(UUID.randomUUID()), PositionKind.STAFF)
+                service.setPositionKind(TeamScope(adminId, teamId), PositionId(UUID.randomUUID()), PositionKind.STAFF)
             }
         }
 
         test("renaming a staff position keeps it staff") {
             val (service, _, _) = newService()
-            val created = service.createPosition(adminId, teamId, "Trainer")
-            service.setPositionKind(adminId, teamId, created.id, PositionKind.STAFF)
+            val created = service.createPosition(TeamScope(adminId, teamId), "Trainer")
+            service.setPositionKind(TeamScope(adminId, teamId), created.id, PositionKind.STAFF)
 
-            service.renamePosition(adminId, teamId, created.id, "Coach").kind shouldBe PositionKind.STAFF
+            service.renamePosition(TeamScope(adminId, teamId), created.id, "Coach").kind shouldBe PositionKind.STAFF
         }
 
         test("deletePosition removes the position") {
             val (service, positions, _) = newService()
-            val created = service.createPosition(adminId, teamId, "Setter")
-            service.deletePosition(adminId, teamId, created.id)
+            val created = service.createPosition(TeamScope(adminId, teamId), "Setter")
+            service.deletePosition(TeamScope(adminId, teamId), created.id)
             positions.findById(created.id) shouldBe null
         }
 
         test("deletePosition of an unknown id returns 404") {
             val (service, _, _) = newService()
             shouldThrow<PositionNotFoundException> {
-                service.deletePosition(adminId, teamId, PositionId(UUID.randomUUID()))
+                service.deletePosition(TeamScope(adminId, teamId), PositionId(UUID.randomUUID()))
             }
         }
 
@@ -206,14 +207,14 @@ class PositionServiceTest : FunSpec() {
         // so what matters is that each count comes from its own surface and none is silently zero.
         test("positionUsage reports the type defaults, event overrides and members that name it") {
             val (service, _, directory) = newService()
-            val created = service.createPosition(adminId, teamId, "Setter")
+            val created = service.createPosition(TeamScope(adminId, teamId), "Setter")
             repeat(MEMBERS_ON_POSITION) {
                 val member = UserId.random()
                 directory.join(member, teamId)
                 directory.teamMemberRepository().assignPosition(teamId, member, created.id)
             }
 
-            val usage = service.positionUsage(adminId, teamId, created.id)
+            val usage = service.positionUsage(TeamScope(adminId, teamId), created.id)
 
             usage.eventTypeCount.value shouldBe TYPE_TARGETS
             usage.eventCount.value shouldBe EVENT_TARGETS
@@ -223,19 +224,19 @@ class PositionServiceTest : FunSpec() {
         test("positionUsage of an unknown id returns 404") {
             val (service, _, _) = newService()
             shouldThrow<PositionNotFoundException> {
-                service.positionUsage(adminId, teamId, PositionId(UUID.randomUUID()))
+                service.positionUsage(TeamScope(adminId, teamId), PositionId(UUID.randomUUID()))
             }
         }
 
         test("mutations by a non-admin are forbidden") {
             val (service, _, _) = newService()
-            val created = service.createPosition(adminId, teamId, "Setter")
-            shouldThrow<NotTeamAdminException> { service.renamePosition(userId, teamId, created.id, "X") }
+            val created = service.createPosition(TeamScope(adminId, teamId), "Setter")
+            shouldThrow<NotTeamAdminException> { service.renamePosition(TeamScope(userId, teamId), created.id, "X") }
             shouldThrow<NotTeamAdminException> {
-                service.setPositionKind(userId, teamId, created.id, PositionKind.STAFF)
+                service.setPositionKind(TeamScope(userId, teamId), created.id, PositionKind.STAFF)
             }
-            shouldThrow<NotTeamAdminException> { service.deletePosition(userId, teamId, created.id) }
-            shouldThrow<NotTeamAdminException> { service.positionUsage(userId, teamId, created.id) }
+            shouldThrow<NotTeamAdminException> { service.deletePosition(TeamScope(userId, teamId), created.id) }
+            shouldThrow<NotTeamAdminException> { service.positionUsage(TeamScope(userId, teamId), created.id) }
         }
     }
 }

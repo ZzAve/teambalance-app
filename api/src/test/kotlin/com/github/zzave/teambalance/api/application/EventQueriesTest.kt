@@ -18,6 +18,7 @@ import com.github.zzave.teambalance.api.domain.model.Substitute
 import com.github.zzave.teambalance.api.domain.model.SubstituteAttendance
 import com.github.zzave.teambalance.api.domain.model.SubstituteId
 import com.github.zzave.teambalance.api.domain.model.TeamId
+import com.github.zzave.teambalance.api.domain.model.TeamScope
 import com.github.zzave.teambalance.api.domain.model.User
 import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.model.EventTitle
@@ -84,6 +85,7 @@ class EventQueriesTest : FunSpec() {
             join(ann.id, teamId)
             join(bob.id, teamId)
         }
+        val scope = TeamScope(ann.id, teamId)
         val training = event("Training")
         val match = event("Match")
 
@@ -113,7 +115,7 @@ class EventQueriesTest : FunSpec() {
                     response(training, ann, AttendanceState.ATTENDING),
                     response(match, ann, AttendanceState.ABSENT),
                 ),
-            ).attended(teamId, listOf(match, training))
+            ).attended(scope, listOf(match, training))
 
             result.map { it.event } shouldBe listOf(match, training)
             result.map { it.attendance.stateOf(ann.id) } shouldBe
@@ -121,7 +123,7 @@ class EventQueriesTest : FunSpec() {
         }
 
         test("a member without a response row is Not Responded") {
-            val attended = queries().attended(teamId, training)
+            val attended = queries().attended(scope, training)
 
             attended.attendance.entries.map { it.member.userId to it.state }.toSet() shouldBe
                 setOf(ann.id to AttendanceState.NOT_RESPONDED, bob.id to AttendanceState.NOT_RESPONDED)
@@ -130,7 +132,7 @@ class EventQueriesTest : FunSpec() {
         test("a response from someone no longer on the roster is ignored") {
             val attended = queries(
                 responses = listOf(response(training, leaver, AttendanceState.ATTENDING)),
-            ).attended(teamId, training)
+            ).attended(scope, training)
 
             attended.attendance.entries.map { it.member.userId }.toSet() shouldBe setOf(ann.id, bob.id)
             attended.attendance.summary()[AttendanceState.ATTENDING] shouldBe 0
@@ -144,13 +146,13 @@ class EventQueriesTest : FunSpec() {
                 updatedAt = Instant.EPOCH,
             )
 
-            val result = queries(substitutes = mapOf(training.id to listOf(sub))).attended(teamId, listOf(training, match))
+            val result = queries(substitutes = mapOf(training.id to listOf(sub))).attended(scope, listOf(training, match))
 
             result.map { it.attendance.substitutes } shouldBe listOf(listOf(sub), emptyList())
         }
 
         test("every event carries the same position vocabulary") {
-            val result = queries().attended(teamId, listOf(training, match))
+            val result = queries().attended(scope, listOf(training, match))
 
             result.map { it.positions } shouldBe listOf(listOf(setter), listOf(setter))
         }
@@ -158,7 +160,7 @@ class EventQueriesTest : FunSpec() {
         test("the single-event form resolves that event the same way") {
             val q = queries(responses = listOf(response(training, bob, AttendanceState.MAYBE)))
 
-            val single = q.attended(teamId, training)
+            val single = q.attended(scope, training)
 
             single.event shouldBe training
             single.attendance.stateOf(bob.id) shouldBe AttendanceState.MAYBE
@@ -166,7 +168,7 @@ class EventQueriesTest : FunSpec() {
         }
 
         test("no events yields no results") {
-            queries().attended(teamId, emptyList()) shouldBe emptyList()
+            queries().attended(scope, emptyList()) shouldBe emptyList()
         }
     }
 

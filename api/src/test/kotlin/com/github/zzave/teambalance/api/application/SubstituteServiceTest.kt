@@ -14,6 +14,7 @@ import com.github.zzave.teambalance.api.domain.model.Role
 import com.github.zzave.teambalance.api.domain.model.Substitute
 import com.github.zzave.teambalance.api.domain.model.SubstituteAttendance
 import com.github.zzave.teambalance.api.domain.model.SubstituteId
+import com.github.zzave.teambalance.api.domain.model.TeamScope
 import com.github.zzave.teambalance.api.domain.model.UsageCount
 import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.port.PositionRepository
@@ -89,83 +90,83 @@ class SubstituteServiceTest : FunSpec() {
 
         test("an admin renames a substitute, trimmed") {
             val service = newService()
-            val jan = service.createSubstitute(memberId, teamId, "Jan", positionId = null)
+            val jan = service.createSubstitute(TeamScope(memberId, teamId), "Jan", positionId = null)
 
-            service.updateSubstitute(adminId, teamId, jan.id, "  Jan B  ", positionId = null).name shouldBe
+            service.updateSubstitute(TeamScope(adminId, teamId), jan.id, "  Jan B  ", positionId = null).name shouldBe
                 DisplayName("Jan B")
-            service.listSubstitutes(memberId, teamId).map { it.name.value } shouldBe listOf("Jan B")
+            service.listSubstitutes(TeamScope(memberId, teamId)).map { it.name.value } shouldBe listOf("Jan B")
         }
 
         test("a plain member may create a substitute but not rename one") {
             val service = newService()
-            val jan = service.createSubstitute(memberId, teamId, "Jan", positionId = null)
+            val jan = service.createSubstitute(TeamScope(memberId, teamId), "Jan", positionId = null)
 
             shouldThrow<NotTeamAdminException> {
-                service.updateSubstitute(memberId, teamId, jan.id, "Jan B", positionId = null)
+                service.updateSubstitute(TeamScope(memberId, teamId), jan.id, "Jan B", positionId = null)
             }
         }
 
         test("a rename follows the same name rules as create") {
             val service = newService()
-            val jan = service.createSubstitute(memberId, teamId, "Jan", positionId = null)
+            val jan = service.createSubstitute(TeamScope(memberId, teamId), "Jan", positionId = null)
 
-            shouldThrow<IllegalArgumentException> { service.updateSubstitute(adminId, teamId, jan.id, "   ", null) }
+            shouldThrow<IllegalArgumentException> { service.updateSubstitute(TeamScope(adminId, teamId), jan.id, "   ", null) }
             shouldThrow<IllegalArgumentException> {
-                service.updateSubstitute(adminId, teamId, jan.id, "x".repeat(101), null)
+                service.updateSubstitute(TeamScope(adminId, teamId), jan.id, "x".repeat(101), null)
             }
         }
 
         // The picker and the settings list tell Substitutes apart by name, so the list keeps names unique.
         test("a name already on the list is refused, whatever its case") {
             val service = newService()
-            service.createSubstitute(memberId, teamId, "Jan", positionId = null)
-            val sam = service.createSubstitute(memberId, teamId, "Sam", positionId = null)
+            service.createSubstitute(TeamScope(memberId, teamId), "Jan", positionId = null)
+            val sam = service.createSubstitute(TeamScope(memberId, teamId), "Sam", positionId = null)
 
-            shouldThrow<SubstituteNameTakenException> { service.createSubstitute(memberId, teamId, " jan ", null) }
-            shouldThrow<SubstituteNameTakenException> { service.updateSubstitute(adminId, teamId, sam.id, "JAN", null) }
+            shouldThrow<SubstituteNameTakenException> { service.createSubstitute(TeamScope(memberId, teamId), " jan ", null) }
+            shouldThrow<SubstituteNameTakenException> { service.updateSubstitute(TeamScope(adminId, teamId), sam.id, "JAN", null) }
         }
 
         test("a substitute keeps their own name through a rename that only changes its case") {
             val service = newService()
-            val jan = service.createSubstitute(memberId, teamId, "jan", positionId = null)
+            val jan = service.createSubstitute(TeamScope(memberId, teamId), "jan", positionId = null)
 
-            service.updateSubstitute(adminId, teamId, jan.id, "Jan", positionId = null).name shouldBe DisplayName("Jan")
+            service.updateSubstitute(TeamScope(adminId, teamId), jan.id, "Jan", positionId = null).name shouldBe DisplayName("Jan")
         }
 
         test("an admin removes a substitute from the list") {
             val service = newService()
-            val jan = service.createSubstitute(memberId, teamId, "Jan", positionId = null)
+            val jan = service.createSubstitute(TeamScope(memberId, teamId), "Jan", positionId = null)
 
-            service.deleteSubstitute(adminId, teamId, jan.id)
+            service.deleteSubstitute(TeamScope(adminId, teamId), jan.id)
 
-            service.listSubstitutes(memberId, teamId) shouldBe emptyList()
+            service.listSubstitutes(TeamScope(memberId, teamId)) shouldBe emptyList()
         }
 
         test("a plain member cannot remove a substitute") {
             val service = newService()
-            val jan = service.createSubstitute(memberId, teamId, "Jan", positionId = null)
+            val jan = service.createSubstitute(TeamScope(memberId, teamId), "Jan", positionId = null)
 
-            shouldThrow<NotTeamAdminException> { service.deleteSubstitute(memberId, teamId, jan.id) }
+            shouldThrow<NotTeamAdminException> { service.deleteSubstitute(TeamScope(memberId, teamId), jan.id) }
         }
 
         test("removing an unknown substitute is not found") {
             shouldThrow<SubstituteNotFoundException> {
-                newService().deleteSubstitute(adminId, teamId, SubstituteId(UUID.randomUUID()))
+                newService().deleteSubstitute(TeamScope(adminId, teamId), SubstituteId(UUID.randomUUID()))
             }
         }
 
         // Read by the remove dialog only, so it is an Admin read like the removal itself.
         test("an admin reads how many events a substitute is on; a plain member cannot") {
             val service = newService()
-            val jan = service.createSubstitute(memberId, teamId, "Jan", positionId = null)
+            val jan = service.createSubstitute(TeamScope(memberId, teamId), "Jan", positionId = null)
 
-            service.substituteEventCount(adminId, teamId, jan.id) shouldBe UsageCount(EVENTS_PER_SUBSTITUTE)
-            shouldThrow<NotTeamAdminException> { service.substituteEventCount(memberId, teamId, jan.id) }
+            service.substituteEventCount(TeamScope(adminId, teamId), jan.id) shouldBe UsageCount(EVENTS_PER_SUBSTITUTE)
+            shouldThrow<NotTeamAdminException> { service.substituteEventCount(TeamScope(memberId, teamId), jan.id) }
         }
 
         test("renaming an unknown substitute is not found") {
             shouldThrow<SubstituteNotFoundException> {
-                newService().updateSubstitute(adminId, teamId, SubstituteId(UUID.randomUUID()), "Jan", null)
+                newService().updateSubstitute(TeamScope(adminId, teamId), SubstituteId(UUID.randomUUID()), "Jan", null)
             }
         }
     }

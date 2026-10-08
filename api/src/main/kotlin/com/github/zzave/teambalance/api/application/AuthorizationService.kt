@@ -5,6 +5,7 @@ import com.github.zzave.teambalance.api.domain.exception.NoTeamMembershipExcepti
 import com.github.zzave.teambalance.api.domain.exception.NotTeamAdminException
 import com.github.zzave.teambalance.api.domain.model.Role
 import com.github.zzave.teambalance.api.domain.model.TeamId
+import com.github.zzave.teambalance.api.domain.model.TeamScope
 import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.port.ActAsGateway
 import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
@@ -19,13 +20,15 @@ import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
  * answering the truth (`null` — they are not a member), since a data-access adapter has no business
  * inventing memberships that every roster and count would then have to remember to filter out.
  *
- * SECURITY CONTRACT — this primitive is only as safe as its arguments:
- * - [userId] MUST be the authenticated principal (from the session, e.g. `UserContext.get()`),
- *   never a user-supplied id from a request body/path/query — otherwise this is trivially bypassed.
- * - [teamId] MAY be caller-influenced — a slug in a shared link, a Team picked in the switcher — and
- *   is made safe by being validated here rather than by never reaching here. A team id that fails
- *   both sources must resolve to **no tenant** (`TenantContext.NO_TENANT_SCHEMA`), never to `public`
- *   and never to the caller's previous Team, and must be indistinguishable from "no such team".
+ * SECURITY CONTRACT — this primitive is only as safe as its [TeamScope]:
+ * - A scope's user MUST be the authenticated principal and its team the request's Active Team. A
+ *   [TeamScope] is constructed only by the request-scope adapter in production, never from a
+ *   user-supplied id in a request body/path/query — otherwise this is trivially bypassed.
+ * - The team may be caller-influenced — a slug in a shared link, a Team picked in the switcher — and
+ *   is made safe by being validated before the scope exists rather than by never reaching here. A team
+ *   id that fails both sources must resolve to **no tenant** (`TenantContext.NO_TENANT_SCHEMA`), never
+ *   to `public` and never to the caller's previous Team, and must be indistinguishable from "no such
+ *   team".
  * - The Virtual Member keys off an **actively entered, unexpired** grant for *this* caller and *this*
  *   team, never off `isPlatformAdmin` — that would make an ordinary session silently admin of
  *   whatever tenant it happened to be routed to (ADR-0024 §2).
@@ -37,32 +40,39 @@ class AuthorizationService(
     private val teamMemberRepository: TeamMemberRepository,
     private val actAsGateway: ActAsGateway,
 ) {
-    fun isAdmin(userId: UserId, teamId: TeamId): Boolean = findRole(userId, teamId) == Role.ADMIN
-
-    fun requireAdmin(userId: UserId, teamId: TeamId) {
-        if (isAdmin(userId, teamId)) return
-        throw lapsedOr(userId) { NotTeamAdminException(userId, teamId) }
-    }
-
-    /** True when [userId] is an active member of [teamId], regardless of role. */
-    fun isMember(userId: UserId, teamId: TeamId): Boolean = findRole(userId, teamId) != null
-
-    /**
-     * Asserts [userId] is an active member of [teamId] — the gate for team-scoped writes that any
-     * member may perform (e.g. trust-based attendance editing, ADR-0003). Fail-closed: a non-member
-     * yields no role and is rejected. Same security contract as [requireAdmin] on its arguments.
-     */
-    fun requireMember(userId: UserId, teamId: TeamId) {
-        if (isMember(userId, teamId)) return
-        throw lapsedOr(userId) { NoTeamMembershipException(userId) }
+    fun requireAdmin(scope: TeamScope) {
+        if (roleOf(scope.userId, scope.teamId) == Role.ADMIN) return
+        throw lapsedOr(scope.userId) { NotTeamAdminException(scope.userId, scope.teamId) }
     }
 
     /**
-     * The caller's Role here: their real one, or `ADMIN` synthesized for the duration of the request
-     * from an act-as grant. Nothing is written — the roster, the attendance denominator, the Position
-     * breakdown and the contributor rankings never see a Virtual Member.
+     * Asserts the caller is an active member of the scope's team — the gate for team-scoped reads and
+     * writes that any member may perform. Fail-closed: a non-member yields no role and is rejected.
      */
-    private fun findRole(userId: UserId, teamId: TeamId): Role? =
+    fun requireMember(scope: TeamScope) = requireMember(scope, scope.userId)
+
+    /**
+     * Asserts [targetUserId] is an active member of the scope's team. For writes made on another
+     * member's behalf, where editing is trust-based (ADR-0003) but the target must still be one of
+     * the team. A lapsed act-as is reported only when the target is the lapsed caller.
+     */
+    fun requireMember(scope: TeamScope, targetUserId: UserId) {
+        if (roleOf(targetUserId, scope.teamId) != null) return
+        throw lapsedOr(targetUserId) { NoTeamMembershipException(targetUserId) }
+    }
+
+    /** Self-edits pass for any member; acting on someone else requires an admin. */
+    fun requireSelfOrAdmin(scope: TeamScope, targetUserId: UserId) {
+        if (targetUserId != scope.userId) requireAdmin(scope)
+    }
+
+    /**
+     * [userId]'s Role in [teamId]: their real one, or `ADMIN` synthesized for the duration of the
+     * request from an act-as grant. Nothing is written — the roster, the attendance denominator, the
+     * Position breakdown and the contributor rankings never see a Virtual Member. Real membership
+     * first, synthesis second, so anyone reporting a Role reports the one the checks enforce.
+     */
+    fun roleOf(userId: UserId, teamId: TeamId): Role? =
         teamMemberRepository.findRole(teamId, userId)
             ?: Role.ADMIN.takeIf { isActingAs(userId, teamId) }
 

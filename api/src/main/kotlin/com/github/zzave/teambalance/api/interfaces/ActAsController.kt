@@ -1,12 +1,11 @@
 package com.github.zzave.teambalance.api.interfaces
 
 import com.github.zzave.teambalance.api.application.ActAsService
-import com.github.zzave.teambalance.api.application.AuthorizationService
 import com.github.zzave.teambalance.api.application.EnteredActAs
 import com.github.zzave.teambalance.api.domain.model.ActAs as DomainActAs
 import com.github.zzave.teambalance.api.domain.model.TeamId
-import com.github.zzave.teambalance.api.domain.port.CurrentTeamGateway
 import com.github.zzave.teambalance.api.domain.port.CurrentUserGateway
+import com.github.zzave.teambalance.api.domain.port.RequestScopeGateway
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.EnterActAs
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.ExitActAs
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.ListActAsRecords
@@ -22,16 +21,15 @@ import java.util.UUID
  * **Act-as** (ADR-0024): the platform console's team list, entering and leaving a Team, and the
  * **Act-as Record** a Team's Admins can read.
  *
- * Every gate is delegated — the platform-admin allowlist to [ActAsService], the team-scoped read to
- * [AuthorizationService] — so this controller decides nothing; error responses are mapped from the
+ * Every gate is delegated to [ActAsService] — the platform-admin allowlist and the team-scoped read —
+ * so this controller decides nothing; error responses are mapped from the
  * thrown domain exceptions by [GlobalExceptionHandler].
  */
 @RestController
 class ActAsController(
     private val actAsService: ActAsService,
-    private val authorizationService: AuthorizationService,
     private val currentUserGateway: CurrentUserGateway,
-    private val currentTeamGateway: CurrentTeamGateway,
+    private val requestScope: RequestScopeGateway,
 ) : ListPlatformTeams.Handler,
     EnterActAs.Handler,
     ExitActAs.Handler,
@@ -63,9 +61,9 @@ class ActAsController(
      * read the record they are writing.
      */
     override suspend fun listActAsRecords(request: ListActAsRecords.Request): ListActAsRecords.Response<*> {
-        val teamId = currentTeamGateway.requireCurrentTeamId()
-        authorizationService.requireAdmin(currentUserGateway.requireCurrentUserId(), teamId)
-        return ListActAsRecords.Response200(ActAsRecordList(actAsService.recordsFor(teamId).map { it.produce() }))
+        return ListActAsRecords.Response200(
+            ActAsRecordList(actAsService.recordsFor(requestScope.teamScope()).map { it.produce() }),
+        )
     }
 }
 

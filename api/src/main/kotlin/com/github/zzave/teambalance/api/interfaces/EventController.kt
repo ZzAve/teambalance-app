@@ -12,8 +12,7 @@ import com.github.zzave.teambalance.api.domain.model.EventSeriesScope as DomainE
 import com.github.zzave.teambalance.api.domain.model.EventTitle
 import com.github.zzave.teambalance.api.domain.model.RosterFill
 import com.github.zzave.teambalance.api.domain.model.UserId
-import com.github.zzave.teambalance.api.domain.port.CurrentTeamGateway
-import com.github.zzave.teambalance.api.domain.port.CurrentUserGateway
+import com.github.zzave.teambalance.api.domain.port.RequestScopeGateway
 import com.github.zzave.teambalance.api.interfaces.generated.model.EventSeriesScope as GeneratedEventSeriesScope
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.CreateEvent
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.DeleteEvent
@@ -34,8 +33,7 @@ import java.util.UUID
 class EventController(
     private val eventService: EventService,
     private val eventQueries: EventQueries,
-    private val currentUserGateway: CurrentUserGateway,
-    private val currentTeamGateway: CurrentTeamGateway,
+    private val requestScope: RequestScopeGateway,
 ) : ListEvents.Handler,
     CreateEvent.Handler,
     GetEvent.Handler,
@@ -43,24 +41,18 @@ class EventController(
     DeleteEvent.Handler {
 
     override suspend fun listEvents(request: ListEvents.Request): ListEvents.Response<*> {
-        val teamId = currentTeamGateway.requireCurrentTeamId()
-        val viewerId = currentUserGateway.requireCurrentUserId()
+        val scope = requestScope.teamScope()
         val events =
-            if (request.queries.includepast) eventService.getAllEvents(teamId) else eventService.getUpcomingEvents()
+            if (request.queries.includepast) eventService.getAllEvents(scope) else eventService.getUpcomingEvents()
         return ListEvents.Response200(
-            EventList(events = eventQueries.attended(teamId, events).map { it.produce(viewerId) })
+            EventList(events = eventQueries.attended(scope, events).map { it.produce(scope.userId) })
         )
     }
 
     override suspend fun createEvent(request: CreateEvent.Request): CreateEvent.Response<*> {
-        val teamId = currentTeamGateway.requireCurrentTeamId()
-        val userId = currentUserGateway.requireCurrentUserId()
-        val event = eventService.createEvent(
-            callerId = userId,
-            teamId = teamId,
-            potential = request.body.consume(),
-        )
-        return CreateEvent.Response201(eventQueries.attended(teamId, event).produce(userId))
+        val scope = requestScope.teamScope()
+        val event = eventService.createEvent(scope = scope, potential = request.body.consume())
+        return CreateEvent.Response201(eventQueries.attended(scope, event).produce(scope.userId))
     }
 
     override suspend fun getEvent(request: GetEvent.Request): GetEvent.Response<*> {
@@ -68,23 +60,20 @@ class EventController(
         val event = eventService.getEvent(id)
             ?: return GetEvent.Response404(Unit)
 
-        val teamId = currentTeamGateway.requireCurrentTeamId()
-        val viewerId = currentUserGateway.requireCurrentUserId()
-        return GetEvent.Response200(eventQueries.attended(teamId, event).produce(viewerId).toDetail())
+        val scope = requestScope.teamScope()
+        return GetEvent.Response200(eventQueries.attended(scope, event).produce(scope.userId).toDetail())
     }
 
     // Scoped edit (ADR-0014, Phase 3): a bulk scope touches many rows, so the success type is an
     // EventList of the affected occurrences. The scope query param defaults to THIS when absent.
     override suspend fun updateEvent(request: UpdateEvent.Request): UpdateEvent.Response<*> {
-        val teamId = currentTeamGateway.requireCurrentTeamId()
-        val userId = currentUserGateway.requireCurrentUserId()
+        val scope = requestScope.teamScope()
         val id = request.path.id.consumeEventId()
         val req = request.body
         val events = eventService.updateEvent(
-            callerId = userId,
-            teamId = teamId,
+            scope = scope,
             id = id,
-            scope = request.queries.scope.consume(),
+            seriesScope = request.queries.scope.consume(),
             eventTypeId = req.eventTypeId.consumeEventTypeId(),
             title = req.title.consumeEventTitle(),
             description = req.description?.let(::EventDescription),
@@ -96,15 +85,14 @@ class EventController(
         ) ?: return UpdateEvent.Response404(Unit)
 
         return UpdateEvent.Response200(
-            EventList(events = eventQueries.attended(teamId, events).map { it.produce(userId) }),
+            EventList(events = eventQueries.attended(scope, events).map { it.produce(scope.userId) }),
         )
     }
 
     override suspend fun deleteEvent(request: DeleteEvent.Request): DeleteEvent.Response<*> {
-        val teamId = currentTeamGateway.requireCurrentTeamId()
-        val userId = currentUserGateway.requireCurrentUserId()
+        val scope = requestScope.teamScope()
         val id = request.path.id.consumeEventId()
-        return if (eventService.deleteEvent(callerId = userId, teamId = teamId, id = id, scope = request.queries.scope.consume())) {
+        return if (eventService.deleteEvent(scope = scope, id = id, seriesScope = request.queries.scope.consume())) {
             DeleteEvent.Response204(Unit)
         } else {
             DeleteEvent.Response404(Unit)

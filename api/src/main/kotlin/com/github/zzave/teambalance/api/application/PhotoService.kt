@@ -4,7 +4,7 @@ import com.github.zzave.teambalance.api.domain.exception.MemberNotFoundException
 import com.github.zzave.teambalance.api.domain.exception.NoPersonalPhotoException
 import com.github.zzave.teambalance.api.domain.exception.PhotoNotFoundException
 import com.github.zzave.teambalance.api.domain.model.Photo
-import com.github.zzave.teambalance.api.domain.model.TeamId
+import com.github.zzave.teambalance.api.domain.model.TeamScope
 import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.port.PhotoRepository
 import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
@@ -20,25 +20,25 @@ class PhotoService(
     private val teamMemberRepository: TeamMemberRepository,
     private val authorizationService: AuthorizationService,
 ) {
-    fun teamPhoto(callerId: UserId, teamId: TeamId, userId: UserId): Photo {
-        authorizationService.requireMember(callerId, teamId)
+    fun teamPhoto(scope: TeamScope, userId: UserId): Photo {
+        authorizationService.requireMember(scope)
         return photoRepository.findTeam(userId) ?: throw PhotoNotFoundException(userId)
     }
 
-    fun uploadTeamPhoto(callerId: UserId, teamId: TeamId, bytes: ByteArray) {
-        requireActiveMember(callerId, teamId)
-        photoRepository.saveTeam(callerId, Photo(bytes))
+    fun uploadTeamPhoto(scope: TeamScope, bytes: ByteArray) {
+        requireActiveMember(scope)
+        photoRepository.saveTeam(scope.userId, Photo(bytes))
     }
 
     /** Copies the bytes: a later change to the Personal Photo leaves the Team Photo as it was. */
-    fun copyPersonalPhotoToTeam(callerId: UserId, teamId: TeamId) {
-        requireActiveMember(callerId, teamId)
-        val personal = photoRepository.findPersonal(callerId) ?: throw NoPersonalPhotoException(callerId)
-        photoRepository.saveTeam(callerId, Photo(personal.bytes.copyOf()))
+    fun copyPersonalPhotoToTeam(scope: TeamScope) {
+        requireActiveMember(scope)
+        val personal = photoRepository.findPersonal(scope.userId) ?: throw NoPersonalPhotoException(scope.userId)
+        photoRepository.saveTeam(scope.userId, Photo(personal.bytes.copyOf()))
     }
 
-    fun removeTeamPhoto(callerId: UserId, teamId: TeamId, targetUserId: UserId) {
-        if (callerId != targetUserId) authorizationService.requireAdmin(callerId, teamId)
+    fun removeTeamPhoto(scope: TeamScope, targetUserId: UserId) {
+        authorizationService.requireSelfOrAdmin(scope, targetUserId)
         photoRepository.deleteTeam(targetUserId)
     }
 
@@ -53,7 +53,7 @@ class PhotoService(
 
     // Act-as grants a Virtual Member that is no one's face, so this asks the roster, not
     // AuthorizationService: there is no member to attach a photo to.
-    private fun requireActiveMember(userId: UserId, teamId: TeamId) {
-        teamMemberRepository.findRole(teamId, userId) ?: throw MemberNotFoundException(userId)
+    private fun requireActiveMember(scope: TeamScope) {
+        teamMemberRepository.findRole(scope.teamId, scope.userId) ?: throw MemberNotFoundException(scope.userId)
     }
 }

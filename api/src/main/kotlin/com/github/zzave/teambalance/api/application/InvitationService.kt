@@ -5,6 +5,7 @@ import com.github.zzave.teambalance.api.domain.model.Invitation
 import com.github.zzave.teambalance.api.domain.model.InviteToken
 import com.github.zzave.teambalance.api.domain.model.Role
 import com.github.zzave.teambalance.api.domain.model.TeamId
+import com.github.zzave.teambalance.api.domain.model.TeamScope
 import com.github.zzave.teambalance.api.domain.model.TokenHash
 import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.port.InvitationRepository
@@ -60,11 +61,11 @@ class InvitationService(
      * means a stray hash-only row surfaces to the admin as an offer to generate one, which is the
      * honest answer and the recoverable path.
      *
-     * Admin-only: [callerId] must be an admin of [teamId] (the server-resolved tenant).
+     * Admin-only: the caller must be an admin of the scope's team.
      */
-    fun activeInviteLink(callerId: UserId, teamId: TeamId): GeneratedInvitation? {
-        authorizationService.requireAdmin(callerId, teamId)
-        return invitationRepository.findActiveByTeam(teamId, clock.instant())?.let(::reveal)
+    fun activeInviteLink(scope: TeamScope): GeneratedInvitation? {
+        authorizationService.requireAdmin(scope)
+        return invitationRepository.findActiveByTeam(scope.teamId, clock.instant())?.let(::reveal)
     }
 
     /**
@@ -76,16 +77,16 @@ class InvitationService(
      * The token is persisted twice over: as a salted hash, which is what [acceptInvitation] matches
      * on, and encrypted, which is what lets it be shown again.
      *
-     * Admin-only: [callerId] must be an admin of [teamId] (the server-resolved tenant), and is also
-     * recorded as the invitation's creator.
+     * Admin-only: the caller must be an admin of the scope's team, and is also recorded as the
+     * invitation's creator.
      */
-    fun generateInviteLink(callerId: UserId, teamId: TeamId): GeneratedInvitation {
-        authorizationService.requireAdmin(callerId, teamId)
+    fun generateInviteLink(scope: TeamScope): GeneratedInvitation {
+        authorizationService.requireAdmin(scope)
         val now = clock.instant()
-        invitationRepository.findActiveByTeam(teamId, now)?.let(::reveal)?.let { return it }
+        invitationRepository.findActiveByTeam(scope.teamId, now)?.let(::reveal)?.let { return it }
 
         val token = generateToken()
-        invitationRepository.save(mint(token, callerId, teamId, now, Role.USER))
+        invitationRepository.save(mint(token, scope, now, Role.USER))
         return GeneratedInvitation(token = token, expiresAt = now.plus(INVITE_TTL))
     }
 
@@ -107,16 +108,16 @@ class InvitationService(
      * once. The extra-credential window is the accepted ADR-0025 trade-off, and the UI disables the
      * button while the mint is in flight; the operator, not an accident, decides what to hand out.
      *
-     * Admin-only: [callerId] must be an admin of [teamId] — which, for the memberless handover, is the
+     * Admin-only: the caller must be an admin of the scope's team — which, for the memberless handover, is the
      * acting-in Platform Admin's Virtual Member (ADR-0024 §2).
      */
-    fun generateAdminInviteLink(callerId: UserId, teamId: TeamId): GeneratedInvitation {
-        authorizationService.requireAdmin(callerId, teamId)
+    fun generateAdminInviteLink(scope: TeamScope): GeneratedInvitation {
+        authorizationService.requireAdmin(scope)
         val now = clock.instant()
-        invitationRepository.findActiveAdminByTeam(teamId, now)?.let(::reveal)?.let { return it }
+        invitationRepository.findActiveAdminByTeam(scope.teamId, now)?.let(::reveal)?.let { return it }
 
         val token = generateToken()
-        invitationRepository.save(mint(token, callerId, teamId, now, Role.ADMIN))
+        invitationRepository.save(mint(token, scope, now, Role.ADMIN))
         return GeneratedInvitation(token = token, expiresAt = now.plus(INVITE_TTL))
     }
 
@@ -126,12 +127,12 @@ class InvitationService(
      * (ADR-0025). Scoped to a live, *unconsumed* ADMIN link: once one is accepted it is spent, so it is
      * no longer offered back and the admin is shown the option to mint a fresh one.
      *
-     * Admin-only: [callerId] must be an admin of [teamId] (the acting-in Platform Admin's Virtual
+     * Admin-only: the caller must be an admin of the scope's team (the acting-in Platform Admin's Virtual
      * Member, ADR-0024 §2).
      */
-    fun activeAdminInviteLink(callerId: UserId, teamId: TeamId): GeneratedInvitation? {
-        authorizationService.requireAdmin(callerId, teamId)
-        return invitationRepository.findActiveAdminByTeam(teamId, clock.instant())?.let(::reveal)
+    fun activeAdminInviteLink(scope: TeamScope): GeneratedInvitation? {
+        authorizationService.requireAdmin(scope)
+        return invitationRepository.findActiveAdminByTeam(scope.teamId, clock.instant())?.let(::reveal)
     }
 
     /**
@@ -140,24 +141,24 @@ class InvitationService(
      * when a handover link may have leaked before it reached the right person. The USER shareable link
      * is untouched — rotate is role-scoped by the replacement's role.
      *
-     * Admin-only: [callerId] must be an admin of [teamId] (the server-resolved tenant).
+     * Admin-only: the caller must be an admin of the scope's team.
      */
-    fun rotateAdminInviteLink(callerId: UserId, teamId: TeamId): GeneratedInvitation {
-        authorizationService.requireAdmin(callerId, teamId)
+    fun rotateAdminInviteLink(scope: TeamScope): GeneratedInvitation {
+        authorizationService.requireAdmin(scope)
         val now = clock.instant()
         val token = generateToken()
-        invitationRepository.rotate(teamId, mint(token, callerId, teamId, now, Role.ADMIN), now)
+        invitationRepository.rotate(scope.teamId, mint(token, scope, now, Role.ADMIN), now)
         return GeneratedInvitation(token = token, expiresAt = now.plus(INVITE_TTL))
     }
 
     /**
      * Revokes the team's active ADMIN handover link without a replacement — the "I don't want to hand
      * over right now after all" path. Scoped to [Role.ADMIN], so the shareable USER link keeps working.
-     * Admin-only: [callerId] must be an admin of [teamId] (the server-resolved tenant).
+     * Admin-only: the caller must be an admin of the scope's team.
      */
-    fun expireAdminInviteLinks(callerId: UserId, teamId: TeamId) {
-        authorizationService.requireAdmin(callerId, teamId)
-        invitationRepository.expireActive(teamId, Role.ADMIN, Instant.now(clock))
+    fun expireAdminInviteLinks(scope: TeamScope) {
+        authorizationService.requireAdmin(scope)
+        invitationRepository.expireActive(scope.teamId, Role.ADMIN, Instant.now(clock))
     }
 
     /**
@@ -218,11 +219,11 @@ class InvitationService(
 
     /**
      * Invalidates every currently-active invite link for the team; already-expired ones are untouched.
-     * Admin-only: [callerId] must be an admin of [teamId] (the server-resolved tenant).
+     * Admin-only: the caller must be an admin of the scope's team.
      */
-    fun expireActiveInvitations(callerId: UserId, teamId: TeamId) {
-        authorizationService.requireAdmin(callerId, teamId)
-        invitationRepository.expireActive(teamId, Role.USER, Instant.now(clock))
+    fun expireActiveInvitations(scope: TeamScope) {
+        authorizationService.requireAdmin(scope)
+        invitationRepository.expireActive(scope.teamId, Role.USER, Instant.now(clock))
     }
 
     /**
@@ -231,24 +232,24 @@ class InvitationService(
      * guarantee lives in [InvitationRepository.rotate] — the expire and the mint are handed over as a
      * single port call, so this service states the intent without naming a transaction.
      *
-     * Admin-only: [callerId] must be an admin of [teamId] (the server-resolved tenant).
+     * Admin-only: the caller must be an admin of the scope's team.
      */
-    fun rotateInviteLink(callerId: UserId, teamId: TeamId): GeneratedInvitation {
-        authorizationService.requireAdmin(callerId, teamId)
+    fun rotateInviteLink(scope: TeamScope): GeneratedInvitation {
+        authorizationService.requireAdmin(scope)
         val now = clock.instant()
         val token = generateToken()
-        invitationRepository.rotate(teamId, mint(token, callerId, teamId, now, Role.USER), now)
+        invitationRepository.rotate(scope.teamId, mint(token, scope, now, Role.USER), now)
         return GeneratedInvitation(token = token, expiresAt = now.plus(INVITE_TTL))
     }
 
-    private fun mint(token: InviteToken, callerId: UserId, teamId: TeamId, now: Instant, role: Role) = Invitation(
+    private fun mint(token: InviteToken, scope: TeamScope, now: Instant, role: Role) = Invitation(
         id = UUID.randomUUID(),
-        teamId = teamId,
+        teamId = scope.teamId,
         role = role,
         consumedAt = null,
         tokenHash = hashToken(token.value),
         encryptedToken = tokenCipher.encrypt(token),
-        createdBy = callerId,
+        createdBy = scope.userId,
         expiresAt = now.plus(INVITE_TTL),
         createdAt = now,
     )

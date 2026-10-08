@@ -7,6 +7,7 @@ import com.github.zzave.teambalance.api.domain.model.PositionId
 import com.github.zzave.teambalance.api.domain.model.PositionKind
 import com.github.zzave.teambalance.api.domain.model.PositionLabel
 import com.github.zzave.teambalance.api.domain.model.TeamId
+import com.github.zzave.teambalance.api.domain.model.TeamScope
 import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.port.EventRepository
 import com.github.zzave.teambalance.api.domain.port.EventTypeRepository
@@ -31,16 +32,16 @@ class PositionService(
     fun listPositions(): List<Position> = positionRepository.list()
 
     /** Admin-only. Trims the label and enforces per-team case-insensitive uniqueness. */
-    fun createPosition(callerId: UserId, teamId: TeamId, rawLabel: String): Position {
-        authorizationService.requireAdmin(callerId, teamId)
+    fun createPosition(scope: TeamScope, rawLabel: String): Position {
+        authorizationService.requireAdmin(scope)
         val label = validLabel(rawLabel)
         requireUnique(label, excludingId = null)
         return positionRepository.create(label)
     }
 
     /** Admin-only. Renames a position of this team, keeping labels unique (excluding itself). */
-    fun renamePosition(callerId: UserId, teamId: TeamId, id: PositionId, rawLabel: String): Position {
-        authorizationService.requireAdmin(callerId, teamId)
+    fun renamePosition(scope: TeamScope, id: PositionId, rawLabel: String): Position {
+        authorizationService.requireAdmin(scope)
         if (!positionRepository.exists(id)) throw PositionNotFoundException(id)
         val label = validLabel(rawLabel)
         requireUnique(label, excludingId = id)
@@ -55,8 +56,8 @@ class PositionService(
      * admin gestures: a label is typed and saved, a kind is toggled and applies at once. No
      * uniqueness check — the kind is not part of a position's identity, so two positions may share it.
      */
-    fun setPositionKind(callerId: UserId, teamId: TeamId, id: PositionId, kind: PositionKind): Position {
-        authorizationService.requireAdmin(callerId, teamId)
+    fun setPositionKind(scope: TeamScope, id: PositionId, kind: PositionKind): Position {
+        authorizationService.requireAdmin(scope)
         if (!positionRepository.exists(id)) throw PositionNotFoundException(id)
         return positionRepository.setKind(id, kind)
     }
@@ -69,13 +70,13 @@ class PositionService(
      *
      * Admin-only, because it is the delete's own dialog that reads it.
      */
-    fun positionUsage(callerId: UserId, teamId: TeamId, id: PositionId): PositionUsage {
-        authorizationService.requireAdmin(callerId, teamId)
+    fun positionUsage(scope: TeamScope, id: PositionId): PositionUsage {
+        authorizationService.requireAdmin(scope)
         if (!positionRepository.exists(id)) throw PositionNotFoundException(id)
         return PositionUsage(
             eventTypeCount = UsageCount(eventTypeRepository.countTargetsForPosition(id)),
             eventCount = UsageCount(eventRepository.countTargetsForPosition(id)),
-            memberCount = UsageCount(teamMemberRepository.countByPosition(teamId, id)),
+            memberCount = UsageCount(teamMemberRepository.countByPosition(scope.teamId, id)),
         )
     }
 
@@ -92,8 +93,8 @@ class PositionService(
      * key could span the platform/tenant boundary. Now that positions are tenant rows alongside the
      * things that name them, one statement does all of it atomically.
      */
-    fun deletePosition(callerId: UserId, teamId: TeamId, id: PositionId) {
-        authorizationService.requireAdmin(callerId, teamId)
+    fun deletePosition(scope: TeamScope, id: PositionId) {
+        authorizationService.requireAdmin(scope)
         if (!positionRepository.exists(id)) throw PositionNotFoundException(id)
         positionRepository.delete(id)
     }

@@ -2,8 +2,8 @@ package com.github.zzave.teambalance.api.interfaces
 
 import com.github.zzave.teambalance.api.application.InvitationService
 import com.github.zzave.teambalance.api.domain.model.TeamId
-import com.github.zzave.teambalance.api.domain.port.CurrentTeamGateway
 import com.github.zzave.teambalance.api.domain.port.CurrentUserGateway
+import com.github.zzave.teambalance.api.domain.port.RequestScopeGateway
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.AcceptInvitation
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.CreateAdminInvitation
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.CreateInvitation
@@ -21,7 +21,7 @@ import org.springframework.web.bind.annotation.RestController
 class InvitationController(
     private val invitationService: InvitationService,
     private val currentUserGateway: CurrentUserGateway,
-    private val currentTeamGateway: CurrentTeamGateway,
+    private val requestScope: RequestScopeGateway,
 ) : CreateInvitation.Handler,
     CreateAdminInvitation.Handler,
     GetActiveAdminInvitation.Handler,
@@ -38,10 +38,7 @@ class InvitationController(
      * link is an ordinary state the UI turns into a "generate one" offer, not an error.
      */
     override suspend fun getActiveInvitation(request: GetActiveInvitation.Request): GetActiveInvitation.Response<*> {
-        val userId = currentUserGateway.requireCurrentUserId()
-        val teamId = currentTeamGateway.requireCurrentTeamId()
-
-        val invitation = invitationService.activeInviteLink(callerId = userId, teamId = teamId)
+        val invitation = invitationService.activeInviteLink(requestScope.teamScope())
             ?: return GetActiveInvitation.Response204(Unit)
         return GetActiveInvitation.Response200(
             Invitation(
@@ -52,10 +49,7 @@ class InvitationController(
     }
 
     override suspend fun createInvitation(request: CreateInvitation.Request): CreateInvitation.Response<*> {
-        val userId = currentUserGateway.requireCurrentUserId()
-        val teamId = currentTeamGateway.requireCurrentTeamId()
-
-        val invitation = invitationService.generateInviteLink(callerId = userId, teamId = teamId)
+        val invitation = invitationService.generateInviteLink(requestScope.teamScope())
         return CreateInvitation.Response201(
             Invitation(
                 token = invitation.token.value,
@@ -72,10 +66,7 @@ class InvitationController(
     override suspend fun createAdminInvitation(
         request: CreateAdminInvitation.Request,
     ): CreateAdminInvitation.Response<*> {
-        val userId = currentUserGateway.requireCurrentUserId()
-        val teamId = currentTeamGateway.requireCurrentTeamId()
-
-        val invitation = invitationService.generateAdminInviteLink(callerId = userId, teamId = teamId)
+        val invitation = invitationService.generateAdminInviteLink(requestScope.teamScope())
         return CreateAdminInvitation.Response201(
             Invitation(
                 token = invitation.token.value,
@@ -92,10 +83,7 @@ class InvitationController(
     override suspend fun getActiveAdminInvitation(
         request: GetActiveAdminInvitation.Request,
     ): GetActiveAdminInvitation.Response<*> {
-        val userId = currentUserGateway.requireCurrentUserId()
-        val teamId = currentTeamGateway.requireCurrentTeamId()
-
-        val invitation = invitationService.activeAdminInviteLink(callerId = userId, teamId = teamId)
+        val invitation = invitationService.activeAdminInviteLink(requestScope.teamScope())
             ?: return GetActiveAdminInvitation.Response204(Unit)
         return GetActiveAdminInvitation.Response200(
             Invitation(token = invitation.token.value, expiresAt = invitation.expiresAt.toString()),
@@ -106,10 +94,7 @@ class InvitationController(
     override suspend fun rotateAdminInvitation(
         request: RotateAdminInvitation.Request,
     ): RotateAdminInvitation.Response<*> {
-        val userId = currentUserGateway.requireCurrentUserId()
-        val teamId = currentTeamGateway.requireCurrentTeamId()
-
-        val invitation = invitationService.rotateAdminInviteLink(callerId = userId, teamId = teamId)
+        val invitation = invitationService.rotateAdminInviteLink(requestScope.teamScope())
         return RotateAdminInvitation.Response201(
             Invitation(token = invitation.token.value, expiresAt = invitation.expiresAt.toString()),
         )
@@ -119,10 +104,7 @@ class InvitationController(
     override suspend fun expireAdminInvitations(
         request: ExpireAdminInvitations.Request,
     ): ExpireAdminInvitations.Response<*> {
-        val userId = currentUserGateway.requireCurrentUserId()
-        val teamId = currentTeamGateway.requireCurrentTeamId()
-
-        invitationService.expireAdminInviteLinks(callerId = userId, teamId = teamId)
+        invitationService.expireAdminInviteLinks(requestScope.teamScope())
         return ExpireAdminInvitations.Response204(Unit)
     }
 
@@ -134,18 +116,12 @@ class InvitationController(
     }
 
     override suspend fun expireInvitations(request: ExpireInvitations.Request): ExpireInvitations.Response<*> {
-        val userId = currentUserGateway.requireCurrentUserId()
-        val teamId = currentTeamGateway.requireCurrentTeamId()
-
-        invitationService.expireActiveInvitations(callerId = userId, teamId = teamId)
+        invitationService.expireActiveInvitations(requestScope.teamScope())
         return ExpireInvitations.Response204(Unit)
     }
 
     override suspend fun rotateInvitation(request: RotateInvitation.Request): RotateInvitation.Response<*> {
-        val userId = currentUserGateway.requireCurrentUserId()
-        val teamId = currentTeamGateway.requireCurrentTeamId()
-
-        val invitation = invitationService.rotateInviteLink(callerId = userId, teamId = teamId)
+        val invitation = invitationService.rotateInviteLink(requestScope.teamScope())
         return RotateInvitation.Response201(
             Invitation(
                 token = invitation.token.value,

@@ -4,7 +4,7 @@ import com.github.zzave.teambalance.api.domain.model.Attendance
 import com.github.zzave.teambalance.api.domain.model.AttendanceId
 import com.github.zzave.teambalance.api.domain.model.AttendanceState
 import com.github.zzave.teambalance.api.domain.model.EventId
-import com.github.zzave.teambalance.api.domain.model.TeamId
+import com.github.zzave.teambalance.api.domain.model.TeamScope
 import com.github.zzave.teambalance.api.domain.model.TeamMember
 import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.port.AttendanceRepository
@@ -21,26 +21,20 @@ class AttendanceService(
     private val clock: Clock,
 ) {
     /**
-     * Records [userId]'s attendance for [eventId], attributed to [changedBy] (the authenticated
+     * Records [userId]'s attendance for [eventId], attributed to the scope's user (the authenticated
      * caller). Editing is trust-based within a team (ADR-0003), so the gate is membership, not
-     * admin: the target [userId] must be an active member of [teamId] — the caller's server-resolved
-     * tenant. This closes the write path that previously trusted only schema routing and never
-     * checked the path [userId] against the caller's team. Returns null when the event is unknown.
+     * admin: the target [userId] must be an active member of the scope's team. This closes the write
+     * path that previously trusted only schema routing and never checked the path [userId] against
+     * the caller's team. Returns null when the event is unknown.
      */
-    fun setAttendance(
-        teamId: TeamId,
-        eventId: EventId,
-        userId: UserId,
-        state: AttendanceState,
-        changedBy: UserId,
-    ): Attendance? {
-        authorizationService.requireMember(userId, teamId)
+    fun setAttendance(scope: TeamScope, eventId: EventId, userId: UserId, state: AttendanceState): Attendance? {
+        authorizationService.requireMember(scope, userId)
         if (eventRepository.findById(eventId) == null) return null
 
         val existing = attendanceRepository.findByEventIdAndUserId(eventId, userId)
         return if (existing != null) {
             attendanceRepository.save(
-                existing.copy(state = state, updatedAt = clock.instant(), changedBy = changedBy),
+                existing.copy(state = state, updatedAt = clock.instant(), changedBy = scope.userId),
             )
         } else {
             attendanceRepository.save(
@@ -50,7 +44,7 @@ class AttendanceService(
                     userId = userId,
                     state = state,
                     updatedAt = clock.instant(),
-                    changedBy = changedBy,
+                    changedBy = scope.userId,
                 ),
             )
         }
@@ -58,7 +52,7 @@ class AttendanceService(
 
     /**
      * Bulk Attend (ADR-0020): fills [userId]'s *blanks* across [eventIds] in one go, attributed to
-     * [changedBy]. The client names the ids it currently shows; this guard is the whole server job,
+     * the scope's user. The client names the ids it currently shows; this guard is the whole server job,
      * and it is deliberately one-directional — a row is created **iff**
      *  - the member has no response row for that event (NOT_RESPONDED is the *absence* of a row), and
      *  - the event has not started yet (`startTime >= now`).
@@ -68,17 +62,16 @@ class AttendanceService(
      * batched, so the guard costs two queries regardless of how many ids arrive.
      *
      * The gate is membership, not self: editing is trust-based within a team (ADR-0003), so the
-     * target may be any active member of [teamId] — but it must be one. Returns the ids actually
+     * target may be any active member of the scope's team — but it must be one. Returns the ids actually
      * created, which is what Undo is handed back.
      */
     fun bulkAttend(
-        teamId: TeamId,
+        scope: TeamScope,
         userId: UserId,
         eventIds: List<EventId>,
         state: AttendanceState,
-        changedBy: UserId,
     ): List<EventId> {
-        authorizationService.requireMember(userId, teamId)
+        authorizationService.requireMember(scope, userId)
         // A NOT_RESPONDED row would contradict the rule that not-responded *is* the missing row, and
         // would then block the very re-tap this feature exists for. There is no such thing to create.
         if (eventIds.isEmpty() || state == AttendanceState.NOT_RESPONDED) return emptyList()
@@ -98,7 +91,7 @@ class AttendanceService(
                     userId = userId,
                     state = state,
                     updatedAt = now,
-                    changedBy = changedBy,
+                    changedBy = scope.userId,
                 )
             },
         ).map { it.eventId }
@@ -111,8 +104,8 @@ class AttendanceService(
      * ids [bulkAttend] reported creating, so a deliberate answer is never in range; repeating it finds
      * nothing and is therefore idempotent.
      */
-    fun bulkUndo(teamId: TeamId, userId: UserId, eventIds: List<EventId>): List<EventId> {
-        authorizationService.requireMember(userId, teamId)
+    fun bulkUndo(scope: TeamScope, userId: UserId, eventIds: List<EventId>): List<EventId> {
+        authorizationService.requireMember(scope, userId)
         if (eventIds.isEmpty()) return emptyList()
         return attendanceRepository.deleteByUserIdAndEventIds(userId, eventIds)
     }

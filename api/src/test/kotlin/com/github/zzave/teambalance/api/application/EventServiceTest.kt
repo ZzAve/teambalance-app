@@ -17,6 +17,7 @@ import com.github.zzave.teambalance.api.domain.model.Recurrence
 import com.github.zzave.teambalance.api.domain.model.RecurrenceFrequency
 import com.github.zzave.teambalance.api.domain.model.Role
 import com.github.zzave.teambalance.api.domain.model.TeamId
+import com.github.zzave.teambalance.api.domain.model.TeamScope
 import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.port.EventRepository
 import com.github.zzave.teambalance.api.domain.port.EventTypeRepository
@@ -154,16 +155,15 @@ class EventServiceTest : FunSpec() {
         )
 
         test("createEvent by a non-admin is rejected before any repository access") {
-            shouldThrow<NotTeamAdminException> { service.createEvent(nonAdmin, teamId, potential) }
+            shouldThrow<NotTeamAdminException> { service.createEvent(TeamScope(nonAdmin, teamId), potential) }
         }
 
         test("updateEvent by a non-admin is rejected before any repository access") {
             shouldThrow<NotTeamAdminException> {
                 service.updateEvent(
-                    callerId = nonAdmin,
-                    teamId = teamId,
+                    scope = TeamScope(nonAdmin, teamId),
                     id = EventId(UUID.randomUUID()),
-                    scope = EventSeriesScope.THIS,
+                    seriesScope = EventSeriesScope.THIS,
                     eventTypeId = EventTypeId(UUID.randomUUID()),
                     title = EventTitle("x"),
                     description = null,
@@ -176,15 +176,14 @@ class EventServiceTest : FunSpec() {
 
         test("deleteEvent by a non-admin is rejected before any repository access") {
             shouldThrow<NotTeamAdminException> {
-                service.deleteEvent(nonAdmin, teamId, EventId(UUID.randomUUID()), EventSeriesScope.THIS)
+                service.deleteEvent(TeamScope(nonAdmin, teamId), EventId(UUID.randomUUID()), EventSeriesScope.THIS)
             }
         }
 
         test("createRecurringEvents by a non-admin is rejected before any repository access") {
             shouldThrow<NotTeamAdminException> {
                 service.createRecurringEvents(
-                    callerId = nonAdmin,
-                    teamId = teamId,
+                    scope = TeamScope(nonAdmin, teamId),
                     eventTypeId = EventTypeId(UUID.randomUUID()),
                     title = EventTitle("Training"),
                     description = null,
@@ -232,7 +231,7 @@ class EventServiceTest : FunSpec() {
         test("getAllEvents asks for one row beyond the cap, which is what separates 'at' from 'over'") {
             val (service, repo) = serviceOverHistoryOf(EventService.EVENT_HISTORY_CAP + 1)
 
-            service.getAllEvents(teamId)
+            service.getAllEvents(TeamScope(UserId.random(), teamId))
 
             repo.requestedLimit shouldBe EventService.EVENT_HISTORY_CAP + 1
         }
@@ -240,7 +239,7 @@ class EventServiceTest : FunSpec() {
         test("over the cap, exactly the cap comes back and the oldest row is the one dropped") {
             val (service, _) = serviceOverHistoryOf(EventService.EVENT_HISTORY_CAP + 1)
 
-            val events = service.getAllEvents(teamId)
+            val events = service.getAllEvents(TeamScope(UserId.random(), teamId))
 
             events.map { it.title.value } shouldContainExactly
                 (0 until EventService.EVENT_HISTORY_CAP).map { "Event $it" }
@@ -250,7 +249,7 @@ class EventServiceTest : FunSpec() {
             val (service, _) = serviceOverHistoryOf(EventService.EVENT_HISTORY_CAP)
 
             var events: List<Event> = emptyList()
-            val warnings = warningsWhile { events = service.getAllEvents(teamId) }
+            val warnings = warningsWhile { events = service.getAllEvents(TeamScope(UserId.random(), teamId)) }
 
             events.size shouldBe EventService.EVENT_HISTORY_CAP
             warnings shouldBe emptyList()
@@ -259,7 +258,7 @@ class EventServiceTest : FunSpec() {
         test("over the cap, one WARN names the team and the cap") {
             val (service, _) = serviceOverHistoryOf(EventService.EVENT_HISTORY_CAP + 1)
 
-            val warnings = warningsWhile { service.getAllEvents(teamId) }
+            val warnings = warningsWhile { service.getAllEvents(TeamScope(UserId.random(), teamId)) }
 
             warnings.size shouldBe 1
             warnings.single() shouldContain teamId.value.toString()

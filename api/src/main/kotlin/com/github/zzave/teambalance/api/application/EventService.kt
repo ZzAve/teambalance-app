@@ -17,7 +17,7 @@ import com.github.zzave.teambalance.api.domain.model.Recurrence
 import com.github.zzave.teambalance.api.domain.model.RosterRequirement
 import com.github.zzave.teambalance.api.domain.model.SeasonPolicy
 import com.github.zzave.teambalance.api.domain.model.SeriesModification
-import com.github.zzave.teambalance.api.domain.model.TeamId
+import com.github.zzave.teambalance.api.domain.model.TeamScope
 import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.port.EventRepository
 import com.github.zzave.teambalance.api.domain.port.EventTypeRepository
@@ -80,15 +80,15 @@ class EventService(
      * Every event, newest first — capped at [EVENT_HISTORY_CAP].
      *
      * One row beyond the cap is asked for, which is what tells "exactly at the cap" from "over it"
-     * without a second `count()`. [teamId] is here for the warning and nothing else: the tenant is
+     * without a second `count()`. [scope] is here for the warning and nothing else: the tenant is
      * already bound by the time this runs, but a log line that cannot name the team is no signal.
      */
-    fun getAllEvents(teamId: TeamId): List<Event> {
+    fun getAllEvents(scope: TeamScope): List<Event> {
         val events = eventRepository.findMostRecent(EVENT_HISTORY_CAP + 1)
         if (events.size <= EVENT_HISTORY_CAP) return events
         log.warn(
             "Team {} has more than {} events; returning the {} most recent and dropping older history",
-            teamId,
+            scope.teamId,
             EVENT_HISTORY_CAP,
             EVENT_HISTORY_CAP,
         )
@@ -100,10 +100,10 @@ class EventService(
     // No attendance rows are seeded here: the summary and roster are derived from current team
     // membership at read time (see AttendanceService), so a member's absence of a row simply reads
     // as NOT_RESPONDED. A response then upserts their row (AttendanceService.setAttendance).
-    // Admin-only: [callerId] must be an admin of [teamId] (the server-resolved tenant), and is
-    // recorded as the event's creator.
-    fun createEvent(callerId: UserId, teamId: TeamId, potential: PotentialEvent): Event {
-        authorizationService.requireAdmin(callerId, teamId)
+    // Admin-only: the caller must be an admin of the scope's team, and is recorded as the event's
+    // creator.
+    fun createEvent(scope: TeamScope, potential: PotentialEvent): Event {
+        authorizationService.requireAdmin(scope)
         val eventType = eventTypeRepository.findById(potential.eventTypeId)
             ?: throw EventTypeNotFoundException(potential.eventTypeId)
 
@@ -123,7 +123,7 @@ class EventService(
                 location = potential.location,
                 references = potential.references,
                 recurringGroup = potential.recurringGroup,
-                createdBy = callerId,
+                createdBy = scope.userId,
                 createdAt = clock.instant(),
                 rosterOverride = potential.rosterOverride,
             ),
@@ -144,12 +144,11 @@ class EventService(
      * The occurrences are handed to the repository in one `saveAll`, so the whole batch commits or
      * nothing does.
      *
-     * Admin-only: [callerId] must be an admin of [teamId] (the server-resolved tenant), and is
-     * recorded as the creator of every generated occurrence.
+     * Admin-only: the caller must be an admin of the scope's team, and is recorded as the creator of
+     * every generated occurrence.
      */
     fun createRecurringEvents(
-        callerId: UserId,
-        teamId: TeamId,
+        scope: TeamScope,
         eventTypeId: EventTypeId,
         title: EventTitle,
         description: EventDescription?,
@@ -159,7 +158,7 @@ class EventService(
         references: List<EventReference>,
         recurrence: Recurrence,
     ): RecurringEventSeries {
-        authorizationService.requireAdmin(callerId, teamId)
+        authorizationService.requireAdmin(scope)
         require(durationMinutes in 1..MAX_DURATION_MINUTES) {
             "durationMinutes must be between 1 and $MAX_DURATION_MINUTES"
         }
@@ -184,7 +183,7 @@ class EventService(
                     location = location,
                     references = references,
                     recurringGroup = recurringGroup,
-                    createdBy = callerId,
+                    createdBy = scope.userId,
                     createdAt = clock.instant(),
                 )
             },
@@ -217,13 +216,12 @@ class EventService(
      * Returns the affected ("edited") occurrences ordered by start, or null when [id] is unknown.
      * The whole reassignment is persisted in one `saveAll`, so it commits or nothing does.
      *
-     * Admin-only: [callerId] must be an admin of [teamId] (the server-resolved tenant).
+     * Admin-only: the caller must be an admin of the scope's team.
      */
     fun updateEvent(
-        callerId: UserId,
-        teamId: TeamId,
+        scope: TeamScope,
         id: EventId,
-        scope: EventSeriesScope,
+        seriesScope: EventSeriesScope,
         eventTypeId: EventTypeId,
         title: EventTitle,
         description: EventDescription?,
@@ -233,7 +231,7 @@ class EventService(
         references: List<EventReference> = emptyList(),
         rosterOverride: RosterRequirement? = null,
     ): List<Event>? {
-        authorizationService.requireAdmin(callerId, teamId)
+        authorizationService.requireAdmin(scope)
         val target = eventRepository.findById(id) ?: return null
         val eventType = eventTypeRepository.findById(eventTypeId)
             ?: throw EventTypeNotFoundException(eventTypeId)
@@ -244,7 +242,7 @@ class EventService(
         val plan = SeriesModification.planEdit(
             series = series,
             targetId = id,
-            scope = scope,
+            scope = seriesScope,
             edit = EventEdit(
                 eventType = eventType,
                 title = title,
@@ -267,16 +265,16 @@ class EventService(
     }
 
     /**
-     * Deletes the occurrences in [scope] over the target's series (ADR-0014, Decision 4). A delete
+     * Deletes the occurrences in [seriesScope] over the target's series (ADR-0014, Decision 4). A delete
      * **never splits** — survivors keep their group untouched. Returns false when [id] is unknown.
      * The whole set is removed in one `deleteAllById`, so it commits or nothing does.
      *
-     * Admin-only: [callerId] must be an admin of [teamId] (the server-resolved tenant).
+     * Admin-only: the caller must be an admin of the scope's team.
      */
-    fun deleteEvent(callerId: UserId, teamId: TeamId, id: EventId, scope: EventSeriesScope): Boolean {
-        authorizationService.requireAdmin(callerId, teamId)
+    fun deleteEvent(scope: TeamScope, id: EventId, seriesScope: EventSeriesScope): Boolean {
+        authorizationService.requireAdmin(scope)
         val target = eventRepository.findById(id) ?: return false
-        eventRepository.deleteAllById(SeriesModification.planDelete(seriesOf(target), id, scope))
+        eventRepository.deleteAllById(SeriesModification.planDelete(seriesOf(target), id, seriesScope))
         return true
     }
 

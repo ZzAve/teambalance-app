@@ -188,27 +188,6 @@ class AuthServiceTest : FunSpec() {
                 .map { it.name.value } shouldBe listOf("Setpoint VT", "Tovo Heren 5")
         }
 
-        // The Role reported to the caller is the Role in the Team they are *in*, not a property of the
-        // user: the same person is an Admin in one Team and a plain User in another.
-        test("findRoleIn answers per Team, not per user") {
-            val directory = TeamDirectory()
-            val setpoint = directory.addTeam("Setpoint VT", "setpoint-vt")
-            val tovo = directory.addTeam("Tovo Heren 5", "tovo-heren-5")
-            directory.join(userId, setpoint, Role.ADMIN)
-            directory.join(userId, tovo, Role.USER)
-            val service = serviceWith(FakeAuthSessionGateway(userId), directory)
-
-            service.findRoleIn(setpoint, userId) shouldBe Role.ADMIN
-            service.findRoleIn(tovo, userId) shouldBe Role.USER
-        }
-
-        test("findRoleIn is null for a Team the caller is not a Member of") {
-            val directory = TeamDirectory()
-            val theirs = directory.addTeam("Someone Else", "someone-else")
-
-            serviceWith(FakeAuthSessionGateway(userId), directory).findRoleIn(theirs, userId) shouldBe null
-        }
-
         test("currentUser resolves the user the session belongs to") {
             serviceWith(FakeAuthSessionGateway(userId)).currentUser() shouldBe user
         }

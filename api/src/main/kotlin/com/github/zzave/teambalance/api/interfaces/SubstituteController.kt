@@ -7,8 +7,7 @@ import com.github.zzave.teambalance.api.domain.model.PositionLabel
 import com.github.zzave.teambalance.api.domain.model.Substitute
 import com.github.zzave.teambalance.api.domain.model.SubstituteAttendance
 import com.github.zzave.teambalance.api.domain.model.SubstituteId
-import com.github.zzave.teambalance.api.domain.port.CurrentTeamGateway
-import com.github.zzave.teambalance.api.domain.port.CurrentUserGateway
+import com.github.zzave.teambalance.api.domain.port.RequestScopeGateway
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.CreateSubstitute
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.DeleteSubstitute
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.GetSubstituteUsage
@@ -28,8 +27,7 @@ import com.github.zzave.teambalance.api.interfaces.generated.model.Substitute as
 @RestController
 class SubstituteController(
     private val substituteService: SubstituteService,
-    private val currentUserGateway: CurrentUserGateway,
-    private val currentTeamGateway: CurrentTeamGateway,
+    private val requestScope: RequestScopeGateway,
 ) : ListSubstitutes.Handler,
     CreateSubstitute.Handler,
     UpdateSubstitute.Handler,
@@ -40,16 +38,14 @@ class SubstituteController(
 
     override suspend fun listSubstitutes(request: ListSubstitutes.Request): ListSubstitutes.Response<*> {
         val substitutes = substituteService.listSubstitutes(
-            callerId = currentUserGateway.requireCurrentUserId(),
-            teamId = currentTeamGateway.requireCurrentTeamId(),
+            scope = requestScope.teamScope(),
         )
         return ListSubstitutes.Response200(SubstituteList(substitutes.map { it.produce() }))
     }
 
     override suspend fun createSubstitute(request: CreateSubstitute.Request): CreateSubstitute.Response<*> {
         val created = substituteService.createSubstitute(
-            callerId = currentUserGateway.requireCurrentUserId(),
-            teamId = currentTeamGateway.requireCurrentTeamId(),
+            scope = requestScope.teamScope(),
             rawName = request.body.name,
             positionId = request.body.positionId?.consumePositionId(),
         )
@@ -58,8 +54,7 @@ class SubstituteController(
 
     override suspend fun updateSubstitute(request: UpdateSubstitute.Request): UpdateSubstitute.Response<*> {
         val updated = substituteService.updateSubstitute(
-            callerId = currentUserGateway.requireCurrentUserId(),
-            teamId = currentTeamGateway.requireCurrentTeamId(),
+            scope = requestScope.teamScope(),
             id = request.path.id.consumeSubstituteId(),
             rawName = request.body.name,
             positionId = request.body.positionId?.consumePositionId(),
@@ -69,8 +64,7 @@ class SubstituteController(
 
     override suspend fun getSubstituteUsage(request: GetSubstituteUsage.Request): GetSubstituteUsage.Response<*> {
         val eventCount = substituteService.substituteEventCount(
-            callerId = currentUserGateway.requireCurrentUserId(),
-            teamId = currentTeamGateway.requireCurrentTeamId(),
+            scope = requestScope.teamScope(),
             id = request.path.id.consumeSubstituteId(),
         )
         return GetSubstituteUsage.Response200(SubstituteUsage(eventCount = eventCount.value.toLong()))
@@ -78,8 +72,7 @@ class SubstituteController(
 
     override suspend fun deleteSubstitute(request: DeleteSubstitute.Request): DeleteSubstitute.Response<*> {
         substituteService.deleteSubstitute(
-            callerId = currentUserGateway.requireCurrentUserId(),
-            teamId = currentTeamGateway.requireCurrentTeamId(),
+            scope = requestScope.teamScope(),
             id = request.path.id.consumeSubstituteId(),
         )
         return DeleteSubstitute.Response204(Unit)
@@ -89,8 +82,7 @@ class SubstituteController(
         request: SetSubstituteAttendance.Request,
     ): SetSubstituteAttendance.Response<*> {
         val attendance = substituteService.setAttendance(
-            callerId = currentUserGateway.requireCurrentUserId(),
-            teamId = currentTeamGateway.requireCurrentTeamId(),
+            scope = requestScope.teamScope(),
             eventId = request.path.eventId.consumeEventId(),
             substituteId = request.path.substituteId.consumeSubstituteId(),
             state = AttendanceState.valueOf(request.body.state.name),
@@ -102,8 +94,7 @@ class SubstituteController(
         request: RemoveSubstituteAttendance.Request,
     ): RemoveSubstituteAttendance.Response<*> {
         substituteService.removeAttendance(
-            callerId = currentUserGateway.requireCurrentUserId(),
-            teamId = currentTeamGateway.requireCurrentTeamId(),
+            scope = requestScope.teamScope(),
             eventId = request.path.eventId.consumeEventId(),
             substituteId = request.path.substituteId.consumeSubstituteId(),
         )

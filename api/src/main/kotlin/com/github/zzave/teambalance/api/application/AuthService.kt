@@ -93,13 +93,6 @@ class AuthService(
     fun findTeamsFor(userId: UserId): List<TeamSummary> = activeTeamService.teamsOf(userId)
 
     /**
-     * Identity-shaped ("who is this caller, here?"), unlike [AuthorizationService], which answers
-     * "may this caller do X on team Y?". The Active Team is an argument because a caller with several
-     * memberships has several Roles, and only the active one is theirs for this request.
-     */
-    fun findRoleIn(teamId: TeamId, userId: UserId): Role? = teamMemberRepository.findRole(teamId, userId)
-
-    /**
      * Opens the session and returns the Active Team pinned for it, or null if none resolved.
      *
      * Any open **Act-as** is closed first (ADR-0024): the grant outlives a session by design — it is

@@ -10,6 +10,7 @@ import com.github.zzave.teambalance.api.domain.model.EventTypeName
 import com.github.zzave.teambalance.api.domain.model.HexColor
 import com.github.zzave.teambalance.api.domain.model.RosterRequirement
 import com.github.zzave.teambalance.api.domain.model.TeamId
+import com.github.zzave.teambalance.api.domain.model.TeamScope
 import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.port.EventTypeRepository
 import com.github.zzave.teambalance.api.domain.port.PositionRepository
@@ -37,13 +38,12 @@ class EventTypeService(
 
     /** Admin-only. Names are unique per team, case-insensitively — the same rule positions follow. */
     fun createEventType(
-        callerId: UserId,
-        teamId: TeamId,
+        scope: TeamScope,
         name: EventTypeName,
         color: HexColor?,
         rosterDefault: RosterRequirement,
     ): EventType {
-        authorizationService.requireAdmin(callerId, teamId)
+        authorizationService.requireAdmin(scope)
         requireNotBlank(name)
         requireNameFree(name, excludingId = null)
         requireKnownPositions(rosterDefault)
@@ -56,14 +56,13 @@ class EventTypeService(
      * so nothing is rewritten and nothing needs to be.
      */
     fun updateEventType(
-        callerId: UserId,
-        teamId: TeamId,
+        scope: TeamScope,
         id: EventTypeId,
         name: EventTypeName,
         color: HexColor?,
         rosterDefault: RosterRequirement,
     ): EventType {
-        authorizationService.requireAdmin(callerId, teamId)
+        authorizationService.requireAdmin(scope)
         val existing = eventTypeRepository.findById(id) ?: throw EventTypeNotFoundException(id)
         requireNotBlank(name)
         requireNameFree(name, excludingId = existing.id)
@@ -83,12 +82,11 @@ class EventTypeService(
      * and the team is stuck with no way out through the UI.
      */
     fun archiveEventType(
-        callerId: UserId,
-        teamId: TeamId,
+        scope: TeamScope,
         id: EventTypeId,
         migrateEventsTo: EventTypeId?,
     ): EventType {
-        authorizationService.requireAdmin(callerId, teamId)
+        authorizationService.requireAdmin(scope)
         val target = eventTypeRepository.findById(id) ?: throw EventTypeNotFoundException(id)
         if (target.archived) return target
 
@@ -102,8 +100,8 @@ class EventTypeService(
     }
 
     /** Admin-only. Puts an archived type back in the pickers — the counterpart that makes it a soft delete. */
-    fun unarchiveEventType(callerId: UserId, teamId: TeamId, id: EventTypeId): EventType {
-        authorizationService.requireAdmin(callerId, teamId)
+    fun unarchiveEventType(scope: TeamScope, id: EventTypeId): EventType {
+        authorizationService.requireAdmin(scope)
         val existing = eventTypeRepository.findById(id) ?: throw EventTypeNotFoundException(id)
         if (!existing.archived) return existing
         // A name freed up while the type was archived may since have been taken by a new one.

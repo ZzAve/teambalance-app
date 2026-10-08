@@ -6,8 +6,7 @@ import com.github.zzave.teambalance.api.domain.model.AttendanceState
 import com.github.zzave.teambalance.api.domain.model.MemberAttendance
 import com.github.zzave.teambalance.api.domain.model.PositionLabel
 import com.github.zzave.teambalance.api.domain.model.UNASSIGNED
-import com.github.zzave.teambalance.api.domain.port.CurrentTeamGateway
-import com.github.zzave.teambalance.api.domain.port.CurrentUserGateway
+import com.github.zzave.teambalance.api.domain.port.RequestScopeGateway
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.BulkAttend
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.BulkUndoAttend
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.SetAttendance
@@ -23,24 +22,22 @@ import org.springframework.web.bind.annotation.RestController
 @RestController
 class AttendanceController(
     private val attendanceService: AttendanceService,
-    private val currentUserGateway: CurrentUserGateway,
-    private val currentTeamGateway: CurrentTeamGateway,
+    private val requestScope: RequestScopeGateway,
 ) : SetAttendance.Handler,
     BulkAttend.Handler,
     BulkUndoAttend.Handler {
 
     override suspend fun setAttendance(request: SetAttendance.Request): SetAttendance.Response<*> {
-        val teamId = currentTeamGateway.requireCurrentTeamId()
+        val scope = requestScope.teamScope()
         val eventId = request.path.eventId.consumeEventId()
         val userId = request.path.userId.consumeUserId()
         val state = AttendanceState.valueOf(request.body.state)
 
         val attendance = attendanceService.setAttendance(
-            teamId = teamId,
+            scope = scope,
             eventId = eventId,
             userId = userId,
             state = state,
-            changedBy = currentUserGateway.requireCurrentUserId(),
         ) ?: return SetAttendance.Response404(Unit)
 
         val member = attendanceService.findMember(userId)
@@ -64,18 +61,17 @@ class AttendanceController(
     // means the target may be a teammate, and the service still gates that they are one.
     override suspend fun bulkAttend(request: BulkAttend.Request): BulkAttend.Response<*> {
         val created = attendanceService.bulkAttend(
-            teamId = currentTeamGateway.requireCurrentTeamId(),
+            scope = requestScope.teamScope(),
             userId = request.body.userId.consumeUserId(),
             eventIds = request.body.eventIds.map { it.consumeEventId() },
             state = request.body.state.consume(),
-            changedBy = currentUserGateway.requireCurrentUserId(),
         )
         return BulkAttend.Response200(BulkAttendanceResult(eventIds = created.map { it.produce() }))
     }
 
     override suspend fun bulkUndoAttend(request: BulkUndoAttend.Request): BulkUndoAttend.Response<*> {
         val deleted = attendanceService.bulkUndo(
-            teamId = currentTeamGateway.requireCurrentTeamId(),
+            scope = requestScope.teamScope(),
             userId = request.body.userId.consumeUserId(),
             eventIds = request.body.eventIds.map { it.consumeEventId() },
         )

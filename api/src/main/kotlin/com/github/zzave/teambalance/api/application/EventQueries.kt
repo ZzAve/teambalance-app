@@ -3,7 +3,7 @@ package com.github.zzave.teambalance.api.application
 import com.github.zzave.teambalance.api.domain.model.Event
 import com.github.zzave.teambalance.api.domain.model.EventAttendance
 import com.github.zzave.teambalance.api.domain.model.Position
-import com.github.zzave.teambalance.api.domain.model.TeamId
+import com.github.zzave.teambalance.api.domain.model.TeamScope
 import com.github.zzave.teambalance.api.domain.port.AttendanceRepository
 import com.github.zzave.teambalance.api.domain.port.PositionRepository
 import com.github.zzave.teambalance.api.domain.port.SubstituteRepository
@@ -35,9 +35,9 @@ class EventQueries(
     private val teamMemberRepository: TeamMemberRepository,
     private val positionRepository: PositionRepository,
 ) {
-    fun attended(teamId: TeamId, events: List<Event>): List<AttendedEvent> {
+    fun attended(scope: TeamScope, events: List<Event>): List<AttendedEvent> {
         val ids = events.map { it.id }
-        val members = teamMemberRepository.findByTeamId(teamId)
+        val members = teamMemberRepository.findByTeamId(scope.teamId)
         val responsesByEvent = attendanceRepository.findByEventIds(ids).groupBy { it.eventId }
         val substitutesByEvent = substituteRepository.findAttendanceByEventIds(ids)
         val positions = positionRepository.list()
@@ -54,5 +54,5 @@ class EventQueries(
         }
     }
 
-    fun attended(teamId: TeamId, event: Event): AttendedEvent = attended(teamId, listOf(event)).single()
+    fun attended(scope: TeamScope, event: Event): AttendedEvent = attended(scope, listOf(event)).single()
 }

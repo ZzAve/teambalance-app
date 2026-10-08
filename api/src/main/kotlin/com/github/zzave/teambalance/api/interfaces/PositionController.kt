@@ -3,8 +3,7 @@ package com.github.zzave.teambalance.api.interfaces
 import com.github.zzave.teambalance.api.application.PositionService
 import com.github.zzave.teambalance.api.domain.model.Position
 import com.github.zzave.teambalance.api.domain.model.PositionId
-import com.github.zzave.teambalance.api.domain.port.CurrentTeamGateway
-import com.github.zzave.teambalance.api.domain.port.CurrentUserGateway
+import com.github.zzave.teambalance.api.domain.port.RequestScopeGateway
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.CreatePosition
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.DeletePosition
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.GetPositionUsage
@@ -20,8 +19,7 @@ import com.github.zzave.teambalance.api.interfaces.generated.model.Position as P
 @RestController
 class PositionController(
     private val positionService: PositionService,
-    private val currentUserGateway: CurrentUserGateway,
-    private val currentTeamGateway: CurrentTeamGateway,
+    private val requestScope: RequestScopeGateway,
 ) : ListPositions.Handler,
     CreatePosition.Handler,
     RenamePosition.Handler,
@@ -30,28 +28,22 @@ class PositionController(
     GetPositionUsage.Handler {
 
     override suspend fun listPositions(request: ListPositions.Request): ListPositions.Response<*> {
-        // Any authenticated member may read the vocabulary; requireCurrentUserId fails closed with 401.
-        currentUserGateway.requireCurrentUserId()
-        // Kept for its effect, not its value: since ADR-0026 the tenant schema scopes the rows, but
-        // this still refuses a caller with no Active Team — a clean 403 rather than a query against
+        // Any authenticated member may read the vocabulary. Kept for its effect, not its value: since
+        // ADR-0026 the tenant schema scopes the rows, but resolving the scope still refuses a caller
+        // with no principal (401) or no Active Team — a clean 403 rather than a query against
         // __no_tenant__ surfacing as a 500.
-        currentTeamGateway.requireCurrentTeamId()
+        requestScope.teamScope()
         return ListPositions.Response200(PositionList(positionService.listPositions().map { it.toDto() }))
     }
 
     override suspend fun createPosition(request: CreatePosition.Request): CreatePosition.Response<*> {
-        val caller = currentUserGateway.requireCurrentUserId()
-        val teamId = currentTeamGateway.requireCurrentTeamId()
-        val created = positionService.createPosition(caller, teamId, request.body.label)
+        val created = positionService.createPosition(requestScope.teamScope(), request.body.label)
         return CreatePosition.Response201(created.toDto())
     }
 
     override suspend fun renamePosition(request: RenamePosition.Request): RenamePosition.Response<*> {
-        val caller = currentUserGateway.requireCurrentUserId()
-        val teamId = currentTeamGateway.requireCurrentTeamId()
         val renamed = positionService.renamePosition(
-            callerId = caller,
-            teamId = teamId,
+            scope = requestScope.teamScope(),
             id = request.path.id.consumePositionId(),
             rawLabel = request.body.label,
         )
@@ -61,11 +53,8 @@ class PositionController(
     // Its own endpoint rather than a wider rename body (#281): a label is typed and saved, a kind is
     // toggled and applies at once, and "rename" that also reclassifies would misname the contract.
     override suspend fun setPositionKind(request: SetPositionKind.Request): SetPositionKind.Response<*> {
-        val caller = currentUserGateway.requireCurrentUserId()
-        val teamId = currentTeamGateway.requireCurrentTeamId()
         val updated = positionService.setPositionKind(
-            callerId = caller,
-            teamId = teamId,
+            scope = requestScope.teamScope(),
             id = request.path.id.consumePositionId(),
             kind = request.body.kind.consume(),
         )
@@ -76,8 +65,7 @@ class PositionController(
     // because it is the delete's own dialog that reads it.
     override suspend fun getPositionUsage(request: GetPositionUsage.Request): GetPositionUsage.Response<*> {
         val usage = positionService.positionUsage(
-            callerId = currentUserGateway.requireCurrentUserId(),
-            teamId = currentTeamGateway.requireCurrentTeamId(),
+            scope = requestScope.teamScope(),
             id = request.path.id.consumePositionId(),
         )
         return GetPositionUsage.Response200(
@@ -90,9 +78,7 @@ class PositionController(
     }
 
     override suspend fun deletePosition(request: DeletePosition.Request): DeletePosition.Response<*> {
-        val caller = currentUserGateway.requireCurrentUserId()
-        val teamId = currentTeamGateway.requireCurrentTeamId()
-        positionService.deletePosition(caller, teamId, request.path.id.consumePositionId())
+        positionService.deletePosition(requestScope.teamScope(), request.path.id.consumePositionId())
         return DeletePosition.Response204(Unit)
     }
 }

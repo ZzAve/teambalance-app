@@ -4,6 +4,7 @@ import com.github.zzave.teambalance.api.domain.exception.PlatformAdminHasMembers
 import com.github.zzave.teambalance.api.domain.exception.TeamNotFoundException
 import com.github.zzave.teambalance.api.domain.model.ActAs
 import com.github.zzave.teambalance.api.domain.model.TeamId
+import com.github.zzave.teambalance.api.domain.model.TeamScope
 import com.github.zzave.teambalance.api.domain.model.TeamSummary
 import com.github.zzave.teambalance.api.domain.model.TenantRouting
 import com.github.zzave.teambalance.api.domain.model.UserId
@@ -30,6 +31,7 @@ class ActAsService(
     private val platformAdminGateway: PlatformAdminGateway,
     private val actAsRepository: ActAsRepository,
     private val actAsGateway: ActAsGateway,
+    private val authorizationService: AuthorizationService,
     private val teamRepository: TeamRepository,
     private val tenantRoutingGateway: TenantRoutingGateway,
     private val clock: Clock,
@@ -116,8 +118,15 @@ class ActAsService(
             ?.let { teamRepository.findTenantRoutingUnchecked(it.teamId) }
             ?.let { ActAsResolution.Active(grant.slidTo(now).also(actAsRepository::save), it) }
 
-    /** The team-visible **Act-as Record** for [teamId], newest first. Authorization is the caller's. */
-    fun recordsFor(teamId: TeamId): List<ActAs> = actAsRepository.findForTeam(teamId)
+    /**
+     * The team-visible **Act-as Record** for the scope's team, newest first. Admin-only (ADR-0024 §4):
+     * the record is shown to the people who can act on it. A Platform Admin currently inside the Team
+     * passes through their Virtual Member, so they can read the record they are writing.
+     */
+    fun recordsFor(scope: TeamScope): List<ActAs> {
+        authorizationService.requireAdmin(scope)
+        return actAsRepository.findForTeam(scope.teamId)
+    }
 
     /**
      * Ends the caller's open episode. A grant that already lapsed did **not** end when the operator

@@ -16,6 +16,7 @@ import com.github.zzave.teambalance.api.domain.model.PositionLabel
 import com.github.zzave.teambalance.api.domain.model.Role
 import com.github.zzave.teambalance.api.domain.model.ShirtNumber
 import com.github.zzave.teambalance.api.domain.model.TeamId
+import com.github.zzave.teambalance.api.domain.model.TeamScope
 import com.github.zzave.teambalance.api.domain.model.User
 import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.port.PositionRepository
@@ -90,49 +91,49 @@ class MemberServiceTest : FunSpec() {
 
         test("getMember returns the team member for the user") {
             val (service, _, _) = newService()
-            service.getMember(teamId, janId).displayName shouldBe DisplayName("Jan de Vries")
+            service.getMember(TeamScope(janId, teamId), janId).displayName shouldBe DisplayName("Jan de Vries")
         }
 
         test("getMember throws MemberNotFoundException for a user not on the team") {
             val (service, _, _) = newService()
-            shouldThrow<MemberNotFoundException> { service.getMember(teamId, UserId.random()) }
+            shouldThrow<MemberNotFoundException> { service.getMember(TeamScope(janId, teamId), UserId.random()) }
         }
 
         test("updateOwnDisplayName trims surrounding whitespace") {
             val (service, userRepo, _) = newService()
-            service.updateOwnDisplayName(teamId, janId, "  Jan Janssen  ").displayName shouldBe DisplayName("Jan Janssen")
+            service.updateOwnDisplayName(TeamScope(janId, teamId), "  Jan Janssen  ").displayName shouldBe DisplayName("Jan Janssen")
             userRepo.findById(janId)?.displayName shouldBe DisplayName("Jan Janssen")
         }
 
         test("updateOwnDisplayName rejects a blank name") {
             val (service, _, _) = newService()
-            shouldThrow<IllegalArgumentException> { service.updateOwnDisplayName(teamId, janId, "   ") }
+            shouldThrow<IllegalArgumentException> { service.updateOwnDisplayName(TeamScope(janId, teamId), "   ") }
         }
 
         test("updateOwnDisplayName rejects a name longer than 100 characters") {
             val (service, _, _) = newService()
-            shouldThrow<IllegalArgumentException> { service.updateOwnDisplayName(teamId, janId, "a".repeat(101)) }
+            shouldThrow<IllegalArgumentException> { service.updateOwnDisplayName(TeamScope(janId, teamId), "a".repeat(101)) }
         }
 
         test("updateOwnDisplayName rejects a name another member already uses (case-insensitive)") {
             val (service, _, _) = newService()
-            shouldThrow<NameTakenException> { service.updateOwnDisplayName(teamId, janId, "lisa bakker") }
+            shouldThrow<NameTakenException> { service.updateOwnDisplayName(TeamScope(janId, teamId), "lisa bakker") }
         }
 
         test("updateOwnDisplayName allows keeping the user's own current name") {
             val (service, _, _) = newService()
-            service.updateOwnDisplayName(teamId, janId, "Jan de Vries").displayName shouldBe DisplayName("Jan de Vries")
+            service.updateOwnDisplayName(TeamScope(janId, teamId), "Jan de Vries").displayName shouldBe DisplayName("Jan de Vries")
         }
 
         test("listMembers returns the full team roster") {
             val (service, _, _) = newService()
-            service.listMembers(teamId).map { it.displayName }.toSet() shouldBe
+            service.listMembers(TeamScope(janId, teamId)).map { it.displayName }.toSet() shouldBe
                 setOf(DisplayName("Jan de Vries"), DisplayName("Lisa Bakker"))
         }
 
         test("admin updateMember edits another member's name and role") {
             val (service, userRepo, memberRepo) = newService()
-            val updated = service.updateMember(janId, teamId, lisaId, "Lisa Nova", Role.ADMIN)
+            val updated = service.updateMember(TeamScope(janId, teamId), lisaId, "Lisa Nova", Role.ADMIN)
             updated.displayName shouldBe DisplayName("Lisa Nova")
             updated.permission shouldBe Role.ADMIN
             userRepo.findById(lisaId)?.displayName shouldBe DisplayName("Lisa Nova")
@@ -141,154 +142,154 @@ class MemberServiceTest : FunSpec() {
 
         test("admin promotes a USER to ADMIN") {
             val (service, _, memberRepo) = newService()
-            service.updateMember(janId, teamId, lisaId, "Lisa Bakker", Role.ADMIN)
+            service.updateMember(TeamScope(janId, teamId), lisaId, "Lisa Bakker", Role.ADMIN)
             memberRepo.findRole(teamId, lisaId) shouldBe Role.ADMIN
         }
 
         test("admin demotes another ADMIN to USER when another admin remains") {
             val (service, _, memberRepo) = newService(lisaRole = Role.ADMIN)
-            service.updateMember(janId, teamId, lisaId, "Lisa Bakker", Role.USER)
+            service.updateMember(TeamScope(janId, teamId), lisaId, "Lisa Bakker", Role.USER)
             memberRepo.findRole(teamId, lisaId) shouldBe Role.USER
         }
 
         test("demoting the last remaining admin throws LastAdminException") {
             val (service, _, _) = newService() // Jan is the only admin
-            shouldThrow<LastAdminException> { service.updateMember(janId, teamId, janId, "Jan de Vries", Role.USER) }
+            shouldThrow<LastAdminException> { service.updateMember(TeamScope(janId, teamId), janId, "Jan de Vries", Role.USER) }
         }
 
         test("a USER cannot self-promote to ADMIN") {
             val (service, _, _) = newService(janRole = Role.USER, lisaRole = Role.ADMIN)
-            shouldThrow<CannotChangeOwnRoleException> { service.updateMember(janId, teamId, janId, "Jan de Vries", Role.ADMIN) }
+            shouldThrow<CannotChangeOwnRoleException> { service.updateMember(TeamScope(janId, teamId), janId, "Jan de Vries", Role.ADMIN) }
         }
 
         test("a non-admin cannot edit another member") {
             val (service, _, _) = newService(janRole = Role.USER, lisaRole = Role.ADMIN)
-            shouldThrow<NotTeamAdminException> { service.updateMember(janId, teamId, lisaId, "Hijacked", Role.USER) }
+            shouldThrow<NotTeamAdminException> { service.updateMember(TeamScope(janId, teamId), lisaId, "Hijacked", Role.USER) }
         }
 
         test("updateMember rejects a name another member already uses, excluding the target") {
             val (service, _, _) = newService()
-            shouldThrow<NameTakenException> { service.updateMember(janId, teamId, lisaId, "Jan de Vries", Role.USER) }
+            shouldThrow<NameTakenException> { service.updateMember(TeamScope(janId, teamId), lisaId, "Jan de Vries", Role.USER) }
         }
 
         test("removeMember deactivates the target so the roster excludes them") {
             val (service, _, _) = newService()
-            service.removeMember(janId, teamId, lisaId)
-            service.listMembers(teamId).map { it.displayName } shouldBe listOf(DisplayName("Jan de Vries"))
+            service.removeMember(TeamScope(janId, teamId), lisaId)
+            service.listMembers(TeamScope(janId, teamId)).map { it.displayName } shouldBe listOf(DisplayName("Jan de Vries"))
         }
 
         test("removeMember by a non-admin is forbidden") {
             val (service, _, _) = newService(janRole = Role.USER, lisaRole = Role.ADMIN)
-            shouldThrow<NotTeamAdminException> { service.removeMember(janId, teamId, lisaId) }
+            shouldThrow<NotTeamAdminException> { service.removeMember(TeamScope(janId, teamId), lisaId) }
         }
 
         test("removeMember refuses to remove the last remaining admin") {
             val (service, _, _) = newService() // Jan is the only admin
-            shouldThrow<LastAdminException> { service.removeMember(janId, teamId, janId) }
+            shouldThrow<LastAdminException> { service.removeMember(TeamScope(janId, teamId), janId) }
         }
 
         test("admin updateMember assigns a position that belongs to the team") {
             val (service, _, _) = newService()
-            val updated = service.updateMember(janId, teamId, lisaId, "Lisa Bakker", Role.USER, setterPositionId)
+            val updated = service.updateMember(TeamScope(janId, teamId), lisaId, "Lisa Bakker", Role.USER, setterPositionId)
             updated.positionId shouldBe setterPositionId
         }
 
         test("updateMember with a null positionId clears the assignment") {
             val (service, _, _) = newService()
-            service.updateMember(janId, teamId, lisaId, "Lisa Bakker", Role.USER, setterPositionId)
-            val cleared = service.updateMember(janId, teamId, lisaId, "Lisa Bakker", Role.USER, null)
+            service.updateMember(TeamScope(janId, teamId), lisaId, "Lisa Bakker", Role.USER, setterPositionId)
+            val cleared = service.updateMember(TeamScope(janId, teamId), lisaId, "Lisa Bakker", Role.USER, null)
             cleared.positionId shouldBe null
         }
 
         test("updateMember rejects a position this team does not have with PositionNotFoundException") {
             val (service, _, _) = newService()
             shouldThrow<PositionNotFoundException> {
-                service.updateMember(janId, teamId, lisaId, "Lisa Bakker", Role.USER, foreignPositionId)
+                service.updateMember(TeamScope(janId, teamId), lisaId, "Lisa Bakker", Role.USER, foreignPositionId)
             }
         }
 
         test("admin updateMember sets another member's shirt number") {
             val (service, _, _) = newService()
-            val updated = service.updateMember(janId, teamId, lisaId, "Lisa Bakker", Role.USER, shirtNumber = 7)
+            val updated = service.updateMember(TeamScope(janId, teamId), lisaId, "Lisa Bakker", Role.USER, shirtNumber = 7)
             updated.shirtNumber shouldBe ShirtNumber(7)
         }
 
         test("updateMember accepts a three-digit shirt number") {
             val (service, _, _) = newService()
-            service.updateMember(lisaId, teamId, lisaId, "Lisa Bakker", Role.USER, shirtNumber = 999)
+            service.updateMember(TeamScope(lisaId, teamId), lisaId, "Lisa Bakker", Role.USER, shirtNumber = 999)
                 .shirtNumber shouldBe ShirtNumber(999)
         }
 
         test("updateMember with a null shirt number clears it") {
             val (service, _, _) = newService()
-            service.updateMember(janId, teamId, lisaId, "Lisa Bakker", Role.USER, shirtNumber = 7)
-            service.updateMember(janId, teamId, lisaId, "Lisa Bakker", Role.USER, shirtNumber = null)
+            service.updateMember(TeamScope(janId, teamId), lisaId, "Lisa Bakker", Role.USER, shirtNumber = 7)
+            service.updateMember(TeamScope(janId, teamId), lisaId, "Lisa Bakker", Role.USER, shirtNumber = null)
                 .shirtNumber shouldBe null
         }
 
         test("completeOnboarding with a shirt number sets it") {
             val (service, _, _) = newService()
-            service.completeOnboarding(lisaId, teamId, "Lisa B", null, shirtNumber = 9).shirtNumber shouldBe ShirtNumber(9)
+            service.completeOnboarding(TeamScope(lisaId, teamId), "Lisa B", null, shirtNumber = 9).shirtNumber shouldBe ShirtNumber(9)
         }
 
         test("completeOnboarding with a null shirt number keeps the current one") {
             val (service, _, _) = newService()
-            service.updateMember(janId, teamId, lisaId, "Lisa Bakker", Role.USER, shirtNumber = 4)
-            service.completeOnboarding(lisaId, teamId, "Lisa B", null, shirtNumber = null)
+            service.updateMember(TeamScope(janId, teamId), lisaId, "Lisa Bakker", Role.USER, shirtNumber = 4)
+            service.completeOnboarding(TeamScope(lisaId, teamId), "Lisa B", null, shirtNumber = null)
                 .shirtNumber shouldBe ShirtNumber(4)
         }
 
         test("completeOnboarding rejects a shirt number another member wears") {
             val (service, _, _) = newService()
-            service.updateMember(janId, teamId, janId, "Jan de Vries", Role.ADMIN, shirtNumber = 7)
+            service.updateMember(TeamScope(janId, teamId), janId, "Jan de Vries", Role.ADMIN, shirtNumber = 7)
             shouldThrow<ShirtNumberTakenException> {
-                service.completeOnboarding(lisaId, teamId, "Lisa B", null, shirtNumber = 7)
+                service.completeOnboarding(TeamScope(lisaId, teamId), "Lisa B", null, shirtNumber = 7)
             }
         }
 
         test("updateMember rejects a shirt number outside 0..999") {
             val (service, _, _) = newService()
             shouldThrow<IllegalArgumentException> {
-                service.updateMember(janId, teamId, lisaId, "Lisa Bakker", Role.USER, shirtNumber = 1000)
+                service.updateMember(TeamScope(janId, teamId), lisaId, "Lisa Bakker", Role.USER, shirtNumber = 1000)
             }
             shouldThrow<IllegalArgumentException> {
-                service.updateMember(janId, teamId, lisaId, "Lisa Bakker", Role.USER, shirtNumber = -1)
+                service.updateMember(TeamScope(janId, teamId), lisaId, "Lisa Bakker", Role.USER, shirtNumber = -1)
             }
         }
 
         test("updateMember rejects a shirt number another member wears with ShirtNumberTakenException") {
             val (service, _, _) = newService()
-            service.updateMember(janId, teamId, janId, "Jan de Vries", Role.ADMIN, shirtNumber = 7)
+            service.updateMember(TeamScope(janId, teamId), janId, "Jan de Vries", Role.ADMIN, shirtNumber = 7)
             shouldThrow<ShirtNumberTakenException> {
-                service.updateMember(janId, teamId, lisaId, "Lisa Bakker", Role.USER, shirtNumber = 7)
+                service.updateMember(TeamScope(janId, teamId), lisaId, "Lisa Bakker", Role.USER, shirtNumber = 7)
             }
         }
 
         test("updateMember lets a member keep their own shirt number") {
             val (service, _, _) = newService()
-            service.updateMember(lisaId, teamId, lisaId, "Lisa Bakker", Role.USER, shirtNumber = 7)
-            service.updateMember(lisaId, teamId, lisaId, "Lisa B", Role.USER, shirtNumber = 7)
+            service.updateMember(TeamScope(lisaId, teamId), lisaId, "Lisa Bakker", Role.USER, shirtNumber = 7)
+            service.updateMember(TeamScope(lisaId, teamId), lisaId, "Lisa B", Role.USER, shirtNumber = 7)
                 .shirtNumber shouldBe ShirtNumber(7)
         }
 
         test("a removed member's shirt number is free for someone else") {
             val (service, _, _) = newService()
-            service.updateMember(janId, teamId, lisaId, "Lisa Bakker", Role.USER, shirtNumber = 7)
-            service.removeMember(janId, teamId, lisaId)
-            service.updateMember(janId, teamId, janId, "Jan de Vries", Role.ADMIN, shirtNumber = 7)
+            service.updateMember(TeamScope(janId, teamId), lisaId, "Lisa Bakker", Role.USER, shirtNumber = 7)
+            service.removeMember(TeamScope(janId, teamId), lisaId)
+            service.updateMember(TeamScope(janId, teamId), janId, "Jan de Vries", Role.ADMIN, shirtNumber = 7)
                 .shirtNumber shouldBe ShirtNumber(7)
         }
 
         test("completeOnboarding keeps the shirt number the member already has") {
             val (service, _, _) = newService()
-            service.updateMember(janId, teamId, lisaId, "Lisa Bakker", Role.USER, shirtNumber = 12)
-            service.completeOnboarding(lisaId, teamId, "Lisa Nova", null)
+            service.updateMember(TeamScope(janId, teamId), lisaId, "Lisa Bakker", Role.USER, shirtNumber = 12)
+            service.completeOnboarding(TeamScope(lisaId, teamId), "Lisa Nova", null)
                 .shirtNumber shouldBe ShirtNumber(12)
         }
 
         test("completeOnboarding marks the member onboarded and applies name and position") {
             val (service, userRepo, memberRepo) = newService()
-            val updated = service.completeOnboarding(lisaId, teamId, "Lisa Nova", setterPositionId)
+            val updated = service.completeOnboarding(TeamScope(lisaId, teamId), "Lisa Nova", setterPositionId)
             updated.onboarded shouldBe true
             updated.displayName shouldBe DisplayName("Lisa Nova")
             updated.positionId shouldBe setterPositionId
@@ -298,14 +299,14 @@ class MemberServiceTest : FunSpec() {
 
         test("completeOnboarding is idempotent - a second call keeps onboarded true") {
             val (service, _, _) = newService()
-            service.completeOnboarding(lisaId, teamId, "Lisa Nova", setterPositionId)
-            val again = service.completeOnboarding(lisaId, teamId, "Lisa Nova", setterPositionId)
+            service.completeOnboarding(TeamScope(lisaId, teamId), "Lisa Nova", setterPositionId)
+            val again = service.completeOnboarding(TeamScope(lisaId, teamId), "Lisa Nova", setterPositionId)
             again.onboarded shouldBe true
         }
 
         test("completeOnboarding does not change the member's role") {
             val (service, _, memberRepo) = newService(lisaRole = Role.ADMIN)
-            service.completeOnboarding(lisaId, teamId, "Lisa Nova", null)
+            service.completeOnboarding(TeamScope(lisaId, teamId), "Lisa Nova", null)
             memberRepo.findRole(teamId, lisaId) shouldBe Role.ADMIN
         }
     }

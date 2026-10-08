@@ -1,10 +1,13 @@
 package com.github.zzave.teambalance.api.application
 
 import com.github.zzave.teambalance.api.domain.exception.NotPlatformAdminException
+import com.github.zzave.teambalance.api.domain.exception.NotTeamAdminException
 import com.github.zzave.teambalance.api.domain.exception.PlatformAdminHasMembershipException
 import com.github.zzave.teambalance.api.domain.exception.TeamNotFoundException
 import com.github.zzave.teambalance.api.domain.model.ActAs
+import com.github.zzave.teambalance.api.domain.model.Role
 import com.github.zzave.teambalance.api.domain.model.TeamId
+import com.github.zzave.teambalance.api.domain.model.TeamScope
 import com.github.zzave.teambalance.api.domain.model.UserId
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.collections.shouldBeEmpty
@@ -34,6 +37,8 @@ class ActAsServiceTest : FunSpec() {
     init {
         val operator = UserId.random()
         val outsider = UserId.random()
+        val teamAdmin = UserId.random()
+        val teamMember = UserId.random()
         val start = Instant.parse("2026-08-23T10:00:00Z")
 
         data class Fixture(
@@ -277,9 +282,10 @@ class ActAsServiceTest : FunSpec() {
             test("keeps the real user id underneath while rendering the actor generically") {
                 val f = fixture()
                 val dames5 = f.directory.addTeam("Dames 5", "dames-5")
+                f.directory.join(teamAdmin, dames5, Role.ADMIN)
                 f.service.enter(operator, dames5)
 
-                val record = f.service.recordsFor(dames5).single()
+                val record = f.service.recordsFor(TeamScope(teamAdmin, dames5)).single()
 
                 record.userId shouldBe operator
                 record.actorKind.name shouldBe "PLATFORM_ADMIN"
@@ -289,10 +295,32 @@ class ActAsServiceTest : FunSpec() {
                 val f = fixture()
                 val dames5 = f.directory.addTeam("Dames 5", "dames-5")
                 val heren3 = f.directory.addTeam("Heren 3", "heren-3")
+                f.directory.join(teamAdmin, dames5, Role.ADMIN)
+                f.directory.join(teamAdmin, heren3, Role.ADMIN)
                 f.service.enter(operator, dames5)
 
-                f.service.recordsFor(heren3).shouldBeEmpty()
-                f.service.recordsFor(dames5).shouldNotBeNull()
+                f.service.recordsFor(TeamScope(teamAdmin, heren3)).shouldBeEmpty()
+                f.service.recordsFor(TeamScope(teamAdmin, dames5)).shouldNotBeNull()
+            }
+
+            // ADR-0024 §4: the record is for the people who can act on it.
+            test("is refused to a plain member of the Team") {
+                val f = fixture()
+                val dames5 = f.directory.addTeam("Dames 5", "dames-5")
+                f.directory.join(teamMember, dames5, Role.USER)
+
+                shouldThrow<NotTeamAdminException> { f.service.recordsFor(TeamScope(teamMember, dames5)) }
+            }
+
+            test("is readable by the Platform Admin inside the Team, through their Virtual Member") {
+                val f = fixture()
+                val dames5 = f.directory.addTeam("Dames 5", "dames-5")
+                val grant = f.service.enter(operator, dames5).actAs
+                val inside = f.directory.actAsService(
+                    f.routing, f.episodes, f.clock, setOf(operator), actAsGateway = FakeActAsGateway(grant),
+                )
+
+                inside.recordsFor(TeamScope(operator, dames5)).single().userId shouldBe operator
             }
         }
     }

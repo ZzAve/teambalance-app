@@ -279,6 +279,7 @@ internal fun TeamDirectory.actAsService(
     platformAdminGateway = AllowlistedPlatformAdmins(platformAdmins),
     actAsRepository = actAsRepository,
     actAsGateway = actAsGateway,
+    authorizationService = AuthorizationService(teamMemberRepository(), actAsGateway),
     teamRepository = teamRepository(),
     tenantRoutingGateway = routingGateway,
     clock = clock,

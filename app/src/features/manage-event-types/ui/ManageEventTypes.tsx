@@ -7,6 +7,7 @@ import {
   useUpdateEventType,
 } from '@shared/api/event-types'
 import { usePositions } from '@shared/api/positions'
+import { summarizeMutations } from '@shared/lib/mutation-group'
 import { ManageEventTypesView } from './ManageEventTypesView'
 
 /**
@@ -26,18 +27,13 @@ export function ManageEventTypes() {
   const archiveEventType = useArchiveEventType()
   const unarchiveEventType = useUnarchiveEventType()
 
-  const activeError = [
-    createEventType.error,
-    updateEventType.error,
-    archiveEventType.error,
-    unarchiveEventType.error,
-  ].find((e): e is EventTypeError => e instanceof EventTypeError)
-
-  const isSaving =
-    createEventType.isPending ||
-    updateEventType.isPending ||
-    archiveEventType.isPending ||
-    unarchiveEventType.isPending
+  const { error: activeError, isSaving } = summarizeMutations(
+    EventTypeError,
+    createEventType,
+    updateEventType,
+    archiveEventType,
+    unarchiveEventType,
+  )
 
   return (
     <ManageEventTypesView

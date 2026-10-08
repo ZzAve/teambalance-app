@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { Position } from '@shared/api/positions'
+import { summarizeMutations } from '@shared/lib/mutation-group'
 import {
   PositionError,
   useCreatePosition,
@@ -28,20 +29,13 @@ export function ManagePositions() {
   const [usageTarget, setUsageTarget] = useState<Position | null>(null)
   const { data: usage } = usePositionUsage(usageTarget?.id ?? null)
 
-  const activeError = [
-    createPosition.error,
-    renamePosition.error,
-    setPositionKind.error,
-    deletePosition.error,
-  ].find(
-    (e): e is PositionError => e instanceof PositionError,
+  const { error: activeError, isSaving } = summarizeMutations(
+    PositionError,
+    createPosition,
+    renamePosition,
+    setPositionKind,
+    deletePosition,
   )
-
-  const isSaving =
-    createPosition.isPending ||
-    renamePosition.isPending ||
-    setPositionKind.isPending ||
-    deletePosition.isPending
 
   return (
     <ManagePositionsView

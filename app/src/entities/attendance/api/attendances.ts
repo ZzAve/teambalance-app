@@ -3,6 +3,7 @@ import { toast } from 'sonner'
 import { api } from '@shared/api/wirespec-client'
 import { useCurrentUser } from '@shared/api/auth'
 import type { EventDetail } from '@shared/api/events'
+import { queryKeys } from '@shared/api/query-keys'
 import { applyOptimisticAttendance } from '../lib/optimistic-attendance'
 import type { AttendanceState } from '../model/attendance-state'
 
@@ -26,7 +27,7 @@ export function useSetAttendance() {
     // Optimistic update: the toggle reflects the tap instantly. Snapshot the cached event so a
     // failure can roll it back, then reconcile with the server on settle.
     onMutate: async ({ eventId, userId, state }) => {
-      const eventKey = ['events', eventId]
+      const eventKey = queryKeys.events.detail(eventId)
       await queryClient.cancelQueries({ queryKey: eventKey })
       const previousEvent = queryClient.getQueryData<EventDetail>(eventKey)
       queryClient.setQueryData<EventDetail | undefined>(eventKey, (current) =>
@@ -41,8 +42,8 @@ export function useSetAttendance() {
       toast.error("Couldn't save your response — tap to try again.")
     },
     onSettled: (_data, _error, { eventId }) => {
-      queryClient.invalidateQueries({ queryKey: ['events'] })
-      queryClient.invalidateQueries({ queryKey: ['events', eventId] })
+      queryClient.invalidateQueries({ queryKey: queryKeys.events.all })
+      queryClient.invalidateQueries({ queryKey: queryKeys.events.detail(eventId) })
     },
   })
 }
@@ -72,7 +73,7 @@ export function useBulkAttend() {
       toast.error("Couldn't set your attendance — please try again.")
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['events'] })
+      queryClient.invalidateQueries({ queryKey: queryKeys.events.all })
     },
   })
 }
@@ -89,7 +90,7 @@ export function useBulkUndo() {
       toast.error("Couldn't undo — please try again.")
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['events'] })
+      queryClient.invalidateQueries({ queryKey: queryKeys.events.all })
     },
   })
 }

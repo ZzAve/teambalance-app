@@ -4,6 +4,7 @@ import {
   useCreationCodes,
   useRevokeCreationCode,
 } from '@shared/api/creation-codes'
+import { summarizeMutations } from '@shared/lib/mutation-group'
 import { ManageCreationCodesView } from './ManageCreationCodesView'
 
 /**
@@ -19,10 +20,7 @@ export function ManageCreationCodes() {
   const isForbidden = error instanceof CreationCodeError && error.code === 'FORBIDDEN'
   const isError = !!error && !isForbidden
 
-  const activeError = [createCode.error, revokeCode.error].find(
-    (e): e is CreationCodeError => e instanceof CreationCodeError,
-  )
-  const isSaving = createCode.isPending || revokeCode.isPending
+  const { error: activeError, isSaving } = summarizeMutations(CreationCodeError, createCode, revokeCode)
 
   return (
     <ManageCreationCodesView

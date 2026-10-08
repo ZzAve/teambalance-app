@@ -1,5 +1,6 @@
 import { MemberUpdateError, useMembers, useRemoveMember, useUpdateMember } from '@shared/api/members'
 import { usePositions } from '@shared/api/positions'
+import { summarizeMutations } from '@shared/lib/mutation-group'
 import { toggleRole } from '../lib/roster'
 import { MemberRosterView } from './MemberRosterView'
 
@@ -27,12 +28,7 @@ export function MemberRoster({ canManage = false }: MemberRosterProps) {
   const updateMember = useUpdateMember()
   const removeMember = useRemoveMember()
 
-  const activeError =
-    updateMember.error instanceof MemberUpdateError
-      ? updateMember.error
-      : removeMember.error instanceof MemberUpdateError
-        ? removeMember.error
-        : null
+  const { error: activeError } = summarizeMutations(MemberUpdateError, updateMember, removeMember)
 
   const savingUserId = updateMember.isPending
     ? updateMember.variables?.userId

@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { authMeQueryOptions } from './auth'
+import { queryKeys } from './query-keys'
 
 // Photos travel as image bytes, which Wirespec cannot describe, so these endpoints sit outside the
 // generated client (ADR-0038). The JSON contract only carries each photo's version; the version goes
@@ -47,7 +48,7 @@ function useTeamPhotoMutation<T = void>(request: (input: T) => Promise<void>) {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: request,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['members'] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.members.all }),
   })
 }
 

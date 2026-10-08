@@ -48,7 +48,9 @@ export function useMembers() {
     queryKey: queryKeys.members.all,
     queryFn: async () => {
       const res = await api.ListMembers()
-      if (res.status === 403) throw new MemberUpdateError('FORBIDDEN', 'You are not allowed to view members.')
+      throwOnStatus(res, {
+        403: () => new MemberUpdateError('FORBIDDEN', 'You are not allowed to view members.'),
+      })
       return res.body.members
     },
   })

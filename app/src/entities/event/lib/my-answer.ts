@@ -22,11 +22,11 @@ export interface MyAnswer {
 export function myAnswer(state: AttendanceState, setBy?: string | null): MyAnswer {
   switch (state) {
     case 'ATTENDING':
-      return { label: setBy ? `${setBy} said you're in` : ATTENDANCE_WORDS.ATTENDING.pill, tone: 'attending' }
+      return { label: setBy ? `${setBy} said ${ATTENDANCE_WORDS.ATTENDING.status}` : ATTENDANCE_WORDS.ATTENDING.pill, tone: 'attending' }
     case 'MAYBE':
       return { label: setBy ? `${setBy} said maybe` : ATTENDANCE_WORDS.MAYBE.pill, tone: 'maybe' }
     case 'ABSENT':
-      return { label: setBy ? `${setBy} said you're out` : ATTENDANCE_WORDS.ABSENT.pill, tone: 'absent' }
+      return { label: setBy ? `${setBy} said ${ATTENDANCE_WORDS.ABSENT.status}` : ATTENDANCE_WORDS.ABSENT.pill, tone: 'absent' }
     case 'NOT_RESPONDED':
       return { label: ATTENDANCE_WORDS.NOT_RESPONDED.pill, tone: 'prompt' }
   }

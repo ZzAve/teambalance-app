@@ -16,3 +16,11 @@ export const ATTENDANCE_WORDS: Record<AttendanceState, { word: string; pill: str
   ABSENT: { word: "Can't", pill: "You're out", status: "you're out" },
   NOT_RESPONDED: { word: 'Not responded', pill: 'Respond', status: "you haven't responded" },
 }
+
+/** The `word` mid-sentence: "currently not responded", "2 maybe", "Show 3 more going". */
+export const LOWER_WORD: Record<AttendanceState, string> = {
+  ATTENDING: ATTENDANCE_WORDS.ATTENDING.word.toLowerCase(),
+  MAYBE: ATTENDANCE_WORDS.MAYBE.word.toLowerCase(),
+  ABSENT: ATTENDANCE_WORDS.ABSENT.word.toLowerCase(),
+  NOT_RESPONDED: ATTENDANCE_WORDS.NOT_RESPONDED.word.toLowerCase(),
+}

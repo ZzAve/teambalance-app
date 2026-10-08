@@ -321,6 +321,26 @@ class MemberServiceTest : FunSpec() {
                 .shirtNumber shouldBe null
         }
 
+        test("completeOnboarding with a shirt number sets it") {
+            val (service, _, _) = newService()
+            service.completeOnboarding(lisaId, teamId, "Lisa B", null, shirtNumber = 9).shirtNumber shouldBe ShirtNumber(9)
+        }
+
+        test("completeOnboarding with a null shirt number keeps the current one") {
+            val (service, _, _) = newService()
+            service.updateMember(janId, teamId, lisaId, "Lisa Bakker", Role.USER, shirtNumber = 4)
+            service.completeOnboarding(lisaId, teamId, "Lisa B", null, shirtNumber = null)
+                .shirtNumber shouldBe ShirtNumber(4)
+        }
+
+        test("completeOnboarding rejects a shirt number another member wears") {
+            val (service, _, _) = newService()
+            service.updateMember(janId, teamId, janId, "Jan de Vries", Role.ADMIN, shirtNumber = 7)
+            shouldThrow<ShirtNumberTakenException> {
+                service.completeOnboarding(lisaId, teamId, "Lisa B", null, shirtNumber = 7)
+            }
+        }
+
         test("updateMember rejects a shirt number outside 0..999") {
             val (service, _, _) = newService()
             shouldThrow<IllegalArgumentException> {

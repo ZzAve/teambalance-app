@@ -37,6 +37,14 @@ class UnknownRosterPositionException(id: PositionId) :
 class MigrationTargetInvalidException(reason: String) :
     BadRequestException("Invalid migration target: $reason", "INVALID_MIGRATION_TARGET")
 
+// A photo over the size limit → 400 PHOTO_TOO_LARGE. Separate from INVALID_PHOTO so the client can tell
+// the member to pick a smaller picture rather than a different kind of file.
+class PhotoTooLargeException(maxBytes: Int) :
+    BadRequestException("Photo is larger than $maxBytes bytes", "PHOTO_TOO_LARGE")
+
+// Empty, or neither WebP nor JPEG → 400 INVALID_PHOTO.
+class InvalidPhotoException(message: String) : BadRequestException(message, "INVALID_PHOTO")
+
 sealed class NotFoundException(message: String) : TeambalanceException(message)
 
 class EventNotFoundException(id: EventId) : NotFoundException("Event not found: $id")
@@ -48,6 +56,11 @@ class MemberNotFoundException(userId: UserId) : NotFoundException("Member not fo
 class PositionNotFoundException(id: PositionId) : NotFoundException("Position not found: $id")
 
 class SubstituteNotFoundException(id: SubstituteId) : NotFoundException("Substitute not found: $id")
+
+// Plain 404s for photo reads and for copying a Personal Photo that does not exist.
+class PhotoNotFoundException(userId: UserId) : NotFoundException("No photo for $userId")
+
+class NoPersonalPhotoException(userId: UserId) : NotFoundException("User $userId has no personal photo")
 
 // The codes-admin CRUD (#154 Slice 4) targets a code that does not exist → 404. Distinct from the
 // opaque INVALID_CREATION_CODE 403 the redeem path returns: this is an authenticated platform admin

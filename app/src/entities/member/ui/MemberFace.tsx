@@ -1,20 +1,23 @@
+import { teamPhotoUrl } from '@shared/api/photos'
 import { Avatar } from '@shared/ui/avatar'
 
-/** A Member's avatar with their Shirt Number as a badge on its lower edge (ADR-0038). */
+/** A Member's Team Photo (or initials) with their Shirt Number as a badge on its lower edge (ADR-0038). */
 export function MemberFace({
   userId,
   name,
   shirtNumber,
+  photoVersion,
   size,
 }: {
   userId: string
   name: string
   shirtNumber?: number
+  photoVersion?: string
   size: 'md' | 'lg'
 }) {
   return (
     <div className="relative">
-      <Avatar userId={userId} name={name} size={size} />
+      <Avatar userId={userId} name={name} size={size} photoUrl={photoVersion ? teamPhotoUrl(userId, photoVersion) : undefined} />
       {/* The API sends null for "no number" although the generated type says undefined. */}
       {typeof shirtNumber === 'number' && (
         <span

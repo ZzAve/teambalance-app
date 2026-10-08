@@ -34,10 +34,10 @@ const POSITIONS: Position[] = [
 ]
 
 const MEMBERS: Member[] = [
-  { userId: 'u1', displayName: 'Ada Lovelace', role: 'ADMIN', position: POSITIONS[0], onboarded: true, shirtNumber: 12 },
-  { userId: 'u2', displayName: 'Grace Hopper', role: 'ADMIN', position: undefined, onboarded: true, shirtNumber: undefined },
-  { userId: 'u3', displayName: 'Alan Turing', role: 'USER', position: POSITIONS[1], onboarded: true, shirtNumber: 1 },
-  { userId: 'u4', displayName: 'Katherine Johnson', role: 'USER', position: undefined, onboarded: true, shirtNumber: 112 },
+  { userId: 'u1', displayName: 'Ada Lovelace', role: 'ADMIN', position: POSITIONS[0], onboarded: true, shirtNumber: 12, photoVersion: undefined },
+  { userId: 'u2', displayName: 'Grace Hopper', role: 'ADMIN', position: undefined, onboarded: true, shirtNumber: undefined, photoVersion: undefined },
+  { userId: 'u3', displayName: 'Alan Turing', role: 'USER', position: POSITIONS[1], onboarded: true, shirtNumber: 1, photoVersion: undefined },
+  { userId: 'u4', displayName: 'Katherine Johnson', role: 'USER', position: undefined, onboarded: true, shirtNumber: 112, photoVersion: undefined },
 ]
 
 // The row stays one line even at 390px with a long, real-world name — the name wins over the picker
@@ -58,6 +58,7 @@ const MANY_MEMBERS: Member[] = Array.from({ length: 15 }, (_, i) => ({
   position: POSITIONS[i % POSITIONS.length],
   onboarded: true,
   shirtNumber: undefined,
+  photoVersion: undefined,
 }))
 
 const meta = {
@@ -130,8 +131,8 @@ export const Shells: Story = {
           <MemberRosterView
             {...args}
             members={[
-              { userId: 'u1', displayName: 'Ada Lovelace', role: 'ADMIN', position: undefined, onboarded: true, shirtNumber: undefined },
-              { userId: 'u3', displayName: 'Alan Turing', role: 'USER', position: undefined, onboarded: true, shirtNumber: undefined },
+              { userId: 'u1', displayName: 'Ada Lovelace', role: 'ADMIN', position: undefined, onboarded: true, shirtNumber: undefined, photoVersion: undefined },
+              { userId: 'u3', displayName: 'Alan Turing', role: 'USER', position: undefined, onboarded: true, shirtNumber: undefined, photoVersion: undefined },
             ]}
             errorMessage="A team must keep at least one admin."
           />

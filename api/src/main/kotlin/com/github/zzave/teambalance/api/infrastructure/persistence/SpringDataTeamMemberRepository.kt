@@ -101,6 +101,7 @@ interface SpringDataTeamMemberRepository : JpaRepository<TeamMemberJpaEntity, UU
                    mp.position_id::text AS positionId,
                    p.label              AS position,
                    mp.shirt_number      AS shirtNumber,
+                   mph.version          AS photoVersion,
                    tm.role              AS permissionRole,
                    (tm.onboarded_at IS NOT NULL) AS onboarded
             FROM   public.team_members tm
@@ -110,6 +111,7 @@ interface SpringDataTeamMemberRepository : JpaRepository<TeamMemberJpaEntity, UU
             -- is what multi-team membership (ADR-0023) made a distinction worth drawing.
             LEFT   JOIN member_profiles mp ON mp.user_id = tm.user_id
             LEFT   JOIN positions p ON p.id = mp.position_id
+            LEFT   JOIN member_photos mph ON mph.user_id = tm.user_id
             WHERE  tm.user_id IN :userIds
             AND    tm.active = true
         """,
@@ -124,6 +126,7 @@ interface SpringDataTeamMemberRepository : JpaRepository<TeamMemberJpaEntity, UU
                    mp.position_id::text AS positionId,
                    p.label              AS position,
                    mp.shirt_number      AS shirtNumber,
+                   mph.version          AS photoVersion,
                    tm.role              AS permissionRole,
                    (tm.onboarded_at IS NOT NULL) AS onboarded
             FROM   public.team_members tm
@@ -133,6 +136,7 @@ interface SpringDataTeamMemberRepository : JpaRepository<TeamMemberJpaEntity, UU
             -- is what multi-team membership (ADR-0023) made a distinction worth drawing.
             LEFT   JOIN member_profiles mp ON mp.user_id = tm.user_id
             LEFT   JOIN positions p ON p.id = mp.position_id
+            LEFT   JOIN member_photos mph ON mph.user_id = tm.user_id
             WHERE  tm.team_id = :teamId
             AND    tm.active = true
         """,
@@ -179,6 +183,7 @@ interface MemberSummaryProjection {
     fun getPositionId(): String?
     fun getPosition(): String?
     fun getShirtNumber(): Int?
+    fun getPhotoVersion(): String?
     fun getPermissionRole(): String
     fun getOnboarded(): Boolean
 }

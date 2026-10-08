@@ -1,7 +1,6 @@
 package com.github.zzave.teambalance.api.application
 
 import com.github.zzave.teambalance.api.domain.exception.NotTeamAdminException
-import com.github.zzave.teambalance.api.domain.model.DisplayName
 import com.github.zzave.teambalance.api.domain.model.Event
 import com.github.zzave.teambalance.api.domain.model.EventSeriesScope
 import com.github.zzave.teambalance.api.domain.model.EventTitle
@@ -18,14 +17,11 @@ import com.github.zzave.teambalance.api.domain.model.Recurrence
 import com.github.zzave.teambalance.api.domain.model.RecurrenceFrequency
 import com.github.zzave.teambalance.api.domain.model.Role
 import com.github.zzave.teambalance.api.domain.model.TeamId
-import com.github.zzave.teambalance.api.domain.model.TenantRouting
-import com.github.zzave.teambalance.api.domain.model.TeamMember
 import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.port.EventRepository
 import com.github.zzave.teambalance.api.domain.port.EventTypeRepository
 import com.github.zzave.teambalance.api.domain.port.PositionRepository
 import com.github.zzave.teambalance.api.domain.port.SeasonRepository
-import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
 import ch.qos.logback.classic.Level
 import ch.qos.logback.classic.Logger
 import ch.qos.logback.classic.spi.ILoggingEvent
@@ -43,7 +39,6 @@ import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneOffset
 import com.github.zzave.teambalance.api.domain.model.EventId
-import com.github.zzave.teambalance.api.domain.model.ShirtNumber
 import java.util.UUID
 
 // The write use cases are admin-guarded in the service now (uniform write-authorization seam), so a
@@ -93,31 +88,8 @@ private class ExplodingSeasonRepo : SeasonRepository {
     override fun save(season: com.github.zzave.teambalance.api.domain.model.Season) = error("unused")
 }
 
-// USER for everyone except the seeded admins — models "a real member who simply isn't an admin".
-private class EventFakeMemberRepo(private val admins: Set<UserId>) : TeamMemberRepository {
-    override fun findRole(teamId: TeamId, userId: UserId): Role = if (userId in admins) Role.ADMIN else Role.USER
-    override fun findByTeamId(teamId: TeamId): List<TeamMember> = emptyList()
-    override fun findDisplayName(userId: UserId): DisplayName? = null
-    override fun findMembersByUserIds(userIds: Set<UserId>): Map<UserId, TeamMember> = emptyMap()
-    override fun findTenantRouting(teamId: TeamId, userId: UserId): TenantRouting? = null
-    override fun findSoleTenantRouting(userId: UserId): TenantRouting? = null
-    override fun addMember(teamId: TeamId, userId: UserId, role: Role) = Unit
-    override fun updateRole(teamId: TeamId, userId: UserId, role: Role) = Unit
-    override fun deactivate(teamId: TeamId, userId: UserId) = Unit
-    override fun assignPosition(teamId: TeamId, userId: UserId, positionId: PositionId?) = Unit
-    override fun applyMemberEdit(
-        teamId: TeamId,
-        userId: UserId,
-        displayName: DisplayName,
-        role: Role,
-        positionId: PositionId?,
-        shirtNumber: ShirtNumber?,
-        markOnboardedAt: Instant?,
-    ) = Unit
-    override fun markOnboarded(teamId: TeamId, userId: UserId, at: Instant) = Unit
-    override fun countAdmins(teamId: TeamId): Int = admins.size
-    override fun countByPosition(teamId: TeamId, positionId: PositionId): Int = 0
-}
+private fun memberRepoWith(teamId: TeamId, nonAdmin: UserId) =
+    TeamDirectory().apply { join(nonAdmin, teamId, Role.USER) }.teamMemberRepository()
 
 /**
  * Answers [findMostRecent] honestly — at most [limit] rows, newest first — and records the limit it
@@ -168,7 +140,7 @@ class EventServiceTest : FunSpec() {
             ExplodingEventTypeRepo(),
             ExplodingSeasonRepo(),
             ExplodingPositionRepo(),
-            AuthorizationService(EventFakeMemberRepo(admins = emptySet()), FakeActAsGateway()),
+            AuthorizationService(memberRepoWith(teamId, nonAdmin), FakeActAsGateway()),
             Clock.fixed(Instant.EPOCH, ZoneOffset.UTC),
         )
 
@@ -239,7 +211,7 @@ class EventServiceTest : FunSpec() {
                 ExplodingEventTypeRepo(),
                 ExplodingSeasonRepo(),
                 ExplodingPositionRepo(),
-                AuthorizationService(EventFakeMemberRepo(admins = emptySet()), FakeActAsGateway()),
+                AuthorizationService(memberRepoWith(teamId, nonAdmin), FakeActAsGateway()),
                 Clock.fixed(Instant.EPOCH, ZoneOffset.UTC),
             ) to repo
         }

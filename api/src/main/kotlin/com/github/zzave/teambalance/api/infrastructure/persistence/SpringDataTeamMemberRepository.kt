@@ -80,20 +80,6 @@ interface SpringDataTeamMemberRepository : JpaRepository<TeamMemberJpaEntity, UU
     )
     fun countActiveByPosition(@Param("teamId") teamId: UUID, @Param("positionId") positionId: UUID): Int
 
-    // The tenant's name for this member, falling back to the platform one (ADR-0026). The fallback is
-    // not decoration: a member seeded outside the backfill has no profile row yet, and answering NULL
-    // would blank a name that exists.
-    @Query(
-        value = """
-            SELECT COALESCE(mp.display_name, u.display_name)
-            FROM   public.users u
-            LEFT   JOIN member_profiles mp ON mp.user_id = u.id
-            WHERE  u.id = :userId
-        """,
-        nativeQuery = true,
-    )
-    fun findDisplayNameByUserId(userId: UUID): String?
-
     @Query(
         value = """
             SELECT tm.user_id::text     AS userId,

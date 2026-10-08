@@ -37,9 +37,6 @@ class JpaTeamMemberRepositoryAdapter(
     override fun findByTeamId(teamId: TeamId): List<TeamMember> =
         jpaRepository.findMemberSummariesByTeamId(teamId.value).map { it.toDomain() }
 
-    override fun findDisplayName(userId: UserId): DisplayName? =
-        jpaRepository.findDisplayNameByUserId(userId.value)?.let(::DisplayName)
-
     override fun findMembersByUserIds(userIds: Set<UserId>): Map<UserId, TeamMember> {
         if (userIds.isEmpty()) return emptyMap()
         return jpaRepository.findMemberSummariesByUserIds(userIds.map { it.value }.toSet()).associate { row ->

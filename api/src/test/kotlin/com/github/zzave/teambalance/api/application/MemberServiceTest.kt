@@ -16,8 +16,6 @@ import com.github.zzave.teambalance.api.domain.model.PositionLabel
 import com.github.zzave.teambalance.api.domain.model.Role
 import com.github.zzave.teambalance.api.domain.model.ShirtNumber
 import com.github.zzave.teambalance.api.domain.model.TeamId
-import com.github.zzave.teambalance.api.domain.model.TenantRouting
-import com.github.zzave.teambalance.api.domain.model.TeamMember
 import com.github.zzave.teambalance.api.domain.model.User
 import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.port.PositionRepository
@@ -27,101 +25,6 @@ import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import java.util.UUID
-
-private class FakeMemberUserRepo(users: List<User>) : UserRepository {
-    val store = users.associateBy { it.id }.toMutableMap()
-    override fun findById(id: UserId): User? = store[id]
-    override fun findByEmail(email: Email): User? = store.values.firstOrNull { it.email == email }
-    override fun save(user: User): User {
-        store[user.id] = user
-        return user
-    }
-    override fun findLastActiveTeamId(userId: UserId): TeamId? = null
-    override fun rememberActiveTeam(userId: UserId, teamId: TeamId) = Unit
-}
-
-// Reads display names from [userRepo] so a save() is reflected by a later findByTeamId — mirroring the
-// JPA adapter, which sources displayName from public.users rather than team_members. Tracks role and
-// active state per (teamId, userId) so admin/role/deactivation rules can be exercised in-memory.
-private class FakeMembershipRepo(
-    private val userRepo: FakeMemberUserRepo,
-    seed: Map<TeamId, List<Pair<UserId, Role>>>,
-) : TeamMemberRepository {
-    private data class Membership(
-        var role: Role,
-        var active: Boolean,
-        var positionId: PositionId? = null,
-        var onboarded: Boolean = false,
-        var shirtNumber: ShirtNumber? = null,
-    )
-
-    private val store: MutableMap<Pair<TeamId, UserId>, Membership> =
-        seed.flatMap { (teamId, members) ->
-            members.map { (uid, role) -> (teamId to uid) to Membership(role, active = true) }
-        }.toMap().toMutableMap()
-
-    override fun findByTeamId(teamId: TeamId): List<TeamMember> =
-        store.filterKeys { it.first == teamId }
-            .filterValues { it.active }
-            .mapNotNull { (key, membership) ->
-                userRepo.findById(key.second)?.let {
-                    TeamMember(
-                        userId = it.id,
-                        displayName = it.displayName,
-                        permission = membership.role,
-                        positionId = membership.positionId,
-                        position = null,
-                        onboarded = membership.onboarded,
-                        shirtNumber = membership.shirtNumber,
-                    )
-                }
-            }
-
-    override fun findDisplayName(userId: UserId): DisplayName? = userRepo.findById(userId)?.displayName
-    override fun findMembersByUserIds(userIds: Set<UserId>) = emptyMap<UserId, TeamMember>()
-    override fun findRole(teamId: TeamId, userId: UserId): Role? =
-        store[teamId to userId]?.takeIf { it.active }?.role
-    override fun findTenantRouting(teamId: TeamId, userId: UserId): TenantRouting? = null
-    override fun findSoleTenantRouting(userId: UserId): TenantRouting? = null
-    override fun addMember(teamId: TeamId, userId: UserId, role: Role) = Unit
-    override fun updateRole(teamId: TeamId, userId: UserId, role: Role) {
-        store[teamId to userId]?.role = role
-    }
-    override fun deactivate(teamId: TeamId, userId: UserId) {
-        store[teamId to userId]?.apply {
-            active = false
-            shirtNumber = null
-        }
-    }
-    override fun assignPosition(teamId: TeamId, userId: UserId, positionId: PositionId?) {
-        store[teamId to userId]?.positionId = positionId
-    }
-    override fun markOnboarded(teamId: TeamId, userId: UserId, at: java.time.Instant) {
-        store[teamId to userId]?.onboarded = true
-    }
-    override fun applyMemberEdit(
-        teamId: TeamId,
-        userId: UserId,
-        displayName: DisplayName,
-        role: Role,
-        positionId: PositionId?,
-        shirtNumber: ShirtNumber?,
-        markOnboardedAt: java.time.Instant?,
-    ) {
-        userRepo.findById(userId)?.let { userRepo.save(it.copy(displayName = displayName)) }
-        store[teamId to userId]?.apply {
-            this.role = role
-            this.positionId = positionId
-            this.shirtNumber = shirtNumber
-            if (markOnboardedAt != null) onboarded = true
-        }
-    }
-    override fun countAdmins(teamId: TeamId): Int =
-        store.count { it.key.first == teamId && it.value.active && it.value.role == Role.ADMIN }
-
-    override fun countByPosition(teamId: TeamId, positionId: PositionId): Int =
-        store.count { it.value.active && it.value.positionId == positionId }
-}
 
 // Positions of ONE tenant, keyed by id. Since ADR-0026 the schema scopes them, so "a position of
 // another team" is simply an id this repository does not hold — the same rejection path as an id
@@ -167,14 +70,16 @@ class MemberServiceTest : FunSpec() {
         fun newService(
             janRole: Role = Role.ADMIN,
             lisaRole: Role = Role.USER,
-        ): Triple<MemberService, FakeMemberUserRepo, FakeMembershipRepo> {
-            val userRepo = FakeMemberUserRepo(
-                listOf(
-                    User(id = janId, email = Email("jan@test.com"), displayName = DisplayName("Jan de Vries")),
-                    User(id = lisaId, email = Email("lisa@test.com"), displayName = DisplayName("Lisa Bakker")),
-                ),
+        ): Triple<MemberService, UserRepository, TeamMemberRepository> {
+            val directory = TeamDirectory().apply {
+                join(janId, teamId, janRole)
+                join(lisaId, teamId, lisaRole)
+            }
+            val userRepo = directory.userRepository(
+                User(id = janId, email = Email("jan@test.com"), displayName = DisplayName("Jan de Vries")),
+                User(id = lisaId, email = Email("lisa@test.com"), displayName = DisplayName("Lisa Bakker")),
             )
-            val memberRepo = FakeMembershipRepo(userRepo, mapOf(teamId to listOf(janId to janRole, lisaId to lisaRole)))
+            val memberRepo = directory.teamMemberRepository()
             val positionRepo = MemberFakePositionRepo(listOf(setterPositionId to "Setter"))
             return Triple(
                 MemberService(userRepo, memberRepo, positionRepo, AuthorizationService(memberRepo, FakeActAsGateway()), fixedClock),

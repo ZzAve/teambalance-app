@@ -4,6 +4,7 @@ import com.github.zzave.teambalance.api.domain.model.Attendance
 import com.github.zzave.teambalance.api.domain.model.AttendanceId
 import com.github.zzave.teambalance.api.domain.model.AttendanceState
 import com.github.zzave.teambalance.api.domain.model.DisplayName
+import com.github.zzave.teambalance.api.domain.model.Email
 import com.github.zzave.teambalance.api.domain.model.Event
 import com.github.zzave.teambalance.api.domain.model.EventId
 import com.github.zzave.teambalance.api.domain.model.EventType
@@ -13,20 +14,16 @@ import com.github.zzave.teambalance.api.domain.model.Position
 import com.github.zzave.teambalance.api.domain.model.PositionId
 import com.github.zzave.teambalance.api.domain.model.PositionKind
 import com.github.zzave.teambalance.api.domain.model.PositionLabel
-import com.github.zzave.teambalance.api.domain.model.Role
-import com.github.zzave.teambalance.api.domain.model.ShirtNumber
 import com.github.zzave.teambalance.api.domain.model.Substitute
 import com.github.zzave.teambalance.api.domain.model.SubstituteAttendance
 import com.github.zzave.teambalance.api.domain.model.SubstituteId
 import com.github.zzave.teambalance.api.domain.model.TeamId
-import com.github.zzave.teambalance.api.domain.model.TeamMember
-import com.github.zzave.teambalance.api.domain.model.TenantRouting
+import com.github.zzave.teambalance.api.domain.model.User
 import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.model.EventTitle
 import com.github.zzave.teambalance.api.domain.port.AttendanceRepository
 import com.github.zzave.teambalance.api.domain.port.PositionRepository
 import com.github.zzave.teambalance.api.domain.port.SubstituteRepository
-import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import java.time.Instant
@@ -64,32 +61,6 @@ private class QueryFakeSubstituteRepo(
     override fun removeAttendance(eventId: EventId, substituteId: SubstituteId): Boolean = error("unused")
 }
 
-private class QueryFakeMemberRepo(private val roster: Map<TeamId, List<TeamMember>>) : TeamMemberRepository {
-    override fun findByTeamId(teamId: TeamId): List<TeamMember> = roster[teamId].orEmpty()
-
-    override fun findDisplayName(userId: UserId): DisplayName? = error("unused")
-    override fun findMembersByUserIds(userIds: Set<UserId>): Map<UserId, TeamMember> = error("unused")
-    override fun findRole(teamId: TeamId, userId: UserId): Role? = error("unused")
-    override fun findTenantRouting(teamId: TeamId, userId: UserId): TenantRouting? = error("unused")
-    override fun findSoleTenantRouting(userId: UserId): TenantRouting? = error("unused")
-    override fun addMember(teamId: TeamId, userId: UserId, role: Role) = error("unused")
-    override fun updateRole(teamId: TeamId, userId: UserId, role: Role) = error("unused")
-    override fun deactivate(teamId: TeamId, userId: UserId) = error("unused")
-    override fun assignPosition(teamId: TeamId, userId: UserId, positionId: PositionId?) = error("unused")
-    override fun applyMemberEdit(
-        teamId: TeamId,
-        userId: UserId,
-        displayName: DisplayName,
-        role: Role,
-        positionId: PositionId?,
-        shirtNumber: ShirtNumber?,
-        markOnboardedAt: Instant?,
-    ) = error("unused")
-    override fun markOnboarded(teamId: TeamId, userId: UserId, at: Instant) = error("unused")
-    override fun countAdmins(teamId: TeamId): Int = error("unused")
-    override fun countByPosition(teamId: TeamId, positionId: PositionId): Int = error("unused")
-}
-
 private class QueryFakePositionRepo(private val positions: List<Position>) : PositionRepository {
     override fun list(): List<Position> = positions
 
@@ -105,30 +76,34 @@ class EventQueriesTest : FunSpec() {
     init {
         val teamId = TeamId(UUID.randomUUID())
         val setter = Position(PositionId(UUID.randomUUID()), PositionLabel("Setter"))
-        val ann = member("Ann")
-        val bob = member("Bob")
-        val leaver = member("Lee")
+        val ann = user("Ann")
+        val bob = user("Bob")
+        val leaver = user("Lee")
+        val directory = TeamDirectory().apply {
+            register(ann, bob, leaver)
+            join(ann.id, teamId)
+            join(bob.id, teamId)
+        }
         val training = event("Training")
         val match = event("Match")
 
-        fun response(event: Event, member: TeamMember, state: AttendanceState) = Attendance(
+        fun response(event: Event, member: User, state: AttendanceState) = Attendance(
             id = AttendanceId.random(),
             eventId = event.id,
-            userId = member.userId,
+            userId = member.id,
             state = state,
             updatedAt = Instant.EPOCH,
-            changedBy = member.userId,
+            changedBy = member.id,
         )
 
         fun queries(
-            roster: List<TeamMember> = listOf(ann, bob),
             responses: List<Attendance> = emptyList(),
             substitutes: Map<EventId, List<SubstituteAttendance>> = emptyMap(),
             positions: List<Position> = listOf(setter),
         ) = EventQueries(
             QueryFakeAttendanceRepo(responses),
             QueryFakeSubstituteRepo(substitutes),
-            QueryFakeMemberRepo(mapOf(teamId to roster)),
+            directory.teamMemberRepository(),
             QueryFakePositionRepo(positions),
         )
 
@@ -141,7 +116,7 @@ class EventQueriesTest : FunSpec() {
             ).attended(teamId, listOf(match, training))
 
             result.map { it.event } shouldBe listOf(match, training)
-            result.map { it.attendance.stateOf(ann.userId) } shouldBe
+            result.map { it.attendance.stateOf(ann.id) } shouldBe
                 listOf(AttendanceState.ABSENT, AttendanceState.ATTENDING)
         }
 
@@ -149,7 +124,7 @@ class EventQueriesTest : FunSpec() {
             val attended = queries().attended(teamId, training)
 
             attended.attendance.entries.map { it.member.userId to it.state }.toSet() shouldBe
-                setOf(ann.userId to AttendanceState.NOT_RESPONDED, bob.userId to AttendanceState.NOT_RESPONDED)
+                setOf(ann.id to AttendanceState.NOT_RESPONDED, bob.id to AttendanceState.NOT_RESPONDED)
         }
 
         test("a response from someone no longer on the roster is ignored") {
@@ -157,7 +132,7 @@ class EventQueriesTest : FunSpec() {
                 responses = listOf(response(training, leaver, AttendanceState.ATTENDING)),
             ).attended(teamId, training)
 
-            attended.attendance.entries.map { it.member.userId }.toSet() shouldBe setOf(ann.userId, bob.userId)
+            attended.attendance.entries.map { it.member.userId }.toSet() shouldBe setOf(ann.id, bob.id)
             attended.attendance.summary()[AttendanceState.ATTENDING] shouldBe 0
         }
 
@@ -165,7 +140,7 @@ class EventQueriesTest : FunSpec() {
             val sub = SubstituteAttendance(
                 substitute = Substitute(SubstituteId(UUID.randomUUID()), DisplayName("Sam"), null, null),
                 state = AttendanceState.ATTENDING,
-                changedBy = ann.userId,
+                changedBy = ann.id,
                 updatedAt = Instant.EPOCH,
             )
 
@@ -186,7 +161,7 @@ class EventQueriesTest : FunSpec() {
             val single = q.attended(teamId, training)
 
             single.event shouldBe training
-            single.attendance.stateOf(bob.userId) shouldBe AttendanceState.MAYBE
+            single.attendance.stateOf(bob.id) shouldBe AttendanceState.MAYBE
             single.positions shouldBe listOf(setter)
         }
 
@@ -195,14 +170,8 @@ class EventQueriesTest : FunSpec() {
         }
     }
 
-    private fun member(name: String) = TeamMember(
-        userId = UserId.random(),
-        displayName = DisplayName(name),
-        permission = Role.USER,
-        positionId = null,
-        position = null,
-        onboarded = true,
-    )
+    private fun user(name: String) =
+        User(id = UserId.random(), email = Email("${name.lowercase()}@test.com"), displayName = DisplayName(name))
 
     private fun event(title: String) = Event(
         id = EventId(UUID.randomUUID()),

@@ -12,11 +12,24 @@ export function CalendarLinks() {
   const createLink = useCreateCalendarLink()
   const deleteLink = useDeleteCalendarLink()
   const [copiedId, setCopiedId] = useState<string | null>(null)
+  const [copyFailedId, setCopyFailedId] = useState<string | null>(null)
+
+  const clearCopyFeedback = () => {
+    setCopiedId(null)
+    setCopyFailedId(null)
+  }
 
   const handleCopy = async (link: CalendarLink) => {
     if (!link.url) return
-    await navigator.clipboard.writeText(link.url)
-    setCopiedId(link.id)
+    try {
+      await navigator.clipboard.writeText(link.url)
+      setCopiedId(link.id)
+      setCopyFailedId(null)
+    } catch {
+      // Refused (permission denied, insecure context, some in-app browsers): the View shows the URL instead.
+      setCopiedId(null)
+      setCopyFailedId(link.id)
+    }
   }
 
   return (
@@ -27,13 +40,14 @@ export function CalendarLinks() {
       isSaving={createLink.isPending || deleteLink.isPending}
       actionError={createLink.isError || deleteLink.isError}
       copiedId={copiedId}
+      copyFailedId={copyFailedId}
       onGenerate={(label) => {
         deleteLink.reset()
-        createLink.mutate({ label }, { onSuccess: () => setCopiedId(null) })
+        createLink.mutate({ label }, { onSuccess: clearCopyFeedback })
       }}
       onDelete={(id) => {
         createLink.reset()
-        deleteLink.mutate({ id }, { onSuccess: () => setCopiedId(null) })
+        deleteLink.mutate({ id }, { onSuccess: clearCopyFeedback })
       }}
       onCopy={handleCopy}
       onRetry={() => refetch()}

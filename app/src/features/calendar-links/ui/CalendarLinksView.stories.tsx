@@ -84,6 +84,7 @@ export const Shells: Story = {
         Loading: <CalendarLinksView {...args} isLoading />,
         Error: <CalendarLinksView {...args} isError />,
         Empty: <CalendarLinksView {...args} links={[]} />,
+        'Copy refused': <CalendarLinksView {...args} links={[PHONE]} copyFailedId="l3" />,
       }}
     />
   ),
@@ -98,6 +99,12 @@ export const Shells: Story = {
 
     await expect(region('Empty').getByText('No calendar links yet.')).toBeInTheDocument()
     await expect(region('Empty').getByRole('button', { name: 'Generate link' })).toBeEnabled()
+
+    // The browser refused the clipboard write: say so, and put the URL where it can be copied by hand.
+    const refused = region('Copy refused')
+    await expect(refused.getByText("Couldn't copy automatically. Copy the link below.")).toBeInTheDocument()
+    await expect(refused.getByLabelText('Calendar link URL for My phone')).toHaveValue(PHONE.url)
+    await expect(refused.getByRole('button', { name: 'Copy link' })).toBeInTheDocument()
   },
 }
 

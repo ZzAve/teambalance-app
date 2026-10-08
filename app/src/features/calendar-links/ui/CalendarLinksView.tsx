@@ -23,6 +23,8 @@ interface CalendarLinksViewProps {
   actionError?: boolean
   /** The link whose URL was just copied, so its button can say so. */
   copiedId?: string | null
+  /** The link whose clipboard write the browser refused, so its URL can be copied by hand. */
+  copyFailedId?: string | null
   onGenerate: (label: string | undefined) => void
   onDelete: (id: string) => void
   onCopy: (link: CalendarLink) => void
@@ -42,6 +44,7 @@ export function CalendarLinksView({
   isSaving,
   actionError,
   copiedId,
+  copyFailedId,
   onGenerate,
   onDelete,
   onCopy,
@@ -83,6 +86,7 @@ export function CalendarLinksView({
                   key={link.id}
                   link={link}
                   copied={copiedId === link.id}
+                  copyFailed={copyFailedId === link.id}
                   isSaving={isSaving}
                   onCopy={onCopy}
                   onRequestDelete={setConfirmTarget}
@@ -140,12 +144,13 @@ export function CalendarLinksView({
 interface CalendarLinkRowProps {
   link: CalendarLink
   copied: boolean
+  copyFailed: boolean
   isSaving?: boolean
   onCopy: (link: CalendarLink) => void
   onRequestDelete: (link: CalendarLink) => void
 }
 
-function CalendarLinkRow({ link, copied, isSaving, onCopy, onRequestDelete }: CalendarLinkRowProps) {
+function CalendarLinkRow({ link, copied, copyFailed, isSaving, onCopy, onRequestDelete }: CalendarLinkRowProps) {
   const name = linkDisplayLabel(link)
 
   return (
@@ -187,6 +192,17 @@ function CalendarLinkRow({ link, copied, isSaving, onCopy, onRequestDelete }: Ca
           Delete
         </Button>
       </div>
+      {copyFailed && link.url && (
+        <div className="flex flex-col gap-2">
+          <p className="text-small text-red">Couldn't copy automatically. Copy the link below.</p>
+          <Input
+            readOnly
+            aria-label={`Calendar link URL for ${name}`}
+            value={link.url}
+            onFocus={(e) => e.currentTarget.select()}
+          />
+        </div>
+      )}
     </li>
   )
 }

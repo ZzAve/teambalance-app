@@ -15,6 +15,7 @@ function user(overrides: Partial<AuthenticatedUser> = {}): AuthenticatedUser {
     activeTeam: undefined,
     isPlatformAdmin: false,
     actAs: undefined,
+    personalPhotoVersion: undefined,
     ...overrides,
   }
 }
@@ -32,23 +33,23 @@ describe('accountSections', () => {
     expect(accountSections(u)).toContain('logout')
   })
 
-  it('teamless: email, appearance, teams, log out — no name/position, no admin', () => {
-    expect(accountSections(user())).toEqual(['email', 'appearance', 'teams', 'logout'])
+  it('teamless: email, photo, appearance, teams, log out — no name/position, no admin', () => {
+    expect(accountSections(user())).toEqual(['email', 'photo', 'appearance', 'teams', 'logout'])
   })
 
   it('single team: adds display name + position', () => {
     const sections = accountSections(user({ teams: [TEAM], activeTeam: TEAM, role: 'MEMBER' }))
-    expect(sections).toEqual(['email', 'displayName', 'position', 'appearance', 'teams', 'logout'])
+    expect(sections).toEqual(['email', 'photo', 'displayName', 'position', 'appearance', 'teams', 'logout'])
   })
 
   it('multi team with one active is the same as single team (the switcher lives in Teams)', () => {
     const sections = accountSections(user({ teams: [TEAM, OTHER_TEAM], activeTeam: TEAM, role: 'MEMBER' }))
-    expect(sections).toEqual(['email', 'displayName', 'position', 'appearance', 'teams', 'logout'])
+    expect(sections).toEqual(['email', 'photo', 'displayName', 'position', 'appearance', 'teams', 'logout'])
   })
 
   it('multi team with none active hides name/position (no Active Team yet)', () => {
     const sections = accountSections(user({ teams: [TEAM, OTHER_TEAM] }))
-    expect(sections).toEqual(['email', 'appearance', 'teams', 'logout'])
+    expect(sections).toEqual(['email', 'photo', 'appearance', 'teams', 'logout'])
   })
 
   it('platform admin adds the platform-admin section', () => {
@@ -63,6 +64,7 @@ describe('accountSections', () => {
     )
     expect(sections).toEqual([
       'email',
+      'photo',
       'displayName',
       'position',
       'appearance',

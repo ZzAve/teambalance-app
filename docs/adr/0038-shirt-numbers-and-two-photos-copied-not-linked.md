@@ -1,6 +1,6 @@
 # ADR-0038: Shirt numbers, and two photos that are copied rather than linked
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-10-03
 - Relates to: [ADR-0026](0026-member-team-profile-owned-by-the-tenant.md) (the team profile lives in
   the tenant), [ADR-0033](0033-substitutes-are-not-members.md) (Substitutes are not Members),
@@ -42,8 +42,10 @@ work, not here.
   else. Leaving the Team discards the Team Photo.
 
 **Photos are stored in Postgres.** The browser crops to a square and resizes to 256×256 WebP before
-upload; the server checks type and size (≤ 200 KB) and serves the image from its own endpoint with a
-cache header. At a hobby team's scale that is a few megabytes per Team, needs no new infrastructure,
+upload (JPEG where the browser cannot encode WebP, as Safari cannot); the server checks type and size
+(≤ 200 KB) and serves the image from its own endpoint with a cache header. Image bytes are not
+something Wirespec describes, so the photo endpoints sit outside the contract; the contract carries
+each photo's version, which the client puts in the image URL so a cached image is never stale. At a hobby team's scale that is a few megabytes per Team, needs no new infrastructure,
 and is covered by the existing backups. Storage sits behind a port so object storage can replace it.
 
 ## Considered alternatives

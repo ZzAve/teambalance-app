@@ -1,11 +1,14 @@
+import { useState } from 'react'
 import { Link } from '@tanstack/react-router'
 import { ArrowLeft, Hash, Shield, Shirt } from 'lucide-react'
 import type { Member } from '@shared/api/members'
 import type { Position } from '@shared/api/positions'
 import { MemberFace } from '@entities/member/ui/MemberFace'
 import { EditProfileForm } from '@features/edit-profile/ui/EditProfileForm'
+import { PhotoPicker } from '@features/pick-photo/ui/PhotoPicker'
 import { useTeamRoutes } from '@shared/lib/team-routes'
 import { Button } from '@shared/ui/button'
+import { ConfirmDialog } from '@shared/ui/ConfirmDialog'
 
 interface MemberDetailViewProps {
   /** Undefined while loading, on error, or when the id names nobody on the Roster. */
@@ -24,6 +27,17 @@ interface MemberDetailViewProps {
   onEdit: () => void
   onCancelEdit: () => void
   onSubmit: (name: string, positionId: string | null, shirtNumber: number | null) => void
+  /** Only the member themselves sets their Team Photo (ADR-0038). */
+  canChangePhoto: boolean
+  /** The member themselves, or an Admin — the one thing an Admin may do to someone's photo. */
+  canRemovePhoto: boolean
+  /** The viewer has a Personal Photo to copy into this Team. */
+  hasPersonalPhoto: boolean
+  isPhotoSaving: boolean
+  photoErrorMessage?: string
+  onUploadPhoto: (photo: Blob) => void
+  onUsePersonalPhoto: () => void
+  onRemovePhoto: () => void
 }
 
 const CARD = 'overflow-hidden rounded-md border border-border bg-card shadow-[var(--shadow-card)]'
@@ -33,7 +47,8 @@ const ICON = 'shrink-0 text-muted-foreground'
 /**
  * One Member's page, opened from the /team roster (ADR-0038): their face with the Shirt Number, then
  * number, Position and Role as a settings list. The member and Admins get an Edit button that swaps
- * the list for the profile form. Prop-only; the route container owns the queries, the mutation and
+ * the list for the profile form. Below the face the member sets their Team Photo; an Admin may only
+ * remove it. Prop-only; the route container owns the queries, the mutation and
  * the editing flag, so every state is a story.
  */
 export function MemberDetailView({
@@ -49,8 +64,17 @@ export function MemberDetailView({
   onEdit,
   onCancelEdit,
   onSubmit,
+  canChangePhoto,
+  canRemovePhoto,
+  hasPersonalPhoto,
+  isPhotoSaving,
+  photoErrorMessage,
+  onUploadPhoto,
+  onUsePersonalPhoto,
+  onRemovePhoto,
 }: MemberDetailViewProps) {
   const routes = useTeamRoutes()
+  const [confirmingRemove, setConfirmingRemove] = useState(false)
 
   return (
     <div className="flex flex-col gap-5">
@@ -67,10 +91,56 @@ export function MemberDetailView({
       {member && (
         <>
           <div className="flex flex-col items-center gap-2">
-            <MemberFace userId={member.userId} name={member.displayName} shirtNumber={member.shirtNumber} size="lg" />
+            <MemberFace
+              userId={member.userId}
+              name={member.displayName}
+              shirtNumber={member.shirtNumber}
+              photoVersion={member.photoVersion}
+              size="lg"
+            />
             <h2 className="font-display text-title font-bold">{member.displayName}</h2>
             <span className="text-small text-muted-foreground">{member.position?.label ?? 'Unassigned'}</span>
           </div>
+
+          {(canChangePhoto || (canRemovePhoto && member.photoVersion)) && (
+            <div className="flex flex-col items-center gap-2">
+              <div className="flex flex-wrap justify-center gap-2">
+                {canChangePhoto && hasPersonalPhoto && (
+                  <Button variant="outline" size="sm" disabled={isPhotoSaving} onClick={onUsePersonalPhoto}>
+                    Use my personal photo
+                  </Button>
+                )}
+                {canChangePhoto && (
+                  <PhotoPicker
+                    label={member.photoVersion ? 'Upload a different photo' : 'Upload photo'}
+                    disabled={isPhotoSaving}
+                    onPicked={onUploadPhoto}
+                  />
+                )}
+                {canRemovePhoto && member.photoVersion && (
+                  <Button variant="outline" size="sm" disabled={isPhotoSaving} onClick={() => setConfirmingRemove(true)}>
+                    Remove photo
+                  </Button>
+                )}
+              </div>
+              {photoErrorMessage && <p className="text-small text-red">{photoErrorMessage}</p>}
+              <ConfirmDialog
+                open={confirmingRemove}
+                title="Remove photo"
+                description={
+                  canChangePhoto
+                    ? 'The team will see your initials until you add a new photo.'
+                    : `Remove ${member.displayName}'s photo? Only they can add a new one.`
+                }
+                confirmLabel="Remove"
+                onConfirm={() => {
+                  setConfirmingRemove(false)
+                  onRemovePhoto()
+                }}
+                onCancel={() => setConfirmingRemove(false)}
+              />
+            </div>
+          )}
 
           {isEditing ? (
             <div className={`${CARD} p-4`}>

@@ -27,6 +27,7 @@ const USER: AuthenticatedUser = {
   activeTeam: TEAM,
   isPlatformAdmin: false,
   actAs: undefined,
+  personalPhotoVersion: undefined,
 }
 
 const server = setupServer(

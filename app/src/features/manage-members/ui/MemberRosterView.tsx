@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link } from '@tanstack/react-router'
 import type { Member } from '@shared/api/members'
 import type { Position } from '@shared/api/positions'
+import { teamPhotoUrl } from '@shared/api/photos'
 import { PositionPicker } from '@entities/position/ui/PositionPicker'
 import { MemberFace } from '@entities/member/ui/MemberFace'
 import { useTeamRoutes } from '@shared/lib/team-routes'
@@ -148,7 +149,13 @@ function MemberFaceGrid({ members }: { members: Member[] }) {
             aria-label={member.displayName}
             className="flex flex-col items-center gap-1 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
           >
-            <MemberFace userId={member.userId} name={member.displayName} shirtNumber={member.shirtNumber} size="md" />
+            <MemberFace
+              userId={member.userId}
+              name={member.displayName}
+              shirtNumber={member.shirtNumber}
+              photoVersion={member.photoVersion}
+              size="md"
+            />
             <span className="w-full truncate text-center text-caption font-medium">
               {member.displayName.split(' ')[0]}
             </span>
@@ -207,7 +214,7 @@ function MemberRow({
   if (editingName) {
     return (
       <li className="flex items-center gap-2 p-3">
-        <Avatar userId={member.userId} name={member.displayName} />
+        <Avatar userId={member.userId} name={member.displayName} photoUrl={memberPhotoUrl(member)} />
         <Input
           aria-label={`Display name for ${member.displayName}`}
           value={draftName}
@@ -239,7 +246,7 @@ function MemberRow({
     // an admin row) the badge. Rename lives in the menu, not as a pencil on the row — it is rare,
     // and a third 44px target here squeezed the picker to "Middl…", which is the common edit (#341).
     <li className="flex items-center gap-2 p-3">
-      <Avatar userId={member.userId} name={member.displayName} />
+      <Avatar userId={member.userId} name={member.displayName} photoUrl={memberPhotoUrl(member)} />
       <span className="min-w-0 flex-1 truncate font-medium" title={member.displayName}>
         {member.displayName}
       </span>
@@ -295,3 +302,6 @@ function MemberRow({
     </li>
   )
 }
+
+const memberPhotoUrl = (member: Member) =>
+  member.photoVersion ? teamPhotoUrl(member.userId, member.photoVersion) : undefined

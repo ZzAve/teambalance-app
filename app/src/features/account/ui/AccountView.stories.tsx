@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
-import { expect, fn, within } from 'storybook/test'
+import { expect, fn, screen, within } from 'storybook/test'
 import type { Member } from '@shared/api/members'
 import type { Position } from '@shared/api/positions'
 import { Stack } from '@shared/testing/stack'
@@ -33,11 +33,12 @@ const MEMBER: Member = {
   position: { id: 'p1', label: 'Setter' },
   onboarded: true,
   shirtNumber: undefined,
+  photoVersion: undefined,
 }
 
-const WITH_TEAM: AccountSection[] = ['email', 'displayName', 'position', 'appearance', 'teams', 'logout']
-const TEAMLESS: AccountSection[] = ['email', 'appearance', 'teams', 'logout']
-const ADMIN: AccountSection[] = ['email', 'appearance', 'teams', 'platformAdmin', 'logout']
+const WITH_TEAM: AccountSection[] = ['email', 'photo', 'displayName', 'position', 'appearance', 'teams', 'logout']
+const TEAMLESS: AccountSection[] = ['email', 'photo', 'appearance', 'teams', 'logout']
+const ADMIN: AccountSection[] = ['email', 'photo', 'appearance', 'teams', 'platformAdmin', 'logout']
 
 const shell = appShell('account')
 
@@ -46,6 +47,8 @@ const meta = {
   component: AccountView,
   parameters: shell.parameters,
   args: {
+    userId: 'u1',
+    displayName: 'Alex',
     email: 'alex@example.com',
     sections: WITH_TEAM,
     member: MEMBER,
@@ -53,6 +56,10 @@ const meta = {
     activeTeamName: 'Setpoint VT',
     onLogout: fn(),
     onSubmitProfile: fn(),
+    onUploadPersonalPhoto: fn(),
+    onRemovePersonalPhoto: fn(),
+    onCopyPhotoToTeam: fn(),
+    onDismissCopyPhoto: fn(),
   },
 } satisfies Meta<typeof AccountView>
 
@@ -91,6 +98,12 @@ export const Shells: Story = {
         'Platform admin': <AccountView {...args} sections={ADMIN} member={null} activeTeamName={null} />,
         Loading: <AccountView {...args} member={null} isMemberLoading />,
         Error: <AccountView {...args} member={null} isMemberError />,
+        // Just uploaded a Personal Photo while this Team has no Team Photo. (No network in stories,
+        // so the photo falls back to initials.)
+        'Photo copy offer': <AccountView {...args} personalPhotoVersion="v1" copyPhotoTeamName="Setpoint VT" />,
+        'Photo upload failed': (
+          <AccountView {...args} photoErrorMessage="That photo is too large. Please pick another one." />
+        ),
       }}
     />
   ),
@@ -124,14 +137,40 @@ export const Shells: Story = {
     await expect(error.getByRole('button', { name: 'Log out' })).toBeInTheDocument()
     await expect(error.getByText("Couldn't load your profile. Please try again.")).toBeInTheDocument()
     await expect(error.queryByLabelText('Display name')).not.toBeInTheDocument()
+
+    // The Personal Photo is the person's, so it is offered without a team too.
+    await expect(teamless.getByRole('button', { name: 'Upload photo' })).toBeInTheDocument()
+    await expect(teamless.queryByRole('button', { name: 'Remove photo' })).not.toBeInTheDocument()
+
+    const offer = region('Photo copy offer')
+    await expect(offer.getByText('Use this photo in Setpoint VT too?')).toBeInTheDocument()
+    await expect(offer.getByRole('button', { name: 'Change photo' })).toBeInTheDocument()
+    await expect(offer.getByRole('button', { name: 'Remove photo' })).toBeInTheDocument()
+
+    await expect(region('Photo upload failed').getByText('That photo is too large. Please pick another one.')).toBeInTheDocument()
+    await expect(region('Photo upload failed').queryByText(/Use this photo in/)).not.toBeInTheDocument()
   },
 }
 
-// Picture owned by Data — behavioural only (ADR-0032 §1).
+// Picture owned by Data — behavioural only (ADR-0032 §1). The photo upload itself is PhotoPicker's
+// story; here the copy offer and Remove hand their intent up.
 export const Interactions: Story = {
   decorators: shell.decorators,
   parameters: { chromatic: { disableSnapshot: true } },
+  args: { personalPhotoVersion: 'v1', copyPhotoTeamName: 'Setpoint VT' },
   play: async ({ canvas, userEvent, args }) => {
+    await userEvent.click(canvas.getByRole('button', { name: 'Use in Setpoint VT' }))
+    await expect(args.onCopyPhotoToTeam).toHaveBeenCalledOnce()
+    await userEvent.click(canvas.getByRole('button', { name: 'Not now' }))
+    await expect(args.onDismissCopyPhoto).toHaveBeenCalledOnce()
+    // Removing asks first; Cancel leaves the photo alone.
+    await userEvent.click(canvas.getByRole('button', { name: 'Remove photo' }))
+    await userEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Cancel' }))
+    await expect(args.onRemovePersonalPhoto).not.toHaveBeenCalled()
+    await userEvent.click(canvas.getByRole('button', { name: 'Remove photo' }))
+    await userEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Remove' }))
+    await expect(args.onRemovePersonalPhoto).toHaveBeenCalledOnce()
+
     // Saving the profile hands the name and the position up.
     const name = canvas.getByLabelText('Display name')
     await userEvent.clear(name)
@@ -143,3 +182,4 @@ export const Interactions: Story = {
     await expect(args.onLogout).toHaveBeenCalled()
   },
 }
+

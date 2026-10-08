@@ -12,6 +12,8 @@ import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers
 import java.security.MessageDigest
+import java.time.OffsetDateTime
+import java.time.ZoneOffset
 
 private const val JAN_USER_ID = "c0000000-0000-0000-0000-000000000001"
 private const val LISA_USER_ID = "c0000000-0000-0000-0000-000000000002"
@@ -81,10 +83,18 @@ class InvitationControllerTest : TeamBalanceIT() {
 
     // These ITs share one Postgres with no truncation between them, so a link left active by an
     // earlier test would be handed back by the now-idempotent POST. Tests that care start from none.
+    //
+    // The expiry is stamped with the JVM clock because that is the clock the application compares
+    // expires_at against. The database's now() is a different clock: under colima Postgres runs in a
+    // VM whose clock was measured ~100 ms ahead of the host, and a row expired "now" by that clock
+    // stays live for the application for exactly that long, which is longer than the next request.
     private fun expireAllInvitations() {
+        val now = OffsetDateTime.now(ZoneOffset.UTC)
         jdbcTemplate.update(
-            "UPDATE public.invitations SET expires_at = now() WHERE team_id = ?::uuid AND expires_at > now()",
+            "UPDATE public.invitations SET expires_at = ? WHERE team_id = ?::uuid AND expires_at > ?",
+            now,
             TEAM_ID,
+            now,
         )
     }
 

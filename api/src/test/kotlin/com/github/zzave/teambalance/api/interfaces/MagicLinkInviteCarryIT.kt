@@ -20,6 +20,8 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers
 import java.security.MessageDigest
+import java.time.OffsetDateTime
+import java.time.ZoneOffset
 import java.util.UUID
 
 private const val ADMIN_USER_ID = "c0000000-0000-0000-0000-000000000011"
@@ -208,10 +210,17 @@ class MagicLinkInviteCarryIT : TeamBalanceIT() {
 
     // One Postgres is shared across these tests with no truncation between them, so a link left live
     // by an earlier one would still resolve. Tests that care start from none.
+    //
+    // Stamped with the JVM clock, the clock the application compares expires_at against. The
+    // database's now() runs on a different clock under colima (its VM was measured ~100 ms ahead of
+    // the host), and a row expired by that clock stays live for the application until it catches up.
     private fun expireAllInvitations() {
+        val now = OffsetDateTime.now(ZoneOffset.UTC)
         jdbcTemplate.update(
-            "UPDATE public.invitations SET expires_at = now() WHERE team_id = ?::uuid AND expires_at > now()",
+            "UPDATE public.invitations SET expires_at = ? WHERE team_id = ?::uuid AND expires_at > ?",
+            now,
             TEAM_ID,
+            now,
         )
     }
 

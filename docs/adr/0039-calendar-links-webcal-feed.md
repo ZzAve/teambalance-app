@@ -37,7 +37,7 @@ The credential, not the feed, is the thing a member creates, sees, and deletes. 
 
 ### It lives in the tenant schema
 
-`calendar_links` is a tenant table (`db/tenant-migration/V010`), not a platform one. The schema that
+`calendar_links` is a tenant table (`db/tenant-migration/V014`), not a platform one. The schema that
 already scopes a team's events scopes its calendar links, and that is load-bearing rather than tidy:
 a token minted for team A, presented under team B's slug, is looked up **in B's schema**, finds
 nothing, and 404s. The cross-team check is the absence of a row, not a comparison somebody has to

@@ -59,7 +59,7 @@ export interface CreateTeamInput {
   creationCode: string
 }
 
-// The success side-effects (localStorage teamId, invalidating ['auth','me'], navigation) live in the
+// The success side-effects (resetting the cache, navigation) live in the
 // route container per #158 — this hook only performs the request and normalises failures.
 export function useCreateTeam() {
   return useMutation({

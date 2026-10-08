@@ -10,6 +10,7 @@ import { TeamSwitcher } from '@features/switch-team/ui/TeamSwitcher'
 import { ActAsBanner } from '@features/act-as/ui/ActAsBanner'
 import { queryClient } from '@shared/api/query-client'
 import { directionFromIndices } from '@shared/lib/view-transition-direction'
+import { teamlessDestination } from '@shared/session/team-entry'
 import { useThemeSync } from '@shared/theme/theme-store'
 
 // Only the sign-in routes (and the invite landing page, reachable before a joiner has any
@@ -58,13 +59,12 @@ export const Route = createRootRoute({
     // (permission vs membership; see #26), and is checked before any tenant-scoped probe, which
     // would 403 NO_TEAM_MEMBERSHIP and bounce a teamless caller to /login.
     if (isTeamlessRoute(location.pathname)) return
-    if (user.teams.length > 0) return
     // Teamless, but three different situations (ADR-0024). A Platform Admin inside a Team is scoped
     // to it without being a Member, so team-scoped routes are legitimately theirs; one who is inside
     // no Team — never entered, or the 60-minute box ran out — belongs on the console, not in
     // onboarding, which exists to get a *player* into a team they would then be a Member of.
-    if (user.actAs) return
-    throw redirect({ to: user.isPlatformAdmin ? '/admin/teams' : '/onboarding' })
+    const destination = teamlessDestination(user)
+    if (destination) throw redirect({ to: destination })
   },
 })
 

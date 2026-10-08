@@ -1,9 +1,9 @@
 import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router'
-import { useQueryClient } from '@tanstack/react-query'
 import { authMeQueryOptions } from '@shared/api/auth'
 import { queryClient } from '@shared/api/query-client'
 import { CreateTeamError, useCreateTeam } from '@shared/api/teams'
 import { teamRoutes } from '@shared/lib/team-routes'
+import { afterTenantChange } from '@shared/session/session'
 import { CreateTeamForm } from '@features/create-team/ui/CreateTeamForm'
 
 export const Route = createFileRoute('/create-team/')({
@@ -18,7 +18,6 @@ export const Route = createFileRoute('/create-team/')({
 
 function CreateTeamPage() {
   const navigate = useNavigate()
-  const client = useQueryClient()
   const createTeam = useCreateTeam()
   const error = createTeam.error instanceof CreateTeamError ? createTeam.error : null
 
@@ -50,11 +49,9 @@ function CreateTeamPage() {
             createTeam.mutate(values, {
               onSuccess: async (team) => {
                 if (!team) return
-                // Feed the X-Team-Id test shim; prod resolves the tenant from the session.
-                localStorage.setItem('teamId', team.id)
                 // The server made the new Team Active (ADR-0023 §4), so a founder who came from
                 // another Team is now in a different tenant.
-                await client.resetQueries()
+                await afterTenantChange()
                 // A brand-new team is empty: the roster is where the owner starts (invite people,
                 // then curate positions under team settings), not the events home.
                 navigate({ to: teamRoutes(team.slug).team })

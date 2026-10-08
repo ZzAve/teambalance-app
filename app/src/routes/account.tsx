@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { createFileRoute } from '@tanstack/react-router'
 import { useAuthMe, useLogout } from '@shared/api/auth'
-import { clearSession } from '@shared/api/clear-session'
+import { endSession } from '@shared/session/session'
 import { MemberUpdateError, useCurrentMember, useUpdateMember } from '@shared/api/members'
 import {
   PhotoError,
@@ -106,7 +106,7 @@ function AccountPage() {
         })
       }}
       // In-shell logout: a clean server-side teardown first, then the shared client clear.
-      onLogout={() => logout.mutate(undefined, { onSuccess: () => clearSession() })}
+      onLogout={() => logout.mutate(undefined, { onSuccess: () => endSession() })}
     />
   )
 }

@@ -1,6 +1,6 @@
 import { useNavigate } from '@tanstack/react-router'
-import { useQueryClient } from '@tanstack/react-query'
 import { useAcceptInvitation } from '@shared/api/invitations'
+import { afterTenantChange } from '@shared/session/session'
 
 const INVALID_OR_EXPIRED =
   "That invite link didn't work — it may be invalid or expired. Ask your team admin for a fresh one."
@@ -15,14 +15,13 @@ const GENERIC = 'Something went wrong, try again.'
  * returns 404 for both deliberately, so there is no oracle.
  */
 export function useJoinTeam() {
-  const client = useQueryClient()
   const navigate = useNavigate()
   const acceptInvitation = useAcceptInvitation()
 
   const join = (token: string) => {
     acceptInvitation.mutate(token, {
       onSuccess: async () => {
-        await client.resetQueries()
+        await afterTenantChange()
         navigate({ to: '/' })
       },
     })

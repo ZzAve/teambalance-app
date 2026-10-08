@@ -5,7 +5,7 @@ import { routeTree } from '../routeTree.gen'
 import { WakingSplash } from '@shared/ui/ColdStartSplash'
 import { RouteErrorFallback } from '@shared/ui/RouteErrorFallback'
 import { NotFoundView } from '@shared/ui/NotFoundView'
-import { clearSession, hasClearableSession } from '@shared/api/clear-session'
+import { endSession, hasClearableSession } from '@shared/session/session'
 import { RootErrorBoundary } from '@app/RootErrorBoundary'
 import { installChunkErrorHandler } from '@shared/lib/chunk-reload'
 import { registerAppServiceWorker } from '@app/pwa/sw-registration'
@@ -37,11 +37,11 @@ const router = createRouter({
   defaultErrorComponent: () => (
     <RouteErrorFallback
       onRetry={() => window.location.reload()}
-      onLogout={hasClearableSession() ? () => clearSession() : undefined}
+      onLogout={hasClearableSession() ? () => endSession() : undefined}
     />
   ),
   defaultNotFoundComponent: () => (
-    <NotFoundView onLogout={hasClearableSession() ? () => clearSession() : undefined} />
+    <NotFoundView onLogout={hasClearableSession() ? () => endSession() : undefined} />
   ),
 })
 

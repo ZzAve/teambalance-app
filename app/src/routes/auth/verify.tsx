@@ -3,7 +3,7 @@ import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useQueryClient } from '@tanstack/react-query'
 import { useVerifyMagicLink } from '@shared/api/auth'
 import { queryKeys } from '@shared/api/query-keys'
-import { clearSession, hasClearableSession } from '@shared/api/clear-session'
+import { endSession, hasClearableSession } from '@shared/session/session'
 import { VerifyErrorView } from '@shared/ui/VerifyErrorView'
 
 export const Route = createFileRoute('/auth/verify')({
@@ -53,7 +53,7 @@ function VerifyPage() {
         // Escape hatch (ADR-0027 §3): show a client-only Log out whenever a session exists — or might.
         // Landing here with a stale session and a spent or missing token is the case: the error view
         // is outside the app shell, so without this there is no in-app way out.
-        onLogout={hasClearableSession() ? () => clearSession() : undefined}
+        onLogout={hasClearableSession() ? () => endSession() : undefined}
       />
     )
   }

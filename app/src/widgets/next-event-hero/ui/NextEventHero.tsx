@@ -1,6 +1,6 @@
 import { useEvent, type Event } from '@shared/api/events'
 import { useSetAttendance } from '@entities/attendance/api/attendances'
-import { useCurrentUser } from '@shared/api/auth'
+import { useSession } from '@shared/session/session'
 import { myAnswerOf } from '@entities/attendance/model/attendance-state'
 import type { ReactNode } from 'react'
 import { NextEventHeroView } from './NextEventHeroView'
@@ -31,7 +31,7 @@ export function NextEventHero({
   lineup: (event: Event) => ReactNode
 }) {
   const { data: detail } = useEvent(event.id)
-  const currentUserId = useCurrentUser()?.id ?? null
+  const currentUserId = useSession().user?.id ?? null
   const { mutate, isPending } = useSetAttendance()
 
   const myState = myAnswerOf(detail?.attendances ?? [], currentUserId)

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { createFileRoute } from '@tanstack/react-router'
-import { useCurrentUser } from '@shared/api/auth'
+import { useSession } from '@shared/session/session'
 import { MemberUpdateError, useMembers, useUpdateMember } from '@shared/api/members'
 import { PhotoError, useCopyPersonalPhotoToTeam, useRemoveTeamPhoto, useUploadTeamPhoto } from '@shared/api/photos'
 import { usePositions } from '@shared/api/positions'
@@ -19,7 +19,7 @@ export const Route = createFileRoute('/t/$slug/team/$userId')({
  */
 function MemberDetailPage() {
   const { userId } = Route.useParams()
-  const currentUser = useCurrentUser()
+  const { user: currentUser, isAdmin } = useSession()
   const { data: members, isLoading, error } = useMembers()
   const { data: positions } = usePositions()
   const updateMember = useUpdateMember()
@@ -47,7 +47,7 @@ function MemberDetailPage() {
       positions={positions ?? []}
       isLoading={isLoading}
       isError={!!error}
-      canEdit={isSelf || currentUser?.role === 'ADMIN'}
+      canEdit={isSelf || isAdmin}
       isEditing={isEditing}
       isSaving={updateMember.isPending}
       errorCode={errorCode}
@@ -65,7 +65,7 @@ function MemberDetailPage() {
         )
       }}
       canChangePhoto={isSelf}
-      canRemovePhoto={isSelf || currentUser?.role === 'ADMIN'}
+      canRemovePhoto={isSelf || isAdmin}
       hasPersonalPhoto={!!currentUser?.personalPhotoVersion}
       isPhotoSaving={photoMutations.some((m) => m.isPending)}
       photoErrorMessage={

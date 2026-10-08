@@ -80,8 +80,3 @@ export const authMeQueryOptions = queryOptions({
 export function useAuthMe() {
   return useQuery(authMeQueryOptions)
 }
-
-export function useCurrentUser() {
-  const { data } = useAuthMe()
-  return data ?? null
-}

@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
-import { useQueryClient } from '@tanstack/react-query'
 import { INVITE_UNAVAILABLE, useAuthMe, useRequestMagicLink } from '@shared/api/auth'
 import { useAcceptInvitation } from '@shared/api/invitations'
+import { afterTenantChange } from '@shared/session/session'
 import { Button } from '@shared/ui/button'
 import { Input } from '@shared/ui/input'
 import { Label } from '@shared/ui/label'
@@ -14,7 +14,6 @@ export const Route = createFileRoute('/invite/$token')({
 function InvitePage() {
   const { token } = Route.useParams()
   const navigate = useNavigate()
-  const queryClient = useQueryClient()
   // The root guard exempts /invite/*, so this route never goes through the beforeLoad session
   // probe — fetch it here instead. An already-authenticated visitor (re-clicking their own invite
   // link, or an existing member) accepts immediately rather than being asked to sign in again.
@@ -34,7 +33,7 @@ function InvitePage() {
       .mutateAsync(token)
       // Accepting makes the joined Team Active (ADR-0023 §4), so a joiner who was already in
       // another Team has just changed tenant.
-      .then(() => queryClient.resetQueries())
+      .then(() => afterTenantChange())
       .then(() => navigate({ to: '/', replace: true }))
       .catch(() => setError('This invite link is invalid or has expired.'))
     // eslint-disable-next-line react-hooks/exhaustive-deps

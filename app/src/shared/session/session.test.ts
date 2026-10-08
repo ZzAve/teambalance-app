@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import type { AuthenticatedUser } from './auth'
-import { authMeQueryOptions } from './auth'
-import { clearSession, hasClearableSession } from './clear-session'
-import { queryClient } from './query-client'
+import type { AuthenticatedUser } from '@shared/api/auth'
+import { authMeQueryOptions } from '@shared/api/auth'
+import { afterTenantChange, enterTeam, endSession, hasClearableSession } from './session'
+import { queryClient } from '@shared/api/query-client'
 
 const USER: AuthenticatedUser = {
   id: 'u1',
@@ -16,7 +16,7 @@ const USER: AuthenticatedUser = {
   personalPhotoVersion: undefined,
 }
 
-describe('clearSession', () => {
+describe('endSession', () => {
   const originalLocation = window.location
   let assign: ReturnType<typeof vi.fn>
   let fetchSpy: ReturnType<typeof vi.spyOn>
@@ -42,17 +42,17 @@ describe('clearSession', () => {
   })
 
   it('nulls the cached /auth/me', () => {
-    clearSession()
+    endSession()
     expect(queryClient.getQueryData(authMeQueryOptions.queryKey)).toBeNull()
   })
 
   it('hard-redirects to /login', () => {
-    clearSession()
+    endSession()
     expect(assign).toHaveBeenCalledWith('/login')
   })
 
   it('makes no network call', () => {
-    clearSession()
+    endSession()
     expect(fetchSpy).not.toHaveBeenCalled()
   })
 })
@@ -73,5 +73,59 @@ describe('hasClearableSession', () => {
   it('fails open: shows the hatch while the session is indeterminate', () => {
     // Cache never populated — the probe has not resolved, so we cannot rule out a session.
     expect(hasClearableSession()).toBe(true)
+  })
+})
+
+const json = (status: number, body: unknown) => new Response(JSON.stringify(body), { status })
+
+describe('afterTenantChange', () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+    queryClient.clear()
+  })
+
+  it('drops tenant-scoped cache and reads /auth/me again', async () => {
+    const switched = { ...USER, activeTeam: { id: 't2', name: 'Beta', slug: 'beta' } }
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(json(200, switched))
+    queryClient.setQueryData(['events'], ['stale'])
+    queryClient.setQueryData(authMeQueryOptions.queryKey, USER)
+
+    const user = await afterTenantChange()
+
+    expect(user?.activeTeam?.slug).toBe('beta')
+    expect(queryClient.getQueryData(authMeQueryOptions.queryKey)).toEqual(switched)
+    expect(queryClient.getQueryData(['events'])).toBeUndefined()
+  })
+})
+
+describe('enterTeam', () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+    queryClient.clear()
+  })
+
+  it('is null, and leaves the cache alone, when the team cannot be activated', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(json(404, {}))
+    queryClient.setQueryData(['events'], ['kept'])
+
+    expect(await enterTeam('nope')).toBeNull()
+
+    expect(fetchSpy).toHaveBeenCalledTimes(1)
+    expect(queryClient.getQueryData(['events'])).toEqual(['kept'])
+  })
+
+  it('activates, resets the cache and returns the refreshed user', async () => {
+    const beta = { id: 't2', name: 'Beta', slug: 'beta' }
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(json(200, beta))
+      .mockResolvedValueOnce(json(200, { ...USER, activeTeam: beta }))
+    queryClient.setQueryData(['events'], ['stale'])
+
+    const entered = await enterTeam('beta')
+
+    expect(entered?.user?.activeTeam?.slug).toBe('beta')
+    expect(fetchSpy).toHaveBeenCalledTimes(2)
+    expect(queryClient.getQueryData(['events'])).toBeUndefined()
   })
 })

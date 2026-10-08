@@ -1,10 +1,9 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { api } from './wirespec-client'
 
 // Pure-adapter units for the wirespec-client (the fetch handler behind `api`). Storybook owns
 // anything that renders; Vitest owns pure, non-rendering logic like this request/response adapter.
-// We drive the real public surface (`api`) with a stubbed `fetch`, asserting the two behaviours the
-// adapter is responsible for: X-Team-Id header injection and 204-No-Content body handling.
+// We drive the real public surface (`api`) with a stubbed `fetch`.
 
 interface FakeResponseInit {
   status: number
@@ -26,11 +25,6 @@ function stubFetch(response: ReturnType<typeof fakeResponse>) {
   return fetchMock
 }
 
-function headerOf(fetchMock: ReturnType<typeof stubFetch>, name: string): string {
-  const init = fetchMock.mock.calls[0][1] as RequestInit
-  return (init.headers as Record<string, string>)[name]
-}
-
 function urlOf(fetchMock: ReturnType<typeof stubFetch>): string {
   return fetchMock.mock.calls[0][0] as string
 }
@@ -40,34 +34,10 @@ function initOf(fetchMock: ReturnType<typeof stubFetch>): RequestInit {
 }
 
 describe('wirespec-client adapter', () => {
-  beforeEach(() => {
-    localStorage.clear()
-  })
-
   afterEach(() => {
     vi.unstubAllGlobals()
     vi.unstubAllEnvs()
     vi.restoreAllMocks()
-  })
-
-  describe('X-Team-Id header injection', () => {
-    it('sends the team id from localStorage as the X-Team-Id header', async () => {
-      localStorage.setItem('teamId', 'team_test')
-      const fetchMock = stubFetch(fakeResponse({ status: 200, body: JSON.stringify({ events: [] }) }))
-
-      await api.ListEvents({ 'include-past': false })
-
-      expect(fetchMock).toHaveBeenCalledTimes(1)
-      expect(headerOf(fetchMock, 'X-Team-Id')).toBe('team_test')
-    })
-
-    it('omits the X-Team-Id header entirely when no team is stored (a teamless user has no default)', async () => {
-      const fetchMock = stubFetch(fakeResponse({ status: 200, body: JSON.stringify({ events: [] }) }))
-
-      await api.ListEvents({ 'include-past': false })
-
-      expect(headerOf(fetchMock, 'X-Team-Id')).toBeUndefined()
-    })
   })
 
   describe('split-origin base URL (VITE_API_URL)', () => {

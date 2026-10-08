@@ -5,7 +5,7 @@ interface VerifyErrorViewProps {
   /** The failure copy — a missing/expired magic link, or the invite-accept-failure message. */
   message: string
   /**
-   * Local escape hatch (ADR-0027 §3): a client-only `clearSession()`. Present when a session exists —
+   * Local escape hatch (ADR-0027 §3): a client-only `endSession()`. Present when a session exists —
    * or might (e.g. the "authenticated but stranded" invite-accept-failure); omitted once the auth
    * probe has resolved to "no user".
    */

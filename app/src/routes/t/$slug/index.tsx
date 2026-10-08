@@ -9,7 +9,7 @@ import {
     useSetSubstituteAttendance,
     usePendingSubstituteEvents,
 } from '@shared/api/substitutes'
-import { useCurrentUser } from '@shared/api/auth'
+import { useSession } from '@shared/session/session'
 import { useNow } from '@shared/lib/use-now'
 import { selectHeroEvent } from '@entities/event/lib/next-event'
 import type { PositionRef } from '@entities/event/lib/lineup'
@@ -56,7 +56,7 @@ function EventListPage() {
     const {defaultExpanded, setDefaultExpanded} = useEventPanelStore()
     const {data: events, isLoading, error} = useEvents(showPast)
     const {data: eventTypes} = useEventTypes()
-    const isAdmin = useCurrentUser()?.role === 'ADMIN'
+    const {isAdmin} = useSession()
 
     // Per team, so a member of two teams does not carry one team's type filter into the other. The
     // restore lands after the first render, so a persisted `showPast` costs one extra events
@@ -78,7 +78,7 @@ function EventListPage() {
     // invalidated refetch reports the same answer — no clearing effect needed, the derivation drops
     // it on its own. onError clears it so a failed write does not leave the card stuck. While held,
     // the card shows the answer optimistically and its readiness badge stays pending (⑤).
-    const currentUserId = useCurrentUser()?.id ?? null
+    const currentUserId = useSession().user?.id ?? null
     const {mutate: setAttendance} = useSetAttendance()
     const [optimistic, setOptimistic] = useState<OptimisticAnswer | null>(null)
 

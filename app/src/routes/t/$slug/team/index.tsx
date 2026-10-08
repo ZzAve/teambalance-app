@@ -3,7 +3,7 @@ import { MemberRoster } from '@features/manage-members/ui/MemberRoster'
 import { ManageSubstitutes } from '@features/manage-substitutes/ui/ManageSubstitutes'
 import { GenerateInviteDialog } from '@features/generate-invite/ui/GenerateInviteDialog'
 import { TeamPageView } from '@pages/team/ui/TeamPageView'
-import { useCurrentUser } from '@shared/api/auth'
+import { useSession } from '@shared/session/session'
 
 // The team roster for every authenticated member — no admin gate (the root route already guarantees
 // authenticated + onboarded). Read-only for everyone, admins included: this is the view surface.
@@ -15,7 +15,7 @@ export const Route = createFileRoute('/t/$slug/team/')({
 })
 
 function TeamPage() {
-  const isAdmin = useCurrentUser()?.role === 'ADMIN'
+  const { isAdmin } = useSession()
 
   return (
     <TeamPageView

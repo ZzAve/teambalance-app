@@ -1,7 +1,8 @@
-import { queryOptions, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { queryOptions, useMutation, useQuery } from '@tanstack/react-query'
 import { api } from './wirespec-client'
 import { throwOnStatus } from './errors'
 import { queryKeys } from './query-keys'
+import { afterTenantChange } from '@shared/session/session'
 
 // Re-export the generated contract types so the app has a single source of truth.
 export type { ActAs } from './generated/model/ActAs'
@@ -41,7 +42,6 @@ export function usePlatformTeams() {
  * the whole cache is reset — the same reasoning as the Active Team switch in `/t/$slug`.
  */
 export function useEnterActAs() {
-  const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async (teamId: string) => {
       const res = await api.EnterActAs({ body: { teamId } })
@@ -52,7 +52,7 @@ export function useEnterActAs() {
       if (res.status !== 200) throw new ActAsError('GENERIC', 'Could not enter that team. Please try again.')
       return res.body
     },
-    onSuccess: () => queryClient.resetQueries(),
+    onSuccess: () => afterTenantChange(),
   })
 }
 

@@ -3,7 +3,7 @@ import { Button } from '@shared/ui/button'
 
 interface NotFoundViewProps {
   /**
-   * Local escape hatch (ADR-0027 §3): a client-only `clearSession()`. Present only when a session
+   * Local escape hatch (ADR-0027 §3): a client-only `endSession()`. Present only when a session
    * exists — or might; omitted once the auth probe has resolved to "no user".
    */
   onLogout?: () => void

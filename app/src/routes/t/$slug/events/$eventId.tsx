@@ -3,7 +3,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { toast } from 'sonner'
 import { useEvent, useEvents } from '@shared/api/events'
 import { useSetAttendance } from '@entities/attendance/api/attendances'
-import { useCurrentUser } from '@shared/api/auth'
+import { useSession } from '@shared/session/session'
 import {
   useRemoveSubstituteAttendance,
   useSetSubstituteAttendance,
@@ -28,8 +28,8 @@ function EventDetailPage() {
   const { eventId } = Route.useParams()
   const routes = useTeamRoutes()
   const { data: event, isLoading, isError, refetch } = useEvent(eventId)
-  const currentUserId = useCurrentUser()?.id ?? null
-  const isAdmin = useCurrentUser()?.role === 'ADMIN'
+  const { user, isAdmin } = useSession()
+  const currentUserId = user?.id ?? null
   const { mutate, isPending } = useSetAttendance()
   // Only load the full list to find series siblings when this event actually belongs to a group.
   const { data: allEvents } = useEvents(true, !!event?.recurringGroup)

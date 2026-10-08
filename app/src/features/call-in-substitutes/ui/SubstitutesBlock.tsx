@@ -2,7 +2,7 @@ import { UserPlus } from 'lucide-react'
 import type { AttendanceEntry, SubstituteEntry } from '@shared/api/events'
 import { cn } from '@shared/lib/utils'
 import { setByName } from '@entities/event/lib/attribution'
-import { ATTENDANCE_WORDS } from '@entities/event/lib/attendance-words'
+import { ATTENDANCE_WORDS, LOWER_WORD } from '@entities/event/lib/attendance-words'
 import { SubstituteAvatar } from '@entities/event/ui/SubstituteAvatar'
 
 export type SubstituteState = SubstituteEntry['state']
@@ -22,9 +22,9 @@ export const SUBSTITUTE_PILL =
   'tap-band rounded-full border-[1.5px] px-2 py-1 text-caption font-semibold transition-colors disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
 
 const TALLY: { state: SubstituteState; word: string; tone: string }[] = [
-  { state: 'ATTENDING', word: ATTENDANCE_WORDS.ATTENDING.word.toLowerCase(), tone: 'text-green-dark' },
-  { state: 'MAYBE', word: ATTENDANCE_WORDS.MAYBE.word.toLowerCase(), tone: 'text-gold-ink' },
-  { state: 'ABSENT', word: ATTENDANCE_WORDS.ABSENT.word.toLowerCase(), tone: 'text-red' },
+  { state: 'ATTENDING', word: LOWER_WORD.ATTENDING, tone: 'text-green-dark' },
+  { state: 'MAYBE', word: LOWER_WORD.MAYBE, tone: 'text-gold-ink' },
+  { state: 'ABSENT', word: LOWER_WORD.ABSENT, tone: 'text-red' },
 ]
 
 interface SubstitutesBlockProps {

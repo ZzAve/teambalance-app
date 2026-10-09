@@ -1,18 +1,22 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { api } from './wirespec-client'
+import { api } from '@shared/api/wirespec-client'
+import { throwOnStatus } from '@shared/api/errors'
+import { queryKeys } from '@shared/api/query-keys'
 
 // Re-export the generated contract types so the app has a single source of truth.
-export type { CalendarLink } from './generated/model/CalendarLink'
+export type { CalendarLink } from '@shared/api/generated/model/CalendarLink'
+
+const failure = (action: string, status: number) => () => new Error(`Couldn't ${action} (${status})`)
 
 // The caller's own links in the Active Team, newest first (ADR-0039). Keyed ['calendar-links'] so
 // a create or delete invalidating that key refreshes the list.
 export function useCalendarLinks() {
   return useQuery({
-    queryKey: ['calendar-links'],
+    queryKey: queryKeys.calendarLinks,
     queryFn: async () => {
       const res = await api.ListCalendarLinks()
       // 403 (no team, or acting as this team — ADR-0024) has no list to show: surface it as an error.
-      if (res.status !== 200) throw new Error(`Couldn't load calendar links (${res.status})`)
+      throwOnStatus(res, { 401: failure('load calendar links', 401), 403: failure('load calendar links', 403) })
       return res.body.links
     },
   })
@@ -25,10 +29,14 @@ export function useCreateCalendarLink() {
       const res = await api.CreateCalendarLink({ body: { label } })
       // 409 is the cap of three; the View already disables Generate at three, so this only fires
       // when the list was stale. The refetch below shows the member why.
-      if (res.status !== 201) throw new Error(`Couldn't create calendar link (${res.status})`)
+      throwOnStatus(res, {
+        401: failure('create calendar link', 401),
+        403: failure('create calendar link', 403),
+        409: failure('create calendar link', 409),
+      })
       return res.body
     },
-    onSettled: () => queryClient.invalidateQueries({ queryKey: ['calendar-links'] }),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: queryKeys.calendarLinks }),
   })
 }
 
@@ -37,8 +45,12 @@ export function useDeleteCalendarLink() {
   return useMutation({
     mutationFn: async ({ id }: { id: string }) => {
       const res = await api.DeleteCalendarLink({ id })
-      if (res.status !== 204) throw new Error(`Couldn't delete calendar link (${res.status})`)
+      throwOnStatus(res, {
+        401: failure('delete calendar link', 401),
+        403: failure('delete calendar link', 403),
+        404: failure('delete calendar link', 404),
+      })
     },
-    onSettled: () => queryClient.invalidateQueries({ queryKey: ['calendar-links'] }),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: queryKeys.calendarLinks }),
   })
 }

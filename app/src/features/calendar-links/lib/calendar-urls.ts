@@ -1,4 +1,4 @@
-import type { CalendarLink } from '@shared/api/calendar-links'
+import type { CalendarLink } from '@entities/calendar-link/api/calendar-links'
 
 /** The same feed URL under the webcal scheme, which the OS hands to its calendar app as a subscription. */
 export function toWebcalUrl(feedUrl: string): string {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { CalendarLink } from '@shared/api/calendar-links'
+import type { CalendarLink } from '@entities/calendar-link/api/calendar-links'
 import { linkDisplayLabel, toGoogleCalendarUrl, toWebcalUrl } from './calendar-urls'
 
 const FEED = 'https://api.teambalance.nl/api/calendar/setpoint-vt/abc123.ics'

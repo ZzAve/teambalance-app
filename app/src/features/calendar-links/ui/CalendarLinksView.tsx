@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import type { CalendarLink } from '@shared/api/calendar-links'
+import type { CalendarLink } from '@entities/calendar-link/api/calendar-links'
 import { Button } from '@shared/ui/button'
 import { Input } from '@shared/ui/input'
 import { Label } from '@shared/ui/label'

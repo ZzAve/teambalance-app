@@ -22,6 +22,7 @@ export const queryKeys = {
     all: ['members'],
     me: ['members', 'me'],
   },
+  calendarLinks: ['calendar-links'],
   creationCodes: ['creation-codes'],
   platformTeams: ['platform', 'teams'],
   actAsRecords: ['act-as-records'],

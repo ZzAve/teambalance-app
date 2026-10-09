@@ -36,6 +36,7 @@ describe('queryKeys', () => {
     expect(queryKeys.positions.usage('p1')).toEqual(['positions', 'p1', 'usage'])
     expect(queryKeys.substitutes.usage('s1')).toEqual(['substitutes', 's1', 'usage'])
     expect(queryKeys.platformTeams).toEqual(['platform', 'teams'])
+    expect(queryKeys.calendarLinks).toEqual(['calendar-links'])
     expect(queryKeys.authMe).toEqual(['auth', 'me'])
   })
 })

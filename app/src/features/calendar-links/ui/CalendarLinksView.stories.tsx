@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { expect, fn, within } from 'storybook/test'
-import type { CalendarLink } from '@shared/api/calendar-links'
+import type { CalendarLink } from '@entities/calendar-link/api/calendar-links'
 import { Stack } from '@shared/testing/stack'
 import { CalendarLinksView } from './CalendarLinksView'
 

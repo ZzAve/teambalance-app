@@ -1,4 +1,4 @@
-import { useCalendarLinks, useCreateCalendarLink, useDeleteCalendarLink } from '@shared/api/calendar-links'
+import { useCalendarLinks, useCreateCalendarLink, useDeleteCalendarLink } from '@entities/calendar-link/api/calendar-links'
 import { useCopyToClipboard } from '@shared/lib/copy-to-clipboard'
 import { CalendarLinksView } from './CalendarLinksView'
 

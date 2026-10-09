@@ -37,6 +37,8 @@ describe('queryKeys', () => {
     expect(queryKeys.substitutes.usage('s1')).toEqual(['substitutes', 's1', 'usage'])
     expect(queryKeys.platformTeams).toEqual(['platform', 'teams'])
     expect(queryKeys.calendarLinks).toEqual(['calendar-links'])
+    expect(queryKeys.activeInvitation).toEqual(['invitations', 'active'])
+    expect(queryKeys.activeAdminInvitation).toEqual(['invitations', 'admin', 'active'])
     expect(queryKeys.authMe).toEqual(['auth', 'me'])
   })
 })

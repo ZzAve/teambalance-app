@@ -1,16 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from './wirespec-client'
 import { throwOnStatus } from './errors'
+import { queryKeys } from './query-keys'
 
 export type { Invitation } from './generated/model/Invitation'
 export type { AcceptedInvitation } from './generated/model/AcceptedInvitation'
 
 const notAllowed = () => new Error('You are not allowed to manage the invite link.')
 const linkInvalid = () => new Error('invite link invalid or expired')
-
-// The key every invite mutation invalidates, so the dialog re-reads the team's link rather than
-// trusting whatever it happened to be holding.
-const ACTIVE_INVITATION_KEY = ['invitations', 'active']
 
 /**
  * The team's current invite link, or null if it has none (ADR-0025).
@@ -23,7 +20,7 @@ const ACTIVE_INVITATION_KEY = ['invitations', 'active']
  */
 export function useActiveInvitation({ enabled }: { enabled: boolean }) {
   return useQuery({
-    queryKey: ACTIVE_INVITATION_KEY,
+    queryKey: queryKeys.activeInvitation,
     enabled,
     queryFn: async () => {
       const res = await api.GetActiveInvitation()
@@ -39,7 +36,7 @@ function useInvitationMutation<T>(mutationFn: () => Promise<T>) {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ACTIVE_INVITATION_KEY }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.activeInvitation }),
   })
 }
 
@@ -54,10 +51,6 @@ export function useCreateInvitation() {
   })
 }
 
-// The admin handover link is its own credential, tracked under its own key so its reads and mutations
-// never cross-invalidate the shareable USER link above (ADR-0024 §5).
-const ACTIVE_ADMIN_INVITATION_KEY = ['invitations', 'admin', 'active']
-
 /**
  * The team's current unspent ADMIN handover link, or null if it has none — the read that lets the
  * link survive a page refresh, exactly as {@link useActiveInvitation} does for the shareable link
@@ -65,7 +58,7 @@ const ACTIVE_ADMIN_INVITATION_KEY = ['invitations', 'admin', 'active']
  */
 export function useActiveAdminInvitation({ enabled }: { enabled: boolean }) {
   return useQuery({
-    queryKey: ACTIVE_ADMIN_INVITATION_KEY,
+    queryKey: queryKeys.activeAdminInvitation,
     enabled,
     queryFn: async () => {
       const res = await api.GetActiveAdminInvitation()
@@ -80,7 +73,7 @@ function useAdminInvitationMutation<T>(mutationFn: () => Promise<T>) {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ACTIVE_ADMIN_INVITATION_KEY }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.activeAdminInvitation }),
   })
 }
 

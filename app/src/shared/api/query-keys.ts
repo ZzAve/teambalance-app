@@ -23,6 +23,9 @@ export const queryKeys = {
     me: ['members', 'me'],
   },
   calendarLinks: ['calendar-links'],
+  activeInvitation: ['invitations', 'active'],
+  // The admin handover link is its own credential: its own key keeps it from invalidating the shareable link (ADR-0024 §5).
+  activeAdminInvitation: ['invitations', 'admin', 'active'],
   creationCodes: ['creation-codes'],
   platformTeams: ['platform', 'teams'],
   actAsRecords: ['act-as-records'],

@@ -1,7 +1,7 @@
 import type { AuthenticatedUser } from '@shared/api/auth'
 import { teamRoutes } from '@shared/lib/team-routes'
 
-export type TeamEntryDecision = 'login' | 'activate' | 'check-onboarding' | 'get-started' | 'ok'
+type TeamEntryDecision = 'login' | 'activate' | 'check-onboarding' | 'get-started' | 'ok'
 
 /**
  * What entering `/t/:slug/…` requires, given what is known so far. `member` is undefined until the

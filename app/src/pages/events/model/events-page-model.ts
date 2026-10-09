@@ -31,11 +31,7 @@ export interface EventsPageModel {
     listShell: { isLoading: boolean, error: unknown }
 }
 
-/**
- * Everything the events page decides before rendering (ADR-0029, ADR-0030): which events survive the
- * filters, whether there is a hero, which event the list drops so the hero does not appear twice,
- * and what Bulk Attend and the empty state read. Every output reads the same filtered list.
- */
+/** Everything the events page decides before rendering, from the filters and the loaded events (ADR-0029, ADR-0030). */
 export function buildEventsPageModel({
     events,
     eventTypes,

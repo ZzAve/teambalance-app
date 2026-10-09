@@ -85,6 +85,7 @@ export const Shells: Story = {
         Error: <CalendarLinksView {...args} isError />,
         Empty: <CalendarLinksView {...args} links={[]} />,
         'Copy refused': <CalendarLinksView {...args} links={[PHONE]} copyFailedId="l3" />,
+        'Acting as': <CalendarLinksView {...args} actingAs />,
       }}
     />
   ),
@@ -105,6 +106,12 @@ export const Shells: Story = {
     await expect(refused.getByRole('alert')).toHaveTextContent("Couldn't copy automatically. Copy the link below.")
     await expect(refused.getByLabelText('Calendar link URL for My phone')).toHaveValue(PHONE.url)
     await expect(refused.getByRole('button', { name: 'Copy link' })).toBeInTheDocument()
+
+    // A Platform Admin acting as the team has no links of their own (ADR-0024): explain, offer nothing.
+    const actingAs = region('Acting as')
+    await expect(actingAs.getByText(/not available while you act as this team/)).toBeInTheDocument()
+    await expect(actingAs.queryByRole('button', { name: 'Generate link' })).not.toBeInTheDocument()
+    await expect(actingAs.queryByRole('list')).not.toBeInTheDocument()
   },
 }
 

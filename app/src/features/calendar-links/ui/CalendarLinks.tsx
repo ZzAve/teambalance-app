@@ -1,5 +1,6 @@
 import { useCalendarLinks, useCreateCalendarLink, useDeleteCalendarLink } from '@entities/calendar-link/api/calendar-links'
 import { useCopyToClipboard } from '@shared/lib/copy-to-clipboard'
+import { useSession } from '@shared/session/session'
 import { CalendarLinksView } from './CalendarLinksView'
 
 /**
@@ -7,7 +8,8 @@ import { CalendarLinksView } from './CalendarLinksView'
  * the clipboard write to CalendarLinksView. Pure wiring, covered by e2e (ADR-0017).
  */
 export function CalendarLinks() {
-  const { data: links, isLoading, isError, refetch } = useCalendarLinks()
+  const { isActingAs } = useSession()
+  const { data: links, isLoading, isError, refetch } = useCalendarLinks({ enabled: !isActingAs })
   const createLink = useCreateCalendarLink()
   const deleteLink = useDeleteCalendarLink()
   const clipboard = useCopyToClipboard()
@@ -21,6 +23,7 @@ export function CalendarLinks() {
       actionError={createLink.isError || deleteLink.isError}
       copiedId={clipboard.copiedKey}
       copyFailedId={clipboard.failedKey}
+      actingAs={isActingAs}
       onGenerate={(label) => {
         deleteLink.reset()
         createLink.mutate({ label }, { onSuccess: clipboard.reset })

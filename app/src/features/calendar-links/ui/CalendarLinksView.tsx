@@ -26,6 +26,8 @@ interface CalendarLinksViewProps {
   copiedId?: string | null
   /** The link whose clipboard write the browser refused, so its URL can be copied by hand. */
   copyFailedId?: string | null
+  /** A Platform Admin acting as this team: they have no links of their own here (ADR-0024). */
+  actingAs?: boolean
   onGenerate: (label: string | undefined) => void
   onDelete: (id: string) => void
   onCopy: (link: CalendarLink) => void
@@ -46,6 +48,7 @@ export function CalendarLinksView({
   actionError,
   copiedId,
   copyFailedId,
+  actingAs,
   onGenerate,
   onDelete,
   onCopy,
@@ -54,6 +57,14 @@ export function CalendarLinksView({
   const [label, setLabel] = useState('')
   const [confirmTarget, setConfirmTarget] = useState<CalendarLink | null>(null)
   const atCap = links.length >= MAX_LINKS
+
+  if (actingAs) {
+    return (
+      <p className="text-small text-muted-foreground">
+        Calendar links are personal to each member, so they are not available while you act as this team.
+      </p>
+    )
+  }
 
   return (
     <div className="flex flex-col gap-6">

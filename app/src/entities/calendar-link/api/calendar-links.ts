@@ -9,9 +9,11 @@ export type { CalendarLink } from '@shared/api/generated/model/CalendarLink'
 const failure = (action: string, status: number) => () => new Error(`Couldn't ${action} (${status})`)
 
 // The caller's own links in the Active Team, newest first (ADR-0039). Keyed ['calendar-links'] so
-// a create or delete invalidating that key refreshes the list.
-export function useCalendarLinks() {
+// a create or delete invalidating that key refreshes the list. `enabled: false` skips the request
+// when the caller can have no links here (acting as the team).
+export function useCalendarLinks(options?: { enabled?: boolean }) {
   return useQuery({
+    enabled: options?.enabled,
     queryKey: queryKeys.calendarLinks,
     queryFn: async () => {
       const res = await api.ListCalendarLinks()

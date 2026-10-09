@@ -224,7 +224,10 @@ object graph so that a replacement could be proven against it.
 **Superseded by a hand-rolled writer (#395).** We used the write half of a round-trip library and a
 tenth of its property vocabulary: 2 jars, 432 classes, about 12 of them called. `CalendarIcs` now holds
 the encoding itself — `escapeText`, `utc`, `property` and `fold` — and biweekly (and vinnie with it) is
-gone from the build. Its output is byte-identical to biweekly's except where biweekly was wrong.
+gone from the build. Diffed against biweekly's output for the same feed, the only difference is how
+multibyte lines fold (below). The team name in `X-WR-CALNAME` keeps its commas and semicolons raw, as
+biweekly wrote them, because clients and Python's `icalendar` read an X- value without unescaping it;
+only a newline in it is written as `\n`, so a name cannot start a new line.
 
 **Former deviation, now fixed: biweekly folded by character, not by octet.** RFC 5545 §3.1 says a line
 SHOULD NOT exceed 75 **octets**; biweekly (through vinnie) counted characters, so the `✓`/`✗` prefix

@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react'
 import { Link } from '@tanstack/react-router'
-import { AlignLeft, CalendarDays, Clock, ExternalLink, Link2, MapPin } from 'lucide-react'
+import { AlignLeft, CalendarDays, CalendarPlus, ChevronRight, Clock, ExternalLink, Link2, MapPin } from 'lucide-react'
 import type { EventDetail } from '@shared/api/events'
 import { Button } from '@shared/ui/button'
 import { InfoRow } from '@shared/ui/InfoRow'
@@ -29,6 +29,8 @@ interface EventDetailViewProps {
   onRetry?: () => void
   /** Where "Back to events" goes. */
   backTo: string
+  /** The member's calendar-links page; omitted for a Platform Admin acting as the team (ADR-0024). */
+  calendarHref?: string
   event: EventDetail | null
   currentUserId: string | null
   myState: AttendanceState
@@ -64,6 +66,7 @@ export function EventDetailView({
   isError,
   onRetry,
   backTo,
+  calendarHref,
   event,
   currentUserId,
   myState,
@@ -156,6 +159,17 @@ export function EventDetailView({
             </InfoRow>
           )}
         </dl>
+
+        {calendarHref && (
+          <Link
+            to={calendarHref}
+            className="mt-5 flex items-center gap-2 border-t border-border/40 pt-4 text-small font-medium text-blue"
+          >
+            <CalendarPlus size={16} className="shrink-0" aria-hidden />
+            Add your team's events to your calendar
+            <ChevronRight size={16} className="ml-auto shrink-0" aria-hidden />
+          </Link>
+        )}
       </div>
 
       {/* Roster overview — sits high, right under the event identity, so completeness reads before

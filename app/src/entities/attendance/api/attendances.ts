@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { api } from '@shared/api/wirespec-client'
+import { throwOnStatus } from '@shared/api/errors'
 import { useSession } from '@shared/session/session'
 import type { EventDetail } from '@entities/event/api/events'
 import { queryKeys } from '@shared/api/query-keys'
@@ -21,7 +22,7 @@ export function useSetAttendance() {
   return useMutation({
     mutationFn: async ({ eventId, userId, state }: SetAttendanceVars) => {
       const res = await api.SetAttendance({ eventId, userId, body: { state } })
-      if (res.status === 404) throw new Error('Attendance not found')
+      throwOnStatus(res, { 404: () => new Error('Attendance not found') })
       return res.body
     },
     // Optimistic update: the toggle reflects the tap instantly. Snapshot the cached event so a

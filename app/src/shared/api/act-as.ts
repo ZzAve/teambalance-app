@@ -49,7 +49,6 @@ export function useEnterActAs() {
         403: () => new ActAsError('FORBIDDEN', 'You do not have access to the platform console.'),
         404: () => new ActAsError('NOT_FOUND', 'That team no longer exists.'),
       })
-      if (res.status !== 200) throw new ActAsError('GENERIC', 'Could not enter that team. Please try again.')
       return res.body
     },
     onSuccess: () => afterTenantChange(),

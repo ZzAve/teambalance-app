@@ -17,6 +17,7 @@ export class SubstituteError extends Error {
 }
 
 const nameTaken = (name: string) => () => new SubstituteError(`${name} is already on the list.`)
+const countFailed = () => new SubstituteError("Couldn't count this substitute's events.")
 const noLongerListed = () => new SubstituteError('That substitute is no longer on the list.')
 
 /** The Team's list of Substitutes, for the picker. Keyed ['substitutes'] so a create refreshes it. */
@@ -75,7 +76,6 @@ export function useUpdateSubstitute() {
         403: () => new SubstituteError('You are not allowed to make this change.'),
         404: noLongerListed,
       })
-      if (res.status !== 200) throw new SubstituteError("Couldn't save the substitute — please try again.")
       return res.body
     },
     onSettled: () => {
@@ -91,7 +91,7 @@ export function useSubstituteEventCount(id: string | null) {
     queryKey: queryKeys.substitutes.usage(id),
     queryFn: async () => {
       const res = await api.GetSubstituteUsage({ id: id as string })
-      if (res.status !== 200) throw new SubstituteError("Couldn't count this substitute's events.")
+      throwOnStatus(res, { 403: countFailed, 404: countFailed })
       return res.body.eventCount
     },
     enabled: id !== null,
@@ -110,7 +110,6 @@ export function useDeleteSubstitute() {
         403: () => new SubstituteError('You are not allowed to remove this substitute.'),
         404: noLongerListed,
       })
-      if (res.status !== 204) throw new SubstituteError("Couldn't remove the substitute — please try again.")
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.substitutes.all })
@@ -146,7 +145,10 @@ export function useSetSubstituteAttendance() {
     mutationKey: SUBSTITUTE_ATTENDANCE,
     mutationFn: async ({ eventId, substituteId, state }: SetSubstituteAttendanceVars) => {
       const res = await api.SetSubstituteAttendance({ eventId, substituteId, body: { state } })
-      if (res.status !== 200) throw new Error(`Couldn't set substitute (${res.status})`)
+      throwOnStatus(res, {
+        400: () => new Error("Couldn't set substitute (400)"),
+        404: () => new Error("Couldn't set substitute (404)"),
+      })
       return res.body
     },
     onError: () => {
@@ -171,7 +173,7 @@ export function useRemoveSubstituteAttendance() {
     mutationKey: SUBSTITUTE_ATTENDANCE,
     mutationFn: async ({ eventId, substituteId }: RemoveSubstituteAttendanceVars) => {
       const res = await api.RemoveSubstituteAttendance({ eventId, substituteId })
-      if (res.status !== 204) throw new Error(`Couldn't take the substitute off (${res.status})`)
+      throwOnStatus(res, { 404: () => new Error("Couldn't take the substitute off (404)") })
     },
     onError: () => {
       toast.error("Couldn't take the substitute off — please try again.")

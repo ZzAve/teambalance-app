@@ -30,6 +30,8 @@ export interface TeamRoutes {
   teamSettings: string
   /** The shared-money pool — a coming-soon placeholder for now (Bunq integration to follow). */
   money: string
+  /** The member's own calendar links (webcal subscriptions) for this Team. */
+  calendar: string
   getStarted: string
 }
 
@@ -46,6 +48,7 @@ export function teamRoutes(slug: string | null): TeamRoutes {
       member: () => '/',
       teamSettings: '/',
       money: '/',
+      calendar: '/',
       getStarted: '/',
     }
   }
@@ -57,6 +60,7 @@ export function teamRoutes(slug: string | null): TeamRoutes {
     member: (userId) => `${base}/team/${encodeURIComponent(userId)}`,
     teamSettings: `${base}/team/settings`,
     money: `${base}/money`,
+    calendar: `${base}/calendar`,
     getStarted: `${base}/get-started`,
   }
 }

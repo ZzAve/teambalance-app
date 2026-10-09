@@ -62,6 +62,7 @@ export const Shells: Story = {
         'No link': <GenerateInviteContent {...args} />,
         Generating: <GenerateInviteContent {...args} isGenerating />,
         Copied: <GenerateInviteContent {...args} link={LINK} copied />,
+        'Copy refused': <GenerateInviteContent {...args} link={LINK} copyFailed />,
         Rotating: <GenerateInviteContent {...args} link={LINK} isRotating />,
         Revoking: <GenerateInviteContent {...args} link={LINK} isExpiring />,
         // Confirmation after a revoke, before the admin decides whether to make a new one.
@@ -85,6 +86,11 @@ export const Shells: Story = {
       region('Generating').getByRole('button', { name: 'Generating...' }),
     ).toBeDisabled()
     await expect(region('Copied').getByRole('button', { name: 'Copied!' })).toBeInTheDocument()
+    // The browser refused the clipboard write: say so, and point at the link field beside the button.
+    await expect(region('Copy refused').getByRole('alert')).toHaveTextContent(
+      "Couldn't copy automatically. Copy the link from the field above.",
+    )
+    await expect(region('Copied').queryByRole('alert')).not.toBeInTheDocument()
     await expect(region('Rotating').getByRole('button', { name: 'Rotating...' })).toBeDisabled()
     await expect(region('Revoking').getByRole('button', { name: 'Revoking...' })).toBeDisabled()
 

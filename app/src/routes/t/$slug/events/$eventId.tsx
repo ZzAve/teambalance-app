@@ -22,7 +22,7 @@ function EventDetailPage() {
   const { eventId } = Route.useParams()
   const routes = useTeamRoutes()
   const { data: event, isLoading, isError, refetch } = useEvent(eventId)
-  const { user, isAdmin } = useSession()
+  const { user, isAdmin, isActingAs } = useSession()
   const currentUserId = user?.id ?? null
   const { mutate, isPending } = useSetAttendance()
   // Only load the full list to find series siblings when this event actually belongs to a group.
@@ -64,6 +64,7 @@ function EventDetailPage() {
         isError={isError}
         onRetry={() => refetch()}
         backTo={routes.events}
+        calendarHref={isActingAs ? undefined : routes.calendar}
         event={event ?? null}
         currentUserId={currentUserId}
         myState={myState}

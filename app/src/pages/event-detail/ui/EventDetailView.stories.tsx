@@ -102,6 +102,7 @@ const meta = {
   parameters: shell.parameters,
   args: {
     backTo: SHELL_ROUTES.events,
+    calendarHref: `${SHELL_ROUTES.events}/calendar`,
     event: EVENT,
     currentUserId: 'u-me',
     myState: 'ATTENDING',
@@ -138,6 +139,11 @@ export const Data: Story = {
     await expect(canvas.getByText('Serve-receive drills first, then six-on-six. Bring both kits.')).toBeInTheDocument()
     await expect(canvas.getByRole('link', { name: 'Nevobo' })).toBeInTheDocument()
     await expect(canvas.getByRole('link', { name: 'Match form' })).toBeInTheDocument()
+    // A pointer to the member's calendar links, so the events reach their phone's calendar.
+    await expect(canvas.getByRole('link', { name: /Add your team's events to your calendar/ })).toHaveAttribute(
+      'href',
+      `${SHELL_ROUTES.events}/calendar`,
+    )
     // Everyone is listed, non-responders included (ADR-0030 §8).
     for (const name of ['Julius', 'Sanne', 'Lars', 'Sofia', 'Tim', 'Noor']) {
       await expect(canvas.getByText(name)).toBeInTheDocument()

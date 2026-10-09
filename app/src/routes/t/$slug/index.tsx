@@ -37,7 +37,7 @@ function EventListPage() {
     const {defaultExpanded, setDefaultExpanded} = useEventPanelStore()
     const {data: events, isLoading, error} = useEvents(showPast)
     const {data: eventTypes} = useEventTypes()
-    const {user, isAdmin} = useSession()
+    const {user, isAdmin, isActingAs} = useSession()
     const currentUserId = user?.id ?? null
 
     // Per team, so a member of two teams does not carry one team's type filter into the other.
@@ -88,6 +88,7 @@ function EventListPage() {
         <>
         <EventsPageView
             createAction={isAdmin && <CreateEventSheet/>}
+            hideCalendarLink={isActingAs}
             filters={{
                 eventTypes: eventTypes ?? [],
                 activeTypeIds,

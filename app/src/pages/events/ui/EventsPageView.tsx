@@ -1,4 +1,7 @@
 import type { ComponentProps, ReactNode } from 'react'
+import { Link } from '@tanstack/react-router'
+import { CalendarDays } from 'lucide-react'
+import { useTeamRoutes } from '@shared/lib/team-routes'
 import { EventListView } from '@entities/event/ui/EventListView'
 import { EventFiltersView } from '@features/filter-event-types/ui/EventFiltersView'
 import { PanelViewMenu } from '@features/event-panel-view/ui/PanelViewMenu'
@@ -13,6 +16,8 @@ interface EventsPageViewProps {
   /** One button per event type with blanks left; renders nothing when there are none. */
   bulkBar?: ReactNode
   list: ComponentProps<typeof EventListView>
+  /** A Platform Admin acting as this team has no calendar links of their own (ADR-0024). */
+  hideCalendarLink?: boolean
 }
 
 /**
@@ -22,7 +27,17 @@ interface EventsPageViewProps {
  * containers with their own queries), and the story fills the same slots with their prop-only Views,
  * so the whole page renders with zero network.
  */
-export function EventsPageView({ createAction, filters, panelMenu, hero, bulkBar, list }: EventsPageViewProps) {
+export function EventsPageView({
+  createAction,
+  filters,
+  panelMenu,
+  hero,
+  bulkBar,
+  list,
+  hideCalendarLink,
+}: EventsPageViewProps) {
+  const routes = useTeamRoutes()
+
   return (
     <div>
       <div className="flex items-center justify-between gap-2">
@@ -37,6 +52,16 @@ export function EventsPageView({ createAction, filters, panelMenu, hero, bulkBar
           {/* How the list is drawn, beside what it contains but deliberately not inside it
               (ADR-0030 §3): a filter is "where was I", this is "how do I like this". */}
           <PanelViewMenu {...panelMenu} />
+          {/* Every member's way to their calendar links; not in the bottom nav (ADR-0039). */}
+          {!hideCalendarLink && (
+            <Link
+              to={routes.calendar}
+              aria-label="Calendar links"
+              className="flex h-11 w-11 items-center justify-center rounded-md border border-border/60 bg-card text-muted-foreground transition-colors hover:text-foreground"
+            >
+              <CalendarDays size={16} />
+            </Link>
+          )}
         </div>
       </div>
 

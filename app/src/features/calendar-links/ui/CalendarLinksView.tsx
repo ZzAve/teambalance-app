@@ -4,6 +4,7 @@ import { Button } from '@shared/ui/button'
 import { Input } from '@shared/ui/input'
 import { Label } from '@shared/ui/label'
 import { ConfirmDialog } from '@shared/ui/ConfirmDialog'
+import { FormError } from '@shared/ui/FormError'
 import { QueryErrorState } from '@shared/ui/QueryErrorState'
 import { formatDate, linkDisplayLabel, toGoogleCalendarUrl, toWebcalUrl } from '../lib/calendar-urls'
 
@@ -54,11 +55,6 @@ export function CalendarLinksView({
   const [confirmTarget, setConfirmTarget] = useState<CalendarLink | null>(null)
   const atCap = links.length >= MAX_LINKS
 
-  const handleGenerate = () => {
-    onGenerate(label.trim() || undefined)
-    setLabel('')
-  }
-
   return (
     <div className="flex flex-col gap-6">
       <p className="text-small text-muted-foreground">
@@ -95,7 +91,14 @@ export function CalendarLinksView({
             </ul>
           )}
 
-          <div className="flex flex-col gap-2">
+          <form
+            className="flex flex-col gap-2"
+            onSubmit={(e) => {
+              e.preventDefault()
+              onGenerate(label.trim() || undefined)
+              setLabel('')
+            }}
+          >
             <Label htmlFor="calendar-link-label">Label (optional)</Label>
             <div className="flex gap-2">
               <Input
@@ -105,14 +108,8 @@ export function CalendarLinksView({
                 placeholder="e.g. My phone"
                 disabled={atCap}
                 onChange={(e) => setLabel(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !atCap && !isSaving) {
-                    e.preventDefault()
-                    handleGenerate()
-                  }
-                }}
               />
-              <Button disabled={atCap || isSaving} onClick={handleGenerate}>
+              <Button type="submit" disabled={atCap || isSaving}>
                 Generate link
               </Button>
             </div>
@@ -121,12 +118,12 @@ export function CalendarLinksView({
                 You have {MAX_LINKS} links, the maximum. Delete one to generate a new link.
               </p>
             )}
-            {actionError && <p className="text-small text-red">Something went wrong. Please try again.</p>}
-          </div>
+            {actionError && <FormError>Something went wrong. Please try again.</FormError>}
+          </form>
 
           <ConfirmDialog
             open={confirmTarget !== null}
-            title={`Delete "${confirmTarget ? linkDisplayLabel(confirmTarget) : ''}"?`}
+            title="Delete calendar link?"
             description="Every calendar subscribed with this link stops updating."
             confirmLabel="Delete link"
             onConfirm={() => {
@@ -194,7 +191,7 @@ function CalendarLinkRow({ link, copied, copyFailed, isSaving, onCopy, onRequest
       </div>
       {copyFailed && link.url && (
         <div className="flex flex-col gap-2">
-          <p className="text-small text-red">Couldn't copy automatically. Copy the link below.</p>
+          <FormError>Couldn't copy automatically. Copy the link below.</FormError>
           <Input
             readOnly
             aria-label={`Calendar link URL for ${name}`}

@@ -102,7 +102,7 @@ export const Shells: Story = {
 
     // The browser refused the clipboard write: say so, and put the URL where it can be copied by hand.
     const refused = region('Copy refused')
-    await expect(refused.getByText("Couldn't copy automatically. Copy the link below.")).toBeInTheDocument()
+    await expect(refused.getByRole('alert')).toHaveTextContent("Couldn't copy automatically. Copy the link below.")
     await expect(refused.getByLabelText('Calendar link URL for My phone')).toHaveValue(PHONE.url)
     await expect(refused.getByRole('button', { name: 'Copy link' })).toBeInTheDocument()
   },
@@ -136,6 +136,8 @@ export const Interactions: Story = {
     await expect(
       await portal.findByText('Every calendar subscribed with this link stops updating.'),
     ).toBeInTheDocument()
+    // A fixed title: one built from the target would go blank while the dialog animates out.
+    await expect(portal.getByRole('heading', { name: 'Delete calendar link?' })).toBeInTheDocument()
     await userEvent.click(portal.getByRole('button', { name: 'Cancel' }))
     await expect(args.onDelete).not.toHaveBeenCalled()
 
@@ -149,8 +151,8 @@ export const Interactions: Story = {
 
     const label = region.getByLabelText('Label (optional)')
     await expect(label).toHaveAttribute('maxLength', '50')
-    await userEvent.type(label, '  Work laptop ')
-    await userEvent.click(region.getByRole('button', { name: 'Generate link' }))
+    // Enter submits the form, like the button does.
+    await userEvent.type(label, '  Work laptop {Enter}')
     await expect(args.onGenerate).toHaveBeenLastCalledWith('Work laptop')
     await expect(label).toHaveValue('')
 

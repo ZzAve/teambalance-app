@@ -206,6 +206,13 @@ class CalendarIcsTest : FunSpec({
         test("a semicolon in the location") {
             unfolded(render(event = event(location = "Hall 1; door B"))) shouldContain "LOCATION:Hall 1\\; door B"
         }
+        // X-WR-CALNAME is read raw by clients, so only the newline is escaped there.
+        test("a newline in the team name, which keeps its comma as typed") {
+            val named = TEAM.copy(name = TeamName("Tovo, Dames\nBEGIN:VEVENT"))
+            val ics = CalendarIcs.render(CalendarFeed(named, emptyList(), RefreshCadence.RELAXED), FRONTEND)
+            ics shouldContain "X-WR-CALNAME:Tovo, Dames\\nBEGIN:VEVENT"
+            ics shouldNotContain "\r\nBEGIN:VEVENT"
+        }
         test("a newline in the description") {
             unfolded(render(event = event(description = "Line one\nLine two"))) shouldContain
                 "DESCRIPTION:Line one\\nLine two"

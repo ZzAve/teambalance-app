@@ -28,6 +28,7 @@ object CalendarIcs {
     private const val CRLF = "\r\n"
     private val UTC_BASIC: DateTimeFormatter =
         DateTimeFormatter.ofPattern("yyyyMMdd'T'HHmmss'Z'").withZone(ZoneOffset.UTC)
+    private val NEWLINE = Regex("\r\n|\r|\n")
 
     /**
      * The member's own answer, worn on the title so a glance at the week says who is in. A prefix
@@ -55,7 +56,10 @@ object CalendarIcs {
             // X-WR-CALNAME rather than RFC 7986's NAME: it is what Google, Apple and Outlook actually
             // use to title a subscribed calendar, and a feed nobody can tell apart in a sidebar full
             // of calendars has failed at the one thing the name is for.
-            add(property("X-WR-CALNAME", value = feed.team.name.value))
+            //
+            // Not escapeText: clients and parsers treat an X- value as raw, so `\,` would show as a
+            // backslash in the sidebar. Only a newline is escaped, so a name cannot start a new line.
+            add(property("X-WR-CALNAME", value = feed.team.name.value.replace(NEWLINE) { "\\n" }))
             add(property("REFRESH-INTERVAL", mapOf("VALUE" to "DURATION"), refresh))
             add(property("X-PUBLISHED-TTL", value = refresh))
             feed.entries.forEach { addAll(it.toVEvent(feed.team.slug.value, frontendBaseUrl)) }
@@ -110,7 +114,7 @@ object CalendarIcs {
         .replace("\\", "\\\\")
         .replace(";", "\\;")
         .replace(",", "\\,")
-        .replace(Regex("\r\n|\r|\n")) { "\\n" }
+        .replace(NEWLINE) { "\\n" }
 
     /** RFC 5545 §3.3.5 DATE-TIME in UTC ("form #2"): basic ISO 8601, always with a `Z`. */
     internal fun utc(instant: Instant): String = UTC_BASIC.format(instant)

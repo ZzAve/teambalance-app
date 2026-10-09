@@ -142,21 +142,12 @@ internal class TeamDirectory {
 
         /** Display names come from the registered users, as the adapter reads them from `public.users`. */
         override fun findByTeamId(teamId: TeamId): List<TeamMember> =
-            memberships.filterKeys { it.second == teamId }.mapNotNull { (key, membership) ->
-                users[key.first]?.let {
-                    TeamMember(
-                        userId = it.id,
-                        displayName = it.displayName,
-                        permission = membership.role,
-                        positionId = membership.positionId,
-                        position = null,
-                        onboarded = membership.onboarded,
-                        shirtNumber = membership.shirtNumber,
-                    )
-                }
-            }
+            memberships.filterKeys { it.second == teamId }.mapNotNull { (key, membership) -> toMember(key.first, membership) }
 
-        override fun findMembersByUserIds(userIds: Set<UserId>): Map<UserId, TeamMember> = emptyMap()
+        override fun findMembersByUserIds(userIds: Set<UserId>): Map<UserId, TeamMember> =
+            memberships.filterKeys { it.first in userIds }
+                .mapNotNull { (key, membership) -> toMember(key.first, membership) }
+                .associateBy { it.userId }
 
         override fun updateRole(teamId: TeamId, userId: UserId, role: Role) {
             writes += "updateRole"
@@ -204,6 +195,20 @@ internal class TeamDirectory {
 
         override fun countByPosition(teamId: TeamId, positionId: PositionId): Int =
             memberships.count { it.key.second == teamId && it.value.positionId == positionId }
+
+        /** `position` stays null: position names are tenant rows, which the directory does not model. */
+        private fun toMember(userId: UserId, membership: Membership): TeamMember? =
+            users[userId]?.let {
+                TeamMember(
+                    userId = it.id,
+                    displayName = it.displayName,
+                    permission = membership.role,
+                    positionId = membership.positionId,
+                    position = null,
+                    onboarded = membership.onboarded,
+                    shirtNumber = membership.shirtNumber,
+                )
+            }
 
         private fun update(teamId: TeamId, userId: UserId, change: (Membership) -> Membership) {
             memberships[userId to teamId]?.let { memberships[userId to teamId] = change(it) }
@@ -323,7 +328,8 @@ internal class InMemoryInvitationRepository(private var invitation: Invitation? 
         it.role == role && it.id !in consumed && it.teamId == teamId && it.expiresAt.isAfter(now)
     }
 
-    override fun consume(invitationId: UUID, now: Instant): Boolean = consumed.add(invitationId)
+    override fun consume(invitationId: UUID, now: Instant): Boolean =
+        invitation?.id == invitationId && consumed.add(invitationId)
 
     override fun expireActive(teamId: TeamId, role: Role, now: Instant) {
         invitation = null

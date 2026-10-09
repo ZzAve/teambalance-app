@@ -7,6 +7,7 @@ import {
   useExpireInvitations,
   useRotateInvitation,
 } from '@shared/api/invitations'
+import { useCopyToClipboard } from '@shared/lib/copy-to-clipboard'
 import { GenerateInviteContent } from './GenerateInviteContent'
 
 /**
@@ -21,7 +22,7 @@ import { GenerateInviteContent } from './GenerateInviteContent'
  */
 export function GenerateInviteDialog() {
   const [open, setOpen] = useState(false)
-  const [copied, setCopied] = useState(false)
+  const clipboard = useCopyToClipboard()
   const [justExpired, setJustExpired] = useState(false)
   const activeInvitation = useActiveInvitation({ enabled: open })
   const createInvitation = useCreateInvitation()
@@ -34,22 +35,16 @@ export function GenerateInviteDialog() {
   const handleOpenChange = (next: boolean) => {
     setOpen(next)
     if (!next) {
-      setCopied(false)
+      clipboard.reset()
       setJustExpired(false)
     }
-  }
-
-  const handleCopy = async () => {
-    if (!link) return
-    await navigator.clipboard.writeText(link)
-    setCopied(true)
   }
 
   // Both a fresh generate and a rotate land on a new link; drop the flags from whatever state we
   // were in and let the invalidated query supply it.
   const adoptNewLink = () => {
     setJustExpired(false)
-    setCopied(false)
+    clipboard.reset()
   }
 
   const handleGenerate = () => createInvitation.mutate(undefined, { onSuccess: adoptNewLink })
@@ -60,7 +55,7 @@ export function GenerateInviteDialog() {
     expireInvitation.mutate(undefined, {
       onSuccess: () => {
         setJustExpired(true)
-        setCopied(false)
+        clipboard.reset()
       },
     })
   }
@@ -78,7 +73,8 @@ export function GenerateInviteDialog() {
           isLoading={activeInvitation.isPending}
           isError={activeInvitation.isError}
           link={link}
-          copied={copied}
+          copied={clipboard.copiedKey !== null}
+          copyFailed={clipboard.failedKey !== null}
           justExpired={justExpired}
           isGenerating={createInvitation.isPending}
           isRotating={rotateInvitation.isPending}
@@ -86,7 +82,7 @@ export function GenerateInviteDialog() {
           actionError={
             createInvitation.isError || rotateInvitation.isError || expireInvitation.isError
           }
-          onCopy={handleCopy}
+          onCopy={() => link && clipboard.copy(link)}
           onGenerate={handleGenerate}
           onRotate={handleRotate}
           onExpire={handleExpire}

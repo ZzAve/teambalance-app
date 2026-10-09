@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Button } from '@shared/ui/button'
 import { Input } from '@shared/ui/input'
+import { FormError } from '@shared/ui/FormError'
 import { ConfirmDialog } from '@shared/ui/ConfirmDialog'
 
 interface GenerateInviteContentProps {
@@ -9,6 +10,8 @@ interface GenerateInviteContentProps {
   /** The team's current invite link, or null if it has none. */
   link: string | null
   copied: boolean
+  /** The browser refused the clipboard write; the link is still in the field to copy by hand. */
+  copyFailed?: boolean
   /** Set only for the moment after an expire, to confirm the link is gone before offering a new one. */
   justExpired: boolean
   isGenerating: boolean
@@ -39,6 +42,7 @@ export function GenerateInviteContent({
   isError,
   link,
   copied,
+  copyFailed,
   justExpired,
   isGenerating,
   isRotating,
@@ -82,6 +86,7 @@ export function GenerateInviteContent({
           {copied ? 'Copied!' : 'Copy'}
         </Button>
       </div>
+      {copyFailed && <FormError>Couldn't copy automatically. Copy the link from the field above.</FormError>}
       <div className="flex gap-2">
         <Button type="button" variant="outline" onClick={onRotate} disabled={isRotating}>
           {isRotating ? 'Rotating...' : 'Rotate link'}

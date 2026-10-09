@@ -26,6 +26,8 @@ export const Route = createFileRoute('/t/$slug')({
       decision = decideTeamEntry(user, params.slug, location.pathname)
     }
     if (decision === 'login') throw redirect({ to: '/login' })
+    // Still 'activate' means /auth/me reports a different Active Team than the one just entered.
+    if (decision === 'activate') throw redirect({ to: '/' })
 
     // Onboarding is per-Team, so it can only be asked once the Active Team is settled — hence here
     // rather than in the root guard. Fails open: a status blip must not trap a confirmed caller.

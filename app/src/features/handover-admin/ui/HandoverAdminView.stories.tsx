@@ -62,6 +62,7 @@ export const Shells: Story = {
         'No link yet': <HandoverAdminView {...args} />,
         Creating: <HandoverAdminView {...args} isCreating />,
         Copied: <HandoverAdminView {...args} link={LINK} copied />,
+        'Copy refused': <HandoverAdminView {...args} link={LINK} copyFailed />,
         'Just revoked': <HandoverAdminView {...args} justRevoked />,
         'Action error': <HandoverAdminView {...args} link={LINK} actionError />,
       }}
@@ -88,6 +89,11 @@ export const Shells: Story = {
     await expect(region('Creating').getByRole('button', { name: 'Creating…' })).toBeDisabled()
 
     await expect(region('Copied').getByRole('button', { name: 'Copied!' })).toBeInTheDocument()
+    // The browser refused the clipboard write: say so, and point at the link field beside the button.
+    await expect(region('Copy refused').getByRole('alert')).toHaveTextContent(
+      "Couldn't copy automatically. Copy the link from the field above.",
+    )
+    await expect(region('Copied').queryByRole('alert')).not.toBeInTheDocument()
 
     await expect(region('Just revoked').getByText(/The link has been revoked/)).toBeInTheDocument()
     await expect(

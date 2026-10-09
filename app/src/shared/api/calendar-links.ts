@@ -4,7 +4,7 @@ import { api } from './wirespec-client'
 // Re-export the generated contract types so the app has a single source of truth.
 export type { CalendarLink } from './generated/model/CalendarLink'
 
-// The caller's own links in the Active Team, newest first (ADR-0032). Keyed ['calendar-links'] so
+// The caller's own links in the Active Team, newest first (ADR-0039). Keyed ['calendar-links'] so
 // a create or delete invalidating that key refreshes the list.
 export function useCalendarLinks() {
   return useQuery({

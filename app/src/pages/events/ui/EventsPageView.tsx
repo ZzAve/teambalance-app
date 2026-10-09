@@ -52,7 +52,7 @@ export function EventsPageView({
           {/* How the list is drawn, beside what it contains but deliberately not inside it
               (ADR-0030 §3): a filter is "where was I", this is "how do I like this". */}
           <PanelViewMenu {...panelMenu} />
-          {/* Every member's way to their calendar links; not in the bottom nav (ADR-0032). */}
+          {/* Every member's way to their calendar links; not in the bottom nav (ADR-0039). */}
           {!hideCalendarLink && (
             <Link
               to={routes.calendar}

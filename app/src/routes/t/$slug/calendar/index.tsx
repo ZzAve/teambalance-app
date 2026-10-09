@@ -8,7 +8,7 @@ export const Route = createFileRoute('/t/$slug/calendar/')({
 })
 
 /**
- * The member's calendar links for this Team (ADR-0032). Reached from the events overview, not the
+ * The member's calendar links for this Team (ADR-0039). Reached from the events overview, not the
  * bottom nav, so the header leads back there.
  */
 function CalendarPage() {

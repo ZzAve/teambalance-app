@@ -7,7 +7,7 @@ import { ConfirmDialog } from '@shared/ui/ConfirmDialog'
 import { QueryErrorState } from '@shared/ui/QueryErrorState'
 import { formatDate, linkDisplayLabel, toGoogleCalendarUrl, toWebcalUrl } from '../lib/calendar-urls'
 
-/** The server's per-member cap, expired links included (ADR-0032). */
+/** The server's per-member cap, expired links included (ADR-0039). */
 const MAX_LINKS = 3
 /** The server's label limit. */
 const MAX_LABEL_LENGTH = 50

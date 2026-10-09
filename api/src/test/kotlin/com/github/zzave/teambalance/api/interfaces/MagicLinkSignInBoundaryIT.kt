@@ -1,6 +1,7 @@
 package com.github.zzave.teambalance.api.interfaces
 
 import com.github.zzave.teambalance.api.TeamBalanceIT
+import com.github.zzave.teambalance.api.application.SecureTokens
 import com.github.zzave.teambalance.api.infrastructure.persistence.FAULT_USER_EMAIL
 import com.github.zzave.teambalance.api.infrastructure.persistence.FaultInjectingUserRepositoryConfig
 import io.kotest.matchers.shouldBe
@@ -14,7 +15,6 @@ import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.ResultActions
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers
-import java.security.MessageDigest
 import java.sql.Timestamp
 import java.time.Instant
 import java.util.UUID
@@ -103,5 +103,5 @@ class MagicLinkSignInBoundaryIT : TeamBalanceIT() {
         )!!
 
     private fun sha256(value: String): String =
-        MessageDigest.getInstance("SHA-256").digest(value.toByteArray()).joinToString("") { "%02x".format(it) }
+        SecureTokens.sha256Hex(value.toByteArray())
 }

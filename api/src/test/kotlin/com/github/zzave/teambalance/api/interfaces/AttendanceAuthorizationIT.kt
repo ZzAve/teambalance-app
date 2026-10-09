@@ -3,7 +3,6 @@ package com.github.zzave.teambalance.api.interfaces
 import com.github.zzave.teambalance.api.TeamBalanceIT
 import com.github.zzave.teambalance.api.infrastructure.multitenancy.TenantSchemaAdapter
 import io.kotest.matchers.shouldBe
-import jakarta.servlet.http.Cookie
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
 import org.springframework.http.MediaType
@@ -11,9 +10,6 @@ import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers
-import java.security.MessageDigest
-import java.sql.Timestamp
-import java.time.Instant
 import java.util.UUID
 
 /**
@@ -127,33 +123,7 @@ class AttendanceAuthorizationIT : TeamBalanceIT() {
         }
     }
 
-    private class SignedIn(val userId: String, val cookies: Array<Cookie>)
-
-    private fun signIn(email: String): SignedIn {
-        val rawToken = "authz-${UUID.randomUUID()}"
-        jdbcTemplate.update(
-            """
-            INSERT INTO public.magic_link_tokens (id, token_hash, email, expires_at, used_at, created_at)
-            VALUES (?, ?, ?, ?, NULL, now())
-            """,
-            UUID.randomUUID(),
-            MessageDigest.getInstance("SHA-256").digest(rawToken.toByteArray()).joinToString("") { "%02x".format(it) },
-            email,
-            Timestamp.from(Instant.now().plusSeconds(900)),
-        )
-        val response = mockMvc.perform(
-            MockMvcRequestBuilders.post("/api/auth/magic-link/verify")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("""{"token":"$rawToken"}"""),
-        )
-            .andExpect(MockMvcResultMatchers.request().asyncStarted())
-            .andReturn()
-            .let { mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(it)) }
-            .andExpect(MockMvcResultMatchers.status().isOk)
-            .andReturn().response
-        val userId = Regex("\"id\":\"([^\"]+)\"").find(response.contentAsString)!!.groupValues[1]
-        return SignedIn(userId, response.cookies)
-    }
+    private fun signIn(email: String) = MagicLinkSessionFixture.signIn(mockMvc, jdbcTemplate, email)
 
     // Creates a team (with a unique schema mapping) and joins a brand-new USER to it.
     private fun newTeamMember(teamId: UUID, email: String, name: String): String {

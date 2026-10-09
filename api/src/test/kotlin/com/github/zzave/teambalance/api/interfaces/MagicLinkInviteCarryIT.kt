@@ -1,6 +1,7 @@
 package com.github.zzave.teambalance.api.interfaces
 
 import com.github.zzave.teambalance.api.TeamBalanceIT
+import com.github.zzave.teambalance.api.application.SecureTokens
 import com.github.zzave.teambalance.api.domain.port.EmailGateway
 import com.github.zzave.teambalance.api.infrastructure.email.FakeEmailGateway
 import com.github.zzave.teambalance.api.infrastructure.multitenancy.TenantSchemaAdapter
@@ -19,7 +20,6 @@ import org.springframework.test.web.servlet.ResultActions
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers
-import java.security.MessageDigest
 import java.util.UUID
 
 private const val ADMIN_USER_ID = "c0000000-0000-0000-0000-000000000011"
@@ -246,6 +246,5 @@ class MagicLinkInviteCarryIT : TeamBalanceIT() {
     }
 
     private fun sha256Hex(salt: String, token: String): String =
-        MessageDigest.getInstance("SHA-256").digest((salt + token).toByteArray())
-            .joinToString("") { "%02x".format(it) }
+        SecureTokens.sha256Hex((salt + token).toByteArray())
 }

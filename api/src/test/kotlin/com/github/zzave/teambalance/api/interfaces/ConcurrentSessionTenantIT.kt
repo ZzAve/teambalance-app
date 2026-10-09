@@ -1,6 +1,7 @@
 package com.github.zzave.teambalance.api.interfaces
 
 import com.github.zzave.teambalance.api.TeamBalanceIT
+import com.github.zzave.teambalance.api.application.SecureTokens
 import com.github.zzave.teambalance.api.infrastructure.multitenancy.TenantSchemaAdapter
 import io.kotest.assertions.withClue
 import io.kotest.matchers.shouldBe
@@ -12,7 +13,6 @@ import java.net.URI
 import java.net.http.HttpClient
 import java.net.http.HttpRequest
 import java.net.http.HttpResponse
-import java.security.MessageDigest
 import java.sql.Timestamp
 import java.time.Instant
 import java.util.UUID
@@ -148,7 +148,7 @@ class ConcurrentSessionTenantIT : TeamBalanceIT() {
     }
 
     private fun sha256(value: String): String =
-        MessageDigest.getInstance("SHA-256").digest(value.toByteArray()).joinToString("") { "%02x".format(it) }
+        SecureTokens.sha256Hex(value.toByteArray())
 
     companion object {
         private const val ADMIN_USER_ID = "b0000000-0000-0000-0000-0000000000f1"

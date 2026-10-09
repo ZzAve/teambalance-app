@@ -1,6 +1,7 @@
 package com.github.zzave.teambalance.api.interfaces
 
 import com.github.zzave.teambalance.api.TeamBalanceIT
+import com.github.zzave.teambalance.api.application.SecureTokens
 import com.github.zzave.teambalance.api.domain.model.Photo
 import com.github.zzave.teambalance.api.domain.model.jpegBytes
 import com.github.zzave.teambalance.api.domain.model.webpBytes
@@ -18,7 +19,6 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers.header
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.request
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
-import java.security.MessageDigest
 import java.sql.Timestamp
 import java.time.Instant
 import java.time.temporal.ChronoUnit
@@ -90,7 +90,7 @@ class PhotoControllerIT : TeamBalanceIT() {
             "INSERT INTO public.magic_link_tokens (id, token_hash, email, expires_at, created_at) " +
                 "VALUES (?, ?, ?, ?, now())",
             UUID.randomUUID(),
-            MessageDigest.getInstance("SHA-256").digest(token.toByteArray()).joinToString("") { "%02x".format(it) },
+            SecureTokens.sha256Hex(token.toByteArray()),
             email,
             Timestamp.from(Instant.now().plus(1, ChronoUnit.HOURS)),
         )

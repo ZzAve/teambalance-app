@@ -2,18 +2,14 @@ package com.github.zzave.teambalance.api.interfaces
 
 import com.github.zzave.teambalance.api.TeamBalanceIT
 import com.github.zzave.teambalance.api.infrastructure.multitenancy.TenantSchemaAdapter
+import com.github.zzave.teambalance.api.interfaces.MagicLinkSessionFixture.SignedIn
 import io.kotest.matchers.shouldBe
-import jakarta.servlet.http.Cookie
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
-import org.springframework.http.MediaType
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers
-import java.security.MessageDigest
-import java.sql.Timestamp
-import java.time.Instant
 import java.util.UUID
 
 /**
@@ -107,49 +103,21 @@ class ActivateTeamControllerIT : TeamBalanceIT() {
 
     // --- helpers ---------------------------------------------------------------------------------
 
-    /** The user the magic link resolved to, plus the session cookie to carry. */
-    private data class SignedIn(val userId: UUID, val cookies: List<Cookie>)
-
     private fun signIn(email: String = "switcher-${UUID.randomUUID()}@test.com"): SignedIn {
         tenantSchemaAdapter.provisionPlatformSchema()
-        val rawToken = "activate-${UUID.randomUUID()}"
-        jdbcTemplate.update(
-            """
-            INSERT INTO public.magic_link_tokens (id, token_hash, email, expires_at, used_at, created_at)
-            VALUES (?, ?, ?, ?, NULL, now())
-            """,
-            UUID.randomUUID(),
-            sha256(rawToken),
-            email,
-            Timestamp.from(Instant.now().plusSeconds(900)),
-        )
-        val response = mockMvc.perform(
-            MockMvcRequestBuilders.post("/api/auth/magic-link/verify")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("""{"token":"$rawToken"}"""),
-        )
-            .andExpect(MockMvcResultMatchers.request().asyncStarted())
-            .andReturn()
-            .let { mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(it)) }
-            .andExpect(MockMvcResultMatchers.status().isOk)
-            .andReturn().response
-
-        val userId = UUID.fromString(
-            Regex("\"id\":\"([^\"]+)\"").find(response.contentAsString)!!.groupValues[1],
-        )
-        return SignedIn(userId, response.cookies.toList())
+        return MagicLinkSessionFixture.signIn(mockMvc, jdbcTemplate, email)
     }
 
     private fun activate(slug: String, session: SignedIn) =
         mockMvc.perform(
-            MockMvcRequestBuilders.post("/api/teams/$slug/activate").cookie(*session.cookies.toTypedArray()),
+            MockMvcRequestBuilders.post("/api/teams/$slug/activate").cookie(*session.cookies),
         )
             .andExpect(MockMvcResultMatchers.request().asyncStarted())
             .andReturn()
             .let { mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(it)) }
 
     private fun me(session: SignedIn): String =
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/auth/me").cookie(*session.cookies.toTypedArray()))
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/auth/me").cookie(*session.cookies))
             .andExpect(MockMvcResultMatchers.request().asyncStarted())
             .andReturn()
             .let { mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(it)) }
@@ -187,7 +155,4 @@ class ActivateTeamControllerIT : TeamBalanceIT() {
             teamId, userId,
         )
     }
-
-    private fun sha256(value: String): String =
-        MessageDigest.getInstance("SHA-256").digest(value.toByteArray()).joinToString("") { "%02x".format(it) }
 }

@@ -2,6 +2,7 @@ package com.github.zzave.teambalance.api.interfaces
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.github.zzave.teambalance.api.TeamBalanceIT
+import com.github.zzave.teambalance.api.application.SecureTokens
 import com.github.zzave.teambalance.api.infrastructure.multitenancy.TenantSchemaAdapter
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
@@ -11,7 +12,6 @@ import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers
-import java.security.MessageDigest
 
 private const val JAN_USER_ID = "c0000000-0000-0000-0000-000000000001"
 private const val LISA_USER_ID = "c0000000-0000-0000-0000-000000000002"
@@ -23,7 +23,7 @@ private const val TEAM_ID = "a0000000-0000-0000-0000-000000000001"
 private const val TEST_SALT = "test-invitation-salt"
 
 private fun sha256Hex(salt: String, token: String): String =
-    MessageDigest.getInstance("SHA-256").digest((salt + token).toByteArray()).joinToString("") { "%02x".format(it) }
+    SecureTokens.sha256Hex((salt + token).toByteArray())
 
 @AutoConfigureMockMvc
 class InvitationControllerTest : TeamBalanceIT() {

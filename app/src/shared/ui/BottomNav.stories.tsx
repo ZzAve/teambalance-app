@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { expect } from 'storybook/test'
 import { withRouter } from '@shared/testing/router-decorator'
+import { authenticatedUser, withAuthMe } from '@shared/testing/auth-decorator'
 import { BottomNav } from './BottomNav'
 
 // BottomNav renders TanStack Router <Link>s, so it needs a router in context — supplied by the
@@ -9,7 +10,8 @@ import { BottomNav } from './BottomNav'
 // different path (via parameters.router.initialEntries) to pin the active-state wiring.
 //
 // The tab targets are built from the slug in the path the bar is rendered on (ADR-0023 §2), which is
-// why starting the router at a path is enough to drive them — there is no store to prime.
+// why starting the router at a path is enough to drive them. Only the slug-less /account falls back
+// to the Active Team of the session, primed through `parameters.authMe`.
 //
 // Covered entirely by the page composites (ADR-0032 §3): every page renders BottomNav in its real
 // frame, so no story here carries a picture. `parameters.router.initialEntries` is a per-story
@@ -18,7 +20,7 @@ import { BottomNav } from './BottomNav'
 const meta = {
   title: 'shared/ui/BottomNav',
   component: BottomNav,
-  decorators: [withRouter],
+  decorators: [withAuthMe, withRouter],
 } satisfies Meta<typeof BottomNav>
 
 export default meta
@@ -104,12 +106,12 @@ export const TeamSettingsActive: Story = {
 }
 
 // Profile is the team-independent /account (ADR-0027 §1), so it is active there regardless of slug.
-// /account carries no slug, so the other tabs collapse to the dispatcher `/` — the accepted
-// teamless-bar behaviour (ADR-0027 consequences) — while Profile still points at its constant.
-// Picture owned by the page composites (ADR-0032 §3).
+// /account carries no slug, so the other tabs are built from the Active Team; Profile still points
+// at its constant. Picture owned by the page composites (ADR-0032 §3).
 export const ProfileActive: Story = {
   parameters: {
     router: { initialEntries: ['/account'] },
+    authMe: authenticatedUser({ id: 't1', name: 'Setpoint VT', slug: 'setpoint-vt' }),
     chromatic: { disableSnapshot: true },
   },
   play: async ({ canvas }) => {
@@ -119,7 +121,24 @@ export const ProfileActive: Story = {
     await expect(canvas.getByRole('link', { name: 'Events' })).not.toHaveClass('text-blue')
     await expect(canvas.getByRole('link', { name: 'Team' })).not.toHaveClass('text-blue')
     await expect(canvas.getByRole('link', { name: 'Money' })).not.toHaveClass('text-blue')
-    // With no slug in scope the non-Profile tabs point at the dispatcher.
+    // The tabs open the Active Team's screens, not the dispatcher.
+    await expect(canvas.getByRole('link', { name: 'Events' })).toHaveAttribute('href', '/t/setpoint-vt')
+    await expect(canvas.getByRole('link', { name: 'Team' })).toHaveAttribute('href', '/t/setpoint-vt/team')
+    await expect(canvas.getByRole('link', { name: 'Money' })).toHaveAttribute('href', '/t/setpoint-vt/money')
+  },
+}
+
+// A teamless user on /account has no Active Team to build from, so the tabs keep the dispatcher `/`
+// — the accepted teamless-bar behaviour (ADR-0027 consequences).
+export const ProfileActiveTeamless: Story = {
+  parameters: {
+    router: { initialEntries: ['/account'] },
+    authMe: authenticatedUser(undefined),
+    chromatic: { disableSnapshot: true },
+  },
+  play: async ({ canvas }) => {
     await expect(canvas.getByRole('link', { name: 'Events' })).toHaveAttribute('href', '/')
+    await expect(canvas.getByRole('link', { name: 'Team' })).toHaveAttribute('href', '/')
+    await expect(canvas.getByRole('link', { name: 'Profile' })).toHaveAttribute('href', '/account')
   },
 }

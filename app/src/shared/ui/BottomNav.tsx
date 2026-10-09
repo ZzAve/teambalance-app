@@ -1,5 +1,6 @@
 import { Link, useRouterState } from '@tanstack/react-router'
 import { Calendar, Users, PiggyBank, User, type LucideIcon } from 'lucide-react'
+import { useAuthMe } from '@shared/api/auth'
 import { ACCOUNT_PATH, teamRoutes, teamSlugFromPath, type TeamRoutes } from '@shared/lib/team-routes'
 
 interface TabConfig {
@@ -13,6 +14,7 @@ interface TabConfig {
 }
 
 // Built from the slug in the URL rather than a store, so switching Team makes every tab follow.
+// Only the team-independent routes (/account) carry no slug; there the Active Team stands in.
 function tabsFor(routes: TeamRoutes): TabConfig[] {
   const exact = (path: string) => (p: string) => p.replace(/\/$/, '') === path
   const prefix = (path: string) => (p: string) => p === path || p.startsWith(`${path}/`)
@@ -29,7 +31,8 @@ function tabsFor(routes: TeamRoutes): TabConfig[] {
 
 export function BottomNav() {
   const pathname = useRouterState({ select: (s) => s.location.pathname })
-  const TABS = tabsFor(teamRoutes(teamSlugFromPath(pathname)))
+  const activeTeamSlug = useAuthMe().data?.activeTeam?.slug
+  const TABS = tabsFor(teamRoutes(teamSlugFromPath(pathname) ?? activeTeamSlug ?? null))
 
   return (
     <nav

@@ -9,10 +9,10 @@ const SETTER = { id: 'pos-setter', label: 'Setter' }
 
 // The Team's list as the server returns it: ordered by name.
 const TEAM_LIST = [
-  { id: 'sub-anna', name: 'Anna Smit', position: SETTER },
-  { id: 'sub-jan', name: 'Jan de Vries', position: LIBERO },
-  { id: 'sub-mila', name: 'Mila Jansen', position: undefined },
-  { id: 'sub-pim', name: 'Pim Kok', position: LIBERO },
+  { id: 'sub-anna', name: 'Anna Smit', position: SETTER, shirtNumber: undefined },
+  { id: 'sub-jan', name: 'Jan de Vries', position: LIBERO, shirtNumber: undefined },
+  { id: 'sub-mila', name: 'Mila Jansen', position: undefined, shirtNumber: undefined },
+  { id: 'sub-pim', name: 'Pim Kok', position: LIBERO, shirtNumber: undefined },
 ]
 
 describe('groupForPosition', () => {

@@ -148,6 +148,10 @@ class NameTakenException(name: String) :
 class ShirtNumberTakenException(number: ShirtNumber) :
     ConflictException("Shirt number $number is already worn by another member of this team", "NUMBER_TAKEN")
 
+// Same code as for a Member: the form shows it under the same field. Checked among Substitutes only.
+class SubstituteShirtNumberTakenException(number: ShirtNumber) :
+    ConflictException("Shirt number $number is already worn by another substitute", "NUMBER_TAKEN")
+
 class LastAdminException(teamId: TeamId) :
     ConflictException("Team $teamId must keep at least one admin", "LAST_ADMIN")
 

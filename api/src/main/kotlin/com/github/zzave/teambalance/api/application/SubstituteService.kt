@@ -4,10 +4,12 @@ import com.github.zzave.teambalance.api.domain.exception.EventNotFoundException
 import com.github.zzave.teambalance.api.domain.exception.PositionNotFoundException
 import com.github.zzave.teambalance.api.domain.exception.SubstituteNameTakenException
 import com.github.zzave.teambalance.api.domain.exception.SubstituteNotFoundException
+import com.github.zzave.teambalance.api.domain.exception.SubstituteShirtNumberTakenException
 import com.github.zzave.teambalance.api.domain.model.AttendanceState
 import com.github.zzave.teambalance.api.domain.model.DisplayName
 import com.github.zzave.teambalance.api.domain.model.EventId
 import com.github.zzave.teambalance.api.domain.model.PositionId
+import com.github.zzave.teambalance.api.domain.model.ShirtNumber
 import com.github.zzave.teambalance.api.domain.model.Substitute
 import com.github.zzave.teambalance.api.domain.model.SubstituteAttendance
 import com.github.zzave.teambalance.api.domain.model.SubstituteId
@@ -42,18 +44,23 @@ class SubstituteService(
         return substituteRepository.create(name, positionId, callerId)
     }
 
-    /** Admin-only. Saves the name and the Position together; a null [positionId] clears it. */
+    /**
+     * Admin-only. Saves the name, the Position and the Shirt Number together; null clears the Position
+     * or the number.
+     */
     fun updateSubstitute(
         callerId: UserId,
         teamId: TeamId,
         id: SubstituteId,
         rawName: String,
         positionId: PositionId?,
+        shirtNumber: Int? = null,
     ): Substitute {
         authorizationService.requireAdmin(callerId, teamId)
         val name = validName(rawName, excluding = id)
         requireKnownPosition(positionId)
-        return substituteRepository.update(id, name, positionId) ?: throw SubstituteNotFoundException(id)
+        val number = validShirtNumber(shirtNumber, excluding = id)
+        return substituteRepository.update(id, name, positionId, number) ?: throw SubstituteNotFoundException(id)
     }
 
     /** Admin-only: the remove dialog states how many Events the removal takes the Substitute off. */
@@ -99,6 +106,15 @@ class SubstituteService(
         val taken = substituteRepository.list().any { it.id != excluding && it.name.value.equals(name, ignoreCase = true) }
         if (taken) throw SubstituteNameTakenException(name)
         return DisplayName(name)
+    }
+
+    // Unique among Substitutes only: a Substitute often wears a borrowed shirt, so a Member's number is
+    // no reason to refuse (ADR-0038).
+    private fun validShirtNumber(rawNumber: Int?, excluding: SubstituteId): ShirtNumber? {
+        val number = rawNumber?.let(::ShirtNumber) ?: return null
+        val taken = substituteRepository.list().any { it.id != excluding && it.shirtNumber == number }
+        if (taken) throw SubstituteShirtNumberTakenException(number)
+        return number
     }
 
     private fun requireKnownPosition(positionId: PositionId?) {

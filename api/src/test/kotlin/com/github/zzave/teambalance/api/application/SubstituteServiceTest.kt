@@ -1,6 +1,7 @@
 package com.github.zzave.teambalance.api.application
 
 import com.github.zzave.teambalance.api.domain.exception.NotTeamAdminException
+import com.github.zzave.teambalance.api.domain.exception.SubstituteShirtNumberTakenException
 import com.github.zzave.teambalance.api.domain.exception.SubstituteNameTakenException
 import com.github.zzave.teambalance.api.domain.exception.SubstituteNotFoundException
 import com.github.zzave.teambalance.api.domain.model.AttendanceState
@@ -11,6 +12,7 @@ import com.github.zzave.teambalance.api.domain.model.PositionId
 import com.github.zzave.teambalance.api.domain.model.PositionKind
 import com.github.zzave.teambalance.api.domain.model.PositionLabel
 import com.github.zzave.teambalance.api.domain.model.Role
+import com.github.zzave.teambalance.api.domain.model.ShirtNumber
 import com.github.zzave.teambalance.api.domain.model.Substitute
 import com.github.zzave.teambalance.api.domain.model.SubstituteAttendance
 import com.github.zzave.teambalance.api.domain.model.SubstituteId
@@ -37,8 +39,12 @@ private class FakeSubstituteRepository : SubstituteRepository {
     override fun create(name: DisplayName, positionId: PositionId?, createdBy: UserId): Substitute =
         Substitute(SubstituteId(UUID.randomUUID()), name, positionId, position = null).also { store[it.id] = it }
 
-    override fun update(id: SubstituteId, name: DisplayName, positionId: PositionId?): Substitute? =
-        store[id]?.copy(name = name, positionId = positionId)?.also { store[id] = it }
+    override fun update(
+        id: SubstituteId,
+        name: DisplayName,
+        positionId: PositionId?,
+        shirtNumber: ShirtNumber?,
+    ): Substitute? = store[id]?.copy(name = name, positionId = positionId, shirtNumber = shirtNumber)?.also { store[id] = it }
 
     override fun delete(id: SubstituteId) {
         store.remove(id)
@@ -161,6 +167,35 @@ class SubstituteServiceTest : FunSpec() {
 
             service.substituteEventCount(adminId, teamId, jan.id) shouldBe UsageCount(EVENTS_PER_SUBSTITUTE)
             shouldThrow<NotTeamAdminException> { service.substituteEventCount(memberId, teamId, jan.id) }
+        }
+
+        test("an admin gives a substitute a shirt number, and null clears it") {
+            val service = newService()
+            val jan = service.createSubstitute(memberId, teamId, "Jan", positionId = null)
+
+            service.updateSubstitute(adminId, teamId, jan.id, "Jan", null, shirtNumber = 7).shirtNumber shouldBe
+                ShirtNumber(7)
+            service.updateSubstitute(adminId, teamId, jan.id, "Jan", null, shirtNumber = null).shirtNumber shouldBe null
+        }
+
+        test("a shirt number outside 0..999 is refused") {
+            val service = newService()
+            val jan = service.createSubstitute(memberId, teamId, "Jan", positionId = null)
+
+            shouldThrow<IllegalArgumentException> { service.updateSubstitute(adminId, teamId, jan.id, "Jan", null, 1000) }
+        }
+
+        test("two substitutes cannot share a number, but a substitute keeps their own") {
+            val service = newService()
+            val jan = service.createSubstitute(memberId, teamId, "Jan", positionId = null)
+            val sam = service.createSubstitute(memberId, teamId, "Sam", positionId = null)
+            service.updateSubstitute(adminId, teamId, jan.id, "Jan", null, shirtNumber = 7)
+
+            shouldThrow<SubstituteShirtNumberTakenException> {
+                service.updateSubstitute(adminId, teamId, sam.id, "Sam", null, shirtNumber = 7)
+            }
+            service.updateSubstitute(adminId, teamId, jan.id, "Jan B", null, shirtNumber = 7).shirtNumber shouldBe
+                ShirtNumber(7)
         }
 
         test("renaming an unknown substitute is not found") {

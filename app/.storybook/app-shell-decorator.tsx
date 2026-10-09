@@ -2,6 +2,7 @@ import type { Decorator } from '@storybook/react-vite'
 import { AppShellFrame } from '@shared/ui/AppShellFrame'
 import { BottomNav } from '@shared/ui/BottomNav'
 import { withRouter } from '@shared/testing/router-decorator'
+import { AuthMeProvider, authenticatedUser } from '@shared/testing/auth-decorator'
 import type { TeamRef } from '@shared/api/teams'
 import { TeamSwitcherView } from '@features/switch-team/ui/TeamSwitcherView'
 
@@ -37,12 +38,14 @@ export const withAppShell: Decorator = (Story) => (
   // bar one viewport down — across the middle of the picture, over whatever card is there. Pinning
   // it to the frame instead puts it under the content, where a reader expects it.
   <div className="contain-layout">
-    <AppShellFrame
-      teamSwitcher={<TeamSwitcherView teams={[SHELL_TEAM]} activeTeam={SHELL_TEAM} onSelect={() => {}} />}
-      nav={<BottomNav />}
-    >
-      <Story />
-    </AppShellFrame>
+    <AuthMeProvider user={authenticatedUser(SHELL_TEAM)}>
+      <AppShellFrame
+        teamSwitcher={<TeamSwitcherView teams={[SHELL_TEAM]} activeTeam={SHELL_TEAM} onSelect={() => {}} />}
+        nav={<BottomNav />}
+      >
+        <Story />
+      </AppShellFrame>
+    </AuthMeProvider>
   </div>
 )
 

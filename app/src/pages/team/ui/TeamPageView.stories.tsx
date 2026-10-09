@@ -47,12 +47,13 @@ const substitutes = (
   <ManageSubstitutesView
     canManage={false}
     substitutes={[
-      { id: 's1', name: 'Jan de Vries', position: { id: 'p2', label: 'Libero' } },
-      { id: 's2', name: 'Sam Bakker', position: undefined },
+      { id: 's1', name: 'Jan de Vries', position: { id: 'p2', label: 'Libero' }, shirtNumber: undefined },
+      { id: 's2', name: 'Sam Bakker', position: undefined, shirtNumber: undefined },
     ]}
     positions={POSITIONS}
     onRename={noop}
     onChangePosition={noop}
+    onChangeShirtNumber={noop}
     onRemove={noop}
   />
 )

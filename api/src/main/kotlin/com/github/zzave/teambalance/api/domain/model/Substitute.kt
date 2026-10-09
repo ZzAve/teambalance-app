@@ -23,6 +23,8 @@ data class Substitute(
     val name: DisplayName,
     val positionId: PositionId?,
     val position: PositionLabel?,
+    // Unique among Substitutes only; may equal a Member's (ADR-0038).
+    val shirtNumber: ShirtNumber? = null,
 )
 
 /**

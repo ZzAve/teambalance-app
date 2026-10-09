@@ -15,7 +15,8 @@ interface SpringDataSubstituteRepository : JpaRepository<SubstituteJpaEntity, UU
             SELECT s.id::text          AS id,
                    s.name              AS name,
                    s.position_id::text AS positionId,
-                   p.label             AS position
+                   p.label             AS position,
+                   s.shirt_number      AS shirtNumber
             FROM   substitutes s
             LEFT   JOIN positions p ON p.id = s.position_id
             ORDER  BY lower(s.name)
@@ -73,6 +74,7 @@ interface SpringDataSubstituteRepository : JpaRepository<SubstituteJpaEntity, UU
                    s.name                AS name,
                    s.position_id::text   AS positionId,
                    p.label               AS position,
+                   s.shirt_number        AS shirtNumber,
                    sa.state              AS state,
                    sa.changed_by::text   AS changedBy,
                    sa.updated_at         AS updatedAt
@@ -93,6 +95,7 @@ interface SubstituteProjection {
     val name: String
     val positionId: String?
     val position: String?
+    val shirtNumber: Int?
 }
 
 interface SubstituteAttendanceProjection {
@@ -101,6 +104,7 @@ interface SubstituteAttendanceProjection {
     val name: String
     val positionId: String?
     val position: String?
+    val shirtNumber: Int?
     val state: String
     val changedBy: String
     val updatedAt: Instant

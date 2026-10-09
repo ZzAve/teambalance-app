@@ -63,6 +63,7 @@ class SubstituteController(
             id = request.path.id.consumeSubstituteId(),
             rawName = request.body.name,
             positionId = request.body.positionId?.consumePositionId(),
+            shirtNumber = request.body.shirtNumber?.toIntOrMax(),
         )
         return UpdateSubstitute.Response200(updated.produce())
     }
@@ -117,6 +118,7 @@ private fun Substitute.produce() = SubstituteDto(
     id = id.value.toString(),
     name = name.value,
     position = positionReference(positionId, position),
+    shirtNumber = shirtNumber?.value?.toLong(),
 )
 
 // internal: EventController's event payloads embed these entries.

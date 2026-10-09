@@ -92,4 +92,4 @@ private fun TeamMember.toDto() = Member(
 
 // Saturates instead of wrapping, so a number past Int range is rejected as out of range rather than
 // silently becoming a valid one.
-private fun Long.toIntOrMax(): Int = if (this in Int.MIN_VALUE.toLong()..Int.MAX_VALUE.toLong()) toInt() else Int.MAX_VALUE
+internal fun Long.toIntOrMax(): Int = if (this in Int.MIN_VALUE.toLong()..Int.MAX_VALUE.toLong()) toInt() else Int.MAX_VALUE

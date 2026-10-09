@@ -1,8 +1,9 @@
-// A person outside the Team whom the Team can call in for an Event (ADR-0033). Not a Member: no account, no Role, not on the Roster. `position` reuses the member's reference shape, since both are shown in the same Position groups.
+// A person outside the Team whom the Team can call in for an Event (ADR-0033). Not a Member: no account, no Role, not on the Roster. `position` reuses the member's reference shape, since both are shown in the same Position groups. `shirtNumber` is the fixed number on the Substitute list (ADR-0038); it may equal a Member's.
 type Substitute {
     id: String,
     name: String,
-    position: MemberPosition?
+    position: MemberPosition?,
+    shirtNumber: Integer?
 }
 
 type SubstituteList {
@@ -43,10 +44,11 @@ endpoint RemoveSubstituteAttendance DELETE /api/events/{eventId: String}/substit
     404 -> Unit
 }
 
-// Admin-only, like editing a Member: the name and the Position are saved together, so a Position change resends the current name. A changed Position applies to every Event the Substitute is on, past ones included, because Events read the Substitute's current Position.
+// Admin-only, like editing a Member: the name, the Position and the Shirt Number are saved together, so changing one resends the others; a missing or null `shirtNumber` clears it. A changed Position applies to every Event the Substitute is on, past ones included, because Events read the Substitute's current Position. 409 SUBSTITUTE_NAME_TAKEN or NUMBER_TAKEN: a number is unique among Substitutes only (ADR-0038); 400 outside 0..999.
 type UpdateSubstituteRequest {
     name: String,
-    positionId: String?
+    positionId: String?,
+    shirtNumber: Integer?
 }
 
 endpoint UpdateSubstitute PUT UpdateSubstituteRequest /api/substitutes/{id: String} -> {

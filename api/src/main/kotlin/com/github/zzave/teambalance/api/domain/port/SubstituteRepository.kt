@@ -4,6 +4,7 @@ import com.github.zzave.teambalance.api.domain.model.AttendanceState
 import com.github.zzave.teambalance.api.domain.model.DisplayName
 import com.github.zzave.teambalance.api.domain.model.EventId
 import com.github.zzave.teambalance.api.domain.model.PositionId
+import com.github.zzave.teambalance.api.domain.model.ShirtNumber
 import com.github.zzave.teambalance.api.domain.model.Substitute
 import com.github.zzave.teambalance.api.domain.model.SubstituteAttendance
 import com.github.zzave.teambalance.api.domain.model.SubstituteId
@@ -20,8 +21,11 @@ interface SubstituteRepository {
 
     fun create(name: DisplayName, positionId: PositionId?, createdBy: UserId): Substitute
 
-    /** Replaces the Substitute's name and Position; a null [positionId] clears it. Null when they are gone. */
-    fun update(id: SubstituteId, name: DisplayName, positionId: PositionId?): Substitute?
+    /**
+     * Replaces the Substitute's name, Position and Shirt Number; null clears the Position or the number.
+     * Null when they are gone.
+     */
+    fun update(id: SubstituteId, name: DisplayName, positionId: PositionId?, shirtNumber: ShirtNumber?): Substitute?
 
     /** Deletes the Substitute; the schema's ON DELETE CASCADE takes their attendance on every Event with them. */
     fun delete(id: SubstituteId)

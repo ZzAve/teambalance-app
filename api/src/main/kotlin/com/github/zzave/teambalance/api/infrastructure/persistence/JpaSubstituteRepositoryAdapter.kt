@@ -6,6 +6,7 @@ import com.github.zzave.teambalance.api.domain.model.DisplayName
 import com.github.zzave.teambalance.api.domain.model.EventId
 import com.github.zzave.teambalance.api.domain.model.PositionId
 import com.github.zzave.teambalance.api.domain.model.PositionLabel
+import com.github.zzave.teambalance.api.domain.model.ShirtNumber
 import com.github.zzave.teambalance.api.domain.model.Substitute
 import com.github.zzave.teambalance.api.domain.model.SubstituteAttendance
 import com.github.zzave.teambalance.api.domain.model.SubstituteId
@@ -35,6 +36,7 @@ class JpaSubstituteRepositoryAdapter(
             name = DisplayName(it.name),
             positionId = it.positionId?.let { id -> PositionId(UUID.fromString(id)) },
             position = it.position?.let(::PositionLabel),
+            shirtNumber = it.shirtNumber?.let(::ShirtNumber),
         )
     }
 
@@ -47,10 +49,16 @@ class JpaSubstituteRepositoryAdapter(
     }
 
     @Transactional
-    override fun update(id: SubstituteId, name: DisplayName, positionId: PositionId?): Substitute? {
+    override fun update(
+        id: SubstituteId,
+        name: DisplayName,
+        positionId: PositionId?,
+        shirtNumber: ShirtNumber?,
+    ): Substitute? {
         val entity = jpaRepository.findById(id.value).orElse(null) ?: return null
         entity.name = name.value
         entity.positionId = positionId?.value
+        entity.shirtNumber = shirtNumber?.value
         return jpaRepository.saveRefusingTakenName(entity).toDomain()
     }
 
@@ -95,6 +103,7 @@ class JpaSubstituteRepositoryAdapter(
         name = DisplayName(name),
         positionId = positionId?.let(::PositionId),
         position = positionId?.let { positionJpaRepository.findById(it).orElse(null) }?.let { PositionLabel(it.label) },
+        shirtNumber = shirtNumber?.let(::ShirtNumber),
     )
 
     private fun SubstituteAttendanceProjection.toDomain() = SubstituteAttendance(
@@ -103,6 +112,7 @@ class JpaSubstituteRepositoryAdapter(
             name = DisplayName(name),
             positionId = positionId?.let { PositionId(UUID.fromString(it)) },
             position = position?.let(::PositionLabel),
+            shirtNumber = shirtNumber?.let(::ShirtNumber),
         ),
         state = AttendanceState.valueOf(state),
         changedBy = UserId(UUID.fromString(changedBy)),

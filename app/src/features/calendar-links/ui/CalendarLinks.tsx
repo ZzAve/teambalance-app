@@ -1,6 +1,5 @@
-import { useState } from 'react'
-import type { CalendarLink } from '@shared/api/calendar-links'
 import { useCalendarLinks, useCreateCalendarLink, useDeleteCalendarLink } from '@shared/api/calendar-links'
+import { useCopyToClipboard } from '@shared/lib/copy-to-clipboard'
 import { CalendarLinksView } from './CalendarLinksView'
 
 /**
@@ -11,26 +10,7 @@ export function CalendarLinks() {
   const { data: links, isLoading, isError, refetch } = useCalendarLinks()
   const createLink = useCreateCalendarLink()
   const deleteLink = useDeleteCalendarLink()
-  const [copiedId, setCopiedId] = useState<string | null>(null)
-  const [copyFailedId, setCopyFailedId] = useState<string | null>(null)
-
-  const clearCopyFeedback = () => {
-    setCopiedId(null)
-    setCopyFailedId(null)
-  }
-
-  const handleCopy = async (link: CalendarLink) => {
-    if (!link.url) return
-    try {
-      await navigator.clipboard.writeText(link.url)
-      setCopiedId(link.id)
-      setCopyFailedId(null)
-    } catch {
-      // Refused (permission denied, insecure context, some in-app browsers): the View shows the URL instead.
-      setCopiedId(null)
-      setCopyFailedId(link.id)
-    }
-  }
+  const clipboard = useCopyToClipboard()
 
   return (
     <CalendarLinksView
@@ -39,17 +19,17 @@ export function CalendarLinks() {
       isError={isError}
       isSaving={createLink.isPending || deleteLink.isPending}
       actionError={createLink.isError || deleteLink.isError}
-      copiedId={copiedId}
-      copyFailedId={copyFailedId}
+      copiedId={clipboard.copiedKey}
+      copyFailedId={clipboard.failedKey}
       onGenerate={(label) => {
         deleteLink.reset()
-        createLink.mutate({ label }, { onSuccess: clearCopyFeedback })
+        createLink.mutate({ label }, { onSuccess: clipboard.reset })
       }}
       onDelete={(id) => {
         createLink.reset()
-        deleteLink.mutate({ id }, { onSuccess: clearCopyFeedback })
+        deleteLink.mutate({ id }, { onSuccess: clipboard.reset })
       }}
-      onCopy={handleCopy}
+      onCopy={(link) => link.url && clipboard.copy(link.url, link.id)}
       onRetry={() => refetch()}
     />
   )

@@ -3,7 +3,6 @@ package com.github.zzave.teambalance.api.interfaces
 import com.github.zzave.teambalance.api.application.MemberService
 import com.github.zzave.teambalance.api.domain.model.Role
 import com.github.zzave.teambalance.api.domain.model.TeamMember
-import com.github.zzave.teambalance.api.domain.port.RequestScopeGateway
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.CompleteOnboarding
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.GetCurrentMember
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.ListMembers
@@ -17,7 +16,7 @@ import org.springframework.web.bind.annotation.RestController
 @RestController
 class MemberController(
     private val memberService: MemberService,
-    private val requestScope: RequestScopeGateway,
+    private val requestScope: RequestScope,
 ) : GetCurrentMember.Handler,
     ListMembers.Handler,
     UpdateMember.Handler,

@@ -2,7 +2,6 @@ package com.github.zzave.teambalance.api.interfaces
 
 import com.github.zzave.teambalance.api.application.SeasonService
 import com.github.zzave.teambalance.api.domain.model.Season as DomainSeason
-import com.github.zzave.teambalance.api.domain.port.RequestScopeGateway
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.GetSeason
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.SetSeason
 import com.github.zzave.teambalance.api.interfaces.generated.model.Season
@@ -13,7 +12,7 @@ import java.time.LocalDate
 @RestController
 class SeasonController(
     private val seasonService: SeasonService,
-    private val requestScope: RequestScopeGateway,
+    private val requestScope: RequestScope,
 ) : GetSeason.Handler,
     SetSeason.Handler {
 

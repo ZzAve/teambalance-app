@@ -4,7 +4,6 @@ import com.github.zzave.teambalance.api.application.InvitationService
 import com.github.zzave.teambalance.api.domain.model.Role
 import com.github.zzave.teambalance.api.domain.model.TeamId
 import com.github.zzave.teambalance.api.domain.port.CurrentUserGateway
-import com.github.zzave.teambalance.api.domain.port.RequestScopeGateway
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.AcceptInvitation
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.CreateAdminInvitation
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.CreateInvitation
@@ -22,7 +21,7 @@ import org.springframework.web.bind.annotation.RestController
 class InvitationController(
     private val invitationService: InvitationService,
     private val currentUserGateway: CurrentUserGateway,
-    private val requestScope: RequestScopeGateway,
+    private val requestScope: RequestScope,
 ) : CreateInvitation.Handler,
     CreateAdminInvitation.Handler,
     GetActiveAdminInvitation.Handler,

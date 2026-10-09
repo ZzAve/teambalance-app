@@ -12,7 +12,6 @@ import com.github.zzave.teambalance.api.domain.model.EventSeriesScope as DomainE
 import com.github.zzave.teambalance.api.domain.model.EventTitle
 import com.github.zzave.teambalance.api.domain.model.RosterFill
 import com.github.zzave.teambalance.api.domain.model.UserId
-import com.github.zzave.teambalance.api.domain.port.RequestScopeGateway
 import com.github.zzave.teambalance.api.interfaces.generated.model.EventSeriesScope as GeneratedEventSeriesScope
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.CreateEvent
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.DeleteEvent
@@ -33,7 +32,7 @@ import java.util.UUID
 class EventController(
     private val eventService: EventService,
     private val eventQueries: EventQueries,
-    private val requestScope: RequestScopeGateway,
+    private val requestScope: RequestScope,
 ) : ListEvents.Handler,
     CreateEvent.Handler,
     GetEvent.Handler,

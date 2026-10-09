@@ -3,7 +3,6 @@ package com.github.zzave.teambalance.api.interfaces
 import com.github.zzave.teambalance.api.application.PositionService
 import com.github.zzave.teambalance.api.domain.model.Position
 import com.github.zzave.teambalance.api.domain.model.PositionId
-import com.github.zzave.teambalance.api.domain.port.RequestScopeGateway
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.CreatePosition
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.DeletePosition
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.GetPositionUsage
@@ -19,7 +18,7 @@ import com.github.zzave.teambalance.api.interfaces.generated.model.Position as P
 @RestController
 class PositionController(
     private val positionService: PositionService,
-    private val requestScope: RequestScopeGateway,
+    private val requestScope: RequestScope,
 ) : ListPositions.Handler,
     CreatePosition.Handler,
     RenamePosition.Handler,

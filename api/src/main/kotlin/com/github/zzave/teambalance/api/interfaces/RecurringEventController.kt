@@ -6,7 +6,6 @@ import com.github.zzave.teambalance.api.domain.model.EventDescription
 import com.github.zzave.teambalance.api.domain.model.EventLocation
 import com.github.zzave.teambalance.api.domain.model.Recurrence
 import com.github.zzave.teambalance.api.domain.model.RecurrenceFrequency as DomainRecurrenceFrequency
-import com.github.zzave.teambalance.api.domain.port.RequestScopeGateway
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.CreateRecurringEvents
 import com.github.zzave.teambalance.api.interfaces.generated.model.RecurrenceFrequency
 import com.github.zzave.teambalance.api.interfaces.generated.model.RecurringEventSeries
@@ -21,7 +20,7 @@ import java.util.UUID
 class RecurringEventController(
     private val eventService: EventService,
     private val eventQueries: EventQueries,
-    private val requestScope: RequestScopeGateway,
+    private val requestScope: RequestScope,
 ) : CreateRecurringEvents.Handler {
 
     // Admin-only, mirroring single-event create — enforced in EventService.createRecurringEvents.

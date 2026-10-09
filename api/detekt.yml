@@ -117,7 +117,7 @@ hexagonal-dependency:
     # services pure functions of their parameters (see #19 / ADR-0018). Exempted by exact type name,
     # so no other port slips through; AuthController's TeamMemberRepository dependency is a real
     # breach and stays baselined.
-    allowedPortTypes: ['CurrentUserGateway', 'CurrentTeamGateway', 'RequestScopeGateway']
+    allowedPortTypes: ['CurrentUserGateway', 'CurrentTeamGateway']
 
 hexagonal-layering:
   active: true

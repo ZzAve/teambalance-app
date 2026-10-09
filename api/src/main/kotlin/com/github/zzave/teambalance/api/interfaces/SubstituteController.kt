@@ -7,7 +7,6 @@ import com.github.zzave.teambalance.api.domain.model.PositionLabel
 import com.github.zzave.teambalance.api.domain.model.Substitute
 import com.github.zzave.teambalance.api.domain.model.SubstituteAttendance
 import com.github.zzave.teambalance.api.domain.model.SubstituteId
-import com.github.zzave.teambalance.api.domain.port.RequestScopeGateway
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.CreateSubstitute
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.DeleteSubstitute
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.GetSubstituteUsage
@@ -27,7 +26,7 @@ import com.github.zzave.teambalance.api.interfaces.generated.model.Substitute as
 @RestController
 class SubstituteController(
     private val substituteService: SubstituteService,
-    private val requestScope: RequestScopeGateway,
+    private val requestScope: RequestScope,
 ) : ListSubstitutes.Handler,
     CreateSubstitute.Handler,
     UpdateSubstitute.Handler,

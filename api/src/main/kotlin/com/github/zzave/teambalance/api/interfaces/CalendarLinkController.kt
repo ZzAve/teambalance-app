@@ -3,7 +3,6 @@ package com.github.zzave.teambalance.api.interfaces
 import com.github.zzave.teambalance.api.application.CalendarLinkService
 import com.github.zzave.teambalance.api.application.IssuedCalendarLink
 import com.github.zzave.teambalance.api.domain.model.CalendarLinkId
-import com.github.zzave.teambalance.api.domain.port.RequestScopeGateway
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.CreateCalendarLink
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.DeleteCalendarLink
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.ListCalendarLinks
@@ -20,7 +19,7 @@ import com.github.zzave.teambalance.api.interfaces.generated.model.CalendarLink 
 @RestController
 class CalendarLinkController(
     private val calendarLinkService: CalendarLinkService,
-    private val requestScope: RequestScopeGateway,
+    private val requestScope: RequestScope,
 ) : ListCalendarLinks.Handler,
     CreateCalendarLink.Handler,
     DeleteCalendarLink.Handler {

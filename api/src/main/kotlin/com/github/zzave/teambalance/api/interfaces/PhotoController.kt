@@ -3,7 +3,6 @@ package com.github.zzave.teambalance.api.interfaces
 import com.github.zzave.teambalance.api.application.PhotoService
 import com.github.zzave.teambalance.api.domain.model.Photo
 import com.github.zzave.teambalance.api.domain.port.CurrentUserGateway
-import com.github.zzave.teambalance.api.domain.port.RequestScopeGateway
 import jakarta.servlet.http.HttpServletRequest
 import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
@@ -31,7 +30,7 @@ import org.springframework.web.bind.annotation.RestController
 class PhotoController(
     private val photoService: PhotoService,
     private val currentUserGateway: CurrentUserGateway,
-    private val requestScope: RequestScopeGateway,
+    private val requestScope: RequestScope,
 ) {
     @GetMapping("/api/members/{userId}/photo")
     fun teamPhoto(@PathVariable userId: String): ResponseEntity<ByteArray> {

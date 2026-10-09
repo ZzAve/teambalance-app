@@ -6,7 +6,6 @@ import com.github.zzave.teambalance.api.domain.model.EventTypeId
 import com.github.zzave.teambalance.api.domain.model.EventTypeName
 import com.github.zzave.teambalance.api.domain.model.HexColor
 import com.github.zzave.teambalance.api.domain.port.CurrentUserGateway
-import com.github.zzave.teambalance.api.domain.port.RequestScopeGateway
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.ArchiveEventType
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.CreateEventType
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.ListEventTypes
@@ -21,7 +20,7 @@ import java.util.UUID
 class EventTypeController(
     private val eventTypeService: EventTypeService,
     private val currentUserGateway: CurrentUserGateway,
-    private val requestScope: RequestScopeGateway,
+    private val requestScope: RequestScope,
 ) : ListEventTypes.Handler,
     CreateEventType.Handler,
     UpdateEventType.Handler,

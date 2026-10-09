@@ -22,7 +22,7 @@ import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
  *
  * SECURITY CONTRACT — this primitive is only as safe as its [TeamScope]:
  * - A scope's user MUST be the authenticated principal and its team the request's Active Team. A
- *   [TeamScope] is constructed only by the request-scope adapter in production, never from a
+ *   [TeamScope] is constructed only by `RequestScope` in production, never from a
  *   user-supplied id in a request body/path/query — otherwise this is trivially bypassed.
  * - The team may be caller-influenced — a slug in a shared link, a Team picked in the switcher — and
  *   is made safe by being validated before the scope exists rather than by never reaching here. A team

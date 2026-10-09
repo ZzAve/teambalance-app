@@ -6,7 +6,6 @@ import com.github.zzave.teambalance.api.domain.model.AttendanceState
 import com.github.zzave.teambalance.api.domain.model.MemberAttendance
 import com.github.zzave.teambalance.api.domain.model.PositionLabel
 import com.github.zzave.teambalance.api.domain.model.UNASSIGNED
-import com.github.zzave.teambalance.api.domain.port.RequestScopeGateway
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.BulkAttend
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.BulkUndoAttend
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.SetAttendance
@@ -22,7 +21,7 @@ import org.springframework.web.bind.annotation.RestController
 @RestController
 class AttendanceController(
     private val attendanceService: AttendanceService,
-    private val requestScope: RequestScopeGateway,
+    private val requestScope: RequestScope,
 ) : SetAttendance.Handler,
     BulkAttend.Handler,
     BulkUndoAttend.Handler {

@@ -5,7 +5,6 @@ import com.github.zzave.teambalance.api.application.EnteredActAs
 import com.github.zzave.teambalance.api.domain.model.ActAs as DomainActAs
 import com.github.zzave.teambalance.api.domain.model.TeamId
 import com.github.zzave.teambalance.api.domain.port.CurrentUserGateway
-import com.github.zzave.teambalance.api.domain.port.RequestScopeGateway
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.EnterActAs
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.ExitActAs
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.ListActAsRecords
@@ -29,7 +28,7 @@ import java.util.UUID
 class ActAsController(
     private val actAsService: ActAsService,
     private val currentUserGateway: CurrentUserGateway,
-    private val requestScope: RequestScopeGateway,
+    private val requestScope: RequestScope,
 ) : ListPlatformTeams.Handler,
     EnterActAs.Handler,
     ExitActAs.Handler,

@@ -79,18 +79,18 @@ See ADR-0017 for the full rationale and the Renovate-automerge policy this gate 
 
 ### Sanctioned exception
 
-Three render-gate tests use `msw/node` to render under controlled network conditions. They are the **only sanctioned exceptions** to the no-RTL rule; do not treat them as precedent.
+Two render-gate tests use `msw/node` to render under controlled network conditions. They are the **only sanctioned exceptions** to the no-RTL rule; do not treat them as precedent.
 
 - `app/src/app/providers/auth-gate.test.tsx`, `verify-flow.test.tsx` — the auth routing seam (fail-closed on network error, race between verify and /me) cannot be forced into a meaningful failure state against a real backend, and is not story-able (depends on React Router state and network interception beyond a story's reach).
-- `app/src/app/providers/invite-flow.test.tsx` — the invite-acceptance seam: the invite token is carried across two separate router mounts (`/invite/:token`, then `/auth/verify` on link-click) via `localStorage`, and the fail-closed accept ordering needs a valid magic-link token paired with a simultaneously-expired invite — unforceable against a real backend, and a single story can't mount two routes to assert the redirect. The pure email-match gate under the carry lives at the Vitest-unit layer (`shared/api/invitations.test.ts`); only the cross-mount seam stays as RTL.
+- There used to be a third, `invite-flow.test.tsx`, for carrying the invite token across router mounts through `localStorage`. [ADR-0031](adr/0031-invite-travels-with-the-magic-link-request.md) moved that carry onto the magic-link record, so no client-side seam is left; the cross-browser property is covered by `app/e2e-real/invite-cross-browser.spec.ts`.
 
-See CLAUDE.md for the full justification and the bar a fourth exception would have to clear.
+See CLAUDE.md for the full justification and the bar a third exception would have to clear.
 
 ## What is deliberately not tested
 
 The following are not covered, and that is intentional:
 
-- **`shared/api/*` TanStack Query hooks** — thin wrappers over Wirespec-generated calls; the seam they exercise (HTTP → server) is covered by e2e.
+- **TanStack Query hooks** (`entities/*/api/*`, and the cross-cutting ones left in `shared/api/*`) — thin wrappers over Wirespec-generated calls; the seam they exercise (HTTP → server) is covered by e2e. The pure pieces they share are unit-tested: query keys (`shared/api/query-keys.ts`), status-to-error mapping (`shared/api/errors.ts`) and the optimistic attendance patch (`entities/attendance/lib`).
 - **`shared/ui/*` shadcn primitives** — third-party components with their own test suites; wrapping them in stories adds no signal.
 - **`shared/lib/utils.cn`** — a one-liner re-export of clsx + tailwind-merge; trivial.
 

@@ -83,7 +83,7 @@ class MemberServiceTest : FunSpec() {
             val memberRepo = directory.teamMemberRepository()
             val positionRepo = MemberFakePositionRepo(listOf(setterPositionId to "Setter"))
             return Triple(
-                MemberService(userRepo, memberRepo, positionRepo, AuthorizationService(memberRepo, FakeActAsGateway()), fixedClock),
+                MemberService(memberRepo, positionRepo, AuthorizationService(memberRepo, FakeActAsGateway()), fixedClock),
                 userRepo,
                 memberRepo,
             )
@@ -97,32 +97,6 @@ class MemberServiceTest : FunSpec() {
         test("getMember throws MemberNotFoundException for a user not on the team") {
             val (service, _, _) = newService()
             shouldThrow<MemberNotFoundException> { service.getMember(TeamScope(janId, teamId), UserId.random()) }
-        }
-
-        test("updateOwnDisplayName trims surrounding whitespace") {
-            val (service, userRepo, _) = newService()
-            service.updateOwnDisplayName(TeamScope(janId, teamId), "  Jan Janssen  ").displayName shouldBe DisplayName("Jan Janssen")
-            userRepo.findById(janId)?.displayName shouldBe DisplayName("Jan Janssen")
-        }
-
-        test("updateOwnDisplayName rejects a blank name") {
-            val (service, _, _) = newService()
-            shouldThrow<IllegalArgumentException> { service.updateOwnDisplayName(TeamScope(janId, teamId), "   ") }
-        }
-
-        test("updateOwnDisplayName rejects a name longer than 100 characters") {
-            val (service, _, _) = newService()
-            shouldThrow<IllegalArgumentException> { service.updateOwnDisplayName(TeamScope(janId, teamId), "a".repeat(101)) }
-        }
-
-        test("updateOwnDisplayName rejects a name another member already uses (case-insensitive)") {
-            val (service, _, _) = newService()
-            shouldThrow<NameTakenException> { service.updateOwnDisplayName(TeamScope(janId, teamId), "lisa bakker") }
-        }
-
-        test("updateOwnDisplayName allows keeping the user's own current name") {
-            val (service, _, _) = newService()
-            service.updateOwnDisplayName(TeamScope(janId, teamId), "Jan de Vries").displayName shouldBe DisplayName("Jan de Vries")
         }
 
         test("listMembers returns the full team roster") {

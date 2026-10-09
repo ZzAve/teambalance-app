@@ -9,7 +9,6 @@ import com.github.zzave.teambalance.api.domain.port.EventTypeRepository
 import com.github.zzave.teambalance.api.domain.port.PhotoRepository
 import com.github.zzave.teambalance.api.domain.port.PositionRepository
 import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
-import com.github.zzave.teambalance.api.domain.port.UserRepository
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import java.time.Clock
@@ -25,13 +24,11 @@ class MembershipCompositionRoot {
 
     @Bean
     fun memberService(
-        userRepository: UserRepository,
         teamMemberRepository: TeamMemberRepository,
         positionRepository: PositionRepository,
         authorizationService: AuthorizationService,
         clock: Clock,
     ) = MemberService(
-        userRepository = userRepository,
         teamMemberRepository = teamMemberRepository,
         positionRepository = positionRepository,
         authorizationService = authorizationService,

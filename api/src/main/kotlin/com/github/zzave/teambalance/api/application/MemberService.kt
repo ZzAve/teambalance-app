@@ -16,14 +16,12 @@ import com.github.zzave.teambalance.api.domain.model.TeamMember
 import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.port.PositionRepository
 import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
-import com.github.zzave.teambalance.api.domain.port.UserRepository
 import java.time.Clock
 import java.time.Instant
 
 private const val MAX_DISPLAY_NAME_LENGTH = 100
 
 class MemberService(
-    private val userRepository: UserRepository,
     private val teamMemberRepository: TeamMemberRepository,
     private val positionRepository: PositionRepository,
     private val authorizationService: AuthorizationService,
@@ -37,16 +35,6 @@ class MemberService(
     fun listMembers(scope: TeamScope): List<TeamMember> {
         authorizationService.requireMember(scope)
         return teamMemberRepository.findByTeamId(scope.teamId)
-    }
-
-    /**
-     * Renames the caller within their team. Self-only — it acts on the scope's user. The name is
-     * trimmed and must stay unique within the team (case-insensitive), ignoring the caller's own
-     * current name so a no-op rename is allowed.
-     */
-    fun updateOwnDisplayName(scope: TeamScope, rawName: String): TeamMember {
-        applyDisplayName(scope.teamId, scope.userId, rawName)
-        return getMember(scope, scope.userId)
     }
 
     /**
@@ -161,13 +149,5 @@ class MemberService(
             .any { it.userId != targetUserId && it.shirtNumber == number }
         if (taken) throw ShirtNumberTakenException(number)
         return number
-    }
-
-    // A single-aggregate write (users only), so it needs no cross-aggregate boundary — used by the
-    // self-rename path where role and position are untouched.
-    private fun applyDisplayName(teamId: TeamId, targetUserId: UserId, rawName: String) {
-        val name = normalizeAndValidateName(teamId, targetUserId, rawName)
-        val user = userRepository.findById(targetUserId) ?: throw MemberNotFoundException(targetUserId)
-        userRepository.save(user.copy(displayName = name))
     }
 }

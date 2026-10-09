@@ -30,6 +30,7 @@ function EventDetailPage() {
   const { data: event, isLoading, isError, refetch } = useEvent(eventId)
   const currentUserId = useCurrentUser()?.id ?? null
   const isAdmin = useCurrentUser()?.role === 'ADMIN'
+  const isActingAs = !!useCurrentUser()?.actAs
   const { mutate, isPending } = useSetAttendance()
   // Only load the full list to find series siblings when this event actually belongs to a group.
   const { data: allEvents } = useEvents(true, !!event?.recurringGroup)
@@ -76,6 +77,7 @@ function EventDetailPage() {
         isError={isError}
         onRetry={() => refetch()}
         backTo={routes.events}
+        calendarHref={isActingAs ? undefined : routes.calendar}
         event={event ?? null}
         currentUserId={currentUserId}
         myState={myState}

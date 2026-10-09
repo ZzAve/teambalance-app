@@ -86,6 +86,9 @@ RUN set -x; \
       SPRING_DATASOURCE_USERNAME=tb \
       SPRING_DATASOURCE_PASSWORD=tb \
       INVITATION_TOKEN_SALT=build-time-dummy-salt \
+      INVITATION_TOKEN_ENCRYPTION_KEY=YnVpbGQtdGltZS1kdW1teS1rZXktMzItYnl0ZXMhISE= \
+      TEAMBALANCE_CALENDAR_LINK_SALT=build-time-dummy-salt \
+      TEAMBALANCE_CALENDAR_LINK_ENCRYPTION_KEY=YnVpbGQtdGltZS1kdW1teS1rZXktMzItYnl0ZXMhISE= \
       SCALEWAY_TEM_API_KEY=build-time-dummy \
       SCALEWAY_TEM_PROJECT_ID=build-time-dummy \
       java -XX:+UseSerialGC -XX:TieredStopAtLevel=1 \

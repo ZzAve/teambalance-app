@@ -283,7 +283,8 @@ internal fun TeamDirectory.invitationService(
     activeTeamService = activeTeamService(routingGateway, *users),
     clock = clock,
     tokenSalt = "test-salt",
-    tokenCipher = InviteTokenCipher.fromBase64Key(
+    tokenCipher = TokenCipher.fromBase64Key(
         Base64.getEncoder().encodeToString(ByteArray(32) { it.toByte() }),
+        "test-key",
     ),
 )

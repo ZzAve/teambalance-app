@@ -56,6 +56,7 @@ function EventListPage() {
     const {data: events, isLoading, error} = useEvents(showPast)
     const {data: eventTypes} = useEventTypes()
     const isAdmin = useCurrentUser()?.role === 'ADMIN'
+    const isActingAs = !!useCurrentUser()?.actAs
 
     // Per team, so a member of two teams does not carry one team's type filter into the other. The
     // restore lands after the first render, so a persisted `showPast` costs one extra events
@@ -165,6 +166,7 @@ function EventListPage() {
         <>
         <EventsPageView
             createAction={isAdmin && <CreateEventSheet/>}
+            hideCalendarLink={isActingAs}
             filters={{
                 eventTypes: eventTypes ?? [],
                 activeTypeIds,

@@ -11,6 +11,13 @@ export interface LinkOptions {
 
 export const ALL_ATTENDANCE_STATES: AttendanceState[] = ['ATTENDING', 'MAYBE', 'ABSENT', 'NOT_RESPONDED']
 
+export const STATE_LABELS: Record<AttendanceState, string> = {
+  ATTENDING: 'Attending',
+  MAYBE: 'Maybe',
+  ABSENT: 'Absent',
+  NOT_RESPONDED: 'Not responded',
+}
+
 export const PRESET_OPTIONS: Record<Exclude<Preset, 'custom'>, LinkOptions> = {
   // Everything the team schedules, with the member's own answer marked.
   me: { attendanceStates: ALL_ATTENDANCE_STATES, showAttendancePrefix: true, calendarNameSuffix: undefined },

@@ -1,12 +1,4 @@
-import type { AttendanceState } from '@shared/api/calendar-links'
-import { ALL_ATTENDANCE_STATES, type LinkOptions } from './preset'
-
-const STATE_LABELS: Record<AttendanceState, string> = {
-  ATTENDING: 'Attending',
-  MAYBE: 'Maybe',
-  ABSENT: 'Absent',
-  NOT_RESPONDED: 'Not responded',
-}
+import { ALL_ATTENDANCE_STATES, STATE_LABELS, type LinkOptions } from './preset'
 
 /**
  * One line describing how a link's options differ from the Me defaults, e.g. "Attending only · no

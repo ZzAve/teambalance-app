@@ -78,16 +78,14 @@ class CalendarLinkService(
      *
      * Refused with a 409 once [CalendarLink.MAX_PER_MEMBER] exist, expired ones counted — the caller
      * resolves it by deleting one, which is a thing they can see and do.
-     *
-     * The options (ADR-0040) default to the "Me" shape: every answer, prefixed, no suffix.
      */
     fun createLink(
         callerId: UserId,
         teamId: TeamId,
         rawLabel: String?,
-        attendanceStates: Set<AttendanceState> = CalendarLink.DEFAULT_ATTENDANCE_STATES,
-        showAttendancePrefix: Boolean = CalendarLink.DEFAULT_SHOW_ATTENDANCE_PREFIX,
-        rawCalendarNameSuffix: String? = null,
+        attendanceStates: Set<AttendanceState>,
+        showAttendancePrefix: Boolean,
+        rawCalendarNameSuffix: String?,
     ): IssuedCalendarLink {
         requireOwnAccess(callerId, teamId)
 

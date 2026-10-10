@@ -21,6 +21,7 @@ const PHONE: CalendarLink = {
   attendanceStates: ALL_STATES,
   showAttendancePrefix: true,
   calendarNameSuffix: undefined,
+  eventTypeIds: undefined,
 }
 
 const PARTNER: CalendarLink = {
@@ -33,6 +34,7 @@ const PARTNER: CalendarLink = {
   attendanceStates: ['ATTENDING'],
   showAttendancePrefix: false,
   calendarNameSuffix: 'Partner',
+  eventTypeIds: undefined,
 }
 
 const UNLABELLED_CUSTOM: CalendarLink = {
@@ -45,6 +47,7 @@ const UNLABELLED_CUSTOM: CalendarLink = {
   attendanceStates: ['ATTENDING', 'MAYBE'],
   showAttendancePrefix: true,
   calendarNameSuffix: undefined,
+  eventTypeIds: undefined,
 }
 
 const AT_CAP = [PHONE, PARTNER, UNLABELLED_CUSTOM]
@@ -53,6 +56,7 @@ const ME_REQUEST = {
   attendanceStates: ALL_STATES,
   showAttendancePrefix: true,
   calendarNameSuffix: undefined,
+  eventTypeIds: undefined,
 }
 
 const meta = {

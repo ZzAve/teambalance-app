@@ -6,7 +6,7 @@ import { SectionLabel } from '@shared/ui/SectionLabel'
 import { Switch } from '@shared/ui/switch'
 import { Chip } from '@shared/ui/chip'
 import { useEscapeToClose } from '@shared/lib/use-escape-to-close'
-import { ALL_ATTENDANCE_STATES } from '../model/attendance-states'
+import { ALL_ATTENDANCE_STATES, ATTENDANCE_STATE_LABELS } from '@entities/event/lib/attendance-states'
 import { ALL_TURNOUT_BUCKETS, type TurnoutBucket } from '../model/turnout'
 
 interface EventFiltersViewProps {
@@ -39,25 +39,25 @@ interface EventFiltersViewProps {
 export const STATE_CHIPS: { state: AttendanceState; label: string; active: string; inactive: string }[] = [
   {
     state: 'ATTENDING',
-    label: 'Going',
+    label: ATTENDANCE_STATE_LABELS.ATTENDING,
     active: 'bg-green border-green text-white',
     inactive: 'border-green/40 text-green',
   },
   {
     state: 'MAYBE',
-    label: 'Maybe',
+    label: ATTENDANCE_STATE_LABELS.MAYBE,
     active: 'bg-gold border-gold text-white',
     inactive: 'border-gold/40 text-gold-ink',
   },
   {
     state: 'ABSENT',
-    label: "Can't",
+    label: ATTENDANCE_STATE_LABELS.ABSENT,
     active: 'bg-red border-red text-white',
     inactive: 'border-red/40 text-red',
   },
   {
     state: 'NOT_RESPONDED',
-    label: 'Not responded',
+    label: ATTENDANCE_STATE_LABELS.NOT_RESPONDED,
     // No semantic color: not responding is the absence of an answer, not a fourth verdict.
     active: 'bg-muted-foreground border-muted-foreground text-white',
     inactive: 'border-muted-foreground/40 text-muted-foreground',

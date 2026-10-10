@@ -12,14 +12,8 @@ import { FormError } from '@shared/ui/FormError'
 import { QueryErrorState } from '@shared/ui/QueryErrorState'
 import { formatDate, linkDisplayLabel, toGoogleCalendarUrl, toWebcalUrl } from '../lib/calendar-urls'
 import { optionsSummary } from '../model/options-summary'
-import {
-  ALL_ATTENDANCE_STATES,
-  PRESET_OPTIONS,
-  STATE_LABELS,
-  presetOf,
-  type LinkOptions,
-  type Preset,
-} from '../model/preset'
+import { ALL_ATTENDANCE_STATES, ATTENDANCE_STATE_LABELS } from '@entities/event/lib/attendance-states'
+import { PRESET_OPTIONS, presetOf, type LinkOptions, type Preset } from '../model/preset'
 
 /** The server's per-member cap, expired links included (ADR-0039). */
 const MAX_LINKS = 3
@@ -133,6 +127,7 @@ export function CalendarLinksView({
                 attendanceStates: ALL_ATTENDANCE_STATES.filter((state) => options.attendanceStates.includes(state)),
                 showAttendancePrefix: options.showAttendancePrefix,
                 calendarNameSuffix: options.calendarNameSuffix?.trim() || undefined,
+                eventTypeIds: undefined,
               })
               setLabel('')
               setOptions(PRESET_OPTIONS.me)
@@ -339,7 +334,7 @@ function AdvancedOptions({ open, onOpenChange, options, teamName, disabled, onCh
                   activeClassName="border-blue bg-blue/10 text-blue"
                   inactiveClassName="border-border text-muted-foreground"
                 >
-                  {STATE_LABELS[state]}
+                  {ATTENDANCE_STATE_LABELS[state]}
                 </Chip>
               ))}
             </div>

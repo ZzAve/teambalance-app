@@ -1,3 +1,4 @@
+import { ALL_ATTENDANCE_STATES } from '@entities/event/lib/attendance-states'
 import type { AttendanceState } from '@shared/api/calendar-links'
 
 /** The three shapes the create form offers (ADR-0040). Frontend defaults only; the server stores options. */
@@ -7,16 +8,6 @@ export interface LinkOptions {
   attendanceStates: AttendanceState[]
   showAttendancePrefix: boolean
   calendarNameSuffix: string | undefined
-}
-
-export const ALL_ATTENDANCE_STATES: AttendanceState[] = ['ATTENDING', 'MAYBE', 'ABSENT', 'NOT_RESPONDED']
-
-/** The states as the member's own answer control words them (CONTEXT.md, Attendance State). */
-export const STATE_LABELS: Record<AttendanceState, string> = {
-  ATTENDING: 'Going',
-  MAYBE: 'Maybe',
-  ABSENT: "Can't",
-  NOT_RESPONDED: 'Not responded',
 }
 
 export const PRESET_OPTIONS: Record<Exclude<Preset, 'custom'>, LinkOptions> = {

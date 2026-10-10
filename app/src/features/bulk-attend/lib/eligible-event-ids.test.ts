@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { AttendanceState } from '@features/attendance-toggle/ui/AttendanceToggle'
 import { makeEvent } from '@shared/testing/event-fixtures'
-import { ALL_ATTENDANCE_STATES } from '@features/filter-event-types/model/attendance-states'
+import { ALL_ATTENDANCE_STATES } from '@entities/event/lib/attendance-states'
 import {
   ALL_TURNOUT_BUCKETS,
   type TurnoutBucket,

@@ -1,1 +1,0 @@
-import{n as e}from"./rolldown-runtime-DkW27tQK.js";import{n as t}from"./auth-DCCqj1wO.js";var n,r,i;function a(){return(a=e((()=>{t(),n=()=>`https://api.teambalance.nl`,r=(e,t)=>`${n()}/api/members/${encodeURIComponent(e)}/photo?v=${encodeURIComponent(t)}`,i=e=>`${n()}/api/account/photo?v=${encodeURIComponent(e)}`})))()}export{i as n,r,a as t};

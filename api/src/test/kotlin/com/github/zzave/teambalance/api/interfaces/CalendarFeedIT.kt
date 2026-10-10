@@ -397,7 +397,7 @@ class CalendarFeedIT : TeamBalanceIT() {
                 (id, user_id, token_hash, token_encrypted, label, created_at, expires_at)
             VALUES (?::uuid, ?::uuid, ?, ?, NULL, ?, ?)
             """,
-            UUID.randomUUID(), ALPHA_MEMBER, calendarLinkTokens.hash(token.value).value,
+            UUID.randomUUID(), MIGRATED_MEMBER, calendarLinkTokens.hash(token.value).value,
             calendarLinkTokens.conceal(token).value,
             Timestamp.from(Instant.now()), Timestamp.from(Instant.now().plusSeconds(3600)),
         )
@@ -405,12 +405,13 @@ class CalendarFeedIT : TeamBalanceIT() {
         CalendarLinkFixture.extraEvent(
             jdbcTemplate, FAR_FUTURE, title = "Old training", id = oldTraining, schema = MIGRATED_SCHEMA,
         )
-        CalendarLinkFixture.answer(jdbcTemplate, ALPHA_MEMBER, "MAYBE", eventId = oldTraining, schema = MIGRATED_SCHEMA)
+        CalendarLinkFixture.answer(jdbcTemplate, MIGRATED_MEMBER, "MAYBE", eventId = oldTraining, schema = MIGRATED_SCHEMA)
         CalendarLinkFixture.extraEvent(jdbcTemplate, FAR_FUTURE, title = "Old social", schema = MIGRATED_SCHEMA)
 
         tenantSchemaAdapter.provisionTenantSchema(MIGRATED_SCHEMA)
         CalendarLinkFixture.team(jdbcTemplate, MIGRATED_TEAM, "Calendar Migrated", MIGRATED_SLUG, MIGRATED_SCHEMA)
-        CalendarLinkFixture.member(jdbcTemplate, MIGRATED_TEAM, ALPHA_MEMBER)
+        CalendarLinkFixture.user(jdbcTemplate, MIGRATED_MEMBER, "cal-migrated-member@test.com", "Migrated Member")
+        CalendarLinkFixture.member(jdbcTemplate, MIGRATED_TEAM, MIGRATED_MEMBER)
         return token
     }
 
@@ -420,5 +421,9 @@ class CalendarFeedIT : TeamBalanceIT() {
         const val MIGRATED_TEAM = "c8320000-0000-0000-0000-000000000003"
         const val MIGRATED_SCHEMA = "team_cal_migrated"
         const val MIGRATED_SLUG = "cal-migrated"
+
+        // Its own user: the other specs rely on ALPHA_MEMBER belonging to Alpha alone, so the
+        // X-User-Id shim can resolve their Active Team.
+        const val MIGRATED_MEMBER = "b8320000-0000-0000-0000-000000000004"
     }
 }

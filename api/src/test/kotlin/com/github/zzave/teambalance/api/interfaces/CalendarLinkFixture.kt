@@ -180,7 +180,7 @@ object CalendarLinkFixture {
         )
     }
 
-    private fun user(jdbc: JdbcTemplate, id: String, email: String, name: String) {
+    fun user(jdbc: JdbcTemplate, id: String, email: String, name: String) {
         jdbc.execute(
             "INSERT INTO public.users (id, email, display_name) VALUES ('$id'::uuid, '$email', '$name') " +
                 "ON CONFLICT (id) DO UPDATE SET display_name = EXCLUDED.display_name",

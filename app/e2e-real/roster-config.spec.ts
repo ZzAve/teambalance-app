@@ -11,8 +11,9 @@ import { test, expect } from '@playwright/test'
  * read, and every roster state is a Storybook story with a Chromatic baseline; the numbers behind
  * them are pinned by RosterFillTest and RosterFillIT. Asserting them again through a browser would
  * duplicate that coverage rather than add a seam. (It would also be awkward: the seeded e2e event is
- * within the 7-day window, so Phase 1 renders it as the hero — which carries no roster panel — and
- * the spec would have to manufacture a further-out event just to get a card on screen.)
+ * within the 7-day window, so the events page renders it as the hero — whose lineup sits behind a
+ * disclosure like the cards' — and the spec would have to manufacture a further-out event just to
+ * get a card on screen.)
  *
  * Starts authenticated as the seeded admin via the storageState fixture (auth.setup.ts).
  *

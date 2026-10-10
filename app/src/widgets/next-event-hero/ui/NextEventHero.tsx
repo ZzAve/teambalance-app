@@ -24,11 +24,14 @@ export function NextEventHero({
   event,
   now,
   lineup,
+  defaultRosterOpen,
 }: {
   event: Event
   now?: Date
   /** The lineup panel for an event — built by the route, which owns the page's Substitute picker. */
   lineup: (event: Event) => ReactNode
+  /** The member's `Keep panels open` preference, which the hero's lineup follows like every card's. */
+  defaultRosterOpen?: boolean
 }) {
   const { data: detail } = useEvent(event.id)
   const currentUserId = useCurrentUser()?.id ?? null
@@ -50,6 +53,7 @@ export function NextEventHero({
         if (currentUserId) mutate({ eventId: event.id, userId: currentUserId, state })
       }}
       lineup={lineup(shown)}
+      defaultRosterOpen={defaultRosterOpen}
     />
   )
 }

@@ -67,6 +67,12 @@ interface EventLineupPanelProps {
   onSetSubstituteState: (substituteId: string, state: SubstituteState) => void
   /** Takes a Substitute off this event; they stay on the Team's list. */
   onTakeOffSubstitute: (substituteId: string) => void
+  /**
+   * Whether the header states the roster's news ("2 of 4 covered", or the headcount). Off where the
+   * surface around the panel already states it — the Next Up hero carries the readiness badge and
+   * its own headcount line (#386) — so a verdict is never printed twice on one card.
+   */
+  summary?: boolean
   /** An attendance write is in flight; the answer control is held. */
   pending?: boolean
   /** A Substitute write is in flight; the Substitute sheet is held. */
@@ -82,6 +88,7 @@ export function EventLineupPanel({
   onCallInSubstitutes,
   onSetSubstituteState,
   onTakeOffSubstitute,
+  summary = true,
   pending,
   substitutePending,
 }: EventLineupPanelProps) {
@@ -112,7 +119,7 @@ export function EventLineupPanel({
   // there are position targets, the headcount where only a total is set, a plain count otherwise.
   const covered = coveredLine(rows)
   const headcount = headcountLine(roster)
-  const summary = covered ?? headcount ?? `${roster.totalAttending} going`
+  const news = covered ?? headcount ?? `${roster.totalAttending} going`
   const subs = substituteLine(rows)
   const staff = staffNote(roster)
 
@@ -120,15 +127,17 @@ export function EventLineupPanel({
     <div>
       <div className="mb-3 flex items-center justify-between gap-2">
         <SectionLabel as="span">Lineup</SectionLabel>
-        <span className="text-caption font-bold text-foreground/70">
-          <span>{summary}</span>
-          {subs && (
-            <>
-              {' · '}
-              <span className="text-purple-ink">{subs}</span>
-            </>
-          )}
-        </span>
+        {(summary || subs) && (
+          <span className="text-caption font-bold text-foreground/70">
+            {summary && <span>{news}</span>}
+            {subs && (
+              <>
+                {summary && ' · '}
+                <span className="text-purple-ink">{subs}</span>
+              </>
+            )}
+          </span>
+        )}
       </div>
 
       {rows.length === 0 ? (

@@ -189,16 +189,17 @@ export const Interactions: Story = {
     await userEvent.click(region.getByRole('button', { name: 'Generate link' }))
     await expect(args.onGenerate).toHaveBeenLastCalledWith({ label: undefined, ...ME_REQUEST })
 
-    const label = region.getByLabelText('Label (optional)')
-    await expect(label).toHaveAttribute('maxLength', '50')
+    // Re-queried each time: a submit renders a fresh form.
+    const label = () => region.getByLabelText('Label (optional)')
+    await expect(label()).toHaveAttribute('maxLength', '50')
     // Enter submits the form, like the button does.
-    await userEvent.type(label, '  Work laptop {Enter}')
+    await userEvent.type(label(), '  Work laptop {Enter}')
     await expect(args.onGenerate).toHaveBeenLastCalledWith({ label: 'Work laptop', ...ME_REQUEST })
-    await expect(label).toHaveValue('')
+    await expect(label()).toHaveValue('')
 
     // Partner: attending only, no marks, a suffixed calendar name — and the empty label prefilled.
     await userEvent.click(region.getByRole('radio', { name: 'Partner' }))
-    await expect(label).toHaveValue('Partner')
+    await expect(label()).toHaveValue('Partner')
     await userEvent.click(region.getByRole('button', { name: 'Generate link' }))
     await expect(args.onGenerate).toHaveBeenLastCalledWith({
       label: 'Partner',
@@ -211,18 +212,18 @@ export const Interactions: Story = {
 
     // Switching back to Me takes the auto-filled label with it, so a Me link is not named Partner.
     await userEvent.click(region.getByRole('radio', { name: 'Partner' }))
-    await expect(label).toHaveValue('Partner')
+    await expect(label()).toHaveValue('Partner')
     await userEvent.click(region.getByRole('radio', { name: 'Me' }))
     await userEvent.click(region.getByRole('button', { name: 'Generate link' }))
     await expect(args.onGenerate).toHaveBeenLastCalledWith({ label: undefined, ...ME_REQUEST })
 
     // A label the member typed is theirs: kept when Partner is picked, and when Me is picked again.
-    await userEvent.type(label, 'Sanne')
+    await userEvent.type(label(), 'Sanne')
     await userEvent.click(region.getByRole('radio', { name: 'Partner' }))
-    await expect(label).toHaveValue('Sanne')
+    await expect(label()).toHaveValue('Sanne')
     await userEvent.click(region.getByRole('radio', { name: 'Me' }))
-    await expect(label).toHaveValue('Sanne')
-    await userEvent.clear(label)
+    await expect(label()).toHaveValue('Sanne')
+    await userEvent.clear(label())
 
     // Any edit under Advanced makes the form Custom, and the request carries exactly the edit.
     await userEvent.click(region.getByRole('button', { name: 'Advanced' }))

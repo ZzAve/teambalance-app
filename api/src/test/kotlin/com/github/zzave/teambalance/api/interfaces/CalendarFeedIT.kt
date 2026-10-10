@@ -63,6 +63,11 @@ class CalendarFeedIT : TeamBalanceIT() {
 
     init {
         beforeTest { CalendarLinkFixture.seed(jdbcTemplate, tenantSchemaAdapter) }
+        afterSpec {
+            jdbcTemplate.update("DELETE FROM public.team_members WHERE team_id = ?::uuid", MIGRATED_TEAM)
+            jdbcTemplate.update("DELETE FROM public.teams WHERE id = ?::uuid", MIGRATED_TEAM)
+            jdbcTemplate.execute("DROP SCHEMA IF EXISTS $MIGRATED_SCHEMA CASCADE")
+        }
 
         test("a link fetched with no cookie and no header serves the team's calendar") {
             val token = liveLink()
@@ -386,7 +391,7 @@ class CalendarFeedIT : TeamBalanceIT() {
             .schemas(MIGRATED_SCHEMA)
             .locations("classpath:db/tenant-migration")
             .table("flyway_tenant_schema_history")
-            .target("15")
+            .target(PRE_OPTIONS_VERSION)
             .load()
             .migrate()
 
@@ -421,6 +426,9 @@ class CalendarFeedIT : TeamBalanceIT() {
         const val MIGRATED_TEAM = "c8320000-0000-0000-0000-000000000003"
         const val MIGRATED_SCHEMA = "team_cal_migrated"
         const val MIGRATED_SLUG = "cal-migrated"
+
+        // The last tenant version before V016 added the calendar link options.
+        const val PRE_OPTIONS_VERSION = "15"
 
         // Its own user: the other specs rely on ALPHA_MEMBER belonging to Alpha alone, so the
         // X-User-Id shim can resolve their Active Team.

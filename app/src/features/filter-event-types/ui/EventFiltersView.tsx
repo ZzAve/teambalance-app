@@ -5,6 +5,7 @@ import type { AttendanceState } from '@features/attendance-toggle/ui/AttendanceT
 import { SectionLabel } from '@shared/ui/SectionLabel'
 import { Switch } from '@shared/ui/switch'
 import { Chip } from '@shared/ui/chip'
+import { EventTypeChip } from '@entities/event/ui/EventTypeChip'
 import { useEscapeToClose } from '@shared/lib/use-escape-to-close'
 import { ALL_ATTENDANCE_STATES, ATTENDANCE_STATE_LABELS } from '@entities/event/lib/attendance-states'
 import { ALL_TURNOUT_BUCKETS, type TurnoutBucket } from '../model/turnout'
@@ -205,20 +206,14 @@ export function EventFiltersView({
                       Event types
                     </SectionLabel>
                     <div className="flex flex-wrap gap-2">
-                      {eventTypes.map((type) => {
-                        const color = type.color ?? '#888'
-                        return (
-                          <Chip
-                            key={type.id}
-                            pressed={activeTypeIds.has(type.id)}
-                            onToggle={() => onToggleType(type.id)}
-                            activeStyle={{ backgroundColor: color, borderColor: color, color: '#fff' }}
-                            inactiveStyle={{ borderColor: color + '66', color }}
-                          >
-                            {type.name}
-                          </Chip>
-                        )
-                      })}
+                      {eventTypes.map((type) => (
+                        <EventTypeChip
+                          key={type.id}
+                          type={type}
+                          pressed={activeTypeIds.has(type.id)}
+                          onToggle={() => onToggleType(type.id)}
+                        />
+                      ))}
                     </div>
                   </div>
 

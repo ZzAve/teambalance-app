@@ -7,6 +7,7 @@ import { Input } from '@shared/ui/input'
 import { Label } from '@shared/ui/label'
 import { Switch } from '@shared/ui/switch'
 import { ALL_ATTENDANCE_STATES, ATTENDANCE_STATE_LABELS } from '@entities/event/lib/attendance-states'
+import { EventTypeChip } from '@entities/event/ui/EventTypeChip'
 import type { LinkOptions } from '../model/preset'
 
 /** The server's calendar-name suffix limit (ADR-0040). */
@@ -104,21 +105,15 @@ export function AdvancedOptions({
                 >
                   All types
                 </Chip>
-                {eventTypes.map((type) => {
-                  const color = type.color ?? '#888'
-                  return (
-                    <Chip
-                      key={type.id}
-                      pressed={options.eventTypeIds?.includes(type.id) ?? false}
-                      disabled={disabled}
-                      onToggle={() => toggleType(type.id)}
-                      activeStyle={{ backgroundColor: color, borderColor: color, color: '#fff' }}
-                      inactiveStyle={{ borderColor: color + '66', color }}
-                    >
-                      {type.name}
-                    </Chip>
-                  )
-                })}
+                {eventTypes.map((type) => (
+                  <EventTypeChip
+                    key={type.id}
+                    type={type}
+                    pressed={options.eventTypeIds?.includes(type.id) ?? false}
+                    disabled={disabled}
+                    onToggle={() => toggleType(type.id)}
+                  />
+                ))}
               </div>
               <p className="text-caption text-muted-foreground">
                 {options.eventTypeIds === undefined

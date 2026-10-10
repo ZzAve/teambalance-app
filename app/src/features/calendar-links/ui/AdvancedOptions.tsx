@@ -1,6 +1,7 @@
 import { useId } from 'react'
 import { ChevronDown } from 'lucide-react'
 import type { AttendanceState } from '@shared/api/calendar-links'
+import type { EventTypeItem } from '@shared/api/event-types'
 import { Chip } from '@shared/ui/chip'
 import { Input } from '@shared/ui/input'
 import { Label } from '@shared/ui/label'
@@ -16,13 +17,24 @@ interface AdvancedOptionsProps {
   onOpenChange: (open: boolean) => void
   options: LinkOptions
   teamName: string
+  /** The types a member may pick, in the team's order. */
+  eventTypes: EventTypeItem[]
   disabled?: boolean
   onChange: (options: LinkOptions) => void
 }
 
-export function AdvancedOptions({ open, onOpenChange, options, teamName, disabled, onChange }: AdvancedOptionsProps) {
+export function AdvancedOptions({
+  open,
+  onOpenChange,
+  options,
+  teamName,
+  eventTypes,
+  disabled,
+  onChange,
+}: AdvancedOptionsProps) {
   const panelId = useId()
   const statesId = useId()
+  const typesId = useId()
 
   const toggleState = (state: AttendanceState) => {
     const included = options.attendanceStates.includes(state)
@@ -34,6 +46,13 @@ export function AdvancedOptions({ open, onOpenChange, options, teamName, disable
         ? options.attendanceStates.filter((s) => s !== state)
         : [...options.attendanceStates, state],
     })
+  }
+
+  // No explicit list is every type, new ones included; deselecting the last picked type is that again.
+  const toggleType = (typeId: string) => {
+    const picked = options.eventTypeIds ?? []
+    const next = picked.includes(typeId) ? picked.filter((id) => id !== typeId) : [...picked, typeId]
+    onChange({ ...options, eventTypeIds: next.length > 0 ? next : undefined })
   }
 
   return (
@@ -69,6 +88,45 @@ export function AdvancedOptions({ open, onOpenChange, options, teamName, disable
               ))}
             </div>
           </div>
+
+          {eventTypes.length > 0 && (
+            <div className="flex flex-col gap-2">
+              <p id={typesId} className="text-small font-medium">
+                Include event types
+              </p>
+              <div role="group" aria-labelledby={typesId} className="flex flex-wrap gap-2">
+                <Chip
+                  pressed={options.eventTypeIds === undefined}
+                  disabled={disabled}
+                  onToggle={() => onChange({ ...options, eventTypeIds: undefined })}
+                  activeClassName="border-blue bg-blue/10 text-blue"
+                  inactiveClassName="border-border text-muted-foreground"
+                >
+                  All types
+                </Chip>
+                {eventTypes.map((type) => {
+                  const color = type.color ?? '#888'
+                  return (
+                    <Chip
+                      key={type.id}
+                      pressed={options.eventTypeIds?.includes(type.id) ?? false}
+                      disabled={disabled}
+                      onToggle={() => toggleType(type.id)}
+                      activeStyle={{ backgroundColor: color, borderColor: color, color: '#fff' }}
+                      inactiveStyle={{ borderColor: color + '66', color }}
+                    >
+                      {type.name}
+                    </Chip>
+                  )
+                })}
+              </div>
+              <p className="text-caption text-muted-foreground">
+                {options.eventTypeIds === undefined
+                  ? 'Types your team adds later are included.'
+                  : 'Types your team adds later are not included.'}
+              </p>
+            </div>
+          )}
 
           <div className="flex items-center justify-between gap-3">
             <span className="text-small font-medium">Mark your answer (✓ ? ✗) on titles</span>

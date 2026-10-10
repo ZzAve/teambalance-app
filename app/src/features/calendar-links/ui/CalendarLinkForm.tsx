@@ -1,5 +1,6 @@
 import { useId, useState } from 'react'
 import type { CalendarLinkRequest } from '@shared/api/calendar-links'
+import type { EventTypeItem } from '@shared/api/event-types'
 import { Button } from '@shared/ui/button'
 import { Input } from '@shared/ui/input'
 import { Label } from '@shared/ui/label'
@@ -20,6 +21,8 @@ interface CalendarLinkFormProps {
   initial?: CalendarLinkFormValues
   /** The Active Team's name, which a link's calendar is named after. */
   teamName: string
+  /** The types the picker offers, in the team's order. */
+  eventTypes: EventTypeItem[]
   disabled?: boolean
   isSaving?: boolean
   submitLabel: string
@@ -35,6 +38,7 @@ interface CalendarLinkFormProps {
 export function CalendarLinkForm({
   initial = { label: '', ...PRESET_OPTIONS.me },
   teamName,
+  eventTypes,
   disabled,
   isSaving,
   submitLabel,
@@ -47,12 +51,19 @@ export function CalendarLinkForm({
     attendanceStates: initial.attendanceStates,
     showAttendancePrefix: initial.showAttendancePrefix,
     calendarNameSuffix: initial.calendarNameSuffix,
+    eventTypeIds: initial.eventTypeIds,
   })
   // Any edit makes the form Custom, even one that lands back on a preset's shape: the member chose
   // their own options, and the control should say so until they pick a preset again.
   const [customised, setCustomised] = useState(false)
-  const [advancedOpen, setAdvancedOpen] = useState(false)
+  // A Custom link being edited opens on the options that make it Custom.
+  const [advancedOpen, setAdvancedOpen] = useState(() => presetOf(options) === 'custom')
   const preset: Preset = customised ? 'custom' : presetOf(options)
+  // In the team's order, as the states are sent in answer order.
+  const typeOrder = (id: string) => {
+    const index = eventTypes.findIndex((type) => type.id === id)
+    return index === -1 ? eventTypes.length : index
+  }
 
   return (
     <form
@@ -64,7 +75,7 @@ export function CalendarLinkForm({
           attendanceStates: ALL_ATTENDANCE_STATES.filter((state) => options.attendanceStates.includes(state)),
           showAttendancePrefix: options.showAttendancePrefix,
           calendarNameSuffix: options.calendarNameSuffix?.trim() || undefined,
-          eventTypeIds: undefined,
+          eventTypeIds: options.eventTypeIds && [...options.eventTypeIds].sort((a, b) => typeOrder(a) - typeOrder(b)),
         })
       }}
     >
@@ -113,6 +124,7 @@ export function CalendarLinkForm({
         onOpenChange={setAdvancedOpen}
         options={options}
         teamName={teamName}
+        eventTypes={eventTypes}
         disabled={disabled}
         onChange={(next) => {
           setOptions(next)

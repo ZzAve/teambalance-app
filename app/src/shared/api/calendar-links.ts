@@ -8,7 +8,7 @@ export type { CalendarLinkRequest } from './generated/model/CalendarLinkRequest'
 export type { AttendanceState } from './generated/model/AttendanceState'
 
 // The caller's own links in the Active Team, newest first (ADR-0039). Keyed ['calendar-links'] so
-// a create or delete invalidating that key refreshes the list.
+// a create, edit or delete invalidating that key refreshes the list.
 export function useCalendarLinks() {
   return useQuery({
     queryKey: ['calendar-links'],
@@ -29,6 +29,19 @@ export function useCreateCalendarLink() {
       // 409 is the cap of three; the View already disables Generate at three, so this only fires
       // when the list was stale. The refetch below shows the member why.
       if (res.status !== 201) throw new Error(`Couldn't create calendar link (${res.status})`)
+      return res.body
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ['calendar-links'] }),
+  })
+}
+
+// Replaces a link's label and options; the URL stays, so subscribed calendars follow (ADR-0040).
+export function useUpdateCalendarLink() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id, request }: { id: string; request: CalendarLinkRequest }) => {
+      const res = await api.UpdateCalendarLink({ id, body: request })
+      if (res.status !== 200) throw new Error(`Couldn't update calendar link (${res.status})`)
       return res.body
     },
     onSettled: () => queryClient.invalidateQueries({ queryKey: ['calendar-links'] }),

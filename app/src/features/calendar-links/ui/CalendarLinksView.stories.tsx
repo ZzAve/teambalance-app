@@ -1,15 +1,28 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { expect, fn, within } from 'storybook/test'
 import type { CalendarLink } from '@shared/api/calendar-links'
+import type { EventTypeItem } from '@shared/api/event-types'
 import { Stack } from '@shared/testing/stack'
 import { CalendarLinksView } from './CalendarLinksView'
 
 // The prop-only calendar-links page body behind the CalendarLinks container (ADR-0017). Three
 // stories (ADR-0032 §1): Data is the full list at the cap of three — a Me link, a Partner link and
-// an expired Custom one — Shells stacks loading / error / empty with the Me/Partner explainer open,
-// Interactions keeps every prop-contract spy.
+// an expired Custom one limited to two types, one archived — Shells stacks loading / error / empty
+// with the Me/Partner explainer open, Interactions keeps every prop-contract spy.
 const FEED = 'https://api.teambalance.nl/api/calendar/setpoint-vt'
 const ALL_STATES: CalendarLink['attendanceStates'] = ['ATTENDING', 'MAYBE', 'ABSENT', 'NOT_RESPONDED']
+
+const eventType = (id: string, name: string, color: string, archived = false): EventTypeItem => ({
+  id,
+  name,
+  color,
+  archived,
+  rosterDefault: { trackRoster: false, totalTarget: undefined, positionTargets: [] },
+})
+const TRAINING = eventType('t-training', 'Training', '#249E6C')
+const MATCH = eventType('t-match', 'Match', '#225C9C')
+const BEACH = eventType('t-beach', 'Beach', '#F4B400', true)
+const EVENT_TYPES = [TRAINING, MATCH, BEACH]
 
 const PHONE: CalendarLink = {
   id: 'l3',
@@ -47,7 +60,7 @@ const UNLABELLED_CUSTOM: CalendarLink = {
   attendanceStates: ['ATTENDING', 'MAYBE'],
   showAttendancePrefix: true,
   calendarNameSuffix: undefined,
-  eventTypeIds: undefined,
+  eventTypeIds: [BEACH.id, TRAINING.id],
 }
 
 const AT_CAP = [PHONE, PARTNER, UNLABELLED_CUSTOM]
@@ -65,7 +78,9 @@ const meta = {
   args: {
     teamName: 'Setpoint VT',
     links: AT_CAP,
+    eventTypes: EVENT_TYPES,
     onGenerate: fn(),
+    onUpdate: fn(),
     onDelete: fn(),
     onCopy: fn(),
     onRetry: fn(),
@@ -91,7 +106,10 @@ export const Data: Story = {
     await expect(
       row('Partner').getByText('Going only · no ✓/✗ marks · calendar: Setpoint VT · Partner'),
     ).toBeInTheDocument()
-    await expect(row('Link from 2 jun 2025').getByText('Going, Maybe only')).toBeInTheDocument()
+    // Types in the team's order; an archived one is still listed, and says so.
+    await expect(
+      row('Link from 2 jun 2025').getByText('Training, Beach (archived) · Going, Maybe only'),
+    ).toBeInTheDocument()
 
     // Every action on every link, no platform detection.
     await expect(row('My phone').getByRole('link', { name: 'Open in Calendar' })).toHaveAttribute(
@@ -154,6 +172,7 @@ export const Interactions: Story = {
     <Stack
       items={{
         'Below the cap': <CalendarLinksView {...args} links={[PHONE, PARTNER]} copiedId="l2" />,
+        'An expired link': <CalendarLinksView {...args} links={[UNLABELLED_CUSTOM]} />,
         Error: <CalendarLinksView {...args} isError />,
       }}
     />
@@ -250,6 +269,65 @@ export const Interactions: Story = {
     await expect(region.getByRole('radio', { name: 'Custom' })).toBeChecked()
     await userEvent.click(region.getByRole('radio', { name: 'Me' }))
     await expect(region.getByRole('button', { name: 'Maybe' })).toHaveAttribute('aria-pressed', 'true')
+
+    // Event types: every type until one is picked, then exactly the picked ones, in the team's order.
+    // An archived type is not offered for a new link. Picking a type makes the link Custom.
+    await expect(region.getByRole('button', { name: 'Advanced' })).toHaveAttribute('aria-expanded', 'true')
+    await expect(region.getByRole('button', { name: 'All types' })).toHaveAttribute('aria-pressed', 'true')
+    await expect(region.queryByRole('button', { name: 'Beach' })).not.toBeInTheDocument()
+    await userEvent.click(region.getByRole('button', { name: 'Match' }))
+    await expect(region.getByRole('button', { name: 'All types' })).toHaveAttribute('aria-pressed', 'false')
+    await expect(region.getByRole('radio', { name: 'Custom' })).toBeChecked()
+    // Deselecting the last one is every type again.
+    await userEvent.click(region.getByRole('button', { name: 'Match' }))
+    await expect(region.getByRole('button', { name: 'All types' })).toHaveAttribute('aria-pressed', 'true')
+    await userEvent.click(region.getByRole('button', { name: 'Match' }))
+    await userEvent.click(region.getByRole('button', { name: 'Training' }))
+    await userEvent.click(region.getByRole('button', { name: 'Generate link' }))
+    await expect(args.onGenerate).toHaveBeenLastCalledWith({
+      label: undefined,
+      ...ME_REQUEST,
+      eventTypeIds: [TRAINING.id, MATCH.id],
+    })
+
+    // Editing happens in the row, in the same form, starting from the link's own preset. Cancel
+    // leaves the link alone.
+    const partner = () => within(region.getByRole('listitem', { name: 'Partner' }))
+    await userEvent.click(phone.getByRole('button', { name: 'Edit' }))
+    await userEvent.type(phone.getByLabelText('Label (optional)'), ' 2')
+    await userEvent.click(phone.getByRole('button', { name: 'Cancel' }))
+    await expect(args.onUpdate).not.toHaveBeenCalled()
+    await expect(phone.queryByLabelText('Label (optional)')).not.toBeInTheDocument()
+
+    // One row open at a time.
+    await userEvent.click(phone.getByRole('button', { name: 'Edit' }))
+    await userEvent.click(partner().getByRole('button', { name: 'Edit' }))
+    await expect(phone.queryByLabelText('Label (optional)')).not.toBeInTheDocument()
+    await expect(partner().getByRole('radio', { name: 'Partner' })).toBeChecked()
+    await expect(partner().getByLabelText('Label (optional)')).toHaveValue('Partner')
+
+    await userEvent.clear(partner().getByLabelText('Label (optional)'))
+    await userEvent.type(partner().getByLabelText('Label (optional)'), 'Sanne')
+    await userEvent.click(partner().getByRole('button', { name: 'Advanced' }))
+    await userEvent.click(partner().getByRole('button', { name: 'Match' }))
+    await userEvent.click(partner().getByRole('button', { name: 'Save' }))
+    await expect(args.onUpdate).toHaveBeenCalledWith('l2', {
+      label: 'Sanne',
+      attendanceStates: ['ATTENDING'],
+      showAttendancePrefix: false,
+      calendarNameSuffix: 'Partner',
+      eventTypeIds: [MATCH.id],
+    })
+    await expect(partner().getByRole('button', { name: 'Edit' })).toBeInTheDocument()
+
+    // An expired link is not edited: it serves nothing, so there is nothing to change.
+    const expired = within(
+      within(canvas.getByRole('region', { name: 'An expired link' })).getByRole('listitem', {
+        name: 'Link from 2 jun 2025',
+      }),
+    )
+    await expect(expired.getByRole('button', { name: 'Delete' })).toBeInTheDocument()
+    await expect(expired.queryByRole('button', { name: 'Edit' })).not.toBeInTheDocument()
 
     // The explainer opens on a click (a tap on a phone), not only on hover.
     await userEvent.click(region.getByRole('button', { name: 'About Me and Partner' }))

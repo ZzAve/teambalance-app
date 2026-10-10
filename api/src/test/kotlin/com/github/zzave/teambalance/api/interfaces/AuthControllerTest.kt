@@ -29,6 +29,7 @@ import java.time.Instant
 import java.time.temporal.ChronoUnit
 import java.util.Base64
 import java.util.UUID
+import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf
 
 @AutoConfigureMockMvc
 @Import(AuthControllerTest.TestConfig::class)
@@ -75,7 +76,7 @@ class AuthControllerTest : TeamBalanceIT() {
                 email,
             ) shouldBe expectedDisplayName
 
-            val (_, logout) = performAsync(MockMvcRequestBuilders.post("/api/auth/logout").cookie(session))
+            val (_, logout) = performAsync(MockMvcRequestBuilders.post("/api/auth/logout").cookie(session).with(csrf()))
             logout.andExpect(MockMvcResultMatchers.status().isNoContent)
 
             val (_, meAfterLogout) = performAsync(MockMvcRequestBuilders.get("/api/auth/me").cookie(session))
@@ -169,7 +170,7 @@ class AuthControllerTest : TeamBalanceIT() {
         } else {
             dispatched.andExpect(MockMvcResultMatchers.status().isUnauthorized)
         }
-        return dispatched.andReturn().response.cookies.firstOrNull()
+        return dispatched.andReturn().response.getCookie("SESSION")
     }
 
     private fun performAsync(builder: MockHttpServletRequestBuilder): Pair<MvcResult, ResultActions> {

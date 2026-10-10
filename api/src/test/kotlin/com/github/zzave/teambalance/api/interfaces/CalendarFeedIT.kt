@@ -29,6 +29,7 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers.header
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import java.time.Duration
 import java.time.Instant
+import com.github.zzave.teambalance.api.infrastructure.identity.loginAs
 
 /**
  * The feed end to end (ADR-0039): a cookie-less GET resolving a team by slug, a token by hash and a
@@ -258,7 +259,7 @@ class CalendarFeedIT : TeamBalanceIT() {
 
     // --- helpers ---------------------------------------------------------------------------------
 
-    /** Deliberately naked: no session cookie, no X-User-Id, no X-Team-Id. The token is the credential. */
+    /** Deliberately naked: no session cookie and no CSRF token. The token in the path is the credential. */
     private fun fetch(slug: String, token: CalendarToken, ifNoneMatch: String? = null) =
         mockMvc.perform(
             MockMvcRequestBuilders.get("/api/calendar/$slug/${token.value}.ics")
@@ -273,7 +274,7 @@ class CalendarFeedIT : TeamBalanceIT() {
         """.trimIndent()
         mockMvc.perform(
             MockMvcRequestBuilders.put("/api/events/${CalendarLinkFixture.TRAINING_ID}")
-                .header("X-User-Id", ALPHA_MEMBER)
+                .with(loginAs(ALPHA_MEMBER))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(body),
         )

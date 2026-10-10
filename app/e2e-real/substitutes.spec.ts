@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test'
+import { csrfHeader } from './helpers'
 
 // Real e2e: a member calls in a Substitute for an event (ADR-0033, #359 slice 1).
 //
@@ -18,7 +19,7 @@ test.afterEach(async ({ page }) => {
   const res = await page.request.get('/api/substitutes')
   const { substitutes } = (await res.json()) as { substitutes: { id: string; name: string }[] }
   const created = substitutes.find((s) => s.name === name)
-  if (created) expect((await page.request.delete(`/api/substitutes/${created.id}`)).status()).toBe(204)
+  if (created) expect((await page.request.delete(`/api/substitutes/${created.id}`, { headers: await csrfHeader(page.context()) })).status()).toBe(204)
 })
 
 test('a member calls in a new substitute, confirms them, and takes them off again', async ({ page }) => {

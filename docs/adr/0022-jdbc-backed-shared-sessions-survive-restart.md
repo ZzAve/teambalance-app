@@ -3,7 +3,7 @@
 - Status: Accepted
 - Date: 2026-07-26
 - Supersedes: ADR-0010 (in-memory servlet sessions; defer shared sessions to post-1.0)
-- See also: ADR-0008 (server-side sessions), ADR-0012 (Spring Security harness — not yet implemented)
+- See also: ADR-0008 (server-side sessions), ADR-0012 (Spring Security harness — implemented 2026-10-10)
 
 ## Context
 
@@ -57,14 +57,19 @@ are needed, revisit") and pointed at Redis. Between Redis and JDBC:
   `userId` in `SPRING_SESSION_ATTRIBUTES`; logout deletes the row.
 - Redis is **not** used for sessions (ADR-0008's original Redis intent is not restored). Redis
   remains only a health-indicator concern in prod.
-- Interaction with ADR-0012 (Spring Security, not yet implemented): its assumption of an in-memory
-  `HttpSession` is now a JDBC-backed one. Spring Security integrates with Spring Session — session
-  fixation (`changeSessionId`) is supported by the JDBC store — so the planned harness still applies;
-  update ADR-0012's "in-memory" wording when that work lands.
+- Interaction with ADR-0012 (Spring Security): its assumption of an in-memory `HttpSession` is now a
+  JDBC-backed one. Spring Security integrates with Spring Session, so the harness still applies. Landed
+  2026-10-10: sign-in invalidates the arriving session and starts a new one through the Spring Session
+  request wrapper (the old row is deleted), and ADR-0012's "in-memory" wording is amended. Spring
+  Security itself stores nothing on the session.
+- The app's request filters now run inside the SecurityFilterChain, which is itself a servlet filter
+  that runs after Spring Session's repository filter, so the `filter-order: Integer.MIN_VALUE` reasoning
+  above still holds.
 - Session attributes are JDK-serialized into `ATTRIBUTE_BYTES`. Today's attributes (`userId`,
   tenant schema, tenant team id) are all `String`s; any future non-`Serializable` attribute would
   need attention.
-- Tests thread the session by reading the emitted cookie generically (`response.cookies.first()`),
-  not via `MockHttpSession`/`.session()` — Spring Session carries identity by cookie and ignores a
-  mock session. The prod cookie hardening (`secure` + `SameSite=Lax`) is covered by
+- Tests thread the session by reading the emitted `SESSION` cookie (`response.getCookie("SESSION")`;
+  the response also carries `XSRF-TOKEN` since ADR-0012 landed), not via `MockHttpSession`/`.session()`
+  — Spring Session carries identity by cookie and ignores a mock session. `loginAs` creates a session in
+  the JDBC store for the same reason. The prod cookie hardening (`secure` + `SameSite=Lax`) is covered by
   `ProdProfileSmokeIT` reading `ServerProperties`.

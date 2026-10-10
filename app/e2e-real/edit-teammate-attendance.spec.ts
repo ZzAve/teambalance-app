@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test'
+import { csrfHeader } from './helpers'
 
 // Real e2e: a member edits a *teammate's* attendance from the event detail page (#274).
 //
@@ -24,6 +25,7 @@ test("a member changes a teammate's attendance from the detail page, and it pers
   //    starting state only decides the row's tint, not whether it is on screen.
   const seeded = await page.request.put(`/api/events/${EVENT_ID}/attendances/${TEAMMATE_ID}`, {
     data: { state: 'ATTENDING' },
+    headers: await csrfHeader(page.context()),
   })
   expect(seeded.ok()).toBeTruthy()
 

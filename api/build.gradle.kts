@@ -31,6 +31,9 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-restclient")
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
+    // One SecurityFilterChain around the session model: session-ID rotation on sign-in, CSRF, and the
+    // authenticated-by-default rule (ADR-0012).
+    implementation("org.springframework.boot:spring-boot-starter-security")
 
     // Spring Session backed by JDBC (Postgres): keeps authenticated sessions out of the JVM heap so
     // they survive a container restart / cold start / redeploy on Scaleway Serverless (min-instances=0).
@@ -77,6 +80,7 @@ dependencies {
     testImplementation(platform("org.testcontainers:testcontainers-bom:$testcontainersVersion"))
     testImplementation("org.testcontainers:testcontainers-postgresql")
     testImplementation("org.springframework.boot:spring-boot-starter-webmvc-test")
+    testImplementation("org.springframework.security:spring-security-test")
 
     // Hexagonal-architecture rulesets for detekt (ADR-0018)
     detektPlugins("community.flock:hexagonal-detekt-rules:$flockDetektVersion")

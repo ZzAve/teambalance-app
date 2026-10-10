@@ -5,19 +5,12 @@ import com.github.zzave.teambalance.api.domain.port.TeamRepository
 import jakarta.servlet.FilterChain
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
-import org.springframework.core.Ordered
-import org.springframework.core.annotation.Order
 import org.springframework.http.HttpMethod
 import org.springframework.stereotype.Component
 import org.springframework.util.AntPathMatcher
 import org.springframework.util.StringUtils
 import org.springframework.web.filter.OncePerRequestFilter
 import org.springframework.web.util.UrlPathHelper
-
-// After SessionUserContextFilter (+2), SessionTenantContextFilter (+3) and RateLimitFilter (+4), so
-// the throttle still runs before any database work and so this filter's own clear-up happens inside
-// the session filter's — it must not clear a tenant the session filter is still relying on.
-private const val FILTER_ORDER = Ordered.HIGHEST_PRECEDENCE + 5
 
 /**
  * Binds the tenant schema for the one endpoint that has no session to resolve it from: the
@@ -34,8 +27,11 @@ private const val FILTER_ORDER = Ordered.HIGHEST_PRECEDENCE + 5
  * owner still being a member. What this filter decides is only *which* team's links the presented
  * token will be matched against — and getting that wrong is a miss, not a leak.
  */
+// Last of the app's filters in the SecurityFilterChain, after SessionUserContextFilter,
+// SessionTenantContextFilter and RateLimitFilter (see SecurityConfig), so the throttle still runs before
+// any database work and so this filter's own clear-up happens inside the session filter's — it must not
+// clear a tenant the session filter is still relying on.
 @Component
-@Order(FILTER_ORDER)
 class CalendarFeedTenantFilter(
     private val teamRepository: TeamRepository,
 ) : OncePerRequestFilter() {

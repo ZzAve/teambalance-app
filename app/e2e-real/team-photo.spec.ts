@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test'
+import { csrfHeader } from './helpers'
 
 // Real e2e: a member uploads a Team Photo and the roster shows it (ADR-0038).
 //
@@ -11,7 +12,7 @@ import { test, expect, type Page } from '@playwright/test'
 
 test.afterEach(async ({ page }) => {
   const me = (await (await page.request.get('/api/members/me')).json()) as { userId: string }
-  expect((await page.request.delete(`/api/members/${me.userId}/photo`)).status()).toBe(204)
+  expect((await page.request.delete(`/api/members/${me.userId}/photo`, { headers: await csrfHeader(page.context()) })).status()).toBe(204)
 })
 
 // A 400×300 picture drawn in the page, so the test needs no binary fixture file.

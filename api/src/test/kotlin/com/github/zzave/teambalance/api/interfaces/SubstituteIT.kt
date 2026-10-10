@@ -23,6 +23,7 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import java.time.Duration
 import java.time.Instant
 import java.util.UUID
+import com.github.zzave.teambalance.api.infrastructure.identity.loginAs
 
 // Fixture ids are namespaced after this feature's issue (#359), for the reason RosterFillIT gives:
 // every IT shares one `public` schema, and two specs claiming the same user id share a member.
@@ -305,7 +306,7 @@ class SubstituteIT : TeamBalanceIT() {
     }
 
     private fun perform(builder: MockHttpServletRequestBuilder, userId: String) =
-        mockMvc.perform(builder.header("X-Team-Id", "public").header("X-User-Id", userId))
+        mockMvc.perform(builder.with(loginAs(userId, tenant = "public")))
             .andExpect(MockMvcResultMatchers.request().asyncStarted())
             .andReturn()
             .let { mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(it)) }

@@ -50,8 +50,6 @@ function CreateTeamPage() {
             createTeam.mutate(values, {
               onSuccess: async (team) => {
                 if (!team) return
-                // Feed the X-Team-Id test shim; prod resolves the tenant from the session.
-                localStorage.setItem('teamId', team.id)
                 // The server made the new Team Active (ADR-0023 §4), so a founder who came from
                 // another Team is now in a different tenant.
                 await client.resetQueries()

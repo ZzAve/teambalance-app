@@ -23,6 +23,7 @@ import java.sql.Timestamp
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 import java.util.UUID
+import com.github.zzave.teambalance.api.infrastructure.identity.loginAs
 
 // Ids dedicated to this spec: the Testcontainers DB is shared across specs with no per-test rollback.
 private const val ADMIN_ID = "d0000000-0000-0000-0000-0000000000b1"
@@ -70,19 +71,19 @@ class PhotoControllerIT : TeamBalanceIT() {
     }
 
     private fun send(builder: MockHttpServletRequestBuilder, userId: String, body: ByteArray? = null): ResultActions {
-        builder.header("X-User-Id", userId)
+        builder.with(loginAs(userId))
         if (body != null) builder.content(body).contentType("image/webp")
         return mockMvc.perform(builder)
     }
 
     // The Wirespec endpoints are suspend functions, so MockMvc answers them in two steps.
     private fun sendAsync(builder: MockHttpServletRequestBuilder, userId: String): ResultActions {
-        val started = mockMvc.perform(builder.header("X-User-Id", userId))
+        val started = mockMvc.perform(builder.with(loginAs(userId)))
             .andExpect(request().asyncStarted()).andReturn()
         return mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(started))
     }
 
-    // /api/auth/me reads the session, not the X-User-Id test shim, so sign in through a magic link.
+    // Signs in through a real magic link, so /api/auth/me is answered for the session that link starts.
     private fun meAs(userId: String): ResultActions {
         val email = jdbcTemplate.queryForObject("SELECT email FROM public.users WHERE id = ?::uuid", String::class.java, userId)
         val token = "photo-it-${UUID.randomUUID()}"
@@ -99,7 +100,7 @@ class PhotoControllerIT : TeamBalanceIT() {
                 .content("""{"token":"$token"}"""),
         ).andExpect(request().asyncStarted()).andReturn()
         val cookie = mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(verify))
-            .andExpect(status().isOk).andReturn().response.cookies.first()
+            .andExpect(status().isOk).andReturn().response.getCookie("SESSION")!!
         val started = mockMvc.perform(MockMvcRequestBuilders.get("/api/auth/me").cookie(cookie))
             .andExpect(request().asyncStarted()).andReturn()
         return mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(started))

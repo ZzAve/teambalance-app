@@ -94,6 +94,11 @@ hexagonal-adapter:
     active: true
   AdapterCannotDependOnAdapter:
     active: true
+    # SecurityConfig puts the identity, multitenancy and rate-limit request filters into the one
+    # SecurityFilterChain in a fixed order (ADR-0012). Ordering them means naming their classes; the
+    # alternative, wiring them by bean-name strings, hides the same dependency instead of removing it.
+    # Excluded by exact file glob, so every other adapter is still held to the rule.
+    excludes: ['**/src/test/**', '**/infrastructure/config/SecurityConfig.kt']
 
 hexagonal-dependency:
   active: true

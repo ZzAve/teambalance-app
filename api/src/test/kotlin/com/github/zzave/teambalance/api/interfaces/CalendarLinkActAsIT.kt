@@ -16,6 +16,7 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
+import com.github.zzave.teambalance.api.infrastructure.identity.loginAs
 
 private const val OPERATOR_ID = "b8320000-0000-0000-0000-0000000000f1"
 private const val OPERATOR_EMAIL = "cal-link-operator@test.com"
@@ -76,7 +77,7 @@ class CalendarLinkActAsIT : TeamBalanceIT() {
 
             dispatch(
                 MockMvcRequestBuilders.delete("/api/calendar-links/00000000-0000-0000-0000-000000000000")
-                    .header("X-User-Id", OPERATOR_ID),
+                    .with(loginAs(OPERATOR_ID)),
             ).andExpect(status().isForbidden).andExpect(jsonPath("$.code").value("ACT_AS_NOT_PERMITTED"))
         }
 
@@ -96,17 +97,17 @@ class CalendarLinkActAsIT : TeamBalanceIT() {
             .let { mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(it)) }
 
     private fun get(userId: String) =
-        MockMvcRequestBuilders.get("/api/calendar-links").header("X-User-Id", userId)
+        MockMvcRequestBuilders.get("/api/calendar-links").with(loginAs(userId))
 
     private fun post(userId: String) =
         MockMvcRequestBuilders.post("/api/calendar-links")
-            .header("X-User-Id", userId)
+            .with(loginAs(userId))
             .contentType(MediaType.APPLICATION_JSON)
             .content("{}")
 
     private fun enterActAs() = dispatch(
         MockMvcRequestBuilders.post("/api/admin/act-as")
-            .header("X-User-Id", OPERATOR_ID)
+            .with(loginAs(OPERATOR_ID))
             .contentType(MediaType.APPLICATION_JSON)
             .content("""{"teamId":"$ALPHA_TEAM"}"""),
     ).andExpect(status().isOk)

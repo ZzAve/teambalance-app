@@ -93,9 +93,11 @@ Member is what it is guarding against, and is reported as `ACT_AS_NOT_PERMITTED`
 
 ### The feed authenticates on the token and nothing else
 
-`GET /api/calendar/{teamSlug}/{token}.ics`, session-less. The API has no Spring Security: a controller
-is public exactly by not calling `requireCurrentUserId()`, which is how the `/api/auth` endpoints are
-already public. There is no CSRF filter and no session filter that would reject a cookie-less GET.
+`GET /api/calendar/{teamSlug}/{token}.ics`, session-less. When this was written the API had no Spring
+Security: a controller was public exactly by not calling `requireCurrentUserId()`. Since ADR-0012 landed
+(2026-10-10) the SecurityFilterChain requires a session by default and lists `/api/calendar/` as public,
+next to `/api/auth/`. Its CSRF check applies only to mutating methods, so a cookie-less GET (or HEAD) is
+not rejected.
 
 Resolution order, all of it re-established per request:
 

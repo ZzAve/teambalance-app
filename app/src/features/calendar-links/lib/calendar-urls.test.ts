@@ -11,6 +11,9 @@ const link = (overrides: Partial<CalendarLink> = {}): CalendarLink => ({
   expiresAt: '2027-10-07T12:00:00Z',
   expired: false,
   url: FEED,
+  attendanceStates: ['ATTENDING', 'MAYBE', 'ABSENT', 'NOT_RESPONDED'],
+  showAttendancePrefix: true,
+  calendarNameSuffix: undefined,
   ...overrides,
 })
 

@@ -1,3 +1,4 @@
+import { useAuthMe } from '@shared/api/auth'
 import { useCalendarLinks, useCreateCalendarLink, useDeleteCalendarLink } from '@shared/api/calendar-links'
 import { useCopyToClipboard } from '@shared/lib/copy-to-clipboard'
 import { CalendarLinksView } from './CalendarLinksView'
@@ -11,9 +12,11 @@ export function CalendarLinks() {
   const createLink = useCreateCalendarLink()
   const deleteLink = useDeleteCalendarLink()
   const clipboard = useCopyToClipboard()
+  const teamName = useAuthMe().data?.activeTeam?.name ?? 'Your team'
 
   return (
     <CalendarLinksView
+      teamName={teamName}
       links={links}
       isLoading={isLoading}
       isError={isError}
@@ -21,9 +24,9 @@ export function CalendarLinks() {
       actionError={createLink.isError || deleteLink.isError}
       copiedId={clipboard.copiedKey}
       copyFailedId={clipboard.failedKey}
-      onGenerate={(label) => {
+      onGenerate={(request) => {
         deleteLink.reset()
-        createLink.mutate({ label }, { onSuccess: clipboard.reset })
+        createLink.mutate(request, { onSuccess: clipboard.reset })
       }}
       onDelete={(id) => {
         createLink.reset()

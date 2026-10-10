@@ -17,6 +17,8 @@ import com.github.zzave.teambalance.api.interfaces.CalendarLinkFixture.TRAINING
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
+import io.kotest.matchers.string.shouldNotContain
+import org.flywaydb.core.Flyway
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
 import org.springframework.http.HttpHeaders
@@ -28,7 +30,10 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.header
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import java.time.Duration
+import java.sql.Timestamp
 import java.time.Instant
+import java.util.UUID
+import javax.sql.DataSource
 
 /**
  * The feed end to end (ADR-0039): a cookie-less GET resolving a team by slug, a token by hash and a
@@ -53,8 +58,16 @@ class CalendarFeedIT : TeamBalanceIT() {
     @Autowired
     lateinit var calendarLinkTokens: CalendarLinkTokens
 
+    @Autowired
+    lateinit var dataSource: DataSource
+
     init {
         beforeTest { CalendarLinkFixture.seed(jdbcTemplate, tenantSchemaAdapter) }
+        afterSpec {
+            jdbcTemplate.update("DELETE FROM public.team_members WHERE team_id = ?::uuid", MIGRATED_TEAM)
+            jdbcTemplate.update("DELETE FROM public.teams WHERE id = ?::uuid", MIGRATED_TEAM)
+            jdbcTemplate.execute("DROP SCHEMA IF EXISTS $MIGRATED_SCHEMA CASCADE")
+        }
 
         test("a link fetched with no cookie and no header serves the team's calendar") {
             val token = liveLink()
@@ -228,6 +241,84 @@ class CalendarFeedIT : TeamBalanceIT() {
             }
         }
 
+        // ADR-0040. Three events the subscriber answered three ways — the seeded training ATTENDING, one
+        // MAYBE, one left unanswered — so a filter shows up as which titles are present.
+        context("a link's options shape what its feed serves") {
+            fun answeredThreeWays() {
+                CalendarLinkFixture.answer(jdbcTemplate, ALPHA_MEMBER, "ATTENDING")
+                CalendarLinkFixture.extraEvent(jdbcTemplate, FAR_FUTURE, title = "Maybe match", id = MAYBE_EVENT)
+                CalendarLinkFixture.answer(jdbcTemplate, ALPHA_MEMBER, "MAYBE", eventId = MAYBE_EVENT)
+                CalendarLinkFixture.extraEvent(jdbcTemplate, FAR_FUTURE, title = "Unanswered social")
+            }
+
+            test("a Partner-shaped link serves only attended events, bare titles, under a suffixed name") {
+                answeredThreeWays()
+                val partner = liveLink(
+                    attendanceStates = listOf("ATTENDING"),
+                    showAttendancePrefix = false,
+                    calendarNameSuffix = "Partner",
+                )
+
+                val ics = body(fetch(ALPHA_SLUG, partner).andExpect(status().isOk))
+
+                ics shouldContain "SUMMARY:$TRAINING\r\n"
+                ics shouldNotContain "Maybe match"
+                ics shouldNotContain "Unanswered social"
+                ics shouldContain "X-WR-CALNAME:$ALPHA_NAME · Partner\r\n"
+            }
+
+            test("a Me-shaped link serves everything, each title wearing the answer") {
+                answeredThreeWays()
+
+                val ics = body(fetch(ALPHA_SLUG, liveLink()).andExpect(status().isOk))
+
+                ics shouldContain "SUMMARY:✓ $TRAINING"
+                ics shouldContain "SUMMARY:? Maybe match"
+                ics shouldContain "SUMMARY:Unanswered social"
+                ics shouldContain "X-WR-CALNAME:$ALPHA_NAME\r\n"
+            }
+
+            // The cadence follows the team's schedule, not what the link shows: an unanswered training
+            // tomorrow the member may yet accept has to reach a partner's calendar in time.
+            test("a narrowed link still refreshes on the team's next event, not its own") {
+                CalendarLinkFixture.extraEvent(
+                    jdbcTemplate, Instant.now().plus(Duration.ofDays(21)), title = "Away match", id = MAYBE_EVENT,
+                )
+                CalendarLinkFixture.answer(jdbcTemplate, ALPHA_MEMBER, "ATTENDING", eventId = MAYBE_EVENT)
+                CalendarLinkFixture.extraEvent(jdbcTemplate, Instant.now().plus(Duration.ofHours(6)), title = "Soon training")
+                val partner = liveLink(attendanceStates = listOf("ATTENDING"), showAttendancePrefix = false)
+
+                val ics = body(fetch(ALPHA_SLUG, partner).andExpect(status().isOk))
+
+                ics shouldContain "REFRESH-INTERVAL;VALUE=DURATION:PT1H"
+                ics shouldNotContain "Soon training"
+                ics shouldContain "SUMMARY:Away match"
+            }
+
+            test("two links on the same events with different options carry different ETags") {
+                answeredThreeWays()
+                val me = fetch(ALPHA_SLUG, liveLink()).andReturn().response.getHeader(HttpHeaders.ETAG)
+                val bare = fetch(ALPHA_SLUG, liveLink(showAttendancePrefix = false))
+                    .andReturn().response.getHeader(HttpHeaders.ETAG)
+
+                bare shouldNotBe me
+            }
+
+            // V016 gives every link that existed before the options the Me shape, so a calendar
+            // subscribed before this release keeps receiving exactly what it did. This stops a schema
+            // at V015, writes a link the old code would have written, and migrates the rest the way
+            // startup does.
+            test("a link created before the options existed still serves everything, prefixed") {
+                val token = linkMigratedFromV015()
+
+                val ics = body(fetch(MIGRATED_SLUG, token).andExpect(status().isOk))
+
+                ics shouldContain "SUMMARY:? Old training"
+                ics shouldContain "SUMMARY:Old social"
+                ics shouldContain "X-WR-CALNAME:Calendar Migrated\r\n"
+            }
+        }
+
         context("conditional fetching") {
             test("an unchanged calendar answers 304 with no body") {
                 val token = liveLink()
@@ -292,8 +383,72 @@ class CalendarFeedIT : TeamBalanceIT() {
     private fun body(result: org.springframework.test.web.servlet.ResultActions) =
         result.andReturn().response.contentAsString
 
-    private fun liveLink(userId: String = ALPHA_MEMBER) = CalendarLinkFixture.link(
+    private fun liveLink(
+        userId: String = ALPHA_MEMBER,
+        attendanceStates: List<String> = CalendarLinkFixture.ALL_STATES,
+        showAttendancePrefix: Boolean = true,
+        calendarNameSuffix: String? = null,
+    ) = CalendarLinkFixture.link(
         jdbcTemplate, calendarLinkTokens, ALPHA_SCHEMA, userId,
         expiresAt = Instant.now().plusSeconds(3600),
+        attendanceStates = attendanceStates,
+        showAttendancePrefix = showAttendancePrefix,
+        calendarNameSuffix = calendarNameSuffix,
     )
+
+    /**
+     * A team whose schema is migrated to V015, given a link and two events (one answered MAYBE) the
+     * way the pre-options code would have stored them, then migrated to the latest version.
+     */
+    private fun linkMigratedFromV015(): CalendarToken {
+        jdbcTemplate.execute("DROP SCHEMA IF EXISTS $MIGRATED_SCHEMA CASCADE")
+        jdbcTemplate.execute("CREATE SCHEMA $MIGRATED_SCHEMA")
+        Flyway.configure()
+            .dataSource(dataSource)
+            .schemas(MIGRATED_SCHEMA)
+            .locations("classpath:db/tenant-migration")
+            .table("flyway_tenant_schema_history")
+            .target(PRE_OPTIONS_VERSION)
+            .load()
+            .migrate()
+
+        val token = calendarLinkTokens.mint()
+        jdbcTemplate.update(
+            """
+            INSERT INTO $MIGRATED_SCHEMA.calendar_links
+                (id, user_id, token_hash, token_encrypted, label, created_at, expires_at)
+            VALUES (?::uuid, ?::uuid, ?, ?, NULL, ?, ?)
+            """,
+            UUID.randomUUID(), MIGRATED_MEMBER, calendarLinkTokens.hash(token.value).value,
+            calendarLinkTokens.conceal(token).value,
+            Timestamp.from(Instant.now()), Timestamp.from(Instant.now().plusSeconds(3600)),
+        )
+        val oldTraining = UUID.randomUUID().toString()
+        CalendarLinkFixture.extraEvent(
+            jdbcTemplate, FAR_FUTURE, title = "Old training", id = oldTraining, schema = MIGRATED_SCHEMA,
+        )
+        CalendarLinkFixture.answer(jdbcTemplate, MIGRATED_MEMBER, "MAYBE", eventId = oldTraining, schema = MIGRATED_SCHEMA)
+        CalendarLinkFixture.extraEvent(jdbcTemplate, FAR_FUTURE, title = "Old social", schema = MIGRATED_SCHEMA)
+
+        tenantSchemaAdapter.provisionTenantSchema(MIGRATED_SCHEMA)
+        CalendarLinkFixture.team(jdbcTemplate, MIGRATED_TEAM, "Calendar Migrated", MIGRATED_SLUG, MIGRATED_SCHEMA)
+        CalendarLinkFixture.user(jdbcTemplate, MIGRATED_MEMBER, "cal-migrated-member@test.com", "Migrated Member")
+        CalendarLinkFixture.member(jdbcTemplate, MIGRATED_TEAM, MIGRATED_MEMBER)
+        return token
+    }
+
+    private companion object {
+        val FAR_FUTURE: Instant = Instant.parse("2099-02-01T18:30:00Z")
+        const val MAYBE_EVENT = "c8320000-0000-0000-0000-0000000000e2"
+        const val MIGRATED_TEAM = "c8320000-0000-0000-0000-000000000003"
+        const val MIGRATED_SCHEMA = "team_cal_migrated"
+        const val MIGRATED_SLUG = "cal-migrated"
+
+        // The last tenant version before V016 added the calendar link options.
+        const val PRE_OPTIONS_VERSION = "15"
+
+        // Its own user: the other specs rely on ALPHA_MEMBER belonging to Alpha alone, so the
+        // X-User-Id shim can resolve their Active Team.
+        const val MIGRATED_MEMBER = "b8320000-0000-0000-0000-000000000004"
+    }
 }

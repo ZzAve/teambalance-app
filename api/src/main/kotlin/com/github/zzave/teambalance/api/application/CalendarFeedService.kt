@@ -1,11 +1,12 @@
 package com.github.zzave.teambalance.api.application
 
 import com.github.zzave.teambalance.api.domain.model.AttendanceState
+import com.github.zzave.teambalance.api.domain.model.CalendarLink
+import com.github.zzave.teambalance.api.domain.model.CalendarNameSuffix
 import com.github.zzave.teambalance.api.domain.model.Event
 import com.github.zzave.teambalance.api.domain.model.RefreshCadence
 import com.github.zzave.teambalance.api.domain.model.Slug
 import com.github.zzave.teambalance.api.domain.model.TeamSummary
-import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.port.AttendanceRepository
 import com.github.zzave.teambalance.api.domain.port.CalendarLinkRepository
 import com.github.zzave.teambalance.api.domain.port.EventRepository
@@ -19,8 +20,8 @@ import java.time.Instant
 data class CalendarFeedEntry(val event: Event, val state: AttendanceState)
 
 /**
- * Everything the subscribed calendar is told: whose team this is, what is on, and how soon to ask
- * again.
+ * Everything the subscribed calendar is told: whose team this is, what is on, how soon to ask again,
+ * and how the link asked for it to be shown (ADR-0040).
  *
  * [refresh] is carried rather than derived here because it depends on *now*, which a description of
  * what is being served has no business holding.
@@ -29,6 +30,8 @@ data class CalendarFeed(
     val team: TeamSummary,
     val entries: List<CalendarFeedEntry>,
     val refresh: RefreshCadence,
+    val showAttendancePrefix: Boolean,
+    val calendarNameSuffix: CalendarNameSuffix?,
 )
 
 /**
@@ -63,29 +66,37 @@ class CalendarFeedService(
     fun feed(slug: Slug, presentedToken: String): CalendarFeed? {
         val now = clock.instant()
         val team = teamRepository.findBySlug(slug) ?: return null
-        return subscriber(team, presentedToken, now)?.let {
-            val entries = entriesFor(it, now)
-            CalendarFeed(team, entries, RefreshCadence.before(nextStart(entries, now), now))
+        return subscribedLink(team, presentedToken, now)?.let { link ->
+            val entries = entriesFor(link, now)
+            CalendarFeed(
+                team = team,
+                entries = entries.filter { it.state in link.attendanceStates },
+                // Banded on the team's next event, not the link's: an unanswered training tomorrow the
+                // member may yet accept must reach a narrowed calendar in time (ADR-0040).
+                refresh = RefreshCadence.before(nextStart(entries, now), now),
+                showAttendancePrefix = link.showAttendancePrefix,
+                calendarNameSuffix = link.calendarNameSuffix,
+            )
         }
     }
 
     /**
-     * Who the presented token speaks for in [team], or null if it speaks for nobody. Three ways to be
+     * The link the presented token names in [team], or null if it speaks for nobody. Three ways to be
      * nobody — no such token *here*, a token past its year, an owner who has left — and all three land
      * in the same null on purpose.
      *
      * The token is looked up in the tenant schema the slug resolved to, so one minted for another team
      * is simply absent: cross-team access is a miss, not a comparison somebody had to remember to write.
      */
-    private fun subscriber(team: TeamSummary, presentedToken: String, now: Instant): UserId? =
+    private fun subscribedLink(team: TeamSummary, presentedToken: String, now: Instant): CalendarLink? =
         calendarLinkRepository.findByTokenHash(tokens.hash(presentedToken))
             ?.takeIf { it.isLiveAt(now) }
-            ?.userId
-            ?.takeIf { teamMemberRepository.findRole(team.id, it) != null }
+            ?.takeIf { teamMemberRepository.findRole(team.id, it.userId) != null }
 
-    private fun entriesFor(userId: UserId, now: Instant): List<CalendarFeedEntry> {
+    /** Every event in the window with the subscriber's own answer, unanswered counting as NOT_RESPONDED. */
+    private fun entriesFor(link: CalendarLink, now: Instant): List<CalendarFeedEntry> {
         val events = eventRepository.findUpcoming(now.minus(HISTORY_WINDOW))
-        val states = attendanceRepository.findByUserIdAndEventIds(userId, events.map { it.id })
+        val states = attendanceRepository.findByUserIdAndEventIds(link.userId, events.map { it.id })
             .associate { it.eventId to it.state }
         return events.map { CalendarFeedEntry(it, states[it.id] ?: AttendanceState.NOT_RESPONDED) }
     }

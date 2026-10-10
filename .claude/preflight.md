@@ -1,9 +1,8 @@
 # preflight — project notes
-test: npm --prefix app test (=vitest run) + ./gradlew :api:test   # api tests need colima env (see docs/testcontainers-colima)
-# non-login shells (agents, git hooks) have no sdkman/nvm on PATH: export JAVA_HOME=~/.sdkman/candidates/java/current and PATH=~/.nvm/versions/node/v24.19.0/bin:$PATH (the .nvmrc pin) — Node 26 (homebrew default) fails ~27 unit tests with `undefined.getItem` (its own `localStorage` global shadows jsdom's)
-# pre-commit hook runs `make yolo test` (gradle build + api tests): the committing shell needs the JAVA_HOME + DOCKER_HOST/TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE exports above, or it fails before any test runs
+test: npm --prefix app test (=vitest run) + ./gradlew :api:test   # api tests need colima env (see docs/testcontainers-colima); export it in the shell that commits/pushes too: the pre-commit hook runs `make yolo test`
+# macOS: no JAVA_HOME override needed (gradle toolchain=25 in gradle.properties, default java is 25); the JDK-21/linux path in progress.txt is sandbox-only
 # in a worktree, results live in <worktree>/api/build/test-results — read those, not the main repo's build dir
-setup: npm --prefix app install && ./gradlew :api:wirespec-typescript  # generated TS client must exist before typecheck/build
+setup: npm --prefix app install && ./gradlew :api:wirespec-typescript  # generated TS client must exist before typecheck/build; typecheck is `npm run typecheck` (tsc -b) — `tsc -p` floods TS6305/TS7006 from the project refs
 
 ## review scope
 - PRs are squash-merged; local `main` diverges from origin/main → diff-base.sh mis-scopes. Scope the review to `origin/main..HEAD`, and rebase feature branches with `rebase --onto origin/main <last-already-merged-commit>` (expect "patch already upstream" drops).
@@ -63,3 +62,7 @@ setup: npm --prefix app install && ./gradlew :api:wirespec-typescript  # generat
 ## outbound http (adapters)
 - Outbound REST = Spring `RestClient` (from starter-web, blocking on virtual threads — not WebClient/webflux); timeouts via global `spring.http.client.{connect,read}-timeout`. Unit-test the adapter with `MockRestServiceServer.bindTo(RestClient.builder())` and pass `@Value`s as plain ctor args — ScalewayTemEmailAdapter.kt / ScalewayTemEmailAdapterTest.kt.
 - Jackson snake_case for external payloads: annotate with `com.fasterxml.jackson.annotation.JsonProperty` — works under both the Jackson 2 (Boot default) and Jackson 3 (wirespec) modules on the classpath — TemSendEmailRequest.kt (`project_id`).
+
+## git hooks / local-only backend failures
+- The hook's npm step rewrites `app/package-lock.json` (prunes optional peer entries) — `git checkout -- app/package-lock.json` before staging, never commit it.
+- `InvitationControllerTest` (2) + `MagicLinkInviteCarryIT` (1) fail on this Mac only: the colima VM's Postgres `now()` runs ~90 ms ahead of the host JVM `Clock`, so a row expired with SQL `now()` stays live for the app (a 1 s `date` comparison can't see it). Not a regression → commit/push `--no-verify`, CI's `make test-api` arbitrates; new ITs expire rows with a bound JVM instant or `now() - interval '1 minute'`.

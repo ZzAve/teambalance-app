@@ -59,7 +59,7 @@ export const Interactions: Story = {
   play: async ({ canvas, userEvent, args }) => {
     const block = within(canvas.getByRole('region', { name: 'Substitutes' }))
     await expect(block.getByText('1 going')).toBeInTheDocument()
-    await expect(block.getByText('1 asked')).toBeInTheDocument()
+    await expect(block.getByText('1 maybe')).toBeInTheDocument()
     await expect(block.getByText("1 can't")).toBeInTheDocument()
     await expect(block.getByText('Libero · set by Eva Smit')).toBeInTheDocument()
 
@@ -68,7 +68,7 @@ export const Interactions: Story = {
     const row = (name: string) => within(block.getByRole('group', { name }))
     await userEvent.click(row('Mila Jansen').getByRole('button', { name: 'Going' }))
     await expect(args.onSetState).toHaveBeenCalledWith('sub-2', 'ATTENDING')
-    await userEvent.click(row('Jan de Vries').getByRole('button', { name: 'Asked' }))
+    await userEvent.click(row('Jan de Vries').getByRole('button', { name: 'Maybe' }))
     await expect(args.onSetState).toHaveBeenCalledWith('sub-1', 'MAYBE')
     await userEvent.click(row('Pieter Smit').getByRole('button', { name: "Can't" }))
     await expect(args.onSetState).toHaveBeenCalledWith('sub-3', 'ABSENT')
@@ -77,7 +77,7 @@ export const Interactions: Story = {
     // The pill stays small, but a tap anywhere in a 44px band around it lands on it (F7), and never
     // on the neighbouring row's pill.
     for (const name of ['Jan de Vries', 'Mila Jansen', 'Pieter Smit']) {
-      for (const label of ['Going', 'Asked', "Can't"]) {
+      for (const label of ['Going', 'Maybe', "Can't"]) {
         const pill = row(name).getByRole('button', { name: label })
         pill.scrollIntoView({ block: 'center' })
         const box = pill.getBoundingClientRect()

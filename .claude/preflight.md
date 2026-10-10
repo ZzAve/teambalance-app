@@ -42,6 +42,12 @@ setup: npm --prefix app install && ./gradlew :api:wirespec-typescript  # generat
 - It patches `TeamBalanceIT.kt` to localhost JDBC for the duration and reverts on `trap EXIT` —
   never commit that diff, and don't fight the stop-hook over it while a run is in flight.
 
+## git hooks
+- The pre-commit hook runs `make yolo test`: `npm i` rewrites `app/package-lock.json` (prunes optional peers — `git checkout -- app/package-lock.json`), and `:api:test` fails with "kotest failed to discover tests" unless the colima env is exported. Run the suites by hand, then `commit --no-verify`.
+
+## react-query shells
+- A retry after a load error is a fetch in `error` status, and a paused retry (tab hidden/offline) is neither fetching nor failed, so `isLoading`/`isError` both read false. Map `failed = isError && !isFetching`, loading = `!isSuccess && !failed` — SubstitutePicker.tsx.
+
 ## flaky tests
 - `InvitationControllerTest` (2) + `MagicLinkInviteCarryIT` (1) fail on an unchanged `api/` at origin/main c0743bba (2026-10-07) — pre-existing, not branch-related; check `git diff origin/main -- api` before chasing.
 - Real e2e against one long-lived backend: `create-team.spec.ts` passes once per boot — the seeded code `E2E-CREATE-TEAM` is single-use and only reset by the e2e seed on start. Reset: `UPDATE public.team_creation_codes SET consumed_at=NULL, consumed_by_user_id=NULL WHERE code='E2E-CREATE-TEAM'`.

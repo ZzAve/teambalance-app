@@ -1,7 +1,7 @@
-import { useState, type ReactNode } from 'react'
+import { useRef, useState, type ReactNode } from 'react'
 import { Plus } from 'lucide-react'
 import type { SubstituteEntry } from '@shared/api/events'
-import type { Substitute } from '@shared/api/substitutes'
+import { SubstituteError, type Substitute } from '@shared/api/substitutes'
 import { Button } from '@shared/ui/button'
 import { Input } from '@shared/ui/input'
 import { Label } from '@shared/ui/label'
@@ -22,15 +22,23 @@ interface SubstitutePickerViewProps {
   substitutes: Substitute[]
   /** The list is still loading: say so, rather than claiming nobody is on it. */
   isLoading?: boolean
+  /** The list could not be loaded: say so, with a retry, rather than claiming nobody is on it. */
+  isError?: boolean
+  onRetry?: () => void
+  /** The Positions could not be loaded: the form says so, with a retry, instead of offering only None. */
+  positionsError?: boolean
+  onRetryPositions?: () => void
   /** A Substitute write is in flight; the state buttons are held. */
   pending?: boolean
   /** The Substitutes already on this event, with their state. */
   onEvent: SubstituteEntry[]
   onSetState: (substituteId: string, state: SubstituteState) => void
-  /** Creates a Substitute and adds them to the event as Asked. */
-  onCreate: (name: string, positionId: string | null) => void
+  /**
+   * Creates a Substitute and adds them to the event as Asked. Resolves once they are on the list; a
+   * rejection keeps the form open with the name, and a [SubstituteError]'s message is shown as is.
+   */
+  onCreate: (name: string, positionId: string | null) => Promise<unknown>
   onClose: () => void
-  creating?: boolean
 }
 
 /**
@@ -50,16 +58,29 @@ export function SubstitutePickerView({
   positions,
   substitutes,
   isLoading = false,
+  isError = false,
+  onRetry,
+  positionsError = false,
+  onRetryPositions,
   pending = false,
   onEvent,
   onSetState,
   onCreate,
   onClose,
-  creating = false,
 }: SubstitutePickerViewProps) {
   const [formOpen, setFormOpen] = useState(false)
   const [name, setName] = useState('')
   const [positionId, setPositionId] = useState<string | null>(null)
+  const [creating, setCreating] = useState(false)
+  const [createError, setCreateError] = useState<string | null>(null)
+  // Bumped whenever the form resets, so a request that settles after that no longer touches it.
+  const submission = useRef(0)
+
+  // The list is in memory, so a name already on it is caught here, before any request; the server's
+  // own refusal stays the backstop for a race.
+  const trimmed = name.trim()
+  const alreadyListed = substitutes.find((sub) => sub.name.toLowerCase() === trimmed.toLowerCase())
+  const fieldError = alreadyListed ? `${alreadyListed.name} is already on the list — find them above.` : createError
 
   const renderRow = (sub: Substitute) => {
     const state = onEvent.find((e) => e.substituteId === sub.id)?.state
@@ -97,17 +118,35 @@ export function SubstitutePickerView({
     )
   }
 
-  // Closing drops a half-typed name, so the next open starts fresh.
-  const close = () => {
+  const resetForm = () => {
+    submission.current++
     setFormOpen(false)
     setName('')
+    setCreateError(null)
+    setCreating(false)
+  }
+
+  // Closing drops a half-typed name, so the next open starts fresh.
+  const close = () => {
+    resetForm()
     onClose()
   }
 
-  const submit = () => {
-    onCreate(name.trim(), positionId)
-    setFormOpen(false)
-    setName('')
+  // The form only clears once the person is on the list; a failure keeps the name to try again with.
+  const submit = async () => {
+    const mine = ++submission.current
+    setCreating(true)
+    setCreateError(null)
+    try {
+      await onCreate(trimmed, positionId)
+      if (mine === submission.current) resetForm()
+    } catch (error) {
+      if (mine !== submission.current) return
+      setCreateError(
+        error instanceof SubstituteError ? error.message : "Couldn't add the substitute — please try again.",
+      )
+      setCreating(false)
+    }
   }
 
   return (
@@ -119,9 +158,13 @@ export function SubstitutePickerView({
         </SheetHeader>
 
         {substitutes.length === 0 ? (
-          <p className="mb-3 rounded-lg border border-border/60 bg-card px-3 py-2.5 text-small text-muted-foreground">
-            {isLoading ? 'Loading the list…' : 'Nobody on the list yet.'}
-          </p>
+          isError ? (
+            <InlineError className="mb-3" message="Couldn't load the list." onRetry={onRetry} />
+          ) : (
+            <p className="mb-3 rounded-lg border border-border/60 bg-card px-3 py-2.5 text-small text-muted-foreground">
+              {isLoading ? 'Loading the list…' : 'Nobody on the list yet.'}
+            </p>
+          )
         ) : position ? (
           <PositionGroups position={position} substitutes={substitutes} renderRow={renderRow} />
         ) : (
@@ -137,8 +180,17 @@ export function SubstitutePickerView({
               maxLength={100}
               autoComplete="off"
               placeholder="e.g. Pieter Smit"
-              onChange={(e) => setName(e.target.value)}
+              onChange={(e) => {
+                setName(e.target.value)
+                setCreateError(null)
+              }}
+              aria-invalid={fieldError !== null}
             />
+            {fieldError && (
+              <p role="alert" className="text-small text-red">
+                {fieldError}
+              </p>
+            )}
             <span className="text-small font-medium">
               Position <span className="font-normal text-muted-foreground">(optional)</span>
             </span>
@@ -158,8 +210,9 @@ export function SubstitutePickerView({
                 </button>
               ))}
             </div>
-            <Button type="button" disabled={!name.trim() || creating} onClick={submit}>
-              Add as asked
+            {positionsError && <InlineError message="Couldn't load the positions." onRetry={onRetryPositions} />}
+            <Button type="button" disabled={!trimmed || alreadyListed !== undefined || creating} onClick={submit}>
+              {creating ? 'Adding…' : 'Add as asked'}
             </Button>
           </div>
         ) : (
@@ -192,6 +245,21 @@ export function SubstitutePickerView({
 }
 
 const LIST = 'mb-3 overflow-hidden rounded-lg border border-border/60 bg-card'
+
+/** A load failure, with its retry, where the data would have been — distinct from an empty state. */
+function InlineError({ message, onRetry, className }: { message: string; onRetry?: () => void; className?: string }) {
+  return (
+    <p
+      role="alert"
+      className={cn('flex items-center justify-between gap-3 rounded-lg bg-red/10 px-3 py-2 text-small text-red', className)}
+    >
+      {message}
+      <Button type="button" variant="outline" size="sm" onClick={onRetry}>
+        Try again
+      </Button>
+    </p>
+  )
+}
 
 function PositionGroups({
   position,

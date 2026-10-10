@@ -102,7 +102,7 @@ any-team, self-service (see [ADR-0001](docs/adr/0001-product-ambition-hobby-tool
   `Not Responded` (default, no response yet). The semantic colors are fixed brand
   identity. These are the payload and code names; the UI says the same four states in the
   member's own words — `Going` / `Maybe` / `Can't` / `Not responded` on controls, filters, rows
-  and chips (the hero included, [ADR-0039](docs/adr/0039-hero-offers-all-three-answers-in-the-control-words.md)),
+  and chips (the hero included, [ADR-0040](docs/adr/0040-hero-offers-all-three-answers-in-the-control-words.md)),
   and `You're in` / `You said maybe` / `You're out` / `Respond` on the card's answer pill.
   A **Substitute**'s states are said in the same words. Prose uses the same root: a member has
   *responded* or *not responded*, never *replied*.

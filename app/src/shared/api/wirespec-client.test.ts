@@ -4,7 +4,7 @@ import { api } from './wirespec-client'
 // Pure-adapter units for the wirespec-client (the fetch handler behind `api`). Storybook owns
 // anything that renders; Vitest owns pure, non-rendering logic like this request/response adapter.
 // We drive the real public surface (`api`) with a stubbed `fetch`, asserting the behaviours the
-// adapter is responsible for: X-Team-Id and CSRF header injection and 204-No-Content body handling.
+// adapter is responsible for: CSRF header injection and 204-No-Content body handling.
 
 interface FakeResponseInit {
   status: number
@@ -48,26 +48,6 @@ describe('wirespec-client adapter', () => {
     vi.unstubAllGlobals()
     vi.unstubAllEnvs()
     vi.restoreAllMocks()
-  })
-
-  describe('X-Team-Id header injection', () => {
-    it('sends the team id from localStorage as the X-Team-Id header', async () => {
-      localStorage.setItem('teamId', 'team_test')
-      const fetchMock = stubFetch(fakeResponse({ status: 200, body: JSON.stringify({ events: [] }) }))
-
-      await api.ListEvents({ 'include-past': false })
-
-      expect(fetchMock).toHaveBeenCalledTimes(1)
-      expect(headerOf(fetchMock, 'X-Team-Id')).toBe('team_test')
-    })
-
-    it('omits the X-Team-Id header entirely when no team is stored (a teamless user has no default)', async () => {
-      const fetchMock = stubFetch(fakeResponse({ status: 200, body: JSON.stringify({ events: [] }) }))
-
-      await api.ListEvents({ 'include-past': false })
-
-      expect(headerOf(fetchMock, 'X-Team-Id')).toBeUndefined()
-    })
   })
 
   describe('CSRF token', () => {

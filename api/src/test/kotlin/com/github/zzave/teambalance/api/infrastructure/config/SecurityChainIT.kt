@@ -3,6 +3,7 @@ package com.github.zzave.teambalance.api.infrastructure.config
 import com.github.zzave.teambalance.api.TeamBalanceIT
 import com.github.zzave.teambalance.api.domain.port.EmailGateway
 import com.github.zzave.teambalance.api.infrastructure.email.FakeEmailGateway
+import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
@@ -10,11 +11,13 @@ import jakarta.servlet.http.Cookie
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.TestConfiguration
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
+import org.springframework.context.ApplicationContext
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Import
 import org.springframework.context.annotation.Primary
 import org.springframework.http.MediaType
 import org.springframework.mock.web.MockHttpServletResponse
+import org.springframework.security.core.userdetails.UserDetailsService
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.asyncDispatch
@@ -45,6 +48,9 @@ class SecurityChainIT : TeamBalanceIT() {
     @Autowired
     lateinit var fakeEmailGateway: FakeEmailGateway
 
+    @Autowired
+    lateinit var applicationContext: ApplicationContext
+
     init {
         test("verify replaces the session the caller arrived with, and the old ID stops working") {
             val email = "fixation-${UUID.randomUUID()}@test.com"
@@ -60,6 +66,30 @@ class SecurityChainIT : TeamBalanceIT() {
         test("the magic-link endpoints need no CSRF token, so a browser's first request can sign in") {
             // signIn sends neither the XSRF-TOKEN cookie nor the header.
             signIn("first-visit-${UUID.randomUUID()}@test.com").shouldNotBeNull()
+        }
+
+        test("the magic-link exemption covers JSON only: a cross-site form post to verify is refused") {
+            val email = "form-post-${UUID.randomUUID()}@test.com"
+            perform(
+                post("/api/auth/magic-link/request")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"email":"$email"}"""),
+            ).status shouldBe 202
+            val token = fakeEmailGateway.sentMagicLinks.last { it.first.value == email }.second
+
+            // What an HTML form with enctype="text/plain" sends; a browser needs no CORS preflight for it.
+            val formPost = perform(
+                post("/api/auth/magic-link/verify")
+                    .contentType(MediaType.TEXT_PLAIN)
+                    .content("""{"token":"$token","x":"="}"""),
+            )
+
+            formPost.status shouldBe 403
+            formPost.getCookie(SESSION_COOKIE) shouldBe null
+        }
+
+        test("no in-memory user is configured: the session is the only way in") {
+            applicationContext.getBeanNamesForType(UserDetailsService::class.java).toList().shouldBeEmpty()
         }
 
         test("a mutating request without the CSRF token is refused, and the session survives it") {

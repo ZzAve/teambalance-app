@@ -178,6 +178,6 @@ class ProdProfileSmokeIT : TeamBalanceIT() {
         MockMvcRequestBuilders.options("/api/events")
             .header(HttpHeaders.ORIGIN, origin)
             .header(HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD, "GET")
-            .header(HttpHeaders.ACCESS_CONTROL_REQUEST_HEADERS, "X-Team-Id,Content-Type"),
+            .header(HttpHeaders.ACCESS_CONTROL_REQUEST_HEADERS, "Content-Type"),
     )
 }

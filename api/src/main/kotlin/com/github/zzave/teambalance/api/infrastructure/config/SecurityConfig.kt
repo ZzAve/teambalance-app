@@ -12,7 +12,9 @@ import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.web.servlet.FilterRegistrationBean
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
+import org.springframework.http.MediaType
 import org.springframework.security.config.Customizer.withDefaults
 import org.springframework.security.config.annotation.web.builders.HttpSecurity
 import org.springframework.security.web.SecurityFilterChain
@@ -22,6 +24,9 @@ import org.springframework.security.web.csrf.CookieCsrfTokenRepository
 import org.springframework.security.web.csrf.CsrfFilter
 import org.springframework.security.web.csrf.CsrfToken
 import org.springframework.security.web.savedrequest.NullRequestCache
+import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher
+import org.springframework.security.web.util.matcher.AndRequestMatcher
+import org.springframework.security.web.util.matcher.OrRequestMatcher
 import org.springframework.web.filter.OncePerRequestFilter
 
 /**
@@ -57,10 +62,14 @@ class SecurityConfig(
         .csrf {
             it.spa()
                 .csrfTokenRepository(csrfTokenRepository())
-                // A browser's first request to the API can be the magic-link request (the login and
-                // verify pages make no API call before it), so it would have no XSRF-TOKEN cookie to
-                // echo yet. Neither endpoint acts on an existing session; see ADR-0012.
-                .ignoringRequestMatchers(MAGIC_LINK_REQUEST, MAGIC_LINK_VERIFY)
+                // A browser's first request to the API can be the magic-link request or verify (the
+                // login and verify pages make no API call before it), so it has no XSRF-TOKEN cookie to
+                // echo yet. JSON only: a cross-origin JSON request needs a CORS preflight, which an
+                // untrusted origin fails, while a plain HTML form post would not, and would otherwise
+                // sign the victim in as whoever's magic-link token it carries. See ADR-0012.
+                .ignoringRequestMatchers(
+                    AndRequestMatcher(OrRequestMatcher(post(MAGIC_LINK_REQUEST), post(MAGIC_LINK_VERIFY)), ::isJson),
+                )
         }
         .authorizeHttpRequests {
             it
@@ -74,7 +83,8 @@ class SecurityConfig(
         .requestCache { it.requestCache(NullRequestCache()) }
         // Sign-out is the Logout endpoint's (AuthController), not Spring Security's `/logout`.
         .logout { it.disable() }
-        // Same relative order as when these were servlet filters at HIGHEST_PRECEDENCE + 2…5. Before
+        // User, then tenant (it needs the user), then the throttle (it keys on the user, and runs before
+        // the feed filter's database lookup), then the feed's tenant. All before
         // AnonymousAuthenticationFilter, so a session's user is the authentication it sees.
         .addFilterBefore(sessionUserContextFilter, AnonymousAuthenticationFilter::class.java)
         .addFilterAfter(sessionTenantContextFilter, SessionUserContextFilter::class.java)
@@ -90,7 +100,7 @@ class SecurityConfig(
         }
     }
 
-    // The filters now run inside the chain; without these, Boot would also register each one as a
+    // These filters run inside the chain; without these, Boot would also register each one as a
     // servlet filter of its own and they would run twice.
     @Bean
     fun sessionUserContextFilterRegistration(filter: SessionUserContextFilter) = notAServletFilter(filter)
@@ -103,6 +113,13 @@ class SecurityConfig(
 
     @Bean
     fun calendarFeedTenantFilterRegistration(filter: CalendarFeedTenantFilter) = notAServletFilter(filter)
+
+    private fun isJson(request: HttpServletRequest): Boolean =
+        runCatching { MediaType.parseMediaType(request.contentType) }
+            .getOrNull()
+            ?.isCompatibleWith(MediaType.APPLICATION_JSON) == true
+
+    private fun post(path: String) = PathPatternRequestMatcher.withDefaults().matcher(HttpMethod.POST, path)
 
     private fun <T : OncePerRequestFilter> notAServletFilter(filter: T) =
         FilterRegistrationBean(filter).apply { isEnabled = false }

@@ -21,15 +21,12 @@ const serialization: Wirespec.Serialization = {
     (raw === undefined || raw === '' ? undefined : JSON.parse(raw)) as T,
 }
 
-// Turns a Wirespec RawRequest into a fetch against the API, carrying the team context header
-// and the session cookie (identity). Empty in dev/e2e → a relative URL the Vite proxy handles;
+// Turns a Wirespec RawRequest into a fetch against the API, carrying the session cookie (identity)
+// and, on a mutating request, the CSRF header. Empty in dev/e2e → a relative URL the Vite proxy handles;
 // in the split-origin prod build VITE_API_URL is `https://api.teambalance.nl` while the SPA
 // lives on app.teambalance.nl. There is no mock runtime — dev talks to the real backend.
 const handler = async (req: Wirespec.RawRequest): Promise<Wirespec.RawResponse> => {
   const baseUrl = import.meta.env.VITE_API_URL ?? ''
-  // The team context header (a test-profile shim; prod/e2e resolve tenant from the session). Omitted
-  // entirely when unset — a teamless user (pre-create-team) has no team, and there is no default team.
-  const teamId = localStorage.getItem('teamId')
   const query = new URLSearchParams(req.queries).toString()
   const url = `${baseUrl}/${req.path.join('/')}${query ? `?${query}` : ''}`
 
@@ -39,7 +36,6 @@ const handler = async (req: Wirespec.RawRequest): Promise<Wirespec.RawResponse> 
     credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
-      ...(teamId ? { 'X-Team-Id': teamId } : {}),
       ...csrfHeaders(req.method),
       ...req.headers,
     },

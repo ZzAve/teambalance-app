@@ -72,6 +72,15 @@ sends it as `X-XSRF-TOKEN` on every non-GET request (`app/src/shared/api/csrf.ts
   the token. The invite endpoints are not exempt, as the original text had them: invite preview no longer
   exists, and accept runs on a signed-in session.
 
+- **Only JSON requests are exempt.** The exemption matches the two paths *and* a JSON `Content-Type`. A
+  cross-origin JSON request needs a CORS preflight, which an untrusted origin fails; an HTML form post
+  (`enctype="text/plain"`, which can carry a JSON-shaped body) needs none, and on verify it would sign the
+  victim in as whoever's magic-link token it carries. Such a post is not exempt, has no token, and gets 403.
+- **Cost: every `*.teambalance.nl` host can read and overwrite the cookie.** The token is not bound to the
+  session, so a host under the parent domain that served someone else's content could set a matching
+  cookie and header pair. Accepted because every host under `teambalance.nl` is ours (the API, the SPA,
+  the landing page). Revisit if that stops being true.
+
 Rejected alternative: making the SPA fetch the token before its first POST. It adds a round trip and an
 endpoint whose only job is to set a cookie, to protect two requests that carry no session authority.
 

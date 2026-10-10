@@ -8,6 +8,7 @@ import type { SubstituteState } from '@features/call-in-substitutes/ui/Substitut
 import { setByName } from '@entities/event/lib/attribution'
 import { MemberChip, OverflowChip, OpenSlotChip } from '@entities/event/ui/MemberChip'
 import { headcountLine, staffNote } from '@entities/event/lib/roster-view'
+import { VERDICT_TONE } from '@entities/event/ui/verdict-tone'
 import {
   coveredLine,
   lineupRows,
@@ -45,12 +46,6 @@ import {
 
 /** Five, following the avatar groups this borrows from — Atlassian caps at four, Emplifi at five. */
 const CAP = 5
-
-const VERDICT_TONE = {
-  covered: 'text-green-dark',
-  short: 'text-gold-dark',
-  critical: 'text-red',
-} as const
 
 interface EventLineupPanelProps {
   /** Every current member, non-responders included — the list payload already carries them. */
@@ -232,7 +227,8 @@ function PositionRow({
         </span>
       </div>
 
-      <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5">
+      {/* The row gap is the "+" chip's tap band (F7): any smaller and the band reaches the line above. */}
+      <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2.5">
         {going.length > 0 && cluster('in', going, 'going')}
         {row.openSlots > 0 && <OpenSlotChip positionLabel={row.label} openSlots={row.openSlots} onFind={onFind} />}
         {maybe.length > 0 && cluster('maybe', maybe, 'maybe')}

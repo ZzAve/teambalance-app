@@ -19,7 +19,7 @@ import { groupByType } from '@features/bulk-attend/lib/group-by-type'
 import { eligibleEvents } from '@features/bulk-attend/lib/eligible-event-ids'
 import { NextEventHeroView } from '@widgets/next-event-hero/ui/NextEventHeroView'
 import { EventLineupPanel } from '@widgets/event-panel/ui/EventLineupPanel'
-import { appShell } from '../../../../.storybook/app-shell-decorator'
+import { appShell } from '../../../../storybook-support/app-shell-decorator'
 import { pageModes } from '../../../../.storybook/modes'
 import { EventsPageView } from './EventsPageView'
 

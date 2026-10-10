@@ -8,7 +8,7 @@ import { Stack } from '@shared/testing/stack'
 import { appColumn } from '@shared/testing/app-column-decorator'
 import { withRouter } from '@shared/testing/router-decorator'
 import { buildSeriesPeek } from '@entities/event/lib/series-peek'
-import { appShell, SHELL_ROUTES } from '../../../../.storybook/app-shell-decorator'
+import { appShell, SHELL_ROUTES } from '../../../../storybook-support/app-shell-decorator'
 import { pageModes } from '../../../../.storybook/modes'
 import { EventDetailView } from './EventDetailView'
 

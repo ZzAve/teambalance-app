@@ -173,6 +173,7 @@ export const Interactions: Story = {
       items={{
         'Below the cap': <CalendarLinksView {...args} links={[PHONE, PARTNER]} copiedId="l2" />,
         'An expired link': <CalendarLinksView {...args} links={[UNLABELLED_CUSTOM]} />,
+        'Save failed': <CalendarLinksView {...args} links={[PHONE]} actionError />,
         Error: <CalendarLinksView {...args} isError />,
       }}
     />
@@ -311,14 +312,30 @@ export const Interactions: Story = {
     await userEvent.click(partner().getByRole('button', { name: 'Advanced' }))
     await userEvent.click(partner().getByRole('button', { name: 'Match' }))
     await userEvent.click(partner().getByRole('button', { name: 'Save' }))
-    await expect(args.onUpdate).toHaveBeenCalledWith('l2', {
-      label: 'Sanne',
-      attendanceStates: ['ATTENDING'],
-      showAttendancePrefix: false,
-      calendarNameSuffix: 'Partner',
-      eventTypeIds: [MATCH.id],
-    })
-    await expect(partner().getByRole('button', { name: 'Edit' })).toBeInTheDocument()
+    await expect(args.onUpdate).toHaveBeenCalledWith(
+      'l2',
+      {
+        label: 'Sanne',
+        attendanceStates: ['ATTENDING'],
+        showAttendancePrefix: false,
+        calendarNameSuffix: 'Partner',
+        eventTypeIds: [MATCH.id],
+      },
+      expect.any(Function),
+    )
+    // The row stays open until the container says the save landed, so a failed one keeps the edits.
+    await expect(partner().getByRole('button', { name: 'Save' })).toBeInTheDocument()
+    const onSaved: () => void = (args.onUpdate as ReturnType<typeof fn>).mock.calls[0][2]
+    onSaved()
+    await expect(await partner().findByRole('button', { name: 'Edit' })).toBeInTheDocument()
+
+    // A failed save is reported in the row being edited, not under the create form.
+    const failed = within(canvas.getByRole('region', { name: 'Save failed' }))
+    const failedRow = within(failed.getByRole('listitem', { name: 'My phone' }))
+    await expect(failedRow.queryByRole('alert')).not.toBeInTheDocument()
+    await userEvent.click(failedRow.getByRole('button', { name: 'Edit' }))
+    await expect(failedRow.getByRole('alert')).toHaveTextContent('Something went wrong. Please try again.')
+    await expect(failed.getAllByRole('alert')).toHaveLength(1)
 
     // An expired link is not edited: it serves nothing, so there is nothing to change.
     const expired = within(

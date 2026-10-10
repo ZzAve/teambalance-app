@@ -31,7 +31,8 @@ interface CalendarLinksViewProps {
   /** The link whose clipboard write the browser refused, so its URL can be copied by hand. */
   copyFailedId?: string | null
   onGenerate: (request: CalendarLinkRequest) => void
-  onUpdate: (id: string, request: CalendarLinkRequest) => void
+  /** `onSaved` is called once the edit is stored; until then the row stays open with its edits. */
+  onUpdate: (id: string, request: CalendarLinkRequest, onSaved: () => void) => void
   onDelete: (id: string) => void
   onCopy: (link: CalendarLink) => void
   onRetry: () => void
@@ -99,13 +100,14 @@ export function CalendarLinksView({
                   eventTypes={eventTypes}
                   editing={editingId === link.id}
                   isSaving={isSaving}
+                  actionError={actionError}
                   onCopy={onCopy}
                   onEdit={() => setEditingId(link.id)}
                   onCancelEdit={() => setEditingId(null)}
-                  onUpdate={(request) => {
-                    onUpdate(link.id, request)
-                    setEditingId(null)
-                  }}
+                  onUpdate={(request) =>
+                    // Closes only this row: another may have been opened while the save was in flight.
+                    onUpdate(link.id, request, () => setEditingId((open) => (open === link.id ? null : open)))
+                  }
                   onRequestDelete={setConfirmTarget}
                 />
               ))}
@@ -130,7 +132,8 @@ export function CalendarLinksView({
                 You have {MAX_LINKS} links, the maximum. Delete one to generate a new link.
               </p>
             )}
-            {actionError && <FormError>Something went wrong. Please try again.</FormError>}
+            {/* While a row is being edited the error belongs to that row, next to the edits. */}
+            {actionError && editingId === null && <FormError>Something went wrong. Please try again.</FormError>}
           </div>
 
           <ConfirmDialog
@@ -158,6 +161,7 @@ interface CalendarLinkRowProps {
   copied: boolean
   copyFailed: boolean
   isSaving?: boolean
+  actionError?: boolean
   onCopy: (link: CalendarLink) => void
   onEdit: () => void
   onCancelEdit: () => void
@@ -173,6 +177,7 @@ function CalendarLinkRow({
   copied,
   copyFailed,
   isSaving,
+  actionError,
   onCopy,
   onEdit,
   onCancelEdit,
@@ -200,15 +205,18 @@ function CalendarLinkRow({
         {link.expired ? 'Expired' : 'Expires'} {formatDate(link.expiresAt)}
       </p>
       {editing ? (
-        <CalendarLinkForm
-          initial={link}
-          teamName={teamName}
-          eventTypes={pickable}
-          isSaving={isSaving}
-          submitLabel="Save"
-          onSubmit={onUpdate}
-          onCancel={onCancelEdit}
-        />
+        <>
+          <CalendarLinkForm
+            initial={link}
+            teamName={teamName}
+            eventTypes={pickable}
+            isSaving={isSaving}
+            submitLabel="Save"
+            onSubmit={onUpdate}
+            onCancel={onCancelEdit}
+          />
+          {actionError && <FormError>Something went wrong. Please try again.</FormError>}
+        </>
       ) : (
         <>
           {summary && <p className="text-small text-muted-foreground">{summary}</p>}

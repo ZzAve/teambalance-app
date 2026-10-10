@@ -42,10 +42,10 @@ export function CalendarLinks() {
         deleteLink.reset()
         createLink.mutate(request, { onSuccess: clipboard.reset })
       }}
-      onUpdate={(id, request) => {
+      onUpdate={(id, request, onSaved) => {
         createLink.reset()
         deleteLink.reset()
-        updateLink.mutate({ id, request })
+        updateLink.mutate({ id, request }, { onSuccess: onSaved })
       }}
       onDelete={(id) => {
         createLink.reset()

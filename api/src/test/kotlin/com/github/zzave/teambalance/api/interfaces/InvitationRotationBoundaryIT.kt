@@ -69,17 +69,21 @@ class InvitationRotationBoundaryIT : TeamBalanceIT() {
 
     // --- helpers ---------------------------------------------------------------------------------
 
+    // Liveness is judged by the JVM clock, the one the application uses, not by SQL now(): under
+    // colima the database runs in a VM whose clock was measured ~100 ms off the host's.
     private fun activeInvitationCount(): Long =
         jdbcTemplate.queryForObject(
-            "SELECT count(*) FROM public.invitations WHERE team_id = ?::uuid AND expires_at > now()",
+            "SELECT count(*) FROM public.invitations WHERE team_id = ?::uuid AND expires_at > ?",
             Long::class.java,
             TEAM_ID,
+            java.sql.Timestamp.from(Instant.now()),
         )!!
 
     private fun isStillActive(id: UUID): Boolean =
         jdbcTemplate.queryForObject(
-            "SELECT expires_at > now() FROM public.invitations WHERE id = ?",
+            "SELECT expires_at > ? FROM public.invitations WHERE id = ?",
             Boolean::class.java,
+            java.sql.Timestamp.from(Instant.now()),
             id,
         )!!
 

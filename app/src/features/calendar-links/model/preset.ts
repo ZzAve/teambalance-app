@@ -1,5 +1,5 @@
 import { ALL_ATTENDANCE_STATES } from '@entities/event/lib/attendance-states'
-import type { AttendanceState } from '@shared/api/calendar-links'
+import type { AttendanceState, CalendarLink } from '@shared/api/calendar-links'
 
 /** The three shapes the create form offers (ADR-0040). Frontend defaults only; the server stores options. */
 export type Preset = 'me' | 'partner' | 'custom'
@@ -40,4 +40,17 @@ export function presetOf({ attendanceStates, showAttendancePrefix, eventTypeIds 
   if (showAttendancePrefix && ALL_ATTENDANCE_STATES.every((state) => states.has(state))) return 'me'
   if (!showAttendancePrefix && states.size === 1 && states.has('ATTENDING')) return 'partner'
   return 'custom'
+}
+
+/**
+ * A stored link's options as the form and the summary compare them. The API sends an absent option
+ * as null where the generated type says undefined, and "no type list" has to read as every type.
+ */
+export function optionsOf(link: CalendarLink): LinkOptions {
+  return {
+    attendanceStates: link.attendanceStates,
+    showAttendancePrefix: link.showAttendancePrefix,
+    calendarNameSuffix: link.calendarNameSuffix ?? undefined,
+    eventTypeIds: link.eventTypeIds ?? undefined,
+  }
 }

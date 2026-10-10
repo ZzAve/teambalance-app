@@ -47,7 +47,8 @@ const PARTNER: CalendarLink = {
   attendanceStates: ['ATTENDING'],
   showAttendancePrefix: false,
   calendarNameSuffix: 'Partner',
-  eventTypeIds: undefined,
+  // As the API sends it: an absent type list arrives as null, not as a missing key.
+  eventTypeIds: null as unknown as undefined,
 }
 
 const UNLABELLED_CUSTOM: CalendarLink = {
@@ -310,10 +311,12 @@ export const Interactions: Story = {
     await expect(phone.queryByLabelText('Label (optional)')).not.toBeInTheDocument()
     await expect(partner().getByRole('radio', { name: 'Partner' })).toBeChecked()
     await expect(partner().getByLabelText('Label (optional)')).toHaveValue('Partner')
+    await userEvent.click(partner().getByRole('button', { name: 'Advanced' }))
+    await expect(partner().getByRole('button', { name: 'All types' })).toHaveAttribute('aria-pressed', 'true')
+    await expect(partner().getByText('Types your team adds later are included.')).toBeInTheDocument()
 
     await userEvent.clear(partner().getByLabelText('Label (optional)'))
     await userEvent.type(partner().getByLabelText('Label (optional)'), 'Sanne')
-    await userEvent.click(partner().getByRole('button', { name: 'Advanced' }))
     await userEvent.click(partner().getByRole('button', { name: 'Match' }))
     await userEvent.click(partner().getByRole('button', { name: 'Save' }))
     await expect(args.onUpdate).toHaveBeenCalledWith(

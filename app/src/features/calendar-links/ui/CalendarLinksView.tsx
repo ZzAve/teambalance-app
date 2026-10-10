@@ -8,6 +8,7 @@ import { FormError } from '@shared/ui/FormError'
 import { QueryErrorState } from '@shared/ui/QueryErrorState'
 import { formatDate, linkDisplayLabel, toGoogleCalendarUrl, toWebcalUrl } from '../lib/calendar-urls'
 import { optionsSummary } from '../model/options-summary'
+import { optionsOf } from '../model/preset'
 import { CalendarLinkForm } from './CalendarLinkForm'
 
 /** The server's per-member cap, expired links included (ADR-0039). */
@@ -197,7 +198,8 @@ function CalendarLinkRow({
   onRequestDelete,
 }: CalendarLinkRowProps) {
   const name = linkDisplayLabel(link)
-  const summary = optionsSummary(link, teamName, eventTypes)
+  const options = optionsOf(link)
+  const summary = optionsSummary(options, teamName, eventTypes)
   // The active types, plus the archived ones this link already lists so an edit can keep them.
   const pickable = eventTypes.filter((type) => !type.archived || link.eventTypeIds?.includes(type.id))
 
@@ -219,7 +221,7 @@ function CalendarLinkRow({
       {editing ? (
         <>
           <CalendarLinkForm
-            initial={link}
+            initial={{ label: link.label ?? undefined, ...options }}
             teamName={teamName}
             eventTypes={pickable}
             isSaving={isSaving}

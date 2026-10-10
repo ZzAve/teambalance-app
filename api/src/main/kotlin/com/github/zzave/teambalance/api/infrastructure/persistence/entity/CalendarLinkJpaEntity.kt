@@ -36,9 +36,8 @@ class CalendarLinkJpaEntity(
     @Column(name = "expires_at", nullable = false)
     val expiresAt: Instant = Instant.EPOCH,
     // Eager, as EventTypeJpaEntity.positionTargets is: every read of a link (the feed, the list) needs
-    // its states and the set is at most four rows. The
-    // default is mutable because a save with an assigned id is a merge, which fills the collection
-    // of a fresh instance in place.
+    // its states and the set is at most four rows. The default is mutable because a save with an
+    // assigned id is a merge, which fills the collection of a fresh instance in place.
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(
         name = "calendar_link_attendance_states",

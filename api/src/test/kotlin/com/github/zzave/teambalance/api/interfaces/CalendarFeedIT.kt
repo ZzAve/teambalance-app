@@ -13,7 +13,9 @@ import com.github.zzave.teambalance.api.interfaces.CalendarLinkFixture.BETA_MEMB
 import com.github.zzave.teambalance.api.interfaces.CalendarLinkFixture.BETA_SCHEMA
 import com.github.zzave.teambalance.api.interfaces.CalendarLinkFixture.BETA_SLUG
 import com.github.zzave.teambalance.api.interfaces.CalendarLinkFixture.LEAVER
+import com.github.zzave.teambalance.api.interfaces.CalendarLinkFixture.MATCH_TYPE
 import com.github.zzave.teambalance.api.interfaces.CalendarLinkFixture.TRAINING
+import com.github.zzave.teambalance.api.interfaces.CalendarLinkFixture.TRAINING_TYPE
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
@@ -25,10 +27,12 @@ import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.test.web.servlet.MockMvc
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.header
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
+import tools.jackson.databind.ObjectMapper
 import java.time.Duration
 import java.sql.Timestamp
 import java.time.Instant
@@ -319,6 +323,104 @@ class CalendarFeedIT : TeamBalanceIT() {
             }
         }
 
+        // ADR-0040. The seeded training is a Training; a Match sits beside it, so a type filter shows
+        // up as which titles are present.
+        context("a link's event types shape what its feed serves") {
+            fun withAMatch() = CalendarLinkFixture.extraEvent(
+                jdbcTemplate, FAR_FUTURE, title = "Home match", typeId = MATCH_TYPE,
+            )
+
+            test("an explicit list serves only events of those types") {
+                withAMatch()
+
+                val ics = body(fetch(ALPHA_SLUG, liveLink(eventTypeIds = listOf(MATCH_TYPE))).andExpect(status().isOk))
+
+                ics shouldContain "SUMMARY:Home match"
+                ics shouldNotContain TRAINING
+            }
+
+            test("a type created after the link is left out of an explicit list") {
+                val trainingOnly = liveLink(eventTypeIds = listOf(TRAINING_TYPE))
+                val beachType = CalendarLinkFixture.eventType(jdbcTemplate, "Beach")
+                CalendarLinkFixture.extraEvent(jdbcTemplate, FAR_FUTURE, title = "Beach day", typeId = beachType)
+
+                val ics = body(fetch(ALPHA_SLUG, trainingOnly).andExpect(status().isOk))
+
+                ics shouldContain "SUMMARY:$TRAINING"
+                ics shouldNotContain "Beach day"
+            }
+
+            test("a type created after the link is served by a link with no list") {
+                val everything = liveLink()
+                val beachType = CalendarLinkFixture.eventType(jdbcTemplate, "Beach")
+                CalendarLinkFixture.extraEvent(jdbcTemplate, FAR_FUTURE, title = "Beach day", typeId = beachType)
+
+                body(fetch(ALPHA_SLUG, everything).andExpect(status().isOk)) shouldContain "SUMMARY:Beach day"
+            }
+
+            // As long as the app shows an archived type's events, every feed does too.
+            test("events of an archived type are still served, listed or not") {
+                val tournamentType = CalendarLinkFixture.eventType(jdbcTemplate, "Tournament")
+                CalendarLinkFixture.extraEvent(jdbcTemplate, FAR_FUTURE, title = "Spring cup", typeId = tournamentType)
+                val listed = liveLink(eventTypeIds = listOf(tournamentType))
+                val everything = liveLink()
+
+                CalendarLinkFixture.archive(jdbcTemplate, tournamentType)
+
+                body(fetch(ALPHA_SLUG, listed).andExpect(status().isOk)) shouldContain "SUMMARY:Spring cup"
+                body(fetch(ALPHA_SLUG, everything).andExpect(status().isOk)) shouldContain "SUMMARY:Spring cup"
+            }
+
+            test("a link with both types and states serves only events that match both") {
+                withAMatch()
+                CalendarLinkFixture.extraEvent(
+                    jdbcTemplate, FAR_FUTURE, title = "Away match", id = MAYBE_EVENT, typeId = MATCH_TYPE,
+                )
+                CalendarLinkFixture.answer(jdbcTemplate, ALPHA_MEMBER, "ATTENDING", eventId = MAYBE_EVENT)
+                CalendarLinkFixture.answer(jdbcTemplate, ALPHA_MEMBER, "ATTENDING")
+
+                val ics = body(
+                    fetch(
+                        ALPHA_SLUG,
+                        liveLink(attendanceStates = listOf("ATTENDING"), eventTypeIds = listOf(MATCH_TYPE)),
+                    ).andExpect(status().isOk),
+                )
+
+                ics shouldContain "SUMMARY:✓ Away match"
+                ics shouldNotContain "Home match"
+                ics shouldNotContain TRAINING
+            }
+
+            // The point of editing rather than re-creating (ADR-0040): the calendar already subscribed
+            // to this URL picks the new selection up on its next refresh.
+            test("after an edit the same URL serves the new selection, under a new ETag") {
+                withAMatch()
+                val created = dispatch(
+                    MockMvcRequestBuilders.post("/api/calendar-links")
+                        .header("X-User-Id", ALPHA_MEMBER)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""{"eventTypeIds":["$MATCH_TYPE"]}"""),
+                ).andExpect(status().isCreated).andReturn().response.contentAsString
+                val link = ObjectMapper().readValue(created, Map::class.java)
+                val id = link["id"] as String
+                val token = CalendarToken((link["url"] as String).substringAfterLast('/').removeSuffix(".ics"))
+                val before = fetch(ALPHA_SLUG, token).andExpect(status().isOk).andReturn().response
+                before.contentAsString shouldNotContain TRAINING
+
+                dispatch(
+                    MockMvcRequestBuilders.put("/api/calendar-links/$id")
+                        .header("X-User-Id", ALPHA_MEMBER)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"),
+                ).andExpect(status().isOk)
+
+                val after = fetch(ALPHA_SLUG, token).andExpect(status().isOk).andReturn().response
+                after.contentAsString shouldContain "SUMMARY:$TRAINING"
+                after.contentAsString shouldContain "SUMMARY:Home match"
+                after.getHeader(HttpHeaders.ETAG) shouldNotBe before.getHeader(HttpHeaders.ETAG)
+            }
+        }
+
         context("conditional fetching") {
             test("an unchanged calendar answers 304 with no body") {
                 val token = liveLink()
@@ -356,6 +458,13 @@ class CalendarFeedIT : TeamBalanceIT() {
                 .apply { ifNoneMatch?.let { header(HttpHeaders.IF_NONE_MATCH, it) } },
         )
 
+    // The Wirespec handlers are suspend → the request dispatches asynchronously; complete it.
+    private fun dispatch(builder: MockHttpServletRequestBuilder) =
+        mockMvc.perform(builder)
+            .andExpect(MockMvcResultMatchers.request().asyncStarted())
+            .andReturn()
+            .let { mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(it)) }
+
     /** Moves the seeded training through the real admin edit path, scope THIS. */
     private fun reschedule(to: String, end: String) {
         val body = """
@@ -388,12 +497,14 @@ class CalendarFeedIT : TeamBalanceIT() {
         attendanceStates: List<String> = CalendarLinkFixture.ALL_STATES,
         showAttendancePrefix: Boolean = true,
         calendarNameSuffix: String? = null,
+        eventTypeIds: List<String>? = null,
     ) = CalendarLinkFixture.link(
         jdbcTemplate, calendarLinkTokens, ALPHA_SCHEMA, userId,
         expiresAt = Instant.now().plusSeconds(3600),
         attendanceStates = attendanceStates,
         showAttendancePrefix = showAttendancePrefix,
         calendarNameSuffix = calendarNameSuffix,
+        eventTypeIds = eventTypeIds,
     )
 
     /**

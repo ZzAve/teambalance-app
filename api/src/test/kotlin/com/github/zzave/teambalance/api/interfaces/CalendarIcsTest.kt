@@ -3,6 +3,7 @@ package com.github.zzave.teambalance.api.interfaces
 import com.github.zzave.teambalance.api.application.CalendarFeed
 import com.github.zzave.teambalance.api.application.CalendarFeedEntry
 import com.github.zzave.teambalance.api.domain.model.AttendanceState
+import com.github.zzave.teambalance.api.domain.model.CalendarLinkOptions
 import com.github.zzave.teambalance.api.domain.model.CalendarNameSuffix
 import com.github.zzave.teambalance.api.domain.model.Event
 import com.github.zzave.teambalance.api.domain.model.EventDescription
@@ -70,7 +71,15 @@ private fun feed(
     refresh: RefreshCadence = RefreshCadence.RELAXED,
     showAttendancePrefix: Boolean = true,
     calendarNameSuffix: String? = null,
-) = CalendarFeed(TEAM, entries, refresh, showAttendancePrefix, CalendarNameSuffix.ofNullable(calendarNameSuffix))
+) = CalendarFeed(
+    TEAM,
+    entries,
+    refresh,
+    CalendarLinkOptions(
+        showAttendancePrefix = showAttendancePrefix,
+        calendarNameSuffix = CalendarNameSuffix.ofNullable(calendarNameSuffix),
+    ),
+)
 
 private fun render(
     state: AttendanceState = AttendanceState.NOT_RESPONDED,
@@ -239,7 +248,7 @@ class CalendarIcsTest : FunSpec({
         // X-WR-CALNAME is read raw by clients, so only the newline is escaped there.
         test("a newline in the team name, which keeps its comma as typed") {
             val named = TEAM.copy(name = TeamName("Tovo, Dames\nBEGIN:VEVENT"))
-            val feed = CalendarFeed(named, emptyList(), RefreshCadence.RELAXED, true, null)
+            val feed = CalendarFeed(named, emptyList(), RefreshCadence.RELAXED, CalendarLinkOptions())
             val ics = CalendarIcs.render(feed, FRONTEND)
             ics shouldContain "X-WR-CALNAME:Tovo, Dames\\nBEGIN:VEVENT"
             ics shouldNotContain "\r\nBEGIN:VEVENT"

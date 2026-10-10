@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import type { AttendanceState } from '@features/attendance-toggle/ui/AttendanceToggle'
 import { browserPreferenceStorage } from '@shared/preferences/preferences'
-import { ALL_ATTENDANCE_STATES } from './attendance-states'
+import { ALL_ATTENDANCE_STATES } from '@entities/event/lib/attendance-states'
 import {
   defaultEventFilters,
   hiddenTypeIdsOf,

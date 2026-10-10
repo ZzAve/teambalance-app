@@ -9,6 +9,7 @@ import com.github.zzave.teambalance.api.domain.port.ActAsGateway
 import com.github.zzave.teambalance.api.domain.port.AttendanceRepository
 import com.github.zzave.teambalance.api.domain.port.CalendarLinkRepository
 import com.github.zzave.teambalance.api.domain.port.EventRepository
+import com.github.zzave.teambalance.api.domain.port.EventTypeRepository
 import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
 import com.github.zzave.teambalance.api.domain.port.TeamRepository
 import org.springframework.beans.factory.annotation.Value
@@ -42,6 +43,7 @@ class CalendarLinkCompositionRoot {
     fun calendarLinkService(
         calendarLinkRepository: CalendarLinkRepository,
         teamRepository: TeamRepository,
+        eventTypeRepository: EventTypeRepository,
         authorizationService: AuthorizationService,
         actAsGateway: ActAsGateway,
         calendarLinkTokens: CalendarLinkTokens,
@@ -50,6 +52,7 @@ class CalendarLinkCompositionRoot {
     ) = CalendarLinkService(
         calendarLinkRepository = calendarLinkRepository,
         teamRepository = teamRepository,
+        eventTypeRepository = eventTypeRepository,
         authorizationService = authorizationService,
         actAsGateway = actAsGateway,
         tokens = calendarLinkTokens,

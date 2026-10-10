@@ -26,6 +26,8 @@ interface CalendarLinksViewProps {
   isSaving?: boolean
   /** The last create, edit or delete failed. */
   actionError?: boolean
+  /** The last edit failed. Shown in the row being edited. */
+  updateError?: boolean
   /** The link whose URL was just copied, so its button can say so. */
   copiedId?: string | null
   /** The link whose clipboard write the browser refused, so its URL can be copied by hand. */
@@ -33,6 +35,8 @@ interface CalendarLinksViewProps {
   onGenerate: (request: CalendarLinkRequest) => void
   /** `onSaved` is called once the edit is stored; until then the row stays open with its edits. */
   onUpdate: (id: string, request: CalendarLinkRequest, onSaved: () => void) => void
+  /** A row's edit opened or was cancelled, so an earlier edit's error no longer applies. */
+  onEditOpenOrClose: () => void
   onDelete: (id: string) => void
   onCopy: (link: CalendarLink) => void
   onRetry: () => void
@@ -52,10 +56,12 @@ export function CalendarLinksView({
   isError,
   isSaving,
   actionError,
+  updateError,
   copiedId,
   copyFailedId,
   onGenerate,
   onUpdate,
+  onEditOpenOrClose,
   onDelete,
   onCopy,
   onRetry,
@@ -100,10 +106,16 @@ export function CalendarLinksView({
                   eventTypes={eventTypes}
                   editing={editingId === link.id}
                   isSaving={isSaving}
-                  actionError={actionError}
+                  updateError={updateError}
                   onCopy={onCopy}
-                  onEdit={() => setEditingId(link.id)}
-                  onCancelEdit={() => setEditingId(null)}
+                  onEdit={() => {
+                    onEditOpenOrClose()
+                    setEditingId(link.id)
+                  }}
+                  onCancelEdit={() => {
+                    onEditOpenOrClose()
+                    setEditingId(null)
+                  }}
                   onUpdate={(request) =>
                     // Closes only this row: another may have been opened while the save was in flight.
                     onUpdate(link.id, request, () => setEditingId((open) => (open === link.id ? null : open)))
@@ -161,7 +173,7 @@ interface CalendarLinkRowProps {
   copied: boolean
   copyFailed: boolean
   isSaving?: boolean
-  actionError?: boolean
+  updateError?: boolean
   onCopy: (link: CalendarLink) => void
   onEdit: () => void
   onCancelEdit: () => void
@@ -177,7 +189,7 @@ function CalendarLinkRow({
   copied,
   copyFailed,
   isSaving,
-  actionError,
+  updateError,
   onCopy,
   onEdit,
   onCancelEdit,
@@ -215,7 +227,7 @@ function CalendarLinkRow({
             onSubmit={onUpdate}
             onCancel={onCancelEdit}
           />
-          {actionError && <FormError>Something went wrong. Please try again.</FormError>}
+          {updateError && <FormError>Something went wrong. Please try again.</FormError>}
         </>
       ) : (
         <>

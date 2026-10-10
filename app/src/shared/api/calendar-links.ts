@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from './wirespec-client'
+import type { CalendarLink } from './generated/model/CalendarLink'
 import type { CalendarLinkRequest } from './generated/model/CalendarLinkRequest'
 
 // Re-export the generated contract types so the app has a single source of truth.
@@ -44,6 +45,12 @@ export function useUpdateCalendarLink() {
       if (res.status !== 200) throw new Error(`Couldn't update calendar link (${res.status})`)
       return res.body
     },
+    // Written into the list straight away, so the row that closes on success already shows the new
+    // label and summary rather than the old ones until the refetch lands.
+    onSuccess: (updated) =>
+      queryClient.setQueryData<CalendarLink[]>(['calendar-links'], (links) =>
+        links?.map((link) => (link.id === updated.id ? updated : link)),
+      ),
     onSettled: () => queryClient.invalidateQueries({ queryKey: ['calendar-links'] }),
   })
 }

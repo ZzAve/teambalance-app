@@ -90,38 +90,36 @@ export function AdvancedOptions({
             </div>
           </div>
 
-          {eventTypes.length > 0 && (
-            <div className="flex flex-col gap-2">
-              <p id={typesId} className="text-small font-medium">
-                Include event types
-              </p>
-              <div role="group" aria-labelledby={typesId} className="flex flex-wrap gap-2">
-                <Chip
-                  pressed={options.eventTypeIds === undefined}
+          <div className="flex flex-col gap-2">
+            <p id={typesId} className="text-small font-medium">
+              Include event types
+            </p>
+            <div role="group" aria-labelledby={typesId} className="flex flex-wrap gap-2">
+              <Chip
+                pressed={options.eventTypeIds === undefined}
+                disabled={disabled}
+                onToggle={() => onChange({ ...options, eventTypeIds: undefined })}
+                activeClassName="border-blue bg-blue/10 text-blue"
+                inactiveClassName="border-border text-muted-foreground"
+              >
+                All types
+              </Chip>
+              {eventTypes.map((type) => (
+                <EventTypeChip
+                  key={type.id}
+                  type={type}
+                  pressed={options.eventTypeIds?.includes(type.id) ?? false}
                   disabled={disabled}
-                  onToggle={() => onChange({ ...options, eventTypeIds: undefined })}
-                  activeClassName="border-blue bg-blue/10 text-blue"
-                  inactiveClassName="border-border text-muted-foreground"
-                >
-                  All types
-                </Chip>
-                {eventTypes.map((type) => (
-                  <EventTypeChip
-                    key={type.id}
-                    type={type}
-                    pressed={options.eventTypeIds?.includes(type.id) ?? false}
-                    disabled={disabled}
-                    onToggle={() => toggleType(type.id)}
-                  />
-                ))}
-              </div>
-              <p className="text-caption text-muted-foreground">
-                {options.eventTypeIds === undefined
-                  ? 'Types your team adds later are included.'
-                  : 'Types your team adds later are not included.'}
-              </p>
+                  onToggle={() => toggleType(type.id)}
+                />
+              ))}
             </div>
-          )}
+            <p className="text-caption text-muted-foreground">
+              {options.eventTypeIds === undefined
+                ? 'Types your team adds later are included.'
+                : 'Types your team adds later are not included.'}
+            </p>
+          </div>
 
           <div className="flex items-center justify-between gap-3">
             <span className="text-small font-medium">Mark your answer (✓ ? ✗) on titles</span>

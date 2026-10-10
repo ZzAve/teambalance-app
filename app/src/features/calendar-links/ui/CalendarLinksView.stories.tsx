@@ -81,6 +81,7 @@ const meta = {
     eventTypes: EVENT_TYPES,
     onGenerate: fn(),
     onUpdate: fn(),
+    onEditOpenOrClose: fn(),
     onDelete: fn(),
     onCopy: fn(),
     onRetry: fn(),
@@ -173,7 +174,10 @@ export const Interactions: Story = {
       items={{
         'Below the cap': <CalendarLinksView {...args} links={[PHONE, PARTNER]} copiedId="l2" />,
         'An expired link': <CalendarLinksView {...args} links={[UNLABELLED_CUSTOM]} />,
-        'Save failed': <CalendarLinksView {...args} links={[PHONE]} actionError />,
+        'Save failed': <CalendarLinksView {...args} links={[PHONE]} updateError />,
+        'Earlier failure, types unknown': (
+          <CalendarLinksView {...args} links={[{ ...PHONE, eventTypeIds: [MATCH.id] }]} eventTypes={[]} actionError />
+        ),
         Error: <CalendarLinksView {...args} isError />,
       }}
     />
@@ -336,6 +340,24 @@ export const Interactions: Story = {
     await userEvent.click(failedRow.getByRole('button', { name: 'Edit' }))
     await expect(failedRow.getByRole('alert')).toHaveTextContent('Something went wrong. Please try again.')
     await expect(failed.getAllByRole('alert')).toHaveLength(1)
+
+    // An earlier create or delete failure is not the edit's: a freshly opened row shows no error, and
+    // the container is told the edit opened (and later closed) so it can clear the last update's.
+    const earlier = within(canvas.getByRole('region', { name: 'Earlier failure, types unknown' }))
+    const earlierRow = within(earlier.getByRole('listitem', { name: 'My phone' }))
+    // Types not loaded yet: the link still reads as limited.
+    await expect(earlierRow.getByText('1 event type')).toBeInTheDocument()
+    const editSpy = args.onEditOpenOrClose as ReturnType<typeof fn>
+    editSpy.mockClear()
+    await userEvent.click(earlierRow.getByRole('button', { name: 'Edit' }))
+    await expect(editSpy).toHaveBeenCalledTimes(1)
+    await expect(earlierRow.queryByRole('alert')).not.toBeInTheDocument()
+    // With no type names to show, the link can still go back to every type.
+    await expect(earlierRow.getByRole('button', { name: 'All types' })).toHaveAttribute('aria-pressed', 'false')
+    await userEvent.click(earlierRow.getByRole('button', { name: 'All types' }))
+    await expect(earlierRow.getByRole('button', { name: 'All types' })).toHaveAttribute('aria-pressed', 'true')
+    await userEvent.click(earlierRow.getByRole('button', { name: 'Cancel' }))
+    await expect(editSpy).toHaveBeenCalledTimes(2)
 
     // An expired link is not edited: it serves nothing, so there is nothing to change.
     const expired = within(

@@ -45,4 +45,15 @@ describe('optionsSummary', () => {
       optionsSummary({ ...PRESET_OPTIONS.partner, eventTypeIds: ['b', 't'] }, 'Setpoint VT', TYPES),
     ).toBe('Training, Beach (archived) · Going only · no ✓/✗ marks · calendar: Setpoint VT · Partner')
   })
+
+  // Types still loading, or the request failed: a limited link must not read as unrestricted.
+  it('counts the types whose names are not known', () => {
+    expect(optionsSummary({ ...PRESET_OPTIONS.me, eventTypeIds: ['x'] }, 'Setpoint VT', [])).toBe('1 event type')
+    expect(optionsSummary({ ...PRESET_OPTIONS.me, eventTypeIds: ['x', 'y', 'z'] }, 'Setpoint VT', [])).toBe(
+      '3 event types',
+    )
+    expect(optionsSummary({ ...PRESET_OPTIONS.me, eventTypeIds: ['t', 'x'] }, 'Setpoint VT', TYPES)).toBe(
+      'Training, 1 other event type',
+    )
+  })
 })

@@ -35,6 +35,7 @@ export function CalendarLinks() {
       isError={isError}
       isSaving={createLink.isPending || updateLink.isPending || deleteLink.isPending}
       actionError={createLink.isError || updateLink.isError || deleteLink.isError}
+      updateError={updateLink.isError}
       copiedId={clipboard.copiedKey}
       copyFailedId={clipboard.failedKey}
       onGenerate={(request) => {
@@ -47,6 +48,7 @@ export function CalendarLinks() {
         deleteLink.reset()
         updateLink.mutate({ id, request }, { onSuccess: onSaved })
       }}
+      onEditOpenOrClose={() => updateLink.reset()}
       onDelete={(id) => {
         createLink.reset()
         updateLink.reset()

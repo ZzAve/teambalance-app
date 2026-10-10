@@ -306,6 +306,9 @@ export default meta
 
 type Story = StoryObj<typeof meta>
 
+/** The hero's own controls, scoped so "Going" cannot resolve to a list card's answer button. */
+const hero = (canvas: ReturnType<typeof within>) => within(canvas.getByRole('region', { name: 'Next up' }))
+
 export const Data: Story = {
   decorators: shell.decorators,
   // The page's picture, in dark and once at desktop width too (ADR-0032 §4-§5).
@@ -319,7 +322,7 @@ export const Data: Story = {
     // The hero holds the one event within the window, and the list does not repeat it.
     await expect(canvas.getByText('Next up')).toBeInTheDocument()
     await expect(canvas.getAllByText('Training — Court 2')).toHaveLength(1)
-    await expect(canvas.getByRole('button', { name: /I'm in/ })).toHaveAttribute('aria-pressed', 'false')
+    await expect(hero(canvas).getByRole('button', { name: 'Going' })).toHaveAttribute('aria-pressed', 'false')
     // The hero's lineup is behind the same disclosure as the cards', closed by default (#386), so
     // the hero leaves room on a phone for the bar and the next card.
     await expect(canvas.getAllByRole('button', { name: /Show lineup/ })).toHaveLength(4)
@@ -417,9 +420,9 @@ export const Interactions: Story = {
     // RSVP from the hero: the callback fires and the harness flips the hero's own state. Bulk
     // Attend never counted the hero's training (#386), so the bar reads the same before and after.
     await expect(canvas.getByRole('button', { name: 'Attend 1 training' })).toBeInTheDocument()
-    await userEvent.click(canvas.getByRole('button', { name: /I'm in/ }))
+    await userEvent.click(hero(canvas).getByRole('button', { name: 'Going' }))
     await expect(args.onHeroRespond).toHaveBeenCalledWith('ATTENDING')
-    await expect(canvas.getByRole('button', { name: /I'm in/ })).toHaveAttribute('aria-pressed', 'true')
+    await expect(hero(canvas).getByRole('button', { name: 'Going' })).toHaveAttribute('aria-pressed', 'true')
     await expect(canvas.getByRole('button', { name: 'Attend 1 training' })).toBeInTheDocument()
 
     // Hide trainings: the callback fires, the hero re-picks the next event in the window.
@@ -429,7 +432,7 @@ export const Interactions: Story = {
     await userEvent.keyboard('{Escape}')
     await expect(canvas.queryByText('Training — Court 1')).not.toBeInTheDocument()
     await expect(canvas.getAllByText('League Match vs Smash United')).toHaveLength(1)
-    await expect(canvas.getByRole('button', { name: /Can't make it/ })).toBeInTheDocument()
+    await expect(hero(canvas).getByRole('button', { name: "Can't" })).toBeInTheDocument()
     // Undo it so the list below is whole again.
     await userEvent.click(canvas.getByRole('button', { name: 'Clear filters' }))
     await expect(canvas.getByText('Training — Court 1')).toBeInTheDocument()
@@ -449,14 +452,17 @@ export const Interactions: Story = {
     await userEvent.click(canvas.getAllByRole('button', { name: /Sofia — Maybe/ })[1])
     const sheet = within(await within(document.body).findByRole('dialog'))
     await expect(sheet.getByText(/you are answering for them/)).toBeInTheDocument()
-    await userEvent.click(sheet.getByRole('button', { name: "Can't go" }))
+    await userEvent.click(sheet.getByRole('button', { name: "Can't" }))
     await expect(args.onRespondFor).toHaveBeenCalledWith('evt-match', 'u-4', 'ABSENT')
 
     // Answering from a card: the match and the tournament are already answered, so their rows read
     // "Change your answer"; the list is chronological, so the first is the match. Picking Maybe
     // reports the event and the state.
-    await userEvent.click(canvas.getAllByRole('button', { name: /Change your answer/ })[0])
-    await userEvent.click(canvas.getByRole('button', { name: /^Maybe$/ }))
+    const change = canvas.getAllByRole('button', { name: /Change your answer/ })[0]
+    await userEvent.click(change)
+    // The hero offers Maybe too, so the pick is scoped to the panel this trigger controls.
+    const options = within(document.getElementById(change.getAttribute('aria-controls')!)!)
+    await userEvent.click(options.getByRole('button', { name: 'Maybe' }))
     await expect(args.onRespond).toHaveBeenCalledWith('evt-match', 'MAYBE')
 
     // Bulk Attend reports the type it stands for.

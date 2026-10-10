@@ -1,5 +1,6 @@
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@shared/ui/sheet'
-import { STATE_WORD, type LineupState } from '@entities/event/lib/lineup'
+import type { LineupState } from '@entities/event/lib/lineup'
+import { LOWER_WORD } from '@entities/event/lib/attendance-words'
 import { AttendanceToggle } from './AttendanceToggle'
 
 /** Who the sheet is about. A caller passes null to close it. */
@@ -48,7 +49,7 @@ export function AnswerSheet({
             <SheetHeader>
               <SheetTitle>{target.displayName}</SheetTitle>
               <SheetDescription>
-                {target.position ? `${target.position} · ` : ''}currently {STATE_WORD[target.state].toLowerCase()}
+                {target.position ? `${target.position} · ` : ''}currently {LOWER_WORD[target.state]}
                 {!target.isSelf && ' · you are answering for them'}
               </SheetDescription>
             </SheetHeader>

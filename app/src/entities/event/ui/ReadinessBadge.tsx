@@ -66,7 +66,7 @@ export function ReadinessBadge({ roster, pending = false, variant = 'card' }: Re
   return (
     <span
       aria-busy={pending}
-      // The hero's ink is the fixed --color-green-dark its own white "I'm in" button already uses.
+      // The hero's ink is the fixed --color-green-dark its own white "Going" button already uses.
       // `text-foreground` would be wrong there: the hero's ground stays green in both themes while
       // that token inverts, so the label would go near-white on a white chip in dark mode.
       style={hero ? { color: 'var(--color-green-dark)' } : undefined}

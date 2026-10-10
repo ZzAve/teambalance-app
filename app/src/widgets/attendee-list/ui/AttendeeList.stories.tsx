@@ -161,7 +161,7 @@ export const Shells: Story = {
     // The list itself is unchanged — same groups, same names, same answers.
     await expect(region('ReadOnly').getByRole('heading', { name: 'Setter' })).toBeInTheDocument()
     await expect(region('ReadOnly').getByText('Sanne')).toBeInTheDocument()
-    await expect(region('ReadOnly').getByText('Awaiting')).toBeInTheDocument()
+    await expect(region('ReadOnly').getByText('Not responded')).toBeInTheDocument()
     // But no row is a control, so there is no route to anyone's answer.
     await expect(region('ReadOnly').queryByRole('button')).not.toBeInTheDocument()
   },
@@ -191,7 +191,7 @@ export const Interactions: Story = {
     // portal, so it lands on document.body rather than inside the canvas.
     await userEvent.click(region('Target member').getByRole('button', { name: /Bob — Going/ }))
     const bobSheet = within(await body.findByRole('dialog'))
-    await userEvent.click(bobSheet.getByRole('button', { name: "Can't go" }))
+    await userEvent.click(bobSheet.getByRole('button', { name: "Can't" }))
     await expect(args.onRespond).toHaveBeenCalledWith('u-bob', 'ABSENT')
 
     // The sheet names the teammate, their position and that you are answering for them.
@@ -211,6 +211,13 @@ export const Interactions: Story = {
     const sanneSheet = within(await body.findByRole('dialog'))
     await expect(sanneSheet.getByText(/Setter · currently going/)).toBeInTheDocument()
     await expect(sanneSheet.queryByText(/answering for them/)).not.toBeInTheDocument()
+    await userEvent.keyboard('{Escape}')
+    await expect(body.queryByRole('dialog')).not.toBeInTheDocument()
+
+    // An unanswered teammate is "not responded" in the sheet too — the same word as their row.
+    await userEvent.click(region('Viewer among teammates').getByRole('button', { name: /Uwe — Not responded/ }))
+    const uweSheet = within(await body.findByRole('dialog'))
+    await expect(uweSheet.getByText(/currently not responded/)).toBeInTheDocument()
     await userEvent.keyboard('{Escape}')
 
     // A short Position's nudge opens the picker for that Position (#359).

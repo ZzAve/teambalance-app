@@ -37,7 +37,7 @@ type Story = StoryObj<typeof meta>
 
 // Exactly one button is pressed per selected state; the other two are not.
 async function expectPressed(canvas: ReturnType<typeof within>, pressedName: string) {
-  for (const name of ['Going', 'Maybe', "Can't go"]) {
+  for (const name of ['Going', 'Maybe', "Can't"]) {
     await expect(canvas.getByRole('button', { name })).toHaveAttribute(
       'aria-pressed',
       String(name === pressedName),
@@ -67,11 +67,11 @@ export const Gallery: Story = {
 
     await expectPressed(variant('attending'), 'Going')
     await expectPressed(variant('maybe'), 'Maybe')
-    await expectPressed(variant('absent'), "Can't go")
+    await expectPressed(variant('absent'), "Can't")
     // No option matches NOT_RESPONDED → none is pressed.
     await expectPressed(variant('notResponded'), '')
 
-    for (const name of ['Going', 'Maybe', "Can't go"]) {
+    for (const name of ['Going', 'Maybe', "Can't"]) {
       await expect(variant('disabled').getByRole('button', { name })).toBeDisabled()
     }
   },

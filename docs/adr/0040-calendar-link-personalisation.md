@@ -23,7 +23,9 @@ A link carries, besides its label:
 - **`attendanceStates`** — a non-empty subset of `ATTENDING`, `MAYBE`, `ABSENT`, `NOT_RESPONDED`. The
   feed includes an Event if and only if the subscriber's own answer to it is in the set, an unanswered
   Event counting as `NOT_RESPONDED`. The 30-day lookback is unchanged. Archived Event Types are never
-  filtered out.
+  filtered out. The refresh cadence is banded on the Team's next event, not the next one the link
+  shows: an unanswered training tomorrow that the member may yet accept has to reach a Partner
+  calendar within the hour, not twelve hours later.
 - **`showAttendancePrefix`** — whether `SUMMARY` wears the `✓ ` / `? ` / `✗ ` prefix.
 - **`calendarNameSuffix`** — optional, trimmed, 1 to 30 characters; blank is none. `X-WR-CALNAME` is the
   Team name, or `{team} · {suffix}` when set.

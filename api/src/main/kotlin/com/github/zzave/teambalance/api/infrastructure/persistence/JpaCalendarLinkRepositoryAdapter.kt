@@ -70,7 +70,7 @@ class JpaCalendarLinkRepositoryAdapter(
                 label = link.label?.value,
                 createdAt = link.createdAt,
                 expiresAt = link.expiresAt,
-                attendanceStates = link.attendanceStates.map { it.name }.toSet(),
+                attendanceStates = link.attendanceStates.map { it.name }.toMutableSet(),
                 showAttendancePrefix = link.showAttendancePrefix,
                 calendarNameSuffix = link.calendarNameSuffix?.value,
             ),

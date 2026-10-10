@@ -70,7 +70,9 @@ class CalendarFeedService(
             val entries = entriesFor(link, now)
             CalendarFeed(
                 team = team,
-                entries = entries,
+                entries = entries.filter { it.state in link.attendanceStates },
+                // Banded on the team's next event, not the link's: an unanswered training tomorrow the
+                // member may yet accept must reach a narrowed calendar in time (ADR-0040).
                 refresh = RefreshCadence.before(nextStart(entries, now), now),
                 showAttendancePrefix = link.showAttendancePrefix,
                 calendarNameSuffix = link.calendarNameSuffix,
@@ -91,14 +93,12 @@ class CalendarFeedService(
             ?.takeIf { it.isLiveAt(now) }
             ?.takeIf { teamMemberRepository.findRole(team.id, it.userId) != null }
 
-    /** The events whose subscriber's own answer — unanswered counting as NOT_RESPONDED — the link includes. */
+    /** Every event in the window with the subscriber's own answer, unanswered counting as NOT_RESPONDED. */
     private fun entriesFor(link: CalendarLink, now: Instant): List<CalendarFeedEntry> {
         val events = eventRepository.findUpcoming(now.minus(HISTORY_WINDOW))
         val states = attendanceRepository.findByUserIdAndEventIds(link.userId, events.map { it.id })
             .associate { it.eventId to it.state }
-        return events
-            .map { CalendarFeedEntry(it, states[it.id] ?: AttendanceState.NOT_RESPONDED) }
-            .filter { it.state in link.attendanceStates }
+        return events.map { CalendarFeedEntry(it, states[it.id] ?: AttendanceState.NOT_RESPONDED) }
     }
 
     /**

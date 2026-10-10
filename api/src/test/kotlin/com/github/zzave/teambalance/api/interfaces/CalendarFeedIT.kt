@@ -278,6 +278,23 @@ class CalendarFeedIT : TeamBalanceIT() {
                 ics shouldContain "X-WR-CALNAME:$ALPHA_NAME\r\n"
             }
 
+            // The cadence follows the team's schedule, not what the link shows: an unanswered training
+            // tomorrow the member may yet accept has to reach a partner's calendar in time.
+            test("a narrowed link still refreshes on the team's next event, not its own") {
+                CalendarLinkFixture.extraEvent(
+                    jdbcTemplate, Instant.now().plus(Duration.ofDays(21)), title = "Away match", id = MAYBE_EVENT,
+                )
+                CalendarLinkFixture.answer(jdbcTemplate, ALPHA_MEMBER, "ATTENDING", eventId = MAYBE_EVENT)
+                CalendarLinkFixture.extraEvent(jdbcTemplate, Instant.now().plus(Duration.ofHours(6)), title = "Soon training")
+                val partner = liveLink(attendanceStates = listOf("ATTENDING"), showAttendancePrefix = false)
+
+                val ics = body(fetch(ALPHA_SLUG, partner).andExpect(status().isOk))
+
+                ics shouldContain "REFRESH-INTERVAL;VALUE=DURATION:PT1H"
+                ics shouldNotContain "Soon training"
+                ics shouldContain "SUMMARY:Away match"
+            }
+
             test("two links on the same events with different options carry different ETags") {
                 answeredThreeWays()
                 val me = fetch(ALPHA_SLUG, liveLink()).andReturn().response.getHeader(HttpHeaders.ETAG)

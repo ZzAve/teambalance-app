@@ -3,10 +3,12 @@ package com.github.zzave.teambalance.api.application
 import com.github.zzave.teambalance.api.domain.exception.CalendarLinkLimitReachedException
 import com.github.zzave.teambalance.api.domain.exception.CalendarLinkNotFoundException
 import com.github.zzave.teambalance.api.domain.exception.NotUnderActAsException
+import com.github.zzave.teambalance.api.domain.model.AttendanceState
 import com.github.zzave.teambalance.api.domain.model.CalendarFeedUrl
 import com.github.zzave.teambalance.api.domain.model.CalendarLink
 import com.github.zzave.teambalance.api.domain.model.CalendarLinkId
 import com.github.zzave.teambalance.api.domain.model.CalendarLinkLabel
+import com.github.zzave.teambalance.api.domain.model.CalendarNameSuffix
 import com.github.zzave.teambalance.api.domain.model.CalendarToken
 import com.github.zzave.teambalance.api.domain.model.Slug
 import com.github.zzave.teambalance.api.domain.model.TeamId
@@ -36,6 +38,9 @@ data class IssuedCalendarLink(
     val expiresAt: Instant,
     val expired: Boolean,
     val url: CalendarFeedUrl?,
+    val attendanceStates: Set<AttendanceState>,
+    val showAttendancePrefix: Boolean,
+    val calendarNameSuffix: CalendarNameSuffix?,
 )
 
 /**
@@ -73,8 +78,17 @@ class CalendarLinkService(
      *
      * Refused with a 409 once [CalendarLink.MAX_PER_MEMBER] exist, expired ones counted — the caller
      * resolves it by deleting one, which is a thing they can see and do.
+     *
+     * The options (ADR-0040) default to the "Me" shape: every answer, prefixed, no suffix.
      */
-    fun createLink(callerId: UserId, teamId: TeamId, rawLabel: String?): IssuedCalendarLink {
+    fun createLink(
+        callerId: UserId,
+        teamId: TeamId,
+        rawLabel: String?,
+        attendanceStates: Set<AttendanceState> = CalendarLink.DEFAULT_ATTENDANCE_STATES,
+        showAttendancePrefix: Boolean = CalendarLink.DEFAULT_SHOW_ATTENDANCE_PREFIX,
+        rawCalendarNameSuffix: String? = null,
+    ): IssuedCalendarLink {
         requireOwnAccess(callerId, teamId)
 
         val now = clock.instant()
@@ -87,6 +101,9 @@ class CalendarLinkService(
             label = CalendarLinkLabel.ofNullable(rawLabel),
             createdAt = now,
             expiresAt = now.plus(CalendarLink.TTL),
+            attendanceStates = attendanceStates,
+            showAttendancePrefix = showAttendancePrefix,
+            calendarNameSuffix = CalendarNameSuffix.ofNullable(rawCalendarNameSuffix),
         )
         // The cap is handed to the write rather than checked before it, so one member clicking twice
         // cannot land two links past the limit between the count and the insert.
@@ -140,6 +157,9 @@ class CalendarLinkService(
             expiresAt = expiresAt,
             expired = !isLiveAt(now),
             url = token?.let { CalendarFeedUrl("$apiBaseUrl/api/calendar/$slug/${it.value}.ics") },
+            attendanceStates = attendanceStates,
+            showAttendancePrefix = showAttendancePrefix,
+            calendarNameSuffix = calendarNameSuffix,
         )
 
     private fun CalendarLink.reveal(): CalendarToken? = runCatching { tokens.reveal(encryptedToken) }.getOrNull()

@@ -79,6 +79,53 @@ class CalendarLinkControllerIT : TeamBalanceIT() {
                 .andExpect(jsonPath("$.label").doesNotExist())
         }
 
+        // ADR-0040: a link's options round-trip, and a body that names none gets the Me shape.
+        context("the options a link is created with") {
+            test("every option round-trips") {
+                createAs(
+                    ALPHA_MEMBER,
+                    body = """{"label":"Partner","attendanceStates":["MAYBE","ATTENDING"],
+                        "showAttendancePrefix":false,"calendarNameSuffix":"  Partner  "}""",
+                )
+                    .andExpect(status().isCreated)
+                    .andExpect(jsonPath("$.label").value("Partner"))
+                    .andExpect(jsonPath("$.attendanceStates[0]").value("ATTENDING"))
+                    .andExpect(jsonPath("$.attendanceStates[1]").value("MAYBE"))
+                    .andExpect(jsonPath("$.attendanceStates.length()").value(2))
+                    .andExpect(jsonPath("$.showAttendancePrefix").value(false))
+                    .andExpect(jsonPath("$.calendarNameSuffix").value("Partner"))
+
+                val listed = listAs(ALPHA_MEMBER).andReturn().links().single()
+                listed["attendanceStates"] shouldBe listOf("ATTENDING", "MAYBE")
+                listed["showAttendancePrefix"] shouldBe false
+                listed["calendarNameSuffix"] shouldBe "Partner"
+            }
+
+            test("a body of just a label gets every state, the prefix on and no suffix") {
+                createAs(ALPHA_MEMBER, label = "Phone")
+                    .andExpect(status().isCreated)
+                    .andExpect(jsonPath("$.attendanceStates.length()").value(4))
+                    .andExpect(jsonPath("$.showAttendancePrefix").value(true))
+                    .andExpect(jsonPath("$.calendarNameSuffix").doesNotExist())
+            }
+
+            test("an empty set of states is refused") {
+                createAs(ALPHA_MEMBER, body = """{"attendanceStates":[]}""").andExpect(status().isBadRequest)
+                listAs(ALPHA_MEMBER).andReturn().links().size shouldBe 0
+            }
+
+            test("a suffix over 30 characters is refused") {
+                createAs(ALPHA_MEMBER, body = """{"calendarNameSuffix":"${"x".repeat(31)}"}""")
+                    .andExpect(status().isBadRequest)
+            }
+
+            test("a blank suffix is no suffix") {
+                createAs(ALPHA_MEMBER, body = """{"calendarNameSuffix":"   "}""")
+                    .andExpect(status().isCreated)
+                    .andExpect(jsonPath("$.calendarNameSuffix").doesNotExist())
+            }
+        }
+
         test("a member sees only their own links, not a teammate's") {
             createAs(ALPHA_MEMBER).andExpect(status().isCreated)
 
@@ -178,11 +225,15 @@ class CalendarLinkControllerIT : TeamBalanceIT() {
             .andReturn()
             .let { mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(it)) }
 
-    private fun createAs(userId: String, label: String? = null) = dispatch(
+    private fun createAs(
+        userId: String,
+        label: String? = null,
+        body: String = label?.let { """{"label":"$it"}""" } ?: "{}",
+    ) = dispatch(
         MockMvcRequestBuilders.post("/api/calendar-links")
             .header("X-User-Id", userId)
             .contentType(MediaType.APPLICATION_JSON)
-            .content(label?.let { """{"label":"$it"}""" } ?: "{}"),
+            .content(body),
     )
 
     private fun listAs(userId: String) =

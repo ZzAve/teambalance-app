@@ -47,7 +47,10 @@ object CalendarIcs {
             // X-WR-CALNAME rather than RFC 7986's NAME: it is what Google, Apple and Outlook actually
             // use to title a subscribed calendar, and a feed nobody can tell apart in a sidebar full
             // of calendars has failed at the one thing the name is for.
-            setExperimentalProperty("X-WR-CALNAME", feed.team.name.value)
+            //
+            // A suffix (ADR-0040) tells two feeds of one team apart — the member's own and the one
+            // shared with a partner.
+            setExperimentalProperty("X-WR-CALNAME", calendarName(feed))
             // How soon to come back, tightening as the next event nears (RefreshCadence). Both
             // spellings on purpose: `REFRESH-INTERVAL` is the standard one (RFC 7986) and
             // `X-PUBLISHED-TTL` is what Outlook and several others actually read. Java renders a
@@ -56,11 +59,16 @@ object CalendarIcs {
             addExperimentalProperty("REFRESH-INTERVAL", ICalDataType.DURATION, refresh)
             addExperimentalProperty("X-PUBLISHED-TTL", refresh)
         }
-        feed.entries.forEach { calendar.addEvent(it.toVEvent(feed.team.slug.value, frontendBaseUrl)) }
+        feed.entries.forEach {
+            calendar.addEvent(it.toVEvent(feed.team.slug.value, frontendBaseUrl, feed.showAttendancePrefix))
+        }
         return Biweekly.write(calendar).go()
     }
 
-    private fun CalendarFeedEntry.toVEvent(slug: String, frontendBaseUrl: String): VEvent {
+    private fun calendarName(feed: CalendarFeed): String =
+        listOfNotNull(feed.team.name.value, feed.calendarNameSuffix?.value).joinToString(" · ")
+
+    private fun CalendarFeedEntry.toVEvent(slug: String, frontendBaseUrl: String, showPrefix: Boolean): VEvent {
         val link = "$frontendBaseUrl/t/$slug/events/${event.id.value}"
         return VEvent().apply {
             // The event's own id, so a re-fetch updates the entry the subscriber already has instead
@@ -82,7 +90,8 @@ object CalendarIcs {
             setLastModified(Date.from(event.updatedAt))
             setDateStart(Date.from(event.startTime))
             setDateEnd(Date.from(event.endTime))
-            setSummary(prefix(state) + event.title.value)
+            // Off for a link shared with someone else (ADR-0040): the marks are the member's own.
+            setSummary(if (showPrefix) prefix(state) + event.title.value else event.title.value)
             event.location?.let { setLocation(it.value) }
             setDescription(listOfNotNull(event.description?.value, link).joinToString("\n\n"))
             setUrl(link)

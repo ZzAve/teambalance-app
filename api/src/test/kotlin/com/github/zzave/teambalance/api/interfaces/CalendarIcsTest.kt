@@ -3,6 +3,7 @@ package com.github.zzave.teambalance.api.interfaces
 import com.github.zzave.teambalance.api.application.CalendarFeed
 import com.github.zzave.teambalance.api.application.CalendarFeedEntry
 import com.github.zzave.teambalance.api.domain.model.AttendanceState
+import com.github.zzave.teambalance.api.domain.model.CalendarNameSuffix
 import com.github.zzave.teambalance.api.domain.model.Event
 import com.github.zzave.teambalance.api.domain.model.EventDescription
 import com.github.zzave.teambalance.api.domain.model.EventId
@@ -65,14 +66,23 @@ private fun event(
     updatedAt = updatedAt,
 )
 
-private fun feed(entries: List<CalendarFeedEntry>, refresh: RefreshCadence = RefreshCadence.RELAXED) =
-    CalendarFeed(TEAM, entries, refresh)
+private fun feed(
+    entries: List<CalendarFeedEntry>,
+    refresh: RefreshCadence = RefreshCadence.RELAXED,
+    showAttendancePrefix: Boolean = true,
+    calendarNameSuffix: String? = null,
+) = CalendarFeed(TEAM, entries, refresh, showAttendancePrefix, CalendarNameSuffix.ofNullable(calendarNameSuffix))
 
 private fun render(
     state: AttendanceState = AttendanceState.NOT_RESPONDED,
     event: Event = event(),
     refresh: RefreshCadence = RefreshCadence.RELAXED,
-) = CalendarIcs.render(feed(listOf(CalendarFeedEntry(event, state)), refresh), FRONTEND)
+    showAttendancePrefix: Boolean = true,
+    calendarNameSuffix: String? = null,
+) = CalendarIcs.render(
+    feed(listOf(CalendarFeedEntry(event, state)), refresh, showAttendancePrefix, calendarNameSuffix),
+    FRONTEND,
+)
 
 /**
  * The wire format of the calendar-link feed (ADR-0039). These assertions are what a subscriber's
@@ -83,7 +93,13 @@ private fun render(
 class CalendarIcsTest : FunSpec({
 
     test("the calendar is named after the team, so it is findable in a sidebar of calendars") {
-        render() shouldContain "X-WR-CALNAME:Tovo Dames 5"
+        render() shouldContain "X-WR-CALNAME:Tovo Dames 5\r\n"
+    }
+
+    // A partner subscribing to "when is she at volleyball" needs to tell that calendar apart from
+    // the member's own in the same sidebar (ADR-0040).
+    test("a link with a calendar-name suffix appends it to the team name") {
+        render(calendarNameSuffix = "Partner") shouldContain "X-WR-CALNAME:Tovo Dames 5 · Partner\r\n"
     }
 
     // Which band applies is RefreshCadenceTest's business; what matters here is that whichever one
@@ -166,6 +182,20 @@ class CalendarIcsTest : FunSpec({
         test("absent") { render(AttendanceState.ABSENT) shouldContain "SUMMARY:✗ Training" }
         test("not responded gets no prefix at all") {
             render(AttendanceState.NOT_RESPONDED) shouldContain "SUMMARY:Training"
+        }
+    }
+
+    // A link shared with someone else (ADR-0040) shows the bare title: the marks are the member's
+    // own bookkeeping, and to a partner "✓ Training" says nothing "Training" does not.
+    context("a link with the prefix turned off shows bare titles") {
+        AttendanceState.entries.forEach { state ->
+            test("$state") {
+                render(state, showAttendancePrefix = false) shouldContain "SUMMARY:Training\r\n"
+            }
+        }
+
+        test("an absent event still frees the slot") {
+            render(AttendanceState.ABSENT, showAttendancePrefix = false) shouldContain "TRANSP:TRANSPARENT"
         }
     }
 

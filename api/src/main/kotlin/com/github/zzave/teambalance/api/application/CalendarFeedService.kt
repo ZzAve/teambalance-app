@@ -69,7 +69,7 @@ class CalendarFeedService(
             val entries = entriesFor(link, now)
             CalendarFeed(
                 team = team,
-                entries = entries.filter { it.state in link.options.attendanceStates },
+                entries = entries.filter { link.options.includes(it.event.eventType.id, it.state) },
                 // Banded on the team's next event, not the link's: an unanswered training tomorrow the
                 // member may yet accept must reach a narrowed calendar in time (ADR-0040).
                 refresh = RefreshCadence.before(nextStart(entries, now), now),

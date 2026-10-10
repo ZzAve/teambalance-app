@@ -16,6 +16,8 @@ interface SpringDataCalendarLinkRepository : JpaRepository<CalendarLinkJpaEntity
     /** Expired rows included — the cap counts them (ADR-0039). */
     fun countByUserId(userId: UUID): Long
 
+    fun findByIdAndUserId(id: UUID, userId: UUID): CalendarLinkJpaEntity?
+
     /** Owner in the predicate, count out: the caller learns whether *their* link was the one removed. */
     fun deleteByIdAndUserId(id: UUID, userId: UUID): Long
 }

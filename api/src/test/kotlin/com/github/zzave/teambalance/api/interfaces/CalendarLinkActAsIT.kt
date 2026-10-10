@@ -80,6 +80,17 @@ class CalendarLinkActAsIT : TeamBalanceIT() {
             ).andExpect(status().isForbidden).andExpect(jsonPath("$.code").value("ACT_AS_NOT_PERMITTED"))
         }
 
+        test("editing is refused while acting as the team") {
+            enterActAs()
+
+            dispatch(
+                MockMvcRequestBuilders.put("/api/calendar-links/00000000-0000-0000-0000-000000000000")
+                    .header("X-User-Id", OPERATOR_ID)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("{}"),
+            ).andExpect(status().isForbidden).andExpect(jsonPath("$.code").value("ACT_AS_NOT_PERMITTED"))
+        }
+
         // The refusal is about the grant, not about the endpoint: an ordinary member in the same team
         // is unaffected, which is what makes it a scoped rule rather than a switched-off feature.
         test("an ordinary member of the same team is unaffected") {

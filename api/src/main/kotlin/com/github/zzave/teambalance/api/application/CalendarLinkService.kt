@@ -14,6 +14,7 @@ import com.github.zzave.teambalance.api.domain.model.TeamId
 import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.port.ActAsGateway
 import com.github.zzave.teambalance.api.domain.port.CalendarLinkRepository
+import com.github.zzave.teambalance.api.domain.port.EventTypeRepository
 import com.github.zzave.teambalance.api.domain.port.TeamRepository
 import java.time.Clock
 import java.time.Instant
@@ -41,7 +42,7 @@ data class IssuedCalendarLink(
 )
 
 /**
- * The member-facing half of **Calendar links** (ADR-0039): create, list and delete your own
+ * The member-facing half of **Calendar links** (ADR-0039): create, list, edit and delete your own
  * subscription URLs for your Active Team. The feed those URLs address is [CalendarFeedService]'s.
  *
  * Every operation is scoped to the *caller's own* links. There is no admin view and no admin control:
@@ -53,6 +54,7 @@ data class IssuedCalendarLink(
 class CalendarLinkService(
     private val calendarLinkRepository: CalendarLinkRepository,
     private val teamRepository: TeamRepository,
+    private val eventTypeRepository: EventTypeRepository,
     private val authorizationService: AuthorizationService,
     private val actAsGateway: ActAsGateway,
     private val tokens: CalendarLinkTokens,
@@ -83,6 +85,7 @@ class CalendarLinkService(
         options: CalendarLinkOptions,
     ): IssuedCalendarLink {
         requireOwnAccess(callerId, teamId)
+        requireKnownEventTypes(options)
 
         val now = clock.instant()
         val token = tokens.mint()
@@ -108,6 +111,30 @@ class CalendarLinkService(
     }
 
     /**
+     * Replaces the label and options of one of the caller's own links (ADR-0040). The token, and so
+     * the URL every subscribed calendar holds, stays the same: the feed changes in place on the next
+     * refresh. Its expiry stays too, and it keeps the slot it already had under the cap.
+     *
+     * An expired link may be edited; the UI offers no edit on one, but there is nothing to protect by
+     * refusing it. Not the caller's, or not there, is the same 404 delete gives.
+     */
+    fun updateLink(
+        callerId: UserId,
+        teamId: TeamId,
+        id: CalendarLinkId,
+        rawLabel: String?,
+        options: CalendarLinkOptions,
+    ): IssuedCalendarLink {
+        requireOwnAccess(callerId, teamId)
+        val stored = calendarLinkRepository.findOwned(id, callerId) ?: throw CalendarLinkNotFoundException(id)
+        requireKnownEventTypes(options)
+
+        val updated = stored.copy(label = CalendarLinkLabel.ofNullable(rawLabel), options = options)
+        if (!calendarLinkRepository.updateOwned(updated)) throw CalendarLinkNotFoundException(id)
+        return updated.issued(slugOf(teamId), clock.instant())
+    }
+
+    /**
      * Deletes one of the caller's own links. The only revocation there is — links do not renew, and
      * nobody else can delete yours.
      *
@@ -127,6 +154,16 @@ class CalendarLinkService(
     private fun requireOwnAccess(callerId: UserId, teamId: TeamId) {
         if (actAsGateway.current() != null) throw NotUnderActAsException()
         authorizationService.requireMember(callerId, teamId)
+    }
+
+    /**
+     * A type id the team does not have is a 400 rather than a link that silently serves nothing of
+     * it. Archived types count as known: an edit keeps the archived types a link already lists.
+     */
+    private fun requireKnownEventTypes(options: CalendarLinkOptions) {
+        val requested = options.eventTypeIds ?: return
+        val known = eventTypeRepository.findAll().map { it.id }.toSet()
+        require(known.containsAll(requested)) { "Unknown event type" }
     }
 
     // The caller is an established member of this team, so the team exists; a missing row here is a

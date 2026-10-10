@@ -34,6 +34,16 @@ interface CalendarLinkRepository {
      */
     fun saveWithinCap(link: CalendarLink, max: Int): Boolean
 
+    /** [id] if it belongs to [userId], or null — "not mine" and "no such link" look the same. */
+    fun findOwned(id: CalendarLinkId, userId: UserId): CalendarLink?
+
+    /**
+     * Replaces the label and options of [link] if it still exists and belongs to its [CalendarLink.userId],
+     * returning whether it did. Not a cap question: the link already holds its slot, so an edit
+     * never takes or frees one. The token, the creation time and the expiry are not written.
+     */
+    fun updateOwned(link: CalendarLink): Boolean
+
     /**
      * Deletes [id] only if it belongs to [userId], returning whether it did. Ownership is in the
      * predicate rather than in a read-then-delete so a delete can never be talked into removing

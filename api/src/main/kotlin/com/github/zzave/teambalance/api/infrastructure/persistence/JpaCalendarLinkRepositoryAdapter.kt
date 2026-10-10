@@ -7,6 +7,7 @@ import com.github.zzave.teambalance.api.domain.model.CalendarLinkLabel
 import com.github.zzave.teambalance.api.domain.model.CalendarLinkOptions
 import com.github.zzave.teambalance.api.domain.model.CalendarNameSuffix
 import com.github.zzave.teambalance.api.domain.model.EncryptedToken
+import com.github.zzave.teambalance.api.domain.model.EventTypeId
 import com.github.zzave.teambalance.api.domain.model.TokenHash
 import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.port.CalendarLinkRepository
@@ -25,6 +26,7 @@ import org.springframework.transaction.annotation.Transactional
 @Repository
 class JpaCalendarLinkRepositoryAdapter(
     private val jpaRepository: SpringDataCalendarLinkRepository,
+    private val eventTypeRepository: SpringDataEventTypeRepository,
     private val entityManager: EntityManager,
 ) : CalendarLinkRepository {
 
@@ -62,19 +64,29 @@ class JpaCalendarLinkRepositoryAdapter(
             .singleResult
         if (jpaRepository.countByUserId(link.userId.value) >= max) return false
 
+        jpaRepository.save(link.toEntity())
+        return true
+    }
+
+    @Transactional(readOnly = true)
+    override fun findOwned(id: CalendarLinkId, userId: UserId): CalendarLink? =
+        jpaRepository.findByIdAndUserId(id.value, userId.value)?.toDomain()
+
+    /**
+     * A merge of the whole row onto the stored one, with the secret and the dates taken from what was
+     * stored so the merge leaves them as they were. Read first because a merge of a row deleted in
+     * the meantime would insert it again.
+     */
+    @Transactional
+    override fun updateOwned(link: CalendarLink): Boolean {
+        val stored = jpaRepository.findByIdAndUserId(link.id.value, link.userId.value) ?: return false
         jpaRepository.save(
-            CalendarLinkJpaEntity(
-                id = link.id.value,
-                userId = link.userId.value,
-                tokenHash = link.tokenHash.value,
-                tokenEncrypted = link.encryptedToken.value,
-                label = link.label?.value,
-                createdAt = link.createdAt,
-                expiresAt = link.expiresAt,
-                attendanceStates = link.options.attendanceStates.map { it.name }.toMutableSet(),
-                showAttendancePrefix = link.options.showAttendancePrefix,
-                calendarNameSuffix = link.options.calendarNameSuffix?.value,
-            ),
+            link.copy(
+                tokenHash = TokenHash(stored.tokenHash),
+                encryptedToken = EncryptedToken(stored.tokenEncrypted),
+                createdAt = stored.createdAt,
+                expiresAt = stored.expiresAt,
+            ).toEntity(),
         )
         return true
     }
@@ -89,6 +101,26 @@ class JpaCalendarLinkRepositoryAdapter(
         const val CALENDAR_LINK_LOCK_CLASS = 832
     }
 
+    /**
+     * The type ids were checked against this tenant by the service, so a miss here is a type removed
+     * since, which types never are (they are archived instead).
+     */
+    private fun CalendarLink.toEntity() = CalendarLinkJpaEntity(
+        id = id.value,
+        userId = userId.value,
+        tokenHash = tokenHash.value,
+        tokenEncrypted = encryptedToken.value,
+        label = label?.value,
+        createdAt = createdAt,
+        expiresAt = expiresAt,
+        attendanceStates = options.attendanceStates.map { it.name }.toMutableSet(),
+        showAttendancePrefix = options.showAttendancePrefix,
+        calendarNameSuffix = options.calendarNameSuffix?.value,
+        eventTypes = options.eventTypeIds.orEmpty().map { typeId ->
+            eventTypeRepository.findByUuid(typeId.value) ?: error("Event type $typeId does not exist")
+        }.toMutableSet(),
+    )
+
     private fun CalendarLinkJpaEntity.toDomain() = CalendarLink(
         id = CalendarLinkId(id),
         userId = UserId(userId),
@@ -99,6 +131,8 @@ class JpaCalendarLinkRepositoryAdapter(
         expiresAt = expiresAt,
         options = CalendarLinkOptions(
             attendanceStates = attendanceStates.map(AttendanceState::valueOf).toSet(),
+            // No rows is every type (ADR-0040).
+            eventTypeIds = eventTypes.map { EventTypeId(it.uuid) }.toSet().takeIf { it.isNotEmpty() },
             showAttendancePrefix = showAttendancePrefix,
             calendarNameSuffix = calendarNameSuffix?.let(::CalendarNameSuffix),
         ),

@@ -85,65 +85,65 @@ export function CalendarLinksView({
 
       {!isLoading && !isError && (
         <>
-              {links.length === 0 ? (
-                <p className="text-small text-muted-foreground">No calendar links yet.</p>
-              ) : (
-                <ul className="divide-y divide-border rounded-lg border border-border">
-                  {links.map((link) => (
-                    <CalendarLinkRow
-                      key={link.id}
-                      link={link}
-                      teamName={teamName}
-                      copied={copiedId === link.id}
-                      copyFailed={copyFailedId === link.id}
-                      eventTypes={eventTypes}
-                      editing={editingId === link.id}
-                      isSaving={isSaving}
-                      onCopy={onCopy}
-                      onEdit={() => setEditingId(link.id)}
-                      onCancelEdit={() => setEditingId(null)}
-                      onUpdate={(request) => {
-                        onUpdate(link.id, request)
-                        setEditingId(null)
-                      }}
-                      onRequestDelete={setConfirmTarget}
-                    />
-                  ))}
-                </ul>
-              )}
-
-              <div className="flex flex-col gap-4">
-                <CalendarLinkForm
-                  key={createFormKey}
+          {links.length === 0 ? (
+            <p className="text-small text-muted-foreground">No calendar links yet.</p>
+          ) : (
+            <ul className="divide-y divide-border rounded-lg border border-border">
+              {links.map((link) => (
+                <CalendarLinkRow
+                  key={link.id}
+                  link={link}
                   teamName={teamName}
-                  eventTypes={activeTypes}
-                  disabled={atCap}
+                  copied={copiedId === link.id}
+                  copyFailed={copyFailedId === link.id}
+                  eventTypes={eventTypes}
+                  editing={editingId === link.id}
                   isSaving={isSaving}
-                  submitLabel="Generate link"
-                  onSubmit={(request) => {
-                    onGenerate(request)
-                    setCreateFormKey((key) => key + 1)
+                  onCopy={onCopy}
+                  onEdit={() => setEditingId(link.id)}
+                  onCancelEdit={() => setEditingId(null)}
+                  onUpdate={(request) => {
+                    onUpdate(link.id, request)
+                    setEditingId(null)
                   }}
+                  onRequestDelete={setConfirmTarget}
                 />
-                {atCap && (
-                  <p className="text-small text-muted-foreground">
-                    You have {MAX_LINKS} links, the maximum. Delete one to generate a new link.
-                  </p>
-                )}
-                {actionError && <FormError>Something went wrong. Please try again.</FormError>}
-              </div>
+              ))}
+            </ul>
+          )}
 
-              <ConfirmDialog
-                open={confirmTarget !== null}
-                title="Delete calendar link?"
-                description="Every calendar subscribed with this link stops updating."
-                confirmLabel="Delete link"
-                onConfirm={() => {
-                  if (confirmTarget) onDelete(confirmTarget.id)
-                  setConfirmTarget(null)
-                }}
-                onCancel={() => setConfirmTarget(null)}
-              />
+          <div className="flex flex-col gap-4">
+            <CalendarLinkForm
+              key={createFormKey}
+              teamName={teamName}
+              eventTypes={activeTypes}
+              disabled={atCap}
+              isSaving={isSaving}
+              submitLabel="Generate link"
+              onSubmit={(request) => {
+                onGenerate(request)
+                setCreateFormKey((key) => key + 1)
+              }}
+            />
+            {atCap && (
+              <p className="text-small text-muted-foreground">
+                You have {MAX_LINKS} links, the maximum. Delete one to generate a new link.
+              </p>
+            )}
+            {actionError && <FormError>Something went wrong. Please try again.</FormError>}
+          </div>
+
+          <ConfirmDialog
+            open={confirmTarget !== null}
+            title="Delete calendar link?"
+            description="Every calendar subscribed with this link stops updating."
+            confirmLabel="Delete link"
+            onConfirm={() => {
+              if (confirmTarget) onDelete(confirmTarget.id)
+              setConfirmTarget(null)
+            }}
+            onCancel={() => setConfirmTarget(null)}
+          />
         </>
       )}
     </div>
@@ -211,36 +211,36 @@ function CalendarLinkRow({
         />
       ) : (
         <>
-      {summary && <p className="text-small text-muted-foreground">{summary}</p>}
-      <div className="flex flex-wrap gap-2">
-        {link.url ? (
-          <>
-            <Button asChild size="sm" variant="outline">
-              <a href={toWebcalUrl(link.url)}>Open in Calendar</a>
+          {summary && <p className="text-small text-muted-foreground">{summary}</p>}
+          <div className="flex flex-wrap gap-2">
+            {link.url ? (
+              <>
+                <Button asChild size="sm" variant="outline">
+                  <a href={toWebcalUrl(link.url)}>Open in Calendar</a>
+                </Button>
+                <Button asChild size="sm" variant="outline">
+                  <a href={toGoogleCalendarUrl(link.url)} target="_blank" rel="noopener noreferrer">
+                    Add to Google Calendar
+                  </a>
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => onCopy(link)}>
+                  {copied ? 'Copied!' : 'Copy link'}
+                </Button>
+              </>
+            ) : (
+              // A key rotation leaves a link whose token cannot be decrypted: it still counts toward the
+              // cap, so it stays listed to be deleted, but there is no URL to offer.
+              <p className="text-small text-muted-foreground">This link can no longer be shown.</p>
+            )}
+            {!link.expired && (
+              <Button size="sm" variant="outline" onClick={onEdit}>
+                Edit
+              </Button>
+            )}
+            <Button size="sm" variant="ghost" className="text-red" disabled={isSaving} onClick={() => onRequestDelete(link)}>
+              Delete
             </Button>
-            <Button asChild size="sm" variant="outline">
-              <a href={toGoogleCalendarUrl(link.url)} target="_blank" rel="noopener noreferrer">
-                Add to Google Calendar
-              </a>
-            </Button>
-            <Button size="sm" variant="outline" onClick={() => onCopy(link)}>
-              {copied ? 'Copied!' : 'Copy link'}
-            </Button>
-          </>
-        ) : (
-          // A key rotation leaves a link whose token cannot be decrypted: it still counts toward the
-          // cap, so it stays listed to be deleted, but there is no URL to offer.
-          <p className="text-small text-muted-foreground">This link can no longer be shown.</p>
-        )}
-        {!link.expired && (
-          <Button size="sm" variant="outline" onClick={onEdit}>
-            Edit
-          </Button>
-        )}
-        <Button size="sm" variant="ghost" className="text-red" disabled={isSaving} onClick={() => onRequestDelete(link)}>
-          Delete
-        </Button>
-      </div>
+          </div>
         </>
       )}
       {copyFailed && link.url && (

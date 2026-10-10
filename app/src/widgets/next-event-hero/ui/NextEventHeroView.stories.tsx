@@ -127,7 +127,7 @@ export const Data: Story = {
     await expect(canvas.getByText('2d')).toBeInTheDocument()
     await expect(canvas.getByText(/10 going · you haven't responded/)).toBeInTheDocument()
     // All three answers, in the control words, none pressed yet — "Going" is solid because it is
-    // the invitation (ADR-0039).
+    // the invitation (ADR-0040).
     for (const name of ['Going', 'Maybe', "Can't"]) {
       await expect(canvas.getByRole('button', { name })).toHaveAttribute('aria-pressed', 'false')
     }

@@ -1,4 +1,4 @@
-# ADR-0039: The hero offers all three answers, in the control words
+# ADR-0040: The hero offers all three answers, in the control words
 
 - Status: Accepted
 - Date: 2026-10-07

@@ -32,7 +32,7 @@ interface NextEventHeroViewProps {
 }
 
 /**
- * The three answers the hero offers, in the order every other answer control uses (ADR-0039).
+ * The three answers the hero offers, in the order every other answer control uses (ADR-0040).
  *
  * Each `ink` is the colour on the chosen button, which is white in both themes, so the inks must be
  * the values that clear 4.5:1 on white in both: green-dark and red-dark hold their value in dark

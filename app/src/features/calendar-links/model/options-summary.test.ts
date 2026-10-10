@@ -9,7 +9,7 @@ describe('optionsSummary', () => {
 
   it('spells out a Partner link', () => {
     expect(optionsSummary(PRESET_OPTIONS.partner, 'Setpoint VT')).toBe(
-      'Attending only · no ✓/✗ marks · calendar: Setpoint VT · Partner',
+      'Going only · no ✓/✗ marks · calendar: Setpoint VT · Partner',
     )
   })
 
@@ -19,7 +19,7 @@ describe('optionsSummary', () => {
         { attendanceStates: ['NOT_RESPONDED', 'ATTENDING'], showAttendancePrefix: true, calendarNameSuffix: undefined },
         'Setpoint VT',
       ),
-    ).toBe('Attending, Not responded only')
+    ).toBe('Going, Not responded only')
   })
 
   it('mentions only the suffix when that is all that differs', () => {

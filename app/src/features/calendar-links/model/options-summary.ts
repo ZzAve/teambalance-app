@@ -1,7 +1,7 @@
 import { ALL_ATTENDANCE_STATES, STATE_LABELS, type LinkOptions } from './preset'
 
 /**
- * One line describing how a link's options differ from the Me defaults, e.g. "Attending only · no
+ * One line describing how a link's options differ from the Me defaults, e.g. "Going only · no
  * ✓/✗ marks · calendar: Setpoint VT · Partner". Undefined for a link at the Me defaults.
  */
 export function optionsSummary(options: LinkOptions, teamName: string): string | undefined {

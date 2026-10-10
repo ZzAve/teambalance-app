@@ -11,10 +11,11 @@ export interface LinkOptions {
 
 export const ALL_ATTENDANCE_STATES: AttendanceState[] = ['ATTENDING', 'MAYBE', 'ABSENT', 'NOT_RESPONDED']
 
+/** The states as the member's own answer control words them (CONTEXT.md, Attendance State). */
 export const STATE_LABELS: Record<AttendanceState, string> = {
-  ATTENDING: 'Attending',
+  ATTENDING: 'Going',
   MAYBE: 'Maybe',
-  ABSENT: 'Absent',
+  ABSENT: "Can't",
   NOT_RESPONDED: 'Not responded',
 }
 

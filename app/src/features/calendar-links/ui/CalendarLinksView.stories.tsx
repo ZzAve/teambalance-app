@@ -85,9 +85,9 @@ export const Data: Story = {
     // A link at the Me defaults looks as it always did; any other says how it differs.
     await expect(row('My phone').queryByText(/only|marks|calendar:/)).not.toBeInTheDocument()
     await expect(
-      row('Partner').getByText('Attending only · no ✓/✗ marks · calendar: Setpoint VT · Partner'),
+      row('Partner').getByText('Going only · no ✓/✗ marks · calendar: Setpoint VT · Partner'),
     ).toBeInTheDocument()
-    await expect(row('Link from 2 jun 2025').getByText('Attending, Maybe only')).toBeInTheDocument()
+    await expect(row('Link from 2 jun 2025').getByText('Going, Maybe only')).toBeInTheDocument()
 
     // Every action on every link, no platform detection.
     await expect(row('My phone').getByRole('link', { name: 'Open in Calendar' })).toHaveAttribute(
@@ -205,18 +205,26 @@ export const Interactions: Story = {
     // The form starts over at Me.
     await expect(region.getByRole('radio', { name: 'Me' })).toBeChecked()
 
-    // A label already typed is kept when Partner is picked.
+    // Switching back to Me takes the auto-filled label with it, so a Me link is not named Partner.
+    await userEvent.click(region.getByRole('radio', { name: 'Partner' }))
+    await expect(label).toHaveValue('Partner')
+    await userEvent.click(region.getByRole('radio', { name: 'Me' }))
+    await userEvent.click(region.getByRole('button', { name: 'Generate link' }))
+    await expect(args.onGenerate).toHaveBeenLastCalledWith({ label: undefined, ...ME_REQUEST })
+
+    // A label the member typed is theirs: kept when Partner is picked, and when Me is picked again.
     await userEvent.type(label, 'Sanne')
     await userEvent.click(region.getByRole('radio', { name: 'Partner' }))
     await expect(label).toHaveValue('Sanne')
     await userEvent.click(region.getByRole('radio', { name: 'Me' }))
+    await expect(label).toHaveValue('Sanne')
     await userEvent.clear(label)
 
     // Any edit under Advanced makes the form Custom, and the request carries exactly the edit.
     await userEvent.click(region.getByRole('button', { name: 'Advanced' }))
     await expect(region.getByRole('button', { name: 'Advanced' })).toHaveAttribute('aria-expanded', 'true')
-    await userEvent.click(region.getByRole('button', { name: 'Absent' }))
-    await expect(region.getByRole('button', { name: 'Absent' })).toHaveAttribute('aria-pressed', 'false')
+    await userEvent.click(region.getByRole('button', { name: "Can't" }))
+    await expect(region.getByRole('button', { name: "Can't" })).toHaveAttribute('aria-pressed', 'false')
     await expect(region.getByRole('radio', { name: 'Custom' })).toBeChecked()
     const suffix = region.getByLabelText('Calendar name suffix (optional)')
     await expect(suffix).toHaveAttribute('maxLength', '30')

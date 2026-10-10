@@ -25,6 +25,8 @@ import {
 const MAX_LINKS = 3
 /** The server's label limit. */
 const MAX_LABEL_LENGTH = 50
+/** What picking Partner fills an empty label with. */
+const PARTNER_LABEL = 'Partner'
 /** The server's calendar-name suffix limit (ADR-0040). */
 const MAX_SUFFIX_LENGTH = 30
 
@@ -150,7 +152,9 @@ export function CalendarLinksView({
                 }
                 setOptions(PRESET_OPTIONS[next])
                 setCustomised(false)
-                if (next === 'partner' && label.trim() === '') setLabel('Partner')
+                if (next === 'partner' && label.trim() === '') setLabel(PARTNER_LABEL)
+                // Back to Me takes Partner's auto-filled label with it; a label the member typed stays.
+                if (next === 'me' && label === PARTNER_LABEL) setLabel('')
               }}
             />
 

@@ -12,6 +12,8 @@ import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers
 import java.security.MessageDigest
+import java.time.OffsetDateTime
+import java.time.ZoneOffset
 
 private const val JAN_USER_ID = "c0000000-0000-0000-0000-000000000001"
 private const val LISA_USER_ID = "c0000000-0000-0000-0000-000000000002"
@@ -24,6 +26,12 @@ private const val TEST_SALT = "test-invitation-salt"
 
 private fun sha256Hex(salt: String, token: String): String =
     MessageDigest.getInstance("SHA-256").digest((salt + token).toByteArray()).joinToString("") { "%02x".format(it) }
+
+// Every expires_at comparison in this file binds this instead of SQL now(): the application decides
+// liveness with the JVM clock, and the database's now() is a different clock. Under colima Postgres
+// runs in a VM measured ~100 ms ahead of the host, so a row expired "now" by the database stays live
+// for the application for exactly that long, which is longer than the next request.
+private fun jvmNow(): OffsetDateTime = OffsetDateTime.now(ZoneOffset.UTC)
 
 @AutoConfigureMockMvc
 class InvitationControllerTest : TeamBalanceIT() {
@@ -82,17 +90,21 @@ class InvitationControllerTest : TeamBalanceIT() {
     // These ITs share one Postgres with no truncation between them, so a link left active by an
     // earlier test would be handed back by the now-idempotent POST. Tests that care start from none.
     private fun expireAllInvitations() {
+        val now = jvmNow()
         jdbcTemplate.update(
-            "UPDATE public.invitations SET expires_at = now() WHERE team_id = ?::uuid AND expires_at > now()",
+            "UPDATE public.invitations SET expires_at = ? WHERE team_id = ?::uuid AND expires_at > ?",
+            now,
             TEAM_ID,
+            now,
         )
     }
 
     private fun activeInvitationCount(): Long =
         jdbcTemplate.queryForObject(
-            "SELECT count(*) FROM public.invitations WHERE team_id = ?::uuid AND expires_at > now()",
+            "SELECT count(*) FROM public.invitations WHERE team_id = ?::uuid AND expires_at > ?",
             Long::class.java,
             TEAM_ID,
+            jvmNow(),
         )!!
 
     private fun getActiveInvitationAs(userId: String, expectedStatus: Int): String {
@@ -313,9 +325,10 @@ class InvitationControllerTest : TeamBalanceIT() {
 
             jdbcTemplate.queryForObject(
                 "SELECT count(*) FROM public.invitations " +
-                    "WHERE team_id = ?::uuid AND role = 'ADMIN' AND consumed_at IS NULL AND expires_at > now()",
+                    "WHERE team_id = ?::uuid AND role = 'ADMIN' AND consumed_at IS NULL AND expires_at > ?",
                 Long::class.java,
                 TEAM_ID,
+                jvmNow(),
             ) shouldBe 1L
         }
 
@@ -374,16 +387,18 @@ class InvitationControllerTest : TeamBalanceIT() {
 
             // The old admin link is now expired...
             jdbcTemplate.queryForObject(
-                "SELECT count(*) FROM public.invitations WHERE token = ? AND expires_at > now()",
+                "SELECT count(*) FROM public.invitations WHERE token = ? AND expires_at > ?",
                 Long::class.java,
                 sha256Hex(TEST_SALT, "plaintext-admin-to-rotate"),
+                jvmNow(),
             ) shouldBe 0L
             // ...and exactly one live unspent admin link remains (the replacement).
             jdbcTemplate.queryForObject(
                 "SELECT count(*) FROM public.invitations " +
-                    "WHERE team_id = ?::uuid AND role = 'ADMIN' AND consumed_at IS NULL AND expires_at > now()",
+                    "WHERE team_id = ?::uuid AND role = 'ADMIN' AND consumed_at IS NULL AND expires_at > ?",
                 Long::class.java,
                 TEAM_ID,
+                jvmNow(),
             ) shouldBe 1L
         }
 
@@ -402,9 +417,10 @@ class InvitationControllerTest : TeamBalanceIT() {
 
             jdbcTemplate.queryForObject(
                 "SELECT count(*) FROM public.invitations " +
-                    "WHERE team_id = ?::uuid AND role = 'ADMIN' AND expires_at > now()",
+                    "WHERE team_id = ?::uuid AND role = 'ADMIN' AND expires_at > ?",
                 Long::class.java,
                 TEAM_ID,
+                jvmNow(),
             ) shouldBe 0L
         }
 
@@ -460,9 +476,10 @@ class InvitationControllerTest : TeamBalanceIT() {
             // The ADMIN link is still active (unexpired) and unspent.
             jdbcTemplate.queryForObject(
                 "SELECT count(*) FROM public.invitations " +
-                    "WHERE token = ? AND role = 'ADMIN' AND consumed_at IS NULL AND expires_at > now()",
+                    "WHERE token = ? AND role = 'ADMIN' AND consumed_at IS NULL AND expires_at > ?",
                 Long::class.java,
                 sha256Hex(TEST_SALT, "plaintext-admin-survives-rotate"),
+                jvmNow(),
             ) shouldBe 1L
         }
 

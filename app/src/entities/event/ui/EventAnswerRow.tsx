@@ -3,6 +3,7 @@ import { Check, ChevronDown, HelpCircle, X } from 'lucide-react'
 import type { ComponentType, ReactNode } from 'react'
 import type { Event, EventRoster } from '@shared/api/events'
 import { myAnswer, type MyAnswer } from '../lib/my-answer'
+import { panelNoun } from '../lib/roster-view'
 import { ReadinessBadge } from './ReadinessBadge'
 
 type AttendanceState = Event['myState']
@@ -109,8 +110,7 @@ export function EventAnswerRow({
   const answer = myAnswer(myState, setBy)
   const { className: pillClass, Icon } = PILL_TONE[answer.tone]
   const rosterExpandable = rosterPanel != null
-  // The pips are a lineup; an untracked social has no positions at all, so its panel is its people.
-  const panelNoun = roster.trackRoster ? 'lineup' : "who's coming"
+  const noun = panelNoun(roster)
 
   const pick = (state: AttendanceState) => {
     onRespond(state)
@@ -162,7 +162,7 @@ export function EventAnswerRow({
               aria-hidden
               className={`text-muted-foreground transition-transform duration-200 ${rosterOpen ? 'rotate-180' : ''}`}
             />
-            <span className="sr-only">{rosterOpen ? `Hide ${panelNoun}` : `Show ${panelNoun}`}</span>
+            <span className="sr-only">{rosterOpen ? `Hide ${noun}` : `Show ${noun}`}</span>
           </button>
         ) : (
           // Nothing to open, so nothing to tap: the verdict is a plain label. On the events list this

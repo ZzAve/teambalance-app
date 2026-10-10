@@ -54,6 +54,7 @@ const roster = (state, { totalTarget, totalAttending = 0, positions = [], unassi
     totalAttending,
     playingAttending: totalAttending - staff,
     staffAttending: staff,
+    substituteAttending: 0,
     positions: rows,
     unassignedAttending,
     openSlots,
@@ -66,7 +67,7 @@ const EVENTS = [
     id: 'evt-1',
     eventType: TYPES[0],
     title: 'League Match vs Smash United',
-    description: undefined,
+    description: 'Warm-up starts 13:45 — bring both shirts, the home side wears blue this round.',
     startTime: iso(1, 14, 30),
     endTime: iso(1, 17, 0),
     location: 'Sportcentrum Noord',
@@ -163,6 +164,10 @@ const OTHERS_STATE = ['ATTENDING', 'ATTENDING', 'MAYBE', 'ATTENDING', 'ABSENT', 
 // the row's `myState`, or the hero would claim "you're in" about an event the list shows unanswered.
 const withAttendances = (event) => ({
   ...event,
+  // Contract fields the fixture does not vary: no Substitutes called in (ADR-0033), no per-event
+  // roster override — but both must be present, or the generated guard rejects the payload.
+  substitutes: [],
+  rosterOverride: undefined,
   attendances: ROSTER.map((m, i) => ({
     id: `att-${event.id}-${m.userId}`,
     userId: m.userId,

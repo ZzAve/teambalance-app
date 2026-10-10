@@ -174,7 +174,7 @@ function EventsPageHarness(args: HarnessArgs) {
   )
   const hero = selectHeroEvent(sorted, NOW)
   const listEvents = hero ? sorted.filter((e) => e.id !== hero.id) : sorted
-  const groups = groupByType(eligibleEvents(sorted, activeTypeIds, NOW))
+  const groups = groupByType(eligibleEvents(listEvents, activeTypeIds, NOW))
 
   return (
     <EventsPageView
@@ -221,6 +221,7 @@ function EventsPageHarness(args: HarnessArgs) {
             event={hero}
             myState={hero.myState}
             now={NOW}
+            defaultRosterOpen={defaultExpanded}
             onRespond={(state) => {
               args.onHeroRespond(state)
               answer(hero.id, 'u-me', state)
@@ -231,6 +232,7 @@ function EventsPageHarness(args: HarnessArgs) {
                 roster={hero.roster}
                 currentUserId="u-me"
                 substitutes={hero.substitutes}
+                summary={false}
                 onCallInSubstitutes={() => {}}
                 onSetSubstituteState={() => {}}
                 onTakeOffSubstitute={() => {}}
@@ -318,8 +320,14 @@ export const Data: Story = {
     await expect(canvas.getByText('Next up')).toBeInTheDocument()
     await expect(canvas.getAllByText('Training — Court 2')).toHaveLength(1)
     await expect(canvas.getByRole('button', { name: /I'm in/ })).toHaveAttribute('aria-pressed', 'false')
-    // Bulk Attend reads the same list the page shows: two unanswered trainings, one social.
-    await expect(canvas.getByRole('button', { name: 'Attend 2 trainings' })).toBeInTheDocument()
+    // The hero's lineup is behind the same disclosure as the cards', closed by default (#386), so
+    // the hero leaves room on a phone for the bar and the next card.
+    await expect(canvas.getAllByRole('button', { name: /Show lineup/ })).toHaveLength(4)
+    await expect(canvas.queryByText('Lineup')).not.toBeInTheDocument()
+    // Bulk Attend reads the list below the hero (#386): the hero's own training has its answer
+    // buttons right there, so the bar counts only the other unanswered training and the social.
+    await expect(canvas.getByRole('button', { name: 'Attend 1 training' })).toBeInTheDocument()
+    await expect(canvas.queryByRole('button', { name: 'Attend 2 trainings' })).not.toBeInTheDocument()
     await expect(canvas.getByRole('button', { name: 'Attend 1 social' })).toBeInTheDocument()
     for (const title of [
       'League Match vs Smash United',
@@ -406,11 +414,12 @@ export const Interactions: Story = {
   decorators: shell.decorators,
   parameters: { chromatic: { disableSnapshot: true } },
   play: async ({ canvas, userEvent, args }) => {
-    // RSVP from the hero: the callback fires and the harness flips the hero's own state.
+    // RSVP from the hero: the callback fires and the harness flips the hero's own state. Bulk
+    // Attend never counted the hero's training (#386), so the bar reads the same before and after.
+    await expect(canvas.getByRole('button', { name: 'Attend 1 training' })).toBeInTheDocument()
     await userEvent.click(canvas.getByRole('button', { name: /I'm in/ }))
     await expect(args.onHeroRespond).toHaveBeenCalledWith('ATTENDING')
     await expect(canvas.getByRole('button', { name: /I'm in/ })).toHaveAttribute('aria-pressed', 'true')
-    // …and Bulk Attend no longer counts that training.
     await expect(canvas.getByRole('button', { name: 'Attend 1 training' })).toBeInTheDocument()
 
     // Hide trainings: the callback fires, the hero re-picks the next event in the window.
@@ -425,15 +434,18 @@ export const Interactions: Story = {
     await userEvent.click(canvas.getByRole('button', { name: 'Clear filters' }))
     await expect(canvas.getByText('Training — Court 1')).toBeInTheDocument()
 
-    // The view menu holds the one remaining preference: every card's panel starts open.
+    // The view menu holds the one remaining preference: every panel starts open — the hero's
+    // included (#386), which is why nothing below needs a tap to reach a chip.
+    await expect(canvas.queryByRole('button', { name: /Sofia — Maybe/ })).not.toBeInTheDocument()
     await userEvent.click(canvas.getByRole('button', { name: 'View options' }))
     await userEvent.click(canvas.getByRole('switch', { name: 'Keep panels open' }))
     await userEvent.keyboard('{Escape}')
-    await expect(canvas.getAllByRole('button', { name: /Hide lineup/ }).length).toBeGreaterThan(0)
+    await expect(canvas.getAllByRole('button', { name: /Hide lineup/ })).toHaveLength(4)
+    await expect(within(canvas.getByRole('region', { name: 'Next up' })).getByText('Lineup')).toBeInTheDocument()
 
     // Answering for a teammate from a card's lineup: the chip opens the answer sheet, which names
     // them, and the pick reports the event, the member and the state through the panel slot. The
-    // hero's lineup is always open and comes first, so the match card's chip is the second.
+    // hero's lineup comes first in the DOM, so the match card's chip is the second.
     await userEvent.click(canvas.getAllByRole('button', { name: /Sofia — Maybe/ })[1])
     const sheet = within(await within(document.body).findByRole('dialog'))
     await expect(sheet.getByText(/you are answering for them/)).toBeInTheDocument()

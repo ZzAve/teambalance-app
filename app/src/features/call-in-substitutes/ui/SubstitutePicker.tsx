@@ -32,30 +32,36 @@ export function SubstitutePicker({
   position?: PositionRef | null
   onClose: () => void
 }) {
-  const { data: positions } = usePositions({ enabled: open })
-  const { data: teamSubstitutes, isLoading } = useSubstitutes({ enabled: open })
+  const positions = usePositions({ enabled: open })
+  const teamSubstitutes = useSubstitutes({ enabled: open })
   const createSubstitute = useCreateSubstitute()
   const setSubstituteAttendance = useSetSubstituteAttendance()
   const pendingEvents = usePendingSubstituteEvents()
 
   if (!event) return null
   const eventId = event.id
+  // A retry after a failure is a fetch in the error status, and a paused one (offline) is neither
+  // fetching nor failed: both read as loading, so the list never reads as empty before it exists.
+  const listFailed = teamSubstitutes.isError && !teamSubstitutes.isFetching
 
   return (
     <SubstitutePickerView
       open={open}
       eventTitle={event.title}
       position={position}
-      positions={positions ?? []}
-      substitutes={teamSubstitutes ?? []}
-      isLoading={isLoading}
+      positions={positions.data ?? []}
+      positionsError={positions.isError && !positions.isFetching}
+      onRetryPositions={() => positions.refetch()}
+      substitutes={teamSubstitutes.data ?? []}
+      isLoading={!teamSubstitutes.isSuccess && !listFailed}
+      isError={listFailed}
+      onRetry={() => teamSubstitutes.refetch()}
       pending={pendingEvents.includes(eventId)}
       onEvent={event.substitutes}
       onSetState={(substituteId, state) => setSubstituteAttendance.mutate({ eventId, substituteId, state })}
-      creating={createSubstitute.isPending}
       // Someone new has been asked, not confirmed: they join the event as Asked (Maybe).
       onCreate={(name, positionId) =>
-        createSubstitute.mutate(
+        createSubstitute.mutateAsync(
           { name, positionId },
           { onSuccess: (sub) => setSubstituteAttendance.mutate({ eventId, substituteId: sub.id, state: 'MAYBE' }) },
         )

@@ -134,6 +134,15 @@ export function headcountLine(roster: EventRoster): string | null {
  * the fraction beside them is smaller than the number of people in the room. "staff" reads the same
  * in one and in five, which the team's own labels (Trainer, Physio) would not.
  */
+/**
+ * What a roster disclosure opens onto, for its "Show …" / "Hide …" label: a tracked roster has
+ * positions, so its panel is a lineup; an untracked social has none, so its panel is its people.
+ * One rule for the card row and the Next Up hero, which share a page.
+ */
+export function panelNoun(roster: EventRoster): string {
+  return roster.trackRoster ? 'lineup' : "who's coming"
+}
+
 export function staffNote(roster: EventRoster): string | null {
   const n = roster.staffAttending
   if (n <= 0) return null

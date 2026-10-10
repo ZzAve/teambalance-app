@@ -33,7 +33,10 @@ interface CreateSubstituteVars {
   positionId: string | null
 }
 
-/** Any Member may add someone to the Team's list of Substitutes (ADR-0033). */
+/**
+ * Any Member may add someone to the Team's list of Substitutes (ADR-0033). A refusal is a
+ * [SubstituteError] for the picker's form to show under the name field; no toast.
+ */
 export function useCreateSubstitute() {
   const queryClient = useQueryClient()
   return useMutation({
@@ -42,9 +45,6 @@ export function useCreateSubstitute() {
       if (res.status === 409) throw nameTaken(name)
       if (res.status === 404) throw new Error('Position not found')
       return res.body
-    },
-    onError: (error) => {
-      toast.error(error instanceof SubstituteError ? error.message : "Couldn't add the substitute — please try again.")
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['substitutes'] })

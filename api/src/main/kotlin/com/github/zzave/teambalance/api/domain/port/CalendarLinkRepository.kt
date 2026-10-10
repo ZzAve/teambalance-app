@@ -2,6 +2,8 @@ package com.github.zzave.teambalance.api.domain.port
 
 import com.github.zzave.teambalance.api.domain.model.CalendarLink
 import com.github.zzave.teambalance.api.domain.model.CalendarLinkId
+import com.github.zzave.teambalance.api.domain.model.CalendarLinkLabel
+import com.github.zzave.teambalance.api.domain.model.CalendarLinkOptions
 import com.github.zzave.teambalance.api.domain.model.TokenHash
 import com.github.zzave.teambalance.api.domain.model.UserId
 
@@ -34,15 +36,17 @@ interface CalendarLinkRepository {
      */
     fun saveWithinCap(link: CalendarLink, max: Int): Boolean
 
-    /** [id] if it belongs to [userId], or null — "not mine" and "no such link" look the same. */
-    fun findOwned(id: CalendarLinkId, userId: UserId): CalendarLink?
-
     /**
-     * Replaces the label and options of [link] if it still exists and belongs to its [CalendarLink.userId],
-     * returning whether it did. Not a cap question: the link already holds its slot, so an edit
-     * never takes or frees one. The token, the creation time and the expiry are not written.
+     * Replaces the label and options of [id] if it belongs to [userId], returning the link as stored,
+     * or null when it does not exist or is not theirs. Not a cap question: the link already holds its
+     * slot, so an edit never takes or frees one. The token and the dates are never written.
      */
-    fun updateOwned(link: CalendarLink): Boolean
+    fun updateOwned(
+        id: CalendarLinkId,
+        userId: UserId,
+        label: CalendarLinkLabel?,
+        options: CalendarLinkOptions,
+    ): CalendarLink?
 
     /**
      * Deletes [id] only if it belongs to [userId], returning whether it did. Ownership is in the

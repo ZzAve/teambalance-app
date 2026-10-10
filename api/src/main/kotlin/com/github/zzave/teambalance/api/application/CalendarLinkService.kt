@@ -126,11 +126,10 @@ class CalendarLinkService(
         options: CalendarLinkOptions,
     ): IssuedCalendarLink {
         requireOwnAccess(callerId, teamId)
-        val stored = calendarLinkRepository.findOwned(id, callerId) ?: throw CalendarLinkNotFoundException(id)
         requireKnownEventTypes(options)
 
-        val updated = stored.copy(label = CalendarLinkLabel.ofNullable(rawLabel), options = options)
-        if (!calendarLinkRepository.updateOwned(updated)) throw CalendarLinkNotFoundException(id)
+        val updated = calendarLinkRepository.updateOwned(id, callerId, CalendarLinkLabel.ofNullable(rawLabel), options)
+            ?: throw CalendarLinkNotFoundException(id)
         return updated.issued(slugOf(teamId), clock.instant())
     }
 

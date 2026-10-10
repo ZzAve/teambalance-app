@@ -68,27 +68,22 @@ class JpaCalendarLinkRepositoryAdapter(
         return true
     }
 
-    @Transactional(readOnly = true)
-    override fun findOwned(id: CalendarLinkId, userId: UserId): CalendarLink? =
-        jpaRepository.findByIdAndUserId(id.value, userId.value)?.toDomain()
-
     /**
-     * A merge of the whole row onto the stored one, with the secret and the dates taken from what was
-     * stored so the merge leaves them as they were. Read first because a merge of a row deleted in
-     * the meantime would insert it again.
+     * A merge of the whole row onto the stored one, built from what was stored so the token and the
+     * dates go back as they were. Read first, in the same transaction, because a merge of a row that
+     * is not there would insert it.
      */
     @Transactional
-    override fun updateOwned(link: CalendarLink): Boolean {
-        val stored = jpaRepository.findByIdAndUserId(link.id.value, link.userId.value) ?: return false
-        jpaRepository.save(
-            link.copy(
-                tokenHash = TokenHash(stored.tokenHash),
-                encryptedToken = EncryptedToken(stored.tokenEncrypted),
-                createdAt = stored.createdAt,
-                expiresAt = stored.expiresAt,
-            ).toEntity(),
-        )
-        return true
+    override fun updateOwned(
+        id: CalendarLinkId,
+        userId: UserId,
+        label: CalendarLinkLabel?,
+        options: CalendarLinkOptions,
+    ): CalendarLink? {
+        val stored = jpaRepository.findByIdAndUserId(id.value, userId.value) ?: return null
+        val updated = stored.toDomain().copy(label = label, options = options)
+        jpaRepository.save(updated.toEntity())
+        return updated
     }
 
     @Transactional

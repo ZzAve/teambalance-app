@@ -52,6 +52,16 @@ export default tseslint.config(
           selector: String.raw`TemplateElement[value.raw=/\brounded-\[\d/]`,
           message: 'Arbitrary radius — use rounded-sm/md/lg (8/12/16, design-tokens/tokens.css) instead.',
         },
+        // #387: gold-dark is a chip-ground ink (2.7:1 on the light card), so it is allowed only in a
+        // class string that also paints a gold tint under it. On a bare surface the token is gold-ink.
+        {
+          selector: String.raw`Literal[value=/^(?!.*\bbg-gold\b).*\btext-gold-dark\b/]`,
+          message: 'text-gold-dark without a bg-gold tint — use text-gold-ink on a bare surface (--color-gold-ink, app/src/app/styles/global.css).',
+        },
+        {
+          selector: String.raw`TemplateElement[value.raw=/^(?!.*\bbg-gold\b).*\btext-gold-dark\b/]`,
+          message: 'text-gold-dark without a bg-gold tint — use text-gold-ink on a bare surface (--color-gold-ink, app/src/app/styles/global.css).',
+        },
       ],
       // FSD: layers can only import from same layer or layers below
       'boundaries/dependencies': [

@@ -56,6 +56,12 @@ jobs:
           # Chromatic needs full git history to find each commit's baseline and to run
           # TurboSnap (onlyChanged) — a shallow clone breaks baseline detection.
           fetch-depth: 0
+          # On pull_request the default checkout is GitHub's temporary merge commit, which no later
+          # push descends from. Chromatic then diffs each PR build against the branch's fork point on
+          # main instead of its previous build, so anything main changed since (e.g. the lockfile, an
+          # `externals` entry) forces a full build. Building the PR head keeps every build an
+          # ancestor of the next. Empty on push, which keeps the default ref.
+          ref: ${{ github.event.pull_request.head.ref }}
 
       - uses: ./.github/actions/setup-toolchain
 

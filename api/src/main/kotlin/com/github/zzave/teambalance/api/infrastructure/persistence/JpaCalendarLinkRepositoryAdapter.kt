@@ -4,6 +4,7 @@ import com.github.zzave.teambalance.api.domain.model.AttendanceState
 import com.github.zzave.teambalance.api.domain.model.CalendarLink
 import com.github.zzave.teambalance.api.domain.model.CalendarLinkId
 import com.github.zzave.teambalance.api.domain.model.CalendarLinkLabel
+import com.github.zzave.teambalance.api.domain.model.CalendarLinkOptions
 import com.github.zzave.teambalance.api.domain.model.CalendarNameSuffix
 import com.github.zzave.teambalance.api.domain.model.EncryptedToken
 import com.github.zzave.teambalance.api.domain.model.TokenHash
@@ -70,9 +71,9 @@ class JpaCalendarLinkRepositoryAdapter(
                 label = link.label?.value,
                 createdAt = link.createdAt,
                 expiresAt = link.expiresAt,
-                attendanceStates = link.attendanceStates.map { it.name }.toMutableSet(),
-                showAttendancePrefix = link.showAttendancePrefix,
-                calendarNameSuffix = link.calendarNameSuffix?.value,
+                attendanceStates = link.options.attendanceStates.map { it.name }.toMutableSet(),
+                showAttendancePrefix = link.options.showAttendancePrefix,
+                calendarNameSuffix = link.options.calendarNameSuffix?.value,
             ),
         )
         return true
@@ -96,8 +97,10 @@ class JpaCalendarLinkRepositoryAdapter(
         label = label?.let(::CalendarLinkLabel),
         createdAt = createdAt,
         expiresAt = expiresAt,
-        attendanceStates = attendanceStates.map(AttendanceState::valueOf).toSet(),
-        showAttendancePrefix = showAttendancePrefix,
-        calendarNameSuffix = calendarNameSuffix?.let(::CalendarNameSuffix),
+        options = CalendarLinkOptions(
+            attendanceStates = attendanceStates.map(AttendanceState::valueOf).toSet(),
+            showAttendancePrefix = showAttendancePrefix,
+            calendarNameSuffix = calendarNameSuffix?.let(::CalendarNameSuffix),
+        ),
     )
 }

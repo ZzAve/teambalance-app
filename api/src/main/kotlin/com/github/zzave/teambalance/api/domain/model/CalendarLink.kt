@@ -83,10 +83,7 @@ value class CalendarFeedUrl(val value: String) {
  * delete. An expired row is deliberately kept: it still counts toward [MAX_PER_MEMBER], so a member
  * who cannot create a fourth can see the three that are in the way.
  *
- * Personalised by three options (ADR-0040): the feed carries only events whose subscriber's own answer
- * is in [attendanceStates], titles wear the answer prefix only when [showAttendancePrefix] is on, and
- * [calendarNameSuffix] is appended to the calendar's name. The defaults are the "Me" shape a link had
- * before the options existed.
+ * Personalised by its [options] (ADR-0040).
  */
 data class CalendarLink(
     val id: CalendarLinkId,
@@ -96,15 +93,8 @@ data class CalendarLink(
     val label: CalendarLinkLabel?,
     val createdAt: Instant,
     val expiresAt: Instant,
-    val attendanceStates: Set<AttendanceState> = DEFAULT_ATTENDANCE_STATES,
-    val showAttendancePrefix: Boolean = DEFAULT_SHOW_ATTENDANCE_PREFIX,
-    val calendarNameSuffix: CalendarNameSuffix? = null,
+    val options: CalendarLinkOptions = CalendarLinkOptions(),
 ) {
-    init {
-        // An empty set would be a link that serves an empty calendar forever.
-        require(attendanceStates.isNotEmpty()) { "A calendar link must include at least one attendance state" }
-    }
-
     /** Whether this link still serves a feed at [now]. Expiry is exclusive of the instant itself. */
     fun isLiveAt(now: Instant): Boolean = expiresAt.isAfter(now)
 
@@ -123,10 +113,24 @@ data class CalendarLink(
          * quietly widened by waiting.
          */
         const val MAX_PER_MEMBER = 3
+    }
+}
 
-        /** Every answer, unanswered included: the whole schedule. */
-        val DEFAULT_ATTENDANCE_STATES: Set<AttendanceState> = AttendanceState.entries.toSet()
-
-        const val DEFAULT_SHOW_ATTENDANCE_PREFIX = true
+/**
+ * What a [CalendarLink]'s feed carries and how it is shown (ADR-0040): only events whose subscriber's
+ * own answer is in [attendanceStates], titles wearing the answer prefix only when
+ * [showAttendancePrefix] is on, and [calendarNameSuffix] appended to the calendar's name.
+ *
+ * The defaults are the "Me" shape a link had before the options existed, so an option a request
+ * leaves out means what it meant before.
+ */
+data class CalendarLinkOptions(
+    val attendanceStates: Set<AttendanceState> = AttendanceState.entries.toSet(),
+    val showAttendancePrefix: Boolean = true,
+    val calendarNameSuffix: CalendarNameSuffix? = null,
+) {
+    init {
+        // An empty set would be a link that serves an empty calendar forever.
+        require(attendanceStates.isNotEmpty()) { "A calendar link must include at least one attendance state" }
     }
 }

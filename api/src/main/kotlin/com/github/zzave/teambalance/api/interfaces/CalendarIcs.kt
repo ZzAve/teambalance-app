@@ -60,13 +60,13 @@ object CalendarIcs {
             addExperimentalProperty("X-PUBLISHED-TTL", refresh)
         }
         feed.entries.forEach {
-            calendar.addEvent(it.toVEvent(feed.team.slug.value, frontendBaseUrl, feed.showAttendancePrefix))
+            calendar.addEvent(it.toVEvent(feed.team.slug.value, frontendBaseUrl, feed.options.showAttendancePrefix))
         }
         return Biweekly.write(calendar).go()
     }
 
     private fun calendarName(feed: CalendarFeed): String =
-        listOfNotNull(feed.team.name.value, feed.calendarNameSuffix?.value).joinToString(" · ")
+        listOfNotNull(feed.team.name.value, feed.options.calendarNameSuffix?.value).joinToString(" · ")
 
     private fun CalendarFeedEntry.toVEvent(slug: String, frontendBaseUrl: String, showPrefix: Boolean): VEvent {
         val link = "$frontendBaseUrl/t/$slug/events/${event.id.value}"

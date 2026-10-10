@@ -11,6 +11,7 @@ import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers
 import java.util.UUID
+import com.github.zzave.teambalance.api.infrastructure.identity.loginAs
 
 /**
  * Attendance editing is trust-based *within a team* (ADR-0003): any member may edit another member's
@@ -20,7 +21,7 @@ import java.util.UUID
  *
  * Following AttendanceControllerTest's cross-team pattern: teams carry unique schema names, the
  * caller's resolved team id comes from their own membership, while the event lives in the
- * `public`-pinned schema (the X-Team-Id test shim), so only the *target user's* membership is in play.
+ * `public`-pinned schema (`loginAs(..., tenant = "public")`), so only the *target user's* membership is in play.
  */
 @AutoConfigureMockMvc
 class AttendanceAuthorizationIT : TeamBalanceIT() {
@@ -49,8 +50,7 @@ class AttendanceAuthorizationIT : TeamBalanceIT() {
                 MockMvcRequestBuilders.put("/api/events/$eventId/attendances/$outsiderId")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content("""{"state":"ATTENDING"}""")
-                    .header("X-Team-Id", "public")
-                    .header("X-User-Id", callerId),
+                    .with(loginAs(callerId, tenant = "public")),
             ).andExpect(MockMvcResultMatchers.request().asyncStarted()).andReturn()
 
             mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(result))
@@ -75,8 +75,7 @@ class AttendanceAuthorizationIT : TeamBalanceIT() {
                 MockMvcRequestBuilders.put("/api/events/$eventId/attendances/$teammateId")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content("""{"state":"ATTENDING"}""")
-                    .header("X-Team-Id", "public")
-                    .header("X-User-Id", callerId),
+                    .with(loginAs(callerId, tenant = "public")),
             ).andExpect(MockMvcResultMatchers.request().asyncStarted()).andReturn()
 
             mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(result))

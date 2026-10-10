@@ -23,6 +23,7 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPat
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import tools.jackson.databind.ObjectMapper
 import java.time.Instant
+import com.github.zzave.teambalance.api.infrastructure.identity.loginAs
 
 /**
  * The member-facing management of Calendar links (ADR-0039), against a real tenant schema — which is
@@ -180,16 +181,16 @@ class CalendarLinkControllerIT : TeamBalanceIT() {
 
     private fun createAs(userId: String, label: String? = null) = dispatch(
         MockMvcRequestBuilders.post("/api/calendar-links")
-            .header("X-User-Id", userId)
+            .with(loginAs(userId))
             .contentType(MediaType.APPLICATION_JSON)
             .content(label?.let { """{"label":"$it"}""" } ?: "{}"),
     )
 
     private fun listAs(userId: String) =
-        dispatch(MockMvcRequestBuilders.get("/api/calendar-links").header("X-User-Id", userId))
+        dispatch(MockMvcRequestBuilders.get("/api/calendar-links").with(loginAs(userId)))
 
     private fun deleteAs(userId: String, id: String) =
-        dispatch(MockMvcRequestBuilders.delete("/api/calendar-links/$id").header("X-User-Id", userId))
+        dispatch(MockMvcRequestBuilders.delete("/api/calendar-links/$id").with(loginAs(userId)))
 
     /** Stands in for a key rotation: the ciphertext is intact base64 that this key cannot open. */
     private fun corruptStoredToken() {

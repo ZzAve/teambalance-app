@@ -20,8 +20,15 @@ class AuthSessionGatewayAdapter(
     private val request: HttpServletRequest,
 ) : AuthSessionGateway {
 
+    /**
+     * Always on a new session, never the one the request arrived with: a session ID that existed before
+     * sign-in may have been planted by someone else (session fixation, ADR-0012). The old session is
+     * dropped rather than renamed, so nothing it held carries over and the new one's creation time,
+     * which the absolute lifetime cap counts from (ADR-0015), is this sign-in.
+     */
     override fun startSession(userId: UserId) {
-        request.session.setAttribute(SessionKeys.USER_ID, userId.value.toString())
+        request.getSession(false)?.invalidate()
+        request.getSession(true).setAttribute(SessionKeys.USER_ID, userId.value.toString())
     }
 
     override fun currentUserId(): UserId? =

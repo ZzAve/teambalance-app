@@ -8,6 +8,7 @@ import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers
+import com.github.zzave.teambalance.api.infrastructure.identity.loginAs
 
 private const val TEAM_ID = "a0000000-0000-0000-0000-000000000001"
 private const val USER_ID = "b0000000-0000-0000-0000-000000000001"
@@ -19,7 +20,7 @@ private const val USER_ID = "b0000000-0000-0000-0000-000000000001"
  * else in the suite would notice if one of those hops dropped or transposed them — which is exactly
  * the risk when they become value classes (#207).
  *
- * The fixture mirrors the other controller ITs: `X-Team-Id` is the schema-name shim, and the team
+ * The fixture mirrors the other controller ITs: `loginAs(..., tenant)` pins the schema, and the team
  * and user are the ones `V1_1__seed_demo_data.sql` already seeded, so the inserts below are
  * idempotent no-ops that keep the spec runnable on its own. Inventing a fresh team here does not
  * work — the whole suite shares one Postgres, `teams.schema_name` is UNIQUE, and another spec
@@ -55,8 +56,7 @@ class EventTypeControllerTest : TeamBalanceIT() {
 
             val result = mockMvc.perform(
                 MockMvcRequestBuilders.get("/api/event-types")
-                    .header("X-Team-Id", "public")
-                    .header("X-User-Id", USER_ID),
+                    .with(loginAs(USER_ID, tenant = "public")),
             )
                 .andExpect(MockMvcResultMatchers.request().asyncStarted())
                 .andReturn()

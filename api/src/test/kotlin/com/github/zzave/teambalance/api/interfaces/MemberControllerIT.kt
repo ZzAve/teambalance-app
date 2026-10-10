@@ -9,6 +9,7 @@ import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers
+import com.github.zzave.teambalance.api.infrastructure.identity.loginAs
 
 // Ids dedicated to this spec so the roster/admin-count assertions are isolated from other specs and the
 // demo seed migration, which also write to the shared platform tables in the one Testcontainers DB.
@@ -63,7 +64,7 @@ class MemberControllerIT : TeamBalanceIT() {
 
     private fun listMembersAs(userId: String) =
         mockMvc.perform(
-            MockMvcRequestBuilders.get("/api/members").header("X-User-Id", userId),
+            MockMvcRequestBuilders.get("/api/members").with(loginAs(userId)),
         )
             .andExpect(MockMvcResultMatchers.request().asyncStarted())
             .andReturn()
@@ -72,7 +73,7 @@ class MemberControllerIT : TeamBalanceIT() {
     private fun updateMemberAs(userId: String, pathUserId: String, displayName: String, role: String) =
         mockMvc.perform(
             MockMvcRequestBuilders.put("/api/members/$pathUserId")
-                .header("X-User-Id", userId)
+                .with(loginAs(userId))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""{"displayName":"$displayName","role":"$role"}"""),
         )
@@ -82,7 +83,7 @@ class MemberControllerIT : TeamBalanceIT() {
 
     private fun removeMemberAs(userId: String, pathUserId: String) =
         mockMvc.perform(
-            MockMvcRequestBuilders.delete("/api/members/$pathUserId").header("X-User-Id", userId),
+            MockMvcRequestBuilders.delete("/api/members/$pathUserId").with(loginAs(userId)),
         )
             .andExpect(MockMvcResultMatchers.request().asyncStarted())
             .andReturn()
@@ -91,7 +92,7 @@ class MemberControllerIT : TeamBalanceIT() {
     private fun updateNameAs(userId: String, pathUserId: String, displayName: String) =
         mockMvc.perform(
             MockMvcRequestBuilders.put("/api/members/$pathUserId")
-                .header("X-User-Id", userId)
+                .with(loginAs(userId))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""{"displayName":"$displayName","role":"USER"}"""),
         )
@@ -102,7 +103,7 @@ class MemberControllerIT : TeamBalanceIT() {
     private fun updateShirtNumberAs(userId: String, pathUserId: String, displayName: String, shirtNumber: Long) =
         mockMvc.perform(
             MockMvcRequestBuilders.put("/api/members/$pathUserId")
-                .header("X-User-Id", userId)
+                .with(loginAs(userId))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""{"displayName":"$displayName","role":"USER","shirtNumber":$shirtNumber}"""),
         )
@@ -113,7 +114,7 @@ class MemberControllerIT : TeamBalanceIT() {
     private fun completeOnboardingAs(userId: String, displayName: String, positionId: String) =
         mockMvc.perform(
             MockMvcRequestBuilders.put("/api/members/me/onboarding")
-                .header("X-User-Id", userId)
+                .with(loginAs(userId))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""{"displayName":"$displayName","role":"USER","positionId":"$positionId"}"""),
         )
@@ -124,7 +125,7 @@ class MemberControllerIT : TeamBalanceIT() {
     private fun completeOnboardingWithNumberAs(userId: String, displayName: String, shirtNumber: Long) =
         mockMvc.perform(
             MockMvcRequestBuilders.put("/api/members/me/onboarding")
-                .header("X-User-Id", userId)
+                .with(loginAs(userId))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""{"displayName":"$displayName","role":"USER","shirtNumber":$shirtNumber}"""),
         )
@@ -143,7 +144,7 @@ class MemberControllerIT : TeamBalanceIT() {
 
     private fun getMeAs(userId: String) =
         mockMvc.perform(
-            MockMvcRequestBuilders.get("/api/members/me").header("X-User-Id", userId),
+            MockMvcRequestBuilders.get("/api/members/me").with(loginAs(userId)),
         )
             .andExpect(MockMvcResultMatchers.request().asyncStarted())
             .andReturn()
@@ -346,10 +347,8 @@ class MemberControllerIT : TeamBalanceIT() {
         test("GET /api/members/me without an authenticated user returns 401") {
             seedTeam()
 
+            // Refused by the SecurityFilterChain, so no handler starts.
             mockMvc.perform(MockMvcRequestBuilders.get("/api/members/me"))
-                .andExpect(MockMvcResultMatchers.request().asyncStarted())
-                .andReturn()
-                .let { mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(it)) }
                 .andExpect(MockMvcResultMatchers.status().isUnauthorized)
         }
     }

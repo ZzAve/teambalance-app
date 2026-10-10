@@ -10,15 +10,11 @@ import jakarta.servlet.FilterChain
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
 import jakarta.servlet.http.HttpSession
-import org.springframework.core.Ordered
-import org.springframework.core.annotation.Order
 import org.springframework.stereotype.Component
 import org.springframework.web.filter.OncePerRequestFilter
 
-private const val FILTER_ORDER = Ordered.HIGHEST_PRECEDENCE + 3
-
+// Runs in the SecurityFilterChain right after SessionUserContextFilter (see SecurityConfig).
 @Component
-@Order(FILTER_ORDER)
 class SessionTenantContextFilter(
     private val activeTeamService: ActiveTeamService,
     private val actAsService: ActAsService,
@@ -32,8 +28,7 @@ class SessionTenantContextFilter(
     ) {
         currentUserGateway.getCurrentUserId()?.let { userId ->
             resolveRouting(request, userId)?.let { routing ->
-                // Respect a tenant already pinned upstream (the test-profile X-Team-Id shim).
-                if (!TenantContext.isSet()) TenantContext.set(routing.schemaName.value)
+                TenantContext.set(routing.schemaName.value)
                 CurrentTeamContext.set(routing.teamId.value)
             }
         }

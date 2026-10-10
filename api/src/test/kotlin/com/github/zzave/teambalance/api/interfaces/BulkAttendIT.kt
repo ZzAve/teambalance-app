@@ -13,6 +13,7 @@ import org.springframework.test.web.servlet.MvcResult
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers
 import java.util.UUID
+import com.github.zzave.teambalance.api.infrastructure.identity.loginAs
 
 /**
  * Bulk Attend (ADR-0020) is defined entirely by what the server *refuses* to touch, so the guard is
@@ -20,7 +21,7 @@ import java.util.UUID
  * not started. The client names the ids ("currently shown"); everything else is the server's job.
  *
  * Follows AttendanceAuthorizationIT's cross-team pattern: the caller's team id comes from their own
- * membership while the events live in the `public`-pinned schema (the X-Team-Id test shim), so the
+ * membership while the events live in the `public`-pinned schema (`loginAs(..., tenant = "public")`), so the
  * membership gate can be exercised independently of tenant routing.
  */
 @AutoConfigureMockMvc
@@ -158,8 +159,7 @@ class BulkAttendIT : TeamBalanceIT() {
         builder
             .contentType(MediaType.APPLICATION_JSON)
             .content(body)
-            .header("X-Team-Id", "public")
-            .header("X-User-Id", caller),
+            .with(loginAs(caller, tenant = "public")),
     ).andExpect(MockMvcResultMatchers.request().asyncStarted()).andReturn()
 
     private fun eventIdsOf(result: MvcResult): Set<String> {

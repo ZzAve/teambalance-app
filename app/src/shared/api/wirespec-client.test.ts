@@ -3,8 +3,8 @@ import { api } from './wirespec-client'
 
 // Pure-adapter units for the wirespec-client (the fetch handler behind `api`). Storybook owns
 // anything that renders; Vitest owns pure, non-rendering logic like this request/response adapter.
-// We drive the real public surface (`api`) with a stubbed `fetch`, asserting the two behaviours the
-// adapter is responsible for: X-Team-Id header injection and 204-No-Content body handling.
+// We drive the real public surface (`api`) with a stubbed `fetch`, asserting the behaviours the
+// adapter is responsible for: X-Team-Id and CSRF header injection and 204-No-Content body handling.
 
 interface FakeResponseInit {
   status: number
@@ -67,6 +67,30 @@ describe('wirespec-client adapter', () => {
       await api.ListEvents({ 'include-past': false })
 
       expect(headerOf(fetchMock, 'X-Team-Id')).toBeUndefined()
+    })
+  })
+
+  describe('CSRF token', () => {
+    afterEach(() => {
+      document.cookie = 'XSRF-TOKEN=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/'
+    })
+
+    it('echoes the XSRF-TOKEN cookie as X-XSRF-TOKEN on a mutating request', async () => {
+      document.cookie = 'XSRF-TOKEN=token-from-api; path=/'
+      const fetchMock = stubFetch(fakeResponse({ status: 204 }))
+
+      await api.Logout()
+
+      expect(headerOf(fetchMock, 'X-XSRF-TOKEN')).toBe('token-from-api')
+    })
+
+    it('does not send it on a GET', async () => {
+      document.cookie = 'XSRF-TOKEN=token-from-api; path=/'
+      const fetchMock = stubFetch(fakeResponse({ status: 200, body: JSON.stringify({ events: [] }) }))
+
+      await api.ListEvents({ 'include-past': false })
+
+      expect(headerOf(fetchMock, 'X-XSRF-TOKEN')).toBeUndefined()
     })
   })
 

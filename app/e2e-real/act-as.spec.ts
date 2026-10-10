@@ -1,5 +1,5 @@
 import { test, expect, request as playwrightRequest, type Page } from '@playwright/test'
-import { STORAGE_STATE } from './helpers'
+import { STORAGE_STATE, csrfHeader } from './helpers'
 
 /**
  * Real e2e: **Act-as** (ADR-0024) — a Platform Admin enters a Team they are a Member of nothing in,
@@ -98,6 +98,6 @@ test('a Platform Admin enters a team, writes in it, and leaves without ever join
 
   // Leave the shared team as we found it, so warm-DB re-runs don't accumulate positions.
   const created = curated.find((p) => p.label === POSITION)!
-  expect((await teamAdmin.delete(`/api/positions/${created.id}`)).status()).toBe(204)
+  expect((await teamAdmin.delete(`/api/positions/${created.id}`, { headers: await csrfHeader(teamAdmin) })).status()).toBe(204)
   await teamAdmin.dispose()
 })

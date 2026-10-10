@@ -2,6 +2,7 @@ import { Wirespec } from './generated/Wirespec'
 import { client } from './generated/client'
 import { redirectToLogin, shouldRedirectToLogin } from './auth-redirect'
 import { isActAsExpired, returnToConsole } from './act-as-redirect'
+import { csrfHeaders } from './csrf'
 
 // Best-effort read of the `code` discriminator from an error body (GlobalExceptionHandler).
 const errorCode = (body: string): string | undefined => {
@@ -39,6 +40,7 @@ const handler = async (req: Wirespec.RawRequest): Promise<Wirespec.RawResponse> 
     headers: {
       'Content-Type': 'application/json',
       ...(teamId ? { 'X-Team-Id': teamId } : {}),
+      ...csrfHeaders(req.method),
       ...req.headers,
     },
     body: req.body,

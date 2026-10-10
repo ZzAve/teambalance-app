@@ -11,6 +11,7 @@ import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers
 import java.util.UUID
+import com.github.zzave.teambalance.api.infrastructure.identity.loginAs
 
 // Ids dedicated to this spec so its position/roster assertions are isolated from other specs and the
 // demo seed migration, which also write to the shared platform tables in the one Testcontainers DB.
@@ -61,7 +62,7 @@ class PositionControllerIT : TeamBalanceIT() {
     }
 
     private fun listAs(userId: String) =
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/positions").header("X-User-Id", userId))
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/positions").with(loginAs(userId)))
             .andExpect(MockMvcResultMatchers.request().asyncStarted())
             .andReturn()
             .let { mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(it)) }
@@ -69,7 +70,7 @@ class PositionControllerIT : TeamBalanceIT() {
     private fun createAs(userId: String, label: String) =
         mockMvc.perform(
             MockMvcRequestBuilders.post("/api/positions")
-                .header("X-User-Id", userId)
+                .with(loginAs(userId))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""{"label":"$label"}"""),
         )
@@ -80,7 +81,7 @@ class PositionControllerIT : TeamBalanceIT() {
     private fun renameAs(userId: String, id: String, label: String) =
         mockMvc.perform(
             MockMvcRequestBuilders.put("/api/positions/$id")
-                .header("X-User-Id", userId)
+                .with(loginAs(userId))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""{"label":"$label"}"""),
         )
@@ -91,7 +92,7 @@ class PositionControllerIT : TeamBalanceIT() {
     private fun setKindAs(userId: String, id: String, kind: String) =
         mockMvc.perform(
             MockMvcRequestBuilders.put("/api/positions/$id/kind")
-                .header("X-User-Id", userId)
+                .with(loginAs(userId))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""{"kind":"$kind"}"""),
         )
@@ -100,7 +101,7 @@ class PositionControllerIT : TeamBalanceIT() {
             .let { mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(it)) }
 
     private fun deleteAs(userId: String, id: String) =
-        mockMvc.perform(MockMvcRequestBuilders.delete("/api/positions/$id").header("X-User-Id", userId))
+        mockMvc.perform(MockMvcRequestBuilders.delete("/api/positions/$id").with(loginAs(userId)))
             .andExpect(MockMvcResultMatchers.request().asyncStarted())
             .andReturn()
             .let { mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(it)) }
@@ -265,10 +266,8 @@ class PositionControllerIT : TeamBalanceIT() {
 
         test("GET /api/positions without an authenticated user returns 401") {
             seedTeam()
+            // Refused by the SecurityFilterChain, so no handler starts.
             mockMvc.perform(MockMvcRequestBuilders.get("/api/positions"))
-                .andExpect(MockMvcResultMatchers.request().asyncStarted())
-                .andReturn()
-                .let { mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(it)) }
                 .andExpect(MockMvcResultMatchers.status().isUnauthorized)
         }
     }

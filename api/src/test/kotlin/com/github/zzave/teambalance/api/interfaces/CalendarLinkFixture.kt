@@ -26,7 +26,7 @@ object CalendarLinkFixture {
     const val BETA_SLUG = "cal-beta"
     const val ALPHA_NAME = "Calendar Alpha"
 
-    /** Sole member of Alpha, so the X-User-Id shim resolves their Active Team without a session. */
+    /** Sole member of Alpha, so `loginAs` resolves their Active Team without pinning one. */
     const val ALPHA_MEMBER = "b8320000-0000-0000-0000-000000000001"
     const val BETA_MEMBER = "b8320000-0000-0000-0000-000000000002"
 

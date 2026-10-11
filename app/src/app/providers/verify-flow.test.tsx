@@ -12,8 +12,11 @@ import type { AuthenticatedUser } from '@shared/api/auth'
 // /me's so the guard's own mount-time /me fetch (started at the same time, on the un-verified
 // session) resolves first — matching real latency, where verify does token/session work and
 // /me is a cheap read. This proves the redirect guard trusts the direct cache write from
-// verify rather than racing it with a slower background fetch.
+// verify rather than racing it with a slower background fetch. Verify also asks /me once more in
+// the background (the sign-in response cannot carry the Team's money pool switch); navigation does
+// not wait for it.
 let session: AuthenticatedUser | null = null
+let meRequestsWithSession = 0
 
 const TEAM = { id: 'team-1', name: 'Setpoint VT', slug: 'setpoint-vt' }
 
@@ -41,7 +44,11 @@ const server = setupServer(
     // sign-in was requested from. An ordinary login carries none (#342).
     return HttpResponse.json({ user: USER, inviteOutcome: undefined })
   }),
-  http.get('/api/auth/me', () => (session ? HttpResponse.json(session) : new HttpResponse(null, { status: 401 }))),
+  http.get('/api/auth/me', () => {
+    if (!session) return new HttpResponse(null, { status: 401 })
+    meRequestsWithSession++
+    return HttpResponse.json(session)
+  }),
   // The team route's onboarding gate reads /members/me; an onboarded member skips get-started and
   // lands on events, keeping this test focused on the verify/auth-routing seam.
   http.get('/api/members/me', () =>
@@ -55,6 +62,7 @@ beforeAll(() => server.listen())
 afterEach(() => {
   server.resetHandlers()
   session = null
+  meRequestsWithSession = 0
 })
 afterAll(() => server.close())
 
@@ -74,6 +82,7 @@ describe('magic-link verification', () => {
     await waitFor(() => expect(router.state.location.pathname).toBe('/t/setpoint-vt'), { timeout: 5000 })
     expect(await screen.findByRole('heading', { name: 'Events' }, { timeout: 5000 })).toBeInTheDocument()
     expect(screen.queryByText(/link expired/i)).not.toBeInTheDocument()
+    await waitFor(() => expect(meRequestsWithSession).toBeGreaterThan(0), { timeout: 5000 })
   })
 
   it('rejects an invalid token and keeps the guard from ever granting access', async () => {

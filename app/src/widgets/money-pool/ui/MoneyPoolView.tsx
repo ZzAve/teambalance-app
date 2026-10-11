@@ -46,7 +46,7 @@ export function MoneyPoolView({ state, isLoading, isError, isAdmin, balance, pay
         />
       )
     case 'Off':
-      // The Money route redirects away from an Off team, so there is nothing to show here.
-      return null
+      // The route redirects an Off team away, but a stale session can still land here.
+      return <MoneyPoolNotice title="The money pool is switched off for this team" />
   }
 }

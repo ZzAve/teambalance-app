@@ -11,7 +11,7 @@ import { MoneyPoolView } from './MoneyPoolView'
 //
 // Two-story shape (ADR-0032 §1):
 //   1. Data — the connected pool: balance and payment list.
-//   2. Shells — every other state stacked: loading, error, not connected (member and admin),
+//   2. Shells — every other state stacked: loading, error, off, not connected (member and admin),
 //      unavailable, and connected edge cases (no payments, same-day duplicates, missing balance, no beer price, an empty pool).
 const PAYMENTS: Payment[] = [
   { date: '2026-10-06', name: 'Lisa de Vries', amount: 2000, direction: 'In' },
@@ -66,6 +66,7 @@ export const Shells: Story = {
       items={{
         Loading: <MoneyPoolView {...args} state={undefined} isLoading />,
         Error: <MoneyPoolView {...args} state={undefined} isError />,
+        Off: <MoneyPoolView {...args} state="Off" />,
         'Not connected (member)': <MoneyPoolView {...args} state="NotConnected" />,
         'Not connected (admin)': <MoneyPoolView {...args} state="NotConnected" isAdmin />,
         Unavailable: <MoneyPoolView {...args} state="Unavailable" />,
@@ -81,6 +82,7 @@ export const Shells: Story = {
     const region = (name: string) => within(canvas.getByRole('region', { name }))
     await expect(region('Loading').getByRole('status')).toHaveTextContent('Loading…')
     await expect(region('Error').getByRole('alert')).toHaveTextContent(/couldn't load/i)
+    await expect(region('Off').getByText('The money pool is switched off for this team')).toBeInTheDocument()
     await expect(region('Not connected (member)').getByText(/once an admin connects/i)).toBeInTheDocument()
     await expect(region('Not connected (admin)').getByText(/connecting the team.s bunq account is coming soon/i)).toBeInTheDocument()
     await expect(region('Unavailable').getByText('The pool is unavailable right now')).toBeInTheDocument()

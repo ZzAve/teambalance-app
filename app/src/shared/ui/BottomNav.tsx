@@ -1,7 +1,6 @@
 import { Link, useRouterState } from '@tanstack/react-router'
 import { Calendar, Users, PiggyBank, User, type LucideIcon } from 'lucide-react'
 import { useAuthMe } from '@shared/api/auth'
-import { isMoneyPoolOff } from '@shared/lib/money-pool-visibility'
 import { ACCOUNT_PATH, teamRoutes, teamSlugFromPath, type TeamRoutes } from '@shared/lib/team-routes'
 
 interface TabConfig {
@@ -16,7 +15,7 @@ interface TabConfig {
 
 // Built from the slug in the URL rather than a store, so switching Team makes every tab follow.
 // Only the team-independent routes (/account) carry no slug; there the Active Team stands in.
-function tabsFor(routes: TeamRoutes): TabConfig[] {
+function tabsFor(routes: TeamRoutes, showMoney: boolean): TabConfig[] {
   const exact = (path: string) => (p: string) => p.replace(/\/$/, '') === path
   const prefix = (path: string) => (p: string) => p === path || p.startsWith(`${path}/`)
   return [
@@ -28,7 +27,7 @@ function tabsFor(routes: TeamRoutes): TabConfig[] {
         exact(routes.events)(p) || prefix(`${routes.events}/events`)(p) || prefix(routes.calendar)(p),
     },
     { icon: Users, label: 'Team', to: routes.team, isActive: prefix(routes.team) },
-    { icon: PiggyBank, label: 'Money', to: routes.money, isActive: prefix(routes.money) },
+    ...(showMoney ? [{ icon: PiggyBank, label: 'Money', to: routes.money, isActive: prefix(routes.money) }] : []),
     // Profile points at the team-independent /account (ADR-0027 §1) — a constant, not a slug-built
     // destination — so it resolves and logout stays reachable on every in-shell screen, teamless
     // and mid-onboarding included.
@@ -39,9 +38,9 @@ function tabsFor(routes: TeamRoutes): TabConfig[] {
 export function BottomNav() {
   const pathname = useRouterState({ select: (s) => s.location.pathname })
   const me = useAuthMe().data
-  const moneyOff = isMoneyPoolOff(me)
-  const TABS = tabsFor(teamRoutes(teamSlugFromPath(pathname) ?? me?.activeTeam?.slug ?? null)).filter(
-    ({ label }) => !(moneyOff && label === 'Money'),
+  const TABS = tabsFor(
+    teamRoutes(teamSlugFromPath(pathname) ?? me?.activeTeam?.slug ?? null),
+    me?.moneyPoolEnabled !== false,
   )
 
   return (

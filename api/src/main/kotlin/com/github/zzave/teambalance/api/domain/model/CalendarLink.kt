@@ -57,9 +57,12 @@ value class CalendarFeedUrl(val value: String) {
  * as a salted [TokenHash], which the feed matches a presented token on, and as an [EncryptedToken],
  * which is what lets the member be shown their URL again rather than only once.
  *
- * Created explicitly, expires [TTL] later, and is never renewed — the single action besides create is
- * delete. An expired row is deliberately kept: it still counts toward [MAX_PER_MEMBER], so a member
- * who cannot create a fourth can see the three that are in the way.
+ * Created explicitly, expires [TTL] later, and is never renewed. An expired row is deliberately
+ * kept: it still counts toward [MAX_PER_MEMBER], so a member who cannot create a fourth can see the
+ * three that are in the way.
+ *
+ * Personalised by its [options] (ADR-0040), which can be replaced together with the label; the
+ * token and the expiry cannot. Otherwise a link can only be deleted.
  */
 data class CalendarLink(
     val id: CalendarLinkId,
@@ -69,6 +72,7 @@ data class CalendarLink(
     val label: CalendarLinkLabel?,
     val createdAt: Instant,
     val expiresAt: Instant,
+    val options: CalendarLinkOptions = CalendarLinkOptions(),
 ) {
     /** Whether this link still serves a feed at [now]. Expiry is exclusive of the instant itself. */
     fun isLiveAt(now: Instant): Boolean = expiresAt.isAfter(now)

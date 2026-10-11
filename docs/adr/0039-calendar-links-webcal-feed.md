@@ -78,6 +78,7 @@ implementation of the crypto and two keys.
 - **Delete is the only other action, and only your own.** There is no admin view and no admin
   control. A calendar link is a personal credential; an admin who could list one would be reading a
   teammate's private feed, and an admin who could revoke one would be breaking their calendar.
+  Amended by ADR-0040: links are editable; the token never changes.
 - **An optional 50-character label**, because three otherwise identical URLs are indistinguishable
   when deciding which to delete.
 

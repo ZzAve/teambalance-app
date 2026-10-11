@@ -125,7 +125,10 @@ class JpaCalendarLinkRepositoryAdapter(
         createdAt = createdAt,
         expiresAt = expiresAt,
         options = CalendarLinkOptions(
-            attendanceStates = attendanceStates.map(AttendanceState::valueOf).toSet(),
+            // No rows reads as every state: the previous release, still serving while a deploy rolls
+            // out, inserts links without them (ADR-0040).
+            attendanceStates = attendanceStates.map(AttendanceState::valueOf).toSet()
+                .ifEmpty { AttendanceState.entries.toSet() },
             // No rows is every type (ADR-0040).
             eventTypeIds = eventTypes.map { EventTypeId(it.uuid) }.toSet().takeIf { it.isNotEmpty() },
             showAttendancePrefix = showAttendancePrefix,

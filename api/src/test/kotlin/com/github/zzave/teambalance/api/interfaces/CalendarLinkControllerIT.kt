@@ -7,6 +7,8 @@ import com.github.zzave.teambalance.api.interfaces.CalendarLinkFixture.ALPHA_MEM
 import com.github.zzave.teambalance.api.interfaces.CalendarLinkFixture.ALPHA_SCHEMA
 import com.github.zzave.teambalance.api.interfaces.CalendarLinkFixture.ALPHA_SLUG
 import com.github.zzave.teambalance.api.interfaces.CalendarLinkFixture.BETA_MEMBER
+import com.github.zzave.teambalance.api.interfaces.CalendarLinkFixture.MATCH_TYPE
+import com.github.zzave.teambalance.api.interfaces.CalendarLinkFixture.TRAINING_TYPE
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldMatch
@@ -23,6 +25,7 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPat
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import tools.jackson.databind.ObjectMapper
 import java.time.Instant
+import java.util.UUID
 
 /**
  * The member-facing management of Calendar links (ADR-0039), against a real tenant schema — which is
@@ -124,6 +127,32 @@ class CalendarLinkControllerIT : TeamBalanceIT() {
                     .andExpect(status().isCreated)
                     .andExpect(jsonPath("$.calendarNameSuffix").doesNotExist())
             }
+
+            test("an explicit list of event types round-trips") {
+                createAs(ALPHA_MEMBER, body = """{"eventTypeIds":["$MATCH_TYPE"]}""")
+                    .andExpect(status().isCreated)
+                    .andExpect(jsonPath("$.eventTypeIds.length()").value(1))
+                    .andExpect(jsonPath("$.eventTypeIds[0]").value(MATCH_TYPE))
+
+                listAs(ALPHA_MEMBER).andReturn().links().single()["eventTypeIds"] shouldBe listOf(MATCH_TYPE)
+            }
+
+            test("no list of event types means every type") {
+                createAs(ALPHA_MEMBER, label = "Phone")
+                    .andExpect(status().isCreated)
+                    .andExpect(jsonPath("$.eventTypeIds").doesNotExist())
+            }
+
+            test("an empty list of event types is refused") {
+                createAs(ALPHA_MEMBER, body = """{"eventTypeIds":[]}""").andExpect(status().isBadRequest)
+                listAs(ALPHA_MEMBER).andReturn().links().size shouldBe 0
+            }
+
+            test("an event type this team does not have is refused") {
+                createAs(ALPHA_MEMBER, body = """{"eventTypeIds":["${UUID.randomUUID()}"]}""")
+                    .andExpect(status().isBadRequest)
+                listAs(ALPHA_MEMBER).andReturn().links().size shouldBe 0
+            }
         }
 
         test("a member sees only their own links, not a teammate's") {
@@ -164,6 +193,114 @@ class CalendarLinkControllerIT : TeamBalanceIT() {
                 deleteAs(ALPHA_MEMBER, victim).andExpect(status().isNoContent)
 
                 createAs(ALPHA_MEMBER).andExpect(status().isCreated)
+            }
+        }
+
+        // ADR-0040: an edit replaces the label and every option, and nothing that identifies the link.
+        context("editing a link") {
+            fun created(body: String = "{}"): Map<String, Any?> =
+                json.readValue(
+                    createAs(ALPHA_MEMBER, body = body).andExpect(status().isCreated).andReturn().response.contentAsString,
+                    Map::class.java,
+                ).let {
+                    @Suppress("UNCHECKED_CAST")
+                    it as Map<String, Any?>
+                }
+
+            test("replaces the label and every option, event types included") {
+                val link = created("""{"label":"Phone","eventTypeIds":["$MATCH_TYPE"]}""")
+
+                updateAs(
+                    ALPHA_MEMBER, link["id"] as String,
+                    """{"label":"Partner","attendanceStates":["ATTENDING"],"showAttendancePrefix":false,
+                        "calendarNameSuffix":"Partner","eventTypeIds":["$TRAINING_TYPE","$MATCH_TYPE"]}""",
+                )
+                    .andExpect(status().isOk)
+                    .andExpect(jsonPath("$.label").value("Partner"))
+                    .andExpect(jsonPath("$.eventTypeIds.length()").value(2))
+
+                val listed = listAs(ALPHA_MEMBER).andReturn().links().single()
+                listed["label"] shouldBe "Partner"
+                listed["attendanceStates"] shouldBe listOf("ATTENDING")
+                listed["showAttendancePrefix"] shouldBe false
+                listed["calendarNameSuffix"] shouldBe "Partner"
+                listed["eventTypeIds"] shouldBe listOf(TRAINING_TYPE, MATCH_TYPE).sorted()
+            }
+
+            test("a field left out goes back to its default, because the body is a full replace") {
+                val link = created("""{"label":"Phone","eventTypeIds":["$MATCH_TYPE"],"showAttendancePrefix":false}""")
+
+                updateAs(ALPHA_MEMBER, link["id"] as String, "{}").andExpect(status().isOk)
+
+                val listed = listAs(ALPHA_MEMBER).andReturn().links().single()
+                listed["label"] shouldBe null
+                listed["eventTypeIds"] shouldBe null
+                listed["showAttendancePrefix"] shouldBe true
+            }
+
+            test("keeps the URL and the expiry") {
+                created()
+                // As stored: the create response carries the clock's own precision, the column keeps
+                // microseconds.
+                val link = listAs(ALPHA_MEMBER).andReturn().links().single()
+
+                updateAs(ALPHA_MEMBER, link["id"] as String, """{"label":"Renamed"}""")
+                    .andExpect(status().isOk)
+                    .andExpect(jsonPath("$.url").value(link["url"]))
+                    .andExpect(jsonPath("$.expiresAt").value(link["expiresAt"]))
+                    .andExpect(jsonPath("$.createdAt").value(link["createdAt"]))
+
+                val listed = listAs(ALPHA_MEMBER).andReturn().links().single()
+                listed["url"] shouldBe link["url"]
+                listed["expiresAt"] shouldBe link["expiresAt"]
+            }
+
+            test("an empty list of event types is refused") {
+                val link = created()
+
+                updateAs(ALPHA_MEMBER, link["id"] as String, """{"eventTypeIds":[]}""").andExpect(status().isBadRequest)
+            }
+
+            test("an event type this team does not have is refused") {
+                val link = created()
+
+                updateAs(ALPHA_MEMBER, link["id"] as String, """{"eventTypeIds":["${UUID.randomUUID()}"]}""")
+                    .andExpect(status().isBadRequest)
+                listAs(ALPHA_MEMBER).andReturn().links().single()["eventTypeIds"] shouldBe null
+            }
+
+            test("someone else's link is a 404, and stays as it was") {
+                val link = created("""{"label":"Phone"}""")
+
+                updateAs(CalendarLinkFixture.LEAVER, link["id"] as String, """{"label":"Mine now"}""")
+                    .andExpect(status().isNotFound)
+
+                listAs(ALPHA_MEMBER).andReturn().links().single()["label"] shouldBe "Phone"
+            }
+
+            test("a link that never existed is the same 404") {
+                updateAs(ALPHA_MEMBER, "00000000-0000-0000-0000-000000000000", "{}").andExpect(status().isNotFound)
+            }
+
+            // The UI offers no edit on an expired link, but the server has nothing to protect by
+            // refusing one.
+            test("an expired link can be edited") {
+                expiredLink()
+                val id = listAs(ALPHA_MEMBER).andReturn().links().single()["id"] as String
+
+                updateAs(ALPHA_MEMBER, id, """{"label":"Old phone"}""")
+                    .andExpect(status().isOk)
+                    .andExpect(jsonPath("$.expired").value(true))
+            }
+
+            test("takes no slot under the cap: three links, one edited, still three and still full") {
+                repeat(3) { createAs(ALPHA_MEMBER).andExpect(status().isCreated) }
+                val id = listAs(ALPHA_MEMBER).andReturn().links().first()["id"] as String
+
+                updateAs(ALPHA_MEMBER, id, """{"label":"Edited at the cap"}""").andExpect(status().isOk)
+
+                listAs(ALPHA_MEMBER).andReturn().links().size shouldBe 3
+                createAs(ALPHA_MEMBER).andExpect(status().isConflict)
             }
         }
 
@@ -231,6 +368,13 @@ class CalendarLinkControllerIT : TeamBalanceIT() {
         body: String = label?.let { """{"label":"$it"}""" } ?: "{}",
     ) = dispatch(
         MockMvcRequestBuilders.post("/api/calendar-links")
+            .header("X-User-Id", userId)
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(body),
+    )
+
+    private fun updateAs(userId: String, id: String, body: String) = dispatch(
+        MockMvcRequestBuilders.put("/api/calendar-links/$id")
             .header("X-User-Id", userId)
             .contentType(MediaType.APPLICATION_JSON)
             .content(body),

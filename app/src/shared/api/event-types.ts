@@ -43,7 +43,8 @@ const notFound = () => new EventTypeError('NOT_FOUND', 'Event type not found.')
 
 /**
  * The team's event types. Archived ones are excluded unless asked for, so every picker gets exactly
- * the types a team can still choose; only the admin screen passes `includeArchived`.
+ * the types a team can still choose; the admin screen passes `includeArchived`, and so do calendar
+ * links, which still name an archived type a link lists.
  *
  * Keyed by that flag so the two lists cache separately — an admin screen showing archived types must
  * not poison the picker's cache with rows it should never offer.

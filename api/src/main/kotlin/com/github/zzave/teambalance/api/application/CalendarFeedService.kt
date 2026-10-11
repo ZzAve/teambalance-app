@@ -2,7 +2,7 @@ package com.github.zzave.teambalance.api.application
 
 import com.github.zzave.teambalance.api.domain.model.AttendanceState
 import com.github.zzave.teambalance.api.domain.model.CalendarLink
-import com.github.zzave.teambalance.api.domain.model.CalendarNameSuffix
+import com.github.zzave.teambalance.api.domain.model.CalendarLinkOptions
 import com.github.zzave.teambalance.api.domain.model.Event
 import com.github.zzave.teambalance.api.domain.model.RefreshCadence
 import com.github.zzave.teambalance.api.domain.model.Slug
@@ -30,8 +30,7 @@ data class CalendarFeed(
     val team: TeamSummary,
     val entries: List<CalendarFeedEntry>,
     val refresh: RefreshCadence,
-    val showAttendancePrefix: Boolean,
-    val calendarNameSuffix: CalendarNameSuffix?,
+    val options: CalendarLinkOptions,
 )
 
 /**
@@ -70,12 +69,11 @@ class CalendarFeedService(
             val entries = entriesFor(link, now)
             CalendarFeed(
                 team = team,
-                entries = entries.filter { it.state in link.attendanceStates },
+                entries = entries.filter { link.options.includes(it.event.eventType.id, it.state) },
                 // Banded on the team's next event, not the link's: an unanswered training tomorrow the
                 // member may yet accept must reach a narrowed calendar in time (ADR-0040).
                 refresh = RefreshCadence.before(nextStart(entries, now), now),
-                showAttendancePrefix = link.showAttendancePrefix,
-                calendarNameSuffix = link.calendarNameSuffix,
+                options = link.options,
             )
         }
     }

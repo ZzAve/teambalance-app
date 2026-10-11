@@ -66,7 +66,7 @@ object CalendarIcs {
             add(property("REFRESH-INTERVAL", mapOf("VALUE" to "DURATION"), refresh))
             add(property("X-PUBLISHED-TTL", value = refresh))
             feed.entries.forEach {
-                addAll(it.toVEvent(feed.team.slug.value, frontendBaseUrl, feed.showAttendancePrefix))
+                addAll(it.toVEvent(feed.team.slug.value, frontendBaseUrl, feed.options.showAttendancePrefix))
             }
             add(property("END", value = "VCALENDAR"))
         }
@@ -74,7 +74,7 @@ object CalendarIcs {
     }
 
     private fun calendarName(feed: CalendarFeed): String =
-        listOfNotNull(feed.team.name.value, feed.calendarNameSuffix?.value).joinToString(" · ")
+        listOfNotNull(feed.team.name.value, feed.options.calendarNameSuffix?.value).joinToString(" · ")
 
     private fun CalendarFeedEntry.toVEvent(slug: String, frontendBaseUrl: String, showPrefix: Boolean): List<String> {
         val link = "$frontendBaseUrl/t/$slug/events/${event.id.value}"

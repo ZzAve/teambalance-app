@@ -1,14 +1,25 @@
 import { describe, expect, it } from 'vitest'
+import type { EventTypeItem } from '@shared/api/event-types'
 import { optionsSummary } from './options-summary'
 import { PRESET_OPTIONS } from './preset'
 
+const type = (id: string, name: string, archived = false): EventTypeItem => ({
+  id,
+  name,
+  color: undefined,
+  archived,
+  rosterDefault: { trackRoster: false, totalTarget: undefined, positionTargets: [] },
+})
+
+const TYPES = [type('t', 'Training'), type('m', 'Match'), type('b', 'Beach', true)]
+
 describe('optionsSummary', () => {
   it('is nothing for a link at the Me defaults, so those rows look as they always did', () => {
-    expect(optionsSummary(PRESET_OPTIONS.me, 'Setpoint VT')).toBeUndefined()
+    expect(optionsSummary(PRESET_OPTIONS.me, 'Setpoint VT', TYPES)).toBeUndefined()
   })
 
   it('spells out a Partner link', () => {
-    expect(optionsSummary(PRESET_OPTIONS.partner, 'Setpoint VT')).toBe(
+    expect(optionsSummary(PRESET_OPTIONS.partner, 'Setpoint VT', TYPES)).toBe(
       'Going only · no ✓/✗ marks · calendar: Setpoint VT · Partner',
     )
   })
@@ -16,15 +27,33 @@ describe('optionsSummary', () => {
   it('names each state a narrower link includes, in answer order', () => {
     expect(
       optionsSummary(
-        { attendanceStates: ['NOT_RESPONDED', 'ATTENDING'], showAttendancePrefix: true, calendarNameSuffix: undefined },
+        { ...PRESET_OPTIONS.me, attendanceStates: ['NOT_RESPONDED', 'ATTENDING'] },
         'Setpoint VT',
+        TYPES,
       ),
     ).toBe('Going, Not responded only')
   })
 
   it('mentions only the suffix when that is all that differs', () => {
-    expect(optionsSummary({ ...PRESET_OPTIONS.me, calendarNameSuffix: 'Work' }, 'Setpoint VT')).toBe(
+    expect(optionsSummary({ ...PRESET_OPTIONS.me, calendarNameSuffix: 'Work' }, 'Setpoint VT', TYPES)).toBe(
       'calendar: Setpoint VT · Work',
+    )
+  })
+
+  it("names an explicit list's types in the team's order, an archived one marked as such", () => {
+    expect(
+      optionsSummary({ ...PRESET_OPTIONS.partner, eventTypeIds: ['b', 't'] }, 'Setpoint VT', TYPES),
+    ).toBe('Training, Beach (archived) · Going only · no ✓/✗ marks · calendar: Setpoint VT · Partner')
+  })
+
+  // Types still loading, or the request failed: a limited link must not read as unrestricted.
+  it('counts the types whose names are not known', () => {
+    expect(optionsSummary({ ...PRESET_OPTIONS.me, eventTypeIds: ['x'] }, 'Setpoint VT', [])).toBe('1 event type')
+    expect(optionsSummary({ ...PRESET_OPTIONS.me, eventTypeIds: ['x', 'y', 'z'] }, 'Setpoint VT', [])).toBe(
+      '3 event types',
+    )
+    expect(optionsSummary({ ...PRESET_OPTIONS.me, eventTypeIds: ['t', 'x'] }, 'Setpoint VT', TYPES)).toBe(
+      'Training, 1 other event type',
     )
   })
 })

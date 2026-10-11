@@ -14,6 +14,7 @@ const link = (overrides: Partial<CalendarLink> = {}): CalendarLink => ({
   attendanceStates: ['ATTENDING', 'MAYBE', 'ABSENT', 'NOT_RESPONDED'],
   showAttendancePrefix: true,
   calendarNameSuffix: undefined,
+  eventTypeIds: undefined,
   ...overrides,
 })
 

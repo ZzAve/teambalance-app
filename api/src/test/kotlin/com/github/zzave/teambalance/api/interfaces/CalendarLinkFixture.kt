@@ -37,6 +37,7 @@ object CalendarLinkFixture {
 
     /** Seeded per tenant by V002, with a fixed uuid — so an event edit can name its type. */
     const val TRAINING_TYPE = "c0000000-0000-0000-0000-000000000001"
+    const val MATCH_TYPE = "c0000000-0000-0000-0000-000000000002"
 
     /**
      * When the seeded event was written, fixed and well in the past rather than `now()`.
@@ -99,13 +100,14 @@ object CalendarLinkFixture {
         title: String = "Extra",
         id: String = UUID.randomUUID().toString(),
         schema: String = ALPHA_SCHEMA,
+        typeId: String = TRAINING_TYPE,
     ) {
         jdbc.update(
             """
             INSERT INTO $schema.events
                 (uuid, event_type_id, title, start_time, end_time, created_by, created_at, updated_at)
             SELECT ?::uuid, et.id, ?, ?, ?, ?::uuid, ?, ?
-            FROM   $schema.event_types et WHERE et.name = 'Training'
+            FROM   $schema.event_types et WHERE et.uuid = ?::uuid
             """,
             id,
             title,
@@ -114,7 +116,22 @@ object CalendarLinkFixture {
             ALPHA_MEMBER,
             Timestamp.from(Instant.parse(SEEDED_AT)),
             Timestamp.from(Instant.parse(SEEDED_AT)),
+            typeId,
         )
+    }
+
+    /** A new Alpha event type, named uniquely because the database is shared between specs. Its uuid. */
+    fun eventType(jdbc: JdbcTemplate, name: String, archived: Boolean = false): String {
+        val id = UUID.randomUUID().toString()
+        jdbc.update(
+            "INSERT INTO $ALPHA_SCHEMA.event_types (uuid, name, color, archived) VALUES (?::uuid, ?, '#888888', ?)",
+            id, "$name ${id.take(8)}", archived,
+        )
+        return id
+    }
+
+    fun archive(jdbc: JdbcTemplate, typeId: String) {
+        jdbc.update("UPDATE $ALPHA_SCHEMA.event_types SET archived = true WHERE uuid = ?::uuid", typeId)
     }
 
     fun answer(
@@ -148,6 +165,7 @@ object CalendarLinkFixture {
         attendanceStates: List<String> = ALL_STATES,
         showAttendancePrefix: Boolean = true,
         calendarNameSuffix: String? = null,
+        eventTypeIds: List<String>? = null,
     ): CalendarToken {
         val token = tokens.mint()
         val id = UUID.randomUUID()
@@ -166,6 +184,15 @@ object CalendarLinkFixture {
             jdbc.update(
                 "INSERT INTO $schema.calendar_link_attendance_states (link_id, state) VALUES (?::uuid, ?)",
                 id, state,
+            )
+        }
+        eventTypeIds?.forEach { typeId ->
+            jdbc.update(
+                """
+                INSERT INTO $schema.calendar_link_event_types (link_id, event_type_id)
+                SELECT ?::uuid, et.id FROM $schema.event_types et WHERE et.uuid = ?::uuid
+                """,
+                id, typeId,
             )
         }
         return token

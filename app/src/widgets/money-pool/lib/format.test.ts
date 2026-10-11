@@ -1,18 +1,29 @@
 import { describe, expect, it } from 'vitest'
 import { formatEuro, formatPaymentDate } from './format'
 
+// Intl separates the euro sign from the amount with a no-break space (U+00A0).
+const NBSP = '\u00a0'
+
 describe('formatEuro', () => {
   it('formats euro cents with a decimal comma', () => {
-    expect(formatEuro(18750).replace(/\s/g, ' ')).toBe('€ 187,50')
+    expect(formatEuro(18750)).toBe(`€${NBSP}187,50`)
   })
 
   it('formats a single cent', () => {
-    expect(formatEuro(1).replace(/\s/g, ' ')).toBe('€ 0,01')
+    expect(formatEuro(1)).toBe(`€${NBSP}0,01`)
+  })
+
+  it('formats zero', () => {
+    expect(formatEuro(0)).toBe(`€${NBSP}0,00`)
+  })
+
+  it('groups thousands with a dot', () => {
+    expect(formatEuro(123456789)).toBe(`€${NBSP}1.234.567,89`)
   })
 })
 
 describe('formatPaymentDate', () => {
-  it('shows day and short month', () => {
-    expect(formatPaymentDate('2026-10-06')).toBe('6 Oct')
+  it('shows day and short Dutch month', () => {
+    expect(formatPaymentDate('2026-10-06')).toBe('6 okt')
   })
 })

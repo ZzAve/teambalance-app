@@ -1,5 +1,5 @@
 const euro = new Intl.NumberFormat('nl-NL', { style: 'currency', currency: 'EUR' })
-const day = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short' })
+const day = new Intl.DateTimeFormat('nl-NL', { day: 'numeric', month: 'short' })
 
 /** Amounts arrive as euro cents. */
 export function formatEuro(cents: number): string {

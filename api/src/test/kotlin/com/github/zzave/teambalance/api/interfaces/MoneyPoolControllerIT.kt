@@ -3,7 +3,19 @@ package com.github.zzave.teambalance.api.interfaces
 import com.github.zzave.teambalance.api.TeamBalanceIT
 import com.github.zzave.teambalance.api.infrastructure.identity.loginAs
 import com.github.zzave.teambalance.api.infrastructure.multitenancy.TenantSchemaAdapter
+import com.github.zzave.teambalance.api.domain.model.BunqAccountId
+import com.github.zzave.teambalance.api.domain.model.Money
+import com.github.zzave.teambalance.api.domain.model.Payment
+import com.github.zzave.teambalance.api.domain.port.BunqGateway
+import com.github.zzave.teambalance.api.infrastructure.bunq.FakeBunqGatewayAdapter
+import org.hamcrest.Matchers
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.test.context.TestConfiguration
+import org.springframework.context.annotation.Bean
+import org.springframework.context.annotation.Import
+import org.springframework.context.annotation.Primary
+import java.time.Clock
+import java.time.LocalDate
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.test.web.servlet.MockMvc
@@ -19,7 +31,28 @@ private const val TEAM_ID = "a0000000-0000-0000-0000-000000000001"
  * single 'public' tenant schema, so each one that changes the switch or the connection restores
  * the defaults (enabled, not connected) in a finally.
  */
+/** The fake gateway until [failing] is set, then every call throws. */
+class SwitchableBunqGateway(private val delegate: BunqGateway) : BunqGateway {
+    @Volatile
+    var failing = false
+
+    override fun fetchBalance(account: BunqAccountId): Money = guarded { delegate.fetchBalance(account) }
+
+    override fun fetchPayments(account: BunqAccountId, since: LocalDate, limit: Int): List<Payment> =
+        guarded { delegate.fetchPayments(account, since, limit) }
+
+    private fun <T> guarded(call: () -> T): T = if (failing) error("injected Bunq failure") else call()
+}
+
+@TestConfiguration
+class SwitchableBunqGatewayConfig {
+    @Bean
+    @Primary
+    fun switchableBunqGateway(clock: Clock) = SwitchableBunqGateway(FakeBunqGatewayAdapter(clock))
+}
+
 @AutoConfigureMockMvc
+@Import(SwitchableBunqGatewayConfig::class)
 class MoneyPoolControllerIT : TeamBalanceIT() {
 
     @Autowired
@@ -31,7 +64,18 @@ class MoneyPoolControllerIT : TeamBalanceIT() {
     @Autowired
     lateinit var tenantSchemaAdapter: TenantSchemaAdapter
 
+    @Autowired
+    lateinit var clock: Clock
+
+    @Autowired
+    lateinit var bunqGateway: SwitchableBunqGateway
+
     init {
+        afterTest {
+            resetMoneyPool()
+            removeMember()
+        }
+
         test("GET /api/team/money-pool is NotConnected when the team has no Bunq connection") {
             seedTeamAndMember()
             resetMoneyPool()
@@ -40,36 +84,52 @@ class MoneyPoolControllerIT : TeamBalanceIT() {
                 .andExpect(MockMvcResultMatchers.status().isOk)
                 .andExpect(MockMvcResultMatchers.jsonPath("$.state").value("NotConnected"))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.balance").doesNotExist())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.payments").doesNotExist())
         }
 
         test("GET /api/team/money-pool is Off when the switch is off, even with a connection") {
             seedTeamAndMember()
             connectBunq()
             jdbcTemplate.update("UPDATE public.money_pool_settings SET enabled = false WHERE id = 1")
-            try {
-                getMoneyPool()
-                    .andExpect(MockMvcResultMatchers.status().isOk)
-                    .andExpect(MockMvcResultMatchers.jsonPath("$.state").value("Off"))
-            } finally {
-                resetMoneyPool()
-            }
+
+            getMoneyPool()
+                .andExpect(MockMvcResultMatchers.status().isOk)
+                .andExpect(MockMvcResultMatchers.jsonPath("$.state").value("Off"))
         }
 
         test("GET /api/team/money-pool is Connected with balance and payments, exposing no IBAN or description") {
             seedTeamAndMember()
             connectBunq()
-            try {
-                getMoneyPool()
-                    .andExpect(MockMvcResultMatchers.status().isOk)
-                    .andExpect(MockMvcResultMatchers.jsonPath("$.state").value("Connected"))
-                    .andExpect(MockMvcResultMatchers.jsonPath("$.balance").value(18750))
-                    .andExpect(MockMvcResultMatchers.jsonPath("$.payments[0].name").isNotEmpty)
-                    .andExpect(MockMvcResultMatchers.jsonPath("$.payments[0].direction").isNotEmpty)
-                    .andExpect(MockMvcResultMatchers.jsonPath("$.payments[0].iban").doesNotExist())
-                    .andExpect(MockMvcResultMatchers.jsonPath("$.payments[0].description").doesNotExist())
-            } finally {
-                resetMoneyPool()
-            }
+            val today = LocalDate.now(clock)
+
+            getMoneyPool()
+                .andExpect(MockMvcResultMatchers.status().isOk)
+                .andExpect(MockMvcResultMatchers.jsonPath("$.state").value("Connected"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.balance").value(18750))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.payments.length()").value(8))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.payments[0].date").value(today.minusDays(5).toString()))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.payments[0].name").value("Lisa de Vries"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.payments[0].amount").value(2000))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.payments[0].direction").value("In"))
+                .andExpect(MockMvcResultMatchers.content().string(Matchers.not(Matchers.containsString("iban"))))
+                .andExpect(MockMvcResultMatchers.content().string(Matchers.not(Matchers.containsString("description"))))
+        }
+
+        test("GET /api/team/money-pool is Unavailable, without balance or payments, when Bunq fails") {
+            seedTeamAndMember()
+            connectBunq()
+            bunqGateway.failing = true
+
+            getMoneyPool()
+                .andExpect(MockMvcResultMatchers.status().isOk)
+                .andExpect(MockMvcResultMatchers.jsonPath("$.state").value("Unavailable"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.balance").doesNotExist())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.payments").doesNotExist())
+        }
+
+        test("GET /api/team/money-pool without an authenticated user returns 401") {
+            mockMvc.perform(MockMvcRequestBuilders.get("/api/team/money-pool"))
+                .andExpect(MockMvcResultMatchers.status().isUnauthorized)
         }
     }
 
@@ -85,7 +145,14 @@ class MoneyPoolControllerIT : TeamBalanceIT() {
         )
     }
 
+    private fun removeMember() {
+        jdbcTemplate.update("DELETE FROM public.team_members WHERE user_id = '$MEMBER_USER_ID'::uuid")
+        jdbcTemplate.update("DELETE FROM public.member_profiles WHERE user_id = '$MEMBER_USER_ID'::uuid")
+        jdbcTemplate.update("DELETE FROM public.users WHERE id = '$MEMBER_USER_ID'::uuid")
+    }
+
     private fun resetMoneyPool() {
+        bunqGateway.failing = false
         jdbcTemplate.update("DELETE FROM public.bunq_connection")
         jdbcTemplate.update("UPDATE public.money_pool_settings SET enabled = true WHERE id = 1")
     }

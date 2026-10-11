@@ -24,13 +24,23 @@ private val ACCOUNT = BunqAccountId("account-1")
 private val TODAY = LocalDate.of(2026, 10, 11)
 private val PAYMENT = Payment(LocalDate.of(2026, 10, 1), PaymentName("Lisa"), Money(2_000), PaymentDirection.IN)
 
-private class RecordingBunqGateway(private val failure: Exception? = null) : BunqGateway {
+private class RecordingBunqGateway(
+    private val balanceFailure: Exception? = null,
+    private val paymentsFailure: Exception? = null,
+) : BunqGateway {
+    var calls = 0
     var requestedSince: LocalDate? = null
     var requestedLimit: Int? = null
 
-    override fun fetchBalance(account: BunqAccountId): Money = failure?.let { throw it } ?: Money(18_750)
+    override fun fetchBalance(account: BunqAccountId): Money {
+        calls++
+        balanceFailure?.let { throw it }
+        return Money(18_750)
+    }
 
     override fun fetchPayments(account: BunqAccountId, since: LocalDate, limit: Int): List<Payment> {
+        calls++
+        paymentsFailure?.let { throw it }
         requestedSince = since
         requestedLimit = limit
         return listOf(PAYMENT)
@@ -74,7 +84,7 @@ class MoneyPoolServiceTest : FunSpec({
     }
 
     test("is Unavailable when Bunq fails") {
-        service(gateway = RecordingBunqGateway(failure = IllegalStateException("bunq down"))).getMoneyPool() shouldBe
+        service(gateway = RecordingBunqGateway(balanceFailure = IllegalStateException("bunq down"))).getMoneyPool() shouldBe
             MoneyPool.Unavailable
     }
 
@@ -94,5 +104,27 @@ class MoneyPoolServiceTest : FunSpec({
         val gateway = RecordingBunqGateway()
         service(gateway = gateway).getMoneyPool()
         gateway.requestedLimit shouldBe 200
+    }
+
+    test("is Unavailable when only the payments call fails") {
+        service(gateway = RecordingBunqGateway(paymentsFailure = IllegalStateException("bunq down"))).getMoneyPool() shouldBe
+            MoneyPool.Unavailable
+    }
+
+    test("is Off when the switch is off and no connection exists") {
+        service(enabled = false, connected = false).getMoneyPool() shouldBe MoneyPool.Off
+    }
+
+    test("does not call Bunq when Off or NotConnected") {
+        val gateway = RecordingBunqGateway()
+        service(enabled = false, gateway = gateway).getMoneyPool()
+        service(connected = false, gateway = gateway).getMoneyPool()
+        gateway.calls shouldBe 0
+    }
+
+    test("falls back to the last 90 days when the season has not started yet") {
+        val gateway = RecordingBunqGateway()
+        service(season = Season(start = TODAY.plusDays(30), end = null), gateway = gateway).getMoneyPool()
+        gateway.requestedSince shouldBe TODAY.minusDays(90)
     }
 })

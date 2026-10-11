@@ -1,4 +1,6 @@
 // Amounts are euro cents; date is an ISO-8601 calendar date; balance and payments are set only when state is Connected.
+type PaymentDate = String
+
 enum MoneyPoolState {
     Off, NotConnected, Unavailable, Connected
 }
@@ -8,7 +10,7 @@ enum PaymentDirection {
 }
 
 type Payment {
-    date: String,
+    date: PaymentDate,
     name: String,
     amount: Integer,
     direction: PaymentDirection

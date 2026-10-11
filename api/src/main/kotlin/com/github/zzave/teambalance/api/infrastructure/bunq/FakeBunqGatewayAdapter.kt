@@ -8,6 +8,7 @@ import com.github.zzave.teambalance.api.domain.model.PaymentName
 import com.github.zzave.teambalance.api.domain.port.BunqGateway
 import org.springframework.context.annotation.Profile
 import org.springframework.stereotype.Component
+import java.time.Clock
 import java.time.LocalDate
 
 /**
@@ -17,28 +18,31 @@ import java.time.LocalDate
  */
 @Component
 @Profile("!prod")
-class FakeBunqGatewayAdapter : BunqGateway {
+class FakeBunqGatewayAdapter(private val clock: Clock) : BunqGateway {
 
     override fun fetchBalance(account: BunqAccountId): Money = Money(BALANCE_CENTS)
 
-    override fun fetchPayments(account: BunqAccountId, since: LocalDate, limit: Int): List<Payment> =
-        PAYMENTS.filter { !it.date.isBefore(since) }.take(limit)
+    override fun fetchPayments(account: BunqAccountId, since: LocalDate, limit: Int): List<Payment> {
+        val today = LocalDate.now(clock)
+        return PAYMENTS.map { it.on(today) }.filter { !it.date.isBefore(since) }.take(limit)
+    }
+
+    private class CannedPayment(val daysAgo: Long, val name: String, val cents: Long, val direction: PaymentDirection) {
+        fun on(today: LocalDate) = Payment(today.minusDays(daysAgo), PaymentName(name), Money(cents), direction)
+    }
 
     private companion object {
         const val BALANCE_CENTS = 18_750L
 
         val PAYMENTS = listOf(
-            payment("2026-10-06", "Lisa de Vries", 2_000, PaymentDirection.IN),
-            payment("2026-10-04", "Sporthal De Kuil", 4_500, PaymentDirection.OUT),
-            payment("2026-09-29", "Tom Bakker", 1_000, PaymentDirection.IN),
-            payment("2026-09-22", "Jan Jansen", 5_000, PaymentDirection.IN),
-            payment("2026-09-15", "Drankenhandel Smit", 3_250, PaymentDirection.OUT),
-            payment("2026-09-08", "Sanne Visser", 2_000, PaymentDirection.IN),
-            payment("2026-08-25", "Nevobo", 6_000, PaymentDirection.OUT),
-            payment("2026-08-11", "Mark Smits", 1_000, PaymentDirection.IN),
+            CannedPayment(5, "Lisa de Vries", 2_000, PaymentDirection.IN),
+            CannedPayment(7, "Sporthal De Kuil", 4_500, PaymentDirection.OUT),
+            CannedPayment(12, "Tom Bakker", 1_000, PaymentDirection.IN),
+            CannedPayment(19, "Jan Jansen", 5_000, PaymentDirection.IN),
+            CannedPayment(26, "Drankenhandel Smit", 3_250, PaymentDirection.OUT),
+            CannedPayment(33, "Sanne Visser", 2_000, PaymentDirection.IN),
+            CannedPayment(47, "Nevobo", 6_000, PaymentDirection.OUT),
+            CannedPayment(61, "Mark Smits", 1_000, PaymentDirection.IN),
         )
-
-        fun payment(date: String, name: String, cents: Long, direction: PaymentDirection) =
-            Payment(LocalDate.parse(date), PaymentName(name), Money(cents), direction)
     }
 }

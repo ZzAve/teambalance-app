@@ -12,7 +12,7 @@ class MoneyPoolSettingsJpaEntity(
     @Id
     val id: Short = SINGLETON_ID,
     @Column(name = "enabled", nullable = false)
-    val enabled: Boolean = true,
+    val enabled: Boolean,
 ) {
     companion object {
         const val SINGLETON_ID: Short = 1

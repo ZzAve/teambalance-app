@@ -8,6 +8,7 @@ import com.github.zzave.teambalance.api.interfaces.generated.endpoint.GetMoneyPo
 import com.github.zzave.teambalance.api.interfaces.generated.model.MoneyPool
 import com.github.zzave.teambalance.api.interfaces.generated.model.MoneyPoolState
 import com.github.zzave.teambalance.api.interfaces.generated.model.Payment
+import com.github.zzave.teambalance.api.interfaces.generated.model.PaymentDate
 import com.github.zzave.teambalance.api.interfaces.generated.model.PaymentDirection
 import org.springframework.web.bind.annotation.RestController
 
@@ -33,7 +34,7 @@ private fun DomainMoneyPool.produce() = when (this) {
 }
 
 private fun DomainPayment.produce() = Payment(
-    date = date.toString(),
+    date = PaymentDate(date.toString()),
     name = name.value,
     amount = amount.cents,
     direction = when (direction) {

@@ -53,6 +53,12 @@ async function signIn(request, email) {
   return (await (await ok(await request.get(`${APP_URL}/api/auth/me`), 'auth/me')).json()).id
 }
 
+// The API refuses a mutating request that does not echo the XSRF-TOKEN cookie as a header (ADR-0012).
+async function csrfHeaders(request) {
+  const { cookies } = await request.storageState()
+  return { 'X-XSRF-TOKEN': cookies.find((cookie) => cookie.name === 'XSRF-TOKEN')?.value ?? '' }
+}
+
 async function ensureEvents(request) {
   const { events } = await (await ok(await request.get(`${APP_URL}/api/events?include-past=false`), 'list events')).json()
   if (events.length >= SAMPLE_EVENTS.length) return events
@@ -64,6 +70,7 @@ async function ensureEvents(request) {
     await ok(
       await request.post(`${APP_URL}/api/events`, {
         data: { eventTypeId: typeId(sample.type), title: sample.title, startTime, endTime, location: sample.location },
+        headers: await csrfHeaders(request),
       }),
       `create ${sample.title}`,
     )
@@ -75,7 +82,13 @@ async function respond(browser, email, events, state) {
   const context = await browser.newContext()
   const userId = await signIn(context.request, email)
   for (const event of events) {
-    await ok(await context.request.put(`${APP_URL}/api/events/${event.id}/attendances/${userId}`, { data: { state } }), `${email} → ${event.title}`)
+    await ok(
+      await context.request.put(`${APP_URL}/api/events/${event.id}/attendances/${userId}`, {
+        data: { state },
+        headers: await csrfHeaders(context.request),
+      }),
+      `${email} → ${event.title}`,
+    )
   }
   await context.close()
 }

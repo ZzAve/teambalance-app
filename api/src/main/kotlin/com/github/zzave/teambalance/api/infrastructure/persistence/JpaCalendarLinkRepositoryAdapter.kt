@@ -96,7 +96,10 @@ class JpaCalendarLinkRepositoryAdapter(
         label = label?.let(::CalendarLinkLabel),
         createdAt = createdAt,
         expiresAt = expiresAt,
-        attendanceStates = attendanceStates.map(AttendanceState::valueOf).toSet(),
+        // No rows reads as every state: the previous release, still serving while a deploy rolls out,
+        // inserts links without them (ADR-0040).
+        attendanceStates = attendanceStates.map(AttendanceState::valueOf).toSet()
+            .ifEmpty { CalendarLink.DEFAULT_ATTENDANCE_STATES },
         showAttendancePrefix = showAttendancePrefix,
         calendarNameSuffix = calendarNameSuffix?.let(::CalendarNameSuffix),
     )

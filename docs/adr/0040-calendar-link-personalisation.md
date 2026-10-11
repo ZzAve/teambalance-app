@@ -60,7 +60,9 @@ suffix over 30 characters is a 400. Every option is optional in the request: an 
 (link_id, state)` join table with a cascading foreign key — the same shape as
 `event_type_position_targets`, because the schema has no array or `jsonb` columns and this is not the
 place to introduce one. The migration gives every existing link all four states, the prefix on and no
-suffix, so every feed subscribed before this release stays byte-identical.
+suffix, so every feed subscribed before this release stays byte-identical. A link with no state rows
+also reads as all four states: while a deploy rolls out, the previous release keeps serving and can
+still insert a link without them.
 
 ## Consequences
 

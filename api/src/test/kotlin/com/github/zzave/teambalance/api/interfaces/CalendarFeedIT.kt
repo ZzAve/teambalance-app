@@ -317,6 +317,30 @@ class CalendarFeedIT : TeamBalanceIT() {
                 ics shouldContain "SUMMARY:Old social"
                 ics shouldContain "X-WR-CALNAME:Calendar Migrated\r\n"
             }
+
+            // A deploy rolls out while the old revision still serves: V016 has run, and the old code
+            // can still insert a link with no attendance-state rows. That link reads as the Me shape.
+            test("a link written without option rows by the previous release still serves everything") {
+                answeredThreeWays()
+                val token = calendarLinkTokens.mint()
+                jdbcTemplate.update(
+                    """
+                    INSERT INTO $ALPHA_SCHEMA.calendar_links
+                        (id, user_id, token_hash, token_encrypted, label, created_at, expires_at)
+                    VALUES (?::uuid, ?::uuid, ?, ?, NULL, ?, ?)
+                    """,
+                    UUID.randomUUID(), ALPHA_MEMBER, calendarLinkTokens.hash(token.value).value,
+                    calendarLinkTokens.conceal(token).value,
+                    Timestamp.from(Instant.now()), Timestamp.from(Instant.now().plusSeconds(3600)),
+                )
+
+                val ics = body(fetch(ALPHA_SLUG, token).andExpect(status().isOk))
+
+                ics shouldContain "SUMMARY:✓ $TRAINING"
+                ics shouldContain "SUMMARY:? Maybe match"
+                ics shouldContain "SUMMARY:Unanswered social"
+                ics shouldContain "X-WR-CALNAME:$ALPHA_NAME\r\n"
+            }
         }
 
         context("conditional fetching") {

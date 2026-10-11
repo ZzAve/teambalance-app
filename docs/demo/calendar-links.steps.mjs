@@ -5,6 +5,9 @@
  *   cd app && VITE_API_URL= npm run build && npx vite preview --port 4173
  *   STEPS=docs/demo/calendar-links.steps.mjs BASE_URL=http://localhost:4173 VIDEO_DIR=/tmp/demo/seg1 \
  *     node .agents/skills/demo-video/scripts/record-harness.mjs
+ *
+ * Portrait (phone) take: the same steps at a phone viewport, recorded at 3x for a crisp video.
+ *   WIDTH=390 HEIGHT=844 DSF=3 STEPS=… node .agents/skills/demo-video/scripts/record-harness.mjs
  */
 import { installFixtureApi } from './api-fixture.mjs'
 
@@ -15,23 +18,37 @@ export default async function script({ page, caption, section, sleep, click, typ
   // The Copy button writes to the clipboard; without the permission it shows its fallback instead.
   await page.context().grantPermissions(['clipboard-read', 'clipboard-write'])
 
+  // A phone-width take (WIDTH=390 DSF=3): a smaller caption, and the arrow pointer drawn as a touch
+  // dot, since a phone has no cursor.
+  const phone = page.viewportSize().width < 600
+
   // The harness only styles the caption pill when it has to create it. Pre-create it above the fixed
   // bottom nav, in the app's own body font and brand accent.
   const ensureCaption = () =>
-    page.evaluate(() => {
+    page.evaluate((phone) => {
+      if (phone && !document.getElementById('__demo_touch__')) {
+        const style = document.createElement('style')
+        style.id = '__demo_touch__'
+        style.textContent =
+          '#__demo_cursor__ svg{display:none}' +
+          '#__demo_cursor__{width:30px!important;height:30px!important;margin:-13px 0 0 -11px;border-radius:50%;' +
+          'background:rgba(30,41,59,.32);border:2px solid rgba(255,255,255,.9);filter:none!important}' +
+          '#__demo_ring__{border-color:#225C9C!important;border-width:3px!important}'
+        document.head.appendChild(style)
+      }
       if (document.getElementById('__demo_caption__')) return
       const el = document.createElement('div')
       el.id = '__demo_caption__'
       el.style.cssText = [
-        'position:fixed', 'left:50%', 'bottom:118px', 'transform:translateX(-50%)',
+        'position:fixed', 'left:50%', phone ? 'bottom:96px' : 'bottom:118px', 'transform:translateX(-50%)',
         'z-index:2147483647', 'background:rgba(30,41,59,0.94)', 'color:#fff',
-        "font:600 19px/1.4 'DM Sans Variable','DM Sans',sans-serif",
-        'padding:13px 24px', 'border-radius:12px', 'max-width:720px', 'text-align:center',
-        'box-shadow:0 8px 28px rgba(0,0,0,0.3)', 'border-left:5px solid #F4B400',
+        phone ? "font:600 15px/1.35 'DM Sans Variable','DM Sans',sans-serif" : "font:600 19px/1.4 'DM Sans Variable','DM Sans',sans-serif",
+        phone ? 'padding:10px 16px' : 'padding:13px 24px', 'border-radius:12px', phone ? 'width:max-content;max-width:92vw' : 'max-width:720px',
+        'text-align:center', 'box-shadow:0 8px 28px rgba(0,0,0,0.3)', 'border-left:5px solid #F4B400',
         'pointer-events:none',
       ].join(';')
       document.body.appendChild(el)
-    })
+    }, phone)
   const say = async (text, hold) => {
     await ensureCaption()
     await caption(page, text)

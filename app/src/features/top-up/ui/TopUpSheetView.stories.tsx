@@ -3,9 +3,11 @@ import { expect, fn, within } from 'storybook/test'
 import { TopUpSheetView } from './TopUpSheetView'
 
 // The amount picker behind the TopUp container. A portal sheet driven by `open`, so there is no
-// closed picture. Two stories (ADR-0032 §1), same convention as AnswerSheet:
-//   1. Data — the open sheet, the one snapshot.
-//   2. Interactions — no picture; presets and the custom amount hand whole euros to onPick, and
+// closed picture. Three stories (ADR-0032 §1), same convention as AnswerSheet:
+//   1. Data — the open sheet.
+//   2. Shells — the in-flight and failed states of the open sheet, in one frame because two modal
+//      sheets cannot be open side by side.
+//   3. Interactions — no picture; presets and the custom amount hand whole euros to onPick, and
 //      invalid amounts never reach it.
 const meta = {
   title: 'features/top-up/TopUpSheetView',
@@ -29,6 +31,16 @@ export const Data: Story = {
   },
 }
 
+export const Shells: Story = {
+  args: { isPending: true, error: "Couldn't open the payment page. Please try again." },
+  play: async () => {
+    const dialog = await sheet()
+    for (const label of ['€10', '€20', '€50']) await expect(dialog.getByRole('button', { name: label })).toBeDisabled()
+    await expect(dialog.getByRole('button', { name: 'Opening…' })).toBeDisabled()
+    await expect(dialog.getByRole('alert')).toHaveTextContent("Couldn't open the payment page. Please try again.")
+  },
+}
+
 export const Interactions: Story = {
   parameters: { chromatic: { disableSnapshot: true } },
   play: async ({ userEvent, args }) => {
@@ -48,7 +60,8 @@ export const Interactions: Story = {
     for (const invalid of ['0', '501', '12.5']) {
       await userEvent.clear(custom)
       await userEvent.type(custom, invalid)
-      await expect(dialog.getByText('Enter a whole amount from €1 to €500.')).toBeInTheDocument()
+      await expect(dialog.getByRole('alert')).toHaveTextContent('Enter a whole amount from €1 to €500.')
+      await expect(custom).toHaveAccessibleDescription('Enter a whole amount from €1 to €500.')
       await expect(pay).toBeDisabled()
     }
     await userEvent.type(custom, '{Enter}')

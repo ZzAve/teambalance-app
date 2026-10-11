@@ -5,7 +5,8 @@ import { MoneyPoolView } from './MoneyPoolView'
 
 export function MoneyPool() {
   const { data, isLoading, isError } = useMoneyPool()
-  const isAdmin = useCurrentUser()?.role === 'ADMIN'
+  const user = useCurrentUser()
+  const isAdmin = user?.role === 'ADMIN'
 
   return (
     <MoneyPoolView
@@ -18,7 +19,8 @@ export function MoneyPool() {
       beerPrice={data?.beerPrice}
       beerCount={data?.beerCount}
       canTopUp={data?.canTopUp}
-      topUp={<TopUp />}
+      // The payment description carries the caller's id, so the server refuses top-ups under act-as.
+      topUp={user?.actAs ? null : <TopUp />}
     />
   )
 }

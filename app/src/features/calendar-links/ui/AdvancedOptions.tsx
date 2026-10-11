@@ -6,7 +6,8 @@ import { Chip } from '@shared/ui/chip'
 import { Input } from '@shared/ui/input'
 import { Label } from '@shared/ui/label'
 import { Switch } from '@shared/ui/switch'
-import { ALL_ATTENDANCE_STATES, ATTENDANCE_STATE_LABELS } from '@entities/event/lib/attendance-states'
+import { ALL_ATTENDANCE_STATES } from '@entities/event/lib/attendance-states'
+import { ATTENDANCE_WORDS } from '@entities/event/lib/attendance-words'
 import { EventTypeChip } from '@entities/event/ui/EventTypeChip'
 import type { LinkOptions } from '../model/preset'
 
@@ -84,7 +85,7 @@ export function AdvancedOptions({
                   activeClassName="border-blue bg-blue/10 text-blue"
                   inactiveClassName="border-border text-muted-foreground"
                 >
-                  {ATTENDANCE_STATE_LABELS[state]}
+                  {ATTENDANCE_WORDS[state].word}
                 </Chip>
               ))}
             </div>

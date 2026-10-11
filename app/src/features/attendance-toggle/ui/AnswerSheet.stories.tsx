@@ -37,7 +37,7 @@ export const Open: Story = {
     await expect(sheet.getByRole('button', { name: 'Maybe' })).toHaveAttribute('aria-pressed', 'true')
 
     // Picking an option reports the *target* member's id, never the viewer's, and closes the sheet.
-    await userEvent.click(sheet.getByRole('button', { name: "Can't go" }))
+    await userEvent.click(sheet.getByRole('button', { name: "Can't" }))
     await expect(args.onRespond).toHaveBeenCalledWith('u-4', 'ABSENT')
     await expect(args.onClose).toHaveBeenCalled()
     // The click left focus on the button; its ring would read as a second selection in the picture.

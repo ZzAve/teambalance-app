@@ -1,4 +1,5 @@
-import { ALL_ATTENDANCE_STATES, ATTENDANCE_STATE_LABELS } from '@entities/event/lib/attendance-states'
+import { ALL_ATTENDANCE_STATES } from '@entities/event/lib/attendance-states'
+import { ATTENDANCE_WORDS } from '@entities/event/lib/attendance-words'
 import type { EventTypeItem } from '@shared/api/event-types'
 import type { LinkOptions } from './preset'
 
@@ -13,7 +14,7 @@ export function optionsSummary(options: LinkOptions, teamName: string, eventType
     options.eventTypeIds && typesPart(options.eventTypeIds, eventTypes),
     !allStates &&
       `${ALL_ATTENDANCE_STATES.filter((state) => options.attendanceStates.includes(state))
-        .map((state) => ATTENDANCE_STATE_LABELS[state])
+        .map((state) => ATTENDANCE_WORDS[state].word)
         .join(', ')} only`,
     !options.showAttendancePrefix && 'no ✓/✗ marks',
     options.calendarNameSuffix && `calendar: ${teamName} · ${options.calendarNameSuffix}`,

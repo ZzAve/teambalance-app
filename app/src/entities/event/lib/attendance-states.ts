@@ -10,11 +10,3 @@ type AttendanceState = Event['myState']
  * here has to keep that true.
  */
 export const ALL_ATTENDANCE_STATES: AttendanceState[] = ['ATTENDING', 'MAYBE', 'ABSENT', 'NOT_RESPONDED']
-
-/** The states as the member's own answer control words them (CONTEXT.md, Attendance State). */
-export const ATTENDANCE_STATE_LABELS: Record<AttendanceState, string> = {
-  ATTENDING: 'Going',
-  MAYBE: 'Maybe',
-  ABSENT: "Can't",
-  NOT_RESPONDED: 'Not responded',
-}

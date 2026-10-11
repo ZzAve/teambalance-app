@@ -17,6 +17,7 @@ import java.util.UUID
 private const val REQUEST_PATH = "/api/auth/magic-link/request"
 private const val VERIFY_PATH = "/api/auth/magic-link/verify"
 private const val ACCEPT_PATH = "/api/invitations/some-token/accept"
+private const val BUNQ_CALLBACK_PATH = "/api/bunq/oauth/callback"
 
 private fun props(
     enabled: Boolean = true,
@@ -30,6 +31,7 @@ private fun props(
         magicLinkRequest = policy,
         magicLinkVerify = policy,
         invitationAccept = policy,
+        bunqOauthCallback = policy,
     )
 }
 
@@ -85,6 +87,14 @@ class RateLimitFilterTest : FunSpec({
         blocked.getHeader("Retry-After") shouldBe "30"
         blocked.contentType shouldContain "application/json"
         blocked.contentAsString shouldContain "\"code\":\"rate_limited\""
+    }
+
+    test("the Bunq OAuth callback is a GET throttled per client IP, whatever the state it carries") {
+        val f = filter(props(capacity = 1))
+
+        f.call(method = "GET", path = BUNQ_CALLBACK_PATH, forwardedFor = "203.0.113.7").status shouldBe 200
+        f.call(method = "GET", path = BUNQ_CALLBACK_PATH, forwardedFor = "203.0.113.7").status shouldBe 429
+        f.call(method = "GET", path = BUNQ_CALLBACK_PATH, forwardedFor = "203.0.113.8").status shouldBe 200
     }
 
     test("magic-link request is keyed per client IP (X-Forwarded-For)") {

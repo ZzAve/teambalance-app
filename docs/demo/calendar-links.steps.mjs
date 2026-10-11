@@ -8,7 +8,13 @@
  *
  * Portrait (phone) take: the same steps at a phone viewport, recorded at 3x for a crisp video.
  *   WIDTH=390 HEIGHT=844 DSF=3 STEPS=… node .agents/skills/demo-video/scripts/record-harness.mjs
+ *
+ * Narrated take: synthesise calendar-links.narration.json (caption text → spoken line; Piper,
+ * en_GB-alan-medium, length-scale 0.92) into clips, write { caption: { file, seconds } } as JSON and
+ * pass it as NARRATION=…; the take then holds each caption for its line and prints CAPTION_AT lines
+ * to lay the clips onto the recording.
  */
+import { readFileSync } from 'node:fs'
 import { installFixtureApi } from './api-fixture.mjs'
 
 const TEAM_SLUG = 'heren-3'
@@ -49,10 +55,17 @@ export default async function script({ page, caption, section, sleep, click, typ
       ].join(';')
       document.body.appendChild(el)
     }, phone)
+  // With NARRATION=<json of caption text → { seconds }>, a caption stays up at least as long as its
+  // spoken line, and every caption's start is logged (ms since the take began) so the clips can be
+  // laid onto the recording afterwards.
+  const narration = process.env.NARRATION ? JSON.parse(readFileSync(process.env.NARRATION, 'utf8')) : {}
+  const startedAt = Date.now()
   const say = async (text, hold) => {
     await ensureCaption()
     await caption(page, text)
-    await sleep(page, hold)
+    console.log(`CAPTION_AT ${Date.now() - startedAt} ${text}`)
+    const spoken = narration[text]?.seconds
+    await sleep(page, spoken ? Math.max(hold, spoken * 1000 + 400) : hold)
   }
 
   const form = page.locator('form').last()

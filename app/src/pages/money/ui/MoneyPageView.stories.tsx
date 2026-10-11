@@ -23,6 +23,8 @@ const meta = {
         isError={false}
         isAdmin={false}
         balance={18750}
+        beerPrice={270}
+        beerCount={69}
         payments={[
           { date: '2026-10-06', name: 'Lisa de Vries', amount: 2000, direction: 'In' },
           { date: '2026-10-04', name: 'Sporthal De Kuil', amount: 4500, direction: 'Out' },
@@ -42,6 +44,7 @@ export const Data: Story = {
   play: async ({ canvas }) => {
     await expect(canvas.getByRole('heading', { name: 'Money' })).toBeInTheDocument()
     await expect(canvas.getByText('Lisa de Vries')).toBeInTheDocument()
+    await expect(canvas.getByText('69 beers')).toBeInTheDocument()
     await expect(canvas.getByRole('link', { name: 'Money' })).toHaveAttribute('aria-current', 'page')
   },
 }

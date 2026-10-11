@@ -24,7 +24,6 @@ export function MoneyPoolView({ state, isLoading, isError, isAdmin, balance, pay
   if (isLoading) return <p className="text-small text-muted-foreground">Loading…</p>
   if (isError || state === undefined) return loadError
 
-
   switch (state) {
     case 'Connected':
       return balance === undefined ? loadError : <ConnectedMoneyPool balance={balance} payments={payments ?? []} />
@@ -38,6 +37,6 @@ export function MoneyPoolView({ state, isLoading, isError, isAdmin, balance, pay
         />
       )
     case 'Off':
-      return <MoneyPoolNotice title="The money pool is switched off for this team." />
+      return <MoneyPoolNotice title="The money pool is switched off for this team" />
   }
 }

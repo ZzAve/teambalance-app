@@ -44,8 +44,11 @@ export const Data: Story = {
     await expect(payments.getByText('Lisa de Vries')).toBeInTheDocument()
     await expect(payments.getAllByText(/Incoming/)).toHaveLength(2)
     await expect(payments.getByText(/Outgoing/)).toBeInTheDocument()
-    await expect(payments.getByText(/\+.*20,00/)).toBeInTheDocument()
-    await expect(payments.getByText(/−.*45,00/)).toBeInTheDocument()
+    // The sign is visual only; screen readers get the direction from the sr-only text.
+    await expect(payments.getAllByText('+')[0]).toHaveAttribute('aria-hidden', 'true')
+    await expect(payments.getByText(/20,00/)).toBeInTheDocument()
+    await expect(payments.getByText('−')).toHaveAttribute('aria-hidden', 'true')
+    await expect(payments.getByText(/45,00/)).toBeInTheDocument()
   },
 }
 
@@ -69,7 +72,7 @@ export const Shells: Story = {
     const region = (name: string) => within(canvas.getByRole('region', { name }))
     await expect(region('Loading').getByText('Loading…')).toBeInTheDocument()
     await expect(region('Error').getByText(/couldn't load/i)).toBeInTheDocument()
-    await expect(region('Off').getByText('The money pool is switched off for this team.')).toBeInTheDocument()
+    await expect(region('Off').getByText('The money pool is switched off for this team')).toBeInTheDocument()
     await expect(region('Not connected (member)').getByText(/once an admin connects/i)).toBeInTheDocument()
     await expect(region('Not connected (admin)').getByText(/connecting the team.s bunq account is coming soon/i)).toBeInTheDocument()
     await expect(region('Unavailable').getByText('The pool is unavailable right now')).toBeInTheDocument()

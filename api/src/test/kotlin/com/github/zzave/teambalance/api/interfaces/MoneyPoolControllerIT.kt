@@ -1,27 +1,27 @@
 package com.github.zzave.teambalance.api.interfaces
 
 import com.github.zzave.teambalance.api.TeamBalanceIT
-import com.github.zzave.teambalance.api.infrastructure.identity.loginAs
-import com.github.zzave.teambalance.api.infrastructure.multitenancy.TenantSchemaAdapter
 import com.github.zzave.teambalance.api.domain.model.BunqAccountId
 import com.github.zzave.teambalance.api.domain.model.Money
 import com.github.zzave.teambalance.api.domain.model.Payment
 import com.github.zzave.teambalance.api.domain.port.BunqGateway
 import com.github.zzave.teambalance.api.infrastructure.bunq.FakeBunqGatewayAdapter
+import com.github.zzave.teambalance.api.infrastructure.identity.loginAs
+import com.github.zzave.teambalance.api.infrastructure.multitenancy.TenantSchemaAdapter
 import org.hamcrest.Matchers
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.TestConfiguration
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Import
 import org.springframework.context.annotation.Primary
-import java.time.Clock
-import java.time.LocalDate
-import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.ResultActions
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers
+import java.time.Clock
+import java.time.LocalDate
 
 private const val MEMBER_USER_ID = "b0000000-0000-0000-0000-0000000000b9"
 private const val TEAM_ID = "a0000000-0000-0000-0000-000000000001"
@@ -51,6 +51,11 @@ class SwitchableBunqGatewayConfig {
     fun switchableBunqGateway(clock: Clock) = SwitchableBunqGateway(FakeBunqGatewayAdapter(clock))
 }
 
+/**
+ * Covers the money pool read path (ADR-0042) against the fake Bunq gateway. All tests share the
+ * single 'public' tenant schema, so every test restores the defaults (enabled, not connected,
+ * Bunq reachable) and removes its member after it runs.
+ */
 @AutoConfigureMockMvc
 @Import(SwitchableBunqGatewayConfig::class)
 class MoneyPoolControllerIT : TeamBalanceIT() {

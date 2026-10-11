@@ -177,7 +177,7 @@ any-team, self-service (see [ADR-0001](docs/adr/0001-product-ambition-hobby-tool
   Built on trust, not individual debt tracking. **Optional per team**: an Admin switches it
   on or off; it is on by default. Switched off, the Team has no Money tab. Switched on but
   without a **Bunq Connection**, Members see a preview of the feature and Admins see the
-  way to connect ([ADR-0007](docs/adr/0007-money-pool-v1-scope.md), [ADR-0040](docs/adr/0040-money-pool-bunq-oauth-connection-held-in-memory.md)).
+  way to connect ([ADR-0007](docs/adr/0007-money-pool-v1-scope.md), [ADR-0042](docs/adr/0042-money-pool-bunq-oauth-connection-held-in-memory.md)).
 - **Bunq Connection** — The access an Admin grants the Team to one of their Bunq accounts,
   by signing in to Bunq and approving it. The Money Pool shows that one account. Bunq
   remains the record of every payment; the app keeps none of them.

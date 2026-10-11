@@ -1,4 +1,4 @@
-# ADR-0040: Money pool — a team Admin connects Bunq through OAuth; payments are held in memory only
+# ADR-0042: Money pool — a team Admin connects Bunq through OAuth; payments are held in memory only
 
 - Status: Accepted
 - Date: 2026-10-11
@@ -7,6 +7,8 @@
 - Relates to: [ADR-0005](0005-clean-start-no-data-migration.md) (Bunq is the source of truth),
   [ADR-0019](0019-self-service-team-onboarding.md) (self-service teams),
   [ADR-0024](0024-platform-admin-act-as.md) (a Platform Admin acting as a team is an Admin there)
+- Numbering note: drafted as ADR-0040; `main` took 0040 (calendar link personalisation) and an open
+  PR claims 0041, so it lands at 0042.
 
 ## Context
 

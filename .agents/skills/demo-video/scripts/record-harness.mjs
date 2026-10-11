@@ -32,6 +32,7 @@ const env = {
   SLOWMO: +(process.env.SLOWMO || 300),
   HEADLESS: process.env.HEADLESS !== '0',
   TIMEOUT: +(process.env.TIMEOUT || 20000),
+  DSF: +(process.env.DSF || 1), // device scale factor: 2–3 for a crisp phone-viewport recording
   STORAGE_STATE: process.env.STORAGE_STATE, // reuse auth across segments: load if present, steps can save to it
   INJECT_CSS: process.env.INJECT_CSS, // CSS injected on every page load — e.g. flatten flickery modal backdrops
 };
@@ -183,10 +184,13 @@ async function run() {
     || (typeof process.getuid === 'function' && process.getuid() === 0)
     || !!process.env.CI;
   if (noSandbox) launchArgs.push('--no-sandbox', '--disable-dev-shm-usage');
+  // The screencast ignores the context's deviceScaleFactor (frames come out at CSS size on a grey
+  // canvas); forcing the scale at the browser level renders every frame at DSF× for real.
+  if (env.DSF !== 1) launchArgs.push(`--force-device-scale-factor=${env.DSF}`);
   const browser = await chromium.launch({ headless: env.HEADLESS, slowMo: env.SLOWMO, args: launchArgs });
   const ctxOpts = {
     viewport: VIEW,
-    recordVideo: { dir: env.VIDEO_DIR, size: VIEW },
+    recordVideo: { dir: env.VIDEO_DIR, size: { width: VIEW.width * env.DSF, height: VIEW.height * env.DSF } },
     deviceScaleFactor: 1,
   };
   if (env.STORAGE_STATE && fs.existsSync(env.STORAGE_STATE)) ctxOpts.storageState = env.STORAGE_STATE;

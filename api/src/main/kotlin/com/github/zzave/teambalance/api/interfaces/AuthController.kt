@@ -46,7 +46,7 @@ class AuthController(
         val activeTeamId = authService.startSession(signIn.user.id)
         return VerifyMagicLink.Response200(
             VerifiedSession(
-                user = describe(signIn.user, activeTeamId, tenantResolved = false),
+                user = describe(signIn.user, activeTeamId),
                 inviteOutcome = signIn.inviteOutcome?.name,
             ),
         )
@@ -59,8 +59,16 @@ class AuthController(
 
     override suspend fun getAuthMe(request: GetAuthMe.Request): GetAuthMe.Response<*> =
         authService.currentUser()
-            ?.let { GetAuthMe.Response200(describe(it, currentTeamGateway.findCurrentTeamId(), tenantResolved = true)) }
+            ?.let { GetAuthMe.Response200(describeWithMoneyPool(describe(it, currentTeamGateway.findCurrentTeamId()))) }
             ?: GetAuthMe.Response401(Unit)
+
+    /**
+     * `moneyPoolEnabled` lives in the Team's tenant schema, which is only on the request once a session
+     * existed before it. So only `/api/auth/me` fills it; the sign-in response leaves it null and the
+     * client refetches `/api/auth/me`.
+     */
+    private fun describeWithMoneyPool(user: AuthenticatedUser) =
+        user.copy(moneyPoolEnabled = user.activeTeam?.let { moneyPoolService.isEnabled() })
 
     /**
      * [activeTeamId] is intersected with the memberships rather than reported as given, so the payload
@@ -70,12 +78,8 @@ class AuthController(
      * Team has an empty `teams` and is nonetheless scoped to that Team, as its ADMIN. Reporting it
      * here is what lets the frontend's one route gate handle both worlds — and it is read off the
      * grant the request pipeline already resolved, not re-derived (ADR-0024 §2).
-     *
-     * `moneyPoolEnabled` lives in the Team's tenant schema, which only exists on the request once a
-     * session did before it. The sign-in response is built before that, so it leaves the flag null
-     * ([tenantResolved] false) and the client refetches `/api/auth/me`.
      */
-    private fun describe(user: User, activeTeamId: TeamId?, tenantResolved: Boolean): AuthenticatedUser {
+    private fun describe(user: User, activeTeamId: TeamId?): AuthenticatedUser {
         val teams = authService.findTeamsFor(user.id)
         val actAs = actAsService.current()
         val activeTeam = actAs?.team ?: activeTeamId?.let { id -> teams.firstOrNull { it.id == id } }
@@ -93,7 +97,7 @@ class AuthController(
             isPlatformAdmin = authService.isPlatformAdmin(user.id),
             actAs = actAs?.produce(),
             personalPhotoVersion = photoService.personalPhotoVersion(user.id),
-            moneyPoolEnabled = activeTeam?.takeIf { tenantResolved }?.let { moneyPoolService.isEnabled() },
+            moneyPoolEnabled = null,
         )
     }
 }

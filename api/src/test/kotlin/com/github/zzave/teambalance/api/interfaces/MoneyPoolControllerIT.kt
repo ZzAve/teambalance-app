@@ -22,8 +22,13 @@ import org.springframework.test.web.servlet.ResultActions
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers
+import java.security.MessageDigest
+import java.sql.Timestamp
 import java.time.Clock
+import java.time.Instant
 import java.time.LocalDate
+import java.time.temporal.ChronoUnit
+import java.util.UUID
 
 private const val MEMBER_USER_ID = "b0000000-0000-0000-0000-0000000000b9"
 private const val ADMIN_USER_ID = "b0000000-0000-0000-0000-0000000000b8"
@@ -194,6 +199,26 @@ class MoneyPoolControllerIT : TeamBalanceIT() {
                 .andExpect(MockMvcResultMatchers.status().isBadRequest)
         }
 
+        test("a stored link that no longer parses does not break /me or the money pool") {
+            seedTeamAndMember()
+            connectBunq()
+            jdbcTemplate.update("UPDATE public.money_pool_settings SET bunq_me_link = 'https://old.example/legacy' WHERE id = 1")
+
+            perform(MockMvcRequestBuilders.get("/api/auth/me"), MEMBER_USER_ID)
+                .andExpect(MockMvcResultMatchers.status().isOk)
+                .andExpect(MockMvcResultMatchers.jsonPath("$.moneyPoolEnabled").value(true))
+            getMoneyPool().andExpect(MockMvcResultMatchers.status().isOk)
+        }
+
+        test("the sign-in response leaves moneyPoolEnabled out, because the tenant is not resolved yet") {
+            seedTeamAndMember()
+
+            verifyAs(MEMBER_USER_ID)
+                .andExpect(MockMvcResultMatchers.status().isOk)
+                .andExpect(MockMvcResultMatchers.jsonPath("$.user.activeTeam").exists())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.user.moneyPoolEnabled").doesNotExist())
+        }
+
         test("GET /api/auth/me reports whether the active team switched the money pool on") {
             seedTeamAndMember()
 
@@ -205,6 +230,29 @@ class MoneyPoolControllerIT : TeamBalanceIT() {
 
             perform(MockMvcRequestBuilders.get("/api/auth/me"), MEMBER_USER_ID)
                 .andExpect(MockMvcResultMatchers.jsonPath("$.moneyPoolEnabled").value(false))
+        }
+
+        test("GET /api/auth/me has no moneyPoolEnabled for a user without an active team") {
+            seedTeamAndMember()
+            val teamless = "b0000000-0000-0000-0000-0000000000b7"
+            jdbcTemplate.execute(
+                """
+                INSERT INTO public.users (id, email, display_name)
+                VALUES ('$teamless'::uuid, 'money-teamless@test.com', 'Teamless')
+                ON CONFLICT DO NOTHING
+                """,
+            )
+            try {
+                mockMvc.perform(MockMvcRequestBuilders.get("/api/auth/me").with(loginAs(teamless)))
+                    .andExpect(MockMvcResultMatchers.request().asyncStarted())
+                    .andReturn()
+                    .let { mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(it)) }
+                    .andExpect(MockMvcResultMatchers.status().isOk)
+                    .andExpect(MockMvcResultMatchers.jsonPath("$.activeTeam").doesNotExist())
+                    .andExpect(MockMvcResultMatchers.jsonPath("$.moneyPoolEnabled").doesNotExist())
+            } finally {
+                jdbcTemplate.update("DELETE FROM public.users WHERE id = '$teamless'::uuid")
+            }
         }
 
         test("GET /api/team/money-pool without an authenticated user returns 401") {
@@ -224,6 +272,23 @@ class MoneyPoolControllerIT : TeamBalanceIT() {
             .andExpect(MockMvcResultMatchers.request().asyncStarted())
             .andReturn()
             .let { mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(it)) }
+
+    private fun verifyAs(userId: String): ResultActions {
+        val email = jdbcTemplate.queryForObject("SELECT email FROM public.users WHERE id = ?::uuid", String::class.java, userId)
+        val token = "money-it-${UUID.randomUUID()}"
+        jdbcTemplate.update(
+            "INSERT INTO public.magic_link_tokens (id, token_hash, email, expires_at, created_at) VALUES (?, ?, ?, ?, now())",
+            UUID.randomUUID(),
+            MessageDigest.getInstance("SHA-256").digest(token.toByteArray()).joinToString("") { "%02x".format(it) },
+            email,
+            Timestamp.from(Instant.now().plus(1, ChronoUnit.HOURS)),
+        )
+        val started = mockMvc.perform(
+            MockMvcRequestBuilders.post("/api/auth/magic-link/verify").contentType(MediaType.APPLICATION_JSON)
+                .content("""{"token":"$token"}"""),
+        ).andExpect(MockMvcResultMatchers.request().asyncStarted()).andReturn()
+        return mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(started))
+    }
 
     private fun putSettings(json: String): MockHttpServletRequestBuilder =
         MockMvcRequestBuilders.put("/api/team/money-pool/settings").contentType(MediaType.APPLICATION_JSON).content(json)

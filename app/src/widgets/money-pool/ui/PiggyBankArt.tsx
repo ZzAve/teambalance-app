@@ -1,5 +1,5 @@
 /**
- * The cozy piggy-bank mascot for the Money teaser — a warm, friendly coin bank with a euro coin
+ * The cozy piggy-bank mascot — a warm, friendly coin bank with a euro coin
  * poised above the slot. Purely decorative (the copy beside it carries the meaning), so it is
  * `aria-hidden` and takes no props.
  *

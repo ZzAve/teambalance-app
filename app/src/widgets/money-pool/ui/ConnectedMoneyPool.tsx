@@ -28,7 +28,7 @@ export function ConnectedMoneyPool({ balance, payments }: { balance: number; pay
                   </span>
                   <span className="text-small font-semibold tabular-nums">
                     <span className="sr-only">{incoming ? 'Incoming ' : 'Outgoing '}</span>
-                    {incoming ? '+' : '−'}
+                    <span aria-hidden="true">{incoming ? '+' : '−'}</span>
                     {formatEuro(payment.amount)}
                   </span>
                 </li>

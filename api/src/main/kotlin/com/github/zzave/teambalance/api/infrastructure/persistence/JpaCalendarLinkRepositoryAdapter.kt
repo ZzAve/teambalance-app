@@ -1,8 +1,10 @@
 package com.github.zzave.teambalance.api.infrastructure.persistence
 
+import com.github.zzave.teambalance.api.domain.model.AttendanceState
 import com.github.zzave.teambalance.api.domain.model.CalendarLink
 import com.github.zzave.teambalance.api.domain.model.CalendarLinkId
 import com.github.zzave.teambalance.api.domain.model.CalendarLinkLabel
+import com.github.zzave.teambalance.api.domain.model.CalendarNameSuffix
 import com.github.zzave.teambalance.api.domain.model.EncryptedToken
 import com.github.zzave.teambalance.api.domain.model.TokenHash
 import com.github.zzave.teambalance.api.domain.model.UserId
@@ -68,6 +70,9 @@ class JpaCalendarLinkRepositoryAdapter(
                 label = link.label?.value,
                 createdAt = link.createdAt,
                 expiresAt = link.expiresAt,
+                attendanceStates = link.attendanceStates.map { it.name }.toMutableSet(),
+                showAttendancePrefix = link.showAttendancePrefix,
+                calendarNameSuffix = link.calendarNameSuffix?.value,
             ),
         )
         return true
@@ -91,5 +96,11 @@ class JpaCalendarLinkRepositoryAdapter(
         label = label?.let(::CalendarLinkLabel),
         createdAt = createdAt,
         expiresAt = expiresAt,
+        // No rows reads as every state: the previous release, still serving while a deploy rolls out,
+        // inserts links without them (ADR-0040).
+        attendanceStates = attendanceStates.map(AttendanceState::valueOf).toSet()
+            .ifEmpty { CalendarLink.DEFAULT_ATTENDANCE_STATES },
+        showAttendancePrefix = showAttendancePrefix,
+        calendarNameSuffix = calendarNameSuffix?.let(::CalendarNameSuffix),
     )
 }

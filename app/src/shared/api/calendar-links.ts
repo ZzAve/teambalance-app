@@ -1,8 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from './wirespec-client'
+import type { CalendarLinkRequest } from './generated/model/CalendarLinkRequest'
 
 // Re-export the generated contract types so the app has a single source of truth.
 export type { CalendarLink } from './generated/model/CalendarLink'
+export type { CalendarLinkRequest } from './generated/model/CalendarLinkRequest'
+export type { AttendanceState } from './generated/model/AttendanceState'
 
 // The caller's own links in the Active Team, newest first (ADR-0039). Keyed ['calendar-links'] so
 // a create or delete invalidating that key refreshes the list.
@@ -21,8 +24,8 @@ export function useCalendarLinks() {
 export function useCreateCalendarLink() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async ({ label }: { label?: string }) => {
-      const res = await api.CreateCalendarLink({ body: { label } })
+    mutationFn: async (request: CalendarLinkRequest) => {
+      const res = await api.CreateCalendarLink({ body: request })
       // 409 is the cap of three; the View already disables Generate at three, so this only fires
       // when the list was stale. The refetch below shows the member why.
       if (res.status !== 201) throw new Error(`Couldn't create calendar link (${res.status})`)

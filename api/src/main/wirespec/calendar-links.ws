@@ -5,16 +5,22 @@ type CalendarLink {
     createdAt: String,
     expiresAt: String,
     expired: Boolean,
-    url: String?
+    url: String?,
+    attendanceStates: AttendanceState[],
+    showAttendancePrefix: Boolean,
+    calendarNameSuffix: String?
 }
 
 type CalendarLinkList {
     links: CalendarLink[]
 }
 
-// The label is optional and free text (at most 50 characters) - how a member tells three otherwise identical URLs apart when deciding which one to delete.
-type CreateCalendarLinkRequest {
-    label: String?
+// The label is optional and free text (at most 50 characters) - how a member tells three otherwise identical URLs apart when deciding which one to delete. The options personalise the feed (ADR-0040): only events whose subscriber's own answer is in attendanceStates (non-empty; absent means all four), the answer prefix on titles (absent means on), and an optional calendar-name suffix of at most 30 characters (blank means none).
+type CalendarLinkRequest {
+    label: String?,
+    attendanceStates: AttendanceState[]?,
+    showAttendancePrefix: Boolean?,
+    calendarNameSuffix: String?
 }
 
 // The caller's own links in their Active Team, newest first. There is no admin view: a calendar link is a personal credential, and an admin who could list one would be reading a teammate's private feed. 403 covers both "no team" and "acting as this team" (ADR-0024 blocks this surface entirely).
@@ -24,9 +30,10 @@ endpoint ListCalendarLinks GET /api/calendar-links -> {
     403 -> Unit
 }
 
-// Mints a link, once - nothing creates one implicitly, so a member's exposure is exactly what they asked for. 409 once three exist (expired ones counted); the caller resolves it by deleting one.
-endpoint CreateCalendarLink POST CreateCalendarLinkRequest /api/calendar-links -> {
+// Mints a link, once - nothing creates one implicitly, so a member's exposure is exactly what they asked for. 400 for an empty attendanceStates or a suffix over 30 characters. 409 once three exist (expired ones counted); the caller resolves it by deleting one.
+endpoint CreateCalendarLink POST CalendarLinkRequest /api/calendar-links -> {
     201 -> CalendarLink
+    400 -> Unit
     401 -> Unit
     403 -> Unit
     409 -> Unit

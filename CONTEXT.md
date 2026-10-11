@@ -136,7 +136,11 @@ any-team, self-service (see [ADR-0001](docs/adr/0001-product-ambition-hobby-tool
   rather than team data. The token is the whole credential: it is stored hashed for lookup and
   encrypted for re-display (the ADR-0025 pattern), and the feed re-checks membership on every fetch, so
   leaving the Team stops it. Carries only the subscriber's own **Attendance State** as a `✓`/`?`/`✗`
-  prefix — never a roster, attendees or teammate names. Blocked under **Act-as**
+  prefix — never a roster, attendees or teammate names. Each link has options: which of the
+  subscriber's own answers its feed includes (the feed is filtered by that answer, unanswered counting
+  as not responded), whether titles wear the prefix, and an optional suffix on the calendar's name; the
+  create form offers them as the **Me** and **Partner** presets
+  ([ADR-0040](docs/adr/0040-calendar-link-personalisation.md)). Blocked under **Act-as**
   ([ADR-0039](docs/adr/0039-calendar-links-webcal-feed.md)). _Avoid_: calendar feed (that is what the
   link *serves*), iCal link, calendar subscription, calendar token. Distinct from a **Reference** (an
   admin's outbound link *on* an Event) and from **Magic/Invite Links**.

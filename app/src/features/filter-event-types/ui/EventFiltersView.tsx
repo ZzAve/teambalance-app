@@ -1,9 +1,10 @@
-import { useState, type CSSProperties, type ReactNode } from 'react'
+import { useState } from 'react'
 import { SlidersHorizontal } from 'lucide-react'
 import type { EventTypeItem } from '@shared/api/event-types'
 import type { AttendanceState } from '@features/attendance-toggle/ui/AttendanceToggle'
 import { SectionLabel } from '@shared/ui/SectionLabel'
 import { Switch } from '@shared/ui/switch'
+import { Chip } from '@shared/ui/chip'
 import { useEscapeToClose } from '@shared/lib/use-escape-to-close'
 import { ALL_ATTENDANCE_STATES } from '../model/attendance-states'
 import { ALL_TURNOUT_BUCKETS, type TurnoutBucket } from '../model/turnout'
@@ -98,34 +99,6 @@ export const TURNOUT_CHIPS: { bucket: TurnoutBucket; label: string; active: stri
 
 function Divider() {
   return <div className="-mx-3.5 my-3.5 h-px bg-border/60" />
-}
-
-interface ChipProps {
-  pressed: boolean
-  onToggle: () => void
-  activeClassName?: string
-  inactiveClassName?: string
-  activeStyle?: CSSProperties
-  inactiveStyle?: CSSProperties
-  children: ReactNode
-}
-
-function Chip({ pressed, onToggle, activeClassName, inactiveClassName, activeStyle, inactiveStyle, children }: ChipProps) {
-  return (
-    <button
-      aria-pressed={pressed}
-      onClick={onToggle}
-      style={pressed ? activeStyle : inactiveStyle}
-      className={[
-        'shrink-0 rounded-full border px-3 py-1.5 text-caption font-semibold transition-all',
-        pressed ? activeClassName : inactiveClassName,
-      ]
-        .filter(Boolean)
-        .join(' ')}
-    >
-      {children}
-    </button>
-  )
 }
 
 /**

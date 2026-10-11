@@ -57,19 +57,29 @@ object CalendarIcs {
             // use to title a subscribed calendar, and a feed nobody can tell apart in a sidebar full
             // of calendars has failed at the one thing the name is for.
             //
+            // A suffix (ADR-0040) tells two feeds of one team apart — the member's own and the one
+            // shared with a partner.
+            //
             // Not escapeText: clients and parsers treat an X- value as raw, so `\,` would show as a
             // backslash in the sidebar. Only a newline is escaped, so a name cannot start a new line.
-            add(property("X-WR-CALNAME", value = feed.team.name.value.replace(NEWLINE) { "\\n" }))
+            add(property("X-WR-CALNAME", value = calendarName(feed).replace(NEWLINE) { "\\n" }))
             add(property("REFRESH-INTERVAL", mapOf("VALUE" to "DURATION"), refresh))
             add(property("X-PUBLISHED-TTL", value = refresh))
-            feed.entries.forEach { addAll(it.toVEvent(feed.team.slug.value, frontendBaseUrl)) }
+            feed.entries.forEach {
+                addAll(it.toVEvent(feed.team.slug.value, frontendBaseUrl, feed.showAttendancePrefix))
+            }
             add(property("END", value = "VCALENDAR"))
         }
         return lines.joinToString("") { fold(it) + CRLF }
     }
 
-    private fun CalendarFeedEntry.toVEvent(slug: String, frontendBaseUrl: String): List<String> {
+    private fun calendarName(feed: CalendarFeed): String =
+        listOfNotNull(feed.team.name.value, feed.calendarNameSuffix?.value).joinToString(" · ")
+
+    private fun CalendarFeedEntry.toVEvent(slug: String, frontendBaseUrl: String, showPrefix: Boolean): List<String> {
         val link = "$frontendBaseUrl/t/$slug/events/${event.id.value}"
+        // Off for a link shared with someone else (ADR-0040): the marks are the member's own.
+        val title = if (showPrefix) prefix(state) + event.title.value else event.title.value
         return listOfNotNull(
             property("BEGIN", value = "VEVENT"),
             // The event's own id, so a re-fetch updates the entry the subscriber already has instead
@@ -91,7 +101,7 @@ object CalendarIcs {
             property("LAST-MODIFIED", value = utc(event.updatedAt)),
             property("DTSTART", value = utc(event.startTime)),
             property("DTEND", value = utc(event.endTime)),
-            property("SUMMARY", value = escapeText(prefix(state) + event.title.value)),
+            property("SUMMARY", value = escapeText(title)),
             event.location?.let { property("LOCATION", value = escapeText(it.value)) },
             property(
                 "DESCRIPTION",

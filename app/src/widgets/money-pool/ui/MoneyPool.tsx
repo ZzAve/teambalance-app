@@ -1,5 +1,6 @@
 import { useCurrentUser } from '@shared/api/auth'
 import { useMoneyPool } from '@shared/api/money-pool'
+import { TopUp } from '@features/top-up/ui/TopUp'
 import { MoneyPoolView } from './MoneyPoolView'
 
 export function MoneyPool() {
@@ -16,6 +17,8 @@ export function MoneyPool() {
       payments={data?.payments}
       beerPrice={data?.beerPrice}
       beerCount={data?.beerCount}
+      canTopUp={data?.canTopUp}
+      topUp={<TopUp />}
     />
   )
 }

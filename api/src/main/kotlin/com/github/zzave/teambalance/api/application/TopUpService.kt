@@ -1,7 +1,5 @@
 package com.github.zzave.teambalance.api.application
 
-import com.github.zzave.teambalance.api.domain.exception.MemberNotFoundException
-import com.github.zzave.teambalance.api.domain.exception.TeamNotFoundException
 import com.github.zzave.teambalance.api.domain.exception.TopUpUnavailableException
 import com.github.zzave.teambalance.api.domain.model.TeamId
 import com.github.zzave.teambalance.api.domain.model.TopUpAmount
@@ -22,8 +20,8 @@ class TopUpService(
     fun topUpLink(userId: UserId, teamId: TeamId, amount: TopUpAmount): String {
         val settings = settingsRepository.get()
         val link = settings.bunqMeLink?.takeIf { settings.enabled } ?: throw TopUpUnavailableException()
-        val team = teamRepository.findById(teamId) ?: throw TeamNotFoundException(teamId)
-        val member = teamMemberRepository.findDisplayName(userId) ?: throw MemberNotFoundException(userId)
+        val team = checkNotNull(teamRepository.findById(teamId)) { "Team $teamId has no row" }
+        val member = checkNotNull(teamMemberRepository.findDisplayName(userId)) { "Member $userId has no display name" }
         val description = TopUpDescription.of(team.name.value, member.value, userId.toString())
         return "${link.value}/${amount.euros}/${percentEncode(description)}"
     }

@@ -258,17 +258,18 @@ class MoneyPoolControllerIT : TeamBalanceIT() {
         test("GET /api/team/money-pool/top-up-link returns the bunq.me link with the amount and the encoded description") {
             seedTeamAndMember()
             setBunqMeLink("https://bunq.me/setpointvt")
-            jdbcTemplate.update("UPDATE public.member_profiles SET display_name = 'Zoë Müller' WHERE user_id = '$MEMBER_USER_ID'::uuid")
-            val originalTeamName = jdbcTemplate.queryForObject("SELECT name FROM public.teams WHERE id = '$TEAM_ID'::uuid", String::class.java)
+            jdbcTemplate.update(
+                "UPDATE public.member_profiles SET display_name = 'Zoë Müller' WHERE user_id = '$MEMBER_USER_ID'::uuid",
+            )
+            val originalTeamName =
+                jdbcTemplate.queryForObject("SELECT name FROM public.teams WHERE id = '$TEAM_ID'::uuid", String::class.java)
             jdbcTemplate.update("UPDATE public.teams SET name = 'Test Team' WHERE id = '$TEAM_ID'::uuid")
+            val expectedUrl = "https://bunq.me/setpointvt/20/" +
+                "TeamBalance%20%C2%B7%20Test%20Team%20%C2%B7%20Zo%C3%AB%20M%C3%BCller%20%C2%B7%20$MEMBER_USER_ID"
             try {
                 perform(getTopUpLink(20), MEMBER_USER_ID)
                     .andExpect(MockMvcResultMatchers.status().isOk)
-                    .andExpect(
-                        MockMvcResultMatchers.jsonPath("$.url").value(
-                            "https://bunq.me/setpointvt/20/TeamBalance%20%C2%B7%20Test%20Team%20%C2%B7%20Zo%C3%AB%20M%C3%BCller%20%C2%B7%20$MEMBER_USER_ID",
-                        ),
-                    )
+                    .andExpect(MockMvcResultMatchers.jsonPath("$.url").value(expectedUrl))
             } finally {
                 jdbcTemplate.update("UPDATE public.teams SET name = ? WHERE id = '$TEAM_ID'::uuid", originalTeamName)
             }

@@ -51,3 +51,11 @@ export function useSetMoneyPoolSettings() {
       ]),
   })
 }
+
+// The bunq.me payment link for a top-up of `amount` whole euros (1–500). Needs no Bunq Connection;
+// a 404 means the pool is off or no link is set.
+export async function fetchTopUpLink(amount: number): Promise<string> {
+  const res = await api.GetTopUpLink({ amount })
+  if (res.status === 404) throw new Error('Top-up is not available for this team.')
+  return res.body.url
+}

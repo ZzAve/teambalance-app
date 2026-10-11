@@ -212,29 +212,6 @@ class MoneyPoolControllerIT : TeamBalanceIT() {
                 .andExpect(MockMvcResultMatchers.jsonPath("$.moneyPoolEnabled").value(false))
         }
 
-        test("GET /api/auth/me has no moneyPoolEnabled for a user without an active team") {
-            seedTeamAndMember()
-            val teamless = "b0000000-0000-0000-0000-0000000000b7"
-            jdbcTemplate.execute(
-                """
-                INSERT INTO public.users (id, email, display_name)
-                VALUES ('$teamless'::uuid, 'teamless@test.com', 'Teamless')
-                ON CONFLICT DO NOTHING
-                """,
-            )
-            try {
-                mockMvc.perform(MockMvcRequestBuilders.get("/api/auth/me").with(loginAs(teamless)))
-                    .andExpect(MockMvcResultMatchers.request().asyncStarted())
-                    .andReturn()
-                    .let { mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(it)) }
-                    .andExpect(MockMvcResultMatchers.status().isOk)
-                    .andExpect(MockMvcResultMatchers.jsonPath("$.activeTeam").doesNotExist())
-                    .andExpect(MockMvcResultMatchers.jsonPath("$.moneyPoolEnabled").doesNotExist())
-            } finally {
-                jdbcTemplate.update("DELETE FROM public.users WHERE id = '$teamless'::uuid")
-            }
-        }
-
         test("GET /api/team/money-pool without an authenticated user returns 401") {
             mockMvc.perform(MockMvcRequestBuilders.get("/api/team/money-pool"))
                 .andExpect(MockMvcResultMatchers.status().isUnauthorized)

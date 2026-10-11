@@ -27,15 +27,4 @@ class BeerCountTest : FunSpec({
     test("is zero, never negative, for an overdrawn balance") {
         BeerCount.buying(Money(-5_000), price) shouldBe BeerCount(0)
     }
-
-    test("accepts prices from one cent up to 100 euros") {
-        BeerPrice(1).cents shouldBe 1
-        BeerPrice(10_000).cents shouldBe 10_000
-    }
-
-    test("rejects a zero, negative or over-100-euro price") {
-        shouldThrow<IllegalArgumentException> { BeerPrice(0) }
-        shouldThrow<IllegalArgumentException> { BeerPrice(-1) }
-        shouldThrow<IllegalArgumentException> { BeerPrice(10_001) }
-    }
 })

@@ -18,7 +18,7 @@ class JpaMoneyPoolSettingsRepositoryAdapter(
                 MoneyPoolSettings(
                     enabled = it.enabled,
                     beerPrice = it.beerPriceCents?.let { cents -> BeerPrice(cents.toLong()) },
-                    bunqMeLink = it.bunqMeLink?.let(BunqMeLink::parse),
+                    bunqMeLink = it.bunqMeLink?.let(BunqMeLink::restore),
                 )
             }
             .orElse(MoneyPoolSettings(enabled = true))

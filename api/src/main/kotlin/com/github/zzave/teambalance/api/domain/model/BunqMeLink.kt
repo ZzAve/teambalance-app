@@ -7,7 +7,10 @@ value class BunqMeLink private constructor(val value: String) {
         const val MAX_LENGTH = 200
         private const val HOST = "bunq.me"
         private val SCHEME = Regex("^https?://", RegexOption.IGNORE_CASE)
-        private val LINK = Regex("^$HOST/([A-Za-z0-9_-]+)$", RegexOption.IGNORE_CASE)
+        private val LINK = Regex("^${Regex.escape(HOST)}/([A-Za-z0-9_-]+)$", RegexOption.IGNORE_CASE)
+
+        /** Rebuilds a persisted value; validation is for input, so an old stored link never breaks a read. */
+        fun restore(stored: String) = BunqMeLink(stored)
 
         fun parse(raw: String): BunqMeLink {
             val trimmed = raw.trim()

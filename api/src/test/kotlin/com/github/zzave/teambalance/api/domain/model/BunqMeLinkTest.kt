@@ -29,6 +29,7 @@ class BunqMeLinkTest : FunSpec({
             "https://www.bunq.me/setpointvt",
             "https://bunq.me@evil.example/setpointvt",
             "https://evil.example/bunq.me/setpointvt",
+            "https://bunqXme/setpointvt",
         ).forEach { shouldThrow<IllegalArgumentException> { BunqMeLink.parse(it) } }
     }
 
@@ -56,5 +57,9 @@ class BunqMeLinkTest : FunSpec({
     test("rejects characters outside the handle alphabet") {
         shouldThrow<IllegalArgumentException> { BunqMeLink.parse("https://bunq.me/set point") }
         shouldThrow<IllegalArgumentException> { BunqMeLink.parse("https://bunq.me/set%20point") }
+    }
+
+    test("restores a stored value as is, without validating it") {
+        BunqMeLink.restore("https://bunq.me/old/style/value").value shouldBe "https://bunq.me/old/style/value"
     }
 })

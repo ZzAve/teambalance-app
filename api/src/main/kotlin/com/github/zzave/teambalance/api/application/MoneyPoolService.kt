@@ -2,6 +2,7 @@ package com.github.zzave.teambalance.api.application
 
 import com.github.zzave.teambalance.api.domain.model.BunqAccountId
 import com.github.zzave.teambalance.api.domain.model.MoneyPool
+import com.github.zzave.teambalance.api.domain.model.MoneyPoolOverview
 import com.github.zzave.teambalance.api.domain.model.MoneyPoolSettings
 import com.github.zzave.teambalance.api.domain.model.TeamId
 import com.github.zzave.teambalance.api.domain.model.UserId
@@ -23,20 +24,18 @@ class MoneyPoolService(
     private val authorizationService: AuthorizationService,
 ) {
     /** Readable by any member. Any failure reaching Bunq is reported as [MoneyPool.Unavailable]. */
-    fun getMoneyPool(): MoneyPool {
+    fun getMoneyPool(): MoneyPoolOverview {
         val settings = settingsRepository.get()
-        return if (!settings.enabled) {
+        val pool = if (!settings.enabled) {
             MoneyPool.Off
         } else {
             connectionRepository.find()?.let { readFromBunq(it.accountId, settings) } ?: MoneyPool.NotConnected
         }
+        return MoneyPoolOverview(pool, canTopUp = settings.topUpLink != null)
     }
 
     /** Whether the current team switched the money pool on; read by every member's navigation. */
     fun isEnabled(): Boolean = settingsRepository.get().enabled
-
-    /** Whether members can be sent to the team's bunq.me page: the pool is on and a link is set. */
-    fun canTopUp(): Boolean = settingsRepository.get().let { it.enabled && it.bunqMeLink != null }
 
     fun getSettings(callerId: UserId, teamId: TeamId): MoneyPoolSettings {
         authorizationService.requireAdmin(callerId, teamId)

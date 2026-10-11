@@ -22,7 +22,7 @@ class TopUpController(
                 url = topUpService.topUpLink(
                     userId = currentUserGateway.requireCurrentUserId(),
                     teamId = currentTeamGateway.requireCurrentTeamId(),
-                    amount = TopUpAmount(request.queries.amount.toInt()),
+                    amount = TopUpAmount.ofWhole(request.queries.amount),
                 ),
             ),
         )

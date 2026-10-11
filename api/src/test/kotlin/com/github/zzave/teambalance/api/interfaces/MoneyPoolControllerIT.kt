@@ -8,6 +8,8 @@ import com.github.zzave.teambalance.api.domain.port.BunqGateway
 import com.github.zzave.teambalance.api.infrastructure.bunq.FakeBunqGatewayAdapter
 import com.github.zzave.teambalance.api.infrastructure.identity.loginAs
 import com.github.zzave.teambalance.api.infrastructure.multitenancy.TenantSchemaAdapter
+import io.kotest.matchers.string.shouldEndWith
+import io.kotest.matchers.string.shouldStartWith
 import org.hamcrest.Matchers
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.TestConfiguration
@@ -274,18 +276,13 @@ class MoneyPoolControllerIT : TeamBalanceIT() {
             jdbcTemplate.update(
                 "UPDATE public.member_profiles SET display_name = 'Zoë Müller' WHERE user_id = '$MEMBER_USER_ID'::uuid",
             )
-            val originalTeamName =
-                jdbcTemplate.queryForObject("SELECT name FROM public.teams WHERE id = '$TEAM_ID'::uuid", String::class.java)
-            jdbcTemplate.update("UPDATE public.teams SET name = 'Test Team' WHERE id = '$TEAM_ID'::uuid")
-            val expectedUrl = "https://bunq.me/setpointvt/20/" +
-                "TeamBalance%20%C2%B7%20Test%20Team%20%C2%B7%20Zo%C3%AB%20M%C3%BCller%20%C2%B7%20$MEMBER_USER_ID"
-            try {
-                perform(getTopUpLink(20), MEMBER_USER_ID)
-                    .andExpect(MockMvcResultMatchers.status().isOk)
-                    .andExpect(MockMvcResultMatchers.jsonPath("$.url").value(expectedUrl))
-            } finally {
-                jdbcTemplate.update("UPDATE public.teams SET name = ? WHERE id = '$TEAM_ID'::uuid", originalTeamName)
-            }
+
+            // The team row is shared with other ITs, so its encoded name sits in the unasserted middle.
+            val url = perform(getTopUpLink(20), MEMBER_USER_ID)
+                .andExpect(MockMvcResultMatchers.status().isOk)
+                .andReturn().response.contentAsString
+            url shouldStartWith """{"url":"https://bunq.me/setpointvt/20/TeamBalance%20%C2%B7%20"""
+            url shouldEndWith "%20%C2%B7%20Zo%C3%AB%20M%C3%BCller%20%C2%B7%20$MEMBER_USER_ID\"}"
         }
 
         test("GET /api/team/money-pool/top-up-link works without a Bunq connection and while Bunq is down") {
@@ -304,6 +301,8 @@ class MoneyPoolControllerIT : TeamBalanceIT() {
 
             perform(getTopUpLink(0), MEMBER_USER_ID).andExpect(MockMvcResultMatchers.status().isBadRequest)
             perform(getTopUpLink(501), MEMBER_USER_ID).andExpect(MockMvcResultMatchers.status().isBadRequest)
+            // 4294967316 is 2^32 + 20: narrowed to an Int before the range check it would pass as 20.
+            perform(getTopUpLink(4_294_967_316L), MEMBER_USER_ID).andExpect(MockMvcResultMatchers.status().isBadRequest)
         }
 
         test("GET /api/team/money-pool/top-up-link is 404 when the pool is Off, even with a link") {
@@ -388,7 +387,9 @@ class MoneyPoolControllerIT : TeamBalanceIT() {
     private fun putSettings(json: String): MockHttpServletRequestBuilder =
         MockMvcRequestBuilders.put("/api/team/money-pool/settings").contentType(MediaType.APPLICATION_JSON).content(json)
 
-    private fun getTopUpLink(amount: Int): MockHttpServletRequestBuilder =
+    // The amount goes in the URL: MockMvc.param() leaves the query string empty, which the wirespec
+    // adapter reads (the TS client builds the query string with URLSearchParams).
+    private fun getTopUpLink(amount: Long): MockHttpServletRequestBuilder =
         MockMvcRequestBuilders.get("/api/team/money-pool/top-up-link?amount=$amount")
 
     private fun setBunqMeLink(link: String) {

@@ -13,10 +13,6 @@ class TopUpDescriptionTest : FunSpec({
         describe("Setpoint VT", "Lisa de Vries") shouldBe "TeamBalance · Setpoint VT · Lisa de Vries · $USER_ID"
     }
 
-    test("the separator is one constant") {
-        TopUpDescription.SEPARATOR shouldBe " · "
-    }
-
     test("is 139 characters unchanged") {
         val description = describe("T".repeat(70), "M".repeat(139 - 56 - 70))
         description.length shouldBe 139
@@ -77,5 +73,10 @@ class TopUpDescriptionTest : FunSpec({
 
     test("names are trimmed") {
         describe("  Setpoint VT ", " Lisa ") shouldBe "TeamBalance · Setpoint VT · Lisa · $USER_ID"
+    }
+
+    test("a cut that ends on a space does not leave it before the separator") {
+        val description = describe("A".repeat(41) + " " + "B".repeat(50), "M".repeat(300))
+        description shouldBe "TeamBalance · ${"A".repeat(41)} · ${"M".repeat(42)} · $USER_ID"
     }
 })

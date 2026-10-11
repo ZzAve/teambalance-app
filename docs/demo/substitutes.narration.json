@@ -1,0 +1,26 @@
+{
+  "__introCard": {
+    "headline": "One player short?",
+    "accent": "Call in a substitute.",
+    "sub": "Keep a list of people you can call in, fill an open spot straight from the lineup, and see who said yes.",
+    "pill": "Substitutes are live"
+  },
+  "__outroCard": {
+    "steps": ["Open the event", { "label": "Find a Setter", "icon": "user-plus" }, "Going"],
+    "sub": "Any member can call someone in. Admins keep the list under Team settings."
+  },
+  "__intro": "One player short? Call in a substitute.",
+  "Short of players? Call in a substitute.": "Short of players for a training or a match? Call in a substitute.",
+  "Tuesday Training is one setter short. Open it.": "Tuesday Training is one setter short. Let's open it.",
+  "The lineup shows every short position, with a way to fill it.": "The lineup shows each position that is short, and a way to fill it.",
+  "Tap \"Find a Setter\".": "Tap Find a Setter.",
+  "Substitutes who play setter come first.": "The substitutes who play setter come first, everyone else below.",
+  "Kees said yes: mark him Going.": "Kees said yes, so mark him Going.",
+  "Someone new? Add them by name; they join as Asked.": "Asked someone who isn't on the list yet? Add them by name, and they join the event as Asked.",
+  "Done. The setter spot is filled.": "Done! The setter spot is filled.",
+  "Every substitute on the event sits under the lineup: going, asked or can't.": "Every substitute on the event sits under the lineup: going, asked, or can't.",
+  "Admins keep the list under Team settings.": "Admins keep the list tidy under Team settings.",
+  "Give Mila her position, so she is found first next time.": "Give Mila her position, so she comes first the next time a libero is missing.",
+  "Rename, shirt number or remove: all in the row's menu.": "Rename, shirt number, or remove: it's all in the row's menu.",
+  "__outro": "Try it today! Next time you are one player short, TeamBalance has you covered. See you at TeamBalance dot N L!"
+}

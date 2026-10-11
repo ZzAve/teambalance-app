@@ -35,10 +35,12 @@ const env = {
   DSF: +(process.env.DSF || 1), // device scale factor: 2–3 for a crisp phone-viewport recording
   STORAGE_STATE: process.env.STORAGE_STATE, // reuse auth across segments: load if present, steps can save to it
   INJECT_CSS: process.env.INJECT_CSS, // CSS injected on every page load — e.g. flatten flickery modal backdrops
+  // Dry run: no video, no slowMo, waits capped at 100 ms, a screenshot after every section in VIDEO_DIR.
+  PROBE: process.env.PROBE === '1',
 };
 const VIEW = { width: env.WIDTH, height: env.HEIGHT };
 
-const sleep = (page, ms) => page.waitForTimeout(ms);
+const sleep = (page, ms) => page.waitForTimeout(env.PROBE ? Math.min(ms, 100) : ms);
 
 const rand = (n) => (Math.random() * 2 - 1) * n;
 
@@ -164,10 +166,17 @@ async function caption(page, text) {
   }, text);
 }
 
-// Wrap a logical beat so one bad selector logs + skips instead of aborting the take.
+// Wrap a logical beat so one bad selector logs + skips instead of aborting the take. A failed section
+// usually leaves a dialog open that breaks the sections after it, so read the first SECTION_FAIL.
+let failures = 0, sectionNo = 0, probePage = null;
 async function section(name, fn) {
   try { await fn(); }
-  catch (e) { console.error(`SECTION_FAIL[${name}]: ${e && e.message ? e.message : e}`); }
+  catch (e) { failures++; console.error(`SECTION_FAIL[${name}]: ${e && e.message ? e.message : e}`); }
+  if (probePage) {
+    const shot = `${env.VIDEO_DIR}/probe-${String(++sectionNo).padStart(2, '0')}-${name.replace(/\W+/g, '-')}.png`;
+    await probePage.screenshot({ path: shot }).catch(() => {});
+    console.log(`PROBE_SHOT ${shot}`);
+  }
 }
 
 async function run() {
@@ -187,15 +196,13 @@ async function run() {
   // The screencast ignores the context's deviceScaleFactor (frames come out at CSS size on a grey
   // canvas); forcing the scale at the browser level renders every frame at DSF× for real.
   if (env.DSF !== 1) launchArgs.push(`--force-device-scale-factor=${env.DSF}`);
-  const browser = await chromium.launch({ headless: env.HEADLESS, slowMo: env.SLOWMO, args: launchArgs });
-  const ctxOpts = {
-    viewport: VIEW,
-    recordVideo: { dir: env.VIDEO_DIR, size: { width: VIEW.width * env.DSF, height: VIEW.height * env.DSF } },
-    deviceScaleFactor: 1,
-  };
+  const browser = await chromium.launch({ headless: env.HEADLESS, slowMo: env.PROBE ? 0 : env.SLOWMO, args: launchArgs });
+  const ctxOpts = { viewport: VIEW, deviceScaleFactor: 1 };
+  if (!env.PROBE) ctxOpts.recordVideo = { dir: env.VIDEO_DIR, size: { width: VIEW.width * env.DSF, height: VIEW.height * env.DSF } };
   if (env.STORAGE_STATE && fs.existsSync(env.STORAGE_STATE)) ctxOpts.storageState = env.STORAGE_STATE;
   const context = await browser.newContext(ctxOpts);
   const page = await context.newPage();
+  if (env.PROBE) probePage = page;
   const video = page.video();
   page.setDefaultTimeout(env.TIMEOUT);
   page.on('load', () => ensureCursor(page).catch(() => {}));
@@ -217,6 +224,7 @@ async function run() {
       click, moveTo, scrollTo, type, pan,
     });
   } catch (err) {
+    failures++;
     console.error('SCREENCAST_ERROR:', err && err.message ? err.message : err);
   } finally {
     await context.close(); // flushes the video file — required, else webm is empty
@@ -234,7 +242,9 @@ async function run() {
       .filter((f) => f.endsWith('.webm'))
       .map((f) => `${env.VIDEO_DIR}/${f}`);
   }
-  console.log('VIDEO_FILES=' + JSON.stringify(files));
+  if (!env.PROBE) console.log('VIDEO_FILES=' + JSON.stringify(files));
+  // A take with a failed section is not a usable take; fail loudly instead of leaving it to the log.
+  if (failures) { console.error(`${failures} section(s) failed`); process.exitCode = 1; }
 }
 
 run();

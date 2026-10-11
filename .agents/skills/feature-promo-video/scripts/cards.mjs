@@ -1,14 +1,15 @@
 // Render the portrait intro and outro cards from a narration file's __introCard / __outroCard.
 //   node .agents/skills/feature-promo-video/scripts/cards.mjs docs/demo/<feature>.narration.json <out-dir>
-// Run from the repo root after `npm --prefix app ci`: fonts, the monogram, lucide icons and Playwright
-// all come from app/. Writes <out-dir>/intro.png and <out-dir>/outro.png at 1170x2532.
+// Needs `npm --prefix app ci`: fonts, the monogram, lucide icons and Playwright all come from app/.
+// Writes <out-dir>/intro.png and <out-dir>/outro.png at 1170x2532.
 import { execFileSync } from 'node:child_process'
 import { copyFileSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 
 const SKILL = resolve(dirname(fileURLToPath(import.meta.url)), '..')
-const APP = resolve('app')
+const REPO = resolve(SKILL, '../../..')
+const APP = join(REPO, 'app')
 const [narrationPath, outArg] = process.argv.slice(2)
 const out = resolve(outArg)
 const { __introCard: intro, __outroCard: outro } = JSON.parse(readFileSync(narrationPath, 'utf8'))
@@ -48,4 +49,4 @@ writeFileSync(join(out, 'cards.json'), JSON.stringify({
 }))
 
 // demo-video's renderer resolves Playwright from its working directory.
-execFileSync('node', [resolve('.agents/skills/demo-video/scripts/render-cards.mjs'), join(out, 'cards.json')], { cwd: APP, stdio: 'inherit' })
+execFileSync('node', [join(REPO, '.agents/skills/demo-video/scripts/render-cards.mjs'), join(out, 'cards.json')], { cwd: APP, stdio: 'inherit' })

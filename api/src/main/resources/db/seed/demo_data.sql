@@ -37,3 +37,8 @@ ON CONFLICT DO NOTHING;
 INSERT INTO team_setpoint_vt.bunq_connection (id, bunq_account_id, connected_at) VALUES
     (1, 'demo-account', now())
 ON CONFLICT DO NOTHING;
+
+-- Beer Counter price (€2,70) and the team's bunq.me page. UPDATE keeps re-seeding idempotent.
+UPDATE team_setpoint_vt.money_pool_settings
+SET beer_price_cents = 270, bunq_me_link = 'https://bunq.me/setpointvt'
+WHERE id = 1;

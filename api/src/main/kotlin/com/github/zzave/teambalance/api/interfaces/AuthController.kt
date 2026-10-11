@@ -2,6 +2,7 @@ package com.github.zzave.teambalance.api.interfaces
 
 import com.github.zzave.teambalance.api.application.ActAsService
 import com.github.zzave.teambalance.api.application.AuthService
+import com.github.zzave.teambalance.api.application.MoneyPoolService
 import com.github.zzave.teambalance.api.application.PhotoService
 import com.github.zzave.teambalance.api.domain.model.Email
 import com.github.zzave.teambalance.api.domain.model.Role
@@ -26,6 +27,7 @@ class AuthController(
     private val actAsService: ActAsService,
     private val currentTeamGateway: CurrentTeamGateway,
     private val photoService: PhotoService,
+    private val moneyPoolService: MoneyPoolService,
 ) : RequestMagicLink.Handler,
     VerifyMagicLink.Handler,
     Logout.Handler,
@@ -44,7 +46,7 @@ class AuthController(
         val activeTeamId = authService.startSession(signIn.user.id)
         return VerifyMagicLink.Response200(
             VerifiedSession(
-                user = describe(signIn.user, activeTeamId),
+                user = describe(signIn.user, activeTeamId, tenantResolved = false),
                 inviteOutcome = signIn.inviteOutcome?.name,
             ),
         )
@@ -57,7 +59,7 @@ class AuthController(
 
     override suspend fun getAuthMe(request: GetAuthMe.Request): GetAuthMe.Response<*> =
         authService.currentUser()
-            ?.let { GetAuthMe.Response200(describe(it, currentTeamGateway.findCurrentTeamId())) }
+            ?.let { GetAuthMe.Response200(describe(it, currentTeamGateway.findCurrentTeamId(), tenantResolved = true)) }
             ?: GetAuthMe.Response401(Unit)
 
     /**
@@ -68,8 +70,12 @@ class AuthController(
      * Team has an empty `teams` and is nonetheless scoped to that Team, as its ADMIN. Reporting it
      * here is what lets the frontend's one route gate handle both worlds — and it is read off the
      * grant the request pipeline already resolved, not re-derived (ADR-0024 §2).
+     *
+     * `moneyPoolEnabled` lives in the Team's tenant schema, which only exists on the request once a
+     * session did before it. The sign-in response is built before that, so it leaves the flag null
+     * ([tenantResolved] false) and the client refetches `/api/auth/me`.
      */
-    private fun describe(user: User, activeTeamId: TeamId?): AuthenticatedUser {
+    private fun describe(user: User, activeTeamId: TeamId?, tenantResolved: Boolean): AuthenticatedUser {
         val teams = authService.findTeamsFor(user.id)
         val actAs = actAsService.current()
         val activeTeam = actAs?.team ?: activeTeamId?.let { id -> teams.firstOrNull { it.id == id } }
@@ -87,6 +93,7 @@ class AuthController(
             isPlatformAdmin = authService.isPlatformAdmin(user.id),
             actAs = actAs?.produce(),
             personalPhotoVersion = photoService.personalPhotoVersion(user.id),
+            moneyPoolEnabled = activeTeam?.takeIf { tenantResolved }?.let { moneyPoolService.isEnabled() },
         )
     }
 }

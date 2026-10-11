@@ -8,8 +8,6 @@ import com.github.zzave.teambalance.api.domain.port.BunqGateway
 import com.github.zzave.teambalance.api.infrastructure.bunq.FakeBunqGatewayAdapter
 import com.github.zzave.teambalance.api.infrastructure.identity.loginAs
 import com.github.zzave.teambalance.api.infrastructure.multitenancy.TenantSchemaAdapter
-import io.kotest.matchers.string.shouldEndWith
-import io.kotest.matchers.string.shouldStartWith
 import org.hamcrest.Matchers
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.TestConfiguration
@@ -278,11 +276,17 @@ class MoneyPoolControllerIT : TeamBalanceIT() {
             )
 
             // The team row is shared with other ITs, so its encoded name sits in the unasserted middle.
-            val url = perform(getTopUpLink(20), MEMBER_USER_ID)
+            perform(getTopUpLink(20), MEMBER_USER_ID)
                 .andExpect(MockMvcResultMatchers.status().isOk)
-                .andReturn().response.contentAsString
-            url shouldStartWith """{"url":"https://bunq.me/setpointvt/20/TeamBalance%20%C2%B7%20"""
-            url shouldEndWith "%20%C2%B7%20Zo%C3%AB%20M%C3%BCller%20%C2%B7%20$MEMBER_USER_ID\"}"
+                .andExpect(
+                    MockMvcResultMatchers.jsonPath("$.url", Matchers.startsWith("https://bunq.me/setpointvt/20/TeamBalance%20%C2%B7%20")),
+                )
+                .andExpect(
+                    MockMvcResultMatchers.jsonPath(
+                        "$.url",
+                        Matchers.endsWith("%20%C2%B7%20Zo%C3%AB%20M%C3%BCller%20%C2%B7%20$MEMBER_USER_ID"),
+                    ),
+                )
         }
 
         test("GET /api/team/money-pool/top-up-link works without a Bunq connection and while Bunq is down") {

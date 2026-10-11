@@ -7,7 +7,7 @@ package com.github.zzave.teambalance.api.domain.model
  * the other name.
  */
 object TopUpDescription {
-    const val SEPARATOR = " · "
+    private const val SEPARATOR = " · "
     const val MAX_LENGTH = 140
     private const val PREFIX = "TeamBalance"
 

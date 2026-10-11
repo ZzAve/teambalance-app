@@ -49,7 +49,12 @@ export const Data: Story = {
     const beers = within(canvas.getByRole('region', { name: 'Beer Counter' }))
     await expect(beers.getByText('69 beers')).toBeInTheDocument()
     await expect(beers.getByText(/The pool balance covers 69 beers at .*2,70 each\./)).toBeInTheDocument()
-    await expect(canvas.getByRole('button', { name: 'Top up' })).toBeInTheDocument()
+    // The button sits between the Balance card and the Beer Counter.
+    const topUp = canvas.getByRole('button', { name: 'Top up' })
+    const balanceCard = canvas.getByRole('region', { name: 'Balance' })
+    const beerCard = canvas.getByRole('region', { name: 'Beer Counter' })
+    await expect(balanceCard.compareDocumentPosition(topUp) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    await expect(topUp.compareDocumentPosition(beerCard) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     const payments = within(canvas.getByRole('region', { name: 'Payments' }))
     await expect(payments.getByText('Lisa de Vries')).toBeInTheDocument()
     await expect(payments.getAllByText(/Incoming/)).toHaveLength(2)

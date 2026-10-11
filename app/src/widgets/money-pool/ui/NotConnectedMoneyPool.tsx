@@ -13,14 +13,14 @@ const PILLARS: Pillar[] = [
   { icon: Receipt, title: 'Every euro tracked', blurb: 'See what was paid, and where it went' },
 ]
 
-/** Members see what the pool offers; admins also see that the team's Bunq account can be connected (ADR-0042). */
+/** Members see what the pool offers; admins also hear that connecting Bunq is coming (ADR-0042). */
 export function NotConnectedMoneyPool({ isAdmin }: { isAdmin: boolean }) {
   return (
     <section aria-label="Money pool preview" className="mx-auto flex max-w-sm flex-col items-center text-center">
       <h3 className="font-display text-title font-bold leading-tight">A shared team pot</h3>
       <p className="mt-3 text-small leading-relaxed text-muted-foreground">
         {isAdmin
-          ? 'Connect the team’s Bunq account to show the balance and payments here.'
+          ? 'Connecting the team’s Bunq account is coming soon. The balance and payments will show up here.'
           : 'Once an admin connects the team’s Bunq account, the balance and payments show up here.'}
       </p>
 

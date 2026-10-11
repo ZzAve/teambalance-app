@@ -16,17 +16,18 @@ export function ConnectedMoneyPool({ balance, payments }: { balance: number; pay
           <p className="text-small text-muted-foreground">No payments in this period.</p>
         ) : (
           <ul className="flex flex-col divide-y divide-border rounded-lg bg-card">
-            {payments.map((payment) => {
+            {payments.map((payment, index) => {
               const incoming = payment.direction === 'In'
               const Icon = incoming ? ArrowDownLeft : ArrowUpRight
               return (
-                <li key={`${payment.date}-${payment.name}-${payment.amount}`} className="flex items-center gap-3 px-4 py-3">
+                <li key={`${index}-${payment.date}-${payment.name}-${payment.amount}`} className="flex items-center gap-3 px-4 py-3">
                   <Icon size={18} className="shrink-0 text-muted-foreground" aria-hidden="true" />
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-small font-semibold">{payment.name}</span>
                     <span className="text-caption text-muted-foreground">{formatPaymentDate(payment.date)}</span>
                   </span>
                   <span className="text-small font-semibold tabular-nums">
+                    <span className="sr-only">{incoming ? 'Incoming ' : 'Outgoing '}</span>
                     {incoming ? '+' : '−'}
                     {formatEuro(payment.amount)}
                   </span>

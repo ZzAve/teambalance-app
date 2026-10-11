@@ -11,7 +11,7 @@ import { MoneyPoolView } from './MoneyPoolView'
 // Two-story shape (ADR-0032 §1):
 //   1. Data — the connected pool: balance and payment list.
 //   2. Shells — every other state stacked: loading, error, off, not connected (member and admin),
-//      unavailable (member and admin).
+//      unavailable, and connected edge cases (no payments, same-day duplicates, missing balance).
 const PAYMENTS: Payment[] = [
   { date: '2026-10-06', name: 'Lisa de Vries', amount: 2000, direction: 'In' },
   { date: '2026-10-04', name: 'Sporthal De Kuil', amount: 4500, direction: 'Out' },
@@ -36,10 +36,14 @@ export default meta
 type Story = StoryObj<typeof meta>
 
 export const Data: Story = {
+  // MoneyPageView's Data owns the connected picture (ADR-0032 §3).
+  parameters: { chromatic: { disableSnapshot: true } },
   play: async ({ canvas }) => {
     await expect(within(canvas.getByRole('region', { name: 'Balance' })).getByText(/187,50/)).toBeInTheDocument()
     const payments = within(canvas.getByRole('region', { name: 'Payments' }))
     await expect(payments.getByText('Lisa de Vries')).toBeInTheDocument()
+    await expect(payments.getAllByText(/Incoming/)).toHaveLength(2)
+    await expect(payments.getByText(/Outgoing/)).toBeInTheDocument()
     await expect(payments.getByText(/\+.*20,00/)).toBeInTheDocument()
     await expect(payments.getByText(/−.*45,00/)).toBeInTheDocument()
   },
@@ -54,8 +58,10 @@ export const Shells: Story = {
         Off: <MoneyPoolView {...args} state="Off" />,
         'Not connected (member)': <MoneyPoolView {...args} state="NotConnected" />,
         'Not connected (admin)': <MoneyPoolView {...args} state="NotConnected" isAdmin />,
-        'Unavailable (member)': <MoneyPoolView {...args} state="Unavailable" />,
-        'Unavailable (admin)': <MoneyPoolView {...args} state="Unavailable" isAdmin />,
+        Unavailable: <MoneyPoolView {...args} state="Unavailable" />,
+        'No payments': <MoneyPoolView {...args} payments={[]} />,
+        'Same-day duplicates': <MoneyPoolView {...args} payments={[PAYMENTS[0], PAYMENTS[0]]} />,
+        'Missing balance': <MoneyPoolView {...args} balance={undefined} />,
       }}
     />
   ),
@@ -63,10 +69,12 @@ export const Shells: Story = {
     const region = (name: string) => within(canvas.getByRole('region', { name }))
     await expect(region('Loading').getByText('Loading…')).toBeInTheDocument()
     await expect(region('Error').getByText(/couldn't load/i)).toBeInTheDocument()
-    await expect(region('Off').getByText('The money pool is switched off')).toBeInTheDocument()
+    await expect(region('Off').getByText('The money pool is switched off for this team.')).toBeInTheDocument()
     await expect(region('Not connected (member)').getByText(/once an admin connects/i)).toBeInTheDocument()
-    await expect(region('Not connected (admin)').getByText(/connect the team/i)).toBeInTheDocument()
-    await expect(region('Unavailable (member)').getByText('The pool is unavailable right now')).toBeInTheDocument()
-    await expect(region('Unavailable (admin)').getByText(/or reconnect it/i)).toBeInTheDocument()
+    await expect(region('Not connected (admin)').getByText(/connecting the team.s bunq account is coming soon/i)).toBeInTheDocument()
+    await expect(region('Unavailable').getByText('The pool is unavailable right now')).toBeInTheDocument()
+    await expect(region('No payments').getByText('No payments in this period.')).toBeInTheDocument()
+    await expect(region('Same-day duplicates').getAllByText('Lisa de Vries')).toHaveLength(2)
+    await expect(region('Missing balance').getByText(/couldn't load/i)).toBeInTheDocument()
   },
 }

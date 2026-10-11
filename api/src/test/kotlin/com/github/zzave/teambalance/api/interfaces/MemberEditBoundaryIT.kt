@@ -14,6 +14,7 @@ import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.ResultActions
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers
+import com.github.zzave.teambalance.api.infrastructure.identity.loginAs
 
 private const val ADMIN_USER_ID = "c1000000-0000-0000-0000-0000000000a0"
 private const val HEALTHY_USER_ID = "c1000000-0000-0000-0000-0000000000a2"
@@ -81,7 +82,7 @@ class MemberEditBoundaryIT : TeamBalanceIT() {
     private fun editMemberAs(callerId: String, targetUserId: String, newName: String): ResultActions =
         mockMvc.perform(
             MockMvcRequestBuilders.put("/api/members/$targetUserId")
-                .header("X-User-Id", callerId)
+                .with(loginAs(callerId))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""{"displayName":"$newName","role":"USER"}"""),
         )
@@ -92,7 +93,7 @@ class MemberEditBoundaryIT : TeamBalanceIT() {
     private fun onboardAs(userId: String, newName: String, positionId: String): ResultActions =
         mockMvc.perform(
             MockMvcRequestBuilders.put("/api/members/me/onboarding")
-                .header("X-User-Id", userId)
+                .with(loginAs(userId))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""{"displayName":"$newName","role":"USER","positionId":"$positionId"}"""),
         )

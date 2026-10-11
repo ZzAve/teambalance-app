@@ -83,8 +83,9 @@ class AttendanceController(
     }
 }
 
-// The inbound half of the state edge — the outbound `produce()` below is its mirror.
-private fun GeneratedAttendanceState.consume() = AttendanceState.valueOf(name)
+// The inbound half of the state edge — the outbound `produce()` below is its mirror. internal so
+// CalendarLinkController's attendance-state option converts the same way.
+internal fun GeneratedAttendanceState.consume() = AttendanceState.valueOf(name)
 
 // The Wirespec edge for a response row's identity — the contract still carries a bare UUID string.
 // internal so EventController's attendance entries convert the same way.

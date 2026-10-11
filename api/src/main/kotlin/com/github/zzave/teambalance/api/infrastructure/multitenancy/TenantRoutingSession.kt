@@ -17,8 +17,8 @@ import java.util.UUID
  * alongside a freshly-queried team id.
  */
 internal object TenantRoutingSession {
-    private const val TENANT_SCHEMA = "tenantSchema"
-    private const val TENANT_TEAM_ID = "tenantTeamId"
+    const val TENANT_SCHEMA = "tenantSchema"
+    const val TENANT_TEAM_ID = "tenantTeamId"
 
     fun read(session: HttpSession?): TenantRouting? {
         val schema = session?.getAttribute(TENANT_SCHEMA) as? String

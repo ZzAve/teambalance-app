@@ -2,6 +2,8 @@ package com.github.zzave.teambalance.api.domain.port
 
 import com.github.zzave.teambalance.api.domain.model.CalendarLink
 import com.github.zzave.teambalance.api.domain.model.CalendarLinkId
+import com.github.zzave.teambalance.api.domain.model.CalendarLinkLabel
+import com.github.zzave.teambalance.api.domain.model.CalendarLinkOptions
 import com.github.zzave.teambalance.api.domain.model.TokenHash
 import com.github.zzave.teambalance.api.domain.model.UserId
 
@@ -33,6 +35,18 @@ interface CalendarLinkRepository {
      * transaction, so the adapter can serialise the pair per member.
      */
     fun saveWithinCap(link: CalendarLink, max: Int): Boolean
+
+    /**
+     * Replaces the label and options of [id] if it belongs to [userId], returning the link as stored,
+     * or null when it does not exist or is not theirs. Not a cap question: the link already holds its
+     * slot, so an edit never takes or frees one. The token and the dates are never written.
+     */
+    fun updateOwned(
+        id: CalendarLinkId,
+        userId: UserId,
+        label: CalendarLinkLabel?,
+        options: CalendarLinkOptions,
+    ): CalendarLink?
 
     /**
      * Deletes [id] only if it belongs to [userId], returning whether it did. Ownership is in the

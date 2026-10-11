@@ -31,6 +31,9 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-restclient")
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
+    // One SecurityFilterChain around the session model: session-ID rotation on sign-in, CSRF, and the
+    // authenticated-by-default rule (ADR-0012).
+    implementation("org.springframework.boot:spring-boot-starter-security")
 
     // Spring Session backed by JDBC (Postgres): keeps authenticated sessions out of the JVM heap so
     // they survive a container restart / cold start / redeploy on Scaleway Serverless (min-instances=0).
@@ -60,12 +63,6 @@ dependencies {
     val bucket4jVersion: String by project
     implementation("com.bucket4j:bucket4j_jdk17-core:$bucket4jVersion")
 
-    // iCalendar (RFC 5545) generation for the calendar-link feed. Unmaintained — last release
-    // Jan 2024 — and pinned deliberately; see ADR-0032 for why it is still the right pick and what
-    // replacing it would cost (one file, CalendarIcs.kt).
-    val biweeklyVersion: String by project
-    implementation("net.sf.biweekly:biweekly:$biweeklyVersion")
-
     // Wirespec runtime
     implementation("community.flock.wirespec.integration:spring-jvm:$wirespecVersion")
     // Wirespec 0.19's Spring integration uses Jackson 3; Spring Boot ships Jackson 3
@@ -83,6 +80,7 @@ dependencies {
     testImplementation(platform("org.testcontainers:testcontainers-bom:$testcontainersVersion"))
     testImplementation("org.testcontainers:testcontainers-postgresql")
     testImplementation("org.springframework.boot:spring-boot-starter-webmvc-test")
+    testImplementation("org.springframework.security:spring-security-test")
 
     // Hexagonal-architecture rulesets for detekt (ADR-0018)
     detektPlugins("community.flock:hexagonal-detekt-rules:$flockDetektVersion")

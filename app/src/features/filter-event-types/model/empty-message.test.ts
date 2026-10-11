@@ -1,6 +1,6 @@
 import {describe, expect, it} from 'vitest'
 import type {AttendanceState} from '@features/attendance-toggle/ui/AttendanceToggle'
-import {ALL_ATTENDANCE_STATES} from './attendance-states'
+import {ALL_ATTENDANCE_STATES} from '@entities/event/lib/attendance-states'
 import {ALL_TURNOUT_BUCKETS, type TurnoutBucket} from './turnout'
 import {emptyEventsMessage} from './empty-message'
 

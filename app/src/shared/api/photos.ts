@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { authMeQueryOptions } from './auth'
+import { csrfHeaders } from './csrf'
 
 // Photos travel as image bytes, which Wirespec cannot describe, so these endpoints sit outside the
 // generated client (ADR-0038). The JSON contract only carries each photo's version; the version goes
@@ -25,7 +26,7 @@ export async function sendPhoto(method: 'PUT' | 'POST' | 'DELETE', path: string,
   const res = await fetch(`${baseUrl()}${path}`, {
     method,
     credentials: 'include',
-    headers: body ? { 'Content-Type': body.type } : undefined,
+    headers: { ...(body ? { 'Content-Type': body.type } : {}), ...csrfHeaders(method) },
     body,
   })
   if (res.ok) return

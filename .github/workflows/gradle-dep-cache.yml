@@ -37,7 +37,7 @@ jobs:
       - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
         with:
           distribution: temurin
-          java-version: '25'
+          java-version: '25.0.4+7.0.LTS'
 
       # `build -x test` runs compile, wirespec generation and detekt; `resolveAllDependencies`
       # adds the configurations those tasks don't resolve (test runtime, bootRun, ...).

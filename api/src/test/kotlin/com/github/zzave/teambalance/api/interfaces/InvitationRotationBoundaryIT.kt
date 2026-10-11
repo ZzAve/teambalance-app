@@ -13,6 +13,7 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers
 import java.time.Instant
 import java.util.UUID
+import com.github.zzave.teambalance.api.infrastructure.identity.loginAs
 
 private const val ADMIN_USER_ID = "b0000000-0000-0000-0000-0000000000f2"
 
@@ -53,8 +54,7 @@ class InvitationRotationBoundaryIT : TeamBalanceIT() {
 
             mockMvc.perform(
                 MockMvcRequestBuilders.post("/api/invitations/rotate")
-                    .header("X-Team-Id", "public")
-                    .header("X-User-Id", ADMIN_USER_ID),
+                    .with(loginAs(ADMIN_USER_ID, tenant = "public")),
             )
                 .andExpect(MockMvcResultMatchers.request().asyncStarted())
                 .andReturn()

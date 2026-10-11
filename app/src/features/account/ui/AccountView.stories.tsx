@@ -6,7 +6,7 @@ import { Stack } from '@shared/testing/stack'
 import { appColumn } from '@shared/testing/app-column-decorator'
 import { withRouter } from '@shared/testing/router-decorator'
 import type { AccountSection } from '../lib/account-sections'
-import { appShell } from '../../../../.storybook/app-shell-decorator'
+import { appShell } from '../../../../storybook-support/app-shell-decorator'
 import { pageModes } from '../../../../.storybook/modes'
 import { AccountView } from './AccountView'
 

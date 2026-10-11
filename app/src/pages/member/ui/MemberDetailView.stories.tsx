@@ -3,7 +3,7 @@ import { expect, fn, screen, userEvent, within } from 'storybook/test'
 import type { Member } from '@shared/api/members'
 import type { Position } from '@shared/api/positions'
 import { Stack } from '@shared/testing/stack'
-import { appShell } from '../../../../.storybook/app-shell-decorator'
+import { appShell } from '../../../../storybook-support/app-shell-decorator'
 import { MemberDetailView } from './MemberDetailView'
 
 // One Member's page as a phone shows it (ADR-0038): face with Shirt Number, then number, Position

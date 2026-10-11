@@ -67,7 +67,7 @@ Tailwind/Radix/shadcn bump that shifts spacing, a token, or a layout is caught e
   That status, marked **required** in branch protection, is what gates Renovate automerge.
 - **TurboSnap** (`--only-changed`) re-shoots only stories whose dependencies changed.
 - **What gets a picture** (ADR-0032): the page composites (`pages/*View` rendered under
-  `.storybook/app-shell-decorator.tsx`) and one gallery per primitive own the pixels; a feature View
+  `storybook-support/app-shell-decorator.tsx`) and one gallery per primitive own the pixels; a feature View
   keeps a snapshot only for states no composite shows. Every story is captured at phone width (the
   global `xs` mode in `.storybook/preview.ts`); page composites add dark and `xl`. The toolbar's
   viewport switcher uses the same widths, so pick the breakpoint to inspect there.

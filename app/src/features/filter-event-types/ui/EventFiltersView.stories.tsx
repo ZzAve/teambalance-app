@@ -4,7 +4,7 @@ import type { EventTypeItem } from '@shared/api/event-types'
 import type { AttendanceState } from '@features/attendance-toggle/ui/AttendanceToggle'
 import { makeEventType } from '@shared/testing/event-fixtures'
 import { Stack } from '@shared/testing/stack'
-import { ALL_ATTENDANCE_STATES } from '../model/attendance-states'
+import { ALL_ATTENDANCE_STATES } from '@entities/event/lib/attendance-states'
 import { ALL_TURNOUT_BUCKETS, type TurnoutBucket } from '../model/turnout'
 import { EventFiltersView } from './EventFiltersView'
 

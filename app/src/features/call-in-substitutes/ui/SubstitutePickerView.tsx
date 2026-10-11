@@ -10,7 +10,7 @@ import { cn } from '@shared/lib/utils'
 import { SubstituteAvatar } from '@entities/event/ui/SubstituteAvatar'
 import { findSomeone, type PositionRef } from '@entities/event/lib/lineup'
 import { groupForPosition } from '../lib/picker-groups'
-import { SUBSTITUTE_OPTIONS, type SubstituteState } from './SubstitutesBlock'
+import { SUBSTITUTE_OPTIONS, SUBSTITUTE_PILL, type SubstituteState } from './SubstitutesBlock'
 
 interface SubstitutePickerViewProps {
   open: boolean
@@ -105,8 +105,7 @@ export function SubstitutePickerView({
               disabled={pending}
               onClick={() => onSetState(sub.id, option.value)}
               className={cn(
-                // The pill stays small; the invisible ::after stretches the tap target to 44px tall (F7).
-                'relative rounded-full border-[1.5px] px-2 py-1 text-caption font-semibold transition-colors disabled:opacity-60 after:absolute after:-inset-y-2.5 after:inset-x-0',
+                SUBSTITUTE_PILL,
                 state === option.value ? option.active : 'border-border text-muted-foreground hover:bg-muted',
               )}
             >
@@ -202,7 +201,8 @@ export function SubstitutePickerView({
                   aria-pressed={positionId === p.id}
                   onClick={() => setPositionId(p.id)}
                   className={cn(
-                    'rounded-full border px-2.5 py-1 text-small',
+                    // A full-height chip rather than a band: these wrap, so a band would reach into the line above (F7).
+                    'min-h-11 rounded-full border px-3 text-small focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
                     positionId === p.id ? 'border-purple bg-purple text-white' : 'border-border bg-background',
                   )}
                 >

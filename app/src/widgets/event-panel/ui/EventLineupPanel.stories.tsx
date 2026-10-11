@@ -274,7 +274,23 @@ export const Interactions: Story = {
 
     // An open spot is a way to fill it: the "+" opens the picker for that Position (#359); the
     // button under the lineup opens it for no Position in particular.
-    await userEvent.click(region('Squad').getByRole('button', { name: 'Find a Libero' }))
+    const plus = region('Squad').getByRole('button', { name: 'Find a Libero' })
+    // The "+" keeps chip size, but a tap anywhere in a 44px box around it lands on it (F7, #388).
+    plus.scrollIntoView({ block: 'center' })
+    const plusBox = plus.getBoundingClientRect()
+    const reachY = (44 - plusBox.height) / 2 - 1
+    const reachX = (44 - plusBox.width) / 2 - 1
+    const midX = plusBox.left + plusBox.width / 2
+    const midY = plusBox.top + plusBox.height / 2
+    for (const [x, y] of [
+      [midX, plusBox.top - reachY],
+      [midX, plusBox.bottom + reachY],
+      [plusBox.left - reachX, midY],
+      [plusBox.right + reachX, midY],
+    ]) {
+      await expect(document.elementFromPoint(x, y)).toBe(plus)
+    }
+    await userEvent.click(plus)
     await expect(args.onCallInSubstitutes).toHaveBeenCalledWith({ id: 'p-libero', label: 'Libero' })
     await userEvent.click(region('Squad').getByRole('button', { name: 'Call in substitutes' }))
     await expect(args.onCallInSubstitutes).toHaveBeenCalledWith(null)

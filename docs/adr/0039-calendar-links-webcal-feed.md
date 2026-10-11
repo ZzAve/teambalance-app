@@ -78,6 +78,7 @@ implementation of the crypto and two keys.
 - **Delete is the only other action, and only your own.** There is no admin view and no admin
   control. A calendar link is a personal credential; an admin who could list one would be reading a
   teammate's private feed, and an admin who could revoke one would be breaking their calendar.
+  Amended by ADR-0040: links are editable; the token never changes.
 - **An optional 50-character label**, because three otherwise identical URLs are indistinguishable
   when deciding which to delete.
 
@@ -93,9 +94,11 @@ Member is what it is guarding against, and is reported as `ACT_AS_NOT_PERMITTED`
 
 ### The feed authenticates on the token and nothing else
 
-`GET /api/calendar/{teamSlug}/{token}.ics`, session-less. The API has no Spring Security: a controller
-is public exactly by not calling `requireCurrentUserId()`, which is how the `/api/auth` endpoints are
-already public. There is no CSRF filter and no session filter that would reject a cookie-less GET.
+`GET /api/calendar/{teamSlug}/{token}.ics`, session-less. When this was written the API had no Spring
+Security: a controller was public exactly by not calling `requireCurrentUserId()`. Since ADR-0012 landed
+(2026-10-10) the SecurityFilterChain requires a session by default and lists `/api/calendar/` as public,
+next to `/api/auth/`. Its CSRF check applies only to mutating methods, so a cookie-less GET (or HEAD) is
+not rejected.
 
 Resolution order, all of it re-established per request:
 
@@ -215,25 +218,28 @@ The feed is a plain Spring controller. Wirespec models JSON request/response typ
 it to be the contract of. RFC 5545 is the contract, and it is held in `CalendarIcs` and its tests.
 The **management** API is Wirespec-first as usual.
 
-ICS is generated with **biweekly 0.6.8**, which is **unmaintained — its last release is January
-2024**. We take it anyway: escaping, line folding and the property/parameter grammar are exactly the
-tedious, get-it-subtly-wrong part, the format itself is frozen (RFC 5545 is from 2009), and the
-dependency is confined to one file. If it ever has to go, `CalendarIcs` is what gets rewritten, and
-`CalendarIcsTest` — which asserts on the emitted text, not on a biweekly object graph — is what
-proves the replacement.
+ICS was first generated with **biweekly 0.6.8**, which is **unmaintained — its last release is January
+2024**. We took it anyway: escaping, line folding and the property/parameter grammar are the tedious,
+get-it-subtly-wrong part, the format itself is frozen (RFC 5545 is from 2009), and the dependency was
+confined to one file, with `CalendarIcsTest` asserting on the emitted text rather than on a biweekly
+object graph so that a replacement could be proven against it.
 
-**Known deviation: biweekly folds by character, not by octet.** RFC 5545 §3.1 says a line SHOULD NOT
-exceed 75 **octets**; biweekly (through vinnie) counts characters, so the `✓`/`✗` prefix plus any
-accented title pushes a folded line past the limit — 90 octets for a real Dutch event title. It never
-splits a codepoint, so nothing a client reads is corrupt and no client is known to object, which is
-why this is a deviation we live with rather than a reason to replace the library today.
+**Superseded by a hand-rolled writer (#395).** We used the write half of a round-trip library and a
+tenth of its property vocabulary: 2 jars, 432 classes, about 12 of them called. `CalendarIcs` now holds
+the encoding itself — `escapeText`, `utc`, `property` and `fold` — and biweekly (and vinnie with it) is
+gone from the build. Diffed against biweekly's output for the same feed, the only difference is how
+multibyte lines fold (below). The team name in `X-WR-CALNAME` keeps its commas and semicolons raw, as
+biweekly wrote them, because clients and Python's `icalendar` read an X- value without unescaping it;
+only a newline in it is written as `\n`, so a name cannot start a new line.
 
-It is pinned rather than left as a comment. `CalendarIcsTest` asserts both halves: an ASCII calendar
-folds inside 75 octets (it lands on exactly 75, so the bound is tight), and a multibyte one
-deliberately overshoots while staying within 75 *characters* and decoding cleanly. If the overshoot
-test ever starts failing, the library has begun counting octets — that is the fix, not a regression,
-and the comment on the test says to delete it and widen the strict one. Those two tests are also the
-first acceptance criteria any hand-rolled writer would have to meet.
+**Former deviation, now fixed: biweekly folded by character, not by octet.** RFC 5545 §3.1 says a line
+SHOULD NOT exceed 75 **octets**; biweekly (through vinnie) counted characters, so the `✓`/`✗` prefix
+plus any accented title pushed a folded line past the limit — 90 octets for a real Dutch event title.
+It never split a codepoint, so no client was known to object. `fold` counts UTF-8 octets, gives each
+continuation line 74 octets after its leading space, and only breaks between code points. The pair of
+tests that pinned the deviation is replaced by one strict test — no line over 75 octets, for ASCII and
+multibyte input alike, and every line decodes as UTF-8 — and `CalendarIcsEncodingTest` covers folding
+at the boundary directly. The output was re-validated against Python's `icalendar` parser.
 
 ## Consequences
 

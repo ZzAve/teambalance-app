@@ -26,7 +26,7 @@ object CalendarLinkFixture {
     const val BETA_SLUG = "cal-beta"
     const val ALPHA_NAME = "Calendar Alpha"
 
-    /** Sole member of Alpha, so the X-User-Id shim resolves their Active Team without a session. */
+    /** Sole member of Alpha, so `loginAs` resolves their Active Team without pinning one. */
     const val ALPHA_MEMBER = "b8320000-0000-0000-0000-000000000001"
     const val BETA_MEMBER = "b8320000-0000-0000-0000-000000000002"
 
@@ -37,6 +37,7 @@ object CalendarLinkFixture {
 
     /** Seeded per tenant by V002, with a fixed uuid — so an event edit can name its type. */
     const val TRAINING_TYPE = "c0000000-0000-0000-0000-000000000001"
+    const val MATCH_TYPE = "c0000000-0000-0000-0000-000000000002"
 
     /**
      * When the seeded event was written, fixed and well in the past rather than `now()`.
@@ -93,35 +94,67 @@ object CalendarLinkFixture {
 
 
     /** An extra Alpha event at [startsAt], for specs that need the schedule to be near or already past. */
-    fun extraEvent(jdbc: JdbcTemplate, startsAt: Instant, title: String = "Extra") {
+    fun extraEvent(
+        jdbc: JdbcTemplate,
+        startsAt: Instant,
+        title: String = "Extra",
+        id: String = UUID.randomUUID().toString(),
+        schema: String = ALPHA_SCHEMA,
+        typeId: String = TRAINING_TYPE,
+    ) {
         jdbc.update(
             """
-            INSERT INTO $ALPHA_SCHEMA.events
+            INSERT INTO $schema.events
                 (uuid, event_type_id, title, start_time, end_time, created_by, created_at, updated_at)
-            SELECT gen_random_uuid(), et.id, ?, ?, ?, ?::uuid, ?, ?
-            FROM   $ALPHA_SCHEMA.event_types et WHERE et.name = 'Training'
+            SELECT ?::uuid, et.id, ?, ?, ?, ?::uuid, ?, ?
+            FROM   $schema.event_types et WHERE et.uuid = ?::uuid
             """,
+            id,
             title,
             Timestamp.from(startsAt),
             Timestamp.from(startsAt.plusSeconds(5400)),
             ALPHA_MEMBER,
             Timestamp.from(Instant.parse(SEEDED_AT)),
             Timestamp.from(Instant.parse(SEEDED_AT)),
+            typeId,
         )
     }
 
-    fun answer(jdbc: JdbcTemplate, userId: String, state: String) {
+    /** A new Alpha event type, named uniquely because the database is shared between specs. Its uuid. */
+    fun eventType(jdbc: JdbcTemplate, name: String, archived: Boolean = false): String {
+        val id = UUID.randomUUID().toString()
+        jdbc.update(
+            "INSERT INTO $ALPHA_SCHEMA.event_types (uuid, name, color, archived) VALUES (?::uuid, ?, '#888888', ?)",
+            id, "$name ${id.take(8)}", archived,
+        )
+        return id
+    }
+
+    fun archive(jdbc: JdbcTemplate, typeId: String) {
+        jdbc.update("UPDATE $ALPHA_SCHEMA.event_types SET archived = true WHERE uuid = ?::uuid", typeId)
+    }
+
+    fun answer(
+        jdbc: JdbcTemplate,
+        userId: String,
+        state: String,
+        eventId: String = TRAINING_ID,
+        schema: String = ALPHA_SCHEMA,
+    ) {
         jdbc.update(
             """
-            INSERT INTO $ALPHA_SCHEMA.attendances (event_id, user_id, state, changed_by)
-            SELECT e.id, ?::uuid, ?, ?::uuid FROM $ALPHA_SCHEMA.events e WHERE e.uuid = ?::uuid
+            INSERT INTO $schema.attendances (event_id, user_id, state, changed_by)
+            SELECT e.id, ?::uuid, ?, ?::uuid FROM $schema.events e WHERE e.uuid = ?::uuid
             ON CONFLICT (event_id, user_id) DO UPDATE SET state = EXCLUDED.state
             """,
-            userId, state, userId, TRAINING_ID,
+            userId, state, userId, eventId,
         )
     }
 
-    /** A stored link, minted straight into the schema so a spec can choose its expiry. */
+    /**
+     * A stored link, minted straight into the schema so a spec can choose its expiry and options. The
+     * defaults are the "Me" shape (ADR-0040): every answer, prefixed, no suffix.
+     */
     fun link(
         jdbc: JdbcTemplate,
         tokens: CalendarLinkTokens,
@@ -129,28 +162,52 @@ object CalendarLinkFixture {
         userId: String,
         expiresAt: Instant,
         label: String? = null,
+        attendanceStates: List<String> = ALL_STATES,
+        showAttendancePrefix: Boolean = true,
+        calendarNameSuffix: String? = null,
+        eventTypeIds: List<String>? = null,
     ): CalendarToken {
         val token = tokens.mint()
+        val id = UUID.randomUUID()
         jdbc.update(
             """
             INSERT INTO $schema.calendar_links
-                (id, user_id, token_hash, token_encrypted, label, created_at, expires_at)
-            VALUES (?::uuid, ?::uuid, ?, ?, ?, ?, ?)
+                (id, user_id, token_hash, token_encrypted, label, created_at, expires_at,
+                 show_attendance_prefix, calendar_name_suffix)
+            VALUES (?::uuid, ?::uuid, ?, ?, ?, ?, ?, ?, ?)
             """,
-            UUID.randomUUID(), userId, tokens.hash(token.value).value, tokens.conceal(token).value,
+            id, userId, tokens.hash(token.value).value, tokens.conceal(token).value,
             label, Timestamp.from(Instant.now()), Timestamp.from(expiresAt),
+            showAttendancePrefix, calendarNameSuffix,
         )
+        attendanceStates.forEach { state ->
+            jdbc.update(
+                "INSERT INTO $schema.calendar_link_attendance_states (link_id, state) VALUES (?::uuid, ?)",
+                id, state,
+            )
+        }
+        eventTypeIds?.forEach { typeId ->
+            jdbc.update(
+                """
+                INSERT INTO $schema.calendar_link_event_types (link_id, event_type_id)
+                SELECT ?::uuid, et.id FROM $schema.event_types et WHERE et.uuid = ?::uuid
+                """,
+                id, typeId,
+            )
+        }
         return token
     }
 
-    private fun team(jdbc: JdbcTemplate, id: String, name: String, slug: String, schema: String) {
+    val ALL_STATES = listOf("ATTENDING", "MAYBE", "ABSENT", "NOT_RESPONDED")
+
+    fun team(jdbc: JdbcTemplate, id: String, name: String, slug: String, schema: String) {
         jdbc.execute(
             "INSERT INTO public.teams (id, name, slug, schema_name) " +
                 "VALUES ('$id'::uuid, '$name', '$slug', '$schema') ON CONFLICT DO NOTHING",
         )
     }
 
-    private fun user(jdbc: JdbcTemplate, id: String, email: String, name: String) {
+    fun user(jdbc: JdbcTemplate, id: String, email: String, name: String) {
         jdbc.execute(
             "INSERT INTO public.users (id, email, display_name) VALUES ('$id'::uuid, '$email', '$name') " +
                 "ON CONFLICT (id) DO UPDATE SET display_name = EXCLUDED.display_name",
@@ -162,7 +219,7 @@ object CalendarLinkFixture {
      * spec touched this id first would otherwise decide both. A spec that proves a departure stops the
      * feed must not strand the next one, and the feed spec drives a real admin event edit.
      */
-    private fun member(jdbc: JdbcTemplate, teamId: String, userId: String, role: String = "USER") {
+    fun member(jdbc: JdbcTemplate, teamId: String, userId: String, role: String = "USER") {
         jdbc.execute("SELECT public.tb_add_member('$teamId'::uuid, '$userId'::uuid, '$role', NULL)")
         jdbc.execute(
             "UPDATE public.team_members SET active = true, role = '$role' " +

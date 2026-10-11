@@ -14,6 +14,7 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import java.util.UUID
+import com.github.zzave.teambalance.api.infrastructure.identity.loginAs
 
 // This spec owns its fixtures — its own team, positions and event type — because every IT runs
 // against the one shared `public` schema and the one demo team. It puts members on positions and
@@ -397,7 +398,7 @@ class RosterFillIT : TeamBalanceIT() {
     // --- helpers ---------------------------------------------------------------------------------
 
     private fun perform(builder: MockHttpServletRequestBuilder, userId: String) =
-        mockMvc.perform(builder.header("X-Team-Id", "public").header("X-User-Id", userId))
+        mockMvc.perform(builder.with(loginAs(userId, tenant = "public")))
             .andExpect(MockMvcResultMatchers.request().asyncStarted())
             .andReturn()
             .let { mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(it)) }

@@ -3,6 +3,8 @@ package com.github.zzave.teambalance.api.interfaces
 import com.github.zzave.teambalance.api.application.CalendarFeed
 import com.github.zzave.teambalance.api.application.CalendarFeedEntry
 import com.github.zzave.teambalance.api.domain.model.AttendanceState
+import com.github.zzave.teambalance.api.domain.model.CalendarLinkOptions
+import com.github.zzave.teambalance.api.domain.model.CalendarNameSuffix
 import com.github.zzave.teambalance.api.domain.model.Event
 import com.github.zzave.teambalance.api.domain.model.EventDescription
 import com.github.zzave.teambalance.api.domain.model.EventId
@@ -19,7 +21,6 @@ import com.github.zzave.teambalance.api.domain.model.TeamSummary
 import com.github.zzave.teambalance.api.domain.model.UserId
 import io.kotest.assertions.withClue
 import io.kotest.core.spec.style.FunSpec
-import io.kotest.matchers.ints.shouldBeGreaterThan
 import io.kotest.matchers.ints.shouldBeLessThanOrEqual
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
@@ -65,25 +66,48 @@ private fun event(
     updatedAt = updatedAt,
 )
 
-private fun feed(entries: List<CalendarFeedEntry>, refresh: RefreshCadence = RefreshCadence.RELAXED) =
-    CalendarFeed(TEAM, entries, refresh)
+private fun feed(
+    entries: List<CalendarFeedEntry>,
+    refresh: RefreshCadence = RefreshCadence.RELAXED,
+    showAttendancePrefix: Boolean = true,
+    calendarNameSuffix: String? = null,
+) = CalendarFeed(
+    TEAM,
+    entries,
+    refresh,
+    CalendarLinkOptions(
+        showAttendancePrefix = showAttendancePrefix,
+        calendarNameSuffix = CalendarNameSuffix.ofNullable(calendarNameSuffix),
+    ),
+)
 
 private fun render(
     state: AttendanceState = AttendanceState.NOT_RESPONDED,
     event: Event = event(),
     refresh: RefreshCadence = RefreshCadence.RELAXED,
-) = CalendarIcs.render(feed(listOf(CalendarFeedEntry(event, state)), refresh), FRONTEND)
+    showAttendancePrefix: Boolean = true,
+    calendarNameSuffix: String? = null,
+) = CalendarIcs.render(
+    feed(listOf(CalendarFeedEntry(event, state)), refresh, showAttendancePrefix, calendarNameSuffix),
+    FRONTEND,
+)
 
 /**
  * The wire format of the calendar-link feed (ADR-0039). These assertions are what a subscriber's
- * calendar app actually reads, so they are written against the emitted text rather than against a
- * biweekly object graph — the bugs worth catching here (a missing `Z`, an unescaped comma, a
+ * calendar app actually reads, so they are written against the emitted text rather than against an
+ * object model — the bugs worth catching here (a missing `Z`, an unescaped comma, a
  * TRANSP on the wrong state) all live in the encoding, not in the model.
  */
 class CalendarIcsTest : FunSpec({
 
     test("the calendar is named after the team, so it is findable in a sidebar of calendars") {
-        render() shouldContain "X-WR-CALNAME:Tovo Dames 5"
+        render() shouldContain "X-WR-CALNAME:Tovo Dames 5\r\n"
+    }
+
+    // A partner subscribing to "when is she at volleyball" needs to tell that calendar apart from
+    // the member's own in the same sidebar (ADR-0040).
+    test("a link with a calendar-name suffix appends it to the team name") {
+        render(calendarNameSuffix = "Partner") shouldContain "X-WR-CALNAME:Tovo Dames 5 · Partner\r\n"
     }
 
     // Which band applies is RefreshCadenceTest's business; what matters here is that whichever one
@@ -169,6 +193,20 @@ class CalendarIcsTest : FunSpec({
         }
     }
 
+    // A link shared with someone else (ADR-0040) shows the bare title: the marks are the member's
+    // own bookkeeping, and to a partner "✓ Training" says nothing "Training" does not.
+    context("a link with the prefix turned off shows bare titles") {
+        AttendanceState.entries.forEach { state ->
+            test("$state") {
+                render(state, showAttendancePrefix = false) shouldContain "SUMMARY:Training\r\n"
+            }
+        }
+
+        test("an absent event still frees the slot") {
+            render(AttendanceState.ABSENT, showAttendancePrefix = false) shouldContain "TRANSP:TRANSPARENT"
+        }
+    }
+
     context("only an absent event frees the subscriber's time") {
         test("absent is transparent") { render(AttendanceState.ABSENT) shouldContain "TRANSP:TRANSPARENT" }
         // "I haven't decided" is not "I am available", so an unanswered event still blocks the slot.
@@ -207,6 +245,14 @@ class CalendarIcsTest : FunSpec({
         test("a semicolon in the location") {
             unfolded(render(event = event(location = "Hall 1; door B"))) shouldContain "LOCATION:Hall 1\\; door B"
         }
+        // X-WR-CALNAME is read raw by clients, so only the newline is escaped there.
+        test("a newline in the team name, which keeps its comma as typed") {
+            val named = TEAM.copy(name = TeamName("Tovo, Dames\nBEGIN:VEVENT"))
+            val feed = CalendarFeed(named, emptyList(), RefreshCadence.RELAXED, CalendarLinkOptions())
+            val ics = CalendarIcs.render(feed, FRONTEND)
+            ics shouldContain "X-WR-CALNAME:Tovo, Dames\\nBEGIN:VEVENT"
+            ics shouldNotContain "\r\nBEGIN:VEVENT"
+        }
         test("a newline in the description") {
             unfolded(render(event = event(description = "Line one\nLine two"))) shouldContain
                 "DESCRIPTION:Line one\\nLine two"
@@ -228,39 +274,23 @@ class CalendarIcsTest : FunSpec({
         ics shouldNotContain "BEGIN:VEVENT"
     }
 
-    /*
-     * RFC 5545 §3.1: "Lines of text SHOULD NOT be longer than 75 octets, excluding the line break."
-     * Octets, not characters — and biweekly (through vinnie) counts characters, so our ✓/✗ prefixes
-     * and any accented title push a folded line past the limit.
-     *
-     * These two tests split that into the guarantee we have and the deviation we are living with, so
-     * the build knows which is which. Both are written against the emitted bytes rather than against
-     * biweekly, which is what would make them the acceptance criteria for a hand-rolled writer.
-     */
+    // RFC 5545 §3.1: "Lines of text SHOULD NOT be longer than 75 octets, excluding the line break."
+    // Octets, not characters — the ✓/✗ prefixes and accented titles are multibyte — and a fold must
+    // never land mid-codepoint, or what a client reads is corrupt.
     context("line folding") {
-        test("an ASCII calendar folds inside the RFC's 75 octets") {
-            val longAscii = "Match against a club with a very long name indeed, away at their hall"
-
-            widestLine(render(event = event(title = longAscii, description = longAscii))).let { widest ->
-                withClue("widest line was ${widest.octets} octets: ${widest.text}") {
-                    widest.octets shouldBeLessThanOrEqual MAX_OCTETS
+        val longAscii = "Match against a club with a very long name indeed, away at their hall"
+        listOf(
+            "ASCII" to render(event = event(title = longAscii, description = longAscii)),
+            "multibyte" to render(AttendanceState.ATTENDING, event(title = MULTIBYTE_TITLE, description = MULTIBYTE_TITLE)),
+        ).forEach { (kind, ics) ->
+            test("a $kind calendar folds every line inside the RFC's 75 octets, without splitting a codepoint") {
+                widestLine(ics).let { widest ->
+                    withClue("widest line was ${widest.octets} octets: ${widest.text}") {
+                        widest.octets shouldBeLessThanOrEqual MAX_OCTETS
+                    }
                 }
+                lines(ics).all { it.decodesCleanly() } shouldBe true
             }
-        }
-
-        // KNOWN DEVIATION, pinned deliberately rather than left as a comment. If this test starts
-        // failing, biweekly (or its replacement) has begun counting octets — which is the fix, not a
-        // regression: delete this test and extend the ASCII one above to cover multibyte text too.
-        test("a multibyte calendar overshoots it — biweekly folds by character, not by octet") {
-            val widest = widestLine(render(event = event(title = MULTIBYTE_TITLE)))
-
-            withClue("expected the known overshoot; widest line was ${widest.octets} octets") {
-                widest.octets shouldBeGreaterThan MAX_OCTETS
-            }
-            // The bound on the damage: it is a character count, so it never exceeds 75 of those...
-            widest.text.length shouldBeLessThanOrEqual MAX_OCTETS
-            // ...and, crucially, never splits a codepoint, so nothing a client reads is corrupt.
-            lines(render(event = event(title = MULTIBYTE_TITLE))).all { it.decodesCleanly() } shouldBe true
         }
     }
 })

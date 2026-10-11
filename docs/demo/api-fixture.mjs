@@ -155,6 +155,26 @@ const ROSTER = [
 
 const TEAM = { id: 't-1', name: 'Heren 3', slug: 'heren-3' }
 
+const POSITIONS = [
+  { id: 'p1', label: 'Setter' },
+  { id: 'p2', label: 'Libero' },
+  { id: 'p3', label: 'Middle Blocker' },
+  { id: 'p4', label: 'Outside Hitter' },
+]
+
+// The Team's Substitute list (ADR-0033): people without an account who can be called in. Mila is
+// already on the training as Asked, so the Substitutes block has a row; Kees plays Setter, so the
+// picker opened from the Setter's open spot lists him first.
+const SUBSTITUTES = [
+  { id: 's-1', name: 'Mila Jansen', position: undefined },
+  { id: 's-2', name: 'Kees Bakker', position: { id: 'p1', label: 'Setter' } },
+]
+
+// Per event: who is called in, with their state. Keyed by event id; the rest have nobody.
+const ON_EVENT = {
+  'evt-2': [{ substituteId: 's-1', name: 'Mila Jansen', position: undefined, state: 'MAYBE', changedBy: 'u-2', updatedAt: iso(0, 9) }],
+}
+
 const ME = ROSTER[0]
 
 const OTHERS_STATE = ['ATTENDING', 'ATTENDING', 'MAYBE', 'ATTENDING', 'ABSENT', 'NOT_RESPONDED']
@@ -177,6 +197,7 @@ const withAttendances = (event) => ({
     role: m.position?.label ?? 'Unassigned',
     state: m.userId === ME.userId ? event.myState : OTHERS_STATE[i],
   })),
+  substitutes: ON_EVENT[event.id] ?? [],
 })
 
 /** Install the fixture on a Playwright page/context. Call before the first navigation. */
@@ -235,14 +256,36 @@ export async function installFixtureApi(page) {
       if (path === '/api/members/me') return json(ME)
       if (path === '/api/members') return json({ members: ROSTER })
       if (path === '/api/event-types') return json({ eventTypes: TYPES })
-      if (path === '/api/positions')
-        return json({ positions: [
-          { id: 'p1', label: 'Setter' },
-          { id: 'p2', label: 'Libero' },
-          { id: 'p3', label: 'Middle Blocker' },
-          { id: 'p4', label: 'Outside Hitter' },
-        ] })
+      if (path === '/api/positions') return json({ positions: POSITIONS })
       if (path === '/api/events') return json({ events: EVENTS.map(withAttendances) })
+      if (path === '/api/substitutes' && route.request().method() === 'POST') {
+        const body = route.request().postDataJSON?.() ?? {}
+        const position = POSITIONS.find((p) => p.id === body.positionId)
+        const sub = { id: `s-${SUBSTITUTES.length + 1}`, name: body.name ?? 'Substitute', position }
+        SUBSTITUTES.push(sub)
+        return json(sub, 201)
+      }
+      if (path === '/api/substitutes') return json({ substitutes: SUBSTITUTES })
+
+      // A Substitute's state on an event: record it so a re-read of the event shows it, and echo
+      // the entry back as the server would.
+      const subAttendance = path.match(/^\/api\/events\/([^/]+)\/substitutes\/([^/]+)$/)
+      if (subAttendance) {
+        const [, eventId, substituteId] = subAttendance
+        const onEvent = (ON_EVENT[eventId] ??= [])
+        const existing = onEvent.findIndex((s) => s.substituteId === substituteId)
+        if (route.request().method() === 'DELETE') {
+          if (existing >= 0) onEvent.splice(existing, 1)
+          // The contract declares 204 only; a 200 would fail the generated client's status check.
+          return route.fulfill({ status: 204 })
+        }
+        const sub = SUBSTITUTES.find((s) => s.id === substituteId) ?? { name: 'Substitute', position: undefined }
+        const body = route.request().postDataJSON?.() ?? {}
+        const entry = { substituteId, name: sub.name, position: sub.position, state: body.state ?? 'MAYBE', changedBy: ME.userId, updatedAt: new Date().toISOString() }
+        if (existing >= 0) onEvent[existing] = entry
+        else onEvent.push(entry)
+        return json(entry)
+      }
       if (path === '/api/team/season') return json({ start: undefined, end: undefined })
       if (path.startsWith('/api/invitations')) return json({ token: 'abc123', expiresAt: new Date(Date.now()+864e5*7).toISOString() })
 

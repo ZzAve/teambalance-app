@@ -16,6 +16,7 @@ import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers
 import java.util.UUID
+import com.github.zzave.teambalance.api.infrastructure.identity.loginAs
 
 private const val JAN_USER_ID = "b0000000-0000-0000-0000-000000000001"
 private const val LISA_USER_ID = "b0000000-0000-0000-0000-000000000002"
@@ -83,11 +84,10 @@ class EventControllerTest : TeamBalanceIT() {
             // Insert attendance for Jan de Vries (ATTENDING)
             insertAttendance(eventId, JAN_USER_ID)
 
-            // Call the API — X-Team-Id is required by TenantFilter
+            // Call the API, routed to the schema the event was seeded in
             val mvcResult = mockMvc.perform(
                 MockMvcRequestBuilders.get("/api/events/$eventId")
-                    .header("X-Team-Id", "public")
-                    .header("X-User-Id", JAN_USER_ID),
+                    .with(loginAs(JAN_USER_ID, tenant = "public")),
             )
                 .andExpect(MockMvcResultMatchers.request().asyncStarted())
                 .andReturn()
@@ -139,8 +139,7 @@ class EventControllerTest : TeamBalanceIT() {
 
             val mvcResult = mockMvc.perform(
                 MockMvcRequestBuilders.get("/api/events?include-past=true")
-                    .header("X-Team-Id", "public")
-                    .header("X-User-Id", JAN_USER_ID),
+                    .with(loginAs(JAN_USER_ID, tenant = "public")),
             )
                 .andExpect(MockMvcResultMatchers.request().asyncStarted())
                 .andReturn()
@@ -202,8 +201,7 @@ class EventControllerTest : TeamBalanceIT() {
 
             val list = mockMvc.perform(
                 MockMvcRequestBuilders.get("/api/events?include-past=true")
-                    .header("X-Team-Id", "public")
-                    .header("X-User-Id", JAN_USER_ID),
+                    .with(loginAs(JAN_USER_ID, tenant = "public")),
             ).andExpect(MockMvcResultMatchers.request().asyncStarted()).andReturn()
 
             mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(list))
@@ -284,8 +282,7 @@ class EventControllerTest : TeamBalanceIT() {
 
             val mvcResult = mockMvc.perform(
                 MockMvcRequestBuilders.get("/api/events/$eventId")
-                    .header("X-Team-Id", "public")
-                    .header("X-User-Id", JAN_USER_ID),
+                    .with(loginAs(JAN_USER_ID, tenant = "public")),
             )
                 .andExpect(MockMvcResultMatchers.request().asyncStarted())
                 .andReturn()
@@ -357,8 +354,7 @@ class EventControllerTest : TeamBalanceIT() {
 
             val mvcResult = mockMvc.perform(
                 MockMvcRequestBuilders.get("/api/events/$eventId")
-                    .header("X-Team-Id", "public")
-                    .header("X-User-Id", setterAId),
+                    .with(loginAs(setterAId, tenant = "public")),
             )
                 .andExpect(MockMvcResultMatchers.request().asyncStarted())
                 .andReturn()
@@ -416,8 +412,7 @@ class EventControllerTest : TeamBalanceIT() {
 
             val mvcResult = mockMvc.perform(
                 MockMvcRequestBuilders.get("/api/events/$eventId")
-                    .header("X-Team-Id", "public")
-                    .header("X-User-Id", JAN_USER_ID),
+                    .with(loginAs(JAN_USER_ID, tenant = "public")),
             )
                 .andExpect(MockMvcResultMatchers.request().asyncStarted())
                 .andReturn()
@@ -476,8 +471,8 @@ class EventControllerTest : TeamBalanceIT() {
 
             val mvcResult = mockMvc.perform(
                 MockMvcRequestBuilders.post("/api/events")
-                    .header("X-Team-Id", "public")
-                    .header("X-User-Id", JAN_USER_ID)
+                    .with(loginAs(JAN_USER_ID, tenant = "public"))
+                    
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(
                         """
@@ -544,8 +539,8 @@ class EventControllerTest : TeamBalanceIT() {
 
             val mvcResult = mockMvc.perform(
                 MockMvcRequestBuilders.post("/api/events")
-                    .header("X-Team-Id", "public")
-                    .header("X-User-Id", JAN_USER_ID)
+                    .with(loginAs(JAN_USER_ID, tenant = "public"))
+                    
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(
                         """
@@ -588,8 +583,7 @@ class EventControllerTest : TeamBalanceIT() {
             )
             val getResult = mockMvc.perform(
                 MockMvcRequestBuilders.get("/api/events/$eventId")
-                    .header("X-Team-Id", "public")
-                    .header("X-User-Id", JAN_USER_ID),
+                    .with(loginAs(JAN_USER_ID, tenant = "public")),
             )
                 .andExpect(MockMvcResultMatchers.request().asyncStarted())
                 .andReturn()
@@ -620,8 +614,8 @@ class EventControllerTest : TeamBalanceIT() {
 
             val mvcResult = mockMvc.perform(
                 MockMvcRequestBuilders.post("/api/events")
-                    .header("X-Team-Id", "public")
-                    .header("X-User-Id", teamlessUserId)
+                    .with(loginAs(teamlessUserId, tenant = "public"))
+                    
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(
                         """
@@ -674,8 +668,8 @@ class EventControllerTest : TeamBalanceIT() {
 
             val mvcResult = mockMvc.perform(
                 MockMvcRequestBuilders.post("/api/events")
-                    .header("X-Team-Id", "public")
-                    .header("X-User-Id", LISA_USER_ID)
+                    .with(loginAs(LISA_USER_ID, tenant = "public"))
+                    
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(
                         """
@@ -737,8 +731,8 @@ class EventControllerTest : TeamBalanceIT() {
 
             val mvcResult = mockMvc.perform(
                 MockMvcRequestBuilders.put("/api/events/$eventId")
-                    .header("X-Team-Id", "public")
-                    .header("X-User-Id", JAN_USER_ID)
+                    .with(loginAs(JAN_USER_ID, tenant = "public"))
+                    
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(
                         """
@@ -797,8 +791,7 @@ class EventControllerTest : TeamBalanceIT() {
 
             val mvcResult = mockMvc.perform(
                 MockMvcRequestBuilders.delete("/api/events/$eventId")
-                    .header("X-Team-Id", "public")
-                    .header("X-User-Id", JAN_USER_ID),
+                    .with(loginAs(JAN_USER_ID, tenant = "public")),
             )
                 .andExpect(MockMvcResultMatchers.request().asyncStarted())
                 .andReturn()
@@ -851,8 +844,7 @@ class EventControllerTest : TeamBalanceIT() {
 
             val mvcResult = mockMvc.perform(
                 MockMvcRequestBuilders.get("/api/events/$eventId")
-                    .header("X-Team-Id", "public")
-                    .header("X-User-Id", noPositionUserId),
+                    .with(loginAs(noPositionUserId, tenant = "public")),
             )
                 .andExpect(MockMvcResultMatchers.request().asyncStarted())
                 .andReturn()
@@ -895,8 +887,8 @@ class EventControllerTest : TeamBalanceIT() {
             // client error (400), never surface as an unhandled deserialization crash (500).
             val mvcResult = mockMvc.perform(
                 MockMvcRequestBuilders.post("/api/events")
-                    .header("X-Team-Id", "public")
-                    .header("X-User-Id", JAN_USER_ID)
+                    .with(loginAs(JAN_USER_ID, tenant = "public"))
+                    
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(
                         """
@@ -976,8 +968,7 @@ class EventControllerTest : TeamBalanceIT() {
 
             val mvcResult = mockMvc.perform(
                 MockMvcRequestBuilders.get("/api/events?include-past=true")
-                    .header("X-Team-Id", "public")
-                    .header("X-User-Id", JAN_USER_ID),
+                    .with(loginAs(JAN_USER_ID, tenant = "public")),
             )
                 .andExpect(MockMvcResultMatchers.request().asyncStarted())
                 .andReturn()

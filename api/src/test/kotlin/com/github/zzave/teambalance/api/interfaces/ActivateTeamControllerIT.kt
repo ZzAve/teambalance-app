@@ -15,10 +15,11 @@ import java.security.MessageDigest
 import java.sql.Timestamp
 import java.time.Instant
 import java.util.UUID
+import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf
 
 /**
  * `POST /api/teams/{slug}/activate` over a **real signed-in session** (magic-link verify, then the
- * session cookie) rather than the X-User-Id shim, because the two properties worth proving are both
+ * session cookie) rather than `loginAs`, which starts a new session per request, because the two properties worth proving are both
  * about a *subsequent request on the same session*: that the switch overwrote the session memo, and
  * that "not yours" and "no such Team" answer byte-identically.
  */
@@ -142,7 +143,7 @@ class ActivateTeamControllerIT : TeamBalanceIT() {
 
     private fun activate(slug: String, session: SignedIn) =
         mockMvc.perform(
-            MockMvcRequestBuilders.post("/api/teams/$slug/activate").cookie(*session.cookies.toTypedArray()),
+            MockMvcRequestBuilders.post("/api/teams/$slug/activate").cookie(*session.cookies.toTypedArray()).with(csrf()),
         )
             .andExpect(MockMvcResultMatchers.request().asyncStarted())
             .andReturn()

@@ -28,7 +28,8 @@ export const SHELL_ROUTES = {
  * matching SHELL_ROUTES entry — `appShell(tab)` bundles both, plus the `fullscreen` layout so the
  * frame sits flush against the viewport like the real one, with no preview padding around it.
  * This lives outside `src/` on purpose: it reaches across FSD layers (shared + features) in a way
- * no production module may.
+ * no production module may. It also stays out of `.storybook/`: Chromatic treats every file there as
+ * global, so an edit would re-snapshot the whole catalogue instead of the stories that import this.
  */
 export const withAppShell: Decorator = (Story) => (
   // `contain-layout` makes this box the containing block for BottomNav's `position: fixed`. In the

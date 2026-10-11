@@ -1,15 +1,10 @@
 import type { EventRoster } from '@shared/api/events'
 import { SectionLabel } from '@shared/ui/SectionLabel'
-import { rosterChip, rosterRows, type RosterTone } from '../lib/roster-view'
+import { rosterChip, rosterRows } from '../lib/roster-view'
+import { VERDICT_TONE } from './verdict-tone'
 
 interface RosterBarProps {
   roster: EventRoster
-}
-
-const TONE_TEXT: Record<RosterTone, string> = {
-  covered: 'text-green-dark',
-  short: 'text-gold-dark',
-  critical: 'text-red',
 }
 
 /**
@@ -69,7 +64,7 @@ export function RosterBar({ roster }: RosterBarProps) {
           <span className={`font-display text-small font-bold tabular-nums ${met ? 'text-green-dark' : 'text-foreground'}`}>
             {headline}
           </span>
-          {chip && <span className={`text-caption font-semibold ${TONE_TEXT[chip.tone]}`}>· {chip.text}</span>}
+          {chip && <span className={`text-caption font-semibold ${VERDICT_TONE[chip.tone]}`}>· {chip.text}</span>}
         </span>
       </div>
 

@@ -175,6 +175,23 @@ const ON_EVENT = {
   'evt-2': [{ substituteId: 's-1', name: 'Mila Jansen', position: undefined, state: 'MAYBE', changedBy: 'u-2', updatedAt: iso(0, 9) }],
 }
 
+// The member's Calendar links (ADR-0039/0040), created during the take: the page starts empty so the
+// demo shows the first link being made. A URL under the real API host, so the row reads as it would
+// live; nothing in the recording fetches it.
+const LINKS = []
+const calendarLink = (id, body, createdAt) => ({
+  id,
+  label: body.label ?? undefined,
+  createdAt,
+  expiresAt: new Date(new Date(createdAt).getTime() + 365 * 864e5).toISOString(),
+  expired: false,
+  url: `https://api.teambalance.nl/api/calendar/${TEAM.slug}/${id.replace(/-/g, '')}k8f2q9z1m4c7v3b6n0x5.ics`,
+  attendanceStates: body.attendanceStates ?? ['ATTENDING', 'MAYBE', 'ABSENT', 'NOT_RESPONDED'],
+  showAttendancePrefix: body.showAttendancePrefix ?? true,
+  calendarNameSuffix: body.calendarNameSuffix ?? undefined,
+  eventTypeIds: body.eventTypeIds ?? undefined,
+})
+
 const ME = ROSTER[0]
 
 const OTHERS_STATE = ['ATTENDING', 'ATTENDING', 'MAYBE', 'ATTENDING', 'ABSENT', 'NOT_RESPONDED']
@@ -288,6 +305,28 @@ export async function installFixtureApi(page) {
       }
       if (path === '/api/team/season') return json({ start: undefined, end: undefined })
       if (path.startsWith('/api/invitations')) return json({ token: 'abc123', expiresAt: new Date(Date.now()+864e5*7).toISOString() })
+
+      if (path === '/api/calendar-links') {
+        if (route.request().method() === 'POST') {
+          const link = calendarLink(`cl-${LINKS.length + 1}`, route.request().postDataJSON?.() ?? {}, new Date().toISOString())
+          LINKS.unshift(link)
+          return json(link, 201)
+        }
+        return json({ links: LINKS })
+      }
+      const linkById = path.match(/^\/api\/calendar-links\/([^/]+)$/)
+      if (linkById) {
+        const index = LINKS.findIndex((l) => l.id === linkById[1])
+        if (route.request().method() === 'DELETE') {
+          if (index >= 0) LINKS.splice(index, 1)
+          return route.fulfill({ status: 204 })
+        }
+        if (route.request().method() === 'PUT' && index >= 0) {
+          LINKS[index] = calendarLink(LINKS[index].id, route.request().postDataJSON?.() ?? {}, LINKS[index].createdAt)
+          return json(LINKS[index])
+        }
+        return json({}, 404)
+      }
 
       const detail = path.match(/^\/api\/events\/([^/]+)$/)
       if (detail) {

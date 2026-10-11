@@ -1,6 +1,9 @@
 package com.github.zzave.teambalance.api.domain.model
 
-/** A team's bunq.me payment page, always stored as `https://bunq.me/{handle}`. */
+/**
+ * A team's bunq.me payment page. A value from [parse] has the form `https://bunq.me/{handle}`;
+ * [restore] rebuilds persisted values unchecked.
+ */
 @JvmInline
 value class BunqMeLink private constructor(val value: String) {
     companion object {

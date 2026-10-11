@@ -34,11 +34,6 @@ private const val MEMBER_USER_ID = "b0000000-0000-0000-0000-0000000000b9"
 private const val ADMIN_USER_ID = "b0000000-0000-0000-0000-0000000000b8"
 private const val TEAM_ID = "a0000000-0000-0000-0000-000000000001"
 
-/**
- * Covers the money pool read path (ADR-0042) against the fake Bunq gateway. All tests share the
- * single 'public' tenant schema, so each one that changes the switch or the connection restores
- * the defaults (enabled, not connected) in a finally.
- */
 /** The fake gateway until [failing] is set, then every call throws. */
 class SwitchableBunqGateway(private val delegate: BunqGateway) : BunqGateway {
     @Volatile

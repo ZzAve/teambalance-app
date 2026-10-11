@@ -13,8 +13,8 @@ import type { AuthenticatedUser } from '@shared/api/auth'
 // session) resolves first — matching real latency, where verify does token/session work and
 // /me is a cheap read. This proves the redirect guard trusts the direct cache write from
 // verify rather than racing it with a slower background fetch. Verify also asks /me once more in
-// the background (the sign-in response cannot carry the Team's money pool switch); navigation does
-// not wait for it.
+// the background (the sign-in response cannot carry the Team's money pool switch); the test asserts
+// that follow-up request happens.
 let session: AuthenticatedUser | null = null
 let meRequestsWithSession = 0
 

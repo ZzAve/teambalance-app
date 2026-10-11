@@ -38,6 +38,12 @@ class MoneyPoolActAsIT : TeamBalanceIT() {
     lateinit var tenantSchemaAdapter: TenantSchemaAdapter
 
     init {
+        afterTest {
+            jdbcTemplate.update("DELETE FROM public.act_as_sessions WHERE created_by = ?::uuid", OPERATOR_ID)
+            jdbcTemplate.update("DELETE FROM public.users WHERE id = ?::uuid", OPERATOR_ID)
+            jdbcTemplate.update("UPDATE ${CalendarLinkFixture.ALPHA_SCHEMA}.money_pool_settings SET beer_price_cents = NULL WHERE id = 1")
+        }
+
         beforeTest {
             CalendarLinkFixture.seed(jdbcTemplate, tenantSchemaAdapter)
             jdbcTemplate.execute(

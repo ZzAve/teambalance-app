@@ -18,7 +18,7 @@ interface MoneyPoolViewProps {
   beerCount?: number
   /** The pool is on and a bunq.me link is set, in any state: members can pay without a Bunq Connection. */
   canTopUp?: boolean
-  /** The top-up button, supplied by the page so this widget stays free of the feature. */
+  /** The top-up button, supplied by the MoneyPool container so this View stays prop-only. */
   topUp?: ReactNode
 }
 
@@ -51,39 +51,33 @@ export function MoneyPoolView({
     return <MoneyPoolNotice title="The money pool is switched off for this team" />
   }
 
+  const topUpEntry = canTopUp ? topUp : isAdmin && <p className="text-small text-muted-foreground">{LINK_HINT}</p>
+
+  if (state === 'Connected') {
+    return balance === undefined ? loadError : (
+        <ConnectedMoneyPool
+          balance={balance}
+          payments={payments ?? []}
+          beerPrice={beerPrice}
+          beerCount={beerCount}
+          topUp={topUpEntry}
+        />
+      )
+  }
+
   return (
     <div className="flex flex-col gap-6">
-      {canTopUp ? topUp : isAdmin && <p className="text-small text-muted-foreground">{LINK_HINT}</p>}
-      {stateBody({ state, isAdmin, balance, payments, beerPrice, beerCount })}
+      {state === 'NotConnected' ? (
+        <NotConnectedMoneyPool isAdmin={isAdmin} />
+      ) : (
+        <MoneyPoolNotice
+          title="The pool is unavailable right now"
+          body="We can't reach the team's Bunq account. Try again later."
+        />
+      )}
+      {topUpEntry}
     </div>
   )
 }
 
 const LINK_HINT = 'Add the team’s bunq.me link in the team settings to let members top up.'
-
-function stateBody({
-  state,
-  isAdmin,
-  balance,
-  payments,
-  beerPrice,
-  beerCount,
-}: Pick<MoneyPoolViewProps, 'isAdmin' | 'balance' | 'payments' | 'beerPrice' | 'beerCount'> & {
-  state: Exclude<MoneyPoolState, 'Off'>
-}) {
-  switch (state) {
-    case 'Connected':
-      return balance === undefined ? loadError : (
-          <ConnectedMoneyPool balance={balance} payments={payments ?? []} beerPrice={beerPrice} beerCount={beerCount} />
-        )
-    case 'NotConnected':
-      return <NotConnectedMoneyPool isAdmin={isAdmin} />
-    case 'Unavailable':
-      return (
-        <MoneyPoolNotice
-          title="The pool is unavailable right now"
-          body="We can't reach the team's Bunq account. Try again later."
-        />
-      )
-  }
-}

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { fetchTopUpLink } from '@shared/api/money-pool'
+import { TopUpUnavailableError } from '@shared/api/top-up-link'
 import { Button } from '@shared/ui/button'
 import { TopUpSheetView } from './TopUpSheetView'
 
@@ -16,15 +17,22 @@ export function TopUp() {
   })
 
   return (
-    <>
-      <Button onClick={() => setOpen(true)}>Top up</Button>
-      <TopUpSheetView
-        open={open}
-        onOpenChange={setOpen}
-        onPick={(euros) => topUp.mutate(euros)}
-        isPending={topUp.isPending}
-        error={topUp.error ? "Couldn't open the payment page. Please try again." : null}
-      />
-    </>
+    <TopUpSheetView
+      trigger={<Button>Top up</Button>}
+      open={open}
+      onOpenChange={(next) => {
+        setOpen(next)
+        if (!next) topUp.reset()
+      }}
+      onPick={(euros) => topUp.mutate(euros)}
+      isPending={topUp.isPending}
+      error={topUp.error && errorMessage(topUp.error)}
+    />
   )
+}
+
+function errorMessage(error: Error) {
+  return error instanceof TopUpUnavailableError
+    ? "Top-up isn't available for this team right now."
+    : "Couldn't open the payment page. Please try again."
 }

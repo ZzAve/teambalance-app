@@ -35,6 +35,9 @@ class MoneyPoolService(
     /** Whether the current team switched the money pool on; read by every member's navigation. */
     fun isEnabled(): Boolean = settingsRepository.get().enabled
 
+    /** Whether members can be sent to the team's bunq.me page: the pool is on and a link is set. */
+    fun canTopUp(): Boolean = settingsRepository.get().let { it.enabled && it.bunqMeLink != null }
+
     fun getSettings(callerId: UserId, teamId: TeamId): MoneyPoolSettings {
         authorizationService.requireAdmin(callerId, teamId)
         return settingsRepository.get()

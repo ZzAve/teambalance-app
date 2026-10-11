@@ -31,7 +31,7 @@ class MoneyPoolController(
 
     // Readable by any member of the current team; the tenant is resolved from the request context.
     override suspend fun getMoneyPool(request: GetMoneyPool.Request): GetMoneyPool.Response<*> =
-        GetMoneyPool.Response200(moneyPoolService.getMoneyPool().produce())
+        GetMoneyPool.Response200(moneyPoolService.getMoneyPool().produce(moneyPoolService.canTopUp()))
 
     // Admin-only (enforced in MoneyPoolService); a non-admin surfaces as 403 via the handler.
     override suspend fun getMoneyPoolSettings(request: GetMoneyPoolSettings.Request): GetMoneyPoolSettings.Response<*> =
@@ -64,19 +64,20 @@ private fun DomainMoneyPoolSettings.produce() = MoneyPoolSettings(
     bunqMeLink = bunqMeLink?.value,
 )
 
-private fun withoutFigures(state: MoneyPoolState) =
-    MoneyPool(state, balance = null, payments = null, beerPrice = null, beerCount = null)
+private fun withoutFigures(state: MoneyPoolState, canTopUp: Boolean) =
+    MoneyPool(state, balance = null, payments = null, beerPrice = null, beerCount = null, canTopUp = canTopUp)
 
-private fun DomainMoneyPool.produce() = when (this) {
-    DomainMoneyPool.Off -> withoutFigures(MoneyPoolState.Off)
-    DomainMoneyPool.NotConnected -> withoutFigures(MoneyPoolState.NotConnected)
-    DomainMoneyPool.Unavailable -> withoutFigures(MoneyPoolState.Unavailable)
+private fun DomainMoneyPool.produce(canTopUp: Boolean) = when (this) {
+    DomainMoneyPool.Off -> withoutFigures(MoneyPoolState.Off, canTopUp)
+    DomainMoneyPool.NotConnected -> withoutFigures(MoneyPoolState.NotConnected, canTopUp)
+    DomainMoneyPool.Unavailable -> withoutFigures(MoneyPoolState.Unavailable, canTopUp)
     is DomainMoneyPool.Connected -> MoneyPool(
         state = MoneyPoolState.Connected,
         balance = balance.cents,
         payments = payments.map { it.produce() },
         beerPrice = beerPrice?.cents,
         beerCount = beerCount?.value,
+        canTopUp = canTopUp,
     )
 }
 

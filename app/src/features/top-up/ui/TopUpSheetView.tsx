@@ -1,11 +1,9 @@
-import { useState, type FormEvent, type ReactNode } from 'react'
+import { useId, useState, type FormEvent, type ReactNode } from 'react'
 import { Button } from '@shared/ui/button'
 import { Input } from '@shared/ui/input'
 import { Label } from '@shared/ui/label'
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@shared/ui/sheet'
 import { MAX_TOP_UP_EUROS, MIN_TOP_UP_EUROS, TOP_UP_PRESETS, parseTopUpAmount } from '../lib/amount'
-
-const CUSTOM_ERROR_ID = 'top-up-custom-error'
 
 interface TopUpSheetViewProps {
   open: boolean
@@ -21,6 +19,7 @@ interface TopUpSheetViewProps {
 
 /** The amounts a member can top up the pool with: three presets and a custom whole-euro field. */
 export function TopUpSheetView({ open, onOpenChange, onPick, isPending, error, trigger }: TopUpSheetViewProps) {
+  const customErrorId = useId()
   const [customText, setCustomText] = useState('')
   const custom = parseTopUpAmount(customText)
   const customInvalid = customText.trim() !== '' && custom === null
@@ -57,7 +56,7 @@ export function TopUpSheetView({ open, onOpenChange, onPick, isPending, error, t
               placeholder={`${MIN_TOP_UP_EUROS} to ${MAX_TOP_UP_EUROS}`}
               className="h-11"
               aria-invalid={customInvalid}
-              aria-describedby={customInvalid ? CUSTOM_ERROR_ID : undefined}
+              aria-describedby={customInvalid ? customErrorId : undefined}
               onChange={(e) => setCustomText(e.target.value)}
             />
             <Button type="submit" size="lg" disabled={isPending || custom === null}>
@@ -65,7 +64,7 @@ export function TopUpSheetView({ open, onOpenChange, onPick, isPending, error, t
             </Button>
           </div>
           {customInvalid && (
-            <p id={CUSTOM_ERROR_ID} role="alert" className="text-small text-red">
+            <p id={customErrorId} role="alert" className="text-small text-red">
               Enter a whole amount from €{MIN_TOP_UP_EUROS} to €{MAX_TOP_UP_EUROS}.
             </p>
           )}

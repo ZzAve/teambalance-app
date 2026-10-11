@@ -1,5 +1,6 @@
 package com.github.zzave.teambalance.api.application
 
+import com.github.zzave.teambalance.api.domain.model.BunqAccountId
 import com.github.zzave.teambalance.api.domain.model.MoneyPool
 import com.github.zzave.teambalance.api.domain.port.BunqConnectionRepository
 import com.github.zzave.teambalance.api.domain.port.BunqGateway
@@ -17,13 +18,20 @@ class MoneyPoolService(
 ) {
     /** Readable by any member. Any failure reaching Bunq is reported as [MoneyPool.Unavailable]. */
     fun getMoneyPool(): MoneyPool {
-        if (!settingsRepository.get().enabled) return MoneyPool.Off
-        val connection = connectionRepository.find() ?: return MoneyPool.NotConnected
+        val connection = connectionRepository.find()
+        return when {
+            !settingsRepository.get().enabled -> MoneyPool.Off
+            connection == null -> MoneyPool.NotConnected
+            else -> readFromBunq(connection.accountId)
+        }
+    }
+
+    private fun readFromBunq(account: BunqAccountId): MoneyPool {
         val since = seasonRepository.get().start ?: LocalDate.now(clock).minusDays(DEFAULT_HISTORY_DAYS)
         return try {
             MoneyPool.Connected(
-                balance = bunqGateway.fetchBalance(connection.accountId),
-                payments = bunqGateway.fetchPayments(connection.accountId, since, PAYMENT_LIMIT),
+                balance = bunqGateway.fetchBalance(account),
+                payments = bunqGateway.fetchPayments(account, since, PAYMENT_LIMIT),
             )
         } catch (_: Exception) {
             MoneyPool.Unavailable

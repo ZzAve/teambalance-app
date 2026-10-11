@@ -6,7 +6,11 @@ package com.github.zzave.teambalance.api.domain.model
  */
 @JvmInline
 value class BunqMeLink private constructor(val value: String) {
+    /** False for a restored value that is not a bunq.me page, which nothing may redirect a member to. */
+    val isBunqMePage: Boolean get() = value.startsWith(PAGE_PREFIX)
+
     companion object {
+        private const val PAGE_PREFIX = "https://bunq.me/"
         const val MAX_LENGTH = 200
         private const val HOST = "bunq.me"
         private val SCHEME = Regex("^https?://", RegexOption.IGNORE_CASE)

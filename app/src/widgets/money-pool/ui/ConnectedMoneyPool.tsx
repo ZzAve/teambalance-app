@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { ArrowDownLeft, ArrowUpRight } from 'lucide-react'
 import type { Payment } from '@shared/api/money-pool'
 import { formatBeers, formatEuro, formatPaymentDate } from '../lib/format'
@@ -8,15 +9,19 @@ interface ConnectedMoneyPoolProps {
   /** Euro cents; with `beerCount`, set only when the team configured a beer price. */
   beerPrice?: number
   beerCount?: number
+  /** The top-up button or hint, shown right under the balance. */
+  topUp?: ReactNode
 }
 
-export function ConnectedMoneyPool({ balance, payments, beerPrice, beerCount }: ConnectedMoneyPoolProps) {
+export function ConnectedMoneyPool({ balance, payments, beerPrice, beerCount, topUp }: ConnectedMoneyPoolProps) {
   return (
     <div className="flex flex-col gap-6">
       <section aria-label="Balance" className="rounded-lg bg-card p-4">
         <p className="text-caption font-semibold uppercase tracking-wide text-muted-foreground">Pool balance</p>
         <p className="font-display mt-1 text-page font-extrabold leading-none">{formatEuro(balance)}</p>
       </section>
+
+      {topUp}
 
       {beerPrice !== undefined && beerCount !== undefined && (
         <section aria-label="Beer Counter" className="rounded-lg bg-card p-4">

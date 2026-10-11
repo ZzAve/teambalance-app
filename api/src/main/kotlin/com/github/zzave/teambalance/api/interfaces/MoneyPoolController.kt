@@ -4,6 +4,7 @@ import com.github.zzave.teambalance.api.application.MoneyPoolService
 import com.github.zzave.teambalance.api.domain.model.BeerPrice
 import com.github.zzave.teambalance.api.domain.model.BunqMeLink
 import com.github.zzave.teambalance.api.domain.model.MoneyPool as DomainMoneyPool
+import com.github.zzave.teambalance.api.domain.model.MoneyPoolOverview
 import com.github.zzave.teambalance.api.domain.model.MoneyPoolSettings as DomainMoneyPoolSettings
 import com.github.zzave.teambalance.api.domain.model.Payment as DomainPayment
 import com.github.zzave.teambalance.api.domain.model.PaymentDirection as DomainPaymentDirection
@@ -64,19 +65,22 @@ private fun DomainMoneyPoolSettings.produce() = MoneyPoolSettings(
     bunqMeLink = bunqMeLink?.value,
 )
 
-private fun withoutFigures(state: MoneyPoolState) =
-    MoneyPool(state, balance = null, payments = null, beerPrice = null, beerCount = null)
+private fun withoutFigures(state: MoneyPoolState, canTopUp: Boolean) =
+    MoneyPool(state, balance = null, payments = null, beerPrice = null, beerCount = null, canTopUp = canTopUp)
 
-private fun DomainMoneyPool.produce() = when (this) {
-    DomainMoneyPool.Off -> withoutFigures(MoneyPoolState.Off)
-    DomainMoneyPool.NotConnected -> withoutFigures(MoneyPoolState.NotConnected)
-    DomainMoneyPool.Unavailable -> withoutFigures(MoneyPoolState.Unavailable)
+private fun MoneyPoolOverview.produce() = pool.produce(canTopUp)
+
+private fun DomainMoneyPool.produce(canTopUp: Boolean) = when (this) {
+    DomainMoneyPool.Off -> withoutFigures(MoneyPoolState.Off, canTopUp)
+    DomainMoneyPool.NotConnected -> withoutFigures(MoneyPoolState.NotConnected, canTopUp)
+    DomainMoneyPool.Unavailable -> withoutFigures(MoneyPoolState.Unavailable, canTopUp)
     is DomainMoneyPool.Connected -> MoneyPool(
         state = MoneyPoolState.Connected,
         balance = balance.cents,
         payments = payments.map { it.produce() },
         beerPrice = beerPrice?.cents,
         beerCount = beerCount?.value,
+        canTopUp = canTopUp,
     )
 }
 

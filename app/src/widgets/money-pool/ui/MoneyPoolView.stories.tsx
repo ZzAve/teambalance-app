@@ -1,17 +1,18 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { expect, within } from 'storybook/test'
 import type { Payment } from '@shared/api/money-pool'
+import { Button } from '@shared/ui/button'
 import { Stack } from '@shared/testing/stack'
 import { MoneyPoolView } from './MoneyPoolView'
 
 // MoneyPoolView is the prop-only money pool behind the MoneyPool container, so every state renders
-// without a network (ADR-0017). It has no callbacks yet — connecting Bunq and topping up come later —
-// so there is no Interactions story.
+// without a network (ADR-0017). It has no callbacks of its own: the top-up button is a slot, and the
+// sheet behind it has its own stories, so there is no Interactions story.
 //
 // Two-story shape (ADR-0032 §1):
 //   1. Data — the connected pool: balance and payment list.
 //   2. Shells — every other state stacked: loading, error, off, not connected (member and admin),
-//      unavailable, and connected edge cases (no payments, same-day duplicates, missing balance, no beer price, an empty pool).
+//      unavailable, top-up with and without a link, and connected edge cases (no payments, same-day duplicates, missing balance, no beer price, an empty pool).
 const PAYMENTS: Payment[] = [
   { date: '2026-10-06', name: 'Lisa de Vries', amount: 2000, direction: 'In' },
   { date: '2026-10-04', name: 'Sporthal De Kuil', amount: 4500, direction: 'Out' },
@@ -30,6 +31,8 @@ const meta = {
     payments: PAYMENTS,
     beerPrice: 270,
     beerCount: 69,
+    canTopUp: true,
+    topUp: <Button>Top up</Button>,
   },
 } satisfies Meta<typeof MoneyPoolView>
 
@@ -45,6 +48,12 @@ export const Data: Story = {
     const beers = within(canvas.getByRole('region', { name: 'Beer Counter' }))
     await expect(beers.getByText('69 beers')).toBeInTheDocument()
     await expect(beers.getByText(/At .*2,70 a beer/)).toBeInTheDocument()
+    // The button sits between the Balance card and the Beer Counter.
+    const topUp = canvas.getByRole('button', { name: 'Top up' })
+    const balanceCard = canvas.getByRole('region', { name: 'Balance' })
+    const beerCard = canvas.getByRole('region', { name: 'Beer Counter' })
+    await expect(balanceCard.compareDocumentPosition(topUp) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    await expect(topUp.compareDocumentPosition(beerCard) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     const payments = within(canvas.getByRole('region', { name: 'Payments' }))
     await expect(payments.getByText('Lisa de Vries')).toBeInTheDocument()
     await expect(payments.getAllByText(/Incoming/)).toHaveLength(2)
@@ -67,6 +76,8 @@ export const Shells: Story = {
         'Not connected (member)': <MoneyPoolView {...args} state="NotConnected" />,
         'Not connected (admin)': <MoneyPoolView {...args} state="NotConnected" isAdmin />,
         Unavailable: <MoneyPoolView {...args} state="Unavailable" />,
+        'No link (member)': <MoneyPoolView {...args} state="NotConnected" canTopUp={false} />,
+        'No link (admin)': <MoneyPoolView {...args} state="NotConnected" canTopUp={false} isAdmin />,
         'No payments': <MoneyPoolView {...args} payments={[]} />,
         'Same-day duplicates': <MoneyPoolView {...args} payments={[PAYMENTS[0], PAYMENTS[0]]} />,
         'Missing balance': <MoneyPoolView {...args} balance={undefined} />,
@@ -83,6 +94,14 @@ export const Shells: Story = {
     await expect(region('Not connected (member)').getByText(/once an admin connects/i)).toBeInTheDocument()
     await expect(region('Not connected (admin)').getByText(/connecting the team.s bunq account is coming soon/i)).toBeInTheDocument()
     await expect(region('Unavailable').getByText('The pool is unavailable right now')).toBeInTheDocument()
+    // Paying through bunq.me needs no Bunq Connection, so Top up shows in every state but Off.
+    await expect(region('Not connected (member)').getByRole('button', { name: 'Top up' })).toBeInTheDocument()
+    await expect(region('Unavailable').getByRole('button', { name: 'Top up' })).toBeInTheDocument()
+    await expect(region('Off').queryByRole('button', { name: 'Top up' })).not.toBeInTheDocument()
+    await expect(region('No link (member)').queryByRole('button', { name: 'Top up' })).not.toBeInTheDocument()
+    await expect(region('No link (member)').queryByText(/bunq\.me link/)).not.toBeInTheDocument()
+    await expect(region('No link (admin)').queryByRole('button', { name: 'Top up' })).not.toBeInTheDocument()
+    await expect(region('No link (admin)').getByText(/Add the team.s bunq\.me link in the team settings/)).toBeInTheDocument()
     await expect(region('No payments').getByText('No payments in this period.')).toBeInTheDocument()
     await expect(region('Same-day duplicates').getAllByText('Lisa de Vries')).toHaveLength(2)
     await expect(region('Missing balance').getByText(/couldn't load/i)).toBeInTheDocument()

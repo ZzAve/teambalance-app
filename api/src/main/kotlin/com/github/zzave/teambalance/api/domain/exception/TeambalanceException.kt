@@ -196,3 +196,6 @@ class PlatformAdminHasMembershipException(userId: UserId) :
         "Platform admin $userId holds an active team membership; use a separate, teamless account to act as a team",
         "PLATFORM_ADMIN_HAS_MEMBERSHIP",
     )
+
+// Top-up was asked for while the money pool is Off or no bunq.me link is set: nothing to link to.
+class TopUpUnavailableException : NotFoundException("Top-up is not available for this team")

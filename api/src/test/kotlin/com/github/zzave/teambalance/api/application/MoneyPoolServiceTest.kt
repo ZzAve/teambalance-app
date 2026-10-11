@@ -93,19 +93,19 @@ class MoneyPoolServiceTest : FunSpec({
     )
 
     test("is Off when the team switched the money pool off") {
-        service(enabled = false).getMoneyPool() shouldBe MoneyPool.Off
+        service(enabled = false).getMoneyPool().pool shouldBe MoneyPool.Off
     }
 
     test("is NotConnected when enabled but no Bunq connection exists") {
-        service(connected = false).getMoneyPool() shouldBe MoneyPool.NotConnected
+        service(connected = false).getMoneyPool().pool shouldBe MoneyPool.NotConnected
     }
 
     test("is Connected with balance and payments when Bunq answers") {
-        service().getMoneyPool() shouldBe MoneyPool.Connected(Money(18_750), listOf(PAYMENT))
+        service().getMoneyPool().pool shouldBe MoneyPool.Connected(Money(18_750), listOf(PAYMENT))
     }
 
     test("is Unavailable when Bunq fails") {
-        service(gateway = RecordingBunqGateway(balanceFailure = IllegalStateException("bunq down"))).getMoneyPool() shouldBe
+        service(gateway = RecordingBunqGateway(balanceFailure = IllegalStateException("bunq down"))).getMoneyPool().pool shouldBe
             MoneyPool.Unavailable
     }
 
@@ -128,12 +128,12 @@ class MoneyPoolServiceTest : FunSpec({
     }
 
     test("is Unavailable when only the payments call fails") {
-        service(gateway = RecordingBunqGateway(paymentsFailure = IllegalStateException("bunq down"))).getMoneyPool() shouldBe
+        service(gateway = RecordingBunqGateway(paymentsFailure = IllegalStateException("bunq down"))).getMoneyPool().pool shouldBe
             MoneyPool.Unavailable
     }
 
     test("is Off when the switch is off and no connection exists") {
-        service(enabled = false, connected = false).getMoneyPool() shouldBe MoneyPool.Off
+        service(enabled = false, connected = false).getMoneyPool().pool shouldBe MoneyPool.Off
     }
 
     test("does not call Bunq when Off or NotConnected") {
@@ -150,14 +150,27 @@ class MoneyPoolServiceTest : FunSpec({
     }
 
     test("reports the beer price and the whole beers the balance buys when Connected") {
-        val pool = service(settings = MoneyPoolSettings(enabled = true, beerPrice = BeerPrice(270))).getMoneyPool()
+        val pool = service(settings = MoneyPoolSettings(enabled = true, beerPrice = BeerPrice(270))).getMoneyPool().pool
         pool shouldBe MoneyPool.Connected(Money(18_750), listOf(PAYMENT), beerPrice = BeerPrice(270), beerCount = BeerCount(69))
     }
 
     test("reports no beer price or count when the team set no price") {
-        val pool = service().getMoneyPool() as MoneyPool.Connected
+        val pool = service().getMoneyPool().pool as MoneyPool.Connected
         pool.beerPrice shouldBe null
         pool.beerCount shouldBe null
+    }
+
+    test("members can top up once the pool is on and a bunq.me link is set, in any state") {
+        val link = BunqMeLink.parse("bunq.me/setpointvt")
+        service(settings = MoneyPoolSettings(true, bunqMeLink = link)).getMoneyPool().canTopUp shouldBe true
+        service(connected = false, settings = MoneyPoolSettings(true, bunqMeLink = link)).getMoneyPool().canTopUp shouldBe true
+        service(settings = MoneyPoolSettings(true)).getMoneyPool().canTopUp shouldBe false
+        service(settings = MoneyPoolSettings(false, bunqMeLink = link)).getMoneyPool().canTopUp shouldBe false
+    }
+
+    test("a stored link that is not a bunq.me page does not allow top-up") {
+        val stored = BunqMeLink.restore("https://old.example/legacy")
+        service(settings = MoneyPoolSettings(true, bunqMeLink = stored)).getMoneyPool().canTopUp shouldBe false
     }
 
     test("tells whether the switch is on") {

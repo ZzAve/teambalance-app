@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { authMeQueryOptions } from './auth'
 import type { MoneyPoolSettings } from './generated/model/MoneyPoolSettings'
+import { topUpUrlOf } from './top-up-link'
 import { api } from './wirespec-client'
 
 // Re-export the generated contract types so the app has a single source of truth.
@@ -50,4 +51,10 @@ export function useSetMoneyPoolSettings() {
         queryClient.invalidateQueries({ queryKey: authMeQueryOptions.queryKey }),
       ]),
   })
+}
+
+// The bunq.me payment link for a top-up of `amount` whole euros (1–500). Needs no Bunq Connection;
+// a TopUpUnavailableError means the pool is off or no link is set.
+export async function fetchTopUpLink(amount: number): Promise<string> {
+  return topUpUrlOf(await api.GetTopUpLink({ amount }))
 }

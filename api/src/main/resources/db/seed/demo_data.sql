@@ -33,10 +33,7 @@ INSERT INTO team_members (team_id, user_id, role, position_id, onboarded_at) VAL
     ('a0000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000006', 'USER', 'c0000000-0000-0000-0000-000000000001', now())
 ON CONFLICT DO NOTHING;
 
--- Demo team has a connected Bunq account (served by the fake gateway in dev).
-INSERT INTO team_setpoint_vt.bunq_connection (id, bunq_account_id, connected_at) VALUES
-    (1, 'demo-account', now())
-ON CONFLICT DO NOTHING;
+-- No Bunq connection is seeded: an Admin connects through the fake Bunq approval page in dev.
 
 -- Beer Counter price (€2,70) and the team's bunq.me page. UPDATE keeps re-seeding idempotent.
 UPDATE team_setpoint_vt.money_pool_settings

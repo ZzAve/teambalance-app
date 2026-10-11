@@ -1,7 +1,11 @@
 package com.github.zzave.teambalance.api.interfaces
 
 import com.github.zzave.teambalance.api.TeamBalanceIT
+import com.github.zzave.teambalance.api.application.TokenCipher
+import com.github.zzave.teambalance.api.domain.model.BunqAccount
 import com.github.zzave.teambalance.api.domain.model.BunqAccountId
+import com.github.zzave.teambalance.api.domain.model.BunqAuthorizationCode
+import com.github.zzave.teambalance.api.domain.model.BunqGrant
 import com.github.zzave.teambalance.api.domain.model.Money
 import com.github.zzave.teambalance.api.domain.model.Payment
 import com.github.zzave.teambalance.api.domain.port.BunqGateway
@@ -30,6 +34,11 @@ import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 import java.util.UUID
 
+private val grantCipher = TokenCipher.fromBase64Key(
+    "dGVhbWJhbGFuY2UtdGVzdC1idW5xLXRva2VuLWtleTE=",
+    "teambalance.bunq.token-encryption-key",
+)
+
 private const val MEMBER_USER_ID = "b0000000-0000-0000-0000-0000000000b9"
 private const val ADMIN_USER_ID = "b0000000-0000-0000-0000-0000000000b8"
 private const val TEAM_ID = "a0000000-0000-0000-0000-000000000001"
@@ -39,10 +48,18 @@ class SwitchableBunqGateway(private val delegate: BunqGateway) : BunqGateway {
     @Volatile
     var failing = false
 
-    override fun fetchBalance(account: BunqAccountId): Money = guarded { delegate.fetchBalance(account) }
+    override fun authorizationUrl(state: String, redirectUri: String): String = delegate.authorizationUrl(state, redirectUri)
 
-    override fun fetchPayments(account: BunqAccountId, since: LocalDate, limit: Int): List<Payment> =
-        guarded { delegate.fetchPayments(account, since, limit) }
+    override fun exchangeCode(code: BunqAuthorizationCode, redirectUri: String): BunqGrant =
+        delegate.exchangeCode(code, redirectUri)
+
+    override fun listAccounts(grant: BunqGrant): List<BunqAccount> = guarded { delegate.listAccounts(grant) }
+
+    override fun fetchBalance(grant: BunqGrant, account: BunqAccountId): Money =
+        guarded { delegate.fetchBalance(grant, account) }
+
+    override fun fetchPayments(grant: BunqGrant, account: BunqAccountId, since: LocalDate, limit: Int): List<Payment> =
+        guarded { delegate.fetchPayments(grant, account, since, limit) }
 
     private fun <T> guarded(call: () -> T): T = if (failing) error("injected Bunq failure") else call()
 }
@@ -51,7 +68,8 @@ class SwitchableBunqGateway(private val delegate: BunqGateway) : BunqGateway {
 class SwitchableBunqGatewayConfig {
     @Bean
     @Primary
-    fun switchableBunqGateway(clock: Clock) = SwitchableBunqGateway(FakeBunqGatewayAdapter(clock))
+    fun switchableBunqGateway(clock: Clock) =
+        SwitchableBunqGateway(FakeBunqGatewayAdapter(clock, "http://localhost:8080"))
 }
 
 /**
@@ -93,6 +111,15 @@ class MoneyPoolControllerIT : TeamBalanceIT() {
                 .andExpect(MockMvcResultMatchers.jsonPath("$.state").value("NotConnected"))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.balance").doesNotExist())
                 .andExpect(MockMvcResultMatchers.jsonPath("$.payments").doesNotExist())
+        }
+
+        test("GET /api/team/money-pool is NotConnected while the connection has no account picked") {
+            seedTeamAndMember()
+            connectBunq(accountId = null)
+
+            getMoneyPool()
+                .andExpect(MockMvcResultMatchers.status().isOk)
+                .andExpect(MockMvcResultMatchers.jsonPath("$.state").value("NotConnected"))
         }
 
         test("GET /api/team/money-pool is Off when the switch is off, even with a connection") {
@@ -391,9 +418,13 @@ class MoneyPoolControllerIT : TeamBalanceIT() {
         jdbcTemplate.update("UPDATE public.money_pool_settings SET beer_price_cents = ? WHERE id = 1", beerPrice)
     }
 
-    private fun connectBunq() {
+    private fun connectBunq(accountId: String? = "test-account") {
         jdbcTemplate.update(
-            "INSERT INTO public.bunq_connection (id, bunq_account_id, connected_at) VALUES (1, 'test-account', now())",
+            "INSERT INTO public.bunq_connection (id, bunq_account_id, access_token_encrypted, connected_by, connected_at) " +
+                "VALUES (1, ?, ?, ?::uuid, now())",
+            accountId,
+            grantCipher.encrypt("fake:money-it:grant").value,
+            ADMIN_USER_ID,
         )
     }
 

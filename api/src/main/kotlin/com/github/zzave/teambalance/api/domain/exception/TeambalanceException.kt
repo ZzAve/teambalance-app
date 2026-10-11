@@ -1,5 +1,6 @@
 package com.github.zzave.teambalance.api.domain.exception
 
+import com.github.zzave.teambalance.api.domain.model.BunqAccountId
 import com.github.zzave.teambalance.api.domain.model.CalendarLinkId
 import com.github.zzave.teambalance.api.domain.model.EventId
 import com.github.zzave.teambalance.api.domain.model.EventTypeId
@@ -199,3 +200,15 @@ class PlatformAdminHasMembershipException(userId: UserId) :
 
 // Top-up was asked for while the money pool is Off or no bunq.me link is set: nothing to link to.
 class TopUpUnavailableException : NotFoundException("Top-up is not available for this team")
+
+// Connecting Bunq is switched off for this deployment; reads as a missing feature, not a denial.
+class BunqConnectDisabledException : NotFoundException("Connecting Bunq is not available")
+
+class BunqNotConnectedException : NotFoundException("This team has not connected Bunq")
+
+// The picked account is not one of the accounts the team's current grant covers.
+class UnknownBunqAccountException(id: BunqAccountId) :
+    BadRequestException("Bunq account not in the grant: $id", "UNKNOWN_BUNQ_ACCOUNT")
+
+// Bunq no longer accepts the team's grant (revoked, expired). The Admin's way out is to reconnect.
+class BunqGrantRejectedException : UnprocessableEntityException("Bunq rejected the grant", "BUNQ_REJECTED")

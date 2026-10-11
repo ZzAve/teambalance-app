@@ -4,15 +4,23 @@ import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.Id
 import jakarta.persistence.Table
+import java.time.Instant
+import java.util.UUID
 
-/** The tenant's singleton Bunq connection; no row means not connected (see V018__money_pool.sql). */
+/** The tenant's singleton Bunq connection; no row means not connected (see V018, V020). */
 @Entity
 @Table(name = "bunq_connection")
 class BunqConnectionJpaEntity(
     @Id
     val id: Short = SINGLETON_ID,
-    @Column(name = "bunq_account_id", nullable = false)
-    val bunqAccountId: String,
+    @Column(name = "bunq_account_id")
+    val bunqAccountId: String?,
+    @Column(name = "access_token_encrypted", nullable = false)
+    val accessTokenEncrypted: String,
+    @Column(name = "connected_by", nullable = false)
+    val connectedBy: UUID,
+    @Column(name = "connected_at", nullable = false)
+    val connectedAt: Instant,
 ) {
     companion object {
         const val SINGLETON_ID: Short = 1

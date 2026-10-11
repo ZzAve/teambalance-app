@@ -1,6 +1,8 @@
 package com.github.zzave.teambalance.api.application
 
 import com.github.zzave.teambalance.api.domain.model.BunqAccountId
+import com.github.zzave.teambalance.api.domain.model.BunqGrant
+import com.github.zzave.teambalance.api.domain.model.EncryptedToken
 import com.github.zzave.teambalance.api.domain.model.MoneyPool
 import com.github.zzave.teambalance.api.domain.model.MoneyPoolOverview
 import com.github.zzave.teambalance.api.domain.model.MoneyPoolSettings
@@ -20,16 +22,26 @@ class MoneyPoolService(
     private val connectionRepository: BunqConnectionRepository,
     private val seasonRepository: SeasonRepository,
     private val bunqGateway: BunqGateway,
+    private val grantCipher: TokenCipher,
     private val clock: Clock,
     private val authorizationService: AuthorizationService,
 ) {
-    /** Readable by any member. Any failure reaching Bunq is reported as [MoneyPool.Unavailable]. */
+    /**
+     * Readable by any member. Any failure reaching Bunq is reported as [MoneyPool.Unavailable]. A
+     * connection whose Admin has not yet picked an account reads as [MoneyPool.NotConnected].
+     */
     fun getMoneyPool(): MoneyPoolOverview {
         val settings = settingsRepository.get()
         val pool = if (!settings.enabled) {
             MoneyPool.Off
         } else {
-            connectionRepository.find()?.let { readFromBunq(it.accountId, settings) } ?: MoneyPool.NotConnected
+            val connection = connectionRepository.find()
+            val account = connection?.accountId
+            if (connection == null || account == null) {
+                MoneyPool.NotConnected
+            } else {
+                readFromBunq(connection.grant, account, settings)
+            }
         }
         return MoneyPoolOverview(pool, canTopUp = settings.topUpLink != null)
     }
@@ -49,14 +61,15 @@ class MoneyPoolService(
     }
 
     @Suppress("TooGenericExceptionCaught")
-    private fun readFromBunq(account: BunqAccountId, settings: MoneyPoolSettings): MoneyPool {
+    private fun readFromBunq(encryptedGrant: EncryptedToken, account: BunqAccountId, settings: MoneyPoolSettings): MoneyPool {
         val today = LocalDate.now(clock)
         val since = seasonRepository.get().start?.takeIf { !it.isAfter(today) } ?: today.minusDays(DEFAULT_HISTORY_DAYS)
         return try {
-            val balance = bunqGateway.fetchBalance(account)
+            val grant = BunqGrant(grantCipher.decrypt(encryptedGrant))
+            val balance = bunqGateway.fetchBalance(grant, account)
             MoneyPool.Connected(
                 balance = balance,
-                payments = bunqGateway.fetchPayments(account, since, PAYMENT_LIMIT),
+                payments = bunqGateway.fetchPayments(grant, account, since, PAYMENT_LIMIT),
                 beerPrice = settings.beerPrice,
                 beerCount = settings.beerPrice?.let { BeerCount.buying(balance, it) },
             )

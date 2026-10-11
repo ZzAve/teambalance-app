@@ -113,6 +113,9 @@ kotlin {
 
 tasks.withType<Test> {
     useJUnitPlatform()
+    // The ITs keep one Spring context per distinct configuration cached for the whole run, and the
+    // default 512 MB worker heap no longer holds them all.
+    maxHeapSize = "1g"
 }
 
 // Spring AOT bean-definition generation must see the SAME bean set that prod runs with, because

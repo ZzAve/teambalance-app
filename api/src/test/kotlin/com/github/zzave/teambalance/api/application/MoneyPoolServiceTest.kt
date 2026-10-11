@@ -3,8 +3,11 @@ package com.github.zzave.teambalance.api.application
 import com.github.zzave.teambalance.api.domain.exception.NotTeamAdminException
 import com.github.zzave.teambalance.api.domain.model.BeerCount
 import com.github.zzave.teambalance.api.domain.model.BeerPrice
+import com.github.zzave.teambalance.api.domain.model.BunqAccount
 import com.github.zzave.teambalance.api.domain.model.BunqAccountId
+import com.github.zzave.teambalance.api.domain.model.BunqAuthorizationCode
 import com.github.zzave.teambalance.api.domain.model.BunqConnection
+import com.github.zzave.teambalance.api.domain.model.BunqGrant
 import com.github.zzave.teambalance.api.domain.model.BunqMeLink
 import com.github.zzave.teambalance.api.domain.model.Money
 import com.github.zzave.teambalance.api.domain.model.MoneyPool
@@ -22,6 +25,7 @@ import com.github.zzave.teambalance.api.domain.port.SeasonRepository
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
+import java.util.Base64
 import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
@@ -32,6 +36,7 @@ private val MEMBER = UserId.random()
 
 private val ACCOUNT = BunqAccountId("account-1")
 private val TODAY = LocalDate.of(2026, 10, 11)
+private val START = Instant.parse("2026-10-11T10:00:00Z")
 private val PAYMENT = Payment(LocalDate.of(2026, 10, 1), PaymentName("Lisa"), Money(2_000), PaymentDirection.IN)
 
 private class RecordingBunqGateway(
@@ -41,14 +46,22 @@ private class RecordingBunqGateway(
     var calls = 0
     var requestedSince: LocalDate? = null
     var requestedLimit: Int? = null
+    var usedGrant: BunqGrant? = null
 
-    override fun fetchBalance(account: BunqAccountId): Money {
+    override fun authorizationUrl(state: String, redirectUri: String): String = error("not used")
+
+    override fun exchangeCode(code: BunqAuthorizationCode, redirectUri: String): BunqGrant = error("not used")
+
+    override fun listAccounts(grant: BunqGrant): List<BunqAccount> = error("not used")
+
+    override fun fetchBalance(grant: BunqGrant, account: BunqAccountId): Money {
         calls++
+        usedGrant = grant
         balanceFailure?.let { throw it }
         return Money(18_750)
     }
 
-    override fun fetchPayments(account: BunqAccountId, since: LocalDate, limit: Int): List<Payment> {
+    override fun fetchPayments(grant: BunqGrant, account: BunqAccountId, since: LocalDate, limit: Int): List<Payment> {
         calls++
         paymentsFailure?.let { throw it }
         requestedSince = since
@@ -74,9 +87,12 @@ class MoneyPoolServiceTest : FunSpec({
     directory.join(ADMIN, team, Role.ADMIN)
     directory.join(MEMBER, team, Role.USER)
 
+    val cipher = TokenCipher.fromBase64Key(Base64.getEncoder().encodeToString(ByteArray(32) { it.toByte() }), "test-key")
+
     fun service(
         enabled: Boolean = true,
         connected: Boolean = true,
+        account: BunqAccountId? = ACCOUNT,
         season: Season = Season.UNSET,
         gateway: BunqGateway = RecordingBunqGateway(),
         settings: MoneyPoolSettings = MoneyPoolSettings(enabled),
@@ -84,10 +100,14 @@ class MoneyPoolServiceTest : FunSpec({
     ) = MoneyPoolService(
         settingsRepository = settingsRepository,
         connectionRepository = object : BunqConnectionRepository {
-            override fun find() = if (connected) BunqConnection(ACCOUNT) else null
+            override fun find() =
+                if (connected) BunqConnection(account, cipher.encrypt("grant-token"), ADMIN, START) else null
+            override fun save(connection: BunqConnection) = error("not used")
+            override fun delete() = error("not used")
         },
         seasonRepository = FixedSeasonRepository(season),
         bunqGateway = gateway,
+        grantCipher = cipher,
         clock = Clock.fixed(Instant.parse("2026-10-11T10:00:00Z"), ZoneOffset.UTC),
         authorizationService = AuthorizationService(directory.teamMemberRepository(), FakeActAsGateway()),
     )
@@ -98,6 +118,37 @@ class MoneyPoolServiceTest : FunSpec({
 
     test("is NotConnected when enabled but no Bunq connection exists") {
         service(connected = false).getMoneyPool().pool shouldBe MoneyPool.NotConnected
+    }
+
+    test("is NotConnected while the connection has no account picked, and does not call Bunq") {
+        val gateway = RecordingBunqGateway()
+        service(account = null, gateway = gateway).getMoneyPool().pool shouldBe MoneyPool.NotConnected
+        gateway.calls shouldBe 0
+    }
+
+    test("reads Bunq with the decrypted grant") {
+        val gateway = RecordingBunqGateway()
+        service(gateway = gateway).getMoneyPool()
+        gateway.usedGrant shouldBe BunqGrant("grant-token")
+    }
+
+    test("is Unavailable when the stored grant cannot be decrypted") {
+        val otherKey = TokenCipher.fromBase64Key(Base64.getEncoder().encodeToString(ByteArray(32) { (it + 1).toByte() }), "other")
+        val foreign = otherKey.encrypt("grant-token")
+        val unreadable = object : BunqConnectionRepository {
+            override fun find() = BunqConnection(ACCOUNT, foreign, ADMIN, START)
+            override fun save(connection: BunqConnection) = error("not used")
+            override fun delete() = error("not used")
+        }
+        MoneyPoolService(
+            settingsRepository = InMemorySettingsRepository(MoneyPoolSettings(true)),
+            connectionRepository = unreadable,
+            seasonRepository = FixedSeasonRepository(Season.UNSET),
+            bunqGateway = RecordingBunqGateway(),
+            grantCipher = cipher,
+            clock = Clock.fixed(START, ZoneOffset.UTC),
+            authorizationService = AuthorizationService(directory.teamMemberRepository(), FakeActAsGateway()),
+        ).getMoneyPool().pool shouldBe MoneyPool.Unavailable
     }
 
     test("is Connected with balance and payments when Bunq answers") {

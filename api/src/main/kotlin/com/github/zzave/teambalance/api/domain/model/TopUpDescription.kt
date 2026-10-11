@@ -26,6 +26,6 @@ object TopUpDescription {
 
     private fun String.cutTo(length: Int): String {
         val cut = take(length)
-        return if (cut.lastOrNull()?.isHighSurrogate() == true) cut.dropLast(1) else cut
+        return (if (cut.lastOrNull()?.isHighSurrogate() == true) cut.dropLast(1) else cut).trimEnd()
     }
 }

@@ -41,7 +41,10 @@ class MoneyPoolActAsIT : TeamBalanceIT() {
         afterTest {
             jdbcTemplate.update("DELETE FROM public.act_as_sessions WHERE created_by = ?::uuid", OPERATOR_ID)
             jdbcTemplate.update("DELETE FROM public.users WHERE id = ?::uuid", OPERATOR_ID)
-            jdbcTemplate.update("UPDATE ${CalendarLinkFixture.ALPHA_SCHEMA}.money_pool_settings SET beer_price_cents = NULL WHERE id = 1")
+            jdbcTemplate.update(
+                "UPDATE ${CalendarLinkFixture.ALPHA_SCHEMA}.money_pool_settings " +
+                    "SET beer_price_cents = NULL, bunq_me_link = NULL WHERE id = 1",
+            )
         }
 
         beforeTest {
@@ -65,6 +68,17 @@ class MoneyPoolActAsIT : TeamBalanceIT() {
                     .contentType(MediaType.APPLICATION_JSON)
                     .content("""{ "enabled": true, "beerPrice": 300, "bunqMeLink": null }"""),
             ).andExpect(status().isOk).andExpect(jsonPath("$.beerPrice").value(300))
+        }
+
+        test("a Platform Admin acting as the team cannot get a top-up link, which would carry their id as a member") {
+            jdbcTemplate.update(
+                "UPDATE ${CalendarLinkFixture.ALPHA_SCHEMA}.money_pool_settings SET bunq_me_link = 'https://bunq.me/alpha' WHERE id = 1",
+            )
+            enterActAs()
+
+            dispatch(MockMvcRequestBuilders.get("/api/team/money-pool/top-up-link?amount=20").with(loginAs(OPERATOR_ID)))
+                .andExpect(status().isForbidden)
+                .andExpect(jsonPath("$.code").value("ACT_AS_NOT_PERMITTED"))
         }
     }
 

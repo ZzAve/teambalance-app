@@ -14,4 +14,9 @@ class TopUpAmountTest : FunSpec({
     test("rejects 0, a negative amount and 501") {
         listOf(0, -5, 501).forEach { shouldThrow<IllegalArgumentException> { TopUpAmount(it) } }
     }
+
+    test("a long amount is checked before it is narrowed, so 4294967316 does not wrap to 20") {
+        shouldThrow<IllegalArgumentException> { TopUpAmount.ofWhole(4_294_967_316L) }
+        TopUpAmount.ofWhole(20L).euros shouldBe 20
+    }
 })

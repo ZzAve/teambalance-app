@@ -4,6 +4,7 @@ import com.github.zzave.teambalance.api.application.MoneyPoolService
 import com.github.zzave.teambalance.api.domain.model.BeerPrice
 import com.github.zzave.teambalance.api.domain.model.BunqMeLink
 import com.github.zzave.teambalance.api.domain.model.MoneyPool as DomainMoneyPool
+import com.github.zzave.teambalance.api.domain.model.MoneyPoolOverview
 import com.github.zzave.teambalance.api.domain.model.MoneyPoolSettings as DomainMoneyPoolSettings
 import com.github.zzave.teambalance.api.domain.model.Payment as DomainPayment
 import com.github.zzave.teambalance.api.domain.model.PaymentDirection as DomainPaymentDirection
@@ -31,7 +32,7 @@ class MoneyPoolController(
 
     // Readable by any member of the current team; the tenant is resolved from the request context.
     override suspend fun getMoneyPool(request: GetMoneyPool.Request): GetMoneyPool.Response<*> =
-        GetMoneyPool.Response200(moneyPoolService.getMoneyPool().produce(moneyPoolService.canTopUp()))
+        GetMoneyPool.Response200(moneyPoolService.getMoneyPool().produce())
 
     // Admin-only (enforced in MoneyPoolService); a non-admin surfaces as 403 via the handler.
     override suspend fun getMoneyPoolSettings(request: GetMoneyPoolSettings.Request): GetMoneyPoolSettings.Response<*> =
@@ -66,6 +67,8 @@ private fun DomainMoneyPoolSettings.produce() = MoneyPoolSettings(
 
 private fun withoutFigures(state: MoneyPoolState, canTopUp: Boolean) =
     MoneyPool(state, balance = null, payments = null, beerPrice = null, beerCount = null, canTopUp = canTopUp)
+
+private fun MoneyPoolOverview.produce() = pool.produce(canTopUp)
 
 private fun DomainMoneyPool.produce(canTopUp: Boolean) = when (this) {
     DomainMoneyPool.Off -> withoutFigures(MoneyPoolState.Off, canTopUp)

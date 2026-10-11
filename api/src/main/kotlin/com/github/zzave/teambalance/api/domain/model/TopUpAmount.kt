@@ -10,5 +10,11 @@ value class TopUpAmount(val euros: Int) {
     companion object {
         const val MIN_EUROS = 1
         const val MAX_EUROS = 500
+
+        /** Checks the range before narrowing, so a value past Int range cannot wrap into it. */
+        fun ofWhole(euros: Long): TopUpAmount {
+            require(euros in MIN_EUROS..MAX_EUROS) { "Top-up amount must be between $MIN_EUROS and $MAX_EUROS euros" }
+            return TopUpAmount(euros.toInt())
+        }
     }
 }

@@ -26,10 +26,13 @@ function VerifyPage() {
 
     verifyMagicLink
       .mutateAsync(token)
-      .then((session) => {
+      .then(async (session) => {
         // The server already joined the team and rebuilt the payload around it, so this user is the
-        // post-join one — nothing here has to accept anything or refetch to catch up (#342).
+        // post-join one — nothing here has to accept anything to catch up (#342).
         queryClient.setQueryData(['auth', 'me'], session.user)
+        // Only the Team's own settings are missing from it (the sign-in response cannot read them
+        // yet), so ask /me once more now that the session exists.
+        await queryClient.invalidateQueries({ queryKey: ['auth', 'me'], refetchType: 'all' })
 
         // A dead invite no longer withholds the session: refusing a valid proof of identity would
         // strand them for good, since re-clicking an expired invite cannot help. Land them on the

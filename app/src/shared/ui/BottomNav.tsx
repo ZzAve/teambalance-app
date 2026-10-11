@@ -1,6 +1,7 @@
 import { Link, useRouterState } from '@tanstack/react-router'
 import { Calendar, Users, PiggyBank, User, type LucideIcon } from 'lucide-react'
 import { useAuthMe } from '@shared/api/auth'
+import { isMoneyPoolOff } from '@shared/lib/money-pool-visibility'
 import { ACCOUNT_PATH, teamRoutes, teamSlugFromPath, type TeamRoutes } from '@shared/lib/team-routes'
 
 interface TabConfig {
@@ -31,8 +32,11 @@ function tabsFor(routes: TeamRoutes): TabConfig[] {
 
 export function BottomNav() {
   const pathname = useRouterState({ select: (s) => s.location.pathname })
-  const activeTeamSlug = useAuthMe().data?.activeTeam?.slug
-  const TABS = tabsFor(teamRoutes(teamSlugFromPath(pathname) ?? activeTeamSlug ?? null))
+  const me = useAuthMe().data
+  const moneyOff = isMoneyPoolOff(me)
+  const TABS = tabsFor(teamRoutes(teamSlugFromPath(pathname) ?? me?.activeTeam?.slug ?? null)).filter(
+    ({ label }) => !(moneyOff && label === 'Money'),
+  )
 
   return (
     <nav

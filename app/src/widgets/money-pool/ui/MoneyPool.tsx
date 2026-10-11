@@ -14,6 +14,8 @@ export function MoneyPool() {
       isAdmin={isAdmin}
       balance={data?.balance}
       payments={data?.payments}
+      beerPrice={data?.beerPrice}
+      beerCount={data?.beerCount}
     />
   )
 }

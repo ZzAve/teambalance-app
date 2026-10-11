@@ -15,6 +15,7 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import java.util.UUID
+import com.github.zzave.teambalance.api.infrastructure.identity.loginAs
 
 // d1/d2: every IT shares one `public` schema, and tb_add_member is ON CONFLICT DO NOTHING, so a
 // user id another spec already seeded would silently keep THAT spec's role. These two are unused
@@ -378,7 +379,7 @@ class RosterRequirementPersistenceIT : TeamBalanceIT() {
     // --- helpers ---------------------------------------------------------------------------------
 
     private fun perform(builder: MockHttpServletRequestBuilder, userId: String) =
-        mockMvc.perform(builder.header("X-Team-Id", "public").header("X-User-Id", userId))
+        mockMvc.perform(builder.with(loginAs(userId, tenant = "public")))
             .andExpect(MockMvcResultMatchers.request().asyncStarted())
             .andReturn()
             .let { mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(it)) }

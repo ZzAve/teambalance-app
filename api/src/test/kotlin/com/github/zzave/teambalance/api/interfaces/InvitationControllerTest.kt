@@ -14,6 +14,7 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers
 import java.security.MessageDigest
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
+import com.github.zzave.teambalance.api.infrastructure.identity.loginAs
 
 private const val JAN_USER_ID = "c0000000-0000-0000-0000-000000000001"
 private const val LISA_USER_ID = "c0000000-0000-0000-0000-000000000002"
@@ -110,8 +111,7 @@ class InvitationControllerTest : TeamBalanceIT() {
     private fun getActiveInvitationAs(userId: String, expectedStatus: Int): String {
         val mvcResult = mockMvc.perform(
             MockMvcRequestBuilders.get("/api/invitations/active")
-                .header("X-Team-Id", "public")
-                .header("X-User-Id", userId),
+                .with(loginAs(userId, tenant = "public")),
         )
             .andExpect(MockMvcResultMatchers.request().asyncStarted())
             .andReturn()
@@ -126,8 +126,7 @@ class InvitationControllerTest : TeamBalanceIT() {
     private fun createInvitationAs(userId: String): String {
         val mvcResult = mockMvc.perform(
             MockMvcRequestBuilders.post("/api/invitations")
-                .header("X-Team-Id", "public")
-                .header("X-User-Id", userId),
+                .with(loginAs(userId, tenant = "public")),
         )
             .andExpect(MockMvcResultMatchers.request().asyncStarted())
             .andReturn()
@@ -208,8 +207,7 @@ class InvitationControllerTest : TeamBalanceIT() {
 
             mockMvc.perform(
                 MockMvcRequestBuilders.post("/api/invitations/expire")
-                    .header("X-Team-Id", "public")
-                    .header("X-User-Id", JAN_USER_ID),
+                    .with(loginAs(JAN_USER_ID, tenant = "public")),
             )
                 .andExpect(MockMvcResultMatchers.request().asyncStarted())
                 .andReturn()
@@ -226,8 +224,7 @@ class InvitationControllerTest : TeamBalanceIT() {
 
             val rotated = mockMvc.perform(
                 MockMvcRequestBuilders.post("/api/invitations/rotate")
-                    .header("X-Team-Id", "public")
-                    .header("X-User-Id", JAN_USER_ID),
+                    .with(loginAs(JAN_USER_ID, tenant = "public")),
             )
                 .andExpect(MockMvcResultMatchers.request().asyncStarted())
                 .andReturn()
@@ -271,8 +268,7 @@ class InvitationControllerTest : TeamBalanceIT() {
 
             val mvcResult = mockMvc.perform(
                 MockMvcRequestBuilders.post("/api/invitations")
-                    .header("X-Team-Id", "public")
-                    .header("X-User-Id", LISA_USER_ID),
+                    .with(loginAs(LISA_USER_ID, tenant = "public")),
             )
                 .andExpect(MockMvcResultMatchers.request().asyncStarted())
                 .andReturn()
@@ -288,7 +284,7 @@ class InvitationControllerTest : TeamBalanceIT() {
 
             val mvcResult = mockMvc.perform(
                 MockMvcRequestBuilders.post("/api/invitations/plaintext-accept-token/accept")
-                    .header("X-User-Id", JOINER_USER_ID),
+                    .with(loginAs(JOINER_USER_ID)),
             )
                 .andExpect(MockMvcResultMatchers.request().asyncStarted())
                 .andReturn()
@@ -313,8 +309,7 @@ class InvitationControllerTest : TeamBalanceIT() {
 
             val mvcResult = mockMvc.perform(
                 MockMvcRequestBuilders.post("/api/invitations/admin")
-                    .header("X-Team-Id", "public")
-                    .header("X-User-Id", JAN_USER_ID),
+                    .with(loginAs(JAN_USER_ID, tenant = "public")),
             )
                 .andExpect(MockMvcResultMatchers.request().asyncStarted())
                 .andReturn()
@@ -338,8 +333,7 @@ class InvitationControllerTest : TeamBalanceIT() {
 
             val mvcResult = mockMvc.perform(
                 MockMvcRequestBuilders.post("/api/invitations/admin")
-                    .header("X-Team-Id", "public")
-                    .header("X-User-Id", JOINER_USER_ID),
+                    .with(loginAs(JOINER_USER_ID, tenant = "public")),
             )
                 .andExpect(MockMvcResultMatchers.request().asyncStarted())
                 .andReturn()
@@ -354,7 +348,7 @@ class InvitationControllerTest : TeamBalanceIT() {
 
             val minted = mockMvc.perform(
                 MockMvcRequestBuilders.post("/api/invitations/admin")
-                    .header("X-Team-Id", "public").header("X-User-Id", JAN_USER_ID),
+                    .with(loginAs(JAN_USER_ID, tenant = "public")),
             )
                 .andExpect(MockMvcResultMatchers.request().asyncStarted()).andReturn()
                 .let { mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(it)) }
@@ -363,7 +357,7 @@ class InvitationControllerTest : TeamBalanceIT() {
 
             mockMvc.perform(
                 MockMvcRequestBuilders.get("/api/invitations/admin/active")
-                    .header("X-Team-Id", "public").header("X-User-Id", JAN_USER_ID),
+                    .with(loginAs(JAN_USER_ID, tenant = "public")),
             )
                 .andExpect(MockMvcResultMatchers.request().asyncStarted()).andReturn()
                 .let { mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(it)) }
@@ -378,7 +372,7 @@ class InvitationControllerTest : TeamBalanceIT() {
 
             mockMvc.perform(
                 MockMvcRequestBuilders.post("/api/invitations/admin/rotate")
-                    .header("X-Team-Id", "public").header("X-User-Id", JAN_USER_ID),
+                    .with(loginAs(JAN_USER_ID, tenant = "public")),
             )
                 .andExpect(MockMvcResultMatchers.request().asyncStarted()).andReturn()
                 .let { mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(it)) }
@@ -409,7 +403,7 @@ class InvitationControllerTest : TeamBalanceIT() {
 
             mockMvc.perform(
                 MockMvcRequestBuilders.post("/api/invitations/admin/expire")
-                    .header("X-Team-Id", "public").header("X-User-Id", JAN_USER_ID),
+                    .with(loginAs(JAN_USER_ID, tenant = "public")),
             )
                 .andExpect(MockMvcResultMatchers.request().asyncStarted()).andReturn()
                 .let { mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(it)) }
@@ -431,7 +425,7 @@ class InvitationControllerTest : TeamBalanceIT() {
 
             val mvcResult = mockMvc.perform(
                 MockMvcRequestBuilders.post("/api/invitations/plaintext-admin-token/accept")
-                    .header("X-User-Id", JOINER_USER_ID),
+                    .with(loginAs(JOINER_USER_ID)),
             )
                 .andExpect(MockMvcResultMatchers.request().asyncStarted())
                 .andReturn()
@@ -465,8 +459,7 @@ class InvitationControllerTest : TeamBalanceIT() {
             // USER one, but must not touch the independent single-use ADMIN handover link.
             mockMvc.perform(
                 MockMvcRequestBuilders.post("/api/invitations/rotate")
-                    .header("X-Team-Id", "public")
-                    .header("X-User-Id", JAN_USER_ID),
+                    .with(loginAs(JAN_USER_ID, tenant = "public")),
             )
                 .andExpect(MockMvcResultMatchers.request().asyncStarted())
                 .andReturn()
@@ -491,7 +484,7 @@ class InvitationControllerTest : TeamBalanceIT() {
 
             fun accept(userId: String) = mockMvc.perform(
                 MockMvcRequestBuilders.post("/api/invitations/plaintext-admin-once-token/accept")
-                    .header("X-User-Id", userId),
+                    .with(loginAs(userId)),
             )
                 .andExpect(MockMvcResultMatchers.request().asyncStarted())
                 .andReturn()
@@ -515,7 +508,7 @@ class InvitationControllerTest : TeamBalanceIT() {
 
             val mvcResult = mockMvc.perform(
                 MockMvcRequestBuilders.post("/api/invitations/does-not-exist/accept")
-                    .header("X-User-Id", JOINER_USER_ID),
+                    .with(loginAs(JOINER_USER_ID)),
             )
                 .andExpect(MockMvcResultMatchers.request().asyncStarted())
                 .andReturn()
@@ -531,7 +524,7 @@ class InvitationControllerTest : TeamBalanceIT() {
 
             val mvcResult = mockMvc.perform(
                 MockMvcRequestBuilders.post("/api/invitations/plaintext-expired-token/accept")
-                    .header("X-User-Id", EXPIRED_JOINER_USER_ID),
+                    .with(loginAs(EXPIRED_JOINER_USER_ID)),
             )
                 .andExpect(MockMvcResultMatchers.request().asyncStarted())
                 .andReturn()
@@ -555,8 +548,7 @@ class InvitationControllerTest : TeamBalanceIT() {
 
             val mvcResult = mockMvc.perform(
                 MockMvcRequestBuilders.post("/api/invitations/expire")
-                    .header("X-Team-Id", "public")
-                    .header("X-User-Id", JAN_USER_ID),
+                    .with(loginAs(JAN_USER_ID, tenant = "public")),
             )
                 .andExpect(MockMvcResultMatchers.request().asyncStarted())
                 .andReturn()
@@ -566,7 +558,7 @@ class InvitationControllerTest : TeamBalanceIT() {
 
             val acceptResult = mockMvc.perform(
                 MockMvcRequestBuilders.post("/api/invitations/plaintext-expire-token/accept")
-                    .header("X-User-Id", JOINER_USER_ID),
+                    .with(loginAs(JOINER_USER_ID)),
             )
                 .andExpect(MockMvcResultMatchers.request().asyncStarted())
                 .andReturn()
@@ -582,8 +574,7 @@ class InvitationControllerTest : TeamBalanceIT() {
 
             val mvcResult = mockMvc.perform(
                 MockMvcRequestBuilders.post("/api/invitations/rotate")
-                    .header("X-Team-Id", "public")
-                    .header("X-User-Id", JAN_USER_ID),
+                    .with(loginAs(JAN_USER_ID, tenant = "public")),
             )
                 .andExpect(MockMvcResultMatchers.request().asyncStarted())
                 .andReturn()
@@ -599,7 +590,7 @@ class InvitationControllerTest : TeamBalanceIT() {
 
             val oldTokenResult = mockMvc.perform(
                 MockMvcRequestBuilders.post("/api/invitations/plaintext-rotate-old-token/accept")
-                    .header("X-User-Id", JOINER_USER_ID),
+                    .with(loginAs(JOINER_USER_ID)),
             )
                 .andExpect(MockMvcResultMatchers.request().asyncStarted())
                 .andReturn()
@@ -608,7 +599,7 @@ class InvitationControllerTest : TeamBalanceIT() {
 
             val newTokenResult = mockMvc.perform(
                 MockMvcRequestBuilders.post("/api/invitations/$newToken/accept")
-                    .header("X-User-Id", JOINER_USER_ID),
+                    .with(loginAs(JOINER_USER_ID)),
             )
                 .andExpect(MockMvcResultMatchers.request().asyncStarted())
                 .andReturn()
@@ -629,8 +620,7 @@ class InvitationControllerTest : TeamBalanceIT() {
 
             val mvcResult = mockMvc.perform(
                 MockMvcRequestBuilders.post("/api/invitations/rotate")
-                    .header("X-Team-Id", "public")
-                    .header("X-User-Id", LISA_USER_ID),
+                    .with(loginAs(LISA_USER_ID, tenant = "public")),
             )
                 .andExpect(MockMvcResultMatchers.request().asyncStarted())
                 .andReturn()
@@ -651,8 +641,7 @@ class InvitationControllerTest : TeamBalanceIT() {
 
             val mvcResult = mockMvc.perform(
                 MockMvcRequestBuilders.post("/api/invitations/expire")
-                    .header("X-Team-Id", "public")
-                    .header("X-User-Id", LISA_USER_ID),
+                    .with(loginAs(LISA_USER_ID, tenant = "public")),
             )
                 .andExpect(MockMvcResultMatchers.request().asyncStarted())
                 .andReturn()

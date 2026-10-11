@@ -14,6 +14,7 @@ import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers
 import java.util.UUID
+import com.github.zzave.teambalance.api.infrastructure.identity.loginAs
 
 // Spec-dedicated, and it has to stay that way: this user must belong to exactly ONE Team. Tenant
 // routing resolves a sole membership and answers nothing for a user in two Teams (ADR-0023 §1), so
@@ -81,8 +82,8 @@ class EventTransactionBoundaryIT : TeamBalanceIT() {
     private fun postRecurringSeries(title: String) =
         mockMvc.perform(
             MockMvcRequestBuilders.post("/api/recurring-events")
-                .header("X-Team-Id", "public")
-                .header("X-User-Id", ADMIN_USER_ID)
+                .with(loginAs(ADMIN_USER_ID, tenant = "public"))
+                
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(
                     """

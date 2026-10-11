@@ -25,6 +25,7 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPat
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import tools.jackson.databind.ObjectMapper
 import java.time.Instant
+import com.github.zzave.teambalance.api.infrastructure.identity.loginAs
 import java.util.UUID
 
 /**
@@ -368,23 +369,23 @@ class CalendarLinkControllerIT : TeamBalanceIT() {
         body: String = label?.let { """{"label":"$it"}""" } ?: "{}",
     ) = dispatch(
         MockMvcRequestBuilders.post("/api/calendar-links")
-            .header("X-User-Id", userId)
+            .with(loginAs(userId))
             .contentType(MediaType.APPLICATION_JSON)
             .content(body),
     )
 
     private fun updateAs(userId: String, id: String, body: String) = dispatch(
         MockMvcRequestBuilders.put("/api/calendar-links/$id")
-            .header("X-User-Id", userId)
+            .with(loginAs(userId))
             .contentType(MediaType.APPLICATION_JSON)
             .content(body),
     )
 
     private fun listAs(userId: String) =
-        dispatch(MockMvcRequestBuilders.get("/api/calendar-links").header("X-User-Id", userId))
+        dispatch(MockMvcRequestBuilders.get("/api/calendar-links").with(loginAs(userId)))
 
     private fun deleteAs(userId: String, id: String) =
-        dispatch(MockMvcRequestBuilders.delete("/api/calendar-links/$id").header("X-User-Id", userId))
+        dispatch(MockMvcRequestBuilders.delete("/api/calendar-links/$id").with(loginAs(userId)))
 
     /** Stands in for a key rotation: the ciphertext is intact base64 that this key cannot open. */
     private fun corruptStoredToken() {

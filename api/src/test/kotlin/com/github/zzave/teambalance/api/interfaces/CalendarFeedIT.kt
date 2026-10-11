@@ -36,6 +36,7 @@ import tools.jackson.databind.ObjectMapper
 import java.time.Duration
 import java.sql.Timestamp
 import java.time.Instant
+import com.github.zzave.teambalance.api.infrastructure.identity.loginAs
 import java.util.UUID
 import javax.sql.DataSource
 
@@ -421,7 +422,7 @@ class CalendarFeedIT : TeamBalanceIT() {
                 withAMatch()
                 val created = dispatch(
                     MockMvcRequestBuilders.post("/api/calendar-links")
-                        .header("X-User-Id", ALPHA_MEMBER)
+                        .with(loginAs(ALPHA_MEMBER))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""{"eventTypeIds":["$MATCH_TYPE"]}"""),
                 ).andExpect(status().isCreated).andReturn().response.contentAsString
@@ -433,7 +434,7 @@ class CalendarFeedIT : TeamBalanceIT() {
 
                 dispatch(
                     MockMvcRequestBuilders.put("/api/calendar-links/$id")
-                        .header("X-User-Id", ALPHA_MEMBER)
+                        .with(loginAs(ALPHA_MEMBER))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{}"),
                 ).andExpect(status().isOk)
@@ -475,7 +476,7 @@ class CalendarFeedIT : TeamBalanceIT() {
 
     // --- helpers ---------------------------------------------------------------------------------
 
-    /** Deliberately naked: no session cookie, no X-User-Id, no X-Team-Id. The token is the credential. */
+    /** Deliberately naked: no session cookie and no CSRF token. The token in the path is the credential. */
     private fun fetch(slug: String, token: CalendarToken, ifNoneMatch: String? = null) =
         mockMvc.perform(
             MockMvcRequestBuilders.get("/api/calendar/$slug/${token.value}.ics")
@@ -497,7 +498,7 @@ class CalendarFeedIT : TeamBalanceIT() {
         """.trimIndent()
         mockMvc.perform(
             MockMvcRequestBuilders.put("/api/events/${CalendarLinkFixture.TRAINING_ID}")
-                .header("X-User-Id", ALPHA_MEMBER)
+                .with(loginAs(ALPHA_MEMBER))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(body),
         )
@@ -583,7 +584,7 @@ class CalendarFeedIT : TeamBalanceIT() {
         const val PRE_OPTIONS_VERSION = "15"
 
         // Its own user: the other specs rely on ALPHA_MEMBER belonging to Alpha alone, so the
-        // X-User-Id shim can resolve their Active Team.
+        // `loginAs` resolves their Active Team without pinning one.
         const val MIGRATED_MEMBER = "b8320000-0000-0000-0000-000000000004"
     }
 }

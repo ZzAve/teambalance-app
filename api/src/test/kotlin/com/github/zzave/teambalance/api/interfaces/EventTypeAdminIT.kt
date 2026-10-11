@@ -14,6 +14,7 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import java.util.UUID
+import com.github.zzave.teambalance.api.infrastructure.identity.loginAs
 
 // This spec runs against its OWN tenant schema, not the shared `public` one every other IT uses.
 // It archives event types — including, deliberately, all but one of the seeded ones — and event
@@ -306,7 +307,7 @@ class EventTypeAdminIT : TeamBalanceIT() {
     // --- helpers ---------------------------------------------------------------------------------
 
     private fun perform(builder: MockHttpServletRequestBuilder, userId: String) =
-        mockMvc.perform(builder.header("X-Team-Id", SCHEMA).header("X-User-Id", userId))
+        mockMvc.perform(builder.with(loginAs(userId, tenant = SCHEMA)))
             .andExpect(MockMvcResultMatchers.request().asyncStarted())
             .andReturn()
             .let { mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(it)) }
@@ -390,7 +391,7 @@ class EventTypeAdminIT : TeamBalanceIT() {
         )!!
 
     // Positions are tenant rows since ADR-0025, so they belong in the schema this spec routes to
-    // (X-Team-Id: $SCHEMA), not in the platform schema. It is also where they have to be for a
+    // (`loginAs(..., tenant = SCHEMA)`), not in the platform schema. It is also where they have to be for a
     // target to reference one — event_type_position_targets.position_id is a real foreign key now.
     private fun positionId(label: String): UUID {
         jdbcTemplate.update(

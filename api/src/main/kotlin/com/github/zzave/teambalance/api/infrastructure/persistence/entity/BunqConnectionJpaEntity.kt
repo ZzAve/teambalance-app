@@ -17,6 +17,7 @@ class BunqConnectionJpaEntity(
     val bunqAccountId: String?,
     @Column(name = "access_token_encrypted", nullable = false)
     val accessTokenEncrypted: String,
+    /** Audit only: who connected it. No foreign key, and nothing is granted to that user. */
     @Column(name = "connected_by", nullable = false)
     val connectedBy: UUID,
     @Column(name = "connected_at", nullable = false)

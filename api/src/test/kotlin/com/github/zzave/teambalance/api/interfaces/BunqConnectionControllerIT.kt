@@ -131,7 +131,7 @@ class BunqConnectionControllerIT : TeamBalanceIT() {
             val back = approve(state, login = newLogin())
             activeTeamOf(ALPHA_MEMBER, BETA_TEAM)
 
-            callback(back, signedInAs = ALPHA_MEMBER)
+            callback(back)
                 .andExpect(header().string("Location", "$ALPHA_SETTINGS?bunq=connected"))
 
             connectionRows(ALPHA_SCHEMA) shouldBe 1
@@ -187,6 +187,15 @@ class BunqConnectionControllerIT : TeamBalanceIT() {
                 ALPHA_TEAM, ALPHA_MEMBER,
             )
 
+            callback(back).andExpect(header().string("Location", "$ALPHA_SETTINGS?bunq=error"))
+
+            connectionRows(ALPHA_SCHEMA) shouldBe 0
+        }
+
+        test("a callback without the admin's session fails, spends the state and writes nothing") {
+            val back = approve(start(ALPHA_MEMBER), login = newLogin())
+
+            callback(back, signedInAs = null).andExpect(header().string("Location", "$ALPHA_SETTINGS?bunq=error"))
             callback(back).andExpect(header().string("Location", "$ALPHA_SETTINGS?bunq=error"))
 
             connectionRows(ALPHA_SCHEMA) shouldBe 0
@@ -290,7 +299,7 @@ class BunqConnectionControllerIT : TeamBalanceIT() {
             .andReturn().response.getHeader("Location")!!
             .also { it shouldStartWith "$CALLBACK?" }
 
-    private fun callback(url: String, signedInAs: String? = null): ResultActions {
+    private fun callback(url: String, signedInAs: String? = ALPHA_MEMBER): ResultActions {
         val request = get(URI.create(url))
         return mockMvc.perform(signedInAs?.let { request.with(loginAs(it)) } ?: request)
     }

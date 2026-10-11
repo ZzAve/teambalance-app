@@ -74,7 +74,8 @@ class MoneyPoolService(
                 beerCount = settings.beerPrice?.let { BeerCount.buying(balance, it) },
             )
         } catch (e: Exception) {
-            log.warn("Reading the money pool from Bunq failed", e)
+            // Class name only: a client's exception message may carry the code or the token.
+            log.warn("Reading the money pool from Bunq failed: ${e.javaClass.simpleName}")
             MoneyPool.Unavailable
         }
     }

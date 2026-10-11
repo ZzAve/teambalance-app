@@ -10,6 +10,7 @@ import java.time.Instant
 data class BunqConnection(
     val accountId: BunqAccountId?,
     val grant: EncryptedToken,
+    /** Audit only: who connected it. It grants that user nothing, and the connection survives their leaving. */
     val connectedBy: UserId,
     val connectedAt: Instant,
 )

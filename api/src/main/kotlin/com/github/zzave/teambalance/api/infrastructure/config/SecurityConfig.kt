@@ -156,7 +156,7 @@ class SecurityConfig(
             "/api/auth/**",
             "/api/ping",
             "/api/calendar/**",
-            // Bunq returns the browser here; the single-use state is the credential (ADR-0042).
+            // Bunq returns the browser here; the service demands the starting Admin's session and the single-use state (ADR-0042).
             "/api/bunq/oauth/callback",
             "/internal/actuator/**",
             // Fake Bunq approval page; the bean exists only outside prod, and the prod guard 403s /internal.

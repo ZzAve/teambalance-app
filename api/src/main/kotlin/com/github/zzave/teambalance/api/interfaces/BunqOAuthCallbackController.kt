@@ -13,9 +13,10 @@ import java.net.URI
 
 /**
  * Where Bunq sends the browser back to after the Admin approved or declined (ADR-0042). A browser
- * redirect, not an API call, so it is outside the Wirespec contract. Public: the single-use `state`
- * is the credential, and a session is optional because the return trip can land in a browser the
- * Admin never signed in to (an installed PWA hands OAuth to the system browser).
+ * redirect, not an API call, so it is outside the Wirespec contract. Public to the security chain, but
+ * the service refuses unless the browser carries the session of the Admin who started the flow and
+ * presents that flow's single-use `state`. A person who merely approves at Bunq, signed in as someone
+ * else or not at all, therefore connects nothing.
  *
  * Always answers with a redirect to the app, whatever happened, so the Admin never meets an API error page.
  */

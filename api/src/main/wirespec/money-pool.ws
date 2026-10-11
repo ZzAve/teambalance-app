@@ -56,7 +56,7 @@ endpoint GetTopUpLink GET /api/team/money-pool/top-up-link ? {amount: Integer} -
     404 -> Unit
 }
 
-// Admin-only. connectAvailable is false while Bunq connecting is switched off for this deployment (the other endpoints below answer 404 then). connected: a Bunq Connection exists. accountPicked: it also names the one account the pool reads; a connection without one reads as NotConnected on the pool.
+// Admin-only. connectAvailable is false while Bunq connecting is switched off for this deployment; starting a connection answers 404 then. connected: a Bunq Connection exists. accountPicked: it also names the one account the pool reads; a connection without one reads as NotConnected on the pool.
 type BunqConnectionStatus {
     connectAvailable: Boolean,
     connected: Boolean,

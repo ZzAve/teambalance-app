@@ -1,6 +1,7 @@
 package com.github.zzave.teambalance.api.application
 
 import com.github.zzave.teambalance.api.domain.exception.BunqConnectDisabledException
+import com.github.zzave.teambalance.api.domain.exception.BunqGrantRejectedException
 import com.github.zzave.teambalance.api.domain.exception.BunqNotConnectedException
 import com.github.zzave.teambalance.api.domain.exception.UnknownBunqAccountException
 import com.github.zzave.teambalance.api.domain.model.BunqAccountId
@@ -21,7 +22,6 @@ import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
 import com.github.zzave.teambalance.api.domain.port.TeamRepository
 import com.github.zzave.teambalance.api.domain.port.TenantScopeGateway
 import org.slf4j.LoggerFactory
-import java.security.MessageDigest
 import java.security.SecureRandom
 import java.time.Clock
 import java.time.Duration
@@ -106,7 +106,10 @@ class BunqConnectionService(
 
     /**
      * Finishes a connection from what Bunq put on the callback. [sessionUser] is the signed-in user of
-     * the browser, if any; when there is one it must be the Admin who started the flow.
+     * the browser and must be the Admin who started the flow: otherwise an Admin could hand their
+     * authorize link to someone else, and whatever Bunq account that person approved would be connected
+     * to the Admin's team. The state is the credential in addition to the session, not instead of it.
+     * Nothing is connected once connecting has been switched off, whenever the state was minted.
      *
      * Every refusal is a [BunqConnectResult.FAILED] outcome, never an exception, and an unknown,
      * expired or already used state is not told apart from the others.
@@ -114,7 +117,7 @@ class BunqConnectionService(
     fun complete(state: String?, code: String?, error: String?, sessionUser: UserId?): BunqConnectOutcome {
         val pending = state?.let { stateRepository.findByTokenHash(hash(it)) } ?: return failed(null)
         val teamSlug = teamRepository.findById(pending.teamId)?.slug
-        val routing = if (spend(pending)) routingForAdmin(pending, sessionUser) else null
+        val routing = if (connectEnabled && spend(pending)) routingForAdmin(pending, sessionUser) else null
         return when {
             routing == null -> failed(teamSlug)
             error == ACCESS_DENIED -> BunqConnectOutcome(BunqConnectResult.DECLINED, teamSlug)
@@ -154,11 +157,11 @@ class BunqConnectionService(
 
     /**
      * Where the Admin's work lands, or null when they may not connect this team any more or the
-     * browser's session is somebody else's. The lookup is membership-checked, with act-as as the only
+     * browser has no session or one that is somebody else's. The lookup is membership-checked, with act-as as the only
      * other way in.
      */
     private fun routingForAdmin(pending: BunqOAuthState, sessionUser: UserId?): TenantRouting? =
-        pending.takeIf { sessionUser == null || sessionUser == it.adminUserId }
+        pending.takeIf { sessionUser == it.adminUserId }
             ?.takeIf { authorizationService.isAdmin(it.adminUserId, it.teamId) }
             ?.let {
                 teamMemberRepository.findTenantRouting(it.teamId, it.adminUserId)
@@ -173,29 +176,39 @@ class BunqConnectionService(
         routing: TenantRouting,
         teamSlug: Slug?,
     ): BunqConnectOutcome {
-        val (grant, accounts) = try {
-            bunqGateway.exchangeCode(code, callbackUrl).let { it to bunqGateway.listAccounts(it) }
+        return try {
+            val grant = bunqGateway.exchangeCode(code, callbackUrl)
+            val accounts = bunqGateway.listAccounts(grant)
+            val now = clock.instant()
+            tenantScopeGateway.within(routing) {
+                // A reconnect keeps the chosen account only while the new grant still covers it.
+                val kept = connectionRepository.find()?.accountId?.takeIf { kept -> accounts.any { it.id == kept } }
+                connectionRepository.save(
+                    BunqConnection(
+                        accountId = kept,
+                        grant = grantCipher.encrypt(grant.accessToken),
+                        connectedBy = pending.adminUserId,
+                        connectedAt = now,
+                    ),
+                )
+            }
+            BunqConnectOutcome(BunqConnectResult.CONNECTED, teamSlug)
         } catch (e: Exception) {
-            log.warn("Connecting Bunq for team ${pending.teamId} failed", e)
-            return failed(teamSlug)
+            // Class name only: a client's exception message may carry the code or the token.
+            log.warn("Connecting Bunq for team ${pending.teamId} failed: ${e.javaClass.simpleName}")
+            failed(teamSlug)
         }
-        val now = clock.instant()
-        tenantScopeGateway.within(routing) {
-            // A reconnect keeps the chosen account only while the new grant still covers it.
-            val kept = connectionRepository.find()?.accountId?.takeIf { kept -> accounts.any { it.id == kept } }
-            connectionRepository.save(
-                BunqConnection(
-                    accountId = kept,
-                    grant = grantCipher.encrypt(grant.accessToken),
-                    connectedBy = pending.adminUserId,
-                    connectedAt = now,
-                ),
-            )
-        }
-        return BunqConnectOutcome(BunqConnectResult.CONNECTED, teamSlug)
     }
 
-    private fun grantOf(connection: BunqConnection) = BunqGrant(grantCipher.decrypt(connection.grant))
+    /** A grant that no longer decrypts (rotated key, damaged row) is as good as one Bunq rejects: reconnect. */
+    @Suppress("TooGenericExceptionCaught")
+    private fun grantOf(connection: BunqConnection): BunqGrant =
+        try {
+            BunqGrant(grantCipher.decrypt(connection.grant))
+        } catch (e: Exception) {
+            log.warn("Decrypting the Bunq grant failed: ${e.javaClass.simpleName}")
+            throw BunqGrantRejectedException()
+        }
 
     private fun failed(teamSlug: Slug?) = BunqConnectOutcome(BunqConnectResult.FAILED, teamSlug)
 
@@ -205,6 +218,5 @@ class BunqConnectionService(
         return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes)
     }
 
-    private fun hash(state: String): TokenHash =
-        TokenHash(MessageDigest.getInstance("SHA-256").digest(state.toByteArray()).joinToString("") { "%02x".format(it) })
+    private fun hash(state: String): TokenHash = TokenHash.unsalted(state)
 }

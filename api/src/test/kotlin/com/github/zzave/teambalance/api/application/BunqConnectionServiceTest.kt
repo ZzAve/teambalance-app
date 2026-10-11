@@ -85,6 +85,14 @@ private class TenantScopedConnections : TenantScopeGateway, BunqConnectionReposi
 
     fun hasNoConnections() = perSchema.isEmpty()
 
+    var failSaves = false
+
+    /** Replaces the stored grant with one sealed under a key the service does not hold. */
+    fun sealGrantWithAnotherKey() {
+        val other = TokenCipher.fromBase64Key(Base64.getEncoder().encodeToString(ByteArray(32) { it.toByte() }), "other-key")
+        perSchema.replaceAll { _, connection -> connection.copy(grant = other.encrypt("sealed")) }
+    }
+
     override fun <T> within(routing: TenantRouting, block: () -> T): T {
         val before = scope
         scope = routing.schemaName
@@ -98,6 +106,7 @@ private class TenantScopedConnections : TenantScopeGateway, BunqConnectionReposi
     override fun find() = perSchema[scope ?: error("no tenant in scope")]
 
     override fun save(connection: BunqConnection) {
+        check(!failSaves) { "database down" }
         perSchema[scope ?: error("no tenant in scope")] = connection
     }
 
@@ -161,16 +170,29 @@ class BunqConnectionServiceTest : FunSpec() {
                 Base64.getEncoder().encodeToString(ByteArray(32) { (it + 7).toByte() }),
                 "test-key",
             )
-            val service: BunqConnectionService
+            var service: BunqConnectionService
+            private val actAsGateway: FakeActAsGateway
+            private val episodes: InMemoryActAsRepository
 
             init {
                 directory.join(admin, team, Role.ADMIN)
                 directory.join(member, team, Role.USER)
                 directory.join(otherAdmin, otherTeam, Role.ADMIN)
                 val actAsGrant = actingOperator?.let { ActAs.enter(it, team, START) }
-                val episodes = InMemoryActAsRepository().also { repo -> actAsGrant?.let(repo::save) }
-                val actAsGateway = FakeActAsGateway(actAsGrant)
-                service = BunqConnectionService(
+                episodes = InMemoryActAsRepository().also { repo -> actAsGrant?.let(repo::save) }
+                actAsGateway = FakeActAsGateway(actAsGrant)
+                service = buildService(connectEnabled)
+                // The request that carries the callback is routed to some other team's schema.
+                tenants.requestSchema(directory.schemaOf(otherTeam))
+            }
+
+            /** The same service over the same stores, with connecting switched on or off. */
+            fun switchConnecting(enabled: Boolean) {
+                service = buildService(enabled)
+            }
+
+            private fun buildService(connectEnabled: Boolean) =
+                BunqConnectionService(
                     connectionRepository = tenants,
                     stateRepository = states,
                     bunqGateway = bunq,
@@ -186,9 +208,10 @@ class BunqConnectionServiceTest : FunSpec() {
                     callbackUrl = CALLBACK,
                     connectEnabled = connectEnabled,
                 )
-                // The request that carries the callback is routed to some other team's schema.
-                tenants.requestSchema(directory.schemaOf(otherTeam))
-            }
+
+            /** The callback as the browser delivers it: by default with the starting Admin's session. */
+            fun complete(state: String?, code: String?, error: String?, sessionUser: UserId? = admin) =
+                service.complete(state, code, error, sessionUser)
 
             val teamSchema get() = directory.schemaOf(team)
             val teamSlug = Slug("setpoint-vt")
@@ -203,7 +226,7 @@ class BunqConnectionServiceTest : FunSpec() {
 
             /** Connects through the callback, then has the admin's own requests routed to the team, as they are. */
             fun connected(code: String = "abc"): Fixture {
-                service.complete(startFlow(), code, null, null)
+                complete(startFlow(), code, null)
                 tenants.requestSchema(teamSchema)
                 return this
             }
@@ -266,7 +289,7 @@ class BunqConnectionServiceTest : FunSpec() {
                 val f = Fixture()
                 val state = f.startFlow()
 
-                val outcome = f.service.complete(state, "abc", null, sessionUser = null)
+                val outcome = f.complete(state, "abc", null)
 
                 outcome shouldBe BunqConnectOutcome(BunqConnectResult.CONNECTED, f.teamSlug)
                 val stored = f.tenants.connectionIn(f.teamSchema)!!
@@ -278,6 +301,38 @@ class BunqConnectionServiceTest : FunSpec() {
                 f.tenants.connectionIn(f.directory.schemaOf(f.otherTeam)) shouldBe null
             }
 
+            test("without a session it fails, spends the state and writes nothing") {
+                val f = Fixture()
+                val state = f.startFlow()
+
+                f.complete(state, "abc", null, sessionUser = null) shouldBe BunqConnectOutcome(BunqConnectResult.FAILED, f.teamSlug)
+
+                f.bunq.exchanges shouldBe 0
+                f.tenants.hasNoConnections() shouldBe true
+                f.complete(state, "abc", null).result shouldBe BunqConnectResult.FAILED
+            }
+
+            test("a state minted before connecting was switched off fails and writes nothing") {
+                val f = Fixture()
+                val state = f.startFlow()
+                f.switchConnecting(false)
+
+                f.complete(state, "abc", null) shouldBe BunqConnectOutcome(BunqConnectResult.FAILED, f.teamSlug)
+
+                f.bunq.exchanges shouldBe 0
+                f.tenants.hasNoConnections() shouldBe true
+            }
+
+            test("a failure writing the connection is a failed outcome, not an exception") {
+                val f = Fixture()
+                val state = f.startFlow()
+                f.tenants.failSaves = true
+
+                f.complete(state, "abc", null) shouldBe BunqConnectOutcome(BunqConnectResult.FAILED, f.teamSlug)
+
+                f.tenants.hasNoConnections() shouldBe true
+            }
+
             test("works when the session belongs to the admin who started it") {
                 val f = Fixture()
 
@@ -287,9 +342,9 @@ class BunqConnectionServiceTest : FunSpec() {
             test("a second use of the same state fails and exchanges nothing more") {
                 val f = Fixture()
                 val state = f.startFlow()
-                f.service.complete(state, "abc", null, null)
+                f.complete(state, "abc", null)
 
-                val outcome = f.service.complete(state, "second", null, null)
+                val outcome = f.complete(state, "second", null)
 
                 outcome shouldBe BunqConnectOutcome(BunqConnectResult.FAILED, f.teamSlug)
                 f.bunq.exchanges shouldBe 1
@@ -301,7 +356,7 @@ class BunqConnectionServiceTest : FunSpec() {
                 val state = f.startFlow()
                 f.clock.advance(Duration.ofMinutes(10).plusSeconds(1))
 
-                val outcome = f.service.complete(state, "abc", null, null)
+                val outcome = f.complete(state, "abc", null)
 
                 outcome shouldBe BunqConnectOutcome(BunqConnectResult.FAILED, f.teamSlug)
                 f.bunq.exchanges shouldBe 0
@@ -313,7 +368,7 @@ class BunqConnectionServiceTest : FunSpec() {
                 f.startFlow()
 
                 listOf("not-a-state", "", null).forEach {
-                    f.service.complete(it, "abc", null, null) shouldBe BunqConnectOutcome(BunqConnectResult.FAILED, null)
+                    f.complete(it, "abc", null) shouldBe BunqConnectOutcome(BunqConnectResult.FAILED, null)
                 }
                 f.bunq.exchanges shouldBe 0
                 f.tenants.hasNoConnections() shouldBe true
@@ -323,19 +378,19 @@ class BunqConnectionServiceTest : FunSpec() {
                 val f = Fixture()
                 val state = f.startFlow()
 
-                f.service.complete(state, null, "access_denied", null) shouldBe
+                f.complete(state, null, "access_denied") shouldBe
                     BunqConnectOutcome(BunqConnectResult.DECLINED, f.teamSlug)
 
                 f.bunq.exchanges shouldBe 0
                 f.tenants.hasNoConnections() shouldBe true
-                f.service.complete(state, "abc", null, null).result shouldBe BunqConnectResult.FAILED
+                f.complete(state, "abc", null).result shouldBe BunqConnectResult.FAILED
             }
 
             test("any other error, or no code, fails") {
                 val f = Fixture()
 
-                f.service.complete(f.startFlow(), null, "server_error", null).result shouldBe BunqConnectResult.FAILED
-                f.service.complete(f.startFlow(), null, null, null).result shouldBe BunqConnectResult.FAILED
+                f.complete(f.startFlow(), null, "server_error").result shouldBe BunqConnectResult.FAILED
+                f.complete(f.startFlow(), null, null).result shouldBe BunqConnectResult.FAILED
                 f.tenants.hasNoConnections() shouldBe true
             }
 
@@ -344,7 +399,7 @@ class BunqConnectionServiceTest : FunSpec() {
                 val state = f.startFlow()
                 f.directory.join(admin, f.team, Role.USER)
 
-                f.service.complete(state, "abc", null, null) shouldBe BunqConnectOutcome(BunqConnectResult.FAILED, f.teamSlug)
+                f.complete(state, "abc", null) shouldBe BunqConnectOutcome(BunqConnectResult.FAILED, f.teamSlug)
 
                 f.bunq.exchanges shouldBe 0
                 f.tenants.hasNoConnections() shouldBe true
@@ -355,7 +410,7 @@ class BunqConnectionServiceTest : FunSpec() {
                 val state = f.startFlow()
                 f.directory.leave(admin, f.team)
 
-                f.service.complete(state, "abc", null, null).result shouldBe BunqConnectResult.FAILED
+                f.complete(state, "abc", null).result shouldBe BunqConnectResult.FAILED
 
                 f.tenants.hasNoConnections() shouldBe true
             }
@@ -374,7 +429,7 @@ class BunqConnectionServiceTest : FunSpec() {
             test("a code Bunq refuses fails and writes nothing") {
                 val f = Fixture()
 
-                f.service.complete(f.startFlow(), "refused", null, null) shouldBe
+                f.complete(f.startFlow(), "refused", null) shouldBe
                     BunqConnectOutcome(BunqConnectResult.FAILED, f.teamSlug)
 
                 f.tenants.hasNoConnections() shouldBe true
@@ -394,7 +449,7 @@ class BunqConnectionServiceTest : FunSpec() {
                 val f = Fixture().connected("first")
                 f.service.pickAccount(admin, f.team, BunqAccountId("acc-2"))
 
-                f.service.complete(f.startFlow(), "second", null, null).result shouldBe BunqConnectResult.CONNECTED
+                f.complete(f.startFlow(), "second", null).result shouldBe BunqConnectResult.CONNECTED
 
                 f.grantIn(f.teamSchema) shouldBe "token-for-second"
                 f.tenants.connectionIn(f.teamSchema)!!.accountId shouldBe BunqAccountId("acc-2")
@@ -405,7 +460,7 @@ class BunqConnectionServiceTest : FunSpec() {
                 f.service.pickAccount(admin, f.team, BunqAccountId("acc-2"))
                 f.bunq.accounts = listOf(BunqAccount(BunqAccountId("acc-9"), BunqAccountName("Other")))
 
-                f.service.complete(f.startFlow(), "second", null, null)
+                f.complete(f.startFlow(), "second", null)
 
                 f.tenants.connectionIn(f.teamSchema)!!.accountId shouldBe null
             }
@@ -436,6 +491,14 @@ class BunqConnectionServiceTest : FunSpec() {
 
                 shouldThrow<BunqNotConnectedException> { f.service.listAccounts(admin, f.team) }
                 shouldThrow<BunqNotConnectedException> { f.service.pickAccount(admin, f.team, BunqAccountId("acc-1")) }
+            }
+
+            test("reports a stored grant that cannot be decrypted, as one Bunq rejects") {
+                val f = Fixture().connected()
+                f.tenants.sealGrantWithAnotherKey()
+
+                shouldThrow<BunqGrantRejectedException> { f.service.listAccounts(admin, f.team) }
+                shouldThrow<BunqGrantRejectedException> { f.service.pickAccount(admin, f.team, BunqAccountId("acc-1")) }
             }
 
             test("reports a grant Bunq rejects") {
@@ -476,7 +539,7 @@ class BunqConnectionServiceTest : FunSpec() {
                 f.tenants.requestSchema(f.teamSchema)
 
                 f.service.status(admin, f.team) shouldBe BunqConnectionStatus(true, connected = false, accountPicked = false)
-                f.service.complete(f.startFlow(), "abc", null, null)
+                f.complete(f.startFlow(), "abc", null)
                 f.service.status(admin, f.team) shouldBe BunqConnectionStatus(true, connected = true, accountPicked = false)
                 f.service.pickAccount(admin, f.team, BunqAccountId("acc-1"))
                 f.service.status(admin, f.team) shouldBe BunqConnectionStatus(true, connected = true, accountPicked = true)

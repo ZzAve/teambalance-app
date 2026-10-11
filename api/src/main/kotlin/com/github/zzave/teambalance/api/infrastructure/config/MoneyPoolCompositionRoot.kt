@@ -1,5 +1,6 @@
 package com.github.zzave.teambalance.api.infrastructure.config
 
+import com.github.zzave.teambalance.api.application.AuthorizationService
 import com.github.zzave.teambalance.api.application.MoneyPoolService
 import com.github.zzave.teambalance.api.domain.port.BunqConnectionRepository
 import com.github.zzave.teambalance.api.domain.port.BunqGateway
@@ -22,11 +23,13 @@ class MoneyPoolCompositionRoot {
         seasonRepository: SeasonRepository,
         bunqGateway: BunqGateway,
         clock: Clock,
+        authorizationService: AuthorizationService,
     ) = MoneyPoolService(
         settingsRepository = settingsRepository,
         connectionRepository = connectionRepository,
         seasonRepository = seasonRepository,
         bunqGateway = bunqGateway,
         clock = clock,
+        authorizationService = authorizationService,
     )
 }

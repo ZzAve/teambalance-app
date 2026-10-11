@@ -1,24 +1,34 @@
 package com.github.zzave.teambalance.api.application
 
+import com.github.zzave.teambalance.api.domain.exception.NotTeamAdminException
+import com.github.zzave.teambalance.api.domain.model.BeerCount
+import com.github.zzave.teambalance.api.domain.model.BeerPrice
 import com.github.zzave.teambalance.api.domain.model.BunqAccountId
 import com.github.zzave.teambalance.api.domain.model.BunqConnection
+import com.github.zzave.teambalance.api.domain.model.BunqMeLink
 import com.github.zzave.teambalance.api.domain.model.Money
 import com.github.zzave.teambalance.api.domain.model.MoneyPool
 import com.github.zzave.teambalance.api.domain.model.MoneyPoolSettings
 import com.github.zzave.teambalance.api.domain.model.Payment
 import com.github.zzave.teambalance.api.domain.model.PaymentDirection
 import com.github.zzave.teambalance.api.domain.model.PaymentName
+import com.github.zzave.teambalance.api.domain.model.Role
 import com.github.zzave.teambalance.api.domain.model.Season
+import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.port.BunqConnectionRepository
 import com.github.zzave.teambalance.api.domain.port.BunqGateway
 import com.github.zzave.teambalance.api.domain.port.MoneyPoolSettingsRepository
 import com.github.zzave.teambalance.api.domain.port.SeasonRepository
+import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
+
+private val ADMIN = UserId.random()
+private val MEMBER = UserId.random()
 
 private val ACCOUNT = BunqAccountId("account-1")
 private val TODAY = LocalDate.of(2026, 10, 11)
@@ -47,6 +57,11 @@ private class RecordingBunqGateway(
     }
 }
 
+private class InMemorySettingsRepository(var settings: MoneyPoolSettings) : MoneyPoolSettingsRepository {
+    override fun get() = settings
+    override fun save(settings: MoneyPoolSettings): MoneyPoolSettings = settings.also { this.settings = it }
+}
+
 private class FixedSeasonRepository(private val season: Season) : SeasonRepository {
     override fun get(): Season = season
     override fun save(season: Season): Season = season
@@ -54,21 +69,27 @@ private class FixedSeasonRepository(private val season: Season) : SeasonReposito
 
 class MoneyPoolServiceTest : FunSpec({
 
+    val directory = TeamDirectory()
+    val team = directory.addTeam("Setpoint VT", "setpoint-vt")
+    directory.join(ADMIN, team, Role.ADMIN)
+    directory.join(MEMBER, team, Role.USER)
+
     fun service(
         enabled: Boolean = true,
         connected: Boolean = true,
         season: Season = Season.UNSET,
         gateway: BunqGateway = RecordingBunqGateway(),
+        settings: MoneyPoolSettings = MoneyPoolSettings(enabled),
+        settingsRepository: MoneyPoolSettingsRepository = InMemorySettingsRepository(settings),
     ) = MoneyPoolService(
-        settingsRepository = object : MoneyPoolSettingsRepository {
-            override fun get() = MoneyPoolSettings(enabled)
-        },
+        settingsRepository = settingsRepository,
         connectionRepository = object : BunqConnectionRepository {
             override fun find() = if (connected) BunqConnection(ACCOUNT) else null
         },
         seasonRepository = FixedSeasonRepository(season),
         bunqGateway = gateway,
         clock = Clock.fixed(Instant.parse("2026-10-11T10:00:00Z"), ZoneOffset.UTC),
+        authorizationService = AuthorizationService(directory.teamMemberRepository(), FakeActAsGateway()),
     )
 
     test("is Off when the team switched the money pool off") {
@@ -126,5 +147,45 @@ class MoneyPoolServiceTest : FunSpec({
         val gateway = RecordingBunqGateway()
         service(season = Season(start = TODAY.plusDays(30), end = null), gateway = gateway).getMoneyPool()
         gateway.requestedSince shouldBe TODAY.minusDays(90)
+    }
+
+    test("reports the beer price and the whole beers the balance buys when Connected") {
+        val pool = service(settings = MoneyPoolSettings(enabled = true, beerPrice = BeerPrice(270))).getMoneyPool()
+        pool shouldBe MoneyPool.Connected(Money(18_750), listOf(PAYMENT), beerPrice = BeerPrice(270), beerCount = BeerCount(69))
+    }
+
+    test("reports no beer price or count when the team set no price") {
+        val pool = service().getMoneyPool() as MoneyPool.Connected
+        pool.beerPrice shouldBe null
+        pool.beerCount shouldBe null
+    }
+
+    test("tells whether the switch is on") {
+        service(enabled = true).isEnabled() shouldBe true
+        service(enabled = false).isEnabled() shouldBe false
+    }
+
+    test("an admin reads the settings") {
+        val settings = MoneyPoolSettings(true, BeerPrice(270), BunqMeLink.parse("bunq.me/setpointvt"))
+        service(settings = settings).getSettings(ADMIN, team) shouldBe settings
+    }
+
+    test("a member cannot read the settings") {
+        shouldThrow<NotTeamAdminException> { service().getSettings(MEMBER, team) }
+    }
+
+    test("an admin replaces the settings, clearing what is left out") {
+        val repository = InMemorySettingsRepository(MoneyPoolSettings(true, BeerPrice(270), BunqMeLink.parse("bunq.me/a")))
+        val replacement = MoneyPoolSettings(enabled = false)
+        service(settingsRepository = repository).updateSettings(ADMIN, team, replacement) shouldBe replacement
+        repository.settings shouldBe replacement
+    }
+
+    test("a member cannot replace the settings") {
+        val repository = InMemorySettingsRepository(MoneyPoolSettings(true))
+        shouldThrow<NotTeamAdminException> {
+            service(settingsRepository = repository).updateSettings(MEMBER, team, MoneyPoolSettings(false))
+        }
+        repository.settings shouldBe MoneyPoolSettings(true)
     }
 })

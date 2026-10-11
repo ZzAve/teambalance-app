@@ -2,6 +2,7 @@ package com.github.zzave.teambalance.api.interfaces
 
 import com.github.zzave.teambalance.api.application.ActAsService
 import com.github.zzave.teambalance.api.application.AuthService
+import com.github.zzave.teambalance.api.application.MoneyPoolService
 import com.github.zzave.teambalance.api.application.PhotoService
 import com.github.zzave.teambalance.api.domain.model.Email
 import com.github.zzave.teambalance.api.domain.model.Role
@@ -26,6 +27,7 @@ class AuthController(
     private val actAsService: ActAsService,
     private val currentTeamGateway: CurrentTeamGateway,
     private val photoService: PhotoService,
+    private val moneyPoolService: MoneyPoolService,
 ) : RequestMagicLink.Handler,
     VerifyMagicLink.Handler,
     Logout.Handler,
@@ -57,8 +59,16 @@ class AuthController(
 
     override suspend fun getAuthMe(request: GetAuthMe.Request): GetAuthMe.Response<*> =
         authService.currentUser()
-            ?.let { GetAuthMe.Response200(describe(it, currentTeamGateway.findCurrentTeamId())) }
+            ?.let { GetAuthMe.Response200(describeWithMoneyPool(describe(it, currentTeamGateway.findCurrentTeamId()))) }
             ?: GetAuthMe.Response401(Unit)
+
+    /**
+     * `moneyPoolEnabled` lives in the Team's tenant schema, which is only on the request once a session
+     * existed before it. So only `/api/auth/me` fills it; the sign-in response leaves it null and the
+     * client refetches `/api/auth/me`.
+     */
+    private fun describeWithMoneyPool(user: AuthenticatedUser) =
+        user.copy(moneyPoolEnabled = user.activeTeam?.let { moneyPoolService.isEnabled() })
 
     /**
      * [activeTeamId] is intersected with the memberships rather than reported as given, so the payload
@@ -87,6 +97,7 @@ class AuthController(
             isPlatformAdmin = authService.isPlatformAdmin(user.id),
             actAs = actAs?.produce(),
             personalPhotoVersion = photoService.personalPhotoVersion(user.id),
+            moneyPoolEnabled = null,
         )
     }
 }

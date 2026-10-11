@@ -4,6 +4,7 @@ import { queryClient } from '@shared/api/query-client'
 import { teamRoutes } from '@shared/lib/team-routes'
 import { MemberRoster } from '@features/manage-members/ui/MemberRoster'
 import { TeamSettings } from '@features/team-settings/ui/TeamSettings'
+import { MoneySettings } from '@features/money-settings/ui/MoneySettings'
 import { ManagePositions } from '@features/manage-positions/ui/ManagePositions'
 import { ManageSubstitutes } from '@features/manage-substitutes/ui/ManageSubstitutes'
 import { ManageEventTypes } from '@features/manage-event-types/ui/ManageEventTypes'
@@ -31,7 +32,7 @@ export const Route = createFileRoute('/t/$slug/team/settings')({
 function TeamSettingsPage() {
   // Admin manage surface: member management (the editable roster), then positions, then the Team's
   // Substitutes (who hold those positions), then the event types whose roster defaults reference
-  // those positions, then team settings, then platform access.
+  // those positions, then team settings, then the money pool, then platform access.
   // Event types come after positions deliberately — a roster default is authored in terms of the
   // vocabulary above it. The read-only view of the same roster lives on /team.
   return (
@@ -41,6 +42,7 @@ function TeamSettingsPage() {
       <ManageSubstitutes canManage />
       <ManageEventTypes />
       <TeamSettings />
+      <MoneySettings />
       {/* Handing over admin (ADR-0024 §5): how a prepared, memberless team gets its first real Admin.
           Below the day-to-day settings — it is a one-off, not a routine control. */}
       <HandoverAdmin />

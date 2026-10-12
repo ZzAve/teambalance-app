@@ -10,6 +10,7 @@ theme song as a music bed.
 take.log is the harness output with `CAPTION_AT <ms> <caption>` lines; a caption's clip starts at
 intro length + caption time + TAKE_OFFSET. __intro plays over the intro card, __outro over the outro.
 Fails when a clip runs into the next one or a silence between lines is longer than MAX_GAP.
+Writes <out>.transcript.md next to the video: time, on-screen text and voice-over per line, for review.
 
 With --song, the song starts at 0 and its real ending lands on the last frame: whole bars are skipped
 from the middle and the outro card is sized to fit. Without --cut it renders the three best cut
@@ -109,6 +110,30 @@ def music_filter(song, cut, skip, length, intro_end, outro_start):
             f"[3:a]aresample=48000[v];[v][m]amix=inputs=2:normalize=0,alimiter=limit=0.95[a]")
 
 
+def transcript(placed, clips, cards, intro_len, outro_start, total):
+    """Review transcript: per row the time the line is spoken, what is on screen, and what is said."""
+    stamp = lambda s: f'{int(s // 60)}:{s % 60:04.1f}'
+    cell = lambda s: s.replace('|', '\\|')
+    texts = json.load(open(cards)) if os.path.exists(cards) else {}
+    rows = ['| Time | On screen | Voice-over |', '|---|---|---|']
+    for start, key in placed:
+        if key == '__intro':
+            screen = 'Intro card: ' + ' / '.join(texts.get('intro', []))
+            start_card, end_card = 0, intro_len
+        elif key == '__outro':
+            screen = 'Outro card: ' + ' / '.join(texts.get('outro', []))
+            start_card, end_card = outro_start, total
+        else:
+            screen = f'Caption: {key}'
+            start_card = end_card = None
+        end = start + clips[key]['seconds']
+        when = f'{stamp(start)}–{stamp(end)}'
+        if start_card is not None:
+            when += f' (card {stamp(start_card)}–{stamp(end_card)})'
+        rows.append(f"| {when} | {cell(screen)} | {cell(clips[key].get('spoken', '—'))} |")
+    return '\n'.join(rows) + '\n'
+
+
 def main():
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     for name in ('take', 'log', 'clips', 'cards', 'out'):
@@ -160,6 +185,11 @@ def main():
         print(f'silence {gap:.1f}s at {start:.1f}s after "{text}"')
     if any(gap > MAX_GAP for gap, _, _ in gaps):
         sys.exit(f'silence over {MAX_GAP}s: shorten the hold or start the next line sooner (dead air)')
+
+    review = transcript(placed, clips, os.path.join(a.cards, 'cards-text.json'), intro_len, intro_len + take_len, total)
+    review_path = os.path.splitext(a.out)[0] + '.transcript.md'
+    open(review_path, 'w').write(f'# {os.path.basename(a.out)} ({total:.1f} s)\n\n' + review)
+    print(f'transcript: {review_path}\n\n{review}')
 
     card(os.path.join(a.cards, 'intro.png'), intro_len, width, height, os.path.join(tmp, 'intro.mp4'))
     card(os.path.join(a.cards, 'outro.png'), outro_len, width, height, os.path.join(tmp, 'outro.mp4'))

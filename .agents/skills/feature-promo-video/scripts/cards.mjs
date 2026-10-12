@@ -43,6 +43,11 @@ copyFileSync(join(SKILL, 'cards', 'portrait.css'), join(out, 'portrait.css'))
 copyFileSync(`${APP}/public/tb-monogram.svg`, join(out, 'tb-monogram.svg'))
 copyFileSync(`${APP}/node_modules/@fontsource-variable/grandstander/files/grandstander-latin-wght-normal.woff2`, join(out, 'grandstander-latin-wght-normal.woff2'))
 copyFileSync(`${APP}/node_modules/@fontsource-variable/dm-sans/files/dm-sans-latin-opsz-normal.woff2`, join(out, 'dm-sans-latin-opsz-normal.woff2'))
+// The cards' text for assemble.py's review transcript.
+writeFileSync(join(out, 'cards-text.json'), JSON.stringify({
+  intro: [`${intro.headline} ${intro.accent}`, intro.sub, intro.pill].filter(Boolean),
+  outro: ['Try it today.', outro.steps.map((s) => (typeof s === 'string' ? s : s.label)).join(' → '), outro.sub, 'teambalance.nl'].filter(Boolean),
+}, null, 1))
 writeFileSync(join(out, 'cards.json'), JSON.stringify({
   width: 1170, height: 2532, dir: out,
   cards: [{ html: 'intro.html', out: 'intro.png' }, { html: 'outro.html', out: 'outro.png' }],

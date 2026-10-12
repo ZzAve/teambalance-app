@@ -6,7 +6,7 @@
 
   uv run narrate.py docs/demo/<feature>.narration.json <out-dir> [voice] [speed]
 
-Writes <out-dir>/line-NN.wav and <out-dir>/clips.json ({caption: {file, seconds}}). Pass clips.json
+Writes <out-dir>/line-NN.wav and <out-dir>/clips.json ({caption: {file, seconds, spoken}}). Pass clips.json
 to the take as NARRATION=… and to assemble.py. Keys whose value is not a string (the card texts)
 are skipped.
 
@@ -88,6 +88,6 @@ for i, (caption, spoken) in enumerate(lines.items()):
     audio = np.concatenate(parts)
     wav = os.path.abspath(os.path.join(out_dir, f'line-{i:02d}.wav'))
     sf.write(wav, audio, RATE)
-    clips[caption] = {'file': wav, 'seconds': round(len(audio) / RATE, 3)}
+    clips[caption] = {'file': wav, 'seconds': round(len(audio) / RATE, 3), 'spoken': re.sub(r'\s*\|\s*', ' ', spoken)}
     print(f'{len(audio) / RATE:5.2f}s  {spoken[:70]}', flush=True)
 json.dump(clips, open(os.path.join(out_dir, 'clips.json'), 'w'), indent=1, ensure_ascii=False)

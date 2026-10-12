@@ -1,0 +1,107 @@
+/**
+ * Steps for the substitutes promo (ADR-0033): the real SPA against api-fixture.mjs, recorded and voiced
+ * with the feature-promo-video skill (its SKILL.md has the commands).
+ */
+import { installFixtureApi } from './api-fixture.mjs'
+import { narratedTake } from './narrated-take.mjs'
+
+const TEAM_SLUG = 'heren-3'
+
+export default async function script({ page, caption, section, sleep, click, type, scrollTo, moveTo, BASE }) {
+  const { speak, say, untilLineEnds, captionAt } = await narratedTake({ page, caption, sleep })
+  await installFixtureApi(page)
+  const onScreen = { scroll: false }
+
+  await section('events', async () => {
+    await page.goto(`${BASE}/t/${TEAM_SLUG}`)
+    await page.getByRole('heading', { name: 'Events' }).waitFor()
+    await page.waitForLoadState('networkidle')
+    await sleep(page, 600)
+    await say('Short of players? Call in a substitute.', 2600)
+    const training = page.locator('a[href$="/events/evt-2"]')
+    await scrollTo(page, training)
+    await sleep(page, 400)
+    await speak('Tuesday Training is one setter short. Open it.', 2000)
+    await sleep(page, 700)
+    await click(page, training, onScreen)
+    await page.getByRole('heading', { name: 'Tuesday Training', level: 1 }).waitFor()
+    await page.waitForLoadState('networkidle')
+    await untilLineEnds()
+  })
+
+  const findSetter = page.getByRole('button', { name: 'Find a Setter · 1 open' })
+  const sheet = page.getByRole('dialog')
+
+  await section('lineup', async () => {
+    await scrollTo(page, findSetter)
+    await sleep(page, 400)
+    await say('The lineup shows every short position, with a way to fill it.', 3000)
+    await speak('Tap "Find a Setter".', 1200)
+    await sleep(page, 300)
+    await click(page, findSetter, onScreen)
+    await sheet.getByRole('heading', { name: 'Find a Setter' }).waitFor()
+    await captionAt('top')
+    await untilLineEnds()
+    await say('Substitutes who play setter come first.', 2400)
+    await speak('Kees said yes: mark him Going.', 2000)
+    await sleep(page, 300)
+    await click(page, sheet.getByRole('group', { name: 'Kees Bakker' }).getByRole('button', { name: 'Going' }), onScreen)
+    await untilLineEnds()
+    await sleep(page, 400)
+    await speak('Someone new? Add them by name; they join as Asked.', 3600)
+    await sleep(page, 300)
+    await click(page, sheet.getByRole('button', { name: 'New substitute' }), onScreen)
+    await type(page, sheet.getByLabel('Name'), 'Pieter Smit', onScreen)
+    await sleep(page, 300)
+    await click(page, sheet.getByRole('button', { name: 'Add as asked' }), onScreen)
+    await sheet.getByRole('group', { name: 'Pieter Smit' }).waitFor()
+    await untilLineEnds()
+    await sleep(page, 600)
+    await speak('Done. The setter spot is filled.', 2200)
+    await sleep(page, 300)
+    await click(page, sheet.getByRole('button', { name: 'Done' }), onScreen)
+    await sheet.waitFor({ state: 'hidden' })
+    await captionAt('bottom')
+    const setterGroup = page.getByRole('heading', { name: 'Setter', exact: true })
+    await scrollTo(page, setterGroup)
+    await untilLineEnds()
+    await sleep(page, 400)
+    const block = page.getByRole('region', { name: 'Substitutes' })
+    await scrollTo(page, block)
+    await sleep(page, 400)
+    await say('Every substitute on the event sits under the lineup: going, asked or can\'t.', 3200)
+  })
+
+  await section('settings', async () => {
+    await speak('Admins keep the list under Team settings.', 2400)
+    await sleep(page, 300)
+    await click(page, page.getByRole('link', { name: 'Team', exact: true }))
+    await page.getByRole('link', { name: 'Team settings' }).waitFor()
+    await sleep(page, 500)
+    await click(page, page.getByRole('link', { name: 'Team settings' }), onScreen)
+    // The Team page shows the same "Substitutes" heading read-only, so wait for the route change first.
+    await page.waitForURL(/\/team\/settings$/)
+    const milaPosition = page.getByRole('combobox', { name: 'Position for Mila Jansen' })
+    await milaPosition.waitFor()
+    await page.waitForLoadState('networkidle')
+    await sleep(page, 300)
+    await scrollTo(page, page.getByRole('heading', { name: 'Substitutes', exact: true }))
+    await untilLineEnds()
+    await sleep(page, 400)
+    await speak('Give Mila her position, so she is found first next time.', 3000)
+    await sleep(page, 300)
+    await click(page, milaPosition, onScreen)
+    await sleep(page, 500)
+    await click(page, page.getByRole('option', { name: 'Libero' }), onScreen)
+    await untilLineEnds()
+    await sleep(page, 400)
+    await speak('Rename, shirt number or remove: all in the row\'s menu.', 2800)
+    await sleep(page, 300)
+    await click(page, page.getByRole('button', { name: 'Actions for Mila Jansen' }), onScreen)
+    await page.getByRole('menuitem', { name: 'Rename' }).waitFor()
+    await untilLineEnds()
+    await sleep(page, 800)
+    await page.keyboard.press('Escape')
+    await sleep(page, 600)
+  })
+}

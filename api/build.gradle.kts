@@ -113,6 +113,7 @@ kotlin {
 
 tasks.withType<Test> {
     useJUnitPlatform()
+    maxHeapSize = "1g"
 }
 
 // Spring AOT bean-definition generation must see the SAME bean set that prod runs with, because

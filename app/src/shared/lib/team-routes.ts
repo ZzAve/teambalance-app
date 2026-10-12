@@ -28,7 +28,7 @@ export interface TeamRoutes {
   /** A Member's detail page, opened from the roster. */
   member: (userId: string) => string
   teamSettings: string
-  /** The shared-money pool — a coming-soon placeholder for now (Bunq integration to follow). */
+  /** The shared-money pool. */
   money: string
   /** The member's own calendar links (webcal subscriptions) for this Team. */
   calendar: string

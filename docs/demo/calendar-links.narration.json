@@ -1,24 +1,31 @@
 {
-  "__intro": "Your team schedule, in your own calendar. Calendar links are live!",
-  "Our schedule lives in TeamBalance: trainings, matches, drinks.": "Our whole schedule lives in TeamBalance: trainings, matches, and drinks.",
-  "New: subscribe to it from your own calendar app.": "And here's the news: you can now subscribe to it from your own calendar app!",
+  "__introCard": {
+    "headline": "Your team schedule,",
+    "accent": "in your own calendar.",
+    "sub": "Trainings, matches and drinks show up next to the rest of your week, and stay in sync when something moves.",
+    "pill": "Calendar links are live"
+  },
+  "__outroCard": {
+    "steps": ["Events", { "label": "Calendar links", "icon": "calendar-days" }, "Generate link"],
+    "sub": "Works with Apple Calendar, Google Calendar and Outlook. Up to three links each, valid for a year."
+  },
+  "__intro":"Your team schedule, | in your own calendar.",
+  "Our schedule lives in TeamBalance: trainings, matches, drinks.": "All our trainings, matches and drinks live in TeamBalance.",
+  "New: subscribe to it from your own calendar app.": "And now you can subscribe to them from your own calendar app!",
   "Open Events and tap the calendar icon.": "Open Events, and tap the calendar icon.",
-  "A calendar link is a personal subscription. Start with who it is for.": "A calendar link is your personal subscription. Start with who it's for.",
+  "A calendar link is a personal subscription.": "A calendar link is your personal subscription.",
+  "To create one, start with who it's for.": "To create one, start with who it's for.",
   "\"Me\" is everything the team schedules, with your own answer marked.": "Me gives you everything the team schedules, with your own answer marked.",
   "Give it a name so you know which device it is on…": "Give it a name, so you know which device it's on,",
   "…and generate it.": "and generate it!",
-  "That is it. The link is valid for a year and follows every schedule change.": "That's it! The link is valid for a whole year, and follows every schedule change.",
-  "\"Open in Calendar\" subscribes your phone or Mac directly.": "Open in Calendar subscribes your phone or Mac directly.",
-  "Google Calendar users take the second button.": "Google Calendar users? Just take the second button.",
-  "Or copy the link and paste it into any calendar app.": "Or copy the link, and paste it into any calendar app you like.",
+  "That is it. The link is valid for a year and follows every schedule change.": "That's it! It's valid for a year, and follows every schedule change.",
+  "Open it in your calendar app, add it to Google Calendar, or copy the link.": "Open it in your calendar app, add it to Google Calendar, or just copy the link.",
   "Sharing with a partner? They want to know when you are out.": "Sharing with a partner? They just want to know when you're out.",
-  "\"Partner\" shows only events you are going to, without the ✓ ? ✗ marks.": "Partner shows only the events you're going to, without the tick, question mark and cross marks.",
-  "\"Advanced\" shows exactly what a preset means, and lets you tune it.": "Advanced shows exactly what a preset means, and lets you tune it.",
+  "\"Partner\" shows only events you are going to, without the ✓ ? ✗ marks.": "Partner shows only the events you're going to, without the marks.",
   "Generate it like any other link.": "Generate it like any other link.",
   "Each link says what it serves, and under which calendar name.": "Each link says what it serves, and under which calendar name.",
-  "Changed your mind? Edit a link in place: the URL stays.": "Changed your mind? Edit a link in place. The URL stays the same.",
-  "Say your partner only cares about matches.": "Say your partner only cares about matches.",
-  "Saved. Their calendar now shows only your matches, same link.": "Saved! Their calendar now shows only your matches, on the very same link.",
-  "Live now: Events → calendar icon. Three links per person, a year each.": "It's live now: go to Events, then the calendar icon. Three links per person, each good for a year.",
-  "__outro": "Try it today! It works with Apple Calendar, Google Calendar and Outlook. See you at app dot teambalance dot N L!"
+  "Tune it under \"Advanced\": maybe your partner only cares about matches.": "Tune it under Advanced. Maybe your partner only cares about matches?",
+  "Changed your mind? Edit a link in place: switch off the marks, and save.": "Changed your mind? Edit a link in place: switch off the marks, and save.",
+  "Saved. The URL stays the same, so your calendar follows.": "Saved! The URL stays the same, so your calendar simply follows.",
+  "__outro": "Try it today! It works with most popular calendars. See you at TeamBalance dot N L!"
 }

@@ -47,9 +47,11 @@ said the right thing — the action covers what is *shown* — and needed restat
    a social has no roster at all, and neither may be presented as a verdict — the same reasoning that
    gives them no chip on the card.
 
-5. **The Turnout group renders only when the list spans two or more of its buckets.** A team that
+5. **The Turnout group renders only when at least one event has a target.** A team that
    sets no targets gets `TALLY_ONLY` on every event; for them the group is four chips that provably
    filter nothing. Groups come from the data, as they already do for Bulk Attend (ADR-0021 §2).
+   *Amended:* the first rule ("the list spans two or more buckets") made the group appear only once
+   "Show past events" added variety, so the filter changed shape under a toggle that is not about it.
 
 6. **Everything on the page follows the filter — views and actions alike.** The Next Up hero is the
    first list item promoted, so it must follow or it contradicts the list beneath it. Bulk Attend

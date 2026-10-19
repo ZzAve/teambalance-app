@@ -20,7 +20,7 @@ import type { OptimisticAnswer } from '@entities/event/ui/EventListView'
 import { EventLineupPanel } from '@widgets/event-panel/ui/EventLineupPanel'
 import { EventsPageView } from '@pages/events/ui/EventsPageView'
 import { reconcileTypeIds } from '@features/filter-event-types/model/filter-preferences'
-import { spansMultipleTurnoutBuckets } from '@features/filter-event-types/model/turnout'
+import { hasTurnoutTargets } from '@features/filter-event-types/model/turnout'
 import { filterEvents } from '@features/filter-event-types/model/filter-events'
 import { emptyEventsMessage } from '@features/filter-event-types/model/empty-message'
 import { BulkAttendBar } from '@features/bulk-attend/ui/BulkAttendBar'
@@ -149,7 +149,7 @@ function EventListPage() {
 
     // Read off the *unfiltered* list (ADR-0029 §5): narrowing another dimension must not make the
     // group vanish underneath a Turnout selection that is still in effect.
-    const showTurnout = useMemo(() => spansMultipleTurnoutBuckets(events ?? []), [events])
+    const showTurnout = useMemo(() => hasTurnoutTargets(events ?? []), [events])
 
     // Bulk Attend acts on exactly what the page shows (ADR-0020, ADR-0029 §6), so it reads
     // `listEvents` — already narrowed by *both* chip groups. The hero's event is left out (#386): its

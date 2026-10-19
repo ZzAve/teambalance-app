@@ -119,13 +119,13 @@ export function NextEventHeroView({
             the title's after:inset-0 overlay makes the whole hero open the event. The controls that
             live inside it — the RSVP buttons, the lineup disclosure — are lifted back above the overlay with
             relative z-10, so widening the target costs none of them.
-            Hover and focus hang off this link rather than a `group` on the card, because the overlay
-            *is* the link's own hit area: the wash and the underline then answer exactly where a tap
-            would navigate, and stay quiet over the controls, which are not part of it. The ring is
+            Hover and focus hang off this link (a wash, no underline: the whole card is the link) rather than a `group` on the card, because the overlay
+            *is* the link's own hit area: the wash then answers exactly where a tap
+            would navigate, and stays quiet over the controls, which are not part of it. The ring is
             inset so `overflow-hidden` can't clip it, and traces the real target — the whole card. */}
         <Link
           to={routes.event(event.id)}
-          className="after:absolute after:inset-0 after:rounded-lg after:bg-white/0 after:transition-colors after:duration-200 hover:underline hover:after:bg-white/[0.07] focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-inset focus-visible:after:ring-white"
+          className="after:absolute after:inset-0 after:rounded-lg after:bg-white/0 after:transition-colors after:duration-200 hover:after:bg-white/[0.07] focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-inset focus-visible:after:ring-white"
         >
           {event.title}
         </Link>

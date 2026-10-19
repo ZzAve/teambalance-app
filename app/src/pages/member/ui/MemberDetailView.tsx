@@ -1,9 +1,9 @@
 import { useState } from 'react'
-import { Link } from '@tanstack/react-router'
-import { ArrowLeft, Hash, Shield, Shirt } from 'lucide-react'
+import { Hash, Shield, Shirt } from 'lucide-react'
 import type { Member } from '@shared/api/members'
 import type { Position } from '@shared/api/positions'
 import { MemberFace } from '@entities/member/ui/MemberFace'
+import { PageHeader } from '@widgets/page-header/ui/PageHeader'
 import { EditProfileForm } from '@features/edit-profile/ui/EditProfileForm'
 import { PhotoPicker } from '@features/pick-photo/ui/PhotoPicker'
 import { useTeamRoutes } from '@shared/lib/team-routes'
@@ -78,9 +78,7 @@ export function MemberDetailView({
 
   return (
     <div className="flex flex-col gap-5">
-      <Link to={routes.team} className="flex items-center gap-1 self-start text-small font-medium text-muted-foreground">
-        <ArrowLeft size={16} aria-hidden="true" /> Team
-      </Link>
+      <PageHeader title={member?.displayName ?? 'Member'} backTo={routes.team} backLabel="Back to team" />
 
       {isLoading && <p className="text-small text-muted-foreground">Loading…</p>}
       {isError && <p className="text-small text-red">Couldn't load this member. Please try again.</p>}
@@ -98,7 +96,7 @@ export function MemberDetailView({
               photoVersion={member.photoVersion}
               size="lg"
             />
-            <h2 className="font-display text-title font-bold">{member.displayName}</h2>
+            <h1 className="font-display text-title font-bold">{member.displayName}</h1>
             <span className="text-small text-muted-foreground">{member.position?.label ?? 'Unassigned'}</span>
           </div>
 

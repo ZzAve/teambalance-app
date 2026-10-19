@@ -56,11 +56,12 @@ type Story = StoryObj<typeof meta>
 
 export const Data: Story = {
   play: async ({ canvas }) => {
-    await expect(canvas.getByRole('heading', { name: 'Ada Lovelace' })).toBeInTheDocument()
+    await expect(canvas.getByRole('heading', { level: 1, name: 'Ada Lovelace' })).toBeInTheDocument()
     await expect(canvas.getByLabelText('Shirt number 12')).toBeInTheDocument()
     await expect(canvas.getByText('Admin')).toBeInTheDocument()
-    // Back to the roster, beside the shell's own Team tab.
-    await expect(canvas.getAllByRole('link', { name: 'Team' })).toHaveLength(2)
+    // Back to the roster through the shared sticky header, as on an event's detail page.
+    await expect(canvas.getByRole('link', { name: 'Back to team' })).toBeInTheDocument()
+    await expect(canvas.getByRole('heading', { level: 2, name: 'Ada Lovelace' })).toBeInTheDocument()
     await expect(canvas.getByRole('button', { name: 'Edit profile' })).toBeInTheDocument()
   },
 }

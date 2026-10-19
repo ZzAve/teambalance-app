@@ -437,12 +437,12 @@ export const Interactions: Story = {
     await userEvent.click(canvas.getByRole('button', { name: 'Clear filters' }))
     await expect(canvas.getByText('Training — Court 1')).toBeInTheDocument()
 
-    // The view menu holds the one remaining preference: every panel starts open — the hero's
+    // Filters hold the one view preference as their last row: every panel starts open — the hero's
     // included (#386), which is why nothing below needs a tap to reach a chip.
     await expect(canvas.queryByRole('button', { name: /Sofia — Maybe/ })).not.toBeInTheDocument()
-    await userEvent.click(canvas.getByRole('button', { name: 'View options' }))
-    await userEvent.click(canvas.getByRole('switch', { name: 'Keep panels open' }))
-    await userEvent.keyboard('{Escape}')
+    await userEvent.click(canvas.getByRole('button', { name: 'Filters' }))
+    await userEvent.click(within(canvas.getByRole('region', { name: 'Filters' })).getByRole('switch', { name: 'Keep panels open' }))
+    await userEvent.click(canvas.getByRole('button', { name: 'Filters' }))
     await expect(canvas.getAllByRole('button', { name: /Hide lineup/ })).toHaveLength(4)
     await expect(within(canvas.getByRole('region', { name: 'Next up' })).getByText('Lineup')).toBeInTheDocument()
 

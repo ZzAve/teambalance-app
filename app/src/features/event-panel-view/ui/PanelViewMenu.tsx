@@ -8,6 +8,21 @@ interface PanelViewMenuProps {
   onDefaultExpandedChange: (defaultExpanded: boolean) => void
 }
 
+/** The panel preference as a switch row; also the row option 2 (review prototype) puts in Filters. */
+export function KeepPanelsOpenRow({ defaultExpanded, onDefaultExpandedChange }: PanelViewMenuProps) {
+  return (
+    <div className="flex items-center justify-between gap-2.5">
+      <div>
+        <div className="text-small font-semibold">Keep panels open</div>
+        <div className="mt-0.5 text-caption text-muted-foreground">
+          {defaultExpanded ? 'On — every card starts open' : 'Off — tap to open a card'}
+        </div>
+      </div>
+      <Switch checked={defaultExpanded} onCheckedChange={onDefaultExpandedChange} aria-label="Keep panels open" />
+    </div>
+  )
+}
+
 /**
  * The events page's view control: an icon button beside `Filters` that opens a small popover holding
  * the panel preference — whether a card's roster panel starts open (ADR-0030 §6).
@@ -56,19 +71,7 @@ export function PanelViewMenu({ defaultExpanded, onDefaultExpandedChange }: Pane
             aria-label="View options"
             className="card-shadow-hover absolute right-0 top-12 z-50 w-[248px] origin-top-right rounded-lg border border-border/60 bg-card p-3.5"
           >
-            <div className="flex items-center justify-between gap-2.5">
-              <div>
-                <div className="text-small font-semibold">Keep panels open</div>
-                <div className="mt-0.5 text-caption text-muted-foreground">
-                  {defaultExpanded ? 'On — every card starts open' : 'Off — tap to open a card'}
-                </div>
-              </div>
-              <Switch
-                checked={defaultExpanded}
-                onCheckedChange={onDefaultExpandedChange}
-                aria-label="Keep panels open"
-              />
-            </div>
+            <KeepPanelsOpenRow defaultExpanded={defaultExpanded} onDefaultExpandedChange={onDefaultExpandedChange} />
           </div>
         </>
       )}

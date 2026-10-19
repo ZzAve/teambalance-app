@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 import { SlidersHorizontal } from 'lucide-react'
 import type { EventTypeItem } from '@shared/api/event-types'
 import type { AttendanceState } from '@features/attendance-toggle/ui/AttendanceToggle'
@@ -33,6 +34,13 @@ interface EventFiltersViewProps {
   onToggleShowPast: (showPast: boolean) => void
   /** Resets every dimension. Offered next to the trigger whenever a filter is in effect. */
   onClearFilters: () => void
+  /**
+   * Option 2 (review prototype): where the filters open as an inline section that pushes the list
+   * down, instead of the popover. Absent = the popover.
+   */
+  inlineSlot?: HTMLElement | null
+  /** Option 2 (review prototype): a last row for the inline section, the view switch. */
+  viewRow?: ReactNode
 }
 
 /** The answer chips, worded as the member's own answer control words them (#273, CONTEXT.md).
@@ -132,6 +140,8 @@ export function EventFiltersView({
   onToggleTurnout,
   onToggleShowPast,
   onClearFilters,
+  inlineSlot,
+  viewRow,
 }: EventFiltersViewProps) {
   const [open, setOpen] = useState(false)
   // A dot on the trigger so an active filter is visible with the popover closed — otherwise a
@@ -144,6 +154,90 @@ export function EventFiltersView({
     activeTurnouts.size < ALL_TURNOUT_BUCKETS.length
 
   useEscapeToClose(open, () => setOpen(false))
+
+  const content = (
+    <>
+      {/* A team with no event types (or a types request that failed) still gets the past
+          toggle — it is the only way to reach past events now that the tab bar is gone. */}
+      {eventTypes.length > 0 && (
+        <>
+          <div role="group" aria-labelledby="event-types-filter-heading">
+            <SectionLabel as="h3" id="event-types-filter-heading" className="mb-2.5">
+              Event types
+            </SectionLabel>
+            <div className="flex flex-wrap gap-2">
+              {eventTypes.map((type) => (
+                <EventTypeChip
+                  key={type.id}
+                  type={type}
+                  pressed={activeTypeIds.has(type.id)}
+                  onToggle={() => onToggleType(type.id)}
+                />
+              ))}
+            </div>
+          </div>
+
+          <Divider />
+        </>
+      )}
+
+      <div role="group" aria-labelledby="your-answer-filter-heading">
+        <SectionLabel as="h3" id="your-answer-filter-heading" className="mb-2.5">
+          Your answer
+        </SectionLabel>
+        <div className="flex flex-wrap gap-2">
+          {STATE_CHIPS.map(({ state, label, active, inactive }) => (
+            <Chip
+              key={state}
+              pressed={activeStates.has(state)}
+              onToggle={() => onToggleState(state)}
+              activeClassName={active}
+              inactiveClassName={inactive}
+            >
+              {label}
+            </Chip>
+          ))}
+        </div>
+      </div>
+
+      {showTurnout && (
+        <>
+          <Divider />
+
+          <div role="group" aria-labelledby="turnout-filter-heading">
+            <SectionLabel as="h3" id="turnout-filter-heading" className="mb-2.5">
+              Turnout
+            </SectionLabel>
+            <div className="flex flex-wrap gap-2">
+              {TURNOUT_CHIPS.map(({ bucket, label, active, inactive }) => (
+                <Chip
+                  key={bucket}
+                  pressed={activeTurnouts.has(bucket)}
+                  onToggle={() => onToggleTurnout(bucket)}
+                  activeClassName={active}
+                  inactiveClassName={inactive}
+                >
+                  {label}
+                </Chip>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
+
+      <Divider />
+
+      <div className="flex items-center justify-between gap-2.5">
+        <div>
+          <div className="text-small font-semibold">Show past events</div>
+          <div className="mt-0.5 text-caption text-muted-foreground">
+            {showPast ? 'On — past events included' : 'Off — upcoming only'}
+          </div>
+        </div>
+        <Switch checked={showPast} onCheckedChange={onToggleShowPast} aria-label="Show past events" />
+      </div>
+    </>
+  )
 
   return (
     <div className="flex items-center gap-2">
@@ -185,7 +279,23 @@ export function EventFiltersView({
           {resultCount === 1 ? '1 event matches these filters' : `${resultCount} events match these filters`}
         </p>
 
-        {open && (
+        {/* Option 2 (review prototype): the same content as an inline section below the header. */}
+        {open &&
+          inlineSlot &&
+          createPortal(
+            <div role="region" aria-label="Filters" className="mt-3 rounded-lg border border-border/60 bg-card p-3.5">
+              {content}
+              {viewRow && (
+                <>
+                  <Divider />
+                  {viewRow}
+                </>
+              )}
+            </div>,
+            inlineSlot,
+          )}
+
+        {open && !inlineSlot && (
           <>
             {/* Click-outside catcher. Not focusable — Escape and the trigger are the keyboard paths. */}
             <div
@@ -198,85 +308,7 @@ export function EventFiltersView({
               aria-label="Filters"
               className="card-shadow-hover absolute right-0 top-12 z-50 w-[248px] origin-top-right rounded-lg border border-border/60 bg-card p-3.5"
             >
-              {/* A team with no event types (or a types request that failed) still gets the past
-                  toggle — it is the only way to reach past events now that the tab bar is gone. */}
-              {eventTypes.length > 0 && (
-                <>
-                  <div role="group" aria-labelledby="event-types-filter-heading">
-                    <SectionLabel as="h3" id="event-types-filter-heading" className="mb-2.5">
-                      Event types
-                    </SectionLabel>
-                    <div className="flex flex-wrap gap-2">
-                      {eventTypes.map((type) => (
-                        <EventTypeChip
-                          key={type.id}
-                          type={type}
-                          pressed={activeTypeIds.has(type.id)}
-                          onToggle={() => onToggleType(type.id)}
-                        />
-                      ))}
-                    </div>
-                  </div>
-
-                  <Divider />
-                </>
-              )}
-
-              <div role="group" aria-labelledby="your-answer-filter-heading">
-                <SectionLabel as="h3" id="your-answer-filter-heading" className="mb-2.5">
-                  Your answer
-                </SectionLabel>
-                <div className="flex flex-wrap gap-2">
-                  {STATE_CHIPS.map(({ state, label, active, inactive }) => (
-                    <Chip
-                      key={state}
-                      pressed={activeStates.has(state)}
-                      onToggle={() => onToggleState(state)}
-                      activeClassName={active}
-                      inactiveClassName={inactive}
-                    >
-                      {label}
-                    </Chip>
-                  ))}
-                </div>
-              </div>
-
-              {showTurnout && (
-                <>
-                  <Divider />
-
-                  <div role="group" aria-labelledby="turnout-filter-heading">
-                    <SectionLabel as="h3" id="turnout-filter-heading" className="mb-2.5">
-                      Turnout
-                    </SectionLabel>
-                    <div className="flex flex-wrap gap-2">
-                      {TURNOUT_CHIPS.map(({ bucket, label, active, inactive }) => (
-                        <Chip
-                          key={bucket}
-                          pressed={activeTurnouts.has(bucket)}
-                          onToggle={() => onToggleTurnout(bucket)}
-                          activeClassName={active}
-                          inactiveClassName={inactive}
-                        >
-                          {label}
-                        </Chip>
-                      ))}
-                    </div>
-                  </div>
-                </>
-              )}
-
-              <Divider />
-
-              <div className="flex items-center justify-between gap-2.5">
-                <div>
-                  <div className="text-small font-semibold">Show past events</div>
-                  <div className="mt-0.5 text-caption text-muted-foreground">
-                    {showPast ? 'On — past events included' : 'Off — upcoming only'}
-                  </div>
-                </div>
-                <Switch checked={showPast} onCheckedChange={onToggleShowPast} aria-label="Show past events" />
-              </div>
+              {content}
             </div>
           </>
         )}

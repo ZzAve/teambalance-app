@@ -1,10 +1,10 @@
-import type { ComponentProps, ReactNode } from 'react'
+import { useState, type ComponentProps, type ReactNode } from 'react'
 import { Link } from '@tanstack/react-router'
 import { CalendarDays } from 'lucide-react'
 import { useTeamRoutes } from '@shared/lib/team-routes'
 import { EventListView } from '@entities/event/ui/EventListView'
 import { EventFiltersView } from '@features/filter-event-types/ui/EventFiltersView'
-import { PanelViewMenu } from '@features/event-panel-view/ui/PanelViewMenu'
+import { KeepPanelsOpenRow, PanelViewMenu } from '@features/event-panel-view/ui/PanelViewMenu'
 
 interface EventsPageViewProps {
   /** The admin's "New Event" trigger; absent for members. */
@@ -37,6 +37,8 @@ export function EventsPageView({
   hideCalendarLink,
 }: EventsPageViewProps) {
   const routes = useTeamRoutes()
+  // Filters open inline below the header, with the view switch as their last row.
+  const [filtersSlot, setFiltersSlot] = useState<HTMLElement | null>(null)
 
   return (
     <div>
@@ -48,10 +50,7 @@ export function EventsPageView({
           {createAction}
           {/* Always mounted: the popover now owns the only route to past events, so it
               must not disappear with the event types it also happens to host. */}
-          <EventFiltersView {...filters} />
-          {/* How the list is drawn, beside what it contains but deliberately not inside it
-              (ADR-0030 §3): a filter is "where was I", this is "how do I like this". */}
-          <PanelViewMenu {...panelMenu} />
+          <EventFiltersView {...filters} inlineSlot={filtersSlot} viewRow={<KeepPanelsOpenRow {...panelMenu} />} />
           {/* Every member's way to their calendar links; not in the bottom nav (ADR-0039). */}
           {!hideCalendarLink && (
             <Link
@@ -64,6 +63,8 @@ export function EventsPageView({
           )}
         </div>
       </div>
+
+      <div ref={setFiltersSlot} />
 
       {/* No hero when nothing is within RELATIVE_WINDOW_DAYS — and no placeholder in its
           place. The list carries the page. */}

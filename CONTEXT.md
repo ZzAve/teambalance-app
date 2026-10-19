@@ -53,7 +53,8 @@ any-team, self-service (see [ADR-0001](docs/adr/0001-product-ambition-hobby-tool
 - **Substitute** — A person outside the Team whom the Team keeps on a reusable list and can call in
   for a specific Event. Not a **Member**: not on the **Roster**, no **Role**, no account, and never
   expected to respond. Appears on an Event only once someone adds them, and from then on carries an
-  **Attendance State** like anyone else, so "asked" (Maybe) is distinguishable from "confirmed" (Attending).
+  **Attendance State** like anyone else, so "asked" (Maybe) is distinguishable from "confirmed" (Attending);
+  the UI says `Maybe`, and explains that it means asked.
   Has at most one **Position** and at most one **Shirt Number**. Any Member may add one to an Event; the list itself is kept by Admins.
   Taking a Substitute off the list removes them from every Event, past ones included, the same as a
   departed Member.
@@ -100,9 +101,12 @@ any-team, self-service (see [ADR-0001](docs/adr/0001-product-ambition-hobby-tool
 - **Attendance State** — `Attending` (green), `Maybe` (gold), `Absent` (red),
   `Not Responded` (default, no response yet). The semantic colors are fixed brand
   identity. These are the payload and code names; the UI says the same four states in the
-  member's own words — `Going` / `Maybe` / `Can't` / `Not responded` on controls and filters,
+  member's own words — `Going` / `Maybe` / `Can't` / `Not responded` on controls, filters, rows
+  and chips (the hero included, [ADR-0041](docs/adr/0041-hero-offers-all-three-answers-in-the-control-words.md)),
   and `You're in` / `You said maybe` / `You're out` / `Respond` on the card's answer pill.
-  Prose uses the same root: a member has *responded* or *not responded*, never *replied*.
+  A **Substitute**'s states are said in the same words. Prose uses the same root: a member has
+  *responded* or *not responded*, never *replied*.
+  _Avoid_: I'm in, Can't go, Can't make it, Awaiting, Asked, and a bare "out" as a label.
 - **Event Attendance** — The resolved attendance picture of a single Event: every current
   Member paired with their **Attendance State** for that Event (their response, or
   **Not Responded** when they haven't answered). Derived from the *current* roster, so a
@@ -174,12 +178,20 @@ any-team, self-service (see [ADR-0001](docs/adr/0001-product-ambition-hobby-tool
 ### Money pool
 
 - **Money Pool** — A team's shared pot of money, backed by a real bank account (Bunq).
-  Built on trust, not individual debt tracking. **Optional per team**: a team without
-  Bunq simply has no pool ([ADR-0007](docs/adr/0007-money-pool-v1-scope.md)).
+  Built on trust, not individual debt tracking. **Optional per team**: an Admin switches it
+  on or off; it is on by default. Switched off, the Team has no Money tab. Switched on but
+  without a **Bunq Connection**, Members see a preview of the feature and Admins see the
+  way to connect ([ADR-0007](docs/adr/0007-money-pool-v1-scope.md), [ADR-0042](docs/adr/0042-money-pool-bunq-oauth-connection-held-in-memory.md)).
+- **Bunq Connection** — The access an Admin grants the Team to one of their Bunq accounts,
+  by signing in to Bunq and approving it. The Money Pool shows that one account. Bunq
+  remains the record of every payment; the app keeps none of them.
+  _Avoid_: Bunq integration, Bunq config, API key.
 - **Beer Counter** — The current balance translated into an approximate number of
   beers, using an admin-configurable beer price (e.g. €2.70/beer).
 - **Top-up** — A Member adding money to the pool. Preset amounts (€10/€20/€50) or
-  custom, opening a bunq.me deep link (mobile-first, no QR).
+  custom, opening a bunq.me deep link (mobile-first, no QR). The payment's description
+  names the app, the Team and the Member, and carries the Member's id, so both the payer and
+  the Team can tell whose contribution it was and to which Team.
 - **Hall of Fame (Toppers 🏆)** / **Hall of Shame (Floppers 🐷)** — Side-by-side
   contributor rankings over a period (last 30 days or full season).
 

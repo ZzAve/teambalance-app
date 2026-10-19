@@ -17,6 +17,8 @@ import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers
 import java.util.UUID
+import com.github.zzave.teambalance.api.infrastructure.identity.loginAs
+import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf
 
 // Spec-dedicated ids/schemas so the one-team-per-user guard and the shared (no-rollback) Testcontainers
 // DB don't bleed between specs. Each test that must actually create a team uses a fresh founder + name.
@@ -57,7 +59,7 @@ class CreateTeamControllerIT : TeamBalanceIT() {
     private fun createTeam(userId: String, name: String, slug: String, code: String) =
         mockMvc.perform(
             MockMvcRequestBuilders.post("/api/teams")
-                .header("X-User-Id", userId)
+                .with(loginAs(userId))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""{"name":"$name","slug":"$slug","creationCode":"$code"}"""),
         )
@@ -273,12 +275,12 @@ class CreateTeamControllerIT : TeamBalanceIT() {
         test("creating a team without an authenticated user returns 401") {
             mockMvc.perform(
                 MockMvcRequestBuilders.post("/api/teams")
+                    // A valid token, so the 401 is the authentication rule and not the CSRF check.
+                    .with(csrf())
                     .contentType(MediaType.APPLICATION_JSON)
                     .content("""{"name":"Nope","slug":"nope","creationCode":"whatever"}"""),
             )
-                .andExpect(MockMvcResultMatchers.request().asyncStarted())
-                .andReturn()
-                .let { mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(it)) }
+                // Refused by the SecurityFilterChain, so no handler starts.
                 .andExpect(MockMvcResultMatchers.status().isUnauthorized)
         }
     }

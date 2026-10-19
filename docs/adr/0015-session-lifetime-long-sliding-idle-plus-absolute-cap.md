@@ -3,7 +3,7 @@
 - Status: Accepted
 - Date: 2026-07-26
 - Builds on: ADR-0022 (JDBC-backed sessions), ADR-0008 (session-based auth)
-- See also: ADR-0012 (Spring Security — session fixation, not yet implemented)
+- See also: ADR-0012 (Spring Security — session fixation; implemented 2026-10-10)
 
 ## Context
 
@@ -43,8 +43,8 @@ Effective session end = **min(28 days since last use, 90 days since login)**.
 Spring default, is brittle for the mobile/roaming users this app serves (IP rotation would force the
 very re-logins we are trying to avoid), and offers weak protection against a determined attacker. The
 proportionate, established controls are used instead: `HttpOnly` + `Secure` + `SameSite=Lax` cookies,
-the absolute cap above, server-side invalidation on logout, and — when ADR-0012 lands — session-ID
-rotation on login (session-fixation protection). Revisit only if a concrete threat warrants it.
+the absolute cap above, server-side invalidation on logout, and session-ID rotation on login
+(session-fixation protection, ADR-0012). Revisit only if a concrete threat warrants it.
 
 ## Consequences
 
@@ -55,6 +55,8 @@ rotation on login (session-fixation protection). Revisit only if a concrete thre
   small deviation because no Spring mechanism provides an absolute session lifetime.
 - Interaction with ADR-0012: session-fixation rotation creates a new session (new `creationTime`),
   which resets the absolute clock — expected and acceptable, since rotation happens only at login.
+  Implemented that way on purpose: sign-in invalidates the old session and starts a new one rather than
+  calling `changeSessionId()`, which would keep the old `creationTime`.
 - **Expired-row cleanup vs scale-to-zero is a non-issue.** Spring Session's `@Scheduled` cleanup job
   only runs while the container is up, so at `min-instances = 0` it pauses when scaled to zero and
   resumes on the next cold start. This does not affect correctness or security: an expired session is

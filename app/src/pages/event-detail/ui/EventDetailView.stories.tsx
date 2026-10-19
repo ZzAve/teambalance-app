@@ -50,7 +50,7 @@ const EVENT: EventDetail = makeEvent({
   ],
   recurringGroup: SERIES,
   attendances: TEAM,
-  // One called in and confirmed, one only asked (ADR-0033).
+  // One called in and confirmed, one only asked, which the UI says as Maybe (ADR-0033).
   substitutes: [
     makeSubstitute('sub-1', 'Jan de Vries', { position: { id: 'pos-libero', label: 'Libero' }, changedBy: 'u-2' }),
     makeSubstitute('sub-2', 'Mila Jansen', { state: 'MAYBE' }),
@@ -151,7 +151,7 @@ export const Data: Story = {
     // Substitutes fill spots but are named apart from the Members going (ADR-0033).
     await expect(canvas.getByText('+ 1 substitute')).toBeInTheDocument()
     const block = canvas.getByRole('region', { name: 'Substitutes' })
-    await expect(block).toHaveTextContent('1 going · 1 asked')
+    await expect(block).toHaveTextContent('1 going · 1 maybe')
     const substitutes = within(block)
     await expect(substitutes.getByText('Jan de Vries')).toBeInTheDocument()
     await expect(substitutes.getByText('Libero · set by Sanne')).toBeInTheDocument()
@@ -234,7 +234,7 @@ export const Interactions: Story = {
     await userEvent.click(page.getByRole('button', { name: /Sofia — Maybe/ }))
     const sheet = within(await within(document.body).findByRole('dialog'))
     await expect(sheet.getByText(/Middle · currently maybe · you are answering for them/)).toBeInTheDocument()
-    await userEvent.click(sheet.getByRole('button', { name: "Can't go" }))
+    await userEvent.click(sheet.getByRole('button', { name: "Can't" }))
     await expect(args.onRespond).toHaveBeenCalledWith('u-4', 'ABSENT')
 
     // Any Member moves a Substitute from asked to going inline, and calls more in (ADR-0033).
@@ -242,7 +242,7 @@ export const Interactions: Story = {
     await userEvent.click(within(substitutes.getByRole('group', { name: 'Mila Jansen' })).getByRole('button', { name: 'Going' }))
     await expect(args.onSetSubstituteState).toHaveBeenCalledWith('sub-2', 'ATTENDING')
     // The pill stays small, but a tap anywhere in a 44px band around it lands on it (F7).
-    const pill = within(substitutes.getByRole('group', { name: 'Jan de Vries' })).getByRole('button', { name: 'Asked' })
+    const pill = within(substitutes.getByRole('group', { name: 'Jan de Vries' })).getByRole('button', { name: 'Maybe' })
     pill.scrollIntoView({ block: 'center' })
     const box = pill.getBoundingClientRect()
     const reach = (44 - box.height) / 2 - 1
@@ -262,7 +262,7 @@ export const Interactions: Story = {
 
     await userEvent.click(substitutes.getByRole('button', { name: /^Mila Jansen/ }))
     subSheet = within(await within(document.body).findByRole('dialog', { name: 'Mila Jansen' }))
-    await userEvent.click(subSheet.getByRole('button', { name: "Can't go" }))
+    await userEvent.click(subSheet.getByRole('button', { name: "Can't" }))
     await expect(args.onSetSubstituteState).toHaveBeenCalledWith('sub-2', 'ABSENT')
 
     // The error shell's retry reaches the query.

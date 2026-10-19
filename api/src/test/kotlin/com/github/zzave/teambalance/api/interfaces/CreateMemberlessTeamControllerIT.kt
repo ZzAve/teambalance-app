@@ -13,6 +13,8 @@ import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers
 import java.util.UUID
+import com.github.zzave.teambalance.api.infrastructure.identity.loginAs
+import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf
 
 // Memberless creation (ADR-0024 §5, #240) is gated on the platform-admin allowlist, empty by default
 // (fail-closed) in the test profile. Pin one admin email here; the admin user is seeded with it.
@@ -47,10 +49,10 @@ class CreateMemberlessTeamControllerIT : TeamBalanceIT() {
         )
     }
 
-    private fun createMemberless(userId: String?, name: String, slug: String) =
+    private fun createMemberless(userId: String, name: String, slug: String) =
         mockMvc.perform(
             MockMvcRequestBuilders.post("/api/admin/teams")
-                .apply { if (userId != null) header("X-User-Id", userId) }
+                .with(loginAs(userId))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""{"name":"$name","slug":"$slug"}"""),
         )
@@ -149,8 +151,14 @@ class CreateMemberlessTeamControllerIT : TeamBalanceIT() {
         }
 
         test("POST /api/admin/teams without an authenticated user returns 401") {
-            createMemberless(null, "Nope", "ml-unauth")
-                .andExpect(MockMvcResultMatchers.status().isUnauthorized)
+            // Refused by the SecurityFilterChain, so no handler starts. The CSRF token is valid, so the
+            // 401 is the authentication rule and not the CSRF check.
+            mockMvc.perform(
+                MockMvcRequestBuilders.post("/api/admin/teams")
+                    .with(csrf())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"name":"Nope","slug":"ml-unauth"}"""),
+            ).andExpect(MockMvcResultMatchers.status().isUnauthorized)
         }
     }
 }

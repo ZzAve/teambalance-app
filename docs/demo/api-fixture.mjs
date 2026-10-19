@@ -144,6 +144,33 @@ const EVENTS = [
   },
 ]
 
+// Served only with `include-past=true`, so the "Show past events" switch visibly adds a row. It
+// shares the match's `CRITICAL` band so it survives a Turnout filter the event-filters take sets first.
+const PAST_EVENTS = [
+  {
+    id: 'evt-0',
+    eventType: TYPES[0],
+    title: 'Cup Match vs Volley Stars',
+    description: undefined,
+    startTime: iso(-6, 19, 30),
+    endTime: iso(-6, 21, 30),
+    location: 'Sporthal Zuid',
+    references: [],
+    recurringGroup: undefined,
+    attendanceSummary: summary(5, 0, 1, 0, [
+      { role: 'Setter', attending: 2 },
+      { role: 'Libero', attending: 1 },
+    ]),
+    roster: roster('CRITICAL', { totalTarget: 12, totalAttending: 5, openSlots: 7, positions: [
+      { id: 'p1', label: 'Setter', required: 2, attending: 2 },
+      { id: 'p2', label: 'Libero', required: 1, attending: 1 },
+      { id: 'p3', label: 'Middle Blocker', required: 2, attending: 1 },
+      { id: 'p4', label: 'Outside Hitter', required: 4, attending: 1 },
+    ] }),
+    myState: 'ATTENDING',
+  },
+]
+
 const ROSTER = [
   { userId: 'u-1', displayName: 'Julia Vermeer', role: 'ADMIN', position: { id: 'p1', label: 'Setter' }, onboarded: true },
   { userId: 'u-2', displayName: 'Sam de Vries', role: 'MEMBER', position: { id: 'p2', label: 'Libero' }, onboarded: true },
@@ -161,6 +188,22 @@ const POSITIONS = [
   { id: 'p3', label: 'Middle Blocker' },
   { id: 'p4', label: 'Outside Hitter' },
 ]
+
+// An attending Substitute fills a spot like a Member (ADR-0033). The server recomputes the Event
+// Roster on every write; the fixture does the same for the one thing a call-in changes, so a spot
+// closes on screen. `base` is the roster as seeded, before any Substitute went in.
+const refreshRoster = (event) => {
+  const r = event.roster
+  const base = (event.rosterBase ??= JSON.parse(JSON.stringify(r)))
+  const going = (ON_EVENT[event.id] ?? []).filter((s) => s.state === 'ATTENDING')
+  r.positions = base.positions.map((p) => ({ ...p, attending: p.attending + going.filter((s) => s.position?.id === p.id).length }))
+  r.substituteAttending = going.length
+  r.totalAttending = base.totalAttending + going.length
+  r.playingAttending = base.playingAttending + going.length
+  r.openSlots = r.positions.reduce((n, p) => n + Math.max(0, p.required - p.attending), 0)
+  if (base.positions.length)
+    r.state = r.openSlots === 0 ? 'LINEUP_SET' : r.positions.some((p) => p.required > 0 && p.attending === 0) ? 'CRITICAL' : 'SPOTS_OPEN'
+}
 
 // The Team's Substitute list (ADR-0033): people without an account who can be called in. Mila is
 // already on the training as Asked, so the Substitutes block has a row; Kees plays Setter, so the
@@ -193,6 +236,18 @@ const calendarLink = (id, body, createdAt) => ({
 })
 
 const ME = ROSTER[0]
+
+// Photos (ADR-0038) travel as image bytes outside the Wirespec client. The take starts with no photo
+// anywhere; an upload stores the bytes here and bumps the version the JSON payloads carry, so the
+// `<img>` reads it back through the same route as the real API.
+const PHOTOS = { personal: undefined, team: {} }
+const photoVersion = (photo) => photo?.version
+const withPhoto = (member) => ({ ...member, photoVersion: photoVersion(PHOTOS.team[member.userId]) })
+const storePhoto = (route) => ({
+  version: String(Date.now()),
+  bytes: route.request().postDataBuffer(),
+  type: route.request().headers()['content-type'] ?? 'image/jpeg',
+})
 
 const OTHERS_STATE = ['ATTENDING', 'ATTENDING', 'MAYBE', 'ATTENDING', 'ABSENT', 'NOT_RESPONDED']
 
@@ -268,13 +323,39 @@ export async function installFixtureApi(page) {
           activeTeam: TEAM,
           isPlatformAdmin: false,
           actAs: undefined,
+          personalPhotoVersion: photoVersion(PHOTOS.personal),
         })
 
-      if (path === '/api/members/me') return json(ME)
-      if (path === '/api/members') return json({ members: ROSTER })
+      const method = route.request().method()
+      const image = (photo) => (photo ? route.fulfill({ status: 200, contentType: photo.type, body: photo.bytes }) : json({}, 404))
+      if (path === '/api/account/photo') {
+        if (method === 'PUT') PHOTOS.personal = storePhoto(route)
+        else if (method === 'DELETE') PHOTOS.personal = undefined
+        else return image(PHOTOS.personal)
+        return route.fulfill({ status: 204 })
+      }
+      if (path === '/api/members/me/photo/from-personal') {
+        if (!PHOTOS.personal) return json({}, 404)
+        PHOTOS.team[ME.userId] = { ...PHOTOS.personal, version: String(Date.now()) }
+        return route.fulfill({ status: 204 })
+      }
+      const memberPhoto = path.match(/^\/api\/members\/([^/]+)\/photo$/)
+      if (memberPhoto) {
+        const userId = memberPhoto[1] === 'me' ? ME.userId : memberPhoto[1]
+        if (method === 'PUT') PHOTOS.team[userId] = storePhoto(route)
+        else if (method === 'DELETE') delete PHOTOS.team[userId]
+        else return image(PHOTOS.team[userId])
+        return route.fulfill({ status: 204 })
+      }
+
+      if (path === '/api/members/me') return json(withPhoto(ME))
+      if (path === '/api/members') return json({ members: ROSTER.map(withPhoto) })
       if (path === '/api/event-types') return json({ eventTypes: TYPES })
       if (path === '/api/positions') return json({ positions: POSITIONS })
-      if (path === '/api/events') return json({ events: EVENTS.map(withAttendances) })
+      if (path === '/api/events') {
+        const includePast = url.searchParams.get('include-past') === 'true'
+        return json({ events: [...(includePast ? PAST_EVENTS : []), ...EVENTS].map(withAttendances) })
+      }
       if (path === '/api/substitutes' && route.request().method() === 'POST') {
         const body = route.request().postDataJSON?.() ?? {}
         const position = POSITIONS.find((p) => p.id === body.positionId)
@@ -283,6 +364,21 @@ export async function installFixtureApi(page) {
         return json(sub, 201)
       }
       if (path === '/api/substitutes') return json({ substitutes: SUBSTITUTES })
+      const subById = path.match(/^\/api\/substitutes\/([^/]+)(\/usage)?$/)
+      if (subById) {
+        const index = SUBSTITUTES.findIndex((s) => s.id === subById[1])
+        if (subById[2]) return json({ eventCount: Object.values(ON_EVENT).filter((l) => l.some((s) => s.substituteId === subById[1])).length })
+        if (route.request().method() === 'DELETE') {
+          if (index >= 0) SUBSTITUTES.splice(index, 1)
+          return route.fulfill({ status: 204 })
+        }
+        if (route.request().method() === 'PUT' && index >= 0) {
+          const body = route.request().postDataJSON?.() ?? {}
+          SUBSTITUTES[index] = { ...SUBSTITUTES[index], name: body.name, position: POSITIONS.find((p) => p.id === body.positionId), shirtNumber: body.shirtNumber }
+          return json(SUBSTITUTES[index])
+        }
+        return json({}, 404)
+      }
 
       // A Substitute's state on an event: record it so a re-read of the event shows it, and echo
       // the entry back as the server would.
@@ -293,6 +389,7 @@ export async function installFixtureApi(page) {
         const existing = onEvent.findIndex((s) => s.substituteId === substituteId)
         if (route.request().method() === 'DELETE') {
           if (existing >= 0) onEvent.splice(existing, 1)
+          refreshRoster(EVENTS.find((e) => e.id === eventId))
           // The contract declares 204 only; a 200 would fail the generated client's status check.
           return route.fulfill({ status: 204 })
         }
@@ -301,6 +398,7 @@ export async function installFixtureApi(page) {
         const entry = { substituteId, name: sub.name, position: sub.position, state: body.state ?? 'MAYBE', changedBy: ME.userId, updatedAt: new Date().toISOString() }
         if (existing >= 0) onEvent[existing] = entry
         else onEvent.push(entry)
+        refreshRoster(EVENTS.find((e) => e.id === eventId))
         return json(entry)
       }
       if (path === '/api/team/season') return json({ start: undefined, end: undefined })

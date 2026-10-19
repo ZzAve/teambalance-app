@@ -8,12 +8,12 @@ import {
   findSomeone,
   lineupRows,
   verdictWord,
-  STATE_WORD,
   UNASSIGNED,
   type LineupRow,
   type PositionRef,
 } from '@entities/event/lib/lineup'
 import { attributionName, setByName } from '@entities/event/lib/attribution'
+import { ATTENDANCE_WORDS } from '@entities/event/lib/attendance-words'
 import { SubstituteAvatar } from '@entities/event/ui/SubstituteAvatar'
 import { VERDICT_TONE } from '@entities/event/ui/verdict-tone'
 import { SectionLabel } from '@shared/ui/SectionLabel'
@@ -49,7 +49,7 @@ const ROW_TINT: Record<AttendanceState, string> = {
   NOT_RESPONDED: 'border-l-border bg-transparent',
 }
 
-// Awaiting is a quiet neutral — in this list it is a fact about a teammate, not the loud
+// Not responded is a quiet neutral — in this list it is a fact about a teammate, not the loud
 // call-to-act the viewer's own "Your response" prompt carries.
 const ANSWER_PILL: Record<AttendanceState, string> = {
   ATTENDING: 'bg-green/10 text-green',
@@ -268,7 +268,7 @@ function AttendeeRow({
         {subtitle && <span className="block text-caption text-muted-foreground">{subtitle}</span>}
       </span>
       <span className={`shrink-0 rounded-full px-2.5 py-1 text-caption font-semibold ${ANSWER_PILL[attendance.state]}`}>
-        {STATE_WORD[attendance.state]}
+        {ATTENDANCE_WORDS[attendance.state].word}
       </span>
     </>
   )
@@ -280,7 +280,7 @@ function AttendeeRow({
     <button
       type="button"
       onClick={onOpen}
-      aria-label={`${attendance.displayName}${isSelf ? ' (you)' : ''} — ${STATE_WORD[attendance.state]}. Change their answer`}
+      aria-label={`${attendance.displayName}${isSelf ? ' (you)' : ''} — ${ATTENDANCE_WORDS[attendance.state].word}. Change their answer`}
       className={`${shell} transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring`}
     >
       {body}
@@ -317,7 +317,7 @@ function SubstituteRow({
         <span className="block text-caption text-muted-foreground">set by {setBy}</span>
       </span>
       <span className={`shrink-0 rounded-full px-2.5 py-1 text-caption font-semibold ${ANSWER_PILL[substitute.state]}`}>
-        {STATE_WORD[substitute.state]}
+        {ATTENDANCE_WORDS[substitute.state].word}
       </span>
     </>
   )
@@ -328,7 +328,7 @@ function SubstituteRow({
     <button
       type="button"
       onClick={onOpen}
-      aria-label={`${substitute.name}, substitute — ${STATE_WORD[substitute.state]}. Change their answer`}
+      aria-label={`${substitute.name}, substitute — ${ATTENDANCE_WORDS[substitute.state].word}. Change their answer`}
       className={`${shell} transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring`}
     >
       {body}

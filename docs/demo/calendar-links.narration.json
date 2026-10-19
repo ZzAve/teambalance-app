@@ -1,5 +1,15 @@
 {
-  "__intro": "Your team schedule, in your own calendar.",
+  "__introCard": {
+    "headline": "Your team schedule,",
+    "accent": "in your own calendar.",
+    "sub": "Trainings, matches and drinks show up next to the rest of your week, and stay in sync when something moves.",
+    "pill": "Calendar links are live"
+  },
+  "__outroCard": {
+    "steps": ["Events", { "label": "Calendar links", "icon": "calendar-days" }, "Generate link"],
+    "sub": "Works with Apple Calendar, Google Calendar and Outlook. Up to three links each, valid for a year."
+  },
+  "__intro":"Your team schedule, | in your own calendar.",
   "Our schedule lives in TeamBalance: trainings, matches, drinks.": "All our trainings, matches and drinks live in TeamBalance.",
   "New: subscribe to it from your own calendar app.": "And now you can subscribe to them from your own calendar app!",
   "Open Events and tap the calendar icon.": "Open Events, and tap the calendar icon.",

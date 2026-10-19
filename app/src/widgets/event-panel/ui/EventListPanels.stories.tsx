@@ -330,7 +330,7 @@ export const Shells: Story = {
     await expect(everyPanelOpen.getAllByText(/Sanne/)).toHaveLength(5)
     // A non-responder is still on every card, whatever its roster state — named in the chip's
     // accessible name even though the chip itself prints only a first name.
-    await expect(everyPanelOpen.getAllByRole('button', { name: /Uwe Hofman — Awaiting/ })).toHaveLength(5)
+    await expect(everyPanelOpen.getAllByRole('button', { name: /Uwe Hofman — Not responded/ })).toHaveLength(5)
 
     const bigSquad = region('A big squad is capped')
     const card = within(bigSquad.getByText('Club Night').closest('.card-enter') as HTMLElement)
@@ -373,7 +373,7 @@ export const Interactions: Story = {
       answerFrom.getByText('League Match vs Smash United').closest('.card-enter') as HTMLElement,
     )
     await userEvent.click(criticalCard.getAllByRole('button', { name: /Sanne Bakker/ })[0])
-    await userEvent.click(within(document.body).getByRole('button', { name: "Can't go" }))
+    await userEvent.click(within(document.body).getByRole('button', { name: "Can't" }))
     await expect(onRespondSpy).toHaveBeenCalledWith('evt-critical', SANNE[0], 'ABSENT')
 
     // `Keep open` is a *live* default (ADR-0030 §6): turning it on opens the cards the member never
@@ -402,9 +402,9 @@ export const Interactions: Story = {
     const clubNight = within(bigSquad.getByText('Club Night').closest('.card-enter') as HTMLElement)
     await userEvent.click(clubNight.getByRole('button', { name: 'Show 8 more going' }))
     await expect(clubNight.getByRole('button', { name: /Member 16 —/ })).toBeInTheDocument()
-    // The five awaiting sit in their own cluster, which is at the cap and so shows in full: the limit
+    // The five not responded sit in their own cluster, which is at the cap and so shows in full: the limit
     // is per run of chips, not per row — and certainly not per list.
-    await expect(clubNight.getByRole('button', { name: /Member 17 — Awaiting/ })).toBeInTheDocument()
+    await expect(clubNight.getByRole('button', { name: /Member 17 — Not responded/ })).toBeInTheDocument()
     await expect(bigSquad.getByRole('button', { name: /Sanne Bakker/ })).toBeInTheDocument()
   },
 }

@@ -11,6 +11,7 @@ import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers
 import java.util.UUID
+import com.github.zzave.teambalance.api.infrastructure.identity.loginAs
 
 private const val JAN_USER_ID = "b0000000-0000-0000-0000-000000000001"
 private const val LISA_USER_ID = "b0000000-0000-0000-0000-000000000002"
@@ -46,8 +47,8 @@ class RecurringEventControllerTest : TeamBalanceIT() {
             // WEEKLY Tue + Thu, 2026-09-01 (Tue) → 2026-09-10 (Thu): Tue 01, Thu 03, Tue 08, Thu 10 = 4.
             val mvcResult = mockMvc.perform(
                 MockMvcRequestBuilders.post("/api/recurring-events")
-                    .header("X-Team-Id", "public")
-                    .header("X-User-Id", admin)
+                    .with(loginAs(admin, tenant = "public"))
+                    
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(
                         """
@@ -126,8 +127,8 @@ class RecurringEventControllerTest : TeamBalanceIT() {
 
             val mvcResult = mockMvc.perform(
                 MockMvcRequestBuilders.post("/api/recurring-events")
-                    .header("X-Team-Id", "public")
-                    .header("X-User-Id", admin)
+                    .with(loginAs(admin, tenant = "public"))
+                    
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(
                         """
@@ -174,8 +175,8 @@ class RecurringEventControllerTest : TeamBalanceIT() {
 
             val mvcResult = mockMvc.perform(
                 MockMvcRequestBuilders.post("/api/recurring-events")
-                    .header("X-Team-Id", "public")
-                    .header("X-User-Id", LISA_USER_ID)
+                    .with(loginAs(LISA_USER_ID, tenant = "public"))
+                    
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(
                         """

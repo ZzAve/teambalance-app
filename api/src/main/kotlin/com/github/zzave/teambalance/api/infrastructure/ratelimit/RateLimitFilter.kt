@@ -4,8 +4,6 @@ import com.github.zzave.teambalance.api.domain.port.CurrentUserGateway
 import jakarta.servlet.FilterChain
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
-import org.springframework.core.Ordered
-import org.springframework.core.annotation.Order
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
@@ -18,11 +16,6 @@ import org.springframework.web.util.UrlPathHelper
 import java.security.MessageDigest
 import kotlin.math.ceil
 
-// Just after SessionUserContextFilter (+2) and SessionTenantContextFilter (+3): the session→user
-// resolution must have run so `accept` can be throttled per authenticated user. Named (not an inline
-// `+ 4`) to keep the ordering legible next to the sibling filters and to satisfy detekt's MagicNumber.
-private const val FILTER_ORDER = Ordered.HIGHEST_PRECEDENCE + 4
-
 /**
  * Defense-in-depth throttle (#200) on the endpoints that either run pre-authentication or accept a
  * caller-supplied token: the magic-link request/verify pair and invitation `accept`. Not a live-vuln
@@ -32,14 +25,14 @@ private const val FILTER_ORDER = Ordered.HIGHEST_PRECEDENCE + 4
  * A rejected request gets a `429` with a `Retry-After` (seconds) and the app's standard error body,
  * written directly here (this runs before dispatch, so it never reaches [GlobalExceptionHandler]).
  *
- * Ordered just after [com.github.zzave.teambalance.api.infrastructure.identity.SessionUserContextFilter]
- * (`+2`) so [currentUserGateway] can already resolve the caller: `accept` is throttled per user, falling
+ * Runs in the SecurityFilterChain just after
+ * [com.github.zzave.teambalance.api.infrastructure.identity.SessionUserContextFilter] and the session
+ * tenant filter (see `SecurityConfig`), so [currentUserGateway] can already resolve the caller: `accept` is throttled per user, falling
  * back to IP only for the (401-bound) unauthenticated case. The magic-link endpoints have no session yet,
  * so they key on IP. Only the initial dispatch is filtered (OncePerRequestFilter default), so one HTTP
  * request spends exactly one token regardless of the async controller re-dispatch.
  */
 @Component
-@Order(FILTER_ORDER)
 class RateLimitFilter(
     private val rateLimiter: RateLimiter,
     private val properties: RateLimitProperties,

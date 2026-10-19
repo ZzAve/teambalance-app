@@ -16,8 +16,8 @@ function loadChromium() {
     } catch { /* try next */ }
   }
   throw new Error(
-    'Playwright not found. Install it (project: `npm i -D @playwright/test`, or global: ' +
-    '`npm i -g playwright`), then `npx playwright install chromium`.',
+      'Playwright not found. Install it (project: `npm i -D @playwright/test`, or global: ' +
+      '`npm i -g playwright`), then `npx playwright install chromium`.',
   );
 }
 const chromium = loadChromium();
@@ -35,10 +35,12 @@ const env = {
   DSF: +(process.env.DSF || 1), // device scale factor: 2–3 for a crisp phone-viewport recording
   STORAGE_STATE: process.env.STORAGE_STATE, // reuse auth across segments: load if present, steps can save to it
   INJECT_CSS: process.env.INJECT_CSS, // CSS injected on every page load — e.g. flatten flickery modal backdrops
+  // Dry run: no video, no slowMo, waits capped at 100 ms, a screenshot after every section in VIDEO_DIR.
+  PROBE: process.env.PROBE === '1',
 };
 const VIEW = { width: env.WIDTH, height: env.HEIGHT };
 
-const sleep = (page, ms) => page.waitForTimeout(ms);
+const sleep = (page, ms) => page.waitForTimeout(env.PROBE ? Math.min(ms, 100) : ms);
 
 const rand = (n) => (Math.random() * 2 - 1) * n;
 
@@ -50,56 +52,56 @@ async function ensureCursor(page) {
     const dot = document.createElement('div');
     dot.id = '__demo_cursor__';
     dot.style.cssText =
-      'position:fixed;top:0;left:0;z-index:2147483646;width:24px;height:24px;' +
-      'pointer-events:none;transition:transform 60ms linear;will-change:transform;' +
-      'transform:translate(50vw,50vh);filter:drop-shadow(0 2px 3px rgba(0,0,0,.45))';
+        'position:fixed;top:0;left:0;z-index:2147483646;width:24px;height:24px;' +
+        'pointer-events:none;transition:transform 60ms linear;will-change:transform;' +
+        'transform:translate(50vw,50vh);filter:drop-shadow(0 2px 3px rgba(0,0,0,.45))';
     dot.innerHTML =
-      '<svg width="24" height="24" viewBox="0 0 24 24" fill="none">' +
-      '<path d="M5 2.5 L5 19.5 L9.6 15 L12.7 21.6 L15.2 20.5 L12.1 14 L18.6 14 Z" ' +
-      'fill="#1b1b1b" stroke="#fff" stroke-width="1.3" stroke-linejoin="round"/></svg>';
+        '<svg width="24" height="24" viewBox="0 0 24 24" fill="none">' +
+        '<path d="M5 2.5 L5 19.5 L9.6 15 L12.7 21.6 L15.2 20.5 L12.1 14 L18.6 14 Z" ' +
+        'fill="#1b1b1b" stroke="#fff" stroke-width="1.3" stroke-linejoin="round"/></svg>';
     const ring = document.createElement('div');
     ring.id = '__demo_ring__';
     ring.style.cssText =
-      'position:fixed;top:0;left:0;z-index:2147483645;width:34px;height:34px;' +
-      'margin:-17px 0 0 -17px;border-radius:50%;border:2px solid #ffcc00;opacity:0;' +
-      'pointer-events:none;transform:translate(50vw,50vh) scale(.3)';
+        'position:fixed;top:0;left:0;z-index:2147483645;width:34px;height:34px;' +
+        'margin:-17px 0 0 -17px;border-radius:50%;border:2px solid #ffcc00;opacity:0;' +
+        'pointer-events:none;transform:translate(50vw,50vh) scale(.3)';
     document.body.append(ring, dot);
     addEventListener(
-      'mousemove',
-      (e) => {
-        dot.style.transform = `translate(${e.clientX - 4}px, ${e.clientY - 2}px)`;
-      },
-      true,
+        'mousemove',
+        (e) => {
+          dot.style.transform = `translate(${e.clientX - 4}px, ${e.clientY - 2}px)`;
+        },
+        true,
     );
     addEventListener(
-      'mousedown',
-      (e) => {
-        ring.style.transition = 'none';
-        ring.style.transform = `translate(${e.clientX}px, ${e.clientY}px) scale(.3)`;
-        ring.style.opacity = '.9';
-        requestAnimationFrame(() => {
-          ring.style.transition = 'transform .32s ease-out, opacity .32s ease-out';
-          ring.style.transform = `translate(${e.clientX}px, ${e.clientY}px) scale(1.3)`;
-          ring.style.opacity = '0';
-        });
-      },
-      true,
+        'mousedown',
+        (e) => {
+          ring.style.transition = 'none';
+          ring.style.transform = `translate(${e.clientX}px, ${e.clientY}px) scale(.3)`;
+          ring.style.opacity = '.9';
+          requestAnimationFrame(() => {
+            ring.style.transition = 'transform .32s ease-out, opacity .32s ease-out';
+            ring.style.transform = `translate(${e.clientX}px, ${e.clientY}px) scale(1.3)`;
+            ring.style.opacity = '0';
+          });
+        },
+        true,
     );
   });
 }
 
 const asLoc = (page, target) =>
-  typeof target === 'string' ? page.locator(target) : target;
+    typeof target === 'string' ? page.locator(target) : target;
 
 // Smooth-scroll a target to a comfortable spot and let the scroll settle — the "panning to keep
 // the result visible" a person does. Default block 'center' so actions and results sit mid-frame.
 async function scrollTo(page, target, opts = {}) {
   await asLoc(page, target)
-    .evaluate(
-      (el, block) => el.scrollIntoView({ behavior: 'smooth', block }),
-      opts.block || 'center',
-    )
-    .catch(() => {});
+      .evaluate(
+          (el, block) => el.scrollIntoView({ behavior: 'smooth', block }),
+          opts.block || 'center',
+      )
+      .catch(() => {});
   await page.waitForTimeout(opts.settle ?? 700);
 }
 
@@ -164,10 +166,17 @@ async function caption(page, text) {
   }, text);
 }
 
-// Wrap a logical beat so one bad selector logs + skips instead of aborting the take.
+// Wrap a logical beat so one bad selector logs + skips instead of aborting the take. A failed section
+// usually leaves a dialog open that breaks the sections after it, so read the first SECTION_FAIL.
+let failures = 0, sectionNo = 0, probePage = null;
 async function section(name, fn) {
   try { await fn(); }
-  catch (e) { console.error(`SECTION_FAIL[${name}]: ${e && e.message ? e.message : e}`); }
+  catch (e) { failures++; console.error(`SECTION_FAIL[${name}]: ${e && e.message ? e.message : e}`); }
+  if (probePage) {
+    const shot = `${env.VIDEO_DIR}/probe-${String(++sectionNo).padStart(2, '0')}-${name.replace(/\W+/g, '-')}.png`;
+    await probePage.screenshot({ path: shot }).catch(() => {});
+    console.log(`PROBE_SHOT ${shot}`);
+  }
 }
 
 async function run() {
@@ -181,21 +190,19 @@ async function run() {
 
   const launchArgs = (process.env.CHROMIUM_ARGS || '').split(' ').filter(Boolean);
   const noSandbox = process.env.CHROMIUM_NO_SANDBOX === '1'
-    || (typeof process.getuid === 'function' && process.getuid() === 0)
-    || !!process.env.CI;
+      || (typeof process.getuid === 'function' && process.getuid() === 0)
+      || !!process.env.CI;
   if (noSandbox) launchArgs.push('--no-sandbox', '--disable-dev-shm-usage');
   // The screencast ignores the context's deviceScaleFactor (frames come out at CSS size on a grey
   // canvas); forcing the scale at the browser level renders every frame at DSF× for real.
   if (env.DSF !== 1) launchArgs.push(`--force-device-scale-factor=${env.DSF}`);
-  const browser = await chromium.launch({ headless: env.HEADLESS, slowMo: env.SLOWMO, args: launchArgs });
-  const ctxOpts = {
-    viewport: VIEW,
-    recordVideo: { dir: env.VIDEO_DIR, size: { width: VIEW.width * env.DSF, height: VIEW.height * env.DSF } },
-    deviceScaleFactor: 1,
-  };
+  const browser = await chromium.launch({ headless: env.HEADLESS, slowMo: env.PROBE ? 0 : env.SLOWMO, args: launchArgs });
+  const ctxOpts = { viewport: VIEW, deviceScaleFactor: 1 };
+  if (!env.PROBE) ctxOpts.recordVideo = { dir: env.VIDEO_DIR, size: { width: VIEW.width * env.DSF, height: VIEW.height * env.DSF } };
   if (env.STORAGE_STATE && fs.existsSync(env.STORAGE_STATE)) ctxOpts.storageState = env.STORAGE_STATE;
   const context = await browser.newContext(ctxOpts);
   const page = await context.newPage();
+  if (env.PROBE) probePage = page;
   const video = page.video();
   page.setDefaultTimeout(env.TIMEOUT);
   page.on('load', () => ensureCursor(page).catch(() => {}));
@@ -204,11 +211,11 @@ async function run() {
   // document and a <style> appended then gets discarded. SPA nav preserves it; page.goto drops it.
   if (env.INJECT_CSS) {
     const reinject = () =>
-      page.evaluate((css) => {
-        let s = document.getElementById('__sc_inject_css__');
-        if (!s) { s = document.createElement('style'); s.id = '__sc_inject_css__'; document.head.appendChild(s); }
-        s.textContent = css;
-      }, env.INJECT_CSS).catch(() => {});
+        page.evaluate((css) => {
+          let s = document.getElementById('__sc_inject_css__');
+          if (!s) { s = document.createElement('style'); s.id = '__sc_inject_css__'; document.head.appendChild(s); }
+          s.textContent = css;
+        }, env.INJECT_CSS).catch(() => {});
     page.on('load', reinject);
   }
   try {
@@ -217,6 +224,7 @@ async function run() {
       click, moveTo, scrollTo, type, pan,
     });
   } catch (err) {
+    failures++;
     console.error('SCREENCAST_ERROR:', err && err.message ? err.message : err);
   } finally {
     await context.close(); // flushes the video file — required, else webm is empty
@@ -231,10 +239,12 @@ async function run() {
   }
   if (files.length === 0) {
     files = fs.readdirSync(env.VIDEO_DIR)
-      .filter((f) => f.endsWith('.webm'))
-      .map((f) => `${env.VIDEO_DIR}/${f}`);
+        .filter((f) => f.endsWith('.webm'))
+        .map((f) => `${env.VIDEO_DIR}/${f}`);
   }
-  console.log('VIDEO_FILES=' + JSON.stringify(files));
+  if (!env.PROBE) console.log('VIDEO_FILES=' + JSON.stringify(files));
+  // A take with a failed section is not a usable take; fail loudly instead of leaving it to the log.
+  if (failures) { console.error(`${failures} section(s) failed`); process.exitCode = 1; }
 }
 
 run();

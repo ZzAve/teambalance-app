@@ -7,6 +7,7 @@ import com.github.zzave.teambalance.api.infrastructure.email.ScalewayTemEmailAda
 import com.zaxxer.hikari.HikariDataSource
 import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.types.shouldBeInstanceOf
 import javax.sql.DataSource
 import org.springframework.beans.factory.annotation.Autowired
@@ -105,6 +106,32 @@ class ProdProfileSmokeIT : TeamBalanceIT() {
                 .andExpect(MockMvcResultMatchers.status().isForbidden)
         }
 
+        test("CORS lets the SPA send the CSRF header on a mutating request") {
+            mockMvc.perform(
+                MockMvcRequestBuilders.options("/api/auth/logout")
+                    .header(HttpHeaders.ORIGIN, "https://app.teambalance.nl")
+                    .header(HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD, "POST")
+                    .header(HttpHeaders.ACCESS_CONTROL_REQUEST_HEADERS, "X-XSRF-TOKEN,Content-Type"),
+            )
+                .andExpect(MockMvcResultMatchers.status().isOk)
+                .andExpect(
+                    MockMvcResultMatchers.header()
+                        .string(HttpHeaders.ACCESS_CONTROL_ALLOW_HEADERS, "X-XSRF-TOKEN, Content-Type"),
+                )
+        }
+
+        // The SPA on app.teambalance.nl reads this cookie with script, so it must be set for the shared
+        // parent domain rather than for api.teambalance.nl alone, and must not be HttpOnly (ADR-0012).
+        test("the XSRF-TOKEN cookie is readable from app.teambalance.nl: parent domain, Secure, Lax, not HttpOnly") {
+            val cookie = mockMvc.perform(MockMvcRequestBuilders.get("/api/ping"))
+                .andReturn().response.getCookie("XSRF-TOKEN").shouldNotBeNull()
+
+            cookie.domain shouldBe "teambalance.nl"
+            cookie.secure shouldBe true
+            cookie.getAttribute("SameSite") shouldBe "Lax"
+            cookie.isHttpOnly shouldBe false
+        }
+
         // Blocker #5 — proves InternalEndpointGuardFilter is registered and active in the prod
         // profile. The guard's path-matching logic (alternate spellings, traversal) is proven at the
         // unit layer in InternalEndpointGuardFilterTest; these two assertions cover the wiring seam.
@@ -151,6 +178,6 @@ class ProdProfileSmokeIT : TeamBalanceIT() {
         MockMvcRequestBuilders.options("/api/events")
             .header(HttpHeaders.ORIGIN, origin)
             .header(HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD, "GET")
-            .header(HttpHeaders.ACCESS_CONTROL_REQUEST_HEADERS, "X-Team-Id,Content-Type"),
+            .header(HttpHeaders.ACCESS_CONTROL_REQUEST_HEADERS, "Content-Type"),
     )
 }

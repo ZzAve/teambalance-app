@@ -35,11 +35,23 @@ Learned the hard way while recording #325. None of them announce themselves.
 ## Smaller things worth knowing
 
 - **The caption pill must sit above the bottom nav.** The tab bar is fixed to the bottom, exactly
-  where the skill's harness parks its caption. Both steps modules pre-create the pill at
-  `bottom:120px` (the harness only styles it when it has to create it).
+  where the skill's harness parks its caption. The steps modules pre-create the pill higher up (the
+  harness only styles it when it has to create it); new ones get this from `narrated-take.mjs`.
 - **`exact: true` on short accessible names.** `getByRole('button', { name: 'Filters' })` also
   matches **Clear filters** — and only once a filter is active, so a probe of the landing page
-  passes and the real take dies mid-way on a strict-mode violation.
+  passes and the real take dies mid-way on a strict-mode violation. Likewise the **Team** nav link
+  matches the *TeamBalance* wordmark link.
+- **Sheets and dialogs cover the caption.** Call `captionAt('top')` (from `narrated-take.mjs`) once
+  the sheet is open, and `captionAt('bottom')` after `sheet.waitFor({ state: 'hidden' })`: a closing
+  dialog stays in the DOM while it animates out.
+- **The next-event hero ignores the list's filters.** Filtering the Events list leaves the hero card
+  on screen, so a filter beat shows little unless the list below it visibly changes.
+- **Picking a file:** click the visible button inside `page.waitForEvent('filechooser')` and call
+  `setFiles` on the chooser. **A range input** (the photo crop zoom) rejects `fill()`; focus it and
+  press `ArrowRight`.
+- **Fixture data for the eval features:** past events (`include-past=true`), photo upload and serving
+  (`/api/account/photo`, `/api/members/{id|me}/photo`), and substitute edit/delete with a roster that
+  counts a Going substitute.
 - **The fixture's identity**: Julia Vermeer, `ADMIN`, team *Heren 3* (`heren-3`) — so persisted
   preferences land under `tb.pref.heren-3.*`.
 - **Chromium**: the recording box may need `npx playwright install chromium-headless-shell`

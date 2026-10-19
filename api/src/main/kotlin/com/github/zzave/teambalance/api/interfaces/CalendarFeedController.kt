@@ -23,12 +23,12 @@ import java.util.concurrent.TimeUnit
  * it to be the contract of. So it is a plain Spring controller, and the contract that matters is
  * RFC 5545, enforced in [CalendarIcs] and its tests.
  *
- * **Deliberately session-less.** The API has no Spring Security: authentication is enforced per
- * controller by calling `CurrentUserGateway.requireCurrentUserId()`, so a controller is public exactly
- * by not calling it — which this one does not, the same way the `/api/auth` endpoints do not. There is no CSRF
- * filter and no session filter that would reject a cookie-less `GET`; Spring Session's filter only
- * wraps the request, and [com.github.zzave.teambalance.api.infrastructure.identity.SessionUserContextFilter]
- * leaves an anonymous request anonymous. The token in the path is the whole credential.
+ * **Deliberately session-less.** The SecurityFilterChain requires a session for every route except a
+ * short public list, and `/api/calendar/` is on it (`SecurityConfig`), the same way the `/api/auth`
+ * endpoints are. Its CSRF check only applies to mutating methods, so it never touches this `GET`;
+ * Spring Session's filter only wraps the request, and
+ * [com.github.zzave.teambalance.api.infrastructure.identity.SessionUserContextFilter] leaves an
+ * anonymous request anonymous. The token in the path is the whole credential.
  */
 @RestController
 class CalendarFeedController(

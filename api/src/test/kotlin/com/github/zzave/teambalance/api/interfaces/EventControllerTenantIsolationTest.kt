@@ -9,6 +9,7 @@ import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers
 import java.util.UUID
+import com.github.zzave.teambalance.api.infrastructure.identity.loginAs
 
 private const val ALPHA_SCHEMA = "team_iso_alpha"
 private const val BETA_SCHEMA = "team_iso_beta"
@@ -91,8 +92,7 @@ class EventControllerTenantIsolationTest : TeamBalanceIT() {
             // Team B's request resolves to BETA_SCHEMA — alpha's event must not be reachable.
             val notFound = mockMvc.perform(
                 MockMvcRequestBuilders.get("/api/events/$eventId")
-                    .header("X-Team-Id", BETA_SCHEMA)
-                    .header("X-User-Id", BETA_USER_ID),
+                    .with(loginAs(BETA_USER_ID, tenant = BETA_SCHEMA)),
             )
                 .andExpect(MockMvcResultMatchers.request().asyncStarted())
                 .andReturn()
@@ -102,8 +102,7 @@ class EventControllerTenantIsolationTest : TeamBalanceIT() {
             // Same event, resolved via team A's own schema — must be visible.
             val found = mockMvc.perform(
                 MockMvcRequestBuilders.get("/api/events/$eventId")
-                    .header("X-Team-Id", ALPHA_SCHEMA)
-                    .header("X-User-Id", ALPHA_USER_ID),
+                    .with(loginAs(ALPHA_USER_ID, tenant = ALPHA_SCHEMA)),
             )
                 .andExpect(MockMvcResultMatchers.request().asyncStarted())
                 .andReturn()
@@ -114,8 +113,7 @@ class EventControllerTenantIsolationTest : TeamBalanceIT() {
             // The list endpoint must follow the same isolation: absent under team B, present under team A.
             val listUnderBeta = mockMvc.perform(
                 MockMvcRequestBuilders.get("/api/events?include-past=true")
-                    .header("X-Team-Id", BETA_SCHEMA)
-                    .header("X-User-Id", BETA_USER_ID),
+                    .with(loginAs(BETA_USER_ID, tenant = BETA_SCHEMA)),
             )
                 .andExpect(MockMvcResultMatchers.request().asyncStarted())
                 .andReturn()
@@ -125,8 +123,7 @@ class EventControllerTenantIsolationTest : TeamBalanceIT() {
 
             val listUnderAlpha = mockMvc.perform(
                 MockMvcRequestBuilders.get("/api/events?include-past=true")
-                    .header("X-Team-Id", ALPHA_SCHEMA)
-                    .header("X-User-Id", ALPHA_USER_ID),
+                    .with(loginAs(ALPHA_USER_ID, tenant = ALPHA_SCHEMA)),
             )
                 .andExpect(MockMvcResultMatchers.request().asyncStarted())
                 .andReturn()

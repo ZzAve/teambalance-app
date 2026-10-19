@@ -34,8 +34,9 @@ interface SubstitutePickerViewProps {
   onEvent: SubstituteEntry[]
   onSetState: (substituteId: string, state: SubstituteState) => void
   /**
-   * Creates a Substitute and adds them to the event as Asked. Resolves once they are on the list; a
-   * rejection keeps the form open with the name, and a [SubstituteError]'s message is shown as is.
+   * Creates a Substitute and adds them to the event as Maybe (asked, not confirmed). Resolves once
+   * they are on the list; a rejection keeps the form open with the name, and a [SubstituteError]'s
+   * message is shown as is.
    */
   onCreate: (name: string, positionId: string | null) => Promise<unknown>
   onClose: () => void
@@ -43,12 +44,12 @@ interface SubstitutePickerViewProps {
 
 /**
  * Calling Substitutes in for one event (ADR-0033). Lists the Team's Substitutes, each with inline
- * Going / Asked / Can't, so several can be called in, and a "no" recorded, before Done. Can't keeps
+ * Going / Maybe / Can't, so several can be called in, and a "no" recorded, before Done. Can't keeps
  * the person on the event as declined; taking them off the event is not offered here, only in their
  * Substitute sheet, so recording a "no" can never delete that they were asked.
  *
  * Any Member may also add someone who is not on the list yet: a name and an optional Position, added
- * as Asked (Maybe), since the person has been asked and not yet answered. Prop-only; the writes live
+ * as Maybe, since the person has been asked and not yet answered. Prop-only; the writes live
  * in [SubstitutePicker].
  */
 export function SubstitutePickerView({
@@ -212,7 +213,7 @@ export function SubstitutePickerView({
             </div>
             {positionsError && <InlineError message="Couldn't load the positions." onRetry={onRetryPositions} />}
             <Button type="button" disabled={!trimmed || alreadyListed !== undefined || creating} onClick={submit}>
-              {creating ? 'Adding…' : 'Add as asked'}
+              {creating ? 'Adding…' : 'Add as Maybe'}
             </Button>
           </div>
         ) : (

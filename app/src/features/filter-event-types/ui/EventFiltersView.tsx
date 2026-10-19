@@ -2,12 +2,13 @@ import { useState } from 'react'
 import { SlidersHorizontal } from 'lucide-react'
 import type { EventTypeItem } from '@shared/api/event-types'
 import type { AttendanceState } from '@features/attendance-toggle/ui/AttendanceToggle'
+import { ATTENDANCE_WORDS } from '@entities/event/lib/attendance-words'
 import { SectionLabel } from '@shared/ui/SectionLabel'
 import { Switch } from '@shared/ui/switch'
 import { Chip } from '@shared/ui/chip'
 import { EventTypeChip } from '@entities/event/ui/EventTypeChip'
 import { useEscapeToClose } from '@shared/lib/use-escape-to-close'
-import { ALL_ATTENDANCE_STATES, ATTENDANCE_STATE_LABELS } from '@entities/event/lib/attendance-states'
+import { ALL_ATTENDANCE_STATES } from '@entities/event/lib/attendance-states'
 import { ALL_TURNOUT_BUCKETS, type TurnoutBucket } from '../model/turnout'
 
 interface EventFiltersViewProps {
@@ -40,25 +41,25 @@ interface EventFiltersViewProps {
 export const STATE_CHIPS: { state: AttendanceState; label: string; active: string; inactive: string }[] = [
   {
     state: 'ATTENDING',
-    label: ATTENDANCE_STATE_LABELS.ATTENDING,
+    label: ATTENDANCE_WORDS.ATTENDING.word,
     active: 'bg-green border-green text-white',
     inactive: 'border-green/40 text-green',
   },
   {
     state: 'MAYBE',
-    label: ATTENDANCE_STATE_LABELS.MAYBE,
+    label: ATTENDANCE_WORDS.MAYBE.word,
     active: 'bg-gold border-gold text-white',
     inactive: 'border-gold/40 text-gold-ink',
   },
   {
     state: 'ABSENT',
-    label: ATTENDANCE_STATE_LABELS.ABSENT,
+    label: ATTENDANCE_WORDS.ABSENT.word,
     active: 'bg-red border-red text-white',
     inactive: 'border-red/40 text-red',
   },
   {
     state: 'NOT_RESPONDED',
-    label: ATTENDANCE_STATE_LABELS.NOT_RESPONDED,
+    label: ATTENDANCE_WORDS.NOT_RESPONDED.word,
     // No semantic color: not responding is the absence of an answer, not a fourth verdict.
     active: 'bg-muted-foreground border-muted-foreground text-white',
     inactive: 'border-muted-foreground/40 text-muted-foreground',

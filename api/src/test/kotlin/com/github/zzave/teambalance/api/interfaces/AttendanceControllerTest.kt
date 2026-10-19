@@ -13,6 +13,7 @@ import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers
 import java.util.UUID
+import com.github.zzave.teambalance.api.infrastructure.identity.loginAs
 
 // A dedicated id (NOT a demo-seed user) so this user belongs only to this spec's team — the member
 // lookup for attendance assumes one team per user, so reusing a demo user would resolve their position
@@ -64,8 +65,7 @@ class AttendanceControllerTest : TeamBalanceIT() {
                 MockMvcRequestBuilders.put("/api/events/$eventId/attendances/$JAN_USER_ID")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content("""{"state":"ATTENDING"}""")
-                    .header("X-Team-Id", "public")
-                    .header("X-User-Id", JAN_USER_ID),
+                    .with(loginAs(JAN_USER_ID, tenant = "public")),
             )
                 .andExpect(MockMvcResultMatchers.request().asyncStarted())
                 .andReturn()
@@ -112,8 +112,7 @@ class AttendanceControllerTest : TeamBalanceIT() {
                 MockMvcRequestBuilders.put("/api/events/$eventId/attendances/$noPositionUserId")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content("""{"state":"ATTENDING"}""")
-                    .header("X-Team-Id", "public")
-                    .header("X-User-Id", noPositionUserId),
+                    .with(loginAs(noPositionUserId, tenant = "public")),
             )
                 .andExpect(MockMvcResultMatchers.request().asyncStarted())
                 .andReturn()
@@ -203,8 +202,7 @@ class AttendanceControllerTest : TeamBalanceIT() {
                 MockMvcRequestBuilders.put("/api/events/$eventId/attendances/$ownerId")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content("""{"state":"ATTENDING"}""")
-                    .header("X-Team-Id", "public")
-                    .header("X-User-Id", editorId),
+                    .with(loginAs(editorId, tenant = "public")),
             )
                 .andExpect(MockMvcResultMatchers.request().asyncStarted())
                 .andReturn()
@@ -257,8 +255,7 @@ class AttendanceControllerTest : TeamBalanceIT() {
 
             val getResult = mockMvc.perform(
                 MockMvcRequestBuilders.get("/api/events/$eventId")
-                    .header("X-Team-Id", "public")
-                    .header("X-User-Id", editorId),
+                    .with(loginAs(editorId, tenant = "public")),
             )
                 .andExpect(MockMvcResultMatchers.request().asyncStarted())
                 .andReturn()
@@ -280,8 +277,7 @@ class AttendanceControllerTest : TeamBalanceIT() {
             MockMvcRequestBuilders.put("/api/events/$eventId/attendances/$targetUserId")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""{"state":"$state"}""")
-                .header("X-Team-Id", "public")
-                .header("X-User-Id", actingUserId),
+                .with(loginAs(actingUserId, tenant = "public")),
         )
             .andExpect(MockMvcResultMatchers.request().asyncStarted())
             .andReturn()
@@ -294,8 +290,7 @@ class AttendanceControllerTest : TeamBalanceIT() {
             MockMvcRequestBuilders.put("/api/events/$eventId/attendances/$JAN_USER_ID")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""{"state":"$state"}""")
-                .header("X-Team-Id", "public")
-                .header("X-User-Id", JAN_USER_ID),
+                .with(loginAs(JAN_USER_ID, tenant = "public")),
         )
             .andExpect(MockMvcResultMatchers.request().asyncStarted())
             .andReturn()

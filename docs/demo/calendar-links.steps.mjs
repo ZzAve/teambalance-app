@@ -9,10 +9,9 @@
  * Portrait (phone) take: the same steps at a phone viewport, recorded at 3x for a crisp video.
  *   WIDTH=390 HEIGHT=844 DSF=3 STEPS=… node .agents/skills/demo-video/scripts/record-harness.mjs
  *
- * Narrated take: synthesise calendar-links.narration.json (caption text → spoken line; Piper,
- * en_GB-alan-medium, length-scale 0.92) into clips, write { caption: { file, seconds } } as JSON and
- * pass it as NARRATION=…; the take then holds each caption for its line and prints CAPTION_AT lines
- * to lay the clips onto the recording.
+ * Narrated take: the feature-promo-video skill voices calendar-links.narration.json into clips.json
+ * ({ caption: { file, seconds } }); pass it as NARRATION=…. The take then holds each caption for its
+ * line and prints CAPTION_AT lines, which the skill's assemble.py uses to lay the clips onto the video.
  */
 import { readFileSync } from 'node:fs'
 import { installFixtureApi } from './api-fixture.mjs'

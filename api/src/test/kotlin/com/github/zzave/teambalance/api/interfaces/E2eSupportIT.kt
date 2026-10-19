@@ -126,7 +126,7 @@ class E2eSupportIT : TeamBalanceIT() {
             verified.andExpect(MockMvcResultMatchers.status().isOk)
             // Session identity is carried by the Spring Session cookie, not a heap-resident
             // HttpSession, so thread the cookie into the follow-up request to stay authenticated.
-            val session = verified.andReturn().response.cookies.first()
+            val session = verified.andReturn().response.getCookie("SESSION")!!
 
             // Query params must be in the URI: the Wirespec adapter parses the raw query string,
             // which MockMvc's .param() does not populate.

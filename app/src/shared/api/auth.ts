@@ -1,4 +1,5 @@
 import { queryOptions, useMutation, useQuery } from '@tanstack/react-query'
+import { toast } from 'sonner'
 import { api } from './wirespec-client'
 import type { AuthenticatedUser } from './generated/model/AuthenticatedUser'
 
@@ -44,11 +45,19 @@ export function useVerifyMagicLink() {
   })
 }
 
+/**
+ * Ends the server session. Rejects unless the server confirms it (204): callers clear the client
+ * session on success, and a refused logout (a CSRF 403, a 5xx) leaves the server session valid.
+ */
+export async function logOut() {
+  const res = await api.Logout()
+  if (res.status !== 204) throw new Error(`Logout failed with status ${res.status}`)
+}
+
 export function useLogout() {
   return useMutation({
-    mutationFn: async () => {
-      await api.Logout()
-    },
+    mutationFn: logOut,
+    onError: () => toast.error("Couldn't log out — please try again."),
   })
 }
 

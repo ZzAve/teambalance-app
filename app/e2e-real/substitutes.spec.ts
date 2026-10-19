@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test'
+import { csrfHeader } from './helpers'
 
 // Real e2e: a member calls in a Substitute for an event (ADR-0033, #359 slice 1).
 //
@@ -18,7 +19,7 @@ test.afterEach(async ({ page }) => {
   const res = await page.request.get('/api/substitutes')
   const { substitutes } = (await res.json()) as { substitutes: { id: string; name: string }[] }
   const created = substitutes.find((s) => s.name === name)
-  if (created) expect((await page.request.delete(`/api/substitutes/${created.id}`)).status()).toBe(204)
+  if (created) expect((await page.request.delete(`/api/substitutes/${created.id}`, { headers: await csrfHeader(page.context()) })).status()).toBe(204)
 })
 
 test('a member calls in a new substitute, confirms them, and takes them off again', async ({ page }) => {
@@ -27,13 +28,13 @@ test('a member calls in a new substitute, confirms them, and takes them off agai
   await page.getByText('E2E Training').first().click()
   const block = page.getByRole('region', { name: 'Substitutes' })
 
-  // 1. Someone not on the Team's list yet joins the event as Asked: they were asked, not confirmed.
+  // 1. Someone not on the Team's list yet joins the event as Maybe: they were asked, not confirmed.
   await block.getByRole('button', { name: 'Call in substitutes' }).click()
   const picker = page.getByRole('dialog', { name: 'Call in substitutes' })
   await picker.getByRole('button', { name: /New substitute/ }).click()
   await picker.getByLabel('Name', { exact: true }).fill(name)
-  await picker.getByRole('button', { name: 'Add as asked' }).click()
-  await expect(picker.getByRole('group', { name }).getByRole('button', { name: 'Asked' })).toHaveAttribute(
+  await picker.getByRole('button', { name: 'Add as Maybe' }).click()
+  await expect(picker.getByRole('group', { name }).getByRole('button', { name: 'Maybe' })).toHaveAttribute(
     'aria-pressed',
     'true',
   )

@@ -1,4 +1,5 @@
-import { avatarColor, avatarInitials } from '@shared/lib/avatar'
+import { Avatar } from '@shared/ui/avatar'
+import { teamPhotoUrl } from '@shared/api/photos'
 import { SubstituteAvatar } from './SubstituteAvatar'
 import { findSomeone, type LineupMember, type LineupState } from '../lib/lineup'
 import { ATTENDANCE_WORDS } from '../lib/attendance-words'
@@ -59,13 +60,12 @@ export function MemberChip({ member, onSelect }: MemberChipProps) {
       {member.isSubstitute ? (
         <SubstituteAvatar name={member.displayName} className="size-5 bg-card" />
       ) : (
-        <span
-          aria-hidden
-          className="flex size-5 shrink-0 items-center justify-center rounded-full text-caption font-bold text-white"
-          style={{ backgroundColor: avatarColor(member.userId) }}
-        >
-          {avatarInitials(member.displayName)}
-        </span>
+        <Avatar
+          userId={member.userId}
+          name={member.displayName}
+          size="xs"
+          photoUrl={member.photoVersion ? teamPhotoUrl(member.userId, member.photoVersion) : undefined}
+        />
       )}
       <span aria-hidden>{member.chipName}</span>
       {member.isSelf && (

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Plus } from 'lucide-react'
 import type { AttendanceEntry, EventRoster, SubstituteEntry } from '@shared/api/events'
 import { Avatar } from '@shared/ui/avatar'
+import { teamPhotoUrl } from '@shared/api/photos'
 import { AnswerSheet, type AnswerTarget } from '@features/attendance-toggle/ui/AnswerSheet'
 import type { AttendanceState } from '@features/attendance-toggle/ui/AttendanceToggle'
 import {
@@ -255,7 +256,11 @@ function AttendeeRow({
 
   const body = (
     <>
-      <Avatar userId={attendance.userId} name={attendance.displayName} />
+      <Avatar
+        userId={attendance.userId}
+        name={attendance.displayName}
+        photoUrl={attendance.photoVersion ? teamPhotoUrl(attendance.userId, attendance.photoVersion) : undefined}
+      />
       <span className="min-w-0 flex-1">
         <span className="block truncate text-small leading-tight">
           {attendance.displayName}

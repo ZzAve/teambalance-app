@@ -45,6 +45,8 @@ export interface LineupMember {
   isSelf: boolean
   /** Called in from outside the Team (ADR-0033): shown with a "Sub" tag, and never the viewer. */
   isSubstitute: boolean
+  /** The Member's Team Photo version; a Substitute has none. */
+  photoVersion?: string
 }
 
 export interface LineupRow {
@@ -176,6 +178,7 @@ function toMember(a: AttendanceEntry, currentUserId?: string | null): LineupMemb
     state: a.state,
     isSelf: a.userId === currentUserId,
     isSubstitute: false,
+    photoVersion: a.photoVersion,
   }
 }
 

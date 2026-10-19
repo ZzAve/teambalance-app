@@ -37,6 +37,7 @@ const att = (
   state: 'ATTENDING',
   changedBy: undefined,
   updatedAt: undefined,
+  photoVersion: undefined,
   ...overrides,
 })
 

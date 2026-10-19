@@ -7,9 +7,9 @@ interface TabConfig {
   icon: LucideIcon
   label: string
   to: string
-  // How to match the current path to this tab. Events is exact (the Team home would otherwise
-  // prefix-match every screen under it); Team also owns its nested routes (e.g. .../team/settings),
-  // so it matches by prefix.
+  // How to match the current path to this tab. Events is the Team home, so it cannot prefix-match
+  // (that would light it on every screen); it owns the home and the screens opened from it (an
+  // event's detail, the calendar links). Team owns its nested routes (e.g. .../team/settings).
   isActive: (pathname: string) => boolean
 }
 
@@ -19,7 +19,13 @@ function tabsFor(routes: TeamRoutes): TabConfig[] {
   const exact = (path: string) => (p: string) => p.replace(/\/$/, '') === path
   const prefix = (path: string) => (p: string) => p === path || p.startsWith(`${path}/`)
   return [
-    { icon: Calendar, label: 'Events', to: routes.events, isActive: exact(routes.events) },
+    {
+      icon: Calendar,
+      label: 'Events',
+      to: routes.events,
+      isActive: (p) =>
+        exact(routes.events)(p) || prefix(`${routes.events}/events`)(p) || prefix(routes.calendar)(p),
+    },
     { icon: Users, label: 'Team', to: routes.team, isActive: prefix(routes.team) },
     { icon: PiggyBank, label: 'Money', to: routes.money, isActive: prefix(routes.money) },
     // Profile points at the team-independent /account (ADR-0027 §1) — a constant, not a slug-built

@@ -31,8 +31,8 @@ interface MemberDetailViewProps {
   canChangePhoto: boolean
   /** The member themselves, or an Admin — the one thing an Admin may do to someone's photo. */
   canRemovePhoto: boolean
-  /** The viewer has a Personal Photo to copy into this Team. */
-  hasPersonalPhoto: boolean
+  /** The viewer's Personal Photo, shown before it replaces the Team Photo; undefined when they have none. */
+  personalPhotoUrl?: string
   isPhotoSaving: boolean
   photoErrorMessage?: string
   onUploadPhoto: (photo: Blob) => void
@@ -66,7 +66,7 @@ export function MemberDetailView({
   onSubmit,
   canChangePhoto,
   canRemovePhoto,
-  hasPersonalPhoto,
+  personalPhotoUrl,
   isPhotoSaving,
   photoErrorMessage,
   onUploadPhoto,
@@ -75,6 +75,7 @@ export function MemberDetailView({
 }: MemberDetailViewProps) {
   const routes = useTeamRoutes()
   const [confirmingRemove, setConfirmingRemove] = useState(false)
+  const [previewingPersonal, setPreviewingPersonal] = useState(false)
 
   return (
     <div className="flex flex-col gap-5">
@@ -103,8 +104,8 @@ export function MemberDetailView({
           {(canChangePhoto || (canRemovePhoto && member.photoVersion)) && (
             <div className="flex flex-col items-center gap-2">
               <div className="flex flex-wrap justify-center gap-2">
-                {canChangePhoto && hasPersonalPhoto && (
-                  <Button variant="outline" size="sm" disabled={isPhotoSaving} onClick={onUsePersonalPhoto}>
+                {canChangePhoto && personalPhotoUrl && (
+                  <Button variant="outline" size="sm" disabled={isPhotoSaving} onClick={() => setPreviewingPersonal(true)}>
                     Use my personal photo
                   </Button>
                 )}
@@ -122,6 +123,25 @@ export function MemberDetailView({
                 )}
               </div>
               {photoErrorMessage && <p className="text-small text-red">{photoErrorMessage}</p>}
+              <ConfirmDialog
+                open={previewingPersonal}
+                title="Use your personal photo"
+                description={
+                  member.photoVersion ? 'This replaces your current team photo.' : 'Your team will see this photo.'
+                }
+                confirmLabel="Use this photo"
+                onConfirm={() => {
+                  setPreviewingPersonal(false)
+                  onUsePersonalPhoto()
+                }}
+                onCancel={() => setPreviewingPersonal(false)}
+              >
+                <img
+                  src={personalPhotoUrl}
+                  alt="Your personal photo"
+                  className="mx-auto h-28 w-28 rounded-full object-cover"
+                />
+              </ConfirmDialog>
               <ConfirmDialog
                 open={confirmingRemove}
                 title="Remove photo"

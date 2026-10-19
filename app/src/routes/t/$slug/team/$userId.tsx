@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { createFileRoute } from '@tanstack/react-router'
 import { useCurrentUser } from '@shared/api/auth'
 import { MemberUpdateError, useMembers, useUpdateMember } from '@shared/api/members'
-import { PhotoError, useCopyPersonalPhotoToTeam, useRemoveTeamPhoto, useUploadTeamPhoto } from '@shared/api/photos'
+import { PhotoError, personalPhotoUrl, useCopyPersonalPhotoToTeam, useRemoveTeamPhoto, useUploadTeamPhoto } from '@shared/api/photos'
 import { usePositions } from '@shared/api/positions'
 import { MemberDetailView } from '@pages/member/ui/MemberDetailView'
 
@@ -66,7 +66,7 @@ function MemberDetailPage() {
       }}
       canChangePhoto={isSelf}
       canRemovePhoto={isSelf || currentUser?.role === 'ADMIN'}
-      hasPersonalPhoto={!!currentUser?.personalPhotoVersion}
+      personalPhotoUrl={currentUser?.personalPhotoVersion ? personalPhotoUrl(currentUser.personalPhotoVersion) : undefined}
       isPhotoSaving={photoMutations.some((m) => m.isPending)}
       photoErrorMessage={
         photoError ? (photoError instanceof PhotoError ? photoError.message : "Couldn't save the photo. Please try again.") : undefined

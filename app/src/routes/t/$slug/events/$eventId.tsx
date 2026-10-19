@@ -4,6 +4,7 @@ import { toast } from 'sonner'
 import { useEvent, useEvents } from '@shared/api/events'
 import { useSetAttendance } from '@shared/api/attendances'
 import { useCurrentUser } from '@shared/api/auth'
+import { useCalendarLinks } from '@shared/api/calendar-links'
 import {
   useRemoveSubstituteAttendance,
   useSetSubstituteAttendance,
@@ -31,6 +32,10 @@ function EventDetailPage() {
   const currentUserId = useCurrentUser()?.id ?? null
   const isAdmin = useCurrentUser()?.role === 'ADMIN'
   const isActingAs = !!useCurrentUser()?.actAs
+  // The calendar prompt is for a member who has not subscribed yet; once they have a link, the
+  // calendar icon on the events list is the way back in.
+  const calendarLinks = useCalendarLinks({ enabled: !isActingAs })
+  const offerCalendar = calendarLinks.isSuccess && calendarLinks.data.length === 0
   const { mutate, isPending } = useSetAttendance()
   // Only load the full list to find series siblings when this event actually belongs to a group.
   const { data: allEvents } = useEvents(true, !!event?.recurringGroup)
@@ -77,7 +82,7 @@ function EventDetailPage() {
         isError={isError}
         onRetry={() => refetch()}
         backTo={routes.events}
-        calendarHref={isActingAs ? undefined : routes.calendar}
+        calendarHref={offerCalendar ? routes.calendar : undefined}
         event={event ?? null}
         currentUserId={currentUserId}
         myState={myState}

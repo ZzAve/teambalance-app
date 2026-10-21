@@ -117,12 +117,13 @@ export function NextEventHeroView({
       <h3 className="font-display mb-1 mt-2 pr-12 text-title font-extrabold leading-[1.08]">
         {/* Stretched-link pattern, as EventCard uses in the list below: the card is not an anchor,
             the title's after:inset-0 overlay makes the whole hero open the event. The controls that
-            live inside it — the RSVP buttons, the lineup disclosure — are lifted back above the overlay with
-            relative z-10, so widening the target costs none of them.
-            Hover and focus hang off this link (a wash, no underline: the whole card is the link) rather than a `group` on the card, because the overlay
-            *is* the link's own hit area: the wash then answers exactly where a tap
-            would navigate, and stays quiet over the controls, which are not part of it. The ring is
-            inset so `overflow-hidden` can't clip it, and traces the real target — the whole card. */}
+            live inside it — the RSVP buttons, the lineup disclosure — are lifted back above the
+            overlay with relative z-10, so widening the target costs none of them.
+            Hover and focus hang off this link (a wash, no underline: the whole card is the link)
+            rather than a `group` on the card, because the overlay *is* the link's own hit area: the
+            wash then answers exactly where a tap would navigate, and stays quiet over the controls,
+            which are not part of it. The ring is inset so `overflow-hidden` can't clip it, and
+            traces the real target — the whole card. */}
         <Link
           to={routes.event(event.id)}
           className="after:absolute after:inset-0 after:rounded-lg after:bg-white/0 after:transition-colors after:duration-200 hover:after:bg-white/[0.07] focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-inset focus-visible:after:ring-white"
@@ -141,7 +142,8 @@ export function NextEventHeroView({
       {event.location && (
         <p className="mt-1 flex flex-wrap items-center gap-1.5 text-small text-white/95">
           <MapPin size={13} className="shrink-0" />
-          {/* Plain text, as on the list cards: a maps link would compete with the card's own (ADR-0030 §9). */}
+          {/* Plain text, as on the list cards: a maps link would compete with the card's own
+              (ADR-0030 §9). */}
           {event.location}
         </p>
       )}

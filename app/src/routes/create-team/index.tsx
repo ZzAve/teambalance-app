@@ -23,7 +23,8 @@ function CreateTeamPage() {
   const error = createTeam.error instanceof CreateTeamError ? createTeam.error : null
 
   return (
-    <div className="mx-auto mt-10 max-w-sm">
+    // Full column width, like the Account page this is reached from.
+    <div>
       <h1 className="font-display text-title font-bold">Create your team</h1>
       <p className="mt-2 text-small text-muted-foreground">
         Enter your creation code and name your team — you'll be its admin.

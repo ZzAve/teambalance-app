@@ -104,6 +104,7 @@ internal fun MemberAttendance.produce() = AttendanceEntry(
     // Attribution is present only for a real response row; a not-responded member carries neither.
     changedBy = changedBy?.produce(),
     updatedAt = updatedAt?.let { DateTimestampWithTimezone(it.toString()) },
+    photoVersion = member.photoVersion?.value,
 )
 
 internal fun Map<AttendanceState, Int>.produce(roleBreakdown: List<Pair<PositionLabel, Int>>) =

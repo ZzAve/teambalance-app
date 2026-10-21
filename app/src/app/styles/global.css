@@ -285,6 +285,15 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Tailwind 4's preflight gives buttons the default arrow; every button here is a tap target, so show
+   the hand. In the base layer, so a `cursor-*` utility on one button still wins. */
+@layer base {
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]) {
+    cursor: pointer;
+  }
+}
+
 /* ── Card shadows — warm tint from design tokens ── */
 .card-shadow {
   box-shadow: var(--shadow-card);

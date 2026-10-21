@@ -42,7 +42,7 @@ const meta = {
     onSubmit: fn(),
     canChangePhoto: true,
     canRemovePhoto: true,
-    hasPersonalPhoto: true,
+    personalPhotoUrl: 'data:image/gif;base64,R0lGODlhAQABAAAAACw=',
     isPhotoSaving: false,
     onUploadPhoto: fn(),
     onUsePersonalPhoto: fn(),
@@ -56,11 +56,12 @@ type Story = StoryObj<typeof meta>
 
 export const Data: Story = {
   play: async ({ canvas }) => {
-    await expect(canvas.getByRole('heading', { name: 'Ada Lovelace' })).toBeInTheDocument()
+    await expect(canvas.getByRole('heading', { level: 1, name: 'Ada Lovelace' })).toBeInTheDocument()
     await expect(canvas.getByLabelText('Shirt number 12')).toBeInTheDocument()
     await expect(canvas.getByText('Admin')).toBeInTheDocument()
-    // Back to the roster, beside the shell's own Team tab.
-    await expect(canvas.getAllByRole('link', { name: 'Team' })).toHaveLength(2)
+    // Back to the roster through the shared sticky header, as on an event's detail page.
+    await expect(canvas.getByRole('link', { name: 'Back to team' })).toBeInTheDocument()
+    await expect(canvas.getByRole('heading', { level: 2, name: 'Ada Lovelace' })).toBeInTheDocument()
     await expect(canvas.getByRole('button', { name: 'Edit profile' })).toBeInTheDocument()
   },
 }
@@ -86,7 +87,7 @@ export const Shells: Story = {
           <MemberDetailView {...args} canEdit canChangePhoto={false} member={{ ...ADA, photoVersion: 'v1' }} />
         ),
         'Photo upload failed': (
-          <MemberDetailView {...args} hasPersonalPhoto={false} photoErrorMessage="That photo is too large. Please pick another one." />
+          <MemberDetailView {...args} personalPhotoUrl={undefined} photoErrorMessage="That photo is too large. Please pick another one." />
         ),
         Editing: <MemberDetailView {...args} isEditing errorCode="NUMBER_TAKEN" />,
         // A failure the form has no field for, e.g. the member was removed meanwhile.
@@ -143,7 +144,15 @@ export const Interactions: Story = {
   play: async ({ canvas, args }) => {
     const region = (name: string) => within(canvas.getByRole('region', { name }))
 
+    // The personal photo is shown first; Cancel keeps the current one.
     await userEvent.click(region('Reading').getByRole('button', { name: 'Use my personal photo' }))
+    let preview = within(await screen.findByRole('dialog'))
+    await expect(preview.getByRole('img', { name: 'Your personal photo' })).toBeInTheDocument()
+    await userEvent.click(preview.getByRole('button', { name: 'Cancel' }))
+    await expect(args.onUsePersonalPhoto).not.toHaveBeenCalled()
+    await userEvent.click(region('Reading').getByRole('button', { name: 'Use my personal photo' }))
+    preview = within(await screen.findByRole('dialog'))
+    await userEvent.click(preview.getByRole('button', { name: 'Use this photo' }))
     await expect(args.onUsePersonalPhoto).toHaveBeenCalledOnce()
     // Removing asks first; Cancel leaves the photo alone.
     await userEvent.click(region('Reading').getByRole('button', { name: 'Remove photo' }))

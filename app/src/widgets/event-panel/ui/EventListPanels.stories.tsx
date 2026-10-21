@@ -5,7 +5,7 @@ import type { AttendanceEntry, Event } from '@shared/api/events'
 import { withRouter } from '@shared/testing/router-decorator'
 import { makeAttendee, makeEvent, makeRoster, NO_ROSTER } from '@shared/testing/event-fixtures'
 import { EventListView } from '@entities/event/ui/EventListView'
-import { PanelViewMenu } from '@features/event-panel-view/ui/PanelViewMenu'
+import { KeepPanelsOpenRow } from '@features/event-panel-view/ui/KeepPanelsOpenRow'
 import { Stack } from '@shared/testing/stack'
 import { EventLineupPanel } from './EventLineupPanel'
 
@@ -19,7 +19,7 @@ import { EventLineupPanel } from './EventLineupPanel'
  * list of every roster state renders its whole variety of panels with no fetch beyond the one that
  * loaded the list (ADR-0030 §8).
  *
- * The harness renders `PanelViewMenu` above the list because the page does: `Keep open` is a live
+ * The harness renders `KeepPanelsOpenRow` above the list, as the page's open filters do: `Keep open` is a live
  * default, so "flipping it moves every card" is only demonstrable with both halves on screen.
  *
  * It lives in `widgets/` rather than beside `EventListView` because the panel is a widget and the
@@ -213,9 +213,9 @@ function ListWithPanels({
 
   return (
     <div>
-      {/* The page header, in miniature: the one control that drives every card below. */}
-      <div className="mb-2 flex justify-end">
-        <PanelViewMenu
+      {/* The page's open filters, in miniature: the one control that drives every card below. */}
+      <div className="mb-2">
+        <KeepPanelsOpenRow
           defaultExpanded={defaultExpanded}
           onDefaultExpandedChange={(next) => {
             onDefaultExpandedChange?.(next)
@@ -268,7 +268,7 @@ export const Data: Story = {
     await expect(canvas.getByText('Missing a position')).toBeInTheDocument()
     await expect(canvas.getByText('2 spots open')).toBeInTheDocument()
     await expect(canvas.getByText('Lineup set')).toBeInTheDocument()
-    await expect(canvas.getByText('3 more needed')).toBeInTheDocument()
+    await expect(canvas.getByText('3 more needed · 5/8')).toBeInTheDocument()
     await expect(canvas.getByText('4 going')).toBeInTheDocument() // the social's headcount
     // Nothing is open, so no panel content is on screen at all.
     await expect(canvas.queryByText('Sanne Bakker')).not.toBeInTheDocument()
@@ -317,15 +317,14 @@ export const Shells: Story = {
     const region = (name: string) => within(canvas.getByRole('region', { name }))
     const everyPanelOpen = region('Every panel open')
 
-    // One open panel per card, and no preference chrome on any of them.
+    // One open panel per card, and no preference chrome on any of them: the one switch is the
+    // harness's, above the list.
     await expect(everyPanelOpen.getAllByRole('button', { name: OPEN_PANEL })).toHaveLength(5)
-    await expect(everyPanelOpen.queryByRole('switch', { name: 'Keep panels open' })).not.toBeInTheDocument()
+    await expect(everyPanelOpen.getAllByRole('switch', { name: 'Keep panels open' })).toHaveLength(1)
 
     // Targets and people at once, which is the merge: the verdict words come from the roster, the
     // names beside them from the attendances, on the same rows.
     await expect(everyPanelOpen.getAllByText('nobody yet').length).toBeGreaterThan(0)
-    await expect(everyPanelOpen.getByText('4 of 4 covered')).toBeInTheDocument()
-    await expect(everyPanelOpen.getByText('5/8 going')).toBeInTheDocument() // the headcount-only panel
     // Every card names the team, the social included — there is no view that hides them any more.
     await expect(everyPanelOpen.getAllByText(/Sanne/)).toHaveLength(5)
     // A non-responder is still on every card, whatever its roster state — named in the chip's
@@ -387,7 +386,6 @@ export const Interactions: Story = {
     await userEvent.click(keepOpen.getAllByRole('button', { name: /Show lineup/ })[0])
     await expect(openPanels()).toHaveLength(1)
 
-    await userEvent.click(keepOpen.getByRole('button', { name: 'View options' }))
     await userEvent.click(keepOpen.getByRole('switch', { name: 'Keep panels open' }))
     await expect(onDefaultExpandedChangeSpy).toHaveBeenCalledWith(true)
     await expect(openPanels()).toHaveLength(5)
@@ -400,10 +398,9 @@ export const Interactions: Story = {
     // A club side of 17: expanding one card's crowded cluster leaves its neighbour untouched.
     const bigSquad = region('Big squad')
     const clubNight = within(bigSquad.getByText('Club Night').closest('.card-enter') as HTMLElement)
-    await userEvent.click(clubNight.getByRole('button', { name: 'Show 8 more going' }))
+    await userEvent.click(clubNight.getByRole('button', { name: /^Show \d+ more in / }))
     await expect(clubNight.getByRole('button', { name: /Member 16 —/ })).toBeInTheDocument()
-    // The five not responded sit in their own cluster, which is at the cap and so shows in full: the limit
-    // is per run of chips, not per row — and certainly not per list.
+    // One run per position in name order, whatever people answered: expanded, the not-responded show too.
     await expect(clubNight.getByRole('button', { name: /Member 17 — Not responded/ })).toBeInTheDocument()
     await expect(bigSquad.getByRole('button', { name: /Sanne Bakker/ })).toBeInTheDocument()
   },

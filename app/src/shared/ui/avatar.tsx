@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { avatarColor, avatarInitials } from '@shared/lib/avatar'
 
 const SIZES = {
+  xs: 'size-5 text-caption',
   sm: 'h-8 w-8 text-caption',
   md: 'h-16 w-16 text-body',
   lg: 'h-28 w-28 text-title',

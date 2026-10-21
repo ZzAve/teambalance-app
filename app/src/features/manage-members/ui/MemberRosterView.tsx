@@ -250,6 +250,12 @@ function MemberRow({
       <span className="min-w-0 flex-1 truncate font-medium" title={member.displayName}>
         {member.displayName}
       </span>
+      {isAdmin && (
+        <span className="shrink-0 rounded-full bg-blue/10 px-1.5 py-0.5 text-caption font-semibold text-blue">
+          Admin
+        </span>
+      )}
+      {/* After the badge, so the pickers line up in one column whether or not a row is an admin. */}
       {positions.length > 0 ? (
         <div className="w-32 shrink-0">
           <PositionPicker
@@ -263,12 +269,6 @@ function MemberRow({
         </div>
       ) : (
         <span className="shrink-0 text-small text-muted-foreground">{member.position?.label ?? 'Unassigned'}</span>
-      )}
-
-      {isAdmin && (
-        <span className="shrink-0 rounded-full bg-blue/10 px-1.5 py-0.5 text-caption font-semibold text-blue">
-          Admin
-        </span>
       )}
 
       <DropdownMenu>

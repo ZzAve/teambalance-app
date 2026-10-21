@@ -293,6 +293,8 @@ export const Interactions: Story = {
       within(defaultRegion).getByText('Next up'),
       within(defaultRegion).getByText('2d'), // the countdown block sits above the overlay but lets taps through
       within(defaultRegion).getByText(/20:00/), // the date · time row
+      within(defaultRegion).getByText(EVENT.location!), // plain text, as on the list cards (ADR-0030 §9)
+      within(defaultRegion).getByText(EVENT.description!),
       within(defaultRegion).getByText(/10 going/),
     ]) {
       await expect(topmostAtCentreOf(passive)).toBe(cardLink)
@@ -315,13 +317,8 @@ export const Interactions: Story = {
     const chip = within(defaultRegion).getByRole('button', { name: /^Sanne/ })
     await expect(topmostAtCentreOf(chip)?.closest('button')).toBe(chip)
 
-    // The location opens maps, so it stays its own target — and stays a *sibling* of the card link
-    // rather than a nested <a>, which is invalid HTML.
-    const maps = within(defaultRegion).getByRole('link', { name: EVENT.location })
-    await expect(topmostAtCentreOf(maps)?.closest('a')).toBe(maps)
-    await expect(maps).toHaveAttribute('href', expect.stringContaining('maps.google.com'))
-    await expect(maps).toHaveAttribute('target', '_blank')
-    await expect(defaultRegion.querySelectorAll('a a')).toHaveLength(0)
+    // The card link is the hero's only link; the maps link lives on the detail page.
+    await expect(within(defaultRegion).getAllByRole('link')).toEqual([cardLink])
 
     // ── Held: a saving hero's tap must not fire, checked before any call reaches the shared spy ──
     await userEvent.click(region('Saving').getByRole('button', { name: 'Going' }))

@@ -129,12 +129,12 @@ export const Data: Story = {
     await expect(canvas.getByText('2 spare')).toBeInTheDocument()
     await expect(canvas.getByText('needs 1 more')).toBeInTheDocument()
     await expect(canvas.getByText('nobody yet')).toBeInTheDocument()
-    await expect(canvas.getByText('2 of 4 covered')).toBeInTheDocument()
+    await expect(canvas.getByText('Still open: Middle, Libero')).toBeInTheDocument()
     // A Substitute sits in their Position row, marked as one, in whatever state they are in; the
     // header counts the ones going.
     await expect(canvas.getByRole('button', { name: /Jan de Vries, substitute — Maybe/ })).toBeInTheDocument()
     await expect(canvas.getByRole('button', { name: /Femke Dekker, substitute — Going/ })).toBeInTheDocument()
-    await expect(canvas.getByText('1 sub')).toBeInTheDocument()
+    await expect(canvas.getByText(/ · 1 sub( · |$)/)).toBeInTheDocument()
   },
 }
 
@@ -158,8 +158,8 @@ export const Shells: Story = {
             roster={makeRoster({ positions: [POSITIONS[3]], totalAttending: 0 })}
           />
         ),
-        // A headcount target with no position targets: no covered fraction to state, so the header
-        // falls back to the headcount, and the staff note explains why it is smaller than the room.
+        // A headcount target with no position targets: the fraction is the badge's, so the header
+        // is quiet, and the split line names the staff the target does not count.
         'Headcount only': (
           <EventLineupPanel
             {...args}
@@ -168,9 +168,9 @@ export const Shells: Story = {
         ),
         // A social: tracking off, so there are no targets — just who is coming, grouped by position.
         'Untracked social': <EventLineupPanel {...args} roster={makeRoster({ ...NO_ROSTER, totalAttending: 11 })} />,
-        // Six going in Outside, capped at five: four chips and a counter for the rest.
+        // Eight in Outside, whatever they answered, capped at five: four chips and a counter for the rest.
         'Crowded position collapsed': <EventLineupPanel {...args} />,
-        // The same crowded row, expanded past the cap: all six chips plus "Show fewer going" — left
+        // The same crowded row, expanded past the cap: all eight chips plus "Show fewer" — left
         // open by this story's own play rather than closed, unlike `Interactions` which clicks it
         // straight back shut.
         'Crowded position expanded': <EventLineupPanel {...args} />,
@@ -189,14 +189,13 @@ export const Shells: Story = {
       region('A position nobody plays').getByRole('button', { name: /Nina Hendriks — Can't/ }),
     ).toBeInTheDocument()
 
-    await expect(region('Headcount only').getByText('10/12 going')).toBeInTheDocument()
-    await expect(region('Headcount only').getByText(/1 staff also going/)).toBeInTheDocument()
+    await expect(region('Headcount only').getByText(/ · 1 Coach$/)).toBeInTheDocument()
 
-    await expect(region('Untracked social').getByText('11 going')).toBeInTheDocument()
-    await expect(region('Untracked social').queryByText('covered')).not.toBeInTheDocument()
+    // No target, so no verdict: the card row's "N going" is the headcount, and the panel adds none.
+    await expect(region('Untracked social').queryByText(/going|covered/)).not.toBeInTheDocument()
 
     await expect(
-      region('Crowded position collapsed').getByRole('button', { name: 'Show 2 more going' }),
+      region('Crowded position collapsed').getByRole('button', { name: /^Show \d+ more in Outside$/ }),
     ).toBeInTheDocument()
     await expect(
       region('Crowded position collapsed').queryByRole('button', { name: /Iris Kok/ }),
@@ -204,7 +203,7 @@ export const Shells: Story = {
 
     // Expand the twin instance and leave it open — this is the frame the snapshot keeps.
     await userEvent.click(
-      region('Crowded position expanded').getByRole('button', { name: 'Show 2 more going' }),
+      region('Crowded position expanded').getByRole('button', { name: /^Show \d+ more in Outside$/ }),
     )
     await expect(
       region('Crowded position expanded').getByRole('button', { name: /Hanna Vos — Going/ }),
@@ -213,7 +212,7 @@ export const Shells: Story = {
       region('Crowded position expanded').getByRole('button', { name: /Iris Kok — Going/ }),
     ).toBeInTheDocument()
     await expect(
-      region('Crowded position expanded').getByRole('button', { name: 'Show fewer going' }),
+      region('Crowded position expanded').getByRole('button', { name: 'Show fewer in Outside' }),
     ).toBeInTheDocument()
 
     await userEvent.click(region('Pending').getByRole('button', { name: /Lotte Dijkstra/ }))
@@ -246,11 +245,11 @@ export const Interactions: Story = {
     const region = (name: string) => within(canvas.getByRole('region', { name }))
     const body = within(document.body)
 
-    // Expanding a crowded position: six going in Outside, capped at five.
-    await userEvent.click(region('Squad').getByRole('button', { name: 'Show 2 more going' }))
+    // Expanding a crowded position: eight in Outside, capped at five.
+    await userEvent.click(region('Squad').getByRole('button', { name: /^Show \d+ more in Outside$/ }))
     await expect(region('Squad').getByRole('button', { name: /Iris Kok — Going/ })).toBeInTheDocument()
     // And back: the counter becomes the way to re-collapse, so the row is never stuck open.
-    await userEvent.click(region('Squad').getByRole('button', { name: 'Show fewer going' }))
+    await userEvent.click(region('Squad').getByRole('button', { name: 'Show fewer in Outside' }))
     await expect(region('Squad').queryByRole('button', { name: /Iris Kok/ })).not.toBeInTheDocument()
 
     // Answering for a teammate — the sheet is portalled out of the canvas, so it is queried from the
@@ -314,10 +313,10 @@ export const Interactions: Story = {
     // the count together — proved here by driving the same prop change a re-render would. Middle was
     // 1/2; Lotte's chip turning green is the same fact as the row reading covered.
     await expect(region('Live count').getByText('needs 1 more')).toBeInTheDocument()
-    await expect(region('Live count').getByText('2 of 4 covered')).toBeInTheDocument()
+    await expect(region('Live count').getByText('Still open: Middle, Libero')).toBeInTheDocument()
     await userEvent.click(region('Live count').getByRole('button', { name: /Lotte Dijkstra — Maybe/ }))
     await userEvent.click(body.getByRole('button', { name: 'Going' }))
     await expect(region('Live count').queryByText('needs 1 more')).not.toBeInTheDocument()
-    await expect(region('Live count').getByText('3 of 4 covered')).toBeInTheDocument()
+    await expect(region('Live count').getByText('Still open: Libero')).toBeInTheDocument()
   },
 }

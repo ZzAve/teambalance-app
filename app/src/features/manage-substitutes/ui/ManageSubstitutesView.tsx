@@ -203,19 +203,24 @@ function SubstituteRow({
     setEditingNumber(false)
   }
 
-  const nameWithNumber = (
-    <span className="flex min-w-0 flex-1 items-center gap-2">
-      <span className="min-w-0 truncate font-medium" title={substitute.name}>
-        {substitute.name}
-      </span>
+  // The Shirt Number sits on the avatar's lower edge, as on a Member's face (ADR-0038).
+  const face = (
+    <span className="relative shrink-0">
+      <SubstituteAvatar name={substitute.name} />
       {shirtNumber !== null && (
         <span
           aria-label={`Shirt number ${shirtNumber}`}
-          className="shrink-0 rounded-full bg-muted px-2 text-caption font-semibold leading-5 tabular-nums"
+          className="absolute -bottom-1.5 left-1/2 min-w-5 -translate-x-1/2 rounded-full border-2 border-background bg-foreground px-1 text-center text-caption font-bold leading-4 text-background tabular-nums"
         >
           {shirtNumber}
         </span>
       )}
+    </span>
+  )
+
+  const name = (
+    <span className="min-w-0 flex-1 truncate font-medium" title={substitute.name}>
+      {substitute.name}
     </span>
   )
 
@@ -226,8 +231,8 @@ function SubstituteRow({
   if (!canManage) {
     return (
       <li className="flex items-center gap-2 p-3">
-        <SubstituteAvatar name={substitute.name} />
-        {nameWithNumber}
+        {face}
+        {name}
         {positionLabel}
       </li>
     )
@@ -303,8 +308,8 @@ function SubstituteRow({
 
   return (
     <li className="flex items-center gap-2 p-3">
-      <SubstituteAvatar name={substitute.name} />
-      {nameWithNumber}
+      {face}
+      {name}
       {positions.length > 0 ? (
         <div className="w-32 shrink-0">
           <PositionPicker

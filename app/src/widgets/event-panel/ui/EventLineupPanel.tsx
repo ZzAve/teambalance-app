@@ -6,14 +6,12 @@ import { AnswerSheet } from '@features/attendance-toggle/ui/AnswerSheet'
 import { SubstituteSheet } from '@features/call-in-substitutes/ui/SubstituteSheet'
 import type { SubstituteState } from '@features/call-in-substitutes/ui/SubstitutesBlock'
 import { setByName } from '@entities/event/lib/attribution'
-import { LOWER_WORD } from '@entities/event/lib/attendance-words'
 import { MemberChip, OverflowChip, OpenSlotChip } from '@entities/event/ui/MemberChip'
-import { headcountLine, staffNote } from '@entities/event/lib/roster-view'
 import { VERDICT_TONE } from '@entities/event/ui/verdict-tone'
 import {
-  coveredLine,
+  comingLine,
   lineupRows,
-  substituteLine,
+  openLine,
   verdictWord,
   type LineupMember,
   type PositionRef,
@@ -32,12 +30,13 @@ import {
  *
  * Three things the layout is doing deliberately:
  *
- *   - **The verdict is a word, the fraction is demoted.** "nobody yet" and "needs 1 more" land
- *     before "0/1" does; the number sits at the right edge for when the word made you want it.
- *   - **Three clusters, not one sorted run.** Who is in, then the gaps, then everyone else, with
- *     real air between them — so "who is actually playing" is one shape rather than a prefix.
+ *   - **The verdict is a colour on the fraction.** "0/1" in red, "1/2" in gold, "2/2" in green;
+ *     the word ("nobody yet", "needs 1 more") is the tooltip and the screen-reader text.
+ *   - **One run in name order, then the gaps.** The same people stand in the same place whatever
+ *     they answer, here and on the event page, so a changed answer recolours a chip and moves
+ *     nothing; the open slots come last, after the people.
  *   - **Crowding collapses, it does not shrink.** A cluster caps at [CAP] and hands the rest to a
- *     counter, which is what lets a chip refuse to clip a name (see MemberChip).
+ *     counter, so a chip only ellipses a name past its width cap (see MemberChip).
  *
  * Prop-only (ADR-0017). `attendances` already carries any optimistic answer from the route, and
  * `onRespond` fires the write — so every state here is reachable from a story, and the mutation and
@@ -64,7 +63,7 @@ interface EventLineupPanelProps {
   /** Takes a Substitute off this event; they stay on the Team's list. */
   onTakeOffSubstitute: (substituteId: string) => void
   /**
-   * Whether the header states the roster's news ("2 of 4 covered", or the headcount). Off where the
+   * Whether the header states the roster's news ("Still open: Libero"). Off where the
    * surface around the panel already states it — the Next Up hero carries the readiness badge and
    * its own headcount line (#386) — so a verdict is never printed twice on one card.
    */
@@ -73,6 +72,8 @@ interface EventLineupPanelProps {
   pending?: boolean
   /** A Substitute write is in flight; the Substitute sheet is held. */
   substitutePending?: boolean
+  /** The team's position labels in its own order, so the rows never reorder (see `lineupRows`). */
+  positionOrder?: string[]
 }
 
 export function EventLineupPanel({
@@ -87,11 +88,12 @@ export function EventLineupPanel({
   summary = true,
   pending,
   substitutePending,
+  positionOrder,
 }: EventLineupPanelProps) {
-  const rows = lineupRows(attendances, roster, currentUserId, substitutes)
+  const rows = lineupRows(attendances, roster, currentUserId, substitutes, positionOrder)
   const [answeringFor, setAnsweringFor] = useState<string | null>(null)
   const [openSubstituteId, setOpenSubstituteId] = useState<string | null>(null)
-  // Which clusters the viewer unfolded, keyed `rowId:group`. Expanding one leaves the rest collapsed
+  // Which positions the viewer unfolded, keyed by row id. Expanding one leaves the rest collapsed
   // — the point of the cap is that a long row stays short unless you ask it not to.
   const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set())
 
@@ -111,35 +113,25 @@ export function EventLineupPanel({
       return next
     })
 
-  // What the header states depends on what the team actually targeted: covered positions where
-  // there are position targets, the headcount where only a total is set, a plain count otherwise.
-  const covered = coveredLine(rows)
-  const headcount = headcountLine(roster)
-  const news = covered ?? headcount ?? `${roster.totalAttending} going`
-  const subs = substituteLine(rows)
-  const staff = staffNote(roster)
+  // The header names what is still open; the totals are the badge's ("Full · 13/12", "Lineup set").
+  const news = openLine(rows)
+  const coming = comingLine(rows)
 
   return (
     <div>
-      <div className="mb-3 flex items-center justify-between gap-2">
-        <SectionLabel as="span">Lineup</SectionLabel>
-        {(summary || subs) && (
-          <span className="text-caption font-bold text-foreground/70">
-            {summary && <span>{news}</span>}
-            {subs && (
-              <>
-                {summary && ' · '}
-                <span className="text-purple-ink">{subs}</span>
-              </>
-            )}
-          </span>
-        )}
+      <div className="mb-3">
+        <div className="flex items-center justify-between gap-2">
+          <SectionLabel as="span">Lineup</SectionLabel>
+          {summary && news && <span className="text-caption font-bold text-foreground/70">{news}</span>}
+        </div>
+        {/* How many people we are: the short form of the event page's "Who's coming". */}
+        {coming && <p className="mt-1 text-caption text-muted-foreground">{coming}</p>}
       </div>
 
       {rows.length === 0 ? (
         <p className="text-small text-muted-foreground">Nobody has answered yet.</p>
       ) : (
-        <div className="flex flex-col gap-3.5">
+        <div className="flex flex-col gap-2">
           {rows.map((row) => (
             <PositionRow
               key={row.id}
@@ -152,10 +144,6 @@ export function EventLineupPanel({
           ))}
         </div>
       )}
-
-      {/* Why the fraction above can be smaller than the number of people in the room (#281). */}
-      {covered && headcount && <p className="mt-3 text-caption text-muted-foreground">{headcount}</p>}
-      {staff && <p className="mt-2 text-caption text-muted-foreground">{staff}</p>}
 
       <button
         type="button"
@@ -200,51 +188,46 @@ function PositionRow({
   onFind: () => void
 }) {
   const verdict = verdictWord(row)
-  const going = row.members.filter((m) => m.state === 'ATTENDING')
-  const maybe = row.members.filter((m) => m.state === 'MAYBE')
-  const out = row.members.filter((m) => m.state === 'NOT_RESPONDED' || m.state === 'ABSENT')
 
-  const cluster = (group: string, members: LineupMember[], label: string) => (
-    <Cluster
-      members={members}
-      label={label}
-      expanded={expanded.has(`${row.id}:${group}`)}
-      onToggle={() => onToggleCluster(`${row.id}:${group}`)}
-      onSelect={onSelect}
-    />
-  )
-
+  // A light box per position, so the heading, its verdict and its people read as one group.
   return (
-    <div>
+    <section aria-label={row.label} className="rounded-md bg-muted/40 px-3 py-2.5">
       <div className="flex items-baseline justify-between gap-2">
         <span className="font-display truncate text-small font-bold leading-none">{row.label}</span>
-        <span className="flex shrink-0 items-baseline gap-2">
-          {verdict && (
-            <span className={`text-caption font-semibold ${VERDICT_TONE[row.tone ?? 'short']}`}>{verdict}</span>
-          )}
-          <span className="text-caption font-bold tabular-nums text-muted-foreground">
-            {row.required == null ? row.attending : `${row.attending}/${row.required}`}
-          </span>
+        {/* The fraction carries the verdict's colour; the word is a tooltip, and read out (WCAG 1.4.1). */}
+        <span
+          title={verdict ?? undefined}
+          className={`shrink-0 text-caption font-bold tabular-nums ${verdict ? VERDICT_TONE[row.tone ?? 'short'] : 'text-muted-foreground'}`}
+        >
+          {row.required == null ? row.attending : `${row.attending}/${row.required}`}
+          {verdict && <span className="sr-only">{` ${verdict}`}</span>}
         </span>
       </div>
 
       {/* The row gap is the "+" chip's tap band (F7): any smaller and the band reaches the line above. */}
       <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2.5">
-        {going.length > 0 && cluster('in', going, LOWER_WORD.ATTENDING)}
+        {row.members.length > 0 && (
+          <Cluster
+            members={row.members}
+            label={`in ${row.label}`}
+            expanded={expanded.has(row.id)}
+            onToggle={() => onToggleCluster(row.id)}
+            onSelect={onSelect}
+          />
+        )}
         {row.openSlots > 0 && <OpenSlotChip positionLabel={row.label} openSlots={row.openSlots} onFind={onFind} />}
-        {maybe.length > 0 && cluster('maybe', maybe, LOWER_WORD.MAYBE)}
-        {out.length > 0 && <span className="opacity-70">{cluster('out', out, `who ${LOWER_WORD.ABSENT} or haven't responded`)}</span>}
         {row.members.length === 0 && row.openSlots === 0 && (
           <span className="text-caption text-muted-foreground">Nobody yet</span>
         )}
       </div>
-    </div>
+    </section>
   )
 }
 
 /**
- * One cluster of chips. Wraps rather than clipping, and shows `CAP` before collapsing the rest —
- * `CAP - 1` plus the counter once it does, so adding the counter never makes the row grow.
+ * A position's chips. Wraps rather than clipping, and shows `CAP` before collapsing the rest —
+ * `CAP - 1` plus the counter once it does, so adding the counter never makes the row grow. The
+ * viewer's own chip is never collapsed away; it keeps its place in the name order.
  */
 function Cluster({
   members,
@@ -260,11 +243,11 @@ function Cluster({
   onSelect: (member: LineupMember) => void
 }) {
   const overflows = members.length > CAP
-  const shown = expanded || !overflows ? members : members.slice(0, CAP - 1)
+  const shown = expanded || !overflows ? members : members.filter((m, i) => i < CAP - 1 || m.isSelf)
   const hidden = members.length - shown.length
 
   return (
-    <span className="flex max-w-full flex-wrap items-center">
+    <span className="flex max-w-full flex-wrap items-center gap-x-1.5 gap-y-2">
       {shown.map((m) => (
         <MemberChip key={m.userId} member={m} onSelect={() => onSelect(m)} />
       ))}

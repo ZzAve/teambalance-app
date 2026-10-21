@@ -10,6 +10,7 @@ const attendee = (overrides: Partial<AttendanceEntry> = {}): AttendanceEntry => 
   state: 'ATTENDING',
   changedBy: undefined,
   updatedAt: undefined,
+  photoVersion: undefined,
   ...overrides,
 })
 

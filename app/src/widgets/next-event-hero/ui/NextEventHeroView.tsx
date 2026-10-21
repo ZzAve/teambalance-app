@@ -1,13 +1,12 @@
 import { Link } from '@tanstack/react-router'
 import { useId, useState, type ComponentType, type ReactNode } from 'react'
-import { Check, ChevronDown, Clock, HelpCircle, MapPin, X } from 'lucide-react'
+import { AlignLeft, Check, ChevronDown, Clock, HelpCircle, MapPin, Users, X } from 'lucide-react'
 import type { Event } from '@shared/api/events'
 import type { AttendanceState } from '@features/attendance-toggle/ui/AttendanceToggle'
 import { ATTENDANCE_WORDS } from '@entities/event/lib/attendance-words'
 import { ReadinessBadge } from '@entities/event/ui/ReadinessBadge'
 import { panelNoun } from '@entities/event/lib/roster-view'
 import { SectionLabel } from '@shared/ui/SectionLabel'
-import { MapsLink } from '@shared/ui/MapsLink'
 import { heroCountdown } from '../lib/countdown'
 import { useTeamRoutes } from '@shared/lib/team-routes'
 
@@ -118,15 +117,16 @@ export function NextEventHeroView({
       <h3 className="font-display mb-1 mt-2 pr-12 text-title font-extrabold leading-[1.08]">
         {/* Stretched-link pattern, as EventCard uses in the list below: the card is not an anchor,
             the title's after:inset-0 overlay makes the whole hero open the event. The controls that
-            live inside it — the RSVP buttons, the maps link — are lifted back above the overlay with
-            relative z-10, so widening the target costs none of them.
-            Hover and focus hang off this link rather than a `group` on the card, because the overlay
-            *is* the link's own hit area: the wash and the underline then answer exactly where a tap
-            would navigate, and stay quiet over the controls, which are not part of it. The ring is
-            inset so `overflow-hidden` can't clip it, and traces the real target — the whole card. */}
+            live inside it — the RSVP buttons, the lineup disclosure — are lifted back above the
+            overlay with relative z-10, so widening the target costs none of them.
+            Hover and focus hang off this link (a wash, no underline: the whole card is the link)
+            rather than a `group` on the card, because the overlay *is* the link's own hit area: the
+            wash then answers exactly where a tap would navigate, and stays quiet over the controls,
+            which are not part of it. The ring is inset so `overflow-hidden` can't clip it, and
+            traces the real target — the whole card. */}
         <Link
           to={routes.event(event.id)}
-          className="after:absolute after:inset-0 after:rounded-lg after:bg-white/0 after:transition-colors after:duration-200 hover:underline hover:after:bg-white/[0.07] focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-inset focus-visible:after:ring-white"
+          className="after:absolute after:inset-0 after:rounded-lg after:bg-white/0 after:transition-colors after:duration-200 hover:after:bg-white/[0.07] focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-inset focus-visible:after:ring-white"
         >
           {event.title}
         </Link>
@@ -142,20 +142,17 @@ export function NextEventHeroView({
       {event.location && (
         <p className="mt-1 flex flex-wrap items-center gap-1.5 text-small text-white/95">
           <MapPin size={13} className="shrink-0" />
-          {/* An address is worth a tap of its own, exactly as in the list card below. It is a
-              sibling of the card link rather than nested inside it (an <a> in an <a> is invalid
-              HTML), and relative z-10 lifts it above the stretched overlay. */}
-          <MapsLink
-            location={event.location}
-            className="relative z-10 underline decoration-white/30 underline-offset-2 transition-colors hover:decoration-white"
-          >
-            {event.location}
-          </MapsLink>
+          {/* Plain text, as on the list cards: a maps link would compete with the card's own
+              (ADR-0030 §9). */}
+          {event.location}
         </p>
       )}
 
       {event.description && (
-        <p className="mt-1.5 line-clamp-2 text-small text-white/85">{event.description}</p>
+        <p className="mt-1 flex items-start gap-1.5 text-small text-white/85">
+          <AlignLeft size={13} className="mt-[3px] shrink-0" />
+          <span className="line-clamp-2">{event.description}</span>
+        </p>
       )}
 
       {/* The headcount and the viewer's answer on the left; the roster verdict on the right (#275).
@@ -164,7 +161,8 @@ export function NextEventHeroView({
           The badge is deliberately *not* lifted above the stretched overlay — it is information, not
           a control, so tapping it opens the event like the rest of the passive rows. */}
       <div className="mt-2.5 flex items-center justify-between gap-2">
-        <p className="text-small text-white/90">
+        <p className="flex items-center gap-1.5 text-small text-white/90">
+          <Users size={13} className="shrink-0" />
           {event.attendanceSummary.attending} going · {ATTENDANCE_WORDS[myState].status}
         </p>
         <ReadinessBadge roster={event.roster} variant="hero" pending={isSaving} />

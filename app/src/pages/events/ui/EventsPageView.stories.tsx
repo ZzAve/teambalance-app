@@ -23,11 +23,11 @@ import { appShell } from '../../../../storybook-support/app-shell-decorator'
 import { pageModes } from '../../../../.storybook/modes'
 import { EventsPageView } from './EventsPageView'
 
-// The events page as a phone shows it (ADR-0032 §3): header, filter trigger, view menu, the Next Up
-// hero, the bulk-attend bar and the card list, inside the real app shell. This composite owns the
-// pixels for every piece it shows — EventFiltersView, PanelViewMenu, NextEventHeroView,
-// BulkAttendBarView, EventListView, EventCard and the roster panel keep their own snapshots only
-// for states this frame cannot show (a popover open, a shell).
+// The events page as a phone shows it (ADR-0032 §3): header, filter trigger, the Next Up hero, the
+// bulk-attend bar and the card list, inside the real app shell. This composite owns the pixels for
+// every piece it shows — EventFiltersView, NextEventHeroView, BulkAttendBarView, EventListView,
+// EventCard and the roster panel keep their own snapshots only for states this frame cannot show
+// (the filters open, a shell).
 //
 // The Data and Interactions stories render through a small state harness (§6) so a person can
 // actually use the page in Storybook — filters narrow the list, the hero re-picks itself, an RSVP
@@ -437,12 +437,12 @@ export const Interactions: Story = {
     await userEvent.click(canvas.getByRole('button', { name: 'Clear filters' }))
     await expect(canvas.getByText('Training — Court 1')).toBeInTheDocument()
 
-    // The view menu holds the one remaining preference: every panel starts open — the hero's
+    // Filters hold the one view preference as their last row: every panel starts open — the hero's
     // included (#386), which is why nothing below needs a tap to reach a chip.
     await expect(canvas.queryByRole('button', { name: /Sofia — Maybe/ })).not.toBeInTheDocument()
-    await userEvent.click(canvas.getByRole('button', { name: 'View options' }))
-    await userEvent.click(canvas.getByRole('switch', { name: 'Keep panels open' }))
-    await userEvent.keyboard('{Escape}')
+    await userEvent.click(canvas.getByRole('button', { name: 'Filters' }))
+    await userEvent.click(within(canvas.getByRole('region', { name: 'Filters' })).getByRole('switch', { name: 'Keep panels open' }))
+    await userEvent.click(canvas.getByRole('button', { name: 'Filters' }))
     await expect(canvas.getAllByRole('button', { name: /Hide lineup/ })).toHaveLength(4)
     await expect(within(canvas.getByRole('region', { name: 'Next up' })).getByText('Lineup')).toBeInTheDocument()
 

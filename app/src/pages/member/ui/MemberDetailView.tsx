@@ -1,9 +1,9 @@
 import { useState } from 'react'
-import { Link } from '@tanstack/react-router'
-import { ArrowLeft, Hash, Shield, Shirt } from 'lucide-react'
+import { Hash, Shield, Shirt } from 'lucide-react'
 import type { Member } from '@shared/api/members'
 import type { Position } from '@shared/api/positions'
 import { MemberFace } from '@entities/member/ui/MemberFace'
+import { PageHeader } from '@widgets/page-header/ui/PageHeader'
 import { EditProfileForm } from '@features/edit-profile/ui/EditProfileForm'
 import { PhotoPicker } from '@features/pick-photo/ui/PhotoPicker'
 import { useTeamRoutes } from '@shared/lib/team-routes'
@@ -31,8 +31,8 @@ interface MemberDetailViewProps {
   canChangePhoto: boolean
   /** The member themselves, or an Admin — the one thing an Admin may do to someone's photo. */
   canRemovePhoto: boolean
-  /** The viewer has a Personal Photo to copy into this Team. */
-  hasPersonalPhoto: boolean
+  /** The viewer's Personal Photo, shown before it replaces the Team Photo; undefined when they have none. */
+  personalPhotoUrl?: string
   isPhotoSaving: boolean
   photoErrorMessage?: string
   onUploadPhoto: (photo: Blob) => void
@@ -66,7 +66,7 @@ export function MemberDetailView({
   onSubmit,
   canChangePhoto,
   canRemovePhoto,
-  hasPersonalPhoto,
+  personalPhotoUrl,
   isPhotoSaving,
   photoErrorMessage,
   onUploadPhoto,
@@ -75,12 +75,11 @@ export function MemberDetailView({
 }: MemberDetailViewProps) {
   const routes = useTeamRoutes()
   const [confirmingRemove, setConfirmingRemove] = useState(false)
+  const [previewingPersonal, setPreviewingPersonal] = useState(false)
 
   return (
     <div className="flex flex-col gap-5">
-      <Link to={routes.team} className="flex items-center gap-1 self-start text-small font-medium text-muted-foreground">
-        <ArrowLeft size={16} aria-hidden="true" /> Team
-      </Link>
+      <PageHeader title={member?.displayName ?? 'Member'} backTo={routes.team} backLabel="Back to team" />
 
       {isLoading && <p className="text-small text-muted-foreground">Loading…</p>}
       {isError && <p className="text-small text-red">Couldn't load this member. Please try again.</p>}
@@ -98,15 +97,15 @@ export function MemberDetailView({
               photoVersion={member.photoVersion}
               size="lg"
             />
-            <h2 className="font-display text-title font-bold">{member.displayName}</h2>
+            <h1 className="font-display text-title font-bold">{member.displayName}</h1>
             <span className="text-small text-muted-foreground">{member.position?.label ?? 'Unassigned'}</span>
           </div>
 
           {(canChangePhoto || (canRemovePhoto && member.photoVersion)) && (
             <div className="flex flex-col items-center gap-2">
               <div className="flex flex-wrap justify-center gap-2">
-                {canChangePhoto && hasPersonalPhoto && (
-                  <Button variant="outline" size="sm" disabled={isPhotoSaving} onClick={onUsePersonalPhoto}>
+                {canChangePhoto && personalPhotoUrl && (
+                  <Button variant="outline" size="sm" disabled={isPhotoSaving} onClick={() => setPreviewingPersonal(true)}>
                     Use my personal photo
                   </Button>
                 )}
@@ -124,6 +123,25 @@ export function MemberDetailView({
                 )}
               </div>
               {photoErrorMessage && <p className="text-small text-red">{photoErrorMessage}</p>}
+              <ConfirmDialog
+                open={previewingPersonal}
+                title="Use your personal photo"
+                description={
+                  member.photoVersion ? 'This replaces your current team photo.' : 'Your team will see this photo.'
+                }
+                confirmLabel="Use this photo"
+                onConfirm={() => {
+                  setPreviewingPersonal(false)
+                  onUsePersonalPhoto()
+                }}
+                onCancel={() => setPreviewingPersonal(false)}
+              >
+                <img
+                  src={personalPhotoUrl}
+                  alt="Your personal photo"
+                  className="mx-auto h-28 w-28 rounded-full object-cover"
+                />
+              </ConfirmDialog>
               <ConfirmDialog
                 open={confirmingRemove}
                 title="Remove photo"

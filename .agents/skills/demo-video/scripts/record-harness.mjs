@@ -16,8 +16,8 @@ function loadChromium() {
     } catch { /* try next */ }
   }
   throw new Error(
-    'Playwright not found. Install it (project: `npm i -D @playwright/test`, or global: ' +
-    '`npm i -g playwright`), then `npx playwright install chromium`.',
+      'Playwright not found. Install it (project: `npm i -D @playwright/test`, or global: ' +
+      '`npm i -g playwright`), then `npx playwright install chromium`.',
   );
 }
 const chromium = loadChromium();
@@ -52,56 +52,56 @@ async function ensureCursor(page) {
     const dot = document.createElement('div');
     dot.id = '__demo_cursor__';
     dot.style.cssText =
-      'position:fixed;top:0;left:0;z-index:2147483646;width:24px;height:24px;' +
-      'pointer-events:none;transition:transform 60ms linear;will-change:transform;' +
-      'transform:translate(50vw,50vh);filter:drop-shadow(0 2px 3px rgba(0,0,0,.45))';
+        'position:fixed;top:0;left:0;z-index:2147483646;width:24px;height:24px;' +
+        'pointer-events:none;transition:transform 60ms linear;will-change:transform;' +
+        'transform:translate(50vw,50vh);filter:drop-shadow(0 2px 3px rgba(0,0,0,.45))';
     dot.innerHTML =
-      '<svg width="24" height="24" viewBox="0 0 24 24" fill="none">' +
-      '<path d="M5 2.5 L5 19.5 L9.6 15 L12.7 21.6 L15.2 20.5 L12.1 14 L18.6 14 Z" ' +
-      'fill="#1b1b1b" stroke="#fff" stroke-width="1.3" stroke-linejoin="round"/></svg>';
+        '<svg width="24" height="24" viewBox="0 0 24 24" fill="none">' +
+        '<path d="M5 2.5 L5 19.5 L9.6 15 L12.7 21.6 L15.2 20.5 L12.1 14 L18.6 14 Z" ' +
+        'fill="#1b1b1b" stroke="#fff" stroke-width="1.3" stroke-linejoin="round"/></svg>';
     const ring = document.createElement('div');
     ring.id = '__demo_ring__';
     ring.style.cssText =
-      'position:fixed;top:0;left:0;z-index:2147483645;width:34px;height:34px;' +
-      'margin:-17px 0 0 -17px;border-radius:50%;border:2px solid #ffcc00;opacity:0;' +
-      'pointer-events:none;transform:translate(50vw,50vh) scale(.3)';
+        'position:fixed;top:0;left:0;z-index:2147483645;width:34px;height:34px;' +
+        'margin:-17px 0 0 -17px;border-radius:50%;border:2px solid #ffcc00;opacity:0;' +
+        'pointer-events:none;transform:translate(50vw,50vh) scale(.3)';
     document.body.append(ring, dot);
     addEventListener(
-      'mousemove',
-      (e) => {
-        dot.style.transform = `translate(${e.clientX - 4}px, ${e.clientY - 2}px)`;
-      },
-      true,
+        'mousemove',
+        (e) => {
+          dot.style.transform = `translate(${e.clientX - 4}px, ${e.clientY - 2}px)`;
+        },
+        true,
     );
     addEventListener(
-      'mousedown',
-      (e) => {
-        ring.style.transition = 'none';
-        ring.style.transform = `translate(${e.clientX}px, ${e.clientY}px) scale(.3)`;
-        ring.style.opacity = '.9';
-        requestAnimationFrame(() => {
-          ring.style.transition = 'transform .32s ease-out, opacity .32s ease-out';
-          ring.style.transform = `translate(${e.clientX}px, ${e.clientY}px) scale(1.3)`;
-          ring.style.opacity = '0';
-        });
-      },
-      true,
+        'mousedown',
+        (e) => {
+          ring.style.transition = 'none';
+          ring.style.transform = `translate(${e.clientX}px, ${e.clientY}px) scale(.3)`;
+          ring.style.opacity = '.9';
+          requestAnimationFrame(() => {
+            ring.style.transition = 'transform .32s ease-out, opacity .32s ease-out';
+            ring.style.transform = `translate(${e.clientX}px, ${e.clientY}px) scale(1.3)`;
+            ring.style.opacity = '0';
+          });
+        },
+        true,
     );
   });
 }
 
 const asLoc = (page, target) =>
-  typeof target === 'string' ? page.locator(target) : target;
+    typeof target === 'string' ? page.locator(target) : target;
 
 // Smooth-scroll a target to a comfortable spot and let the scroll settle — the "panning to keep
 // the result visible" a person does. Default block 'center' so actions and results sit mid-frame.
 async function scrollTo(page, target, opts = {}) {
   await asLoc(page, target)
-    .evaluate(
-      (el, block) => el.scrollIntoView({ behavior: 'smooth', block }),
-      opts.block || 'center',
-    )
-    .catch(() => {});
+      .evaluate(
+          (el, block) => el.scrollIntoView({ behavior: 'smooth', block }),
+          opts.block || 'center',
+      )
+      .catch(() => {});
   await page.waitForTimeout(opts.settle ?? 700);
 }
 
@@ -190,8 +190,8 @@ async function run() {
 
   const launchArgs = (process.env.CHROMIUM_ARGS || '').split(' ').filter(Boolean);
   const noSandbox = process.env.CHROMIUM_NO_SANDBOX === '1'
-    || (typeof process.getuid === 'function' && process.getuid() === 0)
-    || !!process.env.CI;
+      || (typeof process.getuid === 'function' && process.getuid() === 0)
+      || !!process.env.CI;
   if (noSandbox) launchArgs.push('--no-sandbox', '--disable-dev-shm-usage');
   // The screencast ignores the context's deviceScaleFactor (frames come out at CSS size on a grey
   // canvas); forcing the scale at the browser level renders every frame at DSF× for real.
@@ -211,11 +211,11 @@ async function run() {
   // document and a <style> appended then gets discarded. SPA nav preserves it; page.goto drops it.
   if (env.INJECT_CSS) {
     const reinject = () =>
-      page.evaluate((css) => {
-        let s = document.getElementById('__sc_inject_css__');
-        if (!s) { s = document.createElement('style'); s.id = '__sc_inject_css__'; document.head.appendChild(s); }
-        s.textContent = css;
-      }, env.INJECT_CSS).catch(() => {});
+        page.evaluate((css) => {
+          let s = document.getElementById('__sc_inject_css__');
+          if (!s) { s = document.createElement('style'); s.id = '__sc_inject_css__'; document.head.appendChild(s); }
+          s.textContent = css;
+        }, env.INJECT_CSS).catch(() => {});
     page.on('load', reinject);
   }
   try {
@@ -239,8 +239,8 @@ async function run() {
   }
   if (files.length === 0) {
     files = fs.readdirSync(env.VIDEO_DIR)
-      .filter((f) => f.endsWith('.webm'))
-      .map((f) => `${env.VIDEO_DIR}/${f}`);
+        .filter((f) => f.endsWith('.webm'))
+        .map((f) => `${env.VIDEO_DIR}/${f}`);
   }
   if (!env.PROBE) console.log('VIDEO_FILES=' + JSON.stringify(files));
   // A take with a failed section is not a usable take; fail loudly instead of leaving it to the log.

@@ -109,7 +109,7 @@ type EventDetail {
     roster: EventRoster
 }
 
-// `changedBy` is the user id of whoever last set this row (ADR-0003 trust-based editing, so it may be a teammate); it and `updatedAt` are null for a member with no response row (NOT_RESPONDED). The client compares `changedBy` to `userId` and only shows attribution when they differ.
+// `changedBy` is the user id of whoever last set this row (ADR-0003 trust-based editing, so it may be a teammate); it and `updatedAt` are null for a member with no response row (NOT_RESPONDED). The client compares `changedBy` to `userId` and only shows attribution when they differ. `photoVersion` is the member's Team Photo version, as on Member (ADR-0038); null shows initials.
 type AttendanceEntry {
     id: String,
     userId: String,
@@ -117,7 +117,8 @@ type AttendanceEntry {
     role: String,
     state: AttendanceState,
     changedBy: String?,
-    updatedAt: DateTimestampWithTimezone?
+    updatedAt: DateTimestampWithTimezone?,
+    photoVersion: String?
 }
 
 // A Substitute on this Event (ADR-0033). Only those a Member has added appear, so there is always a row behind the entry: `state` is never NOT_RESPONDED and the attribution is always present. They are not in `attendanceSummary`, which counts Members only.

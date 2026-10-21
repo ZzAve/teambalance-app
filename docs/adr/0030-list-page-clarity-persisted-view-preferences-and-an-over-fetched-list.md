@@ -41,6 +41,14 @@ taken to find out, rather than a settled end state.
    state is "where was I"; a display preference is "how do I like this". Only the second is a
    setting, and only the second is remembered as an intention rather than a position.
 
+   **Amended (2026-10-21, from review): one trigger, not two.** The filters no longer open in a
+   popover: `Filters` opens an inline section under the page header that pushes the list down, and
+   `Keep panels open` is that section's last row, below a divider. The separate view-options trigger
+   and its popover (decision 5, amended) are gone. The split this decision draws still holds in
+   behaviour: the view row is not a filter, so it never sets the trigger's dot and `Clear filters`
+   leaves it alone. What is given up is the split being visible as two controls in the header; what
+   is gained is one control fewer there, and a setting that is found by anyone who opens the filters.
+
 4. **A shared local-preferences module**, modelled on the existing theme pattern (a pure read/write
    module over a `{getItem,setItem}` interface, try/catch for private mode, wired by hand into a
    plain zustand store — no `persist` middleware). Three new consumers land at once — filter state,
@@ -66,6 +74,8 @@ taken to find out, rather than a settled end state.
    read. It also charged every open panel a row of chrome for a setting a member touches about once.
    The header states the scope correctly, at no vertical cost, and the result stays visible — the
    list re-renders live behind the popover, exactly as it already does for the filters.
+
+   *Superseded by the amendment to decision 3:* the row now sits inside `Filters`.
 
    It keeps **its own trigger rather than a section inside `Filters`**, which is decision 3 applied
    to the chrome: a filter is "where was I" and this is "how do I like this", and one popover holding
@@ -123,6 +133,7 @@ taken to find out, rather than a settled end state.
   list on a phone, here for a control set roughly once.
 - **Folding the two display preferences into the filter popover** — rejected by decision 3: it is
   the one place the "position vs taste" split would stop being visible to anyone reading the UI.
+  Later taken, for the one preference left, by the amendment to decision 3.
 - **Keeping the member list off the card entirely**, per #271 decision ⑨ ("who's coming" is answered
   on the detail page only) — knowingly overridden. ⑨ was a judgement about what the card is *for*,
   made before members asked for more on the list; the panel is a disclosure rather than card face,

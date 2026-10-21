@@ -20,16 +20,6 @@ import type { AttendanceEntry, EventRoster, RosterPosition, SubstituteEntry } fr
 
 export type LineupState = AttendanceEntry['state']
 
-/**
- * Descending likelihood of actually standing on the court: a settled yes, a soft yes, a silence that
- * could still become a yes, then a settled no.
- */
-const STATE_ORDER: Record<LineupState, number> = {
-  ATTENDING: 0,
-  MAYBE: 1,
-  NOT_RESPONDED: 2,
-  ABSENT: 3,
-}
 
 export interface LineupMember {
   /** A Member's user id; for a Substitute, who has no account, their substitute id. */
@@ -45,6 +35,8 @@ export interface LineupMember {
   isSelf: boolean
   /** Called in from outside the Team (ADR-0033): shown with a "Sub" tag, and never the viewer. */
   isSubstitute: boolean
+  /** The Member's Team Photo version; a Substitute has none. */
+  photoVersion?: string
 }
 
 export interface LineupRow {
@@ -56,7 +48,7 @@ export interface LineupRow {
   attending: number
   /** A STAFF position is shown but excluded from the headcount target (#281). */
   isStaff: boolean
-  /** Everyone whose position this is, whatever they answered, in STATE_ORDER then name order. */
+  /** Everyone whose position this is, whatever they answered, in name order. */
   members: LineupMember[]
   /** Required slots with nobody in them. Zero when untargeted. */
   openSlots: number
@@ -68,7 +60,9 @@ export interface LineupRow {
 export const UNASSIGNED = 'Unassigned'
 
 /**
- * One row per position, in the roster's own order, with Unassigned last.
+ * One row per position, in the team's position order ([positionOrder], labels), with Unassigned last.
+ * The order is fixed so a row never moves when an answer changes; without it the roster's own order
+ * is used, which shifts when the server starts or stops sending a position.
  *
  * Wider than `rosterRows` on purpose: the server drops a position nobody attends, but this panel
  * lists non-attendees too, so the rows are the union of the server's positions and the positions the
@@ -83,6 +77,7 @@ export function lineupRows(
   roster: EventRoster,
   currentUserId?: string | null,
   substitutes: SubstituteEntry[] = [],
+  positionOrder: string[] = [],
 ): LineupRow[] {
   const people = [
     ...attendees.map((a) => ({ entry: toMember(a, currentUserId), role: a.role })),
@@ -93,6 +88,9 @@ export function lineupRows(
   for (const { role } of people) {
     if (role && role !== UNASSIGNED && !labels.includes(role)) labels.push(role)
   }
+  // A label the team no longer has sorts after the known ones; `sort` is stable, so they keep their order.
+  const rank = (label: string) => (positionOrder.includes(label) ? positionOrder.indexOf(label) : positionOrder.length)
+  labels.sort((a, b) => rank(a) - rank(b))
 
   const rows = labels.map((label) => {
     const position = byLabel.get(label)
@@ -176,6 +174,7 @@ function toMember(a: AttendanceEntry, currentUserId?: string | null): LineupMemb
     state: a.state,
     isSelf: a.userId === currentUserId,
     isSubstitute: false,
+    photoVersion: a.photoVersion,
   }
 }
 
@@ -190,9 +189,13 @@ function substituteMember(s: SubstituteEntry): LineupMember {
   }
 }
 
+/**
+ * Members, then Substitutes, each in name order — never answer order: the same people stand in the
+ * same place on the card and on the event page, and nobody moves when an answer changes.
+ */
 function sortMembers(members: LineupMember[]): LineupMember[] {
   return members.sort(
-    (a, b) => STATE_ORDER[a.state] - STATE_ORDER[b.state] || a.displayName.localeCompare(b.displayName),
+    (a, b) => Number(a.isSubstitute) - Number(b.isSubstitute) || a.displayName.localeCompare(b.displayName),
   )
 }
 
@@ -209,23 +212,31 @@ export function verdictWord(row: LineupRow): string | null {
 }
 
 /**
- * "3 of 5 covered" for the panel header, or null when no position carries a target — a tally or a
- * headcount-only roster has nothing to be a fraction of, and the caller falls back to a headcount.
+ * "Still open: Libero, Middle" for the panel header: which targeted positions are short, or null when
+ * none is (or none is targeted) — the card's badge already says "Lineup set". Past two names it
+ * gives the count, so the header stays one line.
  */
-export function coveredLine(rows: LineupRow[]): string | null {
-  const targeted = rows.filter((r) => r.required != null)
-  if (targeted.length === 0) return null
-  return `${targeted.filter((r) => r.openSlots === 0).length} of ${targeted.length} covered`
+export function openLine(rows: LineupRow[]): string | null {
+  const open = rows.filter((r) => r.required != null && r.openSlots > 0).map((r) => r.label)
+  if (open.length === 0) return null
+  return open.length > 2 ? `${open.length} positions still open` : `Still open: ${open.join(', ')}`
 }
 
 /**
- * "1 sub" for the panel header, beside the covered line: how many Substitutes are going, wherever
- * they sit — the same count as the Roster bar's "+ N substitutes" (ADR-0033). Null when none is.
+ * "7 players · 2 subs · 1 Coach": who is going, for the events list. Counted from the rows rather
+ * than the server's roster, so it moves with an optimistic answer together with the chips. Subs and
+ * staff roles nobody from is going are left out.
  */
-export function substituteLine(rows: LineupRow[]): string | null {
-  const going = rows.flatMap((r) => r.members).filter((m) => m.isSubstitute && m.state === 'ATTENDING').length
-  if (going === 0) return null
-  return `${going} ${going === 1 ? 'sub' : 'subs'}`
+export function comingLine(rows: LineupRow[]): string | null {
+  const going = (r: LineupRow) => r.members.filter((m) => m.state === 'ATTENDING')
+  const players = rows.filter((r) => !r.isStaff).flatMap(going).filter((m) => !m.isSubstitute).length
+  const subs = rows.flatMap(going).filter((m) => m.isSubstitute).length
+  const parts = [
+    players > 0 && `${players} ${players === 1 ? 'player' : 'players'}`,
+    subs > 0 && `${subs} ${subs === 1 ? 'sub' : 'subs'}`,
+    ...rows.filter((r) => r.isStaff).map((r) => going(r).length > 0 && `${going(r).length} ${r.label}`),
+  ].filter(Boolean)
+  return parts.length > 0 ? parts.join(' · ') : null
 }
 
 /** A Position as the Substitute picker is aimed at it: from an open spot, or a short group. */

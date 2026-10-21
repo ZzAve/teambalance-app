@@ -7,7 +7,7 @@ import { AnswerSheet, type AnswerTarget } from './AnswerSheet'
 // so there is no interesting closed picture to show. One snapshotted story (ADR-0032 §1): the open
 // sheet is a frame no composite shows on its own — EventDetailView and EventsPageView only ever catch
 // it mid-interaction, disableSnapshot — so it keeps this one picture, same convention as
-// TeamSwitcherView:MenuOpen and PanelViewMenu:MenuOpen.
+// TeamSwitcherView:MenuOpen.
 const TARGET: AnswerTarget = {
   userId: 'u-4',
   displayName: 'Sofia',

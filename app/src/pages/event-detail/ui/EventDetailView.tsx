@@ -12,7 +12,7 @@ import { EventTypeIcon } from '@entities/event/ui/EventTypeIcon'
 import { EventDetailSkeleton } from '@entities/event/ui/EventDetailSkeleton'
 import { ReferenceChips } from '@entities/event/ui/ReferenceChips'
 import { RoleBreakdown } from '@entities/event/ui/RoleBreakdown'
-import { RosterBar } from '@entities/event/ui/RosterBar'
+import { WhoIsComing } from '@entities/event/ui/WhoIsComing'
 import { SeriesPeek } from '@entities/event/ui/SeriesPeek'
 import type { SeriesPeek as SeriesPeekModel } from '@entities/event/lib/series-peek'
 import { AttendeeList } from '@widgets/attendee-list/ui/AttendeeList'
@@ -50,13 +50,18 @@ interface EventDetailViewProps {
   /** Opens the picker for calling Substitutes in: for one Position from its nudge, else unfiltered. */
   onCallInSubstitutes: (position: PositionRef | null) => void
   seriesPeek: SeriesPeekModel | null
+  /**
+   * The team's positions in its own order: fixes the order of the attendee sections, and lets "Who's
+   * coming" show every staff role, 0 included. Absent while loading.
+   */
+  positions?: { id: string; label: string; kind: string }[]
   /** Scoped series edit/delete (ADR-0014 Phase 3); absent for members. */
   adminActions?: ReactNode
 }
 
 /**
  * The event-detail page laid out (ADR-0032 §3): load and error shells, then one card with the
- * event's identity, description and references, the roster bar, the viewer's response, the
+ * event's identity, description and references, the viewer's response, who's coming, the
  * attendance list, the series peek and the admin actions. Prop-only — the mutation, its
  * cross-member Undo toast and the sibling lookup stay in the route; the story renders every
  * section with zero network.
@@ -79,6 +84,7 @@ export function EventDetailView({
   onTakeOffSubstitute,
   onCallInSubstitutes,
   seriesPeek,
+  positions,
   adminActions,
 }: EventDetailViewProps) {
   // Which Substitute's sheet is open. Both their Position-group row and the block open it.
@@ -100,14 +106,10 @@ export function EventDetailView({
   if (!event) return <p>Event not found.</p>
 
   const date = new Date(event.startTime)
-  // Two independent questions, and conflating them is what used to lose the headcount here (#271 ⑥).
-  // The bar shows for ANY tracked roster — with position targets it counts slots, without them it
-  // counts people (a target fraction, or a plain tally). RoleBreakdown is the per-role fallback and
-  // still turns on the narrower question: it survives only where no position carries a target, since
-  // there the bar states a total but nothing about who plays where.
+  // RoleBreakdown is the per-role fallback for a list without position targets: there the groups carry
+  // no verdict, and the breakdown says who plays where (#271 ⑥).
   const hasPositionTargets = event.roster.positions.some((p) => p.required != null)
   const openSubstitute = event.substitutes.find((s) => s.substituteId === openSubstituteId)
-  const showRosterBar = hasPositionTargets || event.roster.trackRoster
 
   return (
     <div>
@@ -172,17 +174,6 @@ export function EventDetailView({
         )}
       </div>
 
-      {/* Roster overview — sits high, right under the event identity, so completeness reads before
-          the response section rather than being buried below it. It scrolls with the page:
-          pinning it made it float over the sections beneath and clip them.
-          Shows for any tracked roster (#317): position targets count slots, otherwise a headcount
-          or plain tally; RoleBreakdown stays the per-role fallback where no position is targeted (⑥). */}
-      {showRosterBar && (
-        <div className="mt-6 overflow-hidden rounded-lg border border-border/40 bg-card shadow-sm">
-          <RosterBar roster={event.roster} />
-        </div>
-      )}
-
       {/* Your Response */}
       {currentUserId && (
         <div className="mt-6">
@@ -199,21 +190,29 @@ export function EventDetailView({
         </div>
       )}
 
-      {/* Attendance — one list by position, no tabs. The roster bar (above) shows for any
-          tracked roster; where no position carries a target RoleBreakdown stays as the per-role
+      {/* One card for the people: who's coming (players, subs and staff role) on top, then the
+          lineup by position below a divider. Below the viewer's own answer, which is what most
+          visits are for. Where no position carries a target, RoleBreakdown stays as the per-role
           fallback (⑥). */}
       <div className="mt-6 overflow-hidden rounded-lg border border-border/40 bg-card shadow-sm">
-        {!hasPositionTargets && <RoleBreakdown breakdown={event.attendanceSummary.roleBreakdown} />}
-        <AttendeeList
-          attendees={event.attendances}
-          roster={event.roster}
-          currentUserId={currentUserId}
-          onRespond={onRespond}
-          pending={isPending}
-          substitutes={event.substitutes}
-          onOpenSubstitute={setOpenSubstituteId}
-          onFindSubstitute={onCallInSubstitutes}
-        />
+        <WhoIsComing roster={event.roster} staffRoles={positions?.filter((p) => p.kind === 'STAFF')} />
+        <div className="border-t border-border/40">
+          <SectionLabel as="h2" className="px-4 pt-3">
+            Lineup
+          </SectionLabel>
+          {!hasPositionTargets && <RoleBreakdown breakdown={event.attendanceSummary.roleBreakdown} />}
+          <AttendeeList
+            attendees={event.attendances}
+            roster={event.roster}
+            currentUserId={currentUserId}
+            onRespond={onRespond}
+            pending={isPending}
+            substitutes={event.substitutes}
+            onOpenSubstitute={setOpenSubstituteId}
+            onFindSubstitute={onCallInSubstitutes}
+            positionOrder={positions?.map((p) => p.label)}
+          />
+        </div>
       </div>
 
       {/* Substitutes — directly under the Position groups (ADR-0033). */}

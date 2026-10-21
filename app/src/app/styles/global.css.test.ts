@@ -19,3 +19,11 @@ describe('global.css prefers-reduced-motion', () => {
     expect(block).toContain('view-transition')
   })
 })
+
+describe('global.css button cursor', () => {
+  it('gives every enabled button the pointer, in the base layer so utilities still override it', () => {
+    const match = css.match(/@layer base \{[\s\S]*?\n\}/)
+    expect(match).not.toBeNull()
+    expect(match![0]).toMatch(/button:not\(:disabled\)[\s\S]*cursor: pointer/)
+  })
+})

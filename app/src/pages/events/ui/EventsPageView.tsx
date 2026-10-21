@@ -1,16 +1,17 @@
-import type { ComponentProps, ReactNode } from 'react'
+import { useState, type ComponentProps, type ReactNode } from 'react'
 import { Link } from '@tanstack/react-router'
 import { CalendarDays } from 'lucide-react'
 import { useTeamRoutes } from '@shared/lib/team-routes'
 import { EventListView } from '@entities/event/ui/EventListView'
 import { EventFiltersView } from '@features/filter-event-types/ui/EventFiltersView'
-import { PanelViewMenu } from '@features/event-panel-view/ui/PanelViewMenu'
+import { KeepPanelsOpenRow } from '@features/event-panel-view/ui/KeepPanelsOpenRow'
 
 interface EventsPageViewProps {
   /** The admin's "New Event" trigger; absent for members. */
   createAction?: ReactNode
-  filters: ComponentProps<typeof EventFiltersView>
-  panelMenu: ComponentProps<typeof PanelViewMenu>
+  /** The page places the open filters itself and adds the view switch as their last row. */
+  filters: Omit<ComponentProps<typeof EventFiltersView>, 'inlineSlot' | 'viewRow'>
+  panelMenu: ComponentProps<typeof KeepPanelsOpenRow>
   /** The Next Up hero, when (and only when) one is due — no placeholder in its place. */
   hero?: ReactNode
   /** One button per event type with blanks left; renders nothing when there are none. */
@@ -21,11 +22,11 @@ interface EventsPageViewProps {
 }
 
 /**
- * The events page laid out (ADR-0032 §3): a compact header with the filter trigger and the view
- * menu, the Next Up hero when one is due, the bulk-attend bar, then one flat chronological list.
- * Prop-only — the route decides what goes in each slot (the live hero, bar and create sheet are
- * containers with their own queries), and the story fills the same slots with their prop-only Views,
- * so the whole page renders with zero network.
+ * The events page laid out (ADR-0032 §3): a compact header with the filter trigger (the open
+ * filters end with the view switch), the Next Up hero when one is due, the bulk-attend bar, then one
+ * flat chronological list. Prop-only — the route decides what goes in each slot (the live hero, bar
+ * and create sheet are containers with their own queries), and the story fills the same slots with
+ * their prop-only Views, so the whole page renders with zero network.
  */
 export function EventsPageView({
   createAction,
@@ -37,6 +38,8 @@ export function EventsPageView({
   hideCalendarLink,
 }: EventsPageViewProps) {
   const routes = useTeamRoutes()
+  // Filters open inline below the header, with the view switch as their last row.
+  const [filtersSlot, setFiltersSlot] = useState<HTMLElement | null>(null)
 
   return (
     <div>
@@ -46,12 +49,9 @@ export function EventsPageView({
           {/* The invite link moved to the Team page (team-management action); Events keeps
               only event creation for admins. */}
           {createAction}
-          {/* Always mounted: the popover now owns the only route to past events, so it
-              must not disappear with the event types it also happens to host. */}
-          <EventFiltersView {...filters} />
-          {/* How the list is drawn, beside what it contains but deliberately not inside it
-              (ADR-0030 §3): a filter is "where was I", this is "how do I like this". */}
-          <PanelViewMenu {...panelMenu} />
+          {/* Always mounted: the filters now own the only route to past events, so they
+              must not disappear with the event types they also happen to host. */}
+          <EventFiltersView {...filters} inlineSlot={filtersSlot} viewRow={<KeepPanelsOpenRow {...panelMenu} />} />
           {/* Every member's way to their calendar links; not in the bottom nav (ADR-0039). */}
           {!hideCalendarLink && (
             <Link
@@ -64,6 +64,8 @@ export function EventsPageView({
           )}
         </div>
       </div>
+
+      <div ref={setFiltersSlot} />
 
       {/* No hero when nothing is within RELATIVE_WINDOW_DAYS — and no placeholder in its
           place. The list carries the page. */}

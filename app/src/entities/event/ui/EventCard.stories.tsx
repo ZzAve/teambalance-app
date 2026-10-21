@@ -113,8 +113,8 @@ export const Gallery: Story = {
         ),
         // The reported surface (#281). A training wanting 12, attended by 11 players and a coach:
         // the card used to carry a green "Full" here, because the coach filled the twelfth slot. It
-        // now reads "1 more needed", and the opened lineup shows both why (the fraction counts 11)
-        // and where the twelfth person went (the staff line).
+        // now reads "1 more needed · 11/12", and the opened lineup's split line shows where the
+        // twelfth person went ("11 players · 1 Coach").
         'Staff attending': (
           <EventCard
             {...args}
@@ -193,8 +193,8 @@ export const Gallery: Story = {
     await expect(region('Roster verdict').getByText(PANEL_TEXT)).toBeInTheDocument()
 
     // Not "Full" — the coach no longer fills a player's slot. That is the card's half of #281; the
-    // panel's half (the 11/12 fraction and the staff line) is in EventLineupPanel.stories.
-    await expect(region('Staff attending').getByText('1 more needed')).toBeInTheDocument()
+    // panel's half (the split line naming the staff) is in EventLineupPanel.stories.
+    await expect(region('Staff attending').getByText('1 more needed · 11/12')).toBeInTheDocument()
     await expect(region('Staff attending').getByText(PANEL_TEXT)).toBeInTheDocument()
 
     await expect(

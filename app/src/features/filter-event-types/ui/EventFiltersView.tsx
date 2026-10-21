@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 import { SlidersHorizontal } from 'lucide-react'
 import type { EventTypeItem } from '@shared/api/event-types'
 import type { AttendanceState } from '@features/attendance-toggle/ui/AttendanceToggle'
@@ -33,6 +34,13 @@ interface EventFiltersViewProps {
   onToggleShowPast: (showPast: boolean) => void
   /** Resets every dimension. Offered next to the trigger whenever a filter is in effect. */
   onClearFilters: () => void
+  /**
+   * Where the filters open: an element below the page header, so the open section pushes the list
+   * down. Null until the page has mounted it; nothing opens until then.
+   */
+  inlineSlot: HTMLElement | null
+  /** A last row for the open section: the page's view switch ("Keep panels open"). */
+  viewRow?: ReactNode
 }
 
 /** The answer chips, worded as the member's own answer control words them (#273, CONTEXT.md).
@@ -104,10 +112,10 @@ function Divider() {
 }
 
 /**
- * The events page's single filter control: an icon button that opens a popover holding the
- * event-type chips, the answer chips, the Turnout chips and the "Show past events" switch — plus a
- * `Clear filters` button beside it whenever any of them is in effect (ADR-0030 §2). It
- * replaces the old Upcoming/Past segmented tab bar — past events are a filter, not a mode, and the
+ * The events page's single filter control: an icon button that opens an inline section below the
+ * page header, holding the event-type chips, the answer chips, the Turnout chips, the "Show past
+ * events" switch and, as its last row, the page's view switch — plus a `Clear filters` button beside
+ * it whenever any filter is in effect (ADR-0030 §2, §3). It replaces the old Upcoming/Past segmented tab bar — past events are a filter, not a mode, and the
  * page no longer spends a band of chrome on a control that only flipped which way the same list grew.
  *
  * Each chip group is a total partition of the list, so "all chips on" is the unfiltered default and
@@ -115,7 +123,7 @@ function Divider() {
  * owns the one toggler every group shares. Groups come from the data: the type chips render only
  * when the team has types, and the Turnout group only when the list spans two of its bands (§5).
  *
- * Prop-only apart from the popover's own open/closed state, which is local view state: the three
+ * Prop-only apart from the section's own open/closed state, which is local view state: the three
  * selections and the show-past flag live in the route so they can drive `useEvents`, the hero and
  * Bulk Attend.
  */
@@ -132,9 +140,11 @@ export function EventFiltersView({
   onToggleTurnout,
   onToggleShowPast,
   onClearFilters,
+  inlineSlot,
+  viewRow,
 }: EventFiltersViewProps) {
   const [open, setOpen] = useState(false)
-  // A dot on the trigger so an active filter is visible with the popover closed — otherwise a
+  // A dot on the trigger so an active filter is visible with the section closed — otherwise a
   // filtered list looks like an empty one. Every dimension counts, or the answer chips would narrow
   // the list invisibly.
   const hasActiveFilter =
@@ -145,13 +155,97 @@ export function EventFiltersView({
 
   useEscapeToClose(open, () => setOpen(false))
 
+  const content = (
+    <>
+      {/* A team with no event types (or a types request that failed) still gets the past
+          toggle — it is the only way to reach past events now that the tab bar is gone. */}
+      {eventTypes.length > 0 && (
+        <>
+          <div role="group" aria-labelledby="event-types-filter-heading">
+            <SectionLabel as="h3" id="event-types-filter-heading" className="mb-2.5">
+              Event types
+            </SectionLabel>
+            <div className="flex flex-wrap gap-2">
+              {eventTypes.map((type) => (
+                <EventTypeChip
+                  key={type.id}
+                  type={type}
+                  pressed={activeTypeIds.has(type.id)}
+                  onToggle={() => onToggleType(type.id)}
+                />
+              ))}
+            </div>
+          </div>
+
+          <Divider />
+        </>
+      )}
+
+      <div role="group" aria-labelledby="your-answer-filter-heading">
+        <SectionLabel as="h3" id="your-answer-filter-heading" className="mb-2.5">
+          Your answer
+        </SectionLabel>
+        <div className="flex flex-wrap gap-2">
+          {STATE_CHIPS.map(({ state, label, active, inactive }) => (
+            <Chip
+              key={state}
+              pressed={activeStates.has(state)}
+              onToggle={() => onToggleState(state)}
+              activeClassName={active}
+              inactiveClassName={inactive}
+            >
+              {label}
+            </Chip>
+          ))}
+        </div>
+      </div>
+
+      {showTurnout && (
+        <>
+          <Divider />
+
+          <div role="group" aria-labelledby="turnout-filter-heading">
+            <SectionLabel as="h3" id="turnout-filter-heading" className="mb-2.5">
+              Turnout
+            </SectionLabel>
+            <div className="flex flex-wrap gap-2">
+              {TURNOUT_CHIPS.map(({ bucket, label, active, inactive }) => (
+                <Chip
+                  key={bucket}
+                  pressed={activeTurnouts.has(bucket)}
+                  onToggle={() => onToggleTurnout(bucket)}
+                  activeClassName={active}
+                  inactiveClassName={inactive}
+                >
+                  {label}
+                </Chip>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
+
+      <Divider />
+
+      <div className="flex items-center justify-between gap-2.5">
+        <div>
+          <div className="text-small font-semibold">Show past events</div>
+          <div className="mt-0.5 text-caption text-muted-foreground">
+            {showPast ? 'On — past events included' : 'Off — upcoming only'}
+          </div>
+        </div>
+        <Switch checked={showPast} onCheckedChange={onToggleShowPast} aria-label="Show past events" />
+      </div>
+    </>
+  )
+
   return (
     <div className="flex items-center gap-2">
       {/* A restored filter must never be invisible (ADR-0030 §2). The dot below says *that*
           something is filtered; this says how to undo it — the one thing a member who did not set
           the filter this visit actually needs. Deliberately not a summary chip row naming the active
-          filters: variable height above a list on a phone is the cost the popover was chosen to
-          avoid (ADR-0029 §4). It replaces the button that used to sit on the empty state, which
+          filters: variable height above a list on a phone is the cost a closed filter control
+          avoids (ADR-0029 §4). It replaces the button that used to sit on the empty state, which
           could only be reached once the filter had already emptied the list. */}
       {hasActiveFilter && (
         <button
@@ -166,7 +260,6 @@ export function EventFiltersView({
         <button
           aria-label="Filters"
           aria-expanded={open}
-          aria-haspopup="dialog"
           onClick={() => setOpen((wasOpen) => !wasOpen)}
           className="relative flex h-11 w-11 items-center justify-center rounded-md border border-border/60 bg-card text-muted-foreground transition-colors hover:text-foreground"
         >
@@ -179,107 +272,26 @@ export function EventFiltersView({
           )}
         </button>
 
-        {/* The result count is announced, not shown: a member who taps a chip inside a popover gets no
-            other feedback that the list behind it moved. */}
+        {/* The result count is announced, not shown: a member who taps a chip gets no other
+            feedback that the list below moved. */}
         <p aria-live="polite" className="sr-only">
           {resultCount === 1 ? '1 event matches these filters' : `${resultCount} events match these filters`}
         </p>
 
-        {open && (
-          <>
-            {/* Click-outside catcher. Not focusable — Escape and the trigger are the keyboard paths. */}
-            <div
-              className="fixed inset-0 z-40 bg-black/20"
-              aria-hidden="true"
-              onClick={() => setOpen(false)}
-            />
-            <div
-              role="dialog"
-              aria-label="Filters"
-              className="card-shadow-hover absolute right-0 top-12 z-50 w-[248px] origin-top-right rounded-lg border border-border/60 bg-card p-3.5"
-            >
-              {/* A team with no event types (or a types request that failed) still gets the past
-                  toggle — it is the only way to reach past events now that the tab bar is gone. */}
-              {eventTypes.length > 0 && (
-                <>
-                  <div role="group" aria-labelledby="event-types-filter-heading">
-                    <SectionLabel as="h3" id="event-types-filter-heading" className="mb-2.5">
-                      Event types
-                    </SectionLabel>
-                    <div className="flex flex-wrap gap-2">
-                      {eventTypes.map((type) => (
-                        <EventTypeChip
-                          key={type.id}
-                          type={type}
-                          pressed={activeTypeIds.has(type.id)}
-                          onToggle={() => onToggleType(type.id)}
-                        />
-                      ))}
-                    </div>
-                  </div>
-
-                  <Divider />
-                </>
-              )}
-
-              <div role="group" aria-labelledby="your-answer-filter-heading">
-                <SectionLabel as="h3" id="your-answer-filter-heading" className="mb-2.5">
-                  Your answer
-                </SectionLabel>
-                <div className="flex flex-wrap gap-2">
-                  {STATE_CHIPS.map(({ state, label, active, inactive }) => (
-                    <Chip
-                      key={state}
-                      pressed={activeStates.has(state)}
-                      onToggle={() => onToggleState(state)}
-                      activeClassName={active}
-                      inactiveClassName={inactive}
-                    >
-                      {label}
-                    </Chip>
-                  ))}
-                </div>
-              </div>
-
-              {showTurnout && (
+        {open &&
+          inlineSlot &&
+          createPortal(
+            <div role="region" aria-label="Filters" className="mt-3 rounded-lg border border-border/60 bg-card p-3.5">
+              {content}
+              {viewRow && (
                 <>
                   <Divider />
-
-                  <div role="group" aria-labelledby="turnout-filter-heading">
-                    <SectionLabel as="h3" id="turnout-filter-heading" className="mb-2.5">
-                      Turnout
-                    </SectionLabel>
-                    <div className="flex flex-wrap gap-2">
-                      {TURNOUT_CHIPS.map(({ bucket, label, active, inactive }) => (
-                        <Chip
-                          key={bucket}
-                          pressed={activeTurnouts.has(bucket)}
-                          onToggle={() => onToggleTurnout(bucket)}
-                          activeClassName={active}
-                          inactiveClassName={inactive}
-                        >
-                          {label}
-                        </Chip>
-                      ))}
-                    </div>
-                  </div>
+                  {viewRow}
                 </>
               )}
-
-              <Divider />
-
-              <div className="flex items-center justify-between gap-2.5">
-                <div>
-                  <div className="text-small font-semibold">Show past events</div>
-                  <div className="mt-0.5 text-caption text-muted-foreground">
-                    {showPast ? 'On — past events included' : 'Off — upcoming only'}
-                  </div>
-                </div>
-                <Switch checked={showPast} onCheckedChange={onToggleShowPast} aria-label="Show past events" />
-              </div>
-            </div>
-          </>
-        )}
+            </div>,
+            inlineSlot,
+          )}
       </div>
     </div>
   )

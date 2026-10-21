@@ -161,6 +161,24 @@ class PhotoControllerIT : TeamBalanceIT() {
             photoVersionOf(MEMBER_ID) shouldBe Photo(webpBytes(64)).version
         }
 
+        test("an event's attendance shows photoVersion, so every avatar can show the Team Photo") {
+            seed()
+            jdbcTemplate.execute(
+                "INSERT INTO $TEAM_SCHEMA.event_types (name) SELECT 'Training' " +
+                    "WHERE NOT EXISTS (SELECT 1 FROM $TEAM_SCHEMA.event_types)",
+            )
+            val eventId = jdbcTemplate.queryForObject(
+                "INSERT INTO $TEAM_SCHEMA.events (event_type_id, title, start_time, end_time, created_by) " +
+                    "SELECT min(id), 'Photo IT event', now() + interval '1 day', now() + interval '25 hours', '$ADMIN_ID'::uuid " +
+                    "FROM $TEAM_SCHEMA.event_types RETURNING uuid::text",
+                String::class.java,
+            )
+            putTeamPhoto(MEMBER_ID, webpBytes(64)).andExpect(status().isNoContent)
+
+            sendAsync(MockMvcRequestBuilders.get("/api/events/$eventId"), ADMIN_ID)
+                .andExpect(status().isOk)
+                .andExpect(jsonPath("$.attendances[?(@.userId == '$MEMBER_ID')].photoVersion").value(Photo(webpBytes(64)).version))        }
+
         test("PNG bytes are rejected with 400 INVALID_PHOTO") {
             seed()
             val png = byteArrayOf(0x89.toByte(), 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A) + ByteArray(32)

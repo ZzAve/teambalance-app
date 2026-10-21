@@ -43,7 +43,7 @@ describe('avatarInitials', () => {
     expect(avatarInitials('jane doe')).toBe('JD')
   })
 
-  it('handles a single word', () => {
-    expect(avatarInitials('madonna')).toBe('M')
+  it('takes the first two letters of a single word', () => {
+    expect(avatarInitials('madonna')).toBe('MA')
   })
 })

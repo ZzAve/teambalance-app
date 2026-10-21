@@ -58,6 +58,18 @@ export const EventsActive: Story = {
   },
 }
 
+// An event's detail page and the calendar links are reached from the events list, so Events stays lit.
+export const EventsActiveOnSubpage: Story = {
+  parameters: {
+    router: { initialEntries: ['/t/setpoint-vt/events/evt-1'] },
+    chromatic: { disableSnapshot: true },
+  },
+  play: async ({ canvas }) => {
+    await expect(canvas.getByRole('link', { name: 'Events' })).toHaveAttribute('aria-current', 'page')
+    await expect(canvas.getByRole('link', { name: 'Team' })).not.toHaveClass('text-blue')
+  },
+}
+
 // Picture owned by the page composites (ADR-0032 §3).
 export const TeamActive: Story = {
   parameters: {

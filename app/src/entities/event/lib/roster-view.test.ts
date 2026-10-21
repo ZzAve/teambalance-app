@@ -2,10 +2,9 @@ import { describe, expect, it } from 'vitest'
 import type { EventRoster, RosterPosition } from '@shared/api/events'
 import { makeRoster, NO_ROSTER } from '@shared/testing/event-fixtures'
 import {
-  headcountLine,
   rosterChip,
   rosterRows,
-  staffNote,
+  whoIsComing,
 } from './roster-view'
 
 const pos = (
@@ -85,12 +84,13 @@ describe('rosterChip', () => {
   it('reads as a headcount when only a total is set', () => {
     // No position carries a target, which is the only way the headcount can be the driving axis —
     // so openSlots here is the headcount shortfall, not a sum over rows.
-    expect(rosterChip(roster({ state: 'HEADCOUNT_SHORT', openSlots: 2, positions: [] }))).toEqual({
-      text: '2 more needed',
+    const counts = { positions: [], totalAttending: 10, totalTarget: 12 }
+    expect(rosterChip(roster({ state: 'HEADCOUNT_SHORT', openSlots: 2, ...counts }))).toEqual({
+      text: '2 more needed · 10/12',
       tone: 'short',
     })
-    expect(rosterChip(roster({ state: 'HEADCOUNT_FULL', openSlots: 0, positions: [] }))).toEqual({
-      text: 'Full',
+    expect(rosterChip(roster({ state: 'HEADCOUNT_FULL', openSlots: 0, ...counts, totalAttending: 13 }))).toEqual({
+      text: 'Full · 13/12',
       tone: 'covered',
     })
   })
@@ -138,60 +138,40 @@ describe('rosterRows', () => {
 
 
 
-describe('headcountLine', () => {
-  // The locked rule: a total set alongside position targets is secondary information in the panel,
-  // never the chip. This is where it surfaces.
-  it('shows the total as a secondary line when positions also carry targets', () => {
-    const r = roster({ totalTarget: 12, totalAttending: 7, positions: [pos('Setter', 2, 2)] })
-    expect(headcountLine(r)).toBe('7/12 going')
-  })
-
-  // Present with or without position targets — only *where* it renders differs (panel header when
-  // it is the only target, a secondary line beneath the rows when positions are targeted too).
-  it('is present when the total is the only target', () => {
-    const r = roster({ totalTarget: 12, totalAttending: 7, positions: [] })
-    expect(headcountLine(r)).toBe('7/12 going')
-  })
-
-  it('is absent when there is no total at all', () => {
-    expect(headcountLine(roster({ totalTarget: undefined }))).toBeNull()
-  })
-
-  // The fraction counts players (#281). Twelve people are in the room and the line says 11/12,
-  // which is the honest reading of a target the coach was never meant to fill — staffNote below
-  // accounts for the twelfth so the pair does not look like an arithmetic slip.
-  it('counts players against the target, not staff', () => {
-    const r = roster({
-      totalTarget: 12,
+describe('whoIsComing', () => {
+  it('splits the people going into members playing, substitutes and each staff role', () => {
+    const roster = makeRoster({
+      positions: [pos('Setter', 2, 2), pos('Trainer', undefined, 1, 'STAFF'), pos('Physio', undefined, 2, 'STAFF')],
       totalAttending: 12,
-      positions: [pos('Setter', undefined, 11), pos('Trainer', undefined, 1, 'STAFF')],
+      playingAttending: 9,
+      staffAttending: 3,
+      substituteAttending: 2,
     })
-    expect(headcountLine(r)).toBe('11/12 going')
-  })
-})
-
-describe('staffNote', () => {
-  it('accounts for the attendees the fraction leaves out', () => {
-    const r = roster({
-      totalTarget: 12,
-      totalAttending: 12,
-      positions: [pos('Setter', undefined, 11), pos('Trainer', undefined, 1, 'STAFF')],
+    expect(whoIsComing(roster)).toEqual({
+      total: 12,
+      players: 7,
+      substitutes: 2,
+      staff: [
+        { id: 'pos-trainer', label: 'Trainer', count: 1 },
+        { id: 'pos-physio', label: 'Physio', count: 2 },
+      ],
     })
-    expect(staffNote(r)).toBe('1 staff also going, not counted toward the target')
-  })
-
-  // "staff" reads the same in one and in five, which the team's own labels would not.
-  it('reads the same for several', () => {
-    const r = roster({
-      totalTarget: 12,
-      totalAttending: 13,
-      positions: [pos('Setter', undefined, 11), pos('Trainer', undefined, 2, 'STAFF')],
-    })
-    expect(staffNote(r)).toBe('2 staff also going, not counted toward the target')
   })
 
-  // Every roster on a team that has marked no staff — which is every team on the day this ships.
-  it('is absent when nobody attending holds a staff position', () => {
-    expect(staffNote(roster({ positions: [pos('Setter', 2, 2)] }))).toBeNull()
+  it('shows every staff role of the team, 0 for one the roster dropped because nobody is going', () => {
+    const roster = makeRoster({
+      positions: [pos('Setter', 2, 2), pos('Trainer', undefined, 1, 'STAFF')],
+      totalAttending: 3,
+      playingAttending: 2,
+      staffAttending: 1,
+    })
+    const roles = [
+      { id: 'pos-trainer', label: 'Trainer' },
+      { id: 'pos-physio', label: 'Physio' },
+    ]
+    expect(whoIsComing(roster, roles).staff).toEqual([
+      { id: 'pos-trainer', label: 'Trainer', count: 1 },
+      { id: 'pos-physio', label: 'Physio', count: 0 },
+    ])
   })
 })

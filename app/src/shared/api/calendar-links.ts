@@ -10,7 +10,7 @@ export type { AttendanceState } from './generated/model/AttendanceState'
 
 // The caller's own links in the Active Team, newest first (ADR-0039). Keyed ['calendar-links'] so
 // a create, edit or delete invalidating that key refreshes the list.
-export function useCalendarLinks() {
+export function useCalendarLinks(options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: ['calendar-links'],
     queryFn: async () => {
@@ -19,6 +19,7 @@ export function useCalendarLinks() {
       if (res.status !== 200) throw new Error(`Couldn't load calendar links (${res.status})`)
       return res.body.links
     },
+    enabled: options?.enabled,
   })
 }
 

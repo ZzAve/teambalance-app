@@ -134,6 +134,7 @@ export function makeAttendee(
     state: 'ATTENDING',
     changedBy: undefined,
     updatedAt: undefined,
+    photoVersion: undefined,
     ...overrides,
   }
 }

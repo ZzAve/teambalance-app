@@ -51,7 +51,8 @@ function RowButton({
  */
 export function TeamsView({ teams, activeTeam, onSelect, onJoin, onCreate }: TeamsViewProps) {
   return (
-    <div className="mx-auto mt-10 max-w-sm">
+    // Full column width, like the Account page this is reached from.
+    <div>
       <h1 className="font-display text-title font-bold">Teams</h1>
 
       {/* Section 1 — the teams you belong to; tapping one switches to it (ADR-0023). */}

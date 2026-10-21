@@ -9,6 +9,7 @@ import {
     usePendingSubstituteEvents,
 } from '@shared/api/substitutes'
 import { useCurrentUser } from '@shared/api/auth'
+import { usePositions } from '@shared/api/positions'
 import { useNow } from '@shared/lib/use-now'
 import { selectHeroEvent } from '@entities/event/lib/next-event'
 import type { PositionRef } from '@entities/event/lib/lineup'
@@ -20,7 +21,7 @@ import type { OptimisticAnswer } from '@entities/event/ui/EventListView'
 import { EventLineupPanel } from '@widgets/event-panel/ui/EventLineupPanel'
 import { EventsPageView } from '@pages/events/ui/EventsPageView'
 import { reconcileTypeIds } from '@features/filter-event-types/model/filter-preferences'
-import { spansMultipleTurnoutBuckets } from '@features/filter-event-types/model/turnout'
+import { hasTurnoutTargets } from '@features/filter-event-types/model/turnout'
 import { filterEvents } from '@features/filter-event-types/model/filter-events'
 import { emptyEventsMessage } from '@features/filter-event-types/model/empty-message'
 import { BulkAttendBar } from '@features/bulk-attend/ui/BulkAttendBar'
@@ -100,6 +101,8 @@ function EventListPage() {
     // The lineup panel, built once for the list cards and the hero: both need the page's attendance
     // write and its one Substitute picker. The hero drops the header summary — its badge and status
     // line already state the verdict and the headcount (#386).
+    const {data: positions} = usePositions()
+    const positionOrder = positions?.map(p => p.label)
     const lineupPanel = (event: Event, {summary = true} = {}) => (
         <EventLineupPanel
             attendances={event.attendances}
@@ -114,6 +117,7 @@ function EventListPage() {
             onTakeOffSubstitute={(substituteId) =>
                 removeSubstituteAttendance.mutate({eventId: event.id, substituteId})}
             substitutePending={pendingSubstituteEvents.includes(event.id)}
+            positionOrder={positionOrder}
         />
     )
 
@@ -149,7 +153,7 @@ function EventListPage() {
 
     // Read off the *unfiltered* list (ADR-0029 §5): narrowing another dimension must not make the
     // group vanish underneath a Turnout selection that is still in effect.
-    const showTurnout = useMemo(() => spansMultipleTurnoutBuckets(events ?? []), [events])
+    const showTurnout = useMemo(() => hasTurnoutTargets(events ?? []), [events])
 
     // Bulk Attend acts on exactly what the page shows (ADR-0020, ADR-0029 §6), so it reads
     // `listEvents` — already narrowed by *both* chip groups. The hero's event is left out (#386): its

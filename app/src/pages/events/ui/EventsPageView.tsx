@@ -9,7 +9,8 @@ import { KeepPanelsOpenRow, PanelViewMenu } from '@features/event-panel-view/ui/
 interface EventsPageViewProps {
   /** The admin's "New Event" trigger; absent for members. */
   createAction?: ReactNode
-  filters: ComponentProps<typeof EventFiltersView>
+  /** The page places the open filters itself and adds the view switch as their last row. */
+  filters: Omit<ComponentProps<typeof EventFiltersView>, 'inlineSlot' | 'viewRow'>
   panelMenu: ComponentProps<typeof PanelViewMenu>
   /** The Next Up hero, when (and only when) one is due — no placeholder in its place. */
   hero?: ReactNode

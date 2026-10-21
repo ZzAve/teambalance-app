@@ -268,7 +268,7 @@ export const Data: Story = {
     await expect(canvas.getByText('Missing a position')).toBeInTheDocument()
     await expect(canvas.getByText('2 spots open')).toBeInTheDocument()
     await expect(canvas.getByText('Lineup set')).toBeInTheDocument()
-    await expect(canvas.getByText('3 more needed')).toBeInTheDocument()
+    await expect(canvas.getByText('3 more needed · 5/8')).toBeInTheDocument()
     await expect(canvas.getByText('4 going')).toBeInTheDocument() // the social's headcount
     // Nothing is open, so no panel content is on screen at all.
     await expect(canvas.queryByText('Sanne Bakker')).not.toBeInTheDocument()
@@ -324,8 +324,6 @@ export const Shells: Story = {
     // Targets and people at once, which is the merge: the verdict words come from the roster, the
     // names beside them from the attendances, on the same rows.
     await expect(everyPanelOpen.getAllByText('nobody yet').length).toBeGreaterThan(0)
-    await expect(everyPanelOpen.getByText('4 of 4 covered')).toBeInTheDocument()
-    await expect(everyPanelOpen.getByText('5/8 going')).toBeInTheDocument() // the headcount-only panel
     // Every card names the team, the social included — there is no view that hides them any more.
     await expect(everyPanelOpen.getAllByText(/Sanne/)).toHaveLength(5)
     // A non-responder is still on every card, whatever its roster state — named in the chip's
@@ -400,10 +398,9 @@ export const Interactions: Story = {
     // A club side of 17: expanding one card's crowded cluster leaves its neighbour untouched.
     const bigSquad = region('Big squad')
     const clubNight = within(bigSquad.getByText('Club Night').closest('.card-enter') as HTMLElement)
-    await userEvent.click(clubNight.getByRole('button', { name: 'Show 8 more going' }))
+    await userEvent.click(clubNight.getByRole('button', { name: /^Show \d+ more in / }))
     await expect(clubNight.getByRole('button', { name: /Member 16 —/ })).toBeInTheDocument()
-    // The five not responded sit in their own cluster, which is at the cap and so shows in full: the limit
-    // is per run of chips, not per row — and certainly not per list.
+    // One run per position in name order, whatever people answered: expanded, the not-responded show too.
     await expect(clubNight.getByRole('button', { name: /Member 17 — Not responded/ })).toBeInTheDocument()
     await expect(bigSquad.getByRole('button', { name: /Sanne Bakker/ })).toBeInTheDocument()
   },

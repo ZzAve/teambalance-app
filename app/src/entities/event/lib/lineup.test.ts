@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { makeAttendee, makeRoster, makeSubstitute } from '@shared/testing/event-fixtures'
-import { coveredLine, findSomeone, lineupRows, substituteLine, verdictWord } from './lineup'
+import { comingLine, findSomeone, lineupRows, openLine, verdictWord } from './lineup'
 
 // Pure mapping, so a plain unit is the lowest layer that proves it (CLAUDE.md testing table). What
 // the panel *looks* like in each of these shapes is a story; what the numbers are is here.
@@ -34,7 +34,7 @@ describe('lineupRows', () => {
     expect(rows[0]).toMatchObject({ attending: 1, openSlots: 1, surplus: 0, tone: 'short' })
   })
 
-  it('orders members by answer, then by name', () => {
+  it('orders members by name, whatever they answered, so nobody moves when an answer changes', () => {
     const rows = lineupRows(
       [
         makeAttendee('u1', 'Zoë', 'Setter', { state: 'ABSENT' }),
@@ -44,7 +44,26 @@ describe('lineupRows', () => {
       ],
       roster(),
     )
-    expect(rows[0].members.map((m) => m.displayName)).toEqual(['Anna', 'Yara', 'Bram', 'Zoë'])
+    expect(rows[0].members.map((m) => m.displayName)).toEqual(['Anna', 'Bram', 'Yara', 'Zoë'])
+  })
+
+  it('orders rows by the team’s positions, so a row the server starts sending does not move', () => {
+    // The server sent only Coach; Libero comes from an attendee and would otherwise be appended last.
+    const rows = lineupRows(
+      [makeAttendee('u1', 'Nina', 'Libero', { state: 'ATTENDING' })],
+      roster([POSITIONS[2]]),
+      null,
+      [],
+      ['Setter', 'Libero', 'Coach'],
+    )
+    expect(rows.map((r) => r.label)).toEqual(['Libero', 'Coach'])
+  })
+
+  it('lists members before substitutes, each in name order', () => {
+    const rows = lineupRows([makeAttendee('u1', 'Zoë', 'Setter')], roster(), null, [
+      makeSubstitute('s1', 'Anna', { position: { id: 'p-setter', label: 'Setter' } }),
+    ])
+    expect(rows[0].members.map((m) => m.displayName)).toEqual(['Zoë', 'Anna'])
   })
 
   it('keeps a position whose whole group declined — the row worth seeing', () => {
@@ -187,8 +206,8 @@ describe('verdictWord', () => {
   })
 })
 
-describe('coveredLine', () => {
-  it('counts covered positions against targeted ones, ignoring untargeted rows', () => {
+describe('openLine', () => {
+  it('names the targeted positions still short, ignoring untargeted rows', () => {
     const rows = lineupRows(
       [
         makeAttendee('u1', 'A', 'Setter', { state: 'ATTENDING' }),
@@ -197,14 +216,18 @@ describe('coveredLine', () => {
       ],
       roster(),
     )
-    expect(coveredLine(rows)).toBe('1 of 2 covered')
+    expect(openLine(rows)).toBe('Still open: Libero')
   })
 
-  it('is null when nothing is targeted, so the caller can fall back to a headcount', () => {
-    expect(coveredLine(lineupRows([], roster([POSITIONS[2]])))).toBeNull()
+  it('gives a count past two names', () => {
+    const three = [...POSITIONS.slice(0, 2), { id: 'p-mid', label: 'Middle', required: 2, attending: 0, kind: 'PLAYING' as const }]
+    expect(openLine(lineupRows([], roster(three)))).toBe('3 positions still open')
+  })
+
+  it('is null when every targeted position is covered, or nothing is targeted', () => {
+    expect(openLine(lineupRows([makeAttendee('u1', 'A', 'Coach')], roster([POSITIONS[2]])))).toBeNull()
   })
 })
-
 describe('findSomeone', () => {
   it('uses "a" before a consonant and "an" before a vowel', () => {
     expect(findSomeone('Libero')).toBe('Find a Libero')
@@ -216,25 +239,35 @@ describe('findSomeone', () => {
   })
 })
 
-describe('substituteLine', () => {
+describe('comingLine', () => {
   const LIBERO = { id: 'p-libero', label: 'Libero' }
 
-  it('counts the Substitutes who are going, not those only asked or who can’t', () => {
-    const rows = lineupRows([], roster(), null, [
-      makeSubstitute('s1', 'Jan', { position: LIBERO }),
-      makeSubstitute('s2', 'Mila', { state: 'MAYBE' }),
-      makeSubstitute('s3', 'Kees', { state: 'ABSENT' }),
-    ])
-    expect(substituteLine(rows)).toBe('1 sub')
+  it('counts who is going as players, subs and each staff role', () => {
+    const rows = lineupRows(
+      [
+        makeAttendee('u1', 'Anna', 'Setter'),
+        makeAttendee('u2', 'Bram', 'Libero'),
+        makeAttendee('u3', 'Cor', 'Coach'),
+        makeAttendee('u4', 'Dirk', 'Setter', { state: 'MAYBE' }),
+      ],
+      roster(),
+      null,
+      [makeSubstitute('s1', 'Jan', { position: LIBERO }), makeSubstitute('s2', 'Mila', { state: 'MAYBE' })],
+    )
+    expect(comingLine(rows)).toBe('2 players · 1 sub · 1 Coach')
   })
 
-  it('says "subs" for more than one', () => {
-    const rows = lineupRows([], roster(), null, [makeSubstitute('s1', 'Jan', { position: LIBERO }), makeSubstitute('s2', 'Mila')])
-    expect(substituteLine(rows)).toBe('2 subs')
+  it('leaves out the subs when no Substitute is going', () => {
+    const rows = lineupRows([makeAttendee('u1', 'Anna', 'Setter'), makeAttendee('u2', 'Cor', 'Coach')], roster())
+    expect(comingLine(rows)).toBe('1 player · 1 Coach')
   })
 
-  it('is null when no Substitute is going', () => {
-    const rows = lineupRows([], roster(), null, [makeSubstitute('s2', 'Mila', { state: 'MAYBE' })])
-    expect(substituteLine(rows)).toBeNull()
+  it('still counts the players when nobody else is going', () => {
+    const rows = lineupRows([makeAttendee('u1', 'Anna', 'Setter'), makeAttendee('u2', 'Bram', 'Setter')], roster())
+    expect(comingLine(rows)).toBe('2 players')
+  })
+
+  it('is null when nobody is going', () => {
+    expect(comingLine(lineupRows([makeAttendee('u1', 'Anna', 'Setter', { state: 'ABSENT' })], roster()))).toBeNull()
   })
 })

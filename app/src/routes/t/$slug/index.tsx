@@ -9,6 +9,7 @@ import {
     usePendingSubstituteEvents,
 } from '@shared/api/substitutes'
 import { useCurrentUser } from '@shared/api/auth'
+import { usePositions } from '@shared/api/positions'
 import { useNow } from '@shared/lib/use-now'
 import { selectHeroEvent } from '@entities/event/lib/next-event'
 import type { PositionRef } from '@entities/event/lib/lineup'
@@ -100,6 +101,8 @@ function EventListPage() {
     // The lineup panel, built once for the list cards and the hero: both need the page's attendance
     // write and its one Substitute picker. The hero drops the header summary — its badge and status
     // line already state the verdict and the headcount (#386).
+    const {data: positions} = usePositions()
+    const positionOrder = positions?.map(p => p.label)
     const lineupPanel = (event: Event, {summary = true} = {}) => (
         <EventLineupPanel
             attendances={event.attendances}
@@ -114,6 +117,7 @@ function EventListPage() {
             onTakeOffSubstitute={(substituteId) =>
                 removeSubstituteAttendance.mutate({eventId: event.id, substituteId})}
             substitutePending={pendingSubstituteEvents.includes(event.id)}
+            positionOrder={positionOrder}
         />
     )
 

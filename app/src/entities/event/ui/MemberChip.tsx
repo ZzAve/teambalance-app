@@ -12,16 +12,9 @@ import { ATTENDANCE_WORDS } from '../lib/attendance-words'
  * are split. The dot keeps the colour the team page and the attendee list already know them by; the
  * pill carries green / gold / red / neutral for the answer.
  *
- * **Chips overlap, and never clip.** The pull-back is what makes a position read as one group rather
- * than a row of separate cells — the facepile idiom, which is why it is borrowed rather than
- * invented. What is *not* borrowed is occluding the text: an earlier draft let chips shrink past
- * their own names to save width, and applying the WCAG 1.4.12 text-spacing override then clipped
- * three names in eighteen, which is failure technique F104. So a chip is exactly as wide as its
- * name, and crowding is absorbed by [OverflowChip] instead. The overlap eats the gap between chips
- * at every text size.
- *
- * The pull-back is `margin-right`, not `margin-left`, so a run that wraps starts its second line
- * flush at the container edge instead of hanging outside it.
+ * **Chips sit apart, and are width-capped.** The position's box groups them, so they no longer
+ * overlap. The name is capped near 16 characters and ellipsed past it; the full name stays in the
+ * tooltip and the accessible name. Crowding is still absorbed by [OverflowChip].
  *
  * Presentational and prop-only (ADR-0017): the answer arrives as a prop and the tap is a callback.
  */
@@ -33,11 +26,8 @@ const PILL: Record<LineupState, string> = {
   ABSENT: 'bg-red/10 border-red/35 text-red',
 }
 
-/** The gap the next chip eats. Never enough to reach a letter — a chip cannot be narrower than its name. */
-const OVERLAP = '-mr-2.5 last:mr-0'
-
 const CHIP =
-  'relative flex shrink-0 max-w-full items-center gap-1 overflow-hidden text-ellipsis whitespace-nowrap rounded-full border py-0.5 pl-0.5 pr-2.5 text-small font-semibold ring-2 ring-card ring-offset-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
+  'relative flex shrink-0 max-w-full items-center gap-1 overflow-hidden text-ellipsis whitespace-nowrap rounded-full border py-0.5 pl-0.5 pr-2.5 text-small font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
 
 interface MemberChipProps {
   member: LineupMember
@@ -55,7 +45,7 @@ export function MemberChip({ member, onSelect }: MemberChipProps) {
       // name alongside the full one and a screen reader says "Anna Anna Bakker — Going".
       aria-label={`${who} — ${ATTENDANCE_WORDS[member.state].word}. Change their answer`}
       title={`${member.displayName} — ${ATTENDANCE_WORDS[member.state].word}`}
-      className={`${CHIP} ${OVERLAP} ${PILL[member.state]} ${member.isSelf ? 'shrink-0' : ''}`}
+      className={`${CHIP} ${PILL[member.state]} ${member.isSelf ? 'shrink-0' : ''}`}
     >
       {member.isSubstitute ? (
         <SubstituteAvatar name={member.displayName} className="size-5 bg-card" />
@@ -67,7 +57,7 @@ export function MemberChip({ member, onSelect }: MemberChipProps) {
           photoUrl={member.photoVersion ? teamPhotoUrl(member.userId, member.photoVersion) : undefined}
         />
       )}
-      <span aria-hidden>{member.chipName}</span>
+      <span aria-hidden className="min-w-0 max-w-[16ch] truncate">{member.chipName}</span>
       {member.isSelf && (
         <span aria-hidden className="shrink-0 text-caption font-bold text-blue">
           you
@@ -106,7 +96,7 @@ export function OverflowChip({
       onClick={onToggle}
       aria-expanded={expanded}
       aria-label={expanded ? `Show fewer ${label}` : `Show ${hidden} more ${label}`}
-      className={`${CHIP} ${OVERLAP} border-border bg-card pl-2.5 text-muted-foreground`}
+      className={`${CHIP} border-border bg-card pl-2.5 text-muted-foreground`}
     >
       <span aria-hidden>{expanded ? 'less' : `+${hidden}`}</span>
     </button>
@@ -133,13 +123,13 @@ export function OpenSlotChip({
       onClick={onFind}
       aria-label={findSomeone(positionLabel)}
       // The "+" keeps chip size; `tap-band` stretches the tap target to 44px each way (F7).
-      className="tap-band after:-inset-x-1.5 flex flex-wrap items-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      className="tap-band after:-inset-x-1.5 flex flex-wrap items-center gap-1.5 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
       {Array.from({ length: openSlots }, (_, i) => (
         <span
           key={i}
           aria-hidden
-          className={`${OVERLAP} flex h-[26px] shrink-0 items-center justify-center rounded-full border-[1.5px] border-dashed border-purple bg-card px-3 text-small font-bold text-purple-ink ring-2 ring-card hover:bg-purple/5`}
+          className={`flex h-[26px] shrink-0 items-center justify-center rounded-full border-[1.5px] border-dashed border-purple bg-card px-3 text-small font-bold text-purple-ink hover:bg-purple/5`}
         >
           +
         </span>

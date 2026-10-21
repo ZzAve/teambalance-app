@@ -1,0 +1,8 @@
+import{n as e}from"./rolldown-runtime-DkW27tQK.js";import{t}from"./jsx-runtime-DeHZSEgm.js";import{n,t as r}from"./switch-C4KeThMR.js";function i({defaultExpanded:e,onDefaultExpandedChange:t}){return(0,a.jsxs)(`div`,{className:`flex items-center justify-between gap-2.5`,children:[(0,a.jsxs)(`div`,{children:[(0,a.jsx)(`div`,{className:`text-small font-semibold`,children:`Keep panels open`}),(0,a.jsx)(`div`,{className:`mt-0.5 text-caption text-muted-foreground`,children:e?`On — every card starts open`:`Off — tap to open a card`})]}),(0,a.jsx)(r,{checked:e,onCheckedChange:t,"aria-label":`Keep panels open`})]})}var a;function o(){return(o=e((()=>{n(),a=t(),i.__docgenInfo={description:`The panel preference — whether a card's roster panel starts open (ADR-0030 §6) — as a switch row.
+The events page puts it last in the open filters (ADR-0030 §3).
+
+It is one page-wide setting, so it sits in the page header's control rather than inside each
+panel: a control drawn once per open card reads as a per-card one, and charges every open panel a
+row for a setting a member touches once.
+
+Prop-only: the preference lives in \`event-panel-store\`.`,methods:[],displayName:`KeepPanelsOpenRow`,props:{defaultExpanded:{required:!0,tsType:{name:`boolean`},description:``},onDefaultExpandedChange:{required:!0,tsType:{name:`signature`,type:`function`,raw:`(defaultExpanded: boolean) => void`,signature:{arguments:[{type:{name:`boolean`},name:`defaultExpanded`}],return:{name:`void`}}},description:``}}}})))()}export{o as n,i as t};

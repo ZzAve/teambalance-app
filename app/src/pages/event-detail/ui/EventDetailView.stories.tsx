@@ -15,7 +15,7 @@ import { EventDetailView } from './EventDetailView'
 // The event-detail page as a phone shows it (ADR-0032 §3): sticky sub-header, the info card
 // (identity, date, time, location, description, references), roster bar, the viewer's response,
 // the attendance list, the series peek and the admin actions, inside the real app shell. This composite owns the pixels for PageHeader,
-// EventTypeBadge/Icon, RosterBar, AttendanceToggle, ReferenceChips, RoleBreakdown, AttendeeList and
+// EventTypeBadge/Icon, WhoIsComing, AttendanceToggle, ReferenceChips, RoleBreakdown, AttendeeList and
 // SeriesPeek in context; those keep their own snapshots only as galleries or for states this frame
 // cannot show.
 const TEAM = [
@@ -148,8 +148,10 @@ export const Data: Story = {
     for (const name of ['Julius', 'Sanne', 'Lars', 'Sofia', 'Tim', 'Noor']) {
       await expect(canvas.getByText(name)).toBeInTheDocument()
     }
-    // Substitutes fill spots but are named apart from the Members going (ADR-0033).
-    await expect(canvas.getByText('+ 1 substitute')).toBeInTheDocument()
+    // Who's coming: substitutes are counted apart from the Members playing (ADR-0033).
+    const coming = within(canvas.getByRole('heading', { name: "Who's coming" }).parentElement!.parentElement!)
+    await expect(coming.getByText('Sub')).toBeInTheDocument()
+    await expect(coming.getByText('1', { selector: 'dd' })).toBeInTheDocument()
     const block = canvas.getByRole('region', { name: 'Substitutes' })
     await expect(block).toHaveTextContent('1 going · 1 maybe')
     const substitutes = within(block)

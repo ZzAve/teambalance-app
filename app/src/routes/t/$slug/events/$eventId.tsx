@@ -5,6 +5,7 @@ import { useEvent, useEvents } from '@shared/api/events'
 import { useSetAttendance } from '@shared/api/attendances'
 import { useCurrentUser } from '@shared/api/auth'
 import { useCalendarLinks } from '@shared/api/calendar-links'
+import { usePositions } from '@shared/api/positions'
 import {
   useRemoveSubstituteAttendance,
   useSetSubstituteAttendance,
@@ -37,6 +38,7 @@ function EventDetailPage() {
   const calendarLinks = useCalendarLinks({ enabled: !isActingAs })
   const offerCalendar = calendarLinks.isSuccess && calendarLinks.data.length === 0
   const { mutate, isPending } = useSetAttendance()
+  const { data: positions } = usePositions()
   // Only load the full list to find series siblings when this event actually belongs to a group.
   const { data: allEvents } = useEvents(true, !!event?.recurringGroup)
   // The picker's Position outlives `open`, so the sheet can animate out.
@@ -97,6 +99,7 @@ function EventDetailPage() {
         onTakeOffSubstitute={(substituteId) => removeSubstituteAttendance.mutate({ eventId, substituteId })}
         onCallInSubstitutes={(position) => setPicker({ open: true, position })}
         seriesPeek={seriesPeek}
+        positions={positions}
         adminActions={
           isAdmin &&
           event && (

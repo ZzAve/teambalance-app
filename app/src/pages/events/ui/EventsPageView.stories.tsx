@@ -23,11 +23,11 @@ import { appShell } from '../../../../storybook-support/app-shell-decorator'
 import { pageModes } from '../../../../.storybook/modes'
 import { EventsPageView } from './EventsPageView'
 
-// The events page as a phone shows it (ADR-0032 §3): header, filter trigger, view menu, the Next Up
-// hero, the bulk-attend bar and the card list, inside the real app shell. This composite owns the
-// pixels for every piece it shows — EventFiltersView, PanelViewMenu, NextEventHeroView,
-// BulkAttendBarView, EventListView, EventCard and the roster panel keep their own snapshots only
-// for states this frame cannot show (a popover open, a shell).
+// The events page as a phone shows it (ADR-0032 §3): header, filter trigger, the Next Up hero, the
+// bulk-attend bar and the card list, inside the real app shell. This composite owns the pixels for
+// every piece it shows — EventFiltersView, NextEventHeroView, BulkAttendBarView, EventListView,
+// EventCard and the roster panel keep their own snapshots only for states this frame cannot show
+// (the filters open, a shell).
 //
 // The Data and Interactions stories render through a small state harness (§6) so a person can
 // actually use the page in Storybook — filters narrow the list, the hero re-picks itself, an RSVP

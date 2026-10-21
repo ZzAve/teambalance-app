@@ -6,7 +6,7 @@ import type { AttendanceState } from '@features/attendance-toggle/ui/AttendanceT
 import { makeEventType } from '@shared/testing/event-fixtures'
 import { Stack } from '@shared/testing/stack'
 import { ALL_ATTENDANCE_STATES } from '@entities/event/lib/attendance-states'
-import { KeepPanelsOpenRow } from '@features/event-panel-view/ui/PanelViewMenu'
+import { KeepPanelsOpenRow } from '@features/event-panel-view/ui/KeepPanelsOpenRow'
 import { ALL_TURNOUT_BUCKETS, type TurnoutBucket } from '../model/turnout'
 import { EventFiltersView } from './EventFiltersView'
 

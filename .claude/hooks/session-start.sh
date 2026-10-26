@@ -17,6 +17,13 @@ if docker info >/dev/null 2>&1; then
   exit 0
 fi
 
+# A container restart leaves the pid file behind; dockerd refuses to start while it
+# names a PID, even one that no longer exists or now belongs to another process.
+PIDFILE=/var/run/docker.pid
+if [ -f "$PIDFILE" ] && [ "$(cat "/proc/$(cat "$PIDFILE")/comm" 2>/dev/null)" != "dockerd" ]; then
+  rm "$PIDFILE"
+fi
+
 LOG=/tmp/dockerd.log
 nohup dockerd >"$LOG" 2>&1 &
 

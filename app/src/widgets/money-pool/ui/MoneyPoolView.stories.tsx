@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite'
 import { expect, within } from 'storybook/test'
 import type { Payment } from '@shared/api/money-pool'
 import { Stack } from '@shared/testing/stack'
+import { darkMode } from '../../../../.storybook/modes'
 import { MoneyPoolView } from './MoneyPoolView'
 
 // MoneyPoolView is the prop-only money pool behind the MoneyPool container, so every state renders
@@ -53,6 +54,8 @@ export const Data: Story = {
 }
 
 export const Shells: Story = {
+  // Carries the dark-mode baseline for every pool state.
+  parameters: { chromatic: { modes: darkMode } },
   render: (args) => (
     <Stack
       items={{
@@ -70,8 +73,8 @@ export const Shells: Story = {
   ),
   play: async ({ canvas }) => {
     const region = (name: string) => within(canvas.getByRole('region', { name }))
-    await expect(region('Loading').getByText('Loading…')).toBeInTheDocument()
-    await expect(region('Error').getByText(/couldn't load/i)).toBeInTheDocument()
+    await expect(region('Loading').getByRole('status')).toHaveTextContent('Loading…')
+    await expect(region('Error').getByRole('alert')).toHaveTextContent(/couldn't load/i)
     await expect(region('Off').getByText('The money pool is switched off for this team')).toBeInTheDocument()
     await expect(region('Not connected (member)').getByText(/once an admin connects/i)).toBeInTheDocument()
     await expect(region('Not connected (admin)').getByText(/connecting the team.s bunq account is coming soon/i)).toBeInTheDocument()

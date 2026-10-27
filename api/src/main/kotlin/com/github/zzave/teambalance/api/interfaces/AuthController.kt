@@ -41,11 +41,11 @@ class AuthController(
         // 404 means the invite token named no live invitation, so nothing was sent — the same
         // undistinguished refusal accept gives, which never separates unknown from expired.
         val sent = authService.requestMagicLink(request.body.email.consumeEmail(), request.body.inviteToken)
-        return if (sent) RequestMagicLink.Response202(Unit) else RequestMagicLink.Response404(Unit)
+        return if (sent) RequestMagicLink.Response202 else RequestMagicLink.Response404
     }
 
     override suspend fun verifyMagicLink(request: VerifyMagicLink.Request): VerifyMagicLink.Response<*> {
-        val signIn = authService.verifyMagicLink(request.body.token) ?: return VerifyMagicLink.Response401(Unit)
+        val signIn = authService.verifyMagicLink(request.body.token) ?: return VerifyMagicLink.Response401
         // Not readable from the request context: the tenant filter ran before this session existed.
         val activeTeamId = authService.startSession(signIn.user.id)
         return VerifyMagicLink.Response200(
@@ -58,13 +58,13 @@ class AuthController(
 
     override suspend fun logout(request: Logout.Request): Logout.Response<*> {
         authService.endSession()
-        return Logout.Response204(Unit)
+        return Logout.Response204
     }
 
     override suspend fun getAuthMe(request: GetAuthMe.Request): GetAuthMe.Response<*> =
         authService.currentUser()
             ?.let { GetAuthMe.Response200(describeWithMoneyPool(describe(it, currentTeamGateway.findCurrentTeamId()))) }
-            ?: GetAuthMe.Response401(Unit)
+            ?: GetAuthMe.Response401
 
     /**
      * `moneyPoolEnabled` lives in the Team's tenant schema, which is only on the request once a session

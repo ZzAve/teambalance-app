@@ -21,7 +21,7 @@ export function nullsToUndefined<T extends object>(body: T): T {
 export const moneyPoolQueryOptions = queryOptions({
   queryKey: ['money-pool'],
   queryFn: async () => {
-    const res = await api.GetMoneyPool()
+    const res = await api.getMoneyPool()
     return nullsToUndefined(res.body)
   },
 })
@@ -35,7 +35,7 @@ export function useMoneyPool() {
 export const moneyPoolSettingsQueryOptions = queryOptions({
   queryKey: ['money-pool', 'settings'],
   queryFn: async () => {
-    const res = await api.GetMoneyPoolSettings()
+    const res = await api.getMoneyPoolSettings()
     if (res.status === 403) throw new Error('You are not allowed to see the money pool settings.')
     return nullsToUndefined(res.body)
   },
@@ -51,7 +51,7 @@ export function useSetMoneyPoolSettings() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async (settings: MoneyPoolSettings) => {
-      const res = await api.PutMoneyPoolSettings({ body: settings })
+      const res = await api.putMoneyPoolSettings({ body: settings })
       if (res.status === 403) throw new Error('You are not allowed to change the money pool settings.')
       return res.body
     },
@@ -66,5 +66,5 @@ export function useSetMoneyPoolSettings() {
 // The bunq.me payment link for a top-up of `amount` whole euros (1–500). Needs no Bunq Connection;
 // a TopUpUnavailableError means the pool is off or no link is set.
 export async function fetchTopUpLink(amount: number): Promise<string> {
-  return topUpUrlOf(await api.GetTopUpLink({ amount }))
+  return topUpUrlOf(await api.getTopUpLink({ amount }))
 }

@@ -1,4 +1,4 @@
-import community.flock.wirespec.integration.spring.kotlin.emit.SpringKotlinEmitter
+import community.flock.wirespec.integration.spring.extension.SpringMappingAnnotationsExtension
 import community.flock.wirespec.plugin.gradle.CompileWirespecTask
 import community.flock.wirespec.plugin.Language
 import org.springframework.boot.gradle.tasks.aot.ProcessAot
@@ -65,7 +65,7 @@ dependencies {
 
     // Wirespec runtime
     implementation("community.flock.wirespec.integration:spring-jvm:$wirespecVersion")
-    // Wirespec 0.19's Spring integration uses Jackson 3; Spring Boot ships Jackson 3
+    // Wirespec's Spring integration uses Jackson 3; Spring Boot ships Jackson 3
     // databind but not its Kotlin module, which WirespecJackson3Configuration requires.
     implementation("tools.jackson.module:jackson-module-kotlin")
 
@@ -154,7 +154,8 @@ tasks.register<CompileWirespecTask>("wirespec-kotlin") {
     input = layout.projectDirectory.dir("src/main/wirespec")
     output = layout.buildDirectory.dir("generated/wirespec/kotlin")
     packageName.set("com.github.zzave.teambalance.api.interfaces.generated")
-    emitterClass.set(SpringKotlinEmitter::class.java)
+    languages.set(listOf(Language.Kotlin))
+    extensionClasses.set(listOf(SpringMappingAnnotationsExtension::class.java))
     shared.set(false)
     strict.set(true)
 }

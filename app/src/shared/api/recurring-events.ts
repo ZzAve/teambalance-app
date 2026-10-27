@@ -30,7 +30,7 @@ export function useCreateRecurringEvents() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async (body: CreateRecurringEventsRequest) => {
-      const res = await api.CreateRecurringEvents({ body })
+      const res = await api.createRecurringEvents({ body })
       if (res.status === 201) return res.body
       if (res.status === 422) {
         // The 422 body carries a machine-readable `code` (GlobalExceptionHandler); the three

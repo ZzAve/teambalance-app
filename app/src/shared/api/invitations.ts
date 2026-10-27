@@ -22,7 +22,7 @@ export function useActiveInvitation({ enabled }: { enabled: boolean }) {
     queryKey: ACTIVE_INVITATION_KEY,
     enabled,
     queryFn: async () => {
-      const res = await api.GetActiveInvitation()
+      const res = await api.getActiveInvitation()
       if (res.status === 403) throw new Error('You are not allowed to manage the invite link.')
       // 204: the team has no link yet. An ordinary state, not an error — the UI offers to make one.
       return res.status === 200 ? res.body : null
@@ -45,7 +45,7 @@ function useInvitationMutation<T>(mutationFn: () => Promise<T>) {
  */
 export function useCreateInvitation() {
   return useInvitationMutation(async () => {
-    const res = await api.CreateInvitation()
+    const res = await api.createInvitation()
     return res.body
   })
 }
@@ -64,7 +64,7 @@ export function useActiveAdminInvitation({ enabled }: { enabled: boolean }) {
     queryKey: ACTIVE_ADMIN_INVITATION_KEY,
     enabled,
     queryFn: async () => {
-      const res = await api.GetActiveAdminInvitation()
+      const res = await api.getActiveAdminInvitation()
       if (res.status === 403) throw new Error('You are not allowed to manage the invite link.')
       // 204: no admin link yet — an ordinary state the UI turns into a "create one" offer.
       return res.status === 200 ? res.body : null
@@ -88,7 +88,7 @@ function useAdminInvitationMutation<T>(mutationFn: () => Promise<T>) {
  */
 export function useCreateAdminInvitation() {
   return useAdminInvitationMutation(async () => {
-    const res = await api.CreateAdminInvitation()
+    const res = await api.createAdminInvitation()
     if (res.status === 403) throw new Error('You are not allowed to manage the invite link.')
     return res.body
   })
@@ -97,7 +97,7 @@ export function useCreateAdminInvitation() {
 /** Revoke-and-reissue the admin handover link (in case it leaked before it reached the right person). */
 export function useRotateAdminInvitation() {
   return useAdminInvitationMutation(async () => {
-    const res = await api.RotateAdminInvitation()
+    const res = await api.rotateAdminInvitation()
     if (res.status === 403) throw new Error('You are not allowed to manage the invite link.')
     return res.body
   })
@@ -106,27 +106,27 @@ export function useRotateAdminInvitation() {
 /** Revoke the admin handover link without a replacement. */
 export function useExpireAdminInvitations() {
   return useAdminInvitationMutation(async () => {
-    await api.ExpireAdminInvitations()
+    await api.expireAdminInvitations()
   })
 }
 
 export function useRotateInvitation() {
   return useInvitationMutation(async () => {
-    const res = await api.RotateInvitation()
+    const res = await api.rotateInvitation()
     return res.body
   })
 }
 
 export function useExpireInvitations() {
   return useInvitationMutation(async () => {
-    await api.ExpireInvitations()
+    await api.expireInvitations()
   })
 }
 
 export function useAcceptInvitation() {
   return useMutation({
     mutationFn: async (token: string) => {
-      const res = await api.AcceptInvitation({ token })
+      const res = await api.acceptInvitation({ token })
       if (res.status === 404 || res.status === 401) throw new Error('invite link invalid or expired')
       return res.body
     },

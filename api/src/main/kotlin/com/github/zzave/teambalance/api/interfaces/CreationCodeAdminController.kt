@@ -42,7 +42,7 @@ class CreationCodeAdminController(
     override suspend fun revokeCreationCode(request: RevokeCreationCode.Request): RevokeCreationCode.Response<*> {
         val callerId = currentUserGateway.requireCurrentUserId()
         creationCodeAdminService.revoke(callerId, DomainCreationCode(request.path.code))
-        return RevokeCreationCode.Response204(Unit)
+        return RevokeCreationCode.Response204
     }
 }
 

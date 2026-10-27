@@ -41,7 +41,7 @@ class AttendanceController(
             userId = userId,
             state = state,
             changedBy = currentUserGateway.requireCurrentUserId(),
-        ) ?: return SetAttendance.Response404(Unit)
+        ) ?: return SetAttendance.Response404
 
         val member = attendanceService.findMember(userId)
 

@@ -35,7 +35,7 @@ class EventTypeController(
      */
     override suspend fun listEventTypes(request: ListEventTypes.Request): ListEventTypes.Response<*> {
         currentUserGateway.requireCurrentUserId()
-        val includeArchived = request.queries.includearchived == true
+        val includeArchived = request.queries.includeArchived == true
         return ListEventTypes.Response200(
             EventTypeList(eventTypes = eventTypeService.findAll(includeArchived).map { it.produce() }),
         )

@@ -40,7 +40,7 @@ export function useEvents(includePast = false, enabled = true) {
   return useQuery({
     queryKey: ['events', { includePast }],
     queryFn: async () => {
-      const res = await api.ListEvents({ 'include-past': includePast })
+      const res = await api.listEvents({ includePast })
       return res.body
     },
     select: (data) => data.events,
@@ -52,7 +52,7 @@ export function useEvent(id: string) {
   return useQuery({
     queryKey: ['events', id],
     queryFn: async () => {
-      const res = await api.GetEvent({ id })
+      const res = await api.getEvent({ id })
       // A missing event is a resolved-but-empty result, not a query error, so the detail page can
       // tell "not found" apart from a real load failure (500/network) and render each distinctly.
       if (res.status === 404) return null
@@ -65,7 +65,7 @@ export function useCreateEvent() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async (event: EventInput) => {
-      const res = await api.CreateEvent({ body: event as CreateEventRequest })
+      const res = await api.createEvent({ body: event as CreateEventRequest })
       return res.body
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['events'] }),
@@ -78,7 +78,7 @@ export function useUpdateEvent() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async ({ id, scope = 'THIS', ...event }: EventInput & { id: string; scope?: EventSeriesScope }) => {
-      const res = await api.UpdateEvent({ id, scope, body: event as UpdateEventRequest })
+      const res = await api.updateEvent({ id, scope, body: event as UpdateEventRequest })
       return res.body
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['events'] }),
@@ -89,7 +89,7 @@ export function useDeleteEvent() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: ({ id, scope = 'THIS' }: { id: string; scope?: EventSeriesScope }) =>
-      api.DeleteEvent({ id, scope }),
+      api.deleteEvent({ id, scope }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['events'] }),
   })
 }

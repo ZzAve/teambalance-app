@@ -113,7 +113,7 @@ describe('fetchTopUpLink', () => {
   it('hands a 403 (acting as the team) over as a response, and fetchTopUpLink fails on it', async () => {
     stubStatus(403)
 
-    await expect(api.GetTopUpLink({ amount: 20 })).resolves.toMatchObject({ status: 403 })
+    await expect(api.getTopUpLink({ amount: 20 })).resolves.toMatchObject({ status: 403 })
     await expect(fetchTopUpLink(20)).rejects.toThrow('Top-up link failed with status 403')
   })
 
@@ -124,6 +124,6 @@ describe('fetchTopUpLink', () => {
 
     expect(error).toBeInstanceOf(Error)
     expect(error).not.toBeInstanceOf(TopUpUnavailableError)
-    expect((error as Error).message).toContain('500')
+    expect((error as Error).message).toContain('Cannot match response with status')
   })
 })

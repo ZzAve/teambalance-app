@@ -64,7 +64,7 @@ export interface CreateTeamInput {
 export function useCreateTeam() {
   return useMutation({
     mutationFn: async ({ name, slug, creationCode }: CreateTeamInput) => {
-      const res = await api.CreateTeam({ body: { name, slug, creationCode } }).catch(() => {
+      const res = await api.createTeam({ body: { name, slug, creationCode } }).catch(() => {
         // A fetch/network failure never reaches a status — surface it as a retry-safe banner.
         throw new CreateTeamError('GENERIC', 'Something went wrong creating your team. Please try again.')
       })
@@ -90,7 +90,7 @@ export interface CreateMemberlessTeamInput {
 export function useCreateMemberlessTeam() {
   return useMutation({
     mutationFn: async ({ name, slug }: CreateMemberlessTeamInput) => {
-      const res = await api.CreateMemberlessTeam({ body: { name, slug } }).catch(() => {
+      const res = await api.createMemberlessTeam({ body: { name, slug } }).catch(() => {
         throw new CreateTeamError('GENERIC', 'Something went wrong creating the team. Please try again.')
       })
       if (res.status === 201) return res.body
@@ -108,6 +108,6 @@ export function useCreateMemberlessTeam() {
  * caller's — the backend answers both with the same bare 404, and this preserves that.
  */
 export async function activateTeam(slug: string): Promise<TeamRef | null> {
-  const res = await api.ActivateTeam({ slug })
+  const res = await api.activateTeam({ slug })
   return res.status === 200 ? res.body : null
 }

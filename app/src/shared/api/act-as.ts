@@ -24,7 +24,7 @@ const platformTeamsQueryOptions = queryOptions({
   queryKey: ['platform', 'teams'],
   retry: false,
   queryFn: async () => {
-    const res = await api.ListPlatformTeams()
+    const res = await api.listPlatformTeams()
     if (res.status === 403) throw new ActAsError('FORBIDDEN', 'You do not have access to the platform console.')
     return res.body?.teams ?? []
   },
@@ -42,7 +42,7 @@ export function useEnterActAs() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async (teamId: string) => {
-      const res = await api.EnterActAs({ body: { teamId } })
+      const res = await api.enterActAs({ body: { teamId } })
       if (res.status === 403) throw new ActAsError('FORBIDDEN', 'You do not have access to the platform console.')
       if (res.status === 404) throw new ActAsError('NOT_FOUND', 'That team no longer exists.')
       if (res.status !== 200) throw new ActAsError('GENERIC', 'Could not enter that team. Please try again.')
@@ -60,7 +60,7 @@ export function useEnterActAs() {
 export function useExitActAs() {
   return useMutation({
     mutationFn: async () => {
-      await api.ExitActAs()
+      await api.exitActAs()
     },
   })
 }
@@ -71,7 +71,7 @@ export function useActAsRecords() {
     queryKey: ['act-as-records'],
     retry: false,
     queryFn: async () => {
-      const res = await api.ListActAsRecords()
+      const res = await api.listActAsRecords()
       if (res.status === 403) throw new ActAsError('FORBIDDEN', 'You do not have access to this team.')
       return res.body?.records ?? []
     },

@@ -20,7 +20,7 @@ export function useSetAttendance() {
   const actorId = useCurrentUser()?.id ?? null
   return useMutation({
     mutationFn: async ({ eventId, userId, state }: SetAttendanceVars) => {
-      const res = await api.SetAttendance({ eventId, userId, body: { state } })
+      const res = await api.setAttendance({ eventId, userId, body: { state } })
       if (res.status === 404) throw new Error('Attendance not found')
       return res.body
     },
@@ -66,7 +66,7 @@ export function useBulkAttend() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async ({ userId, eventIds }: BulkAttendVars) => {
-      const res = await api.BulkAttend({ body: { userId, eventIds, state: 'ATTENDING' } })
+      const res = await api.bulkAttend({ body: { userId, eventIds, state: 'ATTENDING' } })
       return res.body.eventIds
     },
     onError: () => {
@@ -83,7 +83,7 @@ export function useBulkUndo() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async ({ userId, eventIds }: BulkAttendVars) => {
-      const res = await api.BulkUndoAttend({ body: { userId, eventIds } })
+      const res = await api.bulkUndoAttend({ body: { userId, eventIds } })
       return res.body.eventIds
     },
     onError: () => {

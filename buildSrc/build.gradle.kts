@@ -15,7 +15,7 @@ val wirespecVersion: String = Properties().apply {
 }.getProperty("wirespecVersion")
 
 dependencies {
-    // Only the Wirespec SpringKotlinEmitter is needed for code generation. The artifact
+    // Only the Wirespec SpringMappingAnnotationsExtension is needed for code generation. The artifact
     // transitively pulls Spring Framework 6.1.13, whose bundled spring-asm (ASM 9.6) caps
     // at Java 22 bytecode and would shadow Spring Boot's newer ClassReader on the shared
     // build-script classpath, breaking resolveMainClassName on Java 25 (major 69) classes.

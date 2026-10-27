@@ -93,7 +93,7 @@ class PositionController(
         val caller = currentUserGateway.requireCurrentUserId()
         val teamId = currentTeamGateway.requireCurrentTeamId()
         positionService.deletePosition(caller, teamId, request.path.id.consumePositionId())
-        return DeletePosition.Response204(Unit)
+        return DeletePosition.Response204
     }
 }
 

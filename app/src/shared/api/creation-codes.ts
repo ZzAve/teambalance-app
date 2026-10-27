@@ -19,7 +19,7 @@ export function useCreationCodes() {
     queryKey: ['creation-codes'],
     retry: false,
     queryFn: async () => {
-      const res = await api.ListCreationCodes()
+      const res = await api.listCreationCodes()
       if (res.status === 403) throw new CreationCodeError('FORBIDDEN', 'You do not have access to creation codes.')
       return res.body?.codes ?? []
     },
@@ -31,7 +31,7 @@ export function useCreateCreationCode() {
   return useMutation({
     // expiresAt is an optional ISO-8601 instant; omit for a code that never expires.
     mutationFn: async ({ expiresAt }: { expiresAt?: string | null } = {}) => {
-      const res = await api.CreateCreationCode({ body: { expiresAt: expiresAt ?? undefined } })
+      const res = await api.createCreationCode({ body: { expiresAt: expiresAt ?? undefined } })
       if (res.status === 403) throw new CreationCodeError('FORBIDDEN', 'You do not have access to creation codes.')
       return res.body
     },
@@ -43,7 +43,7 @@ export function useRevokeCreationCode() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async ({ code }: { code: string }) => {
-      const res = await api.RevokeCreationCode({ code })
+      const res = await api.revokeCreationCode({ code })
       if (res.status === 409) throw new CreationCodeError('CONSUMED', 'That code was already used and cannot be revoked.')
       if (res.status === 403) throw new CreationCodeError('FORBIDDEN', 'You do not have access to creation codes.')
       if (res.status === 404) throw new CreationCodeError('NOT_FOUND', 'That code no longer exists.')

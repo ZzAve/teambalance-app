@@ -23,8 +23,8 @@ export class MemberUpdateError extends Error {
 export const currentMemberQueryOptions = queryOptions({
   queryKey: ['members', 'me'],
   queryFn: async () => {
-    const res = await api.GetCurrentMember()
-    return res.body
+    const res = await api.getCurrentMember()
+    return res.body ?? undefined
   },
 })
 
@@ -41,7 +41,7 @@ export function useMembers() {
   return useQuery({
     queryKey: ['members'],
     queryFn: async () => {
-      const res = await api.ListMembers()
+      const res = await api.listMembers()
       if (res.status === 403) throw new MemberUpdateError('FORBIDDEN', 'You are not allowed to view members.')
       return res.body.members
     },
@@ -63,7 +63,7 @@ export function useUpdateMember() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async ({ userId, displayName, role, positionId, shirtNumber }: UpdateMemberInput) => {
-      const res = await api.UpdateMember({
+      const res = await api.updateMember({
         userId,
         body: { displayName, role, positionId: positionId ?? undefined, shirtNumber: shirtNumber ?? undefined },
       })
@@ -103,7 +103,7 @@ export function useCompleteOnboarding() {
       positionId: string | null
       shirtNumber: number | null
     }) => {
-      const res = await api.CompleteOnboarding({
+      const res = await api.completeOnboarding({
         body: { displayName, role, positionId: positionId ?? undefined, shirtNumber: shirtNumber ?? undefined },
       })
       if (res.status === 409) {
@@ -111,7 +111,7 @@ export function useCompleteOnboarding() {
         if (code === 'NUMBER_TAKEN') throw new MemberUpdateError('NUMBER_TAKEN', 'That shirt number is already taken.')
         throw new MemberUpdateError('NAME_TAKEN', 'That display name is already taken.')
       }
-      return res.body
+      return res.body ?? undefined
     },
     // Write the now-onboarded member straight into the cache before invalidating, so the root
     // onboarding gate reads the fresh state on the very next navigation (ensureQueryData returns
@@ -128,7 +128,7 @@ export function useRemoveMember() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async ({ userId }: { userId: string }) => {
-      const res = await api.RemoveMember({ userId })
+      const res = await api.removeMember({ userId })
       if (res.status === 409) throw new MemberUpdateError('LAST_ADMIN', 'A team must keep at least one admin.')
       if (res.status === 403) throw new MemberUpdateError('FORBIDDEN', 'You are not allowed to remove this member.')
       if (res.status === 404) throw new MemberUpdateError('NOT_FOUND', 'Member not found.')

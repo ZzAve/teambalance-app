@@ -24,7 +24,7 @@ export const INVITE_UNAVAILABLE = 'invite-unavailable'
 export function useRequestMagicLink() {
   return useMutation({
     mutationFn: async ({ email, inviteToken }: { email: string; inviteToken?: string }) => {
-      const res = await api.RequestMagicLink({ body: { email, inviteToken } })
+      const res = await api.requestMagicLink({ body: { email, inviteToken } })
       if (res.status === 404) throw new Error(INVITE_UNAVAILABLE)
     },
   })
@@ -38,7 +38,7 @@ export function useRequestMagicLink() {
 export function useVerifyMagicLink() {
   return useMutation({
     mutationFn: async (token: string) => {
-      const res = await api.VerifyMagicLink({ body: { token } })
+      const res = await api.verifyMagicLink({ body: { token } })
       if (res.status === 401) throw new Error('Invalid or expired link')
       return res.body
     },
@@ -50,7 +50,7 @@ export function useVerifyMagicLink() {
  * session on success, and a refused logout (a CSRF 403, a 5xx) leaves the server session valid.
  */
 export async function logOut() {
-  const res = await api.Logout()
+  const res = await api.logout()
   if (res.status !== 204) throw new Error(`Logout failed with status ${res.status}`)
 }
 
@@ -68,7 +68,7 @@ export function useLogout() {
 export const authMeQueryOptions = queryOptions({
   queryKey: ['auth', 'me'],
   queryFn: async () => {
-    const res = await api.GetAuthMe()
+    const res = await api.getAuthMe()
     if (res.status === 401) return null
     // A 200 must carry the user. A cold or misbehaving backend can answer with an empty (0-byte) or
     // partial body — the wirespec client has no "a 200 has a body" contract, so it surfaces that as

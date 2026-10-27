@@ -12,5 +12,5 @@ import org.springframework.web.bind.annotation.RestController
 @RestController
 class PingController : Ping.Handler {
     override suspend fun ping(request: Ping.Request): Ping.Response<*> =
-        Ping.Response204(Unit)
+        Ping.Response204
 }

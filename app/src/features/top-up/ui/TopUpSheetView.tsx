@@ -5,12 +5,16 @@ import { Label } from '@shared/ui/label'
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@shared/ui/sheet'
 import { MAX_TOP_UP_EUROS, MIN_TOP_UP_EUROS, TOP_UP_PRESETS, parseTopUpAmount } from '../lib/amount'
 
+// text-red is 4.42:1 on the light sheet surface, under the 4.5:1 that 13px text needs; red-dark is 6.08:1
+// there, but only 3.92:1 on the dark surface, where red is 5.36:1.
+const ERROR_CLASS = 'text-small text-red-dark dark:text-red'
+
 interface TopUpSheetViewProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   /** Whole euros, 1 to 500. */
   onPick: (euros: number) => void
-  /** The link is being fetched; the amounts are disabled until it answers. */
+  /** The link is being fetched; the amounts are inert until it answers. */
   isPending?: boolean
   error?: string | null
   /** The element that opens the sheet; the sheet hands focus back to it on close. */
@@ -38,9 +42,18 @@ export function TopUpSheetView({ open, onOpenChange, onPick, isPending, error, t
           <SheetDescription>Pick an amount. You pay on the team's bunq.me page.</SheetDescription>
         </SheetHeader>
 
-        <div className="mt-4 grid grid-cols-3 gap-3">
+        <div role="group" aria-label="Amounts" className="mt-4 grid grid-cols-3 gap-3">
           {TOP_UP_PRESETS.map((euros) => (
-            <Button key={euros} variant="outline" size="lg" disabled={isPending} onClick={() => onPick(euros)}>
+            // aria-disabled, not disabled: a focused button that becomes disabled drops focus to <body>, outside
+            // the modal dialog. The click guard makes it inert while pending.
+            <Button
+              key={euros}
+              variant="outline"
+              size="lg"
+              aria-disabled={isPending}
+              className="aria-disabled:pointer-events-none aria-disabled:opacity-50"
+              onClick={() => !isPending && onPick(euros)}
+            >
               €{euros}
             </Button>
           ))}
@@ -63,15 +76,18 @@ export function TopUpSheetView({ open, onOpenChange, onPick, isPending, error, t
               {isPending ? 'Opening…' : 'Pay'}
             </Button>
           </div>
-          {customInvalid && (
-            <p id={customErrorId} role="alert" className="text-small text-red">
-              Enter a whole amount from €{MIN_TOP_UP_EUROS} to €{MAX_TOP_UP_EUROS}.
-            </p>
-          )}
+          {/* Mounted before it has anything to say: a live region added together with its text is not announced. */}
+          <div aria-live="polite" aria-atomic="true">
+            {customInvalid && (
+              <p id={customErrorId} className={ERROR_CLASS}>
+                Enter a whole amount from €{MIN_TOP_UP_EUROS} to €{MAX_TOP_UP_EUROS}.
+              </p>
+            )}
+          </div>
         </form>
 
         {error && (
-          <p role="alert" className="mt-3 text-small text-red">
+          <p role="alert" className={`mt-3 ${ERROR_CLASS}`}>
             {error}
           </p>
         )}

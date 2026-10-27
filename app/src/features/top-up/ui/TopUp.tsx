@@ -18,7 +18,7 @@ export function TopUp() {
 
   return (
     <TopUpSheetView
-      trigger={<Button>Top up</Button>}
+      trigger={<Button size="lg">Top up</Button>}
       open={open}
       onOpenChange={(next) => {
         setOpen(next)

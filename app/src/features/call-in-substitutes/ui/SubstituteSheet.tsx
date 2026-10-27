@@ -57,7 +57,7 @@ export function SubstituteSheet({
                 onTakeOff(substitute.substituteId)
                 onClose()
               }}
-              className="mt-4 w-full rounded-md border-[1.5px] border-red/30 py-2.5 text-small font-semibold text-red hover:bg-red/5 disabled:opacity-60"
+              className="mt-4 w-full rounded-md border-[1.5px] border-red/30 py-2.5 text-small font-semibold text-red-ink hover:bg-red/5 disabled:opacity-60"
             >
               Take off this event
             </button>

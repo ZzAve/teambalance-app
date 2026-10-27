@@ -63,7 +63,7 @@ export const STATE_CHIPS: { state: AttendanceState; label: string; active: strin
     state: 'ABSENT',
     label: ATTENDANCE_WORDS.ABSENT.word,
     active: 'bg-red border-red text-white',
-    inactive: 'border-red/40 text-red',
+    inactive: 'border-red/40 text-red-ink',
   },
   {
     state: 'NOT_RESPONDED',
@@ -85,7 +85,7 @@ export const TURNOUT_CHIPS: { bucket: TurnoutBucket; label: string; active: stri
     bucket: 'missing-position',
     label: 'Missing a position',
     active: 'bg-red border-red text-white',
-    inactive: 'border-red/40 text-red',
+    inactive: 'border-red/40 text-red-ink',
   },
   {
     bucket: 'spots-open',

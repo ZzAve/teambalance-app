@@ -35,8 +35,9 @@ describe('global.css red-ink', () => {
   const stripped = css.replace(/\/\*[\s\S]*?\*\//g, '')
 
   function declarationsOf(header: string): Map<string, string> {
-    const start = stripped.indexOf(`\n${header} {\n`)
-    if (start === -1) throw new Error(`global.css has no "${header} {" block`)
+    const opening = new RegExp(`\\r?\\n${header.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')} \\{\\r?\\n`).exec(stripped)
+    if (!opening) throw new Error(`global.css has no "${header} {" block`)
+    const start = opening.index
     const end = stripped.indexOf('\n}', start)
     const block = stripped.slice(start, end)
     return new Map([...block.matchAll(/^\s*(--[\w-]+):\s*([^;]+);/gm)].map(([, name, value]) => [name, value.trim()]))

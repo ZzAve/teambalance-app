@@ -52,7 +52,7 @@ const PILL_TONE: Record<MyAnswer['tone'], { className: string; Icon?: ComponentT
 const OPTIONS: { value: AttendanceState; label: string; active: string; inactive: string }[] = [
   { value: 'ATTENDING', label: ATTENDANCE_WORDS.ATTENDING.word, active: 'bg-green text-white border-green', inactive: 'border-green/30 text-green' },
   { value: 'MAYBE', label: ATTENDANCE_WORDS.MAYBE.word, active: 'bg-gold text-white border-gold', inactive: 'border-gold/30 text-gold-ink' },
-  { value: 'ABSENT', label: ATTENDANCE_WORDS.ABSENT.word, active: 'bg-red text-white border-red', inactive: 'border-red/30 text-red' },
+  { value: 'ABSENT', label: ATTENDANCE_WORDS.ABSENT.word, active: 'bg-red text-white border-red', inactive: 'border-red/30 text-red-ink' },
 ]
 
 // Shared trigger chrome: lifted above the card link's stretched overlay (relative z-10) so a tap opens

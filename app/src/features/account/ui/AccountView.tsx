@@ -264,7 +264,7 @@ export function AccountView({
           <button
             type="button"
             onClick={onLogout}
-            className={`${ROW_INTERACTIVE} font-semibold text-red hover:bg-red/5`}
+            className={`${ROW_INTERACTIVE} font-semibold text-red-ink hover:bg-red/5`}
           >
             <LogOut size={18} strokeWidth={1.9} className="shrink-0 text-red" aria-hidden="true" />
             Log out

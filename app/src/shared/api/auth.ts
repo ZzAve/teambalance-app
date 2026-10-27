@@ -74,8 +74,9 @@ export const authMeQueryOptions = queryOptions({
     // which the generated client rejects ("body is null"), or a truncated JSON body, which its
     // deserialiser rejects with a SyntaxError; a body that parses but is not a user is rejected below.
     // None of these is a signed-out session: reading it as such would bounce a valid user to /login.
-    // Each makes the query reject, so the guard's fail-closed path routes it to the retry/error
-    // fallback exactly like a 5xx.
+    // Each makes the query reject. The root route guard (routes/__root.tsx) sends a rejection to the
+    // router's retry/error fallback, exactly like a 5xx; other callers decide for themselves what a
+    // rejection means.
     const user = res.body as AuthenticatedUser | undefined
     if (!user || typeof user !== 'object' || !Array.isArray(user.teams)) {
       throw new Error(`Unconfirmed session: /me returned status ${res.status} without a usable body`)

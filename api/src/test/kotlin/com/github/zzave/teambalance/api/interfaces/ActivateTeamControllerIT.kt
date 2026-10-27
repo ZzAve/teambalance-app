@@ -175,9 +175,11 @@ class ActivateTeamControllerIT : TeamBalanceIT() {
     private fun seedTeam(): Pair<UUID, String> {
         val teamId = UUID.randomUUID()
         val slug = "switch-${teamId.toString().take(8)}"
+        val schemaName = "team_${teamId.toString().replace("-", "")}"
+        tenantSchemaAdapter.provisionTenantSchema(schemaName)
         jdbcTemplate.update(
             "INSERT INTO public.teams (id, name, slug, schema_name) VALUES (?, ?, ?, ?)",
-            teamId, "Switch Team", slug, "team_${teamId.toString().replace("-", "")}",
+            teamId, "Switch Team", slug, schemaName,
         )
         return teamId to slug
     }

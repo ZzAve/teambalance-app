@@ -18,7 +18,8 @@ export function Switch({ checked, onCheckedChange, disabled, 'aria-label': ariaL
       onClick={() => onCheckedChange(!checked)}
       className={cn(
         'relative h-6 w-11 shrink-0 rounded-full transition-colors',
-        checked ? 'bg-green' : 'bg-muted-foreground/30',
+        // The pale off track is 1.5:1 on the page; the inset outline carries the 3:1 non-text contrast.
+        checked ? 'bg-green' : 'bg-muted-foreground/30 ring-1 ring-inset ring-muted-foreground',
       )}
     >
       <span

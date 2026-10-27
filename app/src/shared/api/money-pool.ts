@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { queryOptions, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { authMeQueryOptions } from './auth'
 import type { MoneyPoolSettings } from './generated/model/MoneyPoolSettings'
 import { api } from './wirespec-client'
@@ -17,27 +17,31 @@ export function nullsToUndefined<T extends object>(body: T): T {
 
 // The current team's money pool. Readable by any member; `state` says whether the pool is switched
 // off, not connected, unreachable, or connected (then balance and payments are set).
+export const moneyPoolQueryOptions = queryOptions({
+  queryKey: ['money-pool'],
+  queryFn: async () => {
+    const res = await api.GetMoneyPool()
+    return nullsToUndefined(res.body)
+  },
+})
+
 export function useMoneyPool() {
-  return useQuery({
-    queryKey: ['money-pool'],
-    queryFn: async () => {
-      const res = await api.GetMoneyPool()
-      return nullsToUndefined(res.body)
-    },
-  })
+  return useQuery(moneyPoolQueryOptions)
 }
 
 // The team's money pool settings. Admin-only (403 otherwise). Keyed under ['money-pool'] so saving
 // them refreshes the pool itself too.
+export const moneyPoolSettingsQueryOptions = queryOptions({
+  queryKey: ['money-pool', 'settings'],
+  queryFn: async () => {
+    const res = await api.GetMoneyPoolSettings()
+    if (res.status === 403) throw new Error('You are not allowed to see the money pool settings.')
+    return nullsToUndefined(res.body)
+  },
+})
+
 export function useMoneyPoolSettings() {
-  return useQuery({
-    queryKey: ['money-pool', 'settings'],
-    queryFn: async () => {
-      const res = await api.GetMoneyPoolSettings()
-      if (res.status === 403) throw new Error('You are not allowed to see the money pool settings.')
-      return nullsToUndefined(res.body)
-    },
-  })
+  return useQuery(moneyPoolSettingsQueryOptions)
 }
 
 // A save replaces every setting. The switch also lives on /me (it drives the nav and the Money

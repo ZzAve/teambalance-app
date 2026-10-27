@@ -56,6 +56,7 @@ export function MoneySettingsView({ settings, isLoading, isError, isSaving, save
 
 // Error texts sit on a card: the destructive red is 4.7:1 on it, but only 4.4:1 on the page background.
 const ERROR_CLASS = 'rounded-lg bg-card p-3 text-small text-red'
+const FIELD_ERROR_CLASS = `${ERROR_CLASS} mt-1`
 
 function MoneySettingsForm({
   settings,
@@ -73,7 +74,8 @@ function MoneySettingsForm({
 
   // The draft starts over from the saved values whenever they change (another admin's change, or this
   // save coming back normalised), so it is never compared against a baseline it was not made from. Only
-  // the draft resets: remounting the form would drop the Save button's focus and the status region.
+  // the draft resets: remounting the form would replace the Save button and the status region, and a live
+  // region has to stay mounted for its text to be announced.
   const savedValues = `${settings.enabled}|${settings.beerPrice}|${settings.bunqMeLink}`
   const [seenSavedValues, setSeenSavedValues] = useState(savedValues)
   if (seenSavedValues !== savedValues) {
@@ -114,30 +116,39 @@ function MoneySettingsForm({
           aria-describedby={priceError ? `${priceId}-error` : undefined}
           className="w-48"
         />
-        <p className="text-caption text-muted-foreground">Leave empty to hide the Beer Counter.</p>
-        {priceError && (
-          <p id={`${priceId}-error`} className={ERROR_CLASS}>
-            {priceError}
-          </p>
-        )}
+        <div>
+          <p className="text-caption text-muted-foreground">Leave empty to hide the Beer Counter.</p>
+          {/* Mounted before it has anything to say: a live region added together with its text is not announced. */}
+          <div aria-live="polite" aria-atomic="true">
+            {priceError && (
+              <p id={`${priceId}-error`} className={FIELD_ERROR_CLASS}>
+                {priceError}
+              </p>
+            )}
+          </div>
+        </div>
       </div>
 
       <div className="flex flex-col gap-1">
         <Label htmlFor={linkId}>bunq.me link</Label>
-        <Input
-          id={linkId}
-          inputMode="url"
-          value={link}
-          placeholder="https://bunq.me/yourteam"
-          onChange={(e) => setLink(e.target.value)}
-          aria-invalid={!!linkError}
-          aria-describedby={linkError ? `${linkId}-error` : undefined}
-        />
-        {linkError && (
-          <p id={`${linkId}-error`} className={ERROR_CLASS}>
-            {linkError}
-          </p>
-        )}
+        <div>
+          <Input
+            id={linkId}
+            inputMode="url"
+            value={link}
+            placeholder="https://bunq.me/yourteam"
+            onChange={(e) => setLink(e.target.value)}
+            aria-invalid={!!linkError}
+            aria-describedby={linkError ? `${linkId}-error` : undefined}
+          />
+          <div aria-live="polite" aria-atomic="true">
+            {linkError && (
+              <p id={`${linkId}-error`} className={FIELD_ERROR_CLASS}>
+                {linkError}
+              </p>
+            )}
+          </div>
+        </div>
       </div>
 
       {error && (

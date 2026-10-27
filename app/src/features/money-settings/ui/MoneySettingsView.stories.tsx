@@ -92,13 +92,22 @@ export const Shells: Story = {
 export const Interactions: Story = {
   parameters: { chromatic: { disableSnapshot: true } },
   render: (args) => <SaveRoundTrip {...args} />,
-  play: async ({ canvas, userEvent, args }) => {
+  play: async ({ canvas, canvasElement, userEvent, args }) => {
     const price = canvas.getByLabelText('Beer price (€)')
     const link = canvas.getByLabelText('bunq.me link')
     const save = canvas.getByRole('button', { name: 'Save money pool' })
 
+    // Each field has a polite live region that is mounted from the start and empty until it has an
+    // error, so the error is announced when it appears (a region added together with its text is not).
+    const [priceErrors, linkErrors] = Array.from(canvasElement.querySelectorAll('[aria-live="polite"]'))
+    await expect(canvasElement.querySelectorAll('[aria-live="polite"]')).toHaveLength(2)
+    await expect(priceErrors).toHaveAttribute('aria-atomic', 'true')
+    await expect(priceErrors).toBeEmptyDOMElement()
+    await expect(linkErrors).toBeEmptyDOMElement()
+
     await userEvent.clear(price)
     await userEvent.type(price, '0')
+    await waitFor(() => expect(priceErrors).toHaveTextContent('Enter a price between €0,01 and €100,00.'))
     await waitFor(() => expect(price).toHaveAccessibleDescription('Enter a price between €0,01 and €100,00.'))
     await expect(price).toBeInvalid()
     // Field errors are read through the field, not announced assertively while the admin is still typing.
@@ -109,6 +118,8 @@ export const Interactions: Story = {
     await userEvent.type(price, '3,10')
     await userEvent.clear(link)
     await userEvent.type(link, 'https://evil.example/x')
+    await waitFor(() => expect(linkErrors).toHaveTextContent('Use a link like https://bunq.me/yourteam.'))
+    await expect(priceErrors).toBeEmptyDOMElement()
     await waitFor(() => expect(link).toHaveAccessibleDescription('Use a link like https://bunq.me/yourteam.'))
     await expect(link).toBeInvalid()
     await expect(canvas.queryByRole('alert')).not.toBeInTheDocument()
@@ -125,8 +136,9 @@ export const Interactions: Story = {
     await userEvent.click(save)
     await expect(args.onSave).toHaveBeenCalledWith({ enabled: false, beerPrice: 310, bunqMeLink: 'bunq.me/newteam' })
 
-    // Only the draft starts over: the Save button keeps keyboard focus and the status region stays
-    // mounted, so "Saved" is announced.
+    // Only the draft starts over: the Save button and the status region stay the same nodes, so "Saved"
+    // is announced. Not asserted: keyboard focus. A focused button that becomes disabled (saving starts)
+    // drops focus to <body> in Chromium, which this harness never does because it does not disable it.
     await expect(canvas.getByRole('button', { name: 'Save money pool' })).toBe(save)
     await expect(canvas.getByRole('status')).toBe(status)
 

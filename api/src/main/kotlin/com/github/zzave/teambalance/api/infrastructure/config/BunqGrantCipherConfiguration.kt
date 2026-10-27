@@ -13,7 +13,12 @@ import org.springframework.context.annotation.Configuration
 @Configuration
 class BunqGrantCipherConfiguration {
 
-    @Bean
+    @Bean(BEAN_NAME)
     fun bunqGrantCipher(@Value("\${teambalance.bunq.token-encryption-key}") encodedKey: String) =
         TokenCipher.fromBase64Key(encodedKey, "teambalance.bunq.token-encryption-key")
+
+    companion object {
+        /** TokenCipher is a plain class, so injection names this one: the next sibling key must not make it ambiguous. */
+        const val BEAN_NAME = "bunqGrantCipher"
+    }
 }

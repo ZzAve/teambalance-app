@@ -41,6 +41,8 @@ export function ConnectBunqView({ connected, result, focusResult, isConnecting, 
   }, [focusResult, result])
 
   const failed = result === 'error'
+  // While the browser is on its way to Bunq the acknowledgement is given and frozen, as is the button.
+  const ticked = acknowledged || !!isConnecting
 
   return (
     <div className="flex flex-col gap-4">
@@ -72,7 +74,8 @@ export function ConnectBunqView({ connected, result, focusResult, isConnecting, 
       <label className="flex min-h-11 items-start gap-3 py-2 text-small leading-relaxed">
         <input
           type="checkbox"
-          checked={acknowledged}
+          checked={ticked}
+          disabled={isConnecting}
           onChange={(e) => setAcknowledged(e.target.checked)}
           className="mt-0.5 size-5 shrink-0 accent-primary"
         />
@@ -94,12 +97,12 @@ export function ConnectBunqView({ connected, result, focusResult, isConnecting, 
       <div className="flex flex-col items-start gap-2">
         <Button
           disabled={!acknowledged || isConnecting}
-          aria-describedby={acknowledged ? undefined : hintId}
+          aria-describedby={ticked ? undefined : hintId}
           onClick={onConnect}
         >
           {isConnecting ? 'Opening Bunq…' : connected ? 'Connect again' : 'Connect Bunq'}
         </Button>
-        {!acknowledged && (
+        {!ticked && (
           <p id={hintId} className="text-caption text-muted-foreground">
             Tick the box above to continue.
           </p>

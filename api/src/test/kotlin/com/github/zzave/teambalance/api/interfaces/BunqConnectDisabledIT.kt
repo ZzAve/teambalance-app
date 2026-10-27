@@ -6,6 +6,7 @@ import com.github.zzave.teambalance.api.domain.model.TeamId
 import com.github.zzave.teambalance.api.domain.model.TokenHash
 import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.port.BunqOAuthStateRepository
+import com.github.zzave.teambalance.api.infrastructure.bunq.FakeBunqGatewayAdapter
 import com.github.zzave.teambalance.api.infrastructure.identity.loginAs
 import com.github.zzave.teambalance.api.infrastructure.multitenancy.TenantSchemaAdapter
 import com.github.zzave.teambalance.api.interfaces.CalendarLinkFixture.ALPHA_MEMBER
@@ -48,6 +49,9 @@ class BunqConnectDisabledIT : TeamBalanceIT() {
     @Autowired
     lateinit var states: BunqOAuthStateRepository
 
+    @Autowired
+    lateinit var fakeBunq: FakeBunqGatewayAdapter
+
     init {
         beforeTest { CalendarLinkFixture.seed(jdbcTemplate, tenantSchemaAdapter) }
 
@@ -69,7 +73,9 @@ class BunqConnectDisabledIT : TeamBalanceIT() {
                 .andExpect(jsonPath("$.connected").value(false))
         }
 
-        test("a callback carrying a live state of the starting admin connects nothing") {
+        // With a real code Bunq would accept, the only thing standing between this callback and a connection
+        // is the flag: the state must stay unspent too, since a callback with connecting off does nothing at all.
+        test("a callback with a live state and a code Bunq would accept connects nothing and spends nothing") {
             val state = UUID.randomUUID().toString()
             states.save(
                 BunqOAuthState(
@@ -82,12 +88,17 @@ class BunqConnectDisabledIT : TeamBalanceIT() {
                     createdAt = Instant.now(),
                 ),
             )
+            val code = fakeBunq.issueCode("flag-off-login")
 
-            mockMvc.perform(get("/api/bunq/oauth/callback").param("state", state).param("code", "abc").with(loginAs(ALPHA_MEMBER)))
+            mockMvc.perform(get("/api/bunq/oauth/callback").param("state", state).param("code", code).with(loginAs(ALPHA_MEMBER)))
                 .andExpect(status().isFound)
                 .andExpect(header().string("Location", "http://localhost:5173/t/cal-alpha/team/settings?bunq=error"))
 
             jdbcTemplate.queryForObject("SELECT count(*) FROM $ALPHA_SCHEMA.bunq_connection", Int::class.java) shouldBe 0
+            jdbcTemplate.queryForObject(
+                "SELECT count(*) FROM public.bunq_oauth_states WHERE team_id = ?::uuid AND used_at IS NULL",
+                Int::class.java, ALPHA_TEAM,
+            ) shouldBe 1
         }
     }
 

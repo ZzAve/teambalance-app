@@ -5,8 +5,10 @@ import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.shouldBe
-import org.springframework.boot.test.context.runner.ApplicationContextRunner
+import org.springframework.boot.autoconfigure.AutoConfigurations
+import org.springframework.boot.autoconfigure.context.PropertyPlaceholderAutoConfiguration
 import org.springframework.boot.test.context.ConfigDataApplicationContextInitializer
+import org.springframework.boot.test.context.runner.ApplicationContextRunner
 import java.util.Base64
 
 private val KEY = Base64.getEncoder().encodeToString(ByteArray(32) { it.toByte() })
@@ -30,15 +32,18 @@ class BunqConnectConfigTest : FunSpec({
         }
     }
 
-    // application.yml is loaded for real: the key has no default there, so this is the start-up of every profile.
+    // application.yml is loaded for real, and placeholders are resolved strictly as in the app (Boot's
+    // PropertyPlaceholderAutoConfiguration): the key has no default there, so this is the start-up of every profile.
     context("the grant key") {
         fun runner() = ApplicationContextRunner()
             .withInitializer(ConfigDataApplicationContextInitializer())
+            .withConfiguration(AutoConfigurations.of(PropertyPlaceholderAutoConfiguration::class.java))
             .withUserConfiguration(BunqGrantCipherConfiguration::class.java)
 
         test("is required at startup: without it the context does not start") {
             runner().run { ctx ->
-                ctx.startupFailure.shouldNotBeNullAndMention("teambalance.bunq.token-encryption-key")
+                // The unresolved placeholder names the env var an operator has to set.
+                ctx.startupFailure.shouldNotBeNullAndMention("TEAMBALANCE_BUNQ_TOKEN_ENCRYPTION_KEY")
             }
         }
 

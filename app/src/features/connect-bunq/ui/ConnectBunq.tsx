@@ -22,6 +22,17 @@ export function ConnectBunq({ result }: { result?: ConnectBunqResult }) {
     if (result && available) section.current?.scrollIntoView({ block: 'start' })
   }, [result, available])
 
+  // Coming back to this page from Bunq with the browser's back button can restore it from the
+  // back/forward cache with the finished request still in state, which would keep "Opening Bunq…" up.
+  const { reset } = connect
+  useEffect(() => {
+    const onPageShow = (event: PageTransitionEvent) => {
+      if (event.persisted) reset()
+    }
+    window.addEventListener('pageshow', onPageShow)
+    return () => window.removeEventListener('pageshow', onPageShow)
+  }, [reset])
+
   if (!status?.connectAvailable) return null
 
   return (

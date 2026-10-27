@@ -18,6 +18,8 @@ import com.github.zzave.teambalance.api.interfaces.generated.endpoint.VerifyMagi
 import com.github.zzave.teambalance.api.interfaces.generated.model.AuthenticatedUser
 import com.github.zzave.teambalance.api.interfaces.generated.model.TeamRef
 import com.github.zzave.teambalance.api.interfaces.generated.model.VerifiedSession
+import org.slf4j.LoggerFactory
+import org.springframework.dao.DataAccessException
 import org.springframework.web.bind.annotation.RestController
 import java.util.UUID
 
@@ -32,6 +34,8 @@ class AuthController(
     VerifyMagicLink.Handler,
     Logout.Handler,
     GetAuthMe.Handler {
+
+    private val log = LoggerFactory.getLogger(AuthController::class.java)
 
     override suspend fun requestMagicLink(request: RequestMagicLink.Request): RequestMagicLink.Response<*> {
         // 404 means the invite token named no live invitation, so nothing was sent — the same
@@ -66,9 +70,20 @@ class AuthController(
      * `moneyPoolEnabled` lives in the Team's tenant schema, which is only on the request once a session
      * existed before it. So only `/api/auth/me` fills it; the sign-in response leaves it null and the
      * client refetches `/api/auth/me`.
+     *
+     * An unreadable tenant leaves it null, which the client reads as switched on, rather than failing
+     * `/api/auth/me`: that would lock the user out of the whole app over one tab's setting.
      */
     private fun describeWithMoneyPool(user: AuthenticatedUser) =
-        user.copy(moneyPoolEnabled = user.activeTeam?.let { moneyPoolService.isEnabled() })
+        user.copy(moneyPoolEnabled = user.activeTeam?.let { readMoneyPoolEnabled() })
+
+    private fun readMoneyPoolEnabled(): Boolean? =
+        try {
+            moneyPoolService.isEnabled()
+        } catch (e: DataAccessException) {
+            log.warn("Reading the money pool switch for /api/auth/me failed; reporting it as unknown", e)
+            null
+        }
 
     /**
      * [activeTeamId] is intersected with the memberships rather than reported as given, so the payload

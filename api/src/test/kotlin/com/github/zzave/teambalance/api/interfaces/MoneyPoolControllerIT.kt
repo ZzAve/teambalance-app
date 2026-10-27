@@ -232,6 +232,19 @@ class MoneyPoolControllerIT : TeamBalanceIT() {
                 .andExpect(MockMvcResultMatchers.jsonPath("$.moneyPoolEnabled").value(false))
         }
 
+        test("GET /api/auth/me still answers, without moneyPoolEnabled, when the tenant read fails") {
+            seedTeamAndMember()
+            jdbcTemplate.execute("ALTER TABLE public.money_pool_settings RENAME TO money_pool_settings_unreadable")
+            try {
+                perform(MockMvcRequestBuilders.get("/api/auth/me"), MEMBER_USER_ID)
+                    .andExpect(MockMvcResultMatchers.status().isOk)
+                    .andExpect(MockMvcResultMatchers.jsonPath("$.activeTeam").exists())
+                    .andExpect(MockMvcResultMatchers.jsonPath("$.moneyPoolEnabled").doesNotExist())
+            } finally {
+                jdbcTemplate.execute("ALTER TABLE public.money_pool_settings_unreadable RENAME TO money_pool_settings")
+            }
+        }
+
         test("GET /api/auth/me has no moneyPoolEnabled for a user without an active team") {
             seedTeamAndMember()
             val teamless = "b0000000-0000-0000-0000-0000000000b7"

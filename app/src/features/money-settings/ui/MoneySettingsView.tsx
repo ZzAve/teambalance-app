@@ -54,7 +54,7 @@ export function MoneySettingsView({ settings, isLoading, isError, isSaving, save
   )
 }
 
-// Error texts sit on a card: the destructive red is 4.7:1 on it, but only 4.4:1 on the page background.
+// Error texts sit on a card; red-ink clears 4.5:1 there in both themes.
 const ERROR_CLASS = 'rounded-lg bg-card p-3 text-small text-red-ink'
 const FIELD_ERROR_CLASS = `${ERROR_CLASS} mt-1`
 

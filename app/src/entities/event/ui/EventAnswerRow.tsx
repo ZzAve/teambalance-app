@@ -45,7 +45,7 @@ interface EventAnswerRowProps {
 const PILL_TONE: Record<MyAnswer['tone'], { className: string; Icon?: ComponentType<{ size?: number; className?: string }> }> = {
   attending: { className: 'bg-green/10 text-green font-semibold', Icon: Check },
   maybe: { className: 'bg-gold/20 text-gold-dark font-semibold', Icon: HelpCircle },
-  absent: { className: 'bg-red/10 text-red font-semibold', Icon: X },
+  absent: { className: 'bg-red/10 text-red-ink font-semibold', Icon: X },
   prompt: { className: 'bg-foreground text-background font-bold' },
 }
 

@@ -36,6 +36,7 @@ describe('global.css red-ink', () => {
 
   function declarationsOf(header: string): Map<string, string> {
     const start = stripped.indexOf(`\n${header} {\n`)
+    if (start === -1) throw new Error(`global.css has no "${header} {" block`)
     const end = stripped.indexOf('\n}', start)
     const block = stripped.slice(start, end)
     return new Map([...block.matchAll(/^\s*(--[\w-]+):\s*([^;]+);/gm)].map(([, name, value]) => [name, value.trim()]))

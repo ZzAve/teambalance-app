@@ -58,7 +58,7 @@ export function SeriesScopeField({
   const caption = danger ? DELETE_CAPTION[scope] : EDIT_CAPTION[scope]
   // Full literal classes — Tailwind can't see interpolated names.
   const panelClass = danger ? 'border-red/20 bg-red/5' : 'border-blue/20 bg-blue/5'
-  const countClass = danger ? 'text-red' : 'text-blue'
+  const countClass = danger ? 'text-red-ink' : 'text-blue'
 
   return (
     <div className="flex flex-col gap-3">

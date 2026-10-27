@@ -76,14 +76,17 @@ export function NextEventHeroView({
   const date = new Date(event.startTime)
   const countdown = heroCountdown(event.startTime, now)
   const answered = myState !== 'NOT_RESPONDED'
+  // The ground is the event type's colour, as on the card's date chit; a type without one keeps the
+  // brand green. The far end is that colour at 80% over black, which for the green is green-dark.
+  const ground = event.eventType.color ?? 'var(--color-green)'
 
   return (
     <section
       aria-label="Next up"
       className="relative mt-4 overflow-hidden rounded-lg p-4 text-white"
       style={{
-        background: 'linear-gradient(135deg, var(--color-green) 0%, var(--color-green-dark) 100%)',
-        boxShadow: '0 14px 34px rgba(34, 92, 156, 0.18)',
+        background: `linear-gradient(135deg, ${ground} 0%, color-mix(in srgb, ${ground} 80%, black) 100%)`,
+        boxShadow: `0 14px 34px color-mix(in srgb, ${ground} 18%, transparent)`,
       }}
     >
       {/* Soft highlight, purely decorative */}
@@ -108,7 +111,7 @@ export function NextEventHeroView({
         <SectionLabel as="p" className="text-white/90">
           Next up
         </SectionLabel>
-        {/* The card's type tag, in white: the type's own tint has no contrast on the green. */}
+        {/* The card's type tag, in white: the type's own tint has no contrast on its own colour. */}
         <span className="rounded-full bg-white/20 px-2 py-0.5 text-caption font-semibold">
           {event.eventType.name}
         </span>

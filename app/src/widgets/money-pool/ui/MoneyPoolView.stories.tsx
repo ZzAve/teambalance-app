@@ -45,7 +45,7 @@ export const Data: Story = {
     await expect(within(canvas.getByRole('region', { name: 'Balance' })).getByText(/187,50/)).toBeInTheDocument()
     const beers = within(canvas.getByRole('region', { name: 'Beer Counter' }))
     await expect(beers.getByText('69 beers')).toBeInTheDocument()
-    await expect(beers.getByText(/At .*2,70 a beer/)).toBeInTheDocument()
+    await expect(beers.getByText(/The pool balance covers 69 beers at .*2,70 each\./)).toBeInTheDocument()
     const payments = within(canvas.getByRole('region', { name: 'Payments' }))
     await expect(payments.getByText('Lisa de Vries')).toBeInTheDocument()
     await expect(payments.getAllByText(/Incoming/)).toHaveLength(2)

@@ -22,7 +22,9 @@ export function ConnectedMoneyPool({ balance, payments, beerPrice, beerCount }: 
         <section aria-label="Beer Counter" className="rounded-lg bg-card p-4">
           <p className="text-caption font-semibold uppercase tracking-wide text-muted-foreground">Beer Counter</p>
           <p className="font-display mt-1 text-title font-bold leading-none">{formatBeers(beerCount)}</p>
-          <p className="mt-1 text-caption text-muted-foreground">At {formatEuro(beerPrice)} a beer</p>
+          <p className="mt-1 text-caption text-muted-foreground">
+            The pool balance covers {formatBeers(beerCount)} at {formatEuro(beerPrice)} each.
+          </p>
         </section>
       )}
 

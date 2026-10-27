@@ -10,11 +10,9 @@ describe('topUpUrlOf', () => {
     expect(() => topUpUrlOf({ status: 404 })).toThrow(TopUpUnavailableError)
   })
 
-  it('throws on any other status instead of returning an undefined url', () => {
-    for (const status of [400, 403, 500]) {
-      expect(() => topUpUrlOf({ status, body: undefined }), String(status)).toThrow(Error)
-      expect(() => topUpUrlOf({ status }), String(status)).not.toThrow(TopUpUnavailableError)
-    }
+  it('throws on a 403 (acting as the team) instead of returning an undefined url', () => {
+    expect(() => topUpUrlOf({ status: 403, body: undefined })).toThrow(Error)
+    expect(() => topUpUrlOf({ status: 403 })).not.toThrow(TopUpUnavailableError)
   })
 
   it('refuses a url that is not a bunq.me page', () => {

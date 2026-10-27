@@ -1,5 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { moneyPoolQueryOptions, moneyPoolSettingsQueryOptions, nullsToUndefined } from './money-pool'
+import { fetchTopUpLink, moneyPoolQueryOptions, moneyPoolSettingsQueryOptions, nullsToUndefined } from './money-pool'
+import { TopUpUnavailableError } from './top-up-link'
+import { api } from './wirespec-client'
 
 // The server writes an absent optional field as JSON null; the generated types (and every
 // `=== undefined` check on them) say undefined.
@@ -73,5 +75,51 @@ describe('money pool queries', () => {
     expect(settings.enabled).toBe(true)
     expect(settings.beerPrice).toBeUndefined()
     expect(settings.bunqMeLink).toBeUndefined()
+  })
+})
+
+// The top-up link, through the real client: it hands over only the statuses the contract declares
+// (200, 403, 404) and throws on any other, so every one of these ends in a rejection but 200.
+describe('fetchTopUpLink', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  function stubStatus(status: number, json = '') {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({ status, headers: new Headers(), text: vi.fn().mockResolvedValue(json) }),
+    )
+  }
+
+  it('returns the bunq.me url of a 200', async () => {
+    stubStatus(200, '{"url":"https://bunq.me/setpointvt/20/Top-up"}')
+
+    await expect(fetchTopUpLink(20)).resolves.toBe('https://bunq.me/setpointvt/20/Top-up')
+  })
+
+  it('reports a 404 as unavailable', async () => {
+    stubStatus(404)
+
+    await expect(fetchTopUpLink(20)).rejects.toBeInstanceOf(TopUpUnavailableError)
+  })
+
+  it('refuses a 200 whose url is not a bunq.me page', async () => {
+    stubStatus(200, '{"url":"https://evil.example/x"}')
+
+    await expect(fetchTopUpLink(20)).rejects.toThrow('Top-up link is not a bunq.me page')
+  })
+
+  it('hands a 403 (acting as the team) over as a response, and fetchTopUpLink fails on it', async () => {
+    stubStatus(403)
+
+    await expect(api.GetTopUpLink({ amount: 20 })).resolves.toMatchObject({ status: 403 })
+    await expect(fetchTopUpLink(20)).rejects.toThrow('Top-up link failed with status 403')
+  })
+
+  it('rejects a status the contract does not declare', async () => {
+    stubStatus(500)
+
+    await expect(fetchTopUpLink(20)).rejects.toThrow('Cannot internalize response with status: 500')
   })
 })

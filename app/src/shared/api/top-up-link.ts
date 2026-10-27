@@ -8,8 +8,9 @@ export class TopUpUnavailableError extends Error {
 }
 
 /**
- * The payment url in a top-up response. The client does not throw on a non-2xx, and the url is
- * navigated to, so anything but a bunq.me page from a 200 is an error.
+ * The payment url in a top-up response. The client hands over the declared statuses (200, 403 acting
+ * as the team, 404) and throws on any other. The url is navigated to, so anything but a bunq.me page
+ * from a 200 is an error.
  */
 export function topUpUrlOf(response: { status: number; body?: unknown }): string {
   if (response.status === 404) throw new TopUpUnavailableError()

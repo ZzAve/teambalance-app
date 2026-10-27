@@ -46,12 +46,13 @@ endpoint PutMoneyPoolSettings PUT MoneyPoolSettings /api/team/money-pool/setting
     403 -> Unit
 }
 
-// A bunq.me link for paying the pool, amount in whole euros between 1 and 500 (400 outside). 404 when the pool is Off or the team has no bunq.me link. Independent of the Bunq Connection.
+// A bunq.me link for paying the pool, amount in whole euros between 1 and 500 (400 outside). 404 when the pool is Off or the team has no bunq.me link. 403 when a Platform Admin is acting as the team (ADR-0024): top-up is a member's action. Independent of the Bunq Connection.
 type TopUpLink {
     url: String
 }
 
 endpoint GetTopUpLink GET /api/team/money-pool/top-up-link ? {amount: Integer} -> {
     200 -> TopUpLink
+    403 -> Unit
     404 -> Unit
 }

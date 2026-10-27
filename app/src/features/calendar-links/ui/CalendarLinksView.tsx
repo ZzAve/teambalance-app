@@ -259,7 +259,7 @@ function CalendarLinkRow({
                 Edit
               </Button>
             )}
-            <Button size="sm" variant="ghost" className="text-red-ink" disabled={isSaving} onClick={() => onRequestDelete(link)}>
+            <Button size="sm" variant="ghost" className="text-red-ink hover:bg-red/5 hover:text-red-ink" disabled={isSaving} onClick={() => onRequestDelete(link)}>
               Delete
             </Button>
           </div>

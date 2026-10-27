@@ -309,6 +309,17 @@ class MoneyPoolControllerIT : TeamBalanceIT() {
             perform(getTopUpLink(4_294_967_316L), MEMBER_USER_ID).andExpect(MockMvcResultMatchers.status().isBadRequest)
         }
 
+        test("GET /api/team/money-pool/top-up-link without the required amount returns 400") {
+            seedTeamAndMember()
+            setBunqMeLink("https://bunq.me/setpointvt")
+
+            mockMvc.perform(
+                MockMvcRequestBuilders.get("/api/team/money-pool/top-up-link")
+                    .with(loginAs(MEMBER_USER_ID, tenant = "public")),
+            )
+                .andExpect(MockMvcResultMatchers.status().isBadRequest)
+        }
+
         test("GET /api/team/money-pool/top-up-link is 404 when the pool is Off, even with a link") {
             seedTeamAndMember()
             setBunqMeLink("https://bunq.me/setpointvt")

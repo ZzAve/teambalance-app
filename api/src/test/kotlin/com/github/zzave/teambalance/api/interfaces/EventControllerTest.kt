@@ -44,6 +44,14 @@ class EventControllerTest : TeamBalanceIT() {
     lateinit var attendanceRepository: AttendanceRepository
 
     init {
+        test("GET /api/events without the required include-past query parameter returns 400") {
+            mockMvc.perform(
+                MockMvcRequestBuilders.get("/api/events")
+                    .with(loginAs(JAN_USER_ID, tenant = "public")),
+            )
+                .andExpect(MockMvcResultMatchers.status().isBadRequest)
+        }
+
         test("GET /api/events/{id} returns role for each attendee") {
             // Ensure platform schema (users, team_members) and tenant schema (events, attendances) exist.
             tenantSchemaAdapter.provisionPlatformSchema()

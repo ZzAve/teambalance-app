@@ -59,6 +59,16 @@ class GlobalExceptionHandler {
         ResponseEntity.status(HttpStatus.BAD_REQUEST)
             .body(mapOf("error" to (ex.message ?: "Invalid request")))
 
+    // The generated request parsing reports a missing required query parameter as an
+    // IllegalStateException, the same type a server fault has. Only an exception raised by that
+    // parsing is a client error (400); any other IllegalStateException stays unhandled (500).
+    @ExceptionHandler(IllegalStateException::class)
+    fun handleIllegalState(ex: IllegalStateException): ResponseEntity<Map<String, String>> {
+        if (!ex.isRaisedByGeneratedRequestParsing()) throw ex
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+            .body(mapOf("error" to (ex.message ?: "Invalid request")))
+    }
+
     @ExceptionHandler(DateTimeParseException::class)
     fun handleDateTimeParse(ex: DateTimeParseException): ResponseEntity<Map<String, String>> =
         ResponseEntity.status(HttpStatus.BAD_REQUEST)
@@ -73,3 +83,10 @@ class GlobalExceptionHandler {
         ResponseEntity.status(HttpStatus.BAD_REQUEST)
             .body(mapOf("error" to "Malformed or invalid request body"))
 }
+
+private const val GENERATED_PACKAGE = "com.github.zzave.teambalance.api.interfaces.generated."
+
+private fun Throwable.isRaisedByGeneratedRequestParsing(): Boolean =
+    stackTrace.firstOrNull()?.let {
+        it.methodName == "fromRawRequest" && it.className.startsWith(GENERATED_PACKAGE)
+    } == true

@@ -183,7 +183,9 @@
    `.dark` is set on <html> before first paint (see the bootstrap in index.html) and maintained by
    shared/theme. Everything below is a *re-point of the same variable names* the light theme uses,
    so no component needs a `dark:` utility to follow — utilities, inline `var(--color-…)` styles and
-   `body` all read the same tokens.
+   `body` all read the same tokens. One exception: TopUpSheetView's error text is `text-red-dark
+   dark:text-red`, because red-dark is a *lighter* red here (3.92:1 on the sheet) while the light-mode
+   fix needs the darker one. A per-theme ink token (like gold-ink) is the proper follow-up.
 
    This block must stay unlayered and after the tokens.css @import: tokens.css declares its light
    values on `:root` (also unlayered, equal specificity), so source order is what decides.

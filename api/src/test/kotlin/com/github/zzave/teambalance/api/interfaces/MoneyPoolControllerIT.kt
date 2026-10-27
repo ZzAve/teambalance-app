@@ -268,6 +268,99 @@ class MoneyPoolControllerIT : TeamBalanceIT() {
             }
         }
 
+        test("GET /api/team/money-pool/top-up-link returns the bunq.me link with the amount and the encoded description") {
+            seedTeamAndMember()
+            setBunqMeLink("https://bunq.me/setpointvt")
+            jdbcTemplate.update(
+                "UPDATE public.member_profiles SET display_name = 'Zoë Müller' WHERE user_id = '$MEMBER_USER_ID'::uuid",
+            )
+
+            // The team row is shared with other ITs, so its encoded name sits in the unasserted middle.
+            perform(getTopUpLink(20), MEMBER_USER_ID)
+                .andExpect(MockMvcResultMatchers.status().isOk)
+                .andExpect(
+                    MockMvcResultMatchers.jsonPath("$.url", Matchers.startsWith("https://bunq.me/setpointvt/20/TeamBalance%20%C2%B7%20")),
+                )
+                .andExpect(
+                    MockMvcResultMatchers.jsonPath(
+                        "$.url",
+                        Matchers.endsWith("%20%C2%B7%20Zo%C3%AB%20M%C3%BCller%20%C2%B7%20$MEMBER_USER_ID"),
+                    ),
+                )
+        }
+
+        test("GET /api/team/money-pool/top-up-link works without a Bunq connection and while Bunq is down") {
+            seedTeamAndMember()
+            setBunqMeLink("https://bunq.me/setpointvt")
+            connectBunq()
+            bunqGateway.failing = true
+
+            perform(getTopUpLink(1), MEMBER_USER_ID).andExpect(MockMvcResultMatchers.status().isOk)
+            perform(getTopUpLink(500), MEMBER_USER_ID).andExpect(MockMvcResultMatchers.status().isOk)
+        }
+
+        test("GET /api/team/money-pool/top-up-link rejects amounts outside 1 to 500 with 400") {
+            seedTeamAndMember()
+            setBunqMeLink("https://bunq.me/setpointvt")
+
+            perform(getTopUpLink(0), MEMBER_USER_ID).andExpect(MockMvcResultMatchers.status().isBadRequest)
+            perform(getTopUpLink(501), MEMBER_USER_ID).andExpect(MockMvcResultMatchers.status().isBadRequest)
+            // 4294967316 is 2^32 + 20: narrowed to an Int before the range check it would pass as 20.
+            perform(getTopUpLink(4_294_967_316L), MEMBER_USER_ID).andExpect(MockMvcResultMatchers.status().isBadRequest)
+        }
+
+        test("GET /api/team/money-pool/top-up-link is 404 when the pool is Off, even with a link") {
+            seedTeamAndMember()
+            setBunqMeLink("https://bunq.me/setpointvt")
+            jdbcTemplate.update("UPDATE public.money_pool_settings SET enabled = false WHERE id = 1")
+
+            perform(getTopUpLink(20), MEMBER_USER_ID).andExpect(MockMvcResultMatchers.status().isNotFound)
+        }
+
+        test("GET /api/team/money-pool/top-up-link is 404 when no bunq.me link is set") {
+            seedTeamAndMember()
+
+            perform(getTopUpLink(20), MEMBER_USER_ID).andExpect(MockMvcResultMatchers.status().isNotFound)
+        }
+
+        test("a stored link that is not a bunq.me page gives no top-up link and no canTopUp") {
+            seedTeamAndMember()
+            setBunqMeLink("https://evil.example/x")
+
+            perform(getTopUpLink(20), MEMBER_USER_ID).andExpect(MockMvcResultMatchers.status().isNotFound)
+            getMoneyPool().andExpect(MockMvcResultMatchers.jsonPath("$.canTopUp").value(false))
+        }
+
+        test("GET /api/team/money-pool/top-up-link without an authenticated user returns 401") {
+            mockMvc.perform(getTopUpLink(20)).andExpect(MockMvcResultMatchers.status().isUnauthorized)
+        }
+
+        test("canTopUp is true in every state once the pool is on and a link is set, and false otherwise") {
+            seedTeamAndMember()
+            getMoneyPool().andExpect(MockMvcResultMatchers.jsonPath("$.canTopUp").value(false))
+
+            setBunqMeLink("https://bunq.me/setpointvt")
+            getMoneyPool()
+                .andExpect(MockMvcResultMatchers.jsonPath("$.state").value("NotConnected"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.canTopUp").value(true))
+
+            connectBunq()
+            bunqGateway.failing = true
+            getMoneyPool()
+                .andExpect(MockMvcResultMatchers.jsonPath("$.state").value("Unavailable"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.canTopUp").value(true))
+
+            bunqGateway.failing = false
+            getMoneyPool()
+                .andExpect(MockMvcResultMatchers.jsonPath("$.state").value("Connected"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.canTopUp").value(true))
+
+            jdbcTemplate.update("UPDATE public.money_pool_settings SET enabled = false WHERE id = 1")
+            getMoneyPool()
+                .andExpect(MockMvcResultMatchers.jsonPath("$.state").value("Off"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.canTopUp").value(false))
+        }
+
         test("GET /api/team/money-pool without an authenticated user returns 401") {
             mockMvc.perform(MockMvcRequestBuilders.get("/api/team/money-pool"))
                 .andExpect(MockMvcResultMatchers.status().isUnauthorized)
@@ -305,6 +398,15 @@ class MoneyPoolControllerIT : TeamBalanceIT() {
 
     private fun putSettings(json: String): MockHttpServletRequestBuilder =
         MockMvcRequestBuilders.put("/api/team/money-pool/settings").contentType(MediaType.APPLICATION_JSON).content(json)
+
+    // The amount goes in the URL: MockMvc.param() leaves the query string empty, which the wirespec
+    // adapter reads (the TS client builds the query string with URLSearchParams).
+    private fun getTopUpLink(amount: Long): MockHttpServletRequestBuilder =
+        MockMvcRequestBuilders.get("/api/team/money-pool/top-up-link?amount=$amount")
+
+    private fun setBunqMeLink(link: String) {
+        jdbcTemplate.update("UPDATE public.money_pool_settings SET bunq_me_link = ? WHERE id = 1", link)
+    }
 
     private fun setSettings(beerPrice: Int?) {
         jdbcTemplate.update("UPDATE public.money_pool_settings SET beer_price_cents = ? WHERE id = 1", beerPrice)

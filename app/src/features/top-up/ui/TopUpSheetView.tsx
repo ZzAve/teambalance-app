@@ -5,9 +5,7 @@ import { Label } from '@shared/ui/label'
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@shared/ui/sheet'
 import { MAX_TOP_UP_EUROS, MIN_TOP_UP_EUROS, TOP_UP_PRESETS, parseTopUpAmount } from '../lib/amount'
 
-// text-red is 4.42:1 on the light sheet surface, under the 4.5:1 that 13px text needs; red-dark is 6.08:1
-// there, but only 3.92:1 on the dark surface, where red is 5.36:1.
-const ERROR_CLASS = 'text-small text-red-dark dark:text-red'
+const ERROR_CLASS = 'text-small text-red-ink'
 
 interface TopUpSheetViewProps {
   open: boolean

@@ -32,7 +32,7 @@ const RESPONSE_OPTIONS: ResponseOption[] = [
     label: ATTENDANCE_WORDS.ABSENT.word,
     icon: X,
     activeClass: 'bg-red text-white border-red hover:bg-red/90',
-    inactiveClass: 'border-red/30 text-red hover:bg-red/10',
+    inactiveClass: 'border-red/30 text-red-ink hover:bg-red/10',
   },
 ]
 

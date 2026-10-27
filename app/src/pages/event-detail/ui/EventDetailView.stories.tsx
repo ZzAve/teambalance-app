@@ -87,7 +87,7 @@ const ADMIN_ACTIONS = (
       <Pencil size={15} />
       Edit event
     </Button>
-    <Button variant="outline" className="flex-1 border-red/30 text-red hover:bg-red/5 hover:text-red">
+    <Button variant="outline" className="flex-1 border-red/30 text-red-ink hover:bg-red/5 hover:text-red-ink">
       <Trash2 size={15} />
       Delete
     </Button>

@@ -21,7 +21,7 @@ interface ReadinessBadgeProps {
 const CHIP_TONE: Record<RosterTone, string> = {
   covered: 'bg-green/15 text-green-dark',
   short: 'bg-gold/20 text-gold-dark',
-  critical: 'bg-red/15 text-red-dark',
+  critical: 'bg-red/15 text-red-ink',
 }
 
 const DOT_TONE: Record<RosterTone, string> = {

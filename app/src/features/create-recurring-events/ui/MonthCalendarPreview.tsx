@@ -52,7 +52,7 @@ export function MonthCalendarPreview({ preview, accentColor }: MonthCalendarPrev
         </div>
       )}
       {!overCap && outOfSeasonCount > 0 && (
-        <div className="mb-3 flex items-start gap-2 rounded-lg border border-red/40 bg-red/10 px-3 py-2 text-caption leading-snug text-red">
+        <div className="mb-3 flex items-start gap-2 rounded-lg border border-red/40 bg-red/10 px-3 py-2 text-caption leading-snug text-red-ink">
           <AlertTriangle size={14} className="mt-0.5 shrink-0" />
           <span>
             {outOfSeasonCount} {outOfSeasonCount === 1 ? 'date falls' : 'dates fall'} outside the season (shown in red).

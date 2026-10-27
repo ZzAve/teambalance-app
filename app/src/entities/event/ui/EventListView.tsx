@@ -72,7 +72,7 @@ export function EventListView({
   // so a transient failure never blanks a list the user is already looking at.
   if (events.length === 0) {
     if (isLoading) return <EventListSkeleton />
-    if (error) return <p className="mt-4 text-small text-red">Couldn&apos;t load events.</p>
+    if (error) return <p className="mt-4 text-small text-red-ink">Couldn&apos;t load events.</p>
     // No way out of a filtered-to-empty list here any more: `Clear filters` moved up beside the
     // filter trigger, where it is visible whenever a filter is active rather than only once one has
     // already emptied the list (ADR-0030 §2).

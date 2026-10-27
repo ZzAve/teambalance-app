@@ -23,7 +23,7 @@ interface MoneyPoolViewProps {
 }
 
 const loadError = (
-  <p role="alert" className="rounded-lg bg-card p-4 text-small text-destructive">
+  <p role="alert" className="rounded-lg bg-card p-4 text-small text-red-ink">
     We couldn't load the money pool. Try again in a moment.
   </p>
 )

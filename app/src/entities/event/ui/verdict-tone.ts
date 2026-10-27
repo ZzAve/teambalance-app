@@ -9,5 +9,5 @@ import type { RosterTone } from '../lib/roster-view'
 export const VERDICT_TONE: Record<RosterTone, string> = {
   covered: 'text-green-dark',
   short: 'text-gold-ink',
-  critical: 'text-red',
+  critical: 'text-red-ink',
 }

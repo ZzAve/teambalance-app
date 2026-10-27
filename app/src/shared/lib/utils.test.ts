@@ -8,6 +8,16 @@ describe('cn', () => {
     expect(cn('text-caption text-muted-foreground')).toBe('text-caption text-muted-foreground')
   })
 
+  it('keeps a named type step next to the red-ink text colour', () => {
+    expect(cn('text-small text-red-ink')).toBe('text-small text-red-ink')
+  })
+
+  it('lets a red-ink override replace the outline variant text colours', () => {
+    expect(cn('hover:bg-accent hover:text-accent-foreground', 'text-red-ink hover:bg-red/5 hover:text-red-ink')).toBe(
+      'text-red-ink hover:bg-red/5 hover:text-red-ink',
+    )
+  })
+
   it('lets a later named step override an earlier one', () => {
     expect(cn('text-caption font-semibold', 'text-small')).toBe('font-semibold text-small')
   })

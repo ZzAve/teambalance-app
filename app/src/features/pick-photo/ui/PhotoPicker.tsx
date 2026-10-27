@@ -95,7 +95,7 @@ export function PhotoPicker({ label, disabled, onPicked }: PhotoPickerProps) {
             onChange={(e) => setZoom(Number(e.target.value))}
             className="w-full accent-primary"
           />
-          {error && <p className="text-small text-red">{error}</p>}
+          {error && <p className="text-small text-red-ink">{error}</p>}
           <DialogFooter>
             <Button type="button" variant="outline" onClick={close}>
               Cancel

@@ -24,7 +24,7 @@ export const SUBSTITUTE_PILL =
 const TALLY: { state: SubstituteState; word: string; tone: string }[] = [
   { state: 'ATTENDING', word: LOWER_WORD.ATTENDING, tone: 'text-green-dark' },
   { state: 'MAYBE', word: LOWER_WORD.MAYBE, tone: 'text-gold-ink' },
-  { state: 'ABSENT', word: LOWER_WORD.ABSENT, tone: 'text-red' },
+  { state: 'ABSENT', word: LOWER_WORD.ABSENT, tone: 'text-red-ink' },
 ]
 
 interface SubstitutesBlockProps {

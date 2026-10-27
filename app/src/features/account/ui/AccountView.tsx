@@ -151,7 +151,7 @@ export function AccountView({
                   </div>
                 </div>
               </div>
-              {photoErrorMessage && <p className="mt-3 text-small text-red">{photoErrorMessage}</p>}
+              {photoErrorMessage && <p className="mt-3 text-small text-red-ink">{photoErrorMessage}</p>}
               <ConfirmDialog
                 open={confirmingPhotoRemove}
                 title="Remove photo"
@@ -188,7 +188,7 @@ export function AccountView({
             <div className={`${CARD} p-4`}>
               {isMemberLoading && <p className="text-small text-muted-foreground">Loading…</p>}
               {isMemberError && (
-                <p className="text-small text-red">Couldn't load your profile. Please try again.</p>
+                <p className="text-small text-red-ink">Couldn't load your profile. Please try again.</p>
               )}
               {!isMemberLoading && !isMemberError && member && (
                 <EditProfileForm

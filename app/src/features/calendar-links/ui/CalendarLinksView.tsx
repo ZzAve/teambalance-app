@@ -210,7 +210,7 @@ function CalendarLinkRow({
           {name}
         </span>
         {link.expired && (
-          <span className="shrink-0 rounded-full bg-red/10 px-2 py-0.5 text-caption font-semibold text-red">
+          <span className="shrink-0 rounded-full bg-red/10 px-2 py-0.5 text-caption font-semibold text-red-ink">
             Expired
           </span>
         )}

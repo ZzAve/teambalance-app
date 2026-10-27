@@ -55,7 +55,7 @@ export function GenerateInviteContent({
 }: GenerateInviteContentProps) {
   const [confirmRevokeOpen, setConfirmRevokeOpen] = useState(false)
   if (isLoading) return <p className="text-muted-foreground">Loading...</p>
-  if (isError) return <p className="text-destructive">Failed to load the invite link.</p>
+  if (isError) return <p className="text-red-ink">Failed to load the invite link.</p>
 
   if (justExpired || !link) {
     return (
@@ -69,7 +69,7 @@ export function GenerateInviteContent({
           {isGenerating ? 'Generating...' : justExpired ? 'Generate new link' : 'Generate link'}
         </Button>
         {actionError && (
-          <p className="text-small text-destructive">Something went wrong. Please try again.</p>
+          <p className="text-small text-red-ink">Something went wrong. Please try again.</p>
         )}
       </div>
     )
@@ -105,7 +105,7 @@ export function GenerateInviteContent({
         way the old link stops working.
       </p>
       {actionError && (
-        <p className="text-small text-destructive">Something went wrong. Please try again.</p>
+        <p className="text-small text-red-ink">Something went wrong. Please try again.</p>
       )}
 
       <ConfirmDialog

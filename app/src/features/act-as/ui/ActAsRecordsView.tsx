@@ -33,7 +33,7 @@ export function ActAsRecordsView({ records = [], isLoading, isError }: ActAsReco
       </p>
 
       {isLoading && <p className="mt-3 text-small text-muted-foreground">Loading…</p>}
-      {isError && <p className="mt-3 text-small text-red">Couldn't load platform access. Please try again.</p>}
+      {isError && <p className="mt-3 text-small text-red-ink">Couldn't load platform access. Please try again.</p>}
 
       {!isLoading && !isError && (
         records.length === 0 ? (

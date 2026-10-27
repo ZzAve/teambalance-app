@@ -46,7 +46,7 @@ export function JoinTeamView({ value, onChange, onSubmit, submitting, error }: J
           />
         </div>
         {error && (
-          <p role="alert" className="text-small text-destructive">
+          <p role="alert" className="text-small text-red-ink">
             {error}
           </p>
         )}

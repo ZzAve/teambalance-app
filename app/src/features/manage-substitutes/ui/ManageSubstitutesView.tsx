@@ -86,12 +86,12 @@ export function ManageSubstitutesView({
       <h2 className="font-display text-title font-bold">Substitutes</h2>
 
       {isLoading && <p className="mt-4 text-small text-muted-foreground">Loading…</p>}
-      {isError && <p className="mt-4 text-small text-red">Couldn't load substitutes. Please try again.</p>}
+      {isError && <p className="mt-4 text-small text-red-ink">Couldn't load substitutes. Please try again.</p>}
 
       {!isLoading && !isError && (
         <div className="mt-4 flex flex-col gap-3">
           {errorMessage && (
-            <p role="alert" className="rounded-md bg-red/10 px-3 py-2 text-small text-red">
+            <p role="alert" className="rounded-md bg-red/10 px-3 py-2 text-small text-red-ink">
               {errorMessage}
             </p>
           )}
@@ -270,7 +270,7 @@ function SubstituteRow({
             Cancel
           </Button>
         </div>
-        {parsedNumber.error && <p className="text-small text-red">{parsedNumber.error}</p>}
+        {parsedNumber.error && <p className="text-small text-red-ink">{parsedNumber.error}</p>}
       </li>
     )
   }

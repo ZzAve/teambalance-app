@@ -17,12 +17,17 @@ if docker info >/dev/null 2>&1; then
   exit 0
 fi
 
-# A container restart leaves the pid file behind, and its PID may now belong to an
-# unrelated process; dockerd refuses to start while the pid file names a live process.
-PIDFILE=/var/run/docker.pid
-if [ -f "$PIDFILE" ] && [ "$(cat "/proc/$(cat "$PIDFILE" 2>/dev/null)/comm" 2>/dev/null)" != "dockerd" ]; then
-  if rm "$PIDFILE"; then echo "Removed stale $PIDFILE"; else echo "Could not remove stale $PIDFILE"; fi
-fi
+# A container restart leaves pid files behind, and their PIDs may now belong to unrelated
+# processes. dockerd refuses to start while docker.pid names a live process, and waits on
+# a live PID in containerd.pid as if it were containerd until it times out.
+remove_stale_pidfile() {
+  local pidfile=$1 expected_process=$2
+  if [ -f "$pidfile" ] && [ "$(cat "/proc/$(cat "$pidfile" 2>/dev/null)/comm" 2>/dev/null)" != "$expected_process" ]; then
+    if rm "$pidfile"; then echo "Removed stale $pidfile"; else echo "Could not remove stale $pidfile"; fi
+  fi
+}
+remove_stale_pidfile /var/run/docker.pid dockerd
+remove_stale_pidfile /var/run/docker/containerd/containerd.pid containerd
 
 LOG=/tmp/dockerd.log
 nohup dockerd >"$LOG" 2>&1 &

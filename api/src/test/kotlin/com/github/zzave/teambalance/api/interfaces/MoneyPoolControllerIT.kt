@@ -323,6 +323,14 @@ class MoneyPoolControllerIT : TeamBalanceIT() {
             perform(getTopUpLink(20), MEMBER_USER_ID).andExpect(MockMvcResultMatchers.status().isNotFound)
         }
 
+        test("a stored link that is not a bunq.me page gives no top-up link and no canTopUp") {
+            seedTeamAndMember()
+            setBunqMeLink("https://evil.example/x")
+
+            perform(getTopUpLink(20), MEMBER_USER_ID).andExpect(MockMvcResultMatchers.status().isNotFound)
+            getMoneyPool().andExpect(MockMvcResultMatchers.jsonPath("$.canTopUp").value(false))
+        }
+
         test("GET /api/team/money-pool/top-up-link without an authenticated user returns 401") {
             mockMvc.perform(getTopUpLink(20)).andExpect(MockMvcResultMatchers.status().isUnauthorized)
         }

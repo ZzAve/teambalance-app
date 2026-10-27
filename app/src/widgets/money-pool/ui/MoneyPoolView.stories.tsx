@@ -78,6 +78,7 @@ export const Shells: Story = {
         Off: <MoneyPoolView {...args} state="Off" />,
         'Not connected (member)': <MoneyPoolView {...args} state="NotConnected" />,
         'Not connected (admin)': <MoneyPoolView {...args} state="NotConnected" isAdmin />,
+        'Not connected (admin, can connect)': <MoneyPoolView {...args} state="NotConnected" isAdmin connectAvailable />,
         Unavailable: <MoneyPoolView {...args} state="Unavailable" />,
         'No link (member)': <MoneyPoolView {...args} state="NotConnected" canTopUp={false} />,
         'No link (admin)': <MoneyPoolView {...args} state="NotConnected" canTopUp={false} isAdmin />,
@@ -96,6 +97,8 @@ export const Shells: Story = {
     await expect(region('Off').getByText('The money pool is switched off for this team')).toBeInTheDocument()
     await expect(region('Not connected (member)').getByText(/once an admin connects/i)).toBeInTheDocument()
     await expect(region('Not connected (admin)').getByText(/connecting the team.s bunq account is coming soon/i)).toBeInTheDocument()
+    await expect(region('Not connected (admin, can connect)').getByText(/connect the team.s bunq account in the team settings/i)).toBeInTheDocument()
+    await expect(region('Not connected (admin, can connect)').queryByText(/coming soon/i)).not.toBeInTheDocument()
     await expect(region('Unavailable').getByText('The pool is unavailable right now')).toBeInTheDocument()
     // Paying through bunq.me needs no Bunq Connection, so Top up shows in every state but Off.
     await expect(region('Not connected (member)').getByRole('button', { name: 'Top up' })).toBeInTheDocument()

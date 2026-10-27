@@ -13,14 +13,20 @@ const PILLARS: Pillar[] = [
   { icon: Receipt, title: 'Every euro tracked', blurb: 'See what was paid, and where it went' },
 ]
 
-/** Members see what the pool offers; admins also hear that connecting Bunq is coming (ADR-0042). */
-export function NotConnectedMoneyPool({ isAdmin }: { isAdmin: boolean }) {
+interface NotConnectedMoneyPoolProps {
+  isAdmin: boolean
+  /** Connecting Bunq is switched on for this deployment, so an admin can do it in the team settings. */
+  connectAvailable?: boolean
+}
+
+/** Members see what the pool offers; admins also hear how connecting Bunq goes, or that it is coming (ADR-0042). */
+export function NotConnectedMoneyPool({ isAdmin, connectAvailable }: NotConnectedMoneyPoolProps) {
   return (
     <section aria-label="Money pool preview" className="mx-auto flex max-w-sm flex-col items-center text-center">
       <h3 className="font-display text-title font-bold leading-tight">A shared team pot</h3>
       <p className="mt-3 text-small leading-relaxed text-muted-foreground">
         {isAdmin
-          ? 'Connecting the team’s Bunq account is coming soon. The balance and payments will show up here.'
+          ? adminCopy(connectAvailable)
           : 'Once an admin connects the team’s Bunq account, the balance and payments show up here.'}
       </p>
 
@@ -44,4 +50,10 @@ export function NotConnectedMoneyPool({ isAdmin }: { isAdmin: boolean }) {
       </ul>
     </section>
   )
+}
+
+function adminCopy(connectAvailable?: boolean) {
+  return connectAvailable
+    ? 'Connect the team’s Bunq account in the team settings. The balance and payments will show up here.'
+    : 'Connecting the team’s Bunq account is coming soon. The balance and payments will show up here.'
 }

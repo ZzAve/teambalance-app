@@ -48,16 +48,7 @@ export function MoneySettingsView({ settings, isLoading, isError, isSaving, save
         </p>
       )}
       {settings && !isLoading && !isError && (
-        // Keyed on the saved values so the draft starts over from them: a refetch (another admin's
-        // change, or this save coming back normalised) must not leave a stale draft to compare against.
-        <MoneySettingsForm
-          key={`${settings.enabled}|${settings.beerPrice}|${settings.bunqMeLink}`}
-          settings={settings}
-          isSaving={isSaving}
-          saved={saved}
-          error={error}
-          onSave={onSave}
-        />
+        <MoneySettingsForm settings={settings} isSaving={isSaving} saved={saved} error={error} onSave={onSave} />
       )}
     </div>
   )
@@ -79,6 +70,18 @@ function MoneySettingsForm({
   const [enabled, setEnabled] = useState(settings.enabled)
   const [priceText, setPriceText] = useState(centsToEuroText(settings.beerPrice))
   const [link, setLink] = useState(settings.bunqMeLink ?? '')
+
+  // The draft starts over from the saved values whenever they change (another admin's change, or this
+  // save coming back normalised), so it is never compared against a baseline it was not made from. Only
+  // the draft resets: remounting the form would drop the Save button's focus and the status region.
+  const savedValues = `${settings.enabled}|${settings.beerPrice}|${settings.bunqMeLink}`
+  const [seenSavedValues, setSeenSavedValues] = useState(savedValues)
+  if (seenSavedValues !== savedValues) {
+    setSeenSavedValues(savedValues)
+    setEnabled(settings.enabled)
+    setPriceText(centsToEuroText(settings.beerPrice))
+    setLink(settings.bunqMeLink ?? '')
+  }
 
   const beerPrice = euroTextToCents(priceText)
   const priceError = Number.isNaN(beerPrice) ? 'Enter a price between €0,01 and €100,00.' : null
@@ -113,7 +116,7 @@ function MoneySettingsForm({
         />
         <p className="text-caption text-muted-foreground">Leave empty to hide the Beer Counter.</p>
         {priceError && (
-          <p id={`${priceId}-error`} role="alert" className={ERROR_CLASS}>
+          <p id={`${priceId}-error`} className={ERROR_CLASS}>
             {priceError}
           </p>
         )}
@@ -131,7 +134,7 @@ function MoneySettingsForm({
           aria-describedby={linkError ? `${linkId}-error` : undefined}
         />
         {linkError && (
-          <p id={`${linkId}-error`} role="alert" className={ERROR_CLASS}>
+          <p id={`${linkId}-error`} className={ERROR_CLASS}>
             {linkError}
           </p>
         )}

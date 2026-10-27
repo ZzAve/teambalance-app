@@ -10,8 +10,8 @@ import { MoneySettingsView } from './MoneySettingsView'
 //
 // Three stories (ADR-0032 §1):
 //   1. Data — the one populated live instance (a configured, pristine pool), the picture of this View.
-//   2. Shells — loading, error, a switched-off pool without price or link and a failed save, stacked in
-//      one frame.
+//   2. Shells — loading, error, a switched-off pool without price or link, a failed save and a save in
+//      flight, stacked in one frame.
 //   3. Interactions — no picture; one play edits the fields and asserts what Save hands to onSave,
 //      plus the blocking validation of a bad price and a foreign link, and what the form shows once
 //      the save comes back.
@@ -63,7 +63,8 @@ export const Shells: Story = {
         Loading: <MoneySettingsView {...args} settings={undefined} isLoading />,
         Error: <MoneySettingsView {...args} settings={undefined} isError />,
         'Off without price': <MoneySettingsView {...args} settings={{ enabled: false, beerPrice: undefined, bunqMeLink: undefined }} />,
-        'Save failed': <MoneySettingsView {...args} error="Could not save the money pool settings. Please try again." isSaving />,
+        'Save failed': <MoneySettingsView {...args} error="Could not save the money pool settings. Please try again." />,
+        Saving: <MoneySettingsView {...args} isSaving />,
       }}
     />
   ),
@@ -82,7 +83,9 @@ export const Shells: Story = {
     await expect(region('Off without price').getByText(/Money tab and page are hidden for everyone in the team/)).toBeInTheDocument()
 
     await expect(region('Save failed').getByRole('alert')).toHaveTextContent('Could not save the money pool settings. Please try again.')
-    await expect(region('Save failed').getByRole('button', { name: 'Saving…' })).toBeDisabled()
+    await expect(region('Save failed').getByRole('button', { name: 'Save money pool' })).toBeDisabled()
+
+    await expect(region('Saving').getByRole('button', { name: 'Saving…' })).toBeDisabled()
   },
 }
 
@@ -96,18 +99,19 @@ export const Interactions: Story = {
 
     await userEvent.clear(price)
     await userEvent.type(price, '0')
-    await waitFor(() => expect(canvas.getByRole('alert')).toHaveTextContent('Enter a price between €0,01 and €100,00.'))
+    await waitFor(() => expect(price).toHaveAccessibleDescription('Enter a price between €0,01 and €100,00.'))
     await expect(price).toBeInvalid()
-    await expect(price).toHaveAccessibleDescription('Enter a price between €0,01 and €100,00.')
+    // Field errors are read through the field, not announced assertively while the admin is still typing.
+    await expect(canvas.queryByRole('alert')).not.toBeInTheDocument()
     await expect(save).toBeDisabled()
 
     await userEvent.clear(price)
     await userEvent.type(price, '3,10')
     await userEvent.clear(link)
     await userEvent.type(link, 'https://evil.example/x')
-    await waitFor(() => expect(canvas.getByRole('alert')).toHaveTextContent('Use a link like https://bunq.me/yourteam.'))
+    await waitFor(() => expect(link).toHaveAccessibleDescription('Use a link like https://bunq.me/yourteam.'))
     await expect(link).toBeInvalid()
-    await expect(link).toHaveAccessibleDescription('Use a link like https://bunq.me/yourteam.')
+    await expect(canvas.queryByRole('alert')).not.toBeInTheDocument()
     await expect(price).toBeValid()
     await expect(save).toBeDisabled()
 
@@ -117,8 +121,14 @@ export const Interactions: Story = {
     await userEvent.click(canvas.getByText('Show the money pool to the team'))
     await expect(canvas.getByRole('switch', { name: 'Show the money pool to the team' })).not.toBeChecked()
     await expect(save).toBeEnabled()
+    const status = canvas.getByRole('status')
     await userEvent.click(save)
     await expect(args.onSave).toHaveBeenCalledWith({ enabled: false, beerPrice: 310, bunqMeLink: 'bunq.me/newteam' })
+
+    // Only the draft starts over: the Save button keeps keyboard focus and the status region stays
+    // mounted, so "Saved" is announced.
+    await expect(canvas.getByRole('button', { name: 'Save money pool' })).toBe(save)
+    await expect(canvas.getByRole('status')).toBe(status)
 
     // The saved settings come back normalised: the form starts over from them instead of keeping the draft.
     await expect(canvas.getByLabelText('bunq.me link')).toHaveValue('https://bunq.me/newteam')

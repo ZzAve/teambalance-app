@@ -120,6 +120,10 @@ describe('fetchTopUpLink', () => {
   it('rejects a status the contract does not declare', async () => {
     stubStatus(500)
 
-    await expect(fetchTopUpLink(20)).rejects.toThrow('Cannot internalize response with status: 500')
+    const error = await fetchTopUpLink(20).catch((e: unknown) => e)
+
+    expect(error).toBeInstanceOf(Error)
+    expect(error).not.toBeInstanceOf(TopUpUnavailableError)
+    expect((error as Error).message).toContain('500')
   })
 })

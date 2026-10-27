@@ -11,8 +11,16 @@ describe('topUpUrlOf', () => {
   })
 
   it('throws on a 403 (acting as the team) instead of returning an undefined url', () => {
-    expect(() => topUpUrlOf({ status: 403, body: undefined })).toThrow(Error)
-    expect(() => topUpUrlOf({ status: 403 })).not.toThrow(TopUpUnavailableError)
+    let error: unknown
+    try {
+      topUpUrlOf({ status: 403, body: undefined })
+    } catch (e) {
+      error = e
+    }
+
+    expect(error).toBeInstanceOf(Error)
+    expect(error).not.toBeInstanceOf(TopUpUnavailableError)
+    expect((error as Error).message).toContain('403')
   })
 
   it('refuses a url that is not a bunq.me page', () => {

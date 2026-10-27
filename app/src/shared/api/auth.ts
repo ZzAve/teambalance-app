@@ -70,12 +70,11 @@ export const authMeQueryOptions = queryOptions({
   queryFn: async () => {
     const res = await api.getAuthMe()
     if (res.status === 401) return null
-    // A 200 must carry the user. A cold or misbehaving backend can answer with an empty (0-byte) or
-    // partial body — the wirespec client has no "a 200 has a body" contract, so it surfaces that as
-    // `undefined`. That is NOT a signed-out session: reading it as such would bounce a valid user to
-    // /login, and letting a bare `undefined` through would only reject later inside react-query
-    // ("Query data cannot be undefined"). Reject it explicitly as an unconfirmed session instead, so
-    // the guard's fail-closed path routes it to the retry/error fallback exactly like a 5xx.
+    // A 200 must carry the user. A cold or misbehaving backend can answer with an empty (0-byte) body,
+    // which the generated client rejects ("body is null"), or a partial one that parses to something
+    // that is not a user, which is rejected below. Neither is a signed-out session: reading it as such
+    // would bounce a valid user to /login. Both reject as an unconfirmed session instead, so the
+    // guard's fail-closed path routes them to the retry/error fallback exactly like a 5xx.
     const user = res.body as AuthenticatedUser | undefined
     if (!user || typeof user !== 'object' || !Array.isArray(user.teams)) {
       throw new Error(`Unconfirmed session: /me returned status ${res.status} without a usable body`)

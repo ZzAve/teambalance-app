@@ -69,10 +69,11 @@ const transport = async (req: Wirespec.RawRequest): Promise<Wirespec.RawResponse
 }
 
 const generated = client(serialization, { transport })
+const UNMATCHED_STATUS = 'Cannot match response with status:'
 
-// The generated client drops the body of a status the contract declares as Unit, where Wirespec 0.19
-// handed the parsed body over; callers read the { code } the error handlers send on those statuses.
-// Each call gets its own client, so the raw response it received is at hand to restore that body.
+// The generated client drops the body of a status the contract declares as Unit, but callers read the
+// { code } the error handlers send on those statuses. Each call gets its own client, so the raw
+// response it received is at hand to restore that body.
 type Api = typeof generated
 type Call = (...args: unknown[]) => Promise<{ body?: unknown }>
 
@@ -82,7 +83,13 @@ export const api = Object.fromEntries(
     async (...args: unknown[]) => {
       let raw: Wirespec.RawResponse | undefined
       const scoped = client(serialization, { transport: async (req) => (raw = await transport(req)) })
-      const res = await (scoped as unknown as Record<string, Call>)[name](...args)
+      const res = await (scoped as unknown as Record<string, Call>)[name](...args).catch((error: unknown) => {
+        // The generated message leaves out the status it could not match; callers and logs need it.
+        if (error instanceof Error && error.message === UNMATCHED_STATUS && raw) {
+          throw new Error(`${UNMATCHED_STATUS} ${raw.statusCode}`)
+        }
+        throw error
+      })
       return res.body === undefined && raw?.body
         ? { ...res, body: fromText(new TextDecoder().decode(raw.body)) }
         : res

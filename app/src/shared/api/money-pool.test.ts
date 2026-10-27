@@ -124,6 +124,6 @@ describe('fetchTopUpLink', () => {
 
     expect(error).toBeInstanceOf(Error)
     expect(error).not.toBeInstanceOf(TopUpUnavailableError)
-    expect((error as Error).message).toContain('Cannot match response with status')
+    expect((error as Error).message).toContain('500')
   })
 })

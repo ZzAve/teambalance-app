@@ -1,12 +1,17 @@
 package com.github.zzave.teambalance.api.infrastructure.config
 
 import com.github.zzave.teambalance.api.TeamBalanceIT
+import com.github.zzave.teambalance.api.application.BunqConnectionService
+import com.github.zzave.teambalance.api.domain.exception.BunqConnectDisabledException
+import com.github.zzave.teambalance.api.domain.model.TeamId
+import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.port.BunqGateway
 import com.github.zzave.teambalance.api.domain.port.EmailGateway
 import com.github.zzave.teambalance.api.infrastructure.bunq.UnconfiguredBunqGatewayAdapter
 import com.github.zzave.teambalance.api.infrastructure.devdata.DemoDataSeeder
 import com.github.zzave.teambalance.api.infrastructure.email.ScalewayTemEmailAdapter
 import com.zaxxer.hikari.HikariDataSource
+import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.nulls.shouldNotBeNull
@@ -17,12 +22,14 @@ import org.springframework.boot.web.server.Cookie
 import org.springframework.boot.web.server.autoconfigure.ServerProperties
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
 import org.springframework.context.ApplicationContext
+import org.springframework.core.env.Environment
 import org.springframework.http.HttpHeaders
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.context.TestPropertySource
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers
+import java.util.UUID
 
 /**
  * Boots the real, PURE `prod` profile (inheritProfiles = false, so TeamBalanceIT's "test" profile
@@ -58,6 +65,9 @@ class ProdProfileSmokeIT : TeamBalanceIT() {
     @Autowired
     lateinit var serverProperties: ServerProperties
 
+    @Autowired
+    lateinit var environment: Environment
+
     init {
         test("prod profile hardens the session cookie (Secure + SameSite=Lax)") {
             val cookie = serverProperties.servlet.session.cookie
@@ -78,6 +88,17 @@ class ProdProfileSmokeIT : TeamBalanceIT() {
 
         test("prod profile wires the unconfigured Bunq gateway, never the fake") {
             applicationContext.getBean(BunqGateway::class.java).shouldBeInstanceOf<UnconfiguredBunqGatewayAdapter>()
+        }
+
+        // The key is required only while connecting is switched on. This context supplies none, so
+        // booting at all proves the prod default (flag off) needs no TEAMBALANCE_BUNQ_TOKEN_ENCRYPTION_KEY.
+        test("prod profile boots without a Bunq token key and keeps connecting switched off") {
+            environment.getProperty("teambalance.bunq.token-encryption-key") shouldBe ""
+            environment.getProperty("teambalance.bunq.connect-enabled") shouldBe "false"
+
+            val service = applicationContext.getBean(BunqConnectionService::class.java)
+
+            shouldThrow<BunqConnectDisabledException> { service.start(UserId.random(), TeamId(UUID.randomUUID())) }
         }
 
         test("prod profile does not load the dev demo-data seeder") {

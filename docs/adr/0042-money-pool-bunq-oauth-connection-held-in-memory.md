@@ -35,7 +35,9 @@ treasurer to hand one over is a large trust request.
   OAuth access token, the key pair and installation token of Bunq's device registration, and the
   current session token. They have to be stored: Bunq allows one new session per 30 seconds, and the
   app runs on a container that scales to zero, so a session held only in memory would be lost on
-  every cold start.
+  every cold start. The key (`TEAMBALANCE_BUNQ_TOKEN_ENCRYPTION_KEY`) is required only while
+  connecting is switched on (`teambalance.bunq.connect-enabled`, off by default), so a deployment that
+  has not enabled it boots without the key; switched on without it, startup fails.
 - **Bunq API calls go through the Wirespec-generated Bunq SDK** (`flock-community/bunq-sdk`) behind
   an outbound port, faked in tests. Gaps found in that SDK are raised as issues on that repository,
   not patched in this one. At the time of writing the SDK is on Wirespec 0.16 and Jackson 2, is not

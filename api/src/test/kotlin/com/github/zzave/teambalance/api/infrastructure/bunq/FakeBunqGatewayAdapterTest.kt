@@ -12,7 +12,7 @@ private val TODAY = LocalDate.of(2026, 10, 11)
 private val ACCOUNT = BunqAccountId("any")
 
 class FakeBunqGatewayAdapterTest : FunSpec({
-    val adapter = FakeBunqGatewayAdapter(Clock.fixed(Instant.parse("2026-10-11T10:00:00Z"), ZoneOffset.UTC))
+    val adapter = FakeBunqGatewayAdapter(Clock.fixed(Instant.parse("2026-10-11T10:00:00Z"), ZoneOffset.UTC), "http://localhost:8080")
 
     test("payments are dated relative to today, newest first") {
         val dates = adapter.fetchPayments(ACCOUNT, TODAY.minusDays(90), 200).map { it.date }

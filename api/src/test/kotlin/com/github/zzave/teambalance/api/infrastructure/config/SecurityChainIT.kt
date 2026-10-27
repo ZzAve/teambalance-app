@@ -133,6 +133,8 @@ class SecurityChainIT : TeamBalanceIT() {
             perform(get("/internal/actuator/health")).status shouldBe 200
             // The feed's own refusal (an unknown team) rather than the chain's 401.
             perform(get("/api/calendar/no-such-team/no-such-token.ics")).status shouldBe 404
+            // Bunq returns the browser here without a session; an unknown state is sent back to the app.
+            perform(get("/api/bunq/oauth/callback?state=unknown")).status shouldBe 302
         }
 
         test("the default security headers are on") {

@@ -1,6 +1,9 @@
 package com.github.zzave.teambalance.api.infrastructure.bunq
 
+import com.github.zzave.teambalance.api.domain.model.BunqAccount
 import com.github.zzave.teambalance.api.domain.model.BunqAccountId
+import com.github.zzave.teambalance.api.domain.model.BunqAuthorizationCode
+import com.github.zzave.teambalance.api.domain.model.BunqGrant
 import com.github.zzave.teambalance.api.domain.model.Money
 import com.github.zzave.teambalance.api.domain.model.Payment
 import com.github.zzave.teambalance.api.domain.port.BunqGateway
@@ -12,6 +15,12 @@ import java.time.LocalDate
 @Component
 @Profile("prod")
 class UnconfiguredBunqGatewayAdapter : BunqGateway {
+
+    override fun authorizationUrl(state: String, redirectUri: String): String = unavailable()
+
+    override fun exchangeCode(code: BunqAuthorizationCode, redirectUri: String): BunqGrant = unavailable()
+
+    override fun listAccounts(grant: BunqGrant): List<BunqAccount> = unavailable()
 
     override fun fetchBalance(account: BunqAccountId): Money = unavailable()
 

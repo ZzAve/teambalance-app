@@ -149,6 +149,10 @@ teambalance:
     invitation-accept:
       capacity: 10
       refill-period: 1m
+    # GET /api/bunq/oauth/callback — public (the single-use state is the credential), keyed per IP.
+    bunq-oauth-callback:
+      capacity: 10
+      refill-period: 1m
     # GET /api/calendar/{slug}/{token}.ics — keyed per token, not per IP: the feed is session-less and
     # calendar clients behind one corporate NAT would otherwise share a bucket. 30/hour against a
     # tightest advertised cadence of PT1H, so thirty times the headroom a well-behaved client needs.
@@ -170,6 +174,15 @@ teambalance:
     # it via TEAMBALANCE_CALENDAR_LINK_ENCRYPTION_KEY. Rotating this key makes existing links
     # unlistable; the feeds themselves keep working, since lookup matches on the hash.
     token-encryption-key: ${TEAMBALANCE_CALENDAR_LINK_ENCRYPTION_KEY}
+  bunq:
+    # Whether an Admin can connect Bunq. Off by default so a deployment stays hidden and unreachable
+    # until it is ready (the connect endpoints answer 404); dev and test switch it on.
+    connect-enabled: ${TEAMBALANCE_BUNQ_CONNECT_ENABLED:false}
+    # App-wide AES-256 key (base64, 32 bytes) under which a team's Bunq OAuth grant is stored
+    # (ADR-0042), a sibling of the invitation and calendar-link keys and never the same value. Required
+    # only while connect-enabled is true: no default beyond empty, so switching connecting on without
+    # TEAMBALANCE_BUNQ_TOKEN_ENCRYPTION_KEY fails at startup, and leaving it off needs no key.
+    token-encryption-key: ${TEAMBALANCE_BUNQ_TOKEN_ENCRYPTION_KEY:}
   invitation:
     # App-wide secret salt applied to stored invite-token hashes. Live environments MUST provide it
     # via INVITATION_TOKEN_SALT (no default here → the app fails fast if it is unset). Dev and test

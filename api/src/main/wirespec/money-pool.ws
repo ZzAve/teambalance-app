@@ -56,3 +56,25 @@ endpoint GetTopUpLink GET /api/team/money-pool/top-up-link ? {amount: Integer} -
     403 -> Unit
     404 -> Unit
 }
+
+// Admin-only. connectAvailable is false while Bunq connecting is switched off for this deployment; starting a connection answers 404 then. connected: the team has a Bunq Connection.
+type BunqConnectionStatus {
+    connectAvailable: Boolean,
+    connected: Boolean
+}
+
+endpoint GetBunqConnection GET /api/team/money-pool/connection -> {
+    200 -> BunqConnectionStatus
+    403 -> Unit
+}
+
+// Admin-only. Returns the Bunq page the browser goes to for approving access; Bunq sends it back to the API's callback, which redirects to the team settings with ?bunq=connected, declined or error. Allowed while already connected: the new grant replaces the old one. 404 when connecting is switched off.
+type BunqAuthorization {
+    url: String
+}
+
+endpoint StartBunqConnection POST /api/team/money-pool/connection -> {
+    201 -> BunqAuthorization
+    403 -> Unit
+    404 -> Unit
+}

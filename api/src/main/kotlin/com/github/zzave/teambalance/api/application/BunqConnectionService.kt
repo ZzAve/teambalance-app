@@ -30,7 +30,7 @@ data class BunqConnectOutcome(val result: BunqConnectResult, val teamSlug: Slug?
 data class BunqConnectionStatus(val connectAvailable: Boolean, val connected: Boolean)
 
 /**
- * What connecting needs: the key the grant is stored under and the callback URL Bunq returns the
+ * What connecting needs: the cipher the grant is encrypted with and the callback URL Bunq returns the
  * browser to. It exists only while `teambalance.bunq.connect-enabled` is true; the key itself is read
  * at startup in every profile (see BunqGrantCipherConfiguration), so a deployment with connecting off
  * still needs it.

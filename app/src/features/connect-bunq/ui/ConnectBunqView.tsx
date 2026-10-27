@@ -41,7 +41,7 @@ export function ConnectBunqView({ connected, result, focusResult, isConnecting, 
   }, [focusResult, result])
 
   const failed = result === 'error'
-  // While the browser is on its way to Bunq the acknowledgement is given and frozen, as is the button.
+  // While the browser is on its way to Bunq the acknowledgement stays ticked and disabled, as does the button.
   const ticked = acknowledged || !!isConnecting
 
   return (

@@ -95,16 +95,19 @@ class BunqConnectDisabledIT : TeamBalanceIT() {
                 .andExpect(header().string("Location", "http://localhost:5173/t/cal-alpha/team/settings?bunq=error"))
 
             jdbcTemplate.queryForObject("SELECT count(*) FROM $ALPHA_SCHEMA.bunq_connection", Int::class.java) shouldBe 0
-            jdbcTemplate.queryForObject(
-                "SELECT count(*) FROM public.bunq_oauth_states WHERE team_id = ?::uuid AND used_at IS NULL",
-                Int::class.java, ALPHA_TEAM,
-            ) shouldBe 1
+            unspentStateRows() shouldBe 1
         }
     }
 
     private fun stateRows() =
         jdbcTemplate.queryForObject(
             "SELECT count(*) FROM public.bunq_oauth_states WHERE team_id = ?::uuid", Int::class.java, ALPHA_TEAM,
+        )!!
+
+    private fun unspentStateRows() =
+        jdbcTemplate.queryForObject(
+            "SELECT count(*) FROM public.bunq_oauth_states WHERE team_id = ?::uuid AND used_at IS NULL",
+            Int::class.java, ALPHA_TEAM,
         )!!
 
     /** The wirespec handlers are suspend functions, so every answer arrives through an async dispatch. */

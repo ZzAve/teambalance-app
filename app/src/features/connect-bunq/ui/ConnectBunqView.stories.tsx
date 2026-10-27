@@ -62,7 +62,7 @@ export const Shells: Story = {
     await expect(region('Connected').getByRole('button', { name: 'Connect again' })).toBeDisabled()
     await expect(region('Connected').getByText(/Connecting again replaces the current connection/)).toBeInTheDocument()
 
-    // While the browser is on its way to Bunq the acknowledgement is given and frozen, the button is
+    // While the browser is on its way to Bunq the acknowledgement stays ticked and disabled, the button is
     // disabled, and the tick hint is not needed.
     await expect(region('Connecting').getByRole('button', { name: 'Opening Bunq…' })).toBeDisabled()
     await expect(region('Connecting').getByRole('checkbox')).toBeChecked()

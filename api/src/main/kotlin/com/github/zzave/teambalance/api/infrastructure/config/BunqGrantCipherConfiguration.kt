@@ -18,7 +18,7 @@ class BunqGrantCipherConfiguration {
         TokenCipher.fromBase64Key(encodedKey, "teambalance.bunq.token-encryption-key")
 
     companion object {
-        /** TokenCipher is a plain class, so injection names this one: the next sibling key must not make it ambiguous. */
+        /** Two TokenCipher beans would make injection by type ambiguous; the name picks this one. */
         const val BEAN_NAME = "bunqGrantCipher"
     }
 }

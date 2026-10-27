@@ -33,7 +33,7 @@ const meta = {
     beerPrice: 270,
     beerCount: 69,
     canTopUp: true,
-    topUp: <Button>Top up</Button>,
+    topUp: <Button size="lg">Top up</Button>,
   },
 } satisfies Meta<typeof MoneyPoolView>
 

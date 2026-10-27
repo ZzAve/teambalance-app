@@ -11,10 +11,7 @@ import { TopUpSheetView } from './TopUpSheetView'
  */
 export function TopUp() {
   const [open, setOpen] = useState(false)
-  const topUp = useMutation({
-    mutationFn: fetchTopUpLink,
-    onSuccess: (url) => window.location.assign(url),
-  })
+  const topUp = useMutation({ mutationFn: fetchTopUpLink })
 
   return (
     <TopUpSheetView
@@ -24,7 +21,9 @@ export function TopUp() {
         setOpen(next)
         if (!next) topUp.reset()
       }}
-      onPick={(euros) => topUp.mutate(euros)}
+      // The navigation is a mutate callback, not a useMutation option: closing the sheet resets the mutation,
+      // which drops mutate callbacks, so a link that arrives after the member closed the sheet goes nowhere.
+      onPick={(euros) => topUp.mutate(euros, { onSuccess: (url) => window.location.assign(url) })}
       isPending={topUp.isPending}
       error={topUp.error && errorMessage(topUp.error)}
     />

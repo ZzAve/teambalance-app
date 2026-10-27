@@ -27,7 +27,7 @@ const meta = {
         beerPrice={270}
         beerCount={69}
         canTopUp
-        topUp={<Button>Top up</Button>}
+        topUp={<Button size="lg">Top up</Button>}
         payments={[
           { date: '2026-10-06', name: 'Lisa de Vries', amount: 2000, direction: 'In' },
           { date: '2026-10-04', name: 'Sporthal De Kuil', amount: 4500, direction: 'Out' },

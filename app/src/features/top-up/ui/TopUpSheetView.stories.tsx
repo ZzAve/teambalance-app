@@ -2,7 +2,6 @@ import { useState, type ComponentProps } from 'react'
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { expect, fn, waitFor, within } from 'storybook/test'
 import { Button } from '@shared/ui/button'
-import { TOP_UP_PRESETS } from '../lib/amount'
 import { TopUpSheetView } from './TopUpSheetView'
 
 // The amount picker behind the TopUp container. A portal sheet driven by `open`, so there is no
@@ -42,23 +41,24 @@ export const Shells: Story = {
 }
 
 // The container sets isPending while the link is fetched and owns `open`, with the Top up button as the
-// trigger. This stands in for it after a preset pick, so the custom amount can still be exercised first.
-function PendingAfterPresetPick(args: ComponentProps<typeof TopUpSheetView>) {
+// trigger. This stands in for it: any pick sets it, and closing the sheet clears it.
+function PendingAfterPick(args: ComponentProps<typeof TopUpSheetView>) {
   const [open, setOpen] = useState(args.open)
   const [isPending, setIsPending] = useState(false)
   return (
     <TopUpSheetView
       {...args}
-      trigger={<Button>Top up</Button>}
+      trigger={<Button size="lg">Top up</Button>}
       open={open}
       onOpenChange={(next) => {
         args.onOpenChange(next)
         setOpen(next)
+        if (!next) setIsPending(false)
       }}
       isPending={isPending}
       onPick={(euros) => {
         args.onPick(euros)
-        setIsPending(TOP_UP_PRESETS.includes(euros))
+        setIsPending(true)
       }}
     />
   )
@@ -66,7 +66,7 @@ function PendingAfterPresetPick(args: ComponentProps<typeof TopUpSheetView>) {
 
 export const Interactions: Story = {
   parameters: { chromatic: { disableSnapshot: true } },
-  render: (args) => <PendingAfterPresetPick {...args} />,
+  render: (args) => <PendingAfterPick {...args} />,
   play: async ({ canvas, userEvent, args }) => {
     const dialog = await sheet()
     const custom = dialog.getByLabelText('Other amount (€)')
@@ -84,9 +84,10 @@ export const Interactions: Story = {
     for (const invalid of ['0', '501', '12.5']) {
       await userEvent.clear(custom)
       await userEvent.type(custom, invalid)
-      await expect(amountErrors[0]).toHaveTextContent('Enter a whole amount from €1 to €500.')
+      await waitFor(() => expect(amountErrors[0]).toHaveTextContent('Enter a whole amount from €1 to €500.'))
+      await waitFor(() => expect(custom).toHaveAccessibleDescription('Enter a whole amount from €1 to €500.'))
+      await expect(custom).toBeInvalid()
       await expect(dialog.queryByRole('alert')).not.toBeInTheDocument()
-      await expect(custom).toHaveAccessibleDescription('Enter a whole amount from €1 to €500.')
       await expect(pay).toBeDisabled()
     }
     await userEvent.type(custom, '{Enter}')
@@ -100,15 +101,30 @@ export const Interactions: Story = {
     await userEvent.type(custom, '75')
     await userEvent.click(pay)
     await expect(args.onPick).toHaveBeenCalledWith(75)
+    // While the link is fetched, Pay is aria-disabled rather than disabled: a focused button that becomes
+    // disabled drops focus to <body>, outside the modal dialog. Pressing it again, or Enter in the field,
+    // picks nothing.
+    await waitFor(() => expect(pay).toHaveTextContent('Opening…'))
+    await expect(pay).toHaveFocus()
+    await expect(pay).toHaveAttribute('aria-disabled', 'true')
+    await userEvent.keyboard('{Enter}')
+    await userEvent.type(custom, '{Enter}')
+    await expect(args.onPick).toHaveBeenCalledTimes(1)
 
-    const twenty = dialog.getByRole('button', { name: '€20' })
+    // Closing ends the pending state; the sheet reopens with the amount still typed.
+    await userEvent.keyboard('{Escape}')
+    await waitFor(() => expect(within(document.body).queryByRole('dialog')).not.toBeInTheDocument())
+    await userEvent.click(canvas.getByRole('button', { name: 'Top up' }))
+    const reopened = await sheet()
+
+    const twenty = reopened.getByRole('button', { name: '€20' })
     await userEvent.click(twenty)
     await expect(args.onPick).toHaveBeenCalledWith(20)
-    // While the link is fetched, nothing else can be picked. The presets are aria-disabled rather than
-    // disabled: a focused button that becomes disabled drops focus to <body>, outside the modal dialog.
-    await expect(dialog.getByRole('button', { name: 'Opening…' })).toBeDisabled()
+    // While the link is fetched, nothing else can be picked. The presets are aria-disabled too, for the
+    // same reason as Pay.
+    await expect(reopened.getByRole('button', { name: 'Opening…' })).toHaveAttribute('aria-disabled', 'true')
     for (const label of ['€10', '€20', '€50']) {
-      await expect(dialog.getByRole('button', { name: label })).toHaveAttribute('aria-disabled', 'true')
+      await expect(reopened.getByRole('button', { name: label })).toHaveAttribute('aria-disabled', 'true')
     }
     await expect(twenty).toHaveFocus()
     await userEvent.keyboard('{Enter}')

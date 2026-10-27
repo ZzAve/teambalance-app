@@ -30,7 +30,7 @@ export function TopUpSheetView({ open, onOpenChange, onPick, isPending, error, t
 
   const submitCustom = (event: FormEvent) => {
     event.preventDefault()
-    if (custom !== null) onPick(custom)
+    if (custom !== null && !isPending) onPick(custom)
   }
 
   return (
@@ -72,7 +72,16 @@ export function TopUpSheetView({ open, onOpenChange, onPick, isPending, error, t
               aria-describedby={customInvalid ? customErrorId : undefined}
               onChange={(e) => setCustomText(e.target.value)}
             />
-            <Button type="submit" size="lg" disabled={isPending || custom === null}>
+            {/* Pending is aria-disabled, like the presets, so focus stays on Pay; an amount that is not payable
+                is still disabled, since the member has not pressed it. Enter in the field submits too, hence
+                the guard in submitCustom. */}
+            <Button
+              type="submit"
+              size="lg"
+              disabled={!isPending && custom === null}
+              aria-disabled={isPending}
+              className="aria-disabled:pointer-events-none aria-disabled:opacity-50"
+            >
               {isPending ? 'Opening…' : 'Pay'}
             </Button>
           </div>

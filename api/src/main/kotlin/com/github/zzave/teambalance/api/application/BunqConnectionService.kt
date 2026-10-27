@@ -108,17 +108,31 @@ class BunqConnectionService(
      * Every refusal is a [BunqConnectResult.FAILED] outcome, never an exception, and an unknown,
      * expired or already used state is not told apart from the others.
      */
-    fun complete(state: String?, code: String?, error: String?, sessionUser: UserId?): BunqConnectOutcome {
-        val pending = state?.let { stateRepository.findByTokenHash(hash(it)) } ?: return failed(null)
-        val teamSlug = teamRepository.findById(pending.teamId)?.slug
-        val routing = if (connectConfig != null && spend(pending)) routingForAdmin(pending, sessionUser) else null
-        return when {
-            connectConfig == null || routing == null -> failed(teamSlug)
-            error == ACCESS_DENIED -> BunqConnectOutcome(BunqConnectResult.DECLINED, teamSlug)
-            error != null || code == null -> failed(teamSlug)
-            else -> connect(connectConfig, pending, BunqAuthorizationCode(code), routing, teamSlug)
+    fun complete(state: String?, code: String?, error: String?, sessionUser: UserId?): BunqConnectOutcome =
+        guarded(teamId = null, teamSlug = null) {
+            val pending = state?.let { stateRepository.findByTokenHash(hash(it)) } ?: return@guarded failed(null)
+            val teamSlug = teamRepository.findById(pending.teamId)?.slug
+            guarded(pending.teamId, teamSlug) {
+                val routing = if (connectConfig != null && spend(pending)) routingForAdmin(pending, sessionUser) else null
+                when {
+                    connectConfig == null || routing == null -> failed(teamSlug)
+                    error == ACCESS_DENIED -> BunqConnectOutcome(BunqConnectResult.DECLINED, teamSlug)
+                    error != null || code == null -> failed(teamSlug)
+                    else -> connect(connectConfig, pending, BunqAuthorizationCode(code), routing, teamSlug)
+                }
+            }
         }
-    }
+
+    /** The callback must always answer with a redirect, so anything unexpected ends as a failed outcome. */
+    @Suppress("TooGenericExceptionCaught")
+    private inline fun guarded(teamId: TeamId?, teamSlug: Slug?, block: () -> BunqConnectOutcome): BunqConnectOutcome =
+        try {
+            block()
+        } catch (e: Exception) {
+            // Class name only: a message may carry secrets.
+            log.warn("Completing the Bunq connection for team $teamId failed: ${e.javaClass.simpleName}")
+            failed(teamSlug)
+        }
 
     /** Marks a live, unused state as used. False for an expired or already used one, and for the loser of a race. */
     private fun spend(pending: BunqOAuthState): Boolean {

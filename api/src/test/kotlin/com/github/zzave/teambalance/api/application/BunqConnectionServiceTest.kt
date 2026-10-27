@@ -48,14 +48,20 @@ private class SteppingClock(var now: Instant) : Clock() {
 
 private class InMemoryOAuthStates : BunqOAuthStateRepository {
     val byHash = mutableMapOf<TokenHash, BunqOAuthState>()
+    var failLookups = false
+    var failConsumes = false
 
     override fun save(state: BunqOAuthState) {
         byHash[state.tokenHash] = state
     }
 
-    override fun findByTokenHash(tokenHash: TokenHash) = byHash[tokenHash]
+    override fun findByTokenHash(tokenHash: TokenHash): BunqOAuthState? {
+        check(!failLookups) { "database down" }
+        return byHash[tokenHash]
+    }
 
     override fun consume(id: UUID, now: Instant): Boolean {
+        check(!failConsumes) { "database down" }
         val state = byHash.values.first { it.id == id }
         if (state.usedAt != null) return false
         byHash[state.tokenHash] = state.copy(usedAt = now)
@@ -299,6 +305,28 @@ class BunqConnectionServiceTest : FunSpec() {
 
                 f.complete(state, "abc", null) shouldBe BunqConnectOutcome(BunqConnectResult.FAILED, f.teamSlug)
 
+                f.tenants.hasNoConnections() shouldBe true
+            }
+
+            test("a state lookup that throws is a failed outcome, never an exception") {
+                val f = Fixture()
+                val state = f.startFlow()
+                f.states.failLookups = true
+
+                f.complete(state, "abc", null) shouldBe BunqConnectOutcome(BunqConnectResult.FAILED, null)
+
+                f.bunq.exchanges shouldBe 0
+                f.tenants.hasNoConnections() shouldBe true
+            }
+
+            test("spending the state failing is a failed outcome that still names the team") {
+                val f = Fixture()
+                val state = f.startFlow()
+                f.states.failConsumes = true
+
+                f.complete(state, "abc", null) shouldBe BunqConnectOutcome(BunqConnectResult.FAILED, f.teamSlug)
+
+                f.bunq.exchanges shouldBe 0
                 f.tenants.hasNoConnections() shouldBe true
             }
 

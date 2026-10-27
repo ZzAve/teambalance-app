@@ -179,10 +179,11 @@ teambalance:
     # until it is ready (the connect endpoints answer 404); dev and test switch it on.
     connect-enabled: ${TEAMBALANCE_BUNQ_CONNECT_ENABLED:false}
     # App-wide AES-256 key (base64, 32 bytes) under which a team's Bunq OAuth grant is stored
-    # (ADR-0042), a sibling of the invitation and calendar-link keys and never the same value. Required
-    # only while connect-enabled is true: no default beyond empty, so switching connecting on without
-    # TEAMBALANCE_BUNQ_TOKEN_ENCRYPTION_KEY fails at startup, and leaving it off needs no key.
-    token-encryption-key: ${TEAMBALANCE_BUNQ_TOKEN_ENCRYPTION_KEY:}
+    # (ADR-0042), a sibling of the invitation and calendar-link keys and never the same value. Live
+    # environments MUST provide it via TEAMBALANCE_BUNQ_TOKEN_ENCRYPTION_KEY, whether or not
+    # connect-enabled is on: no default here, so the app fails fast at startup without it. Rotating
+    # this key makes stored grants unreadable until an Admin reconnects.
+    token-encryption-key: ${TEAMBALANCE_BUNQ_TOKEN_ENCRYPTION_KEY}
   invitation:
     # App-wide secret salt applied to stored invite-token hashes. Live environments MUST provide it
     # via INVITATION_TOKEN_SALT (no default here → the app fails fast if it is unset). Dev and test

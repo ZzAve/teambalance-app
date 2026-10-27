@@ -5,8 +5,8 @@
 CREATE TABLE bunq_oauth_states (
     id            UUID PRIMARY KEY,
     state_hash    VARCHAR(64) NOT NULL UNIQUE,
-    team_id       UUID        NOT NULL REFERENCES teams (id),
-    admin_user_id UUID        NOT NULL REFERENCES users (id),
+    team_id       UUID        NOT NULL REFERENCES teams (id) ON DELETE CASCADE,
+    admin_user_id UUID        NOT NULL REFERENCES users (id) ON DELETE CASCADE,
     expires_at    TIMESTAMPTZ NOT NULL,
     used_at       TIMESTAMPTZ,
     created_at    TIMESTAMPTZ NOT NULL DEFAULT now()

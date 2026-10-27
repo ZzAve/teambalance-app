@@ -19,6 +19,7 @@ import com.github.zzave.teambalance.api.domain.port.TenantScopeGateway
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import org.springframework.core.env.Environment
 import java.time.Clock
 
 /**
@@ -44,11 +45,6 @@ class MoneyPoolCompositionRoot {
         authorizationService = authorizationService,
     )
 
-    /**
-     * The grant key is read only when connecting is switched on, so a deployment with it off (the
-     * default) boots without `TEAMBALANCE_BUNQ_TOKEN_ENCRYPTION_KEY`; switched on with a missing or
-     * malformed key it fails at startup like the sibling keys.
-     */
     @Bean
     @Suppress("LongParameterList")
     fun bunqConnectionService(
@@ -61,9 +57,10 @@ class MoneyPoolCompositionRoot {
         actAsService: ActAsService,
         authorizationService: AuthorizationService,
         clock: Clock,
+        bunqGrantCipher: TokenCipher,
+        environment: Environment,
         @Value("\${teambalance.api-base-url}") apiBaseUrl: String,
         @Value("\${teambalance.bunq.connect-enabled}") connectEnabled: Boolean,
-        @Value("\${teambalance.bunq.token-encryption-key:}") tokenEncryptionKey: String,
     ) = BunqConnectionService(
         connectionRepository = connectionRepository,
         stateRepository = stateRepository,
@@ -74,14 +71,7 @@ class MoneyPoolCompositionRoot {
         actAsService = actAsService,
         authorizationService = authorizationService,
         clock = clock,
-        connectConfig = if (connectEnabled) {
-            BunqConnectConfig(
-                grantCipher = TokenCipher.fromBase64Key(tokenEncryptionKey, "teambalance.bunq.token-encryption-key"),
-                callbackUrl = apiBaseUrl.trimEnd('/') + BunqConnectionService.CALLBACK_PATH,
-            )
-        } else {
-            null
-        },
+        connectConfig = bunqConnectConfig(connectEnabled, environment.matchesProfiles("prod"), bunqGrantCipher, apiBaseUrl),
     )
 
     @Bean
@@ -96,4 +86,22 @@ class MoneyPoolCompositionRoot {
         teamMemberRepository = teamMemberRepository,
         actAsGateway = actAsGateway,
     )
+}
+
+/**
+ * The connect settings, or null while connecting is switched off. Switching it on in prod, where the
+ * gateway is the unconfigured one until the real adapter exists (slice 4), stops the app from starting:
+ * every attempt would otherwise save a state and then fail with a 500.
+ */
+internal fun bunqConnectConfig(
+    connectEnabled: Boolean,
+    isProd: Boolean,
+    grantCipher: TokenCipher,
+    apiBaseUrl: String,
+): BunqConnectConfig? {
+    if (!connectEnabled) return null
+    check(!isProd) {
+        "teambalance.bunq.connect-enabled cannot be on in prod: there is no real Bunq adapter yet"
+    }
+    return BunqConnectConfig(grantCipher, apiBaseUrl.trimEnd('/') + BunqConnectionService.CALLBACK_PATH)
 }

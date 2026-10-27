@@ -7,6 +7,7 @@ import com.github.zzave.teambalance.api.domain.model.TeamId
 import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.port.BunqGateway
 import com.github.zzave.teambalance.api.domain.port.EmailGateway
+import com.github.zzave.teambalance.api.infrastructure.bunq.FakeBunqAuthorizeController
 import com.github.zzave.teambalance.api.infrastructure.bunq.UnconfiguredBunqGatewayAdapter
 import com.github.zzave.teambalance.api.infrastructure.devdata.DemoDataSeeder
 import com.github.zzave.teambalance.api.infrastructure.email.ScalewayTemEmailAdapter
@@ -48,6 +49,7 @@ import java.util.UUID
         "teambalance.invitation.token-encryption-key=dGVhbWJhbGFuY2UtcHJvZC1zbW9rZS1rZXktMzJieXQ=",
         "teambalance.calendar-link.token-salt=prod-smoke-calendar-salt",
         "teambalance.calendar-link.token-encryption-key=cHJvZC1zbW9rZS1jYWxlbmRhci1rZXktMzJieXRlcyE=",
+        "teambalance.bunq.token-encryption-key=dGVhbWJhbGFuY2UtcHJvZC1idW5xLXNtb2tlLWtleTE=",
         "teambalance.email.api-key=prod-smoke-key",
         "teambalance.email.project-id=prod-smoke-project",
         "teambalance.internal.api-key=prod-smoke-internal-key",
@@ -90,15 +92,17 @@ class ProdProfileSmokeIT : TeamBalanceIT() {
             applicationContext.getBean(BunqGateway::class.java).shouldBeInstanceOf<UnconfiguredBunqGatewayAdapter>()
         }
 
-        // The key is required only while connecting is switched on. This context supplies none, so
-        // booting at all proves the prod default (flag off) needs no TEAMBALANCE_BUNQ_TOKEN_ENCRYPTION_KEY.
-        test("prod profile boots without a Bunq token key and keeps connecting switched off") {
-            environment.getProperty("teambalance.bunq.token-encryption-key") shouldBe ""
+        // Connecting stays off in prod until the real adapter exists (slice 4); an unset flag is its default.
+        test("prod profile keeps Bunq connecting switched off") {
             environment.getProperty("teambalance.bunq.connect-enabled") shouldBe "false"
 
             val service = applicationContext.getBean(BunqConnectionService::class.java)
 
             shouldThrow<BunqConnectDisabledException> { service.start(UserId.random(), TeamId(UUID.randomUUID())) }
+        }
+
+        test("prod profile does not load the fake Bunq approval page") {
+            applicationContext.getBeanNamesForType(FakeBunqAuthorizeController::class.java).toList().shouldBeEmpty()
         }
 
         test("prod profile does not load the dev demo-data seeder") {

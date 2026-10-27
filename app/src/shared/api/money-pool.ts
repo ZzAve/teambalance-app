@@ -9,6 +9,12 @@ export type { MoneyPoolState } from './generated/model/MoneyPoolState'
 export type { MoneyPoolSettings } from './generated/model/MoneyPoolSettings'
 export type { Payment } from './generated/model/Payment'
 
+// The server writes an absent optional field as JSON null, while the generated types (and the
+// `=== undefined` checks on them) say undefined: a cleared beer price would otherwise read as a price of 0.
+export function nullsToUndefined<T extends object>(body: T): T {
+  return Object.fromEntries(Object.entries(body).map(([key, value]) => [key, value ?? undefined])) as T
+}
+
 // The current team's money pool. Readable by any member; `state` says whether the pool is switched
 // off, not connected, unreachable, or connected (then balance and payments are set).
 export function useMoneyPool() {
@@ -16,7 +22,7 @@ export function useMoneyPool() {
     queryKey: ['money-pool'],
     queryFn: async () => {
       const res = await api.GetMoneyPool()
-      return res.body
+      return nullsToUndefined(res.body)
     },
   })
 }
@@ -29,7 +35,7 @@ export function useMoneyPoolSettings() {
     queryFn: async () => {
       const res = await api.GetMoneyPoolSettings()
       if (res.status === 403) throw new Error('You are not allowed to see the money pool settings.')
-      return res.body
+      return nullsToUndefined(res.body)
     },
   })
 }

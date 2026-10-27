@@ -1,7 +1,9 @@
 package com.github.zzave.teambalance.api.infrastructure.config
 
 import com.github.zzave.teambalance.api.TeamBalanceIT
+import com.github.zzave.teambalance.api.domain.port.BunqGateway
 import com.github.zzave.teambalance.api.domain.port.EmailGateway
+import com.github.zzave.teambalance.api.infrastructure.bunq.UnconfiguredBunqGatewayAdapter
 import com.github.zzave.teambalance.api.infrastructure.devdata.DemoDataSeeder
 import com.github.zzave.teambalance.api.infrastructure.email.ScalewayTemEmailAdapter
 import com.zaxxer.hikari.HikariDataSource
@@ -72,6 +74,10 @@ class ProdProfileSmokeIT : TeamBalanceIT() {
 
         test("prod profile activates the Scaleway TEM email sender") {
             applicationContext.getBean(EmailGateway::class.java).shouldBeInstanceOf<ScalewayTemEmailAdapter>()
+        }
+
+        test("prod profile wires the unconfigured Bunq gateway, never the fake") {
+            applicationContext.getBean(BunqGateway::class.java).shouldBeInstanceOf<UnconfiguredBunqGatewayAdapter>()
         }
 
         test("prod profile does not load the dev demo-data seeder") {

@@ -50,6 +50,7 @@ class EventControllerTest : TeamBalanceIT() {
                     .with(loginAs(JAN_USER_ID, tenant = "public")),
             )
                 .andExpect(MockMvcResultMatchers.status().isBadRequest)
+                .andExpect(MockMvcResultMatchers.jsonPath("$.error").value("Param include-past cannot be null"))
         }
 
         test("GET /api/events/{id} returns role for each attendee") {

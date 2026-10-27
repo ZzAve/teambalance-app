@@ -71,10 +71,11 @@ export const authMeQueryOptions = queryOptions({
     const res = await api.getAuthMe()
     if (res.status === 401) return null
     // A 200 must carry the user. A cold or misbehaving backend can answer with an empty (0-byte) body,
-    // which the generated client rejects ("body is null"), or a partial one that parses to something
-    // that is not a user, which is rejected below. Neither is a signed-out session: reading it as such
-    // would bounce a valid user to /login. Both reject as an unconfirmed session instead, so the
-    // guard's fail-closed path routes them to the retry/error fallback exactly like a 5xx.
+    // which the generated client rejects ("body is null"), or a truncated JSON body, which its
+    // deserialiser rejects with a SyntaxError; a body that parses but is not a user is rejected below.
+    // None of these is a signed-out session: reading it as such would bounce a valid user to /login.
+    // Each makes the query reject, so the guard's fail-closed path routes it to the retry/error
+    // fallback exactly like a 5xx.
     const user = res.body as AuthenticatedUser | undefined
     if (!user || typeof user !== 'object' || !Array.isArray(user.teams)) {
       throw new Error(`Unconfirmed session: /me returned status ${res.status} without a usable body`)

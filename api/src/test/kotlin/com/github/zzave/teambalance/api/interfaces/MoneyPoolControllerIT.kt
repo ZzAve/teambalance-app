@@ -318,6 +318,7 @@ class MoneyPoolControllerIT : TeamBalanceIT() {
                     .with(loginAs(MEMBER_USER_ID, tenant = "public")),
             )
                 .andExpect(MockMvcResultMatchers.status().isBadRequest)
+                .andExpect(MockMvcResultMatchers.jsonPath("$.error").value("Param amount cannot be null"))
         }
 
         test("GET /api/team/money-pool/top-up-link is 404 when the pool is Off, even with a link") {

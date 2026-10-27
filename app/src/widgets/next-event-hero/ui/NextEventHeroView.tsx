@@ -1,5 +1,5 @@
 import { Link } from '@tanstack/react-router'
-import { useId, useState, type ComponentType, type ReactNode } from 'react'
+import { useId, useState, type ComponentType, type CSSProperties, type ReactNode } from 'react'
 import { AlignLeft, Check, ChevronDown, Clock, HelpCircle, MapPin, Users, X } from 'lucide-react'
 import type { Event } from '@shared/api/events'
 import type { AttendanceState } from '@features/attendance-toggle/ui/AttendanceToggle'
@@ -8,6 +8,7 @@ import { ReadinessBadge } from '@entities/event/ui/ReadinessBadge'
 import { panelNoun } from '@entities/event/lib/roster-view'
 import { SectionLabel } from '@shared/ui/SectionLabel'
 import { heroCountdown } from '../lib/countdown'
+import { heroInk } from '../lib/hero-ink'
 import { useTeamRoutes } from '@shared/lib/team-routes'
 
 interface NextEventHeroViewProps {
@@ -79,15 +80,18 @@ export function NextEventHeroView({
   // The ground is the event type's colour, as on the card's date chit; a type without one keeps the
   // brand green. The far end is that colour at 80% over black, which for the green is green-dark.
   const ground = event.eventType.color ?? 'var(--color-green)'
+  // Every text and wash on the hero follows this one variable (`hero-ink` in global.css).
+  const ink = heroInk(event.eventType.color) === 'light' ? '#fff' : '#1D1B17'
 
   return (
     <section
       aria-label="Next up"
-      className="relative mt-4 overflow-hidden rounded-lg p-4 text-white"
+      className="relative mt-4 overflow-hidden rounded-lg p-4 text-hero-ink"
       style={{
+        '--hero-ink': ink,
         background: `linear-gradient(135deg, ${ground} 0%, color-mix(in srgb, ${ground} 80%, black) 100%)`,
         boxShadow: `0 14px 34px color-mix(in srgb, ${ground} 18%, transparent)`,
-      }}
+      } as CSSProperties}
     >
       {/* Soft highlight, purely decorative */}
       <span
@@ -104,15 +108,15 @@ export function NextEventHeroView({
         <span className="text-caption opacity-85">{countdown.unit}</span>
       </div>
 
-      {/* The passive rows fade with a colour alpha (text-white/xx), never with `opacity`: an
+      {/* The passive rows fade with a colour alpha (text-hero-ink/xx), never with `opacity`: an
           element with opacity < 1 forms its own stacking context and would paint *above* the
           title's stretched overlay, punching a dead hole in the card's hit area. */}
       <div className="flex items-center gap-2 pr-12">
-        <SectionLabel as="p" className="text-white/90">
+        <SectionLabel as="p" className="text-hero-ink/90">
           Next up
         </SectionLabel>
-        {/* The card's type tag, in white: the type's own tint has no contrast on its own colour. */}
-        <span className="rounded-full bg-white/20 px-2 py-0.5 text-caption font-semibold">
+        {/* The card's type tag, in the hero's ink: the type's own tint has no contrast on its own colour. */}
+        <span className="rounded-full bg-hero-ink/20 px-2 py-0.5 text-caption font-semibold">
           {event.eventType.name}
         </span>
       </div>
@@ -129,13 +133,13 @@ export function NextEventHeroView({
             traces the real target — the whole card. */}
         <Link
           to={routes.event(event.id)}
-          className="after:absolute after:inset-0 after:rounded-lg after:bg-white/0 after:transition-colors after:duration-200 hover:after:bg-white/[0.07] focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-inset focus-visible:after:ring-white"
+          className="after:absolute after:inset-0 after:rounded-lg after:bg-hero-ink/0 after:transition-colors after:duration-200 hover:after:bg-hero-ink/[0.07] focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-inset focus-visible:after:ring-hero-ink"
         >
           {event.title}
         </Link>
       </h3>
 
-      <p className="flex flex-wrap items-center gap-1.5 text-small text-white/95">
+      <p className="flex flex-wrap items-center gap-1.5 text-small text-hero-ink/95">
         <Clock size={13} className="shrink-0" />
         {date.toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short' })}
         {' · '}
@@ -143,7 +147,7 @@ export function NextEventHeroView({
       </p>
 
       {event.location && (
-        <p className="mt-1 flex flex-wrap items-center gap-1.5 text-small text-white/95">
+        <p className="mt-1 flex flex-wrap items-center gap-1.5 text-small text-hero-ink/95">
           <MapPin size={13} className="shrink-0" />
           {/* Plain text, as on the list cards: a maps link would compete with the card's own
               (ADR-0030 §9). */}
@@ -152,7 +156,7 @@ export function NextEventHeroView({
       )}
 
       {event.description && (
-        <p className="mt-1 flex items-start gap-1.5 text-small text-white/85">
+        <p className="mt-1 flex items-start gap-1.5 text-small text-hero-ink/85">
           <AlignLeft size={13} className="mt-[3px] shrink-0" />
           <span className="line-clamp-2">{event.description}</span>
         </p>
@@ -164,7 +168,7 @@ export function NextEventHeroView({
           The badge is deliberately *not* lifted above the stretched overlay — it is information, not
           a control, so tapping it opens the event like the rest of the passive rows. */}
       <div className="mt-2.5 flex items-center justify-between gap-2">
-        <p className="flex items-center gap-1.5 text-small text-white/90">
+        <p className="flex items-center gap-1.5 text-small text-hero-ink/90">
           <Users size={13} className="shrink-0" />
           {event.attendanceSummary.attending} going · {ATTENDANCE_WORDS[myState].status}
         </p>
@@ -188,7 +192,7 @@ export function NextEventHeroView({
               style={solid ? { color: ink } : undefined}
               className={[
                 'flex min-h-11 flex-1 items-center justify-center gap-1.5 rounded-md px-2 py-2.5 text-small font-bold transition-all active:scale-95',
-                solid ? 'bg-white' : answered ? 'bg-white/12 text-white' : 'bg-white/20 text-white',
+                solid ? 'bg-white' : answered ? 'bg-hero-ink/12 text-hero-ink' : 'bg-hero-ink/20 text-hero-ink',
                 isSaving ? 'cursor-not-allowed opacity-60' : 'cursor-pointer',
               ].join(' ')}
             >
@@ -207,7 +211,7 @@ export function NextEventHeroView({
           aria-expanded={lineupOpen}
           aria-controls={lineupOpen ? lineupId : undefined}
           onClick={() => setLineupOpen((open) => !open)}
-          className="relative z-10 mt-2 flex min-h-11 w-full cursor-pointer items-center justify-center gap-1.5 rounded-md bg-white/10 px-3 text-small font-semibold text-white/90 transition-colors hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+          className="relative z-10 mt-2 flex min-h-11 w-full cursor-pointer items-center justify-center gap-1.5 rounded-md bg-hero-ink/10 px-3 text-small font-semibold text-hero-ink/90 transition-colors hover:bg-hero-ink/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hero-ink"
         >
           {lineupOpen ? `Hide ${noun}` : `Show ${noun}`}
           <ChevronDown

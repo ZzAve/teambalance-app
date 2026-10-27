@@ -22,6 +22,10 @@
      kept as a fallback so the shared tokens stay valid for www/ (which still uses the CDN). */
   --font-display: 'Grandstander Variable', 'Grandstander', cursive;
   --font-body: 'DM Sans Variable', 'DM Sans', sans-serif;
+  /* The Next Up hero's ink: the hero sets --hero-ink to white or near-black depending on its ground
+     (widgets/next-event-hero). Inline, so `text-hero-ink/90` is a colour-mix over the variable itself
+     rather than over a :root value where --hero-ink is not defined. */
+  --color-hero-ink: var(--hero-ink);
 }
 
 /* ── Colour theme — NOT `inline`, and that is the whole trick behind dark mode (F11, #159) ──

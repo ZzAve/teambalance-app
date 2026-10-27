@@ -158,6 +158,14 @@ export const Shells: Story = {
             event={makeEvent({ ...EVENT, eventType: { ...EVENT.eventType, name: 'Match', color: '#225C9C' } })}
           />
         ),
+        // Gold is too light for white text, so the hero draws dark ink instead.
+        'Light type colour': (
+          <NextEventHeroView
+            {...args}
+            event={makeEvent({ ...EVENT, eventType: { ...EVENT.eventType, name: 'Social', color: '#F4B400' } })}
+            myState="MAYBE"
+          />
+        ),
         'Type without colour': (
           <NextEventHeroView
             {...args}
@@ -256,6 +264,15 @@ export const Shells: Story = {
       getComputedStyle(canvas.getByRole('region', { name: instance }).querySelector('section')!).backgroundImage
     await expect(heroGradient('Type colour')).toContain('rgb(34, 92, 156)')
     await expect(heroGradient('Type without colour')).toContain('rgb(36, 158, 108)')
+
+    // White ink on a dark enough ground, near-black (#1D1B17) on a light one — for the text and for
+    // the answer buttons that aren't the solid one.
+    const heroOf = (instance: string) => canvas.getByRole('region', { name: instance }).querySelector('section')!
+    await expect(getComputedStyle(heroOf('Type colour')).color).toBe('rgb(255, 255, 255)')
+    await expect(getComputedStyle(heroOf('Light type colour')).color).toBe('rgb(29, 27, 23)')
+    await expect(getComputedStyle(region('Light type colour').getByRole('button', { name: 'Going' })).color).toBe(
+      'rgb(29, 27, 23)',
+    )
 
     await expect(region('Readiness covered').getByText('Lineup set')).toBeInTheDocument()
     // The verdict joins the headcount the hero already carried; it does not replace it.

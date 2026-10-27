@@ -6,19 +6,17 @@ import { MemberRoster } from '@features/manage-members/ui/MemberRoster'
 import { TeamSettings } from '@features/team-settings/ui/TeamSettings'
 import { MoneySettings } from '@features/money-settings/ui/MoneySettings'
 import { ConnectBunq } from '@features/connect-bunq/ui/ConnectBunq'
-import type { ConnectBunqResult } from '@features/connect-bunq/ui/ConnectBunqView'
+import { parseBunqResult, type ConnectBunqResult } from '@features/connect-bunq/lib/bunq-result'
 import { ManagePositions } from '@features/manage-positions/ui/ManagePositions'
 import { ManageSubstitutes } from '@features/manage-substitutes/ui/ManageSubstitutes'
 import { ManageEventTypes } from '@features/manage-event-types/ui/ManageEventTypes'
 import { HandoverAdmin } from '@features/handover-admin/ui/HandoverAdmin'
 import { ActAsRecords } from '@features/act-as/ui/ActAsRecords'
 
-const BUNQ_RESULTS: readonly string[] = ['connected', 'declined', 'error']
-
 export const Route = createFileRoute('/t/$slug/team/settings')({
   // `?bunq=` is how the API's Bunq callback reports the end of a connection attempt; anything else is dropped.
   validateSearch: (search: Record<string, unknown>): { bunq?: ConnectBunqResult } => ({
-    bunq: BUNQ_RESULTS.includes(search.bunq as string) ? (search.bunq as ConnectBunqResult) : undefined,
+    bunq: parseBunqResult(search.bunq),
   }),
   // Admin-only. Read the same /me query the root guard primed (from cache) and bounce non-admins
   // home before the settings mount — race-free, mirroring the /members admin gate.

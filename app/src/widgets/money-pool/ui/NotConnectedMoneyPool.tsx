@@ -15,7 +15,10 @@ const PILLARS: Pillar[] = [
 
 interface NotConnectedMoneyPoolProps {
   isAdmin: boolean
-  /** Connecting Bunq is switched on for this deployment, so an admin can do it in the team settings. */
+  /**
+   * Whether connecting Bunq is switched on for this deployment: true points an admin to the team
+   * settings, false says it is coming. Undefined (not known yet, or the status could not be read) says neither.
+   */
   connectAvailable?: boolean
 }
 
@@ -53,6 +56,7 @@ export function NotConnectedMoneyPool({ isAdmin, connectAvailable }: NotConnecte
 }
 
 function adminCopy(connectAvailable?: boolean) {
+  if (connectAvailable === undefined) return 'The balance and payments of the team’s Bunq account will show up here.'
   return connectAvailable
     ? 'Connect the team’s Bunq account in the team settings. The balance and payments will show up here.'
     : 'Connecting the team’s Bunq account is coming soon. The balance and payments will show up here.'

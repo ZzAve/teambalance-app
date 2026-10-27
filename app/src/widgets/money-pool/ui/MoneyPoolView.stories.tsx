@@ -78,6 +78,7 @@ export const Shells: Story = {
         Off: <MoneyPoolView {...args} state="Off" />,
         'Not connected (member)': <MoneyPoolView {...args} state="NotConnected" />,
         'Not connected (admin)': <MoneyPoolView {...args} state="NotConnected" isAdmin />,
+        'Not connected (admin, connecting off)': <MoneyPoolView {...args} state="NotConnected" isAdmin connectAvailable={false} />,
         'Not connected (admin, can connect)': <MoneyPoolView {...args} state="NotConnected" isAdmin connectAvailable />,
         Unavailable: <MoneyPoolView {...args} state="Unavailable" />,
         'No link (member)': <MoneyPoolView {...args} state="NotConnected" canTopUp={false} />,
@@ -96,7 +97,10 @@ export const Shells: Story = {
     await expect(region('Error').getByRole('alert')).toHaveTextContent(/couldn't load/i)
     await expect(region('Off').getByText('The money pool is switched off for this team')).toBeInTheDocument()
     await expect(region('Not connected (member)').getByText(/once an admin connects/i)).toBeInTheDocument()
-    await expect(region('Not connected (admin)').getByText(/connecting the team.s bunq account is coming soon/i)).toBeInTheDocument()
+    // Until the connection status is known (or when it could not be read) the admin copy promises nothing.
+    await expect(region('Not connected (admin)').getByText(/balance and payments of the team.s bunq account will show up here/i)).toBeInTheDocument()
+    await expect(region('Not connected (admin)').queryByText(/coming soon/i)).not.toBeInTheDocument()
+    await expect(region('Not connected (admin, connecting off)').getByText(/connecting the team.s bunq account is coming soon/i)).toBeInTheDocument()
     await expect(region('Not connected (admin, can connect)').getByText(/connect the team.s bunq account in the team settings/i)).toBeInTheDocument()
     await expect(region('Not connected (admin, can connect)').queryByText(/coming soon/i)).not.toBeInTheDocument()
     await expect(region('Unavailable').getByText('The pool is unavailable right now')).toBeInTheDocument()

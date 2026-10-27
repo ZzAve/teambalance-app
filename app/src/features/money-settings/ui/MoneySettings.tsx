@@ -16,6 +16,7 @@ export function MoneySettings() {
       isLoading={isLoading}
       isError={!!error}
       isSaving={save.isPending}
+      saved={save.isSuccess}
       error={save.error ? 'Could not save the money pool settings. Please try again.' : null}
       onSave={(next) => save.mutate(next)}
     />

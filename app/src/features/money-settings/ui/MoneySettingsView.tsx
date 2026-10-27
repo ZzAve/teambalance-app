@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import type { MoneyPoolSettings } from '@shared/api/money-pool'
 import { Button } from '@shared/ui/button'
 import { Input } from '@shared/ui/input'
@@ -14,6 +14,8 @@ interface MoneySettingsViewProps {
   /** The settings query failed — render the error shell instead of the form. */
   isError?: boolean
   isSaving?: boolean
+  /** The last save went through — confirmed to the admin until the draft changes again. */
+  saved?: boolean
   /** Backend error surfaced from the container (e.g. a rejected save), shown inline. */
   error?: string | null
   onSave: (settings: MoneyPoolSettings) => void
@@ -25,7 +27,7 @@ interface MoneySettingsViewProps {
  * mutation live in the MoneySettings container. Loading and error shells are props-driven so every
  * state renders as a story without a network (ADR-0017).
  */
-export function MoneySettingsView({ settings, isLoading, isError, isSaving, error, onSave }: MoneySettingsViewProps) {
+export function MoneySettingsView({ settings, isLoading, isError, isSaving, saved, error, onSave }: MoneySettingsViewProps) {
   return (
     <div className="flex flex-col gap-4">
       <div>
@@ -35,21 +37,45 @@ export function MoneySettingsView({ settings, isLoading, isError, isSaving, erro
         </p>
       </div>
 
-      {isLoading && <p className="text-small text-muted-foreground">Loading…</p>}
-      {isError && <p className="text-small text-red">Couldn't load the money pool settings. Please try again.</p>}
+      {isLoading && (
+        <p role="status" className="text-small text-muted-foreground">
+          Loading…
+        </p>
+      )}
+      {isError && (
+        <p role="alert" className={ERROR_CLASS}>
+          Couldn't load the money pool settings. Please try again.
+        </p>
+      )}
       {settings && !isLoading && !isError && (
-        <MoneySettingsForm settings={settings} isSaving={isSaving} error={error} onSave={onSave} />
+        // Keyed on the saved values so the draft starts over from them: a refetch (another admin's
+        // change, or this save coming back normalised) must not leave a stale draft to compare against.
+        <MoneySettingsForm
+          key={`${settings.enabled}|${settings.beerPrice}|${settings.bunqMeLink}`}
+          settings={settings}
+          isSaving={isSaving}
+          saved={saved}
+          error={error}
+          onSave={onSave}
+        />
       )}
     </div>
   )
 }
 
+// Error texts sit on a card: the destructive red is 4.7:1 on it, but only 4.4:1 on the page background.
+const ERROR_CLASS = 'rounded-lg bg-card p-3 text-small text-red'
+
 function MoneySettingsForm({
   settings,
   isSaving,
+  saved,
   error,
   onSave,
-}: Pick<MoneySettingsViewProps, 'isSaving' | 'error' | 'onSave'> & { settings: MoneyPoolSettings }) {
+}: Pick<MoneySettingsViewProps, 'isSaving' | 'saved' | 'error' | 'onSave'> & { settings: MoneyPoolSettings }) {
+  const id = useId()
+  const priceId = `${id}-beer-price`
+  const linkId = `${id}-bunq-me-link`
   const [enabled, setEnabled] = useState(settings.enabled)
   const [priceText, setPriceText] = useState(centsToEuroText(settings.beerPrice))
   const [link, setLink] = useState(settings.bunqMeLink ?? '')
@@ -58,47 +84,72 @@ function MoneySettingsForm({
   const priceError = Number.isNaN(beerPrice) ? 'Enter a price between €0,01 and €100,00.' : null
   const linkError = bunqMeLinkError(link)
   const draft = { enabled, beerPrice: beerPrice as number | undefined, bunqMeLink: link.trim() || undefined }
-  const canSave = !priceError && !linkError && settingsChanged(settings, draft)
+  const changed = settingsChanged(settings, draft)
+  const canSave = !priceError && !linkError && changed
 
   return (
     <>
-      <div className="flex items-center justify-between gap-3">
-        <span className="text-small font-medium">Show the money pool to the team</span>
-        <Switch checked={enabled} onCheckedChange={setEnabled} aria-label="Show the money pool to the team" />
+      <div className="flex flex-col">
+        <Label className="flex min-h-11 items-center justify-between gap-3 leading-normal">
+          Show the money pool to the team
+          <Switch checked={enabled} onCheckedChange={setEnabled} aria-label="Show the money pool to the team" />
+        </Label>
+        <p className="text-caption text-muted-foreground">
+          When switched off, the Money tab and page are hidden for everyone in the team.
+        </p>
       </div>
 
       <div className="flex flex-col gap-1">
-        <Label htmlFor="money-pool-beer-price">Beer price (€)</Label>
+        <Label htmlFor={priceId}>Beer price (€)</Label>
         <Input
-          id="money-pool-beer-price"
+          id={priceId}
           inputMode="decimal"
           value={priceText}
           placeholder="2,70"
           onChange={(e) => setPriceText(e.target.value)}
+          aria-invalid={!!priceError}
+          aria-describedby={priceError ? `${priceId}-error` : undefined}
           className="w-48"
         />
         <p className="text-caption text-muted-foreground">Leave empty to hide the Beer Counter.</p>
-        {priceError && <p className="text-small text-red">{priceError}</p>}
+        {priceError && (
+          <p id={`${priceId}-error`} role="alert" className={ERROR_CLASS}>
+            {priceError}
+          </p>
+        )}
       </div>
 
       <div className="flex flex-col gap-1">
-        <Label htmlFor="money-pool-bunq-me-link">bunq.me link</Label>
+        <Label htmlFor={linkId}>bunq.me link</Label>
         <Input
-          id="money-pool-bunq-me-link"
+          id={linkId}
           inputMode="url"
           value={link}
           placeholder="https://bunq.me/yourteam"
           onChange={(e) => setLink(e.target.value)}
+          aria-invalid={!!linkError}
+          aria-describedby={linkError ? `${linkId}-error` : undefined}
         />
-        {linkError && <p className="text-small text-red">{linkError}</p>}
+        {linkError && (
+          <p id={`${linkId}-error`} role="alert" className={ERROR_CLASS}>
+            {linkError}
+          </p>
+        )}
       </div>
 
-      {error && <p className="text-small text-red">{error}</p>}
+      {error && (
+        <p role="alert" className={ERROR_CLASS}>
+          {error}
+        </p>
+      )}
 
-      <div>
+      <div className="flex items-center gap-3">
         <Button disabled={isSaving || !canSave} onClick={() => onSave(draft)}>
           {isSaving ? 'Saving…' : 'Save money pool'}
         </Button>
+        <p role="status" className="text-small text-muted-foreground">
+          {saved && !changed ? 'Saved' : ''}
+        </p>
       </div>
     </>
   )

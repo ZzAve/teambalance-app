@@ -23,6 +23,7 @@ export function MoneyPool() {
       beerCount={data?.beerCount}
       canTopUp={data?.canTopUp}
       connectAvailable={connection?.connectAvailable}
+      accountPending={connection?.connected === true && !connection.accountPicked}
       // The payment description carries the caller's id, so the server refuses top-ups under act-as.
       topUp={user?.actAs ? null : <TopUp />}
     />

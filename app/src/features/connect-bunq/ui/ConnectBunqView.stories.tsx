@@ -12,7 +12,8 @@ import { ConnectBunqView } from './ConnectBunqView'
 //   1. Data — the section as an Admin first meets it: not connected, nothing ticked, Connect disabled
 //      with its reason.
 //   2. Shells — connected without and with a picked account (the accounts slot in place of the form),
-//      the request in flight, a failed start, and the results Bunq's return can carry, stacked in one frame.
+//      just disconnected (the status takes focus), the request in flight, a failed start, and the results
+//      Bunq's return can carry, stacked in one frame.
 //   3. Interactions — no picture; one play opens the section as Bunq's return does (the result takes
 //      focus), ticks the acknowledgement, sees Connect enable and asserts the click reaches onConnect;
 //      a second instance does the same for a connected team, after opening the form.
@@ -53,6 +54,8 @@ export const Shells: Story = {
       items={{
         'Connected, no pick': <ConnectBunqView {...args} connected accounts={ACCOUNTS_SLOT} result="connected" />,
         'Connected, picked': <ConnectBunqView {...args} connected accountPicked accounts={ACCOUNTS_SLOT} />,
+        Disconnected: <ConnectBunqView {...args} disconnected />,
+        'Failed, connected': <ConnectBunqView {...args} connected accountPicked accounts={ACCOUNTS_SLOT} result="error" />,
         Connecting: <ConnectBunqView {...args} isConnecting />,
         'Start failed': <ConnectBunqView {...args} error="Couldn’t open Bunq. Please try again." />,
         Declined: <ConnectBunqView {...args} result="declined" />,
@@ -70,8 +73,19 @@ export const Shells: Story = {
       await expect(region(name).getByText('Accounts and Disconnect')).toBeInTheDocument()
       await expect(region(name).queryByRole('checkbox')).not.toBeInTheDocument()
       await expect(region(name).queryByRole('button', { name: 'Connect again' })).not.toBeInTheDocument()
-      await expect(region(name).getByRole('button', { name: 'Connect a different bunq login' })).toBeEnabled()
+      const reconnect = region(name).getByRole('button', { name: 'Connect a different bunq login' })
+      await expect(reconnect).toBeEnabled()
+      await expect(reconnect).toHaveAttribute('aria-expanded', 'false')
     }
+
+    // Disconnecting says so, takes focus (the button pressed is gone) and offers Connect again.
+    await expect(region('Disconnected').getByRole('status')).toHaveTextContent('Disconnected from bunq.')
+    await expect(region('Disconnected').getByRole('status')).toHaveFocus()
+    await expect(region('Disconnected').getByRole('button', { name: 'Connect Bunq' })).toBeDisabled()
+
+    // A failed reconnect does not also claim the team is connected.
+    await expect(region('Failed, connected').getByRole('alert')).toHaveTextContent('Couldn’t connect Bunq.')
+    await expect(region('Failed, connected').getByRole('status')).toBeEmptyDOMElement()
 
     // While the browser is on its way to Bunq the acknowledgement stays ticked and disabled, the button is
     // disabled, and the tick hint is not needed.
@@ -133,13 +147,22 @@ export const Interactions: Story = {
 
     // A connected team opens the form first, and the tick is asked for again.
     const reconnect = within(canvas.getByRole('region', { name: 'Reconnect' }))
-    await userEvent.click(reconnect.getByRole('button', { name: 'Connect a different bunq login' }))
-    await expect(reconnect.queryByRole('button', { name: 'Connect a different bunq login' })).not.toBeInTheDocument()
+    const disclosure = reconnect.getByRole('button', { name: 'Connect a different bunq login' })
+    await userEvent.click(disclosure)
+    // The button stays, now expanded and pointing at the form, so focus is not dropped.
+    await expect(disclosure).toHaveFocus()
+    await expect(disclosure).toHaveAttribute('aria-expanded', 'true')
+    await expect(disclosure).toHaveAttribute('aria-controls', reconnect.getByRole('checkbox').closest('[id]')!.id)
     const connectAgain = reconnect.getByRole('button', { name: 'Connect again' })
     await expect(connectAgain).toBeDisabled()
     await expect(reconnect.getByRole('checkbox')).not.toBeChecked()
     await userEvent.click(reconnect.getByRole('checkbox'))
     await userEvent.click(connectAgain)
     await expect(args.onConnect).toHaveBeenCalledTimes(2)
+
+    // And it closes again.
+    await userEvent.click(disclosure)
+    await expect(disclosure).toHaveAttribute('aria-expanded', 'false')
+    await expect(reconnect.queryByRole('checkbox')).not.toBeInTheDocument()
   },
 }

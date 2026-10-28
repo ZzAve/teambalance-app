@@ -11,7 +11,8 @@ import { BunqAccountsView } from './BunqAccountsView'
 //
 // Three stories (ADR-0032 §1):
 //   1. Data — a team that picked its account: Teamkas checked, "Use this account" waiting for a change.
-//   2. Shells — no pick yet, loading, a failed read, saving, and a rejected grant, stacked in one frame.
+//   2. Shells — no pick yet, loading, a failed read, saving, a saved pick (announced, focus on the
+//      announcement), and a rejected grant, stacked in one frame.
 //   3. Interactions — no picture; one play picks Privé and checks onPick, then walks Disconnect through
 //      its confirmation: cancel calls nothing, confirm calls onDisconnect once.
 const ACCOUNTS: BunqAccount[] = [
@@ -36,7 +37,7 @@ type Story = StoryObj<typeof meta>
 
 export const Data: Story = {
   play: async ({ canvas }) => {
-    await expect(canvas.getByText('The Money page shows this account')).toBeInTheDocument()
+    await expect(canvas.getByText('Choose the account the Money page shows')).toBeInTheDocument()
     await expect(canvas.getByRole('radio', { name: 'Teamkas' })).toBeChecked()
     await expect(canvas.getByRole('radio', { name: 'Privé' })).not.toBeChecked()
     // Nothing to save until the choice differs from the saved one.
@@ -54,6 +55,7 @@ export const Shells: Story = {
         Loading: <BunqAccountsView {...args} accounts={undefined} selectedAccountId={undefined} isLoading />,
         'Load failed': <BunqAccountsView {...args} accounts={undefined} selectedAccountId={undefined} isError />,
         Saving: <BunqAccountsView {...args} isSaving />,
+        Saved: <BunqAccountsView {...args} saved />,
         'Pick failed': <BunqAccountsView {...args} error="Couldn’t save the account. Please try again." />,
         Rejected: <BunqAccountsView {...args} accounts={undefined} selectedAccountId={undefined} isError rejected />,
       }}
@@ -63,7 +65,7 @@ export const Shells: Story = {
     const region = (name: string) => within(canvas.getByRole('region', { name }))
 
     // Before a pick the list leads with what to do, and nothing is checked or savable.
-    await expect(region('Nothing picked').getByText('Pick the account the Money page shows')).toBeInTheDocument()
+    await expect(region('Nothing picked').getByText('Choose the account the Money page shows')).toBeInTheDocument()
     await expect(region('Nothing picked').getAllByRole('radio')).toHaveLength(2)
     await expect(region('Nothing picked').queryByRole('radio', { checked: true })).not.toBeInTheDocument()
     await expect(region('Nothing picked').getByRole('button', { name: 'Use this account' })).toBeDisabled()
@@ -80,12 +82,17 @@ export const Shells: Story = {
     await expect(region('Saving').getByRole('radio', { name: 'Privé' })).toBeDisabled()
     await expect(region('Saving').getByRole('button', { name: 'Disconnect' })).toBeDisabled()
 
+    // A saved pick says what the Money page shows now, and the announcement takes focus from the disabled controls.
+    await expect(region('Saved').getByRole('status')).toHaveTextContent('The Money page now shows Teamkas.')
+    await expect(region('Saved').getByRole('status')).toHaveFocus()
+    await expect(region('Nothing picked').getByRole('status')).toBeEmptyDOMElement()
+
     await expect(region('Pick failed').getByRole('alert')).toHaveTextContent('Couldn’t save the account.')
 
     // A rejected grant says how to get out, and does not also claim the read failed.
     const rejected = region('Rejected').getByRole('alert')
     await expect(rejected).toHaveTextContent('can’t use its stored bunq access any more')
-    await expect(rejected).toHaveTextContent('Connect a different bunq login')
+    await expect(rejected).toHaveTextContent('Connect again below')
     await expect(region('Rejected').getAllByRole('alert')).toHaveLength(1)
     await expect(region('Rejected').getByRole('button', { name: 'Disconnect' })).toBeEnabled()
   },

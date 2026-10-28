@@ -20,7 +20,10 @@ interface NotConnectedMoneyPoolProps {
    * settings, false says it is coming. Undefined (not known yet, or the status could not be read) says neither.
    */
   connectAvailable?: boolean
-  /** The team connected Bunq but no account is picked yet: an admin is pointed to the team settings to pick one. */
+  /**
+   * The team connected Bunq but no account is picked yet: an admin is pointed to the team settings to pick
+   * one, as long as connecting is switched on, since the settings show nothing about Bunq otherwise.
+   */
   accountPending?: boolean
 }
 
@@ -58,7 +61,7 @@ export function NotConnectedMoneyPool({ isAdmin, connectAvailable, accountPendin
 }
 
 function adminCopy(connectAvailable?: boolean, accountPending?: boolean) {
-  if (accountPending) return 'Pick the account in the team settings. The balance and payments will show up here.'
+  if (accountPending && connectAvailable) return 'Pick the account in the team settings. The balance and payments will show up here.'
   if (connectAvailable === undefined) return 'The balance and payments of the team’s Bunq account will show up here.'
   return connectAvailable
     ? 'Connect the team’s Bunq account in the team settings. The balance and payments will show up here.'

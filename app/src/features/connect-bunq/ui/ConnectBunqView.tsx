@@ -7,6 +7,8 @@ interface ConnectBunqViewProps {
   connected: boolean
   /** The Admin picked the account the Money page reads. Only meaningful while connected. */
   accountPicked?: boolean
+  /** The Admin just disconnected: the status says so and takes focus, since the controls they used are gone. */
+  disconnected?: boolean
   /** The account picker and Disconnect, supplied by the ConnectBunq container so this View stays prop-only. Shown while connected. */
   accounts?: ReactNode
   result?: ConnectBunqResult
@@ -20,6 +22,7 @@ interface ConnectBunqViewProps {
 }
 
 const DECLINED_TEXT = 'You declined at Bunq, so nothing was connected.'
+const DISCONNECTED_TEXT = 'Disconnected from bunq.'
 const FAILED_TEXT = 'Couldn’t connect Bunq. Please try again.'
 
 // Error texts sit on a card; red-ink clears 4.5:1 there in both themes.
@@ -37,6 +40,7 @@ const ERROR_CLASS = 'rounded-lg bg-card p-3 text-small text-red-ink'
 export function ConnectBunqView({
   connected,
   accountPicked,
+  disconnected,
   accounts,
   result,
   focusResult,
@@ -45,6 +49,7 @@ export function ConnectBunqView({
   onConnect,
 }: ConnectBunqViewProps) {
   const hintId = useId()
+  const formId = useId()
   const [acknowledged, setAcknowledged] = useState(false)
   const [reconnecting, setReconnecting] = useState(false)
   const resultRef = useRef<HTMLParagraphElement>(null)
@@ -53,8 +58,14 @@ export function ConnectBunqView({
     if (focusResult && result) resultRef.current?.focus({ preventScroll: true })
   }, [focusResult, result])
 
+  // Disconnect removes the button the Admin pressed, so focus would fall to the page. It goes to the status
+  // line once the connection reads as gone, which is a moment after the request succeeded.
+  useEffect(() => {
+    if (disconnected && !connected) resultRef.current?.focus()
+  }, [disconnected, connected])
+
   const failed = result === 'error'
-  const statusText = result === 'declined' ? DECLINED_TEXT : connected ? connectedText(accountPicked) : ''
+  const statusText = failed ? '' : statusOf(result, connected, accountPicked, disconnected)
   const showForm = !connected || reconnecting || !!isConnecting
   // While the browser is on its way to Bunq the acknowledgement stays ticked and disabled, as does the button.
   const ticked = acknowledged || !!isConnecting
@@ -86,14 +97,22 @@ export function ConnectBunqView({
       )}
 
       {connected && accounts}
-      {!showForm && (
-        <Button variant="link" size="sm" className="self-start px-0" onClick={() => setReconnecting(true)}>
+      {connected && (
+        <Button
+          variant="link"
+          size="sm"
+          className="self-start px-0"
+          aria-expanded={showForm}
+          aria-controls={showForm ? formId : undefined}
+          disabled={isConnecting}
+          onClick={() => setReconnecting((open) => !open)}
+        >
           Connect a different bunq login
         </Button>
       )}
 
       {showForm && (
-        <>
+        <div id={formId} className="flex flex-col gap-4">
           {/* The whole row is the label, so the tick and the text are one 44px-high target. */}
           <label className="flex min-h-11 items-start gap-3 py-2 text-small leading-relaxed">
             <input
@@ -133,12 +152,14 @@ export function ConnectBunqView({
               </p>
             )}
           </div>
-        </>
+        </div>
       )}
     </div>
   )
 }
 
-function connectedText(accountPicked?: boolean) {
-  return accountPicked ? 'Connected to bunq.' : 'Connected, pick an account below.'
+function statusOf(result: ConnectBunqResult | undefined, connected: boolean, accountPicked?: boolean, disconnected?: boolean) {
+  if (result === 'declined') return DECLINED_TEXT
+  if (connected) return accountPicked ? 'Connected to bunq.' : 'Connected, pick an account below.'
+  return disconnected ? DISCONNECTED_TEXT : ''
 }

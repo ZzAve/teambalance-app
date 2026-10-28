@@ -98,8 +98,17 @@ test('money pool: an admin connects Bunq, picks an account, a member reads it, t
     // 7. Disconnect, behind its confirmation: the pool is a preview again for the admin and the member.
     await page.goto(SETTINGS)
     await page.getByRole('button', { name: 'Disconnect' }).click()
+    // The accounts read is a 404 once disconnected; it must never show as a failure on the way out.
+    await page.evaluate(() => {
+      const seen = window as unknown as { sawAccountsError?: boolean }
+      new MutationObserver(() => {
+        if (document.body.textContent?.includes('load the bunq accounts')) seen.sawAccountsError = true
+      }).observe(document.body, { subtree: true, childList: true, characterData: true })
+    })
     await page.getByRole('dialog').getByRole('button', { name: 'Disconnect' }).click()
     await expect(page.getByRole('button', { name: 'Connect Bunq' })).toBeVisible()
+    await expect(page.getByRole('status').filter({ hasText: 'Disconnected from bunq.' })).toBeFocused()
+    expect(await page.evaluate(() => (window as unknown as { sawAccountsError?: boolean }).sawAccountsError)).toBeUndefined()
     await page.goto(MONEY)
     await expect(page.getByRole('region', { name: 'Money pool preview' })).toBeVisible()
     await memberPage.reload()

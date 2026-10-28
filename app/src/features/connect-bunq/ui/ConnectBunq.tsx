@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { BunqConnectUnavailableError, startBunqConnection, useBunqConnection } from '@shared/api/bunq-connection'
 import type { ConnectBunqResult } from '../lib/bunq-result'
@@ -15,6 +15,8 @@ import { ConnectBunqView } from './ConnectBunqView'
 export function ConnectBunq({ result }: { result?: ConnectBunqResult }) {
   const { data: status } = useBunqConnection()
   const connect = useMutation({ mutationFn: startBunqConnection })
+  // Disconnecting removes the accounts section it was started from, so the signal that it happened lives here.
+  const [disconnected, setDisconnected] = useState(false)
   const section = useRef<HTMLDivElement>(null)
   const available = status?.connectAvailable === true
 
@@ -42,7 +44,8 @@ export function ConnectBunq({ result }: { result?: ConnectBunqResult }) {
       <ConnectBunqView
         connected={status.connected}
         accountPicked={status.accountPicked}
-        accounts={<BunqAccounts />}
+        disconnected={disconnected}
+        accounts={<BunqAccounts onDisconnected={() => setDisconnected(true)} />}
         result={result}
         focusResult
         // Stays pending after the response too: the browser is on its way to Bunq, and a second click must not start another state.

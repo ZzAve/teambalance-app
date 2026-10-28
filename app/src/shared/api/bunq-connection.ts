@@ -64,7 +64,7 @@ export function isBunqGrantRejected(error: unknown): boolean {
 type AccountsResponse = Awaited<ReturnType<typeof api.getBunqAccounts>>
 
 /** The accounts of a 200; any other declared status is a refusal. */
-export function bunqAccountsOf(response: AccountsResponse) {
+function bunqAccountsOf(response: AccountsResponse) {
   if (response.status !== 200) throw new BunqConnectionError(response.status)
   return nullsToUndefined(response.body)
 }
@@ -91,18 +91,23 @@ export async function disconnectBunq(): Promise<void> {
 }
 
 // The pool, the status and the accounts all hang under ['money-pool'], and both change all three.
+// A refused pick (the connection changed, or the id is not in the grant) refreshes them too.
 export function usePickBunqAccount() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: pickBunqAccount,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['money-pool'] }),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ['money-pool'] }),
   })
 }
 
-export function useDisconnectBunq() {
+/** `onDisconnected` runs when the request succeeded, also after the component that started it is gone. */
+export function useDisconnectBunq(onDisconnected?: () => void) {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: disconnectBunq,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['money-pool'] }),
+    onSuccess: () => {
+      onDisconnected?.()
+      return queryClient.invalidateQueries({ queryKey: ['money-pool'] })
+    },
   })
 }

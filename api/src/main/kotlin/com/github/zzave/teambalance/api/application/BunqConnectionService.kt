@@ -150,13 +150,13 @@ class BunqConnectionService(
 
     fun listAccounts(callerId: UserId, teamId: TeamId): BunqAccounts {
         authorizationService.requireAdmin(callerId, teamId)
-        val connection = connectionRepository.find() ?: throw BunqNotConnectedException()
+        val connection = connectedOrThrow()
         return BunqAccounts(bunqGateway.listAccounts(grantOf(connection)), connection.accountId)
     }
 
     fun pickAccount(callerId: UserId, teamId: TeamId, accountId: BunqAccountId) {
         authorizationService.requireAdmin(callerId, teamId)
-        val connection = connectionRepository.find() ?: throw BunqNotConnectedException()
+        val connection = connectedOrThrow()
         if (bunqGateway.listAccounts(grantOf(connection)).none { it.id == accountId }) {
             throw UnknownBunqAccountException(accountId)
         }
@@ -221,6 +221,8 @@ class BunqConnectionService(
             failed(teamSlug)
         }
     }
+
+    private fun connectedOrThrow(): BunqConnection = connectionRepository.find() ?: throw BunqNotConnectedException()
 
     /** A grant that no longer decrypts (rotated key, damaged row) cannot be used; the Admin has to connect again. */
     @Suppress("TooGenericExceptionCaught")

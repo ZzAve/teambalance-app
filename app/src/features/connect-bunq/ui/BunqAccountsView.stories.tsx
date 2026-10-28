@@ -92,7 +92,7 @@ export const Shells: Story = {
     // A rejected grant says how to get out, and does not also claim the read failed.
     const rejected = region('Rejected').getByRole('alert')
     await expect(rejected).toHaveTextContent('can’t use its stored bunq access any more')
-    await expect(rejected).toHaveTextContent('Connect again below')
+    await expect(rejected).toHaveTextContent('Connect a different bunq login')
     await expect(region('Rejected').getAllByRole('alert')).toHaveLength(1)
     await expect(region('Rejected').getByRole('button', { name: 'Disconnect' })).toBeEnabled()
   },

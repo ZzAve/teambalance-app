@@ -55,7 +55,8 @@ export function BunqAccountsView({
       )}
       {rejected ? (
         <p role="alert" className={ERROR_CLASS}>
-          TeamBalance can’t use its stored bunq access any more. Connect again below, or disconnect.
+          TeamBalance can’t use its stored bunq access any more. Use “Connect a different bunq login” below, or
+          disconnect.
         </p>
       ) : (
         isError && (

@@ -1,6 +1,7 @@
 package com.github.zzave.teambalance.api.application
 
 import com.github.zzave.teambalance.api.domain.exception.BunqConnectDisabledException
+import com.github.zzave.teambalance.api.domain.exception.BunqConnectionChangedException
 import com.github.zzave.teambalance.api.domain.exception.BunqGrantRejectedException
 import com.github.zzave.teambalance.api.domain.exception.BunqNotConnectedException
 import com.github.zzave.teambalance.api.domain.exception.NotTeamAdminException
@@ -654,17 +655,17 @@ class BunqConnectionServiceTest : FunSpec() {
                 f.pickedAccount() shouldBe null
             }
 
-            test("a Disconnect during the Bunq call leaves no connection, and the pick is not found") {
+            test("a Disconnect during the Bunq call leaves no connection, and the pick says the connection changed") {
                 val f = Fixture()
                 f.connected()
                 f.bunq.whileListing = { f.service.disconnect(admin, f.team) }
 
-                shouldThrow<BunqNotConnectedException> { f.service.pickAccount(admin, f.team, BunqAccountId("acc-1")) }
+                shouldThrow<BunqConnectionChangedException> { f.service.pickAccount(admin, f.team, BunqAccountId("acc-1")) }
 
                 f.tenants.hasNoConnections() shouldBe true
             }
 
-            test("a reconnect during the Bunq call keeps the new grant, and the pick is not found") {
+            test("a reconnect during the Bunq call keeps the new grant, and the pick says the connection changed") {
                 val f = Fixture()
                 f.connected("first")
                 f.bunq.whileListing = {
@@ -672,7 +673,7 @@ class BunqConnectionServiceTest : FunSpec() {
                     f.complete(f.startFlow(), "second", null).result shouldBe BunqConnectResult.CONNECTED
                 }
 
-                shouldThrow<BunqNotConnectedException> { f.service.pickAccount(admin, f.team, BunqAccountId("acc-1")) }
+                shouldThrow<BunqConnectionChangedException> { f.service.pickAccount(admin, f.team, BunqAccountId("acc-1")) }
 
                 f.grantIn(f.teamSchema) shouldBe "token-for-second"
                 f.pickedAccount() shouldBe null

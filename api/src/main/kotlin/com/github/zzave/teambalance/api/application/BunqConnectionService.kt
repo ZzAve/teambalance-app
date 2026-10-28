@@ -1,6 +1,7 @@
 package com.github.zzave.teambalance.api.application
 
 import com.github.zzave.teambalance.api.domain.exception.BunqConnectDisabledException
+import com.github.zzave.teambalance.api.domain.exception.BunqConnectionChangedException
 import com.github.zzave.teambalance.api.domain.exception.BunqGrantRejectedException
 import com.github.zzave.teambalance.api.domain.exception.BunqNotConnectedException
 import com.github.zzave.teambalance.api.domain.exception.UnknownBunqAccountException
@@ -161,7 +162,7 @@ class BunqConnectionService(
             throw UnknownBunqAccountException(accountId)
         }
         // The Bunq call above took time: write only if the grant just read is still the stored one.
-        if (!connectionRepository.pickAccount(accountId, ifGrant = connection.grant)) throw BunqNotConnectedException()
+        if (!connectionRepository.pickAccount(accountId, ifGrant = connection.grant)) throw BunqConnectionChangedException()
     }
 
     /** Deletes the stored grant and the pick. Needs no cipher, so it also works while connecting is switched off. */

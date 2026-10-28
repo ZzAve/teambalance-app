@@ -42,12 +42,14 @@ export function ConnectBunqView({
   accountPicked,
   disconnected,
   accounts,
-  result,
+  result: tripResult,
   focusResult,
   isConnecting,
   error,
   onConnect,
 }: ConnectBunqViewProps) {
+  // A result still in the URL from an earlier trip says nothing about what the Admin has just done.
+  const result = disconnected ? undefined : tripResult
   const hintId = useId()
   const formId = useId()
   const [acknowledged, setAcknowledged] = useState(false)
@@ -105,7 +107,11 @@ export function ConnectBunqView({
           aria-expanded={showForm}
           aria-controls={showForm ? formId : undefined}
           disabled={isConnecting}
-          onClick={() => setReconnecting((open) => !open)}
+          onClick={() => {
+            // Closing the form takes the consent back: it is asked for again when the form is reopened.
+            if (reconnecting) setAcknowledged(false)
+            setReconnecting(!reconnecting)
+          }}
         >
           Connect a different bunq login
         </Button>

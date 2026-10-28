@@ -61,6 +61,7 @@ test('money pool: an admin connects Bunq, picks an account, a member reads it, t
   await page.goto(SETTINGS)
   await page.getByRole('radio', { name: 'Teamkas' }).check()
   await page.getByRole('button', { name: 'Use this account' }).click()
+  await expect(page.getByRole('status').filter({ hasText: 'The Money page now shows Teamkas.' })).toBeFocused()
   await expect(page.getByRole('button', { name: 'Use this account' })).toBeDisabled()
   await expect(page.getByRole('radio', { name: 'Teamkas' })).toBeChecked()
   await page.goto(MONEY)

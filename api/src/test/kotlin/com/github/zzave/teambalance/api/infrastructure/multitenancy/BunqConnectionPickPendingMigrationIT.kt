@@ -30,7 +30,7 @@ class BunqConnectionPickPendingMigrationIT : TeamBalanceIT() {
     lateinit var tenantSchemaAdapter: TenantSchemaAdapter
 
     init {
-        test("deletes a connection missing its grant or its connected_by, keeps a complete one, and then refuses a null grant") {
+        test("deletes a connection missing its grant or connected_by, keeps a complete one, then refuses a null of either") {
             migrateToV020(WITHOUT_GRANT)
             migrateToV020(WITHOUT_CONNECTED_BY)
             migrateToV020(WITH_GRANT)
@@ -59,6 +59,9 @@ class BunqConnectionPickPendingMigrationIT : TeamBalanceIT() {
             )
             shouldThrow<DataIntegrityViolationException> {
                 jdbcTemplate.update("UPDATE $WITHOUT_GRANT.bunq_connection SET access_token_encrypted = NULL WHERE id = 1")
+            }
+            shouldThrow<DataIntegrityViolationException> {
+                jdbcTemplate.update("UPDATE $WITHOUT_GRANT.bunq_connection SET connected_by = NULL WHERE id = 1")
             }
         }
     }

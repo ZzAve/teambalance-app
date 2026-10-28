@@ -206,6 +206,10 @@ class BunqConnectDisabledException : NotFoundException("Connecting Bunq is not a
 
 class BunqNotConnectedException : NotFoundException("This team has not connected Bunq")
 
+// The connection was deleted or replaced between reading it and writing the pick.
+class BunqConnectionChangedException :
+    NotFoundException("The connection changed while you were picking; reload and try again.")
+
 // The picked account is not one of the accounts the team's current grant covers.
 class UnknownBunqAccountException(id: BunqAccountId) :
     BadRequestException("Bunq account not in the grant: $id", "UNKNOWN_BUNQ_ACCOUNT")

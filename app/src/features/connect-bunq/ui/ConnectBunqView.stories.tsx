@@ -12,11 +12,11 @@ import { ConnectBunqView } from './ConnectBunqView'
 //   1. Data — the section as an Admin first meets it: not connected, nothing ticked, Connect disabled
 //      with its reason.
 //   2. Shells — connected without and with a picked account (the accounts slot in place of the form),
-//      just disconnected (the status takes focus), the request in flight, a failed start, and the results
+//      just disconnected (also with a result left in the URL by an earlier trip), the request in flight, a failed start, and the results
 //      Bunq's return can carry, stacked in one frame.
 //   3. Interactions — no picture; one play opens the section as Bunq's return does (the result takes
 //      focus), ticks the acknowledgement, sees Connect enable and asserts the click reaches onConnect;
-//      a second instance does the same for a connected team, after opening the form.
+//      a second instance does the same for a connected team, after opening the form, and closes it again.
 const ACCOUNTS_SLOT = <p>Accounts and Disconnect</p>
 
 const meta = {
@@ -55,6 +55,8 @@ export const Shells: Story = {
         'Connected, no pick': <ConnectBunqView {...args} connected accounts={ACCOUNTS_SLOT} result="connected" />,
         'Connected, picked': <ConnectBunqView {...args} connected accountPicked accounts={ACCOUNTS_SLOT} />,
         Disconnected: <ConnectBunqView {...args} disconnected />,
+        'Disconnected, stale declined': <ConnectBunqView {...args} disconnected result="declined" />,
+        'Disconnected, stale failure': <ConnectBunqView {...args} disconnected result="error" />,
         'Failed, connected': <ConnectBunqView {...args} connected accountPicked accounts={ACCOUNTS_SLOT} result="error" />,
         Connecting: <ConnectBunqView {...args} isConnecting />,
         'Start failed': <ConnectBunqView {...args} error="Couldn’t open Bunq. Please try again." />,
@@ -78,10 +80,19 @@ export const Shells: Story = {
       await expect(reconnect).toHaveAttribute('aria-expanded', 'false')
     }
 
-    // Disconnecting says so, takes focus (the button pressed is gone) and offers Connect again.
+    // Disconnecting says so and offers Connect again.
     await expect(region('Disconnected').getByRole('status')).toHaveTextContent('Disconnected from bunq.')
-    await expect(region('Disconnected').getByRole('status')).toHaveFocus()
     await expect(region('Disconnected').getByRole('button', { name: 'Connect Bunq' })).toBeDisabled()
+
+    // A result still in the URL from an earlier trip does not outlive the disconnect.
+    for (const name of ['Disconnected, stale declined', 'Disconnected, stale failure']) {
+      await expect(region(name).getByRole('status')).toHaveTextContent('Disconnected from bunq.')
+      await expect(region(name).queryByRole('alert')).not.toBeInTheDocument()
+      await expect(region(name).queryByText(/You declined at Bunq/)).not.toBeInTheDocument()
+    }
+    // The status takes focus (the button pressed is gone). Each disconnected frame focuses its own on mount and
+    // effects run in render order, so the last of them is the one that holds it.
+    await expect(region('Disconnected, stale failure').getByRole('status')).toHaveFocus()
 
     // A failed reconnect does not also claim the team is connected.
     await expect(region('Failed, connected').getByRole('alert')).toHaveTextContent('Couldn’t connect Bunq.')
@@ -164,5 +175,10 @@ export const Interactions: Story = {
     await userEvent.click(disclosure)
     await expect(disclosure).toHaveAttribute('aria-expanded', 'false')
     await expect(reconnect.queryByRole('checkbox')).not.toBeInTheDocument()
+
+    // Reopening asks for the consent again instead of remembering the tick.
+    await userEvent.click(disclosure)
+    await expect(reconnect.getByRole('checkbox')).not.toBeChecked()
+    await expect(reconnect.getByRole('button', { name: 'Connect again' })).toBeDisabled()
   },
 }

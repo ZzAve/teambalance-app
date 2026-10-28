@@ -86,26 +86,11 @@ class MoneyPoolActAsIT : TeamBalanceIT() {
                 .andExpect(status().isForbidden)
                 .andExpect(jsonPath("$.code").value("ACT_AS_NOT_PERMITTED"))
         }
+
         test("a Platform Admin acting as the team starts and completes a Bunq connection with their session") {
             enterActAs()
 
-            val url = dispatch(MockMvcRequestBuilders.post("/api/team/money-pool/connection").with(loginAs(OPERATOR_ID)))
-                .andExpect(status().isCreated)
-                .andReturn().response.contentAsString.let { ObjectMapper().readTree(it).get("url").asString() }
-            val state = UriComponentsBuilder.fromUriString(url).build().queryParams.getFirst("state")!!
-            val back = mockMvc.perform(
-                MockMvcRequestBuilders.get("/internal/fake-bunq/decide")
-                    .param("state", state)
-                    .param("redirect_uri", "http://localhost:8080/api/bunq/oauth/callback")
-                    .param("login", "act-as-operator")
-                    .param("decision", "approve"),
-            ).andReturn().response.getHeader("Location")!!
-
-            mockMvc.perform(MockMvcRequestBuilders.get(URI.create(back)).with(loginAs(OPERATOR_ID)))
-                .andExpect(
-                    MockMvcResultMatchers.header()
-                        .string("Location", "http://localhost:5173/t/cal-alpha/team/settings?bunq=connected"),
-                )
+            connectAsOperator()
 
             jdbcTemplate.queryForObject(
                 "SELECT count(*) FROM ${CalendarLinkFixture.ALPHA_SCHEMA}.bunq_connection", Int::class.java,
@@ -114,6 +99,50 @@ class MoneyPoolActAsIT : TeamBalanceIT() {
                 "SELECT count(*) FROM ${CalendarLinkFixture.BETA_SCHEMA}.bunq_connection", Int::class.java,
             ) shouldBe 0
         }
+
+        test("a Platform Admin acting as the team lists the accounts, picks one and disconnects") {
+            enterActAs()
+            connectAsOperator()
+
+            dispatch(MockMvcRequestBuilders.get("/api/team/money-pool/connection/account").with(loginAs(OPERATOR_ID)))
+                .andExpect(status().isOk)
+                .andExpect(jsonPath("$.accounts.length()").value(2))
+            dispatch(
+                MockMvcRequestBuilders.put("/api/team/money-pool/connection/account")
+                    .with(loginAs(OPERATOR_ID))
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"accountId":"fake-account-2"}"""),
+            ).andExpect(status().isNoContent)
+            dispatch(MockMvcRequestBuilders.get("/api/team/money-pool/connection").with(loginAs(OPERATOR_ID)))
+                .andExpect(jsonPath("$.accountPicked").value(true))
+
+            dispatch(MockMvcRequestBuilders.delete("/api/team/money-pool/connection").with(loginAs(OPERATOR_ID)))
+                .andExpect(status().isNoContent)
+
+            jdbcTemplate.queryForObject(
+                "SELECT count(*) FROM ${CalendarLinkFixture.ALPHA_SCHEMA}.bunq_connection", Int::class.java,
+            ) shouldBe 0
+        }
+    }
+
+    private fun connectAsOperator() {
+        val url = dispatch(MockMvcRequestBuilders.post("/api/team/money-pool/connection").with(loginAs(OPERATOR_ID)))
+            .andExpect(status().isCreated)
+            .andReturn().response.contentAsString.let { ObjectMapper().readTree(it).get("url").asString() }
+        val state = UriComponentsBuilder.fromUriString(url).build().queryParams.getFirst("state")!!
+        val back = mockMvc.perform(
+            MockMvcRequestBuilders.get("/internal/fake-bunq/decide")
+                .param("state", state)
+                .param("redirect_uri", "http://localhost:8080/api/bunq/oauth/callback")
+                .param("login", "act-as-operator")
+                .param("decision", "approve"),
+        ).andReturn().response.getHeader("Location")!!
+
+        mockMvc.perform(MockMvcRequestBuilders.get(URI.create(back)).with(loginAs(OPERATOR_ID)))
+            .andExpect(
+                MockMvcResultMatchers.header()
+                    .string("Location", "http://localhost:5173/t/cal-alpha/team/settings?bunq=connected"),
+            )
     }
 
     private fun dispatch(builder: MockHttpServletRequestBuilder): ResultActions =

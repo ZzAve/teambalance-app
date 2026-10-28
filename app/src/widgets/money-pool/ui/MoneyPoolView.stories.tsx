@@ -80,6 +80,12 @@ export const Shells: Story = {
         'Not connected (admin)': <MoneyPoolView {...args} state="NotConnected" isAdmin />,
         'Not connected (admin, connecting off)': <MoneyPoolView {...args} state="NotConnected" isAdmin connectAvailable={false} />,
         'Not connected (admin, can connect)': <MoneyPoolView {...args} state="NotConnected" isAdmin connectAvailable />,
+        'Not connected (admin, account pending)': (
+          <MoneyPoolView {...args} state="NotConnected" isAdmin connectAvailable accountPending />
+        ),
+        'Not connected (admin, account pending, connecting off)': (
+          <MoneyPoolView {...args} state="NotConnected" isAdmin connectAvailable={false} accountPending />
+        ),
         Unavailable: <MoneyPoolView {...args} state="Unavailable" />,
         'No link (member)': <MoneyPoolView {...args} state="NotConnected" canTopUp={false} />,
         'No link (admin)': <MoneyPoolView {...args} state="NotConnected" canTopUp={false} isAdmin />,
@@ -103,6 +109,12 @@ export const Shells: Story = {
     await expect(region('Not connected (admin, connecting off)').getByText(/connecting the team.s bunq account is coming soon/i)).toBeInTheDocument()
     await expect(region('Not connected (admin, can connect)').getByText(/connect the team.s bunq account in the team settings/i)).toBeInTheDocument()
     await expect(region('Not connected (admin, can connect)').queryByText(/coming soon/i)).not.toBeInTheDocument()
+    await expect(region('Not connected (admin, account pending)').getByText(/pick the account in the team settings/i)).toBeInTheDocument()
+    await expect(region('Not connected (admin, account pending)').queryByText(/connect the team.s bunq account/i)).not.toBeInTheDocument()
+    // With connecting off the settings show nothing to pick from, so the existing copy stands.
+    const pendingOff = region('Not connected (admin, account pending, connecting off)')
+    await expect(pendingOff.queryByText(/pick the account in the team settings/i)).not.toBeInTheDocument()
+    await expect(pendingOff.getByText(/connecting the team.s bunq account is coming soon/i)).toBeInTheDocument()
     await expect(region('Unavailable').getByText('The pool is unavailable right now')).toBeInTheDocument()
     // Paying through bunq.me needs no Bunq Connection, so Top up shows in every state but Off.
     await expect(region('Not connected (member)').getByRole('button', { name: 'Top up' })).toBeInTheDocument()

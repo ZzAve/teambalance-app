@@ -1,15 +1,21 @@
 package com.github.zzave.teambalance.api.application
 
 import com.github.zzave.teambalance.api.domain.exception.BunqConnectDisabledException
+import com.github.zzave.teambalance.api.domain.exception.BunqConnectionChangedException
+import com.github.zzave.teambalance.api.domain.exception.BunqGrantRejectedException
+import com.github.zzave.teambalance.api.domain.exception.BunqNotConnectedException
 import com.github.zzave.teambalance.api.domain.exception.NotTeamAdminException
+import com.github.zzave.teambalance.api.domain.exception.UnknownBunqAccountException
 import com.github.zzave.teambalance.api.domain.model.ActAs
 import com.github.zzave.teambalance.api.domain.model.BunqAccount
 import com.github.zzave.teambalance.api.domain.model.BunqAccountId
 import com.github.zzave.teambalance.api.domain.model.BunqAccountName
+import com.github.zzave.teambalance.api.domain.model.BunqAccounts
 import com.github.zzave.teambalance.api.domain.model.BunqAuthorizationCode
 import com.github.zzave.teambalance.api.domain.model.BunqConnection
 import com.github.zzave.teambalance.api.domain.model.BunqGrant
 import com.github.zzave.teambalance.api.domain.model.BunqOAuthState
+import com.github.zzave.teambalance.api.domain.model.EncryptedToken
 import com.github.zzave.teambalance.api.domain.model.Money
 import com.github.zzave.teambalance.api.domain.model.Payment
 import com.github.zzave.teambalance.api.domain.model.Role
@@ -87,6 +93,10 @@ private class TenantScopedConnections : TenantScopeGateway, BunqConnectionReposi
 
     fun hasNoConnections() = perSchema.isEmpty()
 
+    fun putConnectionIn(schema: SchemaName, connection: BunqConnection) {
+        perSchema[schema] = connection
+    }
+
     var failSaves = false
 
     override fun <T> within(routing: TenantRouting, block: () -> T): T {
@@ -105,13 +115,31 @@ private class TenantScopedConnections : TenantScopeGateway, BunqConnectionReposi
         check(!failSaves) { "database down" }
         perSchema[scope ?: error("no tenant in scope")] = connection
     }
+
+    override fun pickAccount(accountId: BunqAccountId, ifGrant: EncryptedToken): Boolean {
+        val schema = scope ?: error("no tenant in scope")
+        val stored = perSchema[schema]?.takeIf { it.grant == ifGrant } ?: return false
+        perSchema[schema] = stored.copy(accountId = accountId)
+        return true
+    }
+
+    override fun delete() {
+        perSchema.remove(scope ?: error("no tenant in scope"))
+    }
 }
 
 private class ScriptedBunq : BunqGateway {
-    var accounts = listOf(BunqAccount(BunqAccountId("acc-1"), BunqAccountName("Teamkas")))
+    var accounts = listOf(
+        BunqAccount(BunqAccountId("acc-1"), BunqAccountName("Teamkas")),
+        BunqAccount(BunqAccountId("acc-2"), BunqAccountName("Privé")),
+    )
     var exchanges = 0
     var lastState: String? = null
     var lastRedirectUri: String? = null
+    var listedWith: BunqGrant? = null
+
+    /** Runs while a listing is in flight, to let something else happen to the team during the Bunq call. */
+    var whileListing: () -> Unit = {}
 
     override fun authorizationUrl(state: String, redirectUri: String): String {
         lastState = state
@@ -125,7 +153,11 @@ private class ScriptedBunq : BunqGateway {
         return BunqGrant("token-for-${code.value}")
     }
 
-    override fun listAccounts(grant: BunqGrant): List<BunqAccount> = accounts
+    override fun listAccounts(grant: BunqGrant): List<BunqAccount> {
+        listedWith = grant
+        whileListing()
+        return accounts
+    }
 
     override fun fetchBalance(account: BunqAccountId): Money = error("not used")
 
@@ -205,6 +237,21 @@ class BunqConnectionServiceTest : FunSpec() {
             }
 
             fun grantIn(schema: SchemaName) = tenants.connectionIn(schema)?.grant?.let(cipher::decrypt)
+
+            /** A connected team, as the Admin's own requests see it. */
+            fun connected(code: String = "abc") {
+                complete(startFlow(), code, null).result shouldBe BunqConnectResult.CONNECTED
+                tenants.requestSchema(teamSchema)
+            }
+
+            /** The stored grant stops decrypting, as after the encryption key was replaced. */
+            fun rotateKey() {
+                val newKey = TokenCipher.fromBase64Key(Base64.getEncoder().encodeToString(ByteArray(32) { it.toByte() }), "other-key")
+                val stored = tenants.connectionIn(teamSchema)!!
+                tenants.putConnectionIn(teamSchema, stored.copy(grant = newKey.encrypt(cipher.decrypt(stored.grant))))
+            }
+
+            fun pickedAccount() = tenants.connectionIn(teamSchema)?.accountId
         }
 
         context("starting") {
@@ -268,11 +315,11 @@ class BunqConnectionServiceTest : FunSpec() {
 
                 outcome shouldBe BunqConnectOutcome(BunqConnectResult.CONNECTED, f.teamSlug)
                 val stored = f.tenants.connectionIn(f.teamSchema)!!
-                f.cipher.decrypt(stored.grant!!) shouldBe "token-for-abc"
-                stored.grant!!.value shouldNotContain "token-for-abc"
+                f.cipher.decrypt(stored.grant) shouldBe "token-for-abc"
+                stored.grant.value shouldNotContain "token-for-abc"
                 stored.connectedBy shouldBe admin
                 stored.connectedAt shouldBe START
-                stored.accountId shouldBe BunqAccountId("acc-1")
+                stored.accountId shouldBe null
                 f.tenants.connectionIn(f.directory.schemaOf(f.otherTeam)) shouldBe null
             }
 
@@ -451,34 +498,43 @@ class BunqConnectionServiceTest : FunSpec() {
                 f.grantIn(f.teamSchema) shouldBe "token-for-second"
             }
 
-            // TRACER SHORTCUT (3.1): these two go away with the auto-pick, when the Admin chooses.
-            test("a grant covering several accounts fails, because the tracer cannot pick one") {
+            test("reconnecting keeps the picked account while the new grant still covers it") {
                 val f = Fixture()
-                f.bunq.accounts += BunqAccount(BunqAccountId("acc-2"), BunqAccountName("Privé"))
+                f.connected("first")
+                f.service.pickAccount(admin, f.team, BunqAccountId("acc-2"))
 
-                f.complete(f.startFlow(), "abc", null) shouldBe BunqConnectOutcome(BunqConnectResult.FAILED, f.teamSlug)
+                f.complete(f.startFlow(), "second", null).result shouldBe BunqConnectResult.CONNECTED
 
-                f.tenants.hasNoConnections() shouldBe true
+                f.pickedAccount() shouldBe BunqAccountId("acc-2")
+                f.grantIn(f.teamSchema) shouldBe "token-for-second"
             }
 
-            test("a grant covering no account fails") {
+            test("reconnecting drops the picked account when the new grant no longer covers it") {
                 val f = Fixture()
-                f.bunq.accounts = emptyList()
+                f.connected("first")
+                f.service.pickAccount(admin, f.team, BunqAccountId("acc-2"))
+                f.bunq.accounts = f.bunq.accounts.filter { it.id == BunqAccountId("acc-1") }
 
-                f.complete(f.startFlow(), "abc", null).result shouldBe BunqConnectResult.FAILED
+                f.complete(f.startFlow(), "second", null).result shouldBe BunqConnectResult.CONNECTED
 
-                f.tenants.hasNoConnections() shouldBe true
+                f.pickedAccount() shouldBe null
+                f.grantIn(f.teamSchema) shouldBe "token-for-second"
             }
         }
 
         context("status") {
-            test("walks from not connected to connected") {
+            test("walks from not connected to connected to an account picked") {
                 val f = Fixture()
                 f.tenants.requestSchema(f.teamSchema)
 
-                f.service.status(admin, f.team) shouldBe BunqConnectionStatus(connectAvailable = true, connected = false)
-                f.complete(f.startFlow(), "abc", null)
-                f.service.status(admin, f.team) shouldBe BunqConnectionStatus(connectAvailable = true, connected = true)
+                f.service.status(admin, f.team) shouldBe
+                    BunqConnectionStatus(connectAvailable = true, connected = false, accountPicked = false)
+                f.connected()
+                f.service.status(admin, f.team) shouldBe
+                    BunqConnectionStatus(connectAvailable = true, connected = true, accountPicked = false)
+                f.service.pickAccount(admin, f.team, BunqAccountId("acc-1"))
+                f.service.status(admin, f.team) shouldBe
+                    BunqConnectionStatus(connectAvailable = true, connected = true, accountPicked = true)
             }
 
             test("says connecting is unavailable when switched off, and is for admins only") {
@@ -486,6 +542,203 @@ class BunqConnectionServiceTest : FunSpec() {
 
                 f.service.status(admin, f.team).connectAvailable shouldBe false
                 shouldThrow<NotTeamAdminException> { f.service.status(member, f.team) }
+            }
+        }
+
+        context("listing the accounts") {
+            test("shows the accounts the grant covers and no selection before a pick") {
+                val f = Fixture()
+                f.connected()
+
+                f.service.listAccounts(admin, f.team) shouldBe BunqAccounts(f.bunq.accounts, selected = null)
+            }
+
+            test("shows the picked account as selected") {
+                val f = Fixture()
+                f.connected()
+                f.service.pickAccount(admin, f.team, BunqAccountId("acc-2"))
+
+                f.service.listAccounts(admin, f.team).selected shouldBe BunqAccountId("acc-2")
+            }
+
+            test("asks Bunq with the decrypted grant") {
+                val f = Fixture()
+                f.connected("abc")
+
+                f.service.listAccounts(admin, f.team)
+
+                f.bunq.listedWith shouldBe BunqGrant("token-for-abc")
+            }
+
+            test("is not found while the team is not connected") {
+                val f = Fixture()
+                f.tenants.requestSchema(f.teamSchema)
+
+                shouldThrow<BunqNotConnectedException> { f.service.listAccounts(admin, f.team) }
+            }
+
+            test("is for admins only") {
+                val f = Fixture()
+                f.connected()
+
+                shouldThrow<NotTeamAdminException> { f.service.listAccounts(member, f.team) }
+            }
+
+            test("a Platform Admin acting as the team may list") {
+                val f = Fixture(actingOperator = operator)
+                f.service.complete(f.startFlow(operator), "abc", null, sessionUser = operator)
+                f.tenants.requestSchema(f.teamSchema)
+
+                f.service.listAccounts(operator, f.team).accounts shouldBe f.bunq.accounts
+            }
+
+            test("a grant that does not decrypt is BUNQ_REJECTED") {
+                val f = Fixture()
+                f.connected()
+                f.rotateKey()
+
+                shouldThrow<BunqGrantRejectedException> { f.service.listAccounts(admin, f.team) }
+            }
+
+            test("is not found when connecting is switched off, because the cipher is only there while it is on") {
+                val f = Fixture()
+                f.connected()
+                f.switchConnecting(false)
+
+                shouldThrow<BunqConnectDisabledException> { f.service.listAccounts(admin, f.team) }
+            }
+        }
+
+        context("picking an account") {
+            test("stores the pick and keeps the grant") {
+                val f = Fixture()
+                f.connected()
+                val before = f.tenants.connectionIn(f.teamSchema)!!
+
+                f.service.pickAccount(admin, f.team, BunqAccountId("acc-1"))
+
+                f.tenants.connectionIn(f.teamSchema) shouldBe before.copy(accountId = BunqAccountId("acc-1"))
+            }
+
+            test("changing the pick replaces it") {
+                val f = Fixture()
+                f.connected()
+                f.service.pickAccount(admin, f.team, BunqAccountId("acc-1"))
+
+                f.service.pickAccount(admin, f.team, BunqAccountId("acc-2"))
+
+                f.pickedAccount() shouldBe BunqAccountId("acc-2")
+            }
+
+            test("an id outside the grant is refused and nothing is written") {
+                val f = Fixture()
+                f.connected()
+
+                shouldThrow<UnknownBunqAccountException> { f.service.pickAccount(admin, f.team, BunqAccountId("not-mine")) }
+
+                f.pickedAccount() shouldBe null
+            }
+
+            test("is not found while the team is not connected") {
+                val f = Fixture()
+                f.tenants.requestSchema(f.teamSchema)
+
+                shouldThrow<BunqNotConnectedException> { f.service.pickAccount(admin, f.team, BunqAccountId("acc-1")) }
+            }
+
+            test("is for admins only and writes nothing") {
+                val f = Fixture()
+                f.connected()
+
+                shouldThrow<NotTeamAdminException> { f.service.pickAccount(member, f.team, BunqAccountId("acc-1")) }
+
+                f.pickedAccount() shouldBe null
+            }
+
+            test("a Disconnect during the Bunq call leaves no connection, and the pick says the connection changed") {
+                val f = Fixture()
+                f.connected()
+                f.bunq.whileListing = { f.service.disconnect(admin, f.team) }
+
+                shouldThrow<BunqConnectionChangedException> { f.service.pickAccount(admin, f.team, BunqAccountId("acc-1")) }
+
+                f.tenants.hasNoConnections() shouldBe true
+            }
+
+            test("a reconnect during the Bunq call keeps the new grant, and the pick says the connection changed") {
+                val f = Fixture()
+                f.connected("first")
+                f.bunq.whileListing = {
+                    f.bunq.whileListing = {}
+                    f.complete(f.startFlow(), "second", null).result shouldBe BunqConnectResult.CONNECTED
+                }
+
+                shouldThrow<BunqConnectionChangedException> { f.service.pickAccount(admin, f.team, BunqAccountId("acc-1")) }
+
+                f.grantIn(f.teamSchema) shouldBe "token-for-second"
+                f.pickedAccount() shouldBe null
+            }
+
+            test("a grant that does not decrypt is BUNQ_REJECTED and nothing is written") {
+                val f = Fixture()
+                f.connected()
+                f.rotateKey()
+
+                shouldThrow<BunqGrantRejectedException> { f.service.pickAccount(admin, f.team, BunqAccountId("acc-1")) }
+
+                f.pickedAccount() shouldBe null
+            }
+        }
+
+        context("disconnecting") {
+            test("deletes the whole connection, grant included") {
+                val f = Fixture()
+                f.connected()
+                f.service.pickAccount(admin, f.team, BunqAccountId("acc-1"))
+
+                f.service.disconnect(admin, f.team)
+
+                f.tenants.connectionIn(f.teamSchema) shouldBe null
+                f.service.status(admin, f.team) shouldBe
+                    BunqConnectionStatus(connectAvailable = true, connected = false, accountPicked = false)
+            }
+
+            test("does nothing while the team is not connected") {
+                val f = Fixture()
+                f.tenants.requestSchema(f.teamSchema)
+
+                f.service.disconnect(admin, f.team)
+
+                f.tenants.hasNoConnections() shouldBe true
+            }
+
+            test("is for admins only and deletes nothing") {
+                val f = Fixture()
+                f.connected()
+
+                shouldThrow<NotTeamAdminException> { f.service.disconnect(member, f.team) }
+
+                f.tenants.connectionIn(f.teamSchema) shouldNotBe null
+            }
+
+            test("still works when connecting is switched off, because it needs no cipher") {
+                val f = Fixture()
+                f.connected()
+                f.switchConnecting(false)
+
+                f.service.disconnect(admin, f.team)
+
+                f.tenants.hasNoConnections() shouldBe true
+            }
+
+            test("a Platform Admin acting as the team may disconnect") {
+                val f = Fixture(actingOperator = operator)
+                f.service.complete(f.startFlow(operator), "abc", null, sessionUser = operator)
+                f.tenants.requestSchema(f.teamSchema)
+
+                f.service.disconnect(operator, f.team)
+
+                f.tenants.hasNoConnections() shouldBe true
             }
         }
     }

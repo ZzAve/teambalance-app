@@ -21,8 +21,11 @@ teambalance:
     # Hardcoded key for e2e runs; live supplies INVITATION_TOKEN_ENCRYPTION_KEY.
     token-encryption-key: dGVhbWJhbGFuY2UtZTJlLWludml0YXRpb24ta2V5LTE=
   api-base-url: http://localhost:8080
+  # Local SPA origin, where the Bunq OAuth callback sends the Admin back to.
+  frontend-base-url: http://localhost:5173
   bunq:
-    # Hardcoded for e2e runs (not a live environment); connecting itself stays off here.
+    # Hardcoded for e2e runs (not a live environment); connects through the fake Bunq authorize page.
+    connect-enabled: true
     token-encryption-key: dGVhbWJhbGFuY2UtZTJlLWJ1bnEtdG9rZW4ta2V5LTE=
   calendar-link:
     # Hardcoded secrets for e2e runs (not a live environment).

@@ -1,18 +1,22 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { BunqConnectUnavailableError, startBunqConnection, useBunqConnection } from '@shared/api/bunq-connection'
 import type { ConnectBunqResult } from '../lib/bunq-result'
+import { BunqAccounts } from './BunqAccounts'
 import { ConnectBunqView } from './ConnectBunqView'
 
 /**
  * Container for connecting Bunq: reads the connection status and, on Connect, leaves the app for the
- * Bunq approval page. Renders nothing until the status says connecting is available, so a deployment
- * with it switched off shows no trace of it. Pure wiring, covered by the prop-only View's stories
- * (ADR-0017). Admin-gating is enforced on the route (beforeLoad) and again on the backend (403).
+ * Bunq approval page. A connected team gets the account picker and Disconnect in the View's accounts
+ * slot. Renders nothing until the status says connecting is available, so a deployment with it switched
+ * off shows no trace of it. Pure wiring, covered by the prop-only View's stories (ADR-0017).
+ * Admin-gating is enforced on the route (beforeLoad) and again on the backend (403).
  */
 export function ConnectBunq({ result }: { result?: ConnectBunqResult }) {
   const { data: status } = useBunqConnection()
   const connect = useMutation({ mutationFn: startBunqConnection })
+  // Disconnecting removes the accounts section it was started from, so the signal that it happened lives here.
+  const [disconnected, setDisconnected] = useState(false)
   const section = useRef<HTMLDivElement>(null)
   const available = status?.connectAvailable === true
 
@@ -39,6 +43,9 @@ export function ConnectBunq({ result }: { result?: ConnectBunqResult }) {
     <div ref={section} className="scroll-mt-[var(--header-height)]">
       <ConnectBunqView
         connected={status.connected}
+        accountPicked={status.accountPicked}
+        disconnected={disconnected}
+        accounts={<BunqAccounts onDisconnected={() => setDisconnected(true)} />}
         result={result}
         focusResult
         // Stays pending after the response too: the browser is on its way to Bunq, and a second click must not start another state.

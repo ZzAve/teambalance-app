@@ -9,6 +9,7 @@ import com.github.zzave.teambalance.api.domain.model.BunqAuthorizationCode
 import com.github.zzave.teambalance.api.domain.model.BunqConnection
 import com.github.zzave.teambalance.api.domain.model.BunqGrant
 import com.github.zzave.teambalance.api.domain.model.BunqMeLink
+import com.github.zzave.teambalance.api.domain.model.EncryptedToken
 import com.github.zzave.teambalance.api.domain.model.Money
 import com.github.zzave.teambalance.api.domain.model.MoneyPool
 import com.github.zzave.teambalance.api.domain.model.MoneyPoolSettings
@@ -86,6 +87,7 @@ class MoneyPoolServiceTest : FunSpec({
     fun service(
         enabled: Boolean = true,
         connected: Boolean = true,
+        accountPicked: Boolean = true,
         season: Season = Season.UNSET,
         gateway: BunqGateway = RecordingBunqGateway(),
         settings: MoneyPoolSettings = MoneyPoolSettings(enabled),
@@ -93,9 +95,22 @@ class MoneyPoolServiceTest : FunSpec({
     ) = MoneyPoolService(
         settingsRepository = settingsRepository,
         connectionRepository = object : BunqConnectionRepository {
-            override fun find() = if (connected) BunqConnection(ACCOUNT, connectedAt = Instant.EPOCH) else null
+            override fun find() = if (connected) {
+                BunqConnection(
+                    accountId = ACCOUNT.takeIf { accountPicked },
+                    grant = EncryptedToken("not-read-by-reads"),
+                    connectedBy = ADMIN,
+                    connectedAt = Instant.EPOCH,
+                )
+            } else {
+                null
+            }
 
             override fun save(connection: BunqConnection) = error("not used")
+
+            override fun pickAccount(accountId: BunqAccountId, ifGrant: EncryptedToken) = error("not used")
+
+            override fun delete() = error("not used")
         },
         seasonRepository = FixedSeasonRepository(season),
         bunqGateway = gateway,
@@ -109,6 +124,14 @@ class MoneyPoolServiceTest : FunSpec({
 
     test("is NotConnected when enabled but no Bunq connection exists") {
         service(connected = false).getMoneyPool().pool shouldBe MoneyPool.NotConnected
+    }
+
+    test("is NotConnected when connected but no account is picked yet, and Bunq is not called") {
+        val gateway = RecordingBunqGateway()
+
+        service(accountPicked = false, gateway = gateway).getMoneyPool().pool shouldBe MoneyPool.NotConnected
+
+        gateway.calls shouldBe 0
     }
 
     test("is Connected with balance and payments when Bunq answers") {

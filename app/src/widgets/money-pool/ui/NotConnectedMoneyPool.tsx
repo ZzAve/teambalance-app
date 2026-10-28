@@ -20,16 +20,21 @@ interface NotConnectedMoneyPoolProps {
    * settings, false says it is coming. Undefined (not known yet, or the status could not be read) says neither.
    */
   connectAvailable?: boolean
+  /**
+   * The team connected Bunq but no account is picked yet: an admin is pointed to the team settings to pick
+   * one, as long as connecting is switched on, since the settings show nothing about Bunq otherwise.
+   */
+  accountPending?: boolean
 }
 
 /** Members see what the pool offers; admins also hear how connecting Bunq goes, or that it is coming (ADR-0042). */
-export function NotConnectedMoneyPool({ isAdmin, connectAvailable }: NotConnectedMoneyPoolProps) {
+export function NotConnectedMoneyPool({ isAdmin, connectAvailable, accountPending }: NotConnectedMoneyPoolProps) {
   return (
     <section aria-label="Money pool preview" className="mx-auto flex max-w-sm flex-col items-center text-center">
       <h3 className="font-display text-title font-bold leading-tight">A shared team pot</h3>
       <p className="mt-3 text-small leading-relaxed text-muted-foreground">
         {isAdmin
-          ? adminCopy(connectAvailable)
+          ? adminCopy(connectAvailable, accountPending)
           : 'Once an admin connects the team’s Bunq account, the balance and payments show up here.'}
       </p>
 
@@ -55,7 +60,8 @@ export function NotConnectedMoneyPool({ isAdmin, connectAvailable }: NotConnecte
   )
 }
 
-function adminCopy(connectAvailable?: boolean) {
+function adminCopy(connectAvailable?: boolean, accountPending?: boolean) {
+  if (accountPending && connectAvailable) return 'Pick the account in the team settings. The balance and payments will show up here.'
   if (connectAvailable === undefined) return 'The balance and payments of the team’s Bunq account will show up here.'
   return connectAvailable
     ? 'Connect the team’s Bunq account in the team settings. The balance and payments will show up here.'

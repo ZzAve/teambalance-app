@@ -11,15 +11,15 @@ export const STORAGE_STATE = 'e2e-real/.auth/user.json'
 // user's magic-link token (the recorder keeps only the last token per email).
 export const STORAGE_STATE_LOGOUT = 'e2e-real/.auth/logout-user.json'
 
-// Logs the seeded e2e user in over the API, leaving the session cookie on `request` so the
-// caller can persist it as storageState. The plaintext token is fetched from the e2e-profile
-// support endpoint (the DB stores only the SHA-256 hash).
-export async function authenticateViaApi(request: APIRequestContext): Promise<void> {
-  const requested = await request.post('/api/auth/magic-link/request', { data: { email: TEST_EMAIL } })
+// Logs a seeded e2e user (the shared admin unless `email` says otherwise) in over the API, leaving the
+// session cookie on `request` so the caller can persist it as storageState. The plaintext token is
+// fetched from the e2e-profile support endpoint (the DB stores only the SHA-256 hash).
+export async function authenticateViaApi(request: APIRequestContext, email: string = TEST_EMAIL): Promise<void> {
+  const requested = await request.post('/api/auth/magic-link/request', { data: { email } })
   expect(requested.status()).toBe(202)
 
   const tokenResponse = await request.get(`${BACKEND_URL}/internal/e2e/magic-link-token`, {
-    params: { email: TEST_EMAIL },
+    params: { email },
   })
   expect(tokenResponse.ok()).toBeTruthy()
   const { token } = await tokenResponse.json()

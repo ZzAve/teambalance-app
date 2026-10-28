@@ -3,15 +3,14 @@ package com.github.zzave.teambalance.api.domain.model
 import java.time.Instant
 
 /**
- * The team's access to Bunq (ADR-0042) and the one account its money pool reads. The connection
- * belongs to the team, so [connectedBy] records who connected it and is not an owner.
- *
- * [grant] and [connectedBy] are null only on a connection that was inserted directly, such as the
- * dev demo seed; the OAuth flow always sets both.
+ * The team's access to Bunq (ADR-0042). [accountId] is null between approving at Bunq and the Admin
+ * picking one of the grant's accounts; the money pool reads nothing until then. The connection belongs
+ * to the team, so [connectedBy] is a record of who connected it, not an owner.
  */
 data class BunqConnection(
-    val accountId: BunqAccountId,
+    val accountId: BunqAccountId?,
+    val grant: EncryptedToken,
+    /** Audit only: who connected it. It grants that user nothing, and the connection survives their leaving. */
+    val connectedBy: UserId,
     val connectedAt: Instant,
-    val grant: EncryptedToken? = null,
-    val connectedBy: UserId? = null,
 )

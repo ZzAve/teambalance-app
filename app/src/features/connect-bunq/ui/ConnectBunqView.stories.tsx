@@ -78,6 +78,8 @@ export const Shells: Story = {
       const reconnect = region(name).getByRole('button', { name: 'Connect a different bunq login' })
       await expect(reconnect).toBeEnabled()
       await expect(reconnect).toHaveAttribute('aria-expanded', 'false')
+      // It reads as a control at rest, not as plain text.
+      await expect(reconnect).toHaveStyle({ textDecorationLine: 'underline' })
     }
 
     // Disconnecting says so and offers Connect again.

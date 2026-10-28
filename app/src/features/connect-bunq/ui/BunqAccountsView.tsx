@@ -23,6 +23,16 @@ interface BunqAccountsViewProps {
   onDisconnect: () => void
 }
 
+// Drawn by hand: the native unchecked radio is a dark disc with a faint ring in the dark theme. The ring is
+// muted-foreground (4.7:1 light, 7.3:1 dark against the page; 3:1 is the floor for a control's boundary) and
+// the checked one is a solid primary disc with a dot cut out of it.
+const RADIO_CLASS = [
+  'size-5 shrink-0 appearance-none rounded-full border-2 border-muted-foreground bg-transparent',
+  'checked:border-primary checked:bg-primary',
+  'checked:bg-[radial-gradient(circle,var(--color-primary-foreground)_0_32%,transparent_36%)]',
+  'focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+].join(' ')
+
 // Error texts sit on a card; red-ink clears 4.5:1 there in both themes.
 const ERROR_CLASS = 'rounded-lg bg-card p-3 text-small text-red-ink'
 
@@ -45,6 +55,18 @@ export function BunqAccountsView({
   onDisconnect,
 }: BunqAccountsViewProps) {
   const [confirming, setConfirming] = useState(false)
+  const disconnectButton = useRef<HTMLButtonElement>(null)
+  // Focus goes back to Disconnect only when the dialog was dismissed. After a confirm the button is disabled
+  // and the status or the error takes focus, which must not be pulled away when the dialog finishes closing.
+  const dismissed = useRef(false)
+  const errorRef = useRef<HTMLParagraphElement>(null)
+
+  // A failed pick or disconnect leaves the controls that were pressed disabled and focus on the page; the
+  // error is where it goes. The message returns to null while the next attempt is pending, so a repeated
+  // failure runs this again.
+  useEffect(() => {
+    if (error) errorRef.current?.focus()
+  }, [error])
 
   return (
     <div className="flex flex-col gap-4">
@@ -75,13 +97,13 @@ export function BunqAccountsView({
         />
       )}
       {error && (
-        <p role="alert" className={ERROR_CLASS}>
+        <p ref={errorRef} role="alert" tabIndex={-1} className={`${ERROR_CLASS} outline-none`}>
           {error}
         </p>
       )}
 
       <div>
-        <Button variant="outline" size="sm" disabled={isSaving} onClick={() => setConfirming(true)}>
+        <Button ref={disconnectButton} variant="outline" size="sm" disabled={isSaving} onClick={() => setConfirming(true)}>
           Disconnect
         </Button>
       </div>
@@ -91,10 +113,18 @@ export function BunqAccountsView({
         description="This deletes the access TeamBalance stored. To withdraw the grant at bunq too, remove TeamBalance under connected apps in the bunq app."
         confirmLabel="Disconnect"
         onConfirm={() => {
+          dismissed.current = false
           setConfirming(false)
           onDisconnect()
         }}
-        onCancel={() => setConfirming(false)}
+        onCancel={() => {
+          dismissed.current = true
+          setConfirming(false)
+        }}
+        onCloseAutoFocus={(event) => {
+          event.preventDefault()
+          if (dismissed.current) disconnectButton.current?.focus()
+        }}
       />
     </div>
   )
@@ -132,7 +162,7 @@ function AccountPicker({ accounts, selectedAccountId, isSaving, saved, onPick }:
             value={account.id}
             checked={choice === account.id}
             onChange={() => setChoice(account.id)}
-            className="size-5 shrink-0 accent-primary"
+            className={RADIO_CLASS}
           />
           {account.name}
         </label>
@@ -147,7 +177,7 @@ function AccountPicker({ accounts, selectedAccountId, isSaving, saved, onPick }:
         </Button>
       </div>
       {/* Mounted before it has text, so the announcement is read when it appears. */}
-      <p ref={savedRef} role="status" tabIndex={-1} className="text-small outline-none empty:sr-only">
+      <p ref={savedRef} role="status" tabIndex={-1} className="mt-3 text-small outline-none empty:sr-only">
         {saved && picked ? `The Money page now shows ${picked.name}.` : ''}
       </p>
     </fieldset>

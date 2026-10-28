@@ -103,7 +103,7 @@ export function ConnectBunqView({
         <Button
           variant="link"
           size="sm"
-          className="self-start px-0"
+          className="self-start px-0 underline"
           aria-expanded={showForm}
           aria-controls={showForm ? formId : undefined}
           disabled={isConnecting}

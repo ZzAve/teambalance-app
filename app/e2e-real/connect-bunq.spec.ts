@@ -68,7 +68,23 @@ test('money pool: an admin connects Bunq, picks an account, a member reads it, t
   await expect(page.getByText('187,50')).toBeVisible()
   await expect(page.getByText('Lisa de Vries')).toBeVisible()
 
-  // 5. Connecting a different login replaces the access and keeps the pick, since the new access still
+  // 5. Picking Privé changes what the Money page reads, and picking Teamkas again restores it.
+  await page.goto(SETTINGS)
+  await page.getByRole('radio', { name: 'Privé' }).check()
+  await page.getByRole('button', { name: 'Use this account' }).click()
+  await expect(page.getByRole('status').filter({ hasText: 'The Money page now shows Privé.' })).toBeFocused()
+  await page.goto(MONEY)
+  await expect(page.getByText('42,35')).toBeVisible()
+  await expect(page.getByText('Albert Heijn')).toBeVisible()
+  await expect(page.getByText('Lisa de Vries')).toHaveCount(0)
+  await page.goto(SETTINGS)
+  await page.getByRole('radio', { name: 'Teamkas' }).check()
+  await page.getByRole('button', { name: 'Use this account' }).click()
+  await expect(page.getByRole('status').filter({ hasText: 'The Money page now shows Teamkas.' })).toBeFocused()
+  await page.goto(MONEY)
+  await expect(page.getByText('187,50')).toBeVisible()
+
+  // 6. Connecting a different login replaces the access and keeps the pick, since the new access still
   //    covers it.
   await page.goto(SETTINGS)
   await page.getByRole('button', { name: 'Connect a different bunq login' }).click()
@@ -79,7 +95,7 @@ test('money pool: an admin connects Bunq, picks an account, a member reads it, t
   await expect(page.getByRole('status').filter({ hasText: 'Connected to bunq.' })).toBeVisible()
   await expect(page.getByRole('radio', { name: 'Teamkas' })).toBeChecked()
 
-  // 6. A member reads the same pool, and the settings (and the Connect section) are not theirs.
+  // 7. A member reads the same pool, and the settings (and the Connect section) are not theirs.
   // Explicitly empty: a context made from `playwright.request` would inherit the admin's storageState from the
   // project config, and signing in with the admin's cookie replaces (invalidates) the admin's session.
   const memberRequest = await playwright.request.newContext({
@@ -96,7 +112,7 @@ test('money pool: an admin connects Bunq, picks an account, a member reads it, t
     await expect(memberPage.getByText('Lisa de Vries')).toBeVisible()
     expect((await member.request.get('/api/team/money-pool/connection')).status()).toBe(403)
 
-    // 7. Disconnect, behind its confirmation: the pool is a preview again for the admin and the member.
+    // 8. Disconnect, behind its confirmation: the pool is a preview again for the admin and the member.
     await page.goto(SETTINGS)
     await page.getByRole('button', { name: 'Disconnect' }).click()
     // The accounts read is a 404 once disconnected; it must never show as a failure on the way out.

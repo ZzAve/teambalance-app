@@ -128,6 +128,21 @@ class BunqConnectionControllerIT : TeamBalanceIT() {
             api(get(ACCOUNT), ALPHA_MEMBER).andExpect(jsonPath("$.selectedAccountId").value(TEAMKAS))
         }
 
+        test("the money pool reads the account that was picked, and follows a change of pick") {
+            connect(newLogin())
+
+            api(pick(PRIVE), ALPHA_MEMBER).andExpect(status().isNoContent)
+            api(get(MONEY_POOL), ALPHA_MEMBER)
+                .andExpect(jsonPath("$.state").value("Connected"))
+                .andExpect(jsonPath("$.balance").value(4235))
+                .andExpect(jsonPath("$.payments[0].name").value("Albert Heijn"))
+
+            api(pick(TEAMKAS), ALPHA_MEMBER).andExpect(status().isNoContent)
+            api(get(MONEY_POOL), ALPHA_MEMBER)
+                .andExpect(jsonPath("$.balance").value(18750))
+                .andExpect(jsonPath("$.payments[0].name").value("Lisa de Vries"))
+        }
+
         test("picking an id outside the grant is a 400 and changes nothing") {
             connect(newLogin())
 

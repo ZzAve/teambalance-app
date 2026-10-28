@@ -1,6 +1,7 @@
 package com.github.zzave.teambalance.api.interfaces
 
 import com.github.zzave.teambalance.api.TeamBalanceIT
+import com.github.zzave.teambalance.api.application.TokenCipher
 import com.github.zzave.teambalance.api.domain.model.BunqAccount
 import com.github.zzave.teambalance.api.domain.model.BunqAccountId
 import com.github.zzave.teambalance.api.domain.model.BunqAuthorizationCode
@@ -9,10 +10,12 @@ import com.github.zzave.teambalance.api.domain.model.Money
 import com.github.zzave.teambalance.api.domain.model.Payment
 import com.github.zzave.teambalance.api.domain.port.BunqGateway
 import com.github.zzave.teambalance.api.infrastructure.bunq.FakeBunqGatewayAdapter
+import com.github.zzave.teambalance.api.infrastructure.config.BunqGrantCipherConfiguration
 import com.github.zzave.teambalance.api.infrastructure.identity.loginAs
 import com.github.zzave.teambalance.api.infrastructure.multitenancy.TenantSchemaAdapter
 import org.hamcrest.Matchers
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.boot.test.context.TestConfiguration
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
 import org.springframework.context.annotation.Bean
@@ -87,6 +90,10 @@ class MoneyPoolControllerIT : TeamBalanceIT() {
 
     @Autowired
     lateinit var bunqGateway: SwitchableBunqGateway
+
+    @Autowired
+    @Qualifier(BunqGrantCipherConfiguration.BEAN_NAME)
+    lateinit var grantCipher: TokenCipher
 
     init {
         afterTest {
@@ -436,7 +443,10 @@ class MoneyPoolControllerIT : TeamBalanceIT() {
 
     private fun connectBunq() {
         jdbcTemplate.update(
-            "INSERT INTO public.bunq_connection (id, bunq_account_id, connected_at) VALUES (1, 'test-account', now())",
+            "INSERT INTO public.bunq_connection (id, bunq_account_id, access_token_encrypted, connected_by, connected_at) " +
+                "VALUES (1, 'test-account', ?, ?::uuid, now())",
+            grantCipher.encrypt("fake:test").value,
+            ADMIN_USER_ID,
         )
     }
 

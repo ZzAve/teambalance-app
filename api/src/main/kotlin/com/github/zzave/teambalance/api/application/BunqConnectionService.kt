@@ -1,8 +1,14 @@
 package com.github.zzave.teambalance.api.application
 
 import com.github.zzave.teambalance.api.domain.exception.BunqConnectDisabledException
+import com.github.zzave.teambalance.api.domain.exception.BunqGrantRejectedException
+import com.github.zzave.teambalance.api.domain.exception.BunqNotConnectedException
+import com.github.zzave.teambalance.api.domain.exception.UnknownBunqAccountException
+import com.github.zzave.teambalance.api.domain.model.BunqAccountId
+import com.github.zzave.teambalance.api.domain.model.BunqAccounts
 import com.github.zzave.teambalance.api.domain.model.BunqAuthorizationCode
 import com.github.zzave.teambalance.api.domain.model.BunqConnection
+import com.github.zzave.teambalance.api.domain.model.BunqGrant
 import com.github.zzave.teambalance.api.domain.model.BunqOAuthState
 import com.github.zzave.teambalance.api.domain.model.Slug
 import com.github.zzave.teambalance.api.domain.model.TeamId
@@ -27,7 +33,7 @@ enum class BunqConnectResult { CONNECTED, DECLINED, FAILED }
 /** What the callback did, and the team it concerned if the `state` named one. */
 data class BunqConnectOutcome(val result: BunqConnectResult, val teamSlug: Slug?)
 
-data class BunqConnectionStatus(val connectAvailable: Boolean, val connected: Boolean)
+data class BunqConnectionStatus(val connectAvailable: Boolean, val connected: Boolean, val accountPicked: Boolean)
 
 /**
  * What connecting needs: the cipher the grant is encrypted with and the callback URL Bunq returns the
@@ -38,8 +44,10 @@ data class BunqConnectionStatus(val connectAvailable: Boolean, val connected: Bo
 class BunqConnectConfig(val grantCipher: TokenCipher, val callbackUrl: String)
 
 /**
- * How a team Admin connects the team's Bunq account through OAuth (ADR-0042). [start] and [status] are
- * Admin-only; act-as counts as Admin. [connectConfig] is null when connecting is switched off.
+ * How a team Admin connects the team's Bunq account through OAuth and chooses which account the money
+ * pool reads (ADR-0042). Everything except [complete] is Admin-only; act-as counts as Admin.
+ * [connectConfig] is null when connecting is switched off, which leaves [listAccounts] and
+ * [pickAccount] without the cipher they need to open the stored grant.
  *
  * [complete] runs on the browser's return from Bunq, which names no team. The credential there is the
  * single-use `state` minted by [start]: it is looked up by hash, spent *before* the code is exchanged
@@ -47,7 +55,7 @@ class BunqConnectConfig(val grantCipher: TokenCipher, val callbackUrl: String)
  * goes to that team's tenant through [TenantScopeGateway], after the Admin's rights are checked again,
  * since they may have been demoted in the minutes in between.
  */
-@Suppress("LongParameterList")
+@Suppress("LongParameterList", "TooManyFunctions")
 class BunqConnectionService(
     private val connectionRepository: BunqConnectionRepository,
     private val stateRepository: BunqOAuthStateRepository,
@@ -74,7 +82,12 @@ class BunqConnectionService(
 
     fun status(callerId: UserId, teamId: TeamId): BunqConnectionStatus {
         authorizationService.requireAdmin(callerId, teamId)
-        return BunqConnectionStatus(connectAvailable = connectConfig != null, connected = connectionRepository.find() != null)
+        val connection = connectionRepository.find()
+        return BunqConnectionStatus(
+            connectAvailable = connectConfig != null,
+            connected = connection != null,
+            accountPicked = connection?.accountId != null,
+        )
     }
 
     /** The Bunq page where the Admin approves. Allowed while connected: the new grant replaces the old. */
@@ -135,6 +148,27 @@ class BunqConnectionService(
             failed(teamSlug)
         }
 
+    fun listAccounts(callerId: UserId, teamId: TeamId): BunqAccounts {
+        authorizationService.requireAdmin(callerId, teamId)
+        val connection = connectionRepository.find() ?: throw BunqNotConnectedException()
+        return BunqAccounts(bunqGateway.listAccounts(grantOf(connection)), connection.accountId)
+    }
+
+    fun pickAccount(callerId: UserId, teamId: TeamId, accountId: BunqAccountId) {
+        authorizationService.requireAdmin(callerId, teamId)
+        val connection = connectionRepository.find() ?: throw BunqNotConnectedException()
+        if (bunqGateway.listAccounts(grantOf(connection)).none { it.id == accountId }) {
+            throw UnknownBunqAccountException(accountId)
+        }
+        connectionRepository.save(connection.copy(accountId = accountId))
+    }
+
+    /** Deletes the stored grant and the pick. Needs no cipher, so it also works while connecting is switched off. */
+    fun disconnect(callerId: UserId, teamId: TeamId) {
+        authorizationService.requireAdmin(callerId, teamId)
+        connectionRepository.delete()
+    }
+
     /** Marks a live, unused state as used. False for an expired or already used one, and for the loser of a race. */
     private fun spend(pending: BunqOAuthState): Boolean {
         val now = clock.instant()
@@ -165,18 +199,17 @@ class BunqConnectionService(
     ): BunqConnectOutcome {
         return try {
             val grant = bunqGateway.exchangeCode(code, config.callbackUrl)
-            // TRACER SHORTCUT (3.1), removed in 3.2 where the Admin picks the account: when the grant
-            // covers exactly one account that account becomes the pool, and anything else fails the
-            // connection. The pick step replaces this line, not the code around it.
-            val account = bunqGateway.listAccounts(grant).singleOrNull() ?: return failed(teamSlug)
+            val accounts = bunqGateway.listAccounts(grant)
             val now = clock.instant()
             tenantScopeGateway.within(routing) {
+                // A reconnect keeps the picked account only while the new grant still covers it.
+                val kept = connectionRepository.find()?.accountId?.takeIf { kept -> accounts.any { it.id == kept } }
                 connectionRepository.save(
                     BunqConnection(
-                        accountId = account.id,
-                        connectedAt = now,
+                        accountId = kept,
                         grant = config.grantCipher.encrypt(grant.accessToken),
                         connectedBy = pending.adminUserId,
+                        connectedAt = now,
                     ),
                 )
             }
@@ -185,6 +218,18 @@ class BunqConnectionService(
             // Class name only: a client's exception message may carry the code or the token.
             log.warn("Connecting Bunq for team ${pending.teamId} failed: ${e.javaClass.simpleName}")
             failed(teamSlug)
+        }
+    }
+
+    /** A grant that no longer decrypts (rotated key, damaged row) is as good as one Bunq rejects: reconnect. */
+    @Suppress("TooGenericExceptionCaught")
+    private fun grantOf(connection: BunqConnection): BunqGrant {
+        val config = connectConfig ?: throw BunqConnectDisabledException()
+        return try {
+            BunqGrant(config.grantCipher.decrypt(connection.grant))
+        } catch (e: Exception) {
+            log.warn("Decrypting the Bunq grant failed: ${e.javaClass.simpleName}")
+            throw BunqGrantRejectedException()
         }
     }
 

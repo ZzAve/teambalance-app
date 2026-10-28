@@ -29,7 +29,7 @@ class MoneyPoolService(
         val pool = if (!settings.enabled) {
             MoneyPool.Off
         } else {
-            connectionRepository.find()?.let { readFromBunq(it.accountId, settings) } ?: MoneyPool.NotConnected
+            connectionRepository.find()?.accountId?.let { readFromBunq(it, settings) } ?: MoneyPool.NotConnected
         }
         return MoneyPoolOverview(pool, canTopUp = settings.topUpLink != null)
     }

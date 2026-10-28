@@ -8,3 +8,6 @@ value class BunqAccountName(val value: String) {
 
 /** One of the Bunq accounts a grant covers. */
 data class BunqAccount(val id: BunqAccountId, val name: BunqAccountName)
+
+/** The accounts a grant covers, and the one the money pool reads, if the Admin picked it. */
+data class BunqAccounts(val accounts: List<BunqAccount>, val selected: BunqAccountId?)

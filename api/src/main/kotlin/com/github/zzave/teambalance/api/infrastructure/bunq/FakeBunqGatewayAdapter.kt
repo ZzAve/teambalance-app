@@ -27,7 +27,7 @@ import java.util.concurrent.ConcurrentHashMap
  *
  * Plays Bunq's OAuth too: [authorizationUrl] points at [FakeBunqAuthorizeController], which calls
  * [issueCode] once the user approves and sends the browser back. A code can be exchanged once, and
- * every grant covers the same single account.
+ * every grant covers the same two accounts.
  */
 @Component
 @Profile("!prod")
@@ -47,7 +47,7 @@ class FakeBunqGatewayAdapter(
         return BunqGrant("fake:$login:${UUID.randomUUID()}")
     }
 
-    override fun listAccounts(grant: BunqGrant): List<BunqAccount> = listOf(ACCOUNT)
+    override fun listAccounts(grant: BunqGrant): List<BunqAccount> = ACCOUNTS
 
     /** The code Bunq would put on the callback once [login] approves. */
     fun issueCode(login: String): String = UUID.randomUUID().toString().also { loginByCode[it] = login }
@@ -70,7 +70,10 @@ class FakeBunqGatewayAdapter(
 
         private const val BALANCE_CENTS = 18_750L
 
-        private val ACCOUNT = BunqAccount(BunqAccountId("fake-account-1"), BunqAccountName("Teamkas"))
+        private val ACCOUNTS = listOf(
+            BunqAccount(BunqAccountId("fake-account-1"), BunqAccountName("Teamkas")),
+            BunqAccount(BunqAccountId("fake-account-2"), BunqAccountName("Privé")),
+        )
 
         private val PAYMENTS = listOf(
             CannedPayment(5, "Lisa de Vries", 2_000, PaymentDirection.IN),

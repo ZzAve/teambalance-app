@@ -14,6 +14,7 @@ import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldNotContain
 import io.kotest.matchers.string.shouldStartWith
 import org.hamcrest.Matchers.containsString
+import org.springframework.http.MediaType
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
 import org.springframework.jdbc.core.JdbcTemplate
@@ -21,8 +22,10 @@ import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.ResultActions
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.asyncDispatch
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.content
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.header
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
@@ -37,6 +40,10 @@ private const val CALLBACK = "http://localhost:8080/api/bunq/oauth/callback"
 private const val ALPHA_SETTINGS = "http://localhost:5173/t/cal-alpha/team/settings"
 private const val FRONTEND_ROOT = "http://localhost:5173/"
 private const val CONNECTION = "/api/team/money-pool/connection"
+private const val ACCOUNT = "$CONNECTION/account"
+private const val MONEY_POOL = "/api/team/money-pool"
+private const val TEAMKAS = "fake-account-1"
+private const val PRIVE = "fake-account-2"
 
 /**
  * Connecting Bunq through the fake approval page (ADR-0042), end to end against two real tenant
@@ -67,18 +74,26 @@ class BunqConnectionControllerIT : TeamBalanceIT() {
             jdbcTemplate.update("UPDATE public.users SET last_active_team_id = NULL WHERE id = ?::uuid", ALPHA_MEMBER)
         }
 
-        test("only an admin can start or read the status, and nothing is written for a member") {
+        test("only an admin can start, read the status, list, pick or disconnect, and nothing changes for a member") {
+            connect(newLogin())
+
             api(post(CONNECTION), LEAVER).andExpect(status().isForbidden)
             api(get(CONNECTION), LEAVER).andExpect(status().isForbidden)
+            api(get(ACCOUNT), LEAVER).andExpect(status().isForbidden)
+            api(pick(TEAMKAS), LEAVER).andExpect(status().isForbidden)
+            api(delete(CONNECTION), LEAVER).andExpect(status().isForbidden)
 
-            stateRows() shouldBe 0
+            stateRows() shouldBe 1
+            connectionRows(ALPHA_SCHEMA) shouldBe 1
+            pickedAccount(ALPHA_SCHEMA) shouldBe null
         }
 
-        test("an admin connects Bunq and the money pool shows the account's balance") {
+        test("an admin connects Bunq, picks an account and the money pool shows its balance") {
             api(get(CONNECTION), ALPHA_MEMBER)
                 .andExpect(status().isOk)
                 .andExpect(jsonPath("$.connectAvailable").value(true))
                 .andExpect(jsonPath("$.connected").value(false))
+                .andExpect(jsonPath("$.accountPicked").value(false))
 
             val state = start(ALPHA_MEMBER)
             mockMvc.perform(get("/internal/fake-bunq/authorize").param("state", state).param("redirect_uri", CALLBACK))
@@ -90,10 +105,73 @@ class BunqConnectionControllerIT : TeamBalanceIT() {
             connectionRows(ALPHA_SCHEMA) shouldBe 1
             connectionRows(BETA_SCHEMA) shouldBe 0
             storedGrant(ALPHA_SCHEMA) shouldNotContain "fake:"
-            api(get("/api/team/money-pool"), ALPHA_MEMBER)
+            pickedAccount(ALPHA_SCHEMA) shouldBe null
+            api(get(CONNECTION), ALPHA_MEMBER)
+                .andExpect(jsonPath("$.connected").value(true))
+                .andExpect(jsonPath("$.accountPicked").value(false))
+            api(get(MONEY_POOL), ALPHA_MEMBER).andExpect(jsonPath("$.state").value("NotConnected"))
+            api(get(ACCOUNT), ALPHA_MEMBER)
+                .andExpect(status().isOk)
+                .andExpect(jsonPath("$.accounts.length()").value(2))
+                .andExpect(jsonPath("$.accounts[0].id").value(TEAMKAS))
+                .andExpect(jsonPath("$.accounts[0].name").value("Teamkas"))
+                .andExpect(jsonPath("$.accounts[1].id").value(PRIVE))
+                .andExpect(jsonPath("$.accounts[1].name").value("Privé"))
+                .andExpect(jsonPath("$.selectedAccountId").doesNotExist())
+
+            api(pick(TEAMKAS), ALPHA_MEMBER).andExpect(status().isNoContent)
+
+            api(get(MONEY_POOL), ALPHA_MEMBER)
                 .andExpect(jsonPath("$.state").value("Connected"))
                 .andExpect(jsonPath("$.balance").value(18750))
-            api(get(CONNECTION), ALPHA_MEMBER).andExpect(jsonPath("$.connected").value(true))
+            api(get(CONNECTION), ALPHA_MEMBER).andExpect(jsonPath("$.accountPicked").value(true))
+            api(get(ACCOUNT), ALPHA_MEMBER).andExpect(jsonPath("$.selectedAccountId").value(TEAMKAS))
+        }
+
+        test("picking an id outside the grant is a 400 and changes nothing") {
+            connect(newLogin())
+
+            api(pick("not-in-the-grant"), ALPHA_MEMBER)
+                .andExpect(status().isBadRequest)
+                .andExpect(jsonPath("$.code").value("UNKNOWN_BUNQ_ACCOUNT"))
+
+            pickedAccount(ALPHA_SCHEMA) shouldBe null
+        }
+
+        test("listing and picking are 404 while the team is not connected") {
+            api(get(ACCOUNT), ALPHA_MEMBER).andExpect(status().isNotFound)
+            api(pick(TEAMKAS), ALPHA_MEMBER).andExpect(status().isNotFound)
+        }
+
+        test("a stored grant that does not decrypt is a 422 BUNQ_REJECTED on both account endpoints") {
+            connect(newLogin())
+            jdbcTemplate.update("UPDATE $ALPHA_SCHEMA.bunq_connection SET access_token_encrypted = 'not-a-grant'")
+
+            api(get(ACCOUNT), ALPHA_MEMBER)
+                .andExpect(status().isUnprocessableEntity)
+                .andExpect(jsonPath("$.code").value("BUNQ_REJECTED"))
+            api(pick(TEAMKAS), ALPHA_MEMBER)
+                .andExpect(status().isUnprocessableEntity)
+                .andExpect(jsonPath("$.code").value("BUNQ_REJECTED"))
+        }
+
+        test("disconnecting deletes the connection and the money pool reads NotConnected again") {
+            connect(newLogin())
+            api(pick(TEAMKAS), ALPHA_MEMBER).andExpect(status().isNoContent)
+
+            api(delete(CONNECTION), ALPHA_MEMBER).andExpect(status().isNoContent)
+
+            connectionRows(ALPHA_SCHEMA) shouldBe 0
+            api(get(MONEY_POOL), ALPHA_MEMBER).andExpect(jsonPath("$.state").value("NotConnected"))
+            api(get(CONNECTION), ALPHA_MEMBER)
+                .andExpect(jsonPath("$.connected").value(false))
+                .andExpect(jsonPath("$.accountPicked").value(false))
+        }
+
+        test("disconnecting while not connected is a no-op") {
+            api(delete(CONNECTION), ALPHA_MEMBER).andExpect(status().isNoContent)
+
+            connectionRows(ALPHA_SCHEMA) shouldBe 0
         }
 
         test("the callback writes to the team that started the flow, even when the session's Active Team is another team") {
@@ -185,14 +263,17 @@ class BunqConnectionControllerIT : TeamBalanceIT() {
             connectionRows(BETA_SCHEMA) shouldBe 0
         }
 
-        test("reconnecting replaces the grant") {
+        test("reconnecting replaces the grant and keeps the picked account") {
             connect(newLogin())
+            api(pick(TEAMKAS), ALPHA_MEMBER).andExpect(status().isNoContent)
             val first = storedGrant(ALPHA_SCHEMA)
 
             connect(newLogin())
 
             (storedGrant(ALPHA_SCHEMA) == first) shouldBe false
             connectionRows(ALPHA_SCHEMA) shouldBe 1
+            pickedAccount(ALPHA_SCHEMA) shouldBe TEAMKAS
+            api(get(MONEY_POOL), ALPHA_MEMBER).andExpect(jsonPath("$.state").value("Connected"))
         }
 
         test("the fake approval page only sends the browser back to this app's own callback") {
@@ -249,6 +330,12 @@ class BunqConnectionControllerIT : TeamBalanceIT() {
             .andExpect(request().asyncStarted())
             .andReturn()
             .let { mockMvc.perform(asyncDispatch(it)) }
+
+    private fun pick(accountId: String): MockHttpServletRequestBuilder =
+        put(ACCOUNT).contentType(MediaType.APPLICATION_JSON).content("""{"accountId":"$accountId"}""")
+
+    private fun pickedAccount(schema: String): String? =
+        jdbcTemplate.queryForList("SELECT bunq_account_id FROM $schema.bunq_connection", String::class.java).singleOrNull()
 
     private fun connectionRows(schema: String) =
         jdbcTemplate.queryForObject("SELECT count(*) FROM $schema.bunq_connection", Int::class.java)!!

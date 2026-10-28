@@ -1,5 +1,6 @@
 package com.github.zzave.teambalance.api.domain.exception
 
+import com.github.zzave.teambalance.api.domain.model.BunqAccountId
 import com.github.zzave.teambalance.api.domain.model.CalendarLinkId
 import com.github.zzave.teambalance.api.domain.model.EventId
 import com.github.zzave.teambalance.api.domain.model.EventTypeId
@@ -202,3 +203,12 @@ class TopUpUnavailableException : NotFoundException("Top-up is not available for
 
 // Connecting Bunq is switched off for this deployment; reads as a missing feature, not a denial.
 class BunqConnectDisabledException : NotFoundException("Connecting Bunq is not available")
+
+class BunqNotConnectedException : NotFoundException("This team has not connected Bunq")
+
+// The picked account is not one of the accounts the team's current grant covers.
+class UnknownBunqAccountException(id: BunqAccountId) :
+    BadRequestException("Bunq account not in the grant: $id", "UNKNOWN_BUNQ_ACCOUNT")
+
+// The stored grant cannot be used. The Admin's way out is to reconnect.
+class BunqGrantRejectedException : UnprocessableEntityException("The stored Bunq grant cannot be used", "BUNQ_REJECTED")

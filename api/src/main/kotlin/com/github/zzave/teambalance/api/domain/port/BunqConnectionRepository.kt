@@ -8,4 +8,7 @@ interface BunqConnectionRepository {
 
     /** Replaces the connection, if any. */
     fun save(connection: BunqConnection)
+
+    /** Removes the connection; a no-op when there is none. */
+    fun delete()
 }

@@ -31,7 +31,7 @@ test('money pool: an admin connects Bunq, picks an account, a member reads it, t
   browser,
   playwright,
 }) => {
-  // Seven page loads against a cold dev server, three of them through Bunq's page and the callback.
+  // Many page loads against a cold dev server, two trips through Bunq's page and the callback among them.
   test.setTimeout(90_000)
   await page.goto('/')
   await disconnectViaApi(page)

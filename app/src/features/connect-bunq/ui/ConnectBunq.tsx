@@ -7,9 +7,10 @@ import { ConnectBunqView } from './ConnectBunqView'
 
 /**
  * Container for connecting Bunq: reads the connection status and, on Connect, leaves the app for the
- * Bunq approval page. A connected team gets the account picker and Disconnect in the View's accounts slot. Renders nothing until the status says connecting is available, so a deployment
- * with it switched off shows no trace of it. Pure wiring, covered by the prop-only View's stories
- * (ADR-0017). Admin-gating is enforced on the route (beforeLoad) and again on the backend (403).
+ * Bunq approval page. A connected team gets the account picker and Disconnect in the View's accounts
+ * slot. Renders nothing until the status says connecting is available, so a deployment with it switched
+ * off shows no trace of it. Pure wiring, covered by the prop-only View's stories (ADR-0017).
+ * Admin-gating is enforced on the route (beforeLoad) and again on the backend (403).
  */
 export function ConnectBunq({ result }: { result?: ConnectBunqResult }) {
   const { data: status } = useBunqConnection()

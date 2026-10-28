@@ -47,7 +47,7 @@ export async function startBunqConnection(): Promise<string> {
 }
 
 /**
- * A Bunq connection request the API refused (403, 404, 422). It carries the status so the shared retry
+ * A Bunq connection request the API refused (400, 403, 404, 422). It carries the status so the shared retry
  * policy treats it as a real client error and does not retry it.
  */
 export class BunqConnectionError extends Error {
@@ -76,8 +76,8 @@ export const bunqAccountsQueryOptions = queryOptions({
   queryFn: async () => bunqAccountsOf(await api.getBunqAccounts()),
 })
 
-export function useBunqAccounts(enabled = true) {
-  return useQuery({ ...bunqAccountsQueryOptions, enabled })
+export function useBunqAccounts() {
+  return useQuery(bunqAccountsQueryOptions)
 }
 
 export async function pickBunqAccount(accountId: string): Promise<void> {

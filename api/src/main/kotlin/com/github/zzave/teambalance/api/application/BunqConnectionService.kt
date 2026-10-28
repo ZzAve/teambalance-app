@@ -160,7 +160,8 @@ class BunqConnectionService(
         if (bunqGateway.listAccounts(grantOf(connection)).none { it.id == accountId }) {
             throw UnknownBunqAccountException(accountId)
         }
-        connectionRepository.save(connection.copy(accountId = accountId))
+        // The Bunq call above took time: write only if the grant just read is still the stored one.
+        if (!connectionRepository.pickAccount(accountId, ifGrant = connection.grant)) throw BunqNotConnectedException()
     }
 
     /** Deletes the stored grant and the pick. Needs no cipher, so it also works while connecting is switched off. */
@@ -203,7 +204,7 @@ class BunqConnectionService(
             val now = clock.instant()
             tenantScopeGateway.within(routing) {
                 // A reconnect keeps the picked account only while the new grant still covers it.
-                val kept = connectionRepository.find()?.accountId?.takeIf { kept -> accounts.any { it.id == kept } }
+                val kept = connectionRepository.find()?.accountId?.takeIf { picked -> accounts.any { it.id == picked } }
                 connectionRepository.save(
                     BunqConnection(
                         accountId = kept,
@@ -221,7 +222,7 @@ class BunqConnectionService(
         }
     }
 
-    /** A grant that no longer decrypts (rotated key, damaged row) is as good as one Bunq rejects: reconnect. */
+    /** A grant that no longer decrypts (rotated key, damaged row) cannot be used; the Admin has to connect again. */
     @Suppress("TooGenericExceptionCaught")
     private fun grantOf(connection: BunqConnection): BunqGrant {
         val config = connectConfig ?: throw BunqConnectDisabledException()

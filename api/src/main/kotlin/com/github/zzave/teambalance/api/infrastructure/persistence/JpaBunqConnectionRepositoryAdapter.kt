@@ -7,6 +7,7 @@ import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.port.BunqConnectionRepository
 import com.github.zzave.teambalance.api.infrastructure.persistence.entity.BunqConnectionJpaEntity
 import org.springframework.stereotype.Repository
+import org.springframework.transaction.annotation.Transactional
 
 @Repository
 class JpaBunqConnectionRepositoryAdapter(
@@ -35,6 +36,10 @@ class JpaBunqConnectionRepositoryAdapter(
             ),
         )
     }
+
+    @Transactional
+    override fun pickAccount(accountId: BunqAccountId, ifGrant: EncryptedToken): Boolean =
+        jpaRepository.pickAccount(BunqConnectionJpaEntity.SINGLETON_ID, accountId.value, ifGrant.value) == 1
 
     override fun delete() = jpaRepository.deleteById(BunqConnectionJpaEntity.SINGLETON_ID)
 }

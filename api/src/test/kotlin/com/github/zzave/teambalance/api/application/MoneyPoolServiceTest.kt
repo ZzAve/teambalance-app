@@ -108,6 +108,8 @@ class MoneyPoolServiceTest : FunSpec({
 
             override fun save(connection: BunqConnection) = error("not used")
 
+            override fun pickAccount(accountId: BunqAccountId, ifGrant: EncryptedToken) = error("not used")
+
             override fun delete() = error("not used")
         },
         seasonRepository = FixedSeasonRepository(season),

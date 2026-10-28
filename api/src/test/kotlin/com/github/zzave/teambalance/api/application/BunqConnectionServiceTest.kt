@@ -115,6 +115,13 @@ private class TenantScopedConnections : TenantScopeGateway, BunqConnectionReposi
         perSchema[scope ?: error("no tenant in scope")] = connection
     }
 
+    override fun pickAccount(accountId: BunqAccountId, ifGrant: EncryptedToken): Boolean {
+        val schema = scope ?: error("no tenant in scope")
+        val stored = perSchema[schema]?.takeIf { it.grant == ifGrant } ?: return false
+        perSchema[schema] = stored.copy(accountId = accountId)
+        return true
+    }
+
     override fun delete() {
         perSchema.remove(scope ?: error("no tenant in scope"))
     }
@@ -130,6 +137,9 @@ private class ScriptedBunq : BunqGateway {
     var lastRedirectUri: String? = null
     var listedWith: BunqGrant? = null
 
+    /** Runs while a listing is in flight, to let something else happen to the team during the Bunq call. */
+    var whileListing: () -> Unit = {}
+
     override fun authorizationUrl(state: String, redirectUri: String): String {
         lastState = state
         lastRedirectUri = redirectUri
@@ -144,6 +154,7 @@ private class ScriptedBunq : BunqGateway {
 
     override fun listAccounts(grant: BunqGrant): List<BunqAccount> {
         listedWith = grant
+        whileListing()
         return accounts
     }
 
@@ -640,6 +651,30 @@ class BunqConnectionServiceTest : FunSpec() {
 
                 shouldThrow<NotTeamAdminException> { f.service.pickAccount(member, f.team, BunqAccountId("acc-1")) }
 
+                f.pickedAccount() shouldBe null
+            }
+
+            test("a Disconnect during the Bunq call leaves no connection, and the pick is not found") {
+                val f = Fixture()
+                f.connected()
+                f.bunq.whileListing = { f.service.disconnect(admin, f.team) }
+
+                shouldThrow<BunqNotConnectedException> { f.service.pickAccount(admin, f.team, BunqAccountId("acc-1")) }
+
+                f.tenants.hasNoConnections() shouldBe true
+            }
+
+            test("a reconnect during the Bunq call keeps the new grant, and the pick is not found") {
+                val f = Fixture()
+                f.connected("first")
+                f.bunq.whileListing = {
+                    f.bunq.whileListing = {}
+                    f.complete(f.startFlow(), "second", null).result shouldBe BunqConnectResult.CONNECTED
+                }
+
+                shouldThrow<BunqNotConnectedException> { f.service.pickAccount(admin, f.team, BunqAccountId("acc-1")) }
+
+                f.grantIn(f.teamSchema) shouldBe "token-for-second"
                 f.pickedAccount() shouldBe null
             }
 

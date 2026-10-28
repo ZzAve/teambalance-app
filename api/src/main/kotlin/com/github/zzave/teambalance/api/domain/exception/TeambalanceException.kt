@@ -210,5 +210,5 @@ class BunqNotConnectedException : NotFoundException("This team has not connected
 class UnknownBunqAccountException(id: BunqAccountId) :
     BadRequestException("Bunq account not in the grant: $id", "UNKNOWN_BUNQ_ACCOUNT")
 
-// The stored grant cannot be used. The Admin's way out is to reconnect.
+// The stored grant cannot be used; the Admin has to connect again.
 class BunqGrantRejectedException : UnprocessableEntityException("The stored Bunq grant cannot be used", "BUNQ_REJECTED")

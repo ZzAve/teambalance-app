@@ -4,6 +4,7 @@ import com.github.zzave.teambalance.api.TeamBalanceIT
 import com.github.zzave.teambalance.api.infrastructure.identity.loginAs
 import com.github.zzave.teambalance.api.infrastructure.multitenancy.TenantSchemaAdapter
 import com.github.zzave.teambalance.api.interfaces.CalendarLinkFixture.ALPHA_TEAM
+import io.kotest.matchers.shouldBe
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
 import org.springframework.http.MediaType
@@ -16,6 +17,9 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
+import org.springframework.web.util.UriComponentsBuilder
+import tools.jackson.databind.ObjectMapper
+import java.net.URI
 
 private const val OPERATOR_ID = "b8320000-0000-0000-0000-0000000000f2"
 private const val OPERATOR_EMAIL = "money-operator@test.com"
@@ -39,6 +43,8 @@ class MoneyPoolActAsIT : TeamBalanceIT() {
 
     init {
         afterTest {
+            jdbcTemplate.update("DELETE FROM ${CalendarLinkFixture.ALPHA_SCHEMA}.bunq_connection")
+            jdbcTemplate.update("DELETE FROM public.bunq_oauth_states WHERE admin_user_id = ?::uuid", OPERATOR_ID)
             jdbcTemplate.update("DELETE FROM public.act_as_sessions WHERE created_by = ?::uuid", OPERATOR_ID)
             jdbcTemplate.update("DELETE FROM public.users WHERE id = ?::uuid", OPERATOR_ID)
             jdbcTemplate.update(
@@ -79,6 +85,34 @@ class MoneyPoolActAsIT : TeamBalanceIT() {
             dispatch(MockMvcRequestBuilders.get("/api/team/money-pool/top-up-link?amount=20").with(loginAs(OPERATOR_ID)))
                 .andExpect(status().isForbidden)
                 .andExpect(jsonPath("$.code").value("ACT_AS_NOT_PERMITTED"))
+        }
+        test("a Platform Admin acting as the team starts and completes a Bunq connection with their session") {
+            enterActAs()
+
+            val url = dispatch(MockMvcRequestBuilders.post("/api/team/money-pool/connection").with(loginAs(OPERATOR_ID)))
+                .andExpect(status().isCreated)
+                .andReturn().response.contentAsString.let { ObjectMapper().readTree(it).get("url").asString() }
+            val state = UriComponentsBuilder.fromUriString(url).build().queryParams.getFirst("state")!!
+            val back = mockMvc.perform(
+                MockMvcRequestBuilders.get("/internal/fake-bunq/decide")
+                    .param("state", state)
+                    .param("redirect_uri", "http://localhost:8080/api/bunq/oauth/callback")
+                    .param("login", "act-as-operator")
+                    .param("decision", "approve"),
+            ).andReturn().response.getHeader("Location")!!
+
+            mockMvc.perform(MockMvcRequestBuilders.get(URI.create(back)).with(loginAs(OPERATOR_ID)))
+                .andExpect(
+                    MockMvcResultMatchers.header()
+                        .string("Location", "http://localhost:5173/t/cal-alpha/team/settings?bunq=connected"),
+                )
+
+            jdbcTemplate.queryForObject(
+                "SELECT count(*) FROM ${CalendarLinkFixture.ALPHA_SCHEMA}.bunq_connection", Int::class.java,
+            ) shouldBe 1
+            jdbcTemplate.queryForObject(
+                "SELECT count(*) FROM ${CalendarLinkFixture.BETA_SCHEMA}.bunq_connection", Int::class.java,
+            ) shouldBe 0
         }
     }
 

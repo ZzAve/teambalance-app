@@ -21,6 +21,9 @@ teambalance:
     # Hardcoded key for e2e runs; live supplies INVITATION_TOKEN_ENCRYPTION_KEY.
     token-encryption-key: dGVhbWJhbGFuY2UtZTJlLWludml0YXRpb24ta2V5LTE=
   api-base-url: http://localhost:8080
+  bunq:
+    # Hardcoded for e2e runs (not a live environment); connecting itself stays off here.
+    token-encryption-key: dGVhbWJhbGFuY2UtZTJlLWJ1bnEtdG9rZW4ta2V5LTE=
   calendar-link:
     # Hardcoded secrets for e2e runs (not a live environment).
     token-salt: e2e-calendar-link-salt

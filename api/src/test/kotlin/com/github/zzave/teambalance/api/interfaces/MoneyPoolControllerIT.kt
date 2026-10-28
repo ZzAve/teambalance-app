@@ -1,7 +1,10 @@
 package com.github.zzave.teambalance.api.interfaces
 
 import com.github.zzave.teambalance.api.TeamBalanceIT
+import com.github.zzave.teambalance.api.domain.model.BunqAccount
 import com.github.zzave.teambalance.api.domain.model.BunqAccountId
+import com.github.zzave.teambalance.api.domain.model.BunqAuthorizationCode
+import com.github.zzave.teambalance.api.domain.model.BunqGrant
 import com.github.zzave.teambalance.api.domain.model.Money
 import com.github.zzave.teambalance.api.domain.model.Payment
 import com.github.zzave.teambalance.api.domain.port.BunqGateway
@@ -39,6 +42,13 @@ class SwitchableBunqGateway(private val delegate: BunqGateway) : BunqGateway {
     @Volatile
     var failing = false
 
+    override fun authorizationUrl(state: String, redirectUri: String): String = delegate.authorizationUrl(state, redirectUri)
+
+    override fun exchangeCode(code: BunqAuthorizationCode, redirectUri: String): BunqGrant =
+        delegate.exchangeCode(code, redirectUri)
+
+    override fun listAccounts(grant: BunqGrant): List<BunqAccount> = delegate.listAccounts(grant)
+
     override fun fetchBalance(account: BunqAccountId): Money = guarded { delegate.fetchBalance(account) }
 
     override fun fetchPayments(account: BunqAccountId, since: LocalDate, limit: Int): List<Payment> =
@@ -51,7 +61,7 @@ class SwitchableBunqGateway(private val delegate: BunqGateway) : BunqGateway {
 class SwitchableBunqGatewayConfig {
     @Bean
     @Primary
-    fun switchableBunqGateway(clock: Clock) = SwitchableBunqGateway(FakeBunqGatewayAdapter(clock))
+    fun switchableBunqGateway(clock: Clock) = SwitchableBunqGateway(FakeBunqGatewayAdapter(clock, "http://localhost:8080"))
 }
 
 /**

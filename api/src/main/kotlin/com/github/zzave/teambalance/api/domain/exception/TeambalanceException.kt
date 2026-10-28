@@ -199,3 +199,6 @@ class PlatformAdminHasMembershipException(userId: UserId) :
 
 // Top-up was asked for while the money pool is Off or no bunq.me link is set: nothing to link to.
 class TopUpUnavailableException : NotFoundException("Top-up is not available for this team")
+
+// Connecting Bunq is switched off for this deployment; reads as a missing feature, not a denial.
+class BunqConnectDisabledException : NotFoundException("Connecting Bunq is not available")

@@ -20,6 +20,8 @@ interface MoneyPoolViewProps {
   canTopUp?: boolean
   /** The top-up button, supplied by the MoneyPool container so this View stays prop-only. */
   topUp?: ReactNode
+  /** Connecting Bunq is available here: an admin of a not-connected team is pointed to the team settings. */
+  connectAvailable?: boolean
 }
 
 const loadError = (
@@ -43,6 +45,7 @@ export function MoneyPoolView({
   beerCount,
   canTopUp,
   topUp,
+  connectAvailable,
 }: MoneyPoolViewProps) {
   if (isLoading) return <p role="status" className="text-small text-muted-foreground">Loading…</p>
   if (isError || state === undefined) return loadError
@@ -68,7 +71,7 @@ export function MoneyPoolView({
   return (
     <div className="flex flex-col gap-6">
       {state === 'NotConnected' ? (
-        <NotConnectedMoneyPool isAdmin={isAdmin} />
+        <NotConnectedMoneyPool isAdmin={isAdmin} connectAvailable={connectAvailable} />
       ) : (
         <MoneyPoolNotice
           title="The pool is unavailable right now"

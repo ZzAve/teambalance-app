@@ -3,8 +3,11 @@ package com.github.zzave.teambalance.api.application
 import com.github.zzave.teambalance.api.domain.exception.NotTeamAdminException
 import com.github.zzave.teambalance.api.domain.model.BeerCount
 import com.github.zzave.teambalance.api.domain.model.BeerPrice
+import com.github.zzave.teambalance.api.domain.model.BunqAccount
 import com.github.zzave.teambalance.api.domain.model.BunqAccountId
+import com.github.zzave.teambalance.api.domain.model.BunqAuthorizationCode
 import com.github.zzave.teambalance.api.domain.model.BunqConnection
+import com.github.zzave.teambalance.api.domain.model.BunqGrant
 import com.github.zzave.teambalance.api.domain.model.BunqMeLink
 import com.github.zzave.teambalance.api.domain.model.Money
 import com.github.zzave.teambalance.api.domain.model.MoneyPool
@@ -41,6 +44,12 @@ private class RecordingBunqGateway(
     var calls = 0
     var requestedSince: LocalDate? = null
     var requestedLimit: Int? = null
+
+    override fun authorizationUrl(state: String, redirectUri: String): String = error("not used")
+
+    override fun exchangeCode(code: BunqAuthorizationCode, redirectUri: String): BunqGrant = error("not used")
+
+    override fun listAccounts(grant: BunqGrant): List<BunqAccount> = error("not used")
 
     override fun fetchBalance(account: BunqAccountId): Money {
         calls++
@@ -84,7 +93,9 @@ class MoneyPoolServiceTest : FunSpec({
     ) = MoneyPoolService(
         settingsRepository = settingsRepository,
         connectionRepository = object : BunqConnectionRepository {
-            override fun find() = if (connected) BunqConnection(ACCOUNT) else null
+            override fun find() = if (connected) BunqConnection(ACCOUNT, connectedAt = Instant.EPOCH) else null
+
+            override fun save(connection: BunqConnection) = error("not used")
         },
         seasonRepository = FixedSeasonRepository(season),
         bunqGateway = gateway,

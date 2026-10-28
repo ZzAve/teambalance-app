@@ -89,6 +89,7 @@ RUN set -x; \
       INVITATION_TOKEN_ENCRYPTION_KEY=YnVpbGQtdGltZS1kdW1teS1rZXktMzItYnl0ZXMhISE= \
       TEAMBALANCE_CALENDAR_LINK_SALT=build-time-dummy-salt \
       TEAMBALANCE_CALENDAR_LINK_ENCRYPTION_KEY=YnVpbGQtdGltZS1kdW1teS1rZXktMzItYnl0ZXMhISE= \
+      TEAMBALANCE_BUNQ_TOKEN_ENCRYPTION_KEY=YnVpbGQtdGltZS1kdW1teS1rZXktMzItYnl0ZXMhISE= \
       SCALEWAY_TEM_API_KEY=build-time-dummy \
       SCALEWAY_TEM_PROJECT_ID=build-time-dummy \
       java -XX:+UseSerialGC -XX:TieredStopAtLevel=1 \

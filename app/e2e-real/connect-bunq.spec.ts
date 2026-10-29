@@ -1,4 +1,4 @@
-import { test, expect, type Page } from '@playwright/test'
+import { test, expect, type Browser, type Page, type Playwright } from '@playwright/test'
 import { authenticateViaApi, csrfHeader } from './helpers'
 
 // Real e2e: the Money pool through Bunq (ADR-0042) — an Admin connects the team through the fake Bunq
@@ -16,6 +16,21 @@ const SETTINGS = `/t/${TEAM}/team/settings`
 const MONEY = `/t/${TEAM}/money`
 const MEMBER_EMAIL = 'e2e-teammate@example.com'
 const BASE_URL = 'http://localhost:5173'
+const BACKEND_URL = process.env.BACKEND_URL ?? 'http://localhost:8080'
+
+// A browser signed in as the seeded member. The request context is explicitly empty: one made from
+// `playwright.request` would inherit the admin's storageState from the project config, and signing in
+// with the admin's cookie replaces (invalidates) the admin's session.
+async function memberContext(browser: Browser, playwright: Playwright) {
+  const memberRequest = await playwright.request.newContext({
+    baseURL: BASE_URL,
+    storageState: { cookies: [], origins: [] },
+  })
+  await authenticateViaApi(memberRequest, MEMBER_EMAIL)
+  const member = await browser.newContext({ baseURL: BASE_URL, storageState: await memberRequest.storageState() })
+  await memberRequest.dispose()
+  return member
+}
 
 async function disconnectViaApi(page: Page) {
   const attempt = async () =>
@@ -96,15 +111,7 @@ test('money pool: an admin connects Bunq, picks an account, a member reads it, t
   await expect(page.getByRole('radio', { name: 'Teamkas' })).toBeChecked()
 
   // 7. A member reads the same pool, and the settings (and the Connect section) are not theirs.
-  // Explicitly empty: a context made from `playwright.request` would inherit the admin's storageState from the
-  // project config, and signing in with the admin's cookie replaces (invalidates) the admin's session.
-  const memberRequest = await playwright.request.newContext({
-    baseURL: BASE_URL,
-    storageState: { cookies: [], origins: [] },
-  })
-  await authenticateViaApi(memberRequest, MEMBER_EMAIL)
-  const member = await browser.newContext({ baseURL: BASE_URL, storageState: await memberRequest.storageState() })
-  await memberRequest.dispose()
+  const member = await memberContext(browser, playwright)
   try {
     const memberPage = await member.newPage()
     await memberPage.goto(MONEY)
@@ -132,5 +139,74 @@ test('money pool: an admin connects Bunq, picks an account, a member reads it, t
     await expect(memberPage.getByRole('region', { name: 'Money pool preview' })).toBeVisible()
   } finally {
     await member.close()
+  }
+})
+
+test('money pool: Bunq withdraws access, members see the pool unavailable, the admin reconnects', async ({
+  page,
+  browser,
+  playwright,
+}) => {
+  test.setTimeout(90_000)
+  // The fake Bunq tracks grants per login, so a login of its own keeps this run's revoke from touching any other.
+  const login = `e2e-revoke-${Date.now()}`
+  await page.goto('/')
+  await disconnectViaApi(page)
+
+  // 1. Connect as that login and pick Teamkas.
+  await page.goto(SETTINGS)
+  await page.getByRole('checkbox', { name: /Connecting gives TeamBalance/ }).check()
+  await page.getByRole('button', { name: 'Connect Bunq' }).click()
+  await page.getByLabel('Login').fill(login)
+  await page.getByRole('button', { name: 'Approve' }).click()
+  await expect(page).toHaveURL(new RegExp(`${SETTINGS}\\?bunq=connected`))
+  await page.getByRole('radio', { name: 'Teamkas' }).check()
+  await page.getByRole('button', { name: 'Use this account' }).click()
+  await expect(page.getByRole('status').filter({ hasText: 'The Money page now shows Teamkas.' })).toBeFocused()
+  await page.goto(MONEY)
+  await expect(page.getByText('187,50')).toBeVisible()
+
+  // 2. The user withdraws TeamBalance's access at Bunq.
+  expect((await page.request.get(`${BACKEND_URL}/internal/fake-bunq/revoke`, { params: { login } })).status()).toBe(204)
+
+  const member = await memberContext(browser, playwright)
+  try {
+    // 3. The member is told the pool is unavailable and that an admin has to reconnect it; no figures remain.
+    const memberPage = await member.newPage()
+    await memberPage.goto(MONEY)
+    await expect(memberPage.getByText('The pool is unavailable right now')).toBeVisible()
+    await expect(memberPage.getByText('An admin needs to reconnect it')).toBeVisible()
+    await expect(memberPage.getByText('187,50')).toHaveCount(0)
+
+    // 4. The admin is pointed to the team settings.
+    await page.goto(MONEY)
+    await expect(page.getByText('The pool is unavailable right now')).toBeVisible()
+    await expect(page.getByText('Reconnect it in the team settings')).toBeVisible()
+    await expect(page.getByText('187,50')).toHaveCount(0)
+
+    // 5. The settings say the access is refused, not that the team is connected.
+    await page.goto(SETTINGS)
+    await expect(page.getByRole('alert').filter({ hasText: 'can’t use its stored bunq access any more' })).toBeVisible()
+    await expect(
+      page.getByRole('status').filter({ hasText: 'Bunq no longer accepts the connection. Connect again below, or disconnect.' }),
+    ).toBeVisible()
+
+    // 6. Connecting again as the same login repairs it, and the pick is kept.
+    await page.getByRole('button', { name: 'Connect a different bunq login' }).click()
+    await page.getByRole('checkbox', { name: /Connecting gives TeamBalance/ }).check()
+    await page.getByRole('button', { name: 'Connect again' }).click()
+    await page.getByLabel('Login').fill(login)
+    await page.getByRole('button', { name: 'Approve' }).click()
+    await expect(page).toHaveURL(new RegExp(`${SETTINGS}\\?bunq=connected`))
+    await expect(page.getByRole('status').filter({ hasText: 'Connected to bunq.' })).toBeVisible()
+    await expect(page.getByRole('radio', { name: 'Teamkas' })).toBeChecked()
+    await expect(page.getByText('can’t use its stored bunq access any more')).toHaveCount(0)
+    await page.goto(MONEY)
+    await expect(page.getByText('187,50')).toBeVisible()
+    await memberPage.reload()
+    await expect(memberPage.getByText('187,50')).toBeVisible()
+  } finally {
+    await member.close()
+    await disconnectViaApi(page)
   }
 })

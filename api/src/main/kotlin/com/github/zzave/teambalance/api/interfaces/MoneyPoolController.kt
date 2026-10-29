@@ -74,6 +74,7 @@ private fun DomainMoneyPool.produce(canTopUp: Boolean) = when (this) {
     DomainMoneyPool.Off -> withoutFigures(MoneyPoolState.Off, canTopUp)
     DomainMoneyPool.NotConnected -> withoutFigures(MoneyPoolState.NotConnected, canTopUp)
     DomainMoneyPool.Unavailable -> withoutFigures(MoneyPoolState.Unavailable, canTopUp)
+    DomainMoneyPool.Rejected -> withoutFigures(MoneyPoolState.Rejected, canTopUp)
     is DomainMoneyPool.Connected -> MoneyPool(
         state = MoneyPoolState.Connected,
         balance = balance.cents,

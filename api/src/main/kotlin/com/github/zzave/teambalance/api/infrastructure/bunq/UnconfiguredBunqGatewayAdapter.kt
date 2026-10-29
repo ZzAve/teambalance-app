@@ -22,9 +22,9 @@ class UnconfiguredBunqGatewayAdapter : BunqGateway {
 
     override fun listAccounts(grant: BunqGrant): List<BunqAccount> = unavailable()
 
-    override fun fetchBalance(account: BunqAccountId): Money = unavailable()
+    override fun fetchBalance(grant: BunqGrant, account: BunqAccountId): Money = unavailable()
 
-    override fun fetchPayments(account: BunqAccountId, since: LocalDate, limit: Int): List<Payment> = unavailable()
+    override fun fetchPayments(grant: BunqGrant, account: BunqAccountId, since: LocalDate, limit: Int): List<Payment> = unavailable()
 
     private fun unavailable(): Nothing = error("Bunq is not configured")
 }

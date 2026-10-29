@@ -35,6 +35,7 @@ class MoneyPoolCompositionRoot {
         connectionRepository: BunqConnectionRepository,
         seasonRepository: SeasonRepository,
         bunqGateway: BunqGateway,
+        @Qualifier(BunqGrantCipherConfiguration.BEAN_NAME) bunqGrantCipher: TokenCipher,
         clock: Clock,
         authorizationService: AuthorizationService,
     ) = MoneyPoolService(
@@ -42,6 +43,7 @@ class MoneyPoolCompositionRoot {
         connectionRepository = connectionRepository,
         seasonRepository = seasonRepository,
         bunqGateway = bunqGateway,
+        grantCipher = bunqGrantCipher,
         clock = clock,
         authorizationService = authorizationService,
     )

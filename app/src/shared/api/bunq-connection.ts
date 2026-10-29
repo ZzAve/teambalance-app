@@ -76,8 +76,9 @@ export const bunqAccountsQueryOptions = queryOptions({
   queryFn: async () => bunqAccountsOf(await api.getBunqAccounts()),
 })
 
-export function useBunqAccounts() {
-  return useQuery(bunqAccountsQueryOptions)
+// `enabled: false` observes the cached read without starting one, for a component beside the picker.
+export function useBunqAccounts(enabled = true) {
+  return useQuery({ ...bunqAccountsQueryOptions, enabled })
 }
 
 export async function pickBunqAccount(accountId: string): Promise<void> {

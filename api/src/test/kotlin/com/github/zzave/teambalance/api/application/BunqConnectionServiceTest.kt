@@ -159,9 +159,10 @@ private class ScriptedBunq : BunqGateway {
         return accounts
     }
 
-    override fun fetchBalance(account: BunqAccountId): Money = error("not used")
+    override fun fetchBalance(grant: BunqGrant, account: BunqAccountId): Money = error("not used")
 
-    override fun fetchPayments(account: BunqAccountId, since: LocalDate, limit: Int): List<Payment> = error("not used")
+    override fun fetchPayments(grant: BunqGrant, account: BunqAccountId, since: LocalDate, limit: Int): List<Payment> =
+        error("not used")
 }
 
 private const val CALLBACK = "https://api.test/api/bunq/oauth/callback"

@@ -1,6 +1,7 @@
 package com.github.zzave.teambalance.api.interfaces
 
 import com.github.zzave.teambalance.api.TeamBalanceIT
+import com.github.zzave.teambalance.api.infrastructure.bunq.CaffeineMoneyPoolCacheAdapter
 import com.github.zzave.teambalance.api.infrastructure.bunq.FakeBunqGatewayAdapter
 import com.github.zzave.teambalance.api.infrastructure.identity.loginAs
 import com.github.zzave.teambalance.api.infrastructure.multitenancy.TenantSchemaAdapter
@@ -66,12 +67,16 @@ class BunqConnectionControllerIT : TeamBalanceIT() {
     @Autowired
     lateinit var fakeBunq: FakeBunqGatewayAdapter
 
+    @Autowired
+    lateinit var moneyPoolCache: CaffeineMoneyPoolCacheAdapter
+
     private val json = ObjectMapper()
 
     init {
         beforeTest { CalendarLinkFixture.seed(jdbcTemplate, tenantSchemaAdapter) }
 
         afterTest {
+            moneyPoolCache.invalidateAll()
             listOf(ALPHA_SCHEMA, BETA_SCHEMA).forEach { jdbcTemplate.update("DELETE FROM $it.bunq_connection") }
             jdbcTemplate.update("DELETE FROM public.bunq_oauth_states WHERE team_id IN (?::uuid, ?::uuid)", ALPHA_TEAM, BETA_TEAM)
             jdbcTemplate.update("DELETE FROM public.team_members WHERE team_id = ?::uuid AND user_id = ?::uuid", BETA_TEAM, ALPHA_MEMBER)
@@ -174,7 +179,7 @@ class BunqConnectionControllerIT : TeamBalanceIT() {
                 .andExpect(jsonPath("$.code").value("BUNQ_REJECTED"))
         }
 
-        test("a revoked grant reads as Rejected, list and pick answer 422 BUNQ_REJECTED, and connecting again repairs it") {
+        test("a revoked grant is noticed by list and pick, which clear the cached balance; connecting again repairs it") {
             val login = newLogin()
             connect(login)
             api(pick(TEAMKAS), ALPHA_MEMBER).andExpect(status().isNoContent)
@@ -183,14 +188,17 @@ class BunqConnectionControllerIT : TeamBalanceIT() {
             fakeBunq.revoke(login)
 
             api(get(MONEY_POOL), ALPHA_MEMBER)
-                .andExpect(jsonPath("$.state").value("Rejected"))
-                .andExpect(jsonPath("$.balance").doesNotExist())
+                .andExpect(jsonPath("$.state").value("Connected"))
+                .andExpect(jsonPath("$.balance").value(18750))
             api(get(ACCOUNT), ALPHA_MEMBER)
                 .andExpect(status().isUnprocessableEntity)
                 .andExpect(jsonPath("$.code").value("BUNQ_REJECTED"))
             api(pick(TEAMKAS), ALPHA_MEMBER)
                 .andExpect(status().isUnprocessableEntity)
                 .andExpect(jsonPath("$.code").value("BUNQ_REJECTED"))
+            api(get(MONEY_POOL), ALPHA_MEMBER)
+                .andExpect(jsonPath("$.state").value("Rejected"))
+                .andExpect(jsonPath("$.balance").doesNotExist())
             connectionRows(ALPHA_SCHEMA) shouldBe 1
             pickedAccount(ALPHA_SCHEMA) shouldBe TEAMKAS
 

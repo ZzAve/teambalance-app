@@ -2,6 +2,7 @@ package com.github.zzave.teambalance.api.interfaces
 
 import com.github.zzave.teambalance.api.TeamBalanceIT
 import com.github.zzave.teambalance.api.application.TokenCipher
+import com.github.zzave.teambalance.api.domain.exception.BunqGrantRejectedException
 import com.github.zzave.teambalance.api.domain.model.BunqAccount
 import com.github.zzave.teambalance.api.domain.model.BunqAccountId
 import com.github.zzave.teambalance.api.domain.model.BunqAuthorizationCode
@@ -40,10 +41,13 @@ private const val MEMBER_USER_ID = "b0000000-0000-0000-0000-0000000000b9"
 private const val ADMIN_USER_ID = "b0000000-0000-0000-0000-0000000000b8"
 private const val TEAM_ID = "a0000000-0000-0000-0000-000000000001"
 
-/** The fake gateway until [failing] is set, then every call throws. */
+/** The fake gateway until [failing] or [rejecting] is set, then every balance and payments call throws. */
 class SwitchableBunqGateway(private val delegate: BunqGateway) : BunqGateway {
     @Volatile
     var failing = false
+
+    @Volatile
+    var rejecting = false
 
     override fun authorizationUrl(state: String, redirectUri: String): String = delegate.authorizationUrl(state, redirectUri)
 
@@ -52,12 +56,17 @@ class SwitchableBunqGateway(private val delegate: BunqGateway) : BunqGateway {
 
     override fun listAccounts(grant: BunqGrant): List<BunqAccount> = delegate.listAccounts(grant)
 
-    override fun fetchBalance(account: BunqAccountId): Money = guarded { delegate.fetchBalance(account) }
+    override fun fetchBalance(grant: BunqGrant, account: BunqAccountId): Money =
+        guarded { delegate.fetchBalance(grant, account) }
 
-    override fun fetchPayments(account: BunqAccountId, since: LocalDate, limit: Int): List<Payment> =
-        guarded { delegate.fetchPayments(account, since, limit) }
+    override fun fetchPayments(grant: BunqGrant, account: BunqAccountId, since: LocalDate, limit: Int): List<Payment> =
+        guarded { delegate.fetchPayments(grant, account, since, limit) }
 
-    private fun <T> guarded(call: () -> T): T = if (failing) error("injected Bunq failure") else call()
+    private fun <T> guarded(call: () -> T): T = when {
+        rejecting -> throw BunqGrantRejectedException()
+        failing -> error("injected Bunq failure")
+        else -> call()
+    }
 }
 
 @TestConfiguration
@@ -150,6 +159,29 @@ class MoneyPoolControllerIT : TeamBalanceIT() {
                 .andExpect(MockMvcResultMatchers.jsonPath("$.state").value("Unavailable"))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.balance").doesNotExist())
                 .andExpect(MockMvcResultMatchers.jsonPath("$.payments").doesNotExist())
+        }
+
+        test("GET /api/team/money-pool is Rejected, without balance or payments, when Bunq rejects the grant") {
+            seedTeamAndMember()
+            connectBunq()
+            bunqGateway.rejecting = true
+
+            getMoneyPool()
+                .andExpect(MockMvcResultMatchers.status().isOk)
+                .andExpect(MockMvcResultMatchers.jsonPath("$.state").value("Rejected"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.balance").doesNotExist())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.payments").doesNotExist())
+        }
+
+        test("GET /api/team/money-pool is Rejected when the stored grant does not decrypt") {
+            seedTeamAndMember()
+            connectBunq()
+            jdbcTemplate.update("UPDATE public.bunq_connection SET access_token_encrypted = 'not-a-grant' WHERE id = 1")
+
+            getMoneyPool()
+                .andExpect(MockMvcResultMatchers.status().isOk)
+                .andExpect(MockMvcResultMatchers.jsonPath("$.state").value("Rejected"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.balance").doesNotExist())
         }
 
         test("GET /api/team/money-pool reports the beer price and count when Connected with a price") {
@@ -380,6 +412,12 @@ class MoneyPoolControllerIT : TeamBalanceIT() {
                 .andExpect(MockMvcResultMatchers.jsonPath("$.canTopUp").value(true))
 
             bunqGateway.failing = false
+            bunqGateway.rejecting = true
+            getMoneyPool()
+                .andExpect(MockMvcResultMatchers.jsonPath("$.state").value("Rejected"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.canTopUp").value(true))
+
+            bunqGateway.rejecting = false
             getMoneyPool()
                 .andExpect(MockMvcResultMatchers.jsonPath("$.state").value("Connected"))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.canTopUp").value(true))
@@ -460,6 +498,7 @@ class MoneyPoolControllerIT : TeamBalanceIT() {
 
     private fun resetMoneyPool() {
         bunqGateway.failing = false
+        bunqGateway.rejecting = false
         jdbcTemplate.update("DELETE FROM public.bunq_connection")
         jdbcTemplate.update(
             "UPDATE public.money_pool_settings SET enabled = true, beer_price_cents = NULL, bunq_me_link = NULL WHERE id = 1",

@@ -1,5 +1,6 @@
 package com.github.zzave.teambalance.api.application
 
+import com.github.zzave.teambalance.api.domain.exception.BunqGrantRejectedException
 import com.github.zzave.teambalance.api.domain.exception.NotTeamAdminException
 import com.github.zzave.teambalance.api.domain.model.BeerCount
 import com.github.zzave.teambalance.api.domain.model.BeerPrice
@@ -30,12 +31,15 @@ import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
+import java.util.Base64
 
 private val ADMIN = UserId.random()
 private val MEMBER = UserId.random()
 
 private val ACCOUNT = BunqAccountId("account-1")
 private val TODAY = LocalDate.of(2026, 10, 11)
+private val GRANT_CIPHER = TokenCipher.fromBase64Key(Base64.getEncoder().encodeToString(ByteArray(32) { it.toByte() }), "test-key")
+private const val GRANT_TOKEN = "grant-token"
 private val PAYMENT = Payment(LocalDate.of(2026, 10, 1), PaymentName("Lisa"), Money(2_000), PaymentDirection.IN)
 
 private class RecordingBunqGateway(
@@ -43,6 +47,7 @@ private class RecordingBunqGateway(
     private val paymentsFailure: Exception? = null,
 ) : BunqGateway {
     var calls = 0
+    var grantsUsed = mutableListOf<BunqGrant>()
     var requestedSince: LocalDate? = null
     var requestedLimit: Int? = null
 
@@ -52,14 +57,16 @@ private class RecordingBunqGateway(
 
     override fun listAccounts(grant: BunqGrant): List<BunqAccount> = error("not used")
 
-    override fun fetchBalance(account: BunqAccountId): Money {
+    override fun fetchBalance(grant: BunqGrant, account: BunqAccountId): Money {
         calls++
+        grantsUsed += grant
         balanceFailure?.let { throw it }
         return Money(18_750)
     }
 
-    override fun fetchPayments(account: BunqAccountId, since: LocalDate, limit: Int): List<Payment> {
+    override fun fetchPayments(grant: BunqGrant, account: BunqAccountId, since: LocalDate, limit: Int): List<Payment> {
         calls++
+        grantsUsed += grant
         paymentsFailure?.let { throw it }
         requestedSince = since
         requestedLimit = limit
@@ -88,6 +95,7 @@ class MoneyPoolServiceTest : FunSpec({
         enabled: Boolean = true,
         connected: Boolean = true,
         accountPicked: Boolean = true,
+        storedGrant: EncryptedToken = GRANT_CIPHER.encrypt(GRANT_TOKEN),
         season: Season = Season.UNSET,
         gateway: BunqGateway = RecordingBunqGateway(),
         settings: MoneyPoolSettings = MoneyPoolSettings(enabled),
@@ -98,7 +106,7 @@ class MoneyPoolServiceTest : FunSpec({
             override fun find() = if (connected) {
                 BunqConnection(
                     accountId = ACCOUNT.takeIf { accountPicked },
-                    grant = EncryptedToken("not-read-by-reads"),
+                    grant = storedGrant,
                     connectedBy = ADMIN,
                     connectedAt = Instant.EPOCH,
                 )
@@ -114,6 +122,7 @@ class MoneyPoolServiceTest : FunSpec({
         },
         seasonRepository = FixedSeasonRepository(season),
         bunqGateway = gateway,
+        grantCipher = GRANT_CIPHER,
         clock = Clock.fixed(Instant.parse("2026-10-11T10:00:00Z"), ZoneOffset.UTC),
         authorizationService = AuthorizationService(directory.teamMemberRepository(), FakeActAsGateway()),
     )
@@ -141,6 +150,41 @@ class MoneyPoolServiceTest : FunSpec({
     test("is Unavailable when Bunq fails") {
         service(gateway = RecordingBunqGateway(balanceFailure = IllegalStateException("bunq down"))).getMoneyPool().pool shouldBe
             MoneyPool.Unavailable
+    }
+
+    test("reads Bunq with the decrypted stored grant") {
+        val gateway = RecordingBunqGateway()
+
+        service(gateway = gateway).getMoneyPool()
+
+        gateway.grantsUsed shouldBe listOf(BunqGrant(GRANT_TOKEN), BunqGrant(GRANT_TOKEN))
+    }
+
+    test("is Rejected when Bunq rejects the grant on the balance call") {
+        service(gateway = RecordingBunqGateway(balanceFailure = BunqGrantRejectedException())).getMoneyPool().pool shouldBe
+            MoneyPool.Rejected
+    }
+
+    test("is Rejected when Bunq rejects the grant on the payments call") {
+        service(gateway = RecordingBunqGateway(paymentsFailure = BunqGrantRejectedException())).getMoneyPool().pool shouldBe
+            MoneyPool.Rejected
+    }
+
+    test("is Rejected when the stored grant does not decrypt, and Bunq is not called") {
+        val gateway = RecordingBunqGateway()
+
+        service(gateway = gateway, storedGrant = EncryptedToken("not-a-grant")).getMoneyPool().pool shouldBe MoneyPool.Rejected
+
+        gateway.calls shouldBe 0
+    }
+
+    test("is Rejected when the stored grant was encrypted under another key") {
+        val otherKey = TokenCipher.fromBase64Key(Base64.getEncoder().encodeToString(ByteArray(32) { 7 }), "other-key")
+        val gateway = RecordingBunqGateway()
+
+        service(gateway = gateway, storedGrant = otherKey.encrypt(GRANT_TOKEN)).getMoneyPool().pool shouldBe MoneyPool.Rejected
+
+        gateway.calls shouldBe 0
     }
 
     test("reads payments since the season start when the season has one") {

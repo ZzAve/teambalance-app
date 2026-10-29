@@ -1,5 +1,6 @@
 package com.github.zzave.teambalance.api.infrastructure.bunq
 
+import com.github.zzave.teambalance.api.domain.exception.BunqGrantRejectedException
 import com.github.zzave.teambalance.api.domain.model.BunqAccount
 import com.github.zzave.teambalance.api.domain.model.BunqAccountId
 import com.github.zzave.teambalance.api.domain.model.BunqAccountName
@@ -27,7 +28,9 @@ import java.util.concurrent.ConcurrentHashMap
  *
  * Plays Bunq's OAuth too: [authorizationUrl] points at [FakeBunqAuthorizeController], which calls
  * [issueCode] once the user approves and sends the browser back. A code can be exchanged once, and
- * every grant covers the same two accounts.
+ * every grant covers the same two accounts. Grants are `fake:{login}:{random}` tokens, and [revoke] makes
+ * every grant issued so far to a login be rejected, as a Bunq user withdrawing access would. A grant
+ * the fake never issued is accepted.
  */
 @Component
 @Profile("!prod")
@@ -38,30 +41,43 @@ class FakeBunqGatewayAdapter(
 
     private val authorizeUrl = "${apiBaseUrl.trimEnd('/')}$AUTHORIZE_PATH"
     private val loginByCode = ConcurrentHashMap<String, String>()
+    private val grantsByLogin = ConcurrentHashMap<String, MutableSet<String>>()
+    private val revokedGrants = ConcurrentHashMap.newKeySet<String>()
 
     override fun authorizationUrl(state: String, redirectUri: String): String =
         "$authorizeUrl?state=${urlEncode(state)}&redirect_uri=${urlEncode(redirectUri)}"
 
     override fun exchangeCode(code: BunqAuthorizationCode, redirectUri: String): BunqGrant {
         val login = requireNotNull(loginByCode.remove(code.value)) { "Unknown or already used authorization code" }
-        return BunqGrant("fake:$login:${UUID.randomUUID()}")
+        val grant = "fake:$login:${UUID.randomUUID()}"
+        grantsByLogin.computeIfAbsent(login) { ConcurrentHashMap.newKeySet() }.add(grant)
+        return BunqGrant(grant)
     }
 
-    override fun listAccounts(grant: BunqGrant): List<BunqAccount> = ACCOUNTS
+    override fun listAccounts(grant: BunqGrant): List<BunqAccount> = accepted(grant) { ACCOUNTS }
 
     /** The code Bunq would put on the callback once [login] approves. */
     fun issueCode(login: String): String = UUID.randomUUID().toString().also { loginByCode[it] = login }
 
+    fun revoke(login: String) {
+        grantsByLogin[login]?.let(revokedGrants::addAll)
+    }
+
+    private fun <T> accepted(grant: BunqGrant, read: () -> T): T =
+        if (grant.accessToken in revokedGrants) throw BunqGrantRejectedException() else read()
+
     private fun urlEncode(value: String) = URLEncoder.encode(value, StandardCharsets.UTF_8)
 
-    override fun fetchBalance(account: BunqAccountId): Money =
+    override fun fetchBalance(grant: BunqGrant, account: BunqAccountId): Money = accepted(grant) {
         Money(if (account == PRIVE_ID) PRIVE_BALANCE_CENTS else TEAMKAS_BALANCE_CENTS)
-
-    override fun fetchPayments(account: BunqAccountId, since: LocalDate, limit: Int): List<Payment> {
-        val today = LocalDate.now(clock)
-        val payments = if (account == PRIVE_ID) PRIVE_PAYMENTS else TEAMKAS_PAYMENTS
-        return payments.map { it.on(today) }.filter { !it.date.isBefore(since) }.take(limit)
     }
+
+    override fun fetchPayments(grant: BunqGrant, account: BunqAccountId, since: LocalDate, limit: Int): List<Payment> =
+        accepted(grant) {
+            val today = LocalDate.now(clock)
+            val payments = if (account == PRIVE_ID) PRIVE_PAYMENTS else TEAMKAS_PAYMENTS
+            payments.map { it.on(today) }.filter { !it.date.isBefore(since) }.take(limit)
+        }
 
     private class CannedPayment(val daysAgo: Long, val name: String, val cents: Long, val direction: PaymentDirection) {
         fun on(today: LocalDate) = Payment(today.minusDays(daysAgo), PaymentName(name), Money(cents), direction)

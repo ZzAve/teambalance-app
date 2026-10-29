@@ -6,8 +6,10 @@ import com.github.zzave.teambalance.api.domain.model.TeamId
 
 /**
  * Remembers what Bunq answered for a team's money pool, so that page views do not each make a Bunq call.
- * Keyed by team and account, as ADR-0023 requires of every team-keyed cache. The cache is per instance
- * and in memory: another instance keeps its own entry until it refreshes or expires.
+ * Keyed by team and account. ADR-0023 says any team-keyed cache must be invalidated when the Active Team
+ * switches; the key here is the team the request acts for, so a switch reads another team's entry and
+ * carries nothing over. The cache is per instance and in memory: another instance keeps its own entry
+ * until it refreshes or expires.
  */
 interface MoneyPoolCacheGateway {
     /**

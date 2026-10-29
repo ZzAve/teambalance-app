@@ -8,7 +8,7 @@ import java.time.Duration
 data class BunqReadCacheProperties(
     /** After this long the next read asks Bunq again, within that request. */
     val refresh: Duration,
-    /** The last known balance is dropped this long after it was read. Never less than [refresh]. */
+    /** The last known balance is dropped this long after it was read. Must be at least [refresh]. */
     val expire: Duration,
     /** After Bunq failed to answer, it is not asked again for this long (per team). */
     val retryAfter: Duration,

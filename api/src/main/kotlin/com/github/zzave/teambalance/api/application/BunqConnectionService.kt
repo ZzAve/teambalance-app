@@ -230,7 +230,7 @@ class BunqConnectionService(
 
     private fun connectedOrThrow(): BunqConnection = connectionRepository.find() ?: throw BunqNotConnectedException()
 
-    /** A grant that cannot be used also evicts the cached money pool, so the next read finds that out and says so. */
+    /** Evicts the cached money pool when Bunq rejects the grant or it does not decrypt, so the next read asks Bunq again. */
     private fun accountsOf(connection: BunqConnection, teamId: TeamId) =
         try {
             bunqGateway.listAccounts(grantOf(connection))

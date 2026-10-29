@@ -184,10 +184,11 @@ teambalance:
     # connect-enabled is on: no default here, so the app fails fast at startup without it. Rotating
     # this key makes stored grants unreadable until an Admin reconnects.
     token-encryption-key: ${TEAMBALANCE_BUNQ_TOKEN_ENCRYPTION_KEY}
-    # The money pool is read from Bunq at most this often per team and instance (in memory, so another
-    # instance keeps its own copy). A read after `refresh` asks Bunq again; if Bunq does not answer, the
-    # last known balance is shown until it is `expire` old, and Bunq is asked again at most once per
-    # `retry-after`. A rejected connection stays rejected until an Admin connects, picks or disconnects.
+    # The money pool is kept in memory per team and instance, so another instance keeps its own copy.
+    # A read within `refresh` of the last successful one makes no Bunq call; a later read asks Bunq
+    # again. If Bunq does not answer, the last known balance is shown until it is `expire` old, and
+    # Bunq is asked again at most once per `retry-after`. A rejected connection stays rejected on an
+    # instance until a connect, pick, disconnect or rejected list or pick evicts it there, or it restarts.
     read-cache:
       refresh: 30s
       expire: 5m

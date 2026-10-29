@@ -13,7 +13,7 @@ import { MoneyPoolView } from './MoneyPoolView'
 // Two-story shape (ADR-0032 §1):
 //   1. Data — the connected pool: balance and payment list.
 //   2. Shells — every other state stacked: loading, error, off, not connected (member and admin),
-//      unavailable, top-up with and without a link, and connected edge cases (no payments, same-day duplicates, missing balance, no beer price, an empty pool).
+//      unavailable, rejected (member and admin), top-up with and without a link, and connected edge cases (no payments, same-day duplicates, missing balance, no beer price, an empty pool).
 const PAYMENTS: Payment[] = [
   { date: '2026-10-06', name: 'Lisa de Vries', amount: 2000, direction: 'In' },
   { date: '2026-10-04', name: 'Sporthal De Kuil', amount: 4500, direction: 'Out' },
@@ -87,6 +87,8 @@ export const Shells: Story = {
           <MoneyPoolView {...args} state="NotConnected" isAdmin connectAvailable={false} accountPending />
         ),
         Unavailable: <MoneyPoolView {...args} state="Unavailable" />,
+        'Rejected (member)': <MoneyPoolView {...args} state="Rejected" />,
+        'Rejected (admin)': <MoneyPoolView {...args} state="Rejected" isAdmin connectAvailable />,
         'No link (member)': <MoneyPoolView {...args} state="NotConnected" canTopUp={false} />,
         'No link (admin)': <MoneyPoolView {...args} state="NotConnected" canTopUp={false} isAdmin />,
         'No payments': <MoneyPoolView {...args} payments={[]} />,
@@ -116,9 +118,18 @@ export const Shells: Story = {
     await expect(pendingOff.queryByText(/pick the account in the team settings/i)).not.toBeInTheDocument()
     await expect(pendingOff.getByText(/connecting the team.s bunq account is coming soon/i)).toBeInTheDocument()
     await expect(region('Unavailable').getByText('The pool is unavailable right now')).toBeInTheDocument()
+    const rejectedMember = region('Rejected (member)')
+    await expect(rejectedMember.getByText('The pool is unavailable right now')).toBeInTheDocument()
+    await expect(rejectedMember.getByText(/Bunq no longer accepts the team's connection\. An admin needs to reconnect it\./)).toBeInTheDocument()
+    await expect(rejectedMember.queryByText(/team settings/)).not.toBeInTheDocument()
+    const rejectedAdmin = region('Rejected (admin)')
+    await expect(rejectedAdmin.getByText(/Bunq no longer accepts the team's connection\. Reconnect it in the team settings\./)).toBeInTheDocument()
+    await expect(rejectedAdmin.queryByText(/An admin needs to/)).not.toBeInTheDocument()
     // Paying through bunq.me needs no Bunq Connection, so Top up shows in every state but Off.
     await expect(region('Not connected (member)').getByRole('button', { name: 'Top up' })).toBeInTheDocument()
     await expect(region('Unavailable').getByRole('button', { name: 'Top up' })).toBeInTheDocument()
+    await expect(rejectedMember.getByRole('button', { name: 'Top up' })).toBeInTheDocument()
+    await expect(rejectedAdmin.getByRole('button', { name: 'Top up' })).toBeInTheDocument()
     await expect(region('Off').queryByRole('button', { name: 'Top up' })).not.toBeInTheDocument()
     await expect(region('No link (member)').queryByRole('button', { name: 'Top up' })).not.toBeInTheDocument()
     await expect(region('No link (member)').queryByText(/bunq\.me link/)).not.toBeInTheDocument()

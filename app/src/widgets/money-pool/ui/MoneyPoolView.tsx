@@ -20,7 +20,7 @@ interface MoneyPoolViewProps {
   canTopUp?: boolean
   /** The top-up button, supplied by the MoneyPool container so this View stays prop-only. */
   topUp?: ReactNode
-  /** Connecting Bunq is available here: an admin of a not-connected team is pointed to the team settings. */
+  /** Connecting Bunq is available here: an admin of a not-connected or rejected team is pointed to the team settings. */
   connectAvailable?: boolean
   /** Bunq is connected but no account is picked: an admin is pointed to the team settings to pick one. */
   accountPending?: boolean
@@ -78,12 +78,18 @@ export function MoneyPoolView({
       ) : (
         <MoneyPoolNotice
           title="The pool is unavailable right now"
-          body="We can't reach the team's Bunq account. Try again later."
+          body={state === 'Rejected' ? rejectedBody(isAdmin, connectAvailable) : "We can't reach the team's Bunq account. Try again later."}
         />
       )}
       {topUpEntry}
     </div>
   )
+}
+
+function rejectedBody(isAdmin: boolean, connectAvailable?: boolean) {
+  const lead = "Bunq no longer accepts the team's connection."
+  if (!isAdmin) return `${lead} An admin needs to reconnect it.`
+  return connectAvailable === false ? `${lead} Reconnect it.` : `${lead} Reconnect it in the team settings.`
 }
 
 const LINK_HINT = 'Add the team’s bunq.me link in the team settings to let members top up.'

@@ -8,8 +8,8 @@ export function MoneyPool() {
   const { data, isLoading, isError } = useMoneyPool()
   const user = useCurrentUser()
   const isAdmin = user?.role === 'ADMIN'
-  // Only an admin of a not-connected team is pointed to the team settings, and only they may read the status.
-  const { data: connection } = useBunqConnection(isAdmin && data?.state === 'NotConnected')
+  // Only an admin of a not-connected or rejected team is pointed to the team settings, and only they may read the status.
+  const { data: connection } = useBunqConnection(isAdmin && (data?.state === 'NotConnected' || data?.state === 'Rejected'))
 
   return (
     <MoneyPoolView

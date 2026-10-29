@@ -25,8 +25,9 @@ import java.util.concurrent.atomic.AtomicLong
  *
  * A read after [BunqReadCacheProperties.refresh] asks Bunq inside that request, and not through
  * Caffeine's refreshAfterWrite: that reloads on a pool thread, where the tenant of the request is gone.
- * While one request does so, concurrent readers get the stale value. A failed attempt leaves the entry
- * as it is, so Caffeine's expiry keeps counting from the last successful read.
+ * While one request does so, concurrent readers get the stale value. A failed attempt leaves
+ * Caffeine's view of the entry unchanged (the retry time is set on the entry itself), so its expiry keeps
+ * counting from the last successful read.
  *
  * An [evict] during a read that is in flight must not be undone by that read, which may have used the
  * grant that was just replaced. A refresh stores its answer only if its entry is still the mapped one
@@ -77,6 +78,8 @@ class CaffeineMoneyPoolCacheAdapter(
     }
 
     override fun evict(teamId: TeamId) {
+        // Bump before removing: a cold read re-checks the generation after storing, so either this removal
+        // sees the stored entry or that read sees the new generation.
         generations.computeIfAbsent(teamId) { AtomicLong() }.incrementAndGet()
         entries.asMap().keys.removeIf { it.teamId == teamId }
     }
@@ -101,8 +104,8 @@ class CaffeineMoneyPoolCacheAdapter(
     private fun refreshIsDue(entry: Entry): Boolean = !clock.instant().isBefore(entry.readAt.plus(properties.refresh))
 
     /**
-     * The claim is taken before anything is decided, so a reader that waited for the flag sees what the
-     * one before it left: a replaced or evicted entry, or a retry time.
+     * The claim is taken before anything is decided, so a reader that takes the claim after another
+     * released it sees what that one left: a replaced or evicted entry, or a retry time.
      */
     private fun refresh(key: Key, entry: Entry, load: () -> MoneyPool): MoneyPool {
         if (!entry.refreshing.compareAndSet(false, true)) return entry.value

@@ -67,6 +67,7 @@ class MoneyPoolCompositionRoot {
         environment: Environment,
         @Value("\${teambalance.api-base-url}") apiBaseUrl: String,
         @Value("\${teambalance.bunq.connect-enabled}") connectEnabled: Boolean,
+        moneyPoolCache: MoneyPoolCacheGateway,
     ) = BunqConnectionService(
         connectionRepository = connectionRepository,
         stateRepository = stateRepository,
@@ -78,6 +79,7 @@ class MoneyPoolCompositionRoot {
         authorizationService = authorizationService,
         clock = clock,
         connectConfig = bunqConnectConfig(connectEnabled, environment.matchesProfiles("prod"), bunqGrantCipher, apiBaseUrl),
+        moneyPoolCache = moneyPoolCache,
     )
 
     @Bean

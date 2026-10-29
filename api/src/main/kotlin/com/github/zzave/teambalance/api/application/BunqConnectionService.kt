@@ -19,6 +19,7 @@ import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.port.BunqConnectionRepository
 import com.github.zzave.teambalance.api.domain.port.BunqGateway
 import com.github.zzave.teambalance.api.domain.port.BunqOAuthStateRepository
+import com.github.zzave.teambalance.api.domain.port.MoneyPoolCacheGateway
 import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
 import com.github.zzave.teambalance.api.domain.port.TeamRepository
 import com.github.zzave.teambalance.api.domain.port.TenantScopeGateway
@@ -68,6 +69,7 @@ class BunqConnectionService(
     private val authorizationService: AuthorizationService,
     private val clock: Clock,
     private val connectConfig: BunqConnectConfig?,
+    private val moneyPoolCache: MoneyPoolCacheGateway,
 ) {
     companion object {
         /** Where Bunq sends the browser back to; the API's own origin is prefixed by the composition root. */
@@ -152,23 +154,25 @@ class BunqConnectionService(
     fun listAccounts(callerId: UserId, teamId: TeamId): BunqAccounts {
         authorizationService.requireAdmin(callerId, teamId)
         val connection = connectedOrThrow()
-        return BunqAccounts(bunqGateway.listAccounts(grantOf(connection)), connection.accountId)
+        return BunqAccounts(accountsOf(connection, teamId), connection.accountId)
     }
 
     fun pickAccount(callerId: UserId, teamId: TeamId, accountId: BunqAccountId) {
         authorizationService.requireAdmin(callerId, teamId)
         val connection = connectedOrThrow()
-        if (bunqGateway.listAccounts(grantOf(connection)).none { it.id == accountId }) {
+        if (accountsOf(connection, teamId).none { it.id == accountId }) {
             throw UnknownBunqAccountException(accountId)
         }
         // The Bunq call above took time: write only if the grant just read is still the stored one.
         if (!connectionRepository.pickAccount(accountId, ifGrant = connection.grant)) throw BunqConnectionChangedException()
+        moneyPoolCache.evict(teamId)
     }
 
     /** Deletes the stored grant and the pick. Needs no cipher, so it also works while connecting is switched off. */
     fun disconnect(callerId: UserId, teamId: TeamId) {
         authorizationService.requireAdmin(callerId, teamId)
         connectionRepository.delete()
+        moneyPoolCache.evict(teamId)
     }
 
     /** Marks a live, unused state as used. False for an expired or already used one, and for the loser of a race. */
@@ -214,6 +218,7 @@ class BunqConnectionService(
                         connectedAt = now,
                     ),
                 )
+                moneyPoolCache.evict(pending.teamId)
             }
             BunqConnectOutcome(BunqConnectResult.CONNECTED, teamSlug)
         } catch (e: Exception) {
@@ -224,6 +229,15 @@ class BunqConnectionService(
     }
 
     private fun connectedOrThrow(): BunqConnection = connectionRepository.find() ?: throw BunqNotConnectedException()
+
+    /** A grant that cannot be used also evicts the cached money pool, so the next read finds that out and says so. */
+    private fun accountsOf(connection: BunqConnection, teamId: TeamId) =
+        try {
+            bunqGateway.listAccounts(grantOf(connection))
+        } catch (e: BunqGrantRejectedException) {
+            moneyPoolCache.evict(teamId)
+            throw e
+        }
 
     /** A grant that no longer decrypts (rotated key, damaged row) cannot be used; the Admin has to connect again. */
     @Suppress("TooGenericExceptionCaught")

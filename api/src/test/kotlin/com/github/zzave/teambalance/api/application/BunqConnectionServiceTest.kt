@@ -17,16 +17,19 @@ import com.github.zzave.teambalance.api.domain.model.BunqGrant
 import com.github.zzave.teambalance.api.domain.model.BunqOAuthState
 import com.github.zzave.teambalance.api.domain.model.EncryptedToken
 import com.github.zzave.teambalance.api.domain.model.Money
+import com.github.zzave.teambalance.api.domain.model.MoneyPool
 import com.github.zzave.teambalance.api.domain.model.Payment
 import com.github.zzave.teambalance.api.domain.model.Role
 import com.github.zzave.teambalance.api.domain.model.SchemaName
 import com.github.zzave.teambalance.api.domain.model.Slug
+import com.github.zzave.teambalance.api.domain.model.TeamId
 import com.github.zzave.teambalance.api.domain.model.TokenHash
 import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.model.TenantRouting
 import com.github.zzave.teambalance.api.domain.port.BunqConnectionRepository
 import com.github.zzave.teambalance.api.domain.port.BunqGateway
 import com.github.zzave.teambalance.api.domain.port.BunqOAuthStateRepository
+import com.github.zzave.teambalance.api.domain.port.MoneyPoolCacheGateway
 import com.github.zzave.teambalance.api.domain.port.TenantScopeGateway
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
@@ -128,6 +131,19 @@ private class TenantScopedConnections : TenantScopeGateway, BunqConnectionReposi
     }
 }
 
+/** Notes which teams were evicted, and runs [onEvict] at that moment. */
+private class RecordingMoneyPoolCache : MoneyPoolCacheGateway {
+    val evicted = mutableListOf<TeamId>()
+    var onEvict: () -> Unit = {}
+
+    override fun read(teamId: TeamId, account: BunqAccountId, load: () -> MoneyPool): MoneyPool = error("not used")
+
+    override fun evict(teamId: TeamId) {
+        evicted += teamId
+        onEvict()
+    }
+}
+
 private class ScriptedBunq : BunqGateway {
     var accounts = listOf(
         BunqAccount(BunqAccountId("acc-1"), BunqAccountName("Teamkas")),
@@ -137,6 +153,7 @@ private class ScriptedBunq : BunqGateway {
     var lastState: String? = null
     var lastRedirectUri: String? = null
     var listedWith: BunqGrant? = null
+    var listFailure: Exception? = null
 
     /** Runs while a listing is in flight, to let something else happen to the team during the Bunq call. */
     var whileListing: () -> Unit = {}
@@ -156,6 +173,7 @@ private class ScriptedBunq : BunqGateway {
     override fun listAccounts(grant: BunqGrant): List<BunqAccount> {
         listedWith = grant
         whileListing()
+        listFailure?.let { throw it }
         return accounts
     }
 
@@ -183,6 +201,7 @@ class BunqConnectionServiceTest : FunSpec() {
             val states = InMemoryOAuthStates()
             val tenants = TenantScopedConnections()
             val bunq = ScriptedBunq()
+            val cache = RecordingMoneyPoolCache()
             val cipher = TokenCipher.fromBase64Key(
                 Base64.getEncoder().encodeToString(ByteArray(32) { (it + 7).toByte() }),
                 "test-key",
@@ -222,6 +241,7 @@ class BunqConnectionServiceTest : FunSpec() {
                     authorizationService = AuthorizationService(directory.teamMemberRepository(), actAsGateway),
                     clock = clock,
                     connectConfig = if (connectEnabled) BunqConnectConfig(cipher, CALLBACK) else null,
+                    moneyPoolCache = cache,
                 )
 
             /** The callback as the browser delivers it: by default with the starting Admin's session. */
@@ -322,6 +342,27 @@ class BunqConnectionServiceTest : FunSpec() {
                 stored.connectedAt shouldBe START
                 stored.accountId shouldBe null
                 f.tenants.connectionIn(f.directory.schemaOf(f.otherTeam)) shouldBe null
+            }
+
+            test("evicts the cached money pool of the team that started the flow, after the new grant is stored") {
+                val f = Fixture()
+                val state = f.startFlow()
+                var grantWhenEvicted: String? = null
+                f.cache.onEvict = { grantWhenEvicted = f.grantIn(f.teamSchema) }
+
+                f.complete(state, "abc", null).result shouldBe BunqConnectResult.CONNECTED
+
+                f.cache.evicted shouldBe listOf(f.team)
+                grantWhenEvicted shouldBe "token-for-abc"
+            }
+
+            test("a failed connection evicts nothing") {
+                val f = Fixture()
+                f.complete(f.startFlow(), "refused", null).result shouldBe BunqConnectResult.FAILED
+                f.tenants.failSaves = true
+                f.complete(f.startFlow(), "abc", null).result shouldBe BunqConnectResult.FAILED
+
+                f.cache.evicted shouldBe emptyList()
             }
 
             test("without a session it fails, spends the state and writes nothing") {
@@ -608,6 +649,50 @@ class BunqConnectionServiceTest : FunSpec() {
 
                 shouldThrow<BunqConnectDisabledException> { f.service.listAccounts(admin, f.team) }
             }
+
+            test("a grant that does not decrypt evicts the cached money pool, so the next read finds out") {
+                val f = Fixture()
+                f.connected()
+                f.cache.evicted.clear()
+                f.rotateKey()
+
+                shouldThrow<BunqGrantRejectedException> { f.service.listAccounts(admin, f.team) }
+
+                f.cache.evicted shouldBe listOf(f.team)
+            }
+
+            test("a grant Bunq rejects evicts the cached money pool") {
+                val f = Fixture()
+                f.connected()
+                f.cache.evicted.clear()
+                f.bunq.listFailure = BunqGrantRejectedException()
+
+                shouldThrow<BunqGrantRejectedException> { f.service.listAccounts(admin, f.team) }
+
+                f.cache.evicted shouldBe listOf(f.team)
+            }
+
+            test("a Bunq failure that is no rejection evicts nothing") {
+                val f = Fixture()
+                f.connected()
+                f.cache.evicted.clear()
+                f.bunq.listFailure = IllegalStateException("bunq down")
+
+                shouldThrow<IllegalStateException> { f.service.listAccounts(admin, f.team) }
+
+                f.cache.evicted shouldBe emptyList()
+            }
+
+            test("an admin who may not list evicts nothing") {
+                val f = Fixture()
+                f.connected()
+                f.cache.evicted.clear()
+                f.rotateKey()
+
+                shouldThrow<NotTeamAdminException> { f.service.listAccounts(member, f.team) }
+
+                f.cache.evicted shouldBe emptyList()
+            }
         }
 
         context("picking an account") {
@@ -689,6 +774,62 @@ class BunqConnectionServiceTest : FunSpec() {
 
                 f.pickedAccount() shouldBe null
             }
+
+            test("a successful pick evicts the cached money pool, so the next read uses the new account") {
+                val f = Fixture()
+                f.connected()
+                f.cache.evicted.clear()
+
+                f.service.pickAccount(admin, f.team, BunqAccountId("acc-1"))
+
+                f.cache.evicted shouldBe listOf(f.team)
+            }
+
+            test("a pick that is refused evicts nothing") {
+                val f = Fixture()
+                f.connected()
+                f.cache.evicted.clear()
+
+                shouldThrow<UnknownBunqAccountException> { f.service.pickAccount(admin, f.team, BunqAccountId("not-mine")) }
+                shouldThrow<NotTeamAdminException> { f.service.pickAccount(member, f.team, BunqAccountId("acc-1")) }
+
+                f.cache.evicted shouldBe emptyList()
+            }
+
+            test("a pick that finds the connection changed evicts nothing") {
+                val f = Fixture()
+                f.connected()
+                f.bunq.whileListing = {
+                    f.service.disconnect(admin, f.team)
+                    f.cache.evicted.clear()
+                }
+
+                shouldThrow<BunqConnectionChangedException> { f.service.pickAccount(admin, f.team, BunqAccountId("acc-1")) }
+
+                f.cache.evicted shouldBe emptyList()
+            }
+
+            test("a grant that does not decrypt evicts the cached money pool") {
+                val f = Fixture()
+                f.connected()
+                f.cache.evicted.clear()
+                f.rotateKey()
+
+                shouldThrow<BunqGrantRejectedException> { f.service.pickAccount(admin, f.team, BunqAccountId("acc-1")) }
+
+                f.cache.evicted shouldBe listOf(f.team)
+            }
+
+            test("a grant Bunq rejects evicts the cached money pool") {
+                val f = Fixture()
+                f.connected()
+                f.cache.evicted.clear()
+                f.bunq.listFailure = BunqGrantRejectedException()
+
+                shouldThrow<BunqGrantRejectedException> { f.service.pickAccount(admin, f.team, BunqAccountId("acc-1")) }
+
+                f.cache.evicted shouldBe listOf(f.team)
+            }
         }
 
         context("disconnecting") {
@@ -704,6 +845,16 @@ class BunqConnectionServiceTest : FunSpec() {
                     BunqConnectionStatus(connectAvailable = true, connected = false, accountPicked = false)
             }
 
+            test("evicts the cached money pool") {
+                val f = Fixture()
+                f.connected()
+                f.cache.evicted.clear()
+
+                f.service.disconnect(admin, f.team)
+
+                f.cache.evicted shouldBe listOf(f.team)
+            }
+
             test("does nothing while the team is not connected") {
                 val f = Fixture()
                 f.tenants.requestSchema(f.teamSchema)
@@ -717,9 +868,12 @@ class BunqConnectionServiceTest : FunSpec() {
                 val f = Fixture()
                 f.connected()
 
+                f.cache.evicted.clear()
+
                 shouldThrow<NotTeamAdminException> { f.service.disconnect(member, f.team) }
 
                 f.tenants.connectionIn(f.teamSchema) shouldNotBe null
+                f.cache.evicted shouldBe emptyList()
             }
 
             test("still works when connecting is switched off, because it needs no cipher") {

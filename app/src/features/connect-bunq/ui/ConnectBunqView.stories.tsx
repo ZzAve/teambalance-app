@@ -11,8 +11,8 @@ import { ConnectBunqView } from './ConnectBunqView'
 // Three stories (ADR-0032 §1):
 //   1. Data — the section as an Admin first meets it: not connected, nothing ticked, Connect disabled
 //      with its reason.
-//   2. Shells — connected without and with a picked account (the accounts slot in place of the form),
-//      just disconnected (also with a result left in the URL by an earlier trip), the request in flight, a failed start, and the results
+//   2. Shells — connected without and with a picked account and with a rejected connection (the accounts
+//      slot in place of the form), just disconnected (also with a result left in the URL by an earlier trip), the request in flight, a failed start, and the results
 //      Bunq's return can carry, stacked in one frame.
 //   3. Interactions — no picture; one play opens the section as Bunq's return does (the result takes
 //      focus), ticks the acknowledgement, sees Connect enable and asserts the click reaches onConnect;
@@ -54,6 +54,7 @@ export const Shells: Story = {
       items={{
         'Connected, no pick': <ConnectBunqView {...args} connected accounts={ACCOUNTS_SLOT} result="connected" />,
         'Connected, picked': <ConnectBunqView {...args} connected accountPicked accounts={ACCOUNTS_SLOT} />,
+        Rejected: <ConnectBunqView {...args} connected accountPicked rejected accounts={ACCOUNTS_SLOT} />,
         Disconnected: <ConnectBunqView {...args} disconnected />,
         'Disconnected, stale declined': <ConnectBunqView {...args} disconnected result="declined" />,
         'Disconnected, stale failure': <ConnectBunqView {...args} disconnected result="error" />,
@@ -81,6 +82,13 @@ export const Shells: Story = {
       // It reads as a control at rest, not as plain text.
       await expect(reconnect).toHaveStyle({ textDecorationLine: 'underline' })
     }
+
+    // A refused connection is not reported as connected, and the way out (connect again, or disconnect) is on the page.
+    const rejected = region('Rejected')
+    await expect(rejected.getByRole('status')).toHaveTextContent('Bunq no longer accepts the connection. Connect again below, or disconnect.')
+    await expect(rejected.getByRole('status')).not.toHaveTextContent('Connected to bunq.')
+    await expect(rejected.getByText('Accounts and Disconnect')).toBeInTheDocument()
+    await expect(rejected.getByRole('button', { name: 'Connect a different bunq login' })).toBeEnabled()
 
     // Disconnecting says so and offers Connect again.
     await expect(region('Disconnected').getByRole('status')).toHaveTextContent('Disconnected from bunq.')

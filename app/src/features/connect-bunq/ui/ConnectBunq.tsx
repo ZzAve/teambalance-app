@@ -1,6 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
-import { BunqConnectUnavailableError, startBunqConnection, useBunqConnection } from '@shared/api/bunq-connection'
+import {
+  BunqConnectUnavailableError,
+  isBunqGrantRejected,
+  startBunqConnection,
+  useBunqAccounts,
+  useBunqConnection,
+} from '@shared/api/bunq-connection'
 import type { ConnectBunqResult } from '../lib/bunq-result'
 import { BunqAccounts } from './BunqAccounts'
 import { ConnectBunqView } from './ConnectBunqView'
@@ -14,6 +20,8 @@ import { ConnectBunqView } from './ConnectBunqView'
  */
 export function ConnectBunq({ result }: { result?: ConnectBunqResult }) {
   const { data: status } = useBunqConnection()
+  // The picker below reads the accounts; this only watches that read for a rejected grant.
+  const rejected = isBunqGrantRejected(useBunqAccounts(false).error)
   const connect = useMutation({ mutationFn: startBunqConnection })
   // Disconnecting removes the accounts section it was started from, so the signal that it happened lives here.
   const [disconnected, setDisconnected] = useState(false)
@@ -44,6 +52,7 @@ export function ConnectBunq({ result }: { result?: ConnectBunqResult }) {
       <ConnectBunqView
         connected={status.connected}
         accountPicked={status.accountPicked}
+        rejected={rejected}
         disconnected={disconnected}
         accounts={<BunqAccounts onDisconnected={() => setDisconnected(true)} />}
         result={result}

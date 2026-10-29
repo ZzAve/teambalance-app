@@ -7,6 +7,8 @@ interface ConnectBunqViewProps {
   connected: boolean
   /** The Admin picked the account the Money page reads. Only meaningful while connected. */
   accountPicked?: boolean
+  /** Bunq refuses the stored access: the status says to connect again instead of claiming it is connected. Only meaningful while connected. */
+  rejected?: boolean
   /** The Admin just disconnected: the status says so and takes focus, since the controls they used are gone. */
   disconnected?: boolean
   /** The account picker and Disconnect, supplied by the ConnectBunq container so this View stays prop-only. Shown while connected. */
@@ -23,6 +25,7 @@ interface ConnectBunqViewProps {
 
 const DECLINED_TEXT = 'You declined at Bunq, so nothing was connected.'
 const DISCONNECTED_TEXT = 'Disconnected from bunq.'
+const REJECTED_TEXT = 'Bunq no longer accepts the connection. Connect again below, or disconnect.'
 const FAILED_TEXT = 'Couldn’t connect Bunq. Please try again.'
 
 // Error texts sit on a card; red-ink clears 4.5:1 there in both themes.
@@ -40,6 +43,7 @@ const ERROR_CLASS = 'rounded-lg bg-card p-3 text-small text-red-ink'
 export function ConnectBunqView({
   connected,
   accountPicked,
+  rejected,
   disconnected,
   accounts,
   result: tripResult,
@@ -67,7 +71,7 @@ export function ConnectBunqView({
   }, [disconnected, connected])
 
   const failed = result === 'error'
-  const statusText = failed ? '' : statusOf(result, connected, accountPicked, disconnected)
+  const statusText = failed ? '' : statusOf(result, connected, accountPicked, rejected, disconnected)
   const showForm = !connected || reconnecting || !!isConnecting
   // While the browser is on its way to Bunq the acknowledgement stays ticked and disabled, as does the button.
   const ticked = acknowledged || !!isConnecting
@@ -164,8 +168,15 @@ export function ConnectBunqView({
   )
 }
 
-function statusOf(result: ConnectBunqResult | undefined, connected: boolean, accountPicked?: boolean, disconnected?: boolean) {
+function statusOf(
+  result: ConnectBunqResult | undefined,
+  connected: boolean,
+  accountPicked?: boolean,
+  rejected?: boolean,
+  disconnected?: boolean,
+) {
   if (result === 'declined') return DECLINED_TEXT
+  if (connected && rejected) return REJECTED_TEXT
   if (connected) return accountPicked ? 'Connected to bunq.' : 'Connected, pick an account below.'
   return disconnected ? DISCONNECTED_TEXT : ''
 }

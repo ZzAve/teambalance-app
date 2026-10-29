@@ -1,8 +1,8 @@
-// Amounts and the beer price are euro cents; date is an ISO-8601 calendar date; balance, payments, beerPrice and beerCount are set only when state is Connected, and beerPrice and beerCount only when the team configured a price. canTopUp is true when the pool is on and a bunq.me link is set, in any state.
+// Rejected: Bunq no longer accepts the stored connection, an Admin reconnects in the team settings; Unavailable: Bunq did not answer. Amounts and the beer price are euro cents; date is an ISO-8601 calendar date; balance, payments, beerPrice and beerCount are set only when state is Connected, and beerPrice and beerCount only when the team configured a price. canTopUp is true when the pool is on and a bunq.me link is set, in any state.
 type PaymentDate = String
 
 enum MoneyPoolState {
-    Off, NotConnected, Unavailable, Connected
+    Off, NotConnected, Unavailable, Rejected, Connected
 }
 
 enum PaymentDirection {
@@ -86,7 +86,7 @@ endpoint DisconnectBunq DELETE /api/team/money-pool/connection -> {
     403 -> Unit
 }
 
-// Admin-only. The accounts the current grant covers, and the one the pool reads (null until picked). 404: not connected. 422 BUNQ_REJECTED: the stored grant cannot be used (it does not decrypt), reconnect.
+// Admin-only. The accounts the current grant covers, and the one the pool reads (null until picked). 404: not connected. 422 BUNQ_REJECTED: the stored grant cannot be used (it does not decrypt, or Bunq rejects it), reconnect.
 type BunqAccount {
     id: String,
     name: String
@@ -104,7 +104,7 @@ endpoint GetBunqAccounts GET /api/team/money-pool/connection/account -> {
     422 -> Unit
 }
 
-// Admin-only. Picks the account the pool reads. 400: the id is not one of the grant's accounts. 404: not connected. 422 BUNQ_REJECTED: the stored grant cannot be used (it does not decrypt), reconnect.
+// Admin-only. Picks the account the pool reads. 400: the id is not one of the grant's accounts. 404: not connected. 422 BUNQ_REJECTED: the stored grant cannot be used (it does not decrypt, or Bunq rejects it), reconnect.
 type PickBunqAccount {
     accountId: String
 }

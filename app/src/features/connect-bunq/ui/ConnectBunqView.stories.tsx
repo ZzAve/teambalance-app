@@ -83,10 +83,10 @@ export const Shells: Story = {
       await expect(reconnect).toHaveStyle({ textDecorationLine: 'underline' })
     }
 
-    // A refused connection is not reported as connected, and the way out (connect again, or disconnect) is on the page.
+    // A refused connection is not reported as connected, and the status stays silent: the accounts slot's
+    // alert is the one message, so it is not announced twice. The page still offers Connect again and Disconnect.
     const rejected = region('Rejected')
-    await expect(rejected.getByRole('status')).toHaveTextContent('Bunq no longer accepts the connection. Connect again below, or disconnect.')
-    await expect(rejected.getByRole('status')).not.toHaveTextContent('Connected to bunq.')
+    await expect(rejected.getByRole('status')).toBeEmptyDOMElement()
     await expect(rejected.getByText('Accounts and Disconnect')).toBeInTheDocument()
     await expect(rejected.getByRole('button', { name: 'Connect a different bunq login' })).toBeEnabled()
 

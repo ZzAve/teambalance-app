@@ -47,7 +47,7 @@ private class RecordingBunqGateway(
     private val paymentsFailure: Exception? = null,
 ) : BunqGateway {
     var calls = 0
-    var grantsUsed = mutableListOf<BunqGrant>()
+    val grantsUsed = mutableListOf<BunqGrant>()
     var requestedSince: LocalDate? = null
     var requestedLimit: Int? = null
 

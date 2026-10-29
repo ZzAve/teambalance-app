@@ -187,9 +187,7 @@ test('money pool: Bunq withdraws access, members see the pool unavailable, the a
     // 5. The settings say the access is refused, not that the team is connected.
     await page.goto(SETTINGS)
     await expect(page.getByRole('alert').filter({ hasText: 'can’t use its stored bunq access any more' })).toBeVisible()
-    await expect(
-      page.getByRole('status').filter({ hasText: 'Bunq no longer accepts the connection. Connect again below, or disconnect.' }),
-    ).toBeVisible()
+    await expect(page.getByRole('status').filter({ hasText: 'Connected' })).toHaveCount(0)
 
     // 6. Connecting again as the same login repairs it, and the pick is kept.
     await page.getByRole('button', { name: 'Connect a different bunq login' }).click()

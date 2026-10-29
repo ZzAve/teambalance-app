@@ -16,8 +16,8 @@ import java.net.URI
 /**
  * Bunq's approval page, for dev, test and e2e: an Admin picks a login and approves or declines, and
  * the browser goes back to the callback with a code or `error=access_denied`, as at the real Bunq.
- * Plain GETs under `/internal` like the e2e support endpoints (so is the revoke, which changes state); the bean
- * exists only in the dev, test and e2e profiles.
+ * Plain GETs under `/internal` like the e2e support endpoints, the revoke included; the bean exists only in the
+ * dev, test and e2e profiles.
  *
  * The `redirect_uri` must be this app's own callback, so the page is no open redirect even in dev.
  */

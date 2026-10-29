@@ -7,7 +7,7 @@ interface ConnectBunqViewProps {
   connected: boolean
   /** The Admin picked the account the Money page reads. Only meaningful while connected. */
   accountPicked?: boolean
-  /** Bunq refuses the stored access: the status says to connect again instead of claiming it is connected. Only meaningful while connected. */
+  /** Bunq refuses the stored access: the status stays empty instead of claiming it is connected. Only meaningful while connected. */
   rejected?: boolean
   /** The Admin just disconnected: the status says so and takes focus, since the controls they used are gone. */
   disconnected?: boolean
@@ -25,7 +25,6 @@ interface ConnectBunqViewProps {
 
 const DECLINED_TEXT = 'You declined at Bunq, so nothing was connected.'
 const DISCONNECTED_TEXT = 'Disconnected from bunq.'
-const REJECTED_TEXT = 'Bunq no longer accepts the connection. Connect again below, or disconnect.'
 const FAILED_TEXT = 'Couldn’t connect Bunq. Please try again.'
 
 // Error texts sit on a card; red-ink clears 4.5:1 there in both themes.
@@ -176,7 +175,8 @@ function statusOf(
   disconnected?: boolean,
 ) {
   if (result === 'declined') return DECLINED_TEXT
-  if (connected && rejected) return REJECTED_TEXT
+  // The accounts slot says the access is refused; saying it here too would be announced twice.
+  if (connected && rejected) return ''
   if (connected) return accountPicked ? 'Connected to bunq.' : 'Connected, pick an account below.'
   return disconnected ? DISCONNECTED_TEXT : ''
 }

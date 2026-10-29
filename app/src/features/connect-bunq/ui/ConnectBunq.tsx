@@ -20,7 +20,7 @@ import { ConnectBunqView } from './ConnectBunqView'
  */
 export function ConnectBunq({ result }: { result?: ConnectBunqResult }) {
   const { data: status } = useBunqConnection()
-  // The picker below reads the accounts; this only watches that read for a rejected grant.
+  // The picker below reads the accounts; this only reads its error.
   const rejected = isBunqGrantRejected(useBunqAccounts(false).error)
   const connect = useMutation({ mutationFn: startBunqConnection })
   // Disconnecting removes the accounts section it was started from, so the signal that it happened lives here.

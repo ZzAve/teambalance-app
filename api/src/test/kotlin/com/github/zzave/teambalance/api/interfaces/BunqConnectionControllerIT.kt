@@ -1,7 +1,8 @@
 package com.github.zzave.teambalance.api.interfaces
 
 import com.github.zzave.teambalance.api.TeamBalanceIT
-import com.github.zzave.teambalance.api.infrastructure.bunq.CaffeineMoneyPoolCacheAdapter
+import com.github.zzave.teambalance.api.domain.model.TeamId
+import com.github.zzave.teambalance.api.domain.port.MoneyPoolCacheGateway
 import com.github.zzave.teambalance.api.infrastructure.bunq.FakeBunqGatewayAdapter
 import com.github.zzave.teambalance.api.infrastructure.identity.loginAs
 import com.github.zzave.teambalance.api.infrastructure.multitenancy.TenantSchemaAdapter
@@ -68,7 +69,7 @@ class BunqConnectionControllerIT : TeamBalanceIT() {
     lateinit var fakeBunq: FakeBunqGatewayAdapter
 
     @Autowired
-    lateinit var moneyPoolCache: CaffeineMoneyPoolCacheAdapter
+    lateinit var moneyPoolCache: MoneyPoolCacheGateway
 
     private val json = ObjectMapper()
 
@@ -76,7 +77,7 @@ class BunqConnectionControllerIT : TeamBalanceIT() {
         beforeTest { CalendarLinkFixture.seed(jdbcTemplate, tenantSchemaAdapter) }
 
         afterTest {
-            moneyPoolCache.invalidateAll()
+            listOf(ALPHA_TEAM, BETA_TEAM).forEach { moneyPoolCache.evict(TeamId(UUID.fromString(it))) }
             listOf(ALPHA_SCHEMA, BETA_SCHEMA).forEach { jdbcTemplate.update("DELETE FROM $it.bunq_connection") }
             jdbcTemplate.update("DELETE FROM public.bunq_oauth_states WHERE team_id IN (?::uuid, ?::uuid)", ALPHA_TEAM, BETA_TEAM)
             jdbcTemplate.update("DELETE FROM public.team_members WHERE team_id = ?::uuid AND user_id = ?::uuid", BETA_TEAM, ALPHA_MEMBER)
@@ -179,7 +180,7 @@ class BunqConnectionControllerIT : TeamBalanceIT() {
                 .andExpect(jsonPath("$.code").value("BUNQ_REJECTED"))
         }
 
-        test("a revoked grant is noticed by list and pick, which clear the cached balance; connecting again repairs it") {
+        test("a revoked grant is noticed by list and pick, which evict the cached balance; connecting again repairs it") {
             val login = newLogin()
             connect(login)
             api(pick(TEAMKAS), ALPHA_MEMBER).andExpect(status().isNoContent)

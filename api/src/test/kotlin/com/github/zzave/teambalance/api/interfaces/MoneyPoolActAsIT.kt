@@ -2,13 +2,15 @@ package com.github.zzave.teambalance.api.interfaces
 
 import com.github.zzave.teambalance.api.TeamBalanceIT
 import com.github.zzave.teambalance.api.application.TokenCipher
-import com.github.zzave.teambalance.api.infrastructure.bunq.CaffeineMoneyPoolCacheAdapter
+import com.github.zzave.teambalance.api.domain.model.TeamId
+import com.github.zzave.teambalance.api.domain.port.MoneyPoolCacheGateway
 import com.github.zzave.teambalance.api.infrastructure.config.BunqGrantCipherConfiguration
 import com.github.zzave.teambalance.api.infrastructure.identity.loginAs
 import com.github.zzave.teambalance.api.infrastructure.multitenancy.TenantSchemaAdapter
 import com.github.zzave.teambalance.api.interfaces.CalendarLinkFixture.ALPHA_MEMBER
 import com.github.zzave.teambalance.api.interfaces.CalendarLinkFixture.ALPHA_TEAM
 import com.github.zzave.teambalance.api.interfaces.CalendarLinkFixture.BETA_MEMBER
+import com.github.zzave.teambalance.api.interfaces.CalendarLinkFixture.BETA_TEAM
 import io.kotest.matchers.shouldBe
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Qualifier
@@ -27,6 +29,7 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import org.springframework.web.util.UriComponentsBuilder
 import tools.jackson.databind.ObjectMapper
 import java.net.URI
+import java.util.UUID
 
 private const val OPERATOR_ID = "b8320000-0000-0000-0000-0000000000f2"
 private const val OPERATOR_EMAIL = "money-operator@test.com"
@@ -53,7 +56,7 @@ class MoneyPoolActAsIT : TeamBalanceIT() {
     lateinit var bunqGateway: SwitchableBunqGateway
 
     @Autowired
-    lateinit var moneyPoolCache: CaffeineMoneyPoolCacheAdapter
+    lateinit var moneyPoolCache: MoneyPoolCacheGateway
 
     @Autowired
     @Qualifier(BunqGrantCipherConfiguration.BEAN_NAME)
@@ -61,7 +64,7 @@ class MoneyPoolActAsIT : TeamBalanceIT() {
 
     init {
         afterTest {
-            moneyPoolCache.invalidateAll()
+            listOf(ALPHA_TEAM, BETA_TEAM).forEach { moneyPoolCache.evict(TeamId(UUID.fromString(it))) }
             jdbcTemplate.update("DELETE FROM ${CalendarLinkFixture.ALPHA_SCHEMA}.bunq_connection")
             jdbcTemplate.update("DELETE FROM ${CalendarLinkFixture.BETA_SCHEMA}.bunq_connection")
             jdbcTemplate.update("DELETE FROM public.bunq_oauth_states WHERE admin_user_id = ?::uuid", OPERATOR_ID)
@@ -144,7 +147,7 @@ class MoneyPoolActAsIT : TeamBalanceIT() {
             ) shouldBe 0
         }
 
-        test("a team's cached pool is its own: the operator acting as it, its member and another team never share one") {
+        test("the operator acting as a team and its member share one cached pool; another team on the same account has its own") {
             enterActAs()
             connectAsOperator()
             dispatch(
@@ -153,30 +156,32 @@ class MoneyPoolActAsIT : TeamBalanceIT() {
                     .contentType(MediaType.APPLICATION_JSON)
                     .content("""{"accountId":"fake-account-1"}"""),
             ).andExpect(status().isNoContent)
-            connectBetaToTheOtherAccount()
+            connectBetaToTheSameAccount()
             val before = bunqGateway.reads
-
-            repeat(2) {
-                dispatch(MockMvcRequestBuilders.get("/api/team/money-pool").with(loginAs(OPERATOR_ID)))
+            fun alphaReadsAs(userId: String) =
+                dispatch(MockMvcRequestBuilders.get("/api/team/money-pool").with(loginAs(userId)))
                     .andExpect(jsonPath("$.balance").value(18750))
-            }
+
+            repeat(2) { alphaReadsAs(OPERATOR_ID) }
             (bunqGateway.reads - before) shouldBe 1
 
-            dispatch(MockMvcRequestBuilders.get("/api/team/money-pool").with(loginAs(ALPHA_MEMBER)))
-                .andExpect(jsonPath("$.balance").value(18750))
+            alphaReadsAs(ALPHA_MEMBER)
             (bunqGateway.reads - before) shouldBe 1
 
             dispatch(MockMvcRequestBuilders.get("/api/team/money-pool").with(loginAs(BETA_MEMBER)))
-                .andExpect(jsonPath("$.balance").value(4235))
+                .andExpect(jsonPath("$.balance").value(18750))
+            (bunqGateway.reads - before) shouldBe 2
+
+            alphaReadsAs(OPERATOR_ID)
             (bunqGateway.reads - before) shouldBe 2
         }
     }
 
-    private fun connectBetaToTheOtherAccount() {
+    private fun connectBetaToTheSameAccount() {
         jdbcTemplate.update(
             "INSERT INTO ${CalendarLinkFixture.BETA_SCHEMA}.bunq_connection " +
                 "(id, bunq_account_id, access_token_encrypted, connected_by, connected_at) " +
-                "VALUES (1, 'fake-account-2', ?, ?::uuid, now())",
+                "VALUES (1, 'fake-account-1', ?, ?::uuid, now())",
             grantCipher.encrypt("fake:test").value,
             BETA_MEMBER,
         )

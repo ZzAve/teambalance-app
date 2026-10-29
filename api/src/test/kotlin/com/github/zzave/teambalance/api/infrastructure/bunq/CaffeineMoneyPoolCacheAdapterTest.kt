@@ -4,6 +4,7 @@ import com.github.zzave.teambalance.api.domain.model.BunqAccountId
 import com.github.zzave.teambalance.api.domain.model.Money
 import com.github.zzave.teambalance.api.domain.model.MoneyPool
 import com.github.zzave.teambalance.api.domain.model.TeamId
+import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import java.time.Clock
@@ -12,9 +13,11 @@ import java.time.Instant
 import java.time.ZoneId
 import java.time.ZoneOffset
 import java.util.UUID
+import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.AtomicReference
 import kotlin.concurrent.thread
 
 /** A hand-cranked clock so expiry is asserted without sleeping. */
@@ -38,6 +41,35 @@ private class Bunq(var answer: MoneyPool) {
     }
 }
 
+/** A Bunq that holds every read until [release], so a test can do something while a read is in flight. */
+private class SlowBunq(private val answer: MoneyPool) {
+    val entered = CountDownLatch(1)
+    val release = CountDownLatch(1)
+    private val asked = AtomicInteger()
+    val loads get() = asked.get()
+
+    fun load(): MoneyPool {
+        asked.incrementAndGet()
+        entered.countDown()
+        release.await(10, TimeUnit.SECONDS)
+        return answer
+    }
+}
+
+/** Daemon, so a failed assertion cannot keep the JVM alive; the tests release and join in a finally. */
+private fun reader(block: () -> Unit) = thread(isDaemon = true, block = block)
+
+/** True once [thread] waits inside Caffeine's compute for a read that is on its way, within 5 seconds. */
+private fun waitsInsideCaffeine(thread: Thread): Boolean {
+    val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5)
+    while (System.nanoTime() < deadline) {
+        val waiting = thread.state in setOf(Thread.State.BLOCKED, Thread.State.WAITING, Thread.State.TIMED_WAITING)
+        if (waiting && thread.stackTrace.any { it.className.startsWith("com.github.benmanes.caffeine") }) return true
+        Thread.onSpinWait()
+    }
+    return false
+}
+
 private fun balance(cents: Long): MoneyPool = MoneyPool.Connected(Money(cents), emptyList())
 
 private val ALPHA = TeamId(UUID.randomUUID())
@@ -51,14 +83,14 @@ private val ALMOST = Duration.ofMillis(1)
 class CaffeineMoneyPoolCacheAdapterTest : FunSpec({
 
     val clock = MutableClock()
-    val cache = CaffeineMoneyPoolCacheAdapter(
-        clock,
-        BunqReadCacheProperties(refresh = SECONDS_30, expire = Duration.ofMinutes(5), retryAfter = SECONDS_10),
-    )
+    lateinit var cache: CaffeineMoneyPoolCacheAdapter
 
     beforeTest {
         clock.now = Instant.EPOCH
-        cache.invalidateAll()
+        cache = CaffeineMoneyPoolCacheAdapter(
+            clock,
+            BunqReadCacheProperties(refresh = SECONDS_30, expire = Duration.ofMinutes(5), retryAfter = SECONDS_10),
+        )
     }
 
     fun read(bunq: Bunq, team: TeamId = ALPHA, account: BunqAccountId = TEAMKAS) = cache.read(team, account, bunq::load)
@@ -227,52 +259,112 @@ class CaffeineMoneyPoolCacheAdapterTest : FunSpec({
     }
 
     test("readers of a cold entry wait for the one read that is on its way") {
-        val entered = CountDownLatch(1)
-        val release = CountDownLatch(1)
-        val loads = AtomicInteger()
-        val slow = {
-            loads.incrementAndGet()
-            entered.countDown()
-            release.await(10, TimeUnit.SECONDS)
-            balance(100)
+        val slow = SlowBunq(balance(100))
+        val answers = ConcurrentLinkedQueue<MoneyPool>()
+        val secondAboutToRead = CountDownLatch(1)
+        val first = reader { answers += cache.read(ALPHA, TEAMKAS, slow::load) }
+        val second = thread(start = false, isDaemon = true) {
+            secondAboutToRead.countDown()
+            answers += cache.read(ALPHA, TEAMKAS, slow::load)
         }
-        val answers = java.util.concurrent.ConcurrentLinkedQueue<MoneyPool>()
-        val first = thread { answers += cache.read(ALPHA, TEAMKAS, slow) }
-        entered.await(10, TimeUnit.SECONDS)
-        val second = thread { answers += cache.read(ALPHA, TEAMKAS, slow) }
-        while (second.state == Thread.State.RUNNABLE || second.state == Thread.State.NEW) Thread.onSpinWait()
+        try {
+            slow.entered.await(10, TimeUnit.SECONDS) shouldBe true
+            second.start()
+            secondAboutToRead.await(5, TimeUnit.SECONDS) shouldBe true
+            waitsInsideCaffeine(second) shouldBe true
+            slow.loads shouldBe 1
+        } finally {
+            slow.release.countDown()
+            first.join(10_000)
+            second.join(10_000)
+        }
 
-        release.countDown()
-        first.join()
-        second.join()
-
-        loads.get() shouldBe 1
+        slow.loads shouldBe 1
         answers.toList() shouldBe listOf(balance(100), balance(100))
     }
 
     test("while one reader refreshes a stale entry, another gets the stale value without a second Bunq call") {
         read(Bunq(balance(100)))
         clock.advance(SECONDS_30)
-        val entered = CountDownLatch(1)
-        val release = CountDownLatch(1)
-        val loads = AtomicInteger()
-        val slow = {
-            loads.incrementAndGet()
-            entered.countDown()
-            release.await(10, TimeUnit.SECONDS)
-            balance(200)
+        val slow = SlowBunq(balance(200))
+        val refresher = reader { cache.read(ALPHA, TEAMKAS, slow::load) }
+        val whileRefreshing = Bunq(balance(999))
+        try {
+            slow.entered.await(10, TimeUnit.SECONDS) shouldBe true
+            read(whileRefreshing) shouldBe balance(100)
+        } finally {
+            slow.release.countDown()
+            refresher.join(10_000)
         }
-        val refresher = thread { cache.read(ALPHA, TEAMKAS, slow) }
-        entered.await(10, TimeUnit.SECONDS)
 
-        val bunq = Bunq(balance(999))
-        val whileRefreshing = read(bunq)
-        release.countDown()
-        refresher.join()
+        whileRefreshing.loads shouldBe 0
+        slow.loads shouldBe 1
+        read(whileRefreshing) shouldBe balance(200)
+    }
 
-        whileRefreshing shouldBe balance(100)
-        bunq.loads shouldBe 0
-        loads.get() shouldBe 1
+    test("an evict while a cold read is in flight keeps that read's result out of the cache") {
+        val slow = SlowBunq(balance(100))
+        val answer = AtomicReference<MoneyPool>()
+        val reader = reader { answer.set(cache.read(ALPHA, TEAMKAS, slow::load)) }
+        try {
+            slow.entered.await(10, TimeUnit.SECONDS) shouldBe true
+            cache.evict(ALPHA)
+        } finally {
+            slow.release.countDown()
+            reader.join(10_000)
+        }
+        val fresh = Bunq(balance(200))
+
+        answer.get() shouldBe balance(100)
+        read(fresh) shouldBe balance(200)
+        fresh.loads shouldBe 1
+    }
+
+    test("an evict while a refresh is in flight keeps the refresh's result out of the cache") {
+        read(Bunq(balance(100)))
+        clock.advance(SECONDS_30)
+        val slow = SlowBunq(balance(200))
+        val refresher = reader { cache.read(ALPHA, TEAMKAS, slow::load) }
+        try {
+            slow.entered.await(10, TimeUnit.SECONDS) shouldBe true
+            cache.evict(ALPHA)
+        } finally {
+            slow.release.countDown()
+            refresher.join(10_000)
+        }
+        val fresh = Bunq(balance(300))
+
+        read(fresh) shouldBe balance(300)
+        fresh.loads shouldBe 1
+    }
+
+    test("a refresh that finishes late does not overwrite the entry a newer read loaded meanwhile") {
+        read(Bunq(balance(100)))
+        clock.advance(SECONDS_30)
+        val slow = SlowBunq(balance(200))
+        val refresher = reader { cache.read(ALPHA, TEAMKAS, slow::load) }
+        try {
+            slow.entered.await(10, TimeUnit.SECONDS) shouldBe true
+            clock.advance(Duration.ofMinutes(5))
+            read(Bunq(balance(300))) shouldBe balance(300)
+        } finally {
+            slow.release.countDown()
+            refresher.join(10_000)
+        }
+        val unasked = Bunq(balance(999))
+
+        read(unasked) shouldBe balance(300)
+        unasked.loads shouldBe 0
+    }
+
+    test("a refresh whose load throws releases its claim, so the next read asks Bunq again") {
+        val bunq = Bunq(balance(100))
+        read(bunq)
+        clock.advance(SECONDS_30)
+
+        shouldThrow<IllegalStateException> { cache.read(ALPHA, TEAMKAS) { error("boom") } }
+        bunq.answer = balance(200)
+
         read(bunq) shouldBe balance(200)
     }
 })

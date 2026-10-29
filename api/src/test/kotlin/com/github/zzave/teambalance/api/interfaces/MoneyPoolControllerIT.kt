@@ -2,7 +2,8 @@ package com.github.zzave.teambalance.api.interfaces
 
 import com.github.zzave.teambalance.api.TeamBalanceIT
 import com.github.zzave.teambalance.api.application.TokenCipher
-import com.github.zzave.teambalance.api.infrastructure.bunq.CaffeineMoneyPoolCacheAdapter
+import com.github.zzave.teambalance.api.domain.model.TeamId
+import com.github.zzave.teambalance.api.domain.port.MoneyPoolCacheGateway
 import com.github.zzave.teambalance.api.infrastructure.config.BunqGrantCipherConfiguration
 import com.github.zzave.teambalance.api.infrastructure.identity.loginAs
 import com.github.zzave.teambalance.api.infrastructure.multitenancy.TenantSchemaAdapter
@@ -56,7 +57,7 @@ class MoneyPoolControllerIT : TeamBalanceIT() {
     lateinit var bunqGateway: SwitchableBunqGateway
 
     @Autowired
-    lateinit var moneyPoolCache: CaffeineMoneyPoolCacheAdapter
+    lateinit var moneyPoolCache: MoneyPoolCacheGateway
 
     @Autowired
     @Qualifier(BunqGrantCipherConfiguration.BEAN_NAME)
@@ -129,7 +130,7 @@ class MoneyPoolControllerIT : TeamBalanceIT() {
             getMoneyPool().andExpect(MockMvcResultMatchers.jsonPath("$.state").value("Rejected"))
             (bunqGateway.reads - before) shouldBe 1
 
-            moneyPoolCache.invalidateAll()
+            forgetCachedPool()
             getMoneyPool().andExpect(MockMvcResultMatchers.jsonPath("$.state").value("Connected"))
         }
 
@@ -397,13 +398,13 @@ class MoneyPoolControllerIT : TeamBalanceIT() {
 
             bunqGateway.failing = false
             bunqGateway.rejecting = true
-            moneyPoolCache.invalidateAll()
+            forgetCachedPool()
             getMoneyPool()
                 .andExpect(MockMvcResultMatchers.jsonPath("$.state").value("Rejected"))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.canTopUp").value(true))
 
             bunqGateway.rejecting = false
-            moneyPoolCache.invalidateAll()
+            forgetCachedPool()
             getMoneyPool()
                 .andExpect(MockMvcResultMatchers.jsonPath("$.state").value("Connected"))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.canTopUp").value(true))
@@ -482,10 +483,12 @@ class MoneyPoolControllerIT : TeamBalanceIT() {
         }
     }
 
+    private fun forgetCachedPool() = moneyPoolCache.evict(TeamId(UUID.fromString(TEAM_ID)))
+
     private fun resetMoneyPool() {
         bunqGateway.failing = false
         bunqGateway.rejecting = false
-        moneyPoolCache.invalidateAll()
+        forgetCachedPool()
         jdbcTemplate.update("DELETE FROM public.bunq_connection")
         jdbcTemplate.update(
             "UPDATE public.money_pool_settings SET enabled = true, beer_price_cents = NULL, bunq_me_link = NULL WHERE id = 1",

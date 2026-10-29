@@ -1,6 +1,7 @@
 package com.github.zzave.teambalance.api.interfaces
 
 import com.github.zzave.teambalance.api.TeamBalanceIT
+import com.github.zzave.teambalance.api.infrastructure.bunq.FakeBunqGatewayAdapter
 import com.github.zzave.teambalance.api.infrastructure.identity.loginAs
 import com.github.zzave.teambalance.api.infrastructure.multitenancy.TenantSchemaAdapter
 import com.github.zzave.teambalance.api.interfaces.CalendarLinkFixture.ALPHA_MEMBER
@@ -61,6 +62,9 @@ class BunqConnectionControllerIT : TeamBalanceIT() {
 
     @Autowired
     lateinit var tenantSchemaAdapter: TenantSchemaAdapter
+
+    @Autowired
+    lateinit var fakeBunq: FakeBunqGatewayAdapter
 
     private val json = ObjectMapper()
 
@@ -168,6 +172,44 @@ class BunqConnectionControllerIT : TeamBalanceIT() {
             api(pick(TEAMKAS), ALPHA_MEMBER)
                 .andExpect(status().isUnprocessableEntity)
                 .andExpect(jsonPath("$.code").value("BUNQ_REJECTED"))
+        }
+
+        test("a revoked grant reads as Rejected, list and pick answer 422 BUNQ_REJECTED, and connecting again repairs it") {
+            val login = newLogin()
+            connect(login)
+            api(pick(TEAMKAS), ALPHA_MEMBER).andExpect(status().isNoContent)
+            api(get(MONEY_POOL), ALPHA_MEMBER).andExpect(jsonPath("$.state").value("Connected"))
+
+            fakeBunq.revoke(login)
+
+            api(get(MONEY_POOL), ALPHA_MEMBER)
+                .andExpect(jsonPath("$.state").value("Rejected"))
+                .andExpect(jsonPath("$.balance").doesNotExist())
+            api(get(ACCOUNT), ALPHA_MEMBER)
+                .andExpect(status().isUnprocessableEntity)
+                .andExpect(jsonPath("$.code").value("BUNQ_REJECTED"))
+            api(pick(TEAMKAS), ALPHA_MEMBER)
+                .andExpect(status().isUnprocessableEntity)
+                .andExpect(jsonPath("$.code").value("BUNQ_REJECTED"))
+            connectionRows(ALPHA_SCHEMA) shouldBe 1
+            pickedAccount(ALPHA_SCHEMA) shouldBe TEAMKAS
+
+            connect(login)
+
+            api(get(MONEY_POOL), ALPHA_MEMBER)
+                .andExpect(jsonPath("$.state").value("Connected"))
+                .andExpect(jsonPath("$.balance").value(18750))
+            pickedAccount(ALPHA_SCHEMA) shouldBe TEAMKAS
+        }
+
+        test("the fake revoke endpoint answers 204 and revokes the login's grants") {
+            val login = newLogin()
+            connect(login)
+            api(pick(TEAMKAS), ALPHA_MEMBER).andExpect(status().isNoContent)
+
+            mockMvc.perform(get("/internal/fake-bunq/revoke").param("login", login)).andExpect(status().isNoContent)
+
+            api(get(MONEY_POOL), ALPHA_MEMBER).andExpect(jsonPath("$.state").value("Rejected"))
         }
 
         test("disconnecting deletes the connection and the money pool reads NotConnected again") {

@@ -16,7 +16,8 @@ import java.net.URI
 /**
  * Bunq's approval page, for dev, test and e2e: an Admin picks a login and approves or declines, and
  * the browser goes back to the callback with a code or `error=access_denied`, as at the real Bunq.
- * Plain GETs under `/internal` like the e2e support endpoints; the bean exists only in the dev, test and e2e profiles.
+ * Plain GETs under `/internal` like the e2e support endpoints (so is the revoke, which changes state); the bean
+ * exists only in the dev, test and e2e profiles.
  *
  * The `redirect_uri` must be this app's own callback, so the page is no open redirect even in dev.
  */
@@ -61,7 +62,15 @@ class FakeBunqAuthorizeController(
         return ResponseEntity.status(HttpStatus.FOUND).location(URI.create(back.build().encode().toUriString())).build()
     }
 
+    /** Withdraws the login's access at the fake Bunq, as the user would in the bunq app. */
+    @GetMapping(REVOKE_PATH)
+    fun revoke(@RequestParam login: String): ResponseEntity<Void> {
+        bunq.revoke(login)
+        return ResponseEntity.noContent().build()
+    }
+
     private companion object {
+        const val REVOKE_PATH = "/internal/fake-bunq/revoke"
         const val DECIDE_PATH = "/internal/fake-bunq/decide"
     }
 }

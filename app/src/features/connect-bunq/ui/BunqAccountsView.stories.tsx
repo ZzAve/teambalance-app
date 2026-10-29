@@ -16,7 +16,8 @@ import { BunqAccountsView } from './BunqAccountsView'
 //      announcement), and a rejected grant, stacked in one frame.
 //   3. Interactions — no picture; one play picks Privé and checks onPick, then walks Disconnect through
 //      its confirmation: cancel calls nothing and returns focus to Disconnect, confirm calls onDisconnect
-//      once. The instance fails its disconnect, so the error that takes focus is asserted too.
+//      once. The instance first ends its pick rejected and then fails its disconnect, so the alert that
+//      takes focus after each is asserted too.
 const ACCOUNTS: BunqAccount[] = [
   { id: 'fake-account-1', name: 'Teamkas' },
   { id: 'fake-account-2', name: 'Privé' },
@@ -98,18 +99,29 @@ export const Shells: Story = {
     await expect(rejected).toHaveTextContent('Connect a different bunq login')
     await expect(region('Rejected').getAllByRole('alert')).toHaveLength(1)
     await expect(region('Rejected').getByRole('button', { name: 'Disconnect' })).toBeEnabled()
+    // Opening the page on a connection that is already rejected leaves focus where it is.
+    await expect(rejected).not.toHaveFocus()
   },
 }
 
 const DISCONNECT_FAILED = 'Couldn’t disconnect Bunq. Please try again.'
 
-/** A View whose disconnect fails, as the container reports it, so the error and its focus can be played. */
-function FailingDisconnect(props: React.ComponentProps<typeof BunqAccountsView>) {
+/**
+ * A View whose pick ends rejected and whose disconnect fails, as the container reports them, so the alerts
+ * and their focus can be played.
+ */
+function FailingActions(props: React.ComponentProps<typeof BunqAccountsView>) {
   const [error, setError] = useState<string | null>(null)
+  const [rejected, setRejected] = useState(false)
   return (
     <BunqAccountsView
       {...props}
       error={error}
+      rejected={rejected}
+      onPick={(accountId) => {
+        props.onPick(accountId)
+        setRejected(true)
+      }}
       onDisconnect={() => {
         props.onDisconnect()
         setError(DISCONNECT_FAILED)
@@ -120,7 +132,7 @@ function FailingDisconnect(props: React.ComponentProps<typeof BunqAccountsView>)
 
 export const Interactions: Story = {
   parameters: { chromatic: { disableSnapshot: true } },
-  render: (args) => <FailingDisconnect {...args} />,
+  render: (args) => <FailingActions {...args} />,
   play: async ({ canvas, userEvent, args }) => {
     const save = canvas.getByRole('button', { name: 'Use this account' })
 
@@ -130,6 +142,9 @@ export const Interactions: Story = {
     await expect(save).toBeEnabled()
     await userEvent.click(save)
     await expect(args.onPick).toHaveBeenCalledWith('fake-account-2')
+    // A pick that ends rejected takes focus to the message: the button pressed is about to go.
+    await waitFor(() => expect(canvas.getByRole('alert')).toHaveFocus())
+    await expect(canvas.getByRole('alert')).toHaveTextContent('can’t use its stored bunq access any more')
 
     // Choosing the saved account again leaves nothing to save.
     await userEvent.click(canvas.getByRole('radio', { name: 'Teamkas' }))
@@ -150,7 +165,6 @@ export const Interactions: Story = {
     await userEvent.click(within(await dialog.findByRole('dialog')).getByRole('button', { name: 'Disconnect' }))
     await expect(args.onDisconnect).toHaveBeenCalledTimes(1)
     // A failure takes focus to its alert, so it is read and the keyboard user is not left on the page.
-    await expect(canvas.getByRole('alert')).toHaveTextContent(DISCONNECT_FAILED)
-    await waitFor(() => expect(canvas.getByRole('alert')).toHaveFocus())
+    await waitFor(() => expect(canvas.getByText(DISCONNECT_FAILED)).toHaveFocus())
   },
 }

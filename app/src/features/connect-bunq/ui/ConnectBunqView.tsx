@@ -9,6 +9,8 @@ interface ConnectBunqViewProps {
   accountPicked?: boolean
   /** Bunq refuses the stored access: the status stays empty instead of claiming it is connected. Only meaningful while connected. */
   rejected?: boolean
+  /** The accounts read has not answered yet, so it is not known whether the stored access still works. */
+  checking?: boolean
   /** The Admin just disconnected: the status says so and takes focus, since the controls they used are gone. */
   disconnected?: boolean
   /** The account picker and Disconnect, supplied by the ConnectBunq container so this View stays prop-only. Shown while connected. */
@@ -43,6 +45,7 @@ export function ConnectBunqView({
   connected,
   accountPicked,
   rejected,
+  checking,
   disconnected,
   accounts,
   result: tripResult,
@@ -70,7 +73,7 @@ export function ConnectBunqView({
   }, [disconnected, connected])
 
   const failed = result === 'error'
-  const statusText = failed ? '' : statusOf(result, connected, accountPicked, rejected, disconnected)
+  const statusText = failed ? '' : statusOf(result, connected, accountPicked, rejected, checking, disconnected)
   const showForm = !connected || reconnecting || !!isConnecting
   // While the browser is on its way to Bunq the acknowledgement stays ticked and disabled, as does the button.
   const ticked = acknowledged || !!isConnecting
@@ -172,11 +175,15 @@ function statusOf(
   connected: boolean,
   accountPicked?: boolean,
   rejected?: boolean,
+  checking?: boolean,
   disconnected?: boolean,
 ) {
   if (result === 'declined') return DECLINED_TEXT
   // The accounts slot says the access is refused; saying it here too would be announced twice.
   if (connected && rejected) return ''
+  // Not known yet whether the access works: claiming "Connected" now could be retracted a moment later. The
+  // result of a trip back from Bunq is not held back.
+  if (connected && checking && !result) return ''
   if (connected) return accountPicked ? 'Connected to bunq.' : 'Connected, pick an account below.'
   return disconnected ? DISCONNECTED_TEXT : ''
 }

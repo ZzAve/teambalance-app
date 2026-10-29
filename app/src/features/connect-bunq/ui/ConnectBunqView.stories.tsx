@@ -11,7 +11,7 @@ import { ConnectBunqView } from './ConnectBunqView'
 // Three stories (ADR-0032 §1):
 //   1. Data — the section as an Admin first meets it: not connected, nothing ticked, Connect disabled
 //      with its reason.
-//   2. Shells — connected without and with a picked account and with a rejected connection (the accounts
+//   2. Shells — connected without and with a picked account, while the accounts are still being checked and with a rejected connection (the accounts
 //      slot in place of the form), just disconnected (also with a result left in the URL by an earlier trip), the request in flight, a failed start, and the results
 //      Bunq's return can carry, stacked in one frame.
 //   3. Interactions — no picture; one play opens the section as Bunq's return does (the result takes
@@ -52,8 +52,10 @@ export const Shells: Story = {
   render: (args) => (
     <Stack
       items={{
-        'Connected, no pick': <ConnectBunqView {...args} connected accounts={ACCOUNTS_SLOT} result="connected" />,
+        // Still checking the accounts, as on the return from Bunq: the result is not held back.
+        'Connected, no pick': <ConnectBunqView {...args} connected checking accounts={ACCOUNTS_SLOT} result="connected" />,
         'Connected, picked': <ConnectBunqView {...args} connected accountPicked accounts={ACCOUNTS_SLOT} />,
+        Checking: <ConnectBunqView {...args} connected accountPicked checking accounts={ACCOUNTS_SLOT} />,
         Rejected: <ConnectBunqView {...args} connected accountPicked rejected accounts={ACCOUNTS_SLOT} />,
         Disconnected: <ConnectBunqView {...args} disconnected />,
         'Disconnected, stale declined': <ConnectBunqView {...args} disconnected result="declined" />,
@@ -82,6 +84,10 @@ export const Shells: Story = {
       // It reads as a control at rest, not as plain text.
       await expect(reconnect).toHaveStyle({ textDecorationLine: 'underline' })
     }
+
+    // Until the accounts read says whether the access still works, the status says nothing about it.
+    await expect(region('Checking').getByRole('status')).toBeEmptyDOMElement()
+    await expect(region('Checking').getByText('Accounts and Disconnect')).toBeInTheDocument()
 
     // A refused connection is not reported as connected, and the status stays silent: the accounts slot's
     // alert is the one message, so it is not announced twice. The page still offers Connect again and Disconnect.

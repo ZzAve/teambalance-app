@@ -166,8 +166,14 @@ test('money pool: Bunq withdraws access, members see the pool unavailable, the a
   await page.goto(MONEY)
   await expect(page.getByText('187,50')).toBeVisible()
 
-  // 2. The user withdraws TeamBalance's access at Bunq.
+  // 2. The user withdraws TeamBalance's access at Bunq while the Admin has the picker open: the pick that
+  //    follows ends rejected, the picker goes, and the message takes focus.
+  await page.goto(SETTINGS)
+  await expect(page.getByRole('radio', { name: 'Teamkas' })).toBeChecked()
   expect((await page.request.get(`${BACKEND_URL}/internal/fake-bunq/revoke`, { params: { login } })).status()).toBe(204)
+  await page.getByRole('radio', { name: 'Privé' }).check()
+  await page.getByRole('button', { name: 'Use this account' }).click()
+  await expect(page.getByRole('alert').filter({ hasText: 'can’t use its stored bunq access any more' })).toBeFocused()
 
   const member = await memberContext(browser, playwright)
   try {
@@ -184,10 +190,20 @@ test('money pool: Bunq withdraws access, members see the pool unavailable, the a
     await expect(page.getByText('Reconnect it in the team settings')).toBeVisible()
     await expect(page.getByText('187,50')).toHaveCount(0)
 
-    // 5. The settings say the access is refused, not that the team is connected.
+    // 5. The settings say the access is refused, not that the team is connected, not even for a moment while
+    //    the accounts are read. Opening the page does not move focus to the message.
+    await page.addInitScript(() => {
+      const seen = window as unknown as { sawConnected?: boolean }
+      new MutationObserver(() => {
+        if (document.body?.textContent?.includes('Connected to bunq.')) seen.sawConnected = true
+      }).observe(document, { subtree: true, childList: true, characterData: true })
+    })
     await page.goto(SETTINGS)
-    await expect(page.getByRole('alert').filter({ hasText: 'can’t use its stored bunq access any more' })).toBeVisible()
+    const rejectedAlert = page.getByRole('alert').filter({ hasText: 'can’t use its stored bunq access any more' })
+    await expect(rejectedAlert).toBeVisible()
+    await expect(rejectedAlert).not.toBeFocused()
     await expect(page.getByRole('status').filter({ hasText: 'Connected' })).toHaveCount(0)
+    expect(await page.evaluate(() => (window as unknown as { sawConnected?: boolean }).sawConnected)).toBeUndefined()
 
     // 6. Connecting again as the same login repairs it, and the pick is kept.
     await page.getByRole('button', { name: 'Connect a different bunq login' }).click()

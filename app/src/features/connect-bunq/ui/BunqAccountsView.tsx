@@ -60,6 +60,14 @@ export function BunqAccountsView({
   // and the status or the error takes focus, which must not be pulled away when the dialog finishes closing.
   const dismissed = useRef(false)
   const errorRef = useRef<HTMLParagraphElement>(null)
+  const rejectedRef = useRef<HTMLParagraphElement>(null)
+  // Set once the Admin has pressed something here. A rejection that follows is the answer to that press, and
+  // the button they pressed is about to go; a connection that was already rejected on arrival keeps focus where it is.
+  const acted = useRef(false)
+
+  useEffect(() => {
+    if (rejected && acted.current) rejectedRef.current?.focus()
+  }, [rejected])
 
   // A failed pick or disconnect leaves the controls that were pressed disabled and focus on the page; the
   // error is where it goes. The message returns to null while the next attempt is pending, so a repeated
@@ -76,7 +84,7 @@ export function BunqAccountsView({
         </p>
       )}
       {rejected ? (
-        <p role="alert" className={ERROR_CLASS}>
+        <p ref={rejectedRef} role="alert" tabIndex={-1} className={`${ERROR_CLASS} outline-none`}>
           TeamBalance can’t use its stored bunq access any more. Use “Connect a different bunq login” below, or
           disconnect.
         </p>
@@ -93,7 +101,10 @@ export function BunqAccountsView({
           selectedAccountId={selectedAccountId}
           isSaving={isSaving}
           saved={saved}
-          onPick={onPick}
+          onPick={(accountId) => {
+            acted.current = true
+            onPick(accountId)
+          }}
         />
       )}
       {error && (
@@ -114,6 +125,7 @@ export function BunqAccountsView({
         confirmLabel="Disconnect"
         onConfirm={() => {
           dismissed.current = false
+          acted.current = true
           setConfirming(false)
           onDisconnect()
         }}

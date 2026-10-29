@@ -20,8 +20,8 @@ import { ConnectBunqView } from './ConnectBunqView'
  */
 export function ConnectBunq({ result }: { result?: ConnectBunqResult }) {
   const { data: status } = useBunqConnection()
-  // The picker below reads the accounts; this only reads its error.
-  const rejected = isBunqGrantRejected(useBunqAccounts(false).error)
+  // The picker below reads the accounts; this only reads whether that read is pending and its error.
+  const accountsRead = useBunqAccounts(false)
   const connect = useMutation({ mutationFn: startBunqConnection })
   // Disconnecting removes the accounts section it was started from, so the signal that it happened lives here.
   const [disconnected, setDisconnected] = useState(false)
@@ -52,7 +52,8 @@ export function ConnectBunq({ result }: { result?: ConnectBunqResult }) {
       <ConnectBunqView
         connected={status.connected}
         accountPicked={status.accountPicked}
-        rejected={rejected}
+        rejected={isBunqGrantRejected(accountsRead.error)}
+        checking={accountsRead.isPending}
         disconnected={disconnected}
         accounts={<BunqAccounts onDisconnected={() => setDisconnected(true)} />}
         result={result}

@@ -114,14 +114,16 @@ serial path.
   class loader, and about 30% under ByteBuddy (the runtime enhancer and the lazy-proxy factories).
   Profiling needs a fixed `duration=` recording: `spring.context.exit=onRefresh` and `docker stop`
   both lose the samples.
-- Tried and rejected:
+- Tried:
   - Build-time enhancement with the `org.hibernate.orm` Gradle plugin failed 110 of 965 tests.
     For an entity with no lazy attributes of its own (for example `EventTypeJpaEntity`), the
     enhancer generates field readers that return the field without asking Hibernate's lazy-loading
     interceptor. At runtime Hibernate sees an enhanced class and, for the LAZY `@ManyToOne` that
     points at it, hands out an uninitialized instance instead of a ByteBuddy proxy. Reading `uuid`
     on that instance returns `null` (`EventTypeId(null)` in `EventTypeMapper`). The failed update
-    tests were not analysed separately.
+    tests were not analysed separately. Rejected.
   - `hibernate.bytecode.provider=none` without enhancement passes the tests but gains only about
     0.16 s locally (3.43 s to 3.27 s), because the AOT cache already covers most ByteBuddy classes.
-    It also replaces lazy proxies with an exception if Hibernate ever needs one. Not worth it.
+    It also replaces lazy proxies with an exception if Hibernate ever needs one. It is switched
+    on as a prod trial, because the gain on a prod vCPU may be larger than locally. Remove it if
+    the prod `Started … in` time does not drop, or if a lazy-proxy exception shows up in the logs.

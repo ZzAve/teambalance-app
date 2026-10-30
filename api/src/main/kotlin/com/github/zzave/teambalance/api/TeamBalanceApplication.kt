@@ -1,11 +1,13 @@
 package com.github.zzave.teambalance.api
 
-import com.github.zzave.teambalance.api.infrastructure.startup.DatabaseWarmupListener
+import org.slf4j.LoggerFactory
 import org.springframework.boot.SpringApplication
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.context.metrics.buffering.BufferingApplicationStartup
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan
 import org.springframework.boot.security.autoconfigure.UserDetailsServiceAutoConfiguration
+import java.nio.file.Path
+import kotlin.io.path.readText
 
 // No username/password login exists (sign-in is a magic link onto a session, SecurityConfig), so Boot's
 // default in-memory user with a generated password is not created.
@@ -24,8 +26,21 @@ fun main(args: Array<String>) {
     // startup-time optimization is judged against. See
     // docs/adr/0036-jvm-startup-time-tuning-without-native-image.md.
     app.applicationStartup = BufferingApplicationStartup(STARTUP_EVENT_CAPACITY)
-    // Kicks a throwaway JDBC connection on a daemon thread (prod only) to overlap the scale-to-zero
-    // Serverless-SQL resume with the classload gap that runs anyway (ADR-0036).
-    app.addListeners(DatabaseWarmupListener())
     app.run(*args)
+    logStartupCpu()
+}
+
+// Logged once after `Started …` to show whether the boot was CPU-throttled (ADR-0036): the cgroup v2
+// quota and throttle counters, plus the JVM's own CPU time in case the sandbox hides the cgroup files.
+private fun logStartupCpu() {
+    fun cgroup(file: String) = runCatching { Path.of("/sys/fs/cgroup", file).readText().trim().replace('\n', ' ') }
+        .getOrDefault("unavailable")
+    val processCpuMs = ProcessHandle.current().info().totalCpuDuration().map { it.toMillis() }.orElse(-1)
+    LoggerFactory.getLogger(TeamBalanceApplication::class.java).info(
+        "Startup CPU: process_cpu_ms={} processors={} cpu.max=[{}] cpu.stat=[{}]",
+        processCpuMs,
+        Runtime.getRuntime().availableProcessors(),
+        cgroup("cpu.max"),
+        cgroup("cpu.stat"),
+    )
 }

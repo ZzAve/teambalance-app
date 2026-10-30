@@ -87,10 +87,33 @@ Object Storage IAM key** (`SCW_S3_*`).
 
 ## Container resource config
 
-The container's **cpu / memory / sandbox** (2 vCPU, 2 GB, gVisor v2) are set **manually in
-the Scaleway console**, not by the deploy — the pipeline only updates the image. To A/B the
-cold start, change the vCPU in the console (e.g. 4 vCPU) and re-read the `Started … in X
-seconds` line. Console fields: CPU in vCPU, memory in MB, sandbox v1/v2.
+The container's resource and probe settings are set **manually in the Scaleway console**, not by
+the deploy — the pipeline only updates the image, so nothing in the repo keeps these values in
+sync. Read the live values with
+`scw container container get ec9dfda3-65ca-4901-a640-895fd2f9f5f3 region=fr-par`.
+
+Values as of 2026-10-30:
+
+| Setting | Value | Note |
+|---|---|---|
+| CPU / memory | 2 vCPU / 2 GB | Set by #98; drifted to 1 vCPU / 1 GB in the console before 2026-08-30 (the audit trail goes back no further) and was restored on 2026-10-30 |
+| Sandbox | gVisor v2 | |
+| Min / max scale | 0 / 1 | Every wake-up is a cold start |
+| Request timeout | 10 s | A request that wakes the container waits for the boot and gets a 504 if the boot takes longer; the instance keeps starting |
+| Startup probe | HTTP `/internal/actuator/health`, 25 × 5 s (125 s) | Must stay above the boot time, or the instance is killed during boot |
+| Liveness probe | HTTP `/internal/actuator/health`, 30 × 10 s | |
+
+The boot is CPU-bound. `Started … in` is about 28 s on 2 vCPU (process about 30 s) and about
+43 s on 1 vCPU (process about 47 s). On 1 vCPU the old startup probe of 10 × 5 s (50 s) killed
+instances that were ready (outage of 2026-10-30). When you
+change the CPU, re-read the `Started … in X seconds` line and keep the startup probe well above it.
+`scw container container update` needs every startup-probe field, not only the changed ones:
+
+```bash
+scw container container update ec9dfda3-65ca-4901-a640-895fd2f9f5f3 region=fr-par \
+  startup-probe.failure-threshold=25 startup-probe.interval=5s \
+  startup-probe.timeout=1s startup-probe.http.path=/internal/actuator/health
+```
 
 ## Object Storage lifecycle (assets retention — console/IaC, not in-repo)
 

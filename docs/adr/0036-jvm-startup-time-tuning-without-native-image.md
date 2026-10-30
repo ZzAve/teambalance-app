@@ -114,6 +114,21 @@ serial path.
   class loader, and about 30% under ByteBuddy (the runtime enhancer and the lazy-proxy factories).
   Profiling needs a fixed `duration=` recording: `spring.context.exit=onRefresh` and `docker stop`
   both lose the samples.
+- CPU throttling, measured locally with a CFS quota (`docker run --cpu-quota/--cpu-period`). The boot
+  needs about 4 s of CPU. With a quota of 1 CPU or more, throttling costs little (1 CPU: 3.5 s, versus
+  3.3 s on a pinned core without quota). With 0.5 CPU the boot also burns more CPU as the quota
+  period gets shorter:
+
+  | Quota | Period | `Started … in` | CPU used | Throttled |
+  |---|---|---|---|---|
+  | 0.5 CPU | 100 ms | 8.2 s | 4.6 s | 8.0 s |
+  | 0.5 CPU | 50 ms | 8.5 s | 4.8 s | 8.5 s |
+  | 0.5 CPU | 10 ms | 28 s | 14.7 s | 27 s |
+
+  The likely cause is threads spinning on a lock whose holder is paused; not verified with a profile.
+  The prod quota period is unknown, so `main()` logs `Startup CPU: …` after `Started`, with the
+  process CPU time, `cpu.max` and `cpu.stat`. If prod shows high `nr_throttled` and CPU time well
+  above the local 4 s scaled by the prod core speed, throttling is part of the prod boot time.
 - Tried:
   - Build-time enhancement with the `org.hibernate.orm` Gradle plugin failed 110 of 965 tests.
     For an entity with no lazy attributes of its own (for example `EventTypeJpaEntity`), the

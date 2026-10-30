@@ -18,6 +18,11 @@ spring:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         boot:
           allow_jdbc_metadata_access: false
+        # Startup: skip ByteBuddy's runtime enhancer and lazy-proxy factories. With this set,
+        # Hibernate throws instead of creating a lazy proxy; the test suite passes with it on.
+        # Trial on prod, see the ADR-0036 amendment.
+        bytecode:
+          provider: none
   data:
     jpa:
       repositories:

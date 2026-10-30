@@ -82,3 +82,46 @@ serial path.
   profiles use an always-on local database.
 - A profile-specific AOT build means a bean that exists only under another profile needs `processAot`
   run under that profile too.
+
+## Amendment 2026-10-30: measured numbers and changed environment
+
+- The database is no longer Serverless SQL. Prod moved to a managed Postgres instance on
+  2026-08-22, which does not scale to zero. The DB resume that decision 4 overlaps no longer
+  happens, so decision 4 is reverted: `DatabaseWarmupListener` is deleted.
+- The container ran on 2 vCPU / 2 GB after #98, drifted to 1 vCPU / 1 GB, and was restored to
+  2 vCPU / 2 GB on 2026-10-30 (see [deploy.md](../ops/deploy.md#container-resource-config)). Prod
+  logs `Started … in 42.6 seconds` on 1 vCPU and `27.6 seconds` on 2 vCPU. The Hibernate bootstrap
+  on `task-1` gains least from the second vCPU (12.3 s to 9.0 s) and is the largest single phase on
+  2 vCPU.
+- Local measurements of the prod image (arm64, Docker `--cpus`, local Postgres, 2 to 4 boots each, typical value):
+
+  | Build / CPU | `Started … in` |
+  |---|---|
+  | `3ef69550` (2026-07-26), 1 CPU | 3.0 s |
+  | `699ce616` (2026-10-30), 2 CPU | 2.7 s |
+  | `699ce616`, 1 CPU | 3.5 s |
+  | `699ce616`, 0.5 CPU | 8.2 s |
+  | `699ce616`, 1 CPU, no AOT cache | 4.4 s |
+  | `699ce616`, 1 CPU, no tuning flags, no Spring AOT, no AOT cache | 10.4 s |
+
+  The code added about 0.5 s since the decision. Boot time grows faster than linearly when the CPU
+  quota shrinks, and one prod vCPU is about 12 times slower than one local core, so the CPU limit
+  matters much more than code growth. The largest single bean in the startup timing tree is
+  `jpaMappingContext` (about 1.2 s locally). That time is the main thread waiting for the
+  EntityManagerFactory that Hibernate builds on `task-1`.
+- A JFR profile of `task-1` (local, 1 CPU, without the AOT cache, because a JFR flag invalidates
+  it) puts about 90% of the Hibernate bootstrap in class and resource lookups through the fat-jar
+  class loader, and about 30% under ByteBuddy (the runtime enhancer and the lazy-proxy factories).
+  Profiling needs a fixed `duration=` recording: `spring.context.exit=onRefresh` and `docker stop`
+  both lose the samples.
+- Tried and rejected:
+  - Build-time enhancement with the `org.hibernate.orm` Gradle plugin failed 110 of 965 tests.
+    For an entity with no lazy attributes of its own (for example `EventTypeJpaEntity`), the
+    enhancer generates field readers that return the field without asking Hibernate's lazy-loading
+    interceptor. At runtime Hibernate sees an enhanced class and, for the LAZY `@ManyToOne` that
+    points at it, hands out an uninitialized instance instead of a ByteBuddy proxy. Reading `uuid`
+    on that instance returns `null` (`EventTypeId(null)` in `EventTypeMapper`). The failed update
+    tests were not analysed separately.
+  - `hibernate.bytecode.provider=none` without enhancement passes the tests but gains only about
+    0.16 s locally (3.43 s to 3.27 s), because the AOT cache already covers most ByteBuddy classes.
+    It also replaces lazy proxies with an exception if Hibernate ever needs one. Not worth it.

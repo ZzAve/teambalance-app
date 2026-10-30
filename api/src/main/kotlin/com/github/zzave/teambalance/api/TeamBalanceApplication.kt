@@ -1,6 +1,5 @@
 package com.github.zzave.teambalance.api
 
-import com.github.zzave.teambalance.api.infrastructure.startup.DatabaseWarmupListener
 import org.springframework.boot.SpringApplication
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.context.metrics.buffering.BufferingApplicationStartup
@@ -24,8 +23,5 @@ fun main(args: Array<String>) {
     // startup-time optimization is judged against. See
     // docs/adr/0036-jvm-startup-time-tuning-without-native-image.md.
     app.applicationStartup = BufferingApplicationStartup(STARTUP_EVENT_CAPACITY)
-    // Kicks a throwaway JDBC connection on a daemon thread (prod only) to overlap the scale-to-zero
-    // Serverless-SQL resume with the classload gap that runs anyway (ADR-0036).
-    app.addListeners(DatabaseWarmupListener())
     app.run(*args)
 }

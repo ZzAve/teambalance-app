@@ -77,8 +77,8 @@ class BunqConnectionControllerIT : TeamBalanceIT() {
         beforeTest { CalendarLinkFixture.seed(jdbcTemplate, tenantSchemaAdapter) }
 
         afterTest {
-            listOf(ALPHA_TEAM, BETA_TEAM).forEach { moneyPoolCache.evict(TeamId(UUID.fromString(it))) }
-            listOf(ALPHA_SCHEMA, BETA_SCHEMA).forEach { jdbcTemplate.update("DELETE FROM $it.bunq_connection") }
+            listOf(ALPHA_TEAM, BETA_TEAM).forEach { team -> moneyPoolCache.evict(TeamId(UUID.fromString(team))) }
+            listOf(ALPHA_SCHEMA, BETA_SCHEMA).forEach { schema -> jdbcTemplate.update("DELETE FROM $schema.bunq_connection") }
             jdbcTemplate.update("DELETE FROM public.bunq_oauth_states WHERE team_id IN (?::uuid, ?::uuid)", ALPHA_TEAM, BETA_TEAM)
             jdbcTemplate.update("DELETE FROM public.team_members WHERE team_id = ?::uuid AND user_id = ?::uuid", BETA_TEAM, ALPHA_MEMBER)
             jdbcTemplate.update("UPDATE public.users SET last_active_team_id = NULL WHERE id = ?::uuid", ALPHA_MEMBER)

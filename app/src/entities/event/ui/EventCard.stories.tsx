@@ -210,6 +210,9 @@ export const Gallery: Story = {
 
 // ── Hit areas (#324) ─────────────────────────────────────────────────────────────────────────────
 
+// A 44px target can lay out a hair under 44 (43.99994 was measured).
+const MIN_TARGET_HEIGHT = 44 - 0.01
+
 /** What a tap at a viewport point actually lands on — the honest hit-area question. */
 const hitAt = (el: HTMLElement, x: number, y: number) => el.ownerDocument.elementFromPoint(x, y)
 
@@ -366,7 +369,7 @@ export const Interactions: Story = {
 
     for (const name of [/Change your answer/, /Show lineup/]) {
       const box = region('Thumb sized').getByRole('button', { name }).getBoundingClientRect()
-      await expect(box.height).toBeGreaterThanOrEqual(44)
+      await expect(box.height).toBeGreaterThanOrEqual(MIN_TARGET_HEIGHT)
     }
 
     const link = region('Card body still navigates').getByRole('link', { name: 'Match vs Nova' })

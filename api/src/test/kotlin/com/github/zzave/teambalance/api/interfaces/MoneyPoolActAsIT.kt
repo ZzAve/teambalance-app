@@ -64,7 +64,7 @@ class MoneyPoolActAsIT : TeamBalanceIT() {
 
     init {
         afterTest {
-            listOf(ALPHA_TEAM, BETA_TEAM).forEach { moneyPoolCache.evict(TeamId(UUID.fromString(it))) }
+            listOf(ALPHA_TEAM, BETA_TEAM).forEach { team -> moneyPoolCache.evict(TeamId(UUID.fromString(team))) }
             jdbcTemplate.update("DELETE FROM ${CalendarLinkFixture.ALPHA_SCHEMA}.bunq_connection")
             jdbcTemplate.update("DELETE FROM ${CalendarLinkFixture.BETA_SCHEMA}.bunq_connection")
             jdbcTemplate.update("DELETE FROM public.bunq_oauth_states WHERE admin_user_id = ?::uuid", OPERATOR_ID)

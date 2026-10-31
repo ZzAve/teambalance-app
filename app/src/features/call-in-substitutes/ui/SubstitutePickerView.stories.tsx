@@ -10,6 +10,10 @@ import { SubstitutePickerView } from './SubstitutePickerView'
 // Position, with the people who play it first and people in each state; Shells the unfiltered picker
 // when the list and the Positions could not be loaded; Interactions every spy, from a Position's
 // open spot.
+
+// A 44px target can lay out a hair under 44 (43.99994 was measured in the EventCard stories).
+const MIN_TARGET_HEIGHT = 44 - 0.01
+
 const POSITIONS = [
   { id: 'pos-setter', label: 'Setter' },
   { id: 'pos-libero', label: 'Libero' },
@@ -162,7 +166,7 @@ export const Interactions: Story = {
       const chip = sheet.getByRole('button', { name: label })
       chip.scrollIntoView({ block: 'center' })
       const box = chip.getBoundingClientRect()
-      await expect(box.height).toBeGreaterThanOrEqual(44)
+      await expect(box.height).toBeGreaterThanOrEqual(MIN_TARGET_HEIGHT)
       for (const y of [box.top + 1, box.bottom - 1]) {
         await expect(document.elementFromPoint(box.left + box.width / 2, y)).toBe(chip)
       }

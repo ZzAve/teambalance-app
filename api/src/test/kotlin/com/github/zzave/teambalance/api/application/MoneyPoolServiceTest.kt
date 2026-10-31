@@ -139,6 +139,7 @@ class MoneyPoolServiceTest : FunSpec({
     directory.join(ADMIN, team, Role.ADMIN)
     directory.join(MEMBER, team, Role.USER)
 
+    @Suppress("LongParameterList")
     fun service(
         enabled: Boolean = true,
         connected: Boolean = true,

@@ -57,7 +57,8 @@ export function MoneyPoolView({
     return <MoneyPoolNotice title="The money pool is switched off for this team" />
   }
 
-  const topUpEntry = canTopUp ? topUp : isAdmin && <p className="text-small text-muted-foreground">{LINK_HINT}</p>
+  const linkHint = isAdmin && state === 'Connected' && <p className="text-small text-muted-foreground">{LINK_HINT}</p>
+  const topUpEntry = canTopUp ? topUp : linkHint
 
   if (state === 'Connected') {
     return balance === undefined ? loadError : (

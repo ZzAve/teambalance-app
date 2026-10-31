@@ -1,6 +1,8 @@
+import { useEffect } from 'react'
 import {
   isBunqGrantRejected,
   useBunqAccounts,
+  useBunqConnection,
   useDisconnectBunq,
   usePickBunqAccount,
 } from '@shared/api/bunq-connection'
@@ -14,9 +16,19 @@ import { BunqAccountsView } from './BunqAccountsView'
  */
 export function BunqAccounts({ onDisconnected }: { onDisconnected: () => void }) {
   const accounts = useBunqAccounts()
+  // The parent reads the status; this only observes whether the read after a disconnect failed.
+  const status = useBunqConnection(false)
   const pick = usePickBunqAccount()
   const disconnect = useDisconnectBunq(onDisconnected)
-  const shell = accountsShell(accounts, disconnect.isPending || disconnect.isSuccess)
+  const shell = accountsShell(accounts, disconnect, status)
+
+  // The picker is replaced by a shell while the accounts cannot be shown; when it comes back it must not
+  // announce and take focus for a pick made before.
+  const { reset: resetPick, isSuccess: pickSaved } = pick
+  const pickerGone = shell.isLoading || shell.isError
+  useEffect(() => {
+    if (pickSaved && pickerGone) resetPick()
+  }, [pickSaved, pickerGone, resetPick])
 
   return (
     <BunqAccountsView
@@ -32,7 +44,10 @@ export function BunqAccounts({ onDisconnected }: { onDisconnected: () => void })
         disconnect.reset()
         pick.mutate(accountId)
       }}
-      onDisconnect={() => disconnect.mutate()}
+      onDisconnect={() => {
+        pick.reset()
+        disconnect.mutate()
+      }}
     />
   )
 }

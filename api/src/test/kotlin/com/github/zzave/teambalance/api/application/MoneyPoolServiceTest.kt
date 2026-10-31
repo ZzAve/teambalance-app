@@ -106,6 +106,22 @@ private class HoldingCache(private val held: MoneyPool) : MoneyPoolCacheGateway 
     override fun evict(teamId: TeamId) = error("not used")
 }
 
+/** Answers [first] to the first read and [later] to every read after it, as a connect or disconnect in between would. */
+private class ChangingConnections(private val first: BunqConnection?, private val later: BunqConnection?) : BunqConnectionRepository {
+    private var finds = 0
+
+    override fun find(): BunqConnection? = (if (finds++ == 0) first else later)
+
+    override fun save(connection: BunqConnection) = error("not used")
+
+    override fun pickAccount(accountId: BunqAccountId, ifGrant: EncryptedToken) = error("not used")
+
+    override fun delete() = error("not used")
+}
+
+private fun connectionWith(grant: EncryptedToken, account: BunqAccountId = ACCOUNT) =
+    BunqConnection(accountId = account, grant = grant, connectedBy = ADMIN, connectedAt = Instant.EPOCH)
+
 private class InMemorySettingsRepository(var settings: MoneyPoolSettings) : MoneyPoolSettingsRepository {
     override fun get() = settings
     override fun save(settings: MoneyPoolSettings): MoneyPoolSettings = settings.also { this.settings = it }
@@ -133,9 +149,10 @@ class MoneyPoolServiceTest : FunSpec({
         settings: MoneyPoolSettings = MoneyPoolSettings(enabled),
         settingsRepository: MoneyPoolSettingsRepository = InMemorySettingsRepository(settings),
         cache: MoneyPoolCacheGateway = PassThroughCache(),
+        connections: BunqConnectionRepository? = null,
     ) = MoneyPoolService(
         settingsRepository = settingsRepository,
-        connectionRepository = object : BunqConnectionRepository {
+        connectionRepository = connections ?: object : BunqConnectionRepository {
             override fun find() = if (connected) {
                 BunqConnection(
                     accountId = ACCOUNT.takeIf { accountPicked },
@@ -248,6 +265,53 @@ class MoneyPoolServiceTest : FunSpec({
         service(accountPicked = false, cache = cache).getMoneyPool(team)
 
         cache.readFor shouldBe emptyList()
+    }
+
+    test("the load reads the connection again and uses the grant stored then, not the one from the first read") {
+        val gateway = RecordingBunqGateway()
+        val connections = ChangingConnections(
+            first = connectionWith(GRANT_CIPHER.encrypt("old-grant")),
+            later = connectionWith(GRANT_CIPHER.encrypt("new-grant")),
+        )
+
+        service(gateway = gateway, connections = connections).getMoneyPool(team).pool shouldBe
+            MoneyPool.Connected(Money(18_750), listOf(PAYMENT))
+
+        gateway.grantsUsed shouldBe listOf(BunqGrant("new-grant"), BunqGrant("new-grant"))
+    }
+
+    test("a grant that stopped decrypting since the first read is Rejected, whatever the first read held") {
+        val cache = PassThroughCache()
+        val connections = ChangingConnections(
+            first = connectionWith(GRANT_CIPHER.encrypt(GRANT_TOKEN)),
+            later = connectionWith(EncryptedToken("not-a-grant")),
+        )
+
+        service(connections = connections, cache = cache).getMoneyPool(team).pool shouldBe MoneyPool.Rejected
+
+        cache.loaded shouldBe listOf(MoneyPool.Rejected)
+    }
+
+    test("a connection that is gone by the time of the load is not reported as Connected, and Bunq is not called") {
+        val gateway = RecordingBunqGateway()
+        val connections = ChangingConnections(first = connectionWith(GRANT_CIPHER.encrypt(GRANT_TOKEN)), later = null)
+
+        service(gateway = gateway, connections = connections).getMoneyPool(team).pool shouldBe MoneyPool.Unavailable
+
+        gateway.calls shouldBe 0
+    }
+
+    test("a pick that changed the account by the time of the load is not reported as Connected for the old account") {
+        val gateway = RecordingBunqGateway()
+        val grant = GRANT_CIPHER.encrypt(GRANT_TOKEN)
+        val connections = ChangingConnections(
+            first = connectionWith(grant, ACCOUNT),
+            later = connectionWith(grant, BunqAccountId("account-2")),
+        )
+
+        service(gateway = gateway, connections = connections).getMoneyPool(team).pool shouldBe MoneyPool.Unavailable
+
+        gateway.calls shouldBe 0
     }
 
     test("a price changed after the value was cached shows on the next read") {

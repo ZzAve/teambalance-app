@@ -44,7 +44,7 @@ class MoneyPoolService(
             if (connection == null || account == null) {
                 MoneyPool.NotConnected
             } else {
-                cache.read(teamId, account) { readFromBunq(connection.grant, account) }.withBeerFigures(settings)
+                cache.read(teamId, account) { readFromBunq(account) }.withBeerFigures(settings)
             }
         }
         return MoneyPoolOverview(pool, canTopUp = settings.topUpLink != null)
@@ -71,9 +71,19 @@ class MoneyPoolService(
             this
         }
 
+    /**
+     * Reads the connection again: the cache fixes its view of evictions before it calls this, so a connect
+     * that evicted after the first read cannot leave the outcome of the grant it replaced behind. A connection
+     * that is gone, or whose account is no longer [account], has nothing to report for this key; it is
+     * [MoneyPool.Unavailable], which the cache keeps only for its retry interval.
+     */
+    private fun readFromBunq(account: BunqAccountId): MoneyPool {
+        val connection = connectionRepository.find()?.takeIf { it.accountId == account } ?: return MoneyPool.Unavailable
+        return decrypt(connection.grant)?.let { askBunq(it, account) } ?: MoneyPool.Rejected
+    }
+
     @Suppress("TooGenericExceptionCaught")
-    private fun readFromBunq(storedGrant: EncryptedToken, account: BunqAccountId): MoneyPool {
-        val grant = decrypt(storedGrant) ?: return MoneyPool.Rejected
+    private fun askBunq(grant: BunqGrant, account: BunqAccountId): MoneyPool {
         val today = LocalDate.now(clock)
         val since = seasonRepository.get().start?.takeIf { !it.isAfter(today) } ?: today.minusDays(DEFAULT_HISTORY_DAYS)
         return try {

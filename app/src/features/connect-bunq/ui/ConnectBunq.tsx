@@ -27,6 +27,15 @@ export function ConnectBunq({ result }: { result?: ConnectBunqResult }) {
   const [disconnected, setDisconnected] = useState(false)
   const section = useRef<HTMLDivElement>(null)
   const available = status?.connectAvailable === true
+  const connected = status?.connected === true
+
+  // A connection that appears again (another tab reconnected) is a new situation: a later disconnect did not
+  // come from the control the Admin pressed here, so it gets no "Disconnected" status and no focus.
+  const [wasConnected, setWasConnected] = useState(connected)
+  if (connected !== wasConnected) {
+    setWasConnected(connected)
+    if (connected) setDisconnected(false)
+  }
 
   // Bunq sends the Admin back to the top of a long settings page: bring the section into view. The View
   // takes focus to the result once it is there.

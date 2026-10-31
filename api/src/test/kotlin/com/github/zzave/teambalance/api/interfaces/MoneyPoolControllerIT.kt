@@ -26,6 +26,7 @@ import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
+import java.util.Locale
 import java.util.UUID
 
 private const val MEMBER_USER_ID = "b0000000-0000-0000-0000-0000000000b9"
@@ -439,7 +440,7 @@ class MoneyPoolControllerIT : TeamBalanceIT() {
         jdbcTemplate.update(
             "INSERT INTO public.magic_link_tokens (id, token_hash, email, expires_at, created_at) VALUES (?, ?, ?, ?, now())",
             UUID.randomUUID(),
-            MessageDigest.getInstance("SHA-256").digest(token.toByteArray()).joinToString("") { "%02x".format(it) },
+            MessageDigest.getInstance("SHA-256").digest(token.toByteArray()).joinToString("") { "%02x".format(Locale.ROOT, it) },
             email,
             Timestamp.from(Instant.now().plus(1, ChronoUnit.HOURS)),
         )

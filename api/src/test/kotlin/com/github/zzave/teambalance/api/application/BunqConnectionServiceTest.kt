@@ -48,7 +48,7 @@ import java.util.UUID
 
 private class SteppingClock(var now: Instant) : Clock() {
     override fun instant(): Instant = now
-    override fun getZone() = ZoneOffset.UTC
+    override fun getZone(): java.time.ZoneId = ZoneOffset.UTC
     override fun withZone(zone: java.time.ZoneId): Clock = this
     fun advance(by: Duration) {
         now = now.plus(by)
@@ -227,7 +227,7 @@ class BunqConnectionServiceTest : FunSpec() {
                 service = buildService(enabled)
             }
 
-            private fun buildService(connectEnabled: Boolean) =
+            private fun buildService(enabled: Boolean) =
                 BunqConnectionService(
                     connectionRepository = tenants,
                     stateRepository = states,
@@ -240,7 +240,7 @@ class BunqConnectionServiceTest : FunSpec() {
                     ),
                     authorizationService = AuthorizationService(directory.teamMemberRepository(), actAsGateway),
                     clock = clock,
-                    connectConfig = if (connectEnabled) BunqConnectConfig(cipher, CALLBACK) else null,
+                    connectConfig = if (enabled) BunqConnectConfig(cipher, CALLBACK) else null,
                     moneyPoolCache = cache,
                 )
 

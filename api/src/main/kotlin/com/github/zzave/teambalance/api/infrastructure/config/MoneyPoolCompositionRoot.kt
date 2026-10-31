@@ -11,6 +11,7 @@ import com.github.zzave.teambalance.api.domain.port.ActAsGateway
 import com.github.zzave.teambalance.api.domain.port.BunqConnectionRepository
 import com.github.zzave.teambalance.api.domain.port.BunqGateway
 import com.github.zzave.teambalance.api.domain.port.BunqOAuthStateRepository
+import com.github.zzave.teambalance.api.domain.port.MoneyPoolCacheGateway
 import com.github.zzave.teambalance.api.domain.port.MoneyPoolSettingsRepository
 import com.github.zzave.teambalance.api.domain.port.SeasonRepository
 import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
@@ -38,6 +39,7 @@ class MoneyPoolCompositionRoot {
         @Qualifier(BunqGrantCipherConfiguration.BEAN_NAME) bunqGrantCipher: TokenCipher,
         clock: Clock,
         authorizationService: AuthorizationService,
+        moneyPoolCache: MoneyPoolCacheGateway,
     ) = MoneyPoolService(
         settingsRepository = settingsRepository,
         connectionRepository = connectionRepository,
@@ -46,6 +48,7 @@ class MoneyPoolCompositionRoot {
         grantCipher = bunqGrantCipher,
         clock = clock,
         authorizationService = authorizationService,
+        cache = moneyPoolCache,
     )
 
     @Bean
@@ -64,6 +67,7 @@ class MoneyPoolCompositionRoot {
         environment: Environment,
         @Value("\${teambalance.api-base-url}") apiBaseUrl: String,
         @Value("\${teambalance.bunq.connect-enabled}") connectEnabled: Boolean,
+        moneyPoolCache: MoneyPoolCacheGateway,
     ) = BunqConnectionService(
         connectionRepository = connectionRepository,
         stateRepository = stateRepository,
@@ -75,6 +79,7 @@ class MoneyPoolCompositionRoot {
         authorizationService = authorizationService,
         clock = clock,
         connectConfig = bunqConnectConfig(connectEnabled, environment.matchesProfiles("prod"), bunqGrantCipher, apiBaseUrl),
+        moneyPoolCache = moneyPoolCache,
     )
 
     @Bean

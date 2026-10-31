@@ -2,26 +2,17 @@ package com.github.zzave.teambalance.api.interfaces
 
 import com.github.zzave.teambalance.api.TeamBalanceIT
 import com.github.zzave.teambalance.api.application.TokenCipher
-import com.github.zzave.teambalance.api.domain.exception.BunqGrantRejectedException
-import com.github.zzave.teambalance.api.domain.model.BunqAccount
-import com.github.zzave.teambalance.api.domain.model.BunqAccountId
-import com.github.zzave.teambalance.api.domain.model.BunqAuthorizationCode
-import com.github.zzave.teambalance.api.domain.model.BunqGrant
-import com.github.zzave.teambalance.api.domain.model.Money
-import com.github.zzave.teambalance.api.domain.model.Payment
-import com.github.zzave.teambalance.api.domain.port.BunqGateway
-import com.github.zzave.teambalance.api.infrastructure.bunq.FakeBunqGatewayAdapter
+import com.github.zzave.teambalance.api.domain.model.TeamId
+import com.github.zzave.teambalance.api.domain.port.MoneyPoolCacheGateway
 import com.github.zzave.teambalance.api.infrastructure.config.BunqGrantCipherConfiguration
 import com.github.zzave.teambalance.api.infrastructure.identity.loginAs
 import com.github.zzave.teambalance.api.infrastructure.multitenancy.TenantSchemaAdapter
+import io.kotest.matchers.shouldBe
 import org.hamcrest.Matchers
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Qualifier
-import org.springframework.boot.test.context.TestConfiguration
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
-import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Import
-import org.springframework.context.annotation.Primary
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.http.MediaType
 import org.springframework.test.web.servlet.MockMvc
@@ -41,45 +32,10 @@ private const val MEMBER_USER_ID = "b0000000-0000-0000-0000-0000000000b9"
 private const val ADMIN_USER_ID = "b0000000-0000-0000-0000-0000000000b8"
 private const val TEAM_ID = "a0000000-0000-0000-0000-000000000001"
 
-/** The fake gateway until [failing] or [rejecting] is set, then every balance and payments call throws. */
-class SwitchableBunqGateway(private val delegate: BunqGateway) : BunqGateway {
-    @Volatile
-    var failing = false
-
-    @Volatile
-    var rejecting = false
-
-    override fun authorizationUrl(state: String, redirectUri: String): String = delegate.authorizationUrl(state, redirectUri)
-
-    override fun exchangeCode(code: BunqAuthorizationCode, redirectUri: String): BunqGrant =
-        delegate.exchangeCode(code, redirectUri)
-
-    override fun listAccounts(grant: BunqGrant): List<BunqAccount> = delegate.listAccounts(grant)
-
-    override fun fetchBalance(grant: BunqGrant, account: BunqAccountId): Money =
-        guarded { delegate.fetchBalance(grant, account) }
-
-    override fun fetchPayments(grant: BunqGrant, account: BunqAccountId, since: LocalDate, limit: Int): List<Payment> =
-        guarded { delegate.fetchPayments(grant, account, since, limit) }
-
-    private fun <T> guarded(call: () -> T): T = when {
-        rejecting -> throw BunqGrantRejectedException()
-        failing -> error("injected Bunq failure")
-        else -> call()
-    }
-}
-
-@TestConfiguration
-class SwitchableBunqGatewayConfig {
-    @Bean
-    @Primary
-    fun switchableBunqGateway(clock: Clock) = SwitchableBunqGateway(FakeBunqGatewayAdapter(clock, "http://localhost:8080"))
-}
-
 /**
  * Covers the money pool read path (ADR-0042) against the fake Bunq gateway. All tests share the
  * single 'public' tenant schema, so every test restores the defaults (enabled, not connected,
- * Bunq reachable) and removes its member after it runs.
+ * Bunq reachable, nothing cached) and removes its member after it runs.
  */
 @AutoConfigureMockMvc
 @Import(SwitchableBunqGatewayConfig::class)
@@ -99,6 +55,9 @@ class MoneyPoolControllerIT : TeamBalanceIT() {
 
     @Autowired
     lateinit var bunqGateway: SwitchableBunqGateway
+
+    @Autowired
+    lateinit var moneyPoolCache: MoneyPoolCacheGateway
 
     @Autowired
     @Qualifier(BunqGrantCipherConfiguration.BEAN_NAME)
@@ -147,6 +106,32 @@ class MoneyPoolControllerIT : TeamBalanceIT() {
                 .andExpect(MockMvcResultMatchers.jsonPath("$.payments[0].direction").value("In"))
                 .andExpect(MockMvcResultMatchers.content().string(Matchers.not(Matchers.containsString("iban"))))
                 .andExpect(MockMvcResultMatchers.content().string(Matchers.not(Matchers.containsString("description"))))
+        }
+
+        test("a second GET within the refresh window is answered from the cache without a Bunq call") {
+            seedTeamAndMember()
+            connectBunq()
+            val before = bunqGateway.reads
+
+            getMoneyPool().andExpect(MockMvcResultMatchers.jsonPath("$.balance").value(18750))
+            getMoneyPool().andExpect(MockMvcResultMatchers.jsonPath("$.balance").value(18750))
+
+            (bunqGateway.reads - before) shouldBe 1
+        }
+
+        test("a Rejected pool stays Rejected without asking Bunq again, until the cache is cleared") {
+            seedTeamAndMember()
+            connectBunq()
+            bunqGateway.rejecting = true
+            val before = bunqGateway.reads
+            getMoneyPool().andExpect(MockMvcResultMatchers.jsonPath("$.state").value("Rejected"))
+            bunqGateway.rejecting = false
+
+            getMoneyPool().andExpect(MockMvcResultMatchers.jsonPath("$.state").value("Rejected"))
+            (bunqGateway.reads - before) shouldBe 1
+
+            forgetCachedPool()
+            getMoneyPool().andExpect(MockMvcResultMatchers.jsonPath("$.state").value("Connected"))
         }
 
         test("GET /api/team/money-pool is Unavailable, without balance or payments, when Bunq fails") {
@@ -413,11 +398,13 @@ class MoneyPoolControllerIT : TeamBalanceIT() {
 
             bunqGateway.failing = false
             bunqGateway.rejecting = true
+            forgetCachedPool()
             getMoneyPool()
                 .andExpect(MockMvcResultMatchers.jsonPath("$.state").value("Rejected"))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.canTopUp").value(true))
 
             bunqGateway.rejecting = false
+            forgetCachedPool()
             getMoneyPool()
                 .andExpect(MockMvcResultMatchers.jsonPath("$.state").value("Connected"))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.canTopUp").value(true))
@@ -496,9 +483,12 @@ class MoneyPoolControllerIT : TeamBalanceIT() {
         }
     }
 
+    private fun forgetCachedPool() = moneyPoolCache.evict(TeamId(UUID.fromString(TEAM_ID)))
+
     private fun resetMoneyPool() {
         bunqGateway.failing = false
         bunqGateway.rejecting = false
+        forgetCachedPool()
         jdbcTemplate.update("DELETE FROM public.bunq_connection")
         jdbcTemplate.update(
             "UPDATE public.money_pool_settings SET enabled = true, beer_price_cents = NULL, bunq_me_link = NULL WHERE id = 1",

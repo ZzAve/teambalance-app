@@ -1,16 +1,11 @@
 package com.github.zzave.teambalance.api.interfaces
 
 import com.github.zzave.teambalance.api.TeamBalanceIT
-import com.github.zzave.teambalance.api.domain.port.EmailGateway
 import com.github.zzave.teambalance.api.infrastructure.email.FakeEmailGateway
 import com.github.zzave.teambalance.api.infrastructure.multitenancy.TenantSchemaAdapter
 import io.kotest.matchers.shouldBe
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.test.context.TestConfiguration
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
-import org.springframework.context.annotation.Bean
-import org.springframework.context.annotation.Import
-import org.springframework.context.annotation.Primary
 import org.springframework.http.MediaType
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.test.web.servlet.MockMvc
@@ -53,15 +48,7 @@ private const val TEST_SALT = "test-invitation-salt"
  * not an implementation detail.
  */
 @AutoConfigureMockMvc
-@Import(MagicLinkInviteCarryIT.TestConfig::class)
 class MagicLinkInviteCarryIT : TeamBalanceIT() {
-
-    @TestConfiguration
-    class TestConfig {
-        @Bean
-        @Primary
-        fun emailGateway(): EmailGateway = FakeEmailGateway()
-    }
 
     @Autowired
     lateinit var mockMvc: MockMvc

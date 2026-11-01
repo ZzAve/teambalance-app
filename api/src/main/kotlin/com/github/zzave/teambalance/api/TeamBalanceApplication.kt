@@ -6,6 +6,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.context.metrics.buffering.BufferingApplicationStartup
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan
 import org.springframework.boot.security.autoconfigure.UserDetailsServiceAutoConfiguration
+import java.lang.management.ManagementFactory
 import java.nio.file.Path
 import kotlin.io.path.listDirectoryEntries
 import kotlin.io.path.readText
@@ -29,7 +30,44 @@ fun main(args: Array<String>) {
     app.applicationStartup = BufferingApplicationStartup(STARTUP_EVENT_CAPACITY)
     app.run(*args)
     logStartupCpu()
+    logCpuBenchmark()
 }
+
+// Fixed work, timed after startup, to compare raw CPU and memory speed between machines (ADR-0036).
+// cpu_ms below wall_ms means the thread waited for a CPU (steal time or throttling).
+private fun logCpuBenchmark() {
+    val threadBean = ManagementFactory.getThreadMXBean()
+    fun timed(work: () -> Long): String {
+        val cpuStart = threadBean.currentThreadCpuTime
+        val wallStart = System.nanoTime()
+        val result = work()
+        val wallMs = (System.nanoTime() - wallStart) / NANOS_PER_MS
+        val cpuMs = (threadBean.currentThreadCpuTime - cpuStart) / NANOS_PER_MS
+        return "wall_ms=$wallMs cpu_ms=$cpuMs (result ${result and 1})"
+    }
+    // xorshift: integer work only, no memory or syscalls.
+    val compute = timed {
+        var x = XORSHIFT_SEED
+        repeat(BENCHMARK_ITERATIONS) {
+            x = x xor (x shl XORSHIFT_A)
+            x = x xor (x ushr XORSHIFT_B)
+            x = x xor (x shl XORSHIFT_C)
+        }
+        x
+    }
+    // A fresh array: the JVM zeroes it and the OS maps new pages, so this measures memory handling.
+    val memory = timed { ByteArray(BENCHMARK_BYTES).let { it[it.size - 1] = 1; it[it.size - 1].toLong() } }
+    LoggerFactory.getLogger(TeamBalanceApplication::class.java)
+        .info("Startup benchmark: compute {} | memory_64mb {}", compute, memory)
+}
+
+private const val NANOS_PER_MS = 1_000_000
+private const val BENCHMARK_ITERATIONS = 50_000_000
+private const val BENCHMARK_BYTES = 64 * 1024 * 1024
+private const val XORSHIFT_SEED = 88_172_645_463_325_252L
+private const val XORSHIFT_A = 13
+private const val XORSHIFT_B = 7
+private const val XORSHIFT_C = 17
 
 // Logged once after `Started …` to show whether the boot was CPU-throttled (ADR-0036): the cgroup v2
 // quota and throttle counters, plus the JVM's own CPU time in case the sandbox hides the cgroup files.

@@ -139,6 +139,6 @@ serial path.
     tests were not analysed separately. Rejected.
   - `hibernate.bytecode.provider=none` without enhancement passes the tests but gains only about
     0.16 s locally (3.43 s to 3.27 s), because the AOT cache already covers most ByteBuddy classes.
-    It also replaces lazy proxies with an exception if Hibernate ever needs one. It is switched
-    on as a prod trial, because the gain on a prod vCPU may be larger than locally. Remove it if
-    the prod `Started … in` time does not drop, or if a lazy-proxy exception shows up in the logs.
+    It also replaces lazy proxies with an exception if Hibernate ever needs one. A prod trial on
+    2026-11-01 showed no gain either (Hibernate bootstrap 9.2 to 9.4 s, against 9.0 s without it).
+    Rejected.

@@ -127,6 +127,8 @@ EXPOSE 8080
 #   -XX:AOTCache=app.aot    — load the baked JDK-25 AOT cache; fails SAFE (a missing/mismatched cache
 #                             only logs a warning and boots normally).
 #   -Dspring.aot.enabled    — activate the AOT-generated bean definitions packaged in the jar.
+#   -XX:+UseTransparentHugePages — 2 MB pages; trial on the deploy branch, since mapping new 4 KB pages
+#                             is about 20x slower on prod than locally (ADR-0036).
 # The GC flag MUST match the bake-stage training run, or the AOT cache is rejected at runtime.
 # See docs/adr/0036-jvm-startup-time-tuning-without-native-image.md.
-ENTRYPOINT ["java", "-XX:+UseSerialGC", "-XX:TieredStopAtLevel=1", "-XX:AOTCache=app.aot", "-Dspring.aot.enabled=true", "-jar", "app.jar"]
+ENTRYPOINT ["java", "-XX:+UseSerialGC", "-XX:TieredStopAtLevel=1", "-XX:+UseTransparentHugePages", "-XX:AOTCache=app.aot", "-Dspring.aot.enabled=true", "-jar", "app.jar"]

@@ -95,7 +95,18 @@ private fun logStartupCpu() {
         threads.sortedByDescending { it.userTicks + it.systemTicks }.take(TOP_THREADS)
             .joinToString { "${it.name}=${it.userTicks}+${it.systemTicks}" },
     )
+    // The heap size the JVM picked (25% of the memory it sees by default) and the GC work during boot.
+    val runtime = Runtime.getRuntime()
+    log.info(
+        "Startup memory: max_heap_mb={} committed_heap_mb={} used_heap_mb={} gc=[{}]",
+        runtime.maxMemory() / BYTES_PER_MB,
+        runtime.totalMemory() / BYTES_PER_MB,
+        (runtime.totalMemory() - runtime.freeMemory()) / BYTES_PER_MB,
+        ManagementFactory.getGarbageCollectorMXBeans().joinToString { "${it.name}=${it.collectionCount}x/${it.collectionTime}ms" },
+    )
 }
+
+private const val BYTES_PER_MB = 1024 * 1024
 
 private const val TOP_THREADS = 8
 

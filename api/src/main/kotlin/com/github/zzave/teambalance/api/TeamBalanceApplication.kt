@@ -8,6 +8,7 @@ import org.springframework.boot.context.properties.ConfigurationPropertiesScan
 import org.springframework.boot.security.autoconfigure.UserDetailsServiceAutoConfiguration
 import java.lang.management.ManagementFactory
 import java.nio.file.Path
+import java.util.SplittableRandom
 import kotlin.io.path.listDirectoryEntries
 import kotlin.io.path.readText
 
@@ -57,9 +58,34 @@ private fun logCpuBenchmark() {
     }
     // A fresh array: the JVM zeroes it and the OS maps new pages, so this measures memory handling.
     val memory = timed { ByteArray(BENCHMARK_BYTES).let { it[it.size - 1] = 1; it[it.size - 1].toLong() } }
-    LoggerFactory.getLogger(TeamBalanceApplication::class.java)
-        .info("Startup benchmark: compute {} | memory_64mb {}", compute, memory)
+    // Random reads over memory that is already mapped: each read depends on the previous one, so this
+    // measures memory latency (cache and TLB misses), not page faults or compute.
+    val chain = randomCycle(BENCHMARK_BYTES / Int.SIZE_BYTES)
+    val randomRead = timed {
+        var next = 0
+        repeat(RANDOM_READS) { next = chain[next] }
+        next.toLong()
+    }
+    LoggerFactory.getLogger(TeamBalanceApplication::class.java).info(
+        "Startup benchmark: compute {} | memory_64mb {} | random_read_64mb_2m {}",
+        compute,
+        memory,
+        randomRead,
+    )
 }
+
+// A single cycle through all indices (Sattolo's algorithm), so following it visits every slot once.
+internal fun randomCycle(size: Int): IntArray {
+    val chain = IntArray(size) { it }
+    val random = SplittableRandom(XORSHIFT_SEED)
+    for (i in size - 1 downTo 1) {
+        val j = random.nextInt(i)
+        chain[i] = chain[j].also { chain[j] = chain[i] }
+    }
+    return chain
+}
+
+private const val RANDOM_READS = 2_000_000
 
 private const val NANOS_PER_MS = 1_000_000
 private const val BENCHMARK_ITERATIONS = 50_000_000

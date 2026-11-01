@@ -142,3 +142,5 @@ serial path.
     It also replaces lazy proxies with an exception if Hibernate ever needs one. A prod trial on
     2026-11-01 showed no gain either (Hibernate bootstrap 9.2 to 9.4 s, against 9.0 s without it).
     Rejected.
+  - `-XX:+UseTransparentHugePages` has no effect on prod: the JVM disables it at start because the
+    Serverless Container kernel (gVisor) does not support transparent huge pages. Rejected.

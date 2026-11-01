@@ -8,7 +8,6 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
 import org.springframework.http.MediaType
 import org.springframework.jdbc.core.JdbcTemplate
-import org.springframework.test.context.TestPropertySource
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.ResultActions
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder
@@ -18,9 +17,8 @@ import java.util.UUID
 import com.github.zzave.teambalance.api.infrastructure.identity.loginAs
 
 // The codes-admin CRUD (#154 Slice 4) is gated on the platform-admin allowlist. The test profile's
-// default allowlist is empty (fail-closed), so pin one email here; the admin user is seeded with it.
+// allowlist (application-test.yml) holds this class's admin email; the admin user is seeded with it.
 @AutoConfigureMockMvc
-@TestPropertySource(properties = ["teambalance.platform-admins=codes-admin@test.com"])
 class CreationCodeAdminControllerIT : TeamBalanceIT() {
 
     @Autowired

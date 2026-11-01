@@ -17,11 +17,6 @@ spring:
 # Split-origin CORS (launch blocker #3): the SPA (app.teambalance.nl) and landing page
 # (teambalance.nl) call api.teambalance.nl cross-origin with the session cookie. See WebConfig.
 teambalance:
-  # Perf-test window on the deploy branch (ADR-0036): opens /internal/actuator/startup publicly.
-  # Do not merge to main.
-  startup:
-    actuator:
-      enabled: true
   cors:
     allowed-origins: https://app.teambalance.nl,https://teambalance.nl
   csrf:

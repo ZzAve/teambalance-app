@@ -199,8 +199,7 @@ class ProdProfileSmokeIT : TeamBalanceIT() {
         // tool gated behind teambalance.startup.actuator.enabled (default false), so the guard blocks
         // it with 403 like any other /internal path. The flag-on path (guard opens) is proven by
         // StartupActuatorEnabledIT.
-        // Disabled on the deploy branch only, while application-prod.yml turns the flag on.
-        xtest("the startup timing endpoint is blocked in prod by default (flag off)") {
+        test("the startup timing endpoint is blocked in prod by default (flag off)") {
             mockMvc.perform(MockMvcRequestBuilders.get("/internal/actuator/startup"))
                 .andExpect(MockMvcResultMatchers.status().isForbidden)
         }

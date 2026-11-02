@@ -2,6 +2,7 @@ package com.github.zzave.teambalance.api.infrastructure.bunq
 
 import com.github.zzave.teambalance.api.domain.model.BunqEnvironment
 import com.github.zzave.teambalance.api.domain.port.BunqGateway
+import org.slf4j.LoggerFactory
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
@@ -20,12 +21,19 @@ class BunqGatewayConfiguration {
     @Bean
     @Profile("prod")
     fun prodBunqGateway(properties: BunqClientProperties): BunqGateway = when (properties.environment) {
-        BunqEnvironment.NONE -> UnconfiguredBunqGatewayAdapter()
-        BunqEnvironment.SANDBOX, BunqEnvironment.PRODUCTION -> RealBunqGatewayAdapter(properties)
+        BunqEnvironment.NONE -> UnconfiguredBunqGatewayAdapter().also { log.info("Bunq gateway: unconfigured, every Bunq call fails") }
+        BunqEnvironment.SANDBOX, BunqEnvironment.PRODUCTION -> realGateway(properties)
     }
 
     @Bean
     @Profile("!prod")
     @ConditionalOnExpression("!'\${teambalance.bunq.environment:none}'.equalsIgnoreCase('none')")
-    fun configuredBunqGateway(properties: BunqClientProperties): BunqGateway = RealBunqGatewayAdapter(properties)
+    fun configuredBunqGateway(properties: BunqClientProperties): BunqGateway = realGateway(properties)
+
+    private fun realGateway(properties: BunqClientProperties) =
+        RealBunqGatewayAdapter(properties).also { log.info("Bunq gateway: real adapter, environment {}", properties.environment) }
+
+    private companion object {
+        val log = LoggerFactory.getLogger(BunqGatewayConfiguration::class.java)
+    }
 }

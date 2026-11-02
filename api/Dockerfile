@@ -15,24 +15,17 @@
 # runtime ENTRYPOINT carries both sets, and the bake-stage training run uses the same GC flag so the
 # AOT cache is validated (not rejected) at runtime.
 
-# Postgres major version used for build-time bootstraps (jOOQ codegen in the build stage, the AOT training
-# run in the bake stage). Matches the postgres:17-alpine used by the tests and the codegen fallback. Ubuntu's
-# own archive only carries its release's current major (18 on this base), so 17 comes from apt.postgresql.org.
-ARG POSTGRES_MAJOR=17
-
 # ---- build stage -------------------------------------------------------------
 # Build on the native builder arch (the bootJar is platform-independent JVM bytecode),
 # so a cross-arch build (e.g. --platform=linux/amd64 on an arm host) stays fast.
 FROM --platform=$BUILDPLATFORM eclipse-temurin:25-jdk@sha256:e787e08ef76f4c16866108cd7f9fcd96a68eef3ac6cc76866897d4d02d5a2262 AS build
-ARG POSTGRES_MAJOR
 WORKDIR /workspace
 
-# Postgres for jOOQ codegen. Its own layer, ahead of the COPYs, so source changes do not reinstall it.
+# Postgres for jOOQ codegen: Ubuntu's default package, while local/test codegen uses postgres:17 (Testcontainers).
+# Its own layer, ahead of the COPYs, so source changes do not reinstall it.
 RUN set -e; \
     apt-get update; \
-    apt-get install -y --no-install-recommends postgresql-common; \
-    /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y; \
-    apt-get install -y --no-install-recommends "postgresql-${POSTGRES_MAJOR}"; \
+    apt-get install -y --no-install-recommends postgresql; \
     rm -rf /var/lib/apt/lists/*
 
 # Wrapper + build scripts first so dependency resolution can cache across source-only changes.
@@ -52,14 +45,15 @@ COPY api ./api
 # task, a dependency of compileKotlin). This stage has no Docker socket for Testcontainers, so, like the
 # bake stage, it starts the Postgres installed above and hands Gradle its JDBC URL.
 RUN set -e; \
-    pg_ctlcluster "${POSTGRES_MAJOR}" main start; \
+    PGVER="$(pg_lsclusters -h | awk 'NR==1{print $1}')"; \
+    pg_ctlcluster "$PGVER" main start; \
     su postgres -c "psql -v ON_ERROR_STOP=1 -c \"CREATE USER tb WITH PASSWORD 'tb' SUPERUSER;\""; \
     su postgres -c "createdb -O tb jooq_codegen"; \
     JOOQ_CODEGEN_JDBC_URL=jdbc:postgresql://127.0.0.1:5432/jooq_codegen \
     JOOQ_CODEGEN_JDBC_USER=tb \
     JOOQ_CODEGEN_JDBC_PASSWORD=tb \
     ./gradlew --no-daemon --no-configuration-cache :api:bootJar; \
-    pg_ctlcluster "${POSTGRES_MAJOR}" main stop; \
+    pg_ctlcluster "$PGVER" main stop; \
     cp api/build/libs/*-SNAPSHOT.jar /workspace/app.jar
 
 # ---- bake stage: JDK 25 AOT cache --------------------------------------------
@@ -81,15 +75,17 @@ RUN set -e; \
 # "[aot] This file is not the one used while building the shared archive file: .../lib/modules,
 # size has changed" → "Unable to map shared spaces", and the app fell back to no cache (fail-safe).
 FROM eclipse-temurin:25-jre@sha256:f9e65324a37f28209ce7dd0e5149a7aa954520ed936fb87813cf6ded2400a112 AS bake
-ARG POSTGRES_MAJOR
 WORKDIR /app
 COPY --from=build /workspace/app.jar /app/app.jar
 
 # Keep the jar path identical to the runtime stage (/app/app.jar): the AOT cache validates the
 # classpath it was recorded against.
 #
-# Postgres: the same major as the build stage (POSTGRES_MAJOR), from apt.postgresql.org, because the
-# base image is Ubuntu and its own archive only carries one major.
+# Package name: the base image is Ubuntu, whose default archive ships an UNVERSIONED `postgresql`
+# meta-package (whichever major that release carries — e.g. 17 on "resolute"), NOT `postgresql-16`
+# (that needs the external PGDG repo). Any recent Postgres serves a one-off training refresh fine,
+# so we install the meta-package and derive the auto-created cluster's version dynamically.
+#
 # The ENTIRE bake is BEST-EFFORT: the whole block is wrapped so ANY failure (apt, cluster start,
 # training run) degrades to an empty /app/app.aot and the image build still SUCCEEDS. At runtime
 # -XX:AOTCache fails safe on a missing/empty/mismatched cache (warns, boots normally). So a broken
@@ -99,11 +95,9 @@ COPY --from=build /workspace/app.jar /app/app.jar
 RUN set -x; \
     ( set -e; \
       apt-get update; \
-      apt-get install -y --no-install-recommends postgresql-common; \
-      /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y; \
-      apt-get install -y --no-install-recommends "postgresql-${POSTGRES_MAJOR}"; \
+      apt-get install -y --no-install-recommends postgresql; \
       rm -rf /var/lib/apt/lists/*; \
-      PGVER="${POSTGRES_MAJOR}"; \
+      PGVER="$(pg_lsclusters -h | awk 'NR==1{print $1}')"; \
       pg_ctlcluster "$PGVER" main start; \
       su postgres -c "psql -v ON_ERROR_STOP=1 -c \"CREATE USER tb WITH PASSWORD 'tb' SUPERUSER;\""; \
       su postgres -c "createdb -O tb teambalance"; \

@@ -14,5 +14,10 @@ allprojects {
 
     repositories {
         mavenCentral()
+        // The bunq SDK is published only on JitPack; nothing else is ever looked up there.
+        exclusiveContent {
+            forRepository { maven("https://jitpack.io") }
+            filter { includeGroup("com.github.flock-community.bunq-sdk") }
+        }
     }
 }

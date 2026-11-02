@@ -1,0 +1,570 @@
+<!-- PROTOTYPE variant B — The group chat, then quiet. Throwaway. -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TeamBalance — Stop counting thumbs</title>
+<meta name="description" content="Going, Maybe or Can't. One tap per event, and a shared team pot. For amateur volleyball teams.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Grandstander:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../design-tokens/tokens.css">
+<style>
+  :root {
+    --dusk: #12294A;
+    --dusk-deep: #0B1B33;
+    --dusk-bubble: #1F3C66;
+    --dusk-text: #E6EEF8;
+    --dusk-soft: #A9BEDA;
+    --dusk-line: rgba(169, 190, 218, 0.22);
+    --me-bubble: #2D6FB5;
+    --cream: #F8F6F0;
+    --ink: #1E293B;
+    --ink-soft: #475569;
+    --line: #E4DFD2;
+    --going: #249E6C;
+    --going-fill: #1D7F57;
+    --maybe: #F4B400;
+    --cant: #D93025;
+    --none: #94A3B8;
+    --ease: cubic-bezier(0.16, 1, 0.3, 1);
+    --font-display: 'Grandstander', 'Grandstander Variable', cursive;
+    --font-body: 'DM Sans', 'DM Sans Variable', sans-serif;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background: var(--cream);
+    color: var(--ink);
+    font-family: var(--font-body);
+    font-size: 1.0625rem;
+    line-height: 1.55;
+    padding-bottom: 80px;
+    accent-color: var(--color-blue);
+    caret-color: var(--color-blue);
+    -webkit-font-smoothing: antialiased;
+  }
+  ::selection { background: var(--color-gold); color: #1E293B; }
+  a { color: inherit; text-underline-offset: 0.2em; text-decoration-thickness: 1px; }
+  :focus-visible { outline: 3px solid var(--color-blue); outline-offset: 3px; border-radius: 6px; }
+  .dark :focus-visible { outline-color: var(--color-gold-light); }
+  .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .num { font-variant-numeric: tabular-nums; }
+  h1, h2, h3, p { margin: 0; }
+  .wrap { width: 100%; max-width: 1180px; margin: 0 auto; padding-left: 16px; padding-right: 16px; }
+
+  /* ---------- wordmark ---------- */
+  .wordmark { font-family: var(--font-display); font-weight: 700; font-size: 1.5rem; letter-spacing: -0.01em; text-decoration: none; }
+  .wordmark .a { color: var(--color-blue); }
+  .wordmark .b { color: var(--color-green); }
+  .dark .wordmark .a { color: #8DB8EA; }
+  .dark .wordmark .b { color: #3CC48C; }
+
+  /* ---------- hero (dusk, noisy) ---------- */
+  .dark {
+    background: var(--dusk);
+    color: var(--dusk-text);
+    --link: #fff;
+    padding-bottom: 72px;
+  }
+  .dark ::selection { background: var(--color-gold-light); color: #12294A; }
+  .topbar { display: flex; align-items: center; justify-content: space-between; height: 56px; }
+  .login { font-size: 0.9375rem; color: var(--dusk-soft); padding: 10px 4px; min-height: 44px; display: inline-flex; align-items: center; }
+  .login:hover { color: #fff; }
+
+  .hero { display: grid; gap: 28px; padding-top: 8px; }
+  .hook h1 {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: clamp(2.5rem, 9.5vw, 4.75rem);
+    line-height: 1.02;
+    letter-spacing: -0.015em;
+    color: #fff;
+    text-wrap: balance;
+  }
+  .hook .sub { margin-top: 14px; font-size: 1.125rem; color: var(--dusk-soft); max-width: 34ch; }
+  .hook .sub strong { color: var(--dusk-text); font-weight: 600; }
+
+  /* request form (shared) */
+  .request { margin-top: 24px; max-width: 460px; }
+  .request .row { display: grid; gap: 10px; }
+  .request input[type="email"] {
+    width: 100%; min-height: 48px; padding: 0 14px;
+    font: inherit; font-size: 1rem; color: var(--ink);
+    background: #FEFDFB; border: 2px solid transparent; border-radius: 10px;
+  }
+  .request input::placeholder { color: #64748B; }
+  .request input:hover { border-color: #B8C7DC; }
+  .request input:focus-visible { outline-offset: 2px; }
+  .btn {
+    min-height: 48px; padding: 0 20px; border-radius: 10px; border: 2px solid transparent;
+    font: inherit; font-weight: 600; font-size: 1rem; cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none;
+    transition: background-color 160ms, border-color 160ms, color 160ms;
+  }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn-primary { background: var(--cream); color: var(--dusk); }
+  .btn-primary:hover { background: #fff; }
+  .btn-ghost { color: #fff; border-color: var(--dusk-line); background: transparent; border-color: rgba(230,238,248,0.45); }
+  .btn-ghost:hover { background: rgba(255,255,255,0.08); border-color: #fff; }
+  .request .alt { margin-top: 12px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .form-msg { margin-top: 10px; font-size: 0.9375rem; }
+  .form-msg:empty { display: none; }
+  .form-msg.err { color: #FFB4AB; }
+  .form-msg.ok { color: #9BE3C2; }
+  .light .form-msg.err { color: #B3261E; }
+  .light .form-msg.ok { color: #176B49; }
+
+  /* ---------- the scene: chat + card ---------- */
+  .scene {
+    background: var(--dusk-deep);
+    border: 1px solid var(--dusk-line);
+    border-radius: 28px;
+    padding: 14px 14px 18px;
+    box-shadow: 0 30px 60px -20px rgba(0, 0, 0, 0.55), 0 8px 18px rgba(0, 0, 0, 0.3);
+    width: 100%;
+    max-width: 440px;
+    justify-self: center;
+  }
+  .chat-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 6px 6px 12px; border-bottom: 1px solid var(--dusk-line); }
+  .chat-title { font-weight: 700; font-size: 1rem; color: #fff; line-height: 1.25; }
+  .chat-title small { display: block; font-weight: 400; font-size: 0.8125rem; color: var(--dusk-soft); }
+  .unread {
+    flex: none; font-size: 0.8125rem; font-weight: 700; padding: 4px 10px; border-radius: 999px;
+    background: #F0965F; color: #2A1405; font-variant-numeric: tabular-nums;
+    transition: background-color 400ms, color 400ms;
+  }
+  .scene.quiet .unread { background: transparent; color: var(--dusk-soft); box-shadow: inset 0 0 0 1px var(--dusk-line); }
+
+  .thread-wrap {
+    --th: 168px;
+    height: var(--th);
+    overflow: hidden;
+    position: relative;
+    transition: height 900ms var(--ease), opacity 500ms var(--ease), filter 700ms var(--ease);
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 56px, #000 calc(100% - 70px), transparent 100%);
+    mask-image: linear-gradient(to bottom, transparent 0, #000 56px, #000 calc(100% - 70px), transparent 100%);
+  }
+  .thread { position: absolute; left: 0; right: 0; bottom: 0; display: flex; flex-direction: column; gap: 8px; padding: 10px 4px 0; }
+  .scene.quiet .thread-wrap { height: 0; opacity: 0; filter: blur(10px); }
+
+  .msg { max-width: 86%; align-self: flex-start; }
+  .msg.me { align-self: flex-end; }
+  .msg .who { display: block; font-size: 0.75rem; font-weight: 700; margin: 0 0 2px 10px; }
+  .bubble { display: inline-block; padding: 8px 12px; border-radius: 4px 16px 16px 16px; background: var(--dusk-bubble); color: var(--dusk-text); font-size: 0.9375rem; line-height: 1.35; }
+  .msg.me .bubble { border-radius: 16px 4px 16px 16px; background: var(--me-bubble); color: #fff; }
+  .w1 { color: #9DC3F0; } .w2 { color: #F0C987; } .w3 { color: #A8E0C8; } .w4 { color: #F1B5CC; } .w5 { color: #C9B8EE; }
+  .divider { align-self: center; font-size: 0.75rem; font-weight: 700; color: #F8B98F; padding: 2px 12px; border-radius: 999px; box-shadow: inset 0 0 0 1px rgba(240,150,95,0.4); }
+
+  .card {
+    position: relative;
+    margin-top: -96px;
+    background: #FEFDFB;
+    color: var(--ink);
+    border-radius: 18px;
+    padding: 16px;
+    box-shadow: 0 -10px 30px -6px rgba(0,0,0,0.4), 0 18px 34px -10px rgba(0,0,0,0.5);
+    transition: margin-top 900ms var(--ease);
+  }
+  .scene.quiet .card { margin-top: 14px; }
+  .card h2 { font-size: 1.1875rem; font-weight: 700; line-height: 1.2; }
+  .card .when { margin-top: 2px; font-size: 0.9375rem; color: var(--ink-soft); }
+  .tally { margin-top: 12px; display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 0.9375rem; }
+  .tally span { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+  .tally b { font-variant-numeric: tabular-nums; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; flex: none; display: inline-block; }
+  .dot.g { background: var(--going); } .dot.m { background: var(--maybe); } .dot.c { background: var(--cant); } .dot.n { background: var(--none); }
+  .bar { margin-top: 12px; display: flex; height: 8px; border-radius: 999px; overflow: hidden; gap: 2px; background: #E9E5DA; }
+  .bar i { display: block; height: 100%; transition: flex-grow 700ms var(--ease); }
+  .answers { margin-top: 14px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .ans {
+    min-height: 48px; font: inherit; font-weight: 700; font-size: 0.9375rem; color: var(--ink);
+    background: #fff; border: 2px solid #CBD5E1; border-radius: 12px; cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center; gap: 7px; padding: 0 6px;
+    transition: background-color 160ms, border-color 160ms, color 160ms;
+  }
+  .ans:hover { border-color: var(--ink); }
+  .ans:focus-visible { outline: 3px solid var(--color-blue); outline-offset: 2px; }
+  .ans[aria-pressed="true"][data-a="going"] { background: var(--going-fill); border-color: var(--going-fill); color: #fff; }
+  .ans[aria-pressed="true"][data-a="maybe"] { background: var(--maybe); border-color: var(--maybe); color: #1E293B; }
+  .ans[aria-pressed="true"][data-a="cant"] { background: var(--cant); border-color: var(--cant); color: #fff; }
+  .ans[aria-pressed="true"] .dot { background: currentColor; }
+  .status { margin-top: 10px; font-size: 0.875rem; color: var(--ink-soft); min-height: 1.35em; }
+  .linkbtn {
+    background: none; border: 0; padding: 0 4px; min-height: 44px; font: inherit; font-size: 0.9375rem; font-weight: 600;
+    color: var(--color-blue); text-decoration: underline; text-underline-offset: 0.2em; cursor: pointer; border-radius: 6px;
+  }
+  .linkbtn:hover { color: var(--color-blue-dark); }
+  .scene-foot { margin-top: 4px; display: flex; justify-content: center; min-height: 0; }
+  .scene-foot .linkbtn { color: #BCD4F2; }
+  .scene-foot .linkbtn:hover { color: #fff; }
+  .scene-foot[hidden] { display: none; }
+
+  /* ---------- calm half ---------- */
+  .calm { position: relative; margin-top: -28px; background: var(--cream); border-radius: 28px 28px 0 0; padding-top: 1px; }
+  .light { color: var(--ink); }
+  section.block { padding: 72px 0 0; }
+  .intro h2, .closing h2 {
+    font-family: var(--font-display); font-weight: 800; font-size: clamp(2rem, 6vw, 3.25rem);
+    line-height: 1.08; letter-spacing: -0.01em; color: var(--ink); text-wrap: balance; max-width: 18ch;
+  }
+  .intro p { margin-top: 12px; color: var(--ink-soft); max-width: 52ch; }
+  .intro { padding-top: 64px; }
+
+  .pairs { margin-top: 36px; display: grid; gap: 28px; }
+  .pair { display: grid; gap: 14px; align-items: start; }
+  .ask { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
+  .ask .bubble {
+    background: #E9E4D6; color: #475569; border-radius: 4px 16px 16px 16px;
+    text-decoration: line-through; text-decoration-thickness: 2px; text-decoration-color: #B3261E;
+    font-size: 1rem; padding: 10px 14px;
+  }
+  .ask .bubble + .bubble { border-radius: 16px; }
+  .ask small { font-size: 0.8125rem; color: var(--ink-soft); margin-left: 6px; }
+  .arrow { display: none; color: var(--color-green-dark); align-self: center; }
+  .arrow svg { display: block; }
+  .answer { background: var(--color-card); border: 1px solid var(--line); border-radius: 18px; padding: 20px; box-shadow: 0 10px 24px -14px rgba(30,41,59,0.35), 0 2px 6px rgba(30,41,59,0.06); }
+  .answer h3 { font-size: 1.1875rem; font-weight: 700; line-height: 1.25; }
+  .answer p { margin-top: 6px; color: var(--ink-soft); font-size: 1rem; max-width: 56ch; }
+
+  .roster { margin-top: 14px; display: grid; gap: 10px; }
+  .pos { display: grid; grid-template-columns: 104px 1fr; gap: 8px; align-items: start; font-size: 0.9375rem; }
+  .pos dt { color: var(--ink-soft); font-weight: 600; padding-top: 4px; }
+  .pos dd { margin: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px 3px 8px; border-radius: 999px; background: #F3F0E7; font-size: 0.9375rem; }
+  .enough { margin-top: 14px; display: inline-flex; align-items: center; gap: 8px; font-weight: 600; font-size: 0.9375rem; color: #176B49; }
+  .oneTap { margin-top: 10px; font-size: 0.9375rem; color: var(--ink-soft); }
+
+  .pot-top { margin-top: 14px; display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  .pot-amt { font-family: var(--font-display); font-weight: 800; font-size: 2.75rem; line-height: 1; color: var(--color-blue-dark); font-variant-numeric: tabular-nums; }
+  .pot-note { font-size: 0.9375rem; color: var(--ink-soft); }
+  .topups { margin-top: 16px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  .topup {
+    min-height: 48px; font: inherit; font-weight: 700; font-size: 1rem; font-variant-numeric: tabular-nums; cursor: pointer;
+    background: #fff; color: var(--ink); border: 2px solid #CBD5E1; border-radius: 12px;
+    transition: background-color 160ms, border-color 160ms, color 160ms;
+  }
+  .topup:hover { border-color: var(--color-blue); }
+  .topup[aria-pressed="true"] { background: var(--color-blue); border-color: var(--color-blue); color: #fff; }
+  .topup-note { margin-top: 10px; min-height: 1.5em; font-size: 0.9375rem; color: var(--ink-soft); }
+
+  .smalls { display: grid; gap: 28px; margin-top: 28px; }
+  .fake-field { margin-top: 14px; display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px dashed #A8B3C2; border-radius: 10px; background: #fff; font-size: 0.9375rem; color: var(--ink-soft); }
+  .fake-field svg { flex: none; }
+
+  .origin { padding-top: 88px; }
+  .origin .inner { max-width: 62ch; }
+  .origin h2 { font-family: var(--font-display); font-weight: 800; font-size: clamp(1.75rem, 5vw, 2.5rem); line-height: 1.1; max-width: 20ch; text-wrap: balance; }
+  .origin p { margin-top: 14px; color: var(--ink-soft); }
+
+  .closing { padding: 88px 0 72px; }
+  .closing .inner { max-width: 520px; }
+  .closing h2 { max-width: 14ch; }
+  .closing p.sub { margin-top: 12px; color: var(--ink-soft); }
+  .light .request input[type="email"] { background: #fff; border-color: #CBD5E1; }
+  .light .request input:hover { border-color: var(--color-blue); }
+  .light .btn-primary { background: var(--color-blue); color: #fff; }
+  .light .btn-primary:hover { background: var(--color-blue-dark); }
+  .light .btn-ghost { color: var(--color-blue-dark); border-color: #9DB4D0; }
+  .light .btn-ghost:hover { background: rgba(34,92,156,0.08); border-color: var(--color-blue); }
+  .light .request .row { margin-top: 0; }
+
+  footer { border-top: 1px solid var(--line); }
+  .foot { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; padding-top: 24px; padding-bottom: 24px; color: var(--ink-soft); font-size: 0.9375rem; }
+  .foot a { min-height: 44px; display: inline-flex; align-items: center; }
+
+  /* ---------- wide ---------- */
+  @media (min-width: 560px) {
+    .request .row { grid-template-columns: 1fr auto; }
+  }
+  @media (min-width: 900px) {
+    .wrap { padding-left: 32px; padding-right: 32px; }
+    .hero { grid-template-columns: 1.1fr 0.9fr; gap: 56px; align-items: center; padding-top: 16px; min-height: calc(100vh - 64px - 72px); min-height: calc(100svh - 64px - 72px); }
+    .scene { justify-self: end; }
+    .thread-wrap { --th: 470px; }
+    .card { margin-top: -110px; }
+    .pair { grid-template-columns: minmax(0, 0.8fr) 56px minmax(0, 1.4fr); gap: 20px; }
+    .arrow { display: block; padding-top: 14px; justify-self: center; }
+    .smalls { gap: 28px; }
+    .pot-amt { font-size: 3.25rem; }
+  }
+  @media (max-width: 899px) {
+    .hero { gap: 24px; }
+    .hook .sub { font-size: 1.0625rem; }
+    .request { margin-top: 18px; }
+    .card { margin-top: -80px; }
+  }
+  @media (max-width: 389px) {
+    .pos { grid-template-columns: 1fr; gap: 2px; }
+    .topups { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    .thread-wrap, .card, .bar i, .unread, .btn, .ans, .topup { transition: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="dark">
+  <div class="wrap">
+    <header class="topbar">
+      <a class="wordmark" href="#top" aria-label="TeamBalance"><span class="a">Team</span><span class="b">Balance</span></a>
+      <a class="login" href="https://app.teambalance.nl">Log in</a>
+    </header>
+
+    <main id="top" class="hero">
+      <div class="hook">
+        <h1>Stop counting thumbs.</h1>
+        <p class="sub">Everyone answers <strong>Going, Maybe or Can't</strong> in one tap. You see who's coming, and the group chat can finally go quiet.</p>
+
+        <form class="request" novalidate data-request>
+          <label class="sr-only" for="email-hero">Your email</label>
+          <div class="row">
+            <input id="email-hero" type="email" name="email" placeholder="you@example.com" autocomplete="email" inputmode="email">
+            <button class="btn btn-primary" type="submit">Request a team</button>
+          </div>
+          <p class="form-msg" role="status" aria-live="polite"></p>
+          <div class="alt">
+            <a class="btn btn-ghost" href="#demo">Try the demo team</a>
+          </div>
+        </form>
+      </div>
+
+      <div class="scene" id="scene">
+        <div class="chat-head">
+          <div class="chat-title">Thursday volleyball<small>Team group chat, 14 people</small></div>
+          <span class="unread num" id="unread">47 new messages</span>
+        </div>
+
+        <div class="thread-wrap" id="threadWrap">
+          <div class="thread" aria-hidden="true">
+            <div class="msg"><span class="who w1">Sanne</span><span class="bubble">Who's coming Thursday?</span></div>
+            <div class="msg me"><span class="bubble">me</span></div>
+            <div class="msg"><span class="who w2">Joost</span><span class="bubble">prob</span></div>
+            <div class="msg"><span class="who w3">Femke</span><span class="bubble">who's bringing the ball bag</span></div>
+            <div class="msg"><span class="who w4">Bram</span><span class="bubble">can't, work</span></div>
+            <div class="divider">47 new messages</div>
+            <div class="msg"><span class="who w5">Iris</span><span class="bubble">wait is it 20:30 or 21:00?</span></div>
+            <div class="msg"><span class="who w1">Ruben</span><span class="bubble">thumbs up</span></div>
+            <div class="msg me"><span class="bubble">who still owes for the hall?</span></div>
+            <div class="msg"><span class="who w2">Thijs</span><span class="bubble">tikkie?</span></div>
+            <div class="msg"><span class="who w3">Eva</span><span class="bubble">how many are we now??</span></div>
+            <div class="msg"><span class="who w4">Noor</span><span class="bubble">thumbs up</span></div>
+            <div class="msg"><span class="who w1">Sanne</span><span class="bubble">so is that a yes?</span></div>
+          </div>
+        </div>
+
+        <section class="card" aria-labelledby="ev-title">
+          <h2 id="ev-title">Training</h2>
+          <p class="when">Thu 20:30 &middot; Sporthal Galgenwaard</p>
+          <p class="tally" aria-live="polite">
+            <span><i class="dot g"></i><b id="n-going">8</b> going</span>
+            <span><i class="dot m"></i><b id="n-maybe">2</b> maybe</span>
+            <span><i class="dot c"></i><b id="n-cant">1</b> can't</span>
+            <span><i class="dot n"></i><b id="n-none">3</b> not responded</span>
+          </p>
+          <div class="bar" aria-hidden="true">
+            <i id="b-going" style="background:var(--going);flex-grow:8"></i>
+            <i id="b-maybe" style="background:var(--maybe);flex-grow:2"></i>
+            <i id="b-cant" style="background:var(--cant);flex-grow:1"></i>
+            <i id="b-none" style="background:var(--none);flex-grow:3"></i>
+          </div>
+          <div class="answers" role="group" aria-label="Your answer">
+            <button class="ans" type="button" data-a="going" aria-pressed="false"><i class="dot g"></i>Going</button>
+            <button class="ans" type="button" data-a="maybe" aria-pressed="false"><i class="dot m"></i>Maybe</button>
+            <button class="ans" type="button" data-a="cant" aria-pressed="false"><i class="dot c"></i>Can't</button>
+          </div>
+          <p class="status" id="status" role="status" aria-live="polite">Tap one. Watch the chat.</p>
+        </section>
+
+        <div class="scene-foot" id="sceneFoot" hidden>
+          <button class="linkbtn" type="button" id="bringBack">Bring the chat back</button>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<div class="calm light">
+  <div class="wrap">
+
+    <div class="intro">
+      <h2>What each message turns into.</h2>
+      <p>Your group chat does a lot of small jobs. Here is where each one goes.</p>
+    </div>
+
+    <div class="pairs">
+
+      <article class="pair">
+        <div class="ask"><span class="bubble">Who's coming Thursday?</span><span class="bubble">how many are we now??</span></div>
+        <div class="arrow" aria-hidden="true"><svg width="40" height="24" viewBox="0 0 40 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h30M26 4l8 8-8 8"/></svg></div>
+        <div class="answer">
+          <h3>The event roster, by position</h3>
+          <p>Every event shows who is going, who is not sure and who has not answered. It also tells you if there are enough players.</p>
+          <dl class="roster" style="margin:14px 0 0">
+            <div class="pos"><dt>Setter</dt><dd><span class="chip"><i class="dot g"></i>Sanne<span class="sr-only">, going</span></span><span class="chip"><i class="dot m"></i>Femke<span class="sr-only">, maybe</span></span></dd></div>
+            <div class="pos"><dt>Outside hitter</dt><dd><span class="chip"><i class="dot g"></i>Daan<span class="sr-only">, going</span></span><span class="chip"><i class="dot g"></i>Lotte<span class="sr-only">, going</span></span><span class="chip"><i class="dot c"></i>Bram<span class="sr-only">, can't</span></span></dd></div>
+            <div class="pos"><dt>Middle</dt><dd><span class="chip"><i class="dot g"></i>Iris<span class="sr-only">, going</span></span><span class="chip"><i class="dot g"></i>Ruben<span class="sr-only">, going</span></span></dd></div>
+            <div class="pos"><dt>Opposite</dt><dd><span class="chip"><i class="dot g"></i>Joost<span class="sr-only">, going</span></span><span class="chip"><i class="dot n"></i>Thijs<span class="sr-only">, not responded</span></span></dd></div>
+            <div class="pos"><dt>Libero</dt><dd><span class="chip"><i class="dot g"></i>Noor<span class="sr-only">, going</span></span></dd></div>
+          </dl>
+          <p class="enough"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.6 2.6L16 9.5"/></svg>Enough players for Thursday</p>
+          <p class="oneTap">Away for a while? "Going to everything" answers all your open events in one tap.</p>
+        </div>
+      </article>
+
+      <article class="pair">
+        <div class="ask"><span class="bubble">who still owes for the hall?</span><span class="bubble">tikkie?</span></div>
+        <div class="arrow" aria-hidden="true"><svg width="40" height="24" viewBox="0 0 40 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h30M26 4l8 8-8 8"/></svg></div>
+        <div class="answer">
+          <h3>One shared pot</h3>
+          <p>The team's money sits in a real Bunq account. Top up from your phone through a bunq.me link. It runs on trust, so nobody keeps a list of who owes what.</p>
+          <div class="pot-top"><span class="pot-amt">Team pot</span><span class="pot-note">Backed by a Bunq account</span></div>
+          <div class="topups" role="group" aria-label="Top up amount">
+            <button class="topup" type="button" data-v="€10" aria-pressed="false">€10</button>
+            <button class="topup" type="button" data-v="€20" aria-pressed="false">€20</button>
+            <button class="topup" type="button" data-v="€50" aria-pressed="false">€50</button>
+            <button class="topup" type="button" data-v="your own amount" aria-pressed="false">Custom</button>
+          </div>
+          <p class="topup-note" id="topupNote" role="status" aria-live="polite">Pick an amount. It opens a bunq.me link on your phone.</p>
+        </div>
+      </article>
+
+      <article class="pair">
+        <div class="ask"><span class="bubble">wait is it 20:30 or 21:00?</span></div>
+        <div class="arrow" aria-hidden="true"><svg width="40" height="24" viewBox="0 0 40 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h30M26 4l8 8-8 8"/></svg></div>
+        <div class="answer">
+          <h3>A calendar link</h3>
+          <p>Subscribe once. Every training and match shows up in your own calendar, with the right time.</p>
+          <div class="fake-field"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>Subscribe to the team calendar</div>
+        </div>
+      </article>
+
+      <article class="pair">
+        <div class="ask"><span class="bubble">can someone add Lotte to the group?</span></div>
+        <div class="arrow" aria-hidden="true"><svg width="40" height="24" viewBox="0 0 40 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h30M26 4l8 8-8 8"/></svg></div>
+        <div class="answer">
+          <h3>One invite link</h3>
+          <p>Send the link to your team. Everyone logs in with a magic link sent to their email, so there are no passwords to forget.</p>
+          <div class="fake-field"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3A4 4 0 0 0 11 18.7l1-1"/></svg>Invite link for your team</div>
+        </div>
+      </article>
+
+      <article class="pair">
+        <div class="ask"><span class="bubble">we're one short again</span></div>
+        <div class="arrow" aria-hidden="true"><svg width="40" height="24" viewBox="0 0 40 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h30M26 4l8 8-8 8"/></svg></div>
+        <div class="answer">
+          <h3>A substitute for one event</h3>
+          <p>Know someone who can fill in? Call them in for a single training or match. They don't have to join the team.</p>
+        </div>
+      </article>
+
+    </div>
+
+    <section class="origin" id="origin">
+      <div class="inner">
+        <h2>It started with two volleyball teams.</h2>
+        <p>TeamBalance began as a hobby tool for two volleyball teams at Tovo Utrecht. It is still built for teams like that: amateur, friendly, and tired of scrolling.</p>
+      </div>
+    </section>
+
+    <section class="closing" id="demo">
+      <div class="inner">
+        <h2>Mute the group. Keep the team.</h2>
+        <p class="sub">Tell us where to send your link and we'll set up your team. Or look around the demo first.</p>
+        <form class="request" novalidate data-request>
+          <label class="sr-only" for="email-close">Your email</label>
+          <div class="row">
+            <input id="email-close" type="email" name="email" placeholder="you@example.com" autocomplete="email" inputmode="email">
+            <button class="btn btn-primary" type="submit">Request a team</button>
+          </div>
+          <p class="form-msg" role="status" aria-live="polite"></p>
+          <div class="alt"><a class="btn btn-ghost" href="#demo">Try the demo team</a></div>
+        </form>
+      </div>
+    </section>
+  </div>
+
+  <footer>
+    <div class="wrap foot">
+      <a class="wordmark" href="#top" aria-label="TeamBalance"><span class="a">Team</span><span class="b">Balance</span></a>
+      <span><a href="https://app.teambalance.nl">Log in</a></span>
+      <span>Made in Utrecht</span>
+    </div>
+  </footer>
+</div>
+
+<script>
+  (function () {
+    var scene = document.getElementById('scene');
+    var counts = { going: 8, maybe: 2, cant: 1, none: 3 };
+    var current = null;
+    var labels = { going: "You're going.", maybe: "You said maybe.", cant: "You can't make it." };
+    var foot = document.getElementById('sceneFoot');
+    var unread = document.getElementById('unread');
+
+    function render() {
+      Object.keys(counts).forEach(function (k) {
+        document.getElementById('n-' + k).textContent = counts[k];
+        document.getElementById('b-' + k).style.flexGrow = counts[k];
+      });
+    }
+
+    document.querySelectorAll('.ans').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var a = btn.getAttribute('data-a');
+        if (a === current) return;
+        if (current) counts[current]--; else counts.none--;
+        counts[a]++;
+        current = a;
+        document.querySelectorAll('.ans').forEach(function (b) {
+          b.setAttribute('aria-pressed', b === btn ? 'true' : 'false');
+        });
+        render();
+        scene.classList.add('quiet');
+        unread.textContent = 'Muted';
+        foot.hidden = false;
+        document.getElementById('status').textContent = labels[a] + ' The chat went quiet.';
+      });
+    });
+
+    document.getElementById('bringBack').addEventListener('click', function () {
+      scene.classList.remove('quiet');
+      unread.textContent = '47 new messages';
+      foot.hidden = true;
+      document.getElementById('status').textContent = current ? 'Your answer stays. The chat is back.' : 'Tap one. Watch the chat.';
+    });
+
+    document.querySelectorAll('.topup').forEach(function (b) {
+      b.addEventListener('click', function () {
+        document.querySelectorAll('.topup').forEach(function (o) { o.setAttribute('aria-pressed', o === b ? 'true' : 'false'); });
+        document.getElementById('topupNote').textContent = 'Opens a bunq.me link on your phone for ' + b.getAttribute('data-v') + '.';
+      });
+    });
+
+    document.querySelectorAll('[data-request]').forEach(function (form) {
+      var input = form.querySelector('input[type="email"]');
+      var msg = form.querySelector('.form-msg');
+      form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        var v = input.value.trim();
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) {
+          msg.className = 'form-msg err';
+          msg.textContent = v ? 'That email does not look right. Check it and try again.' : 'Add your email so we know where to send the link.';
+          input.setAttribute('aria-invalid', 'true');
+          input.focus();
+          return;
+        }
+        input.removeAttribute('aria-invalid');
+        msg.className = 'form-msg ok';
+        msg.textContent = 'Thanks — we’ll mail you a link to set up your team.';
+      });
+    });
+  })();
+</script>
+</body>
+</html>

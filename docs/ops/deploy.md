@@ -100,9 +100,10 @@ seconds` line. Console fields: CPU in vCPU, memory in MB, sandbox v1/v2.
 ## Staging API (`api.stg.teambalance.nl`)
 
 A second Serverless Container for experiments (boot-time tuning, later migration checks) that
-never touches prod. **`deploy-api-stg`** is manual: every CI run, a PR's included, waits on the
-`staging` environment; approve it to put that run's `api-stg:<sha>` image on stg. It does not wait
-for the test job.
+never touches prod. The stg deploy is manual: every CI run, a PR's included, waits in
+`approve-api-stg` on the `staging` environment; approve it to put that run's `api-stg:<sha>` image
+on stg. A newer run of the same branch or PR replaces that branch's waiting gate; other branches
+keep theirs. It does not wait for the test job.
 
 - **Image:** `api/Dockerfile --target stg` = the prod image (same jar, same AOT cache) plus Postgres
   and `api/stg-entrypoint.sh`. It runs the `prod` profile; the stg differences are environment
@@ -111,7 +112,9 @@ for the test job.
   logged, not sent), and the in-container datasource.
 - **Database:** Postgres runs inside the container on its temporary disk. Every cold start begins
   empty: Flyway builds the schema from V001. Nothing persists across scale-to-zero or a redeploy.
-- **Container:** same size as prod (2 vCPU / 2 GB, sandbox v2, min-scale 0). Env:
+- **Container:** same size as prod (2 vCPU / 2 GB, sandbox v2, min-scale 0). **max-scale must stay
+  1**: each instance has its own database, so a second instance would not know the first one's
+  logins or data. Env:
   `PLATFORM_ADMIN_EMAILS`; secret env: `INVITATION_TOKEN_SALT`, `INVITATION_TOKEN_ENCRYPTION_KEY`,
   `TEAMBALANCE_CALENDAR_LINK_SALT`, `TEAMBALANCE_CALENDAR_LINK_ENCRYPTION_KEY`,
   `TEAMBALANCE_BUNQ_TOKEN_ENCRYPTION_KEY`, `INTERNAL_API_KEY` (values unique to stg; the last one
@@ -120,6 +123,15 @@ for the test job.
   `Started … in X seconds` line does not equal prod's. The `Startup benchmark:` line still compares.
 - **Log in:** request a magic link for a demo member (e.g. `jan@example.com`) and copy the token
   from the `Magic link for …` line in the container logs (Cockpit).
+
+## Container Registry retention
+
+CI pushes `api:<sha>` and `api-stg:<sha>` on every run, so `.github/workflows/registry-cleanup.yml`
+deletes old tags every night: a tag whose commit is on `main` after **90 days**, any other tag (PR,
+`deploy*` branch, hand-pushed) after **7 days**. A tag that a Serverless Container currently runs is
+never deleted, since Scaleway pulls the image again on a cold start. To preview, run the workflow by
+hand (`dry_run` is on by default), or locally: `DRY_RUN=1 .github/scripts/registry-cleanup.sh`.
+Rolling back to an image older than its retention means rebuilding it from that commit.
 
 ## Object Storage lifecycle (assets retention — console/IaC, not in-repo)
 
@@ -171,6 +183,6 @@ Settings → Secrets and variables → Actions (names only — never commit valu
 
 To roll back, re-deploy an earlier good commit: Actions → the CI run for that commit →
 **Re-run jobs**, then approve the API gate (`approve-api`). The image tag is that commit's
-SHA, so the old image is rebuilt/redeployed deterministically. (Old image tags are also
-retained in the registry.) Alternatively, revert the offending commit on `main` and approve
+SHA, and re-running all jobs re-runs `image`, so the old image is rebuilt and redeployed. (Main's
+image tags stay in the registry for 90 days, see *Container Registry retention*.) Alternatively, revert the offending commit on `main` and approve
 the new deploy.

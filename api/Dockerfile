@@ -134,7 +134,6 @@ ENV PATH=/usr/local/pgbin:$PATH \
     SPRING_PROFILES_ACTIVE=prod \
     SPRING_DATASOURCE_URL=jdbc:postgresql://127.0.0.1:5432/teambalance \
     SPRING_DATASOURCE_USERNAME=teambalance \
-    SPRING_DATASOURCE_PASSWORD=teambalance \
     TEAMBALANCE_DEMO_DATA_ENABLED=true \
     TEAMBALANCE_EMAIL_SEND=false \
     SCALEWAY_TEM_API_KEY=unused-on-stg \
@@ -170,6 +169,7 @@ ENV TEAMBALANCE_BUILD_SHA=$GIT_SHA
 #   -XX:AOTCache=app.aot    — load the baked JDK-25 AOT cache; fails SAFE (a missing/mismatched cache
 #                             only logs a warning and boots normally).
 #   -Dspring.aot.enabled    — activate the AOT-generated bean definitions packaged in the jar.
-# The GC flag MUST match the bake-stage training run, or the AOT cache is rejected at runtime.
+# The GC flag MUST match the bake-stage training run, or the AOT cache is rejected at runtime. Keep
+# api/stg-entrypoint.sh in sync: Docker resets CMD on a new ENTRYPOINT, so stg repeats this command.
 # See docs/adr/0036-jvm-startup-time-tuning-without-native-image.md.
 ENTRYPOINT ["java", "-XX:+UseSerialGC", "-XX:TieredStopAtLevel=1", "-XX:AOTCache=app.aot", "-Dspring.aot.enabled=true", "-jar", "app.jar"]

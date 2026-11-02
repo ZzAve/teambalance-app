@@ -157,16 +157,6 @@ jobs:
           fi
           echo "✓ No already-merged migration files were modified."
 
-  # MANUAL deploy gate: runs only on push to `main`/`deploy*`, after `build`; each pauses for
-  # approval via the `production` environment. Deploys the exact commit CI validated (tag = SHA).
-  #
-  # The wait for approval sits in its own tiny `approve-*` job, separate from the `deploy-*` job
-  # that does the work. That split is what makes a stale gate harmless: `approve-*` is
-  # `cancel-in-progress: true`, so a newer push to `main` cancels a still-unapproved gate from an
-  # older commit and immediately asks for approval on the new one — no manual reject needed. The
-  # `deploy-*` jobs only ever start once approved and stay `cancel-in-progress: false`, so a
-  # rollout that is already under way is never interrupted; a second approved deploy queues behind
-  # it. API and frontend keep their own gate, so they are still approved independently.
   # Builds and pushes both API images on every run (PRs too), so any run can go to stg and a prod
   # deploy ships the exact image that was built here. Both targets share every stage but the last.
   # ubuntu-latest is amd64, so --platform=linux/amd64 is native. GIT_SHA is baked into the image and
@@ -198,6 +188,16 @@ jobs:
           docker push "${REGISTRY}/api:${{ steps.tag.outputs.sha }}"
           docker push "${REGISTRY}/api-stg:${{ steps.tag.outputs.sha }}"
 
+  # MANUAL deploy gate: runs only on push to `main`/`deploy*`, after `build`; each pauses for
+  # approval via the `production` environment. Deploys the exact commit CI validated (tag = SHA).
+  #
+  # The wait for approval sits in its own tiny `approve-*` job, separate from the `deploy-*` job
+  # that does the work. That split is what makes a stale gate harmless: `approve-*` is
+  # `cancel-in-progress: true`, so a newer push to `main` cancels a still-unapproved gate from an
+  # older commit and immediately asks for approval on the new one — no manual reject needed. The
+  # `deploy-*` jobs only ever start once approved and stay `cancel-in-progress: false`, so a
+  # rollout that is already under way is never interrupted; a second approved deploy queues behind
+  # it. API and frontend keep their own gate, so they are still approved independently.
   approve-api:
     needs: build
     if: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/deploy')) }}
@@ -241,17 +241,29 @@ jobs:
         env:
           INTERNAL_API_KEY: ${{ secrets.INTERNAL_API_KEY }}
 
-  # Staging API (api.stg.teambalance.nl): manual. Any run, a PR's included, waits here until someone
-  # approves the `staging` environment. Its Postgres lives in the container and starts empty on every
-  # cold start, so a deploy carries no data risk.
-  deploy-api-stg:
+  # Staging API (api.stg.teambalance.nl): manual. Any run, a PR's included, waits in approve-api-stg
+  # until someone approves the `staging` environment. The approval group is per branch/PR, so a newer
+  # push replaces only that branch's waiting gate and every other branch stays deployable. The deploy
+  # group is shared and never cancels, so rollouts run one at a time. Its Postgres lives in the
+  # container and starts empty on every cold start, so a deploy carries no data risk.
+  approve-api-stg:
     needs: image
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 5
     environment: staging
     concurrency:
-      group: deploy-stg-api
+      group: deploy-stg-api-approval-${{ github.head_ref || github.ref }}
       cancel-in-progress: true
+    steps:
+      - run: echo "Staging ${GITHUB_SHA::12} approved — starting the stg api rollout."
+
+  deploy-api-stg:
+    needs: [approve-api-stg, image]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    concurrency:
+      group: deploy-stg-api
+      cancel-in-progress: false
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 

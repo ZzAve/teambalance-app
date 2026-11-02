@@ -172,4 +172,4 @@ ENV TEAMBALANCE_BUILD_SHA=$GIT_SHA
 #   -Dspring.aot.enabled    — activate the AOT-generated bean definitions packaged in the jar.
 # The GC flag MUST match the bake-stage training run, or the AOT cache is rejected at runtime.
 # See docs/adr/0036-jvm-startup-time-tuning-without-native-image.md.
-ENTRYPOINT ["java", "-XX:+UseSerialGC", "-XX:TieredStopAtLevel=1", "-XX:AOTCache=app.aot", "-Dspring.aot.enabled=true", "-jar", "app.jar"]
+ENTRYPOINT ["java", "-XX:+UseSerialGC", "-XX:TieredStopAtLevel=1","-XX:AOTCache=app.aot", "-Dspring.aot.enabled=true", "-jar", "app.jar"]

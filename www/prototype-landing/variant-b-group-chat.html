@@ -1,10 +1,10 @@
-<!-- PROTOTYPE variant B — The group chat, then quiet. Throwaway. -->
+<!-- PROTOTYPE variant B — The group chat, kept. Throwaway. -->
 <!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>TeamBalance — Stop counting thumbs</title>
+<title>TeamBalance — Keep the chat. Skip the scroll-back.</title>
 <meta name="description" content="Going, Maybe or Can't. One tap per event, and a shared team pot. For amateur volleyball teams.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -79,13 +79,13 @@
   .hook h1 {
     font-family: var(--font-display);
     font-weight: 800;
-    font-size: clamp(2.5rem, 9.5vw, 4.75rem);
+    font-size: clamp(2.5rem, 9.5vw, 4.25rem);
     line-height: 1.02;
     letter-spacing: -0.015em;
     color: #fff;
     text-wrap: balance;
   }
-  .hook .sub { margin-top: 14px; font-size: 1.125rem; color: var(--dusk-soft); max-width: 34ch; }
+  .hook .sub { margin-top: 14px; font-size: 1.125rem; color: var(--dusk-soft); max-width: 40ch; }
   .hook .sub strong { color: var(--dusk-text); font-weight: 600; }
 
   /* request form (shared) */
@@ -140,48 +140,50 @@
   .scene.quiet .unread { background: transparent; color: var(--dusk-soft); box-shadow: inset 0 0 0 1px var(--dusk-line); }
 
   .thread-wrap {
-    --th: 168px;
-    height: var(--th);
+    --th: 440px;
+    max-height: var(--th);
     overflow: hidden;
-    position: relative;
-    transition: height 900ms var(--ease), opacity 500ms var(--ease), filter 700ms var(--ease);
-    -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 56px, #000 calc(100% - 70px), transparent 100%);
-    mask-image: linear-gradient(to bottom, transparent 0, #000 56px, #000 calc(100% - 70px), transparent 100%);
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 48px);
+    mask-image: linear-gradient(to bottom, transparent 0, #000 48px);
   }
-  .thread { position: absolute; left: 0; right: 0; bottom: 0; display: flex; flex-direction: column; gap: 8px; padding: 10px 4px 0; }
-  .scene.quiet .thread-wrap { height: 0; opacity: 0; filter: blur(10px); }
+  .thread { flex: none; display: flex; flex-direction: column; padding: 10px 4px 0; }
 
-  .msg { max-width: 86%; align-self: flex-start; }
+  .msg { display: grid; grid-template-rows: 1fr; max-width: 86%; align-self: flex-start; transition: grid-template-rows 800ms var(--ease); }
   .msg.me { align-self: flex-end; }
-  .msg .who { display: block; font-size: 0.75rem; font-weight: 700; margin: 0 0 2px 10px; }
+  .msg-in { min-height: 0; overflow: hidden; padding-bottom: 8px; transition: opacity 500ms var(--ease), transform 800ms var(--ease), padding-bottom 800ms var(--ease); }
+  .scene.quiet .msg.att { grid-template-rows: 0fr; transition-delay: calc(var(--i) * 70ms); }
+  .scene.quiet .msg.att .msg-in { padding-bottom: 0; opacity: 0; transform: translateX(-28px); transition-delay: calc(var(--i) * 70ms); }
+  .scene.quiet .msg.att.me .msg-in { transform: translateX(28px); }
+  .msg .who { display: inline; font-size: 0.75rem; font-weight: 700; margin: 0 8px 0 0; }
   .bubble { display: inline-block; padding: 8px 12px; border-radius: 4px 16px 16px 16px; background: var(--dusk-bubble); color: var(--dusk-text); font-size: 0.9375rem; line-height: 1.35; }
   .msg.me .bubble { border-radius: 16px 4px 16px 16px; background: var(--me-bubble); color: #fff; }
   .w1 { color: #9DC3F0; } .w2 { color: #F0C987; } .w3 { color: #A8E0C8; } .w4 { color: #F1B5CC; } .w5 { color: #C9B8EE; }
-  .divider { align-self: center; font-size: 0.75rem; font-weight: 700; color: #F8B98F; padding: 2px 12px; border-radius: 999px; box-shadow: inset 0 0 0 1px rgba(240,150,95,0.4); }
 
   .card {
     position: relative;
-    margin-top: -96px;
+    margin-top: 6px;
     background: #FEFDFB;
     color: var(--ink);
     border-radius: 18px;
-    padding: 16px;
-    box-shadow: 0 -10px 30px -6px rgba(0,0,0,0.4), 0 18px 34px -10px rgba(0,0,0,0.5);
-    transition: margin-top 900ms var(--ease);
+    padding: 14px 16px 12px;
+    box-shadow: 0 18px 34px -10px rgba(0,0,0,0.5);
   }
-  .scene.quiet .card { margin-top: 14px; }
-  .card h2 { font-size: 1.1875rem; font-weight: 700; line-height: 1.2; }
-  .card .when { margin-top: 2px; font-size: 0.9375rem; color: var(--ink-soft); }
-  .tally { margin-top: 12px; display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 0.9375rem; }
+  .ev + .ev { margin-top: 14px; padding-top: 14px; border-top: 1px solid #E9E5DA; }
+  .ev h2 { font-size: 1.125rem; font-weight: 700; line-height: 1.2; }
+  .ev .when { margin-top: 2px; font-size: 0.9375rem; color: var(--ink-soft); }
+  .tally { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 0.875rem; }
   .tally span { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
   .tally b { font-variant-numeric: tabular-nums; }
   .dot { width: 10px; height: 10px; border-radius: 50%; flex: none; display: inline-block; }
   .dot.g { background: var(--going); } .dot.m { background: var(--maybe); } .dot.c { background: var(--cant); } .dot.n { background: var(--none); }
-  .bar { margin-top: 12px; display: flex; height: 8px; border-radius: 999px; overflow: hidden; gap: 2px; background: #E9E5DA; }
+  .bar { margin-top: 10px; display: flex; height: 8px; border-radius: 999px; overflow: hidden; gap: 2px; background: #E9E5DA; }
   .bar i { display: block; height: 100%; transition: flex-grow 700ms var(--ease); }
-  .answers { margin-top: 14px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .answers { margin-top: 12px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
   .ans {
-    min-height: 48px; font: inherit; font-weight: 700; font-size: 0.9375rem; color: var(--ink);
+    min-height: 46px; font: inherit; font-weight: 700; font-size: 0.9375rem; color: var(--ink);
     background: #fff; border: 2px solid #CBD5E1; border-radius: 12px; cursor: pointer;
     display: inline-flex; align-items: center; justify-content: center; gap: 7px; padding: 0 6px;
     transition: background-color 160ms, border-color 160ms, color 160ms;
@@ -192,7 +194,7 @@
   .ans[aria-pressed="true"][data-a="maybe"] { background: var(--maybe); border-color: var(--maybe); color: #1E293B; }
   .ans[aria-pressed="true"][data-a="cant"] { background: var(--cant); border-color: var(--cant); color: #fff; }
   .ans[aria-pressed="true"] .dot { background: currentColor; }
-  .status { margin-top: 10px; font-size: 0.875rem; color: var(--ink-soft); min-height: 1.35em; }
+  .status { margin-top: 12px; font-size: 0.875rem; color: var(--ink-soft); min-height: 1.35em; }
   .linkbtn {
     background: none; border: 0; padding: 0 4px; min-height: 44px; font: inherit; font-size: 0.9375rem; font-weight: 600;
     color: var(--color-blue); text-decoration: underline; text-underline-offset: 0.2em; cursor: pointer; border-radius: 6px;
@@ -262,7 +264,7 @@
 
   .closing { padding: 88px 0 72px; }
   .closing .inner { max-width: 520px; }
-  .closing h2 { max-width: 14ch; }
+  .closing h2 { max-width: 16ch; }
   .closing p.sub { margin-top: 12px; color: var(--ink-soft); }
   .light .request input[type="email"] { background: #fff; border-color: #CBD5E1; }
   .light .request input:hover { border-color: var(--color-blue); }
@@ -284,8 +286,7 @@
     .wrap { padding-left: 32px; padding-right: 32px; }
     .hero { grid-template-columns: 1.1fr 0.9fr; gap: 56px; align-items: center; padding-top: 16px; min-height: calc(100vh - 64px - 72px); min-height: calc(100svh - 64px - 72px); }
     .scene { justify-self: end; }
-    .thread-wrap { --th: 470px; }
-    .card { margin-top: -110px; }
+    .thread-wrap { --th: 330px; }
     .pair { grid-template-columns: minmax(0, 0.8fr) 56px minmax(0, 1.4fr); gap: 20px; }
     .arrow { display: block; padding-top: 14px; justify-self: center; }
     .smalls { gap: 28px; }
@@ -295,7 +296,6 @@
     .hero { gap: 24px; }
     .hook .sub { font-size: 1.0625rem; }
     .request { margin-top: 18px; }
-    .card { margin-top: -80px; }
   }
   @media (max-width: 389px) {
     .pos { grid-template-columns: 1fr; gap: 2px; }
@@ -303,7 +303,7 @@
   }
   @media (prefers-reduced-motion: reduce) {
     html { scroll-behavior: auto; }
-    .thread-wrap, .card, .bar i, .unread, .btn, .ans, .topup { transition: none; }
+    .msg, .msg-in, .bar i, .unread, .btn, .ans, .topup { transition: none; }
   }
 </style>
 </head>
@@ -318,8 +318,8 @@
 
     <main id="top" class="hero">
       <div class="hook">
-        <h1>Stop counting thumbs.</h1>
-        <p class="sub">Everyone answers <strong>Going, Maybe or Can't</strong> in one tap. You see who's coming, and the group chat can finally go quiet.</p>
+        <h1>Keep the chat. Skip the scroll-back.</h1>
+        <p class="sub">Your group chat is where the team talks. <strong>Who's coming to which training or match</strong> lives in TeamBalance: one tap per event, so nobody has to scroll up and count.</p>
 
         <form class="request" novalidate data-request>
           <label class="sr-only" for="email-hero">Your email</label>
@@ -342,47 +342,67 @@
 
         <div class="thread-wrap" id="threadWrap">
           <div class="thread" aria-hidden="true">
-            <div class="msg"><span class="who w1">Sanne</span><span class="bubble">Who's coming Thursday?</span></div>
-            <div class="msg me"><span class="bubble">me</span></div>
-            <div class="msg"><span class="who w2">Joost</span><span class="bubble">prob</span></div>
-            <div class="msg"><span class="who w3">Femke</span><span class="bubble">who's bringing the ball bag</span></div>
-            <div class="msg"><span class="who w4">Bram</span><span class="bubble">can't, work</span></div>
-            <div class="divider">47 new messages</div>
-            <div class="msg"><span class="who w5">Iris</span><span class="bubble">wait is it 20:30 or 21:00?</span></div>
-            <div class="msg"><span class="who w1">Ruben</span><span class="bubble">thumbs up</span></div>
-            <div class="msg me"><span class="bubble">who still owes for the hall?</span></div>
-            <div class="msg"><span class="who w2">Thijs</span><span class="bubble">tikkie?</span></div>
-            <div class="msg"><span class="who w3">Eva</span><span class="bubble">how many are we now??</span></div>
-            <div class="msg"><span class="who w4">Noor</span><span class="bubble">thumbs up</span></div>
-            <div class="msg"><span class="who w1">Sanne</span><span class="bubble">so is that a yes?</span></div>
+            <div class="msg att me" style="--i:0"><div class="msg-in"><span class="bubble">me</span></div></div>
+            <div class="msg att" style="--i:1"><div class="msg-in"><span class="bubble"><span class="who w2">Joost</span>prob</span></div></div>
+            <div class="msg"><div class="msg-in"><span class="bubble"><span class="who w3">Lotte</span>great block yesterday Femke</span></div></div>
+            <div class="msg att" style="--i:2"><div class="msg-in"><span class="bubble"><span class="who w4">Bram</span>can't</span></div></div>
+            <div class="msg att" style="--i:3"><div class="msg-in"><span class="bubble"><span class="who w5">Iris</span>wait, is that for Thursday or Saturday?</span></div></div>
+            <div class="msg"><div class="msg-in"><span class="bubble"><span class="who w1">Daan</span>drinks after Saturday?</span></div></div>
+            <div class="msg att" style="--i:4"><div class="msg-in"><span class="bubble"><span class="who w3">Eva</span>how many are we for Saturday??</span></div></div>
+            <div class="msg"><div class="msg-in"><span class="bubble"><span class="who w2">Thijs</span>who's got the ball bag</span></div></div>
+            <div class="msg att me" style="--i:5"><div class="msg-in"><span class="bubble">scrolling up... who said yes?</span></div></div>
+            <div class="msg"><div class="msg-in"><span class="bubble"><span class="who w5">Noor</span>happy birthday Bram</span></div></div>
           </div>
         </div>
 
-        <section class="card" aria-labelledby="ev-title">
-          <h2 id="ev-title">Training</h2>
-          <p class="when">Thu 20:30 &middot; Sporthal Galgenwaard</p>
-          <p class="tally" aria-live="polite">
-            <span><i class="dot g"></i><b id="n-going">8</b> going</span>
-            <span><i class="dot m"></i><b id="n-maybe">2</b> maybe</span>
-            <span><i class="dot c"></i><b id="n-cant">1</b> can't</span>
-            <span><i class="dot n"></i><b id="n-none">3</b> not responded</span>
-          </p>
-          <div class="bar" aria-hidden="true">
-            <i id="b-going" style="background:var(--going);flex-grow:8"></i>
-            <i id="b-maybe" style="background:var(--maybe);flex-grow:2"></i>
-            <i id="b-cant" style="background:var(--cant);flex-grow:1"></i>
-            <i id="b-none" style="background:var(--none);flex-grow:3"></i>
-          </div>
-          <div class="answers" role="group" aria-label="Your answer">
-            <button class="ans" type="button" data-a="going" aria-pressed="false"><i class="dot g"></i>Going</button>
-            <button class="ans" type="button" data-a="maybe" aria-pressed="false"><i class="dot m"></i>Maybe</button>
-            <button class="ans" type="button" data-a="cant" aria-pressed="false"><i class="dot c"></i>Can't</button>
-          </div>
+        <section class="card" aria-label="Your events">
+          <article class="ev" data-ev="training" aria-labelledby="ev-t">
+            <h2 id="ev-t">Training</h2>
+            <p class="when">Thu 20:30 &middot; Sporthal Galgenwaard</p>
+            <p class="tally" aria-live="polite">
+              <span><i class="dot g"></i><b data-n="going">8</b> going</span>
+              <span><i class="dot m"></i><b data-n="maybe">2</b> maybe</span>
+              <span><i class="dot c"></i><b data-n="cant">1</b> can't</span>
+              <span><i class="dot n"></i><b data-n="none">3</b> not responded</span>
+            </p>
+            <div class="bar" aria-hidden="true">
+              <i data-b="going" style="background:var(--going);flex-grow:8"></i>
+              <i data-b="maybe" style="background:var(--maybe);flex-grow:2"></i>
+              <i data-b="cant" style="background:var(--cant);flex-grow:1"></i>
+              <i data-b="none" style="background:var(--none);flex-grow:3"></i>
+            </div>
+            <div class="answers" role="group" aria-label="Your answer for the training">
+              <button class="ans" type="button" data-a="going" aria-pressed="false"><i class="dot g"></i>Going</button>
+              <button class="ans" type="button" data-a="maybe" aria-pressed="false"><i class="dot m"></i>Maybe</button>
+              <button class="ans" type="button" data-a="cant" aria-pressed="false"><i class="dot c"></i>Can't</button>
+            </div>
+          </article>
+          <article class="ev" data-ev="match" aria-labelledby="ev-m">
+            <h2 id="ev-m">Match</h2>
+            <p class="when">Sat 14:00 &middot; away at VC De Zwaluwen</p>
+            <p class="tally" aria-live="polite">
+              <span><i class="dot g"></i><b data-n="going">5</b> going</span>
+              <span><i class="dot m"></i><b data-n="maybe">3</b> maybe</span>
+              <span><i class="dot c"></i><b data-n="cant">2</b> can't</span>
+              <span><i class="dot n"></i><b data-n="none">4</b> not responded</span>
+            </p>
+            <div class="bar" aria-hidden="true">
+              <i data-b="going" style="background:var(--going);flex-grow:5"></i>
+              <i data-b="maybe" style="background:var(--maybe);flex-grow:3"></i>
+              <i data-b="cant" style="background:var(--cant);flex-grow:2"></i>
+              <i data-b="none" style="background:var(--none);flex-grow:4"></i>
+            </div>
+            <div class="answers" role="group" aria-label="Your answer for the match">
+              <button class="ans" type="button" data-a="going" aria-pressed="false"><i class="dot g"></i>Going</button>
+              <button class="ans" type="button" data-a="maybe" aria-pressed="false"><i class="dot m"></i>Maybe</button>
+              <button class="ans" type="button" data-a="cant" aria-pressed="false"><i class="dot c"></i>Can't</button>
+            </div>
+          </article>
           <p class="status" id="status" role="status" aria-live="polite">Tap one. Watch the chat.</p>
         </section>
 
         <div class="scene-foot" id="sceneFoot" hidden>
-          <button class="linkbtn" type="button" id="bringBack">Bring the chat back</button>
+          <button class="linkbtn" type="button" id="bringBack">Show the old way</button>
         </div>
       </div>
     </main>
@@ -393,18 +413,18 @@
   <div class="wrap">
 
     <div class="intro">
-      <h2>What each message turns into.</h2>
-      <p>Your group chat does a lot of small jobs. Here is where each one goes.</p>
+      <h2>The chat stays. These move out of it.</h2>
+      <p>Some questions are easy to ask in a group chat and hard to answer by scrolling. Here is where each one gets answered.</p>
     </div>
 
     <div class="pairs">
 
       <article class="pair">
-        <div class="ask"><span class="bubble">Who's coming Thursday?</span><span class="bubble">how many are we now??</span></div>
+        <div class="ask"><span class="bubble">who's coming to which event?</span><small>No more scrolling for this</small></div>
         <div class="arrow" aria-hidden="true"><svg width="40" height="24" viewBox="0 0 40 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h30M26 4l8 8-8 8"/></svg></div>
         <div class="answer">
-          <h3>The event roster, by position</h3>
-          <p>Every event shows who is going, who is not sure and who has not answered. It also tells you if there are enough players.</p>
+          <h3>A roster for every event, by position</h3>
+          <p>Training and match each have their own list: who is going, who is not sure, who has not answered. It also tells you if there are enough players.</p>
           <dl class="roster" style="margin:14px 0 0">
             <div class="pos"><dt>Setter</dt><dd><span class="chip"><i class="dot g"></i>Sanne<span class="sr-only">, going</span></span><span class="chip"><i class="dot m"></i>Femke<span class="sr-only">, maybe</span></span></dd></div>
             <div class="pos"><dt>Outside hitter</dt><dd><span class="chip"><i class="dot g"></i>Daan<span class="sr-only">, going</span></span><span class="chip"><i class="dot g"></i>Lotte<span class="sr-only">, going</span></span><span class="chip"><i class="dot c"></i>Bram<span class="sr-only">, can't</span></span></dd></div>
@@ -412,13 +432,13 @@
             <div class="pos"><dt>Opposite</dt><dd><span class="chip"><i class="dot g"></i>Joost<span class="sr-only">, going</span></span><span class="chip"><i class="dot n"></i>Thijs<span class="sr-only">, not responded</span></span></dd></div>
             <div class="pos"><dt>Libero</dt><dd><span class="chip"><i class="dot g"></i>Noor<span class="sr-only">, going</span></span></dd></div>
           </dl>
-          <p class="enough"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.6 2.6L16 9.5"/></svg>Enough players for Thursday</p>
+          <p class="enough"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.6 2.6L16 9.5"/></svg>Enough players for Thursday's training</p>
           <p class="oneTap">Away for a while? "Going to everything" answers all your open events in one tap.</p>
         </div>
       </article>
 
       <article class="pair">
-        <div class="ask"><span class="bubble">who still owes for the hall?</span><span class="bubble">tikkie?</span></div>
+        <div class="ask"><span class="bubble">who still owes for the hall?</span><span class="bubble">tikkie?</span><small>No more scrolling for this</small></div>
         <div class="arrow" aria-hidden="true"><svg width="40" height="24" viewBox="0 0 40 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h30M26 4l8 8-8 8"/></svg></div>
         <div class="answer">
           <h3>One shared pot</h3>
@@ -435,7 +455,7 @@
       </article>
 
       <article class="pair">
-        <div class="ask"><span class="bubble">wait is it 20:30 or 21:00?</span></div>
+        <div class="ask"><span class="bubble">what time again?</span><small>No more scrolling for this</small></div>
         <div class="arrow" aria-hidden="true"><svg width="40" height="24" viewBox="0 0 40 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h30M26 4l8 8-8 8"/></svg></div>
         <div class="answer">
           <h3>A calendar link</h3>
@@ -445,17 +465,17 @@
       </article>
 
       <article class="pair">
-        <div class="ask"><span class="bubble">can someone add Lotte to the group?</span></div>
+        <div class="ask"><span class="bubble">add my friend to the group</span><small>New member? Skip the back and forth</small></div>
         <div class="arrow" aria-hidden="true"><svg width="40" height="24" viewBox="0 0 40 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h30M26 4l8 8-8 8"/></svg></div>
         <div class="answer">
           <h3>One invite link</h3>
-          <p>Send the link to your team. Everyone logs in with a magic link sent to their email, so there are no passwords to forget.</p>
+          <p>Send the link to your team or a new member. Everyone logs in with a magic link sent to their email, so there are no passwords to forget.</p>
           <div class="fake-field"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3A4 4 0 0 0 11 18.7l1-1"/></svg>Invite link for your team</div>
         </div>
       </article>
 
       <article class="pair">
-        <div class="ask"><span class="bubble">we're one short again</span></div>
+        <div class="ask"><span class="bubble">we're one short, who knows someone?</span><small>No more scrolling for this</small></div>
         <div class="arrow" aria-hidden="true"><svg width="40" height="24" viewBox="0 0 40 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h30M26 4l8 8-8 8"/></svg></div>
         <div class="answer">
           <h3>A substitute for one event</h3>
@@ -474,7 +494,7 @@
 
     <section class="closing" id="demo">
       <div class="inner">
-        <h2>Mute the group. Keep the team.</h2>
+        <h2>Keep talking. We'll keep count.</h2>
         <p class="sub">Tell us where to send your link and we'll set up your team. Or look around the demo first.</p>
         <form class="request" novalidate data-request>
           <label class="sr-only" for="email-close">Your email</label>
@@ -501,34 +521,39 @@
 <script>
   (function () {
     var scene = document.getElementById('scene');
-    var counts = { going: 8, maybe: 2, cant: 1, none: 3 };
-    var current = null;
-    var labels = { going: "You're going.", maybe: "You said maybe.", cant: "You can't make it." };
+    var counts = { training: { going: 8, maybe: 2, cant: 1, none: 3 }, match: { going: 5, maybe: 3, cant: 2, none: 4 } };
+    var current = { training: null, match: null };
+    var names = { training: 'the training', match: 'the match' };
+    var labels = { going: "You're going to ", maybe: "You said maybe for ", cant: "You can't make " };
     var foot = document.getElementById('sceneFoot');
     var unread = document.getElementById('unread');
+    var status = document.getElementById('status');
 
-    function render() {
-      Object.keys(counts).forEach(function (k) {
-        document.getElementById('n-' + k).textContent = counts[k];
-        document.getElementById('b-' + k).style.flexGrow = counts[k];
+    function render(ev) {
+      var root = document.querySelector('.ev[data-ev="' + ev + '"]');
+      Object.keys(counts[ev]).forEach(function (k) {
+        root.querySelector('[data-n="' + k + '"]').textContent = counts[ev][k];
+        root.querySelector('[data-b="' + k + '"]').style.flexGrow = counts[ev][k];
       });
     }
 
     document.querySelectorAll('.ans').forEach(function (btn) {
       btn.addEventListener('click', function () {
+        var root = btn.closest('.ev');
+        var ev = root.getAttribute('data-ev');
         var a = btn.getAttribute('data-a');
-        if (a === current) return;
-        if (current) counts[current]--; else counts.none--;
-        counts[a]++;
-        current = a;
-        document.querySelectorAll('.ans').forEach(function (b) {
+        if (a === current[ev]) return;
+        counts[ev][current[ev] || 'none']--;
+        counts[ev][a]++;
+        current[ev] = a;
+        root.querySelectorAll('.ans').forEach(function (b) {
           b.setAttribute('aria-pressed', b === btn ? 'true' : 'false');
         });
-        render();
+        render(ev);
         scene.classList.add('quiet');
-        unread.textContent = 'Muted';
+        unread.textContent = 'Team talk only';
         foot.hidden = false;
-        document.getElementById('status').textContent = labels[a] + ' The chat went quiet.';
+        status.textContent = labels[a] + names[ev] + '. The attendance messages are gone, the team talk stayed.';
       });
     });
 
@@ -536,7 +561,7 @@
       scene.classList.remove('quiet');
       unread.textContent = '47 new messages';
       foot.hidden = true;
-      document.getElementById('status').textContent = current ? 'Your answer stays. The chat is back.' : 'Tap one. Watch the chat.';
+      status.textContent = (current.training || current.match) ? 'Your answers stay. The old way is back.' : 'Tap one. Watch the chat.';
     });
 
     document.querySelectorAll('.topup').forEach(function (b) {

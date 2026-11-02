@@ -50,7 +50,7 @@ class EventController(
         val members = attendanceService.teamMembers(teamId)
         val viewerId = currentUserGateway.requireCurrentUserId()
         val events =
-            if (request.queries.includepast) eventService.getAllEvents(teamId) else eventService.getUpcomingEvents()
+            if (request.queries.includePast) eventService.getAllEvents(teamId) else eventService.getUpcomingEvents()
         val attendance = attendanceService.attendanceForAll(events.map { it.id }, members)
         // The position vocabulary is fetched once for the whole listing, not per event: it is the
         // same list for every row, and it is both the label source and the row filter for the roster.
@@ -80,7 +80,7 @@ class EventController(
     override suspend fun getEvent(request: GetEvent.Request): GetEvent.Response<*> {
         val id = request.path.id.consumeEventId()
         val event = eventService.getEvent(id)
-            ?: return GetEvent.Response404(Unit)
+            ?: return GetEvent.Response404
 
         val teamId = currentTeamGateway.requireCurrentTeamId()
         val members = attendanceService.teamMembers(teamId)
@@ -128,7 +128,7 @@ class EventController(
             location = req.location?.let(::EventLocation),
             references = req.references.internalize(),
             rosterOverride = req.rosterOverride?.consume(),
-        ) ?: return UpdateEvent.Response404(Unit)
+        ) ?: return UpdateEvent.Response404
 
         val members = attendanceService.teamMembers(teamId)
         val attendance = attendanceService.attendanceForAll(events.map { it.id }, members)
@@ -143,9 +143,9 @@ class EventController(
         val userId = currentUserGateway.requireCurrentUserId()
         val id = request.path.id.consumeEventId()
         return if (eventService.deleteEvent(callerId = userId, teamId = teamId, id = id, scope = request.queries.scope.consume())) {
-            DeleteEvent.Response204(Unit)
+            DeleteEvent.Response204
         } else {
-            DeleteEvent.Response404(Unit)
+            DeleteEvent.Response404
         }
     }
 }

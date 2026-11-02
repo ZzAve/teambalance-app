@@ -16,6 +16,7 @@ export function authenticatedUser(activeTeam: AuthenticatedUser['activeTeam']): 
     isPlatformAdmin: false,
     actAs: undefined,
     personalPhotoVersion: undefined,
+    moneyPoolEnabled: activeTeam ? true : undefined,
   }
 }
 

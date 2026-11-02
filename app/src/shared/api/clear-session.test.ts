@@ -14,6 +14,7 @@ const USER: AuthenticatedUser = {
   isPlatformAdmin: false,
   actAs: undefined,
   personalPhotoVersion: undefined,
+  moneyPoolEnabled: undefined,
 }
 
 describe('clearSession', () => {

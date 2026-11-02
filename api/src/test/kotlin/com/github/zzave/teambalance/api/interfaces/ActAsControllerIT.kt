@@ -1,20 +1,14 @@
 package com.github.zzave.teambalance.api.interfaces
 
 import com.github.zzave.teambalance.api.TeamBalanceIT
-import com.github.zzave.teambalance.api.domain.port.EmailGateway
 import com.github.zzave.teambalance.api.infrastructure.email.FakeEmailGateway
 import com.github.zzave.teambalance.api.infrastructure.multitenancy.TenantSchemaAdapter
 import io.kotest.matchers.shouldBe
 import jakarta.servlet.http.Cookie
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.test.context.TestConfiguration
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
-import org.springframework.context.annotation.Bean
-import org.springframework.context.annotation.Import
-import org.springframework.context.annotation.Primary
 import org.springframework.http.MediaType
 import org.springframework.jdbc.core.JdbcTemplate
-import org.springframework.test.context.TestPropertySource
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.ResultActions
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder
@@ -36,19 +30,10 @@ private const val TEAM_SCHEMA = "team_act_as_it"
 private const val OTHER_TEAM_SCHEMA = "team_act_as_it_two"
 private const val OPERATOR_EMAIL = "act-as-it-operator@test.com"
 
-// Act-as is gated on the platform-admin allowlist, which is empty by default in the test profile
-// (fail-closed). The operator seeded below holds this email and is a Member of nothing (ADR-0024 §3).
+// Act-as is gated on the platform-admin allowlist; the test profile lists this email
+// (application-test.yml). The operator seeded below holds this email and is a Member of nothing (ADR-0024 §3).
 @AutoConfigureMockMvc
-@Import(ActAsControllerIT.TestConfig::class)
-@TestPropertySource(properties = ["teambalance.platform-admins=$OPERATOR_EMAIL"])
 class ActAsControllerIT : TeamBalanceIT() {
-
-    @TestConfiguration
-    class TestConfig {
-        @Bean
-        @Primary
-        fun emailGateway(): EmailGateway = FakeEmailGateway()
-    }
 
     @Autowired
     lateinit var mockMvc: MockMvc

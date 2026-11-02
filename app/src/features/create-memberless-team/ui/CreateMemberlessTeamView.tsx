@@ -70,7 +70,7 @@ export function CreateMemberlessTeamView({
           onChange={(e) => setName(e.target.value)}
           placeholder="e.g. Tovo Dames 5"
         />
-        {nameError && <p className="mt-1 text-small text-destructive">{nameError}</p>}
+        {nameError && <p className="mt-1 text-small text-red-ink">{nameError}</p>}
       </div>
 
       <div>
@@ -82,7 +82,7 @@ export function CreateMemberlessTeamView({
           onChange={(e) => setSlug(e.target.value)}
           placeholder="tovo-dames-5"
         />
-        {slugError && <p className="mt-1 text-small text-destructive">{slugError}</p>}
+        {slugError && <p className="mt-1 text-small text-red-ink">{slugError}</p>}
       </div>
 
       <Button type="submit" disabled={!canSubmit} className="self-start">

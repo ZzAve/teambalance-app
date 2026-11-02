@@ -16,6 +16,7 @@ function user(overrides: Partial<AuthenticatedUser> = {}): AuthenticatedUser {
     isPlatformAdmin: false,
     actAs: undefined,
     personalPhotoVersion: undefined,
+    moneyPoolEnabled: undefined,
     ...overrides,
   }
 }

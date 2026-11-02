@@ -2,12 +2,10 @@ package com.github.zzave.teambalance.api.interfaces
 
 import com.github.zzave.teambalance.api.TeamBalanceIT
 import com.github.zzave.teambalance.api.infrastructure.persistence.FAULT_USER_EMAIL
-import com.github.zzave.teambalance.api.infrastructure.persistence.FaultInjectingUserRepositoryConfig
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
-import org.springframework.context.annotation.Import
 import org.springframework.http.MediaType
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.test.web.servlet.MockMvc
@@ -31,7 +29,6 @@ import java.util.UUID
  * with no user created — exactly the state the guarantee forbids.
  */
 @AutoConfigureMockMvc
-@Import(FaultInjectingUserRepositoryConfig::class)
 class MagicLinkSignInBoundaryIT : TeamBalanceIT() {
 
     @Autowired

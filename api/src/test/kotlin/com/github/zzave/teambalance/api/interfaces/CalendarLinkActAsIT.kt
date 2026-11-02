@@ -8,7 +8,6 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
 import org.springframework.http.MediaType
 import org.springframework.jdbc.core.JdbcTemplate
-import org.springframework.test.context.TestPropertySource
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.ResultActions
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder
@@ -31,11 +30,9 @@ private const val OPERATOR_EMAIL = "cal-link-operator@test.com"
  * the generic Act-as Record to show for it. The check has to come before the membership one, and this
  * is what says so.
  *
- * Its own context because act-as needs the platform-admin allowlist, which is empty (fail-closed) in
- * the shared test profile.
+ * Act-as needs the platform-admin allowlist; the test profile (application-test.yml) lists the operator.
  */
 @AutoConfigureMockMvc
-@TestPropertySource(properties = ["teambalance.platform-admins=$OPERATOR_EMAIL"])
 class CalendarLinkActAsIT : TeamBalanceIT() {
 
     @Autowired

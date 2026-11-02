@@ -50,7 +50,7 @@ class ActAsController(
 
     override suspend fun exitActAs(request: ExitActAs.Request): ExitActAs.Response<*> {
         actAsService.exit(currentUserGateway.requireCurrentUserId())
-        return ExitActAs.Response204(Unit)
+        return ExitActAs.Response204
     }
 
     /**

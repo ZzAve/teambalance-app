@@ -75,9 +75,9 @@ export function EditProfileForm({
           aria-invalid={touched && nameError ? true : undefined}
           placeholder="Your name"
         />
-        {touched && nameError && <p className="mt-1 text-small text-red">{nameError}</p>}
+        {touched && nameError && <p className="mt-1 text-small text-red-ink">{nameError}</p>}
         {errorCode === 'NAME_TAKEN' && (
-          <p className="mt-1 text-small text-red">That display name is already taken.</p>
+          <p className="mt-1 text-small text-red-ink">That display name is already taken.</p>
         )}
       </div>
 
@@ -93,7 +93,7 @@ export function EditProfileForm({
               setTouched(true)
             }}
           />
-          {touched && positionError && <p className="mt-1 text-small text-red">{positionError}</p>}
+          {touched && positionError && <p className="mt-1 text-small text-red-ink">{positionError}</p>}
         </div>
       )}
 
@@ -113,9 +113,9 @@ export function EditProfileForm({
             placeholder="None"
             className="w-24"
           />
-          {touched && shirtNumber.error && <p className="mt-1 text-small text-red">{shirtNumber.error}</p>}
+          {touched && shirtNumber.error && <p className="mt-1 text-small text-red-ink">{shirtNumber.error}</p>}
           {errorCode === 'NUMBER_TAKEN' && (
-            <p className="mt-1 text-small text-red">That shirt number is already taken.</p>
+            <p className="mt-1 text-small text-red-ink">That shirt number is already taken.</p>
           )}
         </div>
       )}

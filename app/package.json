@@ -46,8 +46,8 @@
   "devDependencies": {
     "@eslint/js": "9.39.5",
     "@playwright/test": "1.62.1",
-    "@storybook/addon-vitest": "10.5.9",
-    "@storybook/react-vite": "10.5.9",
+    "@storybook/addon-vitest": "10.6.2",
+    "@storybook/react-vite": "10.6.2",
     "@tailwindcss/vite": "4.3.3",
     "@tanstack/router-cli": "1.167.21",
     "@tanstack/router-plugin": "1.168.23",

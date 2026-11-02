@@ -42,7 +42,7 @@ class InvitationController(
         val teamId = currentTeamGateway.requireCurrentTeamId()
 
         val invitation = invitationService.activeInviteLink(callerId = userId, teamId = teamId)
-            ?: return GetActiveInvitation.Response204(Unit)
+            ?: return GetActiveInvitation.Response204
         return GetActiveInvitation.Response200(
             Invitation(
                 token = invitation.token.value,
@@ -96,7 +96,7 @@ class InvitationController(
         val teamId = currentTeamGateway.requireCurrentTeamId()
 
         val invitation = invitationService.activeAdminInviteLink(callerId = userId, teamId = teamId)
-            ?: return GetActiveAdminInvitation.Response204(Unit)
+            ?: return GetActiveAdminInvitation.Response204
         return GetActiveAdminInvitation.Response200(
             Invitation(token = invitation.token.value, expiresAt = invitation.expiresAt.toString()),
         )
@@ -123,13 +123,13 @@ class InvitationController(
         val teamId = currentTeamGateway.requireCurrentTeamId()
 
         invitationService.expireAdminInviteLinks(callerId = userId, teamId = teamId)
-        return ExpireAdminInvitations.Response204(Unit)
+        return ExpireAdminInvitations.Response204
     }
 
     override suspend fun acceptInvitation(request: AcceptInvitation.Request): AcceptInvitation.Response<*> {
         val userId = currentUserGateway.requireCurrentUserId()
         val teamId = invitationService.acceptInvitation(request.path.token, userId)
-            ?: return AcceptInvitation.Response404(Unit)
+            ?: return AcceptInvitation.Response404
         return AcceptInvitation.Response200(AcceptedInvitation(teamId = teamId.produce()))
     }
 
@@ -138,7 +138,7 @@ class InvitationController(
         val teamId = currentTeamGateway.requireCurrentTeamId()
 
         invitationService.expireActiveInvitations(callerId = userId, teamId = teamId)
-        return ExpireInvitations.Response204(Unit)
+        return ExpireInvitations.Response204
     }
 
     override suspend fun rotateInvitation(request: RotateInvitation.Request): RotateInvitation.Response<*> {

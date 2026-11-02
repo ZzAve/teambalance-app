@@ -115,7 +115,7 @@ function InvitePage() {
           {requestMagicLink.isPending ? 'Sending...' : 'Send magic link'}
         </Button>
         {requestMagicLink.isError && (
-          <p className="text-center text-small text-red">Something went wrong. Please try again.</p>
+          <p className="text-center text-small text-red-ink">Something went wrong. Please try again.</p>
         )}
       </form>
     </div>

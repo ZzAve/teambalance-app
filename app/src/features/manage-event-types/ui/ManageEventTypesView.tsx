@@ -128,14 +128,14 @@ export function ManageEventTypesView({
 
       {isLoading && <p className="mt-4 text-small text-muted-foreground">Loading…</p>}
       {isError && (
-        <p className="mt-4 text-small text-red">Couldn't load event types. Please try again.</p>
+        <p className="mt-4 text-small text-red-ink">Couldn't load event types. Please try again.</p>
       )}
 
       {!isLoading && !isError && (
         <div className="mt-4 flex flex-col gap-3">
           {/* Every code the container can hand down renders something. A save that failed and said
               nothing is indistinguishable from one that worked. */}
-          {errorCode && <p className="text-small text-red">{ERROR_MESSAGES[errorCode] ?? FALLBACK_ERROR}</p>}
+          {errorCode && <p className="text-small text-red-ink">{ERROR_MESSAGES[errorCode] ?? FALLBACK_ERROR}</p>}
 
           {active.length === 0 ? (
             <p className="text-small text-muted-foreground">No event types yet. Add one below.</p>

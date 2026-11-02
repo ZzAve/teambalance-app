@@ -41,7 +41,7 @@ export function GetStartedView({
       </p>
 
       {isLoading && <p className="mt-6 text-small text-muted-foreground">Loading…</p>}
-      {isError && <p className="mt-6 text-small text-red">Couldn't load your profile. Please try again.</p>}
+      {isError && <p className="mt-6 text-small text-red-ink">Couldn't load your profile. Please try again.</p>}
 
       {member && (
         <div className="mt-6 flex flex-col gap-4">

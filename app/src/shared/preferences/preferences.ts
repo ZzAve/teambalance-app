@@ -24,8 +24,8 @@ const PREFIX = 'tb.pref'
  * A per-team key. Preferences are per team, not per member-across-teams: someone who plays in two
  * teams must not carry one team's event-type filter into the other (ADR-0030 §4).
  *
- * The `tb` prefix is the same convention as the existing client-side keys (`tb-theme`,
- * `tb.money-vote.<slug>`); the `pref` segment keeps this namespace apart from them.
+ * The `tb` prefix is the same convention as the existing client-side keys (`tb-theme`); the `pref`
+ * segment keeps this namespace apart from them.
  */
 export function teamPreferenceKey(teamSlug: string, name: string): string {
   return `${PREFIX}.${teamSlug}.${name}`

@@ -15,15 +15,13 @@ import org.springframework.mock.web.MockHttpServletRequest
 import org.springframework.mock.web.MockHttpServletResponse
 import org.springframework.mock.web.MockHttpSession
 import org.springframework.web.context.request.RequestContextHolder
-import org.springframework.test.context.TestPropertySource
 import org.springframework.web.context.request.ServletRequestAttributes
 import java.util.UUID
 
 private const val PLATFORM_ADMIN_EMAIL = "act-as-operator@test.com"
 
-// The test profile's allowlist is empty (fail-closed), so pin one email for the act-as cases below;
+// The test profile's allowlist (application-test.yml) holds this email for the act-as cases below;
 // the operator user is seeded with it, and is deliberately a Member of nothing (ADR-0024 §3).
-@TestPropertySource(properties = ["teambalance.platform-admins=$PLATFORM_ADMIN_EMAIL"])
 class SessionTenantContextFilterTest : TeamBalanceIT() {
 
     @Autowired

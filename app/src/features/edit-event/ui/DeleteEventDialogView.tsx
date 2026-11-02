@@ -55,7 +55,7 @@ export function DeleteEventDialogView({
         />
       )}
       {isError && (
-        <p className="rounded-lg border border-red/40 bg-red/10 px-3 py-2 text-small text-red">
+        <p className="rounded-lg border border-red/40 bg-red/10 px-3 py-2 text-small text-red-ink">
           Could not delete the event. Please try again.
         </p>
       )}

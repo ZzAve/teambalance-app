@@ -24,7 +24,7 @@ export function usePositions(options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: ['positions'],
     queryFn: async () => {
-      const res = await api.ListPositions()
+      const res = await api.listPositions()
       // A 401 is handled globally (redirect to login) by the fetch handler; fall back to empty here.
       return res.body?.positions ?? []
     },
@@ -41,8 +41,8 @@ export function usePositionUsage(id: string | null) {
   return useQuery({
     queryKey: ['positions', id, 'usage'],
     queryFn: async () => {
-      const res = await api.GetPositionUsage({ id: id as string })
-      return res.body
+      const res = await api.getPositionUsage({ id: id as string })
+      return res.body ?? undefined
     },
     enabled: id !== null,
   })
@@ -52,7 +52,7 @@ export function useCreatePosition() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async ({ label }: { label: string }) => {
-      const res = await api.CreatePosition({ body: { label } })
+      const res = await api.createPosition({ body: { label } })
       if (res.status === 409) throw new PositionError('POSITION_LABEL_TAKEN', 'That position already exists.')
       if (res.status === 403) throw new PositionError('FORBIDDEN', 'You are not allowed to make this change.')
       return res.body
@@ -65,7 +65,7 @@ export function useRenamePosition() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async ({ id, label }: { id: string; label: string }) => {
-      const res = await api.RenamePosition({ id, body: { label } })
+      const res = await api.renamePosition({ id, body: { label } })
       if (res.status === 409) throw new PositionError('POSITION_LABEL_TAKEN', 'That position already exists.')
       if (res.status === 403) throw new PositionError('FORBIDDEN', 'You are not allowed to make this change.')
       if (res.status === 404) throw new PositionError('NOT_FOUND', 'Position not found.')
@@ -92,7 +92,7 @@ export function useSetPositionKind() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async ({ id, kind }: { id: string; kind: PositionKind }) => {
-      const res = await api.SetPositionKind({ id, body: { kind } })
+      const res = await api.setPositionKind({ id, body: { kind } })
       if (res.status === 403) throw new PositionError('FORBIDDEN', 'You are not allowed to make this change.')
       if (res.status === 404) throw new PositionError('NOT_FOUND', 'Position not found.')
       return res.body
@@ -108,7 +108,7 @@ export function useDeletePosition() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async ({ id }: { id: string }) => {
-      const res = await api.DeletePosition({ id })
+      const res = await api.deletePosition({ id })
       if (res.status === 403) throw new PositionError('FORBIDDEN', 'You are not allowed to remove this position.')
       if (res.status === 404) throw new PositionError('NOT_FOUND', 'Position not found.')
     },

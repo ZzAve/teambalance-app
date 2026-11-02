@@ -11,6 +11,7 @@ import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers
 import java.util.UUID
+import com.github.zzave.teambalance.api.infrastructure.identity.loginAs
 
 private const val JAN_USER_ID = "b0000000-0000-0000-0000-000000000001"
 private const val TEAM_ID = "a0000000-0000-0000-0000-000000000001"
@@ -64,8 +65,8 @@ class EventReferencesControllerTest : TeamBalanceIT() {
 
             val mvcResult = mockMvc.perform(
                 MockMvcRequestBuilders.post("/api/events")
-                    .header("X-Team-Id", "public")
-                    .header("X-User-Id", JAN_USER_ID)
+                    .with(loginAs(JAN_USER_ID, tenant = "public"))
+                    
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(
                         """
@@ -117,8 +118,8 @@ class EventReferencesControllerTest : TeamBalanceIT() {
 
             val mvcResult = mockMvc.perform(
                 MockMvcRequestBuilders.post("/api/events")
-                    .header("X-Team-Id", "public")
-                    .header("X-User-Id", JAN_USER_ID)
+                    .with(loginAs(JAN_USER_ID, tenant = "public"))
+                    
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(
                         """
@@ -178,8 +179,8 @@ class EventReferencesControllerTest : TeamBalanceIT() {
 
             val mvcResult = mockMvc.perform(
                 MockMvcRequestBuilders.put("/api/events/$eventId")
-                    .header("X-Team-Id", "public")
-                    .header("X-User-Id", JAN_USER_ID)
+                    .with(loginAs(JAN_USER_ID, tenant = "public"))
+                    
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(
                         """

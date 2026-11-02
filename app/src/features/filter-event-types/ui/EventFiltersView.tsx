@@ -1,8 +1,15 @@
-import { useEffect, useState } from 'react'
+import { useState, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 import { SlidersHorizontal } from 'lucide-react'
 import type { EventTypeItem } from '@shared/api/event-types'
 import type { AttendanceState } from '@features/attendance-toggle/ui/AttendanceToggle'
-import { ALL_ATTENDANCE_STATES } from '../model/attendance-states'
+import { ATTENDANCE_WORDS } from '@entities/event/lib/attendance-words'
+import { SectionLabel } from '@shared/ui/SectionLabel'
+import { Switch } from '@shared/ui/switch'
+import { Chip } from '@shared/ui/chip'
+import { EventTypeChip } from '@entities/event/ui/EventTypeChip'
+import { useEscapeToClose } from '@shared/lib/use-escape-to-close'
+import { ALL_ATTENDANCE_STATES } from '@entities/event/lib/attendance-states'
 import { ALL_TURNOUT_BUCKETS, type TurnoutBucket } from '../model/turnout'
 
 interface EventFiltersViewProps {
@@ -27,31 +34,40 @@ interface EventFiltersViewProps {
   onToggleShowPast: (showPast: boolean) => void
   /** Resets every dimension. Offered next to the trigger whenever a filter is in effect. */
   onClearFilters: () => void
+  /**
+   * Where the filters open: an element below the page header, so the open section pushes the list
+   * down. Null until the page has mounted it; nothing opens until then.
+   */
+  inlineSlot: HTMLElement | null
+  /** A last row for the open section: the page's view switch ("Keep panels open"). */
+  viewRow?: ReactNode
 }
 
-/** The answer chips, worded as the member's own answer control words them (#273, CONTEXT.md). */
-const STATE_CHIPS: { state: AttendanceState; label: string; active: string; inactive: string }[] = [
+/** The answer chips, worded as the member's own answer control words them (#273, CONTEXT.md).
+ *  Exported for `EventFiltersView.chips.test.ts` — a bare `text-gold` fails contrast as ink (#336),
+ *  so `inactive` must always reach for `text-gold-ink` instead. */
+export const STATE_CHIPS: { state: AttendanceState; label: string; active: string; inactive: string }[] = [
   {
     state: 'ATTENDING',
-    label: 'Going',
+    label: ATTENDANCE_WORDS.ATTENDING.word,
     active: 'bg-green border-green text-white',
     inactive: 'border-green/40 text-green',
   },
   {
     state: 'MAYBE',
-    label: 'Maybe',
+    label: ATTENDANCE_WORDS.MAYBE.word,
     active: 'bg-gold border-gold text-white',
-    inactive: 'border-gold/40 text-gold',
+    inactive: 'border-gold/40 text-gold-ink',
   },
   {
     state: 'ABSENT',
-    label: "Can't",
+    label: ATTENDANCE_WORDS.ABSENT.word,
     active: 'bg-red border-red text-white',
-    inactive: 'border-red/40 text-red',
+    inactive: 'border-red/40 text-red-ink',
   },
   {
     state: 'NOT_RESPONDED',
-    label: 'Not responded',
+    label: ATTENDANCE_WORDS.NOT_RESPONDED.word,
     // No semantic color: not responding is the absence of an answer, not a fourth verdict.
     active: 'bg-muted-foreground border-muted-foreground text-white',
     inactive: 'border-muted-foreground/40 text-muted-foreground',
@@ -64,18 +80,18 @@ const STATE_CHIPS: { state: AttendanceState; label: string; active: string; inac
  * thing about a state. `No target set` carries none: a tally and a social are not verdicts, and
  * colouring them would invent the judgement the card deliberately withholds (ADR-0029 §4).
  */
-const TURNOUT_CHIPS: { bucket: TurnoutBucket; label: string; active: string; inactive: string }[] = [
+export const TURNOUT_CHIPS: { bucket: TurnoutBucket; label: string; active: string; inactive: string }[] = [
   {
     bucket: 'missing-position',
     label: 'Missing a position',
     active: 'bg-red border-red text-white',
-    inactive: 'border-red/40 text-red',
+    inactive: 'border-red/40 text-red-ink',
   },
   {
     bucket: 'spots-open',
     label: 'Spots open',
     active: 'bg-gold border-gold text-white',
-    inactive: 'border-gold/40 text-gold',
+    inactive: 'border-gold/40 text-gold-ink',
   },
   {
     bucket: 'covered',
@@ -91,11 +107,15 @@ const TURNOUT_CHIPS: { bucket: TurnoutBucket; label: string; active: string; ina
   },
 ]
 
+function Divider() {
+  return <div className="-mx-3.5 my-3.5 h-px bg-border/60" />
+}
+
 /**
- * The events page's single filter control: an icon button that opens a popover holding the
- * event-type chips, the answer chips, the Turnout chips and the "Show past events" switch — plus a
- * `Clear filters` button beside it whenever any of them is in effect (ADR-0030 §2). It
- * replaces the old Upcoming/Past segmented tab bar — past events are a filter, not a mode, and the
+ * The events page's single filter control: an icon button that opens an inline section below the
+ * page header, holding the event-type chips, the answer chips, the Turnout chips, the "Show past
+ * events" switch and, as its last row, the page's view switch — plus a `Clear filters` button beside
+ * it whenever any filter is in effect (ADR-0030 §2, §3). It replaces the old Upcoming/Past segmented tab bar — past events are a filter, not a mode, and the
  * page no longer spends a band of chrome on a control that only flipped which way the same list grew.
  *
  * Each chip group is a total partition of the list, so "all chips on" is the unfiltered default and
@@ -103,7 +123,7 @@ const TURNOUT_CHIPS: { bucket: TurnoutBucket; label: string; active: string; ina
  * owns the one toggler every group shares. Groups come from the data: the type chips render only
  * when the team has types, and the Turnout group only when the list spans two of its bands (§5).
  *
- * Prop-only apart from the popover's own open/closed state, which is local view state: the three
+ * Prop-only apart from the section's own open/closed state, which is local view state: the three
  * selections and the show-past flag live in the route so they can drive `useEvents`, the hero and
  * Bulk Attend.
  */
@@ -120,9 +140,11 @@ export function EventFiltersView({
   onToggleTurnout,
   onToggleShowPast,
   onClearFilters,
+  inlineSlot,
+  viewRow,
 }: EventFiltersViewProps) {
   const [open, setOpen] = useState(false)
-  // A dot on the trigger so an active filter is visible with the popover closed — otherwise a
+  // A dot on the trigger so an active filter is visible with the section closed — otherwise a
   // filtered list looks like an empty one. Every dimension counts, or the answer chips would narrow
   // the list invisibly.
   const hasActiveFilter =
@@ -131,29 +153,104 @@ export function EventFiltersView({
     activeStates.size < ALL_ATTENDANCE_STATES.length ||
     activeTurnouts.size < ALL_TURNOUT_BUCKETS.length
 
-  // Escape has to be caught on the document: focus stays on the trigger, which is a sibling of the
-  // popover, so a handler on the panel itself would never see the key.
-  useEffect(() => {
-    if (!open) return
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setOpen(false)
-    }
-    document.addEventListener('keydown', onKeyDown)
-    return () => document.removeEventListener('keydown', onKeyDown)
-  }, [open])
+  useEscapeToClose(open, () => setOpen(false))
+
+  const content = (
+    <>
+      {/* A team with no event types (or a types request that failed) still gets the past
+          toggle — it is the only way to reach past events now that the tab bar is gone. */}
+      {eventTypes.length > 0 && (
+        <>
+          <div role="group" aria-labelledby="event-types-filter-heading">
+            <SectionLabel as="h3" id="event-types-filter-heading" className="mb-2.5">
+              Event types
+            </SectionLabel>
+            <div className="flex flex-wrap gap-2">
+              {eventTypes.map((type) => (
+                <EventTypeChip
+                  key={type.id}
+                  type={type}
+                  pressed={activeTypeIds.has(type.id)}
+                  onToggle={() => onToggleType(type.id)}
+                />
+              ))}
+            </div>
+          </div>
+
+          <Divider />
+        </>
+      )}
+
+      <div role="group" aria-labelledby="your-answer-filter-heading">
+        <SectionLabel as="h3" id="your-answer-filter-heading" className="mb-2.5">
+          Your answer
+        </SectionLabel>
+        <div className="flex flex-wrap gap-2">
+          {STATE_CHIPS.map(({ state, label, active, inactive }) => (
+            <Chip
+              key={state}
+              pressed={activeStates.has(state)}
+              onToggle={() => onToggleState(state)}
+              activeClassName={active}
+              inactiveClassName={inactive}
+            >
+              {label}
+            </Chip>
+          ))}
+        </div>
+      </div>
+
+      {showTurnout && (
+        <>
+          <Divider />
+
+          <div role="group" aria-labelledby="turnout-filter-heading">
+            <SectionLabel as="h3" id="turnout-filter-heading" className="mb-2.5">
+              Turnout
+            </SectionLabel>
+            <div className="flex flex-wrap gap-2">
+              {TURNOUT_CHIPS.map(({ bucket, label, active, inactive }) => (
+                <Chip
+                  key={bucket}
+                  pressed={activeTurnouts.has(bucket)}
+                  onToggle={() => onToggleTurnout(bucket)}
+                  activeClassName={active}
+                  inactiveClassName={inactive}
+                >
+                  {label}
+                </Chip>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
+
+      <Divider />
+
+      <div className="flex items-center justify-between gap-2.5">
+        <div>
+          <div className="text-small font-semibold">Show past events</div>
+          <div className="mt-0.5 text-caption text-muted-foreground">
+            {showPast ? 'On — past events included' : 'Off — upcoming only'}
+          </div>
+        </div>
+        <Switch checked={showPast} onCheckedChange={onToggleShowPast} aria-label="Show past events" />
+      </div>
+    </>
+  )
 
   return (
     <div className="flex items-center gap-2">
       {/* A restored filter must never be invisible (ADR-0030 §2). The dot below says *that*
           something is filtered; this says how to undo it — the one thing a member who did not set
           the filter this visit actually needs. Deliberately not a summary chip row naming the active
-          filters: variable height above a list on a phone is the cost the popover was chosen to
-          avoid (ADR-0029 §4). It replaces the button that used to sit on the empty state, which
+          filters: variable height above a list on a phone is the cost a closed filter control
+          avoids (ADR-0029 §4). It replaces the button that used to sit on the empty state, which
           could only be reached once the filter had already emptied the list. */}
       {hasActiveFilter && (
         <button
           onClick={onClearFilters}
-          className="flex h-11 shrink-0 items-center rounded-xl border border-border/60 bg-card px-3 text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground"
+          className="flex h-11 shrink-0 items-center rounded-md border border-border/60 bg-card px-3 text-caption font-semibold text-muted-foreground transition-colors hover:text-foreground"
         >
           Clear filters
         </button>
@@ -163,9 +260,8 @@ export function EventFiltersView({
         <button
           aria-label="Filters"
           aria-expanded={open}
-          aria-haspopup="dialog"
           onClick={() => setOpen((wasOpen) => !wasOpen)}
-          className="relative flex h-11 w-11 items-center justify-center rounded-xl border border-border/60 bg-card text-muted-foreground transition-colors hover:text-foreground"
+          className="relative flex h-11 w-11 items-center justify-center rounded-md border border-border/60 bg-card text-muted-foreground transition-colors hover:text-foreground"
         >
           <SlidersHorizontal size={16} />
           {hasActiveFilter && (
@@ -176,153 +272,26 @@ export function EventFiltersView({
           )}
         </button>
 
-        {/* The result count is announced, not shown: a member who taps a chip inside a popover gets no
-            other feedback that the list behind it moved. */}
+        {/* The result count is announced, not shown: a member who taps a chip gets no other
+            feedback that the list below moved. */}
         <p aria-live="polite" className="sr-only">
           {resultCount === 1 ? '1 event matches these filters' : `${resultCount} events match these filters`}
         </p>
 
-        {open && (
-          <>
-            {/* Click-outside catcher. Not focusable — Escape and the trigger are the keyboard paths. */}
-            <div
-              className="fixed inset-0 z-40 bg-black/20"
-              aria-hidden="true"
-              onClick={() => setOpen(false)}
-            />
-            <div
-              role="dialog"
-              aria-label="Filters"
-              className="card-shadow-hover absolute right-0 top-12 z-50 w-[248px] origin-top-right rounded-2xl border border-border/60 bg-card p-3.5"
-            >
-              {/* A team with no event types (or a types request that failed) still gets the past
-                  toggle — it is the only way to reach past events now that the tab bar is gone. */}
-              {eventTypes.length > 0 && (
+        {open &&
+          inlineSlot &&
+          createPortal(
+            <div role="region" aria-label="Filters" className="mt-3 rounded-lg border border-border/60 bg-card p-3.5">
+              {content}
+              {viewRow && (
                 <>
-                  <div role="group" aria-labelledby="event-types-filter-heading">
-                    <h3
-                      id="event-types-filter-heading"
-                      className="mb-2.5 text-[11px] font-bold uppercase tracking-[0.09em] text-muted-foreground"
-                    >
-                      Event types
-                    </h3>
-                    <div className="flex flex-wrap gap-2">
-                      {eventTypes.map((type) => {
-                        const isActive = activeTypeIds.has(type.id)
-                        const color = type.color ?? '#888'
-                        return (
-                          <button
-                            key={type.id}
-                            aria-pressed={isActive}
-                            onClick={() => onToggleType(type.id)}
-                            style={
-                              isActive
-                                ? { backgroundColor: color, borderColor: color, color: '#fff' }
-                                : { borderColor: color + '66', color }
-                            }
-                            className="shrink-0 rounded-full border px-3 py-1.5 text-xs font-semibold transition-all"
-                          >
-                            {type.name}
-                          </button>
-                        )
-                      })}
-                    </div>
-                  </div>
-
-                  <div className="-mx-3.5 my-3.5 h-px bg-border/60" />
+                  <Divider />
+                  {viewRow}
                 </>
               )}
-
-              <div role="group" aria-labelledby="your-answer-filter-heading">
-                <h3
-                  id="your-answer-filter-heading"
-                  className="mb-2.5 text-[11px] font-bold uppercase tracking-[0.09em] text-muted-foreground"
-                >
-                  Your answer
-                </h3>
-                <div className="flex flex-wrap gap-2">
-                  {STATE_CHIPS.map(({ state, label, active, inactive }) => {
-                    const isActive = activeStates.has(state)
-                    return (
-                      <button
-                        key={state}
-                        aria-pressed={isActive}
-                        onClick={() => onToggleState(state)}
-                        className={[
-                          'shrink-0 rounded-full border px-3 py-1.5 text-xs font-semibold transition-all',
-                          isActive ? active : inactive,
-                        ].join(' ')}
-                      >
-                        {label}
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-
-              {showTurnout && (
-                <>
-                  <div className="-mx-3.5 my-3.5 h-px bg-border/60" />
-
-                  <div role="group" aria-labelledby="turnout-filter-heading">
-                    <h3
-                      id="turnout-filter-heading"
-                      className="mb-2.5 text-[11px] font-bold uppercase tracking-[0.09em] text-muted-foreground"
-                    >
-                      Turnout
-                    </h3>
-                    <div className="flex flex-wrap gap-2">
-                      {TURNOUT_CHIPS.map(({ bucket, label, active, inactive }) => {
-                        const isActive = activeTurnouts.has(bucket)
-                        return (
-                          <button
-                            key={bucket}
-                            aria-pressed={isActive}
-                            onClick={() => onToggleTurnout(bucket)}
-                            className={[
-                              'shrink-0 rounded-full border px-3 py-1.5 text-xs font-semibold transition-all',
-                              isActive ? active : inactive,
-                            ].join(' ')}
-                          >
-                            {label}
-                          </button>
-                        )
-                      })}
-                    </div>
-                  </div>
-                </>
-              )}
-
-              <div className="-mx-3.5 my-3.5 h-px bg-border/60" />
-
-              <div className="flex items-center justify-between gap-2.5">
-                <div>
-                  <div className="text-[13.5px] font-semibold">Show past events</div>
-                  <div className="mt-0.5 text-[11.5px] text-muted-foreground">
-                    {showPast ? 'On — past events included' : 'Off — upcoming only'}
-                  </div>
-                </div>
-                <button
-                  role="switch"
-                  aria-checked={showPast}
-                  aria-label="Show past events"
-                  onClick={() => onToggleShowPast(!showPast)}
-                  className={[
-                    'relative h-6 w-11 shrink-0 rounded-full transition-colors',
-                    showPast ? 'bg-green' : 'bg-muted-foreground/30',
-                  ].join(' ')}
-                >
-                  <span
-                    className={[
-                      'absolute top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-[left] duration-200',
-                      showPast ? 'left-[22px]' : 'left-0.5',
-                    ].join(' ')}
-                  />
-                </button>
-              </div>
-            </div>
-          </>
-        )}
+            </div>,
+            inlineSlot,
+          )}
       </div>
     </div>
   )

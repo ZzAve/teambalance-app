@@ -22,7 +22,10 @@
      kept as a fallback so the shared tokens stay valid for www/ (which still uses the CDN). */
   --font-display: 'Grandstander Variable', 'Grandstander', cursive;
   --font-body: 'DM Sans Variable', 'DM Sans', sans-serif;
-  --radius: 0.625rem;
+  /* The Next Up hero's ink: the hero sets --hero-ink to white or near-black depending on its ground
+     (widgets/next-event-hero). Inline, so `text-hero-ink/90` is a colour-mix over the variable itself
+     rather than over a :root value where --hero-ink is not defined. */
+  --color-hero-ink: var(--hero-ink);
 }
 
 /* ── Colour theme — NOT `inline`, and that is the whole trick behind dark mode (F11, #159) ──
@@ -41,9 +44,15 @@
   --color-green: #249E6C;
   --color-gold: #F4B400;
   /* Brand red — the same value tokens.css binds --color-absent to. Exposed here so components can
-     say bg-red/text-red/border-red instead of reaching for Tailwind's own default red (#EF4444),
+     say bg-red/border-red (text uses text-red-ink, below) instead of reaching for Tailwind's own default red (#EF4444),
      which is not ours (F9, #159). Keep in sync with design-tokens/tokens.css, like the three above. */
   --color-red: #D93025;
+  /* Substitutes' colour (ADR-0033): fills and borders use purple, text uses purple-ink. The fill
+     stays one value in both themes because avatars also sit white text on it (shared/lib/avatar).
+     Purple as text needs its own dark step, the same split gold-ink makes below: the `.dark`
+     override re-points purple-ink to #A68BD0 (5.9:1 on the dark card, where #7B5EA7 is 3.3:1). */
+  --color-purple: #7B5EA7;
+  --color-purple-ink: #7B5EA7;
   /* The `-dark` ramps of the same three hues, promoted from design-tokens/tokens.css. Tailwind 4
      generates a utility only for what @theme declares, so `text-green-dark` silently produced
      nothing before this. The roster panel (#219) needs the full triple per hue: the plain hue as a
@@ -53,6 +62,25 @@
   --color-green-dark: #1D7F57;
   --color-gold-dark: #C89200;
   --color-red-dark: #B71C1C;
+  /* Red as text, the same split gold-ink makes below. Plain red is 4.42:1 on
+     --color-background and 4.70:1 on --color-card, under the 4.5:1 that 13px text needs on the
+     former. This light value is 6.08:1 on the background and 6.46:1 on the card; the `.dark`
+     override re-points it to the lifted red, which is 5.36:1 and 4.93:1 there. Use text-red-ink for
+     all red text (icons and fills excepted). Fills and borders stay on the plain red, and so do icons; an icon that inherits
+     currentColor from a text-red-ink element follows the text. */
+  --color-red-ink: #B71C1C;
+  /* Gold-dark itself is only a chip-ground ink: 6.2:1 on the dark card, but a mere 2.7:1 on the
+     light --color-card and 2.6:1 on --color-background (relative-luminance/WCAG formula), well
+     under the 4.5:1 floor normal-size text needs — it was never meant to sit directly on either
+     bare light surface (#336). One flat hex can't clear 4.5:1 against both a near-white card and a
+     near-black dark card (the luminance bands that satisfy each don't overlap), so this needs the
+     same per-theme lift blue/red got above: light gets a darker step (5.1:1 on card, 4.8:1 on
+     background), and the `.dark` override below re-points it to gold-dark's own value, which
+     already clears 4.5:1 there. Use this wherever gold is *ink* (text/icon colour) on a bare light
+     or dark card/background — bg-gold-ink / text-gold-ink / border-gold-ink. Where gold is a fill
+     under white text, or ink on top of a gold tint chip (bg-gold/15 and friends), the plain hue or
+     -dark ramp are still correct and unaffected by this token. */
+  --color-gold-ink: #8C6600;
   --color-border: hsl(214.3 31.8% 91.4%);
   --color-input: hsl(214.3 31.8% 91.4%);
   --color-ring: hsl(222.2 84% 4.9%);
@@ -68,7 +96,10 @@
   --color-destructive: var(--color-red);
   --color-destructive-foreground: hsl(210 40% 98%);
   --color-muted: hsl(210 40% 96.1%);
-  --color-muted-foreground: hsl(215.4 16.3% 46.9%);
+  /* Shadcn's stock 46.9% lightness is 4.40:1 on --color-background and 4.34:1 on --color-muted,
+     under the 4.5:1 floor for the 11–13px text it labels. 45% clears it on every light surface it
+     sits on: background 4.71, muted/accent/secondary 4.64, card 5.0, popover 5.09. */
+  --color-muted-foreground: hsl(215.4 16.3% 45%);
   --color-accent: hsl(210 40% 96.1%);
   --color-accent-foreground: hsl(222.2 47.4% 11.2%);
   --color-popover: hsl(0 0% 100%);
@@ -81,6 +112,66 @@
   --color-sidebar-accent-foreground: hsl(240 5.9% 10%);
   --color-sidebar-border: hsl(220 13% 91%);
   --color-sidebar-ring: hsl(217.2 91.2% 59.8%);
+
+  /* ── Type scale (#338) — the six sizes the app actually uses, replacing 58 arbitrary
+     `text-[…px]` call sites and the whole Tailwind default scale. Variant B of the prototype on
+     prototype/ux-review-338-339-341 (see prototype-type-scale.css there): caption 11 · small 13 ·
+     body 15 · lead 17 · title 22 · page 28. Line-heights follow category, not step, exactly as the
+     prototype does — caption/small are labels (1.3), body/lead are reading text (1.5), title/page
+     are headlines (1.15) — a few call sites (the date chit, the hero digit, the two card titles)
+     carry their own explicit `leading-none`/`leading-tight` utility that wins over this default
+     where the looser category line-height would move layout. This sits in plain `@theme`, not
+     `@theme inline`, for the same reason the colour block above does: `@theme inline` bakes the
+     literal into every generated utility, so nothing downstream could ever re-point it, and
+     tokens.css's own copy of these values (kept in sync there) is the intended override target if
+     one is ever needed. This replaces the dead `--text-xs…4xl` block removed from
+     design-tokens/tokens.css — nothing consumed those. Arbitrary sizes are linted out by
+     eslint.config.js's no-restricted-syntax rule; use these six steps instead. */
+  --text-caption: 11px;
+  --text-caption--line-height: 1.3;
+  --text-small: 13px;
+  --text-small--line-height: 1.3;
+  --text-body: 15px;
+  --text-body--line-height: 1.5;
+  --text-lead: 17px;
+  --text-lead--line-height: 1.5;
+  --text-title: 22px;
+  --text-title--line-height: 1.15;
+  --text-page: 28px;
+  --text-page--line-height: 1.15;
+
+  /* Tailwind's own named scale, remapped onto the same six steps so a bare `text-sm`/`text-base`
+     etc. (third-party defaults, anything not yet migrated) lands on the scale too instead of
+     Tailwind's stock sizes. `sm`/`base` and `xl`/`2xl` each collapse onto one step on purpose —
+     both names stay valid Tailwind classes, they just paint identically now; prefer the named step
+     (text-body, text-title, …) in any call site you touch. */
+  --text-xs: var(--text-small);
+  --text-xs--line-height: var(--text-small--line-height);
+  --text-sm: var(--text-body);
+  --text-sm--line-height: var(--text-body--line-height);
+  --text-base: var(--text-body);
+  --text-base--line-height: var(--text-body--line-height);
+  --text-lg: var(--text-lead);
+  --text-lg--line-height: var(--text-lead--line-height);
+  --text-xl: var(--text-title);
+  --text-xl--line-height: var(--text-title--line-height);
+  --text-2xl: var(--text-title);
+  --text-2xl--line-height: var(--text-title--line-height);
+  --text-3xl: var(--text-page);
+  --text-3xl--line-height: var(--text-page--line-height);
+
+  /* ── Radii (#338) — snapped to the 8/12/16 triple design-tokens/tokens.css already declared
+     (mirrored here — same reasoning as the type scale above). `xl`/`2xl`/`3xl` are re-pointed onto
+     the same 16px as `lg` so every card and the hero share one corner regardless of which Tailwind
+     name a call site happens to use; nothing between 16 and Tailwind's own bigger defaults is used
+     in this app. The old shadcn `--radius: 0.625rem` this replaced was unread (grep confirmed
+     nothing consumes bare `--radius` / `rounded-[--radius]`) and has been removed. */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 16px;
+  --radius-2xl: 16px;
+  --radius-3xl: 16px;
 }
 
 /* ── App shell metrics ──
@@ -103,7 +194,9 @@
    `.dark` is set on <html> before first paint (see the bootstrap in index.html) and maintained by
    shared/theme. Everything below is a *re-point of the same variable names* the light theme uses,
    so no component needs a `dark:` utility to follow — utilities, inline `var(--color-…)` styles and
-   `body` all read the same tokens.
+   `body` all read the same tokens. Red-dark is the *darker*, lower-contrast red here (#D93025, 3.92:1 on the page
+   against 5.36:1 for red), so red text uses red-ink, which carries the per-theme value instead of a
+   `dark:` utility.
 
    This block must stay unlayered and after the tokens.css @import: tokens.css declares its light
    values on `:root` (also unlayered, equal specificity), so source order is what decides.
@@ -118,8 +211,9 @@
      · purple and orange are *unchanged*: in this app they are only ever avatar fills behind white
        text, so lifting them would cost contrast, not gain it.
      · red had to be lifted, for the same reason blue did. F9 (#221) routed every red in the app
-       through this token, so `text-red` is now a real text utility (~26 call sites — every form
-       error, every "couldn't load" shell) and `--color-destructive` is bound to it. #D93025 is
+       through this token, so `text-red` is a real text utility and `--color-destructive` is bound to
+       it. All red text uses `text-red-ink`, which re-points to this red in dark; icons and fills
+       keep the plain red. #D93025 is
        3.6:1 on the dark card, which is not a readable error message. This takes the palette's own
        `--color-red-light` (#EF5350) as the dark-theme red — 4.9:1 as text — and shifts the
        `-light`/`-dark` variants around it so the ramp stays ordered. Same trade as blue: white on
@@ -153,6 +247,15 @@
   --color-red: #EF5350;
   --color-red-light: #F58A87;
   --color-red-dark: #D93025;
+  /* Red as ink needs no second dark-only hex: the lifted red already clears 4.5:1 on both surfaces. */
+  --color-red-ink: var(--color-red);
+  /* Purple as ink moves, like gold-ink: #7B5EA7 is 3.3:1 on this card, #A68BD0 is 5.9:1. */
+  --color-purple-ink: #A68BD0;
+  /* --color-gold-ink is the one gold token that *does* move here (#336): its light value is tuned
+     dark enough to clear 4.5:1 on the cream card/background and would be far too dark to read as
+     text on this near-black card. Re-pointing it to gold-dark's own value reuses a hex already
+     proven at 6.2:1 on this card, instead of minting a second dark-only gold. */
+  --color-gold-ink: var(--color-gold-dark);
 
   /* Shadcn semantic set. `foreground`/`primary` invert (light ink on a dark ground). `destructive`
      is absent on purpose: the `@theme` block binds it to `var(--color-red)`, and `var()` resolves
@@ -196,6 +299,15 @@ body {
   color: var(--color-foreground);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* Tailwind 4's preflight gives buttons the default arrow; every button here is a tap target, so show
+   the hand. In the base layer, so a `cursor-*` utility on one button still wins. */
+@layer base {
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]) {
+    cursor: pointer;
+  }
 }
 
 /* ── Card shadows — warm tint from design tokens ── */
@@ -324,4 +436,58 @@ main {
 
 .att-bounce {
   animation: att-bounce 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* ── #337: prefers-reduced-motion — one switch for every animation system above ──
+   Four systems stack on a single interaction (open the app, tap attendance): the card-enter
+   stagger, the view-transition route slide, the attendance bounce, and the hover shadow
+   transition on [data-slot="card"]. None of them convey information — they're all decoration —
+   so vestibular/motion-sensitive users get all four turned off here, in one place, rather than
+   patched per call-site.
+     · `.card-enter`/`.att-bounce`: `animation: none` is enough to land on the resting frame.
+       `.card-enter` sets no static opacity/transform of its own (those live only inside the
+       `@keyframes`), so with the animation off the element renders at its plain, fully-opaque
+       DOM position — never stuck at the keyframe's `from { opacity: 0 }`.
+     · View transitions: plain `animation: none` was rejected here. The snapshot pair keeps its
+       *static* state without an animation driving it — the old snapshot sits at opacity 1, on
+       top, for the entire transition duration — so the page would hold a fully-opaque stale frame
+       of the page you just left, then pop to the new one, which is a worse motion experience than
+       a slide. A very short (80ms, linear, well under the ~100-150ms this reads as instant) opacity
+       fade using the file's existing `fade-in`/`fade-out` keyframes swaps old for new almost like a
+       cut, with no slide/translate and no stale hold. */
+@media (prefers-reduced-motion: reduce) {
+  .card-enter,
+  .att-bounce {
+    animation: none;
+  }
+
+  ::view-transition-old(root),
+  ::view-transition-old(main-content),
+  .vt-slide-back::view-transition-old(main-content) {
+    animation: 80ms linear fade-out both;
+  }
+  ::view-transition-new(root),
+  ::view-transition-new(main-content),
+  .vt-slide-back::view-transition-new(main-content) {
+    animation: 80ms linear fade-in both;
+  }
+
+  [data-slot="card"] {
+    transition: none;
+  }
+}
+
+/* ── Tap band (F7) ──
+   A 44px tap target for a control whose visible box is smaller: the box stays as drawn and an
+   invisible ::after extends the hit area 10px above and below it. Add `after:-inset-x-*` where the
+   width falls short too. Keep it off any control with a neighbour closer than the band, or the band
+   steals the neighbour's edge. */
+@utility tap-band {
+  position: relative;
+  &::after {
+    content: '';
+    position: absolute;
+    inset-block: -10px;
+    inset-inline: 0;
+  }
 }

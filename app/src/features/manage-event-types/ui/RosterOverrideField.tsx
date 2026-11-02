@@ -42,7 +42,7 @@ export function RosterOverrideField({
 
   return (
     <fieldset className="flex flex-col gap-2">
-      <legend className="text-sm font-medium">Roster</legend>
+      <legend className="text-small font-medium">Roster</legend>
 
       <div className="flex gap-2" role="radiogroup" aria-label="Roster">
         <button
@@ -51,7 +51,7 @@ export function RosterOverrideField({
           aria-checked={inheriting}
           disabled={disabled}
           onClick={() => onChange(undefined)}
-          className={`rounded-full border px-3 py-1.5 text-[13px] ${
+          className={`rounded-full border px-3 py-1.5 text-small ${
             inheriting ? 'border-foreground bg-foreground text-background' : 'border-border'
           }`}
         >
@@ -70,7 +70,7 @@ export function RosterOverrideField({
               onChange(typeDefault ?? { trackRoster: false, totalTarget: undefined, positionTargets: [] })
             }
           }}
-          className={`rounded-full border px-3 py-1.5 text-[13px] ${
+          className={`rounded-full border px-3 py-1.5 text-small ${
             !inheriting ? 'border-foreground bg-foreground text-background' : 'border-border'
           }`}
         >
@@ -79,7 +79,7 @@ export function RosterOverrideField({
       </div>
 
       {inheriting ? (
-        <p className="text-[11.5px] text-muted-foreground">
+        <p className="text-caption text-muted-foreground">
           {eventType
             ? `Follows ${eventType.name}: ${rosterDefaultSummary(eventType.rosterDefault, positions)}. Changing the type's default changes this event too.`
             : 'Follows the event type’s default.'}

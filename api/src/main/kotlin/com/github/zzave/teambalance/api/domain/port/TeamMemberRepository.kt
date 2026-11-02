@@ -3,6 +3,7 @@ package com.github.zzave.teambalance.api.domain.port
 import com.github.zzave.teambalance.api.domain.model.DisplayName
 import com.github.zzave.teambalance.api.domain.model.PositionId
 import com.github.zzave.teambalance.api.domain.model.Role
+import com.github.zzave.teambalance.api.domain.model.ShirtNumber
 import com.github.zzave.teambalance.api.domain.model.TeamId
 import com.github.zzave.teambalance.api.domain.model.TeamMember
 import com.github.zzave.teambalance.api.domain.model.TenantRouting
@@ -51,7 +52,7 @@ interface TeamMemberRepository {
     fun assignPosition(teamId: TeamId, userId: UserId, positionId: PositionId?)
 
     /**
-     * Applies a validated member edit — display name, [role], [positionId], and (when
+     * Applies a validated member edit — display name, [role], [positionId], [shirtNumber], and (when
      * [markOnboardedAt] is non-null) the one-time onboarding stamp — as ONE unit. The display name
      * lands on `users` while the rest land on `team_members`, so this is one of the two operations
      * whose atomicity spans two aggregates: the caller states the intent in a single port call and
@@ -63,6 +64,7 @@ interface TeamMemberRepository {
         displayName: DisplayName,
         role: Role,
         positionId: PositionId?,
+        shirtNumber: ShirtNumber?,
         markOnboardedAt: Instant? = null,
     )
 

@@ -11,7 +11,7 @@
  * refresh have no previous index to compare against, and a history entry written outside the router
  * carries no index at all.
  */
-export type ViewTransitionDirection = 'back' | 'forward'
+type ViewTransitionDirection = 'back' | 'forward'
 
 export function directionFromIndices(
   prevIndex: number | undefined,

@@ -13,6 +13,7 @@ import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers
+import com.github.zzave.teambalance.api.infrastructure.identity.loginAs
 
 // Spec-dedicated ids and, unusually, a spec-dedicated tenant schema: this spec asserts an EXACT row
 // count for the whole tenant, which no spec sharing `public` could ever do.
@@ -82,8 +83,7 @@ class EventHistoryCapIT : TeamBalanceIT() {
     private fun listPastEvents() =
         mockMvc.perform(
             MockMvcRequestBuilders.get("/api/events?include-past=true")
-                .header("X-Team-Id", SCHEMA)
-                .header("X-User-Id", USER_ID),
+                .with(loginAs(USER_ID, tenant = SCHEMA)),
         )
             .andExpect(MockMvcResultMatchers.request().asyncStarted())
             .andReturn()

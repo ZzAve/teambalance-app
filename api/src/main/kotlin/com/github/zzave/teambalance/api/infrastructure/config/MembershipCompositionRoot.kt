@@ -2,9 +2,11 @@ package com.github.zzave.teambalance.api.infrastructure.config
 
 import com.github.zzave.teambalance.api.application.AuthorizationService
 import com.github.zzave.teambalance.api.application.MemberService
+import com.github.zzave.teambalance.api.application.PhotoService
 import com.github.zzave.teambalance.api.application.PositionService
 import com.github.zzave.teambalance.api.domain.port.EventRepository
 import com.github.zzave.teambalance.api.domain.port.EventTypeRepository
+import com.github.zzave.teambalance.api.domain.port.PhotoRepository
 import com.github.zzave.teambalance.api.domain.port.PositionRepository
 import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
 import com.github.zzave.teambalance.api.domain.port.UserRepository
@@ -51,6 +53,17 @@ class MembershipCompositionRoot {
         positionRepository = positionRepository,
         eventTypeRepository = eventTypeRepository,
         eventRepository = eventRepository,
+        teamMemberRepository = teamMemberRepository,
+        authorizationService = authorizationService,
+    )
+
+    @Bean
+    fun photoService(
+        photoRepository: PhotoRepository,
+        teamMemberRepository: TeamMemberRepository,
+        authorizationService: AuthorizationService,
+    ) = PhotoService(
+        photoRepository = photoRepository,
         teamMemberRepository = teamMemberRepository,
         authorizationService = authorizationService,
     )

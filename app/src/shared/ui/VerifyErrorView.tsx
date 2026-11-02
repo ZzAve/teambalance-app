@@ -21,10 +21,10 @@ interface VerifyErrorViewProps {
 export function VerifyErrorView({ message, onLogout }: VerifyErrorViewProps) {
   return (
     <div className="mx-auto mt-16 max-w-sm text-center">
-      <h1 className="font-display text-2xl font-bold">Link expired</h1>
-      <p className="mt-3 text-sm text-muted-foreground">{message}</p>
+      <h1 className="font-display text-title font-bold">Link expired</h1>
+      <p className="mt-3 text-small text-muted-foreground">{message}</p>
       <div className="mt-6 flex items-center justify-center gap-4">
-        <Link to="/login" className="text-sm font-medium text-blue">
+        <Link to="/login" className="text-small font-medium text-blue">
           Back to login
         </Link>
         {onLogout && (

@@ -8,7 +8,7 @@
  */
 export const RELATIVE_WINDOW_DAYS = 7
 
-export type RelativeLabelEmphasis = 'solid' | 'quiet'
+type RelativeLabelEmphasis = 'solid' | 'quiet'
 
 export interface RelativeLabel {
   text: string

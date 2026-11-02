@@ -16,7 +16,7 @@ export function useSeason() {
   return useQuery({
     queryKey: ['season'],
     queryFn: async () => {
-      const res = await api.GetSeason()
+      const res = await api.getSeason()
       return res.body
     },
   })
@@ -26,7 +26,7 @@ export function useSetSeason() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async ({ start, end }: SeasonInput) => {
-      const res = await api.SetSeason({ body: { start: start || undefined, end: end || undefined } })
+      const res = await api.setSeason({ body: { start: start || undefined, end: end || undefined } })
       if (res.status === 403) throw new Error('You are not allowed to change the season.')
       return res.body
     },

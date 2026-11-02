@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { AttendanceEntry } from '@shared/api/events'
-import { attributionName } from './attribution'
+import { attributionName, setByName } from './attribution'
 
 const attendee = (overrides: Partial<AttendanceEntry> = {}): AttendanceEntry => ({
   id: 'att',
@@ -10,6 +10,7 @@ const attendee = (overrides: Partial<AttendanceEntry> = {}): AttendanceEntry => 
   state: 'ATTENDING',
   changedBy: undefined,
   updatedAt: undefined,
+  photoVersion: undefined,
   ...overrides,
 })
 
@@ -30,5 +31,22 @@ describe('attributionName', () => {
 
   it('falls back to a neutral label when the setter is no longer in the list', () => {
     expect(attributionName(attendee({ changedBy: 'user-gone' }), [tim])).toBe('a teammate')
+  })
+  // ⑪ excludes the blank: a teammate clearing your answer is not an answer they gave you, and the
+  // marker dot keys off this same null, so a dot there would mark every unanswered event.
+  it('is null for NOT_RESPONDED even when the row carries a setter', () => {
+    expect(attributionName(attendee({ state: 'NOT_RESPONDED', changedBy: 'user-tim' }), [tim])).toBeNull()
+  })
+
+})
+
+// A Substitute never answers for themselves (ADR-0033), so whoever set their state is always named.
+describe('setByName', () => {
+  it('resolves the Member who set it', () => {
+    expect(setByName('user-tim', [tim])).toBe('Tim de Vries')
+  })
+
+  it('falls back to a neutral label for a setter who has left the team', () => {
+    expect(setByName('user-gone', [tim])).toBe('a teammate')
   })
 })

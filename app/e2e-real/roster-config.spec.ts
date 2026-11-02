@@ -11,8 +11,9 @@ import { test, expect } from '@playwright/test'
  * read, and every roster state is a Storybook story with a Chromatic baseline; the numbers behind
  * them are pinned by RosterFillTest and RosterFillIT. Asserting them again through a browser would
  * duplicate that coverage rather than add a seam. (It would also be awkward: the seeded e2e event is
- * within the 7-day window, so Phase 1 renders it as the hero — which carries no roster panel — and
- * the spec would have to manufacture a further-out event just to get a card on screen.)
+ * within the 7-day window, so the events page renders it as the hero — whose lineup sits behind a
+ * disclosure like the cards' — and the spec would have to manufacture a further-out event just to
+ * get a card on screen.)
  *
  * Starts authenticated as the seeded admin via the storageState fixture (auth.setup.ts).
  *
@@ -29,8 +30,9 @@ test('admin configures an event type roster default and it persists', async ({ p
   await page.goto(`/t/${TEAM_SLUG}/team/settings`)
   await expect(page.getByRole('heading', { name: 'Event types' })).toBeVisible()
 
-  // 2. Open the seeded Training type's editor.
-  await page.getByRole('button', { name: 'Edit Training' }).click()
+  // 2. Open the seeded Training type's editor — Edit sits in the row's ⋯ menu (#341).
+  await page.getByRole('button', { name: 'Actions for Training' }).click()
+  await page.getByRole('menuitem', { name: 'Edit' }).click()
 
   // 3. Switch tracking on if it is off, so the spec reaches the same state either way.
   const trackSwitch = page.getByRole('switch', { name: 'Track roster' })
@@ -51,7 +53,8 @@ test('admin configures an event type roster default and it persists', async ({ p
   await expect(page.getByText('99 total')).toBeVisible({ timeout: 10_000 })
 
   // 7. Restore: back to untracked, so a re-run starts clean and other specs see Training untouched.
-  await page.getByRole('button', { name: 'Edit Training' }).click()
+  await page.getByRole('button', { name: 'Actions for Training' }).click()
+  await page.getByRole('menuitem', { name: 'Edit' }).click()
   await page.getByRole('switch', { name: 'Track roster' }).click()
   await page.getByRole('button', { name: 'Save', exact: true }).click()
   await expect(page.getByText('No roster').first()).toBeVisible({ timeout: 10_000 })

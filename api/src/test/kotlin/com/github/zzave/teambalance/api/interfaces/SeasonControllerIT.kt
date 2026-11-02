@@ -10,6 +10,7 @@ import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers
 import java.util.UUID
+import com.github.zzave.teambalance.api.infrastructure.identity.loginAs
 
 private const val ADMIN_USER_ID = "b0000000-0000-0000-0000-0000000000e1"
 private const val MEMBER_USER_ID = "b0000000-0000-0000-0000-0000000000e2"
@@ -178,7 +179,7 @@ class SeasonControllerIT : TeamBalanceIT() {
     // --- helpers ---------------------------------------------------------------------------------
 
     private fun perform(builder: org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder, userId: String) =
-        mockMvc.perform(builder.header("X-Team-Id", "public").header("X-User-Id", userId))
+        mockMvc.perform(builder.with(loginAs(userId, tenant = "public")))
             .andExpect(MockMvcResultMatchers.request().asyncStarted())
             .andReturn()
             .let { mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(it)) }

@@ -43,6 +43,7 @@ import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneOffset
 import com.github.zzave.teambalance.api.domain.model.EventId
+import com.github.zzave.teambalance.api.domain.model.ShirtNumber
 import java.util.UUID
 
 // The write use cases are admin-guarded in the service now (uniform write-authorization seam), so a
@@ -65,7 +66,6 @@ private class ExplodingEventTypeRepo : EventTypeRepository {
     override fun findAll(): List<EventType> = error("unused")
     override fun findById(id: EventTypeId): EventType? = error("repository must not be reached for an unauthorized caller")
     override fun countTargetsForPosition(positionId: PositionId): Int = error("unused")
-    override fun countEventsOfType(id: EventTypeId): Int = error("unused")
     override fun create(name: EventTypeName, color: HexColor?, rosterDefault: RosterRequirement): EventType =
         error("unused")
     override fun update(
@@ -111,6 +111,7 @@ private class EventFakeMemberRepo(private val admins: Set<UserId>) : TeamMemberR
         displayName: DisplayName,
         role: Role,
         positionId: PositionId?,
+        shirtNumber: ShirtNumber?,
         markOnboardedAt: Instant?,
     ) = Unit
     override fun markOnboarded(teamId: TeamId, userId: UserId, at: Instant) = Unit

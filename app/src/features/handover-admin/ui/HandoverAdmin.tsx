@@ -5,6 +5,7 @@ import {
   useExpireAdminInvitations,
   useRotateAdminInvitation,
 } from '@shared/api/invitations'
+import { useCopyToClipboard } from '@shared/lib/copy-to-clipboard'
 import { HandoverAdminView } from './HandoverAdminView'
 
 /**
@@ -14,7 +15,7 @@ import { HandoverAdminView } from './HandoverAdminView'
  * covered by e2e rather than a story (ADR-0017).
  */
 export function HandoverAdmin() {
-  const [copied, setCopied] = useState(false)
+  const clipboard = useCopyToClipboard()
   const [justRevoked, setJustRevoked] = useState(false)
   const activeInvitation = useActiveAdminInvitation({ enabled: true })
   const createInvitation = useCreateAdminInvitation()
@@ -24,17 +25,11 @@ export function HandoverAdmin() {
   const invitation = activeInvitation.data
   const link = invitation ? `${window.location.origin}/invite/${invitation.token}` : null
 
-  const handleCopy = async () => {
-    if (!link) return
-    await navigator.clipboard.writeText(link)
-    setCopied(true)
-  }
-
   // Both a fresh create and a rotate land on a new link; drop the flags and let the invalidated query
   // supply it.
   const adoptNewLink = () => {
     setJustRevoked(false)
-    setCopied(false)
+    clipboard.reset()
   }
 
   const handleCreate = () => createInvitation.mutate(undefined, { onSuccess: adoptNewLink })
@@ -43,7 +38,7 @@ export function HandoverAdmin() {
     expireInvitation.mutate(undefined, {
       onSuccess: () => {
         setJustRevoked(true)
-        setCopied(false)
+        clipboard.reset()
       },
     })
 
@@ -52,13 +47,14 @@ export function HandoverAdmin() {
       isLoading={activeInvitation.isPending}
       isError={activeInvitation.isError}
       link={link}
-      copied={copied}
+      copied={clipboard.copiedKey !== null}
+      copyFailed={clipboard.failedKey !== null}
       justRevoked={justRevoked}
       isCreating={createInvitation.isPending}
       isRotating={rotateInvitation.isPending}
       isRevoking={expireInvitation.isPending}
       actionError={createInvitation.isError || rotateInvitation.isError || expireInvitation.isError}
-      onCopy={handleCopy}
+      onCopy={() => link && clipboard.copy(link)}
       onCreate={handleCreate}
       onRotate={handleRotate}
       onRevoke={handleRevoke}

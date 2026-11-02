@@ -28,6 +28,10 @@ class TenantSchemaAdapterTest : TeamBalanceIT() {
 
             tables.shouldContainExactlyInAnyOrder(
                 "attendances",
+                "bunq_connection",
+                "calendar_link_attendance_states",
+                "calendar_link_event_types",
+                "calendar_links",
                 "event_audience",
                 "event_position_targets",
                 "event_references",
@@ -35,8 +39,12 @@ class TenantSchemaAdapterTest : TeamBalanceIT() {
                 "event_types",
                 "events",
                 "flyway_tenant_schema_history",
+                "member_photos",
                 "member_profiles",
+                "money_pool_settings",
                 "positions",
+                "substitute_attendances",
+                "substitutes",
                 "team_settings",
                 "transactions",
             )

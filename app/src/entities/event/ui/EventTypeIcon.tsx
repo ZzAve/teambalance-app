@@ -20,7 +20,7 @@ export function EventTypeIcon({ type, size = 'md' }: EventTypeIconProps) {
   if (size === 'sm') {
     return (
       <div
-        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl"
+        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md"
         style={{ backgroundColor: color + '14' }}
       >
         <Icon size={18} style={{ color }} />
@@ -30,7 +30,7 @@ export function EventTypeIcon({ type, size = 'md' }: EventTypeIconProps) {
 
   return (
     <div
-      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl"
+      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md"
       style={{ backgroundColor: color + '14' }}
     >
       <Icon size={22} style={{ color }} />

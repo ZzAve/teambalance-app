@@ -41,7 +41,7 @@ class AttendanceController(
             userId = userId,
             state = state,
             changedBy = currentUserGateway.requireCurrentUserId(),
-        ) ?: return SetAttendance.Response404(Unit)
+        ) ?: return SetAttendance.Response404
 
         val member = attendanceService.findMember(userId)
 
@@ -83,8 +83,9 @@ class AttendanceController(
     }
 }
 
-// The inbound half of the state edge — the outbound `produce()` below is its mirror.
-private fun GeneratedAttendanceState.consume() = AttendanceState.valueOf(name)
+// The inbound half of the state edge — the outbound `produce()` below is its mirror. internal so
+// CalendarLinkController's attendance-state option converts the same way.
+internal fun GeneratedAttendanceState.consume() = AttendanceState.valueOf(name)
 
 // The Wirespec edge for a response row's identity — the contract still carries a bare UUID string.
 // internal so EventController's attendance entries convert the same way.
@@ -103,6 +104,7 @@ internal fun MemberAttendance.produce() = AttendanceEntry(
     // Attribution is present only for a real response row; a not-responded member carries neither.
     changedBy = changedBy?.produce(),
     updatedAt = updatedAt?.let { DateTimestampWithTimezone(it.toString()) },
+    photoVersion = member.photoVersion?.value,
 )
 
 internal fun Map<AttendanceState, Int>.produce(roleBreakdown: List<Pair<PositionLabel, Int>>) =

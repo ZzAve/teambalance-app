@@ -43,7 +43,7 @@ app/src/
 ```bash
 make build          # Build everything (default target)
 make db             # Start PostgreSQL only
-make infra          # Start all infra (Postgres + Redis)
+make infra          # Start all infra (Postgres)
 make api            # Run backend (port 8080)
 make app            # Run frontend dev server (port 5173)
 make run-local      # Start infra + backend + frontend
@@ -53,10 +53,10 @@ make test-app       # Frontend tests only (Vitest: units + Storybook stories)
 make e2e            # Real full-stack Playwright suite (requires infra + port 8080 free)
 make lint           # Lint everything (detekt + ESLint)
 make format         # Auto-format code
+make hooks          # Install git hooks (pre-commit: lint, pre-push: test)
 make wirespec       # Regenerate API contracts from .wirespec files
 make yolo           # Fast build, skip tests and linting
 make clean          # Clean build artifacts
-make update         # Check for dependency updates
 make help           # Show all targets
 ```
 
@@ -111,9 +111,9 @@ Four honest layers — place each new test at the **lowest layer that proves it*
 ### PR gate
 
 > **When adding or changing a feature, place its coverage at the lowest layer that proves it:**
-> - Component states (empty/loading/data/error) → a Storybook story. **Interactive components: pass `fn()` spies as callback props and assert `toHaveBeenCalledWith` in `play`** (prove the wiring, not just the render). Hold the network line — no MSW in stories.
+> - Component states (empty/loading/data/error) → a Storybook story, **at most three per View** (`Data`, `Shells`, `Interactions`; ADR-0032). **Interactive components: pass `fn()` spies as callback props and assert `toHaveBeenCalledWith` in a multi-step `play`** (prove the wiring, not just the render). A View shown inside a page composite keeps a snapshot only for states the composite can't show. Hold the network line — no MSW in stories.
 > - **Container/View split**: the `*View` (prop-only) gets the story with loading/error shells as props-driven states; the container is thin wiring covered by e2e. See ADR-0017 and `features/manage-positions` (exemplar).
-> - Visual appearance → covered automatically by Chromatic once the component has a story; no extra work per component.
+> - Visual appearance → covered by Chromatic; the pixels are owned by the page composites (`pages/*View` under `withAppShell`) and by one gallery per primitive. Every story is captured at phone width (`xs`); add `pageModes` only where the layout changes with width.
 > - A visible change to the events overview or the app shell (header, bottom nav) → rerun `npm run generate-pwa-screenshots` (in `app/`) and commit the PNGs. They are the install-dialog previews in the web manifest; nothing regenerates them automatically, and the manifest unit test only proves their pixel size still matches.
 > - Pure logic (mappers, adapters, stores) → a Vitest unit.
 > - Backend behaviour → a Kotest unit or Testcontainers IT.
@@ -121,12 +121,11 @@ Four honest layers — place each new test at the **lowest layer that proves it*
 
 ### Sanctioned MSW/RTL exception
 
-Three render-gate Vitest tests (`app/src/app/providers/auth-gate.test.tsx`, `verify-flow.test.tsx`, `invite-flow.test.tsx`) use `msw/node` to render under controlled network conditions. They are the **only sanctioned exceptions** to the "Vitest owns only pure non-rendering logic" rule. Each guards a routing/network seam that cannot be forced into a meaningful failure state against a real backend and is not story-able:
+Two render-gate Vitest tests (`app/src/app/providers/auth-gate.test.tsx`, `verify-flow.test.tsx`) use `msw/node` to render under controlled network conditions. They are the **only sanctioned exceptions** to the "Vitest owns only pure non-rendering logic" rule, and both guard the same thing: the **auth routing seam** (fail-closed on error, verify-vs-/me race) — a network seam that cannot be forced into a meaningful failure state against a real backend and is not story-able.
 
-- **`auth-gate.test.tsx` / `verify-flow.test.tsx`** — the auth routing seam (fail-closed on error, verify-vs-/me race).
-- **`invite-flow.test.tsx`** — the invite-acceptance routing seam. The invite token is carried across **two separate router mounts** (`/invite/:token`, then `/auth/verify` when the emailed link is clicked — a real page reload) via `localStorage`, and the verify page's **fail-closed accept ordering** ("a failed accept must not leave the user authenticated but teamless") requires a valid magic-link token paired with a simultaneously-expired invite — a state a real backend won't produce on demand. A single Storybook story can't mount two routes and assert the redirect. The *pure* email-match gate under the carry (don't inherit someone else's invite) is pushed down to a Vitest unit (`shared/api/invitations.test.ts`); only the irreducible cross-mount seam stays here.
+There used to be a third, `invite-flow.test.tsx`, for the invite token's cross-mount carry through `localStorage`. [ADR-0031](docs/adr/0031-invite-travels-with-the-magic-link-request.md) moved that carry onto the magic-link record, so there is no client-side seam left to guard: the server applies the invite, and the property that matters ("it still works in a browser the invite page never touched") is one a shared-`localStorage` jsdom test could never express in the first place. It lives in `app/e2e-real/invite-cross-browser.spec.ts`, which uses two real browser contexts.
 
-Do not remove these or use them as precedent for new RTL render tests. A fourth would need the same bar: a genuine cross-mount/network seam with no story or real-backend path — not merely "it was easier to render."
+Do not remove the remaining two, or use them as precedent for new RTL render tests. A third would need the same bar: a genuine network seam with no story or real-backend path — not merely "it was easier to render." **If a would-be exception is really about state crossing page loads, that is a sign the state is in the wrong place** — which is exactly what the removed one turned out to be.
 
 See [`docs/testing.md`](docs/testing.md) for command mechanics, the Vitest/Storybook bright line, and real-e2e gotchas.
 

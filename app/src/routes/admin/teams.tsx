@@ -15,7 +15,7 @@ function PlatformTeamsPage() {
     <div className="flex flex-col gap-8">
       <CreateMemberlessTeam />
       <PlatformTeams />
-      <Link to="/admin/creation-codes" className="text-sm font-semibold text-blue hover:underline">
+      <Link to="/admin/creation-codes" className="text-small font-semibold text-blue hover:underline">
         Creation codes
       </Link>
     </div>

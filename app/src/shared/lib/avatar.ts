@@ -19,10 +19,7 @@ export function avatarColor(userId: string): string {
 }
 
 export function avatarInitials(name: string): string {
-  return name
-    .split(' ')
-    .map((w) => w[0])
-    .slice(0, 2)
-    .join('')
-    .toUpperCase()
+  const words = name.split(' ').filter(Boolean)
+  const initials = words.length === 1 ? words[0].slice(0, 2) : words.map((w) => w[0]).slice(0, 2).join('')
+  return initials.toUpperCase()
 }

@@ -11,7 +11,7 @@
  */
 
 /** Sentinel key: set once per tab session after we've reloaded for a chunk error. */
-export const CHUNK_RELOAD_SENTINEL = 'tb-chunk-reload'
+const CHUNK_RELOAD_SENTINEL = 'tb-chunk-reload'
 
 /**
  * Pure decision: reload once when we haven't yet this session; otherwise the fresh shell also

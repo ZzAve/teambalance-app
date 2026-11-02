@@ -9,6 +9,7 @@ import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers
 import java.util.UUID
+import com.github.zzave.teambalance.api.infrastructure.identity.loginAs
 
 /**
  * The attendance summary/roster must reflect *current team membership*, not the set of attendance
@@ -45,8 +46,7 @@ class AttendanceMembershipIT : TeamBalanceIT() {
 
             val result = mockMvc.perform(
                 MockMvcRequestBuilders.get("/api/events/$eventId")
-                    .header("X-Team-Id", "public")
-                    .header("X-User-Id", admin),
+                    .with(loginAs(admin, tenant = "public")),
             ).andExpect(MockMvcResultMatchers.request().asyncStarted()).andReturn()
 
             mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(result))
@@ -72,8 +72,7 @@ class AttendanceMembershipIT : TeamBalanceIT() {
 
             val result = mockMvc.perform(
                 MockMvcRequestBuilders.get("/api/events/$eventId")
-                    .header("X-Team-Id", "public")
-                    .header("X-User-Id", admin),
+                    .with(loginAs(admin, tenant = "public")),
             ).andExpect(MockMvcResultMatchers.request().asyncStarted()).andReturn()
 
             mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(result))

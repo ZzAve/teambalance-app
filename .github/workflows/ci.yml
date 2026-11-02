@@ -46,18 +46,10 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
+      - uses: ./.github/actions/setup-toolchain
         with:
-          distribution: temurin
-          java-version: '25'
-
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version: '24.19.0'
-          cache: npm
-          cache-dependency-path: app/package-lock.json
-
-      - uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
+          wirespec: false
+          npm-ci: false
 
       - run: make ci
       - run: make lint
@@ -286,30 +278,12 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
-        with:
-          distribution: temurin
-          java-version: '25'
-
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version: '24.19.0'
-          cache: npm
-          cache-dependency-path: app/package-lock.json
-
-      - uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
-
-      # The SPA imports the Wirespec-generated TS client (gitignored, emitted by Gradle into
-      # app/src/shared/api/generated). Generate it before the vite build or it fails on missing modules.
-      - name: Generate Wirespec TypeScript client
-        run: ./gradlew :api:wirespec-typescript
+      - uses: ./.github/actions/setup-toolchain
 
       # `vite build` runs in production mode and auto-loads app/.env.production
       # (VITE_API_URL=https://api.teambalance.nl).
       - name: Build SPA
-        run: |
-          npm ci
-          npm run build
+        run: npm run build
         working-directory: app
 
       - name: Configure Scaleway CLI

@@ -22,8 +22,8 @@ FROM --platform=$BUILDPLATFORM eclipse-temurin:25-jdk@sha256:e787e08ef76f4c16866
 WORKDIR /workspace
 
 # Wrapper + build scripts first so dependency resolution can cache across source-only changes.
-# buildSrc supplies the Wirespec SpringKotlinEmitter to the build-script classpath — required
-# to configure the codegen tasks in api/build.gradle.kts.
+# buildSrc supplies the Wirespec Spring extension (SpringMappingAnnotationsExtension) to the
+# build-script classpath — required to configure the codegen tasks in api/build.gradle.kts.
 COPY gradlew settings.gradle.kts build.gradle.kts gradle.properties ./
 COPY gradle ./gradle
 COPY buildSrc ./buildSrc
@@ -86,6 +86,10 @@ RUN set -x; \
       SPRING_DATASOURCE_USERNAME=tb \
       SPRING_DATASOURCE_PASSWORD=tb \
       INVITATION_TOKEN_SALT=build-time-dummy-salt \
+      INVITATION_TOKEN_ENCRYPTION_KEY=YnVpbGQtdGltZS1kdW1teS1rZXktMzItYnl0ZXMhISE= \
+      TEAMBALANCE_CALENDAR_LINK_SALT=build-time-dummy-salt \
+      TEAMBALANCE_CALENDAR_LINK_ENCRYPTION_KEY=YnVpbGQtdGltZS1kdW1teS1rZXktMzItYnl0ZXMhISE= \
+      TEAMBALANCE_BUNQ_TOKEN_ENCRYPTION_KEY=YnVpbGQtdGltZS1kdW1teS1rZXktMzItYnl0ZXMhISE= \
       SCALEWAY_TEM_API_KEY=build-time-dummy \
       SCALEWAY_TEM_PROJECT_ID=build-time-dummy \
       java -XX:+UseSerialGC -XX:TieredStopAtLevel=1 \
@@ -124,5 +128,5 @@ EXPOSE 8080
 #                             only logs a warning and boots normally).
 #   -Dspring.aot.enabled    — activate the AOT-generated bean definitions packaged in the jar.
 # The GC flag MUST match the bake-stage training run, or the AOT cache is rejected at runtime.
-# See docs/plans/2026-07-24-startup-time-optimization.md.
+# See docs/adr/0036-jvm-startup-time-tuning-without-native-image.md.
 ENTRYPOINT ["java", "-XX:+UseSerialGC", "-XX:TieredStopAtLevel=1", "-XX:AOTCache=app.aot", "-Dspring.aot.enabled=true", "-jar", "app.jar"]

@@ -1,5 +1,5 @@
 import { test, expect, request as playwrightRequest, type Page } from '@playwright/test'
-import { STORAGE_STATE, postAsSharedAdmin } from './helpers'
+import { STORAGE_STATE, csrfHeader, postAsSharedAdmin } from './helpers'
 
 // Real e2e: multi-Team membership and switching (ADR-0023). Justified under the PR gate as a new
 // cross-tenant seam — every other spec runs as a caller with exactly one Team, where tenant
@@ -57,7 +57,7 @@ test('a member of two teams switches, and the tenant data follows', async ({ pag
   await firstAdmin.dispose()
 
   const secondAdmin = await signIn(SECOND_ADMIN_EMAIL)
-  const secondInvite = await secondAdmin.post('/api/invitations')
+  const secondInvite = await secondAdmin.post('/api/invitations', { headers: await csrfHeader(secondAdmin) })
   expect(secondInvite.status()).toBe(201)
   const { token: secondInviteToken } = await secondInvite.json()
   await secondAdmin.dispose()
@@ -92,7 +92,7 @@ test('a member of two teams switches, and the tenant data follows', async ({ pag
   await expect(page.getByText(FIRST.event)).toHaveCount(0)
 
   // 4. Switch back through the switcher, which names the Team it is in (ADR-0023 §3).
-  await page.getByRole('button', { name: new RegExp(`Current team: ${SECOND.name}`) }).click()
+  await page.getByRole('combobox', { name: new RegExp(`Current team: ${SECOND.name}`) }).click()
   await page.getByRole('option', { name: new RegExp(FIRST.name) }).click()
 
   await expect(page).toHaveURL(new RegExp(`/t/${FIRST.slug}/?$`), { timeout: 15_000 })

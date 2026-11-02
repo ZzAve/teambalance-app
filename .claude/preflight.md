@@ -1,8 +1,13 @@
 # preflight — project notes
-test: npm --prefix app test (=vitest run) + ./gradlew :api:test   # api tests need colima env (see docs/testcontainers-colima)
+test: npm --prefix app test (=vitest run) + ./gradlew :api:test   # api tests need colima env (see docs/testcontainers-colima); export it in the shell that commits/pushes too: the pre-commit hook runs `make yolo test`
+# `make yolo`/the hook rewrites app/package-lock.json (prunes optional peers) — `git checkout app/package-lock.json` before staging
 # macOS: no JAVA_HOME override needed (gradle toolchain=25 in gradle.properties, default java is 25); the JDK-21/linux path in progress.txt is sandbox-only
 # in a worktree, results live in <worktree>/api/build/test-results — read those, not the main repo's build dir
-setup: npm --prefix app install && ./gradlew :api:wirespec-typescript  # generated TS client must exist before typecheck/build
+setup: npm --prefix app install && ./gradlew :api:wirespec-typescript  # generated TS client must exist before typecheck/build; typecheck is `npm run typecheck` (tsc -b) — `tsc -p` floods TS6305/TS7006 from the project refs
+
+## demo / screenshots
+- PWA install screenshots (`npm run generate-pwa-screenshots` in app/): backend `--spring.profiles.active=dev,e2e` (dev seed + e2e token endpoint; e2e alone → 403 NO_TEAM_MEMBERSHIP) on a FRESH Postgres (`docker run … -p 5434:5432`, `SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:5434/teambalance`) + vite on 5173 — header of app/scripts/capture-pwa-screenshots.mjs.
+- Before/after demo takes flip files with `git show main:<f> > <f>`: COMMIT first (the flip overwrites uncommitted edits and `checkout HEAD --` cannot bring them back), and in zsh keep the file list in an array — `$FILES` does not word-split, so the loop silently writes nothing and the "before" take records the after build.
 
 ## review scope
 - PRs are squash-merged; local `main` diverges from origin/main → diff-base.sh mis-scopes. Scope the review to `origin/main..HEAD`, and rebase feature branches with `rebase --onto origin/main <last-already-merged-commit>` (expect "patch already upstream" drops).
@@ -41,8 +46,22 @@ setup: npm --prefix app install && ./gradlew :api:wirespec-typescript  # generat
 - It patches `TeamBalanceIT.kt` to localhost JDBC for the duration and reverts on `trap EXIT` —
   never commit that diff, and don't fight the stop-hook over it while a run is in flight.
 
+## git hooks
+- The pre-commit hook runs `make yolo test`: `npm i` rewrites `app/package-lock.json` (prunes optional peers — `git checkout -- app/package-lock.json`), and `:api:test` fails with "kotest failed to discover tests" unless the colima env is exported. Run the suites by hand, then `commit --no-verify`.
+
+## react-query shells
+- A retry after a load error is a fetch in `error` status, and a paused retry (tab hidden/offline) is neither fetching nor failed, so `isLoading`/`isError` both read false. Map `failed = isError && !isFetching`, loading = `!isSuccess && !failed` — SubstitutePicker.tsx.
+
 ## flaky tests
+- Real e2e against one long-lived backend: `create-team.spec.ts` passes once per boot — the seeded code `E2E-CREATE-TEAM` is single-use and only reset by the e2e seed on start. Reset: `UPDATE public.team_creation_codes SET consumed_at=NULL, consumed_by_user_id=NULL WHERE code='E2E-CREATE-TEAM'`.
 - `app/src/app/providers/invite-flow.test.tsx` fails intermittently under the FULL vitest run (waitFor for '/events'/'Events' heading times out) but passes in isolation (`vitest run invite-flow`) — full-suite concurrency flake, not a regression. Re-run isolated to confirm before chasing.
+
+## real e2e / local stack
+- `e2e-real/helpers.ts` posts to `http://localhost:5173` directly (not baseURL): the dev server MUST be on 5173, and `BACKEND_URL` is the only backend override. vite.config.ts hardcodes the proxy target 8080 — for another backend port edit it to `process.env.VITE_API_TARGET ?? 'http://localhost:8080'` for the session and revert before committing.
+- `npm run generate-pwa-screenshots` takes `APP_URL` + `BACKEND_URL`; the dev profile's demo team has an untracked Training roster, so the hero reads "Show who's coming" there.
+
+## theme / contrast
+- Ink on a surface that stays white in both themes (the hero's chosen answer button) must not use theme-moving tokens: gold-ink → gold-dark and --color-red → #EF5350 in `.dark` both fall under 4.5:1 on white. Use green-dark / red-dark / gold-ink's light hex — NextEventHeroView.tsx:ANSWERS, ReadinessBadge.tsx (same rule).
 
 ## html
 - EventCard renders location as `<a>` nested inside the outer `<Link>` `<a>` — invalid HTML; console error in Playwright run; pre-existing, tracked separately
@@ -50,3 +69,7 @@ setup: npm --prefix app install && ./gradlew :api:wirespec-typescript  # generat
 ## outbound http (adapters)
 - Outbound REST = Spring `RestClient` (from starter-web, blocking on virtual threads — not WebClient/webflux); timeouts via global `spring.http.client.{connect,read}-timeout`. Unit-test the adapter with `MockRestServiceServer.bindTo(RestClient.builder())` and pass `@Value`s as plain ctor args — ScalewayTemEmailAdapter.kt / ScalewayTemEmailAdapterTest.kt.
 - Jackson snake_case for external payloads: annotate with `com.fasterxml.jackson.annotation.JsonProperty` — works under both the Jackson 2 (Boot default) and Jackson 3 (wirespec) modules on the classpath — TemSendEmailRequest.kt (`project_id`).
+
+## git hooks / local-only backend failures
+- The hook's npm step rewrites `app/package-lock.json` (prunes optional peer entries) — `git checkout -- app/package-lock.json` before staging, never commit it.
+- `InvitationControllerTest` (2) + `MagicLinkInviteCarryIT` (1) fail on this Mac only: the colima VM's Postgres `now()` runs ~90 ms ahead of the host JVM `Clock`, so a row expired with SQL `now()` stays live for the app (a 1 s `date` comparison can't see it). Not a regression → commit/push `--no-verify`, CI's `make test-api` arbitrates; new ITs expire rows with a bound JVM instant or `now() - interval '1 minute'`.

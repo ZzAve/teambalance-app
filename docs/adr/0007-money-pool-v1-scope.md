@@ -2,6 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-06-23
+- Amended by: [ADR-0042](0042-money-pool-bunq-oauth-connection-held-in-memory.md) (Admin switch per team; Bunq connected by a team Admin through OAuth)
 
 ## Context
 

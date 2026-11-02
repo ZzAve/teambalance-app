@@ -22,14 +22,14 @@ export function ReferenceChips({ references, max = 2 }: { references: EventRefer
           href={ref.url}
           target="_blank"
           rel="noopener noreferrer"
-          className="relative z-10 inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground transition-colors hover:bg-muted/70 hover:text-blue"
+          className="relative z-10 inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-caption font-medium text-muted-foreground transition-colors hover:bg-muted/70 hover:text-blue"
         >
           <ExternalLink size={11} className="shrink-0" />
           {referenceLabel(ref)}
         </a>
       ))}
       {overflow > 0 && (
-        <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground/70">
+        <span className="rounded-full bg-muted px-2 py-0.5 text-caption font-medium text-muted-foreground/70">
           +{overflow}
         </span>
       )}

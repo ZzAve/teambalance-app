@@ -8,18 +8,17 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
 import org.springframework.http.MediaType
 import org.springframework.jdbc.core.JdbcTemplate
-import org.springframework.test.context.TestPropertySource
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.ResultActions
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers
 import java.util.UUID
+import com.github.zzave.teambalance.api.infrastructure.identity.loginAs
 
 // The codes-admin CRUD (#154 Slice 4) is gated on the platform-admin allowlist. The test profile's
-// default allowlist is empty (fail-closed), so pin one email here; the admin user is seeded with it.
+// allowlist (application-test.yml) holds this class's admin email; the admin user is seeded with it.
 @AutoConfigureMockMvc
-@TestPropertySource(properties = ["teambalance.platform-admins=codes-admin@test.com"])
 class CreationCodeAdminControllerIT : TeamBalanceIT() {
 
     @Autowired
@@ -50,18 +49,18 @@ class CreationCodeAdminControllerIT : TeamBalanceIT() {
             .let { mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(it)) }
 
     private fun listAs(userId: String) =
-        dispatch(MockMvcRequestBuilders.get("/api/admin/creation-codes").header("X-User-Id", userId))
+        dispatch(MockMvcRequestBuilders.get("/api/admin/creation-codes").with(loginAs(userId)))
 
     private fun createAs(userId: String, body: String = "{}") =
         dispatch(
             MockMvcRequestBuilders.post("/api/admin/creation-codes")
-                .header("X-User-Id", userId)
+                .with(loginAs(userId))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(body),
         )
 
     private fun revokeAs(userId: String, code: String) =
-        dispatch(MockMvcRequestBuilders.delete("/api/admin/creation-codes/$code").header("X-User-Id", userId))
+        dispatch(MockMvcRequestBuilders.delete("/api/admin/creation-codes/$code").with(loginAs(userId)))
 
     private fun seedCode(code: String, consumedByUserId: String? = null, createdTeamId: String? = null) {
         tenantSchemaAdapter.provisionPlatformSchema()
@@ -133,7 +132,8 @@ class CreationCodeAdminControllerIT : TeamBalanceIT() {
         }
 
         test("an unauthenticated caller is unauthorized") {
-            dispatch(MockMvcRequestBuilders.get("/api/admin/creation-codes"))
+            // Refused by the SecurityFilterChain, so no handler starts.
+            mockMvc.perform(MockMvcRequestBuilders.get("/api/admin/creation-codes"))
                 .andExpect(MockMvcResultMatchers.status().isUnauthorized)
         }
 

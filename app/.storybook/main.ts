@@ -8,12 +8,8 @@ const config: StorybookConfig = {
     options: {},
   },
   // Storybook's Vite builder loads the app's vite.config.ts, which registers vite-plugin-pwa (F2).
-  // A component catalog must not ship a service worker:
-  //   - `build-storybook` fails outright — workbox refuses to precache Storybook's >2 MB manager
-  //     runtime;
-  //   - the emitted registerSW.js would register /sw.js at scope "/" on storybook.teambalance.nl,
-  //     so one visit to the canonical Storybook would take over every PR preview on that origin
-  //     (they share it under /pr-preview/pr-<n>/) and serve them the wrong shell.
+  // A component catalog must not ship a service worker, and with it `build-storybook` fails
+  // outright — workbox refuses to precache Storybook's >2 MB manager runtime.
   // The SPA build is the only place the PWA plugin belongs, so strip it here.
   viteFinal: async (viteConfig) => {
     const plugins = await Promise.all(((viteConfig.plugins ?? []) as unknown[]).flat(Infinity))

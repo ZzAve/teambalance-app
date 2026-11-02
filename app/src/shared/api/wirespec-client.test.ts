@@ -3,8 +3,8 @@ import { api } from './wirespec-client'
 
 // Pure-adapter units for the wirespec-client (the fetch handler behind `api`). Storybook owns
 // anything that renders; Vitest owns pure, non-rendering logic like this request/response adapter.
-// We drive the real public surface (`api`) with a stubbed `fetch`, asserting the two behaviours the
-// adapter is responsible for: X-Team-Id header injection and 204-No-Content body handling.
+// We drive the real public surface (`api`) with a stubbed `fetch`, asserting the behaviours the
+// adapter is responsible for: CSRF header injection and 204-No-Content body handling.
 
 interface FakeResponseInit {
   status: number
@@ -50,23 +50,27 @@ describe('wirespec-client adapter', () => {
     vi.restoreAllMocks()
   })
 
-  describe('X-Team-Id header injection', () => {
-    it('sends the team id from localStorage as the X-Team-Id header', async () => {
-      localStorage.setItem('teamId', 'team_test')
-      const fetchMock = stubFetch(fakeResponse({ status: 200, body: JSON.stringify({ events: [] }) }))
-
-      await api.ListEvents({ 'include-past': false })
-
-      expect(fetchMock).toHaveBeenCalledTimes(1)
-      expect(headerOf(fetchMock, 'X-Team-Id')).toBe('team_test')
+  describe('CSRF token', () => {
+    afterEach(() => {
+      document.cookie = 'XSRF-TOKEN=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/'
     })
 
-    it('omits the X-Team-Id header entirely when no team is stored (a teamless user has no default)', async () => {
+    it('echoes the XSRF-TOKEN cookie as X-XSRF-TOKEN on a mutating request', async () => {
+      document.cookie = 'XSRF-TOKEN=token-from-api; path=/'
+      const fetchMock = stubFetch(fakeResponse({ status: 204 }))
+
+      await api.logout()
+
+      expect(headerOf(fetchMock, 'X-XSRF-TOKEN')).toBe('token-from-api')
+    })
+
+    it('does not send it on a GET', async () => {
+      document.cookie = 'XSRF-TOKEN=token-from-api; path=/'
       const fetchMock = stubFetch(fakeResponse({ status: 200, body: JSON.stringify({ events: [] }) }))
 
-      await api.ListEvents({ 'include-past': false })
+      await api.listEvents({ includePast: false })
 
-      expect(headerOf(fetchMock, 'X-Team-Id')).toBeUndefined()
+      expect(headerOf(fetchMock, 'X-XSRF-TOKEN')).toBeUndefined()
     })
   })
 
@@ -74,7 +78,7 @@ describe('wirespec-client adapter', () => {
     it('keeps a relative URL (the Vite proxy path) when VITE_API_URL is unset in dev', async () => {
       const fetchMock = stubFetch(fakeResponse({ status: 200, body: JSON.stringify({ events: [] }) }))
 
-      await api.ListEvents({ 'include-past': false })
+      await api.listEvents({ includePast: false })
 
       const url = urlOf(fetchMock)
       // Dev/e2e must stay same-origin so the Vite proxy (/api → :8080) keeps handling the call.
@@ -86,7 +90,7 @@ describe('wirespec-client adapter', () => {
       vi.stubEnv('VITE_API_URL', 'https://api.teambalance.nl')
       const fetchMock = stubFetch(fakeResponse({ status: 200, body: JSON.stringify({ events: [] }) }))
 
-      await api.ListEvents({ 'include-past': false })
+      await api.listEvents({ includePast: false })
 
       const url = urlOf(fetchMock)
       expect(url.startsWith('https://api.teambalance.nl/')).toBe(true)
@@ -99,9 +103,54 @@ describe('wirespec-client adapter', () => {
     it('sends credentials so the cross-origin session cookie rides along', async () => {
       const fetchMock = stubFetch(fakeResponse({ status: 200, body: JSON.stringify({ events: [] }) }))
 
-      await api.ListEvents({ 'include-past': false })
+      await api.listEvents({ includePast: false })
 
       expect(initOf(fetchMock).credentials).toBe('include')
+    })
+  })
+
+  describe('request and response encoding', () => {
+    it('keeps the contract wire name of a query parameter (include-past, not includePast)', async () => {
+      const fetchMock = stubFetch(fakeResponse({ status: 200, body: JSON.stringify({ events: [] }) }))
+
+      await api.listEvents({ includePast: true })
+
+      expect(urlOf(fetchMock)).toBe('/api/events?include-past=true')
+    })
+
+    it('leaves an absent optional query parameter out of the URL', async () => {
+      const fetchMock = stubFetch(fakeResponse({ status: 204 }))
+
+      await api.deleteEvent({ id: 'evt-1', scope: undefined })
+
+      expect(urlOf(fetchMock)).toBe('/api/events/evt-1')
+    })
+
+    it('parses a JSON response body', async () => {
+      stubFetch(fakeResponse({ status: 200, body: JSON.stringify({ events: [] }) }))
+
+      const res = await api.listEvents({ includePast: false })
+
+      expect(res.body).toEqual({ events: [] })
+    })
+
+    it('keeps the JSON body of a status the contract declares without one (the { code } of an error)', async () => {
+      stubFetch(fakeResponse({ status: 409, body: JSON.stringify({ code: 'LAST_ADMIN' }) }))
+
+      const res = await api.updateMember({ userId: 'u-1', body: { displayName: 'A', role: 'MEMBER', positionId: undefined, shirtNumber: undefined } })
+
+      expect(res.status).toBe(409)
+      expect(res.body).toEqual({ code: 'LAST_ADMIN' })
+    })
+
+    it('sends a request body as JSON', async () => {
+      const fetchMock = stubFetch(fakeResponse({ status: 202 }))
+
+      await api.requestMagicLink({ body: { email: 'a@b.nl', inviteToken: undefined } })
+
+      const sent = initOf(fetchMock).body as Uint8Array
+      expect(JSON.parse(new TextDecoder().decode(sent))).toEqual({ email: 'a@b.nl' })
+      expect(headerOf(fetchMock, 'Content-Type')).toBe('application/json')
     })
   })
 
@@ -110,7 +159,7 @@ describe('wirespec-client adapter', () => {
       const response = fakeResponse({ status: 204 })
       stubFetch(response)
 
-      const res = await api.DeleteEvent({ id: 'evt-1', scope: undefined })
+      const res = await api.deleteEvent({ id: 'evt-1', scope: undefined })
 
       expect(res.status).toBe(204)
       // The adapter must short-circuit on 204 rather than trying to read/parse an absent body.

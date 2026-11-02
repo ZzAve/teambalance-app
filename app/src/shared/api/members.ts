@@ -8,7 +8,10 @@ export type { Member } from './generated/model/Member'
 // shown inline; a 403/404 is not). Carry the backend's discriminator code so the UI can branch.
 // LAST_ADMIN is a 409 too — refusing a demote/remove that would leave the team without an admin.
 export class MemberUpdateError extends Error {
-  constructor(public readonly code: 'NAME_TAKEN' | 'FORBIDDEN' | 'NOT_FOUND' | 'LAST_ADMIN', message: string) {
+  constructor(
+    public readonly code: 'NAME_TAKEN' | 'NUMBER_TAKEN' | 'FORBIDDEN' | 'NOT_FOUND' | 'LAST_ADMIN',
+    message: string,
+  ) {
     super(message)
     this.name = 'MemberUpdateError'
   }
@@ -20,8 +23,8 @@ export class MemberUpdateError extends Error {
 export const currentMemberQueryOptions = queryOptions({
   queryKey: ['members', 'me'],
   queryFn: async () => {
-    const res = await api.GetCurrentMember()
-    return res.body
+    const res = await api.getCurrentMember()
+    return res.body ?? undefined
   },
 })
 
@@ -38,33 +41,39 @@ export function useMembers() {
   return useQuery({
     queryKey: ['members'],
     queryFn: async () => {
-      const res = await api.ListMembers()
+      const res = await api.listMembers()
       if (res.status === 403) throw new MemberUpdateError('FORBIDDEN', 'You are not allowed to view members.')
       return res.body.members
     },
   })
 }
 
-export interface UpdateMemberInput {
+interface UpdateMemberInput {
   userId: string
   displayName: string
   role: string
   /** The member's position, or null to leave them Unassigned. Callers pass the current value to
    *  preserve it on a name/role-only change. */
   positionId: string | null
+  /** The member's Shirt Number, or null for none. Like positionId, pass the current value to keep it. */
+  shirtNumber: number | null
 }
 
 export function useUpdateMember() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async ({ userId, displayName, role, positionId }: UpdateMemberInput) => {
-      const res = await api.UpdateMember({ userId, body: { displayName, role, positionId: positionId ?? undefined } })
-      // A 409 is either a name collision (rename) or the last-admin guard (demote). The contract
+    mutationFn: async ({ userId, displayName, role, positionId, shirtNumber }: UpdateMemberInput) => {
+      const res = await api.updateMember({
+        userId,
+        body: { displayName, role, positionId: positionId ?? undefined, shirtNumber: shirtNumber ?? undefined },
+      })
+      // A 409 is a name or Shirt Number collision, or the last-admin guard (demote). The contract
       // types the body as undefined, but the handler still sends a { code } discriminator we can
       // read at runtime to tell them apart.
       if (res.status === 409) {
         const code = (res.body as { code?: string } | undefined)?.code
         if (code === 'LAST_ADMIN') throw new MemberUpdateError('LAST_ADMIN', 'A team must keep at least one admin.')
+        if (code === 'NUMBER_TAKEN') throw new MemberUpdateError('NUMBER_TAKEN', 'That shirt number is already taken.')
         throw new MemberUpdateError('NAME_TAKEN', 'That display name is already taken.')
       }
       if (res.status === 403) throw new MemberUpdateError('FORBIDDEN', 'You are not allowed to make this change.')
@@ -75,17 +84,34 @@ export function useUpdateMember() {
   })
 }
 
-// Applies the member's own name + position and stamps them onboarded (PUT /members/me/onboarding).
-// The request carries a role, but the backend ignores it (onboarding never changes role); we send
-// the member's current role to satisfy the contract. A 409 is a name collision, mapped like
-// useUpdateMember so the /get-started form can surface it inline.
+// Applies the member's own name, position and Shirt Number and stamps them onboarded
+// (PUT /members/me/onboarding). A null number keeps the current one. The request carries a role, but
+// the backend ignores it (onboarding never changes role); we send the member's current role to
+// satisfy the contract. A 409 is a name or number collision, mapped like useUpdateMember so the
+// /get-started form can surface it inline.
 export function useCompleteOnboarding() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async ({ displayName, role, positionId }: { displayName: string; role: string; positionId: string | null }) => {
-      const res = await api.CompleteOnboarding({ body: { displayName, role, positionId: positionId ?? undefined } })
-      if (res.status === 409) throw new MemberUpdateError('NAME_TAKEN', 'That display name is already taken.')
-      return res.body
+    mutationFn: async ({
+      displayName,
+      role,
+      positionId,
+      shirtNumber,
+    }: {
+      displayName: string
+      role: string
+      positionId: string | null
+      shirtNumber: number | null
+    }) => {
+      const res = await api.completeOnboarding({
+        body: { displayName, role, positionId: positionId ?? undefined, shirtNumber: shirtNumber ?? undefined },
+      })
+      if (res.status === 409) {
+        const code = (res.body as { code?: string } | undefined)?.code
+        if (code === 'NUMBER_TAKEN') throw new MemberUpdateError('NUMBER_TAKEN', 'That shirt number is already taken.')
+        throw new MemberUpdateError('NAME_TAKEN', 'That display name is already taken.')
+      }
+      return res.body ?? undefined
     },
     // Write the now-onboarded member straight into the cache before invalidating, so the root
     // onboarding gate reads the fresh state on the very next navigation (ensureQueryData returns
@@ -102,7 +128,7 @@ export function useRemoveMember() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async ({ userId }: { userId: string }) => {
-      const res = await api.RemoveMember({ userId })
+      const res = await api.removeMember({ userId })
       if (res.status === 409) throw new MemberUpdateError('LAST_ADMIN', 'A team must keep at least one admin.')
       if (res.status === 403) throw new MemberUpdateError('FORBIDDEN', 'You are not allowed to remove this member.')
       if (res.status === 404) throw new MemberUpdateError('NOT_FOUND', 'Member not found.')

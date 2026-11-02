@@ -7,9 +7,9 @@ import java.sql.DriverManager
 import java.sql.SQLException
 
 /**
- * Phase 3 of the startup-time optimization: overlap the Serverless-SQL cold resume with the
+ * Startup-time optimization (ADR-0036): overlap the Serverless-SQL cold resume with the
  * ~10.6s classload/condition-eval gap that runs anyway, so the ~5s DB resume no longer sits
- * serially on the boot critical path. See docs/plans/2026-07-24-startup-time-optimization.md.
+ * serially on the boot critical path. See docs/adr/0036-jvm-startup-time-tuning-without-native-image.md.
  *
  * The prod DB (Scaleway Serverless SQL) scales to zero after ~5 min idle; a redeploy after an idle
  * window means Hikari's first connection (~15s into boot) pays a ~5s resume. This listener fires on

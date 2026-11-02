@@ -2,7 +2,9 @@ import { useState } from 'react'
 import { Button } from '@shared/ui/button'
 import { Input } from '@shared/ui/input'
 import { Label } from '@shared/ui/label'
-import type { CreateTeamError } from '@shared/api/teams'
+import { validateSlug } from '@shared/lib/validate-slug'
+import { placeCreateTeamError, type CreateTeamError } from '@shared/api/teams'
+import { FormError } from '@shared/ui/FormError'
 
 interface CreateMemberlessTeamViewProps {
   isPending: boolean
@@ -12,12 +14,6 @@ interface CreateMemberlessTeamViewProps {
   createdName?: string | null
   onSubmit: (values: { name: string; slug: string }) => void
 }
-
-// The address contract the backend enforces (ADR-0019 §2): lowercase alphanumerics in hyphen groups.
-// Checked client-side only to catch an obviously-bad address before submit; the server is the source
-// of truth. Kept inline (a tiny literal) rather than imported from the create-team feature — features
-// don't reach into each other under FSD.
-const SLUG_PATTERN = /^[a-z0-9]+(-[a-z0-9]+)*$/
 
 /**
  * Presentational memberless-create form for the platform console (ADR-0024 §5). Prop-only
@@ -34,9 +30,7 @@ export function CreateMemberlessTeamView({
   const [name, setName] = useState('')
   const [slug, setSlug] = useState('')
 
-  const clientSlugError = slug.length > 0 && !SLUG_PATTERN.test(slug)
-    ? 'Use lowercase letters, numbers, and hyphens.'
-    : null
+  const clientSlugError = slug.length > 0 ? validateSlug(slug) : null
   const canSubmit = name.trim().length > 0 && slug.length > 0 && clientSlugError === null && !isPending
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -45,8 +39,7 @@ export function CreateMemberlessTeamView({
     onSubmit({ name: name.trim(), slug })
   }
 
-  const placed = (...codes: CreateTeamError['code'][]) =>
-    error && codes.includes(error.code) ? error.message : null
+  const placed = (...codes: CreateTeamError['code'][]) => placeCreateTeamError(error, ...codes)
   const nameError = placed('INVALID_NAME')
   const slugError = placed('INVALID_SLUG', 'SLUG_TAKEN') ?? clientSlugError
   const bannerError = placed('GENERIC', 'INVALID_CREATION_CODE')
@@ -54,20 +47,16 @@ export function CreateMemberlessTeamView({
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-3">
       <div>
-        <h2 className="font-display text-2xl font-bold">Create a team</h2>
-        <p className="mt-1 text-sm text-muted-foreground">
+        <h2 className="font-display text-title font-bold">Create a team</h2>
+        <p className="mt-1 text-small text-muted-foreground">
           Creates an empty team you can enter and set up, then hand over with an admin invite link. You
           don't join it.
         </p>
       </div>
 
-      {bannerError && (
-        <p role="alert" className="text-sm text-destructive">
-          {bannerError}
-        </p>
-      )}
+      {bannerError && <FormError>{bannerError}</FormError>}
       {createdName && !bannerError && (
-        <p role="status" className="text-sm text-green">
+        <p role="status" className="text-small text-green">
           Created “{createdName}”. Enter it from the list below to set it up.
         </p>
       )}
@@ -81,7 +70,7 @@ export function CreateMemberlessTeamView({
           onChange={(e) => setName(e.target.value)}
           placeholder="e.g. Tovo Dames 5"
         />
-        {nameError && <p className="mt-1 text-sm text-destructive">{nameError}</p>}
+        {nameError && <p className="mt-1 text-small text-red-ink">{nameError}</p>}
       </div>
 
       <div>
@@ -93,7 +82,7 @@ export function CreateMemberlessTeamView({
           onChange={(e) => setSlug(e.target.value)}
           placeholder="tovo-dames-5"
         />
-        {slugError && <p className="mt-1 text-sm text-destructive">{slugError}</p>}
+        {slugError && <p className="mt-1 text-small text-red-ink">{slugError}</p>}
       </div>
 
       <Button type="submit" disabled={!canSubmit} className="self-start">

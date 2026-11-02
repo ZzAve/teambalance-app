@@ -1,6 +1,6 @@
 import { defineConfig, devices } from '@playwright/test'
 
-// Real full-stack e2e: Vite → real backend (:8080, `e2e` profile) → real Postgres/Redis.
+// Real full-stack e2e: Vite → real backend (:8080, `e2e` profile) → real Postgres.
 // Orchestrated by `make e2e`, which starts infra + the backend health-gated before running this.
 //
 // Locally you can leave a dev server running (`make app`) and re-run specs against it

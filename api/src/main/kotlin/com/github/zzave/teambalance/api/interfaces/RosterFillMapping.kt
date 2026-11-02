@@ -19,6 +19,7 @@ internal fun RosterFill.produce(): EventRoster = EventRoster(
     totalAttending = totalAttending.value.toLong(),
     playingAttending = playingAttending.value.toLong(),
     staffAttending = staffAttending.value.toLong(),
+    substituteAttending = substituteAttending.value.toLong(),
     positions = positions.map {
         RosterPosition(
             id = it.position.id.produce(),

@@ -21,7 +21,7 @@ interface ReadinessBadgeProps {
 const CHIP_TONE: Record<RosterTone, string> = {
   covered: 'bg-green/15 text-green-dark',
   short: 'bg-gold/20 text-gold-dark',
-  critical: 'bg-red/15 text-red-dark',
+  critical: 'bg-red/15 text-red-ink',
 }
 
 const DOT_TONE: Record<RosterTone, string> = {
@@ -57,7 +57,7 @@ export function ReadinessBadge({ roster, pending = false, variant = 'card' }: Re
     // apart (#281): "12 going" on a training told a member eleven players and a coach were twelve
     // players, which was the whole complaint. A team that has marked no staff never sees the suffix.
     return (
-      <span aria-busy={pending} className={`text-xs font-semibold text-muted-foreground ${dim}`}>
+      <span aria-busy={pending} className={`text-caption font-semibold text-muted-foreground ${dim}`}>
         {roster.playingAttending} going{roster.staffAttending > 0 && ` +${roster.staffAttending} staff`}
       </span>
     )
@@ -66,11 +66,11 @@ export function ReadinessBadge({ roster, pending = false, variant = 'card' }: Re
   return (
     <span
       aria-busy={pending}
-      // The hero's ink is the fixed --color-green-dark its own white "I'm in" button already uses.
+      // The hero's ink is the fixed --color-green-dark its own white "Going" button already uses.
       // `text-foreground` would be wrong there: the hero's ground stays green in both themes while
       // that token inverts, so the label would go near-white on a white chip in dark mode.
       style={hero ? { color: 'var(--color-green-dark)' } : undefined}
-      className={`flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold ${hero ? 'bg-white' : CHIP_TONE[chip.tone]} ${dim}`}
+      className={`flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-caption font-bold ${hero ? 'bg-white' : CHIP_TONE[chip.tone]} ${dim}`}
     >
       <span className={`size-1.5 rounded-full ${DOT_TONE[chip.tone]}`} aria-hidden />
       {chip.text}

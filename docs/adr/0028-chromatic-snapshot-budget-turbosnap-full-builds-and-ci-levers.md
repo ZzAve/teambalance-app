@@ -4,14 +4,14 @@
 - Date: 2026-09-02
 - Amends: [ADR-0017](0017-visual-regression-gate-and-gated-renovate-automerge.md)
   (the "Snapshot budget" consequence) and extends
-  [ADR-0027 snapshot policy](0027-snapshot-policy-disable-behavioral-only-stories-modes-for-theme.md)
+  [ADR-0035 snapshot policy](0035-snapshot-policy-disable-behavioral-only-stories-modes-for-theme.md)
   (which governs the per-story baseline count; this ADR governs how often those baselines are *captured*)
 
 ## Context
 
 ADR-0017 stood up the Chromatic visual-regression gate and hand-waved the cost — "~22 → ~50
 stories fit the free tier comfortably; TurboSnap keeps per-PR counts down. Revisit if the catalogue
-outgrows the plan." ADR-0027 then grew the catalogue to ~216 deliberate baselines and declared the
+outgrows the plan." ADR-0035 then grew the catalogue to ~216 deliberate baselines and declared the
 budget "governed by policy, not story count." Neither said **how often** a baseline gets re-captured
 — and re-captures, not the baseline count, are what spend the monthly quota. In early September the
 account hit **"Monthly billed snapshot limit reached"**, which stalls the required `UI Tests` check
@@ -35,7 +35,7 @@ Three mechanisms explain the burn, and they matter more than the category split:
    `docker-compose.yml`, yet captured 271): *"A full build was triggered because `modes.ts` was
    modified."* Chromatic treats any `.storybook/**` file as **global** — a change to it can alter how
    every story renders — and it measures "changed since **either** merge ancestor". A branch forked
-   before `modes.ts` landed (ADR-0027, 2026-08-31) drags `modes.ts` into its ancestor diff, so a
+   before `modes.ts` landed (ADR-0035, 2026-08-31) drags `modes.ts` into its ancestor diff, so a
    change that touches zero stories still full-builds. This is a **false** full build from a stale
    branch, not a real global invalidation.
 
@@ -47,7 +47,7 @@ Three mechanisms explain the burn, and they matter more than the category split:
    during the Wednesday automerge train each rebase is a fresh push and a fresh build. One
    `vitest-monorepo` branch ran 5× in a day.
 
-A large share of the measured 11,717 is **transient**: the ADR-0027 rollout itself (adding
+A large share of the measured 11,717 is **transient**: the ADR-0035 rollout itself (adding
 `modes.ts`, `preview.ts`, and touching 46 story files in late August) put a global-invalidating
 change on `main`, so nearly every branch alive in the window false-full-built. Steady state — once
 every open branch is cut from a `main` that already contains those files — is materially lower.

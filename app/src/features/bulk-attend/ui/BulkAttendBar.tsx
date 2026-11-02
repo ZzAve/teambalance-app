@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import type { Event } from '@shared/api/events'
 import { useBulkAttend, useBulkUndo } from '@shared/api/attendances'
-import { useUserStore } from '@shared/stores/user-store'
+import { useCurrentUser } from '@shared/api/auth'
 import { groupByType } from '../lib/group-by-type'
 import { batchToastMessage } from '../lib/batch-toast-message'
 import { BulkAttendBarView } from './BulkAttendBarView'
@@ -24,7 +24,7 @@ interface BulkAttendBarProps {
  * the whole reason the endpoint returns them.
  */
 export function BulkAttendBar({ events }: BulkAttendBarProps) {
-  const userId = useUserStore((s) => s.userId)
+  const userId = useCurrentUser()?.id ?? null
   const [pendingTypeId, setPendingTypeId] = useState<string | null>(null)
   const bulkAttend = useBulkAttend()
   const bulkUndo = useBulkUndo()

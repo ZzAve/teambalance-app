@@ -1,8 +1,12 @@
 package com.github.zzave.teambalance.api.domain.exception
 
+import com.github.zzave.teambalance.api.domain.model.BunqAccountId
+import com.github.zzave.teambalance.api.domain.model.CalendarLinkId
 import com.github.zzave.teambalance.api.domain.model.EventId
 import com.github.zzave.teambalance.api.domain.model.EventTypeId
 import com.github.zzave.teambalance.api.domain.model.PositionId
+import com.github.zzave.teambalance.api.domain.model.ShirtNumber
+import com.github.zzave.teambalance.api.domain.model.SubstituteId
 import com.github.zzave.teambalance.api.domain.model.TeamId
 import com.github.zzave.teambalance.api.domain.model.UserId
 import java.util.UUID
@@ -35,23 +39,40 @@ class UnknownRosterPositionException(id: PositionId) :
 class MigrationTargetInvalidException(reason: String) :
     BadRequestException("Invalid migration target: $reason", "INVALID_MIGRATION_TARGET")
 
+// A photo over the size limit → 400 PHOTO_TOO_LARGE. Separate from INVALID_PHOTO so the client can tell
+// the member to pick a smaller picture rather than a different kind of file.
+class PhotoTooLargeException(maxBytes: Int) :
+    BadRequestException("Photo is larger than $maxBytes bytes", "PHOTO_TOO_LARGE")
+
+// Empty, or neither WebP nor JPEG → 400 INVALID_PHOTO.
+class InvalidPhotoException(message: String) : BadRequestException(message, "INVALID_PHOTO")
+
 sealed class NotFoundException(message: String) : TeambalanceException(message)
 
 class EventNotFoundException(id: EventId) : NotFoundException("Event not found: $id")
 
 class EventTypeNotFoundException(id: EventTypeId) : NotFoundException("EventType not found: $id")
 
-class AttendanceNotFoundException(eventId: EventId, userId: UserId) :
-    NotFoundException("Attendance not found for event $eventId and user $userId")
-
 class MemberNotFoundException(userId: UserId) : NotFoundException("Member not found: $userId")
 
 class PositionNotFoundException(id: PositionId) : NotFoundException("Position not found: $id")
+
+class SubstituteNotFoundException(id: SubstituteId) : NotFoundException("Substitute not found: $id")
+
+// Plain 404s for photo reads and for copying a Personal Photo that does not exist.
+class PhotoNotFoundException(userId: UserId) : NotFoundException("No photo for $userId")
+
+class NoPersonalPhotoException(userId: UserId) : NotFoundException("User $userId has no personal photo")
 
 // The codes-admin CRUD (#154 Slice 4) targets a code that does not exist → 404. Distinct from the
 // opaque INVALID_CREATION_CODE 403 the redeem path returns: this is an authenticated platform admin
 // managing codes, not a founder probing them, so a plain not-found is appropriate.
 class CreationCodeNotFoundException(code: String) : NotFoundException("Creation code not found: $code")
+
+// The caller asked to delete a calendar link that is not theirs, or does not exist. One exception for
+// both: which of the two it is, is exactly what a caller probing other members' link ids would want
+// to learn (ADR-0039).
+class CalendarLinkNotFoundException(id: CalendarLinkId) : NotFoundException("Calendar link not found: $id")
 
 // Act-as was asked to enter a team that does not exist (ADR-0024). A plain 404: the caller is an
 // authenticated platform admin who already sees every team in the console, so there is nothing to
@@ -90,6 +111,14 @@ class ActAsExpiredException(userId: UserId) :
 class CannotChangeOwnRoleException(userId: UserId) :
     ForbiddenException("User $userId cannot elevate their own role", "CANNOT_SELF_PROMOTE")
 
+// Blocked for the duration of an Act-as grant (ADR-0024). A Calendar link is a standing credential
+// issued to a *person*, so minting or revoking one while operating as somebody else's Admin would
+// leave a member holding a subscription they never asked for — or lose one they rely on — with only
+// the generic Act-as Record to show for it. Refused rather than attributed: act-as is full read and
+// write on the team's own data, and this is not that.
+class NotUnderActAsException :
+    ForbiddenException("This is not available while acting as a team", "ACT_AS_NOT_PERMITTED")
+
 // `code` is the stable machine-readable discriminator for 422 rejections — a request that is
 // well-formed but violates a business rule (not a state clash, so not a 409). Mirrors the code
 // convention of ForbiddenException/ConflictException.
@@ -117,11 +146,27 @@ sealed class ConflictException(message: String, val code: String) : TeambalanceE
 class NameTakenException(name: String) :
     ConflictException("Display name '$name' is already taken in this team", "NAME_TAKEN")
 
+class ShirtNumberTakenException(number: ShirtNumber) :
+    ConflictException("Shirt number $number is already worn by another member of this team", "NUMBER_TAKEN")
+
+// Same code as for a Member: the form shows it under the same field. Checked among Substitutes only.
+class SubstituteShirtNumberTakenException(number: ShirtNumber) :
+    ConflictException("Shirt number $number is already worn by another substitute", "NUMBER_TAKEN")
+
 class LastAdminException(teamId: TeamId) :
     ConflictException("Team $teamId must keep at least one admin", "LAST_ADMIN")
 
+// A member already holds the maximum number of Calendar links in this team, expired ones included
+// (ADR-0039). A 409 rather than a 422: nothing about the request is wrong, and the caller resolves it
+// by deleting one of the links they already have — the same shape as LastAdminException.
+class CalendarLinkLimitReachedException(max: Int) :
+    ConflictException("You already have $max calendar links for this team; delete one first", "CALENDAR_LINK_LIMIT")
+
 class PositionLabelTakenException(label: String) :
     ConflictException("Position '$label' already exists in this team", "POSITION_LABEL_TAKEN")
+
+class SubstituteNameTakenException(name: String) :
+    ConflictException("Substitute '$name' is already on this team's list", "SUBSTITUTE_NAME_TAKEN")
 
 // Event-type names are unique per team case-insensitively, the same rule positions follow. Archived
 // types count: two types sharing a name would become indistinguishable the moment one is restored.
@@ -152,3 +197,22 @@ class PlatformAdminHasMembershipException(userId: UserId) :
         "Platform admin $userId holds an active team membership; use a separate, teamless account to act as a team",
         "PLATFORM_ADMIN_HAS_MEMBERSHIP",
     )
+
+// Top-up was asked for while the money pool is Off or no bunq.me link is set: nothing to link to.
+class TopUpUnavailableException : NotFoundException("Top-up is not available for this team")
+
+// Connecting Bunq is switched off for this deployment; reads as a missing feature, not a denial.
+class BunqConnectDisabledException : NotFoundException("Connecting Bunq is not available")
+
+class BunqNotConnectedException : NotFoundException("This team has not connected Bunq")
+
+// The connection was deleted or replaced between reading it and writing the pick.
+class BunqConnectionChangedException :
+    NotFoundException("The connection changed while you were picking; reload and try again.")
+
+// The picked account is not one of the accounts the team's current grant covers.
+class UnknownBunqAccountException(id: BunqAccountId) :
+    BadRequestException("Bunq account not in the grant: $id", "UNKNOWN_BUNQ_ACCOUNT")
+
+// The stored grant cannot be used; the Admin has to connect again.
+class BunqGrantRejectedException : UnprocessableEntityException("The stored Bunq grant cannot be used", "BUNQ_REJECTED")

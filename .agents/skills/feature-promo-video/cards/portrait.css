@@ -1,0 +1,20 @@
+@font-face { font-family: 'Grandstander'; src: url('grandstander-latin-wght-normal.woff2') format('woff2'); font-weight: 100 900; }
+@font-face { font-family: 'DM Sans'; src: url('dm-sans-latin-opsz-normal.woff2') format('woff2'); font-weight: 100 1000; }
+html, body { margin: 0; width: 1170px; height: 2532px; background: #F8F6F0; color: #1E293B; font-family: 'DM Sans', sans-serif; }
+.card { position: relative; width: 1170px; height: 2532px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; overflow: hidden; padding: 0 90px; box-sizing: border-box; }
+.blob { position: absolute; border-radius: 50%; }
+.blob.a { width: 900px; height: 900px; right: -380px; top: -300px; background: rgba(34,92,156,0.08); }
+.blob.b { width: 760px; height: 760px; left: -340px; bottom: -300px; background: rgba(36,158,108,0.10); }
+.wordmark { font-family: 'Grandstander', cursive; font-weight: 700; font-size: 84px; color: #225C9C; display: flex; align-items: center; gap: 28px; }
+.wordmark img { width: 120px; height: 120px; border-radius: 30px; box-shadow: 0 12px 40px rgba(30,41,59,0.12); }
+.wordmark .green { color: #249E6C; }
+h1 { font-family: 'Grandstander', cursive; font-weight: 800; font-size: 150px; line-height: 1.05; margin: 120px 0 0; letter-spacing: -1px; }
+h1 .accent { color: #225C9C; }
+p.sub { font-size: 58px; line-height: 1.4; color: #64748B; margin: 70px 0 0; }
+.pill { margin-top: 110px; display: inline-flex; align-items: center; gap: 24px; padding: 30px 56px; border-radius: 999px; background: #249E6C; color: #fff; font-weight: 700; font-size: 52px; }
+.pill .dot { width: 26px; height: 26px; border-radius: 50%; background: #FFD54F; }
+.steps { margin-top: 110px; display: flex; flex-direction: column; gap: 30px; align-items: center; font-size: 60px; color: #1E293B; font-weight: 600; }
+.steps .box { padding: 34px 60px; border-radius: 30px; background: #FEFDFB; border: 2px solid rgba(30,41,59,0.10); box-shadow: 0 8px 30px rgba(30,41,59,0.06); display: inline-flex; align-items: center; gap: 26px; }
+.steps .arrow { color: #94A3B8; font-size: 64px; line-height: 1; }
+.foot { position: absolute; bottom: 150px; font-size: 52px; color: #64748B; }
+.foot b { color: #225C9C; font-weight: 700; }

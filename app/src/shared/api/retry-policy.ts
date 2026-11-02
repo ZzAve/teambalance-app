@@ -12,7 +12,7 @@
 const TRANSIENT_STATUSES = new Set([502, 503, 504])
 
 /** Attempts *after* the first try — 1s, 2s, 4s → up to three retries before we give up. */
-export const MAX_WAKE_RETRIES = 3
+const MAX_WAKE_RETRIES = 3
 
 /** Read an HTTP status off a thrown error, if it carries one. A fetch reject carries none. */
 function httpStatusOf(error: unknown): number | undefined {
@@ -28,19 +28,15 @@ function httpStatusOf(error: unknown): number | undefined {
  * rejected at the network layer (connection refused / reset while the container spins up) — retry.
  * A carried status retries only for gateway errors; a 4xx is a real client error and fails fast.
  */
-export function isTransientWakeError(error: unknown): boolean {
+function isTransientWakeError(error: unknown): boolean {
   const status = httpStatusOf(error)
   if (status === undefined) return true
   return TRANSIENT_STATUSES.has(status)
 }
 
 /** TanStack Query `retry` predicate: keep retrying transient wake failures up to the cap. */
-export function shouldRetryWake(
-  failureCount: number,
-  error: unknown,
-  maxRetries: number = MAX_WAKE_RETRIES,
-): boolean {
-  return failureCount < maxRetries && isTransientWakeError(error)
+export function shouldRetryWake(failureCount: number, error: unknown): boolean {
+  return failureCount < MAX_WAKE_RETRIES && isTransientWakeError(error)
 }
 
 /** Exponential backoff (1s, 2s, 4s), capped so a genuinely-down backend doesn't stall a whole minute. */

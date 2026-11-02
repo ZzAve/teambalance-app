@@ -1,0 +1,325 @@
+package com.github.zzave.teambalance.api.interfaces
+
+import com.github.zzave.teambalance.api.application.CalendarFeed
+import com.github.zzave.teambalance.api.application.CalendarFeedEntry
+import com.github.zzave.teambalance.api.domain.model.AttendanceState
+import com.github.zzave.teambalance.api.domain.model.CalendarLinkOptions
+import com.github.zzave.teambalance.api.domain.model.CalendarNameSuffix
+import com.github.zzave.teambalance.api.domain.model.Event
+import com.github.zzave.teambalance.api.domain.model.EventDescription
+import com.github.zzave.teambalance.api.domain.model.EventId
+import com.github.zzave.teambalance.api.domain.model.EventLocation
+import com.github.zzave.teambalance.api.domain.model.EventTitle
+import com.github.zzave.teambalance.api.domain.model.EventType
+import com.github.zzave.teambalance.api.domain.model.EventTypeId
+import com.github.zzave.teambalance.api.domain.model.EventTypeName
+import com.github.zzave.teambalance.api.domain.model.RefreshCadence
+import com.github.zzave.teambalance.api.domain.model.Slug
+import com.github.zzave.teambalance.api.domain.model.TeamId
+import com.github.zzave.teambalance.api.domain.model.TeamName
+import com.github.zzave.teambalance.api.domain.model.TeamSummary
+import com.github.zzave.teambalance.api.domain.model.UserId
+import io.kotest.assertions.withClue
+import io.kotest.core.spec.style.FunSpec
+import io.kotest.matchers.ints.shouldBeLessThanOrEqual
+import io.kotest.matchers.shouldBe
+import io.kotest.matchers.shouldNotBe
+import io.kotest.matchers.string.shouldContain
+import io.kotest.matchers.string.shouldNotContain
+import java.time.Instant
+import java.util.UUID
+
+private const val FRONTEND = "https://app.teambalance.nl"
+private val EVENT_ID = UUID.fromString("11111111-2222-3333-4444-555555555555")
+
+private val TEAM = TeamSummary(
+    id = TeamId(UUID.fromString("a1111111-0000-0000-0000-000000000001")),
+    name = TeamName("Tovo Dames 5"),
+    slug = Slug("tovo-dames-5"),
+)
+
+private val CREATED: Instant = Instant.parse("2026-09-01T09:00:00Z")
+private val REVISED: Instant = Instant.parse("2026-09-20T14:45:00Z")
+
+private fun event(
+    title: String = "Training",
+    description: String? = null,
+    location: String? = "Galgenwaard",
+    start: Instant = Instant.parse("2026-10-01T18:30:00Z"),
+    end: Instant = Instant.parse("2026-10-01T20:00:00Z"),
+    updatedAt: Instant = CREATED,
+) = Event(
+    id = EventId(EVENT_ID),
+    eventType = EventType(
+        id = EventTypeId(UUID.randomUUID()),
+        name = EventTypeName("Training"),
+        color = null,
+    ),
+    title = EventTitle(title),
+    description = description?.let(::EventDescription),
+    startTime = start,
+    endTime = end,
+    location = location?.let(::EventLocation),
+    recurringGroup = null,
+    createdBy = UserId(UUID.randomUUID()),
+    createdAt = CREATED,
+    updatedAt = updatedAt,
+)
+
+private fun feed(
+    entries: List<CalendarFeedEntry>,
+    refresh: RefreshCadence = RefreshCadence.RELAXED,
+    showAttendancePrefix: Boolean = true,
+    calendarNameSuffix: String? = null,
+) = CalendarFeed(
+    TEAM,
+    entries,
+    refresh,
+    CalendarLinkOptions(
+        showAttendancePrefix = showAttendancePrefix,
+        calendarNameSuffix = CalendarNameSuffix.ofNullable(calendarNameSuffix),
+    ),
+)
+
+private fun render(
+    state: AttendanceState = AttendanceState.NOT_RESPONDED,
+    event: Event = event(),
+    refresh: RefreshCadence = RefreshCadence.RELAXED,
+    showAttendancePrefix: Boolean = true,
+    calendarNameSuffix: String? = null,
+) = CalendarIcs.render(
+    feed(listOf(CalendarFeedEntry(event, state)), refresh, showAttendancePrefix, calendarNameSuffix),
+    FRONTEND,
+)
+
+/**
+ * The wire format of the calendar-link feed (ADR-0039). These assertions are what a subscriber's
+ * calendar app actually reads, so they are written against the emitted text rather than against an
+ * object model — the bugs worth catching here (a missing `Z`, an unescaped comma, a
+ * TRANSP on the wrong state) all live in the encoding, not in the model.
+ */
+class CalendarIcsTest : FunSpec({
+
+    test("the calendar is named after the team, so it is findable in a sidebar of calendars") {
+        render() shouldContain "X-WR-CALNAME:Tovo Dames 5\r\n"
+    }
+
+    // A partner subscribing to "when is she at volleyball" needs to tell that calendar apart from
+    // the member's own in the same sidebar (ADR-0040).
+    test("a link with a calendar-name suffix appends it to the team name") {
+        render(calendarNameSuffix = "Partner") shouldContain "X-WR-CALNAME:Tovo Dames 5 · Partner\r\n"
+    }
+
+    // Which band applies is RefreshCadenceTest's business; what matters here is that whichever one
+    // the feed carries is written out, in both spellings, as a well-formed DURATION.
+    context("the calendar advertises how often to come back") {
+        listOf(
+            RefreshCadence.RELAXED to "PT12H",
+            RefreshCadence.CLOSING to "PT6H",
+            RefreshCadence.NEAR to "PT3H",
+            RefreshCadence.IMMINENT to "PT1H",
+        ).forEach { (cadence, iso) ->
+            test("$cadence is written in both spellings clients read") {
+                val ics = render(refresh = cadence)
+                ics shouldContain "REFRESH-INTERVAL;VALUE=DURATION:$iso"
+                ics shouldContain "X-PUBLISHED-TTL:$iso"
+            }
+        }
+    }
+
+    test("it is a well-formed calendar with one event per entry") {
+        val ics = render()
+        ics shouldContain "BEGIN:VCALENDAR"
+        ics shouldContain "VERSION:2.0"
+        ics shouldContain "BEGIN:VEVENT"
+        ics shouldContain "END:VCALENDAR"
+    }
+
+    // The event's own id, so an hourly refetch updates the entry in place instead of stacking a
+    // duplicate beside it every hour.
+    test("the event carries the event id as its UID") {
+        render() shouldContain "UID:$EVENT_ID"
+    }
+
+    // Written as UTC instants, not as local wall time with a VTIMEZONE: the domain holds Instants,
+    // the team's own zone is not modelled, and a `Z` means the same thing in every client.
+    test("start and end are written as UTC instants") {
+        val ics = render()
+        ics shouldContain "DTSTART:20261001T183000Z"
+        ics shouldContain "DTEND:20261001T200000Z"
+    }
+
+    // DTSTAMP is inside the body the ETag hashes, so a wall-clock value would make every response a
+    // new ETag and the 304 path would never fire.
+    test("the timestamp is stable across renders, so the ETag can be") {
+        render() shouldBe render()
+    }
+
+    // On an object with no METHOD, RFC 5545 gives DTSTAMP the meaning "last revised", and
+    // LAST-MODIFIED says the same in the property clients more often read. Both carried the creation
+    // time before, which told every client that a rescheduled training was the version it already had.
+    context("the event's revision time is what a client compares") {
+        test("an unedited event stamps its creation time") {
+            val ics = render()
+            ics shouldContain "DTSTAMP:20260901T090000Z"
+            ics shouldContain "LAST-MODIFIED:20260901T090000Z"
+        }
+
+        test("an edited event stamps the edit, not the creation") {
+            val ics = render(event = event(updatedAt = REVISED))
+            ics shouldContain "DTSTAMP:20260920T144500Z"
+            ics shouldContain "LAST-MODIFIED:20260920T144500Z"
+            ics shouldNotContain "20260901T090000Z"
+        }
+
+        // Which is also what keeps the ETag honest: it moves when the event does, and only then.
+        test("an edit changes the rendered calendar, an unrelated render does not") {
+            render(event = event(updatedAt = REVISED)) shouldNotBe render(event = event(updatedAt = CREATED))
+        }
+
+        // SEQUENCE counts revisions and nothing here counts them; a number synthesised from a
+        // timestamp would be a lie that also overflows. Its job is iTIP scheduling, not a published feed.
+        test("no SEQUENCE is invented") {
+            render() shouldNotContain "SEQUENCE"
+        }
+    }
+
+    context("the member's own answer is worn on the title") {
+        test("attending") { render(AttendanceState.ATTENDING) shouldContain "SUMMARY:✓ Training" }
+        test("maybe") { render(AttendanceState.MAYBE) shouldContain "SUMMARY:? Training" }
+        test("absent") { render(AttendanceState.ABSENT) shouldContain "SUMMARY:✗ Training" }
+        test("not responded gets no prefix at all") {
+            render(AttendanceState.NOT_RESPONDED) shouldContain "SUMMARY:Training"
+        }
+    }
+
+    // A link shared with someone else (ADR-0040) shows the bare title: the marks are the member's
+    // own bookkeeping, and to a partner "✓ Training" says nothing "Training" does not.
+    context("a link with the prefix turned off shows bare titles") {
+        AttendanceState.entries.forEach { state ->
+            test("$state") {
+                render(state, showAttendancePrefix = false) shouldContain "SUMMARY:Training\r\n"
+            }
+        }
+
+        test("an absent event still frees the slot") {
+            render(AttendanceState.ABSENT, showAttendancePrefix = false) shouldContain "TRANSP:TRANSPARENT"
+        }
+    }
+
+    context("only an absent event frees the subscriber's time") {
+        test("absent is transparent") { render(AttendanceState.ABSENT) shouldContain "TRANSP:TRANSPARENT" }
+        // "I haven't decided" is not "I am available", so an unanswered event still blocks the slot.
+        listOf(AttendanceState.ATTENDING, AttendanceState.MAYBE, AttendanceState.NOT_RESPONDED).forEach { state ->
+            test("$state is not") { render(state) shouldNotContain "TRANSP:TRANSPARENT" }
+        }
+    }
+
+    test("the location comes across") {
+        render() shouldContain "LOCATION:Galgenwaard"
+    }
+
+    test("an event without a location simply has none") {
+        render(event = event(location = null)) shouldNotContain "LOCATION:"
+    }
+
+    test("the entry links back to the event page, both as URL and in the description") {
+        val ics = unfolded(render())
+        ics shouldContain "URL:https://app.teambalance.nl/t/tovo-dames-5/events/$EVENT_ID"
+        ics shouldContain "DESCRIPTION:https://app.teambalance.nl/t/tovo-dames-5/events/$EVENT_ID"
+    }
+
+    test("an event with a description keeps it, with the link appended below") {
+        // \n is the iCalendar escape for a newline; the blank line between prose and link is two.
+        unfolded(render(event = event(description = "Bring your own ball"))) shouldContain
+            "DESCRIPTION:Bring your own ball\\n\\nhttps://app.teambalance.nl/t/tovo-dames-5/events/$EVENT_ID"
+    }
+
+    // Commas, semicolons and newlines are structural in iCalendar. Unescaped, a title like
+    // "Match vs. Taurus, away" splits one property into two values and the entry renders wrong.
+    context("text that would otherwise break the format is escaped") {
+        test("a comma in the title") {
+            unfolded(render(event = event(title = "Match vs Taurus, away"))) shouldContain
+                "SUMMARY:Match vs Taurus\\, away"
+        }
+        test("a semicolon in the location") {
+            unfolded(render(event = event(location = "Hall 1; door B"))) shouldContain "LOCATION:Hall 1\\; door B"
+        }
+        // X-WR-CALNAME is read raw by clients, so only the newline is escaped there.
+        test("a newline in the team name, which keeps its comma as typed") {
+            val named = TEAM.copy(name = TeamName("Tovo, Dames\nBEGIN:VEVENT"))
+            val feed = CalendarFeed(named, emptyList(), RefreshCadence.RELAXED, CalendarLinkOptions())
+            val ics = CalendarIcs.render(feed, FRONTEND)
+            ics shouldContain "X-WR-CALNAME:Tovo, Dames\\nBEGIN:VEVENT"
+            ics shouldNotContain "\r\nBEGIN:VEVENT"
+        }
+        test("a newline in the description") {
+            unfolded(render(event = event(description = "Line one\nLine two"))) shouldContain
+                "DESCRIPTION:Line one\\nLine two"
+        }
+    }
+
+    // Deliberately absent (ADR-0039): a subscription URL is a bearer credential shared to a device,
+    // so it carries the subscriber's own schedule and nothing about anybody else.
+    test("no roster, no attendees and no alarms are disclosed") {
+        val ics = CalendarIcs.render(feed(listOf(CalendarFeedEntry(event(), AttendanceState.ATTENDING))), FRONTEND)
+        ics shouldNotContain "ATTENDEE"
+        ics shouldNotContain "ORGANIZER"
+        ics shouldNotContain "BEGIN:VALARM"
+    }
+
+    test("a team with nothing on still renders a valid, empty calendar") {
+        val ics = CalendarIcs.render(feed(emptyList()), FRONTEND)
+        ics shouldContain "BEGIN:VCALENDAR"
+        ics shouldNotContain "BEGIN:VEVENT"
+    }
+
+    // RFC 5545 §3.1: "Lines of text SHOULD NOT be longer than 75 octets, excluding the line break."
+    // Octets, not characters — the ✓/✗ prefixes and accented titles are multibyte — and a fold must
+    // never land mid-codepoint, or what a client reads is corrupt.
+    context("line folding") {
+        val longAscii = "Match against a club with a very long name indeed, away at their hall"
+        listOf(
+            "ASCII" to render(event = event(title = longAscii, description = longAscii)),
+            "multibyte" to render(AttendanceState.ATTENDING, event(title = MULTIBYTE_TITLE, description = MULTIBYTE_TITLE)),
+        ).forEach { (kind, ics) ->
+            test("a $kind calendar folds every line inside the RFC's 75 octets, without splitting a codepoint") {
+                widestLine(ics).let { widest ->
+                    withClue("widest line was ${widest.octets} octets: ${widest.text}") {
+                        widest.octets shouldBeLessThanOrEqual MAX_OCTETS
+                    }
+                }
+                lines(ics).all { it.decodesCleanly() } shouldBe true
+            }
+        }
+    }
+})
+
+private const val MAX_OCTETS = 75
+
+// Long enough to force a fold, and multibyte on both sides of where the fold lands: the ✓ prefix the
+// feed adds for an ATTENDING answer, plus accents and an em dash in the middle of the title.
+private const val MULTIBYTE_TITLE =
+    "Wedstrijd tegen Taurus — véél té lange naam mét áccenten ✓✓✓ zodat de regel moet breken"
+
+/** One emitted line, measured the way RFC 5545 measures: in UTF-8 octets. */
+private data class IcsLine(val text: String) {
+    val octets: Int get() = text.toByteArray(Charsets.UTF_8).size
+
+    /**
+     * Whether this line survives a round trip through UTF-8 — false if a fold landed mid-codepoint,
+     * which is the one way over-long lines could actually corrupt what a client reads.
+     */
+    fun decodesCleanly(): Boolean {
+        val bytes = text.toByteArray(Charsets.UTF_8)
+        return String(bytes, Charsets.UTF_8) == text && !text.contains('\uFFFD')
+    }
+}
+
+private fun lines(ics: String) = ics.split("\r\n").filter { it.isNotEmpty() }.map(::IcsLine)
+
+private fun widestLine(ics: String) = lines(ics).maxBy { it.octets }
+
+// iCalendar folds lines at 75 octets with a CRLF + single space. Undo that before asserting on a
+// property's whole value, or an assertion fails on where the wrapping happened rather than on content.
+private fun unfolded(ics: String) = ics.replace("\r\n ", "").replace("\n ", "")

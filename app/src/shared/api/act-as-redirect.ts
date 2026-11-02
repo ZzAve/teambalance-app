@@ -2,13 +2,13 @@
 export const ACT_AS_EXPIRED_CODE = 'ACT_AS_EXPIRED'
 
 /** Where a Platform Admin belongs once they are inside no Team: the console, never `/onboarding`. */
-export const PLATFORM_CONSOLE_PATH = '/admin/teams'
+const PLATFORM_CONSOLE_PATH = '/admin/teams'
 
 /**
  * Survives the hard navigation below, which is why it is storage and not a toast call: the console
  * reads it once on arrival and clears it, so the operator learns *why* they were sent back.
  */
-export const ACT_AS_EXPIRED_FLAG = 'actAsExpired'
+const ACT_AS_EXPIRED_FLAG = 'actAsExpired'
 
 /**
  * Whether an API response means the caller's act-as ran out. Kept pure (no window/router) so it is

@@ -1,25 +1,33 @@
 import { Link, useRouterState } from '@tanstack/react-router'
 import { Calendar, Users, PiggyBank, User, type LucideIcon } from 'lucide-react'
+import { useAuthMe } from '@shared/api/auth'
 import { ACCOUNT_PATH, teamRoutes, teamSlugFromPath, type TeamRoutes } from '@shared/lib/team-routes'
 
 interface TabConfig {
   icon: LucideIcon
   label: string
   to: string
-  // How to match the current path to this tab. Events is exact (the Team home would otherwise
-  // prefix-match every screen under it); Team also owns its nested routes (e.g. .../team/settings),
-  // so it matches by prefix.
+  // How to match the current path to this tab. Events is the Team home, so it cannot prefix-match
+  // (that would light it on every screen); it owns the home and the screens opened from it (an
+  // event's detail, the calendar links). Team owns its nested routes (e.g. .../team/settings).
   isActive: (pathname: string) => boolean
 }
 
 // Built from the slug in the URL rather than a store, so switching Team makes every tab follow.
-function tabsFor(routes: TeamRoutes): TabConfig[] {
+// Only the team-independent routes (/account) carry no slug; there the Active Team stands in.
+function tabsFor(routes: TeamRoutes, showMoney: boolean): TabConfig[] {
   const exact = (path: string) => (p: string) => p.replace(/\/$/, '') === path
   const prefix = (path: string) => (p: string) => p === path || p.startsWith(`${path}/`)
   return [
-    { icon: Calendar, label: 'Events', to: routes.events, isActive: exact(routes.events) },
+    {
+      icon: Calendar,
+      label: 'Events',
+      to: routes.events,
+      isActive: (p) =>
+        exact(routes.events)(p) || prefix(`${routes.events}/events`)(p) || prefix(routes.calendar)(p),
+    },
     { icon: Users, label: 'Team', to: routes.team, isActive: prefix(routes.team) },
-    { icon: PiggyBank, label: 'Money', to: routes.money, isActive: prefix(routes.money) },
+    ...(showMoney ? [{ icon: PiggyBank, label: 'Money', to: routes.money, isActive: prefix(routes.money) }] : []),
     // Profile points at the team-independent /account (ADR-0027 §1) — a constant, not a slug-built
     // destination — so it resolves and logout stays reachable on every in-shell screen, teamless
     // and mid-onboarding included.
@@ -29,7 +37,11 @@ function tabsFor(routes: TeamRoutes): TabConfig[] {
 
 export function BottomNav() {
   const pathname = useRouterState({ select: (s) => s.location.pathname })
-  const TABS = tabsFor(teamRoutes(teamSlugFromPath(pathname)))
+  const me = useAuthMe().data
+  const TABS = tabsFor(
+    teamRoutes(teamSlugFromPath(pathname) ?? me?.activeTeam?.slug ?? null),
+    me?.moneyPoolEnabled !== false,
+  )
 
   return (
     <nav
@@ -46,7 +58,7 @@ export function BottomNav() {
               key={label}
               to={to}
               className={[
-                'flex flex-col items-center gap-0.5 px-4 py-2 text-xs transition-colors',
+                'flex flex-col items-center gap-0.5 px-4 py-2 text-caption transition-colors',
                 active ? 'text-blue' : 'text-muted-foreground hover:text-foreground',
               ].join(' ')}
               aria-current={active ? 'page' : undefined}

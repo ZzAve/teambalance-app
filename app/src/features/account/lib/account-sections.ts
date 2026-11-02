@@ -6,6 +6,7 @@ import type { AuthenticatedUser } from '@shared/api/auth'
  */
 export type AccountSection =
   | 'email'
+  | 'photo'
   | 'displayName'
   | 'position'
   | 'appearance'
@@ -16,6 +17,7 @@ export type AccountSection =
 // Canonical display order; the selector returns the present sections in this order.
 const ORDER: AccountSection[] = [
   'email',
+  'photo',
   'displayName',
   'position',
   'appearance',
@@ -35,6 +37,7 @@ type AccountUser = Pick<
  *
  * - **Email / Appearance / Teams / Log out** — always. Log out is the whole point: it must be
  *   reachable from every signed-in state.
+ * - **Photo** — always: the Personal Photo belongs to the person, not to a Team (ADR-0038).
  * - **Display name / Position** — only with an Active Team, because member data is tenant-scoped
  *   (ADR-0026). An Active Team can come from a membership *or* from act-as (ADR-0024): a Platform
  *   Admin acting-as has `activeTeam` set with `teams` empty, and still gets the tenant's name +
@@ -42,7 +45,7 @@ type AccountUser = Pick<
  * - **Platform admin** — only for a Platform Admin.
  */
 export function accountSections(user: AccountUser): AccountSection[] {
-  const present = new Set<AccountSection>(['email', 'appearance', 'teams', 'logout'])
+  const present = new Set<AccountSection>(['email', 'photo', 'appearance', 'teams', 'logout'])
   if (user.activeTeam) {
     present.add('displayName')
     present.add('position')

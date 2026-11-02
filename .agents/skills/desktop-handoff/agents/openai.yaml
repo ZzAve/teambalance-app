@@ -1,0 +1,5 @@
+interface:
+  display_name: "Desktop Handoff"
+  short_description: "Hand off to a new desktop session"
+policy:
+  allow_implicit_invocation: false

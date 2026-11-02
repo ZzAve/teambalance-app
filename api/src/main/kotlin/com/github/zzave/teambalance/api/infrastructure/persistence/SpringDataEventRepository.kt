@@ -21,8 +21,6 @@ interface SpringDataEventRepository : JpaRepository<EventJpaEntity, Long> {
     fun findAllByOrderByStartTimeDesc(limit: Limit): List<EventJpaEntity>
     fun findByRecurringGroupOrderByStartTimeAsc(recurringGroup: UUID): List<EventJpaEntity>
 
-    fun countByEventTypeId(eventTypeId: Long): Int
-
     /** How many event roster overrides name this position — half of the position-delete warning. */
     @Query("SELECT count(*) FROM event_position_targets WHERE position_id = :positionId", nativeQuery = true)
     fun countPositionTargets(@Param("positionId") positionId: UUID): Int

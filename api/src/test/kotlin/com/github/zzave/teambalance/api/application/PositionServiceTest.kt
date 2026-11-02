@@ -20,6 +20,7 @@ import com.github.zzave.teambalance.api.domain.model.TeamId
 import com.github.zzave.teambalance.api.domain.model.TeamMember
 import com.github.zzave.teambalance.api.domain.model.TenantRouting
 import com.github.zzave.teambalance.api.domain.model.UserId
+import com.github.zzave.teambalance.api.domain.model.ShirtNumber
 import com.github.zzave.teambalance.api.domain.port.EventRepository
 import com.github.zzave.teambalance.api.domain.port.EventTypeRepository
 import com.github.zzave.teambalance.api.domain.port.PositionRepository
@@ -70,7 +71,6 @@ private class CountingEventTypeRepo : EventTypeRepository {
     override fun countTargetsForPosition(positionId: PositionId): Int = TYPE_TARGETS
     override fun findAll(): List<EventType> = error("unused")
     override fun findById(id: EventTypeId): EventType? = error("unused")
-    override fun countEventsOfType(id: EventTypeId): Int = error("unused")
     override fun create(name: EventTypeName, color: HexColor?, rosterDefault: RosterRequirement): EventType =
         error("unused")
     override fun update(
@@ -114,6 +114,7 @@ private class FakeAdminRepo(private val admins: Set<UserId>) : TeamMemberReposit
         displayName: DisplayName,
         role: Role,
         positionId: PositionId?,
+        shirtNumber: ShirtNumber?,
         markOnboardedAt: Instant?,
     ) = Unit
     override fun markOnboarded(teamId: TeamId, userId: UserId, at: Instant) = Unit

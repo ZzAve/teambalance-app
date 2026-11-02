@@ -52,6 +52,7 @@ class MemberController(
             rawName = request.body.displayName,
             role = Role.valueOf(request.body.role),
             positionId = request.body.positionId?.let { it.consumePositionId() },
+            shirtNumber = request.body.shirtNumber?.toIntOrMax(),
         )
         return UpdateMember.Response200(updated.toDto())
     }
@@ -59,12 +60,14 @@ class MemberController(
     override suspend fun completeOnboarding(request: CompleteOnboarding.Request): CompleteOnboarding.Response<*> {
         val userId = currentUserGateway.requireCurrentUserId()
         val teamId = currentTeamGateway.requireCurrentTeamId()
-        // Onboarding is self-only and never changes role — the request's role field is ignored.
+        // Onboarding is self-only and never changes role — the request's role field is ignored. A missing
+        // shirt number keeps the current one.
         val updated = memberService.completeOnboarding(
             userId = userId,
             teamId = teamId,
             rawName = request.body.displayName,
             positionId = request.body.positionId?.let { it.consumePositionId() },
+            shirtNumber = request.body.shirtNumber?.toIntOrMax(),
         )
         return CompleteOnboarding.Response200(updated.toDto())
     }
@@ -73,7 +76,7 @@ class MemberController(
         val caller = currentUserGateway.requireCurrentUserId()
         val teamId = currentTeamGateway.requireCurrentTeamId()
         memberService.removeMember(caller, teamId, request.path.userId.consumeUserId())
-        return RemoveMember.Response204(Unit)
+        return RemoveMember.Response204
     }
 }
 
@@ -83,4 +86,10 @@ private fun TeamMember.toDto() = Member(
     role = permission.name,
     position = positionId?.let { MemberPosition(id = it.produce(), label = position?.value ?: "") },
     onboarded = onboarded,
+    shirtNumber = shirtNumber?.value?.toLong(),
+    photoVersion = photoVersion?.value,
 )
+
+// Saturates instead of wrapping, so a number past Int range is rejected as out of range rather than
+// silently becoming a valid one.
+internal fun Long.toIntOrMax(): Int = if (this in Int.MIN_VALUE.toLong()..Int.MAX_VALUE.toLong()) toInt() else Int.MAX_VALUE

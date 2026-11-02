@@ -39,6 +39,26 @@ any-team, self-service (see [ADR-0001](docs/adr/0001-product-ambition-hobby-tool
   amending [ADR-0009](docs/adr/0009-attendance-model-roles-in-audience-deferred.md)).
   _Avoid_: role, team_role.
 - **Unassigned** — The bucket in the attendance summary for Members with no **Position**.
+- **Shirt Number** — The number a Member or **Substitute** plays under in a Team: a whole number of
+  up to three digits, where 7 and 07 are the same number. Optional and at most one. No two current
+  Members of a Team share one, nor do two Substitutes; a Substitute may share a Member's.
+  _Avoid_: jersey number, rugnummer, player number.
+- **Personal Photo** — A person's own picture, independent of any Team. Never shown in a Team
+  directly; it is the source a **Team Photo** can be copied from.
+  _Avoid_: avatar, profile picture.
+- **Team Photo** — The picture a Member is shown with inside one Team. Optional; either a copy of
+  their **Personal Photo** taken at a moment in time, or a separate picture for that Team. A Member
+  without one is shown by their initials, never by their Personal Photo. Leaving the Team discards it.
+  _Avoid_: avatar, profile picture.
+- **Substitute** — A person outside the Team whom the Team keeps on a reusable list and can call in
+  for a specific Event. Not a **Member**: not on the **Roster**, no **Role**, no account, and never
+  expected to respond. Appears on an Event only once someone adds them, and from then on carries an
+  **Attendance State** like anyone else, so "asked" (Maybe) is distinguishable from "confirmed" (Attending);
+  the UI says `Maybe`, and explains that it means asked.
+  Has at most one **Position** and at most one **Shirt Number**. Any Member may add one to an Event; the list itself is kept by Admins.
+  Taking a Substitute off the list removes them from every Event, past ones included, the same as a
+  departed Member.
+  _Avoid_: guest, reserve, invaller, substitute member.
 - **Admin** — A Member whose **Role** is Admin: CRUD events, manage members, manage
   positions, promote/demote other members, configure integrations. Contrast with a plain
   **User**.
@@ -81,19 +101,24 @@ any-team, self-service (see [ADR-0001](docs/adr/0001-product-ambition-hobby-tool
 - **Attendance State** — `Attending` (green), `Maybe` (gold), `Absent` (red),
   `Not Responded` (default, no response yet). The semantic colors are fixed brand
   identity. These are the payload and code names; the UI says the same four states in the
-  member's own words — `Going` / `Maybe` / `Can't` / `Not responded` on controls and filters,
+  member's own words — `Going` / `Maybe` / `Can't` / `Not responded` on controls, filters, rows
+  and chips (the hero included, [ADR-0041](docs/adr/0041-hero-offers-all-three-answers-in-the-control-words.md)),
   and `You're in` / `You said maybe` / `You're out` / `Respond` on the card's answer pill.
-  Prose uses the same root: a member has *responded* or *not responded*, never *replied*.
+  A **Substitute**'s states are said in the same words. Prose uses the same root: a member has
+  *responded* or *not responded*, never *replied*.
+  _Avoid_: I'm in, Can't go, Can't make it, Awaiting, Asked, and a bare "out" as a label.
 - **Event Attendance** — The resolved attendance picture of a single Event: every current
   Member paired with their **Attendance State** for that Event (their response, or
   **Not Responded** when they haven't answered). Derived from the *current* roster, so a
   Member who joins after the Event appears as Not Responded and a departed Member drops out,
   even if they once responded (per [ADR-0009](docs/adr/0009-attendance-model-roles-in-audience-deferred.md)).
   The summary counts, the roster, and the attending-**Position** breakdown are all views of
-  this one picture. _Avoid_: attendance list, attendance snapshot.
+  this one picture. **Substitutes** added to the Event are part of it too, but never count toward
+  the expected total and are never Not Responded. _Avoid_: attendance list, attendance snapshot.
 - **Event Roster** — Whether an Event has *enough* of the right people, as opposed to who answered
   what (**Event Attendance**). Computed server-side into one **Roster State** so the arithmetic has a
   single tested home. Distinct from a Team's **Roster** — this one is about a single Event's fill.
+  An attending **Substitute** fills a spot exactly like an attending Member.
   _Avoid_: lineup (that is one Roster State), readiness, roster status.
 - **Roster State** — The Event Roster's verdict, one of seven: `CRITICAL` (a targeted **Position** has
   nobody), `SPOTS_OPEN` (a targeted Position is short but not empty), `LINEUP_SET` (every targeted
@@ -106,6 +131,31 @@ any-team, self-service (see [ADR-0001](docs/adr/0001-product-ambition-hobby-tool
   A total partition: every Event sits in exactly one band, which is what lets the events filter offer
   it as a dimension ([ADR-0029](docs/adr/0029-event-list-filters-partition-and-everything-follows-them.md)).
   _Avoid_: roster issue, readiness, needs attention.
+- **Calendar link** — A member's personal, unauthenticated **webcal** subscription URL for one Team's
+  Events: `…/api/calendar/{slug}/{token}.ics`, which a phone's calendar app polls hourly so the team's
+  schedule sits beside the rest of their week. Belongs to one (user, Team) membership and lives in the
+  **Tenant schema**. Created explicitly with an optional label, at most **three per Member per Team**
+  (expired ones counted), expires after **one year** with no renewal, and can be **edited** (label and
+  options, never the token or the expiry) or **deleted** — your own only, with no admin view and no
+  admin control, because it is a personal credential rather than team data. The token is the whole credential: it is stored hashed for lookup and
+  encrypted for re-display (the ADR-0025 pattern), and the feed re-checks membership on every fetch, so
+  leaving the Team stops it. Carries only the subscriber's own **Attendance State** as a `✓`/`?`/`✗`
+  prefix — never a roster, attendees or teammate names. Each link has options: which of the
+  subscriber's own answers its feed includes (the feed is filtered by that answer, unanswered counting
+  as not responded), which **Event Types** it includes (every type, new ones included, unless the link
+  lists some; archived types are never filtered out), whether titles wear the prefix, and an optional
+  suffix on the calendar's name; the create form offers them as the **Me** and **Partner** presets
+  ([ADR-0040](docs/adr/0040-calendar-link-personalisation.md)). Blocked under **Act-as**
+  ([ADR-0039](docs/adr/0039-calendar-links-webcal-feed.md)). _Avoid_: calendar feed (that is what the
+  link *serves*), iCal link, calendar subscription, calendar token. Distinct from a **Reference** (an
+  admin's outbound link *on* an Event) and from **Magic/Invite Links**.
+- **Refresh Cadence** — How often a **Calendar link**'s feed asks a calendar app to come back, banded by
+  how far off the soonest *future* **Event** is: `Relaxed` (12h) when nothing is within three days or
+  there is nothing at all, `Closing` (6h) inside three days, `Near` (3h) inside 36 hours, `Imminent`
+  (1h) inside 12 hours. Boundaries belong to the calmer band, and past Events never tighten it.
+  Advisory — a client honours it as a hint at best
+  ([ADR-0039](docs/adr/0039-calendar-links-webcal-feed.md)). _Avoid_: polling interval, TTL,
+  refresh rate, sync frequency.
 - **Attendance Toggle** — The core daily interaction: a Member sets their state on an
   event. Editable by others today (trust-based) — see
   [ADR-0003](docs/adr/0003-trust-based-attendance-editing.md).
@@ -116,7 +166,7 @@ any-team, self-service (see [ADR-0001](docs/adr/0001-product-ambition-hobby-tool
   safe to re-tap as new events appear), **future-only** (past events are skipped), and scoped
   **per Event Type**: one button per type that currently has blanks, each naming its own scope
   ("Attend 12 trainings", "Attend 3 matches"), so no filtering is needed to make a legible tap
-  ([ADR-0023](docs/adr/0021-bulk-attend-one-button-per-event-type.md) amends the original
+  ([ADR-0021](docs/adr/0021-bulk-attend-one-button-per-event-type.md) amends the original
   "currently shown" scoping; the **Event Type** filter still narrows what is on screen, and so
   what the buttons cover).
   Self-in-practice (no UI to Bulk Attend for others, though the endpoint stays trust-based per
@@ -128,12 +178,20 @@ any-team, self-service (see [ADR-0001](docs/adr/0001-product-ambition-hobby-tool
 ### Money pool
 
 - **Money Pool** — A team's shared pot of money, backed by a real bank account (Bunq).
-  Built on trust, not individual debt tracking. **Optional per team**: a team without
-  Bunq simply has no pool ([ADR-0007](docs/adr/0007-money-pool-v1-scope.md)).
+  Built on trust, not individual debt tracking. **Optional per team**: an Admin switches it
+  on or off; it is on by default. Switched off, the Team has no Money tab. Switched on but
+  without a **Bunq Connection**, Members see a preview of the feature and Admins see the
+  way to connect ([ADR-0007](docs/adr/0007-money-pool-v1-scope.md), [ADR-0042](docs/adr/0042-money-pool-bunq-oauth-connection-held-in-memory.md)).
+- **Bunq Connection** — The access an Admin grants the Team to one of their Bunq accounts,
+  by signing in to Bunq and approving it. The Money Pool shows that one account. Bunq
+  remains the record of every payment; the app keeps none of them.
+  _Avoid_: Bunq integration, Bunq config, API key.
 - **Beer Counter** — The current balance translated into an approximate number of
   beers, using an admin-configurable beer price (e.g. €2.70/beer).
 - **Top-up** — A Member adding money to the pool. Preset amounts (€10/€20/€50) or
-  custom, opening a bunq.me deep link (mobile-first, no QR).
+  custom, opening a bunq.me deep link (mobile-first, no QR). The payment's description
+  names the app, the Team and the Member, and carries the Member's id, so both the payer and
+  the Team can tell whose contribution it was and to which Team.
 - **Hall of Fame (Toppers 🏆)** / **Hall of Shame (Floppers 🐷)** — Side-by-side
   contributor rankings over a period (last 30 days or full season).
 
@@ -142,16 +200,18 @@ any-team, self-service (see [ADR-0001](docs/adr/0001-product-ambition-hobby-tool
 - **Magic Link** — A one-time, passwordless login link sent to a member's email, and **the sole
   authentication method**: it proves control of an email, which is the only proof v1 accepts —
   deliberately no passwords and no third-party OAuth ([ADR-0008](docs/adr/0008-auth-magic-link-and-shareable-invite.md);
-  Google Sign-In was dropped, [ADR-0027](docs/adr/0027-drop-google-signin-magic-link-only.md)).
+  Google Sign-In was dropped, [ADR-0034](docs/adr/0034-drop-google-signin-magic-link-only.md)).
   Sessions are server-side and stored in Postgres via Spring Session JDBC
   (the `SESSION` cookie), so they survive a container restart / cold start / redeploy
-  ([ADR-0014](docs/adr/0014-jdbc-backed-shared-sessions-survive-restart.md), supersedes ADR-0010).
+  ([ADR-0022](docs/adr/0022-jdbc-backed-shared-sessions-survive-restart.md), supersedes ADR-0010).
   _Avoid_: OAuth login, social login, password.
 - **Invite Link** — A single shareable link an admin generates to onboard members into
   an existing Team. Clicking it → enter email → Magic Link → joined. One link, many
   joiners; can expire/rotate. Carries the **Role** it grants on acceptance — ordinarily
   **User**, but an **Admin**-granting link is how a memberless Team gets its first Admin
-  ([ADR-0024](docs/adr/0024-platform-admin-act-as.md)).
+  ([ADR-0024](docs/adr/0024-platform-admin-act-as.md)). Joining completes when the **Magic
+  Link** is verified, not when the invite page is submitted, so it does not matter where the
+  email is opened ([ADR-0031](docs/adr/0031-invite-travels-with-the-magic-link-request.md)).
 - **Team creation** — Provisioning a new Team. Self-service: a logged-in, teamless user
   creates their Team from a name + slug + one-time **creation code**, which provisions the
   tenant schema inline (see [ADR-0019](docs/adr/0019-self-service-team-onboarding.md)).

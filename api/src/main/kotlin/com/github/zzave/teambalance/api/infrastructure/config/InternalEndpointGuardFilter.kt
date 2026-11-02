@@ -14,9 +14,10 @@ import org.springframework.web.util.UrlPathHelper
 import java.security.MessageDigest
 
 /**
- * Launch blocker #5: in prod the API is a public origin (api.teambalance.nl) and no Spring Security
- * is wired, so anything served under the `/internal/` prefix — a future admin/provision endpoint,
- * plus the actuator's info/metrics — would be reachable from the internet. This filter fails those
+ * Launch blocker #5: in prod the API is a public origin (api.teambalance.nl), and the SecurityFilterChain
+ * lets the actuator and e2e paths under `/internal/` through without a session (`SecurityConfig`), so
+ * anything served there — a future admin/provision endpoint, plus the actuator's info/metrics — would be
+ * reachable from the internet. This filter fails those
  * requests closed with 403, allowing through only the health probe that Scaleway's Serverless
  * Container needs (`/internal/actuator/health`, with or without a trailing slash).
  *

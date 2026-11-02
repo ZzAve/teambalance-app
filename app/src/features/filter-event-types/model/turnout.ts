@@ -44,10 +44,10 @@ export function turnoutBucket(state: RosterState): TurnoutBucket {
  * Whether the Turnout group is worth rendering at all (ADR-0029 §5).
  *
  * A team that sets no targets gets `TALLY_ONLY` on every event, so the group would be four chips
- * that provably filter nothing. Read off the *unfiltered* list, so narrowing another dimension can
- * never make the group vanish underneath a selection that is still in effect.
+ * that provably filter nothing. Any target is enough to show it: a rule on how many bands the list
+ * spans made the group appear only once "Show past events" added variety. Read off the *unfiltered*
+ * list, so narrowing another dimension can never make the group vanish underneath a selection.
  */
-export function spansMultipleTurnoutBuckets(events: Event[]): boolean {
-    const buckets = new Set(events.map((event) => turnoutBucket(event.roster.state)))
-    return buckets.size >= 2
+export function hasTurnoutTargets(events: Event[]): boolean {
+    return events.some((event) => turnoutBucket(event.roster.state) !== 'no-target')
 }

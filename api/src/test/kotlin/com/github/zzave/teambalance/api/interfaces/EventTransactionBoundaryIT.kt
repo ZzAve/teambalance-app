@@ -3,17 +3,16 @@ package com.github.zzave.teambalance.api.interfaces
 import com.github.zzave.teambalance.api.TeamBalanceIT
 import com.github.zzave.teambalance.api.infrastructure.multitenancy.TenantSchemaAdapter
 import com.github.zzave.teambalance.api.infrastructure.persistence.FAULT_INJECTED_TITLE
-import com.github.zzave.teambalance.api.infrastructure.persistence.FaultInjectingEventRepositoryConfig
 import io.kotest.matchers.shouldBe
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
-import org.springframework.context.annotation.Import
 import org.springframework.http.MediaType
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers
 import java.util.UUID
+import com.github.zzave.teambalance.api.infrastructure.identity.loginAs
 
 // Spec-dedicated, and it has to stay that way: this user must belong to exactly ONE Team. Tenant
 // routing resolves a sole membership and answers nothing for a user in two Teams (ADR-0023 §1), so
@@ -40,7 +39,6 @@ private const val HEALTHY_TITLE = "Healthy Series"
  * comes from `@Transactional` on the service or from the adapter that owns the batch.
  */
 @AutoConfigureMockMvc
-@Import(FaultInjectingEventRepositoryConfig::class)
 class EventTransactionBoundaryIT : TeamBalanceIT() {
 
     @Autowired
@@ -81,8 +79,8 @@ class EventTransactionBoundaryIT : TeamBalanceIT() {
     private fun postRecurringSeries(title: String) =
         mockMvc.perform(
             MockMvcRequestBuilders.post("/api/recurring-events")
-                .header("X-Team-Id", "public")
-                .header("X-User-Id", ADMIN_USER_ID)
+                .with(loginAs(ADMIN_USER_ID, tenant = "public"))
+                
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(
                     """

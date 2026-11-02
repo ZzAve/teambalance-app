@@ -11,7 +11,7 @@ export type { RecurringEventSeries } from './generated/model/RecurringEventSerie
 
 // The distinct business-rule rejections the backend returns as 422, discriminated by the response
 // body's `code` so the wizard can show the right reason instead of a generic failure.
-export type RecurringCreateReason = 'outside-season' | 'over-cap' | 'empty' | 'unknown'
+type RecurringCreateReason = 'outside-season' | 'over-cap' | 'empty' | 'unknown'
 
 export class RecurringCreateError extends Error {
   constructor(public readonly reason: RecurringCreateReason) {
@@ -30,7 +30,7 @@ export function useCreateRecurringEvents() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async (body: CreateRecurringEventsRequest) => {
-      const res = await api.CreateRecurringEvents({ body })
+      const res = await api.createRecurringEvents({ body })
       if (res.status === 201) return res.body
       if (res.status === 422) {
         // The 422 body carries a machine-readable `code` (GlobalExceptionHandler); the three

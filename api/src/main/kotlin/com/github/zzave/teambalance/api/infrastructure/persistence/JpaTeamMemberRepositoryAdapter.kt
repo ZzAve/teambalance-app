@@ -1,10 +1,12 @@
 package com.github.zzave.teambalance.api.infrastructure.persistence
 
 import com.github.zzave.teambalance.api.domain.model.DisplayName
+import com.github.zzave.teambalance.api.domain.model.PhotoVersion
 import com.github.zzave.teambalance.api.domain.model.PositionId
 import com.github.zzave.teambalance.api.domain.model.PositionLabel
 import com.github.zzave.teambalance.api.domain.model.Role
 import com.github.zzave.teambalance.api.domain.model.SchemaName
+import com.github.zzave.teambalance.api.domain.model.ShirtNumber
 import com.github.zzave.teambalance.api.domain.model.TeamId
 import com.github.zzave.teambalance.api.domain.model.TeamMember
 import com.github.zzave.teambalance.api.domain.model.TenantRouting
@@ -28,6 +30,7 @@ class JpaTeamMemberRepositoryAdapter(
     private val jpaRepository: SpringDataTeamMemberRepository,
     private val userJpaRepository: SpringDataUserRepository,
     private val memberProfileRepository: SpringDataMemberProfileRepository,
+    private val memberPhotoRepository: SpringDataMemberPhotoRepository,
 ) : TeamMemberRepository {
     private val logger = LoggerFactory.getLogger(JpaTeamMemberRepositoryAdapter::class.java)
 
@@ -52,6 +55,8 @@ class JpaTeamMemberRepositoryAdapter(
         positionId = getPositionId()?.let { PositionId(UUID.fromString(it)) },
         position = getPosition()?.let(::PositionLabel),
         onboarded = getOnboarded(),
+        shirtNumber = getShirtNumber()?.let(::ShirtNumber),
+        photoVersion = getPhotoVersion()?.let(::PhotoVersion),
     )
 
     override fun findRole(teamId: TeamId, userId: UserId): Role? =
@@ -74,9 +79,16 @@ class JpaTeamMemberRepositoryAdapter(
         jpaRepository.updateRole(teamId.value, userId.value, role.name)
     }
 
+    // Leaving the team frees the Shirt Number and discards the Team Photo (ADR-0038), so a member who
+    // re-joins starts without either.
     @Transactional
     override fun deactivate(teamId: TeamId, userId: UserId) {
         jpaRepository.deactivate(teamId.value, userId.value)
+        memberProfileRepository.findById(userId.value).ifPresent { profile ->
+            profile.shirtNumber = null
+            memberProfileRepository.save(profile)
+        }
+        memberPhotoRepository.deleteById(userId.value)
     }
 
     /**
@@ -86,18 +98,24 @@ class JpaTeamMemberRepositoryAdapter(
      */
     @Transactional
     override fun assignPosition(teamId: TeamId, userId: UserId, positionId: PositionId?) {
-        writeProfile(userId, displayName = null, positionId = positionId)
+        val shirtNumber = memberProfileRepository.findById(userId.value).orElse(null)?.shirtNumber
+        writeProfile(userId, displayName = null, positionId = positionId, shirtNumber = shirtNumber?.let(::ShirtNumber))
     }
 
     /**
      * One place for the tenant-side profile write, shared by the single-field and whole-member paths
      * so they cannot drift.
      *
-     * The position is authoritative on both paths (null clears it); [displayName] is optional, since
-     * assignPosition must not blank a name it was never given. A member with no profile row yet gets
+     * The position and shirt number are authoritative on both paths (null clears them); [displayName]
+     * is optional, since assignPosition must not blank a name it was never given. A member with no profile row yet gets
      * one, seeded from the platform name — the only moment that column is read for this purpose.
      */
-    private fun writeProfile(userId: UserId, displayName: DisplayName?, positionId: PositionId?) {
+    private fun writeProfile(
+        userId: UserId,
+        displayName: DisplayName?,
+        positionId: PositionId?,
+        shirtNumber: ShirtNumber?,
+    ) {
         val existing = memberProfileRepository.findById(userId.value).orElse(null)
         val name = displayName?.value
             ?: existing?.displayName
@@ -107,6 +125,7 @@ class JpaTeamMemberRepositoryAdapter(
                 userId = userId.value,
                 displayName = name,
                 positionId = positionId?.value,
+                shirtNumber = shirtNumber?.value,
             ),
         )
     }
@@ -118,13 +137,14 @@ class JpaTeamMemberRepositoryAdapter(
         displayName: DisplayName,
         role: Role,
         positionId: PositionId?,
+        shirtNumber: ShirtNumber?,
         markOnboardedAt: Instant?,
     ) {
         // The platform name is deliberately NOT written here (ADR-0026): it is the teamless fallback
         // and the onboarding seed, and a team-scoped edit updating it is exactly the cross-team
         // rename that multi-team membership turned into a bug.
         jpaRepository.updateRole(teamId.value, userId.value, role.name)
-        writeProfile(userId, displayName = displayName, positionId = positionId)
+        writeProfile(userId, displayName = displayName, positionId = positionId, shirtNumber = shirtNumber)
         if (markOnboardedAt != null) {
             jpaRepository.markOnboarded(teamId.value, userId.value, markOnboardedAt.atOffset(ZoneOffset.UTC))
         }

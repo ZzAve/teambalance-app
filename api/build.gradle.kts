@@ -1,4 +1,4 @@
-import community.flock.wirespec.integration.spring.kotlin.emit.SpringKotlinEmitter
+import community.flock.wirespec.integration.spring.extension.SpringMappingAnnotationsExtension
 import community.flock.wirespec.plugin.gradle.CompileWirespecTask
 import community.flock.wirespec.plugin.Language
 import org.springframework.boot.gradle.tasks.aot.ProcessAot
@@ -30,8 +30,10 @@ dependencies {
     // Boot 4 split this out of starter-web; the prod ScalewayTemEmailAdapter needs the builder bean.
     implementation("org.springframework.boot:spring-boot-restclient")
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
-    implementation("org.springframework.boot:spring-boot-starter-validation")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
+    // One SecurityFilterChain around the session model: session-ID rotation on sign-in, CSRF, and the
+    // authenticated-by-default rule (ADR-0012).
+    implementation("org.springframework.boot:spring-boot-starter-security")
 
     // Spring Session backed by JDBC (Postgres): keeps authenticated sessions out of the JVM heap so
     // they survive a container restart / cold start / redeploy on Scaleway Serverless (min-instances=0).
@@ -41,8 +43,8 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-session-jdbc")
 
     // Flyway
-    api("org.flywaydb:flyway-core")
-    api("org.flywaydb:flyway-database-postgresql")
+    implementation("org.flywaydb:flyway-core")
+    implementation("org.flywaydb:flyway-database-postgresql")
 
     // Database
     runtimeOnly("org.postgresql:postgresql")
@@ -57,13 +59,13 @@ dependencies {
     implementation("com.github.ben-manes.caffeine:caffeine")
 
     // Rate limiting — in-memory token-bucket algorithm (no external store). The jdk17 line is the
-    // maintained Bucket4j artifact; buckets are held per-key in the Caffeine cache above. See ADR-0020.
+    // maintained Bucket4j artifact; buckets are held per-key in the Caffeine cache above. See ADR-0037.
     val bucket4jVersion: String by project
     implementation("com.bucket4j:bucket4j_jdk17-core:$bucket4jVersion")
 
     // Wirespec runtime
     implementation("community.flock.wirespec.integration:spring-jvm:$wirespecVersion")
-    // Wirespec 0.19's Spring integration uses Jackson 3; Spring Boot ships Jackson 3
+    // Wirespec's Spring integration uses Jackson 3; Spring Boot ships Jackson 3
     // databind but not its Kotlin module, which WirespecJackson3Configuration requires.
     implementation("tools.jackson.module:jackson-module-kotlin")
 
@@ -75,12 +77,10 @@ dependencies {
 
     // Testing — Spring + Testcontainers
     testImplementation("org.springframework.boot:spring-boot-starter-test")
-    testImplementation("org.springframework.boot:spring-boot-testcontainers")
     testImplementation(platform("org.testcontainers:testcontainers-bom:$testcontainersVersion"))
-    testImplementation("org.testcontainers:testcontainers-junit-jupiter")
     testImplementation("org.testcontainers:testcontainers-postgresql")
-    testImplementation("org.testcontainers:testcontainers")
     testImplementation("org.springframework.boot:spring-boot-starter-webmvc-test")
+    testImplementation("org.springframework.security:spring-security-test")
 
     // Hexagonal-architecture rulesets for detekt (ADR-0018)
     detektPlugins("community.flock:hexagonal-detekt-rules:$flockDetektVersion")
@@ -113,6 +113,7 @@ kotlin {
 
 tasks.withType<Test> {
     useJUnitPlatform()
+    maxHeapSize = "1g"
 }
 
 // Spring AOT bean-definition generation must see the SAME bean set that prod runs with, because
@@ -154,7 +155,8 @@ tasks.register<CompileWirespecTask>("wirespec-kotlin") {
     input = layout.projectDirectory.dir("src/main/wirespec")
     output = layout.buildDirectory.dir("generated/wirespec/kotlin")
     packageName.set("com.github.zzave.teambalance.api.interfaces.generated")
-    emitterClass.set(SpringKotlinEmitter::class.java)
+    languages.set(listOf(Language.Kotlin))
+    extensionClasses.set(listOf(SpringMappingAnnotationsExtension::class.java))
     shared.set(false)
     strict.set(true)
 }

@@ -94,8 +94,11 @@ class E2eSupportIT : TeamBalanceIT() {
                     .contentType(MediaType.APPLICATION_JSON)
                     .content("""{"token":"$token"}"""),
             )
+            // Verify answers with the session wrapper: the user, plus the outcome of any Invite Link
+            // the sign-in was requested from — null for this ordinary login (#342).
             verified.andExpect(MockMvcResultMatchers.status().isOk)
-                .andExpect(MockMvcResultMatchers.jsonPath("$.email").value(email))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.user.email").value(email))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.inviteOutcome").doesNotExist())
         }
 
         // Guards the seed ↔ domain-model contract: a fixture row the Event mapper can't
@@ -123,7 +126,7 @@ class E2eSupportIT : TeamBalanceIT() {
             verified.andExpect(MockMvcResultMatchers.status().isOk)
             // Session identity is carried by the Spring Session cookie, not a heap-resident
             // HttpSession, so thread the cookie into the follow-up request to stay authenticated.
-            val session = verified.andReturn().response.cookies.first()
+            val session = verified.andReturn().response.getCookie("SESSION")!!
 
             // Query params must be in the URI: the Wirespec adapter parses the raw query string,
             // which MockMvc's .param() does not populate.

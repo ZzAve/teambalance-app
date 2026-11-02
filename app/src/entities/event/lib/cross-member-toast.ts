@@ -1,15 +1,6 @@
-import type { AttendanceEntry } from '@shared/api/events'
+import { ATTENDANCE_WORDS, type AttendanceState } from './attendance-words'
 
-type AttendanceState = AttendanceEntry['state']
-
-const LABEL: Record<AttendanceState, string> = {
-  ATTENDING: 'Going',
-  MAYBE: 'Maybe',
-  ABSENT: "Can't go",
-  NOT_RESPONDED: 'Awaiting',
-}
-
-export interface CrossMemberToast {
+interface CrossMemberToast {
   message: string
   /**
    * The state to restore on Undo, or null when it can't be restored: NOT_RESPONDED *is* the absence
@@ -26,7 +17,7 @@ export interface CrossMemberToast {
  */
 export function crossMemberToast(name: string, next: AttendanceState, prior: AttendanceState): CrossMemberToast {
   return {
-    message: `Set ${name} to ${LABEL[next]}`,
+    message: `Set ${name} to ${ATTENDANCE_WORDS[next].word}`,
     undoState: prior === 'NOT_RESPONDED' ? null : prior,
   }
 }

@@ -4,6 +4,7 @@ import com.github.zzave.teambalance.api.application.ActAsService
 import com.github.zzave.teambalance.api.application.ActiveTeamService
 import com.github.zzave.teambalance.api.application.AuthService
 import com.github.zzave.teambalance.api.application.AuthorizationService
+import com.github.zzave.teambalance.api.application.InvitationService
 import com.github.zzave.teambalance.api.domain.port.ActAsGateway
 import com.github.zzave.teambalance.api.domain.port.ActAsRepository
 import com.github.zzave.teambalance.api.domain.port.AuthSessionGateway
@@ -59,6 +60,7 @@ class AuthCompositionRoot {
         teamMemberRepository: TeamMemberRepository,
         activeTeamService: ActiveTeamService,
         actAsService: ActAsService,
+        invitationService: InvitationService,
         emailGateway: EmailGateway,
         platformAdminGateway: PlatformAdminGateway,
         authSessionGateway: AuthSessionGateway,
@@ -69,6 +71,7 @@ class AuthCompositionRoot {
         teamMemberRepository = teamMemberRepository,
         activeTeamService = activeTeamService,
         actAsService = actAsService,
+        invitationService = invitationService,
         emailGateway = emailGateway,
         platformAdminGateway = platformAdminGateway,
         authSessionGateway = authSessionGateway,

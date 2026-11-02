@@ -30,6 +30,8 @@ const USER: AuthenticatedUser = {
   activeTeam: TEAM,
   isPlatformAdmin: false,
   actAs: undefined,
+  personalPhotoVersion: undefined,
+  moneyPoolEnabled: undefined,
 }
 
 let meStatus = 401

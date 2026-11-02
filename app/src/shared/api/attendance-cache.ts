@@ -25,6 +25,13 @@ const SUMMARY_FIELD: Record<AttendanceState, keyof Omit<AttendanceSummary, 'role
  * no-op (the server reconciliation on `onSettled` fills that case in). The update is immutable —
  * the original event and its entries are never touched, so a rollback can restore the snapshot.
  *
+ * `changedBy` moves with the state: [actorId] is whoever is doing the writing, which under
+ * ADR-0003 trust-based editing need not be [userId]. Without the stamp the row keeps its previous
+ * attribution for the round-trip — so correcting an answer a teammate set for you would leave
+ * `set by Tim` (⑪) sitting under the very control you just used. Unlike the roster below, this
+ * needs no derivation: the acting user *is* the new `changedBy`.
+
+ *
  * **`roster` is deliberately left alone** (#219). Its counts could be moved the same way the summary
  * counters are, but `openSlots` and `state` could not: deriving those means re-implementing the
  * layered, position-priority status the backend owns as its single tested authority, and a second
@@ -32,15 +39,19 @@ const SUMMARY_FIELD: Record<AttendanceState, keyof Omit<AttendanceSummary, 'role
  * behind would be worse still — an internally inconsistent roster rather than a merely stale one.
  * So the roster stays exactly as the server last computed it and reconciles on `onSettled`.
  *
- * That is a real, if brief, lag on any surface rendering the roster next to the summary. It is
- * bounded by one round-trip, and the panel is collapsed by default; if it ever becomes visible
- * enough to matter, the fix is for the server to return the recomputed roster from the attendance
- * write, not for this function to start deriving one.
+ * That is a real, if brief, lag on any surface rendering the roster next to the summary, and since
+ * #271 those surfaces are no longer tucked away: the readiness verdict sits on every card row and on
+ * the Next Up hero, and the detail page pins the roster bar above the fold. What bounds the lag is
+ * the `pending` state (⑤) — while the write is in flight callers dim the badge rather than assert a
+ * stale verdict as current — and one round-trip. If that ever stops being enough, the fix is for the
+ * server to return the recomputed roster from the attendance write, not for this function to start
+ * deriving one.
  */
 export function applyOptimisticAttendance(
   event: EventDetail | undefined,
   userId: string,
   state: AttendanceState,
+  actorId: string | null,
 ): EventDetail | undefined {
   if (!event) return event
 
@@ -58,6 +69,8 @@ export function applyOptimisticAttendance(
   return {
     ...event,
     attendanceSummary: summary,
-    attendances: event.attendances.map((a) => (a.userId === userId ? { ...a, state } : a)),
+    attendances: event.attendances.map((a) =>
+      a.userId === userId ? { ...a, state, changedBy: actorId ?? undefined } : a,
+    ),
   }
 }

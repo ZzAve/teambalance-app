@@ -1,19 +1,20 @@
-import { createFileRoute } from '@tanstack/react-router'
-import { MoneyTeaser } from '@widgets/money-teaser/ui/MoneyTeaser'
+import { createFileRoute, redirect } from '@tanstack/react-router'
+import { authMeQueryOptions } from '@shared/api/auth'
+import { queryClient } from '@shared/api/query-client'
+import { teamRoutes } from '@shared/lib/team-routes'
+import { MoneyPageView } from '@pages/money/ui/MoneyPageView'
+import { MoneyPool } from '@widgets/money-pool/ui/MoneyPool'
 
 export const Route = createFileRoute('/t/$slug/money/')({
+  // A team that switched the money pool off has no Money page at all (ADR-0042). /t/$slug's gate has
+  // already switched to this slug, so /me describes this Team.
+  beforeLoad: async ({ params }) => {
+    const user = await queryClient.ensureQueryData(authMeQueryOptions).catch(() => null)
+    if (user?.moneyPoolEnabled === false) throw redirect({ to: teamRoutes(params.slug).events })
+  },
   component: MoneyPage,
 })
 
-/**
- * The Money tab. A coming-soon placeholder for the shared-money pool (Bunq integration to follow):
- * it renders the teaser widget and nothing else. The vertical padding lifts the centred card off
- * the header so it sits comfortably above the fold on a phone.
- */
 function MoneyPage() {
-  return (
-    <div className="py-6">
-      <MoneyTeaser />
-    </div>
-  )
+  return <MoneyPageView pool={<MoneyPool />} />
 }

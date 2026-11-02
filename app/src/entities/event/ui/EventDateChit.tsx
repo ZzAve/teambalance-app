@@ -12,16 +12,16 @@ export function EventDateChit({ date, type }: { date: Date; type: EventTypeSumma
 
   return (
     <div
-      className="flex w-[54px] shrink-0 flex-col items-center self-start rounded-[15px] px-1 pb-2 pt-2.5 text-white"
+      className="flex w-[54px] shrink-0 flex-col items-center self-start rounded-lg px-1 pb-2 pt-2.5 text-white"
       style={{ backgroundColor: color }}
     >
-      <span className="text-[10px] font-bold uppercase leading-none tracking-[0.1em] opacity-90">
+      <span className="text-caption font-bold uppercase leading-none tracking-[0.1em] opacity-90">
         {date.toLocaleDateString('nl-NL', { weekday: 'short' }).replace('.', '')}
       </span>
-      <span className="font-display my-0.5 text-2xl font-extrabold leading-none">
+      <span className="font-display my-0.5 text-title font-extrabold leading-none">
         {date.getDate()}
       </span>
-      <span className="text-[9px] font-bold uppercase leading-none tracking-[0.12em] opacity-80">
+      <span className="text-caption font-bold uppercase leading-none tracking-[0.12em] opacity-80">
         {date.toLocaleDateString('nl-NL', { month: 'short' }).replace('.', '')}
       </span>
     </div>

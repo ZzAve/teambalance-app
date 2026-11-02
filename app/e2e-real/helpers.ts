@@ -1,4 +1,4 @@
-import { type APIRequestContext, expect } from '@playwright/test'
+import { type APIRequestContext, type BrowserContext, expect } from '@playwright/test'
 
 const TEST_EMAIL = 'e2e@example.com'
 const BACKEND_URL = process.env.BACKEND_URL ?? 'http://localhost:8080'
@@ -11,21 +11,30 @@ export const STORAGE_STATE = 'e2e-real/.auth/user.json'
 // user's magic-link token (the recorder keeps only the last token per email).
 export const STORAGE_STATE_LOGOUT = 'e2e-real/.auth/logout-user.json'
 
-// Logs the seeded e2e user in over the API, leaving the session cookie on `request` so the
-// caller can persist it as storageState. The plaintext token is fetched from the e2e-profile
-// support endpoint (the DB stores only the SHA-256 hash).
-export async function authenticateViaApi(request: APIRequestContext): Promise<void> {
-  const requested = await request.post('/api/auth/magic-link/request', { data: { email: TEST_EMAIL } })
+// Logs a seeded e2e user (the shared admin unless `email` says otherwise) in over the API, leaving the
+// session cookie on `request` so the caller can persist it as storageState. The plaintext token is
+// fetched from the e2e-profile support endpoint (the DB stores only the SHA-256 hash).
+export async function authenticateViaApi(request: APIRequestContext, email: string = TEST_EMAIL): Promise<void> {
+  const requested = await request.post('/api/auth/magic-link/request', { data: { email } })
   expect(requested.status()).toBe(202)
 
   const tokenResponse = await request.get(`${BACKEND_URL}/internal/e2e/magic-link-token`, {
-    params: { email: TEST_EMAIL },
+    params: { email },
   })
   expect(tokenResponse.ok()).toBeTruthy()
   const { token } = await tokenResponse.json()
 
   const verified = await request.post('/api/auth/magic-link/verify', { data: { token } })
   expect(verified.ok()).toBeTruthy()
+}
+
+// The API refuses a mutating request that does not echo the XSRF-TOKEN cookie as the X-XSRF-TOKEN
+// header (ADR-0012). The SPA does this in shared/api/csrf.ts; a spec calling the API directly has to as
+// well. Every API response issues the cookie, so any context that has signed in already holds it.
+export async function csrfHeader(context: APIRequestContext | BrowserContext): Promise<Record<string, string>> {
+  const { cookies } = await context.storageState()
+  const token = cookies.find((cookie) => cookie.name === 'XSRF-TOKEN')?.value
+  return token ? { 'X-XSRF-TOKEN': token } : {}
 }
 
 // Several specs open their OWN admin APIRequestContext on the shared STORAGE_STATE session (rather
@@ -40,7 +49,8 @@ export async function postAsSharedAdmin(
   url: string,
   options?: Parameters<APIRequestContext['post']>[1],
 ) {
-  const first = await context.post(url, options)
+  const withToken = { ...options, headers: { ...options?.headers, ...(await csrfHeader(context)) } }
+  const first = await context.post(url, withToken)
   if (first.status() !== 500) return first
-  return context.post(url, options)
+  return context.post(url, withToken)
 }

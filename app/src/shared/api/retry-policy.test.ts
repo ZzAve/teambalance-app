@@ -1,45 +1,34 @@
 import { describe, expect, it } from 'vitest'
-import {
-  MAX_WAKE_RETRIES,
-  isTransientWakeError,
-  shouldRetryWake,
-  wakeRetryDelayMs,
-} from './retry-policy'
-
-describe('isTransientWakeError', () => {
-  it('treats a network reject (no status) as transient — the container is likely still waking', () => {
-    expect(isTransientWakeError(new TypeError('Failed to fetch'))).toBe(true)
-    expect(isTransientWakeError(new Error('network error'))).toBe(true)
-  })
-
-  it('treats gateway errors (502/503/504) as transient', () => {
-    expect(isTransientWakeError({ status: 502 })).toBe(true)
-    expect(isTransientWakeError({ status: 503 })).toBe(true)
-    expect(isTransientWakeError({ status: 504 })).toBe(true)
-  })
-
-  it('does NOT treat 4xx as transient — real client errors must fail fast', () => {
-    expect(isTransientWakeError({ status: 400 })).toBe(false)
-    expect(isTransientWakeError({ status: 401 })).toBe(false)
-    expect(isTransientWakeError({ status: 403 })).toBe(false)
-    expect(isTransientWakeError({ status: 404 })).toBe(false)
-  })
-
-  it('does NOT treat a plain 500 as transient (only gateway codes signal a waking backend)', () => {
-    expect(isTransientWakeError({ status: 500 })).toBe(false)
-  })
-})
+import { shouldRetryWake, wakeRetryDelayMs } from './retry-policy'
 
 describe('shouldRetryWake', () => {
-  it('retries a transient failure until the cap, then stops', () => {
-    const err = { status: 503 }
-    expect(shouldRetryWake(0, err)).toBe(true)
-    expect(shouldRetryWake(MAX_WAKE_RETRIES - 1, err)).toBe(true)
-    expect(shouldRetryWake(MAX_WAKE_RETRIES, err)).toBe(false)
+  it('retries a network reject (no status) — the container is likely still waking', () => {
+    expect(shouldRetryWake(0, new TypeError('Failed to fetch'))).toBe(true)
+    expect(shouldRetryWake(0, new Error('network error'))).toBe(true)
   })
 
-  it('never retries a non-transient failure, even on the first attempt', () => {
+  it('retries gateway errors (502/503/504)', () => {
+    expect(shouldRetryWake(0, { status: 502 })).toBe(true)
+    expect(shouldRetryWake(0, { status: 503 })).toBe(true)
+    expect(shouldRetryWake(0, { status: 504 })).toBe(true)
+  })
+
+  it('does NOT retry 4xx — real client errors must fail fast', () => {
+    expect(shouldRetryWake(0, { status: 400 })).toBe(false)
     expect(shouldRetryWake(0, { status: 401 })).toBe(false)
+    expect(shouldRetryWake(0, { status: 403 })).toBe(false)
+    expect(shouldRetryWake(0, { status: 404 })).toBe(false)
+  })
+
+  it('does NOT retry a plain 500 (only gateway codes signal a waking backend)', () => {
+    expect(shouldRetryWake(0, { status: 500 })).toBe(false)
+  })
+
+  it('retries a transient failure up to three times, then stops', () => {
+    const err = { status: 503 }
+    expect(shouldRetryWake(0, err)).toBe(true)
+    expect(shouldRetryWake(2, err)).toBe(true)
+    expect(shouldRetryWake(3, err)).toBe(false)
   })
 })
 

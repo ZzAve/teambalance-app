@@ -28,6 +28,7 @@ fun EventJpaEntity.internalize() = Event(
     recurringGroup = recurringGroup,
     createdBy = UserId(createdBy),
     createdAt = createdAt,
+    updatedAt = updatedAt,
     // Null trackRoster IS "no override" — this event inherits its type's default (see Event.rosterOverride).
     rosterOverride = rosterTrackRoster?.let {
         RosterRequirement(
@@ -54,5 +55,7 @@ fun Event.externalize(eventTypeEntity: EventTypeJpaEntity, technicalId: Long = 0
     recurringGroup = recurringGroup,
     createdBy = createdBy.value,
     createdAt = createdAt,
-    updatedAt = createdAt,
+    // The domain's own revision time, not createdAt. It used to be written as createdAt on every
+    // save, which left the column permanently equal to it and `updated_at` dead.
+    updatedAt = updatedAt,
 )

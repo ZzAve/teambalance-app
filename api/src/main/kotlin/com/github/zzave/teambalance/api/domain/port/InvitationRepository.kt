@@ -12,6 +12,16 @@ interface InvitationRepository {
     fun findByTokenHash(tokenHash: TokenHash): Invitation?
 
     /**
+     * The invitation by its own id, regardless of expiry or consumption — expiry is the caller's check,
+     * exactly as it is on [findByTokenHash].
+     *
+     * The id-shaped read exists because a sign-in requested from an Invite Link remembers the
+     * invitation rather than the token (#342): the plaintext never reaches the magic-link record, so
+     * accept-on-verification cannot go back through the hash.
+     */
+    fun findById(invitationId: UUID): Invitation?
+
+    /**
      * The team's current shareable (USER) invite link, or null if it has none. At most one is active at
      * a time — the invariant [InvitationRepository] callers maintain by minting through
      * `InvitationService.generateInviteLink` (idempotent) or [rotate] (expire-and-replace). Scoped to

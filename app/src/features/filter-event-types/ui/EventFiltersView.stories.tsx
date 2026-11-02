@@ -1,17 +1,27 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
-import { expect, fn } from 'storybook/test'
+import { useState, type ComponentProps } from 'react'
+import { expect, fn, within } from 'storybook/test'
 import type { EventTypeItem } from '@shared/api/event-types'
 import type { AttendanceState } from '@features/attendance-toggle/ui/AttendanceToggle'
 import { makeEventType } from '@shared/testing/event-fixtures'
-import { ALL_ATTENDANCE_STATES } from '../model/attendance-states'
+import { Stack } from '@shared/testing/stack'
+import { ALL_ATTENDANCE_STATES } from '@entities/event/lib/attendance-states'
+import { KeepPanelsOpenRow } from '@features/event-panel-view/ui/KeepPanelsOpenRow'
 import { ALL_TURNOUT_BUCKETS, type TurnoutBucket } from '../model/turnout'
 import { EventFiltersView } from './EventFiltersView'
 
-// EventFiltersView is the events page's single filter control — the icon button plus the popover
-// holding the type chips, the answer chips, the Turnout chips and the "Show past events" switch. It
-// replaces the old Upcoming/Past tab bar. Prop-only apart from the popover's open/closed state; the
-// three selections and the show-past flag live in the route, so every state here renders from props
-// with no network (ADR-0017).
+// EventFiltersView is the events page's single filter control — the icon button plus the inline
+// section, below the header, holding the type chips, the answer chips, the Turnout chips, the "Show
+// past events" switch and the page's view switch as the last row. It replaces the old Upcoming/Past
+// tab bar. Prop-only apart from the section's open/closed state; the three selections and the
+// show-past flag live in the route, so every state here renders from props with no network
+// (ADR-0017).
+//
+// Three stories (ADR-0032 §1, §3): this View is rendered inside the events page composite, which owns
+// the closed picture, so Data is `disableSnapshot`. Shells stacks the closed-but-filtered states —
+// clear filters visible, the announced result count, and the two configurations with a whole group
+// missing — plus the open section, which the page composite never shows open. Interactions walks
+// every toggle/close/announce assertion in sequence (open, act, assert, close).
 const EVENT_TYPES: EventTypeItem[] = [
   makeEventType({ id: 'et-1', name: 'Training', color: '#249E6C' }),
   makeEventType({ id: 'et-2', name: 'Match', color: '#225C9C' }),
@@ -22,10 +32,25 @@ const ALL = new Set(EVENT_TYPES.map((t) => t.id))
 const ALL_STATES = new Set(ALL_ATTENDANCE_STATES)
 const ALL_TURNOUTS = new Set(ALL_TURNOUT_BUCKETS)
 
+/** The page's layout in miniature: the trigger at the right of a header row, the slot below it. */
+function WithSlot(props: ComponentProps<typeof EventFiltersView>) {
+  const [slot, setSlot] = useState<HTMLElement | null>(null)
+  return (
+    <div>
+      <div className="flex justify-end">
+        <EventFiltersView {...props} inlineSlot={slot} />
+      </div>
+      <div ref={setSlot} />
+    </div>
+  )
+}
+
 const meta = {
   title: 'features/filter-event-types/EventFiltersView',
   component: EventFiltersView,
+  render: (args) => <WithSlot {...args} />,
   args: {
+    inlineSlot: null,
     eventTypes: EVENT_TYPES,
     activeTypeIds: ALL,
     activeStates: ALL_STATES,
@@ -45,292 +70,258 @@ export default meta
 
 type Story = StoryObj<typeof meta>
 
-export const Closed: Story = {
+// Picture owned by the page composite (pages/EventsPageView) — behavioural only (ADR-0032 §3).
+export const Data: Story = {
+  parameters: { chromatic: { disableSnapshot: true } },
   play: async ({ canvas }) => {
     await expect(canvas.getByRole('button', { name: 'Filters' })).toHaveAttribute(
       'aria-expanded',
       'false',
     )
-    await expect(canvas.queryByRole('dialog')).not.toBeInTheDocument()
+    await expect(canvas.queryByRole('region', { name: 'Filters' })).not.toBeInTheDocument()
     // Nothing is filtered, so there is nothing to undo — the header stays as narrow as it was.
     await expect(canvas.queryByRole('button', { name: 'Clear filters' })).not.toBeInTheDocument()
   },
 }
 
-// Filter state now survives navigation and reopening (ADR-0030 §1), so a member can arrive at a
-// narrowed list they did not narrow this visit. `Clear filters` is therefore visible whenever any
-// dimension is in effect — not only once the filter has emptied the list, which is where it used to
-// live (ADR-0030 §2).
-export const ClearFiltersVisible: Story = {
-  args: { activeTypeIds: new Set(['et-2']), resultCount: 2 },
-  play: async ({ canvas }) => {
-    await expect(canvas.getByRole('button', { name: 'Clear filters' })).toBeInTheDocument()
-    // Both signals, side by side: the dot says *that* something is filtered, the button says undo.
-    await expect(canvas.getByTestId('active-filter-dot')).toBeInTheDocument()
-  },
-}
-
-// Prop-contract spy: the reset itself lives in the route (it owns all four dimensions), so this
-// view's whole job is to report the tap.
-export const ClearsFilters: Story = {
-  // Behavioural twin of ClearFiltersVisible — the same picture, only onClearFilters fires
-  // (ADR-0027 §2).
-  args: { activeTypeIds: new Set(['et-2']), resultCount: 2 },
-  parameters: { chromatic: { disableSnapshot: true } },
-  play: async ({ canvas, userEvent, args }) => {
-    await userEvent.click(canvas.getByRole('button', { name: 'Clear filters' }))
-    await expect(args.onClearFilters).toHaveBeenCalled()
-  },
-}
-
-// Every dimension counts, not just the chips: past events on is a filter too, and reaching the
-// switch that turned it on means opening the popover first.
-export const ClearFiltersVisibleForShowPastAlone: Story = {
-  args: { showPast: true },
-  parameters: { chromatic: { disableSnapshot: true } },
-  play: async ({ canvas, userEvent, args }) => {
-    await userEvent.click(canvas.getByRole('button', { name: 'Clear filters' }))
-    await expect(args.onClearFilters).toHaveBeenCalled()
-  },
-}
-
-export const Open: Story = {
+export const Shells: Story = {
+  render: (args) => (
+    <Stack
+      items={{
+        // Filter state now survives navigation and reopening (ADR-0030 §1), so a member can arrive
+        // at a narrowed list they did not narrow this visit. `Clear filters` is therefore visible
+        // whenever any dimension is in effect — not only once the filter has emptied the list, which
+        // is where it used to live (ADR-0030 §2).
+        'Clear filters visible': (
+          <WithSlot {...args} activeTypeIds={new Set(['et-2'])} resultCount={2} />
+        ),
+        // The result count is announced, not shown — a chip tap gives no other sign that the list
+        // below moved. Rendered here closed: the sr-only region sits outside the section, so it
+        // needs no interaction to read.
+        'Announces result count': <WithSlot {...args} resultCount={1} />,
+        // A fresh tenant, or a types request that failed, still renders closed exactly like the
+        // unfiltered default — the difference only shows once the section opens (Interactions).
+        'Without event types': <WithSlot {...args} eventTypes={[]} activeTypeIds={new Set<string>()} />,
+        // A team that sets no targets also renders closed exactly like the unfiltered default.
+        'Without turnout': <WithSlot {...args} showTurnout={false} />,
+        // Opened by the play below: the page composite only ever shows the section closed.
+        Open: (
+          <WithSlot
+            {...args}
+            viewRow={<KeepPanelsOpenRow defaultExpanded={false} onDefaultExpandedChange={() => {}} />}
+          />
+        ),
+      }}
+    />
+  ),
   play: async ({ canvas, userEvent }) => {
-    await userEvent.click(canvas.getByRole('button', { name: 'Filters' }))
-    await expect(canvas.getByRole('dialog', { name: 'Filters' })).toBeInTheDocument()
-    // All four parts of the popover: the type chips, the answer chips, the Turnout chips and the
-    // past-events switch.
-    await expect(canvas.getByRole('button', { name: 'Training' })).toBeInTheDocument()
-    await expect(canvas.getByRole('group', { name: 'Your answer' })).toBeInTheDocument()
-    await expect(canvas.getByRole('group', { name: 'Turnout' })).toBeInTheDocument()
-    await expect(canvas.getByRole('switch', { name: 'Show past events' })).toHaveAttribute(
+    const region = (name: string) => within(canvas.getByRole('region', { name }))
+
+    await expect(
+      region('Clear filters visible').getByRole('button', { name: 'Clear filters' }),
+    ).toBeInTheDocument()
+    // Both signals, side by side: the dot says *that* something is filtered, the button says undo.
+    await expect(region('Clear filters visible').getByTestId('active-filter-dot')).toBeInTheDocument()
+
+    await expect(
+      region('Announces result count').getByText('1 event matches these filters'),
+    ).toBeInTheDocument()
+
+    await expect(region('Without event types').queryByRole('region', { name: 'Filters' })).not.toBeInTheDocument()
+    await expect(region('Without turnout').queryByRole('region', { name: 'Filters' })).not.toBeInTheDocument()
+
+    await userEvent.click(region('Open').getByRole('button', { name: 'Filters' }))
+    const open = within(region('Open').getByRole('region', { name: 'Filters' }))
+    // All five parts of the section: the type chips, the answer chips, the Turnout chips, the
+    // past-events switch and, last, the view switch the page hands in.
+    await expect(open.getByRole('button', { name: 'Training' })).toBeInTheDocument()
+    await expect(open.getByRole('group', { name: 'Your answer' })).toBeInTheDocument()
+    await expect(open.getByRole('group', { name: 'Turnout' })).toBeInTheDocument()
+    await expect(open.getByRole('switch', { name: 'Show past events' })).toHaveAttribute(
       'aria-checked',
       'false',
     )
-    await expect(canvas.getByText('Off — upcoming only')).toBeInTheDocument()
+    await expect(open.getByText('Off — upcoming only')).toBeInTheDocument()
+    const switches = open.getAllByRole('switch')
+    await expect(switches[switches.length - 1]).toHaveAccessibleName('Keep panels open')
     // The unfiltered default: every chip in every group is on, so nothing is hidden
     // (ADR-0029 §1), and the trigger carries no dot.
     const allChips = ['Going', 'Maybe', "Can't", 'Not responded',
       'Missing a position', 'Spots open', 'Covered', 'No target set']
     for (const label of allChips) {
-      await expect(canvas.getByRole('button', { name: label })).toHaveAttribute(
-        'aria-pressed',
-        'true',
-      )
+      await expect(open.getByRole('button', { name: label })).toHaveAttribute('aria-pressed', 'true')
     }
-    await expect(canvas.queryByTestId('active-filter-dot')).not.toBeInTheDocument()
+    await expect(region('Open').queryByTestId('active-filter-dot')).not.toBeInTheDocument()
   },
 }
 
-// Prop-contract spy: a chip tap must report the tapped type id up to the route, which owns the
-// isolate-first selection rule (toggleTypeSelection).
-export const TogglesType: Story = {
-  // Behavioural twin of Open — the open popover is the same picture; only onToggleType fires
-  // (ADR-0027 §2).
+// Picture owned by Data and Shells — behavioural only (ADR-0032 §1). Several instances because some
+// steps need a state the default one is never in (no event types, no Turnout group, a narrowed
+// selection already in effect). Each cycle below opens, acts, asserts, then closes (Escape) before
+// the next opens, so a query never meets two open sections.
+export const Interactions: Story = {
   parameters: { chromatic: { disableSnapshot: true } },
+  render: (args) => (
+    <Stack
+      items={{
+        Default: <WithSlot {...args} />,
+        'Filtered to one type': <WithSlot {...args} activeTypeIds={new Set(['et-2'])} />,
+        'Show past already on': <WithSlot {...args} showPast />,
+        'Without event types': (
+          <WithSlot {...args} eventTypes={[]} activeTypeIds={new Set<string>()} />
+        ),
+        'Filtered to not responded': (
+          <WithSlot
+            {...args}
+            activeStates={new Set<AttendanceState>(['NOT_RESPONDED'])}
+            resultCount={3}
+          />
+        ),
+        'Filtered to missing a position': (
+          <WithSlot
+            {...args}
+            activeTurnouts={new Set<TurnoutBucket>(['missing-position'])}
+            resultCount={2}
+          />
+        ),
+        'Without turnout': <WithSlot {...args} showTurnout={false} />,
+        'Clear filters': <WithSlot {...args} activeTypeIds={new Set(['et-2'])} resultCount={2} />,
+        'Clear filters, show past alone': <WithSlot {...args} showPast />,
+      }}
+    />
+  ),
   play: async ({ canvas, userEvent, args }) => {
-    await userEvent.click(canvas.getByRole('button', { name: 'Filters' }))
-    await userEvent.click(canvas.getByRole('button', { name: 'Match' }))
+    const region = (name: string) => within(canvas.getByRole('region', { name }))
+    const openFilters = async (name: string) =>
+      userEvent.click(region(name).getByRole('button', { name: 'Filters' }))
+    const closeFilters = () => userEvent.keyboard('{Escape}')
+
+    // Every dimension counts: a chip tap reports its state/type/turnout id up to the route, which
+    // runs it through the same isolate-first toggler as the other groups (ADR-0029 §3).
+    await openFilters('Default')
+    await userEvent.click(region('Default').getByRole('button', { name: 'Match' }))
     await expect(args.onToggleType).toHaveBeenCalledWith('et-2')
-  },
-}
-
-// Prop-contract spy: the switch reports the value it is moving *to*, which is what drives
-// useEvents(showPast).
-export const TogglesShowPast: Story = {
-  // Behavioural twin of Open — the open popover is the same picture; only onToggleShowPast fires
-  // (ADR-0027 §2).
-  parameters: { chromatic: { disableSnapshot: true } },
-  play: async ({ canvas, userEvent, args }) => {
-    await userEvent.click(canvas.getByRole('button', { name: 'Filters' }))
-    await userEvent.click(canvas.getByRole('switch', { name: 'Show past events' }))
+    await userEvent.click(region('Default').getByRole('switch', { name: 'Show past events' }))
     await expect(args.onToggleShowPast).toHaveBeenCalledWith(true)
-  },
-}
-
-export const ShowingPast: Story = {
-  args: { showPast: true },
-  play: async ({ canvas, userEvent, args }) => {
-    await userEvent.click(canvas.getByRole('button', { name: 'Filters' }))
-    await expect(canvas.getByRole('switch', { name: 'Show past events' })).toHaveAttribute(
-      'aria-checked',
-      'true',
-    )
-    await expect(canvas.getByText('On — past events included')).toBeInTheDocument()
-    // Switching back off is the same callback with the opposite value.
-    await userEvent.click(canvas.getByRole('switch', { name: 'Show past events' }))
-    await expect(args.onToggleShowPast).toHaveBeenCalledWith(false)
-  },
-}
-
-export const ClosesOnEscape: Story = {
-  // Behavioural twin of Closed — Escape settles back to the shut popover (ADR-0027 §2).
-  parameters: { chromatic: { disableSnapshot: true } },
-  play: async ({ canvas, userEvent }) => {
-    await userEvent.click(canvas.getByRole('button', { name: 'Filters' }))
-    await expect(canvas.getByRole('dialog', { name: 'Filters' })).toBeInTheDocument()
-    // Focus is still on the trigger, which is a sibling of the panel — Escape is caught on the
-    // document, so it has to work from there.
-    await userEvent.keyboard('{Escape}')
-    await expect(canvas.queryByRole('dialog')).not.toBeInTheDocument()
-  },
-}
-
-// With no event types to show — a fresh tenant, or a types request that failed — the popover still
-// has to open and still has to offer the past toggle: it is the only route to past events now.
-export const WithoutEventTypes: Story = {
-  args: { eventTypes: [], activeTypeIds: new Set<string>() },
-  play: async ({ canvas, userEvent, args }) => {
-    await userEvent.click(canvas.getByRole('button', { name: 'Filters' }))
-    await expect(canvas.queryByText('Event types')).not.toBeInTheDocument()
-    await userEvent.click(canvas.getByRole('switch', { name: 'Show past events' }))
-    await expect(args.onToggleShowPast).toHaveBeenCalledWith(true)
-  },
-}
-
-// A narrowed selection has to be visible with the popover shut, or a filtered list reads as an
-// empty one.
-export const FilteredToOneType: Story = {
-  args: { activeTypeIds: new Set(['et-2']) },
-  play: async ({ canvas, userEvent }) => {
-    await userEvent.click(canvas.getByRole('button', { name: 'Filters' }))
-    await expect(canvas.getByRole('button', { name: 'Match' })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    )
-    await expect(canvas.getByRole('button', { name: 'Training' })).toHaveAttribute(
-      'aria-pressed',
-      'false',
-    )
-  },
-}
-
-// Prop-contract spy: an answer chip reports its state up to the route, which runs it through the
-// same isolate-first toggler as the type chips (ADR-0029 §3). From the all-on default that one tap
-// isolates "Not responded" — a plain toggle would remove the very status the member wanted.
-export const TogglesState: Story = {
-  // Behavioural twin of Open — the open popover is the same picture; only onToggleState fires
-  // (ADR-0027 §2).
-  parameters: { chromatic: { disableSnapshot: true } },
-  play: async ({ canvas, userEvent, args }) => {
-    await userEvent.click(canvas.getByRole('button', { name: 'Filters' }))
-    await userEvent.click(canvas.getByRole('button', { name: 'Not responded' }))
+    await userEvent.click(region('Default').getByRole('button', { name: 'Not responded' }))
     await expect(args.onToggleState).toHaveBeenCalledWith('NOT_RESPONDED')
-  },
-}
-
-// The isolated result: only what needs an answer. The other three chips are off, and the trigger
-// shows the dot even though every event type is still selected — an answer-only filter narrows the
-// list just as invisibly as a type filter does.
-export const FilteredToNotResponded: Story = {
-  args: { activeStates: new Set<AttendanceState>(['NOT_RESPONDED']), resultCount: 3 },
-  play: async ({ canvas, userEvent }) => {
-    await expect(canvas.getByTestId('active-filter-dot')).toBeInTheDocument()
-    await userEvent.click(canvas.getByRole('button', { name: 'Filters' }))
-    await expect(canvas.getByRole('button', { name: 'Not responded' })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    )
-    await expect(canvas.getByRole('button', { name: 'Going' })).toHaveAttribute(
-      'aria-pressed',
-      'false',
-    )
-    // Every type chip is still on — the dot is the answer group's doing.
-    await expect(canvas.getByRole('button', { name: 'Training' })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    )
-  },
-}
-
-// Adding a second chip back is the OR case (ADR-0029 §2): "unanswered or maybe" — the two an
-// organiser chases. Tapping from a subset toggles rather than isolating.
-export const TogglesSecondStateBackOn: Story = {
-  // Behavioural twin of FilteredToNotResponded — same picture, only onToggleState fires
-  // (ADR-0027 §2).
-  args: { activeStates: new Set<AttendanceState>(['NOT_RESPONDED']), resultCount: 3 },
-  parameters: { chromatic: { disableSnapshot: true } },
-  play: async ({ canvas, userEvent, args }) => {
-    await userEvent.click(canvas.getByRole('button', { name: 'Filters' }))
-    await userEvent.click(canvas.getByRole('button', { name: 'Maybe' }))
-    await expect(args.onToggleState).toHaveBeenCalledWith('MAYBE')
-  },
-}
-
-// The result count is announced, not shown — a chip tap inside the popover gives no other sign that
-// the list behind it moved.
-export const AnnouncesResultCount: Story = {
-  // Behavioural twin of Open — the sr-only region is invisible (ADR-0027 §2).
-  args: { resultCount: 1 },
-  parameters: { chromatic: { disableSnapshot: true } },
-  play: async ({ canvas }) => {
-    await expect(canvas.getByText('1 event matches these filters')).toBeInTheDocument()
-  },
-}
-
-// Prop-contract spy: a Turnout chip reports its band up to the route, which runs it through the
-// same isolate-first toggler as the other two groups (ADR-0029 §3). One tap from the all-on default
-// isolates "Spots open" — the events a member can actually do something about by turning up.
-export const TogglesTurnout: Story = {
-  // Behavioural twin of Open — the open popover is the same picture; only onToggleTurnout fires
-  // (ADR-0027 §2).
-  parameters: { chromatic: { disableSnapshot: true } },
-  play: async ({ canvas, userEvent, args }) => {
-    await userEvent.click(canvas.getByRole('button', { name: 'Filters' }))
-    await userEvent.click(canvas.getByRole('button', { name: 'Spots open' }))
+    await userEvent.click(region('Default').getByRole('button', { name: 'Spots open' }))
     await expect(args.onToggleTurnout).toHaveBeenCalledWith('spots-open')
-  },
-}
+    // The section closes on a second tap of the trigger and on Escape — the Escape handler is on
+    // the document, so it works wherever focus is.
+    const trigger = region('Default').getByRole('button', { name: 'Filters' })
+    await expect(region('Default').getByRole('region', { name: 'Filters' })).toBeInTheDocument()
+    await userEvent.click(trigger)
+    await expect(trigger).toHaveAttribute('aria-expanded', 'false')
+    await expect(region('Default').queryByRole('region', { name: 'Filters' })).not.toBeInTheDocument()
+    await openFilters('Default')
+    await closeFilters()
+    await expect(region('Default').queryByRole('region', { name: 'Filters' })).not.toBeInTheDocument()
 
-// The isolated result: only the events short a whole position. The dot shows even though every type
-// and every answer is still selected — turnout narrows the list just as invisibly.
-export const FilteredToMissingAPosition: Story = {
-  args: { activeTurnouts: new Set<TurnoutBucket>(['missing-position']), resultCount: 2 },
-  play: async ({ canvas, userEvent }) => {
-    await expect(canvas.getByTestId('active-filter-dot')).toBeInTheDocument()
-    await userEvent.click(canvas.getByRole('button', { name: 'Filters' }))
-    await expect(canvas.getByRole('button', { name: 'Missing a position' })).toHaveAttribute(
-      'aria-pressed',
-      'true',
+    // A narrowed selection is visible with the section open too: Match is pressed, Training is not.
+    await openFilters('Filtered to one type')
+    await expect(
+      region('Filtered to one type').getByRole('button', { name: 'Match' }),
+    ).toHaveAttribute('aria-pressed', 'true')
+    await expect(
+      region('Filtered to one type').getByRole('button', { name: 'Training' }),
+    ).toHaveAttribute('aria-pressed', 'false')
+    await closeFilters()
+
+    // Switching back off is the same callback with the opposite value.
+    await openFilters('Show past already on')
+    await expect(
+      region('Show past already on').getByRole('switch', { name: 'Show past events' }),
+    ).toHaveAttribute('aria-checked', 'true')
+    await expect(
+      region('Show past already on').getByText('On — past events included'),
+    ).toBeInTheDocument()
+    await userEvent.click(region('Show past already on').getByRole('switch', { name: 'Show past events' }))
+    await expect(args.onToggleShowPast).toHaveBeenLastCalledWith(false)
+    await closeFilters()
+
+    // With no event types to show — a fresh tenant, or a types request that failed — the section
+    // still has to open and still has to offer the past toggle: it is the only route to past events
+    // now.
+    await openFilters('Without event types')
+    await expect(region('Without event types').queryByText('Event types')).not.toBeInTheDocument()
+    await userEvent.click(
+      region('Without event types').getByRole('switch', { name: 'Show past events' }),
     )
+    await expect(args.onToggleShowPast).toHaveBeenLastCalledWith(true)
+    await closeFilters()
+
+    // The isolated result: only what needs an answer. The other three chips are off. Adding a second
+    // chip back is the OR case (ADR-0029 §2): "unanswered or maybe" — tapping from a subset toggles
+    // rather than isolating.
+    // The dot shows with the section shut too — an answer-only filter narrows the list just as
+    // invisibly as a type filter does.
+    await expect(
+      region('Filtered to not responded').getByTestId('active-filter-dot'),
+    ).toBeInTheDocument()
+    await openFilters('Filtered to not responded')
+    await expect(
+      region('Filtered to not responded').getByRole('button', { name: 'Not responded' }),
+    ).toHaveAttribute('aria-pressed', 'true')
+    await expect(
+      region('Filtered to not responded').getByRole('button', { name: 'Going' }),
+    ).toHaveAttribute('aria-pressed', 'false')
+    // Every type chip is still on — the dot on the trigger is the answer group's doing alone.
+    await expect(
+      region('Filtered to not responded').getByRole('button', { name: 'Training' }),
+    ).toHaveAttribute('aria-pressed', 'true')
+    await userEvent.click(region('Filtered to not responded').getByRole('button', { name: 'Maybe' }))
+    await expect(args.onToggleState).toHaveBeenLastCalledWith('MAYBE')
+    await closeFilters()
+
+    // The isolated result: only the events short a whole position. The OR case again: "missing a
+    // position or short of a few" — everything worth turning up for.
+    // The dot shows with the section shut too, even though every event type is still selected — a
+    // turnout-only filter narrows the list just as invisibly as a type filter does.
+    await expect(
+      region('Filtered to missing a position').getByTestId('active-filter-dot'),
+    ).toBeInTheDocument()
+    await openFilters('Filtered to missing a position')
+    await expect(
+      region('Filtered to missing a position').getByRole('button', { name: 'Missing a position' }),
+    ).toHaveAttribute('aria-pressed', 'true')
     for (const label of ['Spots open', 'Covered', 'No target set']) {
-      await expect(canvas.getByRole('button', { name: label })).toHaveAttribute(
-        'aria-pressed',
-        'false',
-      )
+      await expect(
+        region('Filtered to missing a position').getByRole('button', { name: label }),
+      ).toHaveAttribute('aria-pressed', 'false')
     }
     // Every answer chip is still on — the dot is the Turnout group's doing.
-    await expect(canvas.getByRole('button', { name: 'Going' })).toHaveAttribute(
-      'aria-pressed',
-      'true',
+    await expect(
+      region('Filtered to missing a position').getByRole('button', { name: 'Going' }),
+    ).toHaveAttribute('aria-pressed', 'true')
+    await userEvent.click(
+      region('Filtered to missing a position').getByRole('button', { name: 'Spots open' }),
     )
-  },
-}
+    await expect(args.onToggleTurnout).toHaveBeenLastCalledWith('spots-open')
+    await closeFilters()
 
-// The OR case (ADR-0029 §2): "missing a position or short of a few" — everything worth turning up
-// for. Tapping from a subset toggles rather than isolating.
-export const TogglesSecondTurnoutBackOn: Story = {
-  // Behavioural twin of FilteredToMissingAPosition — same picture, only onToggleTurnout fires
-  // (ADR-0027 §2).
-  args: { activeTurnouts: new Set<TurnoutBucket>(['missing-position']), resultCount: 2 },
-  parameters: { chromatic: { disableSnapshot: true } },
-  play: async ({ canvas, userEvent, args }) => {
-    await userEvent.click(canvas.getByRole('button', { name: 'Filters' }))
-    await userEvent.click(canvas.getByRole('button', { name: 'Spots open' }))
-    await expect(args.onToggleTurnout).toHaveBeenCalledWith('spots-open')
-  },
-}
+    // A team that sets no targets gets TALLY_ONLY on every event, so the list spans one band and the
+    // Turnout group is four chips that provably filter nothing. It is not rendered at all
+    // (ADR-0029 §5) — the other groups, and the past toggle, carry on as before.
+    await openFilters('Without turnout')
+    await expect(region('Without turnout').queryByRole('group', { name: 'Turnout' })).not.toBeInTheDocument()
+    await expect(
+      region('Without turnout').queryByRole('button', { name: 'Spots open' }),
+    ).not.toBeInTheDocument()
+    await expect(region('Without turnout').getByRole('group', { name: 'Your answer' })).toBeInTheDocument()
+    await expect(
+      region('Without turnout').getByRole('switch', { name: 'Show past events' }),
+    ).toBeInTheDocument()
+    await closeFilters()
 
-// A team that sets no targets gets TALLY_ONLY on every event, so the list spans one band and the
-// group is four chips that provably filter nothing. It is not rendered at all (ADR-0029 §5) — the
-// other groups, and the past toggle, carry on as before.
-export const WithoutTurnout: Story = {
-  args: { showTurnout: false },
-  play: async ({ canvas, userEvent }) => {
-    await userEvent.click(canvas.getByRole('button', { name: 'Filters' }))
-    await expect(canvas.queryByRole('group', { name: 'Turnout' })).not.toBeInTheDocument()
-    await expect(canvas.queryByRole('button', { name: 'Spots open' })).not.toBeInTheDocument()
-    await expect(canvas.getByRole('group', { name: 'Your answer' })).toBeInTheDocument()
-    await expect(canvas.getByRole('switch', { name: 'Show past events' })).toBeInTheDocument()
+    // Prop-contract spy: the reset itself lives in the route (it owns all four dimensions), so this
+    // view's whole job is to report the tap — from a narrowed type selection, and from "past events
+    // on" alone, since every dimension counts as a filter (ADR-0030 §2).
+    await userEvent.click(region('Clear filters').getByRole('button', { name: 'Clear filters' }))
+    await expect(args.onClearFilters).toHaveBeenCalled()
+    await userEvent.click(
+      region('Clear filters, show past alone').getByRole('button', { name: 'Clear filters' }),
+    )
+    await expect(args.onClearFilters).toHaveBeenCalledTimes(2)
   },
 }

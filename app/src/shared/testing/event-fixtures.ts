@@ -1,4 +1,4 @@
-import type { Event, EventRoster } from '@shared/api/events'
+import type { AttendanceEntry, Event, EventRoster, SubstituteEntry } from '@shared/api/events'
 import type { EventTypeItem, RosterRequirement } from '@shared/api/event-types'
 
 /** Roster tracking switched off — the default for a type nobody has configured. */
@@ -18,6 +18,7 @@ export const NO_ROSTER: EventRoster = {
   totalAttending: 0,
   playingAttending: 0,
   staffAttending: 0,
+  substituteAttending: 0,
   positions: [],
   unassignedAttending: 0,
   openSlots: 0,
@@ -85,6 +86,7 @@ function makeRosterUnchecked(overrides: Partial<EventRoster> = {}): EventRoster 
     totalAttending: 4,
     playingAttending: 4,
     staffAttending: 0,
+    substituteAttending: 0,
     positions: [
       { id: 'pos-setter', label: 'Setter', required: 2, attending: 2, kind: 'PLAYING' },
       { id: 'pos-libero', label: 'Libero', required: 1, attending: 1, kind: 'PLAYING' },
@@ -109,6 +111,50 @@ export function makeEventType(overrides: Partial<EventTypeItem> = {}): EventType
     color: '#249E6C',
     archived: false,
     rosterDefault: ROSTER_OFF,
+    ...overrides,
+  }
+}
+
+/**
+ * One attendance entry — the shape the list and the detail both carry since #326. Defaults to a
+ * plain `ATTENDING` row with no attribution, which is what most fixtures want; `id` follows the
+ * user id the way the server's own fallback does for a member with no response row.
+ */
+export function makeAttendee(
+  userId: string,
+  displayName: string,
+  role: string,
+  overrides: Partial<AttendanceEntry> = {},
+): AttendanceEntry {
+  return {
+    id: userId,
+    userId,
+    displayName,
+    role,
+    state: 'ATTENDING',
+    changedBy: undefined,
+    updatedAt: undefined,
+    photoVersion: undefined,
+    ...overrides,
+  }
+}
+
+/**
+ * One Substitute on an event (ADR-0033). Defaults to called in as Going, with no Position; there is
+ * always a row behind the entry, so the attribution is always present.
+ */
+export function makeSubstitute(
+  substituteId: string,
+  name: string,
+  overrides: Partial<SubstituteEntry> = {},
+): SubstituteEntry {
+  return {
+    substituteId,
+    name,
+    position: undefined,
+    state: 'ATTENDING',
+    changedBy: 'u-me',
+    updatedAt: '2026-08-01T12:00:00Z',
     ...overrides,
   }
 }
@@ -140,6 +186,12 @@ export function makeEvent(overrides: Partial<Event> = {}): Event {
         { role: 'Setter', attending: 1 },
       ],
     },
+    // Every current member, non-responders included (ADR-0030 §8) — the list payload now carries the
+    // same entries the detail does. Empty by default: a fixture that is not about the member list
+    // renders no names, and the panel stories pass their own team.
+    attendances: [],
+    // Substitutes called in for this event (ADR-0033). None by default.
+    substitutes: [],
     // The viewer's own response. Defaults to a blank, which is the state Bulk Attend acts on.
     myState: 'NOT_RESPONDED',
     // Undefined means this event inherits its type's roster default, which is the common case.

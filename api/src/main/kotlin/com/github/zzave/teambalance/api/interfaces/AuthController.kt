@@ -2,6 +2,8 @@ package com.github.zzave.teambalance.api.interfaces
 
 import com.github.zzave.teambalance.api.application.ActAsService
 import com.github.zzave.teambalance.api.application.AuthService
+import com.github.zzave.teambalance.api.application.MoneyPoolService
+import com.github.zzave.teambalance.api.application.PhotoService
 import com.github.zzave.teambalance.api.domain.model.Email
 import com.github.zzave.teambalance.api.domain.model.Role
 import com.github.zzave.teambalance.api.domain.model.TeamId
@@ -15,6 +17,9 @@ import com.github.zzave.teambalance.api.interfaces.generated.endpoint.RequestMag
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.VerifyMagicLink
 import com.github.zzave.teambalance.api.interfaces.generated.model.AuthenticatedUser
 import com.github.zzave.teambalance.api.interfaces.generated.model.TeamRef
+import com.github.zzave.teambalance.api.interfaces.generated.model.VerifiedSession
+import org.slf4j.LoggerFactory
+import org.springframework.dao.DataAccessException
 import org.springframework.web.bind.annotation.RestController
 import java.util.UUID
 
@@ -23,32 +28,62 @@ class AuthController(
     private val authService: AuthService,
     private val actAsService: ActAsService,
     private val currentTeamGateway: CurrentTeamGateway,
+    private val photoService: PhotoService,
+    private val moneyPoolService: MoneyPoolService,
 ) : RequestMagicLink.Handler,
     VerifyMagicLink.Handler,
     Logout.Handler,
     GetAuthMe.Handler {
 
+    private val log = LoggerFactory.getLogger(AuthController::class.java)
+
     override suspend fun requestMagicLink(request: RequestMagicLink.Request): RequestMagicLink.Response<*> {
-        authService.requestMagicLink(request.body.email.consumeEmail())
-        return RequestMagicLink.Response202(Unit)
+        // 404 means the invite token named no live invitation, so nothing was sent — the same
+        // undistinguished refusal accept gives, which never separates unknown from expired.
+        val sent = authService.requestMagicLink(request.body.email.consumeEmail(), request.body.inviteToken)
+        return if (sent) RequestMagicLink.Response202 else RequestMagicLink.Response404
     }
 
     override suspend fun verifyMagicLink(request: VerifyMagicLink.Request): VerifyMagicLink.Response<*> {
-        val user = authService.verifyMagicLink(request.body.token) ?: return VerifyMagicLink.Response401(Unit)
+        val signIn = authService.verifyMagicLink(request.body.token) ?: return VerifyMagicLink.Response401
         // Not readable from the request context: the tenant filter ran before this session existed.
-        val activeTeamId = authService.startSession(user.id)
-        return VerifyMagicLink.Response200(describe(user, activeTeamId))
+        val activeTeamId = authService.startSession(signIn.user.id)
+        return VerifyMagicLink.Response200(
+            VerifiedSession(
+                user = describe(signIn.user, activeTeamId),
+                inviteOutcome = signIn.inviteOutcome?.name,
+            ),
+        )
     }
 
     override suspend fun logout(request: Logout.Request): Logout.Response<*> {
         authService.endSession()
-        return Logout.Response204(Unit)
+        return Logout.Response204
     }
 
     override suspend fun getAuthMe(request: GetAuthMe.Request): GetAuthMe.Response<*> =
         authService.currentUser()
-            ?.let { GetAuthMe.Response200(describe(it, currentTeamGateway.findCurrentTeamId())) }
-            ?: GetAuthMe.Response401(Unit)
+            ?.let { GetAuthMe.Response200(describeWithMoneyPool(describe(it, currentTeamGateway.findCurrentTeamId()))) }
+            ?: GetAuthMe.Response401
+
+    /**
+     * `moneyPoolEnabled` lives in the Team's tenant schema, which is only on the request once a session
+     * existed before it. So only `/api/auth/me` fills it; the sign-in response leaves it null and the
+     * client refetches `/api/auth/me`.
+     *
+     * An unreadable tenant leaves it null, which the client reads as switched on, rather than failing
+     * `/api/auth/me`: that would lock the user out of the whole app over one tab's setting.
+     */
+    private fun describeWithMoneyPool(user: AuthenticatedUser) =
+        user.copy(moneyPoolEnabled = user.activeTeam?.let { readMoneyPoolEnabled() })
+
+    private fun readMoneyPoolEnabled(): Boolean? =
+        try {
+            moneyPoolService.isEnabled()
+        } catch (e: DataAccessException) {
+            log.warn("Reading the money pool switch for /api/auth/me failed; reporting it as unknown", e)
+            null
+        }
 
     /**
      * [activeTeamId] is intersected with the memberships rather than reported as given, so the payload
@@ -76,6 +111,8 @@ class AuthController(
             activeTeam = activeTeam?.produce(),
             isPlatformAdmin = authService.isPlatformAdmin(user.id),
             actAs = actAs?.produce(),
+            personalPhotoVersion = photoService.personalPhotoVersion(user.id),
+            moneyPoolEnabled = null,
         )
     }
 }

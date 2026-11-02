@@ -89,7 +89,7 @@ function inSeason(iso: string, season: Season | undefined): boolean {
   return true
 }
 
-export interface DayCell {
+interface DayCell {
   /** 'YYYY-MM-DD' for a real day, or null for a leading/trailing pad cell. */
   date: string | null
   day: number
@@ -99,7 +99,7 @@ export interface DayCell {
   outOfSeason: boolean
 }
 
-export interface MonthGrid {
+interface MonthGrid {
   year: number
   month: number // 0-11
   label: string // 'September 2026'

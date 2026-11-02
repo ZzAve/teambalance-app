@@ -12,8 +12,11 @@ import type { AuthenticatedUser } from '@shared/api/auth'
 // /me's so the guard's own mount-time /me fetch (started at the same time, on the un-verified
 // session) resolves first — matching real latency, where verify does token/session work and
 // /me is a cheap read. This proves the redirect guard trusts the direct cache write from
-// verify rather than racing it with a slower background fetch.
+// verify rather than racing it with a slower background fetch. Verify also asks /me once more in
+// the background (the sign-in response cannot carry the Team's money pool switch); the test asserts
+// that follow-up request happens.
 let session: AuthenticatedUser | null = null
+let meRequestsWithSession = 0
 
 const TEAM = { id: 'team-1', name: 'Setpoint VT', slug: 'setpoint-vt' }
 
@@ -27,6 +30,8 @@ const USER: AuthenticatedUser = {
   activeTeam: TEAM,
   isPlatformAdmin: false,
   actAs: undefined,
+  personalPhotoVersion: undefined,
+  moneyPoolEnabled: undefined,
 }
 
 const server = setupServer(
@@ -35,9 +40,15 @@ const server = setupServer(
     if (body.token !== 'valid-token') return new HttpResponse(null, { status: 401 })
     await delay(10)
     session = USER
-    return HttpResponse.json(USER)
+    // Verify answers with the session wrapper: the user, plus what became of an Invite Link the
+    // sign-in was requested from. An ordinary login carries none (#342).
+    return HttpResponse.json({ user: USER, inviteOutcome: undefined })
   }),
-  http.get('/api/auth/me', () => (session ? HttpResponse.json(session) : new HttpResponse(null, { status: 401 }))),
+  http.get('/api/auth/me', () => {
+    if (!session) return new HttpResponse(null, { status: 401 })
+    meRequestsWithSession++
+    return HttpResponse.json(session)
+  }),
   // The team route's onboarding gate reads /members/me; an onboarded member skips get-started and
   // lands on events, keeping this test focused on the verify/auth-routing seam.
   http.get('/api/members/me', () =>
@@ -51,6 +62,7 @@ beforeAll(() => server.listen())
 afterEach(() => {
   server.resetHandlers()
   session = null
+  meRequestsWithSession = 0
 })
 afterAll(() => server.close())
 
@@ -61,9 +73,8 @@ function renderAppAt(path: string) {
 }
 
 describe('magic-link verification', () => {
-  // Timeouts are generous because the assertion waits out a real chain — the 10ms verify delay,
-  // the direct cache write, the redirect, then the events route mounting — which a loaded CI
-  // runner walks through well past the 1000ms default (green locally, flaked in CI at 1000ms).
+  // Timeouts are generous because the chain (10ms verify delay, cache write, redirect, events route
+  // mount) can run well past the 1000ms default on a loaded CI runner (green locally, flaked in CI).
   it('establishes the session and lands on events, without the guard bouncing back to login', async () => {
     const router = renderAppAt('/auth/verify?token=valid-token')
 
@@ -71,6 +82,7 @@ describe('magic-link verification', () => {
     await waitFor(() => expect(router.state.location.pathname).toBe('/t/setpoint-vt'), { timeout: 5000 })
     expect(await screen.findByRole('heading', { name: 'Events' }, { timeout: 5000 })).toBeInTheDocument()
     expect(screen.queryByText(/link expired/i)).not.toBeInTheDocument()
+    await waitFor(() => expect(meRequestsWithSession).toBeGreaterThan(0), { timeout: 5000 })
   })
 
   it('rejects an invalid token and keeps the guard from ever granting access', async () => {

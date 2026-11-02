@@ -12,6 +12,9 @@ import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers
 import java.security.MessageDigest
+import java.time.OffsetDateTime
+import java.time.ZoneOffset
+import com.github.zzave.teambalance.api.infrastructure.identity.loginAs
 
 private const val JAN_USER_ID = "c0000000-0000-0000-0000-000000000001"
 private const val LISA_USER_ID = "c0000000-0000-0000-0000-000000000002"
@@ -24,6 +27,12 @@ private const val TEST_SALT = "test-invitation-salt"
 
 private fun sha256Hex(salt: String, token: String): String =
     MessageDigest.getInstance("SHA-256").digest((salt + token).toByteArray()).joinToString("") { "%02x".format(it) }
+
+// Every expires_at comparison in this file binds this instead of SQL now(): the application decides
+// liveness with the JVM clock, and the database's now() is a different clock. Under colima Postgres
+// runs in a VM measured ~100 ms ahead of the host, so a row expired "now" by the database stays live
+// for the application for exactly that long, which is longer than the next request.
+private fun jvmNow(): OffsetDateTime = OffsetDateTime.now(ZoneOffset.UTC)
 
 @AutoConfigureMockMvc
 class InvitationControllerTest : TeamBalanceIT() {
@@ -82,24 +91,27 @@ class InvitationControllerTest : TeamBalanceIT() {
     // These ITs share one Postgres with no truncation between them, so a link left active by an
     // earlier test would be handed back by the now-idempotent POST. Tests that care start from none.
     private fun expireAllInvitations() {
+        val now = jvmNow()
         jdbcTemplate.update(
-            "UPDATE public.invitations SET expires_at = now() WHERE team_id = ?::uuid AND expires_at > now()",
+            "UPDATE public.invitations SET expires_at = ? WHERE team_id = ?::uuid AND expires_at > ?",
+            now,
             TEAM_ID,
+            now,
         )
     }
 
     private fun activeInvitationCount(): Long =
         jdbcTemplate.queryForObject(
-            "SELECT count(*) FROM public.invitations WHERE team_id = ?::uuid AND expires_at > now()",
+            "SELECT count(*) FROM public.invitations WHERE team_id = ?::uuid AND expires_at > ?",
             Long::class.java,
             TEAM_ID,
+            jvmNow(),
         )!!
 
     private fun getActiveInvitationAs(userId: String, expectedStatus: Int): String {
         val mvcResult = mockMvc.perform(
             MockMvcRequestBuilders.get("/api/invitations/active")
-                .header("X-Team-Id", "public")
-                .header("X-User-Id", userId),
+                .with(loginAs(userId, tenant = "public")),
         )
             .andExpect(MockMvcResultMatchers.request().asyncStarted())
             .andReturn()
@@ -114,8 +126,7 @@ class InvitationControllerTest : TeamBalanceIT() {
     private fun createInvitationAs(userId: String): String {
         val mvcResult = mockMvc.perform(
             MockMvcRequestBuilders.post("/api/invitations")
-                .header("X-Team-Id", "public")
-                .header("X-User-Id", userId),
+                .with(loginAs(userId, tenant = "public")),
         )
             .andExpect(MockMvcResultMatchers.request().asyncStarted())
             .andReturn()
@@ -196,8 +207,7 @@ class InvitationControllerTest : TeamBalanceIT() {
 
             mockMvc.perform(
                 MockMvcRequestBuilders.post("/api/invitations/expire")
-                    .header("X-Team-Id", "public")
-                    .header("X-User-Id", JAN_USER_ID),
+                    .with(loginAs(JAN_USER_ID, tenant = "public")),
             )
                 .andExpect(MockMvcResultMatchers.request().asyncStarted())
                 .andReturn()
@@ -214,8 +224,7 @@ class InvitationControllerTest : TeamBalanceIT() {
 
             val rotated = mockMvc.perform(
                 MockMvcRequestBuilders.post("/api/invitations/rotate")
-                    .header("X-Team-Id", "public")
-                    .header("X-User-Id", JAN_USER_ID),
+                    .with(loginAs(JAN_USER_ID, tenant = "public")),
             )
                 .andExpect(MockMvcResultMatchers.request().asyncStarted())
                 .andReturn()
@@ -259,8 +268,7 @@ class InvitationControllerTest : TeamBalanceIT() {
 
             val mvcResult = mockMvc.perform(
                 MockMvcRequestBuilders.post("/api/invitations")
-                    .header("X-Team-Id", "public")
-                    .header("X-User-Id", LISA_USER_ID),
+                    .with(loginAs(LISA_USER_ID, tenant = "public")),
             )
                 .andExpect(MockMvcResultMatchers.request().asyncStarted())
                 .andReturn()
@@ -276,7 +284,7 @@ class InvitationControllerTest : TeamBalanceIT() {
 
             val mvcResult = mockMvc.perform(
                 MockMvcRequestBuilders.post("/api/invitations/plaintext-accept-token/accept")
-                    .header("X-User-Id", JOINER_USER_ID),
+                    .with(loginAs(JOINER_USER_ID)),
             )
                 .andExpect(MockMvcResultMatchers.request().asyncStarted())
                 .andReturn()
@@ -301,8 +309,7 @@ class InvitationControllerTest : TeamBalanceIT() {
 
             val mvcResult = mockMvc.perform(
                 MockMvcRequestBuilders.post("/api/invitations/admin")
-                    .header("X-Team-Id", "public")
-                    .header("X-User-Id", JAN_USER_ID),
+                    .with(loginAs(JAN_USER_ID, tenant = "public")),
             )
                 .andExpect(MockMvcResultMatchers.request().asyncStarted())
                 .andReturn()
@@ -313,9 +320,10 @@ class InvitationControllerTest : TeamBalanceIT() {
 
             jdbcTemplate.queryForObject(
                 "SELECT count(*) FROM public.invitations " +
-                    "WHERE team_id = ?::uuid AND role = 'ADMIN' AND consumed_at IS NULL AND expires_at > now()",
+                    "WHERE team_id = ?::uuid AND role = 'ADMIN' AND consumed_at IS NULL AND expires_at > ?",
                 Long::class.java,
                 TEAM_ID,
+                jvmNow(),
             ) shouldBe 1L
         }
 
@@ -325,8 +333,7 @@ class InvitationControllerTest : TeamBalanceIT() {
 
             val mvcResult = mockMvc.perform(
                 MockMvcRequestBuilders.post("/api/invitations/admin")
-                    .header("X-Team-Id", "public")
-                    .header("X-User-Id", JOINER_USER_ID),
+                    .with(loginAs(JOINER_USER_ID, tenant = "public")),
             )
                 .andExpect(MockMvcResultMatchers.request().asyncStarted())
                 .andReturn()
@@ -341,7 +348,7 @@ class InvitationControllerTest : TeamBalanceIT() {
 
             val minted = mockMvc.perform(
                 MockMvcRequestBuilders.post("/api/invitations/admin")
-                    .header("X-Team-Id", "public").header("X-User-Id", JAN_USER_ID),
+                    .with(loginAs(JAN_USER_ID, tenant = "public")),
             )
                 .andExpect(MockMvcResultMatchers.request().asyncStarted()).andReturn()
                 .let { mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(it)) }
@@ -350,7 +357,7 @@ class InvitationControllerTest : TeamBalanceIT() {
 
             mockMvc.perform(
                 MockMvcRequestBuilders.get("/api/invitations/admin/active")
-                    .header("X-Team-Id", "public").header("X-User-Id", JAN_USER_ID),
+                    .with(loginAs(JAN_USER_ID, tenant = "public")),
             )
                 .andExpect(MockMvcResultMatchers.request().asyncStarted()).andReturn()
                 .let { mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(it)) }
@@ -365,7 +372,7 @@ class InvitationControllerTest : TeamBalanceIT() {
 
             mockMvc.perform(
                 MockMvcRequestBuilders.post("/api/invitations/admin/rotate")
-                    .header("X-Team-Id", "public").header("X-User-Id", JAN_USER_ID),
+                    .with(loginAs(JAN_USER_ID, tenant = "public")),
             )
                 .andExpect(MockMvcResultMatchers.request().asyncStarted()).andReturn()
                 .let { mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(it)) }
@@ -374,16 +381,18 @@ class InvitationControllerTest : TeamBalanceIT() {
 
             // The old admin link is now expired...
             jdbcTemplate.queryForObject(
-                "SELECT count(*) FROM public.invitations WHERE token = ? AND expires_at > now()",
+                "SELECT count(*) FROM public.invitations WHERE token = ? AND expires_at > ?",
                 Long::class.java,
                 sha256Hex(TEST_SALT, "plaintext-admin-to-rotate"),
+                jvmNow(),
             ) shouldBe 0L
             // ...and exactly one live unspent admin link remains (the replacement).
             jdbcTemplate.queryForObject(
                 "SELECT count(*) FROM public.invitations " +
-                    "WHERE team_id = ?::uuid AND role = 'ADMIN' AND consumed_at IS NULL AND expires_at > now()",
+                    "WHERE team_id = ?::uuid AND role = 'ADMIN' AND consumed_at IS NULL AND expires_at > ?",
                 Long::class.java,
                 TEAM_ID,
+                jvmNow(),
             ) shouldBe 1L
         }
 
@@ -394,7 +403,7 @@ class InvitationControllerTest : TeamBalanceIT() {
 
             mockMvc.perform(
                 MockMvcRequestBuilders.post("/api/invitations/admin/expire")
-                    .header("X-Team-Id", "public").header("X-User-Id", JAN_USER_ID),
+                    .with(loginAs(JAN_USER_ID, tenant = "public")),
             )
                 .andExpect(MockMvcResultMatchers.request().asyncStarted()).andReturn()
                 .let { mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(it)) }
@@ -402,9 +411,10 @@ class InvitationControllerTest : TeamBalanceIT() {
 
             jdbcTemplate.queryForObject(
                 "SELECT count(*) FROM public.invitations " +
-                    "WHERE team_id = ?::uuid AND role = 'ADMIN' AND expires_at > now()",
+                    "WHERE team_id = ?::uuid AND role = 'ADMIN' AND expires_at > ?",
                 Long::class.java,
                 TEAM_ID,
+                jvmNow(),
             ) shouldBe 0L
         }
 
@@ -415,7 +425,7 @@ class InvitationControllerTest : TeamBalanceIT() {
 
             val mvcResult = mockMvc.perform(
                 MockMvcRequestBuilders.post("/api/invitations/plaintext-admin-token/accept")
-                    .header("X-User-Id", JOINER_USER_ID),
+                    .with(loginAs(JOINER_USER_ID)),
             )
                 .andExpect(MockMvcResultMatchers.request().asyncStarted())
                 .andReturn()
@@ -449,8 +459,7 @@ class InvitationControllerTest : TeamBalanceIT() {
             // USER one, but must not touch the independent single-use ADMIN handover link.
             mockMvc.perform(
                 MockMvcRequestBuilders.post("/api/invitations/rotate")
-                    .header("X-Team-Id", "public")
-                    .header("X-User-Id", JAN_USER_ID),
+                    .with(loginAs(JAN_USER_ID, tenant = "public")),
             )
                 .andExpect(MockMvcResultMatchers.request().asyncStarted())
                 .andReturn()
@@ -460,9 +469,10 @@ class InvitationControllerTest : TeamBalanceIT() {
             // The ADMIN link is still active (unexpired) and unspent.
             jdbcTemplate.queryForObject(
                 "SELECT count(*) FROM public.invitations " +
-                    "WHERE token = ? AND role = 'ADMIN' AND consumed_at IS NULL AND expires_at > now()",
+                    "WHERE token = ? AND role = 'ADMIN' AND consumed_at IS NULL AND expires_at > ?",
                 Long::class.java,
                 sha256Hex(TEST_SALT, "plaintext-admin-survives-rotate"),
+                jvmNow(),
             ) shouldBe 1L
         }
 
@@ -474,7 +484,7 @@ class InvitationControllerTest : TeamBalanceIT() {
 
             fun accept(userId: String) = mockMvc.perform(
                 MockMvcRequestBuilders.post("/api/invitations/plaintext-admin-once-token/accept")
-                    .header("X-User-Id", userId),
+                    .with(loginAs(userId)),
             )
                 .andExpect(MockMvcResultMatchers.request().asyncStarted())
                 .andReturn()
@@ -498,7 +508,7 @@ class InvitationControllerTest : TeamBalanceIT() {
 
             val mvcResult = mockMvc.perform(
                 MockMvcRequestBuilders.post("/api/invitations/does-not-exist/accept")
-                    .header("X-User-Id", JOINER_USER_ID),
+                    .with(loginAs(JOINER_USER_ID)),
             )
                 .andExpect(MockMvcResultMatchers.request().asyncStarted())
                 .andReturn()
@@ -514,7 +524,7 @@ class InvitationControllerTest : TeamBalanceIT() {
 
             val mvcResult = mockMvc.perform(
                 MockMvcRequestBuilders.post("/api/invitations/plaintext-expired-token/accept")
-                    .header("X-User-Id", EXPIRED_JOINER_USER_ID),
+                    .with(loginAs(EXPIRED_JOINER_USER_ID)),
             )
                 .andExpect(MockMvcResultMatchers.request().asyncStarted())
                 .andReturn()
@@ -538,8 +548,7 @@ class InvitationControllerTest : TeamBalanceIT() {
 
             val mvcResult = mockMvc.perform(
                 MockMvcRequestBuilders.post("/api/invitations/expire")
-                    .header("X-Team-Id", "public")
-                    .header("X-User-Id", JAN_USER_ID),
+                    .with(loginAs(JAN_USER_ID, tenant = "public")),
             )
                 .andExpect(MockMvcResultMatchers.request().asyncStarted())
                 .andReturn()
@@ -549,7 +558,7 @@ class InvitationControllerTest : TeamBalanceIT() {
 
             val acceptResult = mockMvc.perform(
                 MockMvcRequestBuilders.post("/api/invitations/plaintext-expire-token/accept")
-                    .header("X-User-Id", JOINER_USER_ID),
+                    .with(loginAs(JOINER_USER_ID)),
             )
                 .andExpect(MockMvcResultMatchers.request().asyncStarted())
                 .andReturn()
@@ -565,8 +574,7 @@ class InvitationControllerTest : TeamBalanceIT() {
 
             val mvcResult = mockMvc.perform(
                 MockMvcRequestBuilders.post("/api/invitations/rotate")
-                    .header("X-Team-Id", "public")
-                    .header("X-User-Id", JAN_USER_ID),
+                    .with(loginAs(JAN_USER_ID, tenant = "public")),
             )
                 .andExpect(MockMvcResultMatchers.request().asyncStarted())
                 .andReturn()
@@ -582,7 +590,7 @@ class InvitationControllerTest : TeamBalanceIT() {
 
             val oldTokenResult = mockMvc.perform(
                 MockMvcRequestBuilders.post("/api/invitations/plaintext-rotate-old-token/accept")
-                    .header("X-User-Id", JOINER_USER_ID),
+                    .with(loginAs(JOINER_USER_ID)),
             )
                 .andExpect(MockMvcResultMatchers.request().asyncStarted())
                 .andReturn()
@@ -591,7 +599,7 @@ class InvitationControllerTest : TeamBalanceIT() {
 
             val newTokenResult = mockMvc.perform(
                 MockMvcRequestBuilders.post("/api/invitations/$newToken/accept")
-                    .header("X-User-Id", JOINER_USER_ID),
+                    .with(loginAs(JOINER_USER_ID)),
             )
                 .andExpect(MockMvcResultMatchers.request().asyncStarted())
                 .andReturn()
@@ -612,8 +620,7 @@ class InvitationControllerTest : TeamBalanceIT() {
 
             val mvcResult = mockMvc.perform(
                 MockMvcRequestBuilders.post("/api/invitations/rotate")
-                    .header("X-Team-Id", "public")
-                    .header("X-User-Id", LISA_USER_ID),
+                    .with(loginAs(LISA_USER_ID, tenant = "public")),
             )
                 .andExpect(MockMvcResultMatchers.request().asyncStarted())
                 .andReturn()
@@ -634,8 +641,7 @@ class InvitationControllerTest : TeamBalanceIT() {
 
             val mvcResult = mockMvc.perform(
                 MockMvcRequestBuilders.post("/api/invitations/expire")
-                    .header("X-Team-Id", "public")
-                    .header("X-User-Id", LISA_USER_ID),
+                    .with(loginAs(LISA_USER_ID, tenant = "public")),
             )
                 .andExpect(MockMvcResultMatchers.request().asyncStarted())
                 .andReturn()

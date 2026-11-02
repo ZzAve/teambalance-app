@@ -11,7 +11,10 @@ export default defineConfig({
     TanStackRouterVite({
       routesDirectory: './src/routes',
       generatedRouteTree: './src/routeTree.gen.ts',
-      autoCodeSplitting: true,
+      // Split route components into lazy chunks for the browser build. Off under Vitest: there a
+      // split component is a dynamic import transformed cold mid-test, which the router render
+      // tests (auth-gate, verify-flow) would otherwise wait out against vitest's testTimeout.
+      autoCodeSplitting: !process.env.VITEST,
     }),
     react(),
     tailwindcss(),

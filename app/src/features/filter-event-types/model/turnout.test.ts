@@ -4,7 +4,7 @@ import {makeEvent, makeRoster} from '@shared/testing/event-fixtures'
 import {
     ALL_TURNOUT_BUCKETS,
     TURNOUT_BY_STATE,
-    spansMultipleTurnoutBuckets,
+    hasTurnoutTargets,
     turnoutBucket,
 } from './turnout'
 
@@ -39,23 +39,18 @@ describe('turnoutBucket', () => {
     })
 })
 
-describe('spansMultipleTurnoutBuckets', () => {
+describe('hasTurnoutTargets', () => {
     it('is false for an empty list', () => {
-        expect(spansMultipleTurnoutBuckets([])).toBe(false)
+        expect(hasTurnoutTargets([])).toBe(false)
     })
 
-    it('is false for a team that sets no targets, where every event is a tally', () => {
-        expect(spansMultipleTurnoutBuckets([eventInState('TALLY_ONLY'), eventInState('TALLY_ONLY')]))
-            .toBe(false)
+    it('is false for a team that sets no targets, where every event is a tally or a social', () => {
+        expect(hasTurnoutTargets([eventInState('TALLY_ONLY'), eventInState('OFF')])).toBe(false)
     })
 
-    it('is false when two states share one band — the group would still filter nothing', () => {
-        expect(spansMultipleTurnoutBuckets([eventInState('SPOTS_OPEN'), eventInState('HEADCOUNT_SHORT')]))
-            .toBe(false)
-    })
-
-    it('is true once the list spans two bands', () => {
-        expect(spansMultipleTurnoutBuckets([eventInState('CRITICAL'), eventInState('LINEUP_SET')]))
-            .toBe(true)
+    // The group must not come and go with "Show past events": upcoming events that all share one
+    // band still keep it, so the member sees the same filter in both views.
+    it('is true once one event has a target, even when every event shares one band', () => {
+        expect(hasTurnoutTargets([eventInState('SPOTS_OPEN'), eventInState('HEADCOUNT_SHORT')])).toBe(true)
     })
 })

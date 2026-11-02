@@ -2,9 +2,10 @@ import { useEffect, useState } from 'react'
 import { Button } from '@shared/ui/button'
 import { Input } from '@shared/ui/input'
 import { Label } from '@shared/ui/label'
-import type { CreateTeamError } from '@shared/api/teams'
+import { placeCreateTeamError, type CreateTeamError } from '@shared/api/teams'
+import { FormError } from '@shared/ui/FormError'
 import { suggestSlug } from '../lib/suggest-slug'
-import { validateSlug } from '../lib/validate-slug'
+import { validateSlug } from '@shared/lib/validate-slug'
 
 interface CreateTeamFormProps {
   isPending: boolean
@@ -64,8 +65,7 @@ export function CreateTeamForm({ isPending, error, onSubmit, reassuranceDelayMs 
     onSubmit({ name: name.trim(), slug, creationCode: creationCode.trim() })
   }
 
-  const placed = (...codes: CreateTeamError['code'][]) =>
-    error && codes.includes(error.code) ? error.message : null
+  const placed = (...codes: CreateTeamError['code'][]) => placeCreateTeamError(error, ...codes)
   const nameError = placed('INVALID_NAME')
   const slugError = placed('INVALID_SLUG', 'SLUG_TAKEN') ?? clientSlugError
   const codeError = placed('INVALID_CREATION_CODE')
@@ -73,11 +73,7 @@ export function CreateTeamForm({ isPending, error, onSubmit, reassuranceDelayMs 
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-      {bannerError && (
-        <p role="alert" className="text-sm text-destructive">
-          {bannerError}
-        </p>
-      )}
+      {bannerError && <FormError>{bannerError}</FormError>}
 
       <div>
         <Label htmlFor="team-name">Team name</Label>
@@ -88,7 +84,7 @@ export function CreateTeamForm({ isPending, error, onSubmit, reassuranceDelayMs 
           onChange={(e) => handleNameChange(e.target.value)}
           placeholder="e.g. Tovo Heren 4"
         />
-        {nameError && <p className="mt-1 text-sm text-destructive">{nameError}</p>}
+        {nameError && <p className="mt-1 text-small text-red-ink">{nameError}</p>}
       </div>
 
       <div>
@@ -103,7 +99,7 @@ export function CreateTeamForm({ isPending, error, onSubmit, reassuranceDelayMs 
           }}
           placeholder="tovo-heren-4"
         />
-        {slugError && <p className="mt-1 text-sm text-destructive">{slugError}</p>}
+        {slugError && <p className="mt-1 text-small text-red-ink">{slugError}</p>}
       </div>
 
       <div>
@@ -115,14 +111,14 @@ export function CreateTeamForm({ isPending, error, onSubmit, reassuranceDelayMs 
           onChange={(e) => setCreationCode(e.target.value)}
           placeholder="Enter your creation code"
         />
-        {codeError && <p className="mt-1 text-sm text-destructive">{codeError}</p>}
+        {codeError && <p className="mt-1 text-small text-red-ink">{codeError}</p>}
       </div>
 
       <Button type="submit" disabled={!canSubmit}>
         {isPending ? 'Creating your team…' : 'Create team'}
       </Button>
       {isPending && reassuranceElapsed && (
-        <p className="text-sm text-muted-foreground">
+        <p className="text-small text-muted-foreground">
           Setting up your team's space — this can take a few seconds…
         </p>
       )}

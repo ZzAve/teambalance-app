@@ -22,4 +22,6 @@ class MagicLinkTokenJpaEntity(
     val usedAt: Instant? = null,
     @Column(name = "created_at", nullable = false)
     val createdAt: Instant = Instant.EPOCH,
+    @Column(name = "invitation_id")
+    val invitationId: UUID? = null,
 )

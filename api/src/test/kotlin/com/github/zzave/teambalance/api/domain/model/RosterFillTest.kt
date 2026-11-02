@@ -24,7 +24,8 @@ class RosterFillTest : FunSpec() {
             requirement: RosterRequirement,
             attending: Map<PositionId?, Int> = emptyMap(),
             positions: List<Position> = all,
-        ) = RosterFill.of(requirement, attending, positions)
+            substitutes: Int = 0,
+        ) = RosterFill.of(requirement, attending, positions, substitutes)
 
         fun targets(vararg pairs: Pair<Position, Int>) =
             pairs.map { (p, n) -> PositionTarget(p.id, PositionSlots(n)) }
@@ -359,6 +360,19 @@ class RosterFillTest : FunSpec() {
             result.totalAttending.value shouldBe 4
             result.playingAttending.value shouldBe 4
             result.staffAttending.value shouldBe 0
+        }
+
+        // ── substitutes (ADR-0033) ────────────────────────────────────────────
+
+        // They are already inside the per-position counts, so they fill spots with no rule of their
+        // own; the fill only reports how many of the attending people are Substitutes.
+        test("reports how many of the attending are substitutes, tracked or not") {
+            val tracked = fill(RosterRequirement(trackRoster = true), mapOf(setter.id to 3), substitutes = 1)
+            val off = fill(RosterRequirement.OFF, mapOf(setter.id to 3), substitutes = 1)
+
+            tracked.totalAttending.value shouldBe 3
+            tracked.substituteAttending.value shouldBe 1
+            off.substituteAttending.value shouldBe 1
         }
     }
 }

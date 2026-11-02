@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { suggestSlug } from './suggest-slug'
-import { MAX_SLUG_LENGTH, validateSlug } from './validate-slug'
+import { MAX_SLUG_LENGTH, validateSlug } from '@shared/lib/validate-slug'
 
 describe('suggestSlug', () => {
   it('lowercases and hyphenates a simple name', () => {

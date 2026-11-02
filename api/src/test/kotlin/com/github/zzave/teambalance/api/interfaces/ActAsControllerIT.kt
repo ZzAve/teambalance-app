@@ -1,20 +1,14 @@
 package com.github.zzave.teambalance.api.interfaces
 
 import com.github.zzave.teambalance.api.TeamBalanceIT
-import com.github.zzave.teambalance.api.domain.port.EmailGateway
 import com.github.zzave.teambalance.api.infrastructure.email.FakeEmailGateway
 import com.github.zzave.teambalance.api.infrastructure.multitenancy.TenantSchemaAdapter
 import io.kotest.matchers.shouldBe
 import jakarta.servlet.http.Cookie
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.test.context.TestConfiguration
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
-import org.springframework.context.annotation.Bean
-import org.springframework.context.annotation.Import
-import org.springframework.context.annotation.Primary
 import org.springframework.http.MediaType
 import org.springframework.jdbc.core.JdbcTemplate
-import org.springframework.test.context.TestPropertySource
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.ResultActions
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder
@@ -22,6 +16,8 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
+import com.github.zzave.teambalance.api.infrastructure.identity.loginAs
+import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf
 
 // Ids dedicated to this spec: the Testcontainers DB is shared, and these assertions are about who is
 // and is not on a roster.
@@ -34,19 +30,10 @@ private const val TEAM_SCHEMA = "team_act_as_it"
 private const val OTHER_TEAM_SCHEMA = "team_act_as_it_two"
 private const val OPERATOR_EMAIL = "act-as-it-operator@test.com"
 
-// Act-as is gated on the platform-admin allowlist, which is empty by default in the test profile
-// (fail-closed). The operator seeded below holds this email and is a Member of nothing (ADR-0024 §3).
+// Act-as is gated on the platform-admin allowlist; the test profile lists this email
+// (application-test.yml). The operator seeded below holds this email and is a Member of nothing (ADR-0024 §3).
 @AutoConfigureMockMvc
-@Import(ActAsControllerIT.TestConfig::class)
-@TestPropertySource(properties = ["teambalance.platform-admins=$OPERATOR_EMAIL"])
 class ActAsControllerIT : TeamBalanceIT() {
-
-    @TestConfiguration
-    class TestConfig {
-        @Bean
-        @Primary
-        fun emailGateway(): EmailGateway = FakeEmailGateway()
-    }
 
     @Autowired
     lateinit var mockMvc: MockMvc
@@ -154,7 +141,7 @@ class ActAsControllerIT : TeamBalanceIT() {
             test("exit drops the tenant, and the next write is refused") {
                 enterAs(OPERATOR_ID, TEAM_ID).andExpect(status().isOk)
 
-                dispatch(MockMvcRequestBuilders.post("/api/admin/act-as/exit").header("X-User-Id", OPERATOR_ID))
+                dispatch(MockMvcRequestBuilders.post("/api/admin/act-as/exit").with(loginAs(OPERATOR_ID)))
                     .andExpect(status().isNoContent)
 
                 createPositionAs(OPERATOR_ID, "Setter")
@@ -212,7 +199,7 @@ class ActAsControllerIT : TeamBalanceIT() {
                 val session = signInOperator()
                 enterOn(session, TEAM_ID).andExpect(status().isOk)
 
-                dispatch(MockMvcRequestBuilders.post("/api/auth/logout").cookie(session))
+                dispatch(MockMvcRequestBuilders.post("/api/auth/logout").cookie(session).with(csrf()))
                     .andExpect(status().isNoContent)
 
                 createPositionAs(OPERATOR_ID, "Setter")
@@ -237,7 +224,7 @@ class ActAsControllerIT : TeamBalanceIT() {
 
             test("stamps the end of an episode that was left deliberately") {
                 enterAs(OPERATOR_ID, TEAM_ID).andExpect(status().isOk)
-                dispatch(MockMvcRequestBuilders.post("/api/admin/act-as/exit").header("X-User-Id", OPERATOR_ID))
+                dispatch(MockMvcRequestBuilders.post("/api/admin/act-as/exit").with(loginAs(OPERATOR_ID)))
 
                 recordsAs(TEAM_ADMIN_ID)
                     .andExpect(status().isOk)
@@ -271,12 +258,13 @@ class ActAsControllerIT : TeamBalanceIT() {
             .let { mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(it)) }
 
     private fun listTeamsAs(userId: String) =
-        dispatch(MockMvcRequestBuilders.get("/api/admin/teams").header("X-User-Id", userId))
+        dispatch(MockMvcRequestBuilders.get("/api/admin/teams").with(loginAs(userId)))
 
     private fun enterOn(session: Cookie, teamId: String) =
         dispatch(
             MockMvcRequestBuilders.post("/api/admin/act-as")
                 .cookie(session)
+                .with(csrf())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""{"teamId":"$teamId"}"""),
         )
@@ -284,25 +272,25 @@ class ActAsControllerIT : TeamBalanceIT() {
     private fun enterAs(userId: String, teamId: String) =
         dispatch(
             MockMvcRequestBuilders.post("/api/admin/act-as")
-                .header("X-User-Id", userId)
+                .with(loginAs(userId))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""{"teamId":"$teamId"}"""),
         )
 
     private fun recordsAs(userId: String) =
-        dispatch(MockMvcRequestBuilders.get("/api/team/act-as-records").header("X-User-Id", userId))
+        dispatch(MockMvcRequestBuilders.get("/api/team/act-as-records").with(loginAs(userId)))
 
     private fun createPositionAs(userId: String, label: String) =
         dispatch(
             MockMvcRequestBuilders.post("/api/positions")
-                .header("X-User-Id", userId)
+                .with(loginAs(userId))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""{"label":"$label"}"""),
         )
 
     /**
-     * A real session for the operator. `/auth/me` answers on the session identity, not on the
-     * `X-User-Id` test shim, so these cases go through the actual magic-link flow. The user row is
+     * A real session for the operator, from the actual magic-link flow, because these cases follow
+     * one session across requests. The user row is
      * seeded first, so verify resolves the existing (allowlisted) operator rather than creating one.
      */
     private fun signInOperator(): Cookie {
@@ -316,7 +304,7 @@ class ActAsControllerIT : TeamBalanceIT() {
             MockMvcRequestBuilders.post("/api/auth/magic-link/verify")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""{"token":"$token"}"""),
-        ).andExpect(status().isOk).andReturn().response.cookies.first()
+        ).andExpect(status().isOk).andReturn().response.getCookie("SESSION")!!
     }
 
     /** Runs the 60-minute box out without waiting for it — the grant's own expiry, not the session's. */

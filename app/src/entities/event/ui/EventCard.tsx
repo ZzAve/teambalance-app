@@ -1,11 +1,12 @@
 import { Link } from '@tanstack/react-router'
-import { Clock, MapPin } from 'lucide-react'
+import { AlignLeft, Clock, MapPin } from 'lucide-react'
+import type { ReactNode } from 'react'
 import { Card } from '@shared/ui/card'
+import { InfoRow } from '@shared/ui/InfoRow'
 import type { Event } from '@shared/api/events'
 import { relativeEventLabel } from '../lib/relative-event-label'
 import { EventDateChit } from './EventDateChit'
 import { EventTypeBadge } from './EventTypeBadge'
-import { ReferenceChips } from './ReferenceChips'
 import { RelativeTimeLabel } from './RelativeTimeLabel'
 import { useTeamRoutes } from '@shared/lib/team-routes'
 import { EventAnswerRow } from './EventAnswerRow'
@@ -18,10 +19,16 @@ interface EventCardProps {
   myState: AttendanceState
   /** An attendance write is in flight for this event. */
   pending?: boolean
+  /** Who set the viewer's answer, when it was not the viewer — resolved by the container (⑪). */
+  setBy?: string | null
   onRespond: (state: AttendanceState) => void
   index?: number
   /** Injected so the relative label is deterministic in stories; defaults to the real clock. */
   now?: Date
+  /** Start the roster panel expanded — the member's `Keep open` preference (ADR-0030 §6). */
+  defaultRosterOpen?: boolean
+  /** What the roster disclosure opens onto; see EventAnswerRow. Defaults to the position pips. */
+  rosterPanel?: ReactNode | null
 }
 
 /**
@@ -37,18 +44,28 @@ interface EventCardProps {
  * owned by the page container (the events route). That seam is covered by the existing attendance
  * e2e; every rendered state here is a story.
  */
-export function EventCard({ event, myState, pending, onRespond, index = 0, now = new Date() }: EventCardProps) {
+export function EventCard({
+  event,
+  myState,
+  pending,
+  setBy,
+  onRespond,
+  index = 0,
+  now = new Date(),
+  defaultRosterOpen,
+  rosterPanel,
+}: EventCardProps) {
   const routes = useTeamRoutes()
   const date = new Date(event.startTime)
   const label = relativeEventLabel(event.startTime, now)
 
   return (
     // Stretched-link pattern: the card itself is not an anchor. The title <Link> carries an
-    // after:inset-0 overlay that makes the whole card clickable, so the reference chips can be
-    // sibling anchors rather than nested ones (an <a> inside the card's <a> is invalid HTML).
+    // after:inset-0 overlay that makes the whole card clickable, so the answer row's controls can
+    // sit above it as siblings rather than nested inside an <a>.
     <Card
       style={{ animationDelay: `${index * 60}ms` }}
-      className="card-enter card-shadow relative p-3.5 transition-[box-shadow] hover:card-shadow-hover"
+      className="card-enter card-shadow relative p-4 transition-[box-shadow] hover:card-shadow-hover motion-reduce:transition-none"
     >
       <div className="flex gap-3.5">
         <EventDateChit date={date} type={event.eventType} />
@@ -62,32 +79,32 @@ export function EventCard({ event, myState, pending, onRespond, index = 0, now =
 
           <Link
             to={routes.event(event.id)}
-            className="font-display mt-1 block text-[17px] font-medium leading-tight after:absolute after:inset-0"
+            className="font-display mt-1 block text-lead font-medium leading-tight after:absolute after:inset-0"
           >
             {event.title}
           </Link>
 
-          {/* Meta: time · location — the chit already carries the date */}
-          <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[12.5px] text-muted-foreground">
-            <Clock size={13} className="shrink-0 text-muted-foreground/60" />
-            <span className="font-semibold text-foreground">
-              {date.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })}
-            </span>
+          {/* One icon-marked line per detail — the chit already carries the date. The location is
+              plain text: a maps link is a destination competing with the card's own (ADR-0030 §9).
+              The references are not on the card for the same reason — see the detail page. */}
+          <dl className="mt-3 space-y-2 text-small">
+            <InfoRow icon={Clock} label="Time">
+              <span className="font-semibold">
+                {date.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })}
+              </span>
+            </InfoRow>
             {event.location && (
-              <>
-                <span className="text-muted-foreground/40">·</span>
-                <MapPin size={13} className="shrink-0 text-muted-foreground/60" />
-                <span>{event.location}</span>
-              </>
+              <InfoRow icon={MapPin} label="Location">
+                {event.location}
+              </InfoRow>
             )}
-          </div>
-
-          {/* Reference chips — up to 2, then "+N" */}
-          {event.references.length > 0 && (
-            <div className="mt-2">
-              <ReferenceChips references={event.references} max={2} />
-            </div>
-          )}
+            {/* Clamped so a long description cannot stretch the card. */}
+            {event.description && (
+              <InfoRow icon={AlignLeft} label="Description">
+                <p className="line-clamp-2 text-muted-foreground">{event.description}</p>
+              </InfoRow>
+            )}
+          </dl>
         </div>
       </div>
 
@@ -96,7 +113,15 @@ export function EventCard({ event, myState, pending, onRespond, index = 0, now =
           overlay: a thumb aiming slightly high at a disclosure must not navigate instead (#324).
           Most of the old `pt-3` moved into the triggers themselves, where it is tappable. */}
       <div className="relative z-10 mt-3 border-t border-border/40 pt-1">
-        <EventAnswerRow roster={event.roster} myState={myState} pending={pending} onRespond={onRespond} />
+        <EventAnswerRow
+          roster={event.roster}
+          myState={myState}
+          pending={pending}
+          setBy={setBy}
+          onRespond={onRespond}
+          defaultRosterOpen={defaultRosterOpen}
+          rosterPanel={rosterPanel}
+        />
       </div>
     </Card>
   )

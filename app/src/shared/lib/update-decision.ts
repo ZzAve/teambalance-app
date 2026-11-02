@@ -8,7 +8,7 @@
  * This is the irreducible logic (the plan's decision table); the `useRegisterSW` wiring and the
  * seam listeners around it are a thin SW-lifecycle shell with no story or real-backend path.
  */
-export type UpdateAction = 'activate' | 'auto' | 'defer' | 'prompt'
+type UpdateAction = 'activate' | 'auto' | 'defer' | 'prompt'
 
 export interface UpdateSignals {
   /** A previous worker already controls the page — false on a first install (nothing to prompt). */

@@ -1,17 +1,6 @@
 # Demo recordings
 
-Scripted screencasts of the real SPA, driven by the `demo-video` skill
-(`.agents/skills/demo-video/`). Each take is a `*.steps.mjs` module; they all share
-`api-fixture.mjs`, which intercepts `/api/**` so a recording needs no backend, no Postgres and no
-JDK — and, more usefully, never drifts with the seed data.
-
-| File | What it records |
-|------|-----------------|
-| `dark-mode.steps.mjs` | A look around, then light → dark → system (#159) |
-| `filter-preferences.steps.mjs` | The events list remembering its filters, per team (#325, ADR-0030) |
-
-Each steps module's docstring carries its own exact commands. The `.mp4` output is gitignored on
-purpose — share it on the PR, don't commit it.
+Scripted screencasts of the real SPA, driven by the `demo-video` skill (`.agents/skills/demo-video/`). New takes start from `.agents/skills/demo-video/scripts/steps.template.mjs` and use `api-fixture.mjs` for API interception.
 
 ## The five things that will cost you an hour
 
@@ -46,12 +35,33 @@ Learned the hard way while recording #325. None of them announce themselves.
 ## Smaller things worth knowing
 
 - **The caption pill must sit above the bottom nav.** The tab bar is fixed to the bottom, exactly
-  where the skill's harness parks its caption. Both steps modules pre-create the pill at
-  `bottom:120px` (the harness only styles it when it has to create it).
+  where the skill's harness parks its caption. The steps modules pre-create the pill higher up (the
+  harness only styles it when it has to create it); new ones get this from `narrated-take.mjs`.
 - **`exact: true` on short accessible names.** `getByRole('button', { name: 'Filters' })` also
   matches **Clear filters** — and only once a filter is active, so a probe of the landing page
-  passes and the real take dies mid-way on a strict-mode violation.
+  passes and the real take dies mid-way on a strict-mode violation. Likewise the **Team** nav link
+  matches the *TeamBalance* wordmark link.
+- **Sheets and dialogs cover the caption.** Call `captionAt('top')` (from `narrated-take.mjs`) once
+  the sheet is open, and `captionAt('bottom')` after `sheet.waitFor({ state: 'hidden' })`: a closing
+  dialog stays in the DOM while it animates out.
+- **The next-event hero ignores the list's filters.** Filtering the Events list leaves the hero card
+  on screen, so a filter beat shows little unless the list below it visibly changes.
+- **Picking a file:** click the visible button inside `page.waitForEvent('filechooser')` and call
+  `setFiles` on the chooser. **A range input** (the photo crop zoom) rejects `fill()`; focus it and
+  press `ArrowRight`.
+- **Fixture data for the eval features:** past events (`include-past=true`), photo upload and serving
+  (`/api/account/photo`, `/api/members/{id|me}/photo`), and substitute edit/delete with a roster that
+  counts a Going substitute.
 - **The fixture's identity**: Julia Vermeer, `ADMIN`, team *Heren 3* (`heren-3`) — so persisted
   preferences land under `tb.pref.heren-3.*`.
 - **Chromium**: the recording box may need `npx playwright install chromium-headless-shell`
   alongside the usual `chromium`.
+- **Never address a disclosure by index.** Two event cards carry the same `Show lineup` name, and
+  opening one flips *its* name to `Hide lineup` — which silently renumbers the rest, so a `.nth(1)`
+  that resolved before the first beat times out after it. Scope to the card instead: `.card-enter`
+  is EventCard's own root class, and the title link (`a[href$="/events/evt-2"]`) says which one.
+- **Scroll first, then caption.** A caption that names a card must not land while the previous card
+  is still the one on screen: `scrollTo` → short `sleep` → `say` → click.
+- **The fixture's team is six people**, so anything with a larger threshold — the member list's
+  15-cap and its see-all link (ADR-0030 §7) — cannot be filmed against it without growing `ROSTER`,
+  which would change the Team page in every other take.

@@ -1,5 +1,6 @@
 package com.github.zzave.teambalance.api.interfaces
 
+import com.fasterxml.jackson.databind.ObjectMapper
 import com.github.zzave.teambalance.api.TeamBalanceIT
 import com.github.zzave.teambalance.api.domain.port.AttendanceRepository
 import com.github.zzave.teambalance.api.infrastructure.multitenancy.TenantSchemaAdapter
@@ -15,6 +16,7 @@ import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers
 import java.util.UUID
+import com.github.zzave.teambalance.api.infrastructure.identity.loginAs
 
 private const val JAN_USER_ID = "b0000000-0000-0000-0000-000000000001"
 private const val LISA_USER_ID = "b0000000-0000-0000-0000-000000000002"
@@ -42,6 +44,15 @@ class EventControllerTest : TeamBalanceIT() {
     lateinit var attendanceRepository: AttendanceRepository
 
     init {
+        test("GET /api/events without the required include-past query parameter returns 400") {
+            mockMvc.perform(
+                MockMvcRequestBuilders.get("/api/events")
+                    .with(loginAs(JAN_USER_ID, tenant = "public")),
+            )
+                .andExpect(MockMvcResultMatchers.status().isBadRequest)
+                .andExpect(MockMvcResultMatchers.jsonPath("$.error").value("Param include-past cannot be null"))
+        }
+
         test("GET /api/events/{id} returns role for each attendee") {
             // Ensure platform schema (users, team_members) and tenant schema (events, attendances) exist.
             tenantSchemaAdapter.provisionPlatformSchema()
@@ -82,11 +93,10 @@ class EventControllerTest : TeamBalanceIT() {
             // Insert attendance for Jan de Vries (ATTENDING)
             insertAttendance(eventId, JAN_USER_ID)
 
-            // Call the API — X-Team-Id is required by TenantFilter
+            // Call the API, routed to the schema the event was seeded in
             val mvcResult = mockMvc.perform(
                 MockMvcRequestBuilders.get("/api/events/$eventId")
-                    .header("X-Team-Id", "public")
-                    .header("X-User-Id", JAN_USER_ID),
+                    .with(loginAs(JAN_USER_ID, tenant = "public")),
             )
                 .andExpect(MockMvcResultMatchers.request().asyncStarted())
                 .andReturn()
@@ -138,8 +148,7 @@ class EventControllerTest : TeamBalanceIT() {
 
             val mvcResult = mockMvc.perform(
                 MockMvcRequestBuilders.get("/api/events?include-past=true")
-                    .header("X-Team-Id", "public")
-                    .header("X-User-Id", JAN_USER_ID),
+                    .with(loginAs(JAN_USER_ID, tenant = "public")),
             )
                 .andExpect(MockMvcResultMatchers.request().asyncStarted())
                 .andReturn()
@@ -153,6 +162,70 @@ class EventControllerTest : TeamBalanceIT() {
                 .andExpect(
                     MockMvcResultMatchers.jsonPath("$.events[?(@.id=='$eventId')].attendanceSummary.roleBreakdown[0].attending")
                         .value(1)
+                )
+        }
+
+        // The positive half of attribution on the LIST payload: the N+1 guard above pins the null
+        // case (a row nobody set), this pins a row set by someone other than its own member — the
+        // one the card renders `set by …` from, and the only shape that can go wrong silently.
+        test("GET /api/events carries a row's setter when a teammate answered for its member") {
+            tenantSchemaAdapter.provisionPlatformSchema()
+            tenantSchemaAdapter.provisionTenantSchema("public")
+
+            jdbcTemplate.execute(
+                """
+                INSERT INTO public.teams (id, name, slug, schema_name)
+                VALUES ('$TEAM_ID'::uuid, 'Test Team', 'test-team', 'public')
+                ON CONFLICT DO NOTHING
+            """
+            )
+            jdbcTemplate.execute(
+                """
+                INSERT INTO public.users (id, email, display_name)
+                VALUES ('$JAN_USER_ID'::uuid, 'jan@test.com', 'Jan de Vries'),
+                       ('$LISA_USER_ID'::uuid, 'lisa@test.com', 'Lisa Bakker')
+                ON CONFLICT DO NOTHING
+            """
+            )
+            jdbcTemplate.execute(
+                "SELECT public.tb_add_member('$TEAM_ID'::uuid, '$JAN_USER_ID'::uuid, 'USER', 'Setter')"
+            )
+            jdbcTemplate.execute(
+                "SELECT public.tb_add_member('$TEAM_ID'::uuid, '$LISA_USER_ID'::uuid, 'USER', 'Libero')"
+            )
+
+            val eventId = UUID.randomUUID()
+            jdbcTemplate.execute(
+                """
+                INSERT INTO public.events (uuid, event_type_id, title, start_time, end_time, created_by, created_at, updated_at)
+                VALUES ('$eventId'::uuid,
+                    (SELECT id FROM public.event_types WHERE name = 'Training'),
+                    'Attribution Test', '2050-07-01 20:00:00+00', '2050-07-01 22:00:00+00',
+                    '$JAN_USER_ID'::uuid, now(), now())
+            """
+            )
+            // Lisa answers for Jan — trust-based editing, ADR-0003 — and for herself.
+            insertAttendance(eventId, JAN_USER_ID, changedBy = LISA_USER_ID)
+            insertAttendance(eventId, LISA_USER_ID)
+
+            val list = mockMvc.perform(
+                MockMvcRequestBuilders.get("/api/events?include-past=true")
+                    .with(loginAs(JAN_USER_ID, tenant = "public")),
+            ).andExpect(MockMvcResultMatchers.request().asyncStarted()).andReturn()
+
+            mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(list))
+                .andExpect(MockMvcResultMatchers.status().isOk)
+                .andExpect(
+                    MockMvcResultMatchers
+                        .jsonPath("$.events[?(@.id=='$eventId')].attendances[?(@.userId=='$JAN_USER_ID')].changedBy")
+                        .value(LISA_USER_ID)
+                )
+                // Raw, not filtered: a self-set row reports its own member, and the "only when it
+                // wasn't you" rule stays with the client that renders it.
+                .andExpect(
+                    MockMvcResultMatchers
+                        .jsonPath("$.events[?(@.id=='$eventId')].attendances[?(@.userId=='$LISA_USER_ID')].changedBy")
+                        .value(LISA_USER_ID)
                 )
         }
 
@@ -218,8 +291,7 @@ class EventControllerTest : TeamBalanceIT() {
 
             val mvcResult = mockMvc.perform(
                 MockMvcRequestBuilders.get("/api/events/$eventId")
-                    .header("X-Team-Id", "public")
-                    .header("X-User-Id", JAN_USER_ID),
+                    .with(loginAs(JAN_USER_ID, tenant = "public")),
             )
                 .andExpect(MockMvcResultMatchers.request().asyncStarted())
                 .andReturn()
@@ -291,8 +363,7 @@ class EventControllerTest : TeamBalanceIT() {
 
             val mvcResult = mockMvc.perform(
                 MockMvcRequestBuilders.get("/api/events/$eventId")
-                    .header("X-Team-Id", "public")
-                    .header("X-User-Id", setterAId),
+                    .with(loginAs(setterAId, tenant = "public")),
             )
                 .andExpect(MockMvcResultMatchers.request().asyncStarted())
                 .andReturn()
@@ -350,8 +421,7 @@ class EventControllerTest : TeamBalanceIT() {
 
             val mvcResult = mockMvc.perform(
                 MockMvcRequestBuilders.get("/api/events/$eventId")
-                    .header("X-Team-Id", "public")
-                    .header("X-User-Id", JAN_USER_ID),
+                    .with(loginAs(JAN_USER_ID, tenant = "public")),
             )
                 .andExpect(MockMvcResultMatchers.request().asyncStarted())
                 .andReturn()
@@ -410,8 +480,8 @@ class EventControllerTest : TeamBalanceIT() {
 
             val mvcResult = mockMvc.perform(
                 MockMvcRequestBuilders.post("/api/events")
-                    .header("X-Team-Id", "public")
-                    .header("X-User-Id", JAN_USER_ID)
+                    .with(loginAs(JAN_USER_ID, tenant = "public"))
+                    
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(
                         """
@@ -478,8 +548,8 @@ class EventControllerTest : TeamBalanceIT() {
 
             val mvcResult = mockMvc.perform(
                 MockMvcRequestBuilders.post("/api/events")
-                    .header("X-Team-Id", "public")
-                    .header("X-User-Id", JAN_USER_ID)
+                    .with(loginAs(JAN_USER_ID, tenant = "public"))
+                    
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(
                         """
@@ -522,8 +592,7 @@ class EventControllerTest : TeamBalanceIT() {
             )
             val getResult = mockMvc.perform(
                 MockMvcRequestBuilders.get("/api/events/$eventId")
-                    .header("X-Team-Id", "public")
-                    .header("X-User-Id", JAN_USER_ID),
+                    .with(loginAs(JAN_USER_ID, tenant = "public")),
             )
                 .andExpect(MockMvcResultMatchers.request().asyncStarted())
                 .andReturn()
@@ -554,8 +623,8 @@ class EventControllerTest : TeamBalanceIT() {
 
             val mvcResult = mockMvc.perform(
                 MockMvcRequestBuilders.post("/api/events")
-                    .header("X-Team-Id", "public")
-                    .header("X-User-Id", teamlessUserId)
+                    .with(loginAs(teamlessUserId, tenant = "public"))
+                    
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(
                         """
@@ -608,8 +677,8 @@ class EventControllerTest : TeamBalanceIT() {
 
             val mvcResult = mockMvc.perform(
                 MockMvcRequestBuilders.post("/api/events")
-                    .header("X-Team-Id", "public")
-                    .header("X-User-Id", LISA_USER_ID)
+                    .with(loginAs(LISA_USER_ID, tenant = "public"))
+                    
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(
                         """
@@ -671,8 +740,8 @@ class EventControllerTest : TeamBalanceIT() {
 
             val mvcResult = mockMvc.perform(
                 MockMvcRequestBuilders.put("/api/events/$eventId")
-                    .header("X-Team-Id", "public")
-                    .header("X-User-Id", JAN_USER_ID)
+                    .with(loginAs(JAN_USER_ID, tenant = "public"))
+                    
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(
                         """
@@ -731,8 +800,7 @@ class EventControllerTest : TeamBalanceIT() {
 
             val mvcResult = mockMvc.perform(
                 MockMvcRequestBuilders.delete("/api/events/$eventId")
-                    .header("X-Team-Id", "public")
-                    .header("X-User-Id", JAN_USER_ID),
+                    .with(loginAs(JAN_USER_ID, tenant = "public")),
             )
                 .andExpect(MockMvcResultMatchers.request().asyncStarted())
                 .andReturn()
@@ -785,8 +853,7 @@ class EventControllerTest : TeamBalanceIT() {
 
             val mvcResult = mockMvc.perform(
                 MockMvcRequestBuilders.get("/api/events/$eventId")
-                    .header("X-Team-Id", "public")
-                    .header("X-User-Id", noPositionUserId),
+                    .with(loginAs(noPositionUserId, tenant = "public")),
             )
                 .andExpect(MockMvcResultMatchers.request().asyncStarted())
                 .andReturn()
@@ -829,8 +896,8 @@ class EventControllerTest : TeamBalanceIT() {
             // client error (400), never surface as an unhandled deserialization crash (500).
             val mvcResult = mockMvc.perform(
                 MockMvcRequestBuilders.post("/api/events")
-                    .header("X-Team-Id", "public")
-                    .header("X-User-Id", JAN_USER_ID)
+                    .with(loginAs(JAN_USER_ID, tenant = "public"))
+                    
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(
                         """
@@ -856,7 +923,7 @@ class EventControllerTest : TeamBalanceIT() {
             status shouldBe 400
         }
 
-        test("GET /api/events resolves attendance for the whole list in one query (no N+1)") {
+        test("GET /api/events carries every member's attendance, still in one query (no N+1)") {
             tenantSchemaAdapter.provisionPlatformSchema()
             tenantSchemaAdapter.provisionTenantSchema("public")
 
@@ -874,8 +941,20 @@ class EventControllerTest : TeamBalanceIT() {
                 ON CONFLICT DO NOTHING
             """
             )
+            // Lisa never answers anything: the list payload must still carry her, because a member
+            // list that silently omits non-responders is not the team (ADR-0030 §8).
+            jdbcTemplate.execute(
+                """
+                INSERT INTO public.users (id, email, display_name)
+                VALUES ('$LISA_USER_ID'::uuid, 'lisa@test.com', 'Lisa Bakker')
+                ON CONFLICT DO NOTHING
+            """
+            )
             jdbcTemplate.execute(
                 "SELECT public.tb_add_member('$TEAM_ID'::uuid, '$JAN_USER_ID'::uuid, 'USER', 'Setter')"
+            )
+            jdbcTemplate.execute(
+                "SELECT public.tb_add_member('$TEAM_ID'::uuid, '$LISA_USER_ID'::uuid, 'USER', 'Libero')"
             )
 
             // Several events so a per-event fetch would show up as multiple round trips.
@@ -898,29 +977,52 @@ class EventControllerTest : TeamBalanceIT() {
 
             val mvcResult = mockMvc.perform(
                 MockMvcRequestBuilders.get("/api/events?include-past=true")
-                    .header("X-Team-Id", "public")
-                    .header("X-User-Id", JAN_USER_ID),
+                    .with(loginAs(JAN_USER_ID, tenant = "public")),
             )
                 .andExpect(MockMvcResultMatchers.request().asyncStarted())
                 .andReturn()
 
-            mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(mvcResult))
+            val body = mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(mvcResult))
                 .andExpect(MockMvcResultMatchers.status().isOk)
+                .andReturn().response.contentAsString
+
+            // The list row carries the same `attendances` the detail does (ADR-0030 §8), so the
+            // events page can show who is coming without a per-card detail fetch.
+            val guarded = ObjectMapper().readTree(body)["events"].first { it["title"].asText() == "N+1 Guard 0" }
+            val entries = guarded["attendances"].associateBy { it["userId"].asText() }
+            entries.getValue(JAN_USER_ID)["state"].asText() shouldBe "ATTENDING"
+
+            // A member with no response row at all is present and named — a member list that
+            // silently omits non-responders is not the team.
+            val lisa = entries.getValue(LISA_USER_ID)
+            lisa["displayName"].asText() shouldBe "Lisa Bakker"
+            lisa["state"].asText() shouldBe "NOT_RESPONDED"
+            // Her attribution is carried, and carried as null: that null is what keeps the
+            // `set by …` line off a row nobody ever set.
+            lisa.has("changedBy") shouldBe true
+            lisa["changedBy"].isNull shouldBe true
+            lisa["updatedAt"].isNull shouldBe true
 
             // One batched query for every listed event and nothing else — no per-event fetch, which is
             // exactly the N+1 this projection removes (reverting to findByEventId-per-event fails here).
+            // Carrying the full entries must not cost a query: they come out of the same projection.
             Mockito.verify(attendanceRepository, Mockito.times(1)).findByEventIds(ArgumentMatchers.anyList())
             Mockito.verifyNoMoreInteractions(attendanceRepository)
         }
     }
 
-    private fun insertAttendance(eventId: UUID, userId: String, state: String = "ATTENDING") {
+    private fun insertAttendance(
+        eventId: UUID,
+        userId: String,
+        state: String = "ATTENDING",
+        changedBy: String = userId,
+    ) {
         jdbcTemplate.execute(
             """
             INSERT INTO public.attendances (uuid, event_id, user_id, state, updated_at, changed_by)
             VALUES (gen_random_uuid(),
                 (SELECT id FROM public.events WHERE uuid = '$eventId'::uuid),
-                '$userId'::uuid, '$state', now(), '$userId'::uuid)
+                '$userId'::uuid, '$state', now(), '$changedBy'::uuid)
         """
         )
     }

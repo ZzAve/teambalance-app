@@ -11,7 +11,7 @@ import type { EventRoster, RosterPosition } from '@shared/api/events'
 /** Which semantic colour a chip or row carries. Mirrors the attendance palette: green / gold / red. */
 export type RosterTone = 'covered' | 'short' | 'critical'
 
-export interface RosterChip {
+interface RosterChip {
   text: string
   tone: RosterTone
 }
@@ -45,33 +45,20 @@ export function rosterChip(roster: EventRoster): RosterChip | null {
       const empty = emptyPositions(roster).length
       return { text: empty > 1 ? `Missing ${empty} positions` : 'Missing a position', tone: 'critical' }
     }
+    // The fraction rides along in the chip, so the lineup panel need not repeat it in its header.
     case 'HEADCOUNT_FULL':
-      return { text: 'Full', tone: 'covered' }
+      return { text: `Full · ${roster.playingAttending}/${roster.totalTarget}`, tone: 'covered' }
     case 'HEADCOUNT_SHORT':
-      return { text: `${roster.openSlots} more needed`, tone: 'short' }
+      return { text: `${roster.openSlots} more needed · ${roster.playingAttending}/${roster.totalTarget}`, tone: 'short' }
   }
 }
 
-/** True when there is a panel to open — everything except a roster that isn't tracked at all. */
-export function hasRosterPanel(roster: EventRoster): boolean {
-  return roster.trackRoster
-}
 
-/**
- * "3 of 5 covered" for the panel header, or null when no position carries a target — a tally has
- * nothing to be a fraction of.
- */
-export function coveredSummary(roster: EventRoster): string | null {
-  const targeted = roster.positions.filter((p) => p.required != null)
-  if (targeted.length === 0) return null
-  const covered = targeted.filter((p) => p.attending >= (p.required ?? 0)).length
-  return `${covered} of ${targeted.length} covered`
-}
 
 /** One slot's dot. `missing` is an open slot at a position with nobody at all — drawn in alarm. */
-export type PipState = 'filled' | 'open' | 'missing'
+type PipState = 'filled' | 'open' | 'missing'
 
-export interface RosterRow {
+interface RosterRow {
   id: string
   label: string
   /** One entry per required slot. Empty for an untargeted position, which shows a plain count. */
@@ -115,80 +102,49 @@ function rowTone(position: RosterPosition): RosterTone | null {
 }
 
 /** The chase callout, split so the caller can bold the subject without owning any of the copy. */
-export interface ChaseNudge {
-  /** The subject — position names, or a count once naming them would be an inventory. */
-  lead: string
-  /** The rest of the sentence, already agreeing in number with `lead`. */
-  rest: string
-}
 
-/**
- * The callout under the rows for targeted positions with nobody at all.
- *
- * It scales with how many are empty, because one shape cannot honestly cover all three. Naming a
- * single position and calling it "the one to chase" is the useful case and stays. Naming two is
- * still a nudge. From three on it becomes an inventory the rows above already print, so the count
- * carries it instead.
- *
- * What must not happen is the old behaviour: naming the *first* empty position and calling it "the
- * one to chase" regardless of how many others were also empty. On an event nobody has answered yet
- * that singled out one position and implied every other was covered.
- */
-export function chaseNudge(roster: EventRoster): ChaseNudge | null {
-  const empty = emptyPositions(roster)
 
-  if (empty.length === 0) return null
-  if (empty.length === 1) return { lead: empty[0].label, rest: 'still has no one — the one to chase.' }
-  if (empty.length === 2) return { lead: `${empty[0].label} and ${empty[1].label}`, rest: 'still have no one.' }
-  return { lead: `${empty.length} positions`, rest: 'still have no one.' }
-}
-
-/**
- * The targeted positions with nobody at all — the fact that separates a critical roster from one
- * that is merely short. Shared by the chip and the nudge so the two can never disagree about which
- * positions are empty.
- */
+/** The targeted positions with nobody at all — the fact that separates a critical roster from a short one. */
 function emptyPositions(roster: EventRoster): RosterRow[] {
   return rosterRows(roster).filter((row) => row.pips.length > 0 && row.pips.every((p) => p === 'missing'))
 }
 
+
 /**
- * The soft nudge under the rows when attendees have no position set. Null when everyone coming has
- * one — this is a prompt, not a permanent label.
+ * What a roster disclosure opens onto, for its "Show …" / "Hide …" label: a tracked roster has
+ * positions, so its panel is a lineup; an untracked social has none, so its panel is its people.
+ * One rule for the card row and the Next Up hero, which share a page.
  */
-export function unassignedNudge(roster: EventRoster): string | null {
-  const n = roster.unassignedAttending
-  if (n <= 0) return null
-  return `${n} going ${plural(n, "hasn't", "haven't")} set a position`
+export function panelNoun(roster: EventRoster): string {
+  return roster.trackRoster ? 'lineup' : "who's coming"
+}
+
+interface WhoIsComing {
+  total: number
+  /** Members playing: the server counts substitutes among the players (ADR-0033), so they come off. */
+  players: number
+  substitutes: number
+  /** One count per staff role, zero included, in the team's own order. */
+  staff: { id: string; label: string; count: number }[]
 }
 
 /**
- * "7/12 going" whenever a headcount target exists at all.
- *
- * Where it lands depends on whether positions are also targeted: with them, the panel header belongs
- * to the covered fraction and this becomes a secondary line beneath the rows; without them, the
- * header is free and this fills it. Either way the chip already said "4 more needed" — the absolute
- * numbers are what the panel adds.
- *
- * The numerator is `playingAttending`, not `totalAttending` (#281): a headcount is a target for
- * players, so a training of 11 players and a coach against a target of 12 reads "11/12 going" — and
- * [staffNote] says where the twelfth person went, so the two numbers do not look like a mistake.
+ * The event page's "Who's coming" counts, all server-computed (#219): total = players + subs + staff.
+ * `staffRoles` is the team's full STAFF vocabulary: the roster drops a role nobody is going as, and a
+ * role should still show its 0. Without it (still loading) the roster's own staff positions are used.
  */
-export function headcountLine(roster: EventRoster): string | null {
-  if (roster.totalTarget == null) return null
-  return `${roster.playingAttending}/${roster.totalTarget} going`
-}
-
-/**
- * "1 staff also going, not counted toward the target" — null when nobody attending holds a staff
- * position, which is every roster on a team that has not marked one.
- *
- * Excluded from the target, not hidden: the rows above already name who they are, and this says why
- * the fraction beside them is smaller than the number of people in the room. "staff" reads the same
- * in one and in five, which the team's own labels (Trainer, Physio) would not.
- */
-export function staffNote(roster: EventRoster): string | null {
-  const n = roster.staffAttending
-  if (n <= 0) return null
-  return `${n} staff also going, not counted toward the target`
+export function whoIsComing(
+  roster: EventRoster,
+  staffRoles: { id: string; label: string }[] = roster.positions.filter((p) => p.kind === 'STAFF'),
+): WhoIsComing {
+  return {
+    total: roster.totalAttending,
+    players: roster.playingAttending - roster.substituteAttending,
+    substitutes: roster.substituteAttending,
+    staff: staffRoles.map((r) => ({
+      id: r.id,
+      label: r.label,
+      count: roster.positions.find((p) => p.id === r.id)?.attending ?? 0,
+    })),
+  }
 }

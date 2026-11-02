@@ -17,4 +17,7 @@ data class TeamMember(
     val position: PositionLabel?,
     // True once the member has completed the one-time onboarding flow (onboarded_at is set).
     val onboarded: Boolean,
+    val shirtNumber: ShirtNumber? = null,
+    // Version of the Team Photo (ADR-0038); null when the member has none.
+    val photoVersion: PhotoVersion? = null,
 )

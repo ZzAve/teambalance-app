@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { useQueryClient } from '@tanstack/react-query'
-import { useAuthMe, useRequestMagicLink } from '@shared/api/auth'
-import { savePendingInviteToken, useAcceptInvitation } from '@shared/api/invitations'
+import { INVITE_UNAVAILABLE, useAuthMe, useRequestMagicLink } from '@shared/api/auth'
+import { useAcceptInvitation } from '@shared/api/invitations'
 import { Button } from '@shared/ui/button'
 import { Input } from '@shared/ui/input'
 import { Label } from '@shared/ui/label'
@@ -43,7 +43,7 @@ function InvitePage() {
   if (isLoadingSession || (user && !error && !acceptInvitation.isError)) {
     return (
       <div className="mx-auto mt-16 max-w-sm text-center">
-        <p className="text-sm text-muted-foreground">{user ? 'Joining the team...' : 'Loading...'}</p>
+        <p className="text-small text-muted-foreground">{user ? 'Joining the team...' : 'Loading...'}</p>
       </div>
     )
   }
@@ -51,9 +51,9 @@ function InvitePage() {
   if (error) {
     return (
       <div className="mx-auto mt-16 max-w-sm text-center">
-        <h1 className="font-display text-2xl font-bold">Invite link invalid</h1>
-        <p className="mt-3 text-sm text-muted-foreground">{error}</p>
-        <Link to="/login" className="mt-6 inline-block text-sm font-medium text-blue">
+        <h1 className="font-display text-title font-bold">Invite link invalid</h1>
+        <p className="mt-3 text-small text-muted-foreground">{error}</p>
+        <Link to="/login" className="mt-6 inline-block text-small font-medium text-blue">
           Back to login
         </Link>
       </div>
@@ -62,15 +62,28 @@ function InvitePage() {
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    savePendingInviteToken(token, email)
-    requestMagicLink.mutate(email, { onSuccess: () => setSent(true) })
+    // The invite rides along with the request, so the server remembers it against the magic-link
+    // record and applies it on verification (#342). It used to be stashed in this browser's
+    // localStorage, which never reached the browser that opened the email.
+    requestMagicLink.mutate(
+      { email, inviteToken: token },
+      {
+        onSuccess: () => setSent(true),
+        // A dead link is refused before any email goes out, so say so here rather than letting them
+        // wait for mail that will not come. Anything else — a dropped connection, a 500 — is
+        // retryable and falls through to the form's try-again message instead.
+        onError: (err) => {
+          if (err.message === INVITE_UNAVAILABLE) setError('This invite link is invalid or has expired.')
+        },
+      },
+    )
   }
 
   if (sent) {
     return (
       <div className="mx-auto mt-16 max-w-sm text-center">
-        <h1 className="font-display text-2xl font-bold">Check your email</h1>
-        <p className="mt-3 text-sm text-muted-foreground">
+        <h1 className="font-display text-title font-bold">Check your email</h1>
+        <p className="mt-3 text-small text-muted-foreground">
           If <span className="font-medium text-foreground">{email}</span> checks out, we've sent a magic link to sign
           in. Click it to join the team.
         </p>
@@ -80,8 +93,8 @@ function InvitePage() {
 
   return (
     <div className="mx-auto mt-16 max-w-sm">
-      <h1 className="font-display text-center text-2xl font-bold">You're invited</h1>
-      <p className="mt-2 text-center text-sm text-muted-foreground">
+      <h1 className="font-display text-center text-title font-bold">You're invited</h1>
+      <p className="mt-2 text-center text-small text-muted-foreground">
         Enter your email to join the team — no password needed.
       </p>
       <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-4">
@@ -102,7 +115,7 @@ function InvitePage() {
           {requestMagicLink.isPending ? 'Sending...' : 'Send magic link'}
         </Button>
         {requestMagicLink.isError && (
-          <p className="text-center text-sm text-red">Something went wrong. Please try again.</p>
+          <p className="text-center text-small text-red-ink">Something went wrong. Please try again.</p>
         )}
       </form>
     </div>

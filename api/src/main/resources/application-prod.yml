@@ -19,6 +19,11 @@ spring:
 teambalance:
   cors:
     allowed-origins: https://app.teambalance.nl,https://teambalance.nl
+  csrf:
+    # The XSRF-TOKEN cookie is set by api.teambalance.nl but read by script on app.teambalance.nl, so
+    # it is scoped to the parent domain (a Domain attribute covers its subdomains; RFC 6265 ignores a
+    # leading dot). Unset in every other profile: there the cookie is host-only. See ADR-0012.
+    cookie-domain: teambalance.nl
 
 server:
   servlet:

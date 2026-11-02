@@ -1,11 +1,11 @@
 import { useId, useState } from 'react'
 import { Check, ChevronDown, HelpCircle, X } from 'lucide-react'
-import type { ComponentType } from 'react'
+import type { ComponentType, ReactNode } from 'react'
 import type { Event, EventRoster } from '@shared/api/events'
-import { hasRosterPanel } from '../lib/roster-view'
+import { ATTENDANCE_WORDS } from '../lib/attendance-words'
 import { myAnswer, type MyAnswer } from '../lib/my-answer'
+import { panelNoun } from '../lib/roster-view'
 import { ReadinessBadge } from './ReadinessBadge'
-import { RosterPips } from './RosterPips'
 
 type AttendanceState = Event['myState']
 
@@ -15,11 +15,26 @@ interface EventAnswerRowProps {
   myState: AttendanceState
   /** An attendance write is in flight; the control is held and the badge shows a pending state. */
   pending?: boolean
+  /** Who set this answer, when that was not the viewer — it becomes the pill's subject (⑪). */
+  setBy?: string | null
   onRespond: (state: AttendanceState) => void
   /** Start the attendance panel expanded. Collapsed by default so a list of events stays a list. */
   defaultAttnOpen?: boolean
-  /** Start the roster panel expanded. Collapsed by default. */
+  /**
+   * Start the roster panel expanded. Collapsed by default, and a *live* default: flipping the
+   * preference re-opens or re-closes the panel on every card at once (ADR-0030 §6), which is what a
+   * member toggling `Keep open` expects to happen — not something they only see on the next visit.
+   */
   defaultRosterOpen?: boolean
+  /**
+   * What the roster disclosure opens onto, or nothing at all when omitted.
+   *
+   * Always injected by the events list, which is the only place cards render: the panel is a widget
+   * (it reaches the attendance control and the answer sheet) and the card is an entity, so the card
+   * cannot build one itself. There is no fallback any more — the position pips that used to be one
+   * were the *other half* of the either/or the lineup panel replaced.
+   */
+  rosterPanel?: ReactNode | null
 }
 
 // The answer pill's tone, keyed by `myAnswer`. The three settled answers are soft tints from the
@@ -27,24 +42,24 @@ interface EventAnswerRowProps {
 // a loud, filled neutral (ink, so it reads as an action in both themes and never competes with the
 // green/gold/red answers) with a marker dot, so "we still need your answer" stands out as the one
 // thing to act on rather than a fourth colour.
-const PILL_TONE: Record<MyAnswer['tone'], { className: string; Icon?: ComponentType<{ size?: number }> }> = {
+const PILL_TONE: Record<MyAnswer['tone'], { className: string; Icon?: ComponentType<{ size?: number; className?: string }> }> = {
   attending: { className: 'bg-green/10 text-green font-semibold', Icon: Check },
   maybe: { className: 'bg-gold/20 text-gold-dark font-semibold', Icon: HelpCircle },
-  absent: { className: 'bg-red/10 text-red font-semibold', Icon: X },
+  absent: { className: 'bg-red/10 text-red-ink font-semibold', Icon: X },
   prompt: { className: 'bg-foreground text-background font-bold' },
 }
 
 const OPTIONS: { value: AttendanceState; label: string; active: string; inactive: string }[] = [
-  { value: 'ATTENDING', label: 'Going', active: 'bg-green text-white border-green', inactive: 'border-green/30 text-green' },
-  { value: 'MAYBE', label: 'Maybe', active: 'bg-gold text-white border-gold', inactive: 'border-gold/30 text-gold' },
-  { value: 'ABSENT', label: "Can't", active: 'bg-red text-white border-red', inactive: 'border-red/30 text-red' },
+  { value: 'ATTENDING', label: ATTENDANCE_WORDS.ATTENDING.word, active: 'bg-green text-white border-green', inactive: 'border-green/30 text-green' },
+  { value: 'MAYBE', label: ATTENDANCE_WORDS.MAYBE.word, active: 'bg-gold text-white border-gold', inactive: 'border-gold/30 text-gold-ink' },
+  { value: 'ABSENT', label: ATTENDANCE_WORDS.ABSENT.word, active: 'bg-red text-white border-red', inactive: 'border-red/30 text-red-ink' },
 ]
 
 // Shared trigger chrome: lifted above the card link's stretched overlay (relative z-10) so a tap opens
 // its panel instead of navigating, and `min-h-11` gives it a real 44px thumb target (#324) — the
 // height sits on the button, so the pill inside keeps its size and the padding above it is tappable.
 const TRIGGER =
-  'relative z-10 flex min-h-11 shrink-0 items-center gap-1.5 rounded-full ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2'
+  'relative z-10 flex min-h-11 items-center gap-1.5 rounded-full ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2'
 
 /**
  * The card's bottom row: two independent disclosures, not one (#273). The left trigger is the viewer's
@@ -57,26 +72,46 @@ const TRIGGER =
  * home, and DOM order == visual order == focus order keeps that accessible. Picking an answer collapses
  * the attendance panel (④) — its job is done — while the roster panel, if open, stays put.
  *
- * The right side is a disclosure only when there is a lineup to show (`hasRosterPanel`); a social with
- * tracking off shows a plain `8 going` headcount with nothing to expand (⑥). Prop-only apart from the
- * two open states, which is exactly the local view state a story can drive; the mutation and the
- * optimistic hold live in the container.
+ * The right side is a disclosure whenever the caller hands it a panel, and a plain label when it does
+ * not. The events list always injects one — the lineup panel, which has content for every roster
+ * shape including an untracked social — which is how a social stopped being the one card whose
+ * verdict silently navigates (#324 cause 3). Prop-only apart from the two open states, which is
+ * exactly the local view state a story can drive; the mutation and the optimistic hold live in the
+ * container.
+ *
+ * An answer a teammate set says so in the pill itself — `Lisa Bakker said you're in` (⑪). The
+ * attribution is the sentence's subject, not a marker beside it or a line beneath it: a list is
+ * scanned, and the one thing already being read is the answer. It reverts to the first person the
+ * moment you answer for yourself, which is the whole acknowledgement mechanism — there is no
+ * separate read state to store.
  */
 export function EventAnswerRow({
   roster,
   myState,
   pending = false,
+  setBy = null,
   onRespond,
   defaultAttnOpen = false,
   defaultRosterOpen = false,
+  rosterPanel,
 }: EventAnswerRowProps) {
   const [attnOpen, setAttnOpen] = useState(defaultAttnOpen)
   const [rosterOpen, setRosterOpen] = useState(defaultRosterOpen)
+  // `Keep open` is a preference, not merely an initial value: when it flips, follow it — a member
+  // switching it on expects every card to open now, not on their next visit. Adjusted during render
+  // rather than in an effect (the React-recommended shape for "reset state when a prop changes"), and
+  // only on an actual change, so a panel this member collapsed by hand stays collapsed.
+  const [appliedDefault, setAppliedDefault] = useState(defaultRosterOpen)
+  if (appliedDefault !== defaultRosterOpen) {
+    setAppliedDefault(defaultRosterOpen)
+    setRosterOpen(defaultRosterOpen)
+  }
   const attnId = useId()
   const rosterId = useId()
-  const answer = myAnswer(myState)
+  const answer = myAnswer(myState, setBy)
   const { className: pillClass, Icon } = PILL_TONE[answer.tone]
-  const rosterExpandable = hasRosterPanel(roster)
+  const rosterExpandable = rosterPanel != null
+  const noun = panelNoun(roster)
 
   const pick = (state: AttendanceState) => {
     onRespond(state)
@@ -92,21 +127,22 @@ export function EventAnswerRow({
           aria-expanded={attnOpen}
           aria-controls={attnOpen ? attnId : undefined}
           onClick={() => setAttnOpen((o) => !o)}
-          className={`${TRIGGER} pl-1 pr-1.5`}
+          className={`${TRIGGER} min-w-0 pl-1 pr-1.5`}
         >
-          <span className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs ${pillClass}`}>
+          <span className={`flex min-w-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-caption ${pillClass}`}>
             {answer.tone === 'prompt' ? (
               // A marker dot rather than a status icon: the prompt is a call to act, not an answer.
-              <span aria-hidden className="size-1.5 rounded-full bg-background" />
+              <span aria-hidden className="size-1.5 shrink-0 rounded-full bg-background" />
             ) : (
-              Icon && <Icon size={13} />
+              Icon && <Icon size={13} className="shrink-0" />
             )}
-            {answer.label}
+            {/* A name makes this the longest thing on the row, so it yields before the row wraps. */}
+            <span className="truncate">{answer.label}</span>
           </span>
           <ChevronDown
             size={14}
             aria-hidden
-            className={`text-muted-foreground transition-transform duration-200 ${attnOpen ? 'rotate-180' : ''}`}
+            className={`shrink-0 text-muted-foreground transition-transform duration-200 ${attnOpen ? 'rotate-180' : ''}`}
           />
           <span className="sr-only">{attnOpen ? 'Hide answer options' : 'Change your answer'}</span>
         </button>
@@ -119,7 +155,7 @@ export function EventAnswerRow({
             aria-expanded={rosterOpen}
             aria-controls={rosterOpen ? rosterId : undefined}
             onClick={() => setRosterOpen((o) => !o)}
-            className={`${TRIGGER} ml-auto pl-1.5 pr-1`}
+            className={`${TRIGGER} ml-auto shrink-0 pl-1.5 pr-1`}
           >
             <ReadinessBadge roster={roster} pending={pending} />
             <ChevronDown
@@ -127,13 +163,12 @@ export function EventAnswerRow({
               aria-hidden
               className={`text-muted-foreground transition-transform duration-200 ${rosterOpen ? 'rotate-180' : ''}`}
             />
-            <span className="sr-only">{rosterOpen ? 'Hide lineup' : 'Show lineup'}</span>
+            <span className="sr-only">{rosterOpen ? `Hide ${noun}` : `Show ${noun}`}</span>
           </button>
         ) : (
-          // Not a target at all, so the same screen position navigates here while every other card
-          // expands (#324 cause 3). Left as-is deliberately: a social has nothing to expand *to*
-          // until the member-list panel lands — see #326. `min-h-11` only keeps the row the same
-          // height as a card whose verdict is a trigger.
+          // Nothing to open, so nothing to tap: the verdict is a plain label. On the events list this
+          // branch is now unreachable — every card is handed a panel — which is how #324 cause 3 was
+          // closed. `min-h-11` keeps the row the same height as a card whose verdict is a trigger.
           <span className="relative z-10 ml-auto flex min-h-11 shrink-0 items-center">
             <ReadinessBadge roster={roster} pending={pending} />
           </span>
@@ -153,7 +188,9 @@ export function EventAnswerRow({
                 aria-pressed={isActive}
                 disabled={pending}
                 onClick={() => pick(value)}
-                className={`flex-1 rounded-xl border py-2 text-[13px] font-bold transition-colors ${isActive ? active : inactive} ${pending ? 'cursor-not-allowed opacity-60' : ''}`}
+                // min-h-11 + px-3 give these inline options the same 44px target as the row's own
+                // trigger above (#324); flush horizontal padding left the label on the border.
+                className={`flex min-h-11 flex-1 items-center justify-center rounded-md border px-3 py-2 text-small font-bold transition-colors ${isActive ? active : inactive} ${pending ? 'cursor-not-allowed opacity-60' : ''}`}
               >
                 {label}
               </button>
@@ -165,9 +202,10 @@ export function EventAnswerRow({
       {/* Roster panel — second in the DOM, so it stays below the attendance panel. */}
       {rosterExpandable && rosterOpen && (
         <div id={rosterId} className="relative z-10 mt-3 w-full border-t border-dashed border-border pt-3">
-          <RosterPips roster={roster} />
+          {rosterPanel}
         </div>
       )}
     </>
   )
 }
+

@@ -50,7 +50,7 @@ class EventController(
         val members = attendanceService.teamMembers(teamId)
         val viewerId = currentUserGateway.requireCurrentUserId()
         val events =
-            if (request.queries.includepast) eventService.getAllEvents(teamId) else eventService.getUpcomingEvents()
+            if (request.queries.includePast) eventService.getAllEvents(teamId) else eventService.getUpcomingEvents()
         val attendance = attendanceService.attendanceForAll(events.map { it.id }, members)
         // The position vocabulary is fetched once for the whole listing, not per event: it is the
         // same list for every row, and it is both the label source and the row filter for the roster.
@@ -80,7 +80,7 @@ class EventController(
     override suspend fun getEvent(request: GetEvent.Request): GetEvent.Response<*> {
         val id = request.path.id.consumeEventId()
         val event = eventService.getEvent(id)
-            ?: return GetEvent.Response404(Unit)
+            ?: return GetEvent.Response404
 
         val teamId = currentTeamGateway.requireCurrentTeamId()
         val members = attendanceService.teamMembers(teamId)
@@ -100,6 +100,7 @@ class EventController(
                 recurringGroup = event.recurringGroup?.toString(),
                 attendanceSummary = attendance.summary().produce(attendance.attendingRoleBreakdown()),
                 attendances = attendance.entries.map { it.produce() },
+                substitutes = attendance.substitutes.map { it.produce() },
                 myState = attendance.stateOf(viewerId).produce(),
                 rosterOverride = event.rosterOverride?.produce(),
                 roster = event.rosterFill(attendance, positionService.listPositions()).produce(),
@@ -127,7 +128,7 @@ class EventController(
             location = req.location?.let(::EventLocation),
             references = req.references.internalize(),
             rosterOverride = req.rosterOverride?.consume(),
-        ) ?: return UpdateEvent.Response404(Unit)
+        ) ?: return UpdateEvent.Response404
 
         val members = attendanceService.teamMembers(teamId)
         val attendance = attendanceService.attendanceForAll(events.map { it.id }, members)
@@ -142,9 +143,9 @@ class EventController(
         val userId = currentUserGateway.requireCurrentUserId()
         val id = request.path.id.consumeEventId()
         return if (eventService.deleteEvent(callerId = userId, teamId = teamId, id = id, scope = request.queries.scope.consume())) {
-            DeleteEvent.Response204(Unit)
+            DeleteEvent.Response204
         } else {
-            DeleteEvent.Response404(Unit)
+            DeleteEvent.Response404
         }
     }
 }
@@ -217,6 +218,10 @@ internal fun com.github.zzave.teambalance.api.domain.model.Event.produce(
         references = references.externalize(),
         recurringGroup = recurringGroup?.toString(),
         attendanceSummary = attendance.summary().produce(attendance.attendingRoleBreakdown()),
+        // Every current member, non-responders included — mapped from the projection the caller
+        // already resolved, exactly as getEvent does, so the listing gains no query (ADR-0030 §8).
+        attendances = attendance.entries.map { it.produce() },
+        substitutes = attendance.substitutes.map { it.produce() },
         myState = attendance.stateOf(viewerId).produce(),
         rosterOverride = rosterOverride?.produce(),
         roster = rosterFill(attendance, positions).produce(),
@@ -228,7 +233,12 @@ internal fun com.github.zzave.teambalance.api.domain.model.Event.produce(
 internal fun com.github.zzave.teambalance.api.domain.model.Event.rosterFill(
     attendance: EventAttendance,
     positions: List<Position>,
-): RosterFill = RosterFill.of(effectiveRosterRequirement, attendance.attendingByPositionId(), positions)
+): RosterFill = RosterFill.of(
+    effectiveRosterRequirement,
+    attendance.attendingByPositionId(),
+    positions,
+    attendance.attendingSubstitutes(),
+)
 
 private fun com.github.zzave.teambalance.api.domain.model.EventType.produce() =
     EventTypeSummary(id = id.produce(), name = name.value, color = color?.value)

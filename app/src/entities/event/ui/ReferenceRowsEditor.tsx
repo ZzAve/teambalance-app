@@ -25,7 +25,7 @@ export function ReferenceRowsEditor({ rows, onChange, hint = 'Add the Nevobo pag
   return (
     <div>
       <Label>Links (optional)</Label>
-      <p className="mb-1 text-xs text-muted-foreground">{hint}</p>
+      <p className="mb-1 text-caption text-muted-foreground">{hint}</p>
       <div className="flex flex-col gap-2">
         {rows.map((ref, i) => (
           <div key={i} className="flex items-center gap-2">

@@ -26,7 +26,7 @@ export function ActAsBannerView({ teamName, isExiting, onExit }: ActAsBannerView
       aria-label="Acting as the platform"
       className="flex flex-wrap items-center justify-between gap-3 border-b border-gold/40 bg-gold/15 px-5 py-2"
     >
-      <p className="text-sm">
+      <p className="text-small">
         Acting as the platform inside <span className="font-semibold">{teamName}</span>
       </p>
       <Button size="sm" variant="outline" disabled={isExiting} onClick={onExit}>

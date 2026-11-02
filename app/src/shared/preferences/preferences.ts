@@ -24,11 +24,24 @@ const PREFIX = 'tb.pref'
  * A per-team key. Preferences are per team, not per member-across-teams: someone who plays in two
  * teams must not carry one team's event-type filter into the other (ADR-0030 §4).
  *
- * The `tb` prefix is the same convention as the existing client-side keys (`tb-theme`,
- * `tb.money-vote.<slug>`); the `pref` segment keeps this namespace apart from them.
+ * The `tb` prefix is the same convention as the existing client-side keys (`tb-theme`); the `pref`
+ * segment keeps this namespace apart from them.
  */
 export function teamPreferenceKey(teamSlug: string, name: string): string {
   return `${PREFIX}.${teamSlug}.${name}`
+}
+
+/**
+ * An app-wide key, for a preference that is a *taste* rather than a position.
+ *
+ * The distinction is ADR-0030 §3's, and it decides the scope as well as the storage: filter state is
+ * "where was I", which is genuinely per team — someone who plays in two teams must not carry one
+ * team's event-type filter into the other. A display preference is "how do I like this", which
+ * follows the member everywhere, the same way `tb-theme` always has. Nobody wants roster pips in one
+ * team and names in the other; being asked to set it again per team is the bug, not the feature.
+ */
+export function appPreferenceKey(name: string): string {
+  return `${PREFIX}.${name}`
 }
 
 /**

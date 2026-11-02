@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { api } from './wirespec-client'
 import { applyOptimisticAttendance } from './attendance-cache'
+import { useCurrentUser } from './auth'
 import type { AttendanceEntry, EventDetail } from './events'
 
 type AttendanceState = AttendanceEntry['state']
@@ -14,9 +15,12 @@ interface SetAttendanceVars {
 
 export function useSetAttendance() {
   const queryClient = useQueryClient()
+  // Who is writing, which is not always whose row is written (ADR-0003): the optimistic patch stamps
+  // this as the row's `changedBy` so attribution does not lag the answer it belongs to.
+  const actorId = useCurrentUser()?.id ?? null
   return useMutation({
     mutationFn: async ({ eventId, userId, state }: SetAttendanceVars) => {
-      const res = await api.SetAttendance({ eventId, userId, body: { state } })
+      const res = await api.setAttendance({ eventId, userId, body: { state } })
       if (res.status === 404) throw new Error('Attendance not found')
       return res.body
     },
@@ -27,7 +31,7 @@ export function useSetAttendance() {
       await queryClient.cancelQueries({ queryKey: eventKey })
       const previousEvent = queryClient.getQueryData<EventDetail>(eventKey)
       queryClient.setQueryData<EventDetail | undefined>(eventKey, (current) =>
-        applyOptimisticAttendance(current, userId, state),
+        applyOptimisticAttendance(current, userId, state, actorId),
       )
       return { eventKey, previousEvent }
     },
@@ -62,7 +66,7 @@ export function useBulkAttend() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async ({ userId, eventIds }: BulkAttendVars) => {
-      const res = await api.BulkAttend({ body: { userId, eventIds, state: 'ATTENDING' } })
+      const res = await api.bulkAttend({ body: { userId, eventIds, state: 'ATTENDING' } })
       return res.body.eventIds
     },
     onError: () => {
@@ -79,7 +83,7 @@ export function useBulkUndo() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async ({ userId, eventIds }: BulkAttendVars) => {
-      const res = await api.BulkUndoAttend({ body: { userId, eventIds } })
+      const res = await api.bulkUndoAttend({ body: { userId, eventIds } })
       return res.body.eventIds
     },
     onError: () => {

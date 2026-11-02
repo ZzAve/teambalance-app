@@ -3,8 +3,14 @@ package com.github.zzave.teambalance.api.infrastructure.email
 import com.github.zzave.teambalance.api.domain.port.EmailGateway
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.types.shouldBeInstanceOf
+import org.springframework.boot.context.properties.ConfigurationPropertiesScan
+import org.springframework.boot.test.context.TestConfiguration
 import org.springframework.boot.test.context.runner.ApplicationContextRunner
 import org.springframework.web.client.RestClient
+
+@TestConfiguration
+@ConfigurationPropertiesScan
+private class EmailPropertiesScan
 
 /**
  * Magic link is the entire login path, so the prod profile MUST select the real
@@ -15,10 +21,10 @@ class EmailGatewayProfileTest : FunSpec({
     fun runnerFor(profile: String) = ApplicationContextRunner()
         .withInitializer { it.environment.setActiveProfiles(profile) }
         .withBean(RestClient.Builder::class.java, { RestClient.builder() })
-        // EmailConfiguration (@Profile("prod")) supplies the EmailProperties the Scaleway sender binds;
+        // The scan registers EmailProperties (@Profile("prod")), which the Scaleway sender binds;
         // it registers only under the prod run, exactly as in the real app.
         .withUserConfiguration(
-            EmailConfiguration::class.java,
+            EmailPropertiesScan::class.java,
             ScalewayTemEmailAdapter::class.java,
             ConsoleEmailAdapter::class.java,
         )

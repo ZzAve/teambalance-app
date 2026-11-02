@@ -33,16 +33,16 @@ export function ThemeToggleView({ value, onChange }: ThemeToggleViewProps) {
 
   return (
     <div>
-      <h3 id={headingId} className="text-sm font-semibold text-muted-foreground">
+      <h3 id={headingId} className="text-small font-semibold text-muted-foreground">
         Appearance
       </h3>
-      <p className="mt-1 text-xs text-muted-foreground">
+      <p className="mt-1 text-caption text-muted-foreground">
         System follows your device&apos;s light or dark setting.
       </p>
       <div
         role="radiogroup"
         aria-labelledby={headingId}
-        className="mt-3 grid grid-cols-3 gap-1 rounded-xl border border-border bg-card p-1"
+        className="mt-3 grid grid-cols-3 gap-1 rounded-md border border-border bg-card p-1"
       >
         {OPTIONS.map(({ value: option, label, Icon }) => {
           const selected = value === option
@@ -59,7 +59,7 @@ export function ThemeToggleView({ value, onChange }: ThemeToggleViewProps) {
               {/* min-h-11 keeps every segment at the ≥44px touch target the audit set (F7). */}
               <span
                 className={[
-                  'flex min-h-11 flex-col items-center justify-center gap-1 rounded-lg text-xs font-semibold transition-colors',
+                  'flex min-h-11 flex-col items-center justify-center gap-1 rounded-lg text-caption font-semibold transition-colors',
                   'peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-card',
                   selected ? 'bg-blue/10 text-blue' : 'text-muted-foreground hover:text-foreground',
                 ].join(' ')}

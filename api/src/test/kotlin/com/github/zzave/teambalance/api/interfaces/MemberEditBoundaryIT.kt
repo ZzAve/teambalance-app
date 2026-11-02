@@ -3,17 +3,16 @@ package com.github.zzave.teambalance.api.interfaces
 import com.github.zzave.teambalance.api.TeamBalanceIT
 import com.github.zzave.teambalance.api.infrastructure.multitenancy.TenantSchemaAdapter
 import com.github.zzave.teambalance.api.infrastructure.persistence.FAULT_MEMBER_USER_ID
-import com.github.zzave.teambalance.api.infrastructure.persistence.FaultInjectingTeamMemberRepositoryConfig
 import io.kotest.matchers.shouldBe
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
-import org.springframework.context.annotation.Import
 import org.springframework.http.MediaType
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.ResultActions
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers
+import com.github.zzave.teambalance.api.infrastructure.identity.loginAs
 
 private const val ADMIN_USER_ID = "c1000000-0000-0000-0000-0000000000a0"
 private const val HEALTHY_USER_ID = "c1000000-0000-0000-0000-0000000000a2"
@@ -34,7 +33,6 @@ private const val ORIGINAL_FAULT_NAME = "Original Fault"
  * write is lost — exactly the partial edit the guarantee forbids.
  */
 @AutoConfigureMockMvc
-@Import(FaultInjectingTeamMemberRepositoryConfig::class)
 class MemberEditBoundaryIT : TeamBalanceIT() {
 
     @Autowired
@@ -81,7 +79,7 @@ class MemberEditBoundaryIT : TeamBalanceIT() {
     private fun editMemberAs(callerId: String, targetUserId: String, newName: String): ResultActions =
         mockMvc.perform(
             MockMvcRequestBuilders.put("/api/members/$targetUserId")
-                .header("X-User-Id", callerId)
+                .with(loginAs(callerId))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""{"displayName":"$newName","role":"USER"}"""),
         )
@@ -92,7 +90,7 @@ class MemberEditBoundaryIT : TeamBalanceIT() {
     private fun onboardAs(userId: String, newName: String, positionId: String): ResultActions =
         mockMvc.perform(
             MockMvcRequestBuilders.put("/api/members/me/onboarding")
-                .header("X-User-Id", userId)
+                .with(loginAs(userId))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""{"displayName":"$newName","role":"USER","positionId":"$positionId"}"""),
         )

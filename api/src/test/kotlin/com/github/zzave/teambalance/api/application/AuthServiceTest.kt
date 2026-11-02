@@ -3,6 +3,7 @@ package com.github.zzave.teambalance.api.application
 import com.github.zzave.teambalance.api.domain.model.ActAs
 import com.github.zzave.teambalance.api.domain.model.DisplayName
 import com.github.zzave.teambalance.api.domain.model.Email
+import com.github.zzave.teambalance.api.domain.model.Invitation
 import com.github.zzave.teambalance.api.domain.model.MagicLinkToken
 import com.github.zzave.teambalance.api.domain.model.PositionId
 import com.github.zzave.teambalance.api.domain.model.Role
@@ -17,6 +18,7 @@ import com.github.zzave.teambalance.api.domain.model.User
 import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.port.AuthSessionGateway
 import com.github.zzave.teambalance.api.domain.port.EmailGateway
+import com.github.zzave.teambalance.api.domain.port.InvitationRepository
 import com.github.zzave.teambalance.api.domain.port.MagicLinkTokenRepository
 import com.github.zzave.teambalance.api.domain.port.PlatformAdminGateway
 import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
@@ -26,7 +28,9 @@ import com.github.zzave.teambalance.api.domain.port.UserRepository
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.shouldNotBe
 import java.time.Clock
+import java.time.Duration
 import java.time.Instant
 import java.time.ZoneOffset
 import java.util.UUID
@@ -48,15 +52,30 @@ private class FakeAuthSessionGateway(private var sessionUserId: UserId? = null) 
     }
 }
 
-private class FakeMagicLinkTokenRepository : MagicLinkTokenRepository {
-    override fun save(token: MagicLinkToken): MagicLinkToken = token
-    override fun findByTokenHash(tokenHash: TokenHash): MagicLinkToken? = null
+/**
+ * `magic_link_tokens`, enough of it to sign in against: a saved link is findable by its hash, and
+ * consuming resolves to [resolvesTo]. Real enough that a test can request a link and then verify the
+ * very token that was emailed, which is the round trip the pending-invite carry rides on (#342).
+ */
+private class FakeMagicLinkTokenRepository(private val resolvesTo: User? = null) : MagicLinkTokenRepository {
+    val saved = mutableListOf<MagicLinkToken>()
+
+    override fun save(token: MagicLinkToken): MagicLinkToken = token.also { saved += it }
+    override fun findByTokenHash(tokenHash: TokenHash): MagicLinkToken? =
+        saved.lastOrNull { it.tokenHash == tokenHash }
+
     override fun consumeAndResolveUser(consumedToken: MagicLinkToken, displayName: DisplayName): User =
-        error("not used in these tests")
+        resolvesTo ?: error("no user configured for this test")
 }
 
+/** Captures the token that was emailed, so a test can click the link it just asked for. */
 private class FakeEmailGateway : EmailGateway {
-    override fun sendMagicLink(email: Email, token: String) = Unit
+    val sentTokens = mutableListOf<String>()
+    val lastToken: String? get() = sentTokens.lastOrNull()
+
+    override fun sendMagicLink(email: Email, token: String) {
+        sentTokens += token
+    }
 }
 
 private class FakePlatformAdminGateway : PlatformAdminGateway {
@@ -79,13 +98,18 @@ class AuthServiceTest : FunSpec() {
             email = Email("session@test.com"),
             displayName = DisplayName("Session"),
         )
+        val clock = Clock.fixed(Instant.EPOCH, ZoneOffset.UTC)
+
         fun serviceWith(
             gateway: AuthSessionGateway,
             directory: TeamDirectory = TeamDirectory(),
             routingGateway: TenantRoutingGateway = RecordingTenantRoutingGateway(),
             episodes: InMemoryActAsRepository = InMemoryActAsRepository(),
+            magicLinks: FakeMagicLinkTokenRepository = FakeMagicLinkTokenRepository(),
+            invitations: InvitationRepository = InMemoryInvitationRepository(),
+            emails: FakeEmailGateway = FakeEmailGateway(),
         ) = AuthService(
-            magicLinkTokenRepository = FakeMagicLinkTokenRepository(),
+            magicLinkTokenRepository = magicLinks,
             userRepository = directory.userRepository(user),
             teamMemberRepository = directory.teamMemberRepository(),
             activeTeamService = directory.activeTeamService(routingGateway, user),
@@ -95,10 +119,11 @@ class AuthServiceTest : FunSpec() {
                 clock = Clock.fixed(Instant.EPOCH, ZoneOffset.UTC),
                 platformAdmins = emptySet(),
             ),
-            emailGateway = FakeEmailGateway(),
+            invitationService = directory.invitationService(invitations, routingGateway, clock, user),
+            emailGateway = emails,
             platformAdminGateway = FakePlatformAdminGateway(),
             authSessionGateway = gateway,
-            clock = Clock.fixed(Instant.EPOCH, ZoneOffset.UTC),
+            clock = clock,
         )
 
         test("startSession pins the Active Team the signed-in user lands in, and reports it") {
@@ -200,6 +225,101 @@ class AuthServiceTest : FunSpec() {
 
             gateway.ended shouldBe true
             service.currentUser() shouldBe null
+        }
+
+        // #342: the invite used to be carried between /invite/:token and the emailed /auth/verify in
+        // the joiner's localStorage, which is per browser profile. Opening the email on another device,
+        // or in Safari after tapping the link in WhatsApp's in-app browser, lost it and left the joiner
+        // signed in with no team. These four tests pin the carry to the magic-link record instead, so
+        // the only thing that has to travel is the URL.
+        //
+        // Each drives the real round trip: request a link, take the token that was actually emailed,
+        // and verify it. Nothing is handed between the two halves except that token — the same thing an
+        // email carries — so a carry that leaked through client state could not pass these.
+        fun invitation(teamId: TeamId, role: Role = Role.USER, expiresAt: Instant = Instant.EPOCH.plus(Duration.ofDays(365))) =
+            Invitation(
+                id = UUID.randomUUID(),
+                teamId = teamId,
+                role = role,
+                consumedAt = null,
+                tokenHash = TokenHash("resolved-by-the-fake"),
+                encryptedToken = null,
+                createdBy = UserId.random(),
+                expiresAt = expiresAt,
+                createdAt = Instant.EPOCH,
+            )
+
+        test("a magic link requested from an invite link joins the team when it is verified") {
+            val directory = TeamDirectory()
+            val setpoint = directory.addTeam("Setpoint VT", "setpoint-vt")
+            val invitations = InMemoryInvitationRepository(invitation(setpoint))
+            val magicLinks = FakeMagicLinkTokenRepository(resolvesTo = user)
+            val emails = FakeEmailGateway()
+            val service = serviceWith(
+                FakeAuthSessionGateway(), directory,
+                magicLinks = magicLinks, invitations = invitations, emails = emails,
+            )
+
+            service.requestMagicLink(user.email, inviteToken = "the-invite-token") shouldBe true
+
+            // The record carries the invitation, and the emailed URL carries only the login token.
+            magicLinks.saved.single().invitationId shouldNotBe null
+
+            val signIn = service.verifyMagicLink(emails.lastToken!!)
+
+            signIn?.inviteOutcome shouldBe InviteOutcome.JOINED
+            directory.membershipsOf(userId) shouldBe setOf(setpoint)
+        }
+
+        // Failing at request time is what lets the invite page say so while the joiner is still looking
+        // at it, instead of after an email round trip that ends on a teamless hub.
+        test("a magic link requested with a dead invite link is refused, and nothing is sent") {
+            val magicLinks = FakeMagicLinkTokenRepository()
+            val emails = FakeEmailGateway()
+            val service = serviceWith(
+                FakeAuthSessionGateway(),
+                magicLinks = magicLinks, invitations = InMemoryInvitationRepository(null), emails = emails,
+            )
+
+            service.requestMagicLink(user.email, inviteToken = "no-such-invite") shouldBe false
+
+            emails.sentTokens shouldBe emptyList()
+            magicLinks.saved shouldBe emptyList()
+        }
+
+        // Amends ADR-0008: a dead invite no longer withholds the session. Refusing a valid proof of
+        // identity would strand the joiner permanently, since re-clicking an expired invite cannot
+        // help, and signed-in-but-teamless now has its own onboarding hub to land on.
+        test("an invite that lapses before the link is clicked still signs the user in, reported unavailable") {
+            val directory = TeamDirectory()
+            val setpoint = directory.addTeam("Setpoint VT", "setpoint-vt")
+            val invitations = InMemoryInvitationRepository(invitation(setpoint))
+            val magicLinks = FakeMagicLinkTokenRepository(resolvesTo = user)
+            val emails = FakeEmailGateway()
+            val service = serviceWith(
+                FakeAuthSessionGateway(), directory,
+                magicLinks = magicLinks, invitations = invitations, emails = emails,
+            )
+            service.requestMagicLink(user.email, inviteToken = "the-invite-token") shouldBe true
+
+            // Rotated or expired in the 15 minutes between the request and the click.
+            invitations.put(null)
+            val signIn = service.verifyMagicLink(emails.lastToken!!)
+
+            signIn?.user shouldBe user
+            signIn?.inviteOutcome shouldBe InviteOutcome.UNAVAILABLE
+            directory.membershipsOf(userId) shouldBe emptySet()
+        }
+
+        test("an ordinary sign-in carries no invite outcome") {
+            val magicLinks = FakeMagicLinkTokenRepository(resolvesTo = user)
+            val emails = FakeEmailGateway()
+            val service = serviceWith(FakeAuthSessionGateway(), magicLinks = magicLinks, emails = emails)
+
+            service.requestMagicLink(user.email) shouldBe true
+            magicLinks.saved.single().invitationId.shouldBeNull()
+
+            service.verifyMagicLink(emails.lastToken!!)?.inviteOutcome.shouldBeNull()
         }
     }
 }

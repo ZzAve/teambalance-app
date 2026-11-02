@@ -1,0 +1,483 @@
+<!-- PROTOTYPE variant A — The court. Throwaway. -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TeamBalance — Who's coming Thursday?</title>
+<meta name="description" content="TeamBalance is the team app for amateur volleyball: who's coming, and the team's shared pot.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Grandstander:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../design-tokens/tokens.css">
+<style>
+:root{
+  --court:#1F5FA8;
+  --court-deep:#1A5090;
+  --hall:#E87C3E;
+  --ink:#10233E;
+  --ink-soft:#3B2410;
+  --line:#FFFFFF;
+  --paint-soft:#D3E3F6;
+  --green:#249E6C; --gold:#F4B400; --red:#D93025; --grey:#94A3B8;
+  --ease-out:cubic-bezier(.16,1,.3,1);
+  --display:'Grandstander','Grandstander Variable',cursive;
+  --body:'DM Sans','DM Sans Variable',system-ui,sans-serif;
+  color-scheme:light;
+  accent-color:var(--ink);
+  caret-color:var(--ink);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--hall);color:var(--ink);font-family:var(--body);font-size:1.0625rem;line-height:1.5;padding-bottom:80px;-webkit-text-size-adjust:100%}
+::selection{background:var(--ink);color:#fff}
+a{color:inherit;text-underline-offset:.2em;text-decoration-thickness:1.5px}
+:focus-visible{outline:3px solid #fff;outline-offset:3px;box-shadow:0 0 0 6px var(--ink);border-radius:8px}
+.on-orange :focus-visible{outline-color:var(--ink);box-shadow:0 0 0 6px #fff}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+h1,h2{font-family:var(--display);font-weight:800;line-height:1.02;margin:0;text-wrap:balance}
+p{margin:0}
+.wrap{max-width:1100px;margin:0 auto;padding:0 20px}
+.num{font-variant-numeric:tabular-nums}
+
+/* header + wordmark */
+.top{display:flex;align-items:center;justify-content:space-between;max-width:1280px;margin:0 auto;padding:14px 20px}
+.wm{font-family:var(--display);font-weight:800;font-size:1.65rem;letter-spacing:-.01em;text-decoration:none}
+.wm .t{color:var(--ink)} .wm .b{color:#FFF4E2}
+.on-blue .wm .t{color:#fff} .on-blue .wm .b{color:#8FE0B8}
+.login{font-weight:600;font-size:.95rem;min-height:44px;display:inline-flex;align-items:center;padding:0 4px}
+
+/* stage / court */
+.stage{container-type:inline-size;position:relative;margin:0 auto;padding:0 16px 56px;max-width:1280px}
+.pitch{position:relative;padding:8px 4px 20px;color:#fff;background:transparent}
+.pitch h1{font-size:clamp(2.35rem,10.5vw,3.2rem);color:#fff;letter-spacing:-.01em;text-shadow:0 2px 0 rgba(0,0,0,.18)}
+.pitch h1 span{display:block}
+.pitch p{margin-top:12px;color:var(--ink);font-weight:500;max-width:34ch}
+.court{position:relative;aspect-ratio:.8;background:
+  repeating-linear-gradient(90deg,rgba(255,255,255,.035) 0 38px,rgba(0,0,0,.03) 38px 76px),var(--court);
+  border:4px solid var(--line);border-radius:3px;box-shadow:0 18px 34px -10px rgba(16,35,62,.45),0 4px 10px rgba(16,35,62,.25);color:#fff}
+.court .at{position:absolute;left:calc(var(--c)*1%);top:calc(var(--a)*1%)}
+.net{position:absolute;left:-14px;right:-14px;top:50%;height:7px;transform:translateY(-50%);
+  background:repeating-linear-gradient(90deg,#fff 0 6px,rgba(255,255,255,.45) 6px 9px);border-radius:2px;z-index:1}
+.net::before,.net::after{content:"";position:absolute;top:50%;width:14px;height:14px;border-radius:50%;background:var(--ink);transform:translateY(-50%);box-shadow:0 0 0 2px #fff}
+.net::before{left:-7px}.net::after{right:-7px}
+.atk{position:absolute;left:-26px;right:-26px;height:0;border-top:4px solid var(--line)}
+.atk::before,.atk::after{content:"";position:absolute;top:-4px;width:22px;height:0;border-top:4px dashed var(--line)}
+.atk::before{left:0}.atk::after{right:0}
+.atk.a1{top:33.33%}.atk.a2{top:66.67%}
+.atk::before,.atk::after{width:22px}
+.atk{left:-26px;right:-26px}
+.atk i{position:absolute;left:26px;right:26px;top:-4px;border-top:4px solid var(--line)}
+.atk{border-top:0}
+
+.controls{position:absolute;inset:0 0 50% 0;display:grid;grid-template-rows:2fr 1fr;padding:0 12px;z-index:2}
+.ask{grid-row:1;align-self:center;padding:8px 2px}
+.ask b{display:block;font-family:var(--display);font-weight:800;font-size:1.5rem;line-height:1.05}
+.ask span{display:block;color:var(--paint-soft);font-size:.9rem;margin-top:2px}
+.tally{grid-row:1;align-self:end;padding:0 2px 10px;font-size:1rem;line-height:1.3;min-height:3.9em;display:flex;flex-direction:column;justify-content:flex-end}
+.tally strong{font-family:var(--display);font-weight:800;font-size:1.35rem}
+.tally small{display:block;color:var(--paint-soft);font-size:.85rem}
+.ask{align-self:start;padding-top:12px}
+.answers{grid-row:2;display:grid;grid-template-columns:repeat(3,1fr);gap:8px;align-items:center;margin:0;padding:0;border:0;min-width:0}
+.answers legend{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+.ans{appearance:none;font:inherit;font-weight:700;font-size:.98rem;color:#fff;background:rgba(255,255,255,.06);border:2.5px solid #fff;border-radius:999px;min-height:48px;padding:0 6px;display:inline-flex;align-items:center;justify-content:center;gap:7px;cursor:pointer;transition:background .2s,color .2s,transform .15s}
+.ans svg{width:14px;height:14px;flex:none}
+.ans:hover{background:rgba(255,255,255,.22)}
+.ans:active{transform:scale(.97)}
+.ans[aria-pressed=true][data-v=going]{background:#1D7F57;border-color:#fff;color:#fff}
+.ans[aria-pressed=true][data-v=maybe]{background:var(--gold);border-color:#fff;color:var(--ink)}
+.ans[aria-pressed=true][data-v=cant]{background:#C42A20;border-color:#fff;color:#fff}
+.ans:disabled{opacity:.5;cursor:not-allowed}
+
+.players{list-style:none;margin:0;padding:0}
+.player,.spot{--d:44px;position:absolute;left:calc(var(--c)*1%);top:calc(var(--a)*1%);width:0;height:0;z-index:2}
+.mover{position:absolute;left:0;top:0;transform:translate(-50%,calc(var(--d)/-2));display:flex;flex-direction:column;align-items:center;width:88px}
+.disc{position:relative;width:var(--d);height:var(--d);border-radius:50%;background:#F5F8FC;border:5px solid var(--ring,var(--grey));display:grid;place-items:center;font-family:var(--display);font-weight:800;color:var(--ink);font-size:calc(var(--d)*.4);box-shadow:0 5px 9px rgba(10,30,60,.4);transition:border-color .45s}
+.badge{position:absolute;right:-7px;bottom:-5px;width:19px;height:19px;border-radius:50%;background:var(--ring,var(--grey));color:#fff;padding:3px;box-shadow:0 0 0 2px var(--court);transition:background .45s}
+.player[data-state=going]{--ring:var(--green)}
+.player[data-state=maybe]{--ring:var(--gold)}
+.player[data-state=maybe] .badge{color:var(--ink)}
+.player[data-state=cant]{--ring:var(--red)}
+.player[data-state=none]{--ring:var(--grey)}
+.badge use,.badge .g{display:none}
+.player[data-state=going] .g-going,.player[data-state=maybe] .g-maybe,.player[data-state=cant] .g-cant,.player[data-state=none] .g-none{display:block}
+.who{margin-top:7px;text-align:center;line-height:1.15}
+.who b{display:block;font-size:.88rem;font-weight:700}
+.who i{display:block;font-style:normal;font-size:.72rem;color:var(--paint-soft)}
+.spot .mover{pointer-events:none}
+.spot .ring{width:var(--d);height:var(--d);border-radius:50%;border:3px dashed rgba(255,255,255,.75)}
+.you .mover{transition:transform 1.05s var(--ease-out)}
+.you.benched .mover{transform:translate(-50%,calc(var(--d)/-2)) var(--bench)}
+.you .disc{font-size:calc(var(--d)*.3)}
+.you .who i{color:#fff}
+.you.benched .disc{border-style:solid}
+.bench-tag{position:absolute;left:50%;bottom:-44px;transform:translateX(-50%);font-size:.78rem;font-weight:700;color:var(--ink-soft);letter-spacing:.02em;white-space:nowrap}
+
+/* form */
+.request{max-width:640px;margin:0 auto;padding:0 4px}
+.request .row{display:flex;flex-wrap:wrap;gap:10px}
+.request label{display:block;font-weight:600;margin-bottom:6px}
+.request input[type=email]{flex:1 1 220px;min-height:50px;border-radius:10px;border:2px solid var(--ink);background:#fff;color:var(--ink);padding:0 14px;font:inherit;min-width:0}
+.request input::placeholder{color:#5B6B80}
+.request input:hover{border-color:#000}
+.request input[aria-invalid=true]{border-color:#9B1C14;box-shadow:0 0 0 3px rgba(155,28,20,.35)}
+.btn{display:inline-flex;align-items:center;justify-content:center;min-height:50px;padding:0 20px;border-radius:10px;font:inherit;font-weight:700;text-decoration:none;cursor:pointer;border:2px solid var(--ink);transition:background .2s,color .2s,transform .15s}
+.btn:active{transform:translateY(1px)}
+.btn.primary{background:var(--ink);color:#fff}
+.btn.primary:hover{background:#000}
+.btn.ghost{background:transparent;color:var(--ink)}
+.btn.ghost:hover{background:rgba(16,35,62,.12)}
+.btn:disabled{opacity:.55;cursor:not-allowed}
+.msg{min-height:1.6em;margin-top:8px;font-weight:600}
+.alt{margin-top:6px;display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center}
+.alt span{color:var(--ink-soft)}
+.on-blue .request input[type=email]{border-color:#fff}
+.on-blue .btn.primary{background:#fff;color:var(--ink);border-color:#fff}
+.on-blue .btn.primary:hover{background:#E8F0FA}
+.on-blue .btn.ghost{color:#fff;border-color:#fff}
+.on-blue .btn.ghost:hover{background:rgba(255,255,255,.16)}
+.on-blue .request input[aria-invalid=true]{border-color:#FFB4AE;box-shadow:0 0 0 3px rgba(255,180,174,.5)}
+.on-blue .alt span{color:var(--paint-soft)}
+
+/* below the fold */
+.band{position:relative;padding:72px 0 64px}
+.band.blue{background:repeating-linear-gradient(90deg,rgba(255,255,255,.03) 0 38px,rgba(0,0,0,.03) 38px 76px),var(--court);color:#fff}
+.band.blue .lead,.band.blue .soft{color:var(--paint-soft)}
+.band.blue::before{content:"";position:absolute;left:0;right:0;top:0;border-top:4px solid #fff}
+.band.blue.noline::before{display:none}
+.band h2{font-size:clamp(1.9rem,6vw,2.9rem);margin-bottom:14px}
+.lead{max-width:56ch;font-size:1.0625rem}
+.cols{display:grid;gap:36px}
+
+.lineup{margin:0;padding:0;list-style:none}
+.lineup .head{font-weight:700;margin-bottom:10px}
+.lineup li.pos{display:grid;grid-template-columns:120px 1fr;gap:10px;padding:13px 0;border-top:2px solid rgba(255,255,255,.85);align-items:center}
+.lineup li.pos:last-of-type{border-bottom:2px solid rgba(255,255,255,.85)}
+.lineup .pn{font-weight:700}
+.lineup .ppl{display:flex;flex-wrap:wrap;gap:6px 18px}
+.lineup .p{display:inline-flex;align-items:center;gap:8px}
+.lineup .dot{width:18px;height:18px;border-radius:50%;background:#F5F8FC;border:4px solid var(--grey);flex:none}
+.lineup .dot.going{border-color:var(--green)}.lineup .dot.maybe{border-color:var(--gold)}
+.lineup .legend{display:flex;flex-wrap:wrap;gap:6px 18px;margin-top:14px;font-size:.92rem;color:var(--paint-soft)}
+.lineup .legend span{display:inline-flex;align-items:center;gap:7px}
+.note{margin-top:18px;max-width:56ch}
+
+.pool{padding:76px 0 70px;color:var(--ink)}
+.pool h2{color:var(--ink)}
+.pool .lead{color:var(--ink)}
+.pool-grid{display:grid;gap:34px;align-items:center}
+.pot{display:flex;flex-direction:column;align-items:center;gap:18px}
+.pot svg{width:min(260px,70%);height:auto;overflow:visible}
+.pot .cap{font-size:.92rem;color:var(--ink-soft);font-weight:500}
+.chips{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;border:0;margin:0;padding:0}
+.chips legend{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+.chip{appearance:none;font:inherit;font-family:var(--display);font-weight:800;font-size:1.3rem;min-width:84px;min-height:52px;padding:0 16px;border-radius:999px;border:2.5px solid var(--ink);background:#FFF4E2;color:var(--ink);cursor:pointer;transition:background .2s,color .2s,transform .2s var(--ease-out)}
+.chip.other{font-family:var(--body);font-size:1rem;font-weight:700}
+.chip:hover{background:#fff}
+.chip[aria-pressed=true]{background:var(--ink);color:#fff;transform:translateY(-3px)}
+.topup{min-height:2.9em;text-align:center;font-weight:600;max-width:34ch}
+
+.side{position:relative;padding-left:40px;margin-top:30px}
+.side::before{content:"";position:absolute;left:0;top:0;bottom:0;border-left:4px solid #fff}
+.side li{list-style:none;position:relative;padding:4px 0 26px}
+.side li::before{content:"";position:absolute;left:-40px;top:17px;width:30px;border-top:4px solid #fff}
+.side h3{margin:0 0 4px;font-family:var(--body);font-weight:800;font-size:1.3rem;letter-spacing:.01em}
+.side p{max-width:52ch;color:var(--paint-soft)}
+.side{margin-bottom:0;padding-bottom:0}
+.origin{margin-top:46px;padding-top:30px;border-top:4px solid #fff;max-width:62ch}
+.origin h2{font-size:clamp(1.5rem,4.5vw,2.1rem)}
+
+.close h2{font-size:clamp(2.1rem,7vw,3.4rem)}
+.close .request{margin:26px 0 0;max-width:620px;padding:0}
+.endline{border-top:6px solid #fff;margin-top:64px}
+.foot{display:flex;flex-wrap:wrap;gap:12px 28px;align-items:center;justify-content:space-between;max-width:1100px;margin:0 auto;padding:36px 20px 20px}
+.foot .meta{display:flex;gap:22px;align-items:center;font-weight:500}
+
+@media (min-width:900px){
+  .top{padding:18px 40px}
+  .stage{padding:0 70px 56px 70px;max-width:1340px;margin-top:6px}
+  .pitch{position:absolute;z-index:3;left:calc(70px + 4px);top:4px;bottom:0;width:calc((100% - 140px)/3 - 14px);display:flex;flex-direction:column;justify-content:center;padding:0 0 56px 3cqw;pointer-events:none}
+  .pitch h1{font-size:clamp(2.2rem,4.3cqw,4.1rem);text-shadow:0 2px 0 rgba(0,0,0,.2)}
+  .pitch p{font-size:clamp(.92rem,1.5cqw,1.1rem);color:#fff;max-width:26ch;margin-top:1.4cqw}
+  .court{aspect-ratio:2/1}
+  .court .at,.player,.spot{left:calc(var(--a)*1%);top:calc(var(--c)*1%)}
+  .net{left:50%;right:auto;top:-14px;bottom:-14px;height:auto;width:7px;transform:translateX(-50%);background:repeating-linear-gradient(180deg,#fff 0 6px,rgba(255,255,255,.45) 6px 9px)}
+  .net::before,.net::after{left:50%;top:auto;transform:translateX(-50%)}
+  .net::before{top:-7px;left:50%}.net::after{bottom:-7px;top:auto;right:auto;left:50%}
+  .atk{left:auto;right:auto;top:-26px;bottom:-26px;width:0;height:auto}
+  .atk::before,.atk::after{top:auto;left:-4px;width:0;height:22px;border-top:0;border-left:4px dashed #fff}
+  .atk::before{top:0}.atk::after{bottom:0;right:auto}
+  .atk i{left:-4px;right:auto;top:26px;bottom:26px;border-top:0;border-left:4px solid #fff}
+  .atk.a1{left:33.33%;top:-26px}.atk.a2{left:66.67%;top:-26px}
+  .controls{inset:0 auto 0 33.33%;width:16.67%;display:flex;flex-direction:column;justify-content:center;gap:14px;padding:0 4cqw 0 2cqw;padding:0 10px}
+  .ask,.tally{padding:0}.ask{align-self:auto;padding-top:0}
+  .ask b{font-size:clamp(1.15rem,1.9cqw,1.5rem)}
+  .ask span{font-size:.82rem}
+  .answers{grid-template-columns:1fr;gap:9px}
+  .tally{min-height:0;justify-content:flex-start;margin-top:4px}
+  .tally strong{font-size:clamp(1.15rem,1.9cqw,1.45rem)}
+  .tally small{font-size:.8rem}
+  .ans{font-size:clamp(.9rem,1.35cqw,1rem)}
+  .player,.spot{--d:clamp(52px,6cqw,76px)}
+  .disc{border-width:6px}
+  .who b{font-size:clamp(.82rem,1.3cqw,1rem)}
+  .who i{font-size:clamp(.7rem,1.05cqw,.82rem)}
+  .mover{width:110px}
+  .badge{width:24px;height:24px;right:-9px;bottom:-6px}
+  .request{max-width:none;margin:0;padding:0}
+  .formrow{display:flex;justify-content:center}
+  .formwrap{width:min(860px,100%)}
+  .request .row{flex-wrap:nowrap}
+  .request input[type=email]{flex:1 1 auto}
+  .btn{white-space:nowrap}
+  .cols{grid-template-columns:5fr 6fr;gap:70px;align-items:start}
+  .pool-grid{grid-template-columns:6fr 5fr;gap:80px}
+  .two{display:grid;grid-template-columns:5fr 6fr;gap:70px}
+  .band{padding:96px 0 84px}
+  .pool{padding:100px 0 92px}
+  .side{margin-top:0}
+}
+@media (max-width:899px){
+  .court{max-width:560px;margin:0 auto}
+  .pitch{max-width:560px;margin:0 auto}
+  .player,.spot{--d:44px}
+  .you{--bench:translate(0,calc(var(--a-gap,10)*1% + 0px))}
+  .formwrap{max-width:560px;margin:0 auto}
+}
+@media (max-width:420px){
+  .pitch p{font-size:.98rem}
+  .lineup li.pos{grid-template-columns:100px 1fr}
+  .who b{font-size:.84rem}
+  .ans{font-size:.92rem;gap:5px;padding:0 4px}
+  .ans svg{width:12px;height:12px}
+}
+@media (prefers-reduced-motion:reduce){
+  *{transition-duration:.01ms!important;scroll-behavior:auto!important}
+}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <symbol id="i-check" viewBox="0 0 16 16"><path d="M3 8.5l3.2 3.2L13 4.8" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-maybe" viewBox="0 0 16 16"><path d="M5.6 6.2a2.5 2.5 0 114.2 1.8c-.8.7-1.5 1-1.5 2.1" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="8.3" cy="13" r="1.2" fill="currentColor"/></symbol>
+    <symbol id="i-cross" viewBox="0 0 16 16"><path d="M4 4l8 8M12 4l-8 8" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></symbol>
+    <symbol id="i-dash" viewBox="0 0 16 16"><path d="M4 8h8" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></symbol>
+  </defs>
+</svg>
+
+<header class="top on-orange">
+  <a class="wm" href="#top" aria-label="TeamBalance"><span class="t">Team</span><span class="b">Balance</span></a>
+  <a class="login" href="https://app.teambalance.nl">Log in</a>
+</header>
+
+<main id="top" class="on-orange">
+<section class="stage" aria-labelledby="hook">
+  <div class="pitch">
+    <h1 id="hook"><span>Who's coming</span> <span>Thursday?</span></h1>
+    <p>Everyone answers Going, Maybe or Can't. You see if there are enough for a match. And the team's money pot sits next to it.</p>
+  </div>
+
+  <div class="court" id="court">
+    <div class="atk a1"><i></i></div>
+    <div class="atk a2"><i></i></div>
+    <div class="net" aria-hidden="true"></div>
+
+    <div class="controls">
+      <div class="ask">
+        <b>Are you in?</b>
+        <span>Training, Thu 20:30<br>Sporthal Galgenwaard</span>
+      </div>
+      <fieldset class="answers">
+        <legend>Your answer for Thursday's training</legend>
+        <button type="button" class="ans" data-v="going" aria-pressed="false"><svg viewBox="0 0 16 16" aria-hidden="true"><use href="#i-check"/></svg>Going</button>
+        <button type="button" class="ans" data-v="maybe" aria-pressed="false"><svg viewBox="0 0 16 16" aria-hidden="true"><use href="#i-maybe"/></svg>Maybe</button>
+        <button type="button" class="ans" data-v="cant" aria-pressed="false"><svg viewBox="0 0 16 16" aria-hidden="true"><use href="#i-cross"/></svg>Can't</button>
+      </fieldset>
+      <p class="tally" id="tally" role="status" aria-live="polite"></p>
+    </div>
+
+    <ul class="players" aria-label="Setpoint VT HS2, Thursday training">
+      <li class="player at" data-state="going" style="--a:58;--c:20"><div class="mover"><span class="disc">D<svg class="badge" viewBox="0 0 16 16" aria-hidden="true"><use class="g g-going" href="#i-check"/></svg></span><span class="who"><b>Daan</b><i>Outside hitter</i><span class="sr">Going</span></span></div></li>
+      <li class="player at" data-state="going" style="--a:58;--c:50"><div class="mover"><span class="disc">F<svg class="badge" viewBox="0 0 16 16" aria-hidden="true"><use class="g g-going" href="#i-check"/></svg></span><span class="who"><b>Femke</b><i>Middle</i><span class="sr">Going</span></span></div></li>
+      <li class="player at" data-state="maybe" style="--a:58;--c:80"><div class="mover"><span class="disc">J<svg class="badge" viewBox="0 0 16 16" aria-hidden="true"><use class="g g-maybe" href="#i-maybe"/></svg></span><span class="who"><b>Joost</b><i>Opposite</i><span class="sr">Maybe</span></span></div></li>
+      <li class="player at" data-state="going" style="--a:77;--c:20"><div class="mover"><span class="disc">N<svg class="badge" viewBox="0 0 16 16" aria-hidden="true"><use class="g g-going" href="#i-check"/></svg></span><span class="who"><b>Noor</b><i>Outside hitter</i><span class="sr">Going</span></span></div></li>
+      <li class="player at" data-state="going" style="--a:77;--c:50"><div class="mover"><span class="disc">B<svg class="badge" viewBox="0 0 16 16" aria-hidden="true"><use class="g g-going" href="#i-check"/></svg></span><span class="who"><b>Bram</b><i>Middle</i><span class="sr">Going</span></span></div></li>
+      <li class="player at" data-state="going" style="--a:77;--c:80"><div class="mover"><span class="disc">S<svg class="badge" viewBox="0 0 16 16" aria-hidden="true"><use class="g g-going" href="#i-check"/></svg></span><span class="who"><b>Sanne</b><i>Setter</i><span class="sr">Going</span></span></div></li>
+      <li class="player at" data-state="none" style="--a:90;--c:24"><div class="mover"><span class="disc">L<svg class="badge" viewBox="0 0 16 16" aria-hidden="true"><use class="g g-none" href="#i-dash"/></svg></span><span class="who"><b>Lotte</b><i>Libero</i><span class="sr">Not responded</span></span></div></li>
+
+      <li class="spot at" style="--a:90;--c:72" aria-hidden="true"><div class="mover"><span class="ring"></span></div></li>
+      <li class="player you at" id="you" data-state="none" style="--a:90;--c:72"><div class="mover"><span class="disc">You<svg class="badge" viewBox="0 0 16 16" aria-hidden="true"><use class="g g-going" href="#i-check"/><use class="g g-maybe" href="#i-maybe"/><use class="g g-cant" href="#i-cross"/><use class="g g-none" href="#i-dash"/></svg></span><span class="who"><b>You</b><i id="youstate">Not responded</i></span></div></li>
+    </ul>
+  </div>
+</section>
+
+<div class="formrow"><div class="formwrap" style="padding:0 20px">
+  <form class="request" novalidate data-form>
+    <label for="email-1">Get your team on TeamBalance</label>
+    <div class="row">
+      <input id="email-1" name="email" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com" aria-describedby="msg-1">
+      <button class="btn primary" type="submit">Request a team</button>
+    </div>
+    <p class="msg" id="msg-1" role="status" aria-live="polite"></p>
+    <p class="alt"><a class="btn ghost" href="#demo">Try the demo team</a><span>No account needed to look around.</span></p>
+  </form>
+</div></div>
+
+<div class="band blue" id="attendance" style="margin-top:56px">
+  <div class="wrap cols">
+    <div>
+      <h2>Every event shows if you have enough.</h2>
+      <p class="lead">Trainings, matches, socials. Each member answers with Going, Maybe or Can't. Anyone who hasn't answered shows as Not responded, so you can see who you're still waiting on.</p>
+      <p class="lead note">Away all season and nothing to decide? Answer Going to everything in one tap, for every event you haven't answered yet.</p>
+    </div>
+    <div class="lineup" role="group" aria-label="Example lineup">
+      <p class="head">Training, Thu 20:30, grouped by position</p>
+      <ul class="lineup" style="margin:0;padding:0;list-style:none">
+        <li class="pos"><span class="pn">Setter</span><span class="ppl"><span class="p"><span class="dot going"></span>Sanne</span></span></li>
+        <li class="pos"><span class="pn">Outside hitter</span><span class="ppl"><span class="p"><span class="dot going"></span>Daan</span><span class="p"><span class="dot going"></span>Noor</span></span></li>
+        <li class="pos"><span class="pn">Middle</span><span class="ppl"><span class="p"><span class="dot going"></span>Femke</span><span class="p"><span class="dot going"></span>Bram</span></span></li>
+        <li class="pos"><span class="pn">Opposite</span><span class="ppl"><span class="p"><span class="dot maybe"></span>Joost</span></span></li>
+        <li class="pos"><span class="pn">Libero</span><span class="ppl"><span class="p"><span class="dot"></span>Lotte</span></span></li>
+      </ul>
+      <p class="legend"><span><span class="dot going" style="width:16px;height:16px;border-radius:50%;background:#F5F8FC;border:4px solid var(--green);display:inline-block"></span>Going</span><span><span style="width:16px;height:16px;border-radius:50%;background:#F5F8FC;border:4px solid var(--gold);display:inline-block"></span>Maybe</span><span><span style="width:16px;height:16px;border-radius:50%;background:#F5F8FC;border:4px solid var(--red);display:inline-block"></span>Can't</span><span><span style="width:16px;height:16px;border-radius:50%;background:#F5F8FC;border:4px solid var(--grey);display:inline-block"></span>Not responded</span></p>
+    </div>
+  </div>
+</div>
+
+<section class="pool on-orange" id="pool" aria-labelledby="pool-h">
+  <div class="wrap pool-grid">
+    <div>
+      <h2 id="pool-h">One pot for the team.</h2>
+      <p class="lead">The team's money sits in a real Bunq bank account. Members top up from their phone with a bunq.me link: €10, €20, €50 or an amount of their own.</p>
+      <p class="lead note">There's no list of who owes what. The pot runs on trust.</p>
+    </div>
+    <div class="pot">
+      <svg viewBox="0 0 260 190" role="img" aria-label="A pot holding the team's money">
+        <ellipse cx="130" cy="176" rx="96" ry="9" fill="#10233E" opacity=".18"/>
+        <path d="M44 62h172v70a52 52 0 0 1-52 52H96a52 52 0 0 1-52-52z" fill="#FFF4E2" stroke="#10233E" stroke-width="5" stroke-linejoin="round"/>
+        <path d="M44 62h172" stroke="#10233E" stroke-width="5" stroke-linecap="round"/>
+        <path d="M44 84c-26 0-26 40 0 40M216 84c26 0 26 40 0 40" fill="none" stroke="#10233E" stroke-width="5" stroke-linecap="round"/>
+        <ellipse cx="130" cy="58" rx="92" ry="12" fill="#FFD28A" stroke="#10233E" stroke-width="5"/>
+        <circle cx="96" cy="46" r="15" fill="#F4B400" stroke="#10233E" stroke-width="4"/><circle cx="132" cy="38" r="15" fill="#F4B400" stroke="#10233E" stroke-width="4"/><circle cx="166" cy="48" r="15" fill="#F4B400" stroke="#10233E" stroke-width="4"/>
+        <text x="130" y="140" text-anchor="middle" font-family="Grandstander,cursive" font-weight="800" font-size="34" fill="#10233E" class="num">€184</text>
+      </svg>
+      <p class="cap">Example pot, Setpoint VT HS2</p>
+      <fieldset class="chips">
+        <legend>Top up amount</legend>
+        <button type="button" class="chip num" aria-pressed="false" data-amt="€10">€10</button>
+        <button type="button" class="chip num" aria-pressed="false" data-amt="€20">€20</button>
+        <button type="button" class="chip num" aria-pressed="false" data-amt="€50">€50</button>
+        <button type="button" class="chip other" aria-pressed="false" data-amt="">Other</button>
+      </fieldset>
+      <p class="topup" id="topup" role="status" aria-live="polite">Pick an amount to see how a top-up starts.</p>
+    </div>
+  </div>
+</section>
+
+<div class="band blue on-blue" id="small" style="padding-bottom:72px">
+  <div class="wrap cols">
+    <div>
+      <h2>The small things.</h2>
+      <p class="lead">Things you would otherwise ask for in the group chat.</p>
+    </div>
+    <ul class="side" style="margin-top:6px">
+      <li><h3>Calendar link</h3><p>Subscribe once. Every training and match shows up in your own calendar.</p></li>
+      <li><h3>Magic-link login</h3><p>Type your email, tap the link we send you. No passwords.</p></li>
+      <li><h3>One invite link</h3><p>Share one link and your team can join.</p></li>
+      <li><h3>Substitutes</h3><p>Short a player? Call in a substitute who isn't a member, for one event.</p></li>
+    </ul>
+  </div>
+  <div class="wrap">
+    <div class="origin">
+      <h2>It started on the sidelines.</h2>
+      <p class="lead" style="margin-top:10px">TeamBalance began as a hobby tool for two volleyball teams at Tovo Utrecht. It's still built for teams like that.</p>
+    </div>
+  </div>
+</div>
+
+<section class="band blue on-blue close noline" id="request" aria-labelledby="close-h" style="padding-top:20px;padding-bottom:64px">
+  <div class="wrap">
+    <div class="endline" style="margin-top:0;margin-bottom:56px"></div>
+    <h2 id="close-h">Get your team on the court.</h2>
+    <p class="lead" style="margin-top:6px">Leave your email and we'll send you a link to set up your team. Or look around the demo first.</p>
+    <form class="request" novalidate data-form>
+      <label for="email-2">Your email</label>
+      <div class="row">
+        <input id="email-2" name="email" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com" aria-describedby="msg-2">
+        <button class="btn primary" type="submit">Request a team</button>
+      </div>
+      <p class="msg" id="msg-2" role="status" aria-live="polite"></p>
+      <p class="alt"><a class="btn ghost" href="#demo">Try the demo team</a></p>
+    </form>
+  </div>
+</section>
+</main>
+
+<footer class="foot on-orange">
+  <a class="wm" href="#top" aria-label="TeamBalance"><span class="t">Team</span><span class="b">Balance</span></a>
+  <div class="meta"><a href="https://app.teambalance.nl">Log in</a><span>Made in Utrecht</span></div>
+</footer>
+
+<script>
+(function(){
+  var OTHERS_GOING=5, OTHERS_MAYBE=1, NEEDED=6;
+  var words=['no players','one','two','three','four','five','six'];
+  var you=document.getElementById('you');
+  var tally=document.getElementById('tally');
+  var youstate=document.getElementById('youstate');
+  var labels={going:'Going',maybe:'Maybe',cant:"Can't",none:'Not responded'};
+
+  function render(v){
+    var going=OTHERS_GOING+(v==='going'?1:0), maybe=OTHERS_MAYBE+(v==='maybe'?1:0);
+    var short=NEEDED-going, html;
+    if(short<=0){html='<strong class="num">'+going+' going</strong> · enough for a match<small>Lotte hasn\'t answered yet.</small>';}
+    else{
+      html='<strong class="num">'+going+' going</strong> · '+words[short]+' short'+(maybe?'<small>'+maybe+' maybe'+(maybe>1?'':'')+'. Lotte hasn\'t answered yet.</small>':'');
+    }
+    if(!v) html='<strong class="num">'+going+' going</strong> · '+words[short]+' short<small>Your answer decides it.</small>';
+    tally.innerHTML=html;
+    youstate.textContent=labels[v||'none'];
+  }
+  render(null);
+
+  var buttons=document.querySelectorAll('.ans');
+  buttons.forEach(function(b){
+    b.addEventListener('click',function(){
+      var v=b.dataset.v;
+      buttons.forEach(function(x){x.setAttribute('aria-pressed',String(x===b));});
+      you.dataset.state=v;
+      you.classList.toggle('benched',v==='cant');
+      render(v);
+    });
+  });
+  you.classList.add('benched');
+
+  var chips=document.querySelectorAll('.chip');
+  var topup=document.getElementById('topup');
+  chips.forEach(function(c){
+    c.addEventListener('click',function(){
+      chips.forEach(function(x){x.setAttribute('aria-pressed',String(x===c));});
+      topup.textContent=c.dataset.amt?c.dataset.amt+' picked. A bunq.me link opens on your phone with that amount.':'Your own amount. A bunq.me link opens on your phone and you type it there.';
+    });
+  });
+
+  document.querySelectorAll('[data-form]').forEach(function(f){
+    var input=f.querySelector('input[type=email]'), msg=f.querySelector('.msg');
+    f.addEventListener('submit',function(e){
+      e.preventDefault();
+      var ok=/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(input.value.trim());
+      if(!ok){
+        input.setAttribute('aria-invalid','true');
+        msg.textContent=input.value.trim()?'That email doesn\'t look right. Check it and try again.':'Add your email so we know where to send the link.';
+        input.focus();return;
+      }
+      input.removeAttribute('aria-invalid');
+      msg.textContent='Thanks — we\'ll mail you a link to set up your team.';
+    });
+    input.addEventListener('input',function(){input.removeAttribute('aria-invalid');});
+  });
+})();
+</script>
+</body>
+</html>

@@ -20,7 +20,7 @@ import java.util.concurrent.TimeUnit
 private const val RACERS = 8
 
 /** The single-use guarantee of the Bunq OAuth state lives in one conditional UPDATE; this is its test. */
-class JpaBunqOAuthStateRepositoryAdapterIT : TeamBalanceIT() {
+class JooqBunqOAuthStateRepositoryAdapterIT : TeamBalanceIT() {
 
     @Autowired
     lateinit var states: BunqOAuthStateRepository

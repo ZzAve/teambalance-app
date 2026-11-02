@@ -6,7 +6,6 @@ import com.bunq.sdk.OAuthServer
 import com.github.zzave.teambalance.api.domain.model.BunqAccount
 import com.github.zzave.teambalance.api.domain.model.BunqAccountId
 import com.github.zzave.teambalance.api.domain.model.BunqAuthorizationCode
-import com.github.zzave.teambalance.api.domain.model.BunqEnvironment
 import com.github.zzave.teambalance.api.domain.model.BunqGrant
 import com.github.zzave.teambalance.api.domain.model.Money
 import com.github.zzave.teambalance.api.domain.model.Payment

@@ -1,6 +1,5 @@
 package com.github.zzave.teambalance.api.infrastructure.bunq
 
-import com.github.zzave.teambalance.api.domain.model.BunqEnvironment
 import org.springframework.boot.context.properties.ConfigurationProperties
 
 /**
@@ -9,12 +8,17 @@ import org.springframework.boot.context.properties.ConfigurationProperties
  */
 @ConfigurationProperties(prefix = "teambalance.bunq")
 class BunqClientProperties(
-    val environment: BunqEnvironment,
+    environment: BunqEnvironment?,
     val clientId: String,
     val clientSecret: String,
     /** Name Bunq shows for this client. */
     val serviceName: String,
 ) {
+    /** An empty `TEAMBALANCE_BUNQ_ENVIRONMENT` binds as null and stops startup; only an unset one means [BunqEnvironment.NONE]. */
+    val environment: BunqEnvironment = requireNotNull(environment) {
+        "teambalance.bunq.environment is empty. Set TEAMBALANCE_BUNQ_ENVIRONMENT to none, sandbox or production, or leave it unset."
+    }
+
     init {
         require(environment == BunqEnvironment.NONE || (clientId.isNotBlank() && clientSecret.isNotBlank())) {
             "teambalance.bunq.environment is $environment, so TEAMBALANCE_BUNQ_CLIENT_ID and TEAMBALANCE_BUNQ_CLIENT_SECRET " +

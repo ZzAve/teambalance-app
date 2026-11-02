@@ -1,7 +1,6 @@
 package com.github.zzave.teambalance.api.infrastructure.config
 
 import com.github.zzave.teambalance.api.application.TokenCipher
-import com.github.zzave.teambalance.api.domain.model.BunqEnvironment
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.nulls.shouldBeNull
@@ -21,26 +20,17 @@ class BunqConnectConfigTest : FunSpec({
 
     context("connect settings") {
         test("are absent while connecting is switched off, in prod too") {
-            bunqConnectConfig(false, true, BunqEnvironment.NONE, CIPHER, API).shouldBeNull()
+            bunqConnectConfig(false, true, CIPHER, API).shouldBeNull()
         }
 
         test("carry the callback url of this API when connecting is on") {
-            bunqConnectConfig(true, false, BunqEnvironment.NONE, CIPHER, API)!!.callbackUrl shouldBe
+            bunqConnectConfig(true, false, CIPHER, API)!!.callbackUrl shouldBe
                 "https://api.example/api/bunq/oauth/callback"
         }
 
-        test("refuse to start while connecting is on in prod without a Bunq environment") {
-            shouldThrow<IllegalStateException> { bunqConnectConfig(true, true, BunqEnvironment.NONE, CIPHER, API) }
-                .message!! shouldContain "TEAMBALANCE_BUNQ_ENVIRONMENT"
-        }
-
-        test("refuse to start while connecting is on in prod against the Bunq sandbox") {
-            shouldThrow<IllegalStateException> { bunqConnectConfig(true, true, BunqEnvironment.SANDBOX, CIPHER, API) }
-        }
-
-        test("allow connecting in prod against production Bunq") {
-            bunqConnectConfig(true, true, BunqEnvironment.PRODUCTION, CIPHER, API)!!.callbackUrl shouldBe
-                "https://api.example/api/bunq/oauth/callback"
+        test("refuse to start while connecting is on in prod") {
+            shouldThrow<IllegalStateException> { bunqConnectConfig(true, true, CIPHER, API) }
+                .message!! shouldContain "until the real Bunq adapter can read"
         }
     }
 

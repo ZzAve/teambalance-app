@@ -1,6 +1,5 @@
 package com.github.zzave.teambalance.api.infrastructure.bunq
 
-import com.github.zzave.teambalance.api.domain.model.BunqEnvironment
 import com.github.zzave.teambalance.api.domain.port.BunqGateway
 import org.slf4j.LoggerFactory
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression

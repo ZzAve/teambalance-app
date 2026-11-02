@@ -1,4 +1,4 @@
-package com.github.zzave.teambalance.api.domain.model
+package com.github.zzave.teambalance.api.infrastructure.bunq
 
 /**
  * Which Bunq the platform's OAuth client talks to. [NONE] means no Bunq at all: the fake outside prod,

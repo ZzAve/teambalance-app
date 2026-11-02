@@ -6,7 +6,6 @@ import com.bunq.sdk.BunqApiException
 import com.bunq.sdk.OAuthServer
 import com.github.zzave.teambalance.api.domain.model.BunqAccountId
 import com.github.zzave.teambalance.api.domain.model.BunqAuthorizationCode
-import com.github.zzave.teambalance.api.domain.model.BunqEnvironment
 import com.github.zzave.teambalance.api.domain.model.BunqGrant
 import com.sun.net.httpserver.HttpServer
 import io.kotest.assertions.throwables.shouldThrow
@@ -15,7 +14,9 @@ import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.string.shouldNotContain
 import io.kotest.matchers.string.shouldStartWith
+import java.io.IOException
 import java.net.InetSocketAddress
+import java.net.ServerSocket
 import java.net.URI
 import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
@@ -89,6 +90,15 @@ class RealBunqGatewayAdapterTest : FunSpec({
                 failure.message!! shouldNotContain CLIENT_SECRET
             }
         }
+    }
+
+    test("a token endpoint nobody listens on fails without the client secret in the message or its causes") {
+        val closedPort = ServerSocket(0).use { it.localPort }
+        val server = OAuthServer("", "http://127.0.0.1:$closedPort/v1/token")
+
+        val failure = shouldThrow<IOException> { adapter(server).exchangeCode(BunqAuthorizationCode("the-code"), REDIRECT_URI) }
+
+        generateSequence<Throwable>(failure) { it.cause }.forEach { it.message.orEmpty() shouldNotContain CLIENT_SECRET }
     }
 
     context("reads are not built yet") {

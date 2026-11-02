@@ -7,7 +7,6 @@ import com.github.zzave.teambalance.api.application.BunqConnectionService
 import com.github.zzave.teambalance.api.application.MoneyPoolService
 import com.github.zzave.teambalance.api.application.TokenCipher
 import com.github.zzave.teambalance.api.application.TopUpService
-import com.github.zzave.teambalance.api.domain.model.BunqEnvironment
 import com.github.zzave.teambalance.api.domain.port.ActAsGateway
 import com.github.zzave.teambalance.api.domain.port.BunqConnectionRepository
 import com.github.zzave.teambalance.api.domain.port.BunqGateway
@@ -68,7 +67,6 @@ class MoneyPoolCompositionRoot {
         environment: Environment,
         @Value("\${teambalance.api-base-url}") apiBaseUrl: String,
         @Value("\${teambalance.bunq.connect-enabled}") connectEnabled: Boolean,
-        @Value("\${teambalance.bunq.environment}") bunqEnvironment: BunqEnvironment,
         moneyPoolCache: MoneyPoolCacheGateway,
     ) = BunqConnectionService(
         connectionRepository = connectionRepository,
@@ -80,13 +78,7 @@ class MoneyPoolCompositionRoot {
         actAsService = actAsService,
         authorizationService = authorizationService,
         clock = clock,
-        connectConfig = bunqConnectConfig(
-            connectEnabled,
-            environment.matchesProfiles("prod"),
-            bunqEnvironment,
-            bunqGrantCipher,
-            apiBaseUrl,
-        ),
+        connectConfig = bunqConnectConfig(connectEnabled, environment.matchesProfiles("prod"), bunqGrantCipher, apiBaseUrl),
         moneyPoolCache = moneyPoolCache,
     )
 
@@ -105,20 +97,20 @@ class MoneyPoolCompositionRoot {
 }
 
 /**
- * The connect settings, or null while connecting is switched off. Switching it on in prod without the
- * production Bunq environment stops the app from starting: the gateway there is the unconfigured one
- * or the sandbox, and every attempt would otherwise save a state and then fail or reach the wrong Bunq.
+ * The connect settings, or null while connecting is switched off. Switching it on in prod, where the
+ * gateway cannot read from the real Bunq yet (tracer 4.1), stops the app from starting. With the real adapter
+ * wired the code exchange would succeed and issue a real token, and the first read would then fail and discard
+ * it, leaving the Admin with an authorization nobody can revoke.
  */
 internal fun bunqConnectConfig(
     connectEnabled: Boolean,
     isProd: Boolean,
-    bunqEnvironment: BunqEnvironment,
     grantCipher: TokenCipher,
     apiBaseUrl: String,
 ): BunqConnectConfig? {
     if (!connectEnabled) return null
-    check(!isProd || bunqEnvironment == BunqEnvironment.PRODUCTION) {
-        "teambalance.bunq.connect-enabled cannot be on in prod unless TEAMBALANCE_BUNQ_ENVIRONMENT is production"
+    check(!isProd) {
+        "teambalance.bunq.connect-enabled cannot be on in prod until the real Bunq adapter can read (tracer 4.1)"
     }
     return BunqConnectConfig(grantCipher, apiBaseUrl.trimEnd('/') + BunqConnectionService.CALLBACK_PATH)
 }

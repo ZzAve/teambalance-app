@@ -1,6 +1,5 @@
 package com.github.zzave.teambalance.api.infrastructure.bunq
 
-import com.github.zzave.teambalance.api.domain.model.BunqEnvironment
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.string.shouldContain
@@ -26,6 +25,11 @@ class BunqClientPropertiesTest : FunSpec({
                 message shouldNotContain SECRET
             }
         }
+    }
+
+    test("an empty environment is refused, and the message names the env var") {
+        shouldThrow<IllegalArgumentException> { BunqClientProperties(null, "id", SECRET, "TeamBalance") }
+            .message!! shouldContain "TEAMBALANCE_BUNQ_ENVIRONMENT"
     }
 
     test("the secret is masked when the properties are printed") {

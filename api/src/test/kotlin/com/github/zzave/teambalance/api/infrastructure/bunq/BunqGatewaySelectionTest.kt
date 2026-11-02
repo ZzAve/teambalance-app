@@ -16,10 +16,13 @@ import org.springframework.boot.test.context.ConfigDataApplicationContextInitial
 import org.springframework.boot.test.context.TestConfiguration
 import org.springframework.boot.test.context.runner.ApplicationContextRunner
 import org.springframework.context.annotation.Bean
+import org.springframework.core.env.SystemEnvironmentPropertySource
 import java.time.Clock
 
 private const val CLIENT_ID = "selection-test-client-id"
 private const val CLIENT_SECRET = "selection-test-client-secret"
+
+private fun messagesOf(failure: Throwable?) = generateSequence(failure) { it.cause }.joinToString(" | ") { it.message.orEmpty() }
 
 /**
  * Which [BunqGateway] each profile and `teambalance.bunq.environment` wires, with application.yml loaded for real.
@@ -88,6 +91,46 @@ class BunqGatewaySelectionTest : FunSpec({
         }
     }
 
+    context("the environment value") {
+        test("TEAMBALANCE_BUNQ_ENVIRONMENT, TEAMBALANCE_BUNQ_CLIENT_ID and TEAMBALANCE_BUNQ_CLIENT_SECRET reach the properties") {
+            runner("prod")
+                .withInitializer { ctx ->
+                    ctx.environment.propertySources.addFirst(
+                        SystemEnvironmentPropertySource(
+                            "systemEnvironment",
+                            mapOf(
+                                "TEAMBALANCE_BUNQ_ENVIRONMENT" to "sandbox",
+                                "TEAMBALANCE_BUNQ_CLIENT_ID" to CLIENT_ID,
+                                "TEAMBALANCE_BUNQ_CLIENT_SECRET" to CLIENT_SECRET,
+                            ),
+                        ),
+                    )
+                }
+                .run { ctx ->
+                    ctx.startupFailure.shouldBeNull()
+                    val properties = ctx.getBean(BunqClientProperties::class.java)
+                    properties.environment shouldBe BunqEnvironment.SANDBOX
+                    properties.clientId shouldBe CLIENT_ID
+                    properties.clientSecret shouldBe CLIENT_SECRET
+                    properties.serviceName shouldBe "TeamBalance"
+                }
+        }
+
+        listOf("prod", "dev").forEach { profile ->
+            test("a value that is not none, sandbox or production stops the $profile context") {
+                runner(profile).withPropertyValues(*credentials("sanbox")).run { ctx ->
+                    messagesOf(ctx.startupFailure) shouldContain "teambalance.bunq.environment"
+                }
+            }
+
+            test("an empty value stops the $profile context, naming the env var, and wires nothing") {
+                runner(profile).withPropertyValues("teambalance.bunq.environment=").run { ctx ->
+                    messagesOf(ctx.startupFailure) shouldContain "TEAMBALANCE_BUNQ_ENVIRONMENT"
+                }
+            }
+        }
+    }
+
     context("the client id and secret") {
         listOf("sandbox", "production").forEach { environment ->
             listOf("client-id", "client-secret").forEach { blank ->
@@ -95,7 +138,7 @@ class BunqGatewaySelectionTest : FunSpec({
                     runner("prod")
                         .withPropertyValues(*credentials(environment), "teambalance.bunq.$blank=")
                         .run { ctx ->
-                            val message = generateSequence(ctx.startupFailure) { it.cause }.joinToString(" | ") { it.message.orEmpty() }
+                            val message = messagesOf(ctx.startupFailure)
                             message shouldContain "TEAMBALANCE_BUNQ_CLIENT_ID"
                             message shouldContain "TEAMBALANCE_BUNQ_CLIENT_SECRET"
                             message shouldNotContain CLIENT_SECRET

@@ -1,10 +1,11 @@
 package com.github.zzave.teambalance.api.infrastructure.persistence
 
 import org.jooq.ExecuteContext
+import org.jooq.ExecuteListener
 import org.jooq.ExecuteListenerProvider
 import org.jooq.Table
-import org.jooq.impl.DefaultExecuteListener
 import org.jooq.impl.DefaultExecuteListenerProvider
+import org.jooq.impl.QOM
 import org.springframework.boot.test.context.TestConfiguration
 import org.springframework.context.annotation.Bean
 import java.util.concurrent.CopyOnWriteArrayList
@@ -22,7 +23,7 @@ import java.util.concurrent.CopyOnWriteArrayList
  * context. Rules are global rather than per thread because the statement may run on a request thread
  * other than the test's.
  */
-class SqlFaultInjector : DefaultExecuteListener() {
+class SqlFaultInjector : ExecuteListener {
 
     private val rules = CopyOnWriteArrayList<SqlFault>()
 
@@ -47,7 +48,7 @@ class SqlFault(
 ) {
     companion object {
         fun onInsertInto(table: Table<*>, failure: () -> RuntimeException) = SqlFault(failure) { ctx ->
-            ctx.sql().orEmpty().startsWith("insert into ${ctx.dsl().render(table)}", ignoreCase = true)
+            (ctx.query() as? QOM.Insert<*>)?.`$into`() == table
         }
     }
 }

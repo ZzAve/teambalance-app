@@ -21,7 +21,7 @@ class JooqInvitationRepositoryAdapter(
     private val dsl: DSLContext,
 ) : InvitationRepository {
 
-    override fun save(invitation: Invitation): Invitation = upsert(invitation)
+    override fun save(invitation: Invitation): Invitation = insert(invitation)
 
     override fun findByTokenHash(tokenHash: TokenHash): Invitation? =
         dsl.selectFrom(INVITATIONS).where(INVITATIONS.TOKEN.eq(tokenHash.value)).fetchOne()?.toInvitation()
@@ -68,7 +68,7 @@ class JooqInvitationRepositoryAdapter(
         // Expire only the links of the same role we are about to reissue, so a USER rotate leaves a
         // live ADMIN handover link untouched (and vice-versa).
         expireActiveByRole(teamId, replacement.role, now)
-        return upsert(replacement)
+        return insert(replacement)
     }
 
     // Scoped by role: the USER and ADMIN links are independent credentials (ADR-0024 §5), each
@@ -83,14 +83,8 @@ class JooqInvitationRepositoryAdapter(
             .execute()
     }
 
-    private fun upsert(invitation: Invitation): Invitation {
-        val record = invitation.toRecord()
-        dsl.insertInto(INVITATIONS)
-            .set(record)
-            .onConflict(INVITATIONS.ID)
-            .doUpdate()
-            .set(record)
-            .execute()
+    private fun insert(invitation: Invitation): Invitation {
+        dsl.insertInto(INVITATIONS).set(invitation.toRecord()).execute()
         return invitation
     }
 }

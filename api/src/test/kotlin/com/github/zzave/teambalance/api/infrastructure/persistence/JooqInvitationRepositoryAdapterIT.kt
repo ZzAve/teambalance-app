@@ -10,8 +10,10 @@ import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.port.InvitationRepository
 import com.github.zzave.teambalance.api.infrastructure.multitenancy.TenantSchemaAdapter
 import com.github.zzave.teambalance.api.interfaces.CalendarLinkFixture
+import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.shouldBe
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.jdbc.core.JdbcTemplate
 import java.time.Instant
 import java.time.temporal.ChronoUnit
@@ -46,6 +48,16 @@ class JooqInvitationRepositoryAdapterIT : TeamBalanceIT() {
 
             invitations.findByTokenHash(spent.tokenHash) shouldBe spent
             invitations.findById(spent.id) shouldBe spent
+        }
+
+        test("saving the same id twice fails instead of re-arming a spent link") {
+            val spent = invitation(Role.ADMIN)
+            invitations.save(spent)
+            invitations.consume(spent.id, now())
+
+            shouldThrow<DataIntegrityViolationException> { invitations.save(spent) }
+
+            invitations.findActiveAdminByTeam(TEAM, now()) shouldBe null
         }
 
         test("a link without a recoverable token keeps it null") {

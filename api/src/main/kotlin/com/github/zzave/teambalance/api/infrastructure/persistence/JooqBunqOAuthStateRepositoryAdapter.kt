@@ -19,24 +19,14 @@ class JooqBunqOAuthStateRepositoryAdapter(
 ) : BunqOAuthStateRepository {
 
     override fun save(state: BunqOAuthState) {
-        val stateHash = state.tokenHash.value
-        val expiresAt = state.expiresAt.atOffset(ZoneOffset.UTC)
-        val usedAt = state.usedAt?.atOffset(ZoneOffset.UTC)
         dsl.insertInto(BUNQ_OAUTH_STATES)
             .set(BUNQ_OAUTH_STATES.ID, state.id)
-            .set(BUNQ_OAUTH_STATES.STATE_HASH, stateHash)
+            .set(BUNQ_OAUTH_STATES.STATE_HASH, state.tokenHash.value)
             .set(BUNQ_OAUTH_STATES.TEAM_ID, state.teamId.value)
             .set(BUNQ_OAUTH_STATES.ADMIN_USER_ID, state.adminUserId.value)
-            .set(BUNQ_OAUTH_STATES.EXPIRES_AT, expiresAt)
-            .set(BUNQ_OAUTH_STATES.USED_AT, usedAt)
+            .set(BUNQ_OAUTH_STATES.EXPIRES_AT, state.expiresAt.atOffset(ZoneOffset.UTC))
+            .set(BUNQ_OAUTH_STATES.USED_AT, state.usedAt?.atOffset(ZoneOffset.UTC))
             .set(BUNQ_OAUTH_STATES.CREATED_AT, state.createdAt.atOffset(ZoneOffset.UTC))
-            .onConflict(BUNQ_OAUTH_STATES.ID)
-            .doUpdate()
-            .set(BUNQ_OAUTH_STATES.STATE_HASH, stateHash)
-            .set(BUNQ_OAUTH_STATES.TEAM_ID, state.teamId.value)
-            .set(BUNQ_OAUTH_STATES.ADMIN_USER_ID, state.adminUserId.value)
-            .set(BUNQ_OAUTH_STATES.EXPIRES_AT, expiresAt)
-            .set(BUNQ_OAUTH_STATES.USED_AT, usedAt)
             .execute()
     }
 

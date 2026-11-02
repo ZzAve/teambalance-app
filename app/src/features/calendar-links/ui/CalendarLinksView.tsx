@@ -210,7 +210,7 @@ function CalendarLinkRow({
           {name}
         </span>
         {link.expired && (
-          <span className="shrink-0 rounded-full bg-red/10 px-2 py-0.5 text-caption font-semibold text-red">
+          <span className="shrink-0 rounded-full bg-red/10 px-2 py-0.5 text-caption font-semibold text-red-ink">
             Expired
           </span>
         )}
@@ -259,7 +259,7 @@ function CalendarLinkRow({
                 Edit
               </Button>
             )}
-            <Button size="sm" variant="ghost" className="text-red" disabled={isSaving} onClick={() => onRequestDelete(link)}>
+            <Button size="sm" variant="ghost" className="text-red-ink hover:bg-red/5 hover:text-red-ink" disabled={isSaving} onClick={() => onRequestDelete(link)}>
               Delete
             </Button>
           </div>

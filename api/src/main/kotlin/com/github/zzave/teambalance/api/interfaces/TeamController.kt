@@ -68,7 +68,7 @@ class TeamController(
     override suspend fun activateTeam(request: ActivateTeam.Request): ActivateTeam.Response<*> {
         val userId = currentUserGateway.requireCurrentUserId()
         val activated = activeTeamService.activateBySlug(userId, Slug(request.path.slug))
-            ?: return ActivateTeam.Response404(Unit)
+            ?: return ActivateTeam.Response404
         return ActivateTeam.Response200(activated.produce())
     }
 }

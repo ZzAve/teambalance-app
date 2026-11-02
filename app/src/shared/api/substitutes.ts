@@ -24,7 +24,7 @@ export function useSubstitutes(options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: ['substitutes'],
     queryFn: async () => {
-      const res = await api.ListSubstitutes()
+      const res = await api.listSubstitutes()
       return res.body.substitutes
     },
     enabled: options?.enabled,
@@ -44,7 +44,7 @@ export function useCreateSubstitute() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async ({ name, positionId }: CreateSubstituteVars) => {
-      const res = await api.CreateSubstitute({ body: { name, positionId: positionId ?? undefined } })
+      const res = await api.createSubstitute({ body: { name, positionId: positionId ?? undefined } })
       if (res.status === 409) throw nameTaken(name)
       if (res.status === 404) throw new Error('Position not found')
       return res.body
@@ -72,7 +72,7 @@ export function useUpdateSubstitute() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async ({ id, name, positionId, shirtNumber }: UpdateSubstituteVars) => {
-      const res = await api.UpdateSubstitute({
+      const res = await api.updateSubstitute({
         id,
         body: { name, positionId: positionId ?? undefined, shirtNumber: shirtNumber ?? undefined },
       })
@@ -98,7 +98,7 @@ export function useSubstituteEventCount(id: string | null) {
   return useQuery({
     queryKey: ['substitutes', id, 'usage'],
     queryFn: async () => {
-      const res = await api.GetSubstituteUsage({ id: id as string })
+      const res = await api.getSubstituteUsage({ id: id as string })
       if (res.status !== 200) throw new SubstituteError("Couldn't count this substitute's events.")
       return res.body.eventCount
     },
@@ -113,7 +113,7 @@ export function useDeleteSubstitute() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async ({ id }: { id: string }) => {
-      const res = await api.DeleteSubstitute({ id })
+      const res = await api.deleteSubstitute({ id })
       if (res.status === 403) throw new SubstituteError('You are not allowed to remove this substitute.')
       if (res.status === 404) throw new SubstituteError('That substitute is no longer on the list.')
       if (res.status !== 204) throw new SubstituteError("Couldn't remove the substitute — please try again.")
@@ -169,7 +169,7 @@ export function useSetSubstituteAttendance() {
   return useMutation({
     mutationKey: SUBSTITUTE_ATTENDANCE,
     mutationFn: async ({ eventId, substituteId, state }: SetSubstituteAttendanceVars) => {
-      const res = await api.SetSubstituteAttendance({ eventId, substituteId, body: { state } })
+      const res = await api.setSubstituteAttendance({ eventId, substituteId, body: { state } })
       if (res.status !== 200) throw new Error(`Couldn't set substitute (${res.status})`)
       return res.body
     },
@@ -201,7 +201,7 @@ export function useRemoveSubstituteAttendance() {
   return useMutation({
     mutationKey: SUBSTITUTE_ATTENDANCE,
     mutationFn: async ({ eventId, substituteId }: RemoveSubstituteAttendanceVars) => {
-      const res = await api.RemoveSubstituteAttendance({ eventId, substituteId })
+      const res = await api.removeSubstituteAttendance({ eventId, substituteId })
       if (res.status !== 204) throw new Error(`Couldn't take the substitute off (${res.status})`)
     },
     onMutate: ({ eventId, substituteId }) =>

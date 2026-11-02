@@ -1,5 +1,6 @@
 package com.github.zzave.teambalance.api.infrastructure.ratelimit
 
+import com.github.zzave.teambalance.api.application.BunqConnectionService
 import com.github.zzave.teambalance.api.domain.port.CurrentUserGateway
 import jakarta.servlet.FilterChain
 import jakarta.servlet.http.HttpServletRequest
@@ -87,6 +88,8 @@ class RateLimitFilter(
                 listOf(Rule("magic-link-verify", properties.magicLinkVerify, ipKey(request)))
             post && pathMatcher.match(INVITATION_ACCEPT_PATTERN, path) ->
                 listOf(Rule("invitation-accept", properties.invitationAccept, userOrIpKey(request)))
+            get && path == BunqConnectionService.CALLBACK_PATH ->
+                listOf(Rule("bunq-oauth-callback", properties.bunqOauthCallback, ipKey(request)))
             get && pathMatcher.match(CALENDAR_FEED_PATTERN, path) -> calendarFeedRules(request, path)
             else -> emptyList()
         }

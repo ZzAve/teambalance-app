@@ -52,6 +52,23 @@ describe('nextWakeState', () => {
     expect(held?.elapsedMs).toBeGreaterThanOrEqual(ESCALATE_AFTER_MS)
   })
 
+  it('does not accumulate fast warm requests into a false notice', () => {
+    expect(shownAt(simulate((at) => at % 700 < 400, 5_000))).toEqual([])
+  })
+
+  it('shows at exactly 2.5 s and not a millisecond before', () => {
+    const start = nextWakeState(initialWakeState, { busy: true, now: 0 })
+    expect(nextWakeState(start, { busy: true, now: 2_499 }).show).toBe(false)
+    expect(nextWakeState(start, { busy: true, now: 2_500 }).show).toBe(true)
+  })
+
+  it('holds until exactly the minimum visible time after going idle', () => {
+    const shown = nextWakeState(nextWakeState(initialWakeState, { busy: true, now: 0 }), { busy: true, now: 3_000 })
+    const idle = nextWakeState(shown, { busy: false, now: 3_100 })
+    expect(nextWakeState(idle, { busy: false, now: 3_100 + MIN_VISIBLE_MS - 1 }).show).toBe(true)
+    expect(nextWakeState(idle, { busy: false, now: 3_100 + MIN_VISIBLE_MS })).toEqual(initialWakeState)
+  })
+
   it('resets after a full idle minimum visible time, so the next short request does not show', () => {
     const samples = simulate((at) => at < 1_000 || (at >= 2_000 && at < 4_000), 6_000)
     expect(shownAt(samples)).toEqual([])

@@ -184,6 +184,16 @@ teambalance:
     # connect-enabled is on: no default here, so the app fails fast at startup without it. Rotating
     # this key makes stored grants unreadable until an Admin reconnects.
     token-encryption-key: ${TEAMBALANCE_BUNQ_TOKEN_ENCRYPTION_KEY}
+    # Which Bunq the platform's OAuth client talks to: none | sandbox | production. `none` uses the fake
+    # Bunq outside prod and the unconfigured gateway in prod (every call fails, so the pool reads as
+    # unavailable). Anything else wires the real adapter and then needs the client id and secret below:
+    # the app fails fast at startup without them. Connecting in prod needs `production`.
+    environment: ${TEAMBALANCE_BUNQ_ENVIRONMENT:none}
+    # The OAuth client registered at Bunq. Live environments provide the secret only through the env var.
+    client-id: ${TEAMBALANCE_BUNQ_CLIENT_ID:}
+    client-secret: ${TEAMBALANCE_BUNQ_CLIENT_SECRET:}
+    # The name Bunq shows for this client.
+    service-name: TeamBalance
     # The money pool is kept in memory per team and instance, so another instance keeps its own copy.
     # A read within `refresh` of the last successful one makes no Bunq call; a later read asks Bunq
     # again. If Bunq does not answer, the last known balance is shown until it is `expire` old, and

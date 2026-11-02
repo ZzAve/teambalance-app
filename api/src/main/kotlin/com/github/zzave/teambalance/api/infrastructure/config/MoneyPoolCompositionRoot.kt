@@ -7,6 +7,7 @@ import com.github.zzave.teambalance.api.application.BunqConnectionService
 import com.github.zzave.teambalance.api.application.MoneyPoolService
 import com.github.zzave.teambalance.api.application.TokenCipher
 import com.github.zzave.teambalance.api.application.TopUpService
+import com.github.zzave.teambalance.api.domain.model.BunqEnvironment
 import com.github.zzave.teambalance.api.domain.port.ActAsGateway
 import com.github.zzave.teambalance.api.domain.port.BunqConnectionRepository
 import com.github.zzave.teambalance.api.domain.port.BunqGateway
@@ -67,6 +68,7 @@ class MoneyPoolCompositionRoot {
         environment: Environment,
         @Value("\${teambalance.api-base-url}") apiBaseUrl: String,
         @Value("\${teambalance.bunq.connect-enabled}") connectEnabled: Boolean,
+        @Value("\${teambalance.bunq.environment}") bunqEnvironment: BunqEnvironment,
         moneyPoolCache: MoneyPoolCacheGateway,
     ) = BunqConnectionService(
         connectionRepository = connectionRepository,
@@ -78,7 +80,13 @@ class MoneyPoolCompositionRoot {
         actAsService = actAsService,
         authorizationService = authorizationService,
         clock = clock,
-        connectConfig = bunqConnectConfig(connectEnabled, environment.matchesProfiles("prod"), bunqGrantCipher, apiBaseUrl),
+        connectConfig = bunqConnectConfig(
+            connectEnabled,
+            environment.matchesProfiles("prod"),
+            bunqEnvironment,
+            bunqGrantCipher,
+            apiBaseUrl,
+        ),
         moneyPoolCache = moneyPoolCache,
     )
 
@@ -97,19 +105,20 @@ class MoneyPoolCompositionRoot {
 }
 
 /**
- * The connect settings, or null while connecting is switched off. Switching it on in prod, where the
- * gateway is the unconfigured one until the real adapter exists (slice 4), stops the app from starting:
- * every attempt would otherwise save a state and then fail with a 500.
+ * The connect settings, or null while connecting is switched off. Switching it on in prod without the
+ * production Bunq environment stops the app from starting: the gateway there is the unconfigured one
+ * or the sandbox, and every attempt would otherwise save a state and then fail or reach the wrong Bunq.
  */
 internal fun bunqConnectConfig(
     connectEnabled: Boolean,
     isProd: Boolean,
+    bunqEnvironment: BunqEnvironment,
     grantCipher: TokenCipher,
     apiBaseUrl: String,
 ): BunqConnectConfig? {
     if (!connectEnabled) return null
-    check(!isProd) {
-        "teambalance.bunq.connect-enabled cannot be on in prod: there is no real Bunq adapter yet"
+    check(!isProd || bunqEnvironment == BunqEnvironment.PRODUCTION) {
+        "teambalance.bunq.connect-enabled cannot be on in prod unless TEAMBALANCE_BUNQ_ENVIRONMENT is production"
     }
     return BunqConnectConfig(grantCipher, apiBaseUrl.trimEnd('/') + BunqConnectionService.CALLBACK_PATH)
 }

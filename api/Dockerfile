@@ -2,6 +2,8 @@
 # Multi-stage: build the Spring Boot fat jar, bake a JDK-25 AOT cache, then run it on a slim JRE.
 # JDK/JRE 25 to match the build toolchain (gradle.properties: javaVersion=25).
 # Build from the repo root: docker build -f api/Dockerfile -t teambalance-api .
+# Staging image (prod image + in-container Postgres + demo data, see the `stg` stage):
+#   docker build -f api/Dockerfile --target stg -t teambalance-api-stg .
 #
 # Startup-time optimization Phase 2 (Spring AOT + AppCDS/Leyden AOT-cache). This runs on the JVM
 # (java -jar) — NO GraalVM native image. Two levers:
@@ -113,6 +115,48 @@ USER app
 COPY --from=build --chown=app:app /workspace/app.jar app.jar
 COPY --from=bake  --chown=app:app /app/app.aot app.aot
 
+EXPOSE 8080
+
+# ---- stg stage ---------------------------------------------------------------
+# The prod jar and AOT cache plus a Postgres cluster in /app/pgdata, initialised here and owned by the
+# app user, so a cold start only has to start it (api/stg-entrypoint.sh). Its data lives on the
+# container's temporary disk: every cold start begins empty, Flyway builds the schema from V001 and
+# DemoDataSeeder adds the demo team. Runs the `prod` profile (the AOT bean set is prod's); the
+# differences are runtime switches: seed demo data, and log email instead of sending it via TEM.
+FROM runtime AS stg
+USER root
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends postgresql \
+ && rm -rf /var/lib/apt/lists/* \
+ && ln -s "$(ls -d /usr/lib/postgresql/*/bin | head -n1)" /usr/local/pgbin \
+ && install -d -o app -g app -m 700 /app/pgdata
+ENV PATH=/usr/local/pgbin:$PATH \
+    SPRING_PROFILES_ACTIVE=prod \
+    SPRING_DATASOURCE_URL=jdbc:postgresql://127.0.0.1:5432/teambalance \
+    SPRING_DATASOURCE_USERNAME=teambalance \
+    SPRING_DATASOURCE_PASSWORD=teambalance \
+    TEAMBALANCE_DEMO_DATA_ENABLED=true \
+    TEAMBALANCE_EMAIL_SEND=false \
+    SCALEWAY_TEM_API_KEY=unused-on-stg \
+    SCALEWAY_TEM_PROJECT_ID=unused-on-stg \
+    TEAMBALANCE_API_BASE_URL=https://api.stg.teambalance.nl
+USER app
+# trust auth: Postgres only listens on 127.0.0.1 inside this container. mmap shared memory and a /tmp
+# socket avoid /dev/shm and /var/run/postgresql, which the sandbox or the non-root user may not have.
+RUN initdb -D /app/pgdata -U teambalance --auth=trust \
+ && printf "%s\n" "listen_addresses = '127.0.0.1'" "unix_socket_directories = '/tmp'" \
+      "dynamic_shared_memory_type = mmap" "shared_buffers = 64MB" >> /app/pgdata/postgresql.conf \
+ && pg_ctl -D /app/pgdata -w start \
+ && createdb -h 127.0.0.1 -U teambalance teambalance \
+ && pg_ctl -D /app/pgdata -w stop
+COPY --chown=app:app --chmod=755 api/stg-entrypoint.sh /app/stg-entrypoint.sh
+ARG GIT_SHA=unknown
+ENV TEAMBALANCE_BUILD_SHA=$GIT_SHA
+ENTRYPOINT ["/app/stg-entrypoint.sh"]
+
+# ---- prod stage (default target: keep it last) ---------------------------------
+FROM runtime AS prod
+
 # Build SHA of this image, surfaced at runtime on /internal/actuator/info (info.build.sha) so the deploy
 # pipeline can confirm the exact pushed image is serving. Declared last: it changes every commit, and
 # only the cheap EXPOSE/ENTRYPOINT metadata layers follow, so the expensive build/bake COPYs stay cached.
@@ -120,7 +164,6 @@ COPY --from=bake  --chown=app:app /app/app.aot app.aot
 ARG GIT_SHA=unknown
 ENV TEAMBALANCE_BUILD_SHA=$GIT_SHA
 
-EXPOSE 8080
 # Runtime flags combine Phase 1 (1-vCPU startup tuning) and Phase 2 (Spring AOT + AOT cache):
 #   -XX:+UseSerialGC        — no multi-threaded GC to spin up on a single core.
 #   -XX:TieredStopAtLevel=1 — C1-only JIT: cheaper warmup, negligible peak-throughput loss here.

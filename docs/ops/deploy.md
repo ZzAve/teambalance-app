@@ -55,19 +55,24 @@ That is the whole reason the wait and the work are two jobs: only the wait is di
 
 ## What each job does
 
-**`deploy-api`** — builds `api/Dockerfile` for **linux/amd64** (the Serverless Container
-rejects other arches), pushes to `rg.fr-par.scw.cloud/teambalance/api:<sha>`, and does an
-**image-only** update of Serverless Container `ec9dfda3-…` (fr-par). The container's
+**`image`** — runs on every CI run, PRs included. Builds `api/Dockerfile` for **linux/amd64**
+(the Serverless Container rejects other arches) twice, `--target prod` and `--target stg`, and
+pushes `rg.fr-par.scw.cloud/teambalance/api:<sha>` and `…/api-stg:<sha>`. The two targets share
+every stage except the last, so the second build reuses the first one's layers. The Gradle build
+runs *inside* the multi-stage image, so the runner needs no JDK/Gradle. The build bakes the commit
+SHA into the image (`--build-arg GIT_SHA`), surfaced at runtime on `/internal/actuator/info`
+(`info.build.sha`).
+
+**`deploy-api`** — after the `production` approval, does an **image-only** update of Serverless
+Container `ec9dfda3-…` (fr-par) to the `api:<sha>` image that `image` pushed. The container's
 cpu/memory/sandbox and its env/secret maps are left untouched — those are managed manually
-in the Scaleway console. The Gradle build runs *inside* the multi-stage image, so the
-runner needs no JDK/Gradle. The build bakes the commit SHA into the image (`--build-arg
-GIT_SHA`), surfaced at runtime on `/internal/actuator/info` (`info.build.sha`).
+in the Scaleway console.
 
 **Post-deploy verification (this is why a bad image now goes red).** `scw container update`
 only *registers* the new image and returns immediately — Scaleway rolls it out
 asynchronously, so a container that crashes on boot (e.g. a Flyway checksum-validation
 failure) would otherwise leave the job **green** while prod keeps serving the old revision.
-The final `deploy-api` step polls `https://api.teambalance.nl/internal/actuator/info` — gated
+The final `deploy-api` step (`.github/scripts/await-live-sha.sh`) polls `https://api.teambalance.nl/internal/actuator/info` — gated
 by the internal API key, so the SHA is never public — until it reports the exact SHA just
 pushed, and **fails the job (red) if the new version isn't live within ~6 min**. This proves
 the new image is actually up regardless of *why* an unhealthy one would fail to boot. On a red
@@ -91,6 +96,30 @@ The container's **cpu / memory / sandbox** (2 vCPU, 2 GB, gVisor v2) are set **m
 the Scaleway console**, not by the deploy — the pipeline only updates the image. To A/B the
 cold start, change the vCPU in the console (e.g. 4 vCPU) and re-read the `Started … in X
 seconds` line. Console fields: CPU in vCPU, memory in MB, sandbox v1/v2.
+
+## Staging API (`api.stg.teambalance.nl`)
+
+A second Serverless Container for experiments (boot-time tuning, later migration checks) that
+never touches prod. **`deploy-api-stg`** is manual: every CI run, a PR's included, waits on the
+`staging` environment; approve it to put that run's `api-stg:<sha>` image on stg. It does not wait
+for the test job.
+
+- **Image:** `api/Dockerfile --target stg` = the prod image (same jar, same AOT cache) plus Postgres
+  and `api/stg-entrypoint.sh`. It runs the `prod` profile; the stg differences are environment
+  variables baked into the image: `TEAMBALANCE_DEMO_DATA_ENABLED=true` (`DemoDataSeeder` adds the
+  demo team *Setpoint VT*), `TEAMBALANCE_EMAIL_SEND=false` (magic links and notifications are
+  logged, not sent), and the in-container datasource.
+- **Database:** Postgres runs inside the container on its temporary disk. Every cold start begins
+  empty: Flyway builds the schema from V001. Nothing persists across scale-to-zero or a redeploy.
+- **Container:** same size as prod (2 vCPU / 2 GB, sandbox v2, min-scale 0). Env:
+  `PLATFORM_ADMIN_EMAILS`; secret env: `INVITATION_TOKEN_SALT`, `INVITATION_TOKEN_ENCRYPTION_KEY`,
+  `TEAMBALANCE_CALENDAR_LINK_SALT`, `TEAMBALANCE_CALENDAR_LINK_ENCRYPTION_KEY`,
+  `TEAMBALANCE_BUNQ_TOKEN_ENCRYPTION_KEY`, `INTERNAL_API_KEY` (values unique to stg; the last one
+  equals the GitHub secret `STG_INTERNAL_API_KEY`).
+- **Boot numbers:** Postgres in the same gVisor sandbox costs boot time and memory, so the stg
+  `Started … in X seconds` line does not equal prod's. The `Startup benchmark:` line still compares.
+- **Log in:** request a magic link for a demo member (e.g. `jan@example.com`) and copy the token
+  from the `Magic link for …` line in the container logs (Cockpit).
 
 ## Object Storage lifecycle (assets retention — console/IaC, not in-repo)
 
@@ -129,6 +158,7 @@ Settings → Secrets and variables → Actions (names only — never commit valu
 | `SCW_S3_ACCESS_KEY` | Object Storage sync — dedicated `teambalance-object-storage` IAM key. |
 | `SCW_S3_SECRET_KEY` | Object Storage sync — its secret. |
 | `INTERNAL_API_KEY` | Post-deploy verify — sent as `X-Internal-Api-Key` to read `/internal/actuator/info`. **Must equal the container's `INTERNAL_API_KEY` env** (see below). |
+| `STG_INTERNAL_API_KEY` | The same, for the stg container. |
 
 > **`INTERNAL_API_KEY` must be set in two places with the same value:** as the GitHub Actions
 > secret above **and** as an env/secret on the Serverless Container (Scaleway console → the

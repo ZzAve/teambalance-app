@@ -17,4 +17,7 @@ data class EmailProperties(
     val apiKey: String,
     val projectId: String,
     val region: String,
+    // false on stg (TEAMBALANCE_EMAIL_SEND=false): the adapters log instead of calling TEM. A runtime
+    // switch, not a profile, so stg runs the same AOT-built prod jar.
+    val send: Boolean = true,
 )

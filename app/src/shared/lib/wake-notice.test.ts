@@ -1,31 +1,60 @@
 import { describe, expect, it } from 'vitest'
-import { ESCALATE_AFTER_MS, isWakeVisible, MIN_VISIBLE_MS, wakeMessageFor } from './wake-notice'
+import { ESCALATE_AFTER_MS, initialWakeState, MIN_VISIBLE_MS, nextWakeState, wakeMessageFor } from './wake-notice'
 
-const idle = { busy: false, elapsedMs: 0, shownAt: null, now: 10_000 }
+const STEP_MS = 100
 
-describe('isWakeVisible', () => {
-  it('stays hidden while a request is still within the warm-backend window', () => {
-    expect(isWakeVisible({ ...idle, busy: true, elapsedMs: 2_499 })).toBe(false)
+interface Sample {
+  at: number
+  show: boolean
+  elapsedMs: number
+}
+
+function simulate(isBusy: (at: number) => boolean, untilMs: number): Sample[] {
+  const samples: Sample[] = []
+  let state = initialWakeState
+  for (let at = 0; at <= untilMs; at += STEP_MS) {
+    state = nextWakeState(state, { busy: isBusy(at), now: at })
+    samples.push({ at, show: state.show, elapsedMs: state.elapsedMs })
+  }
+  return samples
+}
+
+const shownAt = (samples: Sample[]) => samples.filter((s) => s.show).map((s) => s.at)
+
+describe('nextWakeState', () => {
+  it('stays hidden for a request that ends before the warm-backend window', () => {
+    expect(shownAt(simulate((at) => at < 2_400, 6_000))).toEqual([])
   })
 
-  it('shows once a request has been busy for 2.5 s', () => {
-    expect(isWakeVisible({ ...idle, busy: true, elapsedMs: 2_500 })).toBe(true)
+  it('shows from 2.5 s and holds until the minimum visible time after a request that ends at 2.6 s', () => {
+    const visible = shownAt(simulate((at) => at < 2_600, 6_000))
+    expect(visible[0]).toBe(2_500)
+    expect(visible.at(-1)).toBe(2_600 + MIN_VISIBLE_MS - STEP_MS)
   })
 
-  it('stays hidden when nothing is in flight and it was never shown', () => {
-    expect(isWakeVisible(idle)).toBe(false)
+  it('treats a short gap between requests as one continuous wait', () => {
+    const samples = simulate((at) => at < 5_000 || (at >= 5_100 && at < 12_000), 14_000)
+    const visible = shownAt(samples)
+    expect(visible[0]).toBe(2_500)
+    expect(visible.filter((at) => at >= 2_500 && at < 12_000)).toHaveLength((12_000 - 2_500) / STEP_MS)
   })
 
-  it('holds for the minimum visible time after the last request settles', () => {
-    expect(isWakeVisible({ ...idle, shownAt: 10_000 - (MIN_VISIBLE_MS - 1) })).toBe(true)
+  it('stays shown when a new request starts during the hold', () => {
+    const samples = simulate((at) => at < 2_600 || (at >= 3_000 && at < 6_000), 8_000)
+    const visible = shownAt(samples)
+    expect(visible.filter((at) => at >= 2_500 && at < 6_000)).toHaveLength((6_000 - 2_500) / STEP_MS)
   })
 
-  it('hides once the minimum visible time has passed', () => {
-    expect(isWakeVisible({ ...idle, shownAt: 10_000 - MIN_VISIBLE_MS })).toBe(false)
+  it('keeps the escalated elapsed time during the hold', () => {
+    const samples = simulate((at) => at < 9_000, 10_000)
+    const held = samples.find((s) => s.at === 9_300)
+    expect(held?.show).toBe(true)
+    expect(held?.elapsedMs).toBeGreaterThanOrEqual(ESCALATE_AFTER_MS)
   })
 
-  it('stays visible while busy past the threshold, however long ago it was first shown', () => {
-    expect(isWakeVisible({ busy: true, elapsedMs: 9_000, shownAt: 0, now: 10_000 })).toBe(true)
+  it('resets after a full idle minimum visible time, so the next short request does not show', () => {
+    const samples = simulate((at) => at < 1_000 || (at >= 2_000 && at < 4_000), 6_000)
+    expect(shownAt(samples)).toEqual([])
   })
 })
 

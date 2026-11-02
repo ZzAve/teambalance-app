@@ -16,7 +16,7 @@ import org.springframework.boot.test.context.ConfigDataApplicationContextInitial
 import org.springframework.boot.test.context.TestConfiguration
 import org.springframework.boot.test.context.runner.ApplicationContextRunner
 import org.springframework.context.annotation.Bean
-import org.springframework.core.env.SystemEnvironmentPropertySource
+import org.springframework.core.env.MapPropertySource
 import java.time.Clock
 
 private const val CLIENT_ID = "selection-test-client-id"
@@ -92,12 +92,13 @@ class BunqGatewaySelectionTest : FunSpec({
     }
 
     context("the environment value") {
-        test("TEAMBALANCE_BUNQ_ENVIRONMENT, TEAMBALANCE_BUNQ_CLIENT_ID and TEAMBALANCE_BUNQ_CLIENT_SECRET reach the properties") {
+        // A plain map, not the system environment source: that one binds by relaxed name and would hide a wrong placeholder.
+        test("the placeholders in application.yml map TEAMBALANCE_BUNQ_ENVIRONMENT, _CLIENT_ID and _CLIENT_SECRET to the properties") {
             runner("prod")
                 .withInitializer { ctx ->
                     ctx.environment.propertySources.addFirst(
-                        SystemEnvironmentPropertySource(
-                            "systemEnvironment",
+                        MapPropertySource(
+                            "environment-variables",
                             mapOf(
                                 "TEAMBALANCE_BUNQ_ENVIRONMENT" to "sandbox",
                                 "TEAMBALANCE_BUNQ_CLIENT_ID" to CLIENT_ID,

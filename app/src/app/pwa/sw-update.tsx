@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { useIsMutating } from '@tanstack/react-query'
 import { useRouterState } from '@tanstack/react-router'
+import { useWakeNotice } from '@shared/lib/use-wake-notice'
 import { UpdateToast } from '@shared/ui/UpdateToast'
+import { WakeToast } from '@shared/ui/WakeToast'
 import { applyDeferredUpdate, applyUpdate, onUpdatePrompt, setDirty } from './sw-registration'
 
 /**
@@ -13,6 +15,10 @@ import { applyDeferredUpdate, applyUpdate, onUpdatePrompt, setDirty } from './sw
  *  - the `isDirty` signal (pending mutations) so a deploy mid-work prompts instead of auto-reloading;
  *  - the defer seam — apply a deferred update at the next route navigation;
  *  - the reload prompt itself (`UpdateToast`), shown only for the "focused, interacted, dirty" case.
+ *
+ * It also owns the bottom pill slot: the reload prompt takes precedence over the wake notice because
+ * it needs an action, and the wake notice yields to the pending-route splash, which already says the
+ * same thing.
  *
  * The tab-hidden defer seam and every auto/activate path are owned by sw-registration.ts, which does
  * not need React to run.
@@ -26,6 +32,9 @@ export function SwUpdateManager() {
   useEffect(() => {
     setDirty(pendingMutations > 0)
   }, [pendingMutations])
+
+  const wake = useWakeNotice()
+  const routePending = useRouterState({ select: (s) => s.matches.some((m) => m.status === 'pending') })
 
   // The controller tells us when to surface the prompt (the one case it does not auto-resolve).
   useEffect(() => onUpdatePrompt(setShowPrompt), [])
@@ -42,5 +51,10 @@ export function SwUpdateManager() {
     applyDeferredUpdate()
   }, [href])
 
-  return <UpdateToast show={showPrompt} onReload={applyUpdate} />
+  return (
+    <>
+      <UpdateToast show={showPrompt} onReload={applyUpdate} />
+      <WakeToast show={wake.show && !showPrompt && !routePending} elapsedMs={wake.elapsedMs} />
+    </>
+  )
 }

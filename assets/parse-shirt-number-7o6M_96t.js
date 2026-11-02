@@ -1,1 +1,0 @@
-import{n as e}from"./rolldown-runtime-DkW27tQK.js";function t(e){let t=e.trim();return t===``?{value:null,error:null}:!/^\d+$/.test(t)||Number(t)>n?{value:null,error:`Use a whole number from 0 to ${n}.`}:{value:Number(t),error:null}}var n;function r(){return(r=e((()=>{n=999})))()}export{t as n,r as t};

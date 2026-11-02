@@ -4,4 +4,4 @@
 # build time, so every cold start begins with an empty `teambalance` database.
 set -e
 pg_ctl -D /app/pgdata -l /tmp/postgres.log -w -t 60 start
-exec java -XX:+UseSerialGC -XX:TieredStopAtLevel=1 -Dspring.aot.enabled=true -jar app.jar
+exec java -XX:+UseSerialGC -XX:TieredStopAtLevel=1 -XX:AOTCache=app.aot -Dspring.aot.enabled=true -jar app.jar

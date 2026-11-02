@@ -24,6 +24,9 @@ class TenantRoutingDataSource(private val dataSource: DataSource) : DelegatingDa
     override fun getConnection(): Connection =
         if (inTransaction()) transactionConnection() else routedConnection()
 
+    override fun getConnection(username: String, password: String): Connection =
+        throw UnsupportedOperationException("Connections must be routed to a tenant; credentials are not supported")
+
     private fun routedConnection(): Connection = ResettingConnection(super.getConnection().routeTo(currentTenant()))
 
     private fun inTransaction() = TransactionSynchronizationManager.hasResource(dataSource)
@@ -33,7 +36,10 @@ class TenantRoutingDataSource(private val dataSource: DataSource) : DelegatingDa
     private fun transactionConnection(): Connection {
         val connection = transactionAwareDataSource.connection
         val tenant = currentTenant()
-        val boundSchema = connection.schema
+        // Postgres reports no schema when the search_path names one that does not exist: that is how a
+        // transaction without a tenant looks (__no_tenant__), and it is allowed, since public tables are
+        // qualified and unqualified tenant tables then fail with "relation does not exist".
+        val boundSchema = connection.schema ?: TenantContext.NO_TENANT_SCHEMA
         if (boundSchema != tenant) {
             connection.close()
             error("Transaction is bound to schema '$boundSchema' but the current tenant is '$tenant'")

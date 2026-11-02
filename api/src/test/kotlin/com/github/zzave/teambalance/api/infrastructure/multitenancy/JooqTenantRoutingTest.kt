@@ -2,10 +2,13 @@ package com.github.zzave.teambalance.api.infrastructure.multitenancy
 
 import com.github.zzave.teambalance.api.TeamBalanceIT
 import com.github.zzave.teambalance.api.infrastructure.persistence.jooq.default_schema.Tables.EVENT_TYPES
+import com.github.zzave.teambalance.api.infrastructure.persistence.jooq.public_.Tables.USERS
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.assertions.throwables.shouldThrowAny
 import io.kotest.matchers.collections.shouldContain
+import io.kotest.matchers.ints.shouldBeGreaterThanOrEqual
 import io.kotest.matchers.collections.shouldNotContain
+import io.kotest.matchers.string.shouldContain
 import org.jooq.DSLContext
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.transaction.support.TransactionTemplate
@@ -59,17 +62,27 @@ class JooqTenantRoutingTest : TeamBalanceIT() {
             } shouldNotContain rolledBackName
         }
 
+        test("in a transaction with no tenant, public tables are reachable and tenant tables fail closed") {
+            tenantSchemaAdapter.provisionPlatformSchema()
+            TenantContext.clear()
+
+            transactions.execute { dsl.fetchCount(USERS) } shouldBeGreaterThanOrEqual 0
+            shouldThrowAny { transactions.execute { eventTypeNames() } }
+        }
+
         test("a jOOQ call in a transaction fails when the tenant changed since the transaction began") {
             tenantSchemaAdapter.provisionTenantSchema("team_alpha")
             tenantSchemaAdapter.provisionTenantSchema("team_beta")
 
             withTenant("team_alpha") {
-                shouldThrowAny {
+                val failure = shouldThrow<IllegalStateException> {
                     transactions.executeWithoutResult {
                         TenantContext.set("team_beta")
                         eventTypeNames()
                     }
                 }
+                failure.message shouldContain "team_alpha"
+                failure.message shouldContain "team_beta"
             }
         }
     }

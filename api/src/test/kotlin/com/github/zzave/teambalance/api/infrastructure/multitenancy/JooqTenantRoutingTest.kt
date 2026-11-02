@@ -4,13 +4,13 @@ import com.github.zzave.teambalance.api.TeamBalanceIT
 import com.github.zzave.teambalance.api.infrastructure.persistence.jooq.default_schema.Tables.EVENT_TYPES
 import com.github.zzave.teambalance.api.infrastructure.persistence.jooq.public_.Tables.USERS
 import io.kotest.assertions.throwables.shouldThrow
-import io.kotest.assertions.throwables.shouldThrowAny
 import io.kotest.matchers.collections.shouldContain
 import io.kotest.matchers.ints.shouldBeGreaterThanOrEqual
 import io.kotest.matchers.collections.shouldNotContain
 import io.kotest.matchers.string.shouldContain
 import org.jooq.DSLContext
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.jdbc.BadSqlGrammarException
 import org.springframework.transaction.support.TransactionTemplate
 import java.util.UUID
 
@@ -44,7 +44,7 @@ class JooqTenantRoutingTest : TeamBalanceIT() {
 
             TenantContext.clear()
 
-            shouldThrowAny { eventTypeNames() }
+            shouldThrow<BadSqlGrammarException> { eventTypeNames() }
         }
 
         test("a jOOQ write inside a transaction that throws is rolled back") {
@@ -63,11 +63,13 @@ class JooqTenantRoutingTest : TeamBalanceIT() {
         }
 
         test("in a transaction with no tenant, public tables are reachable and tenant tables fail closed") {
+            // public carries the tenant tables here: a failure proves __no_tenant__ routing, not a missing table.
             tenantSchemaAdapter.provisionPlatformSchema()
+            tenantSchemaAdapter.provisionTenantSchema(TenantContext.PUBLIC_SCHEMA)
             TenantContext.clear()
 
             transactions.execute { dsl.fetchCount(USERS) } shouldBeGreaterThanOrEqual 0
-            shouldThrowAny { transactions.execute { eventTypeNames() } }
+            shouldThrow<BadSqlGrammarException> { transactions.execute { eventTypeNames() } }
         }
 
         test("a jOOQ call in a transaction fails when the tenant changed since the transaction began") {

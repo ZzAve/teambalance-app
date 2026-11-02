@@ -53,32 +53,29 @@ p{margin:0}
 .pitch h1{font-size:clamp(2.35rem,10.5vw,3.2rem);color:#fff;letter-spacing:-.01em;text-shadow:0 2px 0 rgba(0,0,0,.18)}
 .pitch h1 span{display:block}
 .pitch p{margin-top:12px;color:var(--ink);font-weight:500;max-width:34ch}
-.court{position:relative;aspect-ratio:.8;background:
+.court{position:relative;aspect-ratio:.68;background:
   repeating-linear-gradient(90deg,rgba(255,255,255,.035) 0 38px,rgba(0,0,0,.03) 38px 76px),var(--court);
   border:4px solid var(--line);border-radius:3px;box-shadow:0 18px 34px -10px rgba(16,35,62,.45),0 4px 10px rgba(16,35,62,.25);color:#fff}
-.court .at{position:absolute;left:calc(var(--c)*1%);top:calc(var(--a)*1%)}
-.net{position:absolute;left:-14px;right:-14px;top:50%;height:7px;transform:translateY(-50%);
+.court .at{position:absolute;left:calc(var(--c)*1%);top:calc((100 - var(--a))*1%)}
+.net{position:absolute;left:-12px;right:-12px;top:50%;height:7px;transform:translateY(-50%);
   background:repeating-linear-gradient(90deg,#fff 0 6px,rgba(255,255,255,.45) 6px 9px);border-radius:2px;z-index:1}
 .net::before,.net::after{content:"";position:absolute;top:50%;width:14px;height:14px;border-radius:50%;background:var(--ink);transform:translateY(-50%);box-shadow:0 0 0 2px #fff}
 .net::before{left:-7px}.net::after{right:-7px}
-.atk{position:absolute;left:-26px;right:-26px;height:0;border-top:4px solid var(--line)}
-.atk::before,.atk::after{content:"";position:absolute;top:-4px;width:22px;height:0;border-top:4px dashed var(--line)}
+.atk{position:absolute;left:-12px;right:-12px;height:0;border-top:4px solid var(--line)}
+.atk::before,.atk::after{content:"";position:absolute;top:-4px;width:12px;height:0;border-top:4px dashed var(--line)}
 .atk::before{left:0}.atk::after{right:0}
 .atk.a1{top:33.33%}.atk.a2{top:66.67%}
-.atk::before,.atk::after{width:22px}
-.atk{left:-26px;right:-26px}
-.atk i{position:absolute;left:26px;right:26px;top:-4px;border-top:4px solid var(--line)}
 .atk{border-top:0}
+.atk i{position:absolute;left:12px;right:12px;top:-4px;border-top:4px solid var(--line)}
 
-.controls{position:absolute;inset:0 0 50% 0;display:grid;grid-template-rows:2fr 1fr;padding:0 12px;z-index:2}
-.ask{grid-row:1;align-self:center;padding:8px 2px}
+.controls{position:absolute;inset:50% 0 0 0;display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:1fr 2fr;padding:0 12px;z-index:2}
+.ask{grid-column:1;grid-row:2;align-self:start;padding:12px 2px 8px}
 .ask b{display:block;font-family:var(--display);font-weight:800;font-size:1.5rem;line-height:1.05}
 .ask span{display:block;color:var(--paint-soft);font-size:.9rem;margin-top:2px}
-.tally{grid-row:1;align-self:end;padding:0 2px 10px;font-size:1rem;line-height:1.3;min-height:3.9em;display:flex;flex-direction:column;justify-content:flex-end}
+.tally{grid-column:1;grid-row:2;align-self:end;padding:0 2px 10px;font-size:1rem;line-height:1.3}
 .tally strong{font-family:var(--display);font-weight:800;font-size:1.35rem}
 .tally small{display:block;color:var(--paint-soft);font-size:.85rem}
-.ask{align-self:start;padding-top:12px}
-.answers{grid-row:2;display:grid;grid-template-columns:repeat(3,1fr);gap:8px;align-items:center;margin:0;padding:0;border:0;min-width:0}
+.answers{grid-column:1;grid-row:1;display:grid;grid-template-columns:repeat(3,1fr);gap:8px;align-items:center;margin:0;padding:0;border:0;min-width:0}
 .answers legend{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
 .ans{appearance:none;font:inherit;font-weight:700;font-size:.98rem;color:#fff;background:rgba(255,255,255,.06);border:2.5px solid #fff;border-radius:999px;min-height:48px;padding:0 6px;display:inline-flex;align-items:center;justify-content:center;gap:7px;cursor:pointer;transition:background .2s,color .2s,transform .15s}
 .ans svg{width:14px;height:14px;flex:none}
@@ -90,8 +87,8 @@ p{margin:0}
 .ans:disabled{opacity:.5;cursor:not-allowed}
 
 .players{list-style:none;margin:0;padding:0}
-.player,.spot{--d:44px;position:absolute;left:calc(var(--c)*1%);top:calc(var(--a)*1%);width:0;height:0;z-index:2}
-.mover{position:absolute;left:0;top:0;transform:translate(-50%,calc(var(--d)/-2));display:flex;flex-direction:column;align-items:center;width:88px}
+.player,.spot{--d:44px;position:absolute;left:calc(var(--c)*1%);top:calc((100 - var(--a))*1%);width:0;height:0;z-index:2}
+.mover{position:absolute;left:0;top:0;transform:translate(-50%,calc(var(--d)/2 - 100%));display:flex;flex-direction:column-reverse;align-items:center;width:88px}
 .disc{position:relative;width:var(--d);height:var(--d);border-radius:50%;background:#F5F8FC;border:5px solid var(--ring,var(--grey));display:grid;place-items:center;font-family:var(--display);font-weight:800;color:var(--ink);font-size:calc(var(--d)*.4);box-shadow:0 5px 9px rgba(10,30,60,.4);transition:border-color .45s}
 .badge{position:absolute;right:-7px;bottom:-5px;width:19px;height:19px;border-radius:50%;background:var(--ring,var(--grey));color:#fff;padding:3px;box-shadow:0 0 0 2px var(--court);transition:background .45s}
 .player[data-state=going]{--ring:var(--green)}
@@ -101,14 +98,17 @@ p{margin:0}
 .player[data-state=none]{--ring:var(--grey)}
 .badge use,.badge .g{display:none}
 .player[data-state=going] .g-going,.player[data-state=maybe] .g-maybe,.player[data-state=cant] .g-cant,.player[data-state=none] .g-none{display:block}
-.who{margin-top:7px;text-align:center;line-height:1.15}
+.who{margin-bottom:6px;text-align:center;line-height:1.15}
 .who b{display:block;font-size:.88rem;font-weight:700}
 .who i{display:block;font-style:normal;font-size:.72rem;color:var(--paint-soft)}
 .spot .mover{pointer-events:none}
 .spot .ring{width:var(--d);height:var(--d);border-radius:50%;border:3px dashed rgba(255,255,255,.75)}
 .you .mover{transition:transform 1.05s var(--ease-out)}
-.you.benched .mover{transform:translate(-50%,calc(var(--d)/-2)) var(--bench)}
+.you.benched .mover{transform:translate(-50%,calc(var(--d)/2 - 100%)) var(--bench)}
+.you.benched .who{display:none}
 .you .disc{font-size:calc(var(--d)*.3)}
+.you.benched .who b,.you.benched .who i{color:var(--ink)}
+.you.benched .who i{color:var(--ink-soft)}
 .you .who i{color:#fff}
 .you.benched .disc{border-style:solid}
 .bench-tag{position:absolute;left:50%;bottom:-44px;transform:translateX(-50%);font-size:.78rem;font-weight:700;color:var(--ink-soft);letter-spacing:.02em;white-space:nowrap}
@@ -163,7 +163,7 @@ p{margin:0}
 .note{margin-top:18px;max-width:56ch}
 
 .pool{padding:76px 0 70px;color:var(--ink)}
-.pool h2{color:var(--ink)}
+.pool h2{color:var(--ink);font-size:clamp(1.9rem,6vw,2.9rem);margin-bottom:14px}
 .pool .lead{color:var(--ink)}
 .pool-grid{display:grid;gap:34px;align-items:center}
 .pot{display:flex;flex-direction:column;align-items:center;gap:18px}
@@ -195,26 +195,32 @@ p{margin:0}
 
 @media (min-width:900px){
   .top{padding:18px 40px}
-  .stage{padding:0 70px 56px 70px;max-width:1340px;margin-top:6px}
-  .pitch{position:absolute;z-index:3;left:calc(70px + 4px);top:4px;bottom:0;width:calc((100% - 140px)/3 - 14px);display:flex;flex-direction:column;justify-content:center;padding:0 0 56px 3cqw;pointer-events:none}
+  .stage{padding:0 70px 44px 70px;max-width:1220px;margin-top:0}
+  .pitch{position:absolute;z-index:3;left:calc(70px + 4px);top:0;bottom:44px;width:calc((100% - 140px)/3 - 14px);display:flex;flex-direction:column;justify-content:center;padding:0 0 0 3cqw;pointer-events:none}
   .pitch h1{font-size:clamp(2.2rem,4.3cqw,4.1rem);text-shadow:0 2px 0 rgba(0,0,0,.2)}
   .pitch p{font-size:clamp(.92rem,1.5cqw,1.1rem);color:#fff;max-width:26ch;margin-top:1.4cqw}
   .court{aspect-ratio:2/1}
   .court .at,.player,.spot{left:calc(var(--a)*1%);top:calc(var(--c)*1%)}
+  .mover{flex-direction:column;transform:translate(-50%,calc(var(--d)/-2))}
+  .who{margin:7px 0 0}
+  .you.benched .mover{transform:translate(-50%,calc(var(--d)/-2)) var(--bench)}
+  .you.benched .who{display:block}
+  .controls{inset:0 auto 0 33.33%}
   .net{left:50%;right:auto;top:-14px;bottom:-14px;height:auto;width:7px;transform:translateX(-50%);background:repeating-linear-gradient(180deg,#fff 0 6px,rgba(255,255,255,.45) 6px 9px)}
   .net::before,.net::after{left:50%;top:auto;transform:translateX(-50%)}
   .net::before{top:-7px;left:50%}.net::after{bottom:-7px;top:auto;right:auto;left:50%}
-  .atk{left:auto;right:auto;top:-26px;bottom:-26px;width:0;height:auto}
+  .atk{left:auto;right:auto;top:-26px;bottom:-26px;width:0;height:auto;border-top:0}
   .atk::before,.atk::after{top:auto;left:-4px;width:0;height:22px;border-top:0;border-left:4px dashed #fff}
   .atk::before{top:0}.atk::after{bottom:0;right:auto}
   .atk i{left:-4px;right:auto;top:26px;bottom:26px;border-top:0;border-left:4px solid #fff}
+  .atk::before,.atk::after{height:22px}
   .atk.a1{left:33.33%;top:-26px}.atk.a2{left:66.67%;top:-26px}
   .controls{inset:0 auto 0 33.33%;width:16.67%;display:flex;flex-direction:column;justify-content:center;gap:14px;padding:0 4cqw 0 2cqw;padding:0 10px}
   .ask,.tally{padding:0}.ask{align-self:auto;padding-top:0}
   .ask b{font-size:clamp(1.15rem,1.9cqw,1.5rem)}
   .ask span{font-size:.82rem}
   .answers{grid-template-columns:1fr;gap:9px}
-  .tally{min-height:0;justify-content:flex-start;margin-top:4px}
+  .tally{margin-top:4px}
   .tally strong{font-size:clamp(1.15rem,1.9cqw,1.45rem)}
   .tally small{font-size:.8rem}
   .ans{font-size:clamp(.9rem,1.35cqw,1rem)}
@@ -236,14 +242,17 @@ p{margin:0}
   .band{padding:96px 0 84px}
   .pool{padding:100px 0 92px}
   .side{margin-top:0}
+  .you{--bench:translate(calc((100cqw - 140px) * .1 + 62px),0)}
 }
 @media (max-width:899px){
-  .court{max-width:560px;margin:0 auto}
-  .pitch{max-width:560px;margin:0 auto}
-  .player,.spot{--d:44px}
-  .you{--bench:translate(0,calc(var(--a-gap,10)*1% + 0px))}
+  .court{max-width:520px;margin:0 auto}
+  .pitch{max-width:520px;margin:0 auto}
+  .player,.spot{--d:42px}
+  .you{--bench:translate(0,calc(-1 * ((min(100cqw - 32px,520px) / .68) * .11 + 36px)))}
   .formwrap{max-width:560px;margin:0 auto}
 }
+@media (max-width:899px){.request .lbl{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}.pitch .long{display:none}.pitch h1{font-size:clamp(2rem,9.4vw,2.9rem)}.pitch{padding-bottom:58px}.pitch p{margin-top:6px}.stage{padding-bottom:30px}}
+@media (min-width:900px){.pitch .short{display:none}}
 @media (max-width:420px){
   .pitch p{font-size:.98rem}
   .lineup li.pos{grid-template-columns:100px 1fr}
@@ -275,7 +284,7 @@ p{margin:0}
 <section class="stage" aria-labelledby="hook">
   <div class="pitch">
     <h1 id="hook"><span>Who's coming</span> <span>Thursday?</span></h1>
-    <p>Everyone answers Going, Maybe or Can't. You see if there are enough for a match. And the team's money pot sits next to it.</p>
+    <p><span class="long">Everyone answers Going, Maybe or Can't. You see if there are enough for a match. And the team's money pot sits next to it.</span><span class="short">Answer in one tap.</span></p>
   </div>
 
   <div class="court" id="court">
@@ -298,23 +307,23 @@ p{margin:0}
     </div>
 
     <ul class="players" aria-label="Setpoint VT HS2, Thursday training">
-      <li class="player at" data-state="going" style="--a:58;--c:20"><div class="mover"><span class="disc">D<svg class="badge" viewBox="0 0 16 16" aria-hidden="true"><use class="g g-going" href="#i-check"/></svg></span><span class="who"><b>Daan</b><i>Outside hitter</i><span class="sr">Going</span></span></div></li>
-      <li class="player at" data-state="going" style="--a:58;--c:50"><div class="mover"><span class="disc">F<svg class="badge" viewBox="0 0 16 16" aria-hidden="true"><use class="g g-going" href="#i-check"/></svg></span><span class="who"><b>Femke</b><i>Middle</i><span class="sr">Going</span></span></div></li>
-      <li class="player at" data-state="maybe" style="--a:58;--c:80"><div class="mover"><span class="disc">J<svg class="badge" viewBox="0 0 16 16" aria-hidden="true"><use class="g g-maybe" href="#i-maybe"/></svg></span><span class="who"><b>Joost</b><i>Opposite</i><span class="sr">Maybe</span></span></div></li>
-      <li class="player at" data-state="going" style="--a:77;--c:20"><div class="mover"><span class="disc">N<svg class="badge" viewBox="0 0 16 16" aria-hidden="true"><use class="g g-going" href="#i-check"/></svg></span><span class="who"><b>Noor</b><i>Outside hitter</i><span class="sr">Going</span></span></div></li>
-      <li class="player at" data-state="going" style="--a:77;--c:50"><div class="mover"><span class="disc">B<svg class="badge" viewBox="0 0 16 16" aria-hidden="true"><use class="g g-going" href="#i-check"/></svg></span><span class="who"><b>Bram</b><i>Middle</i><span class="sr">Going</span></span></div></li>
-      <li class="player at" data-state="going" style="--a:77;--c:80"><div class="mover"><span class="disc">S<svg class="badge" viewBox="0 0 16 16" aria-hidden="true"><use class="g g-going" href="#i-check"/></svg></span><span class="who"><b>Sanne</b><i>Setter</i><span class="sr">Going</span></span></div></li>
-      <li class="player at" data-state="none" style="--a:90;--c:24"><div class="mover"><span class="disc">L<svg class="badge" viewBox="0 0 16 16" aria-hidden="true"><use class="g g-none" href="#i-dash"/></svg></span><span class="who"><b>Lotte</b><i>Libero</i><span class="sr">Not responded</span></span></div></li>
+      <li class="player at" data-state="going" style="--a:55;--c:20"><div class="mover"><span class="disc">D<svg class="badge" viewBox="0 0 16 16" aria-hidden="true"><use class="g g-going" href="#i-check"/></svg></span><span class="who"><b>Daan</b><i>Outside hitter</i><span class="sr">Going</span></span></div></li>
+      <li class="player at" data-state="going" style="--a:55;--c:50"><div class="mover"><span class="disc">F<svg class="badge" viewBox="0 0 16 16" aria-hidden="true"><use class="g g-going" href="#i-check"/></svg></span><span class="who"><b>Femke</b><i>Middle</i><span class="sr">Going</span></span></div></li>
+      <li class="player at" data-state="maybe" style="--a:55;--c:80"><div class="mover"><span class="disc">J<svg class="badge" viewBox="0 0 16 16" aria-hidden="true"><use class="g g-maybe" href="#i-maybe"/></svg></span><span class="who"><b>Joost</b><i>Opposite</i><span class="sr">Maybe</span></span></div></li>
+      <li class="player at" data-state="going" style="--a:72;--c:20"><div class="mover"><span class="disc">N<svg class="badge" viewBox="0 0 16 16" aria-hidden="true"><use class="g g-going" href="#i-check"/></svg></span><span class="who"><b>Noor</b><i>Outside hitter</i><span class="sr">Going</span></span></div></li>
+      <li class="player at" data-state="going" style="--a:72;--c:50"><div class="mover"><span class="disc">B<svg class="badge" viewBox="0 0 16 16" aria-hidden="true"><use class="g g-going" href="#i-check"/></svg></span><span class="who"><b>Bram</b><i>Middle</i><span class="sr">Going</span></span></div></li>
+      <li class="player at" data-state="going" style="--a:72;--c:80"><div class="mover"><span class="disc">S<svg class="badge" viewBox="0 0 16 16" aria-hidden="true"><use class="g g-going" href="#i-check"/></svg></span><span class="who"><b>Sanne</b><i>Setter</i><span class="sr">Going</span></span></div></li>
+      <li class="player at" data-state="none" style="--a:89;--c:24"><div class="mover"><span class="disc">L<svg class="badge" viewBox="0 0 16 16" aria-hidden="true"><use class="g g-none" href="#i-dash"/></svg></span><span class="who"><b>Lotte</b><i>Libero</i><span class="sr">Not responded</span></span></div></li>
 
-      <li class="spot at" style="--a:90;--c:72" aria-hidden="true"><div class="mover"><span class="ring"></span></div></li>
-      <li class="player you at" id="you" data-state="none" style="--a:90;--c:72"><div class="mover"><span class="disc">You<svg class="badge" viewBox="0 0 16 16" aria-hidden="true"><use class="g g-going" href="#i-check"/><use class="g g-maybe" href="#i-maybe"/><use class="g g-cant" href="#i-cross"/><use class="g g-none" href="#i-dash"/></svg></span><span class="who"><b>You</b><i id="youstate">Not responded</i></span></div></li>
+      <li class="spot at" style="--a:89;--c:72" aria-hidden="true"><div class="mover"><span class="ring"></span></div></li>
+      <li class="player you at" id="you" data-state="none" style="--a:89;--c:72"><div class="mover"><span class="disc">You<svg class="badge" viewBox="0 0 16 16" aria-hidden="true"><use class="g g-going" href="#i-check"/><use class="g g-maybe" href="#i-maybe"/><use class="g g-cant" href="#i-cross"/><use class="g g-none" href="#i-dash"/></svg></span><span class="who"><b>You</b><i id="youstate">Not responded</i></span></div></li>
     </ul>
   </div>
 </section>
 
 <div class="formrow"><div class="formwrap" style="padding:0 20px">
   <form class="request" novalidate data-form>
-    <label for="email-1">Get your team on TeamBalance</label>
+    <label class="lbl" for="email-1">Get your team on TeamBalance</label>
     <div class="row">
       <input id="email-1" name="email" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com" aria-describedby="msg-1">
       <button class="btn primary" type="submit">Request a team</button>

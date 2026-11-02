@@ -1,0 +1,78 @@
+<!doctype html>
+<!--
+  PROTOTYPE — throwaway. Four landing-page directions for teambalance.nl (issue #152),
+  switchable via ?variant=A|B|C|D, arrow keys, or the bottom bar. Not linked from the real site.
+  Run: make www-prototype → http://localhost:8000/www/prototype-landing/
+-->
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PROTOTYPE · TeamBalance landing</title>
+    <style>
+      html, body { margin: 0; height: 100%; background: #111; }
+      iframe { display: block; width: 100%; height: 100%; border: 0; }
+      .switcher {
+        position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%); z-index: 9999;
+        display: flex; align-items: center; gap: 4px; padding: 4px;
+        background: #0b0b0b; color: #fff; border: 2px solid #ff2fd1; border-radius: 999px;
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
+        font: 600 13px/1 ui-monospace, Menlo, monospace; white-space: nowrap;
+      }
+      .switcher button {
+        width: 32px; height: 32px; border: 0; border-radius: 999px; cursor: pointer;
+        background: #ff2fd1; color: #0b0b0b; font: inherit; font-size: 16px;
+      }
+      .switcher span { padding: 0 10px; min-width: 190px; text-align: center; }
+    </style>
+  </head>
+  <body>
+    <iframe id="frame" title="Landing page variant"></iframe>
+    <div class="switcher" role="toolbar" aria-label="Prototype variant switcher">
+      <button id="prev" aria-label="Previous variant">←</button>
+      <span id="label"></span>
+      <button id="next" aria-label="Next variant">→</button>
+    </div>
+    <script>
+      const variants = [
+        { key: 'A', name: 'The court', file: 'variant-a-court.html' },
+        { key: 'B', name: 'The group chat', file: 'variant-b-group-chat.html' },
+        { key: 'C', name: 'The scoreboard', file: 'variant-c-scoreboard.html' },
+        { key: 'D', name: 'The notice board', file: 'variant-d-notice-board.html' },
+      ];
+      const frame = document.getElementById('frame');
+      const label = document.getElementById('label');
+
+      function current() {
+        const key = new URLSearchParams(location.search).get('variant') ?? 'A';
+        return Math.max(0, variants.findIndex((v) => v.key === key.toUpperCase()));
+      }
+
+      function show(index) {
+        const v = variants[index];
+        const url = new URL(location.href);
+        url.searchParams.set('variant', v.key);
+        history.replaceState(null, '', url);
+        label.textContent = `${v.key} (${v.name})`;
+        frame.src = v.file;
+      }
+
+      function step(delta) {
+        show((current() + delta + variants.length) % variants.length);
+      }
+
+      function onKey(event) {
+        const t = event.target;
+        if (t.closest && t.closest('input, textarea, select, [contenteditable]')) return;
+        if (event.key === 'ArrowLeft') step(-1);
+        if (event.key === 'ArrowRight') step(1);
+      }
+
+      document.getElementById('prev').onclick = () => step(-1);
+      document.getElementById('next').onclick = () => step(1);
+      window.addEventListener('keydown', onKey);
+      frame.addEventListener('load', () => frame.contentWindow.addEventListener('keydown', onKey));
+      show(current());
+    </script>
+  </body>
+</html>

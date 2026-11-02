@@ -51,6 +51,9 @@ api: ## Run the backend API
 app: ## Run the frontend dev server
 	cd app && npm run dev
 
+www-prototype: ## PROTOTYPE: serve the landing-page variants at http://localhost:8000/www/prototype-landing/
+	python3 -m http.server 8000
+
 run-local: infra ## Start infra + backend + frontend (backend in background)
 	trap 'kill 0' EXIT; \
 	$(MAKE) api & \

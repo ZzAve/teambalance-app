@@ -22,30 +22,26 @@ class TenantRoutingDataSource(private val dataSource: DataSource) : DelegatingDa
     private val transactionAwareDataSource = TransactionAwareDataSourceProxy(dataSource)
 
     override fun getConnection(): Connection =
-        if (inTransaction()) transactionAwareDataSource.connection else route(super.getConnection())
+        if (inTransaction()) transactionConnection() else routedConnection()
 
-    override fun getConnection(username: String, password: String): Connection =
-        if (inTransaction()) {
-            transactionAwareDataSource.getConnection(username, password)
-        } else {
-            route(super.getConnection(username, password))
-        }
+    private fun routedConnection(): Connection = ResettingConnection(super.getConnection().routeTo(currentTenant()))
 
     private fun inTransaction() = TransactionSynchronizationManager.hasResource(dataSource)
 
-    private fun route(connection: Connection): Connection {
-        connection.schema = tenantResolver.resolveCurrentTenantIdentifier()
-        return ResettingConnection(connection)
+    private fun currentTenant() = tenantResolver.resolveCurrentTenantIdentifier()
+
+    private fun transactionConnection(): Connection {
+        val connection = transactionAwareDataSource.connection
+        val tenant = currentTenant()
+        val boundSchema = connection.schema
+        if (boundSchema != tenant) {
+            connection.close()
+            error("Transaction is bound to schema '$boundSchema' but the current tenant is '$tenant'")
+        }
+        return connection
     }
 }
 
-/** Resets the search path before the pool gets the connection back, and always closes it, like the Hibernate provider. */
 private class ResettingConnection(private val delegate: Connection) : Connection by delegate {
-    override fun close() {
-        try {
-            delegate.schema = TenantContext.PUBLIC_SCHEMA
-        } finally {
-            delegate.close()
-        }
-    }
+    override fun close() = delegate.resetAndClose()
 }

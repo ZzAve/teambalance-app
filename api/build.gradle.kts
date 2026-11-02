@@ -147,6 +147,7 @@ tasks.named<BootRun>("bootRun") {
 detekt {
     buildUponDefaultConfig = true
     config.setFrom(files("$projectDir/detekt.yml"))
+    source.setFrom("src/main/java", "src/main/kotlin", "src/test/java", "src/test/kotlin", "src/jooqCodegen/kotlin")
 }
 
 // Wirespec code generation
@@ -172,16 +173,27 @@ tasks.register<CompileWirespecTask>("wirespec-typescript") {
     strict.set(true)
 }
 
+val jooqGeneratedSources = layout.buildDirectory.dir("generated-src/jooq")
+val migrationsDirectory = layout.projectDirectory.dir("src/main/resources/db")
+
 sourceSets {
+    create("jooqCodegen")
     main {
         kotlin {
             srcDir(layout.buildDirectory.dir("generated/wirespec/kotlin"))
+        }
+        java {
+            srcDir(jooqGeneratedSources)
         }
     }
 }
 
 tasks.named("compileKotlin") {
     dependsOn("wirespec-kotlin", "jooqCodegen")
+}
+
+tasks.named("compileJava") {
+    dependsOn("jooqCodegen")
 }
 
 // Regenerate the TypeScript client as part of the build so the frontend (app/) always
@@ -194,13 +206,6 @@ tasks.named("build") {
 // jOOQ code generation at build time. The Flyway migrations are applied to an empty Postgres and read
 // back. That Postgres is the one named by JOOQ_CODEGEN_JDBC_URL (+ _USER, _PASSWORD) when set (the
 // Docker build stage has no Docker socket), otherwise a throwaway Testcontainers container.
-val jooqGeneratedSources = layout.buildDirectory.dir("generated-src/jooq")
-val migrationsDirectory = layout.projectDirectory.dir("src/main/resources/db")
-
-sourceSets {
-    create("jooqCodegen")
-}
-
 val jooqCodegenImplementation by configurations.getting
 val jooqCodegenRuntimeOnly by configurations.getting
 
@@ -214,25 +219,24 @@ dependencies {
     jooqCodegenRuntimeOnly("org.postgresql:postgresql")
 }
 
-val jooqCodegen = tasks.register<JavaExec>("jooqCodegen") {
+tasks.register<JavaExec>("jooqCodegen") {
     description = "Generate the jOOQ classes from the Flyway migrations"
     group = "build"
     classpath = sourceSets["jooqCodegen"].runtimeClasspath
     mainClass = "com.github.zzave.teambalance.api.codegen.JooqCodegenKt"
-    args(migrationsDirectory.asFile.absolutePath, jooqGeneratedSources.get().asFile.absolutePath)
+    // Absolute paths go through an argument provider, which is not part of the build cache key.
+    val migrationsPath = migrationsDirectory.asFile.absolutePath
+    val outputPath = jooqGeneratedSources.get().asFile.absolutePath
+    argumentProviders.add(CommandLineArgumentProvider { listOf(migrationsPath, outputPath) })
     listOf("JOOQ_CODEGEN_JDBC_URL", "JOOQ_CODEGEN_JDBC_USER", "JOOQ_CODEGEN_JDBC_PASSWORD").forEach { name ->
         providers.environmentVariable(name).orNull?.let { environment(name, it) }
     }
-    inputs.dir(migrationsDirectory.dir("migration")).withPropertyName("platformMigrations")
-    inputs.dir(migrationsDirectory.dir("tenant-migration")).withPropertyName("tenantMigrations")
+    inputs.dir(migrationsDirectory.dir("migration"))
+        .withPathSensitivity(PathSensitivity.RELATIVE)
+        .withPropertyName("platformMigrations")
+    inputs.dir(migrationsDirectory.dir("tenant-migration"))
+        .withPathSensitivity(PathSensitivity.RELATIVE)
+        .withPropertyName("tenantMigrations")
     outputs.dir(jooqGeneratedSources)
     outputs.cacheIf { true }
-}
-
-sourceSets {
-    main {
-        java {
-            srcDir(jooqCodegen)
-        }
-    }
 }

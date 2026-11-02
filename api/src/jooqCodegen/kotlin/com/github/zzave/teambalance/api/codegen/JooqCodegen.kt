@@ -18,8 +18,6 @@ private const val JDBC_URL_ENV = "JOOQ_CODEGEN_JDBC_URL"
 private const val JDBC_USER_ENV = "JOOQ_CODEGEN_JDBC_USER"
 private const val JDBC_PASSWORD_ENV = "JOOQ_CODEGEN_JDBC_PASSWORD"
 
-private class Database(val url: String, val user: String, val password: String)
-
 /**
  * Generates the jOOQ classes from the real Flyway migrations: migrates `public` and one tenant schema
  * of an empty Postgres, then reads that schema back. Tenant tables are generated without a schema
@@ -29,36 +27,38 @@ private class Database(val url: String, val user: String, val password: String)
  * The Postgres comes from `JOOQ_CODEGEN_JDBC_URL` (+ `_USER`, `_PASSWORD`) when set, otherwise from a
  * throwaway Testcontainers container.
  *
- * Arguments: `<migrationsRoot> <outputDirectory>`, where migrationsRoot holds `migration` and `tenant-migration`.
+ * Arguments: `<migrationsRoot> <outputDirectory>`, where migrationsRoot holds `migration` and
+ * `tenant-migration`.
  */
 fun main(args: Array<String>) {
     val (migrationsRoot, outputDirectory) = args
     val configuredUrl = System.getenv(JDBC_URL_ENV)
     if (configuredUrl != null) {
-        val database = Database(configuredUrl, System.getenv(JDBC_USER_ENV).orEmpty(), System.getenv(JDBC_PASSWORD_ENV).orEmpty())
-        generate(database, migrationsRoot, outputDirectory)
+        val user = System.getenv(JDBC_USER_ENV).orEmpty()
+        val password = System.getenv(JDBC_PASSWORD_ENV).orEmpty()
+        generate(configuredUrl, user, password, migrationsRoot, outputDirectory)
     } else {
         PostgreSQLContainer("postgres:17-alpine").use { postgres ->
             postgres.start()
-            generate(Database(postgres.jdbcUrl, postgres.username, postgres.password), migrationsRoot, outputDirectory)
+            generate(postgres.jdbcUrl, postgres.username, postgres.password, migrationsRoot, outputDirectory)
         }
     }
 }
 
-private fun generate(database: Database, migrationsRoot: String, outputDirectory: String) {
-    migrate(database, migrationsRoot)
-    GenerationTool.generate(configuration(database, outputDirectory))
+private fun generate(url: String, user: String, password: String, migrationsRoot: String, outputDirectory: String) {
+    migrate(url, user, password, migrationsRoot)
+    GenerationTool.generate(configuration(url, user, password, outputDirectory))
 }
 
-private fun migrate(database: Database, migrationsRoot: String) {
+private fun migrate(url: String, user: String, password: String, migrationsRoot: String) {
     Flyway.configure()
-        .dataSource(database.url, database.user, database.password)
+        .dataSource(url, user, password)
         .schemas(PUBLIC_SCHEMA)
         .locations("filesystem:$migrationsRoot/migration")
         .load()
         .migrate()
     Flyway.configure()
-        .dataSource(database.url, database.user, database.password)
+        .dataSource(url, user, password)
         .schemas(TENANT_TEMPLATE_SCHEMA)
         .locations("filesystem:$migrationsRoot/tenant-migration")
         .table("flyway_tenant_schema_history")
@@ -66,10 +66,9 @@ private fun migrate(database: Database, migrationsRoot: String) {
         .migrate()
 }
 
-private fun configuration(database: Database, outputDirectory: String) = Configuration()
+private fun configuration(url: String, user: String, password: String, outputDirectory: String) = Configuration()
     .withJdbc(
-        Jdbc().withDriver("org.postgresql.Driver").withUrl(database.url)
-            .withUser(database.user).withPassword(database.password),
+        Jdbc().withDriver("org.postgresql.Driver").withUrl(url).withUser(user).withPassword(password),
     )
     .withGenerator(
         Generator()

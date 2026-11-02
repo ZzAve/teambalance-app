@@ -35,6 +35,7 @@ class JooqTenantRoutingTest : TeamBalanceIT() {
         }
 
         test("with no tenant resolved, jOOQ tenant-table access fails closed instead of silently hitting public") {
+            // public carries the tenant tables here: a failure proves __no_tenant__ routing, not a missing table.
             tenantSchemaAdapter.provisionPlatformSchema()
             tenantSchemaAdapter.provisionTenantSchema(TenantContext.PUBLIC_SCHEMA)
 
@@ -56,6 +57,20 @@ class JooqTenantRoutingTest : TeamBalanceIT() {
                 }
                 eventTypeNames()
             } shouldNotContain rolledBackName
+        }
+
+        test("a jOOQ call in a transaction fails when the tenant changed since the transaction began") {
+            tenantSchemaAdapter.provisionTenantSchema("team_alpha")
+            tenantSchemaAdapter.provisionTenantSchema("team_beta")
+
+            withTenant("team_alpha") {
+                shouldThrowAny {
+                    transactions.executeWithoutResult {
+                        TenantContext.set("team_beta")
+                        eventTypeNames()
+                    }
+                }
+            }
         }
     }
 

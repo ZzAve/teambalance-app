@@ -240,9 +240,16 @@
   .enough { margin-top: 14px; display: inline-flex; align-items: center; gap: 8px; font-weight: 600; font-size: 0.9375rem; color: #176B49; }
   .oneTap { margin-top: 10px; font-size: 0.9375rem; color: var(--ink-soft); }
 
-  .pot-top { margin-top: 14px; display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
-  .pot-amt { font-family: var(--font-display); font-weight: 800; font-size: 2.75rem; line-height: 1; color: var(--color-blue-dark); font-variant-numeric: tabular-nums; }
   .pot-note { font-size: 0.9375rem; color: var(--ink-soft); }
+  .pot { margin: 16px 0 0; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .pot svg { width: min(220px, 70%); height: auto; overflow: visible; }
+  .pot figcaption { font-size: 0.875rem; color: var(--ink-soft); }
+  .pt-sh { fill: var(--ink); opacity: .14; }
+  .pt-body { fill: var(--cream); stroke: var(--ink); }
+  .pt-lid { fill: var(--color-gold-light); stroke: var(--ink); }
+  .pt-line { fill: none; stroke: var(--ink); }
+  .pt-coin { fill: var(--maybe); stroke: var(--ink); }
+  .pt-txt { fill: var(--color-blue-dark); font-variant-numeric: tabular-nums; }
   .topups { margin-top: 16px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
   .topup {
     min-height: 48px; font: inherit; font-weight: 700; font-size: 1rem; font-variant-numeric: tabular-nums; cursor: pointer;
@@ -290,7 +297,6 @@
     .pair { grid-template-columns: minmax(0, 0.8fr) 56px minmax(0, 1.4fr); gap: 20px; }
     .arrow { display: block; padding-top: 14px; justify-self: center; }
     .smalls { gap: 28px; }
-    .pot-amt { font-size: 3.25rem; }
   }
   @media (max-width: 899px) {
     .hero { gap: 24px; }
@@ -441,9 +447,21 @@
         <div class="ask"><span class="bubble">who still owes for the hall?</span><span class="bubble">tikkie?</span><small>No more scrolling for this</small></div>
         <div class="arrow" aria-hidden="true"><svg width="40" height="24" viewBox="0 0 40 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h30M26 4l8 8-8 8"/></svg></div>
         <div class="answer">
-          <h3>One shared pot</h3>
-          <p>The team's money sits in a real Bunq account. Top up from your phone through a bunq.me link. It runs on trust, so nobody keeps a list of who owes what.</p>
-          <div class="pot-top"><span class="pot-amt">Team pot</span><span class="pot-note">Backed by a Bunq account</span></div>
+          <h3>One pot for the team.</h3>
+          <p>The team's money sits in a real Bunq bank account. Members top up from their phone with a bunq.me link: €10, €20, €50 or an amount of their own.</p>
+          <p class="pot-note">There's no list of who owes what. The pot runs on trust.</p>
+          <figure class="pot">
+            <svg viewBox="0 0 260 190" role="img" aria-label="A pot holding the team's money: €184">
+              <ellipse class="pt-sh" cx="130" cy="176" rx="96" ry="9"/>
+              <path class="pt-body" d="M44 62h172v70a52 52 0 0 1-52 52H96a52 52 0 0 1-52-52z" stroke-width="5" stroke-linejoin="round"/>
+              <path class="pt-line" d="M44 62h172" stroke-width="5" stroke-linecap="round"/>
+              <path class="pt-line" d="M44 84c-26 0-26 40 0 40M216 84c26 0 26 40 0 40" stroke-width="5" stroke-linecap="round"/>
+              <ellipse class="pt-lid" cx="130" cy="58" rx="92" ry="12" stroke-width="5"/>
+              <circle class="pt-coin" cx="96" cy="46" r="15" stroke-width="4"/><circle class="pt-coin" cx="132" cy="38" r="15" stroke-width="4"/><circle class="pt-coin" cx="166" cy="48" r="15" stroke-width="4"/>
+              <text class="pt-txt" x="130" y="140" text-anchor="middle" font-family="Grandstander,cursive" font-weight="800" font-size="34">€184</text>
+            </svg>
+            <figcaption>Example pot, Setpoint VT HS2</figcaption>
+          </figure>
           <div class="topups" role="group" aria-label="Top up amount">
             <button class="topup" type="button" data-v="€10" aria-pressed="false">€10</button>
             <button class="topup" type="button" data-v="€20" aria-pressed="false">€20</button>

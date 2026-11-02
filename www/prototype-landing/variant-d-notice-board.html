@@ -1,0 +1,594 @@
+<!-- PROTOTYPE variant D — The canteen notice board. Throwaway. -->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TeamBalance — The sign-up list, on everyone's phone</title>
+<meta name="description" content="Answer Going, Maybe or Can't in one tap, and keep the team's money pool in one place. Built for volleyball teams.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Grandstander:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../design-tokens/tokens.css">
+<style>
+  :root {
+    --blue: #225C9C;
+    --blue-dark: #1A4A7D;
+    --blue-deep: #143A63;
+    --green: #249E6C;
+    --green-dark: #1D7F57;
+    --gold: #F4B400;
+    --red: #D93025;
+    --cork: #B9773F;
+    --ink: #2B1D0E;
+    --ink-soft: #5C4529;
+    --paper-yellow: #FFF3B4;
+    --paper-sky: #CFE5F6;
+    --paper-pink: #F8C9D6;
+    --paper-manila: #E4C187;
+    --paper-white: #FBF8EF;
+    --paper-mint: #CDEBD9;
+    --display: 'Grandstander', 'Grandstander Variable', cursive;
+    --body: 'DM Sans', 'DM Sans Variable', system-ui, sans-serif;
+    --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+    --lift: 2px 8px 16px rgba(38, 18, 4, 0.34), 0 1px 2px rgba(38, 18, 4, 0.4);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    padding: 0 0 80px;
+    background: var(--blue);
+    background-image: linear-gradient(180deg, #2A68AB 0%, #1F5594 60%, #1A4A7D 100%);
+    background-attachment: fixed;
+    color: var(--ink);
+    font-family: var(--body);
+    font-size: 1rem;
+    line-height: 1.5;
+    overflow-x: clip;
+    accent-color: var(--blue);
+    caret-color: var(--blue);
+  }
+  ::selection { background: var(--gold); color: var(--ink); }
+  a { color: inherit; text-underline-offset: 3px; text-decoration-color: var(--blue); }
+  h1, h2, p { margin: 0; }
+  button, input { font: inherit; }
+  :focus-visible {
+    outline: 3px solid var(--blue-deep);
+    outline-offset: 2px;
+    box-shadow: 0 0 0 2px #fff;
+  }
+  .sr-only {
+    position: absolute; width: 1px; height: 1px; overflow: hidden;
+    clip: rect(0 0 0 0); white-space: nowrap; margin: -1px;
+  }
+
+  .wm { font-family: var(--display); font-weight: 800; letter-spacing: -0.01em; }
+  .frame-top .wm span:first-child { color: #fff; }
+  .frame-top .wm span:last-child { color: #8EE3BB; }
+
+  .frame-top, .frame-bottom {
+    max-width: 1360px; margin: 0 auto;
+    padding: 0 clamp(14px, 3vw, 36px);
+    display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  }
+  .frame-top { min-height: 68px; color: #fff; }
+  .frame-top .wm { font-size: 1.7rem; }
+  .login {
+    display: inline-flex; align-items: center; min-height: 44px; padding: 0 14px;
+    color: #E3EEFA; font-weight: 500; text-decoration-color: #8EB7E4;
+    border-radius: 8px;
+  }
+  .login:hover { color: #fff; text-decoration-color: #fff; }
+  .login:focus-visible { outline-color: #fff; box-shadow: none; }
+
+  .board-wrap { max-width: 1360px; margin: 0 auto; padding: 0 clamp(8px, 2vw, 24px); }
+  .board {
+    position: relative;
+    overflow-x: clip;
+    border-radius: 10px;
+    border: 7px solid #123A66;
+    padding: clamp(26px, 4vw, 60px) clamp(14px, 4vw, 56px) clamp(40px, 6vw, 80px);
+    background-color: var(--cork);
+    background-image:
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='320'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .28 0 0 0 0 .15 0 0 0 0 .05 0 0 0 1.6 -.55'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='m'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.05 .09' numOctaves='2' seed='4' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .95 0 0 0 0 .75 0 0 0 0 .5 0 0 0 .9 -.35'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23m)'/%3E%3C/svg%3E"),
+      radial-gradient(circle at 20% 30%, rgba(80, 40, 15, 0.45) 0 1.4px, transparent 2.2px),
+      radial-gradient(circle at 70% 60%, rgba(236, 196, 140, 0.5) 0 1.2px, transparent 2px),
+      radial-gradient(circle at 45% 85%, rgba(70, 35, 12, 0.35) 0 2px, transparent 3px);
+    background-size: 320px 320px, 240px 240px, 23px 29px, 31px 19px, 47px 41px;
+    box-shadow:
+      inset 0 6px 18px rgba(30, 12, 0, 0.55),
+      inset 0 0 0 2px rgba(20, 8, 0, 0.25),
+      0 10px 30px rgba(8, 28, 52, 0.45);
+  }
+
+  main { display: grid; gap: clamp(56px, 8vw, 104px); max-width: 1240px; margin: 0 auto; }
+  .row { display: grid; gap: clamp(36px, 5vw, 56px); align-items: start; }
+  .row-hero { grid-template-columns: minmax(0, 1.12fr) minmax(0, 1fr); gap: clamp(32px, 5vw, 64px); }
+  .row-money { grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); }
+  .row-small { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); }
+
+  .paper {
+    position: relative;
+    transform: rotate(var(--r, 0deg));
+    box-shadow: var(--lift);
+    padding: 34px 26px 26px;
+    color: var(--ink);
+    border-radius: 2px;
+  }
+  .paper h1, .paper h2 { font-family: var(--display); font-weight: 800; line-height: 1.08; letter-spacing: -0.01em; }
+  .paper h2 { font-size: clamp(1.45rem, 2.4vw, 1.9rem); margin-bottom: 10px; }
+  .paper p { max-width: 62ch; }
+  .paper p + p { margin-top: 10px; }
+  .soft { color: var(--ink-soft); }
+
+  .pin {
+    position: absolute; top: -14px; left: 50%; width: 30px; height: 36px;
+    margin-left: -15px; z-index: 3; color: var(--red);
+    filter: drop-shadow(1px 3px 2px rgba(30, 10, 0, 0.35));
+    pointer-events: none;
+  }
+  .pin.left { left: 12%; }
+  .pin.right { left: auto; right: 10%; margin-left: 0; }
+  .pin.blue { color: #2D6FB5; }
+  .pin.yellow { color: var(--gold); }
+  .pin.green { color: var(--green); }
+  .pin.purple { color: #7B5EA7; }
+  .pin.orange { color: #E87C3E; }
+  .pin.white { color: #F2EFE6; }
+
+  .tape {
+    position: absolute; top: -16px; left: 50%; width: 110px; height: 32px;
+    margin-left: -55px; transform: rotate(var(--tr, -3deg)); z-index: 3;
+    background: rgba(246, 236, 200, 0.82);
+    box-shadow: 0 2px 5px rgba(40, 20, 0, 0.22);
+    clip-path: polygon(0 8%, 5% 0, 10% 10%, 15% 0, 20% 8%, 100% 0, 96% 25%, 100% 50%, 96% 75%, 100% 100%, 90% 92%, 85% 100%, 80% 92%, 0 100%, 4% 75%, 0 50%, 4% 25%);
+  }
+
+  .poster { --r: -1.2deg; background: var(--paper-white); padding-top: 40px; }
+  .poster h1 { font-size: clamp(2.15rem, 5.2vw, 3.6rem); color: var(--blue); margin-bottom: 16px; }
+  .poster h1 mark { background: none; color: var(--blue); box-shadow: inset 0 -0.28em 0 rgba(244, 180, 0, 0.55); }
+  .poster .lead { font-size: 1.125rem; margin-bottom: 22px; }
+
+  .request { display: grid; gap: 10px; }
+  .request .fields { display: flex; flex-wrap: wrap; gap: 10px; }
+  .request input[type="email"] {
+    flex: 1 1 220px; min-width: 0; min-height: 52px; padding: 0 14px;
+    border: 2px solid var(--blue-dark); border-radius: 8px;
+    background: #fff; color: #1E293B;
+  }
+  .request input::placeholder { color: #5F6B7E; }
+  .request input[aria-invalid="true"] { border-color: var(--red); }
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    min-height: 52px; padding: 0 20px; border-radius: 8px; border: 2px solid var(--blue);
+    font-weight: 700; text-decoration: none; cursor: pointer;
+    transition: background-color 0.2s var(--ease-out), box-shadow 0.2s var(--ease-out);
+  }
+  .btn-primary { background: var(--blue); color: #fff; box-shadow: 0 2px 0 var(--blue-deep), 0 4px 10px rgba(20, 58, 99, 0.3); }
+  .btn-primary:hover { background: var(--blue-dark); }
+  .btn-primary:active { box-shadow: none; transform: translateY(1px); }
+  .btn-primary:disabled { background: #7F9CBD; border-color: #7F9CBD; cursor: not-allowed; box-shadow: none; }
+  .btn-ghost { background: transparent; color: var(--blue-dark); }
+  .btn-ghost:hover { background: rgba(34, 92, 156, 0.1); }
+  .msg { min-height: 1.5em; font-weight: 500; font-size: 0.95rem; }
+  .msg.error { color: #B3261E; }
+  .msg.ok { color: #14683F; }
+  .alt { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 8px; }
+  .alt .soft { font-size: 0.95rem; }
+
+  .signup { --r: 1.6deg; background: var(--paper-yellow); padding-top: 38px; }
+  .signup h2 { margin-bottom: 2px; }
+  .signup .where { font-size: 0.95rem; color: var(--ink-soft); margin-bottom: 12px; }
+  .signup table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+  .signup th, .signup td { padding: 0; text-align: center; border-bottom: 1.5px solid rgba(120, 90, 20, 0.28); }
+  .signup th { font-size: 0.8rem; font-weight: 700; padding: 4px 0 6px; letter-spacing: 0.01em; }
+  .signup th:first-child, .signup td:first-child { text-align: left; width: 34%; }
+  .signup td:first-child { padding-left: 4px; font-weight: 500; }
+  .signup tbody tr { height: 36px; }
+  .signup tbody td svg { width: 24px; height: 22px; vertical-align: middle; }
+  .signup .none { color: #6E5A27; font-style: italic; font-size: 0.85rem; }
+  .signup tr.you { height: 52px; background: rgba(255, 255, 255, 0.55); }
+  .signup tr.you td:first-child { font-family: var(--display); font-weight: 800; font-size: 1.1rem; }
+  .signup tr.blank td { height: 36px; }
+  .mark { fill: none; stroke: currentColor; stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; }
+  .c-going { color: var(--green); }
+  .c-maybe { color: var(--gold); }
+  .c-cant { color: var(--red); }
+
+  .pick {
+    width: 100%; max-width: 62px; height: 44px; margin: 4px auto; padding: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: #FFFDF0; border: 2px dashed rgba(110, 80, 10, 0.5); border-radius: 8px;
+    cursor: pointer; transition: border-color 0.2s var(--ease-out), background-color 0.2s var(--ease-out);
+  }
+  .pick:hover { border-style: solid; border-color: var(--ink); background: #fff; }
+  .pick[aria-pressed="true"] { background: #fff; border-style: solid; border-color: rgba(110, 80, 10, 0.7); }
+  .pick:disabled { opacity: 0.5; cursor: not-allowed; }
+  .pick svg { width: 30px; height: 28px; }
+  .pick .mark { stroke-dasharray: 1; stroke-dashoffset: 1; }
+  .pick[aria-pressed="true"] .mark { animation: draw 0.7s var(--ease-out) both; }
+  @keyframes draw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+
+  .tally { margin-top: 14px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 14px; }
+  .tally-line { font-weight: 700; font-variant-numeric: tabular-nums; }
+  .tally-line i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin: 0 5px 0 0; vertical-align: baseline; }
+  .tally-line span + span { margin-left: 4px; }
+  .stamp {
+    font-size: 0.85rem; font-weight: 700; padding: 3px 10px; border: 2px dashed #7A5F1E;
+    border-radius: 6px; color: #5E4710; transform: rotate(-2deg);
+    transition: color 0.3s var(--ease-out), border-color 0.3s var(--ease-out);
+  }
+  .stamp.enough { color: #14683F; border-color: #14683F; border-style: solid; }
+  .signup .hint { font-size: 0.9rem; color: var(--ink-soft); margin-top: 10px; }
+
+  .pot { --r: -1.8deg; background: var(--paper-manila); padding-top: 96px; }
+  .pot::before {
+    content: ""; position: absolute; inset: 0 0 auto 0; height: 78px;
+    background: #D2AB68; clip-path: polygon(0 0, 100% 0, 50% 100%);
+    box-shadow: inset 0 -3px 6px rgba(80, 45, 0, 0.2);
+  }
+  .pot > * { position: relative; }
+  .pot .to { font-size: 0.9rem; color: var(--ink-soft); }
+  .pot .balance { font-family: var(--display); font-weight: 800; font-size: clamp(2.4rem, 5vw, 3.2rem); line-height: 1.1; font-variant-numeric: tabular-nums; margin: 4px 0 2px; color: #8A2E12; }
+  .pot .balance small { font-family: var(--body); font-size: 0.85rem; font-weight: 500; color: var(--ink-soft); margin-left: 6px; }
+  .tabs { display: flex; gap: 8px; margin: 22px 0 6px; padding-top: 14px; border-top: 2px dashed rgba(90, 55, 10, 0.55); }
+  .tab {
+    flex: 1; min-height: 62px; padding: 8px 0; cursor: pointer;
+    background: #F2DDB0; color: var(--ink); border: 2px solid rgba(90, 55, 10, 0.3); border-top: 0;
+    border-radius: 0 0 8px 8px;
+    font-family: var(--display); font-weight: 800; font-size: 1.5rem; font-variant-numeric: tabular-nums;
+    box-shadow: 0 1px 2px rgba(60, 30, 0, 0.25);
+    transition: transform 0.35s var(--ease-out), background-color 0.2s var(--ease-out), box-shadow 0.35s var(--ease-out);
+  }
+  .tab:hover { background: #FBEBC6; }
+  .tab[aria-pressed="true"] {
+    background: #fff; border-color: var(--blue); border-width: 3px; border-top: 0; color: var(--blue-dark);
+    transform: translateY(12px) rotate(var(--tt, 2deg));
+    box-shadow: 1px 7px 12px rgba(50, 25, 0, 0.35);
+  }
+  .tab:nth-child(1) { --tt: -2deg; }
+  .tab:nth-child(3) { --tt: 1.5deg; }
+  .pot .pick-msg { margin-top: 22px; font-weight: 500; min-height: 3em; }
+
+  .schedule { --r: 1.2deg; background: var(--paper-sky); color: #10304F; padding-bottom: 0; }
+  .schedule h2 { color: #0F3A66; }
+  .schedule .soft { color: #35577C; }
+  .schedule ul { list-style: none; margin: 14px 0 0; padding: 0; }
+  .schedule li { display: grid; grid-template-columns: 5.2rem 1fr; gap: 4px 12px; padding: 12px 0; border-top: 1.5px dotted rgba(16, 48, 79, 0.5); }
+  .schedule li b { font-variant-numeric: tabular-nums; }
+  .schedule li span.what { font-weight: 700; }
+  .schedule li span.hall { grid-column: 2; font-size: 0.92rem; color: #35577C; }
+  .subscribe {
+    display: flex; align-items: center; gap: 14px; margin: 14px -26px 0; padding: 14px 26px;
+    background: #0F3A66; color: #fff; text-decoration: none; border-top: 2px dashed #CFE5F6;
+    min-height: 64px; transition: background-color 0.2s var(--ease-out);
+  }
+  .subscribe:hover { background: #164C85; }
+  .subscribe:hover .sub-title { text-decoration: underline; text-underline-offset: 3px; }
+  .subscribe:focus-visible { outline-color: #fff; outline-offset: -6px; box-shadow: none; }
+  .subscribe svg { flex: none; width: 30px; height: 30px; }
+  .sub-title { display: block; font-weight: 700; }
+  .sub-text { display: block; font-size: 0.9rem; color: #BBD6EF; }
+
+  .small-stack { display: flex; flex-wrap: wrap; gap: 40px 26px; align-items: flex-start; padding-top: 12px; }
+  .index-card {
+    flex: 1 1 220px; max-width: 300px; padding: 34px 22px 24px;
+    background-color: #FFFEF8;
+    background-image: linear-gradient(transparent 0 39px, rgba(60, 120, 190, 0.35) 39px 40px);
+    background-size: 100% 28px; background-position: 0 30px;
+  }
+  .index-card::after { content: ""; position: absolute; left: 0; right: 0; top: 26px; height: 2px; background: rgba(217, 48, 37, 0.55); }
+  .index-card h2 { font-size: 1.45rem; }
+  .index-b { margin-top: 28px; background-color: #FDFBEF; }
+  .sticky { flex: 1 1 220px; max-width: 300px; margin-top: 18px; background: var(--paper-mint); padding: 28px 22px 22px; color: #17402D; }
+  .sticky h2 { font-size: 1.25rem; }
+
+  .photo { --r: 2deg; background: #FFFEFA; padding: 16px 16px 22px; }
+  .photo .snap {
+    position: relative; aspect-ratio: 4 / 3; overflow: hidden; border-radius: 2px;
+    background: linear-gradient(180deg, #CBD8E2 0%, #B7C6D2 62%, #A6A08E 62%, #8F8A7A 100%);
+    filter: saturate(0.55) sepia(0.2); opacity: 0.92;
+  }
+  .snap .net { position: absolute; left: 0; right: 0; top: 36%; height: 10%; border-top: 3px solid rgba(255, 255, 255, 0.7); background: repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.5) 0 1px, transparent 1px 9px), repeating-linear-gradient(180deg, rgba(255, 255, 255, 0.5) 0 1px, transparent 1px 9px); }
+  .snap .crew { position: absolute; left: 6%; right: 6%; bottom: 8%; display: flex; justify-content: space-between; align-items: flex-end; }
+  .snap .crew i { position: relative; display: block; width: 13%; height: 36%; min-height: 56px; border-radius: 40% 40% 8px 8px; background: var(--c); }
+  .snap .crew i:nth-child(odd) { transform: translateY(10px); }
+  .snap .crew i::before { content: ""; position: absolute; left: 50%; top: -52%; width: 78%; aspect-ratio: 1; margin-left: -39%; border-radius: 50%; background: #D8B193; }
+  .snap .tagline {
+    position: absolute; right: 8px; top: 8px; padding: 2px 8px; font-size: 0.75rem; font-weight: 700;
+    background: rgba(255, 255, 255, 0.9); color: #3A4A5C; border-radius: 4px; filter: none;
+  }
+  .photo h2 { margin-top: 18px; font-size: clamp(1.3rem, 2.2vw, 1.6rem); }
+  .photo p { font-size: 0.97rem; }
+
+  .flyer-wrap { max-width: 780px; margin: 0 auto; width: 100%; }
+  .flyer { --r: -0.8deg; background: var(--paper-pink); padding: 40px clamp(20px, 4vw, 40px) 0; color: #3B1523; }
+  .flyer h2 { font-size: clamp(2rem, 4.6vw, 3rem); color: #7A1F3E; margin-bottom: 8px; }
+  .flyer .soft { color: #6E2A41; }
+  .flyer .request { margin-top: 18px; }
+  .flyer .btn-ghost { border-color: #7A1F3E; color: #6B1735; }
+  .flyer .btn-ghost:hover { background: rgba(122, 31, 62, 0.1); }
+  .flyer .msg.error { color: #A31B15; }
+  .flyer .msg.ok { color: #0F5F37; }
+  .strips {
+    display: flex; margin: 26px calc(-1 * clamp(20px, 4vw, 40px)) 0;
+    border-top: 2px dashed rgba(122, 31, 62, 0.6);
+  }
+  .strips span {
+    flex: 1; min-height: 112px; padding: 10px 0; display: flex; align-items: center; justify-content: center;
+    writing-mode: vertical-rl; transform: rotate(180deg);
+    font-size: 0.85rem; font-weight: 700; color: #6B1735; letter-spacing: 0.02em; white-space: nowrap;
+    border-right: 1.5px dashed rgba(122, 31, 62, 0.55);
+  }
+  .strips span:first-child { border-right: 1.5px dashed rgba(122, 31, 62, 0.55); }
+  .strips span:last-child { border-left: 0; border-right: 0; }
+
+  .frame-bottom { margin-top: 22px; min-height: 60px; color: #CFE0F2; flex-wrap: wrap; }
+  .frame-bottom .wm { font-size: 1.35rem; }
+  .frame-bottom .wm span:first-child { color: #fff; }
+  .frame-bottom .wm span:last-child { color: #8EE3BB; }
+  .frame-bottom .links { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+  .frame-bottom a { color: #E3EEFA; min-height: 44px; display: inline-flex; align-items: center; }
+  .frame-bottom a:focus-visible { outline-color: #fff; box-shadow: none; }
+
+  @media (max-width: 860px) {
+    .row-hero, .row-money, .row-small { grid-template-columns: minmax(0, 1fr); }
+    .photo { max-width: 420px; justify-self: center; }
+    .small-stack { justify-content: center; }
+  }
+  @media (max-width: 520px) {
+    .paper { padding: 36px 18px 22px; }
+    .subscribe { margin-left: -18px; margin-right: -18px; padding-left: 18px; padding-right: 18px; }
+    .request .btn { width: 100%; }
+    .alt .btn { flex: 1 1 100%; }
+    .signup th:first-child, .signup td:first-child { width: 31%; }
+    .pick { max-width: 56px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .pick[aria-pressed="true"] .mark { animation: none; stroke-dashoffset: 0; }
+    * { transition-duration: 0.01ms !important; }
+  }
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <symbol id="pin" viewBox="0 0 30 36">
+      <ellipse cx="17" cy="29" rx="8" ry="4" fill="#000" opacity="0.2"/>
+      <rect x="13" y="16" width="4" height="15" rx="2" fill="#8C8C8C"/>
+      <circle cx="15" cy="13" r="11" fill="currentColor"/>
+      <circle cx="15" cy="13" r="11" fill="none" stroke="#000" stroke-opacity="0.22" stroke-width="1.5"/>
+      <circle cx="15" cy="13" r="6" fill="#000" fill-opacity="0.12"/>
+      <ellipse cx="11" cy="8.5" rx="3.6" ry="2.4" fill="#fff" fill-opacity="0.55" transform="rotate(-30 11 8.5)"/>
+    </symbol>
+    <symbol id="tick-going" viewBox="0 0 30 28"><path class="mark" pathLength="1" d="M4 15.5 L11.5 23 C15 14 20 8 26.5 3.5"/></symbol>
+    <symbol id="tick-maybe" viewBox="0 0 30 28"><path class="mark" pathLength="1" d="M3.5 15 C7 6.5 10.5 6 14 14.5 C17.5 23 21.5 22 26.5 11"/></symbol>
+    <symbol id="tick-cant" viewBox="0 0 30 28"><path class="mark" pathLength="1" d="M6 4.5 L24 23.5 M24.5 4 L5.5 23"/></symbol>
+  </defs>
+</svg>
+
+<header class="frame-top">
+  <a class="wm" href="#top" style="text-decoration:none" aria-label="TeamBalance"><span>Team</span><span>Balance</span></a>
+  <a class="login" href="https://app.teambalance.nl">Log in</a>
+</header>
+
+<div class="board-wrap" id="top">
+<div class="board">
+<main>
+
+  <section class="row row-hero" aria-label="Sign up and try it">
+    <div class="paper poster">
+      <svg class="pin" aria-hidden="true"><use href="#pin"/></svg>
+      <h1>The sign-up list, but it's on <mark>everyone's phone.</mark></h1>
+      <p class="lead">Everyone answers Going, Maybe or Can't. You see who's coming and whether you have enough players. The team's money pot lives here too.</p>
+
+      <form class="request" novalidate data-request>
+        <label class="sr-only" for="email-hero">Your email address</label>
+        <div class="fields">
+          <input id="email-hero" type="email" name="email" inputmode="email" autocomplete="email" placeholder="you@example.com" aria-describedby="msg-hero">
+          <button class="btn btn-primary" type="submit">Request your team</button>
+        </div>
+        <p class="msg" id="msg-hero" role="status" aria-live="polite"></p>
+      </form>
+      <div class="alt">
+        <a class="btn btn-ghost" href="#demo">Try the demo team</a>
+        <span class="soft">No password. We mail you a link.</span>
+      </div>
+    </div>
+
+    <div class="paper signup" id="demo">
+      <svg class="pin" aria-hidden="true" style="color:#D93025"><use href="#pin"/></svg>
+      <h2>Training · Thu 20:30</h2>
+      <p class="where">Sporthal Galgenwaard · Setpoint VT HS2</p>
+      <table>
+        <thead>
+          <tr><th scope="col"><span class="sr-only">Name</span></th><th scope="col">Going</th><th scope="col">Maybe</th><th scope="col">Can't</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Sanne</td><td><svg class="c-going" aria-label="Going"><use href="#tick-going"/></svg></td><td></td><td></td></tr>
+          <tr><td>Daan</td><td><svg class="c-going" aria-label="Going"><use href="#tick-going"/></svg></td><td></td><td></td></tr>
+          <tr><td>Femke</td><td></td><td><svg class="c-maybe" aria-label="Maybe"><use href="#tick-maybe"/></svg></td><td></td></tr>
+          <tr><td>Joost</td><td><svg class="c-going" aria-label="Going"><use href="#tick-going"/></svg></td><td></td><td></td></tr>
+          <tr><td>Lotte</td><td><svg class="c-going" aria-label="Going"><use href="#tick-going"/></svg></td><td></td><td></td></tr>
+          <tr><td>Bram</td><td></td><td></td><td><svg class="c-cant" aria-label="Can't"><use href="#tick-cant"/></svg></td></tr>
+          <tr><td>Iris</td><td><svg class="c-going" aria-label="Going"><use href="#tick-going"/></svg></td><td></td><td></td></tr>
+          <tr><td>Ruben</td><td></td><td><svg class="c-maybe" aria-label="Maybe"><use href="#tick-maybe"/></svg></td><td></td></tr>
+          <tr><td>Noor</td><td></td><td></td><td><svg class="c-cant" aria-label="Can't"><use href="#tick-cant"/></svg></td></tr>
+          <tr><td>Thijs</td><td></td><td><svg class="c-maybe" aria-label="Maybe"><use href="#tick-maybe"/></svg></td><td></td></tr>
+          <tr><td>Eva</td><td colspan="3" class="none">Not responded</td></tr>
+          <tr class="you" id="you-row">
+            <td>You</td>
+            <td><button type="button" class="pick c-going" data-v="going" aria-pressed="false" aria-label="You: Going"><svg aria-hidden="true"><use href="#tick-going"/></svg></button></td>
+            <td><button type="button" class="pick c-maybe" data-v="maybe" aria-pressed="false" aria-label="You: Maybe"><svg aria-hidden="true"><use href="#tick-maybe"/></svg></button></td>
+            <td><button type="button" class="pick c-cant" data-v="cant" aria-pressed="false" aria-label="You: Can't"><svg aria-hidden="true"><use href="#tick-cant"/></svg></button></td>
+          </tr>
+          <tr class="blank"><td></td><td></td><td></td><td></td></tr>
+        </tbody>
+      </table>
+      <div class="tally">
+        <p class="tally-line" id="tally" aria-live="polite">
+          <span><i style="background:#249E6C"></i><b id="n-going">5</b> going</span> ·
+          <span><i style="background:#F4B400"></i><b id="n-maybe">3</b> maybe</span> ·
+          <span><i style="background:#D93025"></i><b id="n-cant">2</b> can't</span>
+        </p>
+        <span class="stamp" id="stamp">Need 6 going</span>
+      </div>
+      <p class="hint">Tap a box to write yourself in. Tap another to move your tick.</p>
+    </div>
+  </section>
+
+  <section class="row row-money" aria-label="Money pot and schedule">
+    <div class="paper pot">
+      <svg class="pin blue" aria-hidden="true"><use href="#pin"/></svg>
+      <p class="to">Setpoint VT HS2</p>
+      <h2>The team pot</h2>
+      <p class="balance">€84,50 <small>example</small></p>
+      <p>One shared pot, backed by a real Bunq bank account. Chip in from your phone. Built on trust: nobody tracks who owes what.</p>
+      <div class="tabs" role="group" aria-label="Top up amount">
+        <button type="button" class="tab" data-amount="10" aria-pressed="false">€10</button>
+        <button type="button" class="tab" data-amount="20" aria-pressed="true">€20</button>
+        <button type="button" class="tab" data-amount="50" aria-pressed="false">€50</button>
+      </div>
+      <p class="pick-msg" id="pick-msg" role="status" aria-live="polite">Tear off €20 and a bunq.me link opens on your phone. Or pick any amount.</p>
+    </div>
+
+    <div class="paper schedule">
+      <svg class="pin left" aria-hidden="true" style="color:#D93025"><use href="#pin"/></svg>
+      <svg class="pin right yellow" aria-hidden="true"><use href="#pin"/></svg>
+      <h2>Schedule · Setpoint VT HS2</h2>
+      <p class="soft">Trainings, matches and socials, all on one sheet.</p>
+      <ul>
+        <li><b>Thu 20:30</b><span class="what">Training</span><span class="hall">Sporthal Galgenwaard</span></li>
+        <li><b>Fri 21:00</b><span class="what">Social</span><span class="hall">Café De Rijn</span></li>
+        <li><b>Sat 14:00</b><span class="what">Match</span><span class="hall">Sporthal Hogeweide</span></li>
+      </ul>
+      <a class="subscribe" href="#calendar" id="calendar">
+        <svg viewBox="0 0 30 30" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="6" width="23" height="20" rx="3"/><path d="M3.5 12.5h23M9.5 3.5v5M20.5 3.5v5M10 18l3.5 3.5L20.5 16"/></svg>
+        <span><span class="sub-title">Subscribe in your calendar</span><span class="sub-text">Once. Every training and match shows up.</span></span>
+      </a>
+    </div>
+  </section>
+
+  <section class="row row-small" aria-label="Small things and where it comes from">
+    <div class="small-stack">
+      <div class="paper index-card" style="--r:-2deg">
+        <svg class="pin green" aria-hidden="true"><use href="#pin"/></svg>
+        <h2>No passwords</h2>
+        <p>We mail you a link. Tap it and you're in.</p>
+      </div>
+      <div class="paper index-card index-b" style="--r:1.6deg">
+        <svg class="pin yellow" aria-hidden="true"><use href="#pin"/></svg>
+        <h2>One invite link for the whole team</h2>
+        <p>Drop it in the team chat. Everyone joins from the same link.</p>
+      </div>
+      <div class="paper sticky" style="--r:-1.2deg">
+        <svg class="pin purple" aria-hidden="true"><use href="#pin"/></svg>
+        <h2>Short a player?</h2>
+        <p>Add a Substitute for one event. They don't have to be a member.</p>
+      </div>
+    </div>
+
+    <div class="paper photo">
+      <div class="tape" aria-hidden="true"></div>
+      <div class="snap" role="img" aria-label="Illustrative drawing of a volleyball team lined up at the net">
+        <span class="net"></span>
+        <span class="crew" aria-hidden="true">
+          <i style="--c:#4F7FB0"></i><i style="--c:#5FA383"></i><i style="--c:#C9A13A"></i><i style="--c:#B5645E"></i><i style="--c:#8E7BB0"></i>
+        </span>
+        <span class="tagline">Illustrative</span>
+      </div>
+      <h2>Started for two volleyball teams at Tovo Utrecht.</h2>
+      <p>It began as a hobby tool for those two teams.</p>
+    </div>
+  </section>
+
+  <section class="flyer-wrap" aria-label="Request your team">
+    <div class="paper flyer">
+      <svg class="pin left" aria-hidden="true" style="color:#2D6FB5"><use href="#pin"/></svg>
+      <svg class="pin right" aria-hidden="true" style="color:#F4B400"><use href="#pin"/></svg>
+      <h2>Request your team</h2>
+      <p class="soft">Leave your email. We'll mail you a link to set up your team.</p>
+      <form class="request" novalidate data-request>
+        <label class="sr-only" for="email-end">Your email address</label>
+        <div class="fields">
+          <input id="email-end" type="email" name="email" inputmode="email" autocomplete="email" placeholder="you@example.com" aria-describedby="msg-end">
+          <button class="btn btn-primary" type="submit">Request your team</button>
+        </div>
+        <p class="msg" id="msg-end" role="status" aria-live="polite"></p>
+      </form>
+      <div class="alt"><a class="btn btn-ghost" href="#demo">Try the demo team</a></div>
+      <div class="strips" aria-hidden="true">
+        <span>TeamBalance</span><span>Request your team</span><span>teambalance.nl</span><span>TeamBalance</span><span>Request your team</span><span>teambalance.nl</span><span>TeamBalance</span>
+      </div>
+    </div>
+  </section>
+
+</main>
+</div>
+</div>
+
+<footer class="frame-bottom">
+  <span class="wm"><span>Team</span><span>Balance</span></span>
+  <div class="links">
+    <a href="https://app.teambalance.nl">Log in</a>
+    <span>Made in Utrecht</span>
+  </div>
+</footer>
+
+<script>
+(function () {
+  var base = { going: 5, maybe: 3, cant: 2 };
+  var you = null;
+  var picks = document.querySelectorAll('.pick');
+  var stamp = document.getElementById('stamp');
+
+  function render() {
+    ['going', 'maybe', 'cant'].forEach(function (k) {
+      document.getElementById('n-' + k).textContent = base[k] + (you === k ? 1 : 0);
+    });
+    var going = base.going + (you === 'going' ? 1 : 0);
+    var enough = going >= 6;
+    stamp.textContent = enough ? 'Enough players' : 'Need 6 going';
+    stamp.classList.toggle('enough', enough);
+    picks.forEach(function (b) {
+      b.setAttribute('aria-pressed', String(b.dataset.v === you));
+    });
+  }
+  picks.forEach(function (b) {
+    b.addEventListener('click', function () {
+      you = (you === b.dataset.v) ? null : b.dataset.v;
+      render();
+    });
+  });
+
+  var tabs = document.querySelectorAll('.tab');
+  var pickMsg = document.getElementById('pick-msg');
+  tabs.forEach(function (t) {
+    t.addEventListener('click', function () {
+      tabs.forEach(function (o) { o.setAttribute('aria-pressed', String(o === t)); });
+      pickMsg.textContent = 'Tear off €' + t.dataset.amount + ' and a bunq.me link opens on your phone. Or pick any amount.';
+    });
+  });
+
+  document.querySelectorAll('[data-request]').forEach(function (form) {
+    var input = form.querySelector('input');
+    var msg = form.querySelector('.msg');
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var ok = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input.value.trim());
+      input.setAttribute('aria-invalid', String(!ok));
+      msg.className = 'msg ' + (ok ? 'ok' : 'error');
+      msg.textContent = ok
+        ? "Thanks — we'll mail you a link to set up your team."
+        : 'Enter a valid email address so we know where to send the link.';
+      if (!ok) input.focus();
+    });
+  });
+})();
+</script>
+</body>
+</html>

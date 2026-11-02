@@ -12,7 +12,6 @@ import org.hamcrest.Matchers
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
-import org.springframework.context.annotation.Import
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.http.MediaType
 import org.springframework.test.web.servlet.MockMvc
@@ -39,7 +38,6 @@ private const val TEAM_ID = "a0000000-0000-0000-0000-000000000001"
  * Bunq reachable, nothing cached) and removes its member after it runs.
  */
 @AutoConfigureMockMvc
-@Import(SwitchableBunqGatewayConfig::class)
 class MoneyPoolControllerIT : TeamBalanceIT() {
 
     @Autowired

@@ -17,6 +17,11 @@ teambalance:
     token-salt: test-calendar-link-salt
     token-encryption-key: dGVhbWJhbGFuY2UtdGVzdC1jYWxlbmRhci1rZXktMTI=
   frontend-base-url: http://localhost:5173
+  # Every Platform Admin email the ITs sign in as, in one list: a per-class @TestPropertySource would
+  # give each class its own Spring context. Each IT seeds its own admin, so the others stay unused.
+  platform-admins: >-
+    platform-admin@test.com, act-as-operator@test.com, act-as-it-operator@test.com,
+    money-operator@test.com, cal-link-operator@test.com, codes-admin@test.com, memberless-admin@test.com
   bunq:
     # Hardcoded for the test profile; live supplies TEAMBALANCE_BUNQ_TOKEN_ENCRYPTION_KEY.
     connect-enabled: true

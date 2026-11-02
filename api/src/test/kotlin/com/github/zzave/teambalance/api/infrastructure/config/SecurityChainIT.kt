@@ -1,7 +1,6 @@
 package com.github.zzave.teambalance.api.infrastructure.config
 
 import com.github.zzave.teambalance.api.TeamBalanceIT
-import com.github.zzave.teambalance.api.domain.port.EmailGateway
 import com.github.zzave.teambalance.api.infrastructure.email.FakeEmailGateway
 import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.nulls.shouldNotBeNull
@@ -9,12 +8,8 @@ import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import jakarta.servlet.http.Cookie
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.test.context.TestConfiguration
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
 import org.springframework.context.ApplicationContext
-import org.springframework.context.annotation.Bean
-import org.springframework.context.annotation.Import
-import org.springframework.context.annotation.Primary
 import org.springframework.http.MediaType
 import org.springframework.mock.web.MockHttpServletResponse
 import org.springframework.security.core.userdetails.UserDetailsService
@@ -32,15 +27,7 @@ import java.util.UUID
  * controller runs.
  */
 @AutoConfigureMockMvc
-@Import(SecurityChainIT.TestConfig::class)
 class SecurityChainIT : TeamBalanceIT() {
-
-    @TestConfiguration
-    class TestConfig {
-        @Bean
-        @Primary
-        fun emailGateway(): EmailGateway = FakeEmailGateway()
-    }
 
     @Autowired
     lateinit var mockMvc: MockMvc

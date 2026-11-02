@@ -15,10 +15,8 @@ import io.kotest.matchers.shouldBe
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
-import org.springframework.context.annotation.Import
 import org.springframework.http.MediaType
 import org.springframework.jdbc.core.JdbcTemplate
-import org.springframework.test.context.TestPropertySource
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.ResultActions
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder
@@ -39,8 +37,6 @@ private const val OPERATOR_EMAIL = "money-operator@test.com"
  * the admin-only money pool settings are open to them like to a real Admin.
  */
 @AutoConfigureMockMvc
-@Import(SwitchableBunqGatewayConfig::class)
-@TestPropertySource(properties = ["teambalance.platform-admins=$OPERATOR_EMAIL"])
 class MoneyPoolActAsIT : TeamBalanceIT() {
 
     @Autowired

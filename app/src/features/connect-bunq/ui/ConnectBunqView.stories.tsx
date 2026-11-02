@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
-import { expect, fn, within } from 'storybook/test'
+import { expect, fn, waitFor, within } from 'storybook/test'
 import { Stack } from '@shared/testing/stack'
 import { darkMode } from '../../../../.storybook/modes'
 import { ConnectBunqView } from './ConnectBunqView'
@@ -107,8 +107,9 @@ export const Shells: Story = {
       await expect(region(name).queryByText(/You declined at Bunq/)).not.toBeInTheDocument()
     }
     // The status takes focus (the button pressed is gone). Each disconnected frame focuses its own on mount and
-    // effects run in render order, so the last of them is the one that holds it.
-    await expect(region('Disconnected, stale failure').getByRole('status')).toHaveFocus()
+    // effects run in render order, so the last of them is the one that holds it. A production build (Chromatic)
+    // runs those effects after play has started, so wait for them.
+    await waitFor(() => expect(region('Disconnected, stale failure').getByRole('status')).toHaveFocus())
 
     // A failed reconnect does not also claim the team is connected.
     await expect(region('Failed, connected').getByRole('alert')).toHaveTextContent('Couldn’t connect Bunq.')
@@ -154,9 +155,9 @@ export const Interactions: Story = {
     const connect = first.getByRole('button', { name: 'Connect Bunq' })
 
     // The result takes focus, so a screen reader reads it although it arrived with the page.
-    await expect(first.getByRole('status')).toHaveFocus()
+    await waitFor(() => expect(first.getByRole('status')).toHaveFocus())
     // It tells the container once, so the container can take the result out of the URL.
-    await expect(args.onResultShown).toHaveBeenCalledTimes(1)
+    await waitFor(() => expect(args.onResultShown).toHaveBeenCalledTimes(1))
 
     // A disabled button takes no pointer events, so there is no click to try before the tick.
     await expect(connect).toBeDisabled()

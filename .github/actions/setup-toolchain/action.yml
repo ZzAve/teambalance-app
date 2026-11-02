@@ -8,6 +8,9 @@ inputs:
   npm-ci:
     description: Run npm ci in app/.
     default: 'true'
+  playwright:
+    description: Install headless Chromium and its system libraries for Playwright / Vitest browser mode.
+    default: 'false'
 
 runs:
   using: composite
@@ -36,4 +39,28 @@ runs:
       if: ${{ inputs.npm-ci == 'true' }}
       shell: bash
       run: npm ci
+      working-directory: app
+
+    # The Chromium binary only changes when Playwright's version does, so cache
+    # ~/.cache/ms-playwright keyed on the lockfile. On a hit we skip the (slow)
+    # browser download and only re-run install-deps, which installs the apt
+    # system libraries that live outside the cached directory.
+    - name: Cache Playwright browsers
+      if: ${{ inputs.playwright == 'true' }}
+      id: playwright-cache
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: ~/.cache/ms-playwright
+        key: playwright-${{ runner.os }}-${{ hashFiles('app/package-lock.json') }}
+
+    - name: Install Playwright browser (+ system deps)
+      if: ${{ inputs.playwright == 'true' && steps.playwright-cache.outputs.cache-hit != 'true' }}
+      shell: bash
+      run: npx playwright install --with-deps chromium
+      working-directory: app
+
+    - name: Install Playwright system deps (cached browser)
+      if: ${{ inputs.playwright == 'true' && steps.playwright-cache.outputs.cache-hit == 'true' }}
+      shell: bash
+      run: npx playwright install-deps chromium
       working-directory: app

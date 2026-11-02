@@ -23,7 +23,7 @@ const PILL: Record<LineupState, string> = {
   ATTENDING: 'bg-green/12 border-green/45 text-green-dark',
   MAYBE: 'bg-gold/20 border-gold/55 text-gold-dark',
   NOT_RESPONDED: 'bg-muted border-border text-muted-foreground',
-  ABSENT: 'bg-red/10 border-red/35 text-red',
+  ABSENT: 'bg-red/10 border-red/35 text-red-ink',
 }
 
 const CHIP =

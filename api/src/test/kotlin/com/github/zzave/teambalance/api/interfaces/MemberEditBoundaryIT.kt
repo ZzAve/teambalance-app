@@ -3,11 +3,9 @@ package com.github.zzave.teambalance.api.interfaces
 import com.github.zzave.teambalance.api.TeamBalanceIT
 import com.github.zzave.teambalance.api.infrastructure.multitenancy.TenantSchemaAdapter
 import com.github.zzave.teambalance.api.infrastructure.persistence.FAULT_MEMBER_USER_ID
-import com.github.zzave.teambalance.api.infrastructure.persistence.FaultInjectingTeamMemberRepositoryConfig
 import io.kotest.matchers.shouldBe
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
-import org.springframework.context.annotation.Import
 import org.springframework.http.MediaType
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.test.web.servlet.MockMvc
@@ -35,7 +33,6 @@ private const val ORIGINAL_FAULT_NAME = "Original Fault"
  * write is lost — exactly the partial edit the guarantee forbids.
  */
 @AutoConfigureMockMvc
-@Import(FaultInjectingTeamMemberRepositoryConfig::class)
 class MemberEditBoundaryIT : TeamBalanceIT() {
 
     @Autowired

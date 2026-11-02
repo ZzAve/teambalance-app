@@ -150,6 +150,28 @@ export const Shells: Story = {
             event={makeEvent({ ...EVENT, startTime: new Date(2026, 7, 10, 20, 0).toISOString() })}
           />
         ),
+        // The hero's ground is the event type's own colour, as the card's date chit is; a type with
+        // no colour keeps the brand green.
+        'Type colour': (
+          <NextEventHeroView
+            {...args}
+            event={makeEvent({ ...EVENT, eventType: { ...EVENT.eventType, name: 'Match', color: '#225C9C' } })}
+          />
+        ),
+        // Gold is too light for white text, so the hero draws dark ink instead.
+        'Light type colour': (
+          <NextEventHeroView
+            {...args}
+            event={makeEvent({ ...EVENT, eventType: { ...EVENT.eventType, name: 'Social', color: '#F4B400' } })}
+            myState="MAYBE"
+          />
+        ),
+        'Type without colour': (
+          <NextEventHeroView
+            {...args}
+            event={makeEvent({ ...EVENT, eventType: { ...EVENT.eventType, color: undefined } })}
+          />
+        ),
         // ── Readiness (#275) ──────────────────────────────────────────────────────────────────────
         // The hero was the last surface in the app with no roster verdict. It carries the same
         // `ReadinessBadge` as the card row (#273) — same `rosterChip`, no second computation.
@@ -235,6 +257,22 @@ export const Shells: Story = {
     }
 
     await expect(region('Starting today').getByText('11h')).toBeInTheDocument()
+
+    // The gradient starts on the type's own colour (computed styles are rgb): #225C9C, and the
+    // brand green #249E6C when the type has none.
+    const heroGradient = (instance: string) =>
+      getComputedStyle(canvas.getByRole('region', { name: instance }).querySelector('section')!).backgroundImage
+    await expect(heroGradient('Type colour')).toContain('rgb(34, 92, 156)')
+    await expect(heroGradient('Type without colour')).toContain('rgb(36, 158, 108)')
+
+    // White ink on a dark enough ground, near-black (#1D1B17) on a light one — for the text and for
+    // the answer buttons that aren't the solid one.
+    const heroOf = (instance: string) => canvas.getByRole('region', { name: instance }).querySelector('section')!
+    await expect(getComputedStyle(heroOf('Type colour')).color).toBe('rgb(255, 255, 255)')
+    await expect(getComputedStyle(heroOf('Light type colour')).color).toBe('rgb(29, 27, 23)')
+    await expect(getComputedStyle(region('Light type colour').getByRole('button', { name: 'Going' })).color).toBe(
+      'rgb(29, 27, 23)',
+    )
 
     await expect(region('Readiness covered').getByText('Lineup set')).toBeInTheDocument()
     // The verdict joins the headcount the hero already carried; it does not replace it.

@@ -17,6 +17,12 @@ interface ConfirmDialogProps {
   onConfirm: () => void
   /** Cancel button, overlay click and Escape. */
   onCancel: () => void
+  /**
+   * Where focus goes when the dialog closes. Radix returns it to a `DialogTrigger`, which a dialog opened
+   * from state has none of, so focus would fall to the page; the caller can prevent that and focus the
+   * control that opened it.
+   */
+  onCloseAutoFocus?: (event: Event) => void
   /** Optional body between the header and the footer. */
   children?: ReactNode
 }
@@ -28,11 +34,12 @@ export function ConfirmDialog({
   confirmLabel,
   onConfirm,
   onCancel,
+  onCloseAutoFocus,
   children,
 }: ConfirmDialogProps) {
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onCancel()}>
-      <DialogContent>
+      <DialogContent onCloseAutoFocus={onCloseAutoFocus}>
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>{description}</DialogDescription>

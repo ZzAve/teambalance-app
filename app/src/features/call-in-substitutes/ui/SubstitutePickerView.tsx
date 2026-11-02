@@ -187,7 +187,7 @@ export function SubstitutePickerView({
               aria-invalid={fieldError !== null}
             />
             {fieldError && (
-              <p role="alert" className="text-small text-red">
+              <p role="alert" className="text-small text-red-ink">
                 {fieldError}
               </p>
             )}
@@ -252,7 +252,7 @@ function InlineError({ message, onRetry, className }: { message: string; onRetry
   return (
     <p
       role="alert"
-      className={cn('flex items-center justify-between gap-3 rounded-lg bg-red/10 px-3 py-2 text-small text-red', className)}
+      className={cn('flex items-center justify-between gap-3 rounded-lg bg-red/10 px-3 py-2 text-small text-red-ink', className)}
     >
       {message}
       <Button type="button" variant="outline" size="sm" onClick={onRetry}>

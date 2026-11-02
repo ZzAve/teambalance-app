@@ -81,7 +81,7 @@ export function ManagePositionsView({
 
       {isLoading && <p className="mt-4 text-small text-muted-foreground">Loading…</p>}
       {isError && (
-        <p className="mt-4 text-small text-red">Couldn't load positions. Please try again.</p>
+        <p className="mt-4 text-small text-red-ink">Couldn't load positions. Please try again.</p>
       )}
 
       {!isLoading && !isError && (
@@ -104,7 +104,7 @@ export function ManagePositionsView({
             </Button>
           </div>
           {errorCode === 'POSITION_LABEL_TAKEN' && (
-            <p className="mt-1 text-small text-red">That position already exists.</p>
+            <p className="mt-1 text-small text-red-ink">That position already exists.</p>
           )}
 
           {positions.length === 0 ? (

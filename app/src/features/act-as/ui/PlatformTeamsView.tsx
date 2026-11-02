@@ -43,7 +43,7 @@ export function PlatformTeamsView({
 
       {isLoading && <p className="mt-4 text-small text-muted-foreground">Loading…</p>}
       {isForbidden && <p className="mt-4 text-small text-muted-foreground">You don't have access to the platform console.</p>}
-      {isError && !isForbidden && <p className="mt-4 text-small text-red">Couldn't load teams. Please try again.</p>}
+      {isError && !isForbidden && <p className="mt-4 text-small text-red-ink">Couldn't load teams. Please try again.</p>}
 
       {!isLoading && !isError && !isForbidden && (
         <div className="mt-4">

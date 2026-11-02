@@ -32,3 +32,8 @@ INSERT INTO team_members (team_id, user_id, role, position_id, onboarded_at) VAL
     ('a0000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000005', 'USER', 'c0000000-0000-0000-0000-000000000004', now()),
     ('a0000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000006', 'USER', 'c0000000-0000-0000-0000-000000000001', now())
 ON CONFLICT DO NOTHING;
+
+-- Beer Counter price (€2,70) and the team's bunq.me page. UPDATE keeps re-seeding idempotent.
+UPDATE team_setpoint_vt.money_pool_settings
+SET beer_price_cents = 270, bunq_me_link = 'https://bunq.me/setpointvt'
+WHERE id = 1;

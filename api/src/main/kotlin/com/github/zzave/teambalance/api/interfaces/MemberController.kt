@@ -76,7 +76,7 @@ class MemberController(
         val caller = currentUserGateway.requireCurrentUserId()
         val teamId = currentTeamGateway.requireCurrentTeamId()
         memberService.removeMember(caller, teamId, request.path.userId.consumeUserId())
-        return RemoveMember.Response204(Unit)
+        return RemoveMember.Response204
     }
 }
 

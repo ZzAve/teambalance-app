@@ -84,7 +84,7 @@ export function CreateTeamForm({ isPending, error, onSubmit, reassuranceDelayMs 
           onChange={(e) => handleNameChange(e.target.value)}
           placeholder="e.g. Tovo Heren 4"
         />
-        {nameError && <p className="mt-1 text-small text-destructive">{nameError}</p>}
+        {nameError && <p className="mt-1 text-small text-red-ink">{nameError}</p>}
       </div>
 
       <div>
@@ -99,7 +99,7 @@ export function CreateTeamForm({ isPending, error, onSubmit, reassuranceDelayMs 
           }}
           placeholder="tovo-heren-4"
         />
-        {slugError && <p className="mt-1 text-small text-destructive">{slugError}</p>}
+        {slugError && <p className="mt-1 text-small text-red-ink">{slugError}</p>}
       </div>
 
       <div>
@@ -111,7 +111,7 @@ export function CreateTeamForm({ isPending, error, onSubmit, reassuranceDelayMs 
           onChange={(e) => setCreationCode(e.target.value)}
           placeholder="Enter your creation code"
         />
-        {codeError && <p className="mt-1 text-small text-destructive">{codeError}</p>}
+        {codeError && <p className="mt-1 text-small text-red-ink">{codeError}</p>}
       </div>
 
       <Button type="submit" disabled={!canSubmit}>

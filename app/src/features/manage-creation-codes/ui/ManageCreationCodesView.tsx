@@ -55,7 +55,7 @@ export function ManageCreationCodesView({
         <p className="mt-4 text-small text-muted-foreground">You don't have access to creation codes.</p>
       )}
       {isError && !isForbidden && (
-        <p className="mt-4 text-small text-red">Couldn't load creation codes. Please try again.</p>
+        <p className="mt-4 text-small text-red-ink">Couldn't load creation codes. Please try again.</p>
       )}
 
       {!isLoading && !isError && !isForbidden && (
@@ -67,7 +67,7 @@ export function ManageCreationCodesView({
           </div>
 
           {errorCode === 'CONSUMED' && (
-            <p className="text-small text-red">That code was already used and cannot be revoked.</p>
+            <p className="text-small text-red-ink">That code was already used and cannot be revoked.</p>
           )}
 
           {codes.length === 0 ? (

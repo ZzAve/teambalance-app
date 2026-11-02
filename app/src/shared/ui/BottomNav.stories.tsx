@@ -154,3 +154,21 @@ export const ProfileActiveTeamless: Story = {
     await expect(canvas.getByRole('link', { name: 'Profile' })).toHaveAttribute('href', '/account')
   },
 }
+
+// A team that switched its money pool off has no Money tab; the other three stay (ADR-0042).
+export const MoneyOff: Story = {
+  parameters: {
+    router: { initialEntries: ['/t/setpoint-vt'] },
+    authMe: {
+      ...authenticatedUser({ id: 't1', name: 'Setpoint VT', slug: 'setpoint-vt' }),
+      moneyPoolEnabled: false,
+    },
+    chromatic: { disableSnapshot: true },
+  },
+  play: async ({ canvas }) => {
+    await expect(canvas.queryByRole('link', { name: 'Money' })).not.toBeInTheDocument()
+    await expect(canvas.getByRole('link', { name: 'Events' })).toHaveAttribute('href', '/t/setpoint-vt')
+    await expect(canvas.getByRole('link', { name: 'Team' })).toHaveAttribute('href', '/t/setpoint-vt/team')
+    await expect(canvas.getByRole('link', { name: 'Profile' })).toHaveAttribute('href', '/account')
+  },
+}

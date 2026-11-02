@@ -137,6 +137,7 @@ ENV PATH=/usr/local/pgbin:$PATH \
     SPRING_DATASOURCE_PASSWORD=teambalance \
     TEAMBALANCE_DEMO_DATA_ENABLED=true \
     TEAMBALANCE_EMAIL_SEND=false \
+    TEAMBALANCE_STARTUP_ACTUATOR_ENABLED=true \
     SCALEWAY_TEM_API_KEY=unused-on-stg \
     SCALEWAY_TEM_PROJECT_ID=unused-on-stg \
     TEAMBALANCE_API_BASE_URL=https://api.stg.teambalance.nl

@@ -9,8 +9,9 @@ const idle = { isPending: false, isSuccess: false }
 const pending = { isPending: true, isSuccess: false }
 const done = { isPending: false, isSuccess: true }
 
-const statusLoaded = { isError: false, isFetching: false }
-const statusFailed = { isError: true, isFetching: false }
+const statusLoaded = { isError: false, isFetching: false, isConnected: false }
+const statusFailed = { isError: true, isFetching: false, isConnected: true }
+const statusStillConnected = { isError: false, isFetching: false, isConnected: true }
 
 describe('accountsShell', () => {
   it('is loading until the first answer', () => {
@@ -41,7 +42,7 @@ describe('accountsShell', () => {
     'shows neither shell after a disconnect while the status read has not failed (%j)',
     (query) => {
       expect(accountsShell(query, done, statusLoaded)).toEqual({ isLoading: false, isError: false })
-      expect(accountsShell(query, done, { isError: true, isFetching: true })).toEqual({ isLoading: false, isError: false })
+      expect(accountsShell(query, done, { ...statusFailed, isFetching: true })).toEqual({ isLoading: false, isError: false })
     },
   )
 
@@ -53,5 +54,16 @@ describe('accountsShell', () => {
 
   it('keeps the mask while the disconnect itself is pending, whatever the status says', () => {
     expect(accountsShell(failed, pending, statusFailed)).toEqual({ isLoading: false, isError: false })
+  })
+
+  // The disconnect went through but the status read that followed still says connected (another tab connected
+  // again): the section stays, and a mask that never ends would hide a failing accounts read for good.
+  it('shows the accounts shells again when the status read after a disconnect still says connected', () => {
+    expect(accountsShell(failed, done, statusStillConnected)).toEqual({ isLoading: false, isError: true })
+    expect(accountsShell(loaded, done, statusStillConnected)).toEqual({ isLoading: false, isError: false })
+  })
+
+  it('keeps the mask while the status is being read again, whatever it said before', () => {
+    expect(accountsShell(failed, done, { ...statusStillConnected, isFetching: true })).toEqual({ isLoading: false, isError: false })
   })
 })

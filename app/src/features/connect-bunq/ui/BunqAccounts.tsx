@@ -20,7 +20,7 @@ export function BunqAccounts({ onDisconnected }: { onDisconnected: () => void })
   const status = useBunqConnection(false)
   const pick = usePickBunqAccount()
   const disconnect = useDisconnectBunq(onDisconnected)
-  const shell = accountsShell(accounts, disconnect, status)
+  const shell = accountsShell(accounts, disconnect, { ...status, isConnected: status.data?.connected === true })
 
   // The picker is replaced by a shell while the accounts cannot be shown; when it comes back it must not
   // announce and take focus for a pick made before.

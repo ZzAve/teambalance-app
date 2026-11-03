@@ -146,17 +146,17 @@ class AuthService(
         // Consuming the token and resolving (creating if absent) the user is one atomic unit: a
         // failure to create the user must not burn the single-use token. No display name is collected
         // at magic-link signup, so derive a placeholder from the email for a first-time sign-in.
-        val user = magicLinkTokenRepository.consumeAndResolveUser(
+        return magicLinkTokenRepository.consumeAndResolveUser(
             consumedToken = record.copy(usedAt = now),
             displayName = DisplayName(record.email.value.substringBefore("@")),
-        ) ?: return null
-
-        val outcome = record.invitationId?.let { invitationId ->
-            invitationService.acceptPendingInvitation(invitationId, user.id)
-                ?.let { InviteOutcome.JOINED }
-                ?: InviteOutcome.UNAVAILABLE
+        )?.let { user ->
+            val outcome = record.invitationId?.let { invitationId ->
+                invitationService.acceptPendingInvitation(invitationId, user.id)
+                    ?.let { InviteOutcome.JOINED }
+                    ?: InviteOutcome.UNAVAILABLE
+            }
+            MagicLinkSignIn(user = user, inviteOutcome = outcome)
         }
-        return MagicLinkSignIn(user = user, inviteOutcome = outcome)
     }
 
     private fun generateToken(): String {

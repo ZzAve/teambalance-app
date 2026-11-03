@@ -28,8 +28,8 @@ import java.util.UUID
  * `MagicLinkTokenRepository.consumeAndResolveUser` being a single, `@Transactional` adapter call.
  *
  * The user creation is made to fail; the token must still be unused afterwards. Verified to be
- * load-bearing by deleting `@Transactional` from `JooqMagicLinkTokenRepositoryAdapter.consumeAndResolveUser`, which leaves the token consumed
- * with no user created — exactly the state the guarantee forbids.
+ * load-bearing by deleting `@Transactional` from `JooqMagicLinkTokenRepositoryAdapter.consumeAndResolveUser`,
+ * which leaves the token consumed with no user created — exactly the state the guarantee forbids.
  */
 @AutoConfigureMockMvc
 class MagicLinkSignInBoundaryIT : TeamBalanceIT() {

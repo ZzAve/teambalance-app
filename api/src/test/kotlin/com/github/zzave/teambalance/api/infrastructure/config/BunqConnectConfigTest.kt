@@ -30,7 +30,7 @@ class BunqConnectConfigTest : FunSpec({
 
         test("refuse to start while connecting is on in prod") {
             shouldThrow<IllegalStateException> { bunqConnectConfig(true, true, CIPHER, API) }
-                .message!! shouldContain "until the real Bunq adapter can read"
+                .message!! shouldContain "until Bunq is enabled for production (tracer 4.3)"
         }
     }
 

@@ -59,7 +59,7 @@ class ProdProfileRealBunqIT : TeamBalanceIT() {
                 "https://oauth.bunq.com/auth?"
         }
 
-        test("connecting stays off: the flag defaults to false, and prod refuses it being on until tracer 4.1") {
+        test("connecting stays off: the flag defaults to false, and prod refuses it being on until tracer 4.3") {
             val service = applicationContext.getBean(BunqConnectionService::class.java)
 
             shouldThrow<BunqConnectDisabledException> { service.start(UserId.random(), TeamId(UUID.randomUUID())) }

@@ -97,10 +97,10 @@ class MoneyPoolCompositionRoot {
 }
 
 /**
- * The connect settings, or null while connecting is switched off. Switching it on in prod, where the
- * gateway cannot read from the real Bunq yet (tracer 4.1), stops the app from starting. With the real adapter
- * wired the code exchange would succeed and issue a real token, and the first read would then fail and discard
- * it, leaving the Admin with an authorization nobody can revoke.
+ * The connect settings, or null while connecting is switched off. Switching it on in prod stops the app from starting,
+ * whatever the Bunq environment: the real adapter now reads, but it has only been run against the sandbox, and a real
+ * Admin's authorization is one nobody can revoke from here. Production is enabled in tracer 4.3, after the sandbox has
+ * been walked end to end through the UI (tracer 4.2).
  */
 internal fun bunqConnectConfig(
     connectEnabled: Boolean,
@@ -110,7 +110,7 @@ internal fun bunqConnectConfig(
 ): BunqConnectConfig? {
     if (!connectEnabled) return null
     check(!isProd) {
-        "teambalance.bunq.connect-enabled cannot be on in prod until the real Bunq adapter can read (tracer 4.1)"
+        "teambalance.bunq.connect-enabled cannot be on in prod until Bunq is enabled for production (tracer 4.3)"
     }
     return BunqConnectConfig(grantCipher, apiBaseUrl.trimEnd('/') + BunqConnectionService.CALLBACK_PATH)
 }

@@ -30,6 +30,7 @@ dependencies {
     // Boot 4 split this out of starter-web; the prod ScalewayTemEmailAdapter needs the builder bean.
     implementation("org.springframework.boot:spring-boot-restclient")
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
+    implementation("org.springframework.boot:spring-boot-starter-jooq")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     // One SecurityFilterChain around the session model: session-ID rotation on sign-in, CSRF, and the
     // authenticated-by-default rule (ADR-0012).
@@ -150,6 +151,7 @@ tasks.named<BootRun>("bootRun") {
 detekt {
     buildUponDefaultConfig = true
     config.setFrom(files("$projectDir/detekt.yml"))
+    source.setFrom("src/main/java", "src/main/kotlin", "src/test/java", "src/test/kotlin", "src/jooqCodegen/kotlin")
 }
 
 // Wirespec code generation
@@ -175,16 +177,27 @@ tasks.register<CompileWirespecTask>("wirespec-typescript") {
     strict.set(true)
 }
 
+val jooqGeneratedSources = layout.buildDirectory.dir("generated-src/jooq")
+val migrationsDirectory = layout.projectDirectory.dir("src/main/resources/db")
+
 sourceSets {
+    create("jooqCodegen")
     main {
         kotlin {
             srcDir(layout.buildDirectory.dir("generated/wirespec/kotlin"))
+        }
+        java {
+            srcDir(jooqGeneratedSources)
         }
     }
 }
 
 tasks.named("compileKotlin") {
-    dependsOn("wirespec-kotlin")
+    dependsOn("wirespec-kotlin", "jooqCodegen")
+}
+
+tasks.named("compileJava") {
+    dependsOn("jooqCodegen")
 }
 
 // Regenerate the TypeScript client as part of the build so the frontend (app/) always
@@ -192,4 +205,42 @@ tasks.named("compileKotlin") {
 // committed, so CI must produce them before `npm run build`.
 tasks.named("build") {
     dependsOn("wirespec-typescript")
+}
+
+// jOOQ code generation at build time. The Flyway migrations are applied to an empty Postgres and read
+// back. That Postgres is the one named by JOOQ_CODEGEN_JDBC_URL (+ _USER, _PASSWORD) when set (the
+// Docker build stage has no Docker socket), otherwise a throwaway Testcontainers container.
+val jooqCodegenImplementation by configurations.getting
+val jooqCodegenRuntimeOnly by configurations.getting
+
+dependencies {
+    jooqCodegenImplementation(kotlin("stdlib"))
+    jooqCodegenImplementation("org.jooq:jooq-codegen")
+    jooqCodegenImplementation("org.flywaydb:flyway-core")
+    jooqCodegenImplementation("org.flywaydb:flyway-database-postgresql")
+    jooqCodegenImplementation(platform("org.testcontainers:testcontainers-bom:$testcontainersVersion"))
+    jooqCodegenImplementation("org.testcontainers:testcontainers-postgresql")
+    jooqCodegenRuntimeOnly("org.postgresql:postgresql")
+}
+
+tasks.register<JavaExec>("jooqCodegen") {
+    description = "Generate the jOOQ classes from the Flyway migrations"
+    group = "build"
+    classpath = sourceSets["jooqCodegen"].runtimeClasspath
+    mainClass = "com.github.zzave.teambalance.api.codegen.JooqCodegenKt"
+    // Absolute paths go through an argument provider, which is not part of the build cache key.
+    val migrationsPath = migrationsDirectory.asFile.absolutePath
+    val outputPath = jooqGeneratedSources.get().asFile.absolutePath
+    argumentProviders.add(CommandLineArgumentProvider { listOf(migrationsPath, outputPath) })
+    listOf("JOOQ_CODEGEN_JDBC_URL", "JOOQ_CODEGEN_JDBC_USER", "JOOQ_CODEGEN_JDBC_PASSWORD").forEach { name ->
+        providers.environmentVariable(name).orNull?.let { environment(name, it) }
+    }
+    inputs.dir(migrationsDirectory.dir("migration"))
+        .withPathSensitivity(PathSensitivity.RELATIVE)
+        .withPropertyName("platformMigrations")
+    inputs.dir(migrationsDirectory.dir("tenant-migration"))
+        .withPathSensitivity(PathSensitivity.RELATIVE)
+        .withPropertyName("tenantMigrations")
+    outputs.dir(jooqGeneratedSources)
+    outputs.cacheIf { true }
 }

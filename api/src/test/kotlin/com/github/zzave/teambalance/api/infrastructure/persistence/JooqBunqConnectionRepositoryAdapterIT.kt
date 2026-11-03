@@ -26,7 +26,7 @@ private val FIRST_GRANT = EncryptedToken("sealed-first")
 private val ADMIN = UserId.random()
 
 /** The pick writes the account column of the row holding the grant it validated, and only that row; this is its test. */
-class JpaBunqConnectionRepositoryAdapterIT : TeamBalanceIT() {
+class JooqBunqConnectionRepositoryAdapterIT : TeamBalanceIT() {
 
     @Autowired
     lateinit var connections: BunqConnectionRepository

@@ -75,8 +75,10 @@ class JooqCalendarLinkRepositoryAdapter(
 
     /**
      * Rewrites the label, the options and the child rows of the stored link, leaving its token and
-     * dates as they were. The row is locked while ownership is checked, so a concurrent delete waits
-     * for this update instead of leaving the child inserts pointing at a vanished link.
+     * dates as they were. The row is locked while ownership is checked: without the lock, a concurrent
+     * delete would make the child inserts fail on their foreign key to `calendar_links`; with it, the
+     * delete waits until this update commits, and an update that starts after a delete finds no row
+     * and returns null (not found).
      */
     @Transactional
     override fun updateOwned(

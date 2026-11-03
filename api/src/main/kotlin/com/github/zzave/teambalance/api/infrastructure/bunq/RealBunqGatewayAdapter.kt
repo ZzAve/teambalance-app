@@ -34,6 +34,20 @@ import kotlin.math.min
 import com.bunq.sdk.authorizeUrl as sdkAuthorizeUrl
 import com.bunq.sdk.exchangeCode as sdkExchangeCode
 
+/**
+ * The platform's OAuth client at the real Bunq (sandbox or production, by `teambalance.bunq.environment`),
+ * built on the bunq SDK.
+ *
+ * [authorizationUrl] and [exchangeCode] are the OAuth half; the SDK sets no timeout on the token request.
+ * The three reads go through a per-access-token API session ([BunqSessions]) and a call wrapper that bounds each call
+ * in time and pauses all of Bunq after a 429 ([BunqCalls]).
+ *
+ * What a failure means to the caller: [BunqGrantRejectedException] when Bunq refuses the access token itself (401, a 403 that
+ * a new session does not cure, or a refusal to set up a session for it), [BunqUnavailableException] for everything else.
+ * Bunq's error bodies reach the exception text; the access token, session and client secret never do.
+ *
+ * The OAuth servers are a constructor parameter so tests can point the token exchange at a local server.
+ */
 class RealBunqGatewayAdapter internal constructor(
     private val clientId: String,
     private val clientSecret: String,

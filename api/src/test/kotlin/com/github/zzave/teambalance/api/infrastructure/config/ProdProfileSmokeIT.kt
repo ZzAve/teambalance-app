@@ -9,7 +9,6 @@ import com.github.zzave.teambalance.api.domain.port.BunqGateway
 import com.github.zzave.teambalance.api.domain.port.EmailGateway
 import com.github.zzave.teambalance.api.infrastructure.bunq.FakeBunqAuthorizeController
 import com.github.zzave.teambalance.api.infrastructure.bunq.UnconfiguredBunqGatewayAdapter
-import com.github.zzave.teambalance.api.infrastructure.devdata.DemoDataSeeder
 import com.github.zzave.teambalance.api.infrastructure.email.ScalewayTemEmailAdapter
 import com.zaxxer.hikari.HikariDataSource
 import io.kotest.assertions.throwables.shouldThrow
@@ -106,9 +105,9 @@ class ProdProfileSmokeIT : TeamBalanceIT() {
             applicationContext.getBeanNamesForType(FakeBunqAuthorizeController::class.java).toList().shouldBeEmpty()
         }
 
-        test("prod profile does not load the dev demo-data seeder") {
-            // DemoDataSeeder is @Profile("dev"); prod must never auto-seed the demo team.
-            applicationContext.getBeanNamesForType(DemoDataSeeder::class.java).toList().shouldBeEmpty()
+        test("prod profile leaves the demo-data seeder switched off") {
+            // DemoDataSeeder is in every context (stg runs the prod jar); prod must never auto-seed the demo team.
+            environment.getProperty("teambalance.demo-data.enabled", Boolean::class.java, false) shouldBe false
         }
 
         test("CORS allows the SPA origin with credentials (from application-prod.yml)") {

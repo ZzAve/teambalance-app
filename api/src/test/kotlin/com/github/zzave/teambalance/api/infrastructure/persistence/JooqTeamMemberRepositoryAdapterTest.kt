@@ -15,7 +15,7 @@ import org.springframework.jdbc.core.JdbcTemplate
 import java.time.Instant
 import java.util.UUID
 
-class JpaTeamMemberRepositoryAdapterTest : TeamBalanceIT() {
+class JooqTeamMemberRepositoryAdapterTest : TeamBalanceIT() {
 
     @Autowired
     lateinit var teamMemberRepository: TeamMemberRepository

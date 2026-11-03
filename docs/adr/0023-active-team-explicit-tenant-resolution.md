@@ -21,7 +21,7 @@ ORDER BY tm.team_id LIMIT 1
 ADR-0019 §3 matched that constraint by rejecting create-team with `409 ALREADY_IN_TEAM`.
 
 **That guard never closed the hole.** It lives only in `TeamService.createTeam`; the invite path does
-not have it. `JpaTeamMemberRepositoryAdapter.addMember` checks membership *of the team being joined*
+not have it. `JooqTeamMemberRepositoryAdapter.addMember` checks membership *of the team being joined*
 and nothing else, so accepting an invite to a second team writes a second `team_members` row today.
 The routing query then picks between them by **UUID order** — arbitrary, and then *sticky*, because
 `TenantRoutingSession` memoizes the resolved pair on the session. The member's other team does not

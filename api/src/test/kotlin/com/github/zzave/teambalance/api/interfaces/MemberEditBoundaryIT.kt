@@ -2,7 +2,9 @@ package com.github.zzave.teambalance.api.interfaces
 
 import com.github.zzave.teambalance.api.TeamBalanceIT
 import com.github.zzave.teambalance.api.infrastructure.multitenancy.TenantSchemaAdapter
-import com.github.zzave.teambalance.api.infrastructure.persistence.FAULT_MEMBER_USER_ID
+import com.github.zzave.teambalance.api.infrastructure.persistence.SqlFault
+import com.github.zzave.teambalance.api.infrastructure.persistence.SqlFaultInjector
+import com.github.zzave.teambalance.api.infrastructure.persistence.jooq.default_schema.Tables.MEMBER_PROFILES
 import io.kotest.matchers.shouldBe
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
@@ -15,6 +17,7 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers
 import com.github.zzave.teambalance.api.infrastructure.identity.loginAs
 
 private const val ADMIN_USER_ID = "c1000000-0000-0000-0000-0000000000a0"
+private const val FAULT_MEMBER_USER_ID = "c1000000-0000-0000-0000-0000000000f1"
 private const val HEALTHY_USER_ID = "c1000000-0000-0000-0000-0000000000a2"
 private const val TEAM_ID = "c1000000-0000-0000-0000-0000000000bb"
 private const val TEAM_SCHEMA = "member_boundary_it"
@@ -44,12 +47,17 @@ class MemberEditBoundaryIT : TeamBalanceIT() {
     @Autowired
     lateinit var tenantSchemaAdapter: TenantSchemaAdapter
 
+    @Autowired
+    lateinit var sqlFaultInjector: SqlFaultInjector
+
     init {
         test("an admin edit whose team-member write fails leaves the display name unchanged") {
             seedTeam()
 
-            editMemberAs(ADMIN_USER_ID, FAULT_MEMBER_USER_ID, "Renamed")
-                .andExpect(MockMvcResultMatchers.status().isBadRequest)
+            sqlFaultInjector.failWhile(profileWriteFailure) {
+                editMemberAs(ADMIN_USER_ID, FAULT_MEMBER_USER_ID, "Renamed")
+                    .andExpect(MockMvcResultMatchers.status().isBadRequest)
+            }
 
             displayNameOf(FAULT_MEMBER_USER_ID) shouldBe ORIGINAL_FAULT_NAME
         }
@@ -57,8 +65,10 @@ class MemberEditBoundaryIT : TeamBalanceIT() {
         test("an onboarding whose team-member write fails leaves the member un-onboarded and unrenamed") {
             seedTeam()
 
-            onboardAs(FAULT_MEMBER_USER_ID, "Onboard Name", positionId("Setter"))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest)
+            sqlFaultInjector.failWhile(profileWriteFailure) {
+                onboardAs(FAULT_MEMBER_USER_ID, "Onboard Name", positionId("Setter"))
+                    .andExpect(MockMvcResultMatchers.status().isBadRequest)
+            }
 
             displayNameOf(FAULT_MEMBER_USER_ID) shouldBe ORIGINAL_FAULT_NAME
             isOnboarded(FAULT_MEMBER_USER_ID) shouldBe false
@@ -72,6 +82,11 @@ class MemberEditBoundaryIT : TeamBalanceIT() {
 
             displayNameOf(HEALTHY_USER_ID) shouldBe "Healthy Renamed"
         }
+    }
+
+    // The position half of an edit: the profile write that follows the role write and precedes the onboarding stamp.
+    private val profileWriteFailure = SqlFault.onInsertInto(MEMBER_PROFILES) {
+        IllegalArgumentException("injected persistence failure writing the member profile")
     }
 
     // --- helpers ---------------------------------------------------------------------------------

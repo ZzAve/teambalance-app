@@ -50,6 +50,10 @@ class SqlFault(
         fun onInsertInto(table: Table<*>, failure: () -> RuntimeException) = SqlFault(failure) { ctx ->
             (ctx.query() as? QOM.Insert<*>)?.`$into`() == table
         }
+
+        fun onUpdate(table: Table<*>, failure: () -> RuntimeException) = SqlFault(failure) { ctx ->
+            (ctx.query() as? QOM.Update<*>)?.`$table`() == table
+        }
     }
 }
 

@@ -61,7 +61,9 @@ rejects other arches), pushes to `rg.fr-par.scw.cloud/teambalance/api:<sha>`, an
 cpu/memory/sandbox and its env/secret maps are left untouched — those are managed manually
 in the Scaleway console. The Gradle build runs *inside* the multi-stage image, so the
 runner needs no JDK/Gradle. The build bakes the commit SHA into the image (`--build-arg
-GIT_SHA`), surfaced at runtime on `/internal/actuator/info` (`info.build.sha`).
+GIT_SHA`), surfaced at runtime on `/internal/actuator/info` (`info.build.sha`). The build also
+resolves the bunq SDK from JitPack (`https://jitpack.io`, only for that group): a JitPack outage
+fails the image build and the deploy job, not the running app.
 
 **Post-deploy verification (this is why a bad image now goes red).** `scw container update`
 only *registers* the new image and returns immediately — Scaleway rolls it out
@@ -136,6 +138,22 @@ Settings → Secrets and variables → Actions (names only — never commit valu
 > container, the guard fail-closes and the verify step can never read `info` → the deploy goes
 > red. Generate one with e.g. `openssl rand -hex 32`. It gates the non-health `/internal`
 > actuator surface (`info`/`metrics`); health stays public for Scaleway's probe.
+
+## Bunq container env (set by hand in the Scaleway console; names only, no values)
+
+The deploy never touches the container's env/secret maps, so these are set manually.
+
+| Variable | Value |
+|----------|-------|
+| `TEAMBALANCE_BUNQ_ENVIRONMENT` | Unset or `none` (no Bunq: every Bunq call fails), `sandbox` or `production` (real adapter). **Must not be empty**; an empty or unknown value fails startup. |
+| `TEAMBALANCE_BUNQ_CLIENT_ID` | The Bunq OAuth client id. Blank with `sandbox`/`production` fails startup. |
+| `TEAMBALANCE_BUNQ_CLIENT_SECRET` | The Bunq OAuth client secret (a secret env). Blank with `sandbox`/`production` fails startup. |
+| `TEAMBALANCE_BUNQ_CONNECT_ENABLED` | Keep `false` (or unset) in prod until tracer 4.1 of #10: startup refuses `true` in prod, whatever the environment. |
+| `TEAMBALANCE_BUNQ_TOKEN_ENCRYPTION_KEY` | Required in every environment (base64, 32 bytes); fails startup when missing. |
+
+The startup log says which gateway was wired (`Bunq gateway: real adapter, environment …` or
+`unconfigured`). **Rollback:** set `TEAMBALANCE_BUNQ_ENVIRONMENT` to `none` (or remove it) and
+restart; the container then runs as before the real adapter existed.
 
 ## Rollback
 

@@ -29,7 +29,7 @@ spring:
       # Flyway owns the schema (db/migration/V005__spring_session.sql); never let Spring Session run DDL.
       initialize-schema: never
       # Schema-qualify so session queries always resolve to `public`, independent of the tenant
-      # search_path the multitenancy connection provider may have left on a pooled connection.
+      # search_path a tenant-routed transaction or connection may have left on a pooled connection.
       table-name: public.SPRING_SESSION
     servlet:
       # Spring Session's repository filter must wrap the request BEFORE SessionUserContextFilter

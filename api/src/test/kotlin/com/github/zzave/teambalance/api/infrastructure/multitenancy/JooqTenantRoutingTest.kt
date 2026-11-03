@@ -10,6 +10,7 @@ import io.kotest.matchers.collections.shouldNotContain
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
 import org.jooq.DSLContext
+import org.jooq.impl.DSL
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.jdbc.BadSqlGrammarException
 import java.sql.Connection
@@ -90,6 +91,18 @@ class JooqTenantRoutingTest : TeamBalanceIT() {
             withTenant("team_alpha") { transactions.execute { eventTypeNames() } } shouldContain alphaOnlyName
         }
 
+        test("evictFromPool removes the physical connection from the real Hikari pool") {
+            val connection = dataSource.connection
+            val backendPid = connection.backendPid()
+
+            dataSource.evictFromPool(connection)
+            connection.close()
+
+            val deadline = System.nanoTime() + 10_000_000_000L
+            while (backendIsAlive(backendPid) && System.nanoTime() < deadline) Thread.sleep(50)
+            backendIsAlive(backendPid) shouldBe false
+        }
+
         test("connections go back to the pool on public after committed, rolled-back and tenant-less transactions") {
             tenantSchemaAdapter.provisionTenantSchema("team_alpha")
             withTenant("team_alpha") {
@@ -134,6 +147,17 @@ class JooqTenantRoutingTest : TeamBalanceIT() {
             }
         }
     }
+
+    private fun Connection.backendPid(): Int =
+        createStatement().use { statement ->
+            statement.executeQuery("SELECT pg_backend_pid()").use { rows ->
+                rows.next()
+                rows.getInt(1)
+            }
+        }
+
+    private fun backendIsAlive(pid: Int): Boolean =
+        dsl.fetchCount(DSL.table("pg_stat_activity"), DSL.field("pid").eq(pid)) > 0
 
     private fun Connection.currentSchema(): String =
         createStatement().use { statement ->

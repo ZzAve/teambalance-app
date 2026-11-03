@@ -23,6 +23,13 @@
 FROM --platform=$BUILDPLATFORM eclipse-temurin:25-jdk@sha256:e787e08ef76f4c16866108cd7f9fcd96a68eef3ac6cc76866897d4d02d5a2262 AS build
 WORKDIR /workspace
 
+# Postgres for jOOQ codegen: Ubuntu's default package, while local/test codegen uses postgres:17 (Testcontainers).
+# Its own layer, ahead of the COPYs, so source changes do not reinstall it.
+RUN set -e; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends postgresql; \
+    rm -rf /var/lib/apt/lists/*
+
 # Wrapper + build scripts first so dependency resolution can cache across source-only changes.
 # buildSrc supplies the Wirespec Spring extension (SpringMappingAnnotationsExtension) to the
 # build-script classpath — required to configure the codegen tasks in api/build.gradle.kts.
@@ -35,8 +42,21 @@ COPY api ./api
 # Daemonless, no config-cache: a one-shot container build never reuses either.
 # bootJar transitively runs processAot (under the prod profile — see api/build.gradle.kts) and
 # packages the AOT bean definitions into the fat jar.
-RUN ./gradlew --no-daemon --no-configuration-cache :api:bootJar \
- && cp api/build/libs/*-SNAPSHOT.jar /workspace/app.jar
+#
+# jOOQ classes are generated from the Flyway migrations against a real Postgres (the :api:jooqCodegen
+# task, a dependency of compileKotlin). This stage has no Docker socket for Testcontainers, so, like the
+# bake stage, it starts the Postgres installed above and hands Gradle its JDBC URL.
+RUN set -e; \
+    PGVER="$(pg_lsclusters -h | awk 'NR==1{print $1}')"; \
+    pg_ctlcluster "$PGVER" main start; \
+    su postgres -c "psql -v ON_ERROR_STOP=1 -c \"CREATE USER tb WITH PASSWORD 'tb' SUPERUSER;\""; \
+    su postgres -c "createdb -O tb jooq_codegen"; \
+    JOOQ_CODEGEN_JDBC_URL=jdbc:postgresql://127.0.0.1:5432/jooq_codegen \
+    JOOQ_CODEGEN_JDBC_USER=tb \
+    JOOQ_CODEGEN_JDBC_PASSWORD=tb \
+    ./gradlew --no-daemon --no-configuration-cache :api:bootJar; \
+    pg_ctlcluster "$PGVER" main stop; \
+    cp api/build/libs/*-SNAPSHOT.jar /workspace/app.jar
 
 # ---- bake stage: JDK 25 AOT cache --------------------------------------------
 # IMPORTANT: no `--platform=$BUILDPLATFORM` here. The AOT cache is architecture- and JVM-specific,

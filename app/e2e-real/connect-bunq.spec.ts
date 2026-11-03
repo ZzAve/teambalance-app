@@ -63,8 +63,9 @@ test('money pool: an admin connects Bunq, picks an account, a member reads it, t
 
   // 2. The fake Bunq page, then the API's callback sends the browser back to the settings.
   await page.getByRole('button', { name: 'Approve' }).click()
-  await expect(page).toHaveURL(new RegExp(`${SETTINGS}\\?bunq=connected`))
   await expect(page.getByRole('status').filter({ hasText: 'Connected, pick an account below.' })).toBeVisible()
+  // The result is for this first load only: it leaves the URL once shown, so a reload does not announce it again.
+  await expect(page).toHaveURL(new RegExp(`${SETTINGS}$`))
 
   // 3. Connected but nothing picked: the pool still reads as not connected, and says what is left to do.
   await expect(page.getByRole('radio', { name: 'Teamkas' })).not.toBeChecked()
@@ -106,8 +107,8 @@ test('money pool: an admin connects Bunq, picks an account, a member reads it, t
   await page.getByRole('checkbox', { name: /Connecting gives TeamBalance/ }).check()
   await page.getByRole('button', { name: 'Connect again' }).click()
   await page.getByRole('button', { name: 'Approve' }).click()
-  await expect(page).toHaveURL(new RegExp(`${SETTINGS}\\?bunq=connected`))
   await expect(page.getByRole('status').filter({ hasText: 'Connected to bunq.' })).toBeVisible()
+  await expect(page).toHaveURL(new RegExp(`${SETTINGS}$`))
   await expect(page.getByRole('radio', { name: 'Teamkas' })).toBeChecked()
 
   // 7. A member reads the same pool, and the settings (and the Connect section) are not theirs.

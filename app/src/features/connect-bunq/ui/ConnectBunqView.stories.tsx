@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
-import { expect, fn, within } from 'storybook/test'
+import { expect, fn, waitFor, within } from 'storybook/test'
 import { Stack } from '@shared/testing/stack'
 import { darkMode } from '../../../../.storybook/modes'
 import { ConnectBunqView } from './ConnectBunqView'
@@ -15,7 +15,7 @@ import { ConnectBunqView } from './ConnectBunqView'
 //      slot in place of the form), just disconnected (also with a result left in the URL by an earlier trip), the request in flight, a failed start, and the results
 //      Bunq's return can carry, stacked in one frame.
 //   3. Interactions — no picture; one play opens the section as Bunq's return does (the result takes
-//      focus), ticks the acknowledgement, sees Connect enable and asserts the click reaches onConnect;
+//      focus and is reported once through onResultShown), ticks the acknowledgement, sees Connect enable and asserts the click reaches onConnect;
 //      a second instance does the same for a connected team, after opening the form, and closes it again.
 const ACCOUNTS_SLOT = <p>Accounts and Disconnect</p>
 
@@ -107,8 +107,9 @@ export const Shells: Story = {
       await expect(region(name).queryByText(/You declined at Bunq/)).not.toBeInTheDocument()
     }
     // The status takes focus (the button pressed is gone). Each disconnected frame focuses its own on mount and
-    // effects run in render order, so the last of them is the one that holds it.
-    await expect(region('Disconnected, stale failure').getByRole('status')).toHaveFocus()
+    // effects run in render order, so the last of them is the one that holds it. A production build (Chromatic)
+    // runs those effects after play has started, so wait for them.
+    await waitFor(() => expect(region('Disconnected, stale failure').getByRole('status')).toHaveFocus())
 
     // A failed reconnect does not also claim the team is connected.
     await expect(region('Failed, connected').getByRole('alert')).toHaveTextContent('Couldn’t connect Bunq.')
@@ -139,7 +140,7 @@ export const Shells: Story = {
 export const Interactions: Story = {
   parameters: { chromatic: { disableSnapshot: true } },
   // The section as the redirect from Bunq opens it, next to a connected team's.
-  args: { result: 'declined' },
+  args: { result: 'declined', onResultShown: fn() },
   render: (args) => (
     <Stack
       items={{
@@ -154,7 +155,9 @@ export const Interactions: Story = {
     const connect = first.getByRole('button', { name: 'Connect Bunq' })
 
     // The result takes focus, so a screen reader reads it although it arrived with the page.
-    await expect(first.getByRole('status')).toHaveFocus()
+    await waitFor(() => expect(first.getByRole('status')).toHaveFocus())
+    // It tells the container once, so the container can take the result out of the URL.
+    await waitFor(() => expect(args.onResultShown).toHaveBeenCalledTimes(1))
 
     // A disabled button takes no pointer events, so there is no click to try before the tick.
     await expect(connect).toBeDisabled()
@@ -196,5 +199,8 @@ export const Interactions: Story = {
     await userEvent.click(disclosure)
     await expect(reconnect.getByRole('checkbox')).not.toBeChecked()
     await expect(reconnect.getByRole('button', { name: 'Connect again' })).toBeDisabled()
+
+    // Nothing above, which re-rendered both sections, announced the result or told the container again.
+    await expect(args.onResultShown).toHaveBeenCalledTimes(1)
   },
 }

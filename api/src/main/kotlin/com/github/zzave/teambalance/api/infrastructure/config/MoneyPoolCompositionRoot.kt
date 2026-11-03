@@ -98,8 +98,9 @@ class MoneyPoolCompositionRoot {
 
 /**
  * The connect settings, or null while connecting is switched off. Switching it on in prod, where the
- * gateway is the unconfigured one until the real adapter exists (slice 4), stops the app from starting:
- * every attempt would otherwise save a state and then fail with a 500.
+ * gateway cannot read from the real Bunq yet (tracer 4.1), stops the app from starting. With the real adapter
+ * wired the code exchange would succeed and issue a real token, and the first read would then fail and discard
+ * it, leaving the Admin with an authorization nobody can revoke.
  */
 internal fun bunqConnectConfig(
     connectEnabled: Boolean,
@@ -109,7 +110,7 @@ internal fun bunqConnectConfig(
 ): BunqConnectConfig? {
     if (!connectEnabled) return null
     check(!isProd) {
-        "teambalance.bunq.connect-enabled cannot be on in prod: there is no real Bunq adapter yet"
+        "teambalance.bunq.connect-enabled cannot be on in prod until the real Bunq adapter can read (tracer 4.1)"
     }
     return BunqConnectConfig(grantCipher, apiBaseUrl.trimEnd('/') + BunqConnectionService.CALLBACK_PATH)
 }

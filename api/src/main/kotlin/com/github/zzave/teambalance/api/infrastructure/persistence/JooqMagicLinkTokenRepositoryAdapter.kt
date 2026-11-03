@@ -31,14 +31,19 @@ class JooqMagicLinkTokenRepositoryAdapter(
             .fetchOne()
             ?.toMagicLinkToken()
 
-    // Conditional single-use consume: stamps used_at only while the token is still unused, so exactly
-    // one of two concurrent verifies of the same link wins; the loser gets null and no user.
+    // Conditional single-use consume: stamps used_at only while the token is still unused and unexpired
+    // at the moment it is stamped (the caller's clock), so exactly one of two concurrent verifies of
+    // the same link wins, and a link that lapsed after the service's check is not consumed. The loser
+    // gets null and no user.
     @Transactional
     override fun consumeAndResolveUser(consumedToken: MagicLinkToken, displayName: DisplayName): User? {
+        val usedAt = checkNotNull(consumedToken.usedAt) { "a consumed token carries its usedAt" }
+            .atOffset(ZoneOffset.UTC)
         val consumed = dsl.update(MAGIC_LINK_TOKENS)
-            .set(MAGIC_LINK_TOKENS.USED_AT, consumedToken.usedAt?.atOffset(ZoneOffset.UTC))
+            .set(MAGIC_LINK_TOKENS.USED_AT, usedAt)
             .where(MAGIC_LINK_TOKENS.ID.eq(consumedToken.id))
             .and(MAGIC_LINK_TOKENS.USED_AT.isNull)
+            .and(MAGIC_LINK_TOKENS.EXPIRES_AT.gt(usedAt))
             .execute()
         if (consumed == 0) return null
 

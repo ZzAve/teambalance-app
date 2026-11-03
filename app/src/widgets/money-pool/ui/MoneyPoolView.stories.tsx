@@ -13,7 +13,7 @@ import { MoneyPoolView } from './MoneyPoolView'
 // Two-story shape (ADR-0032 §1):
 //   1. Data — the connected pool: balance and payment list.
 //   2. Shells — every other state stacked: loading, error, off, not connected (member and admin),
-//      unavailable, rejected (member, admin, admin with connecting off), top-up with and without a link, and connected edge cases (no payments, same-day duplicates, missing balance, no beer price, an empty pool).
+//      unavailable, rejected (member, admin, admin with connecting off), top-up with and without a link (the admin's hint only on a connected pool), and connected edge cases (no payments, same-day duplicates, missing balance, no beer price, an empty pool).
 const PAYMENTS: Payment[] = [
   { date: '2026-10-06', name: 'Lisa de Vries', amount: 2000, direction: 'In' },
   { date: '2026-10-04', name: 'Sporthal De Kuil', amount: 4500, direction: 'Out' },
@@ -90,8 +90,11 @@ export const Shells: Story = {
         'Rejected (member)': <MoneyPoolView {...args} state="Rejected" />,
         'Rejected (admin)': <MoneyPoolView {...args} state="Rejected" isAdmin connectAvailable />,
         'Rejected (admin, connecting off)': <MoneyPoolView {...args} state="Rejected" isAdmin connectAvailable={false} />,
-        'No link (member)': <MoneyPoolView {...args} state="NotConnected" canTopUp={false} />,
-        'No link (admin)': <MoneyPoolView {...args} state="NotConnected" canTopUp={false} isAdmin />,
+        'No link (member)': <MoneyPoolView {...args} canTopUp={false} />,
+        'No link (admin)': <MoneyPoolView {...args} canTopUp={false} isAdmin />,
+        'No link (admin, not connected)': <MoneyPoolView {...args} state="NotConnected" canTopUp={false} isAdmin connectAvailable />,
+        'No link (admin, unavailable)': <MoneyPoolView {...args} state="Unavailable" canTopUp={false} isAdmin />,
+        'No link (admin, rejected)': <MoneyPoolView {...args} state="Rejected" canTopUp={false} isAdmin connectAvailable />,
         'No payments': <MoneyPoolView {...args} payments={[]} />,
         'Same-day duplicates': <MoneyPoolView {...args} payments={[PAYMENTS[0], PAYMENTS[0]]} />,
         'Missing balance': <MoneyPoolView {...args} balance={undefined} />,
@@ -140,6 +143,11 @@ export const Shells: Story = {
     await expect(region('No link (member)').queryByText(/bunq\.me link/)).not.toBeInTheDocument()
     await expect(region('No link (admin)').queryByRole('button', { name: 'Top up' })).not.toBeInTheDocument()
     await expect(region('No link (admin)').getByText(/Add the team.s bunq\.me link in the team settings/)).toBeInTheDocument()
+    // The hint belongs to a pool that shows a balance; without one it only adds a second to-do under the notice.
+    for (const name of ['No link (admin, not connected)', 'No link (admin, unavailable)', 'No link (admin, rejected)']) {
+      await expect(region(name).queryByText(/bunq\.me link/)).not.toBeInTheDocument()
+      await expect(region(name).queryByRole('button', { name: 'Top up' })).not.toBeInTheDocument()
+    }
     await expect(region('No payments').getByText('No payments in this period.')).toBeInTheDocument()
     await expect(region('Same-day duplicates').getAllByText('Lisa de Vries')).toHaveLength(2)
     await expect(region('Missing balance').getByText(/couldn't load/i)).toBeInTheDocument()

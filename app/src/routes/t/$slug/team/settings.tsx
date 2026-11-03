@@ -1,3 +1,4 @@
+import { useCallback } from 'react'
 import { createFileRoute, redirect } from '@tanstack/react-router'
 import { authMeQueryOptions } from '@shared/api/auth'
 import { queryClient } from '@shared/api/query-client'
@@ -37,6 +38,12 @@ export const Route = createFileRoute('/t/$slug/team/settings')({
 
 function TeamSettingsPage() {
   const { bunq } = Route.useSearch()
+  const navigate = Route.useNavigate()
+  // Bunq's result is for the first load only; it leaves the URL (and the history entry) once shown.
+  const consumeBunqResult = useCallback(
+    () => navigate({ search: (previous) => ({ ...previous, bunq: undefined }), replace: true }),
+    [navigate],
+  )
   // Admin manage surface: member management (the editable roster), then positions, then the Team's
   // Substitutes (who hold those positions), then the event types whose roster defaults reference
   // those positions, then team settings, then the money pool, then platform access.
@@ -50,7 +57,7 @@ function TeamSettingsPage() {
       <ManageEventTypes />
       <TeamSettings />
       <MoneySettings />
-      <ConnectBunq result={bunq} />
+      <ConnectBunq result={bunq} onResultShown={consumeBunqResult} />
       {/* Handing over admin (ADR-0024 §5): how a prepared, memberless team gets its first real Admin.
           Below the day-to-day settings — it is a one-off, not a routine control. */}
       <HandoverAdmin />

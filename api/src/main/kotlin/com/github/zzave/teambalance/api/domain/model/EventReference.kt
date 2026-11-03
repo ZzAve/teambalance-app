@@ -20,7 +20,7 @@ data class EventReference(
     /**
      * An outbound reference URL. Only a non-blank `http`/`https` URL with a host, no longer than
      * [MAX_URL_LENGTH], is constructible — the guard lives in `init`, so holding a [Url] is proof the
-     * value passed it. Convert to the raw string only at the JPA and Wirespec edges via [value].
+     * value passed it. Convert to the raw string only at the persistence and Wirespec edges via [value].
      */
     @JvmInline
     value class Url(val value: String) {

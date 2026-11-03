@@ -22,8 +22,8 @@ import java.util.UUID
  * code consume and both inserts commit together or not at all — a race that loses the code, or a slug
  * collision, rolls everything back so no team is half-created.
  *
- * All statements are public-qualified and use [JdbcTemplate] (not Hibernate), matching the sibling
- * platform adapters: create-team runs with no tenant resolved, where the tenant-routed JPA path fails
+ * All statements are public-qualified and use [JdbcTemplate], matching the sibling
+ * platform adapters: create-team runs with no tenant resolved, where tenant-routed jOOQ access fails
  * closed.
  */
 @Repository

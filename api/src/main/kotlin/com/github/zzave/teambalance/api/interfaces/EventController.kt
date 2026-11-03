@@ -152,7 +152,7 @@ class EventController(
 
 // The Wirespec edge for an event's identity. The contract carries an opaque UUID string and is
 // unchanged by EventId (ADR-0018) — these two functions are the only place in the inbound adapter
-// that wraps or unwraps it, so nothing between here and the JPA edge handles a bare UUID.
+// that wraps or unwraps it, so nothing between here and the persistence edge handles a bare UUID.
 // internal so AttendanceController and RecurringEventController convert the same way.
 internal fun String.consumeEventId(): EventId = EventId(UUID.fromString(this))
 
@@ -167,7 +167,7 @@ internal fun EventTitle.produce(): String = value
 
 // EventDescription and EventLocation get no such pair on purpose. Each conversion is a bare
 // constructor reference with nothing to centralise (`?.let(::EventDescription)` in, `?.value` out —
-// the same way the JPA mapper inlines them), and this file holds 10 top-level functions against
+// the same way the persistence adapters inline them), and this file holds 10 top-level functions against
 // detekt's stock TooManyFunctions ceiling of 11, so one symmetric pair would push it to 12 (and the
 // two pairs both optional free-text fields would want, to 14) for a suppression they do not earn.
 

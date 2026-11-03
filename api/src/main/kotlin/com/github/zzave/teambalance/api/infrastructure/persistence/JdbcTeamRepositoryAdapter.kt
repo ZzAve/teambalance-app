@@ -13,8 +13,8 @@ import org.springframework.stereotype.Repository
 import java.util.UUID
 
 /**
- * Reads `public.teams` over the raw datasource (via [JdbcTemplate]), not Hibernate. The startup
- * runner queries this with no tenant resolved, when the tenant-routed JPA path fails closed; the
+ * Reads `public.teams` over the raw datasource (via [JdbcTemplate]). The startup
+ * runner queries this with no tenant resolved, where tenant-routed jOOQ access fails closed; the
  * explicit `public.` qualification keeps the read reachable regardless of the connection's search_path
  * — the same approach the sibling platform-boot code (TenantSchemaAdapter) uses.
  */

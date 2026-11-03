@@ -6,7 +6,7 @@ package com.github.zzave.teambalance.api.domain.model
  * the same user), so a value that merely "is a String" says nothing about whether it is the right
  * one.
  *
- * Conversion happens only at the edges, as for [EventId] — the JPA mapper and the Wirespec mapper.
+ * Conversion happens only at the edges, as for [EventId] — the persistence adapters and the Wirespec mapper.
  *
  * Deliberately no validation or normalisation (case folding, trimming) here: this refactor must not
  * change observable behaviour, and today two differently-cased addresses are two different users.

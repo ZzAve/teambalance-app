@@ -9,7 +9,6 @@ import com.github.zzave.teambalance.api.domain.port.PositionRepository
 import com.github.zzave.teambalance.api.infrastructure.persistence.jooq.default_schema.Tables.POSITIONS
 import com.github.zzave.teambalance.api.infrastructure.persistence.jooq.default_schema.tables.records.PositionsRecord
 import org.jooq.DSLContext
-import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.stereotype.Repository
 import java.util.UUID
 
@@ -27,7 +26,7 @@ class JooqPositionRepositoryAdapter(
         dsl.selectFrom(POSITIONS).orderBy(POSITIONS.LABEL.asc()).fetch { it.toDomain() }
 
     override fun create(label: PositionLabel): Position =
-        refusingTakenLabel(label) {
+        refusingDuplicate(LABEL_INDEX, { PositionLabelTakenException(label.value) }) {
             checkNotNull(
                 dsl.insertInto(POSITIONS)
                     .set(POSITIONS.ID, UUID.randomUUID())
@@ -38,7 +37,7 @@ class JooqPositionRepositoryAdapter(
         }
 
     override fun rename(id: PositionId, label: PositionLabel): Position =
-        refusingTakenLabel(label) {
+        refusingDuplicate(LABEL_INDEX, { PositionLabelTakenException(label.value) }) {
             dsl.update(POSITIONS)
                 .set(POSITIONS.LABEL, label.value)
                 .where(POSITIONS.ID.eq(id.value))
@@ -79,14 +78,6 @@ class JooqPositionRepositoryAdapter(
         Position(id = PositionId(id), label = PositionLabel(label), kind = PositionKind.valueOf(kind))
 }
 
-private const val LABEL_INDEX = "uq_positions_label"
-
 // The service refuses a taken label before writing; uq_positions_label catches the one taken in
 // between, by a concurrent create or rename, and the caller hears the same 409 either way.
-private fun <T> refusingTakenLabel(label: PositionLabel, write: () -> T): T =
-    try {
-        write()
-    } catch (e: DataIntegrityViolationException) {
-        if (e.mostSpecificCause.message?.contains(LABEL_INDEX) == true) throw PositionLabelTakenException(label.value)
-        throw e
-    }
+private const val LABEL_INDEX = "uq_positions_label"

@@ -12,4 +12,12 @@ interface SpringDataBunqConnectionRepository : JpaRepository<BunqConnectionJpaEn
     @Modifying(clearAutomatically = true)
     @Query("UPDATE BunqConnectionJpaEntity c SET c.bunqAccountId = :accountId WHERE c.id = :id AND c.accessTokenEncrypted = :grant")
     fun pickAccount(id: Short, accountId: String, grant: String): Int
+
+    @Query("SELECT c.apiContextEncrypted FROM BunqConnectionJpaEntity c WHERE c.id = :id")
+    fun findApiContext(id: Short): String?
+
+    // Writes the session column of the connection row and nothing else. Returns the rows changed (0 when there is no connection).
+    @Modifying(clearAutomatically = true)
+    @Query("UPDATE BunqConnectionJpaEntity c SET c.apiContextEncrypted = :context WHERE c.id = :id")
+    fun storeApiContext(id: Short, context: String): Int
 }

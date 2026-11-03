@@ -7,7 +7,7 @@ import jakarta.persistence.Table
 import java.time.Instant
 import java.util.UUID
 
-/** The tenant's singleton Bunq connection; no row means not connected (see V018, V020, V021). */
+/** The tenant's singleton Bunq connection; no row means not connected (see V018, V020, V021, V022). */
 @Entity
 @Table(name = "bunq_connection")
 class BunqConnectionJpaEntity(
@@ -22,6 +22,9 @@ class BunqConnectionJpaEntity(
     /** Audit only: who connected it. No foreign key, and nothing is granted to that user. */
     @Column(name = "connected_by", nullable = false)
     val connectedBy: UUID,
+    /** The encrypted Bunq API session of this grant (V022). Writing a connection drops it; BunqApiContextRepository stores it. */
+    @Column(name = "api_context_encrypted")
+    val apiContextEncrypted: String? = null,
 ) {
     companion object {
         const val SINGLETON_ID: Short = 1

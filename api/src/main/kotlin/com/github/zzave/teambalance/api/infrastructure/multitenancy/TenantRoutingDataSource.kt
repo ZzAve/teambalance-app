@@ -17,7 +17,10 @@ import javax.sql.DataSource
  * That binding is keyed by [dataSource] itself, so a [TransactionAwareDataSourceProxy] around this
  * class would never find it and jOOQ would run each statement on its own auto-committed connection.
  */
-class TenantRoutingDataSource(private val dataSource: DataSource) : DelegatingDataSource(dataSource) {
+class TenantRoutingDataSource(
+    private val dataSource: DataSource,
+    private val evict: (Connection) -> Unit = dataSource::evictFromPool,
+) : DelegatingDataSource(dataSource) {
 
     private val transactionAwareDataSource = TransactionAwareDataSourceProxy(dataSource)
 
@@ -27,7 +30,7 @@ class TenantRoutingDataSource(private val dataSource: DataSource) : DelegatingDa
     override fun getConnection(username: String, password: String): Connection =
         throw UnsupportedOperationException("Connections must be routed to a tenant; credentials are not supported")
 
-    private fun routedConnection(): Connection = ResettingConnection(super.getConnection().routeTo(currentTenant()))
+    private fun routedConnection(): Connection = ResettingConnection(super.getConnection().routeTo(currentTenant()), evict)
 
     private fun inTransaction() = TransactionSynchronizationManager.hasResource(dataSource)
 
@@ -48,6 +51,9 @@ class TenantRoutingDataSource(private val dataSource: DataSource) : DelegatingDa
     }
 }
 
-private class ResettingConnection(private val delegate: Connection) : Connection by delegate {
-    override fun close() = delegate.resetAndClose()
+private class ResettingConnection(
+    private val delegate: Connection,
+    private val evict: (Connection) -> Unit,
+) : Connection by delegate {
+    override fun close() = delegate.resetAndClose(evict)
 }

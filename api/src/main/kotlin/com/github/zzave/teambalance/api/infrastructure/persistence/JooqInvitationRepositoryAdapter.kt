@@ -65,14 +65,12 @@ class JooqInvitationRepositoryAdapter(
 
     @Transactional
     override fun rotate(teamId: TeamId, replacement: Invitation, now: Instant): Invitation {
-        // Expire only the links of the same role we are about to reissue, so a USER rotate leaves a
-        // live ADMIN handover link untouched (and vice-versa).
         expireActiveByRole(teamId, replacement.role, now)
         return insert(replacement)
     }
 
-    // Scoped by role: the USER and ADMIN links are independent credentials (ADR-0024 §5), each
-    // rotated/revoked on its own path.
+    // Scoped by role, so a USER rotate leaves a live ADMIN handover link untouched and vice versa: the two
+    // are independent credentials (ADR-0024 §5), each rotated/revoked on its own path.
     private fun expireActiveByRole(teamId: TeamId, role: Role, now: Instant) {
         val cutoff = now.atOffset(ZoneOffset.UTC)
         dsl.update(INVITATIONS)

@@ -112,6 +112,7 @@ private fun noSecretsIn(failure: Throwable) {
 
 private fun messagesOf(failure: Throwable) = generateSequence(failure) { it.cause }.joinToString(" | ") { it.message.orEmpty() }
 
+@Suppress("LargeClass") // one spec over one adapter; its helpers are private to the file
 class RealBunqGatewayAdapterReadsTest : FunSpec({
 
     context("what a read returns") {
@@ -545,7 +546,9 @@ class RealBunqGatewayAdapterReadsTest : FunSpec({
                 }
 
                 s.adapter().listAccounts(GRANT).map { it.id.value } shouldBe listOf("11", "12")
-                s.fake.seen.first { it.path.endsWith("monetary-account-bank") }.query!! shouldStartWith "count=200"
+                listOf("monetary-account-bank", "monetary-account-joint", "monetary-account-savings").forEach { list ->
+                    s.fake.seen.single { it.path.endsWith(list) }.query!! shouldStartWith "count=200"
+                }
             }
         }
 
@@ -719,6 +722,28 @@ class RealBunqGatewayAdapterReadsTest : FunSpec({
             }
         }
 
+        test("a 403 whose Error is not an array is not a Bunq refusal either") {
+            withFake { s ->
+                s.storeSession()
+                s.fake.answer("GET", ACCOUNT_PATH, Reply(403, """{"Error":"blocked"}"""))
+
+                shouldThrow<BunqUnavailableException> { s.adapter().fetchBalance(GRANT, TEAMKAS_ID) }
+            }
+        }
+
+        test("the new session asked for after a 403 stops at the call time limit and is unavailable, not rejected") {
+            withFake({ Setup(it, callTimeout = Duration.ofMillis(300)) }) { s ->
+                s.storeSession()
+                s.fake.answer("GET", ACCOUNT_PATH, Reply(403, FORBIDDEN_BODY))
+                s.fake.answer("POST", "/v1/session-server", Reply(200, fixture("session-server.json"), delay = Duration.ofSeconds(10)))
+
+                val started = System.nanoTime()
+                shouldThrow<BunqUnavailableException> { s.adapter().fetchBalance(GRANT, TEAMKAS_ID) }
+
+                (Duration.ofNanos(System.nanoTime() - started) < Duration.ofSeconds(5)) shouldBe true
+            }
+        }
+
         test("a 403 on the new session after a 403 on the read is a rejected grant when Bunq says so in JSON") {
             withFake { s ->
                 s.storeSession()
@@ -767,12 +792,30 @@ class RealBunqGatewayAdapterReadsTest : FunSpec({
             }
         }
 
-        test("a 400 on the installation is unavailable, not a rejected grant: the token is not even sent there") {
+        test("a 400 on the installation is unavailable, not a rejected grant, and the installation request does not carry the token") {
             withFake { s ->
                 s.fake.answer("POST", "/v1/installation", Reply(400, """{"Error":[{"error_description":"Invalid public key."}]}"""))
 
                 shouldThrow<BunqUnavailableException> { s.adapter().listAccounts(GRANT) }
+
                 s.contexts.stored shouldBe null
+                val installation = s.fake.seen.single { it.path == "/v1/installation" }
+                (installation.body + installation.query + installation.authentication) shouldNotContain ACCESS_TOKEN
+            }
+        }
+
+        test("a setup that failed is tried again by the next read on the same adapter") {
+            withFake { s ->
+                var failing = true
+                s.fake.answer("POST", "/v1/installation") {
+                    if (failing) Reply(500, "{}") else s.fake.ok(fixtureInstallation(s))
+                }
+                val adapter = s.adapter()
+                shouldThrow<BunqUnavailableException> { adapter.listAccounts(GRANT) }
+
+                failing = false
+
+                adapter.listAccounts(GRANT).isNotEmpty() shouldBe true
             }
         }
 

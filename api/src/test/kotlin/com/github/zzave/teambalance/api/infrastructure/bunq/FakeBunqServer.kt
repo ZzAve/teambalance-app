@@ -15,7 +15,7 @@ import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.Executors
 
 /** A request the fake Bunq received. */
-internal class SeenRequest(val method: String, val path: String, val query: String?, val authentication: String?)
+internal class SeenRequest(val method: String, val path: String, val query: String?, val authentication: String?, val body: String)
 
 /** What the fake answers. Bunq signs its 200 and 400 answers, and the SDK checks it. */
 internal class Reply(
@@ -46,11 +46,11 @@ internal class FakeBunqServer : AutoCloseable {
     private val http = HttpServer.create(InetSocketAddress("127.0.0.1", 0), 0).apply {
         executor = Executors.newVirtualThreadPerTaskExecutor()
         createContext("/") { exchange ->
-            exchange.requestBody.readAllBytes()
+            val requestBody = String(exchange.requestBody.readAllBytes())
             val method = exchange.requestMethod
             val path = exchange.requestURI.path
             val authentication = exchange.requestHeaders.getFirst("X-Bunq-Client-Authentication")
-            seen += SeenRequest(method, path, exchange.requestURI.rawQuery, authentication)
+            seen += SeenRequest(method, path, exchange.requestURI.rawQuery, authentication, requestBody)
             val reply = routes.firstOrNull { (key, _) -> key.first == method && key.second.matches(path) }?.second?.invoke()
                 ?: Reply(404, """{"Error":[{"error_description":"No such route in the fake"}]}""")
             if (!reply.delay.isZero) Thread.sleep(reply.delay)

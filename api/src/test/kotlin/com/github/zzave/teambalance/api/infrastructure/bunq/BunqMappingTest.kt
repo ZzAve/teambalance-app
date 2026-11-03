@@ -21,6 +21,22 @@ class BunqMappingTest : FunSpec({
         }
     }
 
+    context("what is a Bunq error body") {
+        listOf(
+            """{"Error":[{"error_description":"Nope."}]}""" to true,
+            """{"Error":[]}""" to true,
+            """{"Error":"blocked"}""" to false,
+            """{"Error":null}""" to false,
+            """{"Error":{"error_description":"Nope."}}""" to false,
+            """{"message":"blocked"}""" to false,
+            "[]" to false,
+            "<html>Forbidden</html>" to false,
+            "" to false,
+        ).forEach { (body, expected) ->
+            test("'$body' is ${if (expected) "" else "not "}one") { isBunqError(body) shouldBe expected }
+        }
+    }
+
     context("an amount that cannot be reported as euro cents is Bunq not answering") {
         listOf(
             "missing amount" to null,

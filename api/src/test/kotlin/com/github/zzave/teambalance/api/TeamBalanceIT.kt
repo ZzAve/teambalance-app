@@ -2,8 +2,8 @@ package com.github.zzave.teambalance.api
 
 import com.github.zzave.teambalance.api.domain.port.EmailGateway
 import com.github.zzave.teambalance.api.infrastructure.email.FakeEmailGateway
-import com.github.zzave.teambalance.api.infrastructure.persistence.FaultInjectingEventRepositoryConfig
 import com.github.zzave.teambalance.api.infrastructure.persistence.SqlFaultInjectorConfig
+import com.github.zzave.teambalance.api.infrastructure.persistence.SqlStatementRecorderConfig
 import com.github.zzave.teambalance.api.interfaces.SwitchableBunqGatewayConfig
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.extensions.spring.SpringTestExtension
@@ -55,8 +55,8 @@ abstract class TeamBalanceIT : FunSpec() {
     @Profile("!prod & !e2e")
     @Import(
         SwitchableBunqGatewayConfig::class,
-        FaultInjectingEventRepositoryConfig::class,
         SqlFaultInjectorConfig::class,
+        SqlStatementRecorderConfig::class,
     )
     class SharedTestDoubles {
         @Bean

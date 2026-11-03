@@ -37,11 +37,11 @@ class JooqEventTypeRepositoryAdapter(
 
     @Transactional(readOnly = true)
     override fun findAll(): List<EventType> =
-        dsl.selectFrom(EVENT_TYPES).orderBy(EVENT_TYPES.ID.asc()).fetch().withTargets()
+        dsl.selectFrom(EVENT_TYPES).orderBy(EVENT_TYPES.ID.asc()).fetch().withTargets(dsl)
 
     @Transactional(readOnly = true)
     override fun findById(id: EventTypeId): EventType? =
-        dsl.selectFrom(EVENT_TYPES).where(EVENT_TYPES.UUID.eq(id.value)).fetch().withTargets().singleOrNull()
+        dsl.selectFrom(EVENT_TYPES).where(EVENT_TYPES.UUID.eq(id.value)).fetch().withTargets(dsl).singleOrNull()
 
     @Transactional
     override fun create(name: EventTypeName, color: HexColor?, rosterDefault: RosterRequirement): EventType {
@@ -58,7 +58,7 @@ class JooqEventTypeRepositoryAdapter(
                 .fetchOne(),
         )
         insertTargets(row.id, rosterDefault.positionTargets)
-        return listOf(row).withTargets().single()
+        return listOf(row).withTargets(dsl).single()
     }
 
     @Transactional
@@ -78,7 +78,7 @@ class JooqEventTypeRepositoryAdapter(
             .fetchOne() ?: throw EventTypeNotFoundException(id)
         dsl.deleteFrom(EVENT_TYPE_POSITION_TARGETS).where(EVENT_TYPE_POSITION_TARGETS.EVENT_TYPE_ID.eq(row.id)).execute()
         insertTargets(row.id, rosterDefault.positionTargets)
-        return listOf(row).withTargets().single()
+        return listOf(row).withTargets(dsl).single()
     }
 
     /** Reassign-then-archive in ONE transaction: events never point at a type that is already hidden. */
@@ -111,7 +111,7 @@ class JooqEventTypeRepositoryAdapter(
             .where(EVENT_TYPES.UUID.eq(id.value))
             .returning()
             .fetchOne()
-            ?.let { listOf(it).withTargets().single() }
+            ?.let { listOf(it).withTargets(dsl).single() }
             ?: throw EventTypeNotFoundException(id)
 
     private fun insertTargets(eventTypeId: Long, targets: List<PositionTarget>) {
@@ -124,31 +124,6 @@ class JooqEventTypeRepositoryAdapter(
                     .set(EVENT_TYPE_POSITION_TARGETS.TARGET_COUNT, target.slots.value)
             },
         ).execute()
-    }
-
-    private fun List<EventTypesRecord>.withTargets(): List<EventType> {
-        if (isEmpty()) return emptyList()
-        val targetsByType = dsl.select(
-            EVENT_TYPE_POSITION_TARGETS.EVENT_TYPE_ID,
-            EVENT_TYPE_POSITION_TARGETS.POSITION_ID,
-            EVENT_TYPE_POSITION_TARGETS.TARGET_COUNT,
-        )
-            .from(EVENT_TYPE_POSITION_TARGETS)
-            .where(EVENT_TYPE_POSITION_TARGETS.EVENT_TYPE_ID.`in`(map { it.id }))
-            .fetchGroups(EVENT_TYPE_POSITION_TARGETS.EVENT_TYPE_ID)
-        return map { type ->
-            type.toDomain(
-                targetsByType[type.id].orEmpty()
-                    .map {
-                        PositionTarget(
-                            positionId = PositionId(it[EVENT_TYPE_POSITION_TARGETS.POSITION_ID]),
-                            slots = PositionSlots(it[EVENT_TYPE_POSITION_TARGETS.TARGET_COUNT]),
-                        )
-                    }
-                    // UUID order, not database order, so the list reads as it did when read through Hibernate.
-                    .sortedBy { it.positionId.value },
-            )
-        }
     }
 }
 
@@ -163,3 +138,29 @@ private fun EventTypesRecord.toDomain(positionTargets: List<PositionTarget>) = E
         positionTargets = positionTargets,
     ),
 )
+
+/** The domain types for [this] rows, with their position targets read in one grouped query. */
+internal fun List<EventTypesRecord>.withTargets(dsl: DSLContext): List<EventType> {
+    if (isEmpty()) return emptyList()
+    val targetsByType = dsl.select(
+        EVENT_TYPE_POSITION_TARGETS.EVENT_TYPE_ID,
+        EVENT_TYPE_POSITION_TARGETS.POSITION_ID,
+        EVENT_TYPE_POSITION_TARGETS.TARGET_COUNT,
+    )
+        .from(EVENT_TYPE_POSITION_TARGETS)
+        .where(EVENT_TYPE_POSITION_TARGETS.EVENT_TYPE_ID.`in`(map { it.id }))
+        .fetchGroups(EVENT_TYPE_POSITION_TARGETS.EVENT_TYPE_ID)
+    return map { type ->
+        type.toDomain(
+            targetsByType[type.id].orEmpty()
+                .map {
+                    PositionTarget(
+                        positionId = PositionId(it[EVENT_TYPE_POSITION_TARGETS.POSITION_ID]),
+                        slots = PositionSlots(it[EVENT_TYPE_POSITION_TARGETS.TARGET_COUNT]),
+                    )
+                }
+                // UUID order, not database order, so the list reads as it did when read through Hibernate.
+                .sortedBy { it.positionId.value },
+        )
+    }
+}

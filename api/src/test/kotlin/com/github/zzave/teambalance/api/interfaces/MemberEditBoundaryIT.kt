@@ -55,11 +55,13 @@ class MemberEditBoundaryIT : TeamBalanceIT() {
             seedTeam()
 
             sqlFaultInjector.failWhile(profileWriteFailure) {
-                editMemberAs(ADMIN_USER_ID, FAULT_MEMBER_USER_ID, "Renamed")
+                editMemberAs(ADMIN_USER_ID, FAULT_MEMBER_USER_ID, "Renamed", role = "ADMIN")
                     .andExpect(MockMvcResultMatchers.status().isBadRequest)
             }
 
             displayNameOf(FAULT_MEMBER_USER_ID) shouldBe ORIGINAL_FAULT_NAME
+            // The role is written before the profile, so only a transaction can undo the promotion.
+            roleOf(FAULT_MEMBER_USER_ID) shouldBe "USER"
         }
 
         test("an onboarding whose team-member write fails leaves the member un-onboarded and unrenamed") {
@@ -91,12 +93,12 @@ class MemberEditBoundaryIT : TeamBalanceIT() {
 
     // --- helpers ---------------------------------------------------------------------------------
 
-    private fun editMemberAs(callerId: String, targetUserId: String, newName: String): ResultActions =
+    private fun editMemberAs(callerId: String, targetUserId: String, newName: String, role: String = "USER"): ResultActions =
         mockMvc.perform(
             MockMvcRequestBuilders.put("/api/members/$targetUserId")
                 .with(loginAs(callerId))
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("""{"displayName":"$newName","role":"USER"}"""),
+                .content("""{"displayName":"$newName","role":"$role"}"""),
         )
             .andExpect(MockMvcResultMatchers.request().asyncStarted())
             .andReturn()
@@ -126,6 +128,14 @@ class MemberEditBoundaryIT : TeamBalanceIT() {
             """,
             String::class.java,
             userId,
+        )!!
+
+    private fun roleOf(userId: String): String =
+        jdbcTemplate.queryForObject(
+            "SELECT role FROM public.team_members WHERE user_id = ?::uuid AND team_id = ?::uuid",
+            String::class.java,
+            userId,
+            TEAM_ID,
         )!!
 
     private fun isOnboarded(userId: String): Boolean =

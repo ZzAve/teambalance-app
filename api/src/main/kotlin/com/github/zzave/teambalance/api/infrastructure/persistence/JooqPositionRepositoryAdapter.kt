@@ -1,5 +1,6 @@
 package com.github.zzave.teambalance.api.infrastructure.persistence
 
+import com.github.zzave.teambalance.api.domain.exception.PositionLabelTakenException
 import com.github.zzave.teambalance.api.domain.model.Position
 import com.github.zzave.teambalance.api.domain.model.PositionId
 import com.github.zzave.teambalance.api.domain.model.PositionKind
@@ -8,6 +9,7 @@ import com.github.zzave.teambalance.api.domain.port.PositionRepository
 import com.github.zzave.teambalance.api.infrastructure.persistence.jooq.default_schema.Tables.POSITIONS
 import com.github.zzave.teambalance.api.infrastructure.persistence.jooq.default_schema.tables.records.PositionsRecord
 import org.jooq.DSLContext
+import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.stereotype.Repository
 import java.util.UUID
 
@@ -25,20 +27,24 @@ class JooqPositionRepositoryAdapter(
         dsl.selectFrom(POSITIONS).orderBy(POSITIONS.LABEL.asc()).fetch { it.toDomain() }
 
     override fun create(label: PositionLabel): Position =
-        checkNotNull(
-            dsl.insertInto(POSITIONS)
-                .set(POSITIONS.ID, UUID.randomUUID())
-                .set(POSITIONS.LABEL, label.value)
-                .returning()
-                .fetchOne(),
-        ).toDomain()
+        refusingTakenLabel(label) {
+            checkNotNull(
+                dsl.insertInto(POSITIONS)
+                    .set(POSITIONS.ID, UUID.randomUUID())
+                    .set(POSITIONS.LABEL, label.value)
+                    .returning()
+                    .fetchOne(),
+            ).toDomain()
+        }
 
     override fun rename(id: PositionId, label: PositionLabel): Position =
-        dsl.update(POSITIONS)
-            .set(POSITIONS.LABEL, label.value)
-            .where(POSITIONS.ID.eq(id.value))
-            .returning()
-            .fetchOne()
+        refusingTakenLabel(label) {
+            dsl.update(POSITIONS)
+                .set(POSITIONS.LABEL, label.value)
+                .where(POSITIONS.ID.eq(id.value))
+                .returning()
+                .fetchOne()
+        }
             ?.toDomain()
             ?: throw IllegalStateException("Position $id disappeared during rename")
 
@@ -72,3 +78,15 @@ class JooqPositionRepositoryAdapter(
     private fun PositionsRecord.toDomain() =
         Position(id = PositionId(id), label = PositionLabel(label), kind = PositionKind.valueOf(kind))
 }
+
+private const val LABEL_INDEX = "uq_positions_label"
+
+// The service refuses a taken label before writing; uq_positions_label catches the one taken in
+// between, by a concurrent create or rename, and the caller hears the same 409 either way.
+private fun <T> refusingTakenLabel(label: PositionLabel, write: () -> T): T =
+    try {
+        write()
+    } catch (e: DataIntegrityViolationException) {
+        if (e.mostSpecificCause.message?.contains(LABEL_INDEX) == true) throw PositionLabelTakenException(label.value)
+        throw e
+    }

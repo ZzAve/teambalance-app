@@ -64,8 +64,8 @@ RUN set -e; \
 #
 # The training run drives a full Spring context refresh (`-Dspring.context.exit=onRefresh` exits the
 # JVM cleanly the moment refresh completes). Refresh touches the DB (Flyway migrate + Hikari), so we
-# spin a throwaway Postgres inside this stage — this yields a cache that also covers Hibernate
-# metamodel init and repository bootstrap, not just the pre-DB classload gap. Secrets are build-time
+# spin a throwaway Postgres inside this stage — this yields a cache that also covers jOOQ, Flyway
+# and connection-pool init, not just the pre-DB classload gap. Secrets are build-time
 # dummies: AOT-processed prod boot instantiates ScalewayTemEmailSender (builds a RestClient) but
 # never sends mail, and the token salt is only read when a login is served.
 #

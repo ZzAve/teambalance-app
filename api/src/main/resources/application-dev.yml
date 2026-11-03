@@ -27,4 +27,3 @@ teambalance:
 logging:
   level:
     com.github.zzave.teambalance.api: DEBUG
-    org.hibernate.SQL: DEBUG

@@ -11,7 +11,6 @@ val flockDetektVersion: String by project
 plugins {
     kotlin("jvm")
     kotlin("plugin.spring")
-    kotlin("plugin.jpa")
     id("org.springframework.boot")
     // Spring AOT on the JVM (NOT native image): registers the `aot` source set + `processAot`
     // task and makes `bootJar` package the AOT-generated bean definitions. The artifact still
@@ -29,7 +28,6 @@ dependencies {
     // RestClient auto-configuration (the RestClient.Builder bean + spring.http.client.* timeouts).
     // Boot 4 split this out of starter-web; the prod ScalewayTemEmailAdapter needs the builder bean.
     implementation("org.springframework.boot:spring-boot-restclient")
-    implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     implementation("org.springframework.boot:spring-boot-starter-jooq")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     // One SecurityFilterChain around the session model: session-ID rotation on sign-in, CSRF, and the

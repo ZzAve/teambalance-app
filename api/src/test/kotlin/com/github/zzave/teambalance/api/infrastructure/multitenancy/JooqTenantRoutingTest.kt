@@ -7,10 +7,12 @@ import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.collections.shouldContain
 import io.kotest.matchers.ints.shouldBeGreaterThanOrEqual
 import io.kotest.matchers.collections.shouldNotContain
+import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
 import org.jooq.DSLContext
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.jdbc.BadSqlGrammarException
+import javax.sql.DataSource
 import org.springframework.transaction.support.TransactionTemplate
 import java.util.UUID
 
@@ -21,6 +23,9 @@ class JooqTenantRoutingTest : TeamBalanceIT() {
 
     @Autowired
     lateinit var dsl: DSLContext
+
+    @Autowired
+    lateinit var dataSource: DataSource
 
     @Autowired
     lateinit var transactions: TransactionTemplate
@@ -47,19 +52,60 @@ class JooqTenantRoutingTest : TeamBalanceIT() {
             shouldThrow<BadSqlGrammarException> { eventTypeNames() }
         }
 
-        test("a jOOQ write inside a transaction that throws is rolled back") {
+        test("every jOOQ statement of a transaction that throws is rolled back") {
             tenantSchemaAdapter.provisionTenantSchema("team_alpha")
-            val rolledBackName = "Rolled-back-${UUID.randomUUID()}"
+            val firstName = "Rolled-back-first-${UUID.randomUUID()}"
+            val secondName = "Rolled-back-second-${UUID.randomUUID()}"
 
             withTenant("team_alpha") {
                 shouldThrow<IllegalStateException> {
                     transactions.executeWithoutResult {
-                        insertEventType(rolledBackName)
+                        insertEventType(firstName)
+                        insertEventType(secondName)
+                        eventTypeNames() shouldContain secondName
                         throw IllegalStateException("boom")
                     }
                 }
                 eventTypeNames()
-            } shouldNotContain rolledBackName
+            }.let {
+                it shouldNotContain firstName
+                it shouldNotContain secondName
+            }
+        }
+
+        test("a committed transaction's writes are visible in its own tenant and invisible in another") {
+            tenantSchemaAdapter.provisionTenantSchema("team_alpha")
+            tenantSchemaAdapter.provisionTenantSchema("team_beta")
+            val alphaOnlyName = "Alpha-tx-${UUID.randomUUID()}"
+
+            withTenant("team_alpha") {
+                transactions.executeWithoutResult {
+                    insertEventType(alphaOnlyName)
+                    eventTypeNames() shouldContain alphaOnlyName
+                }
+            }
+
+            withTenant("team_beta") { transactions.execute { eventTypeNames() } } shouldNotContain alphaOnlyName
+            withTenant("team_alpha") { transactions.execute { eventTypeNames() } } shouldContain alphaOnlyName
+        }
+
+        test("connections go back to the pool on public after committed, rolled-back and tenant-less transactions") {
+            tenantSchemaAdapter.provisionTenantSchema("team_alpha")
+            withTenant("team_alpha") {
+                transactions.executeWithoutResult { eventTypeNames() }
+                shouldThrow<IllegalStateException> { transactions.executeWithoutResult { throw IllegalStateException("boom") } }
+                eventTypeNames()
+            }
+            transactions.executeWithoutResult { dsl.fetchCount(USERS) }
+
+            val poolSize = 8
+            val connections = List(poolSize) { dataSource.connection }
+            try {
+                connections.map { it.createStatement().use { st -> st.executeQuery("SELECT current_schema()").use { rs -> rs.next(); rs.getString(1) } } }
+                    .distinct() shouldBe listOf(TenantContext.PUBLIC_SCHEMA)
+            } finally {
+                connections.forEach { it.close() }
+            }
         }
 
         test("in a transaction with no tenant, public tables are reachable and tenant tables fail closed") {

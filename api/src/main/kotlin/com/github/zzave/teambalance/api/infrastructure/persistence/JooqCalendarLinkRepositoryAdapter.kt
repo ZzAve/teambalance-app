@@ -75,8 +75,10 @@ class JooqCalendarLinkRepositoryAdapter(
 
     /**
      * Rewrites the label, the options and the child rows of the stored link, leaving its token and
-     * dates as they were. The link is read first, in the same transaction, to tell "not mine" from
-     * "mine" and to hand back the link as stored.
+     * dates as they were. The row is locked while ownership is checked: without the lock, a concurrent
+     * delete would make the child inserts fail on their foreign key to `calendar_links`; with it, the
+     * delete waits until this update commits, and an update that starts after a delete finds no row
+     * and returns null (not found).
      */
     @Transactional
     override fun updateOwned(
@@ -88,9 +90,8 @@ class JooqCalendarLinkRepositoryAdapter(
         val stored = dsl.selectFrom(CALENDAR_LINKS)
             .where(CALENDAR_LINKS.ID.eq(id.value))
             .and(CALENDAR_LINKS.USER_ID.eq(userId.value))
-            .fetch()
-            .withChildren()
-            .singleOrNull() ?: return null
+            .forUpdate()
+            .fetchOne() ?: return null
 
         dsl.update(CALENDAR_LINKS)
             .set(CALENDAR_LINKS.LABEL, label?.value)
@@ -102,7 +103,7 @@ class JooqCalendarLinkRepositoryAdapter(
         dsl.deleteFrom(CALENDAR_LINK_EVENT_TYPES).where(CALENDAR_LINK_EVENT_TYPES.LINK_ID.eq(id.value)).execute()
         insertChildren(id.value, options)
 
-        return stored.copy(label = label, options = options)
+        return stored.toDomain(emptyList(), emptyList()).copy(label = label, options = options)
     }
 
     /** The child rows go with the link through their `ON DELETE CASCADE`. */

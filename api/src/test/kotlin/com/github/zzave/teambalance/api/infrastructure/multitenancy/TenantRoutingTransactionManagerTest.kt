@@ -1,5 +1,6 @@
 package com.github.zzave.teambalance.api.infrastructure.multitenancy
 
+import io.kotest.assertions.throwables.shouldNotThrowAny
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.collections.shouldContainExactly
@@ -14,11 +15,11 @@ import javax.sql.DataSource
 class TenantRoutingTransactionManagerTest : FunSpec({
     afterTest { TenantContext.clear() }
 
-    test("a connection whose reset to public fails is evicted, and the failure propagates") {
+    test("a connection whose reset to public fails is evicted and the completed transaction still succeeds") {
         val pool = FakePool(failSchemaChangeTo = TenantContext.PUBLIC_SCHEMA)
         TenantContext.set("team_alpha")
 
-        shouldThrow<SQLException> {
+        shouldNotThrowAny {
             TransactionTemplate(TenantRoutingTransactionManager(pool.dataSource, pool::evict)).executeWithoutResult {}
         }
 
@@ -49,11 +50,11 @@ class TenantRoutingTransactionManagerTest : FunSpec({
         pool.schemaChanges.shouldContainExactly(TenantContext.PUBLIC_SCHEMA)
     }
 
-    test("a non-transactional jOOQ connection whose reset fails is evicted, and the failure propagates") {
+    test("a non-transactional jOOQ connection whose reset fails is evicted and closed without failing the caller") {
         val pool = FakePool(failSchemaChangeTo = TenantContext.PUBLIC_SCHEMA)
         TenantContext.set("team_alpha")
 
-        shouldThrow<SQLException> { TenantRoutingDataSource(pool.dataSource, pool::evict).connection.close() }
+        shouldNotThrowAny { TenantRoutingDataSource(pool.dataSource, pool::evict).connection.close() }
 
         pool.evicted shouldBe 1
         pool.closed shouldBe 1

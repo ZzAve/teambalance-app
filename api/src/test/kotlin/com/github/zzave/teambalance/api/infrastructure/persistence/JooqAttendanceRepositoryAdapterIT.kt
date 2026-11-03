@@ -22,6 +22,9 @@ import org.springframework.jdbc.core.JdbcTemplate
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 import java.util.UUID
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 
 private val ROUTING = TenantRouting(
     TeamId(UUID.fromString(CalendarLinkFixture.ALPHA_TEAM)),
@@ -56,6 +59,28 @@ class JooqAttendanceRepositoryAdapterIT : TeamBalanceIT() {
             tenants.within(ROUTING) { attendances.save(changed) }
 
             tenants.within(ROUTING) { attendances.findByEventId(TRAINING) } shouldBe listOf(changed)
+        }
+
+        test("concurrent first responses for the same event and member leave one row and no failure") {
+            val writers = 20
+            val ready = CountDownLatch(writers)
+            val go = CountDownLatch(1)
+            val pool = Executors.newFixedThreadPool(writers)
+            val results = (1..writers).map {
+                pool.submit<Attendance> {
+                    ready.countDown()
+                    go.await()
+                    tenants.within(ROUTING) { attendances.save(attendance(TRAINING, AttendanceState.ATTENDING)) }
+                }
+            }
+            ready.await()
+            go.countDown()
+            val saved = results.map { it.get(30, TimeUnit.SECONDS) }
+            pool.shutdown()
+
+            val stored = tenants.within(ROUTING) { attendances.findByEventId(TRAINING) }
+            stored.size shouldBe 1
+            saved.forEach { it.id shouldBe stored.single().id }
         }
 
         test("saving for an unknown event fails and writes nothing") {

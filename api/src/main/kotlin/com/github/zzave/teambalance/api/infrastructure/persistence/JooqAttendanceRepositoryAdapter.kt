@@ -45,19 +45,26 @@ class JooqAttendanceRepositoryAdapter(
             .and(EVENTS.UUID.`in`(eventIds.map { it.value }))
             .fetch { it.toAttendance() }
 
-    // Upsert on the attendance uuid: a changed response updates the same row in place. Only the
-    // response itself is rewritten, so an upsert can never move a row to another event or member.
+    // Upsert on (event, member): concurrent first responses each carry their own new uuid, and all but
+    // the first must update the stored row instead of failing the unique constraint. Only the
+    // response itself is rewritten, so the stored row keeps its identity and the returned attendance
+    // is the persisted one.
     @Transactional
     override fun save(attendance: Attendance): Attendance {
-        val written = insertForEvent(attendance)
-            .onConflict(ATTENDANCES.UUID)
+        val stored = insertForEvent(attendance)
+            .onConflict(ATTENDANCES.EVENT_ID, ATTENDANCES.USER_ID)
             .doUpdate()
             .set(ATTENDANCES.STATE, DSL.excluded(ATTENDANCES.STATE))
             .set(ATTENDANCES.UPDATED_AT, DSL.excluded(ATTENDANCES.UPDATED_AT))
             .set(ATTENDANCES.CHANGED_BY, DSL.excluded(ATTENDANCES.CHANGED_BY))
-            .execute()
-        if (written == 0) throw EventNotFoundException(attendance.eventId)
-        return attendance
+            .returning(ATTENDANCES.UUID, ATTENDANCES.STATE, ATTENDANCES.UPDATED_AT, ATTENDANCES.CHANGED_BY)
+            .fetchOne() ?: throw EventNotFoundException(attendance.eventId)
+        return attendance.copy(
+            id = AttendanceId(stored.uuid),
+            state = AttendanceState.valueOf(stored.state),
+            updatedAt = stored.updatedAt.toInstant(),
+            changedBy = UserId(stored.changedBy),
+        )
     }
 
     // Each row resolves its own event: a batch may span events (Bulk Attend, ADR-0020). Insert-only;

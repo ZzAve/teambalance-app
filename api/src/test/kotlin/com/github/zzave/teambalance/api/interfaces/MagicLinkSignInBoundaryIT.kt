@@ -1,6 +1,10 @@
 package com.github.zzave.teambalance.api.interfaces
 
 import com.github.zzave.teambalance.api.TeamBalanceIT
+import com.github.zzave.teambalance.api.domain.model.DisplayName
+import com.github.zzave.teambalance.api.domain.model.MagicLinkToken
+import com.github.zzave.teambalance.api.domain.model.TokenHash
+import com.github.zzave.teambalance.api.domain.port.MagicLinkTokenRepository
 import com.github.zzave.teambalance.api.infrastructure.persistence.SqlFault
 import com.github.zzave.teambalance.api.infrastructure.persistence.SqlFaultInjector
 import com.github.zzave.teambalance.api.infrastructure.persistence.jooq.public_.Tables.USERS
@@ -18,6 +22,7 @@ import java.security.MessageDigest
 import java.sql.Timestamp
 import java.time.Instant
 import java.util.concurrent.CompletableFuture
+import java.util.concurrent.CountDownLatch
 import java.util.UUID
 
 /**
@@ -39,6 +44,9 @@ class MagicLinkSignInBoundaryIT : TeamBalanceIT() {
 
     @Autowired
     lateinit var jdbcTemplate: JdbcTemplate
+
+    @Autowired
+    lateinit var magicLinkTokenRepository: MagicLinkTokenRepository
 
     @Autowired
     lateinit var sqlFaultInjector: SqlFaultInjector
@@ -65,16 +73,38 @@ class MagicLinkSignInBoundaryIT : TeamBalanceIT() {
             verify(rawToken).andExpect(MockMvcResultMatchers.status().isUnauthorized)
         }
 
+        test("the same link verified twice at once signs in exactly once") {
+            val rawToken = "same-${UUID.randomUUID()}"
+            seedUnusedToken(rawToken, "signin-same-${UUID.randomUUID()}@test.com")
+
+            val statuses = verifyConcurrently(listOf(rawToken, rawToken))
+
+            statuses.sorted() shouldBe listOf(200, 401)
+            usedAtCount(rawToken) shouldBe 1
+        }
+
         test("two links for the same new email verified at once sign in as one user") {
             val email = "signin-race-${UUID.randomUUID()}@test.com"
             val rawTokens = List(2) { "race-${UUID.randomUUID()}" }.onEach { seedUnusedToken(it, email) }
 
-            val statuses = rawTokens
-                .map { token -> CompletableFuture.supplyAsync { verify(token).andReturn().response.status } }
-                .map { it.get() }
-
-            statuses shouldBe listOf(200, 200)
+            verifyConcurrently(rawTokens) shouldBe listOf(200, 200)
             userCount(email) shouldBe 1
+        }
+
+        test("a token that expired before the consume is not consumed") {
+            val rawToken = "expired-${UUID.randomUUID()}"
+            val email = "signin-expired-${UUID.randomUUID()}@test.com"
+            seedUnusedToken(rawToken, email)
+            val stored = magicLinkTokenRepository.findByTokenHash(TokenHash.unsalted(rawToken))!!
+
+            val user = magicLinkTokenRepository.consumeAndResolveUser(
+                consumedToken = stored.copy(usedAt = stored.expiresAt.plusSeconds(1)),
+                displayName = DisplayName("expired"),
+            )
+
+            user shouldBe null
+            tokenUsedAt(rawToken) shouldBe null
+            userExists(email) shouldBe false
         }
 
         test("a healthy verify consumes the token and creates the user") {
@@ -105,6 +135,26 @@ class MagicLinkSignInBoundaryIT : TeamBalanceIT() {
             .andExpect(MockMvcResultMatchers.request().asyncStarted())
             .andReturn()
             .let { mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(it)) }
+
+    // Both requests wait on a latch so they are in flight together rather than one after the other.
+    private fun verifyConcurrently(rawTokens: List<String>): List<Int> {
+        val start = CountDownLatch(1)
+        val futures = rawTokens.map { token ->
+            CompletableFuture.supplyAsync {
+                start.await()
+                verify(token).andReturn().response.status
+            }
+        }
+        start.countDown()
+        return futures.map { it.get() }
+    }
+
+    private fun usedAtCount(rawToken: String): Int =
+        jdbcTemplate.queryForObject(
+            "SELECT count(used_at) FROM public.magic_link_tokens WHERE token_hash = ?",
+            Int::class.java,
+            sha256(rawToken),
+        )!!
 
     private fun seedUnusedToken(rawToken: String, email: String) {
         jdbcTemplate.update(

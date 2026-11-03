@@ -37,7 +37,7 @@ class JooqSubstituteRepositoryAdapter(
 
     @Transactional(readOnly = true)
     override fun list(): List<Substitute> =
-        substitutesWithPosition()
+        dsl.substitutesWithPosition()
             .orderBy(DSL.lower(SUBSTITUTES.NAME))
             .fetch { it.toSubstitute() }
 
@@ -140,13 +140,8 @@ class JooqSubstituteRepositoryAdapter(
             attendanceOn(eventIds.map { it.value }).groupBy({ it.first }, { it.second })
         }
 
-    private fun substitutesWithPosition() =
-        dsl.select(SUBSTITUTES.ID, SUBSTITUTES.NAME, SUBSTITUTES.POSITION_ID, POSITIONS.LABEL, SUBSTITUTES.SHIRT_NUMBER)
-            .from(SUBSTITUTES)
-            .leftJoin(POSITIONS).on(POSITIONS.ID.eq(SUBSTITUTES.POSITION_ID))
-
     private fun findSubstitute(id: UUID): Substitute? =
-        substitutesWithPosition().where(SUBSTITUTES.ID.eq(id)).fetchOne { it.toSubstitute() }
+        dsl.substitutesWithPosition().where(SUBSTITUTES.ID.eq(id)).fetchOne { it.toSubstitute() }
 
     private fun attendanceOn(eventUuids: List<UUID>): List<Pair<EventId, SubstituteAttendance>> =
         dsl.select(
@@ -175,14 +170,20 @@ class JooqSubstituteRepositoryAdapter(
                 )
             }
 
-    private fun Record.toSubstitute() = Substitute(
-        id = SubstituteId(this[SUBSTITUTES.ID]),
-        name = DisplayName(this[SUBSTITUTES.NAME]),
-        positionId = this[SUBSTITUTES.POSITION_ID]?.let(::PositionId),
-        position = this[POSITIONS.LABEL]?.let(::PositionLabel),
-        shirtNumber = this[SUBSTITUTES.SHIRT_NUMBER]?.let { ShirtNumber(it.toInt()) },
-    )
 }
+
+private fun DSLContext.substitutesWithPosition() =
+    select(SUBSTITUTES.ID, SUBSTITUTES.NAME, SUBSTITUTES.POSITION_ID, POSITIONS.LABEL, SUBSTITUTES.SHIRT_NUMBER)
+        .from(SUBSTITUTES)
+        .leftJoin(POSITIONS).on(POSITIONS.ID.eq(SUBSTITUTES.POSITION_ID))
+
+private fun Record.toSubstitute() = Substitute(
+    id = SubstituteId(this[SUBSTITUTES.ID]),
+    name = DisplayName(this[SUBSTITUTES.NAME]),
+    positionId = this[SUBSTITUTES.POSITION_ID]?.let(::PositionId),
+    position = this[POSITIONS.LABEL]?.let(::PositionLabel),
+    shirtNumber = this[SUBSTITUTES.SHIRT_NUMBER]?.let { ShirtNumber(it.toInt()) },
+)
 
 private const val NAME_INDEX = "uq_substitutes_name"
 

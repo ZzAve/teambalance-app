@@ -9,7 +9,7 @@ import org.springframework.context.annotation.Bean
 import java.util.concurrent.CopyOnWriteArrayList
 
 /** A statement jOOQ ran and how many rows it fetched (0 for statements that fetch nothing). */
-data class RecordedStatement(val sql: String, val rowsFetched: Int)
+class RecordedStatement(val sql: String, var rowsFetched: Int = 0)
 
 /**
  * Lets a test observe what reached the database: the SQL of every jOOQ statement executed while
@@ -21,8 +21,15 @@ class SqlStatementRecorder : ExecuteListener {
     @Volatile
     private var recorded: MutableList<RecordedStatement>? = null
 
+    override fun executeEnd(ctx: ExecuteContext) {
+        val statements = recorded ?: return
+        val statement = RecordedStatement(ctx.sql().orEmpty())
+        statements.add(statement)
+        ctx.data(STATEMENT_KEY, statement)
+    }
+
     override fun resultEnd(ctx: ExecuteContext) {
-        recorded?.add(RecordedStatement(ctx.sql().orEmpty(), ctx.result()?.size ?: 0))
+        (ctx.data(STATEMENT_KEY) as? RecordedStatement)?.rowsFetched = ctx.result()?.size ?: 0
     }
 
     fun recording(block: () -> Unit): List<RecordedStatement> {
@@ -34,6 +41,10 @@ class SqlStatementRecorder : ExecuteListener {
             recorded = null
         }
         return statements.toList()
+    }
+
+    private companion object {
+        const val STATEMENT_KEY = "recordedStatement"
     }
 }
 

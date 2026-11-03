@@ -8,8 +8,10 @@ import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.port.BunqOAuthStateRepository
 import com.github.zzave.teambalance.api.infrastructure.multitenancy.TenantSchemaAdapter
 import com.github.zzave.teambalance.api.interfaces.CalendarLinkFixture
+import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.shouldBe
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.jdbc.core.JdbcTemplate
 import java.time.Instant
 import java.util.UUID
@@ -20,7 +22,7 @@ import java.util.concurrent.TimeUnit
 private const val RACERS = 8
 
 /** The single-use guarantee of the Bunq OAuth state lives in one conditional UPDATE; this is its test. */
-class JpaBunqOAuthStateRepositoryAdapterIT : TeamBalanceIT() {
+class JooqBunqOAuthStateRepositoryAdapterIT : TeamBalanceIT() {
 
     @Autowired
     lateinit var states: BunqOAuthStateRepository
@@ -42,6 +44,15 @@ class JpaBunqOAuthStateRepositoryAdapterIT : TeamBalanceIT() {
             val state = saved()
 
             states.consume(state.id, Instant.now()) shouldBe true
+            states.consume(state.id, Instant.now()) shouldBe false
+        }
+
+        test("saving the same state twice fails instead of re-arming a spent one") {
+            val state = saved()
+            states.consume(state.id, Instant.now()) shouldBe true
+
+            shouldThrow<DataIntegrityViolationException> { states.save(state) }
+
             states.consume(state.id, Instant.now()) shouldBe false
         }
 

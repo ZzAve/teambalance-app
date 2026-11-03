@@ -2,11 +2,12 @@ package com.github.zzave.teambalance.api.interfaces
 
 import com.github.zzave.teambalance.api.TeamBalanceIT
 import com.github.zzave.teambalance.api.infrastructure.multitenancy.TenantSchemaAdapter
-import com.github.zzave.teambalance.api.infrastructure.persistence.FaultInjectingInvitationRepositoryConfig
+import com.github.zzave.teambalance.api.infrastructure.persistence.SqlFault
+import com.github.zzave.teambalance.api.infrastructure.persistence.SqlFaultInjector
+import com.github.zzave.teambalance.api.infrastructure.persistence.jooq.public_.Tables.INVITATIONS
 import io.kotest.matchers.shouldBe
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
-import org.springframework.context.annotation.Import
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders
@@ -28,15 +29,17 @@ private const val TEAM_ID = "a0000000-0000-0000-0000-000000000001"
  * `InvitationRepository.rotate` being a single, `@Transactional` adapter call.
  *
  * The mint is made to fail; the pre-existing link must still be active afterwards. Verified to be
- * load-bearing by deleting `@Transactional` from `JpaInvitationRepositoryAdapter.rotate`, which
+ * load-bearing by deleting `@Transactional` from `JooqInvitationRepositoryAdapter.rotate`, which
  * leaves the team with an expired link and no replacement — exactly the state the guarantee forbids.
  */
 @AutoConfigureMockMvc
-@Import(FaultInjectingInvitationRepositoryConfig::class)
 class InvitationRotationBoundaryIT : TeamBalanceIT() {
 
     @Autowired
     lateinit var mockMvc: MockMvc
+
+    @Autowired
+    lateinit var sqlFaultInjector: SqlFaultInjector
 
     @Autowired
     lateinit var jdbcTemplate: JdbcTemplate
@@ -52,19 +55,26 @@ class InvitationRotationBoundaryIT : TeamBalanceIT() {
             // class with no truncation between them, so an absolute count would be pollutable.
             val activeBefore = activeInvitationCount()
 
-            mockMvc.perform(
-                MockMvcRequestBuilders.post("/api/invitations/rotate")
-                    .with(loginAs(ADMIN_USER_ID, tenant = "public")),
-            )
-                .andExpect(MockMvcResultMatchers.request().asyncStarted())
-                .andReturn()
-                .let { mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(it)) }
+            sqlFaultInjector.failWhile(mintFailure) {
+                mockMvc.perform(
+                    MockMvcRequestBuilders.post("/api/invitations/rotate")
+                        .with(loginAs(ADMIN_USER_ID, tenant = "public")),
+                )
+                    .andExpect(MockMvcResultMatchers.request().asyncStarted())
+                    .andReturn()
+                    .let { mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(it)) }
+            }
 
             // The expire must have rolled back with the failed mint: nothing expired, nothing minted,
             // and the link the team already had is still usable.
             activeInvitationCount() shouldBe activeBefore
             isStillActive(existing) shouldBe true
         }
+    }
+
+    // The mint is the only insert into invitations, and it runs after the expire in the same transaction.
+    private val mintFailure = SqlFault.onInsertInto(INVITATIONS) {
+        IllegalArgumentException("injected persistence failure minting the replacement invitation")
     }
 
     // --- helpers ---------------------------------------------------------------------------------

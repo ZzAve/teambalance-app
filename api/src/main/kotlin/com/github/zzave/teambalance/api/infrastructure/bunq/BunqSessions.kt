@@ -55,18 +55,30 @@ internal class BunqSessions(
     private val cipher: TokenCipher,
     private val calls: BunqCalls,
 ) {
-    private val sessions = ConcurrentHashMap<String, BunqSession>()
+    // A holder per access token that sets the session up on first use, so that a slow setup holds up only the readers of that
+    // token and not the map.
+    private val sessions = ConcurrentHashMap<String, Lazy<BunqSession>>()
 
     fun sessionFor(grant: BunqGrant): BunqSession =
-        sessions.computeIfAbsent(keyOf(grant)) { restored(grant) ?: setUp(grant) }
+        sessions.computeIfAbsent(keyOf(grant)) { lazy { restored(grant) ?: setUp(grant) } }.value
 
-    /** Stores the session's context if it differs from what the store holds. Never fails the read it follows. */
+    /**
+     * Stores the session's context if it differs from what the store holds, and only on the connection row that holds the
+     * session's own access token. The tenant in scope may be another team's (the Admin's active team while connecting), and
+     * the row may have been replaced by a reconnect since this session was made: then nothing is written and the session
+     * stays unstored, to be written by a later read that finds its own row. Never fails the read it follows.
+     */
     @Suppress("TooGenericExceptionCaught")
     fun persistIfChanged(session: BunqSession) {
         val current = session.context
         if (current === session.persisted) return
         try {
-            if (store.save(cipher.encrypt(BunqApiContextCodec.encode(current)))) session.persisted = current
+            val row = store.find()
+            if (row != null && cipher.decrypt(row.grant) == current.config.apiKey &&
+                store.save(cipher.encrypt(BunqApiContextCodec.encode(current)), ifGrant = row.grant)
+            ) {
+                session.persisted = current
+            }
         } catch (e: Exception) {
             log.warn("Storing the Bunq API context failed: {}", e.javaClass.simpleName)
         }
@@ -85,6 +97,7 @@ internal class BunqSessions(
     private fun restored(grant: BunqGrant): BunqSession? =
         try {
             store.find()
+                ?.context
                 ?.let { BunqApiContextCodec.decode(cipher.decrypt(it), server, serviceName) }
                 ?.takeIf { it.config.apiKey == grant.accessToken }
                 ?.let { BunqSession(it, persisted = it) }
@@ -95,7 +108,7 @@ internal class BunqSessions(
 
     private fun setUp(grant: BunqGrant): BunqSession {
         val config = Config(server, serviceName, grant.accessToken, BunqSigningKeysGenerator.generateBunqSigningKeys())
-        return BunqSession(calls.run { initContext(config) }, persisted = null)
+        return BunqSession(calls.runSetup { initContext(config) }, persisted = null)
     }
 
     private fun keyOf(grant: BunqGrant): String =

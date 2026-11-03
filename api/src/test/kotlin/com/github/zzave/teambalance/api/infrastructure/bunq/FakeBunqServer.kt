@@ -100,7 +100,7 @@ internal class FakeBunqServer : AutoCloseable {
         config = Config(server, "TeamBalance test", apiKey, BunqSigningKeysGenerator.generateBunqSigningKeys()),
     )
 
-    private fun publicKeyJson() = keys.publicKeyAsPem().replace("\n", "\\n")
+    fun publicKeyJson() = keys.publicKeyAsPem().replace("\n", "\\n")
 
     private fun sign(bytes: ByteArray): String = Base64.getEncoder().encodeToString(
         Signature.getInstance("SHA256withRSA").apply {

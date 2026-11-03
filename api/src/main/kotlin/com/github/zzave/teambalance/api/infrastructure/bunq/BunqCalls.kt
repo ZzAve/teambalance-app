@@ -2,6 +2,7 @@ package com.github.zzave.teambalance.api.infrastructure.bunq
 
 import com.bunq.sdk.BunqApiException
 import java.time.Clock
+import java.time.Duration
 import java.util.concurrent.Callable
 import java.util.concurrent.ExecutionException
 import java.util.concurrent.Executors
@@ -24,18 +25,23 @@ internal class BunqCalls(private val properties: BunqCallProperties, clock: Cloc
 
     fun requireOpen() = pause.requireOpen()
 
+    fun <T> run(block: () -> T): T = execute(properties.callTimeout, block)
+
+    /** Setting a session up is three calls made as one by the SDK, which is why it has its own, longer limit. */
+    fun <T> runSetup(block: () -> T): T = execute(properties.setupTimeout, block)
+
     @Suppress("TooGenericExceptionCaught")
-    fun <T> run(block: () -> T): T {
+    private fun <T> execute(timeout: Duration, block: () -> T): T {
         pause.requireOpen()
         val future = executor.submit(Callable { block() })
         try {
-            return future.get(properties.callTimeout.toNanos(), TimeUnit.NANOSECONDS)
+            return future.get(timeout.toNanos(), TimeUnit.NANOSECONDS)
         } catch (e: ExecutionException) {
             throw failureOf(e.cause ?: e)
         } catch (e: Exception) {
             future.cancel(true)
             if (e is InterruptedException) Thread.currentThread().interrupt()
-            val reason = if (e is TimeoutException) "did not answer within ${properties.callTimeout}" else "was waited for in vain"
+            val reason = if (e is TimeoutException) "did not answer within $timeout" else "was waited for in vain"
             throw BunqUnavailableException("Bunq $reason", e)
         }
     }

@@ -5,6 +5,7 @@ import com.github.zzave.teambalance.api.domain.model.BunqAccountId
 import com.github.zzave.teambalance.api.domain.model.BunqConnection
 import com.github.zzave.teambalance.api.domain.model.EncryptedToken
 import com.github.zzave.teambalance.api.domain.model.SchemaName
+import com.github.zzave.teambalance.api.domain.model.StoredBunqApiContext
 import com.github.zzave.teambalance.api.domain.model.TeamId
 import com.github.zzave.teambalance.api.domain.model.TenantRouting
 import com.github.zzave.teambalance.api.domain.model.UserId
@@ -49,23 +50,32 @@ class JpaBunqApiContextRepositoryAdapterIT : TeamBalanceIT() {
 
         afterTest { jdbcTemplate.update("DELETE FROM ${CalendarLinkFixture.ALPHA_SCHEMA}.bunq_connection") }
 
-        test("a new connection has no session") {
+        test("a new connection is found with its grant and no session") {
             tenants.within(ROUTING) { connections.save(connection()) }
 
-            tenants.within(ROUTING) { contexts.find() } shouldBe null
+            tenants.within(ROUTING) { contexts.find() } shouldBe StoredBunqApiContext(GRANT, null)
         }
 
-        test("a session saved on the connection is read back as it was stored") {
+        test("a session saved for the grant the row holds is read back as it was stored") {
             tenants.within(ROUTING) { connections.save(connection()) }
 
-            val saved = tenants.within(ROUTING) { contexts.save(SESSION) }
+            val saved = tenants.within(ROUTING) { contexts.save(SESSION, ifGrant = GRANT) }
 
             saved shouldBe true
-            tenants.within(ROUTING) { contexts.find() } shouldBe SESSION
+            tenants.within(ROUTING) { contexts.find() } shouldBe StoredBunqApiContext(GRANT, SESSION)
+        }
+
+        test("a session made for another grant than the row holds is not written") {
+            tenants.within(ROUTING) { connections.save(connection()) }
+
+            val saved = tenants.within(ROUTING) { contexts.save(SESSION, ifGrant = EncryptedToken("sealed-other-grant")) }
+
+            saved shouldBe false
+            tenants.within(ROUTING) { contexts.find() } shouldBe StoredBunqApiContext(GRANT, null)
         }
 
         test("without a connection nothing is saved and nothing is found") {
-            val saved = tenants.within(ROUTING) { contexts.save(SESSION) }
+            val saved = tenants.within(ROUTING) { contexts.save(SESSION, ifGrant = GRANT) }
 
             saved shouldBe false
             tenants.within(ROUTING) { contexts.find() } shouldBe null
@@ -75,26 +85,28 @@ class JpaBunqApiContextRepositoryAdapterIT : TeamBalanceIT() {
 
         test("outside any tenant scope nothing is saved and nothing is found, instead of failing") {
             contexts.find() shouldBe null
-            contexts.save(SESSION) shouldBe false
+            contexts.save(SESSION, ifGrant = GRANT) shouldBe false
         }
 
-        test("connecting again drops the session, since it belonged to the grant that was replaced") {
+        test("connecting again drops the session, and a session made for the replaced grant can no longer be stored") {
             tenants.within(ROUTING) { connections.save(connection()) }
-            tenants.within(ROUTING) { contexts.save(SESSION) }
+            tenants.within(ROUTING) { contexts.save(SESSION, ifGrant = GRANT) }
 
             tenants.within(ROUTING) { connections.save(connection(grant = EncryptedToken("sealed-new-grant"))) }
 
-            tenants.within(ROUTING) { contexts.find() } shouldBe null
+            tenants.within(ROUTING) { contexts.find() } shouldBe StoredBunqApiContext(EncryptedToken("sealed-new-grant"), null)
+            tenants.within(ROUTING) { contexts.save(SESSION, ifGrant = GRANT) } shouldBe false
+            tenants.within(ROUTING) { contexts.find()!!.context } shouldBe null
         }
 
         test("picking an account leaves the session alone, and saving the session leaves the connection alone") {
             tenants.within(ROUTING) { connections.save(connection()) }
-            tenants.within(ROUTING) { contexts.save(SESSION) }
+            tenants.within(ROUTING) { contexts.save(SESSION, ifGrant = GRANT) }
 
             tenants.within(ROUTING) { connections.pickAccount(BunqAccountId("acc-1"), GRANT) } shouldBe true
 
-            tenants.within(ROUTING) { contexts.find() } shouldBe SESSION
-            tenants.within(ROUTING) { contexts.save(EncryptedToken("sealed-session-2")) }
+            tenants.within(ROUTING) { contexts.find()!!.context } shouldBe SESSION
+            tenants.within(ROUTING) { contexts.save(EncryptedToken("sealed-session-2"), ifGrant = GRANT) }
             tenants.within(ROUTING) { connections.find() } shouldBe connection(account = BunqAccountId("acc-1"))
         }
     }

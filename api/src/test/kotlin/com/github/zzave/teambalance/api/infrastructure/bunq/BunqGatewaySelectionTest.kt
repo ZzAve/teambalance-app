@@ -2,6 +2,7 @@ package com.github.zzave.teambalance.api.infrastructure.bunq
 
 import com.github.zzave.teambalance.api.application.TokenCipher
 import com.github.zzave.teambalance.api.domain.model.EncryptedToken
+import com.github.zzave.teambalance.api.domain.model.StoredBunqApiContext
 import com.github.zzave.teambalance.api.domain.port.BunqApiContextRepository
 import com.github.zzave.teambalance.api.domain.port.BunqGateway
 import com.github.zzave.teambalance.api.infrastructure.config.BunqGrantCipherConfiguration
@@ -138,11 +139,12 @@ class BunqGatewaySelectionTest : FunSpec({
     }
 
     context("the call limits") {
-        test("application.yml gives a 5 s call timeout and a 30 s fallback pause kept between 1 s and 60 s") {
+        test("application.yml gives a 5 s call timeout, a 15 s setup timeout and a 30 s fallback pause kept between 1 s and 60 s") {
             runner("prod").run { ctx ->
                 ctx.startupFailure.shouldBeNull()
                 val limits = ctx.getBean(BunqCallProperties::class.java)
                 limits.callTimeout shouldBe Duration.ofSeconds(5)
+                limits.setupTimeout shouldBe Duration.ofSeconds(15)
                 limits.rateLimitPause shouldBe Duration.ofSeconds(30)
                 limits.rateLimitPauseMin shouldBe Duration.ofSeconds(1)
                 limits.rateLimitPauseMax shouldBe Duration.ofSeconds(60)
@@ -185,9 +187,9 @@ class BunqGatewaySelectionTest : FunSpec({
 
         @Bean
         fun contexts(): BunqApiContextRepository = object : BunqApiContextRepository {
-            override fun find(): EncryptedToken? = null
+            override fun find(): StoredBunqApiContext? = null
 
-            override fun save(context: EncryptedToken) = false
+            override fun save(context: EncryptedToken, ifGrant: EncryptedToken) = false
         }
     }
 }

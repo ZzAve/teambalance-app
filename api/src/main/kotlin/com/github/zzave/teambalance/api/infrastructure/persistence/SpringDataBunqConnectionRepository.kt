@@ -13,11 +13,9 @@ interface SpringDataBunqConnectionRepository : JpaRepository<BunqConnectionJpaEn
     @Query("UPDATE BunqConnectionJpaEntity c SET c.bunqAccountId = :accountId WHERE c.id = :id AND c.accessTokenEncrypted = :grant")
     fun pickAccount(id: Short, accountId: String, grant: String): Int
 
-    @Query("SELECT c.apiContextEncrypted FROM BunqConnectionJpaEntity c WHERE c.id = :id")
-    fun findApiContext(id: Short): String?
-
-    // Writes the session column of the connection row and nothing else. Returns the rows changed (0 when there is no connection).
+    // Writes the session column of the row that still holds this grant and nothing else, so a session made for a grant that a
+    // reconnect has replaced since is not stored over the cleared column. Returns the rows changed (0 or 1).
     @Modifying(clearAutomatically = true)
-    @Query("UPDATE BunqConnectionJpaEntity c SET c.apiContextEncrypted = :context WHERE c.id = :id")
-    fun storeApiContext(id: Short, context: String): Int
+    @Query("UPDATE BunqConnectionJpaEntity c SET c.apiContextEncrypted = :context WHERE c.id = :id AND c.accessTokenEncrypted = :grant")
+    fun storeApiContext(id: Short, context: String, grant: String): Int
 }

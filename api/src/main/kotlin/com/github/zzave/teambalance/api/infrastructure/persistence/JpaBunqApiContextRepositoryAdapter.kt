@@ -1,6 +1,7 @@
 package com.github.zzave.teambalance.api.infrastructure.persistence
 
 import com.github.zzave.teambalance.api.domain.model.EncryptedToken
+import com.github.zzave.teambalance.api.domain.model.StoredBunqApiContext
 import com.github.zzave.teambalance.api.domain.port.BunqApiContextRepository
 import com.github.zzave.teambalance.api.domain.port.CurrentTeamGateway
 import com.github.zzave.teambalance.api.infrastructure.persistence.entity.BunqConnectionJpaEntity
@@ -18,12 +19,18 @@ class JpaBunqApiContextRepositoryAdapter(
     private val currentTeam: CurrentTeamGateway,
 ) : BunqApiContextRepository {
 
-    override fun find(): EncryptedToken? =
-        if (inTenantScope()) jpaRepository.findApiContext(BunqConnectionJpaEntity.SINGLETON_ID)?.let(::EncryptedToken) else null
+    override fun find(): StoredBunqApiContext? =
+        if (inTenantScope()) {
+            jpaRepository.findById(BunqConnectionJpaEntity.SINGLETON_ID)
+                .map { StoredBunqApiContext(EncryptedToken(it.accessTokenEncrypted), it.apiContextEncrypted?.let(::EncryptedToken)) }
+                .orElse(null)
+        } else {
+            null
+        }
 
     @Transactional
-    override fun save(context: EncryptedToken): Boolean =
-        inTenantScope() && jpaRepository.storeApiContext(BunqConnectionJpaEntity.SINGLETON_ID, context.value) == 1
+    override fun save(context: EncryptedToken, ifGrant: EncryptedToken): Boolean =
+        inTenantScope() && jpaRepository.storeApiContext(BunqConnectionJpaEntity.SINGLETON_ID, context.value, ifGrant.value) == 1
 
     /** The team is resolved together with the tenant schema, so a team means the schema is routed. */
     private fun inTenantScope() = currentTeam.findCurrentTeamId() != null

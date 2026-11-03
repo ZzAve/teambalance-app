@@ -9,6 +9,7 @@ import com.github.zzave.teambalance.api.application.TokenCipher
 import com.github.zzave.teambalance.api.domain.model.BunqAuthorizationCode
 import com.github.zzave.teambalance.api.domain.model.BunqGrant
 import com.github.zzave.teambalance.api.domain.model.EncryptedToken
+import com.github.zzave.teambalance.api.domain.model.StoredBunqApiContext
 import com.github.zzave.teambalance.api.domain.port.BunqApiContextRepository
 import com.sun.net.httpserver.HttpServer
 import io.kotest.assertions.throwables.shouldThrow
@@ -33,14 +34,14 @@ private const val REDIRECT_URI = "https://api.example/api/bunq/oauth/callback"
 private const val OK = 200
 private const val BAD_REQUEST = 400
 private val CALL_PROPERTIES =
-    BunqCallProperties(Duration.ofSeconds(5), Duration.ofSeconds(30), Duration.ofSeconds(1), Duration.ofSeconds(60))
+    BunqCallProperties(Duration.ofSeconds(5), Duration.ofSeconds(15), Duration.ofSeconds(30), Duration.ofSeconds(1), Duration.ofSeconds(60))
 private val CIPHER = TokenCipher.fromBase64Key("dGVhbWJhbGFuY2UtdGVzdC1idW5xLXRva2VuLWtleTE=", "test")
 
 /** The OAuth half never touches the stored API context. */
 private object NoContexts : BunqApiContextRepository {
-    override fun find(): EncryptedToken? = null
+    override fun find(): StoredBunqApiContext? = null
 
-    override fun save(context: EncryptedToken) = false
+    override fun save(context: EncryptedToken, ifGrant: EncryptedToken) = false
 }
 
 class RealBunqGatewayAdapterTest : FunSpec({

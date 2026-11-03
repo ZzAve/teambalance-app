@@ -6,6 +6,7 @@ import com.github.zzave.teambalance.api.domain.model.BunqAccountId
 import com.github.zzave.teambalance.api.domain.model.BunqAccountName
 import com.github.zzave.teambalance.api.domain.model.Money
 import community.flock.wirespec.kotlin.Wirespec
+import tools.jackson.databind.json.JsonMapper
 import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -14,6 +15,8 @@ import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.time.format.DateTimeFormatterBuilder
 import java.time.format.DateTimeParseException
+
+private val json = JsonMapper.builder().build()
 
 private const val EURO = "EUR"
 private const val ACTIVE = "ACTIVE"
@@ -60,6 +63,12 @@ internal class AccountRow(val id: Long?, val description: String?, val status: S
             null
         }
 }
+
+/**
+ * Whether [body] is an error as Bunq words it: a JSON object with an `Error` array. A 403 from a proxy or firewall in front of
+ * Bunq is not, and says nothing about the grant.
+ */
+internal fun isBunqError(body: String): Boolean = runCatching { json.readTree(body).get("Error")?.isArray == true }.getOrDefault(false)
 
 /** The body of a read that Bunq answered with 200; any other answer is Bunq not giving us what we asked for. */
 @Suppress("UNCHECKED_CAST")

@@ -26,7 +26,7 @@ private fun bodySaying(message: String) = """{"Error":[{"error_description":"$me
 class BunqRateLimitPauseTest : FunSpec({
 
     val clock = PauseTestClock(Instant.parse("2026-11-03T12:00:00Z"))
-    fun pause() = BunqRateLimitPause(BunqCallProperties(Duration.ofSeconds(5), FALLBACK, MIN, MAX), clock)
+    fun pause() = BunqRateLimitPause(BunqCallProperties(Duration.ofSeconds(5), Duration.ofSeconds(15), FALLBACK, MIN, MAX), clock)
 
     context("how long a 429 pauses") {
         test("the real sandbox message, which says '3 second', gives 3 seconds") {

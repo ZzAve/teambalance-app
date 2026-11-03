@@ -66,11 +66,11 @@ class RealBunqGatewayAdapter internal constructor(
     override fun listAccounts(grant: BunqGrant): List<BunqAccount> = reading(grant) { session ->
         val client = session.client
         val user = session.userId
-        val banks = client.listAllMonetaryAccountBankForUser(user, null, null, null).ok<MonetaryAccountBankPage>().Response
+        val banks = client.listAllMonetaryAccountBankForUser(user, PAGE_SIZE, null, null).ok<MonetaryAccountBankPage>().Response
             .map { AccountRow(it.id, it.description, it.status, it.currency) }
-        val joints = client.listAllMonetaryAccountJointForUser(user, null, null, null).ok<MonetaryAccountJointPage>().Response
+        val joints = client.listAllMonetaryAccountJointForUser(user, PAGE_SIZE, null, null).ok<MonetaryAccountJointPage>().Response
             .map { AccountRow(it.id, it.description, it.status, it.currency) }
-        val savings = client.listAllMonetaryAccountSavingsForUser(user, null, null, null).ok<MonetaryAccountSavingsPage>().Response
+        val savings = client.listAllMonetaryAccountSavingsForUser(user, PAGE_SIZE, null, null).ok<MonetaryAccountSavingsPage>().Response
             .map { AccountRow(it.id, it.description, it.status, it.currency) }
         (banks + joints + savings).mapNotNull(AccountRow::toAccount)
     }
@@ -82,7 +82,7 @@ class RealBunqGatewayAdapter internal constructor(
 
     override fun fetchPayments(grant: BunqGrant, account: BunqAccountId, since: LocalDate, limit: Int): List<Payment> =
         reading(grant) { session ->
-            val count = min(limit, MAX_PAGE_SIZE).toLong()
+            val count = min(limit.toLong(), PAGE_SIZE)
             val page = session.client.listAllPaymentForUserMonetaryAccount(session.userId, idOf(account), count, null, null)
             page.ok<PaymentPage>().Response.map(::paymentOf).filter { !it.date.isBefore(since) }.take(limit)
         }
@@ -107,7 +107,8 @@ class RealBunqGatewayAdapter internal constructor(
 
     private fun outcomeOf(grant: BunqGrant, session: BunqSession?, failure: Exception): Exception = when {
         failure is BunqApiException && failure.status == UNAUTHORIZED -> rejected(grant)
-        failure is BunqApiException && failure.status == FORBIDDEN && session != null -> afterForbidden(grant, session, failure)
+        failure is BunqApiException && failure.status == FORBIDDEN && session != null && isBunqError(failure.body) ->
+            afterForbidden(grant, session, failure)
         failure is IllegalStateException && SETUP_REFUSED.any { failure.message.orEmpty().startsWith(it) } -> rejected(grant)
         failure is BunqUnavailableException -> failure
         failure is BunqApiException -> BunqUnavailableException("Bunq answered ${failure.status}", failure)
@@ -130,7 +131,7 @@ class RealBunqGatewayAdapter internal constructor(
                 rejected(grant)
             }
         } catch (e: Exception) {
-            if (e is BunqApiException && e.status == FORBIDDEN) rejected(grant) else outcomeOf(grant, null, e)
+            if (e is BunqApiException && e.status == FORBIDDEN && isBunqError(e.body)) rejected(grant) else outcomeOf(grant, null, e)
         }
 
     private fun rejected(grant: BunqGrant): BunqGrantRejectedException {
@@ -154,7 +155,8 @@ class RealBunqGatewayAdapter internal constructor(
     companion object {
         private const val UNAUTHORIZED = 401
         private const val FORBIDDEN = 403
-        private const val MAX_PAGE_SIZE = 200
+        /** The most Bunq returns in a page. Without a count it returns ten, and a user can have more accounts than that. */
+        private const val PAGE_SIZE = 200L
         private const val DROPPED_SESSION = "Insufficient authentication."
         private val SETUP_REFUSED = listOf("Cannot create device server", "Cannot create session server")
 

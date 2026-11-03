@@ -10,6 +10,7 @@ import com.github.zzave.teambalance.api.domain.model.EncryptedToken
 import com.github.zzave.teambalance.api.domain.model.Money
 import com.github.zzave.teambalance.api.domain.model.Payment
 import com.github.zzave.teambalance.api.domain.model.PaymentDirection
+import com.github.zzave.teambalance.api.domain.model.StoredBunqApiContext
 import com.github.zzave.teambalance.api.domain.port.BunqApiContextRepository
 import community.flock.wirespec.kotlin.Wirespec
 import io.kotest.assertions.throwables.shouldThrow
@@ -37,13 +38,19 @@ private val READ_SPACING = Duration.ofMillis(1_200)
 private val FOREVER_AGO = LocalDate.of(2000, 1, 1)
 private const val PAGE = 200
 
-/** The encrypted context lives in a file of the sandbox directory, outside the repository, so that a run reuses the last one. */
-private class FileContexts(private val file: File) : BunqApiContextRepository {
+/**
+ * The encrypted context lives in a file of the sandbox directory, outside the repository, so that a run reuses the last one.
+ * [rowGrant] stands for the grant of the team's connection row, which the adapter compares with its own access token.
+ */
+private class FileContexts(private val file: File, private val rowGrant: EncryptedToken) : BunqApiContextRepository {
     var saves = 0
 
-    override fun find(): EncryptedToken? = file.takeIf { it.exists() }?.readText()?.let(::EncryptedToken)
+    fun stored(): EncryptedToken? = file.takeIf { it.exists() }?.readText()?.let(::EncryptedToken)
 
-    override fun save(context: EncryptedToken): Boolean {
+    override fun find(): StoredBunqApiContext = StoredBunqApiContext(rowGrant, stored())
+
+    override fun save(context: EncryptedToken, ifGrant: EncryptedToken): Boolean {
+        if (ifGrant != rowGrant) return false
         file.writeText(context.value)
         saves++
         return true
@@ -53,7 +60,7 @@ private class FileContexts(private val file: File) : BunqApiContextRepository {
 /**
  * The real [RealBunqGatewayAdapter] against the Bunq sandbox, using a sandbox user's API key where a team would have
  * an OAuth access token (Bunq treats both alike once the session is set up). The OAuth approval itself needs a person
- * and is tracer 4.2.
+ * and is not exercised here.
  *
  * Runs only when `BUNQ_SANDBOX_IT=1`: it talks to the real Bunq sandbox, so it registers no tests in `make test` or CI.
  *
@@ -71,11 +78,17 @@ private fun FunSpec.sandboxTests() {
     val cipher = TokenCipher.fromBase64Key(CIPHER_KEY, "test")
     val clock = Clock.system(ZoneId.of("Europe/Amsterdam"))
     val apiKeyFile = File(dir, "api-key")
-    val contexts = FileContexts(File(dir, "context.enc"))
+    lateinit var contexts: FileContexts
 
     fun adapter() = RealBunqGatewayAdapter.create(
         BunqClientProperties(BunqEnvironment.SANDBOX, "sandbox-it-client", "sandbox-it-secret", "TeamBalance sandbox IT"),
-        BunqCallProperties(Duration.ofSeconds(5), Duration.ofSeconds(30), Duration.ofSeconds(1), Duration.ofSeconds(60)),
+        BunqCallProperties(
+            Duration.ofSeconds(5),
+            Duration.ofSeconds(15),
+            Duration.ofSeconds(30),
+            Duration.ofSeconds(1),
+            Duration.ofSeconds(60),
+        ),
         contexts,
         cipher,
         clock,
@@ -102,7 +115,8 @@ private fun FunSpec.sandboxTests() {
     }
 
     val grant = BunqGrant(sandboxUser())
-    val firstRun = contexts.find() == null
+    contexts = FileContexts(File(dir, "context.enc"), cipher.encrypt(grant.accessToken))
+    val firstRun = contexts.stored() == null
     var accountValue = ""
     fun account() = BunqAccountId(accountValue)
 
@@ -114,7 +128,7 @@ private fun FunSpec.sandboxTests() {
 
     /** The generated API has no request-inquiry shortcut in the adapter, and the adapter has no write calls: use the SDK directly. */
     fun postToSandbox(path: String, body: String) {
-        val context = BunqApiContextCodec.decode(cipher.decrypt(contexts.find()!!), BUNQ_SANDBOX_SERVER, "TeamBalance sandbox IT")
+        val context = BunqApiContextCodec.decode(cipher.decrypt(contexts.stored()!!), BUNQ_SANDBOX_SERVER, "TeamBalance sandbox IT")
         val response = send(
             context.config,
             Wirespec.RawRequest(
@@ -134,7 +148,7 @@ private fun FunSpec.sandboxTests() {
         accounts.shouldNotBeEmpty()
         accountValue = accounts.first().id.value
         println("sandbox IT: ${accounts.size} account(s); context ${if (firstRun) "installed" else "restored"}; saves=${contexts.saves}")
-        contexts.find() shouldNotBe null
+        contexts.stored() shouldNotBe null
     }
 
     test("a second adapter restores the stored context and reads the balance without storing anything") {
@@ -149,7 +163,7 @@ private fun FunSpec.sandboxTests() {
     test("fake money from sugardaddy arrives as an incoming payment, and the balance is the sum of the payments") {
         val adapter = adapter()
         if (payments(adapter).none { it.direction == PaymentDirection.IN }) {
-            val userId = BunqApiContextCodec.decode(cipher.decrypt(contexts.find()!!), BUNQ_SANDBOX_SERVER, "x").userId
+            val userId = BunqApiContextCodec.decode(cipher.decrypt(contexts.stored()!!), BUNQ_SANDBOX_SERVER, "x").userId
             postToSandbox(
                 "user/$userId/monetary-account/${account().value}/request-inquiry",
                 """{"amount_inquired":{"value":"500.00","currency":"EUR"},""" +
@@ -169,7 +183,7 @@ private fun FunSpec.sandboxTests() {
     test("an outgoing payment is read as outgoing with a positive amount") {
         val adapter = adapter()
         if (payments(adapter).none { it.direction == PaymentDirection.OUT }) {
-            val userId = BunqApiContextCodec.decode(cipher.decrypt(contexts.find()!!), BUNQ_SANDBOX_SERVER, "x").userId
+            val userId = BunqApiContextCodec.decode(cipher.decrypt(contexts.stored()!!), BUNQ_SANDBOX_SERVER, "x").userId
             postToSandbox(
                 "user/$userId/monetary-account/${account().value}/payment",
                 """{"amount":{"value":"12.50","currency":"EUR"},""" +
@@ -185,15 +199,16 @@ private fun FunSpec.sandboxTests() {
     }
 
     test("a session token Bunq no longer knows is replaced by a new session and the read still works") {
-        val stored = BunqApiContextCodec.decode(cipher.decrypt(contexts.find()!!), BUNQ_SANDBOX_SERVER, "TeamBalance sandbox IT")
+        val stored = BunqApiContextCodec.decode(cipher.decrypt(contexts.stored()!!), BUNQ_SANDBOX_SERVER, "TeamBalance sandbox IT")
         val dead = stored.copy(sessionToken = NEVER_ISSUED_TOKEN)
-        contexts.save(cipher.encrypt(BunqApiContextCodec.encode(dead)))
+        contexts.save(cipher.encrypt(BunqApiContextCodec.encode(dead)), ifGrant = contexts.find().grant)
         val savesBefore = contexts.saves
 
         adapter().fetchBalance(grant, account())
 
         contexts.saves shouldBe savesBefore + 1
-        BunqApiContextCodec.decode(cipher.decrypt(contexts.find()!!), BUNQ_SANDBOX_SERVER, "x").sessionToken shouldNotBe NEVER_ISSUED_TOKEN
+        val refreshed = BunqApiContextCodec.decode(cipher.decrypt(contexts.stored()!!), BUNQ_SANDBOX_SERVER, "x")
+        refreshed.sessionToken shouldNotBe NEVER_ISSUED_TOKEN
     }
 
     test("an access token Bunq never issued is a rejected grant") {

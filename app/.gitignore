@@ -4,6 +4,9 @@
 # Storybook build output
 storybook-static/
 
+# Chromatic CLI log; untracked files get hashed for the build, and this one is gone by then
+chromatic.log
+
 # Playwright
 /test-results/
 /playwright-report/

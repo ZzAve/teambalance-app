@@ -57,15 +57,18 @@ private class FakeAuthSessionGateway(private var sessionUserId: UserId? = null) 
  * consuming resolves to [resolvesTo]. Real enough that a test can request a link and then verify the
  * very token that was emailed, which is the round trip the pending-invite carry rides on (#342).
  */
-private class FakeMagicLinkTokenRepository(private val resolvesTo: User? = null) : MagicLinkTokenRepository {
+private class FakeMagicLinkTokenRepository(
+    private val resolvesTo: User? = null,
+    private val consumedByConcurrentVerify: Boolean = false,
+) : MagicLinkTokenRepository {
     val saved = mutableListOf<MagicLinkToken>()
 
     override fun save(token: MagicLinkToken): MagicLinkToken = token.also { saved += it }
     override fun findByTokenHash(tokenHash: TokenHash): MagicLinkToken? =
         saved.lastOrNull { it.tokenHash == tokenHash }
 
-    override fun consumeAndResolveUser(consumedToken: MagicLinkToken, displayName: DisplayName): User =
-        resolvesTo ?: error("no user configured for this test")
+    override fun consumeAndResolveUser(consumedToken: MagicLinkToken, displayName: DisplayName): User? =
+        if (consumedByConcurrentVerify) null else resolvesTo ?: error("no user configured for this test")
 }
 
 /** Captures the token that was emailed, so a test can click the link it just asked for. */
@@ -269,6 +272,15 @@ class AuthServiceTest : FunSpec() {
 
             signIn?.inviteOutcome shouldBe InviteOutcome.JOINED
             directory.membershipsOf(userId) shouldBe setOf(setpoint)
+        }
+
+        test("a magic link consumed by a concurrent verify while this one was resolving is refused") {
+            val emails = FakeEmailGateway()
+            val magicLinks = FakeMagicLinkTokenRepository(consumedByConcurrentVerify = true)
+            val service = serviceWith(FakeAuthSessionGateway(), magicLinks = magicLinks, emails = emails)
+            service.requestMagicLink(user.email)
+
+            service.verifyMagicLink(emails.lastToken!!) shouldBe null
         }
 
         // Failing at request time is what lets the invite page say so while the joiner is still looking

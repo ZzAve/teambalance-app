@@ -149,7 +149,7 @@ class AuthService(
         val user = magicLinkTokenRepository.consumeAndResolveUser(
             consumedToken = record.copy(usedAt = now),
             displayName = DisplayName(record.email.value.substringBefore("@")),
-        )
+        ) ?: return null
 
         val outcome = record.invitationId?.let { invitationId ->
             invitationService.acceptPendingInvitation(invitationId, user.id)

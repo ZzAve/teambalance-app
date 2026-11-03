@@ -11,7 +11,8 @@ interface MagicLinkTokenRepository {
 
     /**
      * Persists [consumedToken] (its `usedAt` already stamped by the caller) and returns the user for
-     * its email, creating one with [displayName] if none exists — as ONE unit. If user resolution
+     * its email, creating one with [displayName] if none exists — as ONE unit. Returns null, changing nothing, when
+     * the token was already consumed by a concurrent verify. If user resolution
      * fails the token stays unused, so a single-use magic link is never burned without producing a
      * signed-in user.
      *
@@ -19,5 +20,5 @@ interface MagicLinkTokenRepository {
      * and `users`); it is expressed as a single port call so the application states the intent and
      * the adapter makes it atomic, keeping "one port call is one transaction" intact.
      */
-    fun consumeAndResolveUser(consumedToken: MagicLinkToken, displayName: DisplayName): User
+    fun consumeAndResolveUser(consumedToken: MagicLinkToken, displayName: DisplayName): User?
 }

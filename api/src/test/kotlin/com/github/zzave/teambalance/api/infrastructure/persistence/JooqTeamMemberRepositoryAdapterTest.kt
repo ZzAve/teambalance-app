@@ -14,6 +14,9 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.jdbc.core.JdbcTemplate
 import java.time.Instant
 import java.util.UUID
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 
 class JooqTeamMemberRepositoryAdapterTest : TeamBalanceIT() {
 
@@ -156,6 +159,31 @@ class JooqTeamMemberRepositoryAdapterTest : TeamBalanceIT() {
             teamMemberRepository.addMember(teamId, userId)
 
             teamMemberRepository.findRole(teamId, userId) shouldBe Role.ADMIN
+        }
+
+        test("concurrent addMember for the same user and team adds one membership and no failure") {
+            val (teamId, _) = seedMember(role = "USER", active = true)
+            val newcomer = UserId(seedUser())
+            val acceptors = 10
+            val ready = CountDownLatch(acceptors)
+            val go = CountDownLatch(1)
+            val pool = Executors.newFixedThreadPool(acceptors)
+            val results = (1..acceptors).map {
+                pool.submit {
+                    ready.countDown()
+                    go.await()
+                    teamMemberRepository.addMember(teamId, newcomer)
+                }
+            }
+            ready.await()
+            go.countDown()
+            results.forEach { it.get(30, TimeUnit.SECONDS) }
+            pool.shutdown()
+
+            jdbcTemplate.queryForObject(
+                "SELECT count(*) FROM public.team_members WHERE team_id = ? AND user_id = ?",
+                Int::class.java, teamId.value, newcomer.value,
+            ) shouldBe 1
         }
     }
 

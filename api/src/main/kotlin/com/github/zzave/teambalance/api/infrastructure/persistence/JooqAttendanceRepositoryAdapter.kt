@@ -78,17 +78,15 @@ class JooqAttendanceRepositoryAdapter(
     }
 
     // Returns exactly the rows deleted: a repeat finds nothing, so Undo is idempotent.
-    @Transactional
     override fun deleteByUserIdAndEventIds(userId: UserId, eventIds: List<EventId>): List<EventId> {
         if (eventIds.isEmpty()) return emptyList()
-        val eventUuids = eventIds.map { it.value }
-        val eventIdsOfUuids = DSL.select(EVENTS.ID).from(EVENTS).where(EVENTS.UUID.`in`(eventUuids))
-        val deletedEventIds = dsl.deleteFrom(ATTENDANCES)
-            .where(ATTENDANCES.USER_ID.eq(userId.value))
-            .and(ATTENDANCES.EVENT_ID.`in`(eventIdsOfUuids))
-            .returning(ATTENDANCES.EVENT_ID)
-            .fetch(ATTENDANCES.EVENT_ID)
-        return dsl.select(EVENTS.UUID).from(EVENTS).where(EVENTS.ID.`in`(deletedEventIds)).fetch { EventId(it.value1()) }
+        return dsl.deleteFrom(ATTENDANCES)
+            .using(EVENTS)
+            .where(ATTENDANCES.EVENT_ID.eq(EVENTS.ID))
+            .and(ATTENDANCES.USER_ID.eq(userId.value))
+            .and(EVENTS.UUID.`in`(eventIds.map { it.value }))
+            .returningResult(EVENTS.UUID)
+            .fetch { EventId(it.value1()) }
     }
 
     private fun selectAttendances() =

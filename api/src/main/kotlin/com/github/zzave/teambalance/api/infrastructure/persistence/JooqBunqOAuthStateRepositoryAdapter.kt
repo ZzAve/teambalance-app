@@ -8,7 +8,6 @@ import com.github.zzave.teambalance.api.domain.port.BunqOAuthStateRepository
 import com.github.zzave.teambalance.api.infrastructure.persistence.jooq.public_.Tables.BUNQ_OAUTH_STATES
 import org.jooq.DSLContext
 import org.springframework.stereotype.Repository
-import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
 import java.time.ZoneOffset
 import java.util.UUID
@@ -48,7 +47,6 @@ class JooqBunqOAuthStateRepositoryAdapter(
 
     // Conditional single-use consume: stamps used_at only while still unused, so exactly one callback
     // per state wins.
-    @Transactional
     override fun consume(id: UUID, now: Instant): Boolean =
         dsl.update(BUNQ_OAUTH_STATES)
             .set(BUNQ_OAUTH_STATES.USED_AT, now.atOffset(ZoneOffset.UTC))
@@ -56,7 +54,6 @@ class JooqBunqOAuthStateRepositoryAdapter(
             .and(BUNQ_OAUTH_STATES.USED_AT.isNull)
             .execute() == 1
 
-    @Transactional
     override fun deleteExpiredBefore(cutoff: Instant) {
         dsl.deleteFrom(BUNQ_OAUTH_STATES)
             .where(BUNQ_OAUTH_STATES.EXPIRES_AT.lt(cutoff.atOffset(ZoneOffset.UTC)))

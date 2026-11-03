@@ -12,6 +12,7 @@ import io.kotest.matchers.string.shouldContain
 import org.jooq.DSLContext
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.jdbc.BadSqlGrammarException
+import java.sql.Connection
 import javax.sql.DataSource
 import org.springframework.transaction.support.TransactionTemplate
 import java.util.UUID
@@ -101,8 +102,7 @@ class JooqTenantRoutingTest : TeamBalanceIT() {
             val poolSize = 8
             val connections = List(poolSize) { dataSource.connection }
             try {
-                connections.map { it.createStatement().use { st -> st.executeQuery("SELECT current_schema()").use { rs -> rs.next(); rs.getString(1) } } }
-                    .distinct() shouldBe listOf(TenantContext.PUBLIC_SCHEMA)
+                connections.map { it.currentSchema() }.distinct() shouldBe listOf(TenantContext.PUBLIC_SCHEMA)
             } finally {
                 connections.forEach { it.close() }
             }
@@ -134,6 +134,14 @@ class JooqTenantRoutingTest : TeamBalanceIT() {
             }
         }
     }
+
+    private fun Connection.currentSchema(): String =
+        createStatement().use { statement ->
+            statement.executeQuery("SELECT current_schema()").use { rows ->
+                rows.next()
+                rows.getString(1)
+            }
+        }
 
     private fun insertEventType(name: String) =
         dsl.insertInto(EVENT_TYPES).set(EVENT_TYPES.NAME, name).execute()

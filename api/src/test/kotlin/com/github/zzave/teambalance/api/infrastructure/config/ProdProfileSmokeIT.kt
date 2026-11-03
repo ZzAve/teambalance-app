@@ -88,11 +88,12 @@ class ProdProfileSmokeIT : TeamBalanceIT() {
             applicationContext.getBean(EmailGateway::class.java).shouldBeInstanceOf<ScalewayTemEmailAdapter>()
         }
 
+        // With no TEAMBALANCE_BUNQ_ENVIRONMENT; the production environment is asserted by ProdProfileRealBunqIT.
         test("prod profile wires the unconfigured Bunq gateway, never the fake") {
             applicationContext.getBean(BunqGateway::class.java).shouldBeInstanceOf<UnconfiguredBunqGatewayAdapter>()
         }
 
-        // Connecting stays off in prod until the real adapter exists (slice 4); an unset flag is its default.
+        // Connecting stays off in prod until the real adapter can read (tracer 4.1); an unset flag is its default.
         test("prod profile keeps Bunq connecting switched off") {
             environment.getProperty("teambalance.bunq.connect-enabled") shouldBe "false"
 

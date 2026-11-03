@@ -36,8 +36,14 @@ we already produce.
 commit status** stays unresolved until a human accepts or rejects the diff in the Chromatic UI.
 Marking **"UI Tests" a required status check** in branch protection is what actually holds the merge
 train. We deliberately do **not** set `autoAcceptChanges` on PR branches — auto-accepting whatever a
-bump did would silently re-baseline the regression and defeat the entire gate. Accepted PR snapshots
-are promoted to the baseline by Chromatic's git integration once the PR merges to `main`.
+bump did would silently re-baseline the regression and defeat the entire gate.
+
+**Amendment:** the `main` build is auto-accepted (`autoAcceptChanges: main`). PRs are squash-merged,
+so the commit on `main` is a SHA Chromatic never built, and relying on its git integration to carry
+accepted PR snapshots over left the `main` baseline stale; the same diffs then reappeared on every
+later PR. Anything on `main` has already passed the required "UI Tests" check on its PR, so the `main`
+build only records the baseline. The cost: a change that reaches `main` without that check (an admin
+bypass, or two PRs that are each green but differ combined) is baselined without a human seeing it.
 
 TurboSnap (`--only-changed`) limits each run to stories whose dependencies changed, keeping the
 snapshot budget sane as the story count grows.

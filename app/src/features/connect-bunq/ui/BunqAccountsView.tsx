@@ -164,7 +164,7 @@ function AccountPicker({ accounts, selectedAccountId, isSaving, saved, onPick }:
   }
 
   return (
-    <fieldset className="flex flex-col gap-1" disabled={isSaving}>
+    <fieldset className="flex min-w-0 flex-col gap-1" disabled={isSaving}>
       <legend className="text-small font-semibold">Choose the account the Money page shows</legend>
       {accounts.map((account) => (
         <label key={account.id} className="flex min-h-11 items-center gap-3 py-2 text-small">
@@ -176,7 +176,7 @@ function AccountPicker({ accounts, selectedAccountId, isSaving, saved, onPick }:
             onChange={() => setChoice(account.id)}
             className={RADIO_CLASS}
           />
-          {account.name}
+          <span className="min-w-0 break-words">{account.name}</span>
         </label>
       ))}
       <div className="mt-2">
@@ -189,7 +189,7 @@ function AccountPicker({ accounts, selectedAccountId, isSaving, saved, onPick }:
         </Button>
       </div>
       {/* Mounted before it has text, so the announcement is read when it appears. */}
-      <p ref={savedRef} role="status" tabIndex={-1} className="mt-3 text-small outline-none empty:sr-only">
+      <p ref={savedRef} role="status" tabIndex={-1} className="mt-3 break-words text-small outline-none empty:sr-only">
         {saved && picked ? `The Money page now shows ${picked.name}.` : ''}
       </p>
     </fieldset>

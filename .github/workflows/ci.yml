@@ -184,20 +184,25 @@ jobs:
         id: tag
         run: echo "sha=${GITHUB_SHA::12}" >> "$GITHUB_OUTPUT"
 
-      - name: Build API images (prod + stg, linux/amd64)
+      # A buildx builder, because the default docker driver cannot export with rewrite-timestamp.
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      - name: Log in to Container Registry
+        run: echo "${{ secrets.SCW_SECRET_KEY }}" | docker login "${REGISTRY%%/*}" -u nologin --password-stdin
+
+      # Every timestamp in the image is clamped to 1980-02-01 (the date Spring Boot gives the extracted
+      # jars), so the dependency layer (lib/) keeps the same digest across builds and the registry
+      # stores it once. See the build stage in api/Dockerfile for why the date must not be later.
+      - name: Build and push API images (prod + stg, linux/amd64)
+        env:
+          SOURCE_DATE_EPOCH: "318211200"
         run: |
           for target in prod stg; do
             repo=api; [ "$target" = stg ] && repo=api-stg
-            docker build --platform=linux/amd64 -f api/Dockerfile --target "$target" \
+            docker buildx build --platform=linux/amd64 -f api/Dockerfile --target "$target" \
               --build-arg GIT_SHA="${{ steps.tag.outputs.sha }}" \
-              -t "${REGISTRY}/${repo}:${{ steps.tag.outputs.sha }}" .
+              --output "type=image,name=${REGISTRY}/${repo}:${{ steps.tag.outputs.sha }},push=true,rewrite-timestamp=true" .
           done
-
-      - name: Push images to Container Registry
-        run: |
-          echo "${{ secrets.SCW_SECRET_KEY }}" | docker login "${REGISTRY%%/*}" -u nologin --password-stdin
-          docker push "${REGISTRY}/api:${{ steps.tag.outputs.sha }}"
-          docker push "${REGISTRY}/api-stg:${{ steps.tag.outputs.sha }}"
 
   # MANUAL deploy gate: runs only on push to `main`/`deploy*`, after `build`; each pauses for
   # approval via the `production` environment. Deploys the exact commit CI validated (tag = SHA).

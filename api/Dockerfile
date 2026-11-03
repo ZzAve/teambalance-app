@@ -57,9 +57,13 @@ RUN set -e; \
     ./gradlew --no-daemon --no-configuration-cache :api:bootJar; \
     pg_ctlcluster "$PGVER" main stop; \
     cp api/build/libs/*-SNAPSHOT.jar /workspace/app.jar; \
-    java -Djarmode=tools -jar /workspace/app.jar extract --destination /workspace/extracted
+    java -Djarmode=tools -jar /workspace/app.jar extract --destination /workspace/extracted; \
+    touch -d @318211200 /workspace/extracted/app.jar
 # The JVM's AOT cache cannot store classes loaded from jars nested in the fat jar, so bake and run
 # the extracted layout (extracted/app.jar + extracted/lib/) instead.
+# The jars in lib/ carry Spring Boot's fixed date 1980-02-01 (epoch 318211200); app.jar gets it too.
+# CI exports with SOURCE_DATE_EPOCH=318211200 and rewrite-timestamp, which clamps every newer
+# timestamp to that date. The AOT cache checks jar mtimes, so no jar may be newer than it.
 
 # ---- bake stage: JDK 25 AOT cache --------------------------------------------
 # IMPORTANT: no `--platform=$BUILDPLATFORM` here. The AOT cache is architecture- and JVM-specific,
@@ -135,7 +139,9 @@ RUN useradd --system --uid 1001 --home-dir /app --shell /usr/sbin/nologin app
 USER app
 
 # Jar at the SAME /app/app.jar path the cache was recorded against, plus the baked AOT cache.
-COPY --from=build --chown=app:app /workspace/extracted/ ./
+# Dependencies in their own layer: with CI's fixed timestamps its digest only changes with a dependency.
+COPY --from=build --chown=app:app /workspace/extracted/lib/ lib/
+COPY --from=build --chown=app:app /workspace/extracted/app.jar app.jar
 COPY --from=bake  --chown=app:app /app/app.aot app.aot
 
 EXPOSE 8080

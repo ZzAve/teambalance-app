@@ -50,7 +50,6 @@ class JooqInvitationRepositoryAdapter(
 
     // Conditional single-use consume: stamps consumed_at only while still unspent, so exactly one
     // accept of an ADMIN handover link can win.
-    @Transactional
     override fun consume(invitationId: UUID, now: Instant): Boolean =
         dsl.update(INVITATIONS)
             .set(INVITATIONS.CONSUMED_AT, now.atOffset(ZoneOffset.UTC))
@@ -58,7 +57,6 @@ class JooqInvitationRepositoryAdapter(
             .and(INVITATIONS.CONSUMED_AT.isNull)
             .execute() == 1
 
-    @Transactional
     override fun expireActive(teamId: TeamId, role: Role, now: Instant) {
         expireActiveByRole(teamId, role, now)
     }

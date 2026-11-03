@@ -36,7 +36,10 @@ COPY api ./api
 # bootJar transitively runs processAot (under the prod profile — see api/build.gradle.kts) and
 # packages the AOT bean definitions into the fat jar.
 RUN ./gradlew --no-daemon --no-configuration-cache :api:bootJar \
- && cp api/build/libs/*-SNAPSHOT.jar /workspace/app.jar
+ && cp api/build/libs/*-SNAPSHOT.jar /workspace/app.jar \
+ && java -Djarmode=tools -jar /workspace/app.jar extract --destination /workspace/extracted
+# The JVM's AOT cache cannot store classes loaded from jars nested in the fat jar, so bake and run
+# the extracted layout (extracted/app.jar + extracted/lib/) instead.
 
 # ---- bake stage: JDK 25 AOT cache --------------------------------------------
 # IMPORTANT: no `--platform=$BUILDPLATFORM` here. The AOT cache is architecture- and JVM-specific,
@@ -58,7 +61,7 @@ RUN ./gradlew --no-daemon --no-configuration-cache :api:bootJar \
 # size has changed" → "Unable to map shared spaces", and the app fell back to no cache (fail-safe).
 FROM eclipse-temurin:25-jre@sha256:f9e65324a37f28209ce7dd0e5149a7aa954520ed936fb87813cf6ded2400a112 AS bake
 WORKDIR /app
-COPY --from=build /workspace/app.jar /app/app.jar
+COPY --from=build /workspace/extracted/ /app/
 
 # Keep the jar path identical to the runtime stage (/app/app.jar): the AOT cache validates the
 # classpath it was recorded against.
@@ -112,7 +115,7 @@ RUN useradd --system --uid 1001 --home-dir /app --shell /usr/sbin/nologin app
 USER app
 
 # Jar at the SAME /app/app.jar path the cache was recorded against, plus the baked AOT cache.
-COPY --from=build --chown=app:app /workspace/app.jar app.jar
+COPY --from=build --chown=app:app /workspace/extracted/ ./
 COPY --from=bake  --chown=app:app /app/app.aot app.aot
 
 EXPOSE 8080

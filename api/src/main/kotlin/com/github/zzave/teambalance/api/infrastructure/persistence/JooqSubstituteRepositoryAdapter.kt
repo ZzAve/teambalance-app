@@ -19,7 +19,6 @@ import com.github.zzave.teambalance.api.infrastructure.persistence.jooq.default_
 import org.jooq.DSLContext
 import org.jooq.Record
 import org.jooq.impl.DSL
-import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.stereotype.Repository
 import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
@@ -35,7 +34,6 @@ class JooqSubstituteRepositoryAdapter(
     private val dsl: DSLContext,
 ) : SubstituteRepository {
 
-    @Transactional(readOnly = true)
     override fun list(): List<Substitute> =
         dsl.substitutesWithPosition()
             .orderBy(DSL.lower(SUBSTITUTES.NAME))
@@ -44,7 +42,7 @@ class JooqSubstituteRepositoryAdapter(
     @Transactional
     override fun create(name: DisplayName, positionId: PositionId?, createdBy: UserId): Substitute {
         val id = UUID.randomUUID()
-        refusingTakenName(name) {
+        refusingDuplicate(NAME_INDEX, { SubstituteNameTakenException(name.value) }) {
             dsl.insertInto(SUBSTITUTES)
                 .set(SUBSTITUTES.ID, id)
                 .set(SUBSTITUTES.NAME, name.value)
@@ -62,7 +60,7 @@ class JooqSubstituteRepositoryAdapter(
         positionId: PositionId?,
         shirtNumber: ShirtNumber?,
     ): Substitute? {
-        val updated = refusingTakenName(name) {
+        val updated = refusingDuplicate(NAME_INDEX, { SubstituteNameTakenException(name.value) }) {
             dsl.update(SUBSTITUTES)
                 .set(SUBSTITUTES.NAME, name.value)
                 .set(SUBSTITUTES.POSITION_ID, positionId?.value)
@@ -132,7 +130,6 @@ class JooqSubstituteRepositoryAdapter(
             )
             .execute() > 0
 
-    @Transactional(readOnly = true)
     override fun findAttendanceByEventIds(eventIds: List<EventId>): Map<EventId, List<SubstituteAttendance>> =
         if (eventIds.isEmpty()) {
             emptyMap()
@@ -185,15 +182,7 @@ private fun Record.toSubstitute() = Substitute(
     shirtNumber = this[SUBSTITUTES.SHIRT_NUMBER]?.let { ShirtNumber(it.toInt()) },
 )
 
-private const val NAME_INDEX = "uq_substitutes_name"
-
 // The service refuses a taken name before writing; uq_substitutes_name catches the one taken in
 // between, by a concurrent create. The statement runs inside the write, so the refusal happens here
 // rather than at commit and the caller hears the same SubstituteNameTakenException (409) either way.
-private fun <T> refusingTakenName(name: DisplayName, write: () -> T): T =
-    try {
-        write()
-    } catch (e: DataIntegrityViolationException) {
-        if (e.mostSpecificCause.message?.contains(NAME_INDEX) == true) throw SubstituteNameTakenException(name.value)
-        throw e
-    }
+private const val NAME_INDEX = "uq_substitutes_name"

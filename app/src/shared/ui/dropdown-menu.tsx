@@ -94,7 +94,7 @@ const DropdownMenuItem = React.forwardRef<
     className={cn(
       // min-h-11 keeps every item at least a 44px touch target, per the row's own ⋯ trigger.
       "relative flex min-h-11 cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-small outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
-      "data-[tone=destructive]:text-red data-[tone=destructive]:focus:bg-red/10 data-[tone=destructive]:focus:text-red",
+      "data-[tone=destructive]:text-red-ink data-[tone=destructive]:focus:bg-red/10 data-[tone=destructive]:focus:text-red-ink",
       inset && "pl-8",
       className
     )}

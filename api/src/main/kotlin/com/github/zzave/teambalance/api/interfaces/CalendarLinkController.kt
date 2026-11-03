@@ -68,7 +68,7 @@ class CalendarLinkController(
             teamId = currentTeamGateway.requireCurrentTeamId(),
             id = CalendarLinkId(UUID.fromString(request.path.id)),
         )
-        return DeleteCalendarLink.Response204(Unit)
+        return DeleteCalendarLink.Response204
     }
 }
 

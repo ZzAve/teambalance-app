@@ -71,7 +71,7 @@ export function HandoverAdminView({
       {heading}
 
       {isLoading && <p className="text-small text-muted-foreground">Loading…</p>}
-      {isError && <p className="text-small text-destructive">Failed to load the admin link.</p>}
+      {isError && <p className="text-small text-red-ink">Failed to load the admin link.</p>}
 
       {!isLoading && !isError && justRevoked && (
         <div className="flex flex-col gap-2">
@@ -81,7 +81,7 @@ export function HandoverAdminView({
           <Button type="button" onClick={onCreate} disabled={isCreating} className="self-start">
             {isCreating ? 'Creating…' : 'Create new admin link'}
           </Button>
-          {actionError && <p className="text-small text-destructive">Something went wrong. Please try again.</p>}
+          {actionError && <p className="text-small text-red-ink">Something went wrong. Please try again.</p>}
         </div>
       )}
 
@@ -90,7 +90,7 @@ export function HandoverAdminView({
           <Button type="button" onClick={onCreate} disabled={isCreating} className="self-start">
             {isCreating ? 'Creating…' : 'Create admin handover link'}
           </Button>
-          {actionError && <p className="text-small text-destructive">Something went wrong. Please try again.</p>}
+          {actionError && <p className="text-small text-red-ink">Something went wrong. Please try again.</p>}
         </div>
       )}
 
@@ -120,7 +120,7 @@ export function HandoverAdminView({
             This link grants admin and can be used once. Rotating replaces it with a new one; revoking
             removes it. Either way the old link stops working.
           </p>
-          {actionError && <p className="text-small text-destructive">Something went wrong. Please try again.</p>}
+          {actionError && <p className="text-small text-red-ink">Something went wrong. Please try again.</p>}
         </div>
       )}
 

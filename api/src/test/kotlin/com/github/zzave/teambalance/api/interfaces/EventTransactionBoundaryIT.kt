@@ -3,11 +3,9 @@ package com.github.zzave.teambalance.api.interfaces
 import com.github.zzave.teambalance.api.TeamBalanceIT
 import com.github.zzave.teambalance.api.infrastructure.multitenancy.TenantSchemaAdapter
 import com.github.zzave.teambalance.api.infrastructure.persistence.FAULT_INJECTED_TITLE
-import com.github.zzave.teambalance.api.infrastructure.persistence.FaultInjectingEventRepositoryConfig
 import io.kotest.matchers.shouldBe
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
-import org.springframework.context.annotation.Import
 import org.springframework.http.MediaType
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.test.web.servlet.MockMvc
@@ -41,7 +39,6 @@ private const val HEALTHY_TITLE = "Healthy Series"
  * comes from `@Transactional` on the service or from the adapter that owns the batch.
  */
 @AutoConfigureMockMvc
-@Import(FaultInjectingEventRepositoryConfig::class)
 class EventTransactionBoundaryIT : TeamBalanceIT() {
 
     @Autowired

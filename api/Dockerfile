@@ -22,8 +22,8 @@ FROM --platform=$BUILDPLATFORM eclipse-temurin:25-jdk@sha256:e787e08ef76f4c16866
 WORKDIR /workspace
 
 # Wrapper + build scripts first so dependency resolution can cache across source-only changes.
-# buildSrc supplies the Wirespec SpringKotlinEmitter to the build-script classpath — required
-# to configure the codegen tasks in api/build.gradle.kts.
+# buildSrc supplies the Wirespec Spring extension (SpringMappingAnnotationsExtension) to the
+# build-script classpath — required to configure the codegen tasks in api/build.gradle.kts.
 COPY gradlew settings.gradle.kts build.gradle.kts gradle.properties ./
 COPY gradle ./gradle
 COPY buildSrc ./buildSrc
@@ -34,7 +34,10 @@ COPY api ./api
 # bootJar transitively runs processAot (under the prod profile — see api/build.gradle.kts) and
 # packages the AOT bean definitions into the fat jar.
 RUN ./gradlew --no-daemon --no-configuration-cache :api:bootJar \
- && cp api/build/libs/*-SNAPSHOT.jar /workspace/app.jar
+ && cp api/build/libs/*-SNAPSHOT.jar /workspace/app.jar \
+ && java -Djarmode=tools -jar /workspace/app.jar extract --destination /workspace/extracted
+# The JVM's AOT cache cannot store classes loaded from jars nested in the fat jar, so bake and run
+# the extracted layout (extracted/app.jar + extracted/lib/) instead.
 
 # ---- bake stage: JDK 25 AOT cache --------------------------------------------
 # IMPORTANT: no `--platform=$BUILDPLATFORM` here. The AOT cache is architecture- and JVM-specific,
@@ -56,7 +59,7 @@ RUN ./gradlew --no-daemon --no-configuration-cache :api:bootJar \
 # size has changed" → "Unable to map shared spaces", and the app fell back to no cache (fail-safe).
 FROM eclipse-temurin:25-jre@sha256:f9e65324a37f28209ce7dd0e5149a7aa954520ed936fb87813cf6ded2400a112 AS bake
 WORKDIR /app
-COPY --from=build /workspace/app.jar /app/app.jar
+COPY --from=build /workspace/extracted/ /app/
 
 # Keep the jar path identical to the runtime stage (/app/app.jar): the AOT cache validates the
 # classpath it was recorded against.
@@ -89,6 +92,7 @@ RUN set -x; \
       INVITATION_TOKEN_ENCRYPTION_KEY=YnVpbGQtdGltZS1kdW1teS1rZXktMzItYnl0ZXMhISE= \
       TEAMBALANCE_CALENDAR_LINK_SALT=build-time-dummy-salt \
       TEAMBALANCE_CALENDAR_LINK_ENCRYPTION_KEY=YnVpbGQtdGltZS1kdW1teS1rZXktMzItYnl0ZXMhISE= \
+      TEAMBALANCE_BUNQ_TOKEN_ENCRYPTION_KEY=YnVpbGQtdGltZS1kdW1teS1rZXktMzItYnl0ZXMhISE= \
       SCALEWAY_TEM_API_KEY=build-time-dummy \
       SCALEWAY_TEM_PROJECT_ID=build-time-dummy \
       java -XX:+UseSerialGC -XX:TieredStopAtLevel=1 \
@@ -109,7 +113,7 @@ RUN useradd --system --uid 1001 --home-dir /app --shell /usr/sbin/nologin app
 USER app
 
 # Jar at the SAME /app/app.jar path the cache was recorded against, plus the baked AOT cache.
-COPY --from=build --chown=app:app /workspace/app.jar app.jar
+COPY --from=build --chown=app:app /workspace/extracted/ ./
 COPY --from=bake  --chown=app:app /app/app.aot app.aot
 
 # Build SHA of this image, surfaced at runtime on /internal/actuator/info (info.build.sha) so the deploy

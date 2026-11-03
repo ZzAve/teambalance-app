@@ -53,7 +53,7 @@ export function TeamSettingsView({ season = {}, isLoading, isError, isSaving, er
 
       {isLoading && <p className="text-small text-muted-foreground">Loading…</p>}
       {isError && (
-        <p className="text-small text-red">Couldn't load team settings. Please try again.</p>
+        <p className="text-small text-red-ink">Couldn't load team settings. Please try again.</p>
       )}
 
       {!isLoading && !isError && (
@@ -87,7 +87,7 @@ export function TeamSettingsView({ season = {}, isLoading, isError, isSaving, er
             </div>
           </div>
 
-          {rangeError && <p className="text-small text-red">{rangeError}</p>}
+          {rangeError && <p className="text-small text-red-ink">{rangeError}</p>}
 
           {showWarning && !rangeError && (
             <p className="rounded-lg border border-gold/40 bg-gold/10 px-3 py-2 text-small text-foreground" role="alert">
@@ -95,7 +95,7 @@ export function TeamSettingsView({ season = {}, isLoading, isError, isSaving, er
             </p>
           )}
 
-          {error && <p className="text-small text-red">{error}</p>}
+          {error && <p className="text-small text-red-ink">{error}</p>}
 
           <div>
             <Button disabled={isSaving || !dirty || !!rangeError} onClick={handleSave}>

@@ -82,7 +82,7 @@ export function MemberDetailView({
       <PageHeader title={member?.displayName ?? 'Member'} backTo={routes.team} backLabel="Back to team" />
 
       {isLoading && <p className="text-small text-muted-foreground">Loading…</p>}
-      {isError && <p className="text-small text-red">Couldn't load this member. Please try again.</p>}
+      {isError && <p className="text-small text-red-ink">Couldn't load this member. Please try again.</p>}
       {!isLoading && !isError && !member && (
         <p className="text-small text-muted-foreground">This person is not on the team.</p>
       )}
@@ -122,7 +122,7 @@ export function MemberDetailView({
                   </Button>
                 )}
               </div>
-              {photoErrorMessage && <p className="text-small text-red">{photoErrorMessage}</p>}
+              {photoErrorMessage && <p className="text-small text-red-ink">{photoErrorMessage}</p>}
               <ConfirmDialog
                 open={previewingPersonal}
                 title="Use your personal photo"
@@ -163,7 +163,7 @@ export function MemberDetailView({
           {isEditing ? (
             <div className={`${CARD} p-4`}>
               {errorMessage && (
-                <p role="alert" className="mb-4 rounded-md bg-red/10 px-3 py-2 text-small text-red">
+                <p role="alert" className="mb-4 rounded-md bg-red/10 px-3 py-2 text-small text-red-ink">
                   {errorMessage}
                 </p>
               )}

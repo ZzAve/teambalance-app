@@ -53,7 +53,7 @@ export function useEventTypes(includeArchived = false) {
   return useQuery({
     queryKey: ['event-types', { includeArchived }],
     queryFn: async () => {
-      const res = await api.ListEventTypes({ 'include-archived': includeArchived })
+      const res = await api.listEventTypes({ includeArchived })
       return res.body
     },
     select: (data) => data.eventTypes,
@@ -71,7 +71,7 @@ export function useCreateEventType() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async (input: EventTypeInput) => {
-      const res = await api.CreateEventType({ body: input as EventTypeItem })
+      const res = await api.createEventType({ body: input as EventTypeItem })
       if (res.status === 400) throw invalid()
       if (res.status === 409) throw nameTaken()
       if (res.status === 403) throw forbidden()
@@ -85,7 +85,7 @@ export function useUpdateEventType() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async ({ id, ...input }: EventTypeInput & { id: string }) => {
-      const res = await api.UpdateEventType({ id, body: input as EventTypeItem })
+      const res = await api.updateEventType({ id, body: input as EventTypeItem })
       if (res.status === 400) throw invalid()
       if (res.status === 409) throw nameTaken()
       if (res.status === 403) throw forbidden()
@@ -106,7 +106,7 @@ export function useArchiveEventType() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async ({ id, migrateEventsTo }: { id: string; migrateEventsTo?: string }) => {
-      const res = await api.ArchiveEventType({ id, body: { migrateEventsTo } })
+      const res = await api.archiveEventType({ id, body: { migrateEventsTo } })
       if (res.status === 400) throw invalid()
       if (res.status === 409) {
         throw new EventTypeError('LAST_EVENT_TYPE', 'A team must keep at least one active event type.')
@@ -124,7 +124,7 @@ export function useUnarchiveEventType() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async ({ id }: { id: string }) => {
-      const res = await api.UnarchiveEventType({ id })
+      const res = await api.unarchiveEventType({ id })
       if (res.status === 409) throw nameTaken()
       if (res.status === 403) throw forbidden()
       if (res.status === 404) throw notFound()

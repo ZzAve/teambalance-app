@@ -45,7 +45,9 @@ serial path.
    the runtime loads with `-XX:AOTCache=app.aot`. Constraints: the bake stage must use the same JRE
    base image and the same GC flag as the runtime stage, or the cache is rejected. The bake is
    best-effort; a failure leaves an empty `app.aot` and the image still builds, since
-   `-XX:AOTCache` fails safe by logging a warning and booting normally. AOT fixes the bean set per
+   `-XX:AOTCache` fails safe by logging a warning and booting normally. The bake and the runtime use
+   the extracted jar layout (`java -Djarmode=tools -jar app.jar extract`: `app.jar` plus `lib/`),
+   because the AOT cache cannot store classes loaded from jars nested in the fat jar. AOT fixes the bean set per
    profile, so `processAot` runs under the `prod` profile to include the `@Profile("prod")`
    `ScalewayTemEmailSender`.
 4. **Overlap the DB resume with boot instead of decoupling Flyway.** `DatabaseWarmupListener` is
@@ -129,6 +131,18 @@ serial path.
   The prod quota period is unknown, so `main()` logs `Startup CPU: …` after `Started`, with the
   process CPU time, `cpu.max` and `cpu.stat`. If prod shows high `nr_throttled` and CPU time well
   above the local 4 s scaled by the prod core speed, throttling is part of the prod boot time.
+- Until 2026-11-03 the image ran the fat jar, so the AOT cache held only JDK and Spring Boot loader
+  classes. Measured on stg (same container settings as prod, AOT cache in both cases, forced cold
+  starts). Boots land on one of two host groups that differ by about 1.7× in every step; prod has
+  landed in the slow group on every boot seen so far.
+
+  | Host group | Fat jar `Started … in` | Extracted `Started … in` | Process CPU, fat → extracted |
+  |---|---|---|---|
+  | slow | 29.0–29.6 s | 9.0–9.9 s (7 boots) | 40–42 s → 17–20 s |
+  | fast | 16.4–17.7 s | 5.6 s (2 boots) | 23–25 s → 10–11 s |
+
+  Locally (2 CPU) the extracted layout starts in 0.9 s, against 2.7 s for the fat jar. On stg the
+  AOT cache with the fat jar saved about 20% against no cache.
 - Tried:
   - Build-time enhancement with the `org.hibernate.orm` Gradle plugin failed 110 of 965 tests.
     For an entity with no lazy attributes of its own (for example `EventTypeJpaEntity`), the
@@ -139,6 +153,8 @@ serial path.
     tests were not analysed separately. Rejected.
   - `hibernate.bytecode.provider=none` without enhancement passes the tests but gains only about
     0.16 s locally (3.43 s to 3.27 s), because the AOT cache already covers most ByteBuddy classes.
-    It also replaces lazy proxies with an exception if Hibernate ever needs one. It is switched
-    on as a prod trial, because the gain on a prod vCPU may be larger than locally. Remove it if
-    the prod `Started … in` time does not drop, or if a lazy-proxy exception shows up in the logs.
+    It also replaces lazy proxies with an exception if Hibernate ever needs one. A prod trial on
+    2026-11-01 showed no gain either (Hibernate bootstrap 9.2 to 9.4 s, against 9.0 s without it).
+    Rejected.
+  - `-XX:+UseTransparentHugePages` has no effect on prod: the JVM disables it at start because the
+    Serverless Container kernel (gVisor) does not support transparent huge pages. Rejected.

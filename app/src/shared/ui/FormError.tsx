@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 
 export function FormError({ children }: { children: ReactNode }) {
   return (
-    <p role="alert" className="text-small text-destructive">
+    <p role="alert" className="text-small text-red-ink">
       {children}
     </p>
   )

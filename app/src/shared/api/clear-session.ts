@@ -4,10 +4,10 @@ import { queryClient } from './query-client'
 
 /**
  * Client-only session teardown (ADR-0027 §3): null the cached `/auth/me`, and
- * hard-redirect to `/login` — with **no** `api.Logout()` round-trip, so it still works when the
+ * hard-redirect to `/login` — with **no** `api.logout()` round-trip, so it still works when the
  * backend is the thing that is down.
  *
- * The in-shell logout calls `api.Logout()` first (a clean server-side teardown) and **then** this;
+ * The in-shell logout calls `api.logout()` first (a clean server-side teardown) and **then** this;
  * the out-of-shell escape hatch (later slice) calls this alone. Because it touches only the cache and the
  * location, it makes zero network calls — the unit test pins that.
  */

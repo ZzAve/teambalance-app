@@ -31,6 +31,7 @@ const USER: AuthenticatedUser = {
   isPlatformAdmin: false,
   actAs: undefined,
   personalPhotoVersion: undefined,
+  moneyPoolEnabled: undefined,
 }
 
 let meStatus = 401

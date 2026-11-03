@@ -1,12 +1,27 @@
 package com.github.zzave.teambalance.api.infrastructure.config
 
+import com.github.zzave.teambalance.api.application.ActAsService
+import com.github.zzave.teambalance.api.application.AuthorizationService
+import com.github.zzave.teambalance.api.application.BunqConnectConfig
+import com.github.zzave.teambalance.api.application.BunqConnectionService
 import com.github.zzave.teambalance.api.application.MoneyPoolService
+import com.github.zzave.teambalance.api.application.TokenCipher
+import com.github.zzave.teambalance.api.application.TopUpService
+import com.github.zzave.teambalance.api.domain.port.ActAsGateway
 import com.github.zzave.teambalance.api.domain.port.BunqConnectionRepository
 import com.github.zzave.teambalance.api.domain.port.BunqGateway
+import com.github.zzave.teambalance.api.domain.port.BunqOAuthStateRepository
+import com.github.zzave.teambalance.api.domain.port.MoneyPoolCacheGateway
 import com.github.zzave.teambalance.api.domain.port.MoneyPoolSettingsRepository
 import com.github.zzave.teambalance.api.domain.port.SeasonRepository
+import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
+import com.github.zzave.teambalance.api.domain.port.TeamRepository
+import com.github.zzave.teambalance.api.domain.port.TenantScopeGateway
+import org.springframework.beans.factory.annotation.Qualifier
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import org.springframework.core.env.Environment
 import java.time.Clock
 
 /**
@@ -21,12 +36,81 @@ class MoneyPoolCompositionRoot {
         connectionRepository: BunqConnectionRepository,
         seasonRepository: SeasonRepository,
         bunqGateway: BunqGateway,
+        @Qualifier(BunqGrantCipherConfiguration.BEAN_NAME) bunqGrantCipher: TokenCipher,
         clock: Clock,
+        authorizationService: AuthorizationService,
+        moneyPoolCache: MoneyPoolCacheGateway,
     ) = MoneyPoolService(
         settingsRepository = settingsRepository,
         connectionRepository = connectionRepository,
         seasonRepository = seasonRepository,
         bunqGateway = bunqGateway,
+        grantCipher = bunqGrantCipher,
         clock = clock,
+        authorizationService = authorizationService,
+        cache = moneyPoolCache,
     )
+
+    @Bean
+    @Suppress("LongParameterList")
+    fun bunqConnectionService(
+        connectionRepository: BunqConnectionRepository,
+        stateRepository: BunqOAuthStateRepository,
+        bunqGateway: BunqGateway,
+        tenantScopeGateway: TenantScopeGateway,
+        teamRepository: TeamRepository,
+        teamMemberRepository: TeamMemberRepository,
+        actAsService: ActAsService,
+        authorizationService: AuthorizationService,
+        clock: Clock,
+        @Qualifier(BunqGrantCipherConfiguration.BEAN_NAME) bunqGrantCipher: TokenCipher,
+        environment: Environment,
+        @Value("\${teambalance.api-base-url}") apiBaseUrl: String,
+        @Value("\${teambalance.bunq.connect-enabled}") connectEnabled: Boolean,
+        moneyPoolCache: MoneyPoolCacheGateway,
+    ) = BunqConnectionService(
+        connectionRepository = connectionRepository,
+        stateRepository = stateRepository,
+        bunqGateway = bunqGateway,
+        tenantScopeGateway = tenantScopeGateway,
+        teamRepository = teamRepository,
+        teamMemberRepository = teamMemberRepository,
+        actAsService = actAsService,
+        authorizationService = authorizationService,
+        clock = clock,
+        connectConfig = bunqConnectConfig(connectEnabled, environment.matchesProfiles("prod"), bunqGrantCipher, apiBaseUrl),
+        moneyPoolCache = moneyPoolCache,
+    )
+
+    @Bean
+    fun topUpService(
+        settingsRepository: MoneyPoolSettingsRepository,
+        teamRepository: TeamRepository,
+        teamMemberRepository: TeamMemberRepository,
+        actAsGateway: ActAsGateway,
+    ) = TopUpService(
+        settingsRepository = settingsRepository,
+        teamRepository = teamRepository,
+        teamMemberRepository = teamMemberRepository,
+        actAsGateway = actAsGateway,
+    )
+}
+
+/**
+ * The connect settings, or null while connecting is switched off. Switching it on in prod, where the
+ * gateway cannot read from the real Bunq yet (tracer 4.1), stops the app from starting. With the real adapter
+ * wired the code exchange would succeed and issue a real token, and the first read would then fail and discard
+ * it, leaving the Admin with an authorization nobody can revoke.
+ */
+internal fun bunqConnectConfig(
+    connectEnabled: Boolean,
+    isProd: Boolean,
+    grantCipher: TokenCipher,
+    apiBaseUrl: String,
+): BunqConnectConfig? {
+    if (!connectEnabled) return null
+    check(!isProd) {
+        "teambalance.bunq.connect-enabled cannot be on in prod until the real Bunq adapter can read (tracer 4.1)"
+    }
+    return BunqConnectConfig(grantCipher, apiBaseUrl.trimEnd('/') + BunqConnectionService.CALLBACK_PATH)
 }

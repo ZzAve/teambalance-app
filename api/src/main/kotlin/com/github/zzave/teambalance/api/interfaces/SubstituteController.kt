@@ -83,7 +83,7 @@ class SubstituteController(
             teamId = currentTeamGateway.requireCurrentTeamId(),
             id = request.path.id.consumeSubstituteId(),
         )
-        return DeleteSubstitute.Response204(Unit)
+        return DeleteSubstitute.Response204
     }
 
     override suspend fun setSubstituteAttendance(
@@ -108,7 +108,7 @@ class SubstituteController(
             eventId = request.path.eventId.consumeEventId(),
             substituteId = request.path.substituteId.consumeSubstituteId(),
         )
-        return RemoveSubstituteAttendance.Response204(Unit)
+        return RemoveSubstituteAttendance.Response204
     }
 }
 

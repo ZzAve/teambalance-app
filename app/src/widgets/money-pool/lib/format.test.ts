@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatEuro, formatPaymentDate } from './format'
+import { formatBeers, formatEuro, formatPaymentDate } from './format'
 
 // Intl separates the euro sign from the amount with a no-break space (U+00A0).
 const NBSP = '\u00a0'
@@ -25,5 +25,17 @@ describe('formatEuro', () => {
 describe('formatPaymentDate', () => {
   it('shows day and short Dutch month', () => {
     expect(formatPaymentDate('2026-10-06')).toBe('6 okt')
+  })
+})
+
+describe('formatBeers', () => {
+  it('pluralises the count', () => {
+    expect(formatBeers(69)).toBe('69 beers')
+    expect(formatBeers(1)).toBe('1 beer')
+    expect(formatBeers(0)).toBe('0 beers')
+  })
+
+  it('groups thousands with a dot', () => {
+    expect(formatBeers(1250)).toBe('1.250 beers')
   })
 })

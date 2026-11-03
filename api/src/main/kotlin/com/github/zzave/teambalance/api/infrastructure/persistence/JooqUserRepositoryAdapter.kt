@@ -11,7 +11,6 @@ import com.github.zzave.teambalance.api.infrastructure.persistence.jooq.public_.
 import org.jooq.DSLContext
 import org.jooq.impl.DSL.excluded
 import org.springframework.stereotype.Repository
-import org.springframework.transaction.annotation.Transactional
 
 @Repository
 class JooqUserRepositoryAdapter(
@@ -24,7 +23,6 @@ class JooqUserRepositoryAdapter(
     override fun findByEmail(email: Email): User? =
         dsl.selectFrom(USERS).where(USERS.EMAIL.eq(email.value)).fetchOne()?.toUser()
 
-    @Transactional
     override fun save(user: User): User {
         dsl.insertInto(USERS)
             .set(USERS.ID, user.id.value)
@@ -47,7 +45,6 @@ class JooqUserRepositoryAdapter(
             .fetchOne(USERS.LAST_ACTIVE_TEAM_ID)
             ?.let(::TeamId)
 
-    @Transactional
     override fun rememberActiveTeam(userId: UserId, teamId: TeamId) {
         dsl.update(USERS)
             .set(USERS.LAST_ACTIVE_TEAM_ID, teamId.value)

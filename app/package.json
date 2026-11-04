@@ -55,7 +55,7 @@
     "@testing-library/react": "16.3.3",
     "@types/react": "19.2.18",
     "@types/react-dom": "19.2.4",
-    "@vite-pwa/assets-generator": "1.0.2",
+    "@vite-pwa/assets-generator": "1.0.4",
     "@vitejs/plugin-react": "6.0.5",
     "@vitest/browser": "4.1.11",
     "@vitest/browser-playwright": "4.1.11",

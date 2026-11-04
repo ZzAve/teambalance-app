@@ -27,6 +27,16 @@
       "description": "Major updates always land by hand. A green gate proves 'still works and looks the same', which a major (React 19->20, Tailwind 4->5, a Radix major) can pass while changing API/behaviour semantics no pixel diff reveals.",
       "matchUpdateTypes": ["major"],
       "automerge": false
+    },
+    {
+      "description": "Hold TypeScript below 7. TS 7.0 ships only the native compiler without the JS compiler API, and typescript-eslint (peer range <6.1.0) cannot load it. Lift once typescript-eslint supports TS 7 (typescript-eslint#10940).",
+      "matchPackageNames": ["typescript"],
+      "allowedVersions": "<7"
+    },
+    {
+      "description": "No automerge for the bunq SDK. It talks to the money API and CI does not exercise real Bunq, so every update, patch included, lands by hand. A 0.x bump counts as minor and would otherwise match the automerge rule above.",
+      "matchPackageNames": ["com.github.flock-community.bunq-sdk:kotlin"],
+      "automerge": false
     }
   ],
   "vulnerabilityAlerts": {

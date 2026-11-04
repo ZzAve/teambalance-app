@@ -34,7 +34,12 @@ export const Interactions: Story = {
 
     // Cancel leaves nothing picked.
     await userEvent.upload(input, await landscapePicture())
-    const first = within(await screen.findByRole('dialog'))
+    const dialogElement = await screen.findByRole('dialog')
+    // The base dialog keeps a 16px gutter on each side on a phone instead of running edge to edge.
+    await waitFor(() =>
+      expect(dialogElement.getBoundingClientRect().width).toBeLessThanOrEqual(window.innerWidth - 32),
+    )
+    const first = within(dialogElement)
     await userEvent.click(first.getByRole('button', { name: 'Cancel' }))
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
     await expect(args.onPicked).not.toHaveBeenCalled()

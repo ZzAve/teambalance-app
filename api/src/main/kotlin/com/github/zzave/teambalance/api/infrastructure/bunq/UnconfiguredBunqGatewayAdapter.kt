@@ -7,13 +7,9 @@ import com.github.zzave.teambalance.api.domain.model.BunqGrant
 import com.github.zzave.teambalance.api.domain.model.Money
 import com.github.zzave.teambalance.api.domain.model.Payment
 import com.github.zzave.teambalance.api.domain.port.BunqGateway
-import org.springframework.context.annotation.Profile
-import org.springframework.stereotype.Component
 import java.time.LocalDate
 
-/** Production placeholder until the real Bunq adapter exists: every call fails, so the pool reads as unavailable. */
-@Component
-@Profile("prod")
+/** Production gateway while no Bunq environment is set: every call fails, so the pool reads as unavailable. */
 class UnconfiguredBunqGatewayAdapter : BunqGateway {
 
     override fun authorizationUrl(state: String, redirectUri: String): String = unavailable()

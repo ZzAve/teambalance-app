@@ -70,6 +70,10 @@ dependencies {
     // databind but not its Kotlin module, which WirespecJackson3Configuration requires.
     implementation("tools.jackson.module:jackson-module-kotlin")
 
+    // Bunq SDK (OAuth code exchange and the signed API client), published on JitPack
+    val bunqSdkVersion: String by project
+    implementation("com.github.flock-community.bunq-sdk:kotlin:$bunqSdkVersion")
+
     // Testing — Kotest
     val kotestVersion: String by project
     testImplementation("io.kotest:kotest-runner-junit5:$kotestVersion")

@@ -2,6 +2,7 @@ package com.github.zzave.teambalance.api.infrastructure.bunq
 
 import com.github.zzave.teambalance.api.application.BunqConnectionService
 import org.springframework.beans.factory.annotation.Value
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.context.annotation.Profile
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
@@ -20,9 +21,11 @@ import java.net.URI
  * dev, test and e2e profiles.
  *
  * The `redirect_uri` must be this app's own callback, so the page is no open redirect even in dev.
+ * Absent when a Bunq environment is set, as the fake gateway it belongs to is.
  */
 @RestController
 @Profile("dev", "test", "e2e")
+@ConditionalOnProperty(prefix = "teambalance.bunq", name = ["environment"], havingValue = "none", matchIfMissing = true)
 class FakeBunqAuthorizeController(
     private val bunq: FakeBunqGatewayAdapter,
     @param:Value("\${teambalance.api-base-url}") apiBaseUrl: String,

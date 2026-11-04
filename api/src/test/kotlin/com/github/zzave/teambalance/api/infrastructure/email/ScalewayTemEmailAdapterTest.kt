@@ -18,7 +18,7 @@ import org.springframework.web.client.RestClientResponseException
 
 class ScalewayTemEmailAdapterTest : FunSpec() {
 
-    private fun sender(builder: RestClient.Builder) = ScalewayTemEmailAdapter(
+    private fun sender(builder: RestClient.Builder, send: Boolean = true) = ScalewayTemEmailAdapter(
         frontendBaseUrl = "https://app.teambalance.nl",
         emailProperties = EmailProperties(
             fromName = "TeamBalance",
@@ -26,6 +26,7 @@ class ScalewayTemEmailAdapterTest : FunSpec() {
             apiKey = "secret-key",
             projectId = "project-42",
             region = "fr-par",
+            send = send,
         ),
         restClientBuilder = builder,
     )
@@ -58,6 +59,15 @@ class ScalewayTemEmailAdapterTest : FunSpec() {
             shouldThrow<RestClientResponseException> {
                 sender(builder).sendMagicLink(Email("speler@example.com"), "tok-123")
             }
+
+            server.verify()
+        }
+
+        test("with sending switched off (stg), nothing goes to TEM") {
+            val builder = RestClient.builder()
+            val server = MockRestServiceServer.bindTo(builder).build()
+
+            sender(builder, send = false).sendMagicLink(Email("speler@example.com"), "tok-123")
 
             server.verify()
         }

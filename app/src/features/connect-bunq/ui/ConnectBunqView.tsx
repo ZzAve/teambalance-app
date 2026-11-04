@@ -18,6 +18,8 @@ interface ConnectBunqViewProps {
   result?: ConnectBunqResult
   /** Move focus to the result on mount: the page was opened by Bunq's return, at the top of a long page. */
   focusResult?: boolean
+  /** Called once the result has been shown and focused, so the container can take it out of the URL. Pass a stable function. */
+  onResultShown?: () => void
   /** The start request is in flight, or the browser is on its way to Bunq. */
   isConnecting?: boolean
   /** The start request failed, shown inline. */
@@ -50,6 +52,7 @@ export function ConnectBunqView({
   accounts,
   result: tripResult,
   focusResult,
+  onResultShown,
   isConnecting,
   error,
   onConnect,
@@ -65,6 +68,10 @@ export function ConnectBunqView({
   useEffect(() => {
     if (focusResult && result) resultRef.current?.focus({ preventScroll: true })
   }, [focusResult, result])
+
+  useEffect(() => {
+    if (focusResult && result) onResultShown?.()
+  }, [focusResult, result, onResultShown])
 
   // Disconnect removes the button the Admin pressed, so focus would fall to the page. It goes to the status
   // line once the connection reads as gone, which is a moment after the request succeeded.

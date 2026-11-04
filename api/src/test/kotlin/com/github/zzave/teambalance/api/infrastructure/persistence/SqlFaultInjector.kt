@@ -9,6 +9,7 @@ import org.jooq.impl.QOM
 import org.springframework.boot.test.context.TestConfiguration
 import org.springframework.context.annotation.Bean
 import java.util.concurrent.CopyOnWriteArrayList
+import java.util.concurrent.atomic.AtomicInteger
 
 /**
  * Makes a chosen jOOQ statement fail, so a test can prove what an adapter's transaction does when a
@@ -49,6 +50,20 @@ class SqlFault(
     companion object {
         fun onInsertInto(table: Table<*>, failure: () -> RuntimeException) = SqlFault(failure) { ctx ->
             (ctx.query() as? QOM.Insert<*>)?.`$into`() == table
+        }
+
+        /**
+         * Fails only the [nth] insert into [table] that binds [boundValue] (a title, say), counting from 1,
+         * so earlier rows of the same batch are written before it blows up.
+         */
+        fun onNthInsertInto(table: Table<*>, nth: Int, boundValue: Any, failure: () -> RuntimeException): SqlFault {
+            val seen = AtomicInteger()
+            return SqlFault(failure) { ctx ->
+                val insert = ctx.query() as? QOM.Insert<*>
+                insert?.`$into`() == table &&
+                    insert.params.values.any { it.value == boundValue } &&
+                    seen.incrementAndGet() == nth
+            }
         }
 
         fun onUpdate(table: Table<*>, failure: () -> RuntimeException) = SqlFault(failure) { ctx ->

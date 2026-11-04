@@ -92,7 +92,7 @@ class ProdProfileSmokeIT : TeamBalanceIT() {
             applicationContext.getBean(BunqGateway::class.java).shouldBeInstanceOf<UnconfiguredBunqGatewayAdapter>()
         }
 
-        // Connecting stays off in prod until the real adapter can read (tracer 4.1); an unset flag is its default.
+        // Connecting stays off in prod until Bunq reads and OAuth are verified for production; an unset flag is its default.
         test("prod profile keeps Bunq connecting switched off") {
             environment.getProperty("teambalance.bunq.connect-enabled") shouldBe "false"
 

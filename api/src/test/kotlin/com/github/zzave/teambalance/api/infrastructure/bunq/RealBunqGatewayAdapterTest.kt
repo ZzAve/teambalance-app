@@ -3,10 +3,14 @@ package com.github.zzave.teambalance.api.infrastructure.bunq
 import com.bunq.sdk.BUNQ_PUBLIC_OAUTH
 import com.bunq.sdk.BUNQ_SANDBOX_OAUTH
 import com.bunq.sdk.BunqApiException
+import com.bunq.sdk.BunqServer
 import com.bunq.sdk.OAuthServer
-import com.github.zzave.teambalance.api.domain.model.BunqAccountId
+import com.github.zzave.teambalance.api.application.TokenCipher
 import com.github.zzave.teambalance.api.domain.model.BunqAuthorizationCode
 import com.github.zzave.teambalance.api.domain.model.BunqGrant
+import com.github.zzave.teambalance.api.domain.model.EncryptedToken
+import com.github.zzave.teambalance.api.domain.model.StoredBunqApiContext
+import com.github.zzave.teambalance.api.domain.port.BunqApiContextRepository
 import com.sun.net.httpserver.HttpServer
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
@@ -20,20 +24,33 @@ import java.net.ServerSocket
 import java.net.URI
 import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
-import java.time.LocalDate
+import java.time.Clock
+import java.time.Duration
+import java.time.ZoneId
 
 private const val CLIENT_ID = "test-client-id"
 private const val CLIENT_SECRET = "test-client-secret"
 private const val REDIRECT_URI = "https://api.example/api/bunq/oauth/callback"
 private const val OK = 200
 private const val BAD_REQUEST = 400
-private const val LIMIT = 10
-private val GRANT = BunqGrant("test-grant")
-private val ACCOUNT = BunqAccountId("1")
+private val CALL_PROPERTIES =
+    BunqCallProperties(Duration.ofSeconds(5), Duration.ofSeconds(15), Duration.ofSeconds(30), Duration.ofSeconds(1), Duration.ofSeconds(60))
+private val CIPHER = TokenCipher.fromBase64Key("dGVhbWJhbGFuY2UtdGVzdC1idW5xLXRva2VuLWtleTE=", "test")
+
+/** The OAuth half never touches the stored API context. */
+private object NoContexts : BunqApiContextRepository {
+    override fun find(): StoredBunqApiContext? = null
+
+    override fun save(context: EncryptedToken, ifGrant: EncryptedToken) = false
+}
 
 class RealBunqGatewayAdapterTest : FunSpec({
 
-    fun adapter(server: OAuthServer = BUNQ_SANDBOX_OAUTH) = RealBunqGatewayAdapter(CLIENT_ID, CLIENT_SECRET, server)
+    fun adapter(server: OAuthServer = BUNQ_SANDBOX_OAUTH): RealBunqGatewayAdapter {
+        val calls = BunqCalls(CALL_PROPERTIES, Clock.systemUTC())
+        val sessions = BunqSessions(BunqServer("http://127.0.0.1:1/v1/", ""), "TeamBalance test", NoContexts, CIPHER, calls)
+        return RealBunqGatewayAdapter(CLIENT_ID, CLIENT_SECRET, server, sessions, calls, ZoneId.of("Europe/Amsterdam"))
+    }
 
     context("authorization url") {
         test("sandbox sends the Admin to the sandbox OAuth server with our client, redirect and state, and no scope") {
@@ -55,12 +72,16 @@ class RealBunqGatewayAdapterTest : FunSpec({
         }
 
         test("the environment picks the OAuth server") {
-            fun properties(environment: BunqEnvironment) = BunqClientProperties(environment, CLIENT_ID, CLIENT_SECRET, "TeamBalance")
+            fun created(environment: BunqEnvironment) = RealBunqGatewayAdapter.create(
+                BunqClientProperties(environment, CLIENT_ID, CLIENT_SECRET, "TeamBalance"),
+                CALL_PROPERTIES,
+                NoContexts,
+                CIPHER,
+                Clock.systemUTC(),
+            )
 
-            RealBunqGatewayAdapter(properties(BunqEnvironment.SANDBOX)).authorizationUrl("s", REDIRECT_URI) shouldStartWith
-                "https://oauth.sandbox.bunq.com/auth?"
-            RealBunqGatewayAdapter(properties(BunqEnvironment.PRODUCTION)).authorizationUrl("s", REDIRECT_URI) shouldStartWith
-                "https://oauth.bunq.com/auth?"
+            created(BunqEnvironment.SANDBOX).authorizationUrl("s", REDIRECT_URI) shouldStartWith "https://oauth.sandbox.bunq.com/auth?"
+            created(BunqEnvironment.PRODUCTION).authorizationUrl("s", REDIRECT_URI) shouldStartWith "https://oauth.bunq.com/auth?"
         }
     }
 
@@ -99,20 +120,6 @@ class RealBunqGatewayAdapterTest : FunSpec({
         val failure = shouldThrow<IOException> { adapter(server).exchangeCode(BunqAuthorizationCode("the-code"), REDIRECT_URI) }
 
         generateSequence<Throwable>(failure) { it.cause }.forEach { it.message.orEmpty() shouldNotContain CLIENT_SECRET }
-    }
-
-    context("reads are not built yet") {
-        test("listing accounts, reading a balance and reading payments say so") {
-            val unsupported = listOf<() -> Any>(
-                { adapter().listAccounts(GRANT) },
-                { adapter().fetchBalance(GRANT, ACCOUNT) },
-                { adapter().fetchPayments(GRANT, ACCOUNT, LocalDate.of(2026, 1, 1), LIMIT) },
-            )
-
-            unsupported.forEach { read ->
-                shouldThrow<UnsupportedOperationException> { read() }.message!! shouldContain "not implemented yet"
-            }
-        }
     }
 })
 

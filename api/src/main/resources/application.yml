@@ -188,13 +188,24 @@ teambalance:
     # Bunq outside prod and the unconfigured gateway in prod (every call fails, so the pool reads as
     # unavailable). Anything else wires the real adapter and then needs the client id and secret below:
     # the app fails fast at startup without them. An empty value fails startup too; leave it unset for none.
-    # connect-enabled is refused in prod whatever the environment, until the real adapter can read (tracer 4.1).
+    # connect-enabled is refused in prod whatever the environment, until Bunq reads and OAuth are verified for production.
     environment: ${TEAMBALANCE_BUNQ_ENVIRONMENT:none}
     # The OAuth client registered at Bunq. Live environments provide the secret only through the env var.
     client-id: ${TEAMBALANCE_BUNQ_CLIENT_ID:}
     client-secret: ${TEAMBALANCE_BUNQ_CLIENT_SECRET:}
     # The name Bunq shows for this client.
     service-name: TeamBalance
+    # One read of Bunq may take this long: one or two calls, or the three list calls of listing the accounts. The SDK
+    # sets no timeout of its own, so without it a Bunq that never answers would hold the request for good.
+    call-timeout: 5s
+    # Setting a session up is an installation, a device and a session, which the SDK makes as one operation and which
+    # Bunq limits to about ten a day. If it is interrupted halfway all three are repeated, so it gets longer than a read.
+    setup-timeout: 15s
+    # After a 429 every call to Bunq is skipped for the window its message names (for example "3 calls per 3 second"),
+    # kept between rate-limit-pause-min and rate-limit-pause-max. rate-limit-pause is used when the message names none.
+    rate-limit-pause: 30s
+    rate-limit-pause-min: 1s
+    rate-limit-pause-max: 60s
     # The money pool is kept in memory per team and instance, so another instance keeps its own copy.
     # A read within `refresh` of the last successful one makes no Bunq call; a later read asks Bunq
     # again. If Bunq does not answer, the last known balance is shown until it is `expire` old, and

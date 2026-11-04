@@ -24,6 +24,10 @@ private val ROUTING = TenantRouting(
     TeamId(UUID.fromString(CalendarLinkFixture.ALPHA_TEAM)),
     SchemaName(CalendarLinkFixture.ALPHA_SCHEMA),
 )
+private val BETA_ROUTING = TenantRouting(
+    TeamId(UUID.fromString(CalendarLinkFixture.BETA_TEAM)),
+    SchemaName(CalendarLinkFixture.BETA_SCHEMA),
+)
 private val SESSION = EncryptedToken("sealed-session")
 private val GRANT = EncryptedToken("sealed-grant")
 
@@ -48,7 +52,10 @@ class JooqBunqApiContextRepositoryAdapterIT : TeamBalanceIT() {
     init {
         beforeTest { CalendarLinkFixture.seed(jdbcTemplate, tenantSchemaAdapter) }
 
-        afterTest { jdbcTemplate.update("DELETE FROM ${CalendarLinkFixture.ALPHA_SCHEMA}.bunq_connection") }
+        afterTest {
+            jdbcTemplate.update("DELETE FROM ${CalendarLinkFixture.ALPHA_SCHEMA}.bunq_connection")
+            jdbcTemplate.update("DELETE FROM ${CalendarLinkFixture.BETA_SCHEMA}.bunq_connection")
+        }
 
         test("a new connection is found with its grant and no session") {
             tenants.within(ROUTING) { connections.save(connection()) }
@@ -81,6 +88,21 @@ class JooqBunqApiContextRepositoryAdapterIT : TeamBalanceIT() {
             tenants.within(ROUTING) { contexts.find() } shouldBe null
             val table = "${CalendarLinkFixture.ALPHA_SCHEMA}.bunq_connection"
             jdbcTemplate.queryForObject("SELECT count(*) FROM $table", Int::class.java) shouldBe 0
+        }
+
+        test("every write in one tenant leaves another tenant's connection row as it was, even with the same grant in both") {
+            tenants.within(BETA_ROUTING) { connections.save(connection()) }
+            tenants.within(BETA_ROUTING) { contexts.save(SESSION, ifGrant = GRANT) }
+            val betaBefore = tenants.within(BETA_ROUTING) { contexts.find() }
+            tenants.within(ROUTING) { connections.save(connection()) }
+
+            tenants.within(ROUTING) { contexts.save(EncryptedToken("sealed-session-of-alpha"), ifGrant = GRANT) } shouldBe true
+            tenants.within(ROUTING) { connections.pickAccount(BunqAccountId("acc-1"), GRANT) } shouldBe true
+            tenants.within(ROUTING) { connections.save(connection(grant = EncryptedToken("sealed-new-grant"))) }
+            tenants.within(ROUTING) { connections.delete() }
+
+            tenants.within(BETA_ROUTING) { contexts.find() } shouldBe betaBefore
+            tenants.within(BETA_ROUTING) { connections.find() } shouldBe connection()
         }
 
         test("outside any tenant scope nothing is saved and nothing is found, instead of failing") {

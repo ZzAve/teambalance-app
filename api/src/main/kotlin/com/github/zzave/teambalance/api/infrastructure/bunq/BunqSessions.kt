@@ -11,6 +11,7 @@ import com.bunq.sdk.refreshSession
 import com.github.zzave.teambalance.api.application.TokenCipher
 import com.github.zzave.teambalance.api.domain.model.BunqGrant
 import com.github.zzave.teambalance.api.domain.port.BunqApiContextRepository
+import com.github.zzave.teambalance.api.domain.port.CurrentTeamGateway
 import org.slf4j.LoggerFactory
 import java.security.MessageDigest
 import java.util.HexFormat
@@ -53,6 +54,7 @@ internal class BunqSessions(
     private val serviceName: String,
     private val store: BunqApiContextRepository,
     private val cipher: TokenCipher,
+    private val currentTeam: CurrentTeamGateway,
     private val calls: BunqCalls,
 ) {
     // A holder per access token that sets the session up on first use, so that a slow setup holds up only the readers of that
@@ -67,15 +69,20 @@ internal class BunqSessions(
      * session's own access token. The tenant in scope may be another team's (the Admin's active team while connecting), and
      * the row may have been replaced by a reconnect since this session was made: then nothing is written and the session
      * stays unstored, to be written by a later read that finds its own row. Never fails the read it follows.
+     *
+     * The row's grant and the context are encrypted for the team whose schema holds the row, which is the team in scope. A
+     * grant that does not open with it (copied from another team's row, or made before values were bound to a team) is not
+     * this session's row either, so nothing is written.
      */
     @Suppress("TooGenericExceptionCaught")
     fun persistIfChanged(session: BunqSession) {
         val current = session.context
         if (current === session.persisted) return
         try {
+            val aad = scopeAad() ?: return
             val row = store.find()
-            if (row != null && cipher.decrypt(row.grant) == current.config.apiKey &&
-                store.save(cipher.encrypt(BunqApiContextCodec.encode(current)), ifGrant = row.grant)
+            if (row != null && cipher.decrypt(row.grant, aad) == current.config.apiKey &&
+                store.save(cipher.encrypt(BunqApiContextCodec.encode(current), aad), ifGrant = row.grant)
             ) {
                 session.persisted = current
             }
@@ -96,15 +103,23 @@ internal class BunqSessions(
     @Suppress("TooGenericExceptionCaught")
     private fun restored(grant: BunqGrant): BunqSession? =
         try {
-            store.find()
-                ?.context
-                ?.let { BunqApiContextCodec.decode(cipher.decrypt(it), server, serviceName) }
-                ?.takeIf { it.config.apiKey == grant.accessToken }
-                ?.let { BunqSession(it, persisted = it) }
+            scopeAad()?.let { aad ->
+                store.find()
+                    ?.context
+                    ?.let { BunqApiContextCodec.decode(cipher.decrypt(it, aad), server, serviceName) }
+                    ?.takeIf { it.config.apiKey == grant.accessToken }
+                    ?.let { BunqSession(it, persisted = it) }
+            }
         } catch (e: Exception) {
             log.warn("Reading the stored Bunq API context failed: {}", e.javaClass.simpleName)
             null
         }
+
+    /**
+     * The AAD of the row in scope: the team whose tenant schema [store] reads and writes. Null outside a tenant scope, where
+     * there is no row. A value that was made for another team, or before values were bound to a team, does not open with it.
+     */
+    private fun scopeAad(): ByteArray? = currentTeam.findCurrentTeamId()?.let(TokenCipher::aadOf)
 
     private fun setUp(grant: BunqGrant): BunqSession {
         val config = Config(server, serviceName, grant.accessToken, BunqSigningKeysGenerator.generateBunqSigningKeys())

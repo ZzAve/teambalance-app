@@ -178,7 +178,7 @@ class MoneyPoolActAsIT : TeamBalanceIT() {
             "INSERT INTO ${CalendarLinkFixture.BETA_SCHEMA}.bunq_connection " +
                 "(id, bunq_account_id, access_token_encrypted, connected_by, connected_at) " +
                 "VALUES (1, 'fake-account-1', ?, ?::uuid, now())",
-            grantCipher.encrypt("fake:test").value,
+            grantCipher.encrypt("fake:test", TokenCipher.aadOf(TeamId(UUID.fromString(CalendarLinkFixture.BETA_TEAM)))).value,
             BETA_MEMBER,
         )
     }

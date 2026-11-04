@@ -10,7 +10,9 @@ import com.github.zzave.teambalance.api.domain.model.BunqAuthorizationCode
 import com.github.zzave.teambalance.api.domain.model.BunqGrant
 import com.github.zzave.teambalance.api.domain.model.EncryptedToken
 import com.github.zzave.teambalance.api.domain.model.StoredBunqApiContext
+import com.github.zzave.teambalance.api.domain.model.TeamId
 import com.github.zzave.teambalance.api.domain.port.BunqApiContextRepository
+import com.github.zzave.teambalance.api.domain.port.CurrentTeamGateway
 import com.sun.net.httpserver.HttpServer
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
@@ -44,11 +46,17 @@ private object NoContexts : BunqApiContextRepository {
     override fun save(context: EncryptedToken, ifGrant: EncryptedToken) = false
 }
 
+private object NoTeam : CurrentTeamGateway {
+    override fun requireCurrentTeamId(): TeamId = error("no team in scope")
+
+    override fun findCurrentTeamId(): TeamId? = null
+}
+
 class RealBunqGatewayAdapterTest : FunSpec({
 
     fun adapter(server: OAuthServer = BUNQ_SANDBOX_OAUTH): RealBunqGatewayAdapter {
         val calls = BunqCalls(CALL_PROPERTIES, Clock.systemUTC())
-        val sessions = BunqSessions(BunqServer("http://127.0.0.1:1/v1/", ""), "TeamBalance test", NoContexts, CIPHER, calls)
+        val sessions = BunqSessions(BunqServer("http://127.0.0.1:1/v1/", ""), "TeamBalance test", NoContexts, CIPHER, NoTeam, calls)
         return RealBunqGatewayAdapter(CLIENT_ID, CLIENT_SECRET, server, sessions, calls, ZoneId.of("Europe/Amsterdam"))
     }
 
@@ -77,6 +85,7 @@ class RealBunqGatewayAdapterTest : FunSpec({
                 CALL_PROPERTIES,
                 NoContexts,
                 CIPHER,
+                NoTeam,
                 Clock.systemUTC(),
             )
 

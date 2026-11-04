@@ -44,7 +44,7 @@ class MoneyPoolService(
             if (connection == null || account == null) {
                 MoneyPool.NotConnected
             } else {
-                cache.read(teamId, account) { readFromBunq(account) }.withBeerFigures(settings)
+                cache.read(teamId, account) { readFromBunq(teamId, account) }.withBeerFigures(settings)
             }
         }
         return MoneyPoolOverview(pool, canTopUp = settings.topUpLink != null)
@@ -77,9 +77,9 @@ class MoneyPoolService(
      * that is gone, or whose account is no longer [account], has nothing to report for this key; it is
      * [MoneyPool.Unavailable], which the cache keeps only for its retry interval.
      */
-    private fun readFromBunq(account: BunqAccountId): MoneyPool {
+    private fun readFromBunq(teamId: TeamId, account: BunqAccountId): MoneyPool {
         val connection = connectionRepository.find()?.takeIf { it.accountId == account } ?: return MoneyPool.Unavailable
-        return decrypt(connection.grant)?.let { askBunq(it, account) } ?: MoneyPool.Rejected
+        return decrypt(connection.grant, teamId)?.let { askBunq(it, account) } ?: MoneyPool.Rejected
     }
 
     @Suppress("TooGenericExceptionCaught")
@@ -98,11 +98,11 @@ class MoneyPoolService(
         }
     }
 
-    /** Null when the stored grant does not decrypt (rotated key, damaged row). */
+    /** Null when the stored grant does not decrypt (rotated key, damaged row, made for another team or before teams were bound). */
     @Suppress("TooGenericExceptionCaught")
-    private fun decrypt(storedGrant: EncryptedToken): BunqGrant? =
+    private fun decrypt(storedGrant: EncryptedToken, teamId: TeamId): BunqGrant? =
         try {
-            BunqGrant(grantCipher.decrypt(storedGrant))
+            BunqGrant(grantCipher.decrypt(storedGrant, TokenCipher.aadOf(teamId)))
         } catch (e: Exception) {
             log.warn("Decrypting the Bunq grant failed: ${e.javaClass.simpleName}")
             null

@@ -1,9 +1,12 @@
 package com.github.zzave.teambalance.api.interfaces
 
 import com.github.zzave.teambalance.api.TeamBalanceIT
+import com.github.zzave.teambalance.api.application.TokenCipher
+import com.github.zzave.teambalance.api.domain.model.EncryptedToken
 import com.github.zzave.teambalance.api.domain.model.TeamId
 import com.github.zzave.teambalance.api.domain.port.MoneyPoolCacheGateway
 import com.github.zzave.teambalance.api.infrastructure.bunq.FakeBunqGatewayAdapter
+import com.github.zzave.teambalance.api.infrastructure.config.BunqGrantCipherConfiguration
 import com.github.zzave.teambalance.api.infrastructure.identity.loginAs
 import com.github.zzave.teambalance.api.infrastructure.multitenancy.TenantSchemaAdapter
 import com.github.zzave.teambalance.api.interfaces.CalendarLinkFixture.ALPHA_MEMBER
@@ -13,11 +16,13 @@ import com.github.zzave.teambalance.api.interfaces.CalendarLinkFixture.BETA_MEMB
 import com.github.zzave.teambalance.api.interfaces.CalendarLinkFixture.BETA_SCHEMA
 import com.github.zzave.teambalance.api.interfaces.CalendarLinkFixture.BETA_TEAM
 import com.github.zzave.teambalance.api.interfaces.CalendarLinkFixture.LEAVER
+import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldNotContain
 import io.kotest.matchers.string.shouldStartWith
 import org.hamcrest.Matchers.containsString
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
 import org.springframework.http.MediaType
 import org.springframework.jdbc.core.JdbcTemplate
@@ -38,6 +43,7 @@ import org.springframework.web.util.UriComponentsBuilder
 import tools.jackson.databind.ObjectMapper
 import java.net.URI
 import java.util.UUID
+import javax.crypto.AEADBadTagException
 
 private const val CALLBACK = "http://localhost:8080/api/bunq/oauth/callback"
 private const val ALPHA_SETTINGS = "http://localhost:5173/t/cal-alpha/team/settings"
@@ -70,6 +76,10 @@ class BunqConnectionControllerIT : TeamBalanceIT() {
 
     @Autowired
     lateinit var moneyPoolCache: MoneyPoolCacheGateway
+
+    @Autowired
+    @Qualifier(BunqGrantCipherConfiguration.BEAN_NAME)
+    lateinit var grantCipher: TokenCipher
 
     private val json = ObjectMapper()
 
@@ -255,6 +265,27 @@ class BunqConnectionControllerIT : TeamBalanceIT() {
 
             connectionRows(ALPHA_SCHEMA) shouldBe 1
             connectionRows(BETA_SCHEMA) shouldBe 0
+            // Bound to Alpha, the team that started the flow, not to Beta, whose tenant the callback ran in.
+            val stored = EncryptedToken(storedGrant(ALPHA_SCHEMA))
+            grantCipher.decrypt(stored, aadOf(ALPHA_TEAM)).isNotEmpty() shouldBe true
+            shouldThrow<AEADBadTagException> { grantCipher.decrypt(stored, aadOf(BETA_TEAM)) }
+            activeTeamOf(ALPHA_MEMBER, ALPHA_TEAM)
+            api(get(ACCOUNT), ALPHA_MEMBER).andExpect(status().isOk)
+        }
+
+        test("a row copied into another team's schema does not open there: that team's pool is Rejected, the original's is untouched") {
+            connect(newLogin())
+            api(pick(TEAMKAS), ALPHA_MEMBER).andExpect(status().isNoContent)
+            jdbcTemplate.update("INSERT INTO $BETA_SCHEMA.bunq_connection SELECT * FROM $ALPHA_SCHEMA.bunq_connection")
+
+            api(get(MONEY_POOL), BETA_MEMBER)
+                .andExpect(status().isOk)
+                .andExpect(jsonPath("$.state").value("Rejected"))
+                .andExpect(jsonPath("$.balance").doesNotExist())
+            api(get(MONEY_POOL), ALPHA_MEMBER)
+                .andExpect(jsonPath("$.state").value("Connected"))
+                .andExpect(jsonPath("$.balance").value(18750))
+            storedGrant(BETA_SCHEMA) shouldBe storedGrant(ALPHA_SCHEMA)
         }
 
         test("a state works once: replaying the callback fails and leaves the connection as it was") {
@@ -409,6 +440,8 @@ class BunqConnectionControllerIT : TeamBalanceIT() {
     private fun activeTeamOf(userId: String, teamId: String) {
         jdbcTemplate.update("UPDATE public.users SET last_active_team_id = ?::uuid WHERE id = ?::uuid", teamId, userId)
     }
+
+    private fun aadOf(team: String) = TokenCipher.aadOf(TeamId(UUID.fromString(team)))
 
     private fun storedGrant(schema: String) =
         jdbcTemplate.queryForObject("SELECT access_token_encrypted FROM $schema.bunq_connection", String::class.java)!!

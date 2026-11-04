@@ -57,7 +57,9 @@ That is the whole reason the wait and the work are two jobs: only the wait is di
 
 **`image`** — runs on every CI run, PRs included. Builds `api/Dockerfile` for **linux/amd64**
 (the Serverless Container rejects other arches) twice, `--target prod` and `--target stg`, and
-pushes `rg.fr-par.scw.cloud/teambalance/api:<sha>` and `…/api-stg:<sha>`. The two targets share
+pushes `rg.fr-par.scw.cloud/teambalance/api:<sha>` and `…/api-stg:<sha>`. The stg image also gets
+a `…/api-stg:head-<head sha>` tag: on a PR, `<sha>` is GitHub's temporary merge commit, so the stg
+deploy looks the image up by the branch head instead. The two targets share
 every stage except the last, so the second build reuses the first one's layers. The Gradle build
 runs *inside* the multi-stage image, so the runner needs no JDK/Gradle. The build bakes the commit
 SHA into the image (`--build-arg GIT_SHA`), surfaced at runtime on `/internal/actuator/info`
@@ -124,10 +126,25 @@ scw container container update ec9dfda3-65ca-4901-a640-895fd2f9f5f3 region=fr-pa
 ## Staging API (`api.stg.teambalance.nl`)
 
 A second Serverless Container for experiments (boot-time tuning, later migration checks) that
-never touches prod. The stg deploy is manual: every CI run, a PR's included, waits in
-`approve-api-stg` on the `staging` environment; approve it to put that run's `api-stg:<sha>` image
-on stg. A newer run of the same branch or PR replaces that branch's waiting gate; other branches
-keep theirs. It does not wait for the test job.
+never touches prod. CI only builds the stg image; deploying it is a separate, on-demand workflow,
+`.github/workflows/deploy-stg.yml`, with two triggers:
+
+- **Label:** add `deploy:stg` to a PR. The job removes the label again, so it deploys once; add it
+  again to redeploy. Later pushes to the PR do not redeploy.
+- **Run workflow:** Actions → *Deploy staging* → **Run workflow**, with a branch name or PR number
+  as `target`. From a terminal: `gh workflow run deploy-stg.yml -f target=<branch|PR number>`.
+
+Only the repository owner can trigger it: the job is skipped unless `github.triggering_actor` is
+the repository owner, re-runs included. The `staging` environment has no required reviewers, so
+nothing waits for approval; it only records the deployment, which the PR shows with a link to stg.
+
+The job resolves the head commit, fails if CI never ran for it (a branch without a PR, and not
+`main` or `deploy*`, has no image), and otherwise waits up to 30 minutes for
+`api-stg:head-<head sha>` while CI is still building it. It reads the image's build SHA
+(`TEAMBALANCE_BUILD_SHA` in the image config), deploys `api-stg:<build sha>` and waits until
+`/internal/actuator/info` reports that SHA. It does not wait for the test jobs. Rollouts share the
+`deploy-stg-api` concurrency group and run one at a time. PR images built before the `head-` tag
+existed have no such tag; push to the PR once to get one.
 
 - **Image:** `api/Dockerfile --target stg` = the prod image (same jar, same AOT cache) plus Postgres
   and `api/stg-entrypoint.sh`. It runs the `prod` profile; the stg differences are environment
@@ -150,11 +167,12 @@ keep theirs. It does not wait for the test job.
 
 ## Container Registry retention
 
-CI pushes `api:<sha>` and `api-stg:<sha>` on every run, so `.github/workflows/registry-cleanup.yml`
-deletes old tags every night: a tag whose commit is on `main` after **90 days**, any other tag (PR,
-`deploy*` branch, hand-pushed) after **7 days**. A tag that a Serverless Container currently runs is
-never deleted, since Scaleway pulls the image again on a cold start. To preview, run the workflow by
-hand (`dry_run` is on by default), or locally: `DRY_RUN=1 .github/scripts/registry-cleanup.sh`.
+CI pushes `api:<sha>`, `api-stg:<sha>` and `api-stg:head-<head sha>` on every run, so
+`.github/workflows/registry-cleanup.yml` deletes old tags every night: a tag whose commit is on
+`main` after **90 days**, any other tag (PR, `deploy*` branch, `head-*`, hand-pushed) after **7
+days**. A tag that a Serverless Container currently runs is never deleted, since Scaleway pulls the
+image again on a cold start. To preview, run the workflow by hand (`dry_run` is on by default), or
+locally: `DRY_RUN=1 .github/scripts/registry-cleanup.sh`.
 Rolling back to an image older than its retention means rebuilding it from that commit.
 
 ## Object Storage lifecycle (assets retention — console/IaC, not in-repo)

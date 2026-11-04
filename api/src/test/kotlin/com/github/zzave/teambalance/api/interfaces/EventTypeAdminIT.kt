@@ -2,6 +2,9 @@ package com.github.zzave.teambalance.api.interfaces
 
 import com.github.zzave.teambalance.api.TeamBalanceIT
 import com.github.zzave.teambalance.api.infrastructure.multitenancy.TenantSchemaAdapter
+import com.github.zzave.teambalance.api.infrastructure.persistence.SqlFault
+import com.github.zzave.teambalance.api.infrastructure.persistence.SqlFaultInjector
+import com.github.zzave.teambalance.api.infrastructure.persistence.jooq.default_schema.Tables.EVENT_TYPES
 import io.kotest.matchers.shouldBe
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
@@ -52,6 +55,9 @@ class EventTypeAdminIT : TeamBalanceIT() {
 
     @Autowired
     lateinit var tenantSchemaAdapter: TenantSchemaAdapter
+
+    @Autowired
+    lateinit var sqlFaultInjector: SqlFaultInjector
 
     init {
         test("an admin creates a type with a roster default and reads it back") {
@@ -156,6 +162,23 @@ class EventTypeAdminIT : TeamBalanceIT() {
             detail(b).andExpect(jsonPath("$.eventType.id").value(toId.toString()))
             detail(untouched).andExpect(jsonPath("$.eventType.id").value(toId.toString()))
             eventCountOfType(fromId) shouldBe 0
+        }
+
+        test("an archive whose final write fails leaves the events on their original type") {
+            seedTeam()
+            val fromId = createType("Faulty Old", null, OFF_DEFAULT)
+            val toId = createType("Faulty New", null, OFF_DEFAULT)
+            val event = createEvent(fromId, "Stays Put")
+
+            sqlFaultInjector.failWhile(
+                SqlFault.onUpdate(EVENT_TYPES) { IllegalArgumentException("injected failure archiving the type") },
+            ) {
+                archive(fromId, migrateTo = toId).andExpect(status().isBadRequest)
+            }
+
+            detail(event).andExpect(jsonPath("$.eventType.id").value(fromId.toString()))
+            eventCountOfType(fromId) shouldBe 1
+            listTypes().andExpect(jsonPath("$.eventTypes[?(@.id == '$fromId')].archived").value(false))
         }
 
         // Without this a team can archive its way to zero types and then be unable to create an

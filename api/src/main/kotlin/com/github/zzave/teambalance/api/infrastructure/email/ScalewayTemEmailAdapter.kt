@@ -22,8 +22,10 @@ class ScalewayTemEmailAdapter(
 ) : EmailGateway {
 
     private val restClient = restClientBuilder.build()
+    private val console = ConsoleEmailAdapter()
 
     override fun sendMagicLink(email: Email, token: String) {
+        if (!emailProperties.send) return console.sendMagicLink(email, token)
         val payload = MagicLinkEmail.render(MagicLinkEmail.url(frontendBaseUrl, token)).externalize(
             from = TemAddress(email = emailProperties.fromAddress, name = emailProperties.fromName),
             to = TemAddress(email = email.value),

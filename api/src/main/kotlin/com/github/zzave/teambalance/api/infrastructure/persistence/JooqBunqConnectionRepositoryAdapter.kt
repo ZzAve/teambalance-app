@@ -44,6 +44,8 @@ class JooqBunqConnectionRepositoryAdapter(
             .set(BUNQ_CONNECTION.ACCESS_TOKEN_ENCRYPTED, connection.grant.value)
             .set(BUNQ_CONNECTION.CONNECTED_BY, connection.connectedBy.value)
             .set(BUNQ_CONNECTION.CONNECTED_AT, connectedAt)
+            // The Bunq API session belongs to the grant it was made for, which this write replaces.
+            .setNull(BUNQ_CONNECTION.API_CONTEXT_ENCRYPTED)
             .execute()
     }
 

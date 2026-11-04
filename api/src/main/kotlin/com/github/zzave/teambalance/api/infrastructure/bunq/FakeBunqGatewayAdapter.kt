@@ -12,6 +12,7 @@ import com.github.zzave.teambalance.api.domain.model.PaymentDirection
 import com.github.zzave.teambalance.api.domain.model.PaymentName
 import com.github.zzave.teambalance.api.domain.port.BunqGateway
 import org.springframework.beans.factory.annotation.Value
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.context.annotation.Profile
 import org.springframework.stereotype.Component
 import java.net.URLEncoder
@@ -23,8 +24,8 @@ import java.util.concurrent.ConcurrentHashMap
 
 /**
  * Dev/test/e2e adapter serving a canned balance and payment history for any account.
- * Active in every profile except prod, where [UnconfiguredBunqGatewayAdapter] stands in until the
- * real Bunq adapter exists (ADR-0042).
+ * Active in every profile except prod, and only while no Bunq environment is set: with `sandbox` or
+ * `production` the [RealBunqGatewayAdapter] takes its place (ADR-0042).
  *
  * Plays Bunq's OAuth too: [authorizationUrl] points at [FakeBunqAuthorizeController], which calls
  * [issueCode] once the user approves and sends the browser back. A code can be exchanged once, and
@@ -34,6 +35,7 @@ import java.util.concurrent.ConcurrentHashMap
  */
 @Component
 @Profile("!prod")
+@ConditionalOnProperty(prefix = "teambalance.bunq", name = ["environment"], havingValue = "none", matchIfMissing = true)
 class FakeBunqGatewayAdapter(
     private val clock: Clock,
     @param:Value("\${teambalance.api-base-url}") apiBaseUrl: String,

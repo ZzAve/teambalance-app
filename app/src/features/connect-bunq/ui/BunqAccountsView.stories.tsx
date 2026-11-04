@@ -12,7 +12,7 @@ import { BunqAccountsView } from './BunqAccountsView'
 //
 // Three stories (ADR-0032 §1):
 //   1. Data — a team that picked its account: Teamkas checked, "Use this account" waiting for a change.
-//   2. Shells — no pick yet, loading, a failed read, saving, a saved pick (announced, focus on the
+//   2. Shells — no pick yet, loading, a failed read, saving, an account name with nothing to break at, a saved pick (announced, focus on the
 //      announcement), and a rejected grant, stacked in one frame.
 //   3. Interactions — no picture; one play picks Privé and checks onPick, then walks Disconnect through
 //      its confirmation: cancel calls nothing and returns focus to Disconnect, confirm calls onDisconnect
@@ -22,6 +22,9 @@ const ACCOUNTS: BunqAccount[] = [
   { id: 'fake-account-1', name: 'Teamkas' },
   { id: 'fake-account-2', name: 'Privé' },
 ]
+
+// A name Bunq lets the account holder choose, with no place to break it.
+const UNBROKEN_NAME = `Teamkas${'x'.repeat(200)}`
 
 const meta = {
   title: 'features/connect-bunq/BunqAccountsView',
@@ -58,6 +61,14 @@ export const Shells: Story = {
         Loading: <BunqAccountsView {...args} accounts={undefined} selectedAccountId={undefined} isLoading />,
         'Load failed': <BunqAccountsView {...args} accounts={undefined} selectedAccountId={undefined} isError />,
         Saving: <BunqAccountsView {...args} isSaving />,
+        'Long name': (
+          <BunqAccountsView
+            {...args}
+            accounts={[{ id: 'fake-account-1', name: UNBROKEN_NAME }, ...ACCOUNTS.slice(1)]}
+            selectedAccountId="fake-account-1"
+            saved
+          />
+        ),
         'Pick failed': <BunqAccountsView {...args} error="Couldn’t save the account. Please try again." />,
         Rejected: <BunqAccountsView {...args} accounts={undefined} selectedAccountId={undefined} isError rejected />,
         // Last, because a saved pick focuses its announcement on mount and the last frame to do so keeps focus.
@@ -85,6 +96,13 @@ export const Shells: Story = {
     await expect(region('Saving').getByRole('button', { name: 'Saving…' })).toBeDisabled()
     await expect(region('Saving').getByRole('radio', { name: 'Privé' })).toBeDisabled()
     await expect(region('Saving').getByRole('button', { name: 'Disconnect' })).toBeDisabled()
+
+    // An account name with nothing to break at wraps inside its row and in the announcement instead of
+    // pushing the page sideways.
+    const longName = canvas.getByRole('region', { name: 'Long name' })
+    await expect(within(longName).getByRole('radio', { name: UNBROKEN_NAME })).toBeChecked()
+    await expect(within(longName).getByRole('status')).toHaveTextContent(`The Money page now shows ${UNBROKEN_NAME}.`)
+    await expect(longName.scrollWidth).toBeLessThanOrEqual(longName.clientWidth)
 
     // A saved pick says what the Money page shows now, and the announcement takes focus from the disabled controls.
     await expect(region('Saved').getByRole('status')).toHaveTextContent('The Money page now shows Teamkas.')

@@ -2,7 +2,14 @@ package com.github.zzave.teambalance.api.interfaces
 
 import com.github.zzave.teambalance.api.TeamBalanceIT
 import com.github.zzave.teambalance.api.infrastructure.multitenancy.TenantSchemaAdapter
+import com.github.zzave.teambalance.api.domain.exception.PositionLabelTakenException
+import com.github.zzave.teambalance.api.domain.model.PositionLabel
+import com.github.zzave.teambalance.api.domain.port.PositionRepository
+import com.github.zzave.teambalance.api.infrastructure.multitenancy.TenantContext
+import io.kotest.assertions.throwables.shouldThrow
+import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.types.shouldBeInstanceOf
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
 import org.springframework.http.MediaType
@@ -11,6 +18,8 @@ import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers
 import java.util.UUID
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.Executors
 import com.github.zzave.teambalance.api.infrastructure.identity.loginAs
 
 // Ids dedicated to this spec so its position/roster assertions are isolated from other specs and the
@@ -31,6 +40,18 @@ class PositionControllerIT : TeamBalanceIT() {
 
     @Autowired
     lateinit var tenantSchemaAdapter: TenantSchemaAdapter
+
+    @Autowired
+    lateinit var positionRepository: PositionRepository
+
+    private fun <T> inTeamTenant(block: () -> T): T {
+        TenantContext.set(TEAM_SCHEMA)
+        try {
+            return block()
+        } finally {
+            TenantContext.clear()
+        }
+    }
 
     private fun seedTeam() {
         tenantSchemaAdapter.provisionPlatformSchema()
@@ -269,6 +290,41 @@ class PositionControllerIT : TeamBalanceIT() {
             // Refused by the SecurityFilterChain, so no handler starts.
             mockMvc.perform(MockMvcRequestBuilders.get("/api/positions"))
                 .andExpect(MockMvcResultMatchers.status().isUnauthorized)
+        }
+
+        // Concurrent creates all pass the service's uniqueness check, so the repository is what
+        // uq_positions_label has to be reported through.
+        test("concurrent creates of one label leave one position and refuse the rest as taken") {
+            seedTeam()
+            val attempts = 10
+            val start = CountDownLatch(1)
+            val pool = Executors.newFixedThreadPool(attempts)
+            val outcomes = try {
+                (1..attempts).map {
+                    pool.submit<Result<Unit>> {
+                        start.await()
+                        runCatching { inTeamTenant { positionRepository.create(PositionLabel("Dup Pos")) } }
+                            .map { }
+                    }
+                }.also { start.countDown() }.map { it.get() }
+            } finally {
+                pool.shutdown()
+            }
+
+            outcomes.count { it.isSuccess } shouldBe 1
+            outcomes.mapNotNull { it.exceptionOrNull() }.forEach { it.shouldBeInstanceOf<PositionLabelTakenException>() }
+            inTeamTenant { positionRepository.list() } shouldHaveSize 1
+        }
+
+        test("a rename onto another position's label is refused as taken at the repository") {
+            seedTeam()
+            inTeamTenant {
+                positionRepository.create(PositionLabel("Taken Label"))
+                val other = positionRepository.create(PositionLabel("Other Label"))
+                shouldThrow<PositionLabelTakenException> {
+                    positionRepository.rename(other.id, PositionLabel("TAKEN LABEL"))
+                }
+            }
         }
     }
 }

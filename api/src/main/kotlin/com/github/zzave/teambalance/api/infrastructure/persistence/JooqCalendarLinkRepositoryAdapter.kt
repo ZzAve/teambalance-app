@@ -25,7 +25,7 @@ import java.util.UUID
 
 /**
  * Calendar links, tenant-schema rows (ADR-0039) — every query here is scoped by the routed connection
- * rather than by a team id predicate, exactly as [JpaPositionRepositoryAdapter] is.
+ * rather than by a team id predicate, exactly as [JooqPositionRepositoryAdapter] is.
  *
  * A link is stored across three tables: the row itself, its attendance states and its event-type
  * allowlist. Reads are `@Transactional(readOnly = true)` so the three selects see one snapshot.

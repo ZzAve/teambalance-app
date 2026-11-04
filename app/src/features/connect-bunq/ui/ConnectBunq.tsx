@@ -18,7 +18,17 @@ import { ConnectBunqView } from './ConnectBunqView'
  * off shows no trace of it. Pure wiring, covered by the prop-only View's stories (ADR-0017).
  * Admin-gating is enforced on the route (beforeLoad) and again on the backend (403).
  */
-export function ConnectBunq({ result }: { result?: ConnectBunqResult }) {
+export function ConnectBunq({
+  result: resultInUrl,
+  onResultShown,
+}: {
+  result?: ConnectBunqResult
+  /** Called once the result from the URL has been shown; the caller takes it out of the URL. Pass a stable function. */
+  onResultShown?: () => void
+}) {
+  // The URL only carries the result in: it is read once and the caller removes it, so a later visit or
+  // re-render does not take focus again. What was shown stays until the page is left.
+  const [result] = useState(resultInUrl)
   const { data: status } = useBunqConnection()
   // The picker below reads the accounts; this only reads whether that read is pending and its error.
   const accountsRead = useBunqAccounts(false)
@@ -27,6 +37,15 @@ export function ConnectBunq({ result }: { result?: ConnectBunqResult }) {
   const [disconnected, setDisconnected] = useState(false)
   const section = useRef<HTMLDivElement>(null)
   const available = status?.connectAvailable === true
+  const connected = status?.connected === true
+
+  // A connection that appears again (another tab reconnected) is a new situation: a later disconnect did not
+  // come from the control the Admin pressed here, so it gets no "Disconnected" status and no focus.
+  const [wasConnected, setWasConnected] = useState(connected)
+  if (connected !== wasConnected) {
+    setWasConnected(connected)
+    if (connected) setDisconnected(false)
+  }
 
   // Bunq sends the Admin back to the top of a long settings page: bring the section into view. The View
   // takes focus to the result once it is there.
@@ -58,6 +77,7 @@ export function ConnectBunq({ result }: { result?: ConnectBunqResult }) {
         accounts={<BunqAccounts onDisconnected={() => setDisconnected(true)} />}
         result={result}
         focusResult
+        onResultShown={onResultShown}
         // Stays pending after the response too: the browser is on its way to Bunq, and a second click must not start another state.
         isConnecting={connect.isPending || connect.isSuccess}
         error={connect.error && errorMessage(connect.error)}

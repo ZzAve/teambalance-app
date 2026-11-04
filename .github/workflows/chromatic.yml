@@ -9,8 +9,10 @@ name: Chromatic
 #     human accepts the diff in the Chromatic UI. Mark **UI Tests** as a required status
 #     check in branch protection — that is what blocks a Renovate automerge on any pixel
 #     change. There is no autoAcceptChanges on PR branches: a delta always needs a human.
-#   - On push to main the accepted PR snapshots are promoted to the baseline automatically
-#     by Chromatic's git integration; we do not auto-accept here.
+#   - On push to main the build is auto-accepted (autoAcceptChanges: main below). Everything on
+#     main already passed the required UI Tests check on its PR, and PRs are squash-merged, so
+#     the squash commit is a SHA Chromatic never built: relying on it to carry the accepted PR
+#     snapshots over left the baseline stale and the same diffs reappeared on the next PR.
 #
 # Requires the CHROMATIC_PROJECT_TOKEN repo secret (create the Chromatic project first).
 
@@ -83,6 +85,8 @@ jobs:
             app/package-lock.json
           exitZeroOnChanges: true
           exitOnceUploaded: true
+          # Only the branch named main; PR branches still need a human to accept.
+          autoAcceptChanges: main
           # Draft PRs are work-in-progress and can't merge, so their WIP pushes shouldn't spend the
           # monthly snapshot budget. On a skip Chromatic uploads nothing (0 snapshots) yet still posts
           # a passing "UI Tests"/"chromatic" status, so the required checks keep reporting rather than

@@ -5,6 +5,7 @@ import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.string.shouldContain
 import org.springframework.boot.autoconfigure.AutoConfigurations
 import org.springframework.boot.autoconfigure.context.PropertyPlaceholderAutoConfiguration
 import org.springframework.boot.test.context.ConfigDataApplicationContextInitializer
@@ -29,6 +30,7 @@ class BunqConnectConfigTest : FunSpec({
 
         test("refuse to start while connecting is on in prod") {
             shouldThrow<IllegalStateException> { bunqConnectConfig(true, true, CIPHER, API) }
+                .message!! shouldContain "until Bunq reads and OAuth are verified for production"
         }
     }
 

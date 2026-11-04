@@ -1,6 +1,6 @@
 plugins {
-    kotlin("jvm") version "2.4.10" apply false
-    kotlin("plugin.spring") version "2.4.10" apply false
+    kotlin("jvm") version "2.4.21" apply false
+    kotlin("plugin.spring") version "2.4.21" apply false
     id("org.springframework.boot") version "4.1.0" apply false
     id("io.spring.dependency-management") version "1.1.7" apply false
     id("community.flock.wirespec.plugin.gradle") version "0.22.5" apply false
@@ -13,5 +13,10 @@ allprojects {
 
     repositories {
         mavenCentral()
+        // The bunq SDK is published only on JitPack; nothing else is ever looked up there.
+        exclusiveContent {
+            forRepository { maven("https://jitpack.io") }
+            filter { includeGroup("com.github.flock-community.bunq-sdk") }
+        }
     }
 }

@@ -26,8 +26,10 @@ class ScalewayTeamNotificationAdapter(
     private val log = LoggerFactory.getLogger(ScalewayTeamNotificationAdapter::class.java)
     private val restClient = restClientBuilder.build()
     private val from = TemAddress(email = email.fromAddress, name = email.fromName)
+    private val logging = LoggingTeamNotificationAdapter()
 
     override fun teamCreated(founderEmail: String, teamName: String, teamSlug: String) {
+        if (!email.send) return logging.teamCreated(founderEmail, teamName, teamSlug)
         send(
             recipients = listOf(TemAddress(email = founderEmail)),
             rendered = TeamNotificationEmails.teamCreated(teamName),
@@ -36,6 +38,7 @@ class ScalewayTeamNotificationAdapter(
     }
 
     override fun creationCodeConsumed(teamName: String, teamSlug: String, founderEmail: String) {
+        if (!email.send) return logging.creationCodeConsumed(teamName, teamSlug, founderEmail)
         val recipients = platformAdmins.all().map { TemAddress(email = it) }
         if (recipients.isEmpty()) return
         send(

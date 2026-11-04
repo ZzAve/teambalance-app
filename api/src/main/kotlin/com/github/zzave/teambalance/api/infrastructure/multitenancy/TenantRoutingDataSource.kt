@@ -7,18 +7,21 @@ import java.sql.Connection
 import javax.sql.DataSource
 
 /**
- * The jOOQ counterpart of [SchemaMultiTenantConnectionProvider]: switches each connection to the
- * schema resolved by [TenantIdentifierResolver] (so an unset tenant fails closed the same way) and
- * resets it to `public` when the connection is closed. Only the jOOQ `DSLContext` uses it.
+ * Gives the jOOQ `DSLContext` connections switched to the schema from [TenantContext.routingSchema]
+ * (an unset tenant fails closed) and resets them to `public` when closed. Only the jOOQ `DSLContext`
+ * uses it.
  *
  * Inside a Spring transaction it hands out the connection the transaction manager bound to the
- * underlying [dataSource], which Hibernate already routed to the tenant when the transaction began.
+ * underlying [dataSource], which [TenantRoutingTransactionManager] routed to the tenant when the
+ * transaction began.
  * That binding is keyed by [dataSource] itself, so a [TransactionAwareDataSourceProxy] around this
  * class would never find it and jOOQ would run each statement on its own auto-committed connection.
  */
-class TenantRoutingDataSource(private val dataSource: DataSource) : DelegatingDataSource(dataSource) {
+class TenantRoutingDataSource(
+    private val dataSource: DataSource,
+    private val evict: (Connection) -> Unit = dataSource::evictFromPool,
+) : DelegatingDataSource(dataSource) {
 
-    private val tenantResolver = TenantIdentifierResolver()
     private val transactionAwareDataSource = TransactionAwareDataSourceProxy(dataSource)
 
     override fun getConnection(): Connection =
@@ -27,11 +30,11 @@ class TenantRoutingDataSource(private val dataSource: DataSource) : DelegatingDa
     override fun getConnection(username: String, password: String): Connection =
         throw UnsupportedOperationException("Connections must be routed to a tenant; credentials are not supported")
 
-    private fun routedConnection(): Connection = ResettingConnection(super.getConnection().routeTo(currentTenant()))
+    private fun routedConnection(): Connection = ResettingConnection(super.getConnection().routeTo(currentTenant()), evict)
 
     private fun inTransaction() = TransactionSynchronizationManager.hasResource(dataSource)
 
-    private fun currentTenant() = tenantResolver.resolveCurrentTenantIdentifier()
+    private fun currentTenant() = TenantContext.routingSchema()
 
     private fun transactionConnection(): Connection {
         val connection = transactionAwareDataSource.connection
@@ -48,6 +51,9 @@ class TenantRoutingDataSource(private val dataSource: DataSource) : DelegatingDa
     }
 }
 
-private class ResettingConnection(private val delegate: Connection) : Connection by delegate {
-    override fun close() = delegate.resetAndClose()
+private class ResettingConnection(
+    private val delegate: Connection,
+    private val evict: (Connection) -> Unit,
+) : Connection by delegate {
+    override fun close() = delegate.resetAndClose(evict)
 }

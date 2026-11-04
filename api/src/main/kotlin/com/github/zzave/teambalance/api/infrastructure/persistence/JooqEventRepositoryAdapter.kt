@@ -168,7 +168,7 @@ class JooqEventRepositoryAdapter(
                 references = referencesByEvent[row.id].orEmpty().map { it.toReference() },
                 positionTargets = targetsByEvent[row.id].orEmpty()
                     .map { it.toTarget() }
-                    // UUID order, not database order, so the list reads as it did when read through Hibernate.
+                    // UUID order, not database order, so the list order does not depend on the database.
                     .sortedBy { it.positionId.value },
             )
         }

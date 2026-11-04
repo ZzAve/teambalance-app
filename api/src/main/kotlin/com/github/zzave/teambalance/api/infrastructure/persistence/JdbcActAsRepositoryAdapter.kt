@@ -13,9 +13,9 @@ import java.sql.Timestamp
 import java.util.UUID
 
 /**
- * Reads and writes `public.act_as_sessions` over the raw datasource (via [JdbcTemplate]), not
- * Hibernate — the same reasoning as [JdbcTeamRepositoryAdapter]: the grant is resolved in the request
- * filter, with no tenant set, where the tenant-routed JPA path fails closed. The explicit `public.`
+ * Reads and writes `public.act_as_sessions` over the raw datasource (via [JdbcTemplate]) —
+ * the same reasoning as [JdbcTeamRepositoryAdapter]: the grant is resolved in the request
+ * filter, with no tenant set, where tenant-routed jOOQ access fails closed. The explicit `public.`
  * qualification keeps the read reachable regardless of the connection's search_path.
  */
 @Repository

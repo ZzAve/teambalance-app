@@ -8,8 +8,7 @@ import java.util.UUID
  * means something else (a user, a team, an event *type*) being passed where an event is expected.
  *
  * It is the internal representation only: the wire contract and the database column are both still a
- * UUID, and neither changes. Conversion therefore happens **only at the edges** — the JPA mapper
- * ([com.github.zzave.teambalance.api.infrastructure.persistence.mapper] `internalize`/`externalize`)
+ * UUID, and neither changes. Conversion therefore happens **only at the edges** — the persistence adapters
  * and the Wirespec mapper (`consume`/`produce` in the controllers). Everything between those two
  * edges — domain model, ports, application services — speaks [EventId] and never unwraps it.
  */

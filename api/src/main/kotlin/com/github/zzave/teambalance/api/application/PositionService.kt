@@ -99,7 +99,7 @@ class PositionService(
     }
 
     // Normalization + "not blank" stay here, on the write path; the length cap now lives on
-    // PositionLabel itself, so it also holds for labels the JPA mapper builds (see its KDoc).
+    // PositionLabel itself, so it also holds for labels the persistence adapter builds.
     private fun validLabel(rawLabel: String): PositionLabel {
         val label = rawLabel.trim()
         require(label.isNotBlank()) { "Position label must not be blank" }

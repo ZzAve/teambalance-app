@@ -211,8 +211,8 @@ class JooqTeamMemberRepositoryAdapterTest : TeamBalanceIT() {
             teamId.value, "Test Team", "test-team-$teamId", schemaName,
         )
         // Since ADR-0026 the member summary reads the tenant's positions, so findByTeamId needs a
-        // provisioned schema AND a routed connection — unrouted, Hibernate lands on __no_tenant__ and
-        // the unqualified join fails loudly, which is the intended behaviour rather than a test quirk.
+        // provisioned schema AND a routed connection — unrouted, the transaction fails closed and the
+        // unqualified join fails loudly, which is the intended behaviour rather than a test quirk.
         tenantSchemaAdapter.provisionTenantSchema(schemaName)
         TenantContext.set(schemaName)
         val userId = seedMemberOnTeam(teamId, role, active)

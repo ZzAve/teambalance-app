@@ -47,9 +47,9 @@ private const val TYPE_NAME = "RosterFixture"
  *  - **The override/inherit bit is a nullable column, not a flag.** A stored `trackRoster = false`
  *    override and an absent override are different rows and must read back differently — an in-memory
  *    fake would happily agree with either mapping.
- *  - **Two eager element collections on one event.** `references` (an ordered list) and the roster's
- *    per-position targets (a map) are fetched together; if Hibernate assembled them from one
- *    cartesian result set the references would silently multiply. Only a round-trip catches that.
+ *  - **Two collections on one event.** `references` (an ordered list) and the roster's
+ *    per-position targets (a map) are read together; if they were assembled from one
+ *    joined result set the references would silently multiply. Only a round-trip catches that.
  *  - **The position-delete cascade is now a foreign key** (ADR-0026), and a constraint is exactly the
  *    kind of thing a fake cannot stand in for: the service issues one DELETE and the database is what
  *    removes every target naming that position. This spec is where that is actually demonstrated.

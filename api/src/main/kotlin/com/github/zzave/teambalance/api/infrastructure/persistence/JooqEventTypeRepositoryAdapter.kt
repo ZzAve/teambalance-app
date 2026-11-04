@@ -159,7 +159,7 @@ internal fun List<EventTypesRecord>.withTargets(dsl: DSLContext): List<EventType
                         slots = PositionSlots(it[EVENT_TYPE_POSITION_TARGETS.TARGET_COUNT]),
                     )
                 }
-                // UUID order, not database order, so the list reads as it did when read through Hibernate.
+                // UUID order, not database order, so the list order does not depend on the database.
                 .sortedBy { it.positionId.value },
         )
     }

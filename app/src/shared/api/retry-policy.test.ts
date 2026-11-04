@@ -24,11 +24,17 @@ describe('shouldRetryWake', () => {
     expect(shouldRetryWake(0, { status: 500 })).toBe(false)
   })
 
-  it('retries a transient failure up to six times, then stops', () => {
-    const err = { status: 504 }
+  it('retries a transient failure up to three times by default, then stops', () => {
+    const err = { status: 503 }
     expect(shouldRetryWake(0, err)).toBe(true)
-    expect(shouldRetryWake(5, err)).toBe(true)
-    expect(shouldRetryWake(6, err)).toBe(false)
+    expect(shouldRetryWake(2, err)).toBe(true)
+    expect(shouldRetryWake(3, err)).toBe(false)
+  })
+
+  it('retries up to a caller-given limit', () => {
+    const err = { status: 504 }
+    expect(shouldRetryWake(5, err, 6)).toBe(true)
+    expect(shouldRetryWake(6, err, 6)).toBe(false)
   })
 })
 

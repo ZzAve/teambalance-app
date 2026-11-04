@@ -15,3 +15,10 @@ export const queryClient = new QueryClient({
     },
   },
 })
+
+// The session probe gates the first screen, so it alone waits out a cold boot: the gateway holds a
+// request to a booting container for 10 s, then answers 504, and six retries start the last attempt
+// ~91 s in. Other queries keep the shorter default so their error states still show promptly.
+queryClient.setQueryDefaults(['auth', 'me'], {
+  retry: (failureCount, error) => shouldRetryWake(failureCount, error, 6),
+})

@@ -45,8 +45,6 @@ const router = createRouter({
   ),
 })
 
-// A resolved navigation means the current shell's chunks load, so the next stale-chunk error (after a
-// later deploy) may reload once again.
 router.subscribe('onResolved', markAppLoaded)
 
 declare module '@tanstack/react-router' {

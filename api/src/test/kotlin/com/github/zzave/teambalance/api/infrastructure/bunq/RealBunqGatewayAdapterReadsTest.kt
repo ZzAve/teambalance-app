@@ -70,15 +70,19 @@ private class InMemoryContexts : BunqApiContextRepository {
         override fun findCurrentTeamId(): TeamId? = TEAM.takeIf { inTenantScope }
     }
     var saves = 0
+    var finds = 0
+    var saveAttempts = 0
     var findFails = false
     var saveFails = false
 
     override fun find(): StoredBunqApiContext? {
+        finds++
         check(!findFails) { "the store is down" }
         return if (inTenantScope) rowGrant?.let { StoredBunqApiContext(it, stored) } else null
     }
 
     override fun save(context: EncryptedToken, ifGrant: EncryptedToken): Boolean {
+        saveAttempts++
         check(!saveFails) { "the store is down" }
         if (!inTenantScope || rowGrant == null || rowGrant != ifGrant) return false
         stored = context
@@ -304,6 +308,18 @@ class RealBunqGatewayAdapterReadsTest : FunSpec({
                 s.fake.count("POST", "/v1/installation") shouldBe 1
                 adapter.fetchBalance(GRANT, TEAMKAS_ID)
                 s.contexts.saves shouldBe 1
+            }
+        }
+
+        // With no team in scope there is no AAD to open a row with, and no row to find: the store is left alone.
+        test("made with no team in scope does not touch the store at all") {
+            withFake { s ->
+                s.contexts.inTenantScope = false
+
+                s.adapter().fetchBalance(GRANT, TEAMKAS_ID) shouldBe Money(50_000)
+
+                s.contexts.finds shouldBe 0
+                s.contexts.saveAttempts shouldBe 0
             }
         }
 

@@ -361,8 +361,9 @@ class BunqConnectionServiceTest : FunSpec() {
                 f.tenants.connectionIn(f.directory.schemaOf(f.otherTeam)) shouldBe null
             }
 
-            // The request is routed to another team's tenant, so binding to the request's team instead of the
-            // team that started the flow would pass the test above and still make the grant unreadable at home.
+            // Only the team that started the flow can be bound here: the service never sees the team of the request's
+            // tenant. Binding to that one instead is guarded by BunqConnectionControllerIT "the callback writes to the
+            // team that started the flow, even when the session's Active Team is another team", which must stay.
             test("binds the stored grant to the team that started the flow, so another team's id does not open it") {
                 val f = Fixture()
                 val state = f.startFlow()

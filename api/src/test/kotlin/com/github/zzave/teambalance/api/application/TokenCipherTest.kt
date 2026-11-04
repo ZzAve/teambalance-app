@@ -8,13 +8,9 @@ import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldNotContain
-import java.security.SecureRandom
 import java.util.Base64
 import java.util.UUID
 import javax.crypto.AEADBadTagException
-import javax.crypto.Cipher
-import javax.crypto.spec.GCMParameterSpec
-import javax.crypto.spec.SecretKeySpec
 
 private fun key(seed: Byte) = Base64.getEncoder().encodeToString(ByteArray(32) { seed })
 
@@ -78,13 +74,10 @@ class TokenCipherTest : FunSpec({
 
     // The invite and calendar links already stored were made without any AAD; they must keep opening.
     test("the stored format is unchanged: a value made without any AAD opens with the empty AAD") {
-        val iv = ByteArray(12).also { SecureRandom().nextBytes(it) }
-        val legacy = Cipher.getInstance("AES/GCM/NoPadding").apply {
-            init(Cipher.ENCRYPT_MODE, SecretKeySpec(ByteArray(32) { 1 }, "AES"), GCMParameterSpec(128, iv))
-        }.doFinal(token.toByteArray())
-        val stored = EncryptedToken(Base64.getEncoder().encodeToString(iv + legacy))
+        val stored = legacyEncrypt(ByteArray(32) { 1 }, token)
 
         cipher.decrypt(stored, TokenCipher.NO_AAD) shouldBe token
+        shouldThrow<AEADBadTagException> { cipher.decrypt(stored, aadA) }
     }
 
     // A mis-sized key is a deployment mistake; it must surface at startup, not on an admin's first

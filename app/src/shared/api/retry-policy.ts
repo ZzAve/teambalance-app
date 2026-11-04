@@ -11,8 +11,12 @@
 
 const TRANSIENT_STATUSES = new Set([502, 503, 504])
 
-/** Attempts *after* the first try — 1s, 2s, 4s → up to three retries before we give up. */
-const MAX_WAKE_RETRIES = 3
+/**
+ * Attempts *after* the first try. The gateway holds a request to a booting container for 10 s and
+ * then answers 504, so each failed attempt costs ~10 s: with the 1, 2, 4, 8, 8, 8 s backoff the last
+ * of six retries starts ~91 s in, past a 1 vCPU cold boot (~45 s) plus a DB resume.
+ */
+const MAX_WAKE_RETRIES = 6
 
 /** Read an HTTP status off a thrown error, if it carries one. A fetch reject carries none. */
 function httpStatusOf(error: unknown): number | undefined {
@@ -39,7 +43,7 @@ export function shouldRetryWake(failureCount: number, error: unknown): boolean {
   return failureCount < MAX_WAKE_RETRIES && isTransientWakeError(error)
 }
 
-/** Exponential backoff (1s, 2s, 4s), capped so a genuinely-down backend doesn't stall a whole minute. */
+/** Exponential backoff (1s, 2s, 4s), each delay capped at 8s. */
 export function wakeRetryDelayMs(attemptIndex: number): number {
   return Math.min(1000 * 2 ** attemptIndex, 8000)
 }

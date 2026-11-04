@@ -2,6 +2,7 @@ package com.github.zzave.teambalance.api.infrastructure.bunq
 
 import com.bunq.sdk.BUNQ_SANDBOX_OAUTH
 import com.github.zzave.teambalance.api.application.TokenCipher
+import com.github.zzave.teambalance.api.application.TokenCipher.Purpose
 import com.github.zzave.teambalance.api.domain.exception.BunqGrantRejectedException
 import com.github.zzave.teambalance.api.domain.model.BunqAccount
 import com.github.zzave.teambalance.api.domain.model.BunqAccountId
@@ -53,15 +54,18 @@ private val CIPHER = TokenCipher.fromBase64Key(CONTEXT_KEY, "test")
 private val TEAM = TeamId(UUID.fromString("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"))
 private val OTHER_TEAM = TeamId(UUID.fromString("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"))
 
-/** What the store holds for [team]: encrypted with the key and the AAD of that team. */
-private fun sealed(plain: String, team: TeamId = TEAM) = CIPHER.encrypt(plain, TokenCipher.aadOf(team))
+/** The grant the store holds for [team]: encrypted with the key and the AAD of that team and of a grant. */
+private fun sealedGrant(plain: String, team: TeamId = TEAM) = CIPHER.encrypt(plain, TokenCipher.aadOf(team, Purpose.BUNQ_GRANT))
+
+/** The API context the store holds for [team]: the same, with the AAD of a context. */
+private fun sealedContext(plain: String, team: TeamId = TEAM) = CIPHER.encrypt(plain, TokenCipher.aadOf(team, Purpose.BUNQ_API_CONTEXT))
 
 /**
  * The row of the tenant in scope as the adapter sees it: the grant it holds and the stored context. A null grant is no row.
  * The row lives in the schema of [TEAM], which is also the team in scope while [inTenantScope].
  */
 private class InMemoryContexts : BunqApiContextRepository {
-    var rowGrant: EncryptedToken? = sealed(ACCESS_TOKEN)
+    var rowGrant: EncryptedToken? = sealedGrant(ACCESS_TOKEN)
     var stored: EncryptedToken? = null
     var inTenantScope = true
 
@@ -115,10 +119,10 @@ private class Setup(
     }
 
     fun storeSession(apiKey: String = ACCESS_TOKEN, validFor: Duration = Duration.ofHours(1)) {
-        contexts.stored = sealed(BunqApiContextCodec.encode(fake.context(apiKey, validFor = validFor)))
+        contexts.stored = sealedContext(BunqApiContextCodec.encode(fake.context(apiKey, validFor = validFor)))
     }
 
-    fun storedContext(): String = CIPHER.decrypt(contexts.stored!!, TokenCipher.aadOf(TEAM))
+    fun storedContext(): String = CIPHER.decrypt(contexts.stored!!, TokenCipher.aadOf(TEAM, Purpose.BUNQ_API_CONTEXT))
 }
 
 private fun <T> withFake(setup: (FakeBunqServer) -> Setup = { Setup(it) }, block: (Setup) -> T): T =
@@ -230,7 +234,7 @@ class RealBunqGatewayAdapterReadsTest : FunSpec({
                 s.adapter().fetchBalance(GRANT, TEAMKAS_ID)
 
                 val stored = s.contexts.stored!!
-                shouldThrow<AEADBadTagException> { CIPHER.decrypt(stored, TokenCipher.aadOf(OTHER_TEAM)) }
+                shouldThrow<AEADBadTagException> { CIPHER.decrypt(stored, TokenCipher.aadOf(OTHER_TEAM, Purpose.BUNQ_API_CONTEXT)) }
                 shouldThrow<AEADBadTagException> { CIPHER.decrypt(stored, TokenCipher.NO_AAD) }
             }
         }
@@ -260,7 +264,7 @@ class RealBunqGatewayAdapterReadsTest : FunSpec({
 
         test("copied from another team's row is not used, and is replaced bound to the team in scope") {
             withFake { s ->
-                s.contexts.stored = sealed(BunqApiContextCodec.encode(s.fake.context(ACCESS_TOKEN)), OTHER_TEAM)
+                s.contexts.stored = sealedContext(BunqApiContextCodec.encode(s.fake.context(ACCESS_TOKEN)), OTHER_TEAM)
 
                 s.adapter().fetchBalance(GRANT, TEAMKAS_ID) shouldBe Money(50_000)
 
@@ -551,7 +555,7 @@ class RealBunqGatewayAdapterReadsTest : FunSpec({
     context("a session is stored only on the connection it was made for") {
         test("a read made while another team's connection is in scope does not write there, and writes once its own row is in scope") {
             withFake { s ->
-                s.contexts.rowGrant = sealed("the-grant-of-the-other-team")
+                s.contexts.rowGrant = sealedGrant("the-grant-of-the-other-team")
                 val adapter = s.adapter()
 
                 adapter.listAccounts(GRANT)
@@ -559,7 +563,7 @@ class RealBunqGatewayAdapterReadsTest : FunSpec({
                 s.contexts.saves shouldBe 0
                 s.contexts.stored shouldBe null
 
-                s.contexts.rowGrant = sealed(ACCESS_TOKEN)
+                s.contexts.rowGrant = sealedGrant(ACCESS_TOKEN)
                 adapter.fetchBalance(GRANT, TEAMKAS_ID)
 
                 s.contexts.saves shouldBe 1
@@ -572,7 +576,7 @@ class RealBunqGatewayAdapterReadsTest : FunSpec({
         // is not this session's row, even though the plaintext inside is this very token.
         test("a read does not write over a row whose grant was copied from another team, and does not fail") {
             withFake { s ->
-                s.contexts.rowGrant = sealed(ACCESS_TOKEN, OTHER_TEAM)
+                s.contexts.rowGrant = sealedGrant(ACCESS_TOKEN, OTHER_TEAM)
                 val adapter = s.adapter()
 
                 adapter.fetchBalance(GRANT, TEAMKAS_ID) shouldBe Money(50_000)
@@ -593,14 +597,37 @@ class RealBunqGatewayAdapterReadsTest : FunSpec({
             }
         }
 
+        // Same key, same team, other purpose.
+        test("a read does not write over a row whose grant column holds a value made for the API context") {
+            withFake { s ->
+                s.contexts.rowGrant = CIPHER.encrypt(ACCESS_TOKEN, TokenCipher.aadOf(TEAM, Purpose.BUNQ_API_CONTEXT))
+
+                s.adapter().fetchBalance(GRANT, TEAMKAS_ID) shouldBe Money(50_000)
+
+                s.contexts.saves shouldBe 0
+                s.contexts.stored shouldBe null
+            }
+        }
+
+        test("a context column holding a value made for the grant is not used, and is replaced") {
+            withFake { s ->
+                s.contexts.stored = sealedGrant(BunqApiContextCodec.encode(s.fake.context(ACCESS_TOKEN)))
+
+                s.adapter().fetchBalance(GRANT, TEAMKAS_ID) shouldBe Money(50_000)
+
+                s.fake.count("POST", "/v1/installation") shouldBe 1
+                s.storedContext() shouldContain ACCESS_TOKEN
+            }
+        }
+
         test("a reconnect that clears the row leaves the session of the new grant to be stored by the first read after it") {
             withFake { s ->
-                s.contexts.rowGrant = sealed("the-previous-grant")
-                s.contexts.stored = sealed("the-previous-context")
+                s.contexts.rowGrant = sealedGrant("the-previous-grant")
+                s.contexts.stored = sealedContext("the-previous-context")
                 val adapter = s.adapter()
                 adapter.listAccounts(GRANT)
                 s.contexts.stored = null
-                s.contexts.rowGrant = sealed(ACCESS_TOKEN)
+                s.contexts.rowGrant = sealedGrant(ACCESS_TOKEN)
 
                 adapter.fetchBalance(GRANT, TEAMKAS_ID)
 
@@ -612,7 +639,7 @@ class RealBunqGatewayAdapterReadsTest : FunSpec({
         test("a read that was running when the grant was replaced does not store its session over the new connection") {
             withFake { s ->
                 s.fake.answer("GET", ACCOUNT_PATH) {
-                    s.contexts.rowGrant = sealed("the-grant-of-the-reconnect")
+                    s.contexts.rowGrant = sealedGrant("the-grant-of-the-reconnect")
                     s.contexts.stored = null
                     s.fake.ok(fixture("monetary-account-read.json"))
                 }

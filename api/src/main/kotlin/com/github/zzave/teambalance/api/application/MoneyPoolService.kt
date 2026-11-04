@@ -1,5 +1,6 @@
 package com.github.zzave.teambalance.api.application
 
+import com.github.zzave.teambalance.api.application.TokenCipher.Purpose
 import com.github.zzave.teambalance.api.domain.exception.BunqGrantRejectedException
 import com.github.zzave.teambalance.api.domain.model.BunqAccountId
 import com.github.zzave.teambalance.api.domain.model.BunqGrant
@@ -102,7 +103,7 @@ class MoneyPoolService(
     @Suppress("TooGenericExceptionCaught")
     private fun decrypt(storedGrant: EncryptedToken, teamId: TeamId): BunqGrant? =
         try {
-            BunqGrant(grantCipher.decrypt(storedGrant, TokenCipher.aadOf(teamId)))
+            BunqGrant(grantCipher.decrypt(storedGrant, TokenCipher.aadOf(teamId, Purpose.BUNQ_GRANT)))
         } catch (e: Exception) {
             log.warn("Decrypting the Bunq grant failed: ${e.javaClass.simpleName}")
             null

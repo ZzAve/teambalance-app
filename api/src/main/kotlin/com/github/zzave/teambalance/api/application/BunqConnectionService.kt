@@ -1,5 +1,6 @@
 package com.github.zzave.teambalance.api.application
 
+import com.github.zzave.teambalance.api.application.TokenCipher.Purpose
 import com.github.zzave.teambalance.api.domain.exception.BunqConnectDisabledException
 import com.github.zzave.teambalance.api.domain.exception.BunqConnectionChangedException
 import com.github.zzave.teambalance.api.domain.exception.BunqGrantRejectedException
@@ -215,7 +216,7 @@ class BunqConnectionService(
                 connectionRepository.save(
                     BunqConnection(
                         accountId = kept,
-                        grant = config.grantCipher.encrypt(grant.accessToken, TokenCipher.aadOf(pending.teamId)),
+                        grant = config.grantCipher.encrypt(grant.accessToken, TokenCipher.aadOf(pending.teamId, Purpose.BUNQ_GRANT)),
                         connectedBy = pending.adminUserId,
                         connectedAt = now,
                     ),
@@ -249,7 +250,7 @@ class BunqConnectionService(
     private fun grantOf(connection: BunqConnection, teamId: TeamId): BunqGrant {
         val config = connectConfig ?: throw BunqConnectDisabledException()
         return try {
-            BunqGrant(config.grantCipher.decrypt(connection.grant, TokenCipher.aadOf(teamId)))
+            BunqGrant(config.grantCipher.decrypt(connection.grant, TokenCipher.aadOf(teamId, Purpose.BUNQ_GRANT)))
         } catch (e: Exception) {
             log.warn("Decrypting the Bunq grant failed: ${e.javaClass.simpleName}")
             throw BunqGrantRejectedException()

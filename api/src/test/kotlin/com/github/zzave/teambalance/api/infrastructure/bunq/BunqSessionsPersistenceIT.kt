@@ -2,6 +2,7 @@ package com.github.zzave.teambalance.api.infrastructure.bunq
 
 import com.github.zzave.teambalance.api.TeamBalanceIT
 import com.github.zzave.teambalance.api.application.TokenCipher
+import com.github.zzave.teambalance.api.application.TokenCipher.Purpose
 import com.github.zzave.teambalance.api.domain.model.BunqConnection
 import com.github.zzave.teambalance.api.domain.model.BunqGrant
 import com.github.zzave.teambalance.api.domain.model.EncryptedToken
@@ -84,7 +85,7 @@ class BunqSessionsPersistenceIT : TeamBalanceIT() {
         fun sessions(fake: FakeBunqServer) =
             BunqSessions(fake.server, "TeamBalance IT", contexts, cipher, currentTeam, BunqCalls(properties(), Clock.systemUTC()))
 
-        fun grantOf(team: TeamId, token: String = ACCESS_TOKEN) = cipher.encrypt(token, TokenCipher.aadOf(team))
+        fun grantOf(team: TeamId, token: String = ACCESS_TOKEN) = cipher.encrypt(token, TokenCipher.aadOf(team, Purpose.BUNQ_GRANT))
 
         fun connect(routing: TenantRouting, grant: EncryptedToken) {
             tenants.within(routing) { connections.save(BunqConnection(null, grant, UserId.random(), NOW)) }
@@ -105,7 +106,7 @@ class BunqSessionsPersistenceIT : TeamBalanceIT() {
                 readIn(ROUTING, first)
 
                 val stored = rowIn(ROUTING)!!.context!!
-                cipher.decrypt(stored, TokenCipher.aadOf(ALPHA)) shouldContain ACCESS_TOKEN
+                cipher.decrypt(stored, TokenCipher.aadOf(ALPHA, Purpose.BUNQ_API_CONTEXT)) shouldContain ACCESS_TOKEN
                 fake.count("POST", "/v1/installation") shouldBe 1
 
                 val second = sessions(fake)
@@ -122,7 +123,7 @@ class BunqSessionsPersistenceIT : TeamBalanceIT() {
                 readIn(ROUTING, sessions(fake))
 
                 val stored = rowIn(ROUTING)!!.context!!
-                shouldThrow<AEADBadTagException> { cipher.decrypt(stored, TokenCipher.aadOf(BETA)) }
+                shouldThrow<AEADBadTagException> { cipher.decrypt(stored, TokenCipher.aadOf(BETA, Purpose.BUNQ_API_CONTEXT)) }
                 shouldThrow<AEADBadTagException> { cipher.decrypt(stored, TokenCipher.NO_AAD) }
             }
         }
@@ -179,9 +180,34 @@ class BunqSessionsPersistenceIT : TeamBalanceIT() {
 
                 fake.count("POST", "/v1/installation") shouldBe 1
                 val stored = rowIn(ROUTING)!!.context!!
-                cipher.decrypt(stored, TokenCipher.aadOf(ALPHA)) shouldContain ACCESS_TOKEN
-                shouldThrow<AEADBadTagException> { cipher.decrypt(stored, TokenCipher.aadOf(BETA)) }
+                cipher.decrypt(stored, TokenCipher.aadOf(ALPHA, Purpose.BUNQ_API_CONTEXT)) shouldContain ACCESS_TOKEN
+                shouldThrow<AEADBadTagException> { cipher.decrypt(stored, TokenCipher.aadOf(BETA, Purpose.BUNQ_API_CONTEXT)) }
                 rowIn(BETA_ROUTING) shouldBe betaBefore
+            }
+        }
+
+        // The two columns of one row, one team, one key: swapping what they hold must open neither.
+        test("a Context in the grant column and a grant in the Context column are read as neither, and nothing is written") {
+            FakeBunqServer().use { fake ->
+                connect(ROUTING, grantOf(ALPHA))
+                readIn(ROUTING, sessions(fake))
+                val grantColumn = rowIn(ROUTING)!!.grant.value
+                val contextColumn = rowIn(ROUTING)!!.context!!.value
+                jdbcTemplate.update(
+                    "UPDATE ${CalendarLinkFixture.ALPHA_SCHEMA}.bunq_connection SET access_token_encrypted = ?, api_context_encrypted = ?",
+                    contextColumn, grantColumn,
+                )
+                val swapped = rowIn(ROUTING)!!
+                shouldThrow<AEADBadTagException> { cipher.decrypt(swapped.grant, TokenCipher.aadOf(ALPHA, Purpose.BUNQ_GRANT)) }
+                shouldThrow<AEADBadTagException> {
+                    cipher.decrypt(swapped.context!!, TokenCipher.aadOf(ALPHA, Purpose.BUNQ_API_CONTEXT))
+                }
+                val installations = fake.count("POST", "/v1/installation")
+
+                readIn(ROUTING, sessions(fake))
+
+                fake.count("POST", "/v1/installation") shouldBe installations + 1
+                rowIn(ROUTING) shouldBe swapped
             }
         }
 

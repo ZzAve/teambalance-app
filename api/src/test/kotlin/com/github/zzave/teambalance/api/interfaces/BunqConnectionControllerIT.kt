@@ -2,6 +2,7 @@ package com.github.zzave.teambalance.api.interfaces
 
 import com.github.zzave.teambalance.api.TeamBalanceIT
 import com.github.zzave.teambalance.api.application.TokenCipher
+import com.github.zzave.teambalance.api.application.TokenCipher.Purpose
 import com.github.zzave.teambalance.api.domain.model.EncryptedToken
 import com.github.zzave.teambalance.api.domain.model.TeamId
 import com.github.zzave.teambalance.api.domain.port.MoneyPoolCacheGateway
@@ -441,7 +442,7 @@ class BunqConnectionControllerIT : TeamBalanceIT() {
         jdbcTemplate.update("UPDATE public.users SET last_active_team_id = ?::uuid WHERE id = ?::uuid", teamId, userId)
     }
 
-    private fun aadOf(team: String) = TokenCipher.aadOf(TeamId(UUID.fromString(team)))
+    private fun aadOf(team: String) = TokenCipher.aadOf(TeamId(UUID.fromString(team)), Purpose.BUNQ_GRANT)
 
     private fun storedGrant(schema: String) =
         jdbcTemplate.queryForObject("SELECT access_token_encrypted FROM $schema.bunq_connection", String::class.java)!!

@@ -1,5 +1,6 @@
 package com.github.zzave.teambalance.api.application
 
+import com.github.zzave.teambalance.api.application.TokenCipher.Purpose
 import com.github.zzave.teambalance.api.domain.exception.BunqGrantRejectedException
 import com.github.zzave.teambalance.api.domain.exception.NotTeamAdminException
 import com.github.zzave.teambalance.api.domain.model.BeerCount
@@ -137,7 +138,7 @@ class MoneyPoolServiceTest : FunSpec({
     val directory = TeamDirectory()
     val team = directory.addTeam("Setpoint VT", "setpoint-vt")
     val otherTeam = directory.addTeam("Dames 5", "dames-5")
-    val aad = TokenCipher.aadOf(team)
+    val aad = TokenCipher.aadOf(team, Purpose.BUNQ_GRANT)
     directory.join(ADMIN, team, Role.ADMIN)
     directory.join(MEMBER, team, Role.USER)
 
@@ -244,9 +245,19 @@ class MoneyPoolServiceTest : FunSpec({
     // Same key, other team: what a ciphertext copied from another team's row looks like.
     test("is Rejected when the stored grant was encrypted for another team, and Bunq is not called") {
         val gateway = RecordingBunqGateway()
-        val copied = GRANT_CIPHER.encrypt(GRANT_TOKEN, TokenCipher.aadOf(otherTeam))
+        val copied = GRANT_CIPHER.encrypt(GRANT_TOKEN, TokenCipher.aadOf(otherTeam, Purpose.BUNQ_GRANT))
 
         service(gateway = gateway, storedGrant = copied).getMoneyPool(team).pool shouldBe MoneyPool.Rejected
+
+        gateway.calls shouldBe 0
+    }
+
+    // Same key, same team, other purpose: what the Context ciphertext in the grant column looks like.
+    test("is Rejected when the grant column holds a value made for the API context, and Bunq is not called") {
+        val gateway = RecordingBunqGateway()
+        val context = GRANT_CIPHER.encrypt(GRANT_TOKEN, TokenCipher.aadOf(team, Purpose.BUNQ_API_CONTEXT))
+
+        service(gateway = gateway, storedGrant = context).getMoneyPool(team).pool shouldBe MoneyPool.Rejected
 
         gateway.calls shouldBe 0
     }

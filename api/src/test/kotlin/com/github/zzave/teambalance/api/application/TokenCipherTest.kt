@@ -1,5 +1,6 @@
 package com.github.zzave.teambalance.api.application
 
+import com.github.zzave.teambalance.api.application.TokenCipher.Purpose
 import com.github.zzave.teambalance.api.domain.model.EncryptedToken
 import com.github.zzave.teambalance.api.domain.model.TeamId
 import io.kotest.assertions.throwables.shouldThrow
@@ -23,8 +24,8 @@ class TokenCipherTest : FunSpec({
     val token = "k4Ln9-Qb7xVzA2mE"
     val teamA = TeamId(UUID.fromString("11111111-1111-1111-1111-111111111111"))
     val teamB = TeamId(UUID.fromString("22222222-2222-2222-2222-222222222222"))
-    val aadA = TokenCipher.aadOf(teamA)
-    val aadB = TokenCipher.aadOf(teamB)
+    val aadA = TokenCipher.aadOf(teamA, Purpose.BUNQ_GRANT)
+    val aadB = TokenCipher.aadOf(teamB, Purpose.BUNQ_GRANT)
 
     test("a token survives the round trip") {
         cipher.decrypt(cipher.encrypt(token, aadA), aadA) shouldBe token
@@ -67,9 +68,22 @@ class TokenCipherTest : FunSpec({
         shouldThrow<AEADBadTagException> { cipher.decrypt(cipher.encrypt(token, TokenCipher.NO_AAD), aadA) }
     }
 
-    test("the AAD of a team is the UTF-8 bytes of its id, and differs per team") {
-        aadA shouldBe "11111111-1111-1111-1111-111111111111".toByteArray(Charsets.UTF_8)
+    test("the AAD of a team and a purpose is the purpose, a colon and the UTF-8 team id, and differs per team") {
+        aadA shouldBe "bunq-grant:11111111-1111-1111-1111-111111111111".toByteArray(Charsets.UTF_8)
+        TokenCipher.aadOf(teamA, Purpose.BUNQ_API_CONTEXT) shouldBe
+            "bunq-api-context:11111111-1111-1111-1111-111111111111".toByteArray(Charsets.UTF_8)
         aadA.contentEquals(aadB) shouldBe false
+    }
+
+    // Same key, same team: a value made for one purpose must not open as the other, so a Context put in the grant
+    // column (or a grant in the Context column) is not read as the other.
+    test("a value made for one purpose of a team does not open as the other purpose of the same team") {
+        val grantAad = TokenCipher.aadOf(teamA, Purpose.BUNQ_GRANT)
+        val contextAad = TokenCipher.aadOf(teamA, Purpose.BUNQ_API_CONTEXT)
+
+        shouldThrow<AEADBadTagException> { cipher.decrypt(cipher.encrypt(token, contextAad), grantAad) }
+        shouldThrow<AEADBadTagException> { cipher.decrypt(cipher.encrypt(token, grantAad), contextAad) }
+        cipher.decrypt(cipher.encrypt(token, contextAad), contextAad) shouldBe token
     }
 
     // The invite and calendar links already stored were made without any AAD; they must keep opening.

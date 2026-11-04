@@ -1,5 +1,6 @@
 package com.github.zzave.teambalance.api.application
 
+import com.github.zzave.teambalance.api.application.TokenCipher.Purpose
 import com.github.zzave.teambalance.api.domain.exception.BunqConnectDisabledException
 import com.github.zzave.teambalance.api.domain.exception.BunqConnectionChangedException
 import com.github.zzave.teambalance.api.domain.exception.BunqGrantRejectedException
@@ -259,7 +260,7 @@ class BunqConnectionServiceTest : FunSpec() {
             }
 
             fun grantIn(schema: SchemaName, forTeam: TeamId = team) =
-                tenants.connectionIn(schema)?.grant?.let { cipher.decrypt(it, TokenCipher.aadOf(forTeam)) }
+                tenants.connectionIn(schema)?.grant?.let { cipher.decrypt(it, TokenCipher.aadOf(forTeam, Purpose.BUNQ_GRANT)) }
 
             /** A connected team, as the Admin's own requests see it. */
             fun connected(code: String = "abc") {
@@ -271,15 +272,23 @@ class BunqConnectionServiceTest : FunSpec() {
             fun rotateKey() {
                 val newKey = TokenCipher.fromBase64Key(Base64.getEncoder().encodeToString(ByteArray(32) { it.toByte() }), "other-key")
                 val stored = tenants.connectionIn(teamSchema)!!
-                val aad = TokenCipher.aadOf(team)
+                val aad = TokenCipher.aadOf(team, Purpose.BUNQ_GRANT)
                 tenants.putConnectionIn(teamSchema, stored.copy(grant = newKey.encrypt(cipher.decrypt(stored.grant, aad), aad)))
             }
 
             /** The stored grant was made before the AAD existed, so it carries none. */
             fun storeGrantMadeWithoutAad() {
                 val stored = tenants.connectionIn(teamSchema)!!
-                val plain = cipher.decrypt(stored.grant, TokenCipher.aadOf(team))
+                val plain = cipher.decrypt(stored.grant, TokenCipher.aadOf(team, Purpose.BUNQ_GRANT))
                 tenants.putConnectionIn(teamSchema, stored.copy(grant = cipher.encrypt(plain, TokenCipher.NO_AAD)))
+            }
+
+            /** The grant column holds a value of the same team and key that was made for the API context. */
+            fun storeContextValueAsGrant() {
+                val stored = tenants.connectionIn(teamSchema)!!
+                val plain = cipher.decrypt(stored.grant, TokenCipher.aadOf(team, Purpose.BUNQ_GRANT))
+                val asContext = cipher.encrypt(plain, TokenCipher.aadOf(team, Purpose.BUNQ_API_CONTEXT))
+                tenants.putConnectionIn(teamSchema, stored.copy(grant = asContext))
             }
 
             /** What someone with write access to the database could do: the team's row, byte for byte, in another team's schema. */
@@ -353,7 +362,7 @@ class BunqConnectionServiceTest : FunSpec() {
 
                 outcome shouldBe BunqConnectOutcome(BunqConnectResult.CONNECTED, f.teamSlug)
                 val stored = f.tenants.connectionIn(f.teamSchema)!!
-                f.cipher.decrypt(stored.grant, TokenCipher.aadOf(f.team)) shouldBe "token-for-abc"
+                f.cipher.decrypt(stored.grant, TokenCipher.aadOf(f.team, Purpose.BUNQ_GRANT)) shouldBe "token-for-abc"
                 stored.grant.value shouldNotContain "token-for-abc"
                 stored.connectedBy shouldBe admin
                 stored.connectedAt shouldBe START
@@ -371,7 +380,7 @@ class BunqConnectionServiceTest : FunSpec() {
                 f.complete(state, "abc", null).result shouldBe BunqConnectResult.CONNECTED
 
                 val stored = f.tenants.connectionIn(f.teamSchema)!!
-                shouldThrow<AEADBadTagException> { f.cipher.decrypt(stored.grant, TokenCipher.aadOf(f.otherTeam)) }
+                shouldThrow<AEADBadTagException> { f.cipher.decrypt(stored.grant, TokenCipher.aadOf(f.otherTeam, Purpose.BUNQ_GRANT)) }
                 shouldThrow<AEADBadTagException> { f.cipher.decrypt(stored.grant, TokenCipher.NO_AAD) }
             }
 
@@ -679,6 +688,17 @@ class BunqConnectionServiceTest : FunSpec() {
                 f.storeGrantMadeWithoutAad()
 
                 shouldThrow<BunqGrantRejectedException> { f.service.listAccounts(admin, f.team) }
+            }
+
+            test("a value made for the API context in the grant column is BUNQ_REJECTED and never reaches Bunq") {
+                val f = Fixture()
+                f.connected()
+                f.storeContextValueAsGrant()
+                f.bunq.listedWith = null
+
+                shouldThrow<BunqGrantRejectedException> { f.service.listAccounts(admin, f.team) }
+
+                f.bunq.listedWith shouldBe null
             }
 
             test("a grant copied into another team's row is BUNQ_REJECTED there, evicts that team's pool and never reaches Bunq") {

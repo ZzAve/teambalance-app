@@ -15,7 +15,7 @@ import java.util.UUID
 /**
  * Positions, tenant-schema rows since ADR-0026 — so every query here is
  * scoped by the routed connection rather than by a team id predicate. Assignments live with member
- * edits (JpaTeamMemberRepositoryAdapter), which must write name, role and position in one call.
+ * edits (JooqTeamMemberRepositoryAdapter), which must write name, role and position in one call.
  */
 @Repository
 class JooqPositionRepositoryAdapter(

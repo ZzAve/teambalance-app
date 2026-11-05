@@ -43,7 +43,7 @@ class TokenCipher(private val key: SecretKeySpec) {
         private const val KEY_BYTE_LENGTH = 32
         private val secureRandom = SecureRandom()
 
-        /** For the values that are not bound to a team (the invite and calendar links). Same bytes as no AAD at all. */
+        /** For the values that are not bound to anything (the invite and calendar links). Same bytes as no AAD at all. */
         val NO_AAD = ByteArray(0)
 
         /**

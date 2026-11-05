@@ -1,6 +1,6 @@
-import type { FunctionComponent } from 'react'
-import { useMemo } from 'react'
-import type { Decorator } from '@storybook/react-vite'
+import type { ReactNode } from 'react'
+import { createContext, use } from 'react'
+import type { Decorator, Loader } from '@storybook/react-vite'
 import {
   RouterProvider,
   createMemoryHistory,
@@ -9,22 +9,30 @@ import {
   createRouter,
 } from '@tanstack/react-router'
 
-// A catch-all splat child so a <Link to="/anything"> resolves regardless of the target — the
-// decorator stays generic instead of accreting one route per linking component.
-function buildRouter(Story: FunctionComponent, initialEntries: string[]) {
-  const rootRoute = createRootRoute({ component: Story })
+const StoryElement = createContext<ReactNode>(null)
+
+function RootStory() {
+  return use(StoryElement)
+}
+
+/**
+ * Builds the story's router and waits for its first load. The router only renders its routes once
+ * that load settles, which is after the story's play function would start; loaders run before the
+ * story renders, so the story is on screen when play runs. Registered globally in .storybook/preview.ts.
+ *
+ * A catch-all splat child makes a <Link to="/anything"> resolve regardless of the target — the
+ * decorator stays generic instead of accreting one route per linking component.
+ */
+export const routerLoader: Loader = async (context) => {
+  const initialEntries: string[] = context.parameters?.router?.initialEntries ?? ['/']
+  const rootRoute = createRootRoute({ component: RootStory })
   const catchAll = createRoute({ getParentRoute: () => rootRoute, path: '$', component: () => null })
-  return createRouter({
+  const router = createRouter({
     routeTree: rootRoute.addChildren([catchAll]),
     history: createMemoryHistory({ initialEntries }),
   })
-}
-
-function StoryRouter({ Story, initialEntries }: { Story: FunctionComponent; initialEntries: string[] }) {
-  // Build the router once per mount, not on every render, so interaction (play) re-renders don't
-  // discard the live router and reset its state mid-story.
-  const router = useMemo(() => buildRouter(Story, initialEntries), [Story, initialEntries])
-  return <RouterProvider router={router} />
+  await router.load()
+  return { router }
 }
 
 /**
@@ -36,7 +44,8 @@ function StoryRouter({ Story, initialEntries }: { Story: FunctionComponent; init
  * Route-aware components (BottomNav derives its active tab from the current path) can start the
  * router at a specific path via `parameters.router.initialEntries` — defaults to `['/']`.
  */
-export const withRouter: Decorator = (Story, context) => {
-  const initialEntries: string[] = context.parameters?.router?.initialEntries ?? ['/']
-  return <StoryRouter Story={Story} initialEntries={initialEntries} />
-}
+export const withRouter: Decorator = (Story, context) => (
+  <StoryElement value={<Story />}>
+    <RouterProvider router={context.loaded.router} />
+  </StoryElement>
+)

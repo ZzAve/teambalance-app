@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { logOut } from './auth'
+import { authMeQueryOptions, logOut } from './auth'
+import { queryClient } from './query-client'
 
 // Logout is only done when the server says so: the UI clears the client session on success, and a
 // refused request (a 403 from the CSRF check, a 5xx) must not look like a logout while the server
@@ -26,5 +27,18 @@ describe('logOut', () => {
     stubStatus(status)
 
     await expect(logOut()).rejects.toThrow()
+  })
+})
+
+describe('session probe retry', () => {
+  const retry = queryClient.getQueryDefaults(authMeQueryOptions.queryKey).retry as (
+    failureCount: number,
+    error: unknown,
+  ) => boolean
+
+  it('keeps retrying a failed session probe for six retries, then stops', () => {
+    const coldBoot = new TypeError('Failed to fetch')
+    expect(retry(5, coldBoot)).toBe(true)
+    expect(retry(6, coldBoot)).toBe(false)
   })
 })

@@ -35,8 +35,8 @@ function isTransientWakeError(error: unknown): boolean {
 }
 
 /** TanStack Query `retry` predicate: keep retrying transient wake failures up to the cap. */
-export function shouldRetryWake(failureCount: number, error: unknown): boolean {
-  return failureCount < MAX_WAKE_RETRIES && isTransientWakeError(error)
+export function shouldRetryWake(failureCount: number, error: unknown, maxRetries = MAX_WAKE_RETRIES): boolean {
+  return failureCount < maxRetries && isTransientWakeError(error)
 }
 
 /** Exponential backoff (1s, 2s, 4s), capped so a genuinely-down backend doesn't stall a whole minute. */

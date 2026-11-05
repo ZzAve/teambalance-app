@@ -22,6 +22,19 @@ export function shouldReloadForChunkError(sentinelPresent: boolean): 'reload' | 
   return sentinelPresent ? 'fallback' : 'reload'
 }
 
+/**
+ * The shell has loaded a route, so the reload (if any) did its job. Clearing the sentinel lets a
+ * stale chunk after a later deploy reload once again — an installed app's tab can stay open across
+ * many deploys, and without this every chunk error after the first would land on the fallback.
+ */
+export function markAppLoaded(): void {
+  try {
+    sessionStorage.removeItem(CHUNK_RELOAD_SENTINEL)
+  } catch {
+    // sessionStorage unavailable — the sentinel was never persisted either.
+  }
+}
+
 function sentinelPresent(): boolean {
   try {
     return sessionStorage.getItem(CHUNK_RELOAD_SENTINEL) !== null

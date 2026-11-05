@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@shared/ui/dialog'
 import { Button } from '@shared/ui/button'
 import {
@@ -21,6 +22,7 @@ import { GenerateInviteContent } from './GenerateInviteContent'
  * The Dialog wrapper stays here: Radix unmounts the content on close, so no extra reset is needed.
  */
 export function GenerateInviteDialog() {
+  const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   const clipboard = useCopyToClipboard()
   const [justExpired, setJustExpired] = useState(false)
@@ -63,11 +65,11 @@ export function GenerateInviteDialog() {
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
-        <Button variant="outline">Invite Link</Button>
+        <Button variant="outline">{t('generateInvite.trigger')}</Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Team invite link</DialogTitle>
+          <DialogTitle>{t('generateInvite.title')}</DialogTitle>
         </DialogHeader>
         <GenerateInviteContent
           isLoading={activeInvitation.isPending}

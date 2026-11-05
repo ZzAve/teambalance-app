@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Button } from '@shared/ui/button'
 import { Input } from '@shared/ui/input'
 import { FormError } from '@shared/ui/FormError'
@@ -53,23 +54,24 @@ export function GenerateInviteContent({
   onRotate,
   onExpire,
 }: GenerateInviteContentProps) {
+  const { t } = useTranslation()
   const [confirmRevokeOpen, setConfirmRevokeOpen] = useState(false)
-  if (isLoading) return <p className="text-muted-foreground">Loading...</p>
-  if (isError) return <p className="text-red-ink">Failed to load the invite link.</p>
+  if (isLoading) return <p className="text-muted-foreground">{t('generateInvite.loading')}</p>
+  if (isError) return <p className="text-red-ink">{t('generateInvite.loadFailed')}</p>
 
   if (justExpired || !link) {
     return (
       <div className="flex flex-col gap-3">
         <p className="text-small text-muted-foreground">
           {justExpired
-            ? 'The link has been revoked. New joiners can no longer use it.'
-            : "This team doesn't have an invite link yet."}
+            ? t('generateInvite.revoked')
+            : t('generateInvite.noLink')}
         </p>
         <Button type="button" onClick={onGenerate} disabled={isGenerating}>
-          {isGenerating ? 'Generating...' : justExpired ? 'Generate new link' : 'Generate link'}
+          {isGenerating ? t('generateInvite.generating') : justExpired ? t('generateInvite.generateNew') : t('generateInvite.generate')}
         </Button>
         {actionError && (
-          <p className="text-small text-red-ink">Something went wrong. Please try again.</p>
+          <p className="text-small text-red-ink">{t('generateInvite.actionFailed')}</p>
         )}
       </div>
     )
@@ -78,18 +80,18 @@ export function GenerateInviteContent({
   return (
     <div className="flex flex-col gap-3">
       <p className="text-small text-muted-foreground">
-        Share this link with your team. Anyone with the link can join.
+        {t('generateInvite.share')}
       </p>
       <div className="flex gap-2">
         <Input readOnly value={link} onFocus={(e) => e.currentTarget.select()} />
         <Button type="button" onClick={onCopy}>
-          {copied ? 'Copied!' : 'Copy'}
+          {copied ? t('generateInvite.copied') : t('generateInvite.copy')}
         </Button>
       </div>
-      {copyFailed && <FormError>Couldn't copy automatically. Copy the link from the field above.</FormError>}
+      {copyFailed && <FormError>{t('generateInvite.copyFailed')}</FormError>}
       <div className="flex gap-2">
         <Button type="button" variant="outline" onClick={onRotate} disabled={isRotating}>
-          {isRotating ? 'Rotating...' : 'Rotate link'}
+          {isRotating ? t('generateInvite.rotating') : t('generateInvite.rotate')}
         </Button>
         <Button
           type="button"
@@ -97,22 +99,21 @@ export function GenerateInviteContent({
           onClick={() => setConfirmRevokeOpen(true)}
           disabled={isExpiring}
         >
-          {isExpiring ? 'Revoking...' : 'Revoke link'}
+          {isExpiring ? t('generateInvite.revoking') : t('generateInvite.revoke')}
         </Button>
       </div>
       <p className="text-caption text-muted-foreground">
-        Rotating replaces this link with a new one. Revoking removes it without a replacement. Either
-        way the old link stops working.
+        {t('generateInvite.explain')}
       </p>
       {actionError && (
-        <p className="text-small text-red-ink">Something went wrong. Please try again.</p>
+        <p className="text-small text-red-ink">{t('generateInvite.actionFailed')}</p>
       )}
 
       <ConfirmDialog
         open={confirmRevokeOpen}
-        title="Revoke the invite link?"
-        description="The old link stops working and no replacement is created. Anyone who hasn't already joined with it will need a new link."
-        confirmLabel="Revoke link"
+        title={t('generateInvite.confirmTitle')}
+        description={t('generateInvite.confirmDescription')}
+        confirmLabel={t('generateInvite.revoke')}
         onConfirm={() => {
           setConfirmRevokeOpen(false)
           onExpire()

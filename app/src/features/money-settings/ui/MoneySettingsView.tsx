@@ -1,4 +1,5 @@
 import { useId, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import type { MoneyPoolSettings } from '@shared/api/money-pool'
 import { Button } from '@shared/ui/button'
 import { Input } from '@shared/ui/input'
@@ -28,23 +29,24 @@ interface MoneySettingsViewProps {
  * state renders as a story without a network (ADR-0017).
  */
 export function MoneySettingsView({ settings, isLoading, isError, isSaving, saved, error, onSave }: MoneySettingsViewProps) {
+  const { t } = useTranslation()
   return (
     <div className="flex flex-col gap-4">
       <div>
-        <h2 className="font-display text-title font-bold">Money pool</h2>
+        <h2 className="font-display text-title font-bold">{t('moneySettings.heading')}</h2>
         <p className="mt-1 text-small text-muted-foreground">
-          Show your team's shared pool, and what its balance buys in beers.
+          {t('moneySettings.intro')}
         </p>
       </div>
 
       {isLoading && (
         <p role="status" className="text-small text-muted-foreground">
-          Loading…
+          {t('moneySettings.loading')}
         </p>
       )}
       {isError && (
         <p role="alert" className={ERROR_CLASS}>
-          Couldn't load the money pool settings. Please try again.
+          {t('moneySettings.loadFailed')}
         </p>
       )}
       {settings && !isLoading && !isError && (
@@ -65,6 +67,7 @@ function MoneySettingsForm({
   error,
   onSave,
 }: Pick<MoneySettingsViewProps, 'isSaving' | 'saved' | 'error' | 'onSave'> & { settings: MoneyPoolSettings }) {
+  const { t } = useTranslation()
   const id = useId()
   const priceId = `${id}-beer-price`
   const linkId = `${id}-bunq-me-link`
@@ -86,7 +89,7 @@ function MoneySettingsForm({
   }
 
   const beerPrice = euroTextToCents(priceText)
-  const priceError = Number.isNaN(beerPrice) ? 'Enter a price between €0,01 and €100,00.' : null
+  const priceError = Number.isNaN(beerPrice) ? t('moneySettings.priceError') : null
   const linkError = bunqMeLinkError(link)
   const draft = { enabled, beerPrice: beerPrice as number | undefined, bunqMeLink: link.trim() || undefined }
   const changed = settingsChanged(settings, draft)
@@ -96,16 +99,16 @@ function MoneySettingsForm({
     <>
       <div className="flex flex-col">
         <Label className="flex min-h-11 items-center justify-between gap-3 leading-normal">
-          Show the money pool to the team
-          <Switch checked={enabled} onCheckedChange={setEnabled} aria-label="Show the money pool to the team" />
+          {t('moneySettings.show')}
+          <Switch checked={enabled} onCheckedChange={setEnabled} aria-label={t('moneySettings.show')} />
         </Label>
         <p className="text-caption text-muted-foreground">
-          When switched off, the Money tab and page are hidden for everyone in the team.
+          {t('moneySettings.showHint')}
         </p>
       </div>
 
       <div className="flex flex-col gap-1">
-        <Label htmlFor={priceId}>Beer price (€)</Label>
+        <Label htmlFor={priceId}>{t('moneySettings.beerPrice')}</Label>
         <Input
           id={priceId}
           inputMode="decimal"
@@ -117,7 +120,7 @@ function MoneySettingsForm({
           className="w-48"
         />
         <div>
-          <p className="text-caption text-muted-foreground">Leave empty to hide the Beer Counter.</p>
+          <p className="text-caption text-muted-foreground">{t('moneySettings.beerPriceHint')}</p>
           {/* Mounted before it has anything to say: a live region added together with its text is not announced. */}
           <div aria-live="polite" aria-atomic="true">
             {priceError && (
@@ -130,7 +133,7 @@ function MoneySettingsForm({
       </div>
 
       <div className="flex flex-col gap-1">
-        <Label htmlFor={linkId}>bunq.me link</Label>
+        <Label htmlFor={linkId}>{t('moneySettings.bunqMeLink')}</Label>
         <div>
           <Input
             id={linkId}
@@ -159,10 +162,10 @@ function MoneySettingsForm({
 
       <div className="flex items-center gap-3">
         <Button disabled={isSaving || !canSave} onClick={() => onSave(draft)}>
-          {isSaving ? 'Saving…' : 'Save money pool'}
+          {isSaving ? t('moneySettings.saving') : t('moneySettings.save')}
         </Button>
         <p role="status" className="text-small text-muted-foreground">
-          {saved && !changed ? 'Saved' : ''}
+          {saved && !changed ? t('moneySettings.saved') : ''}
         </p>
       </div>
     </>

@@ -1,4 +1,5 @@
 import { useId, useState, type FormEvent, type ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Button } from '@shared/ui/button'
 import { Input } from '@shared/ui/input'
 import { Label } from '@shared/ui/label'
@@ -21,6 +22,7 @@ interface TopUpSheetViewProps {
 
 /** The amounts a member can top up the pool with: three presets and a custom whole-euro field. */
 export function TopUpSheetView({ open, onOpenChange, onPick, isPending, error, trigger }: TopUpSheetViewProps) {
+  const { t } = useTranslation()
   const customErrorId = useId()
   const [customText, setCustomText] = useState('')
   const custom = parseTopUpAmount(customText)
@@ -36,11 +38,11 @@ export function TopUpSheetView({ open, onOpenChange, onPick, isPending, error, t
       {trigger && <SheetTrigger asChild>{trigger}</SheetTrigger>}
       <SheetContent>
         <SheetHeader>
-          <SheetTitle>Top up the pool</SheetTitle>
-          <SheetDescription>Pick an amount. You pay on the team's bunq.me page.</SheetDescription>
+          <SheetTitle>{t('topUp.title')}</SheetTitle>
+          <SheetDescription>{t('topUp.description')}</SheetDescription>
         </SheetHeader>
 
-        <div role="group" aria-label="Amounts" className="mt-4 grid grid-cols-3 gap-3">
+        <div role="group" aria-label={t('topUp.amounts')} className="mt-4 grid grid-cols-3 gap-3">
           {TOP_UP_PRESETS.map((euros) => (
             // aria-disabled, not disabled: a focused button that becomes disabled drops focus to <body>, outside
             // the modal dialog. The click guard makes it inert while pending.
@@ -58,13 +60,13 @@ export function TopUpSheetView({ open, onOpenChange, onPick, isPending, error, t
         </div>
 
         <form className="mt-5 flex flex-col gap-1" onSubmit={submitCustom}>
-          <Label htmlFor="top-up-custom">Other amount (€)</Label>
+          <Label htmlFor="top-up-custom">{t('topUp.otherAmount')}</Label>
           <div className="flex gap-3">
             <Input
               id="top-up-custom"
               inputMode="numeric"
               value={customText}
-              placeholder={`${MIN_TOP_UP_EUROS} to ${MAX_TOP_UP_EUROS}`}
+              placeholder={t('topUp.range', { min: MIN_TOP_UP_EUROS, max: MAX_TOP_UP_EUROS })}
               className="h-11"
               aria-invalid={customInvalid}
               aria-describedby={customInvalid ? customErrorId : undefined}
@@ -80,14 +82,14 @@ export function TopUpSheetView({ open, onOpenChange, onPick, isPending, error, t
               aria-disabled={isPending}
               className="aria-disabled:pointer-events-none aria-disabled:opacity-50"
             >
-              {isPending ? 'Opening…' : 'Pay'}
+              {isPending ? t('topUp.opening') : t('topUp.pay')}
             </Button>
           </div>
           {/* Mounted before it has anything to say: a live region added together with its text is not announced. */}
           <div aria-live="polite" aria-atomic="true">
             {customInvalid && (
               <p id={customErrorId} className={ERROR_CLASS}>
-                Enter a whole amount from €{MIN_TOP_UP_EUROS} to €{MAX_TOP_UP_EUROS}.
+                {t('topUp.amountError', { min: MIN_TOP_UP_EUROS, max: MAX_TOP_UP_EUROS })}
               </p>
             )}
           </div>

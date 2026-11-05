@@ -8,6 +8,7 @@ import {
 } from '@shared/api/bunq-connection'
 import { accountsShell } from '../lib/accounts-shell'
 import { BunqAccountsView } from './BunqAccountsView'
+import { i18n } from '@shared/i18n/i18n'
 
 /**
  * Container for a connected team's account pick and Disconnect: wires the accounts read and the two
@@ -53,8 +54,8 @@ export function BunqAccounts({ onDisconnected }: { onDisconnected: () => void })
 }
 
 function mutationError(pickError: Error | null, disconnectError: Error | null) {
-  if (disconnectError) return 'Couldn’t disconnect Bunq. Please try again.'
+  if (disconnectError) return i18n.t('connectBunq.accounts.disconnectFailed')
   // A rejected grant has its own message, which says to connect again.
-  if (pickError && !isBunqGrantRejected(pickError)) return 'Couldn’t save the account. Please try again.'
+  if (pickError && !isBunqGrantRejected(pickError)) return i18n.t('connectBunq.accounts.saveFailed')
   return null
 }

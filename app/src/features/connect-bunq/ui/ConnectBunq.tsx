@@ -10,6 +10,7 @@ import {
 import type { ConnectBunqResult } from '../lib/bunq-result'
 import { BunqAccounts } from './BunqAccounts'
 import { ConnectBunqView } from './ConnectBunqView'
+import { i18n } from '@shared/i18n/i18n'
 
 /**
  * Container for connecting Bunq: reads the connection status and, on Connect, leaves the app for the
@@ -91,6 +92,6 @@ export function ConnectBunq({
 
 function errorMessage(error: Error) {
   return error instanceof BunqConnectUnavailableError
-    ? "Connecting Bunq isn’t available right now."
-    : "Couldn’t open Bunq. Please try again."
+    ? i18n.t('connectBunq.unavailable')
+    : i18n.t('connectBunq.openFailed')
 }

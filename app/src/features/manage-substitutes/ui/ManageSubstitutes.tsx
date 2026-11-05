@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { usePositions } from '@shared/api/positions'
 import type { Substitute } from '@shared/api/substitutes'
 import {
@@ -34,6 +35,7 @@ const currentState = (substitute: Substitute) => ({
  * same kind of change as managing Positions, adds no seam the existing flows miss. See ADR-0017.
  */
 export function ManageSubstitutes({ canManage = false }: ManageSubstitutesProps) {
+  const { t } = useTranslation()
   const { data: substitutes, isLoading, error } = useSubstitutes()
   const { data: positions } = usePositions()
   const updateSubstitute = useUpdateSubstitute()
@@ -48,7 +50,7 @@ export function ManageSubstitutes({ canManage = false }: ManageSubstitutesProps)
   const errorMessage = activeError
     ? activeError instanceof SubstituteError
       ? activeError.message
-      : "Couldn't save the change — please try again."
+      : t('manageSubstitutes.saveFailed')
     : null
 
   const savingId = updateSubstitute.isPending

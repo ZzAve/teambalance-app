@@ -1,3 +1,4 @@
+import { Trans, useTranslation } from 'react-i18next'
 import { Button } from '@shared/ui/button'
 
 interface ActAsBannerViewProps {
@@ -16,6 +17,7 @@ interface ActAsBannerViewProps {
  * no-network story (ADR-0017).
  */
 export function ActAsBannerView({ teamName, isExiting, onExit }: ActAsBannerViewProps) {
+  const { t } = useTranslation()
   if (!teamName) return null
 
   return (
@@ -23,14 +25,18 @@ export function ActAsBannerView({ teamName, isExiting, onExit }: ActAsBannerView
       role="status"
       // Named, because the app's loading splash is a live region too — an unnamed `status` is not a
       // locator, in a test or in a screen reader's rotor.
-      aria-label="Acting as the platform"
+      aria-label={t('actAs.banner.label')}
       className="flex flex-wrap items-center justify-between gap-3 border-b border-gold/40 bg-gold/15 px-5 py-2"
     >
       <p className="text-small">
-        Acting as the platform inside <span className="font-semibold">{teamName}</span>
+        <Trans
+          i18nKey="actAs.banner.inside"
+          values={{ team: teamName }}
+          components={{ b: <span className="font-semibold" /> }}
+        />
       </p>
       <Button size="sm" variant="outline" disabled={isExiting} onClick={onExit}>
-        Exit
+        {t('actAs.banner.exit')}
       </Button>
     </div>
   )

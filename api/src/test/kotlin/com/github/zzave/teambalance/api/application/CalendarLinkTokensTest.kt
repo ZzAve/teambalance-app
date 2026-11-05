@@ -66,6 +66,14 @@ class CalendarLinkTokensTest : FunSpec({
         tokens(salt = "one").hash(token.value) shouldNotBe tokens(salt = "two").hash(token.value)
     }
 
+    // Links stored before the cipher took AAD were made without any. A change of the AAD these two callers pass
+    // would make every one of them unreadable, so this pins that they pass none.
+    test("a link stored before the cipher took AAD still reveals") {
+        val legacy = legacyEncrypt(ByteArray(32) { 1 }, "a-link-stored-long-ago")
+
+        tokens().reveal(legacy).value shouldBe "a-link-stored-long-ago"
+    }
+
     test("a token concealed under one key cannot be revealed under another") {
         val token = CalendarToken("a-fixed-token")
         val concealed = tokens(keySeed = 1).conceal(token)

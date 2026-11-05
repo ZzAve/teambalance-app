@@ -58,7 +58,7 @@ class BunqConnectConfigTest : FunSpec({
         test("a valid key starts the context with the cipher") {
             runner().withPropertyValues("teambalance.bunq.token-encryption-key=$KEY").run { ctx ->
                 ctx.startupFailure.shouldBeNull()
-                ctx.getBean(TokenCipher::class.java).decrypt(CIPHER.encrypt("x")) shouldBe "x"
+                ctx.getBean(TokenCipher::class.java).decrypt(CIPHER.encrypt("x", TokenCipher.NO_AAD), TokenCipher.NO_AAD) shouldBe "x"
             }
         }
     }

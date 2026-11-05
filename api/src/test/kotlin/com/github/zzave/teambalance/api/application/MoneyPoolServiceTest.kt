@@ -1,5 +1,6 @@
 package com.github.zzave.teambalance.api.application
 
+import com.github.zzave.teambalance.api.application.TokenCipher.Purpose
 import com.github.zzave.teambalance.api.domain.exception.BunqGrantRejectedException
 import com.github.zzave.teambalance.api.domain.exception.NotTeamAdminException
 import com.github.zzave.teambalance.api.domain.model.BeerCount
@@ -136,6 +137,8 @@ class MoneyPoolServiceTest : FunSpec({
 
     val directory = TeamDirectory()
     val team = directory.addTeam("Setpoint VT", "setpoint-vt")
+    val otherTeam = directory.addTeam("Dames 5", "dames-5")
+    val aad = TokenCipher.aadOf(team, Purpose.BUNQ_GRANT)
     directory.join(ADMIN, team, Role.ADMIN)
     directory.join(MEMBER, team, Role.USER)
 
@@ -144,7 +147,7 @@ class MoneyPoolServiceTest : FunSpec({
         enabled: Boolean = true,
         connected: Boolean = true,
         accountPicked: Boolean = true,
-        storedGrant: EncryptedToken = GRANT_CIPHER.encrypt(GRANT_TOKEN),
+        storedGrant: EncryptedToken = GRANT_CIPHER.encrypt(GRANT_TOKEN, aad),
         season: Season = Season.UNSET,
         gateway: BunqGateway = RecordingBunqGateway(),
         settings: MoneyPoolSettings = MoneyPoolSettings(enabled),
@@ -234,7 +237,37 @@ class MoneyPoolServiceTest : FunSpec({
         val otherKey = TokenCipher.fromBase64Key(Base64.getEncoder().encodeToString(ByteArray(32) { 7 }), "other-key")
         val gateway = RecordingBunqGateway()
 
-        service(gateway = gateway, storedGrant = otherKey.encrypt(GRANT_TOKEN)).getMoneyPool(team).pool shouldBe MoneyPool.Rejected
+        service(gateway = gateway, storedGrant = otherKey.encrypt(GRANT_TOKEN, aad)).getMoneyPool(team).pool shouldBe MoneyPool.Rejected
+
+        gateway.calls shouldBe 0
+    }
+
+    // Same key, other team: what a ciphertext copied from another team's row looks like.
+    test("is Rejected when the stored grant was encrypted for another team, and Bunq is not called") {
+        val gateway = RecordingBunqGateway()
+        val copied = GRANT_CIPHER.encrypt(GRANT_TOKEN, TokenCipher.aadOf(otherTeam, Purpose.BUNQ_GRANT))
+
+        service(gateway = gateway, storedGrant = copied).getMoneyPool(team).pool shouldBe MoneyPool.Rejected
+
+        gateway.calls shouldBe 0
+    }
+
+    // Same key, same team, other purpose: what the Context ciphertext in the grant column looks like.
+    test("is Rejected when the grant column holds a value made for the API context, and Bunq is not called") {
+        val gateway = RecordingBunqGateway()
+        val context = GRANT_CIPHER.encrypt(GRANT_TOKEN, TokenCipher.aadOf(team, Purpose.BUNQ_API_CONTEXT))
+
+        service(gateway = gateway, storedGrant = context).getMoneyPool(team).pool shouldBe MoneyPool.Rejected
+
+        gateway.calls shouldBe 0
+    }
+
+    // Rows made before the AAD existed (dev, staging); the Admin connects again.
+    test("is Rejected when the stored grant was made without an AAD, and Bunq is not called") {
+        val gateway = RecordingBunqGateway()
+        val old = GRANT_CIPHER.encrypt(GRANT_TOKEN, TokenCipher.NO_AAD)
+
+        service(gateway = gateway, storedGrant = old).getMoneyPool(team).pool shouldBe MoneyPool.Rejected
 
         gateway.calls shouldBe 0
     }
@@ -271,8 +304,8 @@ class MoneyPoolServiceTest : FunSpec({
     test("the load reads the connection again and uses the grant stored then, not the one from the first read") {
         val gateway = RecordingBunqGateway()
         val connections = ChangingConnections(
-            first = connectionWith(GRANT_CIPHER.encrypt("old-grant")),
-            later = connectionWith(GRANT_CIPHER.encrypt("new-grant")),
+            first = connectionWith(GRANT_CIPHER.encrypt("old-grant", aad)),
+            later = connectionWith(GRANT_CIPHER.encrypt("new-grant", aad)),
         )
 
         service(gateway = gateway, connections = connections).getMoneyPool(team).pool shouldBe
@@ -284,7 +317,7 @@ class MoneyPoolServiceTest : FunSpec({
     test("a grant that stopped decrypting since the first read is Rejected, whatever the first read held") {
         val cache = PassThroughCache()
         val connections = ChangingConnections(
-            first = connectionWith(GRANT_CIPHER.encrypt(GRANT_TOKEN)),
+            first = connectionWith(GRANT_CIPHER.encrypt(GRANT_TOKEN, aad)),
             later = connectionWith(EncryptedToken("not-a-grant")),
         )
 
@@ -295,7 +328,7 @@ class MoneyPoolServiceTest : FunSpec({
 
     test("a connection that is gone by the time of the load is not reported as Connected, and Bunq is not called") {
         val gateway = RecordingBunqGateway()
-        val connections = ChangingConnections(first = connectionWith(GRANT_CIPHER.encrypt(GRANT_TOKEN)), later = null)
+        val connections = ChangingConnections(first = connectionWith(GRANT_CIPHER.encrypt(GRANT_TOKEN, aad)), later = null)
 
         service(gateway = gateway, connections = connections).getMoneyPool(team).pool shouldBe MoneyPool.Unavailable
 
@@ -304,7 +337,7 @@ class MoneyPoolServiceTest : FunSpec({
 
     test("a pick that changed the account by the time of the load is not reported as Connected for the old account") {
         val gateway = RecordingBunqGateway()
-        val grant = GRANT_CIPHER.encrypt(GRANT_TOKEN)
+        val grant = GRANT_CIPHER.encrypt(GRANT_TOKEN, aad)
         val connections = ChangingConnections(
             first = connectionWith(grant, ACCOUNT),
             later = connectionWith(grant, BunqAccountId("account-2")),

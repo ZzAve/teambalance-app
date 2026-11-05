@@ -3,8 +3,10 @@ package com.github.zzave.teambalance.api.infrastructure.bunq
 import com.github.zzave.teambalance.api.application.TokenCipher
 import com.github.zzave.teambalance.api.domain.model.EncryptedToken
 import com.github.zzave.teambalance.api.domain.model.StoredBunqApiContext
+import com.github.zzave.teambalance.api.domain.model.TeamId
 import com.github.zzave.teambalance.api.domain.port.BunqApiContextRepository
 import com.github.zzave.teambalance.api.domain.port.BunqGateway
+import com.github.zzave.teambalance.api.domain.port.CurrentTeamGateway
 import com.github.zzave.teambalance.api.infrastructure.config.BunqGrantCipherConfiguration
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.collections.shouldBeEmpty
@@ -184,6 +186,13 @@ class BunqGatewaySelectionTest : FunSpec({
 
         @Bean(BunqGrantCipherConfiguration.BEAN_NAME)
         fun cipher(): TokenCipher = TokenCipher.fromBase64Key("dGVhbWJhbGFuY2UtdGVzdC1idW5xLXRva2VuLWtleTE=", "test")
+
+        @Bean
+        fun currentTeam(): CurrentTeamGateway = object : CurrentTeamGateway {
+            override fun requireCurrentTeamId(): TeamId = error("no team in scope")
+
+            override fun findCurrentTeamId(): TeamId? = null
+        }
 
         @Bean
         fun contexts(): BunqApiContextRepository = object : BunqApiContextRepository {

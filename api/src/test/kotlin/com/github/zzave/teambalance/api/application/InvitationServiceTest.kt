@@ -210,6 +210,37 @@ class InvitationServiceTest : FunSpec() {
                 minted.token.value
         }
 
+        // Links stored before the cipher took AAD were made without any. A change of the AAD this service passes
+        // would make every one of them unreadable, so this pins that it passes none.
+        fun legacyLinkIn(f: Fixture) {
+            f.invitations.active = Invitation(
+                id = UUID.randomUUID(),
+                teamId = f.teamId,
+                role = Role.USER,
+                consumedAt = null,
+                tokenHash = TokenHash("legacy-readable"),
+                encryptedToken = legacyEncrypt(ByteArray(32) { it.toByte() }, "a-link-stored-long-ago"),
+                createdBy = adminId,
+                expiresAt = Instant.EPOCH.plus(Duration.ofDays(1)),
+                createdAt = Instant.EPOCH,
+            )
+        }
+
+        test("activeInviteLink reveals a link stored before the cipher took AAD") {
+            val f = newFixture()
+            legacyLinkIn(f)
+
+            f.service.activeInviteLink(callerId = adminId, teamId = f.teamId)?.token?.value shouldBe "a-link-stored-long-ago"
+        }
+
+        test("generateInviteLink returns a link stored before the cipher took AAD instead of minting another") {
+            val f = newFixture()
+            legacyLinkIn(f)
+
+            f.service.generateInviteLink(callerId = adminId, teamId = f.teamId).token.value shouldBe "a-link-stored-long-ago"
+            f.invitations.saved.size shouldBe 0
+        }
+
         test("activeInviteLink is null for a team with no link") {
             val f = newFixture()
             f.service.activeInviteLink(callerId = adminId, teamId = f.teamId) shouldBe null

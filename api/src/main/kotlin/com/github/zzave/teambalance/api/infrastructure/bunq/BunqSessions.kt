@@ -9,8 +9,10 @@ import com.bunq.sdk.generated.Client
 import com.bunq.sdk.initContext
 import com.bunq.sdk.refreshSession
 import com.github.zzave.teambalance.api.application.TokenCipher
+import com.github.zzave.teambalance.api.application.TokenCipher.Purpose
 import com.github.zzave.teambalance.api.domain.model.BunqGrant
 import com.github.zzave.teambalance.api.domain.port.BunqApiContextRepository
+import com.github.zzave.teambalance.api.domain.port.CurrentTeamGateway
 import org.slf4j.LoggerFactory
 import java.security.MessageDigest
 import java.util.HexFormat
@@ -53,6 +55,7 @@ internal class BunqSessions(
     private val serviceName: String,
     private val store: BunqApiContextRepository,
     private val cipher: TokenCipher,
+    private val currentTeam: CurrentTeamGateway,
     private val calls: BunqCalls,
 ) {
     // A holder per access token that sets the session up on first use, so that a slow setup holds up only the readers of that
@@ -67,15 +70,23 @@ internal class BunqSessions(
      * session's own access token. The tenant in scope may be another team's (the Admin's active team while connecting), and
      * the row may have been replaced by a reconnect since this session was made: then nothing is written and the session
      * stays unstored, to be written by a later read that finds its own row. Never fails the read it follows.
+     *
+     * The row's grant and the context are encrypted for the team whose schema holds the row, which is the team in scope, and
+     * for what they are (a grant or a context). A grant that does not open with them (copied from another team's row, in the
+     * wrong column, or made before values were bound) is not this session's row either, so nothing is written.
      */
     @Suppress("TooGenericExceptionCaught")
     fun persistIfChanged(session: BunqSession) {
         val current = session.context
         if (current === session.persisted) return
         try {
+            val team = currentTeam.findCurrentTeamId() ?: return
             val row = store.find()
-            if (row != null && cipher.decrypt(row.grant) == current.config.apiKey &&
-                store.save(cipher.encrypt(BunqApiContextCodec.encode(current)), ifGrant = row.grant)
+            if (row != null && cipher.decrypt(row.grant, TokenCipher.aadOf(team, Purpose.BUNQ_GRANT)) == current.config.apiKey &&
+                store.save(
+                    cipher.encrypt(BunqApiContextCodec.encode(current), TokenCipher.aadOf(team, Purpose.BUNQ_API_CONTEXT)),
+                    ifGrant = row.grant,
+                )
             ) {
                 session.persisted = current
             }
@@ -96,11 +107,16 @@ internal class BunqSessions(
     @Suppress("TooGenericExceptionCaught")
     private fun restored(grant: BunqGrant): BunqSession? =
         try {
-            store.find()
-                ?.context
-                ?.let { BunqApiContextCodec.decode(cipher.decrypt(it), server, serviceName) }
-                ?.takeIf { it.config.apiKey == grant.accessToken }
-                ?.let { BunqSession(it, persisted = it) }
+            currentTeam.findCurrentTeamId()?.let { team ->
+                store.find()
+                    ?.context
+                    ?.let {
+                        val aad = TokenCipher.aadOf(team, Purpose.BUNQ_API_CONTEXT)
+                        BunqApiContextCodec.decode(cipher.decrypt(it, aad), server, serviceName)
+                    }
+                    ?.takeIf { it.config.apiKey == grant.accessToken }
+                    ?.let { BunqSession(it, persisted = it) }
+            }
         } catch (e: Exception) {
             log.warn("Reading the stored Bunq API context failed: {}", e.javaClass.simpleName)
             null

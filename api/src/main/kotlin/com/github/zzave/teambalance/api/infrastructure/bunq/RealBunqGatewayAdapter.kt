@@ -15,6 +15,7 @@ import com.github.zzave.teambalance.api.domain.model.Money
 import com.github.zzave.teambalance.api.domain.model.Payment
 import com.github.zzave.teambalance.api.domain.port.BunqApiContextRepository
 import com.github.zzave.teambalance.api.domain.port.BunqGateway
+import com.github.zzave.teambalance.api.domain.port.CurrentTeamGateway
 import com.bunq.sdk.BunqApiException
 import com.bunq.sdk.generated.model.MonetaryAccountBankPage
 import com.bunq.sdk.generated.model.MonetaryAccountJointPage
@@ -165,10 +166,18 @@ class RealBunqGatewayAdapter internal constructor(
             callProperties: BunqCallProperties,
             contexts: BunqApiContextRepository,
             contextCipher: TokenCipher,
+            currentTeam: CurrentTeamGateway,
             clock: Clock,
         ): RealBunqGatewayAdapter {
             val calls = BunqCalls(callProperties, clock)
-            val sessions = BunqSessions(apiServerOf(properties.environment), properties.serviceName, contexts, contextCipher, calls)
+            val sessions = BunqSessions(
+                apiServerOf(properties.environment),
+                properties.serviceName,
+                contexts,
+                contextCipher,
+                currentTeam,
+                calls,
+            )
             return RealBunqGatewayAdapter(
                 properties.clientId,
                 properties.clientSecret,

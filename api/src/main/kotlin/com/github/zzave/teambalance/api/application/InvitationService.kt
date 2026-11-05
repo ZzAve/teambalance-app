@@ -253,7 +253,7 @@ class InvitationService(
         role = role,
         consumedAt = null,
         tokenHash = hashToken(token.value),
-        encryptedToken = tokenCipher.encrypt(token.value),
+        encryptedToken = tokenCipher.encrypt(token.value, TokenCipher.NO_AAD),
         createdBy = callerId,
         expiresAt = now.plus(INVITE_TTL),
         createdAt = now,
@@ -262,7 +262,7 @@ class InvitationService(
     /** The stored form back to something shareable; null for a hash-only pre-ADR-0025 row. */
     private fun reveal(invitation: Invitation): GeneratedInvitation? =
         invitation.encryptedToken?.let { encrypted: EncryptedToken ->
-            GeneratedInvitation(token = InviteToken(tokenCipher.decrypt(encrypted)), expiresAt = invitation.expiresAt)
+            GeneratedInvitation(token = InviteToken(tokenCipher.decrypt(encrypted, TokenCipher.NO_AAD)), expiresAt = invitation.expiresAt)
         }
 
     private fun generateToken(): InviteToken {

@@ -40,9 +40,9 @@ class CalendarLinkTokens(
                 .joinToString("") { "%02x".format(it) },
         )
 
-    fun conceal(token: CalendarToken): EncryptedToken = cipher.encrypt(token.value)
+    fun conceal(token: CalendarToken): EncryptedToken = cipher.encrypt(token.value, TokenCipher.NO_AAD)
 
-    fun reveal(encrypted: EncryptedToken): CalendarToken = CalendarToken(cipher.decrypt(encrypted))
+    fun reveal(encrypted: EncryptedToken): CalendarToken = CalendarToken(cipher.decrypt(encrypted, TokenCipher.NO_AAD))
 
     private companion object {
         const val TOKEN_BYTE_LENGTH = 32

@@ -1,5 +1,6 @@
 package com.github.zzave.teambalance.api.application
 
+import com.github.zzave.teambalance.api.application.TokenCipher.Purpose
 import com.github.zzave.teambalance.api.domain.exception.BunqConnectDisabledException
 import com.github.zzave.teambalance.api.domain.exception.BunqConnectionChangedException
 import com.github.zzave.teambalance.api.domain.exception.BunqGrantRejectedException
@@ -207,13 +208,15 @@ class BunqConnectionService(
             val grant = bunqGateway.exchangeCode(code, config.callbackUrl)
             val accounts = bunqGateway.listAccounts(grant)
             val now = clock.instant()
+            // Bound to the team the grant is for, which is the team whose schema [routing] points at. The tenant of the
+            // callback request itself may be another team's.
             tenantScopeGateway.within(routing) {
                 // A reconnect keeps the picked account only while the new grant still covers it.
                 val kept = connectionRepository.find()?.accountId?.takeIf { picked -> accounts.any { it.id == picked } }
                 connectionRepository.save(
                     BunqConnection(
                         accountId = kept,
-                        grant = config.grantCipher.encrypt(grant.accessToken),
+                        grant = config.grantCipher.encrypt(grant.accessToken, TokenCipher.aadOf(pending.teamId, Purpose.BUNQ_GRANT)),
                         connectedBy = pending.adminUserId,
                         connectedAt = now,
                     ),
@@ -233,18 +236,21 @@ class BunqConnectionService(
     /** Evicts the cached money pool when Bunq rejects the grant or it does not decrypt, so the next read asks Bunq again. */
     private fun accountsOf(connection: BunqConnection, teamId: TeamId) =
         try {
-            bunqGateway.listAccounts(grantOf(connection))
+            bunqGateway.listAccounts(grantOf(connection, teamId))
         } catch (e: BunqGrantRejectedException) {
             moneyPoolCache.evict(teamId)
             throw e
         }
 
-    /** A grant that no longer decrypts (rotated key, damaged row) cannot be used; the Admin has to connect again. */
+    /**
+     * A grant that no longer decrypts cannot be used; the Admin has to connect again. That is a rotated key, a damaged row,
+     * a row made before the grant was bound to its team, and a row copied from another team's schema.
+     */
     @Suppress("TooGenericExceptionCaught")
-    private fun grantOf(connection: BunqConnection): BunqGrant {
+    private fun grantOf(connection: BunqConnection, teamId: TeamId): BunqGrant {
         val config = connectConfig ?: throw BunqConnectDisabledException()
         return try {
-            BunqGrant(config.grantCipher.decrypt(connection.grant))
+            BunqGrant(config.grantCipher.decrypt(connection.grant, TokenCipher.aadOf(teamId, Purpose.BUNQ_GRANT)))
         } catch (e: Exception) {
             log.warn("Decrypting the Bunq grant failed: ${e.javaClass.simpleName}")
             throw BunqGrantRejectedException()

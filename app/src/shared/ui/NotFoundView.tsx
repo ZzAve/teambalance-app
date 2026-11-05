@@ -1,5 +1,6 @@
 import { Link } from '@tanstack/react-router'
 import { Button } from '@shared/ui/button'
+import { useTranslation } from 'react-i18next'
 
 interface NotFoundViewProps {
   /**
@@ -15,19 +16,20 @@ interface NotFoundViewProps {
  * hatch beside "Go home". Prop-only; the container reads the session and passes `onLogout`.
  */
 export function NotFoundView({ onLogout }: NotFoundViewProps) {
+  const { t } = useTranslation()
   return (
     <div className="mx-auto mt-16 max-w-sm text-center">
-      <h1 className="font-display text-title font-bold">Page not found</h1>
+      <h1 className="font-display text-title font-bold">{t('sharedUi.notFound.heading')}</h1>
       <p className="mt-3 text-small text-muted-foreground">
-        We couldn't find that page. It may have moved, or the link may be out of date.
+        {t('sharedUi.notFound.body')}
       </p>
       <div className="mt-6 flex items-center justify-center gap-2">
         <Button asChild>
-          <Link to="/">Go home</Link>
+          <Link to="/">{t('sharedUi.notFound.goHome')}</Link>
         </Button>
         {onLogout && (
           <Button variant="ghost" onClick={onLogout}>
-            Log out
+            {t('account.logout')}
           </Button>
         )}
       </div>

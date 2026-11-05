@@ -1,5 +1,6 @@
 import { Button } from '@shared/ui/button'
 import { QueryErrorState } from './QueryErrorState'
+import { useTranslation } from 'react-i18next'
 
 interface RouteErrorFallbackProps {
   /** Recover — typically a full reload to re-fetch the shell and its current chunk hashes. */
@@ -20,15 +21,16 @@ interface RouteErrorFallbackProps {
  * *instead of* RootLayout, `/account`'s Log out can't reach it — so it carries its own (ADR-0027 §3).
  */
 export function RouteErrorFallback({ onRetry, onLogout }: RouteErrorFallbackProps) {
+  const { t } = useTranslation()
   return (
     <QueryErrorState
-      title="Couldn't load this page"
-      description="Something went wrong loading the app. Please try again."
+      title={t('sharedUi.routeError.title')}
+      description={t('sharedUi.routeError.description')}
       onRetry={onRetry}
     >
       {onLogout && (
         <Button variant="ghost" onClick={onLogout}>
-          Log out
+          {t('account.logout')}
         </Button>
       )}
     </QueryErrorState>

@@ -945,5 +945,125 @@
   },
   "teamPage": {
     "settings": "Team settings"
+  },
+  "routes": {
+    "checkEmail": "Check your email",
+    "sending": "Sending...",
+    "sendMagicLink": "Send magic link",
+    "somethingWrong": "Something went wrong. Please try again.",
+    "login": {
+      "sent": "If an account exists for <email>{{email}}</email>, we've sent a magic link to sign in. Click it to continue.",
+      "openEmailApp": "Open email app →",
+      "intro": "Sign in with your email — no password needed."
+    },
+    "verify": {
+      "expired": "This link has expired or already been used. Request a new one.",
+      "missingToken": "This link is missing a token. Request a new one.",
+      "signingIn": "Signing you in..."
+    },
+    "invite": {
+      "invalid": "This invite link is invalid or has expired.",
+      "joining": "Joining the team...",
+      "loading": "Loading...",
+      "invalidHeading": "Invite link invalid",
+      "sent": "If <email>{{email}}</email> checks out, we've sent a magic link to sign in. Click it to join the team.",
+      "heading": "You're invited",
+      "intro": "Enter your email to join the team — no password needed."
+    },
+    "createTeam": {
+      "heading": "Create your team",
+      "intro": "Enter your creation code and name your team — you'll be its admin.",
+      "inviteOnly": "Starting a team is invite-only while we're getting established. Got a creation code? Enter it below.",
+      "noCode": "Don't have one? <mail>Email teams@teambalance.nl</mail> and we'll help you get started."
+    },
+    "calendar": {
+      "title": "Calendar",
+      "backToEvents": "Back to events"
+    },
+    "member": {
+      "saveFailed": "Couldn't save. Please try again."
+    },
+    "event": {
+      "undo": "Undo",
+      "teammate": "teammate"
+    }
+  },
+  "sharedApi": {
+    "forbiddenChange": "You are not allowed to make this change.",
+    "logoutFailed": "Couldn't log out — please try again.",
+    "attendance": {
+      "saveFailed": "Couldn't save your response — tap to try again.",
+      "bulkFailed": "Couldn't set your attendance — please try again.",
+      "undoFailed": "Couldn't undo — please try again."
+    },
+    "createTeam": {
+      "INVALID_CREATION_CODE": "That creation code isn't valid.",
+      "SLUG_TAKEN": "That address is already taken — try another.",
+      "INVALID_NAME": "Enter a team name.",
+      "GENERIC": "Something went wrong creating your team. Please try again.",
+      "memberlessFailed": "Something went wrong creating the team. Please try again.",
+      "noAccess": "You don't have access to create teams."
+    },
+    "member": {
+      "forbiddenView": "You are not allowed to view members.",
+      "LAST_ADMIN": "A team must keep at least one admin.",
+      "NUMBER_TAKEN": "That shirt number is already taken.",
+      "NAME_TAKEN": "That display name is already taken.",
+      "NOT_FOUND": "Member not found.",
+      "forbiddenRemove": "You are not allowed to remove this member."
+    },
+    "substitute": {
+      "nameTaken": "{{name}} is already on the list.",
+      "numberTaken": "Number {{number}} is already worn by another substitute.",
+      "notOnList": "That substitute is no longer on the list.",
+      "saveFailed": "Couldn't save the substitute — please try again.",
+      "countFailed": "Couldn't count this substitute's events.",
+      "forbiddenRemove": "You are not allowed to remove this substitute.",
+      "removeFailed": "Couldn't remove the substitute — please try again.",
+      "takeOffFailed": "Couldn't take the substitute off — please try again."
+    }
+  },
+  "sharedLib": {
+    "slug": {
+      "empty": "Choose a team address.",
+      "tooLong": "Use {{max}} characters or fewer.",
+      "format": "Use lowercase letters, numbers, and hyphens."
+    },
+    "wake": {
+      "first": "Waking the server back up…",
+      "second": "Still on it — thanks for hanging in there"
+    }
+  },
+  "sharedUi": {
+    "close": "Close",
+    "retry": "Retry",
+    "serverStatus": "Server status",
+    "splash": {
+      "rounding": "Rounding up the team…",
+      "almost": "Almost there…",
+      "steps": {
+        "wake": "Waking the server",
+        "connect": "Connecting",
+        "load": "Loading your team"
+      },
+      "warming": "Still warming up the court — this happens after a quiet spell. Hang tight! 🏐"
+    },
+    "notFound": {
+      "heading": "Page not found",
+      "body": "We couldn't find that page. It may have moved, or the link may be out of date.",
+      "goHome": "Go home"
+    },
+    "routeError": {
+      "title": "Couldn't load this page",
+      "description": "Something went wrong loading the app. Please try again."
+    },
+    "update": {
+      "available": "A new version is available.",
+      "reload": "Reload"
+    },
+    "verifyError": {
+      "heading": "Link expired",
+      "backToLogin": "Back to login"
+    }
   }
 }

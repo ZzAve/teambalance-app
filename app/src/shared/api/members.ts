@@ -1,4 +1,5 @@
 import { queryOptions, useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { i18n } from '@shared/i18n/i18n'
 import { api } from './wirespec-client'
 
 // Re-export the generated contract type so the app has a single source of truth.
@@ -42,7 +43,7 @@ export function useMembers() {
     queryKey: ['members'],
     queryFn: async () => {
       const res = await api.listMembers()
-      if (res.status === 403) throw new MemberUpdateError('FORBIDDEN', 'You are not allowed to view members.')
+      if (res.status === 403) throw new MemberUpdateError('FORBIDDEN', i18n.t('sharedApi.member.forbiddenView'))
       return res.body.members
     },
   })
@@ -72,12 +73,12 @@ export function useUpdateMember() {
       // read at runtime to tell them apart.
       if (res.status === 409) {
         const code = (res.body as { code?: string } | undefined)?.code
-        if (code === 'LAST_ADMIN') throw new MemberUpdateError('LAST_ADMIN', 'A team must keep at least one admin.')
-        if (code === 'NUMBER_TAKEN') throw new MemberUpdateError('NUMBER_TAKEN', 'That shirt number is already taken.')
-        throw new MemberUpdateError('NAME_TAKEN', 'That display name is already taken.')
+        if (code === 'LAST_ADMIN') throw new MemberUpdateError('LAST_ADMIN', i18n.t('sharedApi.member.LAST_ADMIN'))
+        if (code === 'NUMBER_TAKEN') throw new MemberUpdateError('NUMBER_TAKEN', i18n.t('sharedApi.member.NUMBER_TAKEN'))
+        throw new MemberUpdateError('NAME_TAKEN', i18n.t('sharedApi.member.NAME_TAKEN'))
       }
-      if (res.status === 403) throw new MemberUpdateError('FORBIDDEN', 'You are not allowed to make this change.')
-      if (res.status === 404) throw new MemberUpdateError('NOT_FOUND', 'Member not found.')
+      if (res.status === 403) throw new MemberUpdateError('FORBIDDEN', i18n.t('sharedApi.forbiddenChange'))
+      if (res.status === 404) throw new MemberUpdateError('NOT_FOUND', i18n.t('sharedApi.member.NOT_FOUND'))
       return res.body
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['members'] }),
@@ -108,8 +109,8 @@ export function useCompleteOnboarding() {
       })
       if (res.status === 409) {
         const code = (res.body as { code?: string } | undefined)?.code
-        if (code === 'NUMBER_TAKEN') throw new MemberUpdateError('NUMBER_TAKEN', 'That shirt number is already taken.')
-        throw new MemberUpdateError('NAME_TAKEN', 'That display name is already taken.')
+        if (code === 'NUMBER_TAKEN') throw new MemberUpdateError('NUMBER_TAKEN', i18n.t('sharedApi.member.NUMBER_TAKEN'))
+        throw new MemberUpdateError('NAME_TAKEN', i18n.t('sharedApi.member.NAME_TAKEN'))
       }
       return res.body ?? undefined
     },
@@ -129,9 +130,9 @@ export function useRemoveMember() {
   return useMutation({
     mutationFn: async ({ userId }: { userId: string }) => {
       const res = await api.removeMember({ userId })
-      if (res.status === 409) throw new MemberUpdateError('LAST_ADMIN', 'A team must keep at least one admin.')
-      if (res.status === 403) throw new MemberUpdateError('FORBIDDEN', 'You are not allowed to remove this member.')
-      if (res.status === 404) throw new MemberUpdateError('NOT_FOUND', 'Member not found.')
+      if (res.status === 409) throw new MemberUpdateError('LAST_ADMIN', i18n.t('sharedApi.member.LAST_ADMIN'))
+      if (res.status === 403) throw new MemberUpdateError('FORBIDDEN', i18n.t('sharedApi.member.forbiddenRemove'))
+      if (res.status === 404) throw new MemberUpdateError('NOT_FOUND', i18n.t('sharedApi.member.NOT_FOUND'))
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['members'] }),
   })

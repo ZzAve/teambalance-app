@@ -1,4 +1,5 @@
 import { WAKING_AFTER_MS } from '@shared/ui/ColdStartSplash'
+import { i18n } from '@shared/i18n/i18n'
 
 export const ESCALATE_AFTER_MS = 8_000
 export const MIN_VISIBLE_MS = 800
@@ -31,5 +32,5 @@ export function nextWakeState(prev: WakeState, { busy, now }: { busy: boolean; n
 }
 
 export function wakeMessageFor(elapsedMs: number): string {
-  return elapsedMs < ESCALATE_AFTER_MS ? 'Waking the server back up…' : 'Still on it — thanks for hanging in there'
+  return i18n.t(elapsedMs < ESCALATE_AFTER_MS ? 'sharedLib.wake.first' : 'sharedLib.wake.second')
 }

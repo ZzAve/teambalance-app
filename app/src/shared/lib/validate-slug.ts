@@ -1,3 +1,5 @@
+import { i18n } from '@shared/i18n/i18n'
+
 // The team address (slug) is user-editable and validated to the same contract the backend enforces
 // (#158): lowercase letters, numbers, and single hyphens, no leading/trailing/doubled hyphen, and at
 // most 58 characters (so `team_` + slug stays within Postgres' 63-byte identifier limit). Kept in sync
@@ -12,8 +14,8 @@ const SLUG_FORMAT = /^[a-z0-9]+(-[a-z0-9]+)*$/
  * surfaced separately.
  */
 export function validateSlug(value: string): string | null {
-  if (value.length === 0) return 'Choose a team address.'
-  if (value.length > MAX_SLUG_LENGTH) return `Use ${MAX_SLUG_LENGTH} characters or fewer.`
-  if (!SLUG_FORMAT.test(value)) return 'Use lowercase letters, numbers, and hyphens.'
+  if (value.length === 0) return i18n.t('sharedLib.slug.empty')
+  if (value.length > MAX_SLUG_LENGTH) return i18n.t('sharedLib.slug.tooLong', { max: MAX_SLUG_LENGTH })
+  if (!SLUG_FORMAT.test(value)) return i18n.t('sharedLib.slug.format')
   return null
 }

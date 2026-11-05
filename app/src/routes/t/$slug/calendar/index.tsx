@@ -1,4 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
+import { useTranslation } from 'react-i18next'
 import { teamRoutes } from '@shared/lib/team-routes'
 import { PageHeader } from '@widgets/page-header/ui/PageHeader'
 import { CalendarLinks } from '@features/calendar-links/ui/CalendarLinks'
@@ -12,10 +13,11 @@ export const Route = createFileRoute('/t/$slug/calendar/')({
  * bottom nav, so the header leads back there.
  */
 function CalendarPage() {
+  const { t } = useTranslation()
   const { slug } = Route.useParams()
   return (
     <div>
-      <PageHeader title="Calendar" backTo={teamRoutes(slug).events} backLabel="Back to events" />
+      <PageHeader title={t('routes.calendar.title')} backTo={teamRoutes(slug).events} backLabel={t('routes.calendar.backToEvents')} />
       <div className="mt-4">
         <CalendarLinks />
       </div>

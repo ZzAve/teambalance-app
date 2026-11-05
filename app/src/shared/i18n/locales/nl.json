@@ -945,5 +945,125 @@
   },
   "teamPage": {
     "settings": "Teaminstellingen"
+  },
+  "routes": {
+    "checkEmail": "Check je e-mail",
+    "sending": "Versturen…",
+    "sendMagicLink": "Stuur inloglink",
+    "somethingWrong": "Er ging iets mis. Probeer het opnieuw.",
+    "login": {
+      "sent": "Als er een account bestaat voor <email>{{email}}</email>, hebben we je een inloglink gestuurd. Klik erop om verder te gaan.",
+      "openEmailApp": "Open e-mailapp →",
+      "intro": "Log in met je e-mail — geen wachtwoord nodig."
+    },
+    "verify": {
+      "expired": "Deze link is verlopen of al gebruikt. Vraag een nieuwe aan.",
+      "missingToken": "Deze link mist een token. Vraag een nieuwe aan.",
+      "signingIn": "Je wordt ingelogd…"
+    },
+    "invite": {
+      "invalid": "Deze uitnodigingslink is ongeldig of verlopen.",
+      "joining": "Lid worden van het team…",
+      "loading": "Laden…",
+      "invalidHeading": "Uitnodigingslink ongeldig",
+      "sent": "Als <email>{{email}}</email> klopt, hebben we je een inloglink gestuurd. Klik erop om lid te worden van het team.",
+      "heading": "Je bent uitgenodigd",
+      "intro": "Vul je e-mail in om lid te worden van het team — geen wachtwoord nodig."
+    },
+    "createTeam": {
+      "heading": "Maak je team",
+      "intro": "Vul je aanmaakcode in en geef je team een naam — jij wordt de beheerder.",
+      "inviteOnly": "Een team beginnen kan voorlopig alleen op uitnodiging. Heb je een aanmaakcode? Vul hem hieronder in.",
+      "noCode": "Heb je er geen? <mail>Mail teams@teambalance.nl</mail>, dan helpen we je op weg."
+    },
+    "calendar": {
+      "title": "Agenda",
+      "backToEvents": "Terug naar events"
+    },
+    "member": {
+      "saveFailed": "Opslaan is mislukt. Probeer het opnieuw."
+    },
+    "event": {
+      "undo": "Ongedaan maken",
+      "teammate": "teamgenoot"
+    }
+  },
+  "sharedApi": {
+    "forbiddenChange": "Je mag deze wijziging niet maken.",
+    "logoutFailed": "Uitloggen is mislukt. Probeer het opnieuw.",
+    "attendance": {
+      "saveFailed": "Je antwoord opslaan is mislukt — tik om het opnieuw te proberen.",
+      "bulkFailed": "Je aanwezigheid doorgeven is mislukt. Probeer het opnieuw.",
+      "undoFailed": "Ongedaan maken is mislukt. Probeer het opnieuw."
+    },
+    "createTeam": {
+      "INVALID_CREATION_CODE": "Die aanmaakcode is niet geldig.",
+      "SLUG_TAKEN": "Dat adres is al bezet — probeer een ander.",
+      "INVALID_NAME": "Vul een teamnaam in.",
+      "GENERIC": "Je team aanmaken is mislukt. Probeer het opnieuw.",
+      "memberlessFailed": "Het team aanmaken is mislukt. Probeer het opnieuw.",
+      "noAccess": "Je hebt geen toegang om teams aan te maken."
+    },
+    "member": {
+      "forbiddenView": "Je mag de leden niet bekijken.",
+      "LAST_ADMIN": "Een team moet minstens één beheerder houden.",
+      "NUMBER_TAKEN": "Dat rugnummer is al bezet.",
+      "NAME_TAKEN": "Die weergavenaam is al bezet.",
+      "NOT_FOUND": "Lid niet gevonden.",
+      "forbiddenRemove": "Je mag dit lid niet verwijderen."
+    },
+    "substitute": {
+      "nameTaken": "{{name}} staat al op de lijst.",
+      "numberTaken": "Een andere invaller heeft al nummer {{number}}.",
+      "notOnList": "Die invaller staat niet meer op de lijst.",
+      "saveFailed": "Invaller opslaan is mislukt. Probeer het opnieuw.",
+      "countFailed": "De events van deze invaller tellen is mislukt.",
+      "forbiddenRemove": "Je mag deze invaller niet verwijderen.",
+      "removeFailed": "Invaller verwijderen is mislukt. Probeer het opnieuw.",
+      "takeOffFailed": "Invaller van het event halen is mislukt. Probeer het opnieuw."
+    }
+  },
+  "sharedLib": {
+    "slug": {
+      "empty": "Kies een teamadres.",
+      "tooLong": "Gebruik {{max}} tekens of minder.",
+      "format": "Gebruik kleine letters, cijfers en koppeltekens."
+    },
+    "wake": {
+      "first": "De server wordt wakker…",
+      "second": "Nog even bezig — bedankt voor je geduld"
+    }
+  },
+  "sharedUi": {
+    "close": "Sluiten",
+    "retry": "Probeer opnieuw",
+    "serverStatus": "Serverstatus",
+    "splash": {
+      "rounding": "Even geduld…",
+      "almost": "Bijna klaar…",
+      "steps": {
+        "wake": "Server opstarten",
+        "connect": "Verbinden",
+        "load": "Je team laden"
+      },
+      "warming": "De server start op — dit gebeurt na een stille periode. Even geduld. 🏐"
+    },
+    "notFound": {
+      "heading": "Pagina niet gevonden",
+      "body": "We konden die pagina niet vinden. Misschien is hij verplaatst, of is de link verouderd.",
+      "goHome": "Naar de startpagina"
+    },
+    "routeError": {
+      "title": "Deze pagina laden is mislukt",
+      "description": "De app laden is mislukt. Probeer het opnieuw."
+    },
+    "update": {
+      "available": "Er is een nieuwe versie.",
+      "reload": "Herlaad"
+    },
+    "verifyError": {
+      "heading": "Link verlopen",
+      "backToLogin": "Terug naar inloggen"
+    }
   }
 }

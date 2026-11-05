@@ -1,5 +1,6 @@
 import { queryOptions, useMutation, useQuery } from '@tanstack/react-query'
 import { toast } from 'sonner'
+import { i18n } from '@shared/i18n/i18n'
 import { applyUserLanguage } from '@shared/i18n/language'
 import { i18n } from '@shared/i18n/i18n'
 import { api } from './wirespec-client'
@@ -61,7 +62,7 @@ export async function logOut() {
 export function useLogout() {
   return useMutation({
     mutationFn: logOut,
-    onError: () => toast.error("Couldn't log out — please try again."),
+    onError: () => toast.error(i18n.t('sharedApi.logoutFailed')),
   })
 }
 

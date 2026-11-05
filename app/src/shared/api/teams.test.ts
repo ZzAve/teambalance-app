@@ -1,4 +1,5 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
+import { i18n } from '@shared/i18n/i18n'
 import { toCreateTeamError } from './teams'
 
 describe('toCreateTeamError', () => {
@@ -22,5 +23,16 @@ describe('toCreateTeamError', () => {
     expect(toCreateTeamError(400, undefined).code).toBe('GENERIC')
     expect(toCreateTeamError(500, undefined).code).toBe('GENERIC')
     expect(toCreateTeamError(503, undefined).code).toBe('GENERIC')
+  })
+})
+
+describe('toCreateTeamError in Dutch', () => {
+  afterEach(() => i18n.changeLanguage('en'))
+
+  it('carries a Dutch message', async () => {
+    await i18n.changeLanguage('nl')
+    expect(toCreateTeamError(403, undefined).message).toBe('Die aanmaakcode is niet geldig.')
+    expect(toCreateTeamError(409, undefined).message).toBe('Dat adres is al bezet — probeer een ander.')
+    expect(toCreateTeamError(500, undefined).message).toBe('Je team aanmaken is mislukt. Probeer het opnieuw.')
   })
 })

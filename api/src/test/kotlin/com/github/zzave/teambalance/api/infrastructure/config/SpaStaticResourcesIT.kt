@@ -58,7 +58,7 @@ class SpaStaticResourcesIT : TeamBalanceIT() {
                 "spa-$userId@test.com",
             )
 
-            for (path in listOf("/api/no-such-route", "/internal/no-such-route")) {
+            for (path in listOf("/api/no-such-route", "/internal/no-such-route", "/api", "/internal")) {
                 val response = perform(get(path).with(loginAs(userId)))
                 response.status shouldBe 404
                 response.contentAsString shouldNotContain "spa-fixture"

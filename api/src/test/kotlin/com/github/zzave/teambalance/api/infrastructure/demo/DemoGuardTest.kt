@@ -48,6 +48,19 @@ class DemoGuardTest : FunSpec({
         }
     }
 
+    test("a query key whose uppercase form is a host override is refused (pgjdbc uppercases keys)") {
+        // U+017F (long s) uppercases to S, so pgjdbc reads this key as HOST.
+        demoBootRefusal(true, false, "none", "jdbc:postgresql://127.0.0.1/x?hoſt=prod-db.internal")
+            .shouldBeRefusalContaining("datasource")
+    }
+
+    test("a Hikari data source class or JNDI name makes Hikari ignore the URL, so it is refused") {
+        demoBootRefusal(true, false, "none", loopback, dataSourceClassName = "org.postgresql.ds.PGSimpleDataSource")
+            .shouldBeRefusalContaining("datasource")
+        demoBootRefusal(true, false, "none", loopback, dataSourceJndi = "java:comp/env/jdbc/prod")
+            .shouldBeRefusalContaining("datasource")
+    }
+
     test("a Hikari jdbc-url the pool would use instead is checked like the datasource url") {
         demoBootRefusal(true, false, "none", loopback, "jdbc:postgresql://prod-db.internal/x")
             .shouldBeRefusalContaining("datasource")

@@ -63,6 +63,16 @@ class DemoGuardWiringTest : FunSpec({
             .mentions("datasource") shouldBe true
     }
 
+    test("a Hikari data source class name refuses to start") {
+        startupFailureWith("spring.datasource.hikari.data-source-class-name=org.postgresql.ds.PGSimpleDataSource")
+            .shouldNotBeNull().mentions("datasource") shouldBe true
+    }
+
+    test("a Hikari data source JNDI name refuses to start") {
+        startupFailureWith("spring.datasource.hikari.data-source-j-n-d-i=java:comp/env/jdbc/prod")
+            .shouldNotBeNull().mentions("datasource") shouldBe true
+    }
+
     test("switch off starts whatever the rest says") {
         startupFailureWith("teambalance.demo.enabled=false", "teambalance.email.send=true") shouldBe null
     }

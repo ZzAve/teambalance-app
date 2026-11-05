@@ -40,6 +40,6 @@ class SpaStaticResourcesConfig(
 
         // An unknown API or internal path stays a 404 for everyone, signed in or not.
         private fun isClientRoute(path: String) =
-            '.' !in path.substringAfterLast('/') && !path.startsWith("api/") && !path.startsWith("internal/")
+            '.' !in path.substringAfterLast('/') && path.substringBefore('/') !in setOf("api", "internal")
     }
 }

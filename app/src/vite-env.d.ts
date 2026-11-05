@@ -6,4 +6,6 @@ interface ImportMetaEnv {
   // Base URL for the API in a split-origin build (e.g. https://api.teambalance.nl).
   // Unset in dev/e2e — the request stays relative and the Vite proxy handles it.
   readonly VITE_API_URL?: string
+  // Name of the XSRF cookie when the API sets a renamed one (the demo build). Unset = XSRF-TOKEN.
+  readonly VITE_XSRF_COOKIE?: string
 }

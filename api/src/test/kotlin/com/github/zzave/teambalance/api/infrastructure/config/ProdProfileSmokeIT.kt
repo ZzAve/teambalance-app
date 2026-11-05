@@ -110,6 +110,15 @@ class ProdProfileSmokeIT : TeamBalanceIT() {
             environment.getProperty("teambalance.demo-data.enabled", Boolean::class.java, false) shouldBe false
         }
 
+        test("prod profile is inert for the demo: guest login off, no SPA served, default XSRF cookie name") {
+            environment.getProperty("teambalance.demo.enabled", Boolean::class.java, false) shouldBe false
+            environment.getProperty("teambalance.spa.static-location", "") shouldBe ""
+            environment.getProperty("teambalance.csrf.cookie-name") shouldBe "XSRF-TOKEN"
+
+            val started = mockMvc.perform(MockMvcRequestBuilders.get("/t/de-smashers/events")).andReturn()
+            started.response.status shouldBe 401
+        }
+
         test("CORS allows the SPA origin with credentials (from application-prod.yml)") {
             preflight(origin = "https://app.teambalance.nl")
                 .andExpect(MockMvcResultMatchers.status().isOk)

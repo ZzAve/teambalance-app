@@ -1,0 +1,10 @@
+type DemoSessionRequest {
+    persona: String
+}
+
+// Guest login for the demo team (ADR-0043). Exists only while teambalance.demo.enabled is on, otherwise 404. 204: a normal session for the persona was started and its tenant pinned; the client then reads /api/auth/me.
+endpoint CreateDemoSession POST DemoSessionRequest /api/demo/session -> {
+    204 -> Unit
+    400 -> Unit
+    404 -> Unit
+}

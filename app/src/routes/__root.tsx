@@ -17,7 +17,7 @@ import { useThemeSync } from '@shared/theme/theme-store'
 // so a future route like `/authored` can't slip past the guard. The invite exemption is equally
 // precise: only `/invite/<single-token>` is public; sub-paths like `/invite/manage` are NOT exempt.
 function isAuthRoute(pathname: string): boolean {
-  return pathname === '/login' || pathname.startsWith('/auth/') || /^\/invite\/[^/]+$/.test(pathname)
+  return pathname === '/login' || pathname === '/demo' || pathname.startsWith('/auth/') || /^\/invite\/[^/]+$/.test(pathname)
 }
 
 // The screens an authenticated caller can reach without being in a Team.

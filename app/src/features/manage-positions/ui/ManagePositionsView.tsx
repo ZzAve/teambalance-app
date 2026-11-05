@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import type { Position, PositionKind, PositionUsage } from '@shared/api/positions'
 import { Button } from '@shared/ui/button'
 import { Input } from '@shared/ui/input'
@@ -9,6 +10,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@shared/ui/dropdown-menu'
+import { i18n } from '@shared/i18n/i18n'
 import { validatePositionLabel } from '../lib/validate-position-label'
 
 interface ManagePositionsViewProps {
@@ -60,6 +62,7 @@ export function ManagePositionsView({
   onSetKind,
   onDelete,
 }: ManagePositionsViewProps) {
+  const { t } = useTranslation()
   const [newLabel, setNewLabel] = useState('')
   const [confirmTarget, setConfirmTargetState] = useState<Position | null>(null)
   const setConfirmTarget = (position: Position | null) => {
@@ -77,20 +80,20 @@ export function ManagePositionsView({
 
   return (
     <div>
-      <h2 className="font-display text-title font-bold">Positions</h2>
+      <h2 className="font-display text-title font-bold">{t('managePositions.heading')}</h2>
 
-      {isLoading && <p className="mt-4 text-small text-muted-foreground">Loading…</p>}
+      {isLoading && <p className="mt-4 text-small text-muted-foreground">{t('account.loading')}</p>}
       {isError && (
-        <p className="mt-4 text-small text-red-ink">Couldn't load positions. Please try again.</p>
+        <p className="mt-4 text-small text-red-ink">{t('managePositions.loadFailed')}</p>
       )}
 
       {!isLoading && !isError && (
         <div className="mt-4 flex flex-col gap-3">
           <div className="flex gap-2">
             <Input
-              aria-label="New position label"
+              aria-label={t('managePositions.newLabel')}
               value={newLabel}
-              placeholder="e.g. Setter"
+              placeholder={t('managePositions.placeholder')}
               onChange={(e) => setNewLabel(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
@@ -100,15 +103,15 @@ export function ManagePositionsView({
               }}
             />
             <Button disabled={isSaving || !!newLabelError} onClick={handleCreate}>
-              Add
+              {t('managePositions.add')}
             </Button>
           </div>
           {errorCode === 'POSITION_LABEL_TAKEN' && (
-            <p className="mt-1 text-small text-red-ink">That position already exists.</p>
+            <p className="mt-1 text-small text-red-ink">{t('managePositions.labelTaken')}</p>
           )}
 
           {positions.length === 0 ? (
-            <p className="text-small text-muted-foreground">No positions yet. Add one above.</p>
+            <p className="text-small text-muted-foreground">{t('managePositions.empty')}</p>
           ) : (
             <ul className="divide-y divide-border rounded-lg border border-border">
               {positions.map((position) => (
@@ -126,9 +129,9 @@ export function ManagePositionsView({
 
           <ConfirmDialog
             open={confirmTarget !== null}
-            title="Delete position"
-            description={<>Delete "{confirmTarget?.label}"? This cannot be undone.</>}
-            confirmLabel="Delete"
+            title={t('managePositions.deleteTitle')}
+            description={t('managePositions.deleteDescription', { label: confirmTarget?.label })}
+            confirmLabel={t('managePositions.delete')}
             onConfirm={() => {
               if (confirmTarget) onDelete(confirmTarget)
               setConfirmTarget(null)
@@ -138,7 +141,7 @@ export function ManagePositionsView({
             {/* Names what the delete will actually touch. A warning, not a veto — the delete
                 proceeds either way, but an admin should not have to guess the blast radius. */}
             <p className="text-small text-muted-foreground">
-              {usage ? deleteImpact(usage) : 'Checking what uses this position…'}
+              {usage ? deleteImpact(usage) : t('managePositions.checkingUsage')}
             </p>
           </ConfirmDialog>
         </div>
@@ -156,6 +159,7 @@ interface PositionRowProps {
 }
 
 function PositionRow({ position, isSaving, onRename, onSetKind, onRequestDelete }: PositionRowProps) {
+  const { t } = useTranslation()
   const [editingLabel, setEditingLabel] = useState(false)
   const [draftLabel, setDraftLabel] = useState(position.label)
 
@@ -180,7 +184,7 @@ function PositionRow({ position, isSaving, onRename, onSetKind, onRequestDelete 
     return (
       <li className="flex items-center gap-2 p-3">
         <Input
-          aria-label={`Label for ${position.label}`}
+          aria-label={t('managePositions.labelFor', { label: position.label })}
           value={draftLabel}
           autoFocus
           onChange={(e) => setDraftLabel(e.target.value)}
@@ -196,10 +200,10 @@ function PositionRow({ position, isSaving, onRename, onSetKind, onRequestDelete 
           className="min-w-0 flex-1"
         />
         <Button size="sm" disabled={isSaving} onClick={saveEdit}>
-          {isSaving ? 'Saving...' : 'Save'}
+          {isSaving ? t('profileForm.saving') : t('profileForm.save')}
         </Button>
         <Button size="sm" variant="outline" onClick={cancelEdit}>
-          Cancel
+          {t('common.cancel')}
         </Button>
       </li>
     )
@@ -217,20 +221,20 @@ function PositionRow({ position, isSaving, onRename, onSetKind, onRequestDelete 
           type="checkbox"
           // Named per row, because "Staff" alone repeats down the list and says nothing about which
           // position it belongs to — the same reason the label field is "Label for Setter".
-          aria-label={`${position.label} is staff`}
+          aria-label={t('managePositions.isStaff', { label: position.label })}
           className="size-4 accent-green"
           checked={position.kind === 'STAFF'}
           disabled={isSaving}
           onChange={(e) => onSetKind(position.id, e.target.checked ? 'STAFF' : 'PLAYING')}
         />
-        Staff
+        {t('managePositions.staff')}
       </label>
 
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <button
             type="button"
-            aria-label={`Actions for ${position.label}`}
+            aria-label={t('managePositions.actionsFor', { label: position.label })}
             disabled={isSaving}
             className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-lg hover:bg-accent disabled:pointer-events-none disabled:opacity-50"
           >
@@ -239,10 +243,10 @@ function PositionRow({ position, isSaving, onRename, onSetKind, onRequestDelete 
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
           <DropdownMenuItem disabled={isSaving} onSelect={startEdit}>
-            Rename
+            {t('managePositions.rename')}
           </DropdownMenuItem>
           <DropdownMenuItem tone="destructive" onSelect={() => onRequestDelete(position)}>
-            Delete…
+            {t('managePositions.deleteMenu')}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -257,13 +261,13 @@ function PositionRow({ position, isSaving, onRename, onSetKind, onRequestDelete 
 function deleteImpact(usage: PositionUsage): string {
   const parts: string[] = []
   if (usage.memberCount > 0) {
-    parts.push(`${usage.memberCount} ${usage.memberCount === 1 ? 'member becomes' : 'members become'} Unassigned`)
+    parts.push(i18n.t('managePositions.impact.members', { count: usage.memberCount }))
   }
   if (usage.eventTypeCount > 0) {
-    parts.push(`it is dropped from ${usage.eventTypeCount} event ${usage.eventTypeCount === 1 ? 'type' : 'types'}`)
+    parts.push(i18n.t('managePositions.impact.eventTypes', { count: usage.eventTypeCount }))
   }
   if (usage.eventCount > 0) {
-    parts.push(`and from ${usage.eventCount} ${usage.eventCount === 1 ? 'event' : 'events'} with their own roster`)
+    parts.push(i18n.t('managePositions.impact.events', { count: usage.eventCount }))
   }
-  return parts.length === 0 ? 'Nothing currently uses this position.' : `${parts.join(', ')}.`
+  return parts.length === 0 ? i18n.t('managePositions.impact.none') : `${parts.join(', ')}.`
 }

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import type { Position } from '@shared/api/positions'
 import type { Substitute } from '@shared/api/substitutes'
 import { PositionPicker } from '@entities/position/ui/PositionPicker'
@@ -75,6 +76,7 @@ export function ManageSubstitutesView({
   onChangeShirtNumber,
   onRemove,
 }: ManageSubstitutesViewProps) {
+  const { t } = useTranslation()
   const [confirmTarget, setConfirmTargetState] = useState<Substitute | null>(null)
   const setConfirmTarget = (substitute: Substitute | null) => {
     setConfirmTargetState(substitute)
@@ -83,10 +85,10 @@ export function ManageSubstitutesView({
 
   return (
     <div>
-      <h2 className="font-display text-title font-bold">Substitutes</h2>
+      <h2 className="font-display text-title font-bold">{t('manageSubstitutes.heading')}</h2>
 
-      {isLoading && <p className="mt-4 text-small text-muted-foreground">Loading…</p>}
-      {isError && <p className="mt-4 text-small text-red-ink">Couldn't load substitutes. Please try again.</p>}
+      {isLoading && <p className="mt-4 text-small text-muted-foreground">{t('account.loading')}</p>}
+      {isError && <p className="mt-4 text-small text-red-ink">{t('manageSubstitutes.loadFailed')}</p>}
 
       {!isLoading && !isError && (
         <div className="mt-4 flex flex-col gap-3">
@@ -99,8 +101,8 @@ export function ManageSubstitutesView({
           {substitutes.length === 0 ? (
             <p className="rounded-lg border border-dashed border-border px-3 py-6 text-center text-small text-muted-foreground">
               {canManage
-                ? 'No substitutes yet. Members add them when calling someone in for an event.'
-                : 'No substitutes yet.'}
+                ? t('manageSubstitutes.emptyManage')
+                : t('manageSubstitutes.empty')}
             </p>
           ) : (
             <ul className="divide-y divide-border rounded-lg border border-border">
@@ -122,14 +124,9 @@ export function ManageSubstitutesView({
 
           <ConfirmDialog
             open={confirmTarget !== null}
-            title="Remove substitute"
-            description={
-              <>
-                {confirmTarget?.name} will disappear from every event they were added to, including past ones. This
-                can't be undone.
-              </>
-            }
-            confirmLabel="Remove"
+            title={t('manageSubstitutes.removeTitle')}
+            description={t('manageSubstitutes.removeDescription', { name: confirmTarget?.name })}
+            confirmLabel={t('manageSubstitutes.remove')}
             onConfirm={() => {
               if (confirmTarget) onRemove(confirmTarget)
               setConfirmTarget(null)
@@ -167,6 +164,7 @@ function SubstituteRow({
   onChangeShirtNumber,
   onRequestRemove,
 }: SubstituteRowProps) {
+  const { t } = useTranslation()
   const [editingName, setEditingName] = useState(false)
   const [draftName, setDraftName] = useState(substitute.name)
   const [editingNumber, setEditingNumber] = useState(false)
@@ -209,7 +207,7 @@ function SubstituteRow({
       <SubstituteAvatar name={substitute.name} />
       {shirtNumber !== null && (
         <span
-          aria-label={`Shirt number ${shirtNumber}`}
+          aria-label={t('member.shirtNumber', { number: shirtNumber })}
           className="absolute -bottom-1.5 left-1/2 min-w-5 -translate-x-1/2 rounded-full border-2 border-background bg-foreground px-1 text-center text-caption font-bold leading-4 text-background tabular-nums"
         >
           {shirtNumber}
@@ -225,7 +223,7 @@ function SubstituteRow({
   )
 
   const positionLabel = (
-    <span className="shrink-0 text-small text-muted-foreground">{substitute.position?.label ?? 'Unassigned'}</span>
+    <span className="shrink-0 text-small text-muted-foreground">{substitute.position?.label ?? t('position.unassigned')}</span>
   )
 
   if (!canManage) {
@@ -245,9 +243,9 @@ function SubstituteRow({
           <SubstituteAvatar name={substitute.name} />
           <span className="min-w-0 flex-1 truncate font-medium">{substitute.name}</span>
           <Input
-            aria-label={`Shirt number for ${substitute.name}`}
+            aria-label={t('manageSubstitutes.shirtNumberFor', { name: substitute.name })}
             inputMode="numeric"
-            placeholder="None"
+            placeholder={t('profileForm.shirtNone')}
             value={draftNumber}
             autoFocus
             onChange={(e) => setDraftNumber(e.target.value)}
@@ -264,10 +262,10 @@ function SubstituteRow({
             className="w-20 shrink-0"
           />
           <Button size="sm" disabled={isSaving || !!parsedNumber.error} onClick={saveNumber}>
-            Save
+            {t('profileForm.save')}
           </Button>
           <Button size="sm" variant="outline" onClick={() => setEditingNumber(false)}>
-            Cancel
+            {t('common.cancel')}
           </Button>
         </div>
         {parsedNumber.error && <p className="text-small text-red-ink">{parsedNumber.error}</p>}
@@ -280,7 +278,7 @@ function SubstituteRow({
       <li className="flex items-center gap-2 p-3">
         <SubstituteAvatar name={substitute.name} />
         <Input
-          aria-label={`Name for ${substitute.name}`}
+          aria-label={t('manageSubstitutes.nameFor', { name: substitute.name })}
           value={draftName}
           maxLength={100}
           autoFocus
@@ -297,10 +295,10 @@ function SubstituteRow({
           className="min-w-0 flex-1"
         />
         <Button size="sm" disabled={isSaving} onClick={saveEdit}>
-          {isSaving ? 'Saving...' : 'Save'}
+          {isSaving ? t('profileForm.saving') : t('profileForm.save')}
         </Button>
         <Button size="sm" variant="outline" onClick={cancelEdit}>
-          Cancel
+          {t('common.cancel')}
         </Button>
       </li>
     )
@@ -313,7 +311,7 @@ function SubstituteRow({
       {positions.length > 0 ? (
         <div className="w-32 shrink-0">
           <PositionPicker
-            aria-label={`Position for ${substitute.name}`}
+            aria-label={t('manageSubstitutes.positionFor', { name: substitute.name })}
             positions={positions}
             value={substitute.position?.id ?? null}
             includeUnassigned
@@ -328,7 +326,7 @@ function SubstituteRow({
         <DropdownMenuTrigger asChild>
           <button
             type="button"
-            aria-label={`Actions for ${substitute.name}`}
+            aria-label={t('manageSubstitutes.actionsFor', { name: substitute.name })}
             disabled={isSaving}
             className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-lg hover:bg-accent disabled:pointer-events-none disabled:opacity-50"
           >
@@ -336,11 +334,11 @@ function SubstituteRow({
           </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuItem onSelect={startEdit}>Rename</DropdownMenuItem>
-          <DropdownMenuItem onSelect={startNumberEdit}>Shirt number</DropdownMenuItem>
+          <DropdownMenuItem onSelect={startEdit}>{t('manageSubstitutes.rename')}</DropdownMenuItem>
+          <DropdownMenuItem onSelect={startNumberEdit}>{t('profileForm.shirtNumber')}</DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem tone="destructive" onSelect={() => onRequestRemove(substitute)}>
-            Remove…
+            {t('manageSubstitutes.removeMenu')}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

@@ -1,4 +1,6 @@
 import { ChevronRight } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
+import { formatLocale, i18n } from '@shared/i18n/i18n'
 import type { ActAsRecord } from '@shared/api/act-as'
 
 interface ActAsRecordsViewProps {
@@ -25,20 +27,21 @@ interface ActAsRecordsViewProps {
  * and no operator email on a surface the team's Admins read.
  */
 export function ActAsRecordsView({ records = [], isLoading, isError }: ActAsRecordsViewProps) {
+  const { t } = useTranslation()
   return (
     <section>
-      <h3 className="font-display text-lead font-bold">Platform access</h3>
+      <h3 className="font-display text-lead font-bold">{t('actAs.records.heading')}</h3>
       <p className="mt-1 text-small text-muted-foreground">
-        When the people who run TeamBalance worked inside your team.
+        {t('actAs.records.intro')}
       </p>
 
-      {isLoading && <p className="mt-3 text-small text-muted-foreground">Loading…</p>}
-      {isError && <p className="mt-3 text-small text-red-ink">Couldn't load platform access. Please try again.</p>}
+      {isLoading && <p className="mt-3 text-small text-muted-foreground">{t('account.loading')}</p>}
+      {isError && <p className="mt-3 text-small text-red-ink">{t('actAs.records.loadFailed')}</p>}
 
       {!isLoading && !isError && (
         records.length === 0 ? (
           <p className="mt-3 text-small text-muted-foreground">
-            The TeamBalance owner has never worked in your team.
+            {t('actAs.records.never')}
           </p>
         ) : (
           <details className="group/list mt-3">
@@ -60,34 +63,28 @@ export function ActAsRecordsView({ records = [], isLoading, isError }: ActAsReco
                         className="shrink-0 text-muted-foreground transition-transform duration-200 group-open/record:rotate-90"
                       />
                       <span>
-                        <span className="block text-small font-medium">{actorLabel(record.actorKind)} worked in your team</span>
+                        <span className="block text-small font-medium">{workedIn(record.actorKind)}</span>
                         <span className="block text-small text-muted-foreground">{describeWindow(record)}</span>
                       </span>
                     </summary>
 
                     <div className="pb-3 pl-9 pr-3 text-small">
                       <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1">
-                        <dt className="text-muted-foreground">Started</dt>
+                        <dt className="text-muted-foreground">{t('actAs.records.started')}</dt>
                         <dd>{formatDateTime(new Date(record.enteredAt))}</dd>
-                        <dt className="text-muted-foreground">Ended</dt>
+                        <dt className="text-muted-foreground">{t('actAs.records.ended')}</dt>
                         <dd>{describeEnd(record)}</dd>
-                        <dt className="text-muted-foreground">Acting as</dt>
-                        <dd>An admin of your team</dd>
+                        <dt className="text-muted-foreground">{t('actAs.records.actingAs')}</dt>
+                        <dd>{t('actAs.records.anAdmin')}</dd>
                       </dl>
 
                       <details className="mt-3">
                         <summary className="w-fit list-none text-small font-medium text-blue underline underline-offset-4 [&::-webkit-details-marker]:hidden">
-                          Why does this happen?
+                          {t('actAs.records.why')}
                         </summary>
                         <div className="mt-2 flex flex-col gap-2 border-l-2 border-border pl-3 text-small text-muted-foreground">
-                          <p>
-                            TeamBalance is run by a small team. The owner works inside a team to set it up,
-                            prepare a season, or fix something that was reported.
-                          </p>
-                          <p>
-                            Access lasts an hour at a time and is never silent — it is listed here whether or
-                            not anything changed.
-                          </p>
+                          <p>{t('actAs.records.whySetup')}</p>
+                          <p>{t('actAs.records.whyListed')}</p>
                         </div>
                       </details>
                     </div>
@@ -102,13 +99,12 @@ export function ActAsRecordsView({ records = [], isLoading, isError }: ActAsReco
   )
 }
 
-const summarize = (count: number) =>
-  count === 1 ? 'The TeamBalance owner worked here once' : `The TeamBalance owner worked here ${count} times`
+const summarize = (count: number) => i18n.t('actAs.records.summary', { count })
 
 // MEMBER exists in the contract so act-as records fold into the general audit log (#237) later; today
 // every record is the platform. An unknown kind still renders as the platform rather than as a blank.
-function actorLabel(actorKind: string): string {
-  return actorKind === 'MEMBER' ? 'A team member' : 'The TeamBalance owner'
+function workedIn(actorKind: string): string {
+  return actorKind === 'MEMBER' ? i18n.t('actAs.records.workedInByMember') : i18n.t('actAs.records.workedInByPlatform')
 }
 
 /**
@@ -128,12 +124,12 @@ function describeWindow(record: ActAsRecord): string {
 
 const describeEnd = (record: ActAsRecord) =>
   record.exitedAt
-    ? `${formatTime(endOf(record))}, when they left`
-    : `${formatTime(endOf(record))}, when the hour ran out`
+    ? i18n.t('actAs.records.endedLeft', { time: formatTime(endOf(record)) })
+    : i18n.t('actAs.records.endedHourRanOut', { time: formatTime(endOf(record)) })
 
 const endOf = (record: ActAsRecord) => new Date(record.exitedAt ?? record.lastActiveAt)
 
 const formatDateTime = (at: Date) =>
-  at.toLocaleString(undefined, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+  at.toLocaleString(formatLocale(), { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
 
-const formatTime = (at: Date) => at.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
+const formatTime = (at: Date) => at.toLocaleTimeString(formatLocale(), { hour: '2-digit', minute: '2-digit' })

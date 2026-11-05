@@ -1,5 +1,6 @@
 import { useMoneyPoolSettings, useSetMoneyPoolSettings } from '@shared/api/money-pool'
 import { MoneySettingsView } from './MoneySettingsView'
+import { i18n } from '@shared/i18n/i18n'
 
 /**
  * Container for the money pool settings: wires the settings query and the save mutation to the
@@ -17,7 +18,7 @@ export function MoneySettings() {
       isError={!!error}
       isSaving={save.isPending}
       saved={save.isSuccess}
-      error={save.error ? 'Could not save the money pool settings. Please try again.' : null}
+      error={save.error ? i18n.t('moneySettings.saveFailed') : null}
       onSave={(next) => save.mutate(next)}
     />
   )

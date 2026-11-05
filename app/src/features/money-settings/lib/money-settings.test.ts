@@ -1,4 +1,5 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
+import { i18n } from '@shared/i18n/i18n'
 import { bunqMeLinkError, centsToEuroText, euroTextToCents, settingsChanged } from './money-settings'
 
 describe('euroTextToCents', () => {
@@ -55,6 +56,19 @@ describe('bunqMeLinkError', () => {
     for (const link of ['https://evil.example/x', 'https://bunq.me.evil.example/x', 'https://bunq.me/a/b', 'https://bunq.me/a?b=1', 'https://bunq.me']) {
       expect(bunqMeLinkError(link), link).not.toBeNull()
     }
+  })
+
+  it('explains a wrong link', () => {
+    expect(bunqMeLinkError('https://evil.example/x')).toBe('Use a link like https://bunq.me/yourteam.')
+  })
+})
+
+describe('bunqMeLinkError in Dutch', () => {
+  afterEach(() => i18n.changeLanguage('en'))
+
+  it('explains a wrong link in Dutch', async () => {
+    await i18n.changeLanguage('nl')
+    expect(bunqMeLinkError('https://evil.example/x')).toBe('Gebruik een link zoals https://bunq.me/yourteam.')
   })
 })
 

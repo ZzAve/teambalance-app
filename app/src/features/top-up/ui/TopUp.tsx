@@ -1,21 +1,24 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useMutation } from '@tanstack/react-query'
 import { fetchTopUpLink } from '@shared/api/money-pool'
 import { TopUpUnavailableError } from '@shared/api/top-up-link'
 import { Button } from '@shared/ui/button'
 import { TopUpSheetView } from './TopUpSheetView'
+import { i18n } from '@shared/i18n/i18n'
 
 /**
  * Container for topping up the pool: the button, and the sheet it opens. Picking an amount fetches
  * the bunq.me link and leaves the app for it. Pure wiring, covered by the prop-only sheet's story.
  */
 export function TopUp() {
+  const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   const topUp = useMutation({ mutationFn: fetchTopUpLink })
 
   return (
     <TopUpSheetView
-      trigger={<Button size="lg">Top up</Button>}
+      trigger={<Button size="lg">{t('topUp.trigger')}</Button>}
       open={open}
       onOpenChange={(next) => {
         setOpen(next)
@@ -32,6 +35,6 @@ export function TopUp() {
 
 function errorMessage(error: Error) {
   return error instanceof TopUpUnavailableError
-    ? "Top-up isn't available for this team right now."
-    : "Couldn't open the payment page. Please try again."
+    ? i18n.t('topUp.unavailable')
+    : i18n.t('topUp.openFailed')
 }

@@ -1,5 +1,6 @@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@shared/ui/select'
 import type { EventTypeItem } from '@shared/api/event-types'
+import { useTranslation } from 'react-i18next'
 
 interface EventTypeSelectProps {
   id: string
@@ -12,10 +13,11 @@ interface EventTypeSelectProps {
 }
 
 export function EventTypeSelect({ id, eventTypes, value, onValueChange, name, required, className }: EventTypeSelectProps) {
+  const { t } = useTranslation()
   return (
     <Select name={name} required={required} value={value} onValueChange={onValueChange}>
       <SelectTrigger id={id} className={className}>
-        <SelectValue placeholder="Select type" />
+        <SelectValue placeholder={t('eventType.select')} />
       </SelectTrigger>
       <SelectContent>
         {eventTypes.map((t) => (

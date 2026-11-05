@@ -9,6 +9,7 @@ import { clearSession, hasClearableSession } from '@shared/api/clear-session'
 import { RootErrorBoundary } from '@app/RootErrorBoundary'
 import { installChunkErrorHandler, markAppLoaded } from '@shared/lib/chunk-reload'
 import { registerAppServiceWorker } from '@app/pwa/sw-registration'
+import { startLanguage } from '@shared/i18n/language'
 import './styles/global.css'
 
 // A stale shell can dynamic-import a route chunk whose hash the last deploy pruned → a blank frame.
@@ -22,6 +23,9 @@ installChunkErrorHandler()
 // worker, so a broken build can always update itself on the next open instead of stranding the
 // client. The in-shell refinements (prompt, defer-to-navigation) live in SwUpdateManager.
 registerAppServiceWorker()
+
+// The device's language (or the browser's) until /api/auth/me names the user's own (ADR-0043 §3).
+startLanguage()
 
 // While the root guard probes the session (and on any route load), show the brand splash rather
 // than a blank frame. WakingSplash escalates its copy as it waits, so a cold-start backend wake

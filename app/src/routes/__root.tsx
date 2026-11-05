@@ -11,6 +11,7 @@ import { ActAsBanner } from '@features/act-as/ui/ActAsBanner'
 import { queryClient } from '@shared/api/query-client'
 import { directionFromIndices } from '@shared/lib/view-transition-direction'
 import { useThemeSync } from '@shared/theme/theme-store'
+import { useTranslation } from 'react-i18next'
 
 // Only the sign-in routes (and the invite landing page, reachable before a joiner has any
 // session) render without a confirmed session. Exact `/auth/` prefix — not startsWith('/auth') —
@@ -93,6 +94,7 @@ function RootLayout() {
   // while the preference is `system`. index.html applies the first frame; this owns every frame
   // after it. The returned value is the resolved theme, which sonner needs as a prop.
   const theme = useThemeSync()
+  const { t } = useTranslation()
 
   return (
     <Providers>
@@ -104,7 +106,7 @@ function RootLayout() {
       {/* App-wide toast primitive. richColors gives the error toast a semantic red; `theme` is the
           resolved theme rather than sonner's own "system" so it follows the in-app preference —
           a user on Light with a dark OS must not get dark toasts. */}
-      <Toaster position="top-center" richColors theme={theme} />
+      <Toaster position="top-center" richColors theme={theme} containerAriaLabel={t('toasts.label')} />
       {/* Service-worker update lifecycle (caching plan Phase 3): auto-applies a new version by
           default and only shows a reload prompt when a deploy lands mid-session with unsaved work. */}
       <SwUpdateManager />

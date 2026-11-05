@@ -1,4 +1,5 @@
 import { Skeleton } from '@shared/ui/skeleton'
+import { useTranslation } from 'react-i18next'
 
 /**
  * Loading placeholder for the event detail route — sketches the real layout (header block, response
@@ -6,8 +7,9 @@ import { Skeleton } from '@shared/ui/skeleton'
  * bare "Loading…" line.
  */
 export function EventDetailSkeleton() {
+  const { t } = useTranslation()
   return (
-    <div role="status" aria-label="Loading event">
+    <div role="status" aria-label={t('events.loadingOne')}>
       {/* Event info card: type icon + badge / title, then the icon-marked detail rows */}
       <div className="mt-2 rounded-lg border border-border/40 bg-card p-5 shadow-sm">
         <div className="flex items-start gap-4">

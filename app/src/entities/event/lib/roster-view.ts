@@ -1,3 +1,4 @@
+import { i18n } from '@shared/i18n/i18n'
 import type { EventRoster, RosterPosition } from '@shared/api/events'
 
 /**
@@ -16,8 +17,6 @@ interface RosterChip {
   tone: RosterTone
 }
 
-const plural = (n: number, one: string, many: string) => (n === 1 ? one : many)
-
 /**
  * The collapsed status chip, or null when the event shows none.
  *
@@ -31,9 +30,9 @@ export function rosterChip(roster: EventRoster): RosterChip | null {
     case 'TALLY_ONLY':
       return null
     case 'LINEUP_SET':
-      return { text: 'Lineup set', tone: 'covered' }
+      return { text: i18n.t('roster.lineupSet'), tone: 'covered' }
     case 'SPOTS_OPEN':
-      return { text: `${roster.openSlots} ${plural(roster.openSlots, 'spot', 'spots')} open`, tone: 'short' }
+      return { text: i18n.t('roster.spotsOpen', { count: roster.openSlots }), tone: 'short' }
     // Different words, not merely a different tone (#313). Both states used to read "3 spots open"
     // and only gold-vs-red told them apart, which is unavailable to anyone who cannot distinguish
     // the two and absent from the accessible name — WCAG 1.4.1. The open-slot count is also the
@@ -43,13 +42,13 @@ export function rosterChip(roster: EventRoster): RosterChip | null {
     // is where there is room for them.
     case 'CRITICAL': {
       const empty = emptyPositions(roster).length
-      return { text: empty > 1 ? `Missing ${empty} positions` : 'Missing a position', tone: 'critical' }
+      return { text: empty > 1 ? i18n.t('roster.missingPositions', { count: empty }) : i18n.t('roster.missingPosition'), tone: 'critical' }
     }
     // The fraction rides along in the chip, so the lineup panel need not repeat it in its header.
     case 'HEADCOUNT_FULL':
-      return { text: `Full · ${roster.playingAttending}/${roster.totalTarget}`, tone: 'covered' }
+      return { text: i18n.t('roster.full', { attending: roster.playingAttending, target: roster.totalTarget }), tone: 'covered' }
     case 'HEADCOUNT_SHORT':
-      return { text: `${roster.openSlots} more needed · ${roster.playingAttending}/${roster.totalTarget}`, tone: 'short' }
+      return { text: i18n.t('roster.moreNeeded', { count: roster.openSlots, attending: roster.playingAttending, target: roster.totalTarget }), tone: 'short' }
   }
 }
 
@@ -116,7 +115,7 @@ function emptyPositions(roster: EventRoster): RosterRow[] {
  * One rule for the card row and the Next Up hero, which share a page.
  */
 export function panelNoun(roster: EventRoster): string {
-  return roster.trackRoster ? 'lineup' : "who's coming"
+  return roster.trackRoster ? i18n.t('roster.lineup') : i18n.t('roster.whoIsComing')
 }
 
 interface WhoIsComing {

@@ -241,6 +241,8 @@ const ME = ROSTER[0]
 // anywhere; an upload stores the bytes here and bumps the version the JSON payloads carry, so the
 // `<img>` reads it back through the same route as the real API.
 const PHOTOS = { personal: undefined, team: {} }
+// null until the person chooses one; the app then follows the browser language.
+const LANGUAGE = { value: undefined }
 const photoVersion = (photo) => photo?.version
 const withPhoto = (member) => ({ ...member, photoVersion: photoVersion(PHOTOS.team[member.userId]) })
 const storePhoto = (route) => ({
@@ -324,6 +326,7 @@ export async function installFixtureApi(page) {
           isPlatformAdmin: false,
           actAs: undefined,
           personalPhotoVersion: photoVersion(PHOTOS.personal),
+          language: LANGUAGE.value,
         })
 
       const method = route.request().method()
@@ -332,6 +335,11 @@ export async function installFixtureApi(page) {
         if (method === 'PUT') PHOTOS.personal = storePhoto(route)
         else if (method === 'DELETE') PHOTOS.personal = undefined
         else return image(PHOTOS.personal)
+        return route.fulfill({ status: 204 })
+      }
+      // The language is stored on the user (ADR-0043): keep it so a reload's /me returns it.
+      if (path === '/api/account/language' && method === 'PUT') {
+        LANGUAGE.value = route.request().postDataJSON?.()?.language
         return route.fulfill({ status: 204 })
       }
       if (path === '/api/members/me/photo/from-personal') {

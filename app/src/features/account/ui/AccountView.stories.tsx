@@ -7,7 +7,7 @@ import { appColumn } from '@shared/testing/app-column-decorator'
 import { withRouter } from '@shared/testing/router-decorator'
 import type { AccountSection } from '../lib/account-sections'
 import { appShell } from '../../../../storybook-support/app-shell-decorator'
-import { pageModes } from '../../../../.storybook/modes'
+import { dutchMode, pageModes } from '../../../../.storybook/modes'
 import { AccountView } from './AccountView'
 
 // AccountView is the adaptive Account settings list behind the /account container (ADR-0027 §2), and
@@ -70,9 +70,17 @@ type Story = StoryObj<typeof meta>
 // A member of one team: the full list.
 export const Data: Story = {
   decorators: shell.decorators,
-  // The page's picture, in dark and once at desktop width too (ADR-0032 §4-§5).
-  parameters: { chromatic: { modes: pageModes } },
-  play: async ({ canvas }) => {
+  // The page's picture, in dark and once at desktop width too (ADR-0032 §4-§5), and in Dutch (ADR-0043 §8).
+  parameters: { chromatic: { modes: { ...pageModes, ...dutchMode } } },
+  play: async ({ canvas, globals }) => {
+    if (globals.locale === 'nl') {
+      await expect(canvas.getByRole('button', { name: 'Uitloggen' })).toBeInTheDocument()
+      await expect(canvas.getByLabelText('Weergavenaam')).toHaveValue('Alex')
+      await expect(canvas.getByText('Persoonlijke foto')).toBeInTheDocument()
+      await expect(canvas.getByRole('radio', { name: 'Systeem' })).toBeInTheDocument()
+      await expect(canvas.getByRole('link', { name: 'Profiel' })).toHaveAttribute('aria-current', 'page')
+      return
+    }
     await expect(canvas.getByRole('button', { name: 'Log out' })).toBeInTheDocument()
     await expect(canvas.getByLabelText('Display name')).toHaveValue('Alex')
     // Named once in the Teams section and once in the shell's header.

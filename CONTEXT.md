@@ -254,6 +254,27 @@ any-team, self-service (see [ADR-0001](docs/adr/0001-product-ambition-hobby-tool
 - **Nevobo** — Dutch volleyball federation; source of external league standings
   (Competition context).
 
+### UI words per language ([ADR-0043](docs/adr/0043-dutch-and-english-react-i18next-language-on-the-user.md))
+
+The terms above are the names in code, payloads and docs, and they stay English. The UI says them
+in the user's language. A Dutch word on an _Avoid_ list above (rugnummer, invaller) is avoided in
+code and docs only; in the Dutch UI it is the right word.
+
+| Term | en (UI) | nl (UI) |
+|---|---|---|
+| Attendance State — control, filter, row, chip | Going / Maybe / Can't / Not responded | Aanwezig / Misschien / Afwezig / Geen reactie |
+| Attendance State — card answer pill | You're in / You said maybe / You're out / Respond | Je bent erbij / Je zei misschien / Je bent er niet bij / Reageer |
+| Attendance State — hero status, mid-sentence | you're in / you said maybe / you're out / you haven't responded | je bent erbij / je zei misschien / je bent er niet bij / je hebt nog niet gereageerd |
+| Shirt Number | Shirt number | Rugnummer |
+| Substitute | Substitute | Invaller |
+| Money Pool | Money pool | Teampot |
+| Top-up | Top up / Top-up | Inleggen / Inleg |
+| Position | Position | Positie |
+| Event | Event | Event |
+| Match / Training | Match / Training | Wedstrijd / Training |
+
+User content (event titles, team names, Position names, notes) is never translated.
+
 ### Architecture (hexagonal) ([ADR-0018](docs/adr/0018-enforce-hexagonal-architecture-with-flock-detekt.md))
 
 The backend is hexagonal (ports & adapters). These boundaries are enforced by the build

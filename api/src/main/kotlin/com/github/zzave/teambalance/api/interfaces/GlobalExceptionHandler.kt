@@ -11,6 +11,7 @@ import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RestControllerAdvice
+import tools.jackson.databind.DatabindException
 import tools.jackson.databind.exc.MismatchedInputException
 import java.time.format.DateTimeParseException
 
@@ -78,10 +79,16 @@ class GlobalExceptionHandler {
     // null for a non-null property, wrong type) throws a raw Jackson MismatchedInputException that
     // would otherwise escape as a 500. It is a client error — map it to 400. MismatchedInputException
     // is thrown only on the read/deserialization path, so this never mislabels a response-write failure.
-    @ExceptionHandler(MismatchedInputException::class)
-    fun handleMalformedRequestBody(): ResponseEntity<Map<String, String>> =
-        ResponseEntity.status(HttpStatus.BAD_REQUEST)
+    // An enum value the contract does not name ("DE" for a Language) fails inside Wirespec's enum
+    // deserializer as a plain DatabindException instead; that one is a client error only when it was
+    // raised while reading a request body, so a DatabindException from writing a response stays a 500.
+    @ExceptionHandler(DatabindException::class)
+    fun handleMalformedRequestBody(ex: DatabindException): ResponseEntity<Map<String, String>> {
+        val readingBody = ex is MismatchedInputException || ex.stackTrace.any { it.methodName == "deserializeBody" }
+        if (!readingBody) throw ex
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
             .body(mapOf("error" to "Malformed or invalid request body"))
+    }
 }
 
 private const val GENERATED_PACKAGE = "com.github.zzave.teambalance.api.interfaces.generated."

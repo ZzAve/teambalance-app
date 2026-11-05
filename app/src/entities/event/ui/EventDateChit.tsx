@@ -1,4 +1,6 @@
+import { useTranslation } from 'react-i18next'
 import type { EventTypeSummary } from '@shared/api/events'
+import { formatLocale } from '@shared/i18n/i18n'
 
 /**
  * The calendar "chit" that leads every event card: weekday, a big Grandstander day number, month —
@@ -9,6 +11,7 @@ import type { EventTypeSummary } from '@shared/api/events'
  */
 export function EventDateChit({ date, type }: { date: Date; type: EventTypeSummary }) {
   const color = type.color ?? '#888'
+  const locale = formatLocale(useTranslation().i18n.language)
 
   return (
     <div
@@ -16,13 +19,13 @@ export function EventDateChit({ date, type }: { date: Date; type: EventTypeSumma
       style={{ backgroundColor: color }}
     >
       <span className="text-caption font-bold uppercase leading-none tracking-[0.1em] opacity-90">
-        {date.toLocaleDateString('nl-NL', { weekday: 'short' }).replace('.', '')}
+        {date.toLocaleDateString(locale, { weekday: 'short' }).replace('.', '')}
       </span>
       <span className="font-display my-0.5 text-title font-extrabold leading-none">
         {date.getDate()}
       </span>
       <span className="text-caption font-bold uppercase leading-none tracking-[0.12em] opacity-80">
-        {date.toLocaleDateString('nl-NL', { month: 'short' }).replace('.', '')}
+        {date.toLocaleDateString(locale, { month: 'short' }).replace('.', '')}
       </span>
     </div>
   )

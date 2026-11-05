@@ -1,5 +1,6 @@
 package com.github.zzave.teambalance.api.interfaces
 
+import com.github.zzave.teambalance.api.application.AccountService
 import com.github.zzave.teambalance.api.application.ActAsService
 import com.github.zzave.teambalance.api.application.AuthService
 import com.github.zzave.teambalance.api.application.MoneyPoolService
@@ -30,6 +31,7 @@ class AuthController(
     private val currentTeamGateway: CurrentTeamGateway,
     private val photoService: PhotoService,
     private val moneyPoolService: MoneyPoolService,
+    private val accountService: AccountService,
 ) : RequestMagicLink.Handler,
     VerifyMagicLink.Handler,
     Logout.Handler,
@@ -113,6 +115,7 @@ class AuthController(
             actAs = actAs?.produce(),
             personalPhotoVersion = photoService.personalPhotoVersion(user.id),
             moneyPoolEnabled = null,
+            language = accountService.languageOf(user.id)?.produce(),
         )
     }
 }

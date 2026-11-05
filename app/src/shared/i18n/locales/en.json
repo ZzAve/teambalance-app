@@ -1,0 +1,261 @@
+{
+  "attendance": {
+    "word": {
+      "ATTENDING": "Going",
+      "MAYBE": "Maybe",
+      "ABSENT": "Can't",
+      "NOT_RESPONDED": "Not responded"
+    },
+    "pill": {
+      "ATTENDING": "You're in",
+      "MAYBE": "You said maybe",
+      "ABSENT": "You're out",
+      "NOT_RESPONDED": "Respond"
+    },
+    "status": {
+      "ATTENDING": "you're in",
+      "MAYBE": "you said maybe",
+      "ABSENT": "you're out",
+      "NOT_RESPONDED": "you haven't responded"
+    }
+  },
+  "events": {
+    "title": "Events",
+    "calendarLinks": "Calendar links",
+    "newEvent": "New Event",
+    "loading": "Loading events",
+    "loadFailed": "Couldn't load events.",
+    "empty": {
+      "nothingElse": "Nothing else coming up.",
+      "noneYet": "No events yet.",
+      "noneUpcoming": "No upcoming events.",
+      "noneForType": "No events for this type.",
+      "nothingToAnswer": "Nothing needs your answer.",
+      "noneShort": "No events are short of players.",
+      "noneMatch": "No events match these filters."
+    },
+    "loadingOne": "Loading event"
+  },
+  "eventCard": {
+    "time": "Time",
+    "location": "Location",
+    "description": "Description"
+  },
+  "relativeDay": {
+    "today": "Today",
+    "tomorrow": "Tomorrow",
+    "thisWeekend": "This weekend",
+    "inDays_one": "in {{count}} day",
+    "inDays_other": "in {{count}} days"
+  },
+  "roster": {
+    "lineup": "lineup",
+    "whoIsComing": "who's coming",
+    "lineupSet": "Lineup set",
+    "spotsOpen_one": "{{count}} spot open",
+    "spotsOpen_other": "{{count}} spots open",
+    "missingPosition": "Missing a position",
+    "missingPositions": "Missing {{count}} positions",
+    "full": "Full · {{attending}}/{{target}}",
+    "moreNeeded": "{{count}} more needed · {{attending}}/{{target}}",
+    "going": "{{count}} going",
+    "goingWithStaff": "{{count}} going +{{staff}} staff"
+  },
+  "hero": {
+    "label": "Next up",
+    "going": "{{count}} going · {{status}}",
+    "show": "Show {{noun}}",
+    "hide": "Hide {{noun}}"
+  },
+  "countdown": {
+    "now": "Now",
+    "on": "on",
+    "away": "away",
+    "days": "{{count}}d",
+    "hours": "{{count}}h",
+    "minutes": "{{count}}m"
+  },
+  "language": {
+    "heading": "Language",
+    "saveFailed": "Couldn't save your language — please try again."
+  },
+  "common": {
+    "cancel": "Cancel"
+  },
+  "nav": {
+    "events": "Events",
+    "team": "Team",
+    "money": "Money",
+    "profile": "Profile"
+  },
+  "header": {
+    "switchTeam": "Current team: {{team}}. Switch team"
+  },
+  "toasts": {
+    "label": "Notifications"
+  },
+  "filters": {
+    "button": "Filters",
+    "clear": "Clear filters",
+    "result_one": "{{count}} event matches these filters",
+    "result_other": "{{count}} events match these filters",
+    "eventTypes": "Event types",
+    "yourAnswer": "Your answer",
+    "turnout": "Turnout",
+    "band": {
+      "missing-position": "Missing a position",
+      "spots-open": "Spots open",
+      "covered": "Covered",
+      "no-target": "No target set"
+    },
+    "showPast": "Show past events",
+    "showPastOn": "On — past events included",
+    "showPastOff": "Off — upcoming only",
+    "keepOpen": "Keep panels open",
+    "keepOpenOn": "On — every card starts open",
+    "keepOpenOff": "Off — tap to open a card"
+  },
+  "bulk": {
+    "attend_one": "Attend {{count}} {{type}}",
+    "attend_other": "Attend {{count}} {{types}}"
+  },
+  "whoIsComing": {
+    "heading": "Who's coming",
+    "player_one": "Player",
+    "player_other": "Players",
+    "sub_one": "Sub",
+    "sub_other": "Subs"
+  },
+  "answerRow": {
+    "change": "Change your answer",
+    "hide": "Hide answer options"
+  },
+  "myAnswer": {
+    "setBy": "{{name}} said {{status}}",
+    "setByMaybe": "{{name}} said maybe"
+  },
+  "lineup": {
+    "heading": "Lineup",
+    "nobodyAnswered": "Nobody has answered yet.",
+    "callIn": "Call in substitutes",
+    "nobodyYet": "Nobody yet",
+    "inPosition": "in {{position}}",
+    "unassigned": "Unassigned",
+    "verdict": {
+      "nobodyYet": "nobody yet",
+      "needsMore": "needs {{count}} more",
+      "spare": "{{count}} spare",
+      "covered": "covered"
+    },
+    "stillOpen": "Still open: {{positions}}",
+    "positionsOpen": "{{count}} positions still open",
+    "players_one": "{{count}} player",
+    "players_other": "{{count}} players",
+    "subs_one": "{{count}} sub",
+    "subs_other": "{{count}} subs",
+    "findA": "Find a {{position}}",
+    "findAn": "Find an {{position}}"
+  },
+  "memberChip": {
+    "substitute": "{{name}}, substitute",
+    "self": "{{name}} (you)",
+    "label": "{{who}} — {{word}}. Change their answer",
+    "you": "you",
+    "sub": "Sub",
+    "showMore": "Show {{count}} more {{label}}",
+    "showFewer": "Show fewer {{label}}",
+    "less": "less",
+    "title": "{{name}} — {{word}}"
+  },
+  "account": {
+    "title": "Account",
+    "email": "Email",
+    "photo": "Personal photo",
+    "photoHint": "Only you see this photo. A team shows the photo you choose for that team.",
+    "changePhoto": "Change photo",
+    "uploadPhoto": "Upload photo",
+    "removePhoto": "Remove photo",
+    "removePhotoHint": "Your teams keep the photos they already use.",
+    "remove": "Remove",
+    "copyQuestion": "Use this photo in {{team}} too?",
+    "copyConfirm": "Use in {{team}}",
+    "notNow": "Not now",
+    "profile": "Profile",
+    "loading": "Loading…",
+    "loadFailed": "Couldn't load your profile. Please try again.",
+    "teams": "Teams",
+    "active": "Active",
+    "joinOrCreate": "Join or create a team",
+    "platformAdmin": "Platform admin",
+    "teamsConsole": "Teams console",
+    "creationCodes": "Creation codes",
+    "logout": "Log out"
+  },
+  "photo": {
+    "error": {
+      "PHOTO_TOO_LARGE": "That photo is too large. Please pick another one.",
+      "INVALID_PHOTO": "That file isn't a photo we can use.",
+      "NO_PERSONAL_PHOTO": "You don't have a personal photo yet.",
+      "FORBIDDEN": "You are not allowed to change this photo.",
+      "FAILED": "Couldn't save the photo. Please try again."
+    },
+    "cropTitle": "Crop your photo",
+    "cropHint": "Drag to move, and zoom to fit your face in the circle.",
+    "zoom": "Zoom",
+    "use": "Use photo",
+    "readFailed": "Could not read that image."
+  },
+  "profileForm": {
+    "displayName": "Display name",
+    "namePlaceholder": "Your name",
+    "nameTaken": "That display name is already taken.",
+    "nameRequired": "Display name is required.",
+    "nameTooLong": "Display name must be {{max}} characters or fewer.",
+    "position": "Position",
+    "selectPosition": "Please select a position.",
+    "shirtNumber": "Shirt number",
+    "shirtNone": "None",
+    "shirtRange": "Use a whole number from 0 to {{max}}.",
+    "numberTaken": "That shirt number is already taken.",
+    "saving": "Saving...",
+    "save": "Save"
+  },
+  "theme": {
+    "heading": "Appearance",
+    "hint": "System follows your device's light or dark setting.",
+    "system": "System",
+    "light": "Light",
+    "dark": "Dark"
+  },
+  "crossMember": {
+    "set": "Set {{name}} to {{word}}"
+  },
+  "attribution": {
+    "teammate": "a teammate"
+  },
+  "eventType": {
+    "select": "Select type"
+  },
+  "references": {
+    "heading": "Links (optional)",
+    "hint": "Add the Nevobo page, match form, and more.",
+    "label": "Link {{n}} label",
+    "labelPlaceholder": "Label (optional)",
+    "url": "Link {{n}} URL",
+    "remove": "Remove link {{n}}",
+    "add": "Add link"
+  },
+  "series": {
+    "thisOne": "This one",
+    "partOf": "Part of a series",
+    "occurrence": "Occurrence {{current}} of {{total}}",
+    "more": "+{{count}} more"
+  },
+  "member": {
+    "shirtNumber": "Shirt number {{number}}"
+  },
+  "position": {
+    "select": "Select a position",
+    "unassigned": "Unassigned"
+  }
+}

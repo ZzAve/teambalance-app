@@ -1,4 +1,5 @@
 import type { AttendanceEntry } from '@shared/api/events'
+import { i18n } from '@shared/i18n/i18n'
 
 /**
  * The name to show after "set by" on an attendee row, or `null` when no attribution should show —
@@ -22,5 +23,5 @@ export function attributionName(attendance: AttendanceEntry, all: AttendanceEntr
  * never sets their own state (ADR-0033), so their rows always name someone.
  */
 export function setByName(changedBy: string, all: AttendanceEntry[]): string {
-  return all.find((a) => a.userId === changedBy)?.displayName ?? 'a teammate'
+  return all.find((a) => a.userId === changedBy)?.displayName ?? i18n.t('attribution.teammate')
 }

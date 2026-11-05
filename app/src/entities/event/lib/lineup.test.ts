@@ -1,4 +1,5 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, afterEach } from 'vitest'
+import { i18n } from '@shared/i18n/i18n'
 import { makeAttendee, makeRoster, makeSubstitute } from '@shared/testing/event-fixtures'
 import { comingLine, findSomeone, lineupRows, openLine, verdictWord } from './lineup'
 
@@ -269,5 +270,31 @@ describe('comingLine', () => {
 
   it('is null when nobody is going', () => {
     expect(comingLine(lineupRows([makeAttendee('u1', 'Anna', 'Setter', { state: 'ABSENT' })], roster()))).toBeNull()
+  })
+})
+
+// ADR-0043: the lineup panel's words in the Dutch UI. Position names are the team's own and stay as typed.
+describe('lineup words in Dutch', () => {
+  afterEach(() => i18n.changeLanguage('en'))
+
+  it('says the verdicts, the open line, the coming line and the picker entry in Dutch', async () => {
+    await i18n.changeLanguage('nl')
+    const rowFor = (n: number) =>
+      lineupRows(Array.from({ length: n }, (_, i) => makeAttendee(`u${i}`, `M${i}`, 'Setter')), roster())[0]
+    expect(verdictWord(rowFor(0))).toBe('nog niemand')
+    expect(verdictWord(rowFor(1))).toBe('nog 1 nodig')
+    expect(verdictWord(rowFor(2))).toBe('compleet')
+    expect(verdictWord(rowFor(4))).toBe('2 extra')
+    expect(openLine(lineupRows([], roster(POSITIONS.slice(1, 2))))).toBe('Nog open: Libero')
+    const three = [...POSITIONS.slice(0, 2), { id: 'p-mid', label: 'Middle', required: 2, attending: 0, kind: 'PLAYING' as const }]
+    expect(openLine(lineupRows([], roster(three)))).toBe('Nog 3 posities open')
+    const rows = lineupRows(
+      [makeAttendee('u1', 'Anna', 'Setter'), makeAttendee('u2', 'Bram', 'Libero'), makeAttendee('u3', 'Cor', 'Coach')],
+      roster(),
+      null,
+      [makeSubstitute('s1', 'Jan', { position: { id: 'p-libero', label: 'Libero' } })],
+    )
+    expect(comingLine(rows)).toBe('2 spelers · 1 invaller · 1 Coach')
+    expect(findSomeone('Outside')).toBe('Zoek een Outside')
   })
 })

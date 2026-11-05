@@ -12,6 +12,7 @@ import {
 import { usePositions } from '@shared/api/positions'
 import { accountSections } from '@features/account/lib/account-sections'
 import { AccountView } from '@features/account/ui/AccountView'
+import { useTranslation } from 'react-i18next'
 
 /**
  * The team-independent Account tab (ADR-0027 §1). Because it is not under `/t/$slug`, it resolves on
@@ -47,6 +48,7 @@ function AccountPage() {
   const uploadPhoto = useUploadPersonalPhoto()
   const removePhoto = useRemovePersonalPhoto()
   const copyPhoto = useCopyPersonalPhotoToTeam()
+  const { t } = useTranslation()
   const [offerCopy, setOfferCopy] = useState(false)
 
   const memberErrorCode =
@@ -69,7 +71,7 @@ function AccountPage() {
       personalPhotoVersion={user.personalPhotoVersion ?? null}
       isPhotoSaving={photoMutations.some((m) => m.isPending)}
       photoErrorMessage={
-        photoError ? (photoError instanceof PhotoError ? photoError.message : "Couldn't save the photo. Please try again.") : undefined
+        photoError ? t(`photo.error.${photoError instanceof PhotoError ? photoError.code : 'FAILED'}`) : undefined
       }
       copyPhotoTeamName={offerCopy && activeTeam ? activeTeam.name : null}
       onUploadPersonalPhoto={(photo) => {

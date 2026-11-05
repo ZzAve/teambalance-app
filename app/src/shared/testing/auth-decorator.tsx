@@ -17,6 +17,7 @@ export function authenticatedUser(activeTeam: AuthenticatedUser['activeTeam']): 
     actAs: undefined,
     personalPhotoVersion: undefined,
     moneyPoolEnabled: activeTeam ? true : undefined,
+    language: undefined,
   }
 }
 

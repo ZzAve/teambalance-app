@@ -1,5 +1,6 @@
 import { queryOptions, useMutation, useQuery } from '@tanstack/react-query'
 import { toast } from 'sonner'
+import { applyUserLanguage } from '@shared/i18n/language'
 import { api } from './wirespec-client'
 import type { AuthenticatedUser } from './generated/model/AuthenticatedUser'
 
@@ -81,6 +82,8 @@ export const authMeQueryOptions = queryOptions({
     if (!user || typeof user !== 'object' || !Array.isArray(user.teams)) {
       throw new Error(`Unconfirmed session: /me returned status ${res.status} without a usable body`)
     }
+    // Before the routes render, so the first screen after sign-in is already in the user's language.
+    applyUserLanguage(user.language)
     return user
   },
 })

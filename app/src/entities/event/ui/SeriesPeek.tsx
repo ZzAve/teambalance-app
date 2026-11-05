@@ -3,16 +3,19 @@ import { Link } from '@tanstack/react-router'
 import { ChevronDown, Repeat } from 'lucide-react'
 import type { SeriesPeek as SeriesPeekModel, SeriesPeekEntry } from '../lib/series-peek'
 import { useTeamRoutes } from '@shared/lib/team-routes'
+import { useTranslation } from 'react-i18next'
+import { formatLocale } from '@shared/i18n/i18n'
 
 interface SeriesPeekProps {
   peek: SeriesPeekModel
 }
 
 function formatOccurrence(iso: string): string {
-  return new Date(iso).toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })
+  return new Date(iso).toLocaleDateString(formatLocale(), { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })
 }
 
 function Occurrence({ entry }: { entry: SeriesPeekEntry }) {
+  const { t } = useTranslation()
   const routes = useTeamRoutes()
   const label = formatOccurrence(entry.startTime)
   const content = (
@@ -26,7 +29,7 @@ function Occurrence({ entry }: { entry: SeriesPeekEntry }) {
       {label}
       {entry.isCurrent && (
         <span className="ml-auto rounded-full bg-blue/15 px-2 py-0.5 text-caption font-semibold text-blue">
-          This one
+          {t('series.thisOne')}
         </span>
       )}
     </div>
@@ -43,6 +46,7 @@ function Occurrence({ entry }: { entry: SeriesPeekEntry }) {
  * built by buildSeriesPeek.
  */
 export function SeriesPeek({ peek }: SeriesPeekProps) {
+  const { t } = useTranslation()
   const [open, setOpen] = useState(false)
 
   return (
@@ -57,9 +61,9 @@ export function SeriesPeek({ peek }: SeriesPeekProps) {
           <Repeat size={15} />
         </span>
         <div className="min-w-0">
-          <p className="text-small font-bold leading-tight">Part of a series</p>
+          <p className="text-small font-bold leading-tight">{t('series.partOf')}</p>
           <p className="text-caption text-muted-foreground">
-            Occurrence {peek.currentPosition} of {peek.total}
+            {t('series.occurrence', { current: peek.currentPosition, total: peek.total })}
           </p>
         </div>
         <ChevronDown
@@ -75,7 +79,7 @@ export function SeriesPeek({ peek }: SeriesPeekProps) {
           ))}
           {peek.hiddenCount > 0 && (
             <div className="flex items-center gap-2 px-2.5 py-1 text-caption italic text-muted-foreground">
-              <span className="h-px flex-1 bg-border" />+{peek.hiddenCount} more
+              <span className="h-px flex-1 bg-border" />{t('series.more', { count: peek.hiddenCount })}
               <span className="h-px flex-1 bg-border" />
             </div>
           )}

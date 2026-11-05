@@ -17,6 +17,7 @@ function user(overrides: Partial<AuthenticatedUser> = {}): AuthenticatedUser {
     actAs: undefined,
     personalPhotoVersion: undefined,
     moneyPoolEnabled: undefined,
+    language: undefined,
     ...overrides,
   }
 }
@@ -34,23 +35,23 @@ describe('accountSections', () => {
     expect(accountSections(u)).toContain('logout')
   })
 
-  it('teamless: email, photo, appearance, teams, log out — no name/position, no admin', () => {
-    expect(accountSections(user())).toEqual(['email', 'photo', 'appearance', 'teams', 'logout'])
+  it('teamless: email, photo, appearance, language, teams, log out — no name/position, no admin', () => {
+    expect(accountSections(user())).toEqual(['email', 'photo', 'appearance', 'language', 'teams', 'logout'])
   })
 
   it('single team: adds display name + position', () => {
     const sections = accountSections(user({ teams: [TEAM], activeTeam: TEAM, role: 'MEMBER' }))
-    expect(sections).toEqual(['email', 'photo', 'displayName', 'position', 'appearance', 'teams', 'logout'])
+    expect(sections).toEqual(['email', 'photo', 'displayName', 'position', 'appearance', 'language', 'teams', 'logout'])
   })
 
   it('multi team with one active is the same as single team (the switcher lives in Teams)', () => {
     const sections = accountSections(user({ teams: [TEAM, OTHER_TEAM], activeTeam: TEAM, role: 'MEMBER' }))
-    expect(sections).toEqual(['email', 'photo', 'displayName', 'position', 'appearance', 'teams', 'logout'])
+    expect(sections).toEqual(['email', 'photo', 'displayName', 'position', 'appearance', 'language', 'teams', 'logout'])
   })
 
   it('multi team with none active hides name/position (no Active Team yet)', () => {
     const sections = accountSections(user({ teams: [TEAM, OTHER_TEAM] }))
-    expect(sections).toEqual(['email', 'photo', 'appearance', 'teams', 'logout'])
+    expect(sections).toEqual(['email', 'photo', 'appearance', 'language', 'teams', 'logout'])
   })
 
   it('platform admin adds the platform-admin section', () => {
@@ -69,6 +70,7 @@ describe('accountSections', () => {
       'displayName',
       'position',
       'appearance',
+      'language',
       'teams',
       'platformAdmin',
       'logout',

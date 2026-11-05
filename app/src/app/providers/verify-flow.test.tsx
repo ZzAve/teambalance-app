@@ -32,6 +32,7 @@ const USER: AuthenticatedUser = {
   actAs: undefined,
   personalPhotoVersion: undefined,
   moneyPoolEnabled: undefined,
+  language: undefined,
 }
 
 const server = setupServer(

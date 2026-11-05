@@ -4,6 +4,7 @@ import com.github.zzave.teambalance.api.domain.exception.NotPlatformAdminExcepti
 import com.github.zzave.teambalance.api.domain.model.ActAs
 import com.github.zzave.teambalance.api.domain.model.DisplayName
 import com.github.zzave.teambalance.api.domain.model.Email
+import com.github.zzave.teambalance.api.domain.model.Language
 import com.github.zzave.teambalance.api.domain.model.Invitation
 import com.github.zzave.teambalance.api.domain.model.PositionId
 import com.github.zzave.teambalance.api.domain.model.Role
@@ -106,6 +107,8 @@ internal class TeamDirectory {
         override fun rememberActiveTeam(userId: UserId, teamId: TeamId) {
             remembered[userId] = teamId
         }
+        override fun findLanguage(userId: UserId): Language? = null
+        override fun saveLanguage(userId: UserId, language: Language) = Unit
     }
 
     @Suppress("TooManyFunctions")

@@ -1,3 +1,5 @@
+import { i18n } from '@shared/i18n/i18n'
+
 const MAX = 999
 
 /**
@@ -8,7 +10,7 @@ export function parseShirtNumber(raw: string): { value: number | null; error: st
   const trimmed = raw.trim()
   if (trimmed === '') return { value: null, error: null }
   if (!/^\d+$/.test(trimmed) || Number(trimmed) > MAX) {
-    return { value: null, error: `Use a whole number from 0 to ${MAX}.` }
+    return { value: null, error: i18n.t('profileForm.shirtRange', { max: MAX }) }
   }
   return { value: Number(trimmed), error: null }
 }

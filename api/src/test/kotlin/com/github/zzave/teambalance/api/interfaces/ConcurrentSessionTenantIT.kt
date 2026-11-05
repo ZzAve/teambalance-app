@@ -37,9 +37,9 @@ import java.util.concurrent.atomic.AtomicInteger
  * MockMvc runs each request on one thread with no concurrent commit, so it cannot exhibit the race.
  * That is the justification for the only real-server IT in the suite (see docs/testing.md PR gate).
  *
- * Currently RED (the race fires); it turns GREEN once the tenant routing is resolved without a
- * concurrent first-write to the session (e.g. set once at login, or resolved per-request instead of
- * memoized on the servlet session).
+ * Sign-in pins the routing, but a session can still lack it while its user has a team (teamless at
+ * sign-in, member later). The INSERT is made an upsert in `SessionConfig`, so concurrent first writes
+ * of the same attribute no longer collide.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 class ConcurrentSessionTenantIT : TeamBalanceIT() {

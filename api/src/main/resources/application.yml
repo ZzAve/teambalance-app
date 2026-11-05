@@ -149,6 +149,10 @@ teambalance:
     invitation-accept:
       capacity: 10
       refill-period: 1m
+    # POST /api/demo/session — the demo container's unauthenticated guest login, keyed per IP.
+    demo-session:
+      capacity: 10
+      refill-period: 1m
     # GET /api/bunq/oauth/callback — public (the single-use state is the credential), keyed per IP.
     bunq-oauth-callback:
       capacity: 10

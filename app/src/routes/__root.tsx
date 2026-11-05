@@ -9,6 +9,8 @@ import { authMeQueryOptions } from '@shared/api/auth'
 import { TeamSwitcher } from '@features/switch-team/ui/TeamSwitcher'
 import { ActAsBanner } from '@features/act-as/ui/ActAsBanner'
 import { PasskeyPrompt } from '@features/passkey-prompt/ui/PasskeyPrompt'
+import { DemoBanner } from '@widgets/demo-banner/ui/DemoBanner'
+import { LOGIN_PATH } from '@shared/api/auth-redirect'
 import { queryClient } from '@shared/api/query-client'
 import { directionFromIndices } from '@shared/lib/view-transition-direction'
 import { useThemeSync } from '@shared/theme/theme-store'
@@ -46,14 +48,14 @@ export const Route = createRootRoute({
   // (see below) — either way the protected route is never rendered.
   beforeLoad: async ({ location }) => {
     if (isAuthRoute(location.pathname)) return
-    // A genuine 401 resolves to null → /login. A backend error (network / 5xx while the
+    // A genuine 401 resolves to null → LOGIN_PATH (/login, or /demo in the demo build). A backend error (network / 5xx while the
     // scale-to-zero container is still waking) REJECTS: let it propagate to the router's
     // themed error fallback (Retry reloads, by which point the backend is warm) instead of
     // failing closed to /login. Failing closed here both logged out a still-valid session
     // and — because the errored /me query stayed in cache while RootLayout mounted — crashed
     // the render into a blank frame.
     const user = await queryClient.ensureQueryData(authMeQueryOptions)
-    if (!user) throw redirect({ to: '/login' })
+    if (!user) throw redirect({ to: LOGIN_PATH })
 
     // Has-ANY-team gate (ADR-0023 §4). Which Team is active is a separate question, answered by
     // /t/$slug. Teamlessness is read from the explicit list, never inferred from role == null
@@ -105,7 +107,13 @@ function RootLayout() {
       {/* No tab bar on the sign-in routes: signed out, every tab would only bounce back to /login. */}
       <AppShellFrame
         teamSwitcher={<TeamSwitcher />}
-        banner={<ActAsBanner />}
+        banner={
+          <>
+            {/* Demo build only (VITE_DEMO); its own element, outside the act-as banner, so the two share no state. */}
+            {import.meta.env.VITE_DEMO && <DemoBanner />}
+            <ActAsBanner />
+          </>
+        }
         nav={isAuthRoute(pathname) ? undefined : <BottomNav />}
       >
         <Outlet />

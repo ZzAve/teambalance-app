@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { STORAGE_STATE_LOGOUT } from './helpers'
+import { LOGIN_URL, STORAGE_STATE_LOGOUT } from './helpers'
 
 // Real e2e: the auth render-gate across the whole seam — browser → API → DB.
 // Seam uniquely covered (vs login/attendance): a COLD unauthenticated visit fails closed to
@@ -13,7 +13,7 @@ test.describe('cold unauthenticated visit', () => {
   test('is redirected to login before events render', async ({ page }) => {
     await page.goto('/')
 
-    await expect(page).toHaveURL('/login')
+    await expect(page).toHaveURL(LOGIN_URL)
     await expect(page.getByRole('heading', { name: 'TeamBalance' })).toBeVisible()
     // Gated: the protected events screen never rendered.
     await expect(page.getByRole('heading', { name: 'Events' })).toHaveCount(0)
@@ -35,13 +35,13 @@ test.describe('logout', () => {
     await page.getByRole('link', { name: 'Profile' }).click()
     await expect(page).toHaveURL('/account')
     await page.getByRole('button', { name: 'Log out' }).click()
-    await expect(page).toHaveURL('/login')
+    await expect(page).toHaveURL(LOGIN_URL)
     await expect(page.getByRole('heading', { name: 'TeamBalance' })).toBeVisible()
 
     // The session was invalidated server-side, so revisiting a protected route is bounced to
     // login — not rendered from a stale cookie.
     await page.goto('/')
-    await expect(page).toHaveURL('/login')
+    await expect(page).toHaveURL(LOGIN_URL)
     await expect(page.getByRole('heading', { name: 'Events' })).toHaveCount(0)
   })
 })

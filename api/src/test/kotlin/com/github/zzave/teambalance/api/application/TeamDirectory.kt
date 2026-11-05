@@ -122,7 +122,7 @@ internal class TeamDirectory {
 
         override fun findByTeamId(teamId: TeamId): List<TeamMember> = emptyList()
         override fun findDisplayName(userId: UserId): DisplayName? = null
-        override fun findMembersByUserIds(userIds: Set<UserId>): Map<UserId, TeamMember> = emptyMap()
+        override fun findMembersByUserIds(teamId: TeamId, userIds: Set<UserId>): Map<UserId, TeamMember> = emptyMap()
         override fun updateRole(teamId: TeamId, userId: UserId, role: Role) = join(userId, teamId, role)
         override fun deactivate(teamId: TeamId, userId: UserId) = leave(userId, teamId)
         override fun assignPosition(teamId: TeamId, userId: UserId, positionId: PositionId?) = Unit

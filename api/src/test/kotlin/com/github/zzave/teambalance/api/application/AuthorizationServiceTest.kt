@@ -26,7 +26,7 @@ private class FakeTeamMemberRepository(private val roles: Map<Pair<TeamId, UserI
 
     override fun findByTeamId(teamId: TeamId) = emptyList<TeamMember>()
     override fun findDisplayName(userId: UserId): DisplayName? = null
-    override fun findMembersByUserIds(userIds: Set<UserId>) = emptyMap<UserId, TeamMember>()
+    override fun findMembersByUserIds(teamId: TeamId, userIds: Set<UserId>) = emptyMap<UserId, TeamMember>()
     override fun findRole(teamId: TeamId, userId: UserId): Role? = roles[teamId to userId]
     override fun findTenantRouting(teamId: TeamId, userId: UserId): TenantRouting? = null
     override fun findSoleTenantRouting(userId: UserId): TenantRouting? = null

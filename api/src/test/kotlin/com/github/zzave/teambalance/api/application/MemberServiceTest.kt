@@ -78,7 +78,7 @@ private class FakeMembershipRepo(
             }
 
     override fun findDisplayName(userId: UserId): DisplayName? = userRepo.findById(userId)?.displayName
-    override fun findMembersByUserIds(userIds: Set<UserId>) = emptyMap<UserId, TeamMember>()
+    override fun findMembersByUserIds(teamId: TeamId, userIds: Set<UserId>) = emptyMap<UserId, TeamMember>()
     override fun findRole(teamId: TeamId, userId: UserId): Role? =
         store[teamId to userId]?.takeIf { it.active }?.role
     override fun findTenantRouting(teamId: TeamId, userId: UserId): TenantRouting? = null

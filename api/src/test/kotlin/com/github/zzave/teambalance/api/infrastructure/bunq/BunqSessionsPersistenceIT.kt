@@ -186,28 +186,43 @@ class BunqSessionsPersistenceIT : TeamBalanceIT() {
             }
         }
 
-        // The two columns of one row, one team, one key: swapping what they hold must open neither.
-        test("a Context in the grant column and a grant in the Context column are read as neither, and nothing is written") {
+        // The next two tests write the wrong-purpose value themselves, with the plaintext that is right for its column, so
+        // that only the purpose differs. With the purpose ignored both would pass through BunqSessions as valid.
+        fun setColumns(grant: EncryptedToken?, context: EncryptedToken?) {
+            jdbcTemplate.update(
+                "UPDATE ${CalendarLinkFixture.ALPHA_SCHEMA}.bunq_connection SET access_token_encrypted = ?, api_context_encrypted = ?",
+                grant?.value ?: rowIn(ROUTING)!!.grant.value, context?.value,
+            )
+        }
+
+        test("a grant made for the API context in the grant column gets no session written, and the read does not fail") {
+            FakeBunqServer().use { fake ->
+                connect(ROUTING, grantOf(ALPHA))
+                // No stored Context, so the session the read sets up is one that wants to be stored.
+                setColumns(cipher.encrypt(ACCESS_TOKEN, TokenCipher.aadOf(ALPHA, Purpose.BUNQ_API_CONTEXT)), null)
+                val before = rowIn(ROUTING)
+
+                readIn(ROUTING, sessions(fake))
+
+                fake.count("POST", "/v1/installation") shouldBe 1
+                rowIn(ROUTING) shouldBe before
+            }
+        }
+
+        test("a Context made for the grant in the Context column is not restored, and is replaced by a new session") {
             FakeBunqServer().use { fake ->
                 connect(ROUTING, grantOf(ALPHA))
                 readIn(ROUTING, sessions(fake))
-                val grantColumn = rowIn(ROUTING)!!.grant.value
-                val contextColumn = rowIn(ROUTING)!!.context!!.value
-                jdbcTemplate.update(
-                    "UPDATE ${CalendarLinkFixture.ALPHA_SCHEMA}.bunq_connection SET access_token_encrypted = ?, api_context_encrypted = ?",
-                    contextColumn, grantColumn,
-                )
-                val swapped = rowIn(ROUTING)!!
-                shouldThrow<AEADBadTagException> { cipher.decrypt(swapped.grant, TokenCipher.aadOf(ALPHA, Purpose.BUNQ_GRANT)) }
-                shouldThrow<AEADBadTagException> {
-                    cipher.decrypt(swapped.context!!, TokenCipher.aadOf(ALPHA, Purpose.BUNQ_API_CONTEXT))
-                }
+                val grantColumn = rowIn(ROUTING)!!.grant
+                val validContext = cipher.decrypt(rowIn(ROUTING)!!.context!!, TokenCipher.aadOf(ALPHA, Purpose.BUNQ_API_CONTEXT))
                 val installations = fake.count("POST", "/v1/installation")
+                setColumns(grantColumn, cipher.encrypt(validContext, TokenCipher.aadOf(ALPHA, Purpose.BUNQ_GRANT)))
 
                 readIn(ROUTING, sessions(fake))
 
                 fake.count("POST", "/v1/installation") shouldBe installations + 1
-                rowIn(ROUTING) shouldBe swapped
+                rowIn(ROUTING)!!.grant shouldBe grantColumn
+                cipher.decrypt(rowIn(ROUTING)!!.context!!, TokenCipher.aadOf(ALPHA, Purpose.BUNQ_API_CONTEXT)) shouldContain ACCESS_TOKEN
             }
         }
 

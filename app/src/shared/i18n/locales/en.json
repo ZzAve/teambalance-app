@@ -257,5 +257,90 @@
   "position": {
     "select": "Select a position",
     "unassigned": "Unassigned"
+  },
+  "manageCreationCodes": {
+    "heading": "Creation codes",
+    "intro": "Generate one-time codes that let a new owner create a team.",
+    "loading": "Loading…",
+    "forbidden": "You don't have access to creation codes.",
+    "loadFailed": "Couldn't load creation codes. Please try again.",
+    "generate": "Generate code",
+    "consumedError": "That code was already used and cannot be revoked.",
+    "empty": "No creation codes yet. Generate one above.",
+    "revokeTitle": "Revoke code",
+    "revokeDescription": "Revoke \"{{code}}\"? It can no longer be used to create a team.",
+    "revoke": "Revoke",
+    "status": {
+      "active": "Active",
+      "expired": "Expired",
+      "consumed": "Used"
+    }
+  },
+  "createMemberlessTeam": {
+    "heading": "Create a team",
+    "intro": "Creates an empty team you can enter and set up, then hand over with an admin invite link. You don't join it.",
+    "created": "Created “{{name}}”. Enter it from the list below to set it up.",
+    "teamName": "Team name",
+    "namePlaceholder": "e.g. Tovo Dames 5",
+    "teamAddress": "Team address",
+    "creating": "Creating…",
+    "submit": "Create team"
+  },
+  "joinTeam": {
+    "heading": "Join your team",
+    "intro": "Paste the invite link you were sent below — or easiest of all, just click the link directly.",
+    "inviteLink": "Invite link",
+    "joining": "Joining…",
+    "join": "Join",
+    "noLink": "I don't have a link",
+    "askAdmin": "Ask your team's captain or admin to send you the invite link — they can generate one from the team's Members page. Once you have it, paste it above.",
+    "ownTeam": "Starting your own team instead?",
+    "createTeam": "Create a team",
+    "invalidOrExpired": "That invite link didn't work — it may be invalid or expired. Ask your team admin for a fresh one.",
+    "generic": "Something went wrong, try again."
+  },
+  "onboardingHub": {
+    "welcome": "Welcome to TeamBalance 👋",
+    "inviteUnavailable": "You're signed in, but the invite link you used has expired or been replaced. Ask your team for a new one, then use <choice>I have an invite</choice> below.",
+    "getStarted": "How would you like to get started?",
+    "notOnTeam": "You're signed in, but not on a team yet. How would you like to get started?",
+    "haveInvite": "I have an invite",
+    "haveInviteHint": "Someone shared a join link with you",
+    "create": "Create a team",
+    "createHint": "You'll need a creation code — team owners get these from us"
+  },
+  "teamSettings": {
+    "heading": "Season",
+    "intro": "Bound your team's events to a season. Once set, events cannot be scheduled outside this window.",
+    "loading": "Loading…",
+    "loadFailed": "Couldn't load team settings. Please try again.",
+    "noSeason": "No season set — events can be scheduled on any date.",
+    "startDate": "Start date",
+    "endDate": "End date",
+    "changeWarning": "Changing the season won't move or delete existing events — some may now fall outside the new window.",
+    "saving": "Saving…",
+    "save": "Save season",
+    "saveFailed": "Could not save the season. Please try again.",
+    "endBeforeStart": "End date must be on or after the start date."
+  },
+  "createTeam": {
+    "teamName": "Team name",
+    "namePlaceholder": "e.g. Tovo Heren 4",
+    "teamAddress": "Team address",
+    "creationCode": "Creation code",
+    "codePlaceholder": "Enter your creation code",
+    "creating": "Creating your team…",
+    "submit": "Create team",
+    "reassurance": "Setting up your team's space — this can take a few seconds…"
+  },
+  "switchTeam": {
+    "heading": "Teams",
+    "yourTeams": "Your teams",
+    "active": "Active",
+    "joinOrCreate": "Join or create",
+    "joinWithInvite": "Join with an invite link",
+    "joinHint": "Someone shared a join link with you",
+    "create": "Create a team",
+    "createHint": "You'll need a creation code"
   }
 }

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import type { CreationCode } from '@shared/api/creation-codes'
 import { Button } from '@shared/ui/button'
 import { ConfirmDialog } from '@shared/ui/ConfirmDialog'
@@ -41,37 +42,38 @@ export function ManageCreationCodesView({
   onCreate,
   onRevoke,
 }: ManageCreationCodesViewProps) {
+  const { t } = useTranslation()
   const [confirmTarget, setConfirmTarget] = useState<CreationCode | null>(null)
 
   return (
     <div>
-      <h2 className="font-display text-title font-bold">Creation codes</h2>
+      <h2 className="font-display text-title font-bold">{t('manageCreationCodes.heading')}</h2>
       <p className="mt-1 text-small text-muted-foreground">
-        Generate one-time codes that let a new owner create a team.
+        {t('manageCreationCodes.intro')}
       </p>
 
-      {isLoading && <p className="mt-4 text-small text-muted-foreground">Loading…</p>}
+      {isLoading && <p className="mt-4 text-small text-muted-foreground">{t('manageCreationCodes.loading')}</p>}
       {isForbidden && (
-        <p className="mt-4 text-small text-muted-foreground">You don't have access to creation codes.</p>
+        <p className="mt-4 text-small text-muted-foreground">{t('manageCreationCodes.forbidden')}</p>
       )}
       {isError && !isForbidden && (
-        <p className="mt-4 text-small text-red-ink">Couldn't load creation codes. Please try again.</p>
+        <p className="mt-4 text-small text-red-ink">{t('manageCreationCodes.loadFailed')}</p>
       )}
 
       {!isLoading && !isError && !isForbidden && (
         <div className="mt-4 flex flex-col gap-3">
           <div>
             <Button disabled={isSaving} onClick={onCreate}>
-              Generate code
+              {t('manageCreationCodes.generate')}
             </Button>
           </div>
 
           {errorCode === 'CONSUMED' && (
-            <p className="text-small text-red-ink">That code was already used and cannot be revoked.</p>
+            <p className="text-small text-red-ink">{t('manageCreationCodes.consumedError')}</p>
           )}
 
           {codes.length === 0 ? (
-            <p className="text-small text-muted-foreground">No creation codes yet. Generate one above.</p>
+            <p className="text-small text-muted-foreground">{t('manageCreationCodes.empty')}</p>
           ) : (
             <ul className="divide-y divide-border rounded-lg border border-border">
               {codes.map((code) => (
@@ -88,9 +90,9 @@ export function ManageCreationCodesView({
 
           <ConfirmDialog
             open={confirmTarget !== null}
-            title="Revoke code"
-            description={<>Revoke "{confirmTarget?.code}"? It can no longer be used to create a team.</>}
-            confirmLabel="Revoke"
+            title={t('manageCreationCodes.revokeTitle')}
+            description={t('manageCreationCodes.revokeDescription', { code: confirmTarget?.code })}
+            confirmLabel={t('manageCreationCodes.revoke')}
             onConfirm={() => {
               if (confirmTarget) onRevoke(confirmTarget)
               setConfirmTarget(null)
@@ -111,6 +113,7 @@ interface CreationCodeRowProps {
 }
 
 function CreationCodeRow({ code, status, isSaving, onRequestRevoke }: CreationCodeRowProps) {
+  const { t } = useTranslation()
   return (
     <li className="flex items-center gap-3 p-3">
       {/* Status stacked under the code rather than beside it, as TeamsView/PlatformTeamsView stack
@@ -124,7 +127,7 @@ function CreationCodeRow({ code, status, isSaving, onRequestRevoke }: CreationCo
       {/* Only an unconsumed code can be revoked; a consumed one is an audit record (backend 409s). */}
       {status !== 'consumed' && (
         <Button variant="destructive" size="sm" disabled={isSaving} onClick={() => onRequestRevoke(code)}>
-          Revoke
+          {t('manageCreationCodes.revoke')}
         </Button>
       )}
     </li>

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Button } from '@shared/ui/button'
 import { Input } from '@shared/ui/input'
 import { Label } from '@shared/ui/label'
@@ -28,6 +29,7 @@ interface TeamSettingsViewProps {
  * season surfaces a non-blocking warning — changing the window never moves or deletes existing events.
  */
 export function TeamSettingsView({ season = {}, isLoading, isError, isSaving, error, onSave }: TeamSettingsViewProps) {
+  const { t } = useTranslation()
   const [start, setStart] = useState(season.start ?? '')
   const [end, setEnd] = useState(season.end ?? '')
 
@@ -45,26 +47,26 @@ export function TeamSettingsView({ season = {}, isLoading, isError, isSaving, er
   return (
     <div className="flex flex-col gap-4">
       <div>
-        <h2 className="font-display text-title font-bold">Season</h2>
+        <h2 className="font-display text-title font-bold">{t('teamSettings.heading')}</h2>
         <p className="mt-1 text-small text-muted-foreground">
-          Bound your team's events to a season. Once set, events cannot be scheduled outside this window.
+          {t('teamSettings.intro')}
         </p>
       </div>
 
-      {isLoading && <p className="text-small text-muted-foreground">Loading…</p>}
+      {isLoading && <p className="text-small text-muted-foreground">{t('teamSettings.loading')}</p>}
       {isError && (
-        <p className="text-small text-red-ink">Couldn't load team settings. Please try again.</p>
+        <p className="text-small text-red-ink">{t('teamSettings.loadFailed')}</p>
       )}
 
       {!isLoading && !isError && (
         <>
           {!isSeasonConfigured(season) && !dirty && (
-            <p className="text-small text-muted-foreground">No season set — events can be scheduled on any date.</p>
+            <p className="text-small text-muted-foreground">{t('teamSettings.noSeason')}</p>
           )}
 
           <div className="flex flex-wrap gap-4">
             <div className="flex flex-col gap-1">
-              <Label htmlFor="season-start">Start date</Label>
+              <Label htmlFor="season-start">{t('teamSettings.startDate')}</Label>
               <Input
                 id="season-start"
                 type="date"
@@ -75,7 +77,7 @@ export function TeamSettingsView({ season = {}, isLoading, isError, isSaving, er
               />
             </div>
             <div className="flex flex-col gap-1">
-              <Label htmlFor="season-end">End date</Label>
+              <Label htmlFor="season-end">{t('teamSettings.endDate')}</Label>
               <Input
                 id="season-end"
                 type="date"
@@ -91,7 +93,7 @@ export function TeamSettingsView({ season = {}, isLoading, isError, isSaving, er
 
           {showWarning && !rangeError && (
             <p className="rounded-lg border border-gold/40 bg-gold/10 px-3 py-2 text-small text-foreground" role="alert">
-              Changing the season won't move or delete existing events — some may now fall outside the new window.
+              {t('teamSettings.changeWarning')}
             </p>
           )}
 
@@ -99,7 +101,7 @@ export function TeamSettingsView({ season = {}, isLoading, isError, isSaving, er
 
           <div>
             <Button disabled={isSaving || !dirty || !!rangeError} onClick={handleSave}>
-              {isSaving ? 'Saving…' : 'Save season'}
+              {isSaving ? t('teamSettings.saving') : t('teamSettings.save')}
             </Button>
           </div>
         </>

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { useSeason, useSetSeason } from '@shared/api/season'
 import { TeamSettingsView } from './TeamSettingsView'
 
@@ -8,6 +9,7 @@ import { TeamSettingsView } from './TeamSettingsView'
  * (beforeLoad) and again on the backend (403), so this component assumes an admin. See ADR-0017.
  */
 export function TeamSettings() {
+  const { t } = useTranslation()
   const { data: season, isLoading, error } = useSeason()
   const setSeason = useSetSeason()
 
@@ -17,7 +19,7 @@ export function TeamSettings() {
       isLoading={isLoading}
       isError={!!error}
       isSaving={setSeason.isPending}
-      error={setSeason.error ? 'Could not save the season. Please try again.' : null}
+      error={setSeason.error ? t('teamSettings.saveFailed') : null}
       onSave={(bounds) => setSeason.mutate(bounds)}
     />
   )

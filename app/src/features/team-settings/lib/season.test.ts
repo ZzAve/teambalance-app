@@ -1,4 +1,5 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
+import { i18n } from '@shared/i18n/i18n'
 import { isSeasonConfigured, seasonChanged, validateSeasonRange } from './season'
 
 describe('validateSeasonRange', () => {
@@ -51,6 +52,16 @@ describe('seasonChanged', () => {
   it('is false for identical bounds', () => {
     expect(seasonChanged({ start: '2026-09-01', end: '2027-04-30' }, { start: '2026-09-01', end: '2027-04-30' })).toBe(
       false,
+    )
+  })
+})
+
+describe('validateSeasonRange in Dutch', () => {
+  afterEach(() => i18n.changeLanguage('en'))
+  it('rejects an inverted range in Dutch', async () => {
+    await i18n.changeLanguage('nl')
+    expect(validateSeasonRange({ start: '2027-04-30', end: '2026-09-01' })).toBe(
+      'De einddatum moet op of na de startdatum liggen.',
     )
   })
 })

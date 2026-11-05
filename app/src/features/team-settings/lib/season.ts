@@ -2,6 +2,8 @@
 // as Vitest units (see season.test.ts). The backend owns the authoritative event-write validation;
 // these only shape the form (range sanity + dirty/warning state).
 
+import { i18n } from '@shared/i18n/i18n'
+
 export interface SeasonBounds {
   start?: string
   end?: string
@@ -22,7 +24,7 @@ export function validateSeasonRange(bounds: SeasonBounds): string | null {
   const start = normalize(bounds.start)
   const end = normalize(bounds.end)
   if (start && end && end < start) {
-    return 'End date must be on or after the start date.'
+    return i18n.t('teamSettings.endBeforeStart')
   }
   return null
 }

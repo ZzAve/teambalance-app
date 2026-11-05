@@ -1,10 +1,7 @@
 import { useNavigate } from '@tanstack/react-router'
 import { useQueryClient } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import { useAcceptInvitation } from '@shared/api/invitations'
-
-const INVALID_OR_EXPIRED =
-  "That invite link didn't work — it may be invalid or expired. Ask your team admin for a fresh one."
-const GENERIC = 'Something went wrong, try again.'
 
 /**
  * Thin wiring over useAcceptInvitation for /onboarding/join. Accepting sets the Active Team server
@@ -15,6 +12,7 @@ const GENERIC = 'Something went wrong, try again.'
  * returns 404 for both deliberately, so there is no oracle.
  */
 export function useJoinTeam() {
+  const { t } = useTranslation()
   const client = useQueryClient()
   const navigate = useNavigate()
   const acceptInvitation = useAcceptInvitation()
@@ -30,8 +28,8 @@ export function useJoinTeam() {
 
   const errorMessage = acceptInvitation.isError
     ? acceptInvitation.error instanceof Error && acceptInvitation.error.message === 'invite link invalid or expired'
-      ? INVALID_OR_EXPIRED
-      : GENERIC
+      ? t('joinTeam.invalidOrExpired')
+      : t('joinTeam.generic')
     : null
 
   return { join, isPending: acceptInvitation.isPending, errorMessage }

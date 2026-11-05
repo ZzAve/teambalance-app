@@ -1,3 +1,5 @@
+import { Trans, useTranslation } from 'react-i18next'
+
 interface OnboardingHubViewProps {
   onChooseJoin: () => void
   onChooseCreate: () => void
@@ -16,19 +18,19 @@ interface OnboardingHubViewProps {
  * /create-team.
  */
 export function OnboardingHubView({ onChooseJoin, onChooseCreate, inviteUnavailable }: OnboardingHubViewProps) {
+  const { t } = useTranslation()
   return (
     <div className="mx-auto mt-10 max-w-sm text-center">
-      <h1 className="font-display text-title font-bold">Welcome to TeamBalance 👋</h1>
+      <h1 className="font-display text-title font-bold">{t('onboardingHub.welcome')}</h1>
       {inviteUnavailable && (
         <p className="mt-3 rounded-lg border border-gold/40 bg-gold/10 p-3 text-small text-foreground">
-          You're signed in, but the invite link you used has expired or been replaced. Ask your team
-          for a new one, then use <span className="font-medium">I have an invite</span> below.
+          <Trans i18nKey="onboardingHub.inviteUnavailable" components={{ choice: <span className="font-medium" /> }} />
         </p>
       )}
       <p className="mt-2 text-small text-muted-foreground">
         {inviteUnavailable
-          ? 'How would you like to get started?'
-          : "You're signed in, but not on a team yet. How would you like to get started?"}
+          ? t('onboardingHub.getStarted')
+          : t('onboardingHub.notOnTeam')}
       </p>
 
       <div className="mt-8 flex flex-col gap-4">
@@ -37,8 +39,8 @@ export function OnboardingHubView({ onChooseJoin, onChooseCreate, inviteUnavaila
           onClick={onChooseJoin}
           className="rounded-lg border border-border bg-blue/5 p-4 text-left transition-colors hover:border-blue"
         >
-          <span className="block font-display text-lead font-bold">I have an invite</span>
-          <span className="mt-1 block text-small text-muted-foreground">Someone shared a join link with you</span>
+          <span className="block font-display text-lead font-bold">{t('onboardingHub.haveInvite')}</span>
+          <span className="mt-1 block text-small text-muted-foreground">{t('onboardingHub.haveInviteHint')}</span>
         </button>
 
         <button
@@ -46,9 +48,9 @@ export function OnboardingHubView({ onChooseJoin, onChooseCreate, inviteUnavaila
           onClick={onChooseCreate}
           className="rounded-lg border border-border p-4 text-left transition-colors hover:border-blue"
         >
-          <span className="block font-semibold">Create a team</span>
+          <span className="block font-semibold">{t('onboardingHub.create')}</span>
           <span className="mt-1 block text-small text-muted-foreground">
-            You'll need a creation code — team owners get these from us
+            {t('onboardingHub.createHint')}
           </span>
         </button>
       </div>

@@ -1,9 +1,11 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
+import { i18n } from '@shared/i18n/i18n'
 import {
   buildCalendarPreview,
   defaultDateRange,
   generateOccurrences,
   MAX_OCCURRENCES,
+  WEEKDAYS,
   type RecurrenceInput,
 } from './recurrence'
 
@@ -181,5 +183,16 @@ describe('defaultDateRange', () => {
 
   it('falls back to today with an open end when no season is configured', () => {
     expect(defaultDateRange(undefined, '2026-07-26')).toEqual({ startDate: '2026-07-26', endDate: '' })
+  })
+})
+
+describe('recurrence labels in Dutch', () => {
+  afterEach(() => i18n.changeLanguage('en'))
+
+  it('says the month and the weekday pills in Dutch', async () => {
+    await i18n.changeLanguage('nl')
+    const preview = buildCalendarPreview(rule({ startDate: '2026-09-01', endDate: '2026-09-30' }), undefined)
+    expect(preview.months[0].label).toBe('september 2026')
+    expect(WEEKDAYS.map((w) => w.short)).toEqual(['Ma', 'Di', 'Wo', 'Do', 'Vr', 'Za', 'Zo'])
   })
 })

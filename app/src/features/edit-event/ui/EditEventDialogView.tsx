@@ -11,6 +11,7 @@ import type { EventTypeItem } from '@shared/api/event-types'
 import { ReferenceRowsEditor } from '@entities/event/ui/ReferenceRowsEditor'
 import { cleanReferences, toReferenceRows, type ReferenceRow } from '@entities/event/lib/references'
 import { SeriesScopeField } from './SeriesScopeField'
+import { useTranslation } from 'react-i18next'
 
 export type UpdateEventRequest = EventInput & { id: string; scope: EventSeriesScope }
 
@@ -64,6 +65,7 @@ export function EditEventDialogView({
   isError,
   onSubmit,
 }: EditEventDialogViewProps) {
+  const { t } = useTranslation()
   const isSeries = siblings.length > 1
   const [scope, setScope] = useState<EventSeriesScope>('THIS')
   const dateLocked = isSeries && scope !== 'THIS'
@@ -121,30 +123,30 @@ export function EditEventDialogView({
         />
       )}
       <div>
-        <Label htmlFor="edit-type">Type</Label>
+        <Label htmlFor="edit-type">{t('editEvent.type')}</Label>
         <EventTypeSelect id="edit-type" eventTypes={selectableTypes} value={typeId} onValueChange={setTypeId} />
       </div>
       <div>
-        <Label htmlFor="edit-title">Title</Label>
+        <Label htmlFor="edit-title">{t('editEvent.title')}</Label>
         <Input id="edit-title" required value={title} onChange={(e) => setTitle(e.target.value)} />
       </div>
       {dateLocked ? (
         <>
-          <TimeField id="edit-start-time" label="Start time" type="time" value={start.slice(11, 16)} onChange={(v) => setStart((s) => withTime(s, v))} />
-          <TimeField id="edit-end-time" label="End time" type="time" value={end.slice(11, 16)} onChange={(v) => setEnd((s) => withTime(s, v))} />
+          <TimeField id="edit-start-time" label={t('editEvent.startTime')} type="time" value={start.slice(11, 16)} onChange={(v) => setStart((s) => withTime(s, v))} />
+          <TimeField id="edit-end-time" label={t('editEvent.endTime')} type="time" value={end.slice(11, 16)} onChange={(v) => setEnd((s) => withTime(s, v))} />
         </>
       ) : (
         <>
-          <TimeField id="edit-start" label="Start time" type="datetime-local" value={start} onChange={setStart} />
-          <TimeField id="edit-end" label="End time" type="datetime-local" value={end} onChange={setEnd} />
+          <TimeField id="edit-start" label={t('editEvent.startTime')} type="datetime-local" value={start} onChange={setStart} />
+          <TimeField id="edit-end" label={t('editEvent.endTime')} type="datetime-local" value={end} onChange={setEnd} />
         </>
       )}
       <div>
-        <Label htmlFor="edit-location">Location (optional)</Label>
+        <Label htmlFor="edit-location">{t('editEvent.locationOptional')}</Label>
         <Input id="edit-location" name="location" defaultValue={event.location ?? ''} />
       </div>
       <div>
-        <Label htmlFor="edit-description">Description (optional)</Label>
+        <Label htmlFor="edit-description">{t('editEvent.descriptionOptional')}</Label>
         <Input id="edit-description" name="description" defaultValue={event.description ?? ''} />
       </div>
       <ReferenceRowsEditor rows={references} onChange={setReferences} />
@@ -158,11 +160,11 @@ export function EditEventDialogView({
       />
       {isError && (
         <p className="rounded-lg border border-red/40 bg-red/10 px-3 py-2 text-small text-red-ink">
-          Could not save changes. Please try again.
+          {t('editEvent.saveFailed')}
         </p>
       )}
       <Button type="submit" disabled={isPending}>
-        {isPending ? 'Saving…' : 'Save changes'}
+        {isPending ? t('editEvent.saving') : t('editEvent.save')}
       </Button>
     </form>
   )

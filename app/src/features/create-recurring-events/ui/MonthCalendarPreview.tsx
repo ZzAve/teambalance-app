@@ -1,8 +1,7 @@
 import { AlertTriangle } from 'lucide-react'
 import type { CalendarPreview } from '../model/recurrence'
-import { MAX_OCCURRENCES } from '../model/recurrence'
-
-const WEEKDAY_HEADS = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su']
+import { MAX_OCCURRENCES, WEEKDAYS } from '../model/recurrence'
+import { useTranslation } from 'react-i18next'
 
 interface MonthCalendarPreviewProps {
   preview: CalendarPreview
@@ -17,6 +16,7 @@ interface MonthCalendarPreviewProps {
  * every cell flag is computed by buildCalendarPreview.
  */
 export function MonthCalendarPreview({ preview, accentColor }: MonthCalendarPreviewProps) {
+  const { t } = useTranslation()
   const { months, count, overCap, outOfSeasonCount, truncated } = preview
 
   return (
@@ -28,16 +28,16 @@ export function MonthCalendarPreview({ preview, accentColor }: MonthCalendarPrev
           style={{ backgroundColor: accentColor }}
           data-testid="occurrence-count"
         >
-          {count} {count === 1 ? 'event' : 'events'}
+          {t('createRecurringEvents.events', { count })}
         </span>
         <div className="flex items-center gap-3 text-caption text-muted-foreground">
           <span className="flex items-center gap-1.5">
             <span className="inline-block h-3 w-3 rounded-sm" style={{ backgroundColor: accentColor }} />
-            Occurrence
+            {t('createRecurringEvents.preview.occurrence')}
           </span>
           <span className="flex items-center gap-1.5">
             <span className="inline-block h-3 w-3 rounded-sm bg-green/15" />
-            Season
+            {t('createRecurringEvents.preview.season')}
           </span>
         </div>
       </div>
@@ -46,24 +46,19 @@ export function MonthCalendarPreview({ preview, accentColor }: MonthCalendarPrev
       {overCap && (
         <div className="mb-3 flex items-start gap-2 rounded-lg border border-gold/40 bg-gold/10 px-3 py-2 text-caption leading-snug text-gold-ink">
           <AlertTriangle size={14} className="mt-0.5 shrink-0" />
-          <span>
-            That&rsquo;s over {MAX_OCCURRENCES} events — shorten the range or thin the schedule before creating.
-          </span>
+          <span>{t('createRecurringEvents.preview.overCap', { max: MAX_OCCURRENCES })}</span>
         </div>
       )}
       {!overCap && outOfSeasonCount > 0 && (
         <div className="mb-3 flex items-start gap-2 rounded-lg border border-red/40 bg-red/10 px-3 py-2 text-caption leading-snug text-red-ink">
           <AlertTriangle size={14} className="mt-0.5 shrink-0" />
-          <span>
-            {outOfSeasonCount} {outOfSeasonCount === 1 ? 'date falls' : 'dates fall'} outside the season (shown in red).
-            The app will reject out-of-window starts.
-          </span>
+          <span>{t('createRecurringEvents.preview.outOfSeason', { count: outOfSeasonCount })}</span>
         </div>
       )}
 
       {count === 0 && (
         <p className="py-6 text-center text-small text-muted-foreground">
-          No dates yet — pick at least one weekday inside the range.
+          {t('createRecurringEvents.preview.noDates')}
         </p>
       )}
 
@@ -73,9 +68,9 @@ export function MonthCalendarPreview({ preview, accentColor }: MonthCalendarPrev
           <div key={`${month.year}-${month.month}`}>
             <p className="mb-1.5 text-small font-semibold">{month.label}</p>
             <div className="grid grid-cols-7 gap-0.5 text-center">
-              {WEEKDAY_HEADS.map((h) => (
-                <span key={h} className="py-1 text-caption font-medium text-muted-foreground">
-                  {h}
+              {WEEKDAYS.map(({ value, short }) => (
+                <span key={value} className="py-1 text-caption font-medium text-muted-foreground">
+                  {short}
                 </span>
               ))}
               {month.weeks.flat().map((cell, i) => {
@@ -109,7 +104,7 @@ export function MonthCalendarPreview({ preview, accentColor }: MonthCalendarPrev
         ))}
         {truncated && (
           <p className="pt-1 text-center text-caption italic text-muted-foreground">
-            Preview shows the first {months.length} months — all {count} events will still be created.
+            {t('createRecurringEvents.preview.truncated', { months: months.length, count })}
           </p>
         )}
       </div>

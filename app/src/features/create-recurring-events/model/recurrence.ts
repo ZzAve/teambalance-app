@@ -1,20 +1,21 @@
 import type { RecurrenceFrequency, Weekday } from '@shared/api/recurring-events'
 import type { Season } from '@shared/api/season'
+import { formatLocale, i18n } from '@shared/i18n/i18n'
 
 // A single batch materializes at most this many occurrences (ADR-0014). The backend enforces the
 // same cap and hard-rejects over it; the wizard mirrors it so the user sees the wall before submit.
 export const MAX_OCCURRENCES = 200
 
-// Weekday pills, Monday-first (European convention). Value is the contract enum; short is the label.
-export const WEEKDAYS: { value: Weekday; short: string }[] = [
-  { value: 'MONDAY', short: 'Mo' },
-  { value: 'TUESDAY', short: 'Tu' },
-  { value: 'WEDNESDAY', short: 'We' },
-  { value: 'THURSDAY', short: 'Th' },
-  { value: 'FRIDAY', short: 'Fr' },
-  { value: 'SATURDAY', short: 'Sa' },
-  { value: 'SUNDAY', short: 'Su' },
-]
+// Weekday pills, Monday-first (European convention). Value is the contract enum; short is the label,
+// a getter so it follows a language change (ADR-0043).
+export const WEEKDAYS: { value: Weekday; readonly short: string }[] = (
+  ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY'] as const
+).map((value) => ({
+  value,
+  get short() {
+    return i18n.t(`createRecurringEvents.weekday.${value}`)
+  },
+}))
 
 // Contract weekday → JS getUTCDay() index (Sun=0..Sat=6).
 const WEEKDAY_TO_JS: Record<Weekday, number> = {
@@ -121,11 +122,6 @@ export interface CalendarPreview {
 // rather than silently cut, and kept bounded so a pathological range can't render hundreds of grids.
 const MAX_PREVIEW_MONTHS = 18
 
-const MONTH_NAMES = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
-]
-
 // Monday-first weekday index (Mon=0..Sun=6) for laying out the calendar grid.
 function mondayIndex(d: Date): number {
   return (d.getUTCDay() + 6) % 7
@@ -155,7 +151,8 @@ function buildMonth(year: number, month: number, occ: Set<string>, season: Seaso
   const weeks: DayCell[][] = []
   for (let i = 0; i < cells.length; i += 7) weeks.push(cells.slice(i, i + 7))
 
-  return { year, month, label: `${MONTH_NAMES[month]} ${year}`, weeks }
+  const label = first.toLocaleDateString(formatLocale(), { month: 'long', year: 'numeric', timeZone: 'UTC' })
+  return { year, month, label, weeks }
 }
 
 /**

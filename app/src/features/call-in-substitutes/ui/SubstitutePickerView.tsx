@@ -11,6 +11,7 @@ import { SubstituteAvatar } from '@entities/event/ui/SubstituteAvatar'
 import { findSomeone, type PositionRef } from '@entities/event/lib/lineup'
 import { groupForPosition } from '../lib/picker-groups'
 import { SUBSTITUTE_OPTIONS, SUBSTITUTE_PILL, type SubstituteState } from './SubstitutesBlock'
+import { useTranslation } from 'react-i18next'
 
 interface SubstitutePickerViewProps {
   open: boolean
@@ -69,6 +70,7 @@ export function SubstitutePickerView({
   onCreate,
   onClose,
 }: SubstitutePickerViewProps) {
+  const { t } = useTranslation()
   const [formOpen, setFormOpen] = useState(false)
   const [name, setName] = useState('')
   const [positionId, setPositionId] = useState<string | null>(null)
@@ -81,7 +83,7 @@ export function SubstitutePickerView({
   // own refusal stays the backstop for a race.
   const trimmed = name.trim()
   const alreadyListed = substitutes.find((sub) => sub.name.toLowerCase() === trimmed.toLowerCase())
-  const fieldError = alreadyListed ? `${alreadyListed.name} is already on the list — find them above.` : createError
+  const fieldError = alreadyListed ? t('callInSubstitutes.alreadyListed', { name: alreadyListed.name }) : createError
 
   const renderRow = (sub: Substitute) => {
     const state = onEvent.find((e) => e.substituteId === sub.id)?.state
@@ -95,7 +97,7 @@ export function SubstitutePickerView({
         <SubstituteAvatar name={sub.name} />
         <span className="min-w-0 flex-1">
           <span className="block truncate text-small font-medium">{sub.name}</span>
-          <span className="block text-caption text-muted-foreground">{sub.position?.label ?? 'Unassigned'}</span>
+          <span className="block text-caption text-muted-foreground">{sub.position?.label ?? t('position.unassigned')}</span>
         </span>
         <span className="flex shrink-0 items-center gap-1">
           {SUBSTITUTE_OPTIONS.map((option) => (
@@ -143,7 +145,7 @@ export function SubstitutePickerView({
     } catch (error) {
       if (mine !== submission.current) return
       setCreateError(
-        error instanceof SubstituteError ? error.message : "Couldn't add the substitute — please try again.",
+        error instanceof SubstituteError ? error.message : t('callInSubstitutes.addFailed'),
       )
       setCreating(false)
     }
@@ -153,16 +155,16 @@ export function SubstitutePickerView({
     <Sheet open={open} onOpenChange={(next) => !next && close()}>
       <SheetContent>
         <SheetHeader>
-          <SheetTitle>{position ? findSomeone(position.label) : 'Call in substitutes'}</SheetTitle>
+          <SheetTitle>{position ? findSomeone(position.label) : t('lineup.callIn')}</SheetTitle>
           <SheetDescription>{eventTitle}</SheetDescription>
         </SheetHeader>
 
         {substitutes.length === 0 ? (
           isError ? (
-            <InlineError className="mb-3" message="Couldn't load the list." onRetry={onRetry} />
+            <InlineError className="mb-3" message={t('callInSubstitutes.loadListFailed')} onRetry={onRetry} />
           ) : (
             <p className="mb-3 rounded-lg border border-border/60 bg-card px-3 py-2.5 text-small text-muted-foreground">
-              {isLoading ? 'Loading the list…' : 'Nobody on the list yet.'}
+              {isLoading ? t('callInSubstitutes.loadingList') : t('callInSubstitutes.nobodyOnList')}
             </p>
           )
         ) : position ? (
@@ -173,13 +175,13 @@ export function SubstitutePickerView({
 
         {formOpen ? (
           <div className="flex flex-col gap-3 rounded-lg border-[1.5px] border-dashed border-purple bg-card p-3">
-            <Label htmlFor="new-substitute-name">Name</Label>
+            <Label htmlFor="new-substitute-name">{t('callInSubstitutes.name')}</Label>
             <Input
               id="new-substitute-name"
               value={name}
               maxLength={100}
               autoComplete="off"
-              placeholder="e.g. Pieter Smit"
+              placeholder={t('callInSubstitutes.namePlaceholder')}
               onChange={(e) => {
                 setName(e.target.value)
                 setCreateError(null)
@@ -192,10 +194,11 @@ export function SubstitutePickerView({
               </p>
             )}
             <span className="text-small font-medium">
-              Position <span className="font-normal text-muted-foreground">(optional)</span>
+              {t('callInSubstitutes.position')}{' '}
+              <span className="font-normal text-muted-foreground">{t('callInSubstitutes.optional')}</span>
             </span>
             <div className="flex flex-wrap gap-1.5">
-              {[...positions, { id: null, label: 'None' }].map((p) => (
+              {[...positions, { id: null, label: t('callInSubstitutes.none') }].map((p) => (
                 <button
                   key={p.id ?? 'none'}
                   type="button"
@@ -211,9 +214,9 @@ export function SubstitutePickerView({
                 </button>
               ))}
             </div>
-            {positionsError && <InlineError message="Couldn't load the positions." onRetry={onRetryPositions} />}
+            {positionsError && <InlineError message={t('callInSubstitutes.loadPositionsFailed')} onRetry={onRetryPositions} />}
             <Button type="button" disabled={!trimmed || alreadyListed !== undefined || creating} onClick={submit}>
-              {creating ? 'Adding…' : 'Add as Maybe'}
+              {creating ? t('callInSubstitutes.adding') : t('callInSubstitutes.addAsMaybe')}
             </Button>
           </div>
         ) : (
@@ -229,16 +232,16 @@ export function SubstitutePickerView({
               <Plus size={16} />
             </span>
             <span>
-              New substitute
+              {t('callInSubstitutes.newSubstitute')}
               <span className="block text-caption font-normal text-muted-foreground">
-                Someone who isn't on the list yet
+                {t('callInSubstitutes.notOnList')}
               </span>
             </span>
           </button>
         )}
 
         <Button type="button" variant="outline" className="mt-4" onClick={close}>
-          Done
+          {t('callInSubstitutes.done')}
         </Button>
       </SheetContent>
     </Sheet>
@@ -249,6 +252,7 @@ const LIST = 'mb-3 overflow-hidden rounded-lg border border-border/60 bg-card'
 
 /** A load failure, with its retry, where the data would have been — distinct from an empty state. */
 function InlineError({ message, onRetry, className }: { message: string; onRetry?: () => void; className?: string }) {
+  const { t } = useTranslation()
   return (
     <p
       role="alert"
@@ -256,7 +260,7 @@ function InlineError({ message, onRetry, className }: { message: string; onRetry
     >
       {message}
       <Button type="button" variant="outline" size="sm" onClick={onRetry}>
-        Try again
+        {t('callInSubstitutes.tryAgain')}
       </Button>
     </p>
   )
@@ -271,23 +275,24 @@ function PositionGroups({
   substitutes: Substitute[]
   renderRow: (sub: Substitute) => ReactNode
 }) {
+  const { t } = useTranslation()
   const { plays, others } = groupForPosition(substitutes, position.id)
-  const heading = `Plays ${position.label}`
+  const heading = t('callInSubstitutes.plays', { position: position.label })
   return (
     <>
       <div role="group" aria-label={heading}>
         <h3 className="mb-1.5 text-caption font-semibold text-muted-foreground">{heading}</h3>
         <div className={LIST}>
           {plays.length === 0 ? (
-            <p className="px-3 py-2.5 text-small text-muted-foreground">Nobody on the list plays this yet.</p>
+            <p className="px-3 py-2.5 text-small text-muted-foreground">{t('callInSubstitutes.nobodyPlays')}</p>
           ) : (
             plays.map(renderRow)
           )}
         </div>
       </div>
       {others.length > 0 && (
-        <div role="group" aria-label="Others">
-          <h3 className="mb-1.5 text-caption font-semibold text-muted-foreground">Others</h3>
+        <div role="group" aria-label={t('callInSubstitutes.others')}>
+          <h3 className="mb-1.5 text-caption font-semibold text-muted-foreground">{t('callInSubstitutes.others')}</h3>
           <div className={LIST}>{others.map(renderRow)}</div>
         </div>
       )}

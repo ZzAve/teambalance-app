@@ -16,6 +16,8 @@ import {
   type RecurrenceInput,
 } from '../model/recurrence'
 import { MonthCalendarPreview } from './MonthCalendarPreview'
+import { useTranslation } from 'react-i18next'
+import { formatLocale, i18n } from '@shared/i18n/i18n'
 
 interface RecurringEventsWizardProps {
   eventTypes: EventTypeItem[]
@@ -27,14 +29,8 @@ interface RecurringEventsWizardProps {
   onSubmit: (body: CreateRecurringEventsRequest) => void
 }
 
-const STEPS = ['Details', 'Repeat', 'Confirm'] as const
-
-// Plain-language heading per step (prototype A), shown above the compact stepper labels.
-const STEP_HEADINGS = [
-  { title: 'What are you scheduling?', sub: "Pick a type — we'll pre-fill the rest." },
-  { title: 'How often?', sub: 'Choose the cadence and the days it lands on.' },
-  { title: 'Ready to create', sub: 'Review the dates before you confirm.' },
-] as const
+// Each step's label and plain-language heading (prototype A) are catalogue keys named after it.
+const STEPS = ['details', 'repeat', 'confirm'] as const
 
 const FALLBACK_ACCENT = '#225C9C' // brand blue when a type has no colour
 
@@ -53,6 +49,7 @@ export function RecurringEventsWizard({
   today,
   onSubmit,
 }: RecurringEventsWizardProps) {
+  const { t } = useTranslation()
   const [step, setStep] = useState(0)
 
   const [selectedTypeId, setSelectedTypeId] = useState('')
@@ -126,8 +123,8 @@ export function RecurringEventsWizard({
 
       {/* Friendly per-step heading (prototype A) — a plain-language question for the current step. */}
       <div>
-        <p className="font-display text-lead font-semibold leading-tight">{STEP_HEADINGS[step].title}</p>
-        <p className="text-small text-muted-foreground">{STEP_HEADINGS[step].sub}</p>
+        <p className="font-display text-lead font-semibold leading-tight">{t(`createRecurringEvents.heading.${STEPS[step]}Title`)}</p>
+        <p className="text-small text-muted-foreground">{t(`createRecurringEvents.heading.${STEPS[step]}Sub`)}</p>
       </div>
 
       {/* Persistent context block — the chosen summary + running count, carried across steps. */}
@@ -135,14 +132,15 @@ export function RecurringEventsWizard({
         <div className="rounded-md border border-blue/15 bg-blue/5 p-3">
           <div className="flex items-center gap-2">
             <span className="inline-block h-3 w-3 shrink-0 rounded-full" style={{ backgroundColor: accentColor }} />
-            <span className="truncate text-small font-semibold">{title || 'Untitled series'}</span>
+            <span className="truncate text-small font-semibold">{title || t('createRecurringEvents.untitled')}</span>
             <span className="ml-auto shrink-0 rounded-full bg-blue/10 px-2 py-0.5 text-caption font-semibold text-blue">
-              {preview.count} {preview.count === 1 ? 'event' : 'events'}
+              {t('createRecurringEvents.events', { count: preview.count })}
             </span>
           </div>
           <p className="mt-1 flex items-center gap-1.5 text-caption text-muted-foreground">
             <CalendarClock size={12} className="shrink-0" />
-            {timeOfDay} · {durationMinutes} min · {frequencyLabel(frequency)} · {summariseWeekdays(weekdays)}
+            {t('createRecurringEvents.when', { time: timeOfDay, duration: durationMinutes })} · {frequencyLabel(frequency)} ·{' '}
+            {summariseWeekdays(weekdays)}
           </p>
         </div>
       )}
@@ -151,7 +149,7 @@ export function RecurringEventsWizard({
       {step === 0 && (
         <div className="flex flex-col gap-4">
           <div>
-            <Label htmlFor="rec-type">Type</Label>
+            <Label htmlFor="rec-type">{t('createRecurringEvents.type')}</Label>
             <div className="flex items-center gap-2">
               <div
                 className="h-6 w-6 shrink-0 rounded-full border border-border"
@@ -169,7 +167,7 @@ export function RecurringEventsWizard({
           </div>
 
           <div>
-            <Label htmlFor="rec-title">Title</Label>
+            <Label htmlFor="rec-title">{t('createRecurringEvents.title')}</Label>
             <Input
               id="rec-title"
               value={title}
@@ -177,17 +175,21 @@ export function RecurringEventsWizard({
                 setTitle(e.target.value)
                 setTitleTouched(true)
               }}
-              placeholder={selectedType ? `e.g. ${selectedType.name}` : 'Series title'}
+              placeholder={
+                selectedType
+                  ? t('createRecurringEvents.titleExample', { name: selectedType.name })
+                  : t('createRecurringEvents.titlePlaceholder')
+              }
             />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label htmlFor="rec-time">Time of day</Label>
+              <Label htmlFor="rec-time">{t('createRecurringEvents.timeOfDay')}</Label>
               <Input id="rec-time" type="time" value={timeOfDay} onChange={(e) => setTimeOfDay(e.target.value)} />
             </div>
             <div>
-              <Label htmlFor="rec-duration">Duration (min)</Label>
+              <Label htmlFor="rec-duration">{t('createRecurringEvents.duration')}</Label>
               <Input
                 id="rec-duration"
                 type="number"
@@ -199,14 +201,14 @@ export function RecurringEventsWizard({
           </div>
 
           <div>
-            <Label htmlFor="rec-location">Location (optional)</Label>
+            <Label htmlFor="rec-location">{t('createRecurringEvents.locationOptional')}</Label>
             <Input id="rec-location" value={location} onChange={(e) => setLocation(e.target.value)} />
           </div>
           <div>
-            <Label htmlFor="rec-description">Description (optional)</Label>
+            <Label htmlFor="rec-description">{t('createRecurringEvents.descriptionOptional')}</Label>
             <Input id="rec-description" value={description} onChange={(e) => setDescription(e.target.value)} />
           </div>
-          <ReferenceRowsEditor rows={references} onChange={setReferences} hint="Shared across every event in the series." />
+          <ReferenceRowsEditor rows={references} onChange={setReferences} hint={t('createRecurringEvents.referencesHint')} />
         </div>
       )}
 
@@ -214,7 +216,7 @@ export function RecurringEventsWizard({
       {step === 1 && (
         <div className="flex flex-col gap-4">
           <div>
-            <Label>Repeats</Label>
+            <Label>{t('createRecurringEvents.repeats')}</Label>
             <div className="mt-1 inline-flex rounded-full bg-muted p-1">
               {(['WEEKLY', 'BIWEEKLY'] as RecurrenceFrequency[]).map((f) => (
                 <button
@@ -233,7 +235,7 @@ export function RecurringEventsWizard({
           </div>
 
           <div>
-            <Label>On</Label>
+            <Label>{t('createRecurringEvents.on')}</Label>
             <div className="mt-1 flex flex-wrap gap-1.5">
               {WEEKDAYS.map(({ value, short }) => {
                 const selected = weekdays.has(value)
@@ -257,11 +259,11 @@ export function RecurringEventsWizard({
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label htmlFor="rec-start">From</Label>
+              <Label htmlFor="rec-start">{t('createRecurringEvents.from')}</Label>
               <Input id="rec-start" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
             </div>
             <div>
-              <Label htmlFor="rec-end">Until</Label>
+              <Label htmlFor="rec-end">{t('createRecurringEvents.until')}</Label>
               <Input id="rec-end" type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
             </div>
           </div>
@@ -276,19 +278,22 @@ export function RecurringEventsWizard({
           <div className="rounded-md border border-border/60 bg-card p-4 shadow-sm">
             <p className="flex items-center gap-2 font-display text-lead font-semibold">
               <Repeat size={18} style={{ color: accentColor }} />
-              {title || 'Untitled series'}
+              {title || t('createRecurringEvents.untitled')}
             </p>
             <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-small">
-              <SummaryRow label="Type" value={selectedType?.name ?? '—'} />
-              <SummaryRow label="When" value={`${timeOfDay} · ${durationMinutes} min`} />
-              <SummaryRow label="Repeats" value={`${frequencyLabel(frequency)} · ${summariseWeekdays(weekdays)}`} />
-              {preview.firstDate && preview.lastDate && (
-                <SummaryRow label="Dates" value={`${formatDate(preview.firstDate)} → ${formatDate(preview.lastDate)}`} />
-              )}
-              {location && <SummaryRow label="Location" value={location} />}
+              <SummaryRow label={t('createRecurringEvents.type')} value={selectedType?.name ?? '—'} />
               <SummaryRow
-                label="Total"
-                value={`${preview.count} ${preview.count === 1 ? 'event' : 'events'}`}
+                label={t('createRecurringEvents.summary.when')}
+                value={t('createRecurringEvents.when', { time: timeOfDay, duration: durationMinutes })}
+              />
+              <SummaryRow label={t('createRecurringEvents.repeats')} value={`${frequencyLabel(frequency)} · ${summariseWeekdays(weekdays)}`} />
+              {preview.firstDate && preview.lastDate && (
+                <SummaryRow label={t('createRecurringEvents.summary.dates')} value={`${formatDate(preview.firstDate)} → ${formatDate(preview.lastDate)}`} />
+              )}
+              {location && <SummaryRow label={t('createRecurringEvents.summary.location')} value={location} />}
+              <SummaryRow
+                label={t('createRecurringEvents.summary.total')}
+                value={t('createRecurringEvents.events', { count: preview.count })}
                 emphasise
               />
             </dl>
@@ -307,7 +312,7 @@ export function RecurringEventsWizard({
         {step > 0 && (
           <Button type="button" variant="outline" onClick={() => setStep((s) => s - 1)} className="flex-1">
             <ArrowLeft size={16} />
-            Back
+            {t('createRecurringEvents.back')}
           </Button>
         )}
         {step < 2 && (
@@ -317,7 +322,7 @@ export function RecurringEventsWizard({
             disabled={step === 0 ? !detailsValid : !scheduleValid}
             className="flex-1"
           >
-            Next
+            {t('createRecurringEvents.next')}
             <ArrowRight size={16} />
           </Button>
         )}
@@ -330,7 +335,7 @@ export function RecurringEventsWizard({
             style={{ backgroundColor: accentColor, borderColor: accentColor }}
           >
             <Check size={16} />
-            {isPending ? 'Creating…' : `Create ${preview.count} ${preview.count === 1 ? 'event' : 'events'}`}
+            {isPending ? t('createRecurringEvents.creating') : t('createRecurringEvents.create', { count: preview.count })}
           </Button>
         )}
       </div>
@@ -339,6 +344,7 @@ export function RecurringEventsWizard({
 }
 
 function Stepper({ step }: { step: number }) {
+  const { t } = useTranslation()
   return (
     <div className="flex items-center justify-center gap-1">
       {STEPS.map((label, i) => (
@@ -353,7 +359,7 @@ function Stepper({ step }: { step: number }) {
               {i < step ? <Check size={13} /> : i + 1}
             </span>
             <span className={`text-caption font-medium ${i === step ? 'text-foreground' : 'text-muted-foreground'}`}>
-              {label}
+              {t(`createRecurringEvents.step.${label}`)}
             </span>
           </div>
           {i < STEPS.length - 1 && <span className="mx-1 h-px w-5 bg-border" />}
@@ -377,16 +383,16 @@ function orderWeekdays(selected: Set<Weekday>): Weekday[] {
 }
 
 function frequencyLabel(f: RecurrenceFrequency): string {
-  return f === 'WEEKLY' ? 'Weekly' : 'Bi-weekly'
+  return i18n.t(f === 'WEEKLY' ? 'createRecurringEvents.weekly' : 'createRecurringEvents.biweekly')
 }
 
 function summariseWeekdays(selected: Set<Weekday>): string {
   const shorts = WEEKDAYS.filter((w) => selected.has(w.value)).map((w) => w.short)
-  return shorts.length > 0 ? shorts.join(', ') : 'no days'
+  return shorts.length > 0 ? shorts.join(', ') : i18n.t('createRecurringEvents.noDays')
 }
 
 function formatDate(iso: string): string {
-  return new Date(`${iso}T00:00:00Z`).toLocaleDateString('nl-NL', {
+  return new Date(`${iso}T00:00:00Z`).toLocaleDateString(formatLocale(), {
     day: 'numeric',
     month: 'short',
     year: 'numeric',

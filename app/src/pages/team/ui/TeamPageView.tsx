@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { Link } from '@tanstack/react-router'
+import { useTranslation } from 'react-i18next'
 import { Settings } from 'lucide-react'
 import { useTeamRoutes } from '@shared/lib/team-routes'
 
@@ -21,17 +22,18 @@ interface TeamPageViewProps {
  */
 export function TeamPageView({ isAdmin, inviteAction, roster, substitutes }: TeamPageViewProps) {
   const routes = useTeamRoutes()
+  const { t } = useTranslation()
 
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
-        <h2 className="font-display text-title font-bold">Team</h2>
+        <h2 className="font-display text-title font-bold">{t('nav.team')}</h2>
         {isAdmin && (
           <div className="flex items-center gap-2">
             {inviteAction}
             <Link
               to={routes.teamSettings}
-              aria-label="Team settings"
+              aria-label={t('teamPage.settings')}
               // h-11 w-11 (not p-2) keeps the gear a 44px touch target (F7), same as PageHeader's back link.
               className="flex h-11 w-11 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-blue/8 hover:text-foreground"
             >

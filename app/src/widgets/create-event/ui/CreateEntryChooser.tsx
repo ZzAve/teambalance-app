@@ -1,4 +1,5 @@
 import { CalendarDays, Repeat } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 interface CreateEntryChooserProps {
   onSingle: () => void
@@ -11,6 +12,7 @@ interface CreateEntryChooserProps {
  * what each choice opens.
  */
 export function CreateEntryChooser({ onSingle, onRecurring }: CreateEntryChooserProps) {
+  const { t } = useTranslation()
   return (
     <div className="grid grid-cols-2 gap-3">
       <button
@@ -21,8 +23,8 @@ export function CreateEntryChooser({ onSingle, onRecurring }: CreateEntryChooser
         <span className="flex h-12 w-12 items-center justify-center rounded-lg bg-blue/10 text-blue">
           <CalendarDays size={22} />
         </span>
-        <span className="text-small font-semibold">Single event</span>
-        <span className="text-caption leading-snug text-muted-foreground">One training, match, or other event</span>
+        <span className="text-small font-semibold">{t('createEventSheet.single')}</span>
+        <span className="text-caption leading-snug text-muted-foreground">{t('createEventSheet.singleHint')}</span>
       </button>
 
       <button
@@ -33,8 +35,8 @@ export function CreateEntryChooser({ onSingle, onRecurring }: CreateEntryChooser
         <span className="flex h-12 w-12 items-center justify-center rounded-lg bg-green/10 text-green">
           <Repeat size={22} />
         </span>
-        <span className="text-small font-semibold">Recurring series</span>
-        <span className="text-caption leading-snug text-muted-foreground">Weekly trainings across a season</span>
+        <span className="text-small font-semibold">{t('createEventSheet.recurring')}</span>
+        <span className="text-caption leading-snug text-muted-foreground">{t('createEventSheet.recurringHint')}</span>
       </button>
     </div>
   )

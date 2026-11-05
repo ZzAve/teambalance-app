@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Check, HelpCircle, Plus, X } from 'lucide-react'
 import type { AttendanceEntry, EventRoster, SubstituteEntry } from '@shared/api/events'
 import { Avatar } from '@shared/ui/avatar'
@@ -93,10 +94,11 @@ export function AttendeeList({
   onFindSubstitute,
   positionOrder,
 }: AttendeeListProps) {
+  const { t } = useTranslation()
   const [target, setTarget] = useState<AnswerTarget | null>(null)
 
   if (attendees.length === 0 && substitutes.length === 0) {
-    return <p className="py-6 text-center text-small text-muted-foreground">No one</p>
+    return <p className="py-6 text-center text-small text-muted-foreground">{t('attendeeList.noOne')}</p>
   }
 
   const open = (attendance: AttendanceEntry, position?: string) =>
@@ -182,6 +184,7 @@ function PositionGroup({
   /** Absent on a read-only list, or when the group is not short. */
   onFind?: () => void
 }) {
+  const { t } = useTranslation()
   const verdict = verdictWord(row)
   const nudge = row.openSlots > 0 ? onFind : undefined
 
@@ -204,7 +207,7 @@ function PositionGroup({
           open slots sit in the run, after the people, as on the event card; only an untargeted empty
           position needs words. */}
       {row.members.length === 0 && !nudge ? (
-        <p className="px-3 pb-2.5 text-caption italic text-muted-foreground">nobody in this position yet</p>
+        <p className="px-3 pb-2.5 text-caption italic text-muted-foreground">{t('attendeeList.nobodyInPosition')}</p>
       ) : (
         <div className="flex flex-wrap gap-2 px-3 pb-3 pt-1">
           {row.members.map((m) =>
@@ -224,11 +227,12 @@ function PositionGroup({
  * as the event card does it. One button for all of them: tapping opens the Substitute picker (#359).
  */
 function OpenSlots({ label, openSlots, onFind }: { label: string; openSlots: number; onFind: () => void }) {
+  const { t } = useTranslation()
   return (
     <button
       type="button"
       onClick={onFind}
-      aria-label={`${findSomeone(label)} · ${openSlots} open`}
+      aria-label={t('attendeeList.openSlots', { find: findSomeone(label), count: openSlots })}
       className="flex flex-wrap gap-2 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
       {Array.from({ length: openSlots }, (_, i) => (
@@ -263,8 +267,9 @@ function AttendeeRow({
 }) {
   // Attribution takes the subtitle when present; otherwise, in the flat list only, the member's own
   // position — unless it is the non-informative "Unassigned".
+  const { t } = useTranslation()
   const subtitle = attribution
-    ? `set by ${attribution}`
+    ? t('attendeeList.setBy', { name: attribution })
     : showRole && attendance.role && attendance.role !== UNASSIGNED
       ? attendance.role
       : null
@@ -281,7 +286,7 @@ function AttendeeRow({
           {name}
           {isSelf && (
             <span className="ml-1.5 rounded-full bg-blue/10 px-1.5 py-0.5 align-[1px] text-caption font-bold tracking-wide text-blue">
-              You
+              {t('attendeeList.you')}
             </span>
           )}
         </span>
@@ -298,7 +303,10 @@ function AttendeeRow({
     <button
       type="button"
       onClick={onOpen}
-      aria-label={`${attendance.displayName}${isSelf ? ' (you)' : ''} — ${ATTENDANCE_WORDS[attendance.state].word}. Change their answer`}
+      aria-label={t('memberChip.label', {
+        who: isSelf ? t('memberChip.self', { name: attendance.displayName }) : attendance.displayName,
+        word: ATTENDANCE_WORDS[attendance.state].word,
+      })}
       className={`${shell} ${CHIP_CONTROL}`}
     >
       {body}
@@ -322,6 +330,7 @@ function SubstituteRow({
   setBy: string
   onOpen?: () => void
 }) {
+  const { t } = useTranslation()
   const body = (
     <>
       <SubstituteAvatar name={substitute.name} />
@@ -329,10 +338,12 @@ function SubstituteRow({
         <span className="block truncate text-small font-semibold leading-tight">
           {substitute.name}
           <span className="ml-1.5 rounded-full bg-purple/10 px-1.5 py-0.5 align-[1px] text-caption font-bold tracking-wide text-purple-ink">
-            Sub
+            {t('memberChip.sub')}
           </span>
         </span>
-        <span className="block truncate text-caption leading-tight text-muted-foreground">set by {setBy}</span>
+        <span className="block truncate text-caption leading-tight text-muted-foreground">
+          {t('attendeeList.setBy', { name: setBy })}
+        </span>
       </span>
       <span aria-hidden className="shrink-0">{STATE_MARK[substitute.state]}</span>
       <span className="sr-only">{ATTENDANCE_WORDS[substitute.state].word}</span>
@@ -345,7 +356,10 @@ function SubstituteRow({
     <button
       type="button"
       onClick={onOpen}
-      aria-label={`${substitute.name}, substitute — ${ATTENDANCE_WORDS[substitute.state].word}. Change their answer`}
+      aria-label={t('memberChip.label', {
+        who: t('memberChip.substitute', { name: substitute.name }),
+        word: ATTENDANCE_WORDS[substitute.state].word,
+      })}
       className={`${shell} ${CHIP_CONTROL}`}
     >
       {body}

@@ -81,7 +81,7 @@ test('money pool: an admin connects Bunq, picks an account, a member reads it, t
   await expect(page.getByRole('button', { name: 'Use this account' })).toBeDisabled()
   await expect(page.getByRole('radio', { name: 'Teamkas' })).toBeChecked()
   await page.goto(MONEY)
-  await expect(page.getByText('187,50')).toBeVisible()
+  await expect(page.getByText('187.50')).toBeVisible()
   await expect(page.getByText('Lisa de Vries')).toBeVisible()
 
   // 5. Picking Privé changes what the Money page reads, and picking Teamkas again restores it.
@@ -90,7 +90,7 @@ test('money pool: an admin connects Bunq, picks an account, a member reads it, t
   await page.getByRole('button', { name: 'Use this account' }).click()
   await expect(page.getByRole('status').filter({ hasText: 'The Money page now shows Privé.' })).toBeFocused()
   await page.goto(MONEY)
-  await expect(page.getByText('42,35')).toBeVisible()
+  await expect(page.getByText('42.35')).toBeVisible()
   await expect(page.getByText('Albert Heijn')).toBeVisible()
   await expect(page.getByText('Lisa de Vries')).toHaveCount(0)
   await page.goto(SETTINGS)
@@ -98,7 +98,7 @@ test('money pool: an admin connects Bunq, picks an account, a member reads it, t
   await page.getByRole('button', { name: 'Use this account' }).click()
   await expect(page.getByRole('status').filter({ hasText: 'The Money page now shows Teamkas.' })).toBeFocused()
   await page.goto(MONEY)
-  await expect(page.getByText('187,50')).toBeVisible()
+  await expect(page.getByText('187.50')).toBeVisible()
 
   // 6. Connecting a different login replaces the access and keeps the pick, since the new access still
   //    covers it.
@@ -116,7 +116,7 @@ test('money pool: an admin connects Bunq, picks an account, a member reads it, t
   try {
     const memberPage = await member.newPage()
     await memberPage.goto(MONEY)
-    await expect(memberPage.getByText('187,50')).toBeVisible()
+    await expect(memberPage.getByText('187.50')).toBeVisible()
     await expect(memberPage.getByText('Lisa de Vries')).toBeVisible()
     expect((await member.request.get('/api/team/money-pool/connection')).status()).toBe(403)
 
@@ -165,7 +165,7 @@ test('money pool: Bunq withdraws access, members see the pool unavailable, the a
   await page.getByRole('button', { name: 'Use this account' }).click()
   await expect(page.getByRole('status').filter({ hasText: 'The Money page now shows Teamkas.' })).toBeFocused()
   await page.goto(MONEY)
-  await expect(page.getByText('187,50')).toBeVisible()
+  await expect(page.getByText('187.50')).toBeVisible()
 
   // 2. The user withdraws TeamBalance's access at Bunq while the Admin has the picker open: the pick that
   //    follows ends rejected, the picker goes, and the message takes focus.
@@ -183,13 +183,13 @@ test('money pool: Bunq withdraws access, members see the pool unavailable, the a
     await memberPage.goto(MONEY)
     await expect(memberPage.getByText('The pool is unavailable right now')).toBeVisible()
     await expect(memberPage.getByText('An admin needs to reconnect it')).toBeVisible()
-    await expect(memberPage.getByText('187,50')).toHaveCount(0)
+    await expect(memberPage.getByText('187.50')).toHaveCount(0)
 
     // 4. The admin is pointed to the team settings.
     await page.goto(MONEY)
     await expect(page.getByText('The pool is unavailable right now')).toBeVisible()
     await expect(page.getByText('Reconnect it in the team settings')).toBeVisible()
-    await expect(page.getByText('187,50')).toHaveCount(0)
+    await expect(page.getByText('187.50')).toHaveCount(0)
 
     // 5. The settings say the access is refused, not that the team is connected, not even for a moment while
     //    the accounts are read. Opening the page does not move focus to the message.
@@ -217,9 +217,9 @@ test('money pool: Bunq withdraws access, members see the pool unavailable, the a
     await expect(page.getByRole('radio', { name: 'Teamkas' })).toBeChecked()
     await expect(page.getByText('can’t use its stored bunq access any more')).toHaveCount(0)
     await page.goto(MONEY)
-    await expect(page.getByText('187,50')).toBeVisible()
+    await expect(page.getByText('187.50')).toBeVisible()
     await memberPage.reload()
-    await expect(memberPage.getByText('187,50')).toBeVisible()
+    await expect(memberPage.getByText('187.50')).toBeVisible()
   } finally {
     await member.close()
     await disconnectViaApi(page)

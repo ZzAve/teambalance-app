@@ -9,7 +9,7 @@ import { appColumn } from '@shared/testing/app-column-decorator'
 import { withRouter } from '@shared/testing/router-decorator'
 import { buildSeriesPeek } from '@entities/event/lib/series-peek'
 import { appShell, SHELL_ROUTES } from '../../../../storybook-support/app-shell-decorator'
-import { pageModes } from '../../../../.storybook/modes'
+import { dutchMode, pageModes } from '../../../../.storybook/modes'
 import { EventDetailView } from './EventDetailView'
 
 // The event-detail page as a phone shows it (ADR-0032 §3): sticky sub-header, the info card
@@ -125,8 +125,21 @@ type Story = StoryObj<typeof meta>
 export const Data: Story = {
   decorators: shell.decorators,
   // The page's picture, in dark and once at desktop width too (ADR-0032 §4-§5).
-  parameters: { chromatic: { modes: pageModes } },
-  play: async ({ canvas }) => {
+  // Plus the Dutch picture (ADR-0043 §8): the longest page, and the date in Dutch.
+  parameters: { chromatic: { modes: { ...pageModes, ...dutchMode } } },
+  play: async ({ canvas, globals }) => {
+    // Chromatic runs this play in every mode. In the Dutch one it proves the translated screen (#464).
+    if (globals.locale === 'nl') {
+      await expect(canvas.getByRole('link', { name: 'Terug naar events' })).toHaveAttribute('href', SHELL_ROUTES.events)
+      await expect(canvas.getByText('woensdag 12 augustus 2026')).toBeInTheDocument()
+      await expect(canvas.getByText('Meer info')).toBeInTheDocument()
+      const mine = within(canvas.getByRole('group', { name: 'Jouw antwoord' }))
+      await expect(mine.getByRole('button', { name: 'Aanwezig' })).toHaveAttribute('aria-pressed', 'true')
+      await expect(canvas.getByRole('link', { name: /Zet de events van je team in je agenda/ })).toBeInTheDocument()
+      await expect(canvas.getByRole('button', { name: /^Jan de Vries, invaller — Aanwezig/ })).toBeInTheDocument()
+      await expect(canvas.getByRole('button', { name: /^Julius \(jij\) — Aanwezig\. Wijzig het antwoord/ })).toBeInTheDocument()
+      return
+    }
     await expect(canvas.getByRole('link', { name: 'Back to events' })).toHaveAttribute('href', SHELL_ROUTES.events)
     await expect(canvas.getByRole('heading', { level: 1, name: 'Training — Court 2' })).toBeInTheDocument()
     await expect(canvas.getByRole('link', { name: /Sporthal De Toekomst/ })).toHaveAttribute(

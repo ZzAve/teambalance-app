@@ -340,8 +340,13 @@ jobs:
           # application/octet-stream and be rejected as a manifest — set the type explicitly.
           aws --endpoint-url "$S3_ENDPOINT" s3 cp app/dist/manifest.webmanifest "s3://${SPA_BUCKET}/manifest.webmanifest" \
             --cache-control no-cache --content-type application/manifest+json
-          # Landing page: index.html + style.css at root, tokens.css under /design-tokens/.
-          aws --endpoint-url "$S3_ENDPOINT" s3 cp www/index.html "s3://${WWW_BUCKET}/index.html" \
+          # Landing page (#464): Dutch at /, English at /en/, both rendered from www/template.html and
+          # www/strings/*.json. style.css at root, tokens.css under /design-tokens/ (absolute paths,
+          # so /en/ finds them too).
+          node www/build.mjs
+          aws --endpoint-url "$S3_ENDPOINT" s3 cp www/dist/index.html "s3://${WWW_BUCKET}/index.html" \
+            --cache-control no-cache
+          aws --endpoint-url "$S3_ENDPOINT" s3 cp www/dist/en/index.html "s3://${WWW_BUCKET}/en/index.html" \
             --cache-control no-cache
           # style.css + tokens.css are unhashed and referenced by name from index.html's <head>,
           # so they must revalidate in lockstep with it: no-cache matches index.html and prevents

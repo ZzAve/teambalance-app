@@ -7,7 +7,7 @@ import { RouteErrorFallback } from '@shared/ui/RouteErrorFallback'
 import { NotFoundView } from '@shared/ui/NotFoundView'
 import { clearSession, hasClearableSession } from '@shared/api/clear-session'
 import { RootErrorBoundary } from '@app/RootErrorBoundary'
-import { installChunkErrorHandler } from '@shared/lib/chunk-reload'
+import { installChunkErrorHandler, markAppLoaded } from '@shared/lib/chunk-reload'
 import { registerAppServiceWorker } from '@app/pwa/sw-registration'
 import './styles/global.css'
 
@@ -44,6 +44,8 @@ const router = createRouter({
     <NotFoundView onLogout={hasClearableSession() ? () => clearSession() : undefined} />
   ),
 })
+
+router.subscribe('onResolved', markAppLoaded)
 
 declare module '@tanstack/react-router' {
   interface Register {

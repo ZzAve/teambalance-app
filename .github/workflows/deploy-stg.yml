@@ -1,0 +1,115 @@
+name: Deploy staging
+
+# Puts the api-stg image of a branch or PR on api.stg.teambalance.nl. CI builds that image on every
+# run and tags it `head-<12-char head SHA>`; this workflow only deploys it. Two triggers:
+#   - "Run workflow" in the Actions tab (or `gh workflow run deploy-stg.yml -f target=<branch|PR>`)
+#   - adding the `deploy:stg` label to a PR; the job removes the label again, so re-adding it redeploys
+# Only the repository owner can trigger it; anyone else's run is skipped. Its Postgres lives in the
+# container and starts empty on every cold start, so a deploy carries no data risk.
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: Branch name or PR number
+        required: true
+  pull_request:
+    types: [labeled]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+env:
+  SCW_REGION: fr-par
+  REGISTRY: rg.fr-par.scw.cloud/teambalance
+  STG_CONTAINER_ID: 5de629a4-4964-49c0-b601-b19da0a4bfbf
+
+jobs:
+  deploy-api-stg:
+    if: >-
+      github.triggering_actor == github.repository_owner &&
+      (github.event_name == 'workflow_dispatch' || github.event.label.name == 'deploy:stg')
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    environment:
+      name: staging
+      url: https://api.stg.teambalance.nl
+    # Shared and never cancelled, so rollouts run one at a time.
+    concurrency:
+      group: deploy-stg-api
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Remove the deploy:stg label
+        if: ${{ github.event_name == 'pull_request' }}
+        run: gh pr edit "$PR" --repo "$GITHUB_REPOSITORY" --remove-label deploy:stg
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+
+      - name: Resolve the head commit
+        id: head
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          TARGET: ${{ inputs.target }}
+        run: |
+          set -euo pipefail
+          if [ -n "$PR_HEAD_SHA" ]; then
+            sha="$PR_HEAD_SHA"
+          elif [[ "$TARGET" =~ ^[0-9]+$ ]]; then
+            sha="$(gh pr view "$TARGET" --repo "$GITHUB_REPOSITORY" --json headRefOid --jq .headRefOid)"
+          else
+            sha="$(gh api "repos/${GITHUB_REPOSITORY}/commits/${TARGET}" --jq .sha)"
+          fi
+          runs="$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/ci.yml/runs?head_sha=${sha}" --jq .total_count)"
+          if [ "$runs" = 0 ]; then
+            echo "::error::CI never ran for ${sha}, so it has no image. Open a PR for the branch, or push it as deploy/<name>."
+            exit 1
+          fi
+          echo "sha=${sha::12}" >> "$GITHUB_OUTPUT"
+
+      - name: Log in to Container Registry
+        run: echo "${{ secrets.SCW_SECRET_KEY }}" | docker login "${REGISTRY%%/*}" -u nologin --password-stdin
+
+      # CI may still be building the image when the label goes on. The image's build SHA is the commit
+      # CI checked out (on a PR, the merge commit), which is what /internal/actuator/info reports.
+      - name: Wait for the image and read its build SHA
+        id: image
+        run: |
+          set -euo pipefail
+          ref="${REGISTRY}/api-stg:head-${{ steps.head.outputs.sha }}"
+          deadline=$(( SECONDS + 1800 ))
+          until docker buildx imagetools inspect "$ref" >/dev/null 2>&1; do
+            if [ "$SECONDS" -ge "$deadline" ]; then
+              echo "::error::${ref} did not appear within 30 minutes. Check the CI run's image job."
+              exit 1
+            fi
+            echo "Waiting for ${ref}…"
+            sleep 30
+          done
+          build_sha="$(docker buildx imagetools inspect "$ref" --format '{{json .Image}}' |
+            jq -r '(if has("config") then . else .["linux/amd64"] end).config.Env[]
+              | select(startswith("TEAMBALANCE_BUILD_SHA=")) | sub("^[^=]*="; "")')"
+          echo "Deploying ${ref} (build ${build_sha})."
+          echo "build_sha=${build_sha}" >> "$GITHUB_OUTPUT"
+
+      - name: Configure Scaleway CLI
+        uses: scaleway/action-scw@2e34a1eb35cf3cac627f24643a101fea269cbd83 # v0.0.3
+        with:
+          version: v2.58.3
+          save-config: true
+          export-config: true
+          access-key: ${{ secrets.SCW_ACCESS_KEY }}
+          secret-key: ${{ secrets.SCW_SECRET_KEY }}
+          default-project-id: ${{ secrets.SCW_DEFAULT_PROJECT_ID }}
+          default-organization-id: ${{ secrets.SCW_DEFAULT_ORGANIZATION_ID }}
+
+      - name: Update Serverless Container image
+        run: scw container container update "$STG_CONTAINER_ID" image="${REGISTRY}/api-stg:${{ steps.image.outputs.build_sha }}" region="$SCW_REGION"
+
+      - name: Verify the new image is actually serving
+        run: ./.github/scripts/await-live-sha.sh https://api.stg.teambalance.nl "${{ steps.image.outputs.build_sha }}"
+        env:
+          INTERNAL_API_KEY: ${{ secrets.STG_INTERNAL_API_KEY }}

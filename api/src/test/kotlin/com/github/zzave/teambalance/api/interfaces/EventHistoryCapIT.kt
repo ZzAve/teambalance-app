@@ -3,10 +3,8 @@ package com.github.zzave.teambalance.api.interfaces
 import com.github.zzave.teambalance.api.TeamBalanceIT
 import com.github.zzave.teambalance.api.application.EventService
 import com.github.zzave.teambalance.api.infrastructure.multitenancy.TenantSchemaAdapter
-import com.github.zzave.teambalance.api.infrastructure.persistence.entity.EventJpaEntity
+import com.github.zzave.teambalance.api.infrastructure.persistence.SqlStatementRecorder
 import io.kotest.matchers.shouldBe
-import jakarta.persistence.EntityManagerFactory
-import org.hibernate.SessionFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
 import org.springframework.jdbc.core.JdbcTemplate
@@ -24,10 +22,12 @@ private const val SCHEMA = "team_event_cap"
 private val CAP = EventService.EVENT_HISTORY_CAP
 
 // Comfortably past the cap, and past CAP + 1 as well. The margin is the point: with the limit in
-// SQL, Hibernate loads CAP + 1 rows however many are in the table; with a `.take(CAP)` applied after
-// `findAllByOrderByStartTimeDesc()` it would load all of them. Seeding only CAP + 1 would make both
+// SQL, CAP + 1 rows are fetched however many are in the table; with a `.take(CAP)` applied after
+// an unbounded select it would load all of them. Seeding only CAP + 1 would make both
 // implementations load the same number of rows and the assertion below would prove nothing.
 private const val SEEDED_EVENTS = 510
+
+private val EVENTS_SELECT = Regex("""^select .* from "?events"?(\s|$)""", RegexOption.IGNORE_CASE)
 
 /**
  * The cap on `include-past=true` (#310), against real Postgres.
@@ -50,7 +50,7 @@ class EventHistoryCapIT : TeamBalanceIT() {
     lateinit var tenantSchemaAdapter: TenantSchemaAdapter
 
     @Autowired
-    lateinit var entityManagerFactory: EntityManagerFactory
+    lateinit var statementRecorder: SqlStatementRecorder
 
     init {
         test("include-past returns the cap's worth of events, newest first, dropping the oldest history") {
@@ -74,7 +74,7 @@ class EventHistoryCapIT : TeamBalanceIT() {
             // CAP + 1, not CAP: the extra row is what tells "exactly at the cap" from "over it"
             // without a second count() query. And not $SEEDED_EVENTS, which is what a post-fetch
             // `.take()` would have loaded.
-            rowsLoaded shouldBe (CAP + 1).toLong()
+            rowsLoaded shouldBe CAP + 1
         }
     }
 
@@ -89,19 +89,11 @@ class EventHistoryCapIT : TeamBalanceIT() {
             .andReturn()
             .let { mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(it)) }
 
-    /** Event rows Hibernate actually materialized while [block] ran — the whole point of the fix. */
-    private fun countingEventRowLoads(block: () -> Unit): Long {
-        val statistics = entityManagerFactory.unwrap(SessionFactory::class.java).statistics
-        val wasEnabled = statistics.isStatisticsEnabled
-        statistics.isStatisticsEnabled = true
-        statistics.clear()
-        try {
-            block()
-            return statistics.getEntityStatistics(EventJpaEntity::class.java.name).loadCount
-        } finally {
-            statistics.isStatisticsEnabled = wasEnabled
-        }
-    }
+    /** Event rows fetched from the `events` table while [block] ran — the whole point of the fix. */
+    private fun countingEventRowLoads(block: () -> Unit): Int =
+        statementRecorder.recording(block)
+            .filter { EVENTS_SELECT.containsMatchIn(it.sql) }
+            .sumOf { it.rowsFetched }
 
     private fun seedEvents() {
         tenantSchemaAdapter.provisionPlatformSchema()

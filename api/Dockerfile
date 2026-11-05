@@ -2,6 +2,8 @@
 # Multi-stage: build the Spring Boot fat jar, bake a JDK-25 AOT cache, then run it on a slim JRE.
 # JDK/JRE 25 to match the build toolchain (gradle.properties: javaVersion=25).
 # Build from the repo root: docker build -f api/Dockerfile -t teambalance-api .
+# Staging image (prod image + in-container Postgres + demo data, see the `stg` stage):
+#   docker build -f api/Dockerfile --target stg -t teambalance-api-stg .
 #
 # Startup-time optimization Phase 2 (Spring AOT + AppCDS/Leyden AOT-cache). This runs on the JVM
 # (java -jar) — NO GraalVM native image. Two levers:
@@ -54,7 +56,14 @@ RUN set -e; \
     JOOQ_CODEGEN_JDBC_PASSWORD=tb \
     ./gradlew --no-daemon --no-configuration-cache :api:bootJar; \
     pg_ctlcluster "$PGVER" main stop; \
-    cp api/build/libs/*-SNAPSHOT.jar /workspace/app.jar
+    cp api/build/libs/*-SNAPSHOT.jar /workspace/app.jar; \
+    java -Djarmode=tools -jar /workspace/app.jar extract --destination /workspace/extracted; \
+    touch -d @318211200 /workspace/extracted/app.jar
+# The JVM's AOT cache cannot store classes loaded from jars nested in the fat jar, so bake and run
+# the extracted layout (extracted/app.jar + extracted/lib/) instead.
+# The jars in lib/ carry Spring Boot's fixed date 1980-02-01 (epoch 318211200); app.jar gets it too.
+# CI exports with SOURCE_DATE_EPOCH=318211200 and rewrite-timestamp, which clamps every newer
+# timestamp to that date. The AOT cache checks jar mtimes, so no jar may be newer than it.
 
 # ---- bake stage: JDK 25 AOT cache --------------------------------------------
 # IMPORTANT: no `--platform=$BUILDPLATFORM` here. The AOT cache is architecture- and JVM-specific,
@@ -64,8 +73,8 @@ RUN set -e; \
 #
 # The training run drives a full Spring context refresh (`-Dspring.context.exit=onRefresh` exits the
 # JVM cleanly the moment refresh completes). Refresh touches the DB (Flyway migrate + Hikari), so we
-# spin a throwaway Postgres inside this stage — this yields a cache that also covers Hibernate
-# metamodel init and repository bootstrap, not just the pre-DB classload gap. Secrets are build-time
+# spin a throwaway Postgres inside this stage — this yields a cache that also covers jOOQ, Flyway
+# and connection-pool init, not just the pre-DB classload gap. Secrets are build-time
 # dummies: AOT-processed prod boot instantiates ScalewayTemEmailSender (builds a RestClient) but
 # never sends mail, and the token salt is only read when a login is served.
 #
@@ -76,7 +85,7 @@ RUN set -e; \
 # size has changed" → "Unable to map shared spaces", and the app fell back to no cache (fail-safe).
 FROM eclipse-temurin:25-jre@sha256:f9e65324a37f28209ce7dd0e5149a7aa954520ed936fb87813cf6ded2400a112 AS bake
 WORKDIR /app
-COPY --from=build /workspace/app.jar /app/app.jar
+COPY --from=build /workspace/extracted/ /app/
 
 # Keep the jar path identical to the runtime stage (/app/app.jar): the AOT cache validates the
 # classpath it was recorded against.
@@ -130,8 +139,51 @@ RUN useradd --system --uid 1001 --home-dir /app --shell /usr/sbin/nologin app
 USER app
 
 # Jar at the SAME /app/app.jar path the cache was recorded against, plus the baked AOT cache.
-COPY --from=build --chown=app:app /workspace/app.jar app.jar
+# Dependencies in their own layer: with CI's fixed timestamps its digest only changes with a dependency.
+COPY --from=build --chown=app:app /workspace/extracted/lib/ lib/
+COPY --from=build --chown=app:app /workspace/extracted/app.jar app.jar
 COPY --from=bake  --chown=app:app /app/app.aot app.aot
+
+EXPOSE 8080
+
+# ---- stg stage ---------------------------------------------------------------
+# The prod jar and AOT cache plus a Postgres cluster in /app/pgdata, initialised here and owned by the
+# app user, so a cold start only has to start it (api/stg-entrypoint.sh). Its data lives on the
+# container's temporary disk: every cold start begins empty, Flyway builds the schema from V001 and
+# DemoDataSeeder adds the demo team. Runs the `prod` profile (the AOT bean set is prod's); the
+# differences are runtime switches: seed demo data, and log email instead of sending it via TEM.
+FROM runtime AS stg
+USER root
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends postgresql \
+ && rm -rf /var/lib/apt/lists/* \
+ && ln -s "$(ls -d /usr/lib/postgresql/*/bin | head -n1)" /usr/local/pgbin \
+ && install -d -o app -g app -m 700 /app/pgdata
+ENV PATH=/usr/local/pgbin:$PATH \
+    SPRING_PROFILES_ACTIVE=prod \
+    SPRING_DATASOURCE_URL=jdbc:postgresql://127.0.0.1:5432/teambalance \
+    SPRING_DATASOURCE_USERNAME=teambalance \
+    TEAMBALANCE_DEMO_DATA_ENABLED=true \
+    TEAMBALANCE_EMAIL_SEND=false \
+    SCALEWAY_TEM_API_KEY=unused-on-stg \
+    SCALEWAY_TEM_PROJECT_ID=unused-on-stg \
+    TEAMBALANCE_API_BASE_URL=https://api.stg.teambalance.nl
+USER app
+# trust auth: Postgres only listens on 127.0.0.1 inside this container. mmap shared memory and a /tmp
+# socket avoid /dev/shm and /var/run/postgresql, which the sandbox or the non-root user may not have.
+RUN initdb -D /app/pgdata -U teambalance --auth=trust \
+ && printf "%s\n" "listen_addresses = '127.0.0.1'" "unix_socket_directories = '/tmp'" \
+      "dynamic_shared_memory_type = mmap" "shared_buffers = 64MB" >> /app/pgdata/postgresql.conf \
+ && pg_ctl -D /app/pgdata -w start \
+ && createdb -h 127.0.0.1 -U teambalance teambalance \
+ && pg_ctl -D /app/pgdata -w stop
+COPY --chown=app:app --chmod=755 api/stg-entrypoint.sh /app/stg-entrypoint.sh
+ARG GIT_SHA=unknown
+ENV TEAMBALANCE_BUILD_SHA=$GIT_SHA
+ENTRYPOINT ["/app/stg-entrypoint.sh"]
+
+# ---- prod stage (default target: keep it last) ---------------------------------
+FROM runtime AS prod
 
 # Build SHA of this image, surfaced at runtime on /internal/actuator/info (info.build.sha) so the deploy
 # pipeline can confirm the exact pushed image is serving. Declared last: it changes every commit, and
@@ -140,13 +192,13 @@ COPY --from=bake  --chown=app:app /app/app.aot app.aot
 ARG GIT_SHA=unknown
 ENV TEAMBALANCE_BUILD_SHA=$GIT_SHA
 
-EXPOSE 8080
 # Runtime flags combine Phase 1 (1-vCPU startup tuning) and Phase 2 (Spring AOT + AOT cache):
 #   -XX:+UseSerialGC        — no multi-threaded GC to spin up on a single core.
 #   -XX:TieredStopAtLevel=1 — C1-only JIT: cheaper warmup, negligible peak-throughput loss here.
 #   -XX:AOTCache=app.aot    — load the baked JDK-25 AOT cache; fails SAFE (a missing/mismatched cache
 #                             only logs a warning and boots normally).
 #   -Dspring.aot.enabled    — activate the AOT-generated bean definitions packaged in the jar.
-# The GC flag MUST match the bake-stage training run, or the AOT cache is rejected at runtime.
+# The GC flag MUST match the bake-stage training run, or the AOT cache is rejected at runtime. Keep
+# api/stg-entrypoint.sh in sync: Docker resets CMD on a new ENTRYPOINT, so stg repeats this command.
 # See docs/adr/0036-jvm-startup-time-tuning-without-native-image.md.
 ENTRYPOINT ["java", "-XX:+UseSerialGC", "-XX:TieredStopAtLevel=1", "-XX:AOTCache=app.aot", "-Dspring.aot.enabled=true", "-jar", "app.jar"]

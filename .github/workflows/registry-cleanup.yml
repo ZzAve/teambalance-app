@@ -1,0 +1,43 @@
+name: Registry cleanup
+
+# Deletes old API image tags: main's after 90 days, every other one after 7 days, never one a container
+# runs. Rules in .github/scripts/registry-cleanup.sh. Run it by hand with DRY_RUN to preview.
+on:
+  schedule:
+    - cron: '17 3 * * *'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Only print what would be deleted
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      # Full history: the script checks whether each tag's commit is on origin/main.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Configure Scaleway CLI
+        uses: scaleway/action-scw@2e34a1eb35cf3cac627f24643a101fea269cbd83 # v0.0.3
+        with:
+          version: v2.58.3
+          save-config: true
+          export-config: true
+          access-key: ${{ secrets.SCW_ACCESS_KEY }}
+          secret-key: ${{ secrets.SCW_SECRET_KEY }}
+          default-project-id: ${{ secrets.SCW_DEFAULT_PROJECT_ID }}
+          default-organization-id: ${{ secrets.SCW_DEFAULT_ORGANIZATION_ID }}
+
+      - name: Delete old image tags
+        run: ./.github/scripts/registry-cleanup.sh
+        env:
+          SCW_REGION: fr-par
+          DRY_RUN: ${{ inputs.dry_run && '1' || '0' }}

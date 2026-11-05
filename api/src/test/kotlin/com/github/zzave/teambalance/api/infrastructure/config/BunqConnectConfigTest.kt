@@ -30,7 +30,7 @@ class BunqConnectConfigTest : FunSpec({
 
         test("refuse to start while connecting is on in prod") {
             shouldThrow<IllegalStateException> { bunqConnectConfig(true, true, CIPHER, API) }
-                .message!! shouldContain "until the real Bunq adapter can read"
+                .message!! shouldContain "until Bunq reads and OAuth are verified for production"
         }
     }
 
@@ -58,7 +58,7 @@ class BunqConnectConfigTest : FunSpec({
         test("a valid key starts the context with the cipher") {
             runner().withPropertyValues("teambalance.bunq.token-encryption-key=$KEY").run { ctx ->
                 ctx.startupFailure.shouldBeNull()
-                ctx.getBean(TokenCipher::class.java).decrypt(CIPHER.encrypt("x")) shouldBe "x"
+                ctx.getBean(TokenCipher::class.java).decrypt(CIPHER.encrypt("x", TokenCipher.NO_AAD), TokenCipher.NO_AAD) shouldBe "x"
             }
         }
     }

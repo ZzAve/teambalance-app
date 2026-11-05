@@ -1,6 +1,13 @@
 package com.github.zzave.teambalance.api.infrastructure.bunq
 
+import com.github.zzave.teambalance.api.application.TokenCipher
+import com.github.zzave.teambalance.api.domain.model.EncryptedToken
+import com.github.zzave.teambalance.api.domain.model.StoredBunqApiContext
+import com.github.zzave.teambalance.api.domain.model.TeamId
+import com.github.zzave.teambalance.api.domain.port.BunqApiContextRepository
 import com.github.zzave.teambalance.api.domain.port.BunqGateway
+import com.github.zzave.teambalance.api.domain.port.CurrentTeamGateway
+import com.github.zzave.teambalance.api.infrastructure.config.BunqGrantCipherConfiguration
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.nulls.shouldBeNull
@@ -18,6 +25,7 @@ import org.springframework.boot.test.context.runner.ApplicationContextRunner
 import org.springframework.context.annotation.Bean
 import org.springframework.core.env.MapPropertySource
 import java.time.Clock
+import java.time.Duration
 
 private const val CLIENT_ID = "selection-test-client-id"
 private const val CLIENT_SECRET = "selection-test-client-secret"
@@ -132,6 +140,20 @@ class BunqGatewaySelectionTest : FunSpec({
         }
     }
 
+    context("the call limits") {
+        test("application.yml gives a 5 s call timeout, a 15 s setup timeout and a 30 s fallback pause kept between 1 s and 60 s") {
+            runner("prod").run { ctx ->
+                ctx.startupFailure.shouldBeNull()
+                val limits = ctx.getBean(BunqCallProperties::class.java)
+                limits.callTimeout shouldBe Duration.ofSeconds(5)
+                limits.setupTimeout shouldBe Duration.ofSeconds(15)
+                limits.rateLimitPause shouldBe Duration.ofSeconds(30)
+                limits.rateLimitPauseMin shouldBe Duration.ofSeconds(1)
+                limits.rateLimitPauseMax shouldBe Duration.ofSeconds(60)
+            }
+        }
+    }
+
     context("the client id and secret") {
         listOf("sandbox", "production").forEach { environment ->
             listOf("client-id", "client-secret").forEach { blank ->
@@ -157,9 +179,26 @@ class BunqGatewaySelectionTest : FunSpec({
     }
 }) {
     @TestConfiguration
-    @EnableConfigurationProperties(BunqClientProperties::class)
+    @EnableConfigurationProperties(BunqClientProperties::class, BunqCallProperties::class)
     class SelectionTestBeans {
         @Bean
         fun clock(): Clock = Clock.systemUTC()
+
+        @Bean(BunqGrantCipherConfiguration.BEAN_NAME)
+        fun cipher(): TokenCipher = TokenCipher.fromBase64Key("dGVhbWJhbGFuY2UtdGVzdC1idW5xLXRva2VuLWtleTE=", "test")
+
+        @Bean
+        fun currentTeam(): CurrentTeamGateway = object : CurrentTeamGateway {
+            override fun requireCurrentTeamId(): TeamId = error("no team in scope")
+
+            override fun findCurrentTeamId(): TeamId? = null
+        }
+
+        @Bean
+        fun contexts(): BunqApiContextRepository = object : BunqApiContextRepository {
+            override fun find(): StoredBunqApiContext? = null
+
+            override fun save(context: EncryptedToken, ifGrant: EncryptedToken) = false
+        }
     }
 }

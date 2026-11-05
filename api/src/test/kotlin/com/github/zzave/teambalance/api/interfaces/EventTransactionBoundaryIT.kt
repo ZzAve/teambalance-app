@@ -2,7 +2,9 @@ package com.github.zzave.teambalance.api.interfaces
 
 import com.github.zzave.teambalance.api.TeamBalanceIT
 import com.github.zzave.teambalance.api.infrastructure.multitenancy.TenantSchemaAdapter
-import com.github.zzave.teambalance.api.infrastructure.persistence.FAULT_INJECTED_TITLE
+import com.github.zzave.teambalance.api.infrastructure.persistence.SqlFault
+import com.github.zzave.teambalance.api.infrastructure.persistence.SqlFaultInjector
+import com.github.zzave.teambalance.api.infrastructure.persistence.jooq.default_schema.Tables.EVENTS
 import io.kotest.matchers.shouldBe
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
@@ -25,6 +27,8 @@ private const val ADMIN_USER_ID = "b0000000-0000-0000-0000-0000000000e1"
 private const val TEAM_ID = "a0000000-0000-0000-0000-000000000001"
 
 private const val HEALTHY_TITLE = "Healthy Series"
+private const val FAULT_INJECTED_TITLE = "Atomic Series"
+private const val FAIL_ON_INSERT = 3
 
 /**
  * The transactional boundary around a multi-step Event write, proven through the REST boundary.
@@ -32,7 +36,7 @@ private const val HEALTHY_TITLE = "Healthy Series"
  * `createRecurringEvents` materializes N occurrences and hands them to the repository as one batch.
  * If no transaction spans that batch, Spring Data's own per-call transaction commits each row
  * individually and a mid-batch failure leaves a half-written series behind — verified by deleting
- * `@Transactional` from `JpaEventRepositoryAdapter.saveAll`, which makes the first case below find
+ * `@Transactional` from `JooqEventRepositoryAdapter.saveAll`, which makes the first case below find
  * 2 of 4 rows instead of none.
  *
  * Safety net for #20 (framework-free EventService): it must hold identically whether the boundary
@@ -50,14 +54,23 @@ class EventTransactionBoundaryIT : TeamBalanceIT() {
     @Autowired
     lateinit var tenantSchemaAdapter: TenantSchemaAdapter
 
+    @Autowired
+    lateinit var sqlFaultInjector: SqlFaultInjector
+
     init {
         test("a recurring-series create that fails midway persists nothing") {
             seedTeamAndAdmin()
             clearSeason()
 
             // WEEKLY Tue + Thu, 2026-09-01 → 2026-09-10 ⇒ 4 occurrences, so the batch is still
-            // running when save #3 blows up and two rows have already been written.
-            postRecurringSeries(FAULT_INJECTED_TITLE).andExpect(MockMvcResultMatchers.status().isBadRequest)
+            // running when insert #3 blows up and two rows have already been written. The fault is
+            // an IllegalArgumentException so it surfaces as a mapped 400, not a container-level rethrow.
+            val failThirdInsert = SqlFault.onNthInsertInto(EVENTS, FAIL_ON_INSERT, FAULT_INJECTED_TITLE) {
+                IllegalArgumentException("injected persistence failure on insert #$FAIL_ON_INSERT")
+            }
+            sqlFaultInjector.failWhile(failThirdInsert) {
+                postRecurringSeries(FAULT_INJECTED_TITLE).andExpect(MockMvcResultMatchers.status().isBadRequest)
+            }
 
             countOfEvents(FAULT_INJECTED_TITLE) shouldBe 0
         }
@@ -66,7 +79,7 @@ class EventTransactionBoundaryIT : TeamBalanceIT() {
             seedTeamAndAdmin()
             clearSeason()
 
-            // Same request shape, a title the fault injector ignores — proves the batch really does
+            // Same request shape, a title the fault matcher ignores — proves the batch really does
             // write four rows, so the zero above is a rollback and not a request that never got going.
             postRecurringSeries(HEALTHY_TITLE).andExpect(MockMvcResultMatchers.status().isCreated)
 

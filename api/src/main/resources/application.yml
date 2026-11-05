@@ -4,27 +4,11 @@ spring:
   threads:
     virtual:
       enabled: true
-  jpa:
-    open-in-view: false
-    hibernate:
-      ddl-auto: none
-    properties:
-      hibernate:
-        # Startup: pin the dialect and skip Hibernate's boot-time JDBC metadata probe (the
-        # "Database version: 16.x / dialect: PostgreSQLDialect" round-trip seen in boot logs). The two
-        # go together — with the probe off Hibernate can't auto-detect the dialect, so it must be set.
-        # Every environment (prod + Testcontainers) is PostgreSQL, so this is safe app-wide.
-        # See docs/adr/0036-jvm-startup-time-tuning-without-native-image.md.
-        dialect: org.hibernate.dialect.PostgreSQLDialect
-        boot:
-          allow_jdbc_metadata_access: false
-  data:
-    jpa:
-      repositories:
-        # Initialize JPA repositories on a background thread instead of on the boot critical path.
-        # `deferred` (not `lazy`) still forces initialization to complete before the context is
-        # marked ready, so any repository wiring error still surfaces at startup.
-        bootstrap-mode: deferred
+  datasource:
+    hikari:
+      # Second line of defence behind the explicit reset on transaction completion and connection close:
+      # Hikari puts any connection a caller left on another schema back on `public` when it is returned.
+      schema: public
   flyway:
     enabled: true
     locations: classpath:db/migration
@@ -45,7 +29,7 @@ spring:
       # Flyway owns the schema (db/migration/V005__spring_session.sql); never let Spring Session run DDL.
       initialize-schema: never
       # Schema-qualify so session queries always resolve to `public`, independent of the tenant
-      # search_path the multitenancy connection provider may have left on a pooled connection.
+      # search_path a tenant-routed transaction or connection may have left on a pooled connection.
       table-name: public.SPRING_SESSION
     servlet:
       # Spring Session's repository filter must wrap the request BEFORE SessionUserContextFilter
@@ -188,13 +172,24 @@ teambalance:
     # Bunq outside prod and the unconfigured gateway in prod (every call fails, so the pool reads as
     # unavailable). Anything else wires the real adapter and then needs the client id and secret below:
     # the app fails fast at startup without them. An empty value fails startup too; leave it unset for none.
-    # connect-enabled is refused in prod whatever the environment, until the real adapter can read (tracer 4.1).
+    # connect-enabled is refused in prod whatever the environment, until Bunq reads and OAuth are verified for production.
     environment: ${TEAMBALANCE_BUNQ_ENVIRONMENT:none}
     # The OAuth client registered at Bunq. Live environments provide the secret only through the env var.
     client-id: ${TEAMBALANCE_BUNQ_CLIENT_ID:}
     client-secret: ${TEAMBALANCE_BUNQ_CLIENT_SECRET:}
     # The name Bunq shows for this client.
     service-name: TeamBalance
+    # One read of Bunq may take this long: one or two calls, or the three list calls of listing the accounts. The SDK
+    # sets no timeout of its own, so without it a Bunq that never answers would hold the request for good.
+    call-timeout: 5s
+    # Setting a session up is an installation, a device and a session, which the SDK makes as one operation and which
+    # Bunq limits to about ten a day. If it is interrupted halfway all three are repeated, so it gets longer than a read.
+    setup-timeout: 15s
+    # After a 429 every call to Bunq is skipped for the window its message names (for example "3 calls per 3 second"),
+    # kept between rate-limit-pause-min and rate-limit-pause-max. rate-limit-pause is used when the message names none.
+    rate-limit-pause: 30s
+    rate-limit-pause-min: 1s
+    rate-limit-pause-max: 60s
     # The money pool is kept in memory per team and instance, so another instance keeps its own copy.
     # A read within `refresh` of the last successful one makes no Bunq call; a later read asks Bunq
     # again. If Bunq does not answer, the last known balance is shown until it is `expire` old, and

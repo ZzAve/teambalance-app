@@ -2,6 +2,7 @@ package com.github.zzave.teambalance.api.interfaces
 
 import com.github.zzave.teambalance.api.TeamBalanceIT
 import com.github.zzave.teambalance.api.application.TokenCipher
+import com.github.zzave.teambalance.api.application.TokenCipher.Purpose
 import com.github.zzave.teambalance.api.domain.model.TeamId
 import com.github.zzave.teambalance.api.domain.port.MoneyPoolCacheGateway
 import com.github.zzave.teambalance.api.infrastructure.config.BunqGrantCipherConfiguration
@@ -161,6 +162,27 @@ class MoneyPoolControllerIT : TeamBalanceIT() {
             seedTeamAndMember()
             connectBunq()
             jdbcTemplate.update("UPDATE public.bunq_connection SET access_token_encrypted = 'not-a-grant' WHERE id = 1")
+
+            getMoneyPool()
+                .andExpect(MockMvcResultMatchers.status().isOk)
+                .andExpect(MockMvcResultMatchers.jsonPath("$.state").value("Rejected"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.balance").doesNotExist())
+        }
+
+        // Dev and staging rows made before the AAD existed: the Admin connects again.
+        test("GET /api/team/money-pool is Rejected, not an error, when the stored grant was made without an AAD") {
+            seedTeamAndMember()
+            connectBunq(aad = TokenCipher.NO_AAD)
+
+            getMoneyPool()
+                .andExpect(MockMvcResultMatchers.status().isOk)
+                .andExpect(MockMvcResultMatchers.jsonPath("$.state").value("Rejected"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.balance").doesNotExist())
+        }
+
+        test("GET /api/team/money-pool is Rejected when the stored grant was encrypted for another team") {
+            seedTeamAndMember()
+            connectBunq(aad = TokenCipher.aadOf(TeamId(UUID.fromString("a0000000-0000-0000-0000-0000000000ff")), Purpose.BUNQ_GRANT))
 
             getMoneyPool()
                 .andExpect(MockMvcResultMatchers.status().isOk)
@@ -465,11 +487,11 @@ class MoneyPoolControllerIT : TeamBalanceIT() {
         jdbcTemplate.update("UPDATE public.money_pool_settings SET beer_price_cents = ? WHERE id = 1", beerPrice)
     }
 
-    private fun connectBunq() {
+    private fun connectBunq(aad: ByteArray = TokenCipher.aadOf(TeamId(UUID.fromString(TEAM_ID)), Purpose.BUNQ_GRANT)) {
         jdbcTemplate.update(
             "INSERT INTO public.bunq_connection (id, bunq_account_id, access_token_encrypted, connected_by, connected_at) " +
                 "VALUES (1, 'test-account', ?, ?::uuid, now())",
-            grantCipher.encrypt("fake:test").value,
+            grantCipher.encrypt("fake:test", aad).value,
             ADMIN_USER_ID,
         )
     }

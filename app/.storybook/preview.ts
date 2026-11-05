@@ -3,8 +3,12 @@ import type { Preview } from '@storybook/react-vite'
 // both in the Storybook UI and under the Vitest browser runner.
 import '../src/app/styles/global.css'
 import { allModes, VIEWPORTS } from './modes'
+import { routerLoader } from '../src/shared/testing/router-decorator'
 
 const preview: Preview = {
+  // The router `withRouter` renders, built and loaded before the story renders (see routerLoader).
+  loaders: [routerLoader],
+
   parameters: {
     controls: {
       matchers: {

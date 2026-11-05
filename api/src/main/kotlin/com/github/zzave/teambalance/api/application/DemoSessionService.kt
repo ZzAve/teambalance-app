@@ -7,6 +7,7 @@ import java.util.UUID
 /** The guests a visitor can play on the demo team (ADR-0043). The ids are the literals in `db/seed/demo_team.sql`. */
 enum class DemoPersona(val userId: UserId) {
     MEMBER(UserId(UUID.fromString("d0000000-0000-0000-0000-000000000011"))),
+    ADMIN(UserId(UUID.fromString("d0000000-0000-0000-0000-000000000012"))),
     ;
 
     companion object {

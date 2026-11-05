@@ -30,6 +30,8 @@ data class RateLimitProperties(
     val invitationAccept: Policy = Policy(capacity = 10, refillPeriod = Duration.ofMinutes(1)),
     /** `GET /api/bunq/oauth/callback` — public, keyed per client IP. */
     val bunqOauthCallback: Policy = Policy(capacity = 10, refillPeriod = Duration.ofMinutes(1)),
+    /** `POST /api/demo/session` — the unauthenticated guest login of the demo container, keyed per client IP. */
+    val demoSession: Policy = Policy(capacity = 10, refillPeriod = Duration.ofMinutes(1)),
     /**
      * `GET /api/calendar/{slug}/{token}.ics` — keyed per **token**, not per IP. The feed is
      * session-less, so there is no user to key on, and a whole club behind one office NAT would share

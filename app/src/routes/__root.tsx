@@ -8,6 +8,8 @@ import { BottomNav } from '@shared/ui/BottomNav'
 import { authMeQueryOptions } from '@shared/api/auth'
 import { TeamSwitcher } from '@features/switch-team/ui/TeamSwitcher'
 import { ActAsBanner } from '@features/act-as/ui/ActAsBanner'
+import { DemoBanner } from '@widgets/demo-banner/ui/DemoBanner'
+import { LOGIN_PATH } from '@shared/api/auth-redirect'
 import { queryClient } from '@shared/api/query-client'
 import { directionFromIndices } from '@shared/lib/view-transition-direction'
 import { useThemeSync } from '@shared/theme/theme-store'
@@ -45,14 +47,14 @@ export const Route = createRootRoute({
   // (see below) — either way the protected route is never rendered.
   beforeLoad: async ({ location }) => {
     if (isAuthRoute(location.pathname)) return
-    // A genuine 401 resolves to null → /login. A backend error (network / 5xx while the
+    // A genuine 401 resolves to null → LOGIN_PATH (/login, or /demo in the demo build). A backend error (network / 5xx while the
     // scale-to-zero container is still waking) REJECTS: let it propagate to the router's
     // themed error fallback (Retry reloads, by which point the backend is warm) instead of
     // failing closed to /login. Failing closed here both logged out a still-valid session
     // and — because the errored /me query stayed in cache while RootLayout mounted — crashed
     // the render into a blank frame.
     const user = await queryClient.ensureQueryData(authMeQueryOptions)
-    if (!user) throw redirect({ to: '/login' })
+    if (!user) throw redirect({ to: LOGIN_PATH })
 
     // Has-ANY-team gate (ADR-0023 §4). Which Team is active is a separate question, answered by
     // /t/$slug. Teamlessness is read from the explicit list, never inferred from role == null
@@ -100,7 +102,13 @@ function RootLayout() {
     <Providers>
       {/* The frame itself (header, main column, tab bar) is a shared component so the Storybook
           app-shell decorator renders page composites in the identical chrome (ADR-0031 §3). */}
-      <AppShellFrame teamSwitcher={<TeamSwitcher />} banner={<ActAsBanner />} nav={<BottomNav />}>
+      <AppShellFrame teamSwitcher={<TeamSwitcher />} banner={
+          <>
+            {/* Demo build only (VITE_DEMO); its own element, outside the act-as banner, so the two share no state. */}
+            {import.meta.env.VITE_DEMO && <DemoBanner />}
+            <ActAsBanner />
+          </>
+        } nav={<BottomNav />}>
         <Outlet />
       </AppShellFrame>
       {/* App-wide toast primitive. richColors gives the error toast a semantic red; `theme` is the

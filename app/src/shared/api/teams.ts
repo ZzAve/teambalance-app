@@ -1,4 +1,5 @@
 import { useMutation } from '@tanstack/react-query'
+import { i18n } from '@shared/i18n/i18n'
 import { api } from './wirespec-client'
 import type { TeamRef } from './generated/model/TeamRef'
 
@@ -64,7 +65,9 @@ export interface CreateTeamInput {
 export function useCreateTeam() {
   return useMutation({
     mutationFn: async ({ name, slug, creationCode }: CreateTeamInput) => {
-      const res = await api.createTeam({ body: { name, slug, creationCode } }).catch(() => {
+      // The page's language, for the team-created email when the founder has stored none (ADR-0043 §4).
+      const language = i18n.language === 'nl' ? 'NL' : 'EN'
+      const res = await api.createTeam({ body: { name, slug, creationCode, language } }).catch(() => {
         // A fetch/network failure never reaches a status — surface it as a retry-safe banner.
         throw new CreateTeamError('GENERIC', 'Something went wrong creating your team. Please try again.')
       })

@@ -1,6 +1,7 @@
 import { queryOptions, useMutation, useQuery } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { applyUserLanguage } from '@shared/i18n/language'
+import { i18n } from '@shared/i18n/i18n'
 import { api } from './wirespec-client'
 import type { AuthenticatedUser } from './generated/model/AuthenticatedUser'
 
@@ -25,7 +26,9 @@ export const INVITE_UNAVAILABLE = 'invite-unavailable'
 export function useRequestMagicLink() {
   return useMutation({
     mutationFn: async ({ email, inviteToken }: { email: string; inviteToken?: string }) => {
-      const res = await api.requestMagicLink({ body: { email, inviteToken } })
+      // The page's language, for the email when the recipient has stored none (ADR-0043 §4).
+      const language = i18n.language === 'nl' ? 'NL' : 'EN'
+      const res = await api.requestMagicLink({ body: { email, inviteToken, language } })
       if (res.status === 404) throw new Error(INVITE_UNAVAILABLE)
     },
   })

@@ -1,5 +1,6 @@
 package com.github.zzave.teambalance.api.infrastructure.email
 
+import com.github.zzave.teambalance.api.domain.model.Language
 import com.github.zzave.teambalance.api.domain.model.PlatformAdminAllowlist
 import com.github.zzave.teambalance.api.domain.port.TeamNotificationGateway
 import org.slf4j.LoggerFactory
@@ -28,11 +29,11 @@ class ScalewayTeamNotificationAdapter(
     private val from = TemAddress(email = email.fromAddress, name = email.fromName)
     private val logging = LoggingTeamNotificationAdapter()
 
-    override fun teamCreated(founderEmail: String, teamName: String, teamSlug: String) {
-        if (!email.send) return logging.teamCreated(founderEmail, teamName, teamSlug)
+    override fun teamCreated(founderEmail: String, teamName: String, teamSlug: String, language: Language) {
+        if (!email.send) return logging.teamCreated(founderEmail, teamName, teamSlug, language)
         send(
             recipients = listOf(TemAddress(email = founderEmail)),
-            rendered = TeamNotificationEmails.teamCreated(teamName),
+            rendered = TeamNotificationEmails.teamCreated(teamName, language),
             description = "team-created to $founderEmail",
         )
     }

@@ -7,19 +7,34 @@ import java.net.URI
 private val LOOPBACK_HOSTS = setOf("127.0.0.1", "localhost")
 
 /** Null when the environment is safe for the demo, else the reason the app must not start. */
-internal fun demoBootRefusal(enabled: Boolean, emailSend: Boolean, bunqEnvironment: String, jdbcUrl: String): String? =
+internal fun demoBootRefusal(
+    enabled: Boolean,
+    emailSend: Boolean,
+    bunqEnvironment: String,
+    jdbcUrl: String,
+    poolJdbcUrl: String = "",
+): String? =
     when {
         !enabled -> null
         emailSend -> "teambalance.demo.enabled needs teambalance.email.send=false"
         // shortcut: slice 0 has no `fake` Bunq environment yet; slice 2 replaces "none" with "fake" here.
         !bunqEnvironment.equals("none", ignoreCase = true) -> "teambalance.demo.enabled needs teambalance.bunq.environment=none"
-        jdbcHost(jdbcUrl) !in LOOPBACK_HOSTS ->
-            "teambalance.demo.enabled needs a loopback datasource host (127.0.0.1 or localhost)"
+        // Hikari connects to spring.datasource.hikari.jdbc-url when it is set, so that URL is held to the same rule.
+        !isLoopbackOnly(jdbcUrl) || (poolJdbcUrl.isNotBlank() && !isLoopbackOnly(poolJdbcUrl)) ->
+            "teambalance.demo.enabled needs a loopback datasource host (127.0.0.1 or localhost) " +
+                "and no host override in the query string"
         else -> null
     }
 
-private fun jdbcHost(jdbcUrl: String): String? =
-    runCatching { URI(jdbcUrl.removePrefix("jdbc:")).host }.getOrNull()
+// pgjdbc lets these query parameters replace the host named in the URL's authority.
+private val HOST_OVERRIDE_KEYS = setOf("pghost", "host", "service", "pgservice")
+
+private fun isLoopbackOnly(jdbcUrl: String): Boolean {
+    val host = runCatching { URI(jdbcUrl.removePrefix("jdbc:")).host }.getOrNull()
+    val overridesHost = jdbcUrl.substringAfter('?', "").split('&')
+        .any { it.substringBefore('=').lowercase() in HOST_OVERRIDE_KEYS }
+    return host in LOOPBACK_HOSTS && !overridesHost
+}
 
 /**
  * Stops the application at startup when the demo switch is on in an environment that could reach real mail,
@@ -32,8 +47,9 @@ class DemoGuard(
     @param:Value("\${teambalance.email.send:true}") emailSend: Boolean,
     @param:Value("\${teambalance.bunq.environment:none}") bunqEnvironment: String,
     @param:Value("\${spring.datasource.url}") jdbcUrl: String,
+    @param:Value("\${spring.datasource.hikari.jdbc-url:}") poolJdbcUrl: String,
 ) {
     init {
-        demoBootRefusal(enabled, emailSend, bunqEnvironment, jdbcUrl)?.let { error(it) }
+        demoBootRefusal(enabled, emailSend, bunqEnvironment, jdbcUrl, poolJdbcUrl)?.let { error(it) }
     }
 }

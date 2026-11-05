@@ -1,17 +1,20 @@
 package com.github.zzave.teambalance.api.infrastructure.config
 
 import com.github.zzave.teambalance.api.TeamBalanceIT
+import com.github.zzave.teambalance.api.infrastructure.identity.loginAs
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.string.shouldNotContain
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
+import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.mock.web.MockHttpServletResponse
 import org.springframework.test.context.TestPropertySource
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.asyncDispatch
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
+import java.util.UUID
 
 /** With a SPA location set (the demo container), the app serves the SPA's files and nothing else changes. */
 @AutoConfigureMockMvc
@@ -20,6 +23,9 @@ class SpaStaticResourcesIT : TeamBalanceIT() {
 
     @Autowired
     lateinit var mockMvc: MockMvc
+
+    @Autowired
+    lateinit var jdbcTemplate: JdbcTemplate
 
     init {
         test("the root and client routes without a session get index.html") {
@@ -42,6 +48,21 @@ class SpaStaticResourcesIT : TeamBalanceIT() {
             perform(get("/api/no-such-route")).status shouldBe 401
             // Public in this profile (InternalEndpointGuardFilter guards it in prod); it must not become the SPA.
             perform(get("/internal/actuator/health")).contentAsString shouldNotContain "spa-fixture"
+        }
+
+        test("a signed-in caller gets 404, not index.html, for an unknown API or internal path") {
+            val userId = UUID.randomUUID()
+            jdbcTemplate.update(
+                "INSERT INTO public.users (id, email, display_name) VALUES (?, ?, 'Spa Tester')",
+                userId,
+                "spa-$userId@test.com",
+            )
+
+            for (path in listOf("/api/no-such-route", "/internal/no-such-route")) {
+                val response = perform(get(path).with(loginAs(userId)))
+                response.status shouldBe 404
+                response.contentAsString shouldNotContain "spa-fixture"
+            }
         }
     }
 

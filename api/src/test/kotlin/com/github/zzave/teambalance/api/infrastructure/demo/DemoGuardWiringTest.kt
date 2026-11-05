@@ -53,6 +53,16 @@ class DemoGuardWiringTest : FunSpec({
             .mentions("datasource") shouldBe true
     }
 
+    test("a host override in the datasource query string refuses to start") {
+        startupFailureWith("spring.datasource.url=jdbc:postgresql://localhost/x?PGHOST=prod-db.internal").shouldNotBeNull()
+            .mentions("datasource") shouldBe true
+    }
+
+    test("a remote Hikari jdbc-url refuses to start") {
+        startupFailureWith("spring.datasource.hikari.jdbc-url=jdbc:postgresql://prod-db.internal/x").shouldNotBeNull()
+            .mentions("datasource") shouldBe true
+    }
+
     test("switch off starts whatever the rest says") {
         startupFailureWith("teambalance.demo.enabled=false", "teambalance.email.send=true") shouldBe null
     }

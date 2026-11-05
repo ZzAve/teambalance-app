@@ -36,6 +36,10 @@ class SpaStaticResourcesConfig(
     private object SpaFallbackResolver : PathResourceResolver() {
         override fun getResource(resourcePath: String, location: Resource): Resource? =
             super.getResource(resourcePath, location)
-                ?: if ('.' !in resourcePath.substringAfterLast('/')) location.createRelative("index.html") else null
+                ?: if (isClientRoute(resourcePath)) location.createRelative("index.html") else null
+
+        // An unknown API or internal path stays a 404 for everyone, signed in or not.
+        private fun isClientRoute(path: String) =
+            '.' !in path.substringAfterLast('/') && !path.startsWith("api/") && !path.startsWith("internal/")
     }
 }

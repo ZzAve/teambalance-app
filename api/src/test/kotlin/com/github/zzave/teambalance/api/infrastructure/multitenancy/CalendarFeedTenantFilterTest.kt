@@ -41,13 +41,17 @@ class CalendarFeedTenantFilterTest : TeamBalanceIT() {
 
         test("clears both contexts when the chain throws, and lets the failure through") {
             val team = seedTeam()
+            var seenInChain: Seen? = null
 
-            shouldThrow<IllegalStateException> {
+            val failure = shouldThrow<IllegalStateException> {
                 filter().doFilter(request("GET", feedPath(team.slug)), MockHttpServletResponse()) { _, _ ->
+                    seenInChain = currentlySeen()
                     error("boom")
                 }
             }
 
+            failure.message shouldBe "boom"
+            seenInChain shouldBe Seen(team.schema, team.id)
             TenantContext.isSet() shouldBe false
             CurrentTeamContext.get() shouldBe null
         }
@@ -119,8 +123,10 @@ class CalendarFeedTenantFilterTest : TeamBalanceIT() {
     private fun runFilter(method: String, path: String): Seen {
         var seen = Seen(null, null)
         filter().doFilter(request(method, path), MockHttpServletResponse()) { _, _ ->
-            seen = Seen(TenantContext.get().takeIf { TenantContext.isSet() }, CurrentTeamContext.get())
+            seen = currentlySeen()
         }
         return seen
     }
+
+    private fun currentlySeen() = Seen(TenantContext.get().takeIf { TenantContext.isSet() }, CurrentTeamContext.get())
 }

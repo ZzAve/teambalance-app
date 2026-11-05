@@ -1,4 +1,5 @@
 import type { CreationCode } from '@shared/api/creation-codes'
+import { i18n } from '@shared/i18n/i18n'
 
 export type CreationCodeStatus = 'active' | 'expired' | 'consumed'
 
@@ -13,12 +14,6 @@ export function deriveCreationCodeStatus(code: CreationCode, now: Date): Creatio
   return 'active'
 }
 
-const LABELS: Record<CreationCodeStatus, string> = {
-  active: 'Active',
-  expired: 'Expired',
-  consumed: 'Used',
-}
-
 export function creationCodeStatusLabel(status: CreationCodeStatus): string {
-  return LABELS[status]
+  return i18n.t(`manageCreationCodes.status.${status}`)
 }

@@ -605,5 +605,90 @@
     "amountError": "Vul een heel bedrag in van €{{min}} tot €{{max}}.",
     "unavailable": "Inleggen is nu niet beschikbaar voor dit team.",
     "openFailed": "Betaalpagina openen is mislukt. Probeer het opnieuw."
+  },
+  "manageCreationCodes": {
+    "heading": "Aanmaakcodes",
+    "intro": "Maak eenmalige codes aan waarmee een nieuwe eigenaar een team kan aanmaken.",
+    "loading": "Laden…",
+    "forbidden": "Je hebt geen toegang tot aanmaakcodes.",
+    "loadFailed": "Aanmaakcodes laden is mislukt. Probeer het opnieuw.",
+    "generate": "Maak code aan",
+    "consumedError": "Die code is al gebruikt en kan niet worden ingetrokken.",
+    "empty": "Nog geen aanmaakcodes. Maak er hierboven een aan.",
+    "revokeTitle": "Trek code in",
+    "revokeDescription": "\"{{code}}\" intrekken? Er kan dan geen team meer mee worden aangemaakt.",
+    "revoke": "Intrekken",
+    "status": {
+      "active": "Actief",
+      "expired": "Verlopen",
+      "consumed": "Gebruikt"
+    }
+  },
+  "createMemberlessTeam": {
+    "heading": "Maak een team",
+    "intro": "Maakt een leeg team aan dat je kunt openen en inrichten, en daarna overdraagt met een uitnodigingslink voor een beheerder. Je wordt zelf geen lid.",
+    "created": "“{{name}}” is aangemaakt. Open het in de lijst hieronder om het in te richten.",
+    "teamName": "Teamnaam",
+    "namePlaceholder": "bijv. Tovo Dames 5",
+    "teamAddress": "Teamadres",
+    "creating": "Aanmaken…",
+    "submit": "Maak team"
+  },
+  "joinTeam": {
+    "heading": "Word lid van je team",
+    "intro": "Plak hieronder de uitnodigingslink die je hebt gekregen — of, het makkelijkst, klik direct op de link.",
+    "inviteLink": "Uitnodigingslink",
+    "joining": "Lid worden…",
+    "join": "Word lid",
+    "noLink": "Ik heb geen link",
+    "askAdmin": "Vraag de aanvoerder of beheerder van je team om de uitnodigingslink — die kan er een aanmaken op de pagina Leden van het team. Plak hem hierboven zodra je hem hebt.",
+    "ownTeam": "Wil je liever zelf een team beginnen?",
+    "createTeam": "Maak een team",
+    "invalidOrExpired": "Die uitnodigingslink werkte niet — hij is misschien ongeldig of verlopen. Vraag de beheerder van je team om een nieuwe.",
+    "generic": "Er ging iets mis. Probeer het opnieuw."
+  },
+  "onboardingHub": {
+    "welcome": "Welkom bij TeamBalance 👋",
+    "inviteUnavailable": "Je bent ingelogd, maar de uitnodigingslink die je gebruikte is verlopen of vervangen. Vraag je team om een nieuwe en kies daarna hieronder <choice>Ik heb een uitnodiging</choice>.",
+    "getStarted": "Hoe wil je beginnen?",
+    "notOnTeam": "Je bent ingelogd, maar nog geen lid van een team. Hoe wil je beginnen?",
+    "haveInvite": "Ik heb een uitnodiging",
+    "haveInviteHint": "Iemand heeft een uitnodigingslink met je gedeeld",
+    "create": "Maak een team",
+    "createHint": "Je hebt een aanmaakcode nodig — teameigenaren krijgen die van ons"
+  },
+  "teamSettings": {
+    "heading": "Seizoen",
+    "intro": "Beperk de events van je team tot een seizoen. Zodra dat is ingesteld, kun je geen events buiten deze periode plannen.",
+    "loading": "Laden…",
+    "loadFailed": "Teaminstellingen laden is mislukt. Probeer het opnieuw.",
+    "noSeason": "Geen seizoen ingesteld — events kunnen op elke datum worden gepland.",
+    "startDate": "Startdatum",
+    "endDate": "Einddatum",
+    "changeWarning": "Het seizoen wijzigen verplaatst of verwijdert geen bestaande events — sommige vallen nu misschien buiten de nieuwe periode.",
+    "saving": "Opslaan…",
+    "save": "Seizoen opslaan",
+    "saveFailed": "Seizoen opslaan is mislukt. Probeer het opnieuw.",
+    "endBeforeStart": "De einddatum moet op of na de startdatum liggen."
+  },
+  "createTeam": {
+    "teamName": "Teamnaam",
+    "namePlaceholder": "bijv. Tovo Heren 4",
+    "teamAddress": "Teamadres",
+    "creationCode": "Aanmaakcode",
+    "codePlaceholder": "Vul je aanmaakcode in",
+    "creating": "Je team wordt aangemaakt…",
+    "submit": "Maak team",
+    "reassurance": "Je team wordt ingericht — dit kan een paar seconden duren…"
+  },
+  "switchTeam": {
+    "heading": "Teams",
+    "yourTeams": "Jouw teams",
+    "active": "Actief",
+    "joinOrCreate": "Lid worden of aanmaken",
+    "joinWithInvite": "Word lid met een uitnodigingslink",
+    "joinHint": "Iemand heeft een uitnodigingslink met je gedeeld",
+    "create": "Maak een team",
+    "createHint": "Je hebt een aanmaakcode nodig"
   }
 }

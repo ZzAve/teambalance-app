@@ -1,4 +1,5 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
+import { i18n } from '@shared/i18n/i18n'
 import type { CreationCode } from '@shared/api/creation-codes'
 import { creationCodeStatusLabel, deriveCreationCodeStatus } from './creation-code-status'
 
@@ -49,5 +50,15 @@ describe('creationCodeStatusLabel', () => {
     expect(creationCodeStatusLabel('active')).toBe('Active')
     expect(creationCodeStatusLabel('expired')).toBe('Expired')
     expect(creationCodeStatusLabel('consumed')).toBe('Used')
+  })
+})
+
+describe('creationCodeStatusLabel in Dutch', () => {
+  afterEach(() => i18n.changeLanguage('en'))
+  it('maps each status to its Dutch label', async () => {
+    await i18n.changeLanguage('nl')
+    expect(creationCodeStatusLabel('active')).toBe('Actief')
+    expect(creationCodeStatusLabel('expired')).toBe('Verlopen')
+    expect(creationCodeStatusLabel('consumed')).toBe('Gebruikt')
   })
 })

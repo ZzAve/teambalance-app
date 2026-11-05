@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Button } from '@shared/ui/button'
 import { Input } from '@shared/ui/input'
 import { Label } from '@shared/ui/label'
@@ -30,6 +31,7 @@ interface CreateTeamFormProps {
  * enforces so a bad address is caught before submit.
  */
 export function CreateTeamForm({ isPending, error, onSubmit, reassuranceDelayMs = 5000 }: CreateTeamFormProps) {
+  const { t } = useTranslation()
   const [name, setName] = useState('')
   const [slug, setSlug] = useState('')
   const [slugDirty, setSlugDirty] = useState(false)
@@ -76,19 +78,19 @@ export function CreateTeamForm({ isPending, error, onSubmit, reassuranceDelayMs 
       {bannerError && <FormError>{bannerError}</FormError>}
 
       <div>
-        <Label htmlFor="team-name">Team name</Label>
+        <Label htmlFor="team-name">{t('createTeam.teamName')}</Label>
         <Input
           id="team-name"
           value={name}
           disabled={isPending}
           onChange={(e) => handleNameChange(e.target.value)}
-          placeholder="e.g. Tovo Heren 4"
+          placeholder={t('createTeam.namePlaceholder')}
         />
         {nameError && <p className="mt-1 text-small text-red-ink">{nameError}</p>}
       </div>
 
       <div>
-        <Label htmlFor="team-slug">Team address</Label>
+        <Label htmlFor="team-slug">{t('createTeam.teamAddress')}</Label>
         <Input
           id="team-slug"
           value={slug}
@@ -103,23 +105,23 @@ export function CreateTeamForm({ isPending, error, onSubmit, reassuranceDelayMs 
       </div>
 
       <div>
-        <Label htmlFor="creation-code">Creation code</Label>
+        <Label htmlFor="creation-code">{t('createTeam.creationCode')}</Label>
         <Input
           id="creation-code"
           value={creationCode}
           disabled={isPending}
           onChange={(e) => setCreationCode(e.target.value)}
-          placeholder="Enter your creation code"
+          placeholder={t('createTeam.codePlaceholder')}
         />
         {codeError && <p className="mt-1 text-small text-red-ink">{codeError}</p>}
       </div>
 
       <Button type="submit" disabled={!canSubmit}>
-        {isPending ? 'Creating your team…' : 'Create team'}
+        {isPending ? t('createTeam.creating') : t('createTeam.submit')}
       </Button>
       {isPending && reassuranceElapsed && (
         <p className="text-small text-muted-foreground">
-          Setting up your team's space — this can take a few seconds…
+          {t('createTeam.reassurance')}
         </p>
       )}
     </form>

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Button } from '@shared/ui/button'
 import { Input } from '@shared/ui/input'
 import { Label } from '@shared/ui/label'
@@ -27,6 +28,7 @@ export function CreateMemberlessTeamView({
   createdName,
   onSubmit,
 }: CreateMemberlessTeamViewProps) {
+  const { t } = useTranslation()
   const [name, setName] = useState('')
   const [slug, setSlug] = useState('')
 
@@ -47,34 +49,33 @@ export function CreateMemberlessTeamView({
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-3">
       <div>
-        <h2 className="font-display text-title font-bold">Create a team</h2>
+        <h2 className="font-display text-title font-bold">{t('createMemberlessTeam.heading')}</h2>
         <p className="mt-1 text-small text-muted-foreground">
-          Creates an empty team you can enter and set up, then hand over with an admin invite link. You
-          don't join it.
+          {t('createMemberlessTeam.intro')}
         </p>
       </div>
 
       {bannerError && <FormError>{bannerError}</FormError>}
       {createdName && !bannerError && (
         <p role="status" className="text-small text-green">
-          Created “{createdName}”. Enter it from the list below to set it up.
+          {t('createMemberlessTeam.created', { name: createdName })}
         </p>
       )}
 
       <div>
-        <Label htmlFor="ml-team-name">Team name</Label>
+        <Label htmlFor="ml-team-name">{t('createMemberlessTeam.teamName')}</Label>
         <Input
           id="ml-team-name"
           value={name}
           disabled={isPending}
           onChange={(e) => setName(e.target.value)}
-          placeholder="e.g. Tovo Dames 5"
+          placeholder={t('createMemberlessTeam.namePlaceholder')}
         />
         {nameError && <p className="mt-1 text-small text-red-ink">{nameError}</p>}
       </div>
 
       <div>
-        <Label htmlFor="ml-team-slug">Team address</Label>
+        <Label htmlFor="ml-team-slug">{t('createMemberlessTeam.teamAddress')}</Label>
         <Input
           id="ml-team-slug"
           value={slug}
@@ -86,7 +87,7 @@ export function CreateMemberlessTeamView({
       </div>
 
       <Button type="submit" disabled={!canSubmit} className="self-start">
-        {isPending ? 'Creating…' : 'Create team'}
+        {isPending ? t('createMemberlessTeam.creating') : t('createMemberlessTeam.submit')}
       </Button>
     </form>
   )

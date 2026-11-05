@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { useAuthMe } from '@shared/api/auth'
 import {
   useCalendarLinks,
@@ -18,13 +19,14 @@ import { CalendarLinksView } from './CalendarLinksView'
  * link, but a link may already list an archived one, which its summary and its edit form still name.
  */
 export function CalendarLinks() {
+  const { t } = useTranslation()
   const { data: links, isLoading, isError, refetch } = useCalendarLinks()
   const { data: eventTypes } = useEventTypes(true)
   const createLink = useCreateCalendarLink()
   const updateLink = useUpdateCalendarLink()
   const deleteLink = useDeleteCalendarLink()
   const clipboard = useCopyToClipboard()
-  const teamName = useAuthMe().data?.activeTeam?.name ?? 'Your team'
+  const teamName = useAuthMe().data?.activeTeam?.name ?? t('calendarLinks.yourTeam')
 
   return (
     <CalendarLinksView

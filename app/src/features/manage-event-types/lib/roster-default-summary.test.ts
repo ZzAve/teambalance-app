@@ -1,4 +1,5 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
+import { i18n } from '@shared/i18n/i18n'
 import type { RosterRequirement } from '@shared/api/event-types'
 import type { Position } from '@shared/api/positions'
 import { rosterDefaultSummary } from './roster-default-summary'
@@ -50,5 +51,17 @@ describe('rosterDefaultSummary', () => {
   it('falls back to the tracked-but-unrequired wording when every target is stale', () => {
     const r = req({ positionTargets: [{ positionId: 'gone', count: 2 }] })
     expect(rosterDefaultSummary(r, POSITIONS)).toBe('Tracked, nothing required')
+  })
+})
+
+describe('rosterDefaultSummary in Dutch', () => {
+  afterEach(() => i18n.changeLanguage('en'))
+
+  it('says each summary in Dutch', async () => {
+    await i18n.changeLanguage('nl')
+    expect(rosterDefaultSummary(req({ trackRoster: false }), POSITIONS)).toBe('Geen opstelling')
+    expect(rosterDefaultSummary(req(), POSITIONS)).toBe('Bijgehouden, niets vereist')
+    const r = req({ totalTarget: 12, positionTargets: [{ positionId: 'p1', count: 2 }] })
+    expect(rosterDefaultSummary(r, POSITIONS)).toBe('2 Setter · 12 in totaal')
   })
 })

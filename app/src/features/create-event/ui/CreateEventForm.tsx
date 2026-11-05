@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import { i18n } from '@shared/i18n/i18n'
 import { Button } from '@shared/ui/button'
 import { Input } from '@shared/ui/input'
 import { Label } from '@shared/ui/label'
@@ -27,10 +29,10 @@ interface CreateEventFormProps {
 // and derives endTime = startTime + duration on submit. endTime is required by the API contract, so
 // this guarantees one is always sent (default 2h — the common training/match length).
 const DURATION_OPTIONS = [
-  { minutes: 60, label: '1 hour' },
-  { minutes: 90, label: '1.5 hours' },
-  { minutes: 120, label: '2 hours' },
-  { minutes: 180, label: '3 hours' },
+  { minutes: 60, get label() { return i18n.t('createEvent.duration60') } },
+  { minutes: 90, get label() { return i18n.t('createEvent.duration90') } },
+  { minutes: 120, get label() { return i18n.t('createEvent.duration120') } },
+  { minutes: 180, get label() { return i18n.t('createEvent.duration180') } },
 ] as const
 
 const DEFAULT_DURATION_MINUTES = '120'
@@ -48,6 +50,7 @@ export function CreateEventForm({
   onSubmit,
   error,
 }: CreateEventFormProps) {
+  const { t } = useTranslation()
   const [selectedTypeId, setSelectedTypeId] = useState<string>('')
   const [title, setTitle] = useState('')
   const [titleTouched, setTitleTouched] = useState(false)
@@ -93,7 +96,7 @@ export function CreateEventForm({
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
       {/* Event type selector with color preview swatch */}
       <div>
-        <Label htmlFor="eventTypeId">Type</Label>
+        <Label htmlFor="eventTypeId">{t('createEvent.type')}</Label>
         <div className="flex items-center gap-2">
           {/* Color preview dot */}
           <div
@@ -115,7 +118,7 @@ export function CreateEventForm({
 
       {/* Title with auto-suggest */}
       <div>
-        <Label htmlFor="title">Title</Label>
+        <Label htmlFor="title">{t('createEvent.title')}</Label>
         <Input
           id="title"
           name="title"
@@ -125,16 +128,16 @@ export function CreateEventForm({
             setTitle(e.target.value)
             setTitleTouched(true)
           }}
-          placeholder={selectedType ? `e.g. ${selectedType.name}` : 'Event title'}
+          placeholder={selectedType ? t('createEvent.titlePlaceholderFor', { name: selectedType.name }) : t('createEvent.titlePlaceholder')}
         />
       </div>
 
       <div>
-        <Label htmlFor="startTime">Start time</Label>
+        <Label htmlFor="startTime">{t('createEvent.startTime')}</Label>
         <Input id="startTime" name="startTime" type="datetime-local" required />
       </div>
       <div>
-        <Label htmlFor="duration">Duration</Label>
+        <Label htmlFor="duration">{t('createEvent.duration')}</Label>
         <Select name="durationMinutes" value={durationMinutes} onValueChange={setDurationMinutes}>
           <SelectTrigger id="duration">
             <SelectValue />
@@ -149,11 +152,11 @@ export function CreateEventForm({
         </Select>
       </div>
       <div>
-        <Label htmlFor="location">Location (optional)</Label>
+        <Label htmlFor="location">{t('createEvent.location')}</Label>
         <Input id="location" name="location" />
       </div>
       <div>
-        <Label htmlFor="description">Description (optional)</Label>
+        <Label htmlFor="description">{t('createEvent.description')}</Label>
         <Input id="description" name="description" />
       </div>
 
@@ -174,7 +177,7 @@ export function CreateEventForm({
         disabled={isPending}
         style={selectedType?.color ? { backgroundColor: selectedType.color, borderColor: selectedType.color } : undefined}
       >
-        {isPending ? 'Creating...' : 'Create Event'}
+        {isPending ? t('createEvent.creating') : t('createEvent.submit')}
       </Button>
     </form>
   )

@@ -97,10 +97,10 @@ export const Data: Story = {
   play: async ({ canvas }) => {
     const row = (name: string) => within(canvas.getByRole('listitem', { name }))
 
-    await expect(row('My phone').getByText('Expires 1 sep 2027')).toBeInTheDocument()
+    await expect(row('My phone').getByText('Expires 1 Sept 2027')).toBeInTheDocument()
     // No label: the creation date names the link instead.
-    await expect(row('Link from 2 jun 2025').getByText('Expired 2 jun 2026')).toBeInTheDocument()
-    await expect(row('Link from 2 jun 2025').getByText('Expired', { exact: true })).toBeInTheDocument()
+    await expect(row('Link from 2 Jun 2025').getByText('Expired 2 Jun 2026')).toBeInTheDocument()
+    await expect(row('Link from 2 Jun 2025').getByText('Expired', { exact: true })).toBeInTheDocument()
     await expect(row('My phone').queryByText('Expired')).not.toBeInTheDocument()
 
     // A link at the Me defaults looks as it always did; any other says how it differs.
@@ -110,7 +110,7 @@ export const Data: Story = {
     ).toBeInTheDocument()
     // Types in the team's order; an archived one is still listed, and says so.
     await expect(
-      row('Link from 2 jun 2025').getByText('Training, Beach (archived) · Going, Maybe only'),
+      row('Link from 2 Jun 2025').getByText('Training, Beach (archived) · Going, Maybe only'),
     ).toBeInTheDocument()
 
     // Every action on every link, no platform detection.
@@ -124,7 +124,7 @@ export const Data: Story = {
       'https://calendar.google.com/calendar/r?cid=webcal%3A%2F%2Fapi.teambalance.nl%2Fapi%2Fcalendar%2Fsetpoint-vt%2Ftoken-phone.ics',
     )
     await expect(google).toHaveAttribute('target', '_blank')
-    await expect(row('Link from 2 jun 2025').getByRole('button', { name: 'Delete' })).toBeEnabled()
+    await expect(row('Link from 2 Jun 2025').getByRole('button', { name: 'Delete' })).toBeEnabled()
 
     // Three links (the expired one counted) is the cap.
     await expect(canvas.getByRole('button', { name: 'Generate link' })).toBeDisabled()
@@ -365,7 +365,7 @@ export const Interactions: Story = {
     // An expired link is not edited: it serves nothing, so there is nothing to change.
     const expired = within(
       within(canvas.getByRole('region', { name: 'An expired link' })).getByRole('listitem', {
-        name: 'Link from 2 jun 2025',
+        name: 'Link from 2 Jun 2025',
       }),
     )
     await expect(expired.getByRole('button', { name: 'Delete' })).toBeInTheDocument()

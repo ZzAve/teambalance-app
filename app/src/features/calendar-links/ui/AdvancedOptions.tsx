@@ -1,5 +1,6 @@
 import { useId } from 'react'
 import { ChevronDown } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import type { AttendanceState } from '@shared/api/calendar-links'
 import type { EventTypeItem } from '@shared/api/event-types'
 import { Chip } from '@shared/ui/chip'
@@ -34,6 +35,7 @@ export function AdvancedOptions({
   disabled,
   onChange,
 }: AdvancedOptionsProps) {
+  const { t } = useTranslation()
   const panelId = useId()
   const statesId = useId()
   const typesId = useId()
@@ -66,14 +68,14 @@ export function AdvancedOptions({
         onClick={() => onOpenChange(!open)}
         className="flex items-center gap-1 self-start text-small font-semibold text-muted-foreground hover:text-foreground"
       >
-        Advanced
+        {t('calendarLinks.advanced.toggle')}
         <ChevronDown size={16} aria-hidden="true" className={open ? 'rotate-180 transition-transform' : 'transition-transform'} />
       </button>
       {open && (
         <div id={panelId} className="flex flex-col gap-4 rounded-md border border-border p-3">
           <div className="flex flex-col gap-2">
             <p id={statesId} className="text-small font-medium">
-              Include events you answered
+              {t('calendarLinks.advanced.states')}
             </p>
             <div role="group" aria-labelledby={statesId} className="flex flex-wrap gap-2">
               {ALL_ATTENDANCE_STATES.map((state) => (
@@ -93,7 +95,7 @@ export function AdvancedOptions({
 
           <div className="flex flex-col gap-2">
             <p id={typesId} className="text-small font-medium">
-              Include event types
+              {t('calendarLinks.advanced.types')}
             </p>
             <div role="group" aria-labelledby={typesId} className="flex flex-wrap gap-2">
               <Chip
@@ -103,7 +105,7 @@ export function AdvancedOptions({
                 activeClassName="border-blue bg-blue/10 text-blue"
                 inactiveClassName="border-border text-muted-foreground"
               >
-                All types
+                {t('calendarLinks.advanced.allTypes')}
               </Chip>
               {eventTypes.map((type) => (
                 <EventTypeChip
@@ -117,34 +119,35 @@ export function AdvancedOptions({
             </div>
             <p className="text-caption text-muted-foreground">
               {options.eventTypeIds === undefined
-                ? 'Types your team adds later are included.'
-                : 'Types your team adds later are not included.'}
+                ? t('calendarLinks.advanced.laterIncluded')
+                : t('calendarLinks.advanced.laterExcluded')}
             </p>
           </div>
 
           <div className="flex items-center justify-between gap-3">
-            <span className="text-small font-medium">Mark your answer (✓ ? ✗) on titles</span>
+            <span className="text-small font-medium">{t('calendarLinks.advanced.markAnswer')}</span>
             <Switch
               checked={options.showAttendancePrefix}
               disabled={disabled}
               onCheckedChange={(showAttendancePrefix) => onChange({ ...options, showAttendancePrefix })}
-              aria-label="Mark your answer on titles"
+              aria-label={t('calendarLinks.advanced.markAnswerLabel')}
             />
           </div>
 
           <div className="flex flex-col gap-2">
-            <Label htmlFor={`${panelId}-suffix`}>Calendar name suffix (optional)</Label>
+            <Label htmlFor={`${panelId}-suffix`}>{t('calendarLinks.advanced.suffix')}</Label>
             <Input
               id={`${panelId}-suffix`}
               value={options.calendarNameSuffix ?? ''}
               maxLength={MAX_SUFFIX_LENGTH}
-              placeholder="e.g. Partner"
+              placeholder={t('calendarLinks.advanced.suffixPlaceholder')}
               disabled={disabled}
               onChange={(e) => onChange({ ...options, calendarNameSuffix: e.target.value || undefined })}
             />
             <p className="text-caption text-muted-foreground">
-              Your calendar app shows it as &apos;{teamName}
-              {options.calendarNameSuffix?.trim() ? ` · ${options.calendarNameSuffix.trim()}` : ''}&apos;.
+              {t('calendarLinks.advanced.shownAs', {
+                name: `${teamName}${options.calendarNameSuffix?.trim() ? ` · ${options.calendarNameSuffix.trim()}` : ''}`,
+              })}
             </p>
           </div>
         </div>

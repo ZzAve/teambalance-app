@@ -45,10 +45,10 @@ export const Data: Story = {
   // MoneyPageView's Data owns the connected picture (ADR-0032 §3).
   parameters: { chromatic: { disableSnapshot: true } },
   play: async ({ canvas }) => {
-    await expect(within(canvas.getByRole('region', { name: 'Balance' })).getByText(/187,50/)).toBeInTheDocument()
+    await expect(within(canvas.getByRole('region', { name: 'Balance' })).getByText(/187\.50/)).toBeInTheDocument()
     const beers = within(canvas.getByRole('region', { name: 'Beer Counter' }))
     await expect(beers.getByText('69 beers')).toBeInTheDocument()
-    await expect(beers.getByText(/The pool balance covers 69 beers at .*2,70 each\./)).toBeInTheDocument()
+    await expect(beers.getByText(/The pool balance covers 69 beers at .*2\.70 each\./)).toBeInTheDocument()
     // The button sits between the Balance card and the Beer Counter.
     const topUp = canvas.getByRole('button', { name: 'Top up' })
     const balanceCard = canvas.getByRole('region', { name: 'Balance' })
@@ -61,9 +61,9 @@ export const Data: Story = {
     await expect(payments.getByText(/Outgoing/)).toBeInTheDocument()
     // The sign is visual only; screen readers get the direction from the sr-only text.
     await expect(payments.getAllByText('+')[0]).toHaveAttribute('aria-hidden', 'true')
-    await expect(payments.getByText(/20,00/)).toBeInTheDocument()
+    await expect(payments.getByText(/20\.00/)).toBeInTheDocument()
     await expect(payments.getByText('−')).toHaveAttribute('aria-hidden', 'true')
-    await expect(payments.getByText(/45,00/)).toBeInTheDocument()
+    await expect(payments.getByText(/45\.00/)).toBeInTheDocument()
   },
 }
 

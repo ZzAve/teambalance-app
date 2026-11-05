@@ -829,5 +829,121 @@
   "attendanceToggle": {
     "currently": "nu {{word}}",
     "answeringForThem": "je antwoordt voor iemand anders"
+  },
+  "attendeeList": {
+    "noOne": "Niemand",
+    "nobodyInPosition": "nog niemand op deze positie",
+    "openSlots": "{{find}} · {{count}} open",
+    "you": "Jij",
+    "setBy": "gezet door {{name}}"
+  },
+  "createEventSheet": {
+    "title": {
+      "chooser": "Maak een event",
+      "single": "Nieuw event",
+      "recurring": "Nieuwe terugkerende reeks"
+    },
+    "description": {
+      "chooser": "Kies hoe je events wilt toevoegen",
+      "single": "Een losse training, wedstrijd of ander event",
+      "recurring": "Een wekelijkse of tweewekelijkse reeks door het seizoen"
+    },
+    "back": "Terug naar soort event",
+    "single": "Los event",
+    "singleHint": "Eén training, wedstrijd of ander event",
+    "recurring": "Terugkerende reeks",
+    "recurringHint": "Wekelijkse trainingen door het seizoen",
+    "error": {
+      "outside-season": "Sommige datums vallen buiten het seizoen — pas de periode aan.",
+      "over-cap": "Die reeks heeft meer dan 200 events — maak de periode korter of plan minder vaak.",
+      "empty": "Geen datums gevonden — kies minstens één weekdag binnen de periode.",
+      "unknown": "De reeks aanmaken is mislukt. Probeer het opnieuw."
+    },
+    "eventFailed": "Het event aanmaken is mislukt. Probeer het opnieuw."
+  },
+  "pageHeader": {
+    "back": "Terug"
+  },
+  "moneyPool": {
+    "balance": "Saldo",
+    "poolBalance": "Saldo van de teampot",
+    "beerCounter": "Bierteller",
+    "beerCovers": "Het saldo van de teampot is genoeg voor {{beers}} van {{price}} per stuk.",
+    "beers_one": "{{formatted}} biertje",
+    "beers_other": "{{formatted}} biertjes",
+    "payments": "Betalingen",
+    "noPayments": "Geen betalingen in deze periode.",
+    "incoming": "Binnengekomen",
+    "outgoing": "Uitgegaan",
+    "loading": "Laden…",
+    "loadFailed": "De teampot laden is mislukt. Probeer het zo opnieuw.",
+    "off": "De teampot staat uit voor dit team",
+    "unavailable": "De teampot is nu niet beschikbaar",
+    "unreachable": "We kunnen de Bunq-rekening van het team niet bereiken. Probeer het later opnieuw.",
+    "rejected": {
+      "member": "Bunq accepteert de koppeling van het team niet meer. Een beheerder moet Bunq opnieuw koppelen.",
+      "reconnect": "Bunq accepteert de koppeling van het team niet meer. Koppel Bunq opnieuw.",
+      "reconnectInSettings": "Bunq accepteert de koppeling van het team niet meer. Koppel Bunq opnieuw in de teaminstellingen."
+    },
+    "linkHint": "Voeg de bunq.me-link van het team toe in de teaminstellingen, zodat leden kunnen inleggen.",
+    "preview": "Voorbeeld van de teampot",
+    "previewTitle": "Een gedeelde teampot",
+    "memberCopy": "Zodra een beheerder de Bunq-rekening van het team koppelt, zie je hier het saldo en de betalingen.",
+    "admin": {
+      "pickAccount": "Kies de rekening in de teaminstellingen. Daarna zie je hier het saldo en de betalingen.",
+      "unknown": "Hier zie je straks het saldo en de betalingen van de Bunq-rekening van het team.",
+      "connect": "Koppel de Bunq-rekening van het team in de teaminstellingen. Daarna zie je hier het saldo en de betalingen.",
+      "comingSoon": "Binnenkort kun je de Bunq-rekening van het team koppelen. Daarna zie je hier het saldo en de betalingen."
+    },
+    "pillar": {
+      "sharedPot": "Eén gedeelde pot",
+      "sharedPotBlurb": "Al het geld van het team op één plek",
+      "chipIn": "Snel inleggen",
+      "chipInBlurb": "Leg je deel in met een paar tikken",
+      "tracked": "Elke euro bijgehouden",
+      "trackedBlurb": "Zie wat er is betaald en waar het heen ging"
+    }
+  },
+  "eventDetail": {
+    "loadFailed": "Dit event laden is mislukt",
+    "loadFailedHint": "Er ging iets mis. Probeer het opnieuw.",
+    "backToEvents": "Terug naar events",
+    "notFound": "Event niet gevonden.",
+    "date": "Datum",
+    "additionalInfo": "Meer info",
+    "addToCalendar": "Zet de events van je team in je agenda",
+    "yourResponse": "Jouw antwoord",
+    "setBy": "gezet door {{name}}"
+  },
+  "getStarted": {
+    "welcome": "Welkom bij TeamBalance",
+    "intro": "Laten we je profiel instellen — vertel ons je naam en waar je speelt.",
+    "usePersonalPhoto": "Mijn persoonlijke foto in dit team gebruiken"
+  },
+  "memberDetail": {
+    "fallbackTitle": "Lid",
+    "backToTeam": "Terug naar team",
+    "loadFailed": "Dit lid laden is mislukt. Probeer het opnieuw.",
+    "notOnTeam": "Deze persoon zit niet in het team.",
+    "usePersonalPhoto": "Gebruik mijn persoonlijke foto",
+    "uploadDifferent": "Upload een andere foto",
+    "usePersonalTitle": "Je persoonlijke foto gebruiken",
+    "replacesTeamPhoto": "Deze foto vervangt je huidige teamfoto.",
+    "teamWillSee": "Je team ziet deze foto.",
+    "useThisPhoto": "Gebruik deze foto",
+    "personalPhotoAlt": "Je persoonlijke foto",
+    "removeTitle": "Foto verwijderen",
+    "removeOwn": "Het team ziet je initialen tot je een nieuwe foto toevoegt.",
+    "removeOther": "De foto van {{name}} verwijderen? Alleen die persoon kan een nieuwe toevoegen.",
+    "shirtNumber": "Rugnummer",
+    "none": "Geen",
+    "position": "Positie",
+    "role": "Rol",
+    "admin": "Beheerder",
+    "member": "Lid",
+    "editProfile": "Bewerk profiel"
+  },
+  "teamPage": {
+    "settings": "Teaminstellingen"
   }
 }

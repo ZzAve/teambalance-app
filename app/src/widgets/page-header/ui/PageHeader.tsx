@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { Link } from '@tanstack/react-router'
 import { ArrowLeft } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { Button } from '@shared/ui/button'
 
 interface PageHeaderProps {
@@ -26,14 +27,15 @@ interface PageHeaderProps {
  * Prop-only (no store, no query) so every state renders from props in Storybook; the routes that
  * use it stay thin wiring (ADR-0017).
  */
-export function PageHeader({ title, backTo, backLabel = 'Back', actions }: PageHeaderProps) {
+export function PageHeader({ title, backTo, backLabel, actions }: PageHeaderProps) {
+  const { t } = useTranslation()
   return (
     <div className="sticky top-[var(--header-height)] z-30 -mx-4 mb-2 flex items-center gap-2 border-b border-border/60 bg-background/95 px-4 py-2 backdrop-blur-sm">
       {backTo && (
         // asChild so the 44px touch target (F7) is the anchor itself — a real link, not a button
         // nested inside one.
         <Button asChild variant="ghost" size="icon" className="h-11 w-11 shrink-0">
-          <Link to={backTo} aria-label={backLabel}>
+          <Link to={backTo} aria-label={backLabel ?? t('pageHeader.back')}>
             <ArrowLeft size={18} />
           </Link>
         </Button>

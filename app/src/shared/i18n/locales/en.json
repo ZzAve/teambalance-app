@@ -829,5 +829,121 @@
   "attendanceToggle": {
     "currently": "currently {{word}}",
     "answeringForThem": "you are answering for them"
+  },
+  "attendeeList": {
+    "noOne": "No one",
+    "nobodyInPosition": "nobody in this position yet",
+    "openSlots": "{{find}} · {{count}} open",
+    "you": "You",
+    "setBy": "set by {{name}}"
+  },
+  "createEventSheet": {
+    "title": {
+      "chooser": "Create event",
+      "single": "New event",
+      "recurring": "New recurring series"
+    },
+    "description": {
+      "chooser": "Choose how you want to add events",
+      "single": "A one-off training, match, or other event",
+      "recurring": "A weekly or bi-weekly series across the season"
+    },
+    "back": "Back to event type",
+    "single": "Single event",
+    "singleHint": "One training, match, or other event",
+    "recurring": "Recurring series",
+    "recurringHint": "Weekly trainings across a season",
+    "error": {
+      "outside-season": "Some dates fall outside the season window — adjust the range.",
+      "over-cap": "That series is over the 200-event cap — shorten the range or thin the schedule.",
+      "empty": "No dates match — pick at least one weekday inside the range.",
+      "unknown": "Could not create the series. Please try again."
+    },
+    "eventFailed": "Could not create the event. Please try again."
+  },
+  "pageHeader": {
+    "back": "Back"
+  },
+  "moneyPool": {
+    "balance": "Balance",
+    "poolBalance": "Pool balance",
+    "beerCounter": "Beer Counter",
+    "beerCovers": "The pool balance covers {{beers}} at {{price}} each.",
+    "beers_one": "{{formatted}} beer",
+    "beers_other": "{{formatted}} beers",
+    "payments": "Payments",
+    "noPayments": "No payments in this period.",
+    "incoming": "Incoming",
+    "outgoing": "Outgoing",
+    "loading": "Loading…",
+    "loadFailed": "We couldn't load the money pool. Try again in a moment.",
+    "off": "The money pool is switched off for this team",
+    "unavailable": "The pool is unavailable right now",
+    "unreachable": "We can't reach the team's Bunq account. Try again later.",
+    "rejected": {
+      "member": "Bunq no longer accepts the team's connection. An admin needs to reconnect it.",
+      "reconnect": "Bunq no longer accepts the team's connection. Reconnect it.",
+      "reconnectInSettings": "Bunq no longer accepts the team's connection. Reconnect it in the team settings."
+    },
+    "linkHint": "Add the team’s bunq.me link in the team settings to let members top up.",
+    "preview": "Money pool preview",
+    "previewTitle": "A shared team pot",
+    "memberCopy": "Once an admin connects the team’s Bunq account, the balance and payments show up here.",
+    "admin": {
+      "pickAccount": "Pick the account in the team settings. The balance and payments will show up here.",
+      "unknown": "The balance and payments of the team’s Bunq account will show up here.",
+      "connect": "Connect the team’s Bunq account in the team settings. The balance and payments will show up here.",
+      "comingSoon": "Connecting the team’s Bunq account is coming soon. The balance and payments will show up here."
+    },
+    "pillar": {
+      "sharedPot": "One shared pot",
+      "sharedPotBlurb": "The whole team's money, in one place",
+      "chipIn": "Chip in fast",
+      "chipInBlurb": "Top up your share in a couple of taps",
+      "tracked": "Every euro tracked",
+      "trackedBlurb": "See what was paid, and where it went"
+    }
+  },
+  "eventDetail": {
+    "loadFailed": "Couldn't load this event",
+    "loadFailedHint": "Something went wrong on our end. Give it another try.",
+    "backToEvents": "Back to events",
+    "notFound": "Event not found.",
+    "date": "Date",
+    "additionalInfo": "Additional info",
+    "addToCalendar": "Add your team's events to your calendar",
+    "yourResponse": "Your response",
+    "setBy": "set by {{name}}"
+  },
+  "getStarted": {
+    "welcome": "Welcome to TeamBalance",
+    "intro": "Let's set up your profile — tell us your name and where you play.",
+    "usePersonalPhoto": "Use my personal photo in this team"
+  },
+  "memberDetail": {
+    "fallbackTitle": "Member",
+    "backToTeam": "Back to team",
+    "loadFailed": "Couldn't load this member. Please try again.",
+    "notOnTeam": "This person is not on the team.",
+    "usePersonalPhoto": "Use my personal photo",
+    "uploadDifferent": "Upload a different photo",
+    "usePersonalTitle": "Use your personal photo",
+    "replacesTeamPhoto": "This replaces your current team photo.",
+    "teamWillSee": "Your team will see this photo.",
+    "useThisPhoto": "Use this photo",
+    "personalPhotoAlt": "Your personal photo",
+    "removeTitle": "Remove photo",
+    "removeOwn": "The team will see your initials until you add a new photo.",
+    "removeOther": "Remove {{name}}'s photo? Only they can add a new one.",
+    "shirtNumber": "Shirt number",
+    "none": "None",
+    "position": "Position",
+    "role": "Role",
+    "admin": "Admin",
+    "member": "Member",
+    "editProfile": "Edit profile"
+  },
+  "teamPage": {
+    "settings": "Team settings"
   }
 }

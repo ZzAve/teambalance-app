@@ -2,7 +2,6 @@ import { queryOptions, useMutation, useQuery } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { i18n } from '@shared/i18n/i18n'
 import { applyUserLanguage } from '@shared/i18n/language'
-import { i18n } from '@shared/i18n/i18n'
 import { api } from './wirespec-client'
 import type { AuthenticatedUser } from './generated/model/AuthenticatedUser'
 

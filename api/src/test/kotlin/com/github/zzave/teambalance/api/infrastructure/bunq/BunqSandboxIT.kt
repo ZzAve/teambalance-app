@@ -21,9 +21,9 @@ private const val NEVER_ISSUED_TOKEN = "0000000000000000000000000000000000000000
  *
  * Runs only when `BUNQ_SANDBOX_IT=1`: it talks to the real Bunq sandbox, so it registers no tests in `make test` or CI.
  *
- * `BUNQ_SANDBOX_DIR` names a directory outside the repository that holds the sandbox user's `api-key` and the
- * encrypted `context.enc`. Both are created on the first run: the sandbox user once, the installation once. Setting up
- * a session is limited to about ten a day per IP, so a run reuses the stored one. Nothing secret is printed.
+ * `BUNQ_SANDBOX_DIR` names an absolute directory that holds the sandbox user's `api-key` and the encrypted `context.enc`.
+ * Keep it outside the repository. Both files are created on the first run: the sandbox user once, the installation once.
+ * Setting up a session is limited to about ten a day per IP, so a run reuses the stored one. Nothing secret is printed.
  */
 class BunqSandboxIT : FunSpec({
     if (System.getenv("BUNQ_SANDBOX_IT") == "1") sandboxTests()

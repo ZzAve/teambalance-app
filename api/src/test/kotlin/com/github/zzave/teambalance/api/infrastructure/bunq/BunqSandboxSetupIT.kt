@@ -14,9 +14,9 @@ private const val FUNDED_MARKER = "funded: yes"
 private val CONTRIBUTIONS = listOf("120.00" to "Contribution Jan", "45.50" to "Contribution Lisa", "30.00" to "Contribution Tom")
 
 /**
- * Prepares the Bunq sandbox for the real 4.2 run (tracer 4.2 of #10): everything the owner would otherwise click together.
- * Run it on your own machine, then `source` the env file it writes and start the app. It needs no person except for the
- * consent at Bunq's authorize page, which is a phone step (the sandbox app).
+ * Prepares the Bunq sandbox for running the app against it with a real OAuth consent: everything the owner would otherwise
+ * click together. Run it on your own machine, then `source` the env file it writes and start the app. It needs no person
+ * except for the consent at Bunq's authorize page, which is a phone step (the sandbox app).
  *
  * What it does, each step safe to repeat:
  * 1. the sandbox user of `BUNQ_SANDBOX_DIR` (the same one [BunqSandboxIT] uses) is created if missing and gets its API
@@ -30,8 +30,8 @@ private val CONTRIBUTIONS = listOf("120.00" to "Contribution Jan", "45.50" to "C
  *    mode 600), as `export` lines for the app. Only non-secret facts are printed, on lines that start with `sandbox setup:`.
  *
  * Runs only when `BUNQ_SANDBOX_IT=1`: it talks to the real Bunq sandbox, so it registers no tests in `make test` or CI.
- * Needs `BUNQ_SANDBOX_DIR` (outside the repository) and `BUNQ_SANDBOX_REDIRECT_URL`, the callback URL of the app as the
- * browser reaches it: `https://<tunnel host>/api/bunq/oauth/callback`.
+ * Needs `BUNQ_SANDBOX_DIR` (an absolute path; keep it outside the repository) and `BUNQ_SANDBOX_REDIRECT_URL`, the callback
+ * URL of the app as the browser reaches it: `https://<tunnel host>/api/bunq/oauth/callback`.
  *
  * Gradle does not see environment variables as inputs, so pass `--rerun` to run it again, and `-i` to see the printed facts.
  */
@@ -44,7 +44,7 @@ private fun FunSpec.setupTests() {
     val dir = File(requireNotNull(System.getenv("BUNQ_SANDBOX_DIR")) { "BUNQ_SANDBOX_DIR is not set" })
     val redirectUrl = requireNotNull(System.getenv("BUNQ_SANDBOX_REDIRECT_URL")) { "BUNQ_SANDBOX_REDIRECT_URL is not set" }
     val envFile = File(System.getenv("BUNQ_SANDBOX_ENV_FILE") ?: "${System.getProperty("user.home")}/.teambalance-bunq-sandbox.env")
-    require(envFile.isAbsolute) { "BUNQ_SANDBOX_ENV_FILE must be an absolute path outside the repository" }
+    require(envFile.isAbsolute) { "BUNQ_SANDBOX_ENV_FILE must be an absolute path; keep it outside the repository" }
     val appOrigins = AppOrigins.of(redirectUrl)
     val session = SandboxSession(dir)
     val endUserFile = File(dir, "end-user.txt")
@@ -98,6 +98,7 @@ private fun FunSpec.setupTests() {
     }
 
     test("the OAuth client exists and has the redirect URL registered") {
+        // the user id comes from the stored API context, which exists only once the adapter has read something
         session.adapter().listAccounts(session.grant)
         val clients = "${userPath()}/oauth-client"
         var client = existingClient(session.call("GET", clients))
@@ -113,16 +114,15 @@ private fun FunSpec.setupTests() {
         val callbackUrls = session.call("GET", "$clientPath/callback-url").body.path("Response").items()
             .map { it.path("OauthCallbackUrl").path("url").asString() }
         callbackUrls.contains(redirectUrl) shouldBe true
-        writePrivately(
-            envFile,
-            """
-            export TEAMBALANCE_BUNQ_ENVIRONMENT='sandbox'
-            export TEAMBALANCE_BUNQ_CLIENT_ID='${registered.path("client_id").asString()}'
-            export TEAMBALANCE_BUNQ_CLIENT_SECRET='${registered.path("secret").asString()}'
-            export TEAMBALANCE_API_BASE_URL='${appOrigins.api}'
-            export TEAMBALANCE_FRONTEND_BASE_URL='${appOrigins.frontend}'
-            """.trimIndent() + "\n",
+        val exports = mapOf(
+            "TEAMBALANCE_BUNQ_ENVIRONMENT" to "sandbox",
+            "TEAMBALANCE_BUNQ_CLIENT_ID" to registered.path("client_id").asString(),
+            "TEAMBALANCE_BUNQ_CLIENT_SECRET" to registered.path("secret").asString(),
+            "TEAMBALANCE_API_BASE_URL" to appOrigins.api,
+            "TEAMBALANCE_FRONTEND_BASE_URL" to appOrigins.frontend,
         )
+        val lines = exports.entries.joinToString("\n", postfix = "\n") { (name, value) -> "export $name=${shellQuoted(value)}" }
+        writePrivately(envFile, lines)
         println("sandbox setup: OAuth client id ${registered.path("id").asLong()} of user ${session.userId}")
         println("sandbox setup: registered redirect URLs: ${callbackUrls.joinToString()}")
         println("sandbox setup: env file written (mode 600): ${envFile.absolutePath}")

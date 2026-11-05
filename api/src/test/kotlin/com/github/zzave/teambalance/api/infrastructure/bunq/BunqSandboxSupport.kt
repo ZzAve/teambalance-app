@@ -52,7 +52,8 @@ private object TeamInScope : CurrentTeamGateway {
 }
 
 /**
- * The encrypted context lives in a file of the sandbox directory, outside the repository, so that a run reuses the last one.
+ * The encrypted context lives in a file of the sandbox directory, which the owner keeps outside the repository, so that a run
+ * reuses the last one.
  * [rowGrant] stands for the grant of the team's connection row, which the adapter compares with its own access token.
  */
 internal class FileContexts(private val file: File, private val rowGrant: EncryptedToken) : BunqApiContextRepository {
@@ -106,6 +107,9 @@ internal fun createSandboxUser(requestLabel: String): SandboxUser {
     )
 }
 
+/** [value] as one word of a POSIX shell: between single quotes, each quote inside it closed, escaped and reopened. */
+internal fun shellQuoted(value: String): String = "'" + value.replace("'", "'\\''") + "'"
+
 /** Writes a file that only its owner can read: created with that mode, or narrowed to it before the content replaces the old. */
 internal fun writePrivately(file: File, content: String) {
     val path = file.toPath()
@@ -118,11 +122,12 @@ internal fun writePrivately(file: File, content: String) {
  * The sandbox user of [dir] (`api-key`, created on the first run) and the API context stored for it (`context.enc`,
  * created by the first read), shared by the opt-in specs [BunqSandboxIT] and [BunqSandboxSetupIT]. Setting up a session is
  * limited to about ten a day per IP, so a run reuses the stored one. Both files are private to their owner. [dir] must be
- * absolute, because a relative one would land in the Gradle test working directory, inside the repository. Nothing here prints a secret.
+ * absolute, because a relative one would land in the Gradle test working directory, inside the repository. Only that is
+ * checked: keep [dir] outside the repository yourself. Nothing here prints a secret.
  */
 internal class SandboxSession(private val dir: File) {
     init {
-        require(dir.isAbsolute) { "BUNQ_SANDBOX_DIR must be an absolute path outside the repository" }
+        require(dir.isAbsolute) { "BUNQ_SANDBOX_DIR must be an absolute path; keep it outside the repository" }
     }
 
     val cipher: TokenCipher = TokenCipher.fromBase64Key(CIPHER_KEY, "test")

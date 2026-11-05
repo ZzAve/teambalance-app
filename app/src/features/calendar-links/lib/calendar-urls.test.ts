@@ -1,4 +1,5 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
+import { i18n } from '@shared/i18n/i18n'
 import type { CalendarLink } from '@shared/api/calendar-links'
 import { linkDisplayLabel, toGoogleCalendarUrl, toWebcalUrl } from './calendar-urls'
 
@@ -43,7 +44,16 @@ describe('linkDisplayLabel', () => {
     expect(linkDisplayLabel(link({ label: 'My phone' }))).toBe('My phone')
   })
 
-  it('falls back to the creation date, formatted nl-NL', () => {
-    expect(linkDisplayLabel(link())).toBe('Link from 7 okt 2026')
+  it('falls back to the creation date, in the language', () => {
+    expect(linkDisplayLabel(link())).toBe('Link from 7 Oct 2026')
+  })
+})
+
+describe('linkDisplayLabel in Dutch', () => {
+  afterEach(() => i18n.changeLanguage('en'))
+
+  it('falls back to the creation date in Dutch', async () => {
+    await i18n.changeLanguage('nl')
+    expect(linkDisplayLabel(link())).toBe('Link van 7 okt 2026')
   })
 })

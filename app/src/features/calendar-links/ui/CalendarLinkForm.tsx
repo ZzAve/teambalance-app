@@ -1,4 +1,5 @@
 import { useId, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import type { CalendarLinkRequest } from '@shared/api/calendar-links'
 import type { EventTypeItem } from '@shared/api/event-types'
 import { Button } from '@shared/ui/button'
@@ -45,6 +46,7 @@ export function CalendarLinkForm({
   onSubmit,
   onCancel,
 }: CalendarLinkFormProps) {
+  const { t } = useTranslation()
   const labelId = useId()
   const [label, setLabel] = useState(initial.label ?? '')
   const [options, setOptions] = useState<LinkOptions>({
@@ -98,13 +100,13 @@ export function CalendarLinkForm({
       />
 
       <div className="flex flex-col gap-2">
-        <Label htmlFor={labelId}>Label (optional)</Label>
+        <Label htmlFor={labelId}>{t('calendarLinks.label')}</Label>
         <div className="flex gap-2">
           <Input
             id={labelId}
             value={label}
             maxLength={MAX_LABEL_LENGTH}
-            placeholder="e.g. My phone"
+            placeholder={t('calendarLinks.labelPlaceholder')}
             disabled={disabled}
             onChange={(e) => setLabel(e.target.value)}
           />
@@ -113,7 +115,7 @@ export function CalendarLinkForm({
           </Button>
           {onCancel && (
             <Button type="button" variant="ghost" onClick={onCancel}>
-              Cancel
+              {t('common.cancel')}
             </Button>
           )}
         </div>

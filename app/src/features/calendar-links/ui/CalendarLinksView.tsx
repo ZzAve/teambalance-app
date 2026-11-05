@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import type { CalendarLink, CalendarLinkRequest } from '@shared/api/calendar-links'
 import type { EventTypeItem } from '@shared/api/event-types'
 import { Button } from '@shared/ui/button'
@@ -67,6 +68,7 @@ export function CalendarLinksView({
   onCopy,
   onRetry,
 }: CalendarLinksViewProps) {
+  const { t } = useTranslation()
   // A new link is offered the active types only; archived ones exist to keep naming what a link lists.
   const activeTypes = eventTypes.filter((type) => !type.archived)
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -78,15 +80,14 @@ export function CalendarLinksView({
   return (
     <div className="flex flex-col gap-6">
       <p className="text-small text-muted-foreground">
-        Subscribe to your team's events once and your phone's calendar stays in sync. Changes can take
-        up to a day to appear on Google Calendar.
+        {t('calendarLinks.intro')}
       </p>
 
-      {isLoading && <p className="text-small text-muted-foreground">Loading…</p>}
+      {isLoading && <p className="text-small text-muted-foreground">{t('calendarLinks.loading')}</p>}
       {isError && (
         <QueryErrorState
-          title="Couldn't load your calendar links"
-          description="Check your connection and try again."
+          title={t('calendarLinks.loadFailed')}
+          description={t('calendarLinks.loadFailedHint')}
           onRetry={onRetry}
         />
       )}
@@ -94,7 +95,7 @@ export function CalendarLinksView({
       {!isLoading && !isError && (
         <>
           {links.length === 0 ? (
-            <p className="text-small text-muted-foreground">No calendar links yet.</p>
+            <p className="text-small text-muted-foreground">{t('calendarLinks.empty')}</p>
           ) : (
             <ul className="divide-y divide-border rounded-lg border border-border">
               {links.map((link) => (
@@ -134,7 +135,7 @@ export function CalendarLinksView({
               eventTypes={activeTypes}
               disabled={atCap}
               isSaving={isSaving}
-              submitLabel="Generate link"
+              submitLabel={t('calendarLinks.generate')}
               onSubmit={(request) => {
                 onGenerate(request)
                 setCreateFormKey((key) => key + 1)
@@ -142,18 +143,18 @@ export function CalendarLinksView({
             />
             {atCap && (
               <p className="text-small text-muted-foreground">
-                You have {MAX_LINKS} links, the maximum. Delete one to generate a new link.
+                {t('calendarLinks.atCap', { max: MAX_LINKS })}
               </p>
             )}
             {/* While a row is being edited the error belongs to that row, next to the edits. */}
-            {actionError && editingId === null && <FormError>Something went wrong. Please try again.</FormError>}
+            {actionError && editingId === null && <FormError>{t('calendarLinks.actionFailed')}</FormError>}
           </div>
 
           <ConfirmDialog
             open={confirmTarget !== null}
-            title="Delete calendar link?"
-            description="Every calendar subscribed with this link stops updating."
-            confirmLabel="Delete link"
+            title={t('calendarLinks.deleteTitle')}
+            description={t('calendarLinks.deleteDescription')}
+            confirmLabel={t('calendarLinks.deleteConfirm')}
             onConfirm={() => {
               if (confirmTarget) onDelete(confirmTarget.id)
               setConfirmTarget(null)
@@ -197,6 +198,7 @@ function CalendarLinkRow({
   onUpdate,
   onRequestDelete,
 }: CalendarLinkRowProps) {
+  const { t } = useTranslation()
   const name = linkDisplayLabel(link)
   const options = optionsOf(link)
   const summary = optionsSummary(options, teamName, eventTypes)
@@ -211,12 +213,12 @@ function CalendarLinkRow({
         </span>
         {link.expired && (
           <span className="shrink-0 rounded-full bg-red/10 px-2 py-0.5 text-caption font-semibold text-red-ink">
-            Expired
+            {t('calendarLinks.expired')}
           </span>
         )}
       </div>
       <p className="text-small text-muted-foreground">
-        {link.expired ? 'Expired' : 'Expires'} {formatDate(link.expiresAt)}
+        {t(link.expired ? 'calendarLinks.expiredOn' : 'calendarLinks.expiresOn', { date: formatDate(link.expiresAt) })}
       </p>
       {editing ? (
         <>
@@ -225,11 +227,11 @@ function CalendarLinkRow({
             teamName={teamName}
             eventTypes={pickable}
             isSaving={isSaving}
-            submitLabel="Save"
+            submitLabel={t('calendarLinks.save')}
             onSubmit={onUpdate}
             onCancel={onCancelEdit}
           />
-          {updateError && <FormError>Something went wrong. Please try again.</FormError>}
+          {updateError && <FormError>{t('calendarLinks.actionFailed')}</FormError>}
         </>
       ) : (
         <>
@@ -238,39 +240,39 @@ function CalendarLinkRow({
             {link.url ? (
               <>
                 <Button asChild size="sm" variant="outline">
-                  <a href={toWebcalUrl(link.url)}>Open in Calendar</a>
+                  <a href={toWebcalUrl(link.url)}>{t('calendarLinks.openInCalendar')}</a>
                 </Button>
                 <Button asChild size="sm" variant="outline">
                   <a href={toGoogleCalendarUrl(link.url)} target="_blank" rel="noopener noreferrer">
-                    Add to Google Calendar
+                    {t('calendarLinks.addToGoogle')}
                   </a>
                 </Button>
                 <Button size="sm" variant="outline" onClick={() => onCopy(link)}>
-                  {copied ? 'Copied!' : 'Copy link'}
+                  {copied ? t('calendarLinks.copied') : t('calendarLinks.copyLink')}
                 </Button>
               </>
             ) : (
               // A key rotation leaves a link whose token cannot be decrypted: it still counts toward the
               // cap, so it stays listed to be deleted, but there is no URL to offer.
-              <p className="text-small text-muted-foreground">This link can no longer be shown.</p>
+              <p className="text-small text-muted-foreground">{t('calendarLinks.unavailable')}</p>
             )}
             {!link.expired && (
               <Button size="sm" variant="outline" onClick={onEdit}>
-                Edit
+                {t('calendarLinks.edit')}
               </Button>
             )}
             <Button size="sm" variant="ghost" className="text-red-ink hover:bg-red/5 hover:text-red-ink" disabled={isSaving} onClick={() => onRequestDelete(link)}>
-              Delete
+              {t('calendarLinks.delete')}
             </Button>
           </div>
         </>
       )}
       {copyFailed && link.url && (
         <div className="flex flex-col gap-2">
-          <FormError>Couldn't copy automatically. Copy the link below.</FormError>
+          <FormError>{t('calendarLinks.copyFailed')}</FormError>
           <Input
             readOnly
-            aria-label={`Calendar link URL for ${name}`}
+            aria-label={t('calendarLinks.urlLabel', { name })}
             value={link.url}
             onFocus={(e) => e.currentTarget.select()}
           />

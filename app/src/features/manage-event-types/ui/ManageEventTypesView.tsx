@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { ArchiveRestore } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import type { EventTypeItem, RosterRequirement } from '@shared/api/event-types'
 import type { Position } from '@shared/api/positions'
 import { Button } from '@shared/ui/button'
@@ -47,14 +48,11 @@ const OFF: RosterRequirement = { trackRoster: false, totalTarget: undefined, pos
 
 const PALETTE = ['#225C9C', '#249E6C', '#F4B400', '#7B5EA7', '#E87C3E', '#D93025']
 
-const FALLBACK_ERROR = 'Something went wrong. Please try again.'
+/** The backend codes with their own message; any other code says the fallback. */
+const KNOWN_ERRORS = ['EVENT_TYPE_NAME_TAKEN', 'LAST_EVENT_TYPE', 'INVALID_REQUEST', 'FORBIDDEN', 'NOT_FOUND'] as const
 
-const ERROR_MESSAGES: Record<string, string> = {
-  EVENT_TYPE_NAME_TAKEN: 'That event type already exists.',
-  LAST_EVENT_TYPE: 'A team must keep at least one active event type.',
-  INVALID_REQUEST: "That didn't work — check the name and roster, then try again.",
-  FORBIDDEN: 'You are not allowed to make this change.',
-  NOT_FOUND: 'That event type no longer exists. Reload and try again.',
+function isKnownError(code: string): code is (typeof KNOWN_ERRORS)[number] {
+  return (KNOWN_ERRORS as readonly string[]).includes(code)
 }
 
 /**
@@ -82,6 +80,7 @@ export function ManageEventTypesView({
   onArchive,
   onUnarchive,
 }: ManageEventTypesViewProps) {
+  const { t } = useTranslation()
   const [editingId, setEditingId] = useState<string | null>(null)
   const [draft, setDraft] = useState<EventTypeDraft | null>(null)
   const [archiveTarget, setArchiveTarget] = useState<EventTypeItem | null>(null)
@@ -120,25 +119,24 @@ export function ManageEventTypesView({
 
   return (
     <div>
-      <h2 className="font-display text-title font-bold">Event types</h2>
+      <h2 className="font-display text-title font-bold">{t('manageEventTypes.heading')}</h2>
       <p className="mt-1 text-small text-muted-foreground">
-        Each type carries the roster an event of that kind needs. Events follow their type unless you
-        give one its own.
+        {t('manageEventTypes.intro')}
       </p>
 
-      {isLoading && <p className="mt-4 text-small text-muted-foreground">Loading…</p>}
+      {isLoading && <p className="mt-4 text-small text-muted-foreground">{t('manageEventTypes.loading')}</p>}
       {isError && (
-        <p className="mt-4 text-small text-red-ink">Couldn't load event types. Please try again.</p>
+        <p className="mt-4 text-small text-red-ink">{t('manageEventTypes.loadFailed')}</p>
       )}
 
       {!isLoading && !isError && (
         <div className="mt-4 flex flex-col gap-3">
           {/* Every code the container can hand down renders something. A save that failed and said
               nothing is indistinguishable from one that worked. */}
-          {errorCode && <p className="text-small text-red-ink">{ERROR_MESSAGES[errorCode] ?? FALLBACK_ERROR}</p>}
+          {errorCode && <p className="text-small text-red-ink">{t(isKnownError(errorCode) ? `manageEventTypes.error.${errorCode}` : 'manageEventTypes.error.fallback')}</p>}
 
           {active.length === 0 ? (
-            <p className="text-small text-muted-foreground">No event types yet. Add one below.</p>
+            <p className="text-small text-muted-foreground">{t('manageEventTypes.empty')}</p>
           ) : (
             <ul className="divide-y divide-border rounded-lg border border-border">
               {active.map((type) => (
@@ -159,7 +157,7 @@ export function ManageEventTypesView({
                     <DropdownMenuTrigger asChild>
                       <button
                         type="button"
-                        aria-label={`Actions for ${type.name}`}
+                        aria-label={t('manageEventTypes.actionsFor', { name: type.name })}
                         disabled={isSaving}
                         className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-lg hover:bg-accent disabled:pointer-events-none disabled:opacity-50"
                       >
@@ -167,11 +165,11 @@ export function ManageEventTypesView({
                       </button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem onSelect={() => startEdit(type)}>Edit</DropdownMenuItem>
+                      <DropdownMenuItem onSelect={() => startEdit(type)}>{t('manageEventTypes.edit')}</DropdownMenuItem>
                       {/* Archiving is reversible (a type can be restored below) — not the
                           destructive red treatment. */}
                       <DropdownMenuItem onSelect={() => setArchiveTarget(type)}>
-                        Archive…
+                        {t('manageEventTypes.archiveEllipsis')}
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -182,31 +180,31 @@ export function ManageEventTypesView({
 
           {!editorOpen && (
             <Button className="self-start" disabled={isSaving} onClick={startCreate}>
-              Add event type
+              {t('manageEventTypes.add')}
             </Button>
           )}
 
           {editorOpen && draft && (
             <div className="flex flex-col gap-3 rounded-lg border border-border p-3">
               <h3 className="text-small font-semibold">
-                {editingId === 'new' ? 'New event type' : 'Edit event type'}
+                {editingId === 'new' ? t('manageEventTypes.newTitle') : t('manageEventTypes.editTitle')}
               </h3>
               <div className="flex flex-wrap items-center gap-2">
                 <Input
-                  aria-label="Event type name"
+                  aria-label={t('manageEventTypes.nameLabel')}
                   className="w-48"
                   value={draft.name}
-                  placeholder="e.g. Match"
+                  placeholder={t('manageEventTypes.namePlaceholder')}
                   onChange={(e) => setDraft({ ...draft, name: e.target.value })}
                 />
-                <div className="flex gap-1.5" role="radiogroup" aria-label="Colour">
+                <div className="flex gap-1.5" role="radiogroup" aria-label={t('manageEventTypes.colour')}>
                   {PALETTE.map((color) => (
                     <button
                       key={color}
                       type="button"
                       role="radio"
                       aria-checked={draft.color === color}
-                      aria-label={`Colour ${color}`}
+                      aria-label={t('manageEventTypes.colourOption', { color })}
                       onClick={() => setDraft({ ...draft, color })}
                       style={{ background: color }}
                       className={`size-6 rounded-full ring-offset-background transition-transform ${
@@ -227,10 +225,10 @@ export function ManageEventTypesView({
 
               <div className="flex gap-2">
                 <Button disabled={isSaving || draft.name.trim().length === 0} onClick={submit}>
-                  Save
+                  {t('manageEventTypes.save')}
                 </Button>
                 <Button variant="outline" disabled={isSaving} onClick={close}>
-                  Cancel
+                  {t('common.cancel')}
                 </Button>
               </div>
             </div>
@@ -238,7 +236,7 @@ export function ManageEventTypesView({
 
           {archived.length > 0 && (
             <div className="mt-2">
-              <SectionLabel as="h3">Archived</SectionLabel>
+              <SectionLabel as="h3">{t('manageEventTypes.archived')}</SectionLabel>
               <ul className="mt-2 divide-y divide-border rounded-lg border border-dashed border-border">
                 {archived.map((type) => (
                   <li key={type.id} className="flex items-center gap-2 p-3">
@@ -249,10 +247,10 @@ export function ManageEventTypesView({
                       className="ml-auto"
                       disabled={isSaving}
                       onClick={() => onUnarchive(type.id)}
-                      aria-label={`Restore ${type.name}`}
+                      aria-label={t('manageEventTypes.restoreLabel', { name: type.name })}
                     >
                       <ArchiveRestore size={14} />
-                      Restore
+                      {t('manageEventTypes.restore')}
                     </Button>
                   </li>
                 ))}
@@ -293,6 +291,7 @@ interface ArchiveDialogProps {
  * cannot delete anything, and can be undone from the Archived section below.
  */
 function ArchiveDialog({ target, alternatives, isSaving, onCancel, onConfirm }: ArchiveDialogProps) {
+  const { t } = useTranslation()
   const [migrateTo, setMigrateTo] = useState<string>('')
 
   return (
@@ -307,17 +306,16 @@ function ArchiveDialog({ target, alternatives, isSaving, onCancel, onConfirm }: 
     >
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Archive "{target?.name}"?</DialogTitle>
+          <DialogTitle>{t('manageEventTypes.archive.title', { name: target?.name })}</DialogTitle>
           <DialogDescription>
-            It disappears from the event pickers. Existing events keep this type and still show — no
-            event is deleted.
+            {t('manageEventTypes.archive.description')}
           </DialogDescription>
         </DialogHeader>
 
         {alternatives.length > 0 && (
           <div className="flex flex-col gap-2">
             <label htmlFor="migrate-to" className="text-small font-semibold">
-              Move its events to another type first?
+              {t('manageEventTypes.archive.migrate')}
             </label>
             <select
               id="migrate-to"
@@ -325,10 +323,10 @@ function ArchiveDialog({ target, alternatives, isSaving, onCancel, onConfirm }: 
               value={migrateTo}
               onChange={(e) => setMigrateTo(e.target.value)}
             >
-              <option value="">Leave them on "{target?.name}"</option>
-              {alternatives.map((t) => (
-                <option key={t.id} value={t.id}>
-                  Move to {t.name}
+              <option value="">{t('manageEventTypes.archive.leaveOn', { name: target?.name })}</option>
+              {alternatives.map((alternative) => (
+                <option key={alternative.id} value={alternative.id}>
+                  {t('manageEventTypes.archive.moveTo', { name: alternative.name })}
                 </option>
               ))}
             </select>
@@ -343,7 +341,7 @@ function ArchiveDialog({ target, alternatives, isSaving, onCancel, onConfirm }: 
               onCancel()
             }}
           >
-            Cancel
+            {t('common.cancel')}
           </Button>
           {/* Not destructive styling: archiving is reversible (Restore lives in the Archived
               section) — an event type is hidden, never deleted. */}
@@ -354,7 +352,7 @@ function ArchiveDialog({ target, alternatives, isSaving, onCancel, onConfirm }: 
               setMigrateTo('')
             }}
           >
-            Archive
+            {t('manageEventTypes.archive.confirm')}
           </Button>
         </DialogFooter>
       </DialogContent>

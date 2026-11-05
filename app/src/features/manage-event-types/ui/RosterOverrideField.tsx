@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import type { EventTypeItem, RosterRequirement } from '@shared/api/event-types'
 import type { Position } from '@shared/api/positions'
 import { RosterRequirementEditor } from './RosterRequirementEditor'
@@ -37,14 +38,15 @@ export function RosterOverrideField({
   disabled,
   onChange,
 }: RosterOverrideFieldProps) {
+  const { t } = useTranslation()
   const inheriting = value == null
   const typeDefault = eventType?.rosterDefault
 
   return (
     <fieldset className="flex flex-col gap-2">
-      <legend className="text-small font-medium">Roster</legend>
+      <legend className="text-small font-medium">{t('manageEventTypes.override.legend')}</legend>
 
-      <div className="flex gap-2" role="radiogroup" aria-label="Roster">
+      <div className="flex gap-2" role="radiogroup" aria-label={t('manageEventTypes.override.legend')}>
         <button
           type="button"
           role="radio"
@@ -55,7 +57,7 @@ export function RosterOverrideField({
             inheriting ? 'border-foreground bg-foreground text-background' : 'border-border'
           }`}
         >
-          Inherit default
+          {t('manageEventTypes.override.inherit')}
         </button>
         <button
           type="button"
@@ -74,15 +76,15 @@ export function RosterOverrideField({
             !inheriting ? 'border-foreground bg-foreground text-background' : 'border-border'
           }`}
         >
-          Customise
+          {t('manageEventTypes.override.customise')}
         </button>
       </div>
 
       {inheriting ? (
         <p className="text-caption text-muted-foreground">
           {eventType
-            ? `Follows ${eventType.name}: ${rosterDefaultSummary(eventType.rosterDefault, positions)}. Changing the type's default changes this event too.`
-            : 'Follows the event type’s default.'}
+            ? t('manageEventTypes.override.follows', { type: eventType.name, summary: rosterDefaultSummary(eventType.rosterDefault, positions) })
+            : t('manageEventTypes.override.followsDefault')}
         </p>
       ) : (
         <RosterRequirementEditor

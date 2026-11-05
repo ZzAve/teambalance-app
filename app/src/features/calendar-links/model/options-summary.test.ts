@@ -1,4 +1,5 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
+import { i18n } from '@shared/i18n/i18n'
 import type { EventTypeItem } from '@shared/api/event-types'
 import { optionsSummary } from './options-summary'
 import { PRESET_OPTIONS } from './preset'
@@ -54,6 +55,22 @@ describe('optionsSummary', () => {
     )
     expect(optionsSummary({ ...PRESET_OPTIONS.me, eventTypeIds: ['t', 'x'] }, 'Setpoint VT', TYPES)).toBe(
       'Training, 1 other event type',
+    )
+  })
+})
+
+describe('optionsSummary in Dutch', () => {
+  afterEach(() => i18n.changeLanguage('en'))
+
+  it('spells out each part in Dutch', async () => {
+    await i18n.changeLanguage('nl')
+    expect(
+      optionsSummary({ ...PRESET_OPTIONS.partner, eventTypeIds: ['b', 't'] }, 'Setpoint VT', TYPES),
+    ).toBe('Training, Beach (gearchiveerd) · alleen Aanwezig · geen ✓/✗-markering · agenda: Setpoint VT · Partner')
+    expect(optionsSummary({ ...PRESET_OPTIONS.me, eventTypeIds: ['x'] }, 'Setpoint VT', [])).toBe('1 soort event')
+    expect(optionsSummary({ ...PRESET_OPTIONS.me, eventTypeIds: ['x', 'y'] }, 'Setpoint VT', [])).toBe('2 soorten events')
+    expect(optionsSummary({ ...PRESET_OPTIONS.me, eventTypeIds: ['t', 'x', 'y'] }, 'Setpoint VT', TYPES)).toBe(
+      'Training, 2 andere soorten events',
     )
   })
 })

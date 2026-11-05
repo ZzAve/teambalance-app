@@ -43,6 +43,14 @@ class RateLimitFilter(
     private val pathHelper = UrlPathHelper()
     private val pathMatcher = AntPathMatcher()
 
+    // The sign-in endpoints run before there is a session, so each keys on IP alone.
+    private val sessionlessPostPolicies = mapOf(
+        MAGIC_LINK_REQUEST_PATH to ("magic-link-request" to properties.magicLinkRequest),
+        MAGIC_LINK_VERIFY_PATH to ("magic-link-verify" to properties.magicLinkVerify),
+        PASSKEY_OPTIONS_PATH to ("passkey-login" to properties.passkeyLogin),
+        DEMO_SESSION_PATH to ("demo-session" to properties.demoSession),
+    )
+
     // The bucket a request spends from: the policy that bounds it, and who "one caller" is for that
     // policy. The key is resolved here rather than carried as a strategy because the three answers
     // come from three different places — the socket, the session, and the credential in the path.
@@ -82,12 +90,8 @@ class RateLimitFilter(
         // reason).
         val get = request.method in FEED_METHODS
         return when {
-            post && path == MAGIC_LINK_REQUEST_PATH ->
-                listOf(Rule("magic-link-request", properties.magicLinkRequest, ipKey(request)))
-            post && path == MAGIC_LINK_VERIFY_PATH ->
-                listOf(Rule("magic-link-verify", properties.magicLinkVerify, ipKey(request)))
-            post && path == PASSKEY_OPTIONS_PATH ->
-                listOf(Rule("passkey-login", properties.passkeyLogin, ipKey(request)))
+            post && path in sessionlessPostPolicies -> sessionlessPostPolicies.getValue(path)
+                .let { (name, policy) -> listOf(Rule(name, policy, ipKey(request))) }
             post && pathMatcher.match(INVITATION_ACCEPT_PATTERN, path) ->
                 listOf(Rule("invitation-accept", properties.invitationAccept, userOrIpKey(request)))
             get && path == BunqConnectionService.CALLBACK_PATH ->
@@ -150,6 +154,7 @@ class RateLimitFilter(
         const val MAGIC_LINK_REQUEST_PATH = "/api/auth/magic-link/request"
         const val MAGIC_LINK_VERIFY_PATH = "/api/auth/magic-link/verify"
         const val PASSKEY_OPTIONS_PATH = "/webauthn/authenticate/options"
+        const val DEMO_SESSION_PATH = "/api/demo/session"
 
         // Single `*` matches one path segment, so the token can't contain a slash that escapes onto
         // another handler — the token is a URL-safe Base64 string with no slashes anyway.

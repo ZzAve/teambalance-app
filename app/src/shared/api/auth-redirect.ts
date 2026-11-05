@@ -1,4 +1,9 @@
-export const LOGIN_PATH = '/login'
+/** Where a lapsed session goes: the demo build has no magic-link screen to land on, only the persona picker. */
+export function loginPathFor(demo: boolean) {
+  return demo ? '/demo' : '/login'
+}
+
+export const LOGIN_PATH = loginPathFor(!!import.meta.env.VITE_DEMO)
 
 /** Backend `code` (GlobalExceptionHandler) for a request that resolved to no tenant. */
 export const NO_TEAM_MEMBERSHIP_CODE = 'NO_TEAM_MEMBERSHIP'

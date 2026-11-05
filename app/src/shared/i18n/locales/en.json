@@ -1012,8 +1012,15 @@
   },
   "demo": {
     "intro": "This is a demo team.",
-    "play": "Play as Sanne",
-    "error": "Signing in failed. Please try again."
+    "playMember": "Play as Sanne (player)",
+    "playAdmin": "Play as Kees (coach)",
+    "error": "Signing in failed. Please try again.",
+    "banner": {
+      "label": "Demo",
+      "notice": "This is a demo — data is wiped every hour.",
+      "startTeam": "Start your own team",
+      "switchRole": "Switch role"
+    }
   },
   "receipt": {
     "button": "Receipt for {{name}}",

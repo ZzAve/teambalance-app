@@ -148,12 +148,31 @@ class DemoSessionIT : TeamBalanceIT() {
             response.getCookie("SESSION") shouldBe null
         }
 
+        test("the coach persona is the demo team's admin, and only there") {
+            val me = json.readTree(perform(get("/api/auth/me").cookie(createSession("ADMIN"))).contentAsString)
+            me["activeTeam"]["slug"].asString() shouldBe DemoPersona.SLUG
+            me["role"].asString() shouldBe "ADMIN"
+            me["isPlatformAdmin"].asBoolean() shouldBe false
+            me["teams"].size() shouldBe 1
+            jdbcTemplate.queryForObject(
+                "SELECT count(*) FROM public.team_members WHERE user_id = ?::uuid AND team_id <> ?::uuid",
+                Int::class.java,
+                DemoPersona.ADMIN.userId.value.toString(),
+                DemoPersona.TEAM_ID.value.toString(),
+            ) shouldBe 0
+        }
+
+        test("an admin-only route answers the coach and refuses the player") {
+            perform(get("/api/team/money-pool/settings").cookie(createSession("ADMIN"))).status shouldBe 200
+            perform(get("/api/team/money-pool/settings").cookie(createSession("MEMBER"))).status shouldBe 403
+        }
+
         test("every guest login starts a new session") {
             createSession().value shouldNotBe createSession().value
         }
     }
 
-    private fun createSession(): Cookie = createSessionResponse("MEMBER").also { it.status shouldBe 204 }
+    private fun createSession(persona: String = "MEMBER"): Cookie = createSessionResponse(persona).also { it.status shouldBe 204 }
         .getCookie("SESSION").shouldNotBeNull()
 
     // No cookie, no CSRF token: the first request a visitor's browser makes.

@@ -46,6 +46,7 @@ internal class TeamDirectory {
     /** (userId, teamId) -> role, present only while the membership is active. */
     private val memberships = mutableMapOf<Pair<UserId, TeamId>, Role>()
     private val remembered = mutableMapOf<UserId, TeamId>()
+    private val languages = mutableMapOf<UserId, Language>()
 
     fun addTeam(name: String, slug: String): TeamId {
         val id = TeamId(UUID.randomUUID())
@@ -107,8 +108,10 @@ internal class TeamDirectory {
         override fun rememberActiveTeam(userId: UserId, teamId: TeamId) {
             remembered[userId] = teamId
         }
-        override fun findLanguage(userId: UserId): Language? = null
-        override fun saveLanguage(userId: UserId, language: Language) = Unit
+        override fun findLanguage(userId: UserId): Language? = languages[userId]
+        override fun saveLanguage(userId: UserId, language: Language) {
+            languages[userId] = language
+        }
     }
 
     @Suppress("TooManyFunctions")

@@ -38,6 +38,7 @@ class TeamController(
             rawSlug = request.body.slug,
             // Sent verbatim but trimmed — the code format is the issuer's concern (Slice 4), not ours.
             creationCode = CreationCode(request.body.creationCode.trim()),
+            language = request.body.language?.consume(),
         )
         return CreateTeam.Response201(created.toDto())
     }

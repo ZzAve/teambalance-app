@@ -146,7 +146,7 @@ describe('wirespec-client adapter', () => {
     it('sends a request body as JSON', async () => {
       const fetchMock = stubFetch(fakeResponse({ status: 202 }))
 
-      await api.requestMagicLink({ body: { email: 'a@b.nl', inviteToken: undefined } })
+      await api.requestMagicLink({ body: { email: 'a@b.nl', inviteToken: undefined, language: undefined } })
 
       const sent = initOf(fetchMock).body as Uint8Array
       expect(JSON.parse(new TextDecoder().decode(sent))).toEqual({ email: 'a@b.nl' })

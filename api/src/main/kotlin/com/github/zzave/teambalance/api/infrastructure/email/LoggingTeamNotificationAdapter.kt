@@ -1,5 +1,6 @@
 package com.github.zzave.teambalance.api.infrastructure.email
 
+import com.github.zzave.teambalance.api.domain.model.Language
 import com.github.zzave.teambalance.api.domain.port.TeamNotificationGateway
 import org.slf4j.LoggerFactory
 import org.springframework.context.annotation.Profile
@@ -14,8 +15,8 @@ import org.springframework.stereotype.Component
 class LoggingTeamNotificationAdapter : TeamNotificationGateway {
     private val log = LoggerFactory.getLogger(LoggingTeamNotificationAdapter::class.java)
 
-    override fun teamCreated(founderEmail: String, teamName: String, teamSlug: String) {
-        log.info("Team-created notification for {}: team '{}' ({})", founderEmail, teamName, teamSlug)
+    override fun teamCreated(founderEmail: String, teamName: String, teamSlug: String, language: Language) {
+        log.info("Team-created notification for {} ({}): team '{}' ({})", founderEmail, language, teamName, teamSlug)
     }
 
     override fun creationCodeConsumed(teamName: String, teamSlug: String, founderEmail: String) {

@@ -48,6 +48,9 @@ import java.util.concurrent.atomic.AtomicInteger
  * Sign-in pins the routing, but a session can still lack it while its user has a team (teamless at
  * sign-in, member later). The INSERT is made an upsert in `SessionConfig`, so concurrent first writes
  * of the same attribute no longer collide.
+ *
+ * The filter itself no longer writes the memo (#469): a lazy write committing after a team switch put
+ * the old team back. Only sign-in and a switch pin it, so a session without one resolves per request.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @Import(ConcurrentSessionTenantIT.RequestHoldConfig::class)
@@ -71,7 +74,7 @@ class ConcurrentSessionTenantIT : TeamBalanceIT() {
 
         // Sign-in pins nothing for a teamless user, so their session has no tenant memo. Once a
         // membership appears out-of-band (an invite claimed in another browser, an admin adding them),
-        // the next burst has every request resolve the landing and add the memo to the same session.
+        // every request of the next burst resolves the landing from the database.
         test("a concurrent burst after a teamless session gains a team never 500s") {
             seedTeamAndAdmin()
             jdbcTemplate.execute(

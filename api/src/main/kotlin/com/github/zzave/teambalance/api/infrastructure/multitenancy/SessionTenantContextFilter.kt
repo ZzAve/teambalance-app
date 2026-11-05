@@ -76,7 +76,11 @@ class SessionTenantContextFilter(
         }
     }
 
+    /**
+     * Never writes the memo. A write from here commits at the end of the request, so one that resolved
+     * before a concurrent switch committed after it and put the previous Team back (#469). Only sign-in
+     * and a switch pin it; a session without one follows `last_active_team` on every request.
+     */
     private fun memoized(session: HttpSession?, userId: UserId): TenantRouting? =
-        TenantRoutingSession.read(session)
-            ?: activeTeamService.resolveLanding(userId)?.also { TenantRoutingSession.write(session, it) }
+        TenantRoutingSession.read(session) ?: activeTeamService.resolveLanding(userId)
 }

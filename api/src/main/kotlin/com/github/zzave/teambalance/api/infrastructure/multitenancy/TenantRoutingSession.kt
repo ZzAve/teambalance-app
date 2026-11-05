@@ -8,10 +8,8 @@ import java.util.UUID
 
 /**
  * The one place that knows how a [TenantRouting] is carried on an HTTP session: the two attribute
- * names, and the string formats behind them. Both writers live in this package —
- * [TenantRoutingGatewayAdapter] pins it once at sign-in, [SessionTenantContextFilter] memoizes it on
- * the first request that had to resolve it from the database — so the contract cannot drift between
- * them.
+ * names, and the string formats behind them. [TenantRoutingGatewayAdapter] writes it, at sign-in and
+ * on a switch; [SessionTenantContextFilter] only reads it, resolving from the database when absent.
  *
  * Schema and team id are always read and written as a pair, so a cached schema can never end up
  * alongside a freshly-queried team id.

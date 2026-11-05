@@ -64,7 +64,31 @@ class SessionTenantContextFilterTest : TeamBalanceIT() {
             TenantContext.isSet() shouldBe false
         }
 
-        test("second request on the same session resolves schema and team id from cache without a DB lookup") {
+        test("a pinned memo is read back on the next request without a DB lookup") {
+            tenantSchemaAdapter.provisionPlatformSchema()
+            val userId = UUID.randomUUID()
+            val teamId = UUID.randomUUID()
+            val schemaName = "team_${teamId.toString().replace("-", "")}"
+            seedMember(userId, teamId, schemaName)
+
+            val session = MockHttpSession()
+            activate(userId, teamId, session)
+
+            // Remove the backing row so a DB lookup would now resolve to nothing.
+            jdbcTemplate.update("DELETE FROM public.team_members WHERE user_id = ?", userId)
+
+            // Only possible from the memo: a hit is trusted, not re-verified.
+            UserContext.set(userId)
+            val resolved = runFilter(session)
+            resolved.wasSet shouldBe true
+            resolved.schema shouldBe schemaName
+            resolved.teamId shouldBe teamId
+        }
+
+        // A lazy write from a request that resolved before a concurrent switch committed after it and
+        // put the old team back (#469). The filter therefore never writes the memo: only sign-in and
+        // a switch do, and a session with none follows `last_active_team` on every request.
+        test("a session with no memo resolves the landing on every request and never memoizes it") {
             tenantSchemaAdapter.provisionPlatformSchema()
             val userId = UUID.randomUUID()
             val teamId = UUID.randomUUID()
@@ -73,22 +97,16 @@ class SessionTenantContextFilterTest : TeamBalanceIT() {
 
             val session = MockHttpSession()
 
-            // First request resolves from the DB and memoizes schema + team id on the session.
             UserContext.set(userId)
             val first = runFilter(session)
-            first.wasSet shouldBe true
             first.schema shouldBe schemaName
             first.teamId shouldBe teamId
+            TenantRoutingSession.read(session) shouldBe null
 
-            // Remove the backing row so a DB lookup would now resolve to nothing.
             jdbcTemplate.update("DELETE FROM public.team_members WHERE user_id = ?", userId)
 
-            // Second request on the same session still resolves both — only possible from the cache.
             UserContext.set(userId)
-            val second = runFilter(session)
-            second.wasSet shouldBe true
-            second.schema shouldBe schemaName
-            second.teamId shouldBe teamId
+            runFilter(session).wasSet shouldBe false
         }
 
         // The memo is a CORRECTNESS concern since #143, not a cache (ADR-0023 §2): it is what says
@@ -105,7 +123,7 @@ class SessionTenantContextFilterTest : TeamBalanceIT() {
 
             val session = MockHttpSession()
 
-            // Land in `first` explicitly, then memoize it by taking one request through the filter.
+            // Land in `first` explicitly, which pins it, and take one request through the filter.
             activate(userId, first, session)
             UserContext.set(userId)
             runFilter(session).schema shouldBe schemaFor(first)
@@ -165,7 +183,7 @@ class SessionTenantContextFilterTest : TeamBalanceIT() {
             seedTeam(teamId, schemaFor(teamId))
             enterActAs(operator, teamId)
 
-            // Memoize the tenant on the session the way a first request does...
+            // Take one request through the filter...
             val session = MockHttpSession()
             UserContext.set(operator)
             runFilter(session).schema shouldBe schemaFor(teamId)

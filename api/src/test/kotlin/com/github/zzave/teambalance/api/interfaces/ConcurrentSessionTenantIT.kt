@@ -2,7 +2,6 @@ package com.github.zzave.teambalance.api.interfaces
 
 import com.github.zzave.teambalance.api.TeamBalanceIT
 import com.github.zzave.teambalance.api.infrastructure.multitenancy.TenantSchemaAdapter
-import io.kotest.assertions.withClue
 import io.kotest.matchers.shouldBe
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
@@ -56,47 +55,64 @@ class ConcurrentSessionTenantIT : TeamBalanceIT() {
             seedTeamAndAdmin()
             val cookie = login(ADMIN_EMAIL)
 
-            val port = env.getProperty("local.server.port")!!.toInt()
-            val client = HttpClient.newHttpClient()
-            val endpoints = listOf(
-                "/api/events?include-past=false",
-                "/api/event-types",
-                "/api/team/season",
+            burstServerErrors(cookie) shouldBe emptyMap()
+        }
+
+        // Sign-in pins nothing for a teamless user, so their session has no tenant memo. Once a
+        // membership appears out-of-band (an invite claimed in another browser, an admin adding them),
+        // the next burst has every request resolve the landing and add the memo to the same session.
+        test("a concurrent burst after a teamless session gains a team never 500s") {
+            seedTeamAndAdmin()
+            jdbcTemplate.execute(
+                "INSERT INTO public.users (id, email, display_name) " +
+                    "VALUES ('$LATE_USER_ID'::uuid, '$LATE_EMAIL', '$LATE_EMAIL') ON CONFLICT DO NOTHING",
             )
+            val cookie = login(LATE_EMAIL)
+            jdbcTemplate.execute("SELECT public.tb_add_member('$TEAM_ID'::uuid, '$LATE_USER_ID'::uuid, 'USER', 'Setter')")
 
-            val total = 300
-            val pool = Executors.newFixedThreadPool(24)
-            val gate = CountDownLatch(1)
-            val done = CountDownLatch(total)
-            val statusCounts = ConcurrentHashMap<Int, AtomicInteger>()
+            burstServerErrors(cookie) shouldBe emptyMap()
+        }
+    }
 
-            repeat(total) { i ->
-                val path = endpoints[i % endpoints.size]
-                pool.submit {
-                    try {
-                        gate.await()
-                        val resp = client.send(
-                            HttpRequest.newBuilder()
-                                .uri(URI.create("http://127.0.0.1:$port$path"))
-                                .header("Cookie", cookie)
-                                .GET().build(),
-                            HttpResponse.BodyHandlers.discarding(),
-                        )
-                        statusCounts.computeIfAbsent(resp.statusCode()) { AtomicInteger() }.incrementAndGet()
-                    } finally {
-                        done.countDown()
-                    }
+    /** Fires a burst of tenant-scoped GETs on one session at once; answers the 5xx statuses seen, by count. */
+    private fun burstServerErrors(cookie: String): Map<Int, Int> {
+        val port = env.getProperty("local.server.port")!!.toInt()
+        val client = HttpClient.newHttpClient()
+        val endpoints = listOf(
+            "/api/events?include-past=false",
+            "/api/event-types",
+            "/api/team/season",
+        )
+
+        val total = 300
+        val pool = Executors.newFixedThreadPool(24)
+        val gate = CountDownLatch(1)
+        val done = CountDownLatch(total)
+        val statusCounts = ConcurrentHashMap<Int, AtomicInteger>()
+
+        repeat(total) { i ->
+            val path = endpoints[i % endpoints.size]
+            pool.submit {
+                try {
+                    gate.await()
+                    val resp = client.send(
+                        HttpRequest.newBuilder()
+                            .uri(URI.create("http://127.0.0.1:$port$path"))
+                            .header("Cookie", cookie)
+                            .GET().build(),
+                        HttpResponse.BodyHandlers.discarding(),
+                    )
+                    statusCounts.computeIfAbsent(resp.statusCode()) { AtomicInteger() }.incrementAndGet()
+                } finally {
+                    done.countDown()
                 }
             }
-            gate.countDown()
-            done.await(60, TimeUnit.SECONDS)
-            pool.shutdownNow()
-
-            val serverErrors = statusCounts.filterKeys { it >= 500 }.values.sumOf { it.get() }
-            withClue("status distribution: ${statusCounts.mapValues { it.value.get() }.toSortedMap()}") {
-                serverErrors shouldBe 0
-            }
         }
+        gate.countDown()
+        done.await(60, TimeUnit.SECONDS)
+        pool.shutdownNow()
+
+        return statusCounts.filterKeys { it >= 500 }.mapValues { it.value.get() }
     }
 
     // --- helpers ---------------------------------------------------------------------------------
@@ -155,5 +171,7 @@ class ConcurrentSessionTenantIT : TeamBalanceIT() {
         private const val ADMIN_EMAIL = "concurrency-admin@test.com"
         private const val TEAM_ID = "a0000000-0000-0000-0000-0000000000f1"
         private const val SCHEMA = "team_concurrency"
+        private const val LATE_USER_ID = "b0000000-0000-0000-0000-0000000000f2"
+        private const val LATE_EMAIL = "concurrency-late@test.com"
     }
 }

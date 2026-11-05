@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
+import { useTranslation } from 'react-i18next'
 import { PlatformTeams } from '@features/act-as/ui/PlatformTeams'
 import { CreateMemberlessTeam } from '@features/create-memberless-team/ui/CreateMemberlessTeam'
 
@@ -11,12 +12,13 @@ export const Route = createFileRoute('/admin/teams')({
 })
 
 function PlatformTeamsPage() {
+  const { t } = useTranslation()
   return (
     <div className="flex flex-col gap-8">
       <CreateMemberlessTeam />
       <PlatformTeams />
       <Link to="/admin/creation-codes" className="text-small font-semibold text-blue hover:underline">
-        Creation codes
+        {t('account.creationCodes')}
       </Link>
     </div>
   )

@@ -1,4 +1,5 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
+import { i18n } from '@shared/i18n/i18n'
 import { ESCALATE_AFTER_MS, initialWakeState, MIN_VISIBLE_MS, nextWakeState, wakeMessageFor } from './wake-notice'
 
 const STEP_MS = 100
@@ -89,5 +90,15 @@ describe('wakeMessageFor', () => {
   it('never claims anything was saved', () => {
     expect(wakeMessageFor(0)).not.toMatch(/saved/i)
     expect(wakeMessageFor(ESCALATE_AFTER_MS)).not.toMatch(/saved/i)
+  })
+})
+
+describe('wakeMessageFor in Dutch', () => {
+  afterEach(() => i18n.changeLanguage('en'))
+
+  it('says both lines in Dutch', async () => {
+    await i18n.changeLanguage('nl')
+    expect(wakeMessageFor(0)).toBe('De server wordt wakker…')
+    expect(wakeMessageFor(ESCALATE_AFTER_MS)).toBe('Nog even bezig — bedankt voor je geduld')
   })
 })

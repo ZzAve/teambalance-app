@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { AlertTriangle } from 'lucide-react'
 import { Button } from '@shared/ui/button'
+import { useTranslation } from 'react-i18next'
 
 interface QueryErrorStateProps {
   title: string
@@ -20,9 +21,10 @@ export function QueryErrorState({
   title,
   description,
   onRetry,
-  retryLabel = 'Retry',
+  retryLabel,
   children,
 }: QueryErrorStateProps) {
+  const { t } = useTranslation()
   return (
     <div role="alert" className="mt-10 flex flex-col items-center gap-4 text-center">
       <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red/10 text-red">
@@ -33,7 +35,7 @@ export function QueryErrorState({
         {description && <p className="mt-1 text-small text-muted-foreground">{description}</p>}
       </div>
       <div className="flex items-center gap-2">
-        <Button onClick={onRetry}>{retryLabel}</Button>
+        <Button onClick={onRetry}>{retryLabel ?? t('sharedUi.retry')}</Button>
         {children}
       </div>
     </div>

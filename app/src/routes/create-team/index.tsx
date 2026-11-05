@@ -1,5 +1,6 @@
 import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router'
 import { useQueryClient } from '@tanstack/react-query'
+import { Trans, useTranslation } from 'react-i18next'
 import { authMeQueryOptions } from '@shared/api/auth'
 import { queryClient } from '@shared/api/query-client'
 import { CreateTeamError, useCreateTeam } from '@shared/api/teams'
@@ -17,6 +18,7 @@ export const Route = createFileRoute('/create-team/')({
 })
 
 function CreateTeamPage() {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const client = useQueryClient()
   const createTeam = useCreateTeam()
@@ -25,23 +27,21 @@ function CreateTeamPage() {
   return (
     // Full column width, like the Account page this is reached from.
     <div>
-      <h1 className="font-display text-title font-bold">Create your team</h1>
+      <h1 className="font-display text-title font-bold">{t('routes.createTeam.heading')}</h1>
       <p className="mt-2 text-small text-muted-foreground">
-        Enter your creation code and name your team — you'll be its admin.
+        {t('routes.createTeam.intro')}
       </p>
       <p className="mt-2 text-small text-muted-foreground">
-        Starting a team is invite-only while we're getting established. Got a creation code? Enter it
-        below.
+        {t('routes.createTeam.inviteOnly')}
       </p>
       <p className="mt-1 text-small text-muted-foreground">
-        Don't have one?{' '}
-        <a
-          href="mailto:teams@teambalance.nl?subject=Request%20a%20team%20on%20TeamBalance"
-          className="text-blue underline"
-        >
-          Email teams@teambalance.nl
-        </a>{' '}
-        and we'll help you get started.
+        <Trans
+          i18nKey="routes.createTeam.noCode"
+          components={{
+            // Trans fills in the link text.
+            mail: <a href="mailto:teams@teambalance.nl?subject=Request%20a%20team%20on%20TeamBalance" className="text-blue underline" />,
+          }}
+        />
       </p>
       <div className="mt-6">
         <CreateTeamForm

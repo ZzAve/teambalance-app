@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { i18n } from '@shared/i18n/i18n'
 import { PhotoError, personalPhotoUrl, sendPhoto, teamPhotoUrl } from './photos'
 
 function stubFetch(status: number, body = '') {
@@ -42,5 +43,19 @@ describe('sendPhoto', () => {
     const error = await rejection(sendPhoto('DELETE', path))
     expect(error).toBeInstanceOf(PhotoError)
     expect((error as PhotoError).code).toBe(code)
+  })
+})
+
+describe('sendPhoto in Dutch', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    return i18n.changeLanguage('en')
+  })
+
+  it('carries a Dutch message', async () => {
+    await i18n.changeLanguage('nl')
+    stubFetch(500, 'oops')
+    const error = await rejection(sendPhoto('DELETE', '/api/account/photo'))
+    expect((error as PhotoError).message).toBe('De foto opslaan is mislukt. Probeer het opnieuw.')
   })
 })

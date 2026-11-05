@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { wakeMessageFor } from '@shared/lib/wake-notice'
 
 interface WakeToastProps {
@@ -12,11 +13,12 @@ interface WakeToastProps {
  * UpdateToast (above the bottom nav) and ignores pointer events so it never blocks a tap.
  */
 export function WakeToast({ show, elapsedMs }: WakeToastProps) {
+  const { t } = useTranslation()
   if (!show) return null
   return (
     <div
       role="status"
-      aria-label="Server status"
+      aria-label={t('sharedUi.serverStatus')}
       className="pointer-events-none fixed inset-x-0 bottom-[calc(6rem+env(safe-area-inset-bottom))] z-50 mx-auto flex w-fit max-w-[calc(100%-2rem)] items-center gap-2 rounded-full border border-border bg-card px-4 py-2 shadow-lg"
     >
       <span

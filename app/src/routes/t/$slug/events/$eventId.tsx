@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { createFileRoute } from '@tanstack/react-router'
 import { toast } from 'sonner'
+import { useTranslation } from 'react-i18next'
 import { useEvent, useEvents } from '@shared/api/events'
 import { useSetAttendance } from '@shared/api/attendances'
 import { useCurrentUser } from '@shared/api/auth'
@@ -27,6 +28,7 @@ export const Route = createFileRoute('/t/$slug/events/$eventId')({
 })
 
 function EventDetailPage() {
+  const { t } = useTranslation()
   const { eventId } = Route.useParams()
   const routes = useTeamRoutes()
   const { data: event, isLoading, isError, refetch } = useEvent(eventId)
@@ -61,11 +63,11 @@ function EventDetailPage() {
     const prior = (target?.state as AttendanceState) ?? 'NOT_RESPONDED'
     mutate({ eventId, userId, state })
     if (userId !== currentUserId) {
-      const { message, undoState } = crossMemberToast(target?.displayName ?? 'teammate', state, prior)
+      const { message, undoState } = crossMemberToast(target?.displayName ?? t('routes.event.teammate'), state, prior)
       toast(
         message,
         undoState
-          ? { action: { label: 'Undo', onClick: () => mutate({ eventId, userId, state: undoState }) } }
+          ? { action: { label: t('routes.event.undo'), onClick: () => mutate({ eventId, userId, state: undoState }) } }
           : undefined,
       )
     }

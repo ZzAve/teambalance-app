@@ -243,7 +243,7 @@
     "labelPlaceholder": "Naam (optioneel)",
     "url": "Link {{n}} URL",
     "remove": "Verwijder link {{n}}",
-    "add": "Link toevoegen"
+    "add": "Voeg link toe"
   },
   "series": {
     "thisOne": "Deze",
@@ -564,7 +564,7 @@
       "loading": "bunq-rekeningen laden…",
       "rejected": "TeamBalance kan de opgeslagen bunq-toegang niet meer gebruiken. Gebruik hieronder “Koppel een andere bunq-login”, of ontkoppel.",
       "loadFailed": "bunq-rekeningen laden is mislukt. Probeer het opnieuw.",
-      "disconnect": "Ontkoppelen",
+      "disconnect": "Ontkoppel",
       "confirmTitle": "Ontkoppel Bunq",
       "confirmDescription": "Dit verwijdert de toegang die TeamBalance heeft opgeslagen. Wil je de toestemming ook bij bunq intrekken, verwijder TeamBalance dan onder gekoppelde apps in de bunq-app.",
       "none": "Deze bunq-login heeft geen rekeningen om te tonen.",
@@ -617,7 +617,7 @@
     "empty": "Nog geen aanmaakcodes. Maak er hierboven een aan.",
     "revokeTitle": "Trek code in",
     "revokeDescription": "\"{{code}}\" intrekken? Er kan dan geen team meer mee worden aangemaakt.",
-    "revoke": "Intrekken",
+    "revoke": "Trek in",
     "status": {
       "active": "Actief",
       "expired": "Verlopen",
@@ -757,7 +757,7 @@
   },
   "editEvent": {
     "edit": "Bewerk event",
-    "delete": "Verwijderen",
+    "delete": "Verwijder",
     "deleteFromSeries": "Uit de reeks verwijderen?",
     "deleteThis": "Dit event verwijderen?",
     "deleteDescription": "{{title}} wordt voor iedereen verwijderd, samen met de aanwezigheid.",

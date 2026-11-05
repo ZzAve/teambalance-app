@@ -2,6 +2,7 @@ import type { SubstituteEntry } from '@shared/api/events'
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@shared/ui/sheet'
 import { AttendanceToggle } from '@features/attendance-toggle/ui/AttendanceToggle'
 import type { SubstituteState } from './SubstitutesBlock'
+import { useTranslation } from 'react-i18next'
 
 /**
  * One Substitute on one event (ADR-0033): change their state, or take them off the event. Taking
@@ -25,6 +26,7 @@ export function SubstituteSheet({
   onClose: () => void
   pending?: boolean
 }) {
+  const { t } = useTranslation()
   return (
     <Sheet open={substitute !== null} onOpenChange={(open) => !open && onClose()}>
       <SheetContent>
@@ -33,8 +35,8 @@ export function SubstituteSheet({
             <SheetHeader>
               <SheetTitle>{substitute.name}</SheetTitle>
               <SheetDescription>
-                Substitute · {substitute.position?.label ?? 'Unassigned'}
-                {setBy && ` · set by ${setBy}`}
+                {t('callInSubstitutes.substitute', { position: substitute.position?.label ?? t('position.unassigned') })}
+                {setBy && ` · ${t('callInSubstitutes.setBy', { name: setBy })}`}
               </SheetDescription>
             </SheetHeader>
             <AttendanceToggle
@@ -48,7 +50,7 @@ export function SubstituteSheet({
               }}
             />
             <p className="mt-3 text-caption text-muted-foreground">
-              Maybe means asked and waiting for an answer. Can't keeps a record that they were asked and said no.
+              {t('callInSubstitutes.sheetHint')}
             </p>
             <button
               type="button"
@@ -59,7 +61,7 @@ export function SubstituteSheet({
               }}
               className="mt-4 w-full rounded-md border-[1.5px] border-red/30 py-2.5 text-small font-semibold text-red-ink hover:bg-red/5 disabled:opacity-60"
             >
-              Take off this event
+              {t('callInSubstitutes.takeOff')}
             </button>
           </>
         )}

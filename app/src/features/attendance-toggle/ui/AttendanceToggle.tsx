@@ -6,30 +6,31 @@ export type AttendanceState = 'ATTENDING' | 'MAYBE' | 'ABSENT' | 'NOT_RESPONDED'
 
 interface ResponseOption {
   value: AttendanceState
-  label: string
+  readonly label: string
   icon: ComponentType<{ size?: number; className?: string }>
   activeClass: string
   inactiveClass: string
 }
 
+// `label` is a getter, so the words follow a language change (ADR-0043).
 const RESPONSE_OPTIONS: ResponseOption[] = [
   {
     value: 'ATTENDING',
-    label: ATTENDANCE_WORDS.ATTENDING.word,
+    get label() { return ATTENDANCE_WORDS.ATTENDING.word },
     icon: Check,
     activeClass: 'bg-green text-white border-green hover:bg-green/90',
     inactiveClass: 'border-green/30 text-green hover:bg-green/10',
   },
   {
     value: 'MAYBE',
-    label: ATTENDANCE_WORDS.MAYBE.word,
+    get label() { return ATTENDANCE_WORDS.MAYBE.word },
     icon: HelpCircle,
     activeClass: 'bg-gold text-white border-gold hover:bg-gold/90',
     inactiveClass: 'border-gold/30 text-gold-ink hover:bg-gold/10',
   },
   {
     value: 'ABSENT',
-    label: ATTENDANCE_WORDS.ABSENT.word,
+    get label() { return ATTENDANCE_WORDS.ABSENT.word },
     icon: X,
     activeClass: 'bg-red text-white border-red hover:bg-red/90',
     inactiveClass: 'border-red/30 text-red-ink hover:bg-red/10',

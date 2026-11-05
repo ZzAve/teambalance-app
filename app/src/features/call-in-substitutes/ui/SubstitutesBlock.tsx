@@ -4,16 +4,18 @@ import { cn } from '@shared/lib/utils'
 import { setByName } from '@entities/event/lib/attribution'
 import { ATTENDANCE_WORDS, LOWER_WORD } from '@entities/event/lib/attendance-words'
 import { SubstituteAvatar } from '@entities/event/ui/SubstituteAvatar'
+import { useTranslation } from 'react-i18next'
 
 export type SubstituteState = SubstituteEntry['state']
 
 // A Substitute is never Not Responded (ADR-0033), so these three are every state they can hold. They
 // are said in the member words: a Substitute's Maybe means asked and waiting to hear back, which the
-// sheet explains in a sentence rather than a word of its own (#335).
-export const SUBSTITUTE_OPTIONS: { value: SubstituteState; label: string; active: string }[] = [
-  { value: 'ATTENDING', label: ATTENDANCE_WORDS.ATTENDING.word, active: 'border-green bg-green text-white' },
-  { value: 'MAYBE', label: ATTENDANCE_WORDS.MAYBE.word, active: 'border-gold bg-gold text-white' },
-  { value: 'ABSENT', label: ATTENDANCE_WORDS.ABSENT.word, active: 'border-red bg-red text-white' },
+// sheet explains in a sentence rather than a word of its own (#335). The words are getters, so they
+// follow a language change (ADR-0043).
+export const SUBSTITUTE_OPTIONS: { value: SubstituteState; readonly label: string; active: string }[] = [
+  { value: 'ATTENDING', get label() { return ATTENDANCE_WORDS.ATTENDING.word }, active: 'border-green bg-green text-white' },
+  { value: 'MAYBE', get label() { return ATTENDANCE_WORDS.MAYBE.word }, active: 'border-gold bg-gold text-white' },
+  { value: 'ABSENT', get label() { return ATTENDANCE_WORDS.ABSENT.word }, active: 'border-red bg-red text-white' },
 ]
 
 // The pill stays small; `tap-band` stretches the tap target to 44px tall (F7). Shared by the block
@@ -21,10 +23,10 @@ export const SUBSTITUTE_OPTIONS: { value: SubstituteState; label: string; active
 export const SUBSTITUTE_PILL =
   'tap-band rounded-full border-[1.5px] px-2 py-1 text-caption font-semibold transition-colors disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
 
-const TALLY: { state: SubstituteState; word: string; tone: string }[] = [
-  { state: 'ATTENDING', word: LOWER_WORD.ATTENDING, tone: 'text-green-dark' },
-  { state: 'MAYBE', word: LOWER_WORD.MAYBE, tone: 'text-gold-ink' },
-  { state: 'ABSENT', word: LOWER_WORD.ABSENT, tone: 'text-red-ink' },
+const TALLY: { state: SubstituteState; tone: string }[] = [
+  { state: 'ATTENDING', tone: 'text-green-dark' },
+  { state: 'MAYBE', tone: 'text-gold-ink' },
+  { state: 'ABSENT', tone: 'text-red-ink' },
 ]
 
 interface SubstitutesBlockProps {
@@ -51,23 +53,24 @@ export function SubstitutesBlock({
   onCallIn,
   pending = false,
 }: SubstitutesBlockProps) {
-  const tally = TALLY.map((t) => ({ ...t, count: substitutes.filter((s) => s.state === t.state).length })).filter(
-    (t) => t.count > 0,
+  const { t } = useTranslation()
+  const tally = TALLY.map((row) => ({ ...row, count: substitutes.filter((s) => s.state === row.state).length })).filter(
+    (row) => row.count > 0,
   )
 
   return (
-    <section aria-label="Substitutes" className="mt-6 overflow-hidden rounded-lg border border-border/40 bg-card shadow-sm">
+    <section aria-label={t('callInSubstitutes.heading')} className="mt-6 overflow-hidden rounded-lg border border-border/40 bg-card shadow-sm">
       <div className="flex items-baseline justify-between gap-3 px-4 pb-2 pt-3">
-        <h3 className="text-caption font-semibold text-purple-ink">Substitutes</h3>
+        <h3 className="text-caption font-semibold text-purple-ink">{t('callInSubstitutes.heading')}</h3>
         <span className="text-caption font-semibold">
           {tally.length === 0 ? (
-            <span className="text-muted-foreground">none yet</span>
+            <span className="text-muted-foreground">{t('callInSubstitutes.noneYet')}</span>
           ) : (
-            tally.map((t, i) => (
-              <span key={t.state}>
+            tally.map((row, i) => (
+              <span key={row.state}>
                 {i > 0 && ' · '}
-                <span className={t.tone}>
-                  {t.count} {t.word}
+                <span className={row.tone}>
+                  {row.count} {LOWER_WORD[row.state]}
                 </span>
               </span>
             ))
@@ -75,7 +78,7 @@ export function SubstitutesBlock({
         </span>
       </div>
 
-      {substitutes.length === 0 && <p className="px-4 pb-3 text-small text-muted-foreground">Nobody called in yet.</p>}
+      {substitutes.length === 0 && <p className="px-4 pb-3 text-small text-muted-foreground">{t('callInSubstitutes.nobodyCalledIn')}</p>}
 
       {substitutes.map((sub) => (
         <div key={sub.substituteId} role="group" aria-label={sub.name} className="flex items-center gap-3 px-4 py-2">
@@ -83,7 +86,8 @@ export function SubstitutesBlock({
           <button type="button" onClick={() => onOpen(sub.substituteId)} className="min-w-0 flex-1 text-left">
             <span className="block truncate text-small font-medium">{sub.name}</span>
             <span className="block text-caption text-muted-foreground">
-              {sub.position?.label ?? 'Unassigned'} · set by {setByName(sub.changedBy, members)}
+              {sub.position?.label ?? t('position.unassigned')} ·{' '}
+              {t('callInSubstitutes.setBy', { name: setByName(sub.changedBy, members) })}
             </span>
           </button>
           <span className="flex shrink-0 gap-1">
@@ -112,7 +116,7 @@ export function SubstitutesBlock({
         className="flex w-full items-center justify-center gap-2 border-t border-border/40 py-3 text-small font-semibold text-purple-ink hover:bg-purple/5"
       >
         <UserPlus size={18} />
-        Call in substitutes
+        {t('lineup.callIn')}
       </button>
     </section>
   )

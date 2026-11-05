@@ -2,6 +2,7 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '
 import type { LineupState } from '@entities/event/lib/lineup'
 import { LOWER_WORD } from '@entities/event/lib/attendance-words'
 import { AttendanceToggle } from './AttendanceToggle'
+import { useTranslation } from 'react-i18next'
 
 /** Who the sheet is about. A caller passes null to close it. */
 export interface AnswerTarget {
@@ -41,6 +42,7 @@ export function AnswerSheet({
   onClose: () => void
   pending?: boolean
 }) {
+  const { t } = useTranslation()
   return (
     <Sheet open={target !== null} onOpenChange={(open) => !open && onClose()}>
       <SheetContent>
@@ -49,8 +51,9 @@ export function AnswerSheet({
             <SheetHeader>
               <SheetTitle>{target.displayName}</SheetTitle>
               <SheetDescription>
-                {target.position ? `${target.position} · ` : ''}currently {LOWER_WORD[target.state]}
-                {!target.isSelf && ' · you are answering for them'}
+                {target.position ? `${target.position} · ` : ''}
+                {t('attendanceToggle.currently', { word: LOWER_WORD[target.state] })}
+                {!target.isSelf && ` · ${t('attendanceToggle.answeringForThem')}`}
               </SheetDescription>
             </SheetHeader>
             <AttendanceToggle

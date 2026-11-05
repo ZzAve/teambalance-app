@@ -12,6 +12,7 @@ import { Button } from '@shared/ui/button'
 import { useDeleteEvent, type Event } from '@shared/api/events'
 import { DeleteEventDialogView } from './DeleteEventDialogView'
 import { useTeamRoutes } from '@shared/lib/team-routes'
+import { useTranslation } from 'react-i18next'
 
 interface DeleteEventDialogProps {
   eventId: string
@@ -28,6 +29,7 @@ interface DeleteEventDialogProps {
  * gone. The dialog chrome (title + description) stays here, so the View is Radix-free. See ADR-0017.
  */
 export function DeleteEventDialog({ eventId, title, siblings = [] }: DeleteEventDialogProps) {
+  const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   const navigate = useNavigate()
   const routes = useTeamRoutes()
@@ -43,14 +45,12 @@ export function DeleteEventDialog({ eventId, title, siblings = [] }: DeleteEvent
         onClick={() => setOpen(true)}
       >
         <Trash2 size={15} />
-        Delete
+        {t('editEvent.delete')}
       </Button>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{isSeries ? 'Delete from series?' : 'Delete this event?'}</DialogTitle>
-          <DialogDescription>
-            {title} will be removed for everyone, along with its attendance.
-          </DialogDescription>
+          <DialogTitle>{isSeries ? t('editEvent.deleteFromSeries') : t('editEvent.deleteThis')}</DialogTitle>
+          <DialogDescription>{t('editEvent.deleteDescription', { title })}</DialogDescription>
         </DialogHeader>
         <DeleteEventDialogView
           eventId={eventId}

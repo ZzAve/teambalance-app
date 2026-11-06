@@ -43,8 +43,15 @@ class BunqConnectConfigTest : FunSpec({
                 "https://api.example/api/bunq/oauth/callback"
         }
 
-        listOf("none", "sandbox").forEach { bunqEnvironment ->
-            test("refuse to start while connecting is on in prod with Bunq environment $bunqEnvironment") {
+        listOf(" Production ", "PRODUCTION").forEach { bunqEnvironment ->
+            test("accept the production Bunq environment in prod spelled \"$bunqEnvironment\"") {
+                bunqConnectConfig(true, true, bunqEnvironment, CIPHER, API)!!.callbackUrl shouldBe
+                    "https://api.example/api/bunq/oauth/callback"
+            }
+        }
+
+        listOf("none", "sandbox", "prod", "", "production-x").forEach { bunqEnvironment ->
+            test("refuse to start while connecting is on in prod with Bunq environment \"$bunqEnvironment\"") {
                 val message = shouldThrow<IllegalStateException> { bunqConnectConfig(true, true, bunqEnvironment, CIPHER, API) }.message!!
 
                 message shouldContain "TEAMBALANCE_BUNQ_CONNECT_ENABLED"

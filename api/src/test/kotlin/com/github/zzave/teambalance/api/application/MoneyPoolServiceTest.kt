@@ -175,7 +175,7 @@ class MoneyPoolServiceTest : FunSpec({
         cache: MoneyPoolCacheGateway = PassThroughCache(),
         connections: BunqConnectionRepository? = null,
         receipts: ReceiptRepository = InMemoryReceiptRepository(),
-        demoMode: Boolean = false,
+        demoTeam: TeamId? = null,
     ) = MoneyPoolService(
         settingsRepository = settingsRepository,
         connectionRepository = connections ?: object : BunqConnectionRepository {
@@ -203,7 +203,7 @@ class MoneyPoolServiceTest : FunSpec({
         authorizationService = AuthorizationService(directory.teamMemberRepository(), FakeActAsGateway()),
         cache = cache,
         receiptRepository = receipts,
-        demoMode = demoMode,
+        demoTeam = demoTeam,
     )
 
     test("is Off when the team switched the money pool off") {
@@ -512,7 +512,7 @@ class MoneyPoolServiceTest : FunSpec({
             val repository = InMemorySettingsRepository(stored)
             listOf(BunqMeLink.parse("bunq.me/other"), null).forEach { replacement ->
                 shouldThrow<DemoTopUpLinkLockedException> {
-                    service(settingsRepository = repository, demoMode = true)
+                    service(settingsRepository = repository, demoTeam = team)
                         .updateSettings(ADMIN, team, stored.copy(bunqMeLink = replacement))
                 }
             }
@@ -522,14 +522,21 @@ class MoneyPoolServiceTest : FunSpec({
         test("the other settings change while the link stays") {
             val repository = InMemorySettingsRepository(stored)
             val replacement = stored.copy(beerPrice = BeerPrice(300))
-            service(settingsRepository = repository, demoMode = true).updateSettings(ADMIN, team, replacement) shouldBe replacement
+            service(settingsRepository = repository, demoTeam = team).updateSettings(ADMIN, team, replacement) shouldBe replacement
         }
 
         test("a non-admin still gets the admin refusal") {
             shouldThrow<NotTeamAdminException> {
-                service(settingsRepository = InMemorySettingsRepository(stored), demoMode = true)
+                service(settingsRepository = InMemorySettingsRepository(stored), demoTeam = team)
                     .updateSettings(MEMBER, team, stored.copy(bunqMeLink = null))
             }
+        }
+
+        test("another team's link changes freely") {
+            val repository = InMemorySettingsRepository(stored)
+            directory.join(ADMIN, otherTeam, Role.ADMIN)
+            service(settingsRepository = repository, demoTeam = team).updateSettings(ADMIN, otherTeam, stored.copy(bunqMeLink = null))
+            repository.settings.bunqMeLink shouldBe null
         }
 
         test("outside demo mode the link changes freely") {

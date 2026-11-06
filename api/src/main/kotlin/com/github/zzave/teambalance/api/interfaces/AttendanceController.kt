@@ -43,7 +43,7 @@ class AttendanceController(
             changedBy = currentUserGateway.requireCurrentUserId(),
         ) ?: return SetAttendance.Response404
 
-        val member = attendanceService.findMember(userId)
+        val member = attendanceService.findMember(teamId, userId)
 
         return SetAttendance.Response200(
             Attendance(

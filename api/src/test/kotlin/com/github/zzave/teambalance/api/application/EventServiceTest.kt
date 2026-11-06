@@ -98,7 +98,7 @@ private class EventFakeMemberRepo(private val admins: Set<UserId>) : TeamMemberR
     override fun findRole(teamId: TeamId, userId: UserId): Role = if (userId in admins) Role.ADMIN else Role.USER
     override fun findByTeamId(teamId: TeamId): List<TeamMember> = emptyList()
     override fun findDisplayName(userId: UserId): DisplayName? = null
-    override fun findMembersByUserIds(userIds: Set<UserId>): Map<UserId, TeamMember> = emptyMap()
+    override fun findMembersByUserIds(teamId: TeamId, userIds: Set<UserId>): Map<UserId, TeamMember> = emptyMap()
     override fun findTenantRouting(teamId: TeamId, userId: UserId): TenantRouting? = null
     override fun findSoleTenantRouting(userId: UserId): TenantRouting? = null
     override fun addMember(teamId: TeamId, userId: UserId, role: Role) = Unit

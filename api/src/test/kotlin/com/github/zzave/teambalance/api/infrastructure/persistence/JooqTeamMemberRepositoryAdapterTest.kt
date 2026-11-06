@@ -105,6 +105,18 @@ class JooqTeamMemberRepositoryAdapterTest : TeamBalanceIT() {
             teamMemberRepository.findSoleTenantRouting(userId) shouldBe null
         }
 
+        test("findMembersByUserIds returns the role of the requested team for a user active in two teams") {
+            val (teamA, userId) = seedMember(role = "ADMIN", active = true)
+            val (teamB, _) = seedMember(role = "USER", active = true)
+            teamMemberRepository.addMember(teamB, userId)
+            TenantContext.set(schemaNameOf(teamA))
+
+            val members = teamMemberRepository.findMembersByUserIds(teamA, setOf(userId))
+
+            members.size shouldBe 1
+            members.getValue(userId).permission shouldBe Role.ADMIN
+        }
+
         test("findSoleTenantRouting is null for a user with no team at all") {
             teamMemberRepository.findSoleTenantRouting(UserId(seedUser())) shouldBe null
         }

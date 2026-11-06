@@ -53,9 +53,11 @@ class JooqTeamMemberRepositoryAdapter(
             .fetchOne(TENANT_OR_PLATFORM_NAME)
             ?.let(::DisplayName)
 
-    override fun findMembersByUserIds(userIds: Set<UserId>): Map<UserId, TeamMember> {
+    override fun findMembersByUserIds(teamId: TeamId, userIds: Set<UserId>): Map<UserId, TeamMember> {
         if (userIds.isEmpty()) return emptyMap()
-        return memberSummaries(TEAM_MEMBERS.USER_ID.`in`(userIds.map { it.value })).associateBy { it.userId }
+        return memberSummaries(
+            TEAM_MEMBERS.TEAM_ID.eq(teamId.value).and(TEAM_MEMBERS.USER_ID.`in`(userIds.map { it.value })),
+        ).associateBy { it.userId }
     }
 
     // Unqualified tenant joins on purpose (ADR-0026): they resolve against the routed tenant schema, so

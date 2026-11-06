@@ -17,7 +17,7 @@ import java.util.UUID
 interface TeamMemberRepository {
     fun findByTeamId(teamId: TeamId): List<TeamMember>
     fun findDisplayName(userId: UserId): DisplayName?
-    fun findMembersByUserIds(userIds: Set<UserId>): Map<UserId, TeamMember>
+    fun findMembersByUserIds(teamId: TeamId, userIds: Set<UserId>): Map<UserId, TeamMember>
 
     /** The user's role on the team, or null if they have no active membership there. */
     fun findRole(teamId: TeamId, userId: UserId): Role?

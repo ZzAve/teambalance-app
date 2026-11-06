@@ -254,6 +254,27 @@ any-team, self-service (see [ADR-0001](docs/adr/0001-product-ambition-hobby-tool
 - **Nevobo** — Dutch volleyball federation; source of external league standings
   (Competition context).
 
+### UI words per language ([ADR-0043](docs/adr/0043-dutch-and-english-react-i18next-language-on-the-user.md))
+
+The terms above are the names in code, payloads and docs, and they stay English. The UI says them
+in the user's language. A Dutch word on an _Avoid_ list above (rugnummer, invaller) is avoided in
+code and docs only; in the Dutch UI it is the right word.
+
+| Term | en (UI) | nl (UI) |
+|---|---|---|
+| Attendance State — control, filter, row, chip | Going / Maybe / Can't / Not responded | Aanwezig / Misschien / Afwezig / Geen reactie |
+| Attendance State — card answer pill | You're in / You said maybe / You're out / Respond | Je bent erbij / Je zei misschien / Je bent er niet bij / Reageer |
+| Attendance State — hero status, mid-sentence | you're in / you said maybe / you're out / you haven't responded | je bent erbij / je zei misschien / je bent er niet bij / je hebt nog niet gereageerd |
+| Shirt Number | Shirt number | Rugnummer |
+| Substitute | Substitute | Invaller |
+| Money Pool | Money pool | Teampot |
+| Top-up | Top up / Top-up | Inleggen / Inleg |
+| Position | Position | Positie |
+| Event | Event | Event |
+| Match / Training | Match / Training | Wedstrijd / Training |
+
+User content (event titles, team names, Position names, notes) is never translated.
+
 ### Architecture (hexagonal) ([ADR-0018](docs/adr/0018-enforce-hexagonal-architecture-with-flock-detekt.md))
 
 The backend is hexagonal (ports & adapters). These boundaries are enforced by the build
@@ -261,7 +282,7 @@ The backend is hexagonal (ports & adapters). These boundaries are enforced by th
 `com.github.zzave.teambalance.api` are **domain**, **application**, **infrastructure**, and
 **interfaces**.
 
-- **Domain** — Entities, value objects, and domain events. Framework-free: no Spring, JPA, or
+- **Domain** — Entities, value objects, and domain events. Framework-free: no Spring, jOOQ, or
   other framework imports. The innermost layer; depends on nothing else here.
 - **Application** — Use cases (the `*Service` orchestrators) and the **port** interfaces they
   need. Also framework-free (this is the stricter half of [ADR-0018](docs/adr/0018-enforce-hexagonal-architecture-with-flock-detekt.md)):
@@ -270,13 +291,13 @@ The backend is hexagonal (ports & adapters). These boundaries are enforced by th
   application needs from the outside world (`EventRepository`, `EmailGateway`, `CurrentUserGateway`).
   Named with a `Repository`, `Gateway`, `Port`, or `Client` suffix. The dependency-inversion seam:
   the application depends on the port, never on the adapter. _Avoid_: interface, service interface.
-- **Adapter** — A concrete implementation of a **port** living in **infrastructure** (a JPA
+- **Adapter** — A concrete implementation of a **port** living in **infrastructure** (a jOOQ
   repository, the Bunq client, an email sender). Named `*Adapter` or `*Impl`. Adapters talk to the
   domain through ports, never directly to one another. _Avoid_: implementation, provider, gateway
   (a gateway is the *port*, its adapter is the implementation).
 - **Value Object** — A domain type that replaces a raw primitive with a meaningful, type-safe one
   — a Kotlin `@JvmInline value class` wrapping a single value (`EventId(UUID)`, `Email(String)`).
-  Converted to/from its primitive **only at the edges** (the JPA entity mapper and the Wirespec DTO
+  Converted to/from its primitive **only at the edges** (the jOOQ record mapping in the adapters and the Wirespec DTO
   mapper); the Wirespec contract and DB schema are unchanged. _Avoid_: wrapper, id class.
 - **Composition Root** — The single Spring `@Configuration` in **infrastructure** that constructs
   the framework-free application services from their ports. The **only** place autowiring happens

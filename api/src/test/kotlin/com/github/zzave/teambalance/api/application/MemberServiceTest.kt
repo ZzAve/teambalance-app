@@ -9,6 +9,7 @@ import com.github.zzave.teambalance.api.domain.exception.PositionNotFoundExcepti
 import com.github.zzave.teambalance.api.domain.exception.ShirtNumberTakenException
 import com.github.zzave.teambalance.api.domain.model.DisplayName
 import com.github.zzave.teambalance.api.domain.model.Email
+import com.github.zzave.teambalance.api.domain.model.Language
 import com.github.zzave.teambalance.api.domain.model.Position
 import com.github.zzave.teambalance.api.domain.model.PositionId
 import com.github.zzave.teambalance.api.domain.model.PositionKind
@@ -38,6 +39,8 @@ private class FakeMemberUserRepo(users: List<User>) : UserRepository {
     }
     override fun findLastActiveTeamId(userId: UserId): TeamId? = null
     override fun rememberActiveTeam(userId: UserId, teamId: TeamId) = Unit
+    override fun findLanguage(userId: UserId): Language? = null
+    override fun saveLanguage(userId: UserId, language: Language) = Unit
 }
 
 // Reads display names from [userRepo] so a save() is reflected by a later findByTeamId — mirroring the

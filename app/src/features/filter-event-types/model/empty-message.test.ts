@@ -1,4 +1,5 @@
-import {describe, expect, it} from 'vitest'
+import { describe, expect, it, afterEach } from 'vitest'
+import { i18n } from '@shared/i18n/i18n'
 import type {AttendanceState} from '@features/attendance-toggle/ui/AttendanceToggle'
 import {ALL_ATTENDANCE_STATES} from '@entities/event/lib/attendance-states'
 import {ALL_TURNOUT_BUCKETS, type TurnoutBucket} from './turnout'
@@ -77,5 +78,20 @@ describe('emptyEventsMessage', () => {
             activeStates: new Set<AttendanceState>(['NOT_RESPONDED']),
             activeTurnouts: new Set<TurnoutBucket>(['spots-open']),
         })).toBe('No events match these filters.')
+    })
+})
+
+describe('emptyEventsMessage in Dutch', () => {
+    afterEach(() => i18n.changeLanguage('en'))
+
+    it('says each message in Dutch', async () => {
+        await i18n.changeLanguage('nl')
+        expect(message({hasHero: true})).toBe('Verder niets gepland.')
+        expect(message()).toBe('Geen komende events.')
+        expect(message({showPast: true})).toBe('Nog geen events.')
+        expect(message({activeTypeIds: new Set(['match'])})).toBe('Geen events van dit type.')
+        expect(message({activeStates: new Set<AttendanceState>(['NOT_RESPONDED'])})).toBe('Niets wacht op je antwoord.')
+        expect(message({activeTurnouts: new Set<TurnoutBucket>(['spots-open'])})).toBe('Geen events komen spelers tekort.')
+        expect(message({activeTypeIds: new Set(['match']), activeStates: new Set<AttendanceState>(['ATTENDING'])})).toBe('Geen events passen bij deze filters.')
     })
 })

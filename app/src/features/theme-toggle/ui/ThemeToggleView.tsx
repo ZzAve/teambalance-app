@@ -1,6 +1,8 @@
 import { useId } from 'react'
 import { Monitor, Moon, Sun } from 'lucide-react'
 import type { ThemePreference } from '@shared/theme/theme'
+import { useTranslation } from 'react-i18next'
+import { i18n } from '@shared/i18n/i18n'
 
 interface ThemeToggleViewProps {
   /** The stored preference — `system` when the user has never chosen, which is the default. */
@@ -9,9 +11,9 @@ interface ThemeToggleViewProps {
 }
 
 const OPTIONS: { value: ThemePreference; label: string; Icon: typeof Monitor }[] = [
-  { value: 'system', label: 'System', Icon: Monitor },
-  { value: 'light', label: 'Light', Icon: Sun },
-  { value: 'dark', label: 'Dark', Icon: Moon },
+  { value: 'system', get label() { return i18n.t('theme.system') }, Icon: Monitor },
+  { value: 'light', get label() { return i18n.t('theme.light') }, Icon: Sun },
+  { value: 'dark', get label() { return i18n.t('theme.dark') }, Icon: Moon },
 ]
 
 /**
@@ -26,6 +28,7 @@ const OPTIONS: { value: ThemePreference; label: string; Icon: typeof Monitor }[]
  * and the option they return to when they want the OS back.
  */
 export function ThemeToggleView({ value, onChange }: ThemeToggleViewProps) {
+  const { t } = useTranslation()
   const headingId = useId()
   // Radios only form one group if they share a name, and this control can legitimately appear
   // twice on a page (Storybook docs, a future settings screen) — so scope the name per instance.
@@ -34,10 +37,10 @@ export function ThemeToggleView({ value, onChange }: ThemeToggleViewProps) {
   return (
     <div>
       <h3 id={headingId} className="text-small font-semibold text-muted-foreground">
-        Appearance
+        {t('theme.heading')}
       </h3>
       <p className="mt-1 text-caption text-muted-foreground">
-        System follows your device&apos;s light or dark setting.
+        {t('theme.hint')}
       </p>
       <div
         role="radiogroup"

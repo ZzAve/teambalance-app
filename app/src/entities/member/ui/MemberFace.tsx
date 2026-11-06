@@ -1,5 +1,6 @@
 import { teamPhotoUrl } from '@shared/api/photos'
 import { Avatar } from '@shared/ui/avatar'
+import { useTranslation } from 'react-i18next'
 
 /** A Member's Team Photo (or initials) with their Shirt Number as a badge on its lower edge (ADR-0038). */
 export function MemberFace({
@@ -15,13 +16,14 @@ export function MemberFace({
   photoVersion?: string
   size: 'md' | 'lg'
 }) {
+  const { t } = useTranslation()
   return (
     <div className="relative">
       <Avatar userId={userId} name={name} size={size} photoUrl={photoVersion ? teamPhotoUrl(userId, photoVersion) : undefined} />
       {/* The API sends null for "no number" although the generated type says undefined. */}
       {typeof shirtNumber === 'number' && (
         <span
-          aria-label={`Shirt number ${shirtNumber}`}
+          aria-label={t('member.shirtNumber', { number: shirtNumber })}
           className={[
             'absolute rounded-full border-background bg-foreground text-center font-bold text-background',
             size === 'md'

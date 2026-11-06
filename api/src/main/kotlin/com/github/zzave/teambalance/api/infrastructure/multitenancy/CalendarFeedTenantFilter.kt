@@ -13,7 +13,7 @@ import org.springframework.web.filter.OncePerRequestFilter
 import org.springframework.web.util.UrlPathHelper
 
 /**
- * Binds the tenant schema for the one endpoint that has no session to resolve it from: the
+ * Binds the tenant schema, and the team it belongs to, for the one endpoint that has no session to resolve it from: the
  * calendar-link feed, `GET /api/calendar/{teamSlug}/{token}.ics` (ADR-0039).
  *
  * [SessionTenantContextFilter] resolves the tenant from the authenticated user's Active Team, so for a
@@ -50,7 +50,10 @@ class CalendarFeedTenantFilter(
         } finally {
             // Only what this filter set: on any other request the session filter owns the context and
             // clearing it here would unbind a tenant mid-request.
-            if (bound) TenantContext.clear()
+            if (bound) {
+                TenantContext.clear()
+                CurrentTeamContext.clear()
+            }
         }
     }
 
@@ -62,7 +65,10 @@ class CalendarFeedTenantFilter(
     private fun bind(slug: Slug): Boolean =
         teamRepository.findBySlug(slug)
             ?.let { teamRepository.findTenantRoutingUnchecked(it.id) }
-            ?.also { TenantContext.set(it.schemaName.value) } != null
+            ?.also {
+                TenantContext.set(it.schemaName.value)
+                CurrentTeamContext.set(it.teamId.value)
+            } != null
 
     /**
      * Single `*` per segment, so the slug is exactly one segment and cannot walk out of the pattern.

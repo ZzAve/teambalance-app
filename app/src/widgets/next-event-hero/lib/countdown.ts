@@ -1,3 +1,5 @@
+import { i18n } from '@shared/i18n/i18n'
+
 const MS_PER_MINUTE = 60 * 1000
 const MS_PER_HOUR = 60 * MS_PER_MINUTE
 const MS_PER_DAY = 24 * MS_PER_HOUR
@@ -16,14 +18,17 @@ interface HeroCountdown {
  * calendar days, so the hero earns its place by being the one thing on the page that says "eleven
  * hours". Rounding is always down, so "1d away" never promises time you do not have.
  *
+ * The words are in the current language (ADR-0043).
+ *
  * Pure: `now` is a parameter, so the countdown is deterministic in stories and unit-testable.
  */
 export function heroCountdown(startTime: string | Date, now: Date): HeroCountdown {
   const start = startTime instanceof Date ? startTime : new Date(startTime)
   const remaining = start.getTime() - now.getTime()
 
-  if (remaining <= 0) return { value: 'Now', unit: 'on' }
-  if (remaining >= MS_PER_DAY) return { value: `${Math.floor(remaining / MS_PER_DAY)}d`, unit: 'away' }
-  if (remaining >= MS_PER_HOUR) return { value: `${Math.floor(remaining / MS_PER_HOUR)}h`, unit: 'away' }
-  return { value: `${Math.max(1, Math.floor(remaining / MS_PER_MINUTE))}m`, unit: 'away' }
+  if (remaining <= 0) return { value: i18n.t('countdown.now'), unit: i18n.t('countdown.on') }
+  const away = i18n.t('countdown.away')
+  if (remaining >= MS_PER_DAY) return { value: i18n.t('countdown.days', { count: Math.floor(remaining / MS_PER_DAY) }), unit: away }
+  if (remaining >= MS_PER_HOUR) return { value: i18n.t('countdown.hours', { count: Math.floor(remaining / MS_PER_HOUR) }), unit: away }
+  return { value: i18n.t('countdown.minutes', { count: Math.max(1, Math.floor(remaining / MS_PER_MINUTE)) }), unit: away }
 }

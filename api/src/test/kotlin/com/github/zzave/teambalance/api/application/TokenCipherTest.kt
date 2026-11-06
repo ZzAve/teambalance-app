@@ -64,8 +64,8 @@ class TokenCipherTest : FunSpec({
     }
 
     test("a token encrypted with an AAD cannot be decrypted without one, and the other way round") {
-        shouldThrow<AEADBadTagException> { cipher.decrypt(cipher.encrypt(token, aadA), TokenCipher.NO_AAD) }
-        shouldThrow<AEADBadTagException> { cipher.decrypt(cipher.encrypt(token, TokenCipher.NO_AAD), aadA) }
+        shouldThrow<AEADBadTagException> { cipher.decrypt(cipher.encrypt(token, aadA), ByteArray(0)) }
+        shouldThrow<AEADBadTagException> { cipher.decrypt(legacyEncrypt(ByteArray(32) { 1 }, token), aadA) }
     }
 
     test("the AAD of a team and a purpose is the purpose, a colon and the UTF-8 team id, and differs per team") {
@@ -86,12 +86,36 @@ class TokenCipherTest : FunSpec({
         cipher.decrypt(cipher.encrypt(token, contextAad), contextAad) shouldBe token
     }
 
-    // The invite and calendar links already stored were made without any AAD; they must keep opening.
-    test("the stored format is unchanged: a value made without any AAD opens with the empty AAD") {
+    test("the AAD of a calendar link adds a colon and the link id, so two links of one team differ") {
+        val linkA = UUID.fromString("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
+        val linkB = UUID.fromString("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb")
+
+        TokenCipher.aadOf(teamA, Purpose.CALENDAR_LINK, linkA) shouldBe
+            "calendar-link:11111111-1111-1111-1111-111111111111:aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa".toByteArray(Charsets.UTF_8)
+        TokenCipher.aadOf(teamA, Purpose.CALENDAR_LINK, linkA)
+            .contentEquals(TokenCipher.aadOf(teamA, Purpose.CALENDAR_LINK, linkB)) shouldBe false
+        TokenCipher.aadOf(teamA, Purpose.INVITE_LINK) shouldBe
+            "invite-link:11111111-1111-1111-1111-111111111111".toByteArray(Charsets.UTF_8)
+    }
+
+    // The invite and calendar links stored before #465 were made without any AAD (issue #465).
+    test("rebindLegacy re-encrypts a value made without any AAD so it opens with the AAD and no longer without") {
         val stored = legacyEncrypt(ByteArray(32) { 1 }, token)
 
-        cipher.decrypt(stored, TokenCipher.NO_AAD) shouldBe token
-        shouldThrow<AEADBadTagException> { cipher.decrypt(stored, aadA) }
+        val rebound = cipher.rebindLegacy(stored, aadA)
+
+        rebound shouldNotBe null
+        cipher.decrypt(rebound!!, aadA) shouldBe token
+        shouldThrow<AEADBadTagException> { cipher.decrypt(rebound, ByteArray(0)) }
+    }
+
+    test("rebindLegacy leaves a value that already opens with the AAD alone") {
+        cipher.rebindLegacy(cipher.encrypt(token, aadA), aadA) shouldBe null
+    }
+
+    // A value bound to another team is not legacy: rebinding it would move it into this team.
+    test("rebindLegacy refuses a value bound to another AAD") {
+        shouldThrow<AEADBadTagException> { cipher.rebindLegacy(cipher.encrypt(token, aadB), aadA) }
     }
 
     // A mis-sized key is a deployment mistake; it must surface at startup, not on an admin's first

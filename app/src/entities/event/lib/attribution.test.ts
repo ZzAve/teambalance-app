@@ -1,4 +1,5 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
+import { i18n } from '@shared/i18n/i18n'
 import type { AttendanceEntry } from '@shared/api/events'
 import { attributionName, setByName } from './attribution'
 
@@ -48,5 +49,14 @@ describe('setByName', () => {
 
   it('falls back to a neutral label for a setter who has left the team', () => {
     expect(setByName('user-gone', [tim])).toBe('a teammate')
+  })
+})
+
+describe('attributionName in Dutch', () => {
+  afterEach(() => i18n.changeLanguage('en'))
+
+  it('falls back to the Dutch neutral label', async () => {
+    await i18n.changeLanguage('nl')
+    expect(attributionName(attendee({ changedBy: 'user-gone' }), [tim])).toBe('een teamgenoot')
   })
 })

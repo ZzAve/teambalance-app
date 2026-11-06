@@ -1,4 +1,5 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
+import { i18n } from '@shared/i18n/i18n'
 import { heroCountdown } from './countdown'
 
 const at = (y: number, m: number, d: number, h = 12, min = 0) =>
@@ -32,5 +33,17 @@ describe('heroCountdown', () => {
   it('says "Now" once the event has started, rather than counting backwards', () => {
     expect(countdown(at(2026, 8, 10, 9, 0))).toEqual({ value: 'Now', unit: 'on' })
     expect(countdown(at(2026, 8, 10, 8, 0))).toEqual({ value: 'Now', unit: 'on' })
+  })
+})
+
+describe('heroCountdown in Dutch', () => {
+  afterEach(() => i18n.changeLanguage('en'))
+
+  it('says the units and the state in Dutch', async () => {
+    await i18n.changeLanguage('nl')
+
+    expect(countdown(at(2026, 8, 12, 9, 0))).toEqual({ value: '2d', unit: 'te gaan' })
+    expect(countdown(at(2026, 8, 10, 20, 0))).toEqual({ value: '11u', unit: 'te gaan' })
+    expect(countdown(at(2026, 8, 10, 8, 0))).toEqual({ value: 'Nu', unit: 'bezig' })
   })
 })

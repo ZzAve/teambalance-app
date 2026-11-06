@@ -1,4 +1,5 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, afterEach } from 'vitest'
+import { i18n } from '@shared/i18n/i18n'
 import { validateDisplayName } from './validate-display-name'
 
 describe('validateDisplayName', () => {
@@ -20,5 +21,15 @@ describe('validateDisplayName', () => {
 
   it('accepts a name that is valid only after trimming', () => {
     expect(validateDisplayName('  Ada  ')).toBeNull()
+  })
+})
+
+describe('validateDisplayName in Dutch', () => {
+  afterEach(() => i18n.changeLanguage('en'))
+
+  it('says its errors in Dutch', async () => {
+    await i18n.changeLanguage('nl')
+    expect(validateDisplayName('')).toBe('Weergavenaam is verplicht.')
+    expect(validateDisplayName('a'.repeat(101))).toBe('Weergavenaam mag maximaal 100 tekens zijn.')
   })
 })

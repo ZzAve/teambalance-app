@@ -1,6 +1,7 @@
 import type { EventRoster } from '@shared/api/events'
 import { SectionLabel } from '@shared/ui/SectionLabel'
 import { whoIsComing } from '../lib/roster-view'
+import { useTranslation } from 'react-i18next'
 
 /**
  * How many people are going, split into members playing, substitutes and each staff role. The
@@ -8,16 +9,17 @@ import { whoIsComing } from '../lib/roster-view'
  * question — who will actually be in the room. Chrome-free: the caller supplies the card.
  */
 export function WhoIsComing({ roster, staffRoles }: { roster: EventRoster; staffRoles?: { id: string; label: string }[] }) {
+  const { t } = useTranslation()
   const { total, players, substitutes, staff } = whoIsComing(roster, staffRoles)
   return (
     <div className="px-4 py-3">
       <div className="flex items-baseline justify-between gap-3">
-        <SectionLabel as="h2">Who's coming</SectionLabel>
-        <span className="font-display text-small font-bold tabular-nums">{total} going</span>
+        <SectionLabel as="h2">{t('whoIsComing.heading')}</SectionLabel>
+        <span className="font-display text-small font-bold tabular-nums">{t('roster.going', { count: total })}</span>
       </div>
       <dl className="mt-3 flex flex-wrap gap-2">
-        <Count value={players} label={players === 1 ? 'Player' : 'Players'} tone="text-green-dark" />
-        <Count value={substitutes} label={substitutes === 1 ? 'Sub' : 'Subs'} tone="text-purple-ink" />
+        <Count value={players} label={t('whoIsComing.player', { count: players })} tone="text-green-dark" />
+        <Count value={substitutes} label={t('whoIsComing.sub', { count: substitutes })} tone="text-purple-ink" />
         {staff.map((role) => (
           <Count key={role.id} value={role.count} label={role.label} />
         ))}

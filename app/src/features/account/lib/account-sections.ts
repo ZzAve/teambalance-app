@@ -10,6 +10,7 @@ export type AccountSection =
   | 'displayName'
   | 'position'
   | 'appearance'
+  | 'language'
   | 'teams'
   | 'platformAdmin'
   | 'logout'
@@ -21,6 +22,7 @@ const ORDER: AccountSection[] = [
   'displayName',
   'position',
   'appearance',
+  'language',
   'teams',
   'platformAdmin',
   'logout',
@@ -35,7 +37,7 @@ type AccountUser = Pick<
 /**
  * Which Account sections are visible for this session.
  *
- * - **Email / Appearance / Teams / Log out** — always. Log out is the whole point: it must be
+ * - **Email / Appearance / Language / Teams / Log out** — always. Log out is the whole point: it must be
  *   reachable from every signed-in state.
  * - **Photo** — always: the Personal Photo belongs to the person, not to a Team (ADR-0038).
  * - **Display name / Position** — only with an Active Team, because member data is tenant-scoped
@@ -45,7 +47,7 @@ type AccountUser = Pick<
  * - **Platform admin** — only for a Platform Admin.
  */
 export function accountSections(user: AccountUser): AccountSection[] {
-  const present = new Set<AccountSection>(['email', 'photo', 'appearance', 'teams', 'logout'])
+  const present = new Set<AccountSection>(['email', 'photo', 'appearance', 'language', 'teams', 'logout'])
   if (user.activeTeam) {
     present.add('displayName')
     present.add('position')

@@ -6,6 +6,7 @@ import com.github.zzave.teambalance.api.application.InvitationService
 import com.github.zzave.teambalance.api.application.TokenCipher
 import com.github.zzave.teambalance.api.domain.port.InvitationRepository
 import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
+import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
@@ -24,6 +25,12 @@ import java.time.Clock
 @Configuration
 class InvitationCompositionRoot {
 
+    // A bean of its own so the startup re-encryption of stored links (LinkTokenAadMigration) uses the same key.
+    @Bean(INVITATION_TOKEN_CIPHER)
+    fun invitationTokenCipher(
+        @Value("\${teambalance.invitation.token-encryption-key}") tokenEncryptionKey: String,
+    ) = TokenCipher.fromBase64Key(tokenEncryptionKey, "teambalance.invitation.token-encryption-key")
+
     @Bean
     fun invitationService(
         invitationRepository: InvitationRepository,
@@ -32,7 +39,7 @@ class InvitationCompositionRoot {
         activeTeamService: ActiveTeamService,
         clock: Clock,
         @Value("\${teambalance.invitation.token-salt}") tokenSalt: String,
-        @Value("\${teambalance.invitation.token-encryption-key}") tokenEncryptionKey: String,
+        @Qualifier(INVITATION_TOKEN_CIPHER) tokenCipher: TokenCipher,
     ) = InvitationService(
         invitationRepository = invitationRepository,
         teamMemberRepository = teamMemberRepository,
@@ -40,6 +47,10 @@ class InvitationCompositionRoot {
         activeTeamService = activeTeamService,
         clock = clock,
         tokenSalt = tokenSalt,
-        tokenCipher = TokenCipher.fromBase64Key(tokenEncryptionKey, "teambalance.invitation.token-encryption-key"),
+        tokenCipher = tokenCipher,
     )
+
+    companion object {
+        const val INVITATION_TOKEN_CIPHER = "invitationTokenCipher"
+    }
 }

@@ -2,6 +2,7 @@ package com.github.zzave.teambalance.api.infrastructure.persistence
 
 import com.github.zzave.teambalance.api.domain.model.DisplayName
 import com.github.zzave.teambalance.api.domain.model.Email
+import com.github.zzave.teambalance.api.domain.model.Language
 import com.github.zzave.teambalance.api.domain.model.TeamId
 import com.github.zzave.teambalance.api.domain.model.User
 import com.github.zzave.teambalance.api.domain.model.UserId
@@ -48,6 +49,21 @@ class JooqUserRepositoryAdapter(
     override fun rememberActiveTeam(userId: UserId, teamId: TeamId) {
         dsl.update(USERS)
             .set(USERS.LAST_ACTIVE_TEAM_ID, teamId.value)
+            .where(USERS.ID.eq(userId.value))
+            .execute()
+    }
+
+    // A bare column like the last active team, for the same reason: a stale User must not undo a choice.
+    override fun findLanguage(userId: UserId): Language? =
+        dsl.select(USERS.LANGUAGE)
+            .from(USERS)
+            .where(USERS.ID.eq(userId.value))
+            .fetchOne(USERS.LANGUAGE)
+            ?.let { Language.valueOf(it.uppercase()) }
+
+    override fun saveLanguage(userId: UserId, language: Language) {
+        dsl.update(USERS)
+            .set(USERS.LANGUAGE, language.name.lowercase())
             .where(USERS.ID.eq(userId.value))
             .execute()
     }

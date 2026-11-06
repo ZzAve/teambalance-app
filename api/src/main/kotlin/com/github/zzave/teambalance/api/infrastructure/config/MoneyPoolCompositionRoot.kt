@@ -65,6 +65,7 @@ class MoneyPoolCompositionRoot {
         clock: Clock,
         @Qualifier(BunqGrantCipherConfiguration.BEAN_NAME) bunqGrantCipher: TokenCipher,
         environment: Environment,
+        @Value("\${teambalance.bunq.environment}") bunqEnvironment: String,
         @Value("\${teambalance.api-base-url}") apiBaseUrl: String,
         @Value("\${teambalance.bunq.connect-enabled}") connectEnabled: Boolean,
         moneyPoolCache: MoneyPoolCacheGateway,
@@ -78,7 +79,13 @@ class MoneyPoolCompositionRoot {
         actAsService = actAsService,
         authorizationService = authorizationService,
         clock = clock,
-        connectConfig = bunqConnectConfig(connectEnabled, environment.matchesProfiles("prod"), bunqGrantCipher, apiBaseUrl),
+        connectConfig = bunqConnectConfig(
+            connectEnabled,
+            environment.matchesProfiles("prod"),
+            bunqEnvironment,
+            bunqGrantCipher,
+            apiBaseUrl,
+        ),
         moneyPoolCache = moneyPoolCache,
     )
 
@@ -97,19 +104,22 @@ class MoneyPoolCompositionRoot {
 }
 
 /**
- * The connect settings, or null while connecting is switched off. Switching it on in prod stops the app from starting,
- * whatever the Bunq environment: connecting stays refused in prod until Bunq reads and OAuth are verified for production.
- * The real adapter has only been run against the sandbox, and a real Admin's authorization is one nobody can revoke from here.
+ * The connect settings, or null while connecting is switched off. In prod, switching it on is allowed only with the
+ * production Bunq environment: with any other environment the app does not start, so the fake and the sandbox can never
+ * be connected to in prod.
  */
 internal fun bunqConnectConfig(
     connectEnabled: Boolean,
     isProd: Boolean,
+    bunqEnvironment: String,
     grantCipher: TokenCipher,
     apiBaseUrl: String,
 ): BunqConnectConfig? {
     if (!connectEnabled) return null
-    check(!isProd) {
-        "teambalance.bunq.connect-enabled cannot be on in prod until Bunq reads and OAuth are verified for production"
+    check(!isProd || bunqEnvironment.trim().equals("production", ignoreCase = true)) {
+        "TEAMBALANCE_BUNQ_CONNECT_ENABLED can only be true in prod when TEAMBALANCE_BUNQ_ENVIRONMENT is production " +
+            "(it is \"$bunqEnvironment\"). Set TEAMBALANCE_BUNQ_ENVIRONMENT to production, or " +
+            "TEAMBALANCE_BUNQ_CONNECT_ENABLED to false."
     }
     return BunqConnectConfig(grantCipher, apiBaseUrl.trimEnd('/') + BunqConnectionService.CALLBACK_PATH)
 }

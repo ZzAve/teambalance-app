@@ -32,6 +32,7 @@ the Event rather than free text in the description.
    an update's array *is* the new full set.
 4. **Relational storage.** A child table `event_references` (FK to `events`,
    `ON DELETE CASCADE`, ordered by `position`), mapped as a JPA `@ElementCollection`
+   (now read and written by `JooqEventRepositoryAdapter`, [ADR-0043](0043-jooq-replaces-hibernate-tenant-schema-set-at-transaction-start.md))
    — consistent with the rest of the schema (no `jsonb` anywhere) and with how
    `attendances` already cascades off `events`.
 

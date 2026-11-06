@@ -1,4 +1,5 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, afterEach } from 'vitest'
+import { i18n } from '@shared/i18n/i18n'
 import { parseShirtNumber } from './parse-shirt-number'
 
 describe('parseShirtNumber', () => {
@@ -24,5 +25,14 @@ describe('parseShirtNumber', () => {
     expect(parseShirtNumber('-1').error).toMatch(/0 to 999/)
     expect(parseShirtNumber('7.5').error).toMatch(/0 to 999/)
     expect(parseShirtNumber('seven').error).toMatch(/0 to 999/)
+  })
+})
+
+describe('parseShirtNumber in Dutch', () => {
+  afterEach(() => i18n.changeLanguage('en'))
+
+  it('says its error in Dutch', async () => {
+    await i18n.changeLanguage('nl')
+    expect(parseShirtNumber('1000').error).toBe('Gebruik een heel getal van 0 tot en met 999.')
   })
 })

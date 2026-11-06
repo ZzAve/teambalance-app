@@ -3,6 +3,7 @@ import Cropper from 'react-easy-crop'
 import { cropPhoto, type CropArea } from '@shared/lib/crop-photo'
 import { Button } from '@shared/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@shared/ui/dialog'
+import { useTranslation } from 'react-i18next'
 
 interface PhotoPickerProps {
   label: string
@@ -18,6 +19,7 @@ interface PhotoPickerProps {
  */
 export function PhotoPicker({ label, disabled, onPicked }: PhotoPickerProps) {
   const input = useRef<HTMLInputElement>(null)
+  const { t } = useTranslation()
   const [source, setSource] = useState<string | null>(null)
   const [crop, setCrop] = useState({ x: 0, y: 0 })
   const [zoom, setZoom] = useState(1)
@@ -39,8 +41,8 @@ export function PhotoPicker({ label, disabled, onPicked }: PhotoPickerProps) {
     try {
       onPicked(await cropPhoto(source, area))
       close()
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Could not read that image.')
+    } catch {
+      setError(t('photo.readFailed'))
     }
   }
 
@@ -67,8 +69,8 @@ export function PhotoPicker({ label, disabled, onPicked }: PhotoPickerProps) {
       <Dialog open={source !== null} onOpenChange={(open) => !open && close()}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Crop your photo</DialogTitle>
-            <DialogDescription>Drag to move, and zoom to fit your face in the circle.</DialogDescription>
+            <DialogTitle>{t('photo.cropTitle')}</DialogTitle>
+            <DialogDescription>{t('photo.cropHint')}</DialogDescription>
           </DialogHeader>
           {source && (
             <div className="relative h-72 w-full overflow-hidden rounded-md bg-muted">
@@ -87,7 +89,7 @@ export function PhotoPicker({ label, disabled, onPicked }: PhotoPickerProps) {
           )}
           <input
             type="range"
-            aria-label="Zoom"
+            aria-label={t('photo.zoom')}
             min={1}
             max={3}
             step={0.05}
@@ -98,10 +100,10 @@ export function PhotoPicker({ label, disabled, onPicked }: PhotoPickerProps) {
           {error && <p className="text-small text-red-ink">{error}</p>}
           <DialogFooter>
             <Button type="button" variant="outline" onClick={close}>
-              Cancel
+              {t('common.cancel')}
             </Button>
             <Button type="button" disabled={!area} onClick={confirm}>
-              Use photo
+              {t('photo.use')}
             </Button>
           </DialogFooter>
         </DialogContent>

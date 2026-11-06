@@ -1,4 +1,6 @@
 import { Link } from '@tanstack/react-router'
+import { useTranslation } from 'react-i18next'
+import { formatLocale } from '@shared/i18n/i18n'
 import { useId, useState, type ComponentType, type CSSProperties, type ReactNode } from 'react'
 import { AlignLeft, Check, ChevronDown, Clock, HelpCircle, MapPin, Users, X } from 'lucide-react'
 import type { Event } from '@shared/api/events'
@@ -64,6 +66,8 @@ export function NextEventHeroView({
   defaultRosterOpen = false,
 }: NextEventHeroViewProps) {
   const routes = useTeamRoutes()
+  const { t, i18n } = useTranslation()
+  const locale = formatLocale(i18n.language)
   const [lineupOpen, setLineupOpen] = useState(defaultRosterOpen)
   // `Keep open` is a preference, not merely an initial value: when it flips, follow it — the same
   // render-time reset EventAnswerRow does, so the hero and the cards open and close together.
@@ -85,7 +89,7 @@ export function NextEventHeroView({
 
   return (
     <section
-      aria-label="Next up"
+      aria-label={t('hero.label')}
       className="relative mt-4 overflow-hidden rounded-lg p-4 text-hero-ink"
       style={{
         '--hero-ink': ink,
@@ -113,7 +117,7 @@ export function NextEventHeroView({
           title's stretched overlay, punching a dead hole in the card's hit area. */}
       <div className="flex items-center gap-2 pr-12">
         <SectionLabel as="p" className="text-hero-ink/90">
-          Next up
+          {t('hero.label')}
         </SectionLabel>
         {/* The card's type tag, in the hero's ink: the type's own tint has no contrast on its own colour. */}
         <span className="rounded-full bg-hero-ink/20 px-2 py-0.5 text-caption font-semibold">
@@ -141,9 +145,9 @@ export function NextEventHeroView({
 
       <p className="flex flex-wrap items-center gap-1.5 text-small text-hero-ink/95">
         <Clock size={13} className="shrink-0" />
-        {date.toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short' })}
+        {date.toLocaleDateString(locale, { weekday: 'short', day: 'numeric', month: 'short' })}
         {' · '}
-        {date.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })}
+        {date.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })}
       </p>
 
       {event.location && (
@@ -170,7 +174,7 @@ export function NextEventHeroView({
       <div className="mt-2.5 flex items-center justify-between gap-2">
         <p className="flex items-center gap-1.5 text-small text-hero-ink/90">
           <Users size={13} className="shrink-0" />
-          {event.attendanceSummary.attending} going · {ATTENDANCE_WORDS[myState].status}
+          {t('hero.going', { count: event.attendanceSummary.attending, status: ATTENDANCE_WORDS[myState].status })}
         </p>
         <ReadinessBadge roster={event.roster} variant="hero" pending={isSaving} />
       </div>
@@ -213,7 +217,7 @@ export function NextEventHeroView({
           onClick={() => setLineupOpen((open) => !open)}
           className="relative z-10 mt-2 flex min-h-11 w-full cursor-pointer items-center justify-center gap-1.5 rounded-md bg-hero-ink/10 px-3 text-small font-semibold text-hero-ink/90 transition-colors hover:bg-hero-ink/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hero-ink"
         >
-          {lineupOpen ? `Hide ${noun}` : `Show ${noun}`}
+          {lineupOpen ? t('hero.hide', { noun }) : t('hero.show', { noun })}
           <ChevronDown
             size={14}
             aria-hidden

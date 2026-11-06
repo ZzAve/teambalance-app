@@ -7,11 +7,13 @@ import { personalPhotoUrl } from '@shared/api/photos'
 import { EditProfileForm } from '@features/edit-profile/ui/EditProfileForm'
 import { PhotoPicker } from '@features/pick-photo/ui/PhotoPicker'
 import { ThemeToggle } from '@features/theme-toggle/ui/ThemeToggle'
+import { LanguageSwitch } from '@features/language-switch/ui/LanguageSwitch'
 import { Avatar } from '@shared/ui/avatar'
 import { Button } from '@shared/ui/button'
 import { ConfirmDialog } from '@shared/ui/ConfirmDialog'
 import { SectionLabel } from '@shared/ui/SectionLabel'
 import type { AccountSection } from '../lib/account-sections'
+import { useTranslation } from 'react-i18next'
 
 interface AccountViewProps {
   /** The visible sections for this session, from {@link accountSections}. Drives which rows render. */
@@ -94,21 +96,22 @@ export function AccountView({
   onSubmitProfile,
   onLogout,
 }: AccountViewProps) {
+  const { t } = useTranslation()
   const has = (section: AccountSection) => sections.includes(section)
   const [confirmingPhotoRemove, setConfirmingPhotoRemove] = useState(false)
 
   return (
     <div>
-      <h2 className="font-display text-title font-bold">Account</h2>
+      <h2 className="font-display text-title font-bold">{t('account.title')}</h2>
 
       <div className="mt-6 space-y-6">
         {has('email') && (
           <section>
-            <SectionLabel as="h3" className="mb-2 px-1 text-small">Account</SectionLabel>
+            <SectionLabel as="h3" className="mb-2 px-1 text-small">{t('account.title')}</SectionLabel>
             <div className={CARD}>
               <div className={ROW}>
                 <Mail size={18} strokeWidth={1.9} className={ICON} aria-hidden="true" />
-                <span className="font-medium">Email</span>
+                <span className="font-medium">{t('account.email')}</span>
                 <span className="ml-auto min-w-0 truncate text-muted-foreground" title={email}>
                   {email}
                 </span>
@@ -119,7 +122,7 @@ export function AccountView({
 
         {has('photo') && (
           <section>
-            <SectionLabel as="h3" className="mb-2 px-1 text-small">Personal photo</SectionLabel>
+            <SectionLabel as="h3" className="mb-2 px-1 text-small">{t('account.photo')}</SectionLabel>
             <div className={`${CARD} p-4`}>
               <div className="flex items-center gap-4">
                 <Avatar
@@ -130,11 +133,11 @@ export function AccountView({
                 />
                 <div className="flex min-w-0 flex-col gap-2">
                   <p className="text-small text-muted-foreground">
-                    Only you see this photo. A team shows the photo you choose for that team.
+                    {t('account.photoHint')}
                   </p>
                   <div className="flex flex-wrap gap-2">
                     <PhotoPicker
-                      label={personalPhotoVersion ? 'Change photo' : 'Upload photo'}
+                      label={personalPhotoVersion ? t('account.changePhoto') : t('account.uploadPhoto')}
                       disabled={isPhotoSaving}
                       onPicked={(photo) => onUploadPersonalPhoto?.(photo)}
                     />
@@ -145,7 +148,7 @@ export function AccountView({
                         disabled={isPhotoSaving}
                         onClick={() => setConfirmingPhotoRemove(true)}
                       >
-                        Remove photo
+                        {t('account.removePhoto')}
                       </Button>
                     )}
                   </div>
@@ -154,9 +157,9 @@ export function AccountView({
               {photoErrorMessage && <p className="mt-3 text-small text-red-ink">{photoErrorMessage}</p>}
               <ConfirmDialog
                 open={confirmingPhotoRemove}
-                title="Remove photo"
-                description="Your teams keep the photos they already use."
-                confirmLabel="Remove"
+                title={t('account.removePhoto')}
+                description={t('account.removePhotoHint')}
+                confirmLabel={t('account.remove')}
                 onConfirm={() => {
                   setConfirmingPhotoRemove(false)
                   onRemovePersonalPhoto?.()
@@ -165,13 +168,13 @@ export function AccountView({
               />
               {copyPhotoTeamName && (
                 <div className="mt-4 rounded-md bg-muted p-3">
-                  <p className="text-small">Use this photo in {copyPhotoTeamName} too?</p>
+                  <p className="text-small">{t('account.copyQuestion', { team: copyPhotoTeamName })}</p>
                   <div className="mt-2 flex gap-2">
                     <Button size="sm" disabled={isPhotoSaving} onClick={onCopyPhotoToTeam}>
-                      Use in {copyPhotoTeamName}
+                      {t('account.copyConfirm', { team: copyPhotoTeamName })}
                     </Button>
                     <Button size="sm" variant="ghost" onClick={onDismissCopyPhoto}>
-                      Not now
+                      {t('account.notNow')}
                     </Button>
                   </div>
                 </div>
@@ -184,11 +187,11 @@ export function AccountView({
             an Active Team; its loading/error shells are props-driven so they render with no network. */}
         {has('displayName') && (
           <section>
-            <SectionLabel as="h3" className="mb-2 px-1 text-small">Profile</SectionLabel>
+            <SectionLabel as="h3" className="mb-2 px-1 text-small">{t('account.profile')}</SectionLabel>
             <div className={`${CARD} p-4`}>
-              {isMemberLoading && <p className="text-small text-muted-foreground">Loading…</p>}
+              {isMemberLoading && <p className="text-small text-muted-foreground">{t('account.loading')}</p>}
               {isMemberError && (
-                <p className="text-small text-red-ink">Couldn't load your profile. Please try again.</p>
+                <p className="text-small text-red-ink">{t('account.loadFailed')}</p>
               )}
               {!isMemberLoading && !isMemberError && member && (
                 <EditProfileForm
@@ -208,7 +211,7 @@ export function AccountView({
             "main view" at /select-team — switch · join · create (ADR-0027 §4). */}
         {has('teams') && (
           <section>
-            <SectionLabel as="h3" className="mb-2 px-1 text-small">Teams</SectionLabel>
+            <SectionLabel as="h3" className="mb-2 px-1 text-small">{t('account.teams')}</SectionLabel>
             <div className={CARD}>
               <Link to="/select-team" className={ROW_INTERACTIVE}>
                 <Users size={18} strokeWidth={1.9} className={ICON} aria-hidden="true" />
@@ -216,11 +219,11 @@ export function AccountView({
                   <>
                     <span className="min-w-0 truncate font-medium">{activeTeamName}</span>
                     <span className="ml-auto rounded-full bg-green/10 px-2 py-0.5 text-caption font-semibold text-green">
-                      Active
+                      {t('account.active')}
                     </span>
                   </>
                 ) : (
-                  <span className="font-medium text-muted-foreground">Join or create a team</span>
+                  <span className="font-medium text-muted-foreground">{t('account.joinOrCreate')}</span>
                 )}
                 <ChevronRight
                   size={16}
@@ -240,19 +243,25 @@ export function AccountView({
           </section>
         )}
 
+        {has('language') && (
+          <section>
+            <LanguageSwitch />
+          </section>
+        )}
+
         {has('platformAdmin') && (
           <section>
-            <SectionLabel as="h3" className="mb-2 px-1 text-small">Platform admin</SectionLabel>
+            <SectionLabel as="h3" className="mb-2 px-1 text-small">{t('account.platformAdmin')}</SectionLabel>
             <div className={CARD}>
               <div className="divide-y divide-border">
                 <Link to="/admin/teams" className={ROW_INTERACTIVE}>
                   <ShieldCheck size={18} strokeWidth={1.9} className={ICON} aria-hidden="true" />
-                  <span className="font-medium">Teams console</span>
+                  <span className="font-medium">{t('account.teamsConsole')}</span>
                   <ChevronRight size={16} className="ml-auto shrink-0 text-muted-foreground/60" aria-hidden="true" />
                 </Link>
                 <Link to="/admin/creation-codes" className={ROW_INTERACTIVE}>
                   <KeyRound size={18} strokeWidth={1.9} className={ICON} aria-hidden="true" />
-                  <span className="font-medium">Creation codes</span>
+                  <span className="font-medium">{t('account.creationCodes')}</span>
                   <ChevronRight size={16} className="ml-auto shrink-0 text-muted-foreground/60" aria-hidden="true" />
                 </Link>
               </div>
@@ -267,7 +276,7 @@ export function AccountView({
             className={`${ROW_INTERACTIVE} font-semibold text-red-ink hover:bg-red/5`}
           >
             <LogOut size={18} strokeWidth={1.9} className="shrink-0" aria-hidden="true" />
-            Log out
+            {t('account.logout')}
           </button>
         </div>
       </div>

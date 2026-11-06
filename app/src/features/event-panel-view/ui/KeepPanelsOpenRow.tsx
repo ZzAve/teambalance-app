@@ -1,4 +1,5 @@
 import { Switch } from '@shared/ui/switch'
+import { useTranslation } from 'react-i18next'
 
 interface KeepPanelsOpenRowProps {
   defaultExpanded: boolean
@@ -16,15 +17,16 @@ interface KeepPanelsOpenRowProps {
  * Prop-only: the preference lives in `event-panel-store`.
  */
 export function KeepPanelsOpenRow({ defaultExpanded, onDefaultExpandedChange }: KeepPanelsOpenRowProps) {
+  const { t } = useTranslation()
   return (
     <div className="flex items-center justify-between gap-2.5">
       <div>
-        <div className="text-small font-semibold">Keep panels open</div>
+        <div className="text-small font-semibold">{t('filters.keepOpen')}</div>
         <div className="mt-0.5 text-caption text-muted-foreground">
-          {defaultExpanded ? 'On — every card starts open' : 'Off — tap to open a card'}
+          {defaultExpanded ? t('filters.keepOpenOn') : t('filters.keepOpenOff')}
         </div>
       </div>
-      <Switch checked={defaultExpanded} onCheckedChange={onDefaultExpandedChange} aria-label="Keep panels open" />
+      <Switch checked={defaultExpanded} onCheckedChange={onDefaultExpandedChange} aria-label={t('filters.keepOpen')} />
     </div>
   )
 }

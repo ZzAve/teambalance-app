@@ -1,4 +1,6 @@
 import { Link } from '@tanstack/react-router'
+import { useTranslation } from 'react-i18next'
+import { formatLocale } from '@shared/i18n/i18n'
 import { AlignLeft, Clock, MapPin } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { Card } from '@shared/ui/card'
@@ -56,6 +58,7 @@ export function EventCard({
   rosterPanel,
 }: EventCardProps) {
   const routes = useTeamRoutes()
+  const { t, i18n } = useTranslation()
   const date = new Date(event.startTime)
   const label = relativeEventLabel(event.startTime, now)
 
@@ -88,19 +91,19 @@ export function EventCard({
               plain text: a maps link is a destination competing with the card's own (ADR-0030 §9).
               The references are not on the card for the same reason — see the detail page. */}
           <dl className="mt-3 space-y-2 text-small">
-            <InfoRow icon={Clock} label="Time">
+            <InfoRow icon={Clock} label={t('eventCard.time')}>
               <span className="font-semibold">
-                {date.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })}
+                {date.toLocaleTimeString(formatLocale(i18n.language), { hour: '2-digit', minute: '2-digit' })}
               </span>
             </InfoRow>
             {event.location && (
-              <InfoRow icon={MapPin} label="Location">
+              <InfoRow icon={MapPin} label={t('eventCard.location')}>
                 {event.location}
               </InfoRow>
             )}
             {/* Clamped so a long description cannot stretch the card. */}
             {event.description && (
-              <InfoRow icon={AlignLeft} label="Description">
+              <InfoRow icon={AlignLeft} label={t('eventCard.description')}>
                 <p className="line-clamp-2 text-muted-foreground">{event.description}</p>
               </InfoRow>
             )}

@@ -1,4 +1,5 @@
 import { ATTENDANCE_WORDS, type AttendanceState } from './attendance-words'
+import { i18n } from '@shared/i18n/i18n'
 
 /** The viewer's own answer, in words, plus which semantic tone the pill carries. */
 export interface MyAnswer {
@@ -22,11 +23,11 @@ export interface MyAnswer {
 export function myAnswer(state: AttendanceState, setBy?: string | null): MyAnswer {
   switch (state) {
     case 'ATTENDING':
-      return { label: setBy ? `${setBy} said ${ATTENDANCE_WORDS.ATTENDING.status}` : ATTENDANCE_WORDS.ATTENDING.pill, tone: 'attending' }
+      return { label: setBy ? i18n.t('myAnswer.setBy', { name: setBy, status: ATTENDANCE_WORDS.ATTENDING.status }) : ATTENDANCE_WORDS.ATTENDING.pill, tone: 'attending' }
     case 'MAYBE':
-      return { label: setBy ? `${setBy} said maybe` : ATTENDANCE_WORDS.MAYBE.pill, tone: 'maybe' }
+      return { label: setBy ? i18n.t('myAnswer.setByMaybe', { name: setBy }) : ATTENDANCE_WORDS.MAYBE.pill, tone: 'maybe' }
     case 'ABSENT':
-      return { label: setBy ? `${setBy} said ${ATTENDANCE_WORDS.ABSENT.status}` : ATTENDANCE_WORDS.ABSENT.pill, tone: 'absent' }
+      return { label: setBy ? i18n.t('myAnswer.setBy', { name: setBy, status: ATTENDANCE_WORDS.ABSENT.status }) : ATTENDANCE_WORDS.ABSENT.pill, tone: 'absent' }
     case 'NOT_RESPONDED':
       return { label: ATTENDANCE_WORDS.NOT_RESPONDED.pill, tone: 'prompt' }
   }

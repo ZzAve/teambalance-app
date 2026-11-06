@@ -3,6 +3,9 @@
 - Status: Accepted
 - Date: 2026-07-24
 - Recorded 2026-09-29 from the implementation plan (docs/plans, local only).
+- Note: the Hibernate and Spring Data JPA figures and options below describe the state when this was
+  recorded. [ADR-0043](0043-jooq-replaces-hibernate-tenant-schema-set-at-transaction-start.md) removed
+  Hibernate, so those startup costs no longer exist.
 - Relates to: [ADR-0022](0022-jdbc-backed-shared-sessions-survive-restart.md) (sessions in Postgres, no Redis),
   [ADR-0037](0037-in-memory-rate-limiting-defer-redis.md) (Redis stays un-wired)
 

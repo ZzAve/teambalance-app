@@ -1,0 +1,261 @@
+{
+  "attendance": {
+    "word": {
+      "ATTENDING": "Aanwezig",
+      "MAYBE": "Misschien",
+      "ABSENT": "Afwezig",
+      "NOT_RESPONDED": "Geen reactie"
+    },
+    "pill": {
+      "ATTENDING": "Je bent erbij",
+      "MAYBE": "Je zei misschien",
+      "ABSENT": "Je bent er niet bij",
+      "NOT_RESPONDED": "Reageer"
+    },
+    "status": {
+      "ATTENDING": "je bent erbij",
+      "MAYBE": "je zei misschien",
+      "ABSENT": "je bent er niet bij",
+      "NOT_RESPONDED": "je hebt nog niet gereageerd"
+    }
+  },
+  "events": {
+    "title": "Events",
+    "calendarLinks": "Agendalinks",
+    "newEvent": "Nieuw event",
+    "loading": "Events laden",
+    "loadFailed": "Events laden is mislukt.",
+    "empty": {
+      "nothingElse": "Verder niets gepland.",
+      "noneYet": "Nog geen events.",
+      "noneUpcoming": "Geen komende events.",
+      "noneForType": "Geen events van dit type.",
+      "nothingToAnswer": "Niets wacht op je antwoord.",
+      "noneShort": "Geen events komen spelers tekort.",
+      "noneMatch": "Geen events passen bij deze filters."
+    },
+    "loadingOne": "Event laden"
+  },
+  "eventCard": {
+    "time": "Tijd",
+    "location": "Locatie",
+    "description": "Beschrijving"
+  },
+  "relativeDay": {
+    "today": "Vandaag",
+    "tomorrow": "Morgen",
+    "thisWeekend": "Dit weekend",
+    "inDays_one": "over {{count}} dag",
+    "inDays_other": "over {{count}} dagen"
+  },
+  "roster": {
+    "lineup": "opstelling",
+    "whoIsComing": "wie er komen",
+    "lineupSet": "Opstelling rond",
+    "spotsOpen_one": "{{count}} plek open",
+    "spotsOpen_other": "{{count}} plekken open",
+    "missingPosition": "Positie onbezet",
+    "missingPositions": "{{count}} posities onbezet",
+    "full": "Vol · {{attending}}/{{target}}",
+    "moreNeeded": "Nog {{count}} nodig · {{attending}}/{{target}}",
+    "going": "{{count}} aanwezig",
+    "goingWithStaff": "{{count}} aanwezig +{{staff}} staf"
+  },
+  "hero": {
+    "label": "Volgende",
+    "going": "{{count}} aanwezig · {{status}}",
+    "show": "Toon {{noun}}",
+    "hide": "Verberg {{noun}}"
+  },
+  "countdown": {
+    "now": "Nu",
+    "on": "bezig",
+    "away": "te gaan",
+    "days": "{{count}}d",
+    "hours": "{{count}}u",
+    "minutes": "{{count}}m"
+  },
+  "language": {
+    "heading": "Taal",
+    "saveFailed": "Je taal opslaan is mislukt — probeer het opnieuw."
+  },
+  "common": {
+    "cancel": "Annuleren"
+  },
+  "nav": {
+    "events": "Events",
+    "team": "Team",
+    "money": "Teampot",
+    "profile": "Profiel"
+  },
+  "header": {
+    "switchTeam": "Huidig team: {{team}}. Wissel van team"
+  },
+  "toasts": {
+    "label": "Meldingen"
+  },
+  "filters": {
+    "button": "Filters",
+    "clear": "Wis filters",
+    "result_one": "{{count}} event past bij deze filters",
+    "result_other": "{{count}} events passen bij deze filters",
+    "eventTypes": "Soorten events",
+    "yourAnswer": "Jouw antwoord",
+    "turnout": "Opkomst",
+    "band": {
+      "missing-position": "Positie onbezet",
+      "spots-open": "Plekken open",
+      "covered": "Compleet",
+      "no-target": "Geen doel ingesteld"
+    },
+    "showPast": "Toon eerdere events",
+    "showPastOn": "Aan — eerdere events erbij",
+    "showPastOff": "Uit — alleen komende events",
+    "keepOpen": "Panelen open houden",
+    "keepOpenOn": "Aan — elke kaart staat open",
+    "keepOpenOff": "Uit — tik om een kaart te openen"
+  },
+  "bulk": {
+    "attend_one": "Aanwezig bij {{count}} {{type}}",
+    "attend_other": "Aanwezig bij {{count}}× {{type}}"
+  },
+  "whoIsComing": {
+    "heading": "Wie er komen",
+    "player_one": "Speler",
+    "player_other": "Spelers",
+    "sub_one": "Invaller",
+    "sub_other": "Invallers"
+  },
+  "answerRow": {
+    "change": "Wijzig je antwoord",
+    "hide": "Verberg antwoordopties"
+  },
+  "myAnswer": {
+    "setBy": "{{name}} zei: {{status}}",
+    "setByMaybe": "{{name}} zei misschien"
+  },
+  "lineup": {
+    "heading": "Opstelling",
+    "nobodyAnswered": "Nog niemand heeft gereageerd.",
+    "callIn": "Roep invallers op",
+    "nobodyYet": "Nog niemand",
+    "inPosition": "bij {{position}}",
+    "unassigned": "Zonder positie",
+    "verdict": {
+      "nobodyYet": "nog niemand",
+      "needsMore": "nog {{count}} nodig",
+      "spare": "{{count}} extra",
+      "covered": "compleet"
+    },
+    "stillOpen": "Nog open: {{positions}}",
+    "positionsOpen": "Nog {{count}} posities open",
+    "players_one": "{{count}} speler",
+    "players_other": "{{count}} spelers",
+    "subs_one": "{{count}} invaller",
+    "subs_other": "{{count}} invallers",
+    "findA": "Zoek een {{position}}",
+    "findAn": "Zoek een {{position}}"
+  },
+  "memberChip": {
+    "substitute": "{{name}}, invaller",
+    "self": "{{name}} (jij)",
+    "label": "{{who}} — {{word}}. Wijzig het antwoord",
+    "you": "jij",
+    "sub": "Inv",
+    "showMore": "Toon nog {{count}} {{label}}",
+    "showFewer": "Toon minder {{label}}",
+    "less": "minder",
+    "title": "{{name}} — {{word}}"
+  },
+  "account": {
+    "title": "Account",
+    "email": "E-mail",
+    "photo": "Persoonlijke foto",
+    "photoHint": "Alleen jij ziet deze foto. Een team toont de foto die je voor dat team kiest.",
+    "changePhoto": "Wijzig foto",
+    "uploadPhoto": "Upload foto",
+    "removePhoto": "Verwijder foto",
+    "removePhotoHint": "Je teams houden de foto's die ze al gebruiken.",
+    "remove": "Verwijder",
+    "copyQuestion": "Deze foto ook in {{team}} gebruiken?",
+    "copyConfirm": "Gebruik in {{team}}",
+    "notNow": "Niet nu",
+    "profile": "Profiel",
+    "loading": "Laden…",
+    "loadFailed": "Je profiel laden is mislukt. Probeer het opnieuw.",
+    "teams": "Teams",
+    "active": "Actief",
+    "joinOrCreate": "Word lid van een team of maak er een",
+    "platformAdmin": "Platformbeheer",
+    "teamsConsole": "Teamsconsole",
+    "creationCodes": "Aanmaakcodes",
+    "logout": "Uitloggen"
+  },
+  "photo": {
+    "error": {
+      "PHOTO_TOO_LARGE": "Die foto is te groot. Kies een andere.",
+      "INVALID_PHOTO": "Dat bestand is geen foto die we kunnen gebruiken.",
+      "NO_PERSONAL_PHOTO": "Je hebt nog geen persoonlijke foto.",
+      "FORBIDDEN": "Je mag deze foto niet wijzigen.",
+      "FAILED": "De foto opslaan is mislukt. Probeer het opnieuw."
+    },
+    "cropTitle": "Snijd je foto bij",
+    "cropHint": "Sleep om te verplaatsen en zoom tot je gezicht in de cirkel past.",
+    "zoom": "Zoom",
+    "use": "Gebruik foto",
+    "readFailed": "Die afbeelding kon niet worden gelezen."
+  },
+  "profileForm": {
+    "displayName": "Weergavenaam",
+    "namePlaceholder": "Je naam",
+    "nameTaken": "Die weergavenaam is al in gebruik.",
+    "nameRequired": "Weergavenaam is verplicht.",
+    "nameTooLong": "Weergavenaam mag maximaal {{max}} tekens zijn.",
+    "position": "Positie",
+    "selectPosition": "Kies een positie.",
+    "shirtNumber": "Rugnummer",
+    "shirtNone": "Geen",
+    "shirtRange": "Gebruik een heel getal van 0 tot en met {{max}}.",
+    "numberTaken": "Dat rugnummer is al in gebruik.",
+    "saving": "Opslaan...",
+    "save": "Opslaan"
+  },
+  "theme": {
+    "heading": "Weergave",
+    "hint": "Systeem volgt de lichte of donkere stand van je apparaat.",
+    "system": "Systeem",
+    "light": "Licht",
+    "dark": "Donker"
+  },
+  "crossMember": {
+    "set": "{{name}} staat nu op {{word}}"
+  },
+  "attribution": {
+    "teammate": "een teamgenoot"
+  },
+  "eventType": {
+    "select": "Kies een soort"
+  },
+  "references": {
+    "heading": "Links (optioneel)",
+    "hint": "Voeg de Nevobo-pagina, het wedstrijdformulier en meer toe.",
+    "label": "Link {{n}} naam",
+    "labelPlaceholder": "Naam (optioneel)",
+    "url": "Link {{n}} URL",
+    "remove": "Verwijder link {{n}}",
+    "add": "Link toevoegen"
+  },
+  "series": {
+    "thisOne": "Deze",
+    "partOf": "Onderdeel van een reeks",
+    "occurrence": "Keer {{current}} van {{total}}",
+    "more": "+{{count}} meer"
+  },
+  "member": {
+    "shirtNumber": "Rugnummer {{number}}"
+  },
+  "position": {
+    "select": "Kies een positie",
+    "unassigned": "Zonder positie"
+  }
+}

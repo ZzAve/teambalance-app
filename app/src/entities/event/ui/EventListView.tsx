@@ -3,6 +3,7 @@ import type { Event } from '@shared/api/events'
 import { Skeleton } from '@shared/ui/skeleton'
 import { attributionName } from '../lib/attribution'
 import { EventCard } from './EventCard'
+import { useTranslation } from 'react-i18next'
 
 type AttendanceState = Event['myState']
 
@@ -60,7 +61,7 @@ export function EventListView({
   events,
   isLoading = false,
   error,
-  emptyMessage = 'No upcoming events.',
+  emptyMessage,
   now,
   onRespond,
   optimistic,
@@ -68,15 +69,16 @@ export function EventListView({
   defaultRosterOpen,
   rosterPanel,
 }: EventListViewProps) {
+  const { t } = useTranslation()
   // Data wins: keep showing cached events even when a background refetch is loading or has errored,
   // so a transient failure never blanks a list the user is already looking at.
   if (events.length === 0) {
     if (isLoading) return <EventListSkeleton />
-    if (error) return <p className="mt-4 text-small text-red-ink">Couldn&apos;t load events.</p>
+    if (error) return <p className="mt-4 text-small text-red-ink">{t('events.loadFailed')}</p>
     // No way out of a filtered-to-empty list here any more: `Clear filters` moved up beside the
     // filter trigger, where it is visible whenever a filter is active rather than only once one has
     // already emptied the list (ADR-0030 §2).
-    return <p className="mt-4 text-muted-foreground">{emptyMessage}</p>
+    return <p className="mt-4 text-muted-foreground">{emptyMessage ?? t('events.empty.noneUpcoming')}</p>
   }
 
   return (
@@ -141,8 +143,9 @@ function withAnswer(event: Event, userId: string, state: AttendanceState, isSelf
 
 /** A few skeleton cards mirroring EventCard's date-block layout, shown while the first load runs. */
 function EventListSkeleton() {
+  const { t } = useTranslation()
   return (
-    <div className="mt-4 flex flex-col gap-3" role="status" aria-label="Loading events">
+    <div className="mt-4 flex flex-col gap-3" role="status" aria-label={t('events.loading')}>
       {[0, 1, 2].map((i) => (
         <div key={i} className="rounded-lg border border-border/40 bg-card p-3.5 shadow-sm">
           <div className="flex gap-3.5">

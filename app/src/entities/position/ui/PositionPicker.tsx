@@ -1,5 +1,6 @@
 import type { Position } from '@shared/api/positions'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@shared/ui/select'
+import { useTranslation } from 'react-i18next'
 
 // Radix Select forbids an empty-string item value (reserved for clearing), so "Unassigned" rides a
 // sentinel that never collides with a real position id.
@@ -28,9 +29,10 @@ export function PositionPicker({
   onChange,
   includeUnassigned = false,
   disabled,
-  placeholder = 'Select a position',
+  placeholder,
   'aria-label': ariaLabel,
 }: PositionPickerProps) {
+  const { t } = useTranslation()
   return (
     <Select
       // Always controlled: "" is Radix's no-selection value (shows the placeholder); the Unassigned
@@ -40,10 +42,10 @@ export function PositionPicker({
       disabled={disabled}
     >
       <SelectTrigger aria-label={ariaLabel}>
-        <SelectValue placeholder={placeholder} />
+        <SelectValue placeholder={placeholder ?? t('position.select')} />
       </SelectTrigger>
       <SelectContent>
-        {includeUnassigned && <SelectItem value={UNASSIGNED}>Unassigned</SelectItem>}
+        {includeUnassigned && <SelectItem value={UNASSIGNED}>{t('position.unassigned')}</SelectItem>}
         {positions.map((p) => (
           <SelectItem key={p.id} value={p.id}>
             {p.label}

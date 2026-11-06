@@ -1,4 +1,5 @@
 import { ATTENDANCE_WORDS, type AttendanceState } from './attendance-words'
+import { i18n } from '@shared/i18n/i18n'
 
 interface CrossMemberToast {
   message: string
@@ -17,7 +18,7 @@ interface CrossMemberToast {
  */
 export function crossMemberToast(name: string, next: AttendanceState, prior: AttendanceState): CrossMemberToast {
   return {
-    message: `Set ${name} to ${ATTENDANCE_WORDS[next].word}`,
+    message: i18n.t('crossMember.set', { name, word: ATTENDANCE_WORDS[next].word }),
     undoState: prior === 'NOT_RESPONDED' ? null : prior,
   }
 }

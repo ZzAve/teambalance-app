@@ -1,5 +1,6 @@
 package com.github.zzave.teambalance.api.infrastructure.config
 
+import com.github.zzave.teambalance.api.application.AccountService
 import com.github.zzave.teambalance.api.application.ActAsService
 import com.github.zzave.teambalance.api.application.ActiveTeamService
 import com.github.zzave.teambalance.api.application.AuthService
@@ -94,6 +95,10 @@ class AuthCompositionRoot {
         tenantRoutingGateway = tenantRoutingGateway,
         clock = clock,
     )
+
+    @Bean
+    fun accountService(userRepository: UserRepository, authSessionGateway: AuthSessionGateway) =
+        AccountService(userRepository, authSessionGateway)
 
     @Bean
     fun authorizationService(teamMemberRepository: TeamMemberRepository, actAsGateway: ActAsGateway) =

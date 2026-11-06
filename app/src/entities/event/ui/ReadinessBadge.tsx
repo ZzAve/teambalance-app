@@ -1,5 +1,6 @@
 import type { EventRoster } from '@shared/api/events'
 import { rosterChip, type RosterTone } from '../lib/roster-view'
+import { useTranslation } from 'react-i18next'
 
 interface ReadinessBadgeProps {
   roster: EventRoster
@@ -44,6 +45,7 @@ const DOT_TONE: Record<RosterTone, string> = {
  * it settles rather than asserted as current — it is most prominent at the moment it is most stale.
  */
 export function ReadinessBadge({ roster, pending = false, variant = 'card' }: ReadinessBadgeProps) {
+  const { t } = useTranslation()
   const chip = rosterChip(roster)
   const hero = variant === 'hero'
   const dim = pending ? 'animate-pulse opacity-60' : ''
@@ -58,7 +60,9 @@ export function ReadinessBadge({ roster, pending = false, variant = 'card' }: Re
     // players, which was the whole complaint. A team that has marked no staff never sees the suffix.
     return (
       <span aria-busy={pending} className={`text-caption font-semibold text-muted-foreground ${dim}`}>
-        {roster.playingAttending} going{roster.staffAttending > 0 && ` +${roster.staffAttending} staff`}
+        {roster.staffAttending > 0
+          ? t('roster.goingWithStaff', { count: roster.playingAttending, staff: roster.staffAttending })
+          : t('roster.going', { count: roster.playingAttending })}
       </span>
     )
   }

@@ -2,6 +2,11 @@ package com.github.zzave.teambalance.api.interfaces
 
 import com.github.zzave.teambalance.api.TeamBalanceIT
 import com.github.zzave.teambalance.api.application.DemoPersona
+import com.github.zzave.teambalance.api.domain.port.PlatformProvisioningGateway
+import com.github.zzave.teambalance.api.infrastructure.demo.DemoGuard
+import com.github.zzave.teambalance.api.infrastructure.demo.DemoResetAdapter
+import com.github.zzave.teambalance.api.infrastructure.demo.DemoTeamSeeder
+import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
@@ -20,7 +25,11 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.async
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put
+import java.lang.reflect.Proxy
+import java.sql.Connection
+import java.sql.DatabaseMetaData
 import java.time.Duration
+import javax.sql.DataSource
 import java.util.concurrent.Callable
 import java.util.concurrent.Executors
 
@@ -52,6 +61,14 @@ class DemoResetIT : TeamBalanceIT() {
 
     @Autowired lateinit var gateway: CountingResetGateway
 
+    @Autowired lateinit var dataSource: DataSource
+
+    @Autowired lateinit var platformProvisioning: PlatformProvisioningGateway
+
+    @Autowired lateinit var seeder: DemoTeamSeeder
+
+    @Autowired lateinit var guard: DemoGuard
+
     init {
         beforeSpec { OwnPostgresInitializer.requireOwnDatabase(jdbcTemplate) }
 
@@ -66,8 +83,22 @@ class DemoResetIT : TeamBalanceIT() {
             jdbcTemplate.queryForObject("SELECT count(*) FROM ${DemoPersona.SCHEMA}.events", Int::class.java) shouldBe 1
         }
 
+        test("the drop re-checks the host on its own connection: a non-loopback URL drops nothing") {
+            jdbcTemplate.execute("CREATE TABLE IF NOT EXISTS public.reset_marker (id int)")
+            val remote = DemoResetAdapter(reportingRemoteHost(dataSource), platformProvisioning, seeder, guard)
+
+            shouldThrow<IllegalStateException> { remote.reset() }
+
+            jdbcTemplate.queryForObject(
+                "SELECT count(*) FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'reset_marker'",
+                Int::class.java,
+            ) shouldBe 1
+        }
+
         test("a reset recreates the seeded Bunq connection and top-up link: the money pool is Connected again") {
+            val resets = gateway.resets.get()
             resetNow()
+            gateway.resets.get() shouldBe resets + 1
 
             val pool = perform(get("/api/team/money-pool").cookie(createSession())).contentAsString
             pool shouldContain "\"state\":\"Connected\""
@@ -116,6 +147,24 @@ class DemoResetIT : TeamBalanceIT() {
             sessions.forEach { perform(get("/api/auth/me").cookie(it)).status shouldBe 200 }
         }
     }
+
+    /** The real pool, but its connections report a remote database URL in their metadata. */
+    private fun reportingRemoteHost(real: DataSource): DataSource =
+        Proxy.newProxyInstance(javaClass.classLoader, arrayOf(DataSource::class.java)) { _, method, args ->
+            val result = method.invoke(real, *(args ?: emptyArray()))
+            if (method.name != "getConnection") return@newProxyInstance result
+            Proxy.newProxyInstance(javaClass.classLoader, arrayOf(Connection::class.java)) { _, cm, cargs ->
+                if (cm.name != "getMetaData") return@newProxyInstance cm.invoke(result, *(cargs ?: emptyArray()))
+                val meta = cm.invoke(result) as DatabaseMetaData
+                Proxy.newProxyInstance(javaClass.classLoader, arrayOf(DatabaseMetaData::class.java)) { _, mm, margs ->
+                    if (mm.name == "getURL") {
+                        "jdbc:postgresql://db.scw.cloud:5432/teambalance"
+                    } else {
+                        mm.invoke(meta, *(margs ?: emptyArray()))
+                    }
+                }
+            }
+        } as DataSource
 
     private fun resetNow() {
         clock.advance(Duration.ofMinutes(61))

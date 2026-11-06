@@ -1,5 +1,7 @@
 package com.github.zzave.teambalance.api.interfaces
 
+import com.github.zzave.teambalance.api.domain.model.CalendarLinkId
+import com.github.zzave.teambalance.api.domain.model.TeamId
 import com.github.zzave.teambalance.api.application.CalendarLinkTokens
 import com.github.zzave.teambalance.api.domain.model.CalendarToken
 import com.github.zzave.teambalance.api.infrastructure.multitenancy.TenantSchemaAdapter
@@ -176,7 +178,8 @@ object CalendarLinkFixture {
                  show_attendance_prefix, calendar_name_suffix)
             VALUES (?::uuid, ?::uuid, ?, ?, ?, ?, ?, ?, ?)
             """,
-            id, userId, tokens.hash(token.value).value, tokens.conceal(token).value,
+            id, userId, tokens.hash(token.value).value,
+            tokens.conceal(token, TeamId(UUID.fromString(teamOf(schema))), CalendarLinkId(id)).value,
             label, Timestamp.from(Instant.now()), Timestamp.from(expiresAt),
             showAttendancePrefix, calendarNameSuffix,
         )
@@ -219,6 +222,12 @@ object CalendarLinkFixture {
      * spec touched this id first would otherwise decide both. A spec that proves a departure stops the
      * feed must not strand the next one, and the feed spec drives a real admin event edit.
      */
+    private fun teamOf(schema: String) = when (schema) {
+        ALPHA_SCHEMA -> ALPHA_TEAM
+        BETA_SCHEMA -> BETA_TEAM
+        else -> error("No team for schema $schema")
+    }
+
     fun member(jdbc: JdbcTemplate, teamId: String, userId: String, role: String = "USER") {
         jdbc.execute("SELECT public.tb_add_member('$teamId'::uuid, '$userId'::uuid, '$role', NULL)")
         jdbc.execute(

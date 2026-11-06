@@ -15,48 +15,76 @@ import java.util.Base64
 private val KEY = Base64.getEncoder().encodeToString(ByteArray(32) { it.toByte() })
 private val CIPHER = TokenCipher.fromBase64Key(KEY, "test-key")
 private const val API = "https://api.example/"
+private const val CALLBACK_URL = "https://api.example/api/bunq/oauth/callback"
 private val BUNQ_ENVIRONMENTS = listOf("none", "sandbox", "production")
+
+private fun connectConfig(
+    connectEnabled: Boolean,
+    isProd: Boolean,
+    bunqEnvironment: String,
+    allowSandboxInProd: Boolean = false,
+) = bunqConnectConfig(connectEnabled, isProd, bunqEnvironment, allowSandboxInProd, CIPHER, API)
 
 class BunqConnectConfigTest : FunSpec({
 
     context("connect settings") {
-        test("are absent while connecting is switched off, in prod too, whatever the Bunq environment") {
+        test("are absent while connecting is switched off, in prod too, whatever the Bunq environment and flag") {
             BUNQ_ENVIRONMENTS.forEach { bunqEnvironment ->
-                bunqConnectConfig(false, true, bunqEnvironment, CIPHER, API).shouldBeNull()
+                listOf(false, true).forEach { allowSandboxInProd ->
+                    connectConfig(false, true, bunqEnvironment, allowSandboxInProd).shouldBeNull()
+                }
             }
         }
 
         test("carry the callback url of this API when connecting is on") {
-            bunqConnectConfig(true, false, "none", CIPHER, API)!!.callbackUrl shouldBe
-                "https://api.example/api/bunq/oauth/callback"
+            connectConfig(true, false, "none")!!.callbackUrl shouldBe CALLBACK_URL
         }
 
-        test("are unchanged outside prod, whatever the Bunq environment") {
+        test("are unchanged outside prod, whatever the Bunq environment and flag") {
             BUNQ_ENVIRONMENTS.forEach { bunqEnvironment ->
-                bunqConnectConfig(true, false, bunqEnvironment, CIPHER, API)!!.callbackUrl shouldBe
-                    "https://api.example/api/bunq/oauth/callback"
+                listOf(false, true).forEach { allowSandboxInProd ->
+                    connectConfig(true, false, bunqEnvironment, allowSandboxInProd)!!.callbackUrl shouldBe CALLBACK_URL
+                }
             }
         }
 
-        test("carry the callback url of this API in prod with the production Bunq environment") {
-            bunqConnectConfig(true, true, "production", CIPHER, API)!!.callbackUrl shouldBe
-                "https://api.example/api/bunq/oauth/callback"
+        test("carry the callback url of this API in prod with the production Bunq environment, with the flag either way") {
+            listOf(false, true).forEach { allowSandboxInProd ->
+                connectConfig(true, true, "production", allowSandboxInProd)!!.callbackUrl shouldBe CALLBACK_URL
+            }
         }
 
         listOf(" Production ", "PRODUCTION").forEach { bunqEnvironment ->
             test("accept the production Bunq environment in prod spelled \"$bunqEnvironment\"") {
-                bunqConnectConfig(true, true, bunqEnvironment, CIPHER, API)!!.callbackUrl shouldBe
-                    "https://api.example/api/bunq/oauth/callback"
+                connectConfig(true, true, bunqEnvironment)!!.callbackUrl shouldBe CALLBACK_URL
             }
         }
 
-        listOf("none", "sandbox", "prod", "", "production-x").forEach { bunqEnvironment ->
-            test("refuse to start while connecting is on in prod with Bunq environment \"$bunqEnvironment\"") {
-                val message = shouldThrow<IllegalStateException> { bunqConnectConfig(true, true, bunqEnvironment, CIPHER, API) }.message!!
+        listOf("none", "sandbox", "prod", "", "production-x", " Sandbox ").forEach { bunqEnvironment ->
+            test("refuse to start while connecting is on in prod with Bunq environment \"$bunqEnvironment\" and the sandbox flag off") {
+                val message = shouldThrow<IllegalStateException> { connectConfig(true, true, bunqEnvironment) }.message!!
 
                 message shouldContain "TEAMBALANCE_BUNQ_CONNECT_ENABLED"
                 message shouldContain "TEAMBALANCE_BUNQ_ENVIRONMENT"
+                message shouldContain "TEAMBALANCE_BUNQ_ALLOW_SANDBOX_IN_PROD"
                 message shouldContain "production"
+            }
+        }
+
+        listOf("sandbox", " Sandbox ", "SANDBOX").forEach { bunqEnvironment ->
+            test("accept the sandbox Bunq environment in prod spelled \"$bunqEnvironment\" when the sandbox flag is on") {
+                connectConfig(true, true, bunqEnvironment, allowSandboxInProd = true)!!.callbackUrl shouldBe CALLBACK_URL
+            }
+        }
+
+        listOf("none", "prod", "", "production-x").forEach { bunqEnvironment ->
+            test("refuse to start in prod with connecting on and Bunq environment \"$bunqEnvironment\", also with the sandbox flag on") {
+                val message = shouldThrow<IllegalStateException> {
+                    connectConfig(true, true, bunqEnvironment, allowSandboxInProd = true)
+                }.message!!
+
+                message shouldContain "TEAMBALANCE_BUNQ_ENVIRONMENT"
+                message shouldContain "TEAMBALANCE_BUNQ_ALLOW_SANDBOX_IN_PROD"
             }
         }
     }

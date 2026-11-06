@@ -72,6 +72,39 @@ class BunqConnectGuardWiringTest : FunSpec({
         }
     }
 
+    test("the sandbox flag is off unless set") {
+        runner("prod").run { ctx ->
+            ctx.environment.getProperty("teambalance.bunq.allow-sandbox-in-prod", Boolean::class.java) shouldBe false
+        }
+    }
+
+    listOf("true", "TRUE").forEach { flag ->
+        test("prod with connecting on starts with the Bunq environment sandbox when the sandbox flag is set to $flag") {
+            runner("prod")
+                .withPropertyValues(
+                    "teambalance.bunq.connect-enabled=true",
+                    "teambalance.bunq.allow-sandbox-in-prod=$flag",
+                    *environment("sandbox"),
+                )
+                .run { ctx -> ctx.getBean(BunqConnectionService::class.java).shouldNotBeNull() }
+        }
+    }
+
+    test("prod with connecting on refuses to start with the Bunq environment none, also when the sandbox flag is set") {
+        runner("prod")
+            .withPropertyValues(
+                "teambalance.bunq.connect-enabled=true",
+                "teambalance.bunq.allow-sandbox-in-prod=true",
+                *environment("none"),
+            )
+            .run { ctx ->
+                val failure = runCatching { ctx.getBean(BunqConnectionService::class.java) }.exceptionOrNull().shouldNotBeNull()
+
+                val messages = generateSequence(failure) { it.cause }.mapNotNull { it.message }
+                messages.any { it.contains("TEAMBALANCE_BUNQ_CONNECT_ENABLED can only be true in prod") } shouldBe true
+            }
+    }
+
     test("prod with connecting on starts, with the Bunq environment production") {
         runner("prod")
             .withPropertyValues("teambalance.bunq.connect-enabled=true", *environment("production"))

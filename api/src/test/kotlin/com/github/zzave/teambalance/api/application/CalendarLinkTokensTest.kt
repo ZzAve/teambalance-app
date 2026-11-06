@@ -1,6 +1,8 @@
 package com.github.zzave.teambalance.api.application
 
+import com.github.zzave.teambalance.api.domain.model.CalendarLinkId
 import com.github.zzave.teambalance.api.domain.model.CalendarToken
+import com.github.zzave.teambalance.api.domain.model.TeamId
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
@@ -8,6 +10,7 @@ import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldMatch
 import io.kotest.matchers.string.shouldNotContain
 import java.util.Base64
+import java.util.UUID
 
 private fun tokens(salt: String = "calendar-salt", keySeed: Byte = 1) = CalendarLinkTokens(
     salt = salt,
@@ -24,16 +27,19 @@ private fun tokens(salt: String = "calendar-salt", keySeed: Byte = 1) = Calendar
  */
 class CalendarLinkTokensTest : FunSpec({
 
+    val team = TeamId(UUID.randomUUID())
+    val link = CalendarLinkId.random()
+
     test("a minted token survives conceal and reveal") {
         val tokens = tokens()
         val token = tokens.mint()
-        tokens.reveal(tokens.conceal(token)).value shouldBe token.value
+        tokens.reveal(tokens.conceal(token, team, link), team, link).value shouldBe token.value
     }
 
     test("the stored ciphertext does not contain the token") {
         val tokens = tokens()
         val token = tokens.mint()
-        tokens.conceal(token).value shouldNotContain token.value
+        tokens.conceal(token, team, link).value shouldNotContain token.value
     }
 
     // 256 bits, base64url, unpadded: 43 characters from the URL-safe alphabet, so it rides a path
@@ -66,17 +72,26 @@ class CalendarLinkTokensTest : FunSpec({
         tokens(salt = "one").hash(token.value) shouldNotBe tokens(salt = "two").hash(token.value)
     }
 
-    // Links stored before the cipher took AAD were made without any. A change of the AAD these two callers pass
-    // would make every one of them unreadable, so this pins that they pass none.
-    test("a link stored before the cipher took AAD still reveals") {
+    // Issue #465: a ciphertext copied into another team's row, or into another link's row, must not open there.
+    test("a token concealed for one link reveals neither in another team nor in another link") {
+        val tokens = tokens()
+        val concealed = tokens.conceal(CalendarToken("a-fixed-token"), team, link)
+
+        runCatching { tokens.reveal(concealed, TeamId(UUID.randomUUID()), link) }.isFailure shouldBe true
+        runCatching { tokens.reveal(concealed, team, CalendarLinkId.random()) }.isFailure shouldBe true
+    }
+
+    test("a link stored without AAD no longer reveals, and reveals once rebound to its team and link") {
+        val tokens = tokens()
         val legacy = legacyEncrypt(ByteArray(32) { 1 }, "a-link-stored-long-ago")
 
-        tokens().reveal(legacy).value shouldBe "a-link-stored-long-ago"
+        runCatching { tokens.reveal(legacy, team, link) }.isFailure shouldBe true
+        tokens.reveal(tokens.rebindLegacy(legacy, team, link)!!, team, link).value shouldBe "a-link-stored-long-ago"
     }
 
     test("a token concealed under one key cannot be revealed under another") {
         val token = CalendarToken("a-fixed-token")
-        val concealed = tokens(keySeed = 1).conceal(token)
-        runCatching { tokens(keySeed = 2).reveal(concealed) }.isFailure shouldBe true
+        val concealed = tokens(keySeed = 1).conceal(token, team, link)
+        runCatching { tokens(keySeed = 2).reveal(concealed, team, link) }.isFailure shouldBe true
     }
 })

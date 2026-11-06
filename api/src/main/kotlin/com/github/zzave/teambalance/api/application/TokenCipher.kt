@@ -4,6 +4,7 @@ import com.github.zzave.teambalance.api.domain.model.EncryptedToken
 import com.github.zzave.teambalance.api.domain.model.TeamId
 import java.security.SecureRandom
 import java.util.Base64
+import java.util.UUID
 import javax.crypto.Cipher
 import javax.crypto.spec.GCMParameterSpec
 import javax.crypto.spec.SecretKeySpec
@@ -20,11 +21,12 @@ import javax.crypto.spec.SecretKeySpec
  *
  * Every call names its additional authenticated data. It is not stored; it has to be the same on
  * decrypt as on encrypt, or decryption fails. There is no default, so a caller cannot forget it.
- * - The Bunq grant and the stored Bunq API Context pass [aadOf]: the team whose tenant schema holds the
- *   row and what the value is ([Purpose]). A ciphertext copied into another team's row, or from the
- *   grant column into the context column or back, does not open there.
- * - The invite link and the calendar link are not bound to anything and pass [NO_AAD] explicitly. That
- *   is the same as no AAD at all, so the values stored before the AAD existed keep opening.
+ * Every caller passes [aadOf]: the team the row belongs to and what the value is ([Purpose]), and for a
+ * calendar link also the link's id. A ciphertext copied into another team's row, into another link's row,
+ * or from one column into another, does not open there.
+ *
+ * The invite and calendar links stored before that were made without AAD. [rebindLegacy] re-encrypts
+ * them once, at startup (issue #465).
  *
  * Deliberately typed on the plaintext `String`, not on one token type: each caller wraps its own value
  * ([com.github.zzave.teambalance.api.domain.model.InviteToken],
@@ -35,7 +37,12 @@ import javax.crypto.spec.SecretKeySpec
  */
 class TokenCipher(private val key: SecretKeySpec) {
 
-    enum class Purpose(internal val label: String) { BUNQ_GRANT("bunq-grant"), BUNQ_API_CONTEXT("bunq-api-context") }
+    enum class Purpose(internal val label: String) {
+        BUNQ_GRANT("bunq-grant"),
+        BUNQ_API_CONTEXT("bunq-api-context"),
+        INVITE_LINK("invite-link"),
+        CALENDAR_LINK("calendar-link"),
+    }
 
     companion object {
         private const val IV_LENGTH = 12
@@ -43,7 +50,7 @@ class TokenCipher(private val key: SecretKeySpec) {
         private const val KEY_BYTE_LENGTH = 32
         private val secureRandom = SecureRandom()
 
-        /** For the values that are not bound to anything (the invite and calendar links). Same bytes as no AAD at all. */
+        /** Same bytes as no AAD at all: what the invite and calendar links were encrypted with before issue #465. */
         val NO_AAD = ByteArray(0)
 
         /**
@@ -52,6 +59,10 @@ class TokenCipher(private val key: SecretKeySpec) {
          * so a change of how a team id is displayed cannot change what the stored rows were bound to.
          */
         fun aadOf(teamId: TeamId, purpose: Purpose): ByteArray = "${purpose.label}:${teamId.value}".toByteArray(Charsets.UTF_8)
+
+        /** [aadOf] plus a colon and the id of the row, for a value that belongs to one row of the team (a calendar link). */
+        fun aadOf(teamId: TeamId, purpose: Purpose, rowId: UUID): ByteArray =
+            "${purpose.label}:${teamId.value}:$rowId".toByteArray(Charsets.UTF_8)
 
         /**
          * Reads a base64-encoded 256-bit key. Rejects anything else loudly at startup: a key of the
@@ -80,6 +91,16 @@ class TokenCipher(private val key: SecretKeySpec) {
         val iv = raw.copyOfRange(0, IV_LENGTH)
         val ciphertext = raw.copyOfRange(IV_LENGTH, raw.size)
         return String(cipher(Cipher.DECRYPT_MODE, iv, aad).doFinal(ciphertext))
+    }
+
+    /**
+     * Re-encrypts a value stored without AAD under [aad]. Null when the value already opens under [aad], so
+     * running it again changes nothing. Throws when the value opens under neither: a value bound to something
+     * else is not moved here.
+     */
+    fun rebindLegacy(encrypted: EncryptedToken, aad: ByteArray): EncryptedToken? {
+        if (runCatching { decrypt(encrypted, aad) }.isSuccess) return null
+        return encrypt(decrypt(encrypted, NO_AAD), aad)
     }
 
     private fun cipher(mode: Int, iv: ByteArray, aad: ByteArray): Cipher =

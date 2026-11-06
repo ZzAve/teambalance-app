@@ -1,5 +1,6 @@
 package com.github.zzave.teambalance.api.infrastructure.persistence
 
+import com.github.zzave.teambalance.api.domain.model.TeamId
 import com.github.zzave.teambalance.api.TeamBalanceIT
 import com.github.zzave.teambalance.api.application.CalendarLinkTokens
 import com.github.zzave.teambalance.api.domain.model.AttendanceState
@@ -125,11 +126,12 @@ class JooqCalendarLinkRepositoryAdapterIT : TeamBalanceIT() {
         val token = tokens.mint()
         // Microsecond precision, because that is what the columns store.
         val now = Instant.now().truncatedTo(ChronoUnit.MICROS)
+        val id = CalendarLinkId.random()
         return CalendarLink(
-            id = CalendarLinkId.random(),
+            id = id,
             userId = OWNER,
             tokenHash = tokens.hash(token.value),
-            encryptedToken = tokens.conceal(token),
+            encryptedToken = tokens.conceal(token, TeamId(UUID.randomUUID()), id),
             label = null,
             createdAt = now,
             expiresAt = now.plus(CalendarLink.TTL),

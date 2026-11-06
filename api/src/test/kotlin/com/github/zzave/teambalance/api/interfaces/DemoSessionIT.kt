@@ -74,7 +74,7 @@ class DemoSessionIT : TeamBalanceIT() {
                 DemoPersona.TEAM_ID.value.toString(),
                 DemoPersona.SLUG,
             ) shouldBe DemoPersona.SCHEMA
-            jdbcTemplate.queryForObject("SELECT count(*) FROM ${DemoPersona.SCHEMA}.events", Int::class.java) shouldBe 1
+            jdbcTemplate.queryForObject("SELECT count(*) FROM ${DemoPersona.SCHEMA}.events", Int::class.java) shouldBe 6
         }
 
         test("a visitor with no cookie gets a session that lands on the demo team as a plain member") {
@@ -127,9 +127,10 @@ class DemoSessionIT : TeamBalanceIT() {
             jdbcTemplate.queryForObject(
                 """
                 SELECT count(*) FROM ${DemoPersona.SCHEMA}.attendances
-                WHERE event_id IN (SELECT id FROM ${DemoPersona.SCHEMA}.events WHERE uuid = ?::uuid)
+                WHERE user_id = ?::uuid AND event_id IN (SELECT id FROM ${DemoPersona.SCHEMA}.events WHERE uuid = ?::uuid)
                 """,
                 Int::class.java,
+                DemoPersona.MEMBER.userId.value.toString(),
                 EVENT_ID,
             ) shouldBe 1
             jdbcTemplate.queryForObject("SELECT count(*) FROM $OTHER_SCHEMA.attendances", Int::class.java) shouldBe 0

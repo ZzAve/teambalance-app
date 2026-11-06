@@ -2,14 +2,13 @@ package com.github.zzave.teambalance.api.infrastructure.config
 
 import com.github.zzave.teambalance.api.TeamBalanceIT
 import com.github.zzave.teambalance.api.application.BunqConnectionService
-import com.github.zzave.teambalance.api.domain.exception.BunqConnectDisabledException
+import com.github.zzave.teambalance.api.domain.exception.NotTeamAdminException
 import com.github.zzave.teambalance.api.domain.model.TeamId
 import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.port.BunqGateway
 import com.github.zzave.teambalance.api.infrastructure.bunq.RealBunqGatewayAdapter
-import io.kotest.assertions.throwables.shouldThrowAny
+import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.types.shouldBeInstanceOf
-import io.kotest.matchers.types.shouldNotBeInstanceOf
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.context.ApplicationContext
 import org.springframework.test.context.ActiveProfiles
@@ -51,12 +50,11 @@ class ProdProfileBunqConnectEnabledIT : TeamBalanceIT() {
             applicationContext.getBean(BunqGateway::class.java).shouldBeInstanceOf<RealBunqGatewayAdapter>()
         }
 
-        test("connecting is on: starting it is checked against the caller instead of refused as disabled") {
+        test("connecting is on: a caller who is no Admin of the team is turned away as such, not as connecting being disabled") {
             val service = applicationContext.getBean(BunqConnectionService::class.java)
 
-            // A caller who is no Admin of the team stops the flow before the gateway is reached, so Bunq is never called.
-            shouldThrowAny { service.start(UserId.random(), TeamId(UUID.randomUUID())) }
-                .shouldNotBeInstanceOf<BunqConnectDisabledException>()
+            // The admin check comes before the gateway, so Bunq is never called.
+            shouldThrow<NotTeamAdminException> { service.start(UserId.random(), TeamId(UUID.randomUUID())) }
         }
     }
 }

@@ -87,6 +87,7 @@ class MoneyPoolCompositionRoot {
         @Value("\${teambalance.api-base-url}") apiBaseUrl: String,
         @Value("\${teambalance.bunq.connect-enabled}") connectEnabled: Boolean,
         moneyPoolCache: MoneyPoolCacheGateway,
+        @Value("\${teambalance.demo.enabled:false}") demoEnabled: Boolean,
     ) = BunqConnectionService(
         connectionRepository = connectionRepository,
         stateRepository = stateRepository,
@@ -105,6 +106,7 @@ class MoneyPoolCompositionRoot {
             apiBaseUrl,
         ),
         moneyPoolCache = moneyPoolCache,
+        demoTeam = DemoPersona.TEAM_ID.takeIf { demoEnabled },
     )
 
     @Bean

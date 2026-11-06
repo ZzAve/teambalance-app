@@ -43,6 +43,7 @@ class InvitationService(
     private val tokenSalt: String,
     // Reversible counterpart to the hash, so the team's current link can be shown again (ADR-0025).
     private val tokenCipher: TokenCipher,
+    private val demoProtection: DemoProtection? = null,
 ) {
     companion object {
         // Invite links don't expire on a timer by default in v1 — an admin rotates/expires
@@ -201,6 +202,8 @@ class InvitationService(
             ?.id
 
     private fun accept(invitation: Invitation?, userId: UserId): TeamId? {
+        // Before the claim, so a refused persona leaves the single-use link unspent.
+        if (invitation?.role == Role.ADMIN) demoProtection?.requireNotProtected(invitation.teamId, userId)
         val now = Instant.now(clock)
         val claimed = invitation
             ?.takeIf { it.expiresAt.isAfter(now) }

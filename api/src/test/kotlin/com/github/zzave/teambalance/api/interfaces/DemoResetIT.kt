@@ -213,7 +213,7 @@ class DemoResetIT : TeamBalanceIT() {
             "SELECT count(*) FROM $schema.attendances WHERE event_id = " +
                 "(SELECT id FROM $schema.events WHERE start_time > now() ORDER BY start_time LIMIT 1)",
         )
-        (nextAnswers in 1..11) shouldBe true
+        nextAnswers shouldBe 6
         attendanceCount() shouldBe 0
         perform(get("/api/team/money-pool").cookie(createSession())).contentAsString shouldContain "\"balance\":8700"
     }

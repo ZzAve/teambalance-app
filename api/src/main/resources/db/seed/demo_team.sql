@@ -77,25 +77,29 @@ VALUES ('d0000000-0000-0000-0003-000000000001', 'Joris Hoekstra', 'd0000000-0000
         'd0000000-0000-0000-0000-000000000012', 15)
 ON CONFLICT DO NOTHING;
 
--- Two past and four upcoming events, relative to the seed time. The reset re-seeds hourly, so they stay current; a
--- plain re-run moves the times of the events that already exist.
+-- Two past and four upcoming events at fixed hours of Amsterdam days counted from the seed day, so a reset at any hour
+-- gives the same plan: the training is tomorrow evening, so it is upcoming whatever the hour or weekday of the seed.
+-- A plain re-run moves the times of the events that already exist.
 INSERT INTO team_de_smashers.events (uuid, event_type_id, title, description, start_time, end_time, location, created_by)
 SELECT e.uuid::uuid, et.id, e.title, e.description, e.start_time, e.start_time + e.duration, e.location,
        'd0000000-0000-0000-0000-000000000012'::uuid
-FROM (VALUES
+FROM (SELECT v.uuid, v.type_name, v.title, v.description,
+       (date_trunc('day', now() AT TIME ZONE 'Europe/Amsterdam') + v.at) AT TIME ZONE 'Europe/Amsterdam' AS start_time,
+       v.duration, v.location
+     FROM (VALUES
     ('d0000000-0000-0000-0000-000000000032', 'Training', 'Training', 'Wekelijkse training',
-        now() - interval '9 days', interval '2 hours', 'Sporthal De Smash'),
+        interval '-9 days 20 hours', interval '2 hours', 'Sporthal De Smash'),
     ('d0000000-0000-0000-0000-000000000033', 'Match', 'Thuiswedstrijd tegen VC Blokkade', 'Competitie, poule B',
-        now() - interval '3 days', interval '2 hours 30 minutes', 'Sporthal De Smash'),
+        interval '-3 days 19 hours 30 minutes', interval '2 hours 30 minutes', 'Sporthal De Smash'),
     ('d0000000-0000-0000-0000-000000000031', 'Training', 'Training', 'Wekelijkse training',
-        now() + interval '1 day', interval '2 hours', 'Sporthal De Smash'),
+        interval '1 day 20 hours', interval '2 hours', 'Sporthal De Smash'),
     ('d0000000-0000-0000-0000-000000000034', 'Match', 'Thuiswedstrijd tegen Spikers ''88', 'Competitie, poule B',
-        now() + interval '5 days', interval '2 hours 30 minutes', 'Sporthal De Smash'),
+        interval '5 days 19 hours 30 minutes', interval '2 hours 30 minutes', 'Sporthal De Smash'),
     ('d0000000-0000-0000-0000-000000000035', 'Match', 'Uitwedstrijd bij VC Het Net', 'Competitie, poule B. Verzamelen bij de hal.',
-        now() + interval '9 days', interval '2 hours 30 minutes', 'Sporthal De Hoek'),
+        interval '9 days 14 hours', interval '2 hours 30 minutes', 'Sporthal De Hoek'),
     ('d0000000-0000-0000-0000-000000000036', 'Other', 'Teamborrel', 'Even bijpraten na de wedstrijd',
-        now() + interval '13 days', interval '3 hours', 'Café De Libero')
-) AS e(uuid, type_name, title, description, start_time, duration, location)
+        interval '13 days 21 hours', interval '3 hours', 'Café De Libero')
+) AS v(uuid, type_name, title, description, at, duration, location)) AS e
 JOIN team_de_smashers.event_types et ON et.name = e.type_name
 ON CONFLICT (uuid) DO UPDATE SET start_time = EXCLUDED.start_time, end_time = EXCLUDED.end_time;
 

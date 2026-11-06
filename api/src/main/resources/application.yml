@@ -160,7 +160,8 @@ teambalance:
     token-encryption-key: ${TEAMBALANCE_CALENDAR_LINK_ENCRYPTION_KEY}
   bunq:
     # Whether an Admin can connect Bunq. Off by default so a deployment stays hidden and unreachable
-    # until it is ready (the connect endpoints answer 404); dev and test switch it on.
+    # until it is ready (the connect endpoints answer 404); dev and test switch it on. In prod it can only be on
+    # with the Bunq environment production (see environment below), otherwise the app does not start.
     connect-enabled: ${TEAMBALANCE_BUNQ_CONNECT_ENABLED:false}
     # App-wide AES-256 key (base64, 32 bytes) under which a team's Bunq OAuth grant is stored
     # (ADR-0042), a sibling of the invitation and calendar-link keys and never the same value. Live
@@ -172,7 +173,7 @@ teambalance:
     # Bunq outside prod and the unconfigured gateway in prod (every call fails, so the pool reads as
     # unavailable). Anything else wires the real adapter and then needs the client id and secret below:
     # the app fails fast at startup without them. An empty value fails startup too; leave it unset for none.
-    # connect-enabled is refused in prod whatever the environment, until Bunq reads and OAuth are verified for production.
+    # In prod, connect-enabled is refused unless the environment is production.
     environment: ${TEAMBALANCE_BUNQ_ENVIRONMENT:none}
     # The OAuth client registered at Bunq. Live environments provide the secret only through the env var.
     client-id: ${TEAMBALANCE_BUNQ_CLIENT_ID:}

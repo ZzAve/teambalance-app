@@ -150,7 +150,9 @@ existed have no such tag; push to the PR once to get one.
   and `api/stg-entrypoint.sh`. It runs the `prod` profile; the stg differences are environment
   variables baked into the image: `TEAMBALANCE_DEMO_DATA_ENABLED=true` (`DemoDataSeeder` adds the
   demo team *Setpoint VT*), `TEAMBALANCE_EMAIL_SEND=false` (magic links and notifications are
-  logged, not sent), and the in-container datasource.
+  logged, not sent), and the in-container datasource. Because stg runs the `prod` profile, connecting
+  with the `sandbox` Bunq environment is refused there too: only `production` is accepted with
+  `TEAMBALANCE_BUNQ_CONNECT_ENABLED=true`.
 - **Database:** Postgres runs inside the container on its temporary disk. Every cold start begins
   empty: Flyway builds the schema from V001. Nothing persists across scale-to-zero or a redeploy.
 - **Container:** same size as prod (2 vCPU / 2 GB, sandbox v2, min-scale 0). **max-scale must stay
@@ -230,12 +232,13 @@ The deploy never touches the container's env/secret maps, so these are set manua
 | `TEAMBALANCE_BUNQ_ENVIRONMENT` | Unset or `none` (no Bunq: every Bunq call fails), `sandbox` or `production` (real adapter). **Must not be empty**; an empty or unknown value fails startup. |
 | `TEAMBALANCE_BUNQ_CLIENT_ID` | The Bunq OAuth client id. Blank with `sandbox`/`production` fails startup. |
 | `TEAMBALANCE_BUNQ_CLIENT_SECRET` | The Bunq OAuth client secret (a secret env). Blank with `sandbox`/`production` fails startup. |
-| `TEAMBALANCE_BUNQ_CONNECT_ENABLED` | Keep `false` (or unset) in prod until tracer 4.1 of #10: startup refuses `true` in prod, whatever the environment. |
+| `TEAMBALANCE_BUNQ_CONNECT_ENABLED` | Keep `false` (or unset) until Bunq reads and OAuth are verified for production and the production OAuth client exists. In prod, startup refuses `true` unless `TEAMBALANCE_BUNQ_ENVIRONMENT` is `production` (trimmed, case-insensitive); the refusal message names both variables. Set it last, after the environment and credentials are deployed and the app is healthy with connecting off. |
 | `TEAMBALANCE_BUNQ_TOKEN_ENCRYPTION_KEY` | Required in every environment (base64, 32 bytes); fails startup when missing. |
 
 The startup log says which gateway was wired (`Bunq gateway: real adapter, environment …` or
-`unconfigured`). **Rollback:** set `TEAMBALANCE_BUNQ_ENVIRONMENT` to `none` (or remove it) and
-restart; the container then runs as before the real adapter existed.
+`unconfigured`). **Rollback:** set `TEAMBALANCE_BUNQ_CONNECT_ENABLED` to `false` (or remove it),
+then set `TEAMBALANCE_BUNQ_ENVIRONMENT` to `none` (or remove it) and restart; the container then
+runs as before the real adapter existed. With connecting still on, `none` fails startup in prod.
 
 ## Rollback
 

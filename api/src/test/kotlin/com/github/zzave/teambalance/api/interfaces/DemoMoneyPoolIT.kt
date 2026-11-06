@@ -15,13 +15,12 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers
 
-private const val TEST_ADMIN_ID = "d0000000-0000-0000-0000-0000000000a1"
+private val KEES = DemoPersona.ADMIN.userId.value.toString()
 private const val DEMO_LINK = "https://bunq.me/demo"
 
 /**
  * The demo team's money pool (ADR-0043): the seeded connection opens under the grant cipher's team binding and reads the
- * fake Bunq, and an Admin can change the pool's settings except the top-up link. The demo team has no Admin persona yet,
- * so the test adds one.
+ * fake Bunq, and an Admin can change the pool's settings except the top-up link.
  */
 @AutoConfigureMockMvc
 @TestPropertySource(
@@ -40,25 +39,9 @@ class DemoMoneyPoolIT : TeamBalanceIT() {
     lateinit var jdbcTemplate: JdbcTemplate
 
     init {
-        beforeSpec {
-            jdbcTemplate.execute(
-                """
-                INSERT INTO public.users (id, email, display_name)
-                VALUES ('$TEST_ADMIN_ID'::uuid, 'demo-admin@test.com', 'Admin') ON CONFLICT DO NOTHING
-                """,
-            )
-            jdbcTemplate.execute(
-                """
-                INSERT INTO public.team_members (team_id, user_id, role, onboarded_at)
-                VALUES ('${DemoPersona.TEAM_ID.value}'::uuid, '$TEST_ADMIN_ID'::uuid, 'ADMIN', now()) ON CONFLICT DO NOTHING
-                """,
-            )
-        }
-
-        // The database is shared with the other ITs, which count members.
+        // The demo schema is shared with the other ITs; the seed has no beer price.
         afterSpec {
-            jdbcTemplate.update("DELETE FROM public.team_members WHERE user_id = ?::uuid", TEST_ADMIN_ID)
-            jdbcTemplate.update("DELETE FROM public.users WHERE id = ?::uuid", TEST_ADMIN_ID)
+            jdbcTemplate.update("UPDATE ${DemoPersona.SCHEMA}.money_pool_settings SET beer_price_cents = NULL WHERE id = 1")
         }
 
         test("the guest reads the seeded connection: the fake Bunq's balance and payments, and a top-up link") {
@@ -75,7 +58,7 @@ class DemoMoneyPoolIT : TeamBalanceIT() {
                 """{"enabled":true,"beerPrice":null,"bunqMeLink":"https://bunq.me/elsewhere"}""",
                 """{"enabled":true,"beerPrice":null,"bunqMeLink":null}""",
             ).forEach { body ->
-                perform(putSettings(body), TEST_ADMIN_ID)
+                perform(putSettings(body), KEES)
                     .andExpect(MockMvcResultMatchers.status().isForbidden)
                     .andExpect(MockMvcResultMatchers.jsonPath("$.code").value("DEMO_TOP_UP_LINK_LOCKED"))
             }
@@ -83,7 +66,7 @@ class DemoMoneyPoolIT : TeamBalanceIT() {
         }
 
         test("an Admin can still change the other settings while the link is sent unchanged") {
-            perform(putSettings("""{"enabled":true,"beerPrice":270,"bunqMeLink":"bunq.me/demo/"}"""), TEST_ADMIN_ID)
+            perform(putSettings("""{"enabled":true,"beerPrice":270,"bunqMeLink":"bunq.me/demo/"}"""), KEES)
                 .andExpect(MockMvcResultMatchers.status().isOk)
                 .andExpect(MockMvcResultMatchers.jsonPath("$.beerPrice").value(270))
 

@@ -153,7 +153,7 @@ class BunqGatewaySelectionTest : FunSpec({
         }
 
         listOf("prod", "dev").forEach { profile ->
-            test("a value that is not none, sandbox or production stops the $profile context") {
+            test("a value that is not none, fake, sandbox or production stops the $profile context") {
                 runner(profile).withPropertyValues(*credentials("sanbox")).run { ctx ->
                     messagesOf(ctx.startupFailure) shouldContain "teambalance.bunq.environment"
                 }

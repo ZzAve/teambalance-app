@@ -4,6 +4,7 @@ import com.github.zzave.teambalance.api.application.TokenCipher.Purpose
 import com.github.zzave.teambalance.api.domain.exception.BunqConnectDisabledException
 import com.github.zzave.teambalance.api.domain.exception.BunqConnectionChangedException
 import com.github.zzave.teambalance.api.domain.exception.BunqGrantRejectedException
+import com.github.zzave.teambalance.api.domain.exception.DemoBunqConnectionLockedException
 import com.github.zzave.teambalance.api.domain.exception.BunqNotConnectedException
 import com.github.zzave.teambalance.api.domain.exception.UnknownBunqAccountException
 import com.github.zzave.teambalance.api.domain.model.BunqAccountId
@@ -71,6 +72,7 @@ class BunqConnectionService(
     private val clock: Clock,
     private val connectConfig: BunqConnectConfig?,
     private val moneyPoolCache: MoneyPoolCacheGateway,
+    private val demoTeam: TeamId? = null,
 ) {
     companion object {
         /** Where Bunq sends the browser back to; the API's own origin is prefixed by the composition root. */
@@ -172,6 +174,7 @@ class BunqConnectionService(
     /** Deletes the stored grant and the pick. Needs no cipher, so it also works while connecting is switched off. */
     fun disconnect(callerId: UserId, teamId: TeamId) {
         authorizationService.requireAdmin(callerId, teamId)
+        if (teamId == demoTeam) throw DemoBunqConnectionLockedException()
         connectionRepository.delete()
         moneyPoolCache.evict(teamId)
     }

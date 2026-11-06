@@ -1,6 +1,7 @@
 package com.github.zzave.teambalance.api.application
 
 import com.github.zzave.teambalance.api.domain.exception.EmptyRecurrenceException
+import com.github.zzave.teambalance.api.domain.exception.EventTypeArchivedException
 import com.github.zzave.teambalance.api.domain.exception.EventTypeNotFoundException
 import com.github.zzave.teambalance.api.domain.exception.RecurrenceExceedsCapException
 import com.github.zzave.teambalance.api.domain.model.Event
@@ -106,6 +107,7 @@ class EventService(
         authorizationService.requireAdmin(callerId, teamId)
         val eventType = eventTypeRepository.findById(potential.eventTypeId)
             ?: throw EventTypeNotFoundException(potential.eventTypeId)
+        if (eventType.archived) throw EventTypeArchivedException(eventType.id)
 
         requireKnownPositions(potential.rosterOverride)
 
@@ -165,6 +167,7 @@ class EventService(
         }
         val eventType = eventTypeRepository.findById(eventTypeId)
             ?: throw EventTypeNotFoundException(eventTypeId)
+        if (eventType.archived) throw EventTypeArchivedException(eventType.id)
 
         val dates = generateBoundedDates(recurrence)
         seasonPolicy().requireAllCreatable(dates)
@@ -237,6 +240,7 @@ class EventService(
         val target = eventRepository.findById(id) ?: return null
         val eventType = eventTypeRepository.findById(eventTypeId)
             ?: throw EventTypeNotFoundException(eventTypeId)
+        if (eventType.archived && eventType.id != target.eventType.id) throw EventTypeArchivedException(eventType.id)
         requireKnownPositions(rosterOverride)
 
         val series = seriesOf(target)

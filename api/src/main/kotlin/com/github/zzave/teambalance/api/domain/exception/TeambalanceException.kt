@@ -39,6 +39,12 @@ class UnknownRosterPositionException(id: PositionId) :
 class MigrationTargetInvalidException(reason: String) :
     BadRequestException("Invalid migration target: $reason", "INVALID_MIGRATION_TARGET")
 
+// An event cannot be created on, or moved to, an archived event type (#483): archived types are hidden
+// from every picker, so the event would land under a type nobody can choose again. An event that
+// already has the archived type may keep it.
+class EventTypeArchivedException(id: EventTypeId) :
+    BadRequestException("Event type is archived: $id", "EVENT_TYPE_ARCHIVED")
+
 // A photo over the size limit → 400 PHOTO_TOO_LARGE. Separate from INVALID_PHOTO so the client can tell
 // the member to pick a smaller picture rather than a different kind of file.
 class PhotoTooLargeException(maxBytes: Int) :

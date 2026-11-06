@@ -68,7 +68,7 @@ class CalendarLinkService(
         requireOwnAccess(callerId, teamId)
         val slug = slugOf(teamId)
         val now = clock.instant()
-        return calendarLinkRepository.findByUser(callerId).map { it.issued(slug, now) }
+        return calendarLinkRepository.findByUser(callerId).map { it.issued(teamId, slug, now) }
     }
 
     /**
@@ -89,11 +89,12 @@ class CalendarLinkService(
 
         val now = clock.instant()
         val token = tokens.mint()
+        val id = CalendarLinkId.random()
         val link = CalendarLink(
-            id = CalendarLinkId.random(),
+            id = id,
             userId = callerId,
             tokenHash = tokens.hash(token.value),
-            encryptedToken = tokens.conceal(token),
+            encryptedToken = tokens.conceal(token, teamId, id),
             label = CalendarLinkLabel.ofNullable(rawLabel),
             createdAt = now,
             expiresAt = now.plus(CalendarLink.TTL),
@@ -107,7 +108,7 @@ class CalendarLinkService(
         // Built from the token just minted rather than by decrypting what was stored: a create that
         // returned a URL is a create whose round trip through the cipher has not been exercised, and
         // the read path is where that gets proven anyway.
-        return link.issued(slugOf(teamId), now, token)
+        return link.issued(teamId, slugOf(teamId), now, token)
     }
 
     /**
@@ -130,7 +131,7 @@ class CalendarLinkService(
 
         val updated = calendarLinkRepository.updateOwned(id, callerId, CalendarLinkLabel.ofNullable(rawLabel), options)
             ?: throw CalendarLinkNotFoundException(id)
-        return updated.issued(slugOf(teamId), clock.instant())
+        return updated.issued(teamId, slugOf(teamId), clock.instant())
     }
 
     /**
@@ -176,7 +177,7 @@ class CalendarLinkService(
      * member unable to see the links, unable to get an id to delete one, and unable to create another
      * because the cap counts what they cannot see.
      */
-    private fun CalendarLink.issued(slug: Slug, now: Instant, token: CalendarToken? = reveal()) =
+    private fun CalendarLink.issued(teamId: TeamId, slug: Slug, now: Instant, token: CalendarToken? = reveal(teamId)) =
         IssuedCalendarLink(
             id = id,
             label = label,
@@ -187,5 +188,5 @@ class CalendarLinkService(
             options = options,
         )
 
-    private fun CalendarLink.reveal(): CalendarToken? = runCatching { tokens.reveal(encryptedToken) }.getOrNull()
+    private fun CalendarLink.reveal(teamId: TeamId): CalendarToken? = runCatching { tokens.reveal(encryptedToken, teamId, id) }.getOrNull()
 }

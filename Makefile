@@ -84,6 +84,9 @@ hooks: ## Install git hooks (pre-commit: lint, pre-push: test)
 
 # --- Code generation ---
 
+www: ## Build the landing page (Dutch at /, English at /en/) into www/dist
+	node www/build.mjs
+
 wirespec: ## Generate code from Wirespec definitions
 	./gradlew :api:wirespec-kotlin
 	./gradlew :api:wirespec-typescript

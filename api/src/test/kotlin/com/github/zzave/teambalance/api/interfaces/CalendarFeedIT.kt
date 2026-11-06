@@ -1,5 +1,7 @@
 package com.github.zzave.teambalance.api.interfaces
 
+import com.github.zzave.teambalance.api.domain.model.CalendarLinkId
+import com.github.zzave.teambalance.api.domain.model.TeamId
 import com.github.zzave.teambalance.api.TeamBalanceIT
 import com.github.zzave.teambalance.api.application.CalendarLinkTokens
 import com.github.zzave.teambalance.api.domain.model.CalendarToken
@@ -328,14 +330,15 @@ class CalendarFeedIT : TeamBalanceIT() {
             test("a link written without option rows by the previous release still serves everything") {
                 answeredThreeWays()
                 val token = calendarLinkTokens.mint()
+                val linkId = UUID.randomUUID()
                 jdbcTemplate.update(
                     """
                     INSERT INTO $ALPHA_SCHEMA.calendar_links
                         (id, user_id, token_hash, token_encrypted, label, created_at, expires_at)
                     VALUES (?::uuid, ?::uuid, ?, ?, NULL, ?, ?)
                     """,
-                    UUID.randomUUID(), ALPHA_MEMBER, calendarLinkTokens.hash(token.value).value,
-                    calendarLinkTokens.conceal(token).value,
+                    linkId, ALPHA_MEMBER, calendarLinkTokens.hash(token.value).value,
+                    calendarLinkTokens.conceal(token, TeamId(UUID.fromString(ALPHA_TEAM)), CalendarLinkId(linkId)).value,
                     Timestamp.from(Instant.now()), Timestamp.from(Instant.now().plusSeconds(3600)),
                 )
 
@@ -549,14 +552,15 @@ class CalendarFeedIT : TeamBalanceIT() {
             .migrate()
 
         val token = calendarLinkTokens.mint()
+        val linkId = UUID.randomUUID()
         jdbcTemplate.update(
             """
             INSERT INTO $MIGRATED_SCHEMA.calendar_links
                 (id, user_id, token_hash, token_encrypted, label, created_at, expires_at)
             VALUES (?::uuid, ?::uuid, ?, ?, NULL, ?, ?)
             """,
-            UUID.randomUUID(), MIGRATED_MEMBER, calendarLinkTokens.hash(token.value).value,
-            calendarLinkTokens.conceal(token).value,
+            linkId, MIGRATED_MEMBER, calendarLinkTokens.hash(token.value).value,
+            calendarLinkTokens.conceal(token, TeamId(UUID.fromString(MIGRATED_TEAM)), CalendarLinkId(linkId)).value,
             Timestamp.from(Instant.now()), Timestamp.from(Instant.now().plusSeconds(3600)),
         )
         val oldTraining = UUID.randomUUID().toString()

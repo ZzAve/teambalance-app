@@ -23,7 +23,7 @@ import java.time.Duration
 @AutoConfigureMockMvc
 @Import(DemoResetTestBeans::class)
 @ContextConfiguration(initializers = [OwnPostgresInitializer::class], inheritInitializers = false)
-@TestPropertySource(properties = ["teambalance.demo.enabled=false"])
+@TestPropertySource(properties = ["teambalance.demo.enabled=false", "teambalance.demo.reset-after=1h"])
 class DemoResetDisabledIT : TeamBalanceIT() {
 
     @Autowired lateinit var mockMvc: MockMvc

@@ -65,6 +65,7 @@ class MoneyPoolCompositionRoot {
         clock: Clock,
         @Qualifier(BunqGrantCipherConfiguration.BEAN_NAME) bunqGrantCipher: TokenCipher,
         environment: Environment,
+        @Value("\${teambalance.bunq.environment}") bunqEnvironment: String,
         @Value("\${teambalance.api-base-url}") apiBaseUrl: String,
         @Value("\${teambalance.bunq.connect-enabled}") connectEnabled: Boolean,
         moneyPoolCache: MoneyPoolCacheGateway,
@@ -78,7 +79,13 @@ class MoneyPoolCompositionRoot {
         actAsService = actAsService,
         authorizationService = authorizationService,
         clock = clock,
-        connectConfig = bunqConnectConfig(connectEnabled, environment.matchesProfiles("prod"), bunqGrantCipher, apiBaseUrl),
+        connectConfig = bunqConnectConfig(
+            connectEnabled,
+            environment.matchesProfiles("prod"),
+            bunqEnvironment,
+            bunqGrantCipher,
+            apiBaseUrl,
+        ),
         moneyPoolCache = moneyPoolCache,
     )
 
@@ -104,6 +111,7 @@ class MoneyPoolCompositionRoot {
 internal fun bunqConnectConfig(
     connectEnabled: Boolean,
     isProd: Boolean,
+    bunqEnvironment: String,
     grantCipher: TokenCipher,
     apiBaseUrl: String,
 ): BunqConnectConfig? {

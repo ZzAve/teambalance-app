@@ -15,22 +15,42 @@ import java.util.Base64
 private val KEY = Base64.getEncoder().encodeToString(ByteArray(32) { it.toByte() })
 private val CIPHER = TokenCipher.fromBase64Key(KEY, "test-key")
 private const val API = "https://api.example/"
+private val BUNQ_ENVIRONMENTS = listOf("none", "sandbox", "production")
 
 class BunqConnectConfigTest : FunSpec({
 
     context("connect settings") {
-        test("are absent while connecting is switched off, in prod too") {
-            bunqConnectConfig(false, true, CIPHER, API).shouldBeNull()
+        test("are absent while connecting is switched off, in prod too, whatever the Bunq environment") {
+            BUNQ_ENVIRONMENTS.forEach { bunqEnvironment ->
+                bunqConnectConfig(false, true, bunqEnvironment, CIPHER, API).shouldBeNull()
+            }
         }
 
         test("carry the callback url of this API when connecting is on") {
-            bunqConnectConfig(true, false, CIPHER, API)!!.callbackUrl shouldBe
+            bunqConnectConfig(true, false, "none", CIPHER, API)!!.callbackUrl shouldBe
                 "https://api.example/api/bunq/oauth/callback"
         }
 
-        test("refuse to start while connecting is on in prod") {
-            shouldThrow<IllegalStateException> { bunqConnectConfig(true, true, CIPHER, API) }
-                .message!! shouldContain "until Bunq reads and OAuth are verified for production"
+        test("are unchanged outside prod, whatever the Bunq environment") {
+            BUNQ_ENVIRONMENTS.forEach { bunqEnvironment ->
+                bunqConnectConfig(true, false, bunqEnvironment, CIPHER, API)!!.callbackUrl shouldBe
+                    "https://api.example/api/bunq/oauth/callback"
+            }
+        }
+
+        test("carry the callback url of this API in prod with the production Bunq environment") {
+            bunqConnectConfig(true, true, "production", CIPHER, API)!!.callbackUrl shouldBe
+                "https://api.example/api/bunq/oauth/callback"
+        }
+
+        listOf("none", "sandbox").forEach { bunqEnvironment ->
+            test("refuse to start while connecting is on in prod with Bunq environment $bunqEnvironment") {
+                val message = shouldThrow<IllegalStateException> { bunqConnectConfig(true, true, bunqEnvironment, CIPHER, API) }.message!!
+
+                message shouldContain "TEAMBALANCE_BUNQ_CONNECT_ENABLED"
+                message shouldContain "TEAMBALANCE_BUNQ_ENVIRONMENT"
+                message shouldContain "production"
+            }
         }
     }
 

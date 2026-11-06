@@ -59,7 +59,7 @@ class BunqConnectGuardWiringTest : FunSpec({
         "teambalance.bunq.client-secret=guard-test-client-secret",
     )
 
-    listOf("none", "sandbox", "production").forEach { bunqEnvironment ->
+    listOf("none", "sandbox").forEach { bunqEnvironment ->
         test("prod with connecting on refuses to start, with the Bunq environment $bunqEnvironment") {
             runner("prod")
                 .withPropertyValues("teambalance.bunq.connect-enabled=true", *environment(bunqEnvironment))
@@ -67,9 +67,15 @@ class BunqConnectGuardWiringTest : FunSpec({
                     val failure = runCatching { ctx.getBean(BunqConnectionService::class.java) }.exceptionOrNull().shouldNotBeNull()
 
                     val messages = generateSequence(failure) { it.cause }.mapNotNull { it.message }
-                    messages.any { it.contains("cannot be on in prod") } shouldBe true
+                    messages.any { it.contains("TEAMBALANCE_BUNQ_CONNECT_ENABLED can only be true in prod") } shouldBe true
                 }
         }
+    }
+
+    test("prod with connecting on starts, with the Bunq environment production") {
+        runner("prod")
+            .withPropertyValues("teambalance.bunq.connect-enabled=true", *environment("production"))
+            .run { ctx -> ctx.getBean(BunqConnectionService::class.java).shouldNotBeNull() }
     }
 
     test("prod with connecting off starts, with and without a Bunq environment") {

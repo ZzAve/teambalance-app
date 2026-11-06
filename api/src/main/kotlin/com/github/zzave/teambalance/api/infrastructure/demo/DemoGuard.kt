@@ -60,8 +60,13 @@ class DemoGuard(
     @param:Value("\${spring.datasource.hikari.data-source-j-n-d-i:}") dataSourceJndi: String,
     @param:Value("\${spring.datasource.jndi-name:}") jndiName: String,
 ) {
-    init {
+    private val refusal =
         demoBootRefusal(enabled, emailSend, bunqEnvironment, jdbcUrl, poolJdbcUrl, dataSourceClassName, dataSourceJndi, jndiName)
-            ?.let { error(it) }
+
+    /** True only when the switch is on and the boot check passed. The demo reset drops every team and asks this first. */
+    val safeToReset: Boolean = enabled && refusal == null
+
+    init {
+        refusal?.let { error(it) }
     }
 }

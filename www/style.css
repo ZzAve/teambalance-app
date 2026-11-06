@@ -56,3 +56,19 @@ body {
   background-color: var(--color-blue-light);
   box-shadow: var(--shadow-lg);
 }
+
+.lang-switch {
+  position: absolute;
+  top: 1rem;
+  right: 1.25rem;
+}
+
+.lang-switch a {
+  color: var(--color-text-secondary);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.lang-switch a:hover {
+  color: var(--color-blue);
+}

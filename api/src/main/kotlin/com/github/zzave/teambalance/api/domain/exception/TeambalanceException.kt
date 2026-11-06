@@ -131,6 +131,10 @@ class CannotChangeOwnRoleException(userId: UserId) :
 class NotUnderActAsException :
     ForbiddenException("This is not available while acting as a team", "ACT_AS_NOT_PERMITTED")
 
+// The demo team's top-up link points at the in-app demo page; the demo refuses any change to it (ADR-0043).
+class DemoTopUpLinkLockedException :
+    ForbiddenException("The top-up link cannot be changed in the demo", "DEMO_TOP_UP_LINK_LOCKED")
+
 // `code` is the stable machine-readable discriminator for 422 rejections — a request that is
 // well-formed but violates a business rule (not a state clash, so not a 409). Mirrors the code
 // convention of ForbiddenException/ConflictException.

@@ -17,7 +17,7 @@ class DemoGuardWiringTest : FunSpec({
     val safe = arrayOf(
         "teambalance.demo.enabled=true",
         "teambalance.email.send=false",
-        "teambalance.bunq.environment=none",
+        "teambalance.bunq.environment=fake",
         "spring.datasource.url=jdbc:postgresql://localhost:5432/teambalance",
     )
 
@@ -43,9 +43,11 @@ class DemoGuardWiringTest : FunSpec({
         startupFailureWith("teambalance.email.send=true").shouldNotBeNull().mentions("email.send") shouldBe true
     }
 
-    test("a Bunq environment other than none refuses to start") {
-        startupFailureWith("teambalance.bunq.environment=sandbox").shouldNotBeNull()
-            .mentions("bunq.environment") shouldBe true
+    listOf("none", "sandbox").forEach { environment ->
+        test("a Bunq environment other than fake ($environment) refuses to start") {
+            startupFailureWith("teambalance.bunq.environment=$environment").shouldNotBeNull()
+                .mentions("bunq.environment") shouldBe true
+        }
     }
 
     test("a remote datasource refuses to start") {

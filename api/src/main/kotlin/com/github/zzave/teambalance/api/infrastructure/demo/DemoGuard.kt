@@ -21,8 +21,7 @@ internal fun demoBootRefusal(
     when {
         !enabled -> null
         emailSend -> "teambalance.demo.enabled needs teambalance.email.send=false"
-        // shortcut: slice 0 has no `fake` Bunq environment yet; slice 2 replaces "none" with "fake" here.
-        !bunqEnvironment.equals("none", ignoreCase = true) -> "teambalance.demo.enabled needs teambalance.bunq.environment=none"
+        !bunqEnvironment.equals("fake", ignoreCase = true) -> "teambalance.demo.enabled needs teambalance.bunq.environment=fake"
         // With either set, Hikari builds its own DataSource and ignores every URL.
         dataSourceClassName.isNotBlank() || dataSourceJndi.isNotBlank() ->
             "teambalance.demo.enabled needs a datasource without hikari.data-source-class-name or data-source-j-n-d-i"

@@ -11,6 +11,10 @@ spring:
       maximum-pool-size: 8
 
 teambalance:
+  demo:
+    # A reset drops every schema: a long-lived cached IT context must never reset the shared Testcontainers DB.
+    # The reset ITs set their own value.
+    reset-after: 10000h
   api-base-url: http://localhost:8080
   calendar-link:
     # Hardcoded secrets for the test profile — live environments supply them via env.

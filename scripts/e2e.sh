@@ -28,6 +28,20 @@ for _ in $(seq 1 30); do
 done
 port_open 5432 || { echo "Postgres did not come up on :5432" >&2; exit 1; }
 
+# --- Own database: the demo reset step drops every schema of its database, so e2e never shares dev's `teambalance` ---
+E2E_DB=teambalance_e2e
+run_psql() {
+  if command -v psql >/dev/null 2>&1; then
+    PGPASSWORD=teambalance psql -h localhost -U teambalance -d postgres -tAc "$1"
+  else
+    docker compose exec -T postgres psql -U teambalance -d postgres -tAc "$1"
+  fi
+}
+if [ "$(run_psql "SELECT 1 FROM pg_database WHERE datname = '$E2E_DB'")" != "1" ]; then
+  echo "Creating database $E2E_DB"
+  run_psql "CREATE DATABASE $E2E_DB" >/dev/null
+fi
+
 # --- Backend (e2e profile) ---
 if port_open 8080; then
   echo "Something is already listening on :8080 — stop it first (make e2e owns the backend)" >&2

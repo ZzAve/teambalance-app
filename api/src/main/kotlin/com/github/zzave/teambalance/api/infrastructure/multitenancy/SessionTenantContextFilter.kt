@@ -77,9 +77,11 @@ class SessionTenantContextFilter(
     }
 
     /**
-     * Never writes the memo. A write from here commits at the end of the request, so one that resolved
-     * before a concurrent switch committed after it and put the previous Team back (#469). Only sign-in
-     * and a switch pin it; a session without one follows `last_active_team` on every request.
+     * Does not pin a memo for a session that has none. A write from here commits at the end of the
+     * request, so one that resolved before a concurrent switch committed after it and put the previous
+     * Team back (#469). Only sign-in and a switch pin it; a session without one follows
+     * `last_active_team` on every request. (The one thing this filter does write is clearing the memo
+     * when an act-as grant has lapsed.)
      */
     private fun memoized(session: HttpSession?, userId: UserId): TenantRouting? =
         TenantRoutingSession.read(session) ?: activeTeamService.resolveLanding(userId)

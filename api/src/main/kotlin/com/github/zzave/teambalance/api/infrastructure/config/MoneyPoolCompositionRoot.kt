@@ -66,6 +66,7 @@ class MoneyPoolCompositionRoot {
         @Qualifier(BunqGrantCipherConfiguration.BEAN_NAME) bunqGrantCipher: TokenCipher,
         environment: Environment,
         @Value("\${teambalance.bunq.environment}") bunqEnvironment: String,
+        @Value("\${teambalance.bunq.allow-sandbox-in-prod}") allowSandboxInProd: Boolean,
         @Value("\${teambalance.api-base-url}") apiBaseUrl: String,
         @Value("\${teambalance.bunq.connect-enabled}") connectEnabled: Boolean,
         moneyPoolCache: MoneyPoolCacheGateway,
@@ -83,6 +84,7 @@ class MoneyPoolCompositionRoot {
             connectEnabled,
             environment.matchesProfiles("prod"),
             bunqEnvironment,
+            allowSandboxInProd,
             bunqGrantCipher,
             apiBaseUrl,
         ),
@@ -105,20 +107,28 @@ class MoneyPoolCompositionRoot {
 
 /**
  * The connect settings, or null while connecting is switched off. In prod, switching it on is allowed only with the
- * production Bunq environment: with any other environment the app does not start, so the fake and the sandbox can never
- * be connected to in prod.
+ * production Bunq environment, or with the sandbox when [allowSandboxInProd] is set (the staging image sets it): with
+ * any other environment the app does not start, so the fake can never be connected to in prod and the sandbox only
+ * where it was allowed.
  */
 internal fun bunqConnectConfig(
     connectEnabled: Boolean,
     isProd: Boolean,
     bunqEnvironment: String,
+    allowSandboxInProd: Boolean,
     grantCipher: TokenCipher,
     apiBaseUrl: String,
 ): BunqConnectConfig? {
     if (!connectEnabled) return null
-    check(!isProd || bunqEnvironment.trim().equals("production", ignoreCase = true)) {
-        "TEAMBALANCE_BUNQ_CONNECT_ENABLED can only be true in prod when TEAMBALANCE_BUNQ_ENVIRONMENT is production " +
-            "(it is \"$bunqEnvironment\"). Set TEAMBALANCE_BUNQ_ENVIRONMENT to production, or " +
+    val environment = bunqEnvironment.trim()
+    check(
+        !isProd ||
+            environment.equals("production", ignoreCase = true) ||
+            (allowSandboxInProd && environment.equals("sandbox", ignoreCase = true)),
+    ) {
+        "TEAMBALANCE_BUNQ_CONNECT_ENABLED can only be true in prod when TEAMBALANCE_BUNQ_ENVIRONMENT is production, " +
+            "or sandbox with TEAMBALANCE_BUNQ_ALLOW_SANDBOX_IN_PROD=true (it is \"$bunqEnvironment\", " +
+            "allow sandbox: $allowSandboxInProd). Fix TEAMBALANCE_BUNQ_ENVIRONMENT, or set " +
             "TEAMBALANCE_BUNQ_CONNECT_ENABLED to false."
     }
     return BunqConnectConfig(grantCipher, apiBaseUrl.trimEnd('/') + BunqConnectionService.CALLBACK_PATH)

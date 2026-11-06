@@ -150,9 +150,11 @@ existed have no such tag; push to the PR once to get one.
   and `api/stg-entrypoint.sh`. It runs the `prod` profile; the stg differences are environment
   variables baked into the image: `TEAMBALANCE_DEMO_DATA_ENABLED=true` (`DemoDataSeeder` adds the
   demo team *Setpoint VT*), `TEAMBALANCE_EMAIL_SEND=false` (magic links and notifications are
-  logged, not sent), and the in-container datasource. Because stg runs the `prod` profile, connecting
-  with the `sandbox` Bunq environment is refused there too: only `production` is accepted with
-  `TEAMBALANCE_BUNQ_CONNECT_ENABLED=true`.
+  logged, not sent), `TEAMBALANCE_BUNQ_ALLOW_SANDBOX_IN_PROD=true` and the in-container datasource.
+  Because stg runs the `prod` profile, `TEAMBALANCE_BUNQ_CONNECT_ENABLED=true` is refused at startup
+  unless the Bunq environment is `production`; the baked flag also accepts `sandbox` on stg, so the
+  real sandbox OAuth round trip can run there (see *Connecting the Bunq sandbox on stg*). `none` is
+  still refused. Stg Bunq settings stay off until the operator sets them in the Scaleway console.
 - **Database:** Postgres runs inside the container on its temporary disk. Every cold start begins
   empty: Flyway builds the schema from V001. Nothing persists across scale-to-zero or a redeploy.
 - **Container:** same size as prod (2 vCPU / 2 GB, sandbox v2, min-scale 0). **max-scale must stay
@@ -166,6 +168,32 @@ existed have no such tag; push to the PR once to get one.
   `Started … in X seconds` line does not equal prod's. The `Startup benchmark:` line still compares.
 - **Log in:** request a magic link for a demo member (e.g. `jan@example.com`) and copy the token
   from the `Magic link for …` line in the container logs (Cockpit).
+
+### Connecting the Bunq sandbox on stg
+
+Stg has a stable https hostname and no real money, so it can run the real Bunq sandbox OAuth round
+trip. Prod is not involved and must never get `TEAMBALANCE_BUNQ_ALLOW_SANDBOX_IN_PROD`.
+
+1. **Create a sandbox OAuth client for the stg callback**, on your own machine: run
+   `BunqSandboxSetupIT` with `BUNQ_SANDBOX_IT=1`, `BUNQ_SANDBOX_DIR` and
+   `BUNQ_SANDBOX_REDIRECT_URL=https://<api-stg-host>/api/bunq/oauth/callback` (the KDoc of the spec
+   lists the inputs and what it does). It writes the client id and secret to its env file
+   (`~/.teambalance-bunq-sandbox.env`, mode 600). Copy them from there into the Scaleway console;
+   never paste them into chat, a ticket or the repository.
+2. **Set on the api-stg container:** `TEAMBALANCE_BUNQ_ENVIRONMENT=sandbox`,
+   `TEAMBALANCE_BUNQ_CLIENT_ID`, and `TEAMBALANCE_BUNQ_CLIENT_SECRET` as a secret env. Check that
+   `TEAMBALANCE_API_BASE_URL` and `TEAMBALANCE_FRONTEND_BASE_URL` are the stg hostnames (the image
+   bakes the former; the latter defaults to the prod SPA and has to be set). Wait until the app is
+   healthy, then set `TEAMBALANCE_BUNQ_CONNECT_ENABLED=true` last.
+3. **Log in** as in *Log in* above: magic links are logged on stg, not emailed, so read the link
+   from the container logs.
+4. **Connect** from the money pool as an Admin of the demo team. The consent at Bunq's authorize page
+   needs a phone: open the sandbox app and log in as the sandbox end user that `BunqSandboxSetupIT`
+   created (its alias and code are in `end-user.txt` in the sandbox directory), then approve there.
+5. **The stg database is wiped on every cold start**, and the stored connection with it. After
+   scale-to-zero or a redeploy, connect again.
+
+To switch it off, set `TEAMBALANCE_BUNQ_CONNECT_ENABLED` to `false` (or remove it) and restart.
 
 ## Container Registry retention
 
@@ -232,7 +260,8 @@ The deploy never touches the container's env/secret maps, so these are set manua
 | `TEAMBALANCE_BUNQ_ENVIRONMENT` | Unset or `none` (no Bunq: every Bunq call fails), `sandbox` or `production` (real adapter). **Must not be empty**; an empty or unknown value fails startup. |
 | `TEAMBALANCE_BUNQ_CLIENT_ID` | The Bunq OAuth client id. Blank with `sandbox`/`production` fails startup. |
 | `TEAMBALANCE_BUNQ_CLIENT_SECRET` | The Bunq OAuth client secret (a secret env). Blank with `sandbox`/`production` fails startup. |
-| `TEAMBALANCE_BUNQ_CONNECT_ENABLED` | Keep `false` (or unset) until Bunq reads and OAuth are verified for production and the production OAuth client exists. In prod, startup refuses `true` unless `TEAMBALANCE_BUNQ_ENVIRONMENT` is `production` (trimmed, case-insensitive); the refusal message names both variables. Set it last, after the environment and credentials are deployed and the app is healthy with connecting off. |
+| `TEAMBALANCE_BUNQ_CONNECT_ENABLED` | Keep `false` (or unset) until Bunq reads and OAuth are verified for production and the production OAuth client exists. In prod, startup refuses `true` unless `TEAMBALANCE_BUNQ_ENVIRONMENT` is `production` (trimmed, case-insensitive), or `sandbox` with `TEAMBALANCE_BUNQ_ALLOW_SANDBOX_IN_PROD=true` (stg only); the refusal message names both variables and the sandbox flag. Set it last, after the environment and credentials are deployed and the app is healthy with connecting off. |
+| `TEAMBALANCE_BUNQ_ALLOW_SANDBOX_IN_PROD` | Default `false`. With `true`, the `prod` profile accepts `TEAMBALANCE_BUNQ_CONNECT_ENABLED=true` with the `sandbox` environment too (`none` stays refused). **Baked into the stg image only** (`api/Dockerfile`, `stg` stage); **never set it on prod**, where connecting must stay limited to `production`. |
 | `TEAMBALANCE_BUNQ_TOKEN_ENCRYPTION_KEY` | Required in every environment (base64, 32 bytes); fails startup when missing. |
 
 The startup log says which gateway was wired (`Bunq gateway: real adapter, environment …` or

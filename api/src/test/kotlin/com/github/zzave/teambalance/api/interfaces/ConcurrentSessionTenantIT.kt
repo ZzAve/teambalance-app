@@ -111,10 +111,11 @@ class ConcurrentSessionTenantIT : TeamBalanceIT() {
             val slowRequest = sendAsync("GET", "/api/auth/me", cookie, hold = true)
             check(requestHold.awaitArrival()) { "request A never reached the hold" }
 
-            val switch = send("POST", "/api/teams/$TEAM_Y_SLUG/activate", cookie)
-            switch.statusCode() shouldBe 200
-
-            requestHold.release()
+            try {
+                send("POST", "/api/teams/$TEAM_Y_SLUG/activate", cookie).statusCode() shouldBe 200
+            } finally {
+                requestHold.release()
+            }
             slowRequest.get(30, TimeUnit.SECONDS).statusCode() shouldBe 200
 
             activeTeamSlugOnMe(cookie) shouldBe TEAM_Y_SLUG
@@ -242,8 +243,8 @@ class ConcurrentSessionTenantIT : TeamBalanceIT() {
 
     /**
      * Test seam: parks a request that carries [HEADER] once the security chain has run, which is
-     * after the tenant memo was resolved and written to the session and before the session commits.
-     * Requests without the header pass straight through.
+     * after the tenant routing was resolved from the session or the database and before the session
+     * commits. Requests without the header pass straight through.
      */
     class RequestHold : OncePerRequestFilter() {
         @Volatile private var arrived = CountDownLatch(1)

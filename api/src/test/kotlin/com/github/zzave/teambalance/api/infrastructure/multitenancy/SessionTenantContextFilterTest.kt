@@ -109,6 +109,23 @@ class SessionTenantContextFilterTest : TeamBalanceIT() {
             runFilter(session).wasSet shouldBe false
         }
 
+        // With no memo to trust, every request re-verifies the remembered Team, so a removal takes
+        // effect on the next request instead of lasting for the life of the session.
+        test("a session with no memo is not routed to a remembered Team its user no longer belongs to") {
+            tenantSchemaAdapter.provisionPlatformSchema()
+            val userId = UUID.randomUUID()
+            val teamId = UUID.randomUUID()
+            seedMember(userId, teamId, schemaFor(teamId))
+            activate(userId, teamId, MockHttpSession())
+            jdbcTemplate.update("DELETE FROM public.team_members WHERE user_id = ?", userId)
+
+            UserContext.set(userId)
+            val resolved = runFilter(MockHttpSession())
+
+            resolved.wasSet shouldBe false
+            resolved.teamId shouldBe null
+        }
+
         // The memo is a CORRECTNESS concern since #143, not a cache (ADR-0023 §2): it is what says
         // which Team the request is scoped to. This is the direct test that a switch overwrites it —
         // a switch that did not would leave the very next request reading the previous tenant.

@@ -1,11 +1,11 @@
 package com.github.zzave.teambalance.api.application
 
 import com.github.zzave.teambalance.api.application.TokenCipher.Purpose
-import com.github.zzave.teambalance.api.domain.exception.DemoBunqConnectionLockedException
 import com.github.zzave.teambalance.api.domain.exception.BunqConnectDisabledException
 import com.github.zzave.teambalance.api.domain.exception.BunqConnectionChangedException
 import com.github.zzave.teambalance.api.domain.exception.BunqGrantRejectedException
 import com.github.zzave.teambalance.api.domain.exception.BunqNotConnectedException
+import com.github.zzave.teambalance.api.domain.exception.DemoBunqConnectionLockedException
 import com.github.zzave.teambalance.api.domain.exception.NotTeamAdminException
 import com.github.zzave.teambalance.api.domain.exception.UnknownBunqAccountException
 import com.github.zzave.teambalance.api.domain.model.ActAs

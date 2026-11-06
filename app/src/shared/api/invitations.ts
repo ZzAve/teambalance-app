@@ -128,6 +128,7 @@ export function useAcceptInvitation() {
     mutationFn: async (token: string) => {
       const res = await api.acceptInvitation({ token })
       if (res.status === 404 || res.status === 401) throw new Error('invite link invalid or expired')
+      if (res.status === 403) throw new Error('You cannot accept this invitation.')
       return res.body
     },
   })

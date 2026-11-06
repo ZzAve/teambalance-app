@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { TopUpUnavailableError, topUpUrlOf } from './top-up-link'
+import { DEMO_TOP_UP_PATH, TopUpUnavailableError, topUpDestination, topUpUrlOf } from './top-up-link'
 
 describe('topUpUrlOf', () => {
   it('returns a bunq.me url from a 200', () => {
@@ -27,5 +27,15 @@ describe('topUpUrlOf', () => {
     for (const url of ['https://evil.example/x', 'http://bunq.me/x', 'javascript:alert(1)', undefined]) {
       expect(() => topUpUrlOf({ status: 200, body: { url } }), String(url)).toThrow(Error)
     }
+  })
+})
+
+describe('topUpDestination', () => {
+  it('follows the bunq.me url outside the demo build', () => {
+    expect(topUpDestination('https://bunq.me/setpointvt/20/x', false)).toBe('https://bunq.me/setpointvt/20/x')
+  })
+
+  it('stays in the app in the demo build', () => {
+    expect(topUpDestination('https://bunq.me/demo/20/x', true)).toBe(DEMO_TOP_UP_PATH)
   })
 })

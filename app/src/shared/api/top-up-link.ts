@@ -1,5 +1,13 @@
 const BUNQ_ME_PREFIX = 'https://bunq.me/'
 
+/** The in-app page the demo build opens instead of the pool's bunq.me page. */
+export const DEMO_TOP_UP_PATH = '/demo-top-up'
+
+/** The demo team's seeded link only has to look like a bunq.me page (the API and topUpUrlOf require it); nothing pays. */
+export function topUpDestination(url: string, demo: boolean): string {
+  return demo ? DEMO_TOP_UP_PATH : url
+}
+
 /** The pool is off or has no bunq.me link, so there is nothing to pay to. */
 export class TopUpUnavailableError extends Error {
   constructor() {

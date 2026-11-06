@@ -43,6 +43,7 @@ class MoneyPoolCompositionRoot {
         authorizationService: AuthorizationService,
         moneyPoolCache: MoneyPoolCacheGateway,
         receiptRepository: ReceiptRepository,
+        @Value("\${teambalance.demo.enabled:false}") demoMode: Boolean,
     ) = MoneyPoolService(
         settingsRepository = settingsRepository,
         connectionRepository = connectionRepository,
@@ -53,6 +54,7 @@ class MoneyPoolCompositionRoot {
         authorizationService = authorizationService,
         cache = moneyPoolCache,
         receiptRepository = receiptRepository,
+        demoMode = demoMode,
     )
 
     @Bean

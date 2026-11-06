@@ -75,6 +75,33 @@ class BunqGatewaySelectionTest : FunSpec({
         }
     }
 
+    context("the fake environment") {
+        test("outside prod wires the fake Bunq and its approval page, like none") {
+            runner("dev").withPropertyValues("teambalance.bunq.environment=fake").run { ctx ->
+                ctx.startupFailure.shouldBeNull()
+                ctx.getBean(BunqGateway::class.java).shouldBeInstanceOf<FakeBunqGatewayAdapter>()
+                ctx.getBeansOfType(FakeBunqAuthorizeController::class.java).size shouldBe 1
+            }
+        }
+
+        test("in prod with the demo switch on wires the fake Bunq and never the real adapter") {
+            runner("prod").withPropertyValues("teambalance.bunq.environment=fake", "teambalance.demo.enabled=true").run { ctx ->
+                ctx.startupFailure.shouldBeNull()
+                ctx.getBean(BunqGateway::class.java).shouldBeInstanceOf<FakeBunqGatewayAdapter>()
+                ctx.getBeanNamesForType(RealBunqGatewayAdapter::class.java).toList().shouldBeEmpty()
+                ctx.getBeanNamesForType(FakeBunqAuthorizeController::class.java).toList().shouldBeEmpty()
+            }
+        }
+
+        test("in prod with the demo switch off or unset stops the context") {
+            listOf(arrayOf("teambalance.demo.enabled=false"), emptyArray()).forEach { demo ->
+                runner("prod").withPropertyValues("teambalance.bunq.environment=fake", *demo).run { ctx ->
+                    messagesOf(ctx.startupFailure) shouldContain "teambalance.demo.enabled=true"
+                }
+            }
+        }
+    }
+
     context("in prod") {
         test("without a Bunq environment the unconfigured gateway is wired") {
             runner("prod").run { ctx ->

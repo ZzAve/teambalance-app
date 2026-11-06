@@ -229,7 +229,7 @@ The deploy never touches the container's env/secret maps, so these are set manua
 
 | Variable | Value |
 |----------|-------|
-| `TEAMBALANCE_BUNQ_ENVIRONMENT` | Unset or `none` (no Bunq: every Bunq call fails), `sandbox` or `production` (real adapter). **Must not be empty**; an empty or unknown value fails startup. |
+| `TEAMBALANCE_BUNQ_ENVIRONMENT` | Unset or `none` (no Bunq: every Bunq call fails), `sandbox` or `production` (real adapter), `fake` (fake Bunq; startup refuses it in prod unless `TEAMBALANCE_DEMO_ENABLED=true`, only the demo container sets both). **Must not be empty**; an empty or unknown value fails startup. |
 | `TEAMBALANCE_BUNQ_CLIENT_ID` | The Bunq OAuth client id. Blank with `sandbox`/`production` fails startup. |
 | `TEAMBALANCE_BUNQ_CLIENT_SECRET` | The Bunq OAuth client secret (a secret env). Blank with `sandbox`/`production` fails startup. |
 | `TEAMBALANCE_BUNQ_CONNECT_ENABLED` | Keep `false` (or unset) until Bunq reads and OAuth are verified for production and the production OAuth client exists. In prod, startup refuses `true` unless `TEAMBALANCE_BUNQ_ENVIRONMENT` is `production` (trimmed, case-insensitive); the refusal message names both variables. Set it last, after the environment and credentials are deployed and the app is healthy with connecting off. |

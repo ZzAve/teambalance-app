@@ -42,3 +42,8 @@ SELECT
 FROM team_de_smashers.event_types et
 WHERE et.name = 'Training'
 ON CONFLICT DO NOTHING;
+
+-- The pool's top-up link. The demo build's Top up button opens the in-app demo page instead of following it; the
+-- value only has to be a bunq.me page, which the API and the SPA both require. MoneyPoolService refuses to change it.
+-- The Bunq connection is written by DemoTeamSeeder: its grant is encrypted for this team, which SQL cannot do.
+UPDATE team_de_smashers.money_pool_settings SET bunq_me_link = 'https://bunq.me/demo' WHERE id = 1;

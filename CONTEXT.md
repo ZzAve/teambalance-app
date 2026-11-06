@@ -261,7 +261,7 @@ The backend is hexagonal (ports & adapters). These boundaries are enforced by th
 `com.github.zzave.teambalance.api` are **domain**, **application**, **infrastructure**, and
 **interfaces**.
 
-- **Domain** — Entities, value objects, and domain events. Framework-free: no Spring, JPA, or
+- **Domain** — Entities, value objects, and domain events. Framework-free: no Spring, jOOQ, or
   other framework imports. The innermost layer; depends on nothing else here.
 - **Application** — Use cases (the `*Service` orchestrators) and the **port** interfaces they
   need. Also framework-free (this is the stricter half of [ADR-0018](docs/adr/0018-enforce-hexagonal-architecture-with-flock-detekt.md)):
@@ -270,13 +270,13 @@ The backend is hexagonal (ports & adapters). These boundaries are enforced by th
   application needs from the outside world (`EventRepository`, `EmailGateway`, `CurrentUserGateway`).
   Named with a `Repository`, `Gateway`, `Port`, or `Client` suffix. The dependency-inversion seam:
   the application depends on the port, never on the adapter. _Avoid_: interface, service interface.
-- **Adapter** — A concrete implementation of a **port** living in **infrastructure** (a JPA
+- **Adapter** — A concrete implementation of a **port** living in **infrastructure** (a jOOQ
   repository, the Bunq client, an email sender). Named `*Adapter` or `*Impl`. Adapters talk to the
   domain through ports, never directly to one another. _Avoid_: implementation, provider, gateway
   (a gateway is the *port*, its adapter is the implementation).
 - **Value Object** — A domain type that replaces a raw primitive with a meaningful, type-safe one
   — a Kotlin `@JvmInline value class` wrapping a single value (`EventId(UUID)`, `Email(String)`).
-  Converted to/from its primitive **only at the edges** (the JPA entity mapper and the Wirespec DTO
+  Converted to/from its primitive **only at the edges** (the jOOQ record mapping in the adapters and the Wirespec DTO
   mapper); the Wirespec contract and DB schema are unchanged. _Avoid_: wrapper, id class.
 - **Composition Root** — The single Spring `@Configuration` in **infrastructure** that constructs
   the framework-free application services from their ports. The **only** place autowiring happens

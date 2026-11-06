@@ -2,6 +2,7 @@ package com.github.zzave.teambalance.api.application
 
 import com.github.zzave.teambalance.api.application.TokenCipher.Purpose
 import com.github.zzave.teambalance.api.domain.exception.BunqGrantRejectedException
+import com.github.zzave.teambalance.api.domain.exception.DemoTopUpLinkLockedException
 import com.github.zzave.teambalance.api.domain.model.BunqAccountId
 import com.github.zzave.teambalance.api.domain.model.BunqGrant
 import com.github.zzave.teambalance.api.domain.model.EncryptedToken
@@ -37,6 +38,8 @@ class MoneyPoolService(
     private val receiptRepository: ReceiptRepository,
     private val paymentAliasRepository: PaymentAliasRepository,
     private val teamMemberRepository: TeamMemberRepository,
+    /** The demo container (ADR-0043): the top-up link is fixed, so a visitor cannot point the Top up button elsewhere. */
+    private val demoMode: Boolean = false,
 ) {
     /**
      * Readable by any member. A stored grant that does not decrypt or that Bunq rejects is
@@ -71,9 +74,10 @@ class MoneyPoolService(
         return settingsRepository.get()
     }
 
-    /** Admin-only. Replaces all settings; a null price or link clears it. */
+    /** Admin-only. Replaces all settings; a null price or link clears it. In demo mode the link may not change. */
     fun updateSettings(callerId: UserId, teamId: TeamId, settings: MoneyPoolSettings): MoneyPoolSettings {
         authorizationService.requireAdmin(callerId, teamId)
+        if (demoMode && settings.bunqMeLink != settingsRepository.get().bunqMeLink) throw DemoTopUpLinkLockedException()
         return settingsRepository.save(settings)
     }
 

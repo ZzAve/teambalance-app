@@ -38,6 +38,7 @@ private const val EVENT_ID = "d0000000-0000-0000-0000-000000000031"
         "teambalance.demo.enabled=true",
         "teambalance.email.send=false",
         "teambalance.passkeys.enabled=false",
+        "teambalance.bunq.environment=fake",
         "teambalance.csrf.cookie-name=DEMO-XSRF-TOKEN",
     ],
 )

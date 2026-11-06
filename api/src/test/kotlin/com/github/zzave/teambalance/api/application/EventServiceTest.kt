@@ -1,5 +1,6 @@
 package com.github.zzave.teambalance.api.application
 
+import com.github.zzave.teambalance.api.domain.exception.EventTypeArchivedException
 import com.github.zzave.teambalance.api.domain.exception.NotTeamAdminException
 import com.github.zzave.teambalance.api.domain.model.DisplayName
 import com.github.zzave.teambalance.api.domain.model.Event
@@ -17,6 +18,7 @@ import com.github.zzave.teambalance.api.domain.model.PositionLabel
 import com.github.zzave.teambalance.api.domain.model.Recurrence
 import com.github.zzave.teambalance.api.domain.model.RecurrenceFrequency
 import com.github.zzave.teambalance.api.domain.model.Role
+import com.github.zzave.teambalance.api.domain.model.Season
 import com.github.zzave.teambalance.api.domain.model.TeamId
 import com.github.zzave.teambalance.api.domain.model.TenantRouting
 import com.github.zzave.teambalance.api.domain.model.TeamMember
@@ -117,6 +119,42 @@ private class EventFakeMemberRepo(private val admins: Set<UserId>) : TeamMemberR
     override fun markOnboarded(teamId: TeamId, userId: UserId, at: Instant) = Unit
     override fun countAdmins(teamId: TeamId): Int = admins.size
     override fun countByPosition(teamId: TeamId, positionId: PositionId): Int = 0
+}
+
+private class FixedEventTypeRepo(private val types: List<EventType>) : EventTypeRepository {
+    override fun findAll(): List<EventType> = types.filterNot { it.archived }
+    override fun findById(id: EventTypeId): EventType? = types.find { it.id == id }
+    override fun countTargetsForPosition(positionId: PositionId): Int = error("unused")
+    override fun create(name: EventTypeName, color: HexColor?, rosterDefault: RosterRequirement): EventType =
+        error("unused")
+    override fun update(
+        id: EventTypeId,
+        name: EventTypeName,
+        color: HexColor?,
+        rosterDefault: RosterRequirement,
+    ): EventType = error("unused")
+    override fun archive(id: EventTypeId, migrateEventsTo: EventTypeId?): EventType = error("unused")
+    override fun unarchive(id: EventTypeId): EventType = error("unused")
+}
+
+private class StoringEventRepo(private val existing: List<Event> = emptyList()) : EventRepository {
+    val saved = mutableListOf<Event>()
+
+    override fun findById(id: EventId): Event? = existing.find { it.id == id }
+    override fun findByRecurringGroup(group: UUID): List<Event> = existing.filter { it.recurringGroup == group }
+    override fun save(event: Event): Event = event.also { saved += it }
+    override fun saveAll(events: List<Event>): List<Event> = events.also { saved += it }
+    override fun findByIds(ids: List<EventId>): List<Event> = error("unused")
+    override fun findUpcoming(since: Instant): List<Event> = error("unused")
+    override fun findMostRecent(limit: Int): List<Event> = error("unused")
+    override fun deleteById(id: EventId) = error("unused")
+    override fun deleteAllById(ids: List<EventId>) = error("unused")
+    override fun countTargetsForPosition(positionId: PositionId): Int = error("unused")
+}
+
+private class UnsetSeasonRepo : SeasonRepository {
+    override fun get() = Season.UNSET
+    override fun save(season: Season) = error("unused")
 }
 
 /**
@@ -228,6 +266,136 @@ class EventServiceTest : FunSpec() {
                     ),
                 )
             }
+        }
+
+        // --- archived event types (#483) -------------------------------------------------------
+
+        val admin = UserId.random()
+        val activeType = EventType(EventTypeId(UUID.randomUUID()), EventTypeName("Training"), null)
+        val archivedType = EventType(EventTypeId(UUID.randomUUID()), EventTypeName("Old"), null, archived = true)
+        val otherArchivedType = EventType(EventTypeId(UUID.randomUUID()), EventTypeName("Older"), null, archived = true)
+
+        fun adminServiceOver(events: StoringEventRepo) = EventService(
+            events,
+            FixedEventTypeRepo(listOf(activeType, archivedType, otherArchivedType)),
+            UnsetSeasonRepo(),
+            ExplodingPositionRepo(),
+            AuthorizationService(EventFakeMemberRepo(admins = setOf(admin)), FakeActAsGateway()),
+            Clock.fixed(Instant.EPOCH, ZoneOffset.UTC),
+        )
+
+        fun eventOf(type: EventType) = Event(
+            id = EventId.random(),
+            eventType = type,
+            title = EventTitle("Match"),
+            description = null,
+            startTime = potential.startTime,
+            endTime = potential.endTime,
+            location = null,
+            recurringGroup = null,
+            createdBy = admin,
+            createdAt = Instant.EPOCH,
+        )
+
+        fun EventService.updateTo(event: Event, typeId: EventTypeId) = updateEvent(
+            callerId = admin,
+            teamId = teamId,
+            id = event.id,
+            scope = EventSeriesScope.THIS,
+            eventTypeId = typeId,
+            title = EventTitle("Renamed"),
+            description = null,
+            startTime = event.startTime,
+            endTime = event.endTime,
+            location = null,
+        )
+
+        fun EventService.recurringOn(typeId: EventTypeId) = createRecurringEvents(
+            callerId = admin,
+            teamId = teamId,
+            eventTypeId = typeId,
+            title = EventTitle("Training"),
+            description = null,
+            location = null,
+            timeOfDay = LocalTime.of(20, 0),
+            durationMinutes = 90,
+            references = emptyList(),
+            recurrence = Recurrence(
+                frequency = RecurrenceFrequency.WEEKLY,
+                weekdays = setOf(DayOfWeek.TUESDAY),
+                startDate = LocalDate.of(2026, 8, 1),
+                endDate = LocalDate.of(2026, 8, 31),
+            ),
+        )
+
+        test("createEvent on an archived event type is rejected and nothing is saved") {
+            val events = StoringEventRepo()
+
+            shouldThrow<EventTypeArchivedException> {
+                adminServiceOver(events).createEvent(admin, teamId, potential.copy(eventTypeId = archivedType.id))
+            }
+
+            events.saved shouldBe emptyList()
+        }
+
+        test("createEvent on an active event type still works") {
+            val events = StoringEventRepo()
+
+            adminServiceOver(events).createEvent(admin, teamId, potential.copy(eventTypeId = activeType.id))
+
+            events.saved.single().eventType shouldBe activeType
+        }
+
+        test("createRecurringEvents on an archived event type is rejected and nothing is saved") {
+            val events = StoringEventRepo()
+
+            shouldThrow<EventTypeArchivedException> { adminServiceOver(events).recurringOn(archivedType.id) }
+
+            events.saved shouldBe emptyList()
+        }
+
+        test("createRecurringEvents on an active event type still works") {
+            val events = StoringEventRepo()
+
+            adminServiceOver(events).recurringOn(activeType.id)
+
+            events.saved.isNotEmpty() shouldBe true
+        }
+
+        test("updateEvent that keeps the event's current archived type is allowed") {
+            val event = eventOf(archivedType)
+            val events = StoringEventRepo(listOf(event))
+
+            adminServiceOver(events).updateTo(event, archivedType.id)
+
+            events.saved.single().eventType shouldBe archivedType
+        }
+
+        test("updateEvent that moves the event to a different archived type is rejected") {
+            val event = eventOf(otherArchivedType)
+            val events = StoringEventRepo(listOf(event))
+
+            shouldThrow<EventTypeArchivedException> { adminServiceOver(events).updateTo(event, archivedType.id) }
+
+            events.saved shouldBe emptyList()
+        }
+
+        test("updateEvent that moves an active-typed event to an archived type is rejected") {
+            val event = eventOf(activeType)
+            val events = StoringEventRepo(listOf(event))
+
+            shouldThrow<EventTypeArchivedException> { adminServiceOver(events).updateTo(event, archivedType.id) }
+
+            events.saved shouldBe emptyList()
+        }
+
+        test("updateEvent that moves an archived-typed event to an active type is allowed") {
+            val event = eventOf(archivedType)
+            val events = StoringEventRepo(listOf(event))
+
+            adminServiceOver(events).updateTo(event, activeType.id)
+
+            events.saved.single().eventType shouldBe activeType
         }
 
         // --- the include-past cap (#310) -------------------------------------------------------

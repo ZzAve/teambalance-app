@@ -46,7 +46,15 @@ export const Shells: Story = {
 
 export const Interactions: Story = {
   play: async ({ canvas, args }) => {
+    await expect(canvas.getByRole('complementary', { name: 'Demo' })).toHaveTextContent(
+      'This is a demo — data is wiped every hour',
+    )
+    await expect(canvas.getByRole('link', { name: 'Start your own team' })).toHaveAttribute(
+      'href',
+      args.startTeamHref,
+    )
+    await expect(args.onSwitchRole).not.toHaveBeenCalled()
     await userEvent.click(canvas.getByRole('button', { name: 'Switch role' }))
-    await expect(args.onSwitchRole).toHaveBeenCalledTimes(1)
+    await expect(args.onSwitchRole).toHaveBeenCalledWith()
   },
 }

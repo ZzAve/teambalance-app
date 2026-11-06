@@ -1,6 +1,7 @@
 import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router'
 import { useQueryClient } from '@tanstack/react-query'
 import { authMeQueryOptions } from '@shared/api/auth'
+import { LOGIN_PATH } from '@shared/api/auth-redirect'
 import { queryClient } from '@shared/api/query-client'
 import { CreateTeamError, useCreateTeam } from '@shared/api/teams'
 import { teamRoutes } from '@shared/lib/team-routes'
@@ -12,7 +13,7 @@ export const Route = createFileRoute('/create-team/')({
   // already playing in a Team can start another.
   beforeLoad: async () => {
     const user = await queryClient.ensureQueryData(authMeQueryOptions).catch(() => null)
-    if (!user) throw redirect({ to: '/login' })
+    if (!user) throw redirect({ to: LOGIN_PATH })
   },
   component: CreateTeamPage,
 })

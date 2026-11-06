@@ -1,5 +1,6 @@
 import { createFileRoute, redirect, Outlet } from '@tanstack/react-router'
 import { authMeQueryOptions } from '@shared/api/auth'
+import { LOGIN_PATH } from '@shared/api/auth-redirect'
 import { currentMemberQueryOptions } from '@shared/api/members'
 import { queryClient } from '@shared/api/query-client'
 import { activateTeam } from '@shared/api/teams'
@@ -16,7 +17,7 @@ import { teamRoutes } from '@shared/lib/team-routes'
 export const Route = createFileRoute('/t/$slug')({
   beforeLoad: async ({ params, location }) => {
     let user = await queryClient.ensureQueryData(authMeQueryOptions).catch(() => null)
-    if (!user) throw redirect({ to: '/login' })
+    if (!user) throw redirect({ to: LOGIN_PATH })
 
     if (user.activeTeam?.slug !== params.slug) {
       const activated = await activateTeam(params.slug).catch(() => null)
@@ -26,7 +27,7 @@ export const Route = createFileRoute('/t/$slug')({
       // empties the cache without telling those observers to refetch.
       await queryClient.resetQueries()
       user = await queryClient.ensureQueryData(authMeQueryOptions).catch(() => null)
-      if (!user) throw redirect({ to: '/login' })
+      if (!user) throw redirect({ to: LOGIN_PATH })
     }
 
     // A Platform Admin acting-as is structurally not a member of this team (ADR-0024 §3), so

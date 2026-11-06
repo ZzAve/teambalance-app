@@ -10,6 +10,7 @@ import { TeamSwitcher } from '@features/switch-team/ui/TeamSwitcher'
 import { ActAsBanner } from '@features/act-as/ui/ActAsBanner'
 import { DemoBanner } from '@widgets/demo-banner/ui/DemoBanner'
 import { LOGIN_PATH } from '@shared/api/auth-redirect'
+import { IS_DEMO_BUILD } from '@shared/lib/demo-build'
 import { queryClient } from '@shared/api/query-client'
 import { directionFromIndices } from '@shared/lib/view-transition-direction'
 import { useThemeSync } from '@shared/theme/theme-store'
@@ -105,7 +106,7 @@ function RootLayout() {
       <AppShellFrame teamSwitcher={<TeamSwitcher />} banner={
           <>
             {/* Demo build only (VITE_DEMO); its own element, outside the act-as banner, so the two share no state. */}
-            {import.meta.env.VITE_DEMO && <DemoBanner />}
+            {IS_DEMO_BUILD && <DemoBanner />}
             <ActAsBanner />
           </>
         } nav={<BottomNav />}>

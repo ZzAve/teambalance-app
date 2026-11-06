@@ -40,4 +40,7 @@ test('demo guest login: /demo -> Sanne -> answer Going -> the answer persists', 
   await expect(page.getByRole('button', { name: 'Play as Kees (coach)' })).toBeVisible()
   await page.goto('/t/de-smashers/events')
   await expect(page).toHaveURL(/\/demo$/, { timeout: 10_000 })
+  // The magic-link screen is never shown in the demo build.
+  await page.goto('/login')
+  await expect(page).toHaveURL(/\/demo$/, { timeout: 10_000 })
 })

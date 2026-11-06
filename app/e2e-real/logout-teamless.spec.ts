@@ -1,5 +1,4 @@
 import { test, expect } from '@playwright/test'
-import { LOGIN_URL } from './helpers'
 
 // Real e2e (ADR-0027, Slice 4): log out from a TEAMLESS session — the one logout seam the login and
 // attendance flows never exercise, so it earns a single new flow (ADR-0017's bar).
@@ -47,7 +46,7 @@ test('log out from a teamless session returns to login and ends the session', as
 
   // 4. Log out → a clean server-side teardown, then a hard-redirect to /login.
   await page.getByRole('button', { name: 'Log out' }).click()
-  await expect(page).toHaveURL(LOGIN_URL)
+  await expect(page).toHaveURL('/login')
   await expect(page.getByRole('heading', { name: 'TeamBalance' })).toBeVisible()
 
   // 5. The session is gone server-side: /auth/me no longer resolves to a user.

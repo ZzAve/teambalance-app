@@ -22,6 +22,7 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
     properties = [
         "teambalance.demo.enabled=true",
         "teambalance.email.send=false",
+        "teambalance.bunq.environment=fake",
         "teambalance.rate-limit.demo-session.capacity=10",
     ],
 )

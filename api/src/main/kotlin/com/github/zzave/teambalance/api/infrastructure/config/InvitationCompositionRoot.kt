@@ -2,6 +2,7 @@ package com.github.zzave.teambalance.api.infrastructure.config
 
 import com.github.zzave.teambalance.api.application.ActiveTeamService
 import com.github.zzave.teambalance.api.application.AuthorizationService
+import com.github.zzave.teambalance.api.application.DemoProtection
 import com.github.zzave.teambalance.api.application.InvitationService
 import com.github.zzave.teambalance.api.application.TokenCipher
 import com.github.zzave.teambalance.api.domain.port.InvitationRepository
@@ -40,6 +41,7 @@ class InvitationCompositionRoot {
         clock: Clock,
         @Value("\${teambalance.invitation.token-salt}") tokenSalt: String,
         @Qualifier(INVITATION_TOKEN_CIPHER) tokenCipher: TokenCipher,
+        @Value("\${teambalance.demo.enabled:false}") demoEnabled: Boolean,
     ) = InvitationService(
         invitationRepository = invitationRepository,
         teamMemberRepository = teamMemberRepository,
@@ -48,6 +50,7 @@ class InvitationCompositionRoot {
         clock = clock,
         tokenSalt = tokenSalt,
         tokenCipher = tokenCipher,
+        demoProtection = DemoProtection.ofDemoTeam().takeIf { demoEnabled },
     )
 
     companion object {

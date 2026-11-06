@@ -132,7 +132,7 @@ class MemberService(
     fun removeMember(callerId: UserId, teamId: TeamId, targetUserId: UserId) {
         authorizationService.requireAdmin(callerId, teamId)
         demoProtection?.requireNotProtected(teamId, targetUserId)
-        val targetRole =teamMemberRepository.findRole(teamId, targetUserId)
+        val targetRole = teamMemberRepository.findRole(teamId, targetUserId)
             ?: throw MemberNotFoundException(targetUserId)
         if (targetRole == Role.ADMIN && teamMemberRepository.countAdmins(teamId) <= 1) {
             throw LastAdminException(teamId)

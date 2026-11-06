@@ -64,6 +64,13 @@ class DemoGuardRailsIT : TeamBalanceIT() {
         }
         // The demo schema is shared with the other ITs: leave the roster as the seed made it.
         afterSpec {
+            // The edit test sends no position or shirt number, which clears them: put the seed back.
+            jdbcTemplate.update(
+                "UPDATE ${DemoPersona.SCHEMA}.member_profiles SET position_id = ?::uuid, shirt_number = 7 WHERE user_id = ?::uuid",
+                "d0000000-0000-0000-0002-000000000002",
+                SANNE,
+            )
+            jdbcTemplate.update("DELETE FROM public.invitations WHERE team_id = ?::uuid AND role = 'ADMIN'", DEMO_TEAM)
             jdbcTemplate.update("DELETE FROM public.team_members WHERE team_id = ?::uuid", OTHER_TEAM)
             jdbcTemplate.update(
                 "DELETE FROM public.team_members WHERE team_id = ?::uuid AND user_id = ?::uuid",
@@ -95,6 +102,30 @@ class DemoGuardRailsIT : TeamBalanceIT() {
                 .andExpect(MockMvcResultMatchers.jsonPath("$.code").value("DEMO_PERSONA_PROTECTED"))
             role(DEMO_TEAM, KEES) shouldBe "ADMIN"
             role(DEMO_TEAM, SANNE) shouldBe "USER"
+        }
+
+        test("an admin handover link cannot promote Sanne, and the link stays unspent") {
+            val created = perform(MockMvcRequestBuilders.post("/api/invitations/admin"), KEES)
+                .andExpect(MockMvcResultMatchers.status().isCreated)
+                .andReturn().response.contentAsString
+            val token = Regex(""""token":"([^"]+)"""").find(created)!!.groupValues[1]
+
+            perform(MockMvcRequestBuilders.post("/api/invitations/$token/accept"), SANNE)
+                .andExpect(MockMvcResultMatchers.status().isForbidden)
+                .andExpect(MockMvcResultMatchers.jsonPath("$.code").value("DEMO_PERSONA_PROTECTED"))
+            role(DEMO_TEAM, SANNE) shouldBe "USER"
+            jdbcTemplate.queryForObject(
+                "SELECT count(*) FROM public.invitations WHERE team_id = ?::uuid AND role = 'ADMIN' AND consumed_at IS NULL",
+                Int::class.java,
+                DEMO_TEAM,
+            ) shouldBe 1
+        }
+
+        test("the Bunq connection of the demo team cannot be disconnected") {
+            perform(MockMvcRequestBuilders.delete("/api/team/money-pool/connection"), KEES)
+                .andExpect(MockMvcResultMatchers.status().isForbidden)
+                .andExpect(MockMvcResultMatchers.jsonPath("$.code").value("DEMO_BUNQ_CONNECTION_LOCKED"))
+            jdbcTemplate.queryForObject("SELECT count(*) FROM ${DemoPersona.SCHEMA}.bunq_connection", Int::class.java) shouldBe 1
         }
 
         test("a persona can still be edited without a role change") {

@@ -39,5 +39,5 @@ jobs:
       - name: Delete old image tags
         run: ./.github/scripts/registry-cleanup.sh
         env:
-          SCW_REGION: fr-par
+          SCW_DEFAULT_REGION: fr-par
           DRY_RUN: ${{ inputs.dry_run && '1' || '0' }}

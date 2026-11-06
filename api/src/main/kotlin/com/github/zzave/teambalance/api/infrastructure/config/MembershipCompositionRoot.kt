@@ -1,6 +1,7 @@
 package com.github.zzave.teambalance.api.infrastructure.config
 
 import com.github.zzave.teambalance.api.application.AuthorizationService
+import com.github.zzave.teambalance.api.application.DemoProtection
 import com.github.zzave.teambalance.api.application.MemberService
 import com.github.zzave.teambalance.api.application.PhotoService
 import com.github.zzave.teambalance.api.application.PositionService
@@ -10,6 +11,7 @@ import com.github.zzave.teambalance.api.domain.port.PhotoRepository
 import com.github.zzave.teambalance.api.domain.port.PositionRepository
 import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
 import com.github.zzave.teambalance.api.domain.port.UserRepository
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import java.time.Clock
@@ -30,12 +32,14 @@ class MembershipCompositionRoot {
         positionRepository: PositionRepository,
         authorizationService: AuthorizationService,
         clock: Clock,
+        @Value("\${teambalance.demo.enabled:false}") demoEnabled: Boolean,
     ) = MemberService(
         userRepository = userRepository,
         teamMemberRepository = teamMemberRepository,
         positionRepository = positionRepository,
         authorizationService = authorizationService,
         clock = clock,
+        demoProtection = DemoProtection.ofDemoTeam().takeIf { demoEnabled },
     )
 
     // No event ports here any more (ADR-0026). Deleting a position used to have to reach into the

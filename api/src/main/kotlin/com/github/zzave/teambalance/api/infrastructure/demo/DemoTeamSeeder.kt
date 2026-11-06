@@ -53,7 +53,7 @@ class DemoTeamSeeder(
             ON CONFLICT (id) DO UPDATE SET bunq_account_id = EXCLUDED.bunq_account_id,
                 access_token_encrypted = EXCLUDED.access_token_encrypted
             """,
-            FAKE_BUNQ_TEAMKAS,
+            FAKE_BUNQ_DEMO_ACCOUNT,
             grant.value,
             DemoPersona.MEMBER.userId.value,
         )
@@ -62,7 +62,7 @@ class DemoTeamSeeder(
     private companion object {
         const val SEEDED_GRANT = "fake:demo:seeded"
 
-        /** The fake Bunq's Teamkas account (FakeBunqGatewayAdapter). */
-        const val FAKE_BUNQ_TEAMKAS = "fake-account-1"
+        /** The fake Bunq's demo account, with the ~€87 balance (FakeBunqGatewayAdapter). */
+        const val FAKE_BUNQ_DEMO_ACCOUNT = "fake-demo-account"
     }
 }

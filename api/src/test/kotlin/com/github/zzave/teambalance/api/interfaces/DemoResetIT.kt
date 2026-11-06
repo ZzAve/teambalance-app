@@ -72,6 +72,17 @@ class DemoResetIT : TeamBalanceIT() {
     init {
         beforeSpec { OwnPostgresInitializer.requireOwnDatabase(jdbcTemplate) }
 
+        test("the full seed is present after boot and again after a reset") {
+            assertFullSeed()
+
+            // Damage the seed, then reset: the rebuilt data must be the full seed again.
+            jdbcTemplate.update("DELETE FROM ${DemoPersona.SCHEMA}.events")
+            jdbcTemplate.update("DELETE FROM ${DemoPersona.SCHEMA}.substitutes")
+            resetNow()
+
+            assertFullSeed()
+        }
+
         test("a reset removes an answered attendance and recreates the seed") {
             val sanne = createSession()
             answerGoing(sanne)
@@ -80,7 +91,7 @@ class DemoResetIT : TeamBalanceIT() {
             resetNow()
 
             attendanceCount() shouldBe 0
-            jdbcTemplate.queryForObject("SELECT count(*) FROM ${DemoPersona.SCHEMA}.events", Int::class.java) shouldBe 1
+            jdbcTemplate.queryForObject("SELECT count(*) FROM ${DemoPersona.SCHEMA}.events", Int::class.java) shouldBe 6
         }
 
         test("the drop re-checks the host on its own connection: a non-loopback URL drops nothing") {
@@ -171,10 +182,41 @@ class DemoResetIT : TeamBalanceIT() {
         createSession()
     }
 
+    // The guest's own answer on the next event; the seed holds other members' answers and the guest's on past events.
     private fun attendanceCount() = jdbcTemplate.queryForObject(
-        "SELECT count(*) FROM ${DemoPersona.SCHEMA}.attendances",
+        "SELECT count(*) FROM ${DemoPersona.SCHEMA}.attendances WHERE user_id = ?::uuid " +
+            "AND event_id IN (SELECT id FROM ${DemoPersona.SCHEMA}.events WHERE uuid = ?::uuid)",
         Int::class.java,
+        DemoPersona.MEMBER.userId.value.toString(),
+        EVENT_ID,
     )
+
+    private fun count(sql: String) = jdbcTemplate.queryForObject(sql, Int::class.java)
+
+    private fun assertFullSeed() {
+        val schema = DemoPersona.SCHEMA
+        count("SELECT count(*) FROM public.team_members WHERE team_id = '${DemoPersona.TEAM_ID.value}'::uuid AND active") shouldBe 12
+        count("SELECT count(*) FROM $schema.positions") shouldBe 5
+        // Every member but the coach plays a position.
+        count("SELECT count(*) FROM $schema.member_profiles WHERE position_id IS NOT NULL") shouldBe 11
+        count("SELECT count(*) FROM $schema.events WHERE start_time < now()") shouldBe 2
+        count("SELECT count(*) FROM $schema.events WHERE start_time > now()") shouldBe 4
+        count("SELECT count(DISTINCT event_type_id) FROM $schema.events") shouldBe 3
+        count("SELECT count(*) FROM $schema.substitutes") shouldBe 1
+        // Past events are fully answered.
+        count(
+            "SELECT count(*) FROM $schema.events e WHERE e.start_time < now() AND " +
+                "(SELECT count(*) FROM $schema.attendances a WHERE a.event_id = e.id) = 12",
+        ) shouldBe 2
+        // The next event is half-answered, and not by the guest.
+        val nextAnswers = count(
+            "SELECT count(*) FROM $schema.attendances WHERE event_id = " +
+                "(SELECT id FROM $schema.events WHERE start_time > now() ORDER BY start_time LIMIT 1)",
+        )
+        (nextAnswers in 1..11) shouldBe true
+        attendanceCount() shouldBe 0
+        perform(get("/api/team/money-pool").cookie(createSession())).contentAsString shouldContain "\"balance\":8700"
+    }
 
     private fun answerGoing(session: Cookie) {
         val xsrf = perform(get("/api/auth/me").cookie(session)).getCookie("DEMO-XSRF-TOKEN").shouldNotBeNull()

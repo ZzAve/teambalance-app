@@ -104,9 +104,9 @@ class MoneyPoolCompositionRoot {
 }
 
 /**
- * The connect settings, or null while connecting is switched off. Switching it on in prod stops the app from starting
- * unless the Bunq environment is production: the real adapter has only been run against the sandbox, and a real Admin's
- * authorization is one nobody can revoke from here.
+ * The connect settings, or null while connecting is switched off. In prod, switching it on is allowed only with the
+ * production Bunq environment: with any other environment the app does not start, so the fake and the sandbox can never
+ * be connected to in prod.
  */
 internal fun bunqConnectConfig(
     connectEnabled: Boolean,

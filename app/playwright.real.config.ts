@@ -26,11 +26,13 @@ export default defineConfig({
       testIgnore: /demo\.spec/,
     },
     // The demo build (VITE_DEMO) on its own port: only demo.spec.ts runs against it, so every other spec
-    // keeps testing the prod build (login redirect, no banner).
+    // keeps testing the prod build (login redirect, no banner). It runs after `chromium` because its reset step
+    // drops the whole e2e database, including `team_test` and the sessions the other specs hold.
     {
       name: 'demo',
       use: { ...devices['Desktop Chrome'], baseURL: 'http://localhost:5174' },
       testMatch: /demo\.spec/,
+      dependencies: ['chromium'],
     },
   ],
   webServer: [

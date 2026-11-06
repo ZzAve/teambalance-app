@@ -28,6 +28,7 @@ enum class DemoSessionOutcome { STARTED, DISABLED, UNKNOWN_PERSONA }
 class DemoSessionService(
     private val enabled: Boolean,
     private val authService: AuthService,
+    private val demoResetService: DemoResetService,
 ) {
     fun start(persona: String): DemoSessionOutcome {
         val known = DemoPersona.entries.firstOrNull { it.name == persona }
@@ -35,6 +36,8 @@ class DemoSessionService(
             !enabled -> DemoSessionOutcome.DISABLED
             known == null -> DemoSessionOutcome.UNKNOWN_PERSONA
             else -> {
+                // Before the session: a reset drops every session, and this one must survive it.
+                demoResetService.resetIfDue()
                 authService.startSession(known.userId)
                 DemoSessionOutcome.STARTED
             }

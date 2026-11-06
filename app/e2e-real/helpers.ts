@@ -3,10 +3,6 @@ import { type APIRequestContext, type BrowserContext, expect } from '@playwright
 const TEST_EMAIL = 'e2e@example.com'
 const BACKEND_URL = process.env.BACKEND_URL ?? 'http://localhost:8080'
 
-// The e2e Vite server runs with VITE_DEMO (playwright.real.config.ts), where a session end lands on the demo
-// picker instead of /login (auth-redirect.test.ts proves the non-demo target).
-export const LOGIN_URL = '/demo'
-
 // The shared authenticated session other authed specs reuse.
 export const STORAGE_STATE = 'e2e-real/.auth/user.json'
 // A separate, disposable session for the logout spec: logging it out invalidates only THIS

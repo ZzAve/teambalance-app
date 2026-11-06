@@ -24,7 +24,7 @@ export function DemoBannerView({ startTeamHref, onSwitchRole, isSwitching = fals
         </a>
       </p>
       {onSwitchRole && (
-        <Button size="sm" variant="outline" disabled={isSwitching} onClick={onSwitchRole}>
+        <Button size="sm" variant="outline" disabled={isSwitching} onClick={() => onSwitchRole()}>
           {t('demo.banner.switchRole')}
         </Button>
       )}

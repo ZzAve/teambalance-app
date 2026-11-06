@@ -1,11 +1,12 @@
 import { describe, expect, it } from 'vitest'
+import { LOGIN_PATH } from '@shared/api/auth-redirect'
 import { teamsRouteRedirect } from './teams-route-guard'
 
 const TEAM = { id: 't1', name: 'Setpoint VT', slug: 'setpoint-vt' }
 
 describe('teamsRouteRedirect', () => {
-  it('no session → /login', () => {
-    expect(teamsRouteRedirect(null)).toBe('/login')
+  it('no session → the login path', () => {
+    expect(teamsRouteRedirect(null)).toBe(LOGIN_PATH)
   })
 
   it('truly teamless (no memberships) → /onboarding', () => {

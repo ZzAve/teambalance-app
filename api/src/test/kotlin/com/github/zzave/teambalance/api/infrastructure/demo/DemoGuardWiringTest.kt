@@ -73,6 +73,11 @@ class DemoGuardWiringTest : FunSpec({
             .shouldNotBeNull().mentions("datasource") shouldBe true
     }
 
+    test("a datasource JNDI name refuses to start") {
+        startupFailureWith("spring.datasource.jndi-name=java:comp/env/jdbc/prod")
+            .shouldNotBeNull().mentions("jndi-name") shouldBe true
+    }
+
     test("switch off starts whatever the rest says") {
         startupFailureWith("teambalance.demo.enabled=false", "teambalance.email.send=true") shouldBe null
     }

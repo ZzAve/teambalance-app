@@ -34,9 +34,16 @@ run_psql() {
   if command -v psql >/dev/null 2>&1; then
     PGPASSWORD=teambalance psql -h localhost -U teambalance -d postgres -tAc "$1"
   else
-    docker compose exec -T postgres psql -U teambalance -d postgres -tAc "$1"
+    # The container publishing :5432, whichever checkout started it.
+    docker exec "$(docker ps -q --filter publish=5432 | head -n1)" psql -U teambalance -d postgres -tAc "$1"
   fi
 }
+# Port 5432 accepts TCP before Postgres accepts logins: retry for up to 30 s.
+for _ in $(seq 1 30); do
+  run_psql "SELECT 1" >/dev/null 2>&1 && break
+  sleep 1
+done
+run_psql "SELECT 1" >/dev/null || { echo "Postgres on :5432 does not accept logins as teambalance (run make infra)" >&2; exit 1; }
 if [ "$(run_psql "SELECT 1 FROM pg_database WHERE datname = '$E2E_DB'")" != "1" ]; then
   echo "Creating database $E2E_DB"
   run_psql "CREATE DATABASE $E2E_DB" >/dev/null

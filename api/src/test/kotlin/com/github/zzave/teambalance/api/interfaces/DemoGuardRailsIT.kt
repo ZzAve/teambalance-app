@@ -121,6 +121,11 @@ class DemoGuardRailsIT : TeamBalanceIT() {
             ) shouldBe 1
         }
 
+        test("an unknown token is a 404 for Sanne, not a 403") {
+            perform(MockMvcRequestBuilders.post("/api/invitations/no-such-token/accept"), SANNE)
+                .andExpect(MockMvcResultMatchers.status().isNotFound)
+        }
+
         test("the Bunq connection of the demo team cannot be disconnected") {
             perform(MockMvcRequestBuilders.delete("/api/team/money-pool/connection"), KEES)
                 .andExpect(MockMvcResultMatchers.status().isForbidden)

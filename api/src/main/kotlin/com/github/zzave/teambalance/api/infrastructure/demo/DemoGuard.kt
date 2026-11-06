@@ -37,7 +37,7 @@ internal fun demoBootRefusal(
 // pgjdbc lets these query parameters replace the host named in the URL's authority.
 private val HOST_OVERRIDE_KEYS = setOf("PGHOST", "HOST", "SERVICE", "PGSERVICE")
 
-private fun isLoopbackOnly(jdbcUrl: String): Boolean {
+internal fun isLoopbackOnly(jdbcUrl: String): Boolean {
     val host = runCatching { URI(jdbcUrl.removePrefix("jdbc:")).host }.getOrNull()
     val overridesHost = jdbcUrl.substringAfter('?', "").split('&')
         .any { it.substringBefore('=').uppercase(Locale.ROOT) in HOST_OVERRIDE_KEYS } // as pgjdbc does

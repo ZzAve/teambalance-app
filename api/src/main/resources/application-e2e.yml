@@ -2,9 +2,10 @@
 # Activates: team_test tenant provisioning + seed fixture (E2eEnvironmentInitializer) and the
 # /internal/e2e/magic-link-token support endpoint. Never combine with prod; distinct from the
 # `test` profile used by Kotest/Testcontainers ITs (which override the datasource anyway).
+# Own database (scripts/e2e.sh creates it): the demo reset step drops every schema, so it must not be dev's `teambalance`.
 spring:
   datasource:
-    url: jdbc:postgresql://localhost:5432/teambalance
+    url: jdbc:postgresql://localhost:5432/teambalance_e2e
     username: teambalance
     password: teambalance
 

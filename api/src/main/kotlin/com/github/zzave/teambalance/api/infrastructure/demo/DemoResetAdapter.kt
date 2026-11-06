@@ -6,6 +6,9 @@ import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import javax.sql.DataSource
 
+internal fun requireLoopbackDatabase(jdbcUrl: String) =
+    check(isLoopbackOnly(jdbcUrl)) { "The demo reset refuses to drop on a database that is not on a loopback host" }
+
 /**
  * Drops every tenant schema and `public` (which takes the Flyway histories and the Spring Session tables with
  * it), then provisions the platform schema and the demo team again. No Flyway `clean()`: it is disabled by
@@ -32,8 +35,12 @@ class DemoResetAdapter(
     }
 
     private fun dropAllSchemas() = dataSource.connection.use { conn ->
+        // Checked on the connection that drops, not on the property: whatever the pool really connected to.
+        requireLoopbackDatabase(conn.metaData.url)
         conn.autoCommit = false
         conn.createStatement().use { st ->
+            // A DROP blocked by a long query fails after 5 s and the next login retries, instead of queueing every login.
+            st.execute("SET LOCAL lock_timeout = '5s'")
             val tenants = st.executeQuery("SELECT nspname FROM pg_namespace WHERE nspname LIKE 'team\\_%'").use { rs ->
                 generateSequence { if (rs.next()) rs.getString(1) else null }.toList()
             }

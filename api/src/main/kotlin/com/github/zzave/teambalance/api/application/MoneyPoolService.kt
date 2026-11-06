@@ -32,8 +32,9 @@ class MoneyPoolService(
     private val authorizationService: AuthorizationService,
     private val cache: MoneyPoolCacheGateway,
     private val receiptRepository: ReceiptRepository,
-    /** The demo container (ADR-0043): the top-up link is fixed, so a visitor cannot point the Top up button elsewhere. */
-    private val demoMode: Boolean = false,
+    /** The demo team on the demo container (ADR-0043), else null: its top-up link is fixed,
+     * so a visitor cannot point the Top up button elsewhere. */
+    private val demoTeam: TeamId? = null,
 ) {
     /**
      * Readable by any member. A stored grant that does not decrypt or that Bunq rejects is
@@ -67,7 +68,7 @@ class MoneyPoolService(
     /** Admin-only. Replaces all settings; a null price or link clears it. In demo mode the link may not change. */
     fun updateSettings(callerId: UserId, teamId: TeamId, settings: MoneyPoolSettings): MoneyPoolSettings {
         authorizationService.requireAdmin(callerId, teamId)
-        if (demoMode && settings.bunqMeLink != settingsRepository.get().bunqMeLink) throw DemoTopUpLinkLockedException()
+        if (teamId == demoTeam && settings.bunqMeLink != settingsRepository.get().bunqMeLink) throw DemoTopUpLinkLockedException()
         return settingsRepository.save(settings)
     }
 

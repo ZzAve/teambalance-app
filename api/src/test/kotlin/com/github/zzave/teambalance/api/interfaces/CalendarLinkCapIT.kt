@@ -1,5 +1,6 @@
 package com.github.zzave.teambalance.api.interfaces
 
+import com.github.zzave.teambalance.api.domain.model.TeamId
 import com.github.zzave.teambalance.api.TeamBalanceIT
 import com.github.zzave.teambalance.api.application.CalendarLinkTokens
 import com.github.zzave.teambalance.api.domain.model.CalendarLink
@@ -103,11 +104,12 @@ class CalendarLinkCapIT : TeamBalanceIT() {
     private fun freshLink(): CalendarLink {
         val token = calendarLinkTokens.mint()
         val now = Instant.now()
+        val id = CalendarLinkId.random()
         return CalendarLink(
-            id = CalendarLinkId.random(),
+            id = id,
             userId = member(),
             tokenHash = calendarLinkTokens.hash(token.value),
-            encryptedToken = calendarLinkTokens.conceal(token),
+            encryptedToken = calendarLinkTokens.conceal(token, TeamId(UUID.randomUUID()), id),
             label = null,
             createdAt = now,
             expiresAt = now.plus(CalendarLink.TTL),

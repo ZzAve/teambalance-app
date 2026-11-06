@@ -3,6 +3,7 @@ package com.github.zzave.teambalance.api.application
 import com.github.zzave.teambalance.api.domain.exception.NotTeamAdminException
 import com.github.zzave.teambalance.api.domain.model.DisplayName
 import com.github.zzave.teambalance.api.domain.model.Email
+import com.github.zzave.teambalance.api.domain.model.EncryptedToken
 import com.github.zzave.teambalance.api.domain.model.Invitation
 import com.github.zzave.teambalance.api.domain.model.PositionId
 import com.github.zzave.teambalance.api.domain.model.Role
@@ -24,6 +25,7 @@ import java.time.Instant
 import java.time.ZoneOffset
 import java.util.Base64
 import java.util.UUID
+import javax.crypto.AEADBadTagException
 
 // Records saves and always resolves a live invitation for the accept path (token hashing is not the
 // subject here — authorization is).
@@ -210,35 +212,38 @@ class InvitationServiceTest : FunSpec() {
                 minted.token.value
         }
 
-        // Links stored before the cipher took AAD were made without any. A change of the AAD this service passes
-        // would make every one of them unreadable, so this pins that it passes none.
-        fun legacyLinkIn(f: Fixture) {
+        fun linkIn(f: Fixture, encryptedToken: EncryptedToken) {
             f.invitations.active = Invitation(
                 id = UUID.randomUUID(),
                 teamId = f.teamId,
                 role = Role.USER,
                 consumedAt = null,
-                tokenHash = TokenHash("legacy-readable"),
-                encryptedToken = legacyEncrypt(ByteArray(32) { it.toByte() }, "a-link-stored-long-ago"),
+                tokenHash = TokenHash("stored-elsewhere"),
+                encryptedToken = encryptedToken,
                 createdBy = adminId,
                 expiresAt = Instant.EPOCH.plus(Duration.ofDays(1)),
                 createdAt = Instant.EPOCH,
             )
         }
 
-        test("activeInviteLink reveals a link stored before the cipher took AAD") {
+        // Issue #465: the encrypted copy is bound to its team, so one copied into another team's row does not open.
+        // It throws rather than reading as "no link": generateInviteLink would otherwise mint a second live link
+        // beside the one whose hash still accepts joiners.
+        test("a link encrypted for another team does not reveal, and generateInviteLink does not mint beside it") {
             val f = newFixture()
-            legacyLinkIn(f)
+            linkIn(f, testCipher.encrypt("team-a-link", TokenCipher.aadOf(TeamId(UUID.randomUUID()), TokenCipher.Purpose.INVITE_LINK)))
 
-            f.service.activeInviteLink(callerId = adminId, teamId = f.teamId)?.token?.value shouldBe "a-link-stored-long-ago"
+            shouldThrow<AEADBadTagException> { f.service.activeInviteLink(callerId = adminId, teamId = f.teamId) }
+            shouldThrow<AEADBadTagException> { f.service.generateInviteLink(callerId = adminId, teamId = f.teamId) }
+            f.invitations.saved.size shouldBe 0
         }
 
-        test("generateInviteLink returns a link stored before the cipher took AAD instead of minting another") {
+        // Rows stored before #465 are rebound at startup (LinkTokenAadMigration); the service itself no longer opens them.
+        test("a link stored without AAD no longer reveals") {
             val f = newFixture()
-            legacyLinkIn(f)
+            linkIn(f, legacyEncrypt(ByteArray(32) { it.toByte() }, "a-link-stored-long-ago"))
 
-            f.service.generateInviteLink(callerId = adminId, teamId = f.teamId).token.value shouldBe "a-link-stored-long-ago"
-            f.invitations.saved.size shouldBe 0
+            shouldThrow<AEADBadTagException> { f.service.activeInviteLink(callerId = adminId, teamId = f.teamId) }
         }
 
         test("activeInviteLink is null for a team with no link") {

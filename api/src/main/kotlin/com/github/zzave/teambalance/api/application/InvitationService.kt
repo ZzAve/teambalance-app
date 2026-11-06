@@ -1,5 +1,6 @@
 package com.github.zzave.teambalance.api.application
 
+import com.github.zzave.teambalance.api.application.TokenCipher.Purpose
 import com.github.zzave.teambalance.api.domain.model.EncryptedToken
 import com.github.zzave.teambalance.api.domain.model.Invitation
 import com.github.zzave.teambalance.api.domain.model.InviteToken
@@ -253,16 +254,21 @@ class InvitationService(
         role = role,
         consumedAt = null,
         tokenHash = hashToken(token.value),
-        encryptedToken = tokenCipher.encrypt(token.value, TokenCipher.NO_AAD),
+        encryptedToken = tokenCipher.encrypt(token.value, TokenCipher.aadOf(teamId, Purpose.INVITE_LINK)),
         createdBy = callerId,
         expiresAt = now.plus(INVITE_TTL),
         createdAt = now,
     )
 
-    /** The stored form back to something shareable; null for a hash-only pre-ADR-0025 row. */
+    /**
+     * The stored form back to something shareable; null for a hash-only pre-ADR-0025 row. Throws when the
+     * ciphertext does not open for this team, rather than returning null: [generateInviteLink] would read null as
+     * "no link" and mint a second live one beside it (issue #465).
+     */
     private fun reveal(invitation: Invitation): GeneratedInvitation? =
         invitation.encryptedToken?.let { encrypted: EncryptedToken ->
-            GeneratedInvitation(token = InviteToken(tokenCipher.decrypt(encrypted, TokenCipher.NO_AAD)), expiresAt = invitation.expiresAt)
+            val aad = TokenCipher.aadOf(invitation.teamId, Purpose.INVITE_LINK)
+            GeneratedInvitation(token = InviteToken(tokenCipher.decrypt(encrypted, aad)), expiresAt = invitation.expiresAt)
         }
 
     private fun generateToken(): InviteToken {

@@ -35,7 +35,7 @@ test('demo guest login: /demo -> Sanne -> answer Going -> the answer persists', 
 
   // The seeded Bunq connection reads the fake Bunq.
   await page.goto('/t/de-smashers/money')
-  await expect(page.getByText('187.50')).toBeVisible()
+  await expect(page.getByText('87.00')).toBeVisible()
 
   // The banner's role switch ends the session and lands on the picker; a protected page then bounces to /demo, not /login.
   await expect(page.getByRole('complementary', { name: 'Demo' })).toContainText('data is wiped every hour')

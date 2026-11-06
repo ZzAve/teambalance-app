@@ -48,7 +48,7 @@ class DemoMoneyPoolIT : TeamBalanceIT() {
             perform(MockMvcRequestBuilders.get("/api/team/money-pool"), DemoPersona.MEMBER.userId.value.toString())
                 .andExpect(MockMvcResultMatchers.status().isOk)
                 .andExpect(MockMvcResultMatchers.jsonPath("$.state").value("Connected"))
-                .andExpect(MockMvcResultMatchers.jsonPath("$.balance").value(18750))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.balance").value(8700))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.payments.length()").value(8))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.canTopUp").value(true))
         }

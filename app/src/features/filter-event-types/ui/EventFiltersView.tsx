@@ -11,6 +11,8 @@ import { EventTypeChip } from '@entities/event/ui/EventTypeChip'
 import { useEscapeToClose } from '@shared/lib/use-escape-to-close'
 import { ALL_ATTENDANCE_STATES } from '@entities/event/lib/attendance-states'
 import { ALL_TURNOUT_BUCKETS, type TurnoutBucket } from '../model/turnout'
+import { useTranslation } from 'react-i18next'
+import { i18n } from '@shared/i18n/i18n'
 
 interface EventFiltersViewProps {
   eventTypes: EventTypeItem[]
@@ -49,25 +51,25 @@ interface EventFiltersViewProps {
 export const STATE_CHIPS: { state: AttendanceState; label: string; active: string; inactive: string }[] = [
   {
     state: 'ATTENDING',
-    label: ATTENDANCE_WORDS.ATTENDING.word,
+    get label() { return ATTENDANCE_WORDS.ATTENDING.word },
     active: 'bg-green border-green text-white',
     inactive: 'border-green/40 text-green',
   },
   {
     state: 'MAYBE',
-    label: ATTENDANCE_WORDS.MAYBE.word,
+    get label() { return ATTENDANCE_WORDS.MAYBE.word },
     active: 'bg-gold border-gold text-white',
     inactive: 'border-gold/40 text-gold-ink',
   },
   {
     state: 'ABSENT',
-    label: ATTENDANCE_WORDS.ABSENT.word,
+    get label() { return ATTENDANCE_WORDS.ABSENT.word },
     active: 'bg-red border-red text-white',
     inactive: 'border-red/40 text-red-ink',
   },
   {
     state: 'NOT_RESPONDED',
-    label: ATTENDANCE_WORDS.NOT_RESPONDED.word,
+    get label() { return ATTENDANCE_WORDS.NOT_RESPONDED.word },
     // No semantic color: not responding is the absence of an answer, not a fourth verdict.
     active: 'bg-muted-foreground border-muted-foreground text-white',
     inactive: 'border-muted-foreground/40 text-muted-foreground',
@@ -83,25 +85,25 @@ export const STATE_CHIPS: { state: AttendanceState; label: string; active: strin
 export const TURNOUT_CHIPS: { bucket: TurnoutBucket; label: string; active: string; inactive: string }[] = [
   {
     bucket: 'missing-position',
-    label: 'Missing a position',
+    get label() { return i18n.t('filters.band.missing-position') },
     active: 'bg-red border-red text-white',
     inactive: 'border-red/40 text-red-ink',
   },
   {
     bucket: 'spots-open',
-    label: 'Spots open',
+    get label() { return i18n.t('filters.band.spots-open') },
     active: 'bg-gold border-gold text-white',
     inactive: 'border-gold/40 text-gold-ink',
   },
   {
     bucket: 'covered',
-    label: 'Covered',
+    get label() { return i18n.t('filters.band.covered') },
     active: 'bg-green border-green text-white',
     inactive: 'border-green/40 text-green',
   },
   {
     bucket: 'no-target',
-    label: 'No target set',
+    get label() { return i18n.t('filters.band.no-target') },
     active: 'bg-muted-foreground border-muted-foreground text-white',
     inactive: 'border-muted-foreground/40 text-muted-foreground',
   },
@@ -153,6 +155,7 @@ export function EventFiltersView({
     activeStates.size < ALL_ATTENDANCE_STATES.length ||
     activeTurnouts.size < ALL_TURNOUT_BUCKETS.length
 
+  const { t } = useTranslation()
   useEscapeToClose(open, () => setOpen(false))
 
   const content = (
@@ -163,7 +166,7 @@ export function EventFiltersView({
         <>
           <div role="group" aria-labelledby="event-types-filter-heading">
             <SectionLabel as="h3" id="event-types-filter-heading" className="mb-2.5">
-              Event types
+              {t('filters.eventTypes')}
             </SectionLabel>
             <div className="flex flex-wrap gap-2">
               {eventTypes.map((type) => (
@@ -183,7 +186,7 @@ export function EventFiltersView({
 
       <div role="group" aria-labelledby="your-answer-filter-heading">
         <SectionLabel as="h3" id="your-answer-filter-heading" className="mb-2.5">
-          Your answer
+          {t('filters.yourAnswer')}
         </SectionLabel>
         <div className="flex flex-wrap gap-2">
           {STATE_CHIPS.map(({ state, label, active, inactive }) => (
@@ -206,7 +209,7 @@ export function EventFiltersView({
 
           <div role="group" aria-labelledby="turnout-filter-heading">
             <SectionLabel as="h3" id="turnout-filter-heading" className="mb-2.5">
-              Turnout
+              {t('filters.turnout')}
             </SectionLabel>
             <div className="flex flex-wrap gap-2">
               {TURNOUT_CHIPS.map(({ bucket, label, active, inactive }) => (
@@ -229,12 +232,12 @@ export function EventFiltersView({
 
       <div className="flex items-center justify-between gap-2.5">
         <div>
-          <div className="text-small font-semibold">Show past events</div>
+          <div className="text-small font-semibold">{t('filters.showPast')}</div>
           <div className="mt-0.5 text-caption text-muted-foreground">
-            {showPast ? 'On — past events included' : 'Off — upcoming only'}
+            {showPast ? t('filters.showPastOn') : t('filters.showPastOff')}
           </div>
         </div>
-        <Switch checked={showPast} onCheckedChange={onToggleShowPast} aria-label="Show past events" />
+        <Switch checked={showPast} onCheckedChange={onToggleShowPast} aria-label={t('filters.showPast')} />
       </div>
     </>
   )
@@ -252,13 +255,13 @@ export function EventFiltersView({
           onClick={onClearFilters}
           className="flex h-11 shrink-0 items-center rounded-md border border-border/60 bg-card px-3 text-caption font-semibold text-muted-foreground transition-colors hover:text-foreground"
         >
-          Clear filters
+          {t('filters.clear')}
         </button>
       )}
 
       <div className="relative">
         <button
-          aria-label="Filters"
+          aria-label={t('filters.button')}
           aria-expanded={open}
           onClick={() => setOpen((wasOpen) => !wasOpen)}
           className="relative flex h-11 w-11 items-center justify-center rounded-md border border-border/60 bg-card text-muted-foreground transition-colors hover:text-foreground"
@@ -275,13 +278,13 @@ export function EventFiltersView({
         {/* The result count is announced, not shown: a member who taps a chip gets no other
             feedback that the list below moved. */}
         <p aria-live="polite" className="sr-only">
-          {resultCount === 1 ? '1 event matches these filters' : `${resultCount} events match these filters`}
+          {t('filters.result', { count: resultCount })}
         </p>
 
         {open &&
           inlineSlot &&
           createPortal(
-            <div role="region" aria-label="Filters" className="mt-3 rounded-lg border border-border/60 bg-card p-3.5">
+            <div role="region" aria-label={t('filters.button')} className="mt-3 rounded-lg border border-border/60 bg-card p-3.5">
               {content}
               {viewRow && (
                 <>

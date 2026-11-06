@@ -7,6 +7,8 @@
 //     phone width is the picture that matters. preview.ts applies `xs` globally, which means *every*
 //     baseline is captured at phone width instead of Chromatic's 1200px default. Page composites add
 //     `xl` so the centred-desktop layout has one guard too.
+//   - language — `xsNl` renders a page composite's Data story in Dutch (ADR-0043 §8); every other
+//     story is English.
 //   - theme — the `.dark` token layer (preview.ts `theme` global). Only page composites and the
 //     token-sensitive galleries carry `xsDark`; everything else inherits dark coverage through the
 //     composite it is rendered in.
@@ -28,10 +30,14 @@ export const allModes = {
   xs: { viewport: VIEWPORTS.xs.width },
   xsDark: { theme: 'dark', viewport: VIEWPORTS.xs.width },
   xl: { viewport: VIEWPORTS.xl.width },
+  xsNl: { locale: 'nl', viewport: VIEWPORTS.xs.width },
 } as const
 
 /** The extra baselines a page composite carries on top of the global `xs` (ADR-0032 §5). */
 export const pageModes = { xsDark: allModes.xsDark, xl: allModes.xl } as const
+
+/** The Dutch baseline a page composite's `Data` story carries (ADR-0043 §8). */
+export const dutchMode = { xsNl: allModes.xsNl } as const
 
 /** The extra baseline a token-sensitive gallery carries on top of the global `xs`. */
 export const darkMode = { xsDark: allModes.xsDark } as const

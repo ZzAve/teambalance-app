@@ -1,5 +1,6 @@
 import { useState, type ComponentProps, type ReactNode } from 'react'
 import { Link } from '@tanstack/react-router'
+import { useTranslation } from 'react-i18next'
 import { CalendarDays } from 'lucide-react'
 import { useTeamRoutes } from '@shared/lib/team-routes'
 import { EventListView } from '@entities/event/ui/EventListView'
@@ -38,13 +39,14 @@ export function EventsPageView({
   hideCalendarLink,
 }: EventsPageViewProps) {
   const routes = useTeamRoutes()
+  const { t } = useTranslation()
   // Filters open inline below the header, with the view switch as their last row.
   const [filtersSlot, setFiltersSlot] = useState<HTMLElement | null>(null)
 
   return (
     <div>
       <div className="flex items-center justify-between gap-2">
-        <h2 className="font-display text-title font-bold">Events</h2>
+        <h2 className="font-display text-title font-bold">{t('events.title')}</h2>
         <div className="flex items-center gap-2">
           {/* The invite link moved to the Team page (team-management action); Events keeps
               only event creation for admins. */}
@@ -56,7 +58,7 @@ export function EventsPageView({
           {!hideCalendarLink && (
             <Link
               to={routes.calendar}
-              aria-label="Calendar links"
+              aria-label={t('events.calendarLinks')}
               className="flex h-11 w-11 items-center justify-center rounded-md border border-border/60 bg-card text-muted-foreground transition-colors hover:text-foreground"
             >
               <CalendarDays size={16} />

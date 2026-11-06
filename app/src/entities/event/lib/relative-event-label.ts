@@ -1,3 +1,4 @@
+import { i18n } from '@shared/i18n/i18n'
 /**
  * How far ahead a relative-time label is worth showing, in calendar days.
  *
@@ -62,6 +63,8 @@ function daysToComingWeekend(now: Date): number[] {
  * | Within the window, 3–7 days away                      | `in N days`     | quiet            |
  * | Beyond the window (or in the past)                    | —               | —                |
  *
+ * The text is in the current language (ADR-0043).
+ *
  * Pure: `now` is a parameter, never `Date.now()`, so the label is a function of its inputs and
  * every branch above is unit-testable.
  */
@@ -69,13 +72,13 @@ export function relativeEventLabel(startTime: string | Date, now: Date): Relativ
   const days = calendarDaysUntil(startTime, now)
 
   if (days < 0) return null
-  if (days === 0) return { text: 'Today', emphasis: 'solid' }
-  if (days === 1) return { text: 'Tomorrow', emphasis: 'solid' }
+  if (days === 0) return { text: i18n.t('relativeDay.today'), emphasis: 'solid' }
+  if (days === 1) return { text: i18n.t('relativeDay.tomorrow'), emphasis: 'solid' }
   if (days > RELATIVE_WINDOW_DAYS) return null
 
   const emphasis: RelativeLabelEmphasis = days <= 2 ? 'solid' : 'quiet'
 
-  if (daysToComingWeekend(now).includes(days)) return { text: 'This weekend', emphasis }
+  if (daysToComingWeekend(now).includes(days)) return { text: i18n.t('relativeDay.thisWeekend'), emphasis }
 
-  return { text: `in ${days} days`, emphasis }
+  return { text: i18n.t('relativeDay.inDays', { count: days }), emphasis }
 }

@@ -1,4 +1,5 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, afterEach } from 'vitest'
+import { i18n } from '@shared/i18n/i18n'
 import type { Position } from '@shared/api/positions'
 import { validatePosition } from './validate-position'
 
@@ -18,5 +19,14 @@ describe('validatePosition', () => {
 
   it('accepts a chosen position when positions are available', () => {
     expect(validatePosition(POSITIONS, 'p1')).toBeNull()
+  })
+})
+
+describe('validatePosition in Dutch', () => {
+  afterEach(() => i18n.changeLanguage('en'))
+
+  it('says its error in Dutch', async () => {
+    await i18n.changeLanguage('nl')
+    expect(validatePosition(POSITIONS, null)).toBe('Kies een positie.')
   })
 })

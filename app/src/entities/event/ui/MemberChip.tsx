@@ -3,6 +3,7 @@ import { teamPhotoUrl } from '@shared/api/photos'
 import { SubstituteAvatar } from './SubstituteAvatar'
 import { findSomeone, type LineupMember, type LineupState } from '../lib/lineup'
 import { ATTENDANCE_WORDS } from '../lib/attendance-words'
+import { useTranslation } from 'react-i18next'
 
 /**
  * A person in a lineup row: their colour, their first name, their answer.
@@ -36,15 +37,20 @@ interface MemberChipProps {
 }
 
 export function MemberChip({ member, onSelect }: MemberChipProps) {
-  const who = member.isSubstitute ? `${member.displayName}, substitute` : `${member.displayName}${member.isSelf ? ' (you)' : ''}`
+  const { t } = useTranslation()
+  const who = member.isSubstitute
+    ? t('memberChip.substitute', { name: member.displayName })
+    : member.isSelf
+      ? t('memberChip.self', { name: member.displayName })
+      : member.displayName
   return (
     <button
       type="button"
       onClick={() => onSelect(member.userId)}
       // One string for the whole control. Without it the visible first name lands in the accessible
       // name alongside the full one and a screen reader says "Anna Anna Bakker — Going".
-      aria-label={`${who} — ${ATTENDANCE_WORDS[member.state].word}. Change their answer`}
-      title={`${member.displayName} — ${ATTENDANCE_WORDS[member.state].word}`}
+      aria-label={t('memberChip.label', { who, word: ATTENDANCE_WORDS[member.state].word })}
+      title={t('memberChip.title', { name: member.displayName, word: ATTENDANCE_WORDS[member.state].word })}
       className={`${CHIP} ${PILL[member.state]} ${member.isSelf ? 'shrink-0' : ''}`}
     >
       {member.isSubstitute ? (
@@ -60,12 +66,12 @@ export function MemberChip({ member, onSelect }: MemberChipProps) {
       <span aria-hidden className="min-w-0 max-w-[16ch] truncate">{member.chipName}</span>
       {member.isSelf && (
         <span aria-hidden className="shrink-0 text-caption font-bold text-blue">
-          you
+          {t('memberChip.you')}
         </span>
       )}
       {member.isSubstitute && (
         <span aria-hidden className="shrink-0 text-caption font-bold text-purple-ink">
-          Sub
+          {t('memberChip.sub')}
         </span>
       )}
     </button>
@@ -90,15 +96,16 @@ export function OverflowChip({
   label: string
   onToggle: () => void
 }) {
+  const { t } = useTranslation()
   return (
     <button
       type="button"
       onClick={onToggle}
       aria-expanded={expanded}
-      aria-label={expanded ? `Show fewer ${label}` : `Show ${hidden} more ${label}`}
+      aria-label={expanded ? t('memberChip.showFewer', { label }) : t('memberChip.showMore', { count: hidden, label })}
       className={`${CHIP} border-border bg-card pl-2.5 text-muted-foreground`}
     >
-      <span aria-hidden>{expanded ? 'less' : `+${hidden}`}</span>
+      <span aria-hidden>{expanded ? t('memberChip.less') : `+${hidden}`}</span>
     </button>
   )
 }

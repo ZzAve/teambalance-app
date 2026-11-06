@@ -1,4 +1,5 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, afterEach } from 'vitest'
+import { i18n } from '@shared/i18n/i18n'
 import type { EventRoster, RosterPosition } from '@shared/api/events'
 import { makeRoster, NO_ROSTER } from '@shared/testing/event-fixtures'
 import {
@@ -173,5 +174,23 @@ describe('whoIsComing', () => {
       { id: 'pos-trainer', label: 'Trainer', count: 1 },
       { id: 'pos-physio', label: 'Physio', count: 0 },
     ])
+  })
+})
+
+// ADR-0043: the chip words in the Dutch UI.
+describe('rosterChip in Dutch', () => {
+  afterEach(() => i18n.changeLanguage('en'))
+
+  it('says every state in Dutch', async () => {
+    await i18n.changeLanguage('nl')
+    const covered = [pos('Setter', 2, 2)]
+    expect(rosterChip(roster({ state: 'LINEUP_SET', openSlots: 0, positions: covered }))?.text).toBe('Opstelling rond')
+    expect(rosterChip(roster({ state: 'SPOTS_OPEN', openSlots: 1, positions: [pos('Setter', 2, 1)] }))?.text).toBe('1 plek open')
+    expect(rosterChip(roster({ state: 'SPOTS_OPEN', openSlots: 3, positions: [pos('Setter', 3, 0)] }))?.text).toBe('3 plekken open')
+    expect(rosterChip(roster({ state: 'CRITICAL', openSlots: 3, positions: [pos('Setter', 3, 1), pos('Libero', 1, 0)] }))?.text).toBe('Positie onbezet')
+    expect(rosterChip(roster({ state: 'CRITICAL', openSlots: 4, positions: [pos('Setter', 3, 0), pos('Libero', 1, 0)] }))?.text).toBe('2 posities onbezet')
+    const counts = { positions: [], totalAttending: 10, totalTarget: 12 }
+    expect(rosterChip(roster({ state: 'HEADCOUNT_SHORT', openSlots: 2, ...counts }))?.text).toBe('Nog 2 nodig · 10/12')
+    expect(rosterChip(roster({ state: 'HEADCOUNT_FULL', openSlots: 0, ...counts, totalAttending: 13 }))?.text).toBe('Vol · 13/12')
   })
 })

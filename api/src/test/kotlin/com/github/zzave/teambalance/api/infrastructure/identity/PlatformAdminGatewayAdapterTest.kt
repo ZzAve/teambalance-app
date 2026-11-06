@@ -3,6 +3,7 @@ package com.github.zzave.teambalance.api.infrastructure.identity
 import com.github.zzave.teambalance.api.domain.exception.NotPlatformAdminException
 import com.github.zzave.teambalance.api.domain.model.DisplayName
 import com.github.zzave.teambalance.api.domain.model.Email
+import com.github.zzave.teambalance.api.domain.model.Language
 import com.github.zzave.teambalance.api.domain.model.PlatformAdminAllowlist
 import com.github.zzave.teambalance.api.domain.model.TeamId
 import com.github.zzave.teambalance.api.domain.model.User
@@ -20,6 +21,8 @@ private class FakeUsers(private val byId: Map<UUID, User>) : UserRepository {
     override fun save(user: User): User = user
     override fun findLastActiveTeamId(userId: UserId): TeamId? = null
     override fun rememberActiveTeam(userId: UserId, teamId: TeamId) = Unit
+    override fun findLanguage(userId: UserId): Language? = null
+    override fun saveLanguage(userId: UserId, language: Language) = Unit
 }
 
 class PlatformAdminGatewayAdapterTest : FunSpec() {

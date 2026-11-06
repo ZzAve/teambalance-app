@@ -2,6 +2,7 @@ import type { Preview } from '@storybook/react-vite'
 // Global styles (Tailwind + design tokens) so components render with real styling,
 // both in the Storybook UI and under the Vitest browser runner.
 import '../src/app/styles/global.css'
+import { i18n } from '../src/shared/i18n/i18n'
 import { allModes, VIEWPORTS } from './modes'
 import { routerLoader } from '../src/shared/testing/router-decorator'
 
@@ -54,15 +55,32 @@ const preview: Preview = {
         dynamicTitle: true,
       },
     },
+    // ── Language switcher (ADR-0043) ─────────────────────────────────────────────────────────────
+    // English by default, so every story's text queries stay valid; the Dutch picture is opted into
+    // per story through the `xsNl` mode, and the toolbar flips any story live.
+    locale: {
+      description: 'Render the UI in English or Dutch',
+      toolbar: {
+        title: 'Language',
+        icon: 'globe',
+        items: [
+          { value: 'en', title: 'English' },
+          { value: 'nl', title: 'Nederlands' },
+        ],
+        dynamicTitle: true,
+      },
+    },
   },
   // Light on purpose, rather than following the machine's OS preference: Chromatic snapshots a
   // story at its effective globals, so a system-dependent default would make baselines depend on
   // whoever's runner took them. A story that wants dark opts in through a mode (see modes.ts), and
   // the toolbar overrides it live. The viewport default is the phone, for the same reason.
-  initialGlobals: { theme: 'light', viewport: { value: 'xs', isRotated: false } },
+  initialGlobals: { theme: 'light', locale: 'en', viewport: { value: 'xs', isRotated: false } },
   decorators: [
     (Story, context) => {
       document.documentElement.classList.toggle('dark', context.globals.theme === 'dark')
+      // The catalogues are bundled, so the switch has happened by the time the story renders.
+      void i18n.changeLanguage(context.globals.locale ?? 'en')
       return Story()
     },
   ],

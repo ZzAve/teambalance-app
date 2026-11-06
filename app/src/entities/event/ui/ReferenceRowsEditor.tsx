@@ -3,6 +3,7 @@ import { Button } from '@shared/ui/button'
 import { Input } from '@shared/ui/input'
 import { Label } from '@shared/ui/label'
 import type { ReferenceRow } from '../lib/references'
+import { useTranslation } from 'react-i18next'
 
 interface ReferenceRowsEditorProps {
   rows: ReferenceRow[]
@@ -16,7 +17,8 @@ interface ReferenceRowsEditorProps {
  * it owns no state, just renders the current rows and reports edits up. Blank rows and URL
  * normalization are handled by cleanReferences at submit time, not here.
  */
-export function ReferenceRowsEditor({ rows, onChange, hint = 'Add the Nevobo page, match form, and more.' }: ReferenceRowsEditorProps) {
+export function ReferenceRowsEditor({ rows, onChange, hint }: ReferenceRowsEditorProps) {
+  const { t } = useTranslation()
   const update = (index: number, field: 'title' | 'url', value: string) =>
     onChange(rows.map((r, i) => (i === index ? { ...r, [field]: value } : r)))
   const add = () => onChange([...rows, { title: '', url: '' }])
@@ -24,26 +26,26 @@ export function ReferenceRowsEditor({ rows, onChange, hint = 'Add the Nevobo pag
 
   return (
     <div>
-      <Label>Links (optional)</Label>
-      <p className="mb-1 text-caption text-muted-foreground">{hint}</p>
+      <Label>{t('references.heading')}</Label>
+      <p className="mb-1 text-caption text-muted-foreground">{hint ?? t('references.hint')}</p>
       <div className="flex flex-col gap-2">
         {rows.map((ref, i) => (
           <div key={i} className="flex items-center gap-2">
             <Input
-              aria-label={`Link ${i + 1} label`}
-              placeholder="Label (optional)"
+              aria-label={t('references.label', { n: i + 1 })}
+              placeholder={t('references.labelPlaceholder')}
               value={ref.title}
               onChange={(e) => update(i, 'title', e.target.value)}
               className="w-2/5"
             />
             <Input
-              aria-label={`Link ${i + 1} URL`}
+              aria-label={t('references.url', { n: i + 1 })}
               placeholder="https://…"
               value={ref.url}
               onChange={(e) => update(i, 'url', e.target.value)}
               className="flex-1"
             />
-            <Button type="button" variant="ghost" size="icon" aria-label={`Remove link ${i + 1}`} onClick={() => remove(i)}>
+            <Button type="button" variant="ghost" size="icon" aria-label={t('references.remove', { n: i + 1 })} onClick={() => remove(i)}>
               <X size={16} />
             </Button>
           </div>
@@ -51,7 +53,7 @@ export function ReferenceRowsEditor({ rows, onChange, hint = 'Add the Nevobo pag
       </div>
       <Button type="button" variant="ghost" size="sm" className="mt-2 gap-1.5" onClick={add}>
         <Plus size={15} />
-        Add link
+        {t('references.add')}
       </Button>
     </div>
   )

@@ -1,4 +1,5 @@
 import type { AttendanceEntry, EventRoster, RosterPosition, SubstituteEntry } from '@shared/api/events'
+import { i18n } from '@shared/i18n/i18n'
 
 /**
  * The lineup panel's view model: one row per position, each carrying the people who play it.
@@ -108,7 +109,7 @@ export function lineupRows(
     rows.push(
       row({
         id: 'unassigned',
-        label: UNASSIGNED,
+        label: i18n.t('lineup.unassigned'),
         required: null,
         isStaff: false,
         members: sortMembers(unassigned),
@@ -205,10 +206,10 @@ function sortMembers(members: LineupMember[]): LineupMember[] {
  */
 export function verdictWord(row: LineupRow): string | null {
   if (row.required == null) return null
-  if (row.attending === 0) return 'nobody yet'
-  if (row.openSlots > 0) return `needs ${row.openSlots} more`
-  if (row.surplus > 0) return `${row.surplus} spare`
-  return 'covered'
+  if (row.attending === 0) return i18n.t('lineup.verdict.nobodyYet')
+  if (row.openSlots > 0) return i18n.t('lineup.verdict.needsMore', { count: row.openSlots })
+  if (row.surplus > 0) return i18n.t('lineup.verdict.spare', { count: row.surplus })
+  return i18n.t('lineup.verdict.covered')
 }
 
 /**
@@ -219,7 +220,7 @@ export function verdictWord(row: LineupRow): string | null {
 export function openLine(rows: LineupRow[]): string | null {
   const open = rows.filter((r) => r.required != null && r.openSlots > 0).map((r) => r.label)
   if (open.length === 0) return null
-  return open.length > 2 ? `${open.length} positions still open` : `Still open: ${open.join(', ')}`
+  return open.length > 2 ? i18n.t('lineup.positionsOpen', { count: open.length }) : i18n.t('lineup.stillOpen', { positions: open.join(', ') })
 }
 
 /**
@@ -232,8 +233,8 @@ export function comingLine(rows: LineupRow[]): string | null {
   const players = rows.filter((r) => !r.isStaff).flatMap(going).filter((m) => !m.isSubstitute).length
   const subs = rows.flatMap(going).filter((m) => m.isSubstitute).length
   const parts = [
-    players > 0 && `${players} ${players === 1 ? 'player' : 'players'}`,
-    subs > 0 && `${subs} ${subs === 1 ? 'sub' : 'subs'}`,
+    players > 0 && i18n.t('lineup.players', { count: players }),
+    subs > 0 && i18n.t('lineup.subs', { count: subs }),
     ...rows.filter((r) => r.isStaff).map((r) => going(r).length > 0 && `${going(r).length} ${r.label}`),
   ].filter(Boolean)
   return parts.length > 0 ? parts.join(' · ') : null
@@ -250,5 +251,5 @@ export interface PositionRef {
  * own, so it keeps its casing; only the article follows it.
  */
 export function findSomeone(positionLabel: string): string {
-  return `Find ${/^[aeiou]/i.test(positionLabel) ? 'an' : 'a'} ${positionLabel}`
+  return i18n.t(/^[aeiou]/i.test(positionLabel) ? 'lineup.findAn' : 'lineup.findA', { position: positionLabel })
 }

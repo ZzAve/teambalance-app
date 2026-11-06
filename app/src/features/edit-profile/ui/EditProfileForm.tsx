@@ -7,6 +7,7 @@ import { Label } from '@shared/ui/label'
 import { parseShirtNumber } from '../lib/parse-shirt-number'
 import { validateDisplayName } from '../lib/validate-display-name'
 import { validatePosition } from '../lib/validate-position'
+import { useTranslation } from 'react-i18next'
 
 interface EditProfileFormProps {
   currentName: string
@@ -47,6 +48,7 @@ export function EditProfileForm({
   const [touched, setTouched] = useState(false)
 
   const nameError = validateDisplayName(name)
+  const { t } = useTranslation()
   const positionError = validatePosition(positions, positionId)
   const shirtNumber = parseShirtNumber(shirtNumberText)
   const validationError = nameError ?? positionError ?? shirtNumber.error
@@ -63,7 +65,7 @@ export function EditProfileForm({
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
       <div>
-        <Label htmlFor="displayName">Display name</Label>
+        <Label htmlFor="displayName">{t('profileForm.displayName')}</Label>
         <Input
           id="displayName"
           name="displayName"
@@ -73,19 +75,19 @@ export function EditProfileForm({
             setTouched(true)
           }}
           aria-invalid={touched && nameError ? true : undefined}
-          placeholder="Your name"
+          placeholder={t('profileForm.namePlaceholder')}
         />
         {touched && nameError && <p className="mt-1 text-small text-red-ink">{nameError}</p>}
         {errorCode === 'NAME_TAKEN' && (
-          <p className="mt-1 text-small text-red-ink">That display name is already taken.</p>
+          <p className="mt-1 text-small text-red-ink">{t('profileForm.nameTaken')}</p>
         )}
       </div>
 
       {positions.length > 0 && (
         <div>
-          <Label htmlFor="position">Position</Label>
+          <Label htmlFor="position">{t('profileForm.position')}</Label>
           <PositionPicker
-            aria-label="Position"
+            aria-label={t('profileForm.position')}
             positions={positions}
             value={positionId}
             onChange={(id) => {
@@ -99,7 +101,7 @@ export function EditProfileForm({
 
       {withShirtNumber && (
         <div>
-          <Label htmlFor="shirtNumber">Shirt number</Label>
+          <Label htmlFor="shirtNumber">{t('profileForm.shirtNumber')}</Label>
           <Input
             id="shirtNumber"
             name="shirtNumber"
@@ -110,23 +112,23 @@ export function EditProfileForm({
               setTouched(true)
             }}
             aria-invalid={touched && shirtNumber.error ? true : undefined}
-            placeholder="None"
+            placeholder={t('profileForm.shirtNone')}
             className="w-24"
           />
           {touched && shirtNumber.error && <p className="mt-1 text-small text-red-ink">{shirtNumber.error}</p>}
           {errorCode === 'NUMBER_TAKEN' && (
-            <p className="mt-1 text-small text-red-ink">That shirt number is already taken.</p>
+            <p className="mt-1 text-small text-red-ink">{t('profileForm.numberTaken')}</p>
           )}
         </div>
       )}
 
       <div className="flex gap-2">
         <Button type="submit" className="flex-1" disabled={isSaving || !!validationError}>
-          {isSaving ? 'Saving...' : 'Save'}
+          {isSaving ? t('profileForm.saving') : t('profileForm.save')}
         </Button>
         {onCancel && (
           <Button type="button" variant="outline" onClick={onCancel}>
-            Cancel
+            {t('common.cancel')}
           </Button>
         )}
       </div>

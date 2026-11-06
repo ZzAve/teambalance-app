@@ -1,5 +1,6 @@
 import type { TeamRef } from '@shared/api/teams'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@shared/ui/select'
+import { useTranslation } from 'react-i18next'
 
 interface TeamSwitcherViewProps {
   /** Every Team the caller is a Member of. */
@@ -18,6 +19,7 @@ interface TeamSwitcherViewProps {
  * A single-Team caller gets the name without a menu; there is nothing to switch to.
  */
 export function TeamSwitcherView({ teams, activeTeam, onSelect }: TeamSwitcherViewProps) {
+  const { t } = useTranslation()
   if (!activeTeam) return null
 
   if (teams.length < 2) {
@@ -38,7 +40,7 @@ export function TeamSwitcherView({ teams, activeTeam, onSelect }: TeamSwitcherVi
       }}
     >
       <SelectTrigger
-        aria-label={`Current team: ${activeTeam.name}. Switch team`}
+        aria-label={t('header.switchTeam', { team: activeTeam.name })}
         className="h-auto w-auto gap-2 rounded-full border-0 bg-blue/8 px-3 py-1.5 text-caption font-semibold text-blue transition-colors hover:bg-blue/15"
       >
         <span className="h-1.5 w-1.5 rounded-full bg-green" />

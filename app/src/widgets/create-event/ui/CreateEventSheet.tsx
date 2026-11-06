@@ -12,6 +12,7 @@ import {
   type CreateRecurringEventsRequest,
 } from '@shared/api/recurring-events'
 import { CreateEventSheetView, type CreateEventMode } from './CreateEventSheetView'
+import { useTranslation } from 'react-i18next'
 
 type Mode = 'closed' | CreateEventMode
 
@@ -39,6 +40,7 @@ export function CreateEventSheet() {
     createSeries.reset()
   }
 
+  const { t } = useTranslation()
   const handleSingle = (values: EventInput) => createEvent.mutate(values, { onSuccess: close })
   const handleRecurring = (body: CreateRecurringEventsRequest) => createSeries.mutate(body, { onSuccess: close })
 
@@ -58,7 +60,7 @@ export function CreateEventSheet() {
       <SheetTrigger asChild>
         <Button onClick={() => setMode('chooser')}>
           <Plus size={16} />
-          New Event
+          {t('events.newEvent')}
         </Button>
       </SheetTrigger>
       <SheetContent>

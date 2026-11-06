@@ -20,7 +20,7 @@ import { eligibleEvents } from '@features/bulk-attend/lib/eligible-event-ids'
 import { NextEventHeroView } from '@widgets/next-event-hero/ui/NextEventHeroView'
 import { EventLineupPanel } from '@widgets/event-panel/ui/EventLineupPanel'
 import { appShell } from '../../../../storybook-support/app-shell-decorator'
-import { pageModes } from '../../../../.storybook/modes'
+import { dutchMode, pageModes } from '../../../../.storybook/modes'
 import { EventsPageView } from './EventsPageView'
 
 // The events page as a phone shows it (ADR-0032 §3): header, filter trigger, the Next Up hero, the
@@ -312,8 +312,23 @@ const hero = (canvas: ReturnType<typeof within>) => within(canvas.getByRole('reg
 export const Data: Story = {
   decorators: shell.decorators,
   // The page's picture, in dark and once at desktop width too (ADR-0032 §4-§5).
-  parameters: { chromatic: { modes: pageModes } },
-  play: async ({ canvas }) => {
+  // Plus the Dutch picture (ADR-0043 §8): Dutch words run longer, and this is where they would overflow.
+  parameters: { chromatic: { modes: { ...pageModes, ...dutchMode } } },
+  play: async ({ canvas, globals }) => {
+    // Chromatic runs this play in every mode. In the Dutch one it proves the translated screen (#464).
+    if (globals.locale === 'nl') {
+      await expect(canvas.getByRole('heading', { name: 'Events' })).toBeInTheDocument()
+      const dutchHero = within(canvas.getByRole('region', { name: 'Volgende' }))
+      await expect(dutchHero.getByRole('button', { name: 'Aanwezig' })).toHaveAttribute('aria-pressed', 'false')
+      await expect(dutchHero.getByRole('button', { name: /Toon opstelling/ })).toBeInTheDocument()
+      // The cards' disclosures too, the whole label in Dutch.
+      await expect(canvas.getAllByRole('button', { name: /Toon opstelling/ })).toHaveLength(4)
+      await expect(canvas.getByRole('button', { name: 'Filters' })).toHaveAttribute('aria-expanded', 'false')
+      await expect(canvas.getByRole('link', { name: 'Agendalinks' })).toBeInTheDocument()
+      await expect(canvas.getByRole('link', { name: 'Profiel' })).toBeInTheDocument()
+      await expect(canvas.getByText(/events? (past|passen) bij deze filters/)).toBeInTheDocument()
+      return
+    }
     await expect(canvas.getByRole('heading', { name: 'Events' })).toBeInTheDocument()
     await expect(canvas.getByRole('button', { name: 'New Event' })).toBeInTheDocument()
     await expect(canvas.getByRole('button', { name: 'Filters' })).toHaveAttribute('aria-expanded', 'false')

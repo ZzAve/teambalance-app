@@ -1,4 +1,5 @@
 import type { Position } from '@shared/api/positions'
+import { i18n } from '@shared/i18n/i18n'
 
 /**
  * Required-when-available validation for the profile position picker: if the team defines any
@@ -7,6 +8,6 @@ import type { Position } from '@shared/api/positions'
  */
 export function validatePosition(positions: Position[], positionId: string | null): string | null {
   if (positions.length === 0) return null
-  if (!positionId) return 'Please select a position.'
+  if (!positionId) return i18n.t('profileForm.selectPosition')
   return null
 }

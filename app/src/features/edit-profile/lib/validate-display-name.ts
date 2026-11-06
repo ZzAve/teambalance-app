@@ -1,3 +1,5 @@
+import { i18n } from '@shared/i18n/i18n'
+
 const MAX_LENGTH = 100
 
 /**
@@ -6,7 +8,7 @@ const MAX_LENGTH = 100
  */
 export function validateDisplayName(value: string): string | null {
   const trimmed = value.trim()
-  if (trimmed.length === 0) return 'Display name is required.'
-  if (trimmed.length > MAX_LENGTH) return `Display name must be ${MAX_LENGTH} characters or fewer.`
+  if (trimmed.length === 0) return i18n.t('profileForm.nameRequired')
+  if (trimmed.length > MAX_LENGTH) return i18n.t('profileForm.nameTooLong', { max: MAX_LENGTH })
   return null
 }

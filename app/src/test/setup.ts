@@ -2,6 +2,8 @@
 // expect, and augments its types. Loaded via vitest.config.ts (unit project setupFiles).
 import '@testing-library/jest-dom/vitest'
 import { configure } from '@testing-library/react'
+// English, the start language, so text queries match the English catalogue (ADR-0043 §1).
+import '@shared/i18n/i18n'
 
 // The unit (jsdom) project runs concurrently with the headless-browser Storybook project under
 // `make test-app`, and that CPU contention can push the async assertions in the render-gate tests

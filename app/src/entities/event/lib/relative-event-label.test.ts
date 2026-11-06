@@ -1,4 +1,5 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
+import { i18n } from '@shared/i18n/i18n'
 import {
   RELATIVE_WINDOW_DAYS,
   calendarDaysUntil,
@@ -131,5 +132,18 @@ describe('relativeEventLabel', () => {
       expect(label(at(2026, 8, 9), MON)).toBeNull()
       expect(label(at(2026, 7, 1), MON)).toBeNull()
     })
+  })
+})
+
+describe('relativeEventLabel in Dutch', () => {
+  afterEach(() => i18n.changeLanguage('en'))
+
+  it('says the day in Dutch', async () => {
+    await i18n.changeLanguage('nl')
+
+    expect(label(at(2026, 8, 10, 20), MON)?.text).toBe('Vandaag')
+    expect(label(TUE, MON)?.text).toBe('Morgen')
+    expect(label(SAT, MON)?.text).toBe('Dit weekend')
+    expect(label(THU, MON)?.text).toBe('over 3 dagen')
   })
 })

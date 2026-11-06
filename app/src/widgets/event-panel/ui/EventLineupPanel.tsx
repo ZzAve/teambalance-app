@@ -18,6 +18,7 @@ import {
   type LineupRow,
   type LineupState,
 } from '@entities/event/lib/lineup'
+import { useTranslation } from 'react-i18next'
 
 /**
  * What an event card's roster disclosure opens onto: a row per position, the people who play it as
@@ -114,6 +115,7 @@ export function EventLineupPanel({
     })
 
   // The header names what is still open; the totals are the badge's ("Full · 13/12", "Lineup set").
+  const { t } = useTranslation()
   const news = openLine(rows)
   const coming = comingLine(rows)
 
@@ -121,7 +123,7 @@ export function EventLineupPanel({
     <div>
       <div className="mb-3">
         <div className="flex items-center justify-between gap-2">
-          <SectionLabel as="span">Lineup</SectionLabel>
+          <SectionLabel as="span">{t('lineup.heading')}</SectionLabel>
           {summary && news && <span className="text-caption font-bold text-foreground/70">{news}</span>}
         </div>
         {/* How many people we are: the short form of the event page's "Who's coming". */}
@@ -129,7 +131,7 @@ export function EventLineupPanel({
       </div>
 
       {rows.length === 0 ? (
-        <p className="text-small text-muted-foreground">Nobody has answered yet.</p>
+        <p className="text-small text-muted-foreground">{t('lineup.nobodyAnswered')}</p>
       ) : (
         <div className="flex flex-col gap-2">
           {rows.map((row) => (
@@ -151,7 +153,7 @@ export function EventLineupPanel({
         className="mt-3.5 flex w-full items-center justify-center gap-2 rounded-md border-[1.5px] border-dashed border-purple/55 min-h-11 py-2 text-small font-semibold text-purple-ink hover:bg-purple/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
         <UserPlus size={18} aria-hidden />
-        Call in substitutes
+        {t('lineup.callIn')}
       </button>
 
       {/* One answer control app-wide — the detail page's attendee list opens this same sheet. */}
@@ -187,6 +189,7 @@ function PositionRow({
   onSelect: (member: LineupMember) => void
   onFind: () => void
 }) {
+  const { t } = useTranslation()
   const verdict = verdictWord(row)
 
   // A light box per position, so the heading, its verdict and its people read as one group.
@@ -209,7 +212,7 @@ function PositionRow({
         {row.members.length > 0 && (
           <Cluster
             members={row.members}
-            label={`in ${row.label}`}
+            label={t('lineup.inPosition', { position: row.label })}
             expanded={expanded.has(row.id)}
             onToggle={() => onToggleCluster(row.id)}
             onSelect={onSelect}
@@ -217,7 +220,7 @@ function PositionRow({
         )}
         {row.openSlots > 0 && <OpenSlotChip positionLabel={row.label} openSlots={row.openSlots} onFind={onFind} />}
         {row.members.length === 0 && row.openSlots === 0 && (
-          <span className="text-caption text-muted-foreground">Nobody yet</span>
+          <span className="text-caption text-muted-foreground">{t('lineup.nobodyYet')}</span>
         )}
       </div>
     </section>

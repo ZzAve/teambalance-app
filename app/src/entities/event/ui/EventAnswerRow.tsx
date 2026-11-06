@@ -1,5 +1,6 @@
 import { useId, useState } from 'react'
 import { Check, ChevronDown, HelpCircle, X } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import type { ComponentType, ReactNode } from 'react'
 import type { Event, EventRoster } from '@shared/api/events'
 import { ATTENDANCE_WORDS } from '../lib/attendance-words'
@@ -111,6 +112,7 @@ export function EventAnswerRow({
   const answer = myAnswer(myState, setBy)
   const { className: pillClass, Icon } = PILL_TONE[answer.tone]
   const rosterExpandable = rosterPanel != null
+  const { t } = useTranslation()
   const noun = panelNoun(roster)
 
   const pick = (state: AttendanceState) => {
@@ -144,7 +146,7 @@ export function EventAnswerRow({
             aria-hidden
             className={`shrink-0 text-muted-foreground transition-transform duration-200 ${attnOpen ? 'rotate-180' : ''}`}
           />
-          <span className="sr-only">{attnOpen ? 'Hide answer options' : 'Change your answer'}</span>
+          <span className="sr-only">{attnOpen ? t('answerRow.hide') : t('answerRow.change')}</span>
         </button>
 
         {/* Right: the readiness verdict. A disclosure when there is a lineup; otherwise a plain
@@ -163,7 +165,7 @@ export function EventAnswerRow({
               aria-hidden
               className={`text-muted-foreground transition-transform duration-200 ${rosterOpen ? 'rotate-180' : ''}`}
             />
-            <span className="sr-only">{rosterOpen ? `Hide ${noun}` : `Show ${noun}`}</span>
+            <span className="sr-only">{rosterOpen ? t('hero.hide', { noun }) : t('hero.show', { noun })}</span>
           </button>
         ) : (
           // Nothing to open, so nothing to tap: the verdict is a plain label. On the events list this

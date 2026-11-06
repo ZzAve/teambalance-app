@@ -1,4 +1,5 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, afterEach } from 'vitest'
+import { i18n } from '@shared/i18n/i18n'
 import { myAnswer } from './my-answer'
 
 describe('myAnswer', () => {
@@ -22,5 +23,16 @@ describe('myAnswer', () => {
 
   it('keeps the tone of the answer, not of who gave it', () => {
     expect(myAnswer('ABSENT', 'Lisa Bakker').tone).toBe('absent')
+  })
+})
+
+describe('myAnswer in Dutch', () => {
+  afterEach(() => i18n.changeLanguage('en'))
+
+  it('names the teammate who gave the answer in Dutch', async () => {
+    await i18n.changeLanguage('nl')
+    expect(myAnswer('ATTENDING', 'Lisa Bakker').label).toBe('Lisa Bakker zei: je bent erbij')
+    expect(myAnswer('MAYBE', 'Lisa Bakker').label).toBe('Lisa Bakker zei misschien')
+    expect(myAnswer('ABSENT', 'Lisa Bakker').label).toBe('Lisa Bakker zei: je bent er niet bij')
   })
 })

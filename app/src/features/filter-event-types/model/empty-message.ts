@@ -1,6 +1,7 @@
 import type { AttendanceState } from '@features/attendance-toggle/ui/AttendanceToggle'
 import { ALL_ATTENDANCE_STATES } from '@entities/event/lib/attendance-states'
 import { ALL_TURNOUT_BUCKETS, type TurnoutBucket } from './turnout'
+import { i18n } from '@shared/i18n/i18n'
 
 interface EmptyMessageInput {
     /** A hero is on screen, so the page is not empty — only the list beneath it is. */
@@ -32,22 +33,22 @@ export function emptyEventsMessage({
     activeStates,
     activeTurnouts,
 }: EmptyMessageInput): string {
-    if (hasHero) return 'Nothing else coming up.'
+    if (hasHero) return i18n.t('events.empty.nothingElse')
 
     const typeFiltered = activeTypeIds.size < allTypeIds.length
     const stateFiltered = activeStates.size < ALL_ATTENDANCE_STATES.length
     const turnoutFiltered = activeTurnouts.size < ALL_TURNOUT_BUCKETS.length
     const narrowed = [typeFiltered, stateFiltered, turnoutFiltered].filter(Boolean).length
 
-    if (narrowed === 0) return showPast ? 'No events yet.' : 'No upcoming events.'
+    if (narrowed === 0) return showPast ? i18n.t('events.empty.noneYet') : i18n.t('events.empty.noneUpcoming')
     if (narrowed === 1) {
-        if (typeFiltered) return 'No events for this type.'
+        if (typeFiltered) return i18n.t('events.empty.noneForType')
         if (stateFiltered && activeStates.size === 1 && activeStates.has('NOT_RESPONDED')) {
-            return 'Nothing needs your answer.'
+            return i18n.t('events.empty.nothingToAnswer')
         }
         if (turnoutFiltered && [...activeTurnouts].every((b) => SHORT_BUCKETS.includes(b))) {
-            return 'No events are short of players.'
+            return i18n.t('events.empty.noneShort')
         }
     }
-    return 'No events match these filters.'
+    return i18n.t('events.empty.noneMatch')
 }

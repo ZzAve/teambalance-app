@@ -1,3 +1,5 @@
+import { i18n } from '@shared/i18n/i18n'
+
 /**
  * Naive English plural, deliberately so: event-type names are admin-configurable free text, so there
  * is no dictionary to consult. Covers the endings that actually occur in a team calendar
@@ -16,6 +18,6 @@ export function pluralizeType(noun: string): string {
  * (ADR-0020, ADR-0021): each button covers exactly one event type, so its scope is named.
  */
 export function attendLabel(count: number, typeName: string): string {
-  const noun = count === 1 ? typeName.toLowerCase() : pluralizeType(typeName)
-  return `Attend ${count} ${noun}`
+  // Dutch leaves the team's own name unpluralized ("Aanwezig bij 3× training"); English pluralizes it.
+  return i18n.t('bulk.attend', { count, type: typeName.toLowerCase(), types: pluralizeType(typeName) })
 }

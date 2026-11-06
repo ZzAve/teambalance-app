@@ -1,6 +1,7 @@
 package com.github.zzave.teambalance.api.infrastructure.multitenancy
 
 import com.github.zzave.teambalance.api.domain.model.Slug
+import com.github.zzave.teambalance.api.domain.model.TenantRouting
 import com.github.zzave.teambalance.api.domain.port.TeamRepository
 import jakarta.servlet.FilterChain
 import jakarta.servlet.http.HttpServletRequest
@@ -13,7 +14,7 @@ import org.springframework.web.filter.OncePerRequestFilter
 import org.springframework.web.util.UrlPathHelper
 
 /**
- * Binds the tenant schema for the one endpoint that has no session to resolve it from: the
+ * Binds the tenant schema and the current team for the one endpoint that has no session to resolve it from: the
  * calendar-link feed, `GET /api/calendar/{teamSlug}/{token}.ics` (ADR-0039).
  *
  * [SessionTenantContextFilter] resolves the tenant from the authenticated user's Active Team, so for a
@@ -29,8 +30,8 @@ import org.springframework.web.util.UrlPathHelper
  */
 // Last of the app's filters in the SecurityFilterChain, after SessionUserContextFilter,
 // SessionTenantContextFilter and RateLimitFilter (see SecurityConfig), so the throttle still runs before
-// any database work and so this filter's own clear-up happens inside the session filter's — it must not
-// clear a tenant the session filter is still relying on.
+// any database work. A session filter may already have bound the caller's own team; this filter
+// replaces it for the request and puts it back afterwards.
 @Component
 class CalendarFeedTenantFilter(
     private val teamRepository: TeamRepository,
@@ -44,13 +45,21 @@ class CalendarFeedTenantFilter(
         response: HttpServletResponse,
         filterChain: FilterChain,
     ) {
-        val bound = slugOf(request)?.let(::bind) == true
+        val routing = slugOf(request)?.let(::routingOf)
+        if (routing == null) {
+            filterChain.doFilter(request, response)
+            return
+        }
+        val previousSchema = TenantContext.get().takeIf { TenantContext.isSet() }
+        val previousTeam = CurrentTeamContext.get()
+        // Schema and team id from the same routing, so they cannot name different teams.
+        TenantContext.set(routing.schemaName.value)
+        CurrentTeamContext.set(routing.teamId.value)
         try {
             filterChain.doFilter(request, response)
         } finally {
-            // Only what this filter set: on any other request the session filter owns the context and
-            // clearing it here would unbind a tenant mid-request.
-            if (bound) TenantContext.clear()
+            previousSchema?.let(TenantContext::set) ?: TenantContext.clear()
+            previousTeam?.let(CurrentTeamContext::set) ?: CurrentTeamContext.clear()
         }
     }
 
@@ -59,10 +68,8 @@ class CalendarFeedTenantFilter(
      * this request to check one against. That is [TeamRepository.findTenantRoutingUnchecked]'s second
      * and only other sanctioned caller; see its documentation for why that is safe here.
      */
-    private fun bind(slug: Slug): Boolean =
-        teamRepository.findBySlug(slug)
-            ?.let { teamRepository.findTenantRoutingUnchecked(it.id) }
-            ?.also { TenantContext.set(it.schemaName.value) } != null
+    private fun routingOf(slug: Slug): TenantRouting? =
+        teamRepository.findBySlug(slug)?.let { teamRepository.findTenantRoutingUnchecked(it.id) }
 
     /**
      * Single `*` per segment, so the slug is exactly one segment and cannot walk out of the pattern.

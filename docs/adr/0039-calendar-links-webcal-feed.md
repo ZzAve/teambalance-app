@@ -286,7 +286,7 @@ Postgres advisory lock. Eight simultaneous creates leave three links; without th
 eight, which is what `CalendarLinkCapIT` pins.
 
 The lock is taken through the `EntityManager`, not a `JdbcTemplate`, and that detail is load-bearing:
-`SchemaMultiTenantConnectionProvider` pulls Hibernate's connection straight from the pool to set its
+`SchemaMultiTenantConnectionProvider` (removed by [ADR-0043](0043-jooq-replaces-hibernate-tenant-schema-set-at-transaction-start.md); a transaction now has one connection on the tenant schema) pulls Hibernate's connection straight from the pool to set its
 `search_path`, so Hibernate and a `JdbcTemplate` in the same Spring transaction sit on *different*
 physical connections — and a transaction-scoped lock on one guards nothing happening on the other.
 

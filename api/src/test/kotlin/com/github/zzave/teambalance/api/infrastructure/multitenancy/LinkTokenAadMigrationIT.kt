@@ -22,6 +22,7 @@ import java.util.UUID
 
 private const val SCHEMA = "link_aad_migration"
 private val TEAM = TeamId(UUID.fromString("a4650000-0000-0000-0000-000000000001"))
+private val BROKEN = TeamId(UUID.fromString("a4650000-0000-0000-0000-000000000002"))
 private const val USER = "a4650000-0000-0000-0000-0000000000ad"
 
 /**
@@ -70,6 +71,22 @@ class LinkTokenAadMigrationIT : TeamBalanceIT() {
             migration.migrate()
 
             invitationCipher.decrypt(invitationToken(invite), TokenCipher.aadOf(TEAM, Purpose.INVITE_LINK)) shouldBe "legacy-invite"
+            calendarLinkTokens.reveal(calendarToken(link), TEAM, link).value shouldBe "legacy-calendar"
+        }
+
+        // Startup brings every schema to head first, so this is a broken tenant; it must not stop the others.
+        test("a team whose schema cannot be read does not stop the other teams' links from being rebound") {
+            jdbcTemplate.update("DELETE FROM public.teams WHERE id = ?", BROKEN.value)
+            CalendarLinkFixture.team(jdbcTemplate, BROKEN.value.toString(), "AAD Broken", "aad-broken", "aad_broken_never_provisioned")
+            val link = CalendarLinkId.random()
+            calendarLink(link, legacyEncrypt(decode(calendarKey), "legacy-calendar"))
+
+            try {
+                migration.migrate()
+            } finally {
+                jdbcTemplate.update("DELETE FROM public.teams WHERE id = ?", BROKEN.value)
+            }
+
             calendarLinkTokens.reveal(calendarToken(link), TEAM, link).value shouldBe "legacy-calendar"
         }
 

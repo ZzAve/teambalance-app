@@ -21,7 +21,8 @@ import java.util.UUID
  *
  * Running it again changes nothing: a row that already opens with its AAD is skipped. Each write only replaces the
  * value it read, so a link rotated in the meantime is not overwritten. A row that opens neither way is logged and left
- * as it is: its hash still accepts the link, and an Admin can rotate it.
+ * as it is: its hash still accepts the link, and an Admin can rotate it. A tenant whose table cannot be read is logged
+ * and skipped, so one broken tenant does not stop the others or the boot.
  */
 @Component
 @DependsOn("startupTenantMigrationRunner")
@@ -45,9 +46,13 @@ class LinkTokenAadMigration(
             TeamId(rs.getObject("id", UUID::class.java)) to rs.getString("schema_name")
         }.forEach { (teamId, schema) ->
             val table = "\"$schema\".calendar_links"
-            jdbcTemplate.query("SELECT id, token_encrypted FROM $table") { rs, _ ->
-                Row(rs.getObject("id", UUID::class.java), teamId, rs.getString("token_encrypted"))
-            }.forEach { row ->
+            runCatching {
+                jdbcTemplate.query("SELECT id, token_encrypted FROM $table") { rs, _ ->
+                    Row(rs.getObject("id", UUID::class.java), teamId, rs.getString("token_encrypted"))
+                }
+            }.onFailure { log.warn("Could not read {} (team {}); its links are left as they are", table, teamId, it) }
+                .getOrDefault(emptyList())
+                .forEach { row ->
                 rebind(row, table) { calendarLinkTokens.rebindLegacy(it, teamId, CalendarLinkId(row.id)) }
             }
         }

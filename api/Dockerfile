@@ -197,7 +197,8 @@ ENV TEAMBALANCE_DEMO_ENABLED=true \
     TEAMBALANCE_CSRF_COOKIE_NAME=DEMO-XSRF-TOKEN \
     TEAMBALANCE_CSRF_COOKIE_DOMAIN= \
     TEAMBALANCE_API_BASE_URL=https://demo.teambalance.nl \
-    TEAMBALANCE_FRONTEND_BASE_URL=https://demo.teambalance.nl
+    TEAMBALANCE_FRONTEND_BASE_URL=https://demo.teambalance.nl \
+    TEAMBALANCE_CORS_ALLOWED_ORIGINS=https://demo.teambalance.nl
 COPY --chown=app:app app/dist-demo/ /app/static/
 
 # ---- prod stage (default target: keep it last) ---------------------------------

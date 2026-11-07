@@ -1,11 +1,11 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
-import { expect, fn } from 'storybook/test'
+import { expect, fn, within } from 'storybook/test'
 import { ReceiptButtonView } from '@features/attach-receipt/ui/ReceiptButtonView'
 import { RECEIPT_IMAGE } from '@features/attach-receipt/ui/receipt-image.fixture'
 import { Button } from '@shared/ui/button'
 import { MoneyPoolView } from '@widgets/money-pool/ui/MoneyPoolView'
 import { appShell } from '../../../../storybook-support/app-shell-decorator'
-import { pageModes } from '../../../../.storybook/modes'
+import { dutchMode, pageModes } from '../../../../.storybook/modes'
 import { MoneyPageView } from './MoneyPageView'
 
 // The money page as a phone shows it (ADR-0032 §3): the title over the connected pool with its Top up button, inside the
@@ -56,8 +56,18 @@ export default meta
 type Story = StoryObj<typeof meta>
 
 export const Data: Story = {
-  parameters: { chromatic: { modes: pageModes } },
-  play: async ({ canvas }) => {
+  // Plus the Dutch picture (ADR-0043 §8): Dutch separators in the amounts and dates.
+  parameters: { chromatic: { modes: { ...pageModes, ...dutchMode } } },
+  play: async ({ canvas, globals }) => {
+    // Chromatic runs this play in every mode. In the Dutch one it proves the translated screen (#464).
+    if (globals.locale === 'nl') {
+      await expect(canvas.getByRole('heading', { name: 'Teampot' })).toBeInTheDocument()
+      await expect(within(canvas.getByRole('region', { name: 'Saldo' })).getByText(/187,50/)).toBeInTheDocument()
+      await expect(within(canvas.getByRole('region', { name: 'Biermeter' })).getByText('69 biertjes')).toBeInTheDocument()
+      await expect(canvas.getByRole('button', { name: 'Bonnetje voor Sporthal De Kuil' })).toBeInTheDocument()
+      await expect(canvas.getByRole('link', { name: 'Teampot' })).toHaveAttribute('aria-current', 'page')
+      return
+    }
     await expect(canvas.getByRole('heading', { name: 'Money' })).toBeInTheDocument()
     await expect(canvas.getByText('Lisa de Vries')).toBeInTheDocument()
     await expect(canvas.getByText('69 beers')).toBeInTheDocument()

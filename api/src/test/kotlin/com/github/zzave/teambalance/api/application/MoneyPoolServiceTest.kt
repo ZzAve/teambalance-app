@@ -16,6 +16,9 @@ import com.github.zzave.teambalance.api.domain.model.Money
 import com.github.zzave.teambalance.api.domain.model.MoneyPool
 import com.github.zzave.teambalance.api.domain.model.MoneyPoolSettings
 import com.github.zzave.teambalance.api.domain.model.Payment
+import com.github.zzave.teambalance.api.domain.model.PaymentAlias
+import com.github.zzave.teambalance.api.domain.model.PaymentAliasId
+import com.github.zzave.teambalance.api.domain.model.PaymentAliasName
 import com.github.zzave.teambalance.api.domain.model.PaymentDirection
 import com.github.zzave.teambalance.api.domain.model.PaymentId
 import com.github.zzave.teambalance.api.domain.model.Receipt
@@ -30,6 +33,7 @@ import com.github.zzave.teambalance.api.domain.port.BunqGateway
 import com.github.zzave.teambalance.api.domain.port.MoneyPoolCacheGateway
 import com.github.zzave.teambalance.api.domain.port.MoneyPoolSettingsRepository
 import com.github.zzave.teambalance.api.domain.port.ReceiptRepository
+import com.github.zzave.teambalance.api.domain.port.PaymentAliasRepository
 import com.github.zzave.teambalance.api.domain.port.SeasonRepository
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
@@ -61,6 +65,14 @@ internal class InMemoryReceiptRepository : ReceiptRepository {
     override fun delete(paymentId: PaymentId) {
         receipts.remove(paymentId)
     }
+}
+
+internal class FixedPaymentAliases(private val all: List<PaymentAlias> = emptyList()) : PaymentAliasRepository {
+    override fun findByUser(userId: UserId) = all.filter { it.userId == userId }
+    override fun findAll() = all
+    override fun insert(alias: PaymentAlias) = error("not used")
+    override fun update(alias: PaymentAlias) = error("not used")
+    override fun delete(userId: UserId, id: PaymentAliasId) = error("not used")
 }
 
 private class RecordingBunqGateway(
@@ -174,6 +186,7 @@ class MoneyPoolServiceTest : FunSpec({
         cache: MoneyPoolCacheGateway = PassThroughCache(),
         connections: BunqConnectionRepository? = null,
         receipts: ReceiptRepository = InMemoryReceiptRepository(),
+        aliases: List<PaymentAlias> = emptyList(),
     ) = MoneyPoolService(
         settingsRepository = settingsRepository,
         connectionRepository = connections ?: object : BunqConnectionRepository {
@@ -201,55 +214,74 @@ class MoneyPoolServiceTest : FunSpec({
         authorizationService = AuthorizationService(directory.teamMemberRepository(), FakeActAsGateway()),
         cache = cache,
         receiptRepository = receipts,
+        paymentAliasRepository = FixedPaymentAliases(aliases),
+        teamMemberRepository = directory.teamMemberRepository(),
     )
 
+    test("attributes payments to members after the cache, so a held pool reflects aliases saved since") {
+        val held = MoneyPool.Connected(Money(18_750), listOf(PAYMENT))
+        val alias = PaymentAlias(PaymentAliasId.random(), MEMBER, PaymentAliasName.parse("LISA"), null)
+
+        val pool = service(cache = HoldingCache(held), aliases = listOf(alias)).getMoneyPool(team, MEMBER).pool
+
+        (pool as MoneyPool.Connected).payments.single().memberId shouldBe MEMBER
+        held.payments.single().memberId shouldBe null
+    }
+
+    test("a payment nobody claims has no member") {
+        val pool = service().getMoneyPool(team, MEMBER).pool
+
+        (pool as MoneyPool.Connected).payments.single().memberId shouldBe null
+    }
+
     test("is Off when the team switched the money pool off") {
-        service(enabled = false).getMoneyPool(team).pool shouldBe MoneyPool.Off
+        service(enabled = false).getMoneyPool(team, MEMBER).pool shouldBe MoneyPool.Off
     }
 
     test("is NotConnected when enabled but no Bunq connection exists") {
-        service(connected = false).getMoneyPool(team).pool shouldBe MoneyPool.NotConnected
+        service(connected = false).getMoneyPool(team, MEMBER).pool shouldBe MoneyPool.NotConnected
     }
 
     test("is NotConnected when connected but no account is picked yet, and Bunq is not called") {
         val gateway = RecordingBunqGateway()
 
-        service(accountPicked = false, gateway = gateway).getMoneyPool(team).pool shouldBe MoneyPool.NotConnected
+        service(accountPicked = false, gateway = gateway).getMoneyPool(team, MEMBER).pool shouldBe MoneyPool.NotConnected
 
         gateway.calls shouldBe 0
     }
 
     test("is Connected with balance and payments when Bunq answers") {
-        service().getMoneyPool(team).pool shouldBe MoneyPool.Connected(Money(18_750), listOf(PAYMENT))
+        service().getMoneyPool(team, MEMBER).pool shouldBe MoneyPool.Connected(Money(18_750), listOf(PAYMENT))
     }
 
     test("is Unavailable when Bunq fails") {
-        service(gateway = RecordingBunqGateway(balanceFailure = IllegalStateException("bunq down"))).getMoneyPool(team).pool shouldBe
+        service(gateway = RecordingBunqGateway(balanceFailure = IllegalStateException("bunq down")))
+            .getMoneyPool(team, MEMBER).pool shouldBe
             MoneyPool.Unavailable
     }
 
     test("reads Bunq with the decrypted stored grant") {
         val gateway = RecordingBunqGateway()
 
-        service(gateway = gateway).getMoneyPool(team)
+        service(gateway = gateway).getMoneyPool(team, MEMBER)
 
         gateway.grantsUsed shouldBe listOf(BunqGrant(GRANT_TOKEN), BunqGrant(GRANT_TOKEN))
     }
 
     test("is Rejected when Bunq rejects the grant on the balance call") {
-        service(gateway = RecordingBunqGateway(balanceFailure = BunqGrantRejectedException())).getMoneyPool(team).pool shouldBe
+        service(gateway = RecordingBunqGateway(balanceFailure = BunqGrantRejectedException())).getMoneyPool(team, MEMBER).pool shouldBe
             MoneyPool.Rejected
     }
 
     test("is Rejected when Bunq rejects the grant on the payments call") {
-        service(gateway = RecordingBunqGateway(paymentsFailure = BunqGrantRejectedException())).getMoneyPool(team).pool shouldBe
+        service(gateway = RecordingBunqGateway(paymentsFailure = BunqGrantRejectedException())).getMoneyPool(team, MEMBER).pool shouldBe
             MoneyPool.Rejected
     }
 
     test("is Rejected when the stored grant does not decrypt, and Bunq is not called") {
         val gateway = RecordingBunqGateway()
 
-        service(gateway = gateway, storedGrant = EncryptedToken("not-a-grant")).getMoneyPool(team).pool shouldBe MoneyPool.Rejected
+        service(gateway = gateway, storedGrant = EncryptedToken("not-a-grant")).getMoneyPool(team, MEMBER).pool shouldBe MoneyPool.Rejected
 
         gateway.calls shouldBe 0
     }
@@ -258,7 +290,8 @@ class MoneyPoolServiceTest : FunSpec({
         val otherKey = TokenCipher.fromBase64Key(Base64.getEncoder().encodeToString(ByteArray(32) { 7 }), "other-key")
         val gateway = RecordingBunqGateway()
 
-        service(gateway = gateway, storedGrant = otherKey.encrypt(GRANT_TOKEN, aad)).getMoneyPool(team).pool shouldBe MoneyPool.Rejected
+        service(gateway = gateway, storedGrant = otherKey.encrypt(GRANT_TOKEN, aad))
+            .getMoneyPool(team, MEMBER).pool shouldBe MoneyPool.Rejected
 
         gateway.calls shouldBe 0
     }
@@ -268,7 +301,7 @@ class MoneyPoolServiceTest : FunSpec({
         val gateway = RecordingBunqGateway()
         val copied = GRANT_CIPHER.encrypt(GRANT_TOKEN, TokenCipher.aadOf(otherTeam, Purpose.BUNQ_GRANT))
 
-        service(gateway = gateway, storedGrant = copied).getMoneyPool(team).pool shouldBe MoneyPool.Rejected
+        service(gateway = gateway, storedGrant = copied).getMoneyPool(team, MEMBER).pool shouldBe MoneyPool.Rejected
 
         gateway.calls shouldBe 0
     }
@@ -278,7 +311,7 @@ class MoneyPoolServiceTest : FunSpec({
         val gateway = RecordingBunqGateway()
         val context = GRANT_CIPHER.encrypt(GRANT_TOKEN, TokenCipher.aadOf(team, Purpose.BUNQ_API_CONTEXT))
 
-        service(gateway = gateway, storedGrant = context).getMoneyPool(team).pool shouldBe MoneyPool.Rejected
+        service(gateway = gateway, storedGrant = context).getMoneyPool(team, MEMBER).pool shouldBe MoneyPool.Rejected
 
         gateway.calls shouldBe 0
     }
@@ -288,7 +321,7 @@ class MoneyPoolServiceTest : FunSpec({
         val gateway = RecordingBunqGateway()
         val old = GRANT_CIPHER.encrypt(GRANT_TOKEN, TokenCipher.NO_AAD)
 
-        service(gateway = gateway, storedGrant = old).getMoneyPool(team).pool shouldBe MoneyPool.Rejected
+        service(gateway = gateway, storedGrant = old).getMoneyPool(team, MEMBER).pool shouldBe MoneyPool.Rejected
 
         gateway.calls shouldBe 0
     }
@@ -299,7 +332,7 @@ class MoneyPoolServiceTest : FunSpec({
 
         val service = service(gateway = gateway, storedGrant = EncryptedToken("not-a-grant"), cache = HoldingCache(held))
 
-        service.getMoneyPool(team).pool shouldBe held
+        service.getMoneyPool(team, MEMBER).pool shouldBe held
         gateway.calls shouldBe 0
         gateway.grantsUsed shouldBe emptyList()
     }
@@ -307,7 +340,7 @@ class MoneyPoolServiceTest : FunSpec({
     test("the cache is asked for the team and the picked account") {
         val cache = PassThroughCache()
 
-        service(cache = cache).getMoneyPool(team)
+        service(cache = cache).getMoneyPool(team, MEMBER)
 
         cache.readFor shouldBe listOf(team to ACCOUNT)
     }
@@ -315,9 +348,9 @@ class MoneyPoolServiceTest : FunSpec({
     test("the cache is not asked when Off, NotConnected or no account is picked") {
         val cache = PassThroughCache()
 
-        service(enabled = false, cache = cache).getMoneyPool(team)
-        service(connected = false, cache = cache).getMoneyPool(team)
-        service(accountPicked = false, cache = cache).getMoneyPool(team)
+        service(enabled = false, cache = cache).getMoneyPool(team, MEMBER)
+        service(connected = false, cache = cache).getMoneyPool(team, MEMBER)
+        service(accountPicked = false, cache = cache).getMoneyPool(team, MEMBER)
 
         cache.readFor shouldBe emptyList()
     }
@@ -329,7 +362,7 @@ class MoneyPoolServiceTest : FunSpec({
             later = connectionWith(GRANT_CIPHER.encrypt("new-grant", aad)),
         )
 
-        service(gateway = gateway, connections = connections).getMoneyPool(team).pool shouldBe
+        service(gateway = gateway, connections = connections).getMoneyPool(team, MEMBER).pool shouldBe
             MoneyPool.Connected(Money(18_750), listOf(PAYMENT))
 
         gateway.grantsUsed shouldBe listOf(BunqGrant("new-grant"), BunqGrant("new-grant"))
@@ -342,7 +375,7 @@ class MoneyPoolServiceTest : FunSpec({
             later = connectionWith(EncryptedToken("not-a-grant")),
         )
 
-        service(connections = connections, cache = cache).getMoneyPool(team).pool shouldBe MoneyPool.Rejected
+        service(connections = connections, cache = cache).getMoneyPool(team, MEMBER).pool shouldBe MoneyPool.Rejected
 
         cache.loaded shouldBe listOf(MoneyPool.Rejected)
     }
@@ -351,7 +384,7 @@ class MoneyPoolServiceTest : FunSpec({
         val gateway = RecordingBunqGateway()
         val connections = ChangingConnections(first = connectionWith(GRANT_CIPHER.encrypt(GRANT_TOKEN, aad)), later = null)
 
-        service(gateway = gateway, connections = connections).getMoneyPool(team).pool shouldBe MoneyPool.Unavailable
+        service(gateway = gateway, connections = connections).getMoneyPool(team, MEMBER).pool shouldBe MoneyPool.Unavailable
 
         gateway.calls shouldBe 0
     }
@@ -364,7 +397,7 @@ class MoneyPoolServiceTest : FunSpec({
             later = connectionWith(grant, BunqAccountId("account-2")),
         )
 
-        service(gateway = gateway, connections = connections).getMoneyPool(team).pool shouldBe MoneyPool.Unavailable
+        service(gateway = gateway, connections = connections).getMoneyPool(team, MEMBER).pool shouldBe MoneyPool.Unavailable
 
         gateway.calls shouldBe 0
     }
@@ -373,12 +406,12 @@ class MoneyPoolServiceTest : FunSpec({
         val settings = InMemorySettingsRepository(MoneyPoolSettings(enabled = true, beerPrice = BeerPrice(270)))
         val gateway = RecordingBunqGateway()
         val service = service(settingsRepository = settings, gateway = gateway, cache = RememberingCache())
-        service.getMoneyPool(team).pool shouldBe
+        service.getMoneyPool(team, MEMBER).pool shouldBe
             MoneyPool.Connected(Money(18_750), listOf(PAYMENT), beerPrice = BeerPrice(270), beerCount = BeerCount(69))
 
         settings.settings = MoneyPoolSettings(enabled = true, beerPrice = BeerPrice(300))
 
-        service.getMoneyPool(team).pool shouldBe
+        service.getMoneyPool(team, MEMBER).pool shouldBe
             MoneyPool.Connected(Money(18_750), listOf(PAYMENT), beerPrice = BeerPrice(300), beerCount = BeerCount(62))
         gateway.calls shouldBe 2
     }
@@ -386,10 +419,11 @@ class MoneyPoolServiceTest : FunSpec({
     test("a failed decrypt is handed to the cache as Rejected, a Bunq failure as Unavailable, a fresh read as Connected") {
         val cache = PassThroughCache()
 
-        service(storedGrant = EncryptedToken("not-a-grant"), cache = cache).getMoneyPool(team)
-        service(gateway = RecordingBunqGateway(balanceFailure = BunqGrantRejectedException()), cache = cache).getMoneyPool(team)
-        service(gateway = RecordingBunqGateway(balanceFailure = IllegalStateException("bunq down")), cache = cache).getMoneyPool(team)
-        service(cache = cache).getMoneyPool(team)
+        service(storedGrant = EncryptedToken("not-a-grant"), cache = cache).getMoneyPool(team, MEMBER)
+        service(gateway = RecordingBunqGateway(balanceFailure = BunqGrantRejectedException()), cache = cache).getMoneyPool(team, MEMBER)
+        service(gateway = RecordingBunqGateway(balanceFailure = IllegalStateException("bunq down")), cache = cache)
+            .getMoneyPool(team, MEMBER)
+        service(cache = cache).getMoneyPool(team, MEMBER)
 
         cache.loaded shouldBe listOf(
             MoneyPool.Rejected,
@@ -401,66 +435,67 @@ class MoneyPoolServiceTest : FunSpec({
 
     test("reads payments since the season start when the season has one") {
         val gateway = RecordingBunqGateway()
-        service(season = Season(start = LocalDate.of(2026, 9, 1), end = null), gateway = gateway).getMoneyPool(team)
+        service(season = Season(start = LocalDate.of(2026, 9, 1), end = null), gateway = gateway).getMoneyPool(team, MEMBER)
         gateway.requestedSince shouldBe LocalDate.of(2026, 9, 1)
     }
 
     test("reads the last 90 days when the season has no start") {
         val gateway = RecordingBunqGateway()
-        service(gateway = gateway).getMoneyPool(team)
+        service(gateway = gateway).getMoneyPool(team, MEMBER)
         gateway.requestedSince shouldBe TODAY.minusDays(90)
     }
 
     test("asks Bunq for at most 200 payments") {
         val gateway = RecordingBunqGateway()
-        service(gateway = gateway).getMoneyPool(team)
+        service(gateway = gateway).getMoneyPool(team, MEMBER)
         gateway.requestedLimit shouldBe 200
     }
 
     test("is Unavailable when only the payments call fails") {
-        service(gateway = RecordingBunqGateway(paymentsFailure = IllegalStateException("bunq down"))).getMoneyPool(team).pool shouldBe
+        service(gateway = RecordingBunqGateway(paymentsFailure = IllegalStateException("bunq down")))
+            .getMoneyPool(team, MEMBER).pool shouldBe
             MoneyPool.Unavailable
     }
 
     test("is Off when the switch is off and no connection exists") {
-        service(enabled = false, connected = false).getMoneyPool(team).pool shouldBe MoneyPool.Off
+        service(enabled = false, connected = false).getMoneyPool(team, MEMBER).pool shouldBe MoneyPool.Off
     }
 
     test("does not call Bunq when Off or NotConnected") {
         val gateway = RecordingBunqGateway()
-        service(enabled = false, gateway = gateway).getMoneyPool(team)
-        service(connected = false, gateway = gateway).getMoneyPool(team)
+        service(enabled = false, gateway = gateway).getMoneyPool(team, MEMBER)
+        service(connected = false, gateway = gateway).getMoneyPool(team, MEMBER)
         gateway.calls shouldBe 0
     }
 
     test("falls back to the last 90 days when the season has not started yet") {
         val gateway = RecordingBunqGateway()
-        service(season = Season(start = TODAY.plusDays(30), end = null), gateway = gateway).getMoneyPool(team)
+        service(season = Season(start = TODAY.plusDays(30), end = null), gateway = gateway).getMoneyPool(team, MEMBER)
         gateway.requestedSince shouldBe TODAY.minusDays(90)
     }
 
     test("reports the beer price and the whole beers the balance buys when Connected") {
-        val pool = service(settings = MoneyPoolSettings(enabled = true, beerPrice = BeerPrice(270))).getMoneyPool(team).pool
+        val pool = service(settings = MoneyPoolSettings(enabled = true, beerPrice = BeerPrice(270))).getMoneyPool(team, MEMBER).pool
         pool shouldBe MoneyPool.Connected(Money(18_750), listOf(PAYMENT), beerPrice = BeerPrice(270), beerCount = BeerCount(69))
     }
 
     test("reports no beer price or count when the team set no price") {
-        val pool = service().getMoneyPool(team).pool as MoneyPool.Connected
+        val pool = service().getMoneyPool(team, MEMBER).pool as MoneyPool.Connected
         pool.beerPrice shouldBe null
         pool.beerCount shouldBe null
     }
 
     test("members can top up once the pool is on and a bunq.me link is set, in any state") {
         val link = BunqMeLink.parse("bunq.me/setpointvt")
-        service(settings = MoneyPoolSettings(true, bunqMeLink = link)).getMoneyPool(team).canTopUp shouldBe true
-        service(connected = false, settings = MoneyPoolSettings(true, bunqMeLink = link)).getMoneyPool(team).canTopUp shouldBe true
-        service(settings = MoneyPoolSettings(true)).getMoneyPool(team).canTopUp shouldBe false
-        service(settings = MoneyPoolSettings(false, bunqMeLink = link)).getMoneyPool(team).canTopUp shouldBe false
+        service(settings = MoneyPoolSettings(true, bunqMeLink = link)).getMoneyPool(team, MEMBER).canTopUp shouldBe true
+        service(connected = false, settings = MoneyPoolSettings(true, bunqMeLink = link)).getMoneyPool(team, MEMBER).canTopUp shouldBe true
+        service(settings = MoneyPoolSettings(true)).getMoneyPool(team, MEMBER).canTopUp shouldBe false
+        service(settings = MoneyPoolSettings(false, bunqMeLink = link)).getMoneyPool(team, MEMBER).canTopUp shouldBe false
     }
 
     test("a stored link that is not a bunq.me page does not allow top-up") {
         val stored = BunqMeLink.restore("https://old.example/legacy")
-        service(settings = MoneyPoolSettings(true, bunqMeLink = stored)).getMoneyPool(team).canTopUp shouldBe false
+        service(settings = MoneyPoolSettings(true, bunqMeLink = stored)).getMoneyPool(team, MEMBER).canTopUp shouldBe false
     }
 
     test("tells whether the switch is on") {
@@ -497,7 +532,7 @@ class MoneyPoolServiceTest : FunSpec({
         val pool = service(gateway = RecordingBunqGateway(payments = listOf(PAYMENT, EXPENSE)), receipts = receipts)
         receipts.save(EXPENSE.id, Receipt(webpBytes()))
 
-        (pool.getMoneyPool(team).pool as MoneyPool.Connected).receiptVersions shouldBe
+        (pool.getMoneyPool(team, MEMBER).pool as MoneyPool.Connected).receiptVersions shouldBe
             mapOf(EXPENSE.id to Receipt(webpBytes()).version)
     }
 })

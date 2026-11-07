@@ -3,6 +3,7 @@ package com.github.zzave.teambalance.api.interfaces
 import com.github.zzave.teambalance.api.domain.exception.BadRequestException
 import com.github.zzave.teambalance.api.domain.exception.ConflictException
 import com.github.zzave.teambalance.api.domain.exception.ForbiddenException
+import com.github.zzave.teambalance.api.domain.exception.MoneyPoolUnavailableException
 import com.github.zzave.teambalance.api.domain.exception.NotFoundException
 import com.github.zzave.teambalance.api.domain.exception.TeambalanceException
 import com.github.zzave.teambalance.api.domain.exception.UnprocessableEntityException
@@ -16,6 +17,7 @@ import tools.jackson.databind.exc.MismatchedInputException
 import java.time.format.DateTimeParseException
 
 @RestControllerAdvice
+@Suppress("TooManyFunctions")
 class GlobalExceptionHandler {
 
     @ExceptionHandler(UnauthenticatedException::class)
@@ -37,6 +39,10 @@ class GlobalExceptionHandler {
     fun handleConflict(ex: ConflictException): ResponseEntity<Map<String, String>> =
         ResponseEntity.status(HttpStatus.CONFLICT)
             .body(mapOf("error" to (ex.message ?: "Conflict"), "code" to ex.code))
+
+    @ExceptionHandler(MoneyPoolUnavailableException::class)
+    fun handleUnavailable(ex: MoneyPoolUnavailableException): ResponseEntity<Map<String, String>> =
+        ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(mapOf("error" to (ex.message ?: "Unavailable")))
 
     @ExceptionHandler(UnprocessableEntityException::class)
     fun handleUnprocessableEntity(ex: UnprocessableEntityException): ResponseEntity<Map<String, String>> =

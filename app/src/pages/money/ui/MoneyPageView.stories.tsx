@@ -31,10 +31,10 @@ const meta = {
         canTopUp
         topUp={<Button size="lg">Top up</Button>}
         payments={[
-          { id: '1005', date: '2026-10-06', name: 'Lisa de Vries', amount: 2000, direction: 'In', receiptVersion: undefined },
-          { id: '1006', date: '2026-10-04', name: 'Sporthal De Kuil', amount: 4500, direction: 'Out', receiptVersion: 'a1b2' },
-          { id: '1007', date: '2026-10-01', name: 'Drankenhandel Smit', amount: 3250, direction: 'Out', receiptVersion: undefined },
-          { id: '1008', date: '2026-09-29', name: 'Tom Bakker', amount: 1000, direction: 'In', receiptVersion: undefined },
+          { id: '1005', date: '2026-10-06', name: 'Lisa de Vries', amount: 2000, direction: 'In', memberId: undefined, counterpartyName: undefined, receiptVersion: undefined },
+          { id: '1006', date: '2026-10-04', name: 'Sporthal De Kuil', amount: 4500, direction: 'Out', memberId: undefined, counterpartyName: undefined, receiptVersion: 'a1b2' },
+          { id: '1007', date: '2026-10-01', name: 'Drankenhandel Smit', amount: 3250, direction: 'Out', memberId: undefined, counterpartyName: undefined, receiptVersion: undefined },
+          { id: '1008', date: '2026-09-29', name: 'Tom Bakker', amount: 1000, direction: 'In', memberId: undefined, counterpartyName: undefined, receiptVersion: undefined },
         ]}
         receipt={(expense) => (
           <ReceiptButtonView

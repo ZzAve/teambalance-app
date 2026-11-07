@@ -8,6 +8,8 @@ import com.github.zzave.teambalance.api.domain.model.EncryptedToken
 import com.github.zzave.teambalance.api.domain.model.MoneyPool
 import com.github.zzave.teambalance.api.domain.model.MoneyPoolOverview
 import com.github.zzave.teambalance.api.domain.model.MoneyPoolSettings
+import com.github.zzave.teambalance.api.domain.model.PaymentAttribution
+import com.github.zzave.teambalance.api.domain.model.PaymentName
 import com.github.zzave.teambalance.api.domain.model.TeamId
 import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.model.BeerCount
@@ -16,7 +18,9 @@ import com.github.zzave.teambalance.api.domain.port.BunqGateway
 import com.github.zzave.teambalance.api.domain.port.MoneyPoolCacheGateway
 import com.github.zzave.teambalance.api.domain.port.MoneyPoolSettingsRepository
 import com.github.zzave.teambalance.api.domain.port.ReceiptRepository
+import com.github.zzave.teambalance.api.domain.port.PaymentAliasRepository
 import com.github.zzave.teambalance.api.domain.port.SeasonRepository
+import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
 import org.slf4j.LoggerFactory
 import java.time.Clock
 import java.time.LocalDate
@@ -31,13 +35,16 @@ class MoneyPoolService(
     private val authorizationService: AuthorizationService,
     private val cache: MoneyPoolCacheGateway,
     private val receiptRepository: ReceiptRepository,
+    private val paymentAliasRepository: PaymentAliasRepository,
+    private val teamMemberRepository: TeamMemberRepository,
 ) {
     /**
      * Readable by any member. A stored grant that does not decrypt or that Bunq rejects is
      * [MoneyPool.Rejected]; any other failure reaching Bunq is [MoneyPool.Unavailable]. What Bunq
      * answered is remembered per team by [cache]; the beer figures come from the current settings.
+     * Payments are attributed for [viewerId] (see [withMembers]).
      */
-    fun getMoneyPool(teamId: TeamId): MoneyPoolOverview {
+    fun getMoneyPool(teamId: TeamId, viewerId: UserId): MoneyPoolOverview {
         val settings = settingsRepository.get()
         val pool = if (!settings.enabled) {
             MoneyPool.Off
@@ -47,7 +54,10 @@ class MoneyPoolService(
             if (connection == null || account == null) {
                 MoneyPool.NotConnected
             } else {
-                cache.read(teamId, account) { readFromBunq(teamId, account) }.withBeerFigures(settings).withReceiptVersions()
+                cache.read(teamId, account) { readFromBunq(teamId, account) }
+                    .withBeerFigures(settings)
+                    .withReceiptVersions()
+                    .withMembers(teamId, viewerId)
             }
         }
         return MoneyPoolOverview(pool, canTopUp = settings.topUpLink != null)
@@ -77,6 +87,26 @@ class MoneyPoolService(
         } else {
             this
         }
+
+    // Done after the cache read, not inside it, so a new alias counts at once instead of when the cached pool expires.
+    // A matched payment shows the member's display name; the counterparty name (what the alias matched) is
+    // kept for the viewer who is an Admin or is that member, and left out for everyone else (ADR-0045).
+    private fun MoneyPool.withMembers(teamId: TeamId, viewerId: UserId): MoneyPool {
+        if (this !is MoneyPool.Connected || payments.isEmpty()) return this
+        val aliases = paymentAliasRepository.findAll()
+        val members = teamMemberRepository.findByTeamId(teamId).associateBy { it.userId }
+        val viewerIsAdmin = authorizationService.isAdmin(viewerId, teamId)
+        return copy(
+            payments = payments.map {
+                val member = PaymentAttribution.memberOf(it, aliases, members.keys) ?: return@map it
+                it.copy(
+                    memberId = member,
+                    name = members[member]?.let { m -> PaymentName(m.displayName.value) } ?: it.name,
+                    counterpartyName = it.name.takeIf { viewerIsAdmin || viewerId == member },
+                )
+            },
+        )
+    }
 
     /**
      * Reads the connection again: the cache fixes its view of evictions before it calls this, so a connect

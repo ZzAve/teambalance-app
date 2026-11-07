@@ -9,8 +9,10 @@ import com.github.zzave.teambalance.api.domain.model.BunqAccountId
 import com.github.zzave.teambalance.api.domain.model.BunqAccountName
 import com.github.zzave.teambalance.api.domain.model.BunqGrant
 import com.github.zzave.teambalance.api.domain.model.EncryptedToken
+import com.github.zzave.teambalance.api.domain.model.Iban
 import com.github.zzave.teambalance.api.domain.model.Money
 import com.github.zzave.teambalance.api.domain.model.Payment
+import com.github.zzave.teambalance.api.domain.model.PaymentDescription
 import com.github.zzave.teambalance.api.domain.model.PaymentDirection
 import com.github.zzave.teambalance.api.domain.model.PaymentId
 import com.github.zzave.teambalance.api.domain.model.PaymentName
@@ -167,27 +169,27 @@ class RealBunqGatewayAdapterReadsTest : FunSpec({
             }
         }
 
+        // The fixture's first counterparty IBAN has valid check digits; the other two do not and read as no IBAN.
         test("payments carry Bunq's id, the counterparty, a positive amount with its direction, and the date in the app's time zone") {
             withFake { s ->
                 s.storeSession()
 
                 s.adapter().fetchPayments(GRANT, TEAMKAS_ID, SINCE_FOREVER, LIMIT) shouldBe listOf(
                     Payment(
-                        PaymentId("36349190"),
-                        LocalDate.of(2026, 11, 3),
-                        PaymentName("Test Counterparty"),
-                        Money(1_250),
-                        PaymentDirection.OUT,
+                        PaymentId("36349190"), LocalDate.of(2026, 11, 3), PaymentName("Test Counterparty"),
+                        Money(1_250), PaymentDirection.OUT,
+                        Iban.parse("NL91ABNA0417164300"), PaymentDescription("Beer money (test)"),
                     ),
                     Payment(
-                        PaymentId("36349129"),
-                        LocalDate.of(2026, 11, 3),
-                        PaymentName("Test Counterparty"),
-                        Money(50_000),
-                        PaymentDirection.IN,
+                        PaymentId("36349129"), LocalDate.of(2026, 11, 3), PaymentName("Test Counterparty"),
+                        Money(50_000), PaymentDirection.IN,
+                        description = PaymentDescription("Top up (test)"),
                     ),
                     // 23:30 UTC on 31 October is already 1 November in Amsterdam
-                    Payment(PaymentId("36349000"), LocalDate.of(2026, 11, 1), PaymentName("Café Test"), Money(320), PaymentDirection.OUT),
+                    Payment(
+                        PaymentId("36349000"), LocalDate.of(2026, 11, 1), PaymentName("Café Test"), Money(320), PaymentDirection.OUT,
+                        description = PaymentDescription("Coffee (test)"),
+                    ),
                 )
             }
         }

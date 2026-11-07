@@ -1,4 +1,4 @@
-// Rejected: Bunq no longer accepts the stored connection, an Admin reconnects in the team settings; Unavailable: Bunq did not answer. Amounts and the beer price are euro cents; date is an ISO-8601 calendar date; balance, payments, beerPrice and beerCount are set only when state is Connected, and beerPrice and beerCount only when the team configured a price. canTopUp is true when the pool is on and a bunq.me link is set, in any state. id is Bunq's payment id; receiptVersion is set when an expense has a receipt, which is served outside this contract at /api/team/money-pool/payments/{id}/receipt?v={receiptVersion} (ReceiptController).
+// Rejected: Bunq no longer accepts the stored connection, an Admin reconnects in the team settings; Unavailable: Bunq did not answer. Amounts and the beer price are euro cents; date is an ISO-8601 calendar date; balance, payments, beerPrice and beerCount are set only when state is Connected, and beerPrice and beerCount only when the team configured a price. canTopUp is true when the pool is on and a bunq.me link is set, in any state. id is Bunq's payment id; receiptVersion is set when an expense has a receipt, which is served outside this contract at /api/team/money-pool/payments/{id}/receipt?v={receiptVersion} (ReceiptController). On a payment attributed to a member, name is that member's display name for everyone, and counterpartyName is the name on the bank statement, set only for an Admin and for that member (ADR-0045); memberId is the member a payment is attributed to through their payment aliases or the user id in a top-up description, null when none; a payment's id is also what ClaimPayment takes. The counterparty IBAN and description are never returned.
 type PaymentDate = String
 
 enum MoneyPoolState {
@@ -15,7 +15,9 @@ type Payment {
     name: String,
     amount: Integer,
     direction: PaymentDirection,
-    receiptVersion: String?
+    receiptVersion: String?,
+    memberId: String?,
+    counterpartyName: String?
 }
 
 type MoneyPool {

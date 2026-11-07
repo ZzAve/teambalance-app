@@ -76,6 +76,8 @@ class ReceiptServiceTest : FunSpec({
                 override fun evict(teamId: TeamId) = error("not used")
             },
             receiptRepository = receipts,
+            paymentAliasRepository = FixedPaymentAliases(),
+            teamMemberRepository = directory.teamMemberRepository(),
         )
         return ReceiptService(receipts, moneyPool, authorization)
     }

@@ -11,6 +11,7 @@ import com.github.zzave.teambalance.api.domain.model.BunqAccount
 import com.github.zzave.teambalance.api.domain.model.BunqAccountId
 import com.github.zzave.teambalance.api.domain.model.BunqAuthorizationCode
 import com.github.zzave.teambalance.api.domain.model.BunqGrant
+import com.github.zzave.teambalance.api.domain.model.Iban
 import com.github.zzave.teambalance.api.domain.model.Money
 import com.github.zzave.teambalance.api.domain.model.Payment
 import com.github.zzave.teambalance.api.domain.port.BunqApiContextRepository
@@ -24,6 +25,7 @@ import com.bunq.sdk.generated.model.MonetaryAccountSavingsPage
 import com.bunq.sdk.generated.model.PaymentListing
 import com.bunq.sdk.generated.model.PaymentPage
 import com.github.zzave.teambalance.api.domain.exception.BunqGrantRejectedException
+import com.github.zzave.teambalance.api.domain.model.PaymentDescription
 import com.github.zzave.teambalance.api.domain.model.PaymentDirection
 import com.github.zzave.teambalance.api.domain.model.PaymentId
 import com.github.zzave.teambalance.api.domain.model.PaymentName
@@ -152,6 +154,8 @@ class RealBunqGatewayAdapter internal constructor(
             name = PaymentName(listing.counterparty_alias?.display_name.orEmpty()),
             amount = Money(abs(signed)),
             direction = if (signed < 0) PaymentDirection.OUT else PaymentDirection.IN,
+            counterpartyIban = listing.counterparty_alias?.iban?.let(Iban::parseOrNull),
+            description = listing.description?.let(::PaymentDescription),
         )
     }
 

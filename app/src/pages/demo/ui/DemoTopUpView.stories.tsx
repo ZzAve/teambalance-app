@@ -15,8 +15,8 @@ type Story = StoryObj<typeof meta>
 
 export const Data: Story = {
   play: async ({ canvas, args }) => {
-    await expect(canvas.getByRole('heading')).toHaveTextContent('Dit is een demo — er wordt niets betaald')
-    await userEvent.click(canvas.getByRole('button', { name: 'Terug naar TeamBalance' }))
+    await expect(canvas.getByRole('heading')).toHaveTextContent('This is a demo — nothing is paid')
+    await userEvent.click(canvas.getByRole('button', { name: 'Back to TeamBalance' }))
     await expect(args.onBack).toHaveBeenCalled()
   },
 }

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Usage: registry-cleanup.sh   (env: SCW_REGION; DRY_RUN=1 prints the decisions and deletes nothing)
+# Usage: registry-cleanup.sh   (env: SCW_DEFAULT_REGION; DRY_RUN=1 prints the decisions and deletes nothing)
 #
 # Deletes old tags of the API images in the `teambalance` registry namespace. CI pushes `api:<sha>` and
 # `api-stg:<sha>` on every run, so without this the registry only grows. A tag whose commit is on
@@ -7,7 +7,7 @@
 # squash-merges, so a PR's commit never lands on main. A tag that a Serverless Container runs is
 # always kept: Scaleway pulls the image again on a cold start. Needs full git history (fetch-depth: 0).
 set -euo pipefail
-region="${SCW_REGION:-fr-par}"
+region="${SCW_DEFAULT_REGION:-fr-par}"
 dry_run="${DRY_RUN:-0}"
 
 in_use="$(scw container container list region="$region" -o json | jq -r '.[] | .image // .registry_image // empty')"

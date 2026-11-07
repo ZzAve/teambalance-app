@@ -11,7 +11,7 @@ permissions:
 # Deploy-only config (the `build` job ignores it). See docs/ops/deploy.md. The container's
 # cpu/memory/sandbox are managed manually in the Scaleway console, not here.
 env:
-  SCW_REGION: fr-par
+  SCW_DEFAULT_REGION: fr-par
   REGISTRY: rg.fr-par.scw.cloud/teambalance
   CONTAINER_ID: ec9dfda3-65ca-4901-a640-895fd2f9f5f3
   S3_ENDPOINT: https://s3.fr-par.scw.cloud
@@ -257,7 +257,7 @@ jobs:
       # Image-only update: env/secret maps and the container's cpu/memory/sandbox config are left
       # untouched — those are managed manually in the Scaleway console.
       - name: Update Serverless Container image
-        run: scw container container update "$CONTAINER_ID" image="${REGISTRY}/api:${{ needs.image.outputs.sha }}" region="$SCW_REGION"
+        run: scw container container update "$CONTAINER_ID" image="${REGISTRY}/api:${{ needs.image.outputs.sha }}" region="$SCW_DEFAULT_REGION"
 
       - name: Verify the new image is actually serving
         run: ./.github/scripts/await-live-sha.sh https://api.teambalance.nl "${{ needs.image.outputs.sha }}"

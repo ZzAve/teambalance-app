@@ -1,6 +1,8 @@
+// `language` is the language of the page that sent the request (ADR-0043 section 4). The email goes out in the recipient's stored language; this is used only when they have none, and Dutch when neither is known.
 type RequestMagicLinkRequest {
     email: String,
-    inviteToken: String?
+    inviteToken: String?,
+    language: Language?
 }
 
 type VerifyMagicLinkRequest {

@@ -65,7 +65,9 @@ export interface CreateTeamInput {
 export function useCreateTeam() {
   return useMutation({
     mutationFn: async ({ name, slug, creationCode }: CreateTeamInput) => {
-      const res = await api.createTeam({ body: { name, slug, creationCode } }).catch(() => {
+      // The page's language, for the team-created email when the founder has stored none (ADR-0043 §4).
+      const language = i18n.language === 'nl' ? 'NL' : 'EN'
+      const res = await api.createTeam({ body: { name, slug, creationCode, language } }).catch(() => {
         // A fetch/network failure never reaches a status — surface it as a retry-safe banner.
         throw new CreateTeamError('GENERIC', i18n.t('errors.createTeam.generic'))
       })

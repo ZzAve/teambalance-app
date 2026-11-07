@@ -1,6 +1,7 @@
 package com.github.zzave.teambalance.api.infrastructure.email
 
 import com.github.zzave.teambalance.api.domain.model.Email
+import com.github.zzave.teambalance.api.domain.model.Language
 import com.github.zzave.teambalance.api.domain.port.EmailGateway
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Profile
@@ -24,9 +25,9 @@ class ScalewayTemEmailAdapter(
     private val restClient = restClientBuilder.build()
     private val console = ConsoleEmailAdapter()
 
-    override fun sendMagicLink(email: Email, token: String) {
-        if (!emailProperties.send) return console.sendMagicLink(email, token)
-        val payload = MagicLinkEmail.render(MagicLinkEmail.url(frontendBaseUrl, token)).externalize(
+    override fun sendMagicLink(email: Email, token: String, language: Language) {
+        if (!emailProperties.send) return console.sendMagicLink(email, token, language)
+        val payload = MagicLinkEmail.render(MagicLinkEmail.url(frontendBaseUrl, token), language).externalize(
             from = TemAddress(email = emailProperties.fromAddress, name = emailProperties.fromName),
             to = TemAddress(email = email.value),
             projectId = emailProperties.projectId,

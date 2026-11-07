@@ -1096,7 +1096,7 @@
       "remaining_one": "{{count}} character to go.",
       "remaining_other": "{{count}} characters to go.",
       "format": "An IBAN starts with two letters and two digits, like NL91.",
-      "tooLong": "A Dutch IBAN has 18 characters. This one is longer.",
+      "tooLong": "This IBAN is longer than an IBAN from this country can be.",
       "checksum": "This IBAN doesn't add up. Check it for a typo."
     },
     "preview_one": "Payments with this name: {{count}}",

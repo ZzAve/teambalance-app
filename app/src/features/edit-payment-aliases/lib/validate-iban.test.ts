@@ -24,12 +24,21 @@ describe('checkIban', () => {
     expect(checkIban('NL92ABNA0417164300')).toEqual({ state: 'error', reason: 'checksum' }))
   it('rejects input that does not start with two letters and two digits', () => {
     expect(checkIban('1234ABNA0417164300')).toEqual({ state: 'error', reason: 'format' })
-    expect(checkIban('NL9')).toEqual({ state: 'error', reason: 'format' })
+    expect(checkIban('NLX1ABNA')).toEqual({ state: 'error', reason: 'format' })
+  })
+  it('is still typing while the input is a prefix of two letters and two digits', () => {
+    for (const prefix of ['N', 'NL', 'NL9']) expect(checkIban(prefix)).toEqual({ state: 'typing' })
+  })
+  it('counts the characters to go for Belgian and German IBANs, with no checksum error before full length', () => {
+    expect(checkIban('BE68 5390 0754')).toEqual({ state: 'typing', remaining: 4 })
+    expect(checkIban('DE89 3704 0044 0532')).toEqual({ state: 'typing', remaining: 6 })
+    expect(checkIban('BE68 5390 0754 7034')).toEqual({ state: 'valid' })
+    expect(checkIban('BE68 5390 0754 70341')).toEqual({ state: 'error', reason: 'tooLong' })
   })
   it('counts the characters to go for a Dutch IBAN still being typed', () => {
     expect(checkIban('NL91 ABNA 0417')).toEqual({ state: 'typing', remaining: 6 })
   })
   it('rejects a Dutch IBAN that is too long', () =>
     expect(checkIban('NL91ABNA04171643001')).toEqual({ state: 'error', reason: 'tooLong' }))
-  it('is typing for a short foreign IBAN', () => expect(checkIban('DE89 3704')).toEqual({ state: 'typing' }))
+  it('is typing for a short IBAN of a country without a known length', () => expect(checkIban('ES91 2100')).toEqual({ state: 'typing' }))
 })

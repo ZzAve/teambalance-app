@@ -291,6 +291,7 @@ function AliasForm({
         <Input
           id={`${uid}-name`}
           data-alias-name
+          maxLength={100}
           value={name}
           autoComplete="off"
           onChange={(e) => {

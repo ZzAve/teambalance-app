@@ -36,7 +36,7 @@ const ORDER: AccountSection[] = [
 /** The fields of the session this selector reads — a narrow view of {@link AuthenticatedUser}. */
 type AccountUser = Pick<
   AuthenticatedUser,
-  'email' | 'activeTeam' | 'teams' | 'isPlatformAdmin' | 'actAs'
+  'email' | 'activeTeam' | 'teams' | 'isPlatformAdmin' | 'actAs' | 'moneyPoolEnabled'
 >
 
 /**
@@ -49,7 +49,7 @@ type AccountUser = Pick<
  *   (ADR-0026). An Active Team can come from a membership *or* from act-as (ADR-0024): a Platform
  *   Admin acting-as has `activeTeam` set with `teams` empty, and still gets the tenant's name +
  *   position — so the gate is `activeTeam`, not "has a membership".
- * - **Payment aliases** — an Active Team and not acting-as: it links to the viewer's own member page (ADR-0045).
+ * - **Payment aliases** — an Active Team, not acting-as, and the money pool not switched off: it links to the viewer's own member page (ADR-0045).
  * - **Platform admin** — only for a Platform Admin.
  */
 export function accountSections(user: AccountUser): AccountSection[] {
@@ -59,7 +59,7 @@ export function accountSections(user: AccountUser): AccountSection[] {
     present.add('displayName')
     present.add('position')
     // The alias editor lives on the viewer's own member page; a Platform Admin acting-as has none.
-    if (!user.actAs) present.add('paymentAliases')
+    if (!user.actAs && user.moneyPoolEnabled !== false) present.add('paymentAliases')
   }
   if (user.isPlatformAdmin) present.add('platformAdmin')
   return ORDER.filter((section) => present.has(section))

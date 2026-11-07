@@ -45,6 +45,12 @@ describe('accountSections', () => {
     expect(sections).toEqual(['email', 'passkeys', 'photo', 'displayName', 'position', 'paymentAliases', 'appearance', 'language', 'teams', 'logout'])
   })
 
+  it('hides the payment aliases link when the team has switched its money pool off', () => {
+    const base = { teams: [TEAM], activeTeam: TEAM, role: 'MEMBER' as const }
+    expect(accountSections(user({ ...base, moneyPoolEnabled: false }))).not.toContain('paymentAliases')
+    expect(accountSections(user({ ...base, moneyPoolEnabled: true }))).toContain('paymentAliases')
+  })
+
   it('multi team with one active is the same as single team (the switcher lives in Teams)', () => {
     const sections = accountSections(user({ teams: [TEAM, OTHER_TEAM], activeTeam: TEAM, role: 'MEMBER' }))
     expect(sections).toEqual(['email', 'passkeys', 'photo', 'displayName', 'position', 'paymentAliases', 'appearance', 'language', 'teams', 'logout'])

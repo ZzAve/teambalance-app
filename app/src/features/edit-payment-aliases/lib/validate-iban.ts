@@ -4,7 +4,8 @@ export type IbanCheck =
   | { state: 'valid' }
   | { state: 'error'; reason: 'format' | 'tooLong' | 'checksum' }
 
-const NL_LENGTH = 18
+// IBAN length per country, for typing feedback. Other countries get no length check until 15 characters.
+const LENGTH: Record<string, number> = { NL: 18, BE: 16, DE: 22, LU: 20, FR: 27, GB: 22 }
 
 export const normaliseIban = (raw: string): string => raw.replace(/\s+/g, '').toUpperCase()
 
@@ -20,9 +21,11 @@ function mod97(iban: string): number {
 export function checkIban(raw: string): IbanCheck {
   const s = normaliseIban(raw)
   if (s === '') return { state: 'empty' }
+  if (s.length < 4 && /^[A-Z]{0,2}[0-9]?$/.test(s)) return { state: 'typing' }
   if (!/^[A-Z]{2}[0-9]{2}[A-Z0-9]*$/.test(s)) return { state: 'error', reason: 'format' }
-  if (s.startsWith('NL') && s.length < NL_LENGTH) return { state: 'typing', remaining: NL_LENGTH - s.length }
-  if (s.startsWith('NL') && s.length > NL_LENGTH) return { state: 'error', reason: 'tooLong' }
+  const length = LENGTH[s.slice(0, 2)]
+  if (length && s.length < length) return { state: 'typing', remaining: length - s.length }
+  if (length && s.length > length) return { state: 'error', reason: 'tooLong' }
   if (s.length < 15) return { state: 'typing' }
   return mod97(s) === 1 ? { state: 'valid' } : { state: 'error', reason: 'checksum' }
 }

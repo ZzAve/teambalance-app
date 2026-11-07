@@ -1096,7 +1096,7 @@
       "remaining_one": "Nog {{count}} teken.",
       "remaining_other": "Nog {{count}} tekens.",
       "format": "Een IBAN begint met twee letters en twee cijfers, zoals NL91.",
-      "tooLong": "Een Nederlands IBAN heeft 18 tekens. Dit is langer.",
+      "tooLong": "Dit IBAN is langer dan een IBAN uit dit land kan zijn.",
       "checksum": "Dit IBAN klopt niet. Controleer het op een tikfout."
     },
     "preview_one": "Betalingen met deze naam: {{count}}",

@@ -86,7 +86,8 @@ function MemberDetailPage() {
         resetPhotoErrors()
         removePhoto.mutate(userId)
       }}
-      paymentAliases={<PaymentAliases userId={userId} />}
+      // Aliases only attribute money-pool payments, so a team with the pool off has no use for them.
+      paymentAliases={currentUser?.moneyPoolEnabled !== false ? <PaymentAliases userId={userId} /> : undefined}
     />
   )
 }

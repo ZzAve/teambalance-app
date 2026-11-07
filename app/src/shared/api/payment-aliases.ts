@@ -27,8 +27,8 @@ function failure(res: { status: number; body?: unknown }): PaymentAliasError {
 
 const aliasesKey = (userId: string) => ['payment-aliases', userId] as const
 
-/** The member's aliases. Owner and Admin only (403 for others): callers pass `enabled: canEdit`. */
-export function usePaymentAliases(userId: string, options?: { enabled?: boolean }) {
+/** The member's aliases. Owner and Admin only (403 for others): render only when the viewer may edit. */
+export function usePaymentAliases(userId: string) {
   return useQuery({
     queryKey: aliasesKey(userId),
     queryFn: async (): Promise<PaymentAlias[]> => {
@@ -36,7 +36,6 @@ export function usePaymentAliases(userId: string, options?: { enabled?: boolean 
       if (res.status !== 200) throw failure(res)
       return res.body.aliases.map(nullsToUndefined)
     },
-    enabled: options?.enabled,
   })
 }
 

@@ -20,6 +20,8 @@ interface MoneyPoolViewProps {
   canTopUp?: boolean
   /** The top-up button, supplied by the MoneyPool container so this View stays prop-only. */
   topUp?: ReactNode
+  /** The receipt control on each expense, supplied by the container for the same reason. */
+  receipt?: (expense: Payment) => ReactNode
   /** Connecting Bunq is available here: an admin of a not-connected or rejected team is pointed to the team settings. */
   connectAvailable?: boolean
   /** Bunq is connected but no account is picked: an admin is pointed to the team settings to pick one. */
@@ -47,6 +49,7 @@ export function MoneyPoolView({
   beerCount,
   canTopUp,
   topUp,
+  receipt,
   connectAvailable,
   accountPending,
 }: MoneyPoolViewProps) {
@@ -68,6 +71,7 @@ export function MoneyPoolView({
           beerPrice={beerPrice}
           beerCount={beerCount}
           topUp={topUpEntry}
+          receipt={receipt}
         />
       )
   }

@@ -11,9 +11,11 @@ interface ConnectedMoneyPoolProps {
   beerCount?: number
   /** The top-up button or hint, shown right under the balance. */
   topUp?: ReactNode
+  /** The receipt control shown on each expense, supplied by the container. */
+  receipt?: (expense: Payment) => ReactNode
 }
 
-export function ConnectedMoneyPool({ balance, payments, beerPrice, beerCount, topUp }: ConnectedMoneyPoolProps) {
+export function ConnectedMoneyPool({ balance, payments, beerPrice, beerCount, topUp, receipt }: ConnectedMoneyPoolProps) {
   return (
     <div className="flex flex-col gap-6">
       <section aria-label="Balance" className="rounded-lg bg-card p-4">
@@ -39,11 +41,11 @@ export function ConnectedMoneyPool({ balance, payments, beerPrice, beerCount, to
           <p className="text-small text-muted-foreground">No payments in this period.</p>
         ) : (
           <ul className="flex flex-col divide-y divide-border rounded-lg bg-card">
-            {payments.map((payment, index) => {
+            {payments.map((payment) => {
               const incoming = payment.direction === 'In'
               const Icon = incoming ? ArrowDownLeft : ArrowUpRight
               return (
-                <li key={`${index}-${payment.date}-${payment.name}-${payment.amount}`} className="flex items-center gap-3 px-4 py-3">
+                <li key={payment.id} className="flex items-center gap-3 px-4 py-3">
                   <Icon size={18} className="shrink-0 text-muted-foreground" aria-hidden="true" />
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-small font-semibold">{payment.name}</span>
@@ -54,6 +56,8 @@ export function ConnectedMoneyPool({ balance, payments, beerPrice, beerCount, to
                     <span aria-hidden="true">{incoming ? '+' : '−'}</span>
                     {formatEuro(payment.amount)}
                   </span>
+                  {/* An incoming payment keeps the receipt's width free, so the amounts stay in one column. */}
+                  {receipt && (incoming ? <span className="w-10 shrink-0" aria-hidden="true" /> : receipt(payment))}
                 </li>
               )
             })}

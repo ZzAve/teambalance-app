@@ -15,6 +15,7 @@ import com.github.zzave.teambalance.api.domain.port.BunqConnectionRepository
 import com.github.zzave.teambalance.api.domain.port.BunqGateway
 import com.github.zzave.teambalance.api.domain.port.MoneyPoolCacheGateway
 import com.github.zzave.teambalance.api.domain.port.MoneyPoolSettingsRepository
+import com.github.zzave.teambalance.api.domain.port.ReceiptRepository
 import com.github.zzave.teambalance.api.domain.port.SeasonRepository
 import org.slf4j.LoggerFactory
 import java.time.Clock
@@ -29,6 +30,7 @@ class MoneyPoolService(
     private val clock: Clock,
     private val authorizationService: AuthorizationService,
     private val cache: MoneyPoolCacheGateway,
+    private val receiptRepository: ReceiptRepository,
 ) {
     /**
      * Readable by any member. A stored grant that does not decrypt or that Bunq rejects is
@@ -45,7 +47,7 @@ class MoneyPoolService(
             if (connection == null || account == null) {
                 MoneyPool.NotConnected
             } else {
-                cache.read(teamId, account) { readFromBunq(teamId, account) }.withBeerFigures(settings)
+                cache.read(teamId, account) { readFromBunq(teamId, account) }.withBeerFigures(settings).withReceiptVersions()
             }
         }
         return MoneyPoolOverview(pool, canTopUp = settings.topUpLink != null)
@@ -64,6 +66,10 @@ class MoneyPoolService(
         authorizationService.requireAdmin(callerId, teamId)
         return settingsRepository.save(settings)
     }
+
+    // Read after the cache: the cache holds only what Bunq answered, receipts change in between.
+    private fun MoneyPool.withReceiptVersions(): MoneyPool =
+        if (this is MoneyPool.Connected) copy(receiptVersions = receiptRepository.findVersions(payments.map { it.id })) else this
 
     private fun MoneyPool.withBeerFigures(settings: MoneyPoolSettings): MoneyPool =
         if (this is MoneyPool.Connected) {

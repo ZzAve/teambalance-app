@@ -15,9 +15,9 @@ import { MoneyPoolView } from './MoneyPoolView'
 //   2. Shells — every other state stacked: loading, error, off, not connected (member and admin),
 //      unavailable, rejected (member, admin, admin with connecting off), top-up with and without a link (the admin's hint only on a connected pool), and connected edge cases (no payments, same-day duplicates, missing balance, no beer price, an empty pool).
 const PAYMENTS: Payment[] = [
-  { date: '2026-10-06', name: 'Lisa de Vries', amount: 2000, direction: 'In' },
-  { date: '2026-10-04', name: 'Sporthal De Kuil', amount: 4500, direction: 'Out' },
-  { date: '2026-09-29', name: 'Tom Bakker', amount: 1000, direction: 'In' },
+  { id: '1005', date: '2026-10-06', name: 'Lisa de Vries', amount: 2000, direction: 'In', receiptVersion: undefined },
+  { id: '1006', date: '2026-10-04', name: 'Sporthal De Kuil', amount: 4500, direction: 'Out', receiptVersion: 'a1b2' },
+  { id: '1007', date: '2026-09-29', name: 'Tom Bakker', amount: 1000, direction: 'In', receiptVersion: undefined },
 ]
 
 const meta = {
@@ -34,6 +34,7 @@ const meta = {
     beerCount: 69,
     canTopUp: true,
     topUp: <Button size="lg">Top up</Button>,
+    receipt: (expense: Payment) => <Button size="icon">{`Receipt ${expense.name}`}</Button>,
   },
 } satisfies Meta<typeof MoneyPoolView>
 
@@ -64,6 +65,9 @@ export const Data: Story = {
     await expect(payments.getByText(/20,00/)).toBeInTheDocument()
     await expect(payments.getByText('−')).toHaveAttribute('aria-hidden', 'true')
     await expect(payments.getByText(/45,00/)).toBeInTheDocument()
+    // The receipt control sits on expenses only.
+    await expect(payments.getByRole('button', { name: 'Receipt Sporthal De Kuil' })).toBeInTheDocument()
+    await expect(payments.queryByRole('button', { name: 'Receipt Lisa de Vries' })).not.toBeInTheDocument()
   },
 }
 
@@ -96,7 +100,7 @@ export const Shells: Story = {
         'No link (admin, unavailable)': <MoneyPoolView {...args} state="Unavailable" canTopUp={false} isAdmin />,
         'No link (admin, rejected)': <MoneyPoolView {...args} state="Rejected" canTopUp={false} isAdmin connectAvailable />,
         'No payments': <MoneyPoolView {...args} payments={[]} />,
-        'Same-day duplicates': <MoneyPoolView {...args} payments={[PAYMENTS[0], PAYMENTS[0]]} />,
+        'Same-day duplicates': <MoneyPoolView {...args} payments={[PAYMENTS[0], { ...PAYMENTS[0], id: '1008' }]} />,
         'Missing balance': <MoneyPoolView {...args} balance={undefined} />,
         'No beer price': <MoneyPoolView {...args} beerPrice={undefined} beerCount={undefined} />,
         'Empty pool': <MoneyPoolView {...args} balance={0} beerCount={0} />,

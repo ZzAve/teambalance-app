@@ -13,6 +13,10 @@ class BunqClientPropertiesTest : FunSpec({
         BunqClientProperties(BunqEnvironment.NONE, "", "", "TeamBalance")
     }
 
+    test("the fake environment needs no client id or secret") {
+        BunqClientProperties(BunqEnvironment.FAKE, "", "", "TeamBalance")
+    }
+
     listOf(BunqEnvironment.SANDBOX, BunqEnvironment.PRODUCTION).forEach { environment ->
         test("with $environment both the client id and the secret are required, and the message names the env vars") {
             listOf("" to SECRET, "id" to "", " " to SECRET).forEach { (clientId, clientSecret) ->

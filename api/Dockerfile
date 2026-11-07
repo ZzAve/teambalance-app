@@ -184,11 +184,12 @@ ENTRYPOINT ["/app/stg-entrypoint.sh"]
 
 # ---- demo stage: stg + the SPA, served from the same host (ADR-0043) ---------
 # Guest login (/demo) on, Setpoint VT seed off, SPA files served by the app (`make demo-image` builds
-# app/dist-demo first). The app refuses to start unless email.send=false, bunq.environment=none and the
-# datasource is loopback (DemoGuard); stg already sets those. Build: docker build -f api/Dockerfile --target demo .
+# app/dist-demo first). The app refuses to start unless email.send=false, bunq.environment=fake and the
+# datasource is loopback (DemoGuard); stg sets the first and the last, this stage sets the Bunq environment. Build: docker build -f api/Dockerfile --target demo .
 FROM stg AS demo
 ENV TEAMBALANCE_DEMO_ENABLED=true \
     TEAMBALANCE_DEMO_DATA_ENABLED=false \
+    TEAMBALANCE_BUNQ_ENVIRONMENT=fake \
     TEAMBALANCE_SPA_STATIC_LOCATION=file:/app/static/ \
     SERVER_SERVLET_SESSION_TIMEOUT=4h \
     TEAMBALANCE_SESSION_ABSOLUTE_TIMEOUT=4h \

@@ -2,7 +2,8 @@ import { useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { fetchTopUpLink } from '@shared/api/money-pool'
-import { TopUpUnavailableError } from '@shared/api/top-up-link'
+import { IS_DEMO_BUILD } from '@shared/lib/demo-build'
+import { TopUpUnavailableError, topUpDestination } from '@shared/api/top-up-link'
 import { Button } from '@shared/ui/button'
 import { i18n } from '@shared/i18n/i18n'
 import { TopUpSheetView } from './TopUpSheetView'
@@ -26,7 +27,7 @@ export function TopUp() {
       }}
       // The navigation is a mutate callback, not a useMutation option: closing the sheet resets the mutation,
       // which drops mutate callbacks, so a link that arrives after the member closed the sheet goes nowhere.
-      onPick={(euros) => topUp.mutate(euros, { onSuccess: (url) => window.location.assign(url) })}
+      onPick={(euros) => topUp.mutate(euros, { onSuccess: (url) => window.location.assign(topUpDestination(url, IS_DEMO_BUILD)) })}
       isPending={topUp.isPending}
       error={topUp.error && errorMessage(topUp.error)}
     />

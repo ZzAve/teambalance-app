@@ -2,6 +2,7 @@ package com.github.zzave.teambalance.api.application
 
 import com.github.zzave.teambalance.api.application.TokenCipher.Purpose
 import com.github.zzave.teambalance.api.domain.exception.BunqGrantRejectedException
+import com.github.zzave.teambalance.api.domain.exception.DemoTopUpLinkLockedException
 import com.github.zzave.teambalance.api.domain.exception.NotTeamAdminException
 import com.github.zzave.teambalance.api.domain.model.BeerCount
 import com.github.zzave.teambalance.api.domain.model.BeerPrice
@@ -174,6 +175,7 @@ class MoneyPoolServiceTest : FunSpec({
         cache: MoneyPoolCacheGateway = PassThroughCache(),
         connections: BunqConnectionRepository? = null,
         receipts: ReceiptRepository = InMemoryReceiptRepository(),
+        demoTeam: TeamId? = null,
     ) = MoneyPoolService(
         settingsRepository = settingsRepository,
         connectionRepository = connections ?: object : BunqConnectionRepository {
@@ -201,6 +203,7 @@ class MoneyPoolServiceTest : FunSpec({
         authorizationService = AuthorizationService(directory.teamMemberRepository(), FakeActAsGateway()),
         cache = cache,
         receiptRepository = receipts,
+        demoTeam = demoTeam,
     )
 
     test("is Off when the team switched the money pool off") {
@@ -499,5 +502,47 @@ class MoneyPoolServiceTest : FunSpec({
 
         (pool.getMoneyPool(team).pool as MoneyPool.Connected).receiptVersions shouldBe
             mapOf(EXPENSE.id to Receipt(webpBytes()).version)
+    }
+
+    context("in demo mode") {
+        val link = BunqMeLink.parse("bunq.me/demo")
+        val stored = MoneyPoolSettings(true, BeerPrice(270), link)
+
+        test("the top-up link cannot be changed or cleared, and nothing is saved") {
+            val repository = InMemorySettingsRepository(stored)
+            listOf(BunqMeLink.parse("bunq.me/other"), null).forEach { replacement ->
+                shouldThrow<DemoTopUpLinkLockedException> {
+                    service(settingsRepository = repository, demoTeam = team)
+                        .updateSettings(ADMIN, team, stored.copy(bunqMeLink = replacement))
+                }
+            }
+            repository.settings shouldBe stored
+        }
+
+        test("the other settings change while the link stays") {
+            val repository = InMemorySettingsRepository(stored)
+            val replacement = stored.copy(beerPrice = BeerPrice(300))
+            service(settingsRepository = repository, demoTeam = team).updateSettings(ADMIN, team, replacement) shouldBe replacement
+        }
+
+        test("a non-admin still gets the admin refusal") {
+            shouldThrow<NotTeamAdminException> {
+                service(settingsRepository = InMemorySettingsRepository(stored), demoTeam = team)
+                    .updateSettings(MEMBER, team, stored.copy(bunqMeLink = null))
+            }
+        }
+
+        test("another team's link changes freely") {
+            val repository = InMemorySettingsRepository(stored)
+            directory.join(ADMIN, otherTeam, Role.ADMIN)
+            service(settingsRepository = repository, demoTeam = team).updateSettings(ADMIN, otherTeam, stored.copy(bunqMeLink = null))
+            repository.settings.bunqMeLink shouldBe null
+        }
+
+        test("outside demo mode the link changes freely") {
+            val repository = InMemorySettingsRepository(stored)
+            service(settingsRepository = repository).updateSettings(ADMIN, team, stored.copy(bunqMeLink = null))
+            repository.settings.bunqMeLink shouldBe null
+        }
     }
 })

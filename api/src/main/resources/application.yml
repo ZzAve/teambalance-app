@@ -87,7 +87,7 @@ info:
 teambalance:
   demo:
     # Guest login for the demo team (ADR-0043). Off by default; the demo container sets TEAMBALANCE_DEMO_ENABLED=true.
-    # With it on the app refuses to start unless email.send=false, bunq.environment=none (slice 2: fake) and the datasource is loopback.
+    # With it on the app refuses to start unless email.send=false, bunq.environment=fake and the datasource is loopback.
     enabled: ${TEAMBALANCE_DEMO_ENABLED:false}
   spa:
     # Serve the SPA's built files from this location, with index.html as the fallback for client routes. Empty = not
@@ -185,9 +185,10 @@ teambalance:
     # connect-enabled is on: no default here, so the app fails fast at startup without it. Rotating
     # this key makes stored grants unreadable until an Admin reconnects.
     token-encryption-key: ${TEAMBALANCE_BUNQ_TOKEN_ENCRYPTION_KEY}
-    # Which Bunq the platform's OAuth client talks to: none | sandbox | production. `none` uses the fake
+    # Which Bunq the platform's OAuth client talks to: none | fake | sandbox | production. `fake` is the fake Bunq everywhere and
+    # prod accepts it only with teambalance.demo.enabled=true. `none` uses the fake
     # Bunq outside prod and the unconfigured gateway in prod (every call fails, so the pool reads as
-    # unavailable). Anything else wires the real adapter and then needs the client id and secret below:
+    # unavailable). sandbox and production wire the real adapter and then needs the client id and secret below:
     # the app fails fast at startup without them. An empty value fails startup too; leave it unset for none.
     # In prod, connect-enabled is refused unless the environment is production.
     environment: ${TEAMBALANCE_BUNQ_ENVIRONMENT:none}

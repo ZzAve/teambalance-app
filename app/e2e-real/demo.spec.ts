@@ -33,6 +33,10 @@ test('demo guest login: /demo -> Sanne -> answer Going -> the answer persists', 
     page.getByRole('group', { name: 'Your response' }).getByRole('button', { name: targetName, exact: true }),
   ).toHaveAttribute('aria-pressed', 'true', { timeout: 10_000 })
 
+  // The seeded Bunq connection reads the fake Bunq.
+  await page.goto('/t/de-smashers/money')
+  await expect(page.getByText('187.50')).toBeVisible()
+
   // The banner's role switch ends the session and lands on the picker; a protected page then bounces to /demo, not /login.
   await expect(page.getByRole('complementary', { name: 'Demo' })).toContainText('data is wiped every hour')
   await page.getByRole('button', { name: 'Switch role' }).click()

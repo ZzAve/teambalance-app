@@ -9,7 +9,7 @@ spring:
     password: teambalance
 
 teambalance:
-  # The demo team is one more tenant in the e2e DB (guest-login e2e, ADR-0043). The boot check needs email.send=false.
+  # The demo team is one more tenant in the e2e DB (guest-login e2e, ADR-0043). The boot check needs email.send=false and bunq.environment=fake.
   demo:
     enabled: true
   email:
@@ -29,6 +29,8 @@ teambalance:
   # Local SPA origin, where the Bunq OAuth callback sends the Admin back to.
   frontend-base-url: http://localhost:5173
   bunq:
+    # The fake Bunq, as with none outside prod (the connect specs use its approval page); the demo boot check wants fake.
+    environment: fake
     # Hardcoded for e2e runs (not a live environment); connects through the fake Bunq authorize page.
     connect-enabled: true
     token-encryption-key: dGVhbWJhbGFuY2UtZTJlLWJ1bnEtdG9rZW4ta2V5LTE=

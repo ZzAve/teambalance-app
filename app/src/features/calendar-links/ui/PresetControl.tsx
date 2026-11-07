@@ -31,7 +31,7 @@ export function PresetControl({ value, teamName, disabled, onChange }: PresetCon
             <button
               type="button"
               aria-label={t('calendarLinks.aboutPresets')}
-              className="inline-flex size-8 items-center justify-center rounded-full text-muted-foreground hover:text-foreground"
+              className="relative inline-flex size-8 after:absolute after:-inset-1.5 items-center justify-center rounded-full text-muted-foreground hover:text-foreground"
             >
               <Info size={16} aria-hidden="true" />
             </button>

@@ -308,6 +308,12 @@ body {
   [role="button"]:not([aria-disabled="true"]) {
     cursor: pointer;
   }
+
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
 }
 
 /* ── Card shadows — warm tint from design tokens ── */

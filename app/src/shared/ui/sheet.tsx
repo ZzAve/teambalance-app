@@ -33,30 +33,70 @@ function CloseLabel() {
   return <span className="sr-only">{t('shell.close')}</span>
 }
 
+// How far the grab strip must be dragged down before letting go closes the sheet.
+const DISMISS_DRAG_PX = 80
+
 const SheetContent = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content>
->(({ className, children, ...props }, ref) => (
-  <SheetPortal>
-    <SheetOverlay />
-    <DialogPrimitive.Content
-      ref={ref}
-      className={cn(
-        'fixed inset-x-0 bottom-0 z-50 mx-auto flex max-h-[92vh] w-full max-w-xl flex-col overflow-y-auto rounded-t-2xl border border-border/60 bg-background px-5 pb-8 pt-3 shadow-xl duration-300 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom',
-        className,
-      )}
-      {...props}
-    >
-      {/* Grab handle — the affordance that this panel slides up from the bottom. */}
-      <div className="mx-auto mb-3 h-1.5 w-10 shrink-0 rounded-full bg-border" aria-hidden="true" />
-      {children}
-      <DialogPrimitive.Close className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring">
-        <X className="h-4 w-4" />
-        <CloseLabel />
-      </DialogPrimitive.Close>
-    </DialogPrimitive.Content>
-  </SheetPortal>
-))
+>(({ className, children, style, ...props }, ref) => {
+  const closeRef = React.useRef<HTMLButtonElement>(null)
+  const [dragStartY, setDragStartY] = React.useState<number | null>(null)
+  const [dragY, setDragY] = React.useState(0)
+  const endDrag = (dismiss: boolean) => {
+    setDragStartY(null)
+    setDragY(0)
+    // Pressing the close button closes through the Root's onOpenChange, like the X and Escape do.
+    if (dismiss) closeRef.current?.click()
+  }
+
+  return (
+    <SheetPortal>
+      <SheetOverlay />
+      <DialogPrimitive.Content
+        ref={ref}
+        className={cn(
+          'fixed inset-x-0 bottom-0 z-50 mx-auto flex max-h-[92vh] w-full max-w-xl flex-col overflow-y-auto rounded-t-2xl border border-border/60 bg-background px-5 pb-8 pt-3 shadow-xl duration-300 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom',
+          className,
+        )}
+        style={{
+          ...style,
+          transform: dragY ? `translateY(${dragY}px)` : undefined,
+          // Follow the pointer 1:1 while dragging; spring back when released.
+          transition: dragStartY === null ? 'transform 200ms ease-out' : 'none',
+        }}
+        {...props}
+      >
+        {/* Grab strip: the full width above the content. Dragging it down closes the sheet. Keyboard users
+            have Escape and the X. touch-none keeps the browser from scrolling the page during the drag. */}
+        <div
+          data-slot="sheet-handle"
+          aria-hidden="true"
+          className="-mx-5 -mt-3 shrink-0 cursor-grab touch-none pb-3 pt-3"
+          onPointerDown={(e) => {
+            setDragStartY(e.clientY)
+            e.currentTarget.setPointerCapture(e.pointerId)
+          }}
+          onPointerMove={(e) => {
+            if (dragStartY !== null) setDragY(Math.max(0, e.clientY - dragStartY))
+          }}
+          onPointerUp={() => endDrag(dragY >= DISMISS_DRAG_PX)}
+          onPointerCancel={() => endDrag(false)}
+        >
+          <div className="mx-auto h-1.5 w-10 rounded-full bg-border" />
+        </div>
+        {children}
+        <DialogPrimitive.Close
+          ref={closeRef}
+          className="absolute right-4 top-4 rounded-sm after:absolute after:-inset-3.5 opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring"
+        >
+          <X className="h-4 w-4" />
+          <CloseLabel />
+        </DialogPrimitive.Close>
+      </DialogPrimitive.Content>
+    </SheetPortal>
+  )
+})
 SheetContent.displayName = 'SheetContent'
 
 const SheetHeader = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (

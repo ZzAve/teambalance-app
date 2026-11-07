@@ -26,7 +26,18 @@ const pay = (id: string, name: string): Payment => ({
   memberId: undefined,
   counterpartyName: undefined,
 })
-const PAYMENTS = [pay('p1', 'I.M. VISSER'), pay('p2', 'i.m.  visser'), pay('p3', 'FAM VISSER-DE JONG'), pay('p4', 'Someone else')]
+// p1-p4 are unmatched (what the form preview counts). p5-p7 were attributed to u1 by the saved aliases,
+// which is what the saved rows count.
+const mine = (id: string, counterpartyName: string): Payment => ({ ...pay(id, 'Ada Lovelace'), memberId: 'u1', counterpartyName })
+const PAYMENTS = [
+  pay('p1', 'I.M. VISSER'),
+  pay('p2', 'i.m.  visser'),
+  pay('p3', 'FAM VISSER-DE JONG'),
+  pay('p4', 'Someone else'),
+  mine('p5', 'I.M. VISSER'),
+  mine('p6', 'i.m. visser'),
+  mine('p7', 'FAM VISSER-DE JONG'),
+]
 
 // Holds the container's error the way the real one does: editing a field clears it.
 function RejectedIban(props: React.ComponentProps<typeof PaymentAliasesView>) {
@@ -47,7 +58,7 @@ function RejectedIban(props: React.ComponentProps<typeof PaymentAliasesView>) {
 const meta = {
   title: 'features/edit-payment-aliases/PaymentAliasesView',
   component: PaymentAliasesView,
-  args: { aliases: ALIASES, payments: PAYMENTS, onCreate: fn(), onDelete: fn(), onRetry: fn(), onDismissError: fn() },
+  args: { userId: 'u1', aliases: ALIASES, payments: PAYMENTS, onCreate: fn(), onDelete: fn(), onRetry: fn(), onDismissError: fn() },
 } satisfies Meta<typeof PaymentAliasesView>
 
 export default meta
@@ -57,7 +68,7 @@ type Story = StoryObj<typeof meta>
 export const Data: Story = {
   play: async ({ canvas }) => {
     await expect(canvas.getByText('I.M. VISSER')).toBeInTheDocument()
-    // The name preview is computed from the visible payments, case and extra spaces ignored.
+    // A saved row counts the payments it has attributed to this member, case and extra spaces ignored.
     await expect(canvas.getByText('matches 2 payments')).toBeInTheDocument()
     await expect(canvas.getByText('matches 1 payment')).toBeInTheDocument()
     // The IBAN is only ever the masked form, read out by its last four characters.

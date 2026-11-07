@@ -7,12 +7,14 @@ import { Button } from '@shared/ui/button'
 import { Input } from '@shared/ui/input'
 import { SectionLabel } from '@shared/ui/SectionLabel'
 import { Skeleton } from '@shared/ui/skeleton'
-import { matchingPayments } from '../lib/matching-payments'
+import { attributedMatchCount, matchingPayments } from '../lib/matching-payments'
 import { checkIban, groupIban, normaliseIban } from '../lib/validate-iban'
 
 export type PaymentAliasErrorCode = 'ALIAS_TAKEN' | 'INVALID_IBAN' | 'INVALID' | 'FORBIDDEN' | 'NOT_FOUND' | 'FAILED'
 
 interface PaymentAliasesViewProps {
+  /** The member whose aliases these are: saved aliases count the payments attributed to them. */
+  userId: string
   aliases?: PaymentAlias[]
   /** The money-pool payments the viewer can already see, for the "matches N payments" preview. */
   payments?: Payment[]
@@ -41,6 +43,7 @@ const lastFour = (masked: string) => masked.replace(/\s+/g, '').slice(-4)
  * API returns, the masked form. Prop-only; the container owns the queries and mutations.
  */
 export function PaymentAliasesView({
+  userId,
   aliases = [],
   payments = [],
   isLoading,
@@ -106,6 +109,7 @@ export function PaymentAliasesView({
                   <AliasRow
                     key={alias.id}
                     alias={alias}
+                    userId={userId}
                     payments={payments}
                     disabled={isSaving}
                     onDelete={(a) => {
@@ -163,18 +167,20 @@ function ErrorMessage({ code }: { code: PaymentAliasErrorCode }) {
 
 function AliasRow({
   alias,
+  userId,
   payments,
   disabled,
   onDelete,
 }: {
   alias: PaymentAlias
+  userId: string
   payments: Payment[]
   disabled?: boolean
   onDelete: (alias: PaymentAlias) => void
 }) {
   const { t } = useTranslation()
   const label = alias.name ?? alias.ibanMasked ?? ''
-  const matches = alias.name ? matchingPayments(alias.name, payments).count : 0
+  const matches = alias.name ? attributedMatchCount(alias.name, userId, payments) : 0
   return (
     <li className="flex min-h-14 items-center gap-3 px-4 py-3 text-small">
       {alias.name ? (

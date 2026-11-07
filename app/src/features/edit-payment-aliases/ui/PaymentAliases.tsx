@@ -23,6 +23,7 @@ export function PaymentAliases({ userId }: { userId: string }) {
 
   return (
     <PaymentAliasesView
+      userId={userId}
       aliases={aliases.data}
       payments={pool.data?.payments ?? []}
       isLoading={aliases.isLoading}

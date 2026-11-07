@@ -60,6 +60,7 @@ export const Data: Story = {
   args: {
     paymentAliases: (
       <PaymentAliasesView
+        userId="u1"
         aliases={[
           { id: 'a1', name: 'I.M. VISSER', ibanMasked: undefined, hasIban: false },
           { id: 'a2', name: undefined, ibanMasked: 'NL91 •••• •••• ••43 00', hasIban: true },

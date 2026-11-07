@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Button } from '@shared/ui/button'
 import type { ConnectBunqResult } from '../lib/bunq-result'
 
@@ -26,10 +27,6 @@ interface ConnectBunqViewProps {
   error?: string | null
   onConnect: () => void
 }
-
-const DECLINED_TEXT = 'You declined at Bunq, so nothing was connected.'
-const DISCONNECTED_TEXT = 'Disconnected from bunq.'
-const FAILED_TEXT = 'Couldn’t connect Bunq. Please try again.'
 
 // Error texts sit on a card; red-ink clears 4.5:1 there in both themes.
 const ERROR_CLASS = 'rounded-lg bg-card p-3 text-small text-red-ink'
@@ -59,6 +56,7 @@ export function ConnectBunqView({
 }: ConnectBunqViewProps) {
   // A result still in the URL from an earlier trip says nothing about what the Admin has just done.
   const result = disconnected ? undefined : tripResult
+  const { t } = useTranslation()
   const hintId = useId()
   const formId = useId()
   const [acknowledged, setAcknowledged] = useState(false)
@@ -80,7 +78,7 @@ export function ConnectBunqView({
   }, [disconnected, connected])
 
   const failed = result === 'error'
-  const statusText = failed ? '' : statusOf(result, connected, accountPicked, rejected, checking, disconnected)
+  const statusKey = failed ? undefined : statusOf(result, connected, accountPicked, rejected, checking, disconnected)
   const showForm = !connected || reconnecting || !!isConnecting
   // While the browser is on its way to Bunq the acknowledgement stays ticked and disabled, as does the button.
   const ticked = acknowledged || !!isConnecting
@@ -88,10 +86,10 @@ export function ConnectBunqView({
   return (
     <div className="flex flex-col gap-4">
       <div>
-        <h2 className="font-display text-title font-bold">Connect Bunq</h2>
+        <h2 className="font-display text-title font-bold">{t('connectBunq.title')}</h2>
         {!connected && (
           <p className="mt-1 text-small text-muted-foreground">
-            Show the balance and payments of the team’s Bunq account on the Money page.
+            {t('connectBunq.intro')}
           </p>
         )}
       </div>
@@ -103,11 +101,11 @@ export function ConnectBunqView({
         tabIndex={-1}
         className="text-small font-semibold outline-none empty:sr-only"
       >
-        {statusText}
+        {statusKey && t(statusKey)}
       </p>
       {failed && (
         <p ref={resultRef} role="alert" tabIndex={-1} className={`${ERROR_CLASS} outline-none`}>
-          {FAILED_TEXT}
+          {t('connectBunq.failed')}
         </p>
       )}
 
@@ -126,7 +124,7 @@ export function ConnectBunqView({
             setReconnecting(!reconnecting)
           }}
         >
-          Connect a different bunq login
+          {t('connectBunq.differentLogin')}
         </Button>
       )}
 
@@ -141,15 +139,7 @@ export function ConnectBunqView({
               onChange={(e) => setAcknowledged(e.target.checked)}
               className="mt-0.5 size-5 shrink-0 accent-primary"
             />
-            <span>
-              Connecting gives TeamBalance bunq’s standard app access to this bunq login, which is more than
-              reading: bunq’s default grant also allows creating payments and draft payments. TeamBalance only
-              reads the balance and payments of the one account you pick and stores no payment data, only the
-              receipts members add to expenses. Every member
-              of this team will see the balance and the names, dates and amounts of payments on that account. You
-              can disconnect in TeamBalance at any time, which deletes the access it stored; to withdraw the grant
-              at bunq itself, remove TeamBalance under connected apps in the bunq app.
-            </span>
+            <span>{t('connectBunq.consent')}</span>
           </label>
 
           {error && (
@@ -164,11 +154,11 @@ export function ConnectBunqView({
               aria-describedby={ticked ? undefined : hintId}
               onClick={onConnect}
             >
-              {isConnecting ? 'Opening Bunq…' : connected ? 'Connect again' : 'Connect Bunq'}
+              {isConnecting ? t('connectBunq.opening') : connected ? t('connectBunq.connectAgain') : t('connectBunq.title')}
             </Button>
             {!ticked && (
               <p id={hintId} className="text-caption text-muted-foreground">
-                Tick the box above to continue.
+                {t('connectBunq.tickHint')}
               </p>
             )}
           </div>
@@ -178,6 +168,12 @@ export function ConnectBunqView({
   )
 }
 
+type StatusKey =
+  | 'connectBunq.declined'
+  | 'connectBunq.disconnected'
+  | 'connectBunq.connected'
+  | 'connectBunq.connectedPick'
+
 function statusOf(
   result: ConnectBunqResult | undefined,
   connected: boolean,
@@ -185,13 +181,13 @@ function statusOf(
   rejected?: boolean,
   checking?: boolean,
   disconnected?: boolean,
-) {
-  if (result === 'declined') return DECLINED_TEXT
+): StatusKey | undefined {
+  if (result === 'declined') return 'connectBunq.declined'
   // The accounts slot says the access is refused; saying it here too would be announced twice.
-  if (connected && rejected) return ''
+  if (connected && rejected) return undefined
   // Not known yet whether the access works: claiming "Connected" now could be retracted a moment later. The
   // result of a trip back from Bunq is not held back.
-  if (connected && checking && !result) return ''
-  if (connected) return accountPicked ? 'Connected to bunq.' : 'Connected, pick an account below.'
-  return disconnected ? DISCONNECTED_TEXT : ''
+  if (connected && checking && !result) return undefined
+  if (connected) return accountPicked ? 'connectBunq.connected' : 'connectBunq.connectedPick'
+  return disconnected ? 'connectBunq.disconnected' : undefined
 }

@@ -275,5 +275,23 @@
       "EXPENSE_NOT_FOUND": "Deze betaling staat niet meer in de pot.",
       "FAILED": "Het bonnetje opslaan is mislukt. Probeer het opnieuw."
     }
+  },
+  "connectBunq": {
+    "title": "Bunq koppelen",
+    "intro": "Toon het saldo en de betalingen van de Bunq-rekening van het team op de Teampot-pagina.",
+    "declined": "Je hebt het bij Bunq geweigerd, dus er is niets gekoppeld.",
+    "disconnected": "Ontkoppeld van bunq.",
+    "failed": "Bunq koppelen is mislukt. Probeer het opnieuw.",
+    "connected": "Gekoppeld aan bunq.",
+    "connectedPick": "Gekoppeld, kies hieronder een rekening.",
+    "differentLogin": "Een andere bunq-login koppelen",
+    "consent": "Door te koppelen krijgt TeamBalance de standaard app-toegang van bunq tot deze bunq-login, en dat is meer dan alleen lezen: met de standaardtoegang van bunq kunnen ook betalingen en conceptbetalingen worden aangemaakt. TeamBalance leest alleen het saldo en de betalingen van de ene rekening die je kiest en slaat geen betaalgegevens op, alleen de bonnetjes die leden aan uitgaven toevoegen. Elk lid van dit team ziet het saldo en de namen, datums en bedragen van de betalingen op die rekening. Je kunt op elk moment ontkoppelen in TeamBalance; dan wordt de opgeslagen toegang verwijderd. Om de toegang bij bunq zelf in te trekken, verwijder je TeamBalance onder gekoppelde apps in de bunq-app.",
+    "opening": "Bunq openen…",
+    "connectAgain": "Opnieuw koppelen",
+    "tickHint": "Vink het vakje hierboven aan om verder te gaan.",
+    "error": {
+      "unavailable": "Bunq koppelen is nu niet beschikbaar.",
+      "openFailed": "Bunq openen is mislukt. Probeer het opnieuw."
+    }
   }
 }

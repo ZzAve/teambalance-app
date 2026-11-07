@@ -85,6 +85,18 @@ info:
     sha: ${TEAMBALANCE_BUILD_SHA:unknown}
 
 teambalance:
+  demo:
+    # Guest login for the demo team (ADR-0043). Off by default; the demo container sets TEAMBALANCE_DEMO_ENABLED=true.
+    # With it on the app refuses to start unless email.send=false, bunq.environment=none (slice 2: fake) and the datasource is loopback.
+    enabled: ${TEAMBALANCE_DEMO_ENABLED:false}
+  spa:
+    # Serve the SPA's built files from this location, with index.html as the fallback for client routes. Empty = not
+    # served (prod: the SPA is on its own bucket). The demo container sets file:/app/static/.
+    static-location: ${TEAMBALANCE_SPA_STATIC_LOCATION:}
+  csrf:
+    # Name of the XSRF cookie. The demo container serves SPA and API from one host and renames it, so it cannot
+    # collide with another app's cookie on the same site.
+    cookie-name: ${TEAMBALANCE_CSRF_COOKIE_NAME:XSRF-TOKEN}
   startup:
     actuator:
       # Perf-testing toggle for the Spring `startup` actuator endpoint. The endpoint is always

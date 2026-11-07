@@ -8,6 +8,8 @@ node_modules
 **/dist
 **/.gradle
 app
+# The demo image copies the SPA built in demo mode (`make demo-image`).
+!app/dist-demo
 www
 docs
 test-results

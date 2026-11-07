@@ -9,6 +9,11 @@ spring:
     password: teambalance
 
 teambalance:
+  # The demo team is one more tenant in the e2e DB (guest-login e2e, ADR-0043). The boot check needs email.send=false.
+  demo:
+    enabled: true
+  email:
+    send: false
   # The act-as flow needs a Platform Admin (ADR-0024). Fail-closed by default, so name one here; the
   # seed fixture creates this user WITHOUT a team_members row, which is the point (ADR-0024 section 3).
   # A second admin (platform2@example.com) is named for the memberless-handover spec so it never races

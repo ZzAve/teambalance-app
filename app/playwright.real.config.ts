@@ -26,7 +26,8 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'npm run dev',
+    // VITE_DEMO exposes the /demo guest login to demo.spec.ts; only the demo build has it otherwise.
+    command: 'VITE_DEMO=true npm run dev',
     url: 'http://localhost:5173',
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,

@@ -21,6 +21,7 @@ Thumbs.db
 # Node
 node_modules/
 dist/
+dist-demo/
 
 # Generated
 api/build/generated/

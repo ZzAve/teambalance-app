@@ -75,6 +75,17 @@ class SecurityChainIT : TeamBalanceIT() {
             formPost.getCookie(SESSION_COOKIE) shouldBe null
         }
 
+        test("the guest login needs no CSRF token when it is JSON, and a form post to it is refused") {
+            // 404 with the demo switch off: the request got past the CSRF check to the handler.
+            perform(
+                post("/api/demo/session").contentType(MediaType.APPLICATION_JSON).content("""{"persona":"MEMBER"}"""),
+            ).status shouldBe 404
+
+            perform(
+                post("/api/demo/session").contentType(MediaType.TEXT_PLAIN).content("""{"persona":"MEMBER","x":"="}"""),
+            ).status shouldBe 403
+        }
+
         test("no in-memory user is configured: the session is the only way in") {
             applicationContext.getBeanNamesForType(UserDetailsService::class.java).toList().shouldBeEmpty()
         }

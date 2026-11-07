@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AccountRouteImport } from './routes/account'
+import { Route as DemoRouteImport } from './routes/demo'
 import { Route as EventsRouteImport } from './routes/events'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as SelectTeamRouteImport } from './routes/select-team'
@@ -40,6 +41,11 @@ const IndexRoute = IndexRouteImport.update({
 const AccountRoute = AccountRouteImport.update({
   id: '/account',
   path: '/account',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DemoRoute = DemoRouteImport.update({
+  id: '/demo',
+  path: '/demo',
   getParentRoute: () => rootRouteImport,
 } as any)
 const EventsRoute = EventsRouteImport.update({
@@ -146,6 +152,7 @@ const TSlugTeamSettingsRoute = TSlugTeamSettingsRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/account': typeof AccountRoute
+  '/demo': typeof DemoRoute
   '/events': typeof EventsRoute
   '/login': typeof LoginRoute
   '/select-team': typeof SelectTeamRoute
@@ -170,6 +177,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/account': typeof AccountRoute
+  '/demo': typeof DemoRoute
   '/events': typeof EventsRoute
   '/login': typeof LoginRoute
   '/select-team': typeof SelectTeamRoute
@@ -194,6 +202,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/account': typeof AccountRoute
+  '/demo': typeof DemoRoute
   '/events': typeof EventsRoute
   '/login': typeof LoginRoute
   '/select-team': typeof SelectTeamRoute
@@ -220,6 +229,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/account'
+    | '/demo'
     | '/events'
     | '/login'
     | '/select-team'
@@ -244,6 +254,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/account'
+    | '/demo'
     | '/events'
     | '/login'
     | '/select-team'
@@ -267,6 +278,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/account'
+    | '/demo'
     | '/events'
     | '/login'
     | '/select-team'
@@ -292,6 +304,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AccountRoute: typeof AccountRoute
+  DemoRoute: typeof DemoRoute
   EventsRoute: typeof EventsRoute
   LoginRoute: typeof LoginRoute
   SelectTeamRoute: typeof SelectTeamRoute
@@ -319,6 +332,13 @@ declare module '@tanstack/react-router' {
       path: '/account'
       fullPath: '/account'
       preLoaderRoute: typeof AccountRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/demo': {
+      id: '/demo'
+      path: '/demo'
+      fullPath: '/demo'
+      preLoaderRoute: typeof DemoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/events': {
@@ -495,6 +515,7 @@ const TSlugRouteRouteWithChildren = TSlugRouteRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AccountRoute: AccountRoute,
+  DemoRoute: DemoRoute,
   EventsRoute: EventsRoute,
   LoginRoute: LoginRoute,
   SelectTeamRoute: SelectTeamRoute,

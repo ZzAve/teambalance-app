@@ -91,6 +91,24 @@ wirespec: ## Generate code from Wirespec definitions
 	./gradlew :api:wirespec-kotlin
 	./gradlew :api:wirespec-typescript
 
+# --- Demo image (ADR-0043) ---
+
+demo-image: ## Build the demo image: the SPA in demo mode, then the `demo` Docker target
+	./gradlew :api:wirespec-typescript
+	cd app && npx @tanstack/router-cli generate && npx tsc -b \
+		&& VITE_API_URL= VITE_XSRF_COOKIE=DEMO-XSRF-TOKEN VITE_DEMO=true npx vite build --outDir dist-demo
+	docker build -f api/Dockerfile --target demo -t teambalance-demo .
+
+demo-run: ## Run the demo image on http://localhost:8080/demo (plain http, so the session cookie is not Secure)
+	docker run --rm -p 8080:8080 \
+		-e SERVER_SERVLET_SESSION_COOKIE_SECURE=false \
+		-e INVITATION_TOKEN_SALT=local-demo-salt \
+		-e INVITATION_TOKEN_ENCRYPTION_KEY=YnVpbGQtdGltZS1kdW1teS1rZXktMzItYnl0ZXMhISE= \
+		-e TEAMBALANCE_CALENDAR_LINK_SALT=local-demo-salt \
+		-e TEAMBALANCE_CALENDAR_LINK_ENCRYPTION_KEY=YnVpbGQtdGltZS1kdW1teS1rZXktMzItYnl0ZXMhISE= \
+		-e TEAMBALANCE_BUNQ_TOKEN_ENCRYPTION_KEY=YnVpbGQtdGltZS1kdW1teS1rZXktMzItYnl0ZXMhISE= \
+		teambalance-demo
+
 # --- Shortcuts ---
 yolo: ## Fast build, skip tests and linting
 	./gradlew build -x test -x detekt

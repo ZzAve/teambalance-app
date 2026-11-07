@@ -17,6 +17,7 @@ import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.security.config.Customizer.withDefaults
 import org.springframework.security.config.annotation.web.builders.HttpSecurity
+import org.springframework.security.config.annotation.web.configurers.AuthorizeHttpRequestsConfigurer
 import org.springframework.security.web.SecurityFilterChain
 import org.springframework.security.web.authentication.AnonymousAuthenticationFilter
 import org.springframework.security.web.authentication.HttpStatusEntryPoint
@@ -47,6 +48,10 @@ class SecurityConfig(
     @param:Value("\${teambalance.csrf.cookie-domain:}") private val csrfCookieDomain: String,
     // The CSRF cookie takes the session cookie's flags: HTTPS-only and SameSite=Lax in prod.
     @param:Value("\${server.servlet.session.cookie.secure:false}") private val secureCookie: Boolean,
+    // Renamed in the demo container, where SPA and API share a host (ADR-0043). The header name stays X-XSRF-TOKEN.
+    @param:Value("\${teambalance.csrf.cookie-name:XSRF-TOKEN}") private val csrfCookieName: String,
+    // Non-blank only in the demo container: the SPA's files are served from this same app.
+    @param:Value("\${teambalance.spa.static-location:}") private val spaStaticLocation: String,
 ) {
 
     @Bean
@@ -66,9 +71,14 @@ class SecurityConfig(
                 // login and verify pages make no API call before it), so it has no XSRF-TOKEN cookie to
                 // echo yet. JSON only: a cross-origin JSON request needs a CORS preflight, which an
                 // untrusted origin fails, while a plain HTML form post would not, and would otherwise
-                // sign the victim in as whoever's magic-link token it carries. See ADR-0012.
+                // sign the victim in as whoever's magic-link token it carries. See ADR-0012. The demo guest
+                // login is the same: the /demo page makes no API call before it, and no victim data sits
+                // behind a demo persona.
                 .ignoringRequestMatchers(
-                    AndRequestMatcher(OrRequestMatcher(post(MAGIC_LINK_REQUEST), post(MAGIC_LINK_VERIFY)), ::isJson),
+                    AndRequestMatcher(
+                        OrRequestMatcher(post(MAGIC_LINK_REQUEST), post(MAGIC_LINK_VERIFY), post(DEMO_SESSION)),
+                        ::isJson,
+                    ),
                 )
         }
         .authorizeHttpRequests {
@@ -77,6 +87,7 @@ class SecurityConfig(
                 // the REQUEST dispatch already authorized; the security context is not carried to it.
                 .dispatcherTypeMatchers(DispatcherType.ASYNC, DispatcherType.ERROR).permitAll()
                 .requestMatchers(*PUBLIC_PATHS).permitAll()
+                .also { if (spaStaticLocation.isNotBlank()) permitSpaFiles(it) }
                 .anyRequest().authenticated()
         }
         .exceptionHandling { it.authenticationEntryPoint(HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)) }
@@ -93,7 +104,16 @@ class SecurityConfig(
         .addFilterAfter(CsrfCookieFilter(), CsrfFilter::class.java)
         .build()
 
+    /** The demo container serves the SPA: its files answer GET without a session; the API and /internal keep their rules. */
+    private fun permitSpaFiles(
+        registry: AuthorizeHttpRequestsConfigurer<HttpSecurity>.AuthorizationManagerRequestMatcherRegistry,
+    ) {
+        registry.requestMatchers(HttpMethod.GET, "/api/**", "/internal/**").authenticated()
+            .requestMatchers(HttpMethod.GET, "/**").permitAll()
+    }
+
     private fun csrfTokenRepository() = CookieCsrfTokenRepository.withHttpOnlyFalse().apply {
+        setCookieName(csrfCookieName)
         setCookieCustomizer { cookie ->
             cookie.secure(secureCookie).sameSite("Lax")
             if (csrfCookieDomain.isNotBlank()) cookie.domain(csrfCookieDomain)
@@ -143,6 +163,7 @@ class SecurityConfig(
     private companion object {
         const val MAGIC_LINK_REQUEST = "/api/auth/magic-link/request"
         const val MAGIC_LINK_VERIFY = "/api/auth/magic-link/verify"
+        const val DEMO_SESSION = "/api/demo/session"
 
         /**
          * Every route that answers without a session. Checked against each controller: these are the
@@ -156,6 +177,8 @@ class SecurityConfig(
             "/api/auth/**",
             "/api/ping",
             "/api/calendar/**",
+            // Guest login; answers 404 unless the demo switch is on (ADR-0043).
+            "/api/demo/**",
             // Bunq returns the browser here; the service demands the starting Admin's session and the single-use state (ADR-0042).
             "/api/bunq/oauth/callback",
             "/internal/actuator/**",

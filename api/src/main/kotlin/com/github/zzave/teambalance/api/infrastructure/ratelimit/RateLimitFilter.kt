@@ -86,6 +86,8 @@ class RateLimitFilter(
                 listOf(Rule("magic-link-request", properties.magicLinkRequest, ipKey(request)))
             post && path == MAGIC_LINK_VERIFY_PATH ->
                 listOf(Rule("magic-link-verify", properties.magicLinkVerify, ipKey(request)))
+            post && path == DEMO_SESSION_PATH ->
+                listOf(Rule("demo-session", properties.demoSession, ipKey(request)))
             post && pathMatcher.match(INVITATION_ACCEPT_PATTERN, path) ->
                 listOf(Rule("invitation-accept", properties.invitationAccept, userOrIpKey(request)))
             get && path == BunqConnectionService.CALLBACK_PATH ->
@@ -147,6 +149,7 @@ class RateLimitFilter(
     private companion object {
         const val MAGIC_LINK_REQUEST_PATH = "/api/auth/magic-link/request"
         const val MAGIC_LINK_VERIFY_PATH = "/api/auth/magic-link/verify"
+        const val DEMO_SESSION_PATH = "/api/demo/session"
 
         // Single `*` matches one path segment, so the token can't contain a slash that escapes onto
         // another handler — the token is a URL-safe Base64 string with no slashes anyway.

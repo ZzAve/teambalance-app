@@ -3,7 +3,7 @@ import { expect, fn, userEvent } from 'storybook/test'
 import { Stack } from '@shared/testing/stack'
 import { DemoLoginView } from './DemoLoginView'
 
-// The demo entry page (ADR-0043): one button. Two stories under the ADR-0032 cap: Interactions proves the
+// The demo entry page (ADR-0043): two persona buttons. Two stories under the ADR-0032 cap: Interactions proves the
 // click reaches onPlay with the persona the server expects; Shells stacks the pending and error states.
 const meta = {
   title: 'features/demo-login/DemoLoginView',
@@ -18,8 +18,10 @@ type Story = StoryObj<typeof meta>
 export const Interactions: Story = {
   play: async ({ canvas, args }) => {
     await expect(canvas.getByText('This is a demo team.')).toBeInTheDocument()
-    await userEvent.click(canvas.getByRole('button', { name: 'Play as Sanne' }))
+    await userEvent.click(canvas.getByRole('button', { name: 'Play as Sanne (player)' }))
     await expect(args.onPlay).toHaveBeenCalledWith('MEMBER')
+    await userEvent.click(canvas.getByRole('button', { name: 'Play as Kees (coach)' }))
+    await expect(args.onPlay).toHaveBeenCalledWith('ADMIN')
   },
 }
 
@@ -33,7 +35,8 @@ export const Shells: Story = {
     />
   ),
   play: async ({ canvas }) => {
-    await expect(canvas.getAllByRole('button', { name: 'Play as Sanne' })[0]).toBeDisabled()
+    await expect(canvas.getAllByRole('button', { name: 'Play as Sanne (player)' })[0]).toBeDisabled()
+    await expect(canvas.getAllByRole('button', { name: 'Play as Kees (coach)' })[0]).toBeDisabled()
     await expect(canvas.getByRole('alert')).toHaveTextContent('Signing in failed. Please try again.')
   },
 }

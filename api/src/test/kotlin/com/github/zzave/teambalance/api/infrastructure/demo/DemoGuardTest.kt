@@ -61,6 +61,11 @@ class DemoGuardTest : FunSpec({
             .shouldBeRefusalContaining("datasource")
     }
 
+    test("spring.datasource.jndi-name makes Spring Boot look the DataSource up in JNDI and ignore the URL, so it is refused") {
+        demoBootRefusal(true, false, "none", loopback, jndiName = "java:comp/env/jdbc/prod")
+            .shouldBeRefusalContaining("jndi-name")
+    }
+
     test("a Hikari jdbc-url the pool would use instead is checked like the datasource url") {
         demoBootRefusal(true, false, "none", loopback, "jdbc:postgresql://prod-db.internal/x")
             .shouldBeRefusalContaining("datasource")

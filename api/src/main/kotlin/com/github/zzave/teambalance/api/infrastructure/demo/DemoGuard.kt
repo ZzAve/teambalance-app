@@ -16,6 +16,7 @@ internal fun demoBootRefusal(
     poolJdbcUrl: String = "",
     dataSourceClassName: String = "",
     dataSourceJndi: String = "",
+    jndiName: String = "",
 ): String? =
     when {
         !enabled -> null
@@ -25,6 +26,8 @@ internal fun demoBootRefusal(
         // With either set, Hikari builds its own DataSource and ignores every URL.
         dataSourceClassName.isNotBlank() || dataSourceJndi.isNotBlank() ->
             "teambalance.demo.enabled needs a datasource without hikari.data-source-class-name or data-source-j-n-d-i"
+        // Spring Boot then looks the DataSource up in JNDI and never reads the URL.
+        jndiName.isNotBlank() -> "teambalance.demo.enabled needs a datasource without spring.datasource.jndi-name"
         // Hikari connects to spring.datasource.hikari.jdbc-url when it is set, so that URL is held to the same rule.
         !isLoopbackOnly(jdbcUrl) || (poolJdbcUrl.isNotBlank() && !isLoopbackOnly(poolJdbcUrl)) ->
             "teambalance.demo.enabled needs a loopback datasource host (127.0.0.1 or localhost) " +
@@ -56,8 +59,10 @@ class DemoGuard(
     @param:Value("\${spring.datasource.hikari.jdbc-url:}") poolJdbcUrl: String,
     @param:Value("\${spring.datasource.hikari.data-source-class-name:}") dataSourceClassName: String,
     @param:Value("\${spring.datasource.hikari.data-source-j-n-d-i:}") dataSourceJndi: String,
+    @param:Value("\${spring.datasource.jndi-name:}") jndiName: String,
 ) {
     init {
-        demoBootRefusal(enabled, emailSend, bunqEnvironment, jdbcUrl, poolJdbcUrl, dataSourceClassName, dataSourceJndi)?.let { error(it) }
+        demoBootRefusal(enabled, emailSend, bunqEnvironment, jdbcUrl, poolJdbcUrl, dataSourceClassName, dataSourceJndi, jndiName)
+            ?.let { error(it) }
     }
 }

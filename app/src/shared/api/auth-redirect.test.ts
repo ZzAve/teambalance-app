@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { NO_TEAM_MEMBERSHIP_CODE, shouldRedirectToLogin } from './auth-redirect'
+import { loginPathFor, NO_TEAM_MEMBERSHIP_CODE, shouldRedirectToLogin } from './auth-redirect'
 
 describe('shouldRedirectToLogin', () => {
   it('redirects a teamless authenticated user (403 with the no-team code)', () => {
@@ -42,5 +42,13 @@ describe('shouldRedirectToLogin', () => {
         currentPath: '/t/setpoint-vt/team',
       }),
     ).toBe(true)
+  })
+})
+
+describe('loginPathFor', () => {
+  // The demo build has no magic-link screen worth landing on: a lapsed session goes back to the persona picker.
+  it('sends the demo build to /demo and every other build to /login', () => {
+    expect(loginPathFor(true)).toBe('/demo')
+    expect(loginPathFor(false)).toBe('/login')
   })
 })

@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react'
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, redirect } from '@tanstack/react-router'
+import { IS_DEMO_BUILD } from '@shared/lib/demo-build'
 import { useRequestMagicLink } from '@shared/api/auth'
 import { Button } from '@shared/ui/button'
 import { Input } from '@shared/ui/input'
@@ -7,6 +8,10 @@ import { Label } from '@shared/ui/label'
 import { Trans, useTranslation } from 'react-i18next'
 
 export const Route = createFileRoute('/login')({
+  // The demo build never shows the magic-link screen: its only way in is the persona picker.
+  beforeLoad: () => {
+    if (IS_DEMO_BUILD) throw redirect({ to: '/demo' })
+  },
   component: LoginPage,
 })
 

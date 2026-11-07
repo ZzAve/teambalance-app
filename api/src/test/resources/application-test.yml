@@ -43,6 +43,9 @@ teambalance:
       capacity: 1000
     bunq-oauth-callback:
       capacity: 1000
+    # DemoSessionRateLimitIT proves the 429 in its own forked context.
+    demo-session:
+      capacity: 1000
     # Same reasoning: CalendarFeedRateLimitIT proves the 429 in its own forked context. Both feed
     # ceilings are raised, or the per-IP one would throttle the whole suite from 127.0.0.1.
     calendar-feed:

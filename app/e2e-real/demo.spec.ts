@@ -11,7 +11,7 @@ test.use({ storageState: { cookies: [], origins: [] } })
 
 test('demo guest login: /demo -> Sanne -> answer Going -> the answer persists', async ({ page }) => {
   await page.goto('/demo')
-  await page.getByRole('button', { name: 'Play as Sanne' }).click()
+  await page.getByRole('button', { name: 'Play as Sanne (player)' }).click()
 
   await expect(page).toHaveURL(/\/t\/de-smashers/, { timeout: 10_000 })
   await expect(page.getByRole('heading', { name: 'Events' })).toBeVisible()
@@ -32,4 +32,15 @@ test('demo guest login: /demo -> Sanne -> answer Going -> the answer persists', 
   await expect(
     page.getByRole('group', { name: 'Your response' }).getByRole('button', { name: targetName, exact: true }),
   ).toHaveAttribute('aria-pressed', 'true', { timeout: 10_000 })
+
+  // The banner's role switch ends the session and lands on the picker; a protected page then bounces to /demo, not /login.
+  await expect(page.getByRole('complementary', { name: 'Demo' })).toContainText('data is wiped every hour')
+  await page.getByRole('button', { name: 'Switch role' }).click()
+  await expect(page).toHaveURL(/\/demo$/, { timeout: 10_000 })
+  await expect(page.getByRole('button', { name: 'Play as Kees (coach)' })).toBeVisible()
+  await page.goto('/t/de-smashers/events')
+  await expect(page).toHaveURL(/\/demo$/, { timeout: 10_000 })
+  // The magic-link screen is never shown in the demo build.
+  await page.goto('/login')
+  await expect(page).toHaveURL(/\/demo$/, { timeout: 10_000 })
 })

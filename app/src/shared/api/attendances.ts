@@ -4,6 +4,7 @@ import { api } from './wirespec-client'
 import { applyOptimisticAttendance } from './attendance-cache'
 import { useCurrentUser } from './auth'
 import type { AttendanceEntry, EventDetail } from './events'
+import { i18n } from '@shared/i18n/i18n'
 
 type AttendanceState = AttendanceEntry['state']
 
@@ -39,7 +40,7 @@ export function useSetAttendance() {
       // Restore the pre-tap snapshot so the toggle returns to its real state, then surface the
       // failure. The re-enabled toggle is the recovery path — tapping again retries.
       if (context) queryClient.setQueryData(context.eventKey, context.previousEvent)
-      toast.error("Couldn't save your response — tap to try again.")
+      toast.error(i18n.t('errors.attendance.saveFailed'))
     },
     onSettled: (_data, _error, { eventId }) => {
       queryClient.invalidateQueries({ queryKey: ['events'] })
@@ -70,7 +71,7 @@ export function useBulkAttend() {
       return res.body.eventIds
     },
     onError: () => {
-      toast.error("Couldn't set your attendance — please try again.")
+      toast.error(i18n.t('errors.attendance.setFailed'))
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['events'] })
@@ -87,7 +88,7 @@ export function useBulkUndo() {
       return res.body.eventIds
     },
     onError: () => {
-      toast.error("Couldn't undo — please try again.")
+      toast.error(i18n.t('errors.attendance.undoFailed'))
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['events'] })

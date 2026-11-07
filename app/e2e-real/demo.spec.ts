@@ -11,7 +11,7 @@ test.use({ storageState: { cookies: [], origins: [] } })
 
 test('demo guest login: /demo -> Sanne -> answer Going -> the answer persists', async ({ page }) => {
   await page.goto('/demo')
-  await page.getByRole('button', { name: 'Speel als Sanne' }).click()
+  await page.getByRole('button', { name: 'Play as Sanne' }).click()
 
   await expect(page).toHaveURL(/\/t\/de-smashers/, { timeout: 10_000 })
   await expect(page.getByRole('heading', { name: 'Events' })).toBeVisible()

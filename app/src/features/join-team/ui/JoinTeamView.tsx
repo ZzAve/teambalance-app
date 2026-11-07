@@ -1,4 +1,5 @@
 import type { FormEvent } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Button } from '@shared/ui/button'
 import { Input } from '@shared/ui/input'
 import { Label } from '@shared/ui/label'
@@ -19,6 +20,7 @@ interface JoinTeamViewProps {
  * parseInviteToken before onSubmit ever sees it.
  */
 export function JoinTeamView({ value, onChange, onSubmit, submitting, error }: JoinTeamViewProps) {
+  const { t } = useTranslation()
   const canSubmit = value.trim().length > 0 && !submitting
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
@@ -29,14 +31,14 @@ export function JoinTeamView({ value, onChange, onSubmit, submitting, error }: J
 
   return (
     <div>
-      <h1 className="font-display text-title font-bold">Join your team</h1>
+      <h1 className="font-display text-title font-bold">{t('invite.join.title')}</h1>
       <p className="mt-2 text-small text-muted-foreground">
-        Paste the invite link you were sent below — or easiest of all, just click the link directly.
+        {t('invite.join.intro')}
       </p>
 
       <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-4">
         <div>
-          <Label htmlFor="invite-token">Invite link</Label>
+          <Label htmlFor="invite-token">{t('invite.join.linkLabel')}</Label>
           <Input
             id="invite-token"
             value={value}
@@ -51,21 +53,20 @@ export function JoinTeamView({ value, onChange, onSubmit, submitting, error }: J
           </p>
         )}
         <Button type="submit" disabled={!canSubmit}>
-          {submitting ? 'Joining…' : 'Join'}
+          {submitting ? t('invite.join.joining') : t('invite.join.join')}
         </Button>
       </form>
 
       <details className="mt-8 text-small text-muted-foreground">
-        <summary className="cursor-pointer font-medium text-foreground">I don't have a link</summary>
+        <summary className="cursor-pointer font-medium text-foreground">{t('invite.join.noLink')}</summary>
         <p className="mt-2">
-          Ask your team's captain or admin to send you the invite link — they can generate one from the
-          team's Members page. Once you have it, paste it above.
+          {t('invite.join.askAdmin')}
         </p>
         <p className="mt-2">
-          Starting your own team instead?{' '}
+          {t('invite.join.ownTeam')}{' '}
           {/* Plain anchor, not router Link — keeps this view router-free so it stays story-able. */}
           <a href="/create-team" className="text-blue underline">
-            Create a team
+            {t('onboarding.createTeam')}
           </a>
         </p>
       </details>

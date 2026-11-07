@@ -1,3 +1,4 @@
+import { i18n } from '@shared/i18n/i18n'
 import { pluralizeType } from './attend-label'
 
 /**
@@ -21,11 +22,10 @@ import { pluralizeType } from './attend-label'
  * app root via sonner, well outside this feature's component tree.
  */
 export function batchToastMessage(created: number, requested: number, typeName: string): string {
-  if (created === 0) return 'Nothing to set — those events already changed'
+  if (created === 0) return i18n.t('bulkToast.nothing')
 
-  const noun = created === 1 ? typeName.toLowerCase() : pluralizeType(typeName)
-  if (created === requested) return `${created} ${noun} set to Attending`
+  const words = { count: created, type: typeName.toLowerCase(), types: pluralizeType(typeName) }
+  if (created === requested) return i18n.t('bulkToast.all', words)
 
-  const skipped = requested - created
-  return `${created} of ${requested} ${noun} set to Attending — ${skipped} already changed`
+  return i18n.t('bulkToast.partial', { ...words, requested, skipped: requested - created })
 }

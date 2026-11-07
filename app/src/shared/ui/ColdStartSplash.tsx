@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import { i18n } from '@shared/i18n/i18n'
 
 // The boot splash, but time-aware. The prod backend scales to zero, so a cold first load can stall
 // ~12s while the container wakes. A frozen wordmark for that long reads as a hang, so the splash
@@ -24,11 +26,11 @@ export function splashStageFor(elapsedMs: number): SplashStage {
 // Stage 2 rotates its line so it reads as motion, not a stuck frame (per the loading-states guidance:
 // prefer changing text over a frozen spinner in the 5–10s band).
 export function wakingMessageFor(elapsedMs: number): string {
-  return elapsedMs < 6_000 ? 'Rounding up the team…' : 'Almost there…'
+  return elapsedMs < 6_000 ? i18n.t('shell.splash.roundingUp') : i18n.t('shell.splash.almostThere')
 }
 
-/** Stage 3 step indicator — honest discrete steps, no fake percentage bar. */
-export const WARMING_STEPS = ['Waking the server', 'Connecting', 'Loading your team'] as const
+/** Stage 3 step indicator — honest discrete steps, no fake percentage bar. Catalogue keys. */
+export const WARMING_STEPS = ['shell.splash.wakingServer', 'shell.splash.connecting', 'shell.splash.loadingTeam'] as const
 
 /**
  * Which step is currently in flight. Earlier steps render checked, later ones dim. The final step
@@ -50,6 +52,7 @@ function Wordmark() {
 }
 
 function StepIndicator({ elapsedMs }: { elapsedMs: number }) {
+  const { t } = useTranslation()
   const active = activeWarmingStep(elapsedMs)
   return (
     <ul className="flex flex-col gap-2 text-small">
@@ -77,7 +80,7 @@ function StepIndicator({ elapsedMs }: { elapsedMs: number }) {
                     : 'text-muted-foreground/50'
               }
             >
-              {step}
+              {t(step)}
               {isActive ? '…' : ''}
             </span>
           </li>
@@ -89,6 +92,7 @@ function StepIndicator({ elapsedMs }: { elapsedMs: number }) {
 
 /** Presentational splash for a given elapsed time. Pure — no timers, fully controlled by props. */
 export function ColdStartSplash({ elapsedMs = 0 }: { elapsedMs?: number }) {
+  const { t } = useTranslation()
   const stage = splashStageFor(elapsedMs)
 
   return (
@@ -114,7 +118,7 @@ export function ColdStartSplash({ elapsedMs = 0 }: { elapsedMs?: number }) {
         <div className="flex flex-col items-center gap-4">
           <StepIndicator elapsedMs={elapsedMs} />
           <p className="max-w-xs text-caption text-muted-foreground">
-            Still warming up the court — this happens after a quiet spell. Hang tight! 🏐
+            {t('shell.splash.stillWarming')}
           </p>
         </div>
       )}

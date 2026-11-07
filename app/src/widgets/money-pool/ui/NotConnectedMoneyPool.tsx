@@ -1,16 +1,18 @@
 import { PlusCircle, Receipt, Wallet, type LucideIcon } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
+import { i18n } from '@shared/i18n/i18n'
 import { PiggyBankArt } from './PiggyBankArt'
 
 interface Pillar {
   icon: LucideIcon
-  title: string
-  blurb: string
+  /** Key under `money.pillar` holding a `title` and a `blurb`. */
+  key: 'pot' | 'chipIn' | 'tracked'
 }
 
 const PILLARS: Pillar[] = [
-  { icon: Wallet, title: 'One shared pot', blurb: "The whole team's money, in one place" },
-  { icon: PlusCircle, title: 'Chip in fast', blurb: 'Top up your share in a couple of taps' },
-  { icon: Receipt, title: 'Every euro tracked', blurb: 'See what was paid, and where it went' },
+  { icon: Wallet, key: 'pot' },
+  { icon: PlusCircle, key: 'chipIn' },
+  { icon: Receipt, key: 'tracked' },
 ]
 
 interface NotConnectedMoneyPoolProps {
@@ -29,20 +31,21 @@ interface NotConnectedMoneyPoolProps {
 
 /** Members see what the pool offers; admins also hear how connecting Bunq goes, or that it is coming (ADR-0042). */
 export function NotConnectedMoneyPool({ isAdmin, connectAvailable, accountPending }: NotConnectedMoneyPoolProps) {
+  const { t } = useTranslation()
   return (
-    <section aria-label="Money pool preview" className="mx-auto flex max-w-sm flex-col items-center text-center">
-      <h3 className="font-display text-title font-bold leading-tight">A shared team pot</h3>
+    <section aria-label={t('money.preview')} className="mx-auto flex max-w-sm flex-col items-center text-center">
+      <h3 className="font-display text-title font-bold leading-tight">{t('money.previewTitle')}</h3>
       <p className="mt-3 text-small leading-relaxed text-muted-foreground">
         {isAdmin
           ? adminCopy(connectAvailable, accountPending)
-          : 'Once an admin connects the team’s Bunq account, the balance and payments show up here.'}
+          : t('money.memberCopy')}
       </p>
 
       <PiggyBankArt className="my-7" />
 
       <ul className="flex w-full flex-col gap-3 text-left">
-        {PILLARS.map(({ icon: Icon, title, blurb }) => (
-          <li key={title} className="flex items-center gap-3">
+        {PILLARS.map(({ icon: Icon, key }) => (
+          <li key={key} className="flex items-center gap-3">
             <span
               className="grid size-10 shrink-0 place-items-center rounded-md bg-gold/12 ring-1 ring-inset ring-gold/25"
               style={{ color: 'var(--color-gold-dark)' }}
@@ -50,8 +53,8 @@ export function NotConnectedMoneyPool({ isAdmin, connectAvailable, accountPendin
               <Icon size={20} />
             </span>
             <span>
-              <span className="block text-small font-semibold leading-tight text-foreground">{title}</span>
-              <span className="text-caption text-muted-foreground">{blurb}</span>
+              <span className="block text-small font-semibold leading-tight text-foreground">{t(`money.pillar.${key}.title`)}</span>
+              <span className="text-caption text-muted-foreground">{t(`money.pillar.${key}.blurb`)}</span>
             </span>
           </li>
         ))}
@@ -61,9 +64,7 @@ export function NotConnectedMoneyPool({ isAdmin, connectAvailable, accountPendin
 }
 
 function adminCopy(connectAvailable?: boolean, accountPending?: boolean) {
-  if (accountPending && connectAvailable) return 'Pick the account in the team settings. The balance and payments will show up here.'
-  if (connectAvailable === undefined) return 'The balance and payments of the team’s Bunq account will show up here.'
-  return connectAvailable
-    ? 'Connect the team’s Bunq account in the team settings. The balance and payments will show up here.'
-    : 'Connecting the team’s Bunq account is coming soon. The balance and payments will show up here.'
+  if (accountPending && connectAvailable) return i18n.t('money.admin.pickAccount')
+  if (connectAvailable === undefined) return i18n.t('money.admin.unknown')
+  return connectAvailable ? i18n.t('money.admin.connect') : i18n.t('money.admin.comingSoon')
 }

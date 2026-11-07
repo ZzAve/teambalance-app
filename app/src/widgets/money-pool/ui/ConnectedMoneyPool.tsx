@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { ArrowDownLeft, ArrowUpRight } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import type { Payment } from '@shared/api/money-pool'
 import { formatBeers, formatEuro, formatPaymentDate } from '../lib/format'
 
@@ -16,29 +17,30 @@ interface ConnectedMoneyPoolProps {
 }
 
 export function ConnectedMoneyPool({ balance, payments, beerPrice, beerCount, topUp, receipt }: ConnectedMoneyPoolProps) {
+  const { t } = useTranslation()
   return (
     <div className="flex flex-col gap-6">
-      <section aria-label="Balance" className="rounded-lg bg-card p-4">
-        <p className="text-caption font-semibold uppercase tracking-wide text-muted-foreground">Pool balance</p>
+      <section aria-label={t('money.balance')} className="rounded-lg bg-card p-4">
+        <p className="text-caption font-semibold uppercase tracking-wide text-muted-foreground">{t('money.poolBalance')}</p>
         <p className="font-display mt-1 text-page font-extrabold leading-none">{formatEuro(balance)}</p>
       </section>
 
       {topUp}
 
       {beerPrice !== undefined && beerCount !== undefined && (
-        <section aria-label="Beer Counter" className="rounded-lg bg-card p-4">
-          <p className="text-caption font-semibold uppercase tracking-wide text-muted-foreground">Beer Counter</p>
+        <section aria-label={t('money.beerCounter')} className="rounded-lg bg-card p-4">
+          <p className="text-caption font-semibold uppercase tracking-wide text-muted-foreground">{t('money.beerCounter')}</p>
           <p className="font-display mt-1 text-title font-bold leading-none">{formatBeers(beerCount)}</p>
           <p className="mt-1 text-caption text-muted-foreground">
-            The pool balance covers {formatBeers(beerCount)} at {formatEuro(beerPrice)} each.
+            {t('money.beerCovers', { beers: formatBeers(beerCount), price: formatEuro(beerPrice) })}
           </p>
         </section>
       )}
 
-      <section aria-label="Payments">
-        <h3 className="font-display mb-2 text-body font-bold">Payments</h3>
+      <section aria-label={t('money.payments')}>
+        <h3 className="font-display mb-2 text-body font-bold">{t('money.payments')}</h3>
         {payments.length === 0 ? (
-          <p className="text-small text-muted-foreground">No payments in this period.</p>
+          <p className="text-small text-muted-foreground">{t('money.noPayments')}</p>
         ) : (
           <ul className="flex flex-col divide-y divide-border rounded-lg bg-card">
             {payments.map((payment) => {
@@ -52,7 +54,7 @@ export function ConnectedMoneyPool({ balance, payments, beerPrice, beerCount, to
                     <span className="text-caption text-muted-foreground">{formatPaymentDate(payment.date)}</span>
                   </span>
                   <span className="text-small font-semibold tabular-nums">
-                    <span className="sr-only">{incoming ? 'Incoming ' : 'Outgoing '}</span>
+                    <span className="sr-only">{`${incoming ? t('money.incoming') : t('money.outgoing')} `}</span>
                     <span aria-hidden="true">{incoming ? '+' : '−'}</span>
                     {formatEuro(payment.amount)}
                   </span>

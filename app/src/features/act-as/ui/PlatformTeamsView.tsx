@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import type { TeamRef } from '@shared/api/act-as'
 import { Button } from '@shared/ui/button'
 
@@ -30,25 +31,26 @@ export function PlatformTeamsView({
   wasExpired,
   onEnter,
 }: PlatformTeamsViewProps) {
+  const { t } = useTranslation()
   return (
     <div>
-      <h2 className="font-display text-title font-bold">Teams</h2>
+      <h2 className="font-display text-title font-bold">{t('account.teams')}</h2>
       <p className="mt-1 text-small text-muted-foreground">
-        Enter a team to set it up. You stay off its roster, and the team can see that you were here.
+        {t('actAs.console.intro')}
       </p>
 
       {wasExpired && (
-        <p className="mt-4 text-small text-gold-ink">Your act-as ran out after 60 minutes. Enter a team again to continue.</p>
+        <p className="mt-4 text-small text-gold-ink">{t('actAs.console.expired')}</p>
       )}
 
-      {isLoading && <p className="mt-4 text-small text-muted-foreground">Loading…</p>}
-      {isForbidden && <p className="mt-4 text-small text-muted-foreground">You don't have access to the platform console.</p>}
-      {isError && !isForbidden && <p className="mt-4 text-small text-red-ink">Couldn't load teams. Please try again.</p>}
+      {isLoading && <p className="mt-4 text-small text-muted-foreground">{t('account.loading')}</p>}
+      {isForbidden && <p className="mt-4 text-small text-muted-foreground">{t('actAs.console.forbidden')}</p>}
+      {isError && !isForbidden && <p className="mt-4 text-small text-red-ink">{t('actAs.console.loadFailed')}</p>}
 
       {!isLoading && !isError && !isForbidden && (
         <div className="mt-4">
           {teams.length === 0 ? (
-            <p className="text-small text-muted-foreground">No teams yet.</p>
+            <p className="text-small text-muted-foreground">{t('actAs.console.empty')}</p>
           ) : (
             <ul className="divide-y divide-border rounded-lg border border-border">
               {teams.map((team) => (
@@ -60,7 +62,7 @@ export function PlatformTeamsView({
                     <p className="truncate font-mono text-caption text-muted-foreground">/{team.slug}</p>
                   </div>
                   <Button size="sm" disabled={isEntering} onClick={() => onEnter(team)}>
-                    Enter
+                    {t('actAs.console.enter')}
                   </Button>
                 </li>
               ))}

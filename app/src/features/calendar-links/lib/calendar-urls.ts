@@ -1,4 +1,5 @@
 import type { CalendarLink } from '@shared/api/calendar-links'
+import { formatLocale, i18n } from '@shared/i18n/i18n'
 
 /** The same feed URL under the webcal scheme, which the OS hands to its calendar app as a subscription. */
 export function toWebcalUrl(feedUrl: string): string {
@@ -11,9 +12,9 @@ export function toGoogleCalendarUrl(feedUrl: string): string {
 }
 
 export function linkDisplayLabel(link: CalendarLink): string {
-  return link.label ?? `Link from ${formatDate(link.createdAt)}`
+  return link.label ?? i18n.t('calendarLinks.linkFrom', { date: formatDate(link.createdAt) })
 }
 
 export function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short', year: 'numeric' })
+  return new Date(iso).toLocaleDateString(formatLocale(), { day: 'numeric', month: 'short', year: 'numeric' })
 }

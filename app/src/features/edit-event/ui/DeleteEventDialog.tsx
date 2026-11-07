@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { Trash2 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import {
   Dialog,
   DialogContent,
@@ -28,6 +29,7 @@ interface DeleteEventDialogProps {
  * gone. The dialog chrome (title + description) stays here, so the View is Radix-free. See ADR-0017.
  */
 export function DeleteEventDialog({ eventId, title, siblings = [] }: DeleteEventDialogProps) {
+  const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   const navigate = useNavigate()
   const routes = useTeamRoutes()
@@ -43,13 +45,13 @@ export function DeleteEventDialog({ eventId, title, siblings = [] }: DeleteEvent
         onClick={() => setOpen(true)}
       >
         <Trash2 size={15} />
-        Delete
+        {t('deleteEvent.button')}
       </Button>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{isSeries ? 'Delete from series?' : 'Delete this event?'}</DialogTitle>
+          <DialogTitle>{isSeries ? t('deleteEvent.titleSeries') : t('deleteEvent.titleOne')}</DialogTitle>
           <DialogDescription>
-            {title} will be removed for everyone, along with its attendance.
+            {t('deleteEvent.description', { title })}
           </DialogDescription>
         </DialogHeader>
         <DeleteEventDialogView

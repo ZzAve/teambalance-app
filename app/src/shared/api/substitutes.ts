@@ -5,6 +5,7 @@ import { useCurrentUser } from './auth'
 import type { Substitute } from './generated/model/Substitute'
 import type { SubstituteEntry } from './generated/model/SubstituteEntry'
 import { applyOptimisticSubstitute, removeOptimisticSubstitute } from './substitute-cache'
+import { i18n } from '@shared/i18n/i18n'
 
 // Re-export the generated contract types so the app has a single source of truth.
 export type { Substitute } from './generated/model/Substitute'
@@ -17,7 +18,7 @@ export class SubstituteError extends Error {
   }
 }
 
-const nameTaken = (name: string) => new SubstituteError(`${name} is already on the list.`)
+const nameTaken = (name: string) => new SubstituteError(i18n.t('errors.substitute.nameTaken', { name }))
 
 /** The Team's list of Substitutes, for the picker. Keyed ['substitutes'] so a create refreshes it. */
 export function useSubstitutes(options?: { enabled?: boolean }) {
@@ -78,12 +79,12 @@ export function useUpdateSubstitute() {
       })
       // The contract types the 409 body as undefined, but the handler sends a { code } to tell them apart.
       if (res.status === 409 && (res.body as { code?: string } | undefined)?.code === 'NUMBER_TAKEN') {
-        throw new SubstituteError(`Number ${shirtNumber} is already worn by another substitute.`)
+        throw new SubstituteError(i18n.t('errors.substitute.numberTaken', { number: shirtNumber }))
       }
       if (res.status === 409) throw nameTaken(name)
-      if (res.status === 403) throw new SubstituteError('You are not allowed to make this change.')
-      if (res.status === 404) throw new SubstituteError('That substitute is no longer on the list.')
-      if (res.status !== 200) throw new SubstituteError("Couldn't save the substitute — please try again.")
+      if (res.status === 403) throw new SubstituteError(i18n.t('errors.notAllowed'))
+      if (res.status === 404) throw new SubstituteError(i18n.t('errors.substitute.gone'))
+      if (res.status !== 200) throw new SubstituteError(i18n.t('errors.substitute.saveFailed'))
       return res.body
     },
     onSettled: () => {
@@ -114,9 +115,9 @@ export function useDeleteSubstitute() {
   return useMutation({
     mutationFn: async ({ id }: { id: string }) => {
       const res = await api.deleteSubstitute({ id })
-      if (res.status === 403) throw new SubstituteError('You are not allowed to remove this substitute.')
-      if (res.status === 404) throw new SubstituteError('That substitute is no longer on the list.')
-      if (res.status !== 204) throw new SubstituteError("Couldn't remove the substitute — please try again.")
+      if (res.status === 403) throw new SubstituteError(i18n.t('errors.substitute.removeNotAllowed'))
+      if (res.status === 404) throw new SubstituteError(i18n.t('errors.substitute.gone'))
+      if (res.status !== 204) throw new SubstituteError(i18n.t('errors.substitute.removeFailed'))
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['substitutes'] })
@@ -181,7 +182,7 @@ export function useSetSubstituteAttendance() {
     },
     onError: (_error, _variables, context) => {
       rollBack(queryClient, context)
-      toast.error("Couldn't save the substitute — please try again.")
+      toast.error(i18n.t('errors.substitute.saveFailed'))
     },
     onSettled: (_data, _error, { eventId }) => {
       queryClient.invalidateQueries({ queryKey: ['events'] })
@@ -208,7 +209,7 @@ export function useRemoveSubstituteAttendance() {
       patchCachedEvents(queryClient, (cached) => removeOptimisticSubstitute(cached, eventId, substituteId)),
     onError: (_error, _variables, context) => {
       rollBack(queryClient, context)
-      toast.error("Couldn't take the substitute off — please try again.")
+      toast.error(i18n.t('errors.substitute.takeOffFailed'))
     },
     onSettled: (_data, _error, { eventId }) => {
       queryClient.invalidateQueries({ queryKey: ['events'] })

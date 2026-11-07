@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { useState } from 'react'
 import { Button } from '@shared/ui/button'
 import { Input } from '@shared/ui/input'
@@ -55,13 +56,13 @@ export function HandoverAdminView({
   onRotate,
   onRevoke,
 }: HandoverAdminViewProps) {
+  const { t } = useTranslation()
   const [confirmRevokeOpen, setConfirmRevokeOpen] = useState(false)
   const heading = (
     <div>
-      <h2 className="font-display text-title font-bold">Hand over as admin</h2>
+      <h2 className="font-display text-title font-bold">{t('handover.heading')}</h2>
       <p className="mt-1 text-small text-muted-foreground">
-        Create a single-use link that makes the first person who opens it an admin of this team. Send
-        it to one person — anyone who opens it becomes an admin, and it stops working once used.
+        {t('handover.intro')}
       </p>
     </div>
   )
@@ -70,42 +71,42 @@ export function HandoverAdminView({
     <div className="flex flex-col gap-3">
       {heading}
 
-      {isLoading && <p className="text-small text-muted-foreground">Loading…</p>}
-      {isError && <p className="text-small text-red-ink">Failed to load the admin link.</p>}
+      {isLoading && <p className="text-small text-muted-foreground">{t('account.loading')}</p>}
+      {isError && <p className="text-small text-red-ink">{t('handover.loadFailed')}</p>}
 
       {!isLoading && !isError && justRevoked && (
         <div className="flex flex-col gap-2">
           <p className="text-small text-muted-foreground">
-            The link has been revoked. It can no longer make anyone an admin.
+            {t('handover.revoked')}
           </p>
           <Button type="button" onClick={onCreate} disabled={isCreating} className="self-start">
-            {isCreating ? 'Creating…' : 'Create new admin link'}
+            {isCreating ? t('handover.creating') : t('handover.createNew')}
           </Button>
-          {actionError && <p className="text-small text-red-ink">Something went wrong. Please try again.</p>}
+          {actionError && <p className="text-small text-red-ink">{t('generateInvite.actionFailed')}</p>}
         </div>
       )}
 
       {!isLoading && !isError && !justRevoked && !link && (
         <div className="flex flex-col gap-2">
           <Button type="button" onClick={onCreate} disabled={isCreating} className="self-start">
-            {isCreating ? 'Creating…' : 'Create admin handover link'}
+            {isCreating ? t('handover.creating') : t('handover.create')}
           </Button>
-          {actionError && <p className="text-small text-red-ink">Something went wrong. Please try again.</p>}
+          {actionError && <p className="text-small text-red-ink">{t('generateInvite.actionFailed')}</p>}
         </div>
       )}
 
       {!isLoading && !isError && !justRevoked && link && (
         <div className="flex flex-col gap-2">
           <div className="flex gap-2">
-            <Input aria-label="Admin handover link" readOnly value={link} onFocus={(e) => e.currentTarget.select()} />
+            <Input aria-label={t('handover.linkLabel')} readOnly value={link} onFocus={(e) => e.currentTarget.select()} />
             <Button type="button" onClick={onCopy}>
-              {copied ? 'Copied!' : 'Copy'}
+              {copied ? t('generateInvite.copied') : t('generateInvite.copy')}
             </Button>
           </div>
-          {copyFailed && <FormError>Couldn't copy automatically. Copy the link from the field above.</FormError>}
+          {copyFailed && <FormError>{t('generateInvite.copyFailed')}</FormError>}
           <div className="flex gap-2">
             <Button type="button" variant="outline" onClick={onRotate} disabled={isRotating}>
-              {isRotating ? 'Rotating…' : 'Rotate link'}
+              {isRotating ? t('handover.rotating') : t('generateInvite.rotate')}
             </Button>
             <Button
               type="button"
@@ -113,22 +114,21 @@ export function HandoverAdminView({
               onClick={() => setConfirmRevokeOpen(true)}
               disabled={isRevoking}
             >
-              {isRevoking ? 'Revoking…' : 'Revoke link'}
+              {isRevoking ? t('handover.revoking') : t('generateInvite.revoke')}
             </Button>
           </div>
           <p className="text-caption text-muted-foreground">
-            This link grants admin and can be used once. Rotating replaces it with a new one; revoking
-            removes it. Either way the old link stops working.
+            {t('handover.hint')}
           </p>
-          {actionError && <p className="text-small text-red-ink">Something went wrong. Please try again.</p>}
+          {actionError && <p className="text-small text-red-ink">{t('generateInvite.actionFailed')}</p>}
         </div>
       )}
 
       <ConfirmDialog
         open={confirmRevokeOpen}
-        title="Revoke the invite link?"
-        description="The old link stops working and no replacement is created. It can no longer be used to become an admin of this team."
-        confirmLabel="Revoke link"
+        title={t('generateInvite.revokeTitle')}
+        description={t('handover.revokeDescription')}
+        confirmLabel={t('generateInvite.revoke')}
         onConfirm={() => {
           setConfirmRevokeOpen(false)
           onRevoke()

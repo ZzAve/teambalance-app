@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { Button } from './button'
+import { useTranslation } from 'react-i18next'
 import {
   Dialog,
   DialogContent,
@@ -37,6 +38,7 @@ export function ConfirmDialog({
   onCloseAutoFocus,
   children,
 }: ConfirmDialogProps) {
+  const { t } = useTranslation()
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onCancel()}>
       <DialogContent onCloseAutoFocus={onCloseAutoFocus}>
@@ -47,7 +49,7 @@ export function ConfirmDialog({
         {children}
         <DialogFooter>
           <Button variant="outline" onClick={onCancel}>
-            Cancel
+            {t('common.cancel')}
           </Button>
           <Button variant="destructive" onClick={onConfirm}>
             {confirmLabel}

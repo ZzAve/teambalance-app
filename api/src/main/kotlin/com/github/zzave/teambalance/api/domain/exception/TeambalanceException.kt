@@ -135,6 +135,14 @@ class NotUnderActAsException :
 class DemoTopUpLinkLockedException :
     ForbiddenException("The top-up link cannot be changed in the demo", "DEMO_TOP_UP_LINK_LOCKED")
 
+// The demo team's two personas stay on the roster with their role (ADR-0043).
+class DemoPersonaProtectedException :
+    ForbiddenException("The demo personas cannot be removed or change role", "DEMO_PERSONA_PROTECTED")
+
+// The demo team's seeded Bunq connection is shared by every guest; disconnecting it would empty the pool until the reset.
+class DemoBunqConnectionLockedException :
+    ForbiddenException("The Bunq connection cannot be disconnected in the demo", "DEMO_BUNQ_CONNECTION_LOCKED")
+
 // `code` is the stable machine-readable discriminator for 422 rejections — a request that is
 // well-formed but violates a business rule (not a state clash, so not a 409). Mirrors the code
 // convention of ForbiddenException/ConflictException.

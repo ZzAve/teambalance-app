@@ -27,6 +27,7 @@ class MemberService(
     private val positionRepository: PositionRepository,
     private val authorizationService: AuthorizationService,
     private val clock: Clock,
+    private val demoProtection: DemoProtection? = null,
 ) {
     fun getMember(teamId: TeamId, userId: UserId): TeamMember =
         teamMemberRepository.findByTeamId(teamId).firstOrNull { it.userId == userId }
@@ -67,6 +68,7 @@ class MemberService(
         val currentRole = teamMemberRepository.findRole(teamId, targetUserId)
             ?: throw MemberNotFoundException(targetUserId)
         val roleChanged = role != currentRole
+        if (roleChanged) demoProtection?.requireNotProtected(teamId, targetUserId)
         guardRoleChange(callerId, targetUserId, teamId, currentRole, role, roleChanged)
         requirePositionInThisTeam(positionId)
         val name = normalizeAndValidateName(teamId, targetUserId, rawName)
@@ -129,6 +131,7 @@ class MemberService(
     /** Soft-removes a member. Admin-only, and refuses to remove the team's last remaining admin. */
     fun removeMember(callerId: UserId, teamId: TeamId, targetUserId: UserId) {
         authorizationService.requireAdmin(callerId, teamId)
+        demoProtection?.requireNotProtected(teamId, targetUserId)
         val targetRole = teamMemberRepository.findRole(teamId, targetUserId)
             ?: throw MemberNotFoundException(targetUserId)
         if (targetRole == Role.ADMIN && teamMemberRepository.countAdmins(teamId) <= 1) {

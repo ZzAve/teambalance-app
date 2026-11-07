@@ -1,5 +1,6 @@
 package com.github.zzave.teambalance.api.application
 
+import com.github.zzave.teambalance.api.domain.exception.DemoPersonaProtectedException
 import com.github.zzave.teambalance.api.domain.exception.NotTeamAdminException
 import com.github.zzave.teambalance.api.domain.model.DisplayName
 import com.github.zzave.teambalance.api.domain.model.Email
@@ -49,6 +50,8 @@ private class FakeInvitationRepo(private var live: Invitation?) : InvitationRepo
 
     /** True once [consume] has stamped this id — the single-use assertion. */
     fun isConsumed(id: UUID): Boolean = id in consumed
+
+    fun consumedCount(): Int = consumed.size
 
     override fun save(invitation: Invitation): Invitation {
         saved += invitation
@@ -179,6 +182,61 @@ class InvitationServiceTest : FunSpec() {
             val joinedTeam = f.service.acceptInvitation(token = "anything", userId = nonAdmin)
             joinedTeam shouldBe f.teamId
             f.members.findRole(f.teamId, nonAdmin) shouldBe Role.USER
+        }
+
+        context("a demo persona and an ADMIN link") {
+            fun demoService(f: Fixture, expiresAt: Instant = Instant.EPOCH.plus(Duration.ofDays(1))): InvitationService {
+                val adminLink = Invitation(
+                    id = UUID.randomUUID(),
+                    teamId = f.teamId,
+                    role = Role.ADMIN,
+                    consumedAt = null,
+                    tokenHash = TokenHash("hash"),
+                    encryptedToken = null,
+                    createdBy = adminId,
+                    expiresAt = expiresAt,
+                    createdAt = Instant.EPOCH,
+                )
+                f.invitations.present(adminLink)
+                return InvitationService(
+                    invitationRepository = f.invitations,
+                    teamMemberRepository = f.members,
+                    authorizationService = AuthorizationService(f.members, FakeActAsGateway()),
+                    activeTeamService = f.directory.activeTeamService(f.routingGateway, joiner),
+                    clock = clock,
+                    tokenSalt = "salt",
+                    tokenCipher = testCipher,
+                    demoProtection = DemoProtection(f.teamId, setOf(nonAdmin)),
+                )
+            }
+
+            test("accepting by token is refused and the link stays unspent") {
+                val f = newFixture()
+                val service = demoService(f)
+
+                shouldThrow<DemoPersonaProtectedException> { service.acceptInvitation("anything", nonAdmin) }
+
+                f.invitations.consumedCount() shouldBe 0
+                f.members.findRole(f.teamId, nonAdmin) shouldBe null
+            }
+
+            test("an expired link is still unavailable, not refused") {
+                val f = newFixture()
+                val service = demoService(f, expiresAt = Instant.EPOCH.minusSeconds(1))
+
+                service.acceptInvitation("anything", nonAdmin) shouldBe null
+            }
+
+            test("a magic link requested from the link signs in with the invitation unavailable") {
+                val f = newFixture()
+                val service = demoService(f)
+                val id = f.invitations.findByTokenHash(TokenHash("hash"))!!.id
+
+                service.acceptPendingInvitation(id, nonAdmin) shouldBe null
+
+                f.invitations.consumedCount() shouldBe 0
+                f.members.findRole(f.teamId, nonAdmin) shouldBe null
+            }
         }
 
         test("acceptInvitation makes the joined Team the joiner's Active Team") {

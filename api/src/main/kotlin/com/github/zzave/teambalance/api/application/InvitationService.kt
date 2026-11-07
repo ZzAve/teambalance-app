@@ -1,6 +1,7 @@
 package com.github.zzave.teambalance.api.application
 
 import com.github.zzave.teambalance.api.application.TokenCipher.Purpose
+import com.github.zzave.teambalance.api.domain.exception.DemoPersonaProtectedException
 import com.github.zzave.teambalance.api.domain.model.EncryptedToken
 import com.github.zzave.teambalance.api.domain.model.Invitation
 import com.github.zzave.teambalance.api.domain.model.InviteToken
@@ -43,6 +44,7 @@ class InvitationService(
     private val tokenSalt: String,
     // Reversible counterpart to the hash, so the team's current link can be shown again (ADR-0025).
     private val tokenCipher: TokenCipher,
+    private val demoProtection: DemoProtection? = null,
 ) {
     companion object {
         // Invite links don't expire on a timer by default in v1 — an admin rotates/expires
@@ -168,7 +170,7 @@ class InvitationService(
      * Returns null for an unknown or expired token — no distinction, to avoid leaking which it is.
      */
     fun acceptInvitation(token: String, userId: UserId): TeamId? =
-        accept(invitationRepository.findByTokenHash(hashToken(token)), userId)
+        accept(invitationRepository.findByTokenHash(hashToken(token)), userId, refuseProtected = true)
 
     /**
      * Accepts the invitation a Magic Link was requested from, named by id rather than by token (#342).
@@ -179,7 +181,7 @@ class InvitationService(
      * since expired, been rotated away, or, for the single-use ADMIN handover link, already been spent.
      */
     fun acceptPendingInvitation(invitationId: UUID, userId: UserId): TeamId? =
-        accept(invitationRepository.findById(invitationId), userId)
+        accept(invitationRepository.findById(invitationId), userId, refuseProtected = false)
 
     /**
      * The id of the live invitation [token] names, or null when it names none — what a magic-link
@@ -200,16 +202,27 @@ class InvitationService(
             ?.takeIf { it.consumedAt == null }
             ?.id
 
-    private fun accept(invitation: Invitation?, userId: UserId): TeamId? {
+    // A demo persona never takes an ADMIN link, which would change its role (ADR-0043). The check follows the
+    // expiry and spent checks, so an unknown, expired or spent link is still null, and precedes the claim, so a refused
+    // persona leaves the single-use link unspent. By token the persona gets a 403; from a magic link the sign-in
+    // goes on with the invitation unavailable.
+    private fun accept(invitation: Invitation?, userId: UserId, refuseProtected: Boolean): TeamId? {
         val now = Instant.now(clock)
         val claimed = invitation
-            ?.takeIf { it.expiresAt.isAfter(now) }
+            ?.takeIf { it.expiresAt.isAfter(now) && it.consumedAt == null }
+            ?.takeIf { mayTake(it, userId, refuseProtected) }
             ?.takeIf { claim(it, now) }
             ?: return null
 
         teamMemberRepository.addMember(claimed.teamId, userId, claimed.role)
         activeTeamService.activate(userId, claimed.teamId)
         return claimed.teamId
+    }
+
+    private fun mayTake(invitation: Invitation, userId: UserId, refuse: Boolean): Boolean {
+        if (invitation.role != Role.ADMIN || demoProtection?.protects(invitation.teamId, userId) != true) return true
+        if (refuse) throw DemoPersonaProtectedException()
+        return false
     }
 
     /**

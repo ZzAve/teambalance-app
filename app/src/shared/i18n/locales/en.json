@@ -1020,6 +1020,11 @@
       "notice": "This is a demo — data is wiped every hour.",
       "startTeam": "Start your own team",
       "switchRole": "Switch role"
+    },
+    "topUp": {
+      "title": "This is a demo — nothing is paid",
+      "body": "In a real team, the bunq.me payment page opens here.",
+      "back": "Back to TeamBalance"
     }
   },
   "receipt": {

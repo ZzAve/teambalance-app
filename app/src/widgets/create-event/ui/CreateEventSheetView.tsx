@@ -71,7 +71,7 @@ export function CreateEventSheetView({
             type="button"
             onClick={onBack}
             aria-label={t('createEntry.back')}
-            className="absolute left-0 flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted"
+            className="absolute left-0 flex h-8 w-8 after:absolute after:-inset-1.5 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted"
           >
             <ArrowLeft size={18} />
           </button>

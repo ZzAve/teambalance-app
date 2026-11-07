@@ -1,13 +1,14 @@
 package com.github.zzave.teambalance.api.infrastructure.multitenancy
 
 import com.github.zzave.teambalance.api.domain.model.SchemaName
+import com.github.zzave.teambalance.api.domain.port.PlatformProvisioningGateway
 import com.github.zzave.teambalance.api.domain.port.TenantProvisioningGateway
 import org.flywaydb.core.Flyway
 import org.springframework.stereotype.Component
 import javax.sql.DataSource
 
 @Component
-class TenantSchemaAdapter(private val dataSource: DataSource) : TenantProvisioningGateway {
+class TenantSchemaAdapter(private val dataSource: DataSource) : TenantProvisioningGateway, PlatformProvisioningGateway {
 
     /**
      * Port method for create-team; delegates to the existing idempotent provisioning primitive. The
@@ -17,7 +18,7 @@ class TenantSchemaAdapter(private val dataSource: DataSource) : TenantProvisioni
      */
     override fun provisionTenant(schemaName: SchemaName) = provisionTenantSchema(schemaName.value)
 
-    fun provisionPlatformSchema() {
+    override fun provisionPlatformSchema() {
         Flyway.configure()
             .dataSource(dataSource)
             // Pin the platform schema explicitly. Without this, Flyway targets the connection's

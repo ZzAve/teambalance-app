@@ -32,7 +32,11 @@ class DemoTeamSeeder(
     private val log = LoggerFactory.getLogger(DemoTeamSeeder::class.java)
 
     override fun run(args: ApplicationArguments) {
-        if (!enabled) return
+        if (enabled) seed()
+    }
+
+    /** Also called by [DemoResetAdapter] after it has rebuilt the platform schema. */
+    fun seed() {
         log.info("Seeding demo team 'VC De Smashers' and its tenant schema")
         tenantProvisioningGateway.provisionTenant(SchemaName(DemoPersona.SCHEMA))
         ResourceDatabasePopulator(ClassPathResource("db/seed/demo_team.sql")).execute(dataSource)

@@ -9,7 +9,10 @@ import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
 import com.github.zzave.teambalance.api.infrastructure.multitenancy.TenantContext
 import com.github.zzave.teambalance.api.infrastructure.multitenancy.TenantSchemaAdapter
+import com.github.zzave.teambalance.api.infrastructure.persistence.jooq.public_.Tables.TEAM_MEMBERS
 import io.kotest.matchers.shouldBe
+import org.jooq.ExecuteContext
+import org.jooq.impl.QOM
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.jdbc.core.JdbcTemplate
 import java.time.Instant
@@ -17,6 +20,7 @@ import java.util.UUID
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicBoolean
 
 class JooqTeamMemberRepositoryAdapterTest : TeamBalanceIT() {
 
@@ -28,6 +32,9 @@ class JooqTeamMemberRepositoryAdapterTest : TeamBalanceIT() {
 
     @Autowired
     lateinit var tenantSchemaAdapter: TenantSchemaAdapter
+
+    @Autowired
+    lateinit var sqlFaultInjector: SqlFaultInjector
 
     init {
         test("findRole returns the mapped Role for an active member") {
@@ -173,6 +180,59 @@ class JooqTeamMemberRepositoryAdapterTest : TeamBalanceIT() {
             teamMemberRepository.findRole(teamId, userId) shouldBe Role.ADMIN
         }
 
+        test("addMember keeps ADMIN when a USER invite is accepted by a current admin") {
+            val (teamId, userId) = seedMember(role = "ADMIN", active = true)
+
+            teamMemberRepository.addMember(teamId, userId, Role.USER)
+
+            teamMemberRepository.findRole(teamId, userId) shouldBe Role.ADMIN
+        }
+
+        test("a removed member ends as ADMIN when the ADMIN accept follows the USER accept") {
+            val (teamId, userId) = seedRemovedMember()
+
+            teamMemberRepository.addMember(teamId, userId, Role.USER)
+            teamMemberRepository.addMember(teamId, userId, Role.ADMIN)
+
+            teamMemberRepository.findRole(teamId, userId) shouldBe Role.ADMIN
+        }
+
+        test("a removed member ends as ADMIN when the USER accept follows the ADMIN accept") {
+            val (teamId, userId) = seedRemovedMember()
+
+            teamMemberRepository.addMember(teamId, userId, Role.ADMIN)
+            teamMemberRepository.addMember(teamId, userId, Role.USER)
+
+            teamMemberRepository.findRole(teamId, userId) shouldBe Role.ADMIN
+        }
+
+        // The USER accept commits after the ADMIN accept has seen the member as not active but before
+        // it writes. The ADMIN accept is held at its first write to team_members to force that order.
+        test("a removed member ends as ADMIN when the USER accept commits during the ADMIN accept") {
+            val (teamId, userId) = seedRemovedMember()
+            val adminAcceptName = "admin-accept"
+            val adminReachedWrite = CountDownLatch(1)
+            val userAccepted = CountDownLatch(1)
+            val held = AtomicBoolean(false)
+            val pool = Executors.newSingleThreadExecutor { Thread(it, adminAcceptName) }
+
+            sqlFaultInjector.hookWhile({ ctx ->
+                if (Thread.currentThread().name == adminAcceptName && ctx.writesTeamMembers() && held.compareAndSet(false, true)) {
+                    adminReachedWrite.countDown()
+                    userAccepted.await(30, TimeUnit.SECONDS)
+                }
+            }) {
+                val adminAccept = pool.submit { teamMemberRepository.addMember(teamId, userId, Role.ADMIN) }
+                adminReachedWrite.await(30, TimeUnit.SECONDS) shouldBe true
+                teamMemberRepository.addMember(teamId, userId, Role.USER)
+                userAccepted.countDown()
+                adminAccept.get(30, TimeUnit.SECONDS)
+            }
+            pool.shutdown()
+
+            teamMemberRepository.findRole(teamId, userId) shouldBe Role.ADMIN
+        }
+
         test("concurrent addMember for the same user and team adds one membership and no failure") {
             val (teamId, _) = seedMember(role = "USER", active = true)
             val newcomer = UserId(seedUser())
@@ -198,6 +258,15 @@ class JooqTeamMemberRepositoryAdapterTest : TeamBalanceIT() {
             ) shouldBe 1
         }
     }
+
+    private fun seedRemovedMember(): Pair<TeamId, UserId> {
+        val (teamId, userId) = seedMember(role = "USER", active = true)
+        teamMemberRepository.deactivate(teamId, userId)
+        return teamId to userId
+    }
+
+    private fun ExecuteContext.writesTeamMembers(): Boolean =
+        (query() as? QOM.Insert<*>)?.`$into`() == TEAM_MEMBERS || (query() as? QOM.Update<*>)?.`$table`() == TEAM_MEMBERS
 
     private fun editShirtNumber(teamId: TeamId, userId: UserId, shirtNumber: ShirtNumber) =
         teamMemberRepository.applyMemberEdit(

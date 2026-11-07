@@ -27,9 +27,24 @@ import java.util.concurrent.atomic.AtomicInteger
 class SqlFaultInjector : ExecuteListener {
 
     private val rules = CopyOnWriteArrayList<SqlFault>()
+    private val hooks = CopyOnWriteArrayList<(ExecuteContext) -> Unit>()
 
     override fun executeStart(ctx: ExecuteContext) {
+        hooks.forEach { it(ctx) }
         rules.firstOrNull { it.matches(ctx) }?.let { throw it.failure() }
+    }
+
+    /**
+     * Runs [hook] before every statement while [block] runs, so a test can hold one thread at a chosen
+     * statement (by blocking inside the hook) and force an interleaving with another connection.
+     */
+    fun <T> hookWhile(hook: (ExecuteContext) -> Unit, block: () -> T): T {
+        hooks += hook
+        try {
+            return block()
+        } finally {
+            hooks -= hook
+        }
     }
 
     /** Fails every statement matching [fault] while [block] runs, and stops failing it afterwards. */

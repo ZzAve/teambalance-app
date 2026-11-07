@@ -184,8 +184,12 @@ any-team, self-service (see [ADR-0001](docs/adr/0001-product-ambition-hobby-tool
   way to connect ([ADR-0007](docs/adr/0007-money-pool-v1-scope.md), [ADR-0042](docs/adr/0042-money-pool-bunq-oauth-connection-held-in-memory.md)).
 - **Bunq Connection** — The access an Admin grants the Team to one of their Bunq accounts,
   by signing in to Bunq and approving it. The Money Pool shows that one account. Bunq
-  remains the record of every payment; the app keeps none of them.
+  remains the record of every payment; the app keeps none of them, only a **Receipt** per expense.
   _Avoid_: Bunq integration, Bunq config, API key.
+- **Receipt** — A picture of what an expense (an outgoing payment) was spent on. Any Member adds,
+  replaces or removes it; every Member can see it. One per expense, stored under Bunq's payment id
+  ([ADR-0044](docs/adr/0044-receipts-on-expenses-stored-by-bunq-payment-id.md)).
+  _Avoid_: Attachment, invoice, proof.
 - **Beer Counter** — The current balance translated into an approximate number of
   beers, using an admin-configurable beer price (e.g. €2.70/beer).
 - **Top-up** — A Member adding money to the pool. Preset amounts (€10/€20/€50) or

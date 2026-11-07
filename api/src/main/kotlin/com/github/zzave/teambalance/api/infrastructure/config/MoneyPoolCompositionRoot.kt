@@ -5,6 +5,7 @@ import com.github.zzave.teambalance.api.application.AuthorizationService
 import com.github.zzave.teambalance.api.application.BunqConnectConfig
 import com.github.zzave.teambalance.api.application.BunqConnectionService
 import com.github.zzave.teambalance.api.application.MoneyPoolService
+import com.github.zzave.teambalance.api.application.ReceiptService
 import com.github.zzave.teambalance.api.application.TokenCipher
 import com.github.zzave.teambalance.api.application.TopUpService
 import com.github.zzave.teambalance.api.domain.port.ActAsGateway
@@ -13,6 +14,7 @@ import com.github.zzave.teambalance.api.domain.port.BunqGateway
 import com.github.zzave.teambalance.api.domain.port.BunqOAuthStateRepository
 import com.github.zzave.teambalance.api.domain.port.MoneyPoolCacheGateway
 import com.github.zzave.teambalance.api.domain.port.MoneyPoolSettingsRepository
+import com.github.zzave.teambalance.api.domain.port.ReceiptRepository
 import com.github.zzave.teambalance.api.domain.port.SeasonRepository
 import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
 import com.github.zzave.teambalance.api.domain.port.TeamRepository
@@ -40,6 +42,7 @@ class MoneyPoolCompositionRoot {
         clock: Clock,
         authorizationService: AuthorizationService,
         moneyPoolCache: MoneyPoolCacheGateway,
+        receiptRepository: ReceiptRepository,
     ) = MoneyPoolService(
         settingsRepository = settingsRepository,
         connectionRepository = connectionRepository,
@@ -49,6 +52,18 @@ class MoneyPoolCompositionRoot {
         clock = clock,
         authorizationService = authorizationService,
         cache = moneyPoolCache,
+        receiptRepository = receiptRepository,
+    )
+
+    @Bean
+    fun receiptService(
+        receiptRepository: ReceiptRepository,
+        moneyPoolService: MoneyPoolService,
+        authorizationService: AuthorizationService,
+    ) = ReceiptService(
+        receiptRepository = receiptRepository,
+        moneyPoolService = moneyPoolService,
+        authorizationService = authorizationService,
     )
 
     @Bean

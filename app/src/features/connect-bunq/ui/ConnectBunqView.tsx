@@ -144,7 +144,8 @@ export function ConnectBunqView({
             <span>
               Connecting gives TeamBalance bunq’s standard app access to this bunq login, which is more than
               reading: bunq’s default grant also allows creating payments and draft payments. TeamBalance only
-              reads the balance and payments of the one account you pick and stores no payment data. Every member
+              reads the balance and payments of the one account you pick and stores no payment data, only the
+              receipts members add to expenses. Every member
               of this team will see the balance and the names, dates and amounts of payments on that account. You
               can disconnect in TeamBalance at any time, which deletes the access it stored; to withdraw the grant
               at bunq itself, remove TeamBalance under connected apps in the bunq app.

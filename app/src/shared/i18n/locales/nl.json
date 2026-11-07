@@ -257,5 +257,23 @@
   "position": {
     "select": "Kies een positie",
     "unassigned": "Zonder positie"
+  },
+  "receipt": {
+    "button": "Bonnetje voor {{name}}",
+    "title": "Bonnetje",
+    "description": "{{name}}, {{amount}}",
+    "empty": "Nog geen bonnetje. Voeg een foto toe zodat het team ziet waar dit aan is uitgegeven.",
+    "imageAlt": "Bonnetje voor {{name}}",
+    "add": "Bonnetje toevoegen",
+    "replace": "Vervangen",
+    "remove": "Verwijderen",
+    "saving": "Opslaan…",
+    "readFailed": "Die afbeelding kon niet worden gelezen.",
+    "error": {
+      "RECEIPT_TOO_LARGE": "Dat bonnetje is te groot. Maak een kleinere foto.",
+      "INVALID_RECEIPT": "Dat bestand is geen afbeelding die we kunnen gebruiken.",
+      "EXPENSE_NOT_FOUND": "Deze betaling staat niet meer in de pot.",
+      "FAILED": "Het bonnetje opslaan is mislukt. Probeer het opnieuw."
+    }
   }
 }

@@ -1,7 +1,9 @@
 import { useCurrentUser } from '@shared/api/auth'
 import { useBunqConnection } from '@shared/api/bunq-connection'
 import { useMoneyPool } from '@shared/api/money-pool'
+import { ReceiptButton } from '@features/attach-receipt/ui/ReceiptButton'
 import { TopUp } from '@features/top-up/ui/TopUp'
+import { formatEuro } from '../lib/format'
 import { MoneyPoolView } from './MoneyPoolView'
 
 export function MoneyPool() {
@@ -26,6 +28,15 @@ export function MoneyPool() {
       accountPending={connection?.connected === true && !connection.accountPicked}
       // The payment description carries the caller's id, so the server refuses top-ups under act-as.
       topUp={user?.actAs ? null : <TopUp />}
+      receipt={(expense) => (
+        <ReceiptButton
+          paymentId={expense.id}
+          // The server writes no receipt as null, which the generated type calls undefined.
+          receiptVersion={expense.receiptVersion ?? undefined}
+          name={expense.name}
+          amount={formatEuro(expense.amount)}
+        />
+      )}
     />
   )
 }

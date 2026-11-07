@@ -257,5 +257,23 @@
   "position": {
     "select": "Select a position",
     "unassigned": "Unassigned"
+  },
+  "receipt": {
+    "button": "Receipt for {{name}}",
+    "title": "Receipt",
+    "description": "{{name}}, {{amount}}",
+    "empty": "No receipt yet. Add a photo of it so the team can see what this was spent on.",
+    "imageAlt": "Receipt for {{name}}",
+    "add": "Add receipt",
+    "replace": "Replace",
+    "remove": "Remove",
+    "saving": "Saving…",
+    "readFailed": "Could not read that image.",
+    "error": {
+      "RECEIPT_TOO_LARGE": "That receipt is too large. Please take a smaller photo.",
+      "INVALID_RECEIPT": "That file isn't an image we can use.",
+      "EXPENSE_NOT_FOUND": "This payment is no longer in the pool.",
+      "FAILED": "Couldn't save the receipt. Please try again."
+    }
   }
 }

@@ -78,14 +78,15 @@ private fun DomainMoneyPool.produce(canTopUp: Boolean) = when (this) {
     is DomainMoneyPool.Connected -> MoneyPool(
         state = MoneyPoolState.Connected,
         balance = balance.cents,
-        payments = payments.map { it.produce() },
+        payments = payments.map { it.produce(receiptVersions[it.id]) },
         beerPrice = beerPrice?.cents,
         beerCount = beerCount?.value,
         canTopUp = canTopUp,
     )
 }
 
-private fun DomainPayment.produce() = Payment(
+private fun DomainPayment.produce(receiptVersion: String?) = Payment(
+    id = id.value,
     date = PaymentDate(date.toString()),
     name = name.value,
     amount = amount.cents,
@@ -93,4 +94,5 @@ private fun DomainPayment.produce() = Payment(
         DomainPaymentDirection.IN -> PaymentDirection.In
         DomainPaymentDirection.OUT -> PaymentDirection.Out
     },
+    receiptVersion = receiptVersion,
 )

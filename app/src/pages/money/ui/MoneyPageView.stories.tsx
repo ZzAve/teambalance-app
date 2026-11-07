@@ -1,5 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
-import { expect } from 'storybook/test'
+import { expect, fn } from 'storybook/test'
+import { ReceiptButtonView } from '@features/attach-receipt/ui/ReceiptButtonView'
+import { RECEIPT_IMAGE } from '@features/attach-receipt/ui/receipt-image.fixture'
 import { Button } from '@shared/ui/button'
 import { MoneyPoolView } from '@widgets/money-pool/ui/MoneyPoolView'
 import { appShell } from '../../../../storybook-support/app-shell-decorator'
@@ -29,10 +31,21 @@ const meta = {
         canTopUp
         topUp={<Button size="lg">Top up</Button>}
         payments={[
-          { date: '2026-10-06', name: 'Lisa de Vries', amount: 2000, direction: 'In' },
-          { date: '2026-10-04', name: 'Sporthal De Kuil', amount: 4500, direction: 'Out' },
-          { date: '2026-09-29', name: 'Tom Bakker', amount: 1000, direction: 'In' },
+          { id: '1005', date: '2026-10-06', name: 'Lisa de Vries', amount: 2000, direction: 'In', receiptVersion: undefined },
+          { id: '1006', date: '2026-10-04', name: 'Sporthal De Kuil', amount: 4500, direction: 'Out', receiptVersion: 'a1b2' },
+          { id: '1007', date: '2026-10-01', name: 'Drankenhandel Smit', amount: 3250, direction: 'Out', receiptVersion: undefined },
+          { id: '1008', date: '2026-09-29', name: 'Tom Bakker', amount: 1000, direction: 'In', receiptVersion: undefined },
         ]}
+        receipt={(expense) => (
+          <ReceiptButtonView
+            name={expense.name}
+            amount=""
+            receiptUrl={expense.receiptVersion && RECEIPT_IMAGE}
+            isSaving={false}
+            onPicked={fn()}
+            onRemove={fn()}
+          />
+        )}
       />
     ),
   },
@@ -49,6 +62,7 @@ export const Data: Story = {
     await expect(canvas.getByText('Lisa de Vries')).toBeInTheDocument()
     await expect(canvas.getByText('69 beers')).toBeInTheDocument()
     await expect(canvas.getByRole('button', { name: 'Top up' })).toBeInTheDocument()
+    await expect(canvas.getByRole('button', { name: 'Receipt for Sporthal De Kuil' })).toBeInTheDocument()
     await expect(canvas.getByRole('link', { name: 'Money' })).toHaveAttribute('aria-current', 'page')
   },
 }

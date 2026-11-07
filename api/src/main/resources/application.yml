@@ -185,8 +185,11 @@ teambalance:
     # Bunq outside prod and the unconfigured gateway in prod (every call fails, so the pool reads as
     # unavailable). Anything else wires the real adapter and then needs the client id and secret below:
     # the app fails fast at startup without them. An empty value fails startup too; leave it unset for none.
-    # In prod, connect-enabled is refused unless the environment is production.
+    # In prod, connect-enabled is refused unless the environment is production (or sandbox, see allow-sandbox-in-prod).
     environment: ${TEAMBALANCE_BUNQ_ENVIRONMENT:none}
+    # Lets connect-enabled start in prod with the sandbox environment. Only the staging image sets it
+    # (TEAMBALANCE_BUNQ_ALLOW_SANDBOX_IN_PROD in the stg stage of api/Dockerfile); never set it on prod.
+    allow-sandbox-in-prod: ${TEAMBALANCE_BUNQ_ALLOW_SANDBOX_IN_PROD:false}
     # The OAuth client registered at Bunq. Live environments provide the secret only through the env var.
     client-id: ${TEAMBALANCE_BUNQ_CLIENT_ID:}
     client-secret: ${TEAMBALANCE_BUNQ_CLIENT_SECRET:}

@@ -151,7 +151,8 @@ EXPOSE 8080
 # app user, so a cold start only has to start it (api/stg-entrypoint.sh). Its data lives on the
 # container's temporary disk: every cold start begins empty, Flyway builds the schema from V001 and
 # DemoDataSeeder adds the demo team. Runs the `prod` profile (the AOT bean set is prod's); the
-# differences are runtime switches: seed demo data, and log email instead of sending it via TEM.
+# differences are runtime switches: seed demo data, log email instead of sending it via TEM, and allow connecting
+# the Bunq sandbox (the operator still sets TEAMBALANCE_BUNQ_ENVIRONMENT and the rest).
 FROM runtime AS stg
 USER root
 RUN apt-get update \
@@ -165,6 +166,7 @@ ENV PATH=/usr/local/pgbin:$PATH \
     SPRING_DATASOURCE_USERNAME=teambalance \
     TEAMBALANCE_DEMO_DATA_ENABLED=true \
     TEAMBALANCE_EMAIL_SEND=false \
+    TEAMBALANCE_BUNQ_ALLOW_SANDBOX_IN_PROD=true \
     SCALEWAY_TEM_API_KEY=unused-on-stg \
     SCALEWAY_TEM_PROJECT_ID=unused-on-stg \
     TEAMBALANCE_API_BASE_URL=https://api.stg.teambalance.nl

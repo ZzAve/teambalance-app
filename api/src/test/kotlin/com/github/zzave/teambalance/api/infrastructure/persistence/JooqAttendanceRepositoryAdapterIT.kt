@@ -32,6 +32,7 @@ private val ROUTING = TenantRouting(
 )
 private val TRAINING = EventId(UUID.fromString(CalendarLinkFixture.TRAINING_ID))
 private val MEMBER = UserId(UUID.fromString(CalendarLinkFixture.ALPHA_MEMBER))
+private val OTHER_MEMBER = UserId(UUID.fromString(CalendarLinkFixture.LEAVER))
 
 /** Event references are resolved to `events.id` inside the SQL; these specs cover what the controller ITs do not reach. */
 class JooqAttendanceRepositoryAdapterIT : TeamBalanceIT() {
@@ -117,14 +118,61 @@ class JooqAttendanceRepositoryAdapterIT : TeamBalanceIT() {
             deleted shouldContainExactlyInAnyOrder listOf(TRAINING)
             tenants.within(ROUTING) { attendances.findByEventId(TRAINING) } shouldBe emptyList()
         }
+
+        test("bulk undo deletes the caller's rows and leaves another member's rows for the same events") {
+            val second = addEvent()
+            val events = listOf(TRAINING, second)
+            tenants.within(ROUTING) {
+                events.forEach { attendances.save(attendance(it, AttendanceState.ATTENDING)) }
+                events.forEach { attendances.save(attendance(it, AttendanceState.MAYBE, OTHER_MEMBER)) }
+            }
+
+            val deleted = tenants.within(ROUTING) { attendances.deleteByUserIdAndEventIds(MEMBER, events) }
+
+            deleted shouldContainExactlyInAnyOrder events
+            tenants.within(ROUTING) { attendances.findByUserIdAndEventIds(MEMBER, events) } shouldBe emptyList()
+            tenants.within(ROUTING) { attendances.findByUserIdAndEventIds(OTHER_MEMBER, events) }
+                .map { it.eventId } shouldContainExactlyInAnyOrder events
+        }
+
+        test("repeating a bulk undo for the same member returns nothing") {
+            val second = addEvent()
+            val events = listOf(TRAINING, second)
+            tenants.within(ROUTING) {
+                events.forEach { attendances.save(attendance(it, AttendanceState.ATTENDING)) }
+                attendances.deleteByUserIdAndEventIds(MEMBER, events)
+            }
+
+            val repeated = tenants.within(ROUTING) { attendances.deleteByUserIdAndEventIds(MEMBER, events) }
+
+            repeated shouldBe emptyList()
+        }
+
+        test("an event id that does not exist in a bulk undo is ignored and not returned") {
+            tenants.within(ROUTING) { attendances.save(attendance(TRAINING, AttendanceState.ATTENDING)) }
+
+            val deleted = tenants.within(ROUTING) {
+                attendances.deleteByUserIdAndEventIds(MEMBER, listOf(TRAINING, EventId.random()))
+            }
+
+            deleted shouldBe listOf(TRAINING)
+        }
     }
 
-    private fun attendance(eventId: EventId, state: AttendanceState) = Attendance(
+    private fun addEvent(): EventId {
+        val id = EventId.random()
+        CalendarLinkFixture.extraEvent(
+            jdbcTemplate, Instant.parse("2099-02-01T18:00:00Z"), id = id.value.toString(),
+        )
+        return id
+    }
+
+    private fun attendance(eventId: EventId, state: AttendanceState, userId: UserId = MEMBER) = Attendance(
         id = AttendanceId.random(),
         eventId = eventId,
-        userId = MEMBER,
+        userId = userId,
         state = state,
         updatedAt = Instant.now().truncatedTo(ChronoUnit.MICROS),
-        changedBy = MEMBER,
+        changedBy = userId,
     )
 }

@@ -2,6 +2,8 @@ import { Lock, Split } from 'lucide-react'
 import type { Event, EventSeriesScope } from '@shared/api/events'
 import { buildAffectedPreview } from '@entities/event/lib/series-affected'
 import { SectionLabel } from '@shared/ui/SectionLabel'
+import { useTranslation } from 'react-i18next'
+import { formatLocale } from '@shared/i18n/i18n'
 
 interface SeriesScopeFieldProps {
   /** Every occurrence sharing the current event's recurring group (any order). */
@@ -13,28 +15,13 @@ interface SeriesScopeFieldProps {
   variant?: 'edit' | 'delete'
 }
 
-const SCOPES: { value: EventSeriesScope; label: string }[] = [
-  { value: 'THIS', label: 'This event' },
-  { value: 'THIS_AND_FOLLOWING', label: 'This & following' },
-  { value: 'ALL', label: 'All events' },
-]
+const SCOPES: EventSeriesScope[] = ['THIS', 'THIS_AND_FOLLOWING', 'ALL']
 
-// Plain-language split semantics per scope — accurate to the backend (a delete never splits).
-const EDIT_CAPTION: Record<EventSeriesScope, string> = {
-  THIS: 'Splits the series into three: everything before, this one on its own (its date can move), and everything after — each independent.',
-  THIS_AND_FOLLOWING:
-    'Splits the series in two: occurrences before stay as they are; this one and every later one become a new series with the edited details.',
-  ALL: 'No split — the edit applies to every occurrence in the one series.',
-}
-
-const DELETE_CAPTION: Record<EventSeriesScope, string> = {
-  THIS: 'Removes just this occurrence; the rest of the series stays.',
-  THIS_AND_FOLLOWING: 'Removes this occurrence and every later one; the earlier ones stay as a shorter series.',
-  ALL: 'Removes the entire series.',
-}
+// Plain-language split semantics per scope (`seriesScope.editCaption` / `deleteCaption`) — accurate
+// to the backend (a delete never splits).
 
 function formatOccurrence(iso: string): string {
-  return new Date(iso).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' })
+  return new Date(iso).toLocaleDateString(formatLocale(), { day: 'numeric', month: 'short' })
 }
 
 /**
@@ -50,12 +37,12 @@ export function SeriesScopeField({
   onScopeChange,
   variant = 'edit',
 }: SeriesScopeFieldProps) {
+  const { t } = useTranslation()
   const preview = buildAffectedPreview(siblings, currentId, scope)
   if (!preview) return null
 
   const danger = variant === 'delete'
-  const verb = danger ? 'Removes' : 'Affects'
-  const caption = danger ? DELETE_CAPTION[scope] : EDIT_CAPTION[scope]
+  const caption = t(danger ? `seriesScope.deleteCaption.${scope}` : `seriesScope.editCaption.${scope}`)
   // Full literal classes — Tailwind can't see interpolated names.
   const panelClass = danger ? 'border-red/20 bg-red/5' : 'border-blue/20 bg-blue/5'
   const countClass = danger ? 'text-red-ink' : 'text-blue'
@@ -64,11 +51,11 @@ export function SeriesScopeField({
     <div className="flex flex-col gap-3">
       <div>
         <SectionLabel as="p" className="mb-1.5">
-          {danger ? 'Delete' : 'Apply to'}
+          {danger ? t('seriesScope.delete') : t('seriesScope.applyTo')}
         </SectionLabel>
         {/* Segmented scope control — exactly one is pressed. */}
-        <div role="group" aria-label="Scope" className="flex gap-1.5">
-          {SCOPES.map(({ value, label }) => {
+        <div role="group" aria-label={t('seriesScope.label')} className="flex gap-1.5">
+          {SCOPES.map((value) => {
             const active = scope === value
             return (
               <button
@@ -85,7 +72,7 @@ export function SeriesScopeField({
                     : 'border-border text-muted-foreground hover:bg-muted/60',
                 ].join(' ')}
               >
-                {label}
+                {t(`seriesScope.scope.${value}`)}
               </button>
             )
           })}
@@ -95,7 +82,7 @@ export function SeriesScopeField({
       {/* Affected panel: count + before│this│after timeline + split caption. */}
       <div className={`rounded-md border p-3 ${panelClass}`}>
         <p className={`text-small font-bold ${countClass}`}>
-          {verb} {preview.affectedCount} of {preview.total} event{preview.total === 1 ? '' : 's'}
+          {t(danger ? 'seriesScope.removes' : 'seriesScope.affects', { affected: preview.affectedCount, count: preview.total })}
         </p>
 
         <AffectedTimeline preview={preview} danger={danger} />
@@ -110,7 +97,7 @@ export function SeriesScopeField({
       {!danger && scope !== 'THIS' && (
         <p className="flex items-start gap-1.5 rounded-lg bg-muted/60 px-3 py-2 text-caption text-muted-foreground">
           <Lock size={13} className="mt-0.5 shrink-0" />
-          <span>Each occurrence keeps its own date; the time &amp; details apply to all affected events.</span>
+          <span>{t('seriesScope.dateLocked')}</span>
         </p>
       )}
     </div>

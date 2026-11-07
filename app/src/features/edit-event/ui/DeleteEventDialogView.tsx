@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { DialogFooter } from '@shared/ui/dialog'
 import { Button } from '@shared/ui/button'
 import { type Event, type EventSeriesScope } from '@shared/api/events'
@@ -38,10 +39,15 @@ export function DeleteEventDialogView({
   onDelete,
   onCancel,
 }: DeleteEventDialogViewProps) {
+  const { t } = useTranslation()
   const isSeries = siblings.length > 1
   const [scope, setScope] = useState<EventSeriesScope>('THIS')
 
-  const confirmLabel = isPending ? 'Deleting…' : isSeries && scope !== 'THIS' ? 'Delete events' : 'Delete event'
+  const confirmLabel = isPending
+    ? t('deleteEvent.deleting')
+    : isSeries && scope !== 'THIS'
+      ? t('deleteEvent.confirmMany')
+      : t('deleteEvent.confirmOne')
 
   return (
     <>
@@ -56,12 +62,12 @@ export function DeleteEventDialogView({
       )}
       {isError && (
         <p className="rounded-lg border border-red/40 bg-red/10 px-3 py-2 text-small text-red-ink">
-          Could not delete the event. Please try again.
+          {t('deleteEvent.failed')}
         </p>
       )}
       <DialogFooter>
         <Button variant="outline" onClick={onCancel} disabled={isPending}>
-          Cancel
+          {t('common.cancel')}
         </Button>
         <Button variant="destructive" onClick={() => onDelete(scope)} disabled={isPending}>
           {confirmLabel}

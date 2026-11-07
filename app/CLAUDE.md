@@ -9,6 +9,4 @@
   fails `catalogues.test.ts`.
 - Use the Dutch UI words from the table in `CONTEXT.md` (e.g. Money Pool = "Teampot", Top-up = "Inleg").
 - API error `code`s are mapped to translated messages in the SPA; the API sends no text for the UI.
-- Some older components are not extracted yet and still have English literals (ADR-0043 slice 2). That is
-  no precedent for new code.
 - Stories and tests run in English unless they set Dutch explicitly.

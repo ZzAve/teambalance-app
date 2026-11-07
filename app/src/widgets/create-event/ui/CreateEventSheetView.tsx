@@ -1,4 +1,5 @@
 import { ArrowLeft } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { SheetDescription, SheetTitle } from '@shared/ui/sheet'
 import type { EventInput } from '@shared/api/events'
 import type { Position } from '@shared/api/positions'
@@ -12,16 +13,7 @@ import { CreateEntryChooser } from './CreateEntryChooser'
 // The sheet is only mounted while open, so its body is always in one of these three modes.
 export type CreateEventMode = 'chooser' | 'single' | 'recurring'
 
-const TITLES: Record<CreateEventMode, string> = {
-  chooser: 'Create event',
-  single: 'New event',
-  recurring: 'New recurring series',
-}
-const DESCRIPTIONS: Record<CreateEventMode, string> = {
-  chooser: 'Choose how you want to add events',
-  single: 'A one-off training, match, or other event',
-  recurring: 'A weekly or bi-weekly series across the season',
-}
+// Title and description per mode: `createEntry.title.<mode>` / `createEntry.description.<mode>`.
 
 interface CreateEventSheetViewProps {
   mode: CreateEventMode
@@ -68,6 +60,7 @@ export function CreateEventSheetView({
   onSubmitSingle,
   onSubmitRecurring,
 }: CreateEventSheetViewProps) {
+  const { t } = useTranslation()
   const isForm = mode === 'single' || mode === 'recurring'
 
   return (
@@ -77,15 +70,15 @@ export function CreateEventSheetView({
           <button
             type="button"
             onClick={onBack}
-            aria-label="Back to event type"
+            aria-label={t('createEntry.back')}
             className="absolute left-0 flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted"
           >
             <ArrowLeft size={18} />
           </button>
         )}
-        <SheetTitle>{TITLES[mode]}</SheetTitle>
+        <SheetTitle>{t(`createEntry.title.${mode}`)}</SheetTitle>
       </div>
-      <SheetDescription className="mb-4">{DESCRIPTIONS[mode]}</SheetDescription>
+      <SheetDescription className="mb-4">{t(`createEntry.description.${mode}`)}</SheetDescription>
 
       {mode === 'chooser' && <CreateEntryChooser onSingle={onChooseSingle} onRecurring={onChooseRecurring} />}
       {mode === 'single' && (

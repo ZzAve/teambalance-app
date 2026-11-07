@@ -3,6 +3,7 @@ import { toast } from 'sonner'
 import { applyUserLanguage } from '@shared/i18n/language'
 import { api } from './wirespec-client'
 import type { AuthenticatedUser } from './generated/model/AuthenticatedUser'
+import { i18n } from '@shared/i18n/i18n'
 
 export type { AuthenticatedUser } from './generated/model/AuthenticatedUser'
 
@@ -58,7 +59,7 @@ export async function logOut() {
 export function useLogout() {
   return useMutation({
     mutationFn: logOut,
-    onError: () => toast.error("Couldn't log out — please try again."),
+    onError: () => toast.error(i18n.t('errors.logoutFailed')),
   })
 }
 

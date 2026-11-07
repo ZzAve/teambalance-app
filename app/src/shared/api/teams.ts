@@ -1,6 +1,7 @@
 import { useMutation } from '@tanstack/react-query'
 import { api } from './wirespec-client'
 import type { TeamRef } from './generated/model/TeamRef'
+import { i18n } from '@shared/i18n/i18n'
 
 // Re-export the generated contract types so the app has a single source of truth.
 export type { Team } from './generated/model/Team'
@@ -39,18 +40,18 @@ export function placeCreateTeamError(error: CreateTeamError | null | undefined, 
  */
 export function toCreateTeamError(status: number, code: string | undefined): CreateTeamError {
   if (status === 403) {
-    return new CreateTeamError('INVALID_CREATION_CODE', "That creation code isn't valid.")
+    return new CreateTeamError('INVALID_CREATION_CODE', i18n.t('errors.createTeam.invalidCode'))
   }
   if (status === 409) {
-    return new CreateTeamError('SLUG_TAKEN', 'That address is already taken — try another.')
+    return new CreateTeamError('SLUG_TAKEN', i18n.t('errors.createTeam.slugTaken'))
   }
   if (status === 400) {
-    if (code === 'INVALID_NAME') return new CreateTeamError('INVALID_NAME', 'Enter a team name.')
+    if (code === 'INVALID_NAME') return new CreateTeamError('INVALID_NAME', i18n.t('errors.createTeam.nameRequired'))
     if (code === 'INVALID_SLUG') {
-      return new CreateTeamError('INVALID_SLUG', 'Use lowercase letters, numbers, and hyphens.')
+      return new CreateTeamError('INVALID_SLUG', i18n.t('createTeam.slug.format'))
     }
   }
-  return new CreateTeamError('GENERIC', 'Something went wrong creating your team. Please try again.')
+  return new CreateTeamError('GENERIC', i18n.t('errors.createTeam.generic'))
 }
 
 export interface CreateTeamInput {
@@ -66,7 +67,7 @@ export function useCreateTeam() {
     mutationFn: async ({ name, slug, creationCode }: CreateTeamInput) => {
       const res = await api.createTeam({ body: { name, slug, creationCode } }).catch(() => {
         // A fetch/network failure never reaches a status — surface it as a retry-safe banner.
-        throw new CreateTeamError('GENERIC', 'Something went wrong creating your team. Please try again.')
+        throw new CreateTeamError('GENERIC', i18n.t('errors.createTeam.generic'))
       })
       if (res.status === 201) return res.body
       const code = (res.body as { code?: string } | undefined)?.code
@@ -91,11 +92,11 @@ export function useCreateMemberlessTeam() {
   return useMutation({
     mutationFn: async ({ name, slug }: CreateMemberlessTeamInput) => {
       const res = await api.createMemberlessTeam({ body: { name, slug } }).catch(() => {
-        throw new CreateTeamError('GENERIC', 'Something went wrong creating the team. Please try again.')
+        throw new CreateTeamError('GENERIC', i18n.t('errors.createTeam.genericMemberless'))
       })
       if (res.status === 201) return res.body
       if (res.status === 403) {
-        throw new CreateTeamError('GENERIC', "You don't have access to create teams.")
+        throw new CreateTeamError('GENERIC', i18n.t('errors.createTeam.noAccess'))
       }
       const code = (res.body as { code?: string } | undefined)?.code
       throw toCreateTeamError(res.status, code)

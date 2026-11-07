@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@shared/ui/sheet'
 import type { LineupState } from '@entities/event/lib/lineup'
 import { LOWER_WORD } from '@entities/event/lib/attendance-words'
@@ -41,6 +42,7 @@ export function AnswerSheet({
   onClose: () => void
   pending?: boolean
 }) {
+  const { t } = useTranslation()
   return (
     <Sheet open={target !== null} onOpenChange={(open) => !open && onClose()}>
       <SheetContent>
@@ -49,8 +51,8 @@ export function AnswerSheet({
             <SheetHeader>
               <SheetTitle>{target.displayName}</SheetTitle>
               <SheetDescription>
-                {target.position ? `${target.position} · ` : ''}currently {LOWER_WORD[target.state]}
-                {!target.isSelf && ' · you are answering for them'}
+                {target.position ? `${target.position} · ` : ''}
+                {t(target.isSelf ? 'answerSheet.currently' : 'answerSheet.currentlyForThem', { word: LOWER_WORD[target.state] })}
               </SheetDescription>
             </SheetHeader>
             <AttendanceToggle

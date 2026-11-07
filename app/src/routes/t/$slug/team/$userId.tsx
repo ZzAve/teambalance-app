@@ -5,6 +5,7 @@ import { MemberUpdateError, useMembers, useUpdateMember } from '@shared/api/memb
 import { PhotoError, personalPhotoUrl, useCopyPersonalPhotoToTeam, useRemoveTeamPhoto, useUploadTeamPhoto } from '@shared/api/photos'
 import { usePositions } from '@shared/api/positions'
 import { MemberDetailView } from '@pages/member/ui/MemberDetailView'
+import { useTranslation } from 'react-i18next'
 
 export const Route = createFileRoute('/t/$slug/team/$userId')({
   component: MemberDetailPage,
@@ -27,13 +28,14 @@ function MemberDetailPage() {
   const copyPersonalPhoto = useCopyPersonalPhotoToTeam()
   const removePhoto = useRemoveTeamPhoto()
   const [isEditing, setIsEditing] = useState(false)
+  const { t } = useTranslation()
 
   const member = members?.find((m) => m.userId === userId)
   const errorCode = updateMember.error instanceof MemberUpdateError ? updateMember.error.code : undefined
   // NAME_TAKEN and NUMBER_TAKEN sit under their fields; any other failure needs its own message.
   const errorMessage =
     updateMember.isError && errorCode !== 'NAME_TAKEN' && errorCode !== 'NUMBER_TAKEN'
-      ? (updateMember.error instanceof MemberUpdateError ? updateMember.error.message : "Couldn't save. Please try again.")
+      ? (updateMember.error instanceof MemberUpdateError ? updateMember.error.message : t('errors.saveFailed'))
       : undefined
   const photoMutations = [uploadPhoto, copyPersonalPhoto, removePhoto]
   const photoError = photoMutations.find((m) => m.isError)?.error
@@ -69,7 +71,7 @@ function MemberDetailPage() {
       personalPhotoUrl={currentUser?.personalPhotoVersion ? personalPhotoUrl(currentUser.personalPhotoVersion) : undefined}
       isPhotoSaving={photoMutations.some((m) => m.isPending)}
       photoErrorMessage={
-        photoError ? (photoError instanceof PhotoError ? photoError.message : "Couldn't save the photo. Please try again.") : undefined
+        photoError ? (photoError instanceof PhotoError ? photoError.message : t('photo.error.FAILED')) : undefined
       }
       onUploadPhoto={(photo) => {
         resetPhotoErrors()

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { useState } from 'react'
 import { Hash, Shield, Shirt } from 'lucide-react'
 import type { Member } from '@shared/api/members'
@@ -73,18 +74,23 @@ export function MemberDetailView({
   onUsePersonalPhoto,
   onRemovePhoto,
 }: MemberDetailViewProps) {
+  const { t } = useTranslation()
   const routes = useTeamRoutes()
   const [confirmingRemove, setConfirmingRemove] = useState(false)
   const [previewingPersonal, setPreviewingPersonal] = useState(false)
 
   return (
     <div className="flex flex-col gap-5">
-      <PageHeader title={member?.displayName ?? 'Member'} backTo={routes.team} backLabel="Back to team" />
+      <PageHeader
+        title={member?.displayName ?? t('memberDetail.fallbackTitle')}
+        backTo={routes.team}
+        backLabel={t('memberDetail.back')}
+      />
 
-      {isLoading && <p className="text-small text-muted-foreground">Loading…</p>}
-      {isError && <p className="text-small text-red-ink">Couldn't load this member. Please try again.</p>}
+      {isLoading && <p className="text-small text-muted-foreground">{t('account.loading')}</p>}
+      {isError && <p className="text-small text-red-ink">{t('memberDetail.loadFailed')}</p>}
       {!isLoading && !isError && !member && (
-        <p className="text-small text-muted-foreground">This person is not on the team.</p>
+        <p className="text-small text-muted-foreground">{t('memberDetail.notOnTeam')}</p>
       )}
 
       {member && (
@@ -98,7 +104,7 @@ export function MemberDetailView({
               size="lg"
             />
             <h1 className="font-display text-title font-bold">{member.displayName}</h1>
-            <span className="text-small text-muted-foreground">{member.position?.label ?? 'Unassigned'}</span>
+            <span className="text-small text-muted-foreground">{member.position?.label ?? t('position.unassigned')}</span>
           </div>
 
           {(canChangePhoto || (canRemovePhoto && member.photoVersion)) && (
@@ -106,30 +112,30 @@ export function MemberDetailView({
               <div className="flex flex-wrap justify-center gap-2">
                 {canChangePhoto && personalPhotoUrl && (
                   <Button variant="outline" size="sm" disabled={isPhotoSaving} onClick={() => setPreviewingPersonal(true)}>
-                    Use my personal photo
+                    {t('memberDetail.usePersonal')}
                   </Button>
                 )}
                 {canChangePhoto && (
                   <PhotoPicker
-                    label={member.photoVersion ? 'Upload a different photo' : 'Upload photo'}
+                    label={member.photoVersion ? t('memberDetail.uploadDifferent') : t('account.uploadPhoto')}
                     disabled={isPhotoSaving}
                     onPicked={onUploadPhoto}
                   />
                 )}
                 {canRemovePhoto && member.photoVersion && (
                   <Button variant="outline" size="sm" disabled={isPhotoSaving} onClick={() => setConfirmingRemove(true)}>
-                    Remove photo
+                    {t('account.removePhoto')}
                   </Button>
                 )}
               </div>
               {photoErrorMessage && <p className="text-small text-red-ink">{photoErrorMessage}</p>}
               <ConfirmDialog
                 open={previewingPersonal}
-                title="Use your personal photo"
+                title={t('memberDetail.usePersonalTitle')}
                 description={
-                  member.photoVersion ? 'This replaces your current team photo.' : 'Your team will see this photo.'
+                  member.photoVersion ? t('memberDetail.replaces') : t('memberDetail.teamWillSee')
                 }
-                confirmLabel="Use this photo"
+                confirmLabel={t('memberDetail.useThis')}
                 onConfirm={() => {
                   setPreviewingPersonal(false)
                   onUsePersonalPhoto()
@@ -138,19 +144,19 @@ export function MemberDetailView({
               >
                 <img
                   src={personalPhotoUrl}
-                  alt="Your personal photo"
+                  alt={t('memberDetail.personalAlt')}
                   className="mx-auto h-28 w-28 rounded-full object-cover"
                 />
               </ConfirmDialog>
               <ConfirmDialog
                 open={confirmingRemove}
-                title="Remove photo"
+                title={t('account.removePhoto')}
                 description={
                   canChangePhoto
-                    ? 'The team will see your initials until you add a new photo.'
-                    : `Remove ${member.displayName}'s photo? Only they can add a new one.`
+                    ? t('memberDetail.removeSelf')
+                    : t('memberDetail.removeOther', { name: member.displayName })
                 }
-                confirmLabel="Remove"
+                confirmLabel={t('account.remove')}
                 onConfirm={() => {
                   setConfirmingRemove(false)
                   onRemovePhoto()
@@ -184,23 +190,23 @@ export function MemberDetailView({
               <div className={`${CARD} divide-y divide-border`}>
                 <div className={ROW}>
                   <Hash size={18} className={ICON} aria-hidden="true" />
-                  <span className="font-medium">Shirt number</span>
-                  <span className="ml-auto text-muted-foreground">{member.shirtNumber ?? 'None'}</span>
+                  <span className="font-medium">{t('profileForm.shirtNumber')}</span>
+                  <span className="ml-auto text-muted-foreground">{member.shirtNumber ?? t('profileForm.shirtNone')}</span>
                 </div>
                 <div className={ROW}>
                   <Shirt size={18} className={ICON} aria-hidden="true" />
-                  <span className="font-medium">Position</span>
-                  <span className="ml-auto text-muted-foreground">{member.position?.label ?? 'Unassigned'}</span>
+                  <span className="font-medium">{t('profileForm.position')}</span>
+                  <span className="ml-auto text-muted-foreground">{member.position?.label ?? t('position.unassigned')}</span>
                 </div>
                 <div className={ROW}>
                   <Shield size={18} className={ICON} aria-hidden="true" />
-                  <span className="font-medium">Role</span>
-                  <span className="ml-auto text-muted-foreground">{member.role === 'ADMIN' ? 'Admin' : 'Member'}</span>
+                  <span className="font-medium">{t('memberDetail.role')}</span>
+                  <span className="ml-auto text-muted-foreground">{member.role === 'ADMIN' ? t('members.admin') : t('memberDetail.roleMember')}</span>
                 </div>
               </div>
               {canEdit && (
                 <Button variant="outline" onClick={onEdit}>
-                  Edit profile
+                  {t('memberDetail.editProfile')}
                 </Button>
               )}
             </>

@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { authMeQueryOptions } from './auth'
 import { csrfHeaders } from './csrf'
+import { i18n } from '@shared/i18n/i18n'
 
 // Photos travel as image bytes, which Wirespec cannot describe, so these endpoints sit outside the
 // generated client (ADR-0038). The JSON contract only carries each photo's version; the version goes
@@ -34,13 +35,13 @@ export async function sendPhoto(method: 'PUT' | 'POST' | 'DELETE', path: string,
     .json()
     .then((json: { code?: string }) => json.code)
     .catch(() => undefined)
-  if (code === 'PHOTO_TOO_LARGE') throw new PhotoError(code, 'That photo is too large. Please pick another one.')
-  if (code === 'INVALID_PHOTO') throw new PhotoError(code, "That file isn't a photo we can use.")
+  if (code === 'PHOTO_TOO_LARGE') throw new PhotoError(code, i18n.t('photo.error.PHOTO_TOO_LARGE'))
+  if (code === 'INVALID_PHOTO') throw new PhotoError(code, i18n.t('photo.error.INVALID_PHOTO'))
   if (res.status === 404 && path.endsWith('/from-personal')) {
-    throw new PhotoError('NO_PERSONAL_PHOTO', "You don't have a personal photo yet.")
+    throw new PhotoError('NO_PERSONAL_PHOTO', i18n.t('photo.error.NO_PERSONAL_PHOTO'))
   }
-  if (res.status === 403) throw new PhotoError('FORBIDDEN', 'You are not allowed to change this photo.')
-  throw new PhotoError('FAILED', "Couldn't save the photo. Please try again.")
+  if (res.status === 403) throw new PhotoError('FORBIDDEN', i18n.t('photo.error.FORBIDDEN'))
+  throw new PhotoError('FAILED', i18n.t('photo.error.FAILED'))
 }
 
 // Team Photo changes show up through the member list's `photoVersion`.

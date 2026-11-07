@@ -28,6 +28,8 @@ interface MoneyPoolViewProps {
   connectAvailable?: boolean
   /** Bunq is connected but no account is picked: an admin is pointed to the team settings to pick one. */
   accountPending?: boolean
+  /** The payments run from the season start (true) or the last 90 days (false); undefined until the season is known. */
+  seasonSet?: boolean
 }
 
 function LoadError() {
@@ -57,6 +59,7 @@ export function MoneyPoolView({
   receipt,
   connectAvailable,
   accountPending,
+  seasonSet,
 }: MoneyPoolViewProps) {
   const { t } = useTranslation()
   if (isLoading) return <p role="status" className="text-small text-muted-foreground">{t('account.loading')}</p>
@@ -78,6 +81,7 @@ export function MoneyPoolView({
           beerCount={beerCount}
           topUp={topUpEntry}
           receipt={receipt}
+          seasonSet={seasonSet}
         />
       )
   }

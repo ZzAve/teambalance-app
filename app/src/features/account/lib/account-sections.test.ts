@@ -42,12 +42,12 @@ describe('accountSections', () => {
 
   it('single team: adds display name + position', () => {
     const sections = accountSections(user({ teams: [TEAM], activeTeam: TEAM, role: 'MEMBER' }))
-    expect(sections).toEqual(['email', 'passkeys', 'photo', 'displayName', 'position', 'appearance', 'language', 'teams', 'logout'])
+    expect(sections).toEqual(['email', 'passkeys', 'photo', 'displayName', 'position', 'paymentAliases', 'appearance', 'language', 'teams', 'logout'])
   })
 
   it('multi team with one active is the same as single team (the switcher lives in Teams)', () => {
     const sections = accountSections(user({ teams: [TEAM, OTHER_TEAM], activeTeam: TEAM, role: 'MEMBER' }))
-    expect(sections).toEqual(['email', 'passkeys', 'photo', 'displayName', 'position', 'appearance', 'language', 'teams', 'logout'])
+    expect(sections).toEqual(['email', 'passkeys', 'photo', 'displayName', 'position', 'paymentAliases', 'appearance', 'language', 'teams', 'logout'])
   })
 
   it('multi team with none active hides name/position (no Active Team yet)', () => {
@@ -61,7 +61,7 @@ describe('accountSections', () => {
 
   // Act-as: an Active Team without a membership (teams empty). Name + position still show — they
   // read the session tenant — and admin shows too. (ADR-0024 / ADR-0027 consequences.)
-  it('act-as: shows name/position (via the session tenant) and platform admin', () => {
+  it('act-as: shows name/position (via the session tenant) and platform admin, but no payment aliases link', () => {
     const sections = accountSections(
       user({ isPlatformAdmin: true, activeTeam: TEAM, role: 'ADMIN', actAs: { team: TEAM, expiresAt: 'x' } }),
     )

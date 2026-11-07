@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from '@tanstack/react-router'
-import { ChevronRight, KeyRound, LogOut, Mail, ShieldCheck, Users } from 'lucide-react'
+import { ChevronRight, KeyRound, Landmark, LogOut, Mail, ShieldCheck, Users } from 'lucide-react'
 import type { Member } from '@shared/api/members'
 import type { Position } from '@shared/api/positions'
 import { personalPhotoUrl } from '@shared/api/photos'
@@ -13,6 +13,7 @@ import { Avatar } from '@shared/ui/avatar'
 import { Button } from '@shared/ui/button'
 import { ConfirmDialog } from '@shared/ui/ConfirmDialog'
 import { SectionLabel } from '@shared/ui/SectionLabel'
+import { teamRoutes } from '@shared/lib/team-routes'
 import type { AccountSection } from '../lib/account-sections'
 import { useTranslation } from 'react-i18next'
 
@@ -38,6 +39,8 @@ interface AccountViewProps {
   onDismissCopyPhoto?: () => void
   /** The Active Team's name, or null when there is none (teamless). */
   activeTeamName?: string | null
+  /** The Active Team's slug, for the link to the viewer's own member page. */
+  activeTeamSlug?: string | null
   /** The current member — only present (and only fetched) when there is an Active Team. */
   member?: Member | null
   /** The Active Team's position vocabulary; empty hides the position picker. */
@@ -88,6 +91,7 @@ export function AccountView({
   onCopyPhotoToTeam,
   onDismissCopyPhoto,
   activeTeamName,
+  activeTeamSlug,
   member,
   positions = [],
   isMemberLoading,
@@ -210,6 +214,22 @@ export function AccountView({
                   onSubmit={(name, positionId) => onSubmitProfile?.(name, positionId)}
                 />
               )}
+            </div>
+          </section>
+        )}
+
+        {/* The alias editor lives on the viewer's own member page in the Active Team (ADR-0045). */}
+        {has('paymentAliases') && activeTeamSlug && (
+          <section>
+            <div className={CARD}>
+              <Link to={teamRoutes(activeTeamSlug).member(userId)} className={ROW_INTERACTIVE}>
+                <Landmark size={18} strokeWidth={1.9} className={ICON} aria-hidden="true" />
+                <span className="min-w-0 flex-1">
+                  <span className="block font-medium">{t('account.paymentMatching')}</span>
+                  <span className="block text-caption text-muted-foreground">{t('account.paymentMatchingHint')}</span>
+                </span>
+                <ChevronRight size={16} className="shrink-0 text-muted-foreground/60" aria-hidden="true" />
+              </Link>
             </div>
           </section>
         )}

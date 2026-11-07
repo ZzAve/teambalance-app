@@ -66,6 +66,7 @@ function AccountPage() {
     <AccountView
       sections={accountSections(user)}
       userId={user.id}
+      activeTeamSlug={activeTeam?.slug ?? null}
       displayName={user.displayName}
       email={user.email}
       personalPhotoVersion={user.personalPhotoVersion ?? null}

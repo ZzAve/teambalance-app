@@ -3,6 +3,7 @@ import { expect, fn, screen, userEvent, within } from 'storybook/test'
 import type { Member } from '@shared/api/members'
 import type { Position } from '@shared/api/positions'
 import { Stack } from '@shared/testing/stack'
+import { PaymentAliasesView } from '@features/edit-payment-aliases/ui/PaymentAliasesView'
 import { appShell } from '../../../../storybook-support/app-shell-decorator'
 import { MemberDetailView } from './MemberDetailView'
 
@@ -55,6 +56,19 @@ export default meta
 type Story = StoryObj<typeof meta>
 
 export const Data: Story = {
+  // The container-supplied alias editor sits under the profile card; its own states live in its View's stories.
+  args: {
+    paymentAliases: (
+      <PaymentAliasesView
+        aliases={[
+          { id: 'a1', name: 'I.M. VISSER', ibanMasked: undefined, hasIban: false },
+          { id: 'a2', name: undefined, ibanMasked: 'NL91 •••• •••• ••43 00', hasIban: true },
+        ]}
+        onCreate={fn()}
+        onDelete={fn()}
+      />
+    ),
+  },
   play: async ({ canvas }) => {
     await expect(canvas.getByRole('heading', { level: 1, name: 'Ada Lovelace' })).toBeInTheDocument()
     await expect(canvas.getByLabelText('Shirt number 12')).toBeInTheDocument()
@@ -63,6 +77,7 @@ export const Data: Story = {
     await expect(canvas.getByRole('link', { name: 'Back to team' })).toBeInTheDocument()
     await expect(canvas.getByRole('heading', { level: 2, name: 'Ada Lovelace' })).toBeInTheDocument()
     await expect(canvas.getByRole('button', { name: 'Edit profile' })).toBeInTheDocument()
+    await expect(canvas.getByRole('heading', { name: 'Payment matching' })).toBeInTheDocument()
   },
 }
 

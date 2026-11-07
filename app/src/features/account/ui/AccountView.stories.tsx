@@ -36,7 +36,7 @@ const MEMBER: Member = {
   photoVersion: undefined,
 }
 
-const WITH_TEAM: AccountSection[] = ['email', 'photo', 'displayName', 'position', 'appearance', 'teams', 'logout']
+const WITH_TEAM: AccountSection[] = ['email', 'photo', 'displayName', 'position', 'paymentAliases', 'appearance', 'teams', 'logout']
 const TEAMLESS: AccountSection[] = ['email', 'photo', 'appearance', 'teams', 'logout']
 const ADMIN: AccountSection[] = ['email', 'photo', 'appearance', 'teams', 'platformAdmin', 'logout']
 
@@ -54,6 +54,7 @@ const meta = {
     member: MEMBER,
     positions: POSITIONS,
     activeTeamName: 'Setpoint VT',
+    activeTeamSlug: 'setpoint-vt',
     onLogout: fn(),
     onSubmitProfile: fn(),
     onUploadPersonalPhoto: fn(),
@@ -77,6 +78,7 @@ export const Data: Story = {
       await expect(canvas.getByRole('button', { name: 'Uitloggen' })).toBeInTheDocument()
       await expect(canvas.getByLabelText('Weergavenaam')).toHaveValue('Alex')
       await expect(canvas.getByText('Persoonlijke foto')).toBeInTheDocument()
+      await expect(canvas.getByRole('link', { name: /Betalingen koppelen/ })).toBeInTheDocument()
       await expect(canvas.getByRole('radio', { name: 'Systeem' })).toBeInTheDocument()
       await expect(canvas.getByRole('link', { name: 'Profiel' })).toHaveAttribute('aria-current', 'page')
       return
@@ -86,6 +88,8 @@ export const Data: Story = {
     // Named once in the Teams section and once in the shell's header.
     await expect(canvas.getAllByText('Setpoint VT')).toHaveLength(2)
     await expect(canvas.getByRole('link', { name: 'Profile' })).toHaveAttribute('aria-current', 'page')
+    // The alias editor lives on the viewer's own member page.
+    await expect(canvas.getByRole('link', { name: /Payment matching/ })).toHaveAttribute('href', '/t/setpoint-vt/team/u1')
   },
 }
 

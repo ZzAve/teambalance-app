@@ -189,7 +189,9 @@
     "platformAdmin": "Platformbeheer",
     "teamsConsole": "Teamsconsole",
     "creationCodes": "Aanmaakcodes",
-    "logout": "Uitloggen"
+    "logout": "Uitloggen",
+    "paymentMatching": "Betalingen koppelen",
+    "paymentMatchingHint": "Namen en IBAN’s die als jouw betalingen tellen, op je teampagina"
   },
   "photo": {
     "error": {
@@ -1078,5 +1080,44 @@
     "add": "Passkey toevoegen",
     "notNow": "Nu niet",
     "adding": "Wachten op je toestel..."
+  },
+  "paymentAliases": {
+    "heading": "Betalingen koppelen",
+    "loading": "Betalingen koppelen laden",
+    "loadFailed": "We konden je gekoppelde betalingen niet laden",
+    "loadFailedHint": "De rest van je profiel is in orde.",
+    "intro": "Wat je via de knop Inleggen betaalt, telt al voor jou. Betaal je anders, zoals met een overschrijving of vanaf een gezamenlijke rekening? Voeg dan de naam of het IBAN toe waarmee je betaling binnenkomt.",
+    "nameLabel": "Naam op de betaling",
+    "nameHint": "Zoals je bank hem toont. Hoofdletters en extra spaties maken niet uit, elk ander teken wel.",
+    "ibanLabel": "IBAN",
+    "iban": {
+      "hint": "Spaties worden voor je toegevoegd.",
+      "valid": "Geldig IBAN",
+      "remaining_one": "Nog {{count}} teken.",
+      "remaining_other": "Nog {{count}} tekens.",
+      "format": "Een IBAN begint met twee letters en twee cijfers, zoals NL91.",
+      "tooLong": "Een Nederlands IBAN heeft 18 tekens. Dit is langer.",
+      "checksum": "Dit IBAN klopt niet. Controleer het op een tikfout."
+    },
+    "preview_one": "Betalingen met deze naam: {{count}}",
+    "preview_other": "Betalingen met deze naam: {{count}}",
+    "matches_one": "komt overeen met {{count}} betaling",
+    "matches_other": "komt overeen met {{count}} betalingen",
+    "save": "Opslaan",
+    "cancel": "Annuleren",
+    "add": "Een naam of IBAN toevoegen",
+    "remove": "Verwijderen",
+    "removeLabel": "{{label}} verwijderen",
+    "ibanOnly": "IBAN",
+    "ibanEnding": "IBAN eindigend op {{last}}",
+    "privacy": "Alleen jij en de admins van het team zien dit.",
+    "error": {
+      "ALIAS_TAKEN": "Een ander lid gebruikt deze naam of dit IBAN al. Vraag een admin of het een gezamenlijke rekening is.",
+      "INVALID_IBAN": "Dit IBAN is niet geldig. Controleer het op een tikfout.",
+      "INVALID": "Voeg een naam of IBAN toe die opgeslagen kan worden.",
+      "FORBIDDEN": "Je mag dit niet wijzigen.",
+      "NOT_FOUND": "Deze koppeling bestaat niet meer. Laad de pagina opnieuw.",
+      "FAILED": "Opslaan is mislukt. Probeer het opnieuw."
+    }
   }
 }

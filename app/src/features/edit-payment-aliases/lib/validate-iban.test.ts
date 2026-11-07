@@ -1,0 +1,35 @@
+import { describe, expect, it } from 'vitest'
+import { checkIban, groupIban, normaliseIban } from './validate-iban'
+
+describe('normaliseIban', () => {
+  it('drops spaces and upper-cases', () => {
+    expect(normaliseIban(' nl91 abna 0417 1643 00 ')).toBe('NL91ABNA0417164300')
+  })
+})
+
+describe('groupIban', () => {
+  it('groups by four', () => {
+    expect(groupIban('nl91abna0417164300')).toBe('NL91 ABNA 0417 1643 00')
+  })
+})
+
+describe('checkIban', () => {
+  it('is empty for blank input', () => expect(checkIban('  ')).toEqual({ state: 'empty' }))
+  it('accepts a valid Dutch IBAN, spaced or not', () => {
+    expect(checkIban('NL91 ABNA 0417 1643 00')).toEqual({ state: 'valid' })
+    expect(checkIban('nl91abna0417164300')).toEqual({ state: 'valid' })
+  })
+  it('accepts a valid foreign IBAN', () => expect(checkIban('DE89 3704 0044 0532 0130 00')).toEqual({ state: 'valid' }))
+  it('rejects a bad check digit', () =>
+    expect(checkIban('NL92ABNA0417164300')).toEqual({ state: 'error', reason: 'checksum' }))
+  it('rejects input that does not start with two letters and two digits', () => {
+    expect(checkIban('1234ABNA0417164300')).toEqual({ state: 'error', reason: 'format' })
+    expect(checkIban('NL9')).toEqual({ state: 'error', reason: 'format' })
+  })
+  it('counts the characters to go for a Dutch IBAN still being typed', () => {
+    expect(checkIban('NL91 ABNA 0417')).toEqual({ state: 'typing', remaining: 6 })
+  })
+  it('rejects a Dutch IBAN that is too long', () =>
+    expect(checkIban('NL91ABNA04171643001')).toEqual({ state: 'error', reason: 'tooLong' }))
+  it('is typing for a short foreign IBAN', () => expect(checkIban('DE89 3704')).toEqual({ state: 'typing' }))
+})

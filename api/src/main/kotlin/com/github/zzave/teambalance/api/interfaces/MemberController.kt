@@ -50,7 +50,7 @@ class MemberController(
             teamId = teamId,
             targetUserId = request.path.userId.consumeUserId(),
             rawName = request.body.displayName,
-            role = Role.valueOf(request.body.role),
+            role = request.body.role.consumeRole(),
             positionId = request.body.positionId?.let { it.consumePositionId() },
             shirtNumber = request.body.shirtNumber?.toIntOrMax(),
         )
@@ -83,7 +83,7 @@ class MemberController(
 private fun TeamMember.toDto() = Member(
     userId = userId.produce(),
     displayName = displayName.value,
-    role = permission.name,
+    role = permission.produce(),
     position = positionId?.let { MemberPosition(id = it.produce(), label = position?.value ?: "") },
     onboarded = onboarded,
     shirtNumber = shirtNumber?.value?.toLong(),
@@ -93,3 +93,17 @@ private fun TeamMember.toDto() = Member(
 // Saturates instead of wrapping, so a number past Int range is rejected as out of range rather than
 // silently becoming a valid one.
 internal fun Long.toIntOrMax(): Int = if (this in Int.MIN_VALUE.toLong()..Int.MAX_VALUE.toLong()) toInt() else Int.MAX_VALUE
+
+// UpdateMember still carries the role as a bare string, so an unknown value can only be refused here at
+// runtime; the 400 is the IllegalArgumentException handler's.
+private fun String.consumeRole(): Role = when (this) {
+    "USER" -> Role.USER
+    "ADMIN" -> Role.ADMIN
+    else -> throw IllegalArgumentException("Unknown role: $this")
+}
+
+// internal so AuthController renders the caller's role the same way.
+internal fun Role.produce(): String = when (this) {
+    Role.USER -> "USER"
+    Role.ADMIN -> "ADMIN"
+}

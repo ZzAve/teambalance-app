@@ -140,6 +140,21 @@ class SubstituteIT : TeamBalanceIT() {
                 .andExpect(status().isBadRequest)
         }
 
+        test("an unknown attendance state is a 400 with the standard error body") {
+            seedTeam()
+            val eventId = createEvent("Bogus state")
+            val substituteId = createSubstitute("Bogus", positionId = null, asUser = MEMBER_USER_ID)
+
+            mockMvc.perform(
+                MockMvcRequestBuilders.put("/api/events/$eventId/substitutes/$substituteId")
+                    .with(loginAs(MEMBER_USER_ID, tenant = "public"))
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"state": "BOGUS"}"""),
+            )
+                .andExpect(status().isBadRequest)
+                .andExpect(jsonPath("$.error").isNotEmpty)
+        }
+
         test("an unknown substitute or event is not found") {
             seedTeam()
             val eventId = createEvent("Known event")

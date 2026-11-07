@@ -4,6 +4,7 @@ import com.github.zzave.teambalance.api.application.ActAsService
 import com.github.zzave.teambalance.api.application.AuthorizationService
 import com.github.zzave.teambalance.api.application.EnteredActAs
 import com.github.zzave.teambalance.api.domain.model.ActAs as DomainActAs
+import com.github.zzave.teambalance.api.domain.model.ActorKind
 import com.github.zzave.teambalance.api.domain.model.TeamId
 import com.github.zzave.teambalance.api.domain.port.CurrentTeamGateway
 import com.github.zzave.teambalance.api.domain.port.CurrentUserGateway
@@ -77,8 +78,13 @@ internal fun EnteredActAs.produce() = ActAs(team = team.produce(), expiresAt = a
 // resolving a name would fail anyway — findMemberSummariesByUserIds joins team_members, and a
 // Platform Admin is a Member of nothing (ADR-0024 §3, §4). `created_by` keeps the truth underneath.
 private fun DomainActAs.produce() = ActAsRecord(
-    actorKind = actorKind.name,
+    actorKind = actorKind.produce(),
     enteredAt = enteredAt.toString(),
     lastActiveAt = lastActiveAt.toString(),
     exitedAt = exitedAt?.toString(),
 )
+
+private fun ActorKind.produce(): String = when (this) {
+    ActorKind.MEMBER -> "MEMBER"
+    ActorKind.PLATFORM_ADMIN -> "PLATFORM_ADMIN"
+}

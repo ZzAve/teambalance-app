@@ -251,6 +251,19 @@ class EventTypeAdminIT : TeamBalanceIT() {
             eventTypeCountNamed("   ") shouldBe 0
         }
 
+        test("a request body that is not valid JSON is a 400 with the standard error body") {
+            seedTeam()
+
+            mockMvc.perform(
+                MockMvcRequestBuilders.post("/api/event-types")
+                    .with(loginAs(ADMIN_USER_ID, tenant = SCHEMA))
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"name":"""),
+            )
+                .andExpect(status().isBadRequest)
+                .andExpect(jsonPath("$.error").isNotEmpty)
+        }
+
         test("a roster default naming an unknown position is rejected") {
             seedTeam()
 

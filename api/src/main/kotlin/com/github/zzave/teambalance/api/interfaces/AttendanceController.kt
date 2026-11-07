@@ -33,7 +33,7 @@ class AttendanceController(
         val teamId = currentTeamGateway.requireCurrentTeamId()
         val eventId = request.path.eventId.consumeEventId()
         val userId = request.path.userId.consumeUserId()
-        val state = AttendanceState.valueOf(request.body.state)
+        val state = request.body.state.consumeAttendanceState()
 
         val attendance = attendanceService.setAttendance(
             teamId = teamId,
@@ -52,7 +52,7 @@ class AttendanceController(
                 userId = attendance.userId.produce(),
                 displayName = member?.displayName?.value ?: "Unknown",
                 role = (member?.position ?: UNASSIGNED).value,
-                state = attendance.state.name,
+                state = attendance.state.produce().label,
                 changedBy = attendance.changedBy.produce(),
                 updatedAt = DateTimestampWithTimezone(attendance.updatedAt.toString()),
             )
@@ -85,7 +85,22 @@ class AttendanceController(
 
 // The inbound half of the state edge — the outbound `produce()` below is its mirror. internal so
 // CalendarLinkController's attendance-state option converts the same way.
-internal fun GeneratedAttendanceState.consume() = AttendanceState.valueOf(name)
+internal fun GeneratedAttendanceState.consume(): AttendanceState = when (this) {
+    GeneratedAttendanceState.ATTENDING -> AttendanceState.ATTENDING
+    GeneratedAttendanceState.MAYBE -> AttendanceState.MAYBE
+    GeneratedAttendanceState.ABSENT -> AttendanceState.ABSENT
+    GeneratedAttendanceState.NOT_RESPONDED -> AttendanceState.NOT_RESPONDED
+}
+
+// SetAttendance still carries the state as a bare string, so an unknown value can only be refused here
+// at runtime; the 400 is the IllegalArgumentException handler's.
+private fun String.consumeAttendanceState(): AttendanceState = when (this) {
+    "ATTENDING" -> AttendanceState.ATTENDING
+    "MAYBE" -> AttendanceState.MAYBE
+    "ABSENT" -> AttendanceState.ABSENT
+    "NOT_RESPONDED" -> AttendanceState.NOT_RESPONDED
+    else -> throw IllegalArgumentException("Unknown attendance state: $this")
+}
 
 // The Wirespec edge for a response row's identity — the contract still carries a bare UUID string.
 // internal so EventController's attendance entries convert the same way.
@@ -118,4 +133,9 @@ internal fun Map<AttendanceState, Int>.produce(roleBreakdown: List<Pair<Position
         },
     )
 
-internal fun AttendanceState.produce() = GeneratedAttendanceState.valueOf(name)
+internal fun AttendanceState.produce(): GeneratedAttendanceState = when (this) {
+    AttendanceState.ATTENDING -> GeneratedAttendanceState.ATTENDING
+    AttendanceState.MAYBE -> GeneratedAttendanceState.MAYBE
+    AttendanceState.ABSENT -> GeneratedAttendanceState.ABSENT
+    AttendanceState.NOT_RESPONDED -> GeneratedAttendanceState.NOT_RESPONDED
+}

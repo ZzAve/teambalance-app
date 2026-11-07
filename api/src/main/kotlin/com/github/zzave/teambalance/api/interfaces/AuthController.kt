@@ -3,6 +3,7 @@ package com.github.zzave.teambalance.api.interfaces
 import com.github.zzave.teambalance.api.application.AccountService
 import com.github.zzave.teambalance.api.application.ActAsService
 import com.github.zzave.teambalance.api.application.AuthService
+import com.github.zzave.teambalance.api.application.InviteOutcome
 import com.github.zzave.teambalance.api.application.MoneyPoolService
 import com.github.zzave.teambalance.api.application.PhotoService
 import com.github.zzave.teambalance.api.domain.model.Email
@@ -53,7 +54,7 @@ class AuthController(
         return VerifyMagicLink.Response200(
             VerifiedSession(
                 user = describe(signIn.user, activeTeamId),
-                inviteOutcome = signIn.inviteOutcome?.name,
+                inviteOutcome = signIn.inviteOutcome?.produce(),
             ),
         )
     }
@@ -107,8 +108,8 @@ class AuthController(
             // Real membership first, synthesis second — the same precedence AuthorizationService
             // applies. A caller who somehow held both would otherwise be shown admin UI that every
             // write then refuses.
-            role = activeTeam?.let { authService.findRoleIn(it.id, user.id)?.name }
-                ?: actAs?.let { Role.ADMIN.name },
+            role = activeTeam?.let { authService.findRoleIn(it.id, user.id)?.produce() }
+                ?: actAs?.let { Role.ADMIN.produce() },
             teams = teams.map { it.produce() },
             activeTeam = activeTeam?.produce(),
             isPlatformAdmin = authService.isPlatformAdmin(user.id),
@@ -135,3 +136,8 @@ internal fun UserId.produce(): String = value.toString()
 private fun String.consumeEmail(): Email = Email(this)
 
 private fun Email.produce(): String = value
+
+private fun InviteOutcome.produce(): String = when (this) {
+    InviteOutcome.JOINED -> "JOINED"
+    InviteOutcome.UNAVAILABLE -> "UNAVAILABLE"
+}

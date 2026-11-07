@@ -11,6 +11,8 @@ import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RestControllerAdvice
+import tools.jackson.core.JacksonException
+import tools.jackson.core.exc.StreamReadException
 import tools.jackson.databind.DatabindException
 import tools.jackson.databind.exc.MismatchedInputException
 import java.time.format.DateTimeParseException
@@ -82,9 +84,14 @@ class GlobalExceptionHandler {
     // An enum value the contract does not name ("DE" for a Language) fails inside Wirespec's enum
     // deserializer as a plain DatabindException instead; that one is a client error only when it was
     // raised while reading a request body, so a DatabindException from writing a response stays a 500.
-    @ExceptionHandler(DatabindException::class)
-    fun handleMalformedRequestBody(ex: DatabindException): ResponseEntity<Map<String, String>> {
-        val readingBody = ex is MismatchedInputException || ex.stackTrace.any { it.methodName == "deserializeBody" }
+    // A body that is not JSON at all (truncated, stray token) fails in the parser before any binding, as a
+    // StreamReadException. That type is thrown only while reading input (writing raises StreamWriteException),
+    // so it is always a client error.
+    @ExceptionHandler(DatabindException::class, StreamReadException::class)
+    fun handleMalformedRequestBody(ex: JacksonException): ResponseEntity<Map<String, String>> {
+        val readingBody = ex is StreamReadException ||
+            ex is MismatchedInputException ||
+            ex.stackTrace.any { it.methodName == "deserializeBody" }
         if (!readingBody) throw ex
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
             .body(mapOf("error" to "Malformed or invalid request body"))

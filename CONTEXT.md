@@ -307,3 +307,7 @@ The backend is hexagonal (ports & adapters). These boundaries are enforced by th
   the framework-free application services from their ports. The **only** place autowiring happens
   for those services; keeps the domain/application layers Spring-free. _Avoid_: DI config, wiring,
   bean config (when specifically meaning this root).
+- **Passkey** — A WebAuthn credential a person registered from a signed-in session, with which they can sign
+  in on `/login` without an email. Belongs to the person, not a Team; listed and removed only by its owner
+  on the Account tab. Never creates an account. _Avoid_: WebAuthn key, security key (that is one kind of
+  authenticator), biometric login.

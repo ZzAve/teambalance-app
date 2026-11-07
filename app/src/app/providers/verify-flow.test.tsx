@@ -33,6 +33,7 @@ const USER: AuthenticatedUser = {
   personalPhotoVersion: undefined,
   moneyPoolEnabled: undefined,
   language: undefined,
+  passkeyCount: 0,
 }
 
 const server = setupServer(

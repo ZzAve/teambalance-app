@@ -120,6 +120,7 @@ class AuthController(
             personalPhotoVersion = photoService.personalPhotoVersion(user.id),
             moneyPoolEnabled = null,
             language = accountService.languageOf(user.id)?.produce(),
+            passkeyCount = accountService.passkeyCountOf(user.id).toLong(),
         )
     }
 }

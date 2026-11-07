@@ -45,6 +45,8 @@ teambalance:
       capacity: 1000
     magic-link-verify:
       capacity: 1000
+    passkey-login:
+      capacity: 1000
     invitation-accept:
       capacity: 1000
     calendar-feed-per-client:

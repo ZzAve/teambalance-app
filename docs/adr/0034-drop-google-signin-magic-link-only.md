@@ -52,3 +52,4 @@ Only the third — Google as a second front door — is reversed here.
   have used.
 - We remain single-method. If passkeys land, they become the second front door under a new ADR, and the
   "one identity, many proofs of email control" shape ADR-0011 established is the pattern they follow.
+- Passkeys landed: [ADR-0045](0045-passkeys-second-front-door-spring-security-webauthn.md).

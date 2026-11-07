@@ -4,6 +4,7 @@ import { useRequestMagicLink } from '@shared/api/auth'
 import { Button } from '@shared/ui/button'
 import { Input } from '@shared/ui/input'
 import { Label } from '@shared/ui/label'
+import { PasskeyLogin } from '@features/passkey-login/ui/PasskeyLogin'
 import { Trans, useTranslation } from 'react-i18next'
 
 export const Route = createFileRoute('/login')({
@@ -68,6 +69,7 @@ function LoginPage() {
           <p className="text-center text-small text-red-ink">{t('errors.generic')}</p>
         )}
       </form>
+      <PasskeyLogin />
     </div>
   )
 }

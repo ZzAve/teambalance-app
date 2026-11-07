@@ -53,6 +53,15 @@ export default defineConfig({
         target: 'http://localhost:8080',
         changeOrigin: true,
       },
+      // Spring Security's passkey endpoints (ADR-0045).
+      '/webauthn': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+      },
+      '/login/webauthn': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+      },
     },
   },
 })

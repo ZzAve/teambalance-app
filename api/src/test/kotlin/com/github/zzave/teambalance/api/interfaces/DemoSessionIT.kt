@@ -37,6 +37,7 @@ private const val EVENT_ID = "d0000000-0000-0000-0000-000000000031"
     properties = [
         "teambalance.demo.enabled=true",
         "teambalance.email.send=false",
+        "teambalance.passkeys.enabled=false",
         "teambalance.csrf.cookie-name=DEMO-XSRF-TOKEN",
     ],
 )
@@ -55,6 +56,12 @@ class DemoSessionIT : TeamBalanceIT() {
     lateinit var json: JsonMapper
 
     init {
+        test("passkeys cannot be registered in the demo: guests share one persona") {
+            listOf("/webauthn/register/options", "/webauthn/register").forEach {
+                mockMvc.perform(post(it).contentType(MediaType.APPLICATION_JSON).content("{}")).andReturn().response.status shouldBe 404
+            }
+        }
+
         test("the seeder created the persona, the membership and one event, with the literals DemoPersona holds") {
             jdbcTemplate.queryForObject(
                 "SELECT count(*) FROM public.users WHERE id = ?::uuid AND email = 'sanne@demo.teambalance.nl'",

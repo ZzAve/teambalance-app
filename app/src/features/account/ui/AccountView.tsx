@@ -7,6 +7,7 @@ import { personalPhotoUrl } from '@shared/api/photos'
 import { EditProfileForm } from '@features/edit-profile/ui/EditProfileForm'
 import { PhotoPicker } from '@features/pick-photo/ui/PhotoPicker'
 import { ThemeToggle } from '@features/theme-toggle/ui/ThemeToggle'
+import { Passkeys } from '@features/passkeys/ui/Passkeys'
 import { LanguageSwitch } from '@features/language-switch/ui/LanguageSwitch'
 import { Avatar } from '@shared/ui/avatar'
 import { Button } from '@shared/ui/button'
@@ -117,6 +118,12 @@ export function AccountView({
                 </span>
               </div>
             </div>
+          </section>
+        )}
+
+        {has('passkeys') && (
+          <section>
+            <Passkeys />
           </section>
         )}
 

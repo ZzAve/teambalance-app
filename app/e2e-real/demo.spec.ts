@@ -55,7 +55,7 @@ test('demo guest login: /demo -> Sanne -> answer Going -> the answer persists', 
 test('demo reset: after an hour the next guest login finds the answer gone', async ({ page, request }) => {
   const backend = process.env.BACKEND_URL ?? 'http://localhost:8080'
   await page.goto('/demo')
-  await page.getByRole('button', { name: 'Speel als Sanne (speler)' }).click()
+  await page.getByRole('button', { name: 'Play as Sanne (player)' }).click()
   await expect(page).toHaveURL(/\/t\/de-smashers/, { timeout: 10_000 })
   await page.getByRole('link', { name: 'Training' }).first().click()
   const response = page.getByRole('group', { name: 'Your response' })
@@ -63,12 +63,12 @@ test('demo reset: after an hour the next guest login finds the answer gone', asy
   await going.click()
   await expect(going).toHaveAttribute('aria-pressed', 'true')
 
-  await page.getByRole('button', { name: 'Wissel van rol' }).click()
+  await page.getByRole('button', { name: 'Switch role' }).click()
   await expect(page).toHaveURL(/\/demo$/, { timeout: 10_000 })
 
   try {
     expect((await request.get(`${backend}/internal/e2e/clock/advance?hours=2`)).status()).toBe(204)
-    await page.getByRole('button', { name: 'Speel als Sanne (speler)' }).click()
+    await page.getByRole('button', { name: 'Play as Sanne (player)' }).click()
     await expect(page).toHaveURL(/\/t\/de-smashers/, { timeout: 15_000 })
     await page.getByRole('link', { name: 'Training' }).first().click()
     await expect(going).toBeVisible()

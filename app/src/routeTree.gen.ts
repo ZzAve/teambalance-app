@@ -14,6 +14,7 @@ import { Route as AccountRouteImport } from './routes/account'
 import { Route as DemoRouteImport } from './routes/demo'
 import { Route as EventsRouteImport } from './routes/events'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as PrototypeHeaderRouteImport } from './routes/prototype-header'
 import { Route as SelectTeamRouteImport } from './routes/select-team'
 import { Route as AdminCreationCodesRouteImport } from './routes/admin/creation-codes'
 import { Route as AdminTeamsRouteImport } from './routes/admin/teams'
@@ -56,6 +57,11 @@ const EventsRoute = EventsRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrototypeHeaderRoute = PrototypeHeaderRouteImport.update({
+  id: '/prototype-header',
+  path: '/prototype-header',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SelectTeamRoute = SelectTeamRouteImport.update({
@@ -155,6 +161,7 @@ export interface FileRoutesByFullPath {
   '/demo': typeof DemoRoute
   '/events': typeof EventsRoute
   '/login': typeof LoginRoute
+  '/prototype-header': typeof PrototypeHeaderRoute
   '/select-team': typeof SelectTeamRoute
   '/t/$slug': typeof TSlugRouteRouteWithChildren
   '/admin/creation-codes': typeof AdminCreationCodesRoute
@@ -180,6 +187,7 @@ export interface FileRoutesByTo {
   '/demo': typeof DemoRoute
   '/events': typeof EventsRoute
   '/login': typeof LoginRoute
+  '/prototype-header': typeof PrototypeHeaderRoute
   '/select-team': typeof SelectTeamRoute
   '/admin/creation-codes': typeof AdminCreationCodesRoute
   '/admin/teams': typeof AdminTeamsRoute
@@ -205,6 +213,7 @@ export interface FileRoutesById {
   '/demo': typeof DemoRoute
   '/events': typeof EventsRoute
   '/login': typeof LoginRoute
+  '/prototype-header': typeof PrototypeHeaderRoute
   '/select-team': typeof SelectTeamRoute
   '/t/$slug': typeof TSlugRouteRouteWithChildren
   '/admin/creation-codes': typeof AdminCreationCodesRoute
@@ -232,6 +241,7 @@ export interface FileRouteTypes {
     | '/demo'
     | '/events'
     | '/login'
+    | '/prototype-header'
     | '/select-team'
     | '/t/$slug'
     | '/admin/creation-codes'
@@ -257,6 +267,7 @@ export interface FileRouteTypes {
     | '/demo'
     | '/events'
     | '/login'
+    | '/prototype-header'
     | '/select-team'
     | '/admin/creation-codes'
     | '/admin/teams'
@@ -281,6 +292,7 @@ export interface FileRouteTypes {
     | '/demo'
     | '/events'
     | '/login'
+    | '/prototype-header'
     | '/select-team'
     | '/t/$slug'
     | '/admin/creation-codes'
@@ -307,6 +319,7 @@ export interface RootRouteChildren {
   DemoRoute: typeof DemoRoute
   EventsRoute: typeof EventsRoute
   LoginRoute: typeof LoginRoute
+  PrototypeHeaderRoute: typeof PrototypeHeaderRoute
   SelectTeamRoute: typeof SelectTeamRoute
   TSlugRouteRoute: typeof TSlugRouteRouteWithChildren
   AdminCreationCodesRoute: typeof AdminCreationCodesRoute
@@ -353,6 +366,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/prototype-header': {
+      id: '/prototype-header'
+      path: '/prototype-header'
+      fullPath: '/prototype-header'
+      preLoaderRoute: typeof PrototypeHeaderRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/select-team': {
@@ -518,6 +538,7 @@ const rootRouteChildren: RootRouteChildren = {
   DemoRoute: DemoRoute,
   EventsRoute: EventsRoute,
   LoginRoute: LoginRoute,
+  PrototypeHeaderRoute: PrototypeHeaderRoute,
   SelectTeamRoute: SelectTeamRoute,
   TSlugRouteRoute: TSlugRouteRouteWithChildren,
   AdminCreationCodesRoute: AdminCreationCodesRoute,

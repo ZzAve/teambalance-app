@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "prototype:header": "vite --open /prototype-header",
     "build": "npx @tanstack/router-cli generate && tsc -b && vite build && node scripts/verify-pwa-build.mjs",
     "test": "vitest run",
     "test:watch": "vitest",

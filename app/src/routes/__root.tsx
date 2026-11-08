@@ -18,8 +18,12 @@ import { useTranslation } from 'react-i18next'
 // session) render without a confirmed session. Exact `/auth/` prefix — not startsWith('/auth') —
 // so a future route like `/authored` can't slip past the guard. The invite exemption is equally
 // precise: only `/invite/<single-token>` is public; sub-paths like `/invite/manage` are NOT exempt.
+// PROTOTYPE (header-structure question): the dev-only /prototype-header route needs no session and
+// renders its own shell. Delete with the prototype.
+const isHeaderPrototype = (pathname: string) => import.meta.env.DEV && pathname === '/prototype-header'
+
 function isAuthRoute(pathname: string): boolean {
-  return pathname === '/login' || pathname === '/demo' || pathname.startsWith('/auth/') || /^\/invite\/[^/]+$/.test(pathname)
+  return isHeaderPrototype(pathname) || pathname === '/login' || pathname === '/demo' || pathname.startsWith('/auth/') || /^\/invite\/[^/]+$/.test(pathname)
 }
 
 // The screens an authenticated caller can reach without being in a Team.
@@ -97,6 +101,8 @@ function RootLayout() {
   const theme = useThemeSync()
   const { t } = useTranslation()
   const pathname = useRouterState({ select: (s) => s.location.pathname })
+
+  if (isHeaderPrototype(pathname)) return <Providers><Outlet /></Providers>
 
   return (
     <Providers>

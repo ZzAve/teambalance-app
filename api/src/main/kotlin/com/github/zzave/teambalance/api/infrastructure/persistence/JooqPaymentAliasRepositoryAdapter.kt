@@ -12,7 +12,7 @@ import com.github.zzave.teambalance.api.infrastructure.persistence.jooq.default_
 import org.jooq.DSLContext
 import org.springframework.stereotype.Repository
 
-/** Payment aliases, tenant-schema rows (ADR-0045), scoped by the routed connection like the other tenant adapters. */
+/** Payment aliases, tenant-schema rows (ADR-0046), scoped by the routed connection like the other tenant adapters. */
 @Repository
 class JooqPaymentAliasRepositoryAdapter(
     private val dsl: DSLContext,

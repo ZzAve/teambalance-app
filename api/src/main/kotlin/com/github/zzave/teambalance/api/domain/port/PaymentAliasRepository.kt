@@ -5,7 +5,7 @@ import com.github.zzave.teambalance.api.domain.model.PaymentAliasId
 import com.github.zzave.teambalance.api.domain.model.UserId
 
 /**
- * Payment aliases of the routed tenant schema (ADR-0045), so no method takes a team id. [insert] and
+ * Payment aliases of the routed tenant schema (ADR-0046), so no method takes a team id. [insert] and
  * [update] throw PaymentAliasTakenException when another alias has the same name (case-insensitive)
  * or the same IBAN.
  */

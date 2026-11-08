@@ -44,7 +44,7 @@ treasurer to hand one over is a large trust request.
 - **Payments read from Bunq are held in memory only**, as in the old app. Balance and transactions
   are never written to the database. Bunq stays the record (ADR-0005).
   What is stored is how a Member is recognised as a payer, not the payments
-  ([ADR-0045](0045-member-payment-aliases.md)).
+  ([ADR-0046](0046-member-payment-aliases.md)).
 - **The Money Pool is an Admin switch per team, on by default.** Off: no Money tab. On without a
   Bunq Connection: Members see a preview of the feature, Admins see how to connect.
 

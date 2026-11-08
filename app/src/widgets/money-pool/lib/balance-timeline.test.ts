@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { Payment } from '@shared/api/money-pool'
 import { balanceTimeline, potTotals } from './balance-timeline'
 
-const payment = (date: string, amount: number, direction: Payment['direction']): Payment => ({ id: 'p', date, name: 'x', amount, direction, receiptVersion: undefined })
+const payment = (date: string, amount: number, direction: Payment['direction']): Payment => ({ id: 'p', date, name: 'x', amount, direction, memberId: undefined, counterpartyName: undefined, receiptVersion: undefined })
 
 describe('balanceTimeline', () => {
   it('has no points without payments', () => {

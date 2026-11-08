@@ -1,4 +1,4 @@
-# ADR-0045: Member payment aliases: how a payer is recognised
+# ADR-0046: Member payment aliases: how a payer is recognised
 
 - Status: Accepted
 - Date: 2026-11-07

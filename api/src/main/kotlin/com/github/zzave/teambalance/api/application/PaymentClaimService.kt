@@ -14,7 +14,7 @@ import com.github.zzave.teambalance.api.domain.model.TeamId
 import com.github.zzave.teambalance.api.domain.model.UserId
 
 /**
- * "That's mine" (ADR-0045): records a payment alias from the counterparty of a payment in the money pool.
+ * "That's mine" (ADR-0046): records a payment alias from the counterparty of a payment in the money pool.
  * The payment is found by its id in the pool as the money pool service reports it, so the IBAN is read
  * on the server and never reaches the client. Who may add an alias for whom is decided by
  * [PaymentAliasService.requireMayManage]: a member for themselves, an Admin for any member.

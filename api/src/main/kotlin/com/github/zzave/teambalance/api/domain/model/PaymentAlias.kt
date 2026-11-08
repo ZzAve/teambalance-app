@@ -33,14 +33,14 @@ value class PaymentAliasName private constructor(val value: String) {
     }
 }
 
-/** How a member appears on Bunq payments (ADR-0045): a name, an IBAN or both. */
+/** How a member appears on Bunq payments (ADR-0046): a name, an IBAN or both. */
 data class PaymentAlias(
     val id: PaymentAliasId,
     val userId: UserId,
     val name: PaymentAliasName?,
     val iban: Iban?,
 ) {
-    // Name and IBAN are personal data and must not reach logs (ADR-0045).
+    // Name and IBAN are personal data and must not reach logs (ADR-0046).
     override fun toString(): String = "PaymentAlias(id=$id)"
 
     init {

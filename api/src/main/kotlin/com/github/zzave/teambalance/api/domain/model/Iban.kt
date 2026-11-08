@@ -9,11 +9,11 @@ import java.util.Locale
  */
 @JvmInline
 value class Iban private constructor(val value: String) {
-    // Not the value: an IBAN is personal data and must not reach logs (ADR-0045).
+    // Not the value: an IBAN is personal data and must not reach logs (ADR-0046).
     override fun toString(): String = "Iban"
 
     /**
-     * What any response may show of an IBAN (ADR-0045): country and check digits and the last four
+     * What any response may show of an IBAN (ADR-0046): country and check digits and the last four
      * characters, the rest as bullets, in groups of four: `NL02 •••• •••• ••67 89`.
      */
     fun masked(): String =

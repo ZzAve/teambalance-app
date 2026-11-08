@@ -1,4 +1,4 @@
-// How a member appears on Bunq payments, so the money pool can attribute an incoming payment to them (ADR-0045). A row has a name, an IBAN or both. Visible and editable only by the member who owns it and by team Admins; anyone else gets 403. The IBAN is write-only: no response returns it in full, to anyone. ibanMasked shows the country and check digits and the last four characters (`NL02 •••• •••• ••67 89`), null when there is no IBAN; hasIban says the same.
+// How a member appears on Bunq payments, so the money pool can attribute an incoming payment to them (ADR-0046). A row has a name, an IBAN or both. Visible and editable only by the member who owns it and by team Admins; anyone else gets 403. The IBAN is write-only: no response returns it in full, to anyone. ibanMasked shows the country and check digits and the last four characters (`NL02 •••• •••• ••67 89`), null when there is no IBAN; hasIban says the same.
 type PaymentAlias {
     id: String,
     name: String?,

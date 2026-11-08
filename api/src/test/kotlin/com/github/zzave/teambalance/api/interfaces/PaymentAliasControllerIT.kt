@@ -23,7 +23,7 @@ private const val NL_IBAN = "NL91ABNA0417164300"
 private const val DE_IBAN = "DE89370400440532013000"
 private const val BE_IBAN = "BE68539007547034"
 
-/** Who may read and write a member's payment aliases (ADR-0045), and the rules on what they hold. */
+/** Who may read and write a member's payment aliases (ADR-0046), and the rules on what they hold. */
 @AutoConfigureMockMvc
 class PaymentAliasControllerIT : TeamBalanceIT() {
 

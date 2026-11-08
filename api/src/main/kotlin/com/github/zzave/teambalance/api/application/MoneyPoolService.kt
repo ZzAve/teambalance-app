@@ -90,7 +90,7 @@ class MoneyPoolService(
 
     // Done after the cache read, not inside it, so a new alias counts at once instead of when the cached pool expires.
     // A matched payment shows the member's display name; the counterparty name (what the alias matched) is
-    // kept for the viewer who is an Admin or is that member, and left out for everyone else (ADR-0045).
+    // kept for the viewer who is an Admin or is that member, and left out for everyone else (ADR-0046).
     private fun MoneyPool.withMembers(teamId: TeamId, viewerId: UserId): MoneyPool {
         if (this !is MoneyPool.Connected || payments.isEmpty()) return this
         val aliases = paymentAliasRepository.findAll()

@@ -25,6 +25,8 @@ const PAYMENTS: Payment[] = [
 // 18 payments, newest first, alternating In and Out, for the 15-row cut-off.
 const MANY_PAYMENTS: Payment[] = Array.from({ length: 18 }, (_, i) => ({
   id: String(2000 + i),
+  memberId: undefined,
+  counterpartyName: undefined,
   receiptVersion: undefined,
   date: `2026-10-${String(20 - i).padStart(2, '0')}`,
   name: `Payment ${i + 1}`,

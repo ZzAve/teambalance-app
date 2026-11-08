@@ -3,7 +3,7 @@ package com.github.zzave.teambalance.api.domain.model
 import java.util.UUID
 
 /**
- * Decides which member paid (ADR-0045). The signals, strongest first: the description is a top-up
+ * Decides which member paid (ADR-0046). The signals, strongest first: the description is a top-up
  * description ([TopUpDescription]) whose user id belongs to a current member; the counterparty IBAN
  * equals a member's alias IBAN; the counterparty name equals a member's alias name (ignoring capitals and
  * white space). Nothing matches: null.

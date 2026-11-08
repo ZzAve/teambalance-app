@@ -59,7 +59,7 @@ class ReceiptTooLargeException(maxBytes: Int) :
     BadRequestException("Receipt is larger than $maxBytes bytes", "RECEIPT_TOO_LARGE")
 
 class InvalidReceiptException(message: String) : BadRequestException(message, "INVALID_RECEIPT")
-// The message never carries the rejected value: it is personal data (ADR-0045).
+// The message never carries the rejected value: it is personal data (ADR-0046).
 class InvalidIbanException : BadRequestException("Not a valid IBAN", "INVALID_IBAN")
 
 class InvalidPaymentAliasException(message: String) : BadRequestException(message, "INVALID_PAYMENT_ALIAS")
@@ -182,7 +182,7 @@ class SubstituteShirtNumberTakenException(number: ShirtNumber) :
 class MoneyPoolNotReadableException :
     ConflictException("The money pool is not connected", "MONEY_POOL_NOT_READABLE")
 
-// A payment that is not incoming, or that already counts for a member, cannot be claimed (ADR-0045).
+// A payment that is not incoming, or that already counts for a member, cannot be claimed (ADR-0046).
 class PaymentNotClaimableException :
     ConflictException("This payment cannot be claimed", "PAYMENT_NOT_CLAIMABLE")
 

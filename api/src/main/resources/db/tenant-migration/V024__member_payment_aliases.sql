@@ -1,4 +1,4 @@
--- How a member appears on Bunq payments: a name, an IBAN or both (ADR-0045). Personal data; leaving the
+-- How a member appears on Bunq payments: a name, an IBAN or both (ADR-0046). Personal data; leaving the
 -- team deletes the member's rows. Several rows per member. No foreign key to public.users, for the same
 -- reason member_profiles has none.
 --

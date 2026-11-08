@@ -12,7 +12,7 @@ import com.github.zzave.teambalance.api.domain.port.PaymentAliasRepository
 import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
 
 /**
- * A member's payment aliases (ADR-0045). Only the member who owns them and a team Admin may read or
+ * A member's payment aliases (ADR-0046). Only the member who owns them and a team Admin may read or
  * write them; there is no way to read another member's alias without that, and the aliases never
  * leave this service except to the owner or an Admin (the money pool reads them through [PaymentAliasRepository]
  * to attribute payments and returns only the member id).
@@ -37,7 +37,7 @@ class PaymentAliasService(
 
     /**
      * An omitted [name] keeps the stored name, a blank one removes it, another replaces it. The IBAN is write-only
-     * (ADR-0045), so the caller cannot send back the stored one: no [iban] keeps it, a new one replaces it, [clearIban]
+     * (ADR-0046), so the caller cannot send back the stored one: no [iban] keeps it, a new one replaces it, [clearIban]
      * removes it; both together are refused.
      */
     @Suppress("LongParameterList")

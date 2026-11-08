@@ -2,7 +2,7 @@ package com.github.zzave.teambalance.api.domain.model
 
 import com.github.zzave.teambalance.api.domain.exception.InvalidPaymentAliasException
 
-/** Builds the alias a "That's mine" claim stores from a payment's counterparty (ADR-0045). */
+/** Builds the alias a "That's mine" claim stores from a payment's counterparty (ADR-0046). */
 object PaymentClaim {
     /**
      * [useName] and [useIban] say which parts to keep; null means the default, both. A name that cannot be an alias

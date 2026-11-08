@@ -148,7 +148,8 @@ is routing, one pure selector, and presentational components.
 - **`teamRoutes` no longer needs a `profile` destination**, and the BottomNav's Profile tab stops
   depending on the slug. The other tabs (Events/Team/Money) would collapse to `/` when teamless and
   only route back to where the caller is parked, so a teamless bar (no slug in the path, no Active
-  Team) shows the Profile tab alone. They are left out, not disabled, the same way the Money tab is
+  Team) shows the Profile tab alone, as does `/t/:slug/get-started`, where a not-yet-onboarded
+  member's team tabs redirect back. They are left out, not disabled, the same way the Money tab is
   left out when a team switches the pool off (ADR-0042). *(Amended 2026-11-08; originally the teamless
   bar kept all four tabs pointing at `/`.) The sign-in routes render no bar at all.*
 - **One new e2e seam.** Logout from a teamless (or mid-onboarding) session is a path the login and

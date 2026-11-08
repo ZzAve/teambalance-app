@@ -160,6 +160,19 @@ export const Teamless: Story = {
   },
 }
 
+// A member who has not onboarded yet is parked on get-started: the team routes redirect back here,
+// so the bar shows Profile alone, as for a teamless caller. Same picture as Teamless.
+export const GetStarted: Story = {
+  parameters: {
+    router: { initialEntries: ['/t/setpoint-vt/get-started'] },
+    chromatic: { disableSnapshot: true },
+  },
+  play: async ({ canvas }) => {
+    await expect(canvas.getAllByRole('link')).toHaveLength(1)
+    await expect(canvas.getByRole('link', { name: 'Profile' })).toHaveAttribute('href', '/account')
+  },
+}
+
 // A team that switched its money pool off has no Money tab; the other three stay (ADR-0042).
 export const MoneyOff: Story = {
   parameters: {

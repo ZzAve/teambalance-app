@@ -81,13 +81,14 @@ class PaymentAliasService(
         iban = iban?.takeIf(String::isNotBlank)?.let(Iban::parse),
     )
 
-    // Owner: any active member of the team. Anyone else: an Admin, and the owner must be a member (404 otherwise).
+    // Owner: themselves. Anyone else: an Admin. Either way the owner must have a team_members row (404 otherwise),
+    // which a Platform Admin acting as the team does not: their Virtual Member must not hold aliases.
     fun requireMayManage(callerId: UserId, teamId: TeamId, ownerId: UserId) {
         if (callerId == ownerId) {
             authorizationService.requireMember(callerId, teamId)
         } else {
             authorizationService.requireAdmin(callerId, teamId)
-            teamMemberRepository.findRole(teamId, ownerId) ?: throw MemberNotFoundException(ownerId)
         }
+        teamMemberRepository.findRole(teamId, ownerId) ?: throw MemberNotFoundException(ownerId)
     }
 }

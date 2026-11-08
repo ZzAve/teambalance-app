@@ -7,8 +7,8 @@ VALUES ('d0000000-0000-0000-0000-000000000001', 'VC De Smashers', 'de-smashers',
 ON CONFLICT DO NOTHING;
 
 INSERT INTO public.users (id, email, display_name)
-VALUES ('d0000000-0000-0000-0000-000000000011', 'sanne@demo.teambalance.nl', 'Sanne'),
-       ('d0000000-0000-0000-0000-000000000012', 'kees@demo.teambalance.nl', 'Coach Kees')
+VALUES ('d0000000-0000-0000-0000-000000000011', 'sanne@demo.teambalance.nl', 'Sanne Visser'),
+       ('d0000000-0000-0000-0000-000000000012', 'kees@demo.teambalance.nl', 'Kees de Vries')
 ON CONFLICT DO NOTHING;
 
 -- onboarded_at is stamped so the guest skips the /welcome gate and lands on events.
@@ -28,7 +28,7 @@ VALUES (
 )
 ON CONFLICT (id) DO UPDATE SET onboarded_at = EXCLUDED.onboarded_at;
 
--- Ten more players (fictional names). Together with Sanne and Coach Kees the roster is 12.
+-- Ten more players (fictional names). Together with Sanne and Kees the roster is 12.
 INSERT INTO public.users (id, email, display_name)
 VALUES ('d0000000-0000-0000-0001-000000000001', 'lotte@demo.teambalance.nl', 'Lotte Hendriks'),
        ('d0000000-0000-0000-0001-000000000002', 'daan@demo.teambalance.nl', 'Daan Bosman'),
@@ -56,10 +56,10 @@ VALUES ('d0000000-0000-0000-0002-000000000001', 'Spelverdeler'),
        ('d0000000-0000-0000-0002-000000000005', 'Libero')
 ON CONFLICT DO NOTHING;
 
--- The profile holds the name, position and shirt number a member has in this team. Coach Kees plays no position.
+-- The profile holds the name, position and shirt number a member has in this team. Kees (the coach) plays no position.
 INSERT INTO team_de_smashers.member_profiles (user_id, display_name, position_id, shirt_number)
-VALUES ('d0000000-0000-0000-0000-000000000011', 'Sanne', 'd0000000-0000-0000-0002-000000000002', 7),
-       ('d0000000-0000-0000-0000-000000000012', 'Coach Kees', NULL, NULL),
+VALUES ('d0000000-0000-0000-0000-000000000011', 'Sanne Visser', 'd0000000-0000-0000-0002-000000000002', 7),
+       ('d0000000-0000-0000-0000-000000000012', 'Kees de Vries', NULL, NULL),
        ('d0000000-0000-0000-0001-000000000001', 'Lotte Hendriks', 'd0000000-0000-0000-0002-000000000001', 1),
        ('d0000000-0000-0000-0001-000000000002', 'Daan Bosman', 'd0000000-0000-0000-0002-000000000001', 9),
        ('d0000000-0000-0000-0001-000000000003', 'Femke de Boer', 'd0000000-0000-0000-0002-000000000002', 4),
@@ -137,5 +137,6 @@ ON CONFLICT (event_id, substitute_id) DO NOTHING;
 
 -- The pool's top-up link. The demo build's Top up button opens the in-app demo page instead of following it; the
 -- value only has to be a bunq.me page, which the API and the SPA both require. MoneyPoolService refuses to change it.
+-- The beer price (as in demo_data.sql) makes the pool card show its beer counter.
 -- The Bunq connection is written by DemoTeamSeeder: its grant is encrypted for this team, which SQL cannot do.
-UPDATE team_de_smashers.money_pool_settings SET bunq_me_link = 'https://bunq.me/demo' WHERE id = 1;
+UPDATE team_de_smashers.money_pool_settings SET bunq_me_link = 'https://bunq.me/demo', beer_price_cents = 270 WHERE id = 1;

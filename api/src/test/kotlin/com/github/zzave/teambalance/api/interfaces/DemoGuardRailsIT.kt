@@ -94,10 +94,10 @@ class DemoGuardRailsIT : TeamBalanceIT() {
         }
 
         test("demoting Coach Kees and promoting Sanne are refused with 403") {
-            update(KEES, KEES, "Coach Kees", "USER")
+            update(KEES, KEES, "Kees de Vries", "USER")
                 .andExpect(MockMvcResultMatchers.status().isForbidden)
                 .andExpect(MockMvcResultMatchers.jsonPath("$.code").value("DEMO_PERSONA_PROTECTED"))
-            update(KEES, SANNE, "Sanne", "ADMIN")
+            update(KEES, SANNE, "Sanne Visser", "ADMIN")
                 .andExpect(MockMvcResultMatchers.status().isForbidden)
                 .andExpect(MockMvcResultMatchers.jsonPath("$.code").value("DEMO_PERSONA_PROTECTED"))
             role(DEMO_TEAM, KEES) shouldBe "ADMIN"
@@ -134,7 +134,7 @@ class DemoGuardRailsIT : TeamBalanceIT() {
         }
 
         test("a persona can still be edited without a role change") {
-            update(KEES, SANNE, "Sanne", "USER").andExpect(MockMvcResultMatchers.status().isOk)
+            update(KEES, SANNE, "Sanne Visser", "USER").andExpect(MockMvcResultMatchers.status().isOk)
         }
 
         test("any other member of the demo team can still be removed") {
@@ -158,7 +158,7 @@ class DemoGuardRailsIT : TeamBalanceIT() {
                 )
             }
 
-            update(OTHER_ADMIN, KEES, "Coach Kees", "USER").andExpect(MockMvcResultMatchers.status().isOk)
+            update(OTHER_ADMIN, KEES, "Kees de Vries", "USER").andExpect(MockMvcResultMatchers.status().isOk)
             remove(OTHER_ADMIN, SANNE).andExpect(MockMvcResultMatchers.status().isNoContent)
             active(OTHER_TEAM, SANNE) shouldBe false
             role(OTHER_TEAM, KEES) shouldBe "USER"

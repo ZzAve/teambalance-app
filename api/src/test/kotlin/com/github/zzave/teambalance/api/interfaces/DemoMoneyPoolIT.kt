@@ -39,9 +39,9 @@ class DemoMoneyPoolIT : TeamBalanceIT() {
     lateinit var jdbcTemplate: JdbcTemplate
 
     init {
-        // The demo schema is shared with the other ITs; the seed has no beer price.
+        // The demo schema is shared with the other ITs: put the seeded beer price back.
         afterSpec {
-            jdbcTemplate.update("UPDATE ${DemoPersona.SCHEMA}.money_pool_settings SET beer_price_cents = NULL WHERE id = 1")
+            jdbcTemplate.update("UPDATE ${DemoPersona.SCHEMA}.money_pool_settings SET beer_price_cents = 270 WHERE id = 1")
         }
 
         test("the guest reads the seeded connection: the fake Bunq's balance and payments, and a top-up link") {

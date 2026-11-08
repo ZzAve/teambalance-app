@@ -11,10 +11,17 @@ test.use({ storageState: { cookies: [], origins: [] } })
 
 test('demo guest login: /demo -> Sanne -> answer Going -> the answer persists', async ({ page }) => {
   await page.goto('/demo')
+  // No one is signed in on the picker (or the top-up page): no tab bar.
+  await expect(page.getByRole('button', { name: 'Play as Sanne (player)' })).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Profile' })).toHaveCount(0)
+  await page.goto('/demo-top-up')
+  await expect(page.getByRole('link', { name: 'Profile' })).toHaveCount(0)
+  await page.goto('/demo')
   await page.getByRole('button', { name: 'Play as Sanne (player)' }).click()
 
   await expect(page).toHaveURL(/\/t\/de-smashers/, { timeout: 10_000 })
   await expect(page.getByRole('heading', { name: 'Events' })).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Profile' })).toBeVisible()
 
   await page.getByRole('link', { name: 'Training' }).first().click()
   const response = page.getByRole('group', { name: 'Your response' })

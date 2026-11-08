@@ -1,1 +1,0 @@
-import{n as e}from"./rolldown-runtime-sJBDdmOt.js";import{k as t,y as n}from"./iframe-CIwOtWTC.js";function r(e){let n=e.trim();return n===``?{value:null,error:null}:!/^\d+$/.test(n)||Number(n)>i?{value:null,error:t.t(`profileForm.shirtRange`,{max:i})}:{value:Number(n),error:null}}var i;function a(){return(a=e((()=>{n(),i=999})))()}export{r as n,a as t};

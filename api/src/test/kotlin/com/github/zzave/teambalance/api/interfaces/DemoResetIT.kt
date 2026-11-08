@@ -197,6 +197,15 @@ class DemoResetIT : TeamBalanceIT() {
         val schema = DemoPersona.SCHEMA
         count("SELECT count(*) FROM public.team_members WHERE team_id = '${DemoPersona.TEAM_ID.value}'::uuid AND active") shouldBe 12
         count("SELECT count(*) FROM $schema.positions") shouldBe 5
+        count("SELECT count(*) FROM $schema.money_pool_settings WHERE beer_price_cents = 270") shouldBe 1
+        // The personas carry full names, the same in the account and in the team profile.
+        val personas = "'${DemoPersona.MEMBER.userId.value}', '${DemoPersona.ADMIN.userId.value}'"
+        jdbcTemplate.queryForList("SELECT display_name FROM public.users WHERE id IN ($personas) ORDER BY 1", String::class.java) shouldBe
+            listOf("Kees de Vries", "Sanne Visser")
+        jdbcTemplate.queryForList(
+            "SELECT display_name FROM $schema.member_profiles WHERE user_id IN ($personas) ORDER BY 1",
+            String::class.java,
+        ) shouldBe listOf("Kees de Vries", "Sanne Visser")
         // Every member but the coach plays a position.
         count("SELECT count(*) FROM $schema.member_profiles WHERE position_id IS NOT NULL") shouldBe 11
         count("SELECT count(*) FROM $schema.events WHERE start_time < now()") shouldBe 2

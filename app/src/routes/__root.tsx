@@ -12,6 +12,7 @@ import { PasskeyPrompt } from '@features/passkey-prompt/ui/PasskeyPrompt'
 import { DemoBanner } from '@widgets/demo-banner/ui/DemoBanner'
 import { LOGIN_PATH } from '@shared/api/auth-redirect'
 import { IS_DEMO_BUILD } from '@shared/lib/demo-build'
+import { hidesBottomNav } from '@shared/lib/signed-out-routes'
 import { queryClient } from '@shared/api/query-client'
 import { directionFromIndices } from '@shared/lib/view-transition-direction'
 import { useThemeSync } from '@shared/theme/theme-store'
@@ -111,7 +112,7 @@ function RootLayout() {
             {IS_DEMO_BUILD && <DemoBanner />}
             <ActAsBanner />
           </>
-        } nav={<BottomNav />}>
+        } nav={hidesBottomNav(pathname) ? null : <BottomNav />}>
         <Outlet />
       </AppShellFrame>
       {/* App-wide toast primitive. richColors gives the error toast a semantic red; `theme` is the

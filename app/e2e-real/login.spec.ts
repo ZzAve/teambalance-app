@@ -32,4 +32,8 @@ test('magic-link login: request → verify → lands on events', async ({ page, 
 
   // 4. Verified session lands on the events list (tenant schema resolved from membership)
   await expect(page.getByRole('heading', { name: 'Events' })).toBeVisible({ timeout: 10_000 })
+
+  // 5. The bottom nav shows each tab once, even though /me has just loaded (the tabs share the
+  // dispatcher `/` until the slug is known; a key built from the target duplicated them).
+  await expect(page.getByRole('navigation').getByRole('link')).toHaveCount(4)
 })

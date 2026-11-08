@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
-import { expect, within } from 'storybook/test'
+import { expect, userEvent, within } from 'storybook/test'
 import type { Payment } from '@shared/api/money-pool'
 import { Button } from '@shared/ui/button'
 import { Stack } from '@shared/testing/stack'
@@ -7,18 +7,30 @@ import { darkMode } from '../../../../.storybook/modes'
 import { MoneyPoolView } from './MoneyPoolView'
 
 // MoneyPoolView is the prop-only money pool behind the MoneyPool container, so every state renders
-// without a network (ADR-0017). It has no callbacks of its own: the top-up button is a slot, and the
-// sheet behind it has its own stories, so there is no Interactions story.
+// without a network (ADR-0017). It has no callback props: the top-up button is a slot, and the
+// payment list's "Show all" is state inside the connected pool, so Interactions asserts the rendered
+// result instead of a spy.
 //
-// Two-story shape (ADR-0032 §1):
-//   1. Data — the connected pool: balance and payment list.
+// Three-story shape (ADR-0032 §1):
+//   1. Data — the connected pool: balance, In and Spent totals, graph and payment list.
 //   2. Shells — every other state stacked: loading, error, off, not connected (member and admin),
 //      unavailable, rejected (member, admin, admin with connecting off), top-up with and without a link (the admin's hint only on a connected pool), and connected edge cases (no payments, same-day duplicates, missing balance, no beer price, an empty pool).
+//   3. Interactions — expand and collapse the payment list past its first 15.
 const PAYMENTS: Payment[] = [
   { id: '1005', date: '2026-10-06', name: 'Lisa de Vries', amount: 2000, direction: 'In', receiptVersion: undefined },
   { id: '1006', date: '2026-10-04', name: 'Sporthal De Kuil', amount: 4500, direction: 'Out', receiptVersion: 'a1b2' },
   { id: '1007', date: '2026-09-29', name: 'Tom Bakker', amount: 1000, direction: 'In', receiptVersion: undefined },
 ]
+
+// 18 payments, newest first, alternating In and Out, for the 15-row cut-off.
+const MANY_PAYMENTS: Payment[] = Array.from({ length: 18 }, (_, i) => ({
+  id: String(2000 + i),
+  receiptVersion: undefined,
+  date: `2026-10-${String(20 - i).padStart(2, '0')}`,
+  name: `Payment ${i + 1}`,
+  amount: 1000 + i * 100,
+  direction: i % 3 === 0 ? 'Out' : 'In',
+}))
 
 const meta = {
   title: 'widgets/money-pool/MoneyPoolView',
@@ -32,6 +44,7 @@ const meta = {
     payments: PAYMENTS,
     beerPrice: 270,
     beerCount: 69,
+    seasonSet: true,
     canTopUp: true,
     topUp: <Button size="lg">Top up</Button>,
     receipt: (expense: Payment) => <Button size="icon">{`Receipt ${expense.name}`}</Button>,
@@ -46,16 +59,23 @@ export const Data: Story = {
   // MoneyPageView's Data owns the connected picture (ADR-0032 §3).
   parameters: { chromatic: { disableSnapshot: true } },
   play: async ({ canvas }) => {
-    await expect(within(canvas.getByRole('region', { name: 'Balance' })).getByText(/187\.50/)).toBeInTheDocument()
-    const beers = within(canvas.getByRole('region', { name: 'Beer Counter' }))
-    await expect(beers.getByText('69 beers')).toBeInTheDocument()
+    const balance = within(canvas.getByRole('region', { name: 'Balance' }))
+    await expect(balance.getByText('Pool balance')).toBeInTheDocument()
+    await expect(balance.getByText('This season')).toBeInTheDocument()
+    await expect(balance.getByText(/^€187\.50$/)).toBeInTheDocument()
+    // In and Spent are totals over the payments listed: 20 + 10 in, 45 out.
+    await expect(balance.getByText('In').nextElementSibling).toHaveTextContent(/30\.00/)
+    await expect(balance.getByText('Spent').nextElementSibling).toHaveTextContent(/45\.00/)
+    // The graph is a static image whose name carries the summary.
+    await expect(balance.getByRole('img', { name: /The pot went from .*to .*187\.50 on 6 Oct/ })).toBeInTheDocument()
+    await expect(balance.queryByRole('slider')).not.toBeInTheDocument()
+    // The beer counter lives inside the balance card.
+    const beers = within(balance.getByRole('group', { name: 'Beer Counter' }))
     await expect(beers.getByText(/The pool balance covers 69 beers at .*2\.70 each\./)).toBeInTheDocument()
-    // The button sits between the Balance card and the Beer Counter.
+    // The button follows the Balance card.
     const topUp = canvas.getByRole('button', { name: 'Top up' })
     const balanceCard = canvas.getByRole('region', { name: 'Balance' })
-    const beerCard = canvas.getByRole('region', { name: 'Beer Counter' })
     await expect(balanceCard.compareDocumentPosition(topUp) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
-    await expect(topUp.compareDocumentPosition(beerCard) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     const payments = within(canvas.getByRole('region', { name: 'Payments' }))
     await expect(payments.getByText('Lisa de Vries')).toBeInTheDocument()
     await expect(payments.getAllByText(/Incoming/)).toHaveLength(2)
@@ -99,6 +119,7 @@ export const Shells: Story = {
         'No link (admin, not connected)': <MoneyPoolView {...args} state="NotConnected" canTopUp={false} isAdmin connectAvailable />,
         'No link (admin, unavailable)': <MoneyPoolView {...args} state="Unavailable" canTopUp={false} isAdmin />,
         'No link (admin, rejected)': <MoneyPoolView {...args} state="Rejected" canTopUp={false} isAdmin connectAvailable />,
+        'No season': <MoneyPoolView {...args} seasonSet={false} />,
         'No payments': <MoneyPoolView {...args} payments={[]} />,
         'Same-day duplicates': <MoneyPoolView {...args} payments={[PAYMENTS[0], { ...PAYMENTS[0], id: '1008' }]} />,
         'Missing balance': <MoneyPoolView {...args} balance={undefined} />,
@@ -153,9 +174,32 @@ export const Shells: Story = {
       await expect(region(name).queryByRole('button', { name: 'Top up' })).not.toBeInTheDocument()
     }
     await expect(region('No payments').getByText('No payments in this period.')).toBeInTheDocument()
+    await expect(region('No season').getByText('Last 90 days')).toBeInTheDocument()
+    await expect(region('No payments').queryByRole('img')).not.toBeInTheDocument()
     await expect(region('Same-day duplicates').getAllByText('Lisa de Vries')).toHaveLength(2)
     await expect(region('Missing balance').getByText(/couldn't load/i)).toBeInTheDocument()
-    await expect(region('No beer price').queryByRole('region', { name: 'Beer Counter' })).not.toBeInTheDocument()
-    await expect(within(region('Empty pool').getByRole('region', { name: 'Beer Counter' })).getByText('0 beers')).toBeInTheDocument()
+    await expect(region('No beer price').queryByRole('group', { name: 'Beer Counter' })).not.toBeInTheDocument()
+    await expect(within(region('Empty pool').getByRole('group', { name: 'Beer Counter' })).getByText(/covers 0 beers/)).toBeInTheDocument()
+  },
+}
+
+export const Interactions: Story = {
+  args: { payments: MANY_PAYMENTS, balance: 50000 },
+  parameters: { chromatic: { disableSnapshot: true } },
+  play: async ({ canvas }) => {
+    const payments = within(canvas.getByRole('region', { name: 'Payments' }))
+
+    // The list stops at 15; the same button expands it and collapses it again, and keeps focus.
+    await expect(payments.getAllByRole('listitem')).toHaveLength(15)
+    const toggle = payments.getByRole('button', { name: 'Show all 18 payments' })
+    await expect(toggle).toHaveAttribute('aria-expanded', 'false')
+    await userEvent.click(toggle)
+    await expect(payments.getAllByRole('listitem')).toHaveLength(18)
+    await expect(toggle).toHaveTextContent('Show fewer')
+    await expect(toggle).toHaveAttribute('aria-expanded', 'true')
+    await expect(toggle).toHaveFocus()
+    await userEvent.click(toggle)
+    await expect(payments.getAllByRole('listitem')).toHaveLength(15)
+    await expect(toggle).toHaveFocus()
   },
 }

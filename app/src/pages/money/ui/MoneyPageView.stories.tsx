@@ -70,7 +70,7 @@ export const Data: Story = {
     }
     await expect(canvas.getByRole('heading', { name: 'Money' })).toBeInTheDocument()
     await expect(canvas.getByText('Lisa de Vries')).toBeInTheDocument()
-    await expect(canvas.getByText('69 beers')).toBeInTheDocument()
+    await expect(canvas.getByText(/covers 69 beers/)).toBeInTheDocument()
     await expect(canvas.getByRole('button', { name: 'Top up' })).toBeInTheDocument()
     await expect(canvas.getByRole('button', { name: 'Receipt for Sporthal De Kuil' })).toBeInTheDocument()
     await expect(canvas.getByRole('link', { name: 'Money' })).toHaveAttribute('aria-current', 'page')

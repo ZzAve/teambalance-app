@@ -506,7 +506,18 @@
     "payments": "Payments",
     "noPayments": "No payments in this period.",
     "incoming": "Incoming",
-    "outgoing": "Outgoing"
+    "outgoing": "Outgoing",
+    "totalIn": "In",
+    "totalSpent": "Spent",
+    "thisSeason": "This season",
+    "last90Days": "Last 90 days",
+    "showAll_one": "Show all {{count}} payment",
+    "showAll_other": "Show all {{count}} payments",
+    "showFewer": "Show fewer",
+    "beersInPot_one": "beer in the pot",
+    "beersInPot_other": "beers in the pot",
+    "beerEach": "{{price}} each",
+    "graphSummary": "The pot went from {{from}} on {{fromDate}} to {{to}} on {{toDate}}"
   },
   "moneySettings": {
     "title": "Money pool",

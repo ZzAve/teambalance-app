@@ -497,3 +497,32 @@ main {
     inset-inline: 0;
   }
 }
+
+/* Beer counter in the money balance card: the number counts up on every mount. `--beer-n` is set inline to
+   the real value; only `.beer-count-up` animates it, and ConnectedMoneyPool adds that class only when
+   `CSS.registerProperty` exists (@property supported), so older browsers show the final number with no
+   0-then-jump. The CSS counter shows ungrouped digits (1000, not the sr-only "1.000"); accepted. */
+@property --beer-n {
+  syntax: '<integer>';
+  inherits: false;
+  initial-value: 0;
+}
+.beer-count {
+  counter-reset: beer var(--beer-n);
+}
+.beer-count-up {
+  animation: beer-count 700ms ease-out;
+}
+.beer-count::before {
+  content: counter(beer);
+}
+@keyframes beer-count {
+  from {
+    --beer-n: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .beer-count-up {
+    animation: none;
+  }
+}

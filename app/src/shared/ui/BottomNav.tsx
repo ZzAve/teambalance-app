@@ -6,6 +6,8 @@ import { useTranslation } from 'react-i18next'
 import { i18n } from '@shared/i18n/i18n'
 
 interface TabConfig {
+  // Stable React key, independent of the language (label) and the slug (`to` is `/` for Events, Team and Money until /me loads).
+  id: 'events' | 'team' | 'money' | 'profile'
   icon: LucideIcon
   label: string
   to: string
@@ -22,18 +24,19 @@ function tabsFor(routes: TeamRoutes, showMoney: boolean): TabConfig[] {
   const prefix = (path: string) => (p: string) => p === path || p.startsWith(`${path}/`)
   return [
     {
+      id: 'events',
       icon: Calendar,
       label: i18n.t('nav.events'),
       to: routes.events,
       isActive: (p) =>
         exact(routes.events)(p) || prefix(`${routes.events}/events`)(p) || prefix(routes.calendar)(p),
     },
-    { icon: Users, label: i18n.t('nav.team'), to: routes.team, isActive: prefix(routes.team) },
-    ...(showMoney ? [{ icon: PiggyBank, label: i18n.t('nav.money'), to: routes.money, isActive: prefix(routes.money) }] : []),
+    { id: 'team', icon: Users, label: i18n.t('nav.team'), to: routes.team, isActive: prefix(routes.team) },
+    ...(showMoney ? [{ id: 'money' as const, icon: PiggyBank, label: i18n.t('nav.money'), to: routes.money, isActive: prefix(routes.money) }] : []),
     // Profile points at the team-independent /account (ADR-0027 §1) — a constant, not a slug-built
     // destination — so it resolves and logout stays reachable on every in-shell screen, teamless
     // and mid-onboarding included.
-    { icon: User, label: i18n.t('nav.profile'), to: ACCOUNT_PATH, isActive: prefix(ACCOUNT_PATH) },
+    { id: 'profile', icon: User, label: i18n.t('nav.profile'), to: ACCOUNT_PATH, isActive: prefix(ACCOUNT_PATH) },
   ]
 }
 
@@ -54,11 +57,11 @@ export function BottomNav() {
       style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
     >
       <div className="mx-auto flex max-w-2xl items-center justify-around px-2 py-1">
-        {TABS.map(({ icon: Icon, label, to, isActive }) => {
+        {TABS.map(({ id, icon: Icon, label, to, isActive }) => {
           const active = isActive(pathname)
           return (
             <Link
-              key={to}
+              key={id}
               to={to}
               className={[
                 'flex flex-col items-center gap-0.5 px-4 py-2 text-caption transition-colors',

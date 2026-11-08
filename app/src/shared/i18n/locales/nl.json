@@ -715,10 +715,15 @@
       "checkEmail": "Check je e-mail",
       "sent": "Als er een account bestaat voor <b>{{email}}</b>, hebben we je een inloglink gestuurd. Klik erop om verder te gaan.",
       "openEmailApp": "Open je e-mailapp →",
-      "intro": "Log in met je e-mailadres — geen wachtwoord nodig.",
+      "intro": "Log in of maak een account met je e-mailadres. Daarna kun je meteen een passkey toevoegen.",
       "emailPlaceholder": "jij@voorbeeld.nl",
       "sending": "Versturen...",
-      "send": "Stuur inloglink"
+      "send": "Stuur inloglink",
+      "or": "of",
+      "passkey": "Inloggen met een passkey",
+      "passkeyFailed": "Inloggen met een passkey is niet gelukt. Gebruik je e-maillink.",
+      "lastUsed": "Laatst",
+      "lastUsedHint": "Zo heb je de vorige keer op dit apparaat ingelogd"
     }
   },
   "invite": {
@@ -1045,5 +1050,33 @@
       "unavailable": "Bunq koppelen is nu niet beschikbaar.",
       "openFailed": "Bunq openen is mislukt. Probeer het opnieuw."
     }
+  },
+  "passkeys": {
+    "title": "Passkeys",
+    "hint": "Log in met je gezicht, vingerafdruk of toestelcode in plaats van een e-maillink.",
+    "add": "Passkey toevoegen",
+    "adding": "Wachten op je toestel...",
+    "empty": "Nog geen passkeys.",
+    "labelDevice": "Dit toestel",
+    "labelKey": "Beveiligingssleutel",
+    "added": "Toegevoegd {{date}}",
+    "lastUsed": "Laatst gebruikt {{date}}",
+    "neverUsed": "Nog niet gebruikt",
+    "remove": "Verwijderen",
+    "removeTitle": "Deze passkey verwijderen?",
+    "removeHint": "Je kunt er dan niet meer mee inloggen. Je e-maillink blijft werken.",
+    "loadFailed": "Je passkeys konden niet geladen worden.",
+    "unsupported": "Deze browser ondersteunt geen passkeys.",
+    "error": {
+      "cancelled": "Geannuleerd.",
+      "alreadyRegistered": "Dit toestel heeft al een passkey voor dit account.",
+      "failed": "Dat is niet gelukt. Probeer het opnieuw."
+    }
+  },
+  "passkeyPrompt": {
+    "text": "Passkey toevoegen en de volgende keer de e-mail overslaan?",
+    "add": "Passkey toevoegen",
+    "notNow": "Nu niet",
+    "adding": "Wachten op je toestel..."
   }
 }

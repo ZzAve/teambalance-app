@@ -2,7 +2,7 @@ package com.github.zzave.teambalance.api.infrastructure.config
 
 import com.github.zzave.teambalance.api.TeamBalanceIT
 import com.github.zzave.teambalance.api.infrastructure.email.FakeEmailGateway
-import io.kotest.matchers.collections.shouldBeEmpty
+import io.kotest.matchers.collections.shouldContainExactly
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
@@ -86,8 +86,10 @@ class SecurityChainIT : TeamBalanceIT() {
             ).status shouldBe 403
         }
 
-        test("no in-memory user is configured: the session is the only way in") {
-            applicationContext.getBeanNamesForType(UserDetailsService::class.java).toList().shouldBeEmpty()
+        test("no in-memory user is configured: the only UserDetailsService is the passkey one, which has no password") {
+            // Spring's WebAuthn configurer demands one (ADR-0045); Boot would otherwise generate a user with a password.
+            applicationContext.getBeanNamesForType(UserDetailsService::class.java).toList() shouldContainExactly
+                listOf("passkeyUserDetailsAdapter")
         }
 
         test("a mutating request without the CSRF token is refused, and the session survives it") {

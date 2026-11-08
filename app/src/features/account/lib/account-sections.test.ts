@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { AuthenticatedUser } from '@shared/api/auth'
 import { accountSections } from './account-sections'
 
@@ -18,6 +18,7 @@ function user(overrides: Partial<AuthenticatedUser> = {}): AuthenticatedUser {
     personalPhotoVersion: undefined,
     moneyPoolEnabled: undefined,
     language: undefined,
+    passkeyCount: 0,
     ...overrides,
   }
 }
@@ -36,22 +37,22 @@ describe('accountSections', () => {
   })
 
   it('teamless: email, photo, appearance, language, teams, log out — no name/position, no admin', () => {
-    expect(accountSections(user())).toEqual(['email', 'photo', 'appearance', 'language', 'teams', 'logout'])
+    expect(accountSections(user())).toEqual(['email', 'passkeys', 'photo', 'appearance', 'language', 'teams', 'logout'])
   })
 
   it('single team: adds display name + position', () => {
     const sections = accountSections(user({ teams: [TEAM], activeTeam: TEAM, role: 'MEMBER' }))
-    expect(sections).toEqual(['email', 'photo', 'displayName', 'position', 'appearance', 'language', 'teams', 'logout'])
+    expect(sections).toEqual(['email', 'passkeys', 'photo', 'displayName', 'position', 'appearance', 'language', 'teams', 'logout'])
   })
 
   it('multi team with one active is the same as single team (the switcher lives in Teams)', () => {
     const sections = accountSections(user({ teams: [TEAM, OTHER_TEAM], activeTeam: TEAM, role: 'MEMBER' }))
-    expect(sections).toEqual(['email', 'photo', 'displayName', 'position', 'appearance', 'language', 'teams', 'logout'])
+    expect(sections).toEqual(['email', 'passkeys', 'photo', 'displayName', 'position', 'appearance', 'language', 'teams', 'logout'])
   })
 
   it('multi team with none active hides name/position (no Active Team yet)', () => {
     const sections = accountSections(user({ teams: [TEAM, OTHER_TEAM] }))
-    expect(sections).toEqual(['email', 'photo', 'appearance', 'language', 'teams', 'logout'])
+    expect(sections).toEqual(['email', 'passkeys', 'photo', 'appearance', 'language', 'teams', 'logout'])
   })
 
   it('platform admin adds the platform-admin section', () => {
@@ -66,6 +67,7 @@ describe('accountSections', () => {
     )
     expect(sections).toEqual([
       'email',
+      'passkeys',
       'photo',
       'displayName',
       'position',
@@ -75,5 +77,14 @@ describe('accountSections', () => {
       'platformAdmin',
       'logout',
     ])
+  })
+
+  describe('in the demo build', () => {
+    afterEach(() => vi.unstubAllEnvs())
+
+    it('has no passkeys section: guests share one persona', () => {
+      vi.stubEnv('VITE_NO_PASSKEYS', '1')
+      expect(accountSections(user())).not.toContain('passkeys')
+    })
   })
 })

@@ -8,6 +8,7 @@ import { BottomNav } from '@shared/ui/BottomNav'
 import { authMeQueryOptions } from '@shared/api/auth'
 import { TeamSwitcher } from '@features/switch-team/ui/TeamSwitcher'
 import { ActAsBanner } from '@features/act-as/ui/ActAsBanner'
+import { PasskeyPrompt } from '@features/passkey-prompt/ui/PasskeyPrompt'
 import { queryClient } from '@shared/api/query-client'
 import { directionFromIndices } from '@shared/lib/view-transition-direction'
 import { useThemeSync } from '@shared/theme/theme-store'
@@ -95,6 +96,7 @@ function RootLayout() {
   // after it. The returned value is the resolved theme, which sonner needs as a prop.
   const theme = useThemeSync()
   const { t } = useTranslation()
+  const pathname = useRouterState({ select: (s) => s.location.pathname })
 
   return (
     <Providers>
@@ -110,6 +112,9 @@ function RootLayout() {
       {/* Service-worker update lifecycle (caching plan Phase 3): auto-applies a new version by
           default and only shows a reload prompt when a deploy lands mid-session with unsaved work. */}
       <SwUpdateManager />
+      {/* Offers a passkey to a signed-in person who has none (ADR-0045); not on the sign-in routes, and not on
+          /account, whose Passkeys section already offers it and whose Log out row the prompt would cover. */}
+      {!isAuthRoute(pathname) && pathname !== '/account' && <PasskeyPrompt />}
     </Providers>
   )
 }

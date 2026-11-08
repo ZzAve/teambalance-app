@@ -25,6 +25,9 @@ test.use({ storageState: { cookies: [], origins: [] } })
 
 /** Signs an email in through the real magic-link flow, leaving the session on `page`. */
 async function signIn(page: Page, email: string) {
+  // The add-a-passkey prompt (ADR-0045) floats over the bottom of the page and blocks clicks on the settings
+  // page's lower rows; this spec is not about passkeys, so this device has already said "not now".
+  await page.addInitScript(() => localStorage.setItem('tb.pref.passkey-prompt-dismissed', 'true'))
   const requested = await page.request.post('/api/auth/magic-link/request', { data: { email } })
   expect(requested.status()).toBe(202)
   const tokenResponse = await page.request.get(`${BACKEND_URL}/internal/e2e/magic-link-token`, { params: { email } })

@@ -1,5 +1,7 @@
 package com.github.zzave.teambalance.api.infrastructure.config
 
+import com.github.zzave.teambalance.api.infrastructure.identity.PasskeySignInSuccessHandler
+import com.github.zzave.teambalance.api.infrastructure.identity.ShortLivedChallengeRepositoryAdapter
 import com.github.zzave.teambalance.api.infrastructure.identity.SessionUserContextFilter
 import com.github.zzave.teambalance.api.infrastructure.multitenancy.CalendarFeedTenantFilter
 import com.github.zzave.teambalance.api.infrastructure.multitenancy.SessionTenantContextFilter
@@ -21,6 +23,9 @@ import org.springframework.security.config.annotation.web.configurers.AuthorizeH
 import org.springframework.security.web.SecurityFilterChain
 import org.springframework.security.web.authentication.AnonymousAuthenticationFilter
 import org.springframework.security.web.authentication.HttpStatusEntryPoint
+import org.springframework.security.web.context.RequestAttributeSecurityContextRepository
+import org.springframework.security.web.webauthn.authentication.PublicKeyCredentialRequestOptionsFilter
+import org.springframework.security.web.webauthn.authentication.WebAuthnAuthenticationFilter
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository
 import org.springframework.security.web.csrf.CsrfFilter
 import org.springframework.security.web.csrf.CsrfToken
@@ -29,6 +34,7 @@ import org.springframework.security.web.servlet.util.matcher.PathPatternRequestM
 import org.springframework.security.web.util.matcher.AndRequestMatcher
 import org.springframework.security.web.util.matcher.OrRequestMatcher
 import org.springframework.web.filter.OncePerRequestFilter
+import java.net.URI
 
 /**
  * The one SecurityFilterChain (ADR-0012). It wraps the session model rather than replacing it: the
@@ -52,7 +58,13 @@ class SecurityConfig(
     @param:Value("\${teambalance.csrf.cookie-name:XSRF-TOKEN}") private val csrfCookieName: String,
     // Non-blank only in the demo container: the SPA's files are served from this same app.
     @param:Value("\${teambalance.spa.static-location:}") private val spaStaticLocation: String,
+    // Passkeys are bound to the SPA's host (the relying party id) and origin (ADR-0045).
+    @param:Value("\${teambalance.frontend-base-url}") frontendBaseUrl: String,
+    // Off in the demo container, whose guests share one persona: a passkey there would be everyone's (ADR-0045).
+    @param:Value("\${teambalance.passkeys.enabled:true}") private val passkeysEnabled: Boolean,
 ) {
+    private val frontendUri = URI(frontendBaseUrl)
+
 
     @Bean
     @Suppress("LongParameterList")
@@ -62,6 +74,7 @@ class SecurityConfig(
         sessionTenantContextFilter: SessionTenantContextFilter,
         rateLimitFilter: RateLimitFilter,
         calendarFeedTenantFilter: CalendarFeedTenantFilter,
+        passkeySignInSuccessHandler: PasskeySignInSuccessHandler,
     ): SecurityFilterChain = http
         .cors(withDefaults())
         .csrf {
@@ -76,7 +89,14 @@ class SecurityConfig(
                 // behind a demo persona.
                 .ignoringRequestMatchers(
                     AndRequestMatcher(
-                        OrRequestMatcher(post(MAGIC_LINK_REQUEST), post(MAGIC_LINK_VERIFY), post(DEMO_SESSION)),
+                        OrRequestMatcher(
+                            post(MAGIC_LINK_REQUEST),
+                            post(MAGIC_LINK_VERIFY),
+                            post(DEMO_SESSION),
+                            // Passkey sign-in is the same: pre-session, JSON only (ADR-0045).
+                            post(PASSKEY_AUTHENTICATE_OPTIONS),
+                            post(PASSKEY_LOGIN),
+                        ),
                         ::isJson,
                     ),
                 )
@@ -102,7 +122,15 @@ class SecurityConfig(
         .addFilterAfter(rateLimitFilter, SessionTenantContextFilter::class.java)
         .addFilterAfter(calendarFeedTenantFilter, RateLimitFilter::class.java)
         .addFilterAfter(CsrfCookieFilter(), CsrfFilter::class.java)
+        .addFilterBefore(PasskeyRegistrationRefusalFilter(passkeysEnabled), CsrfFilter::class.java)
+        .webAuthn {
+            it.rpId(frontendUri.host)
+                .rpName("TeamBalance")
+                .allowedOrigins("${frontendUri.scheme}://${frontendUri.authority}")
+                .disableDefaultRegistrationPage(true)
+        }
         .build()
+        .also { chain -> passkeySignIn(chain, passkeySignInSuccessHandler) }
 
     /** The demo container serves the SPA: its files answer GET without a session; the API and /internal keep their rules. */
     private fun permitSpaFiles(
@@ -134,6 +162,20 @@ class SecurityConfig(
     @Bean
     fun calendarFeedTenantFilterRegistration(filter: CalendarFeedTenantFilter) = notAServletFilter(filter)
 
+    // The app's own session is the identity (ADR-0012): the passkey login hands over to `startSession`, keeps nothing.
+    // Both filters share one challenge store, so an anonymous challenge expires in minutes, not with the session timeout.
+    private fun passkeySignIn(chain: SecurityFilterChain, successHandler: PasskeySignInSuccessHandler) {
+        val challenges = ShortLivedChallengeRepositoryAdapter()
+        chain.filters.filterIsInstance<WebAuthnAuthenticationFilter>().forEach {
+            it.setAuthenticationSuccessHandler(successHandler)
+            it.setSecurityContextRepository(RequestAttributeSecurityContextRepository())
+            it.setRequestOptionsRepository(challenges)
+        }
+        chain.filters.filterIsInstance<PublicKeyCredentialRequestOptionsFilter>().forEach {
+            it.setRequestOptionsRepository(challenges)
+        }
+    }
+
     private fun isJson(request: HttpServletRequest): Boolean =
         runCatching { MediaType.parseMediaType(request.contentType) }
             .getOrNull()
@@ -160,10 +202,23 @@ class SecurityConfig(
         }
     }
 
+    /** With passkeys switched off nobody may register one: 404, as if the feature did not exist. */
+    private class PasskeyRegistrationRefusalFilter(private val enabled: Boolean) : OncePerRequestFilter() {
+        override fun doFilterInternal(request: HttpServletRequest, response: HttpServletResponse, filterChain: FilterChain) {
+            if (!enabled && request.requestURI.startsWith("/webauthn/register")) {
+                response.status = HttpServletResponse.SC_NOT_FOUND
+            } else {
+                filterChain.doFilter(request, response)
+            }
+        }
+    }
+
     private companion object {
         const val MAGIC_LINK_REQUEST = "/api/auth/magic-link/request"
         const val MAGIC_LINK_VERIFY = "/api/auth/magic-link/verify"
         const val DEMO_SESSION = "/api/demo/session"
+        const val PASSKEY_AUTHENTICATE_OPTIONS = "/webauthn/authenticate/options"
+        const val PASSKEY_LOGIN = "/login/webauthn"
 
         /**
          * Every route that answers without a session. Checked against each controller: these are the
@@ -172,6 +227,8 @@ class SecurityConfig(
          * - under `/api/calendar/`: the webcal feed; the token in the path is the credential (ADR-0039).
          * - under `/internal/actuator/`: `InternalEndpointGuardFilter` is the boundary for these in prod.
          * - under `/internal/e2e/`: exists only under the e2e profile.
+         * - the WebAuthn login endpoints (`/webauthn/authenticate/options`, `/login/webauthn`) are answered by
+         *   their own filters before this check; the register endpoints stay behind `authenticated()` (ADR-0045).
          */
         val PUBLIC_PATHS = arrayOf(
             "/api/auth/**",

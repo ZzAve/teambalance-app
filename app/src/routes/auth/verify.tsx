@@ -3,6 +3,8 @@ import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useQueryClient } from '@tanstack/react-query'
 import { useVerifyMagicLink } from '@shared/api/auth'
 import { clearSession, hasClearableSession } from '@shared/api/clear-session'
+import { browserPreferenceStorage } from '@shared/preferences/preferences'
+import { writeLastSignInMethod } from '@shared/api/last-sign-in-method'
 import { VerifyErrorView } from '@shared/ui/VerifyErrorView'
 import { useTranslation } from 'react-i18next'
 
@@ -32,6 +34,7 @@ function VerifyPage() {
         // The server already joined the team and rebuilt the payload around it, so this user is the
         // post-join one — nothing here has to accept anything to catch up (#342).
         queryClient.setQueryData(['auth', 'me'], session.user)
+        writeLastSignInMethod(browserPreferenceStorage(), 'email')
         // Only the Team's own settings are missing from it (the sign-in response cannot read them
         // yet), so ask /me once more now that the session exists. Not awaited: an unknown flag counts
         // as on, and sign-in should not wait for it.

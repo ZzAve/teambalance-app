@@ -1,9 +1,13 @@
-import { useState, type FormEvent } from 'react'
+import { useId, useState, type FormEvent } from 'react'
 import { createFileRoute } from '@tanstack/react-router'
 import { useRequestMagicLink } from '@shared/api/auth'
 import { Button } from '@shared/ui/button'
 import { Input } from '@shared/ui/input'
 import { Label } from '@shared/ui/label'
+import { readLastSignInMethod } from '@shared/api/last-sign-in-method'
+import { browserPreferenceStorage } from '@shared/preferences/preferences'
+import { LastUsedPill } from '@shared/ui/LastUsedPill'
+import { PasskeyLogin } from '@features/passkey-login/ui/PasskeyLogin'
 import { Trans, useTranslation } from 'react-i18next'
 
 export const Route = createFileRoute('/login')({
@@ -14,6 +18,8 @@ function LoginPage() {
   const [email, setEmail] = useState('')
   const [sent, setSent] = useState(false)
   const requestMagicLink = useRequestMagicLink()
+  const pillId = useId()
+  const [lastMethod] = useState(() => readLastSignInMethod(browserPreferenceStorage()))
   const { t } = useTranslation()
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
@@ -61,13 +67,21 @@ function LoginPage() {
             placeholder={t('auth.login.emailPlaceholder')}
           />
         </div>
-        <Button type="submit" disabled={requestMagicLink.isPending}>
-          {requestMagicLink.isPending ? t('auth.login.sending') : t('auth.login.send')}
-        </Button>
+        <div className="relative flex flex-col">
+          <Button
+            type="submit"
+            disabled={requestMagicLink.isPending}
+            aria-describedby={lastMethod === 'email' ? pillId : undefined}
+          >
+            {requestMagicLink.isPending ? t('auth.login.sending') : t('auth.login.send')}
+          </Button>
+          {lastMethod === 'email' && <LastUsedPill id={pillId} />}
+        </div>
         {requestMagicLink.isError && (
           <p className="text-center text-small text-red-ink">{t('errors.generic')}</p>
         )}
       </form>
+      <PasskeyLogin />
     </div>
   )
 }

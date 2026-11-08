@@ -188,6 +188,7 @@ ENTRYPOINT ["/app/stg-entrypoint.sh"]
 # datasource is loopback (DemoGuard); stg already sets those. Build: docker build -f api/Dockerfile --target demo .
 FROM stg AS demo
 ENV TEAMBALANCE_DEMO_ENABLED=true \
+    TEAMBALANCE_PASSKEYS_ENABLED=false \
     TEAMBALANCE_DEMO_DATA_ENABLED=false \
     TEAMBALANCE_SPA_STATIC_LOCATION=file:/app/static/ \
     TEAMBALANCE_CSRF_COOKIE_NAME=DEMO-XSRF-TOKEN \

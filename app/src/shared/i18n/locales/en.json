@@ -715,10 +715,15 @@
       "checkEmail": "Check your email",
       "sent": "If an account exists for <b>{{email}}</b>, we've sent a magic link to sign in. Click it to continue.",
       "openEmailApp": "Open email app →",
-      "intro": "Sign in with your email — no password needed.",
+      "intro": "Sign in or create an account with your email. You can add a passkey right after.",
       "emailPlaceholder": "you@example.com",
       "sending": "Sending...",
-      "send": "Send magic link"
+      "send": "Send magic link",
+      "or": "or",
+      "passkey": "Sign in with a passkey",
+      "passkeyFailed": "Signing in with a passkey failed. Use your email link instead.",
+      "lastUsed": "Last",
+      "lastUsedHint": "You signed in this way last time on this device"
     }
   },
   "invite": {
@@ -1045,5 +1050,33 @@
       "unavailable": "Connecting Bunq isn’t available right now.",
       "openFailed": "Couldn’t open Bunq. Please try again."
     }
+  },
+  "passkeys": {
+    "title": "Passkeys",
+    "hint": "Sign in with your face, fingerprint or device PIN instead of an email link.",
+    "add": "Add a passkey",
+    "adding": "Waiting for your device...",
+    "empty": "No passkeys yet.",
+    "labelDevice": "This device",
+    "labelKey": "Security key",
+    "added": "Added {{date}}",
+    "lastUsed": "Last used {{date}}",
+    "neverUsed": "Never used",
+    "remove": "Remove",
+    "removeTitle": "Remove this passkey?",
+    "removeHint": "You can no longer sign in with it. Your email link keeps working.",
+    "loadFailed": "Could not load your passkeys.",
+    "unsupported": "This browser does not support passkeys.",
+    "error": {
+      "cancelled": "Cancelled.",
+      "alreadyRegistered": "This device already has a passkey for this account.",
+      "failed": "That did not work. Try again."
+    }
+  },
+  "passkeyPrompt": {
+    "text": "Add a passkey and skip the email next time?",
+    "add": "Add a passkey",
+    "notNow": "Not now",
+    "adding": "Waiting for your device..."
   }
 }

@@ -13,8 +13,8 @@ interface AppShellFrameProps {
   teamSwitcher: ReactNode
   /** Sits under the header and outside <main> so it stays put on every screen (ADR-0024 §4). */
   banner?: ReactNode
-  /** The fixed tab bar. */
-  nav: ReactNode
+  /** The fixed tab bar. Omitted on the sign-in routes, where no tab leads anywhere. */
+  nav?: ReactNode
   children: ReactNode
 }
 
@@ -48,8 +48,11 @@ export function AppShellFrame({ teamSwitcher, banner, nav, children }: AppShellF
       </header>
       {banner}
       {/* Bottom padding clears the fixed nav (~6rem) plus the home-indicator inset, so the last
-          row of content is never hidden behind the bar on notched devices. */}
-      <main className={`${APP_COLUMN} py-6 pb-[calc(6rem+env(safe-area-inset-bottom))]`}>
+          row of content is never hidden behind the bar on notched devices. Without a nav only the
+          normal py-6 gap and the inset remain. */}
+      <main
+        className={`${APP_COLUMN} py-6 ${nav ? 'pb-[calc(6rem+env(safe-area-inset-bottom))]' : 'pb-[calc(1.5rem+env(safe-area-inset-bottom))]'}`}
+      >
         {children}
       </main>
       {nav}

@@ -44,10 +44,11 @@ export function BottomNav() {
   useTranslation() // re-render the tab labels on a language change
   const pathname = useRouterState({ select: (s) => s.location.pathname })
   const me = useAuthMe().data
-  const TABS = tabsFor(
-    teamRoutes(teamSlugFromPath(pathname) ?? me?.activeTeam?.slug ?? null),
-    me?.moneyPoolEnabled !== false,
-  )
+  const slug = teamSlugFromPath(pathname) ?? me?.activeTeam?.slug ?? null
+  const allTabs = tabsFor(teamRoutes(slug), me?.moneyPoolEnabled !== false)
+  // With no Team, Events, Team and Money would only bounce back through `/`, so a teamless caller
+  // gets Profile alone: the way to Log out stays (ADR-0027), the dead tabs go (as Money does, ADR-0042).
+  const TABS = slug === null ? allTabs.filter((tab) => tab.id === 'profile') : allTabs
 
   return (
     <nav

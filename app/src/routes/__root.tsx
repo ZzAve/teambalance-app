@@ -102,7 +102,12 @@ function RootLayout() {
     <Providers>
       {/* The frame itself (header, main column, tab bar) is a shared component so the Storybook
           app-shell decorator renders page composites in the identical chrome (ADR-0031 §3). */}
-      <AppShellFrame teamSwitcher={<TeamSwitcher />} banner={<ActAsBanner />} nav={<BottomNav />}>
+      {/* No tab bar on the sign-in routes: signed out, every tab would only bounce back to /login. */}
+      <AppShellFrame
+        teamSwitcher={<TeamSwitcher />}
+        banner={<ActAsBanner />}
+        nav={isAuthRoute(pathname) ? undefined : <BottomNav />}
+      >
         <Outlet />
       </AppShellFrame>
       {/* App-wide toast primitive. richColors gives the error toast a semantic red; `theme` is the

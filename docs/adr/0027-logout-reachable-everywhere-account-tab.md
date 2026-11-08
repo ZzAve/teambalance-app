@@ -146,9 +146,11 @@ is routing, one pure selector, and presentational components.
   onboarding-guard exception is needed; a non-onboarded member can always reach it. The guard itself
   is untouched.
 - **`teamRoutes` no longer needs a `profile` destination**, and the BottomNav's Profile tab stops
-  depending on the slug. The other tabs (Events/Team/Money) still collapse to `/` when teamless;
-  tapping them routes to the dispatcher, which is a sensible "go home". Whether to visually de-emphasise
-  them on a teamless bar is a presentational follow-up, not part of this decision.
+  depending on the slug. The other tabs (Events/Team/Money) would collapse to `/` when teamless and
+  only route back to where the caller is parked, so a teamless bar (no slug in the path, no Active
+  Team) shows the Profile tab alone. They are left out, not disabled, the same way the Money tab is
+  left out when a team switches the pool off (ADR-0042). *(Amended 2026-11-08; originally the teamless
+  bar kept all four tabs pointing at `/`.) The sign-in routes render no bar at all.*
 - **One new e2e seam.** Logout from a teamless (or mid-onboarding) session is a path the login and
   attendance flows never exercise, so it earns a single new flow (ADR-0017's bar): sign in with no
   onboarded team → open Profile → Log out → land on `/login`. Everything else is proved lower down —

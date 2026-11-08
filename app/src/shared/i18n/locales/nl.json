@@ -710,7 +710,9 @@
       "send": "Stuur inloglink",
       "or": "of",
       "passkey": "Inloggen met een passkey",
-      "passkeyFailed": "Inloggen met een passkey is niet gelukt. Gebruik je e-maillink."
+      "passkeyFailed": "Inloggen met een passkey is niet gelukt. Gebruik je e-maillink.",
+      "lastUsed": "Laatst",
+      "lastUsedHint": "Zo heb je de vorige keer op dit apparaat ingelogd"
     }
   },
   "invite": {

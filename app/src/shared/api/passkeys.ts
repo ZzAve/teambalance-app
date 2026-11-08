@@ -103,8 +103,11 @@ export function useDeletePasskey() {
 }
 
 /** Signs in with a passkey; the server answers 204 and starts the same session a magic link does. */
-export function usePasskeyLogin() {
+// `onSuccess` is a mutation option, not a `mutate` callback: the auto-start calls `mutate` from an effect, and React
+// StrictMode's remount detaches the observer, which drops callbacks passed to `mutate`.
+export function usePasskeyLogin(onSuccess?: () => void) {
   return useMutation({
+    onSuccess,
     mutationFn: async () => {
       const optionsJSON = await (await postJson('/webauthn/authenticate/options')).json()
       const assertion = await startAuthentication({ optionsJSON })

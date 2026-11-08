@@ -1,4 +1,5 @@
 import { http, HttpResponse, delay } from 'msw'
+import { readLastSignInMethod } from '@shared/api/last-sign-in-method'
 import { setupServer } from 'msw/node'
 import { render, screen, waitFor } from '@testing-library/react'
 import { createMemoryHistory, createRouter, RouterProvider } from '@tanstack/react-router'
@@ -62,6 +63,7 @@ const server = setupServer(
 
 beforeAll(() => server.listen())
 afterEach(() => {
+  localStorage.clear()
   server.resetHandlers()
   session = null
   meRequestsWithSession = 0
@@ -85,6 +87,8 @@ describe('magic-link verification', () => {
     expect(await screen.findByRole('heading', { name: 'Events' }, { timeout: 5000 })).toBeInTheDocument()
     expect(screen.queryByText(/link expired/i)).not.toBeInTheDocument()
     await waitFor(() => expect(meRequestsWithSession).toBeGreaterThan(0), { timeout: 5000 })
+    // The device remembers the way it signed in (ADR-0045), for the pill on /login.
+    expect(readLastSignInMethod(localStorage)).toBe('email')
   })
 
   it('rejects an invalid token and keeps the guard from ever granting access', async () => {
@@ -94,5 +98,6 @@ describe('magic-link verification', () => {
     // Access was never granted: never navigated to the protected landing, events never rendered.
     expect(router.state.location.pathname).toBe('/auth/verify')
     expect(screen.queryByRole('heading', { name: 'Events' })).not.toBeInTheDocument()
+    expect(readLastSignInMethod(localStorage)).toBeNull()
   })
 })

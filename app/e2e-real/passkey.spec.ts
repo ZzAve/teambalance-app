@@ -24,6 +24,11 @@ test('add a passkey after a magic-link sign-in, then sign in with it', async ({ 
     },
   })
 
+  // 0. A fresh profile remembers no sign-in method, so /login marks none.
+  await page.goto('/login')
+  await expect(page.getByRole('button', { name: 'Sign in with a passkey' })).toBeVisible()
+  await expect(page.getByText('Last', { exact: true })).toBeHidden()
+
   // 1. A magic-link sign-in with no passkey yet: the first screen offers one; "Not now" sticks on this device.
   await authenticateViaApi(page.request, EMAIL)
   await page.goto('/')
@@ -52,4 +57,16 @@ test('add a passkey after a magic-link sign-in, then sign in with it', async ({ 
 
   // 4. With a passkey registered the prompt is not offered, even on a device that never dismissed it.
   await expect(page.getByRole('alert').filter({ hasText: 'Add a passkey' })).toBeHidden()
+
+  // 5. The device now remembers the passkey: after a logout /login marks it and does not start by itself, once...
+  await page.goto('/account')
+  await page.getByRole('button', { name: 'Log out' }).click()
+  await expect(page).toHaveURL('/login')
+  await expect(page.getByText('Last', { exact: true })).toBeVisible()
+  await page.waitForTimeout(2_000)
+  await expect(page).toHaveURL('/login')
+
+  // 6. ...and a reload starts the ceremony without a click, against the same virtual authenticator.
+  await page.reload()
+  await expect(page.getByRole('heading', { name: /Welcome to TeamBalance/ })).toBeVisible({ timeout: 10_000 })
 })

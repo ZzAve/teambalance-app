@@ -19,7 +19,12 @@ import java.util.UUID
  * tiny limit and a unique client IP, so it neither pollutes nor is polluted by the shared-context suite.
  */
 @AutoConfigureMockMvc
-@TestPropertySource(properties = ["teambalance.rate-limit.magic-link-request.capacity=3"])
+@TestPropertySource(
+    properties = [
+        "teambalance.rate-limit.magic-link-request.capacity=3",
+        "teambalance.rate-limit.passkey-login.capacity=2",
+    ],
+)
 class RateLimitIT : TeamBalanceIT() {
 
     @Autowired
@@ -41,6 +46,17 @@ class RateLimitIT : TeamBalanceIT() {
 
             blocked.response.getHeader("Retry-After")!!.toInt() shouldBeGreaterThan 0
             blocked.response.contentAsString shouldContain "rate_limited"
+        }
+
+        test("throttles POST /webauthn/authenticate/options past its capacity with a 429") {
+            val options = {
+                MockMvcRequestBuilders.post("/webauthn/authenticate/options")
+                    .header("X-Forwarded-For", "198.51.100.30")
+                    .contentType(MediaType.APPLICATION_JSON)
+            }
+            repeat(2) { mockMvc.perform(options()).andExpect(MockMvcResultMatchers.status().isOk) }
+
+            mockMvc.perform(options()).andExpect(MockMvcResultMatchers.status().isTooManyRequests)
         }
 
         test("a different client IP is unaffected by another IP's exhausted bucket") {

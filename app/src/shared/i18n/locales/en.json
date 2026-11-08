@@ -710,7 +710,9 @@
       "send": "Send magic link",
       "or": "or",
       "passkey": "Sign in with a passkey",
-      "passkeyFailed": "Signing in with a passkey failed. Use your email link instead."
+      "passkeyFailed": "Signing in with a passkey failed. Use your email link instead.",
+      "lastUsed": "Last",
+      "lastUsedHint": "You signed in this way last time on this device"
     }
   },
   "invite": {

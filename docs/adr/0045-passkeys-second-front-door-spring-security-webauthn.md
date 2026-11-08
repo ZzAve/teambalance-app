@@ -24,7 +24,7 @@ owner-checked delete. The SPA side is `@simplewebauthn/browser`, which speaks th
    account.** A passkey is registered by a signed-in user, so passkey sign-in always lands on an existing
    account. There is no sign-up by passkey and no invite attached to a passkey sign-in: an invite travels with
    a magic-link request (ADR-0031), and a passkey request has no email to send.
-2. **Spring Security's WebAuthn module, not a hand-rolled port.** Its four endpoints are used as shipped:
+2. **Spring Security's WebAuthn module, not a hand-rolled port.** Its five endpoints are used as shipped:
    `POST /webauthn/register/options`, `POST /webauthn/register`, `DELETE /webauthn/register/{id}`,
    `POST /webauthn/authenticate/options`, `POST /login/webauthn`. They are Spring's contract and are therefore
    **not in Wirespec**; `shared/api/passkeys.ts` is the one client file that names them. Our own
@@ -36,7 +36,7 @@ owner-checked delete. The SPA side is `@simplewebauthn/browser`, which speaks th
    repository.
 4. **Users are the WebAuthn user entities.** The `PublicKeyCredentialUserEntity` is a read-only view of
    `users`: `id` is the user's UUID bytes, `name` the email (what the passkey picker shows), `displayName` the
-   display name. No table for them; credentials live in `public.passkey_credentials` with
+   display name. No table for them; credentials live in `public.passkeys` with
    `ON DELETE CASCADE` from `users`.
 5. **Two more CSRF-exempt endpoints, JSON only**: `/webauthn/authenticate/options` and `/login/webauthn`, for
    the reason ADR-0012 gives for the magic-link pair: pre-session, nothing to echo yet, and a JSON body cannot
@@ -60,7 +60,7 @@ owner-checked delete. The SPA side is `@simplewebauthn/browser`, which speaks th
 ## Considered options
 
 - **webauthn4j or Yubico java-webauthn-server behind our own port and controllers.** Rejected: we would
-  rewrite the four endpoints, the challenge store and the owner check Spring already ships, and the options
+  rewrite the five endpoints, the challenge store and the owner check Spring already ships, and the options
   JSON (a dozen nested types) still could not be Wirespec-typed.
 - **Conditional UI (autofill) on the login page.** Deferred: a button is enough; autofill adds an abortable
   pending request and an input it must attach to.
@@ -80,6 +80,7 @@ owner-checked delete. The SPA side is `@simplewebauthn/browser`, which speaks th
   place the signature verification and the session bridge run end to end; ITs pin the wiring around them.
 - `WebConfig`'s CORS mapping now also covers `/webauthn/**` and `/login/webauthn`; the prod SPA calls them
   cross-origin.
+- The device remembers which method signed in last (`tb.pref.last-sign-in-method`) and marks it on `/login`; when it was a passkey the ceremony starts on page load, except once right after a logout. Per device, like the add-a-passkey dismissal.
 - Nobody is asked twice on one device; someone who deletes their last passkey sees the
   prompt again on the next sign-in unless they dismissed it on that device.
 - ADR-0034's "if passkeys land, they become the second front door under a new ADR" is fulfilled here.

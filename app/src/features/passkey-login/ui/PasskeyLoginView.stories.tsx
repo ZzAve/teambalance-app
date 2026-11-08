@@ -25,13 +25,16 @@ export const Shells: Story = {
   render: (args) => (
     <Stack
       items={{
+        Marked: <PasskeyLoginView {...args} isLast />,
         Pending: <PasskeyLoginView {...args} isPending />,
         Error: <PasskeyLoginView {...args} errorMessage="Signing in with a passkey failed. Use your email link instead." />,
       }}
     />
   ),
   play: async ({ canvas }) => {
-    await expect(canvas.getAllByRole('button', { name: 'Sign in with a passkey' })[0]).toBeDisabled()
+    await expect(canvas.getByText('Last')).toBeInTheDocument()
+    await expect(canvas.getAllByRole('button', { name: 'Sign in with a passkey' })[0]).toHaveAccessibleDescription('Last')
+    await expect(canvas.getAllByRole('button', { name: 'Sign in with a passkey' })[1]).toBeDisabled()
     await expect(canvas.getByRole('alert')).toHaveTextContent('Signing in with a passkey failed.')
   },
 }

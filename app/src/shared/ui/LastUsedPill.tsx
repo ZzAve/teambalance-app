@@ -10,7 +10,7 @@ export function LastUsedPill({ id }: { id: string }) {
     <span
       id={id}
       title={t('auth.login.lastUsedHint')}
-      className="absolute -right-2 -top-2 rounded-full bg-green/10 px-2 py-0.5 text-caption font-semibold text-green"
+      className="absolute -right-2 -top-2 rounded-full border border-green bg-card px-2 py-0.5 text-caption font-semibold text-foreground"
     >
       {t('auth.login.lastUsed')}
     </span>

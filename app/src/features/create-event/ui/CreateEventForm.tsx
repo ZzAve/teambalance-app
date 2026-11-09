@@ -13,6 +13,7 @@ import { RosterOverrideField } from '@features/manage-event-types/ui/RosterOverr
 import type { EventTypeItem } from '@shared/api/event-types'
 import { ReferenceRowsEditor } from '@entities/event/ui/ReferenceRowsEditor'
 import { cleanReferences, type ReferenceRow } from '@entities/event/lib/references'
+import { eventTypeName } from '@entities/event/lib/event-type-name'
 
 interface CreateEventFormProps {
   eventTypes: EventTypeItem[]
@@ -64,7 +65,7 @@ export function CreateEventForm({
     if (!titleTouched) {
       const type = eventTypes.find((t) => t.id === typeId)
       if (type) {
-        setTitle(type.name)
+        setTitle(eventTypeName(type))
       }
     }
   }
@@ -122,7 +123,7 @@ export function CreateEventForm({
             setTitle(e.target.value)
             setTitleTouched(true)
           }}
-          placeholder={selectedType ? t('eventForm.titleExample', { name: selectedType.name }) : t('eventForm.titlePlaceholder')}
+          placeholder={selectedType ? t('eventForm.titleExample', { name: eventTypeName(selectedType) }) : t('eventForm.titlePlaceholder')}
         />
       </div>
 

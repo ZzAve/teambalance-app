@@ -18,6 +18,7 @@ import {
   type RecurrenceInput,
 } from '../model/recurrence'
 import { MonthCalendarPreview } from './MonthCalendarPreview'
+import { eventTypeName } from '@entities/event/lib/event-type-name'
 
 interface RecurringEventsWizardProps {
   eventTypes: EventTypeItem[]
@@ -82,7 +83,7 @@ export function RecurringEventsWizard({
     setSelectedTypeId(typeId)
     if (!titleTouched) {
       const type = eventTypes.find((t) => t.id === typeId)
-      if (type) setTitle(type.name)
+      if (type) setTitle(eventTypeName(type))
     }
   }
 
@@ -173,7 +174,7 @@ export function RecurringEventsWizard({
                 setTitle(e.target.value)
                 setTitleTouched(true)
               }}
-              placeholder={selectedType ? t('eventForm.titleExample', { name: selectedType.name }) : t('recurring.titlePlaceholder')}
+              placeholder={selectedType ? t('eventForm.titleExample', { name: eventTypeName(selectedType) }) : t('recurring.titlePlaceholder')}
             />
           </div>
 
@@ -275,7 +276,7 @@ export function RecurringEventsWizard({
               {title || t('recurring.untitled')}
             </p>
             <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-small">
-              <SummaryRow label={t('eventForm.type')} value={selectedType?.name ?? '—'} />
+              <SummaryRow label={t('eventForm.type')} value={(selectedType ? eventTypeName(selectedType) : undefined) ?? '—'} />
               <SummaryRow label={t('recurring.when')} value={`${timeOfDay} · ${t('recurring.minutes', { minutes: durationMinutes })}`} />
               <SummaryRow label={t('recurring.repeats')} value={`${frequencyLabel(frequency)} · ${summariseWeekdays(weekdays)}`} />
               {preview.firstDate && preview.lastDate && (

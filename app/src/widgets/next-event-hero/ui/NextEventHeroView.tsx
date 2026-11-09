@@ -12,6 +12,7 @@ import { SectionLabel } from '@shared/ui/SectionLabel'
 import { heroCountdown } from '../lib/countdown'
 import { heroInk } from '../lib/hero-ink'
 import { useTeamRoutes } from '@shared/lib/team-routes'
+import { eventTypeName } from '@entities/event/lib/event-type-name'
 
 interface NextEventHeroViewProps {
   event: Event
@@ -121,7 +122,7 @@ export function NextEventHeroView({
         </SectionLabel>
         {/* The card's type tag, in the hero's ink: the type's own tint has no contrast on its own colour. */}
         <span className="rounded-full bg-hero-ink/20 px-2 py-0.5 text-caption font-semibold">
-          {event.eventType.name}
+          {eventTypeName(event.eventType)}
         </span>
       </div>
 

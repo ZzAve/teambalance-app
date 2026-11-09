@@ -238,7 +238,12 @@
     "teammate": "een teamgenoot"
   },
   "eventType": {
-    "select": "Kies een soort"
+    "select": "Kies een soort",
+    "defaults": {
+      "training": "Training",
+      "match": "Wedstrijd",
+      "other": "Overig"
+    }
   },
   "references": {
     "heading": "Links (optioneel)",

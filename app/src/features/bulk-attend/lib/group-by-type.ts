@@ -1,4 +1,5 @@
 import type { Event } from '@shared/api/events'
+import { eventTypeName } from '@entities/event/lib/event-type-name'
 
 /** The fillable events of one event type, ready for a button of its own. */
 export interface EligibleTypeGroup {
@@ -32,7 +33,7 @@ export function groupByType(events: Event[]): EligibleTypeGroup[] {
     if (group) group.events.push(event)
     else byType.set(event.eventType.id, {
       typeId: event.eventType.id,
-      typeName: event.eventType.name,
+      typeName: eventTypeName(event.eventType),
       events: [event],
     })
   }

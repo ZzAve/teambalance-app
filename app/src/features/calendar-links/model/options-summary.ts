@@ -3,6 +3,7 @@ import { ATTENDANCE_WORDS } from '@entities/event/lib/attendance-words'
 import type { EventTypeItem } from '@shared/api/event-types'
 import { i18n } from '@shared/i18n/i18n'
 import type { LinkOptions } from './preset'
+import { eventTypeName } from '@entities/event/lib/event-type-name'
 
 /**
  * One line describing how a link's options differ from the Me defaults, e.g. "Training, Match ·
@@ -32,7 +33,7 @@ export function optionsSummary(options: LinkOptions, teamName: string, eventType
 function typesPart(ids: string[], eventTypes: EventTypeItem[]): string {
   const named = eventTypes
     .filter((type) => ids.includes(type.id))
-    .map((type) => (type.archived ? i18n.t('calendarLinks.summary.archived', { name: type.name }) : type.name))
+    .map((type) => (type.archived ? i18n.t('calendarLinks.summary.archived', { name: eventTypeName(type) }) : eventTypeName(type)))
   const unknown = ids.length - named.length
   if (unknown === 0) return named.join(', ')
   const count = i18n.t(named.length > 0 ? 'calendarLinks.summary.otherTypes' : 'calendarLinks.summary.types', { count: unknown })

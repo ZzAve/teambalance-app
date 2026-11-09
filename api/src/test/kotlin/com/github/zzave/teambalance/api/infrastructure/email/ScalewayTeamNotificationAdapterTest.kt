@@ -1,5 +1,6 @@
 package com.github.zzave.teambalance.api.infrastructure.email
 
+import com.github.zzave.teambalance.api.domain.model.Language
 import com.github.zzave.teambalance.api.domain.model.PlatformAdminAllowlist
 import io.kotest.core.spec.style.FunSpec
 import org.springframework.test.web.client.MockRestServiceServer
@@ -22,7 +23,7 @@ class ScalewayTeamNotificationAdapterTest : FunSpec({
             restClientBuilder = builder,
         )
 
-        adapter.teamCreated("founder@example.com", "Setpoint VT", "setpoint-vt")
+        adapter.teamCreated("founder@example.com", "Setpoint VT", "setpoint-vt", Language.EN)
         adapter.creationCodeConsumed("Setpoint VT", "setpoint-vt", "founder@example.com")
 
         server.verify()

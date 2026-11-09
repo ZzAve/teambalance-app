@@ -21,6 +21,7 @@ import { DeleteEventDialog } from '@features/edit-event/ui/DeleteEventDialog'
 import { SubstitutePicker } from '@features/call-in-substitutes/ui/SubstitutePicker'
 import { useTeamRoutes } from '@shared/lib/team-routes'
 import { EventDetailView } from '@pages/event-detail/ui/EventDetailView'
+import { useTranslation } from 'react-i18next'
 
 export const Route = createFileRoute('/t/$slug/events/$eventId')({
   component: EventDetailPage,
@@ -29,6 +30,7 @@ export const Route = createFileRoute('/t/$slug/events/$eventId')({
 function EventDetailPage() {
   const { eventId } = Route.useParams()
   const routes = useTeamRoutes()
+  const { t } = useTranslation()
   const { data: event, isLoading, isError, refetch } = useEvent(eventId)
   const currentUserId = useCurrentUser()?.id ?? null
   const isAdmin = useCurrentUser()?.role === 'ADMIN'
@@ -61,11 +63,11 @@ function EventDetailPage() {
     const prior = (target?.state as AttendanceState) ?? 'NOT_RESPONDED'
     mutate({ eventId, userId, state })
     if (userId !== currentUserId) {
-      const { message, undoState } = crossMemberToast(target?.displayName ?? 'teammate', state, prior)
+      const { message, undoState } = crossMemberToast(target?.displayName ?? t('shell.teammate'), state, prior)
       toast(
         message,
         undoState
-          ? { action: { label: 'Undo', onClick: () => mutate({ eventId, userId, state: undoState }) } }
+          ? { action: { label: t('shell.undo'), onClick: () => mutate({ eventId, userId, state: undoState }) } }
           : undefined,
       )
     }

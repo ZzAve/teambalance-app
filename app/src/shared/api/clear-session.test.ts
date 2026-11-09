@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { AuthenticatedUser } from './auth'
 import { authMeQueryOptions } from './auth'
 import { clearSession, hasClearableSession } from './clear-session'
+import { SKIP_PASSKEY_AUTOSTART } from './last-sign-in-method'
 import { queryClient } from './query-client'
 
 const USER: AuthenticatedUser = {
@@ -16,6 +17,7 @@ const USER: AuthenticatedUser = {
   personalPhotoVersion: undefined,
   moneyPoolEnabled: undefined,
   language: undefined,
+  passkeyCount: 0,
 }
 
 describe('clearSession', () => {
@@ -51,6 +53,12 @@ describe('clearSession', () => {
   it('hard-redirects to /login', () => {
     clearSession()
     expect(assign).toHaveBeenCalledWith('/login')
+  })
+
+  it('flags the next /login to skip the passkey auto-start, once', () => {
+    sessionStorage.removeItem(SKIP_PASSKEY_AUTOSTART)
+    clearSession()
+    expect(sessionStorage.getItem(SKIP_PASSKEY_AUTOSTART)).not.toBeNull()
   })
 
   it('makes no network call', () => {

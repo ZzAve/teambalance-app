@@ -25,6 +25,7 @@ import com.bunq.sdk.generated.model.PaymentListing
 import com.bunq.sdk.generated.model.PaymentPage
 import com.github.zzave.teambalance.api.domain.exception.BunqGrantRejectedException
 import com.github.zzave.teambalance.api.domain.model.PaymentDirection
+import com.github.zzave.teambalance.api.domain.model.PaymentId
 import com.github.zzave.teambalance.api.domain.model.PaymentName
 import kotlinx.coroutines.runBlocking
 import java.time.Clock
@@ -146,6 +147,7 @@ class RealBunqGatewayAdapter internal constructor(
     private fun paymentOf(listing: PaymentListing): Payment {
         val signed = moneyOf(listing.amount).cents
         return Payment(
+            id = PaymentId(checkNotNull(listing.id) { "Bunq listed a payment without an id" }.toString()),
             date = dateOf(listing.created, zone),
             name = PaymentName(listing.counterparty_alias?.display_name.orEmpty()),
             amount = Money(abs(signed)),

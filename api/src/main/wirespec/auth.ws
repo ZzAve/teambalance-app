@@ -1,6 +1,8 @@
+// `language` is the language of the page that sent the request (ADR-0043 section 4). The email goes out in the recipient's stored language; this is used only when they have none, and Dutch when neither is known.
 type RequestMagicLinkRequest {
     email: String,
-    inviteToken: String?
+    inviteToken: String?,
+    language: Language?
 }
 
 type VerifyMagicLinkRequest {
@@ -13,7 +15,7 @@ type TeamRef {
     slug: String
 }
 
-// The route gate reads BOTH: empty `teams` means teamless, while a non-empty `teams` with a null `activeTeam` means "a Member of several, none chosen yet" - a choice, not an error. `role` is the Role IN THE ACTIVE TEAM, so it is null exactly when `activeTeam` is (ADR-0023). `actAs` is non-null only while a Platform Admin is inside a Team (ADR-0024): it is what the banner names and what the gate's third branch reads, and while it is set `activeTeam` is that Team and `role` is the synthesized ADMIN - the Virtual Member - even though `teams` stays empty, because a Platform Admin is never a Member. `moneyPoolEnabled` is whether the active Team switched its Money Pool on (the nav and the Money route read it), null when `activeTeam` is, on a sign-in response (the Team's settings are not readable yet, so the client refetches /api/auth/me), and when the tenant read failed (the client treats null as on). `personalPhotoVersion` names the caller's own Personal Photo (ADR-0038), served at GET /api/account/photo?v=<this>; null when they have none. `language` is the language the caller chose (ADR-0043); null until they choose one, and the client then follows the device.
+// The route gate reads BOTH: empty `teams` means teamless, while a non-empty `teams` with a null `activeTeam` means "a Member of several, none chosen yet" - a choice, not an error. `role` is the Role IN THE ACTIVE TEAM, so it is null exactly when `activeTeam` is (ADR-0023). `actAs` is non-null only while a Platform Admin is inside a Team (ADR-0024): it is what the banner names and what the gate's third branch reads, and while it is set `activeTeam` is that Team and `role` is the synthesized ADMIN - the Virtual Member - even though `teams` stays empty, because a Platform Admin is never a Member. `moneyPoolEnabled` is whether the active Team switched its Money Pool on (the nav and the Money route read it), null when `activeTeam` is, on a sign-in response (the Team's settings are not readable yet, so the client refetches /api/auth/me), and when the tenant read failed (the client treats null as on). `personalPhotoVersion` names the caller's own Personal Photo (ADR-0038), served at GET /api/account/photo?v=<this>; null when they have none. `language` is the language the caller chose (ADR-0043); null until they choose one, and the client then follows the device. `passkeyCount` is how many passkeys the caller has registered (ADR-0045); the client offers to add one while it is 0.
 type AuthenticatedUser {
     id: String,
     email: String,
@@ -25,7 +27,8 @@ type AuthenticatedUser {
     actAs: ActAs?,
     personalPhotoVersion: String?,
     moneyPoolEnabled: Boolean?,
-    language: Language?
+    language: Language?,
+    passkeyCount: Integer
 }
 
 // What a magic-link verification produces. `inviteOutcome` is null for an ordinary sign-in, and for one requested from an Invite Link it reports what became of that invite: JOINED, or UNAVAILABLE when the link expired or was rotated between the request and the click. The sign-in itself succeeds either way - landing signed-in but teamless is a legitimate state with its own onboarding hub, so a dead invite no longer withholds the session (amends ADR-0008). Deliberately coarse: accept collapses unknown, expired and spent into one refusal, and this reports on it without being more talkative.

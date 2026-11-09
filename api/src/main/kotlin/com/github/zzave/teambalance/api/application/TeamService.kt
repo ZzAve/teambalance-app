@@ -3,6 +3,7 @@ package com.github.zzave.teambalance.api.application
 import com.github.zzave.teambalance.api.domain.exception.InvalidCreationCodeException
 import com.github.zzave.teambalance.api.domain.exception.TeamSlugTakenException
 import com.github.zzave.teambalance.api.domain.model.CreationCode
+import com.github.zzave.teambalance.api.domain.model.Language
 import com.github.zzave.teambalance.api.domain.model.Slug
 import com.github.zzave.teambalance.api.domain.model.TeamId
 import com.github.zzave.teambalance.api.domain.model.TeamName
@@ -53,7 +54,14 @@ class TeamService(
 ) {
     private val log = LoggerFactory.getLogger(TeamService::class.java)
 
-    fun createTeam(founderId: UserId, rawName: String, rawSlug: String, creationCode: CreationCode): CreatedTeam {
+    /** [language] is the language of the page the founder created it from, for the team-created email (ADR-0043 §4). */
+    fun createTeam(
+        founderId: UserId,
+        rawName: String,
+        rawSlug: String,
+        creationCode: CreationCode,
+        language: Language? = null,
+    ): CreatedTeam {
         val names = TeamNaming.validate(rawName, rawSlug)
         requireSlugAvailable(names.slug)
 
@@ -76,7 +84,7 @@ class TeamService(
         // Without this a founder who already plays elsewhere stays routed to their old Team.
         activeTeamService.activate(founderId, teamId)
 
-        notifyBestEffort(founderId, names.name, names.slug)
+        notifyBestEffort(founderId, names.name, names.slug, language)
 
         return CreatedTeam(id = teamId, name = names.name, slug = names.slug)
     }
@@ -136,12 +144,13 @@ class TeamService(
      * a 500 — hence the deliberately broad catch.
      */
     @Suppress("TooGenericExceptionCaught")
-    private fun notifyBestEffort(founderId: UserId, teamName: TeamName, teamSlug: Slug) {
+    private fun notifyBestEffort(founderId: UserId, teamName: TeamName, teamSlug: Slug, requested: Language?) {
         try {
             val founderEmail = userRepository.findById(founderId)?.email ?: return
             // Notifications are plain text for humans, so the value objects unwrap here — the same
             // treatment [Email] already gets at this port.
-            teamNotificationGateway.teamCreated(founderEmail.value, teamName.value, teamSlug.value)
+            val language = emailLanguage(userRepository.findLanguage(founderId), requested)
+            teamNotificationGateway.teamCreated(founderEmail.value, teamName.value, teamSlug.value, language)
             teamNotificationGateway.creationCodeConsumed(teamName.value, teamSlug.value, founderEmail.value)
         } catch (e: Exception) {
             log.warn("Post-create notifications failed for team '{}' (creation succeeded)", teamSlug, e)
@@ -157,7 +166,8 @@ class TeamService(
     private fun notifyCreatedBestEffort(creatorId: UserId, teamName: TeamName, teamSlug: Slug) {
         try {
             val creatorEmail = userRepository.findById(creatorId)?.email ?: return
-            teamNotificationGateway.teamCreated(creatorEmail.value, teamName.value, teamSlug.value)
+            val language = emailLanguage(userRepository.findLanguage(creatorId), requested = null)
+            teamNotificationGateway.teamCreated(creatorEmail.value, teamName.value, teamSlug.value, language)
         } catch (e: Exception) {
             log.warn("Post-create notification failed for team '{}' (creation succeeded)", teamSlug, e)
         }

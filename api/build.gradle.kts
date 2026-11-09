@@ -33,6 +33,8 @@ dependencies {
     // One SecurityFilterChain around the session model: session-ID rotation on sign-in, CSRF, and the
     // authenticated-by-default rule (ADR-0012).
     implementation("org.springframework.boot:spring-boot-starter-security")
+    // Passkeys (ADR-0045): Spring Security's WebAuthn module; pulls webauthn4j-core transitively.
+    implementation("org.springframework.security:spring-security-webauthn")
 
     // Spring Session backed by JDBC (Postgres): keeps authenticated sessions out of the JVM heap so
     // they survive a container restart / cold start / redeploy on Scaleway Serverless (min-instances=0).

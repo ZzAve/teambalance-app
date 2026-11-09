@@ -17,8 +17,8 @@ type Story = StoryObj<typeof meta>
 
 export const Interactions: Story = {
   play: async ({ canvas, args }) => {
-    await expect(canvas.getByText('Dit is een demo-team.')).toBeInTheDocument()
-    await userEvent.click(canvas.getByRole('button', { name: 'Speel als Sanne' }))
+    await expect(canvas.getByText('This is a demo team.')).toBeInTheDocument()
+    await userEvent.click(canvas.getByRole('button', { name: 'Play as Sanne' }))
     await expect(args.onPlay).toHaveBeenCalledWith('MEMBER')
   },
 }
@@ -33,7 +33,7 @@ export const Shells: Story = {
     />
   ),
   play: async ({ canvas }) => {
-    await expect(canvas.getAllByRole('button', { name: 'Speel als Sanne' })[0]).toBeDisabled()
-    await expect(canvas.getByRole('alert')).toHaveTextContent('Inloggen is niet gelukt. Probeer het opnieuw.')
+    await expect(canvas.getAllByRole('button', { name: 'Play as Sanne' })[0]).toBeDisabled()
+    await expect(canvas.getByRole('alert')).toHaveTextContent('Signing in failed. Please try again.')
   },
 }

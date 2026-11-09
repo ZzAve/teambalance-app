@@ -1,5 +1,6 @@
 import { queryOptions, useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from './wirespec-client'
+import { i18n } from '@shared/i18n/i18n'
 
 // Re-export the generated contract type so the app has a single source of truth.
 export type { Member } from './generated/model/Member'
@@ -72,12 +73,12 @@ export function useUpdateMember() {
       // read at runtime to tell them apart.
       if (res.status === 409) {
         const code = (res.body as { code?: string } | undefined)?.code
-        if (code === 'LAST_ADMIN') throw new MemberUpdateError('LAST_ADMIN', 'A team must keep at least one admin.')
-        if (code === 'NUMBER_TAKEN') throw new MemberUpdateError('NUMBER_TAKEN', 'That shirt number is already taken.')
-        throw new MemberUpdateError('NAME_TAKEN', 'That display name is already taken.')
+        if (code === 'LAST_ADMIN') throw new MemberUpdateError('LAST_ADMIN', i18n.t('errors.member.lastAdmin'))
+        if (code === 'NUMBER_TAKEN') throw new MemberUpdateError('NUMBER_TAKEN', i18n.t('profileForm.numberTaken'))
+        throw new MemberUpdateError('NAME_TAKEN', i18n.t('profileForm.nameTaken'))
       }
-      if (res.status === 403) throw new MemberUpdateError('FORBIDDEN', 'You are not allowed to make this change.')
-      if (res.status === 404) throw new MemberUpdateError('NOT_FOUND', 'Member not found.')
+      if (res.status === 403) throw new MemberUpdateError('FORBIDDEN', i18n.t('errors.notAllowed'))
+      if (res.status === 404) throw new MemberUpdateError('NOT_FOUND', i18n.t('errors.member.notFound'))
       return res.body
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['members'] }),
@@ -108,8 +109,8 @@ export function useCompleteOnboarding() {
       })
       if (res.status === 409) {
         const code = (res.body as { code?: string } | undefined)?.code
-        if (code === 'NUMBER_TAKEN') throw new MemberUpdateError('NUMBER_TAKEN', 'That shirt number is already taken.')
-        throw new MemberUpdateError('NAME_TAKEN', 'That display name is already taken.')
+        if (code === 'NUMBER_TAKEN') throw new MemberUpdateError('NUMBER_TAKEN', i18n.t('profileForm.numberTaken'))
+        throw new MemberUpdateError('NAME_TAKEN', i18n.t('profileForm.nameTaken'))
       }
       return res.body ?? undefined
     },
@@ -129,9 +130,9 @@ export function useRemoveMember() {
   return useMutation({
     mutationFn: async ({ userId }: { userId: string }) => {
       const res = await api.removeMember({ userId })
-      if (res.status === 409) throw new MemberUpdateError('LAST_ADMIN', 'A team must keep at least one admin.')
-      if (res.status === 403) throw new MemberUpdateError('FORBIDDEN', 'You are not allowed to remove this member.')
-      if (res.status === 404) throw new MemberUpdateError('NOT_FOUND', 'Member not found.')
+      if (res.status === 409) throw new MemberUpdateError('LAST_ADMIN', i18n.t('errors.member.lastAdmin'))
+      if (res.status === 403) throw new MemberUpdateError('FORBIDDEN', i18n.t('errors.member.removeNotAllowed'))
+      if (res.status === 404) throw new MemberUpdateError('NOT_FOUND', i18n.t('errors.member.notFound'))
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['members'] }),
   })

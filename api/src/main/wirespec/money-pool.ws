@@ -1,4 +1,4 @@
-// Rejected: Bunq no longer accepts the stored connection, an Admin reconnects in the team settings; Unavailable: Bunq did not answer. Amounts and the beer price are euro cents; date is an ISO-8601 calendar date; balance, payments, beerPrice and beerCount are set only when state is Connected, and beerPrice and beerCount only when the team configured a price. canTopUp is true when the pool is on and a bunq.me link is set, in any state.
+// Rejected: Bunq no longer accepts the stored connection, an Admin reconnects in the team settings; Unavailable: Bunq did not answer. Amounts and the beer price are euro cents; date is an ISO-8601 calendar date; balance, payments, beerPrice and beerCount are set only when state is Connected, and beerPrice and beerCount only when the team configured a price. canTopUp is true when the pool is on and a bunq.me link is set, in any state. id is Bunq's payment id; receiptVersion is set when an expense has a receipt, which is served outside this contract at /api/team/money-pool/payments/{id}/receipt?v={receiptVersion} (ReceiptController).
 type PaymentDate = String
 
 enum MoneyPoolState {
@@ -10,10 +10,12 @@ enum PaymentDirection {
 }
 
 type Payment {
+    id: String,
     date: PaymentDate,
     name: String,
     amount: Integer,
-    direction: PaymentDirection
+    direction: PaymentDirection,
+    receiptVersion: String?
 }
 
 type MoneyPool {

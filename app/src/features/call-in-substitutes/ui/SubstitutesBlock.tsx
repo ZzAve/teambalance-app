@@ -1,4 +1,5 @@
 import { UserPlus } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import type { AttendanceEntry, SubstituteEntry } from '@shared/api/events'
 import { cn } from '@shared/lib/utils'
 import { setByName } from '@entities/event/lib/attribution'
@@ -9,11 +10,12 @@ export type SubstituteState = SubstituteEntry['state']
 
 // A Substitute is never Not Responded (ADR-0033), so these three are every state they can hold. They
 // are said in the member words: a Substitute's Maybe means asked and waiting to hear back, which the
-// sheet explains in a sentence rather than a word of its own (#335).
-export const SUBSTITUTE_OPTIONS: { value: SubstituteState; label: string; active: string }[] = [
-  { value: 'ATTENDING', label: ATTENDANCE_WORDS.ATTENDING.word, active: 'border-green bg-green text-white' },
-  { value: 'MAYBE', label: ATTENDANCE_WORDS.MAYBE.word, active: 'border-gold bg-gold text-white' },
-  { value: 'ABSENT', label: ATTENDANCE_WORDS.ABSENT.word, active: 'border-red bg-red text-white' },
+// sheet explains in a sentence rather than a word of its own (#335). Getters, so the words are read
+// in the current language at render.
+export const SUBSTITUTE_OPTIONS: { value: SubstituteState; readonly label: string; active: string }[] = [
+  { value: 'ATTENDING', get label() { return ATTENDANCE_WORDS.ATTENDING.word }, active: 'border-green bg-green text-white' },
+  { value: 'MAYBE', get label() { return ATTENDANCE_WORDS.MAYBE.word }, active: 'border-gold bg-gold text-white' },
+  { value: 'ABSENT', get label() { return ATTENDANCE_WORDS.ABSENT.word }, active: 'border-red bg-red text-white' },
 ]
 
 // The pill stays small; `tap-band` stretches the tap target to 44px tall (F7). Shared by the block
@@ -21,10 +23,10 @@ export const SUBSTITUTE_OPTIONS: { value: SubstituteState; label: string; active
 export const SUBSTITUTE_PILL =
   'tap-band rounded-full border-[1.5px] px-2 py-1 text-caption font-semibold transition-colors disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
 
-const TALLY: { state: SubstituteState; word: string; tone: string }[] = [
-  { state: 'ATTENDING', word: LOWER_WORD.ATTENDING, tone: 'text-green-dark' },
-  { state: 'MAYBE', word: LOWER_WORD.MAYBE, tone: 'text-gold-ink' },
-  { state: 'ABSENT', word: LOWER_WORD.ABSENT, tone: 'text-red-ink' },
+const TALLY: { state: SubstituteState; readonly word: string; tone: string }[] = [
+  { state: 'ATTENDING', get word() { return LOWER_WORD.ATTENDING }, tone: 'text-green-dark' },
+  { state: 'MAYBE', get word() { return LOWER_WORD.MAYBE }, tone: 'text-gold-ink' },
+  { state: 'ABSENT', get word() { return LOWER_WORD.ABSENT }, tone: 'text-red-ink' },
 ]
 
 interface SubstitutesBlockProps {
@@ -51,23 +53,24 @@ export function SubstitutesBlock({
   onCallIn,
   pending = false,
 }: SubstitutesBlockProps) {
-  const tally = TALLY.map((t) => ({ ...t, count: substitutes.filter((s) => s.state === t.state).length })).filter(
-    (t) => t.count > 0,
+  const { t } = useTranslation()
+  const tally = TALLY.map((e) => ({ ...e, count: substitutes.filter((s) => s.state === e.state).length })).filter(
+    (e) => e.count > 0,
   )
 
   return (
-    <section aria-label="Substitutes" className="mt-6 overflow-hidden rounded-lg border border-border/40 bg-card shadow-sm">
+    <section aria-label={t('substitutes.heading')} className="mt-6 overflow-hidden rounded-lg border border-border/40 bg-card shadow-sm">
       <div className="flex items-baseline justify-between gap-3 px-4 pb-2 pt-3">
-        <h3 className="text-caption font-semibold text-purple-ink">Substitutes</h3>
+        <h3 className="text-caption font-semibold text-purple-ink">{t('substitutes.heading')}</h3>
         <span className="text-caption font-semibold">
           {tally.length === 0 ? (
-            <span className="text-muted-foreground">none yet</span>
+            <span className="text-muted-foreground">{t('substitutes.noneYet')}</span>
           ) : (
-            tally.map((t, i) => (
-              <span key={t.state}>
+            tally.map((e, i) => (
+              <span key={e.state}>
                 {i > 0 && ' · '}
-                <span className={t.tone}>
-                  {t.count} {t.word}
+                <span className={e.tone}>
+                  {e.count} {e.word}
                 </span>
               </span>
             ))
@@ -75,7 +78,7 @@ export function SubstitutesBlock({
         </span>
       </div>
 
-      {substitutes.length === 0 && <p className="px-4 pb-3 text-small text-muted-foreground">Nobody called in yet.</p>}
+      {substitutes.length === 0 && <p className="px-4 pb-3 text-small text-muted-foreground">{t('substitutes.nobodyCalledIn')}</p>}
 
       {substitutes.map((sub) => (
         <div key={sub.substituteId} role="group" aria-label={sub.name} className="flex items-center gap-3 px-4 py-2">
@@ -83,7 +86,7 @@ export function SubstitutesBlock({
           <button type="button" onClick={() => onOpen(sub.substituteId)} className="min-w-0 flex-1 text-left">
             <span className="block truncate text-small font-medium">{sub.name}</span>
             <span className="block text-caption text-muted-foreground">
-              {sub.position?.label ?? 'Unassigned'} · set by {setByName(sub.changedBy, members)}
+              {t('substitutes.rowSetBy', { position: sub.position?.label ?? t('position.unassigned'), name: setByName(sub.changedBy, members) })}
             </span>
           </button>
           <span className="flex shrink-0 gap-1">
@@ -112,7 +115,7 @@ export function SubstitutesBlock({
         className="flex w-full items-center justify-center gap-2 border-t border-border/40 py-3 text-small font-semibold text-purple-ink hover:bg-purple/5"
       >
         <UserPlus size={18} />
-        Call in substitutes
+        {t('lineup.callIn')}
       </button>
     </section>
   )

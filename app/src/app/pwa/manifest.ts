@@ -16,7 +16,9 @@ export const pwaManifest: Partial<ManifestOptions> = {
   id: '/',
   name: 'TeamBalance',
   short_name: 'TeamBalance',
-  description: 'Event attendance and shared money pool for sports teams.',
+  // One Dutch manifest (#464): read once at install time, before any user language is known.
+  lang: 'nl',
+  description: 'Aanwezigheid bij events en een gedeelde teampot voor sportteams.',
   start_url: '/',
   scope: '/',
   display: 'standalone',
@@ -51,14 +53,14 @@ export const pwaManifest: Partial<ManifestOptions> = {
       sizes: '780x1688',
       type: 'image/png',
       form_factor: 'narrow',
-      label: 'Upcoming events with who is coming',
+      label: 'Komende events en wie er komen',
     },
     {
       src: 'screenshots/events-wide.png',
       sizes: '2560x1600',
       type: 'image/png',
       form_factor: 'wide',
-      label: 'Upcoming events with who is coming',
+      label: 'Komende events en wie er komen',
     },
   ],
   // Long-press / right-click quick actions on the installed icon. Every team screen lives under

@@ -1,7 +1,9 @@
+// `language` is the language of the page the founder created the team from (ADR-0043 section 4). The team-created email goes out in the founder's stored language; this is used only when they have none, and Dutch when neither is known.
 type CreateTeamRequest {
     name: String,
     slug: String,
-    creationCode: String
+    creationCode: String,
+    language: Language?
 }
 
 // A Platform Admin provisions a Team with NO members at all (ADR-0024 section 5): the tenant schema and the teams row, and not one team_members row - the teamless invariant (ADR-0024 section 3) forbids the platform account ever holding a membership. No creation code: the platform-admin allowlist on /admin is a stronger gate than a code the admin would only be minting for themselves. The creator does NOT become the founder or the Active Team; they enter via act-as and hand the team over with an ADMIN invite link.

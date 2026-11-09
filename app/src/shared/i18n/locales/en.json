@@ -257,5 +257,826 @@
   "position": {
     "select": "Select a position",
     "unassigned": "Unassigned"
+  },
+  "eventForm": {
+    "type": "Type",
+    "title": "Title",
+    "titleExample": "e.g. {{name}}",
+    "titlePlaceholder": "Event title",
+    "startTime": "Start time",
+    "duration": "Duration",
+    "durationOption": {
+      "60": "1 hour",
+      "90": "1.5 hours",
+      "120": "2 hours",
+      "180": "3 hours"
+    },
+    "locationOptional": "Location (optional)",
+    "descriptionOptional": "Description (optional)",
+    "creating": "Creating...",
+    "create": "Create Event"
+  },
+  "recurring": {
+    "weekday": {
+      "MONDAY": "Mo",
+      "TUESDAY": "Tu",
+      "WEDNESDAY": "We",
+      "THURSDAY": "Th",
+      "FRIDAY": "Fr",
+      "SATURDAY": "Sa",
+      "SUNDAY": "Su"
+    },
+    "events_one": "{{count}} event",
+    "events_other": "{{count}} events",
+    "occurrence": "Occurrence",
+    "season": "Season",
+    "overCap": "That’s over {{max}} events — shorten the range or thin the schedule before creating.",
+    "outOfSeason_one": "{{count}} date falls outside the season (shown in red). The app will reject out-of-window starts.",
+    "outOfSeason_other": "{{count}} dates fall outside the season (shown in red). The app will reject out-of-window starts.",
+    "noDates": "No dates yet — pick at least one weekday inside the range.",
+    "truncated": "Preview shows the first {{months}} months — all {{total}} events will still be created.",
+    "step": {
+      "details": "Details",
+      "repeat": "Repeat",
+      "confirm": "Confirm"
+    },
+    "heading": {
+      "details": {
+        "title": "What are you scheduling?",
+        "sub": "Pick a type — we'll pre-fill the rest."
+      },
+      "repeat": {
+        "title": "How often?",
+        "sub": "Choose the cadence and the days it lands on."
+      },
+      "confirm": {
+        "title": "Ready to create",
+        "sub": "Review the dates before you confirm."
+      }
+    },
+    "untitled": "Untitled series",
+    "minutes": "{{minutes}} min",
+    "titlePlaceholder": "Series title",
+    "timeOfDay": "Time of day",
+    "durationMinutes": "Duration (min)",
+    "referencesHint": "Shared across every event in the series.",
+    "repeats": "Repeats",
+    "on": "On",
+    "from": "From",
+    "until": "Until",
+    "when": "When",
+    "dates": "Dates",
+    "total": "Total",
+    "back": "Back",
+    "next": "Next",
+    "creating": "Creating…",
+    "create_one": "Create {{count}} event",
+    "create_other": "Create {{count}} events",
+    "weekly": "Weekly",
+    "biweekly": "Bi-weekly",
+    "noDays": "no days"
+  },
+  "editEvent": {
+    "title": "Edit event",
+    "endTime": "End time",
+    "saveFailed": "Could not save changes. Please try again.",
+    "saving": "Saving…",
+    "save": "Save changes"
+  },
+  "deleteEvent": {
+    "button": "Delete",
+    "titleSeries": "Delete from series?",
+    "titleOne": "Delete this event?",
+    "description": "{{title}} will be removed for everyone, along with its attendance.",
+    "deleting": "Deleting…",
+    "confirmMany": "Delete events",
+    "confirmOne": "Delete event",
+    "failed": "Could not delete the event. Please try again."
+  },
+  "seriesScope": {
+    "scope": {
+      "THIS": "This event",
+      "THIS_AND_FOLLOWING": "This & following",
+      "ALL": "All events"
+    },
+    "editCaption": {
+      "THIS": "Splits the series into three: everything before, this one on its own (its date can move), and everything after — each independent.",
+      "THIS_AND_FOLLOWING": "Splits the series in two: occurrences before stay as they are; this one and every later one become a new series with the edited details.",
+      "ALL": "No split — the edit applies to every occurrence in the one series."
+    },
+    "deleteCaption": {
+      "THIS": "Removes just this occurrence; the rest of the series stays.",
+      "THIS_AND_FOLLOWING": "Removes this occurrence and every later one; the earlier ones stay as a shorter series.",
+      "ALL": "Removes the entire series."
+    },
+    "delete": "Delete",
+    "applyTo": "Apply to",
+    "label": "Scope",
+    "affects_one": "Affects {{affected}} of {{count}} event",
+    "affects_other": "Affects {{affected}} of {{count}} events",
+    "removes_one": "Removes {{affected}} of {{count}} event",
+    "removes_other": "Removes {{affected}} of {{count}} events",
+    "dateLocked": "Each occurrence keeps its own date; the time & details apply to all affected events."
+  },
+  "substitutes": {
+    "heading": "Substitutes",
+    "noneYet": "none yet",
+    "nobodyCalledIn": "Nobody called in yet.",
+    "rowSetBy": "{{position}} · set by {{name}}",
+    "alreadyListed": "{{name}} is already on the list — find them above.",
+    "addFailed": "Couldn't add the substitute — please try again.",
+    "loadFailed": "Couldn't load the list.",
+    "loading": "Loading the list…",
+    "empty": "Nobody on the list yet.",
+    "name": "Name",
+    "namePlaceholder": "e.g. Pieter Smit",
+    "position": "Position",
+    "optional": "(optional)",
+    "noPosition": "None",
+    "positionsFailed": "Couldn't load the positions.",
+    "adding": "Adding…",
+    "addAsMaybe": "Add as Maybe",
+    "new": "New substitute",
+    "newHint": "Someone who isn't on the list yet",
+    "done": "Done",
+    "tryAgain": "Try again",
+    "plays": "Plays {{position}}",
+    "nobodyPlays": "Nobody on the list plays this yet.",
+    "others": "Others",
+    "sheet": {
+      "description": "Substitute · {{position}}",
+      "descriptionSetBy": "Substitute · {{position}} · set by {{name}}",
+      "hint": "Maybe means asked and waiting for an answer. Can't keeps a record that they were asked and said no.",
+      "takeOff": "Take off this event"
+    }
+  },
+  "eventDetail": {
+    "loadFailed": "Couldn't load this event",
+    "loadFailedHint": "Something went wrong on our end. Give it another try.",
+    "back": "Back to events",
+    "notFound": "Event not found.",
+    "date": "Date",
+    "additionalInfo": "Additional info",
+    "addToCalendar": "Add your team's events to your calendar",
+    "yourResponse": "Your response"
+  },
+  "createEntry": {
+    "title": {
+      "chooser": "Create event",
+      "single": "New event",
+      "recurring": "New recurring series"
+    },
+    "description": {
+      "chooser": "Choose how you want to add events",
+      "single": "A one-off training, match, or other event",
+      "recurring": "A weekly or bi-weekly series across the season"
+    },
+    "back": "Back to event type",
+    "single": "Single event",
+    "singleHint": "One training, match, or other event",
+    "recurring": "Recurring series",
+    "recurringHint": "Weekly trainings across a season",
+    "seriesError": {
+      "outside-season": "Some dates fall outside the season window — adjust the range.",
+      "over-cap": "That series is over the 200-event cap — shorten the range or thin the schedule.",
+      "empty": "No dates match — pick at least one weekday inside the range.",
+      "unknown": "Could not create the series. Please try again."
+    },
+    "singleFailed": "Could not create the event. Please try again."
+  },
+  "attendee": {
+    "noOne": "No one",
+    "nobodyInPosition": "nobody in this position yet",
+    "findOpen": "{{find}} · {{open}} open",
+    "setBy": "set by {{name}}",
+    "you": "You"
+  },
+  "answerSheet": {
+    "currently": "currently {{word}}",
+    "currentlyForThem": "currently {{word}} · you are answering for them"
+  },
+  "bulkToast": {
+    "nothing": "Nothing to set — those events already changed",
+    "all_one": "{{count}} {{type}} set to Attending",
+    "all_other": "{{count}} {{types}} set to Attending",
+    "partial_one": "{{count}} of {{requested}} {{type}} set to Attending — {{skipped}} already changed",
+    "partial_other": "{{count}} of {{requested}} {{types}} set to Attending — {{skipped}} already changed",
+    "undo": "Undo"
+  },
+  "money": {
+    "loadFailed": "We couldn't load the money pool. Try again in a moment.",
+    "off": "The money pool is switched off for this team",
+    "linkHint": "Add the team’s bunq.me link in the team settings to let members top up.",
+    "unavailable": "The pool is unavailable right now",
+    "unreachable": "We can't reach the team's Bunq account. Try again later.",
+    "rejected": {
+      "member": "Bunq no longer accepts the team's connection. An admin needs to reconnect it.",
+      "reconnect": "Bunq no longer accepts the team's connection. Reconnect it.",
+      "reconnectInSettings": "Bunq no longer accepts the team's connection. Reconnect it in the team settings."
+    },
+    "preview": "Money pool preview",
+    "previewTitle": "A shared team pot",
+    "memberCopy": "Once an admin connects the team’s Bunq account, the balance and payments show up here.",
+    "admin": {
+      "pickAccount": "Pick the account in the team settings. The balance and payments will show up here.",
+      "unknown": "The balance and payments of the team’s Bunq account will show up here.",
+      "connect": "Connect the team’s Bunq account in the team settings. The balance and payments will show up here.",
+      "comingSoon": "Connecting the team’s Bunq account is coming soon. The balance and payments will show up here."
+    },
+    "pillar": {
+      "pot": {
+        "title": "One shared pot",
+        "blurb": "The whole team's money, in one place"
+      },
+      "chipIn": {
+        "title": "Chip in fast",
+        "blurb": "Top up your share in a couple of taps"
+      },
+      "tracked": {
+        "title": "Every euro tracked",
+        "blurb": "See what was paid, and where it went"
+      }
+    },
+    "balance": "Balance",
+    "poolBalance": "Pool balance",
+    "beerCounter": "Beer Counter",
+    "beerCovers": "The pool balance covers {{beers}} at {{price}} each.",
+    "beers_one": "{{formatted}} beer",
+    "beers_other": "{{formatted}} beers",
+    "payments": "Payments",
+    "noPayments": "No payments in this period.",
+    "incoming": "Incoming",
+    "outgoing": "Outgoing",
+    "totalIn": "In",
+    "totalSpent": "Spent",
+    "thisSeason": "This season",
+    "last90Days": "Last 90 days",
+    "showAll_one": "Show all {{count}} payment",
+    "showAll_other": "Show all {{count}} payments",
+    "showFewer": "Show fewer",
+    "beersInPot_one": "beer in the pot",
+    "beersInPot_other": "beers in the pot",
+    "beerEach": "{{price}} each",
+    "graphSummary": "The pot went from {{from}} on {{fromDate}} to {{to}} on {{toDate}}"
+  },
+  "moneySettings": {
+    "title": "Money pool",
+    "intro": "Show your team's shared pool, and what its balance buys in beers.",
+    "loadFailed": "Couldn't load the money pool settings. Please try again.",
+    "saveFailed": "Could not save the money pool settings. Please try again.",
+    "priceInvalid": "Enter a price between €0,01 and €100,00.",
+    "show": "Show the money pool to the team",
+    "showHint": "When switched off, the Money tab and page are hidden for everyone in the team.",
+    "beerPrice": "Beer price (€)",
+    "beerPriceHint": "Leave empty to hide the Beer Counter.",
+    "link": "bunq.me link",
+    "linkPlaceholder": "https://bunq.me/yourteam",
+    "linkInvalid": "Use a link like https://bunq.me/yourteam.",
+    "saving": "Saving…",
+    "save": "Save money pool",
+    "saved": "Saved"
+  },
+  "topUp": {
+    "button": "Top up",
+    "title": "Top up the pool",
+    "description": "Pick an amount. You pay on the team's bunq.me page.",
+    "amounts": "Amounts",
+    "other": "Other amount (€)",
+    "otherPlaceholder": "{{min}} to {{max}}",
+    "otherInvalid": "Enter a whole amount from €{{min}} to €{{max}}.",
+    "opening": "Opening…",
+    "pay": "Pay",
+    "unavailable": "Top-up isn't available for this team right now.",
+    "failed": "Couldn't open the payment page. Please try again."
+  },
+  "bunq": {
+    "disconnectFailed": "Couldn’t disconnect Bunq. Please try again.",
+    "pickFailed": "Couldn’t save the account. Please try again.",
+    "accountsLoading": "Loading the bunq accounts…",
+    "rejected": "TeamBalance can’t use its stored bunq access any more. Use “Connect a different bunq login” below, or disconnect.",
+    "accountsLoadFailed": "Couldn’t load the bunq accounts. Please try again.",
+    "disconnect": "Disconnect",
+    "disconnectTitle": "Disconnect Bunq",
+    "disconnectDescription": "This deletes the access TeamBalance stored. To withdraw the grant at bunq too, remove TeamBalance under connected apps in the bunq app.",
+    "noAccounts": "This bunq login has no accounts to show.",
+    "chooseAccount": "Choose the account the Money page shows",
+    "useAccount": "Use this account",
+    "accountPicked": "The Money page now shows {{name}}."
+  },
+  "actAs": {
+    "banner": "Acting as the platform",
+    "inside": "Acting as the platform inside <team>{{team}}</team>",
+    "exit": "Exit",
+    "console": {
+      "intro": "Enter a team to set it up. You stay off its roster, and the team can see that you were here.",
+      "expired": "Your act-as ran out after 60 minutes. Enter a team again to continue.",
+      "forbidden": "You don't have access to the platform console.",
+      "loadFailed": "Couldn't load teams. Please try again.",
+      "empty": "No teams yet.",
+      "enter": "Enter"
+    },
+    "records": {
+      "title": "Platform access",
+      "intro": "When the people who run TeamBalance worked inside your team.",
+      "loadFailed": "Couldn't load platform access. Please try again.",
+      "never": "The TeamBalance owner has never worked in your team.",
+      "workedHere_one": "The TeamBalance owner worked here once",
+      "workedHere_other": "The TeamBalance owner worked here {{count}} times",
+      "memberWorked": "A team member worked in your team",
+      "ownerWorked": "The TeamBalance owner worked in your team",
+      "started": "Started",
+      "ended": "Ended",
+      "actingAs": "Acting as",
+      "anAdmin": "An admin of your team",
+      "why": "Why does this happen?",
+      "whyOwner": "TeamBalance is run by a small team. The owner works inside a team to set it up, prepare a season, or fix something that was reported.",
+      "whyListed": "Access lasts an hour at a time and is never silent — it is listed here whether or not anything changed.",
+      "endLeft": "{{time}}, when they left",
+      "endRanOut": "{{time}}, when the hour ran out"
+    }
+  },
+  "creationCodes": {
+    "intro": "Generate one-time codes that let a new owner create a team.",
+    "forbidden": "You don't have access to creation codes.",
+    "loadFailed": "Couldn't load creation codes. Please try again.",
+    "generate": "Generate code",
+    "consumed": "That code was already used and cannot be revoked.",
+    "empty": "No creation codes yet. Generate one above.",
+    "revokeTitle": "Revoke code",
+    "revokeDescription": "Revoke \"{{code}}\"? It can no longer be used to create a team.",
+    "revoke": "Revoke",
+    "status": {
+      "active": "Active",
+      "expired": "Expired",
+      "consumed": "Used"
+    }
+  },
+  "calendarLinks": {
+    "page": "Calendar",
+    "backToEvents": "Back to events",
+    "yourTeam": "Your team",
+    "intro": "Subscribe to your team's events once and your phone's calendar stays in sync. Changes can take up to a day to appear on Google Calendar.",
+    "loadFailed": "Couldn't load your calendar links",
+    "loadFailedHint": "Check your connection and try again.",
+    "empty": "No calendar links yet.",
+    "generate": "Generate link",
+    "atCap": "You have {{max}} links, the maximum. Delete one to generate a new link.",
+    "actionFailed": "Something went wrong. Please try again.",
+    "deleteTitle": "Delete calendar link?",
+    "deleteDescription": "Every calendar subscribed with this link stops updating.",
+    "deleteConfirm": "Delete link",
+    "expired": "Expired",
+    "expiredOn": "Expired {{date}}",
+    "expiresOn": "Expires {{date}}",
+    "linkFrom": "Link from {{date}}",
+    "open": "Open in Calendar",
+    "google": "Add to Google Calendar",
+    "copied": "Copied!",
+    "copy": "Copy link",
+    "unreadable": "This link can no longer be shown.",
+    "edit": "Edit",
+    "delete": "Delete",
+    "copyFailed": "Couldn't copy automatically. Copy the link below.",
+    "urlFor": "Calendar link URL for {{name}}",
+    "advanced": "Advanced",
+    "includeAnswered": "Include events you answered",
+    "includeTypes": "Include event types",
+    "allTypes": "All types",
+    "laterIncluded": "Types your team adds later are included.",
+    "laterExcluded": "Types your team adds later are not included.",
+    "markAnswer": "Mark your answer (✓ ? ✗) on titles",
+    "markAnswerLabel": "Mark your answer on titles",
+    "suffix": "Calendar name suffix (optional)",
+    "suffixPlaceholder": "e.g. Partner",
+    "shownAs": "Your calendar app shows it as '{{name}}'.",
+    "label": "Label (optional)",
+    "labelPlaceholder": "e.g. My phone",
+    "whoFor": "Who is this calendar for?",
+    "aboutPresets": "About Me and Partner",
+    "aboutMe": "<strong>Me:</strong> everything the team schedules, with your answer marked.",
+    "aboutPartner": "<strong>Partner:</strong> only events you are attending, no marks, calendar named '{{team}} · Partner'.",
+    "preset": {
+      "me": "Me",
+      "partner": "Partner",
+      "custom": "Custom"
+    },
+    "summary": {
+      "statesOnly": "{{states}} only",
+      "noMarks": "no ✓/✗ marks",
+      "calendar": "calendar: {{name}}",
+      "archived": "{{name}} (archived)",
+      "types_one": "{{count}} event type",
+      "types_other": "{{count}} event types",
+      "otherTypes_one": "{{count}} other event type",
+      "otherTypes_other": "{{count}} other event types"
+    }
+  },
+  "shell": {
+    "update": {
+      "available": "A new version is available.",
+      "reload": "Reload"
+    },
+    "wake": {
+      "label": "Server status",
+      "waking": "Waking the server back up…",
+      "stillOnIt": "Still on it — thanks for hanging in there"
+    },
+    "notFound": {
+      "title": "Page not found",
+      "description": "We couldn't find that page. It may have moved, or the link may be out of date.",
+      "goHome": "Go home"
+    },
+    "routeError": {
+      "title": "Couldn't load this page",
+      "description": "Something went wrong loading the app. Please try again."
+    },
+    "retry": "Retry",
+    "close": "Close",
+    "teammate": "teammate",
+    "undo": "Undo",
+    "splash": {
+      "roundingUp": "Rounding up the team…",
+      "almostThere": "Almost there…",
+      "wakingServer": "Waking the server",
+      "connecting": "Connecting",
+      "loadingTeam": "Loading your team",
+      "stillWarming": "Still warming up the court — this happens after a quiet spell. Hang tight! 🏐"
+    }
+  },
+  "auth": {
+    "verify": {
+      "linkExpired": "Link expired",
+      "backToLogin": "Back to login",
+      "expired": "This link has expired or already been used. Request a new one.",
+      "missingToken": "This link is missing a token. Request a new one.",
+      "signingIn": "Signing you in..."
+    },
+    "login": {
+      "checkEmail": "Check your email",
+      "sent": "If an account exists for <b>{{email}}</b>, we've sent a magic link to sign in. Click it to continue.",
+      "openEmailApp": "Open email app →",
+      "intro": "Sign in or create an account with your email. You can add a passkey right after.",
+      "emailPlaceholder": "you@example.com",
+      "sending": "Sending...",
+      "send": "Send magic link",
+      "or": "or",
+      "passkey": "Sign in with a passkey",
+      "passkeyFailed": "Signing in with a passkey failed. Use your email link instead.",
+      "lastUsed": "Last",
+      "lastUsedHint": "You signed in this way last time on this device"
+    }
+  },
+  "invite": {
+    "invalid": "This invite link is invalid or has expired.",
+    "invalidTitle": "Invite link invalid",
+    "joining": "Joining the team...",
+    "loading": "Loading...",
+    "sent": "If <b>{{email}}</b> checks out, we've sent a magic link to sign in. Click it to join the team.",
+    "title": "You're invited",
+    "intro": "Enter your email to join the team — no password needed.",
+    "join": {
+      "title": "Join your team",
+      "intro": "Paste the invite link you were sent below — or easiest of all, just click the link directly.",
+      "linkLabel": "Invite link",
+      "joining": "Joining…",
+      "join": "Join",
+      "noLink": "I don't have a link",
+      "askAdmin": "Ask your team's captain or admin to send you the invite link — they can generate one from the team's Members page. Once you have it, paste it above.",
+      "ownTeam": "Starting your own team instead?",
+      "invalidOrExpired": "That invite link didn't work — it may be invalid or expired. Ask your team admin for a fresh one.",
+      "genericError": "Something went wrong, try again."
+    }
+  },
+  "onboarding": {
+    "welcome": "Welcome to TeamBalance 👋",
+    "inviteUnavailable": "You're signed in, but the invite link you used has expired or been replaced. Ask your team for a new one, then use <b>I have an invite</b> below.",
+    "howToStart": "How would you like to get started?",
+    "signedInNoTeam": "You're signed in, but not on a team yet. How would you like to get started?",
+    "haveInvite": "I have an invite",
+    "sharedLink": "Someone shared a join link with you",
+    "createTeam": "Create a team",
+    "needCode": "You'll need a creation code — team owners get these from us"
+  },
+  "teams": {
+    "yours": "Your teams",
+    "joinOrCreate": "Join or create",
+    "joinWithLink": "Join with an invite link",
+    "needCode": "You'll need a creation code"
+  },
+  "createTeam": {
+    "title": "Create your team",
+    "intro": "Enter your creation code and name your team — you'll be its admin.",
+    "inviteOnly": "Starting a team is invite-only while we're getting established. Got a creation code? Enter it below.",
+    "noCode": "Don't have one? <mail>Email teams@teambalance.nl</mail> and we'll help you get started.",
+    "name": "Team name",
+    "namePlaceholder": "e.g. Tovo Heren 4",
+    "address": "Team address",
+    "code": "Creation code",
+    "codePlaceholder": "Enter your creation code",
+    "creatingYours": "Creating your team…",
+    "creating": "Creating…",
+    "submit": "Create team",
+    "reassurance": "Setting up your team's space — this can take a few seconds…",
+    "slug": {
+      "required": "Choose a team address.",
+      "tooLong": "Use {{max}} characters or fewer.",
+      "format": "Use lowercase letters, numbers, and hyphens."
+    },
+    "memberless": {
+      "intro": "Creates an empty team you can enter and set up, then hand over with an admin invite link. You don't join it.",
+      "created": "Created “{{name}}”. Enter it from the list below to set it up.",
+      "namePlaceholder": "e.g. Tovo Dames 5"
+    }
+  },
+  "getStarted": {
+    "welcome": "Welcome to TeamBalance",
+    "intro": "Let's set up your profile — tell us your name and where you play.",
+    "usePersonalPhoto": "Use my personal photo in this team"
+  },
+  "errors": {
+    "generic": "Something went wrong. Please try again.",
+    "saveFailed": "Couldn't save. Please try again.",
+    "notAllowed": "You are not allowed to make this change.",
+    "logoutFailed": "Couldn't log out — please try again.",
+    "attendance": {
+      "saveFailed": "Couldn't save your response — tap to try again.",
+      "setFailed": "Couldn't set your attendance — please try again.",
+      "undoFailed": "Couldn't undo — please try again."
+    },
+    "createTeam": {
+      "invalidCode": "That creation code isn't valid.",
+      "slugTaken": "That address is already taken — try another.",
+      "nameRequired": "Enter a team name.",
+      "generic": "Something went wrong creating your team. Please try again.",
+      "genericMemberless": "Something went wrong creating the team. Please try again.",
+      "noAccess": "You don't have access to create teams."
+    },
+    "member": {
+      "lastAdmin": "A team must keep at least one admin.",
+      "notFound": "Member not found.",
+      "removeNotAllowed": "You are not allowed to remove this member."
+    },
+    "substitute": {
+      "nameTaken": "{{name}} is already on the list.",
+      "numberTaken": "Number {{number}} is already worn by another substitute.",
+      "gone": "That substitute is no longer on the list.",
+      "saveFailed": "Couldn't save the substitute — please try again.",
+      "removeNotAllowed": "You are not allowed to remove this substitute.",
+      "removeFailed": "Couldn't remove the substitute — please try again.",
+      "takeOffFailed": "Couldn't take the substitute off — please try again."
+    }
+  },
+  "members": {
+    "heading": "Members",
+    "loadFailed": "Couldn't load members. Please try again.",
+    "emptyManage": "No members yet. Share an invite link to bring people in.",
+    "empty": "No members yet.",
+    "removeTitle": "Remove member",
+    "removeDescription": "Remove {{name}} from the team? They will lose access until re-invited.",
+    "lastAdminHint": "This is the last admin — the team must keep at least one.",
+    "displayNameFor": "Display name for {{name}}",
+    "admin": "Admin",
+    "positionFor": "Position for {{name}}",
+    "actionsFor": "Actions for {{name}}",
+    "rename": "Rename",
+    "makeMember": "Make member",
+    "makeAdmin": "Make admin",
+    "removeMenu": "Remove…"
+  },
+  "positions": {
+    "heading": "Positions",
+    "loadFailed": "Couldn't load positions. Please try again.",
+    "newLabel": "New position label",
+    "placeholder": "e.g. Setter",
+    "add": "Add",
+    "labelTaken": "That position already exists.",
+    "empty": "No positions yet. Add one above.",
+    "deleteTitle": "Delete position",
+    "deleteDescription": "Delete \"{{label}}\"? This cannot be undone.",
+    "delete": "Delete",
+    "checkingUsage": "Checking what uses this position…",
+    "labelFor": "Label for {{label}}",
+    "isStaff": "{{label}} is staff",
+    "staff": "Staff",
+    "deleteMenu": "Delete…",
+    "impact": {
+      "members_one": "{{count}} member becomes Unassigned",
+      "members_other": "{{count}} members become Unassigned",
+      "eventTypes_one": "it is dropped from {{count}} event type",
+      "eventTypes_other": "it is dropped from {{count}} event types",
+      "events_one": "and from {{count}} event with their own roster",
+      "events_other": "and from {{count}} events with their own roster",
+      "list": "{{parts}}.",
+      "none": "Nothing currently uses this position."
+    }
+  },
+  "manageSubstitutes": {
+    "heading": "Substitutes",
+    "loadFailed": "Couldn't load substitutes. Please try again.",
+    "emptyManage": "No substitutes yet. Members add them when calling someone in for an event.",
+    "empty": "No substitutes yet.",
+    "removeTitle": "Remove substitute",
+    "removeDescription": "{{name}} will disappear from every event they were added to, including past ones. This can't be undone.",
+    "shirtNumberFor": "Shirt number for {{name}}",
+    "nameFor": "Name for {{name}}",
+    "saveFailed": "Couldn't save the change — please try again.",
+    "count": {
+      "checking": "Checking which events {{name}} is on…",
+      "failed": "Couldn't check which events {{name}} is on.",
+      "none": "{{name}} is not on any event.",
+      "some_one": "{{name}} is on {{count}} event.",
+      "some_other": "{{name}} is on {{count}} events."
+    }
+  },
+  "eventTypes": {
+    "heading": "Event types",
+    "intro": "Each type carries the roster an event of that kind needs. Events follow their type unless you give one its own.",
+    "loadFailed": "Couldn't load event types. Please try again.",
+    "error": {
+      "EVENT_TYPE_NAME_TAKEN": "That event type already exists.",
+      "LAST_EVENT_TYPE": "A team must keep at least one active event type.",
+      "INVALID_REQUEST": "That didn't work — check the name and roster, then try again.",
+      "FORBIDDEN": "You are not allowed to make this change.",
+      "NOT_FOUND": "That event type no longer exists. Reload and try again."
+    },
+    "empty": "No event types yet. Add one below.",
+    "edit": "Edit",
+    "archiveMenu": "Archive…",
+    "add": "Add event type",
+    "newTitle": "New event type",
+    "editTitle": "Edit event type",
+    "name": "Event type name",
+    "namePlaceholder": "e.g. Match",
+    "colour": "Colour",
+    "colourOption": "Colour {{color}}",
+    "archived": "Archived",
+    "restoreName": "Restore {{name}}",
+    "restore": "Restore",
+    "archiveTitle": "Archive \"{{name}}\"?",
+    "archiveDescription": "It disappears from the event pickers. Existing events keep this type and still show — no event is deleted.",
+    "migrateLabel": "Move its events to another type first?",
+    "leaveOn": "Leave them on \"{{name}}\"",
+    "moveTo": "Move to {{name}}",
+    "archive": "Archive",
+    "roster": "Roster",
+    "inherit": "Inherit default",
+    "customise": "Customise",
+    "follows": "Follows {{type}}: {{summary}}. Changing the type's default changes this event too.",
+    "followsDefault": "Follows the event type’s default.",
+    "trackRoster": "Track roster",
+    "trackOn": "On — the card shows who is covering which position",
+    "trackOff": "Off — no roster panel on the card",
+    "totalNeeded": "People needed in total",
+    "optional": "(optional)",
+    "addPositionsHint": "Add positions below to require a specific lineup.",
+    "perPosition": "Per position",
+    "summary": {
+      "none": "No roster",
+      "total": "{{count}} total",
+      "nothingRequired": "Tracked, nothing required"
+    }
+  },
+  "handover": {
+    "heading": "Hand over as admin",
+    "intro": "Create a single-use link that makes the first person who opens it an admin of this team. Send it to one person — anyone who opens it becomes an admin, and it stops working once used.",
+    "loadFailed": "Failed to load the admin link.",
+    "revoked": "The link has been revoked. It can no longer make anyone an admin.",
+    "creating": "Creating…",
+    "createNew": "Create new admin link",
+    "create": "Create admin handover link",
+    "linkLabel": "Admin handover link",
+    "rotating": "Rotating…",
+    "revoking": "Revoking…",
+    "hint": "This link grants admin and can be used once. Rotating replaces it with a new one; revoking removes it. Either way the old link stops working.",
+    "revokeDescription": "The old link stops working and no replacement is created. It can no longer be used to become an admin of this team."
+  },
+  "generateInvite": {
+    "trigger": "Invite Link",
+    "title": "Team invite link",
+    "loading": "Loading...",
+    "loadFailed": "Failed to load the invite link.",
+    "revoked": "The link has been revoked. New joiners can no longer use it.",
+    "none": "This team doesn't have an invite link yet.",
+    "generating": "Generating...",
+    "generateNew": "Generate new link",
+    "generate": "Generate link",
+    "actionFailed": "Something went wrong. Please try again.",
+    "share": "Share this link with your team. Anyone with the link can join.",
+    "copy": "Copy",
+    "copied": "Copied!",
+    "copyFailed": "Couldn't copy automatically. Copy the link from the field above.",
+    "rotating": "Rotating...",
+    "rotate": "Rotate link",
+    "revoking": "Revoking...",
+    "revoke": "Revoke link",
+    "hint": "Rotating replaces this link with a new one. Revoking removes it without a replacement. Either way the old link stops working.",
+    "revokeTitle": "Revoke the invite link?",
+    "revokeDescription": "The old link stops working and no replacement is created. Anyone who hasn't already joined with it will need a new link."
+  },
+  "teamSettings": {
+    "heading": "Season",
+    "intro": "Bound your team's events to a season. Once set, events cannot be scheduled outside this window.",
+    "loadFailed": "Couldn't load team settings. Please try again.",
+    "noSeason": "No season set — events can be scheduled on any date.",
+    "start": "Start date",
+    "end": "End date",
+    "rangeError": "End date must be on or after the start date.",
+    "warning": "Changing the season won't move or delete existing events — some may now fall outside the new window.",
+    "saving": "Saving…",
+    "save": "Save season",
+    "saveFailed": "Could not save the season. Please try again."
+  },
+  "teamPage": {
+    "settings": "Team settings"
+  },
+  "memberDetail": {
+    "fallbackTitle": "Member",
+    "back": "Back to team",
+    "loadFailed": "Couldn't load this member. Please try again.",
+    "notOnTeam": "This person is not on the team.",
+    "usePersonal": "Use my personal photo",
+    "uploadDifferent": "Upload a different photo",
+    "usePersonalTitle": "Use your personal photo",
+    "replaces": "This replaces your current team photo.",
+    "teamWillSee": "Your team will see this photo.",
+    "useThis": "Use this photo",
+    "personalAlt": "Your personal photo",
+    "removeSelf": "The team will see your initials until you add a new photo.",
+    "removeOther": "Remove {{name}}'s photo? Only they can add a new one.",
+    "role": "Role",
+    "roleMember": "Member",
+    "editProfile": "Edit profile"
+  },
+  "pageHeader": {
+    "back": "Back"
+  },
+  "demo": {
+    "intro": "This is a demo team.",
+    "play": "Play as Sanne",
+    "error": "Signing in failed. Please try again."
+  },
+  "receipt": {
+    "button": "Receipt for {{name}}",
+    "title": "Receipt",
+    "description": "{{name}}, {{amount}}",
+    "empty": "No receipt yet. Add a photo of it so the team can see what this was spent on.",
+    "imageAlt": "Receipt for {{name}}",
+    "add": "Add receipt",
+    "replace": "Replace",
+    "remove": "Remove",
+    "saving": "Saving…",
+    "readFailed": "Could not read that image.",
+    "error": {
+      "RECEIPT_TOO_LARGE": "That receipt is too large. Please take a smaller photo.",
+      "INVALID_RECEIPT": "That file isn't an image we can use.",
+      "EXPENSE_NOT_FOUND": "This payment is no longer in the pool.",
+      "FAILED": "Couldn't save the receipt. Please try again."
+    }
+  },
+  "connectBunq": {
+    "title": "Connect Bunq",
+    "intro": "Show the balance and payments of the team’s Bunq account on the Money page.",
+    "declined": "You declined at Bunq, so nothing was connected.",
+    "disconnected": "Disconnected from bunq.",
+    "failed": "Couldn’t connect Bunq. Please try again.",
+    "connected": "Connected to bunq.",
+    "connectedPick": "Connected, pick an account below.",
+    "differentLogin": "Connect a different bunq login",
+    "consent": "Connecting gives TeamBalance bunq’s standard app access to this bunq login, which is more than reading: bunq’s default grant also allows creating payments and draft payments. TeamBalance only reads the balance and payments of the one account you pick and stores no payment data, only the receipts members add to expenses. Every member of this team will see the balance and the names, dates and amounts of payments on that account. You can disconnect in TeamBalance at any time, which deletes the access it stored; to withdraw the grant at bunq itself, remove TeamBalance under connected apps in the bunq app.",
+    "opening": "Opening Bunq…",
+    "connectAgain": "Connect again",
+    "tickHint": "Tick the box above to continue.",
+    "error": {
+      "unavailable": "Connecting Bunq isn’t available right now.",
+      "openFailed": "Couldn’t open Bunq. Please try again."
+    }
+  },
+  "passkeys": {
+    "title": "Passkeys",
+    "hint": "Sign in with your face, fingerprint or device PIN instead of an email link.",
+    "add": "Add a passkey",
+    "adding": "Waiting for your device...",
+    "empty": "No passkeys yet.",
+    "labelDevice": "This device",
+    "labelKey": "Security key",
+    "added": "Added {{date}}",
+    "lastUsed": "Last used {{date}}",
+    "neverUsed": "Never used",
+    "remove": "Remove",
+    "removeTitle": "Remove this passkey?",
+    "removeHint": "You can no longer sign in with it. Your email link keeps working.",
+    "loadFailed": "Could not load your passkeys.",
+    "unsupported": "This browser does not support passkeys.",
+    "error": {
+      "cancelled": "Cancelled.",
+      "alreadyRegistered": "This device already has a passkey for this account.",
+      "failed": "That did not work. Try again."
+    }
+  },
+  "passkeyPrompt": {
+    "text": "Add a passkey and skip the email next time?",
+    "add": "Add a passkey",
+    "notNow": "Not now",
+    "adding": "Waiting for your device..."
   }
 }

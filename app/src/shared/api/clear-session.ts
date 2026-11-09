@@ -1,5 +1,6 @@
 import { authMeQueryOptions } from './auth'
 import { LOGIN_PATH } from './auth-redirect'
+import { browserSessionStorage, markSkipPasskeyAutoStart } from './last-sign-in-method'
 import { queryClient } from './query-client'
 
 /**
@@ -12,6 +13,8 @@ import { queryClient } from './query-client'
  * location, it makes zero network calls — the unit test pins that.
  */
 export function clearSession() {
+  // An explicit logout must not bounce the person straight into a passkey prompt on /login (once).
+  markSkipPasskeyAutoStart(browserSessionStorage())
   queryClient.setQueryData(authMeQueryOptions.queryKey, null)
   // A hard nav, not a router push: it fully resets in-memory state and works from the out-of-shell
   // states that render without the router's shell.

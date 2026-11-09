@@ -28,7 +28,7 @@ class ReceiptService(
     fun uploadReceipt(callerId: UserId, teamId: TeamId, paymentId: PaymentId, bytes: ByteArray) {
         authorizationService.requireMember(callerId, teamId)
         val receipt = Receipt(bytes)
-        val pool = moneyPoolService.getMoneyPool(teamId).pool
+        val pool = moneyPoolService.getMoneyPool(teamId, callerId).pool
         val isExpense = pool is MoneyPool.Connected && pool.payments.any { it.id == paymentId && it.direction == PaymentDirection.OUT }
         if (!isExpense) throw ExpenseNotFoundException(paymentId)
         receiptRepository.save(paymentId, receipt)

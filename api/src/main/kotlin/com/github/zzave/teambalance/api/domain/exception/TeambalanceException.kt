@@ -4,6 +4,7 @@ import com.github.zzave.teambalance.api.domain.model.BunqAccountId
 import com.github.zzave.teambalance.api.domain.model.CalendarLinkId
 import com.github.zzave.teambalance.api.domain.model.EventId
 import com.github.zzave.teambalance.api.domain.model.EventTypeId
+import com.github.zzave.teambalance.api.domain.model.PaymentAliasId
 import com.github.zzave.teambalance.api.domain.model.PaymentId
 import com.github.zzave.teambalance.api.domain.model.PositionId
 import com.github.zzave.teambalance.api.domain.model.ShirtNumber
@@ -58,8 +59,20 @@ class ReceiptTooLargeException(maxBytes: Int) :
     BadRequestException("Receipt is larger than $maxBytes bytes", "RECEIPT_TOO_LARGE")
 
 class InvalidReceiptException(message: String) : BadRequestException(message, "INVALID_RECEIPT")
+// The message never carries the rejected value: it is personal data (ADR-0046).
+class InvalidIbanException : BadRequestException("Not a valid IBAN", "INVALID_IBAN")
+
+class InvalidPaymentAliasException(message: String) : BadRequestException(message, "INVALID_PAYMENT_ALIAS")
+
+// Bunq did not answer; the caller may try again → 503.
+class MoneyPoolUnavailableException : TeambalanceException("Bunq is unavailable")
 
 sealed class NotFoundException(message: String) : TeambalanceException(message)
+
+class PaymentNotFoundException(id: PaymentId) : NotFoundException("Payment not found: $id")
+
+// Also the answer for an alias that belongs to another member, so an id cannot be probed.
+class PaymentAliasNotFoundException(id: PaymentAliasId) : NotFoundException("Payment alias not found: $id")
 
 class EventNotFoundException(id: EventId) : NotFoundException("Event not found: $id")
 
@@ -164,6 +177,18 @@ class ShirtNumberTakenException(number: ShirtNumber) :
 // Same code as for a Member: the form shows it under the same field. Checked among Substitutes only.
 class SubstituteShirtNumberTakenException(number: ShirtNumber) :
     ConflictException("Shirt number $number is already worn by another substitute", "NUMBER_TAKEN")
+
+// The money pool cannot be read for a claim: off, not connected or rejected by Bunq (the Admin has to act).
+class MoneyPoolNotReadableException :
+    ConflictException("The money pool is not connected", "MONEY_POOL_NOT_READABLE")
+
+// A payment that is not incoming, or that already counts for a member, cannot be claimed (ADR-0046).
+class PaymentNotClaimableException :
+    ConflictException("This payment cannot be claimed", "PAYMENT_NOT_CLAIMABLE")
+
+// Another alias in the team has the same name or IBAN. The message does not say which, or whose.
+class PaymentAliasTakenException :
+    ConflictException("Another payment alias in this team has this name or IBAN", "PAYMENT_ALIAS_TAKEN")
 
 class LastAdminException(teamId: TeamId) :
     ConflictException("Team $teamId must keep at least one admin", "LAST_ADMIN")

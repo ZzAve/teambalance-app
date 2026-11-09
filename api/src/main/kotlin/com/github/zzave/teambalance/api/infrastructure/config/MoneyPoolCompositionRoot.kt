@@ -6,6 +6,8 @@ import com.github.zzave.teambalance.api.application.BunqConnectConfig
 import com.github.zzave.teambalance.api.application.BunqConnectionService
 import com.github.zzave.teambalance.api.application.MoneyPoolService
 import com.github.zzave.teambalance.api.application.ReceiptService
+import com.github.zzave.teambalance.api.application.PaymentAliasService
+import com.github.zzave.teambalance.api.application.PaymentClaimService
 import com.github.zzave.teambalance.api.application.TokenCipher
 import com.github.zzave.teambalance.api.application.TopUpService
 import com.github.zzave.teambalance.api.domain.port.ActAsGateway
@@ -15,6 +17,7 @@ import com.github.zzave.teambalance.api.domain.port.BunqOAuthStateRepository
 import com.github.zzave.teambalance.api.domain.port.MoneyPoolCacheGateway
 import com.github.zzave.teambalance.api.domain.port.MoneyPoolSettingsRepository
 import com.github.zzave.teambalance.api.domain.port.ReceiptRepository
+import com.github.zzave.teambalance.api.domain.port.PaymentAliasRepository
 import com.github.zzave.teambalance.api.domain.port.SeasonRepository
 import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
 import com.github.zzave.teambalance.api.domain.port.TeamRepository
@@ -43,6 +46,8 @@ class MoneyPoolCompositionRoot {
         authorizationService: AuthorizationService,
         moneyPoolCache: MoneyPoolCacheGateway,
         receiptRepository: ReceiptRepository,
+        paymentAliasRepository: PaymentAliasRepository,
+        teamMemberRepository: TeamMemberRepository,
     ) = MoneyPoolService(
         settingsRepository = settingsRepository,
         connectionRepository = connectionRepository,
@@ -53,6 +58,8 @@ class MoneyPoolCompositionRoot {
         authorizationService = authorizationService,
         cache = moneyPoolCache,
         receiptRepository = receiptRepository,
+        paymentAliasRepository = paymentAliasRepository,
+        teamMemberRepository = teamMemberRepository,
     )
 
     @Bean
@@ -65,6 +72,10 @@ class MoneyPoolCompositionRoot {
         moneyPoolService = moneyPoolService,
         authorizationService = authorizationService,
     )
+
+    @Bean
+    fun paymentClaimService(moneyPoolService: MoneyPoolService, paymentAliasService: PaymentAliasService) =
+        PaymentClaimService(moneyPoolService, paymentAliasService)
 
     @Bean
     @Suppress("LongParameterList")

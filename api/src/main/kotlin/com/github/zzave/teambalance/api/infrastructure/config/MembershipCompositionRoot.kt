@@ -2,10 +2,12 @@ package com.github.zzave.teambalance.api.infrastructure.config
 
 import com.github.zzave.teambalance.api.application.AuthorizationService
 import com.github.zzave.teambalance.api.application.MemberService
+import com.github.zzave.teambalance.api.application.PaymentAliasService
 import com.github.zzave.teambalance.api.application.PhotoService
 import com.github.zzave.teambalance.api.application.PositionService
 import com.github.zzave.teambalance.api.domain.port.EventRepository
 import com.github.zzave.teambalance.api.domain.port.EventTypeRepository
+import com.github.zzave.teambalance.api.domain.port.PaymentAliasRepository
 import com.github.zzave.teambalance.api.domain.port.PhotoRepository
 import com.github.zzave.teambalance.api.domain.port.PositionRepository
 import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
@@ -53,6 +55,17 @@ class MembershipCompositionRoot {
         positionRepository = positionRepository,
         eventTypeRepository = eventTypeRepository,
         eventRepository = eventRepository,
+        teamMemberRepository = teamMemberRepository,
+        authorizationService = authorizationService,
+    )
+
+    @Bean
+    fun paymentAliasService(
+        paymentAliasRepository: PaymentAliasRepository,
+        teamMemberRepository: TeamMemberRepository,
+        authorizationService: AuthorizationService,
+    ) = PaymentAliasService(
+        paymentAliasRepository = paymentAliasRepository,
         teamMemberRepository = teamMemberRepository,
         authorizationService = authorizationService,
     )

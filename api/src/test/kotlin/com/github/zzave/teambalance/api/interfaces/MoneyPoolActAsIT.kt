@@ -107,6 +107,40 @@ class MoneyPoolActAsIT : TeamBalanceIT() {
                 .andExpect(jsonPath("$.code").value("ACT_AS_NOT_PERMITTED"))
         }
 
+        // The Virtual Member has no team_members row, so an alias for their own id would attribute payments to a non-member.
+        test("a Platform Admin acting as the team cannot create an alias for themselves: 404 and nothing is stored") {
+            enterActAs()
+
+            dispatch(
+                MockMvcRequestBuilders.post("/api/members/$OPERATOR_ID/payment-aliases")
+                    .with(loginAs(OPERATOR_ID))
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"name":"Money Operator"}"""),
+            ).andExpect(status().isNotFound)
+
+            aliasCount() shouldBe 0
+        }
+
+        test("a Platform Admin acting as the team cannot claim a payment for themselves: 404 and nothing is stored") {
+            enterActAs()
+            connectAsOperator()
+            dispatch(
+                MockMvcRequestBuilders.put("/api/team/money-pool/connection/account")
+                    .with(loginAs(OPERATOR_ID))
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"accountId":"fake-account-1"}"""),
+            ).andExpect(status().isNoContent)
+
+            dispatch(
+                MockMvcRequestBuilders.post("/api/team/money-pool/payments/1007/claim")
+                    .with(loginAs(OPERATOR_ID))
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"userId":"$OPERATOR_ID"}"""),
+            ).andExpect(status().isNotFound)
+
+            aliasCount() shouldBe 0
+        }
+
         test("a Platform Admin acting as the team starts and completes a Bunq connection with their session") {
             enterActAs()
 
@@ -173,6 +207,10 @@ class MoneyPoolActAsIT : TeamBalanceIT() {
             (bunqGateway.reads - before) shouldBe 2
         }
     }
+
+    private fun aliasCount() = jdbcTemplate.queryForObject(
+        "SELECT count(*) FROM ${CalendarLinkFixture.ALPHA_SCHEMA}.member_payment_aliases", Int::class.java,
+    )
 
     private fun connectBetaToTheSameAccount() {
         val betaAad = TokenCipher.aadOf(TeamId(UUID.fromString(CalendarLinkFixture.BETA_TEAM)), Purpose.BUNQ_GRANT)

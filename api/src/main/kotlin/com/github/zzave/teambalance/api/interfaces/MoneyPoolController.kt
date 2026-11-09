@@ -32,7 +32,9 @@ class MoneyPoolController(
 
     // Readable by any member of the current team; the tenant is resolved from the request context.
     override suspend fun getMoneyPool(request: GetMoneyPool.Request): GetMoneyPool.Response<*> =
-        GetMoneyPool.Response200(moneyPoolService.getMoneyPool(currentTeamGateway.requireCurrentTeamId()).produce())
+        GetMoneyPool.Response200(
+            moneyPoolService.getMoneyPool(currentTeamGateway.requireCurrentTeamId(), currentUserGateway.requireCurrentUserId()).produce(),
+        )
 
     // Admin-only (enforced in MoneyPoolService); a non-admin surfaces as 403 via the handler.
     override suspend fun getMoneyPoolSettings(request: GetMoneyPoolSettings.Request): GetMoneyPoolSettings.Response<*> =
@@ -95,4 +97,6 @@ private fun DomainPayment.produce(receiptVersion: String?) = Payment(
         DomainPaymentDirection.OUT -> PaymentDirection.Out
     },
     receiptVersion = receiptVersion,
+    memberId = memberId?.produce(),
+    counterpartyName = counterpartyName?.value,
 )

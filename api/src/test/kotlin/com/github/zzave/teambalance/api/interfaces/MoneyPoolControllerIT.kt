@@ -40,6 +40,8 @@ private const val TEAM_ID = "a0000000-0000-0000-0000-000000000001"
 // Ids of the fake Bunq adapter's Teamkas payments: Lisa de Vries pays in, Sporthal De Kuil is an expense.
 private const val LISA_PAYMENT_ID = "1005"
 private const val SPORTHAL_PAYMENT_ID = "1006"
+// The user id the fake Bunq's first payment names in its top-up description.
+private const val DESCRIBED_USER_ID = "b0000000-0000-0000-0000-000000000002"
 
 /**
  * Covers the money pool read path (ADR-0042) against the fake Bunq gateway. All tests share the
@@ -47,6 +49,7 @@ private const val SPORTHAL_PAYMENT_ID = "1006"
  * Bunq reachable, nothing cached) and removes its member after it runs.
  */
 @AutoConfigureMockMvc
+@Suppress("LargeClass")
 class MoneyPoolControllerIT : TeamBalanceIT() {
 
     @Autowired
@@ -114,6 +117,177 @@ class MoneyPoolControllerIT : TeamBalanceIT() {
                 .andExpect(MockMvcResultMatchers.jsonPath("$.payments[0].direction").value("In"))
                 .andExpect(MockMvcResultMatchers.content().string(Matchers.not(Matchers.containsString("iban"))))
                 .andExpect(MockMvcResultMatchers.content().string(Matchers.not(Matchers.containsString("description"))))
+        }
+
+        test("payments carry the member they are attributed to; the response holds no IBAN or description") {
+            seedTeamAndMember()
+            addMember(DESCRIBED_USER_ID, "money-described@test.com", "USER")
+            connectBunq()
+            // Fake payments: Lisa de Vries (top-up description naming DESCRIBED_USER_ID), Tom Bakker, Jan Jansen (IBAN DE89...).
+            insertAlias(MEMBER_USER_ID, name = "tom bakker")
+            insertAlias(ADMIN_USER_ID, iban = "DE89370400440532013000")
+
+            getMoneyPool()
+                .andExpect(MockMvcResultMatchers.status().isOk)
+                .andExpect(MockMvcResultMatchers.jsonPath("$.payments[0].memberId").value(DESCRIBED_USER_ID))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.payments[2].memberId").value(MEMBER_USER_ID))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.payments[3].memberId").value(ADMIN_USER_ID))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.payments[1].memberId").doesNotExist())
+                .andExpect(MockMvcResultMatchers.content().string(Matchers.not(Matchers.containsString("iban"))))
+                .andExpect(MockMvcResultMatchers.content().string(Matchers.not(Matchers.containsString("description"))))
+                .andExpect(MockMvcResultMatchers.content().string(Matchers.not(Matchers.containsString("NL91ABNA0417164300"))))
+                .andExpect(MockMvcResultMatchers.content().string(Matchers.not(Matchers.containsString("DE89370400440532013000"))))
+                .andExpect(MockMvcResultMatchers.content().string(Matchers.not(Matchers.containsString("TeamBalance"))))
+        }
+
+        test("a matched payment shows the member's name; the counterparty name only to an Admin and to that member") {
+            seedTeamAndMember()
+            addMember(DESCRIBED_USER_ID, "money-described@test.com", "USER")
+            connectBunq()
+            insertAlias(MEMBER_USER_ID, name = "tom bakker")
+            val memberName = jdbcTemplate.queryForObject(
+                "SELECT display_name FROM public.member_profiles WHERE user_id = ?::uuid",
+                String::class.java,
+                MEMBER_USER_ID,
+            )
+
+            // A member who is neither Admin nor the alias owner.
+            perform(MockMvcRequestBuilders.get("/api/team/money-pool"), DESCRIBED_USER_ID)
+                .andExpect(MockMvcResultMatchers.jsonPath("$.payments[2].memberId").value(MEMBER_USER_ID))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.payments[2].name").value(memberName))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.payments[2].counterpartyName").doesNotExist())
+                .andExpect(MockMvcResultMatchers.content().string(Matchers.not(Matchers.containsString("Tom Bakker"))))
+            listOf(MEMBER_USER_ID, ADMIN_USER_ID).forEach { viewer ->
+                perform(MockMvcRequestBuilders.get("/api/team/money-pool"), viewer)
+                    .andExpect(MockMvcResultMatchers.jsonPath("$.payments[2].name").value(memberName))
+                    .andExpect(MockMvcResultMatchers.jsonPath("$.payments[2].counterpartyName").value("Tom Bakker"))
+            }
+            // A payment nobody claims keeps the counterparty name for everyone and has no counterpartyName.
+            getMoneyPool()
+                .andExpect(MockMvcResultMatchers.jsonPath("$.payments[1].name").value("Sporthal De Kuil"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.payments[1].counterpartyName").doesNotExist())
+        }
+
+        test("a claimed IBAN is never returned: claim someone else's payment, then list your aliases") {
+            seedTeamAndMember()
+            connectBunq()
+
+            claim(MEMBER_USER_ID, "1008", MEMBER_USER_ID)
+                .andExpect(MockMvcResultMatchers.status().isCreated)
+                .andExpect(MockMvcResultMatchers.jsonPath("$.ibanMasked").value("DE89 •••• •••• •••• ••30 00"))
+            listOf(MEMBER_USER_ID, ADMIN_USER_ID).forEach { viewer ->
+                perform(MockMvcRequestBuilders.get("/api/members/$MEMBER_USER_ID/payment-aliases"), viewer)
+                    .andExpect(MockMvcResultMatchers.status().isOk)
+                    .andExpect(MockMvcResultMatchers.jsonPath("$.aliases[0].hasIban").value(true))
+                    .andExpect(MockMvcResultMatchers.jsonPath("$.aliases[0].ibanMasked").value("DE89 •••• •••• •••• ••30 00"))
+                    .andExpect(MockMvcResultMatchers.content().string(Matchers.not(Matchers.containsString("DE89370400440532013000"))))
+            }
+        }
+
+        test("a claim is 503 while Bunq is unavailable and 409 MONEY_POOL_NOT_READABLE when the pool is off, not connected or rejected") {
+            seedTeamAndMember()
+            connectBunq()
+
+            bunqGateway.failing = true
+            forgetCachedPool()
+            claim(MEMBER_USER_ID, "1007", MEMBER_USER_ID).andExpect(MockMvcResultMatchers.status().isServiceUnavailable)
+
+            bunqGateway.failing = false
+            bunqGateway.rejecting = true
+            forgetCachedPool()
+            claim(MEMBER_USER_ID, "1007", MEMBER_USER_ID)
+                .andExpect(MockMvcResultMatchers.status().isConflict)
+                .andExpect(MockMvcResultMatchers.jsonPath("$.code").value("MONEY_POOL_NOT_READABLE"))
+
+            bunqGateway.rejecting = false
+            forgetCachedPool()
+            jdbcTemplate.update("UPDATE public.money_pool_settings SET enabled = false WHERE id = 1")
+            claim(MEMBER_USER_ID, "1007", MEMBER_USER_ID).andExpect(MockMvcResultMatchers.status().isConflict)
+
+            jdbcTemplate.update("UPDATE public.money_pool_settings SET enabled = true WHERE id = 1")
+            jdbcTemplate.update("DELETE FROM public.bunq_connection")
+            claim(MEMBER_USER_ID, "1007", MEMBER_USER_ID).andExpect(MockMvcResultMatchers.status().isConflict)
+            storedAliases(MEMBER_USER_ID) shouldBe emptyList()
+        }
+
+        // Fake payments by id: 1007 Tom Bakker IN (IBAN NL02...), 1008 Jan Jansen IN (IBAN DE89...), 1006 Sporthal De Kuil OUT.
+        test("a member claims an unmatched payment for themselves: name and IBAN stored, the IBAN never answered") {
+            seedTeamAndMember()
+            connectBunq()
+
+            claim(MEMBER_USER_ID, "1007", MEMBER_USER_ID)
+                .andExpect(MockMvcResultMatchers.status().isCreated)
+                .andExpect(MockMvcResultMatchers.jsonPath("$.name").value("Tom Bakker"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.hasIban").value(true))
+                .andExpect(MockMvcResultMatchers.content().string(Matchers.not(Matchers.containsString("NL02ABNA0123456789"))))
+            storedAliases(MEMBER_USER_ID) shouldBe listOf("Tom Bakker" to "NL02ABNA0123456789")
+
+            getMoneyPool()
+                .andExpect(MockMvcResultMatchers.jsonPath("$.payments[2].id").value("1007"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.payments[2].memberId").value(MEMBER_USER_ID))
+                .andExpect(MockMvcResultMatchers.content().string(Matchers.not(Matchers.containsString("NL02ABNA0123456789"))))
+        }
+
+        test("a claim can store the name only, or the IBAN only") {
+            seedTeamAndMember()
+            connectBunq()
+
+            claim(MEMBER_USER_ID, "1008", MEMBER_USER_ID, ""","useIban":false""")
+                .andExpect(MockMvcResultMatchers.status().isCreated)
+                .andExpect(MockMvcResultMatchers.jsonPath("$.hasIban").value(false))
+            claim(MEMBER_USER_ID, "1007", MEMBER_USER_ID, ""","useName":false""")
+                .andExpect(MockMvcResultMatchers.status().isCreated)
+                .andExpect(MockMvcResultMatchers.jsonPath("$.name").doesNotExist())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.hasIban").value(true))
+
+            storedAliases(MEMBER_USER_ID).toSet() shouldBe setOf("Jan Jansen" to null, null to "NL02ABNA0123456789")
+        }
+
+        test("a claim that stores neither part is 400") {
+            seedTeamAndMember()
+            connectBunq()
+
+            claim(MEMBER_USER_ID, "1007", MEMBER_USER_ID, ""","useName":false,"useIban":false""")
+                .andExpect(MockMvcResultMatchers.status().isBadRequest)
+            // 1010 has no IBAN, so an IBAN-only claim has nothing to store.
+            claim(MEMBER_USER_ID, "1010", MEMBER_USER_ID, ""","useName":false""")
+                .andExpect(MockMvcResultMatchers.status().isBadRequest)
+            storedAliases(MEMBER_USER_ID) shouldBe emptyList()
+        }
+
+        test("an Admin claims a payment for another member; a member cannot claim for someone else") {
+            seedTeamAndMember()
+            connectBunq()
+
+            claim(MEMBER_USER_ID, "1007", ADMIN_USER_ID).andExpect(MockMvcResultMatchers.status().isForbidden)
+            storedAliases(ADMIN_USER_ID) shouldBe emptyList()
+
+            claim(ADMIN_USER_ID, "1007", MEMBER_USER_ID)
+                .andExpect(MockMvcResultMatchers.status().isCreated)
+                .andExpect(MockMvcResultMatchers.content().string(Matchers.not(Matchers.containsString("NL02ABNA0123456789"))))
+            storedAliases(MEMBER_USER_ID).size shouldBe 1
+        }
+
+        test("a claim is 404 for a payment that is not in the pool and for a user who is not a member") {
+            seedTeamAndMember()
+            connectBunq()
+
+            claim(MEMBER_USER_ID, "p999", MEMBER_USER_ID).andExpect(MockMvcResultMatchers.status().isNotFound)
+            claim(ADMIN_USER_ID, "1007", "b0000000-0000-0000-0000-0000000000ff").andExpect(MockMvcResultMatchers.status().isNotFound)
+        }
+
+        test("a payment out, or one already attributed to a member, is 409 PAYMENT_NOT_CLAIMABLE") {
+            seedTeamAndMember()
+            connectBunq()
+
+            claim(MEMBER_USER_ID, "1006", MEMBER_USER_ID)
+                .andExpect(MockMvcResultMatchers.status().isConflict)
+                .andExpect(MockMvcResultMatchers.jsonPath("$.code").value("PAYMENT_NOT_CLAIMABLE"))
+
+            claim(MEMBER_USER_ID, "1007", MEMBER_USER_ID).andExpect(MockMvcResultMatchers.status().isCreated)
+            claim(ADMIN_USER_ID, "1007", ADMIN_USER_ID)
+                .andExpect(MockMvcResultMatchers.status().isConflict)
+                .andExpect(MockMvcResultMatchers.jsonPath("$.code").value("PAYMENT_NOT_CLAIMABLE"))
         }
 
         test("a second GET within the refresh window is answered from the cache without a Bunq call") {
@@ -553,8 +727,34 @@ class MoneyPoolControllerIT : TeamBalanceIT() {
         )
     }
 
+    private fun claim(callerId: String, paymentId: String, targetId: String, more: String = ""): ResultActions =
+        perform(
+            MockMvcRequestBuilders.post("/api/team/money-pool/payments/$paymentId/claim")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""{"userId":"$targetId"$more}"""),
+            callerId,
+        )
+
+    private fun storedAliases(userId: String): List<Pair<String?, String?>> =
+        jdbcTemplate.query(
+            "SELECT name, iban FROM public.member_payment_aliases WHERE user_id = ?::uuid ORDER BY name NULLS LAST",
+            { rs, _ -> rs.getString("name") to rs.getString("iban") },
+            userId,
+        )
+
+    private fun insertAlias(userId: String, name: String? = null, iban: String? = null) {
+        jdbcTemplate.update(
+            "INSERT INTO public.member_payment_aliases (id, user_id, name, iban) VALUES (?, ?::uuid, ?, ?)",
+            UUID.randomUUID(),
+            userId,
+            name,
+            iban,
+        )
+    }
+
     private fun removeMember() {
-        listOf(MEMBER_USER_ID, ADMIN_USER_ID).forEach { userId ->
+        jdbcTemplate.update("DELETE FROM public.member_payment_aliases")
+        listOf(MEMBER_USER_ID, ADMIN_USER_ID, DESCRIBED_USER_ID).forEach { userId ->
             jdbcTemplate.update("DELETE FROM public.team_members WHERE user_id = '$userId'::uuid")
             jdbcTemplate.update("DELETE FROM public.member_profiles WHERE user_id = '$userId'::uuid")
             jdbcTemplate.update("DELETE FROM public.users WHERE id = '$userId'::uuid")

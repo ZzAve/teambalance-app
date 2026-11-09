@@ -17,14 +17,16 @@ import { MoneyPoolView } from './MoneyPoolView'
 //      unavailable, rejected (member, admin, admin with connecting off), top-up with and without a link (the admin's hint only on a connected pool), and connected edge cases (no payments, same-day duplicates, missing balance, no beer price, an empty pool).
 //   3. Interactions — expand and collapse the payment list past its first 15.
 const PAYMENTS: Payment[] = [
-  { id: '1005', date: '2026-10-06', name: 'Lisa de Vries', amount: 2000, direction: 'In', receiptVersion: undefined },
-  { id: '1006', date: '2026-10-04', name: 'Sporthal De Kuil', amount: 4500, direction: 'Out', receiptVersion: 'a1b2' },
-  { id: '1007', date: '2026-09-29', name: 'Tom Bakker', amount: 1000, direction: 'In', receiptVersion: undefined },
+  { id: '1005', date: '2026-10-06', name: 'Lisa de Vries', amount: 2000, direction: 'In', memberId: undefined, counterpartyName: undefined, receiptVersion: undefined },
+  { id: '1006', date: '2026-10-04', name: 'Sporthal De Kuil', amount: 4500, direction: 'Out', memberId: undefined, counterpartyName: undefined, receiptVersion: 'a1b2' },
+  { id: '1007', date: '2026-09-29', name: 'Tom Bakker', amount: 1000, direction: 'In', memberId: undefined, counterpartyName: undefined, receiptVersion: undefined },
 ]
 
 // 18 payments, newest first, alternating In and Out, for the 15-row cut-off.
 const MANY_PAYMENTS: Payment[] = Array.from({ length: 18 }, (_, i) => ({
   id: String(2000 + i),
+  memberId: undefined,
+  counterpartyName: undefined,
   receiptVersion: undefined,
   date: `2026-10-${String(20 - i).padStart(2, '0')}`,
   name: `Payment ${i + 1}`,

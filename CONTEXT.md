@@ -190,6 +190,10 @@ any-team, self-service (see [ADR-0001](docs/adr/0001-product-ambition-hobby-tool
   replaces or removes it; every Member can see it. One per expense, stored under Bunq's payment id
   ([ADR-0044](docs/adr/0044-receipts-on-expenses-stored-by-bunq-payment-id.md)).
   _Avoid_: Attachment, invoice, proof.
+- **Payment Alias** — How a Member appears on Bunq payments: a name, an IBAN or both, several
+  per Member. It lets the Money Pool say which Member a payment came from. Seen and edited only by
+  the Member and Team Admins; unique within the Team; deleted when the Member leaves. The app keeps
+  no payments but keeps this ([ADR-0046](docs/adr/0046-member-payment-aliases.md)).
 - **Beer Counter** — The current balance translated into an approximate number of
   beers, using an admin-configurable beer price (e.g. €2.70/beer).
 - **Top-up** — A Member adding money to the pool. Preset amounts (€10/€20/€50) or

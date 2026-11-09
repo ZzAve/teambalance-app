@@ -39,6 +39,7 @@ class TenantSchemaAdapterTest : TeamBalanceIT() {
                 "event_types",
                 "events",
                 "flyway_tenant_schema_history",
+                "member_payment_aliases",
                 "member_photos",
                 "member_profiles",
                 "money_pool_settings",

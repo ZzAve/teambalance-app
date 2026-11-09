@@ -12,6 +12,7 @@ import com.github.zzave.teambalance.api.domain.model.TeamMember
 import com.github.zzave.teambalance.api.domain.model.TenantRouting
 import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
+import com.github.zzave.teambalance.api.infrastructure.persistence.jooq.default_schema.Tables.MEMBER_PAYMENT_ALIASES
 import com.github.zzave.teambalance.api.infrastructure.persistence.jooq.default_schema.Tables.MEMBER_PHOTOS
 import com.github.zzave.teambalance.api.infrastructure.persistence.jooq.default_schema.Tables.MEMBER_PROFILES
 import com.github.zzave.teambalance.api.infrastructure.persistence.jooq.default_schema.Tables.POSITIONS
@@ -140,6 +141,7 @@ class JooqTeamMemberRepositoryAdapter(
             .where(MEMBER_PROFILES.USER_ID.eq(userId.value))
             .execute()
         dsl.deleteFrom(MEMBER_PHOTOS).where(MEMBER_PHOTOS.USER_ID.eq(userId.value)).execute()
+        dsl.deleteFrom(MEMBER_PAYMENT_ALIASES).where(MEMBER_PAYMENT_ALIASES.USER_ID.eq(userId.value)).execute()
     }
 
     /**

@@ -6,8 +6,10 @@ import com.github.zzave.teambalance.api.domain.model.BunqAccountId
 import com.github.zzave.teambalance.api.domain.model.BunqAccountName
 import com.github.zzave.teambalance.api.domain.model.BunqAuthorizationCode
 import com.github.zzave.teambalance.api.domain.model.BunqGrant
+import com.github.zzave.teambalance.api.domain.model.Iban
 import com.github.zzave.teambalance.api.domain.model.Money
 import com.github.zzave.teambalance.api.domain.model.Payment
+import com.github.zzave.teambalance.api.domain.model.PaymentDescription
 import com.github.zzave.teambalance.api.domain.model.PaymentDirection
 import com.github.zzave.teambalance.api.domain.model.PaymentId
 import com.github.zzave.teambalance.api.domain.model.PaymentName
@@ -88,8 +90,13 @@ class FakeBunqGatewayAdapter(
         val name: String,
         val cents: Long,
         val direction: PaymentDirection,
+        val iban: String? = null,
+        val description: String? = null,
     ) {
-        fun on(today: LocalDate) = Payment(PaymentId(id), today.minusDays(daysAgo), PaymentName(name), Money(cents), direction)
+        fun on(today: LocalDate) = Payment(
+            PaymentId(id), today.minusDays(daysAgo), PaymentName(name), Money(cents), direction, iban?.let(Iban::parse),
+            description?.let(::PaymentDescription),
+        )
     }
 
     companion object {
@@ -115,10 +122,14 @@ class FakeBunqGatewayAdapter(
         )
 
         private val TEAMKAS_PAYMENTS = listOf(
-            CannedPayment("1005", 5, "Lisa de Vries", 2_000, PaymentDirection.IN),
+            // The description names the first member of the demo seed (db/seed/demo_data.sql), as a real top-up would.
+            CannedPayment(
+                "1005", 5, "Lisa de Vries", 2_000, PaymentDirection.IN, "NL91ABNA0417164300",
+                "TeamBalance · Demo Team · Lisa Bakker · b0000000-0000-0000-0000-000000000002",
+            ),
             CannedPayment("1006", 7, "Sporthal De Kuil", 4_500, PaymentDirection.OUT),
-            CannedPayment("1007", 12, "Tom Bakker", 1_000, PaymentDirection.IN),
-            CannedPayment("1008", 19, "Jan Jansen", 5_000, PaymentDirection.IN),
+            CannedPayment("1007", 12, "Tom Bakker", 1_000, PaymentDirection.IN, "NL02ABNA0123456789"),
+            CannedPayment("1008", 19, "Jan Jansen", 5_000, PaymentDirection.IN, "DE89370400440532013000"),
             CannedPayment("1009", 26, "Drankenhandel Smit", 3_250, PaymentDirection.OUT),
             CannedPayment("1010", 33, "Sanne Visser", 2_000, PaymentDirection.IN),
             CannedPayment("1011", 47, "Nevobo", 6_000, PaymentDirection.OUT),

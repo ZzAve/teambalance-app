@@ -1,6 +1,6 @@
-import { PaymentAliasError, useCreatePaymentAlias, useDeletePaymentAlias, usePaymentAliases } from '@shared/api/payment-aliases'
+import { PaymentAliasError, type PaymentAliasErrorCode, useCreatePaymentAlias, useDeletePaymentAlias, usePaymentAliases } from '@shared/api/payment-aliases'
 import { useMoneyPool } from '@shared/api/money-pool'
-import { PaymentAliasesView, type PaymentAliasErrorCode } from './PaymentAliasesView'
+import { PaymentAliasesView } from './PaymentAliasesView'
 
 /**
  * Container for one member's payment aliases: the list query and the create/delete mutations behind

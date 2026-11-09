@@ -9,8 +9,10 @@ export type { PaymentAliasRequest } from './generated/model/PaymentAliasRequest'
 
 // Why a write failed, so the UI can say which field to fix. 400 without a code is INVALID (nothing
 // to store); 409 is always a name or IBAN another member already uses.
+export type PaymentAliasErrorCode = 'ALIAS_TAKEN' | 'INVALID_IBAN' | 'INVALID' | 'FORBIDDEN' | 'NOT_FOUND' | 'FAILED'
+
 export class PaymentAliasError extends Error {
-  constructor(public readonly code: 'ALIAS_TAKEN' | 'INVALID_IBAN' | 'INVALID' | 'FORBIDDEN' | 'NOT_FOUND' | 'FAILED', message: string) {
+  constructor(public readonly code: PaymentAliasErrorCode, message: string) {
     super(message)
     this.name = 'PaymentAliasError'
   }

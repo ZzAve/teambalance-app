@@ -2,15 +2,13 @@ import { useEffect, useId, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Landmark, Plus, Tag } from 'lucide-react'
 import type { Payment } from '@shared/api/money-pool'
-import type { PaymentAlias } from '@shared/api/payment-aliases'
+import type { PaymentAlias, PaymentAliasErrorCode } from '@shared/api/payment-aliases'
 import { Button } from '@shared/ui/button'
 import { Input } from '@shared/ui/input'
 import { SectionLabel } from '@shared/ui/SectionLabel'
 import { Skeleton } from '@shared/ui/skeleton'
 import { attributedMatchCount, matchingPayments } from '../lib/matching-payments'
 import { checkIban, groupIban, normaliseIban } from '../lib/validate-iban'
-
-export type PaymentAliasErrorCode = 'ALIAS_TAKEN' | 'INVALID_IBAN' | 'INVALID' | 'FORBIDDEN' | 'NOT_FOUND' | 'FAILED'
 
 interface PaymentAliasesViewProps {
   /** The member whose aliases these are: saved aliases count the payments attributed to them. */
@@ -242,7 +240,7 @@ function AliasForm({
   const trimmedName = name.trim()
   const hasPart = trimmedName !== '' || check.state !== 'empty'
   const canSave = hasPart && (check.state === 'empty' || check.state === 'valid') && !isSaving
-  const preview = trimmedName === '' ? null : matchingPayments(trimmedName, payments).count
+  const preview = trimmedName === '' ? null : matchingPayments(trimmedName, payments)
   // The server's verdict on the IBAN counts as an error too, until the field is edited.
   const serverRejected = errorCode === 'INVALID_IBAN'
   const ibanInvalid = check.state === 'error' || serverRejected

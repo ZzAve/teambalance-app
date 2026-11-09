@@ -19,11 +19,10 @@ export function attributedMatchCount(name: string, userId: string, payments: Pay
  * already see. Name only: the counterparty IBAN is never sent to the client, so an IBAN cannot be
  * previewed here.
  */
-export function matchingPayments(name: string, payments: Payment[]): { count: number; total: number } {
+export function matchingPayments(name: string, payments: Payment[]): number {
   const wanted = normaliseName(name)
-  if (wanted === '') return { count: 0, total: 0 }
-  const hits = payments.filter(
+  if (wanted === '') return 0
+  return payments.filter(
     (p) => p.direction === 'In' && !p.memberId && normaliseName(p.counterpartyName ?? p.name) === wanted,
-  )
-  return { count: hits.length, total: hits.reduce((sum, p) => sum + p.amount, 0) }
+  ).length
 }

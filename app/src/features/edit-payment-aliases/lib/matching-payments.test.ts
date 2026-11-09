@@ -24,11 +24,11 @@ describe('matchingPayments', () => {
     pay({ id: '6', name: 'Iris V', counterpartyName: 'I.M. Visser', amount: 5 }),
   ]
 
-  it('counts and sums unattributed incoming payments with the same normalised name', () => {
-    expect(matchingPayments('  I.M.  visser', payments)).toEqual({ count: 3, total: 25 })
+  it('counts unattributed incoming payments with the same normalised name', () => {
+    expect(matchingPayments('  I.M.  visser', payments)).toBe(3)
   })
   it('is zero for a blank name', () => {
-    expect(matchingPayments('  ', payments)).toEqual({ count: 0, total: 0 })
+    expect(matchingPayments('  ', payments)).toBe(0)
   })
 })
 

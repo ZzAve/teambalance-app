@@ -17,6 +17,7 @@ import org.springframework.security.web.webauthn.api.PublicKeyCredentialType
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.ResultActions
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers.content
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.request
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
@@ -155,6 +156,21 @@ class PasskeyEndpointsIT : TeamBalanceIT() {
             // test CSRF support may add one, so this asserts the part that matters: nobody is signed in.
             val me = MockMvcRequestBuilders.get("/api/auth/me")
             settled(mockMvc.perform(response.getCookie("SESSION")?.let { me.cookie(it) } ?: me)).andExpect(status().isUnauthorized)
+        }
+
+        test("a passkey the server does not know is refused as unknown_passkey; other failures carry no body") {
+            val options = MockMvcRequestBuilders.post("/webauthn/authenticate/options").contentType("application/json")
+            val session = mockMvc.perform(options).andExpect(status().isOk).andReturn().response.getCookie("SESSION")!!
+            val id = Bytes(byteArrayOf(9, 9, 9, 9)).toBase64UrlString()
+            val assertion = """{"id":"$id","rawId":"$id","type":"public-key","clientExtensionResults":{},""" +
+                """"response":{"authenticatorData":"AA","clientDataJSON":"e30","signature":"AA"}}"""
+
+            mockMvc.perform(
+                MockMvcRequestBuilders.post("/login/webauthn").cookie(session).contentType("application/json").content(assertion),
+            ).andExpect(status().isUnauthorized).andExpect(jsonPath("$.error").value("unknown_passkey"))
+
+            mockMvc.perform(MockMvcRequestBuilders.post("/login/webauthn").contentType("application/json").content("{}"))
+                .andExpect(status().isUnauthorized).andExpect(content().string(""))
         }
 
         test("the list shows the caller's passkeys with a base64url id") {

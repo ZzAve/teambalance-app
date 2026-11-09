@@ -1,5 +1,6 @@
 package com.github.zzave.teambalance.api.infrastructure.config
 
+import com.github.zzave.teambalance.api.infrastructure.identity.PasskeySignInFailureHandler
 import com.github.zzave.teambalance.api.infrastructure.identity.PasskeySignInSuccessHandler
 import com.github.zzave.teambalance.api.infrastructure.identity.ShortLivedChallengeRepositoryAdapter
 import com.github.zzave.teambalance.api.infrastructure.identity.SessionUserContextFilter
@@ -168,6 +169,7 @@ class SecurityConfig(
         val challenges = ShortLivedChallengeRepositoryAdapter()
         chain.filters.filterIsInstance<WebAuthnAuthenticationFilter>().forEach {
             it.setAuthenticationSuccessHandler(successHandler)
+            it.setAuthenticationFailureHandler(PasskeySignInFailureHandler())
             it.setSecurityContextRepository(RequestAttributeSecurityContextRepository())
             it.setRequestOptionsRepository(challenges)
         }

@@ -10,10 +10,12 @@ import { api } from './wirespec-client'
 import { i18n } from '@shared/i18n/i18n'
 import {
   appPreferenceKey,
+  browserPreferenceStorage,
   readPreference,
   writePreference,
   type PreferenceStorage,
 } from '@shared/preferences/preferences'
+import { lastSignInMethodKey } from './last-sign-in-method'
 
 export type { Passkey } from './generated/model/Passkey'
 
@@ -35,7 +37,7 @@ async function postJson(path: string, body?: unknown): Promise<Response> {
     headers: { 'Content-Type': 'application/json', ...csrfHeaders('POST') },
     body: body === undefined ? undefined : JSON.stringify(body),
   })
-  if (!res.ok) throw new Error(`POST ${path} failed with status ${res.status}`)
+  if (!res.ok) throw Object.assign(new Error(`POST ${path} failed with status ${res.status}`), { response: res })
   return res
 }
 
@@ -111,9 +113,35 @@ export function usePasskeyLogin(onSuccess?: () => void) {
     mutationFn: async () => {
       const optionsJSON = await (await postJson('/webauthn/authenticate/options')).json()
       const assertion = await startAuthentication({ optionsJSON })
-      await postJson('/login/webauthn', assertion)
+      try {
+        await postJson('/login/webauthn', assertion)
+      } catch (error) {
+        await forgetIfUnknownPasskey(error, optionsJSON.rpId, assertion.id)
+        throw error
+      }
     },
   })
+}
+
+type SignalApi = { signalUnknownCredential?: (options: { rpId: string; credentialId: string }) => Promise<void> }
+
+/**
+ * After the server answers `unknown_passkey` (the passkey was removed, ADR-0045): asks the browser to drop it from
+ * the password manager, and forgets the last sign-in method so /login stops starting a ceremony that cannot succeed.
+ */
+export async function forgetIfUnknownPasskey(
+  error: unknown,
+  rpId: string | undefined,
+  credentialId: string,
+  storage: PreferenceStorage | null = browserPreferenceStorage(),
+): Promise<void> {
+  const response = (error as { response?: Response } | null)?.response
+  const body: unknown = await response?.json().catch(() => null)
+  if ((body as { error?: unknown } | null)?.error !== 'unknown_passkey') return
+  writePreference(storage, lastSignInMethodKey, null)
+  // Signal API (Chrome 132+, Safari 26); without it the browser keeps offering the stale passkey.
+  const api = globalThis.PublicKeyCredential as unknown as SignalApi | undefined
+  if (rpId && api?.signalUnknownCredential) await api.signalUnknownCredential({ rpId, credentialId }).catch(() => undefined)
 }
 
 // "Not now" on the add-a-passkey prompt is a taste of this device, not state the server acts on (ADR-0045, ADR-0030).

@@ -85,8 +85,8 @@ class GlobalExceptionHandler {
     // deserializer as a plain DatabindException instead; that one is a client error only when it was
     // raised while reading a request body, so a DatabindException from writing a response stays a 500.
     // A body that is not JSON at all (truncated, stray token) fails in the parser before any binding, as a
-    // StreamReadException. That type is thrown only while reading input (writing raises StreamWriteException),
-    // so it is always a client error.
+    // StreamReadException. Here that is a client error because the outbound adapters that parse external
+    // JSON (the Bunq gateway) wrap their own parsing failures in BunqUnavailableException.
     @ExceptionHandler(DatabindException::class, StreamReadException::class)
     fun handleMalformedRequestBody(ex: JacksonException): ResponseEntity<Map<String, String>> {
         val readingBody = ex is StreamReadException ||

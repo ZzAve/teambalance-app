@@ -23,7 +23,6 @@ import org.jooq.DSLContext
 import org.jooq.Record
 import org.jooq.impl.DSL
 import org.jooq.impl.DSL.excluded
-import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Repository
 import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
@@ -37,8 +36,6 @@ import java.util.UUID
 class JooqTeamMemberRepositoryAdapter(
     private val dsl: DSLContext,
 ) : TeamMemberRepository {
-    private val logger = LoggerFactory.getLogger(JooqTeamMemberRepositoryAdapter::class.java)
-
     override fun findByTeamId(teamId: TeamId): List<TeamMember> =
         memberSummaries(TEAM_MEMBERS.TEAM_ID.eq(teamId.value))
 
@@ -250,40 +247,28 @@ class JooqTeamMemberRepositoryAdapter(
                 .and(TEAM_MEMBERS.ACTIVE.isTrue),
         )
 
-    @Transactional
+    // On an existing row the invitation's role decides only for a removed member (re-joining after
+    // removal); an active member is promoted by an ADMIN link and never demoted by a USER link, whichever
+    // accept commits first.
+    // (team_id, user_id) is UNIQUE, so a removed member's row is reactivated rather than re-inserted.
     override fun addMember(teamId: TeamId, userId: UserId, role: Role) {
-        val existingRole = activeRoleName(teamId, userId)
-        if (existingRole != null) {
-            // Already a member. An ADMIN handover link promotes a plain member; anything else is a
-            // no-op. Never demote — a USER link must not strip an existing admin's rights.
-            if (role == Role.ADMIN && existingRole != Role.ADMIN.toDbValue()) setRole(teamId, userId, Role.ADMIN)
-            return
-        }
-        // (team_id, user_id) is UNIQUE, so an insert cannot re-join a member whose row is inactive.
-        if (reactivateWithRole(teamId, userId, role) > 0) return
-        // Losing a race with a concurrent accept inserts nothing — the other one made them a member,
-        // which is the outcome this call wanted anyway.
-        val inserted = dsl.insertInto(TEAM_MEMBERS)
+        dsl.insertInto(TEAM_MEMBERS)
             .set(TEAM_MEMBERS.ID, UUID.randomUUID())
             .set(TEAM_MEMBERS.TEAM_ID, teamId.value)
             .set(TEAM_MEMBERS.USER_ID, userId.value)
             .set(TEAM_MEMBERS.ROLE, role.toDbValue())
-            .onConflictDoNothing()
-            .execute()
-        if (inserted == 0) logger.info("Concurrent accept for team {} / user {} — already a member", teamId, userId)
-    }
-
-    // Re-joining after removal. The role is set from the accepted link, never inherited: a removed
-    // admin walking back in through a shared USER link arrives as USER, and a single-use ADMIN handover
-    // link re-admits at ADMIN. The invitation's role — not the old row — decides.
-    private fun reactivateWithRole(teamId: TeamId, userId: UserId, role: Role): Int =
-        dsl.update(TEAM_MEMBERS)
+            .onConflict(TEAM_MEMBERS.TEAM_ID, TEAM_MEMBERS.USER_ID)
+            .doUpdate()
             .set(TEAM_MEMBERS.ACTIVE, true)
-            .set(TEAM_MEMBERS.ROLE, role.toDbValue())
-            .where(TEAM_MEMBERS.TEAM_ID.eq(teamId.value))
-            .and(TEAM_MEMBERS.USER_ID.eq(userId.value))
-            .and(TEAM_MEMBERS.ACTIVE.isFalse)
+            .set(
+                TEAM_MEMBERS.ROLE,
+                DSL.case_()
+                    .`when`(TEAM_MEMBERS.ACTIVE.isFalse, excluded(TEAM_MEMBERS.ROLE))
+                    .`when`(excluded(TEAM_MEMBERS.ROLE).eq(Role.ADMIN.toDbValue()), Role.ADMIN.toDbValue())
+                    .else_(TEAM_MEMBERS.ROLE),
+            )
             .execute()
+    }
 
     private fun setRole(teamId: TeamId, userId: UserId, role: Role) {
         dsl.update(TEAM_MEMBERS)

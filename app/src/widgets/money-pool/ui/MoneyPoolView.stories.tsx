@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { expect, userEvent, within } from 'storybook/test'
+import type { Member } from '@shared/api/members'
 import type { Payment } from '@shared/api/money-pool'
 import { Button } from '@shared/ui/button'
 import { Stack } from '@shared/testing/stack'
@@ -17,9 +18,14 @@ import { MoneyPoolView } from './MoneyPoolView'
 //      unavailable, rejected (member, admin, admin with connecting off), top-up with and without a link (the admin's hint only on a connected pool), and connected edge cases (no payments, same-day duplicates, missing balance, no beer price, an empty pool).
 //   3. Interactions — expand and collapse the payment list past its first 15.
 const PAYMENTS: Payment[] = [
-  { id: '1005', date: '2026-10-06', name: 'Lisa de Vries', amount: 2000, direction: 'In', memberId: undefined, counterpartyName: undefined, receiptVersion: undefined },
+  { id: '1005', date: '2026-10-06', name: 'Lisa de Vries', amount: 2000, direction: 'In', memberId: 'u-lisa', counterpartyName: undefined, receiptVersion: undefined },
   { id: '1006', date: '2026-10-04', name: 'Sporthal De Kuil', amount: 4500, direction: 'Out', memberId: undefined, counterpartyName: undefined, receiptVersion: 'a1b2' },
   { id: '1007', date: '2026-09-29', name: 'Tom Bakker', amount: 1000, direction: 'In', memberId: undefined, counterpartyName: undefined, receiptVersion: undefined },
+]
+
+// The roster behind the attributed payment. Named apart from the payment so the Toppers do not repeat a payment's text.
+const MEMBERS: Member[] = [
+  { userId: 'u-lisa', displayName: 'Lisa V.', role: 'USER', position: undefined, onboarded: true, shirtNumber: undefined, photoVersion: undefined },
 ]
 
 // 18 payments, newest first, alternating In and Out, for the 15-row cut-off.
@@ -47,6 +53,8 @@ const meta = {
     beerPrice: 270,
     beerCount: 69,
     seasonSet: true,
+    today: '2026-10-07',
+    members: MEMBERS,
     canTopUp: true,
     topUp: <Button size="lg">Top up</Button>,
     receipt: (expense: Payment) => <Button size="icon">{`Receipt ${expense.name}`}</Button>,
@@ -69,6 +77,12 @@ export const Data: Story = {
     // In and Spent are totals over the payments listed: 20 + 10 in, 45 out.
     await expect(balance.getByText('In').nextElementSibling).toHaveTextContent(/30\.00/)
     await expect(balance.getByText('Spent').nextElementSibling).toHaveTextContent(/45\.00/)
+    // Topped up is the part of In that has a member: Lisa's 20; Tom's 10 has none.
+    await expect(balance.getByText('Topped up').nextElementSibling).toHaveTextContent(/20\.00/)
+    // The Toppers follow Payments and say how much came in without a name.
+    const toppers = within(canvas.getByRole('region', { name: 'Toppers' }))
+    await expect(toppers.getByText('Number 1: Lisa V., €20.00')).toBeInTheDocument()
+    await expect(toppers.getByText('€10.00 came in without a name we know.')).toBeInTheDocument()
     // The graph is a static image whose name carries the summary.
     await expect(balance.getByRole('img', { name: /The pot went from .*to .*187\.50 on 6 Oct/ })).toBeInTheDocument()
     await expect(balance.queryByRole('slider')).not.toBeInTheDocument()
@@ -129,6 +143,7 @@ export const Shells: Story = {
         'No payments': <MoneyPoolView {...args} payments={[]} />,
         'Same-day duplicates': <MoneyPoolView {...args} payments={[PAYMENTS[0], { ...PAYMENTS[0], id: '1008' }]} />,
         'Missing balance': <MoneyPoolView {...args} balance={undefined} />,
+        'Roster loading': <MoneyPoolView {...args} members={undefined} />,
         'No beer price': <MoneyPoolView {...args} beerPrice={undefined} beerCount={undefined} />,
         'Empty pool': <MoneyPoolView {...args} balance={0} beerCount={0} />,
       }}
@@ -180,10 +195,12 @@ export const Shells: Story = {
       await expect(region(name).queryByRole('button', { name: 'Top up' })).not.toBeInTheDocument()
     }
     await expect(region('No payments').getByText('No payments in this period.')).toBeInTheDocument()
-    await expect(region('No season').getByText('Last 90 days')).toBeInTheDocument()
+    await expect(within(region('No season').getByRole('region', { name: 'Balance' })).getByText('Last 90 days')).toBeInTheDocument()
     await expect(region('No payments').queryByRole('img')).not.toBeInTheDocument()
     await expect(region('Same-day duplicates').getAllByText('Lisa de Vries')).toHaveLength(2)
     await expect(region('Missing balance').getByText(/couldn't load/i)).toBeInTheDocument()
+    // Without the roster the Toppers would name everyone a former member, so they wait for it.
+    await expect(region('Roster loading').queryByRole('region', { name: 'Toppers' })).not.toBeInTheDocument()
     await expect(region('No beer price').queryByRole('group', { name: 'Beer Counter' })).not.toBeInTheDocument()
     await expect(within(region('Empty pool').getByRole('group', { name: 'Beer Counter' })).getByText(/covers 0 beers/)).toBeInTheDocument()
   },

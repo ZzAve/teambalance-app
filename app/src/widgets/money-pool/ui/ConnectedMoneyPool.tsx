@@ -1,11 +1,14 @@
 import { useState, type CSSProperties, type ReactNode } from 'react'
 import { ArrowDownLeft, ArrowUpRight, Beer } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import type { Member } from '@shared/api/members'
 import type { Payment } from '@shared/api/money-pool'
 import { Button } from '@shared/ui/button'
 import { balanceTimeline, potTotals } from '../lib/balance-timeline'
 import { BalanceGraph } from './BalanceGraph'
 import { formatBeers, formatEuro, formatPaymentDate } from '../lib/format'
+import { toppedUpTotal } from '../lib/toppers'
+import { ToppersView } from './ToppersView'
 
 interface ConnectedMoneyPoolProps {
   balance: number
@@ -21,6 +24,11 @@ interface ConnectedMoneyPoolProps {
   claim?: (payment: Payment) => ReactNode
   /** Whether the payments run from the team's season start (true) or the last 90 days (false); undefined until the season is known. */
   seasonSet?: boolean
+  /** ISO calendar date of today, for the Toppers' Last 30 days. */
+  today: string
+  /** The team roster, to name and show the Toppers. */
+  /** Undefined until the roster is loaded: the Toppers wait for it, so no one shows as a former member meanwhile. */
+  members: Member[] | undefined
 }
 
 /** The count-up animates a registered custom property, so it needs @property support. */
@@ -29,7 +37,7 @@ const CAN_COUNT_UP = typeof CSS !== 'undefined' && 'registerProperty' in CSS
 /** The payments shown before "Show all". */
 const PAYMENTS_SHOWN = 15
 
-export function ConnectedMoneyPool({ balance, payments, beerPrice, beerCount, topUp, receipt, claim, seasonSet }: ConnectedMoneyPoolProps) {
+export function ConnectedMoneyPool({ balance, payments, beerPrice, beerCount, topUp, receipt, claim, seasonSet, today, members }: ConnectedMoneyPoolProps) {
   const { t } = useTranslation()
   const [showAll, setShowAll] = useState(false)
   const points = balanceTimeline(balance, payments)
@@ -54,10 +62,14 @@ export function ConnectedMoneyPool({ balance, payments, beerPrice, beerCount, to
         {payments.length > 0 && (
           <>
             <div className="mt-2 flex flex-wrap items-baseline gap-x-4 text-caption text-muted-foreground">
-              <dl className="flex gap-x-4">
+              <dl className="flex flex-wrap gap-x-4">
                 <div className="flex gap-1">
                   <dt>{t('money.totalIn')}</dt>
                   <dd className="font-bold tabular-nums text-foreground">{formatEuro(incoming)}</dd>
+                </div>
+                <div className="flex gap-1">
+                  <dt>{t('money.toppedUp')}</dt>
+                  <dd className="font-bold tabular-nums text-foreground">{formatEuro(toppedUpTotal(payments))}</dd>
                 </div>
                 <div className="flex gap-1">
                   <dt>{t('money.totalSpent')}</dt>
@@ -111,6 +123,8 @@ export function ConnectedMoneyPool({ balance, payments, beerPrice, beerCount, to
           </Button>
         )}
       </section>
+
+      {payments.length > 0 && members && <ToppersView payments={payments} today={today} members={members} seasonSet={seasonSet} />}
     </div>
   )
 }

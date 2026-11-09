@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite'
 import { expect, fn, within } from 'storybook/test'
 import { ReceiptButtonView } from '@features/attach-receipt/ui/ReceiptButtonView'
 import { RECEIPT_IMAGE } from '@features/attach-receipt/ui/receipt-image.fixture'
+import type { Member } from '@shared/api/members'
 import { Button } from '@shared/ui/button'
 import { MoneyPoolView } from '@widgets/money-pool/ui/MoneyPoolView'
 import { appShell } from '../../../../storybook-support/app-shell-decorator'
@@ -12,6 +13,10 @@ import { MoneyPageView } from './MoneyPageView'
 // real app shell. This composite owns the pixels for the connected MoneyPoolView; the other pool
 // states are pictured by MoneyPoolView's own Shells story.
 const shell = appShell('money')
+
+// The roster the Toppers name; two top-ups show a podium with two places.
+const member = (userId: string, displayName: string): Member => ({ userId, displayName, role: 'USER', position: undefined, onboarded: true, shirtNumber: undefined, photoVersion: undefined })
+const MEMBERS = [member('u-lisa', 'Lisa'), member('u-tom', 'Tom')]
 
 const meta = {
   title: 'pages/money/MoneyPageView',
@@ -29,12 +34,14 @@ const meta = {
         beerPrice={270}
         beerCount={69}
         canTopUp
+        today="2026-10-07"
+        members={MEMBERS}
         topUp={<Button size="lg">Top up</Button>}
         payments={[
-          { id: '1005', date: '2026-10-06', name: 'Lisa de Vries', amount: 2000, direction: 'In', memberId: undefined, counterpartyName: undefined, receiptVersion: undefined },
+          { id: '1005', date: '2026-10-06', name: 'Lisa de Vries', amount: 2000, direction: 'In', memberId: 'u-lisa', counterpartyName: undefined, receiptVersion: undefined },
           { id: '1006', date: '2026-10-04', name: 'Sporthal De Kuil', amount: 4500, direction: 'Out', memberId: undefined, counterpartyName: undefined, receiptVersion: 'a1b2' },
           { id: '1007', date: '2026-10-01', name: 'Drankenhandel Smit', amount: 3250, direction: 'Out', memberId: undefined, counterpartyName: undefined, receiptVersion: undefined },
-          { id: '1008', date: '2026-09-29', name: 'Tom Bakker', amount: 1000, direction: 'In', memberId: undefined, counterpartyName: undefined, receiptVersion: undefined },
+          { id: '1008', date: '2026-09-29', name: 'Tom Bakker', amount: 1000, direction: 'In', memberId: 'u-tom', counterpartyName: undefined, receiptVersion: undefined },
         ]}
         receipt={(expense) => (
           <ReceiptButtonView
@@ -70,6 +77,7 @@ export const Data: Story = {
     }
     await expect(canvas.getByRole('heading', { name: 'Money' })).toBeInTheDocument()
     await expect(canvas.getByText('Lisa de Vries')).toBeInTheDocument()
+    await expect(within(canvas.getByRole('region', { name: 'Toppers' })).getByText('Number 1: Lisa, €20.00')).toBeInTheDocument()
     await expect(canvas.getByText(/covers 69 beers/)).toBeInTheDocument()
     await expect(canvas.getByRole('button', { name: 'Top up' })).toBeInTheDocument()
     await expect(canvas.getByRole('button', { name: 'Receipt for Sporthal De Kuil' })).toBeInTheDocument()

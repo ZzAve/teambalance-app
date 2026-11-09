@@ -180,9 +180,10 @@ function EventsPageHarness(args: HarnessArgs) {
     <EventsPageView
       createAction={
         args.isAdmin && (
-          <Button>
+          // Same markup as CreateEventSheet's trigger: icon-only below sm.
+          <Button className="max-sm:size-11 max-sm:px-0">
             <Plus size={16} />
-            New Event
+            <span className="sr-only sm:not-sr-only">New Event</span>
           </Button>
         )
       }
@@ -330,7 +331,9 @@ export const Data: Story = {
       return
     }
     await expect(canvas.getByRole('heading', { name: 'Events' })).toBeInTheDocument()
-    await expect(canvas.getByRole('button', { name: 'New Event' })).toBeInTheDocument()
+    // The list's heading names what it holds, with the page's actions on its line.
+    const listLine = within(canvas.getByRole('heading', { level: 2, name: 'Upcoming' }).parentElement!)
+    await expect(listLine.getByRole('button', { name: 'New Event' })).toBeInTheDocument()
     await expect(canvas.getByRole('button', { name: 'Filters' })).toHaveAttribute('aria-expanded', 'false')
     // Every member, not just admins, reaches their calendar links from here.
     await expect(canvas.getByRole('link', { name: 'Calendar links' })).toHaveAttribute('href', '/t/setpoint-vt/calendar')
@@ -483,5 +486,12 @@ export const Interactions: Story = {
     // Bulk Attend reports the type it stands for.
     await userEvent.click(canvas.getByRole('button', { name: 'Attend 1 social' }))
     await expect(args.onAttend).toHaveBeenCalledWith(SOCIAL.id)
+
+    // Showing past events adds them to the same list, so its heading stops saying "Upcoming".
+    await userEvent.click(canvas.getByRole('button', { name: 'Filters' }))
+    await userEvent.click(within(canvas.getByRole('region', { name: 'Filters' })).getByRole('switch', { name: 'Show past events' }))
+    await expect(args.onToggleShowPast).toHaveBeenCalledWith(true)
+    await expect(canvas.getByRole('heading', { level: 2, name: 'All events' })).toBeInTheDocument()
+    await expect(canvas.queryByRole('heading', { name: 'Upcoming' })).not.toBeInTheDocument()
   },
 }

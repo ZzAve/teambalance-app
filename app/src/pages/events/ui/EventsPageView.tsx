@@ -6,6 +6,7 @@ import { useTeamRoutes } from '@shared/lib/team-routes'
 import { EventListView } from '@entities/event/ui/EventListView'
 import { EventFiltersView } from '@features/filter-event-types/ui/EventFiltersView'
 import { KeepPanelsOpenRow } from '@features/event-panel-view/ui/KeepPanelsOpenRow'
+import { PageHeader } from '@widgets/page-header/ui/PageHeader'
 
 interface EventsPageViewProps {
   /** The admin's "New Event" trigger; absent for members. */
@@ -45,9 +46,15 @@ export function EventsPageView({
 
   return (
     <div>
+      <PageHeader title={t('events.title')} />
+      {/* The list's heading, with the page actions on its line. Showing past events adds them to the
+          same list (and the hero follows the filters too), so the heading names what is shown. */}
       <div className="flex items-center justify-between gap-2">
-        <h2 className="font-display text-title font-bold">{t('events.title')}</h2>
-        <div className="flex items-center gap-2">
+        <h2 className="shrink-0 font-display text-title font-bold">
+          {filters.showPast ? t('events.listAll') : t('events.listUpcoming')}
+        </h2>
+        {/* Wraps instead of overflowing: an admin with an active filter (Clear filters) is wider than a phone. */}
+        <div className="flex min-w-0 flex-wrap items-center justify-end gap-1.5">
           {/* The invite link moved to the Team page (team-management action); Events keeps
               only event creation for admins. */}
           {createAction}

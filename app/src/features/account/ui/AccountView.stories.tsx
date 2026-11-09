@@ -40,7 +40,7 @@ const WITH_TEAM: AccountSection[] = ['email', 'photo', 'displayName', 'position'
 const TEAMLESS: AccountSection[] = ['email', 'photo', 'appearance', 'teams', 'logout']
 const ADMIN: AccountSection[] = ['email', 'photo', 'appearance', 'teams', 'platformAdmin', 'logout']
 
-const shell = appShell('account')
+const shell = appShell('account', 'Account')
 
 const meta = {
   title: 'features/account/AccountView',

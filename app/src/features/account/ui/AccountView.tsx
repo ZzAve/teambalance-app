@@ -107,9 +107,7 @@ export function AccountView({
 
   return (
     <div>
-      <h2 className="font-display text-title font-bold">{t('account.title')}</h2>
-
-      <div className="mt-6 space-y-6">
+      <div className="space-y-6">
         {has('email') && (
           <section>
             <SectionLabel as="h3" className="mb-2 px-1 text-small">{t('account.title')}</SectionLabel>

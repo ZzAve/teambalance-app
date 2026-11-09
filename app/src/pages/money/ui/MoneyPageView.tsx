@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
+import { PageHeader } from '@widgets/page-header/ui/PageHeader'
 
 interface MoneyPageViewProps {
   /** The money pool — the live container in the route, the prop-only View in a story. */
@@ -11,7 +12,7 @@ export function MoneyPageView({ pool }: MoneyPageViewProps) {
   const { t } = useTranslation()
   return (
     <div className="flex flex-col gap-6">
-      <h2 className="font-display text-title font-bold">{t('nav.money')}</h2>
+      <PageHeader title={t('nav.money')} />
       {pool}
     </div>
   )

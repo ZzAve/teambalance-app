@@ -1,5 +1,6 @@
+import type { ReactNode } from 'react'
 import type { Meta, StoryObj } from '@storybook/react-vite'
-import { expect, within } from 'storybook/test'
+import { expect, fn, within } from 'storybook/test'
 import type { Member } from '@shared/api/members'
 import type { Position } from '@shared/api/positions'
 import { Button } from '@shared/ui/button'
@@ -12,8 +13,8 @@ import { appShell } from '../../../../storybook-support/app-shell-decorator'
 import { dutchMode, pageModes } from '../../../../.storybook/modes'
 import { TeamPageView } from './TeamPageView'
 
-// The team page as a phone shows it (ADR-0032 §3): the header (title, invite action and settings
-// gear for admins) over the read-only roster and the read-only Substitute list, inside the real app
+// The team page as a phone shows it (ADR-0032 §3): the title in the app bar, then the read-only roster
+// (invite action and settings gear for admins on its heading's line) and the read-only Substitute list, inside the real app
 // shell. This composite owns the pixels for the header, the read-only MemberRosterView and the
 // read-only ManageSubstitutesView; those keep their own snapshots only for what this page can't show.
 const POSITIONS: Position[] = [
@@ -30,8 +31,11 @@ const MEMBERS: Member[] = [
 ]
 
 const noop = () => {}
-const roster = (state: Partial<Parameters<typeof MemberRosterView>[0]> = {}) => (
+const onInvite = fn()
+// The page hands its admin actions to the roster, which puts them on its heading's line.
+const roster = (state: Partial<Parameters<typeof MemberRosterView>[0]> = {}) => (headerActions?: ReactNode) => (
   <MemberRosterView
+    headerActions={headerActions}
     canManage={false}
     members={MEMBERS}
     positions={POSITIONS}
@@ -66,7 +70,11 @@ const meta = {
   parameters: shell.parameters,
   args: {
     isAdmin: true,
-    inviteAction: <Button variant="outline">Invite Link</Button>,
+    inviteAction: (
+      <Button variant="outline" onClick={() => onInvite('invite')}>
+        Invite Link
+      </Button>
+    ),
     roster: roster(),
     substitutes,
   },
@@ -89,8 +97,10 @@ export const Data: Story = {
       return
     }
     await expect(canvas.getByRole('heading', { name: 'Team' })).toBeInTheDocument()
-    await expect(canvas.getByRole('button', { name: 'Invite Link' })).toBeInTheDocument()
-    await expect(canvas.getByRole('link', { name: 'Team settings' })).toHaveAttribute('href', '/t/setpoint-vt/team/settings')
+    // The admin actions share the roster heading's line, not a row of their own.
+    const membersLine = within(canvas.getByRole('heading', { name: 'Members' }).parentElement!)
+    await expect(membersLine.getByRole('link', { name: 'Team settings' })).toHaveAttribute('href', '/t/setpoint-vt/team/settings')
+    await expect(membersLine.getByRole('button', { name: 'Invite Link' })).toBeInTheDocument()
     // The roster is a grid of faces, each opening that member's page (ADR-0038).
     for (const name of ['Ada Lovelace', 'Grace Hopper', 'Alan Turing', 'Katherine Johnson']) {
       await expect(canvas.getByRole('link', { name })).toBeInTheDocument()
@@ -128,7 +138,21 @@ export const Shells: Story = {
     await expect(region('Member').queryByRole('button', { name: 'Invite Link' })).not.toBeInTheDocument()
     await expect(region('Member').queryByRole('link', { name: 'Team settings' })).not.toBeInTheDocument()
     await expect(region('Member').getByRole('link', { name: 'Ada Lovelace' })).toBeInTheDocument()
+    await expect(region('Member').getByRole('heading', { name: 'Members' })).toBeInTheDocument()
     await expect(region('Loading').getByText('Loading…')).toBeInTheDocument()
     await expect(region('Error').getByText(/couldn't load/i)).toBeInTheDocument()
+  },
+}
+
+// The admin actions handed to the roster stay wired to the page's handler (behavioural only; Data
+// owns the picture, and a click here would leave a focus ring in it).
+export const Interactions: Story = {
+  decorators: shell.decorators,
+  parameters: { chromatic: { disableSnapshot: true } },
+  play: async ({ canvas, userEvent }) => {
+    const membersLine = within(canvas.getByRole('heading', { name: 'Members' }).parentElement!)
+    onInvite.mockClear()
+    await userEvent.click(membersLine.getByRole('button', { name: 'Invite Link' }))
+    await expect(onInvite).toHaveBeenCalledWith('invite')
   },
 }

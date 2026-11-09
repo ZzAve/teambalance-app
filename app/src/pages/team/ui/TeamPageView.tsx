@@ -3,21 +3,25 @@ import type { ReactNode } from 'react'
 import { Link } from '@tanstack/react-router'
 import { Settings } from 'lucide-react'
 import { useTeamRoutes } from '@shared/lib/team-routes'
+import { PageHeader } from '@widgets/page-header/ui/PageHeader'
 
 interface TeamPageViewProps {
   /** Only admins get the entry into /team/settings; the page itself is read-only for everyone. */
   isAdmin: boolean
   /** The admin's invite-link action, rendered in the header beside the settings gear. */
   inviteAction?: ReactNode
-  /** The member roster — the live container in the route, the prop-only View in a story. */
-  roster: ReactNode
+  /**
+   * The member roster — the live container in the route, the prop-only View in a story. Called with
+   * the admin actions so the roster can put them on its heading's line; undefined for members.
+   */
+  roster: (headerActions?: ReactNode) => ReactNode
   /** The Team's Substitutes (ADR-0033), read-only, under the roster: they are not Members. */
   substitutes: ReactNode
 }
 
 /**
- * The team page laid out (ADR-0032 §3): the header (title, and for admins the invite action plus
- * the gear into /team/settings) over the roster, then the Team's Substitutes. Read-only for
+ * The team page laid out (ADR-0032 §3): the title in the app bar, the roster (for admins with the
+ * invite action and the gear into /team/settings on its heading's line), then the Team's Substitutes. Read-only for
  * everyone, admins included — managing both lives under settings.
  */
 export function TeamPageView({ isAdmin, inviteAction, roster, substitutes }: TeamPageViewProps) {
@@ -26,10 +30,10 @@ export function TeamPageView({ isAdmin, inviteAction, roster, substitutes }: Tea
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
-        <h2 className="font-display text-title font-bold">{t('nav.team')}</h2>
-        {isAdmin && (
-          <div className="flex items-center gap-2">
+      <PageHeader title={t('nav.team')} />
+      {roster(
+        isAdmin ? (
+          <>
             {inviteAction}
             <Link
               to={routes.teamSettings}
@@ -39,10 +43,9 @@ export function TeamPageView({ isAdmin, inviteAction, roster, substitutes }: Tea
             >
               <Settings size={20} />
             </Link>
-          </div>
-        )}
-      </div>
-      {roster}
+          </>
+        ) : undefined,
+      )}
       {substitutes}
     </div>
   )

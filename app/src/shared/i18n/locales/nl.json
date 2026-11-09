@@ -23,6 +23,8 @@
     "title": "Events",
     "calendarLinks": "Agendalinks",
     "newEvent": "Nieuw event",
+    "listUpcoming": "Aanstaande",
+    "listAll": "Alle events",
     "loading": "Events laden",
     "loadFailed": "Events laden is mislukt.",
     "empty": {
@@ -989,7 +991,8 @@
     "saveFailed": "Het seizoen opslaan is mislukt. Probeer het opnieuw."
   },
   "teamPage": {
-    "settings": "Teaminstellingen"
+    "settings": "Teaminstellingen",
+    "back": "Terug naar team"
   },
   "memberDetail": {
     "fallbackTitle": "Lid",

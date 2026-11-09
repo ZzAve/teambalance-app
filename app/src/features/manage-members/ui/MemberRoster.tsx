@@ -1,6 +1,7 @@
 import { MemberUpdateError, useMembers, useRemoveMember, useUpdateMember } from '@shared/api/members'
 import { usePositions } from '@shared/api/positions'
 import { toggleRole } from '../lib/roster'
+import type { ReactNode } from 'react'
 import { MemberRosterView } from './MemberRosterView'
 
 interface MemberRosterProps {
@@ -11,6 +12,8 @@ interface MemberRosterProps {
    * editable.
    */
   canManage?: boolean
+  /** Page actions on the roster heading's line (the Team page's invite link and settings gear). */
+  headerActions?: ReactNode
 }
 
 /**
@@ -21,7 +24,7 @@ interface MemberRosterProps {
  * (`/team/settings`). Promote/demote reuses the update mutation with the toggled role and the
  * unchanged display name. See ADR-0017.
  */
-export function MemberRoster({ canManage = false }: MemberRosterProps) {
+export function MemberRoster({ canManage = false, headerActions }: MemberRosterProps) {
   const { data: members, isLoading, error } = useMembers()
   const { data: positions } = usePositions()
   const updateMember = useUpdateMember()
@@ -44,6 +47,7 @@ export function MemberRoster({ canManage = false }: MemberRosterProps) {
     <MemberRosterView
       members={members}
       canManage={canManage}
+      headerActions={headerActions}
       positions={positions ?? []}
       isLoading={isLoading}
       isError={!!error}

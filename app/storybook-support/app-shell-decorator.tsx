@@ -5,6 +5,7 @@ import { withRouter } from '@shared/testing/router-decorator'
 import { AuthMeProvider, authenticatedUser } from '@shared/testing/auth-decorator'
 import type { TeamRef } from '@shared/api/teams'
 import { TeamSwitcherView } from '@features/switch-team/ui/TeamSwitcherView'
+import { PageHeader } from '@widgets/page-header/ui/PageHeader'
 
 // The one Team every page composite is rendered in. Its slug is what BottomNav builds the tab
 // targets from, so the router must start on one of SHELL_ROUTES for the right tab to light up.
@@ -18,7 +19,7 @@ export const SHELL_ROUTES = {
 } as const
 
 /**
- * Renders a page composite inside the real app frame — header with the wordmark and the team name,
+ * Renders a page composite inside the real app frame — the context bar (monogram, the page's title, the team name),
  * the centred main column, the bottom tab bar — so its snapshot is what a phone actually shows
  * (ADR-0032 §3). The frame is the same `AppShellFrame` the root route uses; only the two live slots
  * are swapped for prop-only stand-ins (a single-team `TeamSwitcherView`, no act-as banner).
@@ -31,7 +32,7 @@ export const SHELL_ROUTES = {
  * no production module may. It also stays out of `.storybook/`: Chromatic treats every file there as
  * global, so an edit would re-snapshot the whole catalogue instead of the stories that import this.
  */
-export const withAppShell: Decorator = (Story) => (
+export const withAppShell: Decorator = (Story, { parameters }) => (
   // `contain-layout` makes this box the containing block for BottomNav's `position: fixed`. In the
   // product the bar pins to the viewport, which is what you want on a page you scroll; a snapshot
   // has no scrolling, and Chromatic renders the page at its full content height while `fixed` still
@@ -44,16 +45,21 @@ export const withAppShell: Decorator = (Story) => (
         teamSwitcher={<TeamSwitcherView teams={[SHELL_TEAM]} activeTeam={SHELL_TEAM} onSelect={() => {}} />}
         nav={<BottomNav />}
       >
+        {/* A page whose title its container sets (the Account route) names it here instead. */}
+        {parameters.shellPageTitle && <PageHeader title={parameters.shellPageTitle} />}
         <Story />
       </AppShellFrame>
     </AuthMeProvider>
   </div>
 )
 
-/** The decorator stack + router start for a page composite on the given tab. */
-export function appShell(tab: keyof typeof SHELL_ROUTES) {
+/**
+ * The decorator stack + router start for a page composite on the given tab. Pass `pageTitle` when the
+ * View does not render its own PageHeader because its route does (Account).
+ */
+export function appShell(tab: keyof typeof SHELL_ROUTES, pageTitle?: string) {
   return {
     decorators: [withAppShell, withRouter] as Decorator[],
-    parameters: { layout: 'fullscreen', router: { initialEntries: [SHELL_ROUTES[tab]] } },
+    parameters: { layout: 'fullscreen', router: { initialEntries: [SHELL_ROUTES[tab]] }, shellPageTitle: pageTitle },
   }
 }

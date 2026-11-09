@@ -1,109 +1,132 @@
+import { useState, type ReactNode } from 'react'
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { expect, fn, within } from 'storybook/test'
 import { withRouter } from '@shared/testing/router-decorator'
-import { appColumn } from '@shared/testing/app-column-decorator'
 import { Stack } from '@shared/testing/stack'
+import { AppShellFrame } from '@shared/ui/AppShellFrame'
 import { Button } from '@shared/ui/button'
+import { TeamSwitcherView } from '@features/switch-team/ui/TeamSwitcherView'
 import { PageHeader } from './PageHeader'
 
-// PageHeader is the shared sticky sub-header: it renders a back link, a title and an optional
-// actions slot, and pins itself at `top: var(--header-height)` so it always lands flush under the
-// app header (no magic pixel offset). It is prop-only — no store, no query — so every state below
-// renders from args alone; the routes that use it stay thin wiring (ADR-0017).
+// PageHeader fills the app header (the context bar, #505): it renders nothing in place and portals
+// its title, back link and actions into AppShellFrame's header. A page without `backTo` is a
+// top-level (tab) page: the bar keeps the monogram and the team chip around its title. A page with
+// `backTo` is nested: the bar shows back + title + actions, and the monogram and team chip leave.
 //
-// The back control is a real <Link>, so the story runs under the router decorator and asserts the
-// resolved href (same contract as TeamHeader's gear).
-//
-// Covered by the event-detail page composite (EventDetailView, ADR-0032 §3): every shape this widget
-// can take is folded into one disableSnapshot Gallery, including the sticky-offset derivation — the
-// picture lives on the composite.
-const onAction = fn()
+// Each case below gets its own frame (no tab bar), so the play can read the bar the page produced.
+// Behavioural only: the pixels are owned by the page composites under the app shell (ADR-0032 §3).
+const onEdit = fn()
+const TEAM = { id: 't1', name: 'Setpoint VT', slug: 'setpoint-vt' }
+
+function Frame({ children }: { children: ReactNode }) {
+  return (
+    <AppShellFrame teamSwitcher={<TeamSwitcherView teams={[TEAM]} activeTeam={TEAM} onSelect={() => {}} />} nav={null}>
+      {children}
+    </AppShellFrame>
+  )
+}
+
+// Leaving a nested page must hand the bar back: monogram and team chip return.
+function LeaveNested() {
+  const [nested, setNested] = useState(true)
+  return (
+    <Frame>
+      {nested ? <PageHeader title="Training — Tuesday" backTo="/t/setpoint-vt" backLabel="Back to events" /> : <PageHeader title="Events" />}
+      <Button variant="outline" onClick={() => setNested(false)}>
+        Leave
+      </Button>
+    </Frame>
+  )
+}
 
 const meta = {
   title: 'widgets/page-header/PageHeader',
   component: PageHeader,
-  // The app's <main> gutter, so the header's -mx-4 full-bleed edge renders faithfully in context
-  // at every breakpoint (ADR-0032 §4).
-  decorators: [...appColumn.decorators, withRouter],
-  parameters: appColumn.parameters,
+  decorators: [withRouter],
+  parameters: { layout: 'fullscreen' },
 } satisfies Meta<typeof PageHeader>
 
 export default meta
 
 type Story = StoryObj<typeof meta>
 
-// Picture owned by the event-detail page composite (EventDetailView) — behavioural only (ADR-0032 §3).
-export const Gallery: Story = {
+export const Interactions: Story = {
   parameters: { chromatic: { disableSnapshot: true } },
   // title is required on PageHeader; unused by render below — each Stack instance sets its own.
-  args: { title: 'Training — Tuesday' },
+  args: { title: 'Events' },
   render: () => (
     <Stack
       items={{
-        // Title only: no back target, no actions — the minimal shape a page can use.
-        'Title only': <PageHeader title="Training — Tuesday" />,
-        // The event-detail shape: back link into the parent list plus a title.
-        'With back': <PageHeader title="Training — Tuesday" backTo="/" backLabel="Back to events" />,
-        // Back link plus a trailing actions slot — the actions are the caller's nodes, so the play
-        // proves a click reaches the caller's handler rather than being swallowed by the header.
-        'With back and actions': (
-          <PageHeader
-            title="Training — Tuesday"
-            backTo="/"
-            backLabel="Back to events"
-            actions={
-              <Button variant="outline" size="sm" onClick={() => onAction()}>
-                Edit
-              </Button>
-            }
-          />
+        'Top level': (
+          <Frame>
+            <PageHeader title="Events" />
+          </Frame>
         ),
-        // A title long enough to overrun the bar: it must truncate on one line so the back button
-        // and the actions slot keep their space (real event titles are user-authored and unbounded).
+        'Nested with action': (
+          <Frame>
+            <PageHeader
+              title="Training — Tuesday"
+              backTo="/t/setpoint-vt"
+              backLabel="Back to events"
+              actions={
+                <Button variant="ghost" size="sm" onClick={() => onEdit('event-1')}>
+                  Edit
+                </Button>
+              }
+            />
+          </Frame>
+        ),
+        // Event titles are user-authored and unbounded: the title must cut off on one line so the
+        // back link and the action keep their space.
         'Long title': (
-          <PageHeader
-            title="Volleybalvereniging Heren 3 — thuiswedstrijd tegen de allerlangste clubnaam"
-            backTo="/"
-            backLabel="Back to events"
-          />
+          <Frame>
+            <PageHeader
+              title="Volleybalvereniging Heren 3 — thuiswedstrijd tegen de allerlangste clubnaam"
+              backTo="/t/setpoint-vt"
+              backLabel="Back to events"
+              actions={<Button variant="ghost" size="sm">Edit</Button>}
+            />
+          </Frame>
         ),
-        // The sticky offset is the whole point of the widget: it must be *derived* from
-        // --header-height, never a hardcoded pixel value that drifts when the app header changes
-        // (the F12 defect). Overriding the variable to an off-token value and reading the resolved
-        // `top` back proves the derivation end-to-end — a plain class assertion would still pass if
-        // the offset were re-hardcoded to today's header height.
-        'Sticky offset': (
-          <div style={{ '--header-height': '80px' } as React.CSSProperties}>
-            <PageHeader title="Training — Tuesday" />
-          </div>
-        ),
+        'Leave nested': <LeaveNested />,
       }}
     />
   ),
   play: async ({ canvas, userEvent }) => {
-    const region = (name: string) => within(canvas.getByRole('region', { name }))
+    const bar = (name: string) => within(within(canvas.getByRole('region', { name })).getByRole('banner'))
 
-    await expect(
-      region('Title only').getByRole('heading', { name: 'Training — Tuesday' }),
-    ).toBeInTheDocument()
-    await expect(region('Title only').queryByRole('link')).not.toBeInTheDocument()
+    // Top level: monogram home link, the title as the page's h1, the team chip; no back link.
+    const top = bar('Top level')
+    await expect(top.getByRole('link', { name: 'TeamBalance' })).toHaveAttribute('href', '/')
+    await expect(top.getByRole('heading', { level: 1, name: 'Events' })).toBeInTheDocument()
+    await expect(top.getByText('Setpoint VT')).toBeInTheDocument()
+    await expect(top.queryByRole('link', { name: 'Back to events' })).not.toBeInTheDocument()
 
-    const back = region('With back').getByRole('link', { name: 'Back to events' })
-    await expect(back).toHaveAttribute('href', '/')
-    await expect(
-      region('With back').getByRole('heading', { name: 'Training — Tuesday' }),
-    ).toBeInTheDocument()
+    // Nested: back link to the parent, the title, the caller's action wired to its handler; the
+    // monogram and the team chip are gone.
+    const nested = bar('Nested with action')
+    await expect(nested.getByRole('link', { name: 'Back to events' })).toHaveAttribute('href', '/t/setpoint-vt')
+    await expect(nested.getByRole('heading', { name: 'Training — Tuesday' })).toBeInTheDocument()
+    await expect(nested.queryByRole('link', { name: 'TeamBalance' })).not.toBeInTheDocument()
+    await expect(nested.queryByText('Setpoint VT')).not.toBeInTheDocument()
+    onEdit.mockClear()
+    await userEvent.click(nested.getByRole('button', { name: 'Edit' }))
+    await expect(onEdit).toHaveBeenCalledWith('event-1')
 
-    await expect(
-      region('With back and actions').getByRole('link', { name: 'Back to events' }),
-    ).toBeInTheDocument()
-    onAction.mockClear()
-    await userEvent.click(region('With back and actions').getByRole('button', { name: 'Edit' }))
-    await expect(onAction).toHaveBeenCalledTimes(1)
+    // Long title: actually cut off (wider than its box), with back and action still in the bar.
+    const long = bar('Long title')
+    const title = long.getByRole('heading')
+    await expect(title).toHaveClass('truncate')
+    await expect(title.scrollWidth).toBeGreaterThan(title.clientWidth)
+    await expect(long.getByRole('button', { name: 'Edit' })).toBeVisible()
 
-    await expect(region('Long title').getByRole('heading')).toHaveClass('truncate')
-
-    const stickyHeading = region('Sticky offset').getByRole('heading').parentElement as HTMLElement
-    await expect(getComputedStyle(stickyHeading).top).toBe('80px')
+    // Leaving the nested page restores the top-level bar.
+    const region = within(canvas.getByRole('region', { name: 'Leave nested' }))
+    await userEvent.click(region.getByRole('button', { name: 'Leave' }))
+    const left = bar('Leave nested')
+    await expect(left.getByRole('heading', { level: 1, name: 'Events' })).toBeInTheDocument()
+    await expect(left.getByRole('link', { name: 'TeamBalance' })).toBeInTheDocument()
+    await expect(left.getByText('Setpoint VT')).toBeInTheDocument()
+    await expect(left.queryByRole('link', { name: 'Back to events' })).not.toBeInTheDocument()
   },
 }

@@ -23,6 +23,8 @@
     "title": "Events",
     "calendarLinks": "Calendar links",
     "newEvent": "New Event",
+    "listUpcoming": "Upcoming",
+    "listAll": "All events",
     "loading": "Loading events",
     "loadFailed": "Couldn't load events.",
     "empty": {
@@ -989,7 +991,8 @@
     "saveFailed": "Could not save the season. Please try again."
   },
   "teamPage": {
-    "settings": "Team settings"
+    "settings": "Team settings",
+    "back": "Back to team"
   },
   "memberDetail": {
     "fallbackTitle": "Member",

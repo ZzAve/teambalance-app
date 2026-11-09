@@ -1,4 +1,5 @@
 import { useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
 import { createFileRoute, redirect } from '@tanstack/react-router'
 import { authMeQueryOptions } from '@shared/api/auth'
 import { queryClient } from '@shared/api/query-client'
@@ -13,6 +14,7 @@ import { ManageSubstitutes } from '@features/manage-substitutes/ui/ManageSubstit
 import { ManageEventTypes } from '@features/manage-event-types/ui/ManageEventTypes'
 import { HandoverAdmin } from '@features/handover-admin/ui/HandoverAdmin'
 import { ActAsRecords } from '@features/act-as/ui/ActAsRecords'
+import { PageHeader } from '@widgets/page-header/ui/PageHeader'
 
 export const Route = createFileRoute('/t/$slug/team/settings')({
   // `?bunq=` is how the API's Bunq callback reports the end of a connection attempt; anything else is dropped.
@@ -37,6 +39,8 @@ export const Route = createFileRoute('/t/$slug/team/settings')({
 })
 
 function TeamSettingsPage() {
+  const { t } = useTranslation()
+  const { slug } = Route.useParams()
   const { bunq } = Route.useSearch()
   const navigate = Route.useNavigate()
   // Bunq's result is for the first load only; it leaves the URL (and the history entry) once shown.
@@ -51,6 +55,7 @@ function TeamSettingsPage() {
   // vocabulary above it. The read-only view of the same roster lives on /team.
   return (
     <div className="flex flex-col gap-10">
+      <PageHeader title={t('teamPage.settings')} backTo={teamRoutes(slug).team} backLabel={t('teamPage.back')} />
       <MemberRoster canManage />
       <ManagePositions />
       <ManageSubstitutes canManage />

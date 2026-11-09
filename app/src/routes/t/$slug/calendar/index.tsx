@@ -18,9 +18,7 @@ function CalendarPage() {
   return (
     <div>
       <PageHeader title={t('calendarLinks.page')} backTo={teamRoutes(slug).events} backLabel={t('calendarLinks.backToEvents')} />
-      <div className="mt-4">
-        <CalendarLinks />
-      </div>
+      <CalendarLinks />
     </div>
   )
 }

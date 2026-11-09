@@ -1,7 +1,8 @@
 // Render the portrait intro and outro cards from a narration file's __introCard / __outroCard.
 //   node .agents/skills/feature-promo-video/scripts/cards.mjs docs/demo/<feature>.narration.json <out-dir>
 // Needs `npm --prefix app ci`: fonts, the monogram, lucide icons and Playwright all come from app/.
-// Writes <out-dir>/intro.png and <out-dir>/outro.png at 1170x2532.
+// Writes <out-dir>/intro.png and <out-dir>/outro.png at 1170x2532, plus phone.png and phone-android.png (a
+// phone around the take, transparent where the recording shows through) and phone.json (where the take goes) for assemble.py.
 import { execFileSync } from 'node:child_process'
 import { copyFileSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
@@ -35,7 +36,25 @@ for (const step of outro.steps) {
   chips.push(`<span class="box">${icon ? `${await lucide(icon)} ` : ''}${escape(label)}</span>`)
 }
 
+// The phone: the 390x844 take scaled into a screen between a status bar and a home strip, in a bezel.
+const W = 1170, H = 2532, sw = 960, status = 120, home = 84, bezel = 34, r = 130
+const h = Math.round((H * sw) / W / 2) * 2
+const sh = status + h + home
+const sx = (W - sw) / 2, sy = Math.round((H - sh) / 2)
+const phone = {
+  width: W, height: H, sx, sy, sw, sh, r, cx: W / 2, status, home, homeY: sy + status + h,
+  bx: sx - bezel, by: sy - bezel, bw: sw + 2 * bezel, bh: sh + 2 * bezel, br: r + bezel,
+  btnL: sx - bezel - 9, btnR: sx + sw + bezel - 1,
+  homeBarX: W / 2 - 170, homeBarY: sy + status + h + home / 2 - 6, islandX: W / 2 - 150, islandY: sy + 26,
+  timeX: sx + 170, textY: sy + 86, iconsX: sx + sw - 232, iconsY: sy + 52,
+  // Android: smaller corner radii, a punch-hole camera, the time at the left.
+  ra: 100, bra: 100 + bezel, camY: sy + 60, timeXa: sx + 60,
+}
+
 mkdirSync(out, { recursive: true })
+writeFileSync(join(out, 'phone.html'), fill('phone.html', phone))
+writeFileSync(join(out, 'phone-android.html'), fill('phone-android.html', phone))
+writeFileSync(join(out, 'phone.json'), JSON.stringify({ x: sx, y: sy + status, w: sw, h }))
 const text = (card) => Object.fromEntries(Object.entries(card).filter(([, v]) => typeof v === 'string').map(([k, v]) => [k, escape(v)]))
 writeFileSync(join(out, 'intro.html'), fill('intro.html', text(intro)))
 writeFileSync(join(out, 'outro.html'), fill('outro.html', { ...text(outro), steps: chips.join('<span class="arrow">↓</span>') }))
@@ -50,7 +69,8 @@ writeFileSync(join(out, 'cards-text.json'), JSON.stringify({
 }, null, 1))
 writeFileSync(join(out, 'cards.json'), JSON.stringify({
   width: 1170, height: 2532, dir: out,
-  cards: [{ html: 'intro.html', out: 'intro.png' }, { html: 'outro.html', out: 'outro.png' }],
+  cards: [{ html: 'intro.html', out: 'intro.png' }, { html: 'outro.html', out: 'outro.png' }, { html: 'phone.html', out: 'phone.png', transparent: true },
+    { html: 'phone-android.html', out: 'phone-android.png', transparent: true }],
 }))
 
 // demo-video's renderer resolves Playwright from its working directory.

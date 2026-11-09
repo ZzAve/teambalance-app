@@ -1,0 +1,34 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+html, body { margin: 0; width: {{width}}px; height: {{height}}px; background: transparent; overflow: hidden; }
+text { font-family: Roboto, 'Google Sans', 'Helvetica Neue', sans-serif; font-weight: 500; fill: #1E293B; }
+</style></head><body>
+<!-- The Android phone: a flatter bezel, a punch-hole camera, the time at the left of the status bar and a
+     gesture bar at the bottom. Same screen window as phone.html, so assemble.py places the take the same way. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="{{width}}" height="{{height}}" viewBox="0 0 {{width}} {{height}}">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#243B5E"/><stop offset="1" stop-color="#0B1220"/></linearGradient>
+    <mask id="hole"><rect width="{{width}}" height="{{height}}" fill="#fff"/><rect x="{{sx}}" y="{{sy}}" width="{{sw}}" height="{{sh}}" rx="{{ra}}" fill="#000"/></mask>
+    <clipPath id="screen"><rect x="{{sx}}" y="{{sy}}" width="{{sw}}" height="{{sh}}" rx="{{ra}}"/></clipPath>
+  </defs>
+  <rect width="{{width}}" height="{{height}}" fill="url(#bg)" mask="url(#hole)"/>
+  <ellipse cx="{{cx}}" cy="{{height}}" rx="900" ry="420" fill="rgba(0,0,0,.35)" mask="url(#hole)"/>
+  <rect x="{{bx}}" y="{{by}}" width="{{bw}}" height="{{bh}}" rx="{{bra}}" fill="#1A1D24" mask="url(#hole)"/>
+  <rect x="{{bx}}" y="{{by}}" width="{{bw}}" height="{{bh}}" rx="{{bra}}" fill="none" stroke="rgba(255,255,255,.22)" stroke-width="3" mask="url(#hole)"/>
+  <rect x="{{btnR}}" y="760" width="10" height="150" rx="4" fill="#2A2F3A"/>
+  <rect x="{{btnR}}" y="960" width="10" height="260" rx="4" fill="#2A2F3A"/>
+  <g clip-path="url(#screen)">
+    <rect x="{{sx}}" y="{{sy}}" width="{{sw}}" height="{{status}}" fill="#FDFCF9"/>
+    <rect x="{{sx}}" y="{{homeY}}" width="{{sw}}" height="{{home}}" fill="#FDFCF9"/>
+  </g>
+  <rect x="{{homeBarX}}" y="{{homeBarY}}" width="300" height="10" rx="5" fill="#1E293B"/>
+  <circle cx="{{cx}}" cy="{{camY}}" r="26" fill="#000"/>
+  <circle cx="{{cx}}" cy="{{camY}}" r="12" fill="#0F172A" stroke="#2A3345" stroke-width="3"/>
+  <text x="{{timeXa}}" y="{{textY}}" font-size="40" text-anchor="start">9:41</text>
+  <g transform="translate({{iconsX}} {{iconsY}})" fill="#1E293B">
+    <path d="M44 12a32 32 0 0 0-44 0l6 6a24 24 0 0 1 32 0z M32 22a20 20 0 0 0-20 0l5 5a12 12 0 0 1 10 0z M22 32l-4-4a6 6 0 0 1 8 0z"/>
+    <path d="M60 34V2L88 34z"/>
+    <rect x="104" y="0" width="22" height="38" rx="5" fill="none" stroke="#1E293B" stroke-opacity=".4" stroke-width="3"/>
+    <rect x="108" y="10" width="14" height="24" rx="2"/><rect x="111" y="-4" width="8" height="4" rx="1"/>
+  </g>
+</svg>
+</body></html>

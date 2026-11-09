@@ -1,0 +1,30 @@
+{
+  "__introCard": {
+    "headline": "Skip the email.",
+    "accent": "Sign in with a passkey.",
+    "sub": "Your face, fingerprint or device PIN signs you in to TeamBalance. No link to wait for.",
+    "pill": "Passkeys are live"
+  },
+  "__outroCard": {
+    "steps": [{ "label": "Sign in by email once", "icon": "mail" }, { "label": "Add a passkey", "icon": "scan-face" }, { "label": "Next time: one tap", "icon": "key-round" }],
+    "sub": "Manage your passkeys on the Profile tab. Your email link keeps working."
+  },
+  "__intro": "Skip the email. Sign in to TeamBalance with a passkey.",
+  "Until now, every sign-in started with an email.": "Until now, every sign-in started with an email.",
+  "Type your address and send the link.": "Type your address, | and send the link.",
+  "Then open your inbox and find the mail.": "Then open your inbox, | and find the mail.",
+  "It works. But it is a wait, every time.": "It works. But it's a wait, | every time.",
+  "Once you're in, TeamBalance offers a faster way.": "Once you're in, TeamBalance offers a faster way.",
+  "Tap \"Add a passkey\".": "Tap Add a passkey.",
+  "Your phone asks once. Confirm with your face or your fingerprint.": "Your phone asks once. Confirm with your face, | or your fingerprint.",
+  "Done. That's all the setup there is.": "Done! That's all the setup there is.",
+  "Your passkeys live on the Profile tab.": "Your passkeys live on the Profile tab.",
+  "This device is listed. Every phone or laptop gets its own, and Remove is right there.": "This device is listed. Every phone or laptop gets its own, | and Remove is right there.",
+  "Now sign out, and back in.": "Now let's sign out, | and back in.",
+  "Tap \"Sign in with a passkey\".": "Tap Sign in with a passkey.",
+  "A glance at your phone is all it takes...": "A glance at your phone is all it takes...",
+  "...and you're in. No email, no link.": "...and you're in. No email, | no link.",
+  "Next time, the app remembers your choice.": "Next time, the app remembers your choice.",
+  "Your last sign-in is marked, and on your next visit your phone asks straight away.": "Your last sign-in is marked, and on your next visit, your phone asks straight away.",
+  "__outro": "Try it today! Add a passkey the next time you sign in. See you at TeamBalance dot N L!"
+}

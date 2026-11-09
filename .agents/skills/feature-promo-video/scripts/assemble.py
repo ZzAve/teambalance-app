@@ -5,12 +5,13 @@
 """Join intro card + narrated take + outro card into one mp4 with the voice-over, and optionally the
 theme song as a music bed.
 
-  uv run assemble.py <take.webm | take-dir> <take.log> <clips.json> <cards-dir> <out.mp4> [--song <song.json>] [--cut <s>]
+  uv run assemble.py <take.webm | take-dir> <take.log> <clips.json> <cards-dir> <out.mp4> [--song <song.json>] [--cut <s>] [--phone [ios|android]]
 
 take.log is the harness output with `CAPTION_AT <ms> <caption>` lines; a caption's clip starts at
 intro length + caption time + TAKE_OFFSET. __intro plays over the intro card, __outro over the outro.
 Fails when a clip runs into the next one or a silence between lines is longer than MAX_GAP.
-Writes <out>.transcript.md next to the video: time, on-screen text and voice-over per line, for review.
+With --phone, the take plays inside the phone that cards.mjs rendered (<cards>/phone.png and phone.json);
+the cards stay full-bleed. Writes <out>.transcript.md next to the video: time, on-screen text and voice-over per line, for review.
 
 With --song, the song starts at 0 and its real ending lands on the last frame: whole bars are skipped
 from the middle and the outro card is sized to fit. Without --cut it renders the three best cut
@@ -54,6 +55,16 @@ def card(png, seconds, width, height, out):
     fades = f'fade=in:d={FADE},fade=out:st={seconds - FADE:.3f}:d={FADE}'
     run('ffmpeg', '-y', '-loop', '1', '-framerate', str(FPS), '-t', f'{seconds:.3f}', '-i', png,
         '-vf', f'scale={width}:{height},setsar=1,{fades},{BT709}', *X264, out)
+
+
+def framed(take, cards, os_name, width, height, out):
+    """The take scaled into the phone's screen window, under the frame PNG (opaque outside the window)."""
+    at = json.load(open(os.path.join(cards, 'phone.json')))
+    png = os.path.join(cards, 'phone.png' if os_name == 'ios' else f'phone-{os_name}.png')
+    run('ffmpeg', '-y', '-i', take, '-i', png, '-filter_complex',
+        f"color=c=black:s={width}x{height}:r={FPS}[bg];[0:v]scale={at['w']}:{at['h']}[s];"
+        f"[bg][s]overlay={at['x']}:{at['y']}:shortest=1[a];[a][1:v]overlay=0:0,{BT709}[v]",
+        '-map', '[v]', *X264, out)
 
 
 def mono(path, rate=22050):
@@ -140,6 +151,8 @@ def main():
         p.add_argument(name)
     p.add_argument('--song', help='song json (bpm, firstDownbeat, lufs, file)')
     p.add_argument('--cut', type=float, help='song time to cut at, from a previous candidate round')
+    p.add_argument('--phone', nargs='?', const='ios', choices=['ios', 'android'],
+                   help='play the take inside the phone frame from cards.mjs (default ios)')
     a = p.parse_args()
 
     take = a.take if a.take.endswith('.webm') else max(glob.glob(os.path.join(a.take, '*.webm')), key=os.path.getmtime)
@@ -155,6 +168,9 @@ def main():
                         '-of', 'default=nw=1:nk=1', take).split()
     subprocess.run([TO_MP4, take_mp4, take], check=True, capture_output=True,
                    env={**os.environ, 'W': width, 'H': height, 'FPS': str(FPS)})
+    if a.phone:
+        framed(take_mp4, a.cards, a.phone, width, height, os.path.join(tmp, 'framed.mp4'))
+        take_mp4 = os.path.join(tmp, 'framed.mp4')
     take_len = duration(take_mp4)
     intro_len = max(INTRO_MIN, INTRO_VOICE_AT + clips['__intro']['seconds'] + 0.4)
     outro_len = OUTRO_VOICE_AT + clips['__outro']['seconds'] + OUTRO_TAIL
@@ -194,7 +210,7 @@ def main():
     card(os.path.join(a.cards, 'intro.png'), intro_len, width, height, os.path.join(tmp, 'intro.mp4'))
     card(os.path.join(a.cards, 'outro.png'), outro_len, width, height, os.path.join(tmp, 'outro.mp4'))
     concat = os.path.join(tmp, 'concat.txt')
-    open(concat, 'w').write(''.join(f"file '{tmp}/{s}.mp4'\n" for s in ('intro', 'take', 'outro')))
+    open(concat, 'w').write(''.join(f"file '{f}'\n" for f in (os.path.join(tmp, 'intro.mp4'), take_mp4, os.path.join(tmp, 'outro.mp4'))))
     video = os.path.join(tmp, 'video.mp4')
     run('ffmpeg', '-y', '-f', 'concat', '-safe', '0', '-i', concat, '-c', 'copy', video)
 

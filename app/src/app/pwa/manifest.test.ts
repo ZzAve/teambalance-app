@@ -27,6 +27,16 @@ describe('pwaManifest', () => {
     })
   })
 
+  // One Dutch manifest (#464): the install dialog is read once, before any user language is known.
+  it('speaks Dutch, description and screenshot labels included', () => {
+    expect(pwaManifest.lang).toBe('nl')
+    expect(pwaManifest.description).toBe('Aanwezigheid bij events en een gedeelde teampot voor sportteams.')
+    expect((pwaManifest.screenshots ?? []).map((shot) => shot.label)).toEqual([
+      'Komende events en wie er komen',
+      'Komende events en wie er komen',
+    ])
+  })
+
   it('paints the shell with the background design token', () => {
     const tokens = readFileSync(resolve(appRoot, '../design-tokens/tokens.css'), 'utf8')
     const background = tokens.match(/--color-background:\s*(#[0-9A-Fa-f]{6})/)?.[1]

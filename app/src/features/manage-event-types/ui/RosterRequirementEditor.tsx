@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import type { Position } from '@shared/api/positions'
 import type { RosterRequirement } from '@shared/api/event-types'
 import { Input } from '@shared/ui/input'
@@ -31,8 +32,9 @@ export function RosterRequirementEditor({
   onChange,
   idPrefix,
 }: RosterRequirementEditorProps) {
+  const { t } = useTranslation()
   const targetFor = (positionId: string) =>
-    value.positionTargets.find((t) => t.positionId === positionId)?.count
+    value.positionTargets.find((target) => target.positionId === positionId)?.count
 
   const setTotal = (raw: string) => {
     const n = Number.parseInt(raw, 10)
@@ -41,7 +43,7 @@ export function RosterRequirementEditor({
 
   const setPositionTarget = (positionId: string, raw: string) => {
     const n = Number.parseInt(raw, 10)
-    const others = value.positionTargets.filter((t) => t.positionId !== positionId)
+    const others = value.positionTargets.filter((target) => target.positionId !== positionId)
     onChange({
       ...value,
       positionTargets:
@@ -53,17 +55,17 @@ export function RosterRequirementEditor({
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <div className="text-small font-semibold">Track roster</div>
+          <div className="text-small font-semibold">{t('eventTypes.trackRoster')}</div>
           <div className="mt-0.5 text-caption text-muted-foreground">
             {value.trackRoster
-              ? 'On — the card shows who is covering which position'
-              : 'Off — no roster panel on the card'}
+              ? t('eventTypes.trackOn')
+              : t('eventTypes.trackOff')}
           </div>
         </div>
         <Switch
           checked={value.trackRoster}
           disabled={disabled}
-          aria-label="Track roster"
+          aria-label={t('eventTypes.trackRoster')}
           // Targets are kept when tracking goes off, so switching it back on restores the lineup
           // instead of handing back an empty form. The server keeps them for the same reason.
           onCheckedChange={(trackRoster) => onChange({ ...value, trackRoster })}
@@ -76,8 +78,8 @@ export function RosterRequirementEditor({
         <div className="flex flex-col gap-3 rounded-lg border border-border p-3">
           <div className="flex items-center justify-between gap-3">
             <label htmlFor={`${idPrefix}-total`} className="text-small">
-              People needed in total
-              <span className="ml-1 text-caption text-muted-foreground">(optional)</span>
+              {t('eventTypes.totalNeeded')}
+              <span className="ml-1 text-caption text-muted-foreground">{t('eventTypes.optional')}</span>
             </label>
             <Input
               id={`${idPrefix}-total`}
@@ -95,11 +97,11 @@ export function RosterRequirementEditor({
 
           {positions.length === 0 ? (
             <p className="text-small text-muted-foreground">
-              Add positions below to require a specific lineup.
+              {t('eventTypes.addPositionsHint')}
             </p>
           ) : (
             <div className="flex flex-col gap-2">
-              <SectionLabel as="p">Per position</SectionLabel>
+              <SectionLabel as="p">{t('eventTypes.perPosition')}</SectionLabel>
               {positions.map((position) => (
                 <div key={position.id} className="flex items-center justify-between gap-3">
                   <label htmlFor={`${idPrefix}-pos-${position.id}`} className="truncate text-small">

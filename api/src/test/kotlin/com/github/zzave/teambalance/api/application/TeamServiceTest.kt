@@ -7,6 +7,7 @@ import com.github.zzave.teambalance.api.domain.exception.NotPlatformAdminExcepti
 import com.github.zzave.teambalance.api.domain.exception.TeamSlugTakenException
 import com.github.zzave.teambalance.api.domain.model.DisplayName
 import com.github.zzave.teambalance.api.domain.model.Email
+import com.github.zzave.teambalance.api.domain.model.Language
 import com.github.zzave.teambalance.api.domain.model.Role
 import com.github.zzave.teambalance.api.domain.model.SchemaName
 import com.github.zzave.teambalance.api.domain.model.CreationCode
@@ -82,10 +83,12 @@ private class RecordingRegistrar(
 
 private class RecordingNotifier(private val throwing: Boolean = false) : TeamNotificationGateway {
     val created = mutableListOf<Triple<String, String, String>>()
+    val createdLanguages = mutableListOf<Language>()
     val audited = mutableListOf<Triple<String, String, String>>()
-    override fun teamCreated(founderEmail: String, teamName: String, teamSlug: String) {
+    override fun teamCreated(founderEmail: String, teamName: String, teamSlug: String, language: Language) {
         if (throwing) throw IllegalStateException("mail boom")
         created += Triple(founderEmail, teamName, teamSlug)
+        createdLanguages += language
     }
     override fun creationCodeConsumed(teamName: String, teamSlug: String, founderEmail: String) {
         if (throwing) throw IllegalStateException("mail boom")
@@ -215,6 +218,24 @@ class TeamServiceTest : FunSpec() {
 
             notifier.created shouldContainExactly listOf(Triple("founder@example.com", "Setpoint VT", "setpoint-vt"))
             notifier.audited shouldContainExactly listOf(Triple("Setpoint VT", "setpoint-vt", "founder@example.com"))
+        }
+
+        test("the team-created email uses the page language when the founder stored none, Dutch without either") {
+            val notifier = RecordingNotifier()
+            service(notifier = notifier).createTeam(founder, "Setpoint VT", "setpoint-vt", CreationCode("GOODCODE"), Language.EN)
+            service(notifier = notifier).createTeam(founder, "Tovo Heren 5", "tovo-heren-5", CreationCode("GOODCODE"))
+
+            notifier.createdLanguages shouldContainExactly listOf(Language.EN, Language.NL)
+        }
+
+        test("the founder's stored language wins over the page language") {
+            val notifier = RecordingNotifier()
+            val (directory, _, service) = fixture(notifier = notifier)
+            directory.userRepository(founderUser).saveLanguage(founder, Language.NL)
+
+            service.createTeam(founder, "Setpoint VT", "setpoint-vt", CreationCode("GOODCODE"), Language.EN)
+
+            notifier.createdLanguages shouldContainExactly listOf(Language.NL)
         }
 
         test("a failing notifier never fails a committed creation (fire-and-forget)") {

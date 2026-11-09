@@ -142,6 +142,10 @@ teambalance:
     magic-link-verify:
       capacity: 10
       refill-period: 1m
+    # POST /webauthn/authenticate/options — every passkey sign-in starts here (ADR-0045), keyed per IP.
+    passkey-login:
+      capacity: 10
+      refill-period: 1m
     invitation-accept:
       capacity: 10
       refill-period: 1m

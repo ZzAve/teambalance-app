@@ -1,6 +1,7 @@
 package com.github.zzave.teambalance.api.infrastructure.email
 
 import com.github.zzave.teambalance.api.domain.model.Email
+import com.github.zzave.teambalance.api.domain.model.Language
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
 import org.hamcrest.Matchers.containsString
@@ -45,7 +46,7 @@ class ScalewayTemEmailAdapterTest : FunSpec() {
                 .andExpect(jsonPath("$.html").value(containsString("/auth/verify?token=tok-123")))
                 .andRespond(withSuccess("""{"message_id":"m-1"}""", MediaType.APPLICATION_JSON))
 
-            sender(builder).sendMagicLink(Email("speler@example.com"), "tok-123")
+            sender(builder).sendMagicLink(Email("speler@example.com"), "tok-123", Language.NL)
 
             server.verify()
         }
@@ -57,7 +58,7 @@ class ScalewayTemEmailAdapterTest : FunSpec() {
                 .andRespond(withServerError())
 
             shouldThrow<RestClientResponseException> {
-                sender(builder).sendMagicLink(Email("speler@example.com"), "tok-123")
+                sender(builder).sendMagicLink(Email("speler@example.com"), "tok-123", Language.NL)
             }
 
             server.verify()
@@ -67,7 +68,7 @@ class ScalewayTemEmailAdapterTest : FunSpec() {
             val builder = RestClient.builder()
             val server = MockRestServiceServer.bindTo(builder).build()
 
-            sender(builder, send = false).sendMagicLink(Email("speler@example.com"), "tok-123")
+            sender(builder, send = false).sendMagicLink(Email("speler@example.com"), "tok-123", Language.NL)
 
             server.verify()
         }

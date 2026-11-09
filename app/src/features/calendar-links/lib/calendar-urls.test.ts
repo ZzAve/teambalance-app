@@ -43,7 +43,7 @@ describe('linkDisplayLabel', () => {
     expect(linkDisplayLabel(link({ label: 'My phone' }))).toBe('My phone')
   })
 
-  it('falls back to the creation date, formatted nl-NL', () => {
-    expect(linkDisplayLabel(link())).toBe('Link from 7 okt 2026')
+  it('falls back to the creation date, formatted for the language', () => {
+    expect(linkDisplayLabel(link())).toBe('Link from 7 Oct 2026')
   })
 })

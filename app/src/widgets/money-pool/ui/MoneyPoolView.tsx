@@ -1,4 +1,6 @@
 import type { ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
+import { i18n } from '@shared/i18n/i18n'
 import type { MoneyPoolState, Payment } from '@shared/api/money-pool'
 import { ConnectedMoneyPool } from './ConnectedMoneyPool'
 import { MoneyPoolNotice } from './MoneyPoolNotice'
@@ -20,17 +22,24 @@ interface MoneyPoolViewProps {
   canTopUp?: boolean
   /** The top-up button, supplied by the MoneyPool container so this View stays prop-only. */
   topUp?: ReactNode
+  /** The receipt control on each expense, supplied by the container for the same reason. */
+  receipt?: (expense: Payment) => ReactNode
   /** Connecting Bunq is available here: an admin of a not-connected or rejected team is pointed to the team settings. */
   connectAvailable?: boolean
   /** Bunq is connected but no account is picked: an admin is pointed to the team settings to pick one. */
   accountPending?: boolean
+  /** The payments run from the season start (true) or the last 90 days (false); undefined until the season is known. */
+  seasonSet?: boolean
 }
 
-const loadError = (
-  <p role="alert" className="rounded-lg bg-card p-4 text-small text-red-ink">
-    We couldn't load the money pool. Try again in a moment.
-  </p>
-)
+function LoadError() {
+  const { t } = useTranslation()
+  return (
+    <p role="alert" className="rounded-lg bg-card p-4 text-small text-red-ink">
+      {t('money.loadFailed')}
+    </p>
+  )
+}
 
 /**
  * The money pool for the current team, one picture per state (ADR-0042). Prop-only (ADR-0017): the
@@ -47,27 +56,32 @@ export function MoneyPoolView({
   beerCount,
   canTopUp,
   topUp,
+  receipt,
   connectAvailable,
   accountPending,
+  seasonSet,
 }: MoneyPoolViewProps) {
-  if (isLoading) return <p role="status" className="text-small text-muted-foreground">Loading…</p>
-  if (isError || state === undefined) return loadError
+  const { t } = useTranslation()
+  if (isLoading) return <p role="status" className="text-small text-muted-foreground">{t('account.loading')}</p>
+  if (isError || state === undefined) return <LoadError />
   if (state === 'Off') {
     // The route redirects an Off team away, but a stale session can still land here.
-    return <MoneyPoolNotice title="The money pool is switched off for this team" />
+    return <MoneyPoolNotice title={t('money.off')} />
   }
 
-  const linkHint = isAdmin && state === 'Connected' && <p className="text-small text-muted-foreground">{LINK_HINT}</p>
+  const linkHint = isAdmin && state === 'Connected' && <p className="text-small text-muted-foreground">{t('money.linkHint')}</p>
   const topUpEntry = canTopUp ? topUp : linkHint
 
   if (state === 'Connected') {
-    return balance === undefined ? loadError : (
+    return balance === undefined ? <LoadError /> : (
         <ConnectedMoneyPool
           balance={balance}
           payments={payments ?? []}
           beerPrice={beerPrice}
           beerCount={beerCount}
           topUp={topUpEntry}
+          receipt={receipt}
+          seasonSet={seasonSet}
         />
       )
   }
@@ -78,8 +92,8 @@ export function MoneyPoolView({
         <NotConnectedMoneyPool isAdmin={isAdmin} connectAvailable={connectAvailable} accountPending={accountPending} />
       ) : (
         <MoneyPoolNotice
-          title="The pool is unavailable right now"
-          body={state === 'Rejected' ? rejectedBody(isAdmin, connectAvailable) : "We can't reach the team's Bunq account. Try again later."}
+          title={t('money.unavailable')}
+          body={state === 'Rejected' ? rejectedBody(isAdmin, connectAvailable) : t('money.unreachable')}
         />
       )}
       {topUpEntry}
@@ -88,9 +102,6 @@ export function MoneyPoolView({
 }
 
 function rejectedBody(isAdmin: boolean, connectAvailable?: boolean) {
-  const lead = "Bunq no longer accepts the team's connection."
-  if (!isAdmin) return `${lead} An admin needs to reconnect it.`
-  return connectAvailable === false ? `${lead} Reconnect it.` : `${lead} Reconnect it in the team settings.`
+  if (!isAdmin) return i18n.t('money.rejected.member')
+  return connectAvailable === false ? i18n.t('money.rejected.reconnect') : i18n.t('money.rejected.reconnectInSettings')
 }
-
-const LINK_HINT = 'Add the team’s bunq.me link in the team settings to let members top up.'

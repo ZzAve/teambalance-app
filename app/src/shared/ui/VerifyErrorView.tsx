@@ -1,4 +1,5 @@
 import { Link } from '@tanstack/react-router'
+import { useTranslation } from 'react-i18next'
 import { Button } from '@shared/ui/button'
 
 interface VerifyErrorViewProps {
@@ -19,17 +20,18 @@ interface VerifyErrorViewProps {
  * only way out. Prop-only; the container reads the session and passes `onLogout`.
  */
 export function VerifyErrorView({ message, onLogout }: VerifyErrorViewProps) {
+  const { t } = useTranslation()
   return (
     <div className="mx-auto mt-16 max-w-sm text-center">
-      <h1 className="font-display text-title font-bold">Link expired</h1>
+      <h1 className="font-display text-title font-bold">{t('auth.verify.linkExpired')}</h1>
       <p className="mt-3 text-small text-muted-foreground">{message}</p>
       <div className="mt-6 flex items-center justify-center gap-4">
         <Link to="/login" className="text-small font-medium text-blue">
-          Back to login
+          {t('auth.verify.backToLogin')}
         </Link>
         {onLogout && (
           <Button variant="ghost" onClick={onLogout}>
-            Log out
+            {t('account.logout')}
           </Button>
         )}
       </div>

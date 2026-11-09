@@ -17,6 +17,9 @@ import com.github.zzave.teambalance.api.domain.model.MoneyPool
 import com.github.zzave.teambalance.api.domain.model.MoneyPoolSettings
 import com.github.zzave.teambalance.api.domain.model.Payment
 import com.github.zzave.teambalance.api.domain.model.PaymentDirection
+import com.github.zzave.teambalance.api.domain.model.PaymentId
+import com.github.zzave.teambalance.api.domain.model.Receipt
+import com.github.zzave.teambalance.api.domain.model.webpBytes
 import com.github.zzave.teambalance.api.domain.model.PaymentName
 import com.github.zzave.teambalance.api.domain.model.Role
 import com.github.zzave.teambalance.api.domain.model.Season
@@ -26,6 +29,7 @@ import com.github.zzave.teambalance.api.domain.port.BunqConnectionRepository
 import com.github.zzave.teambalance.api.domain.port.BunqGateway
 import com.github.zzave.teambalance.api.domain.port.MoneyPoolCacheGateway
 import com.github.zzave.teambalance.api.domain.port.MoneyPoolSettingsRepository
+import com.github.zzave.teambalance.api.domain.port.ReceiptRepository
 import com.github.zzave.teambalance.api.domain.port.SeasonRepository
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
@@ -43,11 +47,26 @@ private val ACCOUNT = BunqAccountId("account-1")
 private val TODAY = LocalDate.of(2026, 10, 11)
 private val GRANT_CIPHER = TokenCipher.fromBase64Key(Base64.getEncoder().encodeToString(ByteArray(32) { it.toByte() }), "test-key")
 private const val GRANT_TOKEN = "grant-token"
-private val PAYMENT = Payment(LocalDate.of(2026, 10, 1), PaymentName("Lisa"), Money(2_000), PaymentDirection.IN)
+private val PAYMENT = Payment(PaymentId("101"), LocalDate.of(2026, 10, 1), PaymentName("Lisa"), Money(2_000), PaymentDirection.IN)
+private val EXPENSE = Payment(PaymentId("102"), LocalDate.of(2026, 10, 2), PaymentName("Sporthal"), Money(4_500), PaymentDirection.OUT)
+
+internal class InMemoryReceiptRepository : ReceiptRepository {
+    val receipts = mutableMapOf<PaymentId, Receipt>()
+    override fun find(paymentId: PaymentId) = receipts[paymentId]
+    override fun findVersions(paymentIds: Collection<PaymentId>) =
+        receipts.filterKeys { it in paymentIds }.mapValues { it.value.version }
+    override fun save(paymentId: PaymentId, receipt: Receipt) {
+        receipts[paymentId] = receipt
+    }
+    override fun delete(paymentId: PaymentId) {
+        receipts.remove(paymentId)
+    }
+}
 
 private class RecordingBunqGateway(
     private val balanceFailure: Exception? = null,
     private val paymentsFailure: Exception? = null,
+    private val payments: List<Payment> = listOf(PAYMENT),
 ) : BunqGateway {
     var calls = 0
     val grantsUsed = mutableListOf<BunqGrant>()
@@ -73,7 +92,7 @@ private class RecordingBunqGateway(
         paymentsFailure?.let { throw it }
         requestedSince = since
         requestedLimit = limit
-        return listOf(PAYMENT)
+        return payments
     }
 }
 
@@ -154,6 +173,7 @@ class MoneyPoolServiceTest : FunSpec({
         settingsRepository: MoneyPoolSettingsRepository = InMemorySettingsRepository(settings),
         cache: MoneyPoolCacheGateway = PassThroughCache(),
         connections: BunqConnectionRepository? = null,
+        receipts: ReceiptRepository = InMemoryReceiptRepository(),
     ) = MoneyPoolService(
         settingsRepository = settingsRepository,
         connectionRepository = connections ?: object : BunqConnectionRepository {
@@ -180,6 +200,7 @@ class MoneyPoolServiceTest : FunSpec({
         clock = Clock.fixed(Instant.parse("2026-10-11T10:00:00Z"), ZoneOffset.UTC),
         authorizationService = AuthorizationService(directory.teamMemberRepository(), FakeActAsGateway()),
         cache = cache,
+        receiptRepository = receipts,
     )
 
     test("is Off when the team switched the money pool off") {
@@ -469,5 +490,14 @@ class MoneyPoolServiceTest : FunSpec({
             service(settingsRepository = repository).updateSettings(MEMBER, team, MoneyPoolSettings(false))
         }
         repository.settings shouldBe MoneyPoolSettings(true)
+    }
+
+    test("the pool shows the version of each expense's receipt, read after the cache") {
+        val receipts = InMemoryReceiptRepository()
+        val pool = service(gateway = RecordingBunqGateway(payments = listOf(PAYMENT, EXPENSE)), receipts = receipts)
+        receipts.save(EXPENSE.id, Receipt(webpBytes()))
+
+        (pool.getMoneyPool(team).pool as MoneyPool.Connected).receiptVersions shouldBe
+            mapOf(EXPENSE.id to Receipt(webpBytes()).version)
     }
 })

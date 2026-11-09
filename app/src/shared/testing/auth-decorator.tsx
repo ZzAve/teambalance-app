@@ -18,6 +18,7 @@ export function authenticatedUser(activeTeam: AuthenticatedUser['activeTeam']): 
     personalPhotoVersion: undefined,
     moneyPoolEnabled: activeTeam ? true : undefined,
     language: undefined,
+    passkeyCount: 1,
   }
 }
 

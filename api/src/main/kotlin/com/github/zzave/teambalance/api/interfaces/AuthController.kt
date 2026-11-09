@@ -43,7 +43,11 @@ class AuthController(
     override suspend fun requestMagicLink(request: RequestMagicLink.Request): RequestMagicLink.Response<*> {
         // 404 means the invite token named no live invitation, so nothing was sent — the same
         // undistinguished refusal accept gives, which never separates unknown from expired.
-        val sent = authService.requestMagicLink(request.body.email.consumeEmail(), request.body.inviteToken)
+        val sent = authService.requestMagicLink(
+            email = request.body.email.consumeEmail(),
+            inviteToken = request.body.inviteToken,
+            language = request.body.language?.consume(),
+        )
         return if (sent) RequestMagicLink.Response202 else RequestMagicLink.Response404
     }
 
@@ -117,6 +121,7 @@ class AuthController(
             personalPhotoVersion = photoService.personalPhotoVersion(user.id),
             moneyPoolEnabled = null,
             language = accountService.languageOf(user.id)?.produce(),
+            passkeyCount = accountService.passkeyCountOf(user.id).toLong(),
         )
     }
 }

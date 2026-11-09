@@ -1,4 +1,5 @@
 import type { SubstituteEntry } from '@shared/api/events'
+import { useTranslation } from 'react-i18next'
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@shared/ui/sheet'
 import { AttendanceToggle } from '@features/attendance-toggle/ui/AttendanceToggle'
 import type { SubstituteState } from './SubstitutesBlock'
@@ -25,6 +26,7 @@ export function SubstituteSheet({
   onClose: () => void
   pending?: boolean
 }) {
+  const { t } = useTranslation()
   return (
     <Sheet open={substitute !== null} onOpenChange={(open) => !open && onClose()}>
       <SheetContent>
@@ -33,8 +35,10 @@ export function SubstituteSheet({
             <SheetHeader>
               <SheetTitle>{substitute.name}</SheetTitle>
               <SheetDescription>
-                Substitute · {substitute.position?.label ?? 'Unassigned'}
-                {setBy && ` · set by ${setBy}`}
+                {t(setBy ? 'substitutes.sheet.descriptionSetBy' : 'substitutes.sheet.description', {
+                  position: substitute.position?.label ?? t('position.unassigned'),
+                  name: setBy,
+                })}
               </SheetDescription>
             </SheetHeader>
             <AttendanceToggle
@@ -48,7 +52,7 @@ export function SubstituteSheet({
               }}
             />
             <p className="mt-3 text-caption text-muted-foreground">
-              Maybe means asked and waiting for an answer. Can't keeps a record that they were asked and said no.
+              {t('substitutes.sheet.hint')}
             </p>
             <button
               type="button"
@@ -59,7 +63,7 @@ export function SubstituteSheet({
               }}
               className="mt-4 w-full rounded-md border-[1.5px] border-red/30 py-2.5 text-small font-semibold text-red-ink hover:bg-red/5 disabled:opacity-60"
             >
-              Take off this event
+              {t('substitutes.sheet.takeOff')}
             </button>
           </>
         )}

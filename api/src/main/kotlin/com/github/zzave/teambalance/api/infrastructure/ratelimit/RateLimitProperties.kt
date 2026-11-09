@@ -26,6 +26,12 @@ data class RateLimitProperties(
     val magicLinkRequest: Policy = Policy(capacity = 5, refillPeriod = Duration.ofMinutes(1)),
     /** `POST /api/auth/magic-link/verify` — keyed per client IP. */
     val magicLinkVerify: Policy = Policy(capacity = 10, refillPeriod = Duration.ofMinutes(1)),
+    /**
+     * `POST /webauthn/authenticate/options` — keyed per client IP. Every passkey sign-in starts here (and
+     * `/login/webauthn` runs before this filter), so this bounds sign-in attempts and the session rows
+     * the anonymous challenges create (ADR-0045).
+     */
+    val passkeyLogin: Policy = Policy(capacity = 10, refillPeriod = Duration.ofMinutes(1)),
     /** `POST /api/invitations/{token}/accept` — keyed per authenticated user, falling back to IP. */
     val invitationAccept: Policy = Policy(capacity = 10, refillPeriod = Duration.ofMinutes(1)),
     /** `GET /api/bunq/oauth/callback` — public, keyed per client IP. */

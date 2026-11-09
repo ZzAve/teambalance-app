@@ -24,10 +24,13 @@ class WebConfig(
     override fun addCorsMappings(registry: CorsRegistry) {
         if (allowedOrigins.isEmpty()) return
         // Scope to the SPA contract only — /internal/actuator/** is never called cross-origin.
-        registry.addMapping("/api/**")
-            .allowedOrigins(*allowedOrigins.toTypedArray())
-            .allowedMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
-            .allowedHeaders("*")
-            .allowCredentials(true)
+        // The passkey endpoints are Spring Security's, called cross-origin by the SPA too (ADR-0045).
+        listOf("/api/**", "/webauthn/**", "/login/webauthn").forEach {
+            registry.addMapping(it)
+                .allowedOrigins(*allowedOrigins.toTypedArray())
+                .allowedMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
+                .allowedHeaders("*")
+                .allowCredentials(true)
+        }
     }
 }

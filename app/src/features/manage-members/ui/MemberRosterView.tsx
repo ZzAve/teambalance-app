@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { useState } from 'react'
 import { Link } from '@tanstack/react-router'
 import type { Member } from '@shared/api/members'
@@ -71,15 +72,16 @@ export function MemberRosterView({
   onChangePosition,
   onRemove,
 }: MemberRosterViewProps) {
+  const { t } = useTranslation()
   const [confirmTarget, setConfirmTarget] = useState<Member | null>(null)
 
   return (
     <div>
-      <h2 className="font-display text-title font-bold">Members</h2>
+      <h2 className="font-display text-title font-bold">{t('members.heading')}</h2>
 
-      {isLoading && <p className="mt-4 text-small text-muted-foreground">Loading…</p>}
+      {isLoading && <p className="mt-4 text-small text-muted-foreground">{t('account.loading')}</p>}
       {isError && (
-        <p className="mt-4 text-small text-red-ink">Couldn't load members. Please try again.</p>
+        <p className="mt-4 text-small text-red-ink">{t('members.loadFailed')}</p>
       )}
 
       {!isLoading && !isError && (
@@ -97,8 +99,8 @@ export function MemberRosterView({
             // the invite link; a plain viewer just sees that the roster is empty.
             <p className="rounded-lg border border-dashed border-border px-3 py-6 text-center text-small text-muted-foreground">
               {canManage
-                ? 'No members yet. Share an invite link to bring people in.'
-                : 'No members yet.'}
+                ? t('members.emptyManage')
+                : t('members.empty')}
             </p>
           ) : !canManage ? (
             <MemberFaceGrid members={members} />
@@ -122,9 +124,9 @@ export function MemberRosterView({
 
           <ConfirmDialog
             open={confirmTarget !== null}
-            title="Remove member"
-            description={<>Remove {confirmTarget?.displayName} from the team? They will lose access until re-invited.</>}
-            confirmLabel="Remove"
+            title={t('members.removeTitle')}
+            description={t('members.removeDescription', { name: confirmTarget?.displayName })}
+            confirmLabel={t('account.remove')}
             onConfirm={() => {
               if (confirmTarget) onRemove(confirmTarget)
               setConfirmTarget(null)
@@ -187,12 +189,13 @@ function MemberRow({
   onChangePosition,
   onRequestRemove,
 }: MemberRowProps) {
+  const { t } = useTranslation()
   const [editingName, setEditingName] = useState(false)
   const [draftName, setDraftName] = useState(member.displayName)
   const isAdmin = member.role === 'ADMIN'
   // The last admin can't be demoted or removed — we hint via tooltip but keep the action enabled
   // so the backend stays the source of truth.
-  const lastAdminHint = lastAdmin ? 'This is the last admin — the team must keep at least one.' : undefined
+  const lastAdminHint = lastAdmin ? t('members.lastAdminHint') : undefined
 
   const startEdit = () => {
     setDraftName(member.displayName)
@@ -216,7 +219,7 @@ function MemberRow({
       <li className="flex items-center gap-2 p-3">
         <Avatar userId={member.userId} name={member.displayName} photoUrl={memberPhotoUrl(member)} />
         <Input
-          aria-label={`Display name for ${member.displayName}`}
+          aria-label={t('members.displayNameFor', { name: member.displayName })}
           value={draftName}
           autoFocus
           onChange={(e) => setDraftName(e.target.value)}
@@ -232,10 +235,10 @@ function MemberRow({
           className="min-w-0 flex-1"
         />
         <Button size="sm" disabled={isSaving} onClick={saveEdit}>
-          {isSaving ? 'Saving...' : 'Save'}
+          {isSaving ? t('profileForm.saving') : t('profileForm.save')}
         </Button>
         <Button size="sm" variant="outline" onClick={cancelEdit}>
-          Cancel
+          {t('common.cancel')}
         </Button>
       </li>
     )
@@ -252,14 +255,14 @@ function MemberRow({
       </span>
       {isAdmin && (
         <span className="shrink-0 rounded-full bg-blue/10 px-1.5 py-0.5 text-caption font-semibold text-blue">
-          Admin
+          {t('members.admin')}
         </span>
       )}
       {/* After the badge, so the pickers line up in one column whether or not a row is an admin. */}
       {positions.length > 0 ? (
         <div className="w-32 shrink-0">
           <PositionPicker
-            aria-label={`Position for ${member.displayName}`}
+            aria-label={t('members.positionFor', { name: member.displayName })}
             positions={positions}
             value={member.position?.id ?? null}
             includeUnassigned
@@ -268,14 +271,14 @@ function MemberRow({
           />
         </div>
       ) : (
-        <span className="shrink-0 text-small text-muted-foreground">{member.position?.label ?? 'Unassigned'}</span>
+        <span className="shrink-0 text-small text-muted-foreground">{member.position?.label ?? t('position.unassigned')}</span>
       )}
 
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <button
             type="button"
-            aria-label={`Actions for ${member.displayName}`}
+            aria-label={t('members.actionsFor', { name: member.displayName })}
             disabled={isSaving}
             className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-lg hover:bg-accent disabled:pointer-events-none disabled:opacity-50"
           >
@@ -284,10 +287,10 @@ function MemberRow({
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
           <DropdownMenuItem disabled={isSaving} onSelect={startEdit}>
-            Rename
+            {t('members.rename')}
           </DropdownMenuItem>
           <DropdownMenuItem title={lastAdminHint} onSelect={() => onToggleRole(member)}>
-            {isAdmin ? 'Make member' : 'Make admin'}
+            {isAdmin ? t('members.makeMember') : t('members.makeAdmin')}
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem
@@ -295,7 +298,7 @@ function MemberRow({
             title={lastAdminHint}
             onSelect={() => onRequestRemove(member)}
           >
-            Remove…
+            {t('members.removeMenu')}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

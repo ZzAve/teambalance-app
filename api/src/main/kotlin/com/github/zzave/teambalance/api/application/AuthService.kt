@@ -2,6 +2,7 @@ package com.github.zzave.teambalance.api.application
 
 import com.github.zzave.teambalance.api.domain.model.DisplayName
 import com.github.zzave.teambalance.api.domain.model.Email
+import com.github.zzave.teambalance.api.domain.model.Language
 import com.github.zzave.teambalance.api.domain.model.MagicLinkToken
 import com.github.zzave.teambalance.api.domain.model.Role
 import com.github.zzave.teambalance.api.domain.model.TeamId
@@ -61,8 +62,11 @@ class AuthService(
      * An Invite Link is reusable and lives until an admin rotates it, while this magic link is
      * single-use and expires in [TOKEN_TTL], so writing the token into the email would have left a
      * long-lived join credential sitting in every joiner's mailbox.
+     *
+     * [language] is the language of the page that asked; the email uses it only when the recipient
+     * has stored none (ADR-0043 §4).
      */
-    fun requestMagicLink(email: Email, inviteToken: String? = null): Boolean {
+    fun requestMagicLink(email: Email, inviteToken: String? = null, language: Language? = null): Boolean {
         val invitationId = if (inviteToken == null) {
             null
         } else {
@@ -82,7 +86,8 @@ class AuthService(
                 invitationId = invitationId,
             ),
         )
-        emailGateway.sendMagicLink(email, token)
+        val stored = userRepository.findByEmail(email)?.let { userRepository.findLanguage(it.id) }
+        emailGateway.sendMagicLink(email, token, emailLanguage(stored, language))
         return true
     }
 

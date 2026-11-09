@@ -1,4 +1,5 @@
 import { useMoneyPoolSettings, useSetMoneyPoolSettings } from '@shared/api/money-pool'
+import { useTranslation } from 'react-i18next'
 import { MoneySettingsView } from './MoneySettingsView'
 
 /**
@@ -9,6 +10,7 @@ import { MoneySettingsView } from './MoneySettingsView'
 export function MoneySettings() {
   const { data: settings, isLoading, error } = useMoneyPoolSettings()
   const save = useSetMoneyPoolSettings()
+  const { t } = useTranslation()
 
   return (
     <MoneySettingsView
@@ -17,7 +19,7 @@ export function MoneySettings() {
       isError={!!error}
       isSaving={save.isPending}
       saved={save.isSuccess}
-      error={save.error ? 'Could not save the money pool settings. Please try again.' : null}
+      error={save.error ? t('moneySettings.saveFailed') : null}
       onSave={(next) => save.mutate(next)}
     />
   )

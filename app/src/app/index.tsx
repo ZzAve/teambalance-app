@@ -32,6 +32,10 @@ startLanguage()
 // (~12s after scale-to-zero) reads as progress instead of a hang — warm loads only ever see the mark.
 const router = createRouter({
   routeTree,
+  // Runs the page-slide CSS in global.css through document.startViewTransition on every navigation.
+  defaultViewTransition: true,
+  // Loads a route's code chunk on hover/touchstart, so the tap that follows renders without a wait.
+  defaultPreload: 'intent',
   defaultPendingComponent: WakingSplash,
   // A route that still throws after the reload guard (e.g. the fresh shell also 404s a chunk — a
   // real outage, not a stale-chunk race) renders the retry fallback instead of nothing. Retry does

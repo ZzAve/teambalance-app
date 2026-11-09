@@ -35,7 +35,7 @@ const SAMPLE_EVENTS = [
   { type: 'Training', title: 'Training', start: inDays(2, 20), hours: 2, location: 'Sporthal De Vliet' },
   { type: 'Match', title: 'Setpoint VT — VC Zaanstad D2', start: inDays(5, 19), hours: 2, location: 'Sporthal De Vliet' },
   { type: 'Training', title: 'Training', start: inDays(9, 20), hours: 2, location: 'Sporthal De Vliet' },
-  { type: 'Other', title: 'Team dinner', start: inDays(12, 18), hours: 3, location: 'Café Balans' },
+  { type: 'Other', title: 'Teametentje', start: inDays(12, 18), hours: 3, location: 'Café Balans' },
 ]
 // One answer per member per event, spread so the overview shows every attendance colour.
 const RESPONSES = ['ATTENDING', 'ATTENDING', 'MAYBE', 'ATTENDING', 'ABSENT', 'ATTENDING']
@@ -94,7 +94,8 @@ async function respond(browser, email, events, state) {
 }
 
 async function capture(browser, name, options) {
-  const context = await browser.newContext({ ...options, colorScheme: 'light' })
+  // The demo users store no language, so the browser locale decides: Dutch, like the manifest (#464).
+  const context = await browser.newContext({ ...options, colorScheme: 'light', locale: 'nl-NL' })
   await signIn(context.request, ADMIN)
   const page = await context.newPage()
   await page.goto(`${APP_URL}/`)

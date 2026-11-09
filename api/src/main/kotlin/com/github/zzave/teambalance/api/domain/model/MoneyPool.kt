@@ -10,5 +10,7 @@ sealed interface MoneyPool {
         val payments: List<Payment>,
         val beerPrice: BeerPrice? = null,
         val beerCount: BeerCount? = null,
+        /** The version of each expense's [Receipt], for the expenses that have one. */
+        val receiptVersions: Map<PaymentId, String> = emptyMap(),
     ) : MoneyPool
 }

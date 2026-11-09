@@ -3,7 +3,10 @@ import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useQueryClient } from '@tanstack/react-query'
 import { useVerifyMagicLink } from '@shared/api/auth'
 import { clearSession, hasClearableSession } from '@shared/api/clear-session'
+import { browserPreferenceStorage } from '@shared/preferences/preferences'
+import { writeLastSignInMethod } from '@shared/api/last-sign-in-method'
 import { VerifyErrorView } from '@shared/ui/VerifyErrorView'
+import { useTranslation } from 'react-i18next'
 
 export const Route = createFileRoute('/auth/verify')({
   component: VerifyPage,
@@ -17,6 +20,7 @@ function VerifyPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const verifyMagicLink = useVerifyMagicLink()
+  const { t } = useTranslation()
   const [error, setError] = useState<string | null>(null)
   const attempted = useRef(false)
 
@@ -30,6 +34,7 @@ function VerifyPage() {
         // The server already joined the team and rebuilt the payload around it, so this user is the
         // post-join one — nothing here has to accept anything to catch up (#342).
         queryClient.setQueryData(['auth', 'me'], session.user)
+        writeLastSignInMethod(browserPreferenceStorage(), 'email')
         // Only the Team's own settings are missing from it (the sign-in response cannot read them
         // yet), so ask /me once more now that the session exists. Not awaited: an unknown flag counts
         // as on, and sign-in should not wait for it.
@@ -45,14 +50,14 @@ function VerifyPage() {
 
         navigate({ to: '/', replace: true })
       })
-      .catch(() => setError('This link has expired or already been used. Request a new one.'))
+      .catch(() => setError(t('auth.verify.expired')))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token])
 
   if (!token || error) {
     return (
       <VerifyErrorView
-        message={error ?? 'This link is missing a token. Request a new one.'}
+        message={error ?? t('auth.verify.missingToken')}
         // Escape hatch (ADR-0027 §3): show a client-only Log out whenever a session exists — or might.
         // Landing here with a stale session and a spent or missing token is the case: the error view
         // is outside the app shell, so without this there is no in-app way out.
@@ -63,7 +68,7 @@ function VerifyPage() {
 
   return (
     <div className="mx-auto mt-16 max-w-sm text-center">
-      <p className="text-small text-muted-foreground">Signing you in...</p>
+      <p className="text-small text-muted-foreground">{t('auth.verify.signingIn')}</p>
     </div>
   )
 }

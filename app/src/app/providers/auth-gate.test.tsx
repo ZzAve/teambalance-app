@@ -33,6 +33,7 @@ const USER: AuthenticatedUser = {
   personalPhotoVersion: undefined,
   moneyPoolEnabled: undefined,
   language: undefined,
+  passkeyCount: 0,
 }
 
 let meStatus = 401
@@ -92,7 +93,7 @@ describe('auth gate', () => {
     const router = renderAppAt('/')
 
     await waitFor(() => expect(router.state.location.pathname).toBe('/login'), { timeout: 5000 })
-    await waitFor(() => expect(screen.getByText(/no password/i)).toBeInTheDocument(), { timeout: 5000 })
+    await waitFor(() => expect(screen.getByText(/create an account/i)).toBeInTheDocument(), { timeout: 5000 })
     // Gated: the events route never mounted, so its protected data fetch never fired.
     expect(eventsFetched).toBe(false)
     expect(screen.queryByRole('heading', { name: 'Events' })).not.toBeInTheDocument()

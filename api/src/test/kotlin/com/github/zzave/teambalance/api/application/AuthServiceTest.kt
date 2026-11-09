@@ -4,6 +4,7 @@ import com.github.zzave.teambalance.api.domain.model.ActAs
 import com.github.zzave.teambalance.api.domain.model.DisplayName
 import com.github.zzave.teambalance.api.domain.model.Email
 import com.github.zzave.teambalance.api.domain.model.Invitation
+import com.github.zzave.teambalance.api.domain.model.Language
 import com.github.zzave.teambalance.api.domain.model.MagicLinkToken
 import com.github.zzave.teambalance.api.domain.model.PositionId
 import com.github.zzave.teambalance.api.domain.model.Role
@@ -76,7 +77,7 @@ private class FakeEmailGateway : EmailGateway {
     val sentTokens = mutableListOf<String>()
     val lastToken: String? get() = sentTokens.lastOrNull()
 
-    override fun sendMagicLink(email: Email, token: String) {
+    override fun sendMagicLink(email: Email, token: String, language: Language) {
         sentTokens += token
     }
 }

@@ -3,7 +3,10 @@ package com.github.zzave.teambalance.api.interfaces
 import com.github.zzave.teambalance.api.TeamBalanceIT
 import com.github.zzave.teambalance.api.application.TokenCipher
 import com.github.zzave.teambalance.api.application.TokenCipher.Purpose
+import com.github.zzave.teambalance.api.domain.model.Receipt
 import com.github.zzave.teambalance.api.domain.model.TeamId
+import com.github.zzave.teambalance.api.domain.model.jpegBytes
+import com.github.zzave.teambalance.api.domain.model.webpBytes
 import com.github.zzave.teambalance.api.domain.port.MoneyPoolCacheGateway
 import com.github.zzave.teambalance.api.infrastructure.config.BunqGrantCipherConfiguration
 import com.github.zzave.teambalance.api.infrastructure.identity.loginAs
@@ -14,6 +17,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
 import org.springframework.jdbc.core.JdbcTemplate
+import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.ResultActions
@@ -32,6 +36,10 @@ import java.util.UUID
 private const val MEMBER_USER_ID = "b0000000-0000-0000-0000-0000000000b9"
 private const val ADMIN_USER_ID = "b0000000-0000-0000-0000-0000000000b8"
 private const val TEAM_ID = "a0000000-0000-0000-0000-000000000001"
+
+// Ids of the fake Bunq adapter's Teamkas payments: Lisa de Vries pays in, Sporthal De Kuil is an expense.
+private const val LISA_PAYMENT_ID = "1005"
+private const val SPORTHAL_PAYMENT_ID = "1006"
 
 /**
  * Covers the money pool read path (ADR-0042) against the fake Bunq gateway. All tests share the
@@ -440,6 +448,55 @@ class MoneyPoolControllerIT : TeamBalanceIT() {
             mockMvc.perform(MockMvcRequestBuilders.get("/api/team/money-pool"))
                 .andExpect(MockMvcResultMatchers.status().isUnauthorized)
         }
+
+        test("a member attaches a receipt to an expense; the pool shows its version and anyone in the team can view it") {
+            seedTeamAndMember()
+            connectBunq()
+            val bytes = webpBytes(64)
+
+            sendReceipt(MockMvcRequestBuilders.put(receiptUrl(SPORTHAL_PAYMENT_ID)), MEMBER_USER_ID, bytes)
+                .andExpect(MockMvcResultMatchers.status().isNoContent)
+
+            getMoneyPool()
+                .andExpect(MockMvcResultMatchers.jsonPath("$.payments[1].id").value(SPORTHAL_PAYMENT_ID))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.payments[1].receiptVersion").value(Receipt(bytes).version))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.payments[0].receiptVersion").doesNotExist())
+            val response = sendReceipt(MockMvcRequestBuilders.get(receiptUrl(SPORTHAL_PAYMENT_ID)), ADMIN_USER_ID)
+                .andExpect(MockMvcResultMatchers.status().isOk)
+                .andExpect(MockMvcResultMatchers.header().string(HttpHeaders.CONTENT_TYPE, "image/webp"))
+                .andExpect(MockMvcResultMatchers.header().string(HttpHeaders.CACHE_CONTROL, "private, max-age=31536000, immutable"))
+                .andReturn().response
+            response.contentAsByteArray.toList() shouldBe bytes.toList()
+
+            sendReceipt(MockMvcRequestBuilders.delete(receiptUrl(SPORTHAL_PAYMENT_ID)), ADMIN_USER_ID)
+                .andExpect(MockMvcResultMatchers.status().isNoContent)
+            sendReceipt(MockMvcRequestBuilders.get(receiptUrl(SPORTHAL_PAYMENT_ID)), MEMBER_USER_ID)
+                .andExpect(MockMvcResultMatchers.status().isNotFound)
+        }
+
+        test("a receipt is refused for an incoming payment, an unknown payment and a file that is not WebP or JPEG") {
+            seedTeamAndMember()
+            connectBunq()
+
+            sendReceipt(MockMvcRequestBuilders.put(receiptUrl(LISA_PAYMENT_ID)), MEMBER_USER_ID, webpBytes())
+                .andExpect(MockMvcResultMatchers.status().isNotFound)
+            sendReceipt(MockMvcRequestBuilders.put(receiptUrl("does-not-exist")), MEMBER_USER_ID, webpBytes())
+                .andExpect(MockMvcResultMatchers.status().isNotFound)
+            sendReceipt(MockMvcRequestBuilders.put(receiptUrl(SPORTHAL_PAYMENT_ID)), MEMBER_USER_ID, ByteArray(32))
+                .andExpect(MockMvcResultMatchers.status().isBadRequest)
+                .andExpect(MockMvcResultMatchers.jsonPath("$.code").value("INVALID_RECEIPT"))
+            sendReceipt(MockMvcRequestBuilders.put(receiptUrl(SPORTHAL_PAYMENT_ID)), MEMBER_USER_ID, jpegBytes(Receipt.MAX_BYTES + 1))
+                .andExpect(MockMvcResultMatchers.status().isBadRequest)
+                .andExpect(MockMvcResultMatchers.jsonPath("$.code").value("RECEIPT_TOO_LARGE"))
+        }
+    }
+
+    private fun receiptUrl(paymentId: String) = "/api/team/money-pool/payments/$paymentId/receipt"
+
+    private fun sendReceipt(builder: MockHttpServletRequestBuilder, userId: String, body: ByteArray? = null): ResultActions {
+        builder.with(loginAs(userId, tenant = "public"))
+        if (body != null) builder.content(body).contentType("image/webp")
+        return mockMvc.perform(builder)
     }
 
     private fun getMoneyPool(): ResultActions =
@@ -511,6 +568,7 @@ class MoneyPoolControllerIT : TeamBalanceIT() {
         bunqGateway.rejecting = false
         forgetCachedPool()
         jdbcTemplate.update("DELETE FROM public.bunq_connection")
+        jdbcTemplate.update("DELETE FROM public.payment_receipts")
         jdbcTemplate.update(
             "UPDATE public.money_pool_settings SET enabled = true, beer_price_cents = NULL, bunq_me_link = NULL WHERE id = 1",
         )

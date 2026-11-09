@@ -9,6 +9,7 @@ import com.github.zzave.teambalance.api.domain.model.BunqGrant
 import com.github.zzave.teambalance.api.domain.model.Money
 import com.github.zzave.teambalance.api.domain.model.Payment
 import com.github.zzave.teambalance.api.domain.model.PaymentDirection
+import com.github.zzave.teambalance.api.domain.model.PaymentId
 import com.github.zzave.teambalance.api.domain.model.PaymentName
 import com.github.zzave.teambalance.api.domain.port.BunqGateway
 import org.springframework.beans.factory.annotation.Value
@@ -81,8 +82,14 @@ class FakeBunqGatewayAdapter(
             payments.map { it.on(today) }.filter { !it.date.isBefore(since) }.take(limit)
         }
 
-    private class CannedPayment(val daysAgo: Long, val name: String, val cents: Long, val direction: PaymentDirection) {
-        fun on(today: LocalDate) = Payment(today.minusDays(daysAgo), PaymentName(name), Money(cents), direction)
+    private class CannedPayment(
+        val id: String,
+        val daysAgo: Long,
+        val name: String,
+        val cents: Long,
+        val direction: PaymentDirection,
+    ) {
+        fun on(today: LocalDate) = Payment(PaymentId(id), today.minusDays(daysAgo), PaymentName(name), Money(cents), direction)
     }
 
     companion object {
@@ -101,21 +108,21 @@ class FakeBunqGatewayAdapter(
 
         // Any account but Privé reads as Teamkas, so tests and demos that name an arbitrary account id keep working.
         private val PRIVE_PAYMENTS = listOf(
-            CannedPayment(2, "Albert Heijn", 2_350, PaymentDirection.OUT),
-            CannedPayment(9, "Marieke Dekker", 1_500, PaymentDirection.IN),
-            CannedPayment(16, "Zwembad De Dolfijn", 1_200, PaymentDirection.OUT),
-            CannedPayment(40, "Koen Willems", 3_000, PaymentDirection.IN),
+            CannedPayment("1001", 2, "Albert Heijn", 2_350, PaymentDirection.OUT),
+            CannedPayment("1002", 9, "Marieke Dekker", 1_500, PaymentDirection.IN),
+            CannedPayment("1003", 16, "Zwembad De Dolfijn", 1_200, PaymentDirection.OUT),
+            CannedPayment("1004", 40, "Koen Willems", 3_000, PaymentDirection.IN),
         )
 
         private val TEAMKAS_PAYMENTS = listOf(
-            CannedPayment(5, "Lisa de Vries", 2_000, PaymentDirection.IN),
-            CannedPayment(7, "Sporthal De Kuil", 4_500, PaymentDirection.OUT),
-            CannedPayment(12, "Tom Bakker", 1_000, PaymentDirection.IN),
-            CannedPayment(19, "Jan Jansen", 5_000, PaymentDirection.IN),
-            CannedPayment(26, "Drankenhandel Smit", 3_250, PaymentDirection.OUT),
-            CannedPayment(33, "Sanne Visser", 2_000, PaymentDirection.IN),
-            CannedPayment(47, "Nevobo", 6_000, PaymentDirection.OUT),
-            CannedPayment(61, "Mark Smits", 1_000, PaymentDirection.IN),
+            CannedPayment("1005", 5, "Lisa de Vries", 2_000, PaymentDirection.IN),
+            CannedPayment("1006", 7, "Sporthal De Kuil", 4_500, PaymentDirection.OUT),
+            CannedPayment("1007", 12, "Tom Bakker", 1_000, PaymentDirection.IN),
+            CannedPayment("1008", 19, "Jan Jansen", 5_000, PaymentDirection.IN),
+            CannedPayment("1009", 26, "Drankenhandel Smit", 3_250, PaymentDirection.OUT),
+            CannedPayment("1010", 33, "Sanne Visser", 2_000, PaymentDirection.IN),
+            CannedPayment("1011", 47, "Nevobo", 6_000, PaymentDirection.OUT),
+            CannedPayment("1012", 61, "Mark Smits", 1_000, PaymentDirection.IN),
         )
     }
 }

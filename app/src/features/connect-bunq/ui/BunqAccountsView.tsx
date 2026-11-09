@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import type { BunqAccount } from '@shared/api/bunq-connection'
 import { Button } from '@shared/ui/button'
 import { ConfirmDialog } from '@shared/ui/ConfirmDialog'
@@ -54,6 +55,7 @@ export function BunqAccountsView({
   onPick,
   onDisconnect,
 }: BunqAccountsViewProps) {
+  const { t } = useTranslation()
   const [confirming, setConfirming] = useState(false)
   const disconnectButton = useRef<HTMLButtonElement>(null)
   // Focus goes back to Disconnect only when the dialog was dismissed. After a confirm the button is disabled
@@ -80,18 +82,17 @@ export function BunqAccountsView({
     <div className="flex flex-col gap-4">
       {isLoading && (
         <p role="status" className="text-small text-muted-foreground">
-          Loading the bunq accounts…
+          {t('bunq.accountsLoading')}
         </p>
       )}
       {rejected ? (
         <p ref={rejectedRef} role="alert" tabIndex={-1} className={`${ERROR_CLASS} outline-none`}>
-          TeamBalance can’t use its stored bunq access any more. Use “Connect a different bunq login” below, or
-          disconnect.
+          {t('bunq.rejected')}
         </p>
       ) : (
         isError && (
           <p role="alert" className={ERROR_CLASS}>
-            Couldn’t load the bunq accounts. Please try again.
+            {t('bunq.accountsLoadFailed')}
           </p>
         )
       )}
@@ -115,14 +116,14 @@ export function BunqAccountsView({
 
       <div>
         <Button ref={disconnectButton} variant="outline" size="sm" disabled={isSaving} onClick={() => setConfirming(true)}>
-          Disconnect
+          {t('bunq.disconnect')}
         </Button>
       </div>
       <ConfirmDialog
         open={confirming}
-        title="Disconnect Bunq"
-        description="This deletes the access TeamBalance stored. To withdraw the grant at bunq too, remove TeamBalance under connected apps in the bunq app."
-        confirmLabel="Disconnect"
+        title={t('bunq.disconnectTitle')}
+        description={t('bunq.disconnectDescription')}
+        confirmLabel={t('bunq.disconnect')}
         onConfirm={() => {
           dismissed.current = false
           acted.current = true
@@ -147,6 +148,7 @@ type AccountPickerProps = Pick<BunqAccountsViewProps, 'selectedAccountId' | 'isS
 }
 
 function AccountPicker({ accounts, selectedAccountId, isSaving, saved, onPick }: AccountPickerProps) {
+  const { t } = useTranslation()
   const groupName = useId()
   const [choice, setChoice] = useState(selectedAccountId)
   const savedRef = useRef<HTMLParagraphElement>(null)
@@ -160,12 +162,12 @@ function AccountPicker({ accounts, selectedAccountId, isSaving, saved, onPick }:
   const picked = accounts.find((account) => account.id === selectedAccountId)
 
   if (accounts.length === 0) {
-    return <p className="text-small text-muted-foreground">This bunq login has no accounts to show.</p>
+    return <p className="text-small text-muted-foreground">{t('bunq.noAccounts')}</p>
   }
 
   return (
     <fieldset className="flex min-w-0 flex-col gap-1" disabled={isSaving}>
-      <legend className="text-small font-semibold">Choose the account the Money page shows</legend>
+      <legend className="text-small font-semibold">{t('bunq.chooseAccount')}</legend>
       {accounts.map((account) => (
         <label key={account.id} className="flex min-h-11 items-center gap-3 py-2 text-small">
           <input
@@ -185,12 +187,12 @@ function AccountPicker({ accounts, selectedAccountId, isSaving, saved, onPick }:
           disabled={isSaving || choice === undefined || choice === selectedAccountId}
           onClick={() => choice && onPick(choice)}
         >
-          {isSaving ? 'Saving…' : 'Use this account'}
+          {isSaving ? t('moneySettings.saving') : t('bunq.useAccount')}
         </Button>
       </div>
       {/* Mounted before it has text, so the announcement is read when it appears. */}
       <p ref={savedRef} role="status" tabIndex={-1} className="mt-3 break-words text-small outline-none empty:sr-only">
-        {saved && picked ? `The Money page now shows ${picked.name}.` : ''}
+        {saved && picked ? t('bunq.accountPicked', { name: picked.name }) : ''}
       </p>
     </fieldset>
   )

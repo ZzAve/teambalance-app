@@ -11,6 +11,7 @@ import com.github.zzave.teambalance.api.domain.port.ActAsRepository
 import com.github.zzave.teambalance.api.domain.port.AuthSessionGateway
 import com.github.zzave.teambalance.api.domain.port.EmailGateway
 import com.github.zzave.teambalance.api.domain.port.MagicLinkTokenRepository
+import com.github.zzave.teambalance.api.domain.port.PasskeyRepository
 import com.github.zzave.teambalance.api.domain.port.PlatformAdminGateway
 import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
 import com.github.zzave.teambalance.api.domain.port.TeamRepository
@@ -97,8 +98,11 @@ class AuthCompositionRoot {
     )
 
     @Bean
-    fun accountService(userRepository: UserRepository, authSessionGateway: AuthSessionGateway) =
-        AccountService(userRepository, authSessionGateway)
+    fun accountService(
+        userRepository: UserRepository,
+        authSessionGateway: AuthSessionGateway,
+        passkeyRepository: PasskeyRepository,
+    ) = AccountService(userRepository, authSessionGateway, passkeyRepository)
 
     @Bean
     fun authorizationService(teamMemberRepository: TeamMemberRepository, actAsGateway: ActAsGateway) =

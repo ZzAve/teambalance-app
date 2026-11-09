@@ -1,6 +1,7 @@
 import { ALL_ATTENDANCE_STATES } from '@entities/event/lib/attendance-states'
 import { ATTENDANCE_WORDS } from '@entities/event/lib/attendance-words'
 import type { EventTypeItem } from '@shared/api/event-types'
+import { i18n } from '@shared/i18n/i18n'
 import type { LinkOptions } from './preset'
 
 /**
@@ -13,11 +14,13 @@ export function optionsSummary(options: LinkOptions, teamName: string, eventType
   const parts = [
     options.eventTypeIds && typesPart(options.eventTypeIds, eventTypes),
     !allStates &&
-      `${ALL_ATTENDANCE_STATES.filter((state) => options.attendanceStates.includes(state))
-        .map((state) => ATTENDANCE_WORDS[state].word)
-        .join(', ')} only`,
-    !options.showAttendancePrefix && 'no ✓/✗ marks',
-    options.calendarNameSuffix && `calendar: ${teamName} · ${options.calendarNameSuffix}`,
+      i18n.t('calendarLinks.summary.statesOnly', {
+        states: ALL_ATTENDANCE_STATES.filter((state) => options.attendanceStates.includes(state))
+          .map((state) => ATTENDANCE_WORDS[state].word)
+          .join(', '),
+      }),
+    !options.showAttendancePrefix && i18n.t('calendarLinks.summary.noMarks'),
+    options.calendarNameSuffix && i18n.t('calendarLinks.summary.calendar', { name: `${teamName} · ${options.calendarNameSuffix}` }),
   ].filter(Boolean)
   return parts.length > 0 ? parts.join(' · ') : undefined
 }
@@ -29,9 +32,9 @@ export function optionsSummary(options: LinkOptions, teamName: string, eventType
 function typesPart(ids: string[], eventTypes: EventTypeItem[]): string {
   const named = eventTypes
     .filter((type) => ids.includes(type.id))
-    .map((type) => (type.archived ? `${type.name} (archived)` : type.name))
+    .map((type) => (type.archived ? i18n.t('calendarLinks.summary.archived', { name: type.name }) : type.name))
   const unknown = ids.length - named.length
   if (unknown === 0) return named.join(', ')
-  const count = `${unknown} ${named.length > 0 ? 'other ' : ''}event type${unknown === 1 ? '' : 's'}`
+  const count = i18n.t(named.length > 0 ? 'calendarLinks.summary.otherTypes' : 'calendarLinks.summary.types', { count: unknown })
   return [...named, count].join(', ')
 }

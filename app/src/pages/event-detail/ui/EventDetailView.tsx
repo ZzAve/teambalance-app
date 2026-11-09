@@ -1,5 +1,7 @@
 import { useState, type ReactNode } from 'react'
 import { Link } from '@tanstack/react-router'
+import { useTranslation } from 'react-i18next'
+import { formatLocale } from '@shared/i18n/i18n'
 import { AlignLeft, CalendarDays, CalendarPlus, ChevronRight, Clock, ExternalLink, Link2, MapPin } from 'lucide-react'
 import type { EventDetail } from '@shared/api/events'
 import { Button } from '@shared/ui/button'
@@ -87,6 +89,7 @@ export function EventDetailView({
   positions,
   adminActions,
 }: EventDetailViewProps) {
+  const { t, i18n } = useTranslation()
   // Which Substitute's sheet is open. Both their Position-group row and the block open it.
   const [openSubstituteId, setOpenSubstituteId] = useState<string | null>(null)
 
@@ -94,16 +97,16 @@ export function EventDetailView({
   if (isError)
     return (
       <QueryErrorState
-        title="Couldn't load this event"
-        description="Something went wrong on our end. Give it another try."
+        title={t('eventDetail.loadFailed')}
+        description={t('eventDetail.loadFailedHint')}
         onRetry={() => onRetry?.()}
       >
         <Button asChild variant="ghost">
-          <Link to={backTo}>Back to events</Link>
+          <Link to={backTo}>{t('eventDetail.back')}</Link>
         </Button>
       </QueryErrorState>
     )
-  if (!event) return <p>Event not found.</p>
+  if (!event) return <p>{t('eventDetail.notFound')}</p>
 
   const date = new Date(event.startTime)
   // RoleBreakdown is the per-role fallback for a list without position targets: there the groups carry
@@ -114,7 +117,7 @@ export function EventDetailView({
   return (
     <div>
       {/* Sticky sub-header — offset comes from --header-height via PageHeader, not a magic pixel. */}
-      <PageHeader title={event.title} backTo={backTo} backLabel="Back to events" />
+      <PageHeader title={event.title} backTo={backTo} backLabel={t('eventDetail.back')} />
 
       {/* Event info — identity, then one icon-marked row per detail */}
       <div className="mt-2 rounded-lg border border-border/40 bg-card p-5 shadow-sm">
@@ -127,19 +130,19 @@ export function EventDetailView({
         </div>
 
         <dl className="mt-5 space-y-4 border-t border-border/40 pt-5 text-body">
-          <InfoRow icon={CalendarDays} label="Date">
-            {date.toLocaleDateString('nl-NL', {
+          <InfoRow icon={CalendarDays} label={t('eventDetail.date')}>
+            {date.toLocaleDateString(formatLocale(i18n.language), {
               weekday: 'long',
               day: 'numeric',
               month: 'long',
               year: 'numeric',
             })}
           </InfoRow>
-          <InfoRow icon={Clock} label="Time">
-            {date.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })}
+          <InfoRow icon={Clock} label={t('eventCard.time')}>
+            {date.toLocaleTimeString(formatLocale(i18n.language), { hour: '2-digit', minute: '2-digit' })}
           </InfoRow>
           {event.location && (
-            <InfoRow icon={MapPin} label="Location">
+            <InfoRow icon={MapPin} label={t('eventCard.location')}>
               <MapsLink
                 location={event.location}
                 className="inline-flex items-center gap-1.5 font-medium text-blue underline decoration-blue/30 underline-offset-4 hover:decoration-blue"
@@ -150,13 +153,13 @@ export function EventDetailView({
             </InfoRow>
           )}
           {event.description && (
-            <InfoRow icon={AlignLeft} label="Description">
+            <InfoRow icon={AlignLeft} label={t('eventCard.description')}>
               <p className="leading-relaxed text-muted-foreground">{event.description}</p>
             </InfoRow>
           )}
           {/* The event's References (Nevobo, match form, …), shown in full */}
           {event.references.length > 0 && (
-            <InfoRow icon={Link2} label="Additional info">
+            <InfoRow icon={Link2} label={t('eventDetail.additionalInfo')}>
               <ReferenceChips references={event.references} max={event.references.length} />
             </InfoRow>
           )}
@@ -168,7 +171,7 @@ export function EventDetailView({
             className="mt-5 flex items-center gap-2 border-t border-border/40 pt-4 text-small font-medium text-blue"
           >
             <CalendarPlus size={16} className="shrink-0" aria-hidden />
-            Add your team's events to your calendar
+            {t('eventDetail.addToCalendar')}
             <ChevronRight size={16} className="ml-auto shrink-0" aria-hidden />
           </Link>
         )}
@@ -178,15 +181,15 @@ export function EventDetailView({
       {currentUserId && (
         <div className="mt-6">
           <SectionLabel as="p" className="mb-3">
-            Your response
+            {t('eventDetail.yourResponse')}
           </SectionLabel>
           {/* Named group so this primary control is distinct from the per-row controls in the list
               below — the viewer now has a row of their own there too. */}
-          <div role="group" aria-label="Your response">
+          <div role="group" aria-label={t('eventDetail.yourResponse')}>
             <AttendanceToggle value={myState} disabled={isPending} onToggle={onToggleMine} />
           </div>
           {/* You learn a teammate changed your answer right where you would change it back (⑪). */}
-          {myAttribution && <p className="mt-2 text-caption text-muted-foreground">set by {myAttribution}</p>}
+          {myAttribution && <p className="mt-2 text-caption text-muted-foreground">{t('attendee.setBy', { name: myAttribution })}</p>}
         </div>
       )}
 
@@ -198,7 +201,7 @@ export function EventDetailView({
         <WhoIsComing roster={event.roster} staffRoles={positions?.filter((p) => p.kind === 'STAFF')} />
         <div className="border-t border-border/40">
           <SectionLabel as="h2" className="px-4 pt-3">
-            Lineup
+            {t('lineup.heading')}
           </SectionLabel>
           {!hasPositionTargets && <RoleBreakdown breakdown={event.attendanceSummary.roleBreakdown} />}
           <AttendeeList

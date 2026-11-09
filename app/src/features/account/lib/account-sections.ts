@@ -1,4 +1,5 @@
 import type { AuthenticatedUser } from '@shared/api/auth'
+import { passkeysOffered } from '@shared/api/passkeys'
 
 /**
  * The rows the Account tab can show. What actually renders is a pure function of the authenticated
@@ -6,6 +7,7 @@ import type { AuthenticatedUser } from '@shared/api/auth'
  */
 export type AccountSection =
   | 'email'
+  | 'passkeys'
   | 'photo'
   | 'displayName'
   | 'position'
@@ -18,6 +20,7 @@ export type AccountSection =
 // Canonical display order; the selector returns the present sections in this order.
 const ORDER: AccountSection[] = [
   'email',
+  'passkeys',
   'photo',
   'displayName',
   'position',
@@ -37,7 +40,7 @@ type AccountUser = Pick<
 /**
  * Which Account sections are visible for this session.
  *
- * - **Email / Appearance / Language / Teams / Log out** — always. Log out is the whole point: it must be
+ * - **Email / Passkeys / Appearance / Language / Teams / Log out** — always. Log out is the whole point: it must be
  *   reachable from every signed-in state.
  * - **Photo** — always: the Personal Photo belongs to the person, not to a Team (ADR-0038).
  * - **Display name / Position** — only with an Active Team, because member data is tenant-scoped
@@ -48,6 +51,7 @@ type AccountUser = Pick<
  */
 export function accountSections(user: AccountUser): AccountSection[] {
   const present = new Set<AccountSection>(['email', 'photo', 'appearance', 'language', 'teams', 'logout'])
+  if (passkeysOffered()) present.add('passkeys')
   if (user.activeTeam) {
     present.add('displayName')
     present.add('position')

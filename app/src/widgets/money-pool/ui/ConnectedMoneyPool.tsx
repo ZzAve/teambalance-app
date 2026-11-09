@@ -1,6 +1,10 @@
-import type { ReactNode } from 'react'
-import { ArrowDownLeft, ArrowUpRight } from 'lucide-react'
+import { useState, type CSSProperties, type ReactNode } from 'react'
+import { ArrowDownLeft, ArrowUpRight, Beer } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import type { Payment } from '@shared/api/money-pool'
+import { Button } from '@shared/ui/button'
+import { balanceTimeline, potTotals } from '../lib/balance-timeline'
+import { BalanceGraph } from './BalanceGraph'
 import { formatBeers, formatEuro, formatPaymentDate } from '../lib/format'
 
 interface ConnectedMoneyPoolProps {
@@ -11,53 +15,96 @@ interface ConnectedMoneyPoolProps {
   beerCount?: number
   /** The top-up button or hint, shown right under the balance. */
   topUp?: ReactNode
+  /** The receipt control shown on each expense, supplied by the container. */
+  receipt?: (expense: Payment) => ReactNode
+  /** Whether the payments run from the team's season start (true) or the last 90 days (false); undefined until the season is known. */
+  seasonSet?: boolean
 }
 
-export function ConnectedMoneyPool({ balance, payments, beerPrice, beerCount, topUp }: ConnectedMoneyPoolProps) {
+/** The count-up animates a registered custom property, so it needs @property support. */
+const CAN_COUNT_UP = typeof CSS !== 'undefined' && 'registerProperty' in CSS
+
+/** The payments shown before "Show all". */
+const PAYMENTS_SHOWN = 15
+
+export function ConnectedMoneyPool({ balance, payments, beerPrice, beerCount, topUp, receipt, seasonSet }: ConnectedMoneyPoolProps) {
+  const { t } = useTranslation()
+  const [showAll, setShowAll] = useState(false)
+  const points = balanceTimeline(balance, payments)
+  const { incoming, outgoing } = potTotals(payments)
+  const shown = showAll ? payments : payments.slice(0, PAYMENTS_SHOWN)
   return (
     <div className="flex flex-col gap-6">
-      <section aria-label="Balance" className="rounded-lg bg-card p-4">
-        <p className="text-caption font-semibold uppercase tracking-wide text-muted-foreground">Pool balance</p>
-        <p className="font-display mt-1 text-page font-extrabold leading-none">{formatEuro(balance)}</p>
+      <section aria-label={t('money.balance')} className="rounded-lg bg-card p-4">
+        <p className="text-caption font-semibold uppercase tracking-wide text-muted-foreground">{t('money.poolBalance')}</p>
+        <p className="font-display text-page font-extrabold leading-none">{formatEuro(balance)}</p>
+        {beerPrice !== undefined && beerCount !== undefined && (
+          // The number counts up from 0 on first render (global.css .beer-count; off under prefers-reduced-motion).
+          <div role="group" aria-label={t('money.beerCounter')} className="mt-2 flex items-center gap-2">
+            <Beer size={18} className="shrink-0 text-blue" aria-hidden="true" />
+            <p className="text-small text-muted-foreground" aria-hidden="true">
+              ≈ <span className={`beer-count ${CAN_COUNT_UP ? 'beer-count-up ' : ''}font-display text-body font-bold text-foreground`} style={{ '--beer-n': beerCount } as CSSProperties} />{' '}
+              {t('money.beersInPot', { count: beerCount })} <span className="text-caption">· {t('money.beerEach', { price: formatEuro(beerPrice) })}</span>
+            </p>
+            <p className="sr-only">{t('money.beerCovers', { beers: formatBeers(beerCount), price: formatEuro(beerPrice) })}</p>
+          </div>
+        )}
+        {payments.length > 0 && (
+          <>
+            <div className="mt-2 flex flex-wrap items-baseline gap-x-4 text-caption text-muted-foreground">
+              <dl className="flex gap-x-4">
+                <div className="flex gap-1">
+                  <dt>{t('money.totalIn')}</dt>
+                  <dd className="font-bold tabular-nums text-foreground">{formatEuro(incoming)}</dd>
+                </div>
+                <div className="flex gap-1">
+                  <dt>{t('money.totalSpent')}</dt>
+                  <dd className="font-bold tabular-nums text-foreground">{formatEuro(outgoing)}</dd>
+                </div>
+              </dl>
+              {seasonSet !== undefined && <p className="ml-auto">{seasonSet ? t('money.thisSeason') : t('money.last90Days')}</p>}
+            </div>
+            <div className="mt-2">
+              <BalanceGraph points={points} />
+            </div>
+          </>
+        )}
       </section>
 
       {topUp}
 
-      {beerPrice !== undefined && beerCount !== undefined && (
-        <section aria-label="Beer Counter" className="rounded-lg bg-card p-4">
-          <p className="text-caption font-semibold uppercase tracking-wide text-muted-foreground">Beer Counter</p>
-          <p className="font-display mt-1 text-title font-bold leading-none">{formatBeers(beerCount)}</p>
-          <p className="mt-1 text-caption text-muted-foreground">
-            The pool balance covers {formatBeers(beerCount)} at {formatEuro(beerPrice)} each.
-          </p>
-        </section>
-      )}
-
-      <section aria-label="Payments">
-        <h3 className="font-display mb-2 text-body font-bold">Payments</h3>
+      <section aria-label={t('money.payments')}>
+        <h3 className="font-display mb-2 text-body font-bold">{t('money.payments')}</h3>
         {payments.length === 0 ? (
-          <p className="text-small text-muted-foreground">No payments in this period.</p>
+          <p className="text-small text-muted-foreground">{t('money.noPayments')}</p>
         ) : (
           <ul className="flex flex-col divide-y divide-border rounded-lg bg-card">
-            {payments.map((payment, index) => {
-              const incoming = payment.direction === 'In'
-              const Icon = incoming ? ArrowDownLeft : ArrowUpRight
+            {shown.map((payment) => {
+              const isIncoming = payment.direction === 'In'
+              const Icon = isIncoming ? ArrowDownLeft : ArrowUpRight
               return (
-                <li key={`${index}-${payment.date}-${payment.name}-${payment.amount}`} className="flex items-center gap-3 px-4 py-3">
+                <li key={payment.id} className="flex items-center gap-3 px-4 py-3">
                   <Icon size={18} className="shrink-0 text-muted-foreground" aria-hidden="true" />
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-small font-semibold">{payment.name}</span>
                     <span className="text-caption text-muted-foreground">{formatPaymentDate(payment.date)}</span>
                   </span>
                   <span className="text-small font-semibold tabular-nums">
-                    <span className="sr-only">{incoming ? 'Incoming ' : 'Outgoing '}</span>
-                    <span aria-hidden="true">{incoming ? '+' : '−'}</span>
+                    <span className="sr-only">{`${isIncoming ? t('money.incoming') : t('money.outgoing')} `}</span>
+                    <span aria-hidden="true">{isIncoming ? '+' : '−'}</span>
                     {formatEuro(payment.amount)}
                   </span>
+                  {/* An incoming payment keeps the receipt's width free, so the amounts stay in one column. */}
+                  {receipt && (isIncoming ? <span className="w-10 shrink-0" aria-hidden="true" /> : receipt(payment))}
                 </li>
               )
             })}
           </ul>
+        )}
+        {payments.length > PAYMENTS_SHOWN && (
+          <Button variant="ghost" size="sm" className="mt-2 w-full" aria-expanded={showAll} onClick={() => setShowAll(!showAll)}>
+            {showAll ? t('money.showFewer') : t('money.showAll', { count: payments.length })}
+          </Button>
         )}
       </section>
     </div>

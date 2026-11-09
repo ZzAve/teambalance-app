@@ -9,7 +9,7 @@ import { withRouter } from '@shared/testing/router-decorator'
 import { MemberRosterView } from '@features/manage-members/ui/MemberRosterView'
 import { ManageSubstitutesView } from '@features/manage-substitutes/ui/ManageSubstitutesView'
 import { appShell } from '../../../../storybook-support/app-shell-decorator'
-import { pageModes } from '../../../../.storybook/modes'
+import { dutchMode, pageModes } from '../../../../.storybook/modes'
 import { TeamPageView } from './TeamPageView'
 
 // The team page as a phone shows it (ADR-0032 §3): the header (title, invite action and settings
@@ -78,9 +78,16 @@ type Story = StoryObj<typeof meta>
 
 export const Data: Story = {
   decorators: shell.decorators,
-  // The page's picture, in dark and once at desktop width too (ADR-0032 §4-§5).
-  parameters: { chromatic: { modes: pageModes } },
-  play: async ({ canvas }) => {
+  // The page's picture, in dark and once at desktop width too (ADR-0032 §4-§5), and in Dutch (ADR-0043 §8).
+  parameters: { chromatic: { modes: { ...pageModes, ...dutchMode } } },
+  play: async ({ canvas, globals }) => {
+    // Chromatic runs this play in every mode. In the Dutch one it proves the translated screen (#464).
+    if (globals.locale === 'nl') {
+      await expect(canvas.getByRole('link', { name: 'Teaminstellingen' })).toHaveAttribute('href', '/t/setpoint-vt/team/settings')
+      await expect(canvas.getByRole('heading', { name: 'Leden' })).toBeInTheDocument()
+      await expect(canvas.getByRole('heading', { name: 'Invallers' })).toBeInTheDocument()
+      return
+    }
     await expect(canvas.getByRole('heading', { name: 'Team' })).toBeInTheDocument()
     await expect(canvas.getByRole('button', { name: 'Invite Link' })).toBeInTheDocument()
     await expect(canvas.getByRole('link', { name: 'Team settings' })).toHaveAttribute('href', '/t/setpoint-vt/team/settings')

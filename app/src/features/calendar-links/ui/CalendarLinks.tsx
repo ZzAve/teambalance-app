@@ -7,6 +7,7 @@ import {
 } from '@shared/api/calendar-links'
 import { useEventTypes } from '@shared/api/event-types'
 import { useCopyToClipboard } from '@shared/lib/copy-to-clipboard'
+import { useTranslation } from 'react-i18next'
 import { CalendarLinksView } from './CalendarLinksView'
 
 /**
@@ -24,7 +25,8 @@ export function CalendarLinks() {
   const updateLink = useUpdateCalendarLink()
   const deleteLink = useDeleteCalendarLink()
   const clipboard = useCopyToClipboard()
-  const teamName = useAuthMe().data?.activeTeam?.name ?? 'Your team'
+  const { t } = useTranslation()
+  const teamName = useAuthMe().data?.activeTeam?.name ?? t('calendarLinks.yourTeam')
 
   return (
     <CalendarLinksView

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Pencil } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@shared/ui/dialog'
 import { Button } from '@shared/ui/button'
 import { useUpdateEvent, type Event, type EventDetail } from '@shared/api/events'
@@ -21,6 +22,7 @@ interface EditEventDialogProps {
  * See ADR-0017.
  */
 export function EditEventDialog({ event, siblings = [] }: EditEventDialogProps) {
+  const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   // Archived types included: an event may hold one that was archived without migration, and the
   // picker must still be able to show the type this event actually has. The View narrows the
@@ -34,12 +36,12 @@ export function EditEventDialog({ event, siblings = [] }: EditEventDialogProps) 
       <DialogTrigger asChild>
         <Button variant="outline" className="flex-1">
           <Pencil size={15} />
-          Edit event
+          {t('editEvent.title')}
         </Button>
       </DialogTrigger>
       <DialogContent className="max-h-[88vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Edit event</DialogTitle>
+          <DialogTitle>{t('editEvent.title')}</DialogTitle>
         </DialogHeader>
         <EditEventDialogView
           event={event}

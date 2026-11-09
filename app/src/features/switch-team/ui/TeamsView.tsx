@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Check, PlusCircle, Ticket, Users } from 'lucide-react'
 import type { TeamRef } from '@shared/api/teams'
 import { SectionLabel } from '@shared/ui/SectionLabel'
@@ -50,15 +51,16 @@ function RowButton({
  * Prop-only and presentational; the route container owns the navigation each callback performs.
  */
 export function TeamsView({ teams, activeTeam, onSelect, onJoin, onCreate }: TeamsViewProps) {
+  const { t } = useTranslation()
   return (
     // Full column width, like the Account page this is reached from.
     <div>
-      <h1 className="font-display text-title font-bold">Teams</h1>
+      <h1 className="font-display text-title font-bold">{t('account.teams')}</h1>
 
       {/* Section 1 — the teams you belong to; tapping one switches to it (ADR-0023). */}
       <section className="mt-6">
         <SectionLabel as="h2" className="mb-2 px-1 text-small">
-          Your teams
+          {t('teams.yours')}
         </SectionLabel>
         <ul className="flex flex-col gap-2">
           {teams.map((team) => {
@@ -73,7 +75,7 @@ export function TeamsView({ teams, activeTeam, onSelect, onJoin, onCreate }: Tea
                   {isActive && (
                     <span className="ml-auto flex shrink-0 items-center gap-1 rounded-full bg-green/10 px-2 py-0.5 text-caption font-semibold text-green">
                       <Check size={13} />
-                      Active
+                      {t('account.active')}
                     </span>
                   )}
                 </RowButton>
@@ -86,23 +88,23 @@ export function TeamsView({ teams, activeTeam, onSelect, onJoin, onCreate }: Tea
       {/* Section 2 — ways to gain another team, split off by a hairline divider for a clear break. */}
       <section className="mt-8 border-t border-border pt-6">
         <SectionLabel as="h2" className="mb-2 px-1 text-small">
-          Join or create
+          {t('teams.joinOrCreate')}
         </SectionLabel>
         <div className="flex flex-col gap-2">
           <RowButton icon={<Ticket size={18} />} onClick={onJoin}>
             <span className="min-w-0">
-              <span className="block text-small font-semibold">Join with an invite link</span>
+              <span className="block text-small font-semibold">{t('teams.joinWithLink')}</span>
               <span className="block truncate text-caption text-muted-foreground">
-                Someone shared a join link with you
+                {t('onboarding.sharedLink')}
               </span>
             </span>
           </RowButton>
 
           <RowButton icon={<PlusCircle size={18} />} onClick={onCreate}>
             <span className="min-w-0">
-              <span className="block text-small font-semibold">Create a team</span>
+              <span className="block text-small font-semibold">{t('onboarding.createTeam')}</span>
               <span className="block truncate text-caption text-muted-foreground">
-                You'll need a creation code
+                {t('teams.needCode')}
               </span>
             </span>
           </RowButton>

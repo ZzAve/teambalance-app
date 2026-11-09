@@ -6,6 +6,7 @@ import { useAcceptInvitation } from '@shared/api/invitations'
 import { Button } from '@shared/ui/button'
 import { Input } from '@shared/ui/input'
 import { Label } from '@shared/ui/label'
+import { Trans, useTranslation } from 'react-i18next'
 
 export const Route = createFileRoute('/invite/$token')({
   component: InvitePage,
@@ -25,6 +26,7 @@ function InvitePage() {
   const [sent, setSent] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const attempted = useRef(false)
+  const { t } = useTranslation()
 
   useEffect(() => {
     if (attempted.current || !user) return
@@ -36,14 +38,14 @@ function InvitePage() {
       // another Team has just changed tenant.
       .then(() => queryClient.resetQueries())
       .then(() => navigate({ to: '/', replace: true }))
-      .catch(() => setError('This invite link is invalid or has expired.'))
+      .catch(() => setError(t('invite.invalid')))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, token])
 
   if (isLoadingSession || (user && !error && !acceptInvitation.isError)) {
     return (
       <div className="mx-auto mt-16 max-w-sm text-center">
-        <p className="text-small text-muted-foreground">{user ? 'Joining the team...' : 'Loading...'}</p>
+        <p className="text-small text-muted-foreground">{user ? t('invite.joining') : t('invite.loading')}</p>
       </div>
     )
   }
@@ -51,10 +53,10 @@ function InvitePage() {
   if (error) {
     return (
       <div className="mx-auto mt-16 max-w-sm text-center">
-        <h1 className="font-display text-title font-bold">Invite link invalid</h1>
+        <h1 className="font-display text-title font-bold">{t('invite.invalidTitle')}</h1>
         <p className="mt-3 text-small text-muted-foreground">{error}</p>
         <Link to="/login" className="mt-6 inline-block text-small font-medium text-blue">
-          Back to login
+          {t('auth.verify.backToLogin')}
         </Link>
       </div>
     )
@@ -73,7 +75,7 @@ function InvitePage() {
         // wait for mail that will not come. Anything else — a dropped connection, a 500 — is
         // retryable and falls through to the form's try-again message instead.
         onError: (err) => {
-          if (err.message === INVITE_UNAVAILABLE) setError('This invite link is invalid or has expired.')
+          if (err.message === INVITE_UNAVAILABLE) setError(t('invite.invalid'))
         },
       },
     )
@@ -82,10 +84,13 @@ function InvitePage() {
   if (sent) {
     return (
       <div className="mx-auto mt-16 max-w-sm text-center">
-        <h1 className="font-display text-title font-bold">Check your email</h1>
+        <h1 className="font-display text-title font-bold">{t('auth.login.checkEmail')}</h1>
         <p className="mt-3 text-small text-muted-foreground">
-          If <span className="font-medium text-foreground">{email}</span> checks out, we've sent a magic link to sign
-          in. Click it to join the team.
+          <Trans
+            i18nKey="invite.sent"
+            values={{ email }}
+            components={{ b: <span className="font-medium text-foreground" /> }}
+          />
         </p>
       </div>
     )
@@ -93,13 +98,13 @@ function InvitePage() {
 
   return (
     <div className="mx-auto mt-16 max-w-sm">
-      <h1 className="font-display text-center text-title font-bold">You're invited</h1>
+      <h1 className="font-display text-center text-title font-bold">{t('invite.title')}</h1>
       <p className="mt-2 text-center text-small text-muted-foreground">
-        Enter your email to join the team — no password needed.
+        {t('invite.intro')}
       </p>
       <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-4">
         <div>
-          <Label htmlFor="email">Email</Label>
+          <Label htmlFor="email">{t('account.email')}</Label>
           <Input
             id="email"
             name="email"
@@ -108,14 +113,14 @@ function InvitePage() {
             autoFocus
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="you@example.com"
+            placeholder={t('auth.login.emailPlaceholder')}
           />
         </div>
         <Button type="submit" disabled={requestMagicLink.isPending}>
-          {requestMagicLink.isPending ? 'Sending...' : 'Send magic link'}
+          {requestMagicLink.isPending ? t('auth.login.sending') : t('auth.login.send')}
         </Button>
         {requestMagicLink.isError && (
-          <p className="text-center text-small text-red-ink">Something went wrong. Please try again.</p>
+          <p className="text-center text-small text-red-ink">{t('errors.generic')}</p>
         )}
       </form>
     </div>

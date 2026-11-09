@@ -47,13 +47,8 @@ export function CreateEventSheet() {
   const seriesError = !createSeries.error
     ? undefined
     : createSeries.error instanceof RecurringCreateError
-      ? {
-          'outside-season': 'Some dates fall outside the season window — adjust the range.',
-          'over-cap': 'That series is over the 200-event cap — shorten the range or thin the schedule.',
-          empty: 'No dates match — pick at least one weekday inside the range.',
-          unknown: 'Could not create the series. Please try again.',
-        }[createSeries.error.reason]
-      : 'Could not create the series. Please try again.'
+      ? t(`createEntry.seriesError.${createSeries.error.reason}`)
+      : t('createEntry.seriesError.unknown')
 
   return (
     <Sheet open={mode !== 'closed'} onOpenChange={(open) => (open ? setMode('chooser') : close())}>
@@ -73,7 +68,7 @@ export function CreateEventSheet() {
             today={today}
             isCreatingSingle={createEvent.isPending}
             isCreatingRecurring={createSeries.isPending}
-            singleError={createEvent.isError ? 'Could not create the event. Please try again.' : null}
+            singleError={createEvent.isError ? t('createEntry.singleFailed') : null}
             recurringError={seriesError}
             onBack={() => setMode('chooser')}
             onChooseSingle={() => setMode('single')}

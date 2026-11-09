@@ -2,6 +2,7 @@ package com.github.zzave.teambalance.api.infrastructure.email
 
 import com.github.zzave.teambalance.api.application.E2eMagicLinkTokenRecorder
 import com.github.zzave.teambalance.api.domain.model.Email
+import com.github.zzave.teambalance.api.domain.model.Language
 import com.github.zzave.teambalance.api.domain.port.EmailGateway
 import org.springframework.context.annotation.Primary
 import org.springframework.context.annotation.Profile
@@ -19,8 +20,8 @@ class RecordingEmailAdapter(
     private val recorder: E2eMagicLinkTokenRecorder,
 ) : EmailGateway {
 
-    override fun sendMagicLink(email: Email, token: String) {
+    override fun sendMagicLink(email: Email, token: String, language: Language) {
         recorder.record(email.value, token)
-        delegate.sendMagicLink(email, token)
+        delegate.sendMagicLink(email, token, language)
     }
 }

@@ -10,4 +10,6 @@ interface ImportMetaEnv {
   readonly VITE_XSRF_COOKIE?: string
   // Set (to true) only in the demo build, which is the only build that has the /demo guest login.
   readonly VITE_DEMO?: string
+  /** Set in the demo build only: its guests share one persona, so passkeys are off (ADR-0045). */
+  readonly VITE_NO_PASSKEYS?: string
 }

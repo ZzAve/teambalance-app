@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { toast } from 'sonner'
+import { useTranslation } from 'react-i18next'
 import type { Event } from '@shared/api/events'
 import { useBulkAttend, useBulkUndo } from '@shared/api/attendances'
 import { useCurrentUser } from '@shared/api/auth'
@@ -24,6 +25,7 @@ interface BulkAttendBarProps {
  * the whole reason the endpoint returns them.
  */
 export function BulkAttendBar({ events }: BulkAttendBarProps) {
+  const { t } = useTranslation()
   const userId = useCurrentUser()?.id ?? null
   const [pendingTypeId, setPendingTypeId] = useState<string | null>(null)
   const bulkAttend = useBulkAttend()
@@ -54,7 +56,7 @@ export function BulkAttendBar({ events }: BulkAttendBarProps) {
           }
           toast(message, {
             action: {
-              label: 'Undo',
+              label: t('bulkToast.undo'),
               onClick: () => bulkUndo.mutate({ userId, eventIds: createdEventIds }),
             },
           })

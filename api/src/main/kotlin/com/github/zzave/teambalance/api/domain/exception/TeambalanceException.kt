@@ -4,6 +4,7 @@ import com.github.zzave.teambalance.api.domain.model.BunqAccountId
 import com.github.zzave.teambalance.api.domain.model.CalendarLinkId
 import com.github.zzave.teambalance.api.domain.model.EventId
 import com.github.zzave.teambalance.api.domain.model.EventTypeId
+import com.github.zzave.teambalance.api.domain.model.PaymentId
 import com.github.zzave.teambalance.api.domain.model.PositionId
 import com.github.zzave.teambalance.api.domain.model.ShirtNumber
 import com.github.zzave.teambalance.api.domain.model.SubstituteId
@@ -52,6 +53,11 @@ class PhotoTooLargeException(maxBytes: Int) :
 
 // Empty, or neither WebP nor JPEG → 400 INVALID_PHOTO.
 class InvalidPhotoException(message: String) : BadRequestException(message, "INVALID_PHOTO")
+
+class ReceiptTooLargeException(maxBytes: Int) :
+    BadRequestException("Receipt is larger than $maxBytes bytes", "RECEIPT_TOO_LARGE")
+
+class InvalidReceiptException(message: String) : BadRequestException(message, "INVALID_RECEIPT")
 
 sealed class NotFoundException(message: String) : TeambalanceException(message)
 
@@ -211,6 +217,11 @@ class TopUpUnavailableException : NotFoundException("Top-up is not available for
 class BunqConnectDisabledException : NotFoundException("Connecting Bunq is not available")
 
 class BunqNotConnectedException : NotFoundException("This team has not connected Bunq")
+
+// A receipt is attached only to an outgoing payment the pool currently shows.
+class ExpenseNotFoundException(paymentId: PaymentId) : NotFoundException("No expense $paymentId in the money pool")
+
+class ReceiptNotFoundException(paymentId: PaymentId) : NotFoundException("No receipt for payment $paymentId")
 
 // The connection was deleted or replaced between reading it and writing the pick.
 class BunqConnectionChangedException :

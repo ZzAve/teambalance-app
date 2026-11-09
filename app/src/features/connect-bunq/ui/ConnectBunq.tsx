@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import {
   BunqConnectUnavailableError,
   isBunqGrantRejected,
@@ -26,6 +27,7 @@ export function ConnectBunq({
   /** Called once the result from the URL has been shown; the caller takes it out of the URL. Pass a stable function. */
   onResultShown?: () => void
 }) {
+  const { t } = useTranslation()
   // The URL only carries the result in: it is read once and the caller removes it, so a later visit or
   // re-render does not take focus again. What was shown stays until the page is left.
   const [result] = useState(resultInUrl)
@@ -80,7 +82,7 @@ export function ConnectBunq({
         onResultShown={onResultShown}
         // Stays pending after the response too: the browser is on its way to Bunq, and a second click must not start another state.
         isConnecting={connect.isPending || connect.isSuccess}
-        error={connect.error && errorMessage(connect.error)}
+        error={connect.error && t(errorKey(connect.error))}
         // The navigation is a mutate callback, as in the top-up: a response that arrives after the
         // component went away must not navigate.
         onConnect={() => connect.mutate(undefined, { onSuccess: (url) => window.location.assign(url) })}
@@ -89,8 +91,6 @@ export function ConnectBunq({
   )
 }
 
-function errorMessage(error: Error) {
-  return error instanceof BunqConnectUnavailableError
-    ? "Connecting Bunq isn’t available right now."
-    : "Couldn’t open Bunq. Please try again."
+function errorKey(error: Error) {
+  return error instanceof BunqConnectUnavailableError ? 'connectBunq.error.unavailable' : 'connectBunq.error.openFailed'
 }

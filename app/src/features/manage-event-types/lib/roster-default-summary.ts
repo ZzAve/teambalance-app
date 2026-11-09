@@ -1,3 +1,4 @@
+import { i18n } from '@shared/i18n/i18n'
 import type { RosterRequirement } from '@shared/api/event-types'
 import type { Position } from '@shared/api/positions'
 
@@ -9,7 +10,7 @@ import type { Position } from '@shared/api/positions'
  * *type* asks for. Nothing is computed against attendance here.
  */
 export function rosterDefaultSummary(requirement: RosterRequirement, positions: Position[]): string {
-  if (!requirement.trackRoster) return 'No roster'
+  if (!requirement.trackRoster) return i18n.t('eventTypes.summary.none')
 
   const labelById = new Map(positions.map((p) => [p.id, p.label]))
   // Unknown ids are skipped rather than rendered as a raw uuid: a target can outlive its position
@@ -21,10 +22,10 @@ export function rosterDefaultSummary(requirement: RosterRequirement, positions: 
     })
     .filter((s): s is string => s !== null)
 
-  const total = requirement.totalTarget != null ? `${requirement.totalTarget} total` : null
+  const total = requirement.totalTarget != null ? i18n.t('eventTypes.summary.total', { count: requirement.totalTarget }) : null
   const parts = [...perPosition, total].filter((s): s is string => s !== null)
 
   // Tracking on with nothing required is a real state, and the one most easily mistaken for a bug —
   // so it says what it is rather than rendering an empty string.
-  return parts.length === 0 ? 'Tracked, nothing required' : parts.join(' · ')
+  return parts.length === 0 ? i18n.t('eventTypes.summary.nothingRequired') : parts.join(' · ')
 }

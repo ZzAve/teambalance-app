@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { Member } from '@shared/api/members'
 import type { Position } from '@shared/api/positions'
 import { EditProfileForm } from '@features/edit-profile/ui/EditProfileForm'
+import { useTranslation } from 'react-i18next'
 
 interface GetStartedViewProps {
   member?: Member
@@ -31,17 +32,18 @@ export function GetStartedView({
   hasPersonalPhoto,
   onSubmit,
 }: GetStartedViewProps) {
+  const { t } = useTranslation()
   const [usePersonalPhoto, setUsePersonalPhoto] = useState(true)
 
   return (
     <div className="mx-auto mt-10 max-w-sm">
-      <h1 className="font-display text-title font-bold">Welcome to TeamBalance</h1>
+      <h1 className="font-display text-title font-bold">{t('getStarted.welcome')}</h1>
       <p className="mt-2 text-small text-muted-foreground">
-        Let's set up your profile — tell us your name and where you play.
+        {t('getStarted.intro')}
       </p>
 
-      {isLoading && <p className="mt-6 text-small text-muted-foreground">Loading…</p>}
-      {isError && <p className="mt-6 text-small text-red-ink">Couldn't load your profile. Please try again.</p>}
+      {isLoading && <p className="mt-6 text-small text-muted-foreground">{t('account.loading')}</p>}
+      {isError && <p className="mt-6 text-small text-red-ink">{t('account.loadFailed')}</p>}
 
       {member && (
         <div className="mt-6 flex flex-col gap-4">
@@ -53,7 +55,7 @@ export function GetStartedView({
                 checked={usePersonalPhoto}
                 onChange={(e) => setUsePersonalPhoto(e.target.checked)}
               />
-              Use my personal photo in this team
+              {t('getStarted.usePersonalPhoto')}
             </label>
           )}
           <EditProfileForm

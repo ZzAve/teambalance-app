@@ -14,6 +14,7 @@ env:
   SCW_DEFAULT_REGION: fr-par
   REGISTRY: rg.fr-par.scw.cloud/teambalance
   CONTAINER_ID: ec9dfda3-65ca-4901-a640-895fd2f9f5f3
+  DEMO_CONTAINER_ID: 26261720-f1a3-4b35-930b-bf960855a360
   S3_ENDPOINT: https://s3.fr-par.scw.cloud
   SPA_BUCKET: teambalance-spa
   WWW_BUCKET: teambalance-www
@@ -272,6 +273,16 @@ jobs:
         run: ./.github/scripts/await-live-sha.sh https://api.teambalance.nl "${{ needs.image.outputs.sha }}"
         env:
           INTERNAL_API_KEY: ${{ secrets.INTERNAL_API_KEY }}
+
+      # Demo (ADR-0043): same commit, deployed after prod so a bad image never reaches the demo
+      # first. The container scales to zero; the verify's first request wakes it (about 50 s).
+      - name: Update demo Serverless Container image
+        run: scw container container update "$DEMO_CONTAINER_ID" image="${REGISTRY}/api-demo:${{ needs.image.outputs.sha }}" region="$SCW_DEFAULT_REGION"
+
+      - name: Verify the demo image is actually serving
+        run: ./.github/scripts/await-live-sha.sh https://demo.teambalance.nl "${{ needs.image.outputs.sha }}"
+        env:
+          INTERNAL_API_KEY: ${{ secrets.DEMO_INTERNAL_API_KEY }}
 
   approve-frontend:
     needs: build

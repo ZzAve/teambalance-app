@@ -1,5 +1,5 @@
 type SetAttendanceRequest {
-    state: String
+    state: AttendanceState
 }
 
 type Attendance {
@@ -8,7 +8,7 @@ type Attendance {
     userId: String,
     displayName: String,
     role: String,
-    state: String,
+    state: AttendanceState,
     changedBy: String,
     updatedAt: DateTimestampWithTimezone
 }

@@ -27,8 +27,8 @@ describe('accountSections', () => {
   // The invariant the whole ADR turns on: Log out is present no matter the context.
   it.each([
     ['teamless', user()],
-    ['single team', user({ teams: [TEAM], activeTeam: TEAM, role: 'MEMBER' })],
-    ['multi team, one active', user({ teams: [TEAM, OTHER_TEAM], activeTeam: TEAM, role: 'MEMBER' })],
+    ['single team', user({ teams: [TEAM], activeTeam: TEAM, role: 'USER' })],
+    ['multi team, one active', user({ teams: [TEAM, OTHER_TEAM], activeTeam: TEAM, role: 'USER' })],
     ['multi team, none active', user({ teams: [TEAM, OTHER_TEAM] })],
     ['platform admin', user({ isPlatformAdmin: true })],
     ['act-as', user({ isPlatformAdmin: true, activeTeam: TEAM, role: 'ADMIN', actAs: { team: TEAM, expiresAt: 'x' } })],
@@ -41,18 +41,18 @@ describe('accountSections', () => {
   })
 
   it('single team: adds display name + position', () => {
-    const sections = accountSections(user({ teams: [TEAM], activeTeam: TEAM, role: 'MEMBER' }))
+    const sections = accountSections(user({ teams: [TEAM], activeTeam: TEAM, role: 'USER' }))
     expect(sections).toEqual(['email', 'passkeys', 'photo', 'displayName', 'position', 'paymentAliases', 'appearance', 'language', 'teams', 'logout'])
   })
 
   it('hides the payment aliases link when the team has switched its money pool off', () => {
-    const base = { teams: [TEAM], activeTeam: TEAM, role: 'MEMBER' as const }
+    const base = { teams: [TEAM], activeTeam: TEAM, role: 'USER' as const }
     expect(accountSections(user({ ...base, moneyPoolEnabled: false }))).not.toContain('paymentAliases')
     expect(accountSections(user({ ...base, moneyPoolEnabled: true }))).toContain('paymentAliases')
   })
 
   it('multi team with one active is the same as single team (the switcher lives in Teams)', () => {
-    const sections = accountSections(user({ teams: [TEAM, OTHER_TEAM], activeTeam: TEAM, role: 'MEMBER' }))
+    const sections = accountSections(user({ teams: [TEAM, OTHER_TEAM], activeTeam: TEAM, role: 'USER' }))
     expect(sections).toEqual(['email', 'passkeys', 'photo', 'displayName', 'position', 'paymentAliases', 'appearance', 'language', 'teams', 'logout'])
   })
 

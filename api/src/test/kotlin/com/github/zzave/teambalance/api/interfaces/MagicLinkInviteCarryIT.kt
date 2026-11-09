@@ -121,6 +121,29 @@ class MagicLinkInviteCarryIT : TeamBalanceIT() {
             isMemberOfTeam(email) shouldBe false
         }
 
+        test("an invite accepted under a differently-cased address joins the existing user") {
+            seedTeam()
+            val inviteToken = "case-${UUID.randomUUID()}"
+            seedInvitation(inviteToken)
+            val existingUserId = UUID.randomUUID()
+            val email = "existing-$existingUserId@test.com"
+            jdbcTemplate.update(
+                "INSERT INTO public.users (id, email, display_name) VALUES (?, ?, 'Existing')",
+                existingUserId,
+                email,
+            )
+
+            requestMagicLink(" Existing-$existingUserId@Test.COM", inviteToken)
+                .andExpect(MockMvcResultMatchers.status().isAccepted)
+
+            verify(lastEmailedToken(email))
+                .andExpect(MockMvcResultMatchers.status().isOk)
+                .andExpect(MockMvcResultMatchers.jsonPath("$.inviteOutcome").value("JOINED"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.user.id").value(existingUserId.toString()))
+
+            isMemberOfTeam(email) shouldBe true
+        }
+
         test("an ordinary sign-in records no pending invite and reports no outcome") {
             val email = "plain-${UUID.randomUUID()}@test.com"
 

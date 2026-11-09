@@ -1,5 +1,6 @@
 package com.github.zzave.teambalance.api.interfaces
 
+import com.fasterxml.jackson.databind.ObjectMapper
 import com.github.zzave.teambalance.api.TeamBalanceIT
 import com.github.zzave.teambalance.api.infrastructure.email.FakeEmailGateway
 import com.github.zzave.teambalance.api.infrastructure.identity.SessionKeys
@@ -128,6 +129,43 @@ class AuthControllerTest : TeamBalanceIT() {
             )
             verify(expiredToken, expectOk = false)
         }
+
+        test("magic links requested under differently-cased addresses sign in as one user") {
+            val local = "case-${UUID.randomUUID()}"
+            val normalised = "$local@example.com"
+
+            requestMagicLink("  ${local.uppercase()}@Example.com ")
+            requestMagicLink(normalised)
+            val (first, second) = fakeEmailGateway.sentMagicLinks.filter { it.first.value == normalised }.map { it.second }
+
+            val firstSession = verify(first, expectOk = true)!!
+            val secondSession = verify(second, expectOk = true)!!
+
+            userIdOnMe(firstSession) shouldBe userIdOnMe(secondSession)
+            jdbcTemplate.queryForList(
+                "SELECT email FROM public.users WHERE lower(email) = ?",
+                String::class.java,
+                normalised,
+            ) shouldBe listOf(normalised)
+        }
+
+        test("a magic-link request for a malformed email is a 400 and sends nothing") {
+            val malformed = "no-at-sign-${UUID.randomUUID()}"
+
+            val (_, dispatched) = performAsync(
+                MockMvcRequestBuilders.post("/api/auth/magic-link/request")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"email":"$malformed"}"""),
+            )
+
+            dispatched.andExpect(MockMvcResultMatchers.status().isBadRequest)
+            fakeEmailGateway.sentMagicLinks.none { it.first.value.startsWith(malformed) } shouldBe true
+        }
+    }
+
+    private fun userIdOnMe(session: Cookie): String {
+        val (_, me) = performAsync(MockMvcRequestBuilders.get("/api/auth/me").cookie(session))
+        return ObjectMapper().readTree(me.andReturn().response.contentAsString)["id"].asText()
     }
 
     private fun requestMagicLink(email: String) {

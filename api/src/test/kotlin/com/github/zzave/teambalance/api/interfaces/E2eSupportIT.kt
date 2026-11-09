@@ -137,6 +137,19 @@ class E2eSupportIT : TeamBalanceIT() {
                 .andExpect(MockMvcResultMatchers.jsonPath("$.events[?(@.title == 'E2E Training')]").exists())
         }
 
+        test("a token requested under one casing of an address is found under another") {
+            val (_, requested) = performAsync(
+                MockMvcRequestBuilders.post("/api/auth/magic-link/request")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"email":"E2E@Example.com"}"""),
+            )
+            requested.andExpect(MockMvcResultMatchers.status().isAccepted)
+
+            mockMvc.perform(
+                MockMvcRequestBuilders.get("/internal/e2e/magic-link-token").param("email", "e2e@EXAMPLE.com"),
+            ).andExpect(MockMvcResultMatchers.status().isOk)
+        }
+
         test("e2e token endpoint returns 404 for an email without a requested token") {
             mockMvc.perform(
                 MockMvcRequestBuilders.get("/internal/e2e/magic-link-token").param("email", "nobody@example.com"),

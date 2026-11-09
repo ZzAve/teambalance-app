@@ -1,5 +1,6 @@
 package com.github.zzave.teambalance.api.application
 
+import com.github.zzave.teambalance.api.domain.model.Email
 import org.springframework.context.annotation.Profile
 import org.springframework.stereotype.Component
 import java.util.concurrent.ConcurrentHashMap
@@ -15,11 +16,11 @@ import java.util.concurrent.ConcurrentHashMap
 @Component
 @Profile("e2e")
 class E2eMagicLinkTokenRecorder {
-    private val tokensByEmail = ConcurrentHashMap<String, String>()
+    private val tokensByEmail = ConcurrentHashMap<Email, String>()
 
-    fun record(email: String, token: String) {
+    fun record(email: Email, token: String) {
         tokensByEmail[email] = token
     }
 
-    fun lastTokenFor(email: String): String? = tokensByEmail[email]
+    fun lastTokenFor(email: Email): String? = tokensByEmail[email]
 }

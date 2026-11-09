@@ -21,7 +21,7 @@ class RecordingEmailAdapter(
 ) : EmailGateway {
 
     override fun sendMagicLink(email: Email, token: String, language: Language) {
-        recorder.record(email.value, token)
+        recorder.record(email, token)
         delegate.sendMagicLink(email, token, language)
     }
 }

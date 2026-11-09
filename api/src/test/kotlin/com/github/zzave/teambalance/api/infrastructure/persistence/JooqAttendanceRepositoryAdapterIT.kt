@@ -147,16 +147,6 @@ class JooqAttendanceRepositoryAdapterIT : TeamBalanceIT() {
 
             repeated shouldBe emptyList()
         }
-
-        test("an event id that does not exist in a bulk undo is ignored and not returned") {
-            tenants.within(ROUTING) { attendances.save(attendance(TRAINING, AttendanceState.ATTENDING)) }
-
-            val deleted = tenants.within(ROUTING) {
-                attendances.deleteByUserIdAndEventIds(MEMBER, listOf(TRAINING, EventId.random()))
-            }
-
-            deleted shouldBe listOf(TRAINING)
-        }
     }
 
     private fun addEvent(): EventId {

@@ -204,9 +204,15 @@ class MemberControllerIT : TeamBalanceIT() {
         test("PUT /api/members/{userId} with an unknown role is a 400 with the standard error body") {
             seedTeam()
 
-            updateMemberAs(JAN_USER_ID, LISA_USER_ID, "Lisa Bakker", "BOGUS")
+            // The enum is refused while the body is read, before the handler suspends, so there is no async dispatch.
+            mockMvc.perform(
+                MockMvcRequestBuilders.put("/api/members/$LISA_USER_ID")
+                    .with(loginAs(JAN_USER_ID))
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"displayName":"Lisa Bakker","role":"BOGUS"}"""),
+            )
                 .andExpect(MockMvcResultMatchers.status().isBadRequest)
-                .andExpect(MockMvcResultMatchers.jsonPath("$.error").value("Unknown role: BOGUS"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.error").value("Malformed or invalid request body"))
         }
 
         test("PUT /api/members/{ownId} with a four-digit shirt number returns 400") {

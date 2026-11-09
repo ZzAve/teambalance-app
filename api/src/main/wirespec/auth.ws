@@ -20,7 +20,7 @@ type AuthenticatedUser {
     id: String,
     email: String,
     displayName: String,
-    role: String?,
+    role: Role?,
     teams: TeamRef[],
     activeTeam: TeamRef?,
     isPlatformAdmin: Boolean,

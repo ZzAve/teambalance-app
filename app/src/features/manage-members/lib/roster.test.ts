@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { Member } from '@shared/api/members'
+import type { Member, Role } from '@shared/api/members'
 import { isLastAdmin, sortByShirtNumber, toggleRole } from './roster'
 
 describe('toggleRole', () => {
@@ -13,7 +13,7 @@ describe('toggleRole', () => {
 })
 
 describe('isLastAdmin', () => {
-  const m = (userId: string, role: string): Member =>
+  const m = (userId: string, role: Role): Member =>
     ({ userId, displayName: userId, role, position: undefined, onboarded: true, shirtNumber: undefined, photoVersion: undefined })
 
   it('is true for the only admin', () => {

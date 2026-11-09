@@ -29,7 +29,7 @@ const POSITIONS: Position[] = [
 const MEMBER: Member = {
   userId: 'u1',
   displayName: 'Alex',
-  role: 'MEMBER',
+  role: 'USER',
   position: { id: 'p1', label: 'Setter' },
   onboarded: true,
   shirtNumber: undefined,

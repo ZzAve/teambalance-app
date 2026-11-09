@@ -1,9 +1,11 @@
 import { queryOptions, useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from './wirespec-client'
+import type { Role } from './generated/model/Role'
 import { i18n } from '@shared/i18n/i18n'
 
 // Re-export the generated contract type so the app has a single source of truth.
 export type { Member } from './generated/model/Member'
+export type { Role } from './generated/model/Role'
 
 // A member update can fail in ways the form needs to distinguish (a taken name is recoverable and
 // shown inline; a 403/404 is not). Carry the backend's discriminator code so the UI can branch.
@@ -52,7 +54,7 @@ export function useMembers() {
 interface UpdateMemberInput {
   userId: string
   displayName: string
-  role: string
+  role: Role
   /** The member's position, or null to leave them Unassigned. Callers pass the current value to
    *  preserve it on a name/role-only change. */
   positionId: string | null
@@ -100,7 +102,7 @@ export function useCompleteOnboarding() {
       shirtNumber,
     }: {
       displayName: string
-      role: string
+      role: Role
       positionId: string | null
       shirtNumber: number | null
     }) => {

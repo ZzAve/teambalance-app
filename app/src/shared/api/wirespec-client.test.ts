@@ -137,7 +137,7 @@ describe('wirespec-client adapter', () => {
     it('keeps the JSON body of a status the contract declares without one (the { code } of an error)', async () => {
       stubFetch(fakeResponse({ status: 409, body: JSON.stringify({ code: 'LAST_ADMIN' }) }))
 
-      const res = await api.updateMember({ userId: 'u-1', body: { displayName: 'A', role: 'MEMBER', positionId: undefined, shirtNumber: undefined } })
+      const res = await api.updateMember({ userId: 'u-1', body: { displayName: 'A', role: 'USER', positionId: undefined, shirtNumber: undefined } })
 
       expect(res.status).toBe(409)
       expect(res.body).toEqual({ code: 'LAST_ADMIN' })

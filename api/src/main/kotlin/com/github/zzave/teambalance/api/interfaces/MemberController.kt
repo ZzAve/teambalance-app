@@ -14,6 +14,7 @@ import com.github.zzave.teambalance.api.interfaces.generated.endpoint.UpdateMemb
 import com.github.zzave.teambalance.api.interfaces.generated.model.Member
 import com.github.zzave.teambalance.api.interfaces.generated.model.MemberList
 import com.github.zzave.teambalance.api.interfaces.generated.model.MemberPosition
+import com.github.zzave.teambalance.api.interfaces.generated.model.Role as GeneratedRole
 import org.springframework.web.bind.annotation.RestController
 
 @RestController
@@ -50,7 +51,7 @@ class MemberController(
             teamId = teamId,
             targetUserId = request.path.userId.consumeUserId(),
             rawName = request.body.displayName,
-            role = request.body.role.consumeRole(),
+            role = request.body.role.consume(),
             positionId = request.body.positionId?.let { it.consumePositionId() },
             shirtNumber = request.body.shirtNumber?.toIntOrMax(),
         )
@@ -94,16 +95,13 @@ private fun TeamMember.toDto() = Member(
 // silently becoming a valid one.
 internal fun Long.toIntOrMax(): Int = if (this in Int.MIN_VALUE.toLong()..Int.MAX_VALUE.toLong()) toInt() else Int.MAX_VALUE
 
-// UpdateMember still carries the role as a bare string, so an unknown value can only be refused here at
-// runtime; the 400 is the IllegalArgumentException handler's.
-private fun String.consumeRole(): Role = when (this) {
-    "USER" -> Role.USER
-    "ADMIN" -> Role.ADMIN
-    else -> throw IllegalArgumentException("Unknown role: $this")
+private fun GeneratedRole.consume(): Role = when (this) {
+    GeneratedRole.USER -> Role.USER
+    GeneratedRole.ADMIN -> Role.ADMIN
 }
 
 // internal so AuthController renders the caller's role the same way.
-internal fun Role.produce(): String = when (this) {
-    Role.USER -> "USER"
-    Role.ADMIN -> "ADMIN"
+internal fun Role.produce(): GeneratedRole = when (this) {
+    Role.USER -> GeneratedRole.USER
+    Role.ADMIN -> GeneratedRole.ADMIN
 }

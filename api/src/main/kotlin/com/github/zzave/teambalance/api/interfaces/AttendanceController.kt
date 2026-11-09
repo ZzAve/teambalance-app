@@ -33,7 +33,7 @@ class AttendanceController(
         val teamId = currentTeamGateway.requireCurrentTeamId()
         val eventId = request.path.eventId.consumeEventId()
         val userId = request.path.userId.consumeUserId()
-        val state = request.body.state.consumeAttendanceState()
+        val state = request.body.state.consume()
 
         val attendance = attendanceService.setAttendance(
             teamId = teamId,
@@ -52,7 +52,7 @@ class AttendanceController(
                 userId = attendance.userId.produce(),
                 displayName = member?.displayName?.value ?: "Unknown",
                 role = (member?.position ?: UNASSIGNED).value,
-                state = attendance.state.produce().label,
+                state = attendance.state.produce(),
                 changedBy = attendance.changedBy.produce(),
                 updatedAt = DateTimestampWithTimezone(attendance.updatedAt.toString()),
             )
@@ -90,16 +90,6 @@ internal fun GeneratedAttendanceState.consume(): AttendanceState = when (this) {
     GeneratedAttendanceState.MAYBE -> AttendanceState.MAYBE
     GeneratedAttendanceState.ABSENT -> AttendanceState.ABSENT
     GeneratedAttendanceState.NOT_RESPONDED -> AttendanceState.NOT_RESPONDED
-}
-
-// SetAttendance still carries the state as a bare string, so an unknown value can only be refused here
-// at runtime; the 400 is the IllegalArgumentException handler's.
-private fun String.consumeAttendanceState(): AttendanceState = when (this) {
-    "ATTENDING" -> AttendanceState.ATTENDING
-    "MAYBE" -> AttendanceState.MAYBE
-    "ABSENT" -> AttendanceState.ABSENT
-    "NOT_RESPONDED" -> AttendanceState.NOT_RESPONDED
-    else -> throw IllegalArgumentException("Unknown attendance state: $this")
 }
 
 // The Wirespec edge for a response row's identity — the contract still carries a bare UUID string.

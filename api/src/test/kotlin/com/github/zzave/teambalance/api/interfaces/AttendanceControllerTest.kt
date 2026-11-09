@@ -139,18 +139,15 @@ class AttendanceControllerTest : TeamBalanceIT() {
                 "SELECT public.tb_add_member('$TEAM_ID'::uuid, '$JAN_USER_ID'::uuid, 'ADMIN', 'Setter')",
             )
 
-            val started = mockMvc.perform(
+            // The enum is refused while the body is read, before the handler suspends, so there is no async dispatch.
+            mockMvc.perform(
                 MockMvcRequestBuilders.put("/api/events/${UUID.randomUUID()}/attendances/$JAN_USER_ID")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content("""{"state":"BOGUS"}""")
                     .with(loginAs(JAN_USER_ID, tenant = "public")),
             )
-                .andExpect(MockMvcResultMatchers.request().asyncStarted())
-                .andReturn()
-
-            mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(started))
                 .andExpect(MockMvcResultMatchers.status().isBadRequest)
-                .andExpect(MockMvcResultMatchers.jsonPath("$.error").value("Unknown attendance state: BOGUS"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.error").value("Malformed or invalid request body"))
         }
 
         test("PUT twice updates the existing attendance row instead of duplicating it") {

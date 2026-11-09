@@ -923,6 +923,62 @@ class EventControllerTest : TeamBalanceIT() {
             status shouldBe 400
         }
 
+        test("POST /api/events with a title of 201 code points returns 400, not a 500") {
+            tenantSchemaAdapter.provisionPlatformSchema()
+            tenantSchemaAdapter.provisionTenantSchema("public")
+
+            jdbcTemplate.execute(
+                """
+                INSERT INTO public.teams (id, name, slug, schema_name)
+                VALUES ('$TEAM_ID'::uuid, 'Test Team', 'test-team', 'public')
+                ON CONFLICT DO NOTHING
+            """
+            )
+            jdbcTemplate.execute(
+                """
+                INSERT INTO public.users (id, email, display_name)
+                VALUES ('$JAN_USER_ID'::uuid, 'jan@test.com', 'Jan de Vries')
+                ON CONFLICT DO NOTHING
+            """
+            )
+            jdbcTemplate.execute(
+                "SELECT public.tb_add_member('$TEAM_ID'::uuid, '$JAN_USER_ID'::uuid, 'ADMIN', 'Setter')"
+            )
+
+            val eventTypeId = jdbcTemplate.queryForObject(
+                "SELECT uuid FROM public.event_types WHERE name = 'Training'",
+                UUID::class.java,
+            )
+            val title = "t".repeat(200) + "\uD83C\uDFD0"
+
+            val mvcResult = mockMvc.perform(
+                MockMvcRequestBuilders.post("/api/events")
+                    .with(loginAs(JAN_USER_ID, tenant = "public"))
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(
+                        """
+                        {
+                          "eventTypeId": "$eventTypeId",
+                          "title": "$title",
+                          "description": null,
+                          "startTime": "2026-08-01T20:00:00Z",
+                          "endTime": "2026-08-01T22:00:00Z",
+                          "location": null
+                        }
+                        """.trimIndent()
+                    ),
+            ).andReturn()
+
+            val response = if (mvcResult.request.isAsyncStarted) {
+                mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(mvcResult)).andReturn().response
+            } else {
+                mvcResult.response
+            }
+
+            response.status shouldBe 400
+            response.contentAsString shouldBe """{"error":"Event title must be at most 200 characters"}"""
+        }
+
         test("GET /api/events carries every member's attendance, still in one query (no N+1)") {
             tenantSchemaAdapter.provisionPlatformSchema()
             tenantSchemaAdapter.provisionTenantSchema("public")

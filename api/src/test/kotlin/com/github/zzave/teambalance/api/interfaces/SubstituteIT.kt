@@ -152,7 +152,7 @@ class SubstituteIT : TeamBalanceIT() {
                     .content("""{"state": "BOGUS"}"""),
             )
                 .andExpect(status().isBadRequest)
-                .andExpect(jsonPath("$.error").isNotEmpty)
+                .andExpect(jsonPath("$.error").value("Malformed or invalid request body"))
         }
 
         test("an unknown substitute or event is not found") {

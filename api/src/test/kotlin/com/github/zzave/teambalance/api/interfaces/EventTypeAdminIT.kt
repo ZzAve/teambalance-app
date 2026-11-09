@@ -261,7 +261,7 @@ class EventTypeAdminIT : TeamBalanceIT() {
                     .content("""{"name":"""),
             )
                 .andExpect(status().isBadRequest)
-                .andExpect(jsonPath("$.error").isNotEmpty)
+                .andExpect(jsonPath("$.error").value("Malformed or invalid request body"))
         }
 
         test("a roster default naming an unknown position is rejected") {

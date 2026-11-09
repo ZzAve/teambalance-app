@@ -173,7 +173,7 @@ class RecurringEventControllerTest : TeamBalanceIT() {
 
             createSeries(admin, title = "t".repeat(201), location = "Gym")
                 .andExpect(MockMvcResultMatchers.status().isBadRequest)
-                .andExpect(MockMvcResultMatchers.jsonPath("$.error").isNotEmpty)
+                .andExpect(MockMvcResultMatchers.jsonPath("$.error").value("Event title must be at most 200 characters"))
         }
 
         test("POST /api/recurring-events with a location over 500 characters is a 400, not a 500") {
@@ -183,7 +183,7 @@ class RecurringEventControllerTest : TeamBalanceIT() {
 
             createSeries(admin, title = "Weekly Training", location = "l".repeat(501))
                 .andExpect(MockMvcResultMatchers.status().isBadRequest)
-                .andExpect(MockMvcResultMatchers.jsonPath("$.error").isNotEmpty)
+                .andExpect(MockMvcResultMatchers.jsonPath("$.error").value("Event location must be at most 500 characters"))
         }
 
         test("POST /api/recurring-events by a non-admin member is rejected with 403") {

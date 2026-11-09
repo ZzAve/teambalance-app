@@ -177,7 +177,7 @@ class PositionControllerIT : TeamBalanceIT() {
                     .content("""{"kind":"BOGUS"}"""),
             )
                 .andExpect(MockMvcResultMatchers.status().isBadRequest)
-                .andExpect(MockMvcResultMatchers.jsonPath("$.error").isNotEmpty)
+                .andExpect(MockMvcResultMatchers.jsonPath("$.error").value("Malformed or invalid request body"))
         }
 
         // Reclassifying is not one-way: a team that marked the wrong position can put it back.

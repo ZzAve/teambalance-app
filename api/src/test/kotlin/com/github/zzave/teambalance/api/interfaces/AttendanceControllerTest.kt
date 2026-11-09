@@ -122,6 +122,37 @@ class AttendanceControllerTest : TeamBalanceIT() {
                 .andExpect(MockMvcResultMatchers.jsonPath("$.role").value("Unassigned"))
         }
 
+        test("PUT /api/events/{id}/attendances/{userId} with an unknown state is a 400 with the standard error body") {
+            tenantSchemaAdapter.provisionPlatformSchema()
+            tenantSchemaAdapter.provisionTenantSchema("public")
+            jdbcTemplate.execute("""
+                INSERT INTO public.teams (id, name, slug, schema_name)
+                VALUES ('$TEAM_ID'::uuid, 'Test Team 2', 'test-team-2', 'public')
+                ON CONFLICT DO NOTHING
+            """)
+            jdbcTemplate.execute("""
+                INSERT INTO public.users (id, email, display_name)
+                VALUES ('$JAN_USER_ID'::uuid, 'jan2@test.com', 'Jan de Vries')
+                ON CONFLICT DO NOTHING
+            """)
+            jdbcTemplate.execute(
+                "SELECT public.tb_add_member('$TEAM_ID'::uuid, '$JAN_USER_ID'::uuid, 'ADMIN', 'Setter')",
+            )
+
+            val started = mockMvc.perform(
+                MockMvcRequestBuilders.put("/api/events/${UUID.randomUUID()}/attendances/$JAN_USER_ID")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"state":"BOGUS"}""")
+                    .with(loginAs(JAN_USER_ID, tenant = "public")),
+            )
+                .andExpect(MockMvcResultMatchers.request().asyncStarted())
+                .andReturn()
+
+            mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(started))
+                .andExpect(MockMvcResultMatchers.status().isBadRequest)
+                .andExpect(MockMvcResultMatchers.jsonPath("$.error").value("Unknown attendance state: BOGUS"))
+        }
+
         test("PUT twice updates the existing attendance row instead of duplicating it") {
             tenantSchemaAdapter.provisionPlatformSchema()
             tenantSchemaAdapter.provisionTenantSchema("public")

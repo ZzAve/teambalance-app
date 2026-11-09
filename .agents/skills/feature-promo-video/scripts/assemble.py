@@ -22,6 +22,7 @@ import glob
 import json
 import os
 import re
+import shlex
 import subprocess
 import sys
 import tempfile
@@ -204,7 +205,9 @@ def main():
 
     review = transcript(placed, clips, os.path.join(a.cards, 'cards-text.json'), intro_len, intro_len + take_len, total)
     review_path = os.path.splitext(a.out)[0] + '.transcript.md'
-    open(review_path, 'w').write(f'# {os.path.basename(a.out)} ({total:.1f} s)\n\n' + review)
+    regen = ('\n\n## Regenerate\n\nThis assembly: `uv run ' + ' '.join(shlex.quote(x) for x in sys.argv) + '`\n\n'
+             'Record step, OS choice and copy-drift notes: the header of the take\'s `docs/demo/<feature>.steps.mjs`.\n')
+    open(review_path, 'w').write(f'# {os.path.basename(a.out)} ({total:.1f} s)\n\n' + review + regen)
     print(f'transcript: {review_path}\n\n{review}')
 
     card(os.path.join(a.cards, 'intro.png'), intro_len, width, height, os.path.join(tmp, 'intro.mp4'))

@@ -1,8 +1,22 @@
 /**
  * Steps for the passkeys promo (ADR-0045): the real SPA against api-fixture.mjs, recorded and voiced
- * with the feature-promo-video skill (its SKILL.md has the commands). The browser's WebAuthn ceremony
- * runs for real against Chromium's virtual authenticator; os-passkey-sheet.mjs draws the phone's sheet,
- * iOS by default or Android with PHONE_OS=android (assemble the Android take with `--phone android`).
+ * with the feature-promo-video skill. The browser's WebAuthn ceremony runs for real against Chromium's
+ * virtual authenticator; os-passkey-sheet.mjs draws the phone's sheet and os-mail-app.mjs the inbox,
+ * iOS by default or Android with PHONE_OS=android.
+ *
+ * Render choices of the published videos (2026-11-09), so a regeneration needs no new listening round:
+ *
+ *   S=.agents/skills/feature-promo-video/scripts; OUT=/tmp/passkeys-ios      # or -android
+ *   uv run $S/narrate.py docs/demo/passkeys.narration.json $OUT/voice
+ *   node $S/cards.mjs docs/demo/passkeys.narration.json $OUT/cards
+ *   PHONE_OS=ios $S/record.sh docs/demo/passkeys.steps.mjs $OUT                # PHONE_OS=android
+ *   uv run $S/assemble.py $OUT/take $OUT/take.log $OUT/voice/clips.json $OUT/cards passkeys-promo.mp4 \
+ *     --song $S/../music/teambalance-theme.json --cut 20.38 --phone ios        # --phone android
+ *
+ * Each transcript in docs/demo/passkeys*.transcript.md repeats the assemble command it came from.
+ * Copy drift: the mail mock checks its wording against MagicLinkEmail.kt and fails if it changed; the
+ * OS sheet texts imitate iOS/Android, not app copy; the app's own prompt and buttons are clicked by
+ * their real labels, so a copy change there fails the probe instead of showing stale text.
  */
 import { installFixtureApi, signOut } from './api-fixture.mjs'
 import { narratedTake } from './narrated-take.mjs'

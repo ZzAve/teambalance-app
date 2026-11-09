@@ -5,6 +5,12 @@
  *   const mail = await showMailApp(page, 'ios' | 'android')
  *   await click(page, mail.row); await mail.link.waitFor(); await click(page, mail.link)
  */
+import { readFileSync } from 'node:fs'
+
+// The real email copy; the mock must say the same, or the promo shows stale text without anyone noticing.
+const REAL_EMAIL = new URL('../../api/src/main/kotlin/com/github/zzave/teambalance/api/infrastructure/email/MagicLinkEmail.kt', import.meta.url)
+const WORDING = ['Your TeamBalance sign-in link', 'Click the button below to sign in to TeamBalance:', '"Sign in"', 'This link is valid for 15 minutes and works once.']
+
 const CSS = `
 #__mail__{position:fixed;inset:0;z-index:2147483000;background:#fff;color:#1C1C1E;overflow:hidden;
   font-family:-apple-system,'SF Pro Text','Helvetica Neue',sans-serif;transform:translateY(100%) scale(.92);opacity:0;
@@ -54,6 +60,8 @@ const ROWS = [
 ]
 
 export async function showMailApp(page, os = 'ios') {
+  const real = readFileSync(REAL_EMAIL, 'utf8')
+  for (const w of WORDING) if (!real.includes(w)) throw new Error(`os-mail-app.mjs: MagicLinkEmail.kt no longer says ${w}; update the mock's wording`)
   await page.evaluate(({ css, os, rows }) => {
     if (!document.getElementById('__mail_css__')) {
       const style = document.createElement('style')

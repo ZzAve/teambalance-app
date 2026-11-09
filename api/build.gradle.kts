@@ -4,9 +4,9 @@ import community.flock.wirespec.plugin.Language
 import org.springframework.boot.gradle.tasks.aot.ProcessAot
 import org.springframework.boot.gradle.tasks.run.BootRun
 
-val wirespecVersion: String by project
-val testcontainersVersion: String by project
-val flockDetektVersion: String by project
+val wirespecVersion = project.property("wirespecVersion") as String
+val testcontainersVersion = project.property("testcontainersVersion") as String
+val flockDetektVersion = project.property("flockDetektVersion") as String
 
 plugins {
     kotlin("jvm")
@@ -61,7 +61,7 @@ dependencies {
 
     // Rate limiting — in-memory token-bucket algorithm (no external store). The jdk17 line is the
     // maintained Bucket4j artifact; buckets are held per-key in the Caffeine cache above. See ADR-0037.
-    val bucket4jVersion: String by project
+    val bucket4jVersion = project.property("bucket4jVersion") as String
     implementation("com.bucket4j:bucket4j_jdk17-core:$bucket4jVersion")
 
     // Wirespec runtime
@@ -71,11 +71,11 @@ dependencies {
     implementation("tools.jackson.module:jackson-module-kotlin")
 
     // Bunq SDK (OAuth code exchange and the signed API client), published on JitPack
-    val bunqSdkVersion: String by project
+    val bunqSdkVersion = project.property("bunqSdkVersion") as String
     implementation("com.github.flock-community.bunq-sdk:kotlin:$bunqSdkVersion")
 
     // Testing — Kotest
-    val kotestVersion: String by project
+    val kotestVersion = project.property("kotestVersion") as String
     testImplementation("io.kotest:kotest-runner-junit5:$kotestVersion")
     testImplementation("io.kotest:kotest-assertions-core:$kotestVersion")
     testImplementation("io.kotest:kotest-extensions-spring:$kotestVersion")
@@ -106,7 +106,7 @@ configurations.matching { it.name == "detekt" }.all {
 
 java {
     toolchain {
-        val javaVersion: String by project
+        val javaVersion = project.property("javaVersion") as String
         languageVersion = JavaLanguageVersion.of(javaVersion)
     }
 }
@@ -210,8 +210,8 @@ tasks.named("build") {
 // jOOQ code generation at build time. The Flyway migrations are applied to an empty Postgres and read
 // back. That Postgres is the one named by JOOQ_CODEGEN_JDBC_URL (+ _USER, _PASSWORD) when set (the
 // Docker build stage has no Docker socket), otherwise a throwaway Testcontainers container.
-val jooqCodegenImplementation by configurations.getting
-val jooqCodegenRuntimeOnly by configurations.getting
+val jooqCodegenImplementation = configurations.getByName("jooqCodegenImplementation")
+val jooqCodegenRuntimeOnly = configurations.getByName("jooqCodegenRuntimeOnly")
 
 dependencies {
     jooqCodegenImplementation(kotlin("stdlib"))

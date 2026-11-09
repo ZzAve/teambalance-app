@@ -28,7 +28,7 @@ type UpdateMemberRequest {
     shirtNumber: Integer?
 }
 
-// Onboarding sets name, position and, when given, the Shirt Number; a missing or null `shirtNumber` keeps the current one, so an app from before this field never clears a number an Admin set. 409 NUMBER_TAKEN as on UpdateMember. `role` is ignored, kept so the body stays what earlier apps send.
+// Onboarding sets name, position and, when given, the Shirt Number; a missing or null `shirtNumber` keeps the current one, so an app from before this field never clears a number an Admin set. 409 NUMBER_TAKEN as on UpdateMember. `role` is ignored, kept so the body stays what earlier apps send; a value other than USER or ADMIN is still refused with 400.
 type CompleteOnboardingRequest {
     displayName: String,
     role: Role,

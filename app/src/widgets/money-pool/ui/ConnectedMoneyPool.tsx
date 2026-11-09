@@ -17,6 +17,8 @@ interface ConnectedMoneyPoolProps {
   topUp?: ReactNode
   /** The receipt control shown on each expense, supplied by the container. */
   receipt?: (expense: Payment) => ReactNode
+  /** The claim control on an incoming payment (null for none), supplied by the container. */
+  claim?: (payment: Payment) => ReactNode
   /** Whether the payments run from the team's season start (true) or the last 90 days (false); undefined until the season is known. */
   seasonSet?: boolean
 }
@@ -27,7 +29,7 @@ const CAN_COUNT_UP = typeof CSS !== 'undefined' && 'registerProperty' in CSS
 /** The payments shown before "Show all". */
 const PAYMENTS_SHOWN = 15
 
-export function ConnectedMoneyPool({ balance, payments, beerPrice, beerCount, topUp, receipt, seasonSet }: ConnectedMoneyPoolProps) {
+export function ConnectedMoneyPool({ balance, payments, beerPrice, beerCount, topUp, receipt, claim, seasonSet }: ConnectedMoneyPoolProps) {
   const { t } = useTranslation()
   const [showAll, setShowAll] = useState(false)
   const points = balanceTimeline(balance, payments)
@@ -82,8 +84,9 @@ export function ConnectedMoneyPool({ balance, payments, beerPrice, beerCount, to
             {shown.map((payment) => {
               const isIncoming = payment.direction === 'In'
               const Icon = isIncoming ? ArrowDownLeft : ArrowUpRight
+              // The row is focusable so focus can land on it after a claim removes its button.
               return (
-                <li key={payment.id} className="flex items-center gap-3 px-4 py-3">
+                <li key={payment.id} tabIndex={-1} className="flex items-center gap-3 px-4 py-3 outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring">
                   <Icon size={18} className="shrink-0 text-muted-foreground" aria-hidden="true" />
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-small font-semibold">{payment.name}</span>
@@ -94,8 +97,9 @@ export function ConnectedMoneyPool({ balance, payments, beerPrice, beerCount, to
                     <span aria-hidden="true">{isIncoming ? '+' : '−'}</span>
                     {formatEuro(payment.amount)}
                   </span>
-                  {/* An incoming payment keeps the receipt's width free, so the amounts stay in one column. */}
-                  {receipt && (isIncoming ? <span className="w-10 shrink-0" aria-hidden="true" /> : receipt(payment))}
+                  {/* An incoming payment without a claim control keeps the receipt's width free, so the amounts stay in one column. */}
+                  {(receipt || claim) &&
+                    (isIncoming ? (claim?.(payment) ?? <span className="w-10 shrink-0" aria-hidden="true" />) : receipt?.(payment))}
                 </li>
               )
             })}

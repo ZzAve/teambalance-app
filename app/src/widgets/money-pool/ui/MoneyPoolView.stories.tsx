@@ -50,6 +50,7 @@ const meta = {
     canTopUp: true,
     topUp: <Button size="lg">Top up</Button>,
     receipt: (expense: Payment) => <Button size="icon">{`Receipt ${expense.name}`}</Button>,
+    claim: (payment: Payment) => <Button size="icon">{`Claim ${payment.name}`}</Button>,
   },
 } satisfies Meta<typeof MoneyPoolView>
 
@@ -90,6 +91,9 @@ export const Data: Story = {
     // The receipt control sits on expenses only.
     await expect(payments.getByRole('button', { name: 'Receipt Sporthal De Kuil' })).toBeInTheDocument()
     await expect(payments.queryByRole('button', { name: 'Receipt Lisa de Vries' })).not.toBeInTheDocument()
+    // The claim slot fills the incoming rows, as the receipt slot fills the expenses.
+    await expect(payments.getByRole('button', { name: 'Claim Lisa de Vries' })).toBeInTheDocument()
+    await expect(payments.queryByRole('button', { name: 'Claim Sporthal De Kuil' })).not.toBeInTheDocument()
   },
 }
 

@@ -243,6 +243,28 @@ const ME = ROSTER[0]
 const PHOTOS = { personal: undefined, team: {} }
 // null until the person chooses one; the app then follows the browser language.
 const LANGUAGE = { value: undefined }
+// The session and the passkeys (ADR-0045). Signed in from the start, so a take can open the app
+// directly; the passkeys take calls `signOut()` first and goes through /login.
+const SESSION = { signedIn: true }
+const PASSKEYS = []
+export const signOut = () => { SESSION.signedIn = false }
+const b64url = (n) => Buffer.from(Array.from({ length: n }, (_, i) => (i * 37 + 11) % 256)).toString('base64url')
+const AUTH_USER = () => ({
+  id: 'u-1',
+  email: 'julia@example.com',
+  displayName: 'Julia Vermeer',
+  role: 'ADMIN',
+  // `teams` is an array and `activeTeam` a separate ref: the root guard gates on
+  // `user.teams.length` and the /me query rejects outright unless `teams` is an array, so a
+  // singular `team` here parks the whole app on the cold-start splash.
+  teams: [TEAM],
+  activeTeam: TEAM,
+  isPlatformAdmin: false,
+  actAs: undefined,
+  personalPhotoVersion: photoVersion(PHOTOS.personal),
+  language: LANGUAGE.value,
+  passkeyCount: PASSKEYS.length,
+})
 const photoVersion = (photo) => photo?.version
 const withPhoto = (member) => ({ ...member, photoVersion: photoVersion(PHOTOS.team[member.userId]) })
 const storePhoto = (route) => ({
@@ -275,7 +297,9 @@ const withAttendances = (event) => ({
 })
 
 /** Install the fixture on a Playwright page/context. Call before the first navigation. */
-export async function installFixtureApi(page) {
+export async function installFixtureApi(page, { passkeyPrompt = false } = {}) {
+  // /me reports zero passkeys, which makes the app offer one on every page; only the passkeys take wants that.
+  if (!passkeyPrompt) await page.addInitScript(() => localStorage.setItem('tb.pref.passkey-prompt-dismissed', 'true'))
   // Keep the service worker out of the recording entirely. Playwright's route interception does not
   // reach a page the SW controls, so the moment one takes over, every /api call sails past the
   // fixture and the app sits on the cold-start splash.
@@ -298,6 +322,47 @@ export async function installFixtureApi(page) {
     (route) => route.fulfill({ status: 200, contentType: 'application/javascript', body: '' }),
   )
 
+  // Spring Security's WebAuthn endpoints (ADR-0045 §2). The options are real Level 3 JSON for RP id
+  // `localhost`, so the browser's own ceremony runs against a virtual authenticator (CDP) in the take.
+  await page.route(
+    (url) => url.pathname.startsWith('/webauthn/') || url.pathname === '/login/webauthn',
+    async (route) => {
+      const path = new URL(route.request().url()).pathname
+      const json = (body, status = 200) => route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(body) })
+      if (path === '/webauthn/register/options')
+        return json({
+          rp: { name: 'TeamBalance', id: 'localhost' },
+          user: { id: b64url(16), name: 'julia@example.com', displayName: 'Julia Vermeer' },
+          challenge: b64url(32),
+          pubKeyCredParams: [{ type: 'public-key', alg: -8 }, { type: 'public-key', alg: -7 }, { type: 'public-key', alg: -257 }],
+          timeout: 300000,
+          excludeCredentials: [],
+          authenticatorSelection: { residentKey: 'required', userVerification: 'preferred' },
+          attestation: 'none',
+          extensions: { credProps: true },
+        })
+      if (path === '/webauthn/register') {
+        const { publicKey } = route.request().postDataJSON()
+        PASSKEYS.push({ id: publicKey.credential.id, label: publicKey.label, createdAt: new Date().toISOString(), lastUsedAt: undefined })
+        return json({})
+      }
+      if (route.request().method() === 'DELETE') {
+        const id = decodeURIComponent(path.slice('/webauthn/register/'.length))
+        PASSKEYS.splice(PASSKEYS.findIndex((k) => k.id === id), 1)
+        return route.fulfill({ status: 204 })
+      }
+      if (path === '/webauthn/authenticate/options')
+        return json({ challenge: b64url(32), timeout: 300000, rpId: 'localhost', allowCredentials: [], userVerification: 'preferred' })
+      if (path === '/login/webauthn') {
+        SESSION.signedIn = true
+        const used = PASSKEYS.find((k) => k.id === route.request().postDataJSON()?.id)
+        if (used) used.lastUsedAt = new Date().toISOString()
+        return json({})
+      }
+      return json({}, 404)
+    },
+  )
+
   // Matched on the pathname, not a `**/api/**` glob: under the dev server the app's own modules are
   // served from /src/shared/api/…, and a glob would intercept those too and hand the browser JSON
   // where it expected a module.
@@ -312,22 +377,17 @@ export async function installFixtureApi(page) {
       // net::ERR_ABORTED, and the shell treats a failed probe as a backend that is still waking.
       if (path === '/api/ping') return json({ status: 'ok' })
 
-      if (path === '/api/auth/me')
-        return json({
-          id: 'u-1',
-          email: 'julia@example.com',
-          displayName: 'Julia Vermeer',
-          role: 'ADMIN',
-          // `teams` is an array and `activeTeam` a separate ref: the root guard gates on
-          // `user.teams.length` and the /me query rejects outright unless `teams` is an array, so a
-          // singular `team` here parks the whole app on the cold-start splash.
-          teams: [TEAM],
-          activeTeam: TEAM,
-          isPlatformAdmin: false,
-          actAs: undefined,
-          personalPhotoVersion: photoVersion(PHOTOS.personal),
-          language: LANGUAGE.value,
-        })
+      if (path === '/api/auth/me') return SESSION.signedIn ? json(AUTH_USER()) : json({}, 401)
+      if (path === '/api/auth/magic-link/request') return json({}, 202)
+      if (path === '/api/auth/magic-link/verify') {
+        SESSION.signedIn = true
+        return json({ user: AUTH_USER(), inviteOutcome: undefined })
+      }
+      if (path === '/api/auth/logout') {
+        SESSION.signedIn = false
+        return route.fulfill({ status: 204 })
+      }
+      if (path === '/api/account/passkeys') return json(PASSKEYS)
 
       const method = route.request().method()
       const image = (photo) => (photo ? route.fulfill({ status: 200, contentType: photo.type, body: photo.bytes }) : json({}, 404))

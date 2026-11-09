@@ -58,8 +58,8 @@ All scripts take absolute or relative paths and can run from any directory. `$OU
    uv run .agents/skills/feature-promo-video/scripts/assemble.py $OUT/take $OUT/take.log $OUT/voice/clips.json $OUT/cards <feature>-promo.mp4 \
      --song .agents/skills/feature-promo-video/music/teambalance-theme.json [--cut <s>]
    ```
-   Leave out `--song` for a voice-only video.
-6. **Verify.** Run `verify-frames.sh` from demo-video (`<mp4> <dir> 16`) and look at the frames. Check the duration with `ffprobe`. Put the mp4 and its `<name>.transcript.md` in the repo root (both are gitignored). Send the user the video and paste the transcript table in your reply. The table gives the time of each line, what is on screen and what the voice says, so the user can give feedback by time stamp.
+   Leave out `--song` for a voice-only video. Add `--phone` or `--phone android` to play the take inside a phone (bezel, status bar, home strip; `cards.mjs` renders `phone.png` and `phone-android.png`); the cards stay full-bleed. When the feature mocks a device dialog, see `docs/demo/os-passkey-sheet.mjs`.
+6. **Verify.** Run `verify-frames.sh` from demo-video (`<mp4> <dir> 16`) and look at the frames. Check the duration with `ffprobe`. Put the mp4 and its `<name>.transcript.md` in the repo root (both are gitignored), and commit a copy of the transcript as `docs/demo/<feature>.transcript.md`: it carries the assemble command, and a later run can diff its timings. Once the user has picked a cut, write the exact commands (`PHONE_OS`, `--cut`, `--phone`) in the header of `<feature>.steps.mjs`, so a regeneration needs no new listening round. Send the user the video and paste the transcript table in your reply. The table gives the time of each line, what is on screen and what the voice says, so the user can give feedback by time stamp.
 
 ## Music (approved on the calendar-links video)
 

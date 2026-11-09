@@ -24,6 +24,8 @@ interface MoneyPoolViewProps {
   topUp?: ReactNode
   /** The receipt control on each expense, supplied by the container for the same reason. */
   receipt?: (expense: Payment) => ReactNode
+  /** The claim control on an incoming payment, supplied by the container for the same reason. */
+  claim?: (payment: Payment) => ReactNode
   /** Connecting Bunq is available here: an admin of a not-connected or rejected team is pointed to the team settings. */
   connectAvailable?: boolean
   /** Bunq is connected but no account is picked: an admin is pointed to the team settings to pick one. */
@@ -57,6 +59,7 @@ export function MoneyPoolView({
   canTopUp,
   topUp,
   receipt,
+  claim,
   connectAvailable,
   accountPending,
   seasonSet,
@@ -81,6 +84,7 @@ export function MoneyPoolView({
           beerCount={beerCount}
           topUp={topUpEntry}
           receipt={receipt}
+          claim={claim}
           seasonSet={seasonSet}
         />
       )

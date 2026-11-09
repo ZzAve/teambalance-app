@@ -8,8 +8,17 @@ export type { PaymentAlias } from './generated/model/PaymentAlias'
 export type { PaymentAliasRequest } from './generated/model/PaymentAliasRequest'
 
 // Why a write failed, so the UI can say which field to fix. 400 without a code is INVALID (nothing
-// to store); 409 is always a name or IBAN another member already uses.
-export type PaymentAliasErrorCode = 'ALIAS_TAKEN' | 'INVALID_IBAN' | 'INVALID' | 'FORBIDDEN' | 'NOT_FOUND' | 'FAILED'
+// to store); a 409 without a known code is a name or IBAN another member already uses. NOT_CLAIMABLE
+// and POOL_UNAVAILABLE only come from claiming a payment.
+export type PaymentAliasErrorCode =
+  | 'ALIAS_TAKEN'
+  | 'INVALID_IBAN'
+  | 'INVALID'
+  | 'FORBIDDEN'
+  | 'NOT_FOUND'
+  | 'FAILED'
+  | 'NOT_CLAIMABLE'
+  | 'POOL_UNAVAILABLE'
 
 export class PaymentAliasError extends Error {
   constructor(public readonly code: PaymentAliasErrorCode, message: string) {
@@ -18,8 +27,11 @@ export class PaymentAliasError extends Error {
   }
 }
 
-function failure(res: { status: number; body?: unknown }): PaymentAliasError {
+export function failure(res: { status: number; body?: unknown }): PaymentAliasError {
   const code = (res.body as { code?: string } | undefined)?.code
+  if (res.status === 409 && code === 'PAYMENT_NOT_CLAIMABLE') return new PaymentAliasError('NOT_CLAIMABLE', code)
+  if (res.status === 409 && code === 'MONEY_POOL_NOT_READABLE') return new PaymentAliasError('POOL_UNAVAILABLE', code)
+  if (res.status === 503) return new PaymentAliasError('POOL_UNAVAILABLE', 'POOL_UNAVAILABLE')
   if (res.status === 409) return new PaymentAliasError('ALIAS_TAKEN', code ?? 'PAYMENT_ALIAS_TAKEN')
   if (res.status === 400) return new PaymentAliasError(code === 'INVALID_IBAN' ? 'INVALID_IBAN' : 'INVALID', code ?? 'INVALID')
   if (res.status === 403) return new PaymentAliasError('FORBIDDEN', 'FORBIDDEN')
@@ -71,5 +83,34 @@ export function useDeletePaymentAlias(userId: string) {
       if (res.status !== 204) throw failure(res)
     },
     onSuccess: refresh,
+  })
+}
+
+/** A part that is on is left out, so the server default applies: with both on, an unusable bank name falls back to the IBAN alone. */
+export function claimBody({ userId, useName, useIban }: { userId: string; useName: boolean; useIban: boolean }) {
+  return { userId, useName: useName ? undefined : false, useIban: useIban ? undefined : false }
+}
+
+/**
+ * "That's mine" (ADR-0046): stores an alias for `userId` from the counterparty of a pool payment.
+ * The server reads the IBAN from the payment; the client never has it. Refreshes the pool and that
+ * member's aliases in the background, so the caller can close its sheet at once.
+ */
+export function useClaimPayment() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ paymentId, userId, useName, useIban }: { paymentId: string; userId: string; useName: boolean; useIban: boolean }) => {
+      const res = await api.claimPayment({ paymentId, body: claimBody({ userId, useName, useIban }) })
+      if (res.status !== 201) throw failure(res)
+      return res.body
+    },
+    // Someone else linked it meanwhile: refresh so the row stops offering the claim.
+    onError: (error) => {
+      if (error instanceof PaymentAliasError && error.code === 'NOT_CLAIMABLE') void queryClient.invalidateQueries({ queryKey: ['money-pool'] })
+    },
+    onSuccess: (_alias, { userId }) => {
+      void queryClient.invalidateQueries({ queryKey: aliasesKey(userId) })
+      void queryClient.invalidateQueries({ queryKey: ['money-pool'] })
+    },
   })
 }

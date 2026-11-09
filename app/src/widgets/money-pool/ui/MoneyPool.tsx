@@ -2,6 +2,8 @@ import { useCurrentUser } from '@shared/api/auth'
 import { useBunqConnection } from '@shared/api/bunq-connection'
 import { useSeason } from '@shared/api/season'
 import { useMoneyPool } from '@shared/api/money-pool'
+import { ClaimPayment } from '@features/claim-payment/ui/ClaimPayment'
+import { claimVariant } from '@features/claim-payment/lib/claim-variant'
 import { ReceiptButton } from '@features/attach-receipt/ui/ReceiptButton'
 import { TopUp } from '@features/top-up/ui/TopUp'
 import { formatEuro } from '../lib/format'
@@ -42,6 +44,10 @@ export function MoneyPool() {
           amount={formatEuro(expense.amount)}
         />
       )}
+      claim={(payment) => {
+        const variant = claimVariant(user, payment)
+        return variant && <ClaimPayment payment={payment} variant={variant} amount={formatEuro(payment.amount)} />
+      }}
     />
   )
 }

@@ -1145,7 +1145,37 @@
       "INVALID": "Add a name or an IBAN that can be saved.",
       "FORBIDDEN": "You are not allowed to change this.",
       "NOT_FOUND": "This alias no longer exists. Reload the page.",
-      "FAILED": "Couldn't save. Please try again."
+      "FAILED": "Couldn't save. Please try again.",
+      "NOT_CLAIMABLE": "This payment is already linked. Reload the page.",
+      "POOL_UNAVAILABLE": "The money pool is unavailable right now. Try again later."
+    }
+  },
+  "claim": {
+    "mine": "That's mine: {{name}}",
+    "assign": "Assign {{name}} to a member",
+    "titleMine": "Is this payment yours?",
+    "titleAssign": "Assign this payment",
+    "description": "{{name}}, {{amount}}. Choose what to remember, so the next payment like this links itself.",
+    "member": "Member",
+    "memberPlaceholder": "Choose a member",
+    "chooseMember": "Choose a member first.",
+    "chooseParts": "Choose the name, the IBAN or both.",
+    "useName": "Name: {{name}}",
+    "useIban": "The IBAN of this payment",
+    "ibanHint": "Turn this off for a shared account.",
+    "confirm": "Link payment",
+    "saving": "Linking…",
+    "cancel": "Cancel",
+    "done": "Linked to {{who}}: {{alias}}",
+    "error": {
+      "ALIAS_TAKEN": "Another member already uses this name or IBAN.",
+      "INVALID_IBAN": "Nothing to store. Choose the name or the IBAN.",
+      "INVALID": "Nothing to store. Choose the name or the IBAN.",
+      "FORBIDDEN": "You are not allowed to link this payment.",
+      "NOT_FOUND": "This payment or member is gone. Reload the page.",
+      "NOT_CLAIMABLE": "This payment is already linked. Reload the page.",
+      "POOL_UNAVAILABLE": "The money pool is unavailable right now. Try again later.",
+      "FAILED": "Couldn't link the payment. Please try again."
     }
   }
 }

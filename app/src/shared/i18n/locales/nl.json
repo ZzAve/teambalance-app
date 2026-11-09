@@ -1145,7 +1145,37 @@
       "INVALID": "Voeg een naam of IBAN toe die opgeslagen kan worden.",
       "FORBIDDEN": "Je mag dit niet wijzigen.",
       "NOT_FOUND": "Deze koppeling bestaat niet meer. Laad de pagina opnieuw.",
-      "FAILED": "Opslaan is mislukt. Probeer het opnieuw."
+      "FAILED": "Opslaan is mislukt. Probeer het opnieuw.",
+      "NOT_CLAIMABLE": "Deze betaling is al gekoppeld. Laad de pagina opnieuw.",
+      "POOL_UNAVAILABLE": "De teampot is nu niet beschikbaar. Probeer het later opnieuw."
+    }
+  },
+  "claim": {
+    "mine": "Dit is van mij: {{name}}",
+    "assign": "{{name}} aan een lid koppelen",
+    "titleMine": "Is deze betaling van jou?",
+    "titleAssign": "Betaling koppelen",
+    "description": "{{name}}, {{amount}}. Kies wat onthouden wordt, zodat een volgende betaling zoals deze vanzelf gekoppeld wordt.",
+    "member": "Lid",
+    "memberPlaceholder": "Kies een lid",
+    "chooseMember": "Kies eerst een lid.",
+    "chooseParts": "Kies de naam, het IBAN of allebei.",
+    "useName": "Naam: {{name}}",
+    "useIban": "Het IBAN van deze betaling",
+    "ibanHint": "Zet dit uit voor een gezamenlijke rekening.",
+    "confirm": "Betaling koppelen",
+    "saving": "Koppelen…",
+    "cancel": "Annuleren",
+    "done": "Gekoppeld aan {{who}}: {{alias}}",
+    "error": {
+      "ALIAS_TAKEN": "Een ander lid gebruikt deze naam of dit IBAN al.",
+      "INVALID_IBAN": "Niets om op te slaan. Kies de naam of het IBAN.",
+      "INVALID": "Niets om op te slaan. Kies de naam of het IBAN.",
+      "FORBIDDEN": "Je mag deze betaling niet koppelen.",
+      "NOT_FOUND": "Deze betaling of dit lid bestaat niet meer. Laad de pagina opnieuw.",
+      "NOT_CLAIMABLE": "Deze betaling is al gekoppeld. Laad de pagina opnieuw.",
+      "POOL_UNAVAILABLE": "De teampot is nu niet beschikbaar. Probeer het later opnieuw.",
+      "FAILED": "Koppelen is mislukt. Probeer het opnieuw."
     }
   }
 }

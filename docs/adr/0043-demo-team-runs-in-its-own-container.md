@@ -1,7 +1,7 @@
 # ADR-0043: The demo team runs in its own container, with its own database
 
-- Status: Proposed
-- Date: 2026-11-05
+- Status: Accepted
+- Date: 2026-11-09
 - Relates to: [ADR-0008](0008-auth-magic-link-and-shareable-invite.md) (magic link),
   [ADR-0012](0012-adopt-spring-security-session-fixation-csrf-unified-auth.md) (XSRF cookie), [ADR-0019](0019-self-service-team-onboarding.md) (tenant
   migration at boot), [ADR-0022](0022-jdbc-backed-shared-sessions-survive-restart.md) (JDBC sessions),

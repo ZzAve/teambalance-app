@@ -69,7 +69,8 @@ that group): a JitPack outage fails the image build, not the running app.
 **`deploy-api`** — after the `production` approval, does an **image-only** update of Serverless
 Container `ec9dfda3-…` (fr-par) to the `api:<sha>` image that `image` pushed. The container's
 cpu/memory/sandbox and its env/secret maps are left untouched — those are managed manually
-in the Scaleway console.
+in the Scaleway console. After the prod verify, the same job updates the demo container (see
+[Demo](#demo-demoteambalancenl)) to `api-demo:<sha>` and verifies it the same way.
 
 **Post-deploy verification (this is why a bad image now goes red).** `scw container update`
 only *registers* the new image and returns immediately — Scaleway rolls it out
@@ -167,6 +168,38 @@ existed have no such tag; push to the PR once to get one.
 - **Log in:** request a magic link for a demo member (e.g. `jan@example.com`) and copy the token
   from the `Magic link for …` line in the container logs (Cockpit).
 
+## Demo (`demo.teambalance.nl`)
+
+A third Serverless Container, `api-demo` (`26261720-f1a3-4b35-930b-bf960855a360`, fr-par, ID in
+`DEMO_CONTAINER_ID` in `ci.yml`), serves the demo team and the SPA from one host
+([ADR-0043](../adr/0043-demo-team-runs-in-its-own-container.md)).
+
+- **Image:** `api/Dockerfile --target demo` = the stg image plus the SPA built in demo mode
+  (`make demo-spa` → `app/dist-demo`). Pushed by the `image` job as `rg.fr-par.scw.cloud/teambalance/api-demo:<sha>`.
+- **Deploy:** the `deploy-api` job (after the `production` approval) updates the demo container to
+  `api-demo:<sha>` after prod's verify step, then runs `await-live-sha.sh` against
+  `https://demo.teambalance.nl` with `DEMO_INTERNAL_API_KEY`. The script polls for 6 minutes and each
+  request waits up to 10 s, so the first requests wake the container and later ones wait out the
+  boot (about 50 s).
+- **Container:** 1000 mvCPU / 1 GB, sandbox v2, min/max scale 0 / 1 (**max 1**: each instance has
+  its own database), request timeout 60 s, startup probe 40 × 5 s. Custom domain
+  `demo.teambalance.nl`. Env/secret maps are set by hand like prod's; `INTERNAL_API_KEY` equals the
+  GitHub secret `DEMO_INTERNAL_API_KEY`. The deploy only changes the image.
+  `scw container container update` takes the memory limit with a unit, e.g. `memory-limit-bytes=1GB`,
+  not a byte count.
+- **Env baked into the image:** `TEAMBALANCE_DEMO_ENABLED=true`, `TEAMBALANCE_DEMO_DATA_ENABLED=false`,
+  `TEAMBALANCE_PASSKEYS_ENABLED=false`, `TEAMBALANCE_BUNQ_ENVIRONMENT=fake`,
+  `TEAMBALANCE_EMAIL_SEND=false`, `TEAMBALANCE_SPA_STATIC_LOCATION=file:/app/static/`,
+  session timeouts 4 h, `TEAMBALANCE_CSRF_COOKIE_NAME=DEMO-XSRF-TOKEN`,
+  `TEAMBALANCE_API_BASE_URL` / `TEAMBALANCE_FRONTEND_BASE_URL` / `TEAMBALANCE_CORS_ALLOWED_ORIGINS`
+  = `https://demo.teambalance.nl`. The app refuses to start unless email sending is off, the Bunq
+  environment is `fake` and the datasource is loopback.
+- **Reset:** the demo team is rebuilt hourly (`teambalance.demo.reset-after`, default `1h`). The
+  database lives in the container, so a cold start also begins empty.
+- **Log in:** open `https://demo.teambalance.nl/demo` and pick a member; no magic link. The
+  landing page links there.
+- **Cost:** €0.0432 per awake hour at 1 vCPU / 1 GB; nothing while scaled to zero.
+
 ## Container Registry retention
 
 CI pushes `api:<sha>`, `api-stg:<sha>` and `api-stg:head-<head sha>` on every run, so
@@ -215,6 +248,7 @@ Settings → Secrets and variables → Actions (names only — never commit valu
 | `SCW_S3_SECRET_KEY` | Object Storage sync — its secret. |
 | `INTERNAL_API_KEY` | Post-deploy verify — sent as `X-Internal-Api-Key` to read `/internal/actuator/info`. **Must equal the container's `INTERNAL_API_KEY` env** (see below). |
 | `STG_INTERNAL_API_KEY` | The same, for the stg container. |
+| `DEMO_INTERNAL_API_KEY` | The same, for the demo container (must equal its `INTERNAL_API_KEY` env). |
 
 > **`INTERNAL_API_KEY` must be set in two places with the same value:** as the GitHub Actions
 > secret above **and** as an env/secret on the Serverless Container (Scaleway console → the

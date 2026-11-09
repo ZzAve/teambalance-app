@@ -7,7 +7,7 @@ import { useCurrentUser } from '@shared/api/auth'
 
 // The team roster for every authenticated member — no admin gate (the root route already guarantees
 // authenticated + onboarded). Read-only for everyone, admins included: this is the view surface.
-// Admins additionally get the invite link + the gear in the header (below) linking into
+// Admins additionally get the invite link + the gear on the roster heading's line, linking into
 // /team/settings, where member management lives — the team actions on the team screen, under the
 // new tab-bar nav.
 export const Route = createFileRoute('/t/$slug/team/')({
@@ -21,7 +21,7 @@ function TeamPage() {
     <TeamPageView
       isAdmin={isAdmin}
       inviteAction={<GenerateInviteDialog />}
-      roster={<MemberRoster canManage={false} />}
+      roster={(headerActions) => <MemberRoster canManage={false} headerActions={headerActions} />}
       substitutes={<ManageSubstitutes canManage={false} />}
     />
   )

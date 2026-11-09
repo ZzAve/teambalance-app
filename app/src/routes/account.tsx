@@ -12,6 +12,7 @@ import {
 import { usePositions } from '@shared/api/positions'
 import { accountSections } from '@features/account/lib/account-sections'
 import { AccountView } from '@features/account/ui/AccountView'
+import { PageHeader } from '@widgets/page-header/ui/PageHeader'
 import { useTranslation } from 'react-i18next'
 
 /**
@@ -63,53 +64,56 @@ function AccountPage() {
   const resetPhotoErrors = () => photoMutations.forEach((m) => m.reset())
 
   return (
-    <AccountView
-      sections={accountSections(user)}
-      userId={user.id}
-      activeTeamSlug={activeTeam?.slug ?? null}
-      displayName={user.displayName}
-      email={user.email}
-      personalPhotoVersion={user.personalPhotoVersion ?? null}
-      isPhotoSaving={photoMutations.some((m) => m.isPending)}
-      photoErrorMessage={
-        photoError ? t(`photo.error.${photoError instanceof PhotoError ? photoError.code : 'FAILED'}`) : undefined
-      }
-      copyPhotoTeamName={offerCopy && activeTeam ? activeTeam.name : null}
-      onUploadPersonalPhoto={(photo) => {
-        resetPhotoErrors()
-        setOfferCopy(false)
-        // Offered once, right after the upload, and only while this Team shows initials (ADR-0038).
-        uploadPhoto.mutate(photo, { onSuccess: () => setOfferCopy(!!member && !member.photoVersion) })
-      }}
-      onRemovePersonalPhoto={() => {
-        resetPhotoErrors()
-        setOfferCopy(false)
-        removePhoto.mutate()
-      }}
-      onCopyPhotoToTeam={() => {
-        resetPhotoErrors()
-        copyPhoto.mutate(undefined, { onSuccess: () => setOfferCopy(false) })
-      }}
-      onDismissCopyPhoto={() => setOfferCopy(false)}
-      activeTeamName={activeTeam?.name ?? null}
-      member={member ?? null}
-      positions={positions ?? []}
-      isMemberLoading={!!activeTeam && memberLoading}
-      isMemberError={!!memberError}
-      isSaving={updateMember.isPending}
-      memberErrorCode={memberErrorCode}
-      onSubmitProfile={(name, positionId) => {
-        if (!member) return
-        updateMember.mutate({
-          userId: member.userId,
-          displayName: name,
-          role: member.role,
-          positionId,
-          shirtNumber: member.shirtNumber ?? null,
-        })
-      }}
-      // In-shell logout: a clean server-side teardown first, then the shared client clear.
-      onLogout={() => logout.mutate(undefined, { onSuccess: () => clearSession() })}
-    />
+    <>
+      <PageHeader title={t('account.title')} />
+      <AccountView
+        sections={accountSections(user)}
+        userId={user.id}
+        activeTeamSlug={activeTeam?.slug ?? null}
+        displayName={user.displayName}
+        email={user.email}
+        personalPhotoVersion={user.personalPhotoVersion ?? null}
+        isPhotoSaving={photoMutations.some((m) => m.isPending)}
+        photoErrorMessage={
+          photoError ? t(`photo.error.${photoError instanceof PhotoError ? photoError.code : 'FAILED'}`) : undefined
+        }
+        copyPhotoTeamName={offerCopy && activeTeam ? activeTeam.name : null}
+        onUploadPersonalPhoto={(photo) => {
+          resetPhotoErrors()
+          setOfferCopy(false)
+          // Offered once, right after the upload, and only while this Team shows initials (ADR-0038).
+          uploadPhoto.mutate(photo, { onSuccess: () => setOfferCopy(!!member && !member.photoVersion) })
+        }}
+        onRemovePersonalPhoto={() => {
+          resetPhotoErrors()
+          setOfferCopy(false)
+          removePhoto.mutate()
+        }}
+        onCopyPhotoToTeam={() => {
+          resetPhotoErrors()
+          copyPhoto.mutate(undefined, { onSuccess: () => setOfferCopy(false) })
+        }}
+        onDismissCopyPhoto={() => setOfferCopy(false)}
+        activeTeamName={activeTeam?.name ?? null}
+        member={member ?? null}
+        positions={positions ?? []}
+        isMemberLoading={!!activeTeam && memberLoading}
+        isMemberError={!!memberError}
+        isSaving={updateMember.isPending}
+        memberErrorCode={memberErrorCode}
+        onSubmitProfile={(name, positionId) => {
+          if (!member) return
+          updateMember.mutate({
+            userId: member.userId,
+            displayName: name,
+            role: member.role,
+            positionId,
+            shirtNumber: member.shirtNumber ?? null,
+          })
+        }}
+        // In-shell logout: a clean server-side teardown first, then the shared client clear.
+        onLogout={() => logout.mutate(undefined, { onSuccess: () => clearSession() })}
+      />
+    </>
   )
 }

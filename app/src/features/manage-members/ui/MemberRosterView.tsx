@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next'
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { Link } from '@tanstack/react-router'
 import type { Member } from '@shared/api/members'
 import type { Position } from '@shared/api/positions'
@@ -29,6 +29,8 @@ interface MemberRosterViewProps {
    * edit it here.
    */
   canManage: boolean
+  /** Page actions placed on the heading's line, right-aligned (the Team page's invite link and settings gear). */
+  headerActions?: ReactNode
   /** The team's position vocabulary, offered per row so an admin can (re)assign a member. */
   positions: Position[]
   /** The members query is in flight — render the loading shell instead of the roster. */
@@ -62,6 +64,7 @@ interface MemberRosterViewProps {
 export function MemberRosterView({
   members = [],
   canManage,
+  headerActions,
   positions,
   isLoading,
   isError,
@@ -77,7 +80,10 @@ export function MemberRosterView({
 
   return (
     <div>
-      <h2 className="font-display text-title font-bold">{t('members.heading')}</h2>
+      <div className="flex items-center justify-between gap-2">
+        <h2 className="font-display text-title font-bold">{t('members.heading')}</h2>
+        {headerActions && <div className="flex shrink-0 items-center gap-2">{headerActions}</div>}
+      </div>
 
       {isLoading && <p className="mt-4 text-small text-muted-foreground">{t('account.loading')}</p>}
       {isError && (

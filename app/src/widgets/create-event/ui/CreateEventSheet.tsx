@@ -53,9 +53,10 @@ export function CreateEventSheet() {
   return (
     <Sheet open={mode !== 'closed'} onOpenChange={(open) => (open ? setMode('chooser') : close())}>
       <SheetTrigger asChild>
-        <Button onClick={() => setMode('chooser')}>
+        {/* Icon-only below sm so the Events heading line fits on a phone; the label stays for screen readers. */}
+        <Button onClick={() => setMode('chooser')} className="max-sm:size-11 max-sm:px-0">
           <Plus size={16} />
-          {t('events.newEvent')}
+          <span className="sr-only sm:not-sr-only">{t('events.newEvent')}</span>
         </Button>
       </SheetTrigger>
       <SheetContent>

@@ -93,20 +93,39 @@ export function EventDetailView({
   // Which Substitute's sheet is open. Both their Position-group row and the block open it.
   const [openSubstituteId, setOpenSubstituteId] = useState<string | null>(null)
 
-  if (isLoading) return <EventDetailSkeleton />
+  // The bar keeps its back link while the event loads, fails or is missing, so it doesn't jump
+  // between the top-level and the nested shape on the way in.
+  const header = <PageHeader title={event?.title ?? ''} backTo={backTo} backLabel={t('eventDetail.back')} />
+
+  if (isLoading)
+    return (
+      <>
+        {header}
+        <EventDetailSkeleton />
+      </>
+    )
   if (isError)
     return (
-      <QueryErrorState
-        title={t('eventDetail.loadFailed')}
-        description={t('eventDetail.loadFailedHint')}
-        onRetry={() => onRetry?.()}
-      >
-        <Button asChild variant="ghost">
-          <Link to={backTo}>{t('eventDetail.back')}</Link>
-        </Button>
-      </QueryErrorState>
+      <>
+        {header}
+        <QueryErrorState
+          title={t('eventDetail.loadFailed')}
+          description={t('eventDetail.loadFailedHint')}
+          onRetry={() => onRetry?.()}
+        >
+          <Button asChild variant="ghost">
+            <Link to={backTo}>{t('eventDetail.back')}</Link>
+          </Button>
+        </QueryErrorState>
+      </>
     )
-  if (!event) return <p>{t('eventDetail.notFound')}</p>
+  if (!event)
+    return (
+      <>
+        {header}
+        <p>{t('eventDetail.notFound')}</p>
+      </>
+    )
 
   const date = new Date(event.startTime)
   // RoleBreakdown is the per-role fallback for a list without position targets: there the groups carry
@@ -116,8 +135,7 @@ export function EventDetailView({
 
   return (
     <div>
-      {/* Sticky sub-header — offset comes from --header-height via PageHeader, not a magic pixel. */}
-      <PageHeader title={event.title} backTo={backTo} backLabel={t('eventDetail.back')} />
+      {header}
 
       {/* Event info — identity, then one icon-marked row per detail */}
       <div className="mt-2 rounded-lg border border-border/40 bg-card p-5 shadow-sm">

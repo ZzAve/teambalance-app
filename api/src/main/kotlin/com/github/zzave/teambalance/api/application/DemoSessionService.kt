@@ -16,6 +16,11 @@ enum class DemoPersona(val userId: UserId) {
     }
 }
 
+private fun String.toDemoPersona(): DemoPersona? = when (this) {
+    "MEMBER" -> DemoPersona.MEMBER
+    else -> null
+}
+
 enum class DemoSessionOutcome { STARTED, DISABLED, UNKNOWN_PERSONA }
 
 /**
@@ -29,7 +34,7 @@ class DemoSessionService(
     private val authService: AuthService,
 ) {
     fun start(persona: String): DemoSessionOutcome {
-        val known = DemoPersona.entries.firstOrNull { it.name == persona }
+        val known = persona.toDemoPersona()
         return when {
             !enabled -> DemoSessionOutcome.DISABLED
             known == null -> DemoSessionOutcome.UNKNOWN_PERSONA

@@ -61,7 +61,7 @@ class JooqAttendanceRepositoryAdapter(
             .fetchOne() ?: throw EventNotFoundException(attendance.eventId)
         return attendance.copy(
             id = AttendanceId(stored.uuid),
-            state = AttendanceState.valueOf(stored.state),
+            state = stored.state.toAttendanceState(),
             updatedAt = stored.updatedAt.toInstant(),
             changedBy = UserId(stored.changedBy),
         )
@@ -113,7 +113,7 @@ class JooqAttendanceRepositoryAdapter(
                 DSL.`val`(attendance.id.value),
                 EVENTS.ID,
                 DSL.`val`(attendance.userId.value),
-                DSL.`val`(attendance.state.name),
+                DSL.`val`(attendance.state.toDbValue()),
                 DSL.`val`(attendance.updatedAt.atOffset(ZoneOffset.UTC)),
                 DSL.`val`(attendance.changedBy.value),
             ).from(EVENTS).where(EVENTS.UUID.eq(attendance.eventId.value)),
@@ -124,7 +124,7 @@ private fun Record.toAttendance() = Attendance(
     id = AttendanceId(get(ATTENDANCES.UUID)),
     eventId = EventId(get(EVENTS.UUID)),
     userId = UserId(get(ATTENDANCES.USER_ID)),
-    state = AttendanceState.valueOf(get(ATTENDANCES.STATE)),
+    state = get(ATTENDANCES.STATE).toAttendanceState(),
     updatedAt = get(ATTENDANCES.UPDATED_AT).toInstant(),
     changedBy = UserId(get(ATTENDANCES.CHANGED_BY)),
 )

@@ -86,7 +86,7 @@ class JooqTeamMemberRepositoryAdapter(
     private fun Record.toTeamMember() = TeamMember(
         userId = UserId(this[TEAM_MEMBERS.USER_ID]),
         displayName = DisplayName(this[TENANT_OR_PLATFORM_NAME]),
-        permission = Role.valueOf(this[TEAM_MEMBERS.ROLE]),
+        permission = this[TEAM_MEMBERS.ROLE].toRole(),
         positionId = this[MEMBER_PROFILES.POSITION_ID]?.let(::PositionId),
         position = this[POSITIONS.LABEL]?.let(::PositionLabel),
         onboarded = this[ONBOARDED],
@@ -95,7 +95,7 @@ class JooqTeamMemberRepositoryAdapter(
     )
 
     override fun findRole(teamId: TeamId, userId: UserId): Role? =
-        activeRoleName(teamId, userId)?.let { name -> Role.entries.firstOrNull { it.name == name } }
+        activeRoleName(teamId, userId)?.toRole()
 
     private fun activeRoleName(teamId: TeamId, userId: UserId): String? =
         dsl.select(TEAM_MEMBERS.ROLE)
@@ -228,7 +228,7 @@ class JooqTeamMemberRepositoryAdapter(
     override fun countAdmins(teamId: TeamId): Int =
         dsl.fetchCount(
             TEAM_MEMBERS,
-            TEAM_MEMBERS.TEAM_ID.eq(teamId.value).and(TEAM_MEMBERS.ROLE.eq(Role.ADMIN.name)).and(TEAM_MEMBERS.ACTIVE.isTrue),
+            TEAM_MEMBERS.TEAM_ID.eq(teamId.value).and(TEAM_MEMBERS.ROLE.eq(Role.ADMIN.toDbValue())).and(TEAM_MEMBERS.ACTIVE.isTrue),
         )
 
     /**
@@ -256,7 +256,7 @@ class JooqTeamMemberRepositoryAdapter(
         if (existingRole != null) {
             // Already a member. An ADMIN handover link promotes a plain member; anything else is a
             // no-op. Never demote — a USER link must not strip an existing admin's rights.
-            if (role == Role.ADMIN && existingRole != Role.ADMIN.name) setRole(teamId, userId, Role.ADMIN)
+            if (role == Role.ADMIN && existingRole != Role.ADMIN.toDbValue()) setRole(teamId, userId, Role.ADMIN)
             return
         }
         // (team_id, user_id) is UNIQUE, so an insert cannot re-join a member whose row is inactive.
@@ -267,7 +267,7 @@ class JooqTeamMemberRepositoryAdapter(
             .set(TEAM_MEMBERS.ID, UUID.randomUUID())
             .set(TEAM_MEMBERS.TEAM_ID, teamId.value)
             .set(TEAM_MEMBERS.USER_ID, userId.value)
-            .set(TEAM_MEMBERS.ROLE, role.name)
+            .set(TEAM_MEMBERS.ROLE, role.toDbValue())
             .onConflictDoNothing()
             .execute()
         if (inserted == 0) logger.info("Concurrent accept for team {} / user {} — already a member", teamId, userId)
@@ -279,7 +279,7 @@ class JooqTeamMemberRepositoryAdapter(
     private fun reactivateWithRole(teamId: TeamId, userId: UserId, role: Role): Int =
         dsl.update(TEAM_MEMBERS)
             .set(TEAM_MEMBERS.ACTIVE, true)
-            .set(TEAM_MEMBERS.ROLE, role.name)
+            .set(TEAM_MEMBERS.ROLE, role.toDbValue())
             .where(TEAM_MEMBERS.TEAM_ID.eq(teamId.value))
             .and(TEAM_MEMBERS.USER_ID.eq(userId.value))
             .and(TEAM_MEMBERS.ACTIVE.isFalse)
@@ -287,7 +287,7 @@ class JooqTeamMemberRepositoryAdapter(
 
     private fun setRole(teamId: TeamId, userId: UserId, role: Role) {
         dsl.update(TEAM_MEMBERS)
-            .set(TEAM_MEMBERS.ROLE, role.name)
+            .set(TEAM_MEMBERS.ROLE, role.toDbValue())
             .where(TEAM_MEMBERS.TEAM_ID.eq(teamId.value))
             .and(TEAM_MEMBERS.USER_ID.eq(userId.value))
             .and(TEAM_MEMBERS.ACTIVE.isTrue)

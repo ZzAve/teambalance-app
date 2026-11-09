@@ -124,7 +124,7 @@ class JooqCalendarLinkRepositoryAdapter(
                 options.attendanceStates.map { state ->
                     dsl.insertInto(CALENDAR_LINK_ATTENDANCE_STATES)
                         .set(CALENDAR_LINK_ATTENDANCE_STATES.LINK_ID, linkId)
-                        .set(CALENDAR_LINK_ATTENDANCE_STATES.STATE, state.name)
+                        .set(CALENDAR_LINK_ATTENDANCE_STATES.STATE, state.toDbValue())
                 },
             ).execute()
         }
@@ -183,7 +183,7 @@ private fun CalendarLinksRecord.toDomain(attendanceStates: List<String>, eventTy
     options = CalendarLinkOptions(
         // No rows reads as every state: the previous release, still serving while a deploy rolls
         // out, inserts links without them (ADR-0040).
-        attendanceStates = attendanceStates.map(AttendanceState::valueOf).toSet()
+        attendanceStates = attendanceStates.map(String::toAttendanceState).toSet()
             .ifEmpty { AttendanceState.entries.toSet() },
         // No rows is every type (ADR-0040).
         eventTypeIds = eventTypeUuids.map(::EventTypeId).toSet().takeIf { it.isNotEmpty() },

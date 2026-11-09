@@ -2,8 +2,8 @@ package com.github.zzave.teambalance.api.infrastructure.persistence
 
 import com.github.zzave.teambalance.api.domain.model.AttendanceState
 
-// The stored form of an attendance state. Both directions list every constant, so adding one breaks
-// the build here instead of failing at runtime. An unknown stored value is corrupt data, not a client error.
+// The stored form of an attendance state. toDbValue lists every constant, so adding one breaks the build
+// here. An unknown stored value is corrupt data, not a client error.
 internal fun AttendanceState.toDbValue(): String = when (this) {
     AttendanceState.ATTENDING -> "ATTENDING"
     AttendanceState.MAYBE -> "MAYBE"

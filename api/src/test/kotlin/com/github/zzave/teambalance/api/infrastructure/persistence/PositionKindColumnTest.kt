@@ -11,8 +11,9 @@ class PositionKindColumnTest : FunSpec({
         PositionKind.entries.forEach { it.toDbValue().toPositionKind() shouldBe it }
     }
 
-    test("stores each constant under its own name, as before the mapping was explicit") {
-        PositionKind.entries.forEach { it.toDbValue() shouldBe it.name }
+    test("stores the values the CHECK constraint allows") {
+        PositionKind.PLAYING.toDbValue() shouldBe "PLAYING"
+        PositionKind.STAFF.toDbValue() shouldBe "STAFF"
     }
 
     test("an unknown stored value is corrupt data, not a client error") {

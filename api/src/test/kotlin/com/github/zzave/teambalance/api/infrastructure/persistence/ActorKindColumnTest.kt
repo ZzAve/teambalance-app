@@ -11,8 +11,9 @@ class ActorKindColumnTest : FunSpec({
         ActorKind.entries.forEach { it.toDbValue().toActorKind() shouldBe it }
     }
 
-    test("stores each constant under its own name, as before the mapping was explicit") {
-        ActorKind.entries.forEach { it.toDbValue() shouldBe it.name }
+    test("stores the values the CHECK constraint allows") {
+        ActorKind.MEMBER.toDbValue() shouldBe "MEMBER"
+        ActorKind.PLATFORM_ADMIN.toDbValue() shouldBe "PLATFORM_ADMIN"
     }
 
     test("an unknown stored value is corrupt data, not a client error") {

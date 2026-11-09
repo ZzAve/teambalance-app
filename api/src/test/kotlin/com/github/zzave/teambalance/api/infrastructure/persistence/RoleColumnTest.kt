@@ -11,8 +11,9 @@ class RoleColumnTest : FunSpec({
         Role.entries.forEach { it.toDbValue().toRole() shouldBe it }
     }
 
-    test("stores each constant under its own name, as before the mapping was explicit") {
-        Role.entries.forEach { it.toDbValue() shouldBe it.name }
+    test("stores the values the CHECK constraint allows") {
+        Role.USER.toDbValue() shouldBe "USER"
+        Role.ADMIN.toDbValue() shouldBe "ADMIN"
     }
 
     test("an unknown stored value is corrupt data, not a client error") {

@@ -11,8 +11,11 @@ class AttendanceStateColumnTest : FunSpec({
         AttendanceState.entries.forEach { it.toDbValue().toAttendanceState() shouldBe it }
     }
 
-    test("stores each constant under its own name, as before the mapping was explicit") {
-        AttendanceState.entries.forEach { it.toDbValue() shouldBe it.name }
+    test("stores the values the CHECK constraint allows") {
+        AttendanceState.ATTENDING.toDbValue() shouldBe "ATTENDING"
+        AttendanceState.MAYBE.toDbValue() shouldBe "MAYBE"
+        AttendanceState.ABSENT.toDbValue() shouldBe "ABSENT"
+        AttendanceState.NOT_RESPONDED.toDbValue() shouldBe "NOT_RESPONDED"
     }
 
     test("an unknown stored value is corrupt data, not a client error") {

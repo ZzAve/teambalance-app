@@ -59,7 +59,7 @@ class JooqUserRepositoryAdapter(
             .from(USERS)
             .where(USERS.ID.eq(userId.value))
             .fetchOne(USERS.LANGUAGE)
-            ?.let { it.toLanguage() }
+            ?.toLanguage()
 
     override fun saveLanguage(userId: UserId, language: Language) {
         dsl.update(USERS)

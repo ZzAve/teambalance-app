@@ -101,6 +101,9 @@ async function capture(browser, name, options) {
   await page.goto(`${APP_URL}/`)
   await page.getByRole('heading', { name: 'Events' }).waitFor()
   await page.waitForLoadState('networkidle')
+  // The add-a-passkey prompt (ADR-0045) is offered to every account without one; not part of the overview.
+  const notNow = page.getByRole('button', { name: 'Nu niet' })
+  if (await notNow.isVisible()) await notNow.click()
   const file = resolve(OUT_DIR, `${name}.png`)
   await page.screenshot({ path: file })
   const scale = options.deviceScaleFactor ?? 1

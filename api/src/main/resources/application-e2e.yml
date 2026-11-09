@@ -56,3 +56,5 @@ teambalance:
       capacity: 1000
     calendar-feed-per-client:
       capacity: 100000
+    bunq-oauth-callback:
+      capacity: 1000

@@ -24,15 +24,16 @@ export default defineConfig({
       use: { ...devices['Desktop Chrome'], storageState: 'e2e-real/.auth/user.json' },
       dependencies: ['setup'],
       testIgnore: /demo\.spec/,
+      teardown: 'demo',
     },
     // The demo build (VITE_DEMO) on its own port: only demo.spec.ts runs against it, so every other spec
     // keeps testing the prod build (login redirect, no banner). It runs after `chromium` because its reset step
-    // drops the whole e2e database, including `team_test` and the sessions the other specs hold.
+    // drops the whole e2e database, including `team_test` and the sessions the other specs hold. It is `chromium`'s
+    // teardown rather than a dependent: a dependent is skipped when any chromium test fails, a teardown still runs.
     {
       name: 'demo',
       use: { ...devices['Desktop Chrome'], baseURL: 'http://localhost:5174' },
       testMatch: /demo\.spec/,
-      dependencies: ['chromium'],
     },
   ],
   webServer: [

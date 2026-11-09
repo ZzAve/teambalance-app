@@ -17,6 +17,9 @@ const MONEY = `/t/${TEAM}/money`
 const MEMBER_EMAIL = 'e2e-teammate@example.com'
 const BASE_URL = 'http://localhost:5173'
 const BACKEND_URL = process.env.BACKEND_URL ?? 'http://localhost:8080'
+// Back from Bunq's page is a cross-origin redirect chain (decide -> API callback -> SPA) ending in a cold SPA load,
+// which can outlast the default 5 s expect timeout on a loaded CI runner.
+const BACK_FROM_BUNQ = { timeout: 20_000 }
 
 // A browser signed in as the seeded member. The request context is explicitly empty: one made from
 // `playwright.request` would inherit the admin's storageState from the project config, and signing in
@@ -63,9 +66,9 @@ test('money pool: an admin connects Bunq, picks an account, a member reads it, t
 
   // 2. The fake Bunq page, then the API's callback sends the browser back to the settings.
   await page.getByRole('button', { name: 'Approve' }).click()
-  await expect(page.getByRole('status').filter({ hasText: 'Connected, pick an account below.' })).toBeVisible()
+  await expect(page.getByRole('status').filter({ hasText: 'Connected, pick an account below.' })).toBeVisible(BACK_FROM_BUNQ)
   // The result is for this first load only: it leaves the URL once shown, so a reload does not announce it again.
-  await expect(page).toHaveURL(new RegExp(`${SETTINGS}$`))
+  await expect(page).toHaveURL(new RegExp(`${SETTINGS}$`), BACK_FROM_BUNQ)
 
   // 3. Connected but nothing picked: the pool still reads as not connected, and says what is left to do.
   await expect(page.getByRole('radio', { name: 'Teamkas' })).not.toBeChecked()
@@ -107,8 +110,8 @@ test('money pool: an admin connects Bunq, picks an account, a member reads it, t
   await page.getByRole('checkbox', { name: /Connecting gives TeamBalance/ }).check()
   await page.getByRole('button', { name: 'Connect again' }).click()
   await page.getByRole('button', { name: 'Approve' }).click()
-  await expect(page.getByRole('status').filter({ hasText: 'Connected to bunq.' })).toBeVisible()
-  await expect(page).toHaveURL(new RegExp(`${SETTINGS}$`))
+  await expect(page.getByRole('status').filter({ hasText: 'Connected to bunq.' })).toBeVisible(BACK_FROM_BUNQ)
+  await expect(page).toHaveURL(new RegExp(`${SETTINGS}$`), BACK_FROM_BUNQ)
   await expect(page.getByRole('radio', { name: 'Teamkas' })).toBeChecked()
 
   // 7. A member reads the same pool, and the settings (and the Connect section) are not theirs.
@@ -160,7 +163,7 @@ test('money pool: Bunq withdraws access, members see the pool unavailable, the a
   await page.getByRole('button', { name: 'Connect Bunq' }).click()
   await page.getByRole('textbox', { name: 'Login' }).fill(login)
   await page.getByRole('button', { name: 'Approve' }).click()
-  await expect(page).toHaveURL(new RegExp(`${SETTINGS}\\?bunq=connected`))
+  await expect(page).toHaveURL(new RegExp(`${SETTINGS}\\?bunq=connected`), BACK_FROM_BUNQ)
   await page.getByRole('radio', { name: 'Teamkas' }).check()
   await page.getByRole('button', { name: 'Use this account' }).click()
   await expect(page.getByRole('status').filter({ hasText: 'The Money page now shows Teamkas.' })).toBeFocused()
@@ -212,8 +215,8 @@ test('money pool: Bunq withdraws access, members see the pool unavailable, the a
     await page.getByRole('button', { name: 'Connect again' }).click()
     await page.getByRole('textbox', { name: 'Login' }).fill(login)
     await page.getByRole('button', { name: 'Approve' }).click()
-    await expect(page).toHaveURL(new RegExp(`${SETTINGS}\\?bunq=connected`))
-    await expect(page.getByRole('status').filter({ hasText: 'Connected to bunq.' })).toBeVisible()
+    await expect(page).toHaveURL(new RegExp(`${SETTINGS}\\?bunq=connected`), BACK_FROM_BUNQ)
+    await expect(page.getByRole('status').filter({ hasText: 'Connected to bunq.' })).toBeVisible(BACK_FROM_BUNQ)
     await expect(page.getByRole('radio', { name: 'Teamkas' })).toBeChecked()
     await expect(page.getByText('can’t use its stored bunq access any more')).toHaveCount(0)
     await page.goto(MONEY)

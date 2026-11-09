@@ -206,8 +206,7 @@ class JooqTeamMemberRepositoryAdapterTest : TeamBalanceIT() {
             teamMemberRepository.findRole(teamId, userId) shouldBe Role.ADMIN
         }
 
-        // The USER accept commits after the ADMIN accept has seen the member as not active but before
-        // it writes. The ADMIN accept is held at its first write to team_members to force that order.
+        // The ADMIN accept is held before its first team_members write while a USER accept commits.
         test("a removed member ends as ADMIN when the USER accept commits during the ADMIN accept") {
             val (teamId, userId) = seedRemovedMember()
             val adminAcceptName = "admin-accept"
@@ -222,13 +221,17 @@ class JooqTeamMemberRepositoryAdapterTest : TeamBalanceIT() {
                     userAccepted.await(30, TimeUnit.SECONDS)
                 }
             }) {
-                val adminAccept = pool.submit { teamMemberRepository.addMember(teamId, userId, Role.ADMIN) }
-                adminReachedWrite.await(30, TimeUnit.SECONDS) shouldBe true
-                teamMemberRepository.addMember(teamId, userId, Role.USER)
-                userAccepted.countDown()
-                adminAccept.get(30, TimeUnit.SECONDS)
+                try {
+                    val adminAccept = pool.submit { teamMemberRepository.addMember(teamId, userId, Role.ADMIN) }
+                    adminReachedWrite.await(30, TimeUnit.SECONDS) shouldBe true
+                    teamMemberRepository.addMember(teamId, userId, Role.USER)
+                    userAccepted.countDown()
+                    adminAccept.get(30, TimeUnit.SECONDS)
+                } finally {
+                    userAccepted.countDown()
+                    pool.shutdownNow()
+                }
             }
-            pool.shutdown()
 
             teamMemberRepository.findRole(teamId, userId) shouldBe Role.ADMIN
         }

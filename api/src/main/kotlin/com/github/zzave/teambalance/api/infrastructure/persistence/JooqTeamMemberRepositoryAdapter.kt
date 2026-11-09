@@ -247,9 +247,9 @@ class JooqTeamMemberRepositoryAdapter(
                 .and(TEAM_MEMBERS.ACTIVE.isTrue),
         )
 
-    // One statement, so concurrent accepts cannot interleave between a read and a write. On an existing
-    // row the invitation's role decides only for a removed member (re-joining after removal); an active
-    // member is promoted by an ADMIN link and never demoted by a USER link, whichever accept commits first.
+    // On an existing row the invitation's role decides only for a removed member (re-joining after
+    // removal); an active member is promoted by an ADMIN link and never demoted by a USER link, whichever
+    // accept commits first.
     // (team_id, user_id) is UNIQUE, so a removed member's row is reactivated rather than re-inserted.
     override fun addMember(teamId: TeamId, userId: UserId, role: Role) {
         dsl.insertInto(TEAM_MEMBERS)

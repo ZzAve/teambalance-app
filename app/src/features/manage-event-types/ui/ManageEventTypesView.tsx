@@ -23,6 +23,7 @@ import { RosterRequirementEditor } from './RosterRequirementEditor'
 import { rosterDefaultSummary } from '../lib/roster-default-summary'
 import { isEditorOpen } from '../lib/editor-open'
 import { SectionLabel } from '@shared/ui/SectionLabel'
+import { eventTypeName } from '@entities/event/lib/event-type-name'
 
 export interface EventTypeDraft {
   name: string
@@ -152,7 +153,7 @@ export function ManageEventTypesView({
                     style={{ background: type.color ?? '#94A3B8' }}
                   />
                   <span className="min-w-0 flex-1 truncate">
-                    <span className="text-small font-semibold">{type.name}</span>{' '}
+                    <span className="text-small font-semibold">{eventTypeName(type)}</span>{' '}
                     <span className="text-caption text-muted-foreground">
                       {rosterDefaultSummary(type.rosterDefault, positions)}
                     </span>
@@ -162,7 +163,7 @@ export function ManageEventTypesView({
                     <DropdownMenuTrigger asChild>
                       <button
                         type="button"
-                        aria-label={t('members.actionsFor', { name: type.name })}
+                        aria-label={t('members.actionsFor', { name: eventTypeName(type) })}
                         disabled={isSaving}
                         className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-lg hover:bg-accent disabled:pointer-events-none disabled:opacity-50"
                       >
@@ -245,14 +246,14 @@ export function ManageEventTypesView({
               <ul className="mt-2 divide-y divide-border rounded-lg border border-dashed border-border">
                 {archived.map((type) => (
                   <li key={type.id} className="flex items-center gap-2 p-3">
-                    <span className="text-small text-muted-foreground">{type.name}</span>
+                    <span className="text-small text-muted-foreground">{eventTypeName(type)}</span>
                     <Button
                       variant="outline"
                       size="sm"
                       className="ml-auto"
                       disabled={isSaving}
                       onClick={() => onUnarchive(type.id)}
-                      aria-label={t('eventTypes.restoreName', { name: type.name })}
+                      aria-label={t('eventTypes.restoreName', { name: eventTypeName(type) })}
                     >
                       <ArchiveRestore size={14} />
                       {t('eventTypes.restore')}
@@ -311,7 +312,7 @@ function ArchiveDialog({ target, alternatives, isSaving, onCancel, onConfirm }: 
     >
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{t('eventTypes.archiveTitle', { name: target?.name })}</DialogTitle>
+          <DialogTitle>{t('eventTypes.archiveTitle', { name: target && eventTypeName(target) })}</DialogTitle>
           <DialogDescription>
             {t('eventTypes.archiveDescription')}
           </DialogDescription>
@@ -328,10 +329,10 @@ function ArchiveDialog({ target, alternatives, isSaving, onCancel, onConfirm }: 
               value={migrateTo}
               onChange={(e) => setMigrateTo(e.target.value)}
             >
-              <option value="">{t('eventTypes.leaveOn', { name: target?.name })}</option>
+              <option value="">{t('eventTypes.leaveOn', { name: target && eventTypeName(target) })}</option>
               {alternatives.map((alternative) => (
                 <option key={alternative.id} value={alternative.id}>
-                  {t('eventTypes.moveTo', { name: alternative.name })}
+                  {t('eventTypes.moveTo', { name: eventTypeName(alternative) })}
                 </option>
               ))}
             </select>

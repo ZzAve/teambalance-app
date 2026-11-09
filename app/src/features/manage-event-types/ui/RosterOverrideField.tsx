@@ -3,6 +3,7 @@ import type { EventTypeItem, RosterRequirement } from '@shared/api/event-types'
 import type { Position } from '@shared/api/positions'
 import { RosterRequirementEditor } from './RosterRequirementEditor'
 import { rosterDefaultSummary } from '../lib/roster-default-summary'
+import { eventTypeName } from '@entities/event/lib/event-type-name'
 
 interface RosterOverrideFieldProps {
   /**
@@ -84,7 +85,7 @@ export function RosterOverrideField({
         <p className="text-caption text-muted-foreground">
           {eventType
             ? t('eventTypes.follows', {
-                type: eventType.name,
+                type: eventTypeName(eventType),
                 summary: rosterDefaultSummary(eventType.rosterDefault, positions),
               })
             : t('eventTypes.followsDefault')}

@@ -1,6 +1,7 @@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@shared/ui/select'
 import type { EventTypeItem } from '@shared/api/event-types'
 import { useTranslation } from 'react-i18next'
+import { eventTypeName } from '../lib/event-type-name'
 
 interface EventTypeSelectProps {
   id: string
@@ -24,7 +25,7 @@ export function EventTypeSelect({ id, eventTypes, value, onValueChange, name, re
           <SelectItem key={t.id} value={t.id}>
             <div className="flex items-center gap-2">
               <span className="inline-block h-3 w-3 rounded-full" style={{ backgroundColor: t.color ?? '#888' }} />
-              {t.name}
+              {eventTypeName(t)}
             </div>
           </SelectItem>
         ))}

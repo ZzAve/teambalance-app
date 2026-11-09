@@ -1,8 +1,9 @@
 import type { EventTypeItem } from '@shared/api/event-types'
 import { Chip } from '@shared/ui/chip'
+import { eventTypeName } from '../lib/event-type-name'
 
 interface EventTypeChipProps {
-  type: Pick<EventTypeItem, 'name' | 'color'>
+  type: Pick<EventTypeItem, 'id' | 'name' | 'color'>
   pressed: boolean
   onToggle: () => void
   disabled?: boolean
@@ -19,7 +20,7 @@ export function EventTypeChip({ type, pressed, onToggle, disabled }: EventTypeCh
       activeStyle={{ backgroundColor: color, borderColor: color, color: '#fff' }}
       inactiveStyle={{ borderColor: color + '66', color }}
     >
-      {type.name}
+      {eventTypeName(type)}
     </Chip>
   )
 }

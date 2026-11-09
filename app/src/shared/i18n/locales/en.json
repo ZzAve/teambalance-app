@@ -238,7 +238,12 @@
     "teammate": "a teammate"
   },
   "eventType": {
-    "select": "Select type"
+    "select": "Select type",
+    "defaults": {
+      "training": "Training",
+      "match": "Match",
+      "other": "Other"
+    }
   },
   "references": {
     "heading": "Links (optional)",

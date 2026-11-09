@@ -56,6 +56,13 @@ owner-checked delete. The SPA side is `@simplewebauthn/browser`, which speaks th
    before the email is proven — is rejected: it would mean either a pending, hijackable account or a second
    user and a cross-schema merge the tenant tables (no foreign keys to `users`) cannot police. Options
    compared in the planning record; this is option D.
+9. **A passkey the server no longer knows is dropped from the device.** It happens when someone removes a
+   passkey (or their account) while the device keeps it. Spring answers every failed `/login/webauthn` with 401;
+   our failure handler adds `{"error":"unknown_passkey"}` only when no credential with that id exists. The SPA
+   then calls the WebAuthn Signal API (`PublicKeyCredential.signalUnknownCredential`) so the password manager
+   deletes it, and forgets the device's last sign-in method so /login stops starting a ceremony that cannot
+   succeed. Other failures (expired challenge, bad signature) carry no body: the passkey may still be good, so
+   it is never signalled away. Browsers without the Signal API keep offering it until the person deletes it.
 
 ## Considered options
 

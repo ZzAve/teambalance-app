@@ -1,0 +1,10 @@
+import{n as e}from"./rolldown-runtime-sJBDdmOt.js";import{f as t,k as n,y as r}from"./iframe-B7tpw5BI.js";import{n as i,t as a}from"./check-CvtvFBB1.js";import{n as o,t as s}from"./button-JUJX00La.js";function c(e){let t=e.toLowerCase();return/(s|x|z|ch|sh)$/.test(t)?`${t}es`:/[^aeiou]y$/.test(t)?`${t.slice(0,-1)}ies`:`${t}s`}function l(e,t){return n.t(`bulk.attend`,{count:e,type:t.toLowerCase(),types:c(t)})}function u(){return(u=e((()=>{r()})))()}function d({groups:e,onAttend:t,pendingTypeId:n=null}){return e.length===0?null:(0,f.jsx)(`div`,{className:`mt-3 flex flex-wrap items-center justify-end gap-2`,children:e.map(e=>(0,f.jsxs)(s,{variant:`outline`,size:`sm`,onClick:()=>t(e.typeId),disabled:n===e.typeId,className:`shrink-0 border-green/30 text-green hover:bg-green/10`,children:[(0,f.jsx)(a,{size:16}),l(e.events.length,e.typeName)]},e.typeId))})}var f;function p(){return(p=e((()=>{i(),o(),u(),f=t(),d.__docgenInfo={description:`One "Attend N <type>" button per event type with blanks left (ADR-0021). The label is the
+confirmation: there is no modal, so the count and the type are visible before the tap.
+
+Presentational: the groups and the callback come in as props, the mutation and the Undo toast
+live in the container. Renders nothing when there are no groups, so a fully-answered list reserves
+no empty row.
+
+Wraps rather than scrolls: a team with several event types gets a second line instead of buttons
+sliding out of reach off the edge, which on a phone is the difference between an action you can
+see and one you cannot.`,methods:[],displayName:`BulkAttendBarView`,props:{groups:{required:!0,tsType:{name:`Array`,elements:[{name:`EligibleTypeGroup`}],raw:`EligibleTypeGroup[]`},description:``},onAttend:{required:!0,tsType:{name:`signature`,type:`function`,raw:`(typeId: string) => void`,signature:{arguments:[{type:{name:`string`},name:`typeId`}],return:{name:`void`}}},description:``},pendingTypeId:{required:!1,tsType:{name:`union`,raw:`string | null`,elements:[{name:`string`},{name:`null`}]},description:`The type whose batch is in flight, if any.`,defaultValue:{value:`null`,computed:!1}}}}})))()}export{p as n,d as t};

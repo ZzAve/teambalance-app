@@ -72,6 +72,7 @@ class AttendanceControllerTest : TeamBalanceIT() {
 
             mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(mvcResult))
                 .andExpect(MockMvcResultMatchers.status().isOk)
+                .andExpect(MockMvcResultMatchers.jsonPath("$.state").value("ATTENDING"))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.role").value("Setter"))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.displayName").value("Jan de Vries"))
 

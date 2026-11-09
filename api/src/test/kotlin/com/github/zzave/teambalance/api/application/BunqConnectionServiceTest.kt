@@ -5,6 +5,7 @@ import com.github.zzave.teambalance.api.domain.exception.BunqConnectDisabledExce
 import com.github.zzave.teambalance.api.domain.exception.BunqConnectionChangedException
 import com.github.zzave.teambalance.api.domain.exception.BunqGrantRejectedException
 import com.github.zzave.teambalance.api.domain.exception.BunqNotConnectedException
+import com.github.zzave.teambalance.api.domain.exception.DemoBunqConnectionLockedException
 import com.github.zzave.teambalance.api.domain.exception.NotTeamAdminException
 import com.github.zzave.teambalance.api.domain.exception.UnknownBunqAccountException
 import com.github.zzave.teambalance.api.domain.model.ActAs
@@ -229,7 +230,12 @@ class BunqConnectionServiceTest : FunSpec() {
                 service = buildService(enabled)
             }
 
-            private fun buildService(enabled: Boolean) =
+            /** The same service with [demoTeam] as the demo team. */
+            fun switchDemoTeam(demoTeam: TeamId) {
+                service = buildService(true, demoTeam)
+            }
+
+            private fun buildService(enabled: Boolean, demoTeam: TeamId? = null) =
                 BunqConnectionService(
                     connectionRepository = tenants,
                     stateRepository = states,
@@ -244,6 +250,7 @@ class BunqConnectionServiceTest : FunSpec() {
                     clock = clock,
                     connectConfig = if (enabled) BunqConnectConfig(cipher, CALLBACK) else null,
                     moneyPoolCache = cache,
+                    demoTeam = demoTeam,
                 )
 
             /** The callback as the browser delivers it: by default with the starting Admin's session. */
@@ -926,6 +933,26 @@ class BunqConnectionServiceTest : FunSpec() {
         }
 
         context("disconnecting") {
+            test("the demo team cannot disconnect, and its connection stays") {
+                val f = Fixture()
+                f.connected()
+                f.switchDemoTeam(f.team)
+
+                shouldThrow<DemoBunqConnectionLockedException> { f.service.disconnect(admin, f.team) }
+
+                f.tenants.connectionIn(f.teamSchema) shouldNotBe null
+            }
+
+            test("another team can still disconnect while a demo team is set") {
+                val f = Fixture()
+                f.connected()
+                f.switchDemoTeam(f.otherTeam)
+
+                f.service.disconnect(admin, f.team)
+
+                f.tenants.connectionIn(f.teamSchema) shouldBe null
+            }
+
             test("deletes the whole connection, grant included") {
                 val f = Fixture()
                 f.connected()

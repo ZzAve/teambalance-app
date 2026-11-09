@@ -7,6 +7,7 @@ import java.util.UUID
 /** The guests a visitor can play on the demo team (ADR-0043). The ids are the literals in `db/seed/demo_team.sql`. */
 enum class DemoPersona(val userId: UserId) {
     MEMBER(UserId(UUID.fromString("d0000000-0000-0000-0000-000000000011"))),
+    ADMIN(UserId(UUID.fromString("d0000000-0000-0000-0000-000000000012"))),
     ;
 
     companion object {
@@ -18,6 +19,7 @@ enum class DemoPersona(val userId: UserId) {
 
 private fun String.toDemoPersona(): DemoPersona? = when (this) {
     "MEMBER" -> DemoPersona.MEMBER
+    "ADMIN" -> DemoPersona.ADMIN
     else -> null
 }
 
@@ -32,6 +34,7 @@ enum class DemoSessionOutcome { STARTED, DISABLED, UNKNOWN_PERSONA }
 class DemoSessionService(
     private val enabled: Boolean,
     private val authService: AuthService,
+    private val demoResetService: DemoResetService,
 ) {
     fun start(persona: String): DemoSessionOutcome {
         val known = persona.toDemoPersona()
@@ -39,6 +42,8 @@ class DemoSessionService(
             !enabled -> DemoSessionOutcome.DISABLED
             known == null -> DemoSessionOutcome.UNKNOWN_PERSONA
             else -> {
+                // Before the session: a reset drops every session, and this one must survive it.
+                demoResetService.resetIfDue()
                 authService.startSession(known.userId)
                 DemoSessionOutcome.STARTED
             }

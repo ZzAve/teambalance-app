@@ -1017,8 +1017,20 @@
   },
   "demo": {
     "intro": "Dit is een demo-team.",
-    "play": "Speel als Sanne",
-    "error": "Inloggen is niet gelukt. Probeer het opnieuw."
+    "playMember": "Speel als Sanne (speler)",
+    "playAdmin": "Speel als Kees (coach)",
+    "error": "Inloggen is niet gelukt. Probeer het opnieuw.",
+    "banner": {
+      "label": "Demo",
+      "notice": "Dit is een demo — gegevens worden elk uur gewist.",
+      "startTeam": "Start je eigen team",
+      "switchRole": "Wissel van rol"
+    },
+    "topUp": {
+      "title": "Dit is een demo — er wordt niets betaald",
+      "body": "In een echt team opent hier de betaalpagina van bunq.me.",
+      "back": "Terug naar TeamBalance"
+    }
   },
   "receipt": {
     "button": "Bonnetje voor {{name}}",

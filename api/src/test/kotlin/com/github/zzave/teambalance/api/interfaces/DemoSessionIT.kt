@@ -38,6 +38,7 @@ private const val EVENT_ID = "d0000000-0000-0000-0000-000000000031"
         "teambalance.demo.enabled=true",
         "teambalance.email.send=false",
         "teambalance.passkeys.enabled=false",
+        "teambalance.bunq.environment=fake",
         "teambalance.csrf.cookie-name=DEMO-XSRF-TOKEN",
     ],
 )
@@ -80,7 +81,7 @@ class DemoSessionIT : TeamBalanceIT() {
                 DemoPersona.TEAM_ID.value.toString(),
                 DemoPersona.SLUG,
             ) shouldBe DemoPersona.SCHEMA
-            jdbcTemplate.queryForObject("SELECT count(*) FROM ${DemoPersona.SCHEMA}.events", Int::class.java) shouldBe 1
+            jdbcTemplate.queryForObject("SELECT count(*) FROM ${DemoPersona.SCHEMA}.events", Int::class.java) shouldBe 6
         }
 
         test("a visitor with no cookie gets a session that lands on the demo team as a plain member") {
@@ -133,9 +134,10 @@ class DemoSessionIT : TeamBalanceIT() {
             jdbcTemplate.queryForObject(
                 """
                 SELECT count(*) FROM ${DemoPersona.SCHEMA}.attendances
-                WHERE event_id IN (SELECT id FROM ${DemoPersona.SCHEMA}.events WHERE uuid = ?::uuid)
+                WHERE user_id = ?::uuid AND event_id IN (SELECT id FROM ${DemoPersona.SCHEMA}.events WHERE uuid = ?::uuid)
                 """,
                 Int::class.java,
+                DemoPersona.MEMBER.userId.value.toString(),
                 EVENT_ID,
             ) shouldBe 1
             jdbcTemplate.queryForObject("SELECT count(*) FROM $OTHER_SCHEMA.attendances", Int::class.java) shouldBe 0
@@ -148,12 +150,31 @@ class DemoSessionIT : TeamBalanceIT() {
             response.getCookie("SESSION") shouldBe null
         }
 
+        test("the coach persona is the demo team's admin, and only there") {
+            val me = json.readTree(perform(get("/api/auth/me").cookie(createSession("ADMIN"))).contentAsString)
+            me["activeTeam"]["slug"].asString() shouldBe DemoPersona.SLUG
+            me["role"].asString() shouldBe "ADMIN"
+            me["isPlatformAdmin"].asBoolean() shouldBe false
+            me["teams"].size() shouldBe 1
+            jdbcTemplate.queryForObject(
+                "SELECT count(*) FROM public.team_members WHERE user_id = ?::uuid AND team_id <> ?::uuid",
+                Int::class.java,
+                DemoPersona.ADMIN.userId.value.toString(),
+                DemoPersona.TEAM_ID.value.toString(),
+            ) shouldBe 0
+        }
+
+        test("an admin-only route answers the coach and refuses the player") {
+            perform(get("/api/team/money-pool/settings").cookie(createSession("ADMIN"))).status shouldBe 200
+            perform(get("/api/team/money-pool/settings").cookie(createSession("MEMBER"))).status shouldBe 403
+        }
+
         test("every guest login starts a new session") {
             createSession().value shouldNotBe createSession().value
         }
     }
 
-    private fun createSession(): Cookie = createSessionResponse("MEMBER").also { it.status shouldBe 204 }
+    private fun createSession(persona: String = "MEMBER"): Cookie = createSessionResponse(persona).also { it.status shouldBe 204 }
         .getCookie("SESSION").shouldNotBeNull()
 
     // No cookie, no CSRF token: the first request a visitor's browser makes.

@@ -184,17 +184,21 @@ ENTRYPOINT ["/app/stg-entrypoint.sh"]
 
 # ---- demo stage: stg + the SPA, served from the same host (ADR-0043) ---------
 # Guest login (/demo) on, Setpoint VT seed off, SPA files served by the app (`make demo-image` builds
-# app/dist-demo first). The app refuses to start unless email.send=false, bunq.environment=none and the
-# datasource is loopback (DemoGuard); stg already sets those. Build: docker build -f api/Dockerfile --target demo .
+# app/dist-demo first). The app refuses to start unless email.send=false, bunq.environment=fake and the
+# datasource is loopback (DemoGuard); stg sets the first and the last, this stage sets the Bunq environment. Build: docker build -f api/Dockerfile --target demo .
 FROM stg AS demo
 ENV TEAMBALANCE_DEMO_ENABLED=true \
     TEAMBALANCE_PASSKEYS_ENABLED=false \
     TEAMBALANCE_DEMO_DATA_ENABLED=false \
+    TEAMBALANCE_BUNQ_ENVIRONMENT=fake \
     TEAMBALANCE_SPA_STATIC_LOCATION=file:/app/static/ \
+    SERVER_SERVLET_SESSION_TIMEOUT=4h \
+    TEAMBALANCE_SESSION_ABSOLUTE_TIMEOUT=4h \
     TEAMBALANCE_CSRF_COOKIE_NAME=DEMO-XSRF-TOKEN \
     TEAMBALANCE_CSRF_COOKIE_DOMAIN= \
     TEAMBALANCE_API_BASE_URL=https://demo.teambalance.nl \
-    TEAMBALANCE_FRONTEND_BASE_URL=https://demo.teambalance.nl
+    TEAMBALANCE_FRONTEND_BASE_URL=https://demo.teambalance.nl \
+    TEAMBALANCE_CORS_ALLOWED_ORIGINS=https://demo.teambalance.nl
 COPY --chown=app:app app/dist-demo/ /app/static/
 
 # ---- prod stage (default target: keep it last) ---------------------------------

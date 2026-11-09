@@ -15,7 +15,7 @@ import com.github.zzave.teambalance.api.domain.model.PaymentId
 import com.github.zzave.teambalance.api.domain.model.PaymentName
 import com.github.zzave.teambalance.api.domain.port.BunqGateway
 import org.springframework.beans.factory.annotation.Value
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
+import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression
 import org.springframework.context.annotation.Profile
 import org.springframework.stereotype.Component
 import java.net.URLEncoder
@@ -27,8 +27,10 @@ import java.util.concurrent.ConcurrentHashMap
 
 /**
  * Dev/test/e2e adapter serving a canned balance and payment history for any account.
- * Active in every profile except prod, and only while no Bunq environment is set: with `sandbox` or
- * `production` the [RealBunqGatewayAdapter] takes its place (ADR-0042).
+ * Active in every profile except prod, and only with the environment `none` (or unset) or `fake`: with `sandbox` or
+ * `production` the [RealBunqGatewayAdapter] takes its place (ADR-0042). In prod [BunqGatewayConfiguration] constructs it
+ * for `fake` while the demo switch is on. A grant it never issued is accepted, which is how the demo team's seeded
+ * connection works.
  *
  * Plays Bunq's OAuth too: [authorizationUrl] points at [FakeBunqAuthorizeController], which calls
  * [issueCode] once the user approves and sends the browser back. A code can be exchanged once, and
@@ -38,7 +40,7 @@ import java.util.concurrent.ConcurrentHashMap
  */
 @Component
 @Profile("!prod")
-@ConditionalOnProperty(prefix = "teambalance.bunq", name = ["environment"], havingValue = "none", matchIfMissing = true)
+@ConditionalOnExpression("'\${teambalance.bunq.environment:none}'.matches('(?i)none|fake')")
 class FakeBunqGatewayAdapter(
     private val clock: Clock,
     @param:Value("\${teambalance.api-base-url}") apiBaseUrl: String,
@@ -74,13 +76,23 @@ class FakeBunqGatewayAdapter(
     private fun urlEncode(value: String) = URLEncoder.encode(value, StandardCharsets.UTF_8)
 
     override fun fetchBalance(grant: BunqGrant, account: BunqAccountId): Money = accepted(grant) {
-        Money(if (account == PRIVE_ID) PRIVE_BALANCE_CENTS else TEAMKAS_BALANCE_CENTS)
+        Money(
+            when (account) {
+                PRIVE_ID -> PRIVE_BALANCE_CENTS
+                DEMO_ID -> DEMO_BALANCE_CENTS
+                else -> TEAMKAS_BALANCE_CENTS
+            },
+        )
     }
 
     override fun fetchPayments(grant: BunqGrant, account: BunqAccountId, since: LocalDate, limit: Int): List<Payment> =
         accepted(grant) {
             val today = LocalDate.now(clock)
-            val payments = if (account == PRIVE_ID) PRIVE_PAYMENTS else TEAMKAS_PAYMENTS
+            val payments = when (account) {
+                PRIVE_ID -> PRIVE_PAYMENTS
+                DEMO_ID -> DEMO_PAYMENTS
+                else -> TEAMKAS_PAYMENTS
+            }
             payments.map { it.on(today) }.filter { !it.date.isBefore(since) }.take(limit)
         }
 
@@ -108,6 +120,11 @@ class FakeBunqGatewayAdapter(
         private val TEAMKAS_ID = BunqAccountId("fake-account-1")
         private val PRIVE_ID = BunqAccountId("fake-account-2")
 
+        // Not in the grant's account list: only the demo team's seeded connection names it (DemoTeamSeeder), so the
+        // demo shows its own pool and every other team on the fake keeps the Teamkas figures.
+        private val DEMO_ID = BunqAccountId("fake-demo-account")
+        private const val DEMO_BALANCE_CENTS = 8_700L
+
         private val ACCOUNTS = listOf(
             BunqAccount(TEAMKAS_ID, BunqAccountName("Teamkas")),
             BunqAccount(PRIVE_ID, BunqAccountName("Privé")),
@@ -119,6 +136,18 @@ class FakeBunqGatewayAdapter(
             CannedPayment("1002", 9, "Marieke Dekker", 1_500, PaymentDirection.IN),
             CannedPayment("1003", 16, "Zwembad De Dolfijn", 1_200, PaymentDirection.OUT),
             CannedPayment("1004", 40, "Koen Willems", 3_000, PaymentDirection.IN),
+        )
+
+        // Names are the demo roster's (db/seed/demo_team.sql).
+        private val DEMO_PAYMENTS = listOf(
+            CannedPayment("2001", 2, "Lotte Hendriks", 2_000, PaymentDirection.IN),
+            CannedPayment("2002", 4, "Daan Bosman", 2_000, PaymentDirection.IN),
+            CannedPayment("2003", 8, "Drankenhandel Smit", 3_250, PaymentDirection.OUT),
+            CannedPayment("2004", 11, "Bram Kuipers", 1_000, PaymentDirection.IN),
+            CannedPayment("2005", 17, "Sporthal De Smash", 4_500, PaymentDirection.OUT),
+            CannedPayment("2006", 23, "Sanne Visser", 2_000, PaymentDirection.IN),
+            CannedPayment("2007", 31, "Femke de Boer", 1_500, PaymentDirection.IN),
+            CannedPayment("2008", 40, "Nevobo", 6_000, PaymentDirection.OUT),
         )
 
         private val TEAMKAS_PAYMENTS = listOf(

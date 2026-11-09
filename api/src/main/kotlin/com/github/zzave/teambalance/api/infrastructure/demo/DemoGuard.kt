@@ -16,15 +16,17 @@ internal fun demoBootRefusal(
     poolJdbcUrl: String = "",
     dataSourceClassName: String = "",
     dataSourceJndi: String = "",
+    jndiName: String = "",
 ): String? =
     when {
         !enabled -> null
         emailSend -> "teambalance.demo.enabled needs teambalance.email.send=false"
-        // shortcut: slice 0 has no `fake` Bunq environment yet; slice 2 replaces "none" with "fake" here.
-        !bunqEnvironment.equals("none", ignoreCase = true) -> "teambalance.demo.enabled needs teambalance.bunq.environment=none"
+        !bunqEnvironment.equals("fake", ignoreCase = true) -> "teambalance.demo.enabled needs teambalance.bunq.environment=fake"
         // With either set, Hikari builds its own DataSource and ignores every URL.
         dataSourceClassName.isNotBlank() || dataSourceJndi.isNotBlank() ->
             "teambalance.demo.enabled needs a datasource without hikari.data-source-class-name or data-source-j-n-d-i"
+        // Spring Boot then looks the DataSource up in JNDI and never reads the URL.
+        jndiName.isNotBlank() -> "teambalance.demo.enabled needs a datasource without spring.datasource.jndi-name"
         // Hikari connects to spring.datasource.hikari.jdbc-url when it is set, so that URL is held to the same rule.
         !isLoopbackOnly(jdbcUrl) || (poolJdbcUrl.isNotBlank() && !isLoopbackOnly(poolJdbcUrl)) ->
             "teambalance.demo.enabled needs a loopback datasource host (127.0.0.1 or localhost) " +
@@ -35,7 +37,7 @@ internal fun demoBootRefusal(
 // pgjdbc lets these query parameters replace the host named in the URL's authority.
 private val HOST_OVERRIDE_KEYS = setOf("PGHOST", "HOST", "SERVICE", "PGSERVICE")
 
-private fun isLoopbackOnly(jdbcUrl: String): Boolean {
+internal fun isLoopbackOnly(jdbcUrl: String): Boolean {
     val host = runCatching { URI(jdbcUrl.removePrefix("jdbc:")).host }.getOrNull()
     val overridesHost = jdbcUrl.substringAfter('?', "").split('&')
         .any { it.substringBefore('=').uppercase(Locale.ROOT) in HOST_OVERRIDE_KEYS } // as pgjdbc does
@@ -56,8 +58,15 @@ class DemoGuard(
     @param:Value("\${spring.datasource.hikari.jdbc-url:}") poolJdbcUrl: String,
     @param:Value("\${spring.datasource.hikari.data-source-class-name:}") dataSourceClassName: String,
     @param:Value("\${spring.datasource.hikari.data-source-j-n-d-i:}") dataSourceJndi: String,
+    @param:Value("\${spring.datasource.jndi-name:}") jndiName: String,
 ) {
+    private val refusal =
+        demoBootRefusal(enabled, emailSend, bunqEnvironment, jdbcUrl, poolJdbcUrl, dataSourceClassName, dataSourceJndi, jndiName)
+
+    /** True only when the switch is on and the boot check passed. The demo reset drops every team and asks this first. */
+    val safeToReset: Boolean = enabled && refusal == null
+
     init {
-        demoBootRefusal(enabled, emailSend, bunqEnvironment, jdbcUrl, poolJdbcUrl, dataSourceClassName, dataSourceJndi)?.let { error(it) }
+        refusal?.let { error(it) }
     }
 }

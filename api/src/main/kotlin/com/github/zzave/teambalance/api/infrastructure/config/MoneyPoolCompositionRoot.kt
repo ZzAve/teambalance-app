@@ -3,6 +3,7 @@ package com.github.zzave.teambalance.api.infrastructure.config
 import com.github.zzave.teambalance.api.application.ActAsService
 import com.github.zzave.teambalance.api.application.AuthorizationService
 import com.github.zzave.teambalance.api.application.BunqConnectConfig
+import com.github.zzave.teambalance.api.application.DemoPersona
 import com.github.zzave.teambalance.api.application.BunqConnectionService
 import com.github.zzave.teambalance.api.application.MoneyPoolService
 import com.github.zzave.teambalance.api.application.ReceiptService
@@ -48,6 +49,7 @@ class MoneyPoolCompositionRoot {
         receiptRepository: ReceiptRepository,
         paymentAliasRepository: PaymentAliasRepository,
         teamMemberRepository: TeamMemberRepository,
+        @Value("\${teambalance.demo.enabled:false}") demoEnabled: Boolean,
     ) = MoneyPoolService(
         settingsRepository = settingsRepository,
         connectionRepository = connectionRepository,
@@ -60,6 +62,7 @@ class MoneyPoolCompositionRoot {
         receiptRepository = receiptRepository,
         paymentAliasRepository = paymentAliasRepository,
         teamMemberRepository = teamMemberRepository,
+        demoTeam = DemoPersona.TEAM_ID.takeIf { demoEnabled },
     )
 
     @Bean
@@ -95,6 +98,7 @@ class MoneyPoolCompositionRoot {
         @Value("\${teambalance.api-base-url}") apiBaseUrl: String,
         @Value("\${teambalance.bunq.connect-enabled}") connectEnabled: Boolean,
         moneyPoolCache: MoneyPoolCacheGateway,
+        @Value("\${teambalance.demo.enabled:false}") demoEnabled: Boolean,
     ) = BunqConnectionService(
         connectionRepository = connectionRepository,
         stateRepository = stateRepository,
@@ -113,6 +117,7 @@ class MoneyPoolCompositionRoot {
             apiBaseUrl,
         ),
         moneyPoolCache = moneyPoolCache,
+        demoTeam = DemoPersona.TEAM_ID.takeIf { demoEnabled },
     )
 
     @Bean

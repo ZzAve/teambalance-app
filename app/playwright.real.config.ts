@@ -23,13 +23,25 @@ export default defineConfig({
       name: 'chromium',
       use: { ...devices['Desktop Chrome'], storageState: 'e2e-real/.auth/user.json' },
       dependencies: ['setup'],
+      testIgnore: /demo\.spec/,
+    },
+    // The demo build (VITE_DEMO) on its own port: only demo.spec.ts runs against it, so every other spec
+    // keeps testing the prod build (login redirect, no banner). It runs after `chromium` because its reset step
+    // drops the whole e2e database, including `team_test` and the sessions the other specs hold.
+    {
+      name: 'demo',
+      use: { ...devices['Desktop Chrome'], baseURL: 'http://localhost:5174' },
+      testMatch: /demo\.spec/,
+      dependencies: ['chromium'],
     },
   ],
-  webServer: {
-    // VITE_DEMO exposes the /demo guest login to demo.spec.ts; only the demo build has it otherwise.
-    command: 'VITE_DEMO=true npm run dev',
-    url: 'http://localhost:5173',
-    reuseExistingServer: !process.env.CI,
-    timeout: 120_000,
-  },
+  webServer: [
+    { command: 'npm run dev', url: 'http://localhost:5173', reuseExistingServer: !process.env.CI, timeout: 120_000 },
+    {
+      command: 'VITE_DEMO=true npm run dev -- --port 5174 --strictPort',
+      url: 'http://localhost:5174',
+      reuseExistingServer: !process.env.CI,
+      timeout: 120_000,
+    },
+  ],
 })

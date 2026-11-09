@@ -89,7 +89,7 @@ jobs:
         env:
           POSTGRES_USER: teambalance
           POSTGRES_PASSWORD: teambalance
-          POSTGRES_DB: teambalance
+          POSTGRES_DB: teambalance_e2e
         ports:
           - 5432:5432
         options: >-
@@ -167,8 +167,8 @@ jobs:
           fi
           echo "✓ No already-merged migration files were modified."
 
-  # Builds and pushes both API images on every run (PRs too), so deploy-stg.yml can put any branch or
-  # PR on stg and a prod deploy ships the exact image that was built here. Both targets share every
+  # Builds and pushes the prod, stg and demo API images on every run (PRs too), so deploy-stg.yml can put any branch or
+  # PR on stg and a prod deploy ships the exact image that was built here. The targets share every
   # stage but the last. ubuntu-latest is amd64, so --platform=linux/amd64 is native. GIT_SHA is baked
   # into the image and surfaced on /internal/actuator/info so the deploy jobs can confirm which image
   # is serving.
@@ -179,6 +179,14 @@ jobs:
       sha: ${{ steps.tag.outputs.sha }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # The demo target copies app/dist-demo (.dockerignore allow-lists it); make demo-spa generates the
+      # Wirespec client itself, so the toolchain step skips it.
+      - uses: ./.github/actions/setup-toolchain
+        with:
+          wirespec: false
+
+      - run: make demo-spa
 
       # On a PR, GITHUB_SHA is the temporary merge commit. The stg image also gets a `head-<sha>` tag
       # for the branch head, which is what deploy-stg.yml looks it up by.
@@ -199,13 +207,14 @@ jobs:
       # Every timestamp in the image is clamped to 1980-02-01 (the date Spring Boot gives the extracted
       # jars), so the dependency layer (lib/) keeps the same digest across builds and the registry
       # stores it once. See the build stage in api/Dockerfile for why the date must not be later.
-      - name: Build and push API images (prod + stg, linux/amd64)
+      - name: Build and push API images (prod + stg + demo, linux/amd64)
         env:
           SOURCE_DATE_EPOCH: "318211200"
         run: |
-          for target in prod stg; do
+          for target in prod stg demo; do
             names="${REGISTRY}/api:${{ steps.tag.outputs.sha }}"
             [ "$target" = stg ] && names="${REGISTRY}/api-stg:${{ steps.tag.outputs.sha }},${REGISTRY}/api-stg:head-${{ steps.tag.outputs.head }}"
+            [ "$target" = demo ] && names="${REGISTRY}/api-demo:${{ steps.tag.outputs.sha }}"
             docker buildx build --platform=linux/amd64 -f api/Dockerfile --target "$target" \
               --build-arg GIT_SHA="${{ steps.tag.outputs.sha }}" \
               --output "type=image,\"name=${names}\",push=true,rewrite-timestamp=true" .

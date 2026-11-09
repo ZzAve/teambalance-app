@@ -1017,8 +1017,20 @@
   },
   "demo": {
     "intro": "This is a demo team.",
-    "play": "Play as Sanne",
-    "error": "Signing in failed. Please try again."
+    "playMember": "Play as Sanne (player)",
+    "playAdmin": "Play as Kees (coach)",
+    "error": "Signing in failed. Please try again.",
+    "banner": {
+      "label": "Demo",
+      "notice": "This is a demo — data is wiped every hour.",
+      "startTeam": "Start your own team",
+      "switchRole": "Switch role"
+    },
+    "topUp": {
+      "title": "This is a demo — nothing is paid",
+      "body": "In a real team, the bunq.me payment page opens here.",
+      "back": "Back to TeamBalance"
+    }
   },
   "receipt": {
     "button": "Receipt for {{name}}",

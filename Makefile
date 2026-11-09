@@ -93,10 +93,12 @@ wirespec: ## Generate code from Wirespec definitions
 
 # --- Demo image (ADR-0043) ---
 
-demo-image: ## Build the demo image: the SPA in demo mode, then the `demo` Docker target
+demo-spa: ## Build the SPA in demo mode into app/dist-demo (same host as the API, VITE_DEMO on)
 	./gradlew :api:wirespec-typescript
 	cd app && npx @tanstack/router-cli generate && npx tsc -b \
 		&& VITE_API_URL= VITE_XSRF_COOKIE=DEMO-XSRF-TOKEN VITE_DEMO=true VITE_NO_PASSKEYS=true npx vite build --outDir dist-demo
+
+demo-image: demo-spa ## Build the demo image: the SPA in demo mode, then the `demo` Docker target
 	docker build -f api/Dockerfile --target demo -t teambalance-demo .
 
 demo-run: ## Run the demo image on http://localhost:8080/demo (plain http, so the session cookie is not Secure)

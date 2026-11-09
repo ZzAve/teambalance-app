@@ -1,5 +1,6 @@
 import { createFileRoute, redirect } from '@tanstack/react-router'
 import { authMeQueryOptions } from '@shared/api/auth'
+import { LOGIN_PATH } from '@shared/api/auth-redirect'
 import { queryClient } from '@shared/api/query-client'
 import { teamRoutes } from '@shared/lib/team-routes'
 
@@ -11,7 +12,7 @@ import { teamRoutes } from '@shared/lib/team-routes'
 export const Route = createFileRoute('/')({
   beforeLoad: async () => {
     const user = await queryClient.ensureQueryData(authMeQueryOptions).catch(() => null)
-    if (!user) throw redirect({ to: '/login' })
+    if (!user) throw redirect({ to: LOGIN_PATH })
     // Act-as (ADR-0024) is the one case where the Active Team is not a membership, so "teamless"
     // has to be asked with the grant in hand — and a Platform Admin inside no Team belongs on the
     // console, not in onboarding. Mirrors the root gate's third branch.

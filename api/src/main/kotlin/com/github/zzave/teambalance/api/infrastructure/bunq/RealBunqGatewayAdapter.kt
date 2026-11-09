@@ -197,13 +197,15 @@ class RealBunqGatewayAdapter internal constructor(
         private fun oauthServerOf(environment: BunqEnvironment): OAuthServer = when (environment) {
             BunqEnvironment.SANDBOX -> BUNQ_SANDBOX_OAUTH
             BunqEnvironment.PRODUCTION -> BUNQ_PUBLIC_OAUTH
-            BunqEnvironment.NONE -> throw IllegalArgumentException("There is no Bunq OAuth server for environment $environment")
+            BunqEnvironment.NONE, BunqEnvironment.FAKE ->
+                throw IllegalArgumentException("There is no Bunq OAuth server for environment $environment")
         }
 
         private fun apiServerOf(environment: BunqEnvironment): BunqServer = when (environment) {
             BunqEnvironment.SANDBOX -> BUNQ_SANDBOX_SERVER
             BunqEnvironment.PRODUCTION -> BUNQ_PUBLIC_SERVER
-            BunqEnvironment.NONE -> throw IllegalArgumentException("There is no Bunq server for environment $environment")
+            BunqEnvironment.NONE, BunqEnvironment.FAKE ->
+                throw IllegalArgumentException("There is no Bunq server for environment $environment")
         }
     }
 }

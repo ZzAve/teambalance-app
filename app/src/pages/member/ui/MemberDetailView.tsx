@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next'
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { Hash, Shield, Shirt } from 'lucide-react'
 import type { Member } from '@shared/api/members'
 import type { Position } from '@shared/api/positions'
@@ -39,6 +39,8 @@ interface MemberDetailViewProps {
   onUploadPhoto: (photo: Blob) => void
   onUsePersonalPhoto: () => void
   onRemovePhoto: () => void
+  /** The payment-aliases editor, container-supplied (ADR-0045). Shown only when `canEdit`. */
+  paymentAliases?: ReactNode
 }
 
 const CARD = 'overflow-hidden rounded-md border border-border bg-card shadow-[var(--shadow-card)]'
@@ -73,6 +75,7 @@ export function MemberDetailView({
   onUploadPhoto,
   onUsePersonalPhoto,
   onRemovePhoto,
+  paymentAliases,
 }: MemberDetailViewProps) {
   const { t } = useTranslation()
   const routes = useTeamRoutes()
@@ -209,6 +212,7 @@ export function MemberDetailView({
                   {t('memberDetail.editProfile')}
                 </Button>
               )}
+              {canEdit && paymentAliases}
             </>
           )}
         </>

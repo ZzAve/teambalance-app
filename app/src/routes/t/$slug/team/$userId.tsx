@@ -4,6 +4,7 @@ import { useCurrentUser } from '@shared/api/auth'
 import { MemberUpdateError, useMembers, useUpdateMember } from '@shared/api/members'
 import { PhotoError, personalPhotoUrl, useCopyPersonalPhotoToTeam, useRemoveTeamPhoto, useUploadTeamPhoto } from '@shared/api/photos'
 import { usePositions } from '@shared/api/positions'
+import { PaymentAliases } from '@features/edit-payment-aliases/ui/PaymentAliases'
 import { MemberDetailView } from '@pages/member/ui/MemberDetailView'
 import { useTranslation } from 'react-i18next'
 
@@ -85,6 +86,8 @@ function MemberDetailPage() {
         resetPhotoErrors()
         removePhoto.mutate(userId)
       }}
+      // Aliases only attribute money-pool payments, so a team with the pool off has no use for them.
+      paymentAliases={currentUser?.moneyPoolEnabled !== false ? <PaymentAliases userId={userId} /> : undefined}
     />
   )
 }

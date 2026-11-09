@@ -189,7 +189,9 @@
     "platformAdmin": "Platform admin",
     "teamsConsole": "Teams console",
     "creationCodes": "Creation codes",
-    "logout": "Log out"
+    "logout": "Log out",
+    "paymentMatching": "Payment matching",
+    "paymentMatchingHint": "Names and IBANs that count as your payments, on your team page"
   },
   "photo": {
     "error": {
@@ -1078,5 +1080,44 @@
     "add": "Add a passkey",
     "notNow": "Not now",
     "adding": "Waiting for your device..."
+  },
+  "paymentAliases": {
+    "heading": "Payment matching",
+    "loading": "Loading payment matching",
+    "loadFailed": "Couldn't load your payment matching",
+    "loadFailedHint": "Your other profile details are fine.",
+    "intro": "Top-ups with the Top up button already count for you. Paid another way, like a bank transfer or a shared account? Add how the payment shows up.",
+    "nameLabel": "Name on the payment",
+    "nameHint": "As your bank shows it. Capitals and extra spaces don't matter, every other character does.",
+    "ibanLabel": "IBAN",
+    "iban": {
+      "hint": "Spaces are added for you.",
+      "valid": "Valid IBAN",
+      "remaining_one": "{{count}} character to go.",
+      "remaining_other": "{{count}} characters to go.",
+      "format": "An IBAN starts with two letters and two digits, like NL91.",
+      "tooLong": "This IBAN is longer than an IBAN from this country can be.",
+      "checksum": "This IBAN doesn't add up. Check it for a typo."
+    },
+    "preview_one": "Payments with this name: {{count}}",
+    "preview_other": "Payments with this name: {{count}}",
+    "matches_one": "matches {{count}} payment",
+    "matches_other": "matches {{count}} payments",
+    "save": "Save",
+    "cancel": "Cancel",
+    "add": "Add a name or IBAN",
+    "remove": "Remove",
+    "removeLabel": "Remove {{label}}",
+    "ibanOnly": "IBAN",
+    "ibanEnding": "IBAN ending in {{last}}",
+    "privacy": "Only you and the team admins see this.",
+    "error": {
+      "ALIAS_TAKEN": "Another member already uses this name or IBAN. Ask an admin if it's a shared account.",
+      "INVALID_IBAN": "This IBAN isn't valid. Check it for a typo.",
+      "INVALID": "Add a name or an IBAN that can be saved.",
+      "FORBIDDEN": "You are not allowed to change this.",
+      "NOT_FOUND": "This alias no longer exists. Reload the page.",
+      "FAILED": "Couldn't save. Please try again."
+    }
   }
 }

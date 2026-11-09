@@ -13,7 +13,7 @@ test.use({ storageState: { cookies: [], origins: [] } })
 test('add a passkey after a magic-link sign-in, then sign in with it', async ({ page }) => {
   const cdp = await page.context().newCDPSession(page)
   await cdp.send('WebAuthn.enable')
-  await cdp.send('WebAuthn.addVirtualAuthenticator', {
+  const { authenticatorId } = await cdp.send('WebAuthn.addVirtualAuthenticator', {
     options: {
       protocol: 'ctap2',
       transport: 'internal',
@@ -69,4 +69,18 @@ test('add a passkey after a magic-link sign-in, then sign in with it', async ({ 
   // 6. ...and a reload starts the ceremony without a click, against the same virtual authenticator.
   await page.reload()
   await expect(page.getByRole('heading', { name: /Welcome to TeamBalance/ })).toBeVisible({ timeout: 10_000 })
+
+  // 7. A passkey removed on the server but still on the device: the sign-in fails, the browser is told to drop it
+  // (Signal API) and the device stops marking and auto-starting it.
+  await page.goto('/account')
+  await page.getByRole('button', { name: 'Remove' }).click()
+  await page.getByRole('dialog').getByRole('button', { name: 'Remove' }).click()
+  await expect(page.getByText('No passkeys yet.')).toBeVisible()
+  await page.getByRole('button', { name: 'Log out' }).click()
+  await expect(page).toHaveURL('/login')
+  await page.getByRole('button', { name: 'Sign in with a passkey' }).click()
+  await expect(page.getByText('Signing in with a passkey failed. Use your email link instead.')).toBeVisible()
+  await expect.poll(async () => (await cdp.send('WebAuthn.getCredentials', { authenticatorId })).credentials.length).toBe(0)
+  await page.reload()
+  await expect(page.getByText('Last', { exact: true })).toBeHidden()
 })

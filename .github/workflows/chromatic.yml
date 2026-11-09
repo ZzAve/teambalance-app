@@ -83,6 +83,11 @@ jobs:
           externals: |
             design-tokens/*.css
             app/package-lock.json
+          # preview.ts imports i18n.ts, which imports the locale JSON files. Chromatic cannot link a
+          # file in preview.ts's import tree to stories, so every translation change was a full build.
+          # Untraced, a copy-only change snapshots nothing; a copy change that ships with a component
+          # change still re-tests that component's stories through the component file.
+          untraced: app/src/shared/i18n/locales/**
           exitZeroOnChanges: true
           exitOnceUploaded: true
           # Only the branch named main; PR branches still need a human to accept.

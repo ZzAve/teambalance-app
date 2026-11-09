@@ -1,7 +1,6 @@
 package com.github.zzave.teambalance.api.interfaces
 
 import com.github.zzave.teambalance.api.application.SubstituteService
-import com.github.zzave.teambalance.api.domain.model.AttendanceState
 import com.github.zzave.teambalance.api.domain.model.PositionId
 import com.github.zzave.teambalance.api.domain.model.PositionLabel
 import com.github.zzave.teambalance.api.domain.model.Substitute
@@ -94,7 +93,7 @@ class SubstituteController(
             teamId = currentTeamGateway.requireCurrentTeamId(),
             eventId = request.path.eventId.consumeEventId(),
             substituteId = request.path.substituteId.consumeSubstituteId(),
-            state = AttendanceState.valueOf(request.body.state.name),
+            state = request.body.state.consume(),
         )
         return SetSubstituteAttendance.Response200(attendance.produce())
     }

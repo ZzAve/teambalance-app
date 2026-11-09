@@ -49,7 +49,7 @@ class JooqPositionRepositoryAdapter(
 
     override fun setKind(id: PositionId, kind: PositionKind): Position =
         dsl.update(POSITIONS)
-            .set(POSITIONS.KIND, kind.name)
+            .set(POSITIONS.KIND, kind.toDbValue())
             .where(POSITIONS.ID.eq(id.value))
             .returning()
             .fetchOne()
@@ -75,7 +75,7 @@ class JooqPositionRepositoryAdapter(
         dsl.fetchExists(POSITIONS, POSITIONS.ID.eq(positionId.value))
 
     private fun PositionsRecord.toDomain() =
-        Position(id = PositionId(id), label = PositionLabel(label), kind = PositionKind.valueOf(kind))
+        Position(id = PositionId(id), label = PositionLabel(label), kind = kind.toPositionKind())
 }
 
 // The service refuses a taken label before writing; uq_positions_label catches the one taken in

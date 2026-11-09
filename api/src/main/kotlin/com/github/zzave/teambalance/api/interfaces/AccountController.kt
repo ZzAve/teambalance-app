@@ -22,10 +22,15 @@ class AccountController(
         accountService.listPasskeys()?.let { ListPasskeys.Response200(it.map(DomainPasskey::produce)) } ?: ListPasskeys.Response401
 }
 
-// The Wirespec edge for a language: the contract and the domain name the same two values.
-internal fun Language.consume(): DomainLanguage = DomainLanguage.valueOf(name)
+internal fun Language.consume(): DomainLanguage = when (this) {
+    Language.NL -> DomainLanguage.NL
+    Language.EN -> DomainLanguage.EN
+}
 
-internal fun DomainLanguage.produce(): Language = Language.valueOf(name)
+internal fun DomainLanguage.produce(): Language = when (this) {
+    DomainLanguage.NL -> Language.NL
+    DomainLanguage.EN -> Language.EN
+}
 
 internal fun DomainPasskey.produce() = Passkey(
     id = id.value,

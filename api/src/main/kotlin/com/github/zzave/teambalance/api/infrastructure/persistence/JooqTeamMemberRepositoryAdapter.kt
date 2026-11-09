@@ -84,7 +84,7 @@ class JooqTeamMemberRepositoryAdapter(
     private fun Record.toTeamMember() = TeamMember(
         userId = UserId(this[TEAM_MEMBERS.USER_ID]),
         displayName = DisplayName(this[TENANT_OR_PLATFORM_NAME]),
-        permission = Role.valueOf(this[TEAM_MEMBERS.ROLE]),
+        permission = this[TEAM_MEMBERS.ROLE].toRole(),
         positionId = this[MEMBER_PROFILES.POSITION_ID]?.let(::PositionId),
         position = this[POSITIONS.LABEL]?.let(::PositionLabel),
         onboarded = this[ONBOARDED],
@@ -93,7 +93,7 @@ class JooqTeamMemberRepositoryAdapter(
     )
 
     override fun findRole(teamId: TeamId, userId: UserId): Role? =
-        activeRoleName(teamId, userId)?.let { name -> Role.entries.firstOrNull { it.name == name } }
+        activeRoleName(teamId, userId)?.toRole()
 
     private fun activeRoleName(teamId: TeamId, userId: UserId): String? =
         dsl.select(TEAM_MEMBERS.ROLE)
@@ -227,7 +227,7 @@ class JooqTeamMemberRepositoryAdapter(
     override fun countAdmins(teamId: TeamId): Int =
         dsl.fetchCount(
             TEAM_MEMBERS,
-            TEAM_MEMBERS.TEAM_ID.eq(teamId.value).and(TEAM_MEMBERS.ROLE.eq(Role.ADMIN.name)).and(TEAM_MEMBERS.ACTIVE.isTrue),
+            TEAM_MEMBERS.TEAM_ID.eq(teamId.value).and(TEAM_MEMBERS.ROLE.eq(Role.ADMIN.toDbValue())).and(TEAM_MEMBERS.ACTIVE.isTrue),
         )
 
     /**
@@ -258,7 +258,7 @@ class JooqTeamMemberRepositoryAdapter(
             .set(TEAM_MEMBERS.ID, UUID.randomUUID())
             .set(TEAM_MEMBERS.TEAM_ID, teamId.value)
             .set(TEAM_MEMBERS.USER_ID, userId.value)
-            .set(TEAM_MEMBERS.ROLE, role.name)
+            .set(TEAM_MEMBERS.ROLE, role.toDbValue())
             .onConflict(TEAM_MEMBERS.TEAM_ID, TEAM_MEMBERS.USER_ID)
             .doUpdate()
             .set(TEAM_MEMBERS.ACTIVE, true)
@@ -266,7 +266,7 @@ class JooqTeamMemberRepositoryAdapter(
                 TEAM_MEMBERS.ROLE,
                 DSL.case_()
                     .`when`(TEAM_MEMBERS.ACTIVE.isFalse, excluded(TEAM_MEMBERS.ROLE))
-                    .`when`(excluded(TEAM_MEMBERS.ROLE).eq(Role.ADMIN.name), Role.ADMIN.name)
+                    .`when`(excluded(TEAM_MEMBERS.ROLE).eq(Role.ADMIN.toDbValue()), Role.ADMIN.toDbValue())
                     .else_(TEAM_MEMBERS.ROLE),
             )
             .execute()
@@ -274,7 +274,7 @@ class JooqTeamMemberRepositoryAdapter(
 
     private fun setRole(teamId: TeamId, userId: UserId, role: Role) {
         dsl.update(TEAM_MEMBERS)
-            .set(TEAM_MEMBERS.ROLE, role.name)
+            .set(TEAM_MEMBERS.ROLE, role.toDbValue())
             .where(TEAM_MEMBERS.TEAM_ID.eq(teamId.value))
             .and(TEAM_MEMBERS.USER_ID.eq(userId.value))
             .and(TEAM_MEMBERS.ACTIVE.isTrue)

@@ -201,6 +201,14 @@ class MemberControllerIT : TeamBalanceIT() {
                 .andExpect(MockMvcResultMatchers.jsonPath("$.code").value("NUMBER_TAKEN"))
         }
 
+        test("PUT /api/members/{userId} with an unknown role is a 400 with the standard error body") {
+            seedTeam()
+
+            updateMemberAs(JAN_USER_ID, LISA_USER_ID, "Lisa Bakker", "BOGUS")
+                .andExpect(MockMvcResultMatchers.status().isBadRequest)
+                .andExpect(MockMvcResultMatchers.jsonPath("$.error").value("Unknown role: BOGUS"))
+        }
+
         test("PUT /api/members/{ownId} with a four-digit shirt number returns 400") {
             seedTeam(janRole = "USER")
 

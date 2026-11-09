@@ -166,6 +166,26 @@ class RecurringEventControllerTest : TeamBalanceIT() {
             clearSeason()
         }
 
+        test("POST /api/recurring-events with a title over 200 characters is a 400, not a 500") {
+            seedTeam()
+            val admin = seedAdmin()
+            clearSeason()
+
+            createSeries(admin, title = "t".repeat(201), location = "Gym")
+                .andExpect(MockMvcResultMatchers.status().isBadRequest)
+                .andExpect(MockMvcResultMatchers.jsonPath("$.error").value("Event title must be at most 200 characters"))
+        }
+
+        test("POST /api/recurring-events with a location over 500 characters is a 400, not a 500") {
+            seedTeam()
+            val admin = seedAdmin()
+            clearSeason()
+
+            createSeries(admin, title = "Weekly Training", location = "l".repeat(501))
+                .andExpect(MockMvcResultMatchers.status().isBadRequest)
+                .andExpect(MockMvcResultMatchers.jsonPath("$.error").value("Event location must be at most 500 characters"))
+        }
+
         test("POST /api/recurring-events by a non-admin member is rejected with 403") {
             seedTeam()
             seedAdmin()
@@ -205,6 +225,35 @@ class RecurringEventControllerTest : TeamBalanceIT() {
                 .andExpect(MockMvcResultMatchers.status().isForbidden)
         }
     }
+
+    private fun createSeries(adminId: String, title: String, location: String) =
+        mockMvc.perform(
+            MockMvcRequestBuilders.post("/api/recurring-events")
+                .with(loginAs(adminId, tenant = "public"))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {
+                      "eventTypeId": "${trainingTypeId()}",
+                      "title": "$title",
+                      "description": null,
+                      "location": "$location",
+                      "timeOfDay": "20:30",
+                      "durationMinutes": 90,
+                      "references": [],
+                      "recurrence": {
+                        "frequency": "WEEKLY",
+                        "weekdays": ["TUESDAY"],
+                        "startDate": "2026-09-01",
+                        "endDate": "2026-09-10"
+                      }
+                    }
+                    """.trimIndent(),
+                ),
+        )
+            .andExpect(MockMvcResultMatchers.request().asyncStarted())
+            .andReturn()
+            .let { mockMvc.perform(MockMvcRequestBuilders.asyncDispatch(it)) }
 
     private fun seedTeam() {
         tenantSchemaAdapter.provisionPlatformSchema()

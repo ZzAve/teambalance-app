@@ -77,7 +77,7 @@ class JdbcTeamRegistrationAdapter(
             "INSERT INTO public.team_members (team_id, user_id, role, onboarded_at) VALUES (?, ?, ?, ?)",
             teamId.value,
             founderId,
-            Role.ADMIN.name,
+            Role.ADMIN.toDbValue(),
             at,
         )
 

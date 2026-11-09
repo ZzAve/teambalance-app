@@ -105,7 +105,7 @@ class JooqSubstituteRepositoryAdapter(
                 dsl.select(
                     EVENTS.ID,
                     DSL.`val`(substituteId.value, SUBSTITUTE_ATTENDANCES.SUBSTITUTE_ID),
-                    DSL.`val`(state.name, SUBSTITUTE_ATTENDANCES.STATE),
+                    DSL.`val`(state.toDbValue(), SUBSTITUTE_ATTENDANCES.STATE),
                     DSL.`val`(changedBy.value, SUBSTITUTE_ATTENDANCES.CHANGED_BY),
                     DSL.`val`(at.atOffset(ZoneOffset.UTC), SUBSTITUTE_ATTENDANCES.UPDATED_AT),
                 ).from(EVENTS).where(EVENTS.UUID.eq(eventId.value)),
@@ -161,7 +161,7 @@ class JooqSubstituteRepositoryAdapter(
             .fetch {
                 EventId(it[EVENTS.UUID]) to SubstituteAttendance(
                     substitute = it.toSubstitute(),
-                    state = AttendanceState.valueOf(it[SUBSTITUTE_ATTENDANCES.STATE]),
+                    state = it[SUBSTITUTE_ATTENDANCES.STATE].toAttendanceState(),
                     changedBy = UserId(it[SUBSTITUTE_ATTENDANCES.CHANGED_BY]),
                     updatedAt = it[SUBSTITUTE_ATTENDANCES.UPDATED_AT].toInstant(),
                 )

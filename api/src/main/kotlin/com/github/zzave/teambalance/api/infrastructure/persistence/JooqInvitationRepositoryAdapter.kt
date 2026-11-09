@@ -32,7 +32,7 @@ class JooqInvitationRepositoryAdapter(
     override fun findActiveByTeam(teamId: TeamId, now: Instant): Invitation? =
         dsl.selectFrom(INVITATIONS)
             .where(INVITATIONS.TEAM_ID.eq(teamId.value))
-            .and(INVITATIONS.ROLE.eq(Role.USER.name))
+            .and(INVITATIONS.ROLE.eq(Role.USER.toDbValue()))
             .and(INVITATIONS.EXPIRES_AT.gt(now.atOffset(ZoneOffset.UTC)))
             .limit(1)
             .fetchOne()
@@ -41,7 +41,7 @@ class JooqInvitationRepositoryAdapter(
     override fun findActiveAdminByTeam(teamId: TeamId, now: Instant): Invitation? =
         dsl.selectFrom(INVITATIONS)
             .where(INVITATIONS.TEAM_ID.eq(teamId.value))
-            .and(INVITATIONS.ROLE.eq(Role.ADMIN.name))
+            .and(INVITATIONS.ROLE.eq(Role.ADMIN.toDbValue()))
             .and(INVITATIONS.CONSUMED_AT.isNull)
             .and(INVITATIONS.EXPIRES_AT.gt(now.atOffset(ZoneOffset.UTC)))
             .limit(1)
@@ -74,7 +74,7 @@ class JooqInvitationRepositoryAdapter(
         dsl.update(INVITATIONS)
             .set(INVITATIONS.EXPIRES_AT, cutoff)
             .where(INVITATIONS.TEAM_ID.eq(teamId.value))
-            .and(INVITATIONS.ROLE.eq(role.name))
+            .and(INVITATIONS.ROLE.eq(role.toDbValue()))
             .and(INVITATIONS.EXPIRES_AT.gt(cutoff))
             .execute()
     }
@@ -90,7 +90,7 @@ private fun Invitation.toRecord() = InvitationsRecord().also {
     it.teamId = teamId.value
     it.token = tokenHash.value
     it.tokenEncrypted = encryptedToken?.value
-    it.role = role.name
+    it.role = role.toDbValue()
     it.consumedAt = consumedAt?.atOffset(ZoneOffset.UTC)
     it.createdBy = createdBy.value
     it.expiresAt = expiresAt.atOffset(ZoneOffset.UTC)
@@ -100,7 +100,7 @@ private fun Invitation.toRecord() = InvitationsRecord().also {
 private fun InvitationsRecord.toInvitation() = Invitation(
     id = id,
     teamId = TeamId(teamId),
-    role = Role.valueOf(role),
+    role = role.toRole(),
     consumedAt = consumedAt?.toInstant(),
     tokenHash = TokenHash(token),
     encryptedToken = tokenEncrypted?.let(::EncryptedToken),

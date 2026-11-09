@@ -166,6 +166,20 @@ class PositionControllerIT : TeamBalanceIT() {
                 .andExpect(MockMvcResultMatchers.jsonPath("$.positions[0].kind").value("STAFF"))
         }
 
+        test("PUT /api/positions/{id}/kind with an unknown kind is a 400 with the standard error body") {
+            seedTeam()
+            val id = createPositionReturningId("Trainer")
+
+            mockMvc.perform(
+                MockMvcRequestBuilders.put("/api/positions/$id/kind")
+                    .with(loginAs(ADMIN_USER_ID))
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"kind":"BOGUS"}"""),
+            )
+                .andExpect(MockMvcResultMatchers.status().isBadRequest)
+                .andExpect(MockMvcResultMatchers.jsonPath("$.error").value("Malformed or invalid request body"))
+        }
+
         // Reclassifying is not one-way: a team that marked the wrong position can put it back.
         test("a staff position can be marked playing again") {
             seedTeam()

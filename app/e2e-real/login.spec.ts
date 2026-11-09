@@ -16,6 +16,8 @@ test('magic-link login: request → verify → lands on events', async ({ page, 
   // 1. Request a magic link from the login page
   await page.goto('/login')
   await expect(page.getByRole('heading', { name: 'TeamBalance' })).toBeVisible()
+  // Signed out, every tab would bounce back here, so the sign-in routes render without the bottom nav.
+  await expect(page.getByRole('navigation')).toHaveCount(0)
   await page.getByLabel('Email').fill(TEST_EMAIL)
   await page.getByRole('button', { name: 'Send magic link' }).click()
   await expect(page.getByRole('heading', { name: 'Check your email' })).toBeVisible()

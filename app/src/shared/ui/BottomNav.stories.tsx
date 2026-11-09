@@ -6,7 +6,8 @@ import { BottomNav } from './BottomNav'
 
 // BottomNav renders TanStack Router <Link>s, so it needs a router in context — supplied by the
 // shared withRouter decorator. It is a live four-tab bar (Events · Team · Money · Profile) with no
-// disabled tabs; the active tab is derived from the current route. Each story starts the router at a
+// disabled tabs: a tab with nowhere to go is left out (Money when the pool is off, all but Profile
+// when teamless); the active tab is derived from the current route. Each story starts the router at a
 // different path (via parameters.router.initialEntries) to pin the active-state wiring.
 //
 // The tab targets are built from the slug in the path the bar is rendered on (ADR-0023 §2), which is
@@ -16,7 +17,8 @@ import { BottomNav } from './BottomNav'
 // Covered entirely by the page composites (ADR-0032 §3): every page renders BottomNav in its real
 // frame, so no story here carries a picture. `parameters.router.initialEntries` is a per-story
 // parameter, and the active tab is derived from the router's current path, so one Stack frame can't
-// hold all five router states at once — each path stays its own disableSnapshot story.
+// hold all five router states at once — each path stays its own disableSnapshot story. The one
+// exception is Teamless, a bar no page composite can show.
 const meta = {
   title: 'shared/ui/BottomNav',
   component: BottomNav,
@@ -140,17 +142,33 @@ export const ProfileActive: Story = {
   },
 }
 
-// A teamless user on /account has no Active Team to build from, so the tabs keep the dispatcher `/`
-// — the accepted teamless-bar behaviour (ADR-0027 consequences).
-export const ProfileActiveTeamless: Story = {
+// A teamless caller (no slug in the path, no Active Team) gets Profile alone: the other tabs would
+// only bounce back through the dispatcher `/` (ADR-0027 consequences), and Profile keeps Log out
+// reachable. Shown on /onboarding, where the user is parked, so no tab is active. Keeps its picture:
+// every page composite is in a Team, so none of them can show this bar (ADR-0032 §3).
+export const Teamless: Story = {
   parameters: {
-    router: { initialEntries: ['/account'] },
+    router: { initialEntries: ['/onboarding'] },
     authMe: authenticatedUser(undefined),
+  },
+  play: async ({ canvas }) => {
+    await expect(canvas.getAllByRole('link')).toHaveLength(1)
+    await expect(canvas.getByRole('link', { name: 'Profile' })).toHaveAttribute('href', '/account')
+    await expect(canvas.queryByRole('link', { name: 'Events' })).not.toBeInTheDocument()
+    await expect(canvas.queryByRole('link', { name: 'Team' })).not.toBeInTheDocument()
+    await expect(canvas.queryByRole('link', { name: 'Money' })).not.toBeInTheDocument()
+  },
+}
+
+// A member who has not onboarded yet is parked on get-started: the team routes redirect back here,
+// so the bar shows Profile alone, as for a teamless caller. Same picture as Teamless.
+export const GetStarted: Story = {
+  parameters: {
+    router: { initialEntries: ['/t/setpoint-vt/get-started'] },
     chromatic: { disableSnapshot: true },
   },
   play: async ({ canvas }) => {
-    await expect(canvas.getByRole('link', { name: 'Events' })).toHaveAttribute('href', '/')
-    await expect(canvas.getByRole('link', { name: 'Team' })).toHaveAttribute('href', '/')
+    await expect(canvas.getAllByRole('link')).toHaveLength(1)
     await expect(canvas.getByRole('link', { name: 'Profile' })).toHaveAttribute('href', '/account')
   },
 }

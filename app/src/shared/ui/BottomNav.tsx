@@ -44,10 +44,14 @@ export function BottomNav() {
   useTranslation() // re-render the tab labels on a language change
   const pathname = useRouterState({ select: (s) => s.location.pathname })
   const me = useAuthMe().data
-  const TABS = tabsFor(
-    teamRoutes(teamSlugFromPath(pathname) ?? me?.activeTeam?.slug ?? null),
-    me?.moneyPoolEnabled !== false,
-  )
+  const slug = teamSlugFromPath(pathname) ?? me?.activeTeam?.slug ?? null
+  const routes = teamRoutes(slug)
+  const allTabs = tabsFor(routes, me?.moneyPoolEnabled !== false)
+  // With no Team, or not yet onboarded (parked on get-started), Events, Team and Money would only bounce
+  // back to where the caller is, so they get Profile alone: the way to Log out stays (ADR-0027), the dead
+  // tabs go (as Money does, ADR-0042).
+  const parked = slug === null || pathname.replace(/\/$/, '') === routes.getStarted
+  const TABS = parked ? allTabs.filter((tab) => tab.id === 'profile') : allTabs
 
   return (
     <nav

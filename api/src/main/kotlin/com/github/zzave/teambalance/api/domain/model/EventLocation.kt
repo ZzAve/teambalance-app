@@ -4,7 +4,7 @@ package com.github.zzave.teambalance.api.domain.model
 @JvmInline
 value class EventLocation(val value: String) {
     init {
-        require(value.length <= MAX_LENGTH) { "Event location must be at most $MAX_LENGTH characters" }
+        require(value.codePointCount(0, value.length) <= MAX_LENGTH) { "Event location must be at most $MAX_LENGTH characters" }
     }
 
     override fun toString(): String = value

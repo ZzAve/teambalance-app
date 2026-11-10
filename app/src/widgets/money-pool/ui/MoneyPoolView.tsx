@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { i18n } from '@shared/i18n/i18n'
+import type { Member } from '@shared/api/members'
 import type { MoneyPoolState, Payment } from '@shared/api/money-pool'
 import { ConnectedMoneyPool } from './ConnectedMoneyPool'
 import { MoneyPoolNotice } from './MoneyPoolNotice'
@@ -32,6 +33,12 @@ interface MoneyPoolViewProps {
   accountPending?: boolean
   /** The payments run from the season start (true) or the last 90 days (false); undefined until the season is known. */
   seasonSet?: boolean
+  /** ISO calendar date of today. */
+  today: string
+  /** The team roster, supplied by the container, to name the Toppers. */
+  members: Member[] | undefined
+  /** The viewer's member id, for the "You" mark in the Toppers; absent under act-as. */
+  youId?: string
 }
 
 function LoadError() {
@@ -63,6 +70,9 @@ export function MoneyPoolView({
   connectAvailable,
   accountPending,
   seasonSet,
+  today,
+  members,
+  youId,
 }: MoneyPoolViewProps) {
   const { t } = useTranslation()
   if (isLoading) return <p role="status" className="text-small text-muted-foreground">{t('account.loading')}</p>
@@ -86,6 +96,9 @@ export function MoneyPoolView({
           receipt={receipt}
           claim={claim}
           seasonSet={seasonSet}
+          today={today}
+          members={members}
+          youId={youId}
         />
       )
   }

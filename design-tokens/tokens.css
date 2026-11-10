@@ -36,6 +36,12 @@
   --color-absent: var(--color-red);
   --color-no-response: #94A3B8;
 
+  /* Toppers podium ranks (money pool). Deliberately not the attendance green/gold/red: the podium
+     must not read as attending/maybe/absent. Used as fills (tinted), never as text. */
+  --color-rank-1: #D9A520;
+  --color-rank-2: #8C98AD;
+  --color-rank-3: #B8754A;
+
   /* Typography.
      "… Variable" first: the app self-hosts both families as variable fonts via
      @fontsource (see app/src/app/styles/global.css). The plain family name stays in the
@@ -82,4 +88,11 @@
   --z-nav: 200;
   --z-modal: 300;
   --z-toast: 400;
+}
+
+/* Dark theme: same names, lifted so the tinted fills still separate from the dark card. */
+.dark {
+  --color-rank-1: #E8B93C;
+  --color-rank-2: #A5B0C4;
+  --color-rank-3: #CF8E62;
 }

@@ -1,5 +1,6 @@
 import { useCurrentUser } from '@shared/api/auth'
 import { useBunqConnection } from '@shared/api/bunq-connection'
+import { useMembers } from '@shared/api/members'
 import { useSeason } from '@shared/api/season'
 import { useMoneyPool } from '@shared/api/money-pool'
 import { ClaimPayment } from '@features/claim-payment/ui/ClaimPayment'
@@ -13,10 +14,14 @@ import { MoneyPoolView } from './MoneyPoolView'
 export function MoneyPool() {
   const { data, isLoading, isError } = useMoneyPool()
   const { data: season } = useSeason()
+  const { data: members } = useMembers()
   const user = useCurrentUser()
   const isAdmin = user?.role === 'ADMIN'
   // Only an admin of a not-connected or rejected team is pointed to the team settings, and only they may read the status.
   const { data: connection } = useBunqConnection(isAdmin && (data?.state === 'NotConnected' || data?.state === 'Rejected'))
+
+  // The 'sv-SE' locale formats a local date as YYYY-MM-DD, the ISO form the season start uses.
+  const today = new Date().toLocaleDateString('sv-SE')
 
   return (
     <MoneyPoolView
@@ -28,8 +33,11 @@ export function MoneyPool() {
       payments={data?.payments}
       beerPrice={data?.beerPrice}
       beerCount={data?.beerCount}
-      // The 'sv-SE' locale formats a local date as YYYY-MM-DD, the ISO form the season start uses.
-      seasonSet={season && paymentsFollowSeason(season.start, new Date().toLocaleDateString('sv-SE'))}
+      seasonSet={season && paymentsFollowSeason(season.start, today)}
+      today={today}
+      members={members}
+      // Under act-as the viewer is a Platform Admin, not a member of the team: no row is theirs.
+      youId={user?.actAs ? undefined : user?.id}
       canTopUp={data?.canTopUp}
       connectAvailable={connection?.connectAvailable}
       accountPending={connection?.connected === true && !connection.accountPicked}

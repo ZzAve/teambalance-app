@@ -1,0 +1,13 @@
+import{n as e}from"./rolldown-runtime-sJBDdmOt.js";import{n as t,t as n}from"./useTranslation-CPvCUDOZ.js";import{f as r}from"./iframe-UI0BJjHV.js";import{n as i,r as a}from"./attendance-words-DcbLDunx.js";import{a as o,i as s,n as c,r as l,s as u,t as d}from"./sheet-3BYTd6Lh.js";import{n as f,t as p}from"./AttendanceToggle-DugQ7WmZ.js";function m({target:e,onRespond:n,onClose:r,pending:a}){let{t:u}=t();return(0,h.jsx)(d,{open:e!==null,onOpenChange:e=>!e&&r(),children:(0,h.jsx)(c,{children:e&&(0,h.jsxs)(h.Fragment,{children:[(0,h.jsxs)(s,{children:[(0,h.jsx)(o,{children:e.displayName}),(0,h.jsxs)(l,{children:[e.position?`${e.position} · `:``,u(e.isSelf?`answerSheet.currently`:`answerSheet.currentlyForThem`,{word:i[e.state]})]})]}),(0,h.jsx)(p,{value:e.state,disabled:a,onToggle:t=>{n(e.userId,t),r()}})]})})})}var h;function g(){return(g=e((()=>{n(),u(),a(),f(),h=r(),m.__docgenInfo={description:`The one way to change anyone's answer.
+
+Both surfaces that list people — the event card's lineup panel and the detail page's attendee
+list — open this same sheet, so the gesture is one thing app-wide rather than a bottom sheet in
+one place and an inline expander in the other. It lives in the attendance-toggle feature because
+that is what it is: the answer control plus the context that says whose answer it is.
+
+Anchored to the thumb rather than to the row, which is what makes it work on a long list: tapping
+someone 2000px down does not push the page around, and the sheet names the person so the row it
+came from need not stay in view.
+
+A member may set a teammate's answer (ADR-0003), so when the target is someone else the sheet
+says so plainly — the awareness is the safeguard, not a confirmation step.`,methods:[],displayName:`AnswerSheet`,props:{target:{required:!0,tsType:{name:`union`,raw:`AnswerTarget | null`,elements:[{name:`AnswerTarget`},{name:`null`}]},description:``},onRespond:{required:!0,tsType:{name:`signature`,type:`function`,raw:`(userId: string, state: LineupState) => void`,signature:{arguments:[{type:{name:`string`},name:`userId`},{type:{name:`LineupState`},name:`state`}],return:{name:`void`}}},description:`Fires with the *target* member's id, never the viewer's.`},onClose:{required:!0,tsType:{name:`signature`,type:`function`,raw:`() => void`,signature:{arguments:[],return:{name:`void`}}},description:``},pending:{required:!1,tsType:{name:`boolean`},description:``}}}})))()}export{g as n,m as t};

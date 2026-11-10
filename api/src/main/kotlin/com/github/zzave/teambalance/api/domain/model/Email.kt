@@ -1,19 +1,28 @@
 package com.github.zzave.teambalance.api.domain.model
 
+import java.util.Locale
+
 /**
- * An email address. Unlike the identifiers, this is a *semantic string*: it is the join key between
- * a magic-link token and the user it authenticates (and, per ADR-0011, between a Google identity and
- * the same user), so a value that merely "is a String" says nothing about whether it is the right
- * one.
+ * An email address, trimmed and lowercased as a whole, so the differently-cased forms of one address
+ * are one user. It is the join key between a magic-link token and the user it authenticates
+ * (ADR-0011), which is why `users.email` holds only this form.
  *
  * Conversion happens only at the edges, as for [EventId] — the persistence adapters and the Wirespec mapper.
  *
- * Deliberately no validation or normalisation (case folding, trimming) here: this refactor must not
- * change observable behaviour, and today two differently-cased addresses are two different users.
- * Making them one is a behavioural decision that belongs with the Google Sign-In join key, not with
- * an architecture refactor — but the type is now the one place to put it.
+ * The check is shape only, one `@` with text on both sides; whether the address receives mail is
+ * what the magic link proves.
  */
 @JvmInline
-value class Email(val value: String) {
+value class Email private constructor(val value: String) {
     override fun toString(): String = value
+
+    companion object {
+        operator fun invoke(raw: String): Email {
+            val normalised = raw.trim().lowercase(Locale.ROOT)
+            require(normalised.isNotEmpty()) { "Email must not be blank" }
+            val parts = normalised.split('@')
+            require(parts.size == 2 && parts.none(String::isEmpty)) { "Email must have the form name@domain" }
+            return Email(normalised)
+        }
+    }
 }

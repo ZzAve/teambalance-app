@@ -14,6 +14,7 @@ import org.springframework.test.web.servlet.ResultActions
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers
+import java.util.UUID
 
 // Merged with the inherited "test" profile from TeamBalanceIT (inheritProfiles).
 @ActiveProfiles("e2e")
@@ -135,6 +136,20 @@ class E2eSupportIT : TeamBalanceIT() {
             )
             events.andExpect(MockMvcResultMatchers.status().isOk)
                 .andExpect(MockMvcResultMatchers.jsonPath("$.events[?(@.title == 'E2E Training')]").exists())
+        }
+
+        test("a token requested under one casing of an address is found under another") {
+            val local = "case-${UUID.randomUUID()}"
+            val (_, requested) = performAsync(
+                MockMvcRequestBuilders.post("/api/auth/magic-link/request")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"email":"${local.uppercase()}@Example.com"}"""),
+            )
+            requested.andExpect(MockMvcResultMatchers.status().isAccepted)
+
+            mockMvc.perform(
+                MockMvcRequestBuilders.get("/internal/e2e/magic-link-token").param("email", "$local@EXAMPLE.com"),
+            ).andExpect(MockMvcResultMatchers.status().isOk)
         }
 
         test("e2e token endpoint returns 404 for an email without a requested token") {

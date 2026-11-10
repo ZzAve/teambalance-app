@@ -1,6 +1,7 @@
 package com.github.zzave.teambalance.api.interfaces
 
 import com.github.zzave.teambalance.api.application.E2eMagicLinkTokenRecorder
+import com.github.zzave.teambalance.api.domain.model.Email
 import org.springframework.context.annotation.Profile
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.GetMapping
@@ -21,7 +22,7 @@ class E2eSupportController(private val recorder: E2eMagicLinkTokenRecorder) {
 
     @GetMapping("/internal/e2e/magic-link-token")
     fun magicLinkToken(@RequestParam email: String): ResponseEntity<MagicLinkTokenResponse> =
-        recorder.lastTokenFor(email)
+        recorder.lastTokenFor(Email(email))
             ?.let { ResponseEntity.ok(MagicLinkTokenResponse(it)) }
             ?: ResponseEntity.notFound().build()
 }

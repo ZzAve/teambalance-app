@@ -544,7 +544,6 @@
       "formerMember": "Oud-lid",
       "play": "Speel het klassement af",
       "pause": "Pauzeer",
-      "playAgain": "Opnieuw afspelen",
       "reset": "Terug naar nu",
       "nowSeason": "Nu, dit seizoen",
       "nowLast30Days": "Nu, afgelopen 30 dagen",
@@ -555,6 +554,9 @@
       "emptyLast30Days": "Geen bijstortingen in de afgelopen 30 dagen.",
       "nowLast90Days": "Nu, afgelopen 90 dagen",
       "onTop": "{{name}} staat bovenaan met {{amount}}.",
+      "day": "Dag",
+      "self": "{{name}} (jij)",
+      "you": "Jij",
       "unmatched": "{{amount}} kwam binnen zonder een naam die we kennen."
     },
     "graphSummary": "Het saldo van de teampot ging van {{from}} op {{fromDate}} naar {{to}} op {{toDate}}"

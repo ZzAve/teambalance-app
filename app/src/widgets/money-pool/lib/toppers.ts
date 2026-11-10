@@ -10,9 +10,11 @@ export interface Topper {
   rank: number
 }
 
-/** Ranks member totals: total descending, then display name; ties share a rank. */
-export function rankTotals(totals: Map<string, number>, nameOf: (memberId: string) => string): Topper[] {
-  const sorted = [...totals].sort(([ia, ta], [ib, tb]) => tb - ta || nameOf(ia).localeCompare(nameOf(ib)))
+/** Ranks member totals: total descending, then display name; ties share a rank. Every id in `memberIds` is ranked, at zero if it has no total. */
+export function rankTotals(totals: Map<string, number>, nameOf: (memberId: string) => string, memberIds: readonly string[] = []): Topper[] {
+  const all = new Map(totals)
+  for (const id of memberIds) if (!all.has(id)) all.set(id, 0) // roster members without a top-up rank at zero
+  const sorted = [...all].sort(([ia, ta], [ib, tb]) => tb - ta || nameOf(ia).localeCompare(nameOf(ib)))
   const ranked: Topper[] = []
   sorted.forEach(([memberId, total], i) => {
     const previous = ranked[i - 1]
@@ -39,7 +41,7 @@ export function toppedUpTotal(payments: Payment[]): number {
 }
 
 /** Who topped up most in the period, the attributed total, and the incoming money without a member. */
-export function toppers(payments: Payment[], period: TopperPeriod, today: string, nameOf: (memberId: string) => string) {
+export function toppers(payments: Payment[], period: TopperPeriod, today: string, nameOf: (memberId: string) => string, memberIds: readonly string[] = []) {
   const totals = new Map<string, number>()
   let incoming = 0
   for (const p of periodPayments(payments, period, today)) {
@@ -48,5 +50,11 @@ export function toppers(payments: Payment[], period: TopperPeriod, today: string
     if (p.memberId) totals.set(p.memberId, (totals.get(p.memberId) ?? 0) + p.amount)
   }
   const toppedUp = [...totals.values()].reduce((a, b) => a + b, 0)
-  return { ranking: rankTotals(totals, nameOf), toppedUp, unmatched: incoming - toppedUp }
+  return { ranking: rankTotals(totals, nameOf, memberIds), toppedUp, unmatched: incoming - toppedUp }
+}
+
+/** The podium is the top 3 with money; everyone else, members at zero included, goes in the list below it. */
+export function splitPodium(ranking: Topper[]): { podium: Topper[]; rest: Topper[] } {
+  const podium = ranking.filter((r) => r.total > 0).slice(0, 3)
+  return { podium, rest: ranking.slice(podium.length) }
 }

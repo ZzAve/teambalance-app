@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Payment } from '@shared/api/money-pool'
-import { periodPayments, toppedUpTotal, toppers } from './toppers'
+import { periodPayments, splitPodium, toppedUpTotal, toppers } from './toppers'
 
 const pay = (date: string, amount: number, memberId?: string, direction: Payment['direction'] = 'In'): Payment => ({
   id: `${date}-${amount}-${memberId}-${direction}`,
@@ -15,6 +15,36 @@ const pay = (date: string, amount: number, memberId?: string, direction: Payment
 const names: Record<string, string> = { a: 'Anna', b: 'Bram', c: 'Cleo', d: 'Dirk' }
 const nameOf = (id: string) => names[id] ?? 'Former member'
 const TODAY = '2026-11-09'
+
+describe('toppers with a roster', () => {
+  const payments = [pay('2026-10-01', 500, 'a'), pay('2026-10-02', 300, 'gone')]
+
+  it('includes members without a top-up at zero, ordered by name after everyone with money, sharing one rank', () => {
+    const r = toppers(payments, 'season', TODAY, nameOf, ['d', 'b', 'a', 'c'])
+    expect(r.ranking.map((x) => [x.memberId, x.total, x.rank])).toEqual([
+      ['a', 500, 1],
+      ['gone', 300, 2], // "Former member" is not on the roster but has money
+      ['b', 0, 3],
+      ['c', 0, 3],
+      ['d', 0, 3],
+    ])
+    expect(r.toppedUp).toBe(800)
+  })
+
+  it('splitPodium takes the top 3 with money and leaves everyone else, zero members included, for the list', () => {
+    const { ranking } = toppers(payments, 'season', TODAY, nameOf, ['a', 'b', 'c'])
+    const { podium, rest } = splitPodium(ranking)
+    expect(podium.map((x) => x.memberId)).toEqual(['a', 'gone'])
+    expect(rest.map((x) => x.memberId)).toEqual(['b', 'c'])
+  })
+
+  it('splitPodium puts a fourth person with money in the list and never a zero member on the podium', () => {
+    const four = ['a', 'b', 'c', 'd'].map((id, i) => pay('2026-10-01', 400 - i * 100, id))
+    const { podium, rest } = splitPodium(toppers(four, 'season', TODAY, nameOf, ['e']).ranking)
+    expect(podium.map((x) => x.memberId)).toEqual(['a', 'b', 'c'])
+    expect(rest.map((x) => x.memberId)).toEqual(['d', 'e'])
+  })
+})
 
 describe('toppers', () => {
   it('sums incoming payments per member in cents and ranks by total', () => {

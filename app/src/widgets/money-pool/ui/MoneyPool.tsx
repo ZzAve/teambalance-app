@@ -36,6 +36,8 @@ export function MoneyPool() {
       seasonSet={season && paymentsFollowSeason(season.start, today)}
       today={today}
       members={members}
+      // Under act-as the viewer is a Platform Admin, not a member of the team: no row is theirs.
+      youId={user?.actAs ? undefined : user?.id}
       canTopUp={data?.canTopUp}
       connectAvailable={connection?.connectAvailable}
       accountPending={connection?.connected === true && !connection.accountPicked}

@@ -16,7 +16,7 @@ const shell = appShell('money')
 
 // The roster the Toppers name; two top-ups show a podium with two places.
 const member = (userId: string, displayName: string): Member => ({ userId, displayName, role: 'USER', position: undefined, onboarded: true, shirtNumber: undefined, photoVersion: undefined })
-const MEMBERS = [member('u-lisa', 'Lisa'), member('u-tom', 'Tom')]
+const MEMBERS = [member('u-lisa', 'Lisa'), member('u-tom', 'Tom'), member('u-mia', 'Mia')]
 
 const meta = {
   title: 'pages/money/MoneyPageView',
@@ -36,6 +36,7 @@ const meta = {
         canTopUp
         today="2026-10-07"
         members={MEMBERS}
+        youId="u-mia"
         topUp={<Button size="lg">Top up</Button>}
         payments={[
           { id: '1005', date: '2026-10-06', name: 'Lisa de Vries', amount: 2000, direction: 'In', memberId: 'u-lisa', counterpartyName: undefined, receiptVersion: undefined },

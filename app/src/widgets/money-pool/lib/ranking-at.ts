@@ -11,7 +11,7 @@ export interface PlaybackFrame {
  * The ranking after each payment day in the period, oldest first, built in one pass over the payments
  * (running totals, one sort per day) so playback only indexes into the result.
  */
-export function playbackFrames(payments: Payment[], period: TopperPeriod, today: string, nameOf: (memberId: string) => string): PlaybackFrame[] {
+export function playbackFrames(payments: Payment[], period: TopperPeriod, today: string, nameOf: (memberId: string) => string, memberIds: readonly string[] = []): PlaybackFrame[] {
   const attributed = periodPayments(payments, period, today)
     .filter((p) => p.direction === 'In' && p.memberId)
     .reverse() // the API sends newest first
@@ -19,7 +19,7 @@ export function playbackFrames(payments: Payment[], period: TopperPeriod, today:
   const frames: PlaybackFrame[] = []
   attributed.forEach((p, i) => {
     totals.set(p.memberId!, (totals.get(p.memberId!) ?? 0) + p.amount)
-    if (attributed[i + 1]?.date !== p.date) frames.push({ date: p.date, ranking: rankTotals(totals, nameOf) })
+    if (attributed[i + 1]?.date !== p.date) frames.push({ date: p.date, ranking: rankTotals(totals, nameOf, memberIds) })
   })
   return frames
 }

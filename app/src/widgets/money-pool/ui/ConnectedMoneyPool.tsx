@@ -29,6 +29,8 @@ interface ConnectedMoneyPoolProps {
   /** The team roster, to name and show the Toppers. */
   /** Undefined until the roster is loaded: the Toppers wait for it, so no one shows as a former member meanwhile. */
   members: Member[] | undefined
+  /** The viewer's member id, marked in the Toppers; absent when the viewer is not a member. */
+  youId?: string
 }
 
 /** The count-up animates a registered custom property, so it needs @property support. */
@@ -37,7 +39,7 @@ const CAN_COUNT_UP = typeof CSS !== 'undefined' && 'registerProperty' in CSS
 /** The payments shown before "Show all". */
 const PAYMENTS_SHOWN = 15
 
-export function ConnectedMoneyPool({ balance, payments, beerPrice, beerCount, topUp, receipt, claim, seasonSet, today, members }: ConnectedMoneyPoolProps) {
+export function ConnectedMoneyPool({ balance, payments, beerPrice, beerCount, topUp, receipt, claim, seasonSet, today, members, youId }: ConnectedMoneyPoolProps) {
   const { t } = useTranslation()
   const [showAll, setShowAll] = useState(false)
   const points = balanceTimeline(balance, payments)
@@ -124,7 +126,7 @@ export function ConnectedMoneyPool({ balance, payments, beerPrice, beerCount, to
         )}
       </section>
 
-      {payments.length > 0 && members && <ToppersView payments={payments} today={today} members={members} seasonSet={seasonSet} />}
+      {payments.length > 0 && members && <ToppersView payments={payments} today={today} members={members} seasonSet={seasonSet} youId={youId} />}
     </div>
   )
 }

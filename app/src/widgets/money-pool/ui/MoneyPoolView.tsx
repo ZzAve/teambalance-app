@@ -37,6 +37,8 @@ interface MoneyPoolViewProps {
   today: string
   /** The team roster, supplied by the container, to name the Toppers. */
   members: Member[] | undefined
+  /** The viewer's member id, for the "You" mark in the Toppers; absent under act-as. */
+  youId?: string
 }
 
 function LoadError() {
@@ -70,6 +72,7 @@ export function MoneyPoolView({
   seasonSet,
   today,
   members,
+  youId,
 }: MoneyPoolViewProps) {
   const { t } = useTranslation()
   if (isLoading) return <p role="status" className="text-small text-muted-foreground">{t('account.loading')}</p>
@@ -95,6 +98,7 @@ export function MoneyPoolView({
           seasonSet={seasonSet}
           today={today}
           members={members}
+          youId={youId}
         />
       )
   }

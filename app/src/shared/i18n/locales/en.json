@@ -544,7 +544,6 @@
       "formerMember": "Former member",
       "play": "Play the ranking",
       "pause": "Pause",
-      "playAgain": "Play again",
       "reset": "Back to now",
       "nowSeason": "Now, this season",
       "nowLast30Days": "Now, last 30 days",
@@ -555,6 +554,9 @@
       "emptyLast30Days": "No top-ups in the last 30 days.",
       "nowLast90Days": "Now, last 90 days",
       "onTop": "{{name}} is on top with {{amount}}.",
+      "day": "Day",
+      "self": "{{name}} (you)",
+      "you": "You",
       "unmatched": "{{amount}} came in without a name we know."
     },
     "graphSummary": "The pot went from {{from}} on {{fromDate}} to {{to}} on {{toDate}}"

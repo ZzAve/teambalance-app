@@ -9,86 +9,111 @@ import { Button } from '@shared/ui/button'
 import { Chip } from '@shared/ui/chip'
 import { formatEuro, formatPaymentDate } from '../lib/format'
 import { playbackFrames, playbackSteps, type PlaybackFrame } from '../lib/ranking-at'
-import { toppers, type Topper, type TopperPeriod } from '../lib/toppers'
+import { splitPodium, toppers, type Topper, type TopperPeriod } from '../lib/toppers'
 
 interface ToppersViewProps {
   /** Newest first, as the pool returns them. */
   payments: Payment[]
   /** ISO calendar date; the end of the Last 30 days period. */
   today: string
-  /** The team roster. A ranked member who is not in it left the team and shows as "Former member". */
+  /** The team roster: every member is ranked, at zero without a top-up. A ranked id that is not in it left the team and shows as "Former member". */
   members: Member[]
   /** The payments run from the season start (true) or are the last 90 days (false); the period is named after that. */
   seasonSet?: boolean
+  /** The viewer's member id, marked with a "You" badge. Absent when the viewer is not a member (act-as). */
+  youId?: string
 }
 
 const ROW_HEIGHT = 52
 /** The whole playback takes about this long, however many payment days it steps through. */
 const PLAYBACK_MS = 2500
 const REDUCED_MOTION_STEP_MS = 700
+/** The summary line is said this long after the slider stopped moving. */
+const SETTLE_MS = 400
 const PODIUM_STEP_HEIGHTS = [52, 36, 24] as const // by rank 1, 2, 3
 const RANK_TOKENS = ['--color-rank-1', '--color-rank-2', '--color-rank-3'] as const
 
 const prefersReducedMotion = () => typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
-interface Playback {
-  /** Frame indexes this playback visits. */
-  steps: number[]
-  stepMs: number
-  /** The frames this playback indexes; a refetch builds new ones and ends the playback. */
+/** Where the time bar stands, as a frame index; no position means now. `frames` ties it to the frames it indexes, so a refetch drops it. */
+interface Position {
   frames: PlaybackFrame[]
-  /** Position in `steps`. */
-  step: number
+  index: number
 }
 
-/** The money pool's Toppers: who topped up most as a podium and a ranking list, and a replay of how the ranking grew. */
-export function ToppersView({ payments, today, members, seasonSet }: ToppersViewProps) {
+/** The money pool's Toppers: every member ranked as a podium and a list, a time bar through the season and a replay of how the ranking grew. */
+export function ToppersView({ payments, today, members, seasonSet, youId }: ToppersViewProps) {
   const { t } = useTranslation()
   const headingId = useId()
   const [period, setPeriod] = useState<TopperPeriod>('season')
-  // Null while no playback ran: the ranking is then as of today.
-  const [started, setPlayback] = useState<Playback | null>(null)
+  const [stored, setPosition] = useState<Position | null>(null)
+  const [playRequested, setPlayRequested] = useState(false)
+  const [announced, setAnnounced] = useState('')
   const playButton = useRef<HTMLButtonElement>(null)
-  const [paused, setPaused] = useState(false)
+  const resetHadFocus = useRef(false)
 
   const memberById = useMemo(() => new Map(members.map((m) => [m.userId, m])), [members])
+  const memberIds = useMemo(() => members.map((m) => m.userId), [members])
   const formerMember = t('money.toppers.formerMember')
   const nameOf = useCallback((memberId: string) => memberById.get(memberId)?.displayName ?? formerMember, [memberById, formerMember])
-  const result = useMemo(() => toppers(payments, period, today, nameOf), [payments, period, today, nameOf])
-  const frames = useMemo(() => playbackFrames(payments, period, today, nameOf), [payments, period, today, nameOf])
+  const result = useMemo(() => toppers(payments, period, today, nameOf, memberIds), [payments, period, today, nameOf, memberIds])
+  const frames = useMemo(() => playbackFrames(payments, period, today, nameOf, memberIds), [payments, period, today, nameOf, memberIds])
 
-  const playback = started && started.frames === frames ? started : null
-  const atEnd = playback !== null && playback.step >= playback.steps.length - 1
-  const playing = playback !== null && !paused && !atEnd
-  const frame = playback && frames[playback.steps[playback.step]]
+  const last = frames.length - 1
+  // The last frame is now: a bar at its end, or a playback that got there, is the same as no position at all.
+  const position = stored && stored.frames === frames && stored.index < last ? stored : null
+  const index = position?.index ?? last
+  const playing = playRequested && position !== null
+  const frame = position ? frames[position.index] : undefined
   const ranking = frame ? frame.ranking : result.ranking
+  const { podium, rest } = splitPodium(ranking)
   const seasonName = seasonSet === false ? t('money.last90Days') : t('money.toppers.season')
-  // Said once when the playback pauses or ends, not on every step.
-  const summary =
-    playback && (paused || atEnd) && ranking[0]
-      ? t('money.toppers.onTop', { name: nameOf(ranking[0].memberId), amount: formatEuro(ranking[0].total) })
-      : ''
+  const summaryText = ranking[0] && ranking[0].total > 0 ? t('money.toppers.onTop', { name: nameOf(ranking[0].memberId), amount: formatEuro(ranking[0].total) }) : ''
+  const showSummary = position !== null && !playing
+  const labelOf = (memberId: string) => (memberId === youId ? t('money.toppers.self', { name: nameOf(memberId) }) : nameOf(memberId))
+  const nowLabel = period === 'last30' ? t('money.toppers.nowLast30Days') : seasonSet === false ? t('money.toppers.nowLast90Days') : t('money.toppers.nowSeason')
+
+  // Said once, shortly after the playback pauses or ends or the slider stops, not on every step.
+  useEffect(() => {
+    const id = window.setTimeout(() => setAnnounced(showSummary ? summaryText : ''), showSummary ? SETTLE_MS : 0)
+    return () => window.clearTimeout(id)
+  }, [showSummary, summaryText])
+
+  // "Back to now" unmounts when the position ends (reset, a refetch, the bar or a playback reaching now); focus then moves to the play button, not <body>.
+  const atNow = position === null
+  useEffect(() => {
+    if (atNow && resetHadFocus.current) {
+      resetHadFocus.current = false
+      playButton.current?.focus()
+    }
+  }, [atNow])
 
   useEffect(() => {
     if (!playing) return
-    const id = window.setTimeout(() => setPlayback({ ...playback, step: playback.step + 1 }), playback.stepMs)
+    const reduced = prefersReducedMotion()
+    const next = playbackSteps(frames.length, reduced).find((s) => s > index)
+    if (next === undefined) return
+    const stepMs = reduced ? REDUCED_MOTION_STEP_MS : PLAYBACK_MS / Math.max(frames.length - 1, 1)
+    const id = window.setTimeout(() => setPosition({ frames, index: next }), stepMs)
     return () => window.clearTimeout(id)
-  }, [playing, playback])
+  }, [playing, frames, index])
 
   const choosePeriod = (next: TopperPeriod) => {
     setPeriod(next)
-    setPlayback(null)
+    setPosition(null)
+    setPlayRequested(false)
   }
   const onPlay = () => {
-    if (playing) return setPaused(true)
-    setPaused(false)
-    if (playback && !atEnd) return // resume
-    const reduced = prefersReducedMotion()
-    const steps = playbackSteps(frames.length, reduced)
-    setPlayback({ frames, steps, step: 0, stepMs: reduced ? REDUCED_MOTION_STEP_MS : PLAYBACK_MS / Math.max(steps.length - 1, 1) })
+    if (playing) return setPlayRequested(false)
+    setPlayRequested(true)
+    if (position === null) setPosition({ frames, index: 0 }) // from now, start over
+  }
+  const onSlide = (next: number) => {
+    setPlayRequested(false)
+    setPosition({ frames, index: next })
   }
 
-  const playLabel = playing ? t('money.toppers.pause') : atEnd ? t('money.toppers.playAgain') : playback ? t('money.toppers.resume') : t('money.toppers.play')
+  const playLabel = playing ? t('money.toppers.pause') : position ? t('money.toppers.resume') : t('money.toppers.play')
   const PlayIcon = playing ? Pause : Play
 
   return (
@@ -118,7 +143,7 @@ export function ToppersView({ payments, today, members, seasonSet }: ToppersView
       </div>
 
       <div className="rounded-lg bg-card p-2">
-        {result.ranking.length === 0 ? (
+        {result.toppedUp === 0 ? (
           <p className="p-4 text-center text-small text-muted-foreground">{period === 'season' ? t('money.toppers.empty') : t('money.toppers.emptyLast30Days')}</p>
         ) : (
           <>
@@ -126,31 +151,50 @@ export function ToppersView({ payments, today, members, seasonSet }: ToppersView
               <Button ref={playButton} variant="ghost" size="icon" aria-label={playLabel} disabled={frames.length < 2} onClick={onPlay}>
                 <PlayIcon aria-hidden="true" />
               </Button>
-              {playback && (
-                <Button variant="ghost" size="icon" aria-label={t('money.toppers.reset')} onClick={() => {
-                  setPlayback(null)
-                  setPaused(false)
-                  // The reset button unmounts with the playback; keep focus on a control that stays.
-                  playButton.current?.focus()
-                }}>
+              {position && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  aria-label={t('money.toppers.reset')}
+                  onFocus={() => (resetHadFocus.current = true)}
+                  onBlur={() => (resetHadFocus.current = false)}
+                  onClick={() => {
+                    setPosition(null)
+                    setPlayRequested(false)
+                  }}
+                >
                   <RotateCcw aria-hidden="true" />
                 </Button>
               )}
               <span className="text-small font-semibold tabular-nums">
-                {frame ? formatPaymentDate(frame.date) : period === 'last30' ? t('money.toppers.nowLast30Days') : seasonSet === false ? t('money.toppers.nowLast90Days') : t('money.toppers.nowSeason')}
+                {frame ? formatPaymentDate(frame.date) : nowLabel}
               </span>
               <span aria-hidden="true" className="ml-auto pr-2 text-caption text-muted-foreground">{t('money.toppers.totalToppedUp')}</span>
             </div>
-            <Podium top={ranking.slice(0, 3)} memberById={memberById} nameOf={nameOf} />
-            <RankingList rest={ranking.slice(3)} memberById={memberById} nameOf={nameOf} />
+            {frames.length >= 2 && (
+              <input
+                type="range"
+                aria-label={t('money.toppers.day')}
+                aria-valuetext={frame ? formatPaymentDate(frame.date) : nowLabel}
+                min={0}
+                max={last}
+                step={1}
+                value={index}
+                onChange={(e) => onSlide(Number(e.target.value))}
+                className="mt-1 h-11 w-full"
+                style={{ accentColor: 'var(--color-blue)' }}
+              />
+            )}
+            <Podium top={podium} memberById={memberById} nameOf={nameOf} youId={youId} />
+            <RankingList rest={rest} memberById={memberById} nameOf={nameOf} youId={youId} />
             {/* The text version of the ranking, complete at every step of the playback. */}
             <ol aria-label={t('money.toppers.ranking')} className="sr-only">
               {ranking.map((r) => (
-                <li key={r.memberId}>{t('money.toppers.rankItem', { rank: r.rank, name: nameOf(r.memberId), amount: formatEuro(r.total) })}</li>
+                <li key={r.memberId}>{t('money.toppers.rankItem', { rank: r.rank, name: labelOf(r.memberId), amount: formatEuro(r.total) })}</li>
               ))}
             </ol>
             <p aria-live="polite" className="sr-only">
-              {summary}
+              {announced}
             </p>
           </>
         )}
@@ -167,13 +211,20 @@ function Face({ memberId, member, name, size }: { memberId: string; member: Memb
   return <Avatar userId={memberId} name={name} size={size} photoUrl={photoVersion ? teamPhotoUrl(memberId, photoVersion) : undefined} />
 }
 
+function YouBadge() {
+  const { t } = useTranslation()
+  return <span className="ml-1.5 rounded-full bg-blue/10 px-1.5 py-0.5 align-[1px] text-caption font-bold tracking-wide text-blue">{t('money.toppers.you')}</span>
+}
+
 interface PartProps {
   memberById: Map<string, Member>
   nameOf: (memberId: string) => string
+  youId?: string
 }
 
 /** Second, first and third place side by side; the visual stands in for the ranking list, which carries the text. */
-function Podium({ top, memberById, nameOf }: PartProps & { top: Topper[] }) {
+function Podium({ top, memberById, nameOf, youId }: PartProps & { top: Topper[] }) {
+  const { t } = useTranslation()
   const slots = [top[1], top[0], top[2]].filter((r) => r !== undefined)
   return (
     <div aria-hidden="true" className="flex items-end justify-center gap-2 px-2 pt-5 pb-3">
@@ -183,7 +234,7 @@ function Podium({ top, memberById, nameOf }: PartProps & { top: Topper[] }) {
           <div key={r.memberId} className="flex min-w-0 flex-1 flex-col items-center gap-1 text-center">
             {r.rank === 1 && <Trophy size={18} className="text-gold-ink" />}
             <Face memberId={r.memberId} member={memberById.get(r.memberId)} name={nameOf(r.memberId)} size={r.rank === 1 ? 'md' : 'sm'} />
-            <span className="max-w-full truncate text-caption font-semibold">{nameOf(r.memberId)}</span>
+            <span className="max-w-full truncate text-caption font-semibold">{r.memberId === youId ? t('money.toppers.you') : nameOf(r.memberId)}</span>
             <span className="font-display text-lead font-bold tabular-nums">{formatEuro(r.total)}</span>
             <span
               className="w-full rounded-t-sm pt-1 font-display font-bold"
@@ -198,8 +249,8 @@ function Podium({ top, memberById, nameOf }: PartProps & { top: Topper[] }) {
   )
 }
 
-/** Fourth place and below. Rows keep their DOM order and move by transform, so a rank change slides (off under reduced motion). */
-function RankingList({ rest, memberById, nameOf }: PartProps & { rest: Topper[] }) {
+/** Everyone below the podium. Rows keep their DOM order and move by transform, so a rank change slides (off under reduced motion). */
+function RankingList({ rest, memberById, nameOf, youId }: PartProps & { rest: Topper[] }) {
   if (rest.length === 0) return null
   const byMember = [...rest].sort((a, b) => a.memberId.localeCompare(b.memberId))
   return (
@@ -212,7 +263,10 @@ function RankingList({ rest, memberById, nameOf }: PartProps & { rest: Topper[] 
         >
           <span className="w-6 text-center text-small font-bold text-muted-foreground tabular-nums">{r.rank}</span>
           <Face memberId={r.memberId} member={memberById.get(r.memberId)} name={nameOf(r.memberId)} size="sm" />
-          <span className="min-w-0 flex-1 truncate text-small font-semibold">{nameOf(r.memberId)}</span>
+          <span className="min-w-0 flex-1 truncate text-small font-semibold">
+            {nameOf(r.memberId)}
+            {r.memberId === youId && <YouBadge />}
+          </span>
           <span className="text-small font-semibold tabular-nums">{formatEuro(r.total)}</span>
         </div>
       ))}

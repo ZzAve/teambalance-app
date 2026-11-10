@@ -44,6 +44,12 @@ describe('playbackFrames', () => {
     expect(playbackFrames(PAYMENTS, 'last30', TODAY, nameOf).map((f) => f.date)).toEqual(['2026-10-10', '2026-10-20'])
   })
 
+  it('lists roster members without money in every frame, at zero', () => {
+    const frames = playbackFrames(PAYMENTS, 'season', TODAY, nameOf, ['z'])
+    for (const f of frames) expect(f.ranking.at(-1)).toEqual(expect.objectContaining({ memberId: 'z', total: 0 }))
+    expect(frames[0].ranking.map((r) => r.memberId)).toEqual(['c', 'z'])
+  })
+
   it('has no frames without attributed income', () => {
     expect(playbackFrames([pay('2026-10-01', 5)], 'season', TODAY, nameOf)).toEqual([])
   })

@@ -88,10 +88,11 @@ verify: check **Scaleway Cockpit** container logs for the boot crash, fix forwar
 (hashed assets `immutable` and **retained across deploys — no `--delete`**, see *Object Storage
 lifecycle* below; `index.html` `no-cache`, and the PWA shell: icons cached a day,
 `sw.js` / `registerSW.js` / `manifest.webmanifest` `no-cache` so an installed client is never
-pinned to a previous deploy's precache) and the landing page + design tokens
-→ `s3://teambalance-www` (`index.html` **and** its unhashed `style.css` / `tokens.css` all
-`no-cache`, so the root-referenced CSS revalidates in lockstep with the HTML and can't be served
-stale), then purges both Edge Services pipelines. S3 uses the **dedicated
+pinned to a previous deploy's precache) and the whole of `www/dist` (landing and privacy pages in nl/en, stylesheet, script, design tokens,
+self-hosted fonts, images)
+→ `s3://teambalance-www` in two syncs: fonts, images and icons cached a day, everything else
+(HTML, CSS, JS) `no-cache` so a page and the files it names revalidate together and can't be
+served stale, then purges both Edge Services pipelines. S3 uses the **dedicated
 Object Storage IAM key** (`SCW_S3_*`).
 
 ## Container resource config

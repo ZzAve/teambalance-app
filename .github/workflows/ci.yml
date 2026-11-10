@@ -56,6 +56,8 @@ jobs:
       - run: npm run build
         working-directory: app
 
+      - run: make test-www
+
       # Frontend tests (Vitest: jsdom units + headless-Chromium Storybook project).
       #
       # Vitest's browser-mode project intermittently fails to tear down its headless
@@ -360,20 +362,19 @@ jobs:
           # application/octet-stream and be rejected as a manifest — set the type explicitly.
           aws --endpoint-url "$S3_ENDPOINT" s3 cp app/dist/manifest.webmanifest "s3://${SPA_BUCKET}/manifest.webmanifest" \
             --cache-control no-cache --content-type application/manifest+json
-          # Landing page (#464): Dutch at /, English at /en/, both rendered from www/template.html and
-          # www/strings/*.json. style.css at root, tokens.css under /design-tokens/ (absolute paths,
-          # so /en/ finds them too).
+          # Landing page (#464, #152): Dutch at /, English at /en/, plus privacy pages, stylesheet,
+          # script, fonts and images, all built into www/dist. Only www/dist is uploaded, so
+          # nothing else under www/ can reach the bucket. No --delete (same reasoning as the SPA
+          # block); the bucket root holds nothing else.
           node www/build.mjs
-          aws --endpoint-url "$S3_ENDPOINT" s3 cp www/dist/index.html "s3://${WWW_BUCKET}/index.html" \
-            --cache-control no-cache
-          aws --endpoint-url "$S3_ENDPOINT" s3 cp www/dist/en/index.html "s3://${WWW_BUCKET}/en/index.html" \
-            --cache-control no-cache
-          # style.css + tokens.css are unhashed and referenced by name from index.html's <head>,
-          # so they must revalidate in lockstep with it: no-cache matches index.html and prevents
-          # a half-updated landing (fresh HTML, stale CSS served under the CDN default TTL).
-          aws --endpoint-url "$S3_ENDPOINT" s3 cp www/style.css "s3://${WWW_BUCKET}/style.css" \
-            --cache-control no-cache
-          aws --endpoint-url "$S3_ENDPOINT" s3 cp design-tokens/tokens.css "s3://${WWW_BUCKET}/design-tokens/tokens.css" \
+          # Fonts and images are unhashed but change rarely: a day at the edge, revalidated after.
+          aws --endpoint-url "$S3_ENDPOINT" s3 sync www/dist "s3://${WWW_BUCKET}" \
+            --exclude "*" --include "fonts/*" --include "*.png" --include "*.svg" --include "*.ico" \
+            --cache-control "public,max-age=86400"
+          # HTML, CSS and JS are unhashed and reference each other by name: no-cache makes them
+          # revalidate together, so a fresh page never runs against a stale stylesheet or script.
+          aws --endpoint-url "$S3_ENDPOINT" s3 sync www/dist "s3://${WWW_BUCKET}" \
+            --exclude "fonts/*" --exclude "*.png" --exclude "*.svg" --exclude "*.ico" \
             --cache-control no-cache
 
       - name: Purge Edge Services cache

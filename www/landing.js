@@ -33,6 +33,7 @@ $$('.ans').forEach((btn) =>
 $('#bringBack').addEventListener('click', () => {
   state = showOldWay(state)
   render()
+  $('#status').focus() // the button hides itself, so focus would otherwise fall back to the page
 })
 
 // ---- top-up chips ----
@@ -73,12 +74,12 @@ $$('[data-request]').forEach((form) => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, language }),
-        signal: AbortSignal.timeout(15000),
+        signal: AbortSignal.timeout(30000),
       })
       if (res.ok) say('ok', copy.formSent)
       else say('err', res.status === 429 ? copy.formRateLimited : copy.formFailed)
     } catch {
-      say('err', copy.formFailed)
+      say('err', copy.formUnsure)
     } finally {
       button.disabled = false
     }

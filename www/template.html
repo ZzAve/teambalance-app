@@ -44,14 +44,14 @@
             <h1>{{heroTitle}}</h1>
             <p class="sub">{{heroSub}}</p>
 
-            <form class="request" novalidate data-request>
+            <form class="request" method="post" novalidate data-request>
               <label class="sr-only" for="email-hero">{{emailLabel}}</label>
               <div class="row">
-                <input id="email-hero" type="email" name="email" placeholder="{{emailPlaceholder}}" autocomplete="email" inputmode="email" />
+                <input id="email-hero" aria-describedby="hint-hero msg-hero" type="email" name="email" placeholder="{{emailPlaceholder}}" autocomplete="email" inputmode="email" />
                 <button class="btn btn-primary" type="submit">{{formButton}}</button>
               </div>
-              <p class="form-hint">{{formHint}}</p>
-              <p class="form-msg" role="status" aria-live="polite"></p>
+              <p class="form-hint" id="hint-hero">{{formHint}}</p>
+              <p class="form-msg" id="msg-hero" role="status" aria-live="polite"></p>
               <div class="alt">
                 <a class="btn btn-ghost" href="https://demo.teambalance.nl/">{{demoButton}}</a>
               </div>
@@ -83,7 +83,7 @@
               <article class="ev" data-ev="training" aria-labelledby="ev-t">
                 <p class="ev-title" id="ev-t">{{evTraining}}</p>
                 <p class="when">{{evTrainingWhen}}</p>
-                <p class="tally" aria-live="polite">
+                <p class="tally">
                   <span><i class="dot g" aria-hidden="true"></i><b data-n="going">8</b> {{tallyGoing}}</span>
                   <span><i class="dot m" aria-hidden="true"></i><b data-n="maybe">2</b> {{tallyMaybe}}</span>
                   <span><i class="dot c" aria-hidden="true"></i><b data-n="cant">1</b> {{tallyCant}}</span>
@@ -104,7 +104,7 @@
               <article class="ev" data-ev="match" aria-labelledby="ev-m">
                 <p class="ev-title" id="ev-m">{{evMatch}}</p>
                 <p class="when">{{evMatchWhen}}</p>
-                <p class="tally" aria-live="polite">
+                <p class="tally">
                   <span><i class="dot g" aria-hidden="true"></i><b data-n="going">5</b> {{tallyGoing}}</span>
                   <span><i class="dot m" aria-hidden="true"></i><b data-n="maybe">3</b> {{tallyMaybe}}</span>
                   <span><i class="dot c" aria-hidden="true"></i><b data-n="cant">2</b> {{tallyCant}}</span>
@@ -122,7 +122,7 @@
                   <button class="ans" type="button" data-a="cant" aria-pressed="false"><i class="dot c" aria-hidden="true"></i>{{ansCant}}</button>
                 </div>
               </article>
-              <p class="status" id="status" role="status" aria-live="polite">{{statusIdle}}</p>
+              <p class="status" id="status" tabindex="-1" role="status" aria-live="polite">{{statusIdle}}</p>
             </section>
 
             <div class="scene-foot" id="sceneFoot" hidden>
@@ -214,14 +214,14 @@
         <section class="closing">
           <h2>{{closeTitle}}</h2>
           <p class="sub">{{closeSub}}</p>
-          <form class="request" novalidate data-request>
+          <form class="request" method="post" novalidate data-request>
             <label class="sr-only" for="email-close">{{emailLabel}}</label>
             <div class="row">
-              <input id="email-close" type="email" name="email" placeholder="{{emailPlaceholder}}" autocomplete="email" inputmode="email" />
+              <input id="email-close" aria-describedby="hint-close msg-close" type="email" name="email" placeholder="{{emailPlaceholder}}" autocomplete="email" inputmode="email" />
               <button class="btn btn-primary" type="submit">{{formButton}}</button>
             </div>
-            <p class="form-hint">{{formHint}}</p>
-            <p class="form-msg" role="status" aria-live="polite"></p>
+            <p class="form-hint" id="hint-close">{{formHint}}</p>
+            <p class="form-msg" id="msg-close" role="status" aria-live="polite"></p>
             <div class="alt"><a class="btn btn-ghost" href="https://demo.teambalance.nl/">{{demoButton}}</a></div>
           </form>
         </section>
@@ -254,7 +254,8 @@
         "formSending": "{{formSending}}",
         "formSent": "{{formSent}}",
         "formRateLimited": "{{formRateLimited}}",
-        "formFailed": "{{formFailed}}"
+        "formFailed": "{{formFailed}}",
+        "formUnsure": "{{formUnsure}}"
       }
     </script>
     <script type="module" src="/landing.js"></script>

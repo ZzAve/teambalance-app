@@ -22,7 +22,7 @@ test('landing and privacy render in both languages with no placeholder left', ()
 })
 
 test('dist is self-contained: static files, fonts and icons are copied', () => {
-  for (const f of ['style.css', 'design-tokens/tokens.css', 'og.png', 'favicon.ico', 'tb-monogram.svg', 'apple-touch-icon-180x180.png']) {
+  for (const f of ['style.css', 'landing.js', 'landing-state.mjs', 'design-tokens/tokens.css', 'og.png', 'favicon.ico', 'tb-monogram.svg', 'apple-touch-icon-180x180.png']) {
     assert.ok(existsSync(join(out, f)), `missing ${f}`)
   }
   assert.deepEqual(readdirSync(join(out, 'fonts')).sort(), [
@@ -43,5 +43,18 @@ test('head metadata is present on the landing pages', () => {
     for (const m of ['name="description"', 'property="og:image"', 'name="twitter:card"', 'rel="canonical"', 'rel="icon"', 'rel="apple-touch-icon"', 'rel="preload"']) {
       assert.ok(html.includes(m), `${f} lacks ${m}`)
     }
+  }
+})
+
+test('the #copy block of every landing page parses as JSON and has all its keys', () => {
+  for (const f of ['index.html', 'en/index.html']) {
+    const copy = JSON.parse(read(f).match(/id="copy">([\s\S]*?)<\/script>/)[1])
+    assert.ok(copy.formSent && copy.training_going && copy.topupPicked, `${f}: copy block incomplete`)
+  }
+})
+
+test('both sign-in forms post, so a submit before the script loads never puts the email in a URL', () => {
+  for (const f of ['index.html', 'en/index.html']) {
+    assert.equal(read(f).match(/<form [^>]*data-request/g).filter((t) => t.includes('method="post"')).length, 2, f)
   }
 })

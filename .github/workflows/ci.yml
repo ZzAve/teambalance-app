@@ -382,14 +382,23 @@ jobs:
           # nothing else under www/ can reach the bucket. No --delete (same reasoning as the SPA
           # block); the bucket root holds nothing else.
           node www/build.mjs
+          # Content types are set explicitly where a wrong one breaks the page: a browser refuses an
+          # ES module that is not served as a JavaScript type, and woff2 is not in every mime table.
           # Fonts and images are unhashed but change rarely: a day at the edge, revalidated after.
           aws --endpoint-url "$S3_ENDPOINT" s3 sync www/dist "s3://${WWW_BUCKET}" \
-            --exclude "*" --include "fonts/*" --include "*.png" --include "*.svg" --include "*.ico" \
+            --exclude "*" --include "fonts/*" \
+            --content-type font/woff2 --cache-control "public,max-age=86400"
+          aws --endpoint-url "$S3_ENDPOINT" s3 sync www/dist "s3://${WWW_BUCKET}" \
+            --exclude "*" --include "*.png" --include "*.svg" --include "*.ico" \
             --cache-control "public,max-age=86400"
           # HTML, CSS and JS are unhashed and reference each other by name: no-cache makes them
           # revalidate together, so a fresh page never runs against a stale stylesheet or script.
           aws --endpoint-url "$S3_ENDPOINT" s3 sync www/dist "s3://${WWW_BUCKET}" \
+            --exclude "*" --include "*.js" --include "*.mjs" \
+            --content-type text/javascript --cache-control no-cache
+          aws --endpoint-url "$S3_ENDPOINT" s3 sync www/dist "s3://${WWW_BUCKET}" \
             --exclude "fonts/*" --exclude "*.png" --exclude "*.svg" --exclude "*.ico" \
+            --exclude "*.js" --exclude "*.mjs" \
             --cache-control no-cache
 
       - name: Purge Edge Services cache

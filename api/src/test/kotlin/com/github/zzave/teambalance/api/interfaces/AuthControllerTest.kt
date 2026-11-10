@@ -142,6 +142,8 @@ class AuthControllerTest : TeamBalanceIT() {
             val secondSession = verify(second, expectOk = true)!!
 
             userIdOnMe(firstSession) shouldBe userIdOnMe(secondSession)
+            val (_, me) = performAsync(MockMvcRequestBuilders.get("/api/auth/me").cookie(firstSession))
+            me.andExpect(MockMvcResultMatchers.jsonPath("$.displayName").value(local))
             jdbcTemplate.queryForList(
                 "SELECT email FROM public.users WHERE lower(email) = ?",
                 String::class.java,

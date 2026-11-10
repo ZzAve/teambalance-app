@@ -79,4 +79,16 @@ class NormaliseEmailsMigrationIT : FunSpec({
             connection.emails("magic_link_tokens") shouldBe listOf("Dave@Example.com")
         }
     }
+
+    test("aborts without changing anything when a user's address is not of the form name@domain") {
+        inScratchSchema { connection ->
+            connection.insert("users", "Alice@Example.com", "no-at-sign", "two@at@example.com", " ")
+
+            val failure = shouldThrow<SQLException> { connection.createStatement().use { it.execute(migration) } }
+
+            failure.message shouldContain "' ', 'no-at-sign', 'two@at@example.com'"
+            connection.emails("users") shouldContainExactlyInAnyOrder
+                listOf("Alice@Example.com", "no-at-sign", "two@at@example.com", " ")
+        }
+    }
 })

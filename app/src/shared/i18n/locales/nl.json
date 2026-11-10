@@ -358,7 +358,10 @@
     "endTime": "Eindtijd",
     "saveFailed": "Wijzigingen opslaan is mislukt. Probeer het opnieuw.",
     "saving": "Opslaan…",
-    "save": "Wijzigingen opslaan"
+    "save": "Wijzigingen opslaan",
+    "resetResponses": "Antwoorden wissen",
+    "resetResponsesHint_one": "De datum is veranderd. {{count}} lid heeft geantwoord voor de oude datum.",
+    "resetResponsesHint_other": "De datum is veranderd. {{count}} leden hebben geantwoord voor de oude datum."
   },
   "deleteEvent": {
     "button": "Verwijderen",
@@ -369,6 +372,13 @@
     "confirmMany": "Events verwijderen",
     "confirmOne": "Event verwijderen",
     "failed": "Het event verwijderen is mislukt. Probeer het opnieuw."
+  },
+  "resetAttendance": {
+    "button": "Antwoorden wissen",
+    "title": "Alle antwoorden wissen?",
+    "description_one": "{{count}} lid heeft geantwoord voor {{title}}. Dat antwoord wordt gewist, en die staat weer op geen reactie. Invallers blijven staan.",
+    "description_other": "{{count}} leden hebben geantwoord voor {{title}}. Hun antwoorden worden gewist, en ze staan weer op geen reactie. Invallers blijven staan.",
+    "confirm": "Antwoorden wissen"
   },
   "seriesScope": {
     "scope": {
@@ -843,7 +853,8 @@
     "attendance": {
       "saveFailed": "Je reactie is niet opgeslagen — tik om het opnieuw te proberen.",
       "setFailed": "Je aanwezigheid is niet opgeslagen — probeer het opnieuw.",
-      "undoFailed": "Ongedaan maken is niet gelukt — probeer het opnieuw."
+      "undoFailed": "Ongedaan maken is niet gelukt — probeer het opnieuw.",
+      "resetFailed": "De antwoorden wissen is niet gelukt — probeer het opnieuw."
     },
     "createTeam": {
       "invalidCode": "Die aanmaakcode is niet geldig.",

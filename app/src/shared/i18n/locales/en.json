@@ -358,7 +358,10 @@
     "endTime": "End time",
     "saveFailed": "Could not save changes. Please try again.",
     "saving": "Saving…",
-    "save": "Save changes"
+    "save": "Save changes",
+    "resetResponses": "Reset responses",
+    "resetResponsesHint_one": "The date changed. {{count}} member responded for the old date.",
+    "resetResponsesHint_other": "The date changed. {{count}} members responded for the old date."
   },
   "deleteEvent": {
     "button": "Delete",
@@ -369,6 +372,13 @@
     "confirmMany": "Delete events",
     "confirmOne": "Delete event",
     "failed": "Could not delete the event. Please try again."
+  },
+  "resetAttendance": {
+    "button": "Reset responses",
+    "title": "Reset all responses?",
+    "description_one": "{{count}} member responded for {{title}}. Their response is cleared, and they show as not responded again. Substitutes stay.",
+    "description_other": "{{count}} members responded for {{title}}. Their responses are cleared, and they show as not responded again. Substitutes stay.",
+    "confirm": "Reset responses"
   },
   "seriesScope": {
     "scope": {
@@ -843,7 +853,8 @@
     "attendance": {
       "saveFailed": "Couldn't save your response — tap to try again.",
       "setFailed": "Couldn't set your attendance — please try again.",
-      "undoFailed": "Couldn't undo — please try again."
+      "undoFailed": "Couldn't undo — please try again.",
+      "resetFailed": "Couldn't reset the responses — please try again."
     },
     "createTeam": {
       "invalidCode": "That creation code isn't valid.",

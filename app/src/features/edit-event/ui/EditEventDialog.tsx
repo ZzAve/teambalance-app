@@ -6,6 +6,7 @@ import { Button } from '@shared/ui/button'
 import { useUpdateEvent, type Event, type EventDetail } from '@shared/api/events'
 import { useEventTypes } from '@shared/api/event-types'
 import { usePositions } from '@shared/api/positions'
+import { useResetAttendance } from '@shared/api/attendances'
 import { EditEventDialogView } from './EditEventDialogView'
 
 interface EditEventDialogProps {
@@ -30,6 +31,7 @@ export function EditEventDialog({ event, siblings = [] }: EditEventDialogProps) 
   const { data: eventTypes } = useEventTypes(true)
   const { data: positions } = usePositions()
   const updateEvent = useUpdateEvent()
+  const resetAttendance = useResetAttendance()
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -50,7 +52,14 @@ export function EditEventDialog({ event, siblings = [] }: EditEventDialogProps) 
           positions={positions}
           isPending={updateEvent.isPending}
           isError={updateEvent.isError}
-          onSubmit={(request) => updateEvent.mutate(request, { onSuccess: () => setOpen(false) })}
+          onSubmit={({ resetResponses, ...update }) =>
+            updateEvent.mutate(update, {
+              onSuccess: () => {
+                if (resetResponses) resetAttendance.mutate(event.id)
+                setOpen(false)
+              },
+            })
+          }
         />
       </DialogContent>
     </Dialog>

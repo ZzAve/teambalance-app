@@ -259,7 +259,7 @@ export function EventDetailView({
 
       {/* Admin Actions — scoped series edit/delete (ADR-0014 Phase 3); standalone events skip the prompt */}
       {adminActions && (
-        <div className="mt-6 flex gap-2.5 border-t border-border/40 pt-5">{adminActions}</div>
+        <div className="mt-6 flex flex-wrap gap-2.5 border-t border-border/40 pt-5">{adminActions}</div>
       )}
     </div>
   )

@@ -95,3 +95,17 @@ export function useBulkUndo() {
     },
   })
 }
+
+/** Admin-only: clears every member's answer on one event, so each member reads as not responded again. */
+export function useResetAttendance() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (eventId: string) => api.resetAttendance({ eventId }),
+    onError: () => {
+      toast.error(i18n.t('errors.attendance.resetFailed'))
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['events'] })
+    },
+  })
+}

@@ -29,6 +29,7 @@ test('nl page: answering an event removes only the attendance messages, updates 
   await expect(match.locator('.tally')).toContainText('4 geen reactie')
 
   await page.getByRole('button', { name: 'Toon de oude manier' }).click()
+  await expect(page.locator('#status')).toBeFocused()
   await expect(attendance.first()).toBeVisible()
   await expect(training.locator('.tally')).toContainText('9 aanwezig')
   expect(await noHorizontalScroll()).toBe(true)
@@ -70,6 +71,17 @@ test('sign-in form: a valid email posts the language and shows the confirmation'
   await hero.getByRole('button', { name: 'Aan de slag' }).click()
   await expect(hero.locator('.form-msg')).toContainText('Check je mail')
   expect(body).toEqual({ email: 'speler@example.com', language: 'NL' })
+})
+
+test('sign-in form: a 429 shows the wait-a-minute text', async ({ page }) => {
+  await page.route(MAGIC_LINK, (route) =>
+    route.fulfill({ status: 429, headers: { 'access-control-allow-origin': '*' } }),
+  )
+  await page.goto('/')
+  const hero = page.locator('form[data-request]').first()
+  await hero.locator('input[type="email"]').fill('speler@example.com')
+  await hero.getByRole('button', { name: 'Aan de slag' }).click()
+  await expect(hero.locator('.form-msg')).toContainText('Te vaak geprobeerd')
 })
 
 test('demo link points at the demo team', async ({ page }) => {

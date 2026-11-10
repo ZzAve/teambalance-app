@@ -12,7 +12,8 @@ export const initialState = () => ({
 
 export const answer = (state, ev, a) => {
   const previous = state.answers[ev]
-  if (previous === a) return state
+  if (previous === a && state.quiet) return state
+  if (previous === a) return { ...state, last: { ev, a }, quiet: true }
   const counts = { ...state.counts[ev] }
   counts[previous ?? 'none']--
   counts[a]++

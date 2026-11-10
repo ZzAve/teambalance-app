@@ -4,22 +4,22 @@
 import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { render } from './render.mjs'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const root = join(here, '..')
 const dist = process.env.OUT_DIR ?? join(here, 'dist')
 
-// Files copied as they are: [source relative to repo root, destination relative to dist, required].
-// Optional ones are skipped when absent (landing.js and landing-state.mjs arrive with the page body).
+// Files copied as they are: [source relative to repo root, destination relative to dist].
 const STATIC_FILES = [
-  ['www/style.css', 'style.css', true],
-  ['www/landing.js', 'landing.js', false],
-  ['www/landing-state.mjs', 'landing-state.mjs', false],
-  ['design-tokens/tokens.css', 'design-tokens/tokens.css', true],
-  ['www/og.png', 'og.png', true],
-  ['app/public/favicon.ico', 'favicon.ico', true],
-  ['app/public/tb-monogram.svg', 'tb-monogram.svg', true],
-  ['app/public/apple-touch-icon-180x180.png', 'apple-touch-icon-180x180.png', true],
+  ['www/style.css', 'style.css'],
+  ['www/landing.js', 'landing.js'],
+  ['www/landing-state.mjs', 'landing-state.mjs'],
+  ['design-tokens/tokens.css', 'design-tokens/tokens.css'],
+  ['www/og.png', 'og.png'],
+  ['app/public/favicon.ico', 'favicon.ico'],
+  ['app/public/tb-monogram.svg', 'tb-monogram.svg'],
+  ['app/public/apple-touch-icon-180x180.png', 'apple-touch-icon-180x180.png'],
 ]
 
 // Latin subset only; the families are app dependencies, so `npm ci` in app/ provides them.
@@ -48,20 +48,17 @@ const copy = (from, to) => {
 }
 
 for (const { template, lang, out } of PAGES) {
-  const html = readFileSync(join(here, template), 'utf8').replace(/\{\{(\w+)\}\}/g, (_, key) => {
-    if (!(key in strings[lang])) throw new Error(`www/strings/${lang}.json has no "${key}"`)
-    return strings[lang][key]
-  })
+  const html = render(readFileSync(join(here, template), 'utf8'), strings[lang], `www/strings/${lang}.json`)
   const file = join(dist, out)
   mkdirSync(dirname(file), { recursive: true })
   writeFileSync(file, html)
   console.log(`wrote ${file}`)
 }
 
-for (const [from, to, required] of STATIC_FILES) {
+for (const [from, to] of STATIC_FILES) {
   const src = join(root, from)
-  if (existsSync(src)) copy(src, join(dist, to))
-  else if (required) throw new Error(`${from} is missing`)
+  if (!existsSync(src)) throw new Error(`${from} is missing`)
+  copy(src, join(dist, to))
 }
 
 for (const [family, file] of FONT_FILES) {

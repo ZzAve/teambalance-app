@@ -26,6 +26,14 @@ test('the same answer twice is a no-op', () => {
   assert.equal(answer(once, 'match', 'maybe'), once)
 })
 
+test('the same answer after "show the old way" collapses the chat again, counts unchanged', () => {
+  const back = showOldWay(answer(initialState(), 'match', 'maybe'))
+  const s = answer(back, 'match', 'maybe')
+  assert.equal(s.quiet, true)
+  assert.deepEqual(s.counts, back.counts)
+  assert.deepEqual(s.last, { ev: 'match', a: 'maybe' })
+})
+
 test('answering one event never changes the other', () => {
   const s = answer(initialState(), 'training', 'maybe')
   assert.deepEqual(s.counts.match, initialState().counts.match)

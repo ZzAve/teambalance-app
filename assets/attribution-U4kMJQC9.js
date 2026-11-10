@@ -1,0 +1,1 @@
+import{n as e}from"./rolldown-runtime-sJBDdmOt.js";import{k as t,y as n}from"./iframe-CoHmvLUH.js";function r(e,t){let{changedBy:n}=e;return n==null||n===e.userId||e.state===`NOT_RESPONDED`?null:i(n,t)}function i(e,n){return n.find(t=>t.userId===e)?.displayName??t.t(`attribution.teammate`)}function a(){return(a=e((()=>{n()})))()}export{a as n,i as r,r as t};

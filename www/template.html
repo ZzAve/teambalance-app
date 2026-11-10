@@ -29,13 +29,234 @@
     <link rel="stylesheet" href="/style.css" />
   </head>
   <body>
-    <nav class="lang-switch">
-      <a href="{{otherHref}}" hreflang="{{otherLang}}" lang="{{otherLang}}">{{otherName}}</a>
-    </nav>
-    <main class="hero">
-      <h1 class="wordmark">Team<span class="green">Balance</span></h1>
-      <p class="tagline">{{tagline}}</p>
-      <a href="https://app.teambalance.nl" class="cta">{{cta}}</a>
-    </main>
+    <div class="dark">
+      <div class="wrap">
+        <header class="topbar">
+          <a class="wordmark" href="#top" aria-label="TeamBalance"><span class="a">Team</span><span class="b">Balance</span></a>
+          <nav class="topnav">
+            <a class="lang-switch" href="{{otherHref}}" hreflang="{{otherLang}}" lang="{{otherLang}}">{{otherName}}</a>
+            <a class="login" href="https://app.teambalance.nl/login">{{logIn}}</a>
+          </nav>
+        </header>
+
+        <main id="top" class="hero">
+          <div class="hook">
+            <h1>{{heroTitle}}</h1>
+            <p class="sub">{{heroSub}}</p>
+
+            <form class="request" novalidate data-request>
+              <label class="sr-only" for="email-hero">{{emailLabel}}</label>
+              <div class="row">
+                <input id="email-hero" type="email" name="email" placeholder="{{emailPlaceholder}}" autocomplete="email" inputmode="email" />
+                <button class="btn btn-primary" type="submit">{{formButton}}</button>
+              </div>
+              <p class="form-hint">{{formHint}}</p>
+              <p class="form-msg" role="status" aria-live="polite"></p>
+              <div class="alt">
+                <a class="btn btn-ghost" href="https://demo.teambalance.nl/">{{demoButton}}</a>
+              </div>
+            </form>
+          </div>
+
+          <div class="scene" id="scene">
+            <div class="chat-head">
+              <div class="chat-title">{{chatTitle}}<small>{{chatSub}}</small></div>
+              <span class="unread" id="unread">{{unread}}</span>
+            </div>
+
+            <div class="thread-wrap">
+              <div class="thread" aria-hidden="true">
+                <div class="msg att me" style="--i: 0"><div class="msg-in"><span class="bubble">{{msgMe1}}</span></div></div>
+                <div class="msg att" style="--i: 1"><div class="msg-in"><span class="bubble"><span class="who w2">Joost</span>{{msgJoost}}</span></div></div>
+                <div class="msg"><div class="msg-in"><span class="bubble"><span class="who w3">Lotte</span>{{msgLotte}}</span></div></div>
+                <div class="msg att" style="--i: 2"><div class="msg-in"><span class="bubble"><span class="who w4">Bram</span>{{msgBram}}</span></div></div>
+                <div class="msg att" style="--i: 3"><div class="msg-in"><span class="bubble"><span class="who w5">Iris</span>{{msgIris}}</span></div></div>
+                <div class="msg"><div class="msg-in"><span class="bubble"><span class="who w1">Daan</span>{{msgDaan}}</span></div></div>
+                <div class="msg att" style="--i: 4"><div class="msg-in"><span class="bubble"><span class="who w3">Eva</span>{{msgEva}}</span></div></div>
+                <div class="msg"><div class="msg-in"><span class="bubble"><span class="who w2">Thijs</span>{{msgThijs}}</span></div></div>
+                <div class="msg att me" style="--i: 5"><div class="msg-in"><span class="bubble">{{msgMe2}}</span></div></div>
+                <div class="msg"><div class="msg-in"><span class="bubble"><span class="who w5">Noor</span>{{msgNoor}}</span></div></div>
+              </div>
+            </div>
+
+            <section class="card" aria-label="{{cardLabel}}">
+              <article class="ev" data-ev="training" aria-labelledby="ev-t">
+                <p class="ev-title" id="ev-t">{{evTraining}}</p>
+                <p class="when">{{evTrainingWhen}}</p>
+                <p class="tally" aria-live="polite">
+                  <span><i class="dot g" aria-hidden="true"></i><b data-n="going">8</b> {{tallyGoing}}</span>
+                  <span><i class="dot m" aria-hidden="true"></i><b data-n="maybe">2</b> {{tallyMaybe}}</span>
+                  <span><i class="dot c" aria-hidden="true"></i><b data-n="cant">1</b> {{tallyCant}}</span>
+                  <span><i class="dot n" aria-hidden="true"></i><b data-n="none">3</b> {{tallyNone}}</span>
+                </p>
+                <div class="bar" aria-hidden="true">
+                  <i data-b="going" style="background: var(--going); flex-grow: 8"></i>
+                  <i data-b="maybe" style="background: var(--maybe); flex-grow: 2"></i>
+                  <i data-b="cant" style="background: var(--cant); flex-grow: 1"></i>
+                  <i data-b="none" style="background: var(--none); flex-grow: 3"></i>
+                </div>
+                <div class="answers" role="group" aria-label="{{answerTraining}}">
+                  <button class="ans" type="button" data-a="going" aria-pressed="false"><i class="dot g" aria-hidden="true"></i>{{ansGoing}}</button>
+                  <button class="ans" type="button" data-a="maybe" aria-pressed="false"><i class="dot m" aria-hidden="true"></i>{{ansMaybe}}</button>
+                  <button class="ans" type="button" data-a="cant" aria-pressed="false"><i class="dot c" aria-hidden="true"></i>{{ansCant}}</button>
+                </div>
+              </article>
+              <article class="ev" data-ev="match" aria-labelledby="ev-m">
+                <p class="ev-title" id="ev-m">{{evMatch}}</p>
+                <p class="when">{{evMatchWhen}}</p>
+                <p class="tally" aria-live="polite">
+                  <span><i class="dot g" aria-hidden="true"></i><b data-n="going">5</b> {{tallyGoing}}</span>
+                  <span><i class="dot m" aria-hidden="true"></i><b data-n="maybe">3</b> {{tallyMaybe}}</span>
+                  <span><i class="dot c" aria-hidden="true"></i><b data-n="cant">2</b> {{tallyCant}}</span>
+                  <span><i class="dot n" aria-hidden="true"></i><b data-n="none">4</b> {{tallyNone}}</span>
+                </p>
+                <div class="bar" aria-hidden="true">
+                  <i data-b="going" style="background: var(--going); flex-grow: 5"></i>
+                  <i data-b="maybe" style="background: var(--maybe); flex-grow: 3"></i>
+                  <i data-b="cant" style="background: var(--cant); flex-grow: 2"></i>
+                  <i data-b="none" style="background: var(--none); flex-grow: 4"></i>
+                </div>
+                <div class="answers" role="group" aria-label="{{answerMatch}}">
+                  <button class="ans" type="button" data-a="going" aria-pressed="false"><i class="dot g" aria-hidden="true"></i>{{ansGoing}}</button>
+                  <button class="ans" type="button" data-a="maybe" aria-pressed="false"><i class="dot m" aria-hidden="true"></i>{{ansMaybe}}</button>
+                  <button class="ans" type="button" data-a="cant" aria-pressed="false"><i class="dot c" aria-hidden="true"></i>{{ansCant}}</button>
+                </div>
+              </article>
+              <p class="status" id="status" role="status" aria-live="polite">{{statusIdle}}</p>
+            </section>
+
+            <div class="scene-foot" id="sceneFoot" hidden>
+              <button class="linkbtn" type="button" id="bringBack">{{oldWay}}</button>
+            </div>
+          </div>
+        </main>
+      </div>
+    </div>
+
+    <div class="calm">
+      <div class="wrap">
+        <section class="intro">
+          <h2>{{introTitle}}</h2>
+          <p>{{introText}}</p>
+        </section>
+
+        <article class="pair">
+          <div class="ask"><span class="bubble">{{askWho}}</span><small>{{noScroll}}</small></div>
+          <div class="arrow" aria-hidden="true"><svg width="40" height="24" viewBox="0 0 40 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h30M26 4l8 8-8 8" /></svg></div>
+          <div class="answer">
+            <h3>{{rosterTitle}}</h3>
+            <p>{{rosterText}}</p>
+            <dl class="roster">
+              <div class="pos"><dt>{{posSetter}}</dt><dd><span class="chip"><i class="dot g" aria-hidden="true"></i>Sanne<span class="sr-only">, {{tallyGoing}}</span></span><span class="chip"><i class="dot m" aria-hidden="true"></i>Femke<span class="sr-only">, {{tallyMaybe}}</span></span></dd></div>
+              <div class="pos"><dt>{{posOutside}}</dt><dd><span class="chip"><i class="dot g" aria-hidden="true"></i>Daan<span class="sr-only">, {{tallyGoing}}</span></span><span class="chip"><i class="dot g" aria-hidden="true"></i>Lotte<span class="sr-only">, {{tallyGoing}}</span></span><span class="chip"><i class="dot c" aria-hidden="true"></i>Bram<span class="sr-only">, {{tallyCant}}</span></span></dd></div>
+              <div class="pos"><dt>{{posMiddle}}</dt><dd><span class="chip"><i class="dot g" aria-hidden="true"></i>Iris<span class="sr-only">, {{tallyGoing}}</span></span><span class="chip"><i class="dot g" aria-hidden="true"></i>Ruben<span class="sr-only">, {{tallyGoing}}</span></span></dd></div>
+              <div class="pos"><dt>{{posOpposite}}</dt><dd><span class="chip"><i class="dot g" aria-hidden="true"></i>Joost<span class="sr-only">, {{tallyGoing}}</span></span><span class="chip"><i class="dot n" aria-hidden="true"></i>Thijs<span class="sr-only">, {{tallyNone}}</span></span></dd></div>
+              <div class="pos"><dt>{{posLibero}}</dt><dd><span class="chip"><i class="dot g" aria-hidden="true"></i>Noor<span class="sr-only">, {{tallyGoing}}</span></span></dd></div>
+            </dl>
+            <p class="enough"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M8 12.5l2.6 2.6L16 9.5" /></svg>{{rosterEnough}}</p>
+            <p class="one-tap">{{rosterOneTap}}</p>
+          </div>
+        </article>
+
+        <article class="pot-panel">
+          <div class="pot-asks"><span class="bubble">{{askOwe}}</span><span class="bubble">{{askTikkie}}</span><small>{{noScroll}}</small></div>
+          <figure class="pot">
+            <svg viewBox="0 0 260 190" role="img" aria-label="{{potAlt}}">
+              <ellipse class="pt-sh" cx="130" cy="176" rx="96" ry="9" />
+              <path class="pt-body" d="M44 62h172v70a52 52 0 0 1-52 52H96a52 52 0 0 1-52-52z" stroke-width="5" stroke-linejoin="round" />
+              <path class="pt-line" d="M44 62h172" stroke-width="5" stroke-linecap="round" />
+              <path class="pt-line" d="M44 84c-26 0-26 40 0 40M216 84c26 0 26 40 0 40" stroke-width="5" stroke-linecap="round" />
+              <ellipse class="pt-lid" cx="130" cy="58" rx="92" ry="12" stroke-width="5" />
+              <circle class="pt-coin" cx="96" cy="46" r="15" stroke-width="4" /><circle class="pt-coin" cx="132" cy="38" r="15" stroke-width="4" /><circle class="pt-coin" cx="166" cy="48" r="15" stroke-width="4" />
+              <text class="pt-txt" x="130" y="140" text-anchor="middle" font-weight="800" font-size="34">€184</text>
+            </svg>
+            <figcaption>{{potCaption}}</figcaption>
+          </figure>
+          <div class="pot-body">
+            <h3>{{potTitle}}</h3>
+            <p>{{potText}}</p>
+            <p class="pot-note">{{potNote}}</p>
+            <div class="topups" role="group" aria-label="{{topupGroup}}">
+              <button class="topup" type="button" data-v="€10" aria-pressed="false">€10</button>
+              <button class="topup" type="button" data-v="€20" aria-pressed="false">€20</button>
+              <button class="topup" type="button" data-v="€50" aria-pressed="false">€50</button>
+              <button class="topup" type="button" data-v="{{topupCustomValue}}" aria-pressed="false">{{topupCustom}}</button>
+            </div>
+            <p class="topup-note" id="topupNote" role="status" aria-live="polite">{{topupIdle}}</p>
+          </div>
+        </article>
+
+        <div class="smalls">
+          <section>
+            <p class="struck">{{askTime}}</p>
+            <h3>{{calTitle}}</h3>
+            <p>{{calText}}</p>
+            <p class="fake-field"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="2.5" /><path d="M3.5 10h17M8 3v4M16 3v4" /></svg>{{calField}}</p>
+          </section>
+          <section>
+            <p class="struck">{{askAdd}}</p>
+            <h3>{{inviteTitle}}</h3>
+            <p>{{inviteText}}</p>
+            <p class="fake-field"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1" /><path d="M14 10a4 4 0 0 0-5.7 0l-3 3A4 4 0 0 0 11 18.7l1-1" /></svg>{{inviteField}}</p>
+          </section>
+          <section>
+            <p class="struck">{{askShort}}</p>
+            <h3>{{subTitle}}</h3>
+            <p>{{subText}}</p>
+          </section>
+        </div>
+
+        <section class="origin">
+          <h2>{{originTitle}}</h2>
+          <p>{{originText}}</p>
+        </section>
+
+        <section class="closing">
+          <h2>{{closeTitle}}</h2>
+          <p class="sub">{{closeSub}}</p>
+          <form class="request" novalidate data-request>
+            <label class="sr-only" for="email-close">{{emailLabel}}</label>
+            <div class="row">
+              <input id="email-close" type="email" name="email" placeholder="{{emailPlaceholder}}" autocomplete="email" inputmode="email" />
+              <button class="btn btn-primary" type="submit">{{formButton}}</button>
+            </div>
+            <p class="form-hint">{{formHint}}</p>
+            <p class="form-msg" role="status" aria-live="polite"></p>
+            <div class="alt"><a class="btn btn-ghost" href="https://demo.teambalance.nl/">{{demoButton}}</a></div>
+          </form>
+        </section>
+      </div>
+
+      <footer>
+        <div class="wrap foot">
+          <a class="wordmark" href="#top" aria-label="TeamBalance"><span class="a">Team</span><span class="b">Balance</span></a>
+          <a href="{{privacyHref}}">{{privacyLink}}</a>
+          <span>{{footMade}}</span>
+        </div>
+      </footer>
+    </div>
+
+    <script type="application/json" id="copy">
+      {
+        "unread": "{{unread}}",
+        "unreadQuiet": "{{unreadQuiet}}",
+        "idle": "{{statusIdle}}",
+        "oldBack": "{{statusOldBack}}",
+        "training_going": "{{statusTrainingGoing}}",
+        "training_maybe": "{{statusTrainingMaybe}}",
+        "training_cant": "{{statusTrainingCant}}",
+        "match_going": "{{statusMatchGoing}}",
+        "match_maybe": "{{statusMatchMaybe}}",
+        "match_cant": "{{statusMatchCant}}",
+        "topupPicked": "{{topupPicked}}",
+        "formEmpty": "{{formEmpty}}",
+        "formInvalid": "{{formInvalid}}",
+        "formSending": "{{formSending}}",
+        "formSent": "{{formSent}}",
+        "formRateLimited": "{{formRateLimited}}",
+        "formFailed": "{{formFailed}}"
+      }
+    </script>
+    <script type="module" src="/landing.js"></script>
   </body>
 </html>

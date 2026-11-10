@@ -38,8 +38,8 @@
 
   /* Typography.
      "… Variable" first: the app self-hosts both families as variable fonts via
-     @fontsource (see app/src/app/styles/global.css). The plain family name stays in the
-     chain for www/, which still loads Grandstander/DM Sans from the Google Fonts CDN. */
+     @fontsource (see app/src/app/styles/global.css). www/ self-hosts the same two files
+     (www/build.mjs copies them, www/style.css declares the @font-face). */
   --font-display: 'Grandstander Variable', 'Grandstander', cursive;
   --font-body: 'DM Sans Variable', 'DM Sans', sans-serif;
 

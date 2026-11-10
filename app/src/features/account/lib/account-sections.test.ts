@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import type { AuthenticatedUser } from '@shared/api/auth'
 import { accountSections } from './account-sections'
 
@@ -36,61 +36,34 @@ describe('accountSections', () => {
     expect(accountSections(u)).toContain('logout')
   })
 
-  it('teamless: email, photo, appearance, language, teams, log out — no name/position, no admin', () => {
-    expect(accountSections(user())).toEqual(['email', 'passkeys', 'photo', 'appearance', 'language', 'teams', 'logout'])
+  it('teamless: sign-in, teams, preferences, log out — no team profile, no admin', () => {
+    expect(accountSections(user())).toEqual(['signIn', 'teams', 'preferences', 'logout'])
   })
 
-  it('single team: adds display name + position', () => {
+  it('single team: adds the link to my profile in that team', () => {
     const sections = accountSections(user({ teams: [TEAM], activeTeam: TEAM, role: 'USER' }))
-    expect(sections).toEqual(['email', 'passkeys', 'photo', 'displayName', 'position', 'paymentAliases', 'appearance', 'language', 'teams', 'logout'])
-  })
-
-  it('hides the payment aliases link when the team has switched its money pool off', () => {
-    const base = { teams: [TEAM], activeTeam: TEAM, role: 'USER' as const }
-    expect(accountSections(user({ ...base, moneyPoolEnabled: false }))).not.toContain('paymentAliases')
-    expect(accountSections(user({ ...base, moneyPoolEnabled: true }))).toContain('paymentAliases')
+    expect(sections).toEqual(['signIn', 'teamProfile', 'teams', 'preferences', 'logout'])
   })
 
   it('multi team with one active is the same as single team (the switcher lives in Teams)', () => {
     const sections = accountSections(user({ teams: [TEAM, OTHER_TEAM], activeTeam: TEAM, role: 'USER' }))
-    expect(sections).toEqual(['email', 'passkeys', 'photo', 'displayName', 'position', 'paymentAliases', 'appearance', 'language', 'teams', 'logout'])
+    expect(sections).toEqual(['signIn', 'teamProfile', 'teams', 'preferences', 'logout'])
   })
 
-  it('multi team with none active hides name/position (no Active Team yet)', () => {
-    const sections = accountSections(user({ teams: [TEAM, OTHER_TEAM] }))
-    expect(sections).toEqual(['email', 'passkeys', 'photo', 'appearance', 'language', 'teams', 'logout'])
+  it('multi team with none active has no team profile (no Active Team yet)', () => {
+    expect(accountSections(user({ teams: [TEAM, OTHER_TEAM] }))).toEqual(['signIn', 'teams', 'preferences', 'logout'])
   })
 
   it('platform admin adds the platform-admin section', () => {
-    expect(accountSections(user({ isPlatformAdmin: true }))).toContain('platformAdmin')
+    expect(accountSections(user({ isPlatformAdmin: true }))).toEqual(['signIn', 'teams', 'preferences', 'platformAdmin', 'logout'])
   })
 
-  // Act-as: an Active Team without a membership (teams empty). Name + position still show — they
-  // read the session tenant — and admin shows too. (ADR-0024 / ADR-0027 consequences.)
-  it('act-as: shows name/position (via the session tenant) and platform admin, but no payment aliases link', () => {
+  // Act-as: an Active Team through a Virtual Member, never a written one (ADR-0024 §2), so there is
+  // no own member page to link to.
+  it('act-as: platform admin, but no team profile', () => {
     const sections = accountSections(
       user({ isPlatformAdmin: true, activeTeam: TEAM, role: 'ADMIN', actAs: { team: TEAM, expiresAt: 'x' } }),
     )
-    expect(sections).toEqual([
-      'email',
-      'passkeys',
-      'photo',
-      'displayName',
-      'position',
-      'appearance',
-      'language',
-      'teams',
-      'platformAdmin',
-      'logout',
-    ])
-  })
-
-  describe('in the demo build', () => {
-    afterEach(() => vi.unstubAllEnvs())
-
-    it('has no passkeys section: guests share one persona', () => {
-      vi.stubEnv('VITE_NO_PASSKEYS', '1')
-      expect(accountSections(user())).not.toContain('passkeys')
-    })
+    expect(sections).toEqual(['signIn', 'teams', 'preferences', 'platformAdmin', 'logout'])
   })
 })

@@ -1,66 +1,31 @@
 import type { AuthenticatedUser } from '@shared/api/auth'
-import { passkeysOffered } from '@shared/api/passkeys'
 
 /**
- * The rows the Account tab can show. What actually renders is a pure function of the authenticated
- * user (ADR-0027 §2) — never of the URL, so it is identical on every in-shell screen.
+ * The rows of the Account tab's root list. Each row opens one scope: the account itself, the
+ * viewer's profile in the Active Team, their teams, the app preferences, the platform tools. What
+ * renders is a pure function of the authenticated user (ADR-0027 §2), never of the URL.
  */
-export type AccountSection =
-  | 'email'
-  | 'passkeys'
-  | 'photo'
-  | 'displayName'
-  | 'position'
-  | 'paymentAliases'
-  | 'appearance'
-  | 'language'
-  | 'teams'
-  | 'platformAdmin'
-  | 'logout'
+export type AccountSection = 'signIn' | 'teamProfile' | 'teams' | 'preferences' | 'platformAdmin' | 'logout'
 
 // Canonical display order; the selector returns the present sections in this order.
-const ORDER: AccountSection[] = [
-  'email',
-  'passkeys',
-  'photo',
-  'displayName',
-  'position',
-  'paymentAliases',
-  'appearance',
-  'language',
-  'teams',
-  'platformAdmin',
-  'logout',
-]
+const ORDER: AccountSection[] = ['signIn', 'teamProfile', 'teams', 'preferences', 'platformAdmin', 'logout']
 
 /** The fields of the session this selector reads — a narrow view of {@link AuthenticatedUser}. */
-type AccountUser = Pick<
-  AuthenticatedUser,
-  'email' | 'activeTeam' | 'teams' | 'isPlatformAdmin' | 'actAs' | 'moneyPoolEnabled'
->
+type AccountUser = Pick<AuthenticatedUser, 'activeTeam' | 'isPlatformAdmin' | 'actAs'>
 
 /**
- * Which Account sections are visible for this session.
+ * Which Account rows are visible for this session.
  *
- * - **Email / Passkeys / Appearance / Language / Teams / Log out** — always. Log out is the whole point: it must be
+ * - **Sign-in / Teams / Preferences / Log out** — always. Log out is the whole point: it must be
  *   reachable from every signed-in state.
- * - **Photo** — always: the Personal Photo belongs to the person, not to a Team (ADR-0038).
- * - **Display name / Position** — only with an Active Team, because member data is tenant-scoped
- *   (ADR-0026). An Active Team can come from a membership *or* from act-as (ADR-0024): a Platform
- *   Admin acting-as has `activeTeam` set with `teams` empty, and still gets the tenant's name +
- *   position — so the gate is `activeTeam`, not "has a membership".
- * - **Payment aliases** — an Active Team, not acting-as, and the money pool not switched off: it links to the viewer's own member page (ADR-0045).
+ * - **Team profile** — an Active Team and not acting-as. It links to the viewer's own member page,
+ *   the one editor of their name, position, shirt number, Team Photo and payment aliases. A Platform
+ *   Admin acting-as is a Virtual Member that is never written (ADR-0024 §2), so has no such page.
  * - **Platform admin** — only for a Platform Admin.
  */
 export function accountSections(user: AccountUser): AccountSection[] {
-  const present = new Set<AccountSection>(['email', 'photo', 'appearance', 'language', 'teams', 'logout'])
-  if (passkeysOffered()) present.add('passkeys')
-  if (user.activeTeam) {
-    present.add('displayName')
-    present.add('position')
-    // The alias editor lives on the viewer's own member page; a Platform Admin acting-as has none.
-    if (!user.actAs && user.moneyPoolEnabled !== false) present.add('paymentAliases')
-  }
+  const present = new Set<AccountSection>(['signIn', 'teams', 'preferences', 'logout'])
+  if (user.activeTeam && !user.actAs) present.add('teamProfile')
   if (user.isPlatformAdmin) present.add('platformAdmin')
   return ORDER.filter((section) => present.has(section))
 }

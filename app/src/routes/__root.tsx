@@ -25,6 +25,10 @@ function isAuthRoute(pathname: string): boolean {
   return pathname === '/login' || pathname === '/demo' || pathname.startsWith('/auth/') || /^\/invite\/[^/]+$/.test(pathname)
 }
 
+function isAccountRoute(pathname: string): boolean {
+  return pathname === '/account' || pathname.startsWith('/account/')
+}
+
 // The screens an authenticated caller can reach without being in a Team.
 function isTeamlessRoute(pathname: string): boolean {
   const path = pathname.replace(/\/$/, '')
@@ -35,9 +39,9 @@ function isTeamlessRoute(pathname: string): boolean {
     path === '/select-team' ||
     path === '/admin/creation-codes' ||
     path === '/admin/teams' ||
-    // The team-independent Account tab (ADR-0027 §1): a teamless caller reaches it instead of being
-    // parked on /onboarding, so Log out is reachable with no team.
-    path === '/account'
+    // The team-independent Account tab and its screens (ADR-0027 §1): a teamless caller reaches
+    // them instead of being parked on /onboarding, so Log out is reachable with no team.
+    isAccountRoute(path)
   )
 }
 
@@ -127,8 +131,8 @@ function RootLayout() {
           default and only shows a reload prompt when a deploy lands mid-session with unsaved work. */}
       <SwUpdateManager />
       {/* Offers a passkey to a signed-in person who has none (ADR-0045); not on the sign-in routes, and not on
-          /account, whose Passkeys section already offers it and whose Log out row the prompt would cover. */}
-      {!isAuthRoute(pathname) && pathname !== '/account' && <PasskeyPrompt />}
+          the Account screens: /account/sign-in already offers it, and on /account the prompt would cover Log out. */}
+      {!isAuthRoute(pathname) && !isAccountRoute(pathname) && <PasskeyPrompt />}
     </Providers>
   )
 }

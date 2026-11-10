@@ -10,12 +10,14 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as AccountRouteImport } from './routes/account'
 import { Route as DemoRouteImport } from './routes/demo'
 import { Route as DemoTopUpRouteImport } from './routes/demo-top-up'
 import { Route as EventsRouteImport } from './routes/events'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as SelectTeamRouteImport } from './routes/select-team'
+import { Route as AccountIndexRouteImport } from './routes/account/index'
+import { Route as AccountPreferencesRouteImport } from './routes/account/preferences'
+import { Route as AccountSignInRouteImport } from './routes/account/sign-in'
 import { Route as AdminCreationCodesRouteImport } from './routes/admin/creation-codes'
 import { Route as AdminTeamsRouteImport } from './routes/admin/teams'
 import { Route as AuthVerifyRouteImport } from './routes/auth/verify'
@@ -37,11 +39,6 @@ import { Route as TSlugTeamSettingsRouteImport } from './routes/t/$slug/team/set
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AccountRoute = AccountRouteImport.update({
-  id: '/account',
-  path: '/account',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DemoRoute = DemoRouteImport.update({
@@ -67,6 +64,21 @@ const LoginRoute = LoginRouteImport.update({
 const SelectTeamRoute = SelectTeamRouteImport.update({
   id: '/select-team',
   path: '/select-team',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AccountIndexRoute = AccountIndexRouteImport.update({
+  id: '/account/',
+  path: '/account/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AccountPreferencesRoute = AccountPreferencesRouteImport.update({
+  id: '/account/preferences',
+  path: '/account/preferences',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AccountSignInRoute = AccountSignInRouteImport.update({
+  id: '/account/sign-in',
+  path: '/account/sign-in',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminCreationCodesRoute = AdminCreationCodesRouteImport.update({
@@ -157,18 +169,20 @@ const TSlugTeamSettingsRoute = TSlugTeamSettingsRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/account': typeof AccountRoute
   '/demo': typeof DemoRoute
   '/demo-top-up': typeof DemoTopUpRoute
   '/events': typeof EventsRoute
   '/login': typeof LoginRoute
   '/select-team': typeof SelectTeamRoute
   '/t/$slug': typeof TSlugRouteRouteWithChildren
+  '/account/preferences': typeof AccountPreferencesRoute
+  '/account/sign-in': typeof AccountSignInRoute
   '/admin/creation-codes': typeof AdminCreationCodesRoute
   '/admin/teams': typeof AdminTeamsRoute
   '/auth/verify': typeof AuthVerifyRoute
   '/invite/$token': typeof InviteTokenRoute
   '/onboarding/join': typeof OnboardingJoinRoute
+  '/account/': typeof AccountIndexRoute
   '/create-team/': typeof CreateTeamIndexRoute
   '/onboarding/': typeof OnboardingIndexRoute
   '/t/$slug/': typeof TSlugIndexRoute
@@ -183,17 +197,19 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/account': typeof AccountRoute
   '/demo': typeof DemoRoute
   '/demo-top-up': typeof DemoTopUpRoute
   '/events': typeof EventsRoute
   '/login': typeof LoginRoute
   '/select-team': typeof SelectTeamRoute
+  '/account/preferences': typeof AccountPreferencesRoute
+  '/account/sign-in': typeof AccountSignInRoute
   '/admin/creation-codes': typeof AdminCreationCodesRoute
   '/admin/teams': typeof AdminTeamsRoute
   '/auth/verify': typeof AuthVerifyRoute
   '/invite/$token': typeof InviteTokenRoute
   '/onboarding/join': typeof OnboardingJoinRoute
+  '/account': typeof AccountIndexRoute
   '/create-team': typeof CreateTeamIndexRoute
   '/onboarding': typeof OnboardingIndexRoute
   '/t/$slug': typeof TSlugIndexRoute
@@ -209,18 +225,20 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/account': typeof AccountRoute
   '/demo': typeof DemoRoute
   '/demo-top-up': typeof DemoTopUpRoute
   '/events': typeof EventsRoute
   '/login': typeof LoginRoute
   '/select-team': typeof SelectTeamRoute
   '/t/$slug': typeof TSlugRouteRouteWithChildren
+  '/account/preferences': typeof AccountPreferencesRoute
+  '/account/sign-in': typeof AccountSignInRoute
   '/admin/creation-codes': typeof AdminCreationCodesRoute
   '/admin/teams': typeof AdminTeamsRoute
   '/auth/verify': typeof AuthVerifyRoute
   '/invite/$token': typeof InviteTokenRoute
   '/onboarding/join': typeof OnboardingJoinRoute
+  '/account/': typeof AccountIndexRoute
   '/create-team/': typeof CreateTeamIndexRoute
   '/onboarding/': typeof OnboardingIndexRoute
   '/t/$slug/': typeof TSlugIndexRoute
@@ -237,18 +255,20 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/account'
     | '/demo'
     | '/demo-top-up'
     | '/events'
     | '/login'
     | '/select-team'
     | '/t/$slug'
+    | '/account/preferences'
+    | '/account/sign-in'
     | '/admin/creation-codes'
     | '/admin/teams'
     | '/auth/verify'
     | '/invite/$token'
     | '/onboarding/join'
+    | '/account/'
     | '/create-team/'
     | '/onboarding/'
     | '/t/$slug/'
@@ -263,17 +283,19 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/account'
     | '/demo'
     | '/demo-top-up'
     | '/events'
     | '/login'
     | '/select-team'
+    | '/account/preferences'
+    | '/account/sign-in'
     | '/admin/creation-codes'
     | '/admin/teams'
     | '/auth/verify'
     | '/invite/$token'
     | '/onboarding/join'
+    | '/account'
     | '/create-team'
     | '/onboarding'
     | '/t/$slug'
@@ -288,18 +310,20 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
-    | '/account'
     | '/demo'
     | '/demo-top-up'
     | '/events'
     | '/login'
     | '/select-team'
     | '/t/$slug'
+    | '/account/preferences'
+    | '/account/sign-in'
     | '/admin/creation-codes'
     | '/admin/teams'
     | '/auth/verify'
     | '/invite/$token'
     | '/onboarding/join'
+    | '/account/'
     | '/create-team/'
     | '/onboarding/'
     | '/t/$slug/'
@@ -315,18 +339,20 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  AccountRoute: typeof AccountRoute
   DemoRoute: typeof DemoRoute
   DemoTopUpRoute: typeof DemoTopUpRoute
   EventsRoute: typeof EventsRoute
   LoginRoute: typeof LoginRoute
   SelectTeamRoute: typeof SelectTeamRoute
   TSlugRouteRoute: typeof TSlugRouteRouteWithChildren
+  AccountPreferencesRoute: typeof AccountPreferencesRoute
+  AccountSignInRoute: typeof AccountSignInRoute
   AdminCreationCodesRoute: typeof AdminCreationCodesRoute
   AdminTeamsRoute: typeof AdminTeamsRoute
   AuthVerifyRoute: typeof AuthVerifyRoute
   InviteTokenRoute: typeof InviteTokenRoute
   OnboardingJoinRoute: typeof OnboardingJoinRoute
+  AccountIndexRoute: typeof AccountIndexRoute
   CreateTeamIndexRoute: typeof CreateTeamIndexRoute
   OnboardingIndexRoute: typeof OnboardingIndexRoute
 }
@@ -338,13 +364,6 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/account': {
-      id: '/account'
-      path: '/account'
-      fullPath: '/account'
-      preLoaderRoute: typeof AccountRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/demo': {
@@ -380,6 +399,27 @@ declare module '@tanstack/react-router' {
       path: '/select-team'
       fullPath: '/select-team'
       preLoaderRoute: typeof SelectTeamRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/account/': {
+      id: '/account/'
+      path: '/account'
+      fullPath: '/account/'
+      preLoaderRoute: typeof AccountIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/account/preferences': {
+      id: '/account/preferences'
+      path: '/account/preferences'
+      fullPath: '/account/preferences'
+      preLoaderRoute: typeof AccountPreferencesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/account/sign-in': {
+      id: '/account/sign-in'
+      path: '/account/sign-in'
+      fullPath: '/account/sign-in'
+      preLoaderRoute: typeof AccountSignInRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/creation-codes': {
@@ -534,18 +574,20 @@ const TSlugRouteRouteWithChildren = TSlugRouteRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  AccountRoute: AccountRoute,
   DemoRoute: DemoRoute,
   DemoTopUpRoute: DemoTopUpRoute,
   EventsRoute: EventsRoute,
   LoginRoute: LoginRoute,
   SelectTeamRoute: SelectTeamRoute,
   TSlugRouteRoute: TSlugRouteRouteWithChildren,
+  AccountPreferencesRoute: AccountPreferencesRoute,
+  AccountSignInRoute: AccountSignInRoute,
   AdminCreationCodesRoute: AdminCreationCodesRoute,
   AdminTeamsRoute: AdminTeamsRoute,
   AuthVerifyRoute: AuthVerifyRoute,
   InviteTokenRoute: InviteTokenRoute,
   OnboardingJoinRoute: OnboardingJoinRoute,
+  AccountIndexRoute: AccountIndexRoute,
   CreateTeamIndexRoute: CreateTeamIndexRoute,
   OnboardingIndexRoute: OnboardingIndexRoute,
 }

@@ -1,81 +1,38 @@
-import { useState } from 'react'
+import type { ReactNode } from 'react'
 import { Link } from '@tanstack/react-router'
-import { ChevronRight, KeyRound, Landmark, LogOut, Mail, ShieldCheck, Users } from 'lucide-react'
-import type { Member } from '@shared/api/members'
-import type { Position } from '@shared/api/positions'
+import { ChevronRight, KeyRound, LogOut, Settings2, Shirt, ShieldCheck, UserRound, Users } from 'lucide-react'
 import { personalPhotoUrl } from '@shared/api/photos'
-import { EditProfileForm } from '@features/edit-profile/ui/EditProfileForm'
-import { PhotoPicker } from '@features/pick-photo/ui/PhotoPicker'
-import { ThemeToggle } from '@features/theme-toggle/ui/ThemeToggle'
-import { Passkeys } from '@features/passkeys/ui/Passkeys'
-import { LanguageSwitch } from '@features/language-switch/ui/LanguageSwitch'
 import { Avatar } from '@shared/ui/avatar'
-import { Button } from '@shared/ui/button'
-import { ConfirmDialog } from '@shared/ui/ConfirmDialog'
 import { SectionLabel } from '@shared/ui/SectionLabel'
 import { teamRoutes } from '@shared/lib/team-routes'
 import type { AccountSection } from '../lib/account-sections'
 import { useTranslation } from 'react-i18next'
+import { CARD, ICON, ROW_INTERACTIVE } from './account-styles'
 
 interface AccountViewProps {
-  /** The visible sections for this session, from {@link accountSections}. Drives which rows render. */
+  /** The visible rows for this session, from {@link accountSections}. */
   sections: AccountSection[]
   userId: string
-  /** The platform name, for the initials when there is no Personal Photo. */
+  /** The platform name: the same in every team, unlike the name a team shows (ADR-0026). */
   displayName: string
   email: string
   /** The caller's own Personal Photo (ADR-0038); null when they have none. */
   personalPhotoVersion?: string | null
-  isPhotoSaving?: boolean
-  photoErrorMessage?: string
-  /**
-   * Set right after a Personal Photo upload while the Active Team has no Team Photo: the one moment
-   * the tab offers to copy it into that Team (ADR-0038). Null hides the offer.
-   */
-  copyPhotoTeamName?: string | null
-  onUploadPersonalPhoto?: (photo: Blob) => void
-  onRemovePersonalPhoto?: () => void
-  onCopyPhotoToTeam?: () => void
-  onDismissCopyPhoto?: () => void
   /** The Active Team's name, or null when there is none (teamless). */
   activeTeamName?: string | null
   /** The Active Team's slug, for the link to the viewer's own member page. */
   activeTeamSlug?: string | null
-  /** The current member — only present (and only fetched) when there is an Active Team. */
-  member?: Member | null
-  /** The Active Team's position vocabulary; empty hides the position picker. */
-  positions?: Position[]
-  /** The member-profile query is in flight. Shows the profile shell — Log out stays rendered. */
-  isMemberLoading?: boolean
-  /** The member-profile query failed. Shows the error shell — Log out stays rendered. */
-  isMemberError?: boolean
-  isSaving?: boolean
-  /** Backend error discriminator from the update mutation (e.g. NAME_TAKEN), shown inline. */
-  memberErrorCode?: string
-  onSubmitProfile?: (name: string, positionId: string | null) => void
   onLogout: () => void
 }
 
-// A settings card: rows share the same warm surface, hairline dividers and soft lift as the
-// appearance control, so the whole tab reads as one grouped list (ADR-0027 §2, concept prototype).
-const CARD = 'overflow-hidden rounded-md border border-border bg-card shadow-[var(--shadow-card)]'
-const ROW = 'flex items-center gap-3 px-4 py-3 text-small'
-// Links / buttons get a hover wash and an inset focus ring so keyboard focus stays visible on a row.
-const ROW_INTERACTIVE =
-  `${ROW} w-full text-left transition-colors hover:bg-muted/60 ` +
-  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/50'
-const ICON = 'shrink-0 text-muted-foreground'
-
 /**
- * The adaptive Account settings list (ADR-0027 §2) — prop-only and presentational. The container
- * reads the session and the member profile; this renders the sections it is handed as a grouped
- * settings list of cards, following the concept prototype: iconed rows, right-aligned muted values,
- * an Active badge on the team, and Log out as its own red row.
+ * The Account tab's root (ADR-0027 §2): a card that says who is signed in and which team is
+ * active, then one short row per scope. Each row opens the screen that holds that scope's settings,
+ * so the list stays one screen high as features are added. Prop-only and presentational.
  *
- * **Log out is rendered unconditionally**, in its own trailing card outside every other section —
- * including the profile loading/error shells — because it acts on the session, not on any data that
- * might still be loading. A failed member fetch can never hide it. That invariant is the whole point
- * of the ADR, and every story asserts it.
+ * It reads no member data. **Log out is rendered unconditionally**, in its own trailing card, so
+ * nothing that loads or fails can hide it. That invariant is the whole point of the ADR, and every
+ * story asserts it.
  */
 export function AccountView({
   sections,
@@ -83,228 +40,100 @@ export function AccountView({
   displayName,
   email,
   personalPhotoVersion,
-  isPhotoSaving,
-  photoErrorMessage,
-  copyPhotoTeamName,
-  onUploadPersonalPhoto,
-  onRemovePersonalPhoto,
-  onCopyPhotoToTeam,
-  onDismissCopyPhoto,
   activeTeamName,
   activeTeamSlug,
-  member,
-  positions = [],
-  isMemberLoading,
-  isMemberError,
-  isSaving,
-  memberErrorCode,
-  onSubmitProfile,
   onLogout,
 }: AccountViewProps) {
   const { t } = useTranslation()
   const has = (section: AccountSection) => sections.includes(section)
-  const [confirmingPhotoRemove, setConfirmingPhotoRemove] = useState(false)
 
   return (
-    <div>
-      <div className="space-y-6">
-        {has('email') && (
-          <section>
-            <SectionLabel as="h3" className="mb-2 px-1 text-small">{t('account.title')}</SectionLabel>
-            <div className={CARD}>
-              <div className={ROW}>
-                <Mail size={18} strokeWidth={1.9} className={ICON} aria-hidden="true" />
-                <span className="font-medium">{t('account.email')}</span>
-                <span className="ml-auto min-w-0 truncate text-muted-foreground" title={email}>
-                  {email}
-                </span>
-              </div>
-            </div>
-          </section>
-        )}
-
-        {has('passkeys') && (
-          <section>
-            <Passkeys />
-          </section>
-        )}
-
-        {has('photo') && (
-          <section>
-            <SectionLabel as="h3" className="mb-2 px-1 text-small">{t('account.photo')}</SectionLabel>
-            <div className={`${CARD} p-4`}>
-              <div className="flex items-center gap-4">
-                <Avatar
-                  userId={userId}
-                  name={displayName}
-                  size="md"
-                  photoUrl={personalPhotoVersion ? personalPhotoUrl(personalPhotoVersion) : undefined}
-                />
-                <div className="flex min-w-0 flex-col gap-2">
-                  <p className="text-small text-muted-foreground">
-                    {t('account.photoHint')}
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    <PhotoPicker
-                      label={personalPhotoVersion ? t('account.changePhoto') : t('account.uploadPhoto')}
-                      disabled={isPhotoSaving}
-                      onPicked={(photo) => onUploadPersonalPhoto?.(photo)}
-                    />
-                    {personalPhotoVersion && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        disabled={isPhotoSaving}
-                        onClick={() => setConfirmingPhotoRemove(true)}
-                      >
-                        {t('account.removePhoto')}
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              </div>
-              {photoErrorMessage && <p className="mt-3 text-small text-red-ink">{photoErrorMessage}</p>}
-              <ConfirmDialog
-                open={confirmingPhotoRemove}
-                title={t('account.removePhoto')}
-                description={t('account.removePhotoHint')}
-                confirmLabel={t('account.remove')}
-                onConfirm={() => {
-                  setConfirmingPhotoRemove(false)
-                  onRemovePersonalPhoto?.()
-                }}
-                onCancel={() => setConfirmingPhotoRemove(false)}
-              />
-              {copyPhotoTeamName && (
-                <div className="mt-4 rounded-md bg-muted p-3">
-                  <p className="text-small">{t('account.copyQuestion', { team: copyPhotoTeamName })}</p>
-                  <div className="mt-2 flex gap-2">
-                    <Button size="sm" disabled={isPhotoSaving} onClick={onCopyPhotoToTeam}>
-                      {t('account.copyConfirm', { team: copyPhotoTeamName })}
-                    </Button>
-                    <Button size="sm" variant="ghost" onClick={onDismissCopyPhoto}>
-                      {t('account.notNow')}
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </div>
-          </section>
-        )}
-
-        {/* Display name + position are one form (EditProfileForm covers both rows). Present only with
-            an Active Team; its loading/error shells are props-driven so they render with no network. */}
-        {has('displayName') && (
-          <section>
-            <SectionLabel as="h3" className="mb-2 px-1 text-small">{t('account.profile')}</SectionLabel>
-            <div className={`${CARD} p-4`}>
-              {isMemberLoading && <p className="text-small text-muted-foreground">{t('account.loading')}</p>}
-              {isMemberError && (
-                <p className="text-small text-red-ink">{t('account.loadFailed')}</p>
-              )}
-              {!isMemberLoading && !isMemberError && member && (
-                <EditProfileForm
-                  currentName={member.displayName}
-                  positions={positions}
-                  currentPositionId={member.position?.id ?? null}
-                  isSaving={!!isSaving}
-                  errorCode={memberErrorCode}
-                  onSubmit={(name, positionId) => onSubmitProfile?.(name, positionId)}
-                />
-              )}
-            </div>
-          </section>
-        )}
-
-        {/* The alias editor lives on the viewer's own member page in the Active Team (ADR-0045). */}
-        {has('paymentAliases') && activeTeamSlug && (
-          <section>
-            <div className={CARD}>
-              <Link to={teamRoutes(activeTeamSlug).member(userId)} className={ROW_INTERACTIVE}>
-                <Landmark size={18} strokeWidth={1.9} className={ICON} aria-hidden="true" />
-                <span className="min-w-0 flex-1">
-                  <span className="block font-medium">{t('account.paymentMatching')}</span>
-                  <span className="block text-caption text-muted-foreground">{t('account.paymentMatchingHint')}</span>
-                </span>
-                <ChevronRight size={16} className="shrink-0 text-muted-foreground/60" aria-hidden="true" />
-              </Link>
-            </div>
-          </section>
-        )}
-
-        {/* A single entry naming the Active Team (or hinting when there's none) that opens the Teams
-            "main view" at /select-team — switch · join · create (ADR-0027 §4). */}
-        {has('teams') && (
-          <section>
-            <SectionLabel as="h3" className="mb-2 px-1 text-small">{t('account.teams')}</SectionLabel>
-            <div className={CARD}>
-              <Link to="/select-team" className={ROW_INTERACTIVE}>
-                <Users size={18} strokeWidth={1.9} className={ICON} aria-hidden="true" />
-                {activeTeamName ? (
-                  <>
-                    <span className="min-w-0 truncate font-medium">{activeTeamName}</span>
-                    <span className="ml-auto rounded-full bg-green/10 px-2 py-0.5 text-caption font-semibold text-green">
-                      {t('account.active')}
-                    </span>
-                  </>
-                ) : (
-                  <span className="font-medium text-muted-foreground">{t('account.joinOrCreate')}</span>
-                )}
-                <ChevronRight
-                  size={16}
-                  className={`${activeTeamName ? 'ml-3' : 'ml-auto'} shrink-0 text-muted-foreground/60`}
-                  aria-hidden="true"
-                />
-              </Link>
-            </div>
-          </section>
-        )}
-
-        {has('appearance') && (
-          <section>
-            {/* ThemeToggle carries its own "Appearance" heading + description and a bordered control,
-                so it needs no extra card or label — it already matches the settings-card treatment. */}
-            <ThemeToggle />
-          </section>
-        )}
-
-        {has('language') && (
-          <section>
-            <LanguageSwitch />
-          </section>
-        )}
-
-        {has('platformAdmin') && (
-          <section>
-            <SectionLabel as="h3" className="mb-2 px-1 text-small">{t('account.platformAdmin')}</SectionLabel>
-            <div className={CARD}>
-              <div className="divide-y divide-border">
-                <Link to="/admin/teams" className={ROW_INTERACTIVE}>
-                  <ShieldCheck size={18} strokeWidth={1.9} className={ICON} aria-hidden="true" />
-                  <span className="font-medium">{t('account.teamsConsole')}</span>
-                  <ChevronRight size={16} className="ml-auto shrink-0 text-muted-foreground/60" aria-hidden="true" />
-                </Link>
-                <Link to="/admin/creation-codes" className={ROW_INTERACTIVE}>
-                  <KeyRound size={18} strokeWidth={1.9} className={ICON} aria-hidden="true" />
-                  <span className="font-medium">{t('account.creationCodes')}</span>
-                  <ChevronRight size={16} className="ml-auto shrink-0 text-muted-foreground/60" aria-hidden="true" />
-                </Link>
-              </div>
-            </div>
-          </section>
-        )}
-
-        <div className={CARD}>
-          <button
-            type="button"
-            onClick={onLogout}
-            className={`${ROW_INTERACTIVE} font-semibold text-red-ink hover:bg-red/5`}
+    <div className="space-y-6">
+      <section aria-label={t('account.title')} className={`${CARD} flex items-center gap-4 p-4`}>
+        <Avatar
+          userId={userId}
+          name={displayName}
+          size="md"
+          photoUrl={personalPhotoVersion ? personalPhotoUrl(personalPhotoVersion) : undefined}
+        />
+        <div className="min-w-0">
+          <p className="truncate font-display text-title font-bold">{displayName}</p>
+          <p className="truncate text-small text-muted-foreground" title={email}>{email}</p>
+          <p
+            className={`mt-1.5 inline-flex max-w-full items-center gap-1.5 rounded-full px-2.5 py-0.5 text-caption font-semibold ${
+              activeTeamName ? 'bg-blue/10 text-blue' : 'bg-muted text-muted-foreground'
+            }`}
           >
-            <LogOut size={18} strokeWidth={1.9} className="shrink-0" aria-hidden="true" />
-            {t('account.logout')}
-          </button>
+            {activeTeamName && <span className="size-1.5 shrink-0 rounded-full bg-green" aria-hidden="true" />}
+            <span className="truncate">{activeTeamName ?? t('account.noTeam')}</span>
+          </p>
         </div>
+      </section>
+
+      <nav aria-label={t('account.title')} className={`${CARD} divide-y divide-border`}>
+        {has('signIn') && (
+          <NavRow to="/account/sign-in" icon={<UserRound size={18} strokeWidth={1.9} />} title={t('account.signIn')} hint={t('account.signInHint')} />
+        )}
+        {has('teamProfile') && activeTeamName && activeTeamSlug && (
+          <NavRow
+            to={teamRoutes(activeTeamSlug).member(userId)}
+            icon={<Shirt size={18} strokeWidth={1.9} />}
+            title={t('account.teamProfile', { team: activeTeamName })}
+            hint={t('account.teamProfileHint')}
+          />
+        )}
+        {/* Opens the Teams "main view" at /select-team — switch · join · create (ADR-0027 §4). */}
+        {has('teams') && (
+          <NavRow
+            to="/select-team"
+            icon={<Users size={18} strokeWidth={1.9} />}
+            title={t('account.teams')}
+            hint={activeTeamName ? t('account.teamsActive', { team: activeTeamName }) : t('account.joinOrCreate')}
+          />
+        )}
+        {has('preferences') && (
+          <NavRow
+            to="/account/preferences"
+            icon={<Settings2 size={18} strokeWidth={1.9} />}
+            title={t('account.preferences')}
+            hint={t('account.preferencesHint')}
+          />
+        )}
+      </nav>
+
+      {has('platformAdmin') && (
+        <section>
+          <SectionLabel as="h3" className="mb-2 px-1 text-small">{t('account.platformAdmin')}</SectionLabel>
+          <div className={`${CARD} divide-y divide-border`}>
+            <NavRow to="/admin/teams" icon={<ShieldCheck size={18} strokeWidth={1.9} />} title={t('account.teamsConsole')} />
+            <NavRow to="/admin/creation-codes" icon={<KeyRound size={18} strokeWidth={1.9} />} title={t('account.creationCodes')} />
+          </div>
+        </section>
+      )}
+
+      <div className={CARD}>
+        <button
+          type="button"
+          onClick={onLogout}
+          className={`${ROW_INTERACTIVE} font-semibold text-red-ink hover:bg-red/5`}
+        >
+          <LogOut size={18} strokeWidth={1.9} className="shrink-0" aria-hidden="true" />
+          {t('account.logout')}
+        </button>
       </div>
     </div>
+  )
+}
+
+function NavRow({ to, icon, title, hint }: { to: string; icon: ReactNode; title: string; hint?: string }) {
+  return (
+    <Link to={to} className={ROW_INTERACTIVE}>
+      <span className={ICON} aria-hidden="true">{icon}</span>
+      <span className="min-w-0 flex-1">
+        <span className="block truncate font-medium">{title}</span>
+        {hint && <span className="block text-caption text-muted-foreground">{hint}</span>}
+      </span>
+      <ChevronRight size={16} className="shrink-0 text-muted-foreground/60" aria-hidden="true" />
+    </Link>
   )
 }

@@ -182,7 +182,6 @@
     "copyQuestion": "Deze foto ook in {{team}} gebruiken?",
     "copyConfirm": "Gebruik in {{team}}",
     "notNow": "Niet nu",
-    "profile": "Profiel",
     "loading": "Laden…",
     "loadFailed": "Je profiel laden is mislukt. Probeer het opnieuw.",
     "teams": "Teams",
@@ -192,8 +191,17 @@
     "teamsConsole": "Teamsconsole",
     "creationCodes": "Aanmaakcodes",
     "logout": "Uitloggen",
-    "paymentMatching": "Betalingen koppelen",
-    "paymentMatchingHint": "Namen en IBAN’s die als jouw betalingen tellen, op je teampagina"
+    "signIn": "Account en inloggen",
+    "signInHint": "E-mail, passkeys en persoonlijke foto",
+    "signInScope": "Dit geldt voor je account, in elk team.",
+    "teamProfile": "Mijn profiel in {{team}}",
+    "teamProfileHint": "Naam, positie, rugnummer, foto en betalingen koppelen",
+    "teamsActive": "{{team}} is actief",
+    "noTeam": "Nog niet in een team",
+    "preferences": "Voorkeuren",
+    "preferencesHint": "Weergave en taal",
+    "preferencesScope": "Weergave wordt op dit toestel bewaard. Taal wordt bij je account bewaard.",
+    "backToAccount": "Terug naar account"
   },
   "photo": {
     "error": {

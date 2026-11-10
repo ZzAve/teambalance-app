@@ -2,6 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-08-30
+- Amended: 2026-11-10 (§2: the Account tab is grouped into one row per scope; see below)
 - Relates to: [ADR-0008](0008-auth-magic-link-and-shareable-invite.md) (magic-link auth + logout),
   [ADR-0019](0019-self-service-team-onboarding.md) (the teamless onboarding hub, kept unchanged),
   [ADR-0023](0023-active-team-explicit-tenant-resolution.md) (Active Team is a session property, not a URL fact),
@@ -67,6 +68,9 @@ the in-shell routes, but it adds a second navigation surface to a bar-first app 
 out-of-shell states (§3) uncovered. Routing the existing tab correctly is less UI, not more.
 
 ### 2. The Account tab is one adaptive settings list; sections appear by context
+
+> **Amended (2026-11-10):** the flat list below is replaced by one row per scope, and name and
+> position are no longer edited here. See the amendment at the end.
 
 Rendered as a settings-style list (not cards): the common case is a single team, and a list stays
 tidy at three rows and scales cleanly to seven. What shows is a pure function of the authenticated
@@ -161,3 +165,44 @@ is routing, one pure selector, and presentational components.
   into `AccountView`; the team-scoped profile route becomes a thin redirect. Nothing in the app
   reaches logout through a team slug any more.
 </content>
+
+## Amendment (2026-11-10): one row per scope, and the team profile has one editor
+
+The flat list of §2 grew to eleven sections (passkeys, Personal Photo, payment matching and language
+came after this ADR). It was more than two phone screens tall for a member of one team, and it mixed four
+scopes with no label: the account (email, passkeys, Personal Photo), the member in the Active Team
+(name, position, payment matching), app preferences (appearance, language) and the platform tools.
+Name and position were also edited in two places: here and on the member's own page, which also
+edits shirt number, Team Photo and payment aliases.
+
+The Account tab root is now a card that names who is signed in (platform name, email, Personal
+Photo) and the Active Team, then one row per scope. Each row opens the screen that holds that
+scope:
+
+| Row | Opens | Shown when |
+|---|---|---|
+| Account and sign-in | `/account/sign-in`: email, passkeys, Personal Photo and its copy offer | always |
+| My profile in *team* | the viewer's own member page in the Active Team | Active Team, not acting-as |
+| Teams | `/select-team` (§4, unchanged) | always |
+| Preferences | `/account/preferences`: appearance, language | always |
+| Teams console, Creation codes | the platform consoles | `isPlatformAdmin` |
+| Log out | (the action) | always |
+
+Choices made with it:
+
+- **The card shows the platform name**, not the name in the Active Team. It is the same in every
+  team and when teamless; the team name a member uses lives on their member page (ADR-0026).
+- **The team profile has one editor: the member page.** Account links to it instead of carrying its
+  own name and position form.
+- **Acting-as shows no team-profile row.** A Platform Admin acting-as is a Virtual Member that is
+  never written (ADR-0024 §2), so there is no own member page to open. This replaces the name and
+  position rows that act-as showed before (the second consequence above).
+- **The root reads no member data.** The Log-out invariant gets stronger: there is no profile
+  loading or error shell on the root that Log out has to sit outside of. The only member read left is
+  on `/account/sign-in`, to decide whether to offer copying a fresh Personal Photo into the Active
+  Team (ADR-0038). That path joins `/account` in `TENANT_RESOLVING_PATHS`, with the same
+  `enabled: !!activeTeam` guard.
+- **The sub-screens are team-independent like `/account`.** The root gate allow-lists every
+  `/account/*` path, and the passkey prompt stays off all of them.
+
+The selector stays a pure, unit-tested function of the session, now returning these rows.

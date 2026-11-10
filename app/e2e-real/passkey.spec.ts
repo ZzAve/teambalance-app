@@ -40,12 +40,14 @@ test('add a passkey after a magic-link sign-in, then sign in with it', async ({ 
   await expect(page.getByRole('heading', { name: /Welcome to TeamBalance/ })).toBeVisible()
   await expect(prompt).toBeHidden()
 
-  // 2. Add one on the Account tab.
+  // 2. Add one on the Account tab, under "Account and sign-in".
   await page.goto('/account')
+  await page.getByRole('link', { name: /Account and sign-in/ }).click()
   await page.getByRole('button', { name: 'Add a passkey' }).click()
   await expect(page.getByText('This device')).toBeVisible()
 
   // 3. Log out, then sign in with the passkey: the app's session exists and /me reports the passkey.
+  await page.getByRole('link', { name: 'Back to account' }).click()
   await page.getByRole('button', { name: 'Log out' }).click()
   await expect(page).toHaveURL('/login')
   await page.evaluate(() => localStorage.clear())
@@ -72,10 +74,11 @@ test('add a passkey after a magic-link sign-in, then sign in with it', async ({ 
 
   // 7. A passkey removed on the server but still on the device: the sign-in fails, the browser is told to drop it
   // (Signal API) and the device stops marking and auto-starting it.
-  await page.goto('/account')
+  await page.goto('/account/sign-in')
   await page.getByRole('button', { name: 'Remove' }).click()
   await page.getByRole('dialog').getByRole('button', { name: 'Remove' }).click()
   await expect(page.getByText('No passkeys yet.')).toBeVisible()
+  await page.goto('/account')
   await page.getByRole('button', { name: 'Log out' }).click()
   await expect(page).toHaveURL('/login')
   await page.getByRole('button', { name: 'Sign in with a passkey' }).click()

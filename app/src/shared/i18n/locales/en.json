@@ -182,7 +182,6 @@
     "copyQuestion": "Use this photo in {{team}} too?",
     "copyConfirm": "Use in {{team}}",
     "notNow": "Not now",
-    "profile": "Profile",
     "loading": "Loading…",
     "loadFailed": "Couldn't load your profile. Please try again.",
     "teams": "Teams",
@@ -192,8 +191,17 @@
     "teamsConsole": "Teams console",
     "creationCodes": "Creation codes",
     "logout": "Log out",
-    "paymentMatching": "Payment matching",
-    "paymentMatchingHint": "Names and IBANs that count as your payments, on your team page"
+    "signIn": "Account and sign-in",
+    "signInHint": "Email, passkeys and personal photo",
+    "signInScope": "This applies to your account, in every team.",
+    "teamProfile": "My profile in {{team}}",
+    "teamProfileHint": "Name, position, shirt number, photo and payment matching",
+    "teamsActive": "{{team}} is active",
+    "noTeam": "Not on a team yet",
+    "preferences": "Preferences",
+    "preferencesHint": "Appearance and language",
+    "preferencesScope": "Appearance is saved on this device. Language is saved on your account.",
+    "backToAccount": "Back to account"
   },
   "photo": {
     "error": {

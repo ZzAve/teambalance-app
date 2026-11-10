@@ -13,14 +13,7 @@ export default defineConfig({
     { name: 'desktop-1440', use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 } } },
   ],
   webServer: {
-    // The copies make dist/ self-contained until build.mjs copies static files itself.
-    command: [
-      'node ../www/build.mjs',
-      'cp ../www/style.css ../www/landing.js ../www/landing-state.mjs ../www/dist/',
-      'mkdir -p ../www/dist/design-tokens',
-      'cp ../design-tokens/tokens.css ../www/dist/design-tokens/',
-      `python3 -m http.server ${PORT} -d ../www/dist`,
-    ].join(' && '),
+    command: `node ../www/build.mjs && python3 -m http.server ${PORT} -d ../www/dist`,
     url: `http://localhost:${PORT}/`,
     reuseExistingServer: !process.env.CI,
   },

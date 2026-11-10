@@ -872,6 +872,9 @@ footer {
 }
 
 /* ---------- privacy page ---------- */
+.dark-slim {
+  padding-bottom: 0;
+}
 .privacy {
   max-width: 68ch;
   margin: 0 auto;

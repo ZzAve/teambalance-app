@@ -2,9 +2,6 @@ import { expect, test } from '@playwright/test'
 
 const MAGIC_LINK = '**/api/auth/magic-link/request'
 
-// Until the page self-hosts its fonts, keep the test independent of the Google Fonts CDN.
-test.beforeEach(({ page }) => page.route(/fonts\.(googleapis|gstatic)\.com/, (route) => route.abort()))
-
 test('nl page: answering an event removes only the attendance messages, updates its tally, and can be undone', async ({
   page,
 }) => {

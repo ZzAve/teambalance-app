@@ -82,6 +82,21 @@ jobs:
           echo "::error::vitest failed on both attempts"
           exit 1
 
+      # Landing page smoke test (www/): builds the page and drives it at 390 and 1440 px.
+      - name: Landing page smoke test
+        run: npm run e2e:www
+        working-directory: app
+
+      - name: Upload landing page Playwright report
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: www-playwright-report
+          path: |
+            app/playwright-report/
+            app/test-results/
+          retention-days: 7
+
   e2e:
     runs-on: ubuntu-latest
     timeout-minutes: 30

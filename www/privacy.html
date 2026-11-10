@@ -18,8 +18,18 @@
     <link rel="stylesheet" href="/style.css" />
   </head>
   <body>
+    <div class="dark dark-slim">
+      <div class="wrap">
+        <header class="topbar">
+          <a class="wordmark" href="{{otherHomeHref}}" aria-label="TeamBalance"><span class="a">Team</span><span class="b">Balance</span></a>
+          <nav class="topnav">
+            <a class="lang-switch" href="{{privacyOtherHref}}" hreflang="{{otherLang}}" lang="{{otherLang}}">{{otherName}}</a>
+            <a class="login" href="https://app.teambalance.nl/login">{{logIn}}</a>
+          </nav>
+        </header>
+      </div>
+    </div>
     <main class="privacy">
-      <p><a href="{{otherHomeHref}}" hreflang="{{lang}}">{{privacyHomeLabel}}</a> · <a href="{{privacyOtherHref}}" hreflang="{{otherLang}}" lang="{{otherLang}}">{{otherName}}</a></p>
       <h1>{{privacyHeading}}</h1>
       <p>{{privacyIntro}}</p>
       <h2>{{privacyStoredHeading}}</h2>
@@ -36,5 +46,12 @@
       <h2>{{privacyRemovalHeading}}</h2>
       <p>{{privacyRemoval}} <a href="mailto:{{privacyContact}}">{{privacyContact}}</a>.</p>
     </main>
+    <footer>
+      <div class="wrap foot">
+        <a class="wordmark" href="{{otherHomeHref}}" aria-label="TeamBalance"><span class="a">Team</span><span class="b">Balance</span></a>
+        <a href="{{otherHomeHref}}">{{privacyHomeLabel}}</a>
+        <span>{{footMade}}</span>
+      </div>
+    </footer>
   </body>
 </html>

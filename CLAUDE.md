@@ -90,7 +90,8 @@ Changes should follow a TDD process.
 
 Manual verification should always be done after every change, ensuring that the intent is met, the system remains stable and
 free of regressions. Self-verification is encouraged by spinning up the application locally and interacting with it,
-either through its endpoint, or through the UI. 
+either through its endpoint, or through the UI. In the T3 preview, check one element or text with
+`preview_evaluate` instead of calling `preview_snapshot`, which returns about 20 KB per call.
 
 Every change made must deliver proof that it delivers the intended value and does not introduce regression.
 

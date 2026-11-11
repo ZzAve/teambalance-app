@@ -1,6 +1,7 @@
 package com.github.zzave.teambalance.api.infrastructure.persistence
 
 import com.github.zzave.teambalance.api.domain.model.FeedMatch
+import com.github.zzave.teambalance.api.domain.model.MatchAddress
 import com.github.zzave.teambalance.api.domain.model.MatchCode
 import com.github.zzave.teambalance.api.domain.model.MatchFeedSettings
 import com.github.zzave.teambalance.api.domain.model.MatchLink
@@ -89,6 +90,7 @@ class JooqMatchFeedRepositoryAdapter(
                     homeTeam = NevoboTeamName(it.homeTeam),
                     awayTeam = NevoboTeamName(it.awayTeam),
                     venue = it.venue?.let(::MatchVenue),
+                    address = it.address?.let(::MatchAddress),
                 )
             }
 
@@ -104,6 +106,7 @@ class JooqMatchFeedRepositoryAdapter(
                     .set(MATCH_FEED_MATCHES.HOME_TEAM, it.homeTeam.value)
                     .set(MATCH_FEED_MATCHES.AWAY_TEAM, it.awayTeam.value)
                     .set(MATCH_FEED_MATCHES.VENUE, it.venue?.value)
+                    .set(MATCH_FEED_MATCHES.ADDRESS, it.address?.value)
             },
         ).execute()
     }

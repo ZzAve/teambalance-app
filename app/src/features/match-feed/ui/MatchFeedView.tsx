@@ -1,6 +1,6 @@
 import { useId, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import type { MatchFeedErrorCode, MatchFeedStatus } from '@shared/api/match-feed'
+import type { FeedMatch, MatchFeedErrorCode, MatchFeedStatus, MatchMismatch } from '@shared/api/match-feed'
 import { formatLocale } from '@shared/i18n/i18n'
 import { Button } from '@shared/ui/button'
 import { Input } from '@shared/ui/input'
@@ -23,6 +23,8 @@ interface MatchFeedViewProps {
   onFindTeams: (feedUrl: string) => void
   onSave: (feedUrl: string, teamName: string) => void
   onRemove: () => void
+  onApply: (mismatch: MatchMismatch) => void
+  onCreate: (match: FeedMatch) => void
 }
 
 /**
@@ -42,6 +44,8 @@ export function MatchFeedView({
   onFindTeams,
   onSave,
   onRemove,
+  onApply,
+  onCreate,
 }: MatchFeedViewProps) {
   const { t } = useTranslation()
   return (
@@ -74,7 +78,7 @@ export function MatchFeedView({
       {status && !isLoading && !isError && (
         <>
           <ConnectedFeed status={status} isRemoving={isRemoving} onRemove={onRemove} />
-          <MatchFeedFindings status={status} />
+          <MatchFeedFindings status={status} onApply={onApply} onCreate={onCreate} />
         </>
       )}
     </div>

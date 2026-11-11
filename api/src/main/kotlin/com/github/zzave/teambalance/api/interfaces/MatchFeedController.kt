@@ -9,6 +9,7 @@ import com.github.zzave.teambalance.api.domain.model.NevoboFeedUrl
 import com.github.zzave.teambalance.api.domain.model.NevoboTeamName
 import com.github.zzave.teambalance.api.domain.port.CurrentTeamGateway
 import com.github.zzave.teambalance.api.domain.port.CurrentUserGateway
+import com.github.zzave.teambalance.api.interfaces.generated.endpoint.ApplyMatchFeed
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.ConfigureMatchFeed
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.GetMatchFeed
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.ListMatchFeedTeams
@@ -29,7 +30,8 @@ class MatchFeedController(
 ) : ListMatchFeedTeams.Handler,
     GetMatchFeed.Handler,
     ConfigureMatchFeed.Handler,
-    RemoveMatchFeed.Handler {
+    RemoveMatchFeed.Handler,
+    ApplyMatchFeed.Handler {
 
     override suspend fun listMatchFeedTeams(request: ListMatchFeedTeams.Request): ListMatchFeedTeams.Response<*> {
         val teams = matchFeedService.teamsInFeed(
@@ -56,6 +58,16 @@ class MatchFeedController(
             teamName = NevoboTeamName(request.body.teamName.trim()),
         )
         return ConfigureMatchFeed.Response200(status.produce())
+    }
+
+    override suspend fun applyMatchFeed(request: ApplyMatchFeed.Request): ApplyMatchFeed.Response<*> {
+        val status = matchFeedService.apply(
+            callerId = currentUserGateway.requireCurrentUserId(),
+            teamId = currentTeamGateway.requireCurrentTeamId(),
+            eventId = request.body.eventId.consumeEventId(),
+            resetResponses = request.body.resetResponses,
+        ) ?: return ApplyMatchFeed.Response404
+        return ApplyMatchFeed.Response200(status.produce())
     }
 
     override suspend fun removeMatchFeed(request: RemoveMatchFeed.Request): RemoveMatchFeed.Response<*> {
@@ -95,6 +107,7 @@ private fun DomainFeedMatch.produce() = FeedMatch(
     homeTeam = homeTeam.value,
     awayTeam = awayTeam.value,
     venue = venue?.value,
+    address = address?.value,
 )
 
 private fun DomainMatchDifference.produce(): MatchDifference = when (this) {

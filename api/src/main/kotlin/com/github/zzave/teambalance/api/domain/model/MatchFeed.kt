@@ -1,6 +1,7 @@
 package com.github.zzave.teambalance.api.domain.model
 
 import java.net.URI
+import java.time.Duration
 import java.time.Instant
 import java.time.ZoneId
 
@@ -58,6 +59,10 @@ value class MatchLink(val value: String)
 @JvmInline
 value class MatchVenue(val value: String)
 
+/** The hall with its address, for example `De Mammoet, Calslaan 101, 2804RT Gouda`. */
+@JvmInline
+value class MatchAddress(val value: String)
+
 /** The team's match feed: which feed, which team in it, and when the server last read it. */
 data class MatchFeedSettings(
     val url: NevoboFeedUrl,
@@ -74,7 +79,14 @@ data class FeedMatch(
     val homeTeam: NevoboTeamName,
     val awayTeam: NevoboTeamName,
     val venue: MatchVenue?,
+    val address: MatchAddress? = null,
 ) {
+    /** The title an event for this match gets, in the feed's own form: `Home - Away`. */
+    val title: EventTitle get() = EventTitle("${homeTeam.value} - ${awayTeam.value}")
+
+    /** The Reference to this match that an event for it carries. */
+    val reference: EventReference get() = EventReference.of("Nevobo", link.value)
+
     fun involves(team: NevoboTeamName) = team.isNamed(homeTeam) || team.isNamed(awayTeam)
 
     fun opponentOf(team: NevoboTeamName) = if (team.isNamed(homeTeam)) awayTeam else homeTeam
@@ -91,7 +103,29 @@ data class FeedMatch(
 
 enum class MatchDifference { START_TIME, LOCATION, OPPONENT }
 
-data class MatchMismatch(val event: Event, val match: FeedMatch, val differences: Set<MatchDifference>)
+data class MatchMismatch(val event: Event, val match: FeedMatch, val differences: Set<MatchDifference>) {
+    /**
+     * The event with the feed's values for what differs: the start time (the event keeps its length), the
+     * location (the address, else the hall) and the title (`Home - Away`). The event also gets a Reference to
+     * the match when it has none, so it links exactly from then on.
+     */
+    fun corrected(): Event {
+        val start = if (MatchDifference.START_TIME in differences) match.startTime else event.startTime
+        val location = match.address?.value ?: match.venue?.value
+        val linked = event.references.any { it.url.value == match.link.value }
+        return event.copy(
+            startTime = start,
+            endTime = start.plus(Duration.between(event.startTime, event.endTime)),
+            location = if (MatchDifference.LOCATION in differences && location != null) EventLocation(location) else event.location,
+            title = if (MatchDifference.OPPONENT in differences) match.title else event.title,
+            references = if (linked || event.references.size >= Event.MAX_REFERENCES) {
+                event.references
+            } else {
+                event.references + match.reference
+            },
+        )
+    }
+}
 
 data class MatchFeedFindings(val mismatches: List<MatchMismatch>, val missing: List<FeedMatch>)
 

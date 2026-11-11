@@ -1,5 +1,6 @@
 import { Link } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
+import { Button } from '@shared/ui/button'
 import type { FeedMatch, MatchFeedStatus, MatchMismatch } from '@shared/api/match-feed'
 import { formatLocale } from '@shared/i18n/i18n'
 import { useTeamRoutes } from '@shared/lib/team-routes'
@@ -14,8 +15,14 @@ export const formatMatchTime = (iso: string) =>
     minute: '2-digit',
   })
 
+interface MatchFeedFindingsProps {
+  status: MatchFeedStatus
+  onApply: (mismatch: MatchMismatch) => void
+  onCreate: (match: FeedMatch) => void
+}
+
 /** The events that differ from the feed, and the feed's matches that have no event. */
-export function MatchFeedFindings({ status }: { status: MatchFeedStatus }) {
+export function MatchFeedFindings({ status, onApply, onCreate }: MatchFeedFindingsProps) {
   const { t } = useTranslation()
   const routes = useTeamRoutes()
 
@@ -35,6 +42,9 @@ export function MatchFeedFindings({ status }: { status: MatchFeedStatus }) {
                   {mismatch.eventTitle}
                 </Link>
                 <MismatchDetails mismatch={mismatch} teamName={status.teamName} />
+                <Button size="sm" variant="outline" className="mt-2" onClick={() => onApply(mismatch)}>
+                  {t('matchFeed.apply.button')}
+                </Button>
               </li>
             ))}
           </ul>
@@ -47,6 +57,9 @@ export function MatchFeedFindings({ status }: { status: MatchFeedStatus }) {
             {status.missing.map((match) => (
               <li key={match.code} className="rounded-lg bg-card p-3 text-small">
                 <MissingMatch match={match} teamName={status.teamName} />
+                <Button size="sm" variant="outline" className="mt-2" onClick={() => onCreate(match)}>
+                  {t('matchFeed.create.button')}
+                </Button>
               </li>
             ))}
           </ul>

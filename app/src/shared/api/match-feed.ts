@@ -65,3 +65,19 @@ export function useRemoveMatchFeed() {
     onSuccess: () => queryClient.setQueryData(matchFeedQueryOptions.queryKey, null),
   })
 }
+
+/** Gives the event the feed's values where it differs, and resets its responses when asked. */
+export function useApplyMatchFeed() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ eventId, resetResponses }: { eventId: string; resetResponses: boolean }) => {
+      const res = await api.applyMatchFeed({ body: { eventId, resetResponses } })
+      if (res.status !== 200) throw new MatchFeedError('GENERIC')
+      return res.body
+    },
+    onSuccess: (status) => {
+      queryClient.setQueryData(matchFeedQueryOptions.queryKey, status)
+      return queryClient.invalidateQueries({ queryKey: ['events'] })
+    },
+  })
+}

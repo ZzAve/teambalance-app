@@ -1,6 +1,7 @@
 package com.github.zzave.teambalance.api.infrastructure.nevobo
 
 import com.github.zzave.teambalance.api.domain.model.FeedMatch
+import com.github.zzave.teambalance.api.domain.model.MatchAddress
 import com.github.zzave.teambalance.api.domain.model.MatchCode
 import com.github.zzave.teambalance.api.domain.model.MatchLink
 import com.github.zzave.teambalance.api.domain.model.MatchVenue
@@ -27,6 +28,7 @@ class NevoboFeedParserTest : FunSpec({
             homeTeam = NevoboTeamName("Servylo HS 1"),
             awayTeam = NevoboTeamName("Tovo HS 4"),
             venue = MatchVenue("De Mammoet"),
+            address = MatchAddress("De Mammoet, Calslaan 101, 2804RT Gouda"),
         )
     }
 

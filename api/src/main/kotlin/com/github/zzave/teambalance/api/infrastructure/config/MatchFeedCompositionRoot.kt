@@ -1,6 +1,8 @@
 package com.github.zzave.teambalance.api.infrastructure.config
 
+import com.github.zzave.teambalance.api.application.AttendanceService
 import com.github.zzave.teambalance.api.application.AuthorizationService
+import com.github.zzave.teambalance.api.application.EventService
 import com.github.zzave.teambalance.api.application.MatchFeedService
 import com.github.zzave.teambalance.api.domain.port.EventRepository
 import com.github.zzave.teambalance.api.domain.port.MatchFeedGateway
@@ -20,6 +22,8 @@ class MatchFeedCompositionRoot {
         matchFeedRepository: MatchFeedRepository,
         matchFeedGateway: MatchFeedGateway,
         eventRepository: EventRepository,
+        eventService: EventService,
+        attendanceService: AttendanceService,
         authorizationService: AuthorizationService,
         clock: Clock,
         @Value("\${teambalance.match-feed.check-interval:PT24H}") checkInterval: Duration,
@@ -27,6 +31,8 @@ class MatchFeedCompositionRoot {
         repository = matchFeedRepository,
         gateway = matchFeedGateway,
         eventRepository = eventRepository,
+        eventService = eventService,
+        attendanceService = attendanceService,
         authorizationService = authorizationService,
         clock = clock,
         checkInterval = checkInterval,

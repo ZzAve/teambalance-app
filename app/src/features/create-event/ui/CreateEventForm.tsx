@@ -12,7 +12,7 @@ import type { Position } from '@shared/api/positions'
 import { RosterOverrideField } from '@features/manage-event-types/ui/RosterOverrideField'
 import type { EventTypeItem } from '@shared/api/event-types'
 import { ReferenceRowsEditor } from '@entities/event/ui/ReferenceRowsEditor'
-import { cleanReferences, type ReferenceRow } from '@entities/event/lib/references'
+import { cleanReferences, toReferenceRows, type ReferenceRow } from '@entities/event/lib/references'
 import { eventTypeName } from '@entities/event/lib/event-type-name'
 
 interface CreateEventFormProps {
@@ -23,6 +23,15 @@ interface CreateEventFormProps {
   onSubmit: (values: EventInput) => void
   /** Message to surface when the last create attempt failed; null/undefined hides the alert. */
   error?: string | null
+  /** Values to start from, such as a match from the team's Nevobo feed. The admin can change each. */
+  initial?: Partial<Pick<EventInput, 'eventTypeId' | 'title' | 'startTime' | 'location' | 'references'>>
+}
+
+// ISO instant → the value a <input type="datetime-local"> expects ('YYYY-MM-DDTHH:mm' in local time).
+function toLocalInput(iso: string): string {
+  const d = new Date(iso)
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
 
 // Events have a known length rather than an arbitrary end moment, so the form captures a duration
@@ -44,13 +53,14 @@ export function CreateEventForm({
   isPending,
   onSubmit,
   error,
+  initial,
 }: CreateEventFormProps) {
   const { t } = useTranslation()
-  const [selectedTypeId, setSelectedTypeId] = useState<string>('')
-  const [title, setTitle] = useState('')
-  const [titleTouched, setTitleTouched] = useState(false)
+  const [selectedTypeId, setSelectedTypeId] = useState<string>(initial?.eventTypeId ?? '')
+  const [title, setTitle] = useState(initial?.title ?? '')
+  const [titleTouched, setTitleTouched] = useState(initial?.title !== undefined)
   const [durationMinutes, setDurationMinutes] = useState(DEFAULT_DURATION_MINUTES)
-  const [references, setReferences] = useState<ReferenceRow[]>([])
+  const [references, setReferences] = useState<ReferenceRow[]>(toReferenceRows(initial?.references))
   // undefined = inherit the selected type's default, which is the common case and the default here.
   const [rosterOverride, setRosterOverride] = useState<RosterRequirement | undefined>(undefined)
 
@@ -129,7 +139,13 @@ export function CreateEventForm({
 
       <div>
         <Label htmlFor="startTime">{t('eventForm.startTime')}</Label>
-        <Input id="startTime" name="startTime" type="datetime-local" required />
+        <Input
+          id="startTime"
+          name="startTime"
+          type="datetime-local"
+          required
+          defaultValue={initial?.startTime ? toLocalInput(initial.startTime) : undefined}
+        />
       </div>
       <div>
         <Label htmlFor="duration">{t('eventForm.duration')}</Label>
@@ -148,7 +164,7 @@ export function CreateEventForm({
       </div>
       <div>
         <Label htmlFor="location">{t('eventForm.locationOptional')}</Label>
-        <Input id="location" name="location" />
+        <Input id="location" name="location" defaultValue={initial?.location} />
       </div>
       <div>
         <Label htmlFor="description">{t('eventForm.descriptionOptional')}</Label>

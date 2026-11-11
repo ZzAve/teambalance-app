@@ -16,5 +16,6 @@ CREATE TABLE match_feed_matches (
     start_time TIMESTAMPTZ NOT NULL,
     home_team  TEXT        NOT NULL,
     away_team  TEXT        NOT NULL,
-    venue      TEXT        NULL
+    venue      TEXT        NULL,
+    address    TEXT        NULL
 );

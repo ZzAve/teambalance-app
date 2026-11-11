@@ -2,6 +2,7 @@ package com.github.zzave.teambalance.api.infrastructure.nevobo
 
 import com.github.zzave.teambalance.api.domain.exception.MatchFeedUnavailableException
 import com.github.zzave.teambalance.api.domain.model.FeedMatch
+import com.github.zzave.teambalance.api.domain.model.MatchAddress
 import com.github.zzave.teambalance.api.domain.model.MatchCode
 import com.github.zzave.teambalance.api.domain.model.MatchLink
 import com.github.zzave.teambalance.api.domain.model.MatchVenue
@@ -36,6 +37,7 @@ object NevoboFeedParser {
     private val TEAMS = Regex("""^[^:]+:\d{2}:\s*(.+?)\s+-\s+(.+)$""")
     private val CODE = Regex("""Wedstrijd:\s*\S+\s+([A-Z0-9]+)""")
     private val VENUE = Regex("""Speellocatie:\s*([^,]+)""")
+    private val ADDRESS = Regex("""Speellocatie:\s*(.+)$""")
 
     fun parse(xml: String): List<FeedMatch> {
         val document = try {
@@ -64,6 +66,8 @@ object NevoboFeedParser {
                     homeTeam = NevoboTeamName(teams.groupValues[1]),
                     awayTeam = NevoboTeamName(teams.groupValues[2]),
                     venue = VENUE.find(description)?.groupValues?.get(1)?.trim()?.let(::MatchVenue),
+                    address = ADDRESS.find(description)?.groupValues?.get(1)?.replace(Regex("\\s+"), " ")?.trim()
+                        ?.let(::MatchAddress),
                 )
             }.getOrNull()
         }

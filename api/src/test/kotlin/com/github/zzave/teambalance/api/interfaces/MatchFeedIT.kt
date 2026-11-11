@@ -112,6 +112,26 @@ class MatchFeedIT : TeamBalanceIT() {
             call(admin, MockMvcRequestBuilders.get("/api/match-feed")).andExpect(status().isNotFound)
         }
 
+        test("applying the feed gives the event the feed's values and resets responses when asked") {
+            val (admin, member) = team()
+            val us = "Lima ${UUID.randomUUID().toString().take(6)}"
+            val match = match("DA", "Mike HS 1", us)
+            feeds.serve(FEED, listOf(match))
+            val event = insertEvent(admin, "Uitwedstrijd", START.plusSeconds(86_400), "Elders", match.link.value)
+            insertAttendance(event, member)
+            call(admin, configure(us)).andExpect(status().isOk)
+
+            val status = body(call(admin, apply(event)).andExpect(status().isOk))
+
+            status["mismatches"].size() shouldBe 0
+            jdbcTemplate.queryForMap(
+                "SELECT title, location, start_time = '$START'::timestamptz AS on_time FROM public.events WHERE uuid = '$event'::uuid",
+            ) shouldBe mapOf("title" to "Mike HS 1 - $us", "location" to "De Hal", "on_time" to true)
+            responseCount(event) shouldBe 0
+
+            call(admin, apply(event)).andExpect(status().isNotFound)
+        }
+
         test("a due check reads the feed again, a check that is not due does not, and a failed check keeps the matches") {
             val (admin, _) = team()
             val us = "India ${UUID.randomUUID().toString().take(6)}"
@@ -148,6 +168,11 @@ class MatchFeedIT : TeamBalanceIT() {
         MockMvcRequestBuilders.post("/api/match-feed/teams")
             .contentType(MediaType.APPLICATION_JSON)
             .content("""{"feedUrl":"$feedUrl"}""")
+
+    private fun apply(eventId: UUID) =
+        MockMvcRequestBuilders.post("/api/match-feed/apply")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content("""{"eventId":"$eventId","resetResponses":true}""")
 
     private fun configure(teamName: String) =
         MockMvcRequestBuilders.put("/api/match-feed")
@@ -209,6 +234,19 @@ class MatchFeedIT : TeamBalanceIT() {
         )
         return eventId
     }
+
+    private fun insertAttendance(eventId: UUID, userId: String) = jdbcTemplate.execute(
+        """
+        INSERT INTO public.attendances (uuid, event_id, user_id, state, updated_at, changed_by)
+        VALUES (gen_random_uuid(), (SELECT id FROM public.events WHERE uuid = '$eventId'::uuid),
+            '$userId'::uuid, 'ATTENDING', now(), '$userId'::uuid)
+        """,
+    )
+
+    private fun responseCount(eventId: UUID): Int = jdbcTemplate.queryForObject(
+        "SELECT count(*) FROM public.attendances a JOIN public.events e ON e.id = a.event_id WHERE e.uuid = '$eventId'::uuid",
+        Long::class.java,
+    )!!.toInt()
 
     private companion object {
         const val FEED = "https://api.nevobo.nl/export/poule/regio-west/regio-west-h2j-12/programma.rss"

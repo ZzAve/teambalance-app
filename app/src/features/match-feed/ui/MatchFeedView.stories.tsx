@@ -11,7 +11,7 @@ import { MatchFeedView } from './MatchFeedView'
 // Three stories (ADR-0032 §1):
 //   1. Data — a connected feed with one event that differs and one match without an event.
 //   2. Shells — loading, error, no feed yet, a lookup that failed, a feed in sync, a failed last check.
-//   3. Interactions — no picture; enter a feed, find its teams, pick one, save, and remove.
+//   3. Interactions — no picture; enter a feed, find its teams, pick one, save; apply, create, remove.
 const FEED = 'https://api.nevobo.nl/export/poule/regio-west/regio-west-h2j-12/programma.rss'
 
 const STATUS: MatchFeedStatus = {
@@ -32,6 +32,7 @@ const STATUS: MatchFeedStatus = {
         homeTeam: 'Servylo HS 1',
         awayTeam: 'Tovo HS 4',
         venue: 'De Mammoet',
+        address: 'De Mammoet, Calslaan 101, 2804RT Gouda',
       },
       differences: ['START_TIME', 'LOCATION'],
     },
@@ -44,6 +45,7 @@ const STATUS: MatchFeedStatus = {
       homeTeam: 'Tovo HS 4',
       awayTeam: 'UVV-Sphynx HS 2',
       venue: 'Zuilen',
+      address: undefined,
     },
   ],
 }
@@ -53,7 +55,7 @@ const meta = {
   component: MatchFeedView,
   decorators: [withRouter],
   parameters: { router: { initialEntries: ['/t/tovo/team/settings'] } },
-  args: { status: STATUS, onFindTeams: fn(), onSave: fn(), onRemove: fn() },
+  args: { status: STATUS, onFindTeams: fn(), onSave: fn(), onRemove: fn(), onApply: fn(), onCreate: fn() },
 } satisfies Meta<typeof MatchFeedView>
 
 export default meta
@@ -135,7 +137,13 @@ export const Interactions: Story = {
     await userEvent.click(form.getByRole('button', { name: 'Save feed' }))
     await expect(args.onSave).toHaveBeenCalledWith(FEED, 'Tovo HS 4')
 
-    await userEvent.click(region('Connected').getByRole('button', { name: 'Remove feed' }))
+    const connected = region('Connected')
+    await userEvent.click(connected.getByRole('button', { name: 'Apply Nevobo values' }))
+    await expect(args.onApply).toHaveBeenCalledWith(STATUS.mismatches[0])
+    await userEvent.click(connected.getByRole('button', { name: 'Create event' }))
+    await expect(args.onCreate).toHaveBeenCalledWith(STATUS.missing[0])
+
+    await userEvent.click(connected.getByRole('button', { name: 'Remove feed' }))
     await expect(args.onRemove).toHaveBeenCalled()
   },
 }

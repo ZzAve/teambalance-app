@@ -415,6 +415,17 @@
       "UNKNOWN_FEED_TEAM": "Dat team speelt geen wedstrijd in deze feed.",
       "FEED_UNAVAILABLE": "Nevobo gaf geen antwoord. Probeer het later opnieuw.",
       "GENERIC": "Er ging iets mis. Probeer het opnieuw."
+    },
+    "apply": {
+      "button": "Nevobo-gegevens overnemen",
+      "title": "Nevobo-gegevens overnemen?",
+      "resetHint": "De wedstrijd verschuift naar een andere dag. Leden die hebben gereageerd staan weer op geen reactie.",
+      "failed": "De Nevobo-gegevens overnemen is mislukt. Probeer het opnieuw."
+    },
+    "create": {
+      "button": "Event aanmaken",
+      "title": "Event aanmaken voor deze wedstrijd",
+      "failed": "Het event aanmaken is mislukt. Probeer het opnieuw."
     }
   },
   "seriesScope": {

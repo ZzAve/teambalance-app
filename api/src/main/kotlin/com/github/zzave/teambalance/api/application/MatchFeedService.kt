@@ -2,6 +2,8 @@ package com.github.zzave.teambalance.api.application
 
 import com.github.zzave.teambalance.api.domain.exception.MatchFeedUnavailableException
 import com.github.zzave.teambalance.api.domain.exception.UnknownFeedTeamException
+import com.github.zzave.teambalance.api.domain.model.EventId
+import com.github.zzave.teambalance.api.domain.model.EventSeriesScope
 import com.github.zzave.teambalance.api.domain.model.MatchFeedComparison
 import com.github.zzave.teambalance.api.domain.model.MatchFeedFindings
 import com.github.zzave.teambalance.api.domain.model.MatchFeedSettings
@@ -27,6 +29,8 @@ class MatchFeedService(
     private val repository: MatchFeedRepository,
     private val gateway: MatchFeedGateway,
     private val eventRepository: EventRepository,
+    private val eventService: EventService,
+    private val attendanceService: AttendanceService,
     private val authorizationService: AuthorizationService,
     private val clock: Clock,
     private val checkInterval: Duration,
@@ -56,6 +60,35 @@ class MatchFeedService(
     fun status(callerId: UserId, teamId: TeamId): MatchFeedStatus? {
         authorizationService.requireAdmin(callerId, teamId)
         return repository.find()?.let(::statusOf)
+    }
+
+    /**
+     * Gives the event the feed's values where it differs from its match (see [MatchMismatch.corrected]), and
+     * resets its responses when [resetResponses]. Null when the team has no feed or the event does not differ.
+     * The edit goes through [EventService], so it is checked and stored like an admin's own edit.
+     */
+    fun apply(callerId: UserId, teamId: TeamId, eventId: EventId, resetResponses: Boolean): MatchFeedStatus? {
+        authorizationService.requireAdmin(callerId, teamId)
+        val settings = repository.find()
+        val mismatch = settings?.let(::statusOf)?.findings?.mismatches?.firstOrNull { it.event.id == eventId }
+        if (settings == null || mismatch == null) return null
+        val corrected = mismatch.corrected()
+        eventService.updateEvent(
+            callerId = callerId,
+            teamId = teamId,
+            id = eventId,
+            scope = EventSeriesScope.THIS,
+            eventTypeId = corrected.eventType.id,
+            title = corrected.title,
+            description = corrected.description,
+            startTime = corrected.startTime,
+            endTime = corrected.endTime,
+            location = corrected.location,
+            references = corrected.references,
+            rosterOverride = corrected.rosterOverride,
+        )
+        if (resetResponses) attendanceService.resetAttendance(callerId, teamId, eventId)
+        return statusOf(settings)
     }
 
     /**

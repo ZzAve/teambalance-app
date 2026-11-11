@@ -139,6 +139,37 @@ class MatchFeedComparisonTest : FunSpec({
         findings.missing shouldBe listOf(sameDay)
     }
 
+    test("the corrected event takes the feed's start, address and title, keeps its length, and links the match") {
+        val match = away.copy(address = MatchAddress("De Mammoet, Calslaan 101, 2804RT Gouda"))
+        val event = matchEvent("Uitwedstrijd", away.startTime.plusSeconds(3600), "Sporthal Zuid")
+        val mismatch = MatchMismatch(
+            event,
+            match,
+            setOf(MatchDifference.START_TIME, MatchDifference.LOCATION, MatchDifference.OPPONENT),
+        )
+
+        val corrected = mismatch.corrected()
+
+        corrected.startTime shouldBe away.startTime
+        corrected.endTime shouldBe away.startTime.plusSeconds(7200)
+        corrected.location shouldBe EventLocation("De Mammoet, Calslaan 101, 2804RT Gouda")
+        corrected.title shouldBe EventTitle("Servylo HS 1 - Tovo HS 4")
+        corrected.references shouldBe listOf(EventReference.of("Nevobo", away.link.value))
+        compare(listOf(match), listOf(corrected)).mismatches.shouldBeEmpty()
+    }
+
+    test("the corrected event changes only what differs and does not add the link twice") {
+        val link = EventReference.of("Wedstrijd", away.link.value)
+        val event = matchEvent("Servylo HS 1 - Tovo HS 4", away.startTime.plusSeconds(1800), "Sporthal Zuid", listOf(link))
+
+        val corrected = MatchMismatch(event, away, setOf(MatchDifference.START_TIME)).corrected()
+
+        corrected.startTime shouldBe away.startTime
+        corrected.location shouldBe EventLocation("Sporthal Zuid")
+        corrected.title shouldBe event.title
+        corrected.references shouldBe listOf(link)
+    }
+
     test("location compare ignores case and extra spaces") {
         val event = matchEvent("Servylo HS 1 - Tovo HS 4", away.startTime, "  de   MAMMOET  ")
 

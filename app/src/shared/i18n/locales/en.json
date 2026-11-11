@@ -415,6 +415,17 @@
       "UNKNOWN_FEED_TEAM": "That team plays no match in this feed.",
       "FEED_UNAVAILABLE": "Nevobo did not answer. Please try again later.",
       "GENERIC": "Something went wrong. Please try again."
+    },
+    "apply": {
+      "button": "Apply Nevobo values",
+      "title": "Apply the Nevobo values?",
+      "resetHint": "The match moves to another day. Members who responded show as not responded again.",
+      "failed": "Could not apply the Nevobo values. Please try again."
+    },
+    "create": {
+      "button": "Create event",
+      "title": "Create event for this match",
+      "failed": "Could not create the event. Please try again."
     }
   },
   "seriesScope": {

@@ -14,7 +14,7 @@ agrees with Nevobo, and which Nevobo matches have no event yet.
 
 Nevobo publishes a programme feed per poule: `https://api.nevobo.nl/export/poule/{regio}/{poule}/programma.rss`.
 It lists the upcoming matches of all teams in the poule. Each item has the start time, both team names, the
-hall, the match code (`EA`) and a permalink that redirects to the volleybal.nl match page
+hall with its address, the match code (`EA`) and a permalink that redirects to the volleybal.nl match page
 (`…/{poule}/wedstrijd/EA/1/1`).
 
 ## Decision
@@ -32,8 +32,13 @@ hall, the match code (`EA`) and a permalink that redirects to the volleybal.nl m
   permalink or its volleybal.nl page (poule and code), else by the same local date and the opponent's name
   in the title. A linked event is compared on start time, location (must contain the hall name) and
   opponent (the title must name it). An upcoming match with no linked event is **missing**.
-- **Admins see the findings** in the team settings and as a notice on the event page. The app does not
-  change events: the admin edits the event, and can reset its responses there when the date moves.
+- **Admins see the findings** in the team settings and as a notice on the event page. The app changes an
+  event only when an admin asks:
+  - **Apply Nevobo values** gives a differing event the feed's start time (the event keeps its length), address
+    and `Home - Away` title, for what differs, and a Reference to the match. It goes through the normal event
+    edit. When the date moves, the admin can reset the responses in the same step.
+  - **Create event** on a missing match opens the normal create form, filled in from the feed. The admin
+    checks it and saves.
 
 ## Consequences
 

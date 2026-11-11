@@ -12,7 +12,8 @@ type FeedMatch {
     startTime: DateTimestampWithTimezone,
     homeTeam: String,
     awayTeam: String,
-    venue: String?
+    venue: String?,
+    address: String?
 }
 
 // An upcoming event that is linked to a feed match and differs from it.
@@ -65,6 +66,17 @@ endpoint ConfigureMatchFeed PUT ConfigureMatchFeedRequest /api/match-feed -> {
     200 -> MatchFeedStatus
     400 -> Unit
     503 -> Unit
+}
+
+// Gives the event the feed's values where it differs from its match; 404 when it does not differ (any more).
+type ApplyMatchFeedRequest {
+    eventId: String,
+    resetResponses: Boolean
+}
+
+endpoint ApplyMatchFeed POST ApplyMatchFeedRequest /api/match-feed/apply -> {
+    200 -> MatchFeedStatus
+    404 -> Unit
 }
 
 endpoint RemoveMatchFeed DELETE /api/match-feed -> {

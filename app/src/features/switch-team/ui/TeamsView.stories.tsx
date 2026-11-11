@@ -2,17 +2,18 @@ import type { Meta, StoryObj } from '@storybook/react-vite'
 import { expect, fn, userEvent, within } from 'storybook/test'
 import type { TeamRef } from '@shared/api/teams'
 import { Stack } from '@shared/testing/stack'
+import { RequestTeamView } from '@features/request-team/ui/RequestTeamView'
 import { TeamsView } from './TeamsView'
 
 // The Teams "main view" (ADR-0027 §4): the fuller entry point the Account tab's Teams row opens.
 // Beside switching between your teams it offers the two ways to gain another — join with an invite
-// link, or create a team. Prop-only and presentational; the route container owns the navigation each
+// link, or request a team (ADR-0047). Prop-only and presentational; the route container owns the navigation each
 // callback performs.
 //
 // Three-story shape (ADR-0032 §1):
 //   1. Data — the one populated live instance: the common case, a member of one team.
 //   2. Shells — the multiple-teams variant, in its own frame (only the active team carries the badge).
-//   3. Interactions — no picture; selecting a team, joining, and creating, keeping every spy
+//   3. Interactions — no picture; selecting a team and joining, keeping every spy
 //      assertion.
 const SETPOINT: TeamRef = { id: 't1', name: 'Setpoint VT', slug: 'setpoint-vt' }
 const TOVO: TeamRef = { id: 't2', name: 'Tovo Heren 5', slug: 'tovo-heren-5' }
@@ -20,7 +21,13 @@ const TOVO: TeamRef = { id: 't2', name: 'Tovo Heren 5', slug: 'tovo-heren-5' }
 const meta = {
   title: 'features/switch-team/TeamsView',
   component: TeamsView,
-  args: { teams: [SETPOINT], activeTeam: SETPOINT, onSelect: fn(), onJoin: fn(), onCreate: fn() },
+  args: {
+    teams: [SETPOINT],
+    activeTeam: SETPOINT,
+    onSelect: fn(), onJoin: fn(),
+    // The request card is a prop-only slot; its own states are RequestTeamView's stories.
+    requestTeam: <RequestTeamView onSubmit={fn()} onOpenCreateTeam={fn()} />,
+  },
 } satisfies Meta<typeof TeamsView>
 
 export default meta
@@ -28,7 +35,7 @@ export default meta
 type Story = StoryObj<typeof meta>
 
 // The common case: a member of one team. Two clearly divided sections — the teams you belong to,
-// and the ways to gain another (join / create).
+// and the ways to gain another (join / request).
 export const Data: Story = {
   play: async ({ canvas }) => {
     await expect(canvas.getByRole('heading', { name: 'Teams' })).toBeInTheDocument()
@@ -38,7 +45,7 @@ export const Data: Story = {
     await expect(canvas.getByText('Setpoint VT')).toBeInTheDocument()
     await expect(canvas.getByText('Active')).toBeInTheDocument()
     await expect(canvas.getByText('Join with an invite link')).toBeInTheDocument()
-    await expect(canvas.getByText('Create a team')).toBeInTheDocument()
+    await expect(canvas.getByRole('heading', { name: 'Request a team' })).toBeInTheDocument()
   },
 }
 
@@ -75,9 +82,6 @@ export const Interactions: Story = {
 
     await userEvent.click(region('Single').getByText('Join with an invite link'))
     await expect(args.onJoin).toHaveBeenCalled()
-
-    await userEvent.click(region('Single').getByText('Create a team'))
-    await expect(args.onCreate).toHaveBeenCalled()
 
     // Selecting a team hands the container its slug; opening `/t/:slug` is what performs the switch.
     await userEvent.click(region('Multiple').getByText('Tovo Heren 5'))

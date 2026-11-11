@@ -14,6 +14,11 @@ export const Route = createFileRoute('/create-team/')({
     const user = await queryClient.ensureQueryData(authMeQueryOptions).catch(() => null)
     if (!user) throw redirect({ to: LOGIN_PATH })
   },
+  // The approved-request mail and card link here with the code and name filled in (ADR-0047).
+  validateSearch: (search: Record<string, unknown>): { code?: string; name?: string } => ({
+    code: typeof search.code === 'string' ? search.code : undefined,
+    name: typeof search.name === 'string' ? search.name : undefined,
+  }),
   component: CreateTeamPage,
 })
 
@@ -21,6 +26,7 @@ function CreateTeamPage() {
   const navigate = useNavigate()
   const createTeam = useCreateTeam()
   const { t } = useTranslation()
+  const { code, name } = Route.useSearch()
   const error = createTeam.error instanceof CreateTeamError ? createTeam.error : null
 
   return (
@@ -50,6 +56,8 @@ function CreateTeamPage() {
         <CreateTeamForm
           isPending={createTeam.isPending}
           error={error}
+          initialName={name}
+          initialCreationCode={code}
           onSubmit={(values) =>
             createTeam.mutate(values, {
               onSuccess: (team) => {

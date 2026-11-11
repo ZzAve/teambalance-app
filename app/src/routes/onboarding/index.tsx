@@ -1,4 +1,5 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { RequestTeam } from '@features/request-team/ui/RequestTeam'
 import { OnboardingHubView } from '@features/onboarding-hub/ui/OnboardingHubView'
 
 export const Route = createFileRoute('/onboarding/')({
@@ -18,7 +19,7 @@ function OnboardingPage() {
   return (
     <OnboardingHubView
       onChooseJoin={() => navigate({ to: '/onboarding/join' })}
-      onChooseCreate={() => navigate({ to: '/create-team' })}
+      requestTeam={<RequestTeam onOpenCreateTeam={(search) => navigate({ to: '/create-team', search })} />}
       inviteUnavailable={invite === 'unavailable'}
     />
   )

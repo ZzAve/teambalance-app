@@ -24,8 +24,15 @@ export function TeamRequests() {
       isError={!!error}
       isSaving={approve.isPending || reject.isPending}
       errorCode={failure?.code ?? null}
-      onApprove={(r) => approve.mutate({ id: r.id })}
-      onReject={(r, reason) => reject.mutate({ id: r.id, reason })}
+      // Clear the other action's old error so the alert always belongs to the latest decision.
+      onApprove={(r) => {
+        reject.reset()
+        approve.mutate({ id: r.id })
+      }}
+      onReject={(r, reason) => {
+        approve.reset()
+        reject.mutate({ id: r.id, reason })
+      }}
     />
   )
 }

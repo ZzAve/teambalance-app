@@ -2,6 +2,7 @@ package com.github.zzave.teambalance.api.application
 
 import com.github.zzave.teambalance.api.domain.exception.TeamRequestNotFoundException
 import com.github.zzave.teambalance.api.domain.exception.TeamRequestNotPendingException
+import com.github.zzave.teambalance.api.domain.exception.TeamRequestPendingException
 import com.github.zzave.teambalance.api.domain.model.PlatformAdminAllowlist
 import com.github.zzave.teambalance.api.domain.model.TeamNaming
 import com.github.zzave.teambalance.api.domain.model.TeamRequestEntry
@@ -39,6 +40,11 @@ class TeamRequestService(
     fun submit(callerId: UserId, rawTeamName: String, rawPurpose: String): TeamRequestEntry {
         val teamName = TeamNaming.validatedName(rawTeamName)
         val purpose = TeamRequestPurpose(rawPurpose)
+        // An approved, still-usable code counts as open too: ask again only once it is used or expired (ADR-0047).
+        // shortcut: check-then-insert, not race-proof; a double submit in that window only adds a second request.
+        if (repository.findLatestByUser(callerId)?.usableCode(clock.instant()) != null) {
+            throw TeamRequestPendingException()
+        }
         val request = repository.insertPending(callerId, teamName, purpose, clock.instant())
         platformAdmins.all().forEach { admin ->
             bestEffort("new-request mail to $admin") {

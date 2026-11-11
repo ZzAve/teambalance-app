@@ -43,3 +43,9 @@ endpoint BulkAttend POST BulkAttendanceRequest /api/attendances/batch -> {
 endpoint BulkUndoAttend DELETE BulkAttendanceUndoRequest /api/attendances/batch -> {
     200 -> BulkAttendanceResult
 }
+
+// Admin-only. Deletes every member's response row on one event, so each member reads as NOT_RESPONDED again (for example after the date moved). Substitutes stay on the event.
+endpoint ResetAttendance DELETE /api/events/{eventId: String}/attendances -> {
+    204 -> Unit
+    404 -> Unit
+}

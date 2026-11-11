@@ -121,6 +121,18 @@ class AttendanceService(
         return attendanceRepository.deleteByUserIdAndEventIds(userId, eventIds)
     }
 
+    /**
+     * Clears every member's answer on [eventId], for example after its date moved. Admin-only:
+     * [callerId] must be an admin of [teamId]. Substitutes stay on the event. Returns false when the
+     * event is unknown.
+     */
+    fun resetAttendance(callerId: UserId, teamId: TeamId, eventId: EventId): Boolean {
+        authorizationService.requireAdmin(callerId, teamId)
+        if (eventRepository.findById(eventId) == null) return false
+        attendanceRepository.deleteByEventId(eventId)
+        return true
+    }
+
     /** Current active roster of a team — fetch once per request and pass into the projections below. */
     fun teamMembers(teamId: TeamId): List<TeamMember> = teamMemberRepository.findByTeamId(teamId)
 

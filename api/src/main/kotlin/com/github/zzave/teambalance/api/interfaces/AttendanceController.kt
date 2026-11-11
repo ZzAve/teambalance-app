@@ -10,6 +10,7 @@ import com.github.zzave.teambalance.api.domain.port.CurrentTeamGateway
 import com.github.zzave.teambalance.api.domain.port.CurrentUserGateway
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.BulkAttend
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.BulkUndoAttend
+import com.github.zzave.teambalance.api.interfaces.generated.endpoint.ResetAttendance
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.SetAttendance
 import com.github.zzave.teambalance.api.interfaces.generated.model.Attendance
 import com.github.zzave.teambalance.api.interfaces.generated.model.BulkAttendanceResult
@@ -27,7 +28,8 @@ class AttendanceController(
     private val currentTeamGateway: CurrentTeamGateway,
 ) : SetAttendance.Handler,
     BulkAttend.Handler,
-    BulkUndoAttend.Handler {
+    BulkUndoAttend.Handler,
+    ResetAttendance.Handler {
 
     override suspend fun setAttendance(request: SetAttendance.Request): SetAttendance.Response<*> {
         val teamId = currentTeamGateway.requireCurrentTeamId()
@@ -80,6 +82,15 @@ class AttendanceController(
             eventIds = request.body.eventIds.map { it.consumeEventId() },
         )
         return BulkUndoAttend.Response200(BulkAttendanceResult(eventIds = deleted.map { it.produce() }))
+    }
+
+    override suspend fun resetAttendance(request: ResetAttendance.Request): ResetAttendance.Response<*> {
+        val reset = attendanceService.resetAttendance(
+            callerId = currentUserGateway.requireCurrentUserId(),
+            teamId = currentTeamGateway.requireCurrentTeamId(),
+            eventId = request.path.eventId.consumeEventId(),
+        )
+        return if (reset) ResetAttendance.Response204 else ResetAttendance.Response404
     }
 }
 

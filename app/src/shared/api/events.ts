@@ -68,7 +68,12 @@ export function useCreateEvent() {
       const res = await api.createEvent({ body: event as CreateEventRequest })
       return res.body
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['events'] }),
+    onSuccess: () =>
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['events'] }),
+        // The match feed's findings are computed from the events.
+        queryClient.invalidateQueries({ queryKey: ['match-feed'] }),
+      ]),
   })
 }
 
@@ -81,7 +86,12 @@ export function useUpdateEvent() {
       const res = await api.updateEvent({ id, scope, body: event as UpdateEventRequest })
       return res.body
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['events'] }),
+    onSuccess: () =>
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['events'] }),
+        // The match feed's findings are computed from the events.
+        queryClient.invalidateQueries({ queryKey: ['match-feed'] }),
+      ]),
   })
 }
 
@@ -90,6 +100,11 @@ export function useDeleteEvent() {
   return useMutation({
     mutationFn: ({ id, scope = 'THIS' }: { id: string; scope?: EventSeriesScope }) =>
       api.deleteEvent({ id, scope }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['events'] }),
+    onSuccess: () =>
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['events'] }),
+        // The match feed's findings are computed from the events.
+        queryClient.invalidateQueries({ queryKey: ['match-feed'] }),
+      ]),
   })
 }

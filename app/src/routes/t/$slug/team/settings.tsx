@@ -12,6 +12,7 @@ import { parseBunqResult, type ConnectBunqResult } from '@features/connect-bunq/
 import { ManagePositions } from '@features/manage-positions/ui/ManagePositions'
 import { ManageSubstitutes } from '@features/manage-substitutes/ui/ManageSubstitutes'
 import { ManageEventTypes } from '@features/manage-event-types/ui/ManageEventTypes'
+import { MatchFeed } from '@features/match-feed/ui/MatchFeed'
 import { HandoverAdmin } from '@features/handover-admin/ui/HandoverAdmin'
 import { ActAsRecords } from '@features/act-as/ui/ActAsRecords'
 import { PageHeader } from '@widgets/page-header/ui/PageHeader'
@@ -50,7 +51,8 @@ function TeamSettingsPage() {
   )
   // Admin manage surface: member management (the editable roster), then positions, then the Team's
   // Substitutes (who hold those positions), then the event types whose roster defaults reference
-  // those positions, then team settings, then the money pool, then platform access.
+  // those positions, then the match feed that checks the events, then team settings, then the money
+  // pool, then platform access.
   // Event types come after positions deliberately — a roster default is authored in terms of the
   // vocabulary above it. The read-only view of the same roster lives on /team.
   return (
@@ -60,6 +62,7 @@ function TeamSettingsPage() {
       <ManagePositions />
       <ManageSubstitutes canManage />
       <ManageEventTypes />
+      <MatchFeed />
       <TeamSettings />
       <MoneySettings />
       <ConnectBunq result={bunq} onResultShown={consumeBunqResult} />

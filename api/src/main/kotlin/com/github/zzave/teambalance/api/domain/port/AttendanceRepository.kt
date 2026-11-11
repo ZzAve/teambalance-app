@@ -25,4 +25,7 @@ interface AttendanceRepository {
      * reciprocal of [saveAll]: naturally idempotent, since a repeat simply finds nothing to delete.
      */
     fun deleteByUserIdAndEventIds(userId: UserId, eventIds: List<EventId>): List<EventId>
+
+    /** Deletes every member's response row on [eventId], so each member reads as NOT_RESPONDED again. */
+    fun deleteByEventId(eventId: EventId)
 }

@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
-import { expect, fn, within } from 'storybook/test'
+import { expect, fireEvent, fn, within } from 'storybook/test'
 import type { Event, EventDetail } from '@shared/api/events'
 import type { EventTypeItem } from '@shared/api/event-types'
 import { makeEvent, makeEventType, NO_ROSTER } from '@shared/testing/event-fixtures'
@@ -114,16 +114,27 @@ export const Shells: Story = {
 // proves an inheriting event stays inheriting — the update is a whole replacement, so an omitted
 // rosterOverride reads server-side as "drop back to the type default". A prop-contract spy is the
 // only layer that can catch the omission — a getByText would not see it.
+//
+// Then it moves the date of an event with responses: only then does the form offer to reset them,
+// and the choice reaches onSubmit as `resetResponses`.
 export const Interactions: Story = {
   parameters: { chromatic: { disableSnapshot: true } },
+  args: { event: { ...EVENT, attendanceSummary: { ...EVENT.attendanceSummary, attending: 2, absent: 1 } } },
   play: async ({ canvas, userEvent, args }) => {
+    await expect(canvas.queryByLabelText('Reset responses')).not.toBeInTheDocument()
     await userEvent.click(canvas.getByRole('button', { name: 'Save changes' }))
     await expect(args.onSubmit).toHaveBeenCalledWith(
       expect.objectContaining({ id: 'evt-1', scope: 'THIS', eventTypeId: 'et-1', title: 'Tuesday Training' }),
     )
     await expect(args.onSubmit).toHaveBeenCalledWith(
-      expect.objectContaining({ rosterOverride: undefined }),
+      expect.objectContaining({ rosterOverride: undefined, resetResponses: false }),
     )
+
+    fireEvent.change(canvas.getByLabelText('Start time'), { target: { value: '2026-09-03T18:30' } })
+    await expect(canvas.getByText('The date changed. 3 members responded for the old date.')).toBeInTheDocument()
+    await userEvent.click(canvas.getByLabelText('Reset responses'))
+    await userEvent.click(canvas.getByRole('button', { name: 'Save changes' }))
+    await expect(args.onSubmit).toHaveBeenLastCalledWith(expect.objectContaining({ resetResponses: true }))
   },
 }
 

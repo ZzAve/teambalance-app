@@ -261,6 +261,11 @@ any-team, self-service (see [ADR-0001](docs/adr/0001-product-ambition-hobby-tool
   isn't load-bearing in the domain (per ADR-0001).
 - **Nevobo** — Dutch volleyball federation; source of external league standings
   (Competition context).
+- **Match Feed** — A team's Nevobo poule programme feed and the team's name in it
+  ([ADR-0047](docs/adr/0047-nevobo-match-feed-compared-daily-findings-computed-on-read.md)). Read once a
+  day. Its **Feed Matches** are compared with the team's Events: a linked Event that differs is a
+  **Mismatch** (start time, location or opponent); a Feed Match with no Event is **Missing**.
+  _Avoid_: sync (nothing is written to the events), import.
 
 ### UI words per language ([ADR-0043](docs/adr/0043-dutch-and-english-react-i18next-language-on-the-user.md))
 
@@ -280,6 +285,7 @@ code and docs only; in the Dutch UI it is the right word.
 | Position | Position | Positie |
 | Event | Event | Event |
 | Match / Training | Match / Training | Wedstrijd / Training |
+| Match Feed | Match feed | Wedstrijdfeed |
 
 User content (event titles, team names, Position names, notes) is never translated.
 

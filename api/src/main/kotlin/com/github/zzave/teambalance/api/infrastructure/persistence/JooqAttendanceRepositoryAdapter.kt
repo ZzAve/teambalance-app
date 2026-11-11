@@ -89,6 +89,14 @@ class JooqAttendanceRepositoryAdapter(
             .fetch { EventId(it.value1()) }
     }
 
+    override fun deleteByEventId(eventId: EventId) {
+        dsl.deleteFrom(ATTENDANCES)
+            .using(EVENTS)
+            .where(ATTENDANCES.EVENT_ID.eq(EVENTS.ID))
+            .and(EVENTS.UUID.eq(eventId.value))
+            .execute()
+    }
+
     private fun selectAttendances() =
         dsl.select(
             ATTENDANCES.UUID,

@@ -3,6 +3,7 @@ package com.github.zzave.teambalance.api.interfaces
 import com.github.zzave.teambalance.api.domain.exception.BadRequestException
 import com.github.zzave.teambalance.api.domain.exception.ConflictException
 import com.github.zzave.teambalance.api.domain.exception.ForbiddenException
+import com.github.zzave.teambalance.api.domain.exception.MatchFeedUnavailableException
 import com.github.zzave.teambalance.api.domain.exception.MoneyPoolUnavailableException
 import com.github.zzave.teambalance.api.domain.exception.NotFoundException
 import com.github.zzave.teambalance.api.domain.exception.TeambalanceException
@@ -42,8 +43,8 @@ class GlobalExceptionHandler {
         ResponseEntity.status(HttpStatus.CONFLICT)
             .body(mapOf("error" to (ex.message ?: "Conflict"), "code" to ex.code))
 
-    @ExceptionHandler(MoneyPoolUnavailableException::class)
-    fun handleUnavailable(ex: MoneyPoolUnavailableException): ResponseEntity<Map<String, String>> =
+    @ExceptionHandler(MoneyPoolUnavailableException::class, MatchFeedUnavailableException::class)
+    fun handleUnavailable(ex: TeambalanceException): ResponseEntity<Map<String, String>> =
         ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(mapOf("error" to (ex.message ?: "Unavailable")))
 
     @ExceptionHandler(UnprocessableEntityException::class)

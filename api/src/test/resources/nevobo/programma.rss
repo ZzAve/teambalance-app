@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:nevobo="https://www.api.nevobo.nl/rss/">
+  <channel>
+    <title>RSS feed Nederlandse Volleybalbond</title>
+    <link>https://api.nevobo.nl/export/poule/regio-west/competitie-seniorencompetitie-1/regio-west-h2j-12/programma.rss</link>
+    <description>Wedstrijdprogramma van de Nederlandse volleybalcompetitie, georganiseerd door de Nederlandse Volleybalbond</description>
+    <lastBuildDate>Wed, 11 Nov 2026 01:11:01 +0100</lastBuildDate>
+    <atom:link href="https://api.nevobo.nl/export/poule/regio-west/competitie-seniorencompetitie-1/regio-west-h2j-12/programma.rss" rel="self" type="text/xml"/>
+    <item>
+      <title><![CDATA[13 nov 19:30: Servylo HS 1 - Tovo HS 4]]></title>
+      <link>https://api.nevobo.nl/permalink/wedstrijd/2017987</link>
+      <guid>https://api.nevobo.nl/permalink/wedstrijd/2017987</guid>
+      <description><![CDATA[Wedstrijd: 3000H2J   EA, Datum: vrijdag 13 november, 19:30, Speellocatie: De Mammoet, Calslaan 101, 2804RT  Gouda]]></description>
+      <pubDate>Fri, 13 Nov 2026 19:30:00 +0100</pubDate>
+      <nevobo:status>gepland</nevobo:status>
+    </item>
+    <item>
+      <title><![CDATA[13 nov 19:30: Inter Rijswijk HS 6 - VollinGo HS 5]]></title>
+      <link>https://api.nevobo.nl/permalink/wedstrijd/2018064</link>
+      <guid>https://api.nevobo.nl/permalink/wedstrijd/2018064</guid>
+      <description><![CDATA[Wedstrijd: 3000H2J   FI, Datum: vrijdag 13 november, 19:30, Speellocatie: De Altis, de Bruyn Kopsstraat 1, 2288EC  Rijswijk ZH]]></description>
+      <pubDate>Fri, 13 Nov 2026 19:30:00 +0100</pubDate>
+      <nevobo:status>gepland</nevobo:status>
+    </item>
+    <item>
+      <title><![CDATA[14 nov 16:00: DOS HS 2 - Thor HS 3]]></title>
+      <link>https://api.nevobo.nl/permalink/wedstrijd/2018136</link>
+      <guid>https://api.nevobo.nl/permalink/wedstrijd/2018136</guid>
+      <description><![CDATA[Wedstrijd: 3000H2J   JC, Datum: zaterdag 14 november, 16:00, Speellocatie: De Meent, Bergambachterstraat 1 A, 2871JB  Schoonhoven]]></description>
+      <pubDate>Sat, 14 Nov 2026 16:00:00 +0100</pubDate>
+      <nevobo:status>gepland</nevobo:status>
+    </item>
+  </channel>
+</rss>

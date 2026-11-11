@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { Button } from '@shared/ui/button'
 import { Input } from '@shared/ui/input'
 import { Label } from '@shared/ui/label'
+import { Switch } from '@shared/ui/switch'
 import { EventTypeSelect } from '@entities/event/ui/EventTypeSelect'
 import type { Event, EventDetail, EventInput, EventSeriesScope } from '@shared/api/events'
 import type { RosterRequirement } from '@shared/api/event-types'
@@ -12,8 +13,9 @@ import type { EventTypeItem } from '@shared/api/event-types'
 import { ReferenceRowsEditor } from '@entities/event/ui/ReferenceRowsEditor'
 import { cleanReferences, toReferenceRows, type ReferenceRow } from '@entities/event/lib/references'
 import { SeriesScopeField } from './SeriesScopeField'
+import { respondedCount } from '../lib/responded-count'
 
-export type UpdateEventRequest = EventInput & { id: string; scope: EventSeriesScope }
+export type UpdateEventRequest = EventInput & { id: string; scope: EventSeriesScope; resetResponses: boolean }
 
 interface EditEventDialogViewProps {
   event: EventDetail
@@ -74,6 +76,10 @@ export function EditEventDialogView({
   const [title, setTitle] = useState(event.title)
   const [start, setStart] = useState(toLocalInput(event.startTime))
   const [end, setEnd] = useState(toLocalInput(event.endTime))
+  const [resetResponses, setResetResponses] = useState(false)
+  const responded = respondedCount(event)
+  const dateChanged = !dateLocked && start.slice(0, 10) !== toLocalInput(event.startTime).slice(0, 10)
+  const offerReset = dateChanged && responded > 0
   // Seed the editor from the event's existing links — the update has replace-semantics, so the full
   // set must be sent back on every save or the links would be wiped.
   const [references, setReferences] = useState<ReferenceRow[]>(toReferenceRows(event.references))
@@ -108,6 +114,7 @@ export function EditEventDialogView({
       location: (form.get('location') as string) || undefined,
       references: cleanReferences(references),
       rosterOverride,
+      resetResponses: offerReset && resetResponses,
     })
   }
 
@@ -140,6 +147,22 @@ export function EditEventDialogView({
           <TimeField id="edit-start" label={t('eventForm.startTime')} type="datetime-local" value={start} onChange={setStart} />
           <TimeField id="edit-end" label={t('editEvent.endTime')} type="datetime-local" value={end} onChange={setEnd} />
         </>
+      )}
+      {offerReset && (
+        <div className="flex items-center justify-between gap-3 rounded-lg border border-gold/40 bg-gold/10 px-3 py-2">
+          <div className="flex flex-col">
+            <span className="text-small font-medium">{t('editEvent.resetResponses')}</span>
+            <span id="edit-reset-responses-hint" className="text-caption text-muted-foreground">
+              {t('editEvent.resetResponsesHint', { count: responded })}
+            </span>
+          </div>
+          <Switch
+            checked={resetResponses}
+            onCheckedChange={setResetResponses}
+            aria-label={t('editEvent.resetResponses')}
+            aria-describedby="edit-reset-responses-hint"
+          />
+        </div>
       )}
       <div>
         <Label htmlFor="edit-location">{t('eventForm.locationOptional')}</Label>

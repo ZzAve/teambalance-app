@@ -130,9 +130,8 @@ function PendingRow({
           className="flex flex-col gap-2"
           onSubmit={(e) => {
             e.preventDefault()
+            // No reset here: on success the row leaves the pending list; on failure the reason stays.
             onReject(request, reason.trim() || undefined)
-            setRejecting(false)
-            setReason('')
           }}
         >
           <Label htmlFor={reasonId}>{t('teamRequests.reasonLabel')}</Label>

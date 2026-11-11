@@ -16,9 +16,10 @@ export const Route = createFileRoute('/create-team/')({
     if (!user) throw redirect({ to: LOGIN_PATH })
   },
   // The approved-request mail and card link here with the code and name filled in (ADR-0047).
+  // The router JSON-parses search values, so a name like "2024" arrives as a number: take it as text.
   validateSearch: (search: Record<string, unknown>): { code?: string; name?: string } => ({
-    code: typeof search.code === 'string' ? search.code : undefined,
-    name: typeof search.name === 'string' ? search.name : undefined,
+    code: search.code == null ? undefined : String(search.code),
+    name: search.name == null ? undefined : String(search.name),
   }),
   component: CreateTeamPage,
 })

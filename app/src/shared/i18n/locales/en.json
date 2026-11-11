@@ -380,6 +380,43 @@
     "description_other": "{{count}} members responded for {{title}}. Their responses are cleared, and they show as not responded again. Substitutes stay.",
     "confirm": "Reset responses"
   },
+  "matchFeed": {
+    "title": "Match feed (Nevobo)",
+    "intro": "Paste your poule's programme feed. Once a day the app compares your matches with it, and shows here where they differ.",
+    "loadFailed": "Could not load the match feed. Please try again.",
+    "feedUrl": "Programme feed (RSS)",
+    "feedUrlHint": "For example https://api.nevobo.nl/export/poule/regio-west/regio-west-h2j-12/programma.rss",
+    "findTeams": "Find teams",
+    "findingTeams": "Reading the feed…",
+    "team": "Your team in this feed",
+    "pickTeam": "Pick your team",
+    "save": "Save feed",
+    "saving": "Saving…",
+    "remove": "Remove feed",
+    "lastChecked": "Last checked {{at}}",
+    "lastCheckFailed": "The last check could not read the feed. What you see is from an earlier check.",
+    "inSync": "Your events agree with the feed.",
+    "differs_one": "{{count}} event differs from Nevobo",
+    "differs_other": "{{count}} events differ from Nevobo",
+    "missing_one": "{{count}} match has no event",
+    "missing_other": "{{count}} matches have no event",
+    "difference": {
+      "START_TIME": "Start: {{ours}} → Nevobo: {{feed}}",
+      "LOCATION": "Location: {{ours}} → Nevobo: {{feed}}",
+      "OPPONENT": "The title does not name the opponent ({{feed}})"
+    },
+    "none": "none",
+    "home": "Home against {{opponent}}",
+    "away": "Away at {{opponent}}",
+    "openOnNevobo": "Open on Nevobo",
+    "notice": "This event differs from Nevobo",
+    "error": {
+      "INVALID_FEED_URL": "That is not a Nevobo poule programme feed. It must end in /programma.rss.",
+      "UNKNOWN_FEED_TEAM": "That team plays no match in this feed.",
+      "FEED_UNAVAILABLE": "Nevobo did not answer. Please try again later.",
+      "GENERIC": "Something went wrong. Please try again."
+    }
+  },
   "seriesScope": {
     "scope": {
       "THIS": "This event",

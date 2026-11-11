@@ -59,6 +59,8 @@ interface EventDetailViewProps {
   positions?: { id: string; label: string; kind: string }[]
   /** Scoped series edit/delete (ADR-0014 Phase 3); absent for members. */
   adminActions?: ReactNode
+  /** Where this event differs from the team's match feed (ADR-0047); absent for members. */
+  adminNotice?: ReactNode
 }
 
 /**
@@ -88,6 +90,7 @@ export function EventDetailView({
   seriesPeek,
   positions,
   adminActions,
+  adminNotice,
 }: EventDetailViewProps) {
   const { t, i18n } = useTranslation()
   // Which Substitute's sheet is open. Both their Position-group row and the block open it.
@@ -194,6 +197,8 @@ export function EventDetailView({
           </Link>
         )}
       </div>
+
+      {adminNotice && <div className="mt-4">{adminNotice}</div>}
 
       {/* Your Response */}
       {currentUserId && (

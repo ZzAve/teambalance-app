@@ -380,6 +380,43 @@
     "description_other": "{{count}} leden hebben geantwoord voor {{title}}. Hun antwoorden worden gewist, en ze staan weer op geen reactie. Invallers blijven staan.",
     "confirm": "Antwoorden wissen"
   },
+  "matchFeed": {
+    "title": "Wedstrijdfeed (Nevobo)",
+    "intro": "Plak de programmafeed van je poule. Eén keer per dag vergelijkt de app je wedstrijden ermee, en laat hier zien waar ze verschillen.",
+    "loadFailed": "De wedstrijdfeed laden is mislukt. Probeer het opnieuw.",
+    "feedUrl": "Programmafeed (RSS)",
+    "feedUrlHint": "Bijvoorbeeld https://api.nevobo.nl/export/poule/regio-west/regio-west-h2j-12/programma.rss",
+    "findTeams": "Teams zoeken",
+    "findingTeams": "Feed lezen…",
+    "team": "Je team in deze feed",
+    "pickTeam": "Kies je team",
+    "save": "Feed opslaan",
+    "saving": "Opslaan…",
+    "remove": "Feed verwijderen",
+    "lastChecked": "Laatst gecontroleerd {{at}}",
+    "lastCheckFailed": "Bij de laatste controle kon de feed niet worden gelezen. Je ziet de gegevens van een eerdere controle.",
+    "inSync": "Je events komen overeen met de feed.",
+    "differs_one": "{{count}} event wijkt af van Nevobo",
+    "differs_other": "{{count}} events wijken af van Nevobo",
+    "missing_one": "{{count}} wedstrijd heeft geen event",
+    "missing_other": "{{count}} wedstrijden hebben geen event",
+    "difference": {
+      "START_TIME": "Start: {{ours}} → Nevobo: {{feed}}",
+      "LOCATION": "Locatie: {{ours}} → Nevobo: {{feed}}",
+      "OPPONENT": "De titel noemt de tegenstander niet ({{feed}})"
+    },
+    "none": "geen",
+    "home": "Thuis tegen {{opponent}}",
+    "away": "Uit bij {{opponent}}",
+    "openOnNevobo": "Openen op Nevobo",
+    "notice": "Dit event wijkt af van Nevobo",
+    "error": {
+      "INVALID_FEED_URL": "Dat is geen programmafeed van een Nevobo-poule. Hij moet eindigen op /programma.rss.",
+      "UNKNOWN_FEED_TEAM": "Dat team speelt geen wedstrijd in deze feed.",
+      "FEED_UNAVAILABLE": "Nevobo gaf geen antwoord. Probeer het later opnieuw.",
+      "GENERIC": "Er ging iets mis. Probeer het opnieuw."
+    }
+  },
   "seriesScope": {
     "scope": {
       "THIS": "Dit event",

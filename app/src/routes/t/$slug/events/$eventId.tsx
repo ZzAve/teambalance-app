@@ -19,6 +19,7 @@ import type { AttendanceState } from '@features/attendance-toggle/ui/AttendanceT
 import { EditEventDialog } from '@features/edit-event/ui/EditEventDialog'
 import { DeleteEventDialog } from '@features/edit-event/ui/DeleteEventDialog'
 import { ResetAttendanceButton } from '@features/edit-event/ui/ResetAttendanceButton'
+import { MatchMismatchNotice } from '@features/match-feed/ui/MatchMismatchNotice'
 import { SubstitutePicker } from '@features/call-in-substitutes/ui/SubstitutePicker'
 import { useTeamRoutes } from '@shared/lib/team-routes'
 import { EventDetailView } from '@pages/event-detail/ui/EventDetailView'
@@ -103,6 +104,7 @@ function EventDetailPage() {
         onCallInSubstitutes={(position) => setPicker({ open: true, position })}
         seriesPeek={seriesPeek}
         positions={positions}
+        adminNotice={isAdmin && event && <MatchMismatchNotice eventId={event.id} />}
         adminActions={
           isAdmin &&
           event && (

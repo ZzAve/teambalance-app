@@ -67,6 +67,19 @@ class InvalidPaymentAliasException(message: String) : BadRequestException(messag
 // Bunq did not answer; the caller may try again → 503.
 class MoneyPoolUnavailableException : TeambalanceException("Bunq is unavailable")
 
+// The Nevobo feed did not answer, or its answer was not a feed it can read → 503.
+class MatchFeedUnavailableException(message: String, cause: Throwable? = null) : TeambalanceException(message) {
+    init {
+        cause?.let(::initCause)
+    }
+}
+
+class InvalidMatchFeedUrlException : BadRequestException("Not a Nevobo poule programme feed", "INVALID_FEED_URL")
+
+// The picked team plays no match in the feed, so nothing could ever be compared → 400.
+class UnknownFeedTeamException(teamName: String) :
+    BadRequestException("Team '$teamName' plays no match in this feed", "UNKNOWN_FEED_TEAM")
+
 sealed class NotFoundException(message: String) : TeambalanceException(message)
 
 class PaymentNotFoundException(id: PaymentId) : NotFoundException("Payment not found: $id")

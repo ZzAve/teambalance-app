@@ -56,3 +56,6 @@ teambalance:
       capacity: 1000
     calendar-feed-per-client:
       capacity: 100000
+  match-feed:
+    # The ITs call MatchFeedService.checkIfDue themselves; a scheduled run would touch every test team.
+    scheduler-enabled: false

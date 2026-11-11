@@ -1,9 +1,11 @@
 package com.github.zzave.teambalance.api
 
 import com.github.zzave.teambalance.api.domain.port.EmailGateway
+import com.github.zzave.teambalance.api.domain.port.MatchFeedGateway
 import com.github.zzave.teambalance.api.infrastructure.email.FakeEmailGateway
 import com.github.zzave.teambalance.api.infrastructure.persistence.SqlFaultInjectorConfig
 import com.github.zzave.teambalance.api.infrastructure.persistence.SqlStatementRecorderConfig
+import com.github.zzave.teambalance.api.interfaces.FakeMatchFeedGateway
 import com.github.zzave.teambalance.api.interfaces.SwitchableBunqGatewayConfig
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.extensions.spring.SpringTestExtension
@@ -62,5 +64,9 @@ abstract class TeamBalanceIT : FunSpec() {
         @Bean
         @Primary
         fun emailGateway(): EmailGateway = FakeEmailGateway()
+
+        @Bean
+        @Primary
+        fun matchFeedGateway(): MatchFeedGateway = FakeMatchFeedGateway()
     }
 }

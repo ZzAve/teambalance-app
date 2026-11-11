@@ -25,7 +25,7 @@ teambalance:
   # give each class its own Spring context. Each IT seeds its own admin, so the others stay unused.
   platform-admins: >-
     platform-admin@test.com, act-as-operator@test.com, act-as-it-operator@test.com,
-    money-operator@test.com, cal-link-operator@test.com, codes-admin@test.com, memberless-admin@test.com
+    money-operator@test.com, cal-link-operator@test.com, codes-admin@test.com, memberless-admin@test.com, team-requests-admin@test.com
   bunq:
     # Hardcoded for the test profile; live supplies TEAMBALANCE_BUNQ_TOKEN_ENCRYPTION_KEY.
     connect-enabled: true

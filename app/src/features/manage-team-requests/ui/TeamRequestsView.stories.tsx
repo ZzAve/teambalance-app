@@ -86,8 +86,12 @@ export const Interactions: Story = {
     await userEvent.click(canvas.getByRole('button', { name: 'Reject request' }))
     await expect(args.onReject).toHaveBeenCalledWith(PENDING_2, 'Not now')
 
-    await userEvent.click(canvas.getAllByRole('button', { name: 'Reject' })[0])
-    await userEvent.click(canvas.getByRole('button', { name: 'Reject request' }))
+    // The spies don't refetch, so the second row's form stays open: scope to the first row.
+    const first = within(canvas.getAllByRole('listitem')[0])
+    await userEvent.click(first.getByRole('button', { name: 'Reject', exact: true }))
+    await userEvent.click(first.getByRole('button', { name: 'Reject request' }))
     await expect(args.onReject).toHaveBeenLastCalledWith(PENDING, undefined)
+    // A failed reject must not lose the typed reason: the second row's form still holds it.
+    await expect(canvas.getByDisplayValue('Not now')).toBeInTheDocument()
   },
 }

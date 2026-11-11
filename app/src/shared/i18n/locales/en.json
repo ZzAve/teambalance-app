@@ -796,14 +796,12 @@
     "signedInNoTeam": "You're signed in, but not on a team yet. How would you like to get started?",
     "haveInvite": "I have an invite",
     "sharedLink": "Someone shared a join link with you",
-    "createTeam": "Create a team",
-    "needCode": "You'll need a creation code — team owners get these from us"
+    "createTeam": "Create a team"
   },
   "teams": {
     "yours": "Your teams",
     "joinOrCreate": "Join or create",
-    "joinWithLink": "Join with an invite link",
-    "needCode": "You'll need a creation code"
+    "joinWithLink": "Join with an invite link"
   },
   "createTeam": {
     "title": "Create your team",
@@ -866,6 +864,11 @@
       "removeNotAllowed": "You are not allowed to remove this substitute.",
       "removeFailed": "Couldn't remove the substitute — please try again.",
       "takeOffFailed": "Couldn't take the substitute off — please try again."
+    },
+    "teamRequest": {
+      "generic": "Something went wrong. Please try again.",
+      "INVALID_NAME": "Enter a team name of 1 to 100 characters.",
+      "INVALID_PURPOSE": "Describe what you'll use it for, in 1 to 1000 characters."
     }
   },
   "members": {
@@ -1202,5 +1205,39 @@
       "POOL_UNAVAILABLE": "The money pool is unavailable right now. Try again later.",
       "FAILED": "Couldn't link the payment. Please try again."
     }
+  },
+  "requestTeam": {
+    "title": "Request a team",
+    "intro": "Tell us which team you'd like to start and what you'll use it for. We'll email you when it's approved.",
+    "teamName": "Team name",
+    "purpose": "What will you use it for?",
+    "purposePlaceholder": "e.g. Attendance and the shared pot for our volleyball team",
+    "submit": "Send request",
+    "submitting": "Sending…",
+    "pending": "Request sent for {{name}}, waiting for approval.",
+    "approvedHint": "Your request was approved. You can create your team now.",
+    "approvedCta": "Approved: create {{name}}",
+    "rejected": "Not approved this time",
+    "rejectedReason": "Reason: {{reason}}",
+    "askAgain": "You can send a new request below.",
+    "haveCode": "I already have a code",
+    "alreadyPending": "You already have a request waiting for approval."
+  },
+  "teamRequests": {
+    "title": "Team requests",
+    "loadFailed": "Couldn't load team requests. Please try again.",
+    "nonePending": "No pending requests.",
+    "decided": "Recently decided",
+    "status": {
+      "PENDING": "Pending",
+      "APPROVED": "Approved",
+      "REJECTED": "Rejected"
+    },
+    "alreadyDecided": "That request has already been decided.",
+    "reasonLabel": "Reason (optional, sent to the requester)",
+    "confirmReject": "Reject request",
+    "cancel": "Cancel",
+    "approve": "Approve",
+    "reject": "Reject"
   }
 }

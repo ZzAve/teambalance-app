@@ -12,6 +12,9 @@ interface CreateTeamFormProps {
   isPending: boolean
   /** The typed failure from the last submit, placed by its code (field vs banner); null while clean. */
   error?: CreateTeamError | null
+  /** Prefill from the approved-request link (ADR-0047); the fields stay editable. */
+  initialName?: string
+  initialCreationCode?: string
   onSubmit: (values: { name: string; slug: string; creationCode: string }) => void
   /**
    * Delay before the "still setting up" reassurance line appears while submitting. Exposed only so a
@@ -30,12 +33,12 @@ interface CreateTeamFormProps {
  * dirty flag then stops the sync), and validated client-side against the same contract the backend
  * enforces so a bad address is caught before submit.
  */
-export function CreateTeamForm({ isPending, error, onSubmit, reassuranceDelayMs = 5000 }: CreateTeamFormProps) {
+export function CreateTeamForm({ isPending, error, onSubmit, reassuranceDelayMs = 5000, initialName = '', initialCreationCode = '' }: CreateTeamFormProps) {
   const { t } = useTranslation()
-  const [name, setName] = useState('')
-  const [slug, setSlug] = useState('')
+  const [name, setName] = useState(initialName)
+  const [slug, setSlug] = useState(suggestSlug(initialName))
   const [slugDirty, setSlugDirty] = useState(false)
-  const [creationCode, setCreationCode] = useState('')
+  const [creationCode, setCreationCode] = useState(initialCreationCode)
   const [reassuranceElapsed, setReassuranceElapsed] = useState(false)
 
   const handleNameChange = (value: string) => {

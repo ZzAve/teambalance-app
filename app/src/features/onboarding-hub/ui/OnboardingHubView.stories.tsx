@@ -1,10 +1,11 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { expect, fn, within } from 'storybook/test'
 import { Stack } from '@shared/testing/stack'
+import { RequestTeamView } from '@features/request-team/ui/RequestTeamView'
 import { OnboardingHubView } from './OnboardingHubView'
 
 // OnboardingHubView is the presentational fork behind /onboarding: a teamless, authenticated user
-// chooses to join an existing team (the common path) or create one (rare, code-gated). Pure prop-only
+// chooses to join an existing team (the common path) or request one (ADR-0047). Pure prop-only
 // view — the route container owns navigation.
 //
 // Three-story shape (ADR-0032 §1): the invite-unavailable banner (#342) is the one static shell this
@@ -13,11 +14,12 @@ import { OnboardingHubView } from './OnboardingHubView'
 //   2. Shells — the invite-unavailable state, in its own frame: the sign-in worked and only the
 //      invite half failed, which is the whole point of the banner, so it keeps its own picture rather
 //      than sharing Data's.
-//   3. Interactions — no picture; both forks, keeping the onChooseJoin/onChooseCreate spy assertions.
+//   3. Interactions — no picture; the join fork, keeping the onChooseJoin spy assertion.
 const meta = {
   title: 'features/onboarding-hub/OnboardingHubView',
   component: OnboardingHubView,
-  args: { onChooseJoin: fn(), onChooseCreate: fn() },
+  // The request card is a prop-only slot; its own states are RequestTeamView's stories.
+  args: { onChooseJoin: fn(), requestTeam: <RequestTeamView onSubmit={fn()} onOpenCreateTeam={fn()} /> },
 } satisfies Meta<typeof OnboardingHubView>
 
 export default meta
@@ -28,6 +30,7 @@ export const Data: Story = {
   play: async ({ canvas }) => {
     await expect(canvas.getByRole('heading', { name: /Welcome to TeamBalance/ })).toBeInTheDocument()
     await expect(canvas.getByText(/You're signed in, but not on a team yet/)).toBeInTheDocument()
+    await expect(canvas.getByRole('heading', { name: 'Request a team' })).toBeInTheDocument()
   },
 }
 
@@ -59,8 +62,5 @@ export const Interactions: Story = {
     // The accessible name includes the helper text, so match by substring rather than exact.
     await userEvent.click(canvas.getByRole('button', { name: /^I have an invite/ }))
     await expect(args.onChooseJoin).toHaveBeenCalled()
-
-    await userEvent.click(canvas.getByRole('button', { name: /^Create a team/ }))
-    await expect(args.onChooseCreate).toHaveBeenCalled()
   },
 }

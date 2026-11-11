@@ -806,8 +806,8 @@
   "createTeam": {
     "title": "Create your team",
     "intro": "Enter your creation code and name your team — you'll be its admin.",
-    "inviteOnly": "Starting a team is invite-only while we're getting established. Got a creation code? Enter it below.",
-    "noCode": "Don't have one? <mail>Email teams@teambalance.nl</mail> and we'll help you get started.",
+    "inviteOnly": "Enter your creation code below. You get one when your team request is approved.",
+    "noCode": "Don't have one? <link>Request a team</link> and we'll email you a code.",
     "name": "Team name",
     "namePlaceholder": "e.g. Tovo Heren 4",
     "address": "Team address",

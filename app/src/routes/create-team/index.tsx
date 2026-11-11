@@ -1,4 +1,4 @@
-import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router'
+import { createFileRoute, Link, redirect, useNavigate } from '@tanstack/react-router'
 import { useQueryClient } from '@tanstack/react-query'
 import { authMeQueryOptions } from '@shared/api/auth'
 import { LOGIN_PATH } from '@shared/api/auth-redirect'
@@ -45,12 +45,8 @@ function CreateTeamPage() {
         <Trans
           i18nKey="createTeam.noCode"
           components={{
-            mail: (
-              <a
-                href="mailto:teams@teambalance.nl?subject=Request%20a%20team%20on%20TeamBalance"
-                className="text-blue underline"
-              />
-            ),
+            // /select-team sends a teamless caller on to /onboarding; both show the request card.
+            link: <Link to="/select-team" className="text-blue underline" />,
           }}
         />
       </p>

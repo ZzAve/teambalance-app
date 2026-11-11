@@ -806,8 +806,8 @@
   "createTeam": {
     "title": "Maak je team aan",
     "intro": "Vul je aanmaakcode in en geef je team een naam — jij wordt de beheerder.",
-    "inviteOnly": "Zolang we nog opstarten kun je alleen op uitnodiging een team beginnen. Heb je een aanmaakcode? Vul hem hieronder in.",
-    "noCode": "Heb je er geen? <mail>Mail naar teams@teambalance.nl</mail>, dan helpen we je op weg.",
+    "inviteOnly": "Vul hieronder je aanmaakcode in. Je krijgt er een zodra je teamaanvraag is goedgekeurd.",
+    "noCode": "Heb je er geen? <link>Vraag een team aan</link>, dan mailen we je een code.",
     "name": "Teamnaam",
     "namePlaceholder": "bijv. Tovo Heren 4",
     "address": "Teamadres",

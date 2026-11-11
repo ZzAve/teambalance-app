@@ -26,7 +26,8 @@ object TeamRequestEmails {
                 "$requesterEmail vraagt een team aan.",
                 "Teamnaam: $teamName",
                 "Waarvoor: $purpose",
-                "Beoordeel de aanvraag: $adminUrl",
+                "Beoordeel de aanvraag:",
+                adminUrl,
             ),
         )
 
@@ -61,7 +62,7 @@ object TeamRequestEmails {
                 "Hoi,",
                 "Je aanvraag voor het team $teamName is goedgekeurd. Je kunt het team nu aanmaken:",
                 createTeamUrl,
-                "Deze link werkt 30 dagen en één keer.",
+                "De link werkt één keer en verloopt na 30 dagen.",
             ),
         )
         Language.EN -> render(
@@ -71,7 +72,7 @@ object TeamRequestEmails {
                 "Hi,",
                 "Your request for the team $teamName is approved. You can create the team now:",
                 createTeamUrl,
-                "This link works for 30 days and once.",
+                "The link works once and expires after 30 days.",
             ),
         )
     }
@@ -103,11 +104,17 @@ object TeamRequestEmails {
         html = """
             <div style="font-family:Arial,Helvetica,sans-serif;max-width:480px;margin:0 auto;color:#1a1a1a;">
               <p style="font-size:20px;font-weight:bold;">TeamBalance</p>
-              ${lines.joinToString("\n") { "<p>${HtmlUtils.htmlEscape(it)}</p>" }}
+              ${lines.joinToString("\n") { paragraph(it) }}
               <p style="font-size:12px;color:#999;">$noReply</p>
             </div>
         """.trimIndent(),
     )
+
+    // A line that is a URL becomes a link, so it does not depend on the mail client auto-linking it.
+    private fun paragraph(line: String): String {
+        val escaped = HtmlUtils.htmlEscape(line)
+        return if (line.startsWith("http")) "<p><a href=\"$escaped\">$escaped</a></p>" else "<p>$escaped</p>"
+    }
 
     private fun encode(value: String) = URLEncoder.encode(value, StandardCharsets.UTF_8)
 }

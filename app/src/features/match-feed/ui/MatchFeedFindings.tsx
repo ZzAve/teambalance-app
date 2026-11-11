@@ -105,7 +105,7 @@ function MissingMatch({ match, teamName }: { match: FeedMatch; teamName: string 
         {formatMatchTime(match.startTime)}
         {match.venue && ` · ${match.venue}`}
       </p>
-      <a href={match.link} target="_blank" rel="noreferrer" className="text-caption text-blue underline">
+      <a href={match.link} target="_blank" rel="noreferrer" className="block w-fit text-caption text-blue underline">
         {t('matchFeed.openOnNevobo')}
       </a>
     </>

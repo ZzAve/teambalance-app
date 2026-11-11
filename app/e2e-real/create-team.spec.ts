@@ -41,10 +41,10 @@ test('create-team: a teamless founder enters code + name + slug and lands in the
 
   // 2. Click the emailed link → session established. The has-any-team gate routes the teamless
   //    founder to /onboarding (proving they are NOT bounced to /login by the old teamless-user
-  //    behaviour), from where they click through to /create-team — the rare, code-gated path.
+  //    behaviour), from where the request card's "I already have a code" link opens /create-team.
   await page.goto(`/auth/verify?token=${token}`)
   await expect(page.getByRole('heading', { name: /Welcome to TeamBalance/ })).toBeVisible({ timeout: 10_000 })
-  await page.getByRole('button', { name: 'Create a team' }).click()
+  await page.getByRole('link', { name: 'I already have a code' }).click()
   await expect(page.getByRole('heading', { name: 'Create your team' })).toBeVisible()
 
   // 3. Fill the form — the slug auto-suggests from the name; the code is the seeded creation code.

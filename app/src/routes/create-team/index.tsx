@@ -47,7 +47,8 @@ function CreateTeamPage() {
           i18nKey="createTeam.noCode"
           components={{
             // /select-team sends a teamless caller on to /onboarding; both show the request card.
-            link: <Link to="/select-team" className="text-blue underline" />,
+            // Not `link`: that is a void HTML tag, so i18next would drop the text inside it.
+            request: <Link to="/select-team" className="text-blue underline" />,
           }}
         />
       </p>

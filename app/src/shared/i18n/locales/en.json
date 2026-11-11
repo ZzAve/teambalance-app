@@ -806,8 +806,8 @@
   "createTeam": {
     "title": "Create your team",
     "intro": "Enter your creation code and name your team — you'll be its admin.",
-    "inviteOnly": "Enter your creation code below. You get one when your team request is approved.",
-    "noCode": "Don't have one? <link>Request a team</link> and we'll email you a code.",
+    "inviteOnly": "You get a creation code when your team request is approved.",
+    "noCode": "Don't have one? <request>Request a team</request> and we'll email you a code.",
     "name": "Team name",
     "namePlaceholder": "e.g. Tovo Heren 4",
     "address": "Team address",

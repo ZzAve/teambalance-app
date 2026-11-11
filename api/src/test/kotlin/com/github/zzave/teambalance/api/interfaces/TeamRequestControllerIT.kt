@@ -166,6 +166,23 @@ class TeamRequestControllerIT : TeamBalanceIT() {
             post("/api/admin/team-requests/$id/approve", admin).andExpect(MockMvcResultMatchers.status().isConflict)
         }
 
+        test("a submit while the approved code is still usable is a 409; once the code is used it is allowed") {
+            val user = newRequester()
+            val id = idOf(submit(user.id))
+            post("/api/admin/team-requests/$id/approve", admin).andExpect(MockMvcResultMatchers.status().isOk)
+
+            submit(user.id, name = "Second")
+                .andExpect(MockMvcResultMatchers.status().isConflict)
+                .andExpect(MockMvcResultMatchers.jsonPath("$.code").value("TEAM_REQUEST_PENDING"))
+
+            jdbcTemplate.update(
+                "UPDATE public.team_creation_codes SET consumed_at = now() " +
+                    "WHERE id = (SELECT creation_code_id FROM public.team_requests WHERE id = ?::uuid)",
+                id,
+            )
+            submit(user.id, name = "Second").andExpect(MockMvcResultMatchers.status().isCreated)
+        }
+
         test("reject mails the reason, or none, in Dutch when the requester has no stored language") {
             val withReason = newRequester()
             val reasonId = idOf(submit(withReason.id))

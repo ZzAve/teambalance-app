@@ -27,6 +27,10 @@ test('create-team: a teamless founder enters code + name + slug and lands in the
   page,
   request,
 }) => {
+  // The add-a-passkey prompt (ADR-0045) floats over the bottom of the page and covers the request card's
+  // "I already have a code" link; this spec is not about passkeys, so this device has already said "not now".
+  await page.addInitScript(() => localStorage.setItem('tb.pref.passkey-prompt-dismissed', 'true'))
+
   // 1. Request a magic link for a brand-new email — verify will create the user teamless.
   await page.goto('/login')
   await page.getByLabel('Email').fill(FOUNDER_EMAIL)

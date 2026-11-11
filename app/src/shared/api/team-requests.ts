@@ -79,8 +79,12 @@ export function useApproveTeamRequest() {
       if (res.status === 200) return res.body
       throw toTeamRequestError(res.status, bodyCode(res.body))
     },
-    // Also on failure: a 409 means the list is stale.
-    onSettled: () => queryClient.invalidateQueries({ queryKey: ['team-requests'] }),
+    // Also on failure: a 409 means the list is stale. Approving mints a code, so the codes list on the same page is stale too.
+    onSettled: () =>
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['team-requests'] }),
+        queryClient.invalidateQueries({ queryKey: ['creation-codes'] }),
+      ]),
   })
 }
 

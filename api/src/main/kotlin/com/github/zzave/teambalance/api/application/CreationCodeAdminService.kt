@@ -45,16 +45,16 @@ class CreationCodeAdminService(
         creationCodeRepository.delete(code)
     }
 
-    // A short, human-typable, unguessable code: three dash-separated groups from an unambiguous
-    // alphabet (no 0/O/1/I), e.g. "K7QM-9FX4-P2HR". ~60 bits of entropy — brute-forcing it is
-    // hopeless, and the code gate is the last line anyway (the redeem UPDATE is atomic + one-shot).
-    private fun generateCode(): CreationCode =
-        CreationCode((0 until GROUP_COUNT).joinToString("-") { randomGroup() })
+    companion object {
+        // A short, human-typable, unguessable code: three dash-separated groups from an unambiguous
+        // alphabet (no 0/O/1/I), e.g. "K7QM-9FX4-P2HR". ~60 bits of entropy — brute-forcing it is
+        // hopeless, and the code gate is the last line anyway (the redeem UPDATE is atomic + one-shot).
+        fun generateCode(): CreationCode =
+            CreationCode((0 until GROUP_COUNT).joinToString("-") { randomGroup() })
 
-    private fun randomGroup(): String =
-        buildString { repeat(GROUP_SIZE) { append(ALPHABET[random.nextInt(ALPHABET.length)]) } }
+        private fun randomGroup(): String =
+            buildString { repeat(GROUP_SIZE) { append(ALPHABET[random.nextInt(ALPHABET.length)]) } }
 
-    private companion object {
         private const val ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
         private const val GROUP_COUNT = 3
         private const val GROUP_SIZE = 4

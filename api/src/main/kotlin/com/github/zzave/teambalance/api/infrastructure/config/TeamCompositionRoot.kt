@@ -2,11 +2,15 @@ package com.github.zzave.teambalance.api.infrastructure.config
 
 import com.github.zzave.teambalance.api.application.ActiveTeamService
 import com.github.zzave.teambalance.api.application.CreationCodeAdminService
+import com.github.zzave.teambalance.api.application.TeamRequestService
 import com.github.zzave.teambalance.api.application.TeamService
+import com.github.zzave.teambalance.api.domain.model.PlatformAdminAllowlist
+import com.github.zzave.teambalance.api.domain.port.EmailGateway
 import com.github.zzave.teambalance.api.domain.port.PlatformAdminGateway
 import com.github.zzave.teambalance.api.domain.port.TeamCreationCodeRepository
 import com.github.zzave.teambalance.api.domain.port.TeamNotificationGateway
 import com.github.zzave.teambalance.api.domain.port.TeamRegistrationGateway
+import com.github.zzave.teambalance.api.domain.port.TeamRequestRepository
 import com.github.zzave.teambalance.api.domain.port.TeamRepository
 import com.github.zzave.teambalance.api.domain.port.TenantProvisioningGateway
 import com.github.zzave.teambalance.api.domain.port.UserRepository
@@ -54,6 +58,23 @@ class TeamCompositionRoot {
     ) = CreationCodeAdminService(
         creationCodeRepository = creationCodeRepository,
         platformAdminGateway = platformAdminGateway,
+        clock = clock,
+    )
+
+    @Bean
+    fun teamRequestService(
+        teamRequestRepository: TeamRequestRepository,
+        userRepository: UserRepository,
+        platformAdminGateway: PlatformAdminGateway,
+        platformAdminAllowlist: PlatformAdminAllowlist,
+        emailGateway: EmailGateway,
+        clock: Clock,
+    ) = TeamRequestService(
+        repository = teamRequestRepository,
+        userRepository = userRepository,
+        platformAdminGateway = platformAdminGateway,
+        platformAdmins = platformAdminAllowlist,
+        emailGateway = emailGateway,
         clock = clock,
     )
 }

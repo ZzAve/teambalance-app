@@ -150,6 +150,7 @@ export const Shells: Story = {
         'No season': <MoneyPoolView {...args} seasonSet={false} />,
         'No payments': <MoneyPoolView {...args} payments={[]} />,
         'Same-day duplicates': <MoneyPoolView {...args} payments={[PAYMENTS[0], { ...PAYMENTS[0], id: '1008' }]} />,
+        'Roster name same as payment': <MoneyPoolView {...args} payments={[{ ...PAYMENTS[0], name: 'Lisa V.' }]} />,
         'Missing balance': <MoneyPoolView {...args} balance={undefined} />,
         'Roster loading': <MoneyPoolView {...args} members={undefined} />,
         'No beer price': <MoneyPoolView {...args} beerPrice={undefined} beerCount={undefined} />,
@@ -206,6 +207,8 @@ export const Shells: Story = {
     await expect(within(region('No season').getByRole('region', { name: 'Balance' })).getByText('Last 90 days')).toBeInTheDocument()
     await expect(region('No payments').queryByRole('img')).not.toBeInTheDocument()
     await expect(region('Same-day duplicates').getAllByText('Lisa de Vries')).toHaveLength(2)
+    // A roster name that only repeats the payment's name is left out of the line under it.
+    await expect(within(within(region('Roster name same as payment').getByRole('region', { name: 'Payments' })).getByRole('list')).getByText(/^Tue 6 Oct$/)).toBeInTheDocument()
     await expect(region('Missing balance').getByText(/couldn't load/i)).toBeInTheDocument()
     // Without the roster the Toppers would name everyone a former member, so they wait for it.
     await expect(region('Roster loading').queryByRole('region', { name: 'Toppers' })).not.toBeInTheDocument()

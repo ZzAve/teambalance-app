@@ -72,7 +72,8 @@ export function PaymentList({ payments, today, members, youId, receipt, claim }:
 function PaymentRow({ payment, member, youId, receipt, claim }: Pick<PaymentListProps, 'youId' | 'receipt' | 'claim'> & { payment: Payment; member: Member | undefined }) {
   const { t } = useTranslation()
   const isIncoming = payment.direction === 'In'
-  const who = member && (member.userId === youId ? t('money.toppers.self', { name: member.displayName }) : member.displayName)
+  // The roster name, unless it only repeats the payment's own name.
+  const who = member && (member.userId === youId ? t('money.toppers.self', { name: member.displayName }) : member.displayName !== payment.name && member.displayName)
   return (
     // The row is focusable so focus can land on it after a claim removes its button.
     <li tabIndex={-1} className="flex items-center gap-3 px-4 py-3 outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring">

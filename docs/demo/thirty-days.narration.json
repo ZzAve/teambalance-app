@@ -1,0 +1,43 @@
+{
+  "__introCard": {
+    "headline": "Thirty days of",
+    "accent": "TeamBalance.",
+    "sub": "What changed between 12 October and today, on screen and under the hood.",
+    "pill": "Then and now"
+  },
+  "__outroCard": {
+    "steps": [{ "label": "Top up the pot", "icon": "piggy-bank" }, { "label": "Add a passkey", "icon": "key-round" }, { "label": "Pick your language", "icon": "languages" }],
+    "sub": "Or look around first in the demo team at demo.teambalance.nl."
+  },
+  "__intro": "Thirty days of TeamBalance. Then, | and now.",
+  "This was TeamBalance on the twelfth of October.": "This was TeamBalance, on the twelfth of October.",
+  "Signing in meant waiting for an email.": "Signing in meant waiting for an email.",
+  "Today, a passkey signs you in with one tap.": "Today, a passkey signs you in with one tap.",
+  "The events page, a month ago...": "The events page, a month ago...",
+  "...and now. The same team, the same match.": "...and now. The same team, | the same match.",
+  "The next event takes the colour of its type, and the header names the page.": "The next event takes the colour of its type, | and the header names the page.",
+  "The Money tab was a promise.": "The Money tab was a promise.",
+  "Now it is the team's Bunq account.": "Now, it's the team's Bunk account.",
+  "The balance, the pot over time, and how many beers it buys.": "The balance, the pot over time, | and how many beers it buys.",
+  "Top up with one button.": "Top up with one button.",
+  "A payment without a member? An admin assigns it.": "A payment without a member? An admin assigns it.",
+  "The next payment like it links itself.": "The next payment like it, links itself.",
+  "And Toppers ranks who put in the most.": "And Toppers ranks who put in the most.",
+  "Back on Events, open the match.": "Back on Events, open the match.",
+  "The league moved it by an hour. TeamBalance reads the Nevobo feed and noticed.": "The league moved it by an hour. TeamBalance reads the Nayvobo feed, | and noticed.",
+  "One tap takes over the new time.": "One tap takes over the new time.",
+  "The profile was one long page.": "The profile was one long page.",
+  "Now it is four short rows.": "Now, it's four short rows.",
+  "Under Preferences, pick your language.": "Under Preferences, pick your language.",
+  "The whole app turns Dutch, and so do the emails.": "The whole app turns Dutch, | and so do the emails.",
+  "Every screen is translated.": "Every screen is translated.",
+  "Not everything shows. Hibernate is gone:": "Not everything shows. Hibernate is gone:",
+  "sixteen repositories moved to jOOQ, one at a time.": "sixteen repositories moved to jook, | one at a time.",
+  "Stored secrets are now bound to their team.": "Stored secrets are now bound to their team.",
+  "Copied to another team, they do not decrypt.": "Copied to another team, they do not decrypt.",
+  "The money pool reads the real Bunq API.": "The money pool reads the real Bunk A P I.",
+  "Cached, with timeouts, and a pause when Bunq says slow down.": "Cached, with timeouts, | and a pause when Bunk says slow down.",
+  "A hundred and forty-eight commits in thirty days.": "A hundred and forty-eight commits, in thirty days.",
+  "Tests run in parallel, staging deploys on demand, and anyone can try the demo team.": "Tests run in parallel, staging deploys on demand, | and anyone can try the demo team.",
+  "__outro": "Try it today! Top up the pot, add a passkey, or pick your language. See you at TeamBalance dot N L!"
+}

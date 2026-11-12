@@ -98,6 +98,8 @@ export default async function script({ page, caption, section, sleep, click, scr
     await sleep(page, 300)
     await moveTo(page, verdict)
     await untilLineEnds()
+    // The open lineup ends under the bottom caption ("Unassigned"), so the caption goes to the top.
+    await captionAt('top')
     await speak('Tap it for the lineup: who is coming, per position.', 3000)
     await sleep(page, 400)
     await click(page, verdict, onScreen)
@@ -105,6 +107,7 @@ export default async function script({ page, caption, section, sleep, click, scr
     await untilLineEnds()
     await sleep(page, 500)
     await click(page, nextTraining.getByRole('button', { name: /Hide lineup/ }), { settle: 300 })
+    await captionAt('bottom')
   })
 
   await section('filters', async () => {
@@ -173,10 +176,11 @@ export default async function script({ page, caption, section, sleep, click, scr
     await click(page, page.getByRole('link', { name: 'Events', exact: true }))
     await listHeading.waitFor()
     await sleep(page, 300)
+    // Move the caption before the sheet opens, so it is never over the sheet.
+    await captionAt('top')
     await click(page, page.getByRole('button', { name: 'New Event' }), onScreen)
     const sheet = page.getByRole('dialog')
     await sheet.getByRole('button', { name: /Single event/ }).waitFor()
-    await captionAt('top')
     await sleep(page, 500)
     await moveTo(page, sheet.getByRole('button', { name: /Single event/ }))
     await sleep(page, 1000)

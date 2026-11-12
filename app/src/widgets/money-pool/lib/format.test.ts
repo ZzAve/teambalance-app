@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import { i18n } from '@shared/i18n/i18n'
-import { formatBeers, formatEuro, formatPaymentDate } from './format'
+import { formatBeers, formatEuro, formatPaymentDate, formatPaymentWeekday } from './format'
 
 // Intl separates the euro sign from the amount with a no-break space (U+00A0) in Dutch.
 const NBSP = ' '
@@ -50,5 +50,13 @@ describe('formatBeers', () => {
 
   it('groups thousands with a comma in English', () => {
     expect(formatBeers(1250)).toBe('1,250 beers')
+  })
+})
+
+describe('formatPaymentWeekday', () => {
+  it('shows the weekday before the day and month', async () => {
+    expect(formatPaymentWeekday('2026-11-07')).toBe('Sat 7 Nov')
+    await i18n.changeLanguage('nl')
+    expect(formatPaymentWeekday('2026-11-07')).toBe('za 7 nov')
   })
 })

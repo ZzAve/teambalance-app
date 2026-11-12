@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Payment } from '@shared/api/money-pool'
-import { playbackFrames, playbackSteps } from './ranking-at'
+import { playbackFrames, playbackSteps, rankDeltas } from './ranking-at'
 import { toppers } from './toppers'
 
 const pay = (date: string, amount: number, memberId?: string, direction: Payment['direction'] = 'In'): Payment => ({
@@ -66,5 +66,18 @@ describe('playbackSteps', () => {
     expect(playbackSteps(3, true)).toEqual([0, 1, 2])
     expect(playbackSteps(1, true)).toEqual([0])
     expect(playbackSteps(0, true)).toEqual([])
+  })
+})
+
+describe('rankDeltas', () => {
+  const at = (memberId: string, rank: number) => ({ memberId, total: 0, rank })
+
+  it('gives each member who moved the number of places, up as positive', () => {
+    const deltas = rankDeltas([at('a', 1), at('b', 2), at('c', 3)], [at('c', 1), at('a', 2), at('b', 3)])
+    expect(deltas).toEqual(new Map([['c', 2], ['a', -1], ['b', -1]]))
+  })
+
+  it('leaves out members who kept their rank, and members new to the ranking', () => {
+    expect(rankDeltas([at('a', 1), at('b', 2)], [at('a', 1), at('b', 2), at('d', 3)])).toEqual(new Map())
   })
 })

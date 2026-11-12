@@ -30,14 +30,3 @@ export function playbackSteps(frameCount: number, reducedMotion: boolean): numbe
   if (!reducedMotion || frameCount <= 3) return all
   return [0, Math.floor((frameCount - 1) / 2), frameCount - 1]
 }
-
-/** How many places each member moved from one ranking to the next, up as positive; members who kept their rank or are new are left out. */
-export function rankDeltas(previous: Topper[], next: Topper[]): Map<string, number> {
-  const before = new Map(previous.map((r) => [r.memberId, r.rank]))
-  const deltas = new Map<string, number>()
-  for (const r of next) {
-    const was = before.get(r.memberId)
-    if (was !== undefined && was !== r.rank) deltas.set(r.memberId, was - r.rank)
-  }
-  return deltas
-}

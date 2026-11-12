@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState, type CSSProperties, type Ref } from 'react'
-import { ChevronDown, ChevronUp, Pause, Play, RotateCcw, Trophy } from 'lucide-react'
+import { Pause, Play, RotateCcw, Trophy } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import type { Member } from '@shared/api/members'
 import type { Payment } from '@shared/api/money-pool'
 import { Button } from '@shared/ui/button'
 import { Chip } from '@shared/ui/chip'
 import { formatEuro, formatPaymentDate } from '../lib/format'
-import { playbackFrames, playbackSteps, rankDeltas, type PlaybackFrame } from '../lib/ranking-at'
+import { playbackFrames, playbackSteps, type PlaybackFrame } from '../lib/ranking-at'
 import { splitPodium, toppers, type Topper, type TopperPeriod } from '../lib/toppers'
 import { useCountUp } from '../lib/use-count-up'
 import { MemberAvatar } from './MemberAvatar'
@@ -39,8 +39,6 @@ const ENTRANCE_COUNT_MS = 600
 const ENTRANCE_COUNT_DELAYS = [340, 250, 160] as const
 /** Between two frames of the playback or the time bar the amounts tick this long. */
 const TICK_MS = 250
-/** A rank-change arrow shows this long (global.css .toppers-move). */
-const MOVE_MS = 1100
 /** List rows past this one rise together in the entrance, so a long roster does not drag it out. */
 const ENTRANCE_ROW_CAP = 8
 
@@ -59,12 +57,6 @@ interface Position {
  */
 type Entrance = 'pending' | 'entering' | 'done'
 
-/** A rank change on a list row: places moved (up as positive), and when its arrow goes. */
-interface Move {
-  places: number
-  until: number
-}
-
 /** The money pool's Toppers: every member ranked as a podium and a list, a time bar through the season and a replay of how the ranking grew. */
 export function ToppersView({ payments, today, members, seasonSet, youId }: ToppersViewProps) {
   const { t } = useTranslation()
@@ -74,7 +66,6 @@ export function ToppersView({ payments, today, members, seasonSet, youId }: Topp
   const [playRequested, setPlayRequested] = useState(false)
   const [announced, setAnnounced] = useState('')
   const [entrance, setEntrance] = useState<Entrance>(() => (!prefersReducedMotion() && typeof IntersectionObserver !== 'undefined' ? 'pending' : 'done'))
-  const [moves, setMoves] = useState<ReadonlyMap<string, Move>>(new Map())
   const playButton = useRef<HTMLButtonElement>(null)
   const podiumRef = useRef<HTMLDivElement>(null)
   const resetHadFocus = useRef(false)
@@ -144,38 +135,19 @@ export function ToppersView({ payments, today, members, seasonSet, youId }: Topp
     return () => window.clearTimeout(id)
   }, [entrance])
 
-  // Each step of the playback or the time bar marks the rows that changed rank, for MOVE_MS.
-  const noteMoves = useCallback((from: Topper[], to: Topper[]) => {
-    if (prefersReducedMotion()) return
-    const deltas = rankDeltas(from, to)
-    if (deltas.size === 0) return
-    const until = performance.now() + MOVE_MS
-    setMoves((current) => new Map([...current, ...[...deltas].map(([memberId, places]) => [memberId, { places, until }] as const)]))
-  }, [])
-  useEffect(() => {
-    if (moves.size === 0) return
-    const first = Math.min(...[...moves.values()].map((m) => m.until))
-    const id = window.setTimeout(() => setMoves((current) => new Map([...current].filter(([, m]) => m.until > performance.now()))), first - performance.now())
-    return () => window.clearTimeout(id)
-  }, [moves])
-
   useEffect(() => {
     if (!playing) return
     const reduced = prefersReducedMotion()
     const next = playbackSteps(frames.length, reduced).find((s) => s > index)
     if (next === undefined) return
     const stepMs = reduced ? REDUCED_MOTION_STEP_MS : PLAYBACK_MS / Math.max(frames.length - 1, 1)
-    const id = window.setTimeout(() => {
-      noteMoves(frames[index].ranking, frames[next].ranking)
-      setPosition({ frames, index: next })
-    }, stepMs)
+    const id = window.setTimeout(() => setPosition({ frames, index: next }), stepMs)
     return () => window.clearTimeout(id)
-  }, [playing, frames, index, noteMoves])
+  }, [playing, frames, index])
 
   // Play, the time bar, reset and the period all end the entrance at its final state, so two motions never overlap.
   const choosePeriod = (next: TopperPeriod) => {
     endEntrance()
-    setMoves(new Map())
     setPeriod(next)
     setPosition(null)
     setPlayRequested(false)
@@ -189,7 +161,6 @@ export function ToppersView({ payments, today, members, seasonSet, youId }: Topp
   const onSlide = (next: number) => {
     endEntrance()
     setPlayRequested(false)
-    noteMoves(ranking, frames[next].ranking)
     setPosition({ frames, index: next })
   }
 
@@ -267,7 +238,7 @@ export function ToppersView({ payments, today, members, seasonSet, youId }: Topp
               />
             )}
             <Podium ref={podiumRef} top={podium} memberById={memberById} nameOf={nameOf} youId={youId} motion={motion} phase={phase} />
-            <RankingList rest={rest} memberById={memberById} nameOf={nameOf} youId={youId} motion={motion} moves={moves} />
+            <RankingList rest={rest} memberById={memberById} nameOf={nameOf} youId={youId} motion={motion} />
             {/* The text version of the ranking, complete at every step of the playback. */}
             <ol aria-label={t('money.toppers.ranking')} className="sr-only">
               {ranking.map((r) => (
@@ -307,7 +278,7 @@ interface PartProps {
   memberById: Map<string, Member>
   nameOf: (memberId: string) => string
   youId?: string
-  /** False under reduced motion: no ticks, no arrows. */
+  /** False under reduced motion: no ticks. */
   motion: boolean
 }
 
@@ -359,14 +330,13 @@ function Podium({ ref, top, memberById, nameOf, youId, motion, phase }: PartProp
 }
 
 /** Everyone below the podium. Rows keep their DOM order and move by transform, so a rank change slides (off under reduced motion). */
-function RankingList({ rest, memberById, nameOf, youId, motion, moves }: PartProps & { rest: Topper[]; moves: ReadonlyMap<string, Move> }) {
+function RankingList({ rest, memberById, nameOf, youId, motion }: PartProps & { rest: Topper[] }) {
   if (rest.length === 0) return null
   const byMember = [...rest].sort((a, b) => a.memberId.localeCompare(b.memberId))
   return (
     <div aria-hidden="true" className="relative" style={{ height: rest.length * ROW_HEIGHT }}>
       {byMember.map((r) => {
         const row = rest.indexOf(r)
-        const move = moves.get(r.memberId)
         return (
           <div
             key={r.memberId}
@@ -379,13 +349,6 @@ function RankingList({ rest, memberById, nameOf, youId, motion, moves }: PartPro
             <span className="min-w-0 flex-1 truncate text-small font-semibold">
               {nameOf(r.memberId)}
               {r.memberId === youId && <YouBadge />}
-              {move && (
-                // Keyed by its end time, so a second move restarts the arrow.
-                <span key={move.until} className={`toppers-move ml-1.5 inline-flex items-center align-[1px] text-caption font-bold tabular-nums ${move.places > 0 ? 'text-blue' : 'text-muted-foreground'}`}>
-                  {move.places > 0 ? <ChevronUp size={12} strokeWidth={3} /> : <ChevronDown size={12} strokeWidth={3} />}
-                  {Math.abs(move.places)}
-                </span>
-              )}
             </span>
             <CountingEuro cents={r.total} className="text-small font-semibold tabular-nums" active={motion} duration={TICK_MS} />
           </div>

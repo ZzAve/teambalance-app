@@ -144,14 +144,13 @@ export const Shells: Story = {
 export const Interactions: Story = {
   parameters: { chromatic: { disableSnapshot: true } },
   play: async ({ canvas }) => {
-    // The entrance starts once the podium is in view. Moving the time bar ends it at its final state, and marks the rows that changed rank.
+    // The entrance starts once the podium is in view. Moving the time bar ends it at its final state.
     const card = canvas.getByRole('slider', { name: 'Day' }).parentElement!
     // Into view whatever the viewport, so the observer's 35% threshold is met.
     card.scrollIntoView({ block: 'center' })
     await waitFor(() => expect(card).toHaveClass('toppers-enter'))
     fireEvent.change(canvas.getByRole('slider', { name: 'Day' }), { target: { value: '0' } })
     await expect(card).not.toHaveClass('toppers-enter')
-    await expect(card.querySelector('.toppers-move')).not.toBeNull()
 
     // Last 30 days is today minus 30 days, inclusive: the ranking changes and nothing is unmatched.
     await userEvent.click(canvas.getByRole('button', { name: 'Last 30 days' }))

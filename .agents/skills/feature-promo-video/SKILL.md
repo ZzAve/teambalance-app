@@ -5,7 +5,21 @@ description: Make a TeamBalance feature promo video, about 90 s of portrait phon
 
 # feature-promo-video: narrated portrait promo for one feature
 
-The reference result is the calendar-links video. Examples in `docs/demo/`: `calendar-links.*` and `substitutes.*`. This skill adds the voice, the cards, the music and the assembly. Recording, the pointer helpers and the `-qp` encoding come from the `demo-video` skill. Read its SKILL.md first.
+The reference result is the calendar-links video. Examples in `docs/demo/`: `calendar-links.*`, `language.*`, `passkeys.*` and `substitutes.*`. This skill adds the voice, the cards, the music and the assembly. Recording, the pointer helpers and the `-qp` encoding come from the `demo-video` skill. Read its SKILL.md first.
+
+## Deliverable: one iPhone and one Android video per feature
+
+Every promo ships as `<feature>-promo-ios.mp4` and `<feature>-promo-android.mp4`, the same take in a different phone frame (`--phone ios` / `--phone android`). Record once. Record twice, with `PHONE_OS=ios` and `PHONE_OS=android`, only when the steps module reads `PHONE_OS`, because it draws an OS dialog itself (passkeys). One listening round decides the cut for both.
+
+## Published promos
+
+The cut the user picked, per feature. Reuse it when you regenerate; the exact commands are in the header of `docs/demo/<feature>.steps.mjs`.
+
+| Feature | `--cut` | Takes |
+|---|---|---|
+| calendar-links | 10.96 | one, framed twice |
+| language | 18.02 | one, framed twice |
+| passkeys | 20.38 | two (`PHONE_OS=ios`, `PHONE_OS=android`) |
 
 ## Per-feature files (in `docs/demo/`)
 
@@ -53,20 +67,21 @@ All scripts take absolute or relative paths and can run from any directory. `$OU
    .agents/skills/feature-promo-video/scripts/record.sh docs/demo/<feature>.steps.mjs $OUT [port]
    ```
    Every caption in `$OUT/take.log` needs a clip. Re-run step 1 after you change a caption's text.
-5. **Assemble with music, in a listening round.** Without `--cut`, this writes three cut candidates as `<out>-cut<s>.mp4`. Send them to the user, ask which one flows best, then run again with `--cut <s>`. Delete the candidate files afterwards.
+5. **Assemble with music, in a listening round.** A feature in **Published promos** already has its cut: skip the round. Otherwise, without `--cut`, this writes three cut candidates as `<out>-cut<s>.mp4`. Render the candidates in the iPhone frame only, send them to the user, ask which one flows best, then render both phones with `--cut <s>`. Delete the candidate files afterwards, and add the feature to **Published promos**.
    ```bash
-   uv run .agents/skills/feature-promo-video/scripts/assemble.py $OUT/take $OUT/take.log $OUT/voice/clips.json $OUT/cards <feature>-promo.mp4 \
-     --song .agents/skills/feature-promo-video/music/teambalance-theme.json [--cut <s>]
+   uv run .agents/skills/feature-promo-video/scripts/assemble.py $OUT/take $OUT/take.log $OUT/voice/clips.json $OUT/cards <feature>-promo-ios.mp4 \
+     --song .agents/skills/feature-promo-video/music/teambalance-theme.json --phone ios [--cut <s>]
+   # and the same with <feature>-promo-android.mp4 --phone android (the Android take's $OUT when PHONE_OS changes the take)
    ```
-   Leave out `--song` for a voice-only video. Add `--phone` or `--phone android` to play the take inside a phone (bezel, status bar, home strip; `cards.mjs` renders `phone.png` and `phone-android.png`); the cards stay full-bleed. When the feature mocks a device dialog, see `docs/demo/os-passkey-sheet.mjs`.
-6. **Verify.** Run `verify-frames.sh` from demo-video (`<mp4> <dir> 16`) and look at the frames. Check the duration with `ffprobe`. Put the mp4 and its `<name>.transcript.md` in the repo root (both are gitignored), and commit a copy of the transcript as `docs/demo/<feature>.transcript.md`: it carries the assemble command, and a later run can diff its timings. Once the user has picked a cut, write the exact commands (`PHONE_OS`, `--cut`, `--phone`) in the header of `<feature>.steps.mjs`, so a regeneration needs no new listening round. Send the user the video and paste the transcript table in your reply. The table gives the time of each line, what is on screen and what the voice says, so the user can give feedback by time stamp.
+   Leave out `--song` for a voice-only video. `--phone` plays the take inside a phone (bezel, status bar, home strip; `cards.mjs` renders `phone.png` and `phone-android.png`); the cards stay full-bleed. When the feature mocks a device dialog, see `docs/demo/os-passkey-sheet.mjs`.
+6. **Verify.** Run `verify-frames.sh` from demo-video (`<mp4> <dir> 16`) and look at the frames. Check the duration with `ffprobe`. Put the mp4 and its `<name>.transcript.md` in the repo root (both are gitignored), and commit copies of the transcripts as `docs/demo/<feature>.transcript.md` (iPhone) and `docs/demo/<feature>-android.transcript.md`: it carries the assemble command, and a later run can diff its timings. Once the user has picked a cut, write the exact commands (`PHONE_OS`, `--cut`, `--phone`) in the header of `<feature>.steps.mjs`, so a regeneration needs no new listening round. Send the user the video and paste the transcript table in your reply. The table gives the time of each line, what is on screen and what the voice says, so the user can give feedback by time stamp.
 
 ## Music (approved on the calendar-links video)
 
 `assemble.py` applies all of this; change it only after a listening round with the user.
 
 - **Start and end.** The song starts at 0, so its strong opening plays first, and its real ending lands on the last frame. Whole bars are skipped from the middle; the outro card's length absorbs the remainder.
-- **The cut.** It sits on a downbeat with a 0.3 s crossfade, at a section change on both sides (spectral novelty), within the first third of the video. A late cut "did not flow". An early cut went unnoticed, and one whose jump lands on a reveal felt good.
+- **The cut.** It sits on a downbeat with a 0.3 s crossfade, at a section change on both sides (spectral novelty), within the first third of the video. A late cut "did not flow". An early cut went unnoticed, and one whose jump lands on a reveal felt good. Every video uses the same song, so the same downbeats come back as candidates: `assemble.py` offers the cuts picked before (`APPROVED_CUTS`) first and marks them "approved before". The user has picked the first candidate in each round so far; add a new pick to `APPROVED_CUTS`.
 - **Hooks.** "Try it today!" starts just before the song's strongest late beat.
 - **Levels.** Voice at -16 LUFS. The music is 21 dB under the voice in the app part, 15 dB under on the cards, with 1 s ramps at the card boundaries. The opening plays 3 dB under until halfway to the voice, then ramps down. The voice starts 1.5 s into a 5 s intro card. The music does not dip under speech; the user disliked that.
 - **Listening rounds.** For any music or voice change, render short A/B variants, send them, and ask. Measure the music by rendering it without the voice; subtracting the voice from a mix gives a wrong reading.
@@ -76,5 +91,7 @@ All scripts take absolute or relative paths and can run from any directory. `$OU
 - Kokoro needs Python 3.10–3.12. `narrate.py` declares this inline, so `uv run` builds the environment. On its first run it downloads the spaCy English model with pip.
 - `bf_alice` adds about 100 ms of hiss after the last word of every part, which sounds like an "s" ("calendars"). `narrate.py` cuts it, but not when the part really ends in a fricative ("the marks."). A voice change needs the same check: look at the share of energy above 4 kHz in each clip's last 150 ms.
 - espeak-ng truncates its data path at about 160 characters ("Error processing file '.../phontab'"). `narrate.py` copies the data to `/tmp/kokoro-espeak/`. A symlink does not work, because phonemizer resolves it.
+- **Fixture drift.** An endpoint `api-fixture.mjs` does not know gets `{}` with status 200. A page that reads a field of it crashes to "Couldn't load this page" (seen with `GET /api/match-feed` on the event page). When a probe shows that page, log the `/api/` responses of a headless run and give the new endpoint its contract answer (404 for "not configured", or a real payload).
+- **UI drift.** A probe that times out on a `waitFor` usually means the app moved the control. Look at the probe screenshot before you debug. Example: the Profile tab became a menu (2026-11), so passkeys are under "Account and sign-in" and the language under "Preferences", and Log out is only on the menu page. Update the spoken line and the outro chips to the new path too.
 - A stale gitignored `app/src/shared/api/generated/` breaks `tsc` in the build. Delete it and run `./gradlew :api:wirespec-typescript`.
 - Captions are logged relative to the steps module's start. The recording starts about 0.2 s earlier (`TAKE_OFFSET` in `assemble.py`).

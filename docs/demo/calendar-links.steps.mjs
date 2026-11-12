@@ -12,6 +12,18 @@
  * Narrated take: the feature-promo-video skill voices calendar-links.narration.json into clips.json
  * ({ caption: { file, seconds } }); pass it as NARRATION=…. The take then holds each caption for its
  * line and prints CAPTION_AT lines, which the skill's assemble.py uses to lay the clips onto the video.
+ *
+ * Render choices of the published videos (2026-11-12), so a regeneration needs no new listening round.
+ * One take, framed twice:
+ *
+ *   S=.agents/skills/feature-promo-video/scripts; OUT=/tmp/calendar-links
+ *   uv run $S/narrate.py docs/demo/calendar-links.narration.json $OUT/voice
+ *   node $S/cards.mjs docs/demo/calendar-links.narration.json $OUT/cards
+ *   $S/record.sh docs/demo/calendar-links.steps.mjs $OUT
+ *   uv run $S/assemble.py $OUT/take $OUT/take.log $OUT/voice/clips.json $OUT/cards calendar-links-promo-ios.mp4 \
+ *     --song $S/../music/teambalance-theme.json --cut 10.96 --phone ios        # -android.mp4, --phone android
+ *
+ * docs/demo/calendar-links*.transcript.md repeat the assemble command they came from.
  */
 import { readFileSync } from 'node:fs'
 import { installFixtureApi } from './api-fixture.mjs'

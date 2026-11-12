@@ -546,6 +546,8 @@ export async function installFixtureApi(page, { passkeyPrompt = false, role = 'A
         return json(entry)
       }
       if (path === '/api/team/season') return json({ start: undefined, end: undefined })
+      // No Nevobo feed configured: the contract's 404, not the catch-all {} the event page cannot read.
+      if (path === '/api/match-feed' && method === 'GET') return json({}, 404)
       if (path.startsWith('/api/invitations')) return json({ token: 'abc123', expiresAt: new Date(Date.now()+864e5*7).toISOString() })
 
       if (path === '/api/calendar-links') {

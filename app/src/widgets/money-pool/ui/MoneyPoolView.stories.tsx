@@ -16,7 +16,7 @@ import { MoneyPoolView } from './MoneyPoolView'
 //   1. Data — the connected pool: balance, In and Spent totals, graph and payment list.
 //   2. Shells — every other state stacked: loading, error, off, not connected (member and admin),
 //      unavailable, rejected (member, admin, admin with connecting off), top-up with and without a link (the admin's hint only on a connected pool), and connected edge cases (no payments, same-day duplicates, missing balance, no beer price, an empty pool).
-//   3. Interactions — expand and collapse the payment list past its first 15.
+//   3. Interactions — expand and collapse the payment list past its first whole weeks of 15 or more.
 const PAYMENTS: Payment[] = [
   { id: '1005', date: '2026-10-06', name: 'Lisa de Vries', amount: 2000, direction: 'In', memberId: 'u-lisa', counterpartyName: undefined, receiptVersion: undefined },
   { id: '1006', date: '2026-10-04', name: 'Sporthal De Kuil', amount: 4500, direction: 'Out', memberId: undefined, counterpartyName: undefined, receiptVersion: 'a1b2' },
@@ -28,7 +28,7 @@ const MEMBERS: Member[] = [
   { userId: 'u-lisa', displayName: 'Lisa V.', role: 'USER', position: undefined, onboarded: true, shirtNumber: undefined, photoVersion: undefined },
 ]
 
-// 18 payments, newest first, alternating In and Out, for the 15-row cut-off.
+// 18 payments, newest first, one a day from 20 Oct back to 3 Oct, for the cut-off at a week's end.
 const MANY_PAYMENTS: Payment[] = Array.from({ length: 18 }, (_, i) => ({
   id: String(2000 + i),
   memberId: undefined,
@@ -94,14 +94,22 @@ export const Data: Story = {
     const balanceCard = canvas.getByRole('region', { name: 'Balance' })
     await expect(balanceCard.compareDocumentPosition(topUp) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     const payments = within(canvas.getByRole('region', { name: 'Payments' }))
-    await expect(payments.getByText('Lisa de Vries')).toBeInTheDocument()
+    // By week from Monday, each under a header with the week's net: today is Wednesday 7 Oct.
+    await expect(payments.getByRole('heading', { name: 'This week Net +€20.00' })).toBeInTheDocument()
+    await expect(payments.getByRole('heading', { name: 'Last week Net −€35.00' })).toBeInTheDocument()
+    const [lisa, sporthal, tom] = payments.getAllByRole('listitem')
+    await expect(lisa).toHaveTextContent('Lisa de Vries')
+    // A top-up with a member shows that member's face and roster name; other money shows its direction.
+    await expect(lisa).toHaveTextContent('LV')
+    await expect(within(lisa).getByText('Lisa V. · Tue 6 Oct')).toBeInTheDocument()
+    await expect(within(tom).getByText(/^Tue 29 Sept?$/)).toBeInTheDocument()
     await expect(payments.getAllByText(/Incoming/)).toHaveLength(2)
     await expect(payments.getByText(/Outgoing/)).toBeInTheDocument()
     // The sign is visual only; screen readers get the direction from the sr-only text.
-    await expect(payments.getAllByText('+')[0]).toHaveAttribute('aria-hidden', 'true')
-    await expect(payments.getByText(/20\.00/)).toBeInTheDocument()
-    await expect(payments.getByText('−')).toHaveAttribute('aria-hidden', 'true')
-    await expect(payments.getByText(/45\.00/)).toBeInTheDocument()
+    await expect(within(lisa).getByText('+')).toHaveAttribute('aria-hidden', 'true')
+    await expect(within(lisa).getByText(/20\.00/)).toHaveClass('text-green-ink')
+    await expect(within(sporthal).getByText('−')).toHaveAttribute('aria-hidden', 'true')
+    await expect(within(sporthal).getByText(/45\.00/)).toHaveClass('text-orange-ink')
     // The receipt control sits on expenses only.
     await expect(payments.getByRole('button', { name: 'Receipt Sporthal De Kuil' })).toBeInTheDocument()
     await expect(payments.queryByRole('button', { name: 'Receipt Lisa de Vries' })).not.toBeInTheDocument()
@@ -207,22 +215,25 @@ export const Shells: Story = {
 }
 
 export const Interactions: Story = {
-  args: { payments: MANY_PAYMENTS, balance: 50000 },
+  args: { payments: MANY_PAYMENTS, balance: 50000, today: '2026-10-21' },
   parameters: { chromatic: { disableSnapshot: true } },
   play: async ({ canvas }) => {
     const payments = within(canvas.getByRole('region', { name: 'Payments' }))
 
-    // The list stops at 15; the same button expands it and collapses it again, and keeps focus.
-    await expect(payments.getAllByRole('listitem')).toHaveLength(15)
+    // The list stops at the end of the week that reaches 15 (2 + 7 + 7 = 16), so no week is split; the
+    // same button expands it and collapses it again, and keeps focus.
+    await expect(payments.getAllByRole('listitem')).toHaveLength(16)
+    await expect(payments.getAllByRole('heading', { level: 4 }).map((h) => h.firstChild?.textContent)).toEqual(['This week', 'Last week', expect.stringMatching(/^5\s*–\s*11 Oct$/)])
     const toggle = payments.getByRole('button', { name: 'Show all 18 payments' })
     await expect(toggle).toHaveAttribute('aria-expanded', 'false')
     await userEvent.click(toggle)
     await expect(payments.getAllByRole('listitem')).toHaveLength(18)
+    await expect(payments.getAllByRole('heading', { level: 4 })[3]).toHaveTextContent(/^28 Sept?\s*–\s*4 Oct/)
     await expect(toggle).toHaveTextContent('Show fewer')
     await expect(toggle).toHaveAttribute('aria-expanded', 'true')
     await expect(toggle).toHaveFocus()
     await userEvent.click(toggle)
-    await expect(payments.getAllByRole('listitem')).toHaveLength(15)
+    await expect(payments.getAllByRole('listitem')).toHaveLength(16)
     await expect(toggle).toHaveFocus()
   },
 }

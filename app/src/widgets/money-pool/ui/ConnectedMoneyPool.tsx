@@ -1,13 +1,13 @@
-import { useState, type CSSProperties, type ReactNode } from 'react'
-import { ArrowDownLeft, ArrowUpRight, Beer } from 'lucide-react'
+import type { CSSProperties, ReactNode } from 'react'
+import { Beer } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import type { Member } from '@shared/api/members'
 import type { Payment } from '@shared/api/money-pool'
-import { Button } from '@shared/ui/button'
 import { balanceTimeline, potTotals } from '../lib/balance-timeline'
 import { BalanceGraph } from './BalanceGraph'
-import { formatBeers, formatEuro, formatPaymentDate } from '../lib/format'
+import { formatBeers, formatEuro } from '../lib/format'
 import { toppedUpTotal } from '../lib/toppers'
+import { PaymentList } from './PaymentList'
 import { ToppersView } from './ToppersView'
 
 interface ConnectedMoneyPoolProps {
@@ -26,7 +26,7 @@ interface ConnectedMoneyPoolProps {
   seasonSet?: boolean
   /** ISO calendar date of today, for the Toppers' Last 30 days. */
   today: string
-  /** The team roster, to name and show the Toppers. */
+  /** The team roster, to name and show the Toppers and the faces on the payments. */
   /** Undefined until the roster is loaded: the Toppers wait for it, so no one shows as a former member meanwhile. */
   members: Member[] | undefined
   /** The viewer's member id, marked in the Toppers; absent when the viewer is not a member. */
@@ -36,15 +36,10 @@ interface ConnectedMoneyPoolProps {
 /** The count-up animates a registered custom property, so it needs @property support. */
 const CAN_COUNT_UP = typeof CSS !== 'undefined' && 'registerProperty' in CSS
 
-/** The payments shown before "Show all". */
-const PAYMENTS_SHOWN = 15
-
 export function ConnectedMoneyPool({ balance, payments, beerPrice, beerCount, topUp, receipt, claim, seasonSet, today, members, youId }: ConnectedMoneyPoolProps) {
   const { t } = useTranslation()
-  const [showAll, setShowAll] = useState(false)
   const points = balanceTimeline(balance, payments)
   const { incoming, outgoing } = potTotals(payments)
-  const shown = showAll ? payments : payments.slice(0, PAYMENTS_SHOWN)
   return (
     <div className="flex flex-col gap-6">
       <section aria-label={t('money.balance')} className="rounded-lg bg-card p-4">
@@ -89,42 +84,7 @@ export function ConnectedMoneyPool({ balance, payments, beerPrice, beerCount, to
 
       {topUp}
 
-      <section aria-label={t('money.payments')}>
-        <h3 className="font-display mb-2 text-body font-bold">{t('money.payments')}</h3>
-        {payments.length === 0 ? (
-          <p className="text-small text-muted-foreground">{t('money.noPayments')}</p>
-        ) : (
-          <ul className="flex flex-col divide-y divide-border rounded-lg bg-card">
-            {shown.map((payment) => {
-              const isIncoming = payment.direction === 'In'
-              const Icon = isIncoming ? ArrowDownLeft : ArrowUpRight
-              // The row is focusable so focus can land on it after a claim removes its button.
-              return (
-                <li key={payment.id} tabIndex={-1} className="flex items-center gap-3 px-4 py-3 outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring">
-                  <Icon size={18} className="shrink-0 text-muted-foreground" aria-hidden="true" />
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-small font-semibold">{payment.name}</span>
-                    <span className="text-caption text-muted-foreground">{formatPaymentDate(payment.date)}</span>
-                  </span>
-                  <span className="text-small font-semibold tabular-nums">
-                    <span className="sr-only">{`${isIncoming ? t('money.incoming') : t('money.outgoing')} `}</span>
-                    <span aria-hidden="true">{isIncoming ? '+' : '−'}</span>
-                    {formatEuro(payment.amount)}
-                  </span>
-                  {/* An incoming payment without a claim control keeps the receipt's width free, so the amounts stay in one column. */}
-                  {(receipt || claim) &&
-                    (isIncoming ? (claim?.(payment) ?? <span className="w-10 shrink-0" aria-hidden="true" />) : receipt?.(payment))}
-                </li>
-              )
-            })}
-          </ul>
-        )}
-        {payments.length > PAYMENTS_SHOWN && (
-          <Button variant="ghost" size="sm" className="mt-2 w-full" aria-expanded={showAll} onClick={() => setShowAll(!showAll)}>
-            {showAll ? t('money.showFewer') : t('money.showAll', { count: payments.length })}
-          </Button>
-        )}
-      </section>
+      <PaymentList payments={payments} today={today} members={members} youId={youId} receipt={receipt} claim={claim} />
 
       {payments.length > 0 && members && <ToppersView payments={payments} today={today} members={members} seasonSet={seasonSet} youId={youId} />}
     </div>

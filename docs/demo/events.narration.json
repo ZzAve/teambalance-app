@@ -1,0 +1,29 @@
+{
+  "__introCard": {
+    "headline": "Who is coming?",
+    "accent": "The Events tab knows.",
+    "sub": "Every training, match and social in one list. Answer in one tap, and see at a glance whether the team is complete.",
+    "pill": "The Events tab"
+  },
+  "__outroCard": {
+    "steps": [{ "label": "Events", "icon": "calendar-days" }, "Tap your answer", { "label": "Going", "icon": "check" }],
+    "sub": "Green is going, gold is maybe, red is can't. Change your answer whenever your plans do."
+  },
+  "__intro": "Who is coming? The Events tab knows.",
+  "Who is coming to the next match?": "Who is coming to the next match? No more counting replies in the group chat.",
+  "Events lists every training, match and social.": "The Events tab lists every training, match and social, | in one place.",
+  "The next event is on top. Tap Going, and you are in.": "The next event is right on top. Tap Going, | and you're in.",
+  "An event you have not answered says \"Respond\". Tap it.": "An event you haven't answered yet says Respond. Tap it.",
+  "Green is going, gold is maybe, red is can't.": "Green is going, | gold is maybe, | red is can't.",
+  "Not sure yet: pick Maybe.": "If you're not sure yet, pick Maybe.",
+  "Plans change. Tap your answer and pick again.": "Plans change. Just tap your answer, and pick again.",
+  "The badge on the right says if the team is complete.": "The badge on the right tells you whether the team is complete.",
+  "Tap it for the lineup: who is coming, per position.": "Tap it for the lineup: who's coming, position by position.",
+  "Filters narrow the list: by type, by your answer, or by turnout.": "Filters narrow the list: by type, | by your answer, | or by turnout.",
+  "One tap on Training leaves only the trainings.": "One tap on Training leaves only the trainings.",
+  "\"Clear filters\" brings everything back.": "Clear filters brings everything back.",
+  "Open an event for the details and everyone's answer.": "Open an event for the details, and everyone's answer.",
+  "Admins edit or delete the event here, or reset the responses.": "Admins can edit or delete the event here, | or reset the responses.",
+  "The plus button adds one event, or a whole series.": "And the plus button adds one event, or a whole series of trainings.",
+  "__outro": "Try it today! Open Events, and tell your team you're in. See you at TeamBalance dot N L!"
+}

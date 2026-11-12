@@ -44,8 +44,9 @@ Learned the hard way while recording #325. None of them announce themselves.
 - **Sheets and dialogs cover the caption.** Call `captionAt('top')` (from `narrated-take.mjs`) once
   the sheet is open, and `captionAt('bottom')` after `sheet.waitFor({ state: 'hidden' })`: a closing
   dialog stays in the DOM while it animates out.
-- **The next-event hero ignores the list's filters.** Filtering the Events list leaves the hero card
-  on screen, so a filter beat shows little unless the list below it visibly changes.
+- **The next-event hero follows the list's filters.** A filter that excludes the hero's event moves
+  the next matching event up into the hero, and that event's card leaves the list. Do not address the
+  card after filtering: a `scrollTo` on it waits for its full timeout (about 20 s) and fails silently.
 - **Picking a file:** click the visible button inside `page.waitForEvent('filechooser')` and call
   `setFiles` on the chooser. **A range input** (the photo crop zoom) rejects `fill()`; focus it and
   press `ArrowRight`.

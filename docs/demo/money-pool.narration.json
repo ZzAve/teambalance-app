@@ -2,7 +2,7 @@
   "__introCard": {
     "headline": "Who paid for the beers?",
     "accent": "Ask the team pot.",
-    "sub": "See the balance from the team's Bunq account, top up in two taps, and see who keeps the pot full.",
+    "sub": "The live balance of the team's Bunq account, a top-up in two taps, and a podium for whoever keeps the pot full.",
     "pill": "Money pool is live"
   },
   "__outroCard": {
@@ -10,18 +10,20 @@
     "sub": "Admins connect the team's Bunq account under Team settings."
   },
   "__intro": "Who paid for the beers? Ask the team pot.",
-  "Who paid? Who still owes? Open Money.": "Who paid? Who still owes? Just open Money.",
+  "Beer money used to mean scrolling the group chat.": "Keeping track of the beer money used to mean scrolling the group chat.",
+  "Now it is one tap: Money.": "Now, it's one tap. Open Money.",
   "The team pot, live from its Bunq account.": "There's the team pot, | live from the team's Bunq account.",
   "What it buys in beers, and how it moved.": "What it buys in beers, | and how it moved over time.",
-  "Chipping in? Tap Top up, pick €20.": "Chipping in? Tap Top up, and pick twenty euros.",
+  "Your turn to chip in: tap Top up.": "When it's your turn to chip in, tap Top up.",
+  "Pick an amount. €20 will do.": "Pick an amount. Twenty euros will do.",
   "You pay on the team's bunq.me page.": "You pay on the team's bunq dot me page.",
-  "Back in the app, your twenty is in.": "Back in the app, | your twenty euros are in.",
-  "Spent from the pot? Add the receipt.": "Spent money from the pot? Add the receipt.",
+  "Back in the app, your €20 is in the pot.": "Back in the app, | your twenty euros are in the pot.",
+  "The pot paid for something: add the receipt.": "When the pot pays for something, add the receipt.",
   "Now the whole team sees what it was for.": "Now the whole team can see what it was for.",
-  "Paid by bank transfer? Say it's yours.": "Paid by bank transfer? Tell the pot it's yours.",
-  "Link the name and IBAN, so the next one links itself.": "Link the name and the I-ban, | so the next transfer links itself.",
-  "So who keeps the pot full?": "So, | who keeps the pot full?",
-  "Press play and watch the ranking grow.": "Press play, and watch the ranking grow.",
-  "Two linked transfers later, you're on top.": "Two linked transfers later, | you're on top!",
+  "A bank transfer without your name: tap That's mine.": "And when the pot doesn't know your bank transfer, | tap That's mine.",
+  "Link your name and IBAN once. The next one links itself.": "Link your name and I-ban once, | and the next transfer links itself.",
+  "And the Toppers: who keeps the pot full.": "And then, the Toppers: | the teammates who keep the pot full.",
+  "Press play to watch the race for first place.": "Press play, | and watch the race for first place.",
+  "Two linked transfers later, you are on top.": "Two linked transfers later, | you're on top!",
   "__outro": "Try it today! Open Money, top up, and keep the pot full. See you at TeamBalance dot N L!"
 }

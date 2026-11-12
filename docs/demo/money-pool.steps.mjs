@@ -4,13 +4,16 @@
  * member here, so an unknown payment offers "That's mine". bunq.me is drawn by a neutral stand-in page
  * (no bunq branding); paying there lands the top-up in the fixture's pool.
  *
- * Render choices of the published videos (2026-11-11), so a regeneration needs no new listening round.
- * One take serves both phones; only the frame differs:
+ * Render choices of the published videos (2026-11-12), so a regeneration needs no new listening round.
+ * One take serves both phones; only the frame differs. PORT is any free port, OUT a scratch directory:
  *
- *   S=.agents/skills/feature-promo-video/scripts; OUT=/tmp/money-pool
+ *   S=.agents/skills/feature-promo-video/scripts
  *   uv run $S/narrate.py docs/demo/money-pool.narration.json $OUT/voice
  *   node $S/cards.mjs docs/demo/money-pool.narration.json $OUT/cards
- *   $S/record.sh docs/demo/money-pool.steps.mjs $OUT
+ *   VITE_API_URL= npm --prefix app run build
+ *   app/node_modules/.bin/vite preview "$PWD/app" --port $PORT --strictPort   # in the background
+ *   PROBE=1 $S/record.sh docs/demo/money-pool.steps.mjs $OUT $PORT
+ *   $S/record.sh docs/demo/money-pool.steps.mjs $OUT $PORT
  *   uv run $S/assemble.py $OUT/take $OUT/take.log $OUT/voice/clips.json $OUT/cards money-pool-promo-ios.mp4 \
  *     --song $S/../music/teambalance-theme.json --cut 18.02 --phone ios        # --phone android
  */
@@ -50,8 +53,9 @@ export default async function script({ page, caption, section, sleep, click, scr
     await page.getByRole('heading', { name: 'Events' }).waitFor()
     await page.waitForLoadState('networkidle')
     await sleep(page, 600)
-    await speak('Who paid? Who still owes? Open Money.', 2600)
-    await sleep(page, 900)
+    await say('Beer money used to mean scrolling the group chat.', 3000)
+    await speak('Now it is one tap: Money.', 2200)
+    await sleep(page, 400)
     await click(page, page.getByRole('link', { name: 'Money', exact: true }))
     await balance.getByText('Pool balance', { exact: true }).waitFor()
     await untilLineEnds()
@@ -67,13 +71,16 @@ export default async function script({ page, caption, section, sleep, click, scr
 
   await section('top-up', async () => {
     const sheet = page.getByRole('dialog')
-    await speak('Chipping in? Tap Top up, pick €20.', 2400)
-    await sleep(page, 300)
     // Before the sheet opens, so the caption never covers it while it slides in.
     await captionAt('top')
+    await speak('Your turn to chip in: tap Top up.', 2400)
+    await sleep(page, 400)
     await click(page, page.getByRole('button', { name: 'Top up', exact: true }))
     await sheet.getByRole('heading', { name: 'Top up the pool' }).waitFor()
-    await sleep(page, 700)
+    await untilLineEnds()
+    await speak('Pick an amount. €20 will do.', 2200)
+    await moveTo(page, sheet.getByRole('group', { name: 'Amounts' }))
+    await sleep(page, 900)
     await click(page, sheet.getByRole('button', { name: '€20', exact: true }), onScreen)
     await page.waitForURL(/bunq\.me/)
     await untilLineEnds()
@@ -88,7 +95,9 @@ export default async function script({ page, caption, section, sleep, click, scr
     await balance.getByText('Pool balance', { exact: true }).waitFor()
     await page.waitForLoadState('networkidle')
     await sleep(page, 400)
-    await speak('Back in the app, your twenty is in.', 2400)
+    await speak('Back in the app, your €20 is in the pot.', 2800)
+    await moveTo(page, balance.getByText('€263.10'))
+    await sleep(page, 1300)
     await scrollTo(page, row('Julia Vermeer'))
     await moveTo(page, row('Julia Vermeer'))
     await untilLineEnds()
@@ -96,7 +105,7 @@ export default async function script({ page, caption, section, sleep, click, scr
 
   await section('receipt', async () => {
     const dialog = page.getByRole('dialog')
-    await speak('Spent from the pot? Add the receipt.', 2400)
+    await speak('The pot paid for something: add the receipt.', 2400)
     await scrollTo(page, row('Café De Zwaluw'))
     await sleep(page, 300)
     await captionAt('top')
@@ -119,14 +128,14 @@ export default async function script({ page, caption, section, sleep, click, scr
   await section('claim', async () => {
     const sheet = page.getByRole('dialog')
     const transfer = row('J. VERMEER')
-    await speak('Paid by bank transfer? Say it\'s yours.', 2400)
+    await speak('A bank transfer without your name: tap That\'s mine.', 2600)
     await scrollTo(page, transfer)
     await sleep(page, 300)
     await captionAt('top')
     await click(page, transfer.getByRole('button', { name: 'That\'s mine: J. VERMEER' }), onScreen)
     await sheet.getByRole('heading', { name: 'Is this payment yours?' }).waitFor()
     await untilLineEnds()
-    await speak('Link the name and IBAN, so the next one links itself.', 3000)
+    await speak('Link your name and IBAN once. The next one links itself.', 3000)
     await moveTo(page, sheet.getByRole('switch', { name: 'Name: J. VERMEER' }))
     await sleep(page, 700)
     await moveTo(page, sheet.getByRole('switch', { name: 'The IBAN of this payment' }))
@@ -140,18 +149,19 @@ export default async function script({ page, caption, section, sleep, click, scr
 
   await section('toppers', async () => {
     const toppers = page.getByRole('heading', { name: 'Toppers' })
-    await speak('So who keeps the pot full?', 2000)
     // The podium fills the lower half of the screen; keep the caption off it.
     await captionAt('top')
-    await scrollTo(page, toppers)
-    await scrollTo(page, page.getByRole('slider', { name: 'Day' }))
+    await speak('And the Toppers: who keeps the pot full.', 3200)
+    // The entrance (the podium grows, the trophy lands) starts when the podium scrolls into view.
+    await scrollTo(page, toppers, { block: 'start' })
     await untilLineEnds()
-    await speak('Press play and watch the ranking grow.', 3200)
+    await sleep(page, 400)
+    await speak('Press play to watch the race for first place.', 3200)
     await sleep(page, 300)
     await click(page, page.getByRole('button', { name: 'Play the ranking' }), onScreen)
     await untilLineEnds()
     await sleep(page, 300)
-    await say('Two linked transfers later, you\'re on top.', 2600)
-    await sleep(page, 400)
+    await say('Two linked transfers later, you are on top.', 2600)
+    await sleep(page, 600)
   })
 }

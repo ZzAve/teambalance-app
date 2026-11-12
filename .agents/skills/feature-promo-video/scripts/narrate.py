@@ -12,7 +12,7 @@ are skipped.
 
 Each line is one Kokoro call, so its sentences keep one pitch contour (one call per sentence sounded
 like a string of separate utterances). Kokoro's own pauses stay; one shorter than SENTENCE_PAUSE after
-.!? or MARKER_PAUSE at a `|` (spoken as ';', since Kokoro barely pauses at a comma) is lengthened with
+.!, QUESTION_PAUSE after ? or MARKER_PAUSE at a `|` (spoken as ';', since Kokoro barely pauses at a comma) is lengthened with
 silence. The line is trimmed to its sound, and a trailing hiss Kokoro adds after the last word
 (bf_alice does this) is cut.
 """
@@ -44,7 +44,8 @@ FRICATIVES = set('szʃʒfvθð')
 # Minimum pauses in seconds; env overrides are for listening rounds. The user preferred 0.7 / 0.4 over 0.5 / 0.3.
 SENTENCE_PAUSE = float(os.environ.get('SENTENCE_PAUSE', 0.7))
 MARKER_PAUSE = float(os.environ.get('MARKER_PAUSE', 0.4))
-PAUSES = {'.': SENTENCE_PAUSE, '!': SENTENCE_PAUSE, '?': SENTENCE_PAUSE, ';': MARKER_PAUSE}
+QUESTION_PAUSE = float(os.environ.get('QUESTION_PAUSE', 0.9))  # the user wanted a question to land before the answer
+PAUSES = {'.': SENTENCE_PAUSE, '!': SENTENCE_PAUSE, '?': QUESTION_PAUSE, ';': MARKER_PAUSE}
 
 
 def trim(audio, db=-45, keep=0.04):

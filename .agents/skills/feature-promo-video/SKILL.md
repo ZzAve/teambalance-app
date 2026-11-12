@@ -28,13 +28,14 @@ Ask the user when feedback is ambiguous; do not guess. With no user available, c
 - [ ] Combine related beats instead of adding new ones.
 - [ ] Say "new" / "is live" / "live now" once at most. The intro card's pill already says it, so the voice does not read the pill.
 - [ ] Spoken lines can be livelier and shorter than the captions. Spell out symbols ("the marks", not "tick, question mark and cross"). Put `|` where a comma needs a real pause ("Your team schedule, | in your own calendar.").
+- [ ] Kokoro ends a question low, so write questions whose words carry the question, not the intonation: "Sharing a calendar with your partner?" rather than "Sharing with a partner?". Or make it a statement: "If you share it with a partner, they only need to know when you're out." Rewording and punctuation (`??`, "Are you…") do not make it rise.
 - [ ] The ending is the outro card. `__outro` is like "Try it today! … See you at TeamBalance dot N L!" Proper English, no "Live now".
 
 ## Pipeline
 
 All scripts take absolute or relative paths and can run from any directory. `$OUT` is a scratch directory per feature.
 
-1. **Voice.** Writes one wav per line and `$OUT/voice/clips.json`. Default voice `bf_alice`, speed 1.1. The user liked Alice; `bf_isabella` and `bm_george` were runners-up; they disliked Piper "Alan".
+1. **Voice.** Writes one wav per line and `$OUT/voice/clips.json`. Each line is one Kokoro call: one call per sentence gave every sentence its own pitch reset, and the user found the whole-line read much more natural. Kokoro's own pauses stay; a pause after `.!?` shorter than 0.7 s, or at a `|` shorter than 0.4 s, is lengthened. The user preferred these over 0.5 / 0.3; `SENTENCE_PAUSE` / `MARKER_PAUSE` override them for listening rounds. Default voice `af_bella,bf_emma` (a 50/50 blend) with American pronunciation, speed 1.1. In a listening round the user found it softer and more inviting than `bf_alice` and British pronunciation; `af_heart,bf_emma` was the runner-up. `LANG_CODE=b` gives British pronunciation for any voice. They disliked Piper "Alan", and a pitch rise added after synthesis on a question's last word.
    ```bash
    uv run .agents/skills/feature-promo-video/scripts/narrate.py docs/demo/<feature>.narration.json $OUT/voice [voice] [speed]
    ```

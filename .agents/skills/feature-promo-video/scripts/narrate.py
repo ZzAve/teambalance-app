@@ -10,9 +10,11 @@ Writes <out-dir>/line-NN.wav and <out-dir>/clips.json ({caption: {file, seconds,
 to the take as NARRATION=… and to assemble.py. Keys whose value is not a string (the card texts)
 are skipped.
 
-Each sentence is its own part, joined by 350 ms of silence; a `|` in the spoken text splits a part
-with a 300 ms pause (Kokoro barely pauses at a comma). Every part is trimmed to its sound, and a
-trailing hiss Kokoro adds after the last word (bf_alice does this on every part) is cut.
+Each line is one Kokoro call, so its sentences keep one pitch contour (one call per sentence sounded
+like a string of separate utterances). Kokoro's own pauses stay; one shorter than SENTENCE_PAUSE after
+.!? or MARKER_PAUSE at a `|` (spoken as ';', since Kokoro barely pauses at a comma) is lengthened with
+silence. The line is trimmed to its sound, and a trailing hiss Kokoro adds after the last word
+(bf_alice does this) is cut.
 """
 import json
 import os
@@ -35,10 +37,14 @@ EspeakWrapper.set_data_path(SHORT_ESPEAK)
 
 RATE = 24000
 narration_path, out_dir = sys.argv[1], sys.argv[2]
-voice = sys.argv[3] if len(sys.argv) > 3 else 'bf_alice'
+voice = sys.argv[3] if len(sys.argv) > 3 and sys.argv[3] else 'af_bella,bf_emma'  # '' = default, to pass only a speed
 speed = float(sys.argv[4]) if len(sys.argv) > 4 else 1.1
 
 FRICATIVES = set('szʃʒfvθð')
+# Minimum pauses in seconds; env overrides are for listening rounds. The user preferred 0.7 / 0.4 over 0.5 / 0.3.
+SENTENCE_PAUSE = float(os.environ.get('SENTENCE_PAUSE', 0.7))
+MARKER_PAUSE = float(os.environ.get('MARKER_PAUSE', 0.4))
+PAUSES = {'.': SENTENCE_PAUSE, '!': SENTENCE_PAUSE, '?': SENTENCE_PAUSE, ';': MARKER_PAUSE}
 
 
 def trim(audio, db=-45, keep=0.04):
@@ -66,26 +72,40 @@ def drop_tail_hiss(audio, phonemes):
     return out
 
 
-def part(text):
-    chunks = list(pipe(text, voice=voice, speed=speed))
-    audio = np.concatenate([a.numpy() if hasattr(a, 'numpy') else a for _, _, a in chunks])
-    return drop_tail_hiss(trim(audio), chunks[-1][1])
+def stretch_pauses(audio, tokens):
+    """Insert silence where the pause after a sentence end or a `;` marker is shorter than its minimum.
+    Kokoro puts a pause token between words; it is placed at the quietest 5 ms around that token."""
+    inserts = []
+    for punct, nxt in zip(tokens, tokens[1:]):
+        need = PAUSES.get(punct.text)
+        if need is None or not re.search(r'\w', nxt.text) or punct.start_ts is None or nxt.start_ts is None:
+            continue
+        have = nxt.start_ts - punct.start_ts
+        if have >= need:
+            continue
+        n = RATE // 200
+        lo, hi = int((punct.start_ts - 0.05) * RATE), int((nxt.start_ts + 0.05) * RATE)
+        window = audio[max(0, lo):hi][:(hi - max(0, lo)) // n * n].reshape(-1, n)
+        at = max(0, lo) + int(np.argmin((window ** 2).sum(1))) * n + n // 2
+        inserts.append((at, int((need - have) * RATE)))
+    for at, length in reversed(inserts):
+        audio = np.concatenate([audio[:at], np.zeros(length, dtype=audio.dtype), audio[at:]])
+    return audio
+
+
+def line(text):
+    results = list(pipe(re.sub(r'\s*\|\s*', '; ', text.strip()), voice=voice, speed=speed))
+    audio = np.concatenate([stretch_pauses(r.audio.numpy(), r.tokens) for r in results])
+    return drop_tail_hiss(trim(audio), results[-1].phonemes)
 
 
 lines = {k: v for k, v in json.load(open(narration_path)).items() if isinstance(v, str)}
 os.makedirs(out_dir, exist_ok=True)
-pipe = KPipeline(lang_code=voice[0])  # a = American, b = British
-sentence_pause = np.zeros(int(0.35 * RATE), dtype=np.float32)
-marker_pause = np.zeros(int(0.3 * RATE), dtype=np.float32)
+# a = American, b = British pronunciation; defaults to the (first) voice's own. A blend "af_heart,bf_emma" averages the voices.
+pipe = KPipeline(lang_code=os.environ.get('LANG_CODE', voice[0]))
 clips = {}
 for i, (caption, spoken) in enumerate(lines.items()):
-    parts = []
-    for sentence in re.split(r'(?<=[.!?])\s+', spoken.strip()):
-        for j, piece in enumerate(p.strip() for p in sentence.split('|')):
-            if parts:
-                parts.append(marker_pause if j else sentence_pause)
-            parts.append(part(piece))
-    audio = np.concatenate(parts)
+    audio = line(spoken)
     wav = os.path.abspath(os.path.join(out_dir, f'line-{i:02d}.wav'))
     sf.write(wav, audio, RATE)
     clips[caption] = {'file': wav, 'seconds': round(len(audio) / RATE, 3), 'spoken': re.sub(r'\s*\|\s*', ' ', spoken)}

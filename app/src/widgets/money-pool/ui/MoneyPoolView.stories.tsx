@@ -28,7 +28,7 @@ const MEMBERS: Member[] = [
   { userId: 'u-lisa', displayName: 'Lisa V.', role: 'USER', position: undefined, onboarded: true, shirtNumber: undefined, photoVersion: undefined },
 ]
 
-// 18 payments, newest first, alternating In and Out, for the 15-row cut-off.
+// 18 payments, newest first, one a day from 20 Oct back to 3 Oct, for the 15-row cut-off.
 const MANY_PAYMENTS: Payment[] = Array.from({ length: 18 }, (_, i) => ({
   id: String(2000 + i),
   memberId: undefined,
@@ -94,14 +94,23 @@ export const Data: Story = {
     const balanceCard = canvas.getByRole('region', { name: 'Balance' })
     await expect(balanceCard.compareDocumentPosition(topUp) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     const payments = within(canvas.getByRole('region', { name: 'Payments' }))
-    await expect(payments.getByText('Lisa de Vries')).toBeInTheDocument()
+    // One flat list, newest first, with no week labels.
+    await expect(payments.queryAllByRole('heading', { level: 4 })).toHaveLength(0)
+    const [lisa, sporthal, tom] = payments.getAllByRole('listitem')
+    await expect(lisa).toHaveTextContent('Lisa de Vries')
+    // A top-up with a member shows that member's face and roster name; other money shows its direction.
+    await expect(lisa).toHaveTextContent('LV')
+    // The face is decorative: the row's accessible text starts at the payment's name.
+    await expect(within(lisa).getByText('LV').closest('[aria-hidden="true"]')).not.toBeNull()
+    await expect(within(lisa).getByText('Lisa V. · Tue 6 Oct')).toBeInTheDocument()
+    await expect(within(tom).getByText(/^Tue 29 Sept?$/)).toBeInTheDocument()
     await expect(payments.getAllByText(/Incoming/)).toHaveLength(2)
     await expect(payments.getByText(/Outgoing/)).toBeInTheDocument()
     // The sign is visual only; screen readers get the direction from the sr-only text.
-    await expect(payments.getAllByText('+')[0]).toHaveAttribute('aria-hidden', 'true')
-    await expect(payments.getByText(/20\.00/)).toBeInTheDocument()
-    await expect(payments.getByText('−')).toHaveAttribute('aria-hidden', 'true')
-    await expect(payments.getByText(/45\.00/)).toBeInTheDocument()
+    await expect(within(lisa).getByText('+')).toHaveAttribute('aria-hidden', 'true')
+    await expect(within(lisa).getByText(/20\.00/)).toHaveClass('text-green-ink')
+    await expect(within(sporthal).getByText('−')).toHaveAttribute('aria-hidden', 'true')
+    await expect(within(sporthal).getByText(/45\.00/)).toHaveClass('text-orange-ink')
     // The receipt control sits on expenses only.
     await expect(payments.getByRole('button', { name: 'Receipt Sporthal De Kuil' })).toBeInTheDocument()
     await expect(payments.queryByRole('button', { name: 'Receipt Lisa de Vries' })).not.toBeInTheDocument()
@@ -112,8 +121,8 @@ export const Data: Story = {
 }
 
 export const Shells: Story = {
-  // Carries the dark-mode baseline for every pool state.
-  parameters: { chromatic: { modes: darkMode } },
+  // Carries the dark-mode baseline for every pool state; under reduced motion, so the Toppers and the beer count are at their final state.
+  parameters: { chromatic: { modes: darkMode, prefersReducedMotion: 'reduce' } },
   render: (args) => (
     <Stack
       items={{
@@ -142,6 +151,7 @@ export const Shells: Story = {
         'No season': <MoneyPoolView {...args} seasonSet={false} />,
         'No payments': <MoneyPoolView {...args} payments={[]} />,
         'Same-day duplicates': <MoneyPoolView {...args} payments={[PAYMENTS[0], { ...PAYMENTS[0], id: '1008' }]} />,
+        'Roster name same as payment': <MoneyPoolView {...args} payments={[{ ...PAYMENTS[0], name: 'Lisa V.' }]} />,
         'Missing balance': <MoneyPoolView {...args} balance={undefined} />,
         'Roster loading': <MoneyPoolView {...args} members={undefined} />,
         'No beer price': <MoneyPoolView {...args} beerPrice={undefined} beerCount={undefined} />,
@@ -198,6 +208,8 @@ export const Shells: Story = {
     await expect(within(region('No season').getByRole('region', { name: 'Balance' })).getByText('Last 90 days')).toBeInTheDocument()
     await expect(region('No payments').queryByRole('img')).not.toBeInTheDocument()
     await expect(region('Same-day duplicates').getAllByText('Lisa de Vries')).toHaveLength(2)
+    // A roster name that only repeats the payment's name is left out of the line under it.
+    await expect(within(within(region('Roster name same as payment').getByRole('region', { name: 'Payments' })).getByRole('list')).getByText(/^Tue 6 Oct$/)).toBeInTheDocument()
     await expect(region('Missing balance').getByText(/couldn't load/i)).toBeInTheDocument()
     // Without the roster the Toppers would name everyone a former member, so they wait for it.
     await expect(region('Roster loading').queryByRole('region', { name: 'Toppers' })).not.toBeInTheDocument()

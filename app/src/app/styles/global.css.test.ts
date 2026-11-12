@@ -31,7 +31,7 @@ describe('global.css button cursor', () => {
 // Error text sits straight on the page background and on cards. Plain red is 4.42:1 on the light
 // background, under the 4.5:1 that 13px text needs, and one flat red cannot serve both themes, so
 // red-ink carries the per-theme value (like gold-ink). A visual diff does not fail on contrast.
-describe('global.css red-ink', () => {
+describe('global.css ink tokens', () => {
   const stripped = css.replace(/\/\*[\s\S]*?\*\//g, '')
 
   function declarationsOf(header: string): Map<string, string> {
@@ -65,13 +65,13 @@ describe('global.css red-ink', () => {
     return (lighter + 0.05) / (darker + 0.05)
   }
 
-  it.each([
-    ['light', 'background'],
-    ['light', 'card'],
-    ['dark', 'background'],
-    ['dark', 'card'],
-  ] as const)('%s: clears 4.5:1 on --color-%s', (mode, surface) => {
-    const ratio = contrast(resolve(mode, '--color-red-ink'), resolve(mode, `--color-${surface}`))
+  // Green-ink and orange-ink colour money in and out on the payment list, by the same rule.
+  it.each(
+    ['--color-red-ink', '--color-green-ink', '--color-orange-ink'].flatMap((ink) =>
+      (['light', 'dark'] as const).flatMap((mode) => (['background', 'card'] as const).map((surface) => [ink, mode, surface] as const)),
+    ),
+  )('%s, %s: clears 4.5:1 on --color-%s', (ink, mode, surface) => {
+    const ratio = contrast(resolve(mode, ink), resolve(mode, `--color-${surface}`))
     expect(ratio).toBeGreaterThanOrEqual(4.5)
   })
 })

@@ -81,6 +81,15 @@
      under white text, or ink on top of a gold tint chip (bg-gold/15 and friends), the plain hue or
      -dark ramp are still correct and unaffected by this token. */
   --color-gold-ink: #8C6600;
+  /* Money in and money out on the payment list (money pool), as text and as icons on a 15% tint of
+     the plain hue. Green-dark stays #1D7F57 in dark, only 3.46:1 on that card, so green as text gets
+     the same per-theme split: #1D7F57 here (4.89:1 on the card, 4.60:1 on the background), the plain
+     green in `.dark` (5.06:1 and 5.50:1). Plain orange is 2.80:1 on the light card, so orange-ink is
+     #A9531F here (5.24:1, 4.93:1) and the plain orange in `.dark` (6.05:1, 6.57:1). Orange is
+     exposed for the tint; keep it in sync with design-tokens/tokens.css. */
+  --color-orange: #E87C3E;
+  --color-green-ink: #1D7F57;
+  --color-orange-ink: #A9531F;
   --color-border: hsl(214.3 31.8% 91.4%);
   --color-input: hsl(214.3 31.8% 91.4%);
   --color-ring: hsl(222.2 84% 4.9%);
@@ -254,6 +263,9 @@
      text on this near-black card. Re-pointing it to gold-dark's own value reuses a hex already
      proven at 6.2:1 on this card, instead of minting a second dark-only gold. */
   --color-gold-ink: var(--color-gold-dark);
+  /* Green and orange as ink move to their plain hues, which clear 4.5:1 on this card (see @theme). */
+  --color-green-ink: var(--color-green);
+  --color-orange-ink: var(--color-orange);
 
   /* Shadcn semantic set. `foreground`/`primary` invert (light ink on a dark ground). `destructive`
      is absent on purpose: the `@theme` block binds it to `var(--color-red)`, and `var()` resolves
@@ -521,6 +533,68 @@ main {
 }
 @media (prefers-reduced-motion: reduce) {
   .beer-count-up {
+    animation: none;
+  }
+}
+
+/* Toppers in the money pool (widgets/money-pool/ui/ToppersView). `.toppers-enter` is on the card for
+   about 1s after it first scrolls into view: the podium steps grow 3rd, 2nd, 1st, faces and amounts
+   rise, the trophy lands last and the list rows rise one after another. Removing the class mid-way
+   shows the final state at once. The rise uses `translate`, not `transform`, because the list rows
+   are placed by an inline translateY. `.toppers-pending` holds the same elements at the entrance's
+   first frame until the podium scrolls into view, so the final state never shows first and then
+   jumps back. `.toppers-swap` fades in a new face on the podium. ToppersView starts none of them
+   under reduced motion; the block below is the backstop. */
+.toppers-pending [data-podium-step] {
+  transform: scaleY(0);
+}
+.toppers-pending :is([data-podium-rise], [data-podium-trophy], [data-ranking-row]) {
+  opacity: 0;
+}
+.toppers-enter [data-podium-step] {
+  transform-origin: bottom;
+  animation: toppers-grow 520ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.toppers-enter [data-place="2"] [data-podium-step] {
+  animation-delay: 90ms;
+}
+.toppers-enter [data-place="1"] [data-podium-step] {
+  animation-delay: 180ms;
+}
+.toppers-enter [data-podium-rise] {
+  animation: toppers-rise 380ms cubic-bezier(0.16, 1, 0.3, 1) 160ms both;
+}
+.toppers-enter [data-place="2"] [data-podium-rise] {
+  animation-delay: 250ms;
+}
+.toppers-enter [data-place="1"] [data-podium-rise] {
+  animation-delay: 340ms;
+}
+.toppers-enter [data-podium-trophy] {
+  animation: toppers-pop 420ms cubic-bezier(0.16, 1, 0.3, 1) 520ms both;
+}
+.toppers-enter [data-ranking-row] {
+  animation: toppers-rise 300ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: calc(380ms + var(--row-i, 0) * 35ms);
+}
+.toppers-swap {
+  animation: toppers-swap 320ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes toppers-grow {
+  from { transform: scaleY(0); }
+}
+@keyframes toppers-rise {
+  from { opacity: 0; translate: 0 6px; }
+}
+@keyframes toppers-pop {
+  from { opacity: 0; scale: 0.6; rotate: -12deg; }
+}
+@keyframes toppers-swap {
+  from { opacity: 0; scale: 0.85; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .toppers-enter *,
+  .toppers-swap {
     animation: none;
   }
 }

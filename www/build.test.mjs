@@ -53,8 +53,18 @@ test('the #copy block of every landing page parses as JSON and has all its keys'
   }
 })
 
-test('both sign-in forms post, so a submit before the script loads never puts the email in a URL', () => {
+test('the one sign-in form posts, so a submit before the script loads never puts the email in a URL', () => {
   for (const f of ['index.html', 'en/index.html']) {
-    assert.equal(read(f).match(/<form [^>]*data-request/g).filter((t) => t.includes('method="post"')).length, 2, f)
+    const forms = read(f).match(/<form [^>]*data-request/g)
+    assert.equal(forms.length, 1, f)
+    assert.ok(forms[0].includes('method="post"'), f)
+  }
+})
+
+test('the hero links to the How to start section, which holds the form', () => {
+  for (const f of ['index.html', 'en/index.html']) {
+    const html = read(f)
+    assert.ok(html.includes('href="#start"'), f)
+    assert.match(html.slice(html.indexOf('id="start"')), /<form [^>]*data-request/, f)
   }
 })

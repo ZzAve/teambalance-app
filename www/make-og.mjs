@@ -18,12 +18,12 @@ const html = `<style>
 * { margin: 0; box-sizing: border-box }
 body { width: 1200px; height: 630px; background: #12294a; color: #fff; padding: 72px 88px; display: flex; flex-direction: column; justify-content: space-between }
 .wordmark { font: 700 44px G; } .wordmark span { color: #2db87e }
-h1 { font: 700 84px/1.08 G; white-space: nowrap }
+h1 { font: 700 66px/1.1 G; white-space: nowrap }
 p { font: 400 36px D; color: #a9beda }
 </style>
 <div class="wordmark">Team<span>Balance</span></div>
-<div><h1>Keep the chat.<br>Skip the scroll-back.</h1></div>
-<p>Attendance and the team pot, next to your group chat.</p>`
+<div><h1>Attendance and team money<br>for your sports team.</h1></div>
+<p>See who's coming, and keep one shared team pot.</p>`
 
 const browser = await chromium.launch()
 const page = await browser.newPage({ viewport: { width: 1200, height: 630 } })

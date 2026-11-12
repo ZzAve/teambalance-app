@@ -177,9 +177,18 @@ a {
   max-width: 42ch;
 }
 
-/* sign-in form, used twice */
-.request {
+/* hero actions: demo first, then a link to the steps */
+.cta {
   margin-top: 24px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 20px;
+}
+
+/* sign-in form, in step 1 of How to start */
+.request {
+  margin-top: 16px;
   max-width: 480px;
 }
 .request .row {
@@ -205,11 +214,6 @@ a {
 }
 .request input:hover {
   border-color: #b8c7dc;
-}
-.form-hint {
-  margin-top: 10px;
-  font-size: 0.9375rem;
-  color: var(--dusk-soft);
 }
 .form-msg {
   margin-top: 8px;
@@ -258,9 +262,6 @@ a {
   background: rgba(255, 255, 255, 0.08);
   border-color: #fff;
 }
-.request .alt {
-  margin-top: 14px;
-}
 
 /* ---------- the scene: chat + event card ---------- */
 .scene {
@@ -272,6 +273,11 @@ a {
   width: 100%;
   max-width: 440px;
   justify-self: center;
+}
+.scene-caption {
+  padding: 4px 6px 12px;
+  font-size: 0.9375rem;
+  color: var(--dusk-text);
 }
 .chat-head {
   display: flex;
@@ -509,6 +515,8 @@ a {
   min-height: 1.35em;
 }
 .linkbtn {
+  display: inline-flex;
+  align-items: center;
   background: none;
   border: 0;
   padding: 0 4px;
@@ -545,7 +553,7 @@ a {
   padding-top: 64px;
 }
 .intro h2,
-.closing h2 {
+.start h2 {
   font-family: var(--font-display);
   font-weight: 800;
   font-size: clamp(2rem, 6vw, 3.25rem);
@@ -591,12 +599,6 @@ h3 {
 }
 .struck {
   display: inline-block;
-}
-.ask small,
-.pot-asks small {
-  font-size: 0.8125rem;
-  color: var(--ink-soft);
-  margin-left: 6px;
 }
 
 /* roster: white card, ask on the left on wide screens */
@@ -668,7 +670,7 @@ h3 {
 
 /* pot: tinted panel, drawn pot beside the text */
 .pot-panel {
-  margin-top: 72px;
+  margin-top: 36px;
   display: grid;
   gap: 20px;
   padding: 24px 20px;
@@ -755,9 +757,9 @@ h3 {
   font-size: 0.9375rem;
 }
 
-/* three small answers: no boxes, separated by rules */
+/* two small answers: no boxes, separated by rules */
 .smalls {
-  margin-top: 72px;
+  margin-top: 48px;
   display: grid;
 }
 .smalls > section {
@@ -788,10 +790,14 @@ h3 {
   flex: none;
 }
 
-.origin {
+.group-title {
   padding-top: 72px;
+}
+.origin {
+  padding: 72px 0;
   max-width: 62ch;
 }
+.group-title,
 .origin h2 {
   font-family: var(--font-display);
   font-weight: 800;
@@ -804,49 +810,76 @@ h3 {
   color: var(--ink-soft);
 }
 
-.closing {
-  padding: 88px 0 72px;
-  max-width: 520px;
+.start {
+  padding-top: 88px;
+  max-width: 640px;
+  scroll-margin-top: 16px;
 }
-.closing .sub {
+.start .sub {
   margin-top: 12px;
   color: var(--ink-soft);
 }
-.closing .request input[type='email'] {
+.steps {
+  list-style: none;
+  counter-reset: step;
+  margin: 28px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 28px;
+}
+.steps > li {
+  counter-increment: step;
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr);
+  column-gap: 14px;
+}
+.steps > li::before {
+  content: counter(step);
+  grid-row: span 4;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--color-blue);
+  color: #fff;
+  font-family: var(--font-display);
+  font-weight: 700;
+}
+.steps > li > * {
+  grid-column: 2;
+}
+.steps h3 {
+  padding-top: 4px;
+}
+.steps p:not(.fake-field, .form-msg) {
+  margin-top: 6px;
+  color: var(--ink-soft);
+}
+.start .request input[type='email'] {
   background: #fff;
   border-color: #94a3b8;
 }
-.closing .request input:hover {
+.start .request input:hover {
   border-color: var(--color-blue);
 }
-.closing .request input[aria-invalid='true'] {
+.start .request input[aria-invalid='true'] {
   border-color: #b3261e;
 }
-.closing .btn-primary {
+.start .btn-primary {
   background: var(--color-blue);
   color: #fff;
 }
-.closing .btn-primary:hover {
+.start .btn-primary:hover {
   background: var(--color-blue-dark);
 }
-.closing .btn-ghost {
-  color: var(--color-blue-dark);
-  border-color: #6d8aae;
-}
-.closing .btn-ghost:hover {
-  background: rgba(34, 92, 156, 0.08);
-  border-color: var(--color-blue);
-}
-.closing .form-hint {
-  color: var(--ink-soft);
-}
-.closing .form-msg.err {
+.start .form-msg.err {
   color: #b3261e;
 }
-.closing .form-msg.ok {
+.start .form-msg.ok {
   color: #176b49;
 }
-.closing :focus-visible,
+.start :focus-visible,
 .calm :focus-visible {
   outline-color: var(--color-blue);
 }
@@ -950,7 +983,7 @@ footer {
     grid-area: body;
   }
   .smalls {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(2, 1fr);
     column-gap: 40px;
   }
 }

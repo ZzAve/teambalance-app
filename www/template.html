@@ -43,22 +43,14 @@
           <div class="hook">
             <h1>{{heroTitle}}</h1>
             <p class="sub">{{heroSub}}</p>
-
-            <form class="request" method="post" novalidate data-request>
-              <label class="sr-only" for="email-hero">{{emailLabel}}</label>
-              <div class="row">
-                <input id="email-hero" aria-describedby="hint-hero msg-hero" type="email" name="email" placeholder="{{emailPlaceholder}}" autocomplete="email" inputmode="email" />
-                <button class="btn btn-primary" type="submit">{{formButton}}</button>
-              </div>
-              <p class="form-hint" id="hint-hero">{{formHint}}</p>
-              <p class="form-msg" id="msg-hero" role="status" aria-live="polite"></p>
-              <div class="alt">
-                <a class="btn btn-ghost" href="https://demo.teambalance.nl/">{{demoButton}}</a>
-              </div>
-            </form>
+            <div class="cta">
+              <a class="btn btn-primary" href="https://demo.teambalance.nl/">{{demoButton}}</a>
+              <a class="linkbtn" href="#start">{{howToStart}}</a>
+            </div>
           </div>
 
-          <div class="scene" id="scene">
+          <div class="scene" id="scene" role="group" aria-labelledby="sceneCaption">
+            <p class="scene-caption" id="sceneCaption">{{sceneCaption}}</p>
             <div class="chat-head">
               <div class="chat-title">{{chatTitle}}<small>{{chatSub}}</small></div>
               <span class="unread" id="unread">{{unread}}</span>
@@ -140,8 +132,9 @@
           <p>{{introText}}</p>
         </section>
 
+        <h2 class="group-title">{{groupWhoTitle}}</h2>
         <article class="pair">
-          <div class="ask"><span class="bubble">{{askWho}}</span><small>{{noScroll}}</small></div>
+          <div class="ask"><span class="bubble">{{askWho}}</span></div>
           <div class="arrow" aria-hidden="true"><svg width="40" height="24" viewBox="0 0 40 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h30M26 4l8 8-8 8" /></svg></div>
           <div class="answer">
             <h3>{{rosterTitle}}</h3>
@@ -158,8 +151,23 @@
           </div>
         </article>
 
+        <div class="smalls">
+          <section>
+            <p class="struck">{{askShort}}</p>
+            <h3>{{subTitle}}</h3>
+            <p>{{subText}}</p>
+          </section>
+          <section>
+            <p class="struck">{{askTime}}</p>
+            <h3>{{calTitle}}</h3>
+            <p>{{calText}}</p>
+            <p class="fake-field"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="2.5" /><path d="M3.5 10h17M8 3v4M16 3v4" /></svg>{{calField}}</p>
+          </section>
+        </div>
+
+        <h2 class="group-title">{{groupMoneyTitle}}</h2>
         <article class="pot-panel">
-          <div class="pot-asks"><span class="bubble">{{askOwe}}</span><span class="bubble">{{askTikkie}}</span><small>{{noScroll}}</small></div>
+          <div class="pot-asks"><span class="bubble">{{askOwe}}</span><span class="bubble">{{askTikkie}}</span></div>
           <figure class="pot">
             <svg viewBox="0 0 260 190" role="img" aria-label="{{potAlt}}">
               <ellipse class="pt-sh" cx="130" cy="176" rx="96" ry="9" />
@@ -186,44 +194,37 @@
           </div>
         </article>
 
-        <div class="smalls">
-          <section>
-            <p class="struck">{{askTime}}</p>
-            <h3>{{calTitle}}</h3>
-            <p>{{calText}}</p>
-            <p class="fake-field"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="2.5" /><path d="M3.5 10h17M8 3v4M16 3v4" /></svg>{{calField}}</p>
-          </section>
-          <section>
-            <p class="struck">{{askAdd}}</p>
-            <h3>{{inviteTitle}}</h3>
-            <p>{{inviteText}}</p>
-            <p class="fake-field"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1" /><path d="M14 10a4 4 0 0 0-5.7 0l-3 3A4 4 0 0 0 11 18.7l1-1" /></svg>{{inviteField}}</p>
-          </section>
-          <section>
-            <p class="struck">{{askShort}}</p>
-            <h3>{{subTitle}}</h3>
-            <p>{{subText}}</p>
-          </section>
-        </div>
+        <section class="start" id="start" aria-labelledby="start-title">
+          <h2 id="start-title">{{startTitle}}</h2>
+          <p class="sub">{{startInvited}}</p>
+          <ol class="steps">
+            <li>
+              <h3>{{step1Title}}</h3>
+              <p id="step1-text">{{step1Text}}</p>
+              <form class="request" method="post" novalidate data-request>
+                <label class="sr-only" for="email">{{emailLabel}}</label>
+                <div class="row">
+                  <input id="email" aria-describedby="step1-text email-msg" type="email" name="email" placeholder="{{emailPlaceholder}}" autocomplete="email" inputmode="email" />
+                  <button class="btn btn-primary" type="submit">{{formButton}}</button>
+                </div>
+                <p class="form-msg" id="email-msg" role="status" aria-live="polite"></p>
+              </form>
+            </li>
+            <li>
+              <h3>{{step2Title}}</h3>
+              <p>{{step2Text}}</p>
+            </li>
+            <li>
+              <h3>{{step3Title}}</h3>
+              <p>{{step3Text}}</p>
+              <p class="fake-field"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1" /><path d="M14 10a4 4 0 0 0-5.7 0l-3 3A4 4 0 0 0 11 18.7l1-1" /></svg>{{inviteField}}</p>
+            </li>
+          </ol>
+        </section>
 
         <section class="origin">
           <h2>{{originTitle}}</h2>
           <p>{{originText}}</p>
-        </section>
-
-        <section class="closing">
-          <h2>{{closeTitle}}</h2>
-          <p class="sub">{{closeSub}}</p>
-          <form class="request" method="post" novalidate data-request>
-            <label class="sr-only" for="email-close">{{emailLabel}}</label>
-            <div class="row">
-              <input id="email-close" aria-describedby="hint-close msg-close" type="email" name="email" placeholder="{{emailPlaceholder}}" autocomplete="email" inputmode="email" />
-              <button class="btn btn-primary" type="submit">{{formButton}}</button>
-            </div>
-            <p class="form-hint" id="hint-close">{{formHint}}</p>
-            <p class="form-msg" id="msg-close" role="status" aria-live="polite"></p>
-            <div class="alt"><a class="btn btn-ghost" href="https://demo.teambalance.nl/">{{demoButton}}</a></div>
-          </form>
         </section>
       </div>
 

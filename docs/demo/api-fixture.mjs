@@ -235,6 +235,21 @@ const calendarLink = (id, body, createdAt) => ({
   eventTypeIds: body.eventTypeIds ?? undefined,
 })
 
+// The Nevobo match feed (ADR-0047): the league moved the match an hour, so the linked event differs.
+const FEED_APPLIED = { done: false }
+const FEED = () => ({
+  feedUrl: 'https://api.nevobo.nl/export/poule/regio-west/H3B/programma.rss',
+  teamName: 'Heren 3',
+  lastCheckedAt: new Date().toISOString(),
+  lastCheckFailed: false,
+  mismatches: FEED_APPLIED.done ? [] : [{
+    eventId: 'evt-1', eventTitle: EVENTS[0].title, eventStartTime: EVENTS[0].startTime, eventLocation: EVENTS[0].location,
+    feedMatch: { code: 'H3B-AJ', link: 'https://www.volleybal.nl', startTime: iso(1, 15, 30), homeTeam: 'Heren 3', awayTeam: 'Smash United', venue: 'Sportcentrum Noord', address: undefined },
+    differences: ['START_TIME'],
+  }],
+  missing: [],
+})
+
 const ME = ROSTER[0]
 
 // The Money pool (ADR-0007/0042/0046), Bunq-connected, 90 days of payments, newest first. Attributed
@@ -492,6 +507,13 @@ export async function installFixtureApi(page, { passkeyPrompt = false, role = 'A
       }
       if (/^\/api\/members\/[^/]+\/payment-aliases$/.test(path)) return json({ aliases: [] })
 
+      if (path === '/api/match-feed/apply') {
+        FEED_APPLIED.done = true
+        EVENTS[0].startTime = iso(1, 15, 30)
+        EVENTS[0].endTime = iso(1, 18, 0)
+        return json(FEED())
+      }
+      if (path === '/api/match-feed') return json(FEED())
       if (path === '/api/members/me') return json(withPhoto(ME))
       if (path === '/api/members') return json({ members: ROSTER.map(withPhoto) })
       if (path === '/api/event-types') return json({ eventTypes: TYPES })

@@ -28,9 +28,10 @@ from phonemizer.backend.espeak.wrapper import EspeakWrapper
 # espeak-ng truncates its data path at about 160 characters, and phonemizer resolves symlinks,
 # so a deep venv path fails with "Error processing file '.../phontab'". Use a short copy.
 SHORT_ESPEAK = '/tmp/kokoro-espeak/espeak-ng-data'
-if not os.path.isdir(SHORT_ESPEAK):
+# Checked by a file, not the folder: an interrupted copy leaves a folder without phontab.
+if not os.path.isfile(os.path.join(SHORT_ESPEAK, 'phontab')):
     import espeakng_loader
-    shutil.copytree(espeakng_loader.get_data_path(), SHORT_ESPEAK)
+    shutil.copytree(espeakng_loader.get_data_path(), SHORT_ESPEAK, dirs_exist_ok=True)
 EspeakWrapper.set_data_path(SHORT_ESPEAK)
 
 RATE = 24000

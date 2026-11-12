@@ -237,6 +237,51 @@ const calendarLink = (id, body, createdAt) => ({
 
 const ME = ROSTER[0]
 
+// The Money pool (ADR-0007/0042/0046), Bunq-connected, 90 days of payments, newest first. Attributed
+// payments carry the member's display name, as the server sends them; the two "J. VERMEER" bank
+// transfers are unattributed until Julia claims one, which links both (as an alias would). `paidTopUp()`
+// lands the top-up the take started, so the pool shows it after the return from bunq.me.
+const day = (daysAgo) => iso(-daysAgo, 12).slice(0, 10)
+const paid = (id, daysAgo, name, euros, direction, memberId, receiptVersion) =>
+  ({ id, date: day(daysAgo), name, amount: Math.round(euros * 100), direction, memberId, counterpartyName: undefined, receiptVersion })
+const POOL = {
+  balance: 24310,
+  beerPrice: 250,
+  pendingTopUp: undefined,
+  payments: [
+    paid('pay-01', 3, 'Café De Zwaluw', 38.6, 'Out'),
+    paid('pay-02', 5, 'J. VERMEER', 25, 'In'),
+    paid('pay-03', 8, 'Sam de Vries', 20, 'In', 'u-2'),
+    paid('pay-04', 12, 'Sporthal De Toekomst', 90, 'Out', undefined, 'r1'),
+    paid('pay-05', 15, 'Tim Jansen', 50, 'In', 'u-4'),
+    paid('pay-06', 19, 'J. VERMEER', 15, 'In'),
+    paid('pay-07', 23, 'Noor Bakker', 20, 'In', 'u-3'),
+    paid('pay-08', 28, 'Fleur Smit', 10, 'In', 'u-5'),
+    paid('pay-09', 33, 'Sportshop Ace', 74.95, 'Out'),
+    paid('pay-10', 40, 'Sam de Vries', 30, 'In', 'u-2'),
+    paid('pay-11', 46, 'Julia Vermeer', 20, 'In', 'u-1'),
+    paid('pay-12', 52, 'Tim Jansen', 20, 'In', 'u-4'),
+    paid('pay-13', 60, 'Daan Hofman', 15, 'In', 'u-6'),
+    paid('pay-14', 70, 'Noor Bakker', 25, 'In', 'u-3'),
+    paid('pay-15', 80, 'Fleur Smit', 20, 'In', 'u-5'),
+  ],
+}
+const RECEIPTS = {}
+const moneyPool = () => ({
+  state: 'Connected',
+  balance: POOL.balance,
+  payments: POOL.payments,
+  beerPrice: POOL.beerPrice,
+  beerCount: Math.floor(POOL.balance / POOL.beerPrice),
+  canTopUp: true,
+})
+export const paidTopUp = () => {
+  if (!POOL.pendingTopUp) return
+  POOL.payments.unshift(paid(`pay-top-${POOL.payments.length}`, 0, ME.displayName, POOL.pendingTopUp, 'In', ME.userId))
+  POOL.balance += POOL.pendingTopUp * 100
+  POOL.pendingTopUp = undefined
+}
+
 // Photos (ADR-0038) travel as image bytes outside the Wirespec client. The take starts with no photo
 // anywhere; an upload stores the bytes here and bumps the version the JSON payloads carry, so the
 // `<img>` reads it back through the same route as the real API.
@@ -253,7 +298,7 @@ const AUTH_USER = () => ({
   id: 'u-1',
   email: 'julia@example.com',
   displayName: 'Julia Vermeer',
-  role: 'ADMIN',
+  role: ME.role,
   // `teams` is an array and `activeTeam` a separate ref: the root guard gates on
   // `user.teams.length` and the /me query rejects outright unless `teams` is an array, so a
   // singular `team` here parks the whole app on the cold-start splash.
@@ -297,7 +342,9 @@ const withAttendances = (event) => ({
 })
 
 /** Install the fixture on a Playwright page/context. Call before the first navigation. */
-export async function installFixtureApi(page, { passkeyPrompt = false } = {}) {
+export async function installFixtureApi(page, { passkeyPrompt = false, role = 'ADMIN' } = {}) {
+  // The money pool take films a member: an Admin gets "Assign to a member" instead of "That's mine".
+  ME.role = role
   // /me reports zero passkeys, which makes the app offer one on every page; only the passkeys take wants that.
   if (!passkeyPrompt) await page.addInitScript(() => localStorage.setItem('tb.pref.passkey-prompt-dismissed', 'true'))
   // Keep the service worker out of the recording entirely. Playwright's route interception does not
@@ -415,6 +462,35 @@ export async function installFixtureApi(page, { passkeyPrompt = false } = {}) {
         else return image(PHOTOS.team[userId])
         return route.fulfill({ status: 204 })
       }
+
+      if (path === '/api/team/money-pool') return json(moneyPool())
+      if (path === '/api/team/money-pool/top-up-link') {
+        POOL.pendingTopUp = Number(url.searchParams.get('amount'))
+        const description = encodeURIComponent(`TeamBalance · ${TEAM.name} · ${ME.displayName} · ${ME.userId}`)
+        return json({ url: `https://bunq.me/heren3/${POOL.pendingTopUp}/${description}` })
+      }
+      const receipt = path.match(/^\/api\/team\/money-pool\/payments\/([^/]+)\/receipt$/)
+      if (receipt) {
+        const payment = POOL.payments.find((p) => p.id === receipt[1])
+        if (method === 'PUT') RECEIPTS[receipt[1]] = storePhoto(route)
+        else if (method === 'DELETE') delete RECEIPTS[receipt[1]]
+        else return image(RECEIPTS[receipt[1]])
+        if (payment) payment.receiptVersion = RECEIPTS[receipt[1]]?.version
+        return route.fulfill({ status: 204 })
+      }
+      // "That's mine" stores an alias, and the server then attributes every payment it matches.
+      const claim = path.match(/^\/api\/team\/money-pool\/payments\/([^/]+)\/claim$/)
+      if (claim) {
+        const { userId } = route.request().postDataJSON?.() ?? {}
+        const member = ROSTER.find((m) => m.userId === userId)
+        const claimed = POOL.payments.find((p) => p.id === claim[1])
+        if (!member || !claimed) return json({}, 404)
+        const counterparty = claimed.name
+        for (const p of POOL.payments)
+          if (p.direction === 'In' && !p.memberId && p.name === counterparty) Object.assign(p, { memberId: userId, name: member.displayName })
+        return json({ id: `alias-${claim[1]}`, name: counterparty, ibanMasked: 'NL02 •••• •••• ••67 89', hasIban: true }, 201)
+      }
+      if (/^\/api\/members\/[^/]+\/payment-aliases$/.test(path)) return json({ aliases: [] })
 
       if (path === '/api/members/me') return json(withPhoto(ME))
       if (path === '/api/members') return json({ members: ROSTER.map(withPhoto) })

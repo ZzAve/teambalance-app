@@ -104,6 +104,11 @@ class Song:
         return sorted(ok, key=lambda d: -(self.novelty(d) + self.novelty(d + skip * self.bar)))
 
 
+# Song times the user picked in listening rounds (calendar-links, language, passkeys). The song is the
+# same for every video, so these downbeats come back as candidates; offer them first.
+APPROVED_CUTS = (10.96, 18.02, 20.38)
+
+
 def music_filter(song, cut, skip, length, intro_end, outro_start):
     """Song from 0, `skip` bars cut out at `cut` with a short crossfade, levels per part of the video.
     Inputs: 1 and 2 are the song (head and tail), 3 is the voice track."""
@@ -248,11 +253,13 @@ def main():
     print('cut candidates (song time = video time, since the song starts at 0):')
     base, ext = os.path.splitext(a.out)
     # A late cut "did not flow" in review; an early one went unnoticed. Keep it in the first third.
-    for cut in song.cuts(skip, earliest=intro_len + 1, latest=total / 3)[:3]:
+    ranked = song.cuts(skip, earliest=intro_len + 1, latest=total / 3)
+    approved = lambda c: any(abs(c - a) < 0.05 for a in APPROVED_CUTS)
+    for cut in sorted(ranked, key=lambda c: not approved(c))[:3]:  # stable: approved first, then by novelty
         out = f'{base}-cut{cut:.2f}{ext}'
         mux(song_inputs, graph(cut), out)
         print(f'  {cut:6.2f}s -> {cut + skip * song.bar:6.2f}s  novelty {song.novelty(cut):.3f} + '
-              f'{song.novelty(cut + skip * song.bar):.3f}  {out}')
+              f'{song.novelty(cut + skip * song.bar):.3f}{"  approved before" if approved(cut) else ""}  {out}')
     print('Listen, pick one, and re-run with --cut <s>.')
 
 

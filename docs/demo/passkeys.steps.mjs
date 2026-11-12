@@ -4,14 +4,14 @@
  * virtual authenticator; os-passkey-sheet.mjs draws the phone's sheet and os-mail-app.mjs the inbox,
  * iOS by default or Android with PHONE_OS=android.
  *
- * Render choices of the published videos (2026-11-09), so a regeneration needs no new listening round:
+ * Render choices of the published videos (2026-11-12), so a regeneration needs no new listening round:
  *
  *   S=.agents/skills/feature-promo-video/scripts; OUT=/tmp/passkeys-ios      # or -android
  *   uv run $S/narrate.py docs/demo/passkeys.narration.json $OUT/voice
  *   node $S/cards.mjs docs/demo/passkeys.narration.json $OUT/cards
  *   PHONE_OS=ios $S/record.sh docs/demo/passkeys.steps.mjs $OUT                # PHONE_OS=android
- *   uv run $S/assemble.py $OUT/take $OUT/take.log $OUT/voice/clips.json $OUT/cards passkeys-promo.mp4 \
- *     --song $S/../music/teambalance-theme.json --cut 20.38 --phone ios        # --phone android
+ *   uv run $S/assemble.py $OUT/take $OUT/take.log $OUT/voice/clips.json $OUT/cards passkeys-promo-ios.mp4 \
+ *     --song $S/../music/teambalance-theme.json --cut 20.38 --phone ios   # -android.mp4, --phone android
  *
  * Each transcript in docs/demo/passkeys*.transcript.md repeats the assemble command it came from.
  * Copy drift: the mail mock checks its wording against MagicLinkEmail.kt and fails if it changed; the
@@ -120,9 +120,10 @@ export default async function script({ page, caption, section, sleep, click, typ
   })
 
   await section('account', async () => {
-    await speak('Your passkeys live on the Profile tab.', 2600)
+    await speak('Your passkeys live under Profile, in Account and sign-in.', 3200)
     await sleep(page, 300)
     await click(page, page.getByRole('link', { name: 'Profile', exact: true }))
+    await click(page, page.getByRole('link', { name: /Account and sign-in/ }))
     const passkeys = page.getByRole('heading', { name: 'Passkeys' })
     await passkeys.waitFor()
     await page.getByText('This device').waitFor()
@@ -133,6 +134,7 @@ export default async function script({ page, caption, section, sleep, click, typ
     await say('This device is listed. Every phone or laptop gets its own, and Remove is right there.', 4000)
     await speak('Now sign out, and back in.', 2400)
     await sleep(page, 300)
+    await click(page, page.getByRole('link', { name: 'Profile', exact: true }))
     await click(page, logOut, onScreen)
     await passkeyButton.waitFor()
     await restoreCaption('Now sign out, and back in.')

@@ -7,7 +7,7 @@
   },
   "__outroCard": {
     "steps": [{ "label": "Sign in by email once", "icon": "mail" }, { "label": "Add a passkey", "icon": "scan-face" }, { "label": "Next time: one tap", "icon": "key-round" }],
-    "sub": "Manage your passkeys on the Profile tab. Your email link keeps working."
+    "sub": "Manage your passkeys under Profile, Account and sign-in. Your email link keeps working."
   },
   "__intro": "Skip the email. Sign in to TeamBalance with a passkey.",
   "Until now, every sign-in started with an email.": "Until now, every sign-in started with an email.",
@@ -18,7 +18,7 @@
   "Tap \"Add a passkey\".": "Tap Add a passkey.",
   "Your phone asks once. Confirm with your face or your fingerprint.": "Your phone asks once. Confirm with your face, | or your fingerprint.",
   "Done. That's all the setup there is.": "Done! That's all the setup there is.",
-  "Your passkeys live on the Profile tab.": "Your passkeys live on the Profile tab.",
+  "Your passkeys live under Profile, in Account and sign-in.": "Your passkeys live under Profile, | in Account and sign-in.",
   "This device is listed. Every phone or laptop gets its own, and Remove is right there.": "This device is listed. Every phone or laptop gets its own, | and Remove is right there.",
   "Now sign out, and back in.": "Now let's sign out, | and back in.",
   "Tap \"Sign in with a passkey\".": "Tap Sign in with a passkey.",

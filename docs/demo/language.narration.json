@@ -1,0 +1,26 @@
+{
+  "__introCard": {
+    "headline": "Your team,",
+    "accent": "in your own language.",
+    "sub": "Every member picks Nederlands or English. The app, the emails and teambalance.nl follow that one choice.",
+    "pill": "Dutch and English are live"
+  },
+  "__outroCard": {
+    "steps": [{ "label": "Profile", "icon": "user-round" }, "Preferences", { "label": "Nederlands / English", "icon": "languages" }],
+    "sub": "Each member chooses for themselves. Team names, event titles and notes always stay as your team wrote them."
+  },
+  "__intro": "Your team, | in your own language.",
+  "Dutch players, international teammates: one app for both.": "A Dutch team with a few internationals? Now everyone gets TeamBalance in their own language.",
+  "Pick your language in Profile, under Preferences.": "Pick yours in Profile, under Preferences.",
+  "Nederlands or English: tap one.": "Dutch or English: just tap the one you want.",
+  "The page and the nav switch at once.": "And the whole app switches at once: the page, the navigation, every label.",
+  "Events: dates, answers and filters in Dutch.": "Events: dates, your answers and the filters, all in Dutch.",
+  "\"Event\" stays \"Event\". That is what Dutch teams say.": "Event stays Event. That is simply what Dutch teams call it.",
+  "Open an event: the full date, who is coming, the lineup.": "Open an event: the full date, who is coming, and the lineup.",
+  "Team names, titles and notes stay as your team wrote them.": "Your team's own words stay as written: team names, event titles and notes.",
+  "Teampot: Dutch money format, down to the beer count.": "Teampot: Dutch money format, right down to the beer count.",
+  "Team: members, substitutes and the invite link.": "Team: members, substitutes and the invite link.",
+  "Saved on your account: it stays after a reload, on every device.": "It's saved on your account, so it stays after a reload, | on every device.",
+  "Emails come in your language too.": "And the emails come in your language too.",
+  "__outro": "Try it today! Pick your language under Preferences, and TeamBalance follows. See you at TeamBalance dot N L!"
+}

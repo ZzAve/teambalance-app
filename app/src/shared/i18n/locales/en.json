@@ -532,8 +532,6 @@
     "showAll_one": "Show all {{count}} payment",
     "showAll_other": "Show all {{count}} payments",
     "showFewer": "Show fewer",
-    "thisWeek": "This week",
-    "lastWeek": "Last week",
     "beersInPot_one": "beer in the pot",
     "beersInPot_other": "beers in the pot",
     "beerEach": "{{price}} each",

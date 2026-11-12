@@ -84,7 +84,7 @@ export function ConnectedMoneyPool({ balance, payments, beerPrice, beerCount, to
 
       {topUp}
 
-      <PaymentListView payments={payments} today={today} members={members} youId={youId} receipt={receipt} claim={claim} />
+      <PaymentListView payments={payments} members={members} youId={youId} receipt={receipt} claim={claim} />
 
       {payments.length > 0 && members && <ToppersView payments={payments} today={today} members={members} seasonSet={seasonSet} youId={youId} />}
     </div>

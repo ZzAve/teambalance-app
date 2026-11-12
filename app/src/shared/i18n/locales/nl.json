@@ -532,8 +532,6 @@
     "showAll_one": "Toon {{count}} betaling",
     "showAll_other": "Toon alle {{count}} betalingen",
     "showFewer": "Toon minder",
-    "thisWeek": "Deze week",
-    "lastWeek": "Vorige week",
     "beersInPot_one": "biertje in de pot",
     "beersInPot_other": "biertjes in de pot",
     "beerEach": "{{price}} per stuk",

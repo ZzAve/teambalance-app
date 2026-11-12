@@ -35,8 +35,3 @@ export function formatPaymentDate(date: string): string {
 export function formatPaymentWeekday(date: string): string {
   return formattersFor(formatLocale()).weekday.format(new Date(`${date}T00:00:00`))
 }
-
-/** Two ISO calendar dates as one range, such as "19–25 Oct" or "26 Oct – 1 Nov", in the locale's own form. */
-export function formatDateRange(from: string, to: string): string {
-  return formattersFor(formatLocale()).day.formatRange(new Date(`${from}T00:00:00`), new Date(`${to}T00:00:00`))
-}

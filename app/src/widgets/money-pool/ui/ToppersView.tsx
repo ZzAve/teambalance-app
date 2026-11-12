@@ -52,6 +52,13 @@ interface Position {
   index: number
 }
 
+/**
+ * The entrance: `pending` holds the podium and the list at the entrance's start until the podium scrolls into
+ * view, `entering` runs it, `done` is the final state. Without motion, or without IntersectionObserver to start
+ * it, it is `done` from the first render, so nothing is ever left hidden.
+ */
+type Entrance = 'pending' | 'entering' | 'done'
+
 /** A rank change on a list row: places moved (up as positive), and when its arrow goes. */
 interface Move {
   places: number
@@ -66,12 +73,15 @@ export function ToppersView({ payments, today, members, seasonSet, youId }: Topp
   const [stored, setPosition] = useState<Position | null>(null)
   const [playRequested, setPlayRequested] = useState(false)
   const [announced, setAnnounced] = useState('')
-  const [entering, setEntering] = useState(false)
+  const [entrance, setEntrance] = useState<Entrance>(() => (!prefersReducedMotion() && typeof IntersectionObserver !== 'undefined' ? 'pending' : 'done'))
   const [moves, setMoves] = useState<ReadonlyMap<string, Move>>(new Map())
   const playButton = useRef<HTMLButtonElement>(null)
   const podiumRef = useRef<HTMLDivElement>(null)
   const resetHadFocus = useRef(false)
   const motion = !prefersReducedMotion()
+  // Reduced motion switched on meanwhile shows the final state at once.
+  const phase: Entrance = motion ? entrance : 'done'
+  const endEntrance = () => setEntrance('done')
 
   const memberById = useMemo(() => new Map(members.map((m) => [m.userId, m])), [members])
   const memberIds = useMemo(() => members.map((m) => m.userId), [members])
@@ -109,27 +119,30 @@ export function ToppersView({ payments, today, members, seasonSet, youId }: Topp
     }
   }, [atNow])
 
-  // The entrance plays once, the first time the podium is mostly in view (Toppers sit below the fold).
+  // The entrance plays once, the first time the podium is mostly in view (Toppers sit below the fold). The
+  // podium may only appear later (a refetch with the first top-up), so the observer starts when it renders.
+  const hasPodium = result.toppedUp > 0
+  const pending = phase === 'pending'
   useEffect(() => {
     const podium = podiumRef.current
-    if (!podium || typeof IntersectionObserver === 'undefined' || prefersReducedMotion()) return
+    if (!pending || !hasPodium || !podium) return
     const observer = new IntersectionObserver(
       (entries) => {
         if (!entries.some((e) => e.isIntersecting)) return
         observer.disconnect()
-        setEntering(true)
+        setEntrance('entering')
       },
       { threshold: 0.35 },
     )
     observer.observe(podium)
     return () => observer.disconnect()
-  }, [])
+  }, [pending, hasPodium])
 
   useEffect(() => {
-    if (!entering) return
-    const id = window.setTimeout(() => setEntering(false), ENTRANCE_MS)
+    if (entrance !== 'entering') return
+    const id = window.setTimeout(() => setEntrance('done'), ENTRANCE_MS)
     return () => window.clearTimeout(id)
-  }, [entering])
+  }, [entrance])
 
   // Each step of the playback or the time bar marks the rows that changed rank, for MOVE_MS.
   const noteMoves = useCallback((from: Topper[], to: Topper[]) => {
@@ -161,20 +174,20 @@ export function ToppersView({ payments, today, members, seasonSet, youId }: Topp
 
   // Play, the time bar, reset and the period all end the entrance at its final state, so two motions never overlap.
   const choosePeriod = (next: TopperPeriod) => {
-    setEntering(false)
+    endEntrance()
     setMoves(new Map())
     setPeriod(next)
     setPosition(null)
     setPlayRequested(false)
   }
   const onPlay = () => {
-    setEntering(false)
+    endEntrance()
     if (playing) return setPlayRequested(false)
     setPlayRequested(true)
     if (position === null) setPosition({ frames, index: 0 }) // from now, start over
   }
   const onSlide = (next: number) => {
-    setEntering(false)
+    endEntrance()
     setPlayRequested(false)
     noteMoves(ranking, frames[next].ranking)
     setPosition({ frames, index: next })
@@ -209,7 +222,7 @@ export function ToppersView({ payments, today, members, seasonSet, youId }: Topp
         </div>
       </div>
 
-      <div className={`rounded-lg bg-card p-2${entering ? ' toppers-enter' : ''}`}>
+      <div className={`rounded-lg bg-card p-2${phase === 'done' ? '' : ` toppers-${phase === 'pending' ? 'pending' : 'enter'}`}`}>
         {result.toppedUp === 0 ? (
           <p className="p-4 text-center text-small text-muted-foreground">{period === 'season' ? t('money.toppers.empty') : t('money.toppers.emptyLast30Days')}</p>
         ) : (
@@ -226,7 +239,7 @@ export function ToppersView({ payments, today, members, seasonSet, youId }: Topp
                   onFocus={() => (resetHadFocus.current = true)}
                   onBlur={() => (resetHadFocus.current = false)}
                   onClick={() => {
-                    setEntering(false)
+                    endEntrance()
                     setPosition(null)
                     setPlayRequested(false)
                   }}
@@ -253,7 +266,7 @@ export function ToppersView({ payments, today, members, seasonSet, youId }: Topp
                 style={{ accentColor: 'var(--color-blue)' }}
               />
             )}
-            <Podium ref={podiumRef} top={podium} memberById={memberById} nameOf={nameOf} youId={youId} motion={motion} entering={entering} />
+            <Podium ref={podiumRef} top={podium} memberById={memberById} nameOf={nameOf} youId={youId} motion={motion} phase={phase} />
             <RankingList rest={rest} memberById={memberById} nameOf={nameOf} youId={youId} motion={motion} moves={moves} />
             {/* The text version of the ranking, complete at every step of the playback. */}
             <ol aria-label={t('money.toppers.ranking')} className="sr-only">
@@ -302,8 +315,9 @@ interface PartProps {
  * Second, first and third place side by side; the visual stands in for the ranking list, which carries the text.
  * The slots are keyed by position, so a step changes height in place; the face inside is keyed by member, so a new one fades in.
  */
-function Podium({ ref, top, memberById, nameOf, youId, motion, entering }: PartProps & { ref: Ref<HTMLDivElement>; top: Topper[]; entering: boolean }) {
+function Podium({ ref, top, memberById, nameOf, youId, motion, phase }: PartProps & { ref: Ref<HTMLDivElement>; top: Topper[]; phase: Entrance }) {
   const { t } = useTranslation()
+  const entering = phase === 'entering'
   const slots = ([['second', top[1]], ['first', top[0]], ['third', top[2]]] as const).flatMap(([slot, r]) => (r ? [{ slot, r }] : []))
   return (
     <div ref={ref} aria-hidden="true" className="flex items-end justify-center gap-2 px-2 pt-5 pb-3">
@@ -312,13 +326,17 @@ function Podium({ ref, top, memberById, nameOf, youId, motion, entering }: PartP
         return (
           <div key={slot} data-place={place} className="flex min-w-0 flex-1 flex-col items-center gap-1 text-center">
             {r.rank === 1 && <Trophy data-podium-trophy size={18} className="text-gold-ink" />}
-            <div key={r.memberId} data-podium-rise className={`flex min-w-0 max-w-full flex-col items-center gap-1${motion ? ' toppers-swap' : ''}`}>
-              <MemberAvatar memberId={r.memberId} member={memberById.get(r.memberId)} name={nameOf(r.memberId)} size={r.rank === 1 ? 'md' : 'sm'} />
-              <span className="max-w-full truncate text-caption font-semibold">{r.memberId === youId ? t('money.toppers.you') : nameOf(r.memberId)}</span>
+            {/* The rise (entrance) and the swap (a new face) are on separate elements, so ending the entrance does not restart the swap. */}
+            <div data-podium-rise className="flex min-w-0 max-w-full flex-col items-center">
+              <div key={r.memberId} className={`flex min-w-0 max-w-full flex-col items-center gap-1${motion ? ' toppers-swap' : ''}`}>
+                <MemberAvatar memberId={r.memberId} member={memberById.get(r.memberId)} name={nameOf(r.memberId)} size={r.rank === 1 ? 'md' : 'sm'} />
+                <span className="max-w-full truncate text-caption font-semibold">{r.memberId === youId ? t('money.toppers.you') : nameOf(r.memberId)}</span>
+              </div>
             </div>
             <span data-podium-rise>
               <CountingEuro
-                cents={r.total}
+                // Held at zero until the entrance counts it up.
+                cents={phase === 'pending' ? 0 : r.total}
                 className="font-display text-lead font-bold tabular-nums"
                 active={motion}
                 from={entering ? 0 : undefined}

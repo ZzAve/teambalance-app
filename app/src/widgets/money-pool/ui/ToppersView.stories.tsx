@@ -146,6 +146,8 @@ export const Interactions: Story = {
   play: async ({ canvas }) => {
     // The entrance starts once the podium is in view. Moving the time bar ends it at its final state, and marks the rows that changed rank.
     const card = canvas.getByRole('slider', { name: 'Day' }).parentElement!
+    // Into view whatever the viewport, so the observer's 35% threshold is met.
+    card.scrollIntoView({ block: 'center' })
     await waitFor(() => expect(card).toHaveClass('toppers-enter'))
     fireEvent.change(canvas.getByRole('slider', { name: 'Day' }), { target: { value: '0' } })
     await expect(card).not.toHaveClass('toppers-enter')

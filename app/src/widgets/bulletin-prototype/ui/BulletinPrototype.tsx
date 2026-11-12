@@ -56,6 +56,7 @@ export interface Post {
   markdown: string
   pinned: boolean
   showUntil?: Date
+  editedAt?: Date
 }
 
 const daysFromNow = (d: number) => new Date(Date.now() + d * 86_400_000)
@@ -80,6 +81,7 @@ Can't make your week? Swap with someone and tell the group.`,
     id: 2,
     author: 'Jan',
     postedAt: daysFromNow(-2),
+    editedAt: daysFromNow(-0.5),
     pinned: true,
     showUntil: daysFromNow(9),
     markdown: `### Clubhouse closes at 22:30
@@ -110,6 +112,10 @@ function addPost(p: Omit<Post, 'id' | 'postedAt' | 'author'>) {
   posts = [{ ...p, id: Date.now(), postedAt: new Date(), author: 'You' }, ...posts]
   emit()
 }
+function updatePost(id: number, p: Pick<Post, 'markdown' | 'pinned' | 'showUntil'>) {
+  posts = posts.map((x) => (x.id === id ? { ...x, ...p, editedAt: new Date() } : x))
+  emit()
+}
 function togglePin(id: number) {
   posts = posts.map((p) => (p.id === id ? { ...p, pinned: !p.pinned } : p))
   emit()
@@ -129,6 +135,9 @@ export const pinnedPosts = (all: Post[]) => all.filter((p) => p.pinned && visibl
 const ordered = (all: Post[]) => [...pinnedPosts(all), ...all.filter((p) => !p.pinned && visible(p)).sort(byNewest)]
 
 const fmt = (d: Date) => d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
+const fmtTime = (d: Date) => d.toDateString() === new Date().toDateString()
+  ? `today ${d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}`
+  : `${fmt(d)} ${d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}`
 const titleOf = (md: string) => md.split('\n').find((l) => l.trim())?.replace(/^#+\s*/, '').replace(/[*_]/g, '') ?? ''
 
 // ---------- tiny markdown (prototype only — builds React elements, never HTML) ----------
@@ -186,7 +195,8 @@ function PostMeta({ post }: { post: Post }) {
   return (
     <div className="flex flex-wrap items-center gap-2 text-caption text-muted-foreground">
       {post.pinned && <span className="inline-flex items-center gap-1 font-semibold text-gold-ink"><Pin size={12} />Pinned</span>}
-      <span>{post.author} · {fmt(post.postedAt)}</span>
+      <span><span className="font-semibold text-foreground/80">{post.author}</span> · {fmt(post.postedAt)}</span>
+      {post.editedAt && <span title={post.editedAt.toLocaleString('en-GB')}>· edited {fmtTime(post.editedAt)}</span>}
       {post.showUntil && <span className="rounded-full bg-muted px-2 py-0.5">until {fmt(post.showUntil)}</span>}
     </div>
   )
@@ -194,14 +204,16 @@ function PostMeta({ post }: { post: Post }) {
 
 function AdminMenu({ post, allowPin }: { post: Post; allowPin: boolean }) {
   const [open, setOpen] = useState(false)
+  const [editing, setEditing] = useState(false)
   return (
     <div className="relative">
+      <ComposeSheet open={editing} onOpenChange={setEditing} allowPin={allowPin} post={post} />
       <button aria-label="Post actions" onClick={() => setOpen(!open)} className="flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground hover:bg-blue/8">
         <MoreHorizontal size={18} />
       </button>
       {open && (
         <div className="absolute right-0 z-10 mt-1 w-36 rounded-md border border-border/60 bg-card p-1 text-small shadow-lg">
-          <button className="w-full rounded px-2 py-1.5 text-left hover:bg-muted" onClick={() => setOpen(false)}>Edit</button>
+          <button className="w-full rounded px-2 py-1.5 text-left hover:bg-muted" onClick={() => { setOpen(false); setEditing(true) }}>Edit</button>
           {allowPin && <button className="w-full rounded px-2 py-1.5 text-left hover:bg-muted" onClick={() => { togglePin(post.id); setOpen(false) }}>{post.pinned ? 'Unpin' : 'Pin'}</button>}
           <button className="w-full rounded px-2 py-1.5 text-left text-red hover:bg-muted" onClick={() => removePost(post.id)}>Delete</button>
         </div>
@@ -222,15 +234,15 @@ function PostCard({ post, isAdmin, allowPin = true }: { post: Post; isAdmin: boo
   )
 }
 
-function ComposeSheet({ open, onOpenChange, allowPin }: { open: boolean; onOpenChange: (o: boolean) => void; allowPin: boolean }) {
-  const [markdown, setMarkdown] = useState('### \n')
+function ComposeSheet({ open, onOpenChange, allowPin, post }: { open: boolean; onOpenChange: (o: boolean) => void; allowPin: boolean; post?: Post }) {
+  const [markdown, setMarkdown] = useState(post?.markdown ?? '### \n')
   const [preview, setPreview] = useState(false)
-  const [pinned, setPinned] = useState(false)
-  const [until, setUntil] = useState('')
+  const [pinned, setPinned] = useState(post?.pinned ?? false)
+  const [until, setUntil] = useState(post?.showUntil?.toISOString().slice(0, 10) ?? '')
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent>
-        <SheetHeader><SheetTitle>New post</SheetTitle></SheetHeader>
+        <SheetHeader><SheetTitle>{post ? 'Edit post' : 'New post'}</SheetTitle></SheetHeader>
         <div className="mb-2 flex gap-1 self-start rounded-md bg-muted p-1 text-small">
           {(['Write', 'Preview'] as const).map((tab) => (
             <button key={tab} onClick={() => setPreview(tab === 'Preview')}
@@ -253,10 +265,12 @@ function ComposeSheet({ open, onOpenChange, allowPin }: { open: boolean; onOpenC
           <input type="date" value={until} onChange={(e) => setUntil(e.target.value)} className="rounded-md border border-border/60 bg-card px-2 py-1" />
         </label>
         <Button className="mt-6" onClick={() => {
-          addPost({ markdown, pinned, showUntil: until ? new Date(until) : undefined })
-          setMarkdown('### \n'); setPinned(false); setUntil(''); setPreview(false)
+          const fields = { markdown, pinned, showUntil: until ? new Date(until) : undefined }
+          if (post) updatePost(post.id, fields)
+          else { addPost(fields); setMarkdown('### \n'); setPinned(false); setUntil('') }
+          setPreview(false)
           onOpenChange(false)
-        }}>Post</Button>
+        }}>{post ? 'Save' : 'Post'}</Button>
       </SheetContent>
     </Sheet>
   )
@@ -307,7 +321,7 @@ export function PinnedStrip() {
         </div>
         {expanded && (
           <div className="flex flex-col gap-4 pb-4">
-            {pins.map((p) => <div key={p.id} className="rounded-md bg-card p-3"><Markdown source={p.markdown} /></div>)}
+            {pins.map((p) => <div key={p.id} className="rounded-md bg-card p-3"><PostMeta post={p} /><Markdown source={p.markdown} className="mt-2" /></div>)}
           </div>
         )}
       </div>

@@ -31,10 +31,14 @@ export async function narratedTake({ page, caption, sleep }) {
         style.id = '__demo_touch__'
         style.textContent =
           '#__demo_cursor__ svg{display:none}' +
-          '#__demo_cursor__{width:30px!important;height:30px!important;margin:-13px 0 0 -11px;border-radius:50%;' +
+          '#__demo_cursor__{width:30px!important;height:30px!important;margin:-13px 0 0 -11px;border-radius:50%;transition:transform 60ms linear,opacity .15s!important;' +
           'background:rgba(30,41,59,.32);border:2px solid rgba(255,255,255,.9);filter:none!important}' +
           '#__demo_ring__{border-color:#225C9C!important;border-width:3px!important}'
         document.head.appendChild(style)
+        // A finger lifts after a tap, so the dot hides while the page scrolls under it and shows on the next move.
+        const dot = () => document.getElementById('__demo_cursor__')
+        addEventListener('scroll', () => dot()?.style.setProperty('opacity', '0'), true)
+        addEventListener('mousemove', () => dot()?.style.setProperty('opacity', '1'), true)
       }
       let el = document.getElementById('__demo_caption__')
       if (!el) {

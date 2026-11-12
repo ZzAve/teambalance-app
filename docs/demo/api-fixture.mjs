@@ -19,6 +19,9 @@ const iso = (daysFromNow, hour, minute = 0) => {
   return d.toISOString()
 }
 
+// Days until the next Tuesday (1 to 7), so "Tuesday Training" is on a Tuesday whatever day the take is recorded.
+const TUESDAY = (2 - new Date().getDay() + 7) % 7 || 7
+
 const TYPES = [
   { id: 'et-match', name: 'Match', color: '#225C9C', archived: false, rosterDefault: { trackRoster: true, totalTarget: 12, positionTargets: [] } },
   { id: 'et-training', name: 'Training', color: '#249E6C', archived: false, rosterDefault: { trackRoster: true, totalTarget: 8, positionTargets: [] } },
@@ -91,8 +94,8 @@ const EVENTS = [
     eventType: TYPES[1],
     title: 'Tuesday Training',
     description: undefined,
-    startTime: iso(3, 20, 0),
-    endTime: iso(3, 22, 0),
+    startTime: iso(TUESDAY, 20, 0),
+    endTime: iso(TUESDAY, 22, 0),
     location: 'Sporthal De Toekomst',
     references: [],
     recurringGroup: 'grp-training',
@@ -133,8 +136,8 @@ const EVENTS = [
     eventType: TYPES[1],
     title: 'Tuesday Training',
     description: undefined,
-    startTime: iso(10, 20, 0),
-    endTime: iso(10, 22, 0),
+    startTime: iso(TUESDAY + 7, 20, 0),
+    endTime: iso(TUESDAY + 7, 22, 0),
     location: 'Sporthal De Toekomst',
     references: [],
     recurringGroup: 'grp-training',
@@ -567,6 +570,8 @@ export async function installFixtureApi(page, { passkeyPrompt = false, role = 'A
         refreshRoster(EVENTS.find((e) => e.id === eventId))
         return json(entry)
       }
+      // No match feed configured: the contract's "none" is a 404. The catch-all `{}` crashes the event detail page.
+      if (path === '/api/match-feed') return json({}, 404)
       if (path === '/api/team/season') return json({ start: undefined, end: undefined })
       // No Nevobo feed configured: the contract's 404, not the catch-all {} the event page cannot read.
       if (path === '/api/match-feed' && method === 'GET') return json({}, 404)
@@ -605,7 +610,21 @@ export async function installFixtureApi(page, { passkeyPrompt = false, role = 'A
       if (attendance) {
         const body = route.request().postDataJSON?.() ?? {}
         const event = EVENTS.find((e) => e.id === attendance[1])
-        if (event && body.state) event.myState = body.state
+        // Only the current user's own answer moves `myState`, and the counts the hero and the cards
+        // print move with it, as the server's recount would.
+        // shortcut: the per-position rows and roleBreakdown are not recounted, add it when a take opens a lineup after answering on that event.
+        if (event && body.state && attendance[2] === ME.userId) {
+          const count = { ATTENDING: 'attending', MAYBE: 'maybe', ABSENT: 'absent', NOT_RESPONDED: 'notResponded' }
+          event.attendanceSummary[count[event.myState]]--
+          event.attendanceSummary[count[body.state]]++
+          const going = (body.state === 'ATTENDING') - (event.myState === 'ATTENDING')
+          for (const r of [event.roster, event.rosterBase]) {
+            if (!r) continue
+            r.totalAttending += going
+            r.playingAttending += going
+          }
+          event.myState = body.state
+        }
         return json({ id: `att-${attendance[1]}-${attendance[2]}`, userId: attendance[2], state: body.state ?? 'ATTENDING' })
       }
 

@@ -108,6 +108,7 @@ class MoneyPoolControllerIT : TeamBalanceIT() {
 
             getMoneyPool()
                 .andExpect(MockMvcResultMatchers.status().isOk)
+                .andExpect(MockMvcResultMatchers.jsonPath("$.refreshing").value(false))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.state").value("Connected"))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.balance").value(18750))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.payments.length()").value(8))

@@ -68,11 +68,11 @@ private fun DomainMoneyPoolSettings.produce() = MoneyPoolSettings(
 )
 
 private fun withoutFigures(state: MoneyPoolState, canTopUp: Boolean) =
-    MoneyPool(state, balance = null, payments = null, beerPrice = null, beerCount = null, canTopUp = canTopUp)
+    MoneyPool(state, balance = null, payments = null, beerPrice = null, beerCount = null, canTopUp = canTopUp, refreshing = false)
 
-private fun MoneyPoolOverview.produce() = pool.produce(canTopUp)
+private fun MoneyPoolOverview.produce() = pool.produce(canTopUp, refreshing)
 
-private fun DomainMoneyPool.produce(canTopUp: Boolean) = when (this) {
+private fun DomainMoneyPool.produce(canTopUp: Boolean, refreshing: Boolean) = when (this) {
     DomainMoneyPool.Off -> withoutFigures(MoneyPoolState.Off, canTopUp)
     DomainMoneyPool.NotConnected -> withoutFigures(MoneyPoolState.NotConnected, canTopUp)
     DomainMoneyPool.Unavailable -> withoutFigures(MoneyPoolState.Unavailable, canTopUp)
@@ -84,6 +84,7 @@ private fun DomainMoneyPool.produce(canTopUp: Boolean) = when (this) {
         beerPrice = beerPrice?.cents,
         beerCount = beerCount?.value,
         canTopUp = canTopUp,
+        refreshing = refreshing,
     )
 }
 

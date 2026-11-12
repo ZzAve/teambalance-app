@@ -11,6 +11,7 @@ import com.github.zzave.teambalance.api.domain.exception.UnknownBunqAccountExcep
 import com.github.zzave.teambalance.api.domain.model.ActAs
 import com.github.zzave.teambalance.api.domain.model.BunqAccount
 import com.github.zzave.teambalance.api.domain.model.BunqAccountId
+import com.github.zzave.teambalance.api.domain.model.CachedMoneyPool
 import com.github.zzave.teambalance.api.domain.model.BunqAccountName
 import com.github.zzave.teambalance.api.domain.model.BunqAccounts
 import com.github.zzave.teambalance.api.domain.model.BunqAuthorizationCode
@@ -19,7 +20,6 @@ import com.github.zzave.teambalance.api.domain.model.BunqGrant
 import com.github.zzave.teambalance.api.domain.model.BunqOAuthState
 import com.github.zzave.teambalance.api.domain.model.EncryptedToken
 import com.github.zzave.teambalance.api.domain.model.Money
-import com.github.zzave.teambalance.api.domain.model.MoneyPool
 import com.github.zzave.teambalance.api.domain.model.Payment
 import com.github.zzave.teambalance.api.domain.model.Role
 import com.github.zzave.teambalance.api.domain.model.SchemaName
@@ -105,6 +105,8 @@ private class TenantScopedConnections : TenantScopeGateway, BunqConnectionReposi
 
     var failSaves = false
 
+    override fun current() = error("not used")
+
     override fun <T> within(routing: TenantRouting, block: () -> T): T {
         val before = scope
         scope = routing.schemaName
@@ -139,7 +141,7 @@ private class RecordingMoneyPoolCache : MoneyPoolCacheGateway {
     val evicted = mutableListOf<TeamId>()
     var onEvict: () -> Unit = {}
 
-    override fun read(teamId: TeamId, account: BunqAccountId, load: () -> MoneyPool): MoneyPool = error("not used")
+    override fun read(teamId: TeamId, account: BunqAccountId): CachedMoneyPool = error("not used")
 
     override fun evict(teamId: TeamId) {
         evicted += teamId

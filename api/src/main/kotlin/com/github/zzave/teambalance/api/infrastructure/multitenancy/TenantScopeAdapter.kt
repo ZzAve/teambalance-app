@@ -1,5 +1,7 @@
 package com.github.zzave.teambalance.api.infrastructure.multitenancy
 
+import com.github.zzave.teambalance.api.domain.model.SchemaName
+import com.github.zzave.teambalance.api.domain.model.TeamId
 import com.github.zzave.teambalance.api.domain.model.TenantRouting
 import com.github.zzave.teambalance.api.domain.port.TenantScopeGateway
 import org.springframework.stereotype.Component
@@ -27,4 +29,9 @@ class TenantScopeAdapter : TenantScopeGateway {
             previousTeam?.let(CurrentTeamContext::set) ?: CurrentTeamContext.clear()
         }
     }
+
+    override fun current(): TenantRouting? =
+        CurrentTeamContext.get()
+            ?.takeIf { TenantContext.isSet() }
+            ?.let { TenantRouting(TeamId(it), SchemaName(TenantContext.get())) }
 }

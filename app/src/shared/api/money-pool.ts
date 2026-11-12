@@ -1,6 +1,7 @@
 import { queryOptions, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { authMeQueryOptions } from './auth'
 import type { MoneyPoolSettings } from './generated/model/MoneyPoolSettings'
+import { DEFAULT_STALE_TIME_MS } from './query-client'
 import { topUpUrlOf } from './top-up-link'
 import { api } from './wirespec-client'
 
@@ -16,14 +17,22 @@ export function nullsToUndefined<T extends object>(body: T): T {
   return Object.fromEntries(Object.entries(body).map(([key, value]) => [key, value ?? undefined])) as T
 }
 
+const REFRESHING_REFETCH_MS = 3_000
+
 // The current team's money pool. Readable by any member; `state` says whether the pool is switched
 // off, not connected, unreachable, or connected (then balance and payments are set).
+//
+// `refreshing` means the server answered with older figures and is asking Bunq again. Such an answer
+// is stale at once, so a screen that mounts on it fetches again, and a screen that shows it fetches
+// again every few seconds until the server has the new figures.
 export const moneyPoolQueryOptions = queryOptions({
   queryKey: ['money-pool'],
   queryFn: async () => {
     const res = await api.getMoneyPool()
     return nullsToUndefined(res.body)
   },
+  staleTime: (query) => (query.state.data?.refreshing ? 0 : DEFAULT_STALE_TIME_MS),
+  refetchInterval: (query) => (query.state.data?.refreshing ? REFRESHING_REFETCH_MS : false),
 })
 
 export function useMoneyPool() {

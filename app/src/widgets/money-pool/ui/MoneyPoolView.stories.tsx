@@ -94,9 +94,9 @@ export const Data: Story = {
     const balanceCard = canvas.getByRole('region', { name: 'Balance' })
     await expect(balanceCard.compareDocumentPosition(topUp) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     const payments = within(canvas.getByRole('region', { name: 'Payments' }))
-    // By week from Monday, each under a header with the week's net: today is Wednesday 7 Oct.
-    await expect(payments.getByRole('heading', { name: 'This week Net +€20.00' })).toBeInTheDocument()
-    await expect(payments.getByRole('heading', { name: 'Last week Net −€35.00' })).toBeInTheDocument()
+    // By week from Monday, each under a quiet label, all in one list card: today is Wednesday 7 Oct.
+    await expect(payments.getAllByRole('heading', { level: 4 }).map((h) => h.textContent)).toEqual(['This week', 'Last week'])
+    await expect(payments.queryByText(/^Net/)).not.toBeInTheDocument()
     const [lisa, sporthal, tom] = payments.getAllByRole('listitem')
     await expect(lisa).toHaveTextContent('Lisa de Vries')
     // A top-up with a member shows that member's face and roster name; other money shows its direction.
@@ -228,12 +228,12 @@ export const Interactions: Story = {
     // The list stops at the end of the week that reaches 15 (2 + 7 + 7 = 16), so no week is split; the
     // same button expands it and collapses it again, and keeps focus.
     await expect(payments.getAllByRole('listitem')).toHaveLength(16)
-    await expect(payments.getAllByRole('heading', { level: 4 }).map((h) => h.firstChild?.textContent)).toEqual(['This week', 'Last week', expect.stringMatching(/^5\s*–\s*11 Oct$/)])
+    await expect(payments.getAllByRole('heading', { level: 4 }).map((h) => h.textContent)).toEqual(['This week', 'Last week', expect.stringMatching(/^5\s*–\s*11 Oct$/)])
     const toggle = payments.getByRole('button', { name: 'Show all 18 payments' })
     await expect(toggle).toHaveAttribute('aria-expanded', 'false')
     await userEvent.click(toggle)
     await expect(payments.getAllByRole('listitem')).toHaveLength(18)
-    await expect(payments.getAllByRole('heading', { level: 4 })[3]).toHaveTextContent(/^28 Sept?\s*–\s*4 Oct/)
+    await expect(payments.getAllByRole('heading', { level: 4 })[3]).toHaveTextContent(/^28 Sept?\s*–\s*4 Oct$/)
     await expect(toggle).toHaveTextContent('Show fewer')
     await expect(toggle).toHaveAttribute('aria-expanded', 'true')
     await expect(toggle).toHaveFocus()

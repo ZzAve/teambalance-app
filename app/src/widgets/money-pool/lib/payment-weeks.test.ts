@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import type { Payment } from '@shared/api/money-pool'
 import { i18n } from '@shared/i18n/i18n'
-import { firstWeeks, formatNet, mondayOf, paymentWeeks, weekLabel } from './payment-weeks'
+import { firstWeeks, mondayOf, paymentWeeks, weekLabel } from './payment-weeks'
 
 const pay = (date: string, amount: number, direction: Payment['direction'] = 'In'): Payment => ({
   id: `${date}-${amount}`,
@@ -42,17 +42,13 @@ describe('paymentWeeks', () => {
     expect(weeks[1].payments.map((p) => p.date)).toEqual(['2026-11-08', '2026-11-07'])
   })
 
-  it('nets each week: money in minus money out', () => {
-    expect(paymentWeeks(PAYMENTS).map((w) => w.net)).toEqual([1500 - 1845, 2000 - 4500, 1500])
-  })
-
   it('has no weeks without payments', () => {
     expect(paymentWeeks([])).toEqual([])
   })
 })
 
 describe('firstWeeks', () => {
-  const week = (monday: string, count: number) => ({ monday, net: 0, payments: Array.from({ length: count }, (_, i) => pay(monday, i)) })
+  const week = (monday: string, count: number) => ({ monday, payments: Array.from({ length: count }, (_, i) => pay(monday, i)) })
 
   it('keeps whole weeks until at least the asked number of payments is shown', () => {
     const weeks = [week('2026-11-09', 6), week('2026-11-02', 7), week('2026-10-26', 4), week('2026-10-19', 3)]
@@ -88,16 +84,5 @@ describe('weekLabel', () => {
     expect(weekLabel('2026-11-09', TODAY)).toBe('Deze week')
     expect(weekLabel('2026-11-02', TODAY)).toBe('Vorige week')
     expect(weekLabel('2026-10-26', TODAY)).toMatch(/^26 okt\s*–\s*1 nov$/)
-  })
-})
-
-describe('formatNet', () => {
-  it('signs the net, with a true minus for money out', () => {
-    expect(formatNet(1500)).toBe('+€15.00')
-    expect(formatNet(-2500)).toBe('−€25.00')
-  })
-
-  it('shows no sign for zero', () => {
-    expect(formatNet(0)).toBe('€0.00')
   })
 })

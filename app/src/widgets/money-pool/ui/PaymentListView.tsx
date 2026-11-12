@@ -5,7 +5,7 @@ import type { Member } from '@shared/api/members'
 import type { Payment } from '@shared/api/money-pool'
 import { Button } from '@shared/ui/button'
 import { formatEuro, formatPaymentWeekday } from '../lib/format'
-import { firstWeeks, formatNet, paymentWeeks, weekLabel } from '../lib/payment-weeks'
+import { firstWeeks, paymentWeeks, weekLabel } from '../lib/payment-weeks'
 import { MemberAvatar } from './MemberAvatar'
 
 interface PaymentListViewProps {
@@ -26,7 +26,7 @@ interface PaymentListViewProps {
 /** At least this many payments show before "Show all"; the list stops at the end of a week. */
 const PAYMENTS_SHOWN = 15
 
-/** The pool's payments by week (Monday start), newest first, each week under a sticky header with its net. */
+/** The pool's payments in one card, newest first, by week (Monday start) under a quiet label. */
 export function PaymentListView({ payments, today, members, youId, receipt, claim }: PaymentListViewProps) {
   const { t } = useTranslation()
   const [showAll, setShowAll] = useState(false)
@@ -42,23 +42,19 @@ export function PaymentListView({ payments, today, members, youId, receipt, clai
       {payments.length === 0 ? (
         <p className="text-small text-muted-foreground">{t('money.noPayments')}</p>
       ) : (
-        shown.map((week) => (
-          <div key={week.monday}>
-            {/* Sticks under the app header while its week scrolls by; its parent ends the stick at the week's end. */}
-            <h4 className="sticky top-[var(--header-height)] z-10 flex items-baseline justify-between gap-2 bg-background px-1 pt-3.5 pb-1.5 text-caption font-bold uppercase tracking-wide text-muted-foreground">
-              <span>{weekLabel(week.monday, today)}</span>
-              <span className="font-semibold normal-case tracking-normal tabular-nums">
-                <span className="sr-only">{`${t('money.weekNet')} `}</span>
-                {formatNet(week.net)}
-              </span>
-            </h4>
-            <ul className="flex flex-col divide-y divide-border rounded-lg bg-card">
-              {week.payments.map((payment) => (
-                <PaymentRow key={payment.id} payment={payment} member={payment.memberId ? memberById.get(payment.memberId) : undefined} youId={youId} receipt={receipt} claim={claim} />
-              ))}
-            </ul>
-          </div>
-        ))
+        // One card; each week opens with a quiet label line. Not sticky, to keep the list calm.
+        <div className="rounded-lg bg-card">
+          {shown.map((week) => (
+            <div key={week.monday}>
+              <h4 className="px-4 pt-3 pb-1 text-caption font-semibold text-muted-foreground">{weekLabel(week.monday, today)}</h4>
+              <ul className="flex flex-col divide-y divide-border">
+                {week.payments.map((payment) => (
+                  <PaymentRow key={payment.id} payment={payment} member={payment.memberId ? memberById.get(payment.memberId) : undefined} youId={youId} receipt={receipt} claim={claim} />
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
       )}
       {payments.length > collapsedCount && (
         <Button variant="ghost" size="sm" className="mt-2 w-full" aria-expanded={showAll} onClick={() => setShowAll(!showAll)}>

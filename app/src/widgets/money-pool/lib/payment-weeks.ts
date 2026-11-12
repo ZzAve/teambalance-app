@@ -1,14 +1,12 @@
 import type { Payment } from '@shared/api/money-pool'
 import { i18n } from '@shared/i18n/i18n'
-import { formatDateRange, formatEuro } from './format'
+import { formatDateRange } from './format'
 
 export interface PaymentWeek {
   /** ISO calendar date of the week's Monday. */
   monday: string
   /** In the order given (newest first). */
   payments: Payment[]
-  /** Euro cents in minus euro cents out. */
-  net: number
 }
 
 /** ISO calendar date `days` after `date`. Calendar arithmetic in UTC, so no DST or zone shifts. */
@@ -28,9 +26,8 @@ export function paymentWeeks(payments: Payment[]): PaymentWeek[] {
   for (const p of payments) {
     const monday = mondayOf(p.date)
     let week = weeks.get(monday)
-    if (!week) weeks.set(monday, (week = { monday, payments: [], net: 0 }))
+    if (!week) weeks.set(monday, (week = { monday, payments: [] }))
     week.payments.push(p)
-    week.net += p.direction === 'In' ? p.amount : -p.amount
   }
   return [...weeks.values()]
 }
@@ -53,10 +50,4 @@ export function weekLabel(monday: string, today: string): string {
   if (monday === thisMonday) return i18n.t('money.thisWeek')
   if (monday === addDays(thisMonday, -7)) return i18n.t('money.lastWeek')
   return formatDateRange(monday, addDays(monday, 6))
-}
-
-/** A week's net with its sign; the minus is a true minus sign, as on the payment rows. */
-export function formatNet(cents: number): string {
-  const sign = cents > 0 ? '+' : cents < 0 ? '−' : ''
-  return sign + formatEuro(Math.abs(cents))
 }

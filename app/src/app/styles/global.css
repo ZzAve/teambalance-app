@@ -81,6 +81,15 @@
      under white text, or ink on top of a gold tint chip (bg-gold/15 and friends), the plain hue or
      -dark ramp are still correct and unaffected by this token. */
   --color-gold-ink: #8C6600;
+  /* Money in and money out on the payment list (money pool), as text and as icons on a 15% tint of
+     the plain hue. Green-dark stays #1D7F57 in dark, only 3.46:1 on that card, so green as text gets
+     the same per-theme split: #1D7F57 here (4.89:1 on the card, 4.60:1 on the background), the plain
+     green in `.dark` (5.06:1 and 5.50:1). Plain orange is 2.80:1 on the light card, so orange-ink is
+     #A9531F here (5.24:1, 4.93:1) and the plain orange in `.dark` (6.05:1, 6.57:1). Orange is
+     exposed for the tint; keep it in sync with design-tokens/tokens.css. */
+  --color-orange: #E87C3E;
+  --color-green-ink: #1D7F57;
+  --color-orange-ink: #A9531F;
   --color-border: hsl(214.3 31.8% 91.4%);
   --color-input: hsl(214.3 31.8% 91.4%);
   --color-ring: hsl(222.2 84% 4.9%);
@@ -254,6 +263,9 @@
      text on this near-black card. Re-pointing it to gold-dark's own value reuses a hex already
      proven at 6.2:1 on this card, instead of minting a second dark-only gold. */
   --color-gold-ink: var(--color-gold-dark);
+  /* Green and orange as ink move to their plain hues, which clear 4.5:1 on this card (see @theme). */
+  --color-green-ink: var(--color-green);
+  --color-orange-ink: var(--color-orange);
 
   /* Shadcn semantic set. `foreground`/`primary` invert (light ink on a dark ground). `destructive`
      is absent on purpose: the `@theme` block binds it to `var(--color-red)`, and `var()` resolves

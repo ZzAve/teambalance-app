@@ -8,7 +8,7 @@ import { formatEuro, formatPaymentWeekday } from '../lib/format'
 import { firstWeeks, formatNet, paymentWeeks, weekLabel } from '../lib/payment-weeks'
 import { MemberAvatar } from './MemberAvatar'
 
-interface PaymentListProps {
+interface PaymentListViewProps {
   /** Newest first, as the pool returns them. */
   payments: Payment[]
   /** ISO calendar date of today, for "This week" and "Last week". */
@@ -27,7 +27,7 @@ interface PaymentListProps {
 const PAYMENTS_SHOWN = 15
 
 /** The pool's payments by week (Monday start), newest first, each week under a sticky header with its net. */
-export function PaymentList({ payments, today, members, youId, receipt, claim }: PaymentListProps) {
+export function PaymentListView({ payments, today, members, youId, receipt, claim }: PaymentListViewProps) {
   const { t } = useTranslation()
   const [showAll, setShowAll] = useState(false)
   const memberById = useMemo(() => new Map((members ?? []).map((m) => [m.userId, m])), [members])
@@ -69,7 +69,7 @@ export function PaymentList({ payments, today, members, youId, receipt, claim }:
   )
 }
 
-function PaymentRow({ payment, member, youId, receipt, claim }: Pick<PaymentListProps, 'youId' | 'receipt' | 'claim'> & { payment: Payment; member: Member | undefined }) {
+function PaymentRow({ payment, member, youId, receipt, claim }: Pick<PaymentListViewProps, 'youId' | 'receipt' | 'claim'> & { payment: Payment; member: Member | undefined }) {
   const { t } = useTranslation()
   const isIncoming = payment.direction === 'In'
   // The roster name, unless it only repeats the payment's own name.
@@ -78,7 +78,10 @@ function PaymentRow({ payment, member, youId, receipt, claim }: Pick<PaymentList
     // The row is focusable so focus can land on it after a claim removes its button.
     <li tabIndex={-1} className="flex items-center gap-3 px-4 py-3 outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring">
       {payment.memberId ? (
-        <MemberAvatar memberId={payment.memberId} member={member} name={member?.displayName ?? payment.name} />
+        // Decorative: the name is on the row, so screen readers skip the initials.
+        <span aria-hidden="true" className="shrink-0">
+          <MemberAvatar memberId={payment.memberId} member={member} name={member?.displayName ?? payment.name} />
+        </span>
       ) : (
         <span aria-hidden="true" className={`flex size-8 shrink-0 items-center justify-center rounded-full ${isIncoming ? 'bg-green/15 text-green-ink' : 'bg-orange/15 text-orange-ink'}`}>
           {isIncoming ? <ArrowDownLeft size={16} /> : <ArrowUpRight size={16} />}

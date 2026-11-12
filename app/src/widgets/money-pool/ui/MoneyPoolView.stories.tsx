@@ -101,6 +101,8 @@ export const Data: Story = {
     await expect(lisa).toHaveTextContent('Lisa de Vries')
     // A top-up with a member shows that member's face and roster name; other money shows its direction.
     await expect(lisa).toHaveTextContent('LV')
+    // The face is decorative: the row's accessible text starts at the payment's name.
+    await expect(within(lisa).getByText('LV').closest('[aria-hidden="true"]')).not.toBeNull()
     await expect(within(lisa).getByText('Lisa V. · Tue 6 Oct')).toBeInTheDocument()
     await expect(within(tom).getByText(/^Tue 29 Sept?$/)).toBeInTheDocument()
     await expect(payments.getAllByText(/Incoming/)).toHaveLength(2)

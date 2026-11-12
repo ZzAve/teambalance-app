@@ -7,7 +7,7 @@ import { balanceTimeline, potTotals } from '../lib/balance-timeline'
 import { BalanceGraph } from './BalanceGraph'
 import { formatBeers, formatEuro } from '../lib/format'
 import { toppedUpTotal } from '../lib/toppers'
-import { PaymentList } from './PaymentList'
+import { PaymentListView } from './PaymentListView'
 import { ToppersView } from './ToppersView'
 
 interface ConnectedMoneyPoolProps {
@@ -84,7 +84,7 @@ export function ConnectedMoneyPool({ balance, payments, beerPrice, beerCount, to
 
       {topUp}
 
-      <PaymentList payments={payments} today={today} members={members} youId={youId} receipt={receipt} claim={claim} />
+      <PaymentListView payments={payments} today={today} members={members} youId={youId} receipt={receipt} claim={claim} />
 
       {payments.length > 0 && members && <ToppersView payments={payments} today={today} members={members} seasonSet={seasonSet} youId={youId} />}
     </div>

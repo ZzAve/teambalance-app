@@ -29,7 +29,7 @@
     <link rel="stylesheet" href="/style.css" />
   </head>
   <body>
-    <div class="dark">
+    <div class="dark dark-slim">
       <div class="wrap">
         <header class="topbar">
           <a class="wordmark" href="#top" aria-label="TeamBalance"><span class="a">Team</span><span class="b">Balance</span></a>
@@ -38,8 +38,12 @@
             <a class="login" href="https://app.teambalance.nl/login">{{logIn}}</a>
           </nav>
         </header>
+      </div>
+    </div>
 
-        <main id="top" class="hero">
+    <main id="top">
+      <div class="dark">
+        <div class="wrap hero">
           <div class="hook">
             <h1>{{heroTitle}}</h1>
             <p class="sub">{{heroSub}}</p>
@@ -47,6 +51,7 @@
               <a class="btn btn-primary" href="https://demo.teambalance.nl/">{{demoButton}}</a>
               <a class="linkbtn" href="#start">{{howToStart}}</a>
             </div>
+            <p class="cta-note">{{ctaNote}}</p>
           </div>
 
           <div class="scene" id="scene" role="group" aria-labelledby="sceneCaption">
@@ -56,19 +61,10 @@
               <span class="unread" id="unread">{{unread}}</span>
             </div>
 
-            <div class="thread-wrap">
-              <div class="thread" aria-hidden="true">
-                <div class="msg att me" style="--i: 0"><div class="msg-in"><span class="bubble">{{msgMe1}}</span></div></div>
-                <div class="msg att" style="--i: 1"><div class="msg-in"><span class="bubble"><span class="who w2">Joost</span>{{msgJoost}}</span></div></div>
-                <div class="msg"><div class="msg-in"><span class="bubble"><span class="who w3">Lotte</span>{{msgLotte}}</span></div></div>
-                <div class="msg att" style="--i: 2"><div class="msg-in"><span class="bubble"><span class="who w4">Bram</span>{{msgBram}}</span></div></div>
-                <div class="msg att" style="--i: 3"><div class="msg-in"><span class="bubble"><span class="who w5">Iris</span>{{msgIris}}</span></div></div>
-                <div class="msg"><div class="msg-in"><span class="bubble"><span class="who w1">Daan</span>{{msgDaan}}</span></div></div>
-                <div class="msg att" style="--i: 4"><div class="msg-in"><span class="bubble"><span class="who w3">Eva</span>{{msgEva}}</span></div></div>
-                <div class="msg"><div class="msg-in"><span class="bubble"><span class="who w2">Thijs</span>{{msgThijs}}</span></div></div>
-                <div class="msg att me" style="--i: 5"><div class="msg-in"><span class="bubble">{{msgMe2}}</span></div></div>
-                <div class="msg"><div class="msg-in"><span class="bubble"><span class="who w5">Noor</span>{{msgNoor}}</span></div></div>
-              </div>
+            <div class="thread" aria-hidden="true">
+              <div class="msg"><div class="msg-in"><span class="bubble"><span class="who w3">Lotte</span>{{msgLotte}}</span></div></div>
+              <div class="msg att" style="--i: 0"><div class="msg-in"><span class="bubble"><span class="who w3">Eva</span>{{msgEva}}</span></div></div>
+              <div class="msg att me" style="--i: 1"><div class="msg-in"><span class="bubble">{{msgMe2}}</span></div></div>
             </div>
 
             <section class="card" aria-label="{{cardLabel}}">
@@ -121,22 +117,13 @@
               <button class="linkbtn" type="button" id="bringBack">{{oldWay}}</button>
             </div>
           </div>
-        </main>
+        </div>
       </div>
-    </div>
 
-    <div class="calm">
-      <div class="wrap">
-        <section class="intro">
-          <h2>{{introTitle}}</h2>
-          <p>{{introText}}</p>
-        </section>
-
-        <h2 class="group-title">{{groupWhoTitle}}</h2>
-        <article class="pair">
-          <div class="ask"><span class="bubble">{{askWho}}</span></div>
-          <div class="arrow" aria-hidden="true"><svg width="40" height="24" viewBox="0 0 40 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h30M26 4l8 8-8 8" /></svg></div>
-          <div class="answer">
+      <div class="calm">
+        <div class="wrap">
+          <h2 class="group-title">{{groupWhoTitle}}</h2>
+          <article class="answer">
             <h3>{{rosterTitle}}</h3>
             <p>{{rosterText}}</p>
             <dl class="roster">
@@ -148,94 +135,122 @@
             </dl>
             <p class="enough"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M8 12.5l2.6 2.6L16 9.5" /></svg>{{rosterEnough}}</p>
             <p class="one-tap">{{rosterOneTap}}</p>
+          </article>
+
+          <div class="smalls">
+            <section>
+              <h3>{{subTitle}}</h3>
+              <p>{{subText}}</p>
+            </section>
+            <section>
+              <h3>{{calTitle}}</h3>
+              <p>{{calText}}</p>
+              <p class="fake-field"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="2.5" /><path d="M3.5 10h17M8 3v4M16 3v4" /></svg>{{calField}}</p>
+            </section>
           </div>
-        </article>
 
-        <div class="smalls">
-          <section>
-            <p class="struck">{{askShort}}</p>
-            <h3>{{subTitle}}</h3>
-            <p>{{subText}}</p>
-          </section>
-          <section>
-            <p class="struck">{{askTime}}</p>
-            <h3>{{calTitle}}</h3>
-            <p>{{calText}}</p>
-            <p class="fake-field"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="2.5" /><path d="M3.5 10h17M8 3v4M16 3v4" /></svg>{{calField}}</p>
-          </section>
-        </div>
-
-        <h2 class="group-title">{{groupMoneyTitle}}</h2>
-        <article class="pot-panel">
-          <div class="pot-asks"><span class="bubble">{{askOwe}}</span><span class="bubble">{{askTikkie}}</span></div>
-          <figure class="pot">
-            <svg viewBox="0 0 260 190" role="img" aria-label="{{potAlt}}">
-              <ellipse class="pt-sh" cx="130" cy="176" rx="96" ry="9" />
-              <path class="pt-body" d="M44 62h172v70a52 52 0 0 1-52 52H96a52 52 0 0 1-52-52z" stroke-width="5" stroke-linejoin="round" />
-              <path class="pt-line" d="M44 62h172" stroke-width="5" stroke-linecap="round" />
-              <path class="pt-line" d="M44 84c-26 0-26 40 0 40M216 84c26 0 26 40 0 40" stroke-width="5" stroke-linecap="round" />
-              <ellipse class="pt-lid" cx="130" cy="58" rx="92" ry="12" stroke-width="5" />
-              <circle class="pt-coin" cx="96" cy="46" r="15" stroke-width="4" /><circle class="pt-coin" cx="132" cy="38" r="15" stroke-width="4" /><circle class="pt-coin" cx="166" cy="48" r="15" stroke-width="4" />
-              <text class="pt-txt" x="130" y="140" text-anchor="middle" font-weight="800" font-size="34">€184</text>
-            </svg>
-            <figcaption>{{potCaption}}</figcaption>
-          </figure>
-          <div class="pot-body">
-            <h3>{{potTitle}}</h3>
-            <p>{{potText}}</p>
-            <p class="pot-note">{{potNote}}</p>
-            <div class="topups" role="group" aria-label="{{topupGroup}}">
-              <button class="topup" type="button" data-v="€10" aria-pressed="false">€10</button>
-              <button class="topup" type="button" data-v="€20" aria-pressed="false">€20</button>
-              <button class="topup" type="button" data-v="€50" aria-pressed="false">€50</button>
-              <button class="topup" type="button" data-v="{{topupCustomValue}}" aria-pressed="false">{{topupCustom}}</button>
+          <h2 class="group-title">{{groupMoneyTitle}}</h2>
+          <article class="pot-panel">
+            <figure class="pot">
+              <svg viewBox="0 0 260 190" role="img" aria-label="{{potAlt}}">
+                <ellipse class="pt-sh" cx="130" cy="176" rx="96" ry="9" />
+                <path class="pt-body" d="M44 62h172v70a52 52 0 0 1-52 52H96a52 52 0 0 1-52-52z" stroke-width="5" stroke-linejoin="round" />
+                <path class="pt-line" d="M44 62h172" stroke-width="5" stroke-linecap="round" />
+                <path class="pt-line" d="M44 84c-26 0-26 40 0 40M216 84c26 0 26 40 0 40" stroke-width="5" stroke-linecap="round" />
+                <ellipse class="pt-lid" cx="130" cy="58" rx="92" ry="12" stroke-width="5" />
+                <circle class="pt-coin" cx="96" cy="46" r="15" stroke-width="4" /><circle class="pt-coin" cx="132" cy="38" r="15" stroke-width="4" /><circle class="pt-coin" cx="166" cy="48" r="15" stroke-width="4" />
+                <text class="pt-txt" x="130" y="140" text-anchor="middle" font-weight="800" font-size="34">€184</text>
+              </svg>
+              <figcaption>{{potCaption}}</figcaption>
+            </figure>
+            <div class="pot-body">
+              <h3>{{potTitle}}</h3>
+              <p>{{potText}}</p>
+              <p class="pot-note">{{potNote}}</p>
+              <figure class="topups-example">
+                <figcaption>{{topupExample}}</figcaption>
+                <ul class="topups">
+                  <li>€10</li>
+                  <li>€20</li>
+                  <li>€50</li>
+                  <li>{{topupCustom}}</li>
+                </ul>
+              </figure>
             </div>
-            <p class="topup-note" id="topupNote" role="status" aria-live="polite">{{topupIdle}}</p>
-          </div>
-        </article>
+          </article>
 
-        <section class="start" id="start" aria-labelledby="start-title">
-          <h2 id="start-title">{{startTitle}}</h2>
-          <p class="sub">{{startInvited}}</p>
-          <ol class="steps">
-            <li>
-              <h3>{{step1Title}}</h3>
-              <p id="step1-text">{{step1Text}}</p>
-              <form class="request" method="post" novalidate data-request>
-                <label class="sr-only" for="email">{{emailLabel}}</label>
-                <div class="row">
-                  <input id="email" aria-describedby="step1-text email-msg" type="email" name="email" placeholder="{{emailPlaceholder}}" autocomplete="email" inputmode="email" />
-                  <button class="btn btn-primary" type="submit">{{formButton}}</button>
-                </div>
-                <p class="form-msg" id="email-msg" role="status" aria-live="polite"></p>
-              </form>
-            </li>
-            <li>
-              <h3>{{step2Title}}</h3>
-              <p>{{step2Text}}</p>
-            </li>
-            <li>
-              <h3>{{step3Title}}</h3>
-              <p>{{step3Text}}</p>
-              <p class="fake-field"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1" /><path d="M14 10a4 4 0 0 0-5.7 0l-3 3A4 4 0 0 0 11 18.7l1-1" /></svg>{{inviteField}}</p>
-            </li>
-          </ol>
-        </section>
+          <section class="start" id="start" aria-labelledby="start-title">
+            <h2 id="start-title">{{startTitle}}</h2>
+            <p class="sub">{{startInvited}}</p>
+            <ol class="steps">
+              <li>
+                <h3>{{step1Title}}</h3>
+                <p id="step1-text">{{step1Text}}</p>
+                <form class="request" method="post" novalidate data-request>
+                  <label class="sr-only" for="email">{{emailLabel}}</label>
+                  <div class="row">
+                    <input id="email" aria-describedby="step1-text email-msg" type="email" name="email" placeholder="{{emailPlaceholder}}" autocomplete="email" inputmode="email" />
+                    <button class="btn btn-primary" type="submit">{{formButton}}</button>
+                  </div>
+                  <p class="form-msg" id="email-msg" role="status" aria-live="polite"></p>
+                </form>
+              </li>
+              <li>
+                <h3>{{step2Title}}</h3>
+                <p>{{step2Text}}</p>
+              </li>
+              <li>
+                <h3>{{step3Title}}</h3>
+                <p>{{step3Text}}</p>
+                <p class="fake-field"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1" /><path d="M14 10a4 4 0 0 0-5.7 0l-3 3A4 4 0 0 0 11 18.7l1-1" /></svg>{{inviteField}}</p>
+              </li>
+            </ol>
+          </section>
 
-        <section class="origin">
-          <h2>{{originTitle}}</h2>
-          <p>{{originText}}</p>
-        </section>
-      </div>
+          <section class="faq" aria-labelledby="faq-title">
+            <h2 id="faq-title">{{faqTitle}}</h2>
+            <details>
+              <summary>{{faqCostQ}}</summary>
+              <p>{{faqCostA}}</p>
+            </details>
+            <details>
+              <summary>{{faqBunqQ}}</summary>
+              <p>{{faqBunqA}}</p>
+            </details>
+            <details>
+              <summary>{{faqApproveQ}}</summary>
+              <p>{{faqApproveA}}</p>
+            </details>
+            <details>
+              <summary>{{faqAppQ}}</summary>
+              <p>{{faqAppA}}</p>
+            </details>
+            <details>
+              <summary>{{faqSportQ}}</summary>
+              <p>{{faqSportA}}</p>
+            </details>
+            <details>
+              <summary>{{faqDataQ}}</summary>
+              <p>{{faqDataA}} <a href="{{privacyHref}}">{{faqDataLink}}</a>.</p>
+            </details>
+          </section>
 
-      <footer>
-        <div class="wrap foot">
-          <a class="wordmark" href="#top" aria-label="TeamBalance"><span class="a">Team</span><span class="b">Balance</span></a>
-          <a href="{{privacyHref}}">{{privacyLink}}</a>
-          <span>{{footMade}}</span>
+          <section class="origin">
+            <h2>{{originTitle}}</h2>
+            <p>{{originText}}</p>
+          </section>
         </div>
-      </footer>
-    </div>
+      </div>
+    </main>
+
+    <footer>
+      <div class="wrap foot">
+        <a class="wordmark" href="#top" aria-label="TeamBalance"><span class="a">Team</span><span class="b">Balance</span></a>
+        <a href="{{privacyHref}}">{{privacyLink}}</a>
+        <a href="mailto:{{contactEmail}}">{{contactLabel}}: {{contactEmail}}</a>
+        <span>{{footMade}}</span>
+      </div>
+    </footer>
 
     <script type="application/json" id="copy">
       {
@@ -249,7 +264,6 @@
         "match_going": "{{statusMatchGoing}}",
         "match_maybe": "{{statusMatchMaybe}}",
         "match_cant": "{{statusMatchCant}}",
-        "topupPicked": "{{topupPicked}}",
         "formEmpty": "{{formEmpty}}",
         "formInvalid": "{{formInvalid}}",
         "formSending": "{{formSending}}",

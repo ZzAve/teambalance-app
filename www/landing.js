@@ -1,4 +1,4 @@
-// DOM wiring for the landing page: event answers, top-up chips, sign-in form. Logic lives in landing-state.mjs.
+// DOM wiring for the landing page: event answers and the sign-in form. Logic lives in landing-state.mjs.
 import { answer, initialState, showOldWay, statusText } from './landing-state.mjs'
 
 const copy = JSON.parse(document.getElementById('copy').textContent)
@@ -35,14 +35,6 @@ $('#bringBack').addEventListener('click', () => {
   render()
   $('#status').focus() // the button hides itself, so focus would otherwise fall back to the page
 })
-
-// ---- top-up chips ----
-$$('.topup').forEach((b) =>
-  b.addEventListener('click', () => {
-    $$('.topup').forEach((o) => o.setAttribute('aria-pressed', String(o === b)))
-    $('#topupNote').textContent = copy.topupPicked.replace('{amount}', b.dataset.v)
-  }),
-)
 
 // ---- sign-in form: sends a magic link (POST, JSON) ----
 const apiBase = document.querySelector('meta[name="api-base"]')?.content ?? 'https://api.teambalance.nl'

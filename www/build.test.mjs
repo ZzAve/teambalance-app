@@ -49,7 +49,7 @@ test('head metadata is present on the landing pages', () => {
 test('the #copy block of every landing page parses as JSON and has all its keys', () => {
   for (const f of ['index.html', 'en/index.html']) {
     const copy = JSON.parse(read(f).match(/id="copy">([\s\S]*?)<\/script>/)[1])
-    assert.ok(copy.formSent && copy.training_going && copy.topupPicked, `${f}: copy block incomplete`)
+    assert.ok(copy.formSent && copy.training_going && copy.unreadQuiet, `${f}: copy block incomplete`)
   }
 })
 

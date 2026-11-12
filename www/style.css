@@ -158,7 +158,7 @@ a {
 .hero {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: 28px;
+  gap: 20px;
   padding-top: 8px;
 }
 .hook h1 {
@@ -179,7 +179,7 @@ a {
 
 /* hero actions: demo first, then a link to the steps */
 .cta {
-  margin-top: 24px;
+  margin-top: 20px;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -274,9 +274,14 @@ a {
   max-width: 440px;
   justify-self: center;
 }
-.scene-caption {
-  padding: 4px 6px 12px;
+.cta-note {
+  margin-top: 8px;
   font-size: 0.9375rem;
+  color: var(--dusk-soft);
+}
+.scene-caption {
+  padding: 2px 6px 10px;
+  font-size: 0.875rem;
   color: var(--dusk-text);
 }
 .chat-head {
@@ -300,9 +305,9 @@ a {
 }
 .unread {
   flex: none;
-  font-size: 0.8125rem;
+  font-size: 0.75rem;
   font-weight: 700;
-  padding: 4px 10px;
+  padding: 4px 8px;
   border-radius: 999px;
   background: #f0965f;
   color: #2a1405;
@@ -314,17 +319,7 @@ a {
   box-shadow: inset 0 0 0 1px var(--dusk-line);
 }
 
-.thread-wrap {
-  --th: 400px;
-  max-height: var(--th);
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  mask-image: linear-gradient(to bottom, transparent 0, #000 48px);
-}
 .thread {
-  flex: none;
   display: flex;
   flex-direction: column;
   padding: 10px 4px 0;
@@ -549,70 +544,17 @@ a {
   border-radius: 28px 28px 0 0;
   padding-top: 1px;
 }
-.intro {
-  padding-top: 64px;
-}
-.intro h2,
-.start h2 {
-  font-family: var(--font-display);
-  font-weight: 800;
-  font-size: clamp(2rem, 6vw, 3.25rem);
-  line-height: 1.08;
-  letter-spacing: -0.01em;
-  text-wrap: balance;
-  max-width: 18ch;
-}
-.intro p {
-  margin-top: 12px;
-  color: var(--ink-soft);
-  max-width: 52ch;
-}
+/* card titles: DM Sans; Grandstander stays for H1/H2 */
 h3 {
-  font-family: var(--font-display);
-  font-weight: 700;
-  font-size: 1.375rem;
-  line-height: 1.2;
+  font-weight: 600;
+  font-size: 1.25rem;
+  line-height: 1.25;
 }
 
-/* struck-through chat question, shared by roster, pot and the smaller answers */
-.ask,
-.pot-asks {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  align-items: flex-start;
-}
-.ask .bubble,
-.pot-asks .bubble,
-.struck {
-  background: #e9e4d6;
-  color: var(--ink-soft);
-  border-radius: 4px 16px 16px 16px;
-  text-decoration: line-through;
-  text-decoration-thickness: 2px;
-  text-decoration-color: #b3261e;
-  font-size: 1rem;
-  padding: 10px 14px;
-}
-.pot-asks .bubble + .bubble {
-  border-radius: 16px;
-}
-.struck {
-  display: inline-block;
-}
-
-/* roster: white card, ask on the left on wide screens */
-.pair {
-  margin-top: 36px;
-  display: grid;
-  gap: 14px;
-  align-items: start;
-}
-.arrow {
-  display: none;
-  color: var(--color-green-dark);
-}
+/* roster: white card */
 .answer {
+  margin-top: 28px;
+  max-width: 760px;
   background: var(--color-card);
   border: 1px solid var(--line);
   border-radius: 18px;
@@ -726,37 +668,34 @@ h3 {
   font-family: var(--font-display);
   font-variant-numeric: tabular-nums;
 }
+/* top-up amounts: a static example, not controls */
+.topups-example {
+  margin: 18px 0 0;
+}
+.topups-example figcaption {
+  font-size: 0.9375rem;
+  color: var(--ink-soft);
+}
 .topups {
-  margin-top: 18px;
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 8px;
   max-width: 420px;
 }
-.topup {
-  min-height: 48px;
-  font: inherit;
+.topups li {
+  min-height: 44px;
+  display: grid;
+  place-items: center;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
-  cursor: pointer;
   background: #fff;
-  color: var(--ink);
-  border: 2px solid #94a3b8;
+  color: var(--ink-soft);
+  border: 1px dashed #8493a6;
   border-radius: 12px;
 }
-.topup:hover {
-  border-color: var(--color-blue);
-}
-.topup[aria-pressed='true'] {
-  background: var(--color-blue);
-  border-color: var(--color-blue);
-  color: #fff;
-}
-.pot-body .topup-note {
-  min-height: 1.5em;
-  font-size: 0.9375rem;
-}
-
 /* two small answers: no boxes, separated by rules */
 .smalls {
   margin-top: 48px;
@@ -766,10 +705,7 @@ h3 {
   padding: 28px 0;
   border-top: 1px solid var(--line);
 }
-.smalls h3 {
-  margin-top: 16px;
-}
-.smalls p:not(.struck, .fake-field) {
+.smalls p:not(.fake-field) {
   margin-top: 6px;
   color: var(--ink-soft);
   max-width: 44ch;
@@ -798,6 +734,8 @@ h3 {
   max-width: 62ch;
 }
 .group-title,
+.start h2,
+.faq h2,
 .origin h2 {
   font-family: var(--font-display);
   font-weight: 800;
@@ -810,8 +748,34 @@ h3 {
   color: var(--ink-soft);
 }
 
+.faq {
+  padding-top: 72px;
+  max-width: 640px;
+}
+.faq h2 {
+  margin-bottom: 16px;
+}
+.faq details {
+  border-top: 1px solid var(--line);
+}
+.faq details:last-of-type {
+  border-bottom: 1px solid var(--line);
+}
+.faq summary {
+  min-height: 48px;
+  padding: 12px 0;
+  font-weight: 600;
+  cursor: pointer;
+}
+.faq details p {
+  padding-bottom: 16px;
+  color: var(--ink-soft);
+}
+.faq details a {
+  color: var(--color-blue-dark);
+}
 .start {
-  padding-top: 88px;
+  padding-top: 72px;
   max-width: 640px;
   scroll-margin-top: 16px;
 }
@@ -949,31 +913,15 @@ footer {
     gap: 56px;
     align-items: center;
     padding-top: 16px;
-    min-height: calc(100svh - 56px - 72px);
   }
   .scene {
     justify-self: end;
   }
-  .thread-wrap {
-    --th: 300px;
-  }
-  .pair {
-    grid-template-columns: minmax(0, 0.8fr) 56px minmax(0, 1.4fr);
-    gap: 20px;
-  }
-  .arrow {
-    display: block;
-    padding-top: 14px;
-    justify-self: center;
-  }
   .pot-panel {
     grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.3fr);
-    grid-template-areas: 'asks asks' 'pot body';
+    grid-template-areas: 'pot body';
     column-gap: 56px;
     padding: 40px;
-  }
-  .pot-asks {
-    grid-area: asks;
   }
   .pot {
     grid-area: pot;

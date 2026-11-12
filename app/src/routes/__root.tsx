@@ -10,6 +10,7 @@ import { TeamSwitcher } from '@features/switch-team/ui/TeamSwitcher'
 import { ActAsBanner } from '@features/act-as/ui/ActAsBanner'
 import { PasskeyPrompt } from '@features/passkey-prompt/ui/PasskeyPrompt'
 import { DemoBanner } from '@widgets/demo-banner/ui/DemoBanner'
+import { PinnedStrip, PrototypeSwitcher, useBulletinVariant, PROTOTYPE_ON } from '@widgets/bulletin-prototype/ui/BulletinPrototype'
 import { LOGIN_PATH } from '@shared/api/auth-redirect'
 import { IS_DEMO_BUILD } from '@shared/lib/demo-build'
 import { queryClient } from '@shared/api/query-client'
@@ -104,6 +105,7 @@ function RootLayout() {
   const theme = useThemeSync()
   const { t } = useTranslation()
   const pathname = useRouterState({ select: (s) => s.location.pathname })
+  const bulletinVariant = useBulletinVariant()
 
   return (
     <Providers>
@@ -117,11 +119,13 @@ function RootLayout() {
             {/* Demo build only (VITE_DEMO); its own element, outside the act-as banner, so the two share no state. */}
             {IS_DEMO_BUILD && <DemoBanner />}
             <ActAsBanner />
+            {PROTOTYPE_ON && bulletinVariant === 'A' && !isAuthRoute(pathname) && <PinnedStrip />}
           </>
         }
         nav={isAuthRoute(pathname) ? undefined : <BottomNav />}
       >
         <Outlet />
+        <PrototypeSwitcher />
       </AppShellFrame>
       {/* App-wide toast primitive. richColors gives the error toast a semantic red; `theme` is the
           resolved theme rather than sonner's own "system" so it follows the in-app preference —

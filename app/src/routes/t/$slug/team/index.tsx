@@ -4,6 +4,7 @@ import { ManageSubstitutes } from '@features/manage-substitutes/ui/ManageSubstit
 import { GenerateInviteDialog } from '@features/generate-invite/ui/GenerateInviteDialog'
 import { TeamPageView } from '@pages/team/ui/TeamPageView'
 import { useCurrentUser } from '@shared/api/auth'
+import { TeamBulletinSlot } from '@widgets/bulletin-prototype/ui/BulletinPrototype'
 
 // The team roster for every authenticated member — no admin gate (the root route already guarantees
 // authenticated + onboarded). Read-only for everyone, admins included: this is the view surface.
@@ -20,6 +21,7 @@ function TeamPage() {
   return (
     <TeamPageView
       isAdmin={isAdmin}
+      bulletin={<TeamBulletinSlot isAdmin={isAdmin} />}
       inviteAction={<GenerateInviteDialog />}
       roster={(headerActions) => <MemberRoster canManage={false} headerActions={headerActions} />}
       substitutes={<ManageSubstitutes canManage={false} />}

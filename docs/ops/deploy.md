@@ -274,6 +274,37 @@ The startup log says which gateway was wired (`Bunq gateway: real adapter, envir
 then set `TEAMBALANCE_BUNQ_ENVIRONMENT` to `none` (or remove it) and restart; the container then
 runs as before the real adapter existed. With connecting still on, `none` fails startup in prod.
 
+## Metrics to Scaleway Cockpit (set by hand in the Scaleway console)
+
+The API pushes its Micrometer metrics over OTLP/HTTP to a Cockpit metrics data source, once a
+minute. The push is off unless the container's env switches it on, so a container without these
+variables runs as before.
+
+| Variable | Value |
+|----------|-------|
+| `MANAGEMENT_OTLP_METRICS_EXPORT_ENABLED` | `true` to push. Unset or `false`: no push. |
+| `MANAGEMENT_OTLP_METRICS_EXPORT_URL` | The data source's push URL plus `/otlp/v1/metrics`, e.g. `https://<data source id>.metrics.cockpit.fr-par.scw.cloud/otlp/v1/metrics`. |
+| `SCALEWAY_COCKPIT_METRICS_TOKEN` | A Cockpit token with the *push metrics* permission, in the same region (a secret env). Sent as the `X-Token` header. |
+| `OTEL_RESOURCE_ATTRIBUTES` | `deployment.environment.name=prod` (or `stg`, `demo`). The three containers run the same `prod` profile; this attribute tells their metrics apart. |
+
+What to look for in Cockpit's Grafana:
+
+- **Endpoint metrics:** `http_server_requests_milliseconds` (count, sum and buckets), with the
+  labels `uri` (the route template), `method`, `status`, `outcome` and `exception`. Throughput is
+  the rate of `_count`, latency comes from `_bucket` (50, 100, 250, 500, 1000 and 2500 ms; set in
+  `application.yml`). These names are what the local Grafana shows; Cockpit's may differ a little.
+- **Also pushed:** JVM, Hikari pool and Tomcat metrics.
+- **Cost:** custom metrics are billed per million samples. Check the Cockpit usage page after the
+  first days.
+
+**Local check:** `docker compose --profile observability up -d otel-lgtm`, then run the API with
+`MANAGEMENT_OTLP_METRICS_EXPORT_ENABLED=true` and
+`MANAGEMENT_OTLP_METRICS_EXPORT_URL=http://localhost:4318/v1/metrics`. Grafana is at
+http://localhost:3000 (Explore → Prometheus).
+
+To stop the push, set `MANAGEMENT_OTLP_METRICS_EXPORT_ENABLED=false` (or remove it) and redeploy or
+restart the container.
+
 ## Rollback
 
 To roll back, re-deploy an earlier good commit: Actions → the CI run for that commit →

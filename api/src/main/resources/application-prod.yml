@@ -46,3 +46,9 @@ management:
         # presenting the X-Internal-Api-Key. `info` is registered here so the guarded deploy-verify
         # probe can read the running image's build SHA; without the key it is a 403 from the internet.
         include: health,startup,info
+  otlp:
+    metrics:
+      export:
+        headers:
+          # The Cockpit push token (a secret env on the container). Unused while the push is off.
+          X-Token: ${SCALEWAY_COCKPIT_METRICS_TOKEN:}

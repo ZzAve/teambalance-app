@@ -120,8 +120,8 @@ export const Data: Story = {
 }
 
 export const Shells: Story = {
-  // Carries the dark-mode baseline for every pool state.
-  parameters: { chromatic: { modes: darkMode } },
+  // Carries the dark-mode baseline for every pool state; under reduced motion, so the Toppers and the beer count are at their final state.
+  parameters: { chromatic: { modes: darkMode, prefersReducedMotion: 'reduce' } },
   render: (args) => (
     <Stack
       items={{

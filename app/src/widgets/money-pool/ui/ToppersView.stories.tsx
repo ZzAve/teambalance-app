@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
-import { expect, fireEvent, userEvent, within } from 'storybook/test'
+import { expect, fireEvent, userEvent, waitFor, within } from 'storybook/test'
 import type { Member } from '@shared/api/members'
 import type { Payment } from '@shared/api/money-pool'
 import { Stack } from '@shared/testing/stack'
@@ -14,7 +14,10 @@ import { ToppersView } from './ToppersView'
 // Three-story shape (ADR-0032 §1):
 //   1. Data — every member ranked (Fien, who never topped up, at zero), the viewer's badge and the unmatched caption.
 //   2. Shells — empty, one contributor, a tie, a former member, nothing unmatched.
-//   3. Interactions — Last 30 days, the time bar, then play, pause, resume to the end and reset.
+//   3. Interactions — the entrance ended by the time bar, Last 30 days, the time bar, then play, pause, resume to the end and reset.
+//
+// The entrance and the ticks are motion, so the snapshot is taken under reduced motion: the final state, with no
+// animation frame to land on (Chromatic's prefersReducedMotion). Interactions runs with motion on, to prove the entrance ends.
 const member = (userId: string, displayName: string): Member => ({
   userId,
   displayName,
@@ -88,7 +91,7 @@ export const Data: Story = {
 }
 
 export const Shells: Story = {
-  parameters: { chromatic: { modes: darkMode } },
+  parameters: { chromatic: { modes: darkMode, prefersReducedMotion: 'reduce' } },
   render: (args) => (
     <Stack
       items={{
@@ -141,6 +144,13 @@ export const Shells: Story = {
 export const Interactions: Story = {
   parameters: { chromatic: { disableSnapshot: true } },
   play: async ({ canvas }) => {
+    // The entrance starts once the podium is in view. Moving the time bar ends it at its final state, and marks the rows that changed rank.
+    const card = canvas.getByRole('slider', { name: 'Day' }).parentElement!
+    await waitFor(() => expect(card).toHaveClass('toppers-enter'))
+    fireEvent.change(canvas.getByRole('slider', { name: 'Day' }), { target: { value: '0' } })
+    await expect(card).not.toHaveClass('toppers-enter')
+    await expect(card.querySelector('.toppers-move')).not.toBeNull()
+
     // Last 30 days is today minus 30 days, inclusive: the ranking changes and nothing is unmatched.
     await userEvent.click(canvas.getByRole('button', { name: 'Last 30 days' }))
     await expect(canvas.getByRole('button', { name: 'Last 30 days' })).toHaveAttribute('aria-pressed', 'true')

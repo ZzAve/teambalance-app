@@ -64,8 +64,9 @@ export default meta
 type Story = StoryObj<typeof meta>
 
 export const Data: Story = {
-  // Plus the Dutch picture (ADR-0043 §8): Dutch separators in the amounts and dates.
-  parameters: { chromatic: { modes: { ...pageModes, ...dutchMode } } },
+  // Plus the Dutch picture (ADR-0043 §8): Dutch separators in the amounts and dates. Under reduced motion, so the
+  // Toppers entrance and the beer count are at their final state in the snapshot.
+  parameters: { chromatic: { modes: { ...pageModes, ...dutchMode }, prefersReducedMotion: 'reduce' } },
   play: async ({ canvas, globals }) => {
     // Chromatic runs this play in every mode. In the Dutch one it proves the translated screen (#464).
     if (globals.locale === 'nl') {

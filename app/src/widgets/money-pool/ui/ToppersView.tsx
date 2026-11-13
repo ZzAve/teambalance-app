@@ -291,7 +291,7 @@ function Podium({ ref, top, memberById, nameOf, youId, motion, phase }: PartProp
   const entering = phase === 'entering'
   const slots = ([['second', top[1]], ['first', top[0]], ['third', top[2]]] as const).flatMap(([slot, r]) => (r ? [{ slot, r }] : []))
   return (
-    <div ref={ref} aria-hidden="true" className="flex items-end justify-center gap-2 px-2 pt-5 pb-3">
+    <div ref={ref} aria-hidden="true" className={`flex items-end justify-center gap-2 px-2 ${slots.length > 0 ? 'pt-5 pb-3' : 'pt-2'}`}>
       {slots.map(({ slot, r }) => {
         const place = Math.min(r.rank, 3) as 1 | 2 | 3
         return (

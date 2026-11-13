@@ -13,7 +13,7 @@ import { ToppersView } from './ToppersView'
 //
 // Three-story shape (ADR-0032 §1):
 //   1. Data — every member ranked (Fien, who never topped up, at zero), the viewer's badge and the unmatched caption.
-//   2. Shells — empty, one contributor, a tie, a former member, nothing unmatched.
+//   2. Shells — empty, one contributor, a tie, a tie too large for the podium, a former member, nothing unmatched.
 //   3. Interactions — the entrance ended by the time bar, Last 30 days, the time bar, then play, pause, resume to the end and reset.
 //
 // The entrance and the ticks are motion, so the snapshot is taken under reduced motion: the final state, with no
@@ -104,6 +104,13 @@ export const Shells: Story = {
             payments={[pay('1', '2026-11-03', 500, 'm-dirk'), pay('2', '2026-11-02', 500, 'm-anna'), pay('3', '2026-11-01', 500, 'm-cleo'), pay('4', '2026-10-30', 100, 'm-bram')]}
           />
         ),
+        'Tie for third': (
+          <ToppersView
+            {...args}
+            payments={[pay('1', '2026-11-03', 500, 'm-anna'), pay('2', '2026-11-02', 400, 'm-bram'), pay('3', '2026-11-01', 300, 'm-cleo'), pay('4', '2026-10-30', 300, 'm-dirk')]}
+          />
+        ),
+        'Everyone equal': <ToppersView {...args} payments={MEMBERS.map((m, i) => pay(`${i}`, '2026-11-01', 500, m.userId))} />,
         'Podium you': (
           <ToppersView {...args} youId="m-anna" payments={[pay('1', '2026-11-03', 500, 'm-dirk'), pay('2', '2026-11-02', 500, 'm-anna'), pay('3', '2026-11-01', 100, 'm-cleo')]} />
         ),
@@ -131,6 +138,19 @@ export const Shells: Story = {
       'Number 5: Eva, €0.00',
       'Number 5: Fien, €0.00',
     ])
+    // A tie that does not fit in the three places is not split: all of it is in the list, below a smaller podium or none.
+    const podiumPlaces = (name: string) => canvas.getByRole('region', { name }).querySelectorAll('[data-place]').length
+    const listRows = (name: string) => canvas.getByRole('region', { name }).querySelectorAll('[data-ranking-row]').length
+    await expect(ranking(region('Tie for third')).slice(0, 4).map((li) => li.textContent)).toEqual([
+      'Number 1: Anna, €5.00',
+      'Number 2: Bram, €4.00',
+      'Number 3: Cleo, €3.00',
+      'Number 3: Dirk (you), €3.00',
+    ])
+    await expect(podiumPlaces('Tie for third')).toBe(2)
+    await expect(listRows('Tie for third')).toBe(4)
+    await expect(podiumPlaces('Everyone equal')).toBe(0)
+    await expect(listRows('Everyone equal')).toBe(6)
     // On the podium the viewer shows as "You" instead of the name; a zero row carries the badge in the list.
     await expect(within(canvas.getByRole('region', { name: 'Podium you' })).getAllByText('You')).toHaveLength(1)
     await expect(within(canvas.getByRole('region', { name: 'Zero you' })).getAllByText('You')).toHaveLength(1)

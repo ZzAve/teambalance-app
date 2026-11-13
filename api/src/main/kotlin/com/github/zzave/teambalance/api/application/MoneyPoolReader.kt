@@ -43,10 +43,8 @@ class MoneyPoolReader(
     fun read(tenant: TenantRouting, account: BunqAccountId): MoneyPool =
         tenantScopeGateway.within(tenant) {
             val connection = connectionRepository.find()?.takeIf { it.accountId == account }
-            when {
-                connection == null -> MoneyPool.Unavailable
-                else -> decrypt(connection.grant, tenant.teamId)?.let { askBunq(it, account) } ?: MoneyPool.Rejected
-            }
+                ?: return@within MoneyPool.Unavailable
+            decrypt(connection.grant, tenant.teamId)?.let { askBunq(it, account) } ?: MoneyPool.Rejected
         }
 
     @Suppress("TooGenericExceptionCaught")

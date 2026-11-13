@@ -481,7 +481,7 @@ class CaffeineMoneyPoolCacheAdapterTest : FunSpec({
         newer.loads shouldBe 1
     }
 
-    test("a refresh whose load throws keeps the last known value, and the next read asks Bunq again") {
+    test("a refresh whose load throws keeps the last known value and waits for the retry interval, as when Bunq is unavailable") {
         val bunq = Bunq(balance(100))
         var load: () -> MoneyPool = bunq::load
         val cache = cache { _, _ -> load() }
@@ -493,6 +493,8 @@ class CaffeineMoneyPoolCacheAdapterTest : FunSpec({
         bunq.answer = balance(200)
         load = bunq::load
 
+        cache.read(ALPHA, TEAMKAS) shouldBe fresh(balance(100))
+        clock.advance(SECONDS_10)
         cache.readBeforeBackgroundWork() shouldBe refreshing(balance(100))
         cache.read(ALPHA, TEAMKAS) shouldBe fresh(balance(200))
     }

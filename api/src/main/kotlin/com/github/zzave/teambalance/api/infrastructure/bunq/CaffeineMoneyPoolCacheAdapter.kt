@@ -116,8 +116,11 @@ class CaffeineMoneyPoolCacheAdapter(
         entries.asMap().keys.removeIf { it.tenant.teamId == teamId }
     }
 
+    // A reload that throws counts as Unavailable, so the retry interval applies to it too.
     private fun reloaded(key: Key, old: Entry): Entry {
-        val answer = readFromBunq(key)
+        val answer = runCatching { readFromBunq(key) }
+            .onFailure { log.warn("Refreshing the money pool failed: {}", it.javaClass.simpleName) }
+            .getOrDefault(MoneyPool.Unavailable)
         return if (answer == MoneyPool.Unavailable && old.value is MoneyPool.Connected) {
             Entry(old.value, old.readAt, retryNotBefore = clock.instant().plus(properties.retryAfter))
         } else {

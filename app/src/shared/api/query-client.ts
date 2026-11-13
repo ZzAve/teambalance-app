@@ -6,12 +6,10 @@ import { shouldRetryWake, wakeRetryDelayMs } from './retry-policy'
 // The same retry policy therefore also governs the imperative beforeLoad probe (it runs through
 // ensureQueryData on this client): a still-waking backend's transient failures are retried with
 // backoff, while real 4xx errors fail fast so the guard's fail-closed redirect stays instant.
-export const DEFAULT_STALE_TIME_MS = 30_000
-
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: DEFAULT_STALE_TIME_MS,
+      staleTime: 30_000,
       retry: (failureCount, error) => shouldRetryWake(failureCount, error),
       retryDelay: (attemptIndex) => wakeRetryDelayMs(attemptIndex),
     },

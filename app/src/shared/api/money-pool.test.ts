@@ -80,20 +80,16 @@ describe('money pool queries', () => {
 
 // A pool marked `refreshing` holds older figures that the server is replacing.
 describe('a money pool the server is refreshing', () => {
-  type TimingOption = (query: { state: { data?: { refreshing: boolean } } }) => number | false
-  const staleTime = moneyPoolQueryOptions.staleTime as unknown as TimingOption
-  const refetchInterval = moneyPoolQueryOptions.refetchInterval as unknown as TimingOption
+  type RefetchInterval = (query: { state: { data?: { refreshing: boolean } } }) => number | false
+  const refetchInterval = moneyPoolQueryOptions.refetchInterval as unknown as RefetchInterval
   const holding = (data?: { refreshing: boolean }) => ({ state: { data } })
 
-  it('is stale at once and is fetched again every few seconds', () => {
-    expect(staleTime(holding({ refreshing: true }))).toBe(0)
+  it('is fetched again every few seconds', () => {
     expect(refetchInterval(holding({ refreshing: true }))).toBe(3_000)
   })
 
-  it('is kept for the usual time and not polled once the figures are current, or before any answer', () => {
-    expect(staleTime(holding({ refreshing: false }))).toBe(30_000)
+  it('is not polled once the figures are current, or before any answer', () => {
     expect(refetchInterval(holding({ refreshing: false }))).toBe(false)
-    expect(staleTime(holding())).toBe(30_000)
     expect(refetchInterval(holding())).toBe(false)
   })
 })

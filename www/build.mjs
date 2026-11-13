@@ -20,6 +20,10 @@ const STATIC_FILES = [
   ['app/public/favicon.ico', 'favicon.ico'],
   ['app/public/tb-monogram.svg', 'tb-monogram.svg'],
   ['app/public/apple-touch-icon-180x180.png', 'apple-touch-icon-180x180.png'],
+  // Silent app clips per language, recorded from the real app (poster, webm, mp4).
+  ...['attend', 'substitute', 'pot-topup'].flatMap((clip) =>
+    ['nl', 'en'].flatMap((lang) => ['jpg', 'webm', 'mp4'].map((ext) => [`www/clips/${clip}.${lang}.${ext}`, `clips/${clip}.${lang}.${ext}`])),
+  ),
 ]
 
 // Latin subset only; the families are app dependencies, so `npm ci` in app/ provides them.

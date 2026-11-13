@@ -36,6 +36,30 @@ $('#bringBack').addEventListener('click', () => {
   $('#status').focus() // the button hides itself, so focus would otherwise fall back to the page
 })
 
+// ---- app clips: play while on screen, start paused for reduced motion; the button pauses (WCAG 2.2.2) ----
+const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches
+for (const fig of $$('[data-clip]')) {
+  const video = $('video', fig)
+  const toggle = $('.clip-toggle', fig)
+  let paused = reduced
+  let visible = false
+  const sync = () => {
+    if (visible && !paused) video.play().catch(() => {})
+    else video.pause()
+    toggle.textContent = paused ? copy.clipPlay : copy.clipPause
+  }
+  new IntersectionObserver(([entry]) => {
+    visible = entry.isIntersecting
+    sync()
+  }, { threshold: 0.5 }).observe(video)
+  toggle.addEventListener('click', () => {
+    paused = !paused
+    sync()
+  })
+  toggle.hidden = false
+  sync()
+}
+
 // ---- sign-in form: sends a magic link (POST, JSON) ----
 const apiBase = document.querySelector('meta[name="api-base"]')?.content ?? 'https://api.teambalance.nl'
 const language = document.documentElement.lang === 'en' ? 'EN' : 'NL'

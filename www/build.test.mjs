@@ -31,6 +31,17 @@ test('dist is self-contained: static files, fonts and icons are copied', () => {
   ])
 })
 
+test('every clip a landing page points at is in dist, in that page\'s language', () => {
+  for (const [f, lang] of [['index.html', 'nl'], ['en/index.html', 'en']]) {
+    const refs = [...read(f).matchAll(/(?:src|poster)="\/(clips\/[^"]+)"/g)].map((m) => m[1])
+    assert.equal(refs.length, 9, `${f}: expected 3 clips with poster, webm and mp4`)
+    for (const ref of refs) {
+      assert.ok(ref.includes(`.${lang}.`), `${f} points at ${ref}`)
+      assert.ok(existsSync(join(out, ref)), `missing ${ref}`)
+    }
+  }
+})
+
 test('no third-party font host in the output', () => {
   for (const f of ['index.html', 'en/index.html', 'privacy/index.html', 'style.css']) {
     assert.doesNotMatch(read(f), /fonts\.(googleapis|gstatic)\.com/, f)

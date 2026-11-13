@@ -396,9 +396,19 @@ jobs:
           aws --endpoint-url "$S3_ENDPOINT" s3 sync www/dist "s3://${WWW_BUCKET}" \
             --exclude "*" --include "*.js" --include "*.mjs" \
             --content-type text/javascript --cache-control no-cache
+          # App clips: a video served with the wrong type does not play. Like images, a day at the edge.
+          aws --endpoint-url "$S3_ENDPOINT" s3 sync www/dist "s3://${WWW_BUCKET}" \
+            --exclude "*" --include "clips/*.webm" \
+            --content-type video/webm --cache-control "public,max-age=86400"
+          aws --endpoint-url "$S3_ENDPOINT" s3 sync www/dist "s3://${WWW_BUCKET}" \
+            --exclude "*" --include "clips/*.mp4" \
+            --content-type video/mp4 --cache-control "public,max-age=86400"
+          aws --endpoint-url "$S3_ENDPOINT" s3 sync www/dist "s3://${WWW_BUCKET}" \
+            --exclude "*" --include "clips/*.jpg" \
+            --content-type image/jpeg --cache-control "public,max-age=86400"
           aws --endpoint-url "$S3_ENDPOINT" s3 sync www/dist "s3://${WWW_BUCKET}" \
             --exclude "fonts/*" --exclude "*.png" --exclude "*.svg" --exclude "*.ico" \
-            --exclude "*.js" --exclude "*.mjs" \
+            --exclude "*.js" --exclude "*.mjs" --exclude "clips/*" \
             --cache-control no-cache
 
       - name: Purge Edge Services cache

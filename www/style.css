@@ -566,46 +566,6 @@ h3 {
   color: var(--ink-soft);
   max-width: 56ch;
 }
-.roster {
-  margin: 16px 0 0;
-  display: grid;
-  gap: 10px;
-}
-.pos {
-  display: grid;
-  grid-template-columns: 124px 1fr;
-  gap: 8px;
-  align-items: start;
-  font-size: 0.9375rem;
-}
-.pos dt {
-  color: var(--ink-soft);
-  font-weight: 600;
-  padding-top: 4px;
-}
-.pos dd {
-  margin: 0;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-.chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 3px 10px 3px 8px;
-  border-radius: 999px;
-  background: #f3f0e7;
-}
-.answer .enough {
-  margin-top: 16px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-weight: 600;
-  font-size: 0.9375rem;
-  color: #176b49;
-}
 .answer .one-tap {
   font-size: 0.9375rem;
 }
@@ -619,22 +579,6 @@ h3 {
   background: var(--panel);
   border-radius: 28px;
 }
-.pot {
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-}
-.pot svg {
-  width: min(240px, 70%);
-  height: auto;
-  overflow: visible;
-}
-.pot figcaption {
-  font-size: 0.875rem;
-  color: var(--ink-soft);
-}
 .pot-body p {
   margin-top: 8px;
   color: var(--ink-soft);
@@ -643,59 +587,48 @@ h3 {
 .pot-body h3 {
   font-size: clamp(1.75rem, 4vw, 2.25rem);
 }
-.pt-sh {
-  fill: var(--ink);
-  opacity: 0.14;
-}
-.pt-body {
-  fill: var(--color-background);
-  stroke: var(--ink);
-}
-.pt-lid {
-  fill: var(--color-gold-light);
-  stroke: var(--ink);
-}
-.pt-line {
-  fill: none;
-  stroke: var(--ink);
-}
-.pt-coin {
-  fill: var(--maybe);
-  stroke: var(--ink);
-}
-.pt-txt {
-  fill: var(--color-blue-dark);
-  font-family: var(--font-display);
-  font-variant-numeric: tabular-nums;
-}
-/* top-up amounts: a static example, not controls */
-.topups-example {
-  margin: 18px 0 0;
-}
-.topups-example figcaption {
-  font-size: 0.9375rem;
-  color: var(--ink-soft);
-}
-.topups {
-  list-style: none;
-  margin: 8px 0 0;
-  padding: 0;
+/* silent clips of the real app, phone-sized */
+.clip {
+  margin: 20px 0 0;
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  justify-items: center;
   gap: 8px;
-  max-width: 420px;
 }
-.topups li {
-  min-height: 44px;
-  display: grid;
-  place-items: center;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  background: #fff;
+.clip video {
+  width: min(270px, 100%);
+  aspect-ratio: 540 / 1168;
+  height: auto;
+  border-radius: 22px;
+  border: 1px solid var(--line);
+  background: var(--color-card);
+  box-shadow: 0 10px 24px -14px rgba(30, 41, 59, 0.35);
+}
+.clip figcaption {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: baseline;
+  gap: 4px 12px;
+  font-size: 0.875rem;
   color: var(--ink-soft);
-  border: 1px dashed #8493a6;
-  border-radius: 12px;
+  text-align: center;
 }
+.clip-toggle {
+  min-height: 44px;
+  padding: 0 4px;
+  background: none;
+  border: 0;
+  font: inherit;
+  font-weight: 600;
+  color: var(--color-blue-dark);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+  cursor: pointer;
+}
+.pot-panel > .clip {
+  margin: 0;
+}
+
 /* two small answers: no boxes, separated by rules */
 .smalls {
   margin-top: 48px;
@@ -923,7 +856,7 @@ footer {
     column-gap: 56px;
     padding: 40px;
   }
-  .pot {
+  .pot-panel > .clip {
     grid-area: pot;
     align-self: center;
   }
@@ -943,13 +876,6 @@ footer {
   }
 }
 @media (max-width: 389px) {
-  .pos {
-    grid-template-columns: 1fr;
-    gap: 2px;
-  }
-  .topups {
-    grid-template-columns: repeat(2, 1fr);
-  }
 }
 @media (prefers-reduced-motion: reduce) {
   .msg,

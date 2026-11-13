@@ -172,7 +172,7 @@ function EventsPageHarness(args: HarnessArgs) {
   const sorted = [...filterEvents(events, activeTypeIds, activeStates, activeTurnouts)].sort((a, b) =>
     a.startTime.localeCompare(b.startTime),
   )
-  const hero = selectHeroEvent(sorted, NOW)
+  const hero = showPast ? null : selectHeroEvent(sorted, NOW)
   const listEvents = hero ? sorted.filter((e) => e.id !== hero.id) : sorted
   const groups = groupByType(eligibleEvents(listEvents, activeTypeIds, NOW))
 
@@ -487,11 +487,13 @@ export const Interactions: Story = {
     await userEvent.click(canvas.getByRole('button', { name: 'Attend 1 social' }))
     await expect(args.onAttend).toHaveBeenCalledWith(SOCIAL.id)
 
-    // Showing past events adds them to the same list, so its heading stops saying "Upcoming".
+    // Showing past events adds them to the same list, so its heading stops saying "Upcoming", and
+    // the hero goes: the first event of a list with history in it is not the next one.
     await userEvent.click(canvas.getByRole('button', { name: 'Filters' }))
     await userEvent.click(within(canvas.getByRole('region', { name: 'Filters' })).getByRole('switch', { name: 'Show past events' }))
     await expect(args.onToggleShowPast).toHaveBeenCalledWith(true)
     await expect(canvas.getByRole('heading', { level: 2, name: 'All events' })).toBeInTheDocument()
     await expect(canvas.queryByRole('heading', { name: 'Upcoming' })).not.toBeInTheDocument()
+    await expect(canvas.queryByRole('region', { name: 'Next up' })).not.toBeInTheDocument()
   },
 }

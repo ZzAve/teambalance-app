@@ -34,7 +34,8 @@ export const Route = createFileRoute('/t/$slug/')({
 
 /**
  * The events page. Composition, in order: a compact header with the filter trigger, the Next Up
- * hero when (and only when) one is due, then one flat chronological list.
+ * hero when (and only when) one is due and past events are not shown, then one flat chronological
+ * list.
  *
  * All the deciding happens here so the views below stay prop-only: which events survive the filters,
  * whether there is a hero, and — because the hero must not appear twice — which event the list
@@ -148,7 +149,7 @@ function EventListPage() {
         [filteredEvents],
     )
 
-    const heroEvent = selectHeroEvent(sortedEvents, now)
+    const heroEvent = showPast ? null : selectHeroEvent(sortedEvents, now)
     const listEvents = heroEvent ? sortedEvents.filter(e => e.id !== heroEvent.id) : sortedEvents
 
     // Read off the *unfiltered* list (ADR-0029 §5): narrowing another dimension must not make the

@@ -20,6 +20,7 @@ The cut the user picked, per feature. Reuse it when you regenerate; the exact co
 | calendar-links | 10.96 | one, framed twice |
 | language | 18.02 | one, framed twice |
 | passkeys | 20.38 | two (`PHONE_OS=ios`, `PHONE_OS=android`) |
+| money-pool | 18.02 | one, framed twice |
 
 ## Per-feature files (in `docs/demo/`)
 

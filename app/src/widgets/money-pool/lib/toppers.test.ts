@@ -44,6 +44,33 @@ describe('toppers with a roster', () => {
     expect(podium.map((x) => x.memberId)).toEqual(['a', 'b', 'c'])
     expect(rest.map((x) => x.memberId)).toEqual(['d', 'e'])
   })
+
+  it('splitPodium leaves a tie for third place that does not fit on the podium to the list', () => {
+    const tied = [pay('2026-10-01', 500, 'a'), pay('2026-10-01', 400, 'b'), pay('2026-10-01', 300, 'c'), pay('2026-10-01', 300, 'd')]
+    const { podium, rest } = splitPodium(toppers(tied, 'season', TODAY, nameOf, ['e']).ranking)
+    expect(podium.map((x) => x.memberId)).toEqual(['a', 'b'])
+    expect(rest.map((x) => [x.memberId, x.rank])).toEqual([['c', 3], ['d', 3], ['e', 5]])
+  })
+
+  it('splitPodium leaves a tie for second place of three members to the list', () => {
+    const tied = [pay('2026-10-01', 500, 'a'), ...['b', 'c', 'd'].map((id) => pay('2026-10-01', 300, id))]
+    const { podium, rest } = splitPodium(toppers(tied, 'season', TODAY, nameOf).ranking)
+    expect(podium.map((x) => x.memberId)).toEqual(['a'])
+    expect(rest.map((x) => x.memberId)).toEqual(['b', 'c', 'd'])
+  })
+
+  it('splitPodium has no podium when more than three members share first place', () => {
+    const tied = ['a', 'b', 'c', 'd'].map((id) => pay('2026-10-01', 500, id))
+    const { podium, rest } = splitPodium(toppers(tied, 'season', TODAY, nameOf).ranking)
+    expect(podium).toEqual([])
+    expect(rest.map((x) => x.memberId)).toEqual(['a', 'b', 'c', 'd'])
+  })
+
+  it('splitPodium keeps a tie that fits on the podium', () => {
+    const tied = [pay('2026-10-01', 500, 'a'), pay('2026-10-01', 300, 'b'), pay('2026-10-01', 300, 'c'), pay('2026-10-01', 100, 'd')]
+    const { podium } = splitPodium(toppers(tied, 'season', TODAY, nameOf).ranking)
+    expect(podium.map((x) => [x.memberId, x.rank])).toEqual([['a', 1], ['b', 2], ['c', 2]])
+  })
 })
 
 describe('toppers', () => {

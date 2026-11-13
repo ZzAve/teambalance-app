@@ -53,8 +53,12 @@ export function toppers(payments: Payment[], period: TopperPeriod, today: string
   return { ranking: rankTotals(totals, nameOf, memberIds), toppedUp, unmatched: incoming - toppedUp }
 }
 
-/** The podium is the top 3 with money; everyone else, members at zero included, goes in the list below it. */
+/**
+ * The podium is the top 3 with money; everyone else, members at zero included, goes in the list below it.
+ * Members with an equal total are never split: a tie that does not fit in the 3 places goes to the list as a whole.
+ */
 export function splitPodium(ranking: Topper[]): { podium: Topper[]; rest: Topper[] } {
-  const podium = ranking.filter((r) => r.total > 0).slice(0, 3)
+  const tiedBeyondThird = ranking[3] && ranking[3].total > 0 ? ranking[3].rank : undefined
+  const podium = ranking.slice(0, 3).filter((r) => r.total > 0 && r.rank !== tiedBeyondThird)
   return { podium, rest: ranking.slice(podium.length) }
 }

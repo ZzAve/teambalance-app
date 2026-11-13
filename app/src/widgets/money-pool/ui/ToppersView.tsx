@@ -237,7 +237,7 @@ export function ToppersView({ payments, today, members, seasonSet, youId }: Topp
                 style={{ accentColor: 'var(--color-blue)' }}
               />
             )}
-            <Podium ref={podiumRef} top={podium} memberById={memberById} nameOf={nameOf} youId={youId} motion={motion} phase={phase} />
+            <Podium ref={podiumRef} top={podium} holdHeight={position !== null} memberById={memberById} nameOf={nameOf} youId={youId} motion={motion} phase={phase} />
             <RankingList rest={rest} memberById={memberById} nameOf={nameOf} youId={youId} motion={motion} />
             {/* The text version of the ranking, complete at every step of the playback. */}
             <ol aria-label={t('money.toppers.ranking')} className="sr-only">
@@ -285,13 +285,14 @@ interface PartProps {
 /**
  * Second, first and third place side by side; the visual stands in for the ranking list, which carries the text.
  * The slots are keyed by position, so a step changes height in place; the face inside is keyed by member, so a new one fades in.
+ * `holdHeight` keeps the height of a filled podium while the time bar is off now, so a step without a podium (a tie too large for it) does not move the list.
  */
-function Podium({ ref, top, memberById, nameOf, youId, motion, phase }: PartProps & { ref: Ref<HTMLDivElement>; top: Topper[]; phase: Entrance }) {
+function Podium({ ref, top, holdHeight, memberById, nameOf, youId, motion, phase }: PartProps & { ref: Ref<HTMLDivElement>; top: Topper[]; holdHeight: boolean; phase: Entrance }) {
   const { t } = useTranslation()
   const entering = phase === 'entering'
   const slots = ([['second', top[1]], ['first', top[0]], ['third', top[2]]] as const).flatMap(([slot, r]) => (r ? [{ slot, r }] : []))
   return (
-    <div ref={ref} aria-hidden="true" className="flex items-end justify-center gap-2 px-2 pt-5 pb-3">
+    <div ref={ref} data-podium aria-hidden="true" className={`flex items-end justify-center gap-2 px-2 ${slots.length > 0 ? 'pt-5 pb-3' : 'pt-2'}${holdHeight ? ' min-h-56' : ''}`}>
       {slots.map(({ slot, r }) => {
         const place = Math.min(r.rank, 3) as 1 | 2 | 3
         return (

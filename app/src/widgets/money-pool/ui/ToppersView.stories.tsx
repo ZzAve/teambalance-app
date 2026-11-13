@@ -110,7 +110,7 @@ export const Shells: Story = {
             payments={[pay('1', '2026-11-03', 500, 'm-anna'), pay('2', '2026-11-02', 400, 'm-bram'), pay('3', '2026-11-01', 300, 'm-cleo'), pay('4', '2026-10-30', 300, 'm-dirk')]}
           />
         ),
-        'Everyone equal': <ToppersView {...args} payments={MEMBERS.map((m, i) => pay(`${i}`, '2026-11-01', 500, m.userId))} />,
+        'Everyone equal': <ToppersView {...args} payments={MEMBERS.map((m, i) => pay(`${i}`, `2026-11-0${6 - i}`, 500, m.userId))} />,
         'Podium you': (
           <ToppersView {...args} youId="m-anna" payments={[pay('1', '2026-11-03', 500, 'm-dirk'), pay('2', '2026-11-02', 500, 'm-anna'), pay('3', '2026-11-01', 100, 'm-cleo')]} />
         ),
@@ -151,6 +151,16 @@ export const Shells: Story = {
     await expect(listRows('Tie for third')).toBe(4)
     await expect(podiumPlaces('Everyone equal')).toBe(0)
     await expect(listRows('Everyone equal')).toBe(6)
+    // Off now, a step without a podium keeps the podium's height, so the list does not jump while the time bar moves.
+    const equalSlider = region('Everyone equal').getByRole('slider', { name: 'Day' })
+    const podiumHeight = () => canvas.getByRole('region', { name: 'Everyone equal' }).querySelector('[data-podium]')!.getBoundingClientRect().height
+    fireEvent.change(equalSlider, { target: { value: '2' } })
+    await expect(podiumPlaces('Everyone equal')).toBe(3)
+    const filled = podiumHeight()
+    fireEvent.change(equalSlider, { target: { value: '3' } })
+    await expect(podiumPlaces('Everyone equal')).toBe(0)
+    await expect(podiumHeight()).toBe(filled)
+    fireEvent.change(equalSlider, { target: { value: '5' } }) // back to now for the snapshot
     // On the podium the viewer shows as "You" instead of the name; a zero row carries the badge in the list.
     await expect(within(canvas.getByRole('region', { name: 'Podium you' })).getAllByText('You')).toHaveLength(1)
     await expect(within(canvas.getByRole('region', { name: 'Zero you' })).getAllByText('You')).toHaveLength(1)

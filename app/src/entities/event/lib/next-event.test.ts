@@ -42,6 +42,20 @@ describe('selectHeroEvent', () => {
     expect(selectHeroEvent([event('tonight', at(2026, 8, 10, 20, 0))], NOW)?.id).toBe('tonight')
   })
 
+  it('keeps an event that started less than the grace period ago', () => {
+    expect(selectHeroEvent([event('running', at(2026, 8, 10, 3, 1))], NOW)?.id).toBe('running')
+  })
+
+  it('drops an event that started the grace period ago or earlier, as the upcoming list does', () => {
+    expect(selectHeroEvent([event('edge', at(2026, 8, 10, 3, 0))], NOW)).toBeNull()
+    expect(selectHeroEvent([event('over', at(2026, 8, 10, 2, 59))], NOW)).toBeNull()
+  })
+
+  it('keeps a started event within the grace period ahead of a later event', () => {
+    const events = [event('next', at(2026, 8, 10, 20, 0)), event('running', at(2026, 8, 10, 8, 0))]
+    expect(selectHeroEvent(events, NOW)?.id).toBe('running')
+  })
+
   it('takes an event on the far edge of the window', () => {
     // 7 calendar days out — the last day RELATIVE_WINDOW_DAYS admits.
     expect(selectHeroEvent([event('edge', at(2026, 8, 17))], NOW)?.id).toBe('edge')

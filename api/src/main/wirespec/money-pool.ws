@@ -1,4 +1,4 @@
-// Rejected: Bunq no longer accepts the stored connection, an Admin reconnects in the team settings; Unavailable: Bunq did not answer. Amounts and the beer price are euro cents; date is an ISO-8601 calendar date; balance, payments, beerPrice and beerCount are set only when state is Connected, and beerPrice and beerCount only when the team configured a price. canTopUp is true when the pool is on and a bunq.me link is set, in any state. id is Bunq's payment id; receiptVersion is set when an expense has a receipt, which is served outside this contract at /api/team/money-pool/payments/{id}/receipt?v={receiptVersion} (ReceiptController). On a payment attributed to a member, name is that member's display name for everyone, and counterpartyName is the name on the bank statement, set only for an Admin and for that member (ADR-0046); memberId is the member a payment is attributed to through their payment aliases or the user id in a top-up description, null when none; a payment's id is also what ClaimPayment takes. The counterparty IBAN and description are never returned.
+// Rejected: Bunq no longer accepts the stored connection, an Admin reconnects in the team settings; Unavailable: Bunq did not answer. Amounts and the beer price are euro cents; date is an ISO-8601 calendar date; balance, payments, beerPrice and beerCount are set only when state is Connected, and beerPrice and beerCount only when the team configured a price. canTopUp is true when the pool is on and a bunq.me link is set, in any state. id is Bunq's payment id; receiptVersion is set when an expense has a receipt, which is served outside this contract at /api/team/money-pool/payments/{id}/receipt?v={receiptVersion} (ReceiptController). On a payment attributed to a member, name is that member's display name for everyone, and counterpartyName is the name on the bank statement, set only for an Admin and for that member (ADR-0046); memberId is the member a payment is attributed to through their payment aliases or the user id in a top-up description, null when none; a payment's id is also what ClaimPayment takes. The counterparty IBAN and description are never returned. refreshing is true when the figures are older than the refresh interval of the server and Bunq is being asked again: a GET a few seconds later has the new ones.
 type PaymentDate = String
 
 enum MoneyPoolState {
@@ -26,7 +26,8 @@ type MoneyPool {
     payments: Payment[]?,
     beerPrice: Integer?,
     beerCount: Integer?,
-    canTopUp: Boolean
+    canTopUp: Boolean,
+    refreshing: Boolean
 }
 
 endpoint GetMoneyPool GET /api/team/money-pool -> {

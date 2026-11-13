@@ -2,6 +2,7 @@ import { createFileRoute, redirect, Outlet } from '@tanstack/react-router'
 import { authMeQueryOptions } from '@shared/api/auth'
 import { LOGIN_PATH } from '@shared/api/auth-redirect'
 import { currentMemberQueryOptions } from '@shared/api/members'
+import { moneyPoolQueryOptions } from '@shared/api/money-pool'
 import { queryClient } from '@shared/api/query-client'
 import { activateTeam } from '@shared/api/teams'
 import { teamRoutes } from '@shared/lib/team-routes'
@@ -29,6 +30,10 @@ export const Route = createFileRoute('/t/$slug')({
       user = await queryClient.ensureQueryData(authMeQueryOptions).catch(() => null)
       if (!user) throw redirect({ to: LOGIN_PATH })
     }
+
+    // Not awaited, and only when nothing is cached for this Team: the Money tab then opens on figures
+    // that are already there, and the server has asked Bunq before the tab asks for them.
+    if (user.moneyPoolEnabled !== false) void queryClient.ensureQueryData(moneyPoolQueryOptions).catch(() => undefined)
 
     // A Platform Admin acting-as is structurally not a member of this team (ADR-0024 §3), so
     // /members/me 404s for them — a query that can never cache, which the onboarding gate below would

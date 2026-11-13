@@ -1,13 +1,20 @@
 package com.github.zzave.teambalance.api.interfaces
 
 import com.github.zzave.teambalance.api.TeamBalanceIT
+import com.github.zzave.teambalance.api.application.MoneyPoolReader
 import com.github.zzave.teambalance.api.application.TokenCipher
 import com.github.zzave.teambalance.api.application.TokenCipher.Purpose
+import com.github.zzave.teambalance.api.domain.model.BunqAccountId
 import com.github.zzave.teambalance.api.domain.model.Receipt
+import com.github.zzave.teambalance.api.domain.model.SchemaName
 import com.github.zzave.teambalance.api.domain.model.TeamId
+import com.github.zzave.teambalance.api.domain.model.TenantRouting
 import com.github.zzave.teambalance.api.domain.model.jpegBytes
 import com.github.zzave.teambalance.api.domain.model.webpBytes
 import com.github.zzave.teambalance.api.domain.port.MoneyPoolCacheGateway
+import com.github.zzave.teambalance.api.domain.port.TenantScopeGateway
+import com.github.zzave.teambalance.api.infrastructure.bunq.BunqReadCacheProperties
+import com.github.zzave.teambalance.api.infrastructure.bunq.CaffeineMoneyPoolCacheAdapter
 import com.github.zzave.teambalance.api.infrastructure.config.BunqGrantCipherConfiguration
 import com.github.zzave.teambalance.api.infrastructure.identity.loginAs
 import com.github.zzave.teambalance.api.infrastructure.multitenancy.TenantSchemaAdapter
@@ -27,6 +34,7 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers
 import java.security.MessageDigest
 import java.sql.Timestamp
 import java.time.Clock
+import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
@@ -71,6 +79,12 @@ class MoneyPoolControllerIT : TeamBalanceIT() {
     lateinit var moneyPoolCache: MoneyPoolCacheGateway
 
     @Autowired
+    lateinit var moneyPoolReader: MoneyPoolReader
+
+    @Autowired
+    lateinit var tenantScope: TenantScopeGateway
+
+    @Autowired
     @Qualifier(BunqGrantCipherConfiguration.BEAN_NAME)
     lateinit var grantCipher: TokenCipher
 
@@ -108,6 +122,7 @@ class MoneyPoolControllerIT : TeamBalanceIT() {
 
             getMoneyPool()
                 .andExpect(MockMvcResultMatchers.status().isOk)
+                .andExpect(MockMvcResultMatchers.jsonPath("$.refreshing").value(false))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.state").value("Connected"))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.balance").value(18750))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.payments.length()").value(8))
@@ -299,6 +314,31 @@ class MoneyPoolControllerIT : TeamBalanceIT() {
             getMoneyPool().andExpect(MockMvcResultMatchers.jsonPath("$.balance").value(18750))
 
             (bunqGateway.reads - before) shouldBe 1
+        }
+
+        // A cache of its own with a 1 ms refresh interval, over the context's reader and tenant scope: the
+        // context's cache refreshes after 120 s of the real clock.
+        test("a read after the refresh interval has Bunq asked again in the background, in the schema of the team") {
+            seedTeamAndMember()
+            connectBunq()
+            val team = TeamId(UUID.fromString(TEAM_ID))
+            val tenant = TenantRouting(team, SchemaName("public"))
+            val account = BunqAccountId("test-account")
+            val cache = CaffeineMoneyPoolCacheAdapter(
+                clock,
+                BunqReadCacheProperties(Duration.ofMillis(1), expire = Duration.ofMinutes(5), retryAfter = Duration.ofSeconds(10)),
+                tenantScope,
+                moneyPoolReader,
+            )
+            val before = bunqGateway.reads
+            tenantScope.within(tenant) { cache.read(team, account) }
+            Thread.sleep(20)
+
+            tenantScope.within(tenant) { cache.read(team, account) }
+
+            val deadline = System.nanoTime() + Duration.ofSeconds(5).toNanos()
+            while (bunqGateway.reads - before < 2 && System.nanoTime() < deadline) Thread.sleep(10)
+            (bunqGateway.reads - before) shouldBe 2
         }
 
         test("a Rejected pool stays Rejected without asking Bunq again, until the cache is cleared") {

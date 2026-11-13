@@ -5,6 +5,7 @@ import com.github.zzave.teambalance.api.application.AuthorizationService
 import com.github.zzave.teambalance.api.application.BunqConnectConfig
 import com.github.zzave.teambalance.api.application.DemoPersona
 import com.github.zzave.teambalance.api.application.BunqConnectionService
+import com.github.zzave.teambalance.api.application.MoneyPoolReader
 import com.github.zzave.teambalance.api.application.MoneyPoolService
 import com.github.zzave.teambalance.api.application.ReceiptService
 import com.github.zzave.teambalance.api.application.PaymentAliasService
@@ -37,13 +38,26 @@ import java.time.Clock
 class MoneyPoolCompositionRoot {
 
     @Bean
-    fun moneyPoolService(
-        settingsRepository: MoneyPoolSettingsRepository,
+    fun moneyPoolReader(
         connectionRepository: BunqConnectionRepository,
         seasonRepository: SeasonRepository,
         bunqGateway: BunqGateway,
         @Qualifier(BunqGrantCipherConfiguration.BEAN_NAME) bunqGrantCipher: TokenCipher,
         clock: Clock,
+        tenantScopeGateway: TenantScopeGateway,
+    ) = MoneyPoolReader(
+        connectionRepository = connectionRepository,
+        seasonRepository = seasonRepository,
+        bunqGateway = bunqGateway,
+        grantCipher = bunqGrantCipher,
+        clock = clock,
+        tenantScopeGateway = tenantScopeGateway,
+    )
+
+    @Bean
+    fun moneyPoolService(
+        settingsRepository: MoneyPoolSettingsRepository,
+        connectionRepository: BunqConnectionRepository,
         authorizationService: AuthorizationService,
         moneyPoolCache: MoneyPoolCacheGateway,
         receiptRepository: ReceiptRepository,
@@ -53,10 +67,6 @@ class MoneyPoolCompositionRoot {
     ) = MoneyPoolService(
         settingsRepository = settingsRepository,
         connectionRepository = connectionRepository,
-        seasonRepository = seasonRepository,
-        bunqGateway = bunqGateway,
-        grantCipher = bunqGrantCipher,
-        clock = clock,
         authorizationService = authorizationService,
         cache = moneyPoolCache,
         receiptRepository = receiptRepository,

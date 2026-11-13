@@ -8,6 +8,8 @@ import com.github.zzave.teambalance.api.domain.model.BeerCount
 import com.github.zzave.teambalance.api.domain.model.BeerPrice
 import com.github.zzave.teambalance.api.domain.model.BunqAccount
 import com.github.zzave.teambalance.api.domain.model.BunqAccountId
+import com.github.zzave.teambalance.api.domain.model.TenantRouting
+import com.github.zzave.teambalance.api.domain.model.CachedMoneyPool
 import com.github.zzave.teambalance.api.domain.model.BunqAuthorizationCode
 import com.github.zzave.teambalance.api.domain.model.BunqConnection
 import com.github.zzave.teambalance.api.domain.model.BunqGrant
@@ -26,6 +28,7 @@ import com.github.zzave.teambalance.api.domain.model.Receipt
 import com.github.zzave.teambalance.api.domain.model.webpBytes
 import com.github.zzave.teambalance.api.domain.model.PaymentName
 import com.github.zzave.teambalance.api.domain.model.Role
+import com.github.zzave.teambalance.api.domain.model.SchemaName
 import com.github.zzave.teambalance.api.domain.model.Season
 import com.github.zzave.teambalance.api.domain.model.TeamId
 import com.github.zzave.teambalance.api.domain.model.UserId
@@ -36,6 +39,7 @@ import com.github.zzave.teambalance.api.domain.port.MoneyPoolSettingsRepository
 import com.github.zzave.teambalance.api.domain.port.ReceiptRepository
 import com.github.zzave.teambalance.api.domain.port.PaymentAliasRepository
 import com.github.zzave.teambalance.api.domain.port.SeasonRepository
+import com.github.zzave.teambalance.api.domain.port.TenantScopeGateway
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
@@ -109,34 +113,49 @@ private class RecordingBunqGateway(
     }
 }
 
+/** A cache that gets its answers from [load], which is the [MoneyPoolReader] of the service under test. */
+private abstract class LoadingCache : MoneyPoolCacheGateway {
+    lateinit var load: (TeamId, BunqAccountId) -> MoneyPool
+
+    override fun evict(teamId: TeamId) = error("not used")
+}
+
 /** Asks the loader every time, and notes what it answered and for whom. */
-private class PassThroughCache : MoneyPoolCacheGateway {
+private class PassThroughCache : LoadingCache() {
     val readFor = mutableListOf<Pair<TeamId, BunqAccountId>>()
     val loaded = mutableListOf<MoneyPool>()
 
-    override fun read(teamId: TeamId, account: BunqAccountId, load: () -> MoneyPool): MoneyPool {
+    override fun read(teamId: TeamId, account: BunqAccountId): CachedMoneyPool {
         readFor += teamId to account
-        return load().also { loaded += it }
+        return CachedMoneyPool(load(teamId, account).also { loaded += it }, refreshing = false)
     }
-
-    override fun evict(teamId: TeamId) = error("not used")
 }
 
 /** Remembers the first answer per key for good. */
-private class RememberingCache : MoneyPoolCacheGateway {
+private class RememberingCache : LoadingCache() {
     private val remembered = mutableMapOf<Pair<TeamId, BunqAccountId>, MoneyPool>()
 
-    override fun read(teamId: TeamId, account: BunqAccountId, load: () -> MoneyPool): MoneyPool =
-        remembered.getOrPut(teamId to account, load)
+    override fun read(teamId: TeamId, account: BunqAccountId): CachedMoneyPool =
+        CachedMoneyPool(remembered.getOrPut(teamId to account) { load(teamId, account) }, refreshing = false)
+}
+
+/** Holds a value from an earlier read: the loader is never asked. */
+private class HoldingCache(private val held: MoneyPool, private val refreshing: Boolean = false) : MoneyPoolCacheGateway {
+    override fun read(teamId: TeamId, account: BunqAccountId) = CachedMoneyPool(held, refreshing)
 
     override fun evict(teamId: TeamId) = error("not used")
 }
 
-/** Holds a value from an earlier read: the loader is never asked. */
-private class HoldingCache(private val held: MoneyPool) : MoneyPoolCacheGateway {
-    override fun read(teamId: TeamId, account: BunqAccountId, load: () -> MoneyPool): MoneyPool = held
+/** Runs the block and notes for which tenant. */
+private class RecordingTenantScope : TenantScopeGateway {
+    val entered = mutableListOf<TenantRouting>()
 
-    override fun evict(teamId: TeamId) = error("not used")
+    override fun <T> within(routing: TenantRouting, block: () -> T): T {
+        entered += routing
+        return block()
+    }
+
+    override fun current() = error("not used")
 }
 
 /** Answers [first] to the first read and [later] to every read after it, as a connect or disconnect in between would. */
@@ -189,9 +208,9 @@ class MoneyPoolServiceTest : FunSpec({
         receipts: ReceiptRepository = InMemoryReceiptRepository(),
         aliases: List<PaymentAlias> = emptyList(),
         demoTeam: TeamId? = null,
-    ) = MoneyPoolService(
-        settingsRepository = settingsRepository,
-        connectionRepository = connections ?: object : BunqConnectionRepository {
+        tenantScope: TenantScopeGateway = RecordingTenantScope(),
+    ): MoneyPoolService {
+        val connectionRepository = connections ?: object : BunqConnectionRepository {
             override fun find() = if (connected) {
                 BunqConnection(
                     accountId = ACCOUNT.takeIf { accountPicked },
@@ -208,18 +227,44 @@ class MoneyPoolServiceTest : FunSpec({
             override fun pickAccount(accountId: BunqAccountId, ifGrant: EncryptedToken) = error("not used")
 
             override fun delete() = error("not used")
-        },
-        seasonRepository = FixedSeasonRepository(season),
-        bunqGateway = gateway,
-        grantCipher = GRANT_CIPHER,
-        clock = Clock.fixed(Instant.parse("2026-10-11T10:00:00Z"), ZoneOffset.UTC),
-        authorizationService = AuthorizationService(directory.teamMemberRepository(), FakeActAsGateway()),
-        cache = cache,
-        receiptRepository = receipts,
-        paymentAliasRepository = FixedPaymentAliases(aliases),
-        teamMemberRepository = directory.teamMemberRepository(),
-        demoTeam = demoTeam,
-    )
+        }
+        val reader = MoneyPoolReader(
+            connectionRepository = connectionRepository,
+            seasonRepository = FixedSeasonRepository(season),
+            bunqGateway = gateway,
+            grantCipher = GRANT_CIPHER,
+            clock = Clock.fixed(Instant.parse("2026-10-11T10:00:00Z"), ZoneOffset.UTC),
+            tenantScopeGateway = tenantScope,
+        )
+        if (cache is LoadingCache) {
+            cache.load = { teamId, account -> reader.read(TenantRouting(teamId, SchemaName("team_schema")), account) }
+        }
+        return MoneyPoolService(
+            settingsRepository = settingsRepository,
+            connectionRepository = connectionRepository,
+            authorizationService = AuthorizationService(directory.teamMemberRepository(), FakeActAsGateway()),
+            cache = cache,
+            receiptRepository = receipts,
+            paymentAliasRepository = FixedPaymentAliases(aliases),
+            teamMemberRepository = directory.teamMemberRepository(),
+            demoTeam = demoTeam,
+        )
+    }
+
+    test("Bunq is read in the tenant the cache asks for") {
+        val tenantScope = RecordingTenantScope()
+
+        service(tenantScope = tenantScope).getMoneyPool(team, MEMBER)
+
+        tenantScope.entered shouldBe listOf(TenantRouting(team, SchemaName("team_schema")))
+    }
+
+    test("a value the cache marks as refreshing is shown as refreshing") {
+        val held = MoneyPool.Connected(Money(500), listOf(PAYMENT))
+
+        service(cache = HoldingCache(held, refreshing = true)).getMoneyPool(team, MEMBER).refreshing shouldBe true
+        service(cache = HoldingCache(held)).getMoneyPool(team, MEMBER).refreshing shouldBe false
+    }
 
     test("attributes payments to members after the cache, so a held pool reflects aliases saved since") {
         val held = MoneyPool.Connected(Money(18_750), listOf(PAYMENT))

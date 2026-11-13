@@ -5,9 +5,8 @@ import com.github.zzave.teambalance.api.domain.exception.InvalidReceiptException
 import com.github.zzave.teambalance.api.domain.exception.NoTeamMembershipException
 import com.github.zzave.teambalance.api.domain.exception.ReceiptNotFoundException
 import com.github.zzave.teambalance.api.domain.model.BunqAccountId
-import com.github.zzave.teambalance.api.domain.model.BunqAuthorizationCode
+import com.github.zzave.teambalance.api.domain.model.CachedMoneyPool
 import com.github.zzave.teambalance.api.domain.model.BunqConnection
-import com.github.zzave.teambalance.api.domain.model.BunqGrant
 import com.github.zzave.teambalance.api.domain.model.EncryptedToken
 import com.github.zzave.teambalance.api.domain.model.Money
 import com.github.zzave.teambalance.api.domain.model.MoneyPool
@@ -17,22 +16,17 @@ import com.github.zzave.teambalance.api.domain.model.PaymentDirection
 import com.github.zzave.teambalance.api.domain.model.PaymentId
 import com.github.zzave.teambalance.api.domain.model.PaymentName
 import com.github.zzave.teambalance.api.domain.model.Role
-import com.github.zzave.teambalance.api.domain.model.Season
 import com.github.zzave.teambalance.api.domain.model.TeamId
 import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.model.webpBytes
 import com.github.zzave.teambalance.api.domain.port.BunqConnectionRepository
-import com.github.zzave.teambalance.api.domain.port.BunqGateway
 import com.github.zzave.teambalance.api.domain.port.MoneyPoolCacheGateway
 import com.github.zzave.teambalance.api.domain.port.MoneyPoolSettingsRepository
-import com.github.zzave.teambalance.api.domain.port.SeasonRepository
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
-import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
-import java.util.Base64
 
 private val INCOME = Payment(PaymentId("101"), LocalDate.of(2026, 10, 1), PaymentName("Lisa"), Money(2_000), PaymentDirection.IN)
 private val EXPENSE = Payment(PaymentId("102"), LocalDate.of(2026, 10, 2), PaymentName("Sporthal"), Money(4_500), PaymentDirection.OUT)
@@ -63,16 +57,9 @@ class ReceiptServiceTest : FunSpec({
                 override fun pickAccount(accountId: BunqAccountId, ifGrant: EncryptedToken) = error("not used")
                 override fun delete() = error("not used")
             },
-            seasonRepository = object : SeasonRepository {
-                override fun get() = Season.UNSET
-                override fun save(season: Season) = error("not used")
-            },
-            bunqGateway = UnusedBunqGateway,
-            grantCipher = TokenCipher.fromBase64Key(Base64.getEncoder().encodeToString(ByteArray(32)), "test-key"),
-            clock = Clock.systemUTC(),
             authorizationService = authorization,
             cache = object : MoneyPoolCacheGateway {
-                override fun read(teamId: TeamId, account: BunqAccountId, load: () -> MoneyPool) = pool
+                override fun read(teamId: TeamId, account: BunqAccountId) = CachedMoneyPool(pool, refreshing = false)
                 override fun evict(teamId: TeamId) = error("not used")
             },
             receiptRepository = receipts,
@@ -120,11 +107,3 @@ class ReceiptServiceTest : FunSpec({
         store.receipts.keys shouldBe setOf(EXPENSE.id)
     }
 })
-
-private object UnusedBunqGateway : BunqGateway {
-    override fun authorizationUrl(state: String, redirectUri: String) = error("not used")
-    override fun exchangeCode(code: BunqAuthorizationCode, redirectUri: String) = error("not used")
-    override fun listAccounts(grant: BunqGrant) = error("not used")
-    override fun fetchBalance(grant: BunqGrant, account: BunqAccountId) = error("not used")
-    override fun fetchPayments(grant: BunqGrant, account: BunqAccountId, since: LocalDate, limit: Int) = error("not used")
-}

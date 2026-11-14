@@ -6,7 +6,8 @@
 //   C: Contrarian — ignores the feedback: its own "Board" tab with a chronological feed, no pinning,
 //      an unread dot on the tab; the Team page stays as it is.
 import { Fragment, useState, useSyncExternalStore, type ReactNode } from 'react'
-import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Megaphone, MoreHorizontal, Pin, Plus, X } from 'lucide-react'
+import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Info, Megaphone, MoreHorizontal, Pin, Plus, X } from 'lucide-react'
+import { Popover, PopoverContent, PopoverTrigger } from '@shared/ui/popover'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@shared/ui/sheet'
 import { Button } from '@shared/ui/button'
 import { Switch } from '@shared/ui/switch'
@@ -56,7 +57,7 @@ export interface Post {
   markdown: string
   pinned: boolean
   showUntil?: Date
-  editedAt?: Date
+  edits: { by: string; at: Date }[]
 }
 
 const daysFromNow = (d: number) => new Date(Date.now() + d * 86_400_000)
@@ -67,6 +68,7 @@ let posts: Post[] = [
     author: 'Jan',
     postedAt: daysFromNow(-20),
     pinned: true,
+    edits: [],
     markdown: `### Ball bag rotation
 Who takes the **balls and the first-aid kit** home after training:
 
@@ -81,7 +83,7 @@ Can't make your week? Swap with someone and tell the group.`,
     id: 2,
     author: 'Jan',
     postedAt: daysFromNow(-2),
-    editedAt: daysFromNow(-0.5),
+    edits: [{ by: 'Sophie', at: daysFromNow(-1.2) }, { by: 'Jan', at: daysFromNow(-0.5) }],
     pinned: true,
     showUntil: daysFromNow(9),
     markdown: `### Clubhouse closes at 22:30
@@ -98,6 +100,7 @@ Details: [gemeente notice](https://example.com/notice)`,
     author: 'Sophie',
     postedAt: daysFromNow(-1),
     pinned: false,
+    edits: [],
     markdown: `### Team dinner on 14 December
 We booked **Café Balans** from 18:00. Put your name on the attendance for "Teametentje" so we know the count.`,
   },
@@ -108,12 +111,12 @@ export const usePosts = () => useSyncExternalStore(subscribe, () => posts)
 export const useUnread = () =>
   useSyncExternalStore(subscribe, () => posts.some((p) => p.postedAt > unreadSince))
 
-function addPost(p: Omit<Post, 'id' | 'postedAt' | 'author'>) {
-  posts = [{ ...p, id: Date.now(), postedAt: new Date(), author: 'You' }, ...posts]
+function addPost(p: Omit<Post, 'id' | 'postedAt' | 'author' | 'edits'>) {
+  posts = [{ ...p, id: Date.now(), postedAt: new Date(), author: 'You', edits: [] }, ...posts]
   emit()
 }
 function updatePost(id: number, p: Pick<Post, 'markdown' | 'pinned' | 'showUntil'>) {
-  posts = posts.map((x) => (x.id === id ? { ...x, ...p, editedAt: new Date() } : x))
+  posts = posts.map((x) => (x.id === id ? { ...x, ...p, edits: [...x.edits, { by: 'You', at: new Date() }] } : x))
   emit()
 }
 function togglePin(id: number) {
@@ -191,12 +194,35 @@ export function Markdown({ source, className }: { source: string; className?: st
 }
 
 // ---------- shared bits ----------
+function EditHistory({ post }: { post: Post }) {
+  const rows = [...post.edits].reverse()
+  return (
+    <span className="inline-flex items-center gap-0.5">
+      · edited
+      <Popover>
+        <PopoverTrigger aria-label="Edit history" className="relative flex h-5 w-5 items-center justify-center rounded-full text-muted-foreground after:absolute after:-inset-3 hover:text-foreground">
+          <Info size={14} />
+        </PopoverTrigger>
+        <PopoverContent className="w-64 p-3 text-small">
+          <p className="mb-2 font-semibold">Edit history</p>
+          <ol className="flex flex-col gap-1.5">
+            {rows.map((e, i) => (
+              <li key={i} className="flex justify-between gap-3"><span>Edited by <b>{e.by}</b></span><span className="text-muted-foreground tabular-nums">{fmtTime(e.at)}</span></li>
+            ))}
+            <li className="flex justify-between gap-3 border-t border-border/40 pt-1.5"><span>Posted by <b>{post.author}</b></span><span className="text-muted-foreground tabular-nums">{fmtTime(post.postedAt)}</span></li>
+          </ol>
+        </PopoverContent>
+      </Popover>
+    </span>
+  )
+}
+
 function PostMeta({ post }: { post: Post }) {
   return (
     <div className="flex flex-wrap items-center gap-2 text-caption text-muted-foreground">
       {post.pinned && <span className="inline-flex items-center gap-1 font-semibold text-gold-ink"><Pin size={12} />Pinned</span>}
       <span><span className="font-semibold text-foreground/80">{post.author}</span> · {fmt(post.postedAt)}</span>
-      {post.editedAt && <span title={post.editedAt.toLocaleString('en-GB')}>· edited {fmtTime(post.editedAt)}</span>}
+      {post.edits.length > 0 && <EditHistory post={post} />}
       {post.showUntil && <span className="rounded-full bg-muted px-2 py-0.5">until {fmt(post.showUntil)}</span>}
     </div>
   )

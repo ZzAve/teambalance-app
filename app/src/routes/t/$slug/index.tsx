@@ -11,7 +11,6 @@ import {
 import { useCurrentUser } from '@shared/api/auth'
 import { usePositions } from '@shared/api/positions'
 import { useNow } from '@shared/lib/use-now'
-import { selectHeroEvent } from '@entities/event/lib/next-event'
 import type { PositionRef } from '@entities/event/lib/lineup'
 import { NextEventHero } from '@widgets/next-event-hero/ui/NextEventHero'
 import { CreateEventSheet } from '@widgets/create-event/ui/CreateEventSheet'
@@ -19,13 +18,10 @@ import { useEventFiltersStore } from '@features/filter-event-types/model/event-f
 import { useEventPanelStore } from '@features/event-panel-view/model/event-panel-store'
 import { EventLineupPanel } from '@widgets/event-panel/ui/EventLineupPanel'
 import { EventsPageView } from '@pages/events/ui/EventsPageView'
+import { eventsPageContent } from '@pages/events/lib/events-page-content'
 import { reconcileTypeIds } from '@features/filter-event-types/model/filter-preferences'
-import { hasTurnoutTargets } from '@features/filter-event-types/model/turnout'
-import { filterEvents } from '@features/filter-event-types/model/filter-events'
-import { emptyEventsMessage } from '@features/filter-event-types/model/empty-message'
 import { BulkAttendBar } from '@features/bulk-attend/ui/BulkAttendBar'
 import { SubstitutePicker } from '@features/call-in-substitutes/ui/SubstitutePicker'
-import { eligibleEvents } from '@features/bulk-attend/lib/eligible-event-ids'
 
 export const Route = createFileRoute('/t/$slug/')({
     component: EventListPage,
@@ -131,37 +127,15 @@ function EventListPage() {
         [hiddenTypeIds, allTypeIds],
     )
 
-    const filteredEvents = useMemo(() => {
-        if (!events || !eventTypes) return events ?? []
-        return filterEvents(events, activeTypeIds, activeStates, activeTurnouts)
-    }, [events, activeTypeIds, activeStates, activeTurnouts, eventTypes])
-
-    // The API returns upcoming ascending but "all" descending, so sort here: the list is flat now,
-    // and flat only reads if it is chronological.
-    const sortedEvents = useMemo(
-        () => [...filteredEvents].sort((a, b) => a.startTime.localeCompare(b.startTime)),
-        [filteredEvents],
-    )
-
-    const heroEvent = showPast ? null : selectHeroEvent(sortedEvents, now)
-    const listEvents = heroEvent ? sortedEvents.filter(e => e.id !== heroEvent.id) : sortedEvents
-
-    // Read off the *unfiltered* list (ADR-0029 §5): narrowing another dimension must not make the
-    // group vanish underneath a Turnout selection that is still in effect.
-    const showTurnout = useMemo(() => hasTurnoutTargets(events ?? []), [events])
-
-    // Bulk Attend acts on exactly what the page shows (ADR-0020, ADR-0029 §6), so it reads
-    // `listEvents` — already narrowed by *both* chip groups. The hero's event is left out (#386): its
-    // own answer buttons sit directly above the bar, so "Attend 1 match" must not describe the event
-    // the member just read. That is also why filtering to an answered status leaves no buttons at
-    // all: the visible list then holds nothing unanswered. Past events are excluded by the selector,
-    // not by the surrounding UI: with the tabs gone, `showPast` merely adds past events to the same
-    // list, so the future-only rule has to live in the selector. It reads the page's shared `now`,
-    // so the button and the cards can never disagree about which events have started.
-    const bulkEvents = useMemo(
-        () => eligibleEvents(listEvents, activeTypeIds, now),
-        [listEvents, activeTypeIds, now],
-    )
+    const {
+        heroEvent, listEvents, bulkAttendEvents, showTurnout, resultCount, emptyMessage,
+        isLoading: listLoading, error: listError,
+    } = eventsPageContent({
+        events,
+        allTypeIds: eventTypes && allTypeIds,
+        activeTypeIds, activeStates, activeTurnouts,
+        showPast, now, isLoading, error,
+    })
 
     return (
         <>
@@ -175,7 +149,7 @@ function EventListPage() {
                 activeTurnouts,
                 showTurnout,
                 showPast,
-                resultCount: sortedEvents.length,
+                resultCount,
                 onToggleType: (typeId) => toggleType(typeId, allTypeIds),
                 // Every group runs through the same isolate-first toggler in the store
                 // (ADR-0029 §3): one tap from the all-on default isolates the chip.
@@ -203,7 +177,7 @@ function EventListPage() {
                     lineup={(event) => lineupPanel(event, {summary: false})}
                 />
             )}
-            bulkBar={<BulkAttendBar events={bulkEvents}/>}
+            bulkBar={<BulkAttendBar events={bulkAttendEvents}/>}
             list={{
                 events: listEvents,
                 onRespond: respond,
@@ -214,20 +188,10 @@ function EventListPage() {
                 // entity — the card cannot build one itself.
                 defaultRosterOpen: defaultExpanded,
                 rosterPanel: lineupPanel,
-                // A rendered hero IS loaded data — it was pulled out of this very list — so an empty
-                // list beneath it means "nothing else", never a failure. Withholding the flags keeps
-                // the list from painting a skeleton or an error over a page that is plainly fine.
-                isLoading: heroEvent ? false : isLoading,
-                error: heroEvent ? undefined : error,
+                isLoading: listLoading,
+                error: listError,
                 now,
-                emptyMessage: emptyEventsMessage({
-                    hasHero: heroEvent !== null,
-                    showPast,
-                    activeTypeIds,
-                    allTypeIds,
-                    activeStates,
-                    activeTurnouts,
-                }),
+                emptyMessage,
             }}
         />
         <SubstitutePicker

@@ -10,8 +10,7 @@ import { ClaimPaymentView } from './ClaimPaymentView'
 /**
  * Container for "That's mine" / "Assign to…" on one unattributed incoming payment: the claim
  * mutation and the success toast behind the prop-only ClaimPaymentView. Rendered by MoneyPool for the
- * variant claimVariant() picks. Pure wiring
- * (ADR-0017); no e2e: the PR gate sees no new seam in it.
+ * variant claimVariant() picks. Pure wiring (ADR-0017); no e2e: the PR gate sees no new seam in it.
  */
 export function ClaimPayment({ payment, variant }: { payment: Payment; variant: 'member' | 'admin' }) {
   return variant === 'admin' ? <AdminClaim payment={payment} /> : <MemberClaim payment={payment} />

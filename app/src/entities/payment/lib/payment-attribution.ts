@@ -9,7 +9,7 @@ export function isAttributedTopUp(payment: Payment): payment is AttributedTopUp 
 
 /** Money that came in and is attributed to no Member yet. */
 export function isUnattributedIncoming(payment: Payment): boolean {
-  return payment.direction === 'In' && !payment.memberId
+  return payment.direction === 'In' && !isAttributedTopUp(payment)
 }
 
 /** Money that came in and is attributed to the given Member. */

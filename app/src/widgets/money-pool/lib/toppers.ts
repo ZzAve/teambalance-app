@@ -48,7 +48,7 @@ export function toppers(payments: Payment[], period: TopperPeriod, today: string
   for (const p of periodPayments(payments, period, today)) {
     if (p.direction !== 'In') continue
     incoming += p.amount
-    if (isAttributedTopUp(p)) totals.set(p.memberId, (totals.get(p.memberId) ?? 0) + p.amount)
+    if (p.memberId) totals.set(p.memberId, (totals.get(p.memberId) ?? 0) + p.amount)
   }
   const toppedUp = [...totals.values()].reduce((a, b) => a + b, 0)
   return { ranking: rankTotals(totals, nameOf, memberIds), toppedUp, unmatched: incoming - toppedUp }

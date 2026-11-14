@@ -13,6 +13,7 @@ import com.github.zzave.teambalance.api.domain.model.BeerCount
 import com.github.zzave.teambalance.api.domain.port.BunqConnectionRepository
 import com.github.zzave.teambalance.api.domain.port.MoneyPoolCacheGateway
 import com.github.zzave.teambalance.api.domain.port.MoneyPoolSettingsRepository
+import com.github.zzave.teambalance.api.domain.port.OutOfPocketExpenseRepository
 import com.github.zzave.teambalance.api.domain.port.ReceiptRepository
 import com.github.zzave.teambalance.api.domain.port.PaymentAliasRepository
 import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
@@ -23,6 +24,7 @@ class MoneyPoolService(
     private val authorizationService: AuthorizationService,
     private val cache: MoneyPoolCacheGateway,
     private val receiptRepository: ReceiptRepository,
+    private val outOfPocketExpenseRepository: OutOfPocketExpenseRepository,
     private val paymentAliasRepository: PaymentAliasRepository,
     private val teamMemberRepository: TeamMemberRepository,
     /** The demo team on the demo container (ADR-0043), else null: its top-up link is fixed,
@@ -41,7 +43,7 @@ class MoneyPoolService(
         } else {
             CachedMoneyPool(MoneyPool.Off, refreshing = false)
         }
-        val pool = cached.pool.withBeerFigures(settings).withReceiptVersions().withMembers(teamId, viewerId)
+        val pool = cached.pool.withBeerFigures(settings).withMembers(teamId, viewerId).withOutOfPocketExpenses().withReceiptVersions()
         return MoneyPoolOverview(pool, canTopUp = settings.topUpLink != null, refreshing = cached.refreshing)
     }
 
@@ -59,6 +61,15 @@ class MoneyPoolService(
         if (teamId == demoTeam && settings.bunqMeLink != settingsRepository.get().bunqMeLink) throw DemoTopUpLinkLockedException()
         return settingsRepository.save(settings)
     }
+
+    // Added after the attribution, which is for Bunq payments only. On one day they come before the Bunq payments.
+    private fun MoneyPool.withOutOfPocketExpenses(): MoneyPool =
+        if (this is MoneyPool.Connected) {
+            val expenses = outOfPocketExpenseRepository.findSince(historyStart).map { it.toPayment() }
+            copy(payments = (expenses + payments).sortedByDescending { it.date })
+        } else {
+            this
+        }
 
     // Read after the cache: the cache holds only what Bunq answered, receipts change in between.
     private fun MoneyPool.withReceiptVersions(): MoneyPool =

@@ -18,6 +18,10 @@ interface ConnectedMoneyPoolProps {
   beerCount?: number
   /** The top-up button or hint, shown right under the balance. */
   topUp?: ReactNode
+  /** The button that records an out-of-pocket expense, shown under the top-up. */
+  recordExpense?: ReactNode
+  /** The delete control on an out-of-pocket expense (null for none), supplied by the container. */
+  deleteExpense?: (expense: Payment) => ReactNode
   /** The receipt control shown on each expense, supplied by the container. */
   receipt?: (expense: Payment) => ReactNode
   /** The claim control on an incoming payment (null for none), supplied by the container. */
@@ -36,7 +40,7 @@ interface ConnectedMoneyPoolProps {
 /** The count-up animates a registered custom property, so it needs @property support. */
 const CAN_COUNT_UP = typeof CSS !== 'undefined' && 'registerProperty' in CSS
 
-export function ConnectedMoneyPool({ balance, payments, beerPrice, beerCount, topUp, receipt, claim, seasonSet, today, members, youId }: ConnectedMoneyPoolProps) {
+export function ConnectedMoneyPool({ balance, payments, beerPrice, beerCount, topUp, recordExpense, deleteExpense, receipt, claim, seasonSet, today, members, youId }: ConnectedMoneyPoolProps) {
   const { t } = useTranslation()
   const points = balanceTimeline(balance, payments)
   const { incoming, outgoing } = potTotals(payments)
@@ -82,9 +86,14 @@ export function ConnectedMoneyPool({ balance, payments, beerPrice, beerCount, to
         )}
       </section>
 
-      {topUp}
+      {(topUp || recordExpense) && (
+        <div className="flex flex-col gap-3">
+          {topUp}
+          {recordExpense}
+        </div>
+      )}
 
-      <PaymentListView payments={payments} members={members} youId={youId} receipt={receipt} claim={claim} />
+      <PaymentListView payments={payments} members={members} youId={youId} receipt={receipt} claim={claim} deleteExpense={deleteExpense} />
 
       {payments.length > 0 && members && <ToppersView payments={payments} today={today} members={members} seasonSet={seasonSet} youId={youId} />}
     </div>

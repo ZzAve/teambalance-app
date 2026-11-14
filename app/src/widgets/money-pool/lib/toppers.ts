@@ -35,9 +35,17 @@ export function periodPayments(payments: Payment[], period: TopperPeriod, today:
   return payments.filter((p) => p.date >= from)
 }
 
+/**
+ * Money that came in, or an out-of-pocket expense: the member paid it with their own money, which counts
+ * as a contribution of the same amount (ADR-0048).
+ */
+export function countsAsIncoming(payment: Payment): boolean {
+  return payment.direction === 'In' || payment.outOfPocket
+}
+
 /** Everything attributed to a member that came in, in euro cents. */
 export function toppedUpTotal(payments: Payment[]): number {
-  return payments.reduce((sum, p) => (p.direction === 'In' && p.memberId ? sum + p.amount : sum), 0)
+  return payments.reduce((sum, p) => (countsAsIncoming(p) && p.memberId ? sum + p.amount : sum), 0)
 }
 
 /** Who topped up most in the period, the attributed total, and the incoming money without a member. */
@@ -45,7 +53,7 @@ export function toppers(payments: Payment[], period: TopperPeriod, today: string
   const totals = new Map<string, number>()
   let incoming = 0
   for (const p of periodPayments(payments, period, today)) {
-    if (p.direction !== 'In') continue
+    if (!countsAsIncoming(p)) continue
     incoming += p.amount
     if (p.memberId) totals.set(p.memberId, (totals.get(p.memberId) ?? 0) + p.amount)
   }

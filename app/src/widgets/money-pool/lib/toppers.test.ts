@@ -11,6 +11,7 @@ const pay = (date: string, amount: number, memberId?: string, direction: Payment
   memberId,
   counterpartyName: undefined,
   receiptVersion: undefined,
+  outOfPocket: false,
 })
 const names: Record<string, string> = { a: 'Anna', b: 'Bram', c: 'Cleo', d: 'Dirk' }
 const nameOf = (id: string) => names[id] ?? 'Former member'
@@ -116,5 +117,21 @@ describe('toppers', () => {
 
   it('toppedUpTotal sums attributed incoming payments only', () => {
     expect(toppedUpTotal([pay('2026-10-01', 5, 'a'), pay('2026-10-01', 7), pay('2026-10-01', 9, 'a', 'Out')])).toBe(5)
+  })
+})
+
+describe('out-of-pocket expenses', () => {
+  const outOfPocket = (date: string, amount: number, memberId: string): Payment => ({ ...pay(date, amount, memberId, 'Out'), outOfPocket: true })
+  const payments = [outOfPocket('2026-11-05', 1250, 'b'), pay('2026-10-01', 500, 'a'), pay('2026-10-02', 4500, undefined, 'Out')]
+
+  it('count as a contribution of the member who paid', () => {
+    expect(toppedUpTotal(payments)).toBe(1750)
+    const r = toppers(payments, 'season', TODAY, nameOf)
+    expect(r.ranking.map((x) => [x.memberId, x.total])).toEqual([
+      ['b', 1250],
+      ['a', 500],
+    ])
+    expect(r.toppedUp).toBe(1750)
+    expect(r.unmatched).toBe(0)
   })
 })

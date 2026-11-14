@@ -43,7 +43,7 @@ class ReceiptServiceTest : FunSpec({
 
     // The pool as the cache holds it: no Bunq call is made.
     fun service(
-        pool: MoneyPool = MoneyPool.Connected(Money(18_750), listOf(INCOME, EXPENSE)),
+        pool: MoneyPool = MoneyPool.Connected(Money(18_750), listOf(INCOME, EXPENSE), LocalDate.of(2026, 9, 1)),
         receipts: InMemoryReceiptRepository = InMemoryReceiptRepository(),
     ): ReceiptService {
         val moneyPool = MoneyPoolService(
@@ -63,6 +63,7 @@ class ReceiptServiceTest : FunSpec({
                 override fun evict(teamId: TeamId) = error("not used")
             },
             receiptRepository = receipts,
+            outOfPocketExpenseRepository = InMemoryOutOfPocketExpenseRepository(),
             paymentAliasRepository = FixedPaymentAliases(),
             teamMemberRepository = directory.teamMemberRepository(),
         )

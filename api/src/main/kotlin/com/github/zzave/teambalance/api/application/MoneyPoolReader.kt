@@ -53,7 +53,7 @@ class MoneyPoolReader(
         val since = seasonRepository.get().start?.takeIf { !it.isAfter(today) } ?: today.minusDays(DEFAULT_HISTORY_DAYS)
         return try {
             val balance = bunqGateway.fetchBalance(grant, account)
-            MoneyPool.Connected(balance, bunqGateway.fetchPayments(grant, account, since, PAYMENT_LIMIT))
+            MoneyPool.Connected(balance, bunqGateway.fetchPayments(grant, account, since, PAYMENT_LIMIT), since)
         } catch (e: BunqGrantRejectedException) {
             logFailure(e)
             MoneyPool.Rejected

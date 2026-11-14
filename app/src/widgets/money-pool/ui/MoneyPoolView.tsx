@@ -23,6 +23,10 @@ interface MoneyPoolViewProps {
   canTopUp?: boolean
   /** The top-up button, supplied by the MoneyPool container so this View stays prop-only. */
   topUp?: ReactNode
+  /** The button that records an out-of-pocket expense, supplied by the container for the same reason. Shown on a connected pool only. */
+  recordExpense?: ReactNode
+  /** The delete control on an out-of-pocket expense, supplied by the container for the same reason. */
+  deleteExpense?: (expense: Payment) => ReactNode
   /** The receipt control on each expense, supplied by the container for the same reason. */
   receipt?: (expense: Payment) => ReactNode
   /** The claim control on an incoming payment, supplied by the container for the same reason. */
@@ -65,6 +69,8 @@ export function MoneyPoolView({
   beerCount,
   canTopUp,
   topUp,
+  recordExpense,
+  deleteExpense,
   receipt,
   claim,
   connectAvailable,
@@ -93,6 +99,8 @@ export function MoneyPoolView({
           beerPrice={beerPrice}
           beerCount={beerCount}
           topUp={topUpEntry}
+          recordExpense={recordExpense}
+          deleteExpense={deleteExpense}
           receipt={receipt}
           claim={claim}
           seasonSet={seasonSet}

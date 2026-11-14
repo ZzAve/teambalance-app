@@ -18,6 +18,9 @@ import com.github.zzave.teambalance.api.domain.model.EncryptedToken
 import com.github.zzave.teambalance.api.domain.model.Money
 import com.github.zzave.teambalance.api.domain.model.MoneyPool
 import com.github.zzave.teambalance.api.domain.model.MoneyPoolSettings
+import com.github.zzave.teambalance.api.domain.model.ExpenseDescription
+import com.github.zzave.teambalance.api.domain.model.OutOfPocketExpense
+import com.github.zzave.teambalance.api.domain.model.OutOfPocketExpenseId
 import com.github.zzave.teambalance.api.domain.model.Payment
 import com.github.zzave.teambalance.api.domain.model.PaymentAlias
 import com.github.zzave.teambalance.api.domain.model.PaymentAliasId
@@ -36,6 +39,7 @@ import com.github.zzave.teambalance.api.domain.port.BunqConnectionRepository
 import com.github.zzave.teambalance.api.domain.port.BunqGateway
 import com.github.zzave.teambalance.api.domain.port.MoneyPoolCacheGateway
 import com.github.zzave.teambalance.api.domain.port.MoneyPoolSettingsRepository
+import com.github.zzave.teambalance.api.domain.port.OutOfPocketExpenseRepository
 import com.github.zzave.teambalance.api.domain.port.ReceiptRepository
 import com.github.zzave.teambalance.api.domain.port.PaymentAliasRepository
 import com.github.zzave.teambalance.api.domain.port.SeasonRepository
@@ -54,6 +58,8 @@ private val MEMBER = UserId.random()
 
 private val ACCOUNT = BunqAccountId("account-1")
 private val TODAY = LocalDate.of(2026, 10, 11)
+// The season has no start in these tests, so the pool covers the last 90 days.
+private val HISTORY_START = TODAY.minusDays(90)
 private val GRANT_CIPHER = TokenCipher.fromBase64Key(Base64.getEncoder().encodeToString(ByteArray(32) { it.toByte() }), "test-key")
 private const val GRANT_TOKEN = "grant-token"
 private val PAYMENT = Payment(PaymentId("101"), LocalDate.of(2026, 10, 1), PaymentName("Lisa"), Money(2_000), PaymentDirection.IN)
@@ -69,6 +75,18 @@ internal class InMemoryReceiptRepository : ReceiptRepository {
     }
     override fun delete(paymentId: PaymentId) {
         receipts.remove(paymentId)
+    }
+}
+
+internal class InMemoryOutOfPocketExpenseRepository : OutOfPocketExpenseRepository {
+    val expenses = mutableListOf<OutOfPocketExpense>()
+    override fun findSince(since: LocalDate) = expenses.filter { !it.date.isBefore(since) }.reversed()
+    override fun find(id: OutOfPocketExpenseId) = expenses.firstOrNull { it.id == id }
+    override fun insert(expense: OutOfPocketExpense) {
+        expenses += expense
+    }
+    override fun delete(id: OutOfPocketExpenseId) {
+        expenses.removeIf { it.id == id }
     }
 }
 
@@ -206,6 +224,7 @@ class MoneyPoolServiceTest : FunSpec({
         cache: MoneyPoolCacheGateway = PassThroughCache(),
         connections: BunqConnectionRepository? = null,
         receipts: ReceiptRepository = InMemoryReceiptRepository(),
+        outOfPocketExpenses: OutOfPocketExpenseRepository = InMemoryOutOfPocketExpenseRepository(),
         aliases: List<PaymentAlias> = emptyList(),
         demoTeam: TeamId? = null,
         tenantScope: TenantScopeGateway = RecordingTenantScope(),
@@ -245,6 +264,7 @@ class MoneyPoolServiceTest : FunSpec({
             authorizationService = AuthorizationService(directory.teamMemberRepository(), FakeActAsGateway()),
             cache = cache,
             receiptRepository = receipts,
+            outOfPocketExpenseRepository = outOfPocketExpenses,
             paymentAliasRepository = FixedPaymentAliases(aliases),
             teamMemberRepository = directory.teamMemberRepository(),
             demoTeam = demoTeam,
@@ -260,14 +280,14 @@ class MoneyPoolServiceTest : FunSpec({
     }
 
     test("a value the cache marks as refreshing is shown as refreshing") {
-        val held = MoneyPool.Connected(Money(500), listOf(PAYMENT))
+        val held = MoneyPool.Connected(Money(500), listOf(PAYMENT), HISTORY_START)
 
         service(cache = HoldingCache(held, refreshing = true)).getMoneyPool(team, MEMBER).refreshing shouldBe true
         service(cache = HoldingCache(held)).getMoneyPool(team, MEMBER).refreshing shouldBe false
     }
 
     test("attributes payments to members after the cache, so a held pool reflects aliases saved since") {
-        val held = MoneyPool.Connected(Money(18_750), listOf(PAYMENT))
+        val held = MoneyPool.Connected(Money(18_750), listOf(PAYMENT), HISTORY_START)
         val alias = PaymentAlias(PaymentAliasId.random(), MEMBER, PaymentAliasName.parse("LISA"), null)
 
         val pool = service(cache = HoldingCache(held), aliases = listOf(alias)).getMoneyPool(team, MEMBER).pool
@@ -299,7 +319,7 @@ class MoneyPoolServiceTest : FunSpec({
     }
 
     test("is Connected with balance and payments when Bunq answers") {
-        service().getMoneyPool(team, MEMBER).pool shouldBe MoneyPool.Connected(Money(18_750), listOf(PAYMENT))
+        service().getMoneyPool(team, MEMBER).pool shouldBe MoneyPool.Connected(Money(18_750), listOf(PAYMENT), HISTORY_START)
     }
 
     test("is Unavailable when Bunq fails") {
@@ -376,7 +396,7 @@ class MoneyPoolServiceTest : FunSpec({
 
     test("a value the cache holds is served without a Bunq call and without opening the stored grant") {
         val gateway = RecordingBunqGateway()
-        val held = MoneyPool.Connected(Money(500), listOf(PAYMENT))
+        val held = MoneyPool.Connected(Money(500), listOf(PAYMENT), HISTORY_START)
 
         val service = service(gateway = gateway, storedGrant = EncryptedToken("not-a-grant"), cache = HoldingCache(held))
 
@@ -411,7 +431,7 @@ class MoneyPoolServiceTest : FunSpec({
         )
 
         service(gateway = gateway, connections = connections).getMoneyPool(team, MEMBER).pool shouldBe
-            MoneyPool.Connected(Money(18_750), listOf(PAYMENT))
+            MoneyPool.Connected(Money(18_750), listOf(PAYMENT), HISTORY_START)
 
         gateway.grantsUsed shouldBe listOf(BunqGrant("new-grant"), BunqGrant("new-grant"))
     }
@@ -455,12 +475,12 @@ class MoneyPoolServiceTest : FunSpec({
         val gateway = RecordingBunqGateway()
         val service = service(settingsRepository = settings, gateway = gateway, cache = RememberingCache())
         service.getMoneyPool(team, MEMBER).pool shouldBe
-            MoneyPool.Connected(Money(18_750), listOf(PAYMENT), beerPrice = BeerPrice(270), beerCount = BeerCount(69))
+            MoneyPool.Connected(Money(18_750), listOf(PAYMENT), HISTORY_START, beerPrice = BeerPrice(270), beerCount = BeerCount(69))
 
         settings.settings = MoneyPoolSettings(enabled = true, beerPrice = BeerPrice(300))
 
         service.getMoneyPool(team, MEMBER).pool shouldBe
-            MoneyPool.Connected(Money(18_750), listOf(PAYMENT), beerPrice = BeerPrice(300), beerCount = BeerCount(62))
+            MoneyPool.Connected(Money(18_750), listOf(PAYMENT), HISTORY_START, beerPrice = BeerPrice(300), beerCount = BeerCount(62))
         gateway.calls shouldBe 2
     }
 
@@ -477,7 +497,7 @@ class MoneyPoolServiceTest : FunSpec({
             MoneyPool.Rejected,
             MoneyPool.Rejected,
             MoneyPool.Unavailable,
-            MoneyPool.Connected(Money(18_750), listOf(PAYMENT)),
+            MoneyPool.Connected(Money(18_750), listOf(PAYMENT), HISTORY_START),
         )
     }
 
@@ -524,7 +544,8 @@ class MoneyPoolServiceTest : FunSpec({
 
     test("reports the beer price and the whole beers the balance buys when Connected") {
         val pool = service(settings = MoneyPoolSettings(enabled = true, beerPrice = BeerPrice(270))).getMoneyPool(team, MEMBER).pool
-        pool shouldBe MoneyPool.Connected(Money(18_750), listOf(PAYMENT), beerPrice = BeerPrice(270), beerCount = BeerCount(69))
+        pool shouldBe
+            MoneyPool.Connected(Money(18_750), listOf(PAYMENT), HISTORY_START, beerPrice = BeerPrice(270), beerCount = BeerCount(69))
     }
 
     test("reports no beer price or count when the team set no price") {
@@ -582,6 +603,41 @@ class MoneyPoolServiceTest : FunSpec({
 
         (pool.getMoneyPool(team, MEMBER).pool as MoneyPool.Connected).receiptVersions shouldBe
             mapOf(EXPENSE.id to Receipt(webpBytes()).version)
+    }
+
+    test("an out-of-pocket expense is listed as an expense that counts for the member who paid, by date among the Bunq payments") {
+        val expenses = InMemoryOutOfPocketExpenseRepository()
+        val balls = OutOfPocketExpense(OutOfPocketExpenseId.random(), MEMBER, Money(1_250), EXPENSE.date, ExpenseDescription.parse("Balls"))
+        expenses.insert(balls)
+        val pool = service(gateway = RecordingBunqGateway(payments = listOf(EXPENSE, PAYMENT)), outOfPocketExpenses = expenses)
+            .getMoneyPool(team, ADMIN).pool as MoneyPool.Connected
+
+        pool.payments shouldBe listOf(
+            Payment(
+                balls.id.paymentId, EXPENSE.date, PaymentName("Balls"), Money(1_250), PaymentDirection.OUT,
+                memberId = MEMBER, outOfPocket = true,
+            ),
+            EXPENSE,
+            PAYMENT,
+        )
+        pool.balance shouldBe Money(18_750)
+    }
+
+    test("an out-of-pocket expense from before the first day the pool covers is not listed, and one with a receipt shows its version") {
+        val expenses = InMemoryOutOfPocketExpenseRepository()
+        val receipts = InMemoryReceiptRepository()
+        fun expenseOn(date: LocalDate) =
+            OutOfPocketExpense(OutOfPocketExpenseId.random(), MEMBER, Money(1_250), date, ExpenseDescription.parse("Balls"))
+        val old = expenseOn(HISTORY_START.minusDays(1))
+        val recent = expenseOn(HISTORY_START)
+        expenses.insert(old)
+        expenses.insert(recent)
+        receipts.save(recent.id.paymentId, Receipt(webpBytes()))
+
+        val pool = service(outOfPocketExpenses = expenses, receipts = receipts).getMoneyPool(team, MEMBER).pool as MoneyPool.Connected
+
+        pool.payments.map { it.id } shouldBe listOf(PAYMENT.id, recent.id.paymentId)
+        pool.receiptVersions shouldBe mapOf(recent.id.paymentId to Receipt(webpBytes()).version)
     }
 
     context("in demo mode") {

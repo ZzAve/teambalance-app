@@ -12,6 +12,7 @@ const pay = (date: string, amount: number, memberId?: string, direction: Payment
   memberId,
   counterpartyName: undefined,
   receiptVersion: undefined,
+  outOfPocket: false,
 })
 const nameOf = (id: string) => id.toUpperCase()
 const TODAY = '2026-11-09'
@@ -66,5 +67,15 @@ describe('playbackSteps', () => {
     expect(playbackSteps(3, true)).toEqual([0, 1, 2])
     expect(playbackSteps(1, true)).toEqual([0])
     expect(playbackSteps(0, true)).toEqual([])
+  })
+})
+
+describe('out-of-pocket expenses', () => {
+  it('count for the member who paid on the day of the expense', () => {
+    const payments: Payment[] = [{ ...pay('2026-10-21', 400, 'c', 'Out'), outOfPocket: true }, ...PAYMENTS]
+    const last = playbackFrames(payments, 'season', TODAY, nameOf).at(-1)
+    expect(last?.date).toBe('2026-10-21')
+    expect(last?.ranking.map((r) => [r.memberId, r.total])).toEqual(toppers(payments, 'season', TODAY, nameOf).ranking.map((r) => [r.memberId, r.total]))
+    expect(last?.ranking[0]).toMatchObject({ memberId: 'c', total: 450 })
   })
 })

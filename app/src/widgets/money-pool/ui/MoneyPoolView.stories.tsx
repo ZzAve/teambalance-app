@@ -13,14 +13,15 @@ import { MoneyPoolView } from './MoneyPoolView'
 // result instead of a spy.
 //
 // Three-story shape (ADR-0032 §1):
-//   1. Data — the connected pool: balance, In and Spent totals, graph and payment list.
+//   1. Data — the connected pool: balance, In and Spent totals, graph and payment list, with one out-of-pocket expense.
 //   2. Shells — every other state stacked: loading, error, off, not connected (member and admin),
 //      unavailable, rejected (member, admin, admin with connecting off), top-up with and without a link (the admin's hint only on a connected pool), and connected edge cases (no payments, same-day duplicates, missing balance, no beer price, an empty pool).
 //   3. Interactions — expand and collapse the payment list past its first 15.
 const PAYMENTS: Payment[] = [
-  { id: '1005', date: '2026-10-06', name: 'Lisa de Vries', amount: 2000, direction: 'In', memberId: 'u-lisa', counterpartyName: undefined, receiptVersion: undefined },
-  { id: '1006', date: '2026-10-04', name: 'Sporthal De Kuil', amount: 4500, direction: 'Out', memberId: undefined, counterpartyName: undefined, receiptVersion: 'a1b2' },
-  { id: '1007', date: '2026-09-29', name: 'Tom Bakker', amount: 1000, direction: 'In', memberId: undefined, counterpartyName: undefined, receiptVersion: undefined },
+  { id: '1005', date: '2026-10-06', name: 'Lisa de Vries', amount: 2000, direction: 'In', memberId: 'u-lisa', counterpartyName: undefined, receiptVersion: undefined, outOfPocket: false },
+  { id: 'oop-1', date: '2026-10-05', name: 'Match balls', amount: 1250, direction: 'Out', memberId: 'u-lisa', counterpartyName: undefined, receiptVersion: undefined, outOfPocket: true },
+  { id: '1006', date: '2026-10-04', name: 'Sporthal De Kuil', amount: 4500, direction: 'Out', memberId: undefined, counterpartyName: undefined, receiptVersion: 'a1b2', outOfPocket: false },
+  { id: '1007', date: '2026-09-29', name: 'Tom Bakker', amount: 1000, direction: 'In', memberId: undefined, counterpartyName: undefined, receiptVersion: undefined, outOfPocket: false },
 ]
 
 // The roster behind the attributed payment. Named apart from the payment so the Toppers do not repeat a payment's text.
@@ -34,6 +35,7 @@ const MANY_PAYMENTS: Payment[] = Array.from({ length: 18 }, (_, i) => ({
   memberId: undefined,
   counterpartyName: undefined,
   receiptVersion: undefined,
+  outOfPocket: false,
   date: `2026-10-${String(20 - i).padStart(2, '0')}`,
   name: `Payment ${i + 1}`,
   amount: 1000 + i * 100,
@@ -57,6 +59,8 @@ const meta = {
     members: MEMBERS,
     canTopUp: true,
     topUp: <Button size="lg">Top up</Button>,
+    recordExpense: <Button size="lg" variant="outline">Add an expense you paid</Button>,
+    deleteExpense: (expense: Payment) => <Button size="icon">{`Delete ${expense.name}`}</Button>,
     receipt: (expense: Payment) => <Button size="icon">{`Receipt ${expense.name}`}</Button>,
     claim: (payment: Payment) => <Button size="icon">{`Claim ${payment.name}`}</Button>,
   },
@@ -74,14 +78,15 @@ export const Data: Story = {
     await expect(balance.getByText('Pool balance')).toBeInTheDocument()
     await expect(balance.getByText('This season')).toBeInTheDocument()
     await expect(balance.getByText(/^€187\.50$/)).toBeInTheDocument()
-    // In and Spent are totals over the payments listed: 20 + 10 in, 45 out.
-    await expect(balance.getByText('In').nextElementSibling).toHaveTextContent(/30\.00/)
-    await expect(balance.getByText('Spent').nextElementSibling).toHaveTextContent(/45\.00/)
-    // Topped up is the part of In that has a member: Lisa's 20; Tom's 10 has none.
-    await expect(balance.getByText('Topped up').nextElementSibling).toHaveTextContent(/20\.00/)
+    // In and Spent are totals over the payments listed: 20 + 10 in and 45 out through the bank, and the
+    // 12.50 Lisa paid with her own money, which is in both.
+    await expect(balance.getByText('In').nextElementSibling).toHaveTextContent(/42\.50/)
+    await expect(balance.getByText('Spent').nextElementSibling).toHaveTextContent(/57\.50/)
+    // Topped up is the part of In that has a member: Lisa's 20 and her 12.50; Tom's 10 has none.
+    await expect(balance.getByText('Topped up').nextElementSibling).toHaveTextContent(/32\.50/)
     // The Toppers follow Payments and say how much came in without a name.
     const toppers = within(canvas.getByRole('region', { name: 'Toppers' }))
-    await expect(toppers.getByText('Number 1: Lisa V., €20.00')).toBeInTheDocument()
+    await expect(toppers.getByText('Number 1: Lisa V., €32.50')).toBeInTheDocument()
     await expect(toppers.getByText('€10.00 came in without a name we know.')).toBeInTheDocument()
     // The graph is a static image whose name carries the summary.
     await expect(balance.getByRole('img', { name: /The pot went from .*to .*187\.50 on 6 Oct/ })).toBeInTheDocument()
@@ -93,10 +98,13 @@ export const Data: Story = {
     const topUp = canvas.getByRole('button', { name: 'Top up' })
     const balanceCard = canvas.getByRole('region', { name: 'Balance' })
     await expect(balanceCard.compareDocumentPosition(topUp) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    // The out-of-pocket button follows Top up.
+    const recordExpense = canvas.getByRole('button', { name: 'Add an expense you paid' })
+    await expect(topUp.compareDocumentPosition(recordExpense) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     const payments = within(canvas.getByRole('region', { name: 'Payments' }))
     // One flat list, newest first, with no week labels.
     await expect(payments.queryAllByRole('heading', { level: 4 })).toHaveLength(0)
-    const [lisa, sporthal, tom] = payments.getAllByRole('listitem')
+    const [lisa, balls, sporthal, tom] = payments.getAllByRole('listitem')
     await expect(lisa).toHaveTextContent('Lisa de Vries')
     // A top-up with a member shows that member's face and roster name; other money shows its direction.
     await expect(lisa).toHaveTextContent('LV')
@@ -111,6 +119,13 @@ export const Data: Story = {
     await expect(within(lisa).getByText(/20\.00/)).toHaveClass('text-green-ink')
     await expect(within(sporthal).getByText('−')).toHaveAttribute('aria-hidden', 'true')
     await expect(within(sporthal).getByText(/45\.00/)).toHaveClass('text-orange-ink')
+    // An out-of-pocket expense names who paid, has no sign or colour, and takes a receipt and the delete control.
+    await expect(within(balls).getByText('Paid by Lisa V. · Mon 5 Oct')).toBeInTheDocument()
+    await expect(within(balls).getByText('Paid by a member, not from the pool')).toHaveClass('sr-only')
+    await expect(within(balls).queryByText('−')).not.toBeInTheDocument()
+    await expect(within(balls).getByText(/12\.50/)).not.toHaveClass('text-orange-ink')
+    await expect(within(balls).getByRole('button', { name: 'Receipt Match balls' })).toBeInTheDocument()
+    await expect(payments.getAllByRole('button', { name: /^Delete / })).toEqual([within(balls).getByRole('button', { name: 'Delete Match balls' })])
     // The receipt control sits on expenses only.
     await expect(payments.getByRole('button', { name: 'Receipt Sporthal De Kuil' })).toBeInTheDocument()
     await expect(payments.queryByRole('button', { name: 'Receipt Lisa de Vries' })).not.toBeInTheDocument()

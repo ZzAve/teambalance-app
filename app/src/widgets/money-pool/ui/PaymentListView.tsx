@@ -18,13 +18,15 @@ interface PaymentListViewProps {
   receipt?: (expense: Payment) => ReactNode
   /** The claim control on an incoming payment (null for none), supplied by the container. */
   claim?: (payment: Payment) => ReactNode
+  /** The delete control on an out-of-pocket expense (null for none), supplied by the container. */
+  deleteExpense?: (expense: Payment) => ReactNode
 }
 
 /** The payments shown before "Show all". */
 const PAYMENTS_SHOWN = 15
 
 /** The pool's payments in one card, newest first. */
-export function PaymentListView({ payments, members, youId, receipt, claim }: PaymentListViewProps) {
+export function PaymentListView({ payments, members, youId, receipt, claim, deleteExpense }: PaymentListViewProps) {
   const { t } = useTranslation()
   const [showAll, setShowAll] = useState(false)
   const memberById = useMemo(() => new Map((members ?? []).map((m) => [m.userId, m])), [members])
@@ -38,7 +40,7 @@ export function PaymentListView({ payments, members, youId, receipt, claim }: Pa
       ) : (
         <ul className="flex flex-col divide-y divide-border rounded-lg bg-card">
           {shown.map((payment) => (
-            <PaymentRow key={payment.id} payment={payment} member={payment.memberId ? memberById.get(payment.memberId) : undefined} youId={youId} receipt={receipt} claim={claim} />
+            <PaymentRow key={payment.id} payment={payment} member={payment.memberId ? memberById.get(payment.memberId) : undefined} youId={youId} receipt={receipt} claim={claim} deleteExpense={deleteExpense} />
           ))}
         </ul>
       )}
@@ -51,11 +53,26 @@ export function PaymentListView({ payments, members, youId, receipt, claim }: Pa
   )
 }
 
-function PaymentRow({ payment, member, youId, receipt, claim }: Pick<PaymentListViewProps, 'youId' | 'receipt' | 'claim'> & { payment: Payment; member: Member | undefined }) {
+function PaymentRow({
+  payment,
+  member,
+  youId,
+  receipt,
+  claim,
+  deleteExpense,
+}: Pick<PaymentListViewProps, 'youId' | 'receipt' | 'claim' | 'deleteExpense'> & { payment: Payment; member: Member | undefined }) {
   const { t } = useTranslation()
   const isIncoming = payment.direction === 'In'
-  // The roster name, unless it only repeats the payment's own name.
-  const who = member && (member.userId === youId ? t('money.toppers.self', { name: member.displayName }) : member.displayName !== payment.name && member.displayName)
+  const memberName = member && (member.userId === youId ? t('money.toppers.self', { name: member.displayName }) : member.displayName)
+  // An out-of-pocket expense names the member who paid, or says a member did when they have left the team.
+  // Any other payment shows the roster name, unless it only repeats the payment's own name.
+  const who = payment.outOfPocket
+    ? memberName
+      ? t('money.paidBy', { name: memberName })
+      : t('money.paidOutOfPocket')
+    : member?.displayName !== payment.name && memberName
+  // An out-of-pocket expense did not change the balance, so its amount has no sign and no colour.
+  const amountLabel = payment.outOfPocket ? t('money.outOfPocket') : isIncoming ? t('money.incoming') : t('money.outgoing')
   return (
     // The row is focusable so focus can land on it after a claim removes its button.
     <li tabIndex={-1} className="flex items-center gap-3 px-4 py-3 outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring">
@@ -73,13 +90,14 @@ function PaymentRow({ payment, member, youId, receipt, claim }: Pick<PaymentList
         <span className="block truncate text-small font-semibold">{payment.name}</span>
         <span className="block truncate text-caption text-muted-foreground">{[who, formatPaymentWeekday(payment.date)].filter(Boolean).join(' · ')}</span>
       </span>
-      <span className={`text-small font-semibold tabular-nums ${isIncoming ? 'text-green-ink' : 'text-orange-ink'}`}>
-        <span className="sr-only">{`${isIncoming ? t('money.incoming') : t('money.outgoing')} `}</span>
-        <span aria-hidden="true">{isIncoming ? '+' : '−'}</span>
+      <span className={`text-small font-semibold tabular-nums ${payment.outOfPocket ? '' : isIncoming ? 'text-green-ink' : 'text-orange-ink'}`}>
+        <span className="sr-only">{`${amountLabel} `}</span>
+        {!payment.outOfPocket && <span aria-hidden="true">{isIncoming ? '+' : '−'}</span>}
         {formatEuro(payment.amount)}
       </span>
       {/* An incoming payment without a claim control keeps the receipt's width free, so the amounts stay in one column. */}
       {(receipt || claim) && (isIncoming ? (claim?.(payment) ?? <span className="w-10 shrink-0" aria-hidden="true" />) : receipt?.(payment))}
+      {payment.outOfPocket && deleteExpense?.(payment)}
     </li>
   )
 }

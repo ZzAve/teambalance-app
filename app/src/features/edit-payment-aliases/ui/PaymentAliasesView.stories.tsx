@@ -23,6 +23,7 @@ const pay = (id: string, name: string): Payment => ({
   amount: 12.5,
   direction: 'In',
   receiptVersion: undefined,
+  outOfPocket: false,
   memberId: undefined,
   counterpartyName: undefined,
 })

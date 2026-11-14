@@ -11,6 +11,7 @@ import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import java.time.Clock
 import java.time.Duration
+import java.time.LocalDate
 import java.time.Instant
 import java.time.ZoneId
 import java.time.ZoneOffset
@@ -74,7 +75,7 @@ private fun waitsInsideCaffeine(thread: Thread): Boolean {
     return false
 }
 
-private fun balance(cents: Long): MoneyPool = MoneyPool.Connected(Money(cents), emptyList())
+private fun balance(cents: Long): MoneyPool = MoneyPool.Connected(Money(cents), emptyList(), LocalDate.EPOCH)
 
 private val ALPHA = TeamId(UUID.randomUUID())
 private val BETA = TeamId(UUID.randomUUID())

@@ -8,6 +8,9 @@ enum class PaymentDirection { IN, OUT }
  * A payment read from Bunq, held in memory only (ADR-0042). [counterpartyIban] and [description] are
  * what attribution reads and are never returned by the API; [memberId] is the outcome of
  * [PaymentAttribution].
+ *
+ * With [outOfPocket] it is an [OutOfPocketExpense] instead: an expense that [memberId] paid with their
+ * own money, which also counts as their contribution of the same amount.
  */
 data class Payment(
     val id: PaymentId,
@@ -19,6 +22,7 @@ data class Payment(
     val description: PaymentDescription? = null,
     val memberId: UserId? = null,
     val counterpartyName: PaymentName? = null,
+    val outOfPocket: Boolean = false,
 ) {
     // Keeps the IBAN, the description and the name out of logs.
     override fun toString(): String = "Payment(date=$date, amount=$amount, direction=$direction)"

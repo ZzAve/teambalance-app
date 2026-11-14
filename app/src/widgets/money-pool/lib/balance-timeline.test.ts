@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { Payment } from '@shared/api/money-pool'
 import { balanceTimeline, potTotals } from './balance-timeline'
 
-const payment = (date: string, amount: number, direction: Payment['direction']): Payment => ({ id: 'p', date, name: 'x', amount, direction, memberId: undefined, counterpartyName: undefined, receiptVersion: undefined })
+const payment = (date: string, amount: number, direction: Payment['direction']): Payment => ({ id: 'p', date, name: 'x', amount, direction, memberId: undefined, counterpartyName: undefined, receiptVersion: undefined, outOfPocket: false })
 
 describe('balanceTimeline', () => {
   it('has no points without payments', () => {
@@ -53,5 +53,21 @@ describe('potTotals', () => {
 
   it('is zero without payments', () => {
     expect(potTotals([])).toEqual({ incoming: 0, outgoing: 0 })
+  })
+})
+
+describe('out-of-pocket expenses', () => {
+  const payments: Payment[] = [
+    payment('2026-10-06', 2000, 'In'),
+    { ...payment('2026-10-05', 1250, 'Out'), memberId: 'a', outOfPocket: true },
+    payment('2026-10-04', 4500, 'Out'),
+  ]
+
+  it('are not part of the balance, so the timeline has no point for them', () => {
+    expect(balanceTimeline(18750, payments)).toEqual(balanceTimeline(18750, [payments[0], payments[2]]))
+  })
+
+  it('count as money in and as money spent', () => {
+    expect(potTotals(payments)).toEqual({ incoming: 3250, outgoing: 5750 })
   })
 })

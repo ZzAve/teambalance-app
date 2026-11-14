@@ -617,7 +617,10 @@
       "you": "You",
       "unmatched": "{{amount}} came in without a name we know."
     },
-    "graphSummary": "The pot went from {{from}} on {{fromDate}} to {{to}} on {{toDate}}"
+    "graphSummary": "The pot went from {{from}} on {{fromDate}} to {{to}} on {{toDate}}",
+    "paidBy": "Paid by {{name}}",
+    "paidOutOfPocket": "Paid by a member",
+    "outOfPocket": "Paid by a member, not from the pool"
   },
   "moneySettings": {
     "title": "Money pool",
@@ -1260,6 +1263,43 @@
       "NOT_CLAIMABLE": "This payment is already linked. Reload the page.",
       "POOL_UNAVAILABLE": "The money pool is unavailable right now. Try again later.",
       "FAILED": "Couldn't link the payment. Please try again."
+    }
+  },
+  "expense": {
+    "button": "Add an expense you paid",
+    "title": "Add an expense you paid",
+    "description": "For something you bought for the team with your own money. It counts as an expense of the pool and as your contribution of the same amount. The balance does not change.",
+    "paidBy": "Paid by",
+    "paidByPlaceholder": "Choose a member",
+    "amount": "Amount (€)",
+    "amountInvalid": "Enter an amount from €0.01 to €10,000.",
+    "what": "What was it for?",
+    "whatPlaceholder": "New match balls",
+    "date": "Date",
+    "receipt": "Receipt",
+    "receiptHint": "Add a photo of the receipt so the team can see what this was spent on.",
+    "receiptAlt": "The receipt you added",
+    "receiptFile": "Photo of the receipt",
+    "noReceiptQuestion": "You did not add a receipt. Add a photo of it, or save without one.",
+    "save": "Save expense",
+    "saveWithoutReceipt": "Save without receipt",
+    "saving": "Saving…",
+    "done": "Expense added",
+    "error": {
+      "INVALID": "Check the amount, the description and the date. The date must be in the period the pool shows.",
+      "FORBIDDEN": "You are not allowed to add this expense.",
+      "NOT_FOUND": "This member is no longer in the team.",
+      "POOL_UNAVAILABLE": "The money pool is unavailable right now. Try again later.",
+      "RECEIPT_FAILED": "The expense is saved, but the receipt could not be uploaded. Add it from the list of payments.",
+      "FAILED": "Couldn't save the expense. Please try again."
+    },
+    "delete": {
+      "button": "Delete expense {{name}}",
+      "title": "Delete this expense?",
+      "description": "{{name}}, {{amount}}. The expense and its receipt are removed, and it no longer counts as a contribution.",
+      "confirm": "Delete",
+      "done": "Expense deleted",
+      "failed": "Couldn't delete the expense. Please try again."
     }
   }
 }

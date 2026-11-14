@@ -42,7 +42,8 @@ class BunqGatewayConfiguration {
             check(demoEnabled) { "teambalance.bunq.environment=fake is only allowed with teambalance.demo.enabled=true" }
             FakeBunqGatewayAdapter(clock, apiBaseUrl).also { log.info("Bunq gateway: fake, for the demo") }
         }
-        BunqEnvironment.SANDBOX, BunqEnvironment.PRODUCTION -> realGateway(properties, callProperties, contexts, cipher, currentTeam, clock)
+        BunqEnvironment.SANDBOX, BunqEnvironment.PRODUCTION ->
+            realGateway(properties, callProperties, contexts, cipher, currentTeam, clock)
     }
 
     @Bean

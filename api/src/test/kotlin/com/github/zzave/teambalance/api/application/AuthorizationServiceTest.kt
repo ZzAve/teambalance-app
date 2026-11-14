@@ -1,8 +1,10 @@
 package com.github.zzave.teambalance.api.application
 
 import com.github.zzave.teambalance.api.domain.exception.ActAsExpiredException
+import com.github.zzave.teambalance.api.domain.exception.MemberNotFoundException
 import com.github.zzave.teambalance.api.domain.exception.NoTeamMembershipException
 import com.github.zzave.teambalance.api.domain.exception.NotTeamAdminException
+import com.github.zzave.teambalance.api.domain.exception.NotUnderActAsException
 import com.github.zzave.teambalance.api.domain.model.ActAs
 import com.github.zzave.teambalance.api.domain.model.DisplayName
 import com.github.zzave.teambalance.api.domain.model.PositionId
@@ -166,6 +168,31 @@ class AuthorizationServiceTest : FunSpec() {
             test("an existing member keeps their own role - the grant does not overwrite it") {
                 actingAs(teamId).isAdmin(memberId, teamId) shouldBe false
                 actingAs(teamId).isMember(memberId, teamId) shouldBe true
+            }
+        }
+
+        context("requireRealMember") {
+            test("passes for a user with a team_members row, whatever the role") {
+                service.requireRealMember(memberId, teamId)
+                service.requireRealMember(adminId, teamId)
+            }
+
+            test("throws MemberNotFoundException for a user with no team_members row") {
+                shouldThrow<MemberNotFoundException> { service.requireRealMember(strangerId, teamId) }
+            }
+
+            test("is not satisfied by the Virtual Member of an Act-as grant for this user and team") {
+                shouldThrow<MemberNotFoundException> { actingAs(teamId).requireRealMember(operator, teamId) }
+            }
+        }
+
+        context("requireNotUnderActAs") {
+            test("throws NotUnderActAsException while an Act-as grant is active") {
+                shouldThrow<NotUnderActAsException> { actingAs(teamId).requireNotUnderActAs() }
+            }
+
+            test("passes when the request is not under Act-as") {
+                service.requireNotUnderActAs()
             }
         }
 

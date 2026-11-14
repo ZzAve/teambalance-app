@@ -50,7 +50,7 @@ class PhotoServiceTest : FunSpec({
     fun newService(): Pair<PhotoService, FakePhotoRepository> {
         val photos = FakePhotoRepository()
         val roster = directory.teamMemberRepository()
-        return PhotoService(photos, roster, AuthorizationService(roster, FakeActAsGateway())) to photos
+        return PhotoService(photos, AuthorizationService(roster, FakeActAsGateway())) to photos
     }
 
     test("a member uploads their own Team Photo and any member can read it") {

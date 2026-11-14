@@ -36,7 +36,7 @@ class TopUpServiceTest : FunSpec({
         },
         teamRepository = directory.teamRepository(),
         teamMemberRepository = members,
-        actAsGateway = FakeActAsGateway(actAs),
+        authorizationService = AuthorizationService(members, FakeActAsGateway(actAs)),
     )
 
     val link = BunqMeLink.parse("bunq.me/setpointvt")

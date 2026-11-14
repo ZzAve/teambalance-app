@@ -66,22 +66,18 @@ class MembershipCompositionRoot {
     @Bean
     fun paymentAliasService(
         paymentAliasRepository: PaymentAliasRepository,
-        teamMemberRepository: TeamMemberRepository,
         authorizationService: AuthorizationService,
     ) = PaymentAliasService(
         paymentAliasRepository = paymentAliasRepository,
-        teamMemberRepository = teamMemberRepository,
         authorizationService = authorizationService,
     )
 
     @Bean
     fun photoService(
         photoRepository: PhotoRepository,
-        teamMemberRepository: TeamMemberRepository,
         authorizationService: AuthorizationService,
     ) = PhotoService(
         photoRepository = photoRepository,
-        teamMemberRepository = teamMemberRepository,
         authorizationService = authorizationService,
     )
 }

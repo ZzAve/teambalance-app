@@ -107,6 +107,10 @@ describe('pwaWorkbox', () => {
     expect(pwaWorkbox!.globIgnores).toContain('screenshots/**')
   })
 
+  it('keeps the text recognition for receipts out of the precache', () => {
+    expect(pwaWorkbox!.globIgnores).toContain('ocr/**')
+  })
+
   it('serves the precached shell for offline SPA navigations', () => {
     expect(pwaWorkbox!.navigateFallback).toBe('/index.html')
   })

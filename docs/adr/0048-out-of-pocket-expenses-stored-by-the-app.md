@@ -32,19 +32,26 @@ member who paid. The two cancel out, so the balance does not change and no money
   add the amount to money spent, to money in and to the member's contributions, and leave it out of the
   balance graph.
 - **Who may write.** A member records for themselves; an Admin for any member (the rule of payment
-  aliases, ADR-0046). The member who paid and an Admin may delete. There is no edit: delete and record
-  again.
+  aliases, ADR-0046). The member who paid and an Admin may change or delete it. Only an Admin changes
+  who paid.
+- **No Bunq needed.** An expense is recorded, listed, changed and deleted in every state of the pool but
+  Off. Without a working Bunq Connection the pool lists the expenses alone, with their total and the
+  Toppers, and shows no balance. When a connection exists but cannot be read (Unavailable, Rejected) the
+  page says that the bank's payments are missing, because the list and the ranking are then incomplete.
 - **Only inside the history the pool shows.** The date is not in the future and not before the first day
-  the pool's payments cover (season start, or the last 90 days), and the pool must be connected. A
-  recorded expense is therefore always visible, and it stops counting when the period no longer covers
-  its date, like a Bunq payment.
+  the pool covers (season start, or the last 90 days; the same rule with and without Bunq). A recorded
+  expense is therefore always visible, and it stops counting when the period no longer covers its date,
+  like a Bunq payment.
 - **Receipt.** The expense's id shares the id space of Bunq payment ids under the prefix `oop-`, so a
-  receipt is stored and served exactly as in ADR-0044. The form asks for a photo of the receipt; saving
-  without one needs a second, explicit press. Deleting the expense deletes its receipt.
+  receipt is stored and served exactly as in ADR-0044. The form starts with a photo of the receipt and
+  reads the total from it ([ADR-0049](0049-receipt-total-read-in-the-browser.md)); saving without a photo
+  needs a second, explicit press. Deleting the expense deletes its receipt.
 - The row stays when the member leaves the team; it then shows without a name.
 
 ## Consequences
 
+- The contract's `payments` is set in every state but Off, and `MoneyPoolOverview` (not the Bunq-backed
+  `MoneyPool`) carries the listed payments, their receipt versions and the first day they cover.
 - The app is the only record of these expenses. Nothing checks them against a bank; the pool is built on
   trust, and the receipt is the evidence.
 - "Topped up" and the Toppers now include money that never reached the account. The balance and the

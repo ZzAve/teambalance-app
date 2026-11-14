@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { TanStackRouterVite } from '@tanstack/router-plugin/vite'
 import { VitePWA } from 'vite-plugin-pwa'
+import { viteStaticCopy } from 'vite-plugin-static-copy'
 import { resolve } from 'path'
 import { pwaManifest, pwaWorkbox } from './src/app/pwa/manifest.ts'
 
@@ -18,6 +19,17 @@ export default defineConfig({
     }),
     react(),
     tailwindcss(),
+    // The text recognition that reads the total from a receipt photo (features/record-expense): its worker,
+    // its WebAssembly engine (one build per CPU feature set; the worker picks one) and its language data are
+    // served by the app under /ocr instead of from a CDN, and are fetched only when a photo is read.
+    viteStaticCopy({
+      // stripBase: the files go into /ocr itself, without their node_modules path.
+      targets: [
+        'node_modules/tesseract.js/dist/worker.min.js',
+        'node_modules/tesseract.js-core/tesseract-core*-lstm.wasm.js',
+        'node_modules/@tesseract.js-data/{nld,eng}/4.0.0_best_int/*.traineddata.gz',
+      ].map((src) => ({ src, dest: 'ocr', rename: { stripBase: true } })),
+    }),
     // Installable app shell (F2). Workbox `generateSW` precaches the built shell and serves it
     // offline; see src/app/pwa/manifest.ts for the manifest and the never-cache-/api rule.
     // `registerType: 'prompt'` hands update *timing* to the app instead of the worker auto-skipping

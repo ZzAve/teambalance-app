@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { i18n } from '@shared/i18n/i18n'
 import { makeEvent, makeRoster } from '@shared/testing/event-fixtures'
 import type { Event } from '@shared/api/events'
 import { ALL_ATTENDANCE_STATES } from '@entities/event/lib/attendance-states'
@@ -128,17 +129,23 @@ describe('eventsPageContent', () => {
 
   describe('empty message', () => {
     it('says nothing else is there when a hero is on screen', () => {
-      const withHero = page([event('only', 11)])
-      const withoutHero = page([])
-
-      expect(withHero.emptyMessage).not.toBe(withoutHero.emptyMessage)
+      expect(page([event('only', 11)]).emptyMessage).toBe(i18n.t('events.empty.nothingElse'))
     })
 
-    it('reads the filter that emptied the list', () => {
-      const unfiltered = page([]).emptyMessage
-      const narrowed = page([event('a', 11)], { activeTypeIds: new Set([MATCH.id]) }).emptyMessage
+    it('says there is nothing upcoming when nothing is filtered', () => {
+      expect(page([]).emptyMessage).toBe(i18n.t('events.empty.noneUpcoming'))
+    })
 
-      expect(narrowed).not.toBe(unfiltered)
+    it('names the type filter when only it emptied the list', () => {
+      const content = page([event('a', 11)], { activeTypeIds: new Set([MATCH.id]) })
+
+      expect(content.emptyMessage).toBe(i18n.t('events.empty.noneForType'))
+    })
+
+    it('says nothing needs an answer when filtered to Not responded and everything is answered', () => {
+      const content = page([event('a', 11, { myState: 'ATTENDING' })], { activeStates: new Set(['NOT_RESPONDED']) })
+
+      expect(content.emptyMessage).toBe(i18n.t('events.empty.nothingToAnswer'))
     })
   })
 

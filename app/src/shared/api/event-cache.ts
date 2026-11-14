@@ -14,3 +14,18 @@ export async function patchCachedEvents<T>(queryClient: QueryClient, patch: (cac
 
 export const rollBack = (queryClient: QueryClient, context: { previous: [readonly unknown[], unknown][] } | undefined) =>
   context?.previous.forEach(([key, data]) => queryClient.setQueryData(key, data))
+
+/** One event's detail, a list of events, or the list query's raw `{ events }` response. */
+export type CachedEvents<E extends { id: string }> = E | E[] | { events: E[] }
+
+/** Applies [patch] to the event with [eventId], whichever of the cached shapes holds it. */
+export function patchCachedEvent<E extends { id: string }, C extends CachedEvents<E>>(
+  cached: C,
+  eventId: string,
+  patch: (event: E) => E,
+): C {
+  const one = (e: E) => (e.id === eventId ? patch(e) : e)
+  if (Array.isArray(cached)) return cached.map(one) as C
+  if ('events' in cached) return { ...cached, events: cached.events.map(one) } as C
+  return one(cached as E) as C
+}

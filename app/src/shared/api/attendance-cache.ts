@@ -1,3 +1,4 @@
+import { patchCachedEvent, type CachedEvents as CachedEventShapes } from './event-cache'
 import type { AttendanceEntry, AttendanceSummary, EventDetail } from './events'
 
 type AttendanceState = AttendanceEntry['state']
@@ -79,8 +80,7 @@ export function applyOptimisticAttendance(
   }
 }
 
-/** One event's detail, a list of events, or the list query's raw `{ events }` response. */
-type CachedEvents = EventDetail | EventDetail[] | { events: EventDetail[] }
+type CachedEvents = CachedEventShapes<EventDetail>
 
 /** Applies [applyOptimisticAttendance] to the event with [eventId], whichever cached shape holds it. */
 export function applyOptimisticAttendanceToCache<T extends CachedEvents>(
@@ -90,8 +90,9 @@ export function applyOptimisticAttendanceToCache<T extends CachedEvents>(
   state: AttendanceState,
   actorId: string | null,
 ): T {
-  const one = (e: EventDetail) => (e.id === eventId ? (applyOptimisticAttendance(e, userId, state, actorId) ?? e) : e)
-  if (Array.isArray(cached)) return cached.map(one) as T
-  if ('events' in cached) return { ...cached, events: cached.events.map(one) } as T
-  return one(cached) as T
+  return patchCachedEvent<EventDetail, T>(
+    cached,
+    eventId,
+    (e) => applyOptimisticAttendance(e, userId, state, actorId) ?? e,
+  )
 }

@@ -32,10 +32,9 @@ export const Route = createFileRoute('/t/$slug/')({
  * hero when (and only when) one is due and past events are not shown, then one flat chronological
  * list.
  *
- * All the deciding happens here so the views below stay prop-only: which events survive the filters,
- * whether there is a hero, and — because the hero must not appear twice — which event the list
- * drops. Everything on the page reads the same filtered list — the hero and Bulk Attend included
- * (ADR-0029 §6).
+ * `eventsPageContent` decides what the page shows (which events survive the filters, the hero, the
+ * list without it, Bulk Attend) so the views below stay prop-only. This route wires it to the
+ * stores, queries and mutations.
  */
 function EventListPage() {
     const {slug} = Route.useParams()
@@ -132,7 +131,7 @@ function EventListPage() {
         isLoading: listLoading, error: listError,
     } = eventsPageContent({
         events,
-        allTypeIds: eventTypes && allTypeIds,
+        allTypeIds: eventTypes ? allTypeIds : undefined,
         activeTypeIds, activeStates, activeTurnouts,
         showPast, now, isLoading, error,
     })

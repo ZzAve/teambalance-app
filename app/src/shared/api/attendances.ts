@@ -50,10 +50,9 @@ export function useSetAttendance() {
       rollBack(queryClient, context)
       toast.error(i18n.t('errors.attendance.saveFailed'))
     },
-    onSettled: (_data, _error, { eventId }) => {
-      queryClient.invalidateQueries({ queryKey: ['events'] })
-      queryClient.invalidateQueries({ queryKey: ['events', eventId] })
-    },
+    // Returned, so the write stays pending until the refetch lands: the roster is not patched, and the
+    // readiness badge dims (⑤) until the refetched list carries the server's verdict.
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ['events'] }),
   })
 }
 

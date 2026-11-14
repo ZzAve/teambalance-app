@@ -146,7 +146,7 @@ function EventsPageHarness(args: HarnessArgs) {
   const [showPast, setShowPast] = useState(false)
   const [defaultExpanded, setDefaultExpanded] = useState(false)
   // eventId → userId → the answer picked in this session, applied to the member's row and, for the
-  // viewer, to the card's own pill — the optimistic hold the route keeps, in miniature.
+  // viewer, to the card's own pill, standing in for the cache patch the route's write makes.
   const [answers, setAnswers] = useState<Record<string, Record<string, AttendanceState>>>({})
   const answer = (eventId: string, userId: string, state: AttendanceState) =>
     setAnswers((a) => ({ ...a, [eventId]: { ...a[eventId], [userId]: state } }))

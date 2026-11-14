@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Plus } from 'lucide-react'
-import { BulletinPostView } from '@entities/bulletin/ui/BulletinPostView'
+import { BulletinPostView, type PostEditEntry } from '@entities/bulletin/ui/BulletinPostView'
 import { Button } from '@shared/ui/button'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@shared/ui/dropdown-menu'
 import { Markdown } from '@shared/ui/Markdown'
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@shared/ui/sheet'
 import { cn } from '@shared/lib/utils'
@@ -12,22 +13,35 @@ export interface BoardPost {
   markdown: string
   authorName: string
   postedAt: string
+  edits: PostEditEntry[]
 }
+
+type Save = (markdown: string) => Promise<unknown> | void
 
 interface BulletinBoardViewProps {
   posts: BoardPost[]
-  /** Admins get "New post"; for a Member an empty board renders nothing. */
+  /** Admins get "New post" and an Edit menu per Post; for a Member an empty board renders nothing. */
   isAdmin: boolean
   isLoading?: boolean
   isError?: boolean
   /** Resolves when the Post is saved; the sheet closes then, and stays open with an error on a reject. */
-  onCreate: (markdown: string) => Promise<unknown> | void
+  onCreate: Save
+  onUpdate: (id: string, markdown: string) => Promise<unknown> | void
 }
 
+// The sheet's target: a new Post, or the one being edited.
+type Compose = { kind: 'new' } | { kind: 'edit'; post: BoardPost }
+
 /** The Team's Bulletin Board at the top of the Team page (ADR-0048). Prop-only. */
-export function BulletinBoardView({ posts, isAdmin, isLoading, isError, onCreate }: BulletinBoardViewProps) {
+export function BulletinBoardView({ posts, isAdmin, isLoading, isError, onCreate, onUpdate }: BulletinBoardViewProps) {
   const { t } = useTranslation()
-  const [composing, setComposing] = useState(false)
+  const [compose, setCompose] = useState<Compose | null>(null)
+  // Kept apart from `compose` so the sheet keeps its content while it animates out.
+  const [open, setOpen] = useState(false)
+  const start = (target: Compose) => {
+    setCompose(target)
+    setOpen(true)
+  }
 
   if (!isAdmin && !isLoading && !isError && posts.length === 0) return null
 
@@ -36,7 +50,7 @@ export function BulletinBoardView({ posts, isAdmin, isLoading, isError, onCreate
       <div className="flex min-h-11 items-center justify-between gap-2">
         <h2 id="bulletin-board-heading" className="font-display text-title font-bold">{t('bulletin.heading')}</h2>
         {isAdmin && (
-          <Button variant="outline" size="sm" onClick={() => setComposing(true)}>
+          <Button variant="outline" size="sm" onClick={() => start({ kind: 'new' })}>
             <Plus size={16} />
             {t('bulletin.newPost')}
           </Button>
@@ -51,23 +65,62 @@ export function BulletinBoardView({ posts, isAdmin, isLoading, isError, onCreate
         </p>
       )}
       {!isLoading && !isError && posts.map((post) => (
-        <BulletinPostView key={post.id} markdown={post.markdown} authorName={post.authorName} postedAt={post.postedAt} />
+        <BulletinPostView
+          key={post.id}
+          markdown={post.markdown}
+          authorName={post.authorName}
+          postedAt={post.postedAt}
+          edits={post.edits}
+          actions={isAdmin && <PostMenu onEdit={() => start({ kind: 'edit', post })} />}
+        />
       ))}
 
-      {isAdmin && <ComposeSheet open={composing} onOpenChange={setComposing} onCreate={onCreate} />}
+      {isAdmin && compose && (
+        <ComposeSheet
+          // A fresh form per target, so an edit starts from that Post's text.
+          key={compose.kind === 'edit' ? compose.post.id : 'new'}
+          open={open}
+          onOpenChange={setOpen}
+          initialMarkdown={compose.kind === 'edit' ? compose.post.markdown : ''}
+          isEdit={compose.kind === 'edit'}
+          onSave={compose.kind === 'edit' ? (markdown) => onUpdate(compose.post.id, markdown) : onCreate}
+        />
+      )}
     </section>
+  )
+}
+
+function PostMenu({ onEdit }: { onEdit: () => void }) {
+  const { t } = useTranslation()
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          type="button"
+          aria-label={t('bulletin.postActions')}
+          className="-mr-2 -mt-1 flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-lg hover:bg-accent"
+        >
+          ⋯
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem onSelect={onEdit}>{t('bulletin.edit')}</DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   )
 }
 
 interface ComposeSheetProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  onCreate: (markdown: string) => Promise<unknown> | void
+  initialMarkdown: string
+  isEdit: boolean
+  onSave: Save
 }
 
-function ComposeSheet({ open, onOpenChange, onCreate }: ComposeSheetProps) {
+function ComposeSheet({ open, onOpenChange, initialMarkdown, isEdit, onSave }: ComposeSheetProps) {
   const { t } = useTranslation()
-  const [markdown, setMarkdown] = useState('')
+  const [markdown, setMarkdown] = useState(initialMarkdown)
   const [preview, setPreview] = useState(false)
   const [saving, setSaving] = useState(false)
   const [failed, setFailed] = useState(false)
@@ -76,8 +129,8 @@ function ComposeSheet({ open, onOpenChange, onCreate }: ComposeSheetProps) {
     setSaving(true)
     setFailed(false)
     try {
-      await onCreate(markdown)
-      setMarkdown('')
+      await onSave(markdown)
+      if (!isEdit) setMarkdown('')
       setPreview(false)
       onOpenChange(false)
     } catch {
@@ -91,7 +144,7 @@ function ComposeSheet({ open, onOpenChange, onCreate }: ComposeSheetProps) {
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent>
         <SheetHeader>
-          <SheetTitle>{t('bulletin.newPost')}</SheetTitle>
+          <SheetTitle>{isEdit ? t('bulletin.editPost') : t('bulletin.newPost')}</SheetTitle>
           <SheetDescription>{t('bulletin.composeHint')}</SheetDescription>
         </SheetHeader>
         <div role="tablist" className="mb-2 flex gap-1 self-start rounded-md bg-muted p-1 text-small">
@@ -124,7 +177,7 @@ function ComposeSheet({ open, onOpenChange, onCreate }: ComposeSheetProps) {
         )}
         {failed && <p role="alert" className="mt-2 text-small text-red-ink">{t('bulletin.postFailed')}</p>}
         <Button className="mt-6" disabled={saving || markdown.trim() === ''} onClick={submit}>
-          {t('bulletin.post')}
+          {isEdit ? t('bulletin.save') : t('bulletin.post')}
         </Button>
       </SheetContent>
     </Sheet>

@@ -30,6 +30,8 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-restclient")
     implementation("org.springframework.boot:spring-boot-starter-jooq")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
+    // Micrometer metrics pushed over OTLP (micrometer-registry-otlp) to Scaleway Cockpit.
+    implementation("org.springframework.boot:spring-boot-starter-opentelemetry")
     // One SecurityFilterChain around the session model: session-ID rotation on sign-in, CSRF, and the
     // authenticated-by-default rule (ADR-0012).
     implementation("org.springframework.boot:spring-boot-starter-security")
@@ -78,6 +80,10 @@ dependencies {
     val kotestVersion = project.property("kotestVersion") as String
     testImplementation("io.kotest:kotest-runner-junit5:$kotestVersion")
     testImplementation("io.kotest:kotest-assertions-core:$kotestVersion")
+    // The OTLP registry and payload types, to read what the metrics push sends (OtlpMetricsExportIT).
+    testImplementation("io.micrometer:micrometer-registry-otlp")
+    val opentelemetryProtoVersion = project.property("opentelemetryProtoVersion") as String
+    testImplementation("io.opentelemetry.proto:opentelemetry-proto:$opentelemetryProtoVersion")
     testImplementation("io.kotest:kotest-extensions-spring:$kotestVersion")
 
     // Testing — Spring + Testcontainers

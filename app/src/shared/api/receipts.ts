@@ -44,7 +44,8 @@ function useReceiptMutation<T = void>(request: (input: T) => Promise<void>) {
   })
 }
 
-export const useUploadReceipt = (paymentId: string) =>
-  useReceiptMutation((receipt: Blob) => sendReceipt('PUT', paymentId, receipt))
+export const uploadReceipt = (paymentId: string, receipt: Blob) => sendReceipt('PUT', paymentId, receipt)
+
+export const useUploadReceipt = (paymentId: string) => useReceiptMutation((receipt: Blob) => uploadReceipt(paymentId, receipt))
 
 export const useRemoveReceipt = (paymentId: string) => useReceiptMutation(() => sendReceipt('DELETE', paymentId))

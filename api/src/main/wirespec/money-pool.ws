@@ -1,4 +1,4 @@
-// Rejected: Bunq no longer accepts the stored connection, an Admin reconnects in the team settings; Unavailable: Bunq did not answer. Amounts and the beer price are euro cents; date is an ISO-8601 calendar date; balance, payments, beerPrice and beerCount are set only when state is Connected, and beerPrice and beerCount only when the team configured a price. canTopUp is true when the pool is on and a bunq.me link is set, in any state. id is Bunq's payment id; receiptVersion is set when an expense has a receipt, which is served outside this contract at /api/team/money-pool/payments/{id}/receipt?v={receiptVersion} (ReceiptController). On a payment attributed to a member, name is that member's display name for everyone, and counterpartyName is the name on the bank statement, set only for an Admin and for that member (ADR-0046); memberId is the member a payment is attributed to through their payment aliases or the user id in a top-up description, null when none; a payment's id is also what ClaimPayment takes. The counterparty IBAN and description are never returned. refreshing is true when the figures are older than the refresh interval of the server and Bunq is being asked again: a GET a few seconds later has the new ones.
+// Rejected: Bunq no longer accepts the stored connection, an Admin reconnects in the team settings; Unavailable: Bunq did not answer. Amounts and the beer price are euro cents; date is an ISO-8601 calendar date; balance, payments, beerPrice and beerCount are set only when state is Connected, and beerPrice and beerCount only when the team configured a price. canTopUp is true when the pool is on and a bunq.me link is set, in any state. id is Bunq's payment id, or the app's own id for an out-of-pocket expense (outOfPocket is true): an expense a member paid with their own money (ADR-0048). It has direction Out, name is what was bought and memberId is the member who paid; it counts as an expense and as a contribution of that member of the same amount, and it is not part of the balance. receiptVersion is set when an expense has a receipt, which is served outside this contract at /api/team/money-pool/payments/{id}/receipt?v={receiptVersion} (ReceiptController). On a payment attributed to a member, name is that member's display name for everyone, and counterpartyName is the name on the bank statement, set only for an Admin and for that member (ADR-0046); memberId is the member a payment is attributed to through their payment aliases or the user id in a top-up description, null when none; a payment's id is also what ClaimPayment takes. The counterparty IBAN and description are never returned. refreshing is true when the figures are older than the refresh interval of the server and Bunq is being asked again: a GET a few seconds later has the new ones.
 type PaymentDate = String
 
 enum MoneyPoolState {
@@ -17,7 +17,8 @@ type Payment {
     direction: PaymentDirection,
     receiptVersion: String?,
     memberId: String?,
-    counterpartyName: String?
+    counterpartyName: String?,
+    outOfPocket: Boolean
 }
 
 type MoneyPool {
@@ -32,6 +33,30 @@ type MoneyPool {
 
 endpoint GetMoneyPool GET /api/team/money-pool -> {
     200 -> MoneyPool
+}
+
+// Records an out-of-pocket expense: userId paid amount (euro cents, 1 to 1000000) for the team with their own money on date. A member records for themselves; an Admin for any member of the team; anyone else gets 403. description is trimmed, 1..100 characters. 400: a bad amount or description, a date in the future or before the first day the pool's payments cover. 404: the user is not a member. 409 MONEY_POOL_NOT_READABLE: the pool is off, not connected or rejected by Bunq. 503: Bunq did not answer. The answer is the payment as GetMoneyPool then lists it; a receipt is added to its id like to any expense.
+type OutOfPocketExpenseRequest {
+    userId: String,
+    amount: Integer,
+    date: PaymentDate,
+    description: String
+}
+
+endpoint RecordOutOfPocketExpense POST OutOfPocketExpenseRequest /api/team/money-pool/out-of-pocket-expenses -> {
+    201 -> Payment
+    400 -> Unit
+    403 -> Unit
+    404 -> Unit
+    409 -> Unit
+    503 -> Unit
+}
+
+// Deletes an out-of-pocket expense and its receipt. The member who paid and an Admin may; anyone else gets 403. 404: no such out-of-pocket expense (a Bunq payment's id included).
+endpoint DeleteOutOfPocketExpense DELETE /api/team/money-pool/out-of-pocket-expenses/{paymentId: String} -> {
+    204 -> Unit
+    403 -> Unit
+    404 -> Unit
 }
 
 // Admin-only. A PUT replaces every setting; a null beerPrice or bunqMeLink clears it. beerPrice is euro cents between 1 and 10000; bunqMeLink is normalised to https://bunq.me/{name}, anything else is a 400.

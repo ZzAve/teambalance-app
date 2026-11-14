@@ -1,5 +1,5 @@
 import type { Payment } from '@shared/api/money-pool'
-import { periodPayments, rankTotals, type Topper, type TopperPeriod } from './toppers'
+import { countsAsIncoming, periodPayments, rankTotals, type Topper, type TopperPeriod } from './toppers'
 
 export interface PlaybackFrame {
   /** ISO calendar date; the ranking is as of the end of that day. */
@@ -13,7 +13,7 @@ export interface PlaybackFrame {
  */
 export function playbackFrames(payments: Payment[], period: TopperPeriod, today: string, nameOf: (memberId: string) => string, memberIds: readonly string[] = []): PlaybackFrame[] {
   const attributed = periodPayments(payments, period, today)
-    .filter((p) => p.direction === 'In' && p.memberId)
+    .filter((p) => countsAsIncoming(p) && p.memberId)
     .reverse() // the API sends newest first
   const totals = new Map<string, number>()
   const frames: PlaybackFrame[] = []

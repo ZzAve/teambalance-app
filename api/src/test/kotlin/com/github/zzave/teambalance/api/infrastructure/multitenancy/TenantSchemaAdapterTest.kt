@@ -45,6 +45,7 @@ class TenantSchemaAdapterTest : TeamBalanceIT() {
                 "member_photos",
                 "member_profiles",
                 "money_pool_settings",
+                "out_of_pocket_expenses",
                 "payment_receipts",
                 "positions",
                 "substitute_attendances",

@@ -617,7 +617,10 @@
       "you": "Jij",
       "unmatched": "{{amount}} kwam binnen zonder een naam die we kennen."
     },
-    "graphSummary": "Het saldo van de teampot ging van {{from}} op {{fromDate}} naar {{to}} op {{toDate}}"
+    "graphSummary": "Het saldo van de teampot ging van {{from}} op {{fromDate}} naar {{to}} op {{toDate}}",
+    "paidBy": "Betaald door {{name}}",
+    "paidOutOfPocket": "Betaald door een lid",
+    "outOfPocket": "Betaald door een lid, niet uit de teampot"
   },
   "moneySettings": {
     "title": "Teampot",
@@ -1260,6 +1263,43 @@
       "NOT_CLAIMABLE": "Deze betaling is al gekoppeld. Laad de pagina opnieuw.",
       "POOL_UNAVAILABLE": "De teampot is nu niet beschikbaar. Probeer het later opnieuw.",
       "FAILED": "Koppelen is mislukt. Probeer het opnieuw."
+    }
+  },
+  "expense": {
+    "button": "Voorgeschoten uitgave toevoegen",
+    "title": "Voorgeschoten uitgave toevoegen",
+    "description": "Voor iets dat je met je eigen geld voor het team hebt gekocht. Het telt als uitgave van de teampot en als jouw inleg van hetzelfde bedrag. Het saldo verandert niet.",
+    "paidBy": "Betaald door",
+    "paidByPlaceholder": "Kies een lid",
+    "amount": "Bedrag (€)",
+    "amountInvalid": "Vul een bedrag in van € 0,01 tot € 10.000.",
+    "what": "Waar was het voor?",
+    "whatPlaceholder": "Nieuwe wedstrijdballen",
+    "date": "Datum",
+    "receipt": "Bonnetje",
+    "receiptHint": "Voeg een foto van het bonnetje toe zodat het team ziet waar dit aan is uitgegeven.",
+    "receiptAlt": "Het bonnetje dat je hebt toegevoegd",
+    "receiptFile": "Foto van het bonnetje",
+    "noReceiptQuestion": "Je hebt geen bonnetje toegevoegd. Voeg een foto toe, of sla op zonder bonnetje.",
+    "save": "Uitgave opslaan",
+    "saveWithoutReceipt": "Opslaan zonder bonnetje",
+    "saving": "Opslaan…",
+    "done": "Uitgave toegevoegd",
+    "error": {
+      "INVALID": "Controleer het bedrag, de omschrijving en de datum. De datum moet in de periode vallen die de teampot toont.",
+      "FORBIDDEN": "Je mag deze uitgave niet toevoegen.",
+      "NOT_FOUND": "Dit lid zit niet meer in het team.",
+      "POOL_UNAVAILABLE": "De teampot is nu niet beschikbaar. Probeer het later opnieuw.",
+      "RECEIPT_FAILED": "De uitgave is opgeslagen, maar het bonnetje uploaden is mislukt. Voeg het toe in de lijst met betalingen.",
+      "FAILED": "De uitgave opslaan is mislukt. Probeer het opnieuw."
+    },
+    "delete": {
+      "button": "Uitgave {{name}} verwijderen",
+      "title": "Deze uitgave verwijderen?",
+      "description": "{{name}}, {{amount}}. De uitgave en het bonnetje worden verwijderd en het telt niet meer als inleg.",
+      "confirm": "Verwijderen",
+      "done": "Uitgave verwijderd",
+      "failed": "De uitgave verwijderen is mislukt. Probeer het opnieuw."
     }
   }
 }

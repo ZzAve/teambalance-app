@@ -1,10 +1,11 @@
-import { useMutation, useMutationState, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query'
+import { useMutation, useMutationState, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { api } from './wirespec-client'
 import { useCurrentUser } from './auth'
 import type { Substitute } from './generated/model/Substitute'
 import type { SubstituteEntry } from './generated/model/SubstituteEntry'
 import { applyOptimisticSubstitute, removeOptimisticSubstitute } from './substitute-cache'
+import { patchCachedEvents, rollBack } from './event-cache'
 import { i18n } from '@shared/i18n/i18n'
 
 // Re-export the generated contract types so the app has a single source of truth.
@@ -138,21 +139,6 @@ const SUBSTITUTE_ATTENDANCE = ['substitute-attendance']
 type CachedEvents = Parameters<typeof applyOptimisticSubstitute>[0]
 
 /**
- * Patches every cached events read — the list and the event's detail — the way `useSetAttendance`
- * patches its own, so the picker and the lineup show the tap at once. Returns the snapshots for
- * the rollback in `onError`.
- */
-export async function patchCachedEvents(queryClient: QueryClient, patch: (cached: CachedEvents) => CachedEvents) {
-  await queryClient.cancelQueries({ queryKey: ['events'] })
-  const previous = queryClient.getQueriesData<CachedEvents>({ queryKey: ['events'] })
-  queryClient.setQueriesData<CachedEvents>({ queryKey: ['events'] }, (cached) => cached && patch(cached))
-  return { previous }
-}
-
-export const rollBack = (queryClient: QueryClient, context: { previous: [readonly unknown[], unknown][] } | undefined) =>
-  context?.previous.forEach(([key, data]) => queryClient.setQueryData(key, data))
-
-/**
  * The events with a Substitute attendance write in flight, whichever component started it, so an
  * event's Substitute controls wait on its own writes and not on another event's.
  */
@@ -176,7 +162,7 @@ export function useSetSubstituteAttendance() {
     },
     onMutate: ({ eventId, substituteId, state }) => {
       const substitute = queryClient.getQueryData<Substitute[]>(['substitutes'])?.find((s) => s.id === substituteId)
-      return patchCachedEvents(queryClient, (cached) =>
+      return patchCachedEvents<CachedEvents>(queryClient, (cached) =>
         applyOptimisticSubstitute(cached, eventId, substituteId, state, actorId, substitute),
       )
     },
@@ -206,7 +192,7 @@ export function useRemoveSubstituteAttendance() {
       if (res.status !== 204) throw new Error(`Couldn't take the substitute off (${res.status})`)
     },
     onMutate: ({ eventId, substituteId }) =>
-      patchCachedEvents(queryClient, (cached) => removeOptimisticSubstitute(cached, eventId, substituteId)),
+      patchCachedEvents<CachedEvents>(queryClient, (cached) => removeOptimisticSubstitute(cached, eventId, substituteId)),
     onError: (_error, _variables, context) => {
       rollBack(queryClient, context)
       toast.error(i18n.t('errors.substitute.takeOffFailed'))

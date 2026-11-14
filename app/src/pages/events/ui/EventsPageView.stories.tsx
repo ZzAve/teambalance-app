@@ -8,19 +8,17 @@ import { makeAttendee, makeEvent, makeEventType, makeRoster, NO_ROSTER } from '@
 import { Stack } from '@shared/testing/stack'
 import { appColumn } from '@shared/testing/app-column-decorator'
 import { withRouter } from '@shared/testing/router-decorator'
-import { selectHeroEvent } from '@entities/event/lib/next-event'
 import type { AttendanceState } from '@features/attendance-toggle/ui/AttendanceToggle'
 import { ALL_ATTENDANCE_STATES } from '@entities/event/lib/attendance-states'
 import { ALL_TURNOUT_BUCKETS, type TurnoutBucket } from '@features/filter-event-types/model/turnout'
-import { filterEvents } from '@features/filter-event-types/model/filter-events'
-import { emptyEventsMessage } from '@features/filter-event-types/model/empty-message'
+import { toggleTypeSelection } from '@features/filter-event-types/model/toggleTypeSelection'
 import { BulkAttendBarView } from '@features/bulk-attend/ui/BulkAttendBarView'
 import { groupByType } from '@features/bulk-attend/lib/group-by-type'
-import { eligibleEvents } from '@features/bulk-attend/lib/eligible-event-ids'
 import { NextEventHeroView } from '@widgets/next-event-hero/ui/NextEventHeroView'
 import { EventLineupPanel } from '@widgets/event-panel/ui/EventLineupPanel'
 import { appShell } from '../../../../storybook-support/app-shell-decorator'
 import { dutchMode, pageModes } from '../../../../.storybook/modes'
+import { eventsPageContent } from '../lib/events-page-content'
 import { EventsPageView } from './EventsPageView'
 
 // The events page as a phone shows it (ADR-0032 §3): header, filter trigger, the Next Up hero, the
@@ -140,14 +138,7 @@ interface HarnessArgs {
   onAttend: (typeId: string) => void
 }
 
-function toggled<T>(set: Set<T>, value: T): Set<T> {
-  const next = new Set(set)
-  if (next.has(value)) next.delete(value)
-  else next.add(value)
-  return next
-}
-
-/** The route's deciding, in miniature: filters, hero pick, bulk eligibility and an optimistic RSVP. */
+/** The route in miniature: the filter state and a local RSVP, around the same `eventsPageContent` the route calls. */
 function EventsPageHarness(args: HarnessArgs) {
   const [activeTypeIds, setActiveTypeIds] = useState(new Set(ALL_TYPE_IDS))
   const [activeStates, setActiveStates] = useState(new Set(ALL_ATTENDANCE_STATES))
@@ -155,7 +146,7 @@ function EventsPageHarness(args: HarnessArgs) {
   const [showPast, setShowPast] = useState(false)
   const [defaultExpanded, setDefaultExpanded] = useState(false)
   // eventId → userId → the answer picked in this session, applied to the member's row and, for the
-  // viewer, to the card's own pill — the optimistic hold the route keeps, in miniature.
+  // viewer, to the card's own pill, standing in for the cache patch the route's write makes.
   const [answers, setAnswers] = useState<Record<string, Record<string, AttendanceState>>>({})
   const answer = (eventId: string, userId: string, state: AttendanceState) =>
     setAnswers((a) => ({ ...a, [eventId]: { ...a[eventId], [userId]: state } }))
@@ -169,12 +160,18 @@ function EventsPageHarness(args: HarnessArgs) {
       attendances: e.attendances.map((m) => (picked[m.userId] ? { ...m, state: picked[m.userId] } : m)),
     }
   })
-  const sorted = [...filterEvents(events, activeTypeIds, activeStates, activeTurnouts)].sort((a, b) =>
-    a.startTime.localeCompare(b.startTime),
-  )
-  const hero = showPast ? null : selectHeroEvent(sorted, NOW)
-  const listEvents = hero ? sorted.filter((e) => e.id !== hero.id) : sorted
-  const groups = groupByType(eligibleEvents(listEvents, activeTypeIds, NOW))
+  const { heroEvent: hero, listEvents, bulkAttendEvents, resultCount, emptyMessage } = eventsPageContent({
+    events,
+    allTypeIds: ALL_TYPE_IDS,
+    activeTypeIds,
+    activeStates,
+    activeTurnouts,
+    showPast,
+    now: NOW,
+    isLoading: false,
+    error: undefined,
+  })
+  const groups = groupByType(bulkAttendEvents)
 
   return (
     <EventsPageView
@@ -194,16 +191,16 @@ function EventsPageHarness(args: HarnessArgs) {
         activeTurnouts,
         showTurnout: true,
         showPast,
-        resultCount: sorted.length,
+        resultCount,
         onToggleType: (id) => {
           args.onToggleType(id)
-          setActiveTypeIds((s) => toggled(s, id))
+          setActiveTypeIds((s) => toggleTypeSelection(s, ALL_TYPE_IDS, id))
         },
         onToggleState: (state) => {
           args.onToggleState(state)
-          setActiveStates((s) => toggled(s, state))
+          setActiveStates((s) => toggleTypeSelection(s, ALL_ATTENDANCE_STATES, state))
         },
-        onToggleTurnout: (bucket) => setActiveTurnouts((s) => toggled(s, bucket)),
+        onToggleTurnout: (bucket) => setActiveTurnouts((s) => toggleTypeSelection(s, ALL_TURNOUT_BUCKETS, bucket)),
         onToggleShowPast: (next) => {
           args.onToggleShowPast(next)
           setShowPast(next)
@@ -271,14 +268,7 @@ function EventsPageHarness(args: HarnessArgs) {
             }}
           />
         ),
-        emptyMessage: emptyEventsMessage({
-          hasHero: hero !== null,
-          showPast,
-          activeTypeIds,
-          allTypeIds: ALL_TYPE_IDS,
-          activeStates,
-          activeTurnouts,
-        }),
+        emptyMessage,
       }}
     />
   )
@@ -443,10 +433,11 @@ export const Interactions: Story = {
     await expect(hero(canvas).getByRole('button', { name: 'Going' })).toHaveAttribute('aria-pressed', 'true')
     await expect(canvas.getByRole('button', { name: 'Attend 1 training' })).toBeInTheDocument()
 
-    // Hide trainings: the callback fires, the hero re-picks the next event in the window.
+    // Isolate matches (the first tap from all-on isolates, ADR-0029 §3): the callback fires, the
+    // trainings leave the page and the hero re-picks the next event in the window.
     await userEvent.click(canvas.getByRole('button', { name: 'Filters' }))
-    await userEvent.click(canvas.getByRole('button', { name: 'Training' }))
-    await expect(args.onToggleType).toHaveBeenCalledWith(TRAINING.id)
+    await userEvent.click(canvas.getByRole('button', { name: 'Match' }))
+    await expect(args.onToggleType).toHaveBeenCalledWith(MATCH.id)
     await userEvent.keyboard('{Escape}')
     await expect(canvas.queryByText('Training — Court 1')).not.toBeInTheDocument()
     await expect(canvas.getAllByText('League Match vs Smash United')).toHaveLength(1)

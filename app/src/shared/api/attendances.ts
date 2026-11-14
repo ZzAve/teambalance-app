@@ -1,9 +1,10 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useMutationState, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { api } from './wirespec-client'
-import { applyOptimisticAttendance } from './attendance-cache'
+import { applyOptimisticAttendanceToCache } from './attendance-cache'
+import { patchCachedEvents, rollBack } from './event-cache'
 import { useCurrentUser } from './auth'
-import type { AttendanceEntry, EventDetail } from './events'
+import type { AttendanceEntry } from './events'
 import { i18n } from '@shared/i18n/i18n'
 
 type AttendanceState = AttendanceEntry['state']
@@ -14,38 +15,44 @@ interface SetAttendanceVars {
   state: AttendanceState
 }
 
+type CachedEvents = Parameters<typeof applyOptimisticAttendanceToCache>[0]
+
+const SET_ATTENDANCE = ['set-attendance']
+
+/** The events with an attendance write in flight, so a card's readiness badge waits on its own event's writes. */
+export function usePendingAttendanceEvents(): string[] {
+  return useMutationState({
+    filters: { mutationKey: SET_ATTENDANCE, status: 'pending' },
+    select: (mutation) => (mutation.state.variables as { eventId: string }).eventId,
+  })
+}
+
 export function useSetAttendance() {
   const queryClient = useQueryClient()
   // Who is writing, which is not always whose row is written (ADR-0003): the optimistic patch stamps
   // this as the row's `changedBy` so attribution does not lag the answer it belongs to.
   const actorId = useCurrentUser()?.id ?? null
   return useMutation({
+    mutationKey: SET_ATTENDANCE,
     mutationFn: async ({ eventId, userId, state }: SetAttendanceVars) => {
       const res = await api.setAttendance({ eventId, userId, body: { state } })
       if (res.status === 404) throw new Error('Attendance not found')
       return res.body
     },
-    // Optimistic update: the toggle reflects the tap instantly. Snapshot the cached event so a
-    // failure can roll it back, then reconcile with the server on settle.
-    onMutate: async ({ eventId, userId, state }) => {
-      const eventKey = ['events', eventId]
-      await queryClient.cancelQueries({ queryKey: eventKey })
-      const previousEvent = queryClient.getQueryData<EventDetail>(eventKey)
-      queryClient.setQueryData<EventDetail | undefined>(eventKey, (current) =>
-        applyOptimisticAttendance(current, userId, state, actorId),
-      )
-      return { eventKey, previousEvent }
-    },
+    // Optimistic update: every cached read of the event — the list cards, the hero and the detail —
+    // shows the tap instantly; a failure rolls them all back from one snapshot.
+    onMutate: ({ eventId, userId, state }) =>
+      patchCachedEvents<CachedEvents>(queryClient, (cached) =>
+        applyOptimisticAttendanceToCache(cached, eventId, userId, state, actorId),
+      ),
     onError: (_error, _variables, context) => {
-      // Restore the pre-tap snapshot so the toggle returns to its real state, then surface the
-      // failure. The re-enabled toggle is the recovery path — tapping again retries.
-      if (context) queryClient.setQueryData(context.eventKey, context.previousEvent)
+      // The re-enabled toggle is the recovery path — tapping again retries.
+      rollBack(queryClient, context)
       toast.error(i18n.t('errors.attendance.saveFailed'))
     },
-    onSettled: (_data, _error, { eventId }) => {
-      queryClient.invalidateQueries({ queryKey: ['events'] })
-      queryClient.invalidateQueries({ queryKey: ['events', eventId] })
-    },
+    // Returned, so the write stays pending until the refetch lands: the roster is not patched, and the
+    // readiness badge dims (⑤) until the refetched list carries the server's verdict.
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ['events'] }),
   })
 }
 

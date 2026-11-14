@@ -2,7 +2,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { useEffect, useMemo, useState } from 'react'
 import { useEvents, type Event } from '@shared/api/events'
 import { useEventTypes } from '@shared/api/event-types'
-import { useSetAttendance } from '@shared/api/attendances'
+import { usePendingAttendanceEvents, useSetAttendance } from '@shared/api/attendances'
 import {
     useRemoveSubstituteAttendance,
     useSetSubstituteAttendance,
@@ -11,22 +11,17 @@ import {
 import { useCurrentUser } from '@shared/api/auth'
 import { usePositions } from '@shared/api/positions'
 import { useNow } from '@shared/lib/use-now'
-import { selectHeroEvent } from '@entities/event/lib/next-event'
 import type { PositionRef } from '@entities/event/lib/lineup'
 import { NextEventHero } from '@widgets/next-event-hero/ui/NextEventHero'
 import { CreateEventSheet } from '@widgets/create-event/ui/CreateEventSheet'
 import { useEventFiltersStore } from '@features/filter-event-types/model/event-filters-store'
 import { useEventPanelStore } from '@features/event-panel-view/model/event-panel-store'
-import type { OptimisticAnswer } from '@entities/event/ui/EventListView'
 import { EventLineupPanel } from '@widgets/event-panel/ui/EventLineupPanel'
 import { EventsPageView } from '@pages/events/ui/EventsPageView'
+import { eventsPageContent } from '@pages/events/lib/events-page-content'
 import { reconcileTypeIds } from '@features/filter-event-types/model/filter-preferences'
-import { hasTurnoutTargets } from '@features/filter-event-types/model/turnout'
-import { filterEvents } from '@features/filter-event-types/model/filter-events'
-import { emptyEventsMessage } from '@features/filter-event-types/model/empty-message'
 import { BulkAttendBar } from '@features/bulk-attend/ui/BulkAttendBar'
 import { SubstitutePicker } from '@features/call-in-substitutes/ui/SubstitutePicker'
-import { eligibleEvents } from '@features/bulk-attend/lib/eligible-event-ids'
 
 export const Route = createFileRoute('/t/$slug/')({
     component: EventListPage,
@@ -37,10 +32,9 @@ export const Route = createFileRoute('/t/$slug/')({
  * hero when (and only when) one is due and past events are not shown, then one flat chronological
  * list.
  *
- * All the deciding happens here so the views below stay prop-only: which events survive the filters,
- * whether there is a hero, and — because the hero must not appear twice — which event the list
- * drops. Everything on the page reads the same filtered list — the hero and Bulk Attend included
- * (ADR-0029 §6).
+ * `eventsPageContent` decides what the page shows (which events survive the filters, the hero, the
+ * list without it, Bulk Attend) so the views below stay prop-only. This route wires it to the
+ * stores, queries and mutations.
  */
 function EventListPage() {
     const {slug} = Route.useParams()
@@ -74,22 +68,17 @@ function EventListPage() {
 
     // Attendance from the card (#273), for anyone — the lineup panel makes a teammate's answer
     // editable from the list, which ADR-0003 allows and this page never needed before. `myState` and
-    // `attendances` are both on the list payload, so no detail read is involved; the one shared
-    // mutation and the optimistic hold live here. `applyOptimisticAttendance` patches only the detail
-    // cache, not this list, so the picked answer is held here and applied by EventListView until the
-    // invalidated refetch reports the same answer — no clearing effect needed, the derivation drops
-    // it on its own. onError clears it so a failed write does not leave the card stuck. While held,
-    // the card shows the answer optimistically and its readiness badge stays pending (⑤).
+    // `attendances` are both on the list payload, so no detail read is involved. The write patches
+    // every cached events read, this list included, so the card shows the answer at once; its
+    // readiness badge stays pending (⑤) while the write is in flight.
     const currentUserId = useCurrentUser()?.id ?? null
     const {mutate: setAttendance} = useSetAttendance()
-    const [optimistic, setOptimistic] = useState<OptimisticAnswer | null>(null)
+    const pendingAttendanceEvents = usePendingAttendanceEvents()
 
     // One path for every answer on this page, the viewer's own included: the panel's chips and the
     // card's own pill are the same write aimed at a different member.
-    const respondFor = (eventId: string, userId: string, state: Event['myState']) => {
-        setOptimistic({eventId, userId, state})
-        setAttendance({eventId, userId, state}, {onError: () => setOptimistic(null)})
-    }
+    const respondFor = (eventId: string, userId: string, state: Event['myState']) =>
+        setAttendance({eventId, userId, state})
     // One Substitute picker for the whole page (#359), aimed at one card's event and, from an open
     // spot, one Position. Any Member may call Substitutes in (ADR-0033). The target outlives `open`
     // so the sheet can animate out.
@@ -137,37 +126,15 @@ function EventListPage() {
         [hiddenTypeIds, allTypeIds],
     )
 
-    const filteredEvents = useMemo(() => {
-        if (!events || !eventTypes) return events ?? []
-        return filterEvents(events, activeTypeIds, activeStates, activeTurnouts)
-    }, [events, activeTypeIds, activeStates, activeTurnouts, eventTypes])
-
-    // The API returns upcoming ascending but "all" descending, so sort here: the list is flat now,
-    // and flat only reads if it is chronological.
-    const sortedEvents = useMemo(
-        () => [...filteredEvents].sort((a, b) => a.startTime.localeCompare(b.startTime)),
-        [filteredEvents],
-    )
-
-    const heroEvent = showPast ? null : selectHeroEvent(sortedEvents, now)
-    const listEvents = heroEvent ? sortedEvents.filter(e => e.id !== heroEvent.id) : sortedEvents
-
-    // Read off the *unfiltered* list (ADR-0029 §5): narrowing another dimension must not make the
-    // group vanish underneath a Turnout selection that is still in effect.
-    const showTurnout = useMemo(() => hasTurnoutTargets(events ?? []), [events])
-
-    // Bulk Attend acts on exactly what the page shows (ADR-0020, ADR-0029 §6), so it reads
-    // `listEvents` — already narrowed by *both* chip groups. The hero's event is left out (#386): its
-    // own answer buttons sit directly above the bar, so "Attend 1 match" must not describe the event
-    // the member just read. That is also why filtering to an answered status leaves no buttons at
-    // all: the visible list then holds nothing unanswered. Past events are excluded by the selector,
-    // not by the surrounding UI: with the tabs gone, `showPast` merely adds past events to the same
-    // list, so the future-only rule has to live in the selector. It reads the page's shared `now`,
-    // so the button and the cards can never disagree about which events have started.
-    const bulkEvents = useMemo(
-        () => eligibleEvents(listEvents, activeTypeIds, now),
-        [listEvents, activeTypeIds, now],
-    )
+    const {
+        heroEvent, listEvents, bulkAttendEvents, showTurnout, resultCount, emptyMessage,
+        isLoading: listLoading, error: listError,
+    } = eventsPageContent({
+        events,
+        allTypeIds: eventTypes ? allTypeIds : undefined,
+        activeTypeIds, activeStates, activeTurnouts,
+        showPast, now, isLoading, error,
+    })
 
     return (
         <>
@@ -181,7 +148,7 @@ function EventListPage() {
                 activeTurnouts,
                 showTurnout,
                 showPast,
-                resultCount: sortedEvents.length,
+                resultCount,
                 onToggleType: (typeId) => toggleType(typeId, allTypeIds),
                 // Every group runs through the same isolate-first toggler in the store
                 // (ADR-0029 §3): one tap from the all-on default isolates the chip.
@@ -209,31 +176,21 @@ function EventListPage() {
                     lineup={(event) => lineupPanel(event, {summary: false})}
                 />
             )}
-            bulkBar={<BulkAttendBar events={bulkEvents}/>}
+            bulkBar={<BulkAttendBar events={bulkAttendEvents}/>}
             list={{
                 events: listEvents,
                 onRespond: respond,
-                optimistic,
+                pendingEventIds: pendingAttendanceEvents,
                 currentUserId,
                 // What each card's roster disclosure opens onto (ADR-0030 §5-§7, as amended by the
                 // lineup panel). Injected from here because the panel is a widget and the card is an
                 // entity — the card cannot build one itself.
                 defaultRosterOpen: defaultExpanded,
                 rosterPanel: lineupPanel,
-                // A rendered hero IS loaded data — it was pulled out of this very list — so an empty
-                // list beneath it means "nothing else", never a failure. Withholding the flags keeps
-                // the list from painting a skeleton or an error over a page that is plainly fine.
-                isLoading: heroEvent ? false : isLoading,
-                error: heroEvent ? undefined : error,
+                isLoading: listLoading,
+                error: listError,
                 now,
-                emptyMessage: emptyEventsMessage({
-                    hasHero: heroEvent !== null,
-                    showPast,
-                    activeTypeIds,
-                    allTypeIds,
-                    activeStates,
-                    activeTurnouts,
-                }),
+                emptyMessage,
             }}
         />
         <SubstitutePicker

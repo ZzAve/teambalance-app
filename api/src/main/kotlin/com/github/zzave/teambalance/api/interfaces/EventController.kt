@@ -1,18 +1,15 @@
 package com.github.zzave.teambalance.api.interfaces
 
-import com.github.zzave.teambalance.api.application.AttendanceService
+import com.github.zzave.teambalance.api.application.EventResolver
 import com.github.zzave.teambalance.api.application.EventService
-import com.github.zzave.teambalance.api.application.PositionService
+import com.github.zzave.teambalance.api.application.ResolvedEvent
 import com.github.zzave.teambalance.api.application.PotentialEvent
-import com.github.zzave.teambalance.api.domain.model.EventAttendance
 import com.github.zzave.teambalance.api.domain.model.EventDescription
 import com.github.zzave.teambalance.api.domain.model.EventReference as DomainEventReference
 import com.github.zzave.teambalance.api.domain.model.EventId
 import com.github.zzave.teambalance.api.domain.model.EventLocation
 import com.github.zzave.teambalance.api.domain.model.EventSeriesScope as DomainEventSeriesScope
 import com.github.zzave.teambalance.api.domain.model.EventTitle
-import com.github.zzave.teambalance.api.domain.model.Position
-import com.github.zzave.teambalance.api.domain.model.RosterFill
 import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.port.CurrentTeamGateway
 import com.github.zzave.teambalance.api.domain.port.CurrentUserGateway
@@ -35,8 +32,7 @@ import java.util.UUID
 @RestController
 class EventController(
     private val eventService: EventService,
-    private val attendanceService: AttendanceService,
-    private val positionService: PositionService,
+    private val eventResolver: EventResolver,
     private val currentUserGateway: CurrentUserGateway,
     private val currentTeamGateway: CurrentTeamGateway,
 ) : ListEvents.Handler,
@@ -47,16 +43,11 @@ class EventController(
 
     override suspend fun listEvents(request: ListEvents.Request): ListEvents.Response<*> {
         val teamId = currentTeamGateway.requireCurrentTeamId()
-        val members = attendanceService.teamMembers(teamId)
         val viewerId = currentUserGateway.requireCurrentUserId()
         val events =
             if (request.queries.includePast) eventService.getAllEvents(teamId) else eventService.getUpcomingEvents()
-        val attendance = attendanceService.attendanceForAll(events.map { it.id }, members)
-        // The position vocabulary is fetched once for the whole listing, not per event: it is the
-        // same list for every row, and it is both the label source and the row filter for the roster.
-        val positions = positionService.listPositions()
         return ListEvents.Response200(
-            EventList(events = events.map { it.produce(attendance.getValue(it.id), viewerId, positions) })
+            EventList(events = eventResolver.resolveAll(teamId, events).map { it.produce(viewerId) })
         )
     }
 
@@ -68,13 +59,7 @@ class EventController(
             teamId = teamId,
             potential = request.body.consume(),
         )
-        return CreateEvent.Response201(
-            event.produce(
-                attendanceService.attendanceFor(event.id, attendanceService.teamMembers(teamId)),
-                userId,
-                positionService.listPositions(),
-            ),
-        )
+        return CreateEvent.Response201(eventResolver.resolve(teamId, event).produce(userId))
     }
 
     override suspend fun getEvent(request: GetEvent.Request): GetEvent.Response<*> {
@@ -83,9 +68,9 @@ class EventController(
             ?: return GetEvent.Response404
 
         val teamId = currentTeamGateway.requireCurrentTeamId()
-        val members = attendanceService.teamMembers(teamId)
-        val attendance = attendanceService.attendanceFor(id, members)
         val viewerId = currentUserGateway.requireCurrentUserId()
+        val resolved = eventResolver.resolve(teamId, event)
+        val attendance = resolved.attendance
 
         return GetEvent.Response200(
             EventDetail(
@@ -103,7 +88,7 @@ class EventController(
                 substitutes = attendance.substitutes.map { it.produce() },
                 myState = attendance.stateOf(viewerId).produce(),
                 rosterOverride = event.rosterOverride?.produce(),
-                roster = event.rosterFill(attendance, positionService.listPositions()).produce(),
+                roster = resolved.roster.produce(),
             )
         )
     }
@@ -130,11 +115,8 @@ class EventController(
             rosterOverride = req.rosterOverride?.consume(),
         ) ?: return UpdateEvent.Response404
 
-        val members = attendanceService.teamMembers(teamId)
-        val attendance = attendanceService.attendanceForAll(events.map { it.id }, members)
-        val positions = positionService.listPositions()
         return UpdateEvent.Response200(
-            EventList(events = events.map { it.produce(attendance.getValue(it.id), userId, positions) }),
+            EventList(events = eventResolver.resolveAll(teamId, events).map { it.produce(userId) }),
         )
     }
 
@@ -201,44 +183,27 @@ private fun List<DomainEventReference>.externalize(): List<EventReference> =
     map { EventReference(title = it.title?.value, url = it.url.value) }
 
 // internal (not private) so RecurringEventController can reuse it for the batch-create response.
-// Takes the already-resolved projection so mapping stays free of data access (no per-event N+1).
-internal fun com.github.zzave.teambalance.api.domain.model.Event.produce(
-    attendance: EventAttendance,
-    viewerId: UserId,
-    positions: List<Position>,
-): Event =
+// Takes the already-resolved Event so mapping stays free of data access (no per-event N+1).
+internal fun ResolvedEvent.produce(viewerId: UserId): Event =
     Event(
-        id = id.produce(),
-        eventType = eventType.produce(),
-        title = title.produce(),
-        description = description?.value,
-        startTime = DateTimestampWithTimezone(startTime.toString()),
-        endTime = DateTimestampWithTimezone(endTime.toString()),
-        location = location?.value,
-        references = references.externalize(),
-        recurringGroup = recurringGroup?.toString(),
+        id = event.id.produce(),
+        eventType = event.eventType.produce(),
+        title = event.title.produce(),
+        description = event.description?.value,
+        startTime = DateTimestampWithTimezone(event.startTime.toString()),
+        endTime = DateTimestampWithTimezone(event.endTime.toString()),
+        location = event.location?.value,
+        references = event.references.externalize(),
+        recurringGroup = event.recurringGroup?.toString(),
         attendanceSummary = attendance.summary().produce(attendance.attendingRoleBreakdown()),
         // Every current member, non-responders included — mapped from the projection the caller
         // already resolved, exactly as getEvent does, so the listing gains no query (ADR-0030 §8).
         attendances = attendance.entries.map { it.produce() },
         substitutes = attendance.substitutes.map { it.produce() },
         myState = attendance.stateOf(viewerId).produce(),
-        rosterOverride = rosterOverride?.produce(),
-        roster = rosterFill(attendance, positions).produce(),
+        rosterOverride = event.rosterOverride?.produce(),
+        roster = roster.produce(),
     )
-
-// The roster the card renders: this event's EFFECTIVE requirement (its override, else its type's
-// default) joined with who is actually attending. Derived per read — never stored — which is what
-// keeps an inheriting event following its type's default as that default changes.
-internal fun com.github.zzave.teambalance.api.domain.model.Event.rosterFill(
-    attendance: EventAttendance,
-    positions: List<Position>,
-): RosterFill = RosterFill.of(
-    effectiveRosterRequirement,
-    attendance.attendingByPositionId(),
-    positions,
-    attendance.attendingSubstitutes(),
-)
 
 private fun com.github.zzave.teambalance.api.domain.model.EventType.produce() =
     EventTypeSummary(id = id.produce(), name = name.value, color = color?.value)

@@ -3,6 +3,7 @@ import { client } from './generated/Client'
 import { redirectToLogin, shouldRedirectToLogin } from './auth-redirect'
 import { isActAsExpired, returnToConsole } from './act-as-redirect'
 import { csrfHeaders } from './csrf'
+import { ApiError } from './api-error'
 
 // Best-effort read of the `code` discriminator from an error body (GlobalExceptionHandler).
 const errorCode = (body: string): string | undefined => {
@@ -84,9 +85,11 @@ export const api = Object.fromEntries(
       let raw: Wirespec.RawResponse | undefined
       const scoped = client(serialization, { transport: async (req) => (raw = await transport(req)) })
       const res = await (scoped as unknown as Record<string, Call>)[name](...args).catch((error: unknown) => {
-        // The generated message leaves out the status it could not match; callers and logs need it.
+        // The generated message leaves out the status it could not match; callers, logs and the retry policy need it.
         if (error instanceof Error && error.message === UNMATCHED_STATUS && raw) {
-          throw new Error(`${UNMATCHED_STATUS} ${raw.statusCode}`, { cause: error })
+          throw new ApiError(raw.statusCode, errorCode(new TextDecoder().decode(raw.body)), `${UNMATCHED_STATUS} ${raw.statusCode}`, {
+            cause: error,
+          })
         }
         throw error
       })

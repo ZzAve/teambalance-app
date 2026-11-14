@@ -7,8 +7,9 @@ export class ApiError extends Error {
     readonly status: number,
     readonly code: string = 'FAILED',
     message = `Request failed with status ${status}`,
+    options?: ErrorOptions,
   ) {
-    super(message)
+    super(message, options)
     this.name = 'ApiError'
   }
 }

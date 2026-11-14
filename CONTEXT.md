@@ -175,6 +175,14 @@ any-team, self-service (see [ADR-0001](docs/adr/0001-product-ambition-hobby-tool
   disappear when nothing is left to fill. Contrast with the per-event **Attendance Toggle**.
   _Avoid_: Accept All, Attend All (overclaims — it's all *shown, unanswered, future*), Bulk RSVP.
 
+### Bulletin board ([ADR-0048](docs/adr/0048-bulletin-board-markdown-posts-with-an-edit-audit.md))
+
+- **Bulletin Board** — The Team's notices: messages an **Admin** posts for all **Members**, such as a
+  rotation for taking the balls home or a clubhouse closing time. Shown at the top of the Team page.
+  _Avoid_: news feed, announcements, chat (Members cannot reply).
+- **Post** — One message on the Bulletin Board, written in Markdown by an Admin. Records its author and
+  every **Edit** (who and when, not the old text). _Avoid_: notice, message, announcement.
+
 ### Money pool
 
 - **Money Pool** — A team's shared pot of money, backed by a real bank account (Bunq).
@@ -286,6 +294,8 @@ code and docs only; in the Dutch UI it is the right word.
 | Event | Event | Event |
 | Match / Training | Match / Training | Wedstrijd / Training |
 | Match Feed | Match feed | Wedstrijdfeed |
+| Bulletin Board | Bulletin board | Prikbord |
+| Post | Post | Bericht |
 
 User content (event titles, team names, Position names, notes) is never translated.
 

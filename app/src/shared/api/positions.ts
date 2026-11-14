@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { ApiError } from './api-error'
 import { api } from './wirespec-client'
 import type { PositionKind } from './generated/model/PositionKind'
 
@@ -9,9 +10,10 @@ export type { PositionUsage } from './generated/model/PositionUsage'
 
 // A position mutation can fail in ways the UI must distinguish: a taken label is recoverable and
 // shown inline; a 403/404 is not. Mirrors MemberUpdateError in members.ts.
-export class PositionError extends Error {
-  constructor(public readonly code: 'POSITION_LABEL_TAKEN' | 'FORBIDDEN' | 'NOT_FOUND', message: string) {
-    super(message)
+export class PositionError extends ApiError {
+  declare readonly code: 'POSITION_LABEL_TAKEN' | 'FORBIDDEN' | 'NOT_FOUND'
+  constructor(code: PositionError['code'], message: string, status: number) {
+    super(status, code, message)
     this.name = 'PositionError'
   }
 }
@@ -53,8 +55,8 @@ export function useCreatePosition() {
   return useMutation({
     mutationFn: async ({ label }: { label: string }) => {
       const res = await api.createPosition({ body: { label } })
-      if (res.status === 409) throw new PositionError('POSITION_LABEL_TAKEN', 'That position already exists.')
-      if (res.status === 403) throw new PositionError('FORBIDDEN', 'You are not allowed to make this change.')
+      if (res.status === 409) throw new PositionError('POSITION_LABEL_TAKEN', 'That position already exists.', res.status)
+      if (res.status === 403) throw new PositionError('FORBIDDEN', 'You are not allowed to make this change.', res.status)
       return res.body
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['positions'] }),
@@ -66,9 +68,9 @@ export function useRenamePosition() {
   return useMutation({
     mutationFn: async ({ id, label }: { id: string; label: string }) => {
       const res = await api.renamePosition({ id, body: { label } })
-      if (res.status === 409) throw new PositionError('POSITION_LABEL_TAKEN', 'That position already exists.')
-      if (res.status === 403) throw new PositionError('FORBIDDEN', 'You are not allowed to make this change.')
-      if (res.status === 404) throw new PositionError('NOT_FOUND', 'Position not found.')
+      if (res.status === 409) throw new PositionError('POSITION_LABEL_TAKEN', 'That position already exists.', res.status)
+      if (res.status === 403) throw new PositionError('FORBIDDEN', 'You are not allowed to make this change.', res.status)
+      if (res.status === 404) throw new PositionError('NOT_FOUND', 'Position not found.', res.status)
       return res.body
     },
     // Substitutes carry their Position's label, so their list shows the new one too.
@@ -93,8 +95,8 @@ export function useSetPositionKind() {
   return useMutation({
     mutationFn: async ({ id, kind }: { id: string; kind: PositionKind }) => {
       const res = await api.setPositionKind({ id, body: { kind } })
-      if (res.status === 403) throw new PositionError('FORBIDDEN', 'You are not allowed to make this change.')
-      if (res.status === 404) throw new PositionError('NOT_FOUND', 'Position not found.')
+      if (res.status === 403) throw new PositionError('FORBIDDEN', 'You are not allowed to make this change.', res.status)
+      if (res.status === 404) throw new PositionError('NOT_FOUND', 'Position not found.', res.status)
       return res.body
     },
     onSuccess: () => {
@@ -109,8 +111,8 @@ export function useDeletePosition() {
   return useMutation({
     mutationFn: async ({ id }: { id: string }) => {
       const res = await api.deletePosition({ id })
-      if (res.status === 403) throw new PositionError('FORBIDDEN', 'You are not allowed to remove this position.')
-      if (res.status === 404) throw new PositionError('NOT_FOUND', 'Position not found.')
+      if (res.status === 403) throw new PositionError('FORBIDDEN', 'You are not allowed to remove this position.', res.status)
+      if (res.status === 404) throw new PositionError('NOT_FOUND', 'Position not found.', res.status)
     },
     // Deleting a position reassigns its members and Substitutes to Unassigned, so refresh both lists
     // too. A stale Substitute row would otherwise resend the deleted id on its next rename.

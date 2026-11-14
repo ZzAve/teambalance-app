@@ -1,4 +1,5 @@
 import { queryOptions, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { ApiError } from './api-error'
 import { api } from './wirespec-client'
 
 // Re-export the generated contract types so the app has a single source of truth.
@@ -9,12 +10,10 @@ export type { TeamRef } from './generated/model/TeamRef'
 // Carries the backend discriminator so the UI can branch: FORBIDDEN → not a platform admin (a
 // no-access shell, not a retry), NOT_FOUND → the team vanished between listing and entering.
 // Mirrors CreationCodeError in creation-codes.ts.
-export class ActAsError extends Error {
-  constructor(
-    public readonly code: 'FORBIDDEN' | 'NOT_FOUND' | 'GENERIC',
-    message: string,
-  ) {
-    super(message)
+export class ActAsError extends ApiError {
+  declare readonly code: 'FORBIDDEN' | 'NOT_FOUND' | 'GENERIC'
+  constructor(code: ActAsError['code'], message: string, status: number) {
+    super(status, code, message)
     this.name = 'ActAsError'
   }
 }
@@ -22,10 +21,9 @@ export class ActAsError extends Error {
 /** Every team on the platform (ADR-0024 §6). A 403 is the no-access shell; retry cannot help. */
 const platformTeamsQueryOptions = queryOptions({
   queryKey: ['platform', 'teams'],
-  retry: false,
   queryFn: async () => {
     const res = await api.listPlatformTeams()
-    if (res.status === 403) throw new ActAsError('FORBIDDEN', 'You do not have access to the platform console.')
+    if (res.status === 403) throw new ActAsError('FORBIDDEN', 'You do not have access to the platform console.', res.status)
     return res.body?.teams ?? []
   },
 })
@@ -43,9 +41,9 @@ export function useEnterActAs() {
   return useMutation({
     mutationFn: async (teamId: string) => {
       const res = await api.enterActAs({ body: { teamId } })
-      if (res.status === 403) throw new ActAsError('FORBIDDEN', 'You do not have access to the platform console.')
-      if (res.status === 404) throw new ActAsError('NOT_FOUND', 'That team no longer exists.')
-      if (res.status !== 200) throw new ActAsError('GENERIC', 'Could not enter that team. Please try again.')
+      if (res.status === 403) throw new ActAsError('FORBIDDEN', 'You do not have access to the platform console.', res.status)
+      if (res.status === 404) throw new ActAsError('NOT_FOUND', 'That team no longer exists.', res.status)
+      if (res.status !== 200) throw new ActAsError('GENERIC', 'Could not enter that team. Please try again.', (res as { status: number }).status)
       return res.body
     },
     onSuccess: () => queryClient.resetQueries(),
@@ -69,10 +67,9 @@ export function useExitActAs() {
 export function useActAsRecords() {
   return useQuery({
     queryKey: ['act-as-records'],
-    retry: false,
     queryFn: async () => {
       const res = await api.listActAsRecords()
-      if (res.status === 403) throw new ActAsError('FORBIDDEN', 'You do not have access to this team.')
+      if (res.status === 403) throw new ActAsError('FORBIDDEN', 'You do not have access to this team.', res.status)
       return res.body?.records ?? []
     },
   })

@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { ApiError } from './api-error'
 import { api } from './wirespec-client'
 
 // Re-export the generated contract types so consumers have a single source of truth. The roster
@@ -14,17 +15,10 @@ import type { RosterRequirement } from './generated/model/RosterRequirement'
 // An event-type mutation can fail in ways the UI must tell apart: a taken name is recoverable and
 // shown inline, archiving the last active type is a rule the admin needs explained, and a bad
 // migration target means the picker offered something stale. Mirrors PositionError in positions.ts.
-export class EventTypeError extends Error {
-  constructor(
-    public readonly code:
-      | 'EVENT_TYPE_NAME_TAKEN'
-      | 'LAST_EVENT_TYPE'
-      | 'INVALID_REQUEST'
-      | 'FORBIDDEN'
-      | 'NOT_FOUND',
-    message: string,
-  ) {
-    super(message)
+export class EventTypeError extends ApiError {
+  declare readonly code: 'EVENT_TYPE_NAME_TAKEN' | 'LAST_EVENT_TYPE' | 'INVALID_REQUEST' | 'FORBIDDEN' | 'NOT_FOUND'
+  constructor(code: EventTypeError['code'], message: string, status: number) {
+    super(status, code, message)
     this.name = 'EventTypeError'
   }
 }
@@ -32,14 +26,14 @@ export class EventTypeError extends Error {
 // A 409 means one of two very different things, and the caller has to say which — the server sends a
 // discriminating `code`, but the generated client models the body as Unit, so the status is all we
 // have here. The archive path is the only one that can hit LAST_EVENT_TYPE, so it maps its own.
-const nameTaken = () => new EventTypeError('EVENT_TYPE_NAME_TAKEN', 'That event type already exists.')
+const nameTaken = () => new EventTypeError('EVENT_TYPE_NAME_TAKEN', 'That event type already exists.', 409)
 // The 400s this surface can produce: a blank or over-long name, a roster target naming a position
 // that is not this team's, or a migration target that went stale between rendering and clicking.
 // Declared in the contract precisely so they arrive here as a classified error rather than as an
 // undeclared-status throw the UI cannot tell from a network failure.
-const invalid = () => new EventTypeError('INVALID_REQUEST', "That didn't work — check the name and roster, then try again.")
-const forbidden = () => new EventTypeError('FORBIDDEN', 'You are not allowed to make this change.')
-const notFound = () => new EventTypeError('NOT_FOUND', 'Event type not found.')
+const invalid = () => new EventTypeError('INVALID_REQUEST', "That didn't work — check the name and roster, then try again.", 400)
+const forbidden = () => new EventTypeError('FORBIDDEN', 'You are not allowed to make this change.', 403)
+const notFound = () => new EventTypeError('NOT_FOUND', 'Event type not found.', 404)
 
 /**
  * The team's event types. Archived ones are excluded unless asked for, so every picker gets exactly
@@ -109,7 +103,7 @@ export function useArchiveEventType() {
       const res = await api.archiveEventType({ id, body: { migrateEventsTo } })
       if (res.status === 400) throw invalid()
       if (res.status === 409) {
-        throw new EventTypeError('LAST_EVENT_TYPE', 'A team must keep at least one active event type.')
+        throw new EventTypeError('LAST_EVENT_TYPE', 'A team must keep at least one active event type.', 409)
       }
       if (res.status === 403) throw forbidden()
       if (res.status === 404) throw notFound()

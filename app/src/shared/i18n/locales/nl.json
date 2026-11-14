@@ -1273,6 +1273,14 @@
     "markdownLabel": "Tekst van het bericht (Markdown)",
     "post": "Plaatsen",
     "postFailed": "Het bericht kon niet worden opgeslagen. Probeer het opnieuw.",
-    "formerMember": "Oud-lid"
+    "formerMember": "Oud-lid",
+    "edited": "bewerkt",
+    "editHistory": "Bewerkingen",
+    "editedBy": "Bewerkt door {{name}}",
+    "postedBy": "Geplaatst door {{name}}",
+    "postActions": "Acties voor bericht",
+    "edit": "Bewerken",
+    "editPost": "Bericht bewerken",
+    "save": "Opslaan"
   }
 }

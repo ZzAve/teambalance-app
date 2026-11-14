@@ -28,3 +28,18 @@ export function useCreateBulletinPost() {
     },
   })
 }
+
+/** Admin-only: replaces a Post's Markdown; the API records who edited it and when. */
+export function useUpdateBulletinPost() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id, markdown }: { id: string; markdown: string }) => {
+      const res = await api.updateBulletinPost({ id, body: { markdown } })
+      if (res.status !== 200) throw new Error(`Edit refused: ${res.status}`)
+      return res.body
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['bulletin-posts'] })
+    },
+  })
+}

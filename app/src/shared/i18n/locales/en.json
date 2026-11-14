@@ -1273,6 +1273,14 @@
     "markdownLabel": "Post text (Markdown)",
     "post": "Post",
     "postFailed": "Couldn't save the post. Please try again.",
-    "formerMember": "Former member"
+    "formerMember": "Former member",
+    "edited": "edited",
+    "editHistory": "Edit history",
+    "editedBy": "Edited by {{name}}",
+    "postedBy": "Posted by {{name}}",
+    "postActions": "Post actions",
+    "edit": "Edit",
+    "editPost": "Edit post",
+    "save": "Save"
   }
 }

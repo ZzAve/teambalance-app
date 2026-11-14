@@ -1,5 +1,12 @@
-import { describe, expect, it } from 'vitest'
-import { toCreateTeamError } from './teams'
+import { MutationObserver } from '@tanstack/react-query'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { queryClient } from './query-client'
+import { activateTeam, createTeamMutationOptions, toCreateTeamError } from './teams'
+import { api } from './wirespec-client'
+
+vi.mock('./wirespec-client', () => ({ api: { activateTeam: vi.fn(), createTeam: vi.fn() } }))
+
+const TEAM = { id: 't2', slug: 'second', name: 'Second' }
 
 describe('toCreateTeamError', () => {
   it('maps 403 to an invalid-creation-code error (field: code)', () => {
@@ -22,5 +29,50 @@ describe('toCreateTeamError', () => {
     expect(toCreateTeamError(400, undefined).code).toBe('GENERIC')
     expect(toCreateTeamError(500, undefined).code).toBe('GENERIC')
     expect(toCreateTeamError(503, undefined).code).toBe('GENERIC')
+  })
+})
+
+describe('activateTeam', () => {
+  afterEach(() => {
+    queryClient.clear()
+    vi.mocked(api.activateTeam).mockReset()
+  })
+
+  it('resets the cache once the switch is authorized', async () => {
+    queryClient.setQueryData(['events'], [{ id: 'e1' }])
+    vi.mocked(api.activateTeam).mockResolvedValue({ status: 200, body: TEAM } as never)
+
+    expect(await activateTeam('second')).toEqual(TEAM)
+
+    expect(queryClient.getQueryData(['events'])).toBeUndefined()
+  })
+
+  it('leaves the cache alone when the switch is refused', async () => {
+    queryClient.setQueryData(['events'], [{ id: 'e1' }])
+    vi.mocked(api.activateTeam).mockResolvedValue({ status: 404, body: undefined } as never)
+
+    expect(await activateTeam('unknown')).toBeNull()
+
+    expect(queryClient.getQueryData(['events'])).toEqual([{ id: 'e1' }])
+  })
+})
+
+describe('createTeamMutationOptions', () => {
+  afterEach(() => {
+    queryClient.clear()
+    vi.mocked(api.createTeam).mockReset()
+  })
+
+  it('resets the cache after a team is created', async () => {
+    queryClient.setQueryData(['events'], [{ id: 'e1' }])
+    vi.mocked(api.createTeam).mockResolvedValue({ status: 201, body: TEAM } as never)
+
+    await new MutationObserver(queryClient, createTeamMutationOptions).mutate({
+      name: 'Second',
+      slug: 'second',
+      creationCode: 'code',
+    })
+
+    expect(queryClient.getQueryData(['events'])).toBeUndefined()
   })
 })

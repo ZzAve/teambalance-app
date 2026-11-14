@@ -23,10 +23,6 @@ export const Route = createFileRoute('/t/$slug')({
     if (user.activeTeam?.slug !== params.slug) {
       const activated = await activateTeam(params.slug).catch(() => null)
       if (!activated) throw redirect({ to: '/' })
-      // Tenant-scoped queries are keyed without the Team in them, so they belong to the Team just
-      // left. resetQueries, not clear(): a switch keeps the same components mounted, and clear()
-      // empties the cache without telling those observers to refetch.
-      await queryClient.resetQueries()
       user = await queryClient.ensureQueryData(authMeQueryOptions).catch(() => null)
       if (!user) throw redirect({ to: LOGIN_PATH })
     }

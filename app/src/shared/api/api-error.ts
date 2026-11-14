@@ -19,5 +19,3 @@ export function apiErrorOf(res: { status: number; body?: unknown }, message?: st
   const code = (res.body as { code?: unknown } | null | undefined)?.code
   return new ApiError(res.status, typeof code === 'string' ? code : undefined, message)
 }
-
-export const errorCodeOf = (error: unknown): string => (error instanceof ApiError ? error.code : 'FAILED')

@@ -47,5 +47,4 @@ class PhotoService(
     fun uploadPersonalPhoto(userId: UserId, bytes: ByteArray) = photoRepository.savePersonal(userId, Photo(bytes))
 
     fun removePersonalPhoto(userId: UserId) = photoRepository.deletePersonal(userId)
-
 }

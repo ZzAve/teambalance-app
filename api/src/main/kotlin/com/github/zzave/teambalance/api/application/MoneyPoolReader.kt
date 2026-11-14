@@ -8,6 +8,7 @@ import com.github.zzave.teambalance.api.domain.model.EncryptedToken
 import com.github.zzave.teambalance.api.domain.model.MoneyPool
 import com.github.zzave.teambalance.api.domain.model.TeamId
 import com.github.zzave.teambalance.api.domain.model.TenantRouting
+import com.github.zzave.teambalance.api.domain.model.moneyPoolHistoryStart
 import com.github.zzave.teambalance.api.domain.port.BunqConnectionRepository
 import com.github.zzave.teambalance.api.domain.port.BunqGateway
 import com.github.zzave.teambalance.api.domain.port.SeasonRepository
@@ -49,8 +50,7 @@ class MoneyPoolReader(
 
     @Suppress("TooGenericExceptionCaught")
     private fun askBunq(grant: BunqGrant, account: BunqAccountId): MoneyPool {
-        val today = LocalDate.now(clock)
-        val since = seasonRepository.get().start?.takeIf { !it.isAfter(today) } ?: today.minusDays(DEFAULT_HISTORY_DAYS)
+        val since = seasonRepository.get().moneyPoolHistoryStart(LocalDate.now(clock))
         return try {
             val balance = bunqGateway.fetchBalance(grant, account)
             MoneyPool.Connected(balance, bunqGateway.fetchPayments(grant, account, since, PAYMENT_LIMIT), since)
@@ -82,7 +82,6 @@ class MoneyPoolReader(
     private val log = LoggerFactory.getLogger(MoneyPoolReader::class.java)
 
     private companion object {
-        const val DEFAULT_HISTORY_DAYS = 90L
         const val PAYMENT_LIMIT = 200
     }
 }

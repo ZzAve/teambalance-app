@@ -4,6 +4,7 @@ import com.github.zzave.teambalance.api.application.MoneyPoolService
 import com.github.zzave.teambalance.api.application.OutOfPocketExpenseService
 import com.github.zzave.teambalance.api.domain.model.BeerPrice
 import com.github.zzave.teambalance.api.domain.model.BunqMeLink
+import com.github.zzave.teambalance.api.domain.model.ExpenseDescription
 import com.github.zzave.teambalance.api.domain.model.Money
 import com.github.zzave.teambalance.api.domain.model.MoneyPool as DomainMoneyPool
 import com.github.zzave.teambalance.api.domain.model.MoneyPoolOverview
@@ -18,9 +19,11 @@ import com.github.zzave.teambalance.api.interfaces.generated.endpoint.GetMoneyPo
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.GetMoneyPoolSettings
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.PutMoneyPoolSettings
 import com.github.zzave.teambalance.api.interfaces.generated.endpoint.RecordOutOfPocketExpense
+import com.github.zzave.teambalance.api.interfaces.generated.endpoint.UpdateOutOfPocketExpense
 import com.github.zzave.teambalance.api.interfaces.generated.model.MoneyPool
 import com.github.zzave.teambalance.api.interfaces.generated.model.MoneyPoolSettings
 import com.github.zzave.teambalance.api.interfaces.generated.model.MoneyPoolState
+import com.github.zzave.teambalance.api.interfaces.generated.model.OutOfPocketExpenseRequest
 import com.github.zzave.teambalance.api.interfaces.generated.model.Payment
 import com.github.zzave.teambalance.api.interfaces.generated.model.PaymentDate
 import com.github.zzave.teambalance.api.interfaces.generated.model.PaymentDirection
@@ -37,6 +40,7 @@ class MoneyPoolController(
     GetMoneyPoolSettings.Handler,
     PutMoneyPoolSettings.Handler,
     RecordOutOfPocketExpense.Handler,
+    UpdateOutOfPocketExpense.Handler,
     DeleteOutOfPocketExpense.Handler {
 
     // Readable by any member of the current team; the tenant is resolved from the request context.
@@ -63,16 +67,24 @@ class MoneyPoolController(
             ).produce(),
         )
 
-    // Who may record for whom is enforced in OutOfPocketExpenseService; a refusal surfaces as 403 via the handler.
+    // Who may record or change for whom is enforced in OutOfPocketExpenseService; a refusal surfaces as 403 via the handler.
     override suspend fun recordOutOfPocketExpense(request: RecordOutOfPocketExpense.Request): RecordOutOfPocketExpense.Response<*> =
         RecordOutOfPocketExpense.Response201(
             outOfPocketExpenseService.record(
                 callerId = currentUserGateway.requireCurrentUserId(),
                 teamId = currentTeamGateway.requireCurrentTeamId(),
-                paidBy = request.body.userId.consumeUserId(),
-                amount = Money(request.body.amount),
-                date = LocalDate.parse(request.body.date.value),
-                description = request.body.description,
+                details = request.body.consume(),
+            ).toPayment().produce(receiptVersion = null),
+        )
+
+    // The answer leaves the receipt version out: the client reads it from the pool, which it fetches again.
+    override suspend fun updateOutOfPocketExpense(request: UpdateOutOfPocketExpense.Request): UpdateOutOfPocketExpense.Response<*> =
+        UpdateOutOfPocketExpense.Response200(
+            outOfPocketExpenseService.update(
+                callerId = currentUserGateway.requireCurrentUserId(),
+                teamId = currentTeamGateway.requireCurrentTeamId(),
+                paymentId = PaymentId(request.path.paymentId),
+                details = request.body.consume(),
             ).toPayment().produce(receiptVersion = null),
         )
 
@@ -98,24 +110,30 @@ private fun DomainMoneyPoolSettings.produce() = MoneyPoolSettings(
     bunqMeLink = bunqMeLink?.value,
 )
 
-private fun withoutFigures(state: MoneyPoolState, canTopUp: Boolean) =
-    MoneyPool(state, balance = null, payments = null, beerPrice = null, beerCount = null, canTopUp = canTopUp, refreshing = false)
+private fun OutOfPocketExpenseRequest.consume() = OutOfPocketExpenseService.Details(
+    paidBy = userId.consumeUserId(),
+    amount = Money(amount),
+    date = LocalDate.parse(date.value),
+    description = ExpenseDescription.parse(description),
+)
 
-private fun MoneyPoolOverview.produce() = pool.produce(canTopUp, refreshing)
-
-private fun DomainMoneyPool.produce(canTopUp: Boolean, refreshing: Boolean) = when (this) {
-    DomainMoneyPool.Off -> withoutFigures(MoneyPoolState.Off, canTopUp)
-    DomainMoneyPool.NotConnected -> withoutFigures(MoneyPoolState.NotConnected, canTopUp)
-    DomainMoneyPool.Unavailable -> withoutFigures(MoneyPoolState.Unavailable, canTopUp)
-    DomainMoneyPool.Rejected -> withoutFigures(MoneyPoolState.Rejected, canTopUp)
-    is DomainMoneyPool.Connected -> MoneyPool(
-        state = MoneyPoolState.Connected,
-        balance = balance.cents,
-        payments = payments.map { it.produce(receiptVersions[it.id]) },
-        beerPrice = beerPrice?.cents,
-        beerCount = beerCount?.value,
+private fun MoneyPoolOverview.produce(): MoneyPool {
+    val connected = pool as? DomainMoneyPool.Connected
+    return MoneyPool(
+        state = when (pool) {
+            DomainMoneyPool.Off -> MoneyPoolState.Off
+            DomainMoneyPool.NotConnected -> MoneyPoolState.NotConnected
+            DomainMoneyPool.Unavailable -> MoneyPoolState.Unavailable
+            DomainMoneyPool.Rejected -> MoneyPoolState.Rejected
+            is DomainMoneyPool.Connected -> MoneyPoolState.Connected
+        },
+        balance = connected?.balance?.cents,
+        payments = payments.takeIf { pool != DomainMoneyPool.Off }?.map { it.produce(receiptVersions[it.id]) },
+        beerPrice = connected?.beerPrice?.cents,
+        beerCount = connected?.beerCount?.value,
         canTopUp = canTopUp,
-        refreshing = refreshing,
+        // Only a connected pool shows figures that can be older than Bunq's.
+        refreshing = refreshing && connected != null,
     )
 }
 

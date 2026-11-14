@@ -18,8 +18,8 @@ export interface NewExpense {
 }
 
 // RECEIPT_FAILED: the expense is saved, the upload of its receipt is not. INVALID: the amount, the
-// description or the date was refused. POOL_UNAVAILABLE: the pool is not connected or Bunq did not answer.
-export type ExpenseErrorCode = 'INVALID' | 'FORBIDDEN' | 'NOT_FOUND' | 'POOL_UNAVAILABLE' | 'RECEIPT_FAILED' | 'FAILED'
+// description or the date was refused. POOL_OFF: the money pool is switched off for the team.
+export type ExpenseErrorCode = 'INVALID' | 'FORBIDDEN' | 'NOT_FOUND' | 'POOL_OFF' | 'RECEIPT_FAILED' | 'FAILED'
 
 export class ExpenseError extends Error {
   constructor(public readonly code: ExpenseErrorCode) {
@@ -32,7 +32,7 @@ function failure(status: number): ExpenseError {
   if (status === 400) return new ExpenseError('INVALID')
   if (status === 403) return new ExpenseError('FORBIDDEN')
   if (status === 404) return new ExpenseError('NOT_FOUND')
-  if (status === 409 || status === 503) return new ExpenseError('POOL_UNAVAILABLE')
+  if (status === 409) return new ExpenseError('POOL_OFF')
   return new ExpenseError('FAILED')
 }
 
@@ -50,6 +50,19 @@ export function useRecordExpense() {
       }
     },
     // Also after RECEIPT_FAILED: the expense is in the pool by then.
+    onSettled: () => queryClient.invalidateQueries({ queryKey: moneyPoolQueryOptions.queryKey }),
+  })
+}
+
+/** Replaces everything but the receipt, which the receipt control in the list changes. */
+export function useUpdateExpense(paymentId: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ userId, amount, date, description }: NewExpense) => {
+      const res = await api.updateOutOfPocketExpense({ paymentId, body: { userId, amount, date, description } })
+      if (res.status !== 200) throw failure(res.status)
+    },
+    // After a 404 too: someone else deleted it.
     onSettled: () => queryClient.invalidateQueries({ queryKey: moneyPoolQueryOptions.queryKey }),
   })
 }

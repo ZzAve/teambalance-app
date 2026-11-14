@@ -3,23 +3,25 @@ package com.github.zzave.teambalance.api.application
 import com.github.zzave.teambalance.api.domain.exception.ExpenseNotFoundException
 import com.github.zzave.teambalance.api.domain.exception.MemberNotFoundException
 import com.github.zzave.teambalance.api.domain.exception.MoneyPoolNotReadableException
-import com.github.zzave.teambalance.api.domain.exception.MoneyPoolUnavailableException
 import com.github.zzave.teambalance.api.domain.exception.NoTeamMembershipException
 import com.github.zzave.teambalance.api.domain.exception.NotTeamAdminException
 import com.github.zzave.teambalance.api.domain.model.BunqAccountId
 import com.github.zzave.teambalance.api.domain.model.BunqConnection
 import com.github.zzave.teambalance.api.domain.model.CachedMoneyPool
 import com.github.zzave.teambalance.api.domain.model.EncryptedToken
+import com.github.zzave.teambalance.api.domain.model.ExpenseDescription
 import com.github.zzave.teambalance.api.domain.model.Money
 import com.github.zzave.teambalance.api.domain.model.MoneyPool
 import com.github.zzave.teambalance.api.domain.model.MoneyPoolSettings
 import com.github.zzave.teambalance.api.domain.model.OutOfPocketExpense
+import com.github.zzave.teambalance.api.domain.model.OutOfPocketExpenseId
 import com.github.zzave.teambalance.api.domain.model.Payment
 import com.github.zzave.teambalance.api.domain.model.PaymentDirection
 import com.github.zzave.teambalance.api.domain.model.PaymentId
 import com.github.zzave.teambalance.api.domain.model.PaymentName
 import com.github.zzave.teambalance.api.domain.model.Receipt
 import com.github.zzave.teambalance.api.domain.model.Role
+import com.github.zzave.teambalance.api.domain.model.Season
 import com.github.zzave.teambalance.api.domain.model.TeamId
 import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.model.webpBytes
@@ -36,6 +38,9 @@ import java.time.LocalDate
 import java.time.ZoneOffset
 
 private val TODAY = LocalDate.of(2026, 10, 11)
+private val CLOCK = Clock.fixed(Instant.parse("2026-10-11T10:00:00Z"), ZoneOffset.UTC)
+
+// The season start, so it is the first day the pool covers with and without a Bunq connection.
 private val HISTORY_START = LocalDate.of(2026, 9, 1)
 private val BUNQ_EXPENSE = Payment(PaymentId("102"), LocalDate.of(2026, 10, 2), PaymentName("Sporthal"), Money(4_500), PaymentDirection.OUT)
 
@@ -51,12 +56,12 @@ class OutOfPocketExpenseServiceTest : FunSpec({
     directory.join(otherMember, team)
     val authorization = AuthorizationService(directory.teamMemberRepository(), FakeActAsGateway())
 
-    class Fixture(pool: MoneyPool) {
+    class Fixture(pool: MoneyPool, enabled: Boolean) {
         val expenses = InMemoryOutOfPocketExpenseRepository()
         val receipts = InMemoryReceiptRepository()
         val moneyPool = MoneyPoolService(
             settingsRepository = object : MoneyPoolSettingsRepository {
-                override fun get() = MoneyPoolSettings(enabled = true)
+                override fun get() = MoneyPoolSettings(enabled)
                 override fun save(settings: MoneyPoolSettings) = error("not used")
             },
             connectionRepository = object : BunqConnectionRepository {
@@ -74,6 +79,8 @@ class OutOfPocketExpenseServiceTest : FunSpec({
             outOfPocketExpenseRepository = expenses,
             paymentAliasRepository = FixedPaymentAliases(),
             teamMemberRepository = directory.teamMemberRepository(),
+            seasonRepository = FixedSeasonRepository(Season(HISTORY_START, null)),
+            clock = CLOCK,
         )
         val service = OutOfPocketExpenseService(
             expenseRepository = expenses,
@@ -81,8 +88,11 @@ class OutOfPocketExpenseServiceTest : FunSpec({
             moneyPoolService = moneyPool,
             authorizationService = authorization,
             teamMemberRepository = directory.teamMemberRepository(),
-            clock = Clock.fixed(Instant.parse("2026-10-11T10:00:00Z"), ZoneOffset.UTC),
+            clock = CLOCK,
         )
+
+        fun details(paidBy: UserId = member, cents: Long = 1_250, date: LocalDate = TODAY, description: String = "Balls") =
+            OutOfPocketExpenseService.Details(paidBy, Money(cents), date, ExpenseDescription.parse(description))
 
         fun record(
             caller: UserId = member,
@@ -90,22 +100,25 @@ class OutOfPocketExpenseServiceTest : FunSpec({
             cents: Long = 1_250,
             date: LocalDate = TODAY,
             description: String = "Balls",
-        ): OutOfPocketExpense = service.record(caller, team, paidBy, Money(cents), date, description)
+        ): OutOfPocketExpense = service.record(caller, team, details(paidBy, cents, date, description))
     }
 
-    fun fixture(pool: MoneyPool = MoneyPool.Connected(Money(18_750), listOf(BUNQ_EXPENSE), HISTORY_START)) = Fixture(pool)
+    fun fixture(
+        pool: MoneyPool = MoneyPool.Connected(Money(18_750), listOf(BUNQ_EXPENSE), HISTORY_START),
+        enabled: Boolean = true,
+    ) = Fixture(pool, enabled)
 
     test("a member records an expense they paid; the pool lists it for them and the balance is the same") {
         val fixture = fixture()
 
         val recorded = fixture.record(description = "  Balls ")
 
-        val pool = fixture.moneyPool.getMoneyPool(team, otherMember).pool as MoneyPool.Connected
-        pool.payments.first() shouldBe Payment(
+        val overview = fixture.moneyPool.getMoneyPool(team, otherMember)
+        overview.payments.first() shouldBe Payment(
             recorded.id.paymentId, TODAY, PaymentName("Balls"), Money(1_250), PaymentDirection.OUT,
             memberId = member, outOfPocket = true,
         )
-        pool.balance shouldBe Money(18_750)
+        (overview.pool as MoneyPool.Connected).balance shouldBe Money(18_750)
     }
 
     test("an Admin records for another member; a member cannot, and neither can someone outside the team") {
@@ -131,9 +144,81 @@ class OutOfPocketExpenseServiceTest : FunSpec({
         fixture.expenses.expenses.size shouldBe 1
     }
 
-    test("nothing is recorded while the pool is not connected") {
-        shouldThrow<MoneyPoolUnavailableException> { fixture(MoneyPool.Unavailable).record() }
-        shouldThrow<MoneyPoolNotReadableException> { fixture(MoneyPool.Rejected).record() }
+    test("an expense is recorded without a working Bunq connection, and the pool then lists it") {
+        listOf(MoneyPool.NotConnected, MoneyPool.Unavailable, MoneyPool.Rejected).forEach { pool ->
+            val fixture = fixture(pool)
+
+            val recorded = fixture.record(date = HISTORY_START)
+
+            fixture.moneyPool.getMoneyPool(team, otherMember).payments shouldBe listOf(recorded.toPayment())
+            shouldThrow<IllegalArgumentException> { fixture.record(date = HISTORY_START.minusDays(1)) }
+        }
+    }
+
+    test("nothing is recorded or changed while the pool is switched off") {
+        val fixture = fixture(enabled = false)
+        val stored = OutOfPocketExpense(OutOfPocketExpenseId.random(), member, Money(900), TODAY, ExpenseDescription.parse("Net"))
+        fixture.expenses.insert(stored)
+
+        shouldThrow<MoneyPoolNotReadableException> { fixture.record() }
+        shouldThrow<MoneyPoolNotReadableException> { fixture.service.update(member, team, stored.id.paymentId, fixture.details()) }
+        fixture.expenses.expenses shouldBe listOf(stored)
+    }
+
+    test("the member who paid changes the amount, the date and the description; the id and the receipt stay") {
+        val fixture = fixture()
+        val recorded = fixture.record()
+        fixture.receipts.save(recorded.id.paymentId, Receipt(webpBytes()))
+
+        val changed = fixture.service.update(
+            member,
+            team,
+            recorded.id.paymentId,
+            fixture.details(cents = 1_999, date = HISTORY_START, description = " Match balls "),
+        )
+
+        changed shouldBe OutOfPocketExpense(recorded.id, member, Money(1_999), HISTORY_START, ExpenseDescription.parse("Match balls"))
+        fixture.expenses.expenses shouldBe listOf(changed)
+        fixture.receipts.receipts.keys shouldBe setOf(recorded.id.paymentId)
+    }
+
+    test("only an Admin changes who paid; another member changes nothing") {
+        val fixture = fixture()
+        val recorded = fixture.record()
+        val id = recorded.id.paymentId
+
+        shouldThrow<NotTeamAdminException> { fixture.service.update(member, team, id, fixture.details(paidBy = otherMember)) }
+        shouldThrow<NotTeamAdminException> { fixture.service.update(otherMember, team, id, fixture.details(paidBy = otherMember)) }
+        shouldThrow<NotTeamAdminException> { fixture.service.update(otherMember, team, id, fixture.details(cents = 1)) }
+        shouldThrow<MemberNotFoundException> { fixture.service.update(admin, team, id, fixture.details(paidBy = outsider)) }
+        fixture.expenses.expenses shouldBe listOf(recorded)
+
+        fixture.service.update(admin, team, id, fixture.details(paidBy = otherMember)).paidBy shouldBe otherMember
+    }
+
+    test("an Admin changes the expense of a member who left the team, and that member stays the payer") {
+        val fixture = fixture()
+        val leaver = UserId.random()
+        val stored = OutOfPocketExpense(OutOfPocketExpenseId.random(), leaver, Money(900), TODAY, ExpenseDescription.parse("Net"))
+        fixture.expenses.insert(stored)
+
+        fixture.service.update(admin, team, stored.id.paymentId, fixture.details(paidBy = leaver, cents = 950)) shouldBe
+            stored.copy(amount = Money(950), description = ExpenseDescription.parse("Balls"))
+    }
+
+    test("a change with a bad amount, description or date is refused, and so is one of a Bunq payment or an unknown id") {
+        val fixture = fixture()
+        val recorded = fixture.record()
+        val id = recorded.id.paymentId
+
+        shouldThrow<IllegalArgumentException> { fixture.service.update(member, team, id, fixture.details(cents = 0)) }
+        shouldThrow<IllegalArgumentException> { fixture.service.update(member, team, id, fixture.details(description = " ")) }
+        shouldThrow<IllegalArgumentException> { fixture.service.update(member, team, id, fixture.details(date = TODAY.plusDays(1))) }
+        shouldThrow<ExpenseNotFoundException> { fixture.service.update(admin, team, BUNQ_EXPENSE.id, fixture.details()) }
+        shouldThrow<ExpenseNotFoundException> {
+            fixture.service.update(admin, team, OutOfPocketExpenseId.random().paymentId, fixture.details())
+        }
+        fixture.expenses.expenses shouldBe listOf(recorded)
     }
 
     test("the member who paid deletes the expense, and its receipt goes with it") {

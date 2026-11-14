@@ -18,15 +18,15 @@ interface PaymentListViewProps {
   receipt?: (expense: Payment) => ReactNode
   /** The claim control on an incoming payment (null for none), supplied by the container. */
   claim?: (payment: Payment) => ReactNode
-  /** The delete control on an out-of-pocket expense (null for none), supplied by the container. */
-  deleteExpense?: (expense: Payment) => ReactNode
+  /** The control that changes or deletes an out-of-pocket expense (null for none), supplied by the container. */
+  editExpense?: (expense: Payment) => ReactNode
 }
 
 /** The payments shown before "Show all". */
 const PAYMENTS_SHOWN = 15
 
 /** The pool's payments in one card, newest first. */
-export function PaymentListView({ payments, members, youId, receipt, claim, deleteExpense }: PaymentListViewProps) {
+export function PaymentListView({ payments, members, youId, receipt, claim, editExpense }: PaymentListViewProps) {
   const { t } = useTranslation()
   const [showAll, setShowAll] = useState(false)
   const memberById = useMemo(() => new Map((members ?? []).map((m) => [m.userId, m])), [members])
@@ -40,7 +40,7 @@ export function PaymentListView({ payments, members, youId, receipt, claim, dele
       ) : (
         <ul className="flex flex-col divide-y divide-border rounded-lg bg-card">
           {shown.map((payment) => (
-            <PaymentRow key={payment.id} payment={payment} member={payment.memberId ? memberById.get(payment.memberId) : undefined} youId={youId} receipt={receipt} claim={claim} deleteExpense={deleteExpense} />
+            <PaymentRow key={payment.id} payment={payment} member={payment.memberId ? memberById.get(payment.memberId) : undefined} youId={youId} receipt={receipt} claim={claim} editExpense={editExpense} />
           ))}
         </ul>
       )}
@@ -59,8 +59,8 @@ function PaymentRow({
   youId,
   receipt,
   claim,
-  deleteExpense,
-}: Pick<PaymentListViewProps, 'youId' | 'receipt' | 'claim' | 'deleteExpense'> & { payment: Payment; member: Member | undefined }) {
+  editExpense,
+}: Pick<PaymentListViewProps, 'youId' | 'receipt' | 'claim' | 'editExpense'> & { payment: Payment; member: Member | undefined }) {
   const { t } = useTranslation()
   const isIncoming = payment.direction === 'In'
   const memberName = member && (member.userId === youId ? t('money.toppers.self', { name: member.displayName }) : member.displayName)
@@ -97,7 +97,7 @@ function PaymentRow({
       </span>
       {/* An incoming payment without a claim control keeps the receipt's width free, so the amounts stay in one column. */}
       {(receipt || claim) && (isIncoming ? (claim?.(payment) ?? <span className="w-10 shrink-0" aria-hidden="true" />) : receipt?.(payment))}
-      {payment.outOfPocket && deleteExpense?.(payment)}
+      {payment.outOfPocket && editExpense?.(payment)}
     </li>
   )
 }

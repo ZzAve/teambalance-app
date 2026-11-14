@@ -620,7 +620,13 @@
     "graphSummary": "Het saldo van de teampot ging van {{from}} op {{fromDate}} naar {{to}} op {{toDate}}",
     "paidBy": "Betaald door {{name}}",
     "paidOutOfPocket": "Betaald door een lid",
-    "outOfPocket": "Betaald door een lid, niet uit de teampot"
+    "outOfPocket": "Betaald door een lid, niet uit de teampot",
+    "paidByMembers": "Voorgeschoten door leden",
+    "noExpenses": "Iets voor het team betaald met je eigen geld? Voeg het hier toe. Het telt als jouw inleg.",
+    "bankMissing": {
+      "title": "Bunq-betalingen ontbreken",
+      "body": "De koppeling met Bunq werkt nu niet. Deze lijst en de ranglijst tonen alleen wat leden zelf hebben voorgeschoten. Stortingen en uitgaven via de bank tellen pas weer mee als de koppeling werkt."
+    }
   },
   "moneySettings": {
     "title": "Teampot",
@@ -1289,17 +1295,28 @@
       "INVALID": "Controleer het bedrag, de omschrijving en de datum. De datum moet in de periode vallen die de teampot toont.",
       "FORBIDDEN": "Je mag deze uitgave niet toevoegen.",
       "NOT_FOUND": "Dit lid zit niet meer in het team.",
-      "POOL_UNAVAILABLE": "De teampot is nu niet beschikbaar. Probeer het later opnieuw.",
       "RECEIPT_FAILED": "De uitgave is opgeslagen, maar het bonnetje uploaden is mislukt. Voeg het toe in de lijst met betalingen.",
-      "FAILED": "De uitgave opslaan is mislukt. Probeer het opnieuw."
+      "FAILED": "De uitgave opslaan is mislukt. Probeer het opnieuw.",
+      "POOL_OFF": "De teampot staat uit voor dit team."
     },
     "delete": {
-      "button": "Uitgave {{name}} verwijderen",
+      "button": "Deze uitgave verwijderen",
       "title": "Deze uitgave verwijderen?",
-      "description": "{{name}}, {{amount}}. De uitgave en het bonnetje worden verwijderd en het telt niet meer als inleg.",
+      "description": "{{summary}}. De uitgave en het bonnetje worden verwijderd en het telt niet meer als inleg.",
       "confirm": "Verwijderen",
       "done": "Uitgave verwijderd",
-      "failed": "De uitgave verwijderen is mislukt. Probeer het opnieuw."
+      "deleting": "Verwijderen…"
+    },
+    "editTitle": "Deze uitgave wijzigen",
+    "editButton": "Uitgave {{name}} wijzigen",
+    "saveChanges": "Wijzigingen opslaan",
+    "changed": "Uitgave gewijzigd",
+    "formerMember": "Oud-lid",
+    "receiptHintWithTotal": "Begin met een foto van het bonnetje. Het bedrag wordt eruit gelezen, en het team ziet waar dit aan is uitgegeven.",
+    "total": {
+      "reading": "Het bedrag wordt van het bonnetje gelezen…",
+      "read": "Van het bonnetje gelezen. Controleer of dit het totaal is.",
+      "notFound": "Het bedrag kon niet van het bonnetje worden gelezen. Vul het zelf in."
     }
   }
 }

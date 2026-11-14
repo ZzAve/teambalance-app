@@ -3,6 +3,8 @@ import { RouteErrorFallback } from '@shared/ui/RouteErrorFallback'
 
 interface Props {
   children: ReactNode
+  /** Receives each caught error, to send it to error tracking (index.tsx passes reportError). */
+  onError?: (error: unknown) => void
 }
 
 interface State {
@@ -34,6 +36,7 @@ export class RootErrorBoundary extends Component<Props, State> {
   componentDidCatch(error: unknown) {
     // Surface it for diagnostics; the thrown value can be anything (including undefined).
     console.error('Uncaught render error surfaced to the root boundary:', error)
+    this.props.onError?.(error)
   }
 
   render() {

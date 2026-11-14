@@ -41,4 +41,17 @@ describe('RootErrorBoundary', () => {
     expect(screen.getByText(/couldn't load this page/i)).toBeInTheDocument()
     spy.mockRestore()
   })
+
+  it('reports the caught error through onError, so it reaches error tracking', () => {
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const onError = vi.fn()
+    const error = new Error('boom')
+    render(
+      <RootErrorBoundary onError={onError}>
+        <Thrower value={error} />
+      </RootErrorBoundary>,
+    )
+    expect(onError).toHaveBeenCalledWith(error)
+    spy.mockRestore()
+  })
 })

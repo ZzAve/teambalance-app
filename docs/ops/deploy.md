@@ -249,6 +249,14 @@ Settings → Secrets and variables → Actions (names only — never commit valu
 | `INTERNAL_API_KEY` | Post-deploy verify — sent as `X-Internal-Api-Key` to read `/internal/actuator/info`. **Must equal the container's `INTERNAL_API_KEY` env** (see below). |
 | `STG_INTERNAL_API_KEY` | The same, for the stg container. |
 | `DEMO_INTERNAL_API_KEY` | The same, for the demo container (must equal its `INTERNAL_API_KEY` env). |
+| `BUGSINK_AUTH_TOKEN` | Bugsink auth token for the SPA source map upload in `deploy-frontend`. Unset: the upload is skipped. See "Errors to Bugsink". |
+
+Repository **variables** (same page, *Variables* tab; not secret):
+
+| Variable | Used for |
+|----------|----------|
+| `BUGSINK_SPA_DSN` | The DSN of the Bugsink `teambalance-app` project, built into the prod SPA as `VITE_BUGSINK_DSN`. Unset: the SPA reports nothing. |
+| `BUGSINK_URL` | The base URL of the Bugsink instance (`https://<host>/`), for the source map upload. |
 
 > **`INTERNAL_API_KEY` must be set in two places with the same value:** as the GitHub Actions
 > secret above **and** as an env/secret on the Serverless Container (Scaleway console → the
@@ -341,6 +349,66 @@ Explore → Tempo shows the traces.
 
 To stop the push, remove `MANAGEMENT_OPENTELEMETRY_TRACING_EXPORT_OTLP_ENDPOINT` and redeploy or
 restart the container.
+
+## Errors to Bugsink
+
+Bugsink (hosted, EU) receives the error events of the API and the SPA through the official Sentry
+SDKs. **Only prod sends.** The stg and demo containers get no DSN, and the demo SPA is built without
+one. There is one Bugsink project per side, so each has its own DSN and issue list:
+
+| Bugsink project | Sends | Events |
+|-----------------|-------|--------|
+| `teambalance-api` | the prod API container | Unhandled request exceptions (the 500s), a request with a missing required query parameter (400, reported on purpose: it is a client bug), and every ERROR log line, also from scheduled tasks. A domain exception that maps to a 4xx is not an event. |
+| `teambalance-app` | the prod SPA build | Uncaught errors, unhandled promise rejections, and errors caught by `RootErrorBoundary`. |
+
+**Setup (once):**
+
+1. In Bugsink, make the two projects above. Copy each DSN (project → settings).
+2. Prod API container (Scaleway console → env variables):
+
+   | Variable | Value |
+   |----------|-------|
+   | `SENTRY_DSN` | The `teambalance-api` DSN. Unset or empty: the SDK starts disabled and sends nothing. |
+   | `SENTRY_ENVIRONMENT` | `prod` (also the default). |
+
+   The release is the image's commit SHA (`TEAMBALANCE_BUILD_SHA`, set by `api/Dockerfile`); nothing
+   to set.
+3. GitHub: the variables `BUGSINK_SPA_DSN` and `BUGSINK_URL`, and the secret `BUGSINK_AUTH_TOKEN`
+   (Bugsink → Tokens, or `bugsink-manage create_auth_token` on a self-hosted instance). See "Required
+   GitHub Actions secrets".
+
+**What each event has:**
+
+- `environment` `prod`, and `release` = the commit SHA (the API's and the SPA's are the same value).
+- API events: a `trace_id` tag with the OTel trace ID of the request. Search Cockpit Tempo for it to
+  see the request. `ErrorReportingConfiguration` adds it. An ERROR log line from a task that is not
+  traced has no `trace_id`.
+- SPA events: the stack trace mapped to the source. `deploy-frontend` builds with hidden source maps,
+  uploads them with `sentry-cli` (matched by debug ID), and deletes them before the bucket sync, so
+  no map is public.
+
+**Privacy (what is not in an event):** no member ID, email or name (`setUser` is never called), no IP
+address (the SPA tells Bugsink not to infer it), no cookies, no request headers or bodies, no query
+strings. The API also drops the request URL, and keeps the event's `transaction` only when it is a
+route template; the SPA replaces an invite token in a path with `:token`. Calendar-feed and
+magic-link tokens therefore stay out of Bugsink.
+
+**Cost:** the free tier has a monthly event limit. A fault in a loop can use it up fast; mute the
+issue in Bugsink if that happens.
+
+**Local check:** run Bugsink in one container:
+
+```bash
+docker run -d --name bugsink -e SECRET_KEY=$(openssl rand -hex 32) \
+  -e CREATE_SUPERUSER=admin@example.com:admin -e PORT=8000 -p 8000:8000 bugsink/bugsink
+```
+
+Log in at http://localhost:8000, make a project, and run the API with `SENTRY_DSN=<its DSN>` and the
+`prod` profile (or `--sentry.dsn=<its DSN>` with the `dev` profile), or the SPA dev server with
+`VITE_BUGSINK_DSN=<its DSN>`.
+
+To stop the API events, remove `SENTRY_DSN` and redeploy or restart the container. To stop the SPA
+events, remove the `BUGSINK_SPA_DSN` variable; the next frontend deploy has no DSN.
 
 ## Rollback
 

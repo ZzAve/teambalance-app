@@ -10,7 +10,11 @@ import { RootErrorBoundary } from '@app/RootErrorBoundary'
 import { installChunkErrorHandler, markAppLoaded } from '@shared/lib/chunk-reload'
 import { registerAppServiceWorker } from '@app/pwa/sw-registration'
 import { startLanguage } from '@shared/i18n/language'
+import { reportError, startErrorReporting } from '@shared/lib/error-reporting'
 import './styles/global.css'
+
+// First, so an error anywhere below reaches Bugsink. Starts only in a build with VITE_BUGSINK_DSN (prod).
+startErrorReporting()
 
 // A stale shell can dynamic-import a route chunk whose hash the last deploy pruned → a blank frame.
 // This reloads once to the fresh index.html (which references chunk hashes that exist) rather than
@@ -66,7 +70,7 @@ createRoot(document.getElementById('root')!).render(
     {/* Last-resort boundary ABOVE the router: anything that escapes the router's own error handling
         (an error thrown in its load/transition machinery, which sits outside that boundary) becomes
         a themed retry screen here instead of an uncaught error that blanks the root. */}
-    <RootErrorBoundary>
+    <RootErrorBoundary onError={reportError}>
       <RouterProvider router={router} />
     </RootErrorBoundary>
   </StrictMode>,

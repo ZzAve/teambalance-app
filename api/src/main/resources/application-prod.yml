@@ -60,3 +60,21 @@ management:
             # The Cockpit push token for the traces data source (a secret env on the container). Unused
             # while no traces endpoint is set.
             X-Token: ${SCALEWAY_COCKPIT_TRACES_TOKEN:}
+
+# Error events to Bugsink (EU, hosted) through the Sentry SDK. Only the prod container sets SENTRY_DSN;
+# with an empty DSN the SDK starts disabled and sends nothing. Events: unhandled request exceptions (the
+# SDK's exception resolver runs after GlobalExceptionHandler, so a mapped 4xx is not reported) and every
+# ERROR log line (the Logback appender), for example from a scheduled task. No Sentry tracing: the OTel
+# pipeline is the only one; ErrorReportingConfiguration tags each event with its OTel trace ID.
+sentry:
+  dsn: ${SENTRY_DSN:}
+  environment: ${SENTRY_ENVIRONMENT:prod}
+  # The commit SHA of the image (api/Dockerfile), the same value as the SPA's release.
+  release: ${TEAMBALANCE_BUILD_SHA:unknown}
+  # No member ID, email, name, IP address or cookies in an event.
+  send-default-pii: false
+  in-app-includes: com.github.zzave.teambalance
+  logging:
+    minimum-event-level: error
+    # Lower log lines go into an event as breadcrumbs only.
+    minimum-breadcrumb-level: info

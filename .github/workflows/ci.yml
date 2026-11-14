@@ -309,10 +309,37 @@ jobs:
       - uses: ./.github/actions/setup-toolchain
 
       # `vite build` runs in production mode and auto-loads app/.env.production
-      # (VITE_API_URL=https://api.teambalance.nl).
+      # (VITE_API_URL=https://api.teambalance.nl). Only this prod build gets the Bugsink DSN (a
+      # repository variable: a DSN is public, it is in the bundle) and writes hidden source maps.
       - name: Build SPA
         run: npm run build
         working-directory: app
+        env:
+          VITE_BUGSINK_DSN: ${{ vars.BUGSINK_SPA_DSN }}
+          VITE_BUGSINK_RELEASE: ${{ github.sha }}
+          BUGSINK_SOURCEMAPS: 'true'
+
+      # Bugsink matches a minified frame to its source map by debug ID. `inject` writes the ID into each
+      # chunk and its map; hashed chunks are precached with `revision: null`, so the edit after the
+      # build does not change the service worker. Skipped while the token or the URL is not set up.
+      - name: Upload source maps to Bugsink
+        working-directory: app
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.BUGSINK_AUTH_TOKEN }}
+          SENTRY_URL: ${{ vars.BUGSINK_URL }}
+        run: |
+          set -euo pipefail
+          if [ -z "$SENTRY_AUTH_TOKEN" ] || [ -z "$SENTRY_URL" ]; then
+            echo "BUGSINK_AUTH_TOKEN or BUGSINK_URL not set: no source map upload."
+            exit 0
+          fi
+          npx --yes @sentry/cli@3.8.2 sourcemaps inject dist/assets
+          # Bugsink has no organizations: sentry-cli needs an --org, Bugsink does not use it.
+          npx --yes @sentry/cli@3.8.2 sourcemaps upload --org bugsinkhasnoorgs --project teambalance-app dist/assets
+
+      # Never publish a source map: the bucket sync below uploads all of dist/assets.
+      - name: Delete source maps
+        run: find app/dist -name '*.map' -delete
 
       - name: Configure Scaleway CLI
         uses: scaleway/action-scw@2e34a1eb35cf3cac627f24643a101fea269cbd83 # v0.0.3

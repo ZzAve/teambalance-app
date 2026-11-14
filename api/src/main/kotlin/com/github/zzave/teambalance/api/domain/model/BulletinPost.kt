@@ -27,10 +27,18 @@ value class PostMarkdown private constructor(val value: String) {
     }
 }
 
+/** One save of an existing [BulletinPost]: who and when, not the old text (ADR-0048). */
+data class PostEdit(
+    val editorId: UserId,
+    val editedAt: Instant,
+)
+
 /** A message an Admin posts on the Team's Bulletin Board for every Member (ADR-0048). */
 data class BulletinPost(
     val id: BulletinPostId,
     val markdown: PostMarkdown,
     val authorId: UserId,
     val postedAt: Instant,
+    /** Oldest first. */
+    val edits: List<PostEdit> = emptyList(),
 )

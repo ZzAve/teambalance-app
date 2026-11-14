@@ -1,5 +1,6 @@
 package com.github.zzave.teambalance.api.domain.exception
 
+import com.github.zzave.teambalance.api.domain.model.BulletinPostId
 import com.github.zzave.teambalance.api.domain.model.BunqAccountId
 import com.github.zzave.teambalance.api.domain.model.CalendarLinkId
 import com.github.zzave.teambalance.api.domain.model.EventId
@@ -96,6 +97,8 @@ class MemberNotFoundException(userId: UserId) : NotFoundException("Member not fo
 class PositionNotFoundException(id: PositionId) : NotFoundException("Position not found: $id")
 
 class SubstituteNotFoundException(id: SubstituteId) : NotFoundException("Substitute not found: $id")
+
+class BulletinPostNotFoundException(id: BulletinPostId) : NotFoundException("Bulletin post not found: $id")
 
 // Plain 404s for photo reads and for copying a Personal Photo that does not exist.
 class PhotoNotFoundException(userId: UserId) : NotFoundException("No photo for $userId")

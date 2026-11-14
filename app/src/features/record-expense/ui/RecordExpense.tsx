@@ -5,6 +5,7 @@ import { useCurrentUser } from '@shared/api/auth'
 import { useMembers } from '@shared/api/members'
 import { ExpenseError, useRecordExpense } from '@shared/api/out-of-pocket-expenses'
 import { Button } from '@shared/ui/button'
+import { readReceiptTotal } from '../lib/read-receipt-total'
 import { ExpenseSheetView } from './ExpenseSheetView'
 
 /**
@@ -36,6 +37,7 @@ export function RecordExpense({ today }: { today: string }) {
       userId={user && !user.actAs ? user.id : ''}
       members={isAdmin ? (members ?? []) : undefined}
       today={today}
+      readTotal={readReceiptTotal}
       isPending={record.isPending}
       // A failed receipt upload closes the sheet (the expense is saved), so it is a toast, not a form error.
       error={failure && failure !== 'RECEIPT_FAILED' ? failure : undefined}

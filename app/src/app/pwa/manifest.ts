@@ -90,7 +90,9 @@ export const pwaWorkbox: VitePWAOptions['workbox'] = {
   globPatterns: ['**/*.{js,css,html,woff2,png,svg,ico}'],
   // The install-dialog screenshots are the one PNG set the shell never renders, and by far the
   // largest — keep them out of every install's precache.
-  globIgnores: ['screenshots/**'],
+  // The text recognition for receipts (12 MB of engine builds, of which a browser needs one) is fetched when a
+  // member first reads a receipt, never on install.
+  globIgnores: ['screenshots/**', 'ocr/**'],
   // Offline SPA navigations render the precached shell…
   navigateFallback: '/index.html',
   // …but a request for data must never be answered with HTML.

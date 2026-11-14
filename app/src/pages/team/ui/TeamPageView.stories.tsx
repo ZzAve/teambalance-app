@@ -9,6 +9,7 @@ import { appColumn } from '@shared/testing/app-column-decorator'
 import { withRouter } from '@shared/testing/router-decorator'
 import { MemberRosterView } from '@features/manage-members/ui/MemberRosterView'
 import { ManageSubstitutesView } from '@features/manage-substitutes/ui/ManageSubstitutesView'
+import { BulletinBoardView } from '@features/bulletin-board/ui/BulletinBoardView'
 import { appShell } from '../../../../storybook-support/app-shell-decorator'
 import { dutchMode, pageModes } from '../../../../.storybook/modes'
 import { TeamPageView } from './TeamPageView'
@@ -62,6 +63,21 @@ const substitutes = (
   />
 )
 
+const bulletin = (isAdmin: boolean) => (
+  <BulletinBoardView
+    isAdmin={isAdmin}
+    onCreate={noop}
+    posts={[
+      {
+        id: 'b1',
+        authorName: 'Ada Lovelace',
+        postedAt: '2026-11-10T18:00:00Z',
+        markdown: '### Ball bag rotation\nWho takes the **balls** home after training:\n\n- Week 46 — Alan\n- Week 47 — Katherine',
+      },
+    ]}
+  />
+)
+
 const shell = appShell('team')
 
 const meta = {
@@ -77,6 +93,7 @@ const meta = {
     ),
     roster: roster(),
     substitutes,
+    bulletin: bulletin(true),
   },
 } satisfies Meta<typeof TeamPageView>
 
@@ -94,9 +111,14 @@ export const Data: Story = {
       await expect(canvas.getByRole('link', { name: 'Teaminstellingen' })).toHaveAttribute('href', '/t/setpoint-vt/team/settings')
       await expect(canvas.getByRole('heading', { name: 'Leden' })).toBeInTheDocument()
       await expect(canvas.getByRole('heading', { name: 'Invallers' })).toBeInTheDocument()
+      await expect(canvas.getByRole('heading', { name: 'Prikbord' })).toBeInTheDocument()
       return
     }
     await expect(canvas.getByRole('heading', { name: 'Team' })).toBeInTheDocument()
+    // The Bulletin Board comes first, above the roster (ADR-0048).
+    const headings = canvas.getAllByRole('heading', { level: 2 }).map((heading) => heading.textContent)
+    await expect(headings).toEqual(['Bulletin board', 'Members', 'Substitutes'])
+    await expect(canvas.getByText('Ball bag rotation')).toBeInTheDocument()
     // The admin actions share the roster heading's line, not a row of their own.
     const membersLine = within(canvas.getByRole('heading', { name: 'Members' }).parentElement!)
     await expect(membersLine.getByRole('link', { name: 'Team settings' })).toHaveAttribute('href', '/t/setpoint-vt/team/settings')
@@ -127,7 +149,7 @@ export const Shells: Story = {
   render: (args) => (
     <Stack
       items={{
-        Member: <TeamPageView {...args} isAdmin={false} inviteAction={undefined} />,
+        Member: <TeamPageView {...args} isAdmin={false} inviteAction={undefined} bulletin={bulletin(false)} />,
         Loading: <TeamPageView {...args} roster={roster({ members: undefined, isLoading: true })} />,
         Error: <TeamPageView {...args} roster={roster({ members: undefined, isError: true })} />,
       }}
@@ -139,6 +161,7 @@ export const Shells: Story = {
     await expect(region('Member').queryByRole('link', { name: 'Team settings' })).not.toBeInTheDocument()
     await expect(region('Member').getByRole('link', { name: 'Ada Lovelace' })).toBeInTheDocument()
     await expect(region('Member').getByRole('heading', { name: 'Members' })).toBeInTheDocument()
+    await expect(region('Member').queryByRole('button', { name: 'New post' })).not.toBeInTheDocument()
     await expect(region('Loading').getByText('Loading…')).toBeInTheDocument()
     await expect(region('Error').getByText(/couldn't load/i)).toBeInTheDocument()
   },

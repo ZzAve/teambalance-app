@@ -17,20 +17,23 @@ interface TeamPageViewProps {
   roster: (headerActions?: ReactNode) => ReactNode
   /** The Team's Substitutes (ADR-0033), read-only, under the roster: they are not Members. */
   substitutes: ReactNode
+  /** The Bulletin Board (ADR-0048), above the roster. */
+  bulletin?: ReactNode
 }
 
 /**
- * The team page laid out (ADR-0032 §3): the title in the app bar, the roster (for admins with the
+ * The team page laid out (ADR-0032 §3): the title in the app bar, the Bulletin Board, the roster (for admins with the
  * invite action and the gear into /team/settings on its heading's line), then the Team's Substitutes. Read-only for
  * everyone, admins included — managing both lives under settings.
  */
-export function TeamPageView({ isAdmin, inviteAction, roster, substitutes }: TeamPageViewProps) {
+export function TeamPageView({ isAdmin, inviteAction, roster, substitutes, bulletin }: TeamPageViewProps) {
   const { t } = useTranslation()
   const routes = useTeamRoutes()
 
   return (
     <div className="flex flex-col gap-6">
       <PageHeader title={t('nav.team')} />
+      {bulletin}
       {roster(
         isAdmin ? (
           <>

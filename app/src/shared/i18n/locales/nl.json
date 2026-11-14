@@ -1261,5 +1261,18 @@
       "POOL_UNAVAILABLE": "De teampot is nu niet beschikbaar. Probeer het later opnieuw.",
       "FAILED": "Koppelen is mislukt. Probeer het opnieuw."
     }
+  },
+  "bulletin": {
+    "heading": "Prikbord",
+    "newPost": "Nieuw bericht",
+    "loadFailed": "Het prikbord kon niet worden geladen. Probeer het opnieuw.",
+    "emptyAdmin": "Nog geen berichten. Plaats een rooster, een mededeling of teamnieuws voor alle leden.",
+    "composeHint": "Alle leden zien dit op de Team-pagina.",
+    "write": "Schrijven",
+    "preview": "Voorbeeld",
+    "markdownLabel": "Tekst van het bericht (Markdown)",
+    "post": "Plaatsen",
+    "postFailed": "Het bericht kon niet worden opgeslagen. Probeer het opnieuw.",
+    "formerMember": "Oud-lid"
   }
 }

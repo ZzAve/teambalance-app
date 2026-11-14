@@ -3,6 +3,7 @@ import { MemberRoster } from '@features/manage-members/ui/MemberRoster'
 import { ManageSubstitutes } from '@features/manage-substitutes/ui/ManageSubstitutes'
 import { GenerateInviteDialog } from '@features/generate-invite/ui/GenerateInviteDialog'
 import { TeamPageView } from '@pages/team/ui/TeamPageView'
+import { BulletinBoard } from '@features/bulletin-board/ui/BulletinBoard'
 import { useCurrentUser } from '@shared/api/auth'
 
 // The team roster for every authenticated member — no admin gate (the root route already guarantees
@@ -20,6 +21,7 @@ function TeamPage() {
   return (
     <TeamPageView
       isAdmin={isAdmin}
+      bulletin={<BulletinBoard isAdmin={isAdmin} />}
       inviteAction={<GenerateInviteDialog />}
       roster={(headerActions) => <MemberRoster canManage={false} headerActions={headerActions} />}
       substitutes={<ManageSubstitutes canManage={false} />}

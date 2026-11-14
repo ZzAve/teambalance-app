@@ -1261,5 +1261,18 @@
       "POOL_UNAVAILABLE": "The money pool is unavailable right now. Try again later.",
       "FAILED": "Couldn't link the payment. Please try again."
     }
+  },
+  "bulletin": {
+    "heading": "Bulletin board",
+    "newPost": "New post",
+    "loadFailed": "Couldn't load the bulletin board. Please try again.",
+    "emptyAdmin": "No posts yet. Post a rotation, a notice or team news for every member.",
+    "composeHint": "Every member sees this on the Team page.",
+    "write": "Write",
+    "preview": "Preview",
+    "markdownLabel": "Post text (Markdown)",
+    "post": "Post",
+    "postFailed": "Couldn't save the post. Please try again.",
+    "formerMember": "Former member"
   }
 }

@@ -20,7 +20,6 @@ import { useEventPanelStore } from '@features/event-panel-view/model/event-panel
 import type { OptimisticAnswer } from '@entities/event/ui/EventListView'
 import { EventLineupPanel } from '@widgets/event-panel/ui/EventLineupPanel'
 import { EventsPageView } from '@pages/events/ui/EventsPageView'
-import { EventsPinnedCards, useBulletinVariant, PROTOTYPE_ON } from '@widgets/bulletin-prototype/ui/BulletinPrototype'
 import { reconcileTypeIds } from '@features/filter-event-types/model/filter-preferences'
 import { hasTurnoutTargets } from '@features/filter-event-types/model/turnout'
 import { filterEvents } from '@features/filter-event-types/model/filter-events'
@@ -59,7 +58,6 @@ function EventListPage() {
     const {data: eventTypes} = useEventTypes()
     const isAdmin = useCurrentUser()?.role === 'ADMIN'
     const isActingAs = !!useCurrentUser()?.actAs
-    const bulletinVariant = useBulletinVariant()
 
     // Per team, so a member of two teams does not carry one team's type filter into the other. The
     // restore lands after the first render, so a persisted `showPast` costs one extra events
@@ -197,9 +195,7 @@ function EventListPage() {
                 defaultExpanded,
                 onDefaultExpandedChange: setDefaultExpanded,
             }}
-            hero={<>
-                {PROTOTYPE_ON && bulletinVariant === 'B' && <div className="mt-4"><EventsPinnedCards/></div>}
-                {heroEvent && (
+            hero={heroEvent && (
                 <NextEventHero
                     // Keyed like the cards, so a re-pick (a filter, an event starting) hands the new
                     // hero a fresh disclosure rather than the one the member opened on the last.
@@ -212,7 +208,6 @@ function EventListPage() {
                     lineup={(event) => lineupPanel(event, {summary: false})}
                 />
             )}
-            </>}
             bulkBar={<BulkAttendBar events={bulkEvents}/>}
             list={{
                 events: listEvents,

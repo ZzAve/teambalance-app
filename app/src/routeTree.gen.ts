@@ -27,7 +27,6 @@ import { Route as OnboardingIndexRouteImport } from './routes/onboarding/index'
 import { Route as OnboardingJoinRouteImport } from './routes/onboarding/join'
 import { Route as TSlugRouteRouteImport } from './routes/t/$slug/route'
 import { Route as TSlugIndexRouteImport } from './routes/t/$slug/index'
-import { Route as TSlugBoardIndexRouteImport } from './routes/t/$slug/board/index'
 import { Route as TSlugCalendarIndexRouteImport } from './routes/t/$slug/calendar/index'
 import { Route as TSlugEventsEventIdRouteImport } from './routes/t/$slug/events/$eventId'
 import { Route as TSlugGetStartedIndexRouteImport } from './routes/t/$slug/get-started/index'
@@ -127,11 +126,6 @@ const TSlugIndexRoute = TSlugIndexRouteImport.update({
   path: '/',
   getParentRoute: () => TSlugRouteRoute,
 } as any)
-const TSlugBoardIndexRoute = TSlugBoardIndexRouteImport.update({
-  id: '/board/',
-  path: '/board/',
-  getParentRoute: () => TSlugRouteRoute,
-} as any)
 const TSlugCalendarIndexRoute = TSlugCalendarIndexRouteImport.update({
   id: '/calendar/',
   path: '/calendar/',
@@ -195,7 +189,6 @@ export interface FileRoutesByFullPath {
   '/t/$slug/events/$eventId': typeof TSlugEventsEventIdRoute
   '/t/$slug/team/$userId': typeof TSlugTeamUserIdRoute
   '/t/$slug/team/settings': typeof TSlugTeamSettingsRoute
-  '/t/$slug/board/': typeof TSlugBoardIndexRoute
   '/t/$slug/calendar/': typeof TSlugCalendarIndexRoute
   '/t/$slug/get-started/': typeof TSlugGetStartedIndexRoute
   '/t/$slug/money/': typeof TSlugMoneyIndexRoute
@@ -223,7 +216,6 @@ export interface FileRoutesByTo {
   '/t/$slug/events/$eventId': typeof TSlugEventsEventIdRoute
   '/t/$slug/team/$userId': typeof TSlugTeamUserIdRoute
   '/t/$slug/team/settings': typeof TSlugTeamSettingsRoute
-  '/t/$slug/board': typeof TSlugBoardIndexRoute
   '/t/$slug/calendar': typeof TSlugCalendarIndexRoute
   '/t/$slug/get-started': typeof TSlugGetStartedIndexRoute
   '/t/$slug/money': typeof TSlugMoneyIndexRoute
@@ -253,7 +245,6 @@ export interface FileRoutesById {
   '/t/$slug/events/$eventId': typeof TSlugEventsEventIdRoute
   '/t/$slug/team/$userId': typeof TSlugTeamUserIdRoute
   '/t/$slug/team/settings': typeof TSlugTeamSettingsRoute
-  '/t/$slug/board/': typeof TSlugBoardIndexRoute
   '/t/$slug/calendar/': typeof TSlugCalendarIndexRoute
   '/t/$slug/get-started/': typeof TSlugGetStartedIndexRoute
   '/t/$slug/money/': typeof TSlugMoneyIndexRoute
@@ -284,7 +275,6 @@ export interface FileRouteTypes {
     | '/t/$slug/events/$eventId'
     | '/t/$slug/team/$userId'
     | '/t/$slug/team/settings'
-    | '/t/$slug/board/'
     | '/t/$slug/calendar/'
     | '/t/$slug/get-started/'
     | '/t/$slug/money/'
@@ -312,7 +302,6 @@ export interface FileRouteTypes {
     | '/t/$slug/events/$eventId'
     | '/t/$slug/team/$userId'
     | '/t/$slug/team/settings'
-    | '/t/$slug/board'
     | '/t/$slug/calendar'
     | '/t/$slug/get-started'
     | '/t/$slug/money'
@@ -341,7 +330,6 @@ export interface FileRouteTypes {
     | '/t/$slug/events/$eventId'
     | '/t/$slug/team/$userId'
     | '/t/$slug/team/settings'
-    | '/t/$slug/board/'
     | '/t/$slug/calendar/'
     | '/t/$slug/get-started/'
     | '/t/$slug/money/'
@@ -497,13 +485,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TSlugIndexRouteImport
       parentRoute: typeof TSlugRouteRoute
     }
-    '/t/$slug/board/': {
-      id: '/t/$slug/board/'
-      path: '/board'
-      fullPath: '/t/$slug/board/'
-      preLoaderRoute: typeof TSlugBoardIndexRouteImport
-      parentRoute: typeof TSlugRouteRoute
-    }
     '/t/$slug/calendar/': {
       id: '/t/$slug/calendar/'
       path: '/calendar'
@@ -568,7 +549,6 @@ interface TSlugRouteRouteChildren {
   TSlugEventsEventIdRoute: typeof TSlugEventsEventIdRoute
   TSlugTeamUserIdRoute: typeof TSlugTeamUserIdRoute
   TSlugTeamSettingsRoute: typeof TSlugTeamSettingsRoute
-  TSlugBoardIndexRoute: typeof TSlugBoardIndexRoute
   TSlugCalendarIndexRoute: typeof TSlugCalendarIndexRoute
   TSlugGetStartedIndexRoute: typeof TSlugGetStartedIndexRoute
   TSlugMoneyIndexRoute: typeof TSlugMoneyIndexRoute
@@ -581,7 +561,6 @@ const TSlugRouteRouteChildren: TSlugRouteRouteChildren = {
   TSlugEventsEventIdRoute: TSlugEventsEventIdRoute,
   TSlugTeamUserIdRoute: TSlugTeamUserIdRoute,
   TSlugTeamSettingsRoute: TSlugTeamSettingsRoute,
-  TSlugBoardIndexRoute: TSlugBoardIndexRoute,
   TSlugCalendarIndexRoute: TSlugCalendarIndexRoute,
   TSlugGetStartedIndexRoute: TSlugGetStartedIndexRoute,
   TSlugMoneyIndexRoute: TSlugMoneyIndexRoute,

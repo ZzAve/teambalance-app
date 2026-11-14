@@ -1,14 +1,13 @@
 import { Link, useRouterState } from '@tanstack/react-router'
-import { Calendar, Users, PiggyBank, User, Megaphone, type LucideIcon } from 'lucide-react'
+import { Calendar, Users, PiggyBank, User, type LucideIcon } from 'lucide-react'
 import { useAuthMe } from '@shared/api/auth'
 import { ACCOUNT_PATH, teamRoutes, teamSlugFromPath, type TeamRoutes } from '@shared/lib/team-routes'
 import { useTranslation } from 'react-i18next'
 import { i18n } from '@shared/i18n/i18n'
-import { useBulletinVariant, useUnread, PROTOTYPE_ON } from '@widgets/bulletin-prototype/ui/BulletinPrototype'
 
 interface TabConfig {
   // Stable React key, independent of the language (label) and the slug (`to` is `/` for Events, Team and Money until /me loads).
-  id: 'events' | 'team' | 'money' | 'profile' | 'board'
+  id: 'events' | 'team' | 'money' | 'profile'
   icon: LucideIcon
   label: string
   to: string
@@ -52,13 +51,7 @@ export function BottomNav() {
   // back to where the caller is, so they get Profile alone: the way to Log out stays (ADR-0027), the dead
   // tabs go (as Money does, ADR-0042).
   const parked = slug === null || pathname.replace(/\/$/, '') === routes.getStarted
-  const bulletinVariant = useBulletinVariant()
-  const unread = useUnread()
-  const boardPath = `/t/${slug}/board`
-  const withBoard: TabConfig[] = PROTOTYPE_ON && bulletinVariant === 'C' && slug
-    ? [...allTabs.slice(0, 2), { id: 'board', icon: Megaphone, label: 'Board', to: boardPath, isActive: (p: string) => p.startsWith(boardPath) }, ...allTabs.slice(2)]
-    : allTabs
-  const TABS = parked ? allTabs.filter((tab) => tab.id === 'profile') : withBoard
+  const TABS = parked ? allTabs.filter((tab) => tab.id === 'profile') : allTabs
 
   return (
     <nav
@@ -85,7 +78,6 @@ export function BottomNav() {
                   className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-7 w-11 rounded-full transition-transform duration-300 bg-blue/10 ${active ? 'scale-100' : 'scale-0'}`}
                   style={{ transitionTimingFunction: 'cubic-bezier(0.34, 1.56, 0.64, 1)' }}
                 />
-                {id === 'board' && unread && !active && <span className="absolute -right-1.5 -top-1 z-10 h-2.5 w-2.5 rounded-full bg-red ring-2 ring-card" />}
                 <Icon size={22} strokeWidth={active ? 2.5 : 1.75} className="relative z-10" />
               </span>
               <span className={active ? 'font-medium' : ''}>{label}</span>

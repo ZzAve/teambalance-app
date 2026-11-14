@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 interface ReceiptButtonViewProps {
   /** The payee, for the button's label and the dialog. */
   name: string
-  /** The amount as shown in the list, for the dialog. */
+  /** The amount already formatted, for the dialog. */
   amount: string
   /** Set when the expense has a receipt. */
   receiptUrl?: string

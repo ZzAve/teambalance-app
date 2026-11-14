@@ -4,7 +4,8 @@ import { useTranslation } from 'react-i18next'
 import type { Member } from '@shared/api/members'
 import type { Payment } from '@shared/api/money-pool'
 import { Button } from '@shared/ui/button'
-import { formatEuro, formatPaymentWeekday } from '../lib/format'
+import { formatEuro } from '@entities/payment/lib/format-euro'
+import { formatPaymentWeekday } from '../lib/format'
 import { MemberAvatar } from './MemberAvatar'
 
 interface PaymentListViewProps {

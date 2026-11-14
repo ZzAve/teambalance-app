@@ -66,6 +66,8 @@ class MoneyPoolCompositionRoot {
         outOfPocketExpenseRepository: OutOfPocketExpenseRepository,
         paymentAliasRepository: PaymentAliasRepository,
         teamMemberRepository: TeamMemberRepository,
+        seasonRepository: SeasonRepository,
+        clock: Clock,
         @Value("\${teambalance.demo.enabled:false}") demoEnabled: Boolean,
     ) = MoneyPoolService(
         settingsRepository = settingsRepository,
@@ -76,6 +78,8 @@ class MoneyPoolCompositionRoot {
         outOfPocketExpenseRepository = outOfPocketExpenseRepository,
         paymentAliasRepository = paymentAliasRepository,
         teamMemberRepository = teamMemberRepository,
+        seasonRepository = seasonRepository,
+        clock = clock,
         demoTeam = DemoPersona.TEAM_ID.takeIf { demoEnabled },
     )
 

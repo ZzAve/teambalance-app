@@ -10,5 +10,8 @@ interface OutOfPocketExpenseRepository {
     fun findSince(since: LocalDate): List<OutOfPocketExpense>
     fun find(id: OutOfPocketExpenseId): OutOfPocketExpense?
     fun insert(expense: OutOfPocketExpense)
+
+    /** Replaces everything but the id of the stored expense with the same id. */
+    fun update(expense: OutOfPocketExpense)
     fun delete(id: OutOfPocketExpenseId)
 }

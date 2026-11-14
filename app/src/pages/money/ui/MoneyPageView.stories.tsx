@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
+import { Pencil } from 'lucide-react'
 import { expect, fn, within } from 'storybook/test'
 import { ReceiptButtonView } from '@features/attach-receipt/ui/ReceiptButtonView'
-import { DeleteExpenseView } from '@features/delete-expense/ui/DeleteExpenseView'
 import { RECEIPT_IMAGE } from '@features/attach-receipt/ui/receipt-image.fixture'
 import type { Member } from '@shared/api/members'
 import { Button } from '@shared/ui/button'
@@ -44,7 +44,11 @@ const meta = {
             Add an expense you paid
           </Button>
         }
-        deleteExpense={(expense) => <DeleteExpenseView name={expense.name} amount="" onDelete={fn()} />}
+        editExpense={(expense) => (
+          <Button variant="ghost" size="icon" aria-label={`Change expense ${expense.name}`} className="shrink-0 text-muted-foreground">
+            <Pencil size={18} aria-hidden="true" />
+          </Button>
+        )}
         payments={[
           { id: '1005', date: '2026-10-06', name: 'Lisa de Vries', amount: 2000, direction: 'In', memberId: 'u-lisa', counterpartyName: undefined, receiptVersion: undefined, outOfPocket: false },
           { id: 'oop-1', date: '2026-10-05', name: 'Match balls', amount: 1250, direction: 'Out', memberId: 'u-mia', counterpartyName: undefined, receiptVersion: undefined, outOfPocket: true },
@@ -91,9 +95,9 @@ export const Data: Story = {
     await expect(canvas.getByText(/covers 69 beers/)).toBeInTheDocument()
     await expect(canvas.getByRole('button', { name: 'Top up' })).toBeInTheDocument()
     await expect(canvas.getByRole('button', { name: 'Receipt for Sporthal De Kuil' })).toBeInTheDocument()
-    // The viewer's own out-of-pocket expense: named as theirs, with the delete control.
+    // The viewer's own out-of-pocket expense: named as theirs, with the control that changes it.
     await expect(canvas.getByText(/^Paid by Mia \(you\) · /)).toBeInTheDocument()
-    await expect(canvas.getByRole('button', { name: 'Delete expense Match balls' })).toBeInTheDocument()
+    await expect(canvas.getByRole('button', { name: 'Change expense Match balls' })).toBeInTheDocument()
     await expect(canvas.getByRole('link', { name: 'Money' })).toHaveAttribute('aria-current', 'page')
   },
 }

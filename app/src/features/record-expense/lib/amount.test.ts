@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { parseExpenseAmount } from './amount'
+import { formatExpenseAmount, parseExpenseAmount } from './amount'
 
 describe('parseExpenseAmount', () => {
   it('reads euros with a comma or a point, with at most two decimals, as cents', () => {
@@ -15,5 +15,14 @@ describe('parseExpenseAmount', () => {
     for (const text of ['0', '0,00', '10000,01', '1,234', '-5', '€5', 'abc', '', '1.2.3', '1 000']) {
       expect(parseExpenseAmount(text)).toBeNull()
     }
+  })
+})
+
+describe('formatExpenseAmount', () => {
+  it('writes cents as euros with a comma and two decimals, which parseExpenseAmount reads back', () => {
+    expect(formatExpenseAmount(1250)).toBe('12,50')
+    expect(formatExpenseAmount(1)).toBe('0,01')
+    expect(formatExpenseAmount(1_000_000)).toBe('10000,00')
+    for (const cents of [1, 99, 1250, 123_456]) expect(parseExpenseAmount(formatExpenseAmount(cents))).toBe(cents)
   })
 })

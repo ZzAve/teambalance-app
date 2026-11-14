@@ -4,6 +4,7 @@ import { i18n } from '@shared/i18n/i18n'
 import type { Member } from '@shared/api/members'
 import type { MoneyPoolState, Payment } from '@shared/api/money-pool'
 import { ConnectedMoneyPool } from './ConnectedMoneyPool'
+import { MemberExpenses } from './MemberExpenses'
 import { MoneyPoolNotice } from './MoneyPoolNotice'
 import { NotConnectedMoneyPool } from './NotConnectedMoneyPool'
 
@@ -23,10 +24,10 @@ interface MoneyPoolViewProps {
   canTopUp?: boolean
   /** The top-up button, supplied by the MoneyPool container so this View stays prop-only. */
   topUp?: ReactNode
-  /** The button that records an out-of-pocket expense, supplied by the container for the same reason. Shown on a connected pool only. */
+  /** The button that records an out-of-pocket expense, supplied by the container for the same reason. Shown in every state but Off: it needs no Bunq. */
   recordExpense?: ReactNode
-  /** The delete control on an out-of-pocket expense, supplied by the container for the same reason. */
-  deleteExpense?: (expense: Payment) => ReactNode
+  /** The control that changes or deletes an out-of-pocket expense, supplied by the container for the same reason. */
+  editExpense?: (expense: Payment) => ReactNode
   /** The receipt control on each expense, supplied by the container for the same reason. */
   receipt?: (expense: Payment) => ReactNode
   /** The claim control on an incoming payment, supplied by the container for the same reason. */
@@ -70,7 +71,7 @@ export function MoneyPoolView({
   canTopUp,
   topUp,
   recordExpense,
-  deleteExpense,
+  editExpense,
   receipt,
   claim,
   connectAvailable,
@@ -100,7 +101,7 @@ export function MoneyPoolView({
           beerCount={beerCount}
           topUp={topUpEntry}
           recordExpense={recordExpense}
-          deleteExpense={deleteExpense}
+          editExpense={editExpense}
           receipt={receipt}
           claim={claim}
           seasonSet={seasonSet}
@@ -111,17 +112,37 @@ export function MoneyPoolView({
       )
   }
 
+  // Without a working Bunq connection the pool lists the out-of-pocket expenses alone (ADR-0048).
+  const expenses = payments ?? []
   return (
     <div className="flex flex-col gap-6">
       {state === 'NotConnected' ? (
-        <NotConnectedMoneyPool isAdmin={isAdmin} connectAvailable={connectAvailable} accountPending={accountPending} />
+        <NotConnectedMoneyPool isAdmin={isAdmin} connectAvailable={connectAvailable} accountPending={accountPending} compact={expenses.length > 0} />
       ) : (
         <MoneyPoolNotice
           title={t('money.unavailable')}
           body={state === 'Rejected' ? rejectedBody(isAdmin, connectAvailable) : t('money.unreachable')}
         />
       )}
-      {topUpEntry}
+      {(topUpEntry || recordExpense) && (
+        <div className="flex flex-col gap-3">
+          {topUpEntry}
+          {recordExpense}
+          {recordExpense && expenses.length === 0 && <p className="text-center text-small text-muted-foreground">{t('money.noExpenses')}</p>}
+        </div>
+      )}
+      {expenses.length > 0 && (
+        <MemberExpenses
+          payments={expenses}
+          bankPaymentsMissing={state !== 'NotConnected'}
+          editExpense={editExpense}
+          receipt={receipt}
+          seasonSet={seasonSet}
+          today={today}
+          members={members}
+          youId={youId}
+        />
+      )}
     </div>
   )
 }

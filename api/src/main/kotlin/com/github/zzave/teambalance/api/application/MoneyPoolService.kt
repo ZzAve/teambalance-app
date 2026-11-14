@@ -10,13 +10,17 @@ import com.github.zzave.teambalance.api.domain.model.PaymentName
 import com.github.zzave.teambalance.api.domain.model.TeamId
 import com.github.zzave.teambalance.api.domain.model.UserId
 import com.github.zzave.teambalance.api.domain.model.BeerCount
+import com.github.zzave.teambalance.api.domain.model.moneyPoolHistoryStart
 import com.github.zzave.teambalance.api.domain.port.BunqConnectionRepository
 import com.github.zzave.teambalance.api.domain.port.MoneyPoolCacheGateway
 import com.github.zzave.teambalance.api.domain.port.MoneyPoolSettingsRepository
 import com.github.zzave.teambalance.api.domain.port.OutOfPocketExpenseRepository
 import com.github.zzave.teambalance.api.domain.port.ReceiptRepository
 import com.github.zzave.teambalance.api.domain.port.PaymentAliasRepository
+import com.github.zzave.teambalance.api.domain.port.SeasonRepository
 import com.github.zzave.teambalance.api.domain.port.TeamMemberRepository
+import java.time.Clock
+import java.time.LocalDate
 
 class MoneyPoolService(
     private val settingsRepository: MoneyPoolSettingsRepository,
@@ -27,6 +31,8 @@ class MoneyPoolService(
     private val outOfPocketExpenseRepository: OutOfPocketExpenseRepository,
     private val paymentAliasRepository: PaymentAliasRepository,
     private val teamMemberRepository: TeamMemberRepository,
+    private val seasonRepository: SeasonRepository,
+    private val clock: Clock,
     /** The demo team on the demo container (ADR-0043), else null: its top-up link is fixed,
      * so a visitor cannot point the Top up button elsewhere. */
     private val demoTeam: TeamId? = null,
@@ -34,6 +40,9 @@ class MoneyPoolService(
     /**
      * Readable by any member. What Bunq answered ([MoneyPoolReader]) is remembered per team by [cache];
      * the beer figures come from the current settings. Payments are attributed for [viewerId] (see [withMembers]).
+     *
+     * The out-of-pocket expenses and the receipt versions are read after the cache, which holds only what Bunq
+     * answered. They are listed in every state but Off: without a working connection the expenses are all there is.
      */
     fun getMoneyPool(teamId: TeamId, viewerId: UserId): MoneyPoolOverview {
         val settings = settingsRepository.get()
@@ -43,8 +52,23 @@ class MoneyPoolService(
         } else {
             CachedMoneyPool(MoneyPool.Off, refreshing = false)
         }
-        val pool = cached.pool.withBeerFigures(settings).withMembers(teamId, viewerId).withOutOfPocketExpenses().withReceiptVersions()
-        return MoneyPoolOverview(pool, canTopUp = settings.topUpLink != null, refreshing = cached.refreshing)
+        val pool = cached.pool.withBeerFigures(settings).withMembers(teamId, viewerId)
+        val canTopUp = settings.topUpLink != null
+        if (pool == MoneyPool.Off) return MoneyPoolOverview(pool, canTopUp, cached.refreshing)
+
+        val connected = pool as? MoneyPool.Connected
+        val historyStart = connected?.historyStart ?: seasonRepository.get().moneyPoolHistoryStart(LocalDate.now(clock))
+        val expenses = outOfPocketExpenseRepository.findSince(historyStart).map { it.toPayment() }
+        // On one day the out-of-pocket expenses come before the Bunq payments.
+        val payments = (expenses + connected?.payments.orEmpty()).sortedByDescending { it.date }
+        return MoneyPoolOverview(
+            pool = pool,
+            canTopUp = canTopUp,
+            refreshing = cached.refreshing,
+            payments = payments,
+            receiptVersions = receiptRepository.findVersions(payments.map { it.id }),
+            historyStart = historyStart,
+        )
     }
 
     /** Whether the current team switched the money pool on; read by every member's navigation. */
@@ -61,19 +85,6 @@ class MoneyPoolService(
         if (teamId == demoTeam && settings.bunqMeLink != settingsRepository.get().bunqMeLink) throw DemoTopUpLinkLockedException()
         return settingsRepository.save(settings)
     }
-
-    // Added after the attribution, which is for Bunq payments only. On one day they come before the Bunq payments.
-    private fun MoneyPool.withOutOfPocketExpenses(): MoneyPool =
-        if (this is MoneyPool.Connected) {
-            val expenses = outOfPocketExpenseRepository.findSince(historyStart).map { it.toPayment() }
-            copy(payments = (expenses + payments).sortedByDescending { it.date })
-        } else {
-            this
-        }
-
-    // Read after the cache: the cache holds only what Bunq answered, receipts change in between.
-    private fun MoneyPool.withReceiptVersions(): MoneyPool =
-        if (this is MoneyPool.Connected) copy(receiptVersions = receiptRepository.findVersions(payments.map { it.id })) else this
 
     private fun MoneyPool.withBeerFigures(settings: MoneyPoolSettings): MoneyPool =
         if (this is MoneyPool.Connected) {

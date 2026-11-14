@@ -38,6 +38,16 @@ class JooqOutOfPocketExpenseRepositoryAdapter(
             .execute()
     }
 
+    override fun update(expense: OutOfPocketExpense) {
+        dsl.update(OUT_OF_POCKET_EXPENSES)
+            .set(OUT_OF_POCKET_EXPENSES.PAID_BY, expense.paidBy.value)
+            .set(OUT_OF_POCKET_EXPENSES.AMOUNT_CENTS, expense.amount.cents)
+            .set(OUT_OF_POCKET_EXPENSES.PAID_ON, expense.date)
+            .set(OUT_OF_POCKET_EXPENSES.DESCRIPTION, expense.description.value)
+            .where(OUT_OF_POCKET_EXPENSES.ID.eq(expense.id.value))
+            .execute()
+    }
+
     override fun delete(id: OutOfPocketExpenseId) {
         dsl.deleteFrom(OUT_OF_POCKET_EXPENSES).where(OUT_OF_POCKET_EXPENSES.ID.eq(id.value)).execute()
     }

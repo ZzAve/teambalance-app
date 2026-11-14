@@ -27,10 +27,12 @@ interface NotConnectedMoneyPoolProps {
    * one, as long as connecting is switched on, since the settings show nothing about Bunq otherwise.
    */
   accountPending?: boolean
+  /** The team already uses the pool for out-of-pocket expenses: only the title and the copy show, so the expenses are not pushed down. */
+  compact?: boolean
 }
 
 /** Members see what the pool offers; admins also hear how connecting Bunq goes, or that it is coming (ADR-0042). */
-export function NotConnectedMoneyPool({ isAdmin, connectAvailable, accountPending }: NotConnectedMoneyPoolProps) {
+export function NotConnectedMoneyPool({ isAdmin, connectAvailable, accountPending, compact = false }: NotConnectedMoneyPoolProps) {
   const { t } = useTranslation()
   return (
     <section aria-label={t('money.preview')} className="mx-auto flex max-w-sm flex-col items-center text-center">
@@ -41,24 +43,28 @@ export function NotConnectedMoneyPool({ isAdmin, connectAvailable, accountPendin
           : t('money.memberCopy')}
       </p>
 
-      <PiggyBankArt className="my-7" />
+      {!compact && (
+        <>
+          <PiggyBankArt className="my-7" />
 
-      <ul className="flex w-full flex-col gap-3 text-left">
-        {PILLARS.map(({ icon: Icon, key }) => (
-          <li key={key} className="flex items-center gap-3">
-            <span
-              className="grid size-10 shrink-0 place-items-center rounded-md bg-gold/12 ring-1 ring-inset ring-gold/25"
-              style={{ color: 'var(--color-gold-dark)' }}
-            >
-              <Icon size={20} />
-            </span>
-            <span>
-              <span className="block text-small font-semibold leading-tight text-foreground">{t(`money.pillar.${key}.title`)}</span>
-              <span className="text-caption text-muted-foreground">{t(`money.pillar.${key}.blurb`)}</span>
-            </span>
-          </li>
-        ))}
-      </ul>
+          <ul className="flex w-full flex-col gap-3 text-left">
+            {PILLARS.map(({ icon: Icon, key }) => (
+              <li key={key} className="flex items-center gap-3">
+                <span
+                  className="grid size-10 shrink-0 place-items-center rounded-md bg-gold/12 ring-1 ring-inset ring-gold/25"
+                  style={{ color: 'var(--color-gold-dark)' }}
+                >
+                  <Icon size={20} />
+                </span>
+                <span>
+                  <span className="block text-small font-semibold leading-tight text-foreground">{t(`money.pillar.${key}.title`)}</span>
+                  <span className="text-caption text-muted-foreground">{t(`money.pillar.${key}.blurb`)}</span>
+                </span>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
     </section>
   )
 }

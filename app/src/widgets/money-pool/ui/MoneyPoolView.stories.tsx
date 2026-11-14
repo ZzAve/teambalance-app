@@ -14,7 +14,8 @@ import { MoneyPoolView } from './MoneyPoolView'
 //
 // Three-story shape (ADR-0032 §1):
 //   1. Data — the connected pool: balance, In and Spent totals, graph and payment list, with one out-of-pocket expense.
-//   2. Shells — every other state stacked: loading, error, off, not connected (member and admin),
+//   2. Shells — every other state stacked: loading, error, off, not connected (member and admin), not connected
+//      and unavailable with out-of-pocket expenses (which need no Bunq, ADR-0048),
 //      unavailable, rejected (member, admin, admin with connecting off), top-up with and without a link (the admin's hint only on a connected pool), and connected edge cases (no payments, same-day duplicates, missing balance, no beer price, an empty pool).
 //   3. Interactions — expand and collapse the payment list past its first 15.
 const PAYMENTS: Payment[] = [
@@ -30,6 +31,9 @@ const MEMBERS: Member[] = [
 ]
 
 // 18 payments, newest first, one a day from 20 Oct back to 3 Oct, for the 15-row cut-off.
+// What the pool lists without a working Bunq connection: the out-of-pocket expenses alone.
+const EXPENSES = PAYMENTS.filter((p) => p.outOfPocket)
+
 const MANY_PAYMENTS: Payment[] = Array.from({ length: 18 }, (_, i) => ({
   id: String(2000 + i),
   memberId: undefined,
@@ -60,7 +64,7 @@ const meta = {
     canTopUp: true,
     topUp: <Button size="lg">Top up</Button>,
     recordExpense: <Button size="lg" variant="outline">Add an expense you paid</Button>,
-    deleteExpense: (expense: Payment) => <Button size="icon">{`Delete ${expense.name}`}</Button>,
+    editExpense: (expense: Payment) => <Button size="icon">{`Edit ${expense.name}`}</Button>,
     receipt: (expense: Payment) => <Button size="icon">{`Receipt ${expense.name}`}</Button>,
     claim: (payment: Payment) => <Button size="icon">{`Claim ${payment.name}`}</Button>,
   },
@@ -119,13 +123,13 @@ export const Data: Story = {
     await expect(within(lisa).getByText(/20\.00/)).toHaveClass('text-green-ink')
     await expect(within(sporthal).getByText('−')).toHaveAttribute('aria-hidden', 'true')
     await expect(within(sporthal).getByText(/45\.00/)).toHaveClass('text-orange-ink')
-    // An out-of-pocket expense names who paid, has no sign or colour, and takes a receipt and the delete control.
+    // An out-of-pocket expense names who paid, has no sign or colour, and takes a receipt and the edit control.
     await expect(within(balls).getByText('Paid by Lisa V. · Mon 5 Oct')).toBeInTheDocument()
     await expect(within(balls).getByText('Paid by a member, not from the pool')).toHaveClass('sr-only')
     await expect(within(balls).queryByText('−')).not.toBeInTheDocument()
     await expect(within(balls).getByText(/12\.50/)).not.toHaveClass('text-orange-ink')
     await expect(within(balls).getByRole('button', { name: 'Receipt Match balls' })).toBeInTheDocument()
-    await expect(payments.getAllByRole('button', { name: /^Delete / })).toEqual([within(balls).getByRole('button', { name: 'Delete Match balls' })])
+    await expect(payments.getAllByRole('button', { name: /^Edit / })).toEqual([within(balls).getByRole('button', { name: 'Edit Match balls' })])
     // The receipt control sits on expenses only.
     await expect(payments.getByRole('button', { name: 'Receipt Sporthal De Kuil' })).toBeInTheDocument()
     await expect(payments.queryByRole('button', { name: 'Receipt Lisa de Vries' })).not.toBeInTheDocument()
@@ -138,31 +142,36 @@ export const Data: Story = {
 export const Shells: Story = {
   // Carries the dark-mode baseline for every pool state; under reduced motion, so the Toppers and the beer count are at their final state.
   parameters: { chromatic: { modes: darkMode, prefersReducedMotion: 'reduce' } },
-  render: (args) => (
+  render: (args) => {
+    // Without a working connection the API sends the out-of-pocket expenses alone.
+    const noBank = { ...args, payments: [] }
+    return (
     <Stack
       items={{
-        Loading: <MoneyPoolView {...args} state={undefined} isLoading />,
-        Error: <MoneyPoolView {...args} state={undefined} isError />,
-        Off: <MoneyPoolView {...args} state="Off" />,
-        'Not connected (member)': <MoneyPoolView {...args} state="NotConnected" />,
-        'Not connected (admin)': <MoneyPoolView {...args} state="NotConnected" isAdmin />,
-        'Not connected (admin, connecting off)': <MoneyPoolView {...args} state="NotConnected" isAdmin connectAvailable={false} />,
-        'Not connected (admin, can connect)': <MoneyPoolView {...args} state="NotConnected" isAdmin connectAvailable />,
+        Loading: <MoneyPoolView {...noBank} state={undefined} isLoading />,
+        Error: <MoneyPoolView {...noBank} state={undefined} isError />,
+        Off: <MoneyPoolView {...noBank} state="Off" />,
+        'Not connected (member)': <MoneyPoolView {...noBank} state="NotConnected" />,
+        'Not connected (admin)': <MoneyPoolView {...noBank} state="NotConnected" isAdmin />,
+        'Not connected (admin, connecting off)': <MoneyPoolView {...noBank} state="NotConnected" isAdmin connectAvailable={false} />,
+        'Not connected (admin, can connect)': <MoneyPoolView {...noBank} state="NotConnected" isAdmin connectAvailable />,
         'Not connected (admin, account pending)': (
-          <MoneyPoolView {...args} state="NotConnected" isAdmin connectAvailable accountPending />
+          <MoneyPoolView {...noBank} state="NotConnected" isAdmin connectAvailable accountPending />
         ),
         'Not connected (admin, account pending, connecting off)': (
-          <MoneyPoolView {...args} state="NotConnected" isAdmin connectAvailable={false} accountPending />
+          <MoneyPoolView {...noBank} state="NotConnected" isAdmin connectAvailable={false} accountPending />
         ),
-        Unavailable: <MoneyPoolView {...args} state="Unavailable" />,
-        'Rejected (member)': <MoneyPoolView {...args} state="Rejected" />,
-        'Rejected (admin)': <MoneyPoolView {...args} state="Rejected" isAdmin connectAvailable />,
-        'Rejected (admin, connecting off)': <MoneyPoolView {...args} state="Rejected" isAdmin connectAvailable={false} />,
+        Unavailable: <MoneyPoolView {...noBank} state="Unavailable" />,
+        'Rejected (member)': <MoneyPoolView {...noBank} state="Rejected" />,
+        'Rejected (admin)': <MoneyPoolView {...noBank} state="Rejected" isAdmin connectAvailable />,
+        'Rejected (admin, connecting off)': <MoneyPoolView {...noBank} state="Rejected" isAdmin connectAvailable={false} />,
+        'Not connected, with expenses': <MoneyPoolView {...noBank} state="NotConnected" payments={EXPENSES} />,
+        'Unavailable, with expenses': <MoneyPoolView {...noBank} state="Unavailable" payments={EXPENSES} />,
         'No link (member)': <MoneyPoolView {...args} canTopUp={false} />,
         'No link (admin)': <MoneyPoolView {...args} canTopUp={false} isAdmin />,
-        'No link (admin, not connected)': <MoneyPoolView {...args} state="NotConnected" canTopUp={false} isAdmin connectAvailable />,
-        'No link (admin, unavailable)': <MoneyPoolView {...args} state="Unavailable" canTopUp={false} isAdmin />,
-        'No link (admin, rejected)': <MoneyPoolView {...args} state="Rejected" canTopUp={false} isAdmin connectAvailable />,
+        'No link (admin, not connected)': <MoneyPoolView {...noBank} state="NotConnected" canTopUp={false} isAdmin connectAvailable />,
+        'No link (admin, unavailable)': <MoneyPoolView {...noBank} state="Unavailable" canTopUp={false} isAdmin />,
+        'No link (admin, rejected)': <MoneyPoolView {...noBank} state="Rejected" canTopUp={false} isAdmin connectAvailable />,
         'No season': <MoneyPoolView {...args} seasonSet={false} />,
         'No payments': <MoneyPoolView {...args} payments={[]} />,
         'Same-day duplicates': <MoneyPoolView {...args} payments={[PAYMENTS[0], { ...PAYMENTS[0], id: '1008' }]} />,
@@ -173,7 +182,8 @@ export const Shells: Story = {
         'Empty pool': <MoneyPoolView {...args} balance={0} beerCount={0} />,
       }}
     />
-  ),
+    )
+  },
   play: async ({ canvas }) => {
     const region = (name: string) => within(canvas.getByRole('region', { name }))
     await expect(region('Loading').getByRole('status')).toHaveTextContent('Loading…')
@@ -219,6 +229,30 @@ export const Shells: Story = {
       await expect(region(name).queryByText(/bunq\.me link/)).not.toBeInTheDocument()
       await expect(region(name).queryByRole('button', { name: 'Top up' })).not.toBeInTheDocument()
     }
+    // Out-of-pocket expenses need no Bunq: the button shows in every state but Off, with a line that says what it is for.
+    for (const name of ['Not connected (member)', 'Unavailable', 'Rejected (member)', 'No link (admin, not connected)']) {
+      await expect(region(name).getByRole('button', { name: 'Add an expense you paid' })).toBeInTheDocument()
+      await expect(region(name).getByText(/^Paid something for the team with your own money\?/)).toBeInTheDocument()
+      await expect(region(name).queryByRole('region', { name: 'Payments' })).not.toBeInTheDocument()
+    }
+    await expect(region('Off').queryByRole('button', { name: 'Add an expense you paid' })).not.toBeInTheDocument()
+    // With expenses the preview shrinks to its title and copy, and the expenses, their total and the Toppers show.
+    const withExpenses = region('Not connected, with expenses')
+    await expect(withExpenses.getByText(/once an admin connects/i)).toBeInTheDocument()
+    await expect(region('Not connected (member)').getByText('Chip in fast')).toBeInTheDocument()
+    await expect(withExpenses.queryByText('Chip in fast')).not.toBeInTheDocument()
+    await expect(withExpenses.queryByText(/^Paid something for the team/)).not.toBeInTheDocument()
+    await expect(within(withExpenses.getByRole('region', { name: 'Paid by members' })).getByText(/12\.50/)).toBeInTheDocument()
+    await expect(within(withExpenses.getByRole('region', { name: 'Payments' })).getByText('Paid by Lisa V. · Mon 5 Oct')).toBeInTheDocument()
+    await expect(within(withExpenses.getByRole('region', { name: 'Toppers' })).getByText('Number 1: Lisa V., €12.50')).toBeInTheDocument()
+    await expect(withExpenses.queryByRole('region', { name: 'Balance' })).not.toBeInTheDocument()
+    // Nothing is missing when the team has no Bunq; with a broken connection the list and the ranking say they are incomplete.
+    await expect(withExpenses.queryByText('Bunq payments are missing')).not.toBeInTheDocument()
+    const broken = region('Unavailable, with expenses')
+    await expect(broken.getByText('The pool is unavailable right now')).toBeInTheDocument()
+    const missing = within(broken.getByRole('region', { name: 'Bunq payments are missing' }))
+    await expect(missing.getByText(/This list and the ranking show only what members paid themselves\./)).toBeInTheDocument()
+    await expect(broken.getByRole('region', { name: 'Bunq payments are missing' }).compareDocumentPosition(broken.getByRole('region', { name: 'Payments' })) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     await expect(region('No payments').getByText('No payments in this period.')).toBeInTheDocument()
     await expect(within(region('No season').getByRole('region', { name: 'Balance' })).getByText('Last 90 days')).toBeInTheDocument()
     await expect(region('No payments').queryByRole('img')).not.toBeInTheDocument()

@@ -620,7 +620,13 @@
     "graphSummary": "The pot went from {{from}} on {{fromDate}} to {{to}} on {{toDate}}",
     "paidBy": "Paid by {{name}}",
     "paidOutOfPocket": "Paid by a member",
-    "outOfPocket": "Paid by a member, not from the pool"
+    "outOfPocket": "Paid by a member, not from the pool",
+    "paidByMembers": "Paid by members",
+    "noExpenses": "Paid something for the team with your own money? Add it here. It counts as your contribution.",
+    "bankMissing": {
+      "title": "Bunq payments are missing",
+      "body": "The connection to Bunq does not work right now. This list and the ranking show only what members paid themselves. Top-ups and expenses through the bank are not counted until the connection works again."
+    }
   },
   "moneySettings": {
     "title": "Money pool",
@@ -1289,17 +1295,28 @@
       "INVALID": "Check the amount, the description and the date. The date must be in the period the pool shows.",
       "FORBIDDEN": "You are not allowed to add this expense.",
       "NOT_FOUND": "This member is no longer in the team.",
-      "POOL_UNAVAILABLE": "The money pool is unavailable right now. Try again later.",
       "RECEIPT_FAILED": "The expense is saved, but the receipt could not be uploaded. Add it from the list of payments.",
-      "FAILED": "Couldn't save the expense. Please try again."
+      "FAILED": "Couldn't save the expense. Please try again.",
+      "POOL_OFF": "The money pool is switched off for this team."
     },
     "delete": {
-      "button": "Delete expense {{name}}",
+      "button": "Delete this expense",
       "title": "Delete this expense?",
-      "description": "{{name}}, {{amount}}. The expense and its receipt are removed, and it no longer counts as a contribution.",
+      "description": "{{summary}}. The expense and its receipt are removed, and it no longer counts as a contribution.",
       "confirm": "Delete",
       "done": "Expense deleted",
-      "failed": "Couldn't delete the expense. Please try again."
+      "deleting": "Deleting…"
+    },
+    "editTitle": "Change this expense",
+    "editButton": "Change expense {{name}}",
+    "saveChanges": "Save changes",
+    "changed": "Expense changed",
+    "formerMember": "Former member",
+    "receiptHintWithTotal": "Start with a photo of the receipt. The amount is read from it, and the team can see what this was spent on.",
+    "total": {
+      "reading": "Reading the amount from the receipt…",
+      "read": "Read from the receipt. Check that it is the total.",
+      "notFound": "Could not read the amount from the receipt. Enter it yourself."
     }
   }
 }

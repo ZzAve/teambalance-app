@@ -5,7 +5,7 @@ import { useCurrentUser } from '@shared/api/auth'
 import { useMembers } from '@shared/api/members'
 import { ExpenseError, useRecordExpense } from '@shared/api/out-of-pocket-expenses'
 import { Button } from '@shared/ui/button'
-import { RecordExpenseSheetView } from './RecordExpenseSheetView'
+import { ExpenseSheetView } from './ExpenseSheetView'
 
 /**
  * Container for recording an out-of-pocket expense: the button and the sheet it opens. A member records
@@ -21,7 +21,7 @@ export function RecordExpense({ today }: { today: string }) {
   const failure = record.error && (record.error instanceof ExpenseError ? record.error.code : 'FAILED')
 
   return (
-    <RecordExpenseSheetView
+    <ExpenseSheetView
       trigger={
         <Button size="lg" variant="outline">
           {t('expense.button')}

@@ -102,7 +102,7 @@ class MoneyPoolControllerIT : TeamBalanceIT() {
                 .andExpect(MockMvcResultMatchers.status().isOk)
                 .andExpect(MockMvcResultMatchers.jsonPath("$.state").value("NotConnected"))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.balance").doesNotExist())
-                .andExpect(MockMvcResultMatchers.jsonPath("$.payments").doesNotExist())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.payments").isEmpty)
         }
 
         test("GET /api/team/money-pool is Off when the switch is off, even with a connection") {
@@ -365,7 +365,7 @@ class MoneyPoolControllerIT : TeamBalanceIT() {
                 .andExpect(MockMvcResultMatchers.status().isOk)
                 .andExpect(MockMvcResultMatchers.jsonPath("$.state").value("Unavailable"))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.balance").doesNotExist())
-                .andExpect(MockMvcResultMatchers.jsonPath("$.payments").doesNotExist())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.payments").isEmpty)
         }
 
         test("GET /api/team/money-pool is Rejected, without balance or payments, when Bunq rejects the grant") {
@@ -377,7 +377,7 @@ class MoneyPoolControllerIT : TeamBalanceIT() {
                 .andExpect(MockMvcResultMatchers.status().isOk)
                 .andExpect(MockMvcResultMatchers.jsonPath("$.state").value("Rejected"))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.balance").doesNotExist())
-                .andExpect(MockMvcResultMatchers.jsonPath("$.payments").doesNotExist())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.payments").isEmpty)
         }
 
         test("GET /api/team/money-pool is Rejected when the stored grant does not decrypt") {
@@ -737,7 +737,7 @@ class MoneyPoolControllerIT : TeamBalanceIT() {
             perform(delete(), ADMIN_USER_ID).andExpect(MockMvcResultMatchers.status().isNotFound)
         }
 
-        test("an out-of-pocket expense with a bad amount, description or date is 400; 409 and 503 while the pool cannot be read") {
+        test("an out-of-pocket expense with a bad amount, description or date is 400, and 409 while the pool is switched off") {
             seedTeamAndMember()
             connectBunq()
 
@@ -749,14 +749,70 @@ class MoneyPoolControllerIT : TeamBalanceIT() {
             recordExpense(MEMBER_USER_ID, expenseJson(MEMBER_USER_ID, date = LocalDate.now(clock).minusDays(91)))
                 .andExpect(MockMvcResultMatchers.status().isBadRequest)
 
-            bunqGateway.failing = true
-            forgetCachedPool()
-            recordExpense(MEMBER_USER_ID, expenseJson(MEMBER_USER_ID)).andExpect(MockMvcResultMatchers.status().isServiceUnavailable)
-            resetMoneyPool()
+            jdbcTemplate.update("UPDATE public.money_pool_settings SET enabled = false WHERE id = 1")
             recordExpense(MEMBER_USER_ID, expenseJson(MEMBER_USER_ID))
                 .andExpect(MockMvcResultMatchers.status().isConflict)
                 .andExpect(MockMvcResultMatchers.jsonPath("$.code").value("MONEY_POOL_NOT_READABLE"))
             jdbcTemplate.queryForObject("SELECT count(*) FROM public.out_of_pocket_expenses", Int::class.java) shouldBe 0
+        }
+
+        test("without a Bunq connection, and while Bunq fails, a member records an expense with a receipt and the pool lists it alone") {
+            seedTeamAndMember()
+
+            val id = recordedExpenseId(recordExpense(MEMBER_USER_ID, expenseJson(MEMBER_USER_ID)))
+            val bytes = webpBytes(64)
+            sendReceipt(MockMvcRequestBuilders.put(receiptUrl(id)), MEMBER_USER_ID, bytes)
+                .andExpect(MockMvcResultMatchers.status().isNoContent)
+
+            getMoneyPool()
+                .andExpect(MockMvcResultMatchers.jsonPath("$.state").value("NotConnected"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.balance").doesNotExist())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.payments.length()").value(1))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.payments[0].id").value(id))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.payments[0].memberId").value(MEMBER_USER_ID))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.payments[0].receiptVersion").value(Receipt(bytes).version))
+
+            connectBunq()
+            bunqGateway.failing = true
+            val second = recordedExpenseId(recordExpense(ADMIN_USER_ID, expenseJson(ADMIN_USER_ID, description = "Net")))
+            getMoneyPool()
+                .andExpect(MockMvcResultMatchers.jsonPath("$.state").value("Unavailable"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.payments.length()").value(2))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.payments[0].id").value(second))
+            // A Bunq expense cannot take a receipt while its payment cannot be read.
+            sendReceipt(MockMvcRequestBuilders.put(receiptUrl(SPORTHAL_PAYMENT_ID)), MEMBER_USER_ID, bytes)
+                .andExpect(MockMvcResultMatchers.status().isNotFound)
+        }
+
+        test("the member who paid changes an out-of-pocket expense and keeps its receipt; only an Admin changes who paid") {
+            seedTeamAndMember()
+            connectBunq()
+            val id = recordedExpenseId(recordExpense(MEMBER_USER_ID, expenseJson(MEMBER_USER_ID)))
+            val bytes = webpBytes(64)
+            sendReceipt(MockMvcRequestBuilders.put(receiptUrl(id)), MEMBER_USER_ID, bytes)
+                .andExpect(MockMvcResultMatchers.status().isNoContent)
+            val yesterday = LocalDate.now(clock).minusDays(1)
+
+            updateExpense(MEMBER_USER_ID, id, expenseJson(MEMBER_USER_ID, amount = 1_999, date = yesterday, description = "Match balls"))
+                .andExpect(MockMvcResultMatchers.status().isOk)
+                .andExpect(MockMvcResultMatchers.jsonPath("$.id").value(id))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.amount").value(1_999))
+            getMoneyPool()
+                .andExpect(MockMvcResultMatchers.jsonPath("$.payments[0].id").value(id))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.payments[0].name").value("Match balls"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.payments[0].amount").value(1_999))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.payments[0].date").value(yesterday.toString()))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.payments[0].receiptVersion").value(Receipt(bytes).version))
+
+            updateExpense(MEMBER_USER_ID, id, expenseJson(ADMIN_USER_ID)).andExpect(MockMvcResultMatchers.status().isForbidden)
+            updateExpense(MEMBER_USER_ID, id, expenseJson(MEMBER_USER_ID, amount = 0))
+                .andExpect(MockMvcResultMatchers.status().isBadRequest)
+            updateExpense(ADMIN_USER_ID, SPORTHAL_PAYMENT_ID, expenseJson(ADMIN_USER_ID))
+                .andExpect(MockMvcResultMatchers.status().isNotFound)
+            updateExpense(ADMIN_USER_ID, id, expenseJson(ADMIN_USER_ID)).andExpect(MockMvcResultMatchers.status().isOk)
+            getMoneyPool().andExpect(MockMvcResultMatchers.jsonPath("$.payments[0].memberId").value(ADMIN_USER_ID))
+            // It is the Admin's now, so the member who recorded it can no longer change it.
+            updateExpense(MEMBER_USER_ID, id, expenseJson(MEMBER_USER_ID)).andExpect(MockMvcResultMatchers.status().isForbidden)
         }
 
         test("a receipt is refused for an incoming payment, an unknown payment and a file that is not WebP or JPEG") {
@@ -783,6 +839,18 @@ class MoneyPoolControllerIT : TeamBalanceIT() {
                 .content(json),
             callerId,
         )
+
+    private fun updateExpense(callerId: String, paymentId: String, json: String): ResultActions =
+        perform(
+            MockMvcRequestBuilders.put("/api/team/money-pool/out-of-pocket-expenses/$paymentId")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(json),
+            callerId,
+        )
+
+    private fun recordedExpenseId(recorded: ResultActions): String =
+        recorded.andExpect(MockMvcResultMatchers.status().isCreated)
+            .andReturn().response.contentAsString.substringAfter("\"id\":\"").substringBefore("\"")
 
     private fun expenseJson(userId: String, amount: Long = 1_250, date: LocalDate = LocalDate.now(clock), description: String = "Balls") =
         """{"userId":"$userId","amount":$amount,"date":"$date","description":"$description"}"""

@@ -4,7 +4,7 @@ import { useMembers } from '@shared/api/members'
 import { useSeason } from '@shared/api/season'
 import { useMoneyPool } from '@shared/api/money-pool'
 import { ClaimPayment } from '@features/claim-payment/ui/ClaimPayment'
-import { DeleteExpense } from '@features/delete-expense/ui/DeleteExpense'
+import { EditExpense } from '@features/record-expense/ui/EditExpense'
 import { RecordExpense } from '@features/record-expense/ui/RecordExpense'
 import { claimVariant } from '@features/claim-payment/lib/claim-variant'
 import { ReceiptButton } from '@features/attach-receipt/ui/ReceiptButton'
@@ -46,9 +46,9 @@ export function MoneyPool() {
       // The payment description carries the caller's id, so the server refuses top-ups under act-as.
       topUp={user?.actAs ? null : <TopUp />}
       recordExpense={<RecordExpense today={today} />}
-      // The member who paid and an Admin may delete; the server enforces the same rule.
-      deleteExpense={(expense) =>
-        (isAdmin || (!user?.actAs && expense.memberId === user?.id)) && <DeleteExpense paymentId={expense.id} name={expense.name} amount={formatEuro(expense.amount)} />
+      // The member who paid and an Admin may change or delete it; the server enforces the same rule.
+      editExpense={(expense) =>
+        (isAdmin || (!user?.actAs && expense.memberId === user?.id)) && <EditExpense expense={expense} today={today} amount={formatEuro(expense.amount)} />
       }
       receipt={(expense) => (
         <ReceiptButton

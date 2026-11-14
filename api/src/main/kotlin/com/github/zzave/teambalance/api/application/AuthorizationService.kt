@@ -1,8 +1,10 @@
 package com.github.zzave.teambalance.api.application
 
 import com.github.zzave.teambalance.api.domain.exception.ActAsExpiredException
+import com.github.zzave.teambalance.api.domain.exception.MemberNotFoundException
 import com.github.zzave.teambalance.api.domain.exception.NoTeamMembershipException
 import com.github.zzave.teambalance.api.domain.exception.NotTeamAdminException
+import com.github.zzave.teambalance.api.domain.exception.NotUnderActAsException
 import com.github.zzave.teambalance.api.domain.model.Role
 import com.github.zzave.teambalance.api.domain.model.TeamId
 import com.github.zzave.teambalance.api.domain.model.UserId
@@ -55,6 +57,26 @@ class AuthorizationService(
     fun requireMember(userId: UserId, teamId: TeamId) {
         if (isMember(userId, teamId)) return
         throw lapsedOr(userId) { NoTeamMembershipException(userId) }
+    }
+
+    /**
+     * Asserts [userId] has a real `team_members` row in [teamId]. Unlike [requireMember], the
+     * **Virtual Member** of an **Act-as** grant never satisfies it: it is synthesized per request and
+     * written nowhere, so it has no face, no payment aliases and nothing else that hangs off a row.
+     * Throws [MemberNotFoundException] (a 404), also when [userId] is not the caller.
+     */
+    fun requireRealMember(userId: UserId, teamId: TeamId) {
+        teamMemberRepository.findRole(teamId, userId) ?: throw MemberNotFoundException(userId)
+    }
+
+    /**
+     * Refuses the whole operation when the request runs under **Act-as** ([NotUnderActAsException]),
+     * for operations that act as the caller's own person (ADR-0039 §"Act-as"). A **Platform Admin** is
+     * no member of the team they entered, so such an operation would attach their Virtual Member's
+     * identity to something that outlives the request.
+     */
+    fun requireNotUnderActAs() {
+        if (actAsGateway.current() != null) throw NotUnderActAsException()
     }
 
     /**

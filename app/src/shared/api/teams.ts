@@ -1,5 +1,6 @@
 import { useMutation } from '@tanstack/react-query'
 import { api } from './wirespec-client'
+import { resetCacheForNewTenant } from './session-cache'
 import type { TeamRef } from './generated/model/TeamRef'
 import { i18n } from '@shared/i18n/i18n'
 
@@ -60,10 +61,11 @@ export interface CreateTeamInput {
   creationCode: string
 }
 
-// The success side-effects (localStorage teamId, invalidating ['auth','me'], navigation) live in the
-// route container per #158 — this hook only performs the request and normalises failures.
+// The server makes the new Team Active (ADR-0023 §4), so success resets the cache here; navigation
+// stays in the route container per #158. This hook otherwise only performs the request and normalises failures.
 export function useCreateTeam() {
   return useMutation({
+    onSuccess: resetCacheForNewTenant,
     mutationFn: async ({ name, slug, creationCode }: CreateTeamInput) => {
       // The page's language, for the team-created email when the founder has stored none (ADR-0043 §4).
       const language = i18n.language === 'nl' ? 'NL' : 'EN'
@@ -112,5 +114,7 @@ export function useCreateMemberlessTeam() {
  */
 export async function activateTeam(slug: string): Promise<TeamRef | null> {
   const res = await api.activateTeam({ slug })
-  return res.status === 200 ? res.body : null
+  if (res.status !== 200) return null
+  await resetCacheForNewTenant()
+  return res.body
 }

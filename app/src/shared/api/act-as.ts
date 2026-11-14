@@ -1,5 +1,6 @@
-import { queryOptions, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { queryOptions, useMutation, useQuery } from '@tanstack/react-query'
 import { api } from './wirespec-client'
+import { resetCacheForNewTenant } from './session-cache'
 
 // Re-export the generated contract types so the app has a single source of truth.
 export type { ActAs } from './generated/model/ActAs'
@@ -35,11 +36,9 @@ export function usePlatformTeams() {
 }
 
 /**
- * Enters a Team as a Platform Admin. Everything the app knows is scoped to the *previous* tenant, so
- * the whole cache is reset — the same reasoning as the Active Team switch in `/t/$slug`.
+ * Enters a Team as a Platform Admin, which changes the Active Team.
  */
 export function useEnterActAs() {
-  const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async (teamId: string) => {
       const res = await api.enterActAs({ body: { teamId } })
@@ -48,7 +47,7 @@ export function useEnterActAs() {
       if (res.status !== 200) throw new ActAsError('GENERIC', 'Could not enter that team. Please try again.')
       return res.body
     },
-    onSuccess: () => queryClient.resetQueries(),
+    onSuccess: resetCacheForNewTenant,
   })
 }
 

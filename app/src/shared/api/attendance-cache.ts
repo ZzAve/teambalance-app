@@ -25,6 +25,9 @@ const SUMMARY_FIELD: Record<AttendanceState, keyof Omit<AttendanceSummary, 'role
  * no-op (the server reconciliation on `onSettled` fills that case in). The update is immutable —
  * the original event and its entries are never touched, so a rollback can restore the snapshot.
  *
+ * `myState` moves too when [userId] is the actor, i.e. the viewer answering for themselves: the list
+ * cards read the viewer's own answer from it.
+ *
  * `changedBy` moves with the state: [actorId] is whoever is doing the writing, which under
  * ADR-0003 trust-based editing need not be [userId]. Without the stamp the row keeps its previous
  * attribution for the round-trip — so correcting an answer a teammate set for you would leave
@@ -69,8 +72,26 @@ export function applyOptimisticAttendance(
   return {
     ...event,
     attendanceSummary: summary,
+    myState: userId === actorId ? state : event.myState,
     attendances: event.attendances.map((a) =>
       a.userId === userId ? { ...a, state, changedBy: actorId ?? undefined } : a,
     ),
   }
+}
+
+/** One event's detail, a list of events, or the list query's raw `{ events }` response. */
+type CachedEvents = EventDetail | EventDetail[] | { events: EventDetail[] }
+
+/** Applies [applyOptimisticAttendance] to the event with [eventId], whichever cached shape holds it. */
+export function applyOptimisticAttendanceToCache<T extends CachedEvents>(
+  cached: T,
+  eventId: string,
+  userId: string,
+  state: AttendanceState,
+  actorId: string | null,
+): T {
+  const one = (e: EventDetail) => (e.id === eventId ? (applyOptimisticAttendance(e, userId, state, actorId) ?? e) : e)
+  if (Array.isArray(cached)) return cached.map(one) as T
+  if ('events' in cached) return { ...cached, events: cached.events.map(one) } as T
+  return one(cached) as T
 }

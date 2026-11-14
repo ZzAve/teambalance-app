@@ -2,7 +2,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { useEffect, useMemo, useState } from 'react'
 import { useEvents, type Event } from '@shared/api/events'
 import { useEventTypes } from '@shared/api/event-types'
-import { useSetAttendance } from '@shared/api/attendances'
+import { usePendingAttendanceEvents, useSetAttendance } from '@shared/api/attendances'
 import {
     useRemoveSubstituteAttendance,
     useSetSubstituteAttendance,
@@ -17,7 +17,6 @@ import { NextEventHero } from '@widgets/next-event-hero/ui/NextEventHero'
 import { CreateEventSheet } from '@widgets/create-event/ui/CreateEventSheet'
 import { useEventFiltersStore } from '@features/filter-event-types/model/event-filters-store'
 import { useEventPanelStore } from '@features/event-panel-view/model/event-panel-store'
-import type { OptimisticAnswer } from '@entities/event/ui/EventListView'
 import { EventLineupPanel } from '@widgets/event-panel/ui/EventLineupPanel'
 import { EventsPageView } from '@pages/events/ui/EventsPageView'
 import { reconcileTypeIds } from '@features/filter-event-types/model/filter-preferences'
@@ -74,22 +73,17 @@ function EventListPage() {
 
     // Attendance from the card (#273), for anyone — the lineup panel makes a teammate's answer
     // editable from the list, which ADR-0003 allows and this page never needed before. `myState` and
-    // `attendances` are both on the list payload, so no detail read is involved; the one shared
-    // mutation and the optimistic hold live here. `applyOptimisticAttendance` patches only the detail
-    // cache, not this list, so the picked answer is held here and applied by EventListView until the
-    // invalidated refetch reports the same answer — no clearing effect needed, the derivation drops
-    // it on its own. onError clears it so a failed write does not leave the card stuck. While held,
-    // the card shows the answer optimistically and its readiness badge stays pending (⑤).
+    // `attendances` are both on the list payload, so no detail read is involved. The write patches
+    // every cached events read, this list included, so the card shows the answer at once; its
+    // readiness badge stays pending (⑤) while the write is in flight.
     const currentUserId = useCurrentUser()?.id ?? null
     const {mutate: setAttendance} = useSetAttendance()
-    const [optimistic, setOptimistic] = useState<OptimisticAnswer | null>(null)
+    const pendingAttendanceEvents = usePendingAttendanceEvents()
 
     // One path for every answer on this page, the viewer's own included: the panel's chips and the
     // card's own pill are the same write aimed at a different member.
-    const respondFor = (eventId: string, userId: string, state: Event['myState']) => {
-        setOptimistic({eventId, userId, state})
-        setAttendance({eventId, userId, state}, {onError: () => setOptimistic(null)})
-    }
+    const respondFor = (eventId: string, userId: string, state: Event['myState']) =>
+        setAttendance({eventId, userId, state})
     // One Substitute picker for the whole page (#359), aimed at one card's event and, from an open
     // spot, one Position. Any Member may call Substitutes in (ADR-0033). The target outlives `open`
     // so the sheet can animate out.
@@ -213,7 +207,7 @@ function EventListPage() {
             list={{
                 events: listEvents,
                 onRespond: respond,
-                optimistic,
+                pendingEventIds: pendingAttendanceEvents,
                 currentUserId,
                 // What each card's roster disclosure opens onto (ADR-0030 §5-§7, as amended by the
                 // lineup panel). Injected from here because the panel is a widget and the card is an

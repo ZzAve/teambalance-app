@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import type { AttendanceEntry, EventDetail } from './events'
 import { makeRoster, NO_ROSTER } from '@shared/testing/event-fixtures'
-import { applyOptimisticAttendance } from './attendance-cache'
+import { QueryClient } from '@tanstack/react-query'
+import { applyOptimisticAttendance, applyOptimisticAttendanceToCache } from './attendance-cache'
+import { patchCachedEvents, rollBack } from './event-cache'
 
 const attendee = (overrides: Partial<AttendanceEntry> = {}): AttendanceEntry => ({
   id: 'att-1',
@@ -181,5 +183,83 @@ describe('applyOptimisticAttendance', () => {
     const next = applyOptimisticAttendance(event, 'user-2', 'ATTENDING', 'user-1')
 
     expect(next?.attendances[0].changedBy).toBe('user-1')
+  })
+})
+
+describe('applyOptimisticAttendanceToCache', () => {
+  const summary = { attending: 2, maybe: 0, absent: 0, notResponded: 1, roleBreakdown: [] }
+  const roster = makeRoster({ totalAttending: 2, openSlots: 1, state: 'SPOTS_OPEN' })
+  const evt = (id: string) =>
+    makeEventDetail({
+      id,
+      roster,
+      attendanceSummary: summary,
+      attendances: [attendee({ userId: 'me', state: 'NOT_RESPONDED' })],
+      myState: 'NOT_RESPONDED',
+    })
+  const answer = (cached: Parameters<typeof applyOptimisticAttendanceToCache>[0], eventId: string) =>
+    applyOptimisticAttendanceToCache(cached, eventId, 'me', 'ATTENDING', 'me')
+
+  it('patches the one event in a detail, a list and a raw { events } response, and no other', () => {
+    const detail = answer(evt('a'), 'a') as EventDetail
+    expect(detail.attendances[0].state).toBe('ATTENDING')
+
+    const list = answer([evt('a'), evt('b')], 'b') as EventDetail[]
+    expect(list[0].attendances[0].state).toBe('NOT_RESPONDED')
+    expect(list[1].attendances[0].state).toBe('ATTENDING')
+
+    const raw = answer({ events: [evt('a'), evt('b')] }, 'a') as { events: EventDetail[] }
+    expect(raw.events[0].attendances[0].state).toBe('ATTENDING')
+    expect(raw.events[1].attendances[0].state).toBe('NOT_RESPONDED')
+  })
+
+  it('moves the summary counters and the viewer\'s own answer, and leaves the roster alone', () => {
+    const [patched] = answer([evt('a')], 'a') as EventDetail[]
+
+    expect(patched.attendanceSummary).toMatchObject({ attending: 3, notResponded: 0 })
+    expect(patched.myState).toBe('ATTENDING')
+    expect(patched.roster).toBe(roster)
+  })
+
+  it("leaves myState alone when the answer is a teammate's", () => {
+    const [patched] = applyOptimisticAttendanceToCache([evt('a')], 'a', 'me', 'ATTENDING', 'coach') as EventDetail[]
+
+    expect(patched.myState).toBe('NOT_RESPONDED')
+  })
+})
+
+describe('patchCachedEvents for attendance', () => {
+  const LIST_KEY = ['events', { includePast: false }]
+  const seeded = () => {
+    const queryClient = new QueryClient()
+    const base = (id: string) =>
+      makeEventDetail({ id, attendances: [attendee({ userId: 'me', state: 'NOT_RESPONDED' })], myState: 'NOT_RESPONDED' })
+    queryClient.setQueryData(LIST_KEY, { events: [base('a'), base('b')] })
+    queryClient.setQueryData(['events', 'a'], base('a'))
+    return queryClient
+  }
+  const tap = (queryClient: QueryClient, eventId: string) =>
+    patchCachedEvents<Parameters<typeof applyOptimisticAttendanceToCache>[0]>(queryClient, (cached) =>
+      applyOptimisticAttendanceToCache(cached, eventId, 'me', 'ATTENDING', 'me'),
+    )
+  const states = (queryClient: QueryClient) =>
+    queryClient.getQueryData<{ events: EventDetail[] }>(LIST_KEY)?.events.map((e) => e.myState)
+
+  it('keeps both answers when a second tap lands on another event', async () => {
+    const queryClient = seeded()
+    await tap(queryClient, 'a')
+    await tap(queryClient, 'b')
+
+    expect(states(queryClient)).toEqual(['ATTENDING', 'ATTENDING'])
+    expect(queryClient.getQueryData<EventDetail>(['events', 'a'])?.myState).toBe('ATTENDING')
+  })
+
+  it('rolls the list and the detail back to the server value when the write fails', async () => {
+    const queryClient = seeded()
+    const context = await tap(queryClient, 'a')
+    rollBack(queryClient, context)
+
+    expect(states(queryClient)).toEqual(['NOT_RESPONDED', 'NOT_RESPONDED'])
+    expect(queryClient.getQueryData<EventDetail>(['events', 'a'])?.myState).toBe('NOT_RESPONDED')
   })
 })

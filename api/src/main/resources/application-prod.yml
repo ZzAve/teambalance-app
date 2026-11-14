@@ -52,3 +52,11 @@ management:
         headers:
           # The Cockpit push token (a secret env on the container). Unused while the push is off.
           X-Token: ${SCALEWAY_COCKPIT_METRICS_TOKEN:}
+  opentelemetry:
+    tracing:
+      export:
+        otlp:
+          headers:
+            # The Cockpit push token for the traces data source (a secret env on the container). Unused
+            # while no traces endpoint is set.
+            X-Token: ${SCALEWAY_COCKPIT_TRACES_TOKEN:}

@@ -305,6 +305,43 @@ http://localhost:3000 (Explore → Prometheus).
 To stop the push, set `MANAGEMENT_OTLP_METRICS_EXPORT_ENABLED=false` (or remove it) and redeploy or
 restart the container.
 
+### Traces to Cockpit Tempo
+
+The API traces every request (sampling `1.0`, `application.yml`) and pushes the spans over OTLP/HTTP
+to a Cockpit traces data source, in batches every 5 s. The push is on only when the endpoint is set;
+without it the app makes no span exporter and pushes nothing. Use a separate traces data source and
+a separate token: each token has only the push permission of its own signal, so one can be revoked
+without the other.
+
+| Variable | Value |
+|----------|-------|
+| `MANAGEMENT_OPENTELEMETRY_TRACING_EXPORT_OTLP_ENDPOINT` | The traces data source's push URL plus `/otlp/v1/traces`, e.g. `https://<data source id>.traces.cockpit.fr-par.scw.cloud/otlp/v1/traces`. Unset: no push. |
+| `SCALEWAY_COCKPIT_TRACES_TOKEN` | A Cockpit token with the *push traces* permission, in the same region (a secret env). Sent as the `X-Token` header. |
+
+`OTEL_RESOURCE_ATTRIBUTES` (above) also tells the traces of the three containers apart.
+
+What to look for in Cockpit's Grafana (Explore → the traces data source):
+
+- **Request traces:** one root span per request, named `http <method> <route template>`, with the
+  attributes `uri`, `method`, `status`, `outcome` and `exception`. Below it are the Spring Security
+  spans (`security filterchain before`/`after`, `authorize request`, `secured request`).
+- **Log correlation:** each log line of a request shows `[<traceId>-<spanId>]` after the thread name.
+  Search Tempo for that trace ID to see the request, or copy a trace ID from Tempo into a log search.
+- **Not traced:** the health probe (`/internal/actuator/health`). It is also not in the endpoint
+  metrics. `HealthProbeObservationConfiguration` skips it.
+- **Also traced:** the hourly match-feed task (`task matchFeedScheduler.checkDueFeeds`), and the
+  outgoing HTTP calls to Nevobo and Scaleway TEM.
+- **Cost:** custom traces are billed per GB (€0.35/GB at the time of writing; 7 days of retention
+  are free). A request makes 5 to 10 spans, about 4 to 8 KB. 1,000 requests a day are about 0.2 GB a
+  month. Check the Cockpit usage page after the first days.
+
+**Local check:** with the local Grafana running (above), run the API with
+`MANAGEMENT_OPENTELEMETRY_TRACING_EXPORT_OTLP_ENDPOINT=http://localhost:4318/v1/traces`. Grafana →
+Explore → Tempo shows the traces.
+
+To stop the push, remove `MANAGEMENT_OPENTELEMETRY_TRACING_EXPORT_OTLP_ENDPOINT` and redeploy or
+restart the container.
+
 ## Rollback
 
 To roll back, re-deploy an earlier good commit: Actions → the CI run for that commit →

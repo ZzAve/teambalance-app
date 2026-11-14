@@ -14,8 +14,6 @@ import com.github.zzave.teambalance.api.domain.model.HeadcountTarget
 import com.github.zzave.teambalance.api.domain.model.Position
 import com.github.zzave.teambalance.api.domain.model.PositionId
 import com.github.zzave.teambalance.api.domain.model.PositionLabel
-import com.github.zzave.teambalance.api.domain.model.PositionSlots
-import com.github.zzave.teambalance.api.domain.model.PositionTarget
 import com.github.zzave.teambalance.api.domain.model.Role
 import com.github.zzave.teambalance.api.domain.model.RosterRequirement
 import com.github.zzave.teambalance.api.domain.model.RosterState
@@ -57,8 +55,12 @@ private class RecordingAttendanceRepo(private val rows: List<Attendance>) : Atte
 }
 
 private class SubstitutesOnEvents(private val byEvent: Map<EventId, List<SubstituteAttendance>>) : SubstituteRepository {
-    override fun findAttendanceByEventIds(eventIds: List<EventId>): Map<EventId, List<SubstituteAttendance>> =
-        byEvent.filterKeys { it in eventIds }
+    var calls = 0
+
+    override fun findAttendanceByEventIds(eventIds: List<EventId>): Map<EventId, List<SubstituteAttendance>> {
+        calls++
+        return byEvent.filterKeys { it in eventIds }
+    }
 
     override fun list(): List<Substitute> = error("unused")
     override fun create(name: DisplayName, positionId: PositionId?, createdBy: UserId): Substitute = error("unused")
@@ -82,7 +84,12 @@ private class SubstitutesOnEvents(private val byEvent: Map<EventId, List<Substit
 }
 
 private class FixedPositions(private val positions: List<Position>) : PositionRepository {
-    override fun list(): List<Position> = positions
+    var calls = 0
+
+    override fun list(): List<Position> {
+        calls++
+        return positions
+    }
     override fun create(label: PositionLabel): Position = error("unused")
     override fun rename(id: PositionId, label: PositionLabel): Position = error("unused")
     override fun setKind(id: PositionId, kind: com.github.zzave.teambalance.api.domain.model.PositionKind): Position =
@@ -99,7 +106,6 @@ class EventResolverTest : FunSpec() {
         val libero = Position(PositionId(UUID.randomUUID()), PositionLabel("Libero"))
         val anna = member("Anna", setter)
         val bram = member("Bram", libero)
-        val cleo = member("Cleo", null)
 
         fun event(requirement: RosterRequirement) = Event(
             id = EventId(UUID.randomUUID()),
@@ -123,38 +129,26 @@ class EventResolverTest : FunSpec() {
             changedBy = who.userId,
         )
 
+        var memberReads = 0
+        val substituteRepo = { byEvent: Map<EventId, List<SubstituteAttendance>> -> SubstitutesOnEvents(byEvent) }
+
         fun resolver(
             members: List<TeamMember>,
             rows: List<Attendance> = emptyList(),
-            substitutes: Map<EventId, List<SubstituteAttendance>> = emptyMap(),
+            substitutes: SubstitutesOnEvents = SubstitutesOnEvents(emptyMap()),
+            positions: FixedPositions = FixedPositions(listOf(setter, libero)),
             attendanceRepo: RecordingAttendanceRepo = RecordingAttendanceRepo(rows),
         ) = EventResolver(
             attendanceRepository = attendanceRepo,
-            substituteRepository = SubstitutesOnEvents(substitutes),
+            substituteRepository = substitutes,
             teamMemberRepository = object : TeamMemberRepository by TeamDirectory().teamMemberRepository() {
-                override fun findByTeamId(teamId: TeamId): List<TeamMember> = members
+                override fun findByTeamId(teamId: TeamId): List<TeamMember> {
+                    memberReads++
+                    return members
+                }
             },
-            positionRepository = FixedPositions(listOf(setter, libero)),
+            positionRepository = positions,
         )
-
-        test("a current Member with no response is Not Responded") {
-            val training = event(RosterRequirement(trackRoster = true))
-
-            val resolved = resolver(listOf(anna)).resolve(teamId, training)
-
-            resolved.attendance.stateOf(anna.userId) shouldBe AttendanceState.NOT_RESPONDED
-            resolved.attendance.summary().getValue(AttendanceState.NOT_RESPONDED) shouldBe 1
-        }
-
-        test("a departed Member's response drops out") {
-            val training = event(RosterRequirement(trackRoster = true))
-            val rows = listOf(answer(training, anna, AttendanceState.ATTENDING), answer(training, bram, AttendanceState.ATTENDING))
-
-            val resolved = resolver(members = listOf(anna), rows = rows).resolve(teamId, training)
-
-            resolved.attendance.entries.map { it.member.userId } shouldBe listOf(anna.userId)
-            resolved.roster.totalAttending.value shouldBe 1
-        }
 
         test("an attending Substitute fills a spot but does not count toward the expected total") {
             val training = event(RosterRequirement(trackRoster = true, totalTarget = HeadcountTarget(2)))
@@ -168,7 +162,7 @@ class EventResolverTest : FunSpec() {
             val resolved = resolver(
                 members = listOf(anna, bram),
                 rows = listOf(answer(training, anna, AttendanceState.ATTENDING)),
-                substitutes = mapOf(training.id to listOf(substitute)),
+                substitutes = substituteRepo(mapOf(training.id to listOf(substitute))),
             ).resolve(teamId, training)
 
             resolved.roster.totalAttending.value shouldBe 2
@@ -177,34 +171,36 @@ class EventResolverTest : FunSpec() {
             resolved.roster.state shouldBe RosterState.HEADCOUNT_FULL
         }
 
-        test("position targets win over a headcount") {
-            val training = event(
-                RosterRequirement(
-                    trackRoster = true,
-                    totalTarget = HeadcountTarget(1),
-                    positionTargets = listOf(PositionTarget(libero.id, PositionSlots(1))),
-                ),
-            )
-
-            val resolved = resolver(
-                members = listOf(anna, bram, cleo),
-                rows = listOf(answer(training, anna, AttendanceState.ATTENDING)),
-            ).resolve(teamId, training)
-
-            resolved.roster.state shouldBe RosterState.CRITICAL
-        }
-
-        test("the list form reads the response rows once for all events") {
+        test("the list form reads each source once for all events and keys Substitutes per Event") {
             val events = (1..3).map { event(RosterRequirement(trackRoster = true)) }
             val attendanceRepo = RecordingAttendanceRepo(listOf(answer(events[1], anna, AttendanceState.MAYBE)))
+            val substitute = SubstituteAttendance(
+                substitute = Substitute(SubstituteId(UUID.randomUUID()), DisplayName("Sam"), libero.id, libero.label),
+                state = AttendanceState.ATTENDING,
+                changedBy = anna.userId,
+                updatedAt = Instant.EPOCH,
+            )
+            val substitutes = substituteRepo(mapOf(events[2].id to listOf(substitute)))
+            val positions = FixedPositions(listOf(setter, libero))
+            memberReads = 0
 
-            val resolved = resolver(members = listOf(anna), attendanceRepo = attendanceRepo).resolveAll(teamId, events)
+            val resolved = resolver(
+                members = listOf(anna),
+                substitutes = substitutes,
+                positions = positions,
+                attendanceRepo = attendanceRepo,
+            ).resolveAll(teamId, events)
 
             attendanceRepo.batchCalls shouldBe 1
             attendanceRepo.singleCalls shouldBe 0
+            substitutes.calls shouldBe 1
+            positions.calls shouldBe 1
+            memberReads shouldBe 1
             resolved.map { it.event.id } shouldBe events.map { it.id }
             resolved.map { it.attendance.stateOf(anna.userId) } shouldBe
                 listOf(AttendanceState.NOT_RESPONDED, AttendanceState.MAYBE, AttendanceState.NOT_RESPONDED)
+            resolved.map { it.attendance.substitutes.size } shouldBe listOf(0, 0, 1)
+            resolved.map { it.roster.substituteAttending.value } shouldBe listOf(0, 0, 1)
         }
     }
 

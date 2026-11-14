@@ -46,9 +46,7 @@ class RecurringEventController(
             recurrence = body.recurrence.consume(),
         )
 
-        // Attendance is derived from current team membership at read time (#114), so the created
-        // occurrences carry the full NOT_RESPONDED roster without any seeded rows. Each occurrence
-        // inherits its type's roster default — a series never carries its own override.
+        // A series never carries its own roster override: each occurrence inherits its type's default.
         return CreateRecurringEvents.Response201(
             RecurringEventSeries(
                 recurringGroup = series.recurringGroup.toString(),

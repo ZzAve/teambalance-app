@@ -23,7 +23,8 @@ data class ResolvedEvent(
  * which own the rules.
  *
  * The members and the positions are fetched once per call, and the response rows and Substitutes of
- * a list of Events are fetched in one query each, so a caller cannot reintroduce a per-Event N+1.
+ * a list of Events are fetched in one query each, so a list of Events is resolved in a fixed number of
+ * queries, however long it is.
  */
 class EventResolver(
     private val attendanceRepository: AttendanceRepository,

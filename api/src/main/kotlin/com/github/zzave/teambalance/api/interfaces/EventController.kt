@@ -2,8 +2,8 @@ package com.github.zzave.teambalance.api.interfaces
 
 import com.github.zzave.teambalance.api.application.EventResolver
 import com.github.zzave.teambalance.api.application.EventService
-import com.github.zzave.teambalance.api.application.ResolvedEvent
 import com.github.zzave.teambalance.api.application.PotentialEvent
+import com.github.zzave.teambalance.api.application.ResolvedEvent
 import com.github.zzave.teambalance.api.domain.model.EventDescription
 import com.github.zzave.teambalance.api.domain.model.EventReference as DomainEventReference
 import com.github.zzave.teambalance.api.domain.model.EventId

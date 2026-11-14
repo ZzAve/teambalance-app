@@ -5,7 +5,6 @@ import com.bunq.sdk.BUNQ_SANDBOX_OAUTH
 import com.bunq.sdk.BunqApiException
 import com.bunq.sdk.BunqServer
 import com.bunq.sdk.OAuthServer
-import com.github.zzave.teambalance.api.application.BunqGrantSeal
 import com.github.zzave.teambalance.api.application.TokenCipher
 import com.github.zzave.teambalance.api.domain.model.BunqAuthorizationCode
 import com.github.zzave.teambalance.api.domain.model.BunqGrant
@@ -58,7 +57,7 @@ class RealBunqGatewayAdapterTest : FunSpec({
     fun adapter(server: OAuthServer = BUNQ_SANDBOX_OAUTH): RealBunqGatewayAdapter {
         val calls = BunqCalls(CALL_PROPERTIES, Clock.systemUTC())
         val apiServer = BunqServer("http://127.0.0.1:1/v1/", "")
-        val sessions = BunqSessions(apiServer, "TeamBalance test", NoContexts, BunqGrantSeal(CIPHER), CIPHER, NoTeam, calls)
+        val sessions = BunqSessions(apiServer, "TeamBalance test", NoContexts, CIPHER, NoTeam, calls)
         return RealBunqGatewayAdapter(CLIENT_ID, CLIENT_SECRET, server, sessions, calls, ZoneId.of("Europe/Amsterdam"))
     }
 
@@ -86,7 +85,6 @@ class RealBunqGatewayAdapterTest : FunSpec({
                 BunqClientProperties(environment, CLIENT_ID, CLIENT_SECRET, "TeamBalance"),
                 CALL_PROPERTIES,
                 NoContexts,
-                BunqGrantSeal(CIPHER),
                 CIPHER,
                 NoTeam,
                 Clock.systemUTC(),

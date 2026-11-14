@@ -39,7 +39,7 @@ data class RememberedMoneyPool(val value: MoneyPool, val readAt: Instant, val re
         if (answer == MoneyPool.Unavailable && value is MoneyPool.Connected) {
             RememberedMoneyPool(value, readAt, retryNotBefore = now.plus(retention.retryAfter))
         } else {
-            readAt(answer, now)
+            readNow(answer, now)
         }
 
     /** What is remembered after asking Bunq again threw: the same as when Bunq is unavailable. */
@@ -51,11 +51,11 @@ data class RememberedMoneyPool(val value: MoneyPool, val readAt: Instant, val re
 
     /** True when a [MoneyPool.Connected] older than [MoneyPoolRetention.refresh] is being replaced, which is not while waiting to retry. */
     fun isRefreshing(now: Instant, retention: MoneyPoolRetention): Boolean {
-        val waitingToRetry = retryNotBefore != null && now.isBefore(retryNotBefore)
-        return value is MoneyPool.Connected && !waitingToRetry && now.isAfter(readAt.plus(retention.refresh))
+        val notWaitingToRetry = retryNotBefore == null || retryIsDue(now)
+        return value is MoneyPool.Connected && notWaitingToRetry && now.isAfter(readAt.plus(retention.refresh))
     }
 
     companion object {
-        fun readAt(value: MoneyPool, now: Instant) = RememberedMoneyPool(value, now)
+        fun readNow(value: MoneyPool, now: Instant) = RememberedMoneyPool(value, now)
     }
 }

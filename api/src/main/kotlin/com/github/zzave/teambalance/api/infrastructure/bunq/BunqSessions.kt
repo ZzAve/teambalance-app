@@ -55,13 +55,14 @@ internal class BunqSessions(
     private val server: BunqServer,
     private val serviceName: String,
     private val store: BunqApiContextRepository,
-    private val grantSeal: BunqGrantSeal,
     private val cipher: TokenCipher,
     private val currentTeam: CurrentTeamGateway,
     private val calls: BunqCalls,
 ) {
     // A holder per access token that sets the session up on first use, so that a slow setup holds up only the readers of that
     // token and not the map.
+    private val grantSeal = BunqGrantSeal(cipher)
+
     private val sessions = ConcurrentHashMap<String, Lazy<BunqSession>>()
 
     fun sessionFor(grant: BunqGrant): BunqSession =

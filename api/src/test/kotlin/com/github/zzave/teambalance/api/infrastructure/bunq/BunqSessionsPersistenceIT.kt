@@ -1,7 +1,6 @@
 package com.github.zzave.teambalance.api.infrastructure.bunq
 
 import com.github.zzave.teambalance.api.TeamBalanceIT
-import com.github.zzave.teambalance.api.application.BunqGrantSeal
 import com.github.zzave.teambalance.api.application.TokenCipher
 import com.github.zzave.teambalance.api.application.TokenCipher.Purpose
 import com.github.zzave.teambalance.api.domain.model.BunqConnection
@@ -88,7 +87,6 @@ class BunqSessionsPersistenceIT : TeamBalanceIT() {
                 fake.server,
                 "TeamBalance IT",
                 contexts,
-                BunqGrantSeal(cipher),
                 cipher,
                 currentTeam,
                 BunqCalls(properties(), Clock.systemUTC()),

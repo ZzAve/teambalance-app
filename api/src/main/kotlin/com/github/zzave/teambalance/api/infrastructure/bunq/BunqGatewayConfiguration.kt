@@ -1,6 +1,5 @@
 package com.github.zzave.teambalance.api.infrastructure.bunq
 
-import com.github.zzave.teambalance.api.application.BunqGrantSeal
 import com.github.zzave.teambalance.api.application.TokenCipher
 import com.github.zzave.teambalance.api.domain.port.BunqApiContextRepository
 import com.github.zzave.teambalance.api.domain.port.BunqGateway
@@ -31,7 +30,6 @@ class BunqGatewayConfiguration {
         properties: BunqClientProperties,
         callProperties: BunqCallProperties,
         contexts: BunqApiContextRepository,
-        grantSeal: BunqGrantSeal,
         @Qualifier(BUNQ_GRANT_CIPHER) cipher: TokenCipher,
         currentTeam: CurrentTeamGateway,
         clock: Clock,
@@ -45,7 +43,7 @@ class BunqGatewayConfiguration {
             FakeBunqGatewayAdapter(clock, apiBaseUrl).also { log.info("Bunq gateway: fake, for the demo") }
         }
         BunqEnvironment.SANDBOX, BunqEnvironment.PRODUCTION ->
-            realGateway(properties, callProperties, contexts, grantSeal, cipher, currentTeam, clock)
+            realGateway(properties, callProperties, contexts, cipher, currentTeam, clock)
     }
 
     @Bean
@@ -55,21 +53,19 @@ class BunqGatewayConfiguration {
         properties: BunqClientProperties,
         callProperties: BunqCallProperties,
         contexts: BunqApiContextRepository,
-        grantSeal: BunqGrantSeal,
         @Qualifier(BUNQ_GRANT_CIPHER) cipher: TokenCipher,
         currentTeam: CurrentTeamGateway,
         clock: Clock,
-    ): BunqGateway = realGateway(properties, callProperties, contexts, grantSeal, cipher, currentTeam, clock)
+    ): BunqGateway = realGateway(properties, callProperties, contexts, cipher, currentTeam, clock)
 
     private fun realGateway(
         properties: BunqClientProperties,
         callProperties: BunqCallProperties,
         contexts: BunqApiContextRepository,
-        grantSeal: BunqGrantSeal,
         cipher: TokenCipher,
         currentTeam: CurrentTeamGateway,
         clock: Clock,
-    ) = RealBunqGatewayAdapter.create(properties, callProperties, contexts, grantSeal, cipher, currentTeam, clock)
+    ) = RealBunqGatewayAdapter.create(properties, callProperties, contexts, cipher, currentTeam, clock)
         .also { log.info("Bunq gateway: real adapter, environment {}", properties.environment) }
 
     private companion object {

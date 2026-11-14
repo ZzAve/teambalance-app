@@ -1,6 +1,5 @@
 package com.github.zzave.teambalance.api.infrastructure.bunq
 
-import com.github.zzave.teambalance.api.application.BunqGrantSeal
 import com.github.zzave.teambalance.api.application.TokenCipher
 import com.github.zzave.teambalance.api.domain.model.EncryptedToken
 import com.github.zzave.teambalance.api.domain.model.StoredBunqApiContext
@@ -17,7 +16,6 @@ import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.string.shouldNotContain
 import io.kotest.matchers.string.shouldStartWith
 import io.kotest.matchers.types.shouldBeInstanceOf
-import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.boot.autoconfigure.AutoConfigurations
 import org.springframework.boot.autoconfigure.context.PropertyPlaceholderAutoConfiguration
 import org.springframework.boot.context.properties.EnableConfigurationProperties
@@ -215,9 +213,6 @@ class BunqGatewaySelectionTest : FunSpec({
 
         @Bean(BunqGrantCipherConfiguration.BEAN_NAME)
         fun cipher(): TokenCipher = TokenCipher.fromBase64Key("dGVhbWJhbGFuY2UtdGVzdC1idW5xLXRva2VuLWtleTE=", "test")
-
-        @Bean
-        fun grantSeal(@Qualifier(BunqGrantCipherConfiguration.BEAN_NAME) cipher: TokenCipher) = BunqGrantSeal(cipher)
 
         @Bean
         fun currentTeam(): CurrentTeamGateway = object : CurrentTeamGateway {

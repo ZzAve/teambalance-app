@@ -70,13 +70,13 @@ class CaffeineMoneyPoolCacheAdapter(
 
     private data class Key(val tenant: TenantRouting, val account: BunqAccountId)
 
-    private val retention = MoneyPoolRetention(properties.refresh, properties.expire, properties.retryAfter)
+    private val retention = MoneyPoolRetention(refresh = properties.refresh, expire = properties.expire, retryAfter = properties.retryAfter)
 
     private val entries: AsyncLoadingCache<Key, RememberedMoneyPool> = Caffeine.newBuilder()
         .maximumSize(MAX_ENTRIES)
         .executor(executor)
         .ticker { TimeUnit.MILLISECONDS.toNanos(clock.millis()) }
-        .refreshAfterWrite(properties.refresh)
+        .refreshAfterWrite(retention.refresh)
         .expireAfter(
             object : Expiry<Key, RememberedMoneyPool> {
                 override fun expireAfterCreate(key: Key, entry: RememberedMoneyPool, currentTime: Long) = lifetimeNanos(entry)
@@ -91,7 +91,7 @@ class CaffeineMoneyPoolCacheAdapter(
         .buildAsync(
             object : AsyncCacheLoader<Key, RememberedMoneyPool> {
                 override fun asyncLoad(key: Key, executor: Executor): CompletableFuture<RememberedMoneyPool> =
-                    CompletableFuture.supplyAsync({ RememberedMoneyPool.readAt(readFromBunq(key), clock.instant()) }, executor)
+                    CompletableFuture.supplyAsync({ RememberedMoneyPool.readNow(readFromBunq(key), clock.instant()) }, executor)
 
                 override fun asyncReload(key: Key, old: RememberedMoneyPool, executor: Executor): CompletableFuture<RememberedMoneyPool> =
                     if (old.mayBeReloaded()) {

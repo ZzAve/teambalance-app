@@ -8,6 +8,7 @@ import com.bunq.sdk.bunqClient
 import com.bunq.sdk.generated.Client
 import com.bunq.sdk.initContext
 import com.bunq.sdk.refreshSession
+import com.github.zzave.teambalance.api.application.BunqGrantSeal
 import com.github.zzave.teambalance.api.application.TokenCipher
 import com.github.zzave.teambalance.api.application.TokenCipher.Purpose
 import com.github.zzave.teambalance.api.domain.model.BunqGrant
@@ -54,6 +55,7 @@ internal class BunqSessions(
     private val server: BunqServer,
     private val serviceName: String,
     private val store: BunqApiContextRepository,
+    private val grantSeal: BunqGrantSeal,
     private val cipher: TokenCipher,
     private val currentTeam: CurrentTeamGateway,
     private val calls: BunqCalls,
@@ -82,7 +84,7 @@ internal class BunqSessions(
         try {
             val team = currentTeam.findCurrentTeamId() ?: return
             val row = store.find()
-            if (row != null && cipher.decrypt(row.grant, TokenCipher.aadOf(team, Purpose.BUNQ_GRANT)) == current.config.apiKey &&
+            if (row != null && grantSeal.open(row.grant, team)?.accessToken == current.config.apiKey &&
                 store.save(
                     cipher.encrypt(BunqApiContextCodec.encode(current), TokenCipher.aadOf(team, Purpose.BUNQ_API_CONTEXT)),
                     ifGrant = row.grant,

@@ -3,6 +3,7 @@ package com.github.zzave.teambalance.api.infrastructure.bunq
 import com.bunq.sdk.BUNQ_SANDBOX_SERVER
 import com.bunq.sdk.Context
 import com.bunq.sdk.send
+import com.github.zzave.teambalance.api.application.BunqGrantSeal
 import com.github.zzave.teambalance.api.application.TokenCipher
 import com.github.zzave.teambalance.api.application.TokenCipher.Purpose
 import com.github.zzave.teambalance.api.domain.model.BunqAccountId
@@ -153,6 +154,7 @@ internal class SandboxSession(private val dir: File) {
             Duration.ofSeconds(60),
         ),
         contexts,
+        BunqGrantSeal(cipher),
         cipher,
         TeamInScope,
         clock,

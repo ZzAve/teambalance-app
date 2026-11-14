@@ -1,6 +1,7 @@
 package com.github.zzave.teambalance.api.infrastructure.bunq
 
 import com.github.zzave.teambalance.api.TeamBalanceIT
+import com.github.zzave.teambalance.api.application.BunqGrantSeal
 import com.github.zzave.teambalance.api.application.TokenCipher
 import com.github.zzave.teambalance.api.application.TokenCipher.Purpose
 import com.github.zzave.teambalance.api.domain.model.BunqConnection
@@ -83,7 +84,15 @@ class BunqSessionsPersistenceIT : TeamBalanceIT() {
         )
 
         fun sessions(fake: FakeBunqServer) =
-            BunqSessions(fake.server, "TeamBalance IT", contexts, cipher, currentTeam, BunqCalls(properties(), Clock.systemUTC()))
+            BunqSessions(
+                fake.server,
+                "TeamBalance IT",
+                contexts,
+                BunqGrantSeal(cipher),
+                cipher,
+                currentTeam,
+                BunqCalls(properties(), Clock.systemUTC()),
+            )
 
         fun grantOf(team: TeamId, token: String = ACCESS_TOKEN) = cipher.encrypt(token, TokenCipher.aadOf(team, Purpose.BUNQ_GRANT))
 

@@ -1,6 +1,5 @@
 package com.github.zzave.teambalance.api.application
 
-import com.github.zzave.teambalance.api.application.TokenCipher.Purpose
 import com.github.zzave.teambalance.api.domain.exception.BunqConnectDisabledException
 import com.github.zzave.teambalance.api.domain.exception.BunqConnectionChangedException
 import com.github.zzave.teambalance.api.domain.exception.BunqGrantRejectedException
@@ -40,12 +39,12 @@ data class BunqConnectOutcome(val result: BunqConnectResult, val teamSlug: Slug?
 data class BunqConnectionStatus(val connectAvailable: Boolean, val connected: Boolean, val accountPicked: Boolean)
 
 /**
- * What connecting needs: the cipher the grant is encrypted with and the callback URL Bunq returns the
+ * What connecting needs: the seal the grant is stored with and the callback URL Bunq returns the
  * browser to. It exists only while `teambalance.bunq.connect-enabled` is true; the key itself is read
  * at startup in every profile (see BunqGrantCipherConfiguration), so a deployment with connecting off
  * still needs it.
  */
-class BunqConnectConfig(val grantCipher: TokenCipher, val callbackUrl: String)
+class BunqConnectConfig(val grantSeal: BunqGrantSeal, val callbackUrl: String)
 
 /**
  * How a team Admin connects the team's Bunq account through OAuth and chooses which account the money
@@ -219,7 +218,7 @@ class BunqConnectionService(
                 connectionRepository.save(
                     BunqConnection(
                         accountId = kept,
-                        grant = config.grantCipher.encrypt(grant.accessToken, TokenCipher.aadOf(pending.teamId, Purpose.BUNQ_GRANT)),
+                        grant = config.grantSeal.seal(grant, pending.teamId),
                         connectedBy = pending.adminUserId,
                         connectedAt = now,
                     ),
@@ -249,15 +248,9 @@ class BunqConnectionService(
      * A grant that no longer decrypts cannot be used; the Admin has to connect again. That is a rotated key, a damaged row,
      * a row made before the grant was bound to its team, and a row copied from another team's schema.
      */
-    @Suppress("TooGenericExceptionCaught")
     private fun grantOf(connection: BunqConnection, teamId: TeamId): BunqGrant {
         val config = connectConfig ?: throw BunqConnectDisabledException()
-        return try {
-            BunqGrant(config.grantCipher.decrypt(connection.grant, TokenCipher.aadOf(teamId, Purpose.BUNQ_GRANT)))
-        } catch (e: Exception) {
-            log.warn("Decrypting the Bunq grant failed: ${e.javaClass.simpleName}")
-            throw BunqGrantRejectedException()
-        }
+        return config.grantSeal.open(connection.grant, teamId) ?: throw BunqGrantRejectedException()
     }
 
     private fun failed(teamSlug: Slug?) = BunqConnectOutcome(BunqConnectResult.FAILED, teamSlug)

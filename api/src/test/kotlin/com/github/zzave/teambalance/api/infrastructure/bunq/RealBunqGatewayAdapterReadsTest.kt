@@ -1,6 +1,7 @@
 package com.github.zzave.teambalance.api.infrastructure.bunq
 
 import com.bunq.sdk.BUNQ_SANDBOX_OAUTH
+import com.github.zzave.teambalance.api.application.BunqGrantSeal
 import com.github.zzave.teambalance.api.application.TokenCipher
 import com.github.zzave.teambalance.api.application.TokenCipher.Purpose
 import com.github.zzave.teambalance.api.domain.exception.BunqGrantRejectedException
@@ -117,7 +118,7 @@ private class Setup(
     /** A new adapter is a new process: nothing is remembered except what [contexts] holds. */
     fun adapter(): RealBunqGatewayAdapter {
         val calls = BunqCalls(properties, clock)
-        val sessions = BunqSessions(fake.server, "TeamBalance test", contexts, CIPHER, contexts.currentTeam, calls)
+        val sessions = BunqSessions(fake.server, "TeamBalance test", contexts, BunqGrantSeal(CIPHER), CIPHER, contexts.currentTeam, calls)
         return RealBunqGatewayAdapter("client-id", CLIENT_SECRET, BUNQ_SANDBOX_OAUTH, sessions, calls, AMSTERDAM)
     }
 

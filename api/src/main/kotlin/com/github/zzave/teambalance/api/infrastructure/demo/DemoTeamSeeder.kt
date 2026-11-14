@@ -1,13 +1,12 @@
 package com.github.zzave.teambalance.api.infrastructure.demo
 
+import com.github.zzave.teambalance.api.application.BunqGrantSeal
 import com.github.zzave.teambalance.api.application.DemoPersona
-import com.github.zzave.teambalance.api.application.TokenCipher
-import com.github.zzave.teambalance.api.application.TokenCipher.Purpose
+import com.github.zzave.teambalance.api.domain.model.BunqGrant
 import com.github.zzave.teambalance.api.domain.model.SchemaName
 import com.github.zzave.teambalance.api.domain.port.TenantProvisioningGateway
 import org.slf4j.LoggerFactory
 import org.springframework.boot.ApplicationArguments
-import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.ApplicationRunner
 import org.springframework.core.io.ClassPathResource
@@ -25,8 +24,7 @@ import javax.sql.DataSource
 class DemoTeamSeeder(
     private val tenantProvisioningGateway: TenantProvisioningGateway,
     private val dataSource: DataSource,
-    // The bean name of BunqGrantCipherConfiguration; an adapter may not import from another one.
-    @param:Qualifier("bunqGrantCipher") private val grantCipher: TokenCipher,
+    private val grantSeal: BunqGrantSeal,
     @param:Value("\${teambalance.demo.enabled:false}") private val enabled: Boolean,
 ) : ApplicationRunner {
     private val log = LoggerFactory.getLogger(DemoTeamSeeder::class.java)
@@ -45,7 +43,7 @@ class DemoTeamSeeder(
 
     // The fake Bunq accepts a grant it never issued. The grant is encrypted for the demo team, as MoneyPoolService opens it.
     private fun seedBunqConnection() {
-        val grant = grantCipher.encrypt(SEEDED_GRANT, TokenCipher.aadOf(DemoPersona.TEAM_ID, Purpose.BUNQ_GRANT))
+        val grant = grantSeal.seal(BunqGrant(SEEDED_GRANT), DemoPersona.TEAM_ID)
         JdbcTemplate(dataSource).update(
             """
             INSERT INTO ${DemoPersona.SCHEMA}.bunq_connection (id, bunq_account_id, access_token_encrypted, connected_by, connected_at)

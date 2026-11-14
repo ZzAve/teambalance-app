@@ -6,6 +6,7 @@ import com.bunq.sdk.BUNQ_SANDBOX_OAUTH
 import com.bunq.sdk.BUNQ_SANDBOX_SERVER
 import com.bunq.sdk.BunqServer
 import com.bunq.sdk.OAuthServer
+import com.github.zzave.teambalance.api.application.BunqGrantSeal
 import com.github.zzave.teambalance.api.application.TokenCipher
 import com.github.zzave.teambalance.api.domain.model.BunqAccount
 import com.github.zzave.teambalance.api.domain.model.BunqAccountId
@@ -171,6 +172,7 @@ class RealBunqGatewayAdapter internal constructor(
             properties: BunqClientProperties,
             callProperties: BunqCallProperties,
             contexts: BunqApiContextRepository,
+            grantSeal: BunqGrantSeal,
             contextCipher: TokenCipher,
             currentTeam: CurrentTeamGateway,
             clock: Clock,
@@ -180,6 +182,7 @@ class RealBunqGatewayAdapter internal constructor(
                 apiServerOf(properties.environment),
                 properties.serviceName,
                 contexts,
+                grantSeal,
                 contextCipher,
                 currentTeam,
                 calls,

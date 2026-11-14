@@ -1,6 +1,8 @@
 package com.github.zzave.teambalance.api.infrastructure.config
 
+import com.github.zzave.teambalance.api.application.BunqGrantSeal
 import com.github.zzave.teambalance.api.application.TokenCipher
+import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
@@ -16,6 +18,9 @@ class BunqGrantCipherConfiguration {
     @Bean(BEAN_NAME)
     fun bunqGrantCipher(@Value("\${teambalance.bunq.token-encryption-key}") encodedKey: String) =
         TokenCipher.fromBase64Key(encodedKey, "teambalance.bunq.token-encryption-key")
+
+    @Bean
+    fun bunqGrantSeal(@Qualifier(BEAN_NAME) bunqGrantCipher: TokenCipher) = BunqGrantSeal(bunqGrantCipher)
 
     companion object {
         /** Two TokenCipher beans would make injection by type ambiguous; the name picks this one. */

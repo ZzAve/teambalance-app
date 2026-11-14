@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Check, PlusCircle, Ticket, Users } from 'lucide-react'
+import { Check, Ticket, Users } from 'lucide-react'
 import type { TeamRef } from '@shared/api/teams'
 import { SectionLabel } from '@shared/ui/SectionLabel'
 
@@ -13,8 +13,8 @@ interface TeamsViewProps {
   onSelect: (slug: string) => void
   /** Entry point to the invite-link join flow. */
   onJoin: () => void
-  /** Entry point to the create-team flow. */
-  onCreate: () => void
+  /** The request-a-team card; a slot so this View stays free of network wiring. */
+  requestTeam: ReactNode
 }
 
 function RowButton({
@@ -46,11 +46,11 @@ function RowButton({
 /**
  * The Teams "main view" (ADR-0027 §4): the fuller entry point the Account tab's Teams row opens.
  * Beside switching between your teams it offers the two ways to gain another — join with an invite
- * link, or create a team — mirroring the teamless `/onboarding` hub for a member who already has one.
+ * link, or request a team — mirroring the teamless `/onboarding` hub for a member who already has one.
  *
  * Prop-only and presentational; the route container owns the navigation each callback performs.
  */
-export function TeamsView({ teams, activeTeam, onSelect, onJoin, onCreate }: TeamsViewProps) {
+export function TeamsView({ teams, activeTeam, onSelect, onJoin, requestTeam }: TeamsViewProps) {
   const { t } = useTranslation()
   return (
     // Full column width, like the Account page this is reached from.
@@ -100,14 +100,7 @@ export function TeamsView({ teams, activeTeam, onSelect, onJoin, onCreate }: Tea
             </span>
           </RowButton>
 
-          <RowButton icon={<PlusCircle size={18} />} onClick={onCreate}>
-            <span className="min-w-0">
-              <span className="block text-small font-semibold">{t('onboarding.createTeam')}</span>
-              <span className="block truncate text-caption text-muted-foreground">
-                {t('teams.needCode')}
-              </span>
-            </span>
-          </RowButton>
+          {requestTeam}
         </div>
       </section>
     </div>

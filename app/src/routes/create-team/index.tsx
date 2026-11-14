@@ -1,4 +1,4 @@
-import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router'
+import { createFileRoute, Link, redirect, useNavigate } from '@tanstack/react-router'
 import { useQueryClient } from '@tanstack/react-query'
 import { authMeQueryOptions } from '@shared/api/auth'
 import { LOGIN_PATH } from '@shared/api/auth-redirect'
@@ -15,6 +15,12 @@ export const Route = createFileRoute('/create-team/')({
     const user = await queryClient.ensureQueryData(authMeQueryOptions).catch(() => null)
     if (!user) throw redirect({ to: LOGIN_PATH })
   },
+  // The approved-request mail and card link here with the code and name filled in (ADR-0047).
+  // The router JSON-parses search values, so a name like "2024" arrives as a number: take it as text.
+  validateSearch: (search: Record<string, unknown>): { code?: string; name?: string } => ({
+    code: search.code == null ? undefined : String(search.code),
+    name: search.name == null ? undefined : String(search.name),
+  }),
   component: CreateTeamPage,
 })
 
@@ -23,6 +29,7 @@ function CreateTeamPage() {
   const client = useQueryClient()
   const createTeam = useCreateTeam()
   const { t } = useTranslation()
+  const { code, name } = Route.useSearch()
   const error = createTeam.error instanceof CreateTeamError ? createTeam.error : null
 
   return (
@@ -39,12 +46,9 @@ function CreateTeamPage() {
         <Trans
           i18nKey="createTeam.noCode"
           components={{
-            mail: (
-              <a
-                href="mailto:teams@teambalance.nl?subject=Request%20a%20team%20on%20TeamBalance"
-                className="text-blue underline"
-              />
-            ),
+            // /select-team sends a teamless caller on to /onboarding; both show the request card.
+            // Not `link`: that is a void HTML tag, so i18next would drop the text inside it.
+            request: <Link to="/select-team" className="text-blue underline" />,
           }}
         />
       </p>
@@ -52,6 +56,8 @@ function CreateTeamPage() {
         <CreateTeamForm
           isPending={createTeam.isPending}
           error={error}
+          initialName={name}
+          initialCreationCode={code}
           onSubmit={(values) =>
             createTeam.mutate(values, {
               onSuccess: async (team) => {

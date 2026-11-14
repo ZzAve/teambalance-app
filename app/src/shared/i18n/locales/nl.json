@@ -854,20 +854,18 @@
     "signedInNoTeam": "Je bent ingelogd, maar zit nog niet in een team. Hoe wil je beginnen?",
     "haveInvite": "Ik heb een uitnodiging",
     "sharedLink": "Iemand heeft een uitnodigingslink met je gedeeld",
-    "createTeam": "Maak een team aan",
-    "needCode": "Je hebt een aanmaakcode nodig — teameigenaren krijgen die van ons"
+    "createTeam": "Maak een team aan"
   },
   "teams": {
     "yours": "Jouw teams",
     "joinOrCreate": "Lid worden of aanmaken",
-    "joinWithLink": "Lid worden met een uitnodigingslink",
-    "needCode": "Je hebt een aanmaakcode nodig"
+    "joinWithLink": "Lid worden met een uitnodigingslink"
   },
   "createTeam": {
     "title": "Maak je team aan",
     "intro": "Vul je aanmaakcode in en geef je team een naam — jij wordt de beheerder.",
-    "inviteOnly": "Zolang we nog opstarten kun je alleen op uitnodiging een team beginnen. Heb je een aanmaakcode? Vul hem hieronder in.",
-    "noCode": "Heb je er geen? <mail>Mail naar teams@teambalance.nl</mail>, dan helpen we je op weg.",
+    "inviteOnly": "Je krijgt een aanmaakcode zodra je teamaanvraag is goedgekeurd.",
+    "noCode": "Heb je er geen? <request>Vraag een team aan</request>, dan mailen we je een code.",
     "name": "Teamnaam",
     "namePlaceholder": "bijv. Tovo Heren 4",
     "address": "Teamadres",
@@ -925,6 +923,11 @@
       "removeNotAllowed": "Je mag deze invaller niet verwijderen.",
       "removeFailed": "De invaller is niet verwijderd — probeer het opnieuw.",
       "takeOffFailed": "De invaller is niet afgemeld — probeer het opnieuw."
+    },
+    "teamRequest": {
+      "generic": "Er ging iets mis. Probeer het opnieuw.",
+      "INVALID_NAME": "Vul een teamnaam in van 1 tot 100 tekens.",
+      "INVALID_PURPOSE": "Beschrijf waarvoor je het gebruikt, in 1 tot 1000 tekens."
     }
   },
   "members": {
@@ -1261,5 +1264,39 @@
       "POOL_UNAVAILABLE": "De teampot is nu niet beschikbaar. Probeer het later opnieuw.",
       "FAILED": "Koppelen is mislukt. Probeer het opnieuw."
     }
+  },
+  "requestTeam": {
+    "title": "Vraag een team aan",
+    "intro": "Vertel welk team je wilt starten en waarvoor je het gebruikt. Je krijgt een mail zodra het is goedgekeurd.",
+    "teamName": "Teamnaam",
+    "purpose": "Waarvoor ga je het gebruiken?",
+    "purposePlaceholder": "Bijv. aanwezigheid en de teampot van ons volleybalteam",
+    "submit": "Aanvraag versturen",
+    "submitting": "Versturen…",
+    "pending": "Aanvraag verstuurd voor {{name}}, wacht op goedkeuring.",
+    "approvedHint": "Je aanvraag is goedgekeurd. Je kunt je team nu aanmaken.",
+    "approvedCta": "Goedgekeurd: maak {{name}} aan",
+    "rejected": "Deze keer niet goedgekeurd",
+    "rejectedReason": "Reden: {{reason}}",
+    "askAgain": "Je kunt hieronder een nieuwe aanvraag doen.",
+    "haveCode": "Ik heb al een code",
+    "alreadyPending": "Je hebt al een aanvraag die op goedkeuring wacht."
+  },
+  "teamRequests": {
+    "title": "Teamaanvragen",
+    "loadFailed": "De teamaanvragen konden niet worden geladen. Probeer het opnieuw.",
+    "nonePending": "Geen openstaande aanvragen.",
+    "decided": "Recent beoordeeld",
+    "status": {
+      "PENDING": "Open",
+      "APPROVED": "Goedgekeurd",
+      "REJECTED": "Afgewezen"
+    },
+    "alreadyDecided": "Over deze aanvraag is al besloten.",
+    "reasonLabel": "Reden (optioneel, wordt naar de aanvrager gestuurd)",
+    "confirmReject": "Aanvraag afwijzen",
+    "cancel": "Annuleren",
+    "approve": "Goedkeuren",
+    "reject": "Afwijzen"
   }
 }

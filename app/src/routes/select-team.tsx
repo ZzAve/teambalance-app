@@ -4,6 +4,7 @@ import { teamRoutes } from '@shared/lib/team-routes'
 import { queryClient } from '@shared/api/query-client'
 import { authMeQueryOptions } from '@shared/api/auth'
 import { teamsRouteRedirect } from '@features/switch-team/lib/teams-route-guard'
+import { RequestTeam } from '@features/request-team/ui/RequestTeam'
 import { TeamsView } from '@features/switch-team/ui/TeamsView'
 
 /**
@@ -31,7 +32,7 @@ function SelectTeamPage() {
       activeTeam={user?.activeTeam ?? null}
       onSelect={(slug) => navigate({ to: teamRoutes(slug).events })}
       onJoin={() => navigate({ to: '/onboarding/join' })}
-      onCreate={() => navigate({ to: '/create-team' })}
+      requestTeam={<RequestTeam onOpenCreateTeam={(search) => navigate({ to: '/create-team', search })} />}
     />
   )
 }

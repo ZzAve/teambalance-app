@@ -1,8 +1,10 @@
+import type { ReactNode } from 'react'
 import { Trans, useTranslation } from 'react-i18next'
 
 interface OnboardingHubViewProps {
   onChooseJoin: () => void
-  onChooseCreate: () => void
+  /** The request-a-team card; a slot so this View stays free of network wiring. */
+  requestTeam: ReactNode
   /**
    * They signed in from an Invite Link that had expired or been rotated by the time they clicked it
    * (#342). Naming it is the whole point: the sign-in worked, so without this they would be told only
@@ -14,10 +16,10 @@ interface OnboardingHubViewProps {
 /**
  * Presentational onboarding fork for a signed-in, teamless user — replaces the old hard redirect
  * onto the create-team form. Deliberately not personalized (displayName is an email-derived
- * placeholder for new users). The route container owns navigation to /onboarding/join and
- * /create-team.
+ * placeholder for new users). The route container owns navigation to /onboarding/join; the
+ * request-a-team card (ADR-0047) owns the way on to /create-team.
  */
-export function OnboardingHubView({ onChooseJoin, onChooseCreate, inviteUnavailable }: OnboardingHubViewProps) {
+export function OnboardingHubView({ onChooseJoin, requestTeam, inviteUnavailable }: OnboardingHubViewProps) {
   const { t } = useTranslation()
   return (
     <div className="mx-auto mt-10 max-w-sm text-center">
@@ -43,16 +45,7 @@ export function OnboardingHubView({ onChooseJoin, onChooseCreate, inviteUnavaila
           <span className="mt-1 block text-small text-muted-foreground">{t('onboarding.sharedLink')}</span>
         </button>
 
-        <button
-          type="button"
-          onClick={onChooseCreate}
-          className="rounded-lg border border-border p-4 text-left transition-colors hover:border-blue"
-        >
-          <span className="block font-semibold">{t('onboarding.createTeam')}</span>
-          <span className="mt-1 block text-small text-muted-foreground">
-            {t('onboarding.needCode')}
-          </span>
-        </button>
+        {requestTeam}
       </div>
     </div>
   )

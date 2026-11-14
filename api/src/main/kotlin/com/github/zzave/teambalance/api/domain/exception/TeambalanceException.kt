@@ -24,6 +24,9 @@ sealed class BadRequestException(message: String, val code: String) : Teambalanc
 // Blank or too-long team name → 400 INVALID_NAME (placed on the name field).
 class InvalidTeamNameException(message: String) : BadRequestException(message, "INVALID_NAME")
 
+// Blank or over-long purpose of a team request → 400 INVALID_PURPOSE; an over-long reject reason → 400 INVALID_REASON.
+class InvalidTeamRequestTextException(message: String, code: String) : BadRequestException(message, code)
+
 // A user-supplied slug that fails the format (`^[a-z0-9]+(-[a-z0-9]+)*$`) or the ≤58-char length cap
 // (which keeps `team_` + slug within Postgres' 63-byte identifier limit) → 400 INVALID_SLUG. The slug
 // is validated, not derived (#158): the caller owns the address, so a bad one is their error to fix.
@@ -106,6 +109,9 @@ class NoPersonalPhotoException(userId: UserId) : NotFoundException("User $userId
 // opaque INVALID_CREATION_CODE 403 the redeem path returns: this is an authenticated platform admin
 // managing codes, not a founder probing them, so a plain not-found is appropriate.
 class CreationCodeNotFoundException(code: String) : NotFoundException("Creation code not found: $code")
+
+// A Platform Admin decides a team request that does not exist → 404.
+class TeamRequestNotFoundException(id: UUID) : NotFoundException("Team request not found: $id")
 
 // The caller asked to delete a calendar link that is not theirs, or does not exist. One exception for
 // both: which of the two it is, is exactly what a caller probing other members' link ids would want
@@ -249,6 +255,14 @@ class TeamSlugTakenException(slug: String) :
 // record of a real team's creation, not a pending invite to withdraw. The admin can't un-consume it.
 class CreationCodeConsumedException(code: String) :
     ConflictException("Creation code '$code' has already been consumed", "CREATION_CODE_CONSUMED")
+
+// One pending team request per user (ADR-0047): a second submit while one is open is refused.
+class TeamRequestPendingException :
+    ConflictException("You already have a pending team request", "TEAM_REQUEST_PENDING")
+
+// Only a pending team request can be approved or rejected.
+class TeamRequestNotPendingException(id: UUID) :
+    ConflictException("Team request $id is not pending", "TEAM_REQUEST_NOT_PENDING")
 
 // A Platform Admin is structurally teamless (ADR-0024 §3): a human who both runs the platform and
 // plays holds two separate accounts. Entering act-as while holding any active membership is refused at

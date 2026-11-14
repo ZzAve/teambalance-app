@@ -227,6 +227,11 @@ any-team, self-service (see [ADR-0001](docs/adr/0001-product-ambition-hobby-tool
   create a Team **memberless** — no founding Admin — and hand it over with an Admin-granting
   **Invite Link** ([ADR-0024](docs/adr/0024-platform-admin-act-as.md)).
 
+- **Team Request** — A signed-in user's request for a Team: a team name and what they would use TeamBalance
+  for. One pending per user. A **Platform Admin** approves it, which mints a **creation code** (valid 30
+  days) for the requester, or rejects it with an optional reason
+  ([ADR-0047](docs/adr/0047-team-requests-in-the-app.md)). The code stays the only gate to a tenant schema.
+
 ### Platform & integrations
 
 - **Platform Admin** — A platform-level identity that operates *across* Teams: mints creation

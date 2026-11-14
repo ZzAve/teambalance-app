@@ -63,21 +63,23 @@ export interface CreateTeamInput {
 
 // The server makes the new Team Active (ADR-0023 §4), so success resets the cache here; navigation
 // stays in the route container per #158. This hook otherwise only performs the request and normalises failures.
+export const createTeamMutationOptions = {
+  onSuccess: resetCacheForNewTenant,
+  mutationFn: async ({ name, slug, creationCode }: CreateTeamInput) => {
+    // The page's language, for the team-created email when the founder has stored none (ADR-0043 §4).
+    const language = i18n.language === 'nl' ? 'NL' : 'EN'
+    const res = await api.createTeam({ body: { name, slug, creationCode, language } }).catch(() => {
+      // A fetch/network failure never reaches a status — surface it as a retry-safe banner.
+      throw new CreateTeamError('GENERIC', i18n.t('errors.createTeam.generic'))
+    })
+    if (res.status === 201) return res.body
+    const code = (res.body as { code?: string } | undefined)?.code
+    throw toCreateTeamError(res.status, code)
+  },
+}
+
 export function useCreateTeam() {
-  return useMutation({
-    onSuccess: resetCacheForNewTenant,
-    mutationFn: async ({ name, slug, creationCode }: CreateTeamInput) => {
-      // The page's language, for the team-created email when the founder has stored none (ADR-0043 §4).
-      const language = i18n.language === 'nl' ? 'NL' : 'EN'
-      const res = await api.createTeam({ body: { name, slug, creationCode, language } }).catch(() => {
-        // A fetch/network failure never reaches a status — surface it as a retry-safe banner.
-        throw new CreateTeamError('GENERIC', i18n.t('errors.createTeam.generic'))
-      })
-      if (res.status === 201) return res.body
-      const code = (res.body as { code?: string } | undefined)?.code
-      throw toCreateTeamError(res.status, code)
-    },
-  })
+  return useMutation(createTeamMutationOptions)
 }
 
 export interface CreateMemberlessTeamInput {

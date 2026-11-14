@@ -18,7 +18,7 @@ interface ClaimPaymentViewProps {
   /** The viewer's id, claimed for in the member variant. */
   userId: string
   members?: { userId: string; displayName: string }[]
-  /** The payment's name as the pool shows it, and its amount as formatted there. */
+  /** The payment's name as the pool shows it, and its amount already formatted. */
   name: string
   amount: string
   isSaving?: boolean

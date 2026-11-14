@@ -3,12 +3,12 @@ import { client } from './generated/Client'
 import { redirectToLogin, shouldRedirectToLogin } from './auth-redirect'
 import { isActAsExpired, returnToConsole } from './act-as-redirect'
 import { csrfHeaders } from './csrf'
-import { ApiError } from './api-error'
+import { ApiError, codeOf } from './api-error'
 
 // Best-effort read of the `code` discriminator from an error body (GlobalExceptionHandler).
 const errorCode = (body: string): string | undefined => {
   try {
-    return JSON.parse(body)?.code
+    return codeOf(JSON.parse(body))
   } catch {
     return undefined
   }

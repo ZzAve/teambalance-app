@@ -15,11 +15,10 @@ export class CreationCodeError extends ApiError {
   }
 }
 
-// A 403 throws FORBIDDEN so the container renders the no-access shell; retry is off since it can't help.
+// A 403 throws FORBIDDEN so the container renders the no-access shell.
 export function useCreationCodes() {
   return useQuery({
     queryKey: ['creation-codes'],
-    retry: false,
     queryFn: async () => {
       const res = await api.listCreationCodes()
       if (res.status === 403) throw new CreationCodeError('FORBIDDEN', 'You do not have access to creation codes.', res.status)

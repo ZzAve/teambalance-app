@@ -26,6 +26,6 @@ export function topUpUrlOf(response: { status: number; body?: unknown }): string
   if (response.status === 404) throw new TopUpUnavailableError()
   if (response.status !== 200) throw apiErrorOf(response, `Top-up link failed with status ${response.status}`)
   const url = (response.body as { url?: unknown } | undefined)?.url
-  if (typeof url !== 'string' || !url.startsWith(BUNQ_ME_PREFIX)) throw apiErrorOf(response, 'Top-up link is not a bunq.me page')
+  if (typeof url !== 'string' || !url.startsWith(BUNQ_ME_PREFIX)) throw new Error('Top-up link is not a bunq.me page')
   return url
 }

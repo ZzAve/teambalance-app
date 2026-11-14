@@ -14,8 +14,13 @@ export class ApiError extends Error {
   }
 }
 
-/** The error for a non-success response. `code` is the `{ code }` of the body, as GlobalExceptionHandler sends it. */
+/** The `{ code }` of an error body, as GlobalExceptionHandler sends it, when it is a string. */
+export function codeOf(body: unknown): string | undefined {
+  const code = (body as { code?: unknown } | null | undefined)?.code
+  return typeof code === 'string' ? code : undefined
+}
+
+/** The error for a non-success response. */
 export function apiErrorOf(res: { status: number; body?: unknown }, message?: string): ApiError {
-  const code = (res.body as { code?: unknown } | null | undefined)?.code
-  return new ApiError(res.status, typeof code === 'string' ? code : undefined, message)
+  return new ApiError(res.status, codeOf(res.body), message)
 }

@@ -38,7 +38,7 @@ export function bunqAuthorizeUrlOf(response: { status: number; body?: unknown })
   if (response.status === 403 || response.status === 404) throw new BunqConnectUnavailableError(response.status)
   if (response.status !== 201) throw apiErrorOf(response, `Starting the Bunq connection failed with status ${response.status}`)
   const url = (response.body as { url?: unknown } | undefined)?.url
-  if (typeof url !== 'string' || !/^https?:\/\//.test(url)) throw apiErrorOf(response, 'Bunq connection url is not a web address')
+  if (typeof url !== 'string' || !/^https?:\/\//.test(url)) throw new Error('Bunq connection url is not a web address')
   return url
 }
 

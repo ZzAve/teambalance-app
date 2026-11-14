@@ -18,8 +18,7 @@ export type CreateTeamErrorCode =
   | 'INVALID_NAME'
   | 'GENERIC'
 
-// `status` is the HTTP status of the response that failed. A failure with no response (a network reject)
-// has none, so the shared retry policy still retries it.
+// `status` is the HTTP status of the response that failed; a failure with no response (a network reject) has none.
 export class CreateTeamError extends Error {
   constructor(
     public readonly code: CreateTeamErrorCode,
